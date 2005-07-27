@@ -91,19 +91,19 @@ LoopWNodes::LoopWNodes(const Loop& l)
     }
 
     // make tip2 farther from the base
-    if ( tips(1)->node->levelA() > tips(2)->node->levelA() ) {
+    if ( tips(1)->node->getLevel() > tips(2)->node->getLevel() ) {
         IVMAtom* tmp = tips(1);
         tips(1) = tips(2);
         tips(2) = tmp;
     }
     HingeNode* node1 = tips(1)->node;
     HingeNode* node2 = tips(2)->node;
-    while ( node2->levelA() > node1->levelA() ) {
+    while ( node2->getLevel() > node1->getLevel() ) {
         nodes(2).append(node2);
-        node2 = node2->parentA();
+        node2 = node2->getParent();
     }
     while ( node1 != node2 ) {
-        if ( node1->levelA() == 0 ) {
+        if ( node1->isOriginNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
                  << "loop between atoms " << tips(1)->index << " and " 
                  << tips(2)->index << "\n";
@@ -111,8 +111,8 @@ LoopWNodes::LoopWNodes(const Loop& l)
         }
         nodes(1).append(node1);
         nodes(2).append(node2);
-        node1 = node1->parentA();
-        node2 = node2->parentA();
+        node1 = node1->getParent();
+        node2 = node2->getParent();
     }
     // nodes(1).append(node1);
     base = node1;
@@ -122,10 +122,10 @@ LoopWNodes::LoopWNodes(const Loop& l)
 
     // find molecule node (level==1 node)
     for (moleculeNode=base; 
-         moleculeNode->levelA()>1 ; 
-         moleculeNode=moleculeNode->parentA()) ;
+         moleculeNode->getLevel()>1 ; 
+         moleculeNode=moleculeNode->getParent()) ;
 
-    if ( moleculeNode->levelA()<1 ) {
+    if ( moleculeNode->getLevel()<1 ) {
         cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
              << "loop between atoms " << tips(1)->index << " and " 
              << tips(2)->index << "\n";
@@ -254,9 +254,9 @@ static int
 compareLevel(const LoopWNodes& l1,
              const LoopWNodes& l2) 
 { 
-    if ( l1.base->levelA() > l2.base->levelA() ) 
+    if ( l1.base->getLevel() > l2.base->getLevel() ) 
        return 1;
-    else if ( l1.base->levelA() < l2.base->levelA() )
+    else if ( l1.base->getLevel() < l2.base->getLevel() )
         return -1;
     else 
         return 0;
@@ -641,7 +641,7 @@ LengthSet::calcGrad() const
                 phiT(b)[phiT(b).size()-1].setDiag(1.0);
                 for (int j=l.nodes(b).size()-2 ; j>=0 ; j-- ) {
                     HingeNode* n = l.nodes(b)[j+1];
-                    phiT(b)[j] = phiT(b)[j+1] * transpose( n->phiA() );
+                    phiT(b)[j] = phiT(b)[j+1] * transpose( n->getPhi() );
                 }
             }
         }
@@ -650,7 +650,7 @@ LengthSet::calcGrad() const
         FixedVector<FixedMatrix<double,3,6>,2,1> J;
         for (l_int b=1 ; b<=2 ; b++)
             J(b) = blockMat12(-crossMat(l.tips(b)->pos -
-                              l.tips(b)->node->atomsA(0)->pos),one);
+                              l.tips(b)->node->getAtom(0)->pos),one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
             RMat H = MatrixTools::transpose(nodeMap[j]->getH());
@@ -810,9 +810,9 @@ static Vec3
 getAccel(const IVMAtom* a)
 {
     const HingeNode* n = a->node;
-    Vec3 ret( SubVec6(n->sAccA(),3,3).vector() );
-    ret += cross( SubVec6(n->sAccA(),0,3).vector() , a->pos - n->atomsA(0)->pos );
-    ret += cross( SubVec6(n->sVelA(),0,3).vector() , a->vel - n->atomsA(0)->vel );
+    Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
+    ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
+    ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
     return ret;
 }
 
@@ -830,50 +830,50 @@ computeA(const Vec3& v1,
     Mat3 one(0.); one.setDiag(1.);
     double ret=0.0;;
     if (n1 == n2)
-        ret = dot(v1 , blockMat12(crossMat(n1->atomsA(0)->pos - a1->pos),one)
-                       * a1->node->YA()
-                       * blockMat21(crossMat(a2->pos - n2->atomsA(0)->pos),one)
+        ret = dot(v1 , blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one)
+                       * a1->node->getY()
+                       * blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one)
                        * v2);
     else {
-        Vec6 t1 = v1 * blockMat12(crossMat(-a1->pos + n1->atomsA(0)->pos),one);
-        Vec6 t2 = blockMat21(crossMat( a2->pos - n2->atomsA(0)->pos),one) * v2;
+        Vec6 t1 = v1 * blockMat12(crossMat(-a1->pos + n1->getAtom(0)->pos),one);
+        Vec6 t2 = blockMat21(crossMat( a2->pos - n2->getAtom(0)->pos),one) * v2;
 
-        while ( n1->levelA() > n2->levelA() ) {
-            t1 = t1 * n1->psiTA();
-            n1 = n1->parentA();
+        while ( n1->getLevel() > n2->getLevel() ) {
+            t1 = t1 * n1->getPsiT();
+            n1 = n1->getParent();
         }
-        while ( n2->levelA() > n1->levelA() ) {
-            t2 = MatrixTools::transpose(n2->psiTA()) * t2;
-            n2 = n2->parentA();
+        while ( n2->getLevel() > n1->getLevel() ) {
+            t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+            n2 = n2->getParent();
         }
 
         while ( n1 != n2 ) {
-            if (n1->levelA() == 0 || n2->levelA() == 0  ) {
-                t1.set(0.);  //not in same branch
+            if (n1->isOriginNode() || n2->isOriginNode()  ) {
+                t1.set(0.);  //not in same branch (or same tree -- sherm)
                 t2.set(0.);
                 cout << "computeA: cycles wasted calculating missed branch: "
                      << a1 << " <-> " << a2 << '\n';
                 ret = 0.;
                 break;
             }
-            t1 = t1 * n1->psiTA();
-            t2 = MatrixTools::transpose(n2->psiTA()) * t2;
-            n1 = n1->parentA();
-            n2 = n2->parentA();
+            t1 = t1 * n1->getPsiT();
+            t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+            n1 = n1->getParent();
+            n2 = n2->getParent();
         }
 
-        ret = t1 * n1->YA() * t2;
+        ret = t1 * n1->getY() * t2;
 
 //   const HingeNode* nl = n1->levelA()<n2->levelA() ? n1 : n2;
 //   const HingeNode* ng = n1->levelA()>n2->levelA() ? n1 : n2;
 //   Vec6 tmp;
 //   if (ng == n1) 
-//     tmp =  v1 * blockMat12(crossMat(n1->atomsA(0)->pos - a1->pos),one);
+//     tmp =  v1 * blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one);
 //   else
-//     tmp =  v2 * blockMat12(crossMat(n2->atomsA(0)->pos - a2->pos),one);
-//   tmp = tmp * ng->psiTA();
+//     tmp =  v2 * blockMat12(crossMat(n2->getAtom(0)->pos - a2->pos),one);
+//   tmp = tmp * ng->getPsiT();
 //   for (const HingeNode* n=ng->parentA() ; n!=baseNode ; n=n->parentA()) {
-//     tmp = tmp * n->psiTA();
+//     tmp = tmp * n->getPsiT();
 //     if (n->levelA() < baseNode->levelA()) {
 //     tmp.set(0.);  //not in same branch
 //     cout << "computeA: cycles wasted calculating missed branch: "
@@ -885,10 +885,10 @@ computeA(const Vec3& v1,
 //   tmp = tmp * nl->YA();
 //   if (ng == n1) 
 //     ret = dot(tmp ,
-//         blockMat21(crossMat(a2->pos - n2->atomsA(0)->pos),one) * v2);
+//         blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one) * v2);
 //   else
 //     ret = dot(tmp ,
-//         blockMat21(crossMat(a1->pos - n1->atomsA(0)->pos),one) * v1);
+//         blockMat21(crossMat(a1->pos - n1->getAtom(0)->pos),one) * v1);
 
     }
 

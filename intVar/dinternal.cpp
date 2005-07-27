@@ -100,8 +100,8 @@ AT_Build::AT_Build( IVM*            ivm,
 static int
 getIDim(const HingeNode* n) {
     int ret = n->getDim();
-    for (int i=0 ; n->childrenA(i) ; i++)
-        ret += getIDim( n->childrenA(i) );
+    for (int i=0 ; n->getChild(i) ; i++)
+        ret += getIDim( n->getChild(i) );
     return ret;
 }
 
@@ -669,43 +669,43 @@ IVM::groupTorsion(const HingeNode* n) {
     const IVMAtom* a;
 
     //fixed atoms
-    if ( n->levelA()==0 ) {
-        if ( n->atomsA(1) ) 
-            for (int i=0 ; ( a=n->atomsA(i) ) ; i++)
+    if ( n->isOriginNode() ) {
+        if ( n->getAtom(1) ) 
+            for (int i=0 ; ( a=n->getAtom(i) ) ; i++)
                 if ( a->index>=0 )
                     aList.append( a->index );
 
         const HingeNode* c;
-        for (int i=0 ; ( c=n->childrenA(i) ) ; i++) { 
-            if ( c->childrenA(0) || c->atomsA(1) )     
+        for (int i=0 ; ( c=n->getChild(i) ) ; i++) { 
+            if ( c->getChild(0) || c->getAtom(1) )     
                 //has children or contains more than one atom
                 groupTorsion( c );       
             else
-                if (c->parentAtom->index!=0 && c->atomsA(0)->index>=0)
+                if (c->parentAtom->index!=0 && c->getAtom(0)->index>=0)
                     //one atom, no children and not free atom : group
-                    aList.append( c->atomsA(0)->index );
+                    aList.append( c->getAtom(0)->index );
         }
     } else { //not origin node
         //base node w/ 1 or 2 atoms- w/ no bond to base and one or fewer children
-        if ( n->levelA()==1 && !n->atomsA(2) &&
-             n->parentAtom->index==0 && !n->childrenA(1) )
+        if ( n->isBaseNode() && !n->getAtom(2) &&
+             n->parentAtom->index==0 && !n->getChild(1) )
         { 
-            if ( n->atomsA(1) || n->childrenA(0) )
-                for (int i=0 ; ( a=n->atomsA(i) ) ; i++)
+            if ( n->getAtom(1) || n->getChild(0) )
+                for (int i=0 ; ( a=n->getAtom(i) ) ; i++)
                     if ( a->index>=0 )
                         aList.append( a->index );
-            n = n->childrenA(0);
+            n = n->getChild(0);
         }
 
         if (n) {
             const HingeNode* c;
-            for (int i=0 ; ( c=n->childrenA(i) ) ; i++) {
-                if ( c->childrenA(0) || c->atomsA(1) ) {    
+            for (int i=0 ; ( c=n->getChild(i) ) ; i++) {
+                if ( c->getChild(0) || c->getAtom(1) ) {    
                     //has children or contains more than one atom
                     groupTorsion( c );       
                 } else {
                     //no children: group
-                    for (int j=0 ; ( a=c->atomsA(j) ) ; j++)
+                    for (int j=0 ; ( a=c->getAtom(j) ) ; j++)
                         if ( a->index>=0 ) {
                             bool add = 1;
                             for (int k=0 ; k<hingeList.size() ; k++)
@@ -721,8 +721,8 @@ IVM::groupTorsion(const HingeNode* n) {
                 }
             }
 
-            if ( aList.size() || n->atomsA(1) )
-                for (int i=0 ; ( a=n->atomsA(i) ) ; i++)
+            if ( aList.size() || n->getAtom(1) )
+                for (int i=0 ; ( a=n->getAtom(i) ) ; i++)
                     if ( a->index>=0 )
                         aList.append( a->index );
         }
@@ -826,7 +826,7 @@ IVM::resetCM()
 
     // exit if there are any fixed atoms: in this case, 
     //  removing CM velocity will change relative (internal) velocities
-    if ( tree()->nodeTree[0][0]->atomsA(1) ) return;
+    if ( tree()->nodeTree[0][0]->getAtom(1) ) return;
 
     static AtomList nodes; //to contain mass, posCM, velCM of each node
     nodes.resize(0);
@@ -835,9 +835,9 @@ IVM::resetCM()
             const HingeNode* n = tree()->nodeTree[i][j];
             IVMAtom *a = new IVMAtom( nodes.size() , n->mass() );
             a->pos = n->posCM();
-            a->vel = Vec3( ConstRSubVec6(n->sVelA(),3,3).vector() )
-                     - cross( ConstRSubVec6(n->sVelA(),0,3).vector() , 
-                              n->atomsA(0)->pos - n->posCM() ); 
+            a->vel = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
+                     - cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
+                              n->getAtom(0)->pos - n->posCM() ); 
             nodes.append( a );
         }
 
@@ -882,9 +882,9 @@ IVM::resetCM()
 
     for ( l_int i=0 ; i<tree()->nodeTree[1].size() ; i++ ) {
         HingeNode* n = tree()->nodeTree[1][i];
-        Vec6 sVel = n->sVelA() - blockVec(omega, 
+        Vec6 sVel = n->getSpatialVel() - blockVec(omega, 
                                           cross( omega , 
-                                                 n->atomsA(0)->pos-posCM) + velCM);
+                                                 n->getAtom(0)->pos-posCM) + velCM);
         n->setVelFromSVel(sVel);
     }
     integrator()->setPos( tree()->getPos() );
@@ -898,9 +898,9 @@ IVM::resetCM()
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
                 const HingeNode* n = tree()->nodeTree[i][j];
-                Vec3 vCM = Vec3( ConstRSubVec6(n->sVelA(),3,3).vector() )
-                                 - cross( ConstRSubVec6(n->sVelA(),0,3).vector() , 
-                                          n->atomsA(0)->pos - n->posCM() ); 
+                Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
+                                 - cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
+                                          n->getAtom(0)->pos - n->posCM() ); 
                 velCM += n->mass() * vCM;
             }
         velCM /= mass;
@@ -909,9 +909,9 @@ IVM::resetCM()
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
                 const HingeNode* n = tree()->nodeTree[i][j];
-                Vec3 vCM = Vec3( ConstRSubVec6(n->sVelA(),3,3).vector() ) - 
-                                cross( ConstRSubVec6(n->sVelA(),0,3).vector() , 
-                                        n->atomsA(0)->pos - n->posCM() ); 
+                Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() ) - 
+                                cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
+                                        n->getAtom(0)->pos - n->posCM() ); 
                 L += n->mass() * cross( n->posCM() - posCM , vCM - velCM );
             }
         cout << "resetCM: after reset: velCM: " << velCM << "overall AM: " << L << '\n';
@@ -1067,11 +1067,11 @@ AtomTree::propagateSVel()
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
             HingeNode* n = nodeTree[i][j];
             Vec6 sVel(0.0);
-            for (int k=0 ; n->atomsA(k) ; k++)
-                sVel += n->atomsA(k)->mass
-                        * blockVec( cross(n->atomsA(k)->pos - n->atomsA(0)->pos,
-                                          n->atomsA(k)->vel) ,
-                                    n->atomsA(k)->vel );
+            for (int k=0 ; n->getAtom(k) ; k++)
+                sVel += n->getAtom(k)->mass
+                        * blockVec( cross(n->getAtom(k)->pos - n->getAtom(0)->pos,
+                                          n->getAtom(k)->vel) ,
+                                    n->getAtom(k)->vel );
             nodeTree[i][j]->propagateSVel( sVel );
         }
 }

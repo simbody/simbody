@@ -332,8 +332,8 @@ PublicIVM::nodeList()
             pn.setStartIndex( n->offset()-1 ); //offsets differ
             pn.setType( n->type() );
             CDSList<int> tmpAtoms;
-            for (int i=0 ; n->atomsA(i) ; i++)
-                tmpAtoms.append( toAtomIndex(sim, n->atomsA(i)));
+            for (int i=0 ; n->getAtom(i) ; i++)
+                tmpAtoms.append( toAtomIndex(sim, n->getAtom(i)));
             pn.setAtoms( tmpAtoms );
             if ( n->parentAtom )
                 pn.setParentAtom( toAtomIndex(sim,  n->parentAtom ) );

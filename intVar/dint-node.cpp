@@ -77,15 +77,32 @@ template<int dof>
 class HingeNodeSpec : public HingeNode {
 protected:
     int           offset_;  //index into internal coord pos,vel,acc arrays
+
+    // These are the body properties
+
     double        mass_;
     InertiaTensor inertia;
     Mat6          Mk;
     Vec3          posCM_;
     Vec6          a;        //coriolis acceleration
-
     //gyroscopic spatial force
     Vec6 forceCartesian;
     Vec6 b;
+
+    // Atom stations. These are vectors from this body's origin point to each of
+    // the atoms, expressed in the body frame. These are fixed after construction;
+    // they are not state dependent.
+    const CDSVector<Vec3,1> atomStations_B;
+
+    // Reference configuration. This is the body frame origin location, measured
+    // in its parent's frame in the reference configuration. This vector is fixed
+    // after construction! The body origin can of course move relative to its
+    // parent, but that is not the meaning of this reference configuration vector.
+    // (Note however that the body origin is also the location of the inboard joint, 
+    // meaning that the origin point moves relative to the parent only due to translations.)
+    const Vec3 refOrigin_P;
+
+    // These are the joint properties
 
     FixedVector<double,dof>     theta;   //internal coordinate
     FixedVector<double,dof>     dTheta;  //internal coordinate time derivatives
@@ -100,13 +117,22 @@ protected:
     void calcProps();
 public: 
     HingeNodeSpec(const HingeNode* node, int& cnt)
-        : HingeNode(*node), offset_(cnt),
-          mass_(0), inertia(), Mk(0.), posCM_(0.),
-          a(0.), forceCartesian(0.), b(0.), theta(0.),
-          dTheta(0.), forceInternal(0.0) 
+      : HingeNode(*node), offset_(cnt),
+        mass_(0), inertia(), Mk(0.), posCM_(0.),
+        a(0.), forceCartesian(0.), b(0.),
+        atomStations_B(atoms.size()-1),
+        refOrigin_P(atoms[0]->pos - parent->getAtom(0)->pos),
+        theta(0.), dTheta(0.), forceInternal(0.0) 
     { 
-        cnt+=dof;
-        for (int i=0 ; i<atoms.size() ; i++) atoms[i]->node = this; 
+        cnt+=dof;   // leave room for this node's state variables
+
+        for (int i=0 ; i<atoms.size() ; i++)
+            atoms[i]->node = this; 
+
+        // drop constness just for a moment here in the constructor ...
+        CDSVector<Vec3,1>& mutableAtomStations_B = *const_cast<CDSVector<Vec3,1>*>(&atomStations_B);
+        for (int i=1 ; i<atoms.size() ; i++)
+            mutableAtomStations_B(i) = atoms[i]->pos - atoms[0]->pos;
     }
 
     virtual ~HingeNodeSpec() {}
@@ -155,37 +181,35 @@ typedef SubVector<Vec4>       RSubVec4;
 typedef SubVector<Vec5>       RSubVec5;
 typedef SubVector<Vec6>       RSubVec6;
 
+/**
+ * Translate (Cartesian) joint. This provides three degrees of translational freedom
+ * which is suitable (e.g.) for connecting a free atom to ground.
+ */
 class HNodeTranslate : public HingeNodeSpec<3> {
-    IVMAtom* atom;
-    Vec3 pos0;
-    CDSVector<Vec3,1> atoms0; // initial atom positions- relative to atom[0]
 public:
     virtual const char* type() { return "translate"; }
 
-    HNodeTranslate(const HingeNode* node, IVMAtom* atom, int& cnt)
-        : HingeNodeSpec<3>(node,cnt), atom(atom), atoms0(atoms.size()-1)
+    HNodeTranslate(const HingeNode* node, int& cnt)
+      : HingeNodeSpec<3>(node,cnt)
     {
-        pos0 = atoms[0]->pos - parent->atomsA(0)->pos;
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms0(i) = atoms[i]->pos - atoms[0]->pos;
         theta = Vec3(0.);
     }
 
     void calcH() {
         using MatrixTools::transpose;
         Mat3 zMat(0.0);
-        H = blockMat12(zMat,transpose(parent->rotMatA()));
+        H = blockMat12(zMat,transpose(getR_GP()));
     }
 
     void toCartesian() { 
-        rotMat = parent->rotMatA();
-        atoms[0]->pos = parent->atomsA(0)->pos
-                        + parent->rotMatA() * (pos0 + theta);
+        R_GB = getR_GP();   // translate joint can't change orientation
+        atoms[0]->pos = parent->getAtom(0)->pos
+                        + getR_GP() * (refOrigin_P + theta);
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos =  atoms[0]->pos + rotMat * atoms0(i);
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+            atoms[i]->pos =  atoms[0]->pos + R_GB * atomStations_B(i);
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
-        sVel = transpose(phi) * parent->sVelA()
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -196,6 +220,10 @@ public:
     }
 };
 
+/**
+ * Free joint. This is a six degree of freedom joint providing unrestricted 
+ * translation and rotation for a free rigid body.
+ */
 class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
     Vec4 q; //Euler parameters for rotation relative to parent
     Vec4 dq;
@@ -206,16 +234,15 @@ class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
     double cPhi, sPhi;        //trig functions of Euler angles
     double cPsi, sPsi;        //used for minimizations
     double cTheta, sTheta;
-    bool   useEuler;          //if False, use Quaternion rep.
+    bool   useEuler;          //if false, use Quaternion rep.
 public:
     virtual const char* type() { return "full"; }
 
     HNodeTranslateRotate3(const HingeNode* node,
-                          IVMAtom*         atom,
                           int&             cnt,
                           bool             useEuler)
       : HingeNodeSpec<6>(node,cnt), q(1.0,0.0,0.0,0.0),
-        dq(0.), pos0(atoms[0]->pos - parent->atomsA(0)->pos),
+        dq(0.), pos0(atoms[0]->pos - parent->getAtom(0)->pos),
         atoms0(atoms.size()-1), useEuler(useEuler)
     { 
         if ( !useEuler )
@@ -223,19 +250,23 @@ public:
 
         // Add center of mass "atom" (station) if node is not attached to
         // the origin (ground) node.
-        if (level==1 &&  atoms[0]->mass != 0.0) {
+        if (isBaseNode() &&  atoms[0]->mass != 0.0) {
+
             bool bound = false;
             for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
-                if (atoms[0]->bonds[i]->node->levelA() == 0)
+                if (atoms[0]->bonds[i]->node->isOriginNode())
                     bound = true;
+
             if ( !bound ) {
+                //cout << "ADDING DUMMY ATOM FOR FREE JOINT" << endl;
+
                 IVMAtom* a = new IVMAtom(-1,0.0);
                 cmAtom.reset(a);
                 a->pos = AtomTree::findCM( this );
                 a->node = this;
                 atoms.prepend(a);
                 atoms0.resize(atoms.size()-1);
-                pos0 = a->pos - parent->atomsA(0)->pos;
+                pos0 = a->pos - parent->getAtom(0)->pos;
             }
         }
 
@@ -244,9 +275,9 @@ public:
     }
 
     void calcRot() {
-        Mat3 A;  //the internal rotation matrix
+        Mat3 R_PB;  // rotation matrix expressing body frame in parent's frame
         if (useEuler) {
-            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
+            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' body-fixed angles 
             cPhi   = cos( theta(0) *DEG2RAD );
             sPhi   = sin( theta(0) *DEG2RAD );
             cTheta = cos( theta(1) *DEG2RAD );
@@ -258,7 +289,7 @@ public:
                 { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-            A = Mat3(a);
+            R_PB = Mat3(a);
         } else {
             double a[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
@@ -267,9 +298,9 @@ public:
                                            sq(q(2))-sq(q(3)))    , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            A = Mat3(a);
+            R_PB = Mat3(a);
         }
-        rotMat = parent->rotMatA() * A; //the spatial rotation matrix
+        R_GB = getR_GP() * R_PB; // the spatial rotation matrix expressing body frame B in ground
     }
 
     void enforceConstraints(RVec& posv, RVec& velv) {
@@ -289,8 +320,8 @@ public:
         //   calcRot(); //FIX: does this need to be calculated here?
         using MatrixTools::transpose;
         Mat3 zMat(0.0);
-        H = blockMat22( transpose(parent->rotMatA()) , zMat,
-                        zMat , transpose(parent->rotMatA()));
+        H = blockMat22( transpose(getR_GP()) , zMat,
+                        zMat , transpose(getR_GP()));
     }
 
     // called after calcAccel
@@ -365,7 +396,7 @@ public:
         RSubVec6(dTheta,0,3) = ( 2.0*( M * dq ) ).vector();
         RSubVec6(dTheta,3,3) = ConstRSubVec(velv,offset_+4,3).vector();
 
-        sVel = transpose(phi) * parent->sVelA() + 
+        sVel = transpose(phi) * parent->getSpatialVel() + 
         MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -404,18 +435,18 @@ public:
     }
    
     void toCartesian() { 
-        atoms[0]->pos = parent->atomsA(0)->pos
-                        + parent->rotMatA() * (pos0 + 
+        atoms[0]->pos = parent->getAtom(0)->pos
+                        + getR_GP() * (pos0 + 
                                 Vec3(RSubVec6(theta,3,3).vector()));
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + rotMat * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atoms0(i);
 
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
         if ( !useEuler ) {
             // update vel using recursive formula
-            sVel = transpose(phi) * parent->sVelA()
+            sVel = transpose(phi) * parent->getSpatialVel()
                    + MatrixTools::transpose(H) * dTheta;
             atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -438,6 +469,10 @@ public:
     }
 };
 
+/**
+ * Ball joint. This provides three degrees of rotational freedom, i.e.,
+ * unrestricted orientation.
+ */
 class HNodeRotate3 : public HingeNodeSpec<3> {
     Vec4    q; //Euler parameters for rotation relative to parent
     Vec4    dq;
@@ -454,12 +489,11 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     HNodeRotate3(const HingeNode* node,
-                  IVMAtom*        atom,
                   int&            cnt,
                   bool            useEuler)
       : HingeNodeSpec<3>(node,cnt), 
         q(1.0,0.0,0.0,0.0),
-        pos0(atoms[0]->pos - parent->atomsA(0)->pos), atoms0(atoms.size()-1),
+        pos0(atoms[0]->pos - parent->getAtom(0)->pos), atoms0(atoms.size()-1),
         useEuler(useEuler)
     { 
         if ( !useEuler )
@@ -467,11 +501,13 @@ public:
 
         // add center of mass atom if nodes is not attached to origin
 
-        if (level==1 && atoms[0]->mass != 0.0) {
+        if (isBaseNode() && atoms[0]->mass != 0.0) {
+
             bool bound = false;
             for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
-                if (atoms[0]->bonds[i]->node->levelA() == 0)
+                if (atoms[0]->bonds[i]->node->isOriginNode())
                     bound = true;
+
             if ( !bound ) {
                 IVMAtom* a = new IVMAtom(-1,0.0);
                 cmAtom.reset(a);
@@ -479,7 +515,7 @@ public:
                 a->node = this;
                 atoms.prepend(a);
                 atoms0.resize(atoms.size()-1);
-                pos0 = a->pos - parent->atomsA(0)->pos;
+                pos0 = a->pos - parent->getAtom(0)->pos;
             }
         }
 
@@ -488,7 +524,7 @@ public:
     }
 
     void calcRot() {
-        Mat3 A;  //the internal rotation matrix
+        Mat3 R_PB;  // rotation matrix expressing body frame in parent's frame
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
             cPhi   = cos( theta(0) *DEG2RAD );
@@ -497,12 +533,14 @@ public:
             sTheta = sin( theta(1) *DEG2RAD );
             cPsi   = cos( theta(2) *DEG2RAD );
             sPsi   = sin( theta(2) *DEG2RAD );
-
+            
+            // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
+            // of Spacecraft Dynamics.
             double a[] = 
                 { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-            A = Mat3(a);
+            R_PB = Mat3(a);
         } else {
             double a[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
@@ -511,9 +549,9 @@ public:
                                           sq(q(2))-sq(q(3)))     , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            A = Mat3(a);
+            R_PB = Mat3(a);
         }
-        rotMat = parent->rotMatA() * A; //the spatial rotation matrix
+        R_GB = getR_GP() * R_PB; // R_GB = R_GP*R_PB, the spatial rotation matrix
     }
 
     void enforceConstraints(RVec& posv, RVec& velv) {
@@ -533,8 +571,8 @@ public:
         //   calcRot(); //FIX: does this need to be calculated here?
         using MatrixTools::transpose;
         Mat3 zMat(0.0);
-        H = blockMat12(transpose(parent->rotMatA()) , 
-                       zMat                         );
+        H = blockMat12(transpose(getR_GP()) , 
+                       zMat);
     }
 
     void getAccel(RVec& v) {
@@ -604,13 +642,13 @@ public:
         FixedMatrix<double,3,4> M(a2);
         dTheta = 2.0*( M * dq );
 
-        sVel = transpose(phi) * parent->sVelA()
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
         for (int i=1 ; i<atoms.size() ; i++)
             atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos-atoms[0]->pos );
+                                                   atoms[i]->pos - atoms[0]->pos );
     } 
 
     void setVelFromSVel(const Vec6& sVel) {
@@ -639,18 +677,18 @@ public:
     }
    
     void toCartesian() { 
-        atoms[0]->pos = parent->atomsA(0)->pos
-                        + parent->rotMatA() * pos0;
+        atoms[0]->pos = parent->getAtom(0)->pos
+                        + getR_GP() * pos0;
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + rotMat * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atoms0(i);
 
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
         if ( !useEuler ) {
             // update vel using recursive formula
-            sVel = transpose(phi) * parent->sVelA() + 
-            MatrixTools::transpose(H) * dTheta;
+            sVel = transpose(phi) * parent->getSpatialVel()
+                    + MatrixTools::transpose(H) * dTheta;
             atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
             for (l_int i=1 ; i<atoms.size() ; i++)
@@ -672,14 +710,12 @@ public:
     }
 };
 
-//
-// Node type which allows rotation about the two axes perpendicular to
-// zDir. This is appropriate for diatoms and for allowing 
-// torsion+bond angle bending.
-//
+/**
+ * U-joint like joint type which allows rotation about the two axes
+ * perpendicular to zDir. This is appropriate for diatoms and for allowing 
+ * torsion+bond angle bending.
+ */
 class HNodeRotate2 : public HingeNodeSpec<2> {
-    Vec3                pos0;
-    CDSVector<Vec3,1>   atoms0; // initial atom positions- relative to atom[0]
     Mat3                R0;
 public:
     virtual const char* type() { return "rotate2"; }
@@ -687,12 +723,8 @@ public:
     HNodeRotate2(const HingeNode* node,
                  const Vec3&      zDir,
                  int&             cnt)
-      : HingeNodeSpec<2>(node,cnt), 
-        pos0(atoms[0]->pos - parent->atomsA(0)->pos), atoms0(atoms.size()-1)
+      : HingeNodeSpec<2>(node,cnt)
     { 
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms0(i) = atoms[i]->pos - atoms[0]->pos;
-        //     Vec3 u = unitVec( atoms[1]->pos - atoms[0]->pos );
         double theta = acos( zDir.z() );
         double psi   = atan2( zDir.x() , zDir.y() );
         double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
@@ -714,16 +746,16 @@ public:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        Mat3 A = orthoTransform( Mat3(a) , R0 ); //body-fixed rotation matrix
-        rotMat = parent->rotMatA() * A; //the spatial rotation matrix
+        const Mat3 R_PB = orthoTransform( Mat3(a) , R0 ); //body-fixed rotation matrix
+        R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
     void calcH() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
 
-        Vec3 x = scale * rotMat * (R0 * Vec3(1,0,0));
-        Vec3 y = scale * rotMat * (R0 * Vec3(0,1,0));
+        Vec3 x = scale * R_GB * (R0 * Vec3(1,0,0));
+        Vec3 y = scale * R_GB * (R0 * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
         H = blockMat12(catRow(x,y) , zMat23);
@@ -736,16 +768,15 @@ public:
     }   
 
     void toCartesian() { 
-        atoms[0]->pos = parent->atomsA(0)->pos + 
-        parent->rotMatA() * pos0;
+        atoms[0]->pos = parent->getAtom(0)->pos + getR_GP() * refOrigin_P;
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + rotMat * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
 
         // update vel using recursive formula
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
-        sVel = transpose(phi) * parent->sVelA()
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -756,22 +787,21 @@ public:
     }
 };
 
+/**
+ * The "diatom" joint is the equivalent of a free joint for a body with no inertia in
+ * one direction, such as one composed of just two atoms. It allows unrestricted
+ * translation but rotation only about directions perpendicular to the body's
+ * inertialess axis.
+ */
 class HNodeTranslateRotate2 : public HingeNodeSpec<5> {
-    Vec3                pos0;
-    CDSVector<Vec3,1>   atoms0; // initial atom positions- relative to atom[0]
     Mat3                R0;
 public:
     virtual const char* type() { return "diatom"; }
 
     HNodeTranslateRotate2(const HingeNode*  node,
-                          IVMAtom*          atom,
                           int&              cnt)
-      : HingeNodeSpec<5>(node,cnt), 
-        pos0(atoms[0]->pos - parent->atomsA(0)->pos), atoms0(atoms.size()-1)
+      : HingeNodeSpec<5>(node,cnt)
     { 
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms0(i) = atoms[i]->pos - atoms[0]->pos;
-
         //rotation matrix which takes the z-axis
         // to atoms[0]->pos-parentAtom->pos
         // notes of 12/6/99 - CDS
@@ -797,8 +827,8 @@ public:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        Mat3 A = orthoTransform( Mat3(a) , R0 ); //body-fixed rotation matrix
-        rotMat = parent->rotMatA() * A; //the spatial rotation matrix
+        const Mat3 R_PB = orthoTransform( Mat3(a) , R0 ); // orientation of B in parent P
+        R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
     void calcH() {
@@ -806,14 +836,14 @@ public:
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
 
-        Vec3 x = scale * rotMat * (R0 * Vec3(1,0,0));
-        Vec3 y = scale * rotMat * (R0 * Vec3(0,1,0));
+        Vec3 x = scale * R_GB * (R0 * Vec3(1,0,0));
+        Vec3 y = scale * R_GB * (R0 * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
         Mat3  zMat33(0.0);
         using MatrixTools::transpose;
         H = blockMat22(catRow(x,y) , zMat23 ,
-                       zMat33      , transpose(parent->rotMatA()));
+                       zMat33      , transpose(getR_GP()));
     }
 
     void getInternalForce(RVec& v) {
@@ -824,17 +854,17 @@ public:
     }   
 
     void toCartesian() { 
-        atoms[0]->pos = parent->atomsA(0)->pos + 
-        parent->rotMatA() * (pos0 + 
-        Vec3(RSubVec5(theta,2,3).vector()));
+        atoms[0]->pos = parent->getAtom(0)->pos
+                        + getR_GP()
+                          * (refOrigin_P + Vec3(RSubVec5(theta,2,3).vector()));
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + rotMat * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
 
         // update vel using recursive formula
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
-        sVel = transpose(phi) * parent->sVelA()
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -846,37 +876,34 @@ public:
     }
 };
 
+/**
+ * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
+ * about a particular axis.
+ */
 class HNodeTorsion : public HingeNodeSpec<1> {
-    Vec3              pos0;    // initial value of atoms[0]-parent->atoms[0]
-    CDSVector<Vec3,1> atoms0;  // initial atom positions- relative to atom[0]
     Vec3              rotDir0; // vector about which rotation happens
     Mat3              R0;
 public:
     virtual const char* type() { return "torsion"; }
 
-HNodeTorsion(const HingeNode*   node,
-             const Vec3&        rotDir,
-             int&               cnt)
-  : HingeNodeSpec<1>(node,cnt), 
-    pos0(atoms[0]->pos - parent->atomsA(0)->pos), 
-    atoms0(atoms.size()-1),
-    rotDir0( unitVec(rotDir) )
-{ 
-    for (int i=1 ; i<atoms.size() ; i++)
-        atoms0(i) = atoms[i]->pos - atoms[0]->pos;
-
-    //rotation matrix which takes the z-axis
-    // to rotDir0
-    // notes of 12/6/99 - CDS
-    double theta = acos( rotDir0.z() );
-    double psi   = 0.;
-    if ( rotDir0.x()!=0. && rotDir0.y()!=0. )
-        psi = atan2( rotDir0.x() , rotDir0.y() );
-    double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-                  -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-                   0        , -sin(theta)         , cos(theta)         };
-    R0 = Mat3(a);
-}
+    HNodeTorsion(const HingeNode*   node,
+                 const Vec3&        rotDir,
+                 int&               cnt)
+      : HingeNodeSpec<1>(node,cnt), 
+        rotDir0( unitVec(rotDir) )
+    { 
+        //rotation matrix which takes the z-axis
+        // to rotDir0
+        // notes of 12/6/99 - CDS
+        double theta = acos( rotDir0.z() );
+        double psi   = 0.;
+        if ( rotDir0.x()!=0. && rotDir0.y()!=0. )
+            psi = atan2( rotDir0.x() , rotDir0.y() );
+        double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
+                      -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
+                       0        , -sin(theta)         , cos(theta)         };
+        R0 = Mat3(a);
+    }
 
     void calcRot() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
@@ -886,15 +913,15 @@ HNodeTorsion(const HingeNode*   node,
         double a[] = { cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 };
-        Mat3 A(a); //rotation about z-axis
-        Mat3 R = orthoTransform( A , R0 ); //the internal rotation matrix
-        rotMat = parent->rotMatA() * R; //the spatial rotation matrix
+        const Mat3 A(a); //rotation about z-axis
+        const Mat3 R_PB = orthoTransform( A , R0 ); // orientation of B in parent's frame P
+        R_GB = getR_GP() * R_PB; // spatial orientation of B in ground frame G
     };
 
     // Calc H matrix in space-fixed coords.
     void calcH() {
-        //   Vec3 z = parent->rotMatA() * Vec3(0.0,0.0,1.0);
-        Vec3 z = parent->rotMatA() * rotDir0;
+        //   Vec3 z = getR_GP() * Vec3(0.0,0.0,1.0);
+        Vec3 z = getR_GP() * rotDir0;
         FixedMatrix<double,1,3> zMat(0.0);
         H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
     }
@@ -911,15 +938,14 @@ HNodeTorsion(const HingeNode*   node,
 
 #ifdef READABLE
     void toCartesian() { 
-        atoms[0]->pos = parent->atomsA(0)->pos + 
-        parent->rotMatA() * pos0;
+        atoms[0]->pos = parent->getAtom(0)->pos + getR_GP() * refOrigin_P;
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + rotMat * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
 
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
-        sVel = transpose(phi) * parent->sVel
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3::subVec(sVel,3,5);
 
@@ -931,18 +957,18 @@ HNodeTorsion(const HingeNode*   node,
     }
 #else /* UNREADABLE */
     void toCartesian() { 
-        atoms[0]->pos = parent->rotMatA() * pos0;
-        atoms[0]->pos += parent->atomsA(0)->pos;
+        atoms[0]->pos = getR_GP() * refOrigin_P;
+        atoms[0]->pos += parent->getAtom(0)->pos;
 
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++) {
-            atoms[i]->pos = rotMat * atoms0(i);
+            atoms[i]->pos = R_GB * atomStations_B(i);
             atoms[i]->pos += atoms[0]->pos;
         }
 
-        phi = PhiMatrix( atoms[0]->pos - parent->atomsA(0)->pos );
+        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
-        sVel = transpose(phi) * parent->sVelA()
+        sVel = transpose(phi) * parent->getSpatialVel()
                 + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
@@ -1017,7 +1043,10 @@ InertiaTensor::calc(const Vec3&     center,
 //} /* combineNodes */
 
 //
-// Add the approriate HingeData member. 
+// Replace the passed-in proto-HingeNode with one that has a joint
+// as close as possible to the requested one. On entry, cnt indicates
+// the next available state variable slot; we grab some and update cnt
+// on exit.
 //
 HingeNode*
 construct(HingeNode*                         node,
@@ -1035,7 +1064,7 @@ construct(HingeNode*                         node,
         newNode = new HNodeOrigin(node);
 
     if (   (type == "bendtorsion" && node->level>2)
-        || (type == "bend" && node->level>0)
+        || (type == "bend" && !node->isOriginNode())
               && (node->atoms.size()>1 || node->children.size()>0)
               &&  node->atoms[0]->bonds.size()>0 ) 
     {
@@ -1044,7 +1073,7 @@ construct(HingeNode*                         node,
 
         //direction perp. to two bonds
         Vec3 dir = cross(atom0->pos - node->atoms[0]->pos,
-        atom1->pos - node->atoms[0]->pos);
+                         atom1->pos - node->atoms[0]->pos);
         if ( norm(dir) > 1e-12 ) {
             newNode = new HNodeTorsion(node, dir, cnt);
         } else {
@@ -1057,9 +1086,9 @@ construct(HingeNode*                         node,
                 //in this case, the plane of the bend angle needs only to be 
                 // perpendicular to the bond
                 //rotation matrix which takes the z-axis
-                // to atoms[0]->pos-parentAtom->pos
+                // to (atoms[0]->pos - parentAtom->pos)
                 // notes of 12/6/99 - CDS
-                Vec3 u = unitVec( atom1->pos - node->atoms[0]->pos );
+                const Vec3 u = unitVec( atom1->pos - node->atoms[0]->pos );
                 double theta = acos( u.z() );
                 double psi   = atan2( u.x() , u.y() );
                 double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
@@ -1074,7 +1103,7 @@ construct(HingeNode*                         node,
     } 
 
     if ( type == "torsion" ) {
-        if (node->level==1 &&                 // allow full dof for base node
+        if (node->isBaseNode() &&             // allow full dof for base node
             node->parentAtom->index==0)       // unless it is bonded to fixed atom
             //FIX: this seems ill-thought out
             type = "full"; 
@@ -1084,24 +1113,26 @@ construct(HingeNode*                         node,
                                        cnt);
     } 
 
-    if (type == "rotate" )
+    if (type == "rotate" ) {
         if ( node->atoms.size()>2 )
-            newNode = new HNodeRotate3(node,node->atoms[0],cnt,
+            newNode = new HNodeRotate3(node,cnt,
                                        ivm->minimization());
-    else if ( node->atoms.size()>1 )
-        newNode = new HNodeRotate2(node,unitVec(node->atoms[1]->pos - 
-                                   node->atoms[0]->pos  ),cnt);
+        else if ( node->atoms.size()==2 )
+            newNode = new HNodeRotate2(node,unitVec(node->atoms[1]->pos - 
+                                                    node->atoms[0]->pos  ),cnt);
+    }
+
     if (type == "translate")
-        newNode = new HNodeTranslate(node,node->atoms[0],cnt);
+        newNode = new HNodeTranslate(node,cnt);
 
     if ( type == "full" || type == "unknown") { // all other cases- full freedom of movement
         if ( node->atoms.size()>2 || node->atoms.size()==2 && node->children.size() )
-            newNode = new HNodeTranslateRotate3(node,node->atoms[0],cnt,
+            newNode = new HNodeTranslateRotate3(node,cnt,
                                                 ivm->minimization());
         else if ( node->atoms.size()==2 )
-            newNode = new HNodeTranslateRotate2(node,node->atoms[0],cnt);
+            newNode = new HNodeTranslateRotate2(node,cnt);
         else if ( node->atoms.size()==1 )
-            newNode = new HNodeTranslate(node,node->atoms[0],cnt);
+            newNode = new HNodeTranslate(node,cnt);
     }
 
     if ( !newNode ) {
@@ -1111,12 +1142,10 @@ construct(HingeNode*                         node,
         throw Exception("Bad Hinge type or topology not supported");
     }
 
-    // node.hingeDataList.append(data);
-
     //
     // connect to other related hinge
     //
-    if (node->level>0) {
+    if (!node->isOriginNode()) {
         int index = node->parent->children.getIndex(node);
         node->parent->children[index] =  newNode;
     }
@@ -1129,11 +1158,11 @@ construct(HingeNode*                         node,
 
 HingeNode::HingeNode(const IVM*     ivm,
                      IVMAtom*       hingeAtom,
-                     const IVMAtom* remAtom,
-                     HingeNode*     remNode) 
-  : parent(remNode),
+                     const IVMAtom* parAtom,
+                     HingeNode*     parNode) 
+  : parent(parNode),
     children(0,0),
-    level(hingeAtom->index==0?0:remNode->level+1),
+    level(hingeAtom->index==0 ? 0 : parNode->getLevel()+1),
     atoms(0,1),
     sVel(0.),
     sAcc(0.),
@@ -1143,12 +1172,12 @@ HingeNode::HingeNode(const IVM*     ivm,
     z(0.),
     tau(0.),
     Gepsilon(0.),
-    rotMat(0.),
+    R_GB(0.),
     Y(0.), 
     ivm(ivm),
-    parentAtom(remAtom)
+    parentAtom(parAtom)
 {
-    rotMat.setDiag(1.0);
+    R_GB.setDiag(1.0);  // Body frame B is initially aligned with the ground frame G.
     atoms.append(hingeAtom);
     hingeAtom->node = this;
 }
@@ -1297,7 +1326,7 @@ HingeNodeSpec<dof>::calcProps() {
 
     // calc Mk: the mass matrix
     Mat3 uVec(0.0); uVec.setDiag(1.0);
-    Mat3 offDiag = mass_*crossMat(posCM_-atoms[0]->pos);
+    Mat3 offDiag = mass_*crossMat(posCM_ - atoms[0]->pos);
     Mk = blockMat22( inertia , offDiag ,
                     -offDiag , mass_*uVec );
 
@@ -1458,7 +1487,7 @@ HingeNodeSpec<dof>::calcP() {
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        Mat3 lt = crossMat(children[i]->atomsA(0)->pos - atomsA(0)->pos);
+        Mat3 lt = crossMat(children[i]->getAtom(0)->pos - getAtom(0)->pos);
         Mat6 M  = children[i]->tau * children[i]->P;
         SubMatrix<Mat6> m11(M,0,0,3,3);
         SubMatrix<Mat6> m12(M,0,3,3,3);
@@ -1578,10 +1607,10 @@ static double
 sumMassToTip(const HingeNode* n)
 {
     double ret = 0.0;
-    for (int i=0 ; n->childrenA(i) ; i++)
-        ret += sumMassToTip( n->childrenA(i) );
-    for (l_int i=0 ; n->atomsA(i) ; i++)
-        ret += n->atomsA(i)->mass;
+    for (int i=0 ; n->getChild(i) ; i++)
+        ret += sumMassToTip( n->getChild(i) );
+    for (l_int i=0 ; n->getAtom(i) ; i++)
+        ret += n->getAtom(i)->mass;
     return ret;
 }
 
@@ -1591,11 +1620,11 @@ sumInertiaToTip(const HingeNode* n,
                 const Vec3&      dir)
 {
     double ret = 0.0;
-    for (int i=0 ; n->childrenA(i) ; i++)
-        ret += sumInertiaToTip( n->childrenA(i) , pos , dir);
-    for (l_int i=0 ; n->atomsA(i) ; i++)
-        ret += n->atomsA(i)->mass * (abs2(n->atomsA(i)->pos - pos) -
-                                     sq(dot(dir,n->atomsA(i)->pos - pos)));
+    for (int i=0 ; n->getChild(i) ; i++)
+        ret += sumInertiaToTip( n->getChild(i) , pos , dir);
+    for (l_int i=0 ; n->getAtom(i) ; i++)
+        ret += n->getAtom(i)->mass * (abs2(n->getAtom(i)->pos - pos) -
+                                     sq(dot(dir,n->getAtom(i)->pos - pos)));
     return ret;
 }
 
@@ -1607,7 +1636,7 @@ HingeNodeSpec<dof>::approxKE() {
         for (int j=0 ; j<3 ; j++)
             if ( H(i,j) != 0.0 ) {
                 mass = sumInertiaToTip( this, 
-                atomsA(0)->pos, 
+                getAtom(0)->pos, 
                 Vec3::subCol(MatrixTools::transpose(H),i,0,2) );
                 break;
             }

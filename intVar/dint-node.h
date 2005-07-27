@@ -9,6 +9,8 @@
 #include <cdsVector.h>
 #include <cdsList.h>
 
+#include <cassert>
+
 class Vec3;
 class IVMAtom;
 template<class CHAR> class CDSString;
@@ -61,23 +63,39 @@ public:
     virtual ~HingeNode() {}
     HingeNode(const IVM*        ivm,
               IVMAtom*          hingeAtom=0,
-              const IVMAtom*    remAtom=0,
-              HingeNode*        remNode=0);
+              const IVMAtom*    parentAtom=0,
+              HingeNode*        parentNode=0);
     HingeNode& operator=(const HingeNode&);
 
-    HingeNode*       parentA() const {return parent;}
-    int              levelA()  const {return level;}
-    const Vec6&      sVelA()   const {return sVel;}
-    const Vec6&      sAccA()   const {return sAcc;}
-    const Mat3&      rotMatA() const {return rotMat;}
-    const PhiMatrix& phiA()    const {return phi;}
-    const Mat6&      psiTA()   const {return psiT;}
-    const Mat6&      YA()      const {return Y;}
+    HingeNode*       getParent() const {return parent;}
 
-    const IVMAtom*   atomsA(int i) const
-        {return (i<atoms.size()?atoms[i]:0); }
-    const HingeNode* childrenA(int i) const
-        {return (i<children.size()?children[i]:0);}
+    /// Return R_GB, the rotation (direction cosine) matrix giving the 
+    /// orientation of this body's frame B in the ground frame G.
+    const Mat3&      getR_GB()   const {return R_GB;}
+
+    /// Return R_GP, the rotation (direction cosine) matrix giving the
+    /// orientation of this body's *parent's* body frame (which we'll call
+    /// P here) in the ground frame G.
+    const Mat3&      getR_GP()   const {assert(parent); return parent->getR_GB();}
+
+    /// Return this node's level, that is, how many ancestors separate it from
+    /// the origin node at level 0. Level 1 nodes (directly connected to the
+    /// origin node) are called 'base' nodes.
+    int              getLevel()  const {return level;}
+
+    bool             isOriginNode() const { return level==0; }
+    bool             isBaseNode()   const { return level==1; }
+
+
+    const Vec6&      getSpatialVel()   const {return sVel;}
+    const Vec6&      getSpatialAcc()   const {return sAcc;}
+
+    const PhiMatrix& getPhi()    const {return phi;}
+    const Mat6&      getPsiT()   const {return psiT;}
+    const Mat6&      getY()      const {return Y;}
+
+    const IVMAtom*   getAtom(int i)   const {return (i<atoms.size()?atoms[i]:0); }
+    const HingeNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
 
     virtual int           offset() const {return 0;}
     virtual const Vec3&   posCM()  const {throw VirtualBaseMethod();}
@@ -127,7 +145,12 @@ protected:
     Vec6 z;
     Mat6 tau;
     Vec6 Gepsilon;
-    Mat3 rotMat;
+
+    // Rotation (direction cosine matrix) expressing the body frame B
+    // in the ground frame G. That is, if you have a vector vB expressed
+    // body frame and want it in ground, use vG = R_GB*vB. 
+    Mat3 R_GB;
+
     Mat6 Y;  //diagonal components of Omega- for loop constraints
 
     static const double DEG2RAD; //using angles in degrees balances gradient
