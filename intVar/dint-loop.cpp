@@ -103,7 +103,7 @@ LoopWNodes::LoopWNodes(const Loop& l)
         node2 = node2->getParent();
     }
     while ( node1 != node2 ) {
-        if ( node1->isOriginNode() ) {
+        if ( node1->isGroundNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
                  << "loop between atoms " << tips(1)->index << " and " 
                  << tips(2)->index << "\n";
@@ -848,7 +848,7 @@ computeA(const Vec3& v1,
         }
 
         while ( n1 != n2 ) {
-            if (n1->isOriginNode() || n2->isOriginNode()  ) {
+            if (n1->isGroundNode() || n2->isGroundNode()  ) {
                 t1.set(0.);  //not in same branch (or same tree -- sherm)
                 t2.set(0.);
                 cout << "computeA: cycles wasted calculating missed branch: "

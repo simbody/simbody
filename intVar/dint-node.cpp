@@ -37,18 +37,21 @@ catRow(const Vec3& v1, const Vec3& v2) {
     return ret;
 }
 
-	
-class HNodeOrigin : public HingeNode {
+/**
+ * This is the distinguished body representing the immobile ground frame. Other bodies may
+ * be fixed to this one, but only this is the actual Ground.
+ */
+class GroundBody : public HingeNode {
 public: 
-    virtual const char* type() { return "origin"; }
+    virtual const char* type() { return "ground"; }
 
-    HNodeOrigin(const HingeNode* node)
+    GroundBody(const HingeNode* node)
       : HingeNode(*node)
     { 
         for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = Vec3(0.0); 
         for (l_int i=0 ; i<atoms.size() ; i++) atoms[i]->node = this; 
     }
-    virtual ~HNodeOrigin() {}
+    virtual ~GroundBody() {}
 
 //  virtual const Vec3& posCM() const { return posCM_; }
 //  virtual const double& mass() const { return mass_; }
@@ -75,6 +78,103 @@ public:
 
 template<int dof>
 class HingeNodeSpec : public HingeNode {
+public:
+
+    // We're presented with a node in the reference configuration. Derive appropriate
+    // quantities for the node, such as the atom stations on the body, and the reference
+    // locations and orientations.
+    //
+    // XXX Ball and free joints require that we insert a dummy 'atom' as the origin if
+    //     this is a base node and it is not bonded to ground (unless there is already
+    //     a dummy atom as atom[0]). This is chosen to be
+    //     a point which is the geometric center of the entire outboard tree, but
+    //     attached to the current body. At the moment I'm just preserving the
+    //     existing behavior; later I hope to trash it. (sherm)
+    //
+    HingeNodeSpec(const HingeNode* node, int& cnt, bool addDummyOrigin=false)
+      : HingeNode(*node), offset_(cnt),
+        mass_(0), inertia(), Mk(0.), posCM_(0.),
+        a(0.), forceCartesian(0.), b(0.),
+        theta(0.), dTheta(0.), forceInternal(0.0) 
+    { 
+        cnt+=dof;   // leave room for this node's state variables
+
+        for (int i=0 ; i<atoms.size() ; i++)
+            atoms[i]->node = this; 
+
+        // If requested, add center of mass "atom" (station) if node is not attached to
+        // the origin (ground) node.
+        if (addDummyOrigin && isBaseNode() &&  atoms[0]->mass != 0.0) {
+
+            bool bound = false;
+            for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
+                if (atoms[0]->bonds[i]->node->isGroundNode())
+                    bound = true;
+
+            if ( !bound ) {
+                IVMAtom* a = new IVMAtom(-1,0.0);
+                cmAtom.reset(a);
+                a->pos = AtomTree::findCM( this );
+                a->node = this;
+                atoms.prepend(a);
+            }
+        }
+
+        // drop constness just for a moment here in the constructor ...
+        Vec3&              mutableRefOrigin_P    = *const_cast<Vec3*>(&refOrigin_P);
+        CDSVector<Vec3,1>& mutableAtomStations_B = *const_cast<CDSVector<Vec3,1>*>(&atomStations_B);
+
+        mutableRefOrigin_P = atoms[0]->pos - parent->getAtom(0)->pos;
+        mutableAtomStations_B.resize(atoms.size()-1);
+        for (int i=1 ; i<atoms.size() ; i++)
+            mutableAtomStations_B(i) = atoms[i]->pos - atoms[0]->pos;
+    }
+
+    virtual ~HingeNodeSpec() {}
+
+    // Every derived class must implement at least these two methods.
+
+    /// Calculate the joint transition matrix H.
+    virtual void calcH()=0;
+
+    /// Calculate all kinematic quantities.
+    virtual void toCartesian()=0;
+
+    virtual const Vec3& posCM() const { return posCM_; }
+    virtual const double& mass() const { return mass_; }
+    virtual int offset() const {return offset_;}
+
+    void calcPandZ() { calcP(); calcZ(); }
+    void calcP();
+    void calcZ();
+    void calcAccel();
+    void calcInternalForce();
+
+    virtual void calcY();
+    //  void calcEpsilon_nu(const Vec6& z);
+    void calcD_G(const Mat6& P);
+    int  getDOF() const { return dof; }
+    virtual int  getDim() const { return dof; }
+    virtual void print(int);
+    virtual double kineticE();
+    //  virtual double approxMass(int k);
+    virtual double approxKE();
+    void calcCartesianForce();
+    void prepareVelInternal();
+    void propagateSVel(const Vec6&);
+    virtual void setPosVel(const RVec&,
+    const RVec&);
+    virtual void setVel(const RVec&);
+    virtual void setVelFromSVel(const Vec6&);
+
+    virtual void enforceConstraints(RVec& pos, RVec& vel) {}
+    virtual void getPos(RVec&);
+    virtual void getVel(RVec&);
+    virtual void getAccel(RVec&);
+    virtual void getInternalForce(RVec&);
+    virtual RMat getH() { return RMat(H); }
+
+
 protected:
     int           offset_;  //index into internal coord pos,vel,acc arrays
 
@@ -88,6 +188,9 @@ protected:
     //gyroscopic spatial force
     Vec6 forceCartesian;
     Vec6 b;
+
+    // This serves as the owner for an extra 'dummy' IVMAtom needed by some joints.
+    CDS::auto_ptr<IVMAtom> cmAtom;
 
     // Atom stations. These are vectors from this body's origin point to each of
     // the atoms, expressed in the body frame. These are fixed after construction;
@@ -115,61 +218,6 @@ protected:
     FixedMatrix<double,6,dof>   G;
 
     void calcProps();
-public: 
-    HingeNodeSpec(const HingeNode* node, int& cnt)
-      : HingeNode(*node), offset_(cnt),
-        mass_(0), inertia(), Mk(0.), posCM_(0.),
-        a(0.), forceCartesian(0.), b(0.),
-        atomStations_B(atoms.size()-1),
-        refOrigin_P(atoms[0]->pos - parent->getAtom(0)->pos),
-        theta(0.), dTheta(0.), forceInternal(0.0) 
-    { 
-        cnt+=dof;   // leave room for this node's state variables
-
-        for (int i=0 ; i<atoms.size() ; i++)
-            atoms[i]->node = this; 
-
-        // drop constness just for a moment here in the constructor ...
-        CDSVector<Vec3,1>& mutableAtomStations_B = *const_cast<CDSVector<Vec3,1>*>(&atomStations_B);
-        for (int i=1 ; i<atoms.size() ; i++)
-            mutableAtomStations_B(i) = atoms[i]->pos - atoms[0]->pos;
-    }
-
-    virtual ~HingeNodeSpec() {}
-    virtual const Vec3& posCM() const { return posCM_; }
-    virtual const double& mass() const { return mass_; }
-    virtual int offset() const {return offset_;}
-
-    void calcPandZ() { calcP(); calcZ(); }
-    void calcP();
-    void calcZ();
-    void calcAccel();
-    void calcInternalForce();
-    virtual void calcH()=0;
-    virtual void calcY();
-    //  void calcEpsilon_nu(const Vec6& z);
-    void calcD_G(const Mat6& P);
-    int  getDOF() const { return dof; }
-    virtual int  getDim() const { return dof; }
-    virtual void print(int);
-    virtual double kineticE();
-    //  virtual double approxMass(int k);
-    virtual double approxKE();
-    void calcCartesianForce();
-    void prepareVelInternal();
-    void propagateSVel(const Vec6&);
-    virtual void setPosVel(const RVec&,
-    const RVec&);
-    virtual void setVel(const RVec&);
-    virtual void setVelFromSVel(const Vec6&);
-
-    virtual void enforceConstraints(RVec& pos, RVec& vel) {}
-    virtual void getPos(RVec&);
-    virtual void getVel(RVec&);
-    virtual void getAccel(RVec&);
-    virtual void getInternalForce(RVec&);
-    virtual RMat getH() { return RMat(H); }
-    virtual void toCartesian()=0;
 };
 
 const double HingeNode::DEG2RAD = PI / 180.;
@@ -228,9 +276,6 @@ class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
     Vec4 q; //Euler parameters for rotation relative to parent
     Vec4 dq;
     Vec4 ddq;
-    Vec3 pos0;
-    CDS::auto_ptr<IVMAtom> cmAtom;
-    CDSVector<Vec3,1>      atoms0; // initial atom positions- relative to atom[0]
     double cPhi, sPhi;        //trig functions of Euler angles
     double cPsi, sPsi;        //used for minimizations
     double cTheta, sTheta;
@@ -241,37 +286,10 @@ public:
     HNodeTranslateRotate3(const HingeNode* node,
                           int&             cnt,
                           bool             useEuler)
-      : HingeNodeSpec<6>(node,cnt), q(1.0,0.0,0.0,0.0),
-        dq(0.), pos0(atoms[0]->pos - parent->getAtom(0)->pos),
-        atoms0(atoms.size()-1), useEuler(useEuler)
+      : HingeNodeSpec<6>(node,cnt,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
     { 
         if ( !useEuler )
             cnt++;
-
-        // Add center of mass "atom" (station) if node is not attached to
-        // the origin (ground) node.
-        if (isBaseNode() &&  atoms[0]->mass != 0.0) {
-
-            bool bound = false;
-            for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
-                if (atoms[0]->bonds[i]->node->isOriginNode())
-                    bound = true;
-
-            if ( !bound ) {
-                //cout << "ADDING DUMMY ATOM FOR FREE JOINT" << endl;
-
-                IVMAtom* a = new IVMAtom(-1,0.0);
-                cmAtom.reset(a);
-                a->pos = AtomTree::findCM( this );
-                a->node = this;
-                atoms.prepend(a);
-                atoms0.resize(atoms.size()-1);
-                pos0 = a->pos - parent->getAtom(0)->pos;
-            }
-        }
-
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms0(i) = atoms[i]->pos - atoms[0]->pos;
     }
 
     void calcRot() {
@@ -396,8 +414,8 @@ public:
         RSubVec6(dTheta,0,3) = ( 2.0*( M * dq ) ).vector();
         RSubVec6(dTheta,3,3) = ConstRSubVec(velv,offset_+4,3).vector();
 
-        sVel = transpose(phi) * parent->getSpatialVel() + 
-        MatrixTools::transpose(H) * dTheta;
+        sVel = transpose(phi) * parent->getSpatialVel()
+               + MatrixTools::transpose(H) * dTheta;
         atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
 
         for (int i=1 ; i<atoms.size() ; i++)
@@ -436,11 +454,11 @@ public:
    
     void toCartesian() { 
         atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP() * (pos0 + 
+                        + getR_GP() * (refOrigin_P + 
                                 Vec3(RSubVec6(theta,3,3).vector()));
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
 
         phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
@@ -477,9 +495,6 @@ class HNodeRotate3 : public HingeNodeSpec<3> {
     Vec4    q; //Euler parameters for rotation relative to parent
     Vec4    dq;
     Vec4    ddq;
-    Vec3    pos0;
-    CDS::auto_ptr<IVMAtom>  cmAtom;
-    CDSVector<Vec3,1>       atoms0; // initial atom positions- relative to atom[0]
     double cPhi, sPhi;        //trig functions of Euler angles
     double cPsi, sPsi;        //used for minimizations
     double cTheta, sTheta;
@@ -491,36 +506,11 @@ public:
     HNodeRotate3(const HingeNode* node,
                   int&            cnt,
                   bool            useEuler)
-      : HingeNodeSpec<3>(node,cnt), 
-        q(1.0,0.0,0.0,0.0),
-        pos0(atoms[0]->pos - parent->getAtom(0)->pos), atoms0(atoms.size()-1),
-        useEuler(useEuler)
+      : HingeNodeSpec<3>(node,cnt,true), 
+        q(1.0,0.0,0.0,0.0), useEuler(useEuler)
     { 
         if ( !useEuler )
             cnt++;
-
-        // add center of mass atom if nodes is not attached to origin
-
-        if (isBaseNode() && atoms[0]->mass != 0.0) {
-
-            bool bound = false;
-            for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
-                if (atoms[0]->bonds[i]->node->isOriginNode())
-                    bound = true;
-
-            if ( !bound ) {
-                IVMAtom* a = new IVMAtom(-1,0.0);
-                cmAtom.reset(a);
-                a->pos = AtomTree::findCM( this );
-                a->node = this;
-                atoms.prepend(a);
-                atoms0.resize(atoms.size()-1);
-                pos0 = a->pos - parent->getAtom(0)->pos;
-            }
-        }
-
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms0(i) = atoms[i]->pos - atoms[0]->pos;
     }
 
     void calcRot() {
@@ -678,10 +668,10 @@ public:
    
     void toCartesian() { 
         atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP() * pos0;
+                        + getR_GP() * refOrigin_P;
         calcRot();
         for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atoms0(i);
+            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
 
         phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
         calcH();
@@ -1060,11 +1050,11 @@ construct(HingeNode*                         node,
     String type = hingeSpec.type;
     type.downcase();
 
-    if ( type == "origin" ) 
-        newNode = new HNodeOrigin(node);
+    if ( type == "ground" ) 
+        newNode = new GroundBody(node);
 
     if (   (type == "bendtorsion" && node->level>2)
-        || (type == "bend" && !node->isOriginNode())
+        || (type == "bend" && !node->isGroundNode())
               && (node->atoms.size()>1 || node->children.size()>0)
               &&  node->atoms[0]->bonds.size()>0 ) 
     {
@@ -1145,7 +1135,7 @@ construct(HingeNode*                         node,
     //
     // connect to other related hinge
     //
-    if (!node->isOriginNode()) {
+    if (!node->isGroundNode()) {
         int index = node->parent->children.getIndex(node);
         node->parent->children[index] =  newNode;
     }

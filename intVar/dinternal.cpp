@@ -261,7 +261,7 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
     // construct true node data
 
     int cnt=1; //offset into pos, vel, acc
-    nodeTree[0][0] = construct( nodeTree[0][0] , "origin" , cnt);
+    nodeTree[0][0] = construct( nodeTree[0][0] , "ground" , cnt);
     // i==1 are base nodes
     for (l_int i=1 ; i<nodeTree.size() ; i++)
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
@@ -669,7 +669,7 @@ IVM::groupTorsion(const HingeNode* n) {
     const IVMAtom* a;
 
     //fixed atoms
-    if ( n->isOriginNode() ) {
+    if ( n->isGroundNode() ) {
         if ( n->getAtom(1) ) 
             for (int i=0 ; ( a=n->getAtom(i) ) ; i++)
                 if ( a->index>=0 )
@@ -685,7 +685,7 @@ IVM::groupTorsion(const HingeNode* n) {
                     //one atom, no children and not free atom : group
                     aList.append( c->getAtom(0)->index );
         }
-    } else { //not origin node
+    } else { //not ground node
         //base node w/ 1 or 2 atoms- w/ no bond to base and one or fewer children
         if ( n->isBaseNode() && !n->getAtom(2) &&
              n->parentAtom->index==0 && !n->getChild(1) )
@@ -984,7 +984,7 @@ IVM::initAtoms(const int     natom,
     for (int i=0 ; i<atoms.size() ; i++)
         delete atoms[i];
     atoms.resize(natom+1);
-    atoms[0] = new IVMAtom(0,0.0);   //origin atom
+    atoms[0] = new IVMAtom(0,0.);   // Ground's origin atom (station)
     for (l_int i=1 ; i<=natom ; i++)
         atoms[i] = new IVMAtom(i,massA[i-1]);
     loops.resize(0);

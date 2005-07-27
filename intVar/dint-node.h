@@ -38,11 +38,11 @@ class IVM;
  * the joint connecting it to its parent. Concrete classes are derived from this one to
  * represent each specific type of joint.
  *
- * HingeNodes are linked into a tree structure, beginning with a special 'origin' node
+ * HingeNodes are linked into a tree structure, beginning with a special 'Ground' node
  * defined to be at level 0 and containing only atoms fixed to ground. The HingeNodes
  * are organized into levels as described in the JMR paper. Level 1 nodes (referred to
- * as 'base nodes') are those attached directly to the origin node, level 2's attach 
- * to level 1's, etc. Every node but the origin has exactly one parent node, whose
+ * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
+ * to level 1's, etc. Every node but Ground has exactly one parent node, whose
  * level is always one less than the current node. Any node may have an arbitrary number 
  * of children, for which it is the unique parent, and all of its children have 
  * level one greater than the current node.
@@ -79,11 +79,11 @@ public:
     const Mat3&      getR_GP()   const {assert(parent); return parent->getR_GB();}
 
     /// Return this node's level, that is, how many ancestors separate it from
-    /// the origin node at level 0. Level 1 nodes (directly connected to the
-    /// origin node) are called 'base' nodes.
+    /// the Ground node at level 0. Level 1 nodes (directly connected to the
+    /// Ground node) are called 'base' nodes.
     int              getLevel()  const {return level;}
 
-    bool             isOriginNode() const { return level==0; }
+    bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
 
 
@@ -97,11 +97,11 @@ public:
     const IVMAtom*   getAtom(int i)   const {return (i<atoms.size()?atoms[i]:0); }
     const HingeNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
 
+    void addChild(HingeNode*);
+
     virtual int           offset() const {return 0;}
     virtual const Vec3&   posCM()  const {throw VirtualBaseMethod();}
     virtual const double& mass()   const {throw VirtualBaseMethod();}
-
-    void addChild(HingeNode*);
 
     virtual void calcP() {throw VirtualBaseMethod();}
     virtual void calcZ() {throw VirtualBaseMethod();}

@@ -49,7 +49,7 @@ PublicIVM::init()
     kBoltzmann_ = SimulationWorld::world()->kBoltzmann();
 
     atoms.resize(sim->numAtoms()+1);
-    atoms[0] = new IVMAtom(0,0.);   //origin atom
+    atoms[0] = new IVMAtom(0,0.);   // Ground's origin atom
     for (l_int i=1 ; i<=sim->numAtoms() ; i++) {
         atoms[i] = new IVMAtom(i,sim->atomByID(i-1));
     //   *atoms[i] = sim->atomByID(i-1); //FIX: remove repetition
