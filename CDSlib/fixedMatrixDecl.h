@@ -1,18 +1,19 @@
-
 #ifndef __fixedMatrixDecl_h__
 #define __fixedMatrixDecl_h__ 1
 
 
 #include "sthead.h"
-#include <assert.h>
+
 #include "cdsExcept.h"
 #include "cdsString.h"
 #include "matrix.h"
-
-#include <cdsIostream.h>
+#include "cdsIostream.h"
+#include "fixedVector.h"
 
 // Provide template defaults for FixedMatrix class.
 #include "fixedMatrixFwd.h"
+
+#include <cassert>
 
 template<class T,int size1,int size2>
 class FixedMatrixBase;
@@ -196,9 +197,9 @@ FixedMatrix<T,SIZE1,SIZE2,OFFSET1,OFFSET2>::operator()(const int i1,
 template<class T, int m1, int m3, int n1, int n2>
 inline FixedMatrix<T,m1+m3,n1+n2>
 blockMat22(const FixedMatrix<T,m1,n1>& m11,
-	   const FixedMatrix<T,m1,n2>& m12,
-	   const FixedMatrix<T,m3,n1>& m21,
-	   const FixedMatrix<T,m3,n2>& m22)
+	       const FixedMatrix<T,m1,n2>& m12,
+	       const FixedMatrix<T,m3,n1>& m21,
+	       const FixedMatrix<T,m3,n2>& m22)
 {
  FixedMatrix<T,m1+m3,n1+n2> ret;
  for (int i=0 ; i<m1 ; i++)
@@ -227,13 +228,13 @@ blockMat22(const FixedMatrix<T,m1,n1>& m11,
 template<class T, int m1, int m2, int m3>
 FixedMatrix<T,m1,m2+m3>
 blockMat12(const FixedMatrix<T,m1,m2>&, 
-	   const FixedMatrix<T,m1,m3>&);
+	       const FixedMatrix<T,m1,m3>&);
 
 //generate a 2x1 block matrix
 template<class T, int m1, int n1, int m2>
 FixedMatrix<T,m1+m2,n1>
 blockMat21(const FixedMatrix<T,m1,n1>&, 
-	   const FixedMatrix<T,m2,n1>&);
+	       const FixedMatrix<T,m2,n1>&);
 
 ////build a matrix by placing row-vectors on top of one-another
 //template<class T, int m1, int m2, int m3>
@@ -261,7 +262,7 @@ operator-(const FixedMatrix<T,s1,s2> &m)
  FixedMatrix<T,s1,s2> r(m);
  r.scale(-1);
  return r;
-} /* operator- */
+}
 
 
 template<class T,int s1,int s2,int s3> 
@@ -276,7 +277,7 @@ operator*(const FixedMatrix<T,s1,s2>& m1,
        r(i,k) += m1(i,j) * m2(j,k);
 
  return r;
-} /* operator* (matrix,matrix) */
+}
 
 //
 // perform generalized orthogonal transform on m: S * m * transpose(S)
@@ -284,7 +285,7 @@ operator*(const FixedMatrix<T,s1,s2>& m1,
 template<class T,int s1,int s2> 
 inline FixedMatrix<T,s2,s2>
 orthoTransform(const FixedMatrix<T,s1,s1>& m,
-	       const FixedMatrix<T,s2,s1>& S)
+	           const FixedMatrix<T,s2,s1>& S)
 {
  // return S * m * transpose(S);
 // FixedMatrix<T,s2,s1> dum((T)0);
@@ -307,16 +308,7 @@ orthoTransform(const FixedMatrix<T,s1,s1>& m,
 //	   ret(i,l) += S(i,j) * m(j,k) * S(l,k);
 //   }
  return ret;
-} /* orthoTransform */
-
-////
-//// perform generalized orthogonal transform on m: S * m * transpose(S)
-////
-//template<class T,int s1,int s2> 
-//FixedMatrix<T,s2,s2>
-//orthoTransform(const FixedMatrix<T,s1,s1>& m,
-//		 const FixedMatrix<T,s2,s1>& S);
-
+}
 
 template<class T,int s1,int s2> 
 inline FixedMatrixBase<T,s1,s2>&
@@ -325,18 +317,18 @@ FixedMatrixBase<T,s1,s2>::scale(const T& x)
  for (int i=0 ; i<s1*s2 ; i++)
    d_[i] *= x;
  return *this;
-} /* scale */
+}
 
 
 template<class T,int s1,int s2> 
 inline FixedMatrix<T,s1,s2>
 operator*(const T&                    x,
-	  const FixedMatrix<T,s1,s2>& m)
+	      const FixedMatrix<T,s1,s2>& m)
 {
  FixedMatrix<T,s1,s2> r(m);
  r.scale(x);
  return r;
-} /* operator* (matrix,matrix) */
+}
 
 
 template<class T, int s1, int s2>
@@ -345,7 +337,7 @@ FixedMatrixBase<T,s1,s2>::set(const T &x)
 {
  for (int i=0 ; i<s1*s2 ; i++)
    d_[i] = x;
-} /* set */
+}
 
 
 template<class T, int s1, int s2>
@@ -354,7 +346,7 @@ FixedMatrixBase<T,s1,s2>::setDiag(const T &x)
 {
  for (int i=0 ; i<((s1<s2)?s1:s2) ; i++)
    d_[i + s1*i] = x;
-} /* setDiag */
+}
 
 //template<class T, int s1, int s2>
 //inline FixedMatrix<T,s2,s1>
@@ -367,7 +359,6 @@ FixedMatrixBase<T,s1,s2>::setDiag(const T &x)
 // return r;
 //} /* transpose */
 
-#include <fixedVector.h>
 
 template<class T,int s1,int s2> 
 inline FixedVector<T,s1>

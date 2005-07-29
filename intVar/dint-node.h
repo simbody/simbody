@@ -38,20 +38,58 @@ class IVM;
  * the joint connecting it to its parent. Concrete classes are derived from this one to
  * represent each specific type of joint.
  *
- * HingeNodes are linked into a tree structure, beginning with a special 'Ground' node
- * defined to be at level 0 and containing only atoms fixed to ground. The HingeNodes
- * are organized into levels as described in the JMR paper. Level 1 nodes (referred to
+ * HingeNodes are linked into a tree structure, organized into levels as described 
+ * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
+ * level 0 and containing only atoms fixed to ground. The Level 1 nodes (referred to
  * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
  * to level 1's, etc. Every node but Ground has exactly one parent node, whose
  * level is always one less than the current node. Any node may have an arbitrary number 
  * of children, for which it is the unique parent, and all of its children have 
  * level one greater than the current node.
  *
- * Every HingeNode contain an IVMAtom list of the atoms rigidly affixed to the
+ * Every HingeNode contains a list of pointers to the atoms rigidly affixed to the
  * body associated with that node. The 0th atom in that list is the one which is
  * connected to the node's parent by a joint, to a specific atom on the parent
  * node stored as 'parentAtom' here. Our 0th atom's body-fixed station serves as
  * the origin for the body frame, and thus has coordinates [0,0,0] in that frame.
+ *
+ * Note: calling rotation matrices 'rotMat' or 'R' is a recipe for disaster.
+ * We use the naming convention R_XY to mean a rotation matrix (3x3 direction
+ * cosine matrix) expressing the orientation of frame Y in frame X. Given a vector
+ * vY expressed in Y, you can re-express that in X via vX=R_XY*vY. To go the
+ * other direction use R_YX=R_XY' (apostrophe is Matlab for "transpose"). This convention
+ * provides flawless composition of rotations as long as you "match up" the frames
+ * (i.e., adjacent frame symbols must be the same). So if you have R_XY and R_ZX 
+ * and you want R_YZ you can easily get it like this:
+ *     R_YZ = R_YX*R_XZ = (R_XY')*(R_ZX') = (R_ZX*R_XY)'.
+ * Also note that these are orthogonal matrices so R_XY*R_YX=I.
+ *
+ * Every body has a body frame B. In the reference configuration that we use
+ * to define the bodies, all frames B are aligned with the ground frame G. You can
+ * think of this as defining the B frames by painting images of the G frame on
+ * each body (translated to atom 0) when we first see the bodies in the reference
+ * frame. Later the bodies move and take their B frames with them. The locations
+ * of all the atoms on a body are then forever fixed when measured in the B frame;
+ * we call such points 'stations'. For convenience, we refer to the body frame
+ * of a body's unique parent as the 'P' frame. Initially frames P and B are
+ * aligned (and both are aligned with Ground). Later the P and B frames
+ * will differ, but only by the relative orientation and translation induced by
+ * the joint connecting B to P. That is, rotation matrix R_PB expresses the
+ * relative orientation between the parent and child caused by the current
+ * joint coordinates. When all of that joint's coordinates are 0, B and P will
+ * once again be aligned (R_PB=I) although of course in general they will not be 
+ * aligned with Ground unless *all* the joint coordinates between B and G are zero.
+ *
+ * In addition to the B frame fixed on every body, the inboard joint has its own 
+ * frame J, which is fixed with respect to B. In some cases J and B will be the
+ * same, but not always. The constant rotation matrix R_BJ provides the orientation
+ * of the inboard joint's frame in the body frame. If B is the i'th child of
+ * its parent P, then there is a parent-fixed frame Ji which is the image of J
+ * when the joint coordinates are zero. That is, R_JiJ is the orientation change
+ * induced by the joint coordinates. Note that because of how we define the 
+ * reference configuration, R_PJi = R_BJ so we don't need to store both matrices
+ * explicitly. With these definitions we can easily calculate R_PB as
+ *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*(R_BJ)'.
  *
  */
 class HingeNode {

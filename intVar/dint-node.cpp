@@ -28,14 +28,46 @@ using CDSMath::sq;
 typedef FixedMatrix<double,2,3> Mat23;
 typedef FixedVector<double,5>   Vec5;
 
-inline 
-Mat23
+static Mat23
 catRow(const Vec3& v1, const Vec3& v2) {
     FixedMatrix<double,1,3> m1(v1.getData());
     FixedMatrix<double,1,3> m2(v2.getData());
     Mat23 ret = blockMat21(m1,m2);
     return ret;
 }
+
+// Calculate a rotation matrix R_BJ which defines the J
+// frame by taking the B frame z axis into alignment 
+// with the passed-in zDir vector. This is not unique.
+// notes of 12/6/99 - CDS
+static Mat3
+makeJointFrameFromZAxis(const Vec3& zVec) {
+    const Vec3 zDir = unitVec(zVec);
+
+    // Calculate spherical coordinates.
+    double theta = acos( zDir.z() );             // zenith (90-elevation)
+    double psi   = atan2( zDir.x() , zDir.y() ); // 90-azimuth
+
+    // This is a space fixed 1-2-3 sequence with angles
+    // a1=-theta, a2=0, a3=-psi. That is, to get from B to J
+    // first rotate by -theta around the B frame x axis, 
+    // then rotate by -psi around the B frame z axis. (sherm)
+
+    const double R_BJ[] = 
+        { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
+         -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
+          0        , -sin(theta)         , cos(theta)         };
+    return Mat3(R_BJ); // == R_PJi
+}
+
+static Mat3
+makeIdentityRotation() {
+    Mat3 ret(0.);
+    ret.setDiag(1.);
+    return ret;
+}
+
+static const Mat3 R_I = makeIdentityRotation(); // handy to have around
 
 /**
  * This is the distinguished body representing the immobile ground frame. Other bodies may
@@ -91,10 +123,11 @@ public:
     //     attached to the current body. At the moment I'm just preserving the
     //     existing behavior; later I hope to trash it. (sherm)
     //
-    HingeNodeSpec(const HingeNode* node, int& cnt, bool addDummyOrigin=false)
+    HingeNodeSpec(const HingeNode* node, int& cnt, const Mat3& rotBJ,
+                  bool addDummyOrigin=false)
       : HingeNode(*node), offset_(cnt),
         mass_(0), inertia(), Mk(0.), posCM_(0.),
-        a(0.), forceCartesian(0.), b(0.),
+        a(0.), forceCartesian(0.), b(0.), R_BJ(rotBJ),
         theta(0.), dTheta(0.), forceInternal(0.0) 
     { 
         cnt+=dof;   // leave room for this node's state variables
@@ -197,12 +230,19 @@ protected:
     // they are not state dependent.
     const CDSVector<Vec3,1> atomStations_B;
 
+    // Inboard joint frame. This is fixed forever once constructed and gives the
+    // orientation of the body-fixed J frame in the body frame B. This is an 
+    // identity matrix for some joint types.
+    const Mat3 R_BJ;
+
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
     // after construction! The body origin can of course move relative to its
     // parent, but that is not the meaning of this reference configuration vector.
     // (Note however that the body origin is also the location of the inboard joint, 
     // meaning that the origin point moves relative to the parent only due to translations.)
+    // Note that by definition the orientation of the body frame is identical to P
+    // in the reference configuration so we don't need to store it.
     const Vec3 refOrigin_P;
 
     // These are the joint properties
@@ -232,13 +272,14 @@ typedef SubVector<Vec6>       RSubVec6;
 /**
  * Translate (Cartesian) joint. This provides three degrees of translational freedom
  * which is suitable (e.g.) for connecting a free atom to ground.
+ * The joint frame J is aligned with the body frame B.
  */
 class HNodeTranslate : public HingeNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
     HNodeTranslate(const HingeNode* node, int& cnt)
-      : HingeNodeSpec<3>(node,cnt)
+      : HingeNodeSpec<3>(node,cnt,R_I)
     {
         theta = Vec3(0.);
     }
@@ -271,6 +312,7 @@ public:
 /**
  * Free joint. This is a six degree of freedom joint providing unrestricted 
  * translation and rotation for a free rigid body.
+ * The joint frame J is aligned with the body frame B.
  */
 class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
     Vec4 q; //Euler parameters for rotation relative to parent
@@ -286,7 +328,7 @@ public:
     HNodeTranslateRotate3(const HingeNode* node,
                           int&             cnt,
                           bool             useEuler)
-      : HingeNodeSpec<6>(node,cnt,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
+      : HingeNodeSpec<6>(node,cnt,R_I,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
     { 
         if ( !useEuler )
             cnt++;
@@ -303,20 +345,24 @@ public:
             cPsi   = cos( theta(2) *DEG2RAD );
             sPsi   = sin( theta(2) *DEG2RAD );
 
-            double a[] = 
+            // This is the rotation matrix giving the current orientation of the J
+            // frame with respect to the parent body's Ji frame, where the current
+            // body B is the i'th child of P.
+            const double R_JiJ[] = 
                 { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-            R_PB = Mat3(a);
+
+            R_PB = Mat3(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
-            double a[] =  //rotation matrix - active-sense coordinates
+            const double R_JiJ[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
                  sq(q(2))-sq(q(3))      , 2*(q(1)*q(2)-q(0)*q(3)), 2*(q(1)*q(3)+q(0)*q(2)),
                  2*(q(1)*q(2)+q(0)*q(3)), (sq(q(0))-sq(q(1))+
                                            sq(q(2))-sq(q(3)))    , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            R_PB = Mat3(a);
+            R_PB = Mat3(R_JiJ); // see above
         }
         R_GB = getR_GP() * R_PB; // the spatial rotation matrix expressing body frame B in ground
     }
@@ -490,6 +536,7 @@ public:
 /**
  * Ball joint. This provides three degrees of rotational freedom, i.e.,
  * unrestricted orientation.
+ * The joint frame J is aligned with the body frame B.
  */
 class HNodeRotate3 : public HingeNodeSpec<3> {
     Vec4    q; //Euler parameters for rotation relative to parent
@@ -506,7 +553,7 @@ public:
     HNodeRotate3(const HingeNode* node,
                   int&            cnt,
                   bool            useEuler)
-      : HingeNodeSpec<3>(node,cnt,true), 
+      : HingeNodeSpec<3>(node,cnt,R_I,true), 
         q(1.0,0.0,0.0,0.0), useEuler(useEuler)
     { 
         if ( !useEuler )
@@ -526,20 +573,20 @@ public:
             
             // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
             // of Spacecraft Dynamics.
-            double a[] = 
+            double R_JiJ[] = 
                 { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-            R_PB = Mat3(a);
+            R_PB = Mat3(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
-            double a[] =  //rotation matrix - active-sense coordinates
+            double R_JiJ[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
                  sq(q(2))-sq(q(3))      , 2*(q(1)*q(2)-q(0)*q(3)), 2*(q(1)*q(3)+q(0)*q(2)),
                  2*(q(1)*q(2)+q(0)*q(3)),(sq(q(0))-sq(q(1))+
                                           sq(q(2))-sq(q(3)))     , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            R_PB = Mat3(a);
+            R_PB = Mat3(R_JiJ); // see above
         }
         R_GB = getR_GP() * R_PB; // R_GB = R_GP*R_PB, the spatial rotation matrix
     }
@@ -706,21 +753,14 @@ public:
  * torsion+bond angle bending.
  */
 class HNodeRotate2 : public HingeNodeSpec<2> {
-    Mat3                R0;
 public:
     virtual const char* type() { return "rotate2"; }
 
     HNodeRotate2(const HingeNode* node,
-                 const Vec3&      zDir,
+                 const Vec3&      zVec,
                  int&             cnt)
-      : HingeNodeSpec<2>(node,cnt)
+      : HingeNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec))
     { 
-        double theta = acos( zDir.z() );
-        double psi   = atan2( zDir.x() , zDir.y() );
-        double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-                      -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-                       0        , -sin(theta)         , cos(theta)         };
-        R0 = Mat3(a);
     }
 
     void calcRot() { 
@@ -736,7 +776,7 @@ public:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        const Mat3 R_PB = orthoTransform( Mat3(a) , R0 ); //body-fixed rotation matrix
+        const Mat3 R_PB = orthoTransform( Mat3(a) , R_BJ );
         R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
@@ -744,8 +784,8 @@ public:
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
 
-        Vec3 x = scale * R_GB * (R0 * Vec3(1,0,0));
-        Vec3 y = scale * R_GB * (R0 * Vec3(0,1,0));
+        Vec3 x = scale * R_GB * (R_BJ * Vec3(1,0,0));
+        Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
         H = blockMat12(catRow(x,y) , zMat23);
@@ -784,24 +824,14 @@ public:
  * inertialess axis.
  */
 class HNodeTranslateRotate2 : public HingeNodeSpec<5> {
-    Mat3                R0;
 public:
     virtual const char* type() { return "diatom"; }
 
     HNodeTranslateRotate2(const HingeNode*  node,
+                          const Vec3&       zVec,
                           int&              cnt)
-      : HingeNodeSpec<5>(node,cnt)
+      : HingeNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec))
     { 
-        //rotation matrix which takes the z-axis
-        // to atoms[0]->pos-parentAtom->pos
-        // notes of 12/6/99 - CDS
-        Vec3 u = unitVec( atoms[1]->pos - atoms[0]->pos );
-        double theta = acos( u.z() );
-        double psi   = atan2( u.x() , u.y() );
-        double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-                      -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-                       0        , -sin(theta)         , cos(theta)         };
-        R0 = Mat3(a);
     }
 
     void calcRot() { 
@@ -812,12 +842,14 @@ public:
         double sinPsi = sin( scale * theta(1) );
         double cosPsi = cos( scale * theta(1) );
 
-        double a[] =  //Ry(psi) * Rx(phi)
+        // space (parent)-fixed 1-2-3 sequence (rotation 3=0)
+        double R_JiJ[] =  //Ry(psi) * Rx(phi)
             {cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        const Mat3 R_PB = orthoTransform( Mat3(a) , R0 ); // orientation of B in parent P
+        // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
+        const Mat3 R_PB = orthoTransform( Mat3(R_JiJ) , R_BJ ); // orientation of B in parent P
         R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
@@ -826,8 +858,8 @@ public:
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
 
-        Vec3 x = scale * R_GB * (R0 * Vec3(1,0,0));
-        Vec3 y = scale * R_GB * (R0 * Vec3(0,1,0));
+        Vec3 x = scale * R_GB * (R_BJ * Vec3(1,0,0));
+        Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
         Mat3  zMat33(0.0);
@@ -871,28 +903,14 @@ public:
  * about a particular axis.
  */
 class HNodeTorsion : public HingeNodeSpec<1> {
-    Vec3              rotDir0; // vector about which rotation happens
-    Mat3              R0;
 public:
     virtual const char* type() { return "torsion"; }
 
     HNodeTorsion(const HingeNode*   node,
                  const Vec3&        rotDir,
                  int&               cnt)
-      : HingeNodeSpec<1>(node,cnt), 
-        rotDir0( unitVec(rotDir) )
+      : HingeNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
     { 
-        //rotation matrix which takes the z-axis
-        // to rotDir0
-        // notes of 12/6/99 - CDS
-        double theta = acos( rotDir0.z() );
-        double psi   = 0.;
-        if ( rotDir0.x()!=0. && rotDir0.y()!=0. )
-            psi = atan2( rotDir0.x() , rotDir0.y() );
-        double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-                      -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-                       0        , -sin(theta)         , cos(theta)         };
-        R0 = Mat3(a);
     }
 
     void calcRot() {
@@ -904,14 +922,15 @@ public:
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 };
         const Mat3 A(a); //rotation about z-axis
-        const Mat3 R_PB = orthoTransform( A , R0 ); // orientation of B in parent's frame P
+        const Mat3 R_PB = orthoTransform( A , R_BJ ); // orientation of B in parent's frame P
         R_GB = getR_GP() * R_PB; // spatial orientation of B in ground frame G
     };
 
     // Calc H matrix in space-fixed coords.
     void calcH() {
-        //   Vec3 z = getR_GP() * Vec3(0.0,0.0,1.0);
-        Vec3 z = getR_GP() * rotDir0;
+        // This only works because the joint z axis is the same in B & P
+        // because that's what we rotate around.
+        Vec3 z = getR_GP() * (R_BJ * Vec3(0,0,1)); // R_BJ=R_PJi
         FixedMatrix<double,1,3> zMat(0.0);
         H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
     }
@@ -1108,8 +1127,8 @@ construct(HingeNode*                         node,
             newNode = new HNodeRotate3(node,cnt,
                                        ivm->minimization());
         else if ( node->atoms.size()==2 )
-            newNode = new HNodeRotate2(node,unitVec(node->atoms[1]->pos - 
-                                                    node->atoms[0]->pos  ),cnt);
+            newNode = new HNodeRotate2(node,
+                            node->atoms[1]->pos - node->atoms[0]->pos,cnt);
     }
 
     if (type == "translate")
@@ -1120,7 +1139,8 @@ construct(HingeNode*                         node,
             newNode = new HNodeTranslateRotate3(node,cnt,
                                                 ivm->minimization());
         else if ( node->atoms.size()==2 )
-            newNode = new HNodeTranslateRotate2(node,cnt);
+            newNode = new HNodeTranslateRotate2(node,
+                            node->atoms[1]->pos - node->atoms[0]->pos, cnt);
         else if ( node->atoms.size()==1 )
             newNode = new HNodeTranslate(node,cnt);
     }
