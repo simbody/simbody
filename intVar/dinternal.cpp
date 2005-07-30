@@ -1,6 +1,6 @@
 /**@file
  *
- *  Dynamics in internal coordinates
+ *  Dynamics in internal coordinates.
  * 
  *  ****add references****
  * 
@@ -116,18 +116,18 @@ AtomTree::getDOF() {
 
 int 
 AtomTree::getDim() {
-    int ret = 0;
+    int              totalDim = 0;
     CDSVector<int,0> moleculeDim;
 
     if ( nodeTree.size()>1 ) {
         moleculeDim.resize( nodeTree[1].size() );
         for (int i=0 ; i<nodeTree[1].size() ; i++) {
             moleculeDim(i) = getIDim( nodeTree[1][i] );
-            ret += moleculeDim(i);
+            totalDim += moleculeDim(i);
         }
     } else
         moleculeDim.resize( 0 );
-    return ret;
+    return totalDim;
 }
 
 //

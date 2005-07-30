@@ -177,26 +177,19 @@ public:
     virtual const double& mass() const { return mass_; }
     virtual int offset() const {return offset_;}
 
-    void calcPandZ() { calcP(); calcZ(); }
-    void calcP();
-    void calcZ();
-    void calcAccel();
-    void calcInternalForce();
+
+    int  getDOF() const { return dof; }
+    virtual int  getDim() const { return dof; } // dim can be larger than dof
 
     virtual void calcY();
     //  void calcEpsilon_nu(const Vec6& z);
-    void calcD_G(const Mat6& P);
-    int  getDOF() const { return dof; }
-    virtual int  getDim() const { return dof; }
+
     virtual void print(int);
     virtual double kineticE();
     //  virtual double approxMass(int k);
     virtual double approxKE();
-    void calcCartesianForce();
-    void prepareVelInternal();
-    void propagateSVel(const Vec6&);
-    virtual void setPosVel(const RVec&,
-    const RVec&);
+
+    virtual void setPosVel(const RVec& pos, const RVec& vel);
     virtual void setVel(const RVec&);
     virtual void setVelFromSVel(const Vec6&);
 
@@ -207,7 +200,15 @@ public:
     virtual void getInternalForce(RVec&);
     virtual RMat getH() { return RMat(H); }
 
-
+    void calcPandZ() { calcP(); calcZ(); }
+    void calcP();
+    void calcZ();
+    void calcAccel();
+    void calcInternalForce();
+    void calcCartesianForce();
+    void prepareVelInternal();
+    void propagateSVel(const Vec6&);
+    void calcD_G(const Mat6& P);
 protected:
     int           offset_;  //index into internal coord pos,vel,acc arrays
 
@@ -1539,8 +1540,8 @@ HingeNodeSpec<dof>::calcY() {
 
 template<int DOF> void
 HingeNodeSpec<DOF>::calcCartesianForce() {
-    Vec3 moment(0.0);
-    Vec3 force(0.0);
+    Vec3 moment(0.);
+    Vec3 force(0.);
     // notice that the sign is screwey
     for (int i=0 ; i<atoms.size() ; i++) {
         IVMAtom* a = atoms[i];

@@ -32,25 +32,30 @@ class IVM {
 public:
     IVM();
     virtual ~IVM();
-    virtual void calcEnergy() { cout << "you must override this function."; }
 
-    // the dimension of an Rvec
+    /// Mandatory energy & gradient (forces) routine.
+    virtual void calcEnergy() { cout << "you must override this function."; }
+    
+    /// Kinetic energy and temperature handling (override optional).
+    virtual void calcTemperature();
+
+    /// The dimension of an Rvec.
     int rvecSize(const RVec& v) { return rvecSize_(v); }
 
-    // the inner product of two RVec's
+    /// The inner product of two RVec's.
     double rvecProd(const RVec& v1, const RVec& v2) { return rvecProd_(v1,v2); }
 
-    // simple shortcut defined in terms of previous function
+    /// Square (self dot-product) of an RVec.
     double rvecAbs2(const RVec& v) { return rvecProd(v,v); }
 
-    // the dimension of a CDSVector<Vec3>
+    /// The dimension of a CDSVector<Vec3>.
     int vecVec3Prod(const CDSVector<Vec3>& v) { return vecVec3Size_(v); }
 
-    // the inner product of two CDSVector<Vec3>'s
+    /// The inner product of two CDSVector<Vec3>'s.
     double vecVec3Prod(const CDSVector<Vec3>& v1,
-    const CDSVector<Vec3>& v2) { return vecVec3Prod_(v1,v2); }
+                       const CDSVector<Vec3>& v2) { return vecVec3Prod_(v1,v2); }
 
-    // simple shortcut defined in terms of previous function
+    /// Square (self dot-product) of a CDSVector<Vec3>.
     double vecVec3Abs2(const CDSVector<Vec3>& v) { return vecVec3Prod(v,v); }
 
     void initAtoms(const int     natom,
@@ -58,17 +63,18 @@ public:
                    const double& kBoltzman);
     void initTopology();
     void initDynamics(bool reuseTopology);
-    const AtomList& getAtoms() const { return atoms; }
+
     void groupTorsion();
     void resetCM();
     void printCM();
     void calcY();
-    virtual void calcTemperature();
+
     void updateAccel();
     void step(double& timeStep);
     bool minimization() const;
 
     // get accessors
+    const AtomList& getAtoms()  const { return atoms; }
     const AtomTree* tree()      const { return tree_; }
     AtomTree*       tree()            { return tree_; }
     const Solver*   getSolver() const { return solver_; }
