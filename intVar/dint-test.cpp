@@ -397,7 +397,7 @@ TestIVM::test()
             step(stepsize);
             printCM();
         }
-        catch ( Integrator::Finished ) {
+        catch ( Solver::Finished ) {
             break;
         }
     }
@@ -449,7 +449,7 @@ TestIVM::test()
     //         step(s);
     //         InternalDynamics::printCM();
     //       }
-    //       catch ( Integrator::Finished ) {
+    //       catch ( Solver::Finished ) {
     //         break;
     //       }
     //     }
@@ -487,7 +487,7 @@ TestIVM::test()
         dEpred_=5;
         //     InternalDynamics::Etolerance=1e-2;
         Gtolerance_=0.01;
-        integrateType = "Powell";
+        solverType = "Powell";
         //     integrateType = "Minimize";
         //     integrateType = "ConMin";
         initDynamics(0);
@@ -507,7 +507,7 @@ TestIVM::test()
                     step(s);
                     printCM();
                 }
-                catch ( Integrator::Finished ) {
+                catch ( Solver::Finished ) {
                     break;
                 }
         }
@@ -545,9 +545,9 @@ TestIVM::test()
         dEpred_=5;
         //     InternalDynamics::Etolerance=1e-2;
         Gtolerance_=0.01;
-        integrateType = "Powell";
-        integrateType = "Minimize";
-        integrateType = "ConMin";
+        solverType = "Powell";
+        solverType = "Minimize";
+        solverType = "ConMin";
         initDynamics(0);
         if (debugging)
             printCM();
@@ -565,7 +565,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Integrator::Finished ) {
+            catch ( Solver::Finished ) {
                 break;
             }
         }
@@ -598,7 +598,7 @@ TestIVM::test()
         setVerbose( 0 );
     fcnt = 0;
     init();
-    integrateType = "Simplex";
+    solverType = "Simplex";
     for (int ecnt=0 ; ecnt<5 ; ecnt++) {
         initDynamics(0);
         dEpred_=1;
@@ -620,7 +620,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Integrator::Finished ) {
+            catch ( Solver::Finished ) {
                 break;
             }
         }
@@ -657,7 +657,7 @@ TestIVM::test()
     Etolerance_=1e-8;
     Gtolerance_=0.01;
     //FIX:   LengthConstraints::maxIters = 40;
-    integrateType = "Powell";
+    solverType = "Powell";
     initCycle();
     CDSList<double> bondLengths;
     for (int i=0 ; i<constraintList.size() ; i++) {
@@ -684,7 +684,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Integrator::Finished f ) {
+            catch ( Solver::Finished f ) {
                 ok = f.ok;
                 if ( !ok ) 
                     cout << "minimizer exited with error status: " << ok << '\n';
@@ -739,7 +739,7 @@ TestIVM::test()
     Etolerance_=1e-8;
     Gtolerance_=0.01;
     //FIX: LengthConstraints::maxIters = 40;
-    integrateType = "PC6";
+    solverType = "PC6";
     initCycle();
     CDSList<double> bondLengths;
     for (int i=0 ; i<constraintList.size() ; i++) {
@@ -764,7 +764,7 @@ TestIVM::test()
                 step(stepsize);
                 printCM();
             }
-            catch ( Integrator::Finished ) {
+            catch ( Solver::Finished ) {
                 break;
             }
         }

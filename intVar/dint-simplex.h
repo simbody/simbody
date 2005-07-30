@@ -6,7 +6,7 @@
 /**
  * Simplex  minimization.
  */
-class Simplex : public Integrator {
+class Simplex : public Solver {
 public:
     Simplex(IVM*      ivm);
 

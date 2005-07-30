@@ -17,7 +17,7 @@ using InternalDynamics::printStepDebug;
 using InternalDynamics::printStepInfo;
 
 ConMin::ConMin(IVM* ivm)
-    : Integrator(ivm)
+    : Solver(ivm)
 {
 }
 

@@ -154,7 +154,7 @@ PublicIVM::step(double& stepsize)
     try {
         IVM::step(stepsize);
     }
-    catch ( Integrator::Finished ) {
+    catch ( Solver::Finished ) {
         done=1;
     }
     if ( !minimization() ) 

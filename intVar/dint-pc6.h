@@ -9,9 +9,9 @@ class VelScale;
 /**
  * 6th order predictor-corrector integration.
  */
-class PC6 : public Integrator {
+class PC6 : public Solver {
 public:
-    PC6(IVM* ivm) : Integrator(ivm), timeStepAdj(0), velScale(0) {}
+    PC6(IVM* ivm) : Solver(ivm), timeStepAdj(0), velScale(0) {}
     ~PC6();
 
     void init(const RVec&     pos,

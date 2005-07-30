@@ -6,7 +6,7 @@
 /**
  * Conjugate gradient minimization.
  */
-class ConMin : public Integrator {
+class ConMin : public Solver {
 public:
     ConMin(IVM*      ivm);
 

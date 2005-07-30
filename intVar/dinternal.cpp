@@ -493,7 +493,7 @@ AtomTree::calcPandZ() {
 
 
 IVM::IVM() 
-  : tree_(0),                  integrator_(0),
+  : tree_(0),                  solver_(0),
     dof_(0),                   dim_(0),            verbose_( printStepInfo ), 
     useLengthConstraints_(0),  adjustTS_(1),       scaleVel_(1),
     resetCMflag(0),
@@ -503,7 +503,7 @@ IVM::IVM()
     maxDeltaE_(100),           maxCalls_(5000),
     kBoltzmann_(0.0),          bathTemp_(298.0),   frictionCoeff_(0.0),
     responseTime_(0.0),        currentTemp_(-1.0),
-    dEpred_(0.001),            integrateType( "PC6" ),
+    dEpred_(0.001),            solverType( "PC6" ),
     rvecSize_(defaultRVecSize), rvecProd_(defaultRVecProd),
     vecVec3Size_(defaultVecVec3Size), vecVec3Prod_(defaultVecVec3Prod)
 {
@@ -514,7 +514,7 @@ IVM::IVM()
 IVM::~IVM()
 {
     delete lConstraints;
-    delete integrator_;
+    delete solver_;
     delete tree_;
     for (int i=0 ; i<atoms.size() ; i++)
         delete atoms[i];
@@ -532,11 +532,11 @@ IVM::calcY() {
 
 bool
 IVM::minimization() const { 
-    if ( !integrator_ ) {
-        cout << "IVM::minimization: integrator not yet defined.\n" << flush;
-        throw Exception("IVM::minimization: integrator not yet defined.");
+    if ( !solver_ ) {
+        cout << "IVM::minimization: solver not yet defined.\n" << flush;
+        throw Exception("IVM::minimization: solver not yet defined.");
     }
-    return integrator()->minimization(); 
+    return getSolver()->minimization(); 
 }
 
 // Calc acceleration: sweep from base to tip.
@@ -746,7 +746,7 @@ IVM::step(double& timeStep) {
     bool ok=0;
     do {
         try {
-            integrator()->step(timeStep);
+            getSolver()->step(timeStep);
             ok=1;
         }
         catch ( Exception a ) {
@@ -877,8 +877,8 @@ IVM::resetCM()
     // FIX: if a node lies on a principle axis
     //   add the appropriate component(s) to the total AM;
 
-    // integrator()->setPos( tree()->getPos() ); //FIX: ??
-    // integrator()->setVel( tree()->getVel() );
+    // getSolver()->setPos( tree()->getPos() ); //FIX: ??
+    // getSolver()->setVel( tree()->getVel() );
 
     for ( l_int i=0 ; i<tree()->nodeTree[1].size() ; i++ ) {
         HingeNode* n = tree()->nodeTree[1][i];
@@ -887,11 +887,11 @@ IVM::resetCM()
                                                  n->getAtom(0)->pos-posCM) + velCM);
         n->setVelFromSVel(sVel);
     }
-    integrator()->setPos( tree()->getPos() );
-    integrator()->setVel( tree()->getVel() );
+    getSolver()->setPos( tree()->getPos() );
+    getSolver()->setVel( tree()->getVel() );
 
-    tree()->enforceConstraints(integrator()->getPos(),integrator()->getVel());
-    tree()->setPosVel(integrator()->getPos(),integrator()->getVel());
+    tree()->enforceConstraints(getSolver()->getPos(),getSolver()->getVel());
+    tree()->setPosVel(getSolver()->getPos(),getSolver()->getVel());
 
     if (verbose_&printResetCM) { //REMOVE: for testing only
         Vec3 velCM(0.0);
@@ -964,7 +964,7 @@ IVM::printCM()
              << " (" << Epotential() << ' ' << Ekinetic() << ')'
              << '\n';
     if ( verbose_&printCoords )
-        cout << "pos: " << setprecision(14) << integrator()->getPos() << '\n';
+        cout << "pos: " << setprecision(14) << getSolver()->getPos() << '\n';
     if ( verbose_&(printNodeForce | printNodePos | printNodeTheta) )
         for (int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++)
@@ -1004,10 +1004,10 @@ IVM::updateAccel() {
 void
 IVM::initTopology()
 {
-    // integrator must be defined to determine hinge setup
+    // solver must be defined to determine hinge setup
     //  (whether to use euler angles or quaternions)
-    if (integrator()) delete integrator_;
-    integrator_ = Integrator::create(integrateType,this);
+    if (getSolver()) delete solver_;
+    solver_ = Solver::create(solverType,this);
 
     if (tree())
         delete tree_;
@@ -1045,7 +1045,7 @@ IVM::initDynamics(bool reuseTopology)
     calcEnergy();
     if ( !minimization() )
         acc = tree()->getAccel();
-    integrator()->init(pos,vel,acc);
+    getSolver()->init(pos,vel,acc);
 }
 
 String
@@ -1109,7 +1109,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
             nodeTree[i][j]->prepareVelInternal();
 
     // turn off Langevin stuff for now
-    double frictionCoeff = ivm->frictionCoeff();
+    const double frictionCoeff = ivm->frictionCoeff();
     ivm->frictionCoeff_ = 0.0;
 
     // make sure that internal velocities of each node are correct

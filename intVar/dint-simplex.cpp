@@ -22,7 +22,7 @@ using InternalDynamics::printStepDebug;
 using InternalDynamics::printStepInfo;
 
 
-Simplex::Simplex(IVM* ivm) : Integrator(ivm) {}
+Simplex::Simplex(IVM* ivm) : Solver(ivm) {}
 
 void
 Simplex::init(const RVec& pos,

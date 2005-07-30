@@ -260,7 +260,7 @@ protected:
     void calcProps();
 };
 
-const double HingeNode::DEG2RAD = PI / 180.;
+/*static*/const double HingeNode::DEG2RAD = PI / 180.;
 //const double HingeNode::DEG2RAD = 1.0;  //always use radians
 
 typedef SubVector<RVec>       RSubVec;
@@ -280,9 +280,7 @@ public:
 
     HNodeTranslate(const HingeNode* node, int& cnt)
       : HingeNodeSpec<3>(node,cnt,R_I)
-    {
-        theta = Vec3(0.);
-    }
+    { }
 
     void calcH() {
         using MatrixTools::transpose;
@@ -1646,8 +1644,8 @@ HingeNodeSpec<dof>::approxKE() {
         for (int j=0 ; j<3 ; j++)
             if ( H(i,j) != 0.0 ) {
                 mass = sumInertiaToTip( this, 
-                getAtom(0)->pos, 
-                Vec3::subCol(MatrixTools::transpose(H),i,0,2) );
+                                        getAtom(0)->pos, 
+                                        Vec3::subCol(MatrixTools::transpose(H),i,0,2) );
                 break;
             }
         if ( mass == 0.0 ) 

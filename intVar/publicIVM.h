@@ -121,14 +121,14 @@ public:
     float_type maxTSFactor()          const { return maxTSFactor_; }
     float_type maxDeltaE()            const { return maxDeltaE_; }
     float_type minStepSize()          const { return IVM::minStepSize(); }
-    const char* stepType()            const { return IVM::integrateType; }
+    const char* stepType()            const { return IVM::solverType; }
     const PotList& potList()          const { return potList_; }
     PotList&   potList()                    { return potList_; }
 
     // simple set-accessors
     void setVerbose(const int v)               { verbose_=v;}
     void setConstrainLengths(bool i)           { useLengthConstraints_ = i; }
-    void setStepType(const char* v)            { IVM::integrateType=v; }
+    void setStepType(const char* v)            { IVM::solverType=v; }
     void setBathTemp(const float_type& v)      { bathTemp_=v; }
     void setETolerance(const float_type& v)    { Etolerance_=v; }
     void setGTolerance(const float_type& v)    { Gtolerance_=v; }

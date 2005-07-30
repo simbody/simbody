@@ -15,7 +15,7 @@ class AtomTree;
 class AT_Build;
 class Vec3;
 class HingeNode;
-class Integrator;
+class Solver;
 class LengthConstraints;
 
 typedef CDSList< IVMAtom* >     AtomList;
@@ -69,10 +69,10 @@ public:
     bool minimization() const;
 
     // get accessors
-    const AtomTree*   tree() const { return tree_; }
-    AtomTree*         tree()       { return tree_; }
-    const Integrator* integrator() const { return integrator_; }
-    Integrator*       integrator()       { return integrator_; }
+    const AtomTree* tree()      const { return tree_; }
+    AtomTree*       tree()            { return tree_; }
+    const Solver*   getSolver() const { return solver_; }
+    Solver*         getSolver()       { return solver_; }
 
     int    dof()                  const { return dof_; }
     int    dim()                  const { return dim_; }
@@ -107,7 +107,7 @@ public:
 
 protected:
     AtomTree*          tree_;
-    Integrator*        integrator_;
+    Solver*            solver_;
     LengthConstraints* lConstraints;
 
     int dof_;   //number of degrees of freedom
@@ -159,7 +159,7 @@ protected:
     AtomList                             atoms;
     CDSList< CDSList<int> >              groupList;
     CDSList<InternalDynamics::HingeSpec> hingeList;
-    String                               integrateType;
+    String                               solverType;
     CDSList<int>                         oldBaseAtoms;
 
     RVecSizeType rvecSize_;

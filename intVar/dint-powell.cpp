@@ -23,13 +23,13 @@ using InternalDynamics::printStepInfo;
 
 
 Powell::Powell(IVM* ivm) : 
-  Integrator(ivm), mxfcon(2), maxlin(5) 
+  Solver(ivm), mxfcon(2), maxlin(5) 
 {}
 
 void
 Powell::init(const RVec&     pos,
-	     const RVec&     vel,
-	     const RVec&     acc)
+         const RVec&     vel,
+         const RVec&     acc)
 {
  this->pos = pos;
 
@@ -63,13 +63,13 @@ Powell::init(const RVec&     pos,
  double sum  = ivm->rvecAbs2(gcurr);
  if (ivm->verbose()&printStepDebug)
    cout << "Powell::Powell: New search point. GNEW="
-	<< gnew << " Fnew=" << f << '\n';
+    << gnew << " Fnew=" << f << '\n';
  saveValsAsOpt(f,sum,ncalls,pos,gcurr); //35
  
  if ( sum <= gradTol &&          //45
       ivm->verbose()&printStepDebug)
    cout << "Powell::Powell: gradTol achieved at start. "
-	<< "gsqrd: " << gsqrd << '\n';
+    << "gsqrd: " << gsqrd << '\n';
  //if ( sum <= gradTol )          //45
  //  throw Finished(1);
  //
@@ -92,7 +92,7 @@ Powell::init(const RVec&     pos,
 
 double
 Powell::callFG(RVec& pos,
-		RVec& grad ) 
+        RVec& grad ) 
   //
   // side effect: pos is modified such that constraints are maintained
   //
@@ -110,7 +110,7 @@ Powell::callFG(RVec& pos,
    double f = ivm->Epotential();
    double gg = ivm->rvecAbs2(grad);
    cout << "Powell::callFG: Etot=" << f
-	<< " abs2(g): " << gg << endl;
+    << " abs2(g): " << gg << endl;
  }
  return ivm->Epotential();
 } /* Powell::callFG */
@@ -159,9 +159,9 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      lineMin(w,stepsize,gmin,stepch,sbound,ddspln,nfbeg,ginit);
    } else 
      if (ncalls>nfbeg+1 ||
-	 fabs(gmin/ginit)>0.2) {
+     fabs(gmin/ginit)>0.2) {
        if (ivm->verbose()&printStepDebug)
-	 cout << "Powell::step: abandoned: pos=wxopt.\n";
+     cout << "Powell::step: abandoned: pos=wxopt.\n";
        throw Exit170(129);
        //       iretry=1;
        //       break;
@@ -192,7 +192,7 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      }
      if ( ncalls>=nfopt+maxlin ) { //110
        if (ivm->verbose()&printStepDebug)
-	 cout << "Powell::step: beta loop: ncalls>=nfopt+maxlin.\n";
+     cout << "Powell::step: beta loop: ncalls>=nfopt+maxlin.\n";
        throw Exit170(129);      //change 1
        //       break;
      }
@@ -208,10 +208,10 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
        lineMin(w,stepsize,gmin,stepch,sbound,ddspln,nfbeg,ginit);
      else
        if ( ncalls>nfbeg+1      ||
-	    fabs(gmin/ginit)>0.2 ) {
-	 if (ivm->verbose()&printStepDebug)
-	   cout << "Powell::step: lineMin abandoned.\n";
-	 Exit170(129);
+        fabs(gmin/ginit)>0.2 ) {
+     if (ivm->verbose()&printStepDebug)
+       cout << "Powell::step: lineMin abandoned.\n";
+     Exit170(129);
        }
    }
    //
@@ -234,12 +234,12 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      tree()->enforceConstraints(pos,w);  //FIX: should already be enforced
      iterrs = 0;
    } else if (iterrs==0                ||
-	      iterc-iterrs>=ivm->rvecSize(pos) ||
-	      fabs(sum)>=0.2*gsqrd      ) {
+          iterc-iterrs>=ivm->rvecSize(pos) ||
+          fabs(sum)>=0.2*gsqrd      ) {
      applyRestart(pos,
-		  beta,gmin,ginit,gamden,
-		  gcurr,wginit,wrsdx,wrsdg,w,
-		  iterc,iterrs);
+          beta,gmin,ginit,gamden,
+          gcurr,wginit,wrsdx,wrsdg,w,
+          iterc,iterrs);
    } else {
      //
      // CALCULATE THE VALUE OF GAMA THAT OCCURS IN THE NEW SEARCH DIRECTION,
@@ -253,16 +253,16 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      //
      if ( fabs(beta*gmin + gamma*sum) >= 0.2*gsqrd )
        applyRestart(pos,
-		    beta,gmin,ginit,gamden,
-		    gcurr,wginit,wrsdx,wrsdg,w,
-		    iterc,iterrs);
+            beta,gmin,ginit,gamden,
+            gcurr,wginit,wrsdx,wrsdg,w,
+            iterc,iterrs);
      else {
        //
        // CALCULATE THE NEW SEARCH DIRECTION.
        //
        if (ivm->verbose()&printStepDebug)
-	 cout << "Powell::step: New search direction. beta="
-	      << beta << " GAMA=" << gamma << '\n';
+     cout << "Powell::step: New search direction. beta="
+          << beta << " GAMA=" << gamma << '\n';
        w = -gcurr + beta*w + gamma*wrsdx;
        tree()->enforceConstraints(pos,w);
      }
@@ -287,11 +287,11 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      cout << "Powell::step: irregular exit: ";
      switch ( error() ) {
        case 129: 
-	 cout << "Line search abandoned: gradient may be incorrect\n";
-	 break;
+     cout << "Line search abandoned: gradient may be incorrect\n";
+     break;
        case 130: 
-	 cout << "Search direction uphill\n";
-	 break;
+     cout << "Search direction uphill\n";
+     break;
      }
    }
    throw Finished(0);
@@ -305,14 +305,14 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
      cout << "Powell::step: irregular exit: ";
      switch ( error() ) {
        case 133: 
-	 cout << "energy reduction is less than costTol\n";
-	 break;
+     cout << "energy reduction is less than costTol\n";
+     break;
        case 132: 
-	 cout << "Two consecutive iterations failed to reduce E\n";
-	 break;
+     cout << "Two consecutive iterations failed to reduce E\n";
+     break;
        case 131: 
-	 cout << "max number of energy evaluations reached\n";
-	 break;
+     cout << "max number of energy evaluations reached\n";
+     break;
      }
    }
    throw Finished(0);
@@ -327,17 +327,17 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
 
 void
 Powell::applyRestart(      RVec&   pos,   
-		      const double& beta,
-		      const double& gmin,
-		      const double& ginit,
-			    double& gamden,
-		      const RVec&   gcurr,
-		      const RVec&   wginit,
-			    RVec&   wrsdx,
-			    RVec&   wrsdg,
-			    RVec&   w,
-		      const int&    iterc,
-			    int&    iterrs)
+              const double& beta,
+              const double& gmin,
+              const double& ginit,
+                double& gamden,
+              const RVec&   gcurr,
+              const RVec&   wginit,
+                RVec&   wrsdx,
+                RVec&   wrsdg,
+                RVec&   w,
+              const int&    iterc,
+                int&    iterrs)
   //
   // label 155 from powell.s
   //
@@ -345,7 +345,7 @@ Powell::applyRestart(      RVec&   pos,
  gamden = gmin-ginit;
  if (ivm->verbose()&printStepDebug)
    cout << "Powell::applyRestart: Applying restart procedure. BETA="
-	<< beta << '\n';
+    << beta << '\n';
  wrsdx = w;
  wrsdg = gcurr-wginit;
  w     = -gcurr + beta*w;
@@ -363,16 +363,16 @@ Powell::getMinVals()
    gcurr = wgopt;
    if (ivm->verbose()&printStepDebug)
      cout << "Powell::saveMinVals: Current point set to optimal point.\n"
-	  << "\tf: " << f << " abs2(g): " << ivm->rvecAbs2(gcurr) << endl;
+      << "\tf: " << f << " abs2(g): " << ivm->rvecAbs2(gcurr) << endl;
  }
 } /* Powell::getMinVals */
 
 void
 Powell::saveValsAsOpt(const double& f,
-		       const double& sum,
-		       const int&    ncalls,
-		       const RVec&   pos,
-		       const RVec&   gcurr)
+               const double& sum,
+               const int&    ncalls,
+               const RVec&   pos,
+               const RVec&   gcurr)
   //
   // corresponds to label 35
   //
@@ -388,13 +388,13 @@ Powell::saveValsAsOpt(const double& f,
 
 void
 Powell::lineMin(const RVec&   w,
-		       double& stepsize,
-		       double& gmin,
-		       double& stepch,
-		       double& sbound,
-		       double& ddspln,
-		 const int&    nfbeg,
-		 const double& ginit)
+               double& stepsize,
+               double& gmin,
+               double& stepch,
+               double& sbound,
+               double& ddspln,
+         const int&    nfbeg,
+         const double& ginit)
   //
   // find minimum along the w direction
   //
@@ -408,7 +408,7 @@ Powell::lineMin(const RVec&   w,
    double sum = ivm->rvecAbs2(gcurr);
    if (ivm->verbose()&printStepDebug)
      cout << " Powell::lineMin: New search point. GNEW=" << gnew
-	  << " Fnew=" << f << " gg=" << sum << '\n';
+      << " Fnew=" << f << " gg=" << sum << '\n';
    double fch = f-fmin;
    //
    // STORE THE VALUES OF XCURR, F AND GCURR, IF  THEY ARE THE BEST THAT
@@ -465,8 +465,8 @@ Powell::lineMin(const RVec&   w,
        break;                       //exit to 170
      if (ncalls>=nfopt+maxlin) {     //110
        if (ivm->verbose()&printStepDebug)
-	 cout << "Powell::lineMin: ncalls>=nfopt+maxlin. "
-	      << "Line min abandoned.\n";
+     cout << "Powell::lineMin: ncalls>=nfopt+maxlin. "
+          << "Line min abandoned.\n";
        throw Exit170(129);      //change 2
        //break;     //abandon line search
      }
@@ -493,7 +493,7 @@ Powell::lineMin(const RVec&   w,
      if (ivm->verbose()&printStepDebug)
        cout << "Powell::lineMin: pos=wxopt. Line min abandoned.\n";
      if (ncalls>nfbeg+1     ||
-	 fabs(gmin/ginit)>0.2)
+     fabs(gmin/ginit)>0.2)
        throw Exit170(129);
      else
        break;
@@ -501,5 +501,5 @@ Powell::lineMin(const RVec&   w,
  }
  if ( nfopt <= startCall ) //made no improvement
    throw Exit170(129);
-} /* Powell::lineMin */
+}
 

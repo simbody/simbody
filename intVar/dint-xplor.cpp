@@ -200,7 +200,7 @@ ostream& help(ostream& ostr)
     h.line("FIX=<sel>"            , "fix atoms in space");
     h.line("GROUp=<sel>"          , "group atoms into node");
     h.line("HINGe=<type> <sel>"   , "selected atoms given hinge type");
-    h.line("ITYPe=<type>"         , "integrator selection (defaults to PC6)");
+    h.line("ITYPe=<type>"         , "solver selection (defaults to PC6)");
     h.line("     \tPC6"           , "6th order predictor-corrector");
     h.line("     \tGear"          , "Gear predictor-corrector");
     h.line("     \tMilne"         , "Milne predictor-corrector");
@@ -328,7 +328,7 @@ XplorIVM::info( ostream&    ostr,
     for (l_int i=0 ; i<hingeList.size() ; i++) {
         ostr << "\t\t" << formatHingeSpec(this,hingeList[i]) << '\n';
     }
-    ostr << "ITYPe= " << integrateType << '\n';
+    ostr << "ITYPe= " << solverType << '\n';
     ostr << "Verbose info to print:\n\t";
     for (l_int i=0 ; i<verboseList.size() ; i++)
         if ( verbose()&verboseList[i].val )
@@ -680,10 +680,10 @@ XplorIVM::entry()
             } else if ( wd == "ITYP" ) {
                 const int largstr=80;
                 char argstr[largstr]; 
-                FORTRAN(nextst,NEXTST)("Integrator type=",argstr,17,largstr);
+                FORTRAN(nextst,NEXTST)("Solver type=",argstr,17,largstr);
                 for (int i=0 ; i<largstr ; i++) 
                     if ( argstr[i]==' ' ) argstr[i] = '\0';       
-                        integrateType = argstr;
+                        solverType = argstr;
             } else if ( wd == "PRIN" ) {
                 const int largstr=80;
                 char argstr[largstr]; 
@@ -750,7 +750,7 @@ XplorIVM::entry()
         initDynamics(1);
 
         // print out energy info
-        outputStepInfo(0,stepsize,integrateType);
+        outputStepInfo(0,stepsize,solverType);
 
         long coordUnit=0;
         long velUnit=0;
@@ -794,7 +794,7 @@ XplorIVM::entry()
             try {
                 step(stepsize);
             }
-            catch ( Integrator::Finished ) {
+            catch ( Solver::Finished ) {
                 done=1;
             }
             if ( finalTime>0.0 && time >= finalTime )
@@ -817,7 +817,7 @@ XplorIVM::entry()
                         format,scale,offset,4,format.length());
             
             if (iter%nprint==0)
-                outputStepInfo(iter,stepsize,integrateType);
+                outputStepInfo(iter,stepsize,solverType);
         }
         const char* dum = "";
         FORTRAN(declar,DECLAR)("DINT_TIME" ,"DP",
