@@ -1,19 +1,18 @@
-
-//new module for bond-length constraints
-//use a shake-like algorithm
-//requires integrator to specify time derivatives to constrain
-//
-//setup:
-//1) determine couplings
-//2) determine which time derivatives to be applied
-//
-//execution:
-//1) need all time derivs of theta passed in
-//2) iteratively apply constraints from lowest to highest time deriv
-//
-//
-// deal with loop bond-length constraints
-//
+/**@file
+ *
+ * Module for bond-length constraints use a shake-like algorithm.
+ * Requires integrator to specify time derivatives to constrain.
+ * 
+ * setup:
+ * 1) determine couplings
+ * 2) determine which time derivatives to be applied
+ * 
+ * execution:
+ * 1) need all time derivs of theta passed in
+ * 2) iteratively apply constraints from lowest to highest time deriv
+ * 
+ * Deal with loop bond-length constraints.
+ */
 
 #include "dint-loop.h"
 #include "dinternal.h"
@@ -45,22 +44,29 @@ typedef SubVector<RVec>       SubVec;
 typedef SubVector<const RVec> ConstSubVec;
 typedef SubMatrix<RMat>       SubMat;
 
-Loop::Loop(IVMAtom* tip1, IVMAtom* tip2)
-    : tip1(tip1), tip2(tip2) 
-{
-}
-
 static int compareLevel(const LoopWNodes& l1,    //forward declarations
                         const LoopWNodes& l2);
+
 //static bool sameBranch(const HingeNode* tip,
-//             const LoopWNodes& l );
+//                       const LoopWNodes& l );
 
 class BadNodeDef {};  //exception
 
+/**
+ * Collect up useful information about a loop. 
+ * This includes the two connected atoms, ordered by level, and the
+ * baths from each of the associated nodes back to the common ancestor.
+ * We also identify the molecule base node for the molecule which
+ * contains both ends of the loop.
+ * We will throw an exception if the loop ends are both on the same
+ * node or if they are on different molecules.
+ */
 class LoopWNodes {
-    HingeNode*                base;
-    FixedVector<IVMAtom*,2,1> tips;
-    FixedVector<NodeList,2,1> nodes;
+    HingeNode*                base; // highest-level common ancestor of tips
+    FixedVector<IVMAtom*,2,1> tips; // the twp connected atoms, sorted so that
+                                    //   tips(1).level <= tips(2).level
+    FixedVector<NodeList,2,1> nodes;// the two paths: base..tip1, base..tip2,
+                                    //   incl. tip nodes but not base
     const HingeNode*          moleculeNode;
 public:
     LoopWNodes() {}
@@ -80,28 +86,33 @@ public:
 LoopWNodes::LoopWNodes(const Loop& l) 
 {
     using InternalDynamics::Exception;
-    tips(1) = l.tip1;
-    tips(2) = l.tip2;
-    if ( tips(1)->node == tips(2)->node ) {
+
+
+    if ( l.tip1->node == l.tip2->node ) {
         cout << "LoopWNodes::LoopWNodes: bad topology:\n\t"
-             << "loop atoms " << tips(1)
-             << " and  "      << tips(2)
+             << "loop atoms " << l.tip1
+             << " and  "      << l.tip2
              << " are now in the same node. Deleting loop.\n";
         throw BadNodeDef();
     }
 
-    // make tip2 farther from the base
-    if ( tips(1)->node->getLevel() > tips(2)->node->getLevel() ) {
-        IVMAtom* tmp = tips(1);
-        tips(1) = tips(2);
-        tips(2) = tmp;
-    }
+    // Ensure that tips(2) is the atom which is farther from the base.
+    if ( l.tip1->node->getLevel() > l.tip2->node->getLevel() )
+         tips(1) = l.tip2, tips(2) = l.tip1;
+    else tips(1) = l.tip1, tips(2) = l.tip2;
+
+    // Collect up the node path from tips(2) down to the last node on its
+    // side of the loop which is at a higher level than tips(1) (may be none).
     HingeNode* node1 = tips(1)->node;
     HingeNode* node2 = tips(2)->node;
     while ( node2->getLevel() > node1->getLevel() ) {
         nodes(2).append(node2);
         node2 = node2->getParent();
     }
+
+    // We're at the same level on both sides of the loop. Run down both
+    // simultaneously until we hit the first common ancestor, collecting
+    // up the nodes along the two paths (but not the common ancestor).
     while ( node1 != node2 ) {
         if ( node1->isGroundNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
@@ -114,9 +125,10 @@ LoopWNodes::LoopWNodes(const Loop& l)
         node1 = node1->getParent();
         node2 = node2->getParent();
     }
-    // nodes(1).append(node1);
-    base = node1;
 
+    base = node1;   // that's the common ancestor
+
+    // We want these in base-to-tip order.
     nodes(1).reverse();
     nodes(2).reverse();
 
@@ -154,7 +166,7 @@ public:
 
     void addConstraint(const LoopWNodes& loop) {
         loops.append( LoopWNodes(loop) );
-        lengths.append( sqrt(abs2(loop.tips(1)->pos-loop.tips(2)->pos)) );
+        lengths.append( sqrt(abs2(loop.tips(1)->pos - loop.tips(2)->pos)) );
         for (int b=1 ; b<=2 ; b++)
             for (int i=0 ; i<loop.nodes(b).size() ; i++)
                 if ( !nodeMap.contains(loop.nodes(b)[i]) ) {
@@ -441,7 +453,7 @@ LengthSet::calcPosB(const RVec& pos, const RVec& vel) const
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) 
         b(i) = lengths[i] - 
-                sqrt(abs2(loops[i].tips(1)->pos-loops[i].tips(2)->pos));
+                sqrt(abs2(loops[i].tips(1)->pos - loops[i].tips(2)->pos));
     return b;
 }
 
@@ -455,9 +467,9 @@ LengthSet::calcVelB(const RVec& pos, const RVec& vel) const
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
-        IVMAtom* tip1 = loops[i].tips(1);
-        IVMAtom* tip2 = loops[i].tips(2);
-        b(i) = -dot( unitVec(tip2->pos-tip1->pos) , tip2->vel-tip1->vel );
+        const IVMAtom* tip1 = loops[i].tips(1);
+        const IVMAtom* tip2 = loops[i].tips(2);
+        b(i) = -dot( unitVec(tip2->pos - tip1->pos) , tip2->vel - tip1->vel );
     }
 
     return b;
@@ -804,7 +816,8 @@ typedef SubVector<const Vec6>       SubVec6;
 typedef SubVector<const Vec6>       SubVec6;
 
 //
-// acceleration of atom
+// Calculate the acceleration of atom assuming that the spatial acceleration
+// of the body (node) it's on is available.
 //
 static Vec3
 getAccel(const IVMAtom* a)
@@ -816,107 +829,85 @@ getAccel(const IVMAtom* a)
     return ret;
 }
 
-// Compute (v1)^T  (J M J^T)_mn (v2)
-// where the indices mn are given by the nodes associated w/ a1,a2
+//             T     -1 T   
+// Compute   v1 *(J M  J )_mn * v2   where the indices mn are given by 
+// the nodes associated with atoms a1 & a2.
+//
 static double
-computeA(const Vec3& v1,
+computeA(const Vec3&    v1,
          const IVMAtom* a1,
          const IVMAtom* a2,
-         const Vec3& v2)
+         const Vec3&    v2)
 {
-    HingeNode* n1 = a1->node;
-    HingeNode* n2 = a2->node;
+    const HingeNode* n1 = a1->node;
+    const HingeNode* n2 = a2->node;
 
     Mat3 one(0.); one.setDiag(1.);
-    double ret=0.0;;
-    if (n1 == n2)
-        ret = dot(v1 , blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one)
-                       * a1->node->getY()
-                       * blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one)
-                       * v2);
-    else {
-        Vec6 t1 = v1 * blockMat12(crossMat(-a1->pos + n1->getAtom(0)->pos),one);
-        Vec6 t2 = blockMat21(crossMat( a2->pos - n2->getAtom(0)->pos),one) * v2;
 
-        while ( n1->getLevel() > n2->getLevel() ) {
-            t1 = t1 * n1->getPsiT();
-            n1 = n1->getParent();
-        }
-        while ( n2->getLevel() > n1->getLevel() ) {
-            t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
-            n2 = n2->getParent();
-        }
+    Vec6 t1 = v1 * blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one);
+    Vec6 t2 = blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one) * v2;
 
-        while ( n1 != n2 ) {
-            if (n1->isGroundNode() || n2->isGroundNode()  ) {
-                t1.set(0.);  //not in same branch (or same tree -- sherm)
-                t2.set(0.);
-                cout << "computeA: cycles wasted calculating missed branch: "
-                     << a1 << " <-> " << a2 << '\n';
-                ret = 0.;
-                break;
-            }
-            t1 = t1 * n1->getPsiT();
-            t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
-            n1 = n1->getParent();
-            n2 = n2->getParent();
-        }
-
-        ret = t1 * n1->getY() * t2;
-
-//   const HingeNode* nl = n1->levelA()<n2->levelA() ? n1 : n2;
-//   const HingeNode* ng = n1->levelA()>n2->levelA() ? n1 : n2;
-//   Vec6 tmp;
-//   if (ng == n1) 
-//     tmp =  v1 * blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one);
-//   else
-//     tmp =  v2 * blockMat12(crossMat(n2->getAtom(0)->pos - a2->pos),one);
-//   tmp = tmp * ng->getPsiT();
-//   for (const HingeNode* n=ng->parentA() ; n!=baseNode ; n=n->parentA()) {
-//     tmp = tmp * n->getPsiT();
-//     if (n->levelA() < baseNode->levelA()) {
-//     tmp.set(0.);  //not in same branch
-//     cout << "computeA: cycles wasted calculating missed branch: "
-//          << a1->index << " <-> " << a2->index << '\n';
-//     ret = 0.;
-//     break;
-//     }
-//   }
-//   tmp = tmp * nl->YA();
-//   if (ng == n1) 
-//     ret = dot(tmp ,
-//         blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one) * v2);
-//   else
-//     ret = dot(tmp ,
-//         blockMat21(crossMat(a1->pos - n1->getAtom(0)->pos),one) * v1);
-
+    while ( n1->getLevel() > n2->getLevel() ) {
+        t1 = t1 * n1->getPsiT();
+        n1 = n1->getParent();
+    }
+    while ( n2->getLevel() > n1->getLevel() ) {
+        t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+        n2 = n2->getParent();
     }
 
-    return ret;
+    while ( n1 != n2 ) {
+        if (n1->isGroundNode() || n2->isGroundNode()  ) {
+            t1.set(0.);  //not in same branch (or same tree -- sherm)
+            t2.set(0.);
+            cout << "computeA: cycles wasted calculating missed branch: "
+                    << a1 << " <-> " << a2 << '\n';
+            return 0.;
+        }
+        t1 = t1 * n1->getPsiT();
+        t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+        n1 = n1->getParent();
+        n2 = n2->getParent();
+    }
+
+    // here n1==n2
+
+    return t1 * n1->getY() * t2;
 }
 
 //
 // To be called for LengthSets consecutively from tip to base.
 //
+// See Section 2.6 on p. 294 of Schwieters & Clore, 
+// J. Magnetic Resonance 152:288-302. Equation reference below
+// are to that paper.
+//
 void
 LengthSet::fixAccel()
 {
+    // This is the acceleration error for each loop constraint in this
+    // LengthSet. We get a single scalar error per loop, since each
+    // contains one distance constraint.
+    // See Eq. [53] and the last term of Eq. [66].
     RVec0 rhs(loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        IVMAtom* t = loops[i].tips(2);
-        IVMAtom* b = loops[i].tips(1);
-        rhs(i) = - abs2( t->vel - b->vel )
-                 - dot( getAccel(t) - getAccel(b) , t->pos - b->pos );
+        const IVMAtom* t = loops[i].tips(2);
+        const IVMAtom* b = loops[i].tips(1);
+        rhs(i) = -(abs2(t->vel - b->vel)
+                   + dot(getAccel(t) - getAccel(b) , t->pos - b->pos));
     }
 
+    // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
+    // the constrained points and Q is the constraint Jacobian. See first 
+    // term of Eq. [66].
     RMat A(loops.size(),loops.size(),0.);
     for (l_int i=0 ; i<loops.size() ; i++) {
-        Vec3 v1 = loops[i].tips(2)->pos - loops[i].tips(1)->pos;
+        const Vec3 v1 = loops[i].tips(2)->pos - loops[i].tips(1)->pos;
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<loops.size() ; j++) {
-                    Vec3 v2 = loops[j].tips(2)->pos - loops[j].tips(1)->pos;
+                    const Vec3 v2 = loops[j].tips(2)->pos - loops[j].tips(1)->pos;
                     double contrib = computeA(v1, loops[i].tips(bi),
                                               loops[j].tips(bj), v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
@@ -932,19 +923,26 @@ LengthSet::fixAccel()
                 }
             }
     }
+
+    // (sherm) Ouch -- this part is very crude. If this is known to be well 
+    // conditioned it should be factored with a symmetric method
+    // like Cholesky, otherwise use an SVD (or better, complete orthogonal
+    // factorization QTZ) to get appropriate least squares solution.
+
     for (l_int i=0 ; i<loops.size() ; i++)   //fill lower triangle
         for (int j=0 ; j<i ; j++)
             A(i,j) = A(j,i);
 
     //FIX: using inverse is inefficient
-    RVec0 lambda = inverse(A) * rhs;
+    const RVec0 lambda = inverse(A) * rhs;
 
     // add forces due to these constraints
     for (l_int i=0 ; i<loops.size() ; i++) {
         IVMAtom* b = loops[i].tips(1);
         IVMAtom* t = loops[i].tips(2);
-        t->deriv -= lambda(i) * (t->pos - b->pos);
-        b->deriv += lambda(i) * (t->pos - b->pos);
+        const Vec3 frc = lambda(i) * (t->pos - b->pos);
+        t->deriv -= frc;
+        b->deriv += frc;
     }
 
     ivm->updateAccel();

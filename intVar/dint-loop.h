@@ -42,8 +42,9 @@ private:
 class Loop {
 public:
     Loop() {}
-    Loop(IVMAtom* baseAtom,
-         IVMAtom* tipAtom);
+    Loop(IVMAtom* baseAtom, IVMAtom* tipAtom)
+      : tip1(baseAtom), tip2(tipAtom)
+    { }
 
 protected:
     IVMAtom* tip1;

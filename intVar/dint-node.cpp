@@ -607,8 +607,7 @@ public:
         //   calcRot(); //FIX: does this need to be calculated here?
         using MatrixTools::transpose;
         Mat3 zMat(0.0);
-        H = blockMat12(transpose(getR_GP()) , 
-                       zMat);
+        H = blockMat12(transpose(getR_GP()), zMat);
     }
 
     void getAccel(RVec& v) {

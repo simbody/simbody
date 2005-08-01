@@ -264,7 +264,8 @@ TestIVM::test()
     int exit = 0;
     double tol = 1e-14;
     // using namespace InternalDynamics;
-    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo); // XXX
+    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
+        |InternalDynamics::printLoopDebug); // XXX
     init();
     initDynamics(0);
     const AtomList& atoms = getAtoms();
@@ -652,6 +653,10 @@ TestIVM::test()
         printLoopInfo | printLoopDebug;
     else 
         verbose_ = 0;
+
+    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
+    /*|InternalDynamics::printLoopDebug*/); // XXX
+
     fcnt = 0;
     //double stepsize=0.1;
     Etolerance_=1e-8;
@@ -734,6 +739,11 @@ TestIVM::test()
                    printLoopInfo | printLoopDebug;
     else 
         verbose_ = 0;
+
+    
+    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
+    /*|InternalDynamics::printLoopDebug*/); // XXX
+
     fcnt = 0;
     double stepsize=1e-3;
     Etolerance_=1e-8;
