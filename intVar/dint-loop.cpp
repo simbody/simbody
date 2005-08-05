@@ -16,6 +16,7 @@
 
 #include "dint-loop.h"
 #include "dinternal.h"
+#include "AtomTree.h"
 #include "dint-node.h"
 #include "dint-atom.h"
 #include "vec3.h"

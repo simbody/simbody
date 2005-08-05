@@ -1,6 +1,7 @@
 
 #include "dint-step.h"
 #include "dinternal.h"
+#include "AtomTree.h"
 #include "dint-powell.h"
 #include "dint-conmin.h"
 #include "dint-simplex.h"

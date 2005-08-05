@@ -7,7 +7,11 @@
 #include <sthead.h>
 #include <cdsExcept.h>
 #include <cdsSStream.h>
-#include <dinternal.h>
+
+#include "dinternal.h"
+#include "AtomTree.h"
+
+
 #include <dint-step.h>
 #include <dint-atom.h>
 #include <dint-node.h>

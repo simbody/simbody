@@ -1,6 +1,7 @@
 
 #include "dint-node.h"
 #include "dinternal.h"
+#include "AtomTree.h"
 #include "dint-step.h"
 #include "dint-atom.h"
 #include "vec4.h"

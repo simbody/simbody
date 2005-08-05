@@ -121,8 +121,7 @@ TestIVM::init()
     groupList.resize(0);
     hingeList.resize(0);
     oldBaseAtoms.resize(0);
-    // InternalDynamics::initTree();
-    initDynamics(0);
+    initDynamics(false); // don't reuse old topology
 
     groupTorsion();
     InternalDynamics::HingeSpec hingeSpec("torsion");
@@ -130,7 +129,6 @@ TestIVM::init()
         hingeSpec.aList.append( i );
     hingeList.append( hingeSpec );
     // verbose |= printNodeDef;
-    // InternalDynamics::initTree();
     // InternalDynamics::initDynamics();
 }
 
@@ -243,8 +241,7 @@ TestIVM::initCycle()
     groupList.resize(0);
     hingeList.resize(0);
     oldBaseAtoms.resize(0);
-    // InternalDynamics::initTree();
-    initDynamics(0);
+    initDynamics(false);    // don't reuse toplogy
 
     groupTorsion();
     InternalDynamics::HingeSpec hingeSpec("torsion");
@@ -267,7 +264,7 @@ TestIVM::test()
     setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
         |InternalDynamics::printLoopDebug); // XXX
     init();
-    initDynamics(0);
+    initDynamics(false); // don't reuse old topology
     const AtomList& atoms = getAtoms();
 
     {

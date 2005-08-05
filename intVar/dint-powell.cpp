@@ -4,6 +4,8 @@
 #include "dint-step.h"
 
 #include "dinternal.h"
+#include "AtomTree.h"
+
 #include <cdsMath.h>
 #include <cdsString.h>
 

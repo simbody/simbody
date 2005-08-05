@@ -14,6 +14,7 @@
  */
 
 #include "dinternal.h"
+#include "AtomTree.h"
 
 #include "dint-node.h"
 #include "dint-step.h"
@@ -45,7 +46,7 @@ using MatrixTools::inverse;
 typedef FixedVector<double,6> Vec6;
 typedef FixedMatrix<double,6> Mat6;
 
-
+/*
 //
 // structure of atomtree:
 //  doubly linked tree
@@ -187,16 +188,16 @@ FindBase::recurseToBase(IVMAtom* const a, IVMAtom* const a_prev) {
 }
 
 void
-AtomTree::addMolecule(HingeNode* originNode,
+AtomTree::addMolecule(HingeNode* groundNode,
                       IVMAtom*   atom ) 
 {
     HingeNode* baseNode = new HingeNode(ivm,
                                         FindBase(ivm,atom),
-                                        originNode->atoms[0],
-                                        originNode);
-    //FIX: does this value of remAtom work for torsion hnodes?
+                                        groundNode->atoms[0],
+                                        groundNode);
+    //FIX: does this value of parentAtom work for torsion hnodes?
     addNode(baseNode);
-    originNode->addChild(baseNode);
+    groundNode->addChild(baseNode);
 
     // build up non-fixed proto- hnodes
     AT_Build b(ivm,this,baseNode,ivm->loops); 
@@ -233,15 +234,15 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
 
     //build proto-hnodes attached to fixed atoms
 
-    HingeNode* originNode = new HingeNode( ivm, ivm->atoms[0] );
-    AT_Build b(ivm,this,originNode,ivm->loops); 
-    addNode(originNode);
+    HingeNode* groundNode = new HingeNode( ivm, ivm->atoms[0] );
+    AT_Build b(ivm,this,groundNode,ivm->loops); 
+    addNode(groundNode);
     markAtoms( assignedAtoms );
 
     //first try trees based on previous base atoms
     for (l_int i=0 ; i<ivm->oldBaseAtoms.size() ; i++)
         if ( !assignedAtoms( ivm->oldBaseAtoms[i] ) ) {
-            addMolecule(originNode,ivm->atoms[ivm->oldBaseAtoms[i]]);
+            addMolecule(groundNode,ivm->atoms[ivm->oldBaseAtoms[i]]);
             markAtoms( assignedAtoms );
         }
 
@@ -249,7 +250,7 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
     for (int anum=1 ; anum<ivm->atoms.size() ; anum++)
         // search for an unassigned atom number
         if ( !assignedAtoms( anum ) ) {
-            addMolecule(originNode,ivm->atoms[anum]);
+            addMolecule(groundNode,ivm->atoms[anum]);
             markAtoms( assignedAtoms );
         }
 
@@ -491,6 +492,7 @@ AtomTree::calcPandZ() {
             nodeTree[i][j]->calcPandZ();
 }
 
+*/
 
 IVM::IVM() 
   : tree_(0),                  solver_(0),
@@ -539,6 +541,7 @@ IVM::minimization() const {
     return getSolver()->minimization(); 
 }
 
+/*
 // Calc acceleration: sweep from base to tip.
 RVec
 AtomTree::calcGetAccel() {
@@ -633,7 +636,7 @@ AtomTree::getVel() const {
             nodeTree[i][j]->getVel(vel); 
     return vel;
 }
-
+*/
 int
 IVM::defaultRVecSize(const RVec& v) {
     return v.size();
@@ -984,17 +987,12 @@ IVM::initAtoms(const int     natom,
     for (int i=0 ; i<atoms.size() ; i++)
         delete atoms[i];
     atoms.resize(natom+1);
-    atoms[0] = new IVMAtom(0,0.);   // Ground's origin atom (station)
+    atoms[0] = new IVMAtom(0,0.);   // Ground's origin 'atom' (station)
     for (l_int i=1 ; i<=natom ; i++)
         atoms[i] = new IVMAtom(i,massA[i-1]);
     loops.resize(0);
     cout.precision(8);
 }
-
-//void
-//InternalDynamics::initTree()
-//{
-//} /* initTrees */
 
 void
 IVM::updateAccel() {
@@ -1054,7 +1052,7 @@ IVM::idAtom(int id) const {
     ret << id << ends;
     return ret.str();
 }
-
+/*
 typedef CDSVector<Vec3> VecVec3;
 
 //
@@ -1132,7 +1130,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
 
     ivm->frictionCoeff_ = frictionCoeff;
 }
-
+*/
 //ostream& 
 //InternalDynamics::operator<<(      ostream&  s,
 //                   const InternalDynamics::HingeSpec& h)

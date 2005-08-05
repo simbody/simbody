@@ -26,7 +26,7 @@ typedef double (*RVecProdType)(const RVec&, const RVec&);
 
 typedef int    (*VecVec3SizeType)(const CDSVector<Vec3>&);
 typedef double (*VecVec3ProdType)(const CDSVector<Vec3>&, 
-                  const CDSVector<Vec3>&);
+                                  const CDSVector<Vec3>&);
 
 class IVM {
 public:
@@ -45,7 +45,7 @@ public:
     /// The inner product of two RVec's.
     double rvecProd(const RVec& v1, const RVec& v2) { return rvecProd_(v1,v2); }
 
-    /// Square (self dot-product) of an RVec.
+    /// Length squared of an RVec.
     double rvecAbs2(const RVec& v) { return rvecProd(v,v); }
 
     /// The dimension of a CDSVector<Vec3>.
@@ -55,7 +55,7 @@ public:
     double vecVec3Prod(const CDSVector<Vec3>& v1,
                        const CDSVector<Vec3>& v2) { return vecVec3Prod_(v1,v2); }
 
-    /// Square (self dot-product) of a CDSVector<Vec3>.
+    /// Length squared of a CDSVector<Vec3>.
     double vecVec3Abs2(const CDSVector<Vec3>& v) { return vecVec3Prod(v,v); }
 
     void initAtoms(const int     natom,
@@ -147,21 +147,6 @@ protected:
     void groupTorsion(const HingeNode*);
     void initTree();
 
-/*
-    template<class Func>
-    void recurseBaseToTip(Func func) {
-        for (int i=0 ; i<getTree()->nodeTree.size() ; i++)
-            for (int j=0 ; j<getTree()->nodeTree[i].size() ; j++)
-                nodeTree[i][j]->func();
-    }
-    template<class Func>
-    void recurseTipToBase(Func func) {
-        for (int i=getTree()->nodeTree.size()-1 ; i>=0 ; i++)
-            for (int j=0 ; j<getTree()->nodeTree[i].size() ; j++)
-                func( getTree()->nodeTree[i][j] );
-    }
-*/
-
     AtomList                             atoms;
     CDSList< CDSList<int> >              groupList;
     CDSList<InternalDynamics::HingeSpec> hingeList;
@@ -183,7 +168,7 @@ protected:
     friend class HingeNode;
     template<int DOF> friend class HingeNodeSpec;
 };
-   
+/*  
 class AtomTree { 
 public:
     IVM* ivm;
@@ -196,7 +181,7 @@ public:
     AtomTree& operator=(const AtomTree&);
 
     void addNode(HingeNode* node);
-    void addMolecule(HingeNode* originNode,
+    void addMolecule(HingeNode* groundNode,
                      IVMAtom*   atom      ) ;
     void velFromCartesian(const RVec& pos,
                                 RVec& vel);
@@ -230,5 +215,5 @@ public:
 
     friend ostream& operator<<(ostream&,const AtomTree&);
 };
-
+*/
 #endif /* __dinternal_hh__ */

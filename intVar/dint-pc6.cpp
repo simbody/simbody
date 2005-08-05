@@ -1,5 +1,6 @@
 
 #include "dint-pc6.h"
+#include "AtomTree.h"
 
 #include "cdsMath.h"
 

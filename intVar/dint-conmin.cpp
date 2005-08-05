@@ -1,6 +1,7 @@
 #include "dint-conmin.h"
 #include "dint-step.h"
 #include "dinternal.h"
+#include "AtomTree.h"
 #include <cdsMath.h>
 
 #ifdef USE_CDS_NAMESPACE 
