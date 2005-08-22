@@ -4,7 +4,7 @@
 #include <simulation.h>
 #include <matrixTools.h>
 #include <fixedSymMatrix.h>
-#include <mat3.h>
+#include "Mat33.h"
 
 
 void 
@@ -56,14 +56,14 @@ AtomSelAction::Fit::init(const AtomSel& sel)
  qcm /= totMass;
  qcmTo /= totMass;
 
- Mat3 R(0.);
+ Mat33 R(0.);
  for (int i=0 ; i<fitBy.size() ; i++)
    for (int a=0 ; a<3 ; a++)
      for (int b=0 ; b<3 ; b++)
        R(a,b) += fitBy[i].mass() * (fitted[fitBy[i].index()]-qcm)[b] * 
 		 (fitTo[ fitBy[i].index() ]-qcmTo)[a];
 
- Mat3 S(0.);
+ Mat33 S(0.);
  for (int i=0 ; i<fitBy.size() ; i++)
    for (int a=0 ; a<3 ; a++)
      for (int b=0 ; b<3 ; b++)
@@ -71,18 +71,18 @@ AtomSelAction::Fit::init(const AtomSel& sel)
 		 (fitted[fitBy[i].index()]-qcm)[a] * 
 		 (fitted[fitBy[i].index()]-qcm)[b];
  
- typedef FixedSymMatrix<double,3> SymMat3;
+ typedef FixedSymMatrix<double,3> SymMat33;
  using MatrixTools::transpose;
  using MatrixTools::EigenResults;
  using MatrixTools::eigen;
  // FIX: SymMat3 RTR(transpose(R) * R): want generic matrix stuff
- Mat3 RTR = transpose(R) * R;
- SymMat3 tmp;
+ Mat33 RTR = transpose(R) * R;
+ SymMat33 tmp;
  for (int i=0 ; i<3 ; i++)
    for (int j=i ; j<3 ; j++)
      tmp(i,j) = RTR(i,j);
 
- EigenResults<SymMat3::MatrixType> results = eigen(tmp);
+ EigenResults<SymMat33::MatrixType> results = eigen(tmp);
 
  //resulting eigenpairs are sorted from smallest to largest
 

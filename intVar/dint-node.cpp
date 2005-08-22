@@ -41,7 +41,7 @@ catRow(const Vec3& v1, const Vec3& v2) {
 // frame by taking the B frame z axis into alignment 
 // with the passed-in zDir vector. This is not unique.
 // notes of 12/6/99 - CDS
-static Mat3
+static Mat33
 makeJointFrameFromZAxis(const Vec3& zVec) {
     const Vec3 zDir = unitVec(zVec);
 
@@ -58,17 +58,17 @@ makeJointFrameFromZAxis(const Vec3& zVec) {
         { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
          -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
           0        , -sin(theta)         , cos(theta)         };
-    return Mat3(R_BJ); // == R_PJi
+    return Mat33(R_BJ); // == R_PJi
 }
 
-static Mat3
+static Mat33
 makeIdentityRotation() {
-    Mat3 ret(0.);
+    Mat33 ret(0.);
     ret.setDiag(1.);
     return ret;
 }
 
-static const Mat3 R_I = makeIdentityRotation(); // handy to have around
+static const Mat33 R_I = makeIdentityRotation(); // handy to have around
 
 /**
  * This is the distinguished body representing the immobile ground frame. Other bodies may
@@ -124,7 +124,7 @@ public:
     //     attached to the current body. At the moment I'm just preserving the
     //     existing behavior; later I hope to trash it. (sherm)
     //
-    HingeNodeSpec(const HingeNode* node, int& cnt, const Mat3& rotBJ,
+    HingeNodeSpec(const HingeNode* node, int& cnt, const Mat33& rotBJ,
                   bool addDummyOrigin=false)
       : HingeNode(*node), offset_(cnt),
         mass_(0), inertia(), Mk(0.), posCM_(0.),
@@ -209,7 +209,7 @@ public:
     void calcCartesianForce();
     void prepareVelInternal();
     void propagateSVel(const Vec6&);
-    void calcD_G(const Mat6& P);
+    void calcD_G(const Mat66& P);
 protected:
     int           offset_;  //index into internal coord pos,vel,acc arrays
 
@@ -217,7 +217,7 @@ protected:
 
     double        mass_;
     InertiaTensor inertia;
-    Mat6          Mk;
+    Mat66         Mk;
     Vec3          posCM_;
     Vec6          a;        //coriolis acceleration
     Vec6 forceCartesian;
@@ -234,7 +234,7 @@ protected:
     // Inboard joint frame. This is fixed forever once constructed and gives the
     // orientation of the body-fixed J frame in the body frame B. This is an 
     // identity matrix for some joint types.
-    const Mat3 R_BJ;
+    const Mat33 R_BJ;
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
@@ -285,7 +285,7 @@ public:
 
     void calcH() {
         using MatrixTools::transpose;
-        Mat3 zMat(0.0);
+        Mat33 zMat(0.0);
         H = blockMat12(zMat,transpose(getR_GP()));
     }
 
@@ -334,7 +334,7 @@ public:
     }
 
     void calcRot() {
-        Mat3 R_PB;  // rotation matrix expressing body frame in parent's frame
+        Mat33 R_PB;  // rotation matrix expressing body frame in parent's frame
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' body-fixed angles 
             cPhi   = cos( theta(0) *DEG2RAD );
@@ -352,7 +352,7 @@ public:
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
 
-            R_PB = Mat3(R_JiJ); // because P=Ji and B=J for this kind of joint
+            R_PB = Mat33(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
             const double R_JiJ[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
@@ -361,7 +361,7 @@ public:
                                            sq(q(2))-sq(q(3)))    , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            R_PB = Mat3(R_JiJ); // see above
+            R_PB = Mat33(R_JiJ); // see above
         }
         R_GB = getR_GP() * R_PB; // the spatial rotation matrix expressing body frame B in ground
     }
@@ -382,7 +382,7 @@ public:
     void calcH() {
         //   calcRot(); //FIX: does this need to be calculated here?
         using MatrixTools::transpose;
-        Mat3 zMat(0.0);
+        Mat33 zMat(0.0);
         H = blockMat22( transpose(getR_GP()) , zMat,
                         zMat , transpose(getR_GP()));
     }
@@ -418,7 +418,7 @@ public:
         double a[] = { 0         , 0           , 1.0 ,
                       -sPhi      , cPhi        , 0   ,
                       cPhi*cTheta, sPhi*cTheta ,-sTheta };
-        Mat3 M(a);
+        Mat33 M(a);
         Vec3 eTorque = DEG2RAD * M * torque;
 
         RSubVec(v,offset_,3)   = eTorque.vector();
@@ -560,7 +560,7 @@ public:
     }
 
     void calcRot() {
-        Mat3 R_PB;  // rotation matrix expressing body frame in parent's frame
+        Mat33 R_PB;  // rotation matrix expressing body frame in parent's frame
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
             cPhi   = cos( theta(0) *DEG2RAD );
@@ -576,7 +576,7 @@ public:
                 { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-            R_PB = Mat3(R_JiJ); // because P=Ji and B=J for this kind of joint
+            R_PB = Mat33(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
             double R_JiJ[] =  //rotation matrix - active-sense coordinates
                 {sq(q(0))+sq(q(1))-
@@ -585,7 +585,7 @@ public:
                                           sq(q(2))-sq(q(3)))     , 2*(q(2)*q(3)-q(0)*q(1)),
                  2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
                                                                     sq(q(2))+sq(q(3)))};
-            R_PB = Mat3(R_JiJ); // see above
+            R_PB = Mat33(R_JiJ); // see above
         }
         R_GB = getR_GP() * R_PB; // R_GB = R_GP*R_PB, the spatial rotation matrix
     }
@@ -606,7 +606,7 @@ public:
     void calcH() { // H matrix in body-fixed coords
         //   calcRot(); //FIX: does this need to be calculated here?
         using MatrixTools::transpose;
-        Mat3 zMat(0.0);
+        Mat33 zMat(0.0);
         H = blockMat12(transpose(getR_GP()), zMat);
     }
 
@@ -640,7 +640,7 @@ public:
         double a[] = { 0           , 0           , 1.0   ,
                       -sPhi        , cPhi        , 0     ,
                        cPhi*cTheta , sPhi*cTheta ,-sTheta };
-        Mat3 M(a);
+        Mat33 M(a);
         Vec3 eTorque = DEG2RAD * M * torque;
 
         RSubVec(v,offset_,3)   = eTorque.vector();
@@ -774,7 +774,7 @@ public:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        const Mat3 R_PB = orthoTransform( Mat3(a) , R_BJ );
+        const Mat33 R_PB = orthoTransform( Mat33(a) , R_BJ );
         R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
@@ -847,7 +847,7 @@ public:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
-        const Mat3 R_PB = orthoTransform( Mat3(R_JiJ) , R_BJ ); // orientation of B in parent P
+        const Mat33 R_PB = orthoTransform( Mat33(R_JiJ) , R_BJ ); // orientation of B in parent P
         R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
@@ -860,7 +860,7 @@ public:
         Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
-        Mat3  zMat33(0.0);
+        Mat33 zMat33(0.0);
         using MatrixTools::transpose;
         H = blockMat22(catRow(x,y) , zMat23 ,
                        zMat33      , transpose(getR_GP()));
@@ -919,8 +919,8 @@ public:
         double a[] = { cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 };
-        const Mat3 A(a); //rotation about z-axis
-        const Mat3 R_PB = orthoTransform( A , R_BJ ); // orientation of B in parent's frame P
+        const Mat33 A(a); //rotation about z-axis
+        const Mat33 R_PB = orthoTransform( A , R_BJ ); // orientation of B in parent's frame P
         R_GB = getR_GP() * R_PB; // spatial orientation of B in ground frame G
     };
 
@@ -995,7 +995,7 @@ InertiaTensor::calc(const Vec3&     center,
                     const AtomList& aList) 
 {
     set(0.0);
-    Mat3 &m = *this;
+    Mat33 &m = *this;
     for (int cnt=0 ; cnt<aList.size() ; cnt++) {
         const IVMAtom* a = &(*aList[cnt]);
         m(0,0) += a->mass * (sq(a->pos(1)-center(1)) + sq(a->pos(2)-center(2)));
@@ -1102,7 +1102,7 @@ construct(HingeNode*                         node,
                               -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
                                0        , -sin(theta)         , cos(theta)         };
                 Vec3 x(1,0,0);
-                dir = Mat3(a) * x;
+                dir = Mat33(a) * x;
                 cerr << "norm: " << dot(u,dir) << endl; // should be zero
                 newNode = new HNodeTorsion(node, dir, cnt);
             }
@@ -1335,8 +1335,8 @@ HingeNodeSpec<dof>::calcProps() {
     posCM_ *= 1.0/mass_;
 
     // calc Mk: the mass matrix
-    Mat3 uVec(0.0); uVec.setDiag(1.0);
-    Mat3 offDiag = mass_*crossMat(posCM_ - atoms[0]->pos);
+    Mat33 uVec(0.0); uVec.setDiag(1.0);
+    Mat33 offDiag = mass_*crossMat(posCM_ - atoms[0]->pos);
     Mk = blockMat22( inertia , offDiag ,
                     -offDiag , mass_*uVec );
 
@@ -1357,15 +1357,15 @@ HingeNodeSpec<dof>::calcProps() {
         const Vec3& rVel3  = RSubVec6( parent->sVel, 3,3).vector();
 
         // calc a: coriolis acceleration
-        a =   blockMat22(crossMat(rOmega),    Mat3(0.0),
-                           Mat3(0.0)     , crossMat(rOmega)) 
+        a =   blockMat22(crossMat(rOmega),    Mat33(0.0),
+                           Mat33(0.0)     , crossMat(rOmega)) 
             * MatrixTools::transpose(H) * dTheta;
         a += blockVec( Vec3(0.0), cross(rOmega, vel3 - rVel3) );
     }
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::calcD_G(const Mat6& P) {
+HingeNodeSpec<dof>::calcD_G(const Mat66& P) {
     using InternalDynamics::Exception;
     FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
     try {
@@ -1488,21 +1488,21 @@ HingeNodeSpec<dof>::calcP() {
     //
     P = Mk;
 
-    SubMatrix<Mat6> p11(P,0,0,3,3);
-    SubMatrix<Mat6> p12(P,0,3,3,3);
-    SubMatrix<Mat6> p21(P,3,0,3,3);
-    SubMatrix<Mat6> p22(P,3,3,3,3);
+    SubMatrix<Mat66> p11(P,0,0,3,3);
+    SubMatrix<Mat66> p12(P,0,3,3,3);
+    SubMatrix<Mat66> p21(P,3,0,3,3);
+    SubMatrix<Mat66> p22(P,3,3,3,3);
     for (int i=0 ; i<children.size() ; i++) {
         // this version is readable
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        Mat3 lt = crossMat(children[i]->getAtom(0)->pos - getAtom(0)->pos);
-        Mat6 M  = children[i]->tau * children[i]->P;
-        SubMatrix<Mat6> m11(M,0,0,3,3);
-        SubMatrix<Mat6> m12(M,0,3,3,3);
-        SubMatrix<Mat6> m21(M,3,0,3,3);
-        SubMatrix<Mat6> m22(M,3,3,3,3);
+        Mat33 lt = crossMat(children[i]->getAtom(0)->pos - getAtom(0)->pos);
+        Mat66 M  = children[i]->tau * children[i]->P;
+        SubMatrix<Mat66> m11(M,0,0,3,3);
+        SubMatrix<Mat66> m12(M,0,3,3,3);
+        SubMatrix<Mat66> m21(M,3,0,3,3);
+        SubMatrix<Mat66> m22(M,3,3,3,3);
         p11 += m11+lt*m21-m12*lt-lt*m22*lt;
         p12 += m12+lt*m22;
         p21 += m21-m22*lt;
@@ -1585,7 +1585,7 @@ HingeNodeSpec<dof>::prepareVelInternal() {
     forceCartesian.set(0.0);
     // set Mk = R * M * R^T
     Mk.set(0.0);
-    Mat3 unit(0.0); unit.setDiag(1.0);
+    Mat33 unit(0.0); unit.setDiag(1.0);
     Vec3 q0 = atoms[0]->pos;
     for (int i=0 ; i<atoms.size() ; i++)
         Mk += atoms[i]->mass

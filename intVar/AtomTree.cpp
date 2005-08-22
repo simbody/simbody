@@ -29,7 +29,7 @@ using namespace InternalDynamics;
 using MatrixTools::inverse;
 
 typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat6;
+typedef FixedMatrix<double,6> Mat66;
 
 
 //

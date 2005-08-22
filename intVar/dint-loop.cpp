@@ -643,10 +643,10 @@ RMat
 LengthSet::calcGrad() const
 {
     RMat grad(dim,loops.size(),0.0);
-    Mat3 one(0.0); one.setDiag(1.0);  //FIX: should be done once
+    Mat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
-        FixedVector<CDSList<Mat6>,2,1> phiT;
+        FixedVector<CDSList<Mat66>,2,1> phiT;
         for (int b=1 ; b<=2 ; b++) {
             phiT(b).resize( l.nodes(b).size() );
             if ( l.nodes(b).size() ) {
@@ -843,7 +843,7 @@ computeA(const Vec3&    v1,
     const HingeNode* n1 = a1->node;
     const HingeNode* n2 = a2->node;
 
-    Mat3 one(0.); one.setDiag(1.);
+    Mat33 one(0.); one.setDiag(1.);
 
     Vec6 t1 = v1 * blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one);
     Vec6 t2 = blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one) * v2;

@@ -5,7 +5,7 @@
 class Simulation;
 
 #include <vec3.h>
-#include <mat3.h>
+#include "Mat33.h"
 #include <cdsVector.h>
 #include <cdsMap.h>
 #include <atomSel.h>
@@ -48,10 +48,10 @@ namespace AtomSelAction {
   };
 
   class Rotate : public Base {
-    Mat3 rot;
-    Vec3 center;
+    Mat33 rot;
+    Vec3  center;
   public:
-    Rotate(const Mat3& rot,
+    Rotate(const Mat33& rot,
 	   const Vec3 center=Vec3(0,0,0)) : 
       rot(rot), center(center) {}
     virtual void run(Simulation* sim,
@@ -59,8 +59,8 @@ namespace AtomSelAction {
   };
 
   class Fit : public Base {
-    Mat3 rot;
-    Vec3 trans;
+    Mat33 rot;
+    Vec3  trans;
     
     CDSVector<Vec3> fitTo;
     AtomSel       fitBy;
@@ -82,8 +82,8 @@ namespace AtomSelAction {
     virtual void run(Simulation* sim,
 		     int         index);
 
-    Mat3 rotation()    { return rot; }
-    Vec3 translation() { return trans; }
+    Mat33 rotation()    { return rot; }
+    Vec3  translation() { return trans; }
   };
 
   class RMSD : public Base {

@@ -11,7 +11,7 @@
 #include <subMatrix.h>
 
 typedef FixedVector<double,6>   Vec6;
-typedef FixedMatrix<double,6,6> Mat6;
+typedef FixedMatrix<double,6,6> Mat66;
 
 class PhiMatrixTranspose;
 
@@ -76,20 +76,20 @@ operator*(const PhiMatrixTranspose& phiT,
     return ret;
 }
 
-inline Mat6
-operator*(const Mat6&               mat,
+inline Mat66
+operator*(const Mat66&               mat,
           const PhiMatrixTranspose& phiT)
 {
-    SubMatrix<const Mat6> m11(mat,0,0,3,3);
-    SubMatrix<const Mat6> m12(mat,0,3,3,3);
-    SubMatrix<const Mat6> m21(mat,3,0,3,3);
-    SubMatrix<const Mat6> m22(mat,3,3,3,3);
+    SubMatrix<const Mat66> m11(mat,0,0,3,3);
+    SubMatrix<const Mat66> m12(mat,0,3,3,3);
+    SubMatrix<const Mat66> m21(mat,3,0,3,3);
+    SubMatrix<const Mat66> m22(mat,3,3,3,3);
 
-    Mat6 ret;
-    SubMatrix<Mat6> rm11(ret,0,0,3,3);
-    SubMatrix<Mat6> rm12(ret,0,3,3,3);
-    SubMatrix<Mat6> rm21(ret,3,0,3,3);
-    SubMatrix<Mat6> rm22(ret,3,3,3,3);
+    Mat66 ret;
+    SubMatrix<Mat66> rm11(ret,0,0,3,3);
+    SubMatrix<Mat66> rm12(ret,0,3,3,3);
+    SubMatrix<Mat66> rm21(ret,3,0,3,3);
+    SubMatrix<Mat66> rm22(ret,3,3,3,3);
 
     rm11 = m11 - m12 * crossMat(phiT.l());
     rm12 = m12;

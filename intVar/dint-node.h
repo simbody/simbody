@@ -19,13 +19,13 @@ typedef CDSString<char> String;
 typedef CDSList< IVMAtom* >    AtomList;
 
 typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat6;
+typedef FixedMatrix<double,6> Mat66;
 typedef CDSMatrix<double>     RMat;
 typedef CDSVector<double,1>   RVec;
 
-class InertiaTensor : public Mat3 {
+class InertiaTensor : public Mat33 {
 public:
-    InertiaTensor() : Mat3(0.0) {}
+    InertiaTensor() : Mat33(0.0) {}
     //  InertiaTensor(const InertiaTensor&);
     void calc(const Vec3&     center,
               const AtomList&       );
@@ -110,12 +110,12 @@ public:
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const Mat3&      getR_GB()   const {return R_GB;}
+    const Mat33&     getR_GB()   const {return R_GB;}
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
     /// P here) in the ground frame G.
-    const Mat3&      getR_GP()   const {assert(parent); return parent->getR_GB();}
+    const Mat33&     getR_GP()   const {assert(parent); return parent->getR_GB();}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
@@ -130,8 +130,8 @@ public:
     const Vec6&      getSpatialAcc()   const {return sAcc;}
 
     const PhiMatrix& getPhi()    const {return phi;}
-    const Mat6&      getPsiT()   const {return psiT;}
-    const Mat6&      getY()      const {return Y;}
+    const Mat66&     getPsiT()   const {return psiT;}
+    const Mat66&     getY()      const {return Y;}
 
     const IVMAtom*   getAtom(int i)   const {return (i<atoms.size()?atoms[i]:0); }
     const HingeNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
@@ -179,18 +179,18 @@ protected:
     Vec6      sAcc;        //spatial acceleration
     PhiMatrix phi;
 
-    Mat6 psiT;
-    Mat6 P;
-    Vec6 z;
-    Mat6 tau;
-    Vec6 Gepsilon;
+    Mat66 psiT;
+    Mat66 P;
+    Vec6  z;
+    Mat66 tau;
+    Vec6  Gepsilon;
 
     // Rotation (direction cosine matrix) expressing the body frame B
     // in the ground frame G. That is, if you have a vector vB expressed
     // body frame and want it in ground, use vG = R_GB*vB. 
-    Mat3 R_GB;
+    Mat33 R_GB;
 
-    Mat6 Y;  //diagonal components of Omega- for loop constraints
+    Mat66 Y;  //diagonal components of Omega- for loop constraints
 
     static const double DEG2RAD; //using angles in degrees balances gradient
 
