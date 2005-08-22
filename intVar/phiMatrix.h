@@ -60,8 +60,8 @@ operator*(const PhiMatrix& phi,
 }
 
 inline Vec6
-operator*(const PhiMatrixTranspose&    phiT,
-          const FixedVector<double,6>& vec)
+operator*(const PhiMatrixTranspose& phiT,
+          const Vec6&               vec)
 {
     const SubVector<const Vec6> v1(vec,0,3);
     const SubVector<const Vec6> v2(vec,3,3);

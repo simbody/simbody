@@ -6,7 +6,6 @@
 
 class IVM;
 class IVMAtom;
-class AtomTree;
 class AT_Build;
 class Vec3;
 class HingeNode;
@@ -14,7 +13,21 @@ class HingeNode;
 typedef CDSList< IVMAtom* >     AtomList;
 typedef CDSVector<double,1>     RVec;   // first element has index 1
 
-
+/**
+ * The AtomTree class owns the tree of joint-connected rigid bodies, called
+ * HingeNodes. The tree is stored by levels, with level 0 being ground, level 1
+ * being bodies which are connected to ground (base bodies), level 2 connected to
+ * level 1 and so on. Nodes at the same level are stored together in an array,
+ * but the order does not reflect the logical tree structure; that is maintained
+ * via parent & children pointers kept in the nodes.
+ * 
+ * AtomTree is the owner of the HingeNode objects (which are abstract), pointers to
+ * which are stored in the nodeTree.
+ *
+ * XXX currently the AtomTree and HingeNodes are entangled with atoms in a messy
+ * XXX way
+ *
+ */
 class AtomTree { 
 public:
     IVM* ivm;

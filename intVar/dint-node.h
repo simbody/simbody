@@ -100,15 +100,16 @@ public:
 
     virtual ~HingeNode() {}
     HingeNode(const IVM*        ivm,
-              IVMAtom*          hingeAtom=0,
-              const IVMAtom*    parentAtom=0,
-              HingeNode*        parentNode=0);
+              IVMAtom*          hingeAtom,
+              const IVMAtom*    parentAtom,
+              HingeNode*        parentNode);
     HingeNode& operator=(const HingeNode&);
 
     HingeNode*       getParent() const {return parent;}
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
-    /// orientation of this body's frame B in the ground frame G.
+    /// spatial orientation of this body's frame B (that is, B's orientation
+    /// in the ground frame G).
     const Mat3&      getR_GB()   const {return R_GB;}
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the

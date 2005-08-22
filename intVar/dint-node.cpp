@@ -220,9 +220,8 @@ protected:
     Mat6          Mk;
     Vec3          posCM_;
     Vec6          a;        //coriolis acceleration
-    //gyroscopic spatial force
     Vec6 forceCartesian;
-    Vec6 b;
+    Vec6          b;    //gyroscopic spatial force
 
     // This serves as the owner for an extra 'dummy' IVMAtom needed by some joints.
     CDS::auto_ptr<IVMAtom> cmAtom;
@@ -1165,6 +1164,8 @@ construct(HingeNode*                         node,
     return newNode;
 }
 
+// Creates a node with just the 'inboard joint' attachment atom
+// and links it to its parent.
 HingeNode::HingeNode(const IVM*     ivm,
                      IVMAtom*       hingeAtom,
                      const IVMAtom* parAtom,
@@ -1356,9 +1357,9 @@ HingeNodeSpec<dof>::calcProps() {
         const Vec3& rVel3  = RSubVec6( parent->sVel, 3,3).vector();
 
         // calc a: coriolis acceleration
-        a = blockMat22(crossMat(rOmega),      Mat3(0.0),
-                       Mat3(0.0)       ,crossMat(rOmega)) * 
-                                          MatrixTools::transpose(H) * dTheta;
+        a =   blockMat22(crossMat(rOmega),    Mat3(0.0),
+                           Mat3(0.0)     , crossMat(rOmega)) 
+            * MatrixTools::transpose(H) * dTheta;
         a += blockVec( Vec3(0.0), cross(rOmega, vel3 - rVel3) );
     }
 }

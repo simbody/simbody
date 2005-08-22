@@ -1,6 +1,6 @@
 /**@file
  *
- * The AtomTree.
+ * Implementation for AtomTree.
  */
 
 #include "AtomTree.h"
@@ -8,13 +8,10 @@
 #include "dinternal.h"
 
 #include "dint-node.h"
-//#include "dint-step.h"
 #include "dint-loop.h"
 
-#include "linemin.h"
 #include "dint-atom.h"
 #include "vec3.h"
-#include "vec4.h"
 
 #include <sthead.h>
 #include <cdsMath.h>
@@ -28,9 +25,6 @@
 #include <cdsIomanip.h>
 #include <cdsFstream.h>
 
-
-#include <cdsAuto_arr.h>
-
 using namespace InternalDynamics;
 using MatrixTools::inverse;
 
@@ -43,7 +37,10 @@ typedef FixedMatrix<double,6> Mat6;
 //  doubly linked tree
 //
 
-class AT_Build {  //temporary class used in building molecule trees
+/**
+ * Temporary class used in building molecule trees.
+ */
+class AT_Build {
 public:
     IVM* ivm;
     CDSList<Loop>& loops;
@@ -225,7 +222,7 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
 
     //build proto-hnodes attached to fixed atoms
 
-    HingeNode* groundNode = new HingeNode( ivm, ivm->atoms[0] );
+    HingeNode* groundNode = new HingeNode( ivm, ivm->atoms[0], 0, 0 );
     AT_Build b(ivm,this,groundNode,ivm->loops); 
     addNode(groundNode);
     markAtoms( assignedAtoms );
@@ -312,14 +309,22 @@ AtomTree::markAtoms(CDSVector<bool,0>& assignedAtoms) {
 }
 
 
+// 
+// This routine expects to get a fresh node (body) with only one 
+// atom attached (the atom at which the inboard joint attaches).
+// We'll look through all the defined groups to see if there is one
+// containing our atom, and if so we will assign all the other atoms
+// in that group to this node.
 //
-// Add other atoms from group here. In the current implementation 
+// In the current implementation 
 // each atom is allowed to be a member of a single group. All
 // members of the group are held rigid wrt each other.
 //
 void
 AT_Build::buildNode(HingeNode* node)
 {
+    assert(node->atoms.size()==1);
+
     for (int i=0 ; i<ivm->groupList.size() ; i++)
         if ( ivm->groupList[i].contains( node->atoms[0]->index ) )
             for (int j=0 ; j<ivm->groupList[i].size() ; j++) 
@@ -331,8 +336,9 @@ AT_Build::buildNode(HingeNode* node)
                     }
                 }
 
+    // note that all atoms in this node have been assigned
     for (l_int i=0 ; i<node->atoms.size() ; i++)
-        assignedAtoms( node->atoms[i]->index ) = 1;
+        assignedAtoms( node->atoms[i]->index ) = true;
 
     int numAtoms = node->atoms.size(); // we might add atoms- don't process twice
     for (l_int i=0 ; i<numAtoms ; i++) {
@@ -349,15 +355,18 @@ AT_Build::buildNode(HingeNode* node)
                          << ivm->idAtom(atom->index) << " and " 
                          << ivm->idAtom(cAtom->index) << '\n'
                          << "\tremoving bond." << endl;
+
                     if ( ivm->useLengthConstraints() ) {
                         loops.append( Loop(cAtom,atom) );
                         cout << "\tadding constraint\n" ;
                     }
+
                     if ( cAtom->bonds.contains(atom) )
                         cAtom->bonds.remove( cAtom->bonds.getIndex(atom) ) ;
                     else
                         cout << "AT_Build::buildNode: cycle link: unable to remove 2nd bond"
                             << "\n";
+
                     atom->bonds.remove(j);j--;
                 } else {
                     HingeNode* pNode = node;
