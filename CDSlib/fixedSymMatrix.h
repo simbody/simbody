@@ -1,4 +1,3 @@
-
 #ifndef __fixedSymMatrix_hh__
 #define __fixedSymMatrix_hh__ 1
 
@@ -11,6 +10,8 @@
 
 #include "cdsIostream.h"
 #include "cdsIomanip.h"
+
+#include "fixedVector.h"
 
 template<class T,int size,int OFFSET=0>
 class FixedSymMatrix;
@@ -236,7 +237,6 @@ FixedSymMatrixBase<T,SIZE>::setDiag(const T &x)
    d_[i*SIZE - i*(i-1)/2] = x;
 } /* setDiag */
 
-#include <fixedVector.h>
 
 template<class T,int SIZE> 
 inline FixedVector<T,SIZE>
