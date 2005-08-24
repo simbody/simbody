@@ -1397,16 +1397,6 @@ HingeNodeSpec<dof>::calcD_G(const Mat66& P) {
 template<int dof> double
 HingeNodeSpec<dof>::kineticE() {
     double ret = dot(sVel , Mk*sVel);
-
-    // Vec3 omega = Vec3::subVec( sVel,0,2 );
-    // Vec3 v     = Vec3::subVec( sVel,3,5 ); 
-    //// InertiaTensor inertia;
-    //// inertia.calc( posCM_ , atoms );
-    // double trans = mass() * dot(v,v);
-    // double rot   = dot(omega , inertia * omega);
-    // double ret = trans + rot;
-    // cout << ' ' << trans << ' ' << rot << ' ';
-
     return 0.5*ret;
 }
 
@@ -1427,7 +1417,6 @@ HingeNodeSpec<dof>::setVel(const RVec& velv) {
     for (int i=1 ; i<atoms.size() ; i++)
         atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
                                                atoms[i]->pos-atoms[0]->pos );
-    //   inertia.calc( atoms[0]->pos , atoms );
 }
 
 //

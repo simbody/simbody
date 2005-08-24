@@ -1,6 +1,6 @@
 /**@file
  *
- * Implementation for AtomTree.
+ * Implementation for atom- and bond-sensitive model building.
  */
 
 #include "AtomTree.h"
@@ -48,9 +48,9 @@ public:
     CDSVector<bool,0> assignedAtoms; //used in locating cycle links
     AT_Build(IVM*,
              AtomTree* const, 
-             HingeNode*,
+             AtomClusterNode*,
              CDSList<Loop>&);
-    void buildNode(HingeNode*);
+    void buildAtomClusterNode(AtomClusterNode*);
 };
 
 AtomTree::~AtomTree() {
@@ -67,22 +67,21 @@ AtomTree::~AtomTree() {
 // destructNode - should also work on partially constructed objects
 //
 void
-AtomTree::destructNode(HingeNode *n) 
-{
+AtomTree::destructNode(AtomClusterNode* n) {
     for (int i=0 ; i<n->children.size() ; i++)
         destructNode( n->children[i] );
     nodeTree[n->level].remove( nodeTree[n->level].getIndex(n) );
     delete n;
 }
 
-AT_Build::AT_Build( IVM*            ivm,
-                    AtomTree* const tree,
-                    HingeNode*      node,
-                    CDSList<Loop>&  loops)
+AT_Build::AT_Build( IVM*             ivm,
+                    AtomTree* const  tree,
+                    AtomClusterNode* node,
+                    CDSList<Loop>&   loops)
   : ivm(ivm), loops(loops), tree(tree), 
     assignedAtoms(tree->ivm->getAtoms().size(),0)
 {
-    buildNode(node);
+    buildAtomClusterNode(node);
 }
 
 // get inclusive (including all children) degrees of freedom + constraints
@@ -120,10 +119,10 @@ AtomTree::getDim() {
 }
 
 //
-// Add node to nodeTree.
+// Add node to nodeTree. Takes over ownership of the node's heap space.
 //
 void
-AtomTree::addNode(HingeNode* node)
+AtomTree::addAtomClusterNode(AtomClusterNode* node)
 {
     int level = node->level;
     if ( nodeTree.size()<=level )
@@ -176,15 +175,15 @@ FindBase::recurseToBase(IVMAtom* const a, IVMAtom* const a_prev) {
 }
 
 void
-AtomTree::addMolecule(HingeNode* groundNode,
-                      IVMAtom*   atom ) 
+AtomTree::addMolecule(AtomClusterNode* groundNode,
+                      IVMAtom*         atom ) 
 {
-    HingeNode* baseNode = new HingeNode(ivm,
-                                        FindBase(ivm,atom),
-                                        groundNode->atoms[0],
-                                        groundNode);
+    AtomClusterNode* baseNode = new HingeNode(ivm,
+                                              FindBase(ivm,atom),
+                                              groundNode->atoms[0],
+                                              groundNode);
     //FIX: does this value of parentAtom work for torsion hnodes?
-    addNode(baseNode);
+    addAtomClusterNode(baseNode);
     groundNode->addChild(baseNode);
 
     // build up non-fixed proto- hnodes
@@ -206,13 +205,14 @@ mergeGroups(CDSList< CDSList<int> >& gList) {
 }
 
 //
-// Construct tree consisting of all molecules.
+// Construct AtomClusterNode tree consisting of all molecules.
 //
-AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
+AtomTree::AtomTree(IVM* ivm_)
+  : ivm(ivm_)
 {
     if ( ivm->atoms.size() == 0 ) return;
 
-    CDSVector<bool,0> assignedAtoms( ivm->getAtoms().size() , 0 );
+    CDSVector<bool,0> assignedAtoms( ivm->getAtoms().size() , false );
     ivm->loops.resize(0);
     for (int i=0 ; i<ivm->constraintList.size() ; i++)
         ivm->loops.append( Loop(ivm->atoms[ ivm->constraintList[i].a ] ,
@@ -220,11 +220,11 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
 
     mergeGroups( ivm->groupList );
 
-    //build proto-hnodes attached to fixed atoms
+    //build proto-AtomClusterNodes attached to fixed atoms
 
-    HingeNode* groundNode = new HingeNode( ivm, ivm->atoms[0], 0, 0 );
+    AtomClusterNode* groundNode = new AtomClusterNode( ivm, ivm->atoms[0], 0, 0 );
     AT_Build b(ivm,this,groundNode,ivm->loops); 
-    addNode(groundNode);
+    addAtomClusterNode(groundNode);
     markAtoms( assignedAtoms );
 
     //first try trees based on previous base atoms
@@ -254,7 +254,7 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
     // i==1 are base nodes
     for (l_int i=1 ; i<nodeTree.size() ; i++)
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
-            HingeNode* n = nodeTree[i][j];
+            AtomClusterNode* n = nodeTree[i][j];
             HingeSpec hingeSpec("unknown");
             for (int k=0 ; k<ivm->hingeList.size() ; k++)
                 //FIX: should check for redundant hinge specifications
@@ -268,9 +268,9 @@ AtomTree::AtomTree(IVM* ivm) : ivm(ivm)
 }
 
 void
-AtomTree::addCM(const HingeNode* n,
-                double&          mass,
-                Vec3&            pos)
+AtomTree::addCM(const AtomClusterNode* n,
+                double&                mass,
+                Vec3&                  pos)
 {
     for (int i=0 ; i<n->atoms.size() ; i++) {
         if ( n->atoms[i]->mass>0.0 ) {
@@ -288,7 +288,7 @@ AtomTree::addCM(const HingeNode* n,
 // Calls addCM to recursively determine center of mass of node and children.
 //
 Vec3
-AtomTree::findCM(const HingeNode* n) {
+AtomTree::findCM(const AtomClusterNode* n) {
     double mass=0.;
     Vec3 pos(0.,0.,0.);
     addCM(n,mass,pos);
@@ -305,7 +305,7 @@ AtomTree::markAtoms(CDSVector<bool,0>& assignedAtoms) {
     for (int j=0 ; j<nodeTree.size() ; j++)
         for (int k=0 ; k<nodeTree[j].size() ; k++)
             for (int l=0 ; l<nodeTree[j][k]->atoms.size() ; l++)
-                assignedAtoms( nodeTree[j][k]->atoms[l]->index ) = 1;
+                assignedAtoms( nodeTree[j][k]->atoms[l]->index ) = true;
 }
 
 
@@ -321,7 +321,7 @@ AtomTree::markAtoms(CDSVector<bool,0>& assignedAtoms) {
 // members of the group are held rigid wrt each other.
 //
 void
-AT_Build::buildNode(HingeNode* node)
+AT_Build::buildNode(AtomClusterNode* node)
 {
     assert(node->atoms.size()==1);
 
@@ -365,12 +365,12 @@ AT_Build::buildNode(HingeNode* node)
                         cAtom->bonds.remove( cAtom->bonds.getIndex(atom) ) ;
                     else
                         cout << "AT_Build::buildNode: cycle link: unable to remove 2nd bond"
-                            << "\n";
+                             << "\n";
 
                     atom->bonds.remove(j);j--;
                 } else {
-                    HingeNode* pNode = node;
-                    IVMAtom*   pAtom = atom;
+                    AtomClusterNode* pNode = node;
+                    IVMAtom*         pAtom = atom;
                     // bend and bendtorsion hinges require splitting an atom into two.
                     for (int k=0 ; k < ivm->hingeList.size() ; k++)
                         if ((ivm->hingeList[k].type == "bendtorsion" || ivm->hingeList[k].type == "bend")
@@ -396,7 +396,7 @@ AT_Build::buildNode(HingeNode* node)
                             cAtom->mass *= 0.5;
                             ivm->atoms.append( newAtom );
                             assignedAtoms.resize( ivm->atoms.size() );  //we've counted it.
-                            assignedAtoms( ivm->atoms.size()-1 ) = 1;
+                            assignedAtoms( ivm->atoms.size()-1 ) = true;
 
                             // make a couple of new bonds.
                             newAtom->bonds.append(pAtom);     
@@ -418,7 +418,7 @@ AT_Build::buildNode(HingeNode* node)
                                 hingeSpec.aList.append( newAtom->index );
                                 ivm->hingeList.append( hingeSpec );
 
-                                HingeNode* newNode = new HingeNode(ivm, newAtom, pAtom, pNode);
+                                AtomClusterNode* newNode = new AtomClusterNode(ivm, newAtom, pAtom, pNode);
                                 tree->addNode(newNode);
                                 pNode->addChild(newNode);
                                 pNode = newNode;
@@ -431,7 +431,7 @@ AT_Build::buildNode(HingeNode* node)
                         }
 
                     // the local node and current atom are remote to newNode
-                    HingeNode* newNode = new HingeNode(ivm, cAtom, pAtom, pNode);
+                    AtomClusterNode* newNode = new AtomClusterNode(ivm, cAtom, pAtom, pNode);
                     tree->addNode(newNode);
                     pNode->addChild(newNode);
                     //     assignedAtoms(cAtom->index) = 1;

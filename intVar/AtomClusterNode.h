@@ -12,24 +12,16 @@
 #include <cassert>
 
 class Vec3;
-class IVMAtom;
+
 template<class CHAR> class CDSString;
 typedef CDSString<char> String;
 
-typedef CDSList< IVMAtom* >    AtomList;
 
 typedef FixedVector<double,6> Vec6;
 typedef FixedMatrix<double,6> Mat66;
 typedef CDSMatrix<double>     RMat;
 typedef CDSVector<double,1>   RVec;
 
-class InertiaTensor : public Mat33 {
-public:
-    InertiaTensor() : Mat33(0.0) {}
-    //  InertiaTensor(const InertiaTensor&);
-    void calc(const Vec3&     center,
-              const AtomList&       );
-};
 
 class IVM;
 
@@ -91,11 +83,10 @@ class IVM;
  * explicitly. With these definitions we can easily calculate R_PB as
  *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*(R_BJ)'.
  *
+ * XXX Sherm's goal: migrate this to atom-free living.
  */
 class HingeNode {
 public:
-    const IVM*    ivm;
-    const IVMAtom*   parentAtom;   // atom in parent to which hinge is attached
     class VirtualBaseMethod {};    // an exception
 
     virtual ~HingeNode() {}
@@ -133,10 +124,6 @@ public:
     const Mat66&     getPsiT()   const {return psiT;}
     const Mat66&     getY()      const {return Y;}
 
-    const IVMAtom*   getAtom(int i)   const {return (i<atoms.size()?atoms[i]:0); }
-    const HingeNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
-
-    void addChild(HingeNode*);
 
     virtual int           offset() const {return 0;}
     virtual const Vec3&   posCM()  const {throw VirtualBaseMethod();}
@@ -172,8 +159,7 @@ protected:
 
     HingeNode*    parent; 
     HingeNodeList children;
-    int           level;        //how far from base
-    AtomList      atoms; 
+    int           level;        //how far from base 
 
     Vec6      sVel;        //spatial velocity
     Vec6      sAcc;        //spatial acceleration
@@ -195,17 +181,63 @@ protected:
     static const double DEG2RAD; //using angles in degrees balances gradient
 
     virtual void velFromCartesian() {}
-    void removeHinge();
 
     friend ostream& operator<<(ostream& s, const HingeNode&);
-    friend HingeNode* construct(HingeNode*                         oldNode,
-                                const InternalDynamics::HingeSpec& type,
-                                int&                               cnt);
-    friend void combineNodes(const HingeNode* node1,
-                             const HingeNode* node2);
+    template<int dof> friend class HingeNodeSpec;
+};
+
+
+class IVMAtom;
+typedef CDSList<IVMAtom*>         AtomList;
+typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
+
+class InertiaTensor : public Mat33 {
+public:
+    InertiaTensor() : Mat33(0.0) {}
+    //  InertiaTensor(const InertiaTensor&);
+    void calc(const Vec3&     center,
+              const AtomList&       );
+};
+
+/**
+ * First crack at separating model building from execution.
+ */
+class AtomClusterNode {
+public:
+    AtomClusterNode(const IVM*        ivm,
+                    IVMAtom*          hingeAtom,
+                    const IVMAtom*    parentAtom,
+                    AtomClusterNode*  parentNode);
+    AtomClusterNode(const AtomClusterNode&);
+    AtomClusterNode& operator=(const AtomClusterNode&);
+    ~AtomClusterNode() {}
+
+    void addChild(AtomClusterNode*);
+
+    const IVMAtom*         getAtom(int i)  const {return (i<atoms.size()?atoms[i]:0); }
+    const AtomClusterNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
+
+public:
+    const IVM*          ivm;
+
+private:
+    const IVMAtom*      parentAtom;   // atom in parent to which hinge is attached
+
+    AtomClusterNode*    parent; 
+    AtomClusterNodeList children;
+    int                 level;        // how far from base
+    AtomList            atoms; 
+
+    friend AtomClusterNode* construct(AtomClusterNode*                   oldNode,
+                                      const InternalDynamics::HingeSpec& type,
+                                      int&                               cnt);
+    friend void combineNodes(const AtomClusterNode* node1,
+                             const AtomClusterNode* node2);
 
     //  static void groupTorsion(const HingeNode*);
-    template<int dof> friend class HingeNodeSpec;
+
+    friend ostream& operator<<(ostream& s, const AtomClusterNode&);
+
     friend class AtomTree;
     friend class AT_Build;
 };

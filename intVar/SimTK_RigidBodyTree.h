@@ -10,7 +10,6 @@ class Mat33;
 class Joint;
 class RigidBody;
 
-typedef Vec2<Vec3> SpatialVector;
 
 /**
  * Built-in joint types.

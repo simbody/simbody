@@ -4,6 +4,8 @@
 class Vec3;
 class Mat33;
 
+typedef FixedVector<Vec3,2> SpatialVector;
+
 /**
  * This class represents an orthogonal, right-handed coordinate frame F, 
  * measured from and expressed in a reference coordinate frame R. F consists of
