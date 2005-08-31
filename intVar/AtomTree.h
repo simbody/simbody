@@ -45,7 +45,7 @@ public:
     // includes ground
     int getNBodies() const { return nodeNum2NodeMap.size(); }
 
-    int getLevel(int nodeNum) const { return getHingeNode(nodeNum)->getLevel(); }
+//    int getLevel(int nodeNum) const { return getHingeNode(nodeNum)->getLevel(); }
     
     void velFromCartesian(const RVec& pos,
                                 RVec& vel);
@@ -113,7 +113,9 @@ typedef CDSList<AtomClusterNode*>   AtomClusterNodeList;
  * rigid bodies.
  */
 class AtomTree {
+public:
     IVM*                ivm;
+private:
     RigidBodyTree       rbtree;
     CDSList<AtomClusterNodeList> nodeTree;
 public:
@@ -126,7 +128,26 @@ public:
 
     void addMolecule(AtomClusterNode* groundNode,
                      IVMAtom*         atom      ) ;
+
+    /// Call this when all AtomClusterNodes have been built.
+    void createRigidBodyTree();
+
+    void calcAtomPos(/*state*/);
+    void calcAtomVel(/*state*/);
+    void calcAtomForces();
+    void calcAtomAcc(/*state*/);
+
+    int getDOF(); 
+    int getDim(); 
+
+    // deallocate a node and all its children (recursively)
+    void destructNode(AtomClusterNode*);
     void markAtoms(CDSVector<bool,0>& assignedAtoms);
+    static void addCM(const AtomClusterNode* n,
+                      double&                mass,
+                      Vec3&                  pos);
+
+    static Vec3 findCM(const AtomClusterNode* n);
 
     friend ostream& operator<<(ostream&,const AtomTree&);
 };

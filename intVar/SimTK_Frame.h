@@ -5,6 +5,7 @@ class Vec3;
 class Mat33;
 
 typedef FixedVector<Vec3,2> SpatialVector;
+typedef float_type Real;
 
 /**
  * This class represents an orthogonal, right-handed coordinate frame F, 

@@ -1,13 +1,15 @@
-#ifndef __dint_node_hh__
-#define __dint_node_hh__
+#ifndef RIGID_BODY_NODE_H_
+#define RIGID_BODY_NODE_H_
 
 #include "phiMatrix.h"
 #include "internalDynamics.h"
 
-#include <fixedMatrix.h>
-#include <cdsMatrix.h>
-#include <cdsVector.h>
-#include <cdsList.h>
+#include "fixedMatrix.h"
+#include "cdsMatrix.h"
+#include "cdsVector.h"
+#include "cdsList.h"
+
+#include "MassProperties.h"
 
 #include <cassert>
 
@@ -17,20 +19,18 @@ template<class CHAR> class CDSString;
 typedef CDSString<char> String;
 
 
-typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat66;
-typedef CDSMatrix<double>     RMat;
-typedef CDSVector<double,1>   RVec;
+typedef FixedVector<double,6>   Vec6;
+typedef FixedMatrix<double,6,6> Mat66;
+typedef CDSMatrix<double>       RMat;
+typedef CDSVector<double,1>     RVec;
 
-
-class IVM;
 
 /**
  * This is an abstract class representing a body and its (generic) inboard joint, that is,
  * the joint connecting it to its parent. Concrete classes are derived from this one to
  * represent each specific type of joint.
  *
- * HingeNodes are linked into a tree structure, organized into levels as described 
+ * RigidBodyNodes are linked into a tree structure, organized into levels as described 
  * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
  * level 0 and containing only atoms fixed to ground. The Level 1 nodes (referred to
  * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
@@ -39,7 +39,7 @@ class IVM;
  * of children, for which it is the unique parent, and all of its children have 
  * level one greater than the current node.
  *
- * Every HingeNode contains a list of pointers to the atoms rigidly affixed to the
+ * Every RigidBodyNode contains a list of pointers to the atoms rigidly affixed to the
  * body associated with that node. The 0th atom in that list is the one which is
  * connected to the node's parent by a joint, to a specific atom on the parent
  * node stored as 'parentAtom' here. Our 0th atom's body-fixed station serves as
@@ -85,18 +85,44 @@ class IVM;
  *
  * XXX Sherm's goal: migrate this to atom-free living.
  */
-class HingeNode {
+class RigidBodyNode {
 public:
     class VirtualBaseMethod {};    // an exception
 
-    virtual ~HingeNode() {}
-    HingeNode(const IVM*        ivm,
-              IVMAtom*          hingeAtom,
-              const IVMAtom*    parentAtom,
-              HingeNode*        parentNode);
-    HingeNode& operator=(const HingeNode&);
+    virtual ~RigidBodyNode() {}
 
-    HingeNode*       getParent() const {return parent;}
+    RigidBodyNode(const MassProperties& mProps_B,
+                  const Vec3& originOfB_P, // and R_BP=I in ref config
+                  const Mat33& rot_BJ, const Vec3& originOfJ_B)
+      : stateOffset(-1), parent(0), children(0,0), level(-1),
+        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
+        R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
+    {
+        R_GB.set(0.);       // B frame is initially aligned with Ground
+        R_GB.setDiag(1.);
+    }
+
+    RigidBodyNode& operator=(const RigidBodyNode&);
+
+    const RigidBodyNode* getParent() const {return parent;}
+    RigidBodyNode*       updParent()       {return parent;}
+
+    /// Return this node's level, that is, how many ancestors separate it from
+    /// the Ground node at level 0. Level 1 nodes (directly connected to the
+    /// Ground node) are called 'base' nodes.
+    int              getLevel() const  {return level;}
+    void             setLevel(int i)   {level=i;}
+
+    bool             isGroundNode() const { return level==0; }
+    bool             isBaseNode()   const { return level==1; }
+
+    int              getStateOffset() const {return stateOffset;}
+
+    const MassProperties& getMassProperties() const {return massProps_B;}
+    const double&  getMass()         const {return massProps_B.getMass();}
+    const Vec3&    getCOM_B()        const {return massProps_B.getCOM();}
+    const Inertia& getInertia_OB_B() const {return massProps_B.getInertia();}
+    const Inertia& getInertia_CB_B() const {return inertia_CB_B;}
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
@@ -108,15 +134,6 @@ public:
     /// P here) in the ground frame G.
     const Mat33&     getR_GP()   const {assert(parent); return parent->getR_GB();}
 
-    /// Return this node's level, that is, how many ancestors separate it from
-    /// the Ground node at level 0. Level 1 nodes (directly connected to the
-    /// Ground node) are called 'base' nodes.
-    int              getLevel()  const {return level;}
-
-    bool             isGroundNode() const { return level==0; }
-    bool             isBaseNode()   const { return level==1; }
-
-
     const Vec6&      getSpatialVel()   const {return sVel;}
     const Vec6&      getSpatialAcc()   const {return sAcc;}
 
@@ -124,10 +141,11 @@ public:
     const Mat66&     getPsiT()   const {return psiT;}
     const Mat66&     getY()      const {return Y;}
 
-
-    virtual int           offset() const {return 0;}
-    virtual const Vec3&   posCM()  const {throw VirtualBaseMethod();}
-    virtual const double& mass()   const {throw VirtualBaseMethod();}
+    virtual const char* type() { return "unknown"; }
+    virtual int getDOF() const {return 0;} //number of independent dofs
+    virtual int getDim() const {return 0;} //dofs plus constraints
+    virtual double kineticE() { return 0; }
+    virtual double approxKE() { return 0; }
 
     virtual void calcP() {throw VirtualBaseMethod();}
     virtual void calcZ() {throw VirtualBaseMethod();}
@@ -137,16 +155,11 @@ public:
     virtual void prepareVelInternal()       {throw VirtualBaseMethod();}
     virtual void propagateSVel(const Vec6&) {throw VirtualBaseMethod();}
 
-    virtual int getDOF() const {return 0;} //number of independent dofs
-    virtual int getDim() const {return 0;} //dofs plus constraints
-    virtual double kineticE() { return 0; }
-    virtual double approxKE() { return 0; }
     virtual void setPosVel(const RVec&, const RVec&) {throw VirtualBaseMethod();}
     virtual void setVel(const RVec&)    {throw VirtualBaseMethod();}
     virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
     virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
-    virtual const char* type() { return "unknown"; }
-    virtual void print(int) { throw VirtualBaseMethod(); }
+
     virtual void getPos(RVec&) {throw VirtualBaseMethod();}
     virtual void getVel(RVec&) {throw VirtualBaseMethod();}
     virtual void getAccel(RVec&) {throw VirtualBaseMethod();}
@@ -154,92 +167,74 @@ public:
     virtual void getInternalForce(RVec&) {throw VirtualBaseMethod();}
     virtual RMat getH() {throw VirtualBaseMethod();}
 
+    virtual void print(int) { throw VirtualBaseMethod(); }
+
 protected:
-    typedef CDSList<HingeNode*>   HingeNodeList;
+    typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
 
-    HingeNode*    parent; 
-    HingeNodeList children;
-    int           level;        //how far from base 
+    int               stateOffset;  //index into internal coord pos,vel,acc arrays
+    RigidBodyNode*    parent; 
+    RigidBodyNodeList children;
+    int               level;        //how far from base 
 
-    Vec6      sVel;        //spatial velocity
-    Vec6      sAcc;        //spatial acceleration
-    PhiMatrix phi;
+    // These are the body properties
 
-    Mat66 psiT;
-    Mat66 P;
-    Vec6  z;
-    Mat66 tau;
-    Vec6  Gepsilon;
+    // Fixed forever in the body-local frame B:
+    //      ... supplied on construction
+    const MassProperties massProps_B;
+    const Mat33  R_BJ;          // orientation of inboard joint frame J, in B
+    const Vec3   OJ_B;          // origin of J, measured from B origin, expr. in B
 
-    // Rotation (direction cosine matrix) expressing the body frame B
-    // in the ground frame G. That is, if you have a vector vB expressed
-    // body frame and want it in ground, use vG = R_GB*vB. 
-    Mat33 R_GB;
+    // Reference configuration. This is the body frame origin location, measured
+    // in its parent's frame in the reference configuration. This vector is fixed
+    // after construction! The body origin can of course move relative to its
+    // parent, but that is not the meaning of this reference configuration vector.
+    // (Note however that the body origin is also the location of the inboard joint, 
+    // meaning that the origin point moves relative to the parent only due to translations.)
+    // Note that by definition the orientation of the body frame is identical to P
+    // in the reference configuration so we don't need to store it.
+    const Vec3   refOrigin_P;
 
-    Mat66 Y;  //diagonal components of Omega- for loop constraints
+    //      ... calculated on construction
+    const Inertia inertia_CB_B;  // centroidal inertia, expr. in B
+
+    // Calculated spatial quantities
+    //      ... position level
+
+    //      Rotation (direction cosine matrix) expressing the body frame B
+    //      in the ground frame G. That is, if you have a vector vB expressed
+    //      body frame and want it in ground, use vG = R_GB*vB. 
+    Mat33        R_GB;
+    Vec3         OB_G;          // origin of B meas & expr in G
+
+    Vec3         COMstation_G;  // measured from B origin, expr. in G
+    Mat33        inertia_OB_G;  // about B's origin, expr. in G
+
+    PhiMatrix    phi;           // spatial rigid body transition matrix
+    Mat66        Mk;            // spatial inertia matrix
+    Mat66        P;             // articulated body spatial inertia
+    Mat66        tau;
+    Mat66        psiT;
+    Mat66        Y;             // diag of Omega - for loop constraints
+
+    //      ... velocity level
+    Vec6         a;     // spatial coriolis acceleration
+    Vec6         b;     // spatial gyroscopic force
+    Vec6         sVel;  // spatial velocity
+
+    //      ... acceleration level
+    Vec6         forceCartesian;    // net spatial force
+    Vec6         z;
+    Vec6         Gepsilon;
+    Vec6         sAcc;              // spatial acceleration
+
 
     static const double DEG2RAD; //using angles in degrees balances gradient
 
     virtual void velFromCartesian() {}
 
-    friend ostream& operator<<(ostream& s, const HingeNode&);
-    template<int dof> friend class HingeNodeSpec;
+    friend ostream& operator<<(ostream& s, const RigidBodyNode&);
+    template<int dof> friend class RigidBodyNodeSpec;
 };
 
-
-class IVMAtom;
-typedef CDSList<IVMAtom*>         AtomList;
-typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
-
-class InertiaTensor : public Mat33 {
-public:
-    InertiaTensor() : Mat33(0.0) {}
-    //  InertiaTensor(const InertiaTensor&);
-    void calc(const Vec3&     center,
-              const AtomList&       );
-};
-
-/**
- * First crack at separating model building from execution.
- */
-class AtomClusterNode {
-public:
-    AtomClusterNode(const IVM*        ivm,
-                    IVMAtom*          hingeAtom,
-                    const IVMAtom*    parentAtom,
-                    AtomClusterNode*  parentNode);
-    AtomClusterNode(const AtomClusterNode&);
-    AtomClusterNode& operator=(const AtomClusterNode&);
-    ~AtomClusterNode() {}
-
-    void addChild(AtomClusterNode*);
-
-    const IVMAtom*         getAtom(int i)  const {return (i<atoms.size()?atoms[i]:0); }
-    const AtomClusterNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
-
-public:
-    const IVM*          ivm;
-
-private:
-    const IVMAtom*      parentAtom;   // atom in parent to which hinge is attached
-
-    AtomClusterNode*    parent; 
-    AtomClusterNodeList children;
-    int                 level;        // how far from base
-    AtomList            atoms; 
-
-    friend AtomClusterNode* construct(AtomClusterNode*                   oldNode,
-                                      const InternalDynamics::HingeSpec& type,
-                                      int&                               cnt);
-    friend void combineNodes(const AtomClusterNode* node1,
-                             const AtomClusterNode* node2);
-
-    //  static void groupTorsion(const HingeNode*);
-
-    friend ostream& operator<<(ostream& s, const AtomClusterNode&);
-
-    friend class AtomTree;
-    friend class AT_Build;
-};
-
-#endif /* __dint_node_hh__ */
+#endif /* RIGID_BODY_NODE_H_ */

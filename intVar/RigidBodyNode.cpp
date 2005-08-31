@@ -1,9 +1,6 @@
-
-#include "dint-node.h"
+#include "RigidBodyNode.h"
 #include "dinternal.h"
-#include "AtomTree.h"
 #include "dint-step.h"
-#include "dint-atom.h"
 #include "vec4.h"
 
 #include <cdsMath.h>
@@ -29,88 +26,62 @@ using CDSMath::sq;
 typedef FixedMatrix<double,2,3> Mat23;
 typedef FixedVector<double,5>   Vec5;
 
-static Mat23
-catRow(const Vec3& v1, const Vec3& v2) {
-    FixedMatrix<double,1,3> m1(v1.getData());
-    FixedMatrix<double,1,3> m2(v2.getData());
-    Mat23 ret = blockMat21(m1,m2);
-    return ret;
+static Mat23 catRow23(const Vec3& v1, const Vec3& v2);
+
+//////////////////////////////////////////////
+// Implementation of RigidBodyNode methods. //
+//////////////////////////////////////////////
+
+ostream& 
+operator<<(ostream& s, const RigidBodyNode& node) {
+    s << "RIGID BODY NODE: '<<' not impl yet!";
+    //for (int i=0 ; i<node.atoms.size() ; i++)
+    //    s << node.atoms[i] << ", ";
+    return s;
 }
 
-// Calculate a rotation matrix R_BJ which defines the J
-// frame by taking the B frame z axis into alignment 
-// with the passed-in zDir vector. This is not unique.
-// notes of 12/6/99 - CDS
-static Mat33
-makeJointFrameFromZAxis(const Vec3& zVec) {
-    const Vec3 zDir = unitVec(zVec);
 
-    // Calculate spherical coordinates.
-    double theta = acos( zDir.z() );             // zenith (90-elevation)
-    double psi   = atan2( zDir.x() , zDir.y() ); // 90-azimuth
-
-    // This is a space fixed 1-2-3 sequence with angles
-    // a1=-theta, a2=0, a3=-psi. That is, to get from B to J
-    // first rotate by -theta around the B frame x axis, 
-    // then rotate by -psi around the B frame z axis. (sherm)
-
-    const double R_BJ[] = 
-        { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-         -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-          0        , -sin(theta)         , cos(theta)         };
-    return Mat33(R_BJ); // == R_PJi
-}
-
-static Mat33
-makeIdentityRotation() {
-    Mat33 ret(0.);
-    ret.setDiag(1.);
-    return ret;
-}
-
-static const Mat33 R_I = makeIdentityRotation(); // handy to have around
+////////////////////////////////////////////////
+// Define classes derived from RigidBodyNode. //
+////////////////////////////////////////////////
 
 /**
  * This is the distinguished body representing the immobile ground frame. Other bodies may
  * be fixed to this one, but only this is the actual Ground.
  */
-class GroundBody : public HingeNode {
-public: 
-    virtual const char* type() { return "ground"; }
+class GroundBody : public RigidBodyNode {
+public:
+    GroundBody(const RigidBodyNode* node)
+      : RigidBodyNode(*node) {}
+    ~GroundBody() {}
 
-    GroundBody(const HingeNode* node)
-      : HingeNode(*node)
-    { 
-        for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = Vec3(0.0); 
-        for (l_int i=0 ; i<atoms.size() ; i++) atoms[i]->node = this; 
-    }
-    virtual ~GroundBody() {}
+    /*virtual*/const char* type() { return "ground"; }
 
-//  virtual const Vec3& posCM() const { return posCM_; }
-//  virtual const double& mass() const { return mass_; }
-//  virtual void velFromCartesian();
+    /*virtual*/void calcP() {} 
+    /*virtual*/void calcZ() {} 
+    /*virtual*/void calcPandZ() {} 
+    /*virtual*/void calcY() {}
+    /*virtual*/void calcInternalForce() {}
+    /*virtual*/void prepareVelInternal() {}
+    /*virtual*/void propagateSVel(const Vec6&) {}
 
-    void calcP() {} 
-    void calcZ() {} 
-    void calcPandZ() {} 
-    void calcAccel() {}
-    void calcInternalForce() {}
-    void prepareVelInternal() {}
-    void propagateSVel(const Vec6&) {}
-    virtual void setPosVel(const RVec&, const RVec&) {}
-    virtual void setVel(const RVec&) {}
-    virtual void setVelFromSVel(const Vec6&) {}
-    virtual void enforceConstraints(RVec& pos, RVec& vel) {}
-    virtual void print(int) {}
-    virtual void getPos(RVec&) {}
-    virtual void getVel(RVec&) {}
-    virtual void getAccel(RVec&) {}
-    virtual void getInternalForce(RVec&) {}
-    virtual void calcY() {}
+    /*virtual*/void setPosVel(const RVec&, const RVec&) {}
+    /*virtual*/void setVel(const RVec&) {}
+    /*virtual*/void setVelFromSVel(const Vec6&) {}
+    /*virtual*/void enforceConstraints(RVec& pos, RVec& vel) {}
+
+    /*virtual*/void getPos(RVec&) {}
+    /*virtual*/void getVel(RVec&) {}
+    /*virtual*/void getAccel(RVec&) {}
+    /*virtual*/void calcAccel() {}
+    /*virtual*/void getInternalForce(RVec&) {}
+    // virtual RMat getH()
+
+    void print(int) {}
 };
 
 template<int dof>
-class HingeNodeSpec : public HingeNode {
+class RigidBodyNodeSpec : public RigidBodyNode {
 public:
 
     // We're presented with a node in the reference configuration. Derive appropriate
@@ -124,47 +95,15 @@ public:
     //     attached to the current body. At the moment I'm just preserving the
     //     existing behavior; later I hope to trash it. (sherm)
     //
-    HingeNodeSpec(const HingeNode* node, int& cnt, const Mat33& rotBJ,
-                  bool addDummyOrigin=false)
-      : HingeNode(*node), offset_(cnt),
-        mass_(0), inertia(), Mk(0.), posCM_(0.),
-        a(0.), forceCartesian(0.), b(0.), R_BJ(rotBJ),
-        theta(0.), dTheta(0.), forceInternal(0.0) 
+    RigidBodyNodeSpec(const RigidBodyNode* node, int& cnt, const Mat33& rotBJ,
+                      bool addDummyOrigin=false)
+      : RigidBodyNode(*node), theta(0.), dTheta(0.), forceInternal(0.0) 
     { 
+        offset_ = cnt;
         cnt+=dof;   // leave room for this node's state variables
-
-        for (int i=0 ; i<atoms.size() ; i++)
-            atoms[i]->node = this; 
-
-        // If requested, add center of mass "atom" (station) if node is not attached to
-        // the origin (ground) node.
-        if (addDummyOrigin && isBaseNode() &&  atoms[0]->mass != 0.0) {
-
-            bool bound = false;
-            for (int i=0 ; i<atoms[0]->bonds.size() ; i++)
-                if (atoms[0]->bonds[i]->node->isGroundNode())
-                    bound = true;
-
-            if ( !bound ) {
-                IVMAtom* a = new IVMAtom(-1,0.0);
-                cmAtom.reset(a);
-                a->pos = AtomTree::findCM( this );
-                a->node = this;
-                atoms.prepend(a);
-            }
-        }
-
-        // drop constness just for a moment here in the constructor ...
-        Vec3&              mutableRefOrigin_P    = *const_cast<Vec3*>(&refOrigin_P);
-        CDSVector<Vec3,1>& mutableAtomStations_B = *const_cast<CDSVector<Vec3,1>*>(&atomStations_B);
-
-        mutableRefOrigin_P = atoms[0]->pos - parent->getAtom(0)->pos;
-        mutableAtomStations_B.resize(atoms.size()-1);
-        for (int i=1 ; i<atoms.size() ; i++)
-            mutableAtomStations_B(i) = atoms[i]->pos - atoms[0]->pos;
     }
 
-    virtual ~HingeNodeSpec() {}
+    virtual ~RigidBodyNodeSpec() {}
 
     // Every derived class must implement at least these two methods.
 
@@ -173,11 +112,6 @@ public:
 
     /// Calculate all kinematic quantities.
     virtual void toCartesian()=0;
-
-    virtual const Vec3& posCM() const { return posCM_; }
-    virtual const double& mass() const { return mass_; }
-    virtual int offset() const {return offset_;}
-
 
     int  getDOF() const { return dof; }
     virtual int  getDim() const { return dof; } // dim can be larger than dof
@@ -211,58 +145,34 @@ public:
     void propagateSVel(const Vec6&);
     void calcD_G(const Mat66& P);
 protected:
-    int           offset_;  //index into internal coord pos,vel,acc arrays
+    // These are the joint-specific quantities
+    //      ... position level
+    FixedVector<double,dof>     theta;   // internal coordinates
+    FixedMatrix<double,dof,6>   H;       // joint transition matrix (spatial)
+    FixedMatrix<double,dof,dof> DI;
+    FixedMatrix<double,6,dof>   G;
 
-    // These are the body properties
+    //      ... velocity level
+    FixedVector<double,dof>     dTheta;  // internal coordinate time derivatives
 
-    double        mass_;
-    InertiaTensor inertia;
-    Mat66         Mk;
-    Vec3          posCM_;
-    Vec6          a;        //coriolis acceleration
-    Vec6 forceCartesian;
-    Vec6          b;    //gyroscopic spatial force
-
-    // This serves as the owner for an extra 'dummy' IVMAtom needed by some joints.
-    CDS::auto_ptr<IVMAtom> cmAtom;
-
-    // Atom stations. These are vectors from this body's origin point to each of
-    // the atoms, expressed in the body frame. These are fixed after construction;
-    // they are not state dependent.
-    const CDSVector<Vec3,1> atomStations_B;
-
-    // Inboard joint frame. This is fixed forever once constructed and gives the
-    // orientation of the body-fixed J frame in the body frame B. This is an 
-    // identity matrix for some joint types.
-    const Mat33 R_BJ;
-
-    // Reference configuration. This is the body frame origin location, measured
-    // in its parent's frame in the reference configuration. This vector is fixed
-    // after construction! The body origin can of course move relative to its
-    // parent, but that is not the meaning of this reference configuration vector.
-    // (Note however that the body origin is also the location of the inboard joint, 
-    // meaning that the origin point moves relative to the parent only due to translations.)
-    // Note that by definition the orientation of the body frame is identical to P
-    // in the reference configuration so we don't need to store it.
-    const Vec3 refOrigin_P;
-
-    // These are the joint properties
-
-    FixedVector<double,dof>     theta;   //internal coordinate
-    FixedVector<double,dof>     dTheta;  //internal coordinate time derivatives
+    //      ... acceleration level
     FixedVector<double,dof>     ddTheta; // - from the eq. of motion
-    FixedMatrix<double,dof,6>   H;
+
+
     FixedVector<double,dof>     nu;
     FixedVector<double,dof>     epsilon;
     FixedVector<double,dof>     forceInternal;
-    FixedMatrix<double,dof,dof> DI;
-    FixedMatrix<double,6,dof>   G;
 
     void calcProps();
 };
 
-/*static*/const double HingeNode::DEG2RAD = PI / 180.;
-//const double HingeNode::DEG2RAD = 1.0;  //always use radians
+/*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
+//const double RigidBodyNode::DEG2RAD = 1.0;  //always use radians
+
+
+//////////////////////////////////////////
+// Derived classes for each joint type. //
+//////////////////////////////////////////
 
 typedef SubVector<RVec>       RSubVec;
 typedef SubVector<const RVec> ConstRSubVec;
@@ -275,12 +185,12 @@ typedef SubVector<Vec6>       RSubVec6;
  * which is suitable (e.g.) for connecting a free atom to ground.
  * The joint frame J is aligned with the body frame B.
  */
-class HNodeTranslate : public HingeNodeSpec<3> {
+class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
-    HNodeTranslate(const HingeNode* node, int& cnt)
-      : HingeNodeSpec<3>(node,cnt,R_I)
+    RBNodeTranslate(const RigidBodyNode* node, int& cnt)
+      : RigidBodyNodeSpec<3>(node,cnt,R_I)
     { }
 
     void calcH() {
@@ -313,7 +223,7 @@ public:
  * translation and rotation for a free rigid body.
  * The joint frame J is aligned with the body frame B.
  */
-class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
+class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
     Vec4 q; //Euler parameters for rotation relative to parent
     Vec4 dq;
     Vec4 ddq;
@@ -324,10 +234,10 @@ class HNodeTranslateRotate3 : public HingeNodeSpec<6> {
 public:
     virtual const char* type() { return "full"; }
 
-    HNodeTranslateRotate3(const HingeNode* node,
-                          int&             cnt,
-                          bool             useEuler)
-      : HingeNodeSpec<6>(node,cnt,R_I,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
+    RBNodeTranslateRotate3(const RigidBodyNode* node,
+                           int&                 cnt,
+                           bool                 useEuler)
+      : RigidBodyNodeSpec<6>(node,cnt,R_I,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
     { 
         if ( !useEuler )
             cnt++;
@@ -471,7 +381,7 @@ public:
     void setVelFromSVel(const Vec6& sVel) {
         assert( !useEuler );
 
-        HingeNodeSpec<6>::setVelFromSVel(sVel);
+        RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
         Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
         double a[] = {-q(1),-q(2),-q(3),
                        q(0), q(3),-q(2),
@@ -516,7 +426,6 @@ public:
             for (l_int i=1 ; i<atoms.size() ; i++)
                 atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
                                                        atoms[i]->pos-atoms[0]->pos );
-            //   inertia.calc( atoms[0]->pos , atoms );
         }
         calcProps();
     }
@@ -528,7 +437,7 @@ public:
                  << dq  << ' ' << RSubVec6(dTheta,3,3)  << ' ' 
                  << ddq << ' ' << RSubVec6(ddTheta,3,3) << '\n';
         else 
-            HingeNodeSpec<6>::print(verbose);
+            RigidBodyNodeSpec<6>::print(verbose);
     }
 };
 
@@ -537,7 +446,7 @@ public:
  * unrestricted orientation.
  * The joint frame J is aligned with the body frame B.
  */
-class HNodeRotate3 : public HingeNodeSpec<3> {
+class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
     Vec4    q; //Euler parameters for rotation relative to parent
     Vec4    dq;
     Vec4    ddq;
@@ -549,10 +458,10 @@ class HNodeRotate3 : public HingeNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    HNodeRotate3(const HingeNode* node,
-                  int&            cnt,
-                  bool            useEuler)
-      : HingeNodeSpec<3>(node,cnt,R_I,true), 
+    RBNodeRotate3(const RigidBodyNode* node,
+                  int&                 cnt,
+                  bool                 useEuler)
+      : RigidBodyNodeSpec<3>(node,cnt,R_I,true), 
         q(1.0,0.0,0.0,0.0), useEuler(useEuler)
     { 
         if ( !useEuler )
@@ -689,7 +598,7 @@ public:
     void setVelFromSVel(const Vec6& sVel) {
         assert( !useEuler );
 
-        HingeNodeSpec<3>::setVelFromSVel(sVel);
+        RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
         Vec3 omega  = dTheta;
         double a[] = {-q(1),-q(2),-q(3),
                        q(0), q(3),-q(2),
@@ -729,7 +638,6 @@ public:
             for (l_int i=1 ; i<atoms.size() ; i++)
                 atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
                                                        atoms[i]->pos-atoms[0]->pos );
-            //   inertia.calc( atoms[0]->pos , atoms );
         }
         calcProps();
     }
@@ -741,7 +649,7 @@ public:
                  << dq   << ' ' 
                  << ddq  << '\n';
         else 
-            HingeNodeSpec<3>::print(verbose);
+            RigidBodyNodeSpec<3>::print(verbose);
     }
 };
 
@@ -750,14 +658,14 @@ public:
  * perpendicular to zDir. This is appropriate for diatoms and for allowing 
  * torsion+bond angle bending.
  */
-class HNodeRotate2 : public HingeNodeSpec<2> {
+class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
-    HNodeRotate2(const HingeNode* node,
-                 const Vec3&      zVec,
-                 int&             cnt)
-      : HingeNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec))
+    RBNodeRotate2(const RigidBodyNode* node,
+                  const Vec3&          zVec,
+                  int&                 cnt)
+      : RigidBodyNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec))
     { 
     }
 
@@ -786,7 +694,7 @@ public:
         Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
 
         Mat23 zMat23(0.0);
-        H = blockMat12(catRow(x,y) , zMat23);
+        H = blockMat12(catRow23(x,y) , zMat23);
     }
 
     void getInternalForce(RVec& v) {
@@ -821,14 +729,14 @@ public:
  * translation but rotation only about directions perpendicular to the body's
  * inertialess axis.
  */
-class HNodeTranslateRotate2 : public HingeNodeSpec<5> {
+class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
-    HNodeTranslateRotate2(const HingeNode*  node,
-                          const Vec3&       zVec,
-                          int&              cnt)
-      : HingeNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec))
+    RBNodeTranslateRotate2(const RigidBodyNode*  node,
+                           const Vec3&           zVec,
+                           int&                  cnt)
+      : RigidBodyNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec))
     { 
     }
 
@@ -862,8 +770,8 @@ public:
         Mat23 zMat23(0.0);
         Mat33 zMat33(0.0);
         using MatrixTools::transpose;
-        H = blockMat22(catRow(x,y) , zMat23 ,
-                       zMat33      , transpose(getR_GP()));
+        H = blockMat22(catRow23(x,y) , zMat23 ,
+                       zMat33        , transpose(getR_GP()));
     }
 
     void getInternalForce(RVec& v) {
@@ -891,7 +799,6 @@ public:
         for (l_int i=1 ; i<atoms.size() ; i++)
             atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
                                                    atoms[i]->pos-atoms[0]->pos );
-        //   inertia.calc( atoms[0]->pos , atoms );
         calcProps();
     }
 };
@@ -900,14 +807,14 @@ public:
  * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
  * about a particular axis.
  */
-class HNodeTorsion : public HingeNodeSpec<1> {
+class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
-    HNodeTorsion(const HingeNode*   node,
-                 const Vec3&        rotDir,
-                 int&               cnt)
-      : HingeNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
+    RBNodeTorsion(const RigidBodyNode*   node,
+                  const Vec3&            rotDir,
+                  int&                   cnt)
+      : RigidBodyNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
     { 
     }
 
@@ -933,10 +840,6 @@ public:
         H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
     }
 
-//  void calcVel() { //calc vel, dTheta given the atomic positions, velocities
-//   HingeNodeSpec<1>::calcVel();
-//  }
-
     void getInternalForce(RVec& v) {
         double torque = forceInternal(0);
         //torque *= DEG2RAD; ??
@@ -959,7 +862,6 @@ public:
         for (l_int i=1 ; i<atoms.size() ; i++)
             atoms[i]->vel = atoms[0]->vel + cross( Vec3::subVec(sVel,0,2) , 
                                                    atoms[i]->pos-atoms[0]->pos );
-        //   inertia.calc( atoms[0]->pos , atoms );
         calcProps();
     }
 #else /* UNREADABLE */
@@ -984,229 +886,21 @@ public:
             atoms[i]->pos-atoms[0]->pos );
             atoms[i]->vel += atoms[0]->vel;
         }
-        //   inertia.calc( atoms[0]->pos , atoms );
         calcProps();
     }
 #endif /* READABLE */
 };
 
-void
-InertiaTensor::calc(const Vec3&     center,
-                    const AtomList& aList) 
-{
-    set(0.0);
-    Mat33 &m = *this;
-    for (int cnt=0 ; cnt<aList.size() ; cnt++) {
-        const IVMAtom* a = &(*aList[cnt]);
-        m(0,0) += a->mass * (sq(a->pos(1)-center(1)) + sq(a->pos(2)-center(2)));
-        m(1,1) += a->mass * (sq(a->pos(0)-center(0)) + sq(a->pos(2)-center(2)));
-        m(2,2) += a->mass * (sq(a->pos(0)-center(0)) + sq(a->pos(1)-center(1)));
-        m(0,1) -= a->mass * (a->pos(0)-center(0)) * (a->pos(1)-center(1));
-        m(1,2) -= a->mass * (a->pos(1)-center(1)) * (a->pos(2)-center(2));
-        m(0,2) -= a->mass * (a->pos(0)-center(0)) * (a->pos(2)-center(2));
-    }
-    m(1,0) = m(0,1);
-    m(2,1) = m(1,2);
-    m(2,0) = m(0,2);
-}
 
-//void 
-//combineNodes(const HingeNode* node1,
-//	       const HingeNode* node2)
-//  //
-//  // group the atoms of node2 with those of node 1
-//  // 
-//  //
-//{
-// cout << "combineNodes: merging node containing atoms: { ";
-// cout << node1->atoms[0]->index;
-// for (int i=0 ; i<node1->atoms.size() ; i++)
-//   cout << " , " << node1->atoms[i]->index ;
-// cout << "}\n";
-// cout << "\twith that containing atoms:";
-// cout << node2->atoms[0]->index;
-// for (l_int i=0 ; i<node2->atoms.size() ; i++)
-//   cout << " , " << node2->atoms[i]->index ;
-// cout << "}\n";
-//
-// int groupExists=0;
-// Atom* remAtom = node1->atoms[0];
-// using InternalDynamics::groupList;
-// for (l_int i=0 ; i<groupList.size() ; i++)
-//   if ( groupList[i].contains(remAtom->index) ) {
-//     groupExists=1;
-//     for (int j=0 ; j<node2->atoms.size() ; j++)
-//	 groupList[i].append( node2->atoms[j]->index );
-//     break;
-//   }
-//
-// if ( !groupExists ) {
-//   CDSList< int > l;
-//   l.append( remAtom->index );
-//   for (int j=0 ; j<node2->atoms.size() ; j++)
-//     l.append( node2->atoms[j]->index );
-//   groupList.append( l );
-// }
-//} /* combineNodes */
 
-//
-// Replace the passed-in proto-HingeNode with one that has a joint
-// as close as possible to the requested one. On entry, cnt indicates
-// the next available state variable slot; we grab some and update cnt
-// on exit.
-//
-HingeNode*
-construct(HingeNode*                         node,
-          const InternalDynamics::HingeSpec& hingeSpec,
-          int&                               cnt)
-{
-    using InternalDynamics::Exception;
+/////////////////////////////////////////////////////////////
+// Implementation of RigidBodyNodeSpec base class methods. //
+/////////////////////////////////////////////////////////////
 
-    HingeNode* newNode=0;
-    const IVM* ivm = node->ivm;
-    String type = hingeSpec.type;
-    type.downcase();
-
-    if ( type == "ground" ) 
-        newNode = new GroundBody(node);
-
-    if (   (type == "bendtorsion" && node->level>2)
-        || (type == "bend" && !node->isGroundNode())
-              && (node->atoms.size()>1 || node->children.size()>0)
-              &&  node->atoms[0]->bonds.size()>0 ) 
-    {
-        IVMAtom* atom0 = ivm->getAtoms()[ hingeSpec.atom0 ];
-        IVMAtom* atom1 = ivm->getAtoms()[ hingeSpec.atom1 ];
-
-        //direction perp. to two bonds
-        Vec3 dir = cross(atom0->pos - node->atoms[0]->pos,
-                         atom1->pos - node->atoms[0]->pos);
-        if ( norm(dir) > 1e-12 ) {
-            newNode = new HNodeTorsion(node, dir, cnt);
-        } else {
-            // the two bonds are colinear - this is an error unless
-            //   node has exactly two bonds
-            //   and one of atom0 or atom1 has only one bond.
-            if ( node->atoms[0]->bonds.size()==2
-                 && (atom0->bonds.size() == 1 || atom1->bonds.size() == 1))
-            {
-                //in this case, the plane of the bend angle needs only to be 
-                // perpendicular to the bond
-                //rotation matrix which takes the z-axis
-                // to (atoms[0]->pos - parentAtom->pos)
-                // notes of 12/6/99 - CDS
-                const Vec3 u = unitVec( atom1->pos - node->atoms[0]->pos );
-                double theta = acos( u.z() );
-                double psi   = atan2( u.x() , u.y() );
-                double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-                              -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-                               0        , -sin(theta)         , cos(theta)         };
-                Vec3 x(1,0,0);
-                dir = Mat33(a) * x;
-                cerr << "norm: " << dot(u,dir) << endl; // should be zero
-                newNode = new HNodeTorsion(node, dir, cnt);
-            }
-        }
-    } 
-
-    if ( type == "torsion" ) {
-        if (node->isBaseNode() &&             // allow full dof for base node
-            node->parentAtom->index==0)       // unless it is bonded to fixed atom
-            //FIX: this seems ill-thought out
-            type = "full"; 
-        else if ( node->atoms.size()>1 || node->children.size()>0 )
-            newNode = new HNodeTorsion(node, 
-                                       node->atoms[0]->pos - node->parentAtom->pos,
-                                       cnt);
-    } 
-
-    if (type == "rotate" ) {
-        if ( node->atoms.size()>2 )
-            newNode = new HNodeRotate3(node,cnt,
-                                       ivm->minimization());
-        else if ( node->atoms.size()==2 )
-            newNode = new HNodeRotate2(node,
-                            node->atoms[1]->pos - node->atoms[0]->pos,cnt);
-    }
-
-    if (type == "translate")
-        newNode = new HNodeTranslate(node,cnt);
-
-    if ( type == "full" || type == "unknown") { // all other cases- full freedom of movement
-        if ( node->atoms.size()>2 || node->atoms.size()==2 && node->children.size() )
-            newNode = new HNodeTranslateRotate3(node,cnt,
-                                                ivm->minimization());
-        else if ( node->atoms.size()==2 )
-            newNode = new HNodeTranslateRotate2(node,
-                            node->atoms[1]->pos - node->atoms[0]->pos, cnt);
-        else if ( node->atoms.size()==1 )
-            newNode = new HNodeTranslate(node,cnt);
-    }
-
-    if ( !newNode ) {
-        cerr << "Bad Hinge type or topology not supported.\n";
-        cerr << "node at level " << node->level 
-             << " containing atoms: " << node->atoms << '\n';
-        throw Exception("Bad Hinge type or topology not supported");
-    }
-
-    //
-    // connect to other related hinge
-    //
-    if (!node->isGroundNode()) {
-        int index = node->parent->children.getIndex(node);
-        node->parent->children[index] =  newNode;
-    }
-    for (int i=0 ; i<node->children.size() ; i++)
-        node->children[i]->parent = newNode;
-
-    delete node; // now we're done with this.
-    return newNode;
-}
-
-// Creates a node with just the 'inboard joint' attachment atom
-// and links it to its parent.
-HingeNode::HingeNode(const IVM*     ivm,
-                     IVMAtom*       hingeAtom,
-                     const IVMAtom* parAtom,
-                     HingeNode*     parNode) 
-  : parent(parNode),
-    children(0,0),
-    level(hingeAtom->index==0 ? 0 : parNode->getLevel()+1),
-    atoms(0,1),
-    sVel(0.),
-    sAcc(0.),
-    phi(PhiMatrix(Vec3(0.))),
-    psiT(0.),
-    P(0.),
-    z(0.),
-    tau(0.),
-    Gepsilon(0.),
-    R_GB(0.),
-    Y(0.), 
-    ivm(ivm),
-    parentAtom(parAtom)
-{
-    R_GB.setDiag(1.0);  // Body frame B is initially aligned with the ground frame G.
-    atoms.append(hingeAtom);
-    hingeAtom->node = this;
-}
-
-void
-HingeNode::addChild(HingeNode* node) {
-    children.append( node );
-}
-
-ostream& 
-operator<<(ostream& s, const HingeNode& node) {
-    for (int i=0 ; i<node.atoms.size() ; i++)
-        s << node.atoms[i] << ", ";
-    return s;
-}
 
 //template<int dof>
 //void 
-//HingeNodeSpec<dof>::velFromCartesian()
+//RigidBodyNodeSpec<dof>::velFromCartesian()
 //  //
 //  // calculate relative spatial velocities
 //  //
@@ -1296,13 +990,13 @@ operator<<(ostream& s, const HingeNode& node) {
 ////	  << "\t   dTheta: " << dTheta    << '\n';
 // calcProps();
 // 
-//} /* HingeNodeSpec::velFromCartesian */
+//} /* RigidBodyNodeSpec::velFromCartesian */
 
 //
 // Calculate acceleration in internal coordinates.
 //
 template<int dof> void 
-HingeNodeSpec<dof>::calcAccel() {
+RigidBodyNodeSpec<dof>::calcAccel() {
     // const Node* pNode = parentHinge.remNode;
     //make sure that this is phi is correct - FIX ME!
     // base alpha = 0!!!!!!!!!!!!!
@@ -1319,7 +1013,7 @@ HingeNodeSpec<dof>::calcAccel() {
 // Depends on atoms->(pos,vel), dTheta, parent->svel.
 // Should be calc'd from base to tip.
 template<int dof> void 
-HingeNodeSpec<dof>::calcProps() {
+RigidBodyNodeSpec<dof>::calcProps() {
     forceInternal.set( 0.0 );
 
     inertia.calc(atoms[0]->pos , atoms);
@@ -1334,12 +1028,17 @@ HingeNodeSpec<dof>::calcProps() {
     }
     posCM_ *= 1.0/mass_;
 
-    // calc Mk: the mass matrix
+    // Calc Mk: the spatial inertia matrix about the body origin.
+    // Note that this is symmetric; offDiag is *skew* symmetric so
+    // that transpose(offDiag) = -offDiag.
     Mat33 uVec(0.0); uVec.setDiag(1.0);
     Mat33 offDiag = mass_*crossMat(posCM_ - atoms[0]->pos);
     Mk = blockMat22( inertia , offDiag ,
                     -offDiag , mass_*uVec );
 
+    // This test is a euphemism for "if we care about velocity ...". If
+    // so we compute the spatial velocity, gyroscopic force, and coriolis
+    // acceleration (all spatial).
     if ( !ivm->minimization() ) {
         sVel = transpose(phi) * parent->sVel
                + MatrixTools::transpose(H) * dTheta;
@@ -1365,7 +1064,7 @@ HingeNodeSpec<dof>::calcProps() {
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::calcD_G(const Mat66& P) {
+RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
     using InternalDynamics::Exception;
     FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
     try {
@@ -1386,29 +1085,21 @@ HingeNodeSpec<dof>::calcD_G(const Mat66& P) {
     G = P * MatrixTools::transpose(H) * DI;
 }
 
-//template<int dof>
-//void
-//HingeNodeSpec<dof>::calcEpsilon_nu(const Vec6& z)
-//{
-//    epsilon = forceInternal - H*z;
-//    nu = DI * epsilon;
-//}
-
 template<int dof> double
-HingeNodeSpec<dof>::kineticE() {
+RigidBodyNodeSpec<dof>::kineticE() {
     double ret = dot(sVel , Mk*sVel);
     return 0.5*ret;
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::setPosVel(const RVec& posv, const RVec& velv) {
+RigidBodyNodeSpec<dof>::setPosVel(const RVec& posv, const RVec& velv) {
     theta  = ConstRSubVec(posv,offset_,dof).vector();
     dTheta = ConstRSubVec(velv,offset_,dof).vector();
     toCartesian();
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::setVel(const RVec& velv) {
+RigidBodyNodeSpec<dof>::setVel(const RVec& velv) {
     dTheta = ConstRSubVec(velv,offset_,dof).vector();
     sVel   = transpose(phi) * parent->sVel
              + MatrixTools::transpose(H) * dTheta;
@@ -1423,22 +1114,22 @@ HingeNodeSpec<dof>::setVel(const RVec& velv) {
 // to be called from base to tip.
 //
 template<int dof> void
-HingeNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
+RigidBodyNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
     dTheta = H * (sVel - transpose(phi)*parent->sVel);
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::getPos(RVec& v) {
+RigidBodyNodeSpec<dof>::getPos(RVec& v) {
     RSubVec(v,offset_,dof) = theta.vector();
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::getVel(RVec& v) {
+RigidBodyNodeSpec<dof>::getVel(RVec& v) {
     RSubVec(v,offset_,dof) = dTheta.vector();
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::print(int verbose) {
+RigidBodyNodeSpec<dof>::print(int verbose) {
     if (verbose&InternalDynamics::printNodeForce) 
         cout << setprecision(8)
              << atoms[0] << ": force: " << forceCartesian << '\n';
@@ -1454,13 +1145,13 @@ HingeNodeSpec<dof>::print(int verbose) {
 
 // Called after calcAccel.
 template<int dof> void
-HingeNodeSpec<dof>::getAccel(RVec& v) {
+RigidBodyNodeSpec<dof>::getAccel(RVec& v) {
     RSubVec(v,offset_,dof) = ddTheta.vector();
 }
 
 // CalcInternalForce has been called previously.
 template<int dof> void
-HingeNodeSpec<dof>::getInternalForce(RVec& v) {
+RigidBodyNodeSpec<dof>::getInternalForce(RVec& v) {
     RSubVec(v,offset_,dof) = forceInternal.vector();
 }
 
@@ -1469,7 +1160,7 @@ HingeNodeSpec<dof>::getInternalForce(RVec& v) {
 // of the node have already had their quantities calculated.
 //
 template<int dof> void
-HingeNodeSpec<dof>::calcP() {
+RigidBodyNodeSpec<dof>::calcP() {
     //
     //how much do we need to keep around?
     // it looks like nu and G are the only ones needed for the acceleration
@@ -1508,7 +1199,7 @@ HingeNodeSpec<dof>::calcP() {
 // To be called from tip to base.
 //
 template<int dof> void
-HingeNodeSpec<dof>::calcZ() {
+RigidBodyNodeSpec<dof>::calcZ() {
     psiT = MatrixTools::transpose(tau) * transpose(phi);
     calcCartesianForce();
     z = P * a + b + forceCartesian;
@@ -1523,13 +1214,13 @@ HingeNodeSpec<dof>::calcZ() {
 }
 
 template<int dof> void
-HingeNodeSpec<dof>::calcY() {
+RigidBodyNodeSpec<dof>::calcY() {
     Y = orthoTransform(DI,MatrixTools::transpose(H))
         + orthoTransform(parent->Y,psiT);
 }
 
 template<int DOF> void
-HingeNodeSpec<DOF>::calcCartesianForce() {
+RigidBodyNodeSpec<DOF>::calcCartesianForce() {
     Vec3 moment(0.);
     Vec3 force(0.);
     // notice that the sign is screwey
@@ -1551,7 +1242,7 @@ HingeNodeSpec<DOF>::calcCartesianForce() {
 // Should be called only once after calcProps.
 //
 template<int dof> void
-HingeNodeSpec<dof>::calcInternalForce() {
+RigidBodyNodeSpec<dof>::calcInternalForce() {
     calcCartesianForce();
     z = forceCartesian;
 
@@ -1567,7 +1258,7 @@ HingeNodeSpec<dof>::calcInternalForce() {
 // This requires that sVel is previously set.
 //
 template<int dof> void
-HingeNodeSpec<dof>::prepareVelInternal() {
+RigidBodyNodeSpec<dof>::prepareVelInternal() {
     dTheta.set(0.0);
     a.set(0.0);
     b.set(0.0);
@@ -1593,7 +1284,7 @@ HingeNodeSpec<dof>::prepareVelInternal() {
 // To be called from tip to base.
 //
 template<int dof> void
-HingeNodeSpec<dof>::propagateSVel(const Vec6& sVel) {
+RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& sVel) {
     //sAcc used as a temporary
     this->sVel = sVel;
     sAcc = sVel;
@@ -1603,7 +1294,7 @@ HingeNodeSpec<dof>::propagateSVel(const Vec6& sVel) {
 }
 
 static double
-sumMassToTip(const HingeNode* n)
+sumMassToTip(const RigidBodyNode* n)
 {
     double ret = 0.0;
     for (int i=0 ; n->getChild(i) ; i++)
@@ -1614,9 +1305,9 @@ sumMassToTip(const HingeNode* n)
 }
 
 static double
-sumInertiaToTip(const HingeNode* n,
-                const Vec3&      pos,
-                const Vec3&      dir)
+sumInertiaToTip(const RigidBodyNode* n,
+                const Vec3&          pos,
+                const Vec3&          dir)
 {
     double ret = 0.0;
     for (int i=0 ; n->getChild(i) ; i++)
@@ -1628,7 +1319,7 @@ sumInertiaToTip(const HingeNode* n,
 }
 
 template<int dof> double
-HingeNodeSpec<dof>::approxKE() {
+RigidBodyNodeSpec<dof>::approxKE() {
     double ret=0.0;
     for (int i=0 ; i<dof ; i++) {
         double mass = 0.0;
@@ -1647,3 +1338,14 @@ HingeNodeSpec<dof>::approxKE() {
 }
 
 
+/////////////////////////////////////
+// Miscellaneous utility routines. //
+/////////////////////////////////////
+
+static Mat23
+catRow23(const Vec3& v1, const Vec3& v2) {
+    FixedMatrix<double,1,3> m1(v1.getData());
+    FixedMatrix<double,1,3> m2(v2.getData());
+    Mat23 ret = blockMat21(m1,m2);
+    return ret;
+}

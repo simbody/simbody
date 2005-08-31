@@ -7,7 +7,7 @@
 #include "internalDynamics.h"
 #include "dinternal.h"
 
-#include "dint-node.h"
+#include "AtomClusterNode.h"
 #include "dint-loop.h"
 
 #include "dint-atom.h"
@@ -68,9 +68,9 @@ AtomTree::~AtomTree() {
 //
 void
 AtomTree::destructNode(AtomClusterNode* n) {
-    for (int i=0 ; i<n->children.size() ; i++)
-        destructNode( n->children[i] );
-    nodeTree[n->level].remove( nodeTree[n->level].getIndex(n) );
+    for (int i=0; i < n->getNChildren(); i++)
+        destructNode( n->updChild(i) );
+    nodeTree[n->getLevel()].remove( nodeTree[n->getLevel()].getIndex(n) );
     delete n;
 }
 
@@ -86,9 +86,9 @@ AT_Build::AT_Build( IVM*             ivm,
 
 // get inclusive (including all children) degrees of freedom + constraints
 static int
-getIDim(const HingeNode* n) {
+getIDim(const AtomClusterNode* n) {
     int ret = n->getDim();
-    for (int i=0 ; n->getChild(i) ; i++)
+    for (int i=0; i < n->getNChildren(); i++)
         ret += getIDim( n->getChild(i) );
     return ret;
 }
@@ -178,10 +178,10 @@ void
 AtomTree::addMolecule(AtomClusterNode* groundNode,
                       IVMAtom*         atom ) 
 {
-    AtomClusterNode* baseNode = new HingeNode(ivm,
-                                              FindBase(ivm,atom),
-                                              groundNode->atoms[0],
-                                              groundNode);
+    AtomClusterNode* baseNode = new AtomClusterNode(ivm,
+                                                    FindBase(ivm,atom),
+                                                    groundNode->atoms[0],
+                                                    groundNode);
     //FIX: does this value of parentAtom work for torsion hnodes?
     addAtomClusterNode(baseNode);
     groundNode->addChild(baseNode);
@@ -250,7 +250,7 @@ AtomTree::AtomTree(IVM* ivm_)
     // construct true node data
 
     int cnt=1; //offset into pos, vel, acc
-    nodeTree[0][0] = construct( nodeTree[0][0] , "ground" , cnt);
+    nodeTree[0][0] = AtomClusterNode::constructFromPrototype( nodeTree[0][0] , "ground" , cnt);
     // i==1 are base nodes
     for (l_int i=1 ; i<nodeTree.size() ; i++)
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
@@ -260,7 +260,7 @@ AtomTree::AtomTree(IVM* ivm_)
                 //FIX: should check for redundant hinge specifications
                 if ( ivm->hingeList[k].aList.contains( n->atoms[0]->index ) )
                     hingeSpec = ivm->hingeList[k];
-            nodeTree[i][j] = construct( nodeTree[i][j] , hingeSpec, cnt);
+            nodeTree[i][j] = AtomClusterNode::constructFromPrototype( nodeTree[i][j] , hingeSpec, cnt);
         }
 
     ivm->dof_ = getDOF();
@@ -321,7 +321,7 @@ AtomTree::markAtoms(CDSVector<bool,0>& assignedAtoms) {
 // members of the group are held rigid wrt each other.
 //
 void
-AT_Build::buildNode(AtomClusterNode* node)
+AT_Build::buildAtomClusterNode(AtomClusterNode* node)
 {
     assert(node->atoms.size()==1);
 
@@ -419,7 +419,7 @@ AT_Build::buildNode(AtomClusterNode* node)
                                 ivm->hingeList.append( hingeSpec );
 
                                 AtomClusterNode* newNode = new AtomClusterNode(ivm, newAtom, pAtom, pNode);
-                                tree->addNode(newNode);
+                                tree->addAtomClusterNode(newNode);
                                 pNode->addChild(newNode);
                                 pNode = newNode;
                             } else if (ivm->hingeList[k].type == "bend") {
@@ -432,10 +432,10 @@ AT_Build::buildNode(AtomClusterNode* node)
 
                     // the local node and current atom are remote to newNode
                     AtomClusterNode* newNode = new AtomClusterNode(ivm, cAtom, pAtom, pNode);
-                    tree->addNode(newNode);
+                    tree->addAtomClusterNode(newNode);
                     pNode->addChild(newNode);
                     //     assignedAtoms(cAtom->index) = 1;
-                    buildNode(newNode);
+                    buildAtomClusterNode(newNode);
                 }
             }
         }
