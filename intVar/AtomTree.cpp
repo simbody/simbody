@@ -8,6 +8,8 @@
 #include "dinternal.h"
 
 #include "AtomClusterNode.h"
+#include "RigidBodyNode.h"
+
 #include "dint-loop.h"
 
 #include "dint-atom.h"
@@ -451,142 +453,6 @@ operator<<(ostream& s, const AtomTree& aTree) {
             << aTree.nodeTree[i][j]->type() << '\n';
     return s;
 }
-
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-void
-AtomTree::calcP() {
-    // level 0 for atoms whose position is fixed
-    // InternalDynamics::RecurseTipToBase<HingeNode::calcPandZ> d1;
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcP();
-}
-
-
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-void
-AtomTree::calcZ() {
-    // level 0 for atoms whose position is fixed
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcZ();
-}
-
-
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-void
-AtomTree::calcPandZ() {
-    // level 0 for atoms whose position is fixed
-    // InternalDynamics::RecurseTipToBase<HingeNode::calcPandZ> d1;
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcPandZ();
-}
-
-// Calc acceleration: sweep from base to tip.
-RVec
-AtomTree::calcGetAccel() {
-    RVec acc( ivm->dim() );
-    for (int i=0 ; i<nodeTree.size() ; i++)
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcAccel();
-    for (l_int i=0 ; i<nodeTree.size() ; i++)
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->getAccel(acc);
-    return acc;
-}
-
-// Calc P quantities: sweep from tip to base.
-RVec
-AtomTree::getAccel() {
-    calcPandZ();
-    RVec acc = calcGetAccel();
-
-    if ( ivm->lConstraints->fixAccel() ) 
-        for (int i=0 ; i<nodeTree.size() ; i++)
-            for (int j=0 ; j<nodeTree[i].size() ; j++)
-                nodeTree[i][j]->getAccel(acc);
-
-    return acc;
-}
-
-void
-AtomTree::updateAccel() {
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcZ();
-    for (l_int i=0 ; i<nodeTree.size() ; i++)
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcAccel();
-}
-
-// Calc internal force: sweep from tip to base.
-RVec
-AtomTree::getInternalForce() {
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--)
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->calcInternalForce();
-
-    RVec T( ivm->dim() );
-    for (l_int i=0 ; i<nodeTree.size() ; i++)
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->getInternalForce(T);
-
-    ivm->lConstraints->fixGradient(T);
-
-    return T;
-}
-
-void 
-AtomTree::setPosVel(const RVec& pos, const RVec& vel) {
-    for (int i=0 ; i<nodeTree.size() ; i++) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->setPosVel(pos,vel); 
-}
-
-void 
-AtomTree::setVel(const RVec& vel)  {
-    for (int i=0 ; i<nodeTree.size() ; i++) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->setVel(vel); 
-}
-
-void 
-AtomTree::enforceConstraints(RVec& pos, RVec& vel) {
-    for (int i=0 ; i<nodeTree.size() ; i++) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++) 
-            nodeTree[i][j]->enforceConstraints(pos,vel);
-
-    ivm->lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
-}
-
-RVec
-AtomTree::getPos() const {
-    RVec pos(ivm->dim());
-    for (int i=0 ; i<nodeTree.size() ; i++) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->getPos(pos); 
-    return pos;
-}
-
-RVec
-AtomTree::getVel() const {
-    RVec vel(ivm->dim());
-    for (int i=0 ; i<nodeTree.size() ; i++) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->getVel(vel); 
-    return vel;
-}
-
 
 typedef CDSVector<Vec3> VecVec3;
 

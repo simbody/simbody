@@ -127,19 +127,27 @@ public:
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const Mat33&     getR_GB()   const {return R_GB;}
+    const Mat33&     getR_GB() const {return R_GB;}
+
+    /// Return OB_G, the spatial location of the origin of the B frame, that is, 
+    /// measured from the ground origin and expressed in ground.
+    const Vec3&      getOB_G() const {return OB_G; }
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
     /// P here) in the ground frame G.
-    const Mat33&     getR_GP()   const {assert(parent); return parent->getR_GB();}
+    const Mat33&     getR_GP() const {assert(parent); return parent->getR_GB();}
 
-    const Vec6&      getSpatialVel()   const {return sVel;}
-    const Vec6&      getSpatialAcc()   const {return sAcc;}
+    /// Return OP_G, the spatial location of the origin of the P frame, that is, 
+    /// measured from the ground origin and expressed in ground.
+    const Vec3&      getOP_G() const {assert(parent); return parent->getOB_G();}
 
-    const PhiMatrix& getPhi()    const {return phi;}
-    const Mat66&     getPsiT()   const {return psiT;}
-    const Mat66&     getY()      const {return Y;}
+    const Vec6&      getSpatialVel() const {return sVel;}
+    const Vec6&      getSpatialAcc() const {return sAcc;}
+
+    const PhiMatrix& getPhi()  const {return phi;}
+    const Mat66&     getPsiT() const {return psiT;}
+    const Mat66&     getY()    const {return Y;}
 
     virtual const char* type() { return "unknown"; }
     virtual int getDOF() const {return 0;} //number of independent dofs

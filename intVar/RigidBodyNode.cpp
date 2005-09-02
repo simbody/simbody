@@ -1,3 +1,8 @@
+/**@file
+ * This file contains all the multibody mechanics code that involves a single body and
+ * its inboard joint, that is, one node in the multibody tree.
+ */
+
 #include "RigidBodyNode.h"
 #include "dinternal.h"
 #include "dint-step.h"
@@ -88,15 +93,7 @@ public:
     // quantities for the node, such as the atom stations on the body, and the reference
     // locations and orientations.
     //
-    // XXX Ball and free joints require that we insert a dummy 'atom' as the origin if
-    //     this is a base node and it is not bonded to ground (unless there is already
-    //     a dummy atom as atom[0]). This is chosen to be
-    //     a point which is the geometric center of the entire outboard tree, but
-    //     attached to the current body. At the moment I'm just preserving the
-    //     existing behavior; later I hope to trash it. (sherm)
-    //
-    RigidBodyNodeSpec(const RigidBodyNode* node, int& cnt, const Mat33& rotBJ,
-                      bool addDummyOrigin=false)
+    RigidBodyNodeSpec(const RigidBodyNode* node, int& cnt, const Mat33& rotBJ)
       : RigidBodyNode(*node), theta(0.), dTheta(0.), forceInternal(0.0) 
     { 
         offset_ = cnt;

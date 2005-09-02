@@ -56,7 +56,7 @@ class BadNodeDef {};  //exception
 /**
  * Collect up useful information about a loop. 
  * This includes the two connected atoms, ordered by level, and the
- * baths from each of the associated nodes back to the common ancestor.
+ * paths from each of the associated nodes back to the common ancestor.
  * We also identify the molecule base node for the molecule which
  * contains both ends of the loop.
  * We will throw an exception if the loop ends are both on the same
@@ -64,7 +64,7 @@ class BadNodeDef {};  //exception
  */
 class LoopWNodes {
     HingeNode*                base; // highest-level common ancestor of tips
-    FixedVector<IVMAtom*,2,1> tips; // the twp connected atoms, sorted so that
+    FixedVector<IVMAtom*,2,1> tips; // the two connected atoms, sorted so that
                                     //   tips(1).level <= tips(2).level
     FixedVector<NodeList,2,1> nodes;// the two paths: base..tip1, base..tip2,
                                     //   incl. tip nodes but not base
@@ -72,9 +72,7 @@ class LoopWNodes {
 public:
     LoopWNodes() {}
     LoopWNodes(const Loop& l);
-    // const HingeNode* operator[](int i) const 
-    // { return nodes[i]; }
-    // bool findNodes();
+
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
     friend void LengthConstraints::construct(CDSList<Loop>&);
@@ -881,7 +879,7 @@ computeA(const Vec3&    v1,
 //
 // See Section 2.6 on p. 294 of Schwieters & Clore, 
 // J. Magnetic Resonance 152:288-302. Equation reference below
-// are to that paper.
+// are to that paper. (sherm)
 //
 void
 LengthSet::fixAccel()
