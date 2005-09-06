@@ -1,7 +1,7 @@
 #ifndef __dint_atom_hh__
 #define __dint_atom_hh__
 
-#include <atom.h>
+#include "atom.h"
 
 class AtomClusterNode;
 
@@ -43,6 +43,8 @@ public:
 
     // Initial and then calculated spatial (Cartesian) info.
     Vec3 pos;
+    Vec3 station_G; // station expressed in G (still measured from OB)
+
     Vec3 vel;
     Vec3 deriv; // this is Cartesian force (i.e., energy gradient), not accel
 };

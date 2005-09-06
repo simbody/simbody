@@ -15,8 +15,8 @@
 
 #include "dinternal.h"
 #include "AtomTree.h"
+#include "AtomClusterNode.h"
 
-#include "dint-node.h"
 #include "dint-step.h"
 #include "dint-loop.h"
 
@@ -25,20 +25,18 @@
 #include "vec3.h"
 #include "vec4.h"
 
-#include <sthead.h>
-#include <cdsMath.h>
-#include <cdsString.h>
-#include <cdsSStream.h>
-#include <cdsVector.h>
-#include <fixedVector.h>
-#include <subVector.h>
-#include <fixedMatrix.h>
-#include <matrixTools.h>
-#include <cdsIomanip.h>
-#include <cdsFstream.h>
-
-
-#include <cdsAuto_arr.h>
+#include "sthead.h"
+#include "cdsMath.h"
+#include "cdsString.h"
+#include "cdsSStream.h"
+#include "cdsVector.h"
+#include "fixedVector.h"
+#include "subVector.h"
+#include "fixedMatrix.h"
+#include "matrixTools.h"
+#include "cdsIomanip.h"
+#include "cdsFstream.h"
+#include "cdsAuto_arr.h"
 
 using namespace InternalDynamics;
 using MatrixTools::inverse;
@@ -123,7 +121,7 @@ IVM::defaultVecVec3Prod(const CDSVector<Vec3>& v1, const CDSVector<Vec3>& v2) {
 // does not create a group if there's only a single atom.
 //
 void
-IVM::groupTorsion(const HingeNode* n) {
+IVM::groupTorsion(const AtomClusterNode* n) {
     CDSList<int> aList;
     const IVMAtom* a;
 
@@ -134,7 +132,7 @@ IVM::groupTorsion(const HingeNode* n) {
                 if ( a->index>=0 )
                     aList.append( a->index );
 
-        const HingeNode* c;
+        const AtomClusterNode* c;
         for (int i=0 ; ( c=n->getChild(i) ) ; i++) { 
             if ( c->getChild(0) || c->getAtom(1) )     
                 //has children or contains more than one atom
@@ -157,7 +155,7 @@ IVM::groupTorsion(const HingeNode* n) {
         }
 
         if (n) {
-            const HingeNode* c;
+            const AtomClusterNode* c;
             for (int i=0 ; ( c=n->getChild(i) ) ; i++) {
                 if ( c->getChild(0) || c->getAtom(1) ) {    
                     //has children or contains more than one atom
@@ -235,7 +233,7 @@ IVM::step(double& timeStep) {
 //     approxTemp += tree->nodeTree[i][j]->approxKE();
 //     
 // approxTemp /= (dof * kBoltzman);
-//} /* calcTemp */
+//}
  
 void
 IVM::calcTemperature() {
@@ -291,7 +289,7 @@ IVM::resetCM()
     nodes.resize(0);
     for (int i=1 ; i<tree()->nodeTree.size() ; i++)
         for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-            const HingeNode* n = tree()->nodeTree[i][j];
+            const AtomClusterNode* n = tree()->nodeTree[i][j];
             IVMAtom *a = new IVMAtom( nodes.size() , n->mass() );
             a->pos = n->posCM();
             a->vel = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
@@ -340,7 +338,7 @@ IVM::resetCM()
     // getSolver()->setVel( tree()->getVel() );
 
     for ( l_int i=0 ; i<tree()->nodeTree[1].size() ; i++ ) {
-        HingeNode* n = tree()->nodeTree[1][i];
+        AtomClusterNode* n = tree()->nodeTree[1][i];
         Vec6 sVel = n->getSpatialVel() - blockVec(omega, 
                                           cross( omega , 
                                                  n->getAtom(0)->pos-posCM) + velCM);
@@ -356,7 +354,7 @@ IVM::resetCM()
         Vec3 velCM(0.0);
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-                const HingeNode* n = tree()->nodeTree[i][j];
+                const AtomClusterNode* n = tree()->nodeTree[i][j];
                 Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
                                  - cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
                                           n->getAtom(0)->pos - n->posCM() ); 
@@ -367,7 +365,7 @@ IVM::resetCM()
         Vec3 L(0.0); // angular momentum excluding internal rotations
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-                const HingeNode* n = tree()->nodeTree[i][j];
+                const AtomClusterNode* n = tree()->nodeTree[i][j];
                 Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() ) - 
                                 cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
                                         n->getAtom(0)->pos - n->posCM() ); 

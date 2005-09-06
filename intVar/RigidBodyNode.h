@@ -82,8 +82,6 @@ typedef CDSVector<double,1>     RVec;
  * reference configuration, R_PJi = R_BJ so we don't need to store both matrices
  * explicitly. With these definitions we can easily calculate R_PB as
  *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*(R_BJ)'.
- *
- * XXX Sherm's goal: migrate this to atom-free living.
  */
 class RigidBodyNode {
 public:
@@ -94,7 +92,7 @@ public:
     RigidBodyNode(const MassProperties& mProps_B,
                   const Vec3& originOfB_P, // and R_BP=I in ref config
                   const Mat33& rot_BJ, const Vec3& originOfJ_B)
-      : stateOffset(-1), parent(0), children(0,0), level(-1),
+      : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
@@ -107,11 +105,18 @@ public:
     const RigidBodyNode* getParent() const {return parent;}
     RigidBodyNode*       updParent()       {return parent;}
 
+    int                  getNChildren()  const {return children.size();}
+    const RigidBodyNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
+    RigidBodyNode*       updChild(int i)       {return (i<children.size()?children[i]:0);}
+
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
     /// Ground node) are called 'base' nodes.
     int              getLevel() const  {return level;}
     void             setLevel(int i)   {level=i;}
+
+    int              getNodeNum() const {return nodeNum;}
+    void             setNodeNum(int n)  {nodeNum=n;}
 
     bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
@@ -142,6 +147,18 @@ public:
     /// measured from the ground origin and expressed in ground.
     const Vec3&      getOP_G() const {assert(parent); return parent->getOB_G();}
 
+    void setSpatialVel(const Vec6& v) { sVel=v; }
+
+    /// Return the inertial angular velocity of body frame B (i.e., angular
+    /// velocity with respect to the ground frame), expressed in the ground frame.
+    const Vec3&      getSpatialAngVel() const
+        {return *reinterpret_cast<const Vec3*>(&sVel[0]);}
+
+    /// Return the inertial velocity of OB (i.e., velocity with respect
+    /// to the ground frame), expressed in the ground frame.
+    const Vec3&      getSpatialLinVel() const
+        {return *reinterpret_cast<const Vec3*>(&sVel[3]);}
+
     const Vec6&      getSpatialVel() const {return sVel;}
     const Vec6&      getSpatialAcc() const {return sAcc;}
 
@@ -149,33 +166,43 @@ public:
     const Mat66&     getPsiT() const {return psiT;}
     const Mat66&     getY()    const {return Y;}
 
-    virtual const char* type() { return "unknown"; }
-    virtual int getDOF() const {return 0;} //number of independent dofs
-    virtual int getDim() const {return 0;} //dofs plus constraints
-    virtual double kineticE() { return 0; }
-    virtual double approxKE() { return 0; }
+    virtual const char* type()     const {return "unknown";}
+    virtual int         getDOF()   const {return 0;} //number of independent dofs
+    virtual int         getDim()   const {return 0;} //dofs plus quaternion constraints
+    virtual double      kineticE() const {return 0;}
 
-    virtual void calcP() {throw VirtualBaseMethod();}
-    virtual void calcZ() {throw VirtualBaseMethod();}
-    virtual void calcPandZ() {throw VirtualBaseMethod();}
-    virtual void calcY() {throw VirtualBaseMethod();}
-    virtual void calcInternalForce()        {throw VirtualBaseMethod();}
-    virtual void prepareVelInternal()       {throw VirtualBaseMethod();}
-    virtual void propagateSVel(const Vec6&) {throw VirtualBaseMethod();}
-
-    virtual void setPosVel(const RVec&, const RVec&) {throw VirtualBaseMethod();}
+    virtual void setPos(const RVec&)    {throw VirtualBaseMethod();}
     virtual void setVel(const RVec&)    {throw VirtualBaseMethod();}
-    virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
+
+    virtual void calcConfigurationKinematics() {throw VirtualBaseMethod();}
+    virtual void calcMotionKinematics()        {throw VirtualBaseMethod();}
+
     virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
 
-    virtual void getPos(RVec&) {throw VirtualBaseMethod();}
-    virtual void getVel(RVec&) {throw VirtualBaseMethod();}
-    virtual void getAccel(RVec&) {throw VirtualBaseMethod();}
-    virtual void calcAccel() {throw VirtualBaseMethod();}
-    virtual void getInternalForce(RVec&) {throw VirtualBaseMethod();}
-    virtual RMat getH() {throw VirtualBaseMethod();}
+    virtual void calcP()                                     {throw VirtualBaseMethod();}
+    virtual void calcZ    (const Vec6& spatialForce)         {throw VirtualBaseMethod();}
+    virtual void calcPandZ(const Vec6& spatialForce)         {throw VirtualBaseMethod();}
+    virtual void calcY()                                     {throw VirtualBaseMethod();}
+    virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
-    virtual void print(int) { throw VirtualBaseMethod(); }
+    virtual void calcInternalForce(const Vec6& spatialForce) {throw VirtualBaseMethod();}
+    virtual void prepareVelInternal()                        {throw VirtualBaseMethod();}
+    virtual void propagateSVel(const Vec6& desiredVel)       {throw VirtualBaseMethod();}
+
+
+    virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
+
+
+    virtual void getPos(RVec&)   const {throw VirtualBaseMethod();}
+    virtual void getVel(RVec&)   const {throw VirtualBaseMethod();}
+    virtual void getAccel(RVec&) const {throw VirtualBaseMethod();}
+
+    virtual void getInternalForce(RVec&) const {throw VirtualBaseMethod();}
+    virtual RMat getH() const {throw VirtualBaseMethod();}
+
+    virtual void print(int) const { throw VirtualBaseMethod(); }
+
+    static const double DEG2RAD; //using angles in degrees balances gradient
 
 protected:
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
@@ -184,6 +211,7 @@ protected:
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
     int               level;        //how far from base 
+    int               nodeNum;      //unique ID number in RigidBodyTree
 
     // These are the body properties
 
@@ -236,8 +264,6 @@ protected:
     Vec6         Gepsilon;
     Vec6         sAcc;              // spatial acceleration
 
-
-    static const double DEG2RAD; //using angles in degrees balances gradient
 
     virtual void velFromCartesian() {}
 

@@ -1002,8 +1002,8 @@ LengthSet::multiForce(const RVec& forceInternal, const RMat& mat)
 }
 
 void
-LengthSet::addForce(      RVec& forceInternal,
-            const RVec& vec)
+LengthSet::addForce(RVec& forceInternal,
+                    const RVec& vec)
 {
     int indx=1;
     for (int j=0 ; j<nodeMap.size() ; j++) {

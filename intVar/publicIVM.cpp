@@ -1,26 +1,26 @@
 
 #include "publicIVM.h"
 
-#include <cdsIostream.h>
-#include <cdsIomanip.h>
+#include "cdsIostream.h"
+#include "cdsIomanip.h"
 
-#include <sthead.h>
-#include <cdsExcept.h>
-#include <cdsSStream.h>
+#include "sthead.h"
+#include "cdsExcept.h"
+#include "cdsSStream.h"
 
 #include "dinternal.h"
 #include "AtomTree.h"
+#include "AtomClusterNode.h"
 
+#include "dint-step.h"
+#include "dint-atom.h"
+#include "dint-loop.h"
 
-#include <dint-step.h>
-#include <dint-atom.h>
-#include <dint-node.h>
-#include <dint-loop.h>
+#include "simulationWorld.h"
+#include "simulation.h"
+#include "derivList.h"
 
-#include <simulationWorld.h>
-#include <simulation.h>
-#include <derivList.h>
-#include <math.h>
+#include <cmath>
 
 // Called when the simulation is modified outside of the IVM
 // note that the modified flag is cleared when the simulation sets

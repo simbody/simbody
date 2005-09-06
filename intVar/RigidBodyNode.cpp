@@ -1,6 +1,9 @@
 /**@file
  * This file contains all the multibody mechanics code that involves a single body and
  * its inboard joint, that is, one node in the multibody tree.
+ *
+ * Most methods here expect to be called in a particular order during traversal of the
+ * tree -- either base to tip or tip to base.
  */
 
 #include "RigidBodyNode.h"
@@ -32,6 +35,10 @@ typedef FixedMatrix<double,2,3> Mat23;
 typedef FixedVector<double,5>   Vec5;
 
 static Mat23 catRow23(const Vec3& v1, const Vec3& v2);
+static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
+static Mat33 makeIdentity33();
+static const Mat33 ident33 = makeIdentity33(); // handy to have around
+static const Mat33 zero33(0.);
 
 //////////////////////////////////////////////
 // Implementation of RigidBodyNode methods. //
@@ -63,10 +70,11 @@ public:
     /*virtual*/const char* type() { return "ground"; }
 
     /*virtual*/void calcP() {} 
-    /*virtual*/void calcZ() {} 
-    /*virtual*/void calcPandZ() {} 
+    /*virtual*/void calcZ(const Vec6&) {} 
+    /*virtual*/void calcPandZ(const Vec6&) {} 
     /*virtual*/void calcY() {}
-    /*virtual*/void calcInternalForce() {}
+    /*virtual*/void calcInternalForce(const Vec6&) {}
+    /*virtual*/void calcAccel() {}
     /*virtual*/void prepareVelInternal() {}
     /*virtual*/void propagateSVel(const Vec6&) {}
 
@@ -75,11 +83,11 @@ public:
     /*virtual*/void setVelFromSVel(const Vec6&) {}
     /*virtual*/void enforceConstraints(RVec& pos, RVec& vel) {}
 
-    /*virtual*/void getPos(RVec&) {}
-    /*virtual*/void getVel(RVec&) {}
-    /*virtual*/void getAccel(RVec&) {}
-    /*virtual*/void calcAccel() {}
-    /*virtual*/void getInternalForce(RVec&) {}
+    /*virtual*/void getPos(RVec&)   const {}
+    /*virtual*/void getVel(RVec&)   const {}
+    /*virtual*/void getAccel(RVec&) const {}
+
+    /*virtual*/void getInternalForce(RVec&) const {}
     // virtual RMat getH()
 
     void print(int) {}
@@ -96,52 +104,88 @@ public:
     RigidBodyNodeSpec(const RigidBodyNode* node, int& cnt, const Mat33& rotBJ)
       : RigidBodyNode(*node), theta(0.), dTheta(0.), forceInternal(0.0) 
     { 
-        offset_ = cnt;
+        stateOffset = cnt;
         cnt+=dof;   // leave room for this node's state variables
     }
 
     virtual ~RigidBodyNodeSpec() {}
 
-    // Every derived class must implement at least these two methods.
+    /// Calculate joint-specific kinematic quantities dependent only
+    /// on positions. This routine may assume that *all* position 
+    /// kinematics (not just joint-specific) has been done for the parent,
+    /// and that the position state variables (theta) are available. The
+    /// quanitites that must be computed are:
+    ///   R_PB  the orientation of the B frame in its parent's frame
+    ///   OB_P  the location of B's origin in its parent (meas. from OP)
+    ///   H     the joint transition matrix
+    virtual void calcJointKinematicsPos()=0;
 
-    /// Calculate the joint transition matrix H.
-    virtual void calcH()=0;
+    /// Calculate joint-specific kinematic quantities dependent on
+    /// on velocities. This routine may assume that *all* position 
+    /// kinematics (not just joint-specific) has been done for this node,
+    /// that all velocity kinematics has been done for the parent, and
+    /// that the velocity state variables (dTheta) are available. The
+    /// quanitites that must be computed are:
+    ///   V_PB_G  relative velocity of B in P, expr. in G
+    virtual void calcJointKinematicsVel()=0;
 
-    /// Calculate all kinematic quantities.
-    virtual void toCartesian()=0;
+    /// Calculate all spatial configuration quantities, assuming availability of
+    /// joint-specific relative quantities (see above).
+    ///   R_GB
+    ///   OB_G
+    ///
+    void calcJointIndependentKinematicsPos();
 
-    int  getDOF() const { return dof; }
+    /// Calcluate all spatial velocity quantities, assuming availability of
+    /// joint-specific relative quantities and all position kinematics.
+    ///   sVel  spatial velocity of B
+    ///   a     spatial Coriolis acceleration
+    ///   b     spatial gyroscopic force
+    void calcJointIndependentKinematicsVel();
+
+
+    void calcKinematicsPos() {
+        calcJointKinematicsPos();
+        calcJointIndependentKinematicsPos();
+    }
+
+    void calcKinematicsVel() {
+        calcJointKinematicsVel();
+        calcJointIndependentKinematicsVel();
+    }
+
+    int          getDOF() const { return dof; }
     virtual int  getDim() const { return dof; } // dim can be larger than dof
 
-    virtual void calcY();
-    //  void calcEpsilon_nu(const Vec6& z);
+    virtual void   print(int) const;
+    virtual double kineticE() const;
 
-    virtual void print(int);
-    virtual double kineticE();
-    //  virtual double approxMass(int k);
-    virtual double approxKE();
-
-    virtual void setPosVel(const RVec& pos, const RVec& vel);
+    virtual void setPos(const RVec&);
     virtual void setVel(const RVec&);
     virtual void setVelFromSVel(const Vec6&);
-
     virtual void enforceConstraints(RVec& pos, RVec& vel) {}
-    virtual void getPos(RVec&);
-    virtual void getVel(RVec&);
-    virtual void getAccel(RVec&);
-    virtual void getInternalForce(RVec&);
-    virtual RMat getH() { return RMat(H); }
 
-    void calcPandZ() { calcP(); calcZ(); }
+    virtual void getPos(RVec&)   const;
+    virtual void getVel(RVec&)   const;
+    virtual void getAccel(RVec&) const;
+    virtual void getInternalForce(RVec&) const;
+    virtual RMat getH() const { return RMat(H); }
+
+    void calcPandZ(const Vec6& spatialForce) { calcP(); calcZ(spatialForce); }
     void calcP();
-    void calcZ();
+    void calcZ(const Vec6& spatialForce);
+    virtual void calcY();
     void calcAccel();
-    void calcInternalForce();
-    void calcCartesianForce();
+    void calcInternalForce(const Vec6& spatialForce);
     void prepareVelInternal();
-    void propagateSVel(const Vec6&);
+    void propagateSVel(const Vec6& desiredVel);
     void calcD_G(const Mat66& P);
 protected:
+    // These are joint-relative quantities, but not dof dependent.
+    Mat33 R_PB; // orientation of B in P
+    Vec3  OB_P; // location of B origin meas & expr in P frame
+    Vec6  V_PB_G; // relative velocity of B in P, but expressed in G
+
     // These are the joint-specific quantities
     //      ... position level
     FixedVector<double,dof>     theta;   // internal coordinates
@@ -155,12 +199,12 @@ protected:
     //      ... acceleration level
     FixedVector<double,dof>     ddTheta; // - from the eq. of motion
 
-
     FixedVector<double,dof>     nu;
     FixedVector<double,dof>     epsilon;
     FixedVector<double,dof>     forceInternal;
 
-    void calcProps();
+    void calcPosProps();
+    void calcVelProps();
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
@@ -187,263 +231,84 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const RigidBodyNode* node, int& cnt)
-      : RigidBodyNodeSpec<3>(node,cnt,R_I)
+      : RigidBodyNodeSpec<3>(node,cnt,ident33)
     { }
 
-    void calcH() {
-        using MatrixTools::transpose;
-        Mat33 zMat(0.0);
-        H = blockMat12(zMat,transpose(getR_GP()));
+    void calcJointKinematicsPos() { 
+        OB_P = refOrigin_P + theta;
+        R_PB = ident33; // Cartesian joint can't change orientation
+
+        // Note that this is spatial (and R_GP=R_GB for this joint)
+        H = blockMat12(zero33, MatrixTools::transpose(getR_GP()));
     }
 
-    void toCartesian() { 
-        R_GB = getR_GP();   // translate joint can't change orientation
-        atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP() * (refOrigin_P + theta);
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos =  atoms[0]->pos + R_GB * atomStations_B(i);
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (l_int i=1; i<atoms.size(); i++)
-            atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos - atoms[0]->pos );
-        calcProps();
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
     }
 };
 
 /**
- * Free joint. This is a six degree of freedom joint providing unrestricted 
- * translation and rotation for a free rigid body.
- * The joint frame J is aligned with the body frame B.
+ * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
+ * about a particular axis.
  */
-class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
-    Vec4 q; //Euler parameters for rotation relative to parent
-    Vec4 dq;
-    Vec4 ddq;
-    double cPhi, sPhi;        //trig functions of Euler angles
-    double cPsi, sPsi;        //used for minimizations
-    double cTheta, sTheta;
-    bool   useEuler;          //if false, use Quaternion rep.
+class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
-    virtual const char* type() { return "full"; }
+    virtual const char* type() { return "torsion"; }
 
-    RBNodeTranslateRotate3(const RigidBodyNode* node,
-                           int&                 cnt,
-                           bool                 useEuler)
-      : RigidBodyNodeSpec<6>(node,cnt,R_I,true), q(1.0,0.0,0.0,0.0), dq(0.), useEuler(useEuler)
+    RBNodeTorsion(const RigidBodyNode*   node,
+                  const Vec3&            rotDir,
+                  int&                   cnt)
+      : RigidBodyNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
     { 
-        if ( !useEuler )
-            cnt++;
     }
 
-    void calcRot() {
-        Mat33 R_PB;  // rotation matrix expressing body frame in parent's frame
-        if (useEuler) {
-            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' body-fixed angles 
-            cPhi   = cos( theta(0) *DEG2RAD );
-            sPhi   = sin( theta(0) *DEG2RAD );
-            cTheta = cos( theta(1) *DEG2RAD );
-            sTheta = sin( theta(1) *DEG2RAD );
-            cPsi   = cos( theta(2) *DEG2RAD );
-            sPsi   = sin( theta(2) *DEG2RAD );
-
-            // This is the rotation matrix giving the current orientation of the J
-            // frame with respect to the parent body's Ji frame, where the current
-            // body B is the i'th child of P.
-            const double R_JiJ[] = 
-                { cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
-                  sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
-                 -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               };
-
-            R_PB = Mat33(R_JiJ); // because P=Ji and B=J for this kind of joint
-        } else {
-            const double R_JiJ[] =  //rotation matrix - active-sense coordinates
-                {sq(q(0))+sq(q(1))-
-                 sq(q(2))-sq(q(3))      , 2*(q(1)*q(2)-q(0)*q(3)), 2*(q(1)*q(3)+q(0)*q(2)),
-                 2*(q(1)*q(2)+q(0)*q(3)), (sq(q(0))-sq(q(1))+
-                                           sq(q(2))-sq(q(3)))    , 2*(q(2)*q(3)-q(0)*q(1)),
-                 2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
-                                                                    sq(q(2))+sq(q(3)))};
-            R_PB = Mat33(R_JiJ); // see above
-        }
-        R_GB = getR_GP() * R_PB; // the spatial rotation matrix expressing body frame B in ground
+    void calcJointKinematicsPos() { 
+        OB_P = refOrigin_P; // torsion joint can't move B origin in P
+        calcR_PB();
+        calcH();
     }
 
-    void enforceConstraints(RVec& posv, RVec& velv) {
-        if (useEuler) return;
-        q  = RSubVec(posv,offset_,4).vector();
-        dq = RSubVec(velv,offset_,4).vector();
-
-        q  /= norm(q);      // normalize Euler parameters at each time step
-        dq -= dot(q,dq)*q; //also fix velocity: error is prop. to position component
-
-        RSubVec(posv,offset_,4) =  q.vector();
-        RSubVec(velv,offset_,4) = dq.vector();
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
     }
 
-    // H matrix in body-fixed coords
+private:
+    void calcR_PB() {
+        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
+        double scale=1.0;
+        double sinTau = sin( scale * theta(0) );
+        double cosTau = cos( scale * theta(0) );
+        double a[] = { cosTau , -sinTau , 0.0 ,
+                       sinTau ,  cosTau , 0.0 ,
+                       0.0    ,  0.0    , 1.0 };
+        const Mat33 R_JiJ(a); //rotation about z-axis
+
+        // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
+        R_PB = orthoTransform( R_JiJ , R_BJ );
+    };
+
+    // Calc H matrix in space-fixed coords.
     void calcH() {
-        //   calcRot(); //FIX: does this need to be calculated here?
-        using MatrixTools::transpose;
-        Mat33 zMat(0.0);
-        H = blockMat22( transpose(getR_GP()) , zMat,
-                        zMat , transpose(getR_GP()));
-    }
-
-    // called after calcAccel
-    void getAccel(RVec& v) {
-        assert( !useEuler );
-
-        // get angular vel/accel in the space-fixed frame
-        Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
-        Vec3 dOmega = RSubVec6(ddTheta, 0, 3).vector();
-        double a1[] = {-q(1),-q(2),-q(3),
-                        q(0), q(3),-q(2),
-                       -q(3), q(0), q(1),
-                        q(2),-q(1), q(0)};
-        FixedMatrix<double,4,3> M(a1);
-        double a2[] = {-dq(1),-dq(2),-dq(3),
-                        dq(0), dq(3),-dq(2),
-                       -dq(3), dq(0), dq(1),
-                        dq(2),-dq(1), dq(0)};
-        FixedMatrix<double,4,3> dM( a2 );
-        ddq = 0.5*(dM*omega + M*dOmega);
-
-        RSubVec(v,offset_,4)   = ddq.vector();
-        RSubVec(v,offset_+4,3) = RSubVec6(ddTheta,3,3).vector();
+        // This only works because the joint z axis is the same in B & P
+        // because that's what we rotate around.
+        const Vec3 z = getR_GP() * (R_BJ * Vec3(0,0,1)); // R_BJ=R_PJi
+        FixedMatrix<double,1,3> zMat(0.0);
+        H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
     }
 
     void getInternalForce(RVec& v) {
-        //dependency: calcRot must be called first
-        assert( useEuler );
-
-        Vec3 torque = RSubVec6(forceInternal, 0, 3).vector();
-        double a[] = { 0         , 0           , 1.0 ,
-                      -sPhi      , cPhi        , 0   ,
-                      cPhi*cTheta, sPhi*cTheta ,-sTheta };
-        Mat33 M(a);
-        Vec3 eTorque = DEG2RAD * M * torque;
-
-        RSubVec(v,offset_,3)   = eTorque.vector();
-        RSubVec(v,offset_+3,3) = RSubVec6(forceInternal,3,3).vector();
-    }
-
-    int  getDim() const { 
-        if (useEuler) return 6; else return 7; 
-    }
-
-    void setPosVel(const RVec& posv, const RVec& velv) {
-        if (useEuler) {
-            theta = ConstRSubVec(posv,offset_,6).vector(); 
-        } else { //integration step using quaternion
-            q                   = ConstRSubVec(posv,offset_,4).vector();
-            RSubVec6(theta,3,3) = ConstRSubVec(posv,offset_+4,3).vector();
-
-            dq = ConstRSubVec(velv,offset_,4).vector();
-            double a2[] = {-q(1), q(0),-q(3), q(2),
-                           -q(2), q(3), q(0),-q(1),
-                           -q(3),-q(2), q(1), q(0)};
-            FixedMatrix<double,3,4> M(a2);
-            RSubVec6(dTheta,0,3) = ( 2.0*( M * dq ) ).vector();
-            RSubVec6(dTheta,3,3) = ConstRSubVec(velv,offset_+4,3).vector();
-        }
-        toCartesian();
-    } 
-
-    void setVel(const RVec& velv) { //setposvel must have been called previously
-        assert( !useEuler );
-
-        dq = ConstRSubVec(velv,offset_,4).vector();
-
-        double a2[] = {-q(1), q(0),-q(3), q(2),
-                       -q(2), q(3), q(0),-q(1),
-                       -q(3),-q(2), q(1), q(0)};
-        FixedMatrix<double,3,4> M(a2);
-        RSubVec6(dTheta,0,3) = ( 2.0*( M * dq ) ).vector();
-        RSubVec6(dTheta,3,3) = ConstRSubVec(velv,offset_+4,3).vector();
-
-        sVel = transpose(phi) * parent->getSpatialVel()
-               + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos-atoms[0]->pos );
-    } 
-
-    void setVelFromSVel(const Vec6& sVel) {
-        assert( !useEuler );
-
-        RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
-        Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
-        double a[] = {-q(1),-q(2),-q(3),
-                       q(0), q(3),-q(2),
-                      -q(3), q(0), q(1),
-                       q(2),-q(1), q(0)};
-        FixedMatrix<double,4,3> M(a);
-        dq = 0.5*M*omega;
-    } 
-
-    void getPos(RVec& v) {
-        if (useEuler) 
-            RSubVec(v,offset_,6) = theta.vector();
-        else { //integration step
-            RSubVec(v,offset_  ,4) = q.vector();
-            RSubVec(v,offset_+4,3) = RSubVec6(theta, 3, 3).vector();
-        }
-    }
-
-    void getVel(RVec& v) {
-        assert( !useEuler );
-
-        RSubVec(v,offset_,4) = dq.vector();
-        RSubVec(v,offset_+4,3) = RSubVec6(dTheta, 3, 3).vector();
-    }
-   
-    void toCartesian() { 
-        atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP() * (refOrigin_P + 
-                                Vec3(RSubVec6(theta,3,3).vector()));
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
-
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        if ( !useEuler ) {
-            // update vel using recursive formula
-            sVel = transpose(phi) * parent->getSpatialVel()
-                   + MatrixTools::transpose(H) * dTheta;
-            atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-            for (l_int i=1 ; i<atoms.size() ; i++)
-                atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                       atoms[i]->pos-atoms[0]->pos );
-        }
-        calcProps();
-    }
-
-    void print(int verbose) {
-        if (verbose&InternalDynamics::printNodeTheta && !useEuler) 
-            cout << setprecision(8) << atoms[0] << ": theta: " 
-                 << q   << ' ' << RSubVec6(theta,3,3)   << ' ' 
-                 << dq  << ' ' << RSubVec6(dTheta,3,3)  << ' ' 
-                 << ddq << ' ' << RSubVec6(ddTheta,3,3) << '\n';
-        else 
-            RigidBodyNodeSpec<6>::print(verbose);
-    }
+        double torque = forceInternal(0);
+        //torque *= DEG2RAD; ??
+        v(stateOffset) = torque;
+    }   
 };
 
 /**
- * Ball joint. This provides three degrees of rotational freedom, i.e.,
- * unrestricted orientation.
- * The joint frame J is aligned with the body frame B.
+ * This class contains all the odd things required by a ball joint.
+ * Any RBNode joint type which contains a ball should define a member
+ * of this class and delegate to it.
  */
-class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
+class ContainedBallJoint {
     Vec4    q; //Euler parameters for rotation relative to parent
     Vec4    dq;
     Vec4    ddq;
@@ -455,26 +320,57 @@ class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    RBNodeRotate3(const RigidBodyNode* node,
-                  int&                 cnt,
-                  bool                 useEuler)
-      : RigidBodyNodeSpec<3>(node,cnt,R_I,true), 
-        q(1.0,0.0,0.0,0.0), useEuler(useEuler)
+    ContainedBallJoint(int& cnt, bool shouldUseEuler)
+      : q(1.0,0.0,0.0,0.0), dq(0.), ddq(0.), 
+        useEuler(shouldUseEuler)
     { 
         if ( !useEuler )
             cnt++;
     }
+    
+    int  getBallDim() const { 
+        if (useEuler) return 3; else return 4; 
+    }
 
-    void calcRot() {
-        Mat33 R_PB;  // rotation matrix expressing body frame in parent's frame
+    void setBallPos(int stateOffset, const RVec& posv, FixedVector<double,3>& theta) {
+        if (useEuler)
+            theta = ConstRSubVec(posv,stateOffset,3).vector(); 
+        else //integration step using quaternion
+            q     = ConstRSubVec(posv,stateOffset,4).vector();
+    } 
+
+    void getBallPos(const Vec3& theta, int stateOffset, RVec& v) {
+        if (useEuler) 
+            RSubVec(v,stateOffset,3) = theta.vector();
+        else  //integration step
+            RSubVec(v,stateOffset,4) = q.vector();
+    }
+
+    void setBallVel(int stateOffset, const RVec& velv, FixedVector<double,3>& dTheta) { 
+        assert( !useEuler );
+
+        dq = ConstRSubVec(velv,stateOffset,4).vector();
+        double a2[] = {-q(1), q(0),-q(3), q(2),
+                       -q(2), q(3), q(0),-q(1),
+                       -q(3),-q(2), q(1), q(0)};
+        FixedMatrix<double,3,4> M(a2);
+        dTheta = 2.0*( M * dq );
+    }
+
+    void getBallVel(int stateOffset, RVec& velv) {
+        assert( !useEuler );
+        RSubVec(velv,stateOffset,4) = dq.vector();
+    }
+
+    void calcR_PB(const Vec3& theta, Mat33& R_PB) {
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
-            cPhi   = cos( theta(0) *DEG2RAD );
-            sPhi   = sin( theta(0) *DEG2RAD );
-            cTheta = cos( theta(1) *DEG2RAD );
-            sTheta = sin( theta(1) *DEG2RAD );
-            cPsi   = cos( theta(2) *DEG2RAD );
-            sPsi   = sin( theta(2) *DEG2RAD );
+            cPhi   = cos( theta(0) *RigidBodyNode::DEG2RAD );
+            sPhi   = sin( theta(0) *RigidBodyNode::DEG2RAD );
+            cTheta = cos( theta(1) *RigidBodyNode::DEG2RAD );
+            sTheta = sin( theta(1) *RigidBodyNode::DEG2RAD );
+            cPsi   = cos( theta(2) *RigidBodyNode::DEG2RAD );
+            sPsi   = sin( theta(2) *RigidBodyNode::DEG2RAD );
             
             // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
             // of Spacecraft Dynamics.
@@ -493,36 +389,27 @@ public:
                                                                     sq(q(2))+sq(q(3)))};
             R_PB = Mat33(R_JiJ); // see above
         }
-        R_GB = getR_GP() * R_PB; // R_GB = R_GP*R_PB, the spatial rotation matrix
     }
 
-    void enforceConstraints(RVec& posv, RVec& velv) {
+    void enforceBallConstraints(int offset, RVec& posv, RVec& velv) {
         if ( !useEuler ) {
-            q  = RSubVec(posv,offset_,4).vector();
-            dq = RSubVec(velv,offset_,4).vector();
+            q  = RSubVec(posv,offset,4).vector();
+            dq = RSubVec(velv,offset,4).vector();
 
             q  /= norm(q);     // Normalize Euler parameters at each time step.
             dq -= dot(q,dq)*q; // Also fix velocity: error is prop. to position component.
 
-            RSubVec(posv,offset_,4) =  q.vector();
-            RSubVec(velv,offset_,4) = dq.vector();
+            RSubVec(posv,offset,4) =  q.vector();
+            RSubVec(velv,offset,4) = dq.vector();
         }
     }
 
-    void calcH() { // H matrix in body-fixed coords
-        //   calcRot(); //FIX: does this need to be calculated here?
-        using MatrixTools::transpose;
-        Mat33 zMat(0.0);
-        H = blockMat12(transpose(getR_GP()), zMat);
-    }
-
-    void getAccel(RVec& v) {
+    void getBallAccel(const Vec3& omega, const Vec3& dOmega, 
+                      int offset, RVec& acc)
+    {
         // called after calcAccel
         assert( !useEuler );
 
-        // get angular vel/accel in the space-fixed frame
-        Vec3 omega  = dTheta;
-        Vec3 dOmega = ddTheta;
         double a1[] = {-q(1),-q(2),-q(3),
                         q(0), q(3),-q(2),
                        -q(3), q(0), q(1),
@@ -535,11 +422,11 @@ public:
         FixedMatrix<double,4,3> dM( a2 );
         ddq = 0.5*(dM*omega + M*dOmega);
 
-        RSubVec(v,offset_,4)   = ddq.vector();
+        RSubVec(acc,offset,4) = ddq.vector();
     }
 
-    void getInternalForce(RVec& v) {
-        //dependency: calcRot must be called first
+    void getBallInternalForce(const Vec3& forceInternal, int offset, RVec& v) {
+        //dependency: calcR_PB must be called first
         assert( useEuler );
 
         Vec3 torque = forceInternal;
@@ -547,55 +434,13 @@ public:
                       -sPhi        , cPhi        , 0     ,
                        cPhi*cTheta , sPhi*cTheta ,-sTheta };
         Mat33 M(a);
-        Vec3 eTorque = DEG2RAD * M * torque;
+        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
 
-        RSubVec(v,offset_,3)   = eTorque.vector();
+        RSubVec(v,offset,3) = eTorque.vector();
     }
 
-    int  getDim() const { 
-        if (useEuler) return 3; else return 4; 
-    }
-
-    void setPosVel(const RVec& posv, const RVec& velv) {
-        if (useEuler) {
-            theta = ConstRSubVec(posv,offset_,3).vector(); 
-        } else { //integration step using quaternion
-            q  = ConstRSubVec(posv,offset_,4).vector();
-
-            dq = ConstRSubVec(velv,offset_,4).vector();
-            double a2[] = {-q(1), q(0),-q(3), q(2),
-                           -q(2), q(3), q(0),-q(1),
-                           -q(3),-q(2), q(1), q(0)};
-            FixedMatrix<double,3,4> M(a2);
-            dTheta = 2.0*( M * dq );
-        }
-        toCartesian();
-    } 
-
-    void setVel(const RVec& velv) { //setposvel must have been called previously
+    void setBallDerivs(const Vec3& dTheta) {
         assert( !useEuler );
-
-        dq = ConstRSubVec(velv,offset_,4).vector();
-
-        double a2[] = {-q(1), q(0),-q(3), q(2),
-                       -q(2), q(3), q(0),-q(1),
-                       -q(3),-q(2), q(1), q(0)};
-        FixedMatrix<double,3,4> M(a2);
-        dTheta = 2.0*( M * dq );
-
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos - atoms[0]->pos );
-    } 
-
-    void setVelFromSVel(const Vec6& sVel) {
-        assert( !useEuler );
-
-        RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
         Vec3 omega  = dTheta;
         double a[] = {-q(1),-q(2),-q(3),
                        q(0), q(3),-q(2),
@@ -604,51 +449,160 @@ public:
         FixedMatrix<double,4,3> M(a);
         dq = 0.5*M*omega;
     } 
-
-    void getPos(RVec& v) {
-        if (useEuler) 
-            RSubVec(v,offset_,3) = theta.vector();
-        else  //integration step
-            RSubVec(v,offset_  ,4) = q.vector();
-    }
-
-    void getVel(RVec& v) {
-        assert( !useEuler );
-        RSubVec(v,offset_,4) = dq.vector();
-    }
-   
-    void toCartesian() { 
-        atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP() * refOrigin_P;
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
-
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        if ( !useEuler ) {
-            // update vel using recursive formula
-            sVel = transpose(phi) * parent->getSpatialVel()
-                    + MatrixTools::transpose(H) * dTheta;
-            atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-            for (l_int i=1 ; i<atoms.size() ; i++)
-                atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                       atoms[i]->pos-atoms[0]->pos );
-        }
-        calcProps();
-    }
-
-    void print(int verbose) {
-        if (verbose&InternalDynamics::printNodeTheta && !useEuler) 
-            cout << setprecision(8) << atoms[0] << ": theta: " 
-                 << q    << ' ' 
-                 << dq   << ' ' 
-                 << ddq  << '\n';
-        else 
-            RigidBodyNodeSpec<3>::print(verbose);
-    }
 };
+
+/**
+ * Ball joint. This provides three degrees of rotational freedom, i.e.,
+ * unrestricted orientation.
+ * The joint frame J is aligned with the body frame B.
+ */
+class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
+    ContainedBallJoint ball;
+public:
+    virtual const char* type() { return "rotate3"; }
+
+    RBNodeRotate3(const RigidBodyNode* node,
+                  int&                 cnt,
+                  bool                 useEuler)
+      : RigidBodyNodeSpec<3>(node,cnt,ident33),
+        ball(cnt,useEuler)
+    {}
+    
+    int  getDim() const { return ball.getBallDim(); } 
+
+    void setPos(const RVec& posv) {
+        ball.setBallPos(stateOffset, posv, theta);
+    } 
+
+    void getPos(RVec& posv) {
+        ball.getBallPos(theta, stateOffset, posv);
+    }
+
+    // setPos must have been called previously
+    void setVel(const RVec& velv) {
+        ball.setBallVel(stateOffset, velv, dTheta);
+    }
+
+    void getVel(RVec& velv) {
+        ball.getBallVel(stateOffset, velv);
+    }
+
+    void calcJointKinematicsPos() { 
+        OB_P = refOrigin_P; // ball joint can't move B origin in P
+        ball.calcR_PB(theta, R_PB);
+        // H matrix in space-fixed (P) coords
+        H = blockMat12(MatrixTools::transpose(getR_GP()), zero33);
+    }
+
+    // Note that dTheta = w_PB_P = ang vel of B in P, expr in P
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
+    }
+
+    void enforceConstraints(RVec& posv, RVec& velv) {
+        ball.enforceBallConstraints(stateOffset, posv, velv);
+    }
+
+    void getAccel(RVec& acc) {
+        ball.getBallAccel(dTheta, ddTheta, stateOffset, acc);
+    }
+
+    void getInternalForce(RVec& v) {
+        ball.getBallInternalForce(forceInternal, stateOffset, v);
+    }
+
+    void setVelFromSVel(const Vec6& sVel) {
+        RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
+        ball.setBallDerivs(dTheta);
+    } 
+};
+
+/**
+ * Free joint. This is a six degree of freedom joint providing unrestricted 
+ * translation and rotation for a free rigid body.
+ * The joint frame J is aligned with the body frame B.
+ */
+class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
+    ContainedBallJoint ball;
+public:
+    virtual const char* type() { return "full"; }
+
+    RBNodeTranslateRotate3(const RigidBodyNode* node,
+                           int&                 cnt,
+                           bool                 useEuler)
+      : RigidBodyNodeSpec<6>(node,cnt,ident33),
+        ball(cnt, useEuler)
+    { }
+    
+    int  getDim() const { return ball.getBallDim() + 3; } 
+
+    void setPos(const RVec& posv) {
+        Vec3 th;
+        ball.setBallPos(stateOffset, posv, th);
+        RSubVec6(theta,0,3) = th.vector();
+        RSubVec6(theta,3,3) = 
+            ConstRSubVec(posv,stateOffset+ball.getBallDim(),3).vector();
+    } 
+
+    void getPos(RVec& posv) {
+        ball.getBallPos(Vec3(RSubVec6(theta,0,3).vector()), stateOffset, posv);
+        RSubVec(posv,stateOffset+ball.getBallDim(),3) = RSubVec6(theta,3,3).vector();
+    }
+
+    // setPos must have been called previously
+    void setVel(const RVec& velv) {
+        Vec3 dTh;
+        ball.setBallVel(stateOffset, velv, dTh);
+        RSubVec6(dTheta,0,3) = dTh.vector();
+        RSubVec6(dTheta,3,3) = ConstRSubVec(velv,stateOffset+ball.getBallDim(),3).vector();
+    }
+
+    void getVel(RVec& velv) {
+        ball.getBallVel(stateOffset, velv);
+        RSubVec(velv, stateOffset+ball.getBallDim(), 3) 
+            = RSubVec6(dTheta,3,3).vector();
+    }
+
+    void calcJointKinematicsPos() {
+        OB_P = refOrigin_P + Vec3(RSubVec6(theta,3,3).vector());
+        ball.calcR_PB(Vec3(RSubVec6(theta,0,3).vector()), R_PB);
+
+        // H matrix in space-fixed (P) coords
+        H = blockMat22( MatrixTools::transpose(getR_GP()) , zero33,
+                        zero33 , MatrixTools::transpose(getR_GP()));
+    }
+
+    // Note that dTheta[0..2] = w_PB_P = ang vel of B in P, expr in P
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
+    }
+
+    void enforceConstraints(RVec& posv, RVec& velv) {
+        ball.enforceBallConstraints(stateOffset, posv, velv);
+    }
+
+    void getAccel(RVec& acc) {    
+        // get angular vel/accel in the space-fixed frame
+        const Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
+        const Vec3 dOmega = RSubVec6(ddTheta, 0, 3).vector();
+        ball.getBallAccel(omega, dOmega, stateOffset, acc);
+        RSubVec(acc,stateOffset+ball.getBallDim(),3) = RSubVec6(ddTheta,3,3).vector();
+    }
+
+    void getInternalForce(RVec& v) {
+        const Vec3 torque = RSubVec6(forceInternal, 0, 3).vector();
+        ball.getBallInternalForce(torque, stateOffset, v);
+        RSubVec(v,stateOffset+ball.getBallDim(),3) = RSubVec6(forceInternal,3,3).vector();
+
+    }
+
+    void setVelFromSVel(const Vec6& sVel) {
+        RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
+        const Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
+        ball.setBallDerivs(omega);
+    } 
+};
+
 
 /**
  * U-joint like joint type which allows rotation about the two axes
@@ -666,7 +620,18 @@ public:
     { 
     }
 
-    void calcRot() { 
+    void calcJointKinematicsPos() { 
+        OB_P = refOrigin_P; // no translation with this joint
+        calcR_PB();
+        calcH();
+    }
+
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
+    }
+
+private:
+    void calcR_PB() { 
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0; 
         double sinPhi = sin( scale * theta(0) );
@@ -680,44 +645,25 @@ public:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
         const Mat33 R_PB = orthoTransform( Mat33(a) , R_BJ );
-        R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
     void calcH() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
+        const Mat33 tmpR_GB = getR_GP() * R_PB;
 
-        Vec3 x = scale * R_GB * (R_BJ * Vec3(1,0,0));
-        Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
+        const Vec3 x = scale * tmpR_GB * (R_BJ * Vec3(1,0,0));
+        const Vec3 y = scale * tmpR_GB * (R_BJ * Vec3(0,1,0));
 
-        Mat23 zMat23(0.0);
+        const Mat23 zMat23(0.0);
         H = blockMat12(catRow23(x,y) , zMat23);
     }
 
     void getInternalForce(RVec& v) {
         FixedVector<double,2> torque = forceInternal;
         //   torque *= DEG2RAD; ??
-        RSubVec(v,offset_,2)   = torque.vector();
+        RSubVec(v,stateOffset,2)   = torque.vector();
     }   
-
-    void toCartesian() { 
-        atoms[0]->pos = parent->getAtom(0)->pos + getR_GP() * refOrigin_P;
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
-
-        // update vel using recursive formula
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (l_int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos-atoms[0]->pos );
-        calcProps();
-    }
 };
 
 /**
@@ -737,7 +683,18 @@ public:
     { 
     }
 
-    void calcRot() { 
+    void calcJointKinematicsPos() { 
+        OB_P = refOrigin_P + Vec3(RSubVec5(theta,2,3).vector());
+        calcR_PB();
+        calcH();
+    }
+
+    void calcJointKinematicsVel() { 
+        V_PB_G = MatrixTools::transpose(H) * dTheta;
+    }
+
+private:
+    void calcR_PB() { 
         // double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0;
         double sinPhi = sin( scale * theta(0) );
@@ -753,141 +710,28 @@ public:
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
         const Mat33 R_PB = orthoTransform( Mat33(R_JiJ) , R_BJ ); // orientation of B in parent P
-        R_GB = getR_GP() * R_PB; //the spatial rotation matrix
     }
 
     void calcH() {
-        //   calcRot(); //FIX: does this need to be calculated here?
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
+        const Mat33 tmpR_GB = getR_GP() * R_PB;
 
-        Vec3 x = scale * R_GB * (R_BJ * Vec3(1,0,0));
-        Vec3 y = scale * R_GB * (R_BJ * Vec3(0,1,0));
+        Vec3 x = scale * tmpR_GB * (R_BJ * Vec3(1,0,0));
+        Vec3 y = scale * tmpR_GB * (R_BJ * Vec3(0,1,0));
 
-        Mat23 zMat23(0.0);
-        Mat33 zMat33(0.0);
-        using MatrixTools::transpose;
+        const Mat23 zMat23(0.0);
         H = blockMat22(catRow23(x,y) , zMat23 ,
-                       zMat33        , transpose(getR_GP()));
+                        zero33       , MatrixTools::transpose(getR_GP()));
     }
 
     void getInternalForce(RVec& v) {
         FixedVector<double,2> torque = RSubVec5(forceInternal, 0, 2).vector();
         //torque *= DEG2RAD; ??
-        RSubVec(v,offset_,2)   = torque.vector();
-        RSubVec(v,offset_+2,3) = RSubVec5(forceInternal,2,3).vector();
+        RSubVec(v,stateOffset,2)   = torque.vector();
+        RSubVec(v,stateOffset+2,3) = RSubVec5(forceInternal,2,3).vector();
     }   
-
-    void toCartesian() { 
-        atoms[0]->pos = parent->getAtom(0)->pos
-                        + getR_GP()
-                          * (refOrigin_P + Vec3(RSubVec5(theta,2,3).vector()));
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
-
-        // update vel using recursive formula
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (l_int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                                   atoms[i]->pos-atoms[0]->pos );
-        calcProps();
-    }
 };
-
-/**
- * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
- * about a particular axis.
- */
-class RBNodeTorsion : public RigidBodyNodeSpec<1> {
-public:
-    virtual const char* type() { return "torsion"; }
-
-    RBNodeTorsion(const RigidBodyNode*   node,
-                  const Vec3&            rotDir,
-                  int&                   cnt)
-      : RigidBodyNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
-    { 
-    }
-
-    void calcRot() {
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        double scale=1.0;
-        double sinTau = sin( scale * theta(0) );
-        double cosTau = cos( scale * theta(0) );
-        double a[] = { cosTau , -sinTau , 0.0 ,
-                       sinTau ,  cosTau , 0.0 ,
-                       0.0    ,  0.0    , 1.0 };
-        const Mat33 A(a); //rotation about z-axis
-        const Mat33 R_PB = orthoTransform( A , R_BJ ); // orientation of B in parent's frame P
-        R_GB = getR_GP() * R_PB; // spatial orientation of B in ground frame G
-    };
-
-    // Calc H matrix in space-fixed coords.
-    void calcH() {
-        // This only works because the joint z axis is the same in B & P
-        // because that's what we rotate around.
-        Vec3 z = getR_GP() * (R_BJ * Vec3(0,0,1)); // R_BJ=R_PJi
-        FixedMatrix<double,1,3> zMat(0.0);
-        H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
-    }
-
-    void getInternalForce(RVec& v) {
-        double torque = forceInternal(0);
-        //torque *= DEG2RAD; ??
-        v(offset_) = torque;
-    }   
-
-#ifdef READABLE
-    void toCartesian() { 
-        atoms[0]->pos = parent->getAtom(0)->pos + getR_GP() * refOrigin_P;
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->pos = atoms[0]->pos + R_GB * atomStations_B(i);
-
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3::subVec(sVel,3,5);
-
-        for (l_int i=1 ; i<atoms.size() ; i++)
-            atoms[i]->vel = atoms[0]->vel + cross( Vec3::subVec(sVel,0,2) , 
-                                                   atoms[i]->pos-atoms[0]->pos );
-        calcProps();
-    }
-#else /* UNREADABLE */
-    void toCartesian() { 
-        atoms[0]->pos = getR_GP() * refOrigin_P;
-        atoms[0]->pos += parent->getAtom(0)->pos;
-
-        calcRot();
-        for (int i=1 ; i<atoms.size() ; i++) {
-            atoms[i]->pos = R_GB * atomStations_B(i);
-            atoms[i]->pos += atoms[0]->pos;
-        }
-
-        phi = PhiMatrix( atoms[0]->pos - parent->getAtom(0)->pos );
-        calcH();
-        sVel = transpose(phi) * parent->getSpatialVel()
-                + MatrixTools::transpose(H) * dTheta;
-        atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-        for (l_int i=1 ; i<atoms.size() ; i++) {
-            atoms[i]->vel = cross( RSubVec6(sVel,0,3).vector() , 
-            atoms[i]->pos-atoms[0]->pos );
-            atoms[i]->vel += atoms[0]->vel;
-        }
-        calcProps();
-    }
-#endif /* READABLE */
-};
-
 
 
 /////////////////////////////////////////////////////////////
@@ -1004,60 +848,64 @@ RigidBodyNodeSpec<dof>::calcAccel() {
 }
 
 //
-// Calc posCM, mass, b, a, Mk
-//      phi, svel, inertia
+// Calc posCM, mass, Mk
+//      phi, inertia
 //
 // Depends on atoms->(pos,vel), dTheta, parent->svel.
 // Should be calc'd from base to tip.
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcProps() {
+RigidBodyNodeSpec<dof>::calcJointIndependentKinematicsPos() {
     forceInternal.set( 0.0 );
 
-    inertia.calc(atoms[0]->pos , atoms);
-    phi = PhiMatrix(atoms[0]->pos - parent->atoms[0]->pos);
+    // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
+    const Vec3 OB_OP_G = getR_GP()*OB_P;
 
-    posCM_.set( 0.0 );
-    mass_ = 0; //should be calc'd beforehand - once.
-    for (int i=0 ; i<atoms.size() ; i++) {
-        IVMAtom* a = atoms[i];
-        posCM_ += a->mass * a->pos;
-        mass_ += a->mass;
-    }
-    posCM_ *= 1.0/mass_;
+    // The Phi matrix conveniently performs parent-to-child shifting
+    // on spatial quantities.
+    phi = PhiMatrix(OB_OP_G);
+
+    // Get spatial configuration of this body.
+    R_GB = getR_GP() * R_PB;
+    OB_G = getOP_G() + OB_OP_G;
+
+    // Calculate spatial mass properties. That means we need to transform
+    // the local mass moments into the Ground frame and reconstruct the
+    // spatial inertia matrix Mk.
+
+    inertia_OB_G = orthoTransform(getInertia_OB_B(), getR_GB());
+    COMstation_G = getR_GB()*get_CB_B();
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
-    Mat33 uVec(0.0); uVec.setDiag(1.0);
-    Mat33 offDiag = mass_*crossMat(posCM_ - atoms[0]->pos);
-    Mk = blockMat22( inertia , offDiag ,
-                    -offDiag , mass_*uVec );
+    const Mat33 mass(0.0); mass.setDiag(getMass());
+    const Mat33 offDiag = getMass()*crossMat(COMstation_G);
+    Mk = blockMat22( inertia_OB_G , offDiag ,
+                    -offDiag      , mass );
+}
 
-    // This test is a euphemism for "if we care about velocity ...". If
-    // so we compute the spatial velocity, gyroscopic force, and coriolis
-    // acceleration (all spatial).
-    if ( !ivm->minimization() ) {
-        sVel = transpose(phi) * parent->sVel
-               + MatrixTools::transpose(H) * dTheta;
-        Vec3 omega = RSubVec6(sVel, 0,3).vector();
-        if ( atoms.size() > 1 ) {
-            // gyroscopic spatial force = 0 if only one atom in node
-            Vec3 gMoment = cross(omega, inertia * omega);
-            Vec3 gForce  = mass_ * cross(omega, 
-                                         cross(omega, (posCM_-atoms[0]->pos)));
-            b = blockVec(gMoment, gForce);
-        }
+// Calculate velocity-related quantities: spatial velocity (sVel),
+// gyroscopic force b, coriolis acceleration a. This must be
+// called base to tip: depends on parent's sVel, dTheta.
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcJointIndependentKinematicsVel() {
+    setSpatialVel(transpose(phi) * parent->getSpatialVel()
+                  + V_PB_G);
+    const Vec3& omega = getSpatialAngVel();
+    const Vec3 gMoment = cross(omega, inertia_OB_G * omega);
+    const Vec3 gForce  = getMass() * cross(omega, 
+                                           cross(omega, COMstation_G));
+    b = blockVec(gMoment, gForce);
 
-        const Vec3& rOmega = RSubVec6( parent->sVel, 0,3).vector();
-        const Vec3& vel3   = RSubVec6( sVel, 3,3).vector();
-        const Vec3& rVel3  = RSubVec6( parent->sVel, 3,3).vector();
+    const Vec3& vel    = getSpatialLinVel();
+    const Vec3& pOmega = parent->getSpatialAngVel();
+    const Vec3& pVel   = parent->getSpatialLinVel();
 
-        // calc a: coriolis acceleration
-        a =   blockMat22(crossMat(rOmega),    Mat33(0.0),
-                           Mat33(0.0)     , crossMat(rOmega)) 
-            * MatrixTools::transpose(H) * dTheta;
-        a += blockVec( Vec3(0.0), cross(rOmega, vel3 - rVel3) );
-    }
+    // calc a: coriolis acceleration
+    a = blockMat22(crossMat(pOmega),   Mat33(0.0),
+                      Mat33(0.0)   , crossMat(pOmega)) 
+        * V_PB_G;
+    a += blockVec(Vec3(0.0), cross(pOmega, vel-pVel));
 }
 
 template<int dof> void
@@ -1072,39 +920,26 @@ RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
              << "H matrix: " << H << '\n'
              << "node level: " << level << '\n'
              << "number of children: " << children.size() << '\n'
-             << "atoms:\n";
-        for (int i=0 ; i<atoms.size() ; i++)
-            cerr << '\t' << ivm->idAtom(atoms[i]->index)
-                 << " : " << atoms[i]->pos << '\n';
-        cerr << endl;
+             << endl;
         throw Exception("calcD_G: singular D matrix. Bad topology?");
     }
     G = P * MatrixTools::transpose(H) * DI;
 }
 
 template<int dof> double
-RigidBodyNodeSpec<dof>::kineticE() {
+RigidBodyNodeSpec<dof>::kineticE() const {
     double ret = dot(sVel , Mk*sVel);
     return 0.5*ret;
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::setPosVel(const RVec& posv, const RVec& velv) {
-    theta  = ConstRSubVec(posv,offset_,dof).vector();
-    dTheta = ConstRSubVec(velv,offset_,dof).vector();
-    toCartesian();
+RigidBodyNodeSpec<dof>::setPos(const RVec& posv) {
+    theta  = ConstRSubVec(posv,stateOffset,dof).vector();
 }
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::setVel(const RVec& velv) {
-    dTheta = ConstRSubVec(velv,offset_,dof).vector();
-    sVel   = transpose(phi) * parent->sVel
-             + MatrixTools::transpose(H) * dTheta;
-    atoms[0]->vel = Vec3( RSubVec6(sVel,3,3).vector() );
-
-    for (int i=1 ; i<atoms.size() ; i++)
-        atoms[i]->vel = atoms[0]->vel + cross( RSubVec6(sVel,0,3).vector() , 
-                                               atoms[i]->pos-atoms[0]->pos );
+    dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
 }
 
 //
@@ -1116,40 +951,39 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::getPos(RVec& v) {
-    RSubVec(v,offset_,dof) = theta.vector();
+RigidBodyNodeSpec<dof>::getPos(RVec& v) const {
+    RSubVec(v,stateOffset,dof) = theta.vector();
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::getVel(RVec& v) {
-    RSubVec(v,offset_,dof) = dTheta.vector();
+RigidBodyNodeSpec<dof>::getVel(RVec& v) const {
+    RSubVec(v,stateOffset,dof) = dTheta.vector();
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::print(int verbose) {
+RigidBodyNodeSpec<dof>::print(int verbose) const {
     if (verbose&InternalDynamics::printNodeForce) 
         cout << setprecision(8)
-             << atoms[0] << ": force: " << forceCartesian << '\n';
+             << ": force: " << forceCartesian << '\n';
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
-             << atoms[0] << ": pos: " << atoms[0]->pos << ' ' << atoms[0]->vel
-             << ' ' << sAcc << '\n';
+             << ": pos: " << OB_G << ' ' << '\n';
     if (verbose&InternalDynamics::printNodeTheta) 
         cout << setprecision(8)
-             << atoms[0] << ": theta: " 
+             << ": theta: " 
              << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';
 }
 
 // Called after calcAccel.
 template<int dof> void
-RigidBodyNodeSpec<dof>::getAccel(RVec& v) {
-    RSubVec(v,offset_,dof) = ddTheta.vector();
+RigidBodyNodeSpec<dof>::getAccel(RVec& v) const {
+    RSubVec(v,stateOffset,dof) = ddTheta.vector();
 }
 
 // CalcInternalForce has been called previously.
 template<int dof> void
-RigidBodyNodeSpec<dof>::getInternalForce(RVec& v) {
-    RSubVec(v,offset_,dof) = forceInternal.vector();
+RigidBodyNodeSpec<dof>::getInternalForce(RVec& v) const {
+    RSubVec(v,stateOffset,dof) = forceInternal.vector();
 }
 
 //
@@ -1174,7 +1008,7 @@ RigidBodyNodeSpec<dof>::calcP() {
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        Mat33 lt = crossMat(children[i]->getAtom(0)->pos - getAtom(0)->pos);
+        Mat33 lt = crossMat(children[i]->getOB_G() - getOB_G());
         Mat66 M  = children[i]->tau * children[i]->P;
         SubMatrix<Mat66> m11(M,0,0,3,3);
         SubMatrix<Mat66> m12(M,0,3,3,3);
@@ -1196,10 +1030,9 @@ RigidBodyNodeSpec<dof>::calcP() {
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ() {
+RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
     psiT = MatrixTools::transpose(tau) * transpose(phi);
-    calcCartesianForce();
-    z = P * a + b + forceCartesian;
+    z = P * a + b + spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
         z += children[i]->phi
@@ -1210,26 +1043,11 @@ RigidBodyNodeSpec<dof>::calcZ() {
     Gepsilon = G * epsilon;
 }
 
+// To be called base to tip.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcY() {
     Y = orthoTransform(DI,MatrixTools::transpose(H))
         + orthoTransform(parent->Y,psiT);
-}
-
-template<int DOF> void
-RigidBodyNodeSpec<DOF>::calcCartesianForce() {
-    Vec3 moment(0.);
-    Vec3 force(0.);
-    // notice that the sign is screwey
-    for (int i=0 ; i<atoms.size() ; i++) {
-        IVMAtom* a = atoms[i];
-        Vec3 aForce = a->deriv;
-        if ( ivm->frictionCoeff()!=0.0 )
-            aForce += a->fric *(1.0-ivm->bathTemp()/ivm->currentTemp()) * a->vel;
-        moment += cross( a->pos - atoms[0]->pos , aForce );
-        force  += aForce;
-    }
-    forceCartesian = blockVec(moment, force);
 }
 
 //
@@ -1239,9 +1057,8 @@ RigidBodyNodeSpec<DOF>::calcCartesianForce() {
 // Should be called only once after calcProps.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalForce() {
-    calcCartesianForce();
-    z = forceCartesian;
+RigidBodyNodeSpec<dof>::calcInternalForce(const Vec6& spatialForce) {
+    z = spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
         z += children[i]->phi * children[i]->z;
@@ -1259,81 +1076,34 @@ RigidBodyNodeSpec<dof>::prepareVelInternal() {
     dTheta.set(0.0);
     a.set(0.0);
     b.set(0.0);
-    forceCartesian.set(0.0);
-    // set Mk = R * M * R^T
-    Mk.set(0.0);
-    Mat33 unit(0.0); unit.setDiag(1.0);
-    Vec3 q0 = atoms[0]->pos;
-    for (int i=0 ; i<atoms.size() ; i++)
-        Mk += atoms[i]->mass
-              * blockMat22(crossMat(atoms[i]->pos-q0)*
-                             crossMat(q0-atoms[i]->pos) , crossMat(atoms[i]->pos-q0),
-                           crossMat(q0-atoms[i]->pos)   , unit                      );
+    forceInternal.set(0.0);
 
-    for (l_int i=0 ; i<atoms.size() ; i++)
-        atoms[i]->deriv.set(0.0);
+    // Note: Schwieters was computing a new spatial mass matrix here, according
+    // to Eqn. 80a in his paper. But as far as I can tell this is exactly the
+    // same as the ordinary mass matrix. (sherm 050906)
+    // Schwieters' comment: "set Mk = R * M * R^T"
 }
 
 //
 // Set up various variables so that calling calcP followed by
-// calling getAcc returns the time-derivative of the internal coordinates.
-// Note that sVel is passed in- not the member variable.
+// calling getAcc returns the internal velocities which best
+// approximate a set of desired velocities. See Section 3.1.3 in
+// Schwieters' paper: we're solving Eqn. 78. The passed-in
+// velocity is a mass weighted combination of the (unachievable)
+// initial atom velocities on this body. This is combined with
+// outboard desired velocities, and then the result is treated
+// as though it were a force. (sherm 050906)
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& sVel) {
+RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& desiredVel) {
     //sAcc used as a temporary
-    this->sVel = sVel;
-    sAcc = sVel;
+    sVel = desiredVel; // ???
+    sAcc = desiredVel;
     for (int i=0 ; i<children.size() ; i++)
         sAcc += children[i]->phi * children[i]->sAcc;
     forceInternal = H * sAcc;
 }
-
-static double
-sumMassToTip(const RigidBodyNode* n)
-{
-    double ret = 0.0;
-    for (int i=0 ; n->getChild(i) ; i++)
-        ret += sumMassToTip( n->getChild(i) );
-    for (l_int i=0 ; n->getAtom(i) ; i++)
-        ret += n->getAtom(i)->mass;
-    return ret;
-}
-
-static double
-sumInertiaToTip(const RigidBodyNode* n,
-                const Vec3&          pos,
-                const Vec3&          dir)
-{
-    double ret = 0.0;
-    for (int i=0 ; n->getChild(i) ; i++)
-        ret += sumInertiaToTip( n->getChild(i) , pos , dir);
-    for (l_int i=0 ; n->getAtom(i) ; i++)
-        ret += n->getAtom(i)->mass * (abs2(n->getAtom(i)->pos - pos) -
-                                     sq(dot(dir,n->getAtom(i)->pos - pos)));
-    return ret;
-}
-
-template<int dof> double
-RigidBodyNodeSpec<dof>::approxKE() {
-    double ret=0.0;
-    for (int i=0 ; i<dof ; i++) {
-        double mass = 0.0;
-        for (int j=0 ; j<3 ; j++)
-            if ( H(i,j) != 0.0 ) {
-                mass = sumInertiaToTip( this, 
-                                        getAtom(0)->pos, 
-                                        Vec3::subCol(MatrixTools::transpose(H),i,0,2) );
-                break;
-            }
-        if ( mass == 0.0 ) 
-            mass = sumMassToTip( this );
-        ret += mass * sq(dTheta(i));
-    }
-    return ret;
-}
-
 
 /////////////////////////////////////
 // Miscellaneous utility routines. //
@@ -1346,3 +1116,35 @@ catRow23(const Vec3& v1, const Vec3& v2) {
     Mat23 ret = blockMat21(m1,m2);
     return ret;
 }
+
+// Calculate a rotation matrix R_BJ which defines the J
+// frame by taking the B frame z axis into alignment 
+// with the passed-in zDir vector. This is not unique.
+// notes of 12/6/99 - CDS
+static Mat33
+makeJointFrameFromZAxis(const Vec3& zVec) {
+    const Vec3 zDir = unitVec(zVec);
+
+    // Calculate spherical coordinates.
+    double theta = acos( zDir.z() );             // zenith (90-elevation)
+    double psi   = atan2( zDir.x() , zDir.y() ); // 90-azimuth
+
+    // This is a space fixed 1-2-3 sequence with angles
+    // a1=-theta, a2=0, a3=-psi. That is, to get from B to J
+    // first rotate by -theta around the B frame x axis, 
+    // then rotate by -psi around the B frame z axis. (sherm)
+
+    const double R_BJ[] = 
+        { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
+         -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
+          0        , -sin(theta)         , cos(theta)         };
+    return Mat33(R_BJ); // == R_PJi
+}
+
+static Mat33
+makeIdentity33() {
+    Mat33 ret(0.);
+    ret.setDiag(1.);
+    return ret;
+}
+

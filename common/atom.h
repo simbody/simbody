@@ -1,8 +1,8 @@
 #ifndef __atom_hh__
 #define __atom_hh__
 
-#include <vec3.h>
-#include <cdsString.h>
+#include "vec3.h"
+#include "cdsString.h"
 
 class Simulation;
 

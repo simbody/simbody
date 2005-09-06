@@ -4,10 +4,12 @@
 #include "cdsList.h"
 #include "cdsVector.h"
 
+#include "RigidBodyNode.h"
+
 class Vec3;
-class RigidBodyNode;
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSVector<double,1>   RVec;   // first element has index 1
+typedef CDSVector<double,1>       RVec;   // first element has index 1
+typedef CDSList<Vec6>             VecVec6;
 
 /**
  * The RigidBodyTree class owns the tree of joint-connected rigid bodies, called
@@ -31,61 +33,68 @@ public:
     /// small enough integer to make it a reasonable index, but don't depend
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
-    int addNode(RigidBodyNode* node) ;
-    /*{
-        const int level = node->level;
-        if (nodeTree.size()<=level) nodeTree.resize(level+1);
-        const int offset = nodeTree[level].size();
-        nodeTree[level].append(node);
+    int addRigidBodyNode(RigidBodyNode* node)
+    {
+        const int level = node->getLevel();
+        if (rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
+        const int offset = rbNodeLevels[level].size();
+        rbNodeLevels[level].append(node);
         const int nodeNum = nodeNum2NodeMap.size();
         nodeNum2NodeMap.append(RigidBodyNodeIndex(level,offset));
         node->setNodeNum(nodeNum);
         return nodeNum;
-    }*/
+    }
+
+    // deallocate subtree rooted at the indicated node
+    void destructNode(RigidBodyNode*); 
 
     // includes ground
     int getNBodies() const { return nodeNum2NodeMap.size(); }
 
 //    int getLevel(int nodeNum) const { return getRigidBodyNode(nodeNum)->getLevel(); }
 
+    int getDOF() const; 
+    int getDim() const; 
 
     void realizeParameters();
-    void realizeConfiguration();
-    void realizeMotion();
+    void realizeConfiguration(const RVec& pos);
+    void realizeMotion(const RVec& vel);
     void realizeAcceleration();
 
-
-    
-    void velFromCartesian(const RVec& pos,
-                                RVec& vel);
-    void calcP();
-    void calcZ(); 
-    void calcPandZ();
-
-    int getDOF(); 
-    int getDim(); 
-    // deallocate given molecule
-    void destructNode(RigidBodyNode*); 
-
+    // Kinematics -- calculate spatial quantities from internal states.
+    void setPos(const RVec& pos);
+    void setVel(const RVec& vel);
     void setPosVel(const RVec& pos,
                    const RVec& vel);
-    void setVel(const RVec& vel);
-    void enforceConstraints(RVec& pos,
-                            RVec& vel);
 
-    RVec getPos() const;
-    RVec getVel() const;
-    RVec calcGetAccel();
-    RVec getAccel();
-    void updateAccel();
-    RVec getInternalForce();
-    void propagateSVel();
+    void calcConfigurationKinematics();
+    void calcMotionKinematics();
+
+    void getPos(RVec& pos) const;
+    void getVel(RVec& vel) const;
+    void calcGetAccel(RVec& acc);
+    void getAccel(const VecVec6& spatialForces, RVec& acc);
     
-    static void addCM(const RigidBodyNode* n,
-                      double&          mass,
-                      Vec3&            pos);
+    /// This is a solver which generates internal velocities from spatial ones.
+    void velFromCartesian(const RVec& pos, RVec& vel);
 
-    static Vec3 findCM(const RigidBodyNode* n);
+    /// This is a solver which tweaks the state to make it satisfy position
+    /// and velocity constraints.
+    void enforceConstraints(RVec& pos, RVec& vel);
+
+    /// Dynamics -- calculate articulated body inertias.
+    void calcP();
+
+    /// Dynamics -- calculate articulated body remainder forces.
+    void calcZ(const VecVec6& spatialForces); 
+    void calcPandZ(const VecVec6& spatialForces);
+
+    void calcY();
+
+
+    void updateAccel(const VecVec6& spatialForces);
+    void getInternalForce(const VecVec6& spatialForces, RVec& T);
+    void propagateSVel();
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];

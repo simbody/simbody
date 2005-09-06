@@ -10,6 +10,7 @@
 class IVM;
 class IVMAtom;
 class AtomClusterNode;
+class RigidBodyNode;
 typedef CDSList<IVMAtom*>         AtomList;
 typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
 
@@ -54,6 +55,8 @@ public:
     bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
 
+    int  getRBIndex()       const { return rbIndex; }
+    void setRBIndex(int ix)       { rbIndex=ix; }
     
     /// From a temporary node which has been used to collect up clusters of atoms,
     /// generate one that includes a joint, and free the old one.
@@ -62,8 +65,19 @@ public:
          const InternalDynamics::HingeSpec& type,
          int&                               cnt);
 
+    /// Given the rigid body to which these atoms are affixed, which has
+    /// been realized to at least the Configure stage, calculate atom
+    /// spatial locations.
+    void calcAtomPos(const RigidBodyNode& rb);
+
+    /// Given the rigid body to which these atoms are affixed, which has
+    /// been realized to at least the Move stage, calculate atom
+    /// spatial velocities.
+    void calcAtomVel(const RigidBodyNode& rb);
+
     virtual int getDOF() const {return 0;} //number of independent dofs
     virtual int getDim() const {return 0;} //# of generalized coords (>=#dofs)
+
     virtual const char* type() { return "unknown"; }
     virtual void print(int) { throw VirtualBaseMethod(); }
 public:
@@ -75,6 +89,10 @@ private:
     AtomClusterNode*    parent; 
     AtomClusterNodeList children;
     int                 level;        // how far from base
+
+    // This maps this atom cluster to a rigid body node owned by
+    // the same AtomTree that owns the cluster.
+    int                 rbIndex;
 
     friend void combineNodes(const AtomClusterNode* node1,
                              const AtomClusterNode* node2);

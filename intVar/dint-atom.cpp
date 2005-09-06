@@ -1,5 +1,5 @@
 #include "dint-atom.h"
-#include "dint-node.h"
+#include "AtomClusterNode.h"
 #include "dinternal.h"
 
 ostream& 

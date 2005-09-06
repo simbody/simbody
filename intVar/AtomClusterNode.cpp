@@ -2,21 +2,22 @@
  * This is the implementation of the AtomClusterNode class used in constructing
  * a rigid body model from a set of atoms, bonds, and miscellaneous instructions.
  */
-#include "AtomClusterNode.h"
+
 #include "dinternal.h"
 #include "AtomTree.h"
+#include "AtomClusterNode.h"
+
 #include "dint-step.h"
 #include "dint-atom.h"
 
-#include <cdsMath.h>
-#include <cdsVector.h>
-#include <fixedVector.h>
-#include <subVector.h>
-#include <subMatrix.h>
-#include <matrixTools.h>
-#include <cdsAuto_ptr.h>
-
-#include <cdsIomanip.h>
+#include "cdsMath.h"
+#include "cdsVector.h"
+#include "fixedVector.h"
+#include "subVector.h"
+#include "subMatrix.h"
+#include "matrixTools.h"
+#include "cdsAuto_ptr.h"
+#include "cdsIomanip.h"
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
@@ -45,9 +46,30 @@ AtomClusterNode::AtomClusterNode(const IVM*       ivm,
     hingeAtom->node = this;
 }
 
-void
-AtomClusterNode::addChild(AtomClusterNode* node) {
+void AtomClusterNode::addChild(AtomClusterNode* node) {
     children.append( node );
+}
+
+// RigidBodyNode must already have been evaluated through Configure stage.
+void AtomClusterNode::calcAtomPos(const RigidBodyNode& rb) {
+    const Mat33& R_GB = rb.getR_GB();
+    const Vec3&  OB_G = rb.getOB_G();
+
+    atoms[0]->pos = OB_G;
+    for (int i=1 ; i<atoms.size() ; i++) {
+        atoms[i]->station_G = R_GB * atoms[i]->station;
+        atoms[i]->pos       = OB_G + station_G;
+    }
+}
+
+// RigidBodyNode must already have been evaluated through Move stage.
+void AtomClusterNode::calcAtomVel(const RigidBodyNode& rb) {
+    const Vec3& w_G = rb.getInertialAngVel_G();
+    const Vec3& v_G = rb.getInertialVel_G();
+
+    atoms[0]->vel = v_G;
+    for (int i=1 ; i<atoms.size() ; i++)
+        atoms[i]->vel = v_G + cross(w_G, atoms[i]->station_G);
 }
 
 ostream& 

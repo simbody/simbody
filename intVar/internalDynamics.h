@@ -1,8 +1,8 @@
 #ifndef __internalDynamics_hh__
 #define __internalDynamics_hh__
 
-#include <cdsList.h>
-#include <cdsString.h>
+#include "cdsList.h"
+#include "cdsString.h"
 
 //
 // namespace with common defs

@@ -64,6 +64,28 @@ AtomTree::~AtomTree() {
     nodeTree.resize(0);
 }
 
+void AtomTree::calcAtomPos(/*state*/) {
+    for (int l=0 ; l<nodeTree.size(); l++) {
+        for (int j=0; j<nodeTree[l].size(); j++) {
+            AtomClusterNode& n = *nodeTree[l][j];
+            n.calcAtomPos(rbTree.getRBNodeByIndex(n.getRBIndex()));
+        }
+}
+
+void AtomTree::calcAtomVel(/*state*/) {
+    for (int l=0 ; l<nodeTree.size(); l++) {
+        for (int j=0; j<nodeTree[l].size(); j++) {
+            AtomClusterNode& n = *nodeTree[l][j];
+            n.calcAtomVel(rbTree.getRBNodeByIndex(n.getRBIndex()));
+        }
+}
+
+void AtomTree::calcAtomForces() {
+}
+
+void AtomTree::calcAtomAcc(/*state*/) {
+}
+
 
 //
 // destructNode - should also work on partially constructed objects
