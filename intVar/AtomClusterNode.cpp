@@ -38,6 +38,7 @@ AtomClusterNode::AtomClusterNode(const IVM*       ivm,
   : ivm(ivm),
     atoms(0,1),
     parentAtom(parAtom),
+    stateOffset(-1),
     parent(parNode),
     children(0,0),
     level(hingeAtom->index==0 ? 0 : parNode->getLevel()+1)
@@ -50,26 +51,39 @@ void AtomClusterNode::addChild(AtomClusterNode* node) {
     children.append( node );
 }
 
-// RigidBodyNode must already have been evaluated through Configure stage.
-void AtomClusterNode::calcAtomPos(const RigidBodyNode& rb) {
-    const Mat33& R_GB = rb.getR_GB();
-    const Vec3&  OB_G = rb.getOB_G();
-
+void AtomClusterNode::calcAtomPos(const Mat33& R_GB, const Vec3& OB_G) {
     atoms[0]->pos = OB_G;
     for (int i=1 ; i<atoms.size() ; i++) {
-        atoms[i]->station_G = R_GB * atoms[i]->station;
-        atoms[i]->pos       = OB_G + station_G;
+        IVMAtom& a = *atoms[i];
+        a.station_G = R_GB * a.station_B;
+        a.pos       = OB_G + a.station_G;
     }
 }
 
-// RigidBodyNode must already have been evaluated through Move stage.
-void AtomClusterNode::calcAtomVel(const RigidBodyNode& rb) {
-    const Vec3& w_G = rb.getInertialAngVel_G();
-    const Vec3& v_G = rb.getInertialVel_G();
+void AtomClusterNode::calcAtomVel(const Vec6& V_OB_G) {
+    const Vec3& w_G = *reinterpret_cast<const Vec3*>(&V_OB_G[0]);
+    const Vec3& v_G = *reinterpret_cast<const Vec3*>(&V_OB_G[3]);
 
     atoms[0]->vel = v_G;
-    for (int i=1 ; i<atoms.size() ; i++)
-        atoms[i]->vel = v_G + cross(w_G, atoms[i]->station_G);
+    for (int i=1 ; i<atoms.size() ; i++) {
+        IVMAtom& a = *atoms[i];
+        a.vel = v_G + cross(w_G, a.station_G);
+    }
+}
+
+void
+AtomClusterNode::calcSpatialForce(Vec6& F_OB_G) {
+    Vec3 moment(0.), force(0.);
+    // notice that the sign is screwey [??? CDS comment, I don't see it (sherm)]
+    for (int i=0 ; i<atoms.size() ; i++) {
+        const IVMAtom& a = *atoms[i];
+        Vec3 aForce = a.force;
+        if (ivm->frictionCoeff() != 0.)
+            aForce += a.fric * a.vel * (1. - ivm->bathTemp()/ivm->currentTemp());
+        moment += cross(a.pos - atoms[0]->pos, aForce);
+        force  += aForce;
+    }
+    F_OB_G = blockVec(moment, force);
 }
 
 ostream& 
@@ -545,23 +559,6 @@ AtomClusterNodeSpec<dof>::print(int verbose) {
 */
 }
 
-/*
-template<int DOF> void
-AtomClusterNodeSpec<DOF>::calcCartesianForce() {
-    Vec3 moment(0.);
-    Vec3 force(0.);
-    // notice that the sign is screwey
-    for (int i=0 ; i<atoms.size() ; i++) {
-        IVMAtom* a = atoms[i];
-        Vec3 aForce = a->deriv;
-        if ( ivm->frictionCoeff()!=0.0 )
-            aForce += a->fric *(1.0-ivm->bathTemp()/ivm->currentTemp()) * a->vel;
-        moment += cross( a->pos - atoms[0]->pos , aForce );
-        force  += aForce;
-    }
-    forceCartesian = blockVec(moment, force);
-}
-*/
 
 /////////////////////////////////////
 // Miscellaneous utility routines. //

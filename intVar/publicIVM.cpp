@@ -113,7 +113,7 @@ PublicIVM::calcEnergy() {
     Etotal_ = Ekinetic() + Epotential();
 
     for (int i=0 ; i<sim->numAtoms() ; i++)
-        atoms[i+1]->deriv = derivList[ sim ](i);
+        atoms[i+1]->force = derivList[ sim ](i);
     gradMagnitude_ = sqrt( vecVec3Abs2(derivList[sim]) );
     if ( sim->numAtoms() )
         gradMagnitude_ /= sqrt( (double)(3*sim->numAtoms()) );
@@ -330,17 +330,17 @@ PublicIVM::nodeList()
     CDSList<PublicNode> ret;
     for (int i=0 ; i<tree()->nodeTree.size() ; i++)
         for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-            HingeNode* n = tree()->nodeTree[i][j];
+            AtomClusterNode* n = tree()->nodeTree[i][j];
             PublicNode pn;
             pn.setDim( n->getDim() );
-            pn.setStartIndex( n->offset()-1 ); //offsets differ
+            pn.setStartIndex( n->getStateOffset()-1 ); //offsets differ
             pn.setType( n->type() );
             CDSList<int> tmpAtoms;
             for (int i=0 ; n->getAtom(i) ; i++)
                 tmpAtoms.append( toAtomIndex(sim, n->getAtom(i)));
             pn.setAtoms( tmpAtoms );
-            if ( n->parentAtom )
-                pn.setParentAtom( toAtomIndex(sim,  n->parentAtom ) );
+            if ( n->getParentAtom() )
+                pn.setParentAtom( toAtomIndex(sim,  n->getParentAtom() ) );
             else
                 pn.setParentAtom( -1 );
             ret.append( pn );

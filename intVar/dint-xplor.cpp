@@ -43,11 +43,11 @@ XplorIVM::syncVel() {
 
 void
 XplorIVM::syncDeriv() {
-    atoms[0]->deriv.set( 0.0 );
+    atoms[0]->force.set( 0.0 );
     for (int i=1 ; i<=xplorVars.natom ; i++) {
-        atoms[i]->deriv(0) = xplorVars.dx[i-1];
-        atoms[i]->deriv(1) = xplorVars.dy[i-1];
-        atoms[i]->deriv(2) = xplorVars.dz[i-1];
+        atoms[i]->force(0) = xplorVars.dx[i-1];
+        atoms[i]->force(1) = xplorVars.dy[i-1];
+        atoms[i]->force(2) = xplorVars.dz[i-1];
     }
 }
 
@@ -93,7 +93,7 @@ XplorIVM::initXplor()
         IVMAtom* a = atoms[i];
         a->pos = Vec3(xplorVars.x[i-1]  , xplorVars.y[i-1]  , xplorVars.z[i-1] );
         a->vel = Vec3(xplorVars.xv[i-1] , xplorVars.yv[i-1] , xplorVars.zv[i-1]);
-        a->deriv = Vec3(xplorVars.dx[i-1] , 
+        a->force = Vec3(xplorVars.dx[i-1] , 
                         xplorVars.dy[i-1] , 
                         xplorVars.dz[i-1]);
         a->fric = frictionCoeff() * xplorVars.fbeta[i-1] 

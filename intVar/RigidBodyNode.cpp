@@ -11,15 +11,15 @@
 #include "dint-step.h"
 #include "vec4.h"
 
-#include <cdsMath.h>
-#include <cdsVector.h>
-#include <fixedVector.h>
-#include <subVector.h>
-#include <subMatrix.h>
-#include <matrixTools.h>
-#include <cdsAuto_ptr.h>
+#include "cdsMath.h"
+#include "cdsVector.h"
+#include "fixedVector.h"
+#include "subVector.h"
+#include "subMatrix.h"
+#include "matrixTools.h"
+#include "cdsAuto_ptr.h"
 
-#include <cdsIomanip.h>
+#include "cdsIomanip.h"
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
@@ -43,6 +43,68 @@ static const Mat33 zero33(0.);
 //////////////////////////////////////////////
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
+
+//
+// Calc posCM, mass, Mk
+//      phi, inertia
+// Should be calc'd from base to tip.
+void 
+RigidBodyNode::calcJointIndependentKinematicsPos() {
+    // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
+    const Vec3 OB_OP_G = getR_GP()*OB_P;
+
+    // The Phi matrix conveniently performs parent-to-child shifting
+    // on spatial quantities.
+    phi = PhiMatrix(OB_OP_G);
+
+    // Get spatial configuration of this body.
+    R_GB = getR_GP() * R_PB;
+    OB_G = getOP_G() + OB_OP_G;
+
+    // Calculate spatial mass properties. That means we need to transform
+    // the local mass moments into the Ground frame and reconstruct the
+    // spatial inertia matrix Mk.
+
+    inertia_OB_G = orthoTransform(getInertia_OB_B(), getR_GB());
+    COMstation_G = getR_GB()*getCOM_B();
+
+    // Calc Mk: the spatial inertia matrix about the body origin.
+    // Note that this is symmetric; offDiag is *skew* symmetric so
+    // that transpose(offDiag) = -offDiag.
+    const Mat33 offDiag = getMass()*crossMat(COMstation_G);
+    Mk = blockMat22( inertia_OB_G , offDiag ,
+                    -offDiag      , getMass()*ident33 );
+}
+
+// Calculate velocity-related quantities: spatial velocity (sVel),
+// gyroscopic force b, coriolis acceleration a. This must be
+// called base to tip: depends on parent's sVel, V_PB_G.
+void 
+RigidBodyNode::calcJointIndependentKinematicsVel() {
+    setSpatialVel(transpose(phi) * parent->getSpatialVel()
+                  + V_PB_G);
+    const Vec3& omega = getSpatialAngVel();
+    const Vec3 gMoment = cross(omega, inertia_OB_G * omega);
+    const Vec3 gForce  = getMass() * cross(omega, 
+                                           cross(omega, COMstation_G));
+    b = blockVec(gMoment, gForce);
+
+    const Vec3& vel    = getSpatialLinVel();
+    const Vec3& pOmega = parent->getSpatialAngVel();
+    const Vec3& pVel   = parent->getSpatialLinVel();
+
+    // calc a: coriolis acceleration
+    a = blockMat22(crossMat(pOmega),   Mat33(0.0),
+                      Mat33(0.0)   , crossMat(pOmega)) 
+        * V_PB_G;
+    a += blockVec(Vec3(0.0), cross(pOmega, vel-pVel));
+}
+
+double
+RigidBodyNode::calcKineticEnergy() const {
+    double ret = dot(sVel , Mk*sVel);
+    return 0.5*ret;
+}
 
 ostream& 
 operator<<(ostream& s, const RigidBodyNode& node) {
@@ -78,7 +140,7 @@ public:
     /*virtual*/void prepareVelInternal() {}
     /*virtual*/void propagateSVel(const Vec6&) {}
 
-    /*virtual*/void setPosVel(const RVec&, const RVec&) {}
+    /*virtual*/void setPos(const RVec&) {}
     /*virtual*/void setVel(const RVec&) {}
     /*virtual*/void setVelFromSVel(const Vec6&) {}
     /*virtual*/void enforceConstraints(RVec& pos, RVec& vel) {}
@@ -129,39 +191,37 @@ public:
     ///   V_PB_G  relative velocity of B in P, expr. in G
     virtual void calcJointKinematicsVel()=0;
 
-    /// Calculate all spatial configuration quantities, assuming availability of
-    /// joint-specific relative quantities (see above).
-    ///   R_GB
-    ///   OB_G
-    ///
-    void calcJointIndependentKinematicsPos();
-
-    /// Calcluate all spatial velocity quantities, assuming availability of
-    /// joint-specific relative quantities and all position kinematics.
-    ///   sVel  spatial velocity of B
-    ///   a     spatial Coriolis acceleration
-    ///   b     spatial gyroscopic force
-    void calcJointIndependentKinematicsVel();
-
-
-    void calcKinematicsPos() {
+    /// Set a new configuration and calculate the consequent kinematics.
+    void setPos(const RVec& posv) {
+        forceInternal.set(0.);  // forget these
+        setJointPos(posv);
         calcJointKinematicsPos();
         calcJointIndependentKinematicsPos();
     }
 
-    void calcKinematicsVel() {
+    /// Set new velocities for the current configuration, and calculate
+    /// all the velocity-dependent terms.
+    void setVel(const RVec& velv) {
+        // anything to initialize?
+        setJointVel(velv);
         calcJointKinematicsVel();
         calcJointIndependentKinematicsVel();
+    }
+
+    // These unfortunately need to be overridden for joints using quaternions.
+    virtual void setJointPos(const RVec& posv) {
+        theta  = ConstRSubVec(posv,stateOffset,dof).vector();
+    }
+    virtual void setJointVel(const RVec& velv) {
+        dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
     }
 
     int          getDOF() const { return dof; }
     virtual int  getDim() const { return dof; } // dim can be larger than dof
 
     virtual void   print(int) const;
-    virtual double kineticE() const;
 
-    virtual void setPos(const RVec&);
-    virtual void setVel(const RVec&);
+
     virtual void setVelFromSVel(const Vec6&);
     virtual void enforceConstraints(RVec& pos, RVec& vel) {}
 
@@ -181,11 +241,6 @@ public:
     void propagateSVel(const Vec6& desiredVel);
     void calcD_G(const Mat66& P);
 protected:
-    // These are joint-relative quantities, but not dof dependent.
-    Mat33 R_PB; // orientation of B in P
-    Vec3  OB_P; // location of B origin meas & expr in P frame
-    Vec6  V_PB_G; // relative velocity of B in P, but expressed in G
-
     // These are the joint-specific quantities
     //      ... position level
     FixedVector<double,dof>     theta;   // internal coordinates
@@ -202,9 +257,6 @@ protected:
     FixedVector<double,dof>     nu;
     FixedVector<double,dof>     epsilon;
     FixedVector<double,dof>     forceInternal;
-
-    void calcPosProps();
-    void calcVelProps();
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
@@ -470,7 +522,7 @@ public:
     
     int  getDim() const { return ball.getBallDim(); } 
 
-    void setPos(const RVec& posv) {
+    void setJointPos(const RVec& posv) {
         ball.setBallPos(stateOffset, posv, theta);
     } 
 
@@ -479,7 +531,7 @@ public:
     }
 
     // setPos must have been called previously
-    void setVel(const RVec& velv) {
+    void setJointVel(const RVec& velv) {
         ball.setBallVel(stateOffset, velv, dTheta);
     }
 
@@ -536,7 +588,7 @@ public:
     
     int  getDim() const { return ball.getBallDim() + 3; } 
 
-    void setPos(const RVec& posv) {
+    void setJointPos(const RVec& posv) {
         Vec3 th;
         ball.setBallPos(stateOffset, posv, th);
         RSubVec6(theta,0,3) = th.vector();
@@ -550,7 +602,7 @@ public:
     }
 
     // setPos must have been called previously
-    void setVel(const RVec& velv) {
+    void setJointVel(const RVec& velv) {
         Vec3 dTh;
         ball.setBallVel(stateOffset, velv, dTh);
         RSubVec6(dTheta,0,3) = dTh.vector();
@@ -835,6 +887,7 @@ private:
 
 //
 // Calculate acceleration in internal coordinates.
+// (Base to tip)
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcAccel() {
@@ -847,66 +900,6 @@ RigidBodyNodeSpec<dof>::calcAccel() {
     sAcc   = alphap + MatrixTools::transpose(H) * ddTheta + a;  
 }
 
-//
-// Calc posCM, mass, Mk
-//      phi, inertia
-//
-// Depends on atoms->(pos,vel), dTheta, parent->svel.
-// Should be calc'd from base to tip.
-template<int dof> void 
-RigidBodyNodeSpec<dof>::calcJointIndependentKinematicsPos() {
-    forceInternal.set( 0.0 );
-
-    // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 OB_OP_G = getR_GP()*OB_P;
-
-    // The Phi matrix conveniently performs parent-to-child shifting
-    // on spatial quantities.
-    phi = PhiMatrix(OB_OP_G);
-
-    // Get spatial configuration of this body.
-    R_GB = getR_GP() * R_PB;
-    OB_G = getOP_G() + OB_OP_G;
-
-    // Calculate spatial mass properties. That means we need to transform
-    // the local mass moments into the Ground frame and reconstruct the
-    // spatial inertia matrix Mk.
-
-    inertia_OB_G = orthoTransform(getInertia_OB_B(), getR_GB());
-    COMstation_G = getR_GB()*get_CB_B();
-
-    // Calc Mk: the spatial inertia matrix about the body origin.
-    // Note that this is symmetric; offDiag is *skew* symmetric so
-    // that transpose(offDiag) = -offDiag.
-    const Mat33 mass(0.0); mass.setDiag(getMass());
-    const Mat33 offDiag = getMass()*crossMat(COMstation_G);
-    Mk = blockMat22( inertia_OB_G , offDiag ,
-                    -offDiag      , mass );
-}
-
-// Calculate velocity-related quantities: spatial velocity (sVel),
-// gyroscopic force b, coriolis acceleration a. This must be
-// called base to tip: depends on parent's sVel, dTheta.
-template<int dof> void 
-RigidBodyNodeSpec<dof>::calcJointIndependentKinematicsVel() {
-    setSpatialVel(transpose(phi) * parent->getSpatialVel()
-                  + V_PB_G);
-    const Vec3& omega = getSpatialAngVel();
-    const Vec3 gMoment = cross(omega, inertia_OB_G * omega);
-    const Vec3 gForce  = getMass() * cross(omega, 
-                                           cross(omega, COMstation_G));
-    b = blockVec(gMoment, gForce);
-
-    const Vec3& vel    = getSpatialLinVel();
-    const Vec3& pOmega = parent->getSpatialAngVel();
-    const Vec3& pVel   = parent->getSpatialLinVel();
-
-    // calc a: coriolis acceleration
-    a = blockMat22(crossMat(pOmega),   Mat33(0.0),
-                      Mat33(0.0)   , crossMat(pOmega)) 
-        * V_PB_G;
-    a += blockVec(Vec3(0.0), cross(pOmega, vel-pVel));
-}
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
@@ -926,21 +919,6 @@ RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
     G = P * MatrixTools::transpose(H) * DI;
 }
 
-template<int dof> double
-RigidBodyNodeSpec<dof>::kineticE() const {
-    double ret = dot(sVel , Mk*sVel);
-    return 0.5*ret;
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::setPos(const RVec& posv) {
-    theta  = ConstRSubVec(posv,stateOffset,dof).vector();
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::setVel(const RVec& velv) {
-    dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
-}
 
 //
 // to be called from base to tip.

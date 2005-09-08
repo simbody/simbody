@@ -1,6 +1,5 @@
 #ifdef NOTDEF
 
-
 #include "mmapAlloc.h"
 
 #include <cdsMath.h>

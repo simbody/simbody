@@ -4,14 +4,14 @@
 #include <cdsVector.h>
 
 class IVMAtom;
-class HingeNode;
+class AtomClusterNode;
 class Loop;
 class IVM;
 template<class T> class CDSList;
 
 #include <cdsIostream.h>
 
-typedef CDSList<HingeNode*> NodeList;
+typedef CDSList<AtomClusterNode*> NodeList;
 
 class LengthConstraintsPrivates;
 class LengthSet;

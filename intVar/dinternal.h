@@ -14,7 +14,7 @@ class IVMAtom;
 class AtomTree;
 class AT_Build;
 class Vec3;
-class HingeNode;
+class AtomClusterNode;
 class Solver;
 class LengthConstraints;
 
@@ -147,7 +147,7 @@ protected:
     CDSList<Loop> loops;
     CDSList<Pair> constraintList;
 
-    void groupTorsion(const HingeNode*);
+    void groupTorsion(const AtomClusterNode*);
     void initTree();
 
     AtomList                             atoms;
@@ -168,7 +168,7 @@ protected:
 
     friend class AtomTree;
     friend class AT_Build;
-    friend class HingeNode;
+    friend class AtomClusterNode;
     template<int DOF> friend class HingeNodeSpec;
 };
 

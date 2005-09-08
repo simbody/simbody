@@ -50,14 +50,14 @@ TestIVM::calcEnergy()
     Epotential_ = 0.0;
     //FIX: check derivatives
     for (int i=1 ; i<atoms.size() ; i++) 
-        atoms[i]->deriv.set( 0.0 );
+        atoms[i]->force.set( 0.0 );
     for (l_int i=1 ; i<atoms.size() ; i++) {
         for (int j=i+1 ; j<atoms.size() ; j++) {
             double dist2 = abs2( atoms[i]->pos - atoms[j]->pos );
             Epotential_ += k * dist2;
-            atoms[i]->deriv += k * (atoms[i]->pos - atoms[j]->pos);
-            atoms[j]->deriv += k * (atoms[j]->pos - atoms[i]->pos);
-            //     atoms[i]->deriv *= -1;
+            atoms[i]->force += k * (atoms[i]->pos - atoms[j]->pos);
+            atoms[j]->force += k * (atoms[j]->pos - atoms[i]->pos);
+            //     atoms[i]->force *= -1;
         }
     }
     Epotential_ *= 0.5;
@@ -110,13 +110,13 @@ TestIVM::init()
     atoms[6]->vel = Vec3(0.0 , 0, 0);
     atoms[7]->vel = Vec3(0.0 , 0, 0);
 
-    atoms[1]->deriv = Vec3(0.0 , 0, 0);
-    atoms[2]->deriv = Vec3(0.0 , 0, 0);
-    atoms[3]->deriv = Vec3(0.0 , 0, 0);
-    atoms[4]->deriv = Vec3(0.0 , 0, 0);
-    atoms[5]->deriv = Vec3(0.0 , 0, 0);
-    atoms[6]->deriv = Vec3(0.0 , 0, 0);
-    atoms[7]->deriv = Vec3(0.0 , 0, 0);
+    atoms[1]->force = Vec3(0.0 , 0, 0);
+    atoms[2]->force = Vec3(0.0 , 0, 0);
+    atoms[3]->force = Vec3(0.0 , 0, 0);
+    atoms[4]->force = Vec3(0.0 , 0, 0);
+    atoms[5]->force = Vec3(0.0 , 0, 0);
+    atoms[6]->force = Vec3(0.0 , 0, 0);
+    atoms[7]->force = Vec3(0.0 , 0, 0);
 
     groupList.resize(0);
     hingeList.resize(0);
@@ -216,21 +216,21 @@ TestIVM::initCycle()
     atoms[14]->vel = Vec3(0.0 , 0, 0);
     atoms[15]->vel = Vec3(0.0 , 0, 0);
 
-    atoms[1 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[2 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[3 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[4 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[5 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[6 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[7 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[8 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[9 ]->deriv = Vec3(0.0 , 0, 0);
-    atoms[10]->deriv = Vec3(0.0 , 0, 0);
-    atoms[11]->deriv = Vec3(0.0 , 0, 0);
-    atoms[12]->deriv = Vec3(0.0 , 0, 0);
-    atoms[13]->deriv = Vec3(0.0 , 0, 0);
-    atoms[14]->deriv = Vec3(0.0 , 0, 0);
-    atoms[15]->deriv = Vec3(0.0 , 0, 0);
+    atoms[1 ]->force = Vec3(0.0 , 0, 0);
+    atoms[2 ]->force = Vec3(0.0 , 0, 0);
+    atoms[3 ]->force = Vec3(0.0 , 0, 0);
+    atoms[4 ]->force = Vec3(0.0 , 0, 0);
+    atoms[5 ]->force = Vec3(0.0 , 0, 0);
+    atoms[6 ]->force = Vec3(0.0 , 0, 0);
+    atoms[7 ]->force = Vec3(0.0 , 0, 0);
+    atoms[8 ]->force = Vec3(0.0 , 0, 0);
+    atoms[9 ]->force = Vec3(0.0 , 0, 0);
+    atoms[10]->force = Vec3(0.0 , 0, 0);
+    atoms[11]->force = Vec3(0.0 , 0, 0);
+    atoms[12]->force = Vec3(0.0 , 0, 0);
+    atoms[13]->force = Vec3(0.0 , 0, 0);
+    atoms[14]->force = Vec3(0.0 , 0, 0);
+    atoms[15]->force = Vec3(0.0 , 0, 0);
 
     // break cycles and add constraints
     constraintList.resize(0);
@@ -494,7 +494,7 @@ TestIVM::test()
         for (int i=0 ; i<100 ; i++) {
             double gg = 0;
             for (int j=1 ; j<=7 ; j++)
-                gg += abs2(atoms[j]->deriv);
+                gg += abs2(atoms[j]->force);
                 if (debugging)
                     cout << i << ' ' << Epotential() << ' ' << gg << '\n';
                 if (debugging)
@@ -512,7 +512,7 @@ TestIVM::test()
     }
     double gg = 0;
     for (int i=1 ; i<=7 ; i++)
-        gg += abs2(atoms[i]->deriv);
+        gg += abs2(atoms[i]->force);
     if ( fabs(Epotential()-12.91) < 0.01 ) {
         cout << "ok";
     } else {
@@ -552,7 +552,7 @@ TestIVM::test()
         for (int i=0 ; i<100 ; i++) {
             double gg = 0;
             for (int j=1 ; j<=7 ; j++)
-                gg += abs2(atoms[j]->deriv);
+                gg += abs2(atoms[j]->force);
             if (debugging)
                 cout << i << ' ' << Epotential() << ' ' << gg << '\n';
             if (debugging)
@@ -570,7 +570,7 @@ TestIVM::test()
     }
     double gg = 0;
     for (int i=1 ; i<=7 ; i++)
-        gg += abs2(atoms[i]->deriv);
+        gg += abs2(atoms[i]->force);
     if ( fabs(Epotential()-12.91) < 0.01 ) {
         cout << "ok";
     } else {
@@ -607,7 +607,7 @@ TestIVM::test()
         for (int i=0 ; i<100 ; i++) {
             double gg = 0;
             for (int j=1 ; j<=7 ; j++)
-                gg += abs2(atoms[j]->deriv);
+                gg += abs2(atoms[j]->force);
             if (debugging)
                 cout << i << ' ' << Epotential() << ' ' << gg << '\n';
             if (debugging)
@@ -625,7 +625,7 @@ TestIVM::test()
     }
     double gg = 0;
     for (int i=1 ; i<=7 ; i++)
-        gg += abs2(atoms[i]->deriv);
+        gg += abs2(atoms[i]->force);
     if ( fabs(Epotential()-12.91) < 0.01 ) {
         cout << "ok";
     } else {
@@ -675,7 +675,7 @@ TestIVM::test()
         for (int i=0 ; i<100 ; i++) {
             double gg = 0;
             for (int j=1 ; j<atoms.size() ; j++)
-                gg += abs2(atoms[j]->deriv);
+                gg += abs2(atoms[j]->force);
             if (debugging)
                 cout << i << ' ' << Epotential() << ' ' << gg << '\n';
             if (debugging)
@@ -718,7 +718,7 @@ TestIVM::test()
     if (debugging) {
         double gg = 0;
         for (int j=1 ; j<atoms.size() ; j++)
-            gg += abs2(atoms[j]->deriv);
+            gg += abs2(atoms[j]->force);
         cout << "final: " << ' ' << Epotential() << ' ' << gg << '\n';
         for (l_int i=1 ; i<atoms.size() ; i++)
             cout << '\t' << atoms[i]->pos << '\n';

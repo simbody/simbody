@@ -8,8 +8,8 @@
 #include <cdsFstream.h>
 #include <cdsIomanip.h>
 
-#include <stdio.h>
-#include <sys/types.h>
+#include <cstdio>
+#include <cstddef>
 #include <sys/stat.h>
 //#include <unistd.h>
 

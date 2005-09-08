@@ -25,9 +25,9 @@ template<class T, int offset, class ALLOC>
 class CDSVector; 
 
 #include <cdsIostream.h>
-#include <assert.h>
 
-#include <sys/types.h>  //for size_t
+#include <cassert>
+#include <cstddef>  //for size_t
 
 template<class T, class ALLOC>
 class CDSVectorRep {

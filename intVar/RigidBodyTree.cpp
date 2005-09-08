@@ -49,25 +49,6 @@ void RigidBodyTree::destructNode(RigidBodyNode* n) {
     delete n;
 }
 
-void RigidBodyTree::realizeParameters() {
-    // nothing yet
-}
-
-void RigidBodyTree::realizeConfiguration(const RVec& pos) {
-    setPos(pos);
-    calcConfigurationKinematics();
-
-}
-
-void RigidBodyTree::realizeMotion(const RVec& vel) {
-    setVel(vel);
-    calcMotionKinematics();
-}
-
-void RigidBodyTree::realizeAcceleration() {
-}
-
-
 void RigidBodyTree::setPos(const RVec& pos)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
@@ -79,20 +60,6 @@ void RigidBodyTree::setVel(const RVec& vel)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setVel(vel); 
-}
-
-// setPos() must have been called first
-void RigidBodyTree::calcConfigurationKinematics()  {
-    for (int i=0 ; i<rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcConfigurationKinematics(); 
-}
-
-// setVel() must have been called first
-void RigidBodyTree::calcMotionKinematics()  {
-    for (int i=0 ; i<rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcMotionKinematics(); 
 }
 
 // should be:
@@ -148,7 +115,7 @@ void RigidBodyTree::calcGetAccel(RVec& acc) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel();
-    for (l_int i=0 ; i<rbNodeLevels.size() ; i++)
+    for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getAccel(acc);
 }
@@ -168,7 +135,7 @@ void
 RigidBodyTree::updateAccel(const VecVec6& spatialForces) {
     calcZ(spatialForces);
 
-    for (l_int i=0 ; i<rbNodeLevels.size() ; i++)
+    for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel();
 }
@@ -181,7 +148,7 @@ void RigidBodyTree::getInternalForce(const VecVec6& spatialForces, RVec& T) {
             node.calcInternalForce(spatialForces[node.getNodeNum()]);
         }
 
-    for (l_int i=0 ; i<rbNodeLevels.size() ; i++)
+    for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getInternalForce(T);
 

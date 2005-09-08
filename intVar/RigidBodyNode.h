@@ -32,18 +32,12 @@ typedef CDSVector<double,1>     RVec;
  *
  * RigidBodyNodes are linked into a tree structure, organized into levels as described 
  * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
- * level 0 and containing only atoms fixed to ground. The Level 1 nodes (referred to
+ * level 0 and containing only atoms fixed to ground. The level 1 nodes (referred to
  * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
  * to level 1's, etc. Every node but Ground has exactly one parent node, whose
  * level is always one less than the current node. Any node may have an arbitrary number 
  * of children, for which it is the unique parent, and all of its children have 
  * level one greater than the current node.
- *
- * Every RigidBodyNode contains a list of pointers to the atoms rigidly affixed to the
- * body associated with that node. The 0th atom in that list is the one which is
- * connected to the node's parent by a joint, to a specific atom on the parent
- * node stored as 'parentAtom' here. Our 0th atom's body-fixed station serves as
- * the origin for the body frame, and thus has coordinates [0,0,0] in that frame.
  *
  * Note: calling rotation matrices 'rotMat' or 'R' is a recipe for disaster.
  * We use the naming convention R_XY to mean a rotation matrix (3x3 direction
@@ -59,12 +53,10 @@ typedef CDSVector<double,1>     RVec;
  * Every body has a body frame B. In the reference configuration that we use
  * to define the bodies, all frames B are aligned with the ground frame G. You can
  * think of this as defining the B frames by painting images of the G frame on
- * each body (translated to atom 0) when we first see the bodies in the reference
- * frame. Later the bodies move and take their B frames with them. The locations
- * of all the atoms on a body are then forever fixed when measured in the B frame;
- * we call such points 'stations'. For convenience, we refer to the body frame
- * of a body's unique parent as the 'P' frame. Initially frames P and B are
- * aligned (and both are aligned with Ground). Later the P and B frames
+ * each body (translated to B's origin OB) when we first see the bodies in the reference
+ * frame. Later the bodies move and take their B frames with them. For convenience, we refer
+ * refer to the body frame of a body's unique parent as the 'P' frame. Initially frames P
+ * and B are aligned (and both are aligned with Ground). Later the P and B frames
  * will differ, but only by the relative orientation and translation induced by
  * the joint connecting B to P. That is, rotation matrix R_PB expresses the
  * relative orientation between the parent and child caused by the current
@@ -75,8 +67,8 @@ typedef CDSVector<double,1>     RVec;
  * In addition to the B frame fixed on every body, the inboard joint has its own 
  * frame J, which is fixed with respect to B. In some cases J and B will be the
  * same, but not always. The constant rotation matrix R_BJ provides the orientation
- * of the inboard joint's frame in the body frame. If B is the i'th child of
- * its parent P, then there is a parent-fixed frame Ji which is the image of J
+ * of the inboard joint's frame in its body's frame. If B is the i'th child of
+ * its parent P, then there is also a parent-fixed frame Ji which is the image of J
  * when the joint coordinates are zero. That is, R_JiJ is the orientation change
  * induced by the joint coordinates. Note that because of how we define the 
  * reference configuration, R_PJi = R_BJ so we don't need to store both matrices
@@ -166,16 +158,20 @@ public:
     const Mat66&     getPsiT() const {return psiT;}
     const Mat66&     getY()    const {return Y;}
 
+    /// Introduce new values for generalized coordinates and calculate
+    /// all the position-dependent kinematic terms.
+    virtual void setPos(const RVec&)=0;
+
+    /// Introduce new values for generalized speeds and calculate
+    /// all the velocity-dependent kinematic terms. Assumes setPos()
+    /// has already been called.
+    virtual void setVel(const RVec&)=0;
+
+    double calcKineticEnergy() const;   // from spatial quantities only
+
     virtual const char* type()     const {return "unknown";}
     virtual int         getDOF()   const {return 0;} //number of independent dofs
     virtual int         getDim()   const {return 0;} //dofs plus quaternion constraints
-    virtual double      kineticE() const {return 0;}
-
-    virtual void setPos(const RVec&)    {throw VirtualBaseMethod();}
-    virtual void setVel(const RVec&)    {throw VirtualBaseMethod();}
-
-    virtual void calcConfigurationKinematics() {throw VirtualBaseMethod();}
-    virtual void calcMotionKinematics()        {throw VirtualBaseMethod();}
 
     virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
 
@@ -234,6 +230,15 @@ protected:
     //      ... calculated on construction
     const Inertia inertia_CB_B;  // centroidal inertia, expr. in B
 
+    // Calculated relative quantities (these are joint-relative quantities, 
+    // but not dof dependent).
+    //      ... position level
+    Mat33 R_PB; // orientation of B in P
+    Vec3  OB_P; // location of B origin meas & expr in P frame
+
+    //      ... velocity level
+    Vec6  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+
     // Calculated spatial quantities
     //      ... position level
 
@@ -269,6 +274,20 @@ protected:
 
     friend ostream& operator<<(ostream& s, const RigidBodyNode&);
     template<int dof> friend class RigidBodyNodeSpec;
+
+private:   
+    /// Calculate all spatial configuration quantities, assuming availability of
+    /// joint-specific relative quantities.
+    ///   R_GB
+    ///   OB_G
+    void calcJointIndependentKinematicsPos();
+
+    /// Calcluate all spatial velocity quantities, assuming availability of
+    /// joint-specific relative quantities and all position kinematics.
+    ///   sVel  spatial velocity of B
+    ///   a     spatial Coriolis acceleration
+    ///   b     spatial gyroscopic force
+    void calcJointIndependentKinematicsVel();
 };
 
 #endif /* RIGID_BODY_NODE_H_ */

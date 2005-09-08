@@ -56,7 +56,7 @@ public:
 };
 
 AtomTree::~AtomTree() {
-    for (int i=0 ; i<nodeTree.size() ; i++) {
+    for (int i=0; i<nodeTree.size(); i++) {
         for (int j=0 ; j<nodeTree[i].size() ; j++) 
             delete nodeTree[i][j];
         nodeTree[i].resize(0);
@@ -64,28 +64,32 @@ AtomTree::~AtomTree() {
     nodeTree.resize(0);
 }
 
-void AtomTree::calcAtomPos(/*state*/) {
-    for (int l=0 ; l<nodeTree.size(); l++) {
+void AtomTree::calcAtomPos() {
+    for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
-            AtomClusterNode& n = *nodeTree[l][j];
-            n.calcAtomPos(rbTree.getRBNodeByIndex(n.getRBIndex()));
+            AtomClusterNode&     ac = *nodeTree[l][j];
+            const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            ac.calcAtomPos(rb.getR_GB(), rb.getOB_G());
         }
 }
 
-void AtomTree::calcAtomVel(/*state*/) {
-    for (int l=0 ; l<nodeTree.size(); l++) {
+void AtomTree::calcAtomVel() {
+    for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
-            AtomClusterNode& n = *nodeTree[l][j];
-            n.calcAtomVel(rbTree.getRBNodeByIndex(n.getRBIndex()));
+            AtomClusterNode&     ac = *nodeTree[l][j];
+            const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            ac.calcAtomVel(rb.getSpatialVel());
         }
 }
 
-void AtomTree::calcAtomForces() {
+void AtomTree::calcSpatialForces() {
+    spatialForces.resize(rbTree.getNBodies());
+    for (int l=0; l<nodeTree.size(); l++)
+        for (int j=0; j<nodeTree[l].size(); j++) {
+            AtomClusterNode&     ac = *nodeTree[l][j];
+            ac.calcSpatialForce(spatialForces[ac.getRBIndex()]);
+        }
 }
-
-void AtomTree::calcAtomAcc(/*state*/) {
-}
-
 
 //
 // destructNode - should also work on partially constructed objects
@@ -106,6 +110,11 @@ AT_Build::AT_Build( IVM*             ivm,
     assignedAtoms(tree->ivm->getAtoms().size(),0)
 {
     buildAtomClusterNode(node);
+}
+
+int AtomTree::getIVMDim() const {
+    assert(ivm);
+    return ivm->dim();
 }
 
 // get inclusive (including all children) degrees of freedom + constraints
@@ -486,7 +495,7 @@ AtomTree::propagateSVel()
 {
     for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
-            HingeNode* n = nodeTree[i][j];
+            AtomClusterNode* n = nodeTree[i][j];
             Vec6 sVel(0.0);
             for (int k=0 ; n->getAtom(k) ; k++)
                 sVel += n->getAtom(k)->mass
@@ -520,7 +529,8 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
         avel0(i-1) = ivm->atoms[i]->vel;
 
     vel.set(0.0);    //   can we set just pos instead?
-    setPosVel(pos, vel);
+    setPos(pos);
+    setVel(vel);
 
     for (l_int i=1 ; i<ivm->atoms.size() ; i++) //reset atom velocities
         ivm->atoms[i]->vel = avel0(i-1);

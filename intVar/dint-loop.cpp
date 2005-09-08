@@ -17,7 +17,7 @@
 #include "dint-loop.h"
 #include "dinternal.h"
 #include "AtomTree.h"
-#include "dint-node.h"
+#include "AtomClusterNode.h"
 #include "dint-atom.h"
 #include "vec3.h"
 #include "cdsListAutoPtr.h"
@@ -48,7 +48,7 @@ typedef SubMatrix<RMat>       SubMat;
 static int compareLevel(const LoopWNodes& l1,    //forward declarations
                         const LoopWNodes& l2);
 
-//static bool sameBranch(const HingeNode* tip,
+//static bool sameBranch(const AtomClusterNode* tip,
 //                       const LoopWNodes& l );
 
 class BadNodeDef {};  //exception
@@ -63,12 +63,12 @@ class BadNodeDef {};  //exception
  * node or if they are on different molecules.
  */
 class LoopWNodes {
-    HingeNode*                base; // highest-level common ancestor of tips
+    AtomClusterNode*                base; // highest-level common ancestor of tips
     FixedVector<IVMAtom*,2,1> tips; // the two connected atoms, sorted so that
                                     //   tips(1).level <= tips(2).level
     FixedVector<NodeList,2,1> nodes;// the two paths: base..tip1, base..tip2,
                                     //   incl. tip nodes but not base
-    const HingeNode*          moleculeNode;
+    const AtomClusterNode*          moleculeNode;
 public:
     LoopWNodes() {}
     LoopWNodes(const Loop& l);
@@ -78,7 +78,7 @@ public:
     friend void LengthConstraints::construct(CDSList<Loop>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
-    friend bool sameBranch(const HingeNode* tip,
+    friend bool sameBranch(const AtomClusterNode* tip,
                            const LoopWNodes& l );
 };
 
@@ -102,11 +102,11 @@ LoopWNodes::LoopWNodes(const Loop& l)
 
     // Collect up the node path from tips(2) down to the last node on its
     // side of the loop which is at a higher level than tips(1) (may be none).
-    HingeNode* node1 = tips(1)->node;
-    HingeNode* node2 = tips(2)->node;
+    AtomClusterNode* node1 = tips(1)->node;
+    AtomClusterNode* node2 = tips(2)->node;
     while ( node2->getLevel() > node1->getLevel() ) {
         nodes(2).append(node2);
-        node2 = node2->getParent();
+        node2 = node2->updParent();
     }
 
     // We're at the same level on both sides of the loop. Run down both
@@ -121,8 +121,8 @@ LoopWNodes::LoopWNodes(const Loop& l)
         }
         nodes(1).append(node1);
         nodes(2).append(node2);
-        node1 = node1->getParent();
-        node2 = node2->getParent();
+        node1 = node1->updParent();
+        node2 = node2->updParent();
     }
 
     base = node1;   // that's the common ancestor
@@ -153,7 +153,7 @@ class LengthSet {
     LoopList                 loops;    
     CDSList<double>          lengths;
     int                      dim;
-    CDSList<HingeNode*>      nodeMap; //unique nodes (intersection of loops->nodes)
+    CDSList<AtomClusterNode*>      nodeMap; //unique nodes (intersection of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
         : lConstraints(lConstraints), ivm(lConstraints->ivm), dim(0)
@@ -175,7 +175,7 @@ public:
     }
 
     void determineCouplings();
-    bool contains(HingeNode* node) {
+    bool contains(AtomClusterNode* node) {
         bool found=false;
         for (int i=0 ; i<loops.size() ; i++)
             if (    loops[i].nodes(1).contains(node)
@@ -286,7 +286,7 @@ LengthSet::determineCouplings()
 // for (l_int i=0 ; i<loops.size() ; i++)
 //   for (int j=0 ; j<loops.size() ; j++)
 //     for (int bi=1 ; bi<=2 ; bi++)
-//     for (HingeNode* node=loops[i].tips(bi)->node ;
+//     for (AtomClusterNode* node=loops[i].tips(bi)->node ;
 //          node->levelA() ; 
 //          node=node->parentA())
 //       for (int bj=1 ; bj<=2 ; bj++)
@@ -317,10 +317,10 @@ LengthSet::determineCouplings()
 }
 
 //static bool
-//sameBranch(const HingeNode* tip,
+//sameBranch(const AtomClusterNode* tip,
 //         const LoopWNodes& l )
 //{
-// for ( const HingeNode* node=tip ;
+// for ( const AtomClusterNode* node=tip ;
 //     node->levelA()            ;
 //     node=node->parentA()      )
 //   if (node == l.tips(1)->node || node == l.tips(2)->node)
@@ -487,7 +487,7 @@ LengthSet::calcPosZ(const RVec& b) const
 
     // map the vector dir back to the appropriate elements of z
     for (int i=0 ; i<nodeMap.size() ; i++) 
-        SubVec(z,nodeMap[i]->offset(), nodeMap[i]->getDim())
+        SubVec(z,nodeMap[i]->getStateOffset(), nodeMap[i]->getDim())
             = SubVec(dir,i+1,nodeMap[i]->getDim());
 
     return z;
@@ -510,8 +510,8 @@ public:
 
         // map the vector dir back to the appropriate elements of z
         for (int i=0 ; i<constraint->nodeMap.size() ; i++) {
-            const HingeNode* n = constraint->nodeMap[i];
-            SubVec(z,n->offset(),n->getDim()) =  SubVec(dir,i+1,n->getDim());
+            const AtomClusterNode* n = constraint->nodeMap[i];
+            SubVec(z,n->getStateOffset(),n->getDim()) =  SubVec(dir,i+1,n->getDim());
         }
         return z;
     }
@@ -602,7 +602,7 @@ LengthSet::fdgradf( const RVec& pos,
     RVec0 b = calcB(pos);
     int grad_indx=0;
     for (int i=0 ; i<nodeMap.size() ; i++) {
-        int pos_indx=nodeMap[i]->offset();
+        int pos_indx=nodeMap[i]->getStateOffset();
         for (int j=0 ; j<nodeMap[i]->getDim() ; j++,pos_indx++,grad_indx++) {
             RVec posp = pos;
             posp(pos_indx) += eps;
@@ -651,7 +651,7 @@ LengthSet::calcGrad() const
                 phiT(b)[phiT(b).size()-1].set(0.0);
                 phiT(b)[phiT(b).size()-1].setDiag(1.0);
                 for (int j=l.nodes(b).size()-2 ; j>=0 ; j-- ) {
-                    HingeNode* n = l.nodes(b)[j+1];
+                    AtomClusterNode* n = l.nodes(b)[j+1];
                     phiT(b)[j] = phiT(b)[j+1] * transpose( n->getPhi() );
                 }
             }
@@ -821,7 +821,7 @@ typedef SubVector<const Vec6>       SubVec6;
 static Vec3
 getAccel(const IVMAtom* a)
 {
-    const HingeNode* n = a->node;
+    const AtomClusterNode* n = a->node;
     Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
     ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
     ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
@@ -838,8 +838,8 @@ computeA(const Vec3&    v1,
          const IVMAtom* a2,
          const Vec3&    v2)
 {
-    const HingeNode* n1 = a1->node;
-    const HingeNode* n2 = a2->node;
+    const AtomClusterNode* n1 = a1->node;
+    const AtomClusterNode* n2 = a2->node;
 
     Mat33 one(0.); one.setDiag(1.);
 
@@ -900,7 +900,7 @@ LengthSet::fixAccel()
     // the constrained points and Q is the constraint Jacobian. See first 
     // term of Eq. [66].
     RMat A(loops.size(),loops.size(),0.);
-    for (l_int i=0 ; i<loops.size() ; i++) {
+    for (int i=0 ; i<loops.size() ; i++) {
         const Vec3 v1 = loops[i].tips(2)->pos - loops[i].tips(1)->pos;
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
@@ -928,7 +928,7 @@ LengthSet::fixAccel()
     // like Cholesky, otherwise use an SVD (or better, complete orthogonal
     // factorization QTZ) to get appropriate least squares solution.
 
-    for (l_int i=0 ; i<loops.size() ; i++)   //fill lower triangle
+    for (int i=0 ; i<loops.size() ; i++)   //fill lower triangle
         for (int j=0 ; j<i ; j++)
             A(i,j) = A(j,i);
 
@@ -936,12 +936,12 @@ LengthSet::fixAccel()
     const RVec0 lambda = inverse(A) * rhs;
 
     // add forces due to these constraints
-    for (l_int i=0 ; i<loops.size() ; i++) {
+    for (int i=0 ; i<loops.size() ; i++) {
         IVMAtom* b = loops[i].tips(1);
         IVMAtom* t = loops[i].tips(2);
         const Vec3 frc = lambda(i) * (t->pos - b->pos);
-        t->deriv -= frc;
-        b->deriv += frc;
+        t->force -= frc;
+        b->force += frc;
     }
 
     ivm->updateAccel();
@@ -992,7 +992,7 @@ LengthSet::multiForce(const RVec& forceInternal, const RMat& mat)
     for (int j=0 ; j<nodeMap.size() ; j++) {
         int dim = nodeMap[j]->getDim();
         SubVec(vec,indx,dim) =
-            ConstSubVec(forceInternal, nodeMap[j]->offset(),dim).vector();
+            ConstSubVec(forceInternal, nodeMap[j]->getStateOffset(),dim).vector();
         indx += dim;
     }
 
@@ -1009,7 +1009,7 @@ LengthSet::addForce(RVec& forceInternal,
     for (int j=0 ; j<nodeMap.size() ; j++) {
         int dim = nodeMap[j]->getDim();
 
-        SubVec(forceInternal, nodeMap[j]->offset(),dim)
+        SubVec(forceInternal, nodeMap[j]->getStateOffset(),dim)
             -= ConstSubVec(vec,indx,dim);
         indx += nodeMap[j]->getDim();
     }
@@ -1023,7 +1023,7 @@ LengthSet::testInternalForce(const RVec& forceInternal)
     for (int j=0 ; j<nodeMap.size() ; j++) {
         int dim = nodeMap[j]->getDim();
         SubVec(vec,indx,dim) = 
-        ConstSubVec(forceInternal,nodeMap[j]->offset(),dim).vector();
+        ConstSubVec(forceInternal,nodeMap[j]->getStateOffset(),dim).vector();
         indx += nodeMap[j]->getDim();
     }
 

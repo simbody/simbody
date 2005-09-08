@@ -56,19 +56,9 @@ public:
     int getDOF() const; 
     int getDim() const; 
 
-    void realizeParameters();
-    void realizeConfiguration(const RVec& pos);
-    void realizeMotion(const RVec& vel);
-    void realizeAcceleration();
-
     // Kinematics -- calculate spatial quantities from internal states.
     void setPos(const RVec& pos);
     void setVel(const RVec& vel);
-    void setPosVel(const RVec& pos,
-                   const RVec& vel);
-
-    void calcConfigurationKinematics();
-    void calcMotionKinematics();
 
     void getPos(RVec& pos) const;
     void getVel(RVec& vel) const;
@@ -88,9 +78,7 @@ public:
     /// Dynamics -- calculate articulated body remainder forces.
     void calcZ(const VecVec6& spatialForces); 
     void calcPandZ(const VecVec6& spatialForces);
-
     void calcY();
-
 
     void updateAccel(const VecVec6& spatialForces);
     void getInternalForce(const VecVec6& spatialForces, RVec& T);

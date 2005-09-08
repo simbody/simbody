@@ -77,9 +77,7 @@ IVM::~IVM()
 //
 void
 IVM::calcY() {
-    for (int i=0 ; i<tree()->nodeTree.size() ; i++)
-        for (int j=0 ; j<tree()->nodeTree[i].size() ; j++)
-            tree()->nodeTree[i][j]->calcY();
+    tree()->calcY();
 }
 
 bool
@@ -138,14 +136,14 @@ IVM::groupTorsion(const AtomClusterNode* n) {
                 //has children or contains more than one atom
                 groupTorsion( c );       
             else
-                if (c->parentAtom->index!=0 && c->getAtom(0)->index>=0)
+                if (c->getParentAtom()->index!=0 && c->getAtom(0)->index>=0)
                     //one atom, no children and not free atom : group
                     aList.append( c->getAtom(0)->index );
         }
     } else { //not ground node
         //base node w/ 1 or 2 atoms- w/ no bond to base and one or fewer children
         if ( n->isBaseNode() && !n->getAtom(2) &&
-             n->parentAtom->index==0 && !n->getChild(1) )
+             n->getParentAtom()->index==0 && !n->getChild(1) )
         { 
             if ( n->getAtom(1) || n->getChild(0) )
                 for (int i=0 ; ( a=n->getAtom(i) ) ; i++)
@@ -285,7 +283,11 @@ IVM::resetCM()
     //  removing CM velocity will change relative (internal) velocities
     if ( tree()->nodeTree[0][0]->getAtom(1) ) return;
 
-    static AtomList nodes; //to contain mass, posCM, velCM of each node
+
+    // Here we are going to misuse the IVMAtom class to turn each movable
+    // AtomClusterNode into an "atom", with a single mass located
+    // at the node's COM, having the node COM's (linear) velocity.
+    static AtomList nodes;
     nodes.resize(0);
     for (int i=1 ; i<tree()->nodeTree.size() ; i++)
         for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
@@ -305,7 +307,6 @@ IVM::resetCM()
         posCM += nodes[i]->mass * nodes[i]->pos;
         velCM += nodes[i]->mass * nodes[i]->vel;
     }
-
     posCM /= mass;
     velCM /= mass;
 
@@ -339,9 +340,8 @@ IVM::resetCM()
 
     for ( l_int i=0 ; i<tree()->nodeTree[1].size() ; i++ ) {
         AtomClusterNode* n = tree()->nodeTree[1][i];
-        Vec6 sVel = n->getSpatialVel() - blockVec(omega, 
-                                          cross( omega , 
-                                                 n->getAtom(0)->pos-posCM) + velCM);
+        Vec6 sVel = n->getSpatialVel() 
+                    - blockVec(omega, velCM + cross(omega, n->getAtom(0)->pos-posCM));
         n->setVelFromSVel(sVel);
     }
     getSolver()->setPos( tree()->getPos() );

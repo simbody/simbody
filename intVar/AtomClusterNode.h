@@ -13,6 +13,7 @@ class AtomClusterNode;
 class RigidBodyNode;
 typedef CDSList<IVMAtom*>         AtomList;
 typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
+typedef FixedVector<double,6>     Vec6;
 
 class InertiaTensor : public Mat33 {
 public:
@@ -23,7 +24,13 @@ public:
 };
 
 /**
- * First crack at separating model building from execution.
+ * First crack at separating model building from execution (sherm).
+ *
+ * Every AtomClusterNode contains a list of pointers to the atoms rigidly affixed to the
+ * body associated with that node. The 0th atom in that list is the one which is
+ * connected to the node's parent by a joint, to a specific atom on the parent
+ * node stored as 'parentAtom' here. Our 0th atom's body-fixed station serves as
+ * the origin for the body frame, and thus has coordinates [0,0,0] in that frame.
  */
 class AtomClusterNode {
 public:
@@ -40,6 +47,8 @@ public:
     void addChild(AtomClusterNode*);
 
     const AtomClusterNode* getParent()     const {return parent;}
+    AtomClusterNode*       updParent()           {return parent;}
+    const IVMAtom*         getParentAtom() const {return parentAtom;}
 
     int            getNAtoms()     const {return atoms.size();}    
     const IVMAtom* getAtom(int i)  const {return (i<atoms.size()?atoms[i]:0); }
@@ -55,6 +64,8 @@ public:
     bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
 
+    int              getStateOffset() const {return stateOffset;}
+
     int  getRBIndex()       const { return rbIndex; }
     void setRBIndex(int ix)       { rbIndex=ix; }
     
@@ -65,15 +76,21 @@ public:
          const InternalDynamics::HingeSpec& type,
          int&                               cnt);
 
-    /// Given the rigid body to which these atoms are affixed, which has
-    /// been realized to at least the Configure stage, calculate atom
-    /// spatial locations.
-    void calcAtomPos(const RigidBodyNode& rb);
+    /// Given a spatial orientation and location for this cluster, calculate
+    /// where all the atoms are in space.
+    void calcAtomPos(const Mat33& R_GB, const Vec3& OB_G);
 
-    /// Given the rigid body to which these atoms are affixed, which has
-    /// been realized to at least the Move stage, calculate atom
-    /// spatial velocities.
-    void calcAtomVel(const RigidBodyNode& rb);
+    /// Given the spatial velocity (angular,linear) of this cluster at its origin,
+    /// calculate the velocity of each atom and store that with the atom. 
+    /// calcAtomPos() must have been called previously.
+    void calcAtomVel(const Vec6& V_OB_G);
+
+    /// Assuming calcAtomPos() and calcAtomVel() have already been called, and
+    /// that the atoms have forces applied to them, this will combine all those
+    /// atomic forces into a single spatial force acting on the cluster at its
+    /// origin and return that force. TODO: currently the bath temperature maintenance force is
+    /// generated here and added to the total.
+    void calcSpatialForce(Vec6& F_OB_G);
 
     virtual int getDOF() const {return 0;} //number of independent dofs
     virtual int getDim() const {return 0;} //# of generalized coords (>=#dofs)
@@ -86,6 +103,8 @@ public:
 
 private:
     const IVMAtom*      parentAtom;   // atom in parent to which hinge is attached
+
+    int                 stateOffset;
     AtomClusterNode*    parent; 
     AtomClusterNodeList children;
     int                 level;        // how far from base
