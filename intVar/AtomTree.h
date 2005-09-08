@@ -44,6 +44,26 @@ public:
     /// Call this when all AtomClusterNodes have been built.
     void createRigidBodyTree();
 
+    // Dig up cluster info from rigid body tree.
+
+    double getClusterMass(int level, int indx) const;
+
+    /// Get cluster's center of mass, measured and expressed in the the
+    /// ground frame. Requires previous call to setPos().
+    const Vec3& getClusterCOM_G(int level, int indx) const;
+
+    /// Get the spatial velocity of this cluster. Requires previous call to setVel().
+    const Vec6& getClusterSpatialVel(int level, int indx) const;
+
+    /// Set this cluster's inboard joint coordinates to best approximate
+    /// the desired spatial velocity, taking into account the spatial
+    /// velocity of the parent.
+    void setClusterVelFromSVel(int level, int indx, const Vec6& sVel);
+
+    /// Calculate the kinetic energy contribution of a single cluster
+    /// from its spatial velocity. Requires previous call to setVel().
+    double calcClusterKineticEnergy(int level, int indx) const;
+
     // Kinematics -- calculate spatial quantities from internal states.
     void setPos(const RVec& pos) { rbTree.setPos(pos); calcAtomPos(); }
     void setVel(const RVec& vel) { rbTree.setVel(vel); calcAtomVel(); }
@@ -51,29 +71,17 @@ public:
 
     RVec getPos() const { RVec pos(getIVMDim()); rbTree.getPos(pos); return pos; }
     RVec getVel() const { RVec vel(getIVMDim()); rbTree.getVel(vel); return vel; }
-    RVec calcGetAccel() { 
-        RVec acc(getIVMDim()); rbTree.calcGetAccel(acc);
-        return acc;
-    }
 
-    RVec getAccel() {
-        calcSpatialForces();
-        RVec acc(getIVMDim()); rbTree.getAccel(spatialForces, acc);
-        return acc;
-    }
-
-    RVec getInternalForce() {
-        calcSpatialForces();
-        RVec T(getIVMDim()); rbTree.getInternalForce(spatialForces,T);
-        return T;
-    }
+    RVec calcGetAccel();
+    RVec getAccel();
+    RVec getInternalForce();
 
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const RVec& pos, RVec& vel);
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints.
-    void enforceConstraints(RVec& pos, RVec& vel) { rbTree.enforceConstraints(pos,vel); }
+    void enforceConstraints(RVec& pos, RVec& vel);
 
     /// Dynamics -- calculate articulated body inertias.
     void calcP() { rbTree.calcP(); }
@@ -83,14 +91,23 @@ public:
         calcSpatialForces();
         rbTree.calcZ(spatialForces);
     }
+    
+    /// Use dynamics equations to solve velocity problem rather than accelerations.
+    /// Normal use requires that setVel(0) has been done earlier, but we won't check.
+    void propagateSVel() {
+        calcSpatialImpulses(); // sets spatialForces vector
+        rbTree.calcZ(spatialForces);
+    }
 
     void calcPandZ() { calcP(); calcZ(); }
     void calcY() { rbTree.calcY(); }
 
-    void updateAccel() { calcSpatialForces(); rbTree.updateAccel(spatialForces); }
-
-
-    void propagateSVel();
+    /// Recalculate unconstrained accelerations given a new set of forces
+    /// at the same state.
+    void updateAccel() { 
+        calcZ();
+        rbTree.calcTreeAccel();
+    }
 
     int getDOF(); 
     int getDim(); 
@@ -110,6 +127,7 @@ private:
     void calcAtomPos();
     void calcAtomVel();
     void calcSpatialForces();
+    void calcSpatialImpulses();
     int  getIVMDim() const;  // pull 'dim' from ivm
 };
 

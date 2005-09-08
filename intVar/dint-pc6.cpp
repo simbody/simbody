@@ -6,7 +6,6 @@
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
-using namespace CDSMath;
 #endif /* USE_CDS_NAMESPACE */
 
 class TimeStepAdj {
@@ -36,7 +35,7 @@ public:
             throw InternalDynamics::Exception("large time-step");
         if ( deltaE > 0.0 ) 
             ret = sqrt(1 + (deltaE_ref-deltaE) / (tau*deltaE));
-        ret = min(ret , maxFactor);
+        ret = CDSMath::min(ret , maxFactor);
         if (ivm->verbose()&InternalDynamics::printStepDebug)
             cout << "TimeStepAdj: deltaE: " << deltaE 
                  << "   factor: " << ret << '\n';
@@ -112,10 +111,10 @@ PC6::step(double& timeStep)
     acc0 = acc; dq30 = dq3; dq40 = dq4; dq50 = dq5;
     //prediction
     vel *= ( timeStep );          //rescale vel/acc
-    acc *= ( 0.5*sq(timeStep) );
-    dq3 *= ( ipow(timeStep,3)/(2*3) );
-    dq4 *= ( ipow(timeStep,4)/(2*3*4) );
-    dq5 *= ( ipow(timeStep,5)/(2*3*4*5) );
+    acc *= ( 0.5*CDSMath::sq(timeStep) );
+    dq3 *= ( CDSMath::ipow(timeStep,3)/(2*3) );
+    dq4 *= ( CDSMath::ipow(timeStep,4)/(2*3*4) );
+    dq5 *= ( CDSMath::ipow(timeStep,5)/(2*3*4*5) );
 
     pos += vel + acc +     dq3 +     dq4 +      dq5;
     vel +=   2.0*acc + 3.0*dq3 + 4.0*dq4 +  5.0*dq5;
@@ -146,7 +145,7 @@ PC6::step(double& timeStep)
     acc = tree()->getAccel();
 
     vel *= ( timeStep );          //rescale vel/acc
-    acc *= ( 0.5*sq(timeStep) );
+    acc *= ( 0.5*CDSMath::sq(timeStep) );
 
     //correction
     RVec dR = acc - prevAcc;
@@ -158,10 +157,10 @@ PC6::step(double& timeStep)
     dq5 +=   1.0/60.0  * dR;
 
     vel *= ( 1.0/timeStep );      //undo vel/acc scaling
-    acc *= ( 2.0/sq(timeStep) );
-    dq3 *= ( (2*3) / ipow(timeStep,3) );
-    dq4 *= ( (2*3*4) / ipow(timeStep,4) );
-    dq5 *= ( (2*3*4*5) / ipow(timeStep,5) );
+    acc *= ( 2.0/CDSMath::sq(timeStep) );
+    dq3 *= ( (2*3) / CDSMath::ipow(timeStep,3) );
+    dq4 *= ( (2*3*4) / CDSMath::ipow(timeStep,4) );
+    dq5 *= ( (2*3*4*5) / CDSMath::ipow(timeStep,5) );
 
     if ( velScale->active() ) {  //scale velocity - for constant temp. run
         tree()->setVel(vel);

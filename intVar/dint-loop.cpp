@@ -576,10 +576,12 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
 //
 void
 LengthSet::setPosVel(const RVec& pos,
-             const RVec& vel) const
+                     const RVec& vel) const
 {
-    for (int i=0 ; i<nodeMap.size() ; i++)
-        nodeMap[i]->setPosVel(pos,vel); //also calc necessary properties
+    for (int i=0 ; i<nodeMap.size() ; i++) {
+        nodeMap[i]->setPos(pos); //also calc necessary properties
+        nodeMap[i]->setVel(vel);
+    }
 }
 
 //

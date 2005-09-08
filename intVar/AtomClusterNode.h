@@ -92,6 +92,11 @@ public:
     /// generated here and added to the total.
     void calcSpatialForce(Vec6& F_OB_G);
 
+    /// Given a set of desired atomic velocities, combine these into a mass-weighted
+    /// spatial impulse for this node. This can then be used in the dynamic equations
+    /// instead of a force, yielding velocities rather than accelerations.
+    void calcSpatialImpulse(Vec6& Impulse_OB_G);
+
     virtual int getDOF() const {return 0;} //number of independent dofs
     virtual int getDim() const {return 0;} //# of generalized coords (>=#dofs)
 

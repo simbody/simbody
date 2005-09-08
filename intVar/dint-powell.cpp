@@ -16,7 +16,7 @@
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
-using namespace CDSMath;
+//using namespace CDSMath;
 #endif /* USE_CDS_NAMESPACE */
 
 
@@ -30,8 +30,8 @@ Powell::Powell(IVM* ivm) :
 
 void
 Powell::init(const RVec&     pos,
-         const RVec&     vel,
-         const RVec&     acc)
+             const RVec&     vel,
+             const RVec&     acc)
 {
  this->pos = pos;
 
@@ -146,7 +146,7 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
    // EXCEED THE STEP-LENGTH OF THE PREVIOUS ITERATION. LET STMIN BE THE
    // STEP TO THE LEAST CALCULATED VALUE OF F.
    //
-   double stepch = min(stmin,fabs(dfpred/ginit));
+   double stepch = CDSMath::min(stmin,fabs(dfpred/ginit));
    stmin = 0.0;
    //
    // CALL ENERGY AT THE VALUE OF X THAT IS DEFINED BY THE NEW CHANGE TO

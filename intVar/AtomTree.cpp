@@ -64,6 +64,12 @@ AtomTree::~AtomTree() {
     nodeTree.resize(0);
 }
 
+void AtomTree::setClusterVelFromSVel(int level, int indx, const Vec6& sVel) {
+    AtomClusterNode& ac = *nodeTree[level][indx];
+    RigidBodyNode& rb = rbTree.updRigidBodyNode(ac.getRBIndex());
+    return rb.setVelFromSVel(sVel);
+}
+
 void AtomTree::calcAtomPos() {
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
@@ -89,6 +95,70 @@ void AtomTree::calcSpatialForces() {
             AtomClusterNode&     ac = *nodeTree[l][j];
             ac.calcSpatialForce(spatialForces[ac.getRBIndex()]);
         }
+}
+
+// note that results go into spatialForces vector
+void AtomTree::calcSpatialImpulses() {
+    spatialForces.resize(rbTree.getNBodies());
+    for (int l=0; l<nodeTree.size(); l++)
+        for (int j=0; j<nodeTree[l].size(); j++) {
+            AtomClusterNode&     ac = *nodeTree[l][j];
+            ac.calcSpatialImpulse(spatialForces[ac.getRBIndex()]);
+        }
+}
+
+
+double AtomTree::getClusterMass(int level, int indx) const {
+    const AtomClusterNode& ac = *nodeTree[level][indx];
+    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    return rb.getMass();
+}
+
+const Vec3& AtomTree::getClusterCOM_G(int level, int indx) const {
+    const AtomClusterNode& ac = *nodeTree[level][indx];
+    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    return rb.getCOM_G();
+}
+
+const Vec6& AtomTree::getClusterSpatialVel(int level, int indx) const {
+    const AtomClusterNode& ac = *nodeTree[level][indx];
+    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    return rb.getSpatialVel();
+}
+
+double AtomTree::calcClusterKineticEnergy(int level, int indx) const {
+    const AtomClusterNode& ac = *nodeTree[level][indx];
+    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    return rb.calcKineticEnergy();
+}
+
+RVec AtomTree::calcGetAccel() { 
+    RVec acc(getIVMDim()); 
+    rbTree.calcTreeAccel();
+    rbTree.getAcc(acc);
+    return acc;
+}
+
+RVec AtomTree::getAccel() {
+    calcZ();
+    rbTree.calcTreeAccel();
+    ivm->lConstraints->fixAccel();
+    RVec acc(getIVMDim()); 
+    rbTree.getAcc(acc);
+    return acc;
+}
+
+RVec AtomTree::getInternalForce() {
+    calcSpatialForces();
+    rbTree.calcTreeInternalForces(spatialForces);
+    RVec T(getIVMDim());
+    ivm->lConstraints->fixGradient(T);
+    return T;
+}
+
+void AtomTree::enforceConstraints(RVec& pos, RVec& vel) { 
+    rbTree.enforceTreeConstraints(pos,vel); 
+    ivm->lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
 }
 
 //
@@ -487,24 +557,6 @@ operator<<(ostream& s, const AtomTree& aTree) {
 
 typedef CDSVector<Vec3> VecVec3;
 
-//
-// set up sVel = R * M * Va (CDS notes of 3/27/00)
-//
-void
-AtomTree::propagateSVel()
-{
-    for (int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++) {
-            AtomClusterNode* n = nodeTree[i][j];
-            Vec6 sVel(0.0);
-            for (int k=0 ; n->getAtom(k) ; k++)
-                sVel += n->getAtom(k)->mass
-                        * blockVec( cross(n->getAtom(k)->pos - n->getAtom(0)->pos,
-                                          n->getAtom(k)->vel) ,
-                                    n->getAtom(k)->vel );
-            nodeTree[i][j]->propagateSVel( sVel );
-        }
-}
 
 //  (see CDS notes of 3/27/00)
 //
@@ -524,42 +576,29 @@ AtomTree::propagateSVel()
 void
 AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
 {
-    VecVec3 avel0(ivm->atoms.size()-1);
+    VecVec3 avel0(ivm->atoms.size()-1);   // save desired atom velocities
     for (int i=1 ; i<ivm->atoms.size() ; i++)
         avel0(i-1) = ivm->atoms[i]->vel;
 
-    vel.set(0.0);    //   can we set just pos instead?
-    setPos(pos);
-    setVel(vel);
+    setPos(pos);        // set configuration and calculate related kinematics (incl. atom pos)
+    vel.set(0.0);
+    rbTree.setVel(vel); // zero velocities to nuke bias forces (no effect on atom vel)
 
-    for (l_int i=1 ; i<ivm->atoms.size() ; i++) //reset atom velocities
-        ivm->atoms[i]->vel = avel0(i-1);
-
-    for (l_int i=nodeTree.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<nodeTree[i].size() ; j++)
-            nodeTree[i][j]->prepareVelInternal();
-
-    // turn off Langevin stuff for now
-    const double frictionCoeff = ivm->frictionCoeff();
-    ivm->frictionCoeff_ = 0.0;
-
-    // make sure that internal velocities of each node are correct
-
+    // calculate impulses from desired atomic momenta and convert to internal coordinates
     propagateSVel();
-    calcPandZ();
 
+    // solve for desired internal velocities
     vel = calcGetAccel();
     setVel(vel);
     ivm->lConstraints->fixVel0(vel);
 
-    VecVec3 avel(ivm->atoms.size()-1);
-    for (l_int i=1 ; i<ivm->atoms.size() ; i++)
-        avel(i-1) = ivm->atoms[i]->vel;
+    if ( ivm->verbose()&printVelFromCartCost ) {
+        VecVec3 avel(ivm->atoms.size()-1);
+        for (l_int i=1 ; i<ivm->atoms.size() ; i++)
+            avel(i-1) = ivm->atoms[i]->vel;
 
-    // calculate cost
-    double cost = abs2(avel - avel0) / avel.size();
-    if ( ivm->verbose()&printVelFromCartCost )
+        // calculate cost
+        const double cost = abs2(avel - avel0) / avel.size();
         cout << "velFromCartesian: cost: " << cost << '\n';
-
-    ivm->frictionCoeff_ = frictionCoeff;
+    }
 }

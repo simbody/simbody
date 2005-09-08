@@ -87,19 +87,6 @@ void RigidBodyTree::calcZ(const VecVec6& spatialForces) {
         }
 }
 
-// should be:
-//   foreach tip {
-//     traverse back to node which has more than one child hinge.
-//   }
-void RigidBodyTree::calcPandZ(const VecVec6& spatialForces) {
-    // level 0 for atoms whose position is fixed
-    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
-        for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
-            RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcPandZ(spatialForces[node.getNodeNum()]);
-        }
-}
-
 //
 // Y is used for length constraints.
 // Recursion is base to tip.
@@ -111,57 +98,40 @@ void RigidBodyTree::calcY() {
 }
 
 // Calc acceleration: sweep from base to tip.
-void RigidBodyTree::calcGetAccel(RVec& acc) {
+void RigidBodyTree::calcTreeAccel() {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel();
+}
+
+// Retrieve already-calculated accelerations
+void RigidBodyTree::getAcc(RVec& acc) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getAccel(acc);
 }
 
-// Calc P quantities: sweep from tip to base.
-void RigidBodyTree::getAccel(const VecVec6& spatialForces, RVec& acc) {
-    calcPandZ(spatialForces);
-    calcGetAccel(acc);
-
-    if ( ivm->lConstraints->fixAccel() ) 
-        for (int i=0 ; i<rbNodeLevels.size() ; i++)
-            for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
-                rbNodeLevels[i][j]->getAccel(acc);
-}
-
-void
-RigidBodyTree::updateAccel(const VecVec6& spatialForces) {
-    calcZ(spatialForces);
-
-    for (int i=0 ; i<rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcAccel();
-}
-
-// Calc internal force: sweep from tip to base.
-void RigidBodyTree::getInternalForce(const VecVec6& spatialForces, RVec& T) {
+// Calc unconstrained internal forces from spatial forces: sweep from tip to base.
+void RigidBodyTree::calcTreeInternalForces(const VecVec6& spatialForces) {
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcInternalForce(spatialForces[node.getNodeNum()]);
         }
+}
 
+// Retrieve already-computed internal forces.
+void RigidBodyTree::getInternalForces(RVec& T) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getInternalForce(T);
-
-    ivm->lConstraints->fixGradient(T);
 }
 
 void 
-RigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
+RigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) 
             rbNodeLevels[i][j]->enforceConstraints(pos,vel);
-
-    ivm->lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
 }
 
 void RigidBodyTree::getPos(RVec& pos) const {

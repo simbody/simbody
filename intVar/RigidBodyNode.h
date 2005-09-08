@@ -119,6 +119,8 @@ public:
     const double&  getMass()         const {return massProps_B.getMass();}
     const Vec3&    getCOM_B()        const {return massProps_B.getCOM();}
     const Inertia& getInertia_OB_B() const {return massProps_B.getInertia();}
+
+    const Vec3&    getCOM_G()        const {return COMstation_G;}
     const Inertia& getInertia_CB_B() const {return inertia_CB_B;}
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
@@ -177,7 +179,6 @@ public:
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
     virtual void calcZ    (const Vec6& spatialForce)         {throw VirtualBaseMethod();}
-    virtual void calcPandZ(const Vec6& spatialForce)         {throw VirtualBaseMethod();}
     virtual void calcY()                                     {throw VirtualBaseMethod();}
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 

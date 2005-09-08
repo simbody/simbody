@@ -62,26 +62,33 @@ public:
 
     void getPos(RVec& pos) const;
     void getVel(RVec& vel) const;
-    void calcGetAccel(RVec& acc);
-    void getAccel(const VecVec6& spatialForces, RVec& acc);
+    void getAcc(RVec& acc) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const RVec& pos, RVec& vel);
 
     /// This is a solver which tweaks the state to make it satisfy position
-    /// and velocity constraints.
-    void enforceConstraints(RVec& pos, RVec& vel);
+    /// and velocity constraints (just quaternions constraints; ignores loops).
+    void enforceTreeConstraints(RVec& pos, RVec& vel);
 
-    /// Dynamics -- calculate articulated body inertias.
-    void calcP();
+    /// Unconstrained (tree) dynamics 
+    void calcP();                             // articulated body inertias
+    void calcZ(const VecVec6& spatialForces); // articulated body remainder forces
+    void calcTreeAccel();                     // accels with forces from last calcZ
 
-    /// Dynamics -- calculate articulated body remainder forces.
-    void calcZ(const VecVec6& spatialForces); 
-    void calcPandZ(const VecVec6& spatialForces);
+
+    /// Part of constrained dynamics (TODO -- more to move here)
     void calcY();
 
-    void updateAccel(const VecVec6& spatialForces);
-    void getInternalForce(const VecVec6& spatialForces, RVec& T);
+    /// Convert spatial forces to internal (joint) forces, ignoring constraints.
+    void calcTreeInternalForces(const VecVec6& spatialForces);
+
+    /// Retrieve last-computed internal (joint) forces.
+    void getInternalForces(RVec& T);
+
+    void calcLoopAccel();                     // TODO this has to move elsewhere
+    void getConstraintCorrectedInternalForces(RVec& T); // TODO has to move elsewhere
+
     void propagateSVel();
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {

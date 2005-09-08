@@ -6,7 +6,6 @@
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
-using namespace CDSMath;
 #endif /* USE_CDS_NAMESPACE */
 
 
@@ -30,7 +29,7 @@ ConMin::init(const RVec& pos,
     this->pos = pos;
     maxcalls = ivm->maxCalls();
     costTol = ivm->Etolerance();
-    sqGradTol = sq(ivm->Gtolerance());
+    sqGradTol = CDSMath::sq(ivm->Gtolerance());
 
     fx = costf(this->pos);
 
@@ -202,7 +201,7 @@ ConMin::mnbrak( double& ax,
         double r = (bx-ax) * (fb-fc);
         double q = (bx-cx) * (fb-fa);
         double u = bx - ((bx-cx)*q - (bx-ax)*r) /
-                    (2.0*SIGN(max(fabs(q-r),TINY),q-r));
+                    (2.0*SIGN(CDSMath::max(fabs(q-r),TINY),q-r));
         double ulim = bx + GLIMIT*(cx-bx);
         double fu;
         if ( (bx-u)*(u-cx) > 0.0 ) {

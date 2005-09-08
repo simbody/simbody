@@ -244,7 +244,7 @@ IVM::calcTemperature() {
         for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
             if (enumerateKE) 
                 cout << i << ' ' << j << ' ';
-            double ke = tree()->nodeTree[i][j]->kineticE();
+            double ke = tree()->calcClusterKineticEnergy(i,j);
             if (enumerateKE) 
                 cout << ke << '\n';
             Ekinetic_ += ke;
@@ -291,12 +291,16 @@ IVM::resetCM()
     nodes.resize(0);
     for (int i=1 ; i<tree()->nodeTree.size() ; i++)
         for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-            const AtomClusterNode* n = tree()->nodeTree[i][j];
-            IVMAtom *a = new IVMAtom( nodes.size() , n->mass() );
-            a->pos = n->posCM();
-            a->vel = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
-                     - cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
-                              n->getAtom(0)->pos - n->posCM() ); 
+            const AtomClusterNode* n  = tree()->nodeTree[i][j];
+            const double acMass       = tree()->getClusterMass(i,j);
+            const Vec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
+            const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+
+            IVMAtom *a = new IVMAtom( nodes.size() , acMass );
+            a->pos = acCOM_G;
+            a->vel = Vec3( ConstRSubVec6(acSpatialVel,3,3).vector() )
+                     - cross( ConstRSubVec6(acSpatialVel,0,3).vector() , 
+                              n->getAtom(0)->pos - acCOM_G ); 
             nodes.append( a );
         }
 
@@ -311,7 +315,7 @@ IVM::resetCM()
     velCM /= mass;
 
     Vec3 L(0.0); // angular momentum excluding internal rotations
-    for (l_int i=0 ; i<nodes.size() ; i++)
+    for (int i=0 ; i<nodes.size() ; i++)
         L += nodes[i]->mass * cross( nodes[i]->pos - posCM , 
                                      nodes[i]->vel - velCM );
 
@@ -338,11 +342,14 @@ IVM::resetCM()
     // getSolver()->setPos( tree()->getPos() ); //FIX: ??
     // getSolver()->setVel( tree()->getVel() );
 
-    for ( l_int i=0 ; i<tree()->nodeTree[1].size() ; i++ ) {
+    for (int i=0; i<tree()->nodeTree[1].size(); i++) {
         AtomClusterNode* n = tree()->nodeTree[1][i];
-        Vec6 sVel = n->getSpatialVel() 
+        const Vec6& acSpatialVel = tree()->getClusterSpatialVel(1,i);
+
+        Vec6 sVel = acSpatialVel 
                     - blockVec(omega, velCM + cross(omega, n->getAtom(0)->pos-posCM));
-        n->setVelFromSVel(sVel);
+
+        tree()->setClusterVelFromSVel(1,i,sVel);
     }
     getSolver()->setPos( tree()->getPos() );
     getSolver()->setVel( tree()->getVel() );
@@ -354,22 +361,30 @@ IVM::resetCM()
         Vec3 velCM(0.0);
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-                const AtomClusterNode* n = tree()->nodeTree[i][j];
-                Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() )
-                                 - cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
-                                          n->getAtom(0)->pos - n->posCM() ); 
-                velCM += n->mass() * vCM;
+                const AtomClusterNode* n  = tree()->nodeTree[i][j];
+                const double acMass       = tree()->getClusterMass(i,j);
+                const Vec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
+                const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+
+                Vec3 vCM = Vec3( ConstRSubVec6(acSpatialVel,3,3).vector() )
+                                 - cross( ConstRSubVec6(acSpatialVel,0,3).vector() , 
+                                          n->getAtom(0)->pos - acCOM_G ); 
+                velCM += acMass * vCM;
             }
         velCM /= mass;
 
         Vec3 L(0.0); // angular momentum excluding internal rotations
         for (l_int i=1 ; i<tree()->nodeTree.size() ; i++)
             for (int j=0 ; j<tree()->nodeTree[i].size() ; j++) {
-                const AtomClusterNode* n = tree()->nodeTree[i][j];
-                Vec3 vCM = Vec3( ConstRSubVec6(n->getSpatialVel(),3,3).vector() ) - 
-                                cross( ConstRSubVec6(n->getSpatialVel(),0,3).vector() , 
-                                        n->getAtom(0)->pos - n->posCM() ); 
-                L += n->mass() * cross( n->posCM() - posCM , vCM - velCM );
+                const AtomClusterNode* n  = tree()->nodeTree[i][j];
+                const double acMass       = tree()->getClusterMass(i,j);
+                const Vec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
+                const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+
+                Vec3 vCM = Vec3( ConstRSubVec6(acSpatialVel,3,3).vector() ) - 
+                                cross( ConstRSubVec6(acSpatialVel,0,3).vector() , 
+                                        n->getAtom(0)->pos - acCOM_G ); 
+                L += acMass * cross( acCOM_G - posCM , vCM - velCM );
             }
         cout << "resetCM: after reset: velCM: " << velCM << "overall AM: " << L << '\n';
     }

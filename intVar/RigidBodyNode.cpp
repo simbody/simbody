@@ -133,7 +133,6 @@ public:
 
     /*virtual*/void calcP() {} 
     /*virtual*/void calcZ(const Vec6&) {} 
-    /*virtual*/void calcPandZ(const Vec6&) {} 
     /*virtual*/void calcY() {}
     /*virtual*/void calcInternalForce(const Vec6&) {}
     /*virtual*/void calcAccel() {}
@@ -215,6 +214,18 @@ public:
     virtual void setJointVel(const RVec& velv) {
         dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
     }
+    virtual void getPos(RVec& p) const {
+        RSubVec(p,stateOffset,dof) = theta.vector();
+    }
+    virtual void getVel(RVec& v) const {
+        RSubVec(v,stateOffset,dof) = dTheta.vector();
+    }   
+    virtual void getAccel(RVec& a) const {
+        RSubVec(a,stateOffset,dof) = ddTheta.vector();
+    }
+    virtual void getInternalForce(RVec& t) const {
+        RSubVec(t,stateOffset,dof) = forceInternal.vector();
+    }
 
     int          getDOF() const { return dof; }
     virtual int  getDim() const { return dof; } // dim can be larger than dof
@@ -225,21 +236,15 @@ public:
     virtual void setVelFromSVel(const Vec6&);
     virtual void enforceConstraints(RVec& pos, RVec& vel) {}
 
-    virtual void getPos(RVec&)   const;
-    virtual void getVel(RVec&)   const;
-    virtual void getAccel(RVec&) const;
-    virtual void getInternalForce(RVec&) const;
     virtual RMat getH() const { return RMat(H); }
 
-    void calcPandZ(const Vec6& spatialForce) { calcP(); calcZ(spatialForce); }
     void calcP();
     void calcZ(const Vec6& spatialForce);
-    virtual void calcY();
+    void calcY();
     void calcAccel();
     void calcInternalForce(const Vec6& spatialForce);
     void prepareVelInternal();
     void propagateSVel(const Vec6& desiredVel);
-    void calcD_G(const Mat66& P);
 protected:
     // These are the joint-specific quantities
     //      ... position level
@@ -257,6 +262,9 @@ protected:
     FixedVector<double,dof>     nu;
     FixedVector<double,dof>     epsilon;
     FixedVector<double,dof>     forceInternal;
+
+private:
+    void calcD_G(const Mat66& P);
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
@@ -346,13 +354,7 @@ private:
         const Vec3 z = getR_GP() * (R_BJ * Vec3(0,0,1)); // R_BJ=R_PJi
         FixedMatrix<double,1,3> zMat(0.0);
         H = blockMat12( FixedMatrix<double,1,3>(z.getData()) , zMat);
-    }
-
-    void getInternalForce(RVec& v) {
-        double torque = forceInternal(0);
-        //torque *= DEG2RAD; ??
-        v(stateOffset) = torque;
-    }   
+    }  
 };
 
 /**
@@ -709,13 +711,7 @@ private:
 
         const Mat23 zMat23(0.0);
         H = blockMat12(catRow23(x,y) , zMat23);
-    }
-
-    void getInternalForce(RVec& v) {
-        FixedVector<double,2> torque = forceInternal;
-        //   torque *= DEG2RAD; ??
-        RSubVec(v,stateOffset,2)   = torque.vector();
-    }   
+    }  
 };
 
 /**
@@ -775,14 +771,7 @@ private:
         const Mat23 zMat23(0.0);
         H = blockMat22(catRow23(x,y) , zMat23 ,
                         zero33       , MatrixTools::transpose(getR_GP()));
-    }
-
-    void getInternalForce(RVec& v) {
-        FixedVector<double,2> torque = RSubVec5(forceInternal, 0, 2).vector();
-        //torque *= DEG2RAD; ??
-        RSubVec(v,stateOffset,2)   = torque.vector();
-        RSubVec(v,stateOffset+2,3) = RSubVec5(forceInternal,2,3).vector();
-    }   
+    }  
 };
 
 
@@ -791,115 +780,13 @@ private:
 /////////////////////////////////////////////////////////////
 
 
-//template<int dof>
-//void 
-//RigidBodyNodeSpec<dof>::velFromCartesian()
-//  //
-//  // calculate relative spatial velocities
-//  //
-//{
-// // firstStep = 0;
-// // const Node* pNode = parentHinge.remNode;
-// // these must can be calc'd now - FIX placement
-// inertia.calc( atoms[0]->pos , atoms ); 
-// calcPhi( atoms[0]->pos - parent->atoms[0]->pos );
 //
-// // if ( level>1 ) { // base node is taken care of in AtomTree::calcVel
-// Vec3 omega = Vec3::subVec( parent->vel, 0, 2 );
-// if ( atoms.size()>2 ) {
-//   Vec3 L(0.0); // angular momentum
-//   for (int i=1 ; i<atoms.size() ; i++)
-//     L += atoms[i]->mass *
-//	      cross( atoms[i]->pos - atoms[0]->pos , 
-//		     atoms[i]->vel - atoms[0]->vel);
-//   omega = inverse(inertia) * L; // hopefully inertia is of full rank
-//   //FIX: should this be included?
-////   if ( level==2 && parent->atoms.size()==1 ) {
-////     // correct the component of angular velocity about the bond to the
-////     // parent node- with a base node consisting of one atom, omega
-////     // is not entirely independent of remNode->omega
-////     Vec3 u = atoms[0]->pos - parentAtom->pos;
-////     u /= norm(u);
-////     omega += (dot(u , Vec3::subVec( parent->vel, 0, 2 ) )-
-////		 dot(u , omega                             )) * u;
-////   }
-// } else if ( atoms.size()==2 ) {
-//   Vec3 r = atoms[1]->pos - atoms[0]->pos;
-//   omega = 1.0/abs2(r) *
-//	       cross( r , atoms[1]->vel - atoms[0]->vel );
-////   if ( level==1 && children.size() ) {
-////     // but it is specified in this case
-////     Vec3 q1 = atoms[0]->pos;    	  Vec3 v1 = atoms[0]->vel;
-////     Vec3 q2 = atoms[1]->pos;    	  Vec3 v2 = atoms[1]->vel;
-////     Vec3 q3 = children[0]->atoms[0]->pos;Vec3 v3 = children[0]->atoms[0]->vel;
-////     double a = dot( cross(q2-q1,q3-q2) ,
-////		       (v3-v2) - dot(q3-q2,q2-q1)*(v2-v1)/sq(norm(q2-q1))) /
-////		  sq(norm( cross(q2-q1,q3-q2)));
-////     omega += a * (q2-q1);
-////   } else {
-//     // component along bond is not specified- it should be same as that
-//     // for parent node.
-//     Vec3 u = unitVec( atoms[1]->pos - atoms[0]->pos );
-//     omega += dot(u , Vec3::subVec( parent->vel, 0, 2 ) ) * u;
-//     //   }
-// }
+// to be called from base to tip.
 //
-// // this velocity (velV) may have components inconsistent with the allowed 
-// // internal degrees of freedom- they are projected out in the 
-// // Hinge::calcVel call
-//
-// // parentHinge.calcVel( vel , pNode->vel );
-// // calc velocity of internal coordinates
-// calcH();  // build H
-// 
-// //
-// // recalc. the cartesian velocity so it is consistent with that of a 
-// // rigid body
-// //
-// posCM_.set( 0.0 );
-// mass_ = 0; //should be calc'd beforehand - once.
-// for (int i=0 ; i<atoms.size() ; i++) {
-//   Atom* a = atoms[i];
-//   posCM_ += a->mass * a->pos;
-//   mass_ += a->mass;
-// }
-// posCM_ /= mass_;
-//
-// Vec3 velCM(0.0);
-// for (l_int i=0 ; i<atoms.size() ; i++)
-//   velCM += atoms[i]->mass * atoms[i]->vel;
-// velCM /= mass_;
-// for (l_int i=0 ; i<atoms.size() ; i++) 
-//   atoms[i]->vel = velCM +
-//		     cross( omega , atoms[i]->pos-posCM_ );
-// vel = blockVec( omega , atoms[0]->vel );
-// // the next line assumes that the columns of H are normalized: if not
-// // this function must be specilized in the Node specialization
-// // FixedVector<double,dof> oldDTheta = dTheta;
-// dTheta = H * (vel - transpose(phi) * parent->vel);
-//// if ( norm( dTheta-oldDTheta) > 1e-8 ) 
-////   cout << "calcVel: dTheta is inconsistent:\n"
-////	  << "\toldDTheta: " << oldDTheta << '\n'
-////	  << "\t   dTheta: " << dTheta    << '\n';
-// calcProps();
-// 
-//} /* RigidBodyNodeSpec::velFromCartesian */
-
-//
-// Calculate acceleration in internal coordinates.
-// (Base to tip)
-//
-template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel() {
-    // const Node* pNode = parentHinge.remNode;
-    //make sure that this is phi is correct - FIX ME!
-    // base alpha = 0!!!!!!!!!!!!!
-    Vec6 alphap = transpose(phi) * parent->sAcc;
-    ddTheta = nu - MatrixTools::transpose(G) * alphap;
-
-    sAcc   = alphap + MatrixTools::transpose(H) * ddTheta + a;  
+template<int dof> void
+RigidBodyNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
+    dTheta = H * (sVel - transpose(phi)*parent->sVel);
 }
-
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
@@ -917,51 +804,6 @@ RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
         throw Exception("calcD_G: singular D matrix. Bad topology?");
     }
     G = P * MatrixTools::transpose(H) * DI;
-}
-
-
-//
-// to be called from base to tip.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
-    dTheta = H * (sVel - transpose(phi)*parent->sVel);
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::getPos(RVec& v) const {
-    RSubVec(v,stateOffset,dof) = theta.vector();
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::getVel(RVec& v) const {
-    RSubVec(v,stateOffset,dof) = dTheta.vector();
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::print(int verbose) const {
-    if (verbose&InternalDynamics::printNodeForce) 
-        cout << setprecision(8)
-             << ": force: " << forceCartesian << '\n';
-    if (verbose&InternalDynamics::printNodePos) 
-        cout << setprecision(8)
-             << ": pos: " << OB_G << ' ' << '\n';
-    if (verbose&InternalDynamics::printNodeTheta) 
-        cout << setprecision(8)
-             << ": theta: " 
-             << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';
-}
-
-// Called after calcAccel.
-template<int dof> void
-RigidBodyNodeSpec<dof>::getAccel(RVec& v) const {
-    RSubVec(v,stateOffset,dof) = ddTheta.vector();
-}
-
-// CalcInternalForce has been called previously.
-template<int dof> void
-RigidBodyNodeSpec<dof>::getInternalForce(RVec& v) const {
-    RSubVec(v,stateOffset,dof) = forceInternal.vector();
 }
 
 //
@@ -1019,6 +861,21 @@ RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
     epsilon  = forceInternal - H*z;
     nu       = DI * epsilon;
     Gepsilon = G * epsilon;
+}
+
+//
+// Calculate acceleration in internal coordinates.
+// (Base to tip)
+//
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcAccel() {
+    // const Node* pNode = parentHinge.remNode;
+    //make sure that this is phi is correct - FIX ME!
+    // base alpha = 0!!!!!!!!!!!!!
+    Vec6 alphap = transpose(phi) * parent->sAcc;
+    ddTheta = nu - MatrixTools::transpose(G) * alphap;
+
+    sAcc   = alphap + MatrixTools::transpose(H) * ddTheta + a;  
 }
 
 // To be called base to tip.
@@ -1081,6 +938,22 @@ RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& desiredVel) {
     for (int i=0 ; i<children.size() ; i++)
         sAcc += children[i]->phi * children[i]->sAcc;
     forceInternal = H * sAcc;
+}
+
+
+
+template<int dof> void
+RigidBodyNodeSpec<dof>::print(int verbose) const {
+    if (verbose&InternalDynamics::printNodeForce) 
+        cout << setprecision(8)
+             << ": force: " << forceCartesian << '\n';
+    if (verbose&InternalDynamics::printNodePos) 
+        cout << setprecision(8)
+             << ": pos: " << OB_G << ' ' << '\n';
+    if (verbose&InternalDynamics::printNodeTheta) 
+        cout << setprecision(8)
+             << ": theta: " 
+             << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';
 }
 
 /////////////////////////////////////
