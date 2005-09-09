@@ -352,7 +352,7 @@ CDSList<T>::append(const T member) // this calls the copy constructor
 
 template<class T>
 const T& 
-CDSList<T>::prepend(const T &member) // this calls the copy constructor
+CDSList<T>::prepend(const T& member) // this calls the copy constructor
 {
  splitRep();
 
@@ -370,7 +370,7 @@ CDSList<T>::prepend(const T &member) // this calls the copy constructor
 
 template<class T> 
 int
-CDSList<T>::getIndex(const T &member) const
+CDSList<T>::getIndex(const T& member) const
 {
  for (int i=0 ; i<size() ; i++)
    if ( rep->data[i] == member )
@@ -382,7 +382,7 @@ CDSList<T>::getIndex(const T &member) const
 
 template<class T> 
 bool
-CDSList<T>::contains(const T &member) const
+CDSList<T>::contains(const T& member) const
 {
  if ( getIndex(member) >= 0 )
    return 1;
