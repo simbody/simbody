@@ -7,21 +7,19 @@
 #include "RigidBodyTree.h"
 #include "RigidBodyNode.h"
 
-#include "dint-loop.h"
-
 #include "vec3.h"
 
-#include <sthead.h>
-#include <cdsMath.h>
-#include <cdsString.h>
-#include <cdsSStream.h>
-#include <cdsVector.h>
-#include <fixedVector.h>
-#include <subVector.h>
-#include <fixedMatrix.h>
-#include <matrixTools.h>
-#include <cdsIomanip.h>
-#include <cdsFstream.h>
+#include "sthead.h"
+#include "cdsMath.h"
+#include "cdsString.h"
+#include "cdsSStream.h"
+#include "cdsVector.h"
+#include "fixedVector.h"
+#include "subVector.h"
+#include "fixedMatrix.h"
+#include "matrixTools.h"
+#include "cdsIomanip.h"
+#include "cdsFstream.h"
 
 using namespace InternalDynamics;
 using MatrixTools::inverse;

@@ -144,7 +144,6 @@ protected:
     double currentTemp_;
     double dEpred_;      //predicted reduction in E - for powell's method
 
-    CDSList<Loop> loops;
     CDSList<Pair> constraintList;
 
     void groupTorsion(const AtomClusterNode*);

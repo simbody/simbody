@@ -69,7 +69,6 @@ PublicIVM::init()
             atoms[ b ]->bonds.append( atoms[ a ] );
         }
 
-    loops.resize(0);
     initTopology();
     modified.clear();
 }

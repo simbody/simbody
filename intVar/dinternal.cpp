@@ -459,7 +459,6 @@ IVM::initAtoms(const int     natom,
     atoms[0] = new IVMAtom(0,0.);   // Ground's origin 'atom' (station)
     for (l_int i=1 ; i<=natom ; i++)
         atoms[i] = new IVMAtom(i,massA[i-1]);
-    loops.resize(0);
     cout.precision(8);
 }
 

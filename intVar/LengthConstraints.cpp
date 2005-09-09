@@ -22,17 +22,17 @@
 #include "vec3.h"
 #include "cdsListAutoPtr.h"
 #include "RVec.h"
-#include <cdsMath.h>
-#include <cdsMatrix.h>
-#include <fixedVector.h>
-#include <cdsVector.h>
-#include <subVector.h>
-#include <subMatrix.h>
-#include <matrixTools.h>
+#include "cdsMath.h"
+#include "cdsMatrix.h"
+#include "fixedVector.h"
+#include "cdsVector.h"
+#include "subVector.h"
+#include "subMatrix.h"
+#include "matrixTools.h"
 
-#include <newtonRaphson.h>
+#include "newtonRaphson.h"
 
-#include <cdsIomanip.h>
+#include "cdsIomanip.h"
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
@@ -45,6 +45,7 @@ typedef SubVector<RVec>       SubVec;
 typedef SubVector<const RVec> ConstSubVec;
 typedef SubMatrix<RMat>       SubMat;
 
+class LoopWNodes;
 static int compareLevel(const LoopWNodes& l1,    //forward declarations
                         const LoopWNodes& l2);
 
@@ -63,42 +64,42 @@ class BadNodeDef {};  //exception
  * node or if they are on different molecules.
  */
 class LoopWNodes {
-    AtomClusterNode*                base; // highest-level common ancestor of tips
+    AtomClusterNode*          base; // highest-level common ancestor of tips
     FixedVector<IVMAtom*,2,1> tips; // the two connected atoms, sorted so that
                                     //   tips(1).level <= tips(2).level
     FixedVector<NodeList,2,1> nodes;// the two paths: base..tip1, base..tip2,
                                     //   incl. tip nodes but not base
-    const AtomClusterNode*          moleculeNode;
+    const AtomClusterNode*    moleculeNode;
 public:
     LoopWNodes() {}
-    LoopWNodes(const Loop& l);
+    LoopWNodes(const AtomLoop& l);
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend void LengthConstraints::construct(CDSList<Loop>&);
+    friend void LengthConstraints::construct(CDSList<AtomLoop>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
     friend bool sameBranch(const AtomClusterNode* tip,
                            const LoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const Loop& l) 
+LoopWNodes::LoopWNodes(const AtomLoop& l) 
 {
     using InternalDynamics::Exception;
 
 
-    if ( l.tip1->node == l.tip2->node ) {
+    if ( l.getTip1()->node == l.getTip2()->node ) {
         cout << "LoopWNodes::LoopWNodes: bad topology:\n\t"
-             << "loop atoms " << l.tip1
-             << " and  "      << l.tip2
+             << "loop atoms " << l.getTip1()
+             << " and  "      << l.getTip2()
              << " are now in the same node. Deleting loop.\n";
         throw BadNodeDef();
     }
 
     // Ensure that tips(2) is the atom which is farther from the base.
-    if ( l.tip1->node->getLevel() > l.tip2->node->getLevel() )
-         tips(1) = l.tip2, tips(2) = l.tip1;
-    else tips(1) = l.tip1, tips(2) = l.tip2;
+    if ( l.getTip1()->node->getLevel() > l.getTip2()->node->getLevel() )
+         tips(1) = l.getTip2(), tips(2) = l.getTip1();
+    else tips(1) = l.getTip1(), tips(2) = l.getTip2();
 
     // Collect up the node path from tips(2) down to the last node on its
     // side of the loop which is at a higher level than tips(1) (may be none).
@@ -148,12 +149,12 @@ typedef CDSList<LoopWNodes> LoopList;
 
 class LengthSet {
     static void construct(const LoopList& loops);
-    const LengthConstraints* lConstraints;
-    IVM*                     ivm;
-    LoopList                 loops;    
-    CDSList<double>          lengths;
-    int                      dim;
-    CDSList<AtomClusterNode*>      nodeMap; //unique nodes (intersection of loops->nodes)
+    const LengthConstraints*  lConstraints;
+    IVM*                      ivm;
+    LoopList                  loops;    
+    CDSList<double>           lengths;
+    int                       dim;
+    CDSList<AtomClusterNode*> nodeMap; //unique nodes (intersection of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
         : lConstraints(lConstraints), ivm(lConstraints->ivm), dim(0)
@@ -167,8 +168,8 @@ public:
         loops.append( LoopWNodes(loop) );
         lengths.append( sqrt(abs2(loop.tips(1)->pos - loop.tips(2)->pos)) );
         for (int b=1 ; b<=2 ; b++)
-            for (int i=0 ; i<loop.nodes(b).size() ; i++)
-                if ( !nodeMap.contains(loop.nodes(b)[i]) ) {
+            for (int i=0; i<loop.nodes(b).size(); i++)
+                if (!nodeMap.contains(loop.nodes(b)[i])) {
                     dim += loop.nodes(b)[i]->getDim();
                     nodeMap.append( loop.nodes(b)[i] );
                 }
@@ -318,7 +319,7 @@ LengthSet::determineCouplings()
 
 //static bool
 //sameBranch(const AtomClusterNode* tip,
-//         const LoopWNodes& l )
+//           const LoopWNodes& l )
 //{
 // for ( const AtomClusterNode* node=tip ;
 //     node->levelA()            ;
@@ -330,11 +331,11 @@ LengthSet::determineCouplings()
 
 //1) construct: given list of loops 
 //   a) if appropriate issue warning and exit.
-//   b) sort by node 1 of each loop.
+//   b) sort by base node of each loop.
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
 void
-LengthConstraints::construct(CDSList<Loop>& iloops)
+LengthConstraints::construct(CDSList<AtomLoop>& iloops)
 {
     //clean up
     priv->constraints.resize(0);
@@ -353,12 +354,12 @@ LengthConstraints::construct(CDSList<Loop>& iloops)
         catch ( BadNodeDef ) {}
     }
 
-    // sort loops by nodes[0]->level
+    // sort loops by base->level
     loops.sort(compareLevel);
     LoopList accLoops = loops;  //version for acceleration
 
     // find intersections -- this version keeps hierarchical loops distinct
-    for (l_int i=0 ; i<loops.size() ; i++) {
+    for (int i=0 ; i<loops.size() ; i++) {
         priv->constraints.append( new LengthSet(this, loops[i]) );
         for (int j=i+1 ; j<loops.size() ; j++)
             for (int k=0 ; k<priv->constraints.size() ; k++)
@@ -376,7 +377,7 @@ LengthConstraints::construct(CDSList<Loop>& iloops)
     }
 
     // find intersections - group all loops with tip->trunk relationship
-    for (l_int i=0 ; i<accLoops.size() ; i++) {
+    for (int i=0 ; i<accLoops.size() ; i++) {
         priv->accConstraints.append( new LengthSet(this, accLoops[i]) );
         for (int j=i+1 ; j<accLoops.size() ; j++)
             if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
@@ -396,12 +397,6 @@ LengthConstraints::construct(CDSList<Loop>& iloops)
 
     for (l_int i=0 ; i<priv->accConstraints.size() ; i++)
         priv->accConstraints[i]->determineCouplings(); // XXX not implemented
-
-    // int compareBaseNodeLevel(const LengthSet& l1,
-    //                const LengthSet& l2) {
-    //   return ( (l1->baseAtom() > l2->baseAtom())?1 :
-    //          ( (l1->baseAtom()==l2->baseAtom())?0 : -1) );
-    // constraints.sort(compareBaseNodeLevel);
 
     if (priv->constraints.size()>0 && ivm->verbose()&InternalDynamics::printLoopInfo) {
         cout << "LengthConstraints::construct: pos/vel length constraints found:\n";
@@ -502,8 +497,8 @@ class CalcVelZ {
     const LengthSet* constraint;
     const RMat       gInverse;
 public:
-    CalcVelZ(const LengthSet* constraint) : 
-    constraint(constraint), gInverse(constraint->calcGInverse()) {}
+    CalcVelZ(const LengthSet* constraint)
+      : constraint(constraint), gInverse(constraint->calcGInverse()) {}
     RVec operator()(const RVec& b) {
         RVec dir = gInverse * b;
         RVec z(constraint->ivm->dim(),0.0);
@@ -537,7 +532,7 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
                               CalcPosB(priv->constraints[i].get(),vel),
                               CalcPosZ(priv->constraints[i].get()));
         }
-        for (l_int i=0 ; i<priv->constraints.size() ; i++) {
+        for (int i=0 ; i<priv->constraints.size() ; i++) {
             if ( ivm->verbose()&InternalDynamics::printLoopDebug )
                 cout << "LengthConstraints::enforce: velocity " 
                      << *priv->constraints[i] << '\n';
@@ -590,7 +585,8 @@ LengthSet::setPosVel(const RVec& pos,
 ////
 //
 
-// Presumes that calcEnergy has been called previously with current 
+// Calculate gradient by finite difference for testing the analytic
+// version. Presumes that calcEnergy has been called previously with current 
 // value of ipos.
 void 
 LengthSet::fdgradf( const RVec& pos,
@@ -695,16 +691,21 @@ abs2(const RMat& m)
 }
 
 //
-// calculate generalized inverse which minimizes changes in soln vector
-//
+// Calculate generalized inverse which minimizes changes in soln vector.
+// TODO (sherm) I THINK this is trying to create a pseudoinverse
+// using normal equations which is numerically bad. Should use an SVD
+// or QTZ factorization instead.
+//     Want least squares solution x to G'x=b. Normal equations are
+//     GG'x=Gb, x=inv(GG')Gb ??? [returning G inv(G'G) below] ???
+//     ??? either this is wrong or I don't understand
 RMat
 LengthSet::calcGInverse() const
 {
-    RMat grad = calcGrad();
+    RMat grad = calcGrad(); // <-- appears to be transpose of the actual dg/dtheta
     if ( ivm->verbose() & InternalDynamics::printLoopDebug )
         testGrad(ivm->tree()->getPos(),grad);
 
-    RMat ret(grad.rows(),grad.rows(),0.0);
+    RMat ret(grad.rows(),grad.rows(),0.0); // <-- wrong dimension ??? sherm TODO
     if ( abs2(grad) > 1e-10 ) 
         ret = grad * inverse( MatrixTools::transpose(grad)*grad );
     return ret;
@@ -1073,6 +1074,13 @@ LengthSet::fixVel0(RVec& iVel)
     for (int m=0 ; m<loops.size() ; m++) {
         iVel.set(0.0);
         ivm->tree()->setVel( iVel );
+        // sherm: I think the following is a unit velocity, projected
+        // along the separation vector, and then scaled by mass. 
+        // That would explain the fact that there are no velocities here!
+        // TODO: this doesn't seem wise to me -- the scaling should be
+        // inertia weighted like the initial condition method, rather than
+        // atom weighted as here -- these two atoms are going to drag their
+        // whole bodies with them.
         loops[m].tips(2)->vel  = (loops[m].tips(2)->pos-loops[m].tips(1)->pos);
         loops[m].tips(1)->vel  = -loops[m].tips(2)->vel / loops[m].tips(1)->mass;
         loops[m].tips(2)->vel /=  loops[m].tips(2)->mass;

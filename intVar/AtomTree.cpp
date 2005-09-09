@@ -45,13 +45,13 @@ typedef FixedMatrix<double,6> Mat66;
 class AT_Build {
 public:
     IVM* ivm;
-    CDSList<Loop>& loops;
+    CDSList<AtomLoop>& loops;
     AtomTree* const tree;
     CDSVector<bool,0> assignedAtoms; //used in locating cycle links
     AT_Build(IVM*,
              AtomTree* const, 
              AtomClusterNode*,
-             CDSList<Loop>&);
+             CDSList<AtomLoop>&);
     void buildAtomClusterNode(AtomClusterNode*);
 };
 
@@ -172,14 +172,14 @@ AtomTree::destructNode(AtomClusterNode* n) {
     delete n;
 }
 
-AT_Build::AT_Build( IVM*             ivm,
-                    AtomTree* const  tree,
-                    AtomClusterNode* node,
-                    CDSList<Loop>&   loops)
-  : ivm(ivm), loops(loops), tree(tree), 
+AT_Build::AT_Build( IVM*                ivm,
+                    AtomTree*           atree,
+                    AtomClusterNode*    acnode,
+                    CDSList<AtomLoop>&  aloops)
+  : ivm(ivm), loops(aloops), tree(atree), 
     assignedAtoms(tree->ivm->getAtoms().size(),0)
 {
-    buildAtomClusterNode(node);
+    buildAtomClusterNode(acnode);
 }
 
 int AtomTree::getIVMDim() const {
@@ -290,7 +290,7 @@ AtomTree::addMolecule(AtomClusterNode* groundNode,
     groundNode->addChild(baseNode);
 
     // build up non-fixed proto- hnodes
-    AT_Build b(ivm,this,baseNode,ivm->loops); 
+    AT_Build b(ivm,this,baseNode,loops); 
 }
 
 static void
@@ -316,17 +316,17 @@ AtomTree::AtomTree(IVM* ivm_)
     if ( ivm->atoms.size() == 0 ) return;
 
     CDSVector<bool,0> assignedAtoms( ivm->getAtoms().size() , false );
-    ivm->loops.resize(0);
+    loops.resize(0);
     for (int i=0 ; i<ivm->constraintList.size() ; i++)
-        ivm->loops.append( Loop(ivm->atoms[ ivm->constraintList[i].a ] ,
-                                ivm->atoms[ ivm->constraintList[i].b ]) );
+        loops.append( AtomLoop(ivm->atoms[ ivm->constraintList[i].a ] ,
+                               ivm->atoms[ ivm->constraintList[i].b ]) );
 
     mergeGroups( ivm->groupList );
 
     //build proto-AtomClusterNodes attached to fixed atoms
 
     AtomClusterNode* groundNode = new AtomClusterNode( ivm, ivm->atoms[0], 0, 0 );
-    AT_Build b(ivm,this,groundNode,ivm->loops); 
+    AT_Build b(ivm,this,groundNode,loops); 
     addAtomClusterNode(groundNode);
     markAtoms( assignedAtoms );
 
@@ -355,7 +355,7 @@ AtomTree::AtomTree(IVM* ivm_)
     int cnt=1; //offset into pos, vel, acc
     nodeTree[0][0] = AtomClusterNode::constructFromPrototype( nodeTree[0][0] , "ground" , cnt);
     // i==1 are base nodes
-    for (l_int i=1 ; i<nodeTree.size() ; i++)
+    for (int i=1 ; i<nodeTree.size() ; i++)
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
             AtomClusterNode* n = nodeTree[i][j];
             HingeSpec hingeSpec("unknown");
@@ -367,7 +367,7 @@ AtomTree::AtomTree(IVM* ivm_)
         }
 
     ivm->dof_ = getDOF();
-    ivm->lConstraints->construct(ivm->loops);
+    ivm->lConstraints->construct(loops);
 }
 
 void
@@ -460,7 +460,7 @@ AT_Build::buildAtomClusterNode(AtomClusterNode* node)
                          << "\tremoving bond." << endl;
 
                     if ( ivm->useLengthConstraints() ) {
-                        loops.append( Loop(cAtom,atom) );
+                        loops.append( AtomLoop(cAtom,atom) );
                         cout << "\tadding constraint\n" ;
                     }
 

@@ -3,6 +3,7 @@
 
 #include "cdsList.h"
 #include "cdsVector.h"
+//#include "dint-loop.h"
 
 #include "RigidBodyTree.h"
 
@@ -12,6 +13,22 @@ class IVMAtom;
 class AT_Build;
 typedef CDSList<IVMAtom*>     AtomList;
 typedef CDSList<AtomClusterNode*>   AtomClusterNodeList;
+
+
+class AtomLoop {
+public:
+    AtomLoop() {}
+    AtomLoop(IVMAtom* baseAtom, IVMAtom* tipAtom)
+      : tip1(baseAtom), tip2(tipAtom)
+    { }
+
+    IVMAtom* getTip1() const { return tip1; }
+    IVMAtom* getTip2() const { return tip2; }
+
+protected:
+    IVMAtom* tip1;
+    IVMAtom* tip2;
+};
 
 /**
  * AtomTree owns the atom cluster tree, partioning the IVM-owned atoms into interconnected
@@ -27,6 +44,8 @@ class AtomTree {
 public:
     IVM*                         ivm;       // owner of the atoms
     CDSList<AtomClusterNodeList> nodeTree;  // the atom cluster tree
+    CDSList<AtomLoop>            loops;
+
 private:
     RigidBodyTree rbTree;                   // the pure rigid body tree
     VecVec6       spatialForces;
