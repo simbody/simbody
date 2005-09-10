@@ -2,12 +2,11 @@
 #define __dinternal_hh__
 
 //ugly that I have to include these...
-#include <cdsList.h>
-#include <cdsString.h>
-#include <cdsVector.h>
-#include <cdsPair.h>
+#include "cdsList.h"
+#include "cdsString.h"
+#include "cdsVector.h"
+#include "cdsPair.h"
 
-#include "dint-loop.h"
 #include "internalDynamics.h"
 
 class IVMAtom;
@@ -16,7 +15,6 @@ class AT_Build;
 class Vec3;
 class AtomClusterNode;
 class Solver;
-class LengthConstraints;
 
 typedef CDSList< IVMAtom* >     AtomList;
 typedef CDSVector<double,1>     RVec;   // first element has index 1
@@ -117,7 +115,6 @@ public:
 protected:
     AtomTree*          tree_;
     Solver*            solver_;
-    LengthConstraints* lConstraints;
 
     int dof_;   //number of degrees of freedom
     int dim_;   //number of degrees of freedom+constraints

@@ -14,7 +14,6 @@
 
 #include "dint-step.h"
 #include "dint-atom.h"
-#include "dint-loop.h"
 
 #include "simulationWorld.h"
 #include "simulation.h"

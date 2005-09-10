@@ -7,19 +7,19 @@
 
 #include "dinternal.h"
 #include "dint-step.h"
-#include "dint-loop.h"
 #include "dint-atom.h"
 
-#include <cdsAuto_arr.h>
-#include <cdsAuto_ptr.h>
+#include "cdsAuto_arr.h"
+#include "cdsAuto_ptr.h"
 
-#include <sthead.h>
-#include <cdsList.h>
-#include <cdsVector.h>
-#include <cdsString.h>
-#include <fixedVector.h>
-#include <cdsIomanip.h>
-#include <math.h>
+#include "sthead.h"
+#include "cdsList.h"
+#include "cdsVector.h"
+#include "cdsString.h"
+#include "fixedVector.h"
+#include "cdsIomanip.h"
+
+#include <cmath>
 
 static int fcnt = 0;
 

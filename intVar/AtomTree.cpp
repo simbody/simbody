@@ -9,8 +9,7 @@
 
 #include "AtomClusterNode.h"
 #include "RigidBodyNode.h"
-
-#include "dint-loop.h"
+#include "LengthConstraints.h"
 
 #include "dint-atom.h"
 #include "vec3.h"
@@ -56,6 +55,7 @@ public:
 };
 
 AtomTree::~AtomTree() {
+    delete lConstraints;
     for (int i=0; i<nodeTree.size(); i++) {
         for (int j=0 ; j<nodeTree[i].size() ; j++) 
             delete nodeTree[i][j];
@@ -142,7 +142,7 @@ RVec AtomTree::calcGetAccel() {
 RVec AtomTree::getAccel() {
     calcZ();
     rbTree.calcTreeAccel();
-    ivm->lConstraints->fixAccel();
+    lConstraints->fixAccel();
     RVec acc(getIVMDim()); 
     rbTree.getAcc(acc);
     return acc;
@@ -152,13 +152,13 @@ RVec AtomTree::getInternalForce() {
     calcSpatialForces();
     rbTree.calcTreeInternalForces(spatialForces);
     RVec T(getIVMDim());
-    ivm->lConstraints->fixGradient(T);
+    lConstraints->fixGradient(T);
     return T;
 }
 
 void AtomTree::enforceConstraints(RVec& pos, RVec& vel) { 
     rbTree.enforceTreeConstraints(pos,vel); 
-    ivm->lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
+    lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
 }
 
 //
@@ -311,11 +311,13 @@ mergeGroups(CDSList< CDSList<int> >& gList) {
 // Construct AtomClusterNode tree consisting of all molecules.
 //
 AtomTree::AtomTree(IVM* ivm_)
-  : ivm(ivm_)
+  : ivm(ivm_), lConstraints(0)
 {
     if ( ivm->atoms.size() == 0 ) return;
 
+    lConstraints = new LengthConstraints(ivm);
     CDSVector<bool,0> assignedAtoms( ivm->getAtoms().size() , false );
+
     loops.resize(0);
     for (int i=0 ; i<ivm->constraintList.size() ; i++)
         loops.append( AtomLoop(ivm->atoms[ ivm->constraintList[i].a ] ,
@@ -367,7 +369,7 @@ AtomTree::AtomTree(IVM* ivm_)
         }
 
     ivm->dof_ = getDOF();
-    ivm->lConstraints->construct(loops);
+    lConstraints->construct(loops);
 }
 
 void
@@ -590,7 +592,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
     // solve for desired internal velocities
     vel = calcGetAccel();
     setVel(vel);
-    ivm->lConstraints->fixVel0(vel);
+    lConstraints->fixVel0(vel);
 
     if ( ivm->verbose()&printVelFromCartCost ) {
         VecVec3 avel(ivm->atoms.size()-1);

@@ -1,5 +1,5 @@
-#ifndef __dint_loop_hh__
-#define __dint_loop_hh__
+#ifndef LENGTH_CONSTRAINTS_H_
+#define LENGTH_CONSTRAINTS_H_
 
 #include <cdsVector.h>
 
@@ -40,4 +40,4 @@ private:
 };
 
 
-#endif /* __dint_loop_hh__ */
+#endif /* LENGTH_CONSTRAINTS_H_ */

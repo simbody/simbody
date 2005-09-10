@@ -18,7 +18,7 @@
 #include "AtomClusterNode.h"
 
 #include "dint-step.h"
-#include "dint-loop.h"
+#include "LengthConstraints.h"
 
 #include "linemin.h"
 #include "dint-atom.h"
@@ -59,13 +59,11 @@ IVM::IVM()
     rvecSize_(defaultRVecSize), rvecProd_(defaultRVecProd),
     vecVec3Size_(defaultVecVec3Size), vecVec3Prod_(defaultVecVec3Prod)
 {
-    lConstraints = new LengthConstraints(this);
     tree_ = new AtomTree(this);
 }
 
 IVM::~IVM()
 {
-    delete lConstraints;
     delete solver_;
     delete tree_;
     for (int i=0 ; i<atoms.size() ; i++)

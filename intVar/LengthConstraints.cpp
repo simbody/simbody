@@ -14,7 +14,7 @@
  * Deal with loop bond-length constraints.
  */
 
-#include "dint-loop.h"
+#include "LengthConstraints.h"
 #include "dinternal.h"
 #include "AtomTree.h"
 #include "AtomClusterNode.h"
@@ -86,7 +86,6 @@ public:
 LoopWNodes::LoopWNodes(const AtomLoop& l) 
 {
     using InternalDynamics::Exception;
-
 
     if ( l.getTip1()->node == l.getTip2()->node ) {
         cout << "LoopWNodes::LoopWNodes: bad topology:\n\t"
@@ -359,6 +358,10 @@ LengthConstraints::construct(CDSList<AtomLoop>& iloops)
     LoopList accLoops = loops;  //version for acceleration
 
     // find intersections -- this version keeps hierarchical loops distinct
+    // sherm: the loops are considered coupled if a lower one includes the
+    // first body up from the base along either branch of the upper one (if
+    // it doesn't include that it can't include any further up the branch either).
+    // This makes good sense to me.
     for (int i=0 ; i<loops.size() ; i++) {
         priv->constraints.append( new LengthSet(this, loops[i]) );
         for (int j=i+1 ; j<loops.size() ; j++)
@@ -377,6 +380,9 @@ LengthConstraints::construct(CDSList<AtomLoop>& iloops)
     }
 
     // find intersections - group all loops with tip->trunk relationship
+    // TODO sherm: I don't understand why these have to be more coupled than
+    // the pos/vel constraints. (This code couples all the loops on the same
+    // molecule).
     for (int i=0 ; i<accLoops.size() ; i++) {
         priv->accConstraints.append( new LengthSet(this, accLoops[i]) );
         for (int j=i+1 ; j<accLoops.size() ; j++)
@@ -537,8 +543,8 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
                 cout << "LengthConstraints::enforce: velocity " 
                      << *priv->constraints[i] << '\n';
             priv->velMin.calc(vel,
-            CalcVelB(priv->constraints[i].get(),pos),
-            CalcVelZ(priv->constraints[i].get()));
+                              CalcVelB(priv->constraints[i].get(),pos),
+                              CalcVelZ(priv->constraints[i].get()));
         }
     }
     catch ( NewtonRaphson::Fail cptn ) {
@@ -635,11 +641,14 @@ LengthSet::testGrad(const RVec& pos, const RMat& grad) const
 // unitVec(q+ - q-) * d (q+ - q-) / d (theta_i)
 // d g / d theta for all hingenodes in nodemap
 //
+// sherm: this appears to calculate the transpose of G
+//
 RMat
 LengthSet::calcGrad() const
 {
     RMat grad(dim,loops.size(),0.0);
     Mat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
+
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
         FixedVector<CDSList<Mat66>,2,1> phiT;
@@ -654,12 +663,13 @@ LengthSet::calcGrad() const
                 }
             }
         }
+
         // compute gradient
         Vec3 uBond = unitVec(l.tips(2)->pos - l.tips(1)->pos);
         FixedVector<FixedMatrix<double,3,6>,2,1> J;
-        for (l_int b=1 ; b<=2 ; b++)
+        for (int b=1 ; b<=2 ; b++)
             J(b) = blockMat12(-crossMat(l.tips(b)->pos -
-                              l.tips(b)->node->getAtom(0)->pos),one);
+                                        l.tips(b)->node->getAtom(0)->pos), one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
             RMat H = MatrixTools::transpose(nodeMap[j]->getH());
@@ -710,70 +720,6 @@ LengthSet::calcGInverse() const
         ret = grad * inverse( MatrixTools::transpose(grad)*grad );
     return ret;
 }
-
-//template<class CalcB,class CalcZ>
-//void
-//NewtonRaphson(RVec& x,
-//        CalcB calcB,
-//        CalcZ calcZ,
-//        const double& tol) 
-//{
-// using InternalDynamics::Exception;
-//
-// RVec0 b = calcB(x);
-// double norm = sqrt(abs2(b)) / x.size();
-// double onorm=norm;
-// int  iters=0;
-// cout.setf(ios::fixed);
-// if ( ivm->verbose&InternalDynamics::printLoopDebug )
-//   cout << "LengthSet::enforce: iter: " 
-//      << iters << "  norm: " << norm << '\n';
-// cout.unsetf(ios::fixed);
-// bool finished=(norm < tol);
-// while (!finished) {
-//   RVec ox = x;
-//   
-//   RVec z = calcZ(b);
-//   //   z *= gradStep; //gradStep should be 1
-//   x += z;
-//   
-//   iters++;
-//   
-//   b = calcB(x);
-//   norm = sqrt(abs2(b)) / x.size();
-//   
-//   if ( norm > onorm &&
-//      verbose&InternalDynamics::printLoopDebug)
-//     cout << "LengthSet::enforce: newton-Raphson failed."
-//        << " Trying gradient search.\n";
-//   
-//   int mincnt = maxMin;
-//   z *= -1.0;
-//   while ( norm > onorm ) {
-//     if ( mincnt < 1 ) 
-//       throw Exception("LengthSet::enforce: too many minimization steps taken.\n");
-//     z *= 0.5;
-//     x = ox + z;
-//     b = calcB(x);
-//     norm = sqrt(abs2(b)) / x.size();
-//     if ( verbose&InternalDynamics::printLoopDebug )
-//     cout << "LengthSet::enforce: iter: " 
-//          << iters << "  norm: " << norm << '\n';
-//     mincnt--;
-//   }
-//
-//   onorm = norm;
-//   
-//   if ( verbose&InternalDynamics::printLoopDebug )
-//     cout << "LengthSet::enforce: iter: " 
-//        << iters << "  norm: " << norm << '\n';
-//     
-//   if (norm < tol)
-//     finished=1;
-//   if (iters > maxIters) 
-//     throw Exception("LengthSet::enforce: maxiters exceeded");
-// }
-//} /* LengthConstraints::NewtonRaphson */
 
 //acceleration:
 //  0) after initial acceleration calculation:
@@ -955,8 +901,8 @@ LengthSet::testAccel()
 {
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
-        IVMAtom* t = loops[i].tips(2);
-        IVMAtom* b = loops[i].tips(1);
+        const IVMAtom* t = loops[i].tips(2);
+        const IVMAtom* b = loops[i].tips(1);
         double test= dot( getAccel(t) - getAccel(b) , t->pos - b->pos ) +
                      abs2( t->vel - b->vel );
         if ( fabs(test) > testTol )
@@ -1010,24 +956,23 @@ LengthSet::addForce(RVec& forceInternal,
 {
     int indx=1;
     for (int j=0 ; j<nodeMap.size() ; j++) {
-        int dim = nodeMap[j]->getDim();
-
+        const int dim = nodeMap[j]->getDim();
         SubVec(forceInternal, nodeMap[j]->getStateOffset(),dim)
             -= ConstSubVec(vec,indx,dim);
-        indx += nodeMap[j]->getDim();
+        indx += dim;
     }
 }
 
 void
 LengthSet::testInternalForce(const RVec& forceInternal)
 {
-    RVec vec(dim);    //build vector same size as smallMat
+    RVec vec(dim);    //build vector same size as smallMat (index from 1)
     int indx=1;
     for (int j=0 ; j<nodeMap.size() ; j++) {
-        int dim = nodeMap[j]->getDim();
+        const int dim = nodeMap[j]->getDim();
         SubVec(vec,indx,dim) = 
-        ConstSubVec(forceInternal,nodeMap[j]->getStateOffset(),dim).vector();
-        indx += nodeMap[j]->getDim();
+            ConstSubVec(forceInternal,nodeMap[j]->getStateOffset(),dim).vector();
+        indx += dim;
     }
 
     RMat grad = calcGrad();
@@ -1074,7 +1019,7 @@ LengthSet::fixVel0(RVec& iVel)
     for (int m=0 ; m<loops.size() ; m++) {
         iVel.set(0.0);
         ivm->tree()->setVel( iVel );
-        // sherm: I think the following is a unit velocity, projected
+        // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector, and then scaled by mass. 
         // That would explain the fact that there are no velocities here!
         // TODO: this doesn't seem wise to me -- the scaling should be

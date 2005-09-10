@@ -3,16 +3,17 @@
 
 #include "cdsList.h"
 #include "cdsVector.h"
-//#include "dint-loop.h"
 
 #include "RigidBodyTree.h"
 
 class AtomClusterNode;
+class LengthConstraints;
 class IVM;
 class IVMAtom;
 class AT_Build;
-typedef CDSList<IVMAtom*>     AtomList;
-typedef CDSList<AtomClusterNode*>   AtomClusterNodeList;
+
+typedef CDSList<IVMAtom*>         AtomList;
+typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
 
 
 class AtomLoop {
@@ -45,7 +46,7 @@ public:
     IVM*                         ivm;       // owner of the atoms
     CDSList<AtomClusterNodeList> nodeTree;  // the atom cluster tree
     CDSList<AtomLoop>            loops;
-
+    LengthConstraints*           lConstraints;
 private:
     RigidBodyTree rbTree;                   // the pure rigid body tree
     VecVec6       spatialForces;
