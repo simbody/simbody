@@ -3,7 +3,6 @@
 
 #include <cdsVector.h>
 
-class IVMAtom;
 class AtomClusterNode;
 class AtomLoop;
 class IVM;
@@ -21,6 +20,7 @@ public:
     LengthConstraints(IVM*);
     ~LengthConstraints();
     void construct(CDSList<AtomLoop>&);
+
     void enforce(CDSVector<double,1>& pos,
                  CDSVector<double,1>& vel);
     bool fixAccel();

@@ -44,12 +44,16 @@ static const Mat33 zero33(0.);
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
+void RigidBodyNode::addChild(RigidBodyNode* child) {
+    children.append( child );
+    child->setParent(this);
+}
+
 //
 // Calc posCM, mass, Mk
 //      phi, inertia
 // Should be calc'd from base to tip.
-void 
-RigidBodyNode::calcJointIndependentKinematicsPos() {
+void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 OB_OP_G = getR_GP()*OB_P;
 

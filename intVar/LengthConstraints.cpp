@@ -29,9 +29,7 @@
 #include "subVector.h"
 #include "subMatrix.h"
 #include "matrixTools.h"
-
 #include "newtonRaphson.h"
-
 #include "cdsIomanip.h"
 
 #ifdef USE_CDS_NAMESPACE 
@@ -106,7 +104,7 @@ LoopWNodes::LoopWNodes(const AtomLoop& l)
     AtomClusterNode* node2 = tips(2)->node;
     while ( node2->getLevel() > node1->getLevel() ) {
         nodes(2).append(node2);
-        node2 = node2->updParent();
+        node2 = node2->getParent();
     }
 
     // We're at the same level on both sides of the loop. Run down both
@@ -121,8 +119,8 @@ LoopWNodes::LoopWNodes(const AtomLoop& l)
         }
         nodes(1).append(node1);
         nodes(2).append(node2);
-        node1 = node1->updParent();
-        node2 = node2->updParent();
+        node1 = node1->getParent();
+        node2 = node2->getParent();
     }
 
     base = node1;   // that's the common ancestor
@@ -161,8 +159,6 @@ public:
         addConstraint(loop);
     }
 
-    //  ~LengthSet() { for (int i=0 ; i<loops.size() ; i++) delete loops[i]; }
-
     void addConstraint(const LoopWNodes& loop) {
         loops.append( LoopWNodes(loop) );
         lengths.append( sqrt(abs2(loop.tips(1)->pos - loop.tips(2)->pos)) );
@@ -187,10 +183,11 @@ public:
         return found;
     }
 
-    void  setPosVel(const RVec& pos, const RVec& vel) const;
+    void  setPos(const RVec& pos) const;
+    void  setVel(const RVec& vel) const;
     RVec  getPos();
-    RVec0 calcPosB(const RVec&, const RVec&) const;
-    RVec0 calcVelB(const RVec&, const RVec&) const;
+    RVec0 calcPosB(const RVec& pos) const;
+    RVec0 calcVelB(const RVec& pos, const RVec& vel) const;
     RVec  calcPosZ(const RVec& b) const;
     RMat  calcGrad() const;
     RMat  calcGInverse() const;
@@ -200,8 +197,6 @@ public:
     RVec0 multiForce(const RVec&, const RMat& mat);
     void  addForce(RVec&, const RVec& ve);
 
-
-    //  void  enforce(RVec& pos, RVec& vel);
     void testAccel();
     void testInternalForce(const RVec&);
     friend ostream& operator<<(ostream& os, const LengthSet& s);
@@ -210,7 +205,7 @@ public:
     friend class CalcPosZ;
     friend class CalcVelZ;
 
-    void fdgradf(const RVec& pos, const RVec& vel, RMat& grad) const;
+    void fdgradf(const RVec& pos, RMat& grad) const;
     void testGrad(const RVec& pos, const RMat& grad) const;
 };
 
@@ -224,15 +219,15 @@ operator<<(ostream& os, const LengthSet& s)
     return os;
 }
 
-
 class LengthConstraintsPrivates {
+public:
+    LengthConstraintsPrivates() : posMin(cout), velMin(cout) {}
+
 public:
     CDSListAutoPtr<LengthSet> constraints;     // used for pos, vel
     CDSListAutoPtr<LengthSet> accConstraints;  // used for acc
-    NewtonRaphson posMin, velMin;
-    LengthConstraintsPrivates() : posMin(cout), velMin(cout) {}
+    NewtonRaphson             posMin, velMin;
 };
-
 
 LengthConstraints::LengthConstraints(IVM* ivm)
     : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), ivm(ivm)
@@ -251,13 +246,6 @@ LengthConstraints::~LengthConstraints()
     delete priv;
 }
 
-//template<class CalcB,class CalcZ>
-//void
-//NewtonRaphson(RVec& x,
-//        CalcB calcB,
-//        CalcZ calcZ,
-//        const double& tol);
-
 //
 // compare LoopWNodes by base node level value
 //
@@ -266,7 +254,7 @@ compareLevel(const LoopWNodes& l1,
              const LoopWNodes& l2) 
 { 
     if ( l1.base->getLevel() > l2.base->getLevel() ) 
-       return 1;
+        return 1;
     else if ( l1.base->getLevel() < l2.base->getLevel() )
         return -1;
     else 
@@ -416,12 +404,11 @@ LengthConstraints::construct(CDSList<AtomLoop>& iloops)
 
 class CalcPosB {
     const LengthSet* constraint;
-    const RVec& vel;
 public:
-    CalcPosB(const LengthSet* constraint, const RVec& vel)
-        : constraint(constraint), vel(vel) {}
+    CalcPosB(const LengthSet* constraint)
+        : constraint(constraint) {}
     RVec0 operator()(const RVec& pos) 
-        { return constraint->calcPosB(pos,vel); }
+        { return constraint->calcPosB(pos); }
 };
 
 class CalcPosZ {
@@ -446,9 +433,9 @@ public:
 // calculate the constraint violation (zero when constraint met)
 //
 RVec0
-LengthSet::calcPosB(const RVec& pos, const RVec& vel) const
+LengthSet::calcPosB(const RVec& pos) const
 {
-    setPosVel(pos,vel);
+    setPos(pos);
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) 
@@ -463,7 +450,9 @@ LengthSet::calcPosB(const RVec& pos, const RVec& vel) const
 RVec0
 LengthSet::calcVelB(const RVec& pos, const RVec& vel) const 
 {
-    setPosVel(pos,vel);
+    setPos(pos); // TODO (sherm: this is probably redundant)
+
+    setVel(vel);
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
@@ -535,7 +524,7 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
                 cout << "LengthConstraints::enforce: position " 
                      << *(priv->constraints[i]) << '\n';
             priv->posMin.calc(pos,
-                              CalcPosB(priv->constraints[i].get(),vel),
+                              CalcPosB(priv->constraints[i].get()),
                               CalcPosZ(priv->constraints[i].get()));
         }
         for (int i=0 ; i<priv->constraints.size() ; i++) {
@@ -572,17 +561,19 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
 //// -check for convergence
 //// -repeat
 //
-//
-//
-//
-void
-LengthSet::setPosVel(const RVec& pos,
-                     const RVec& vel) const
+
+
+void LengthSet::setPos(const RVec& pos) const
 {
-    for (int i=0 ; i<nodeMap.size() ; i++) {
+    for (int i=0 ; i<nodeMap.size() ; i++)
         nodeMap[i]->setPos(pos); //also calc necessary properties
-        nodeMap[i]->setVel(vel);
-    }
+}
+
+// Must have called LengthSet::setPos() already.
+void LengthSet::setVel(const RVec& vel) const
+{
+    for (int i=0 ; i<nodeMap.size() ; i++)
+        nodeMap[i]->setVel(vel); //also calc necessary properties
 }
 
 //
@@ -596,13 +587,12 @@ LengthSet::setPosVel(const RVec& pos,
 // value of ipos.
 void 
 LengthSet::fdgradf( const RVec& pos,
-                    const RVec& vel,
                     RMat&       grad) const 
 {
     // Gradf gradf(tree);
     // gradf(x,grad); return;
     double eps = 1e-8;
-    CalcPosB calcB(this,vel);
+    CalcPosB calcB(this);
     RVec0 b = calcB(pos);
     int grad_indx=0;
     for (int i=0 ; i<nodeMap.size() ; i++) {
@@ -624,8 +614,7 @@ LengthSet::testGrad(const RVec& pos, const RMat& grad) const
     // Costf costf(tree);
     // double f = costf(x);
     RMat fdgrad(dim,loops.size());
-    RVec vel(pos.size(),0.);
-    fdgradf(pos,vel,fdgrad);
+    fdgradf(pos,fdgrad);
 
     for (int i=0 ; i<grad.rows() ; i++)
         for (int j=0 ; j<grad.cols() ; j++)

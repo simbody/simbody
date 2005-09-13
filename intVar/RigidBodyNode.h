@@ -18,7 +18,6 @@ class Vec3;
 template<class CHAR> class CDSString;
 typedef CDSString<char> String;
 
-
 typedef FixedVector<double,6>   Vec6;
 typedef FixedMatrix<double,6,6> Mat66;
 typedef CDSMatrix<double>       RMat;
@@ -81,25 +80,24 @@ public:
 
     virtual ~RigidBodyNode() {}
 
-    RigidBodyNode(const MassProperties& mProps_B,
-                  const Vec3& originOfB_P, // and R_BP=I in ref config
-                  const Mat33& rot_BJ, const Vec3& originOfJ_B)
-      : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
-        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
-        R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
-    {
-        R_GB.set(0.);       // B frame is initially aligned with Ground
-        R_GB.setDiag(1.);
-    }
-
     RigidBodyNode& operator=(const RigidBodyNode&);
 
-    const RigidBodyNode* getParent() const {return parent;}
-    RigidBodyNode*       updParent()       {return parent;}
+    /// Factory for producing concrete RigidBodyNodes based on joint type.
+    static RigidBodyNode* create(
+        const MassProperties& m,            // mass properties in body frame
+        const Frame&          jointFrame,   // inboard joint frame J in body frame
+        JointType             type,
+        bool                  isReversed);  // child-to-parent orientation?
 
-    int                  getNChildren()  const {return children.size();}
-    const RigidBodyNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
-    RigidBodyNode*       updChild(int i)       {return (i<children.size()?children[i]:0);}
+    /// Register the passed-in node as a child of this one, and note in
+    /// the child that this is its parent.
+    void addChild(RigidBodyNode* child);
+
+    RigidBodyNode*   getParent() const {return parent;}
+    void             setParent(RigidBodyNode* p) { parent=p; }
+
+    int              getNChildren()  const {return children.size();}
+    RigidBodyNode*   getChild(int i) const {return (i<children.size()?children[i]:0);}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
@@ -202,6 +200,19 @@ public:
     static const double DEG2RAD; //using angles in degrees balances gradient
 
 protected:
+    /// This is the constructor for the abstract base type for use by the derived
+    /// concrete types in their constructors.
+    RigidBodyNode(const MassProperties& mProps_B,
+                  const Vec3& originOfB_P, // and R_BP=I in ref config
+                  const Mat33& rot_BJ, const Vec3& originOfJ_B)
+      : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
+        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
+        R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
+    {
+        R_GB.set(0.);       // B frame is initially aligned with Ground
+        R_GB.setDiag(1.);
+    }
+
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
 
     int               stateOffset;  //index into internal coord pos,vel,acc arrays
@@ -234,11 +245,11 @@ protected:
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
     //      ... position level
-    Mat33 R_PB; // orientation of B in P
-    Vec3  OB_P; // location of B origin meas & expr in P frame
+    Mat33        R_PB; // orientation of B in P
+    Vec3         OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
-    Vec6  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+    Vec6         V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
 
     // Calculated spatial quantities
     //      ... position level

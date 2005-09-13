@@ -33,15 +33,27 @@ public:
     /// small enough integer to make it a reasonable index, but don't depend
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
-    int addRigidBodyNode(RigidBodyNode* node)
+    int addRigidBodyNode(RigidBodyNode&  parent,
+                         const Frame&    referenceConfig,    // body frame in parent
+                         RigidBodyNode*& nodep)
     {
-        const int level = node->getLevel();
+        RigidBodyNode* n = nodep; nodep=0;  // take ownership
+        const int level = parent.getLevel() + 1;
+        n->setLevel(level);
+
+        // Put node in tree at the right level
         if (rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
-        const int offset = rbNodeLevels[level].size();
-        rbNodeLevels[level].append(node);
+        const int nxt = rbNodeLevels[level].size();
+        rbNodeLevels[level].append(n);
+  
+        // Assign a unique reference integer to this node, for use by caller
         const int nodeNum = nodeNum2NodeMap.size();
-        nodeNum2NodeMap.append(RigidBodyNodeIndex(level,offset));
-        node->setNodeNum(nodeNum);
+        nodeNum2NodeMap.append(RigidBodyNodeIndex(level,nxt));
+        n->setNodeNum(nodeNum);
+
+        // Link in to the tree topology
+        parent.addChild(n);
+
         return nodeNum;
     }
 

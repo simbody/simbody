@@ -167,7 +167,7 @@ void AtomTree::enforceConstraints(RVec& pos, RVec& vel) {
 void
 AtomTree::destructNode(AtomClusterNode* n) {
     for (int i=0; i < n->getNChildren(); i++)
-        destructNode( n->updChild(i) );
+        destructNode( n->getChild(i) );
     nodeTree[n->getLevel()].remove( nodeTree[n->getLevel()].getIndex(n) );
     delete n;
 }
@@ -369,6 +369,35 @@ AtomTree::AtomTree(IVM* ivm_)
         }
 
     ivm->dof_ = getDOF();
+    createRigidBodyTree();
+}
+
+// sherm: 
+// We expect that nodeTree and loops data structures have been filled
+// in. Now we create the corresponding rigid body tree and sets of
+// length constraints to enforce the loops.
+// TODO: using a length (distance) constraint to replace a bond is wrong since
+// bonds also have directional constraints. For example, if the bond
+// would normally be modeled as a 1-dof torsion joint, their should
+// be *5* constraints, not just the single length constraint. Better is
+// to leave the bonds alone, split bodies instead, and reconnect them
+// with a "weld", which consists of 6 independent constraints.
+void AtomTree::createRigidBodyTree() {
+    // Go through all nodes from base to tips.
+    for (int i=0; i<nodeTree.size(); i++)
+        for (int j=0; j<nodeTree[i].size(); j++) {
+            AtomClusterNode& ac = *nodeTree[i][j];
+            RigidBodyNode*   rb = RigidBodyNode::create(
+                                        ac.getMassPropertiesInBodyFrame(),
+                                        ac.getJointFrameInBodyFrame(),
+                                        ac.getJointType(), 
+                                        ac.getJointIsReversed());
+            RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
+            const int rbIndex = rbTree.addRigidBodyNode(
+                                        parent, ac.getBodyFrameInParentFrame(), rb);
+            ac.setRBIndex(rbIndex);
+        }
+
     lConstraints->construct(loops);
 }
 

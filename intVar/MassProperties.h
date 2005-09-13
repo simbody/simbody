@@ -14,6 +14,72 @@
 
 typedef float_type Real;
 
+
+/**
+ * Built-in joint types.
+ *
+ * Each joint connects two frames. One is on the "Reference" body R
+ * and the other is on the "Moving" body M. In a tree system, the
+ * parent body is always R.
+ *
+ * Joints have from 0-6 coordinates. When all coordinates are zero,
+ * the two defining frames R and M are aligned, and their origins 
+ * OR and OM are coincident.
+ *
+ * Reverse joints exist for all joint types allowing a user to think
+ * of the roles of R and M reversed, while we can still build a tree
+ * which follows the rule that R is always the parent.
+ *
+ * Weld        0 Frames remain coincident forever
+ *
+ * Torsion     1 Mz=Rz, OM=OR forever. Coord is angle from
+ *   Pin           Rx to Mx (right hand rule about z).
+ *
+ * Sliding     1 M=R, OMx=OMy=0 forever. Coord is (OM-OR)*Rz.
+ *   Prismatic, Stretch
+ *
+ * Universal   2 OM=OR forever. Coordinates are body fixed 1-2
+ *                 sequence about Mx=Rx, then new My
+ *
+ * Cylinder    2 Mz=Rz, OMx=OMy=0 forever. 1st coord is same
+ *                 as Sliding, second same as Torsion.
+ *
+ * Planar      3 Mz=Rz, OMz=0 forever. 1st coords are translation
+ *                 in x,y; 3rd is same as Torsion.
+ *
+ * Gimbal      3 OM=OR forever. Coordinates are 1-2-3 body fixed
+ *                 Euler sequence.
+ *
+ * Orientation 3 OM=OR forever. Coords represent orientation
+ *   Ball          of M in R as 3 Euler angles or 4 Quaternions.
+ *   Spherical
+ *
+ * Cartesian   3 M=R forever. Coords are (OM-OR)*R, i.e. x,y,z.
+ *   Translational, FreePoint
+ *
+ * FreeLine    5 UJoint plus Cartesian. Mz should be aligned
+ *                 with the mass distribution axis.
+ * 
+ * Free        6 Coords are Orientation and Cartesian
+ * 
+ */
+enum JointType {
+    UnknownJointType    = 0,
+    WeldJoint           = 1,
+    TorsionJoint        = 2,
+    SlidingJoint        = 3,
+    UJoint              = 4,
+    CylinderJoint       = 5,
+    PlanarJoint         = 6,
+    GimbalJoint         = 7,
+    OrientationJoint    = 8,
+    CartesianJoint      = 9,
+    FreeLineJoint       = 10,
+    FreeJoint           = 11
+};
+
+
+
 /**
  * The physical meaning of an Inertia tensor is the distribution of
  * a rigid body's mass about a *particular* point. The measure numbers
@@ -122,7 +188,7 @@ inline Inertia operator-(const Inertia& l, const Inertia& r) {
  */
 class MassProperties {
 public:
-    MassProperties() { }
+    MassProperties() { setMassProperties(0.,Vec3(0.),Inertia()); }
     MassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
       { setMassProperties(m,com,inertia); }
 
@@ -150,6 +216,68 @@ private:
     Real    mass;
     Vec3    comInB;         // meas. from B origin, expr. in B
     Inertia inertia_OB_B;   // about B origin, expr. in B
+};
+
+/**
+ * This class represents an orthogonal, right-handed coordinate frame F, 
+ * measured from and expressed in a reference coordinate frame R. F consists of
+ * 3 perpendicular unit vectors defining its axes as viewed from R, 
+ * and a vector from R's origin point OR to F's origin point OF. Note that
+ * the meaning of "R" comes from the context in which frame F is used.
+ * We use the phrase "frame F is in frame R" to describe the above relationship,
+ * that is, "in" means both measured in and expressed in. 
+ *
+ * The axis vectors are ordered 1-2-3 or x-y-z as you prefer, with
+ * z = x X y, making a right-handed set. These axes are arranged as
+ * columns of a 3x3 matrix Rot_RF = [ x y z ] which is a direction cosine
+ * (rotation) matrix useful for conversions between frame R and F. For
+ * example, given a vector vF expressed in the F frame, that same vector
+ * re-expressed in R is given by vR = Rot_RF*vF. The origin point Loc_RF is 
+ * stored as the vector Loc_RF=(OF-OR) and expressed in R.
+ *
+ * This is a "POD" (plain old data) class with a well-defined memory
+ * layout on which a client of this class may depend: There are 
+ * exactly 4 consecutive, packed 3-vectors in the order x,y,z,O.
+ * That is, this class is equivalent to an array of 12 Reals with 
+ * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,O1,O2,O3. It is expressly allowed
+ * to reinterpret Frame objects in any appropriate manner that depends
+ * on this memory layout.
+ */
+class Frame {
+public:
+    Frame() { }
+    Frame(const Mat33& axesInR, const Vec3& originInR) {setFrame(axesInR,originInR);}
+    Frame(const Vec3& originInR) {
+        Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF=originInR;
+    }
+    // default copy, assignment, destructor
+
+    void setFrame(const Mat33& axesInR, const Vec3& originInR) 
+        {Rot_RF=axesInR; Loc_RF=originInR;}
+
+    // Transform various items measured and expressed in F to those same
+    // items measured and expressed in F's reference frame R.
+    Vec3  xformVector2Ref  (const Vec3& vF)      const { return Rot_RF*vF; }
+    Vec3  xformStation2Ref (const Vec3& sF)      const { return Loc_RF + xformVector2Ref(sF); }
+    Mat33 xformRotation2Ref(const Mat33& Rot_FX) const { return Rot_RF*Rot_FX; }
+    Frame xformFrame2Ref(const Frame& fF) const 
+      { return Frame(xformRotation2Ref(fF.Rot_RF), xformStation2Ref(fF.Loc_RF)); }
+
+    const Mat33& getRot_RF() const { return Rot_RF; }
+    Mat33&       updRot_RF()       { return Rot_RF; }
+
+    const Vec3&  getLoc_RF() const { return Loc_RF; }
+    Vec3&        updLoc_RF()       { return Loc_RF; }
+
+    // Computation-free conversions
+    const Real*  getFrameAsArray(const Frame& f) const {return reinterpret_cast<const Real*>(&f);}
+    Real*        updFrameAsArray(Frame& f)             {return reinterpret_cast<Real*>(&f);}
+    const Frame& getArrayAsFrame(const Real* r)  const {return *reinterpret_cast<const Frame*>(r);}
+    Frame&       updArrayAsFrame(Real* r)              {return *reinterpret_cast<Frame*>(r);}
+
+private:
+    Mat33 Rot_RF;   // rotation matrix that expresses F's axes in R
+    Vec3  Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
 };
 
 #endif /* MASS_PROPERTIES_H_ */

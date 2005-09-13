@@ -2,6 +2,7 @@
 #define ATOM_CLUSTER_NODE_H_
 
 #include "internalDynamics.h"
+#include "MassProperties.h"
 
 #include "vec3.h"
 #include "Mat33.h"
@@ -46,16 +47,14 @@ public:
 
     void addChild(AtomClusterNode*);
 
-    const AtomClusterNode* getParent()     const {return parent;}
-    AtomClusterNode*       updParent()           {return parent;}
+    AtomClusterNode*       getParent()     const {return parent;}
     const IVMAtom*         getParentAtom() const {return parentAtom;}
 
     int            getNAtoms()     const {return atoms.size();}    
     const IVMAtom* getAtom(int i)  const {return (i<atoms.size()?atoms[i]:0); }
 
-    int                    getNChildren()  const {return children.size();}
-    const AtomClusterNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
-    AtomClusterNode*       updChild(int i)       {return (i<children.size()?children[i]:0);}
+    int              getNChildren()  const {return children.size();}
+    AtomClusterNode* getChild(int i) const {return (i<children.size()?children[i]:0);}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
@@ -75,6 +74,13 @@ public:
         (AtomClusterNode*&                  oldNode,
          const InternalDynamics::HingeSpec& type,
          int&                               cnt);
+
+    // For use in building rigid body nodes:
+    const MassProperties& getMassPropertiesInBodyFrame() const;
+    const Frame&          getBodyFrameInParentFrame() const;
+    const Frame&          getJointFrameInBodyFrame() const;
+    JointType             getJointType() const;
+    bool                  getJointIsReversed() const;
 
     /// Given a spatial orientation and location for this cluster, calculate
     /// where all the atoms are in space.

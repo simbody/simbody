@@ -151,7 +151,7 @@ public:
     AtomClusterNodeSpec(const AtomClusterNode* node, int& cnt, const Mat33& rotBJ,
                         bool addDummyOrigin=false)
       : AtomClusterNode(*node), stateOffset(cnt),
-        mass(0.), inertia_OB_B(0.), comStation_B(0.), refOrigin_P(0.), R_BJ(rotBJ) 
+        refOrigin_P(0.), R_BJ(rotBJ) 
     { 
         cnt+=dof;   // leave room for this node's state variables
 
@@ -189,17 +189,10 @@ private:
 
     // These are the body mass properties about the body origin OB and expressed
     // in the body frame B.
-    double  mass;
-    Vec3    comStation_B;
-    Mat33   inertia_OB_B;
+    MassProperties massProps;
 
     // This serves as the owner for an extra 'dummy' IVMAtom needed by some joints.
     CDS::auto_ptr<IVMAtom> cmAtom;
-
-    // Atom stations. These are vectors from this body's origin point to each of
-    // the atoms, expressed in the body frame. These are fixed after construction;
-    // they are not state dependent.
-    CDSVector<Vec3,1> atomStations_B;
 
     // Inboard joint frame. This is fixed forever once constructed and gives the
     // orientation of the body-fixed J frame in the body frame B. This is an 
@@ -523,40 +516,28 @@ AtomClusterNodeSpec<dof>::addDummyOriginIfNeeded() {
 }
 
 //
-// Calc atomStations, mass, comStation, inertia in B frame (about B origin).
+// Calc atom stations, mass, comStation, inertia in B frame (about B origin).
 // This is a private routine called from the AtomClusterNodeSpec constructor.
 //
 template<int dof> void 
 AtomClusterNodeSpec<dof>::calcBodyProperties() {
-    mass = atoms[0]->mass;
-    comStation_B.set(0.);
-    inertia_OB_B.set(0.);
-    atomStations_B.resize(atoms.size()-1);
+    double  mass = atoms[0]->mass;
+    Vec3    comStation_B(0.);
+    Inertia inertia_OB_B;   // defaults to zero
 
     const Vec3 OB = atoms[0]->pos;
     for (int i=1; i<atoms.size(); ++i) {
         const double   m = atoms[i]->mass;
         const Vec3     S = atoms[i]->pos - OB; // atom station
 
-        atomStations_B(i) = S;
-        mass             += m;
-        comStation_B     += m*S;
-
-        const double&  x=S.x(); const double& y=S.y(); const double& z=S.z();
-        const double   xx=x*x, yy=y*y, zz=z*z;
-
-        inertia_OB_B(0,0) += m*(yy+zz);
-        inertia_OB_B(1,1) += m*(xx+zz);
-        inertia_OB_B(2,2) += m*(xx+yy);
-        inertia_OB_B(0,1) -= m*x*y;
-        inertia_OB_B(1,2) -= m*y*z;
-        inertia_OB_B(0,2) -= m*x*z;
+        atoms[i]->station_B  = S;
+        mass                += m;
+        comStation_B        += m*S;
+        inertia_OB_B        += Inertia(m,S);
     }
-    inertia_OB_B(1,0) = inertia_OB_B(0,1);
-    inertia_OB_B(2,1) = inertia_OB_B(1,2);
-    inertia_OB_B(2,0) = inertia_OB_B(0,2);
-
     comStation_B /= mass;
+
+    massProps.setMassProperties(mass,comStation_B,inertia_OB_B);
 }
 
 template<int dof> void
