@@ -3,13 +3,78 @@
 
 #include "cdsList.h"
 #include "cdsVector.h"
+#include "vec3.h"
 
 #include "RigidBodyNode.h"
 
-class Vec3;
+#include <cassert>
+
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
 typedef CDSVector<double,1>       RVec;   // first element has index 1
 typedef CDSList<Vec6>             VecVec6;
+
+class IVM;
+class LengthConstraints;
+
+/**
+ * A station is a point located on a particular rigid body. A station is
+ * measured from the body frame origin and expressed in the body frame.
+ */
+class RBStation {
+public:
+    RBStation()
+      : rbNode(0), runtimeIndex(-1) { } // so we can have arrays of these
+    RBStation(RigidBodyNode& n, const Vec3& pos)
+      : rbNode(&n), station(pos), runtimeIndex(-1) { }
+    // default copy, assignment, destructor
+
+    void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
+    int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
+
+    RigidBodyNode&       getNode()    const { assert(isValid()); return *rbNode; }
+    const Vec3&          getStation() const { assert(isValid()); return station; }
+    bool                 isValid()    const { return rbNode != 0; }
+private:
+    RigidBodyNode*       rbNode;
+    Vec3                 station;
+    int                  runtimeIndex;
+};
+
+class RBStationRuntime {
+public:
+    RBStationRuntime() { }
+
+    Vec3 station_G; // vector from body origin to station, reexpressed in G
+
+    Vec3 pos_G;     // spatial quantities
+    Vec3 vel_G;
+    Vec3 acc_G;
+};
+
+/**
+ * This class requests that two stations, one on each of two rigid bodies,
+ * be maintained at a certain separation distance at all times.
+ */
+class RBDistanceConstraint {
+public:
+    RBDistanceConstraint() : distance(-1.) {}
+    RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d) {
+        assert(s1.isValid() && s2.isValid() && d >= 0.);
+        stations[0] = s1; stations[1] = s2; distance = d;
+    }
+
+    const RBStation& getStation(int i) const { assert(isValid() && (i==1||i==2)); return stations[i-1]; }
+    bool             isValid()         const { return distance >= 0.; }
+
+    // Take next available station runtime slots and update the slot index.
+    void grabStationRuntimes(int& nxtSlot) {
+        for (int i=0; i<1; ++i) stations[i].setRuntimeIndex(nxtSlot++);
+    }
+
+protected:
+    double       distance;
+    RBStation    stations[2];
+};
 
 /**
  * The RigidBodyTree class owns the tree of joint-connected rigid bodies, called
@@ -24,7 +89,7 @@ typedef CDSList<Vec6>             VecVec6;
  */
 class RigidBodyTree {
 public:
-    RigidBodyTree() { }
+    RigidBodyTree() : lConstraints(0) { }
     ~RigidBodyTree();
 
     /// Take ownership of a new node, add it to the tree, and assign it
@@ -35,27 +100,16 @@ public:
     /// monotonically increasing.
     int addRigidBodyNode(RigidBodyNode&  parent,
                          const Frame&    referenceConfig,    // body frame in parent
-                         RigidBodyNode*& nodep)
-    {
-        RigidBodyNode* n = nodep; nodep=0;  // take ownership
-        const int level = parent.getLevel() + 1;
-        n->setLevel(level);
+                         RigidBodyNode*& nodep);
 
-        // Put node in tree at the right level
-        if (rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
-        const int nxt = rbNodeLevels[level].size();
-        rbNodeLevels[level].append(n);
-  
-        // Assign a unique reference integer to this node, for use by caller
-        const int nodeNum = nodeNum2NodeMap.size();
-        nodeNum2NodeMap.append(RigidBodyNodeIndex(level,nxt));
-        n->setNodeNum(nodeNum);
 
-        // Link in to the tree topology
-        parent.addChild(n);
+    /// Add a distance constraint and allocate slots to hold the runtime information for
+    /// its stations. Return the assigned distance constraint index for caller's use.
+    int addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d);
 
-        return nodeNum;
-    }
+    /// Call this after all bodies & constraints have been added.
+    /// TODO: this "ivm" has to go.
+    void finishConstruction(IVM* ivm);
 
     // deallocate subtree rooted at the indicated node
     void destructNode(RigidBodyNode*); 
@@ -83,11 +137,18 @@ public:
     /// and velocity constraints (just quaternions constraints; ignores loops).
     void enforceTreeConstraints(RVec& pos, RVec& vel);
 
+    /// This is a solver which tweaks the state to make it satisfy general
+    /// constraints (other than quaterion constraints).
+    void enforceConstraints(RVec& pos, RVec& vel);
+
     /// Unconstrained (tree) dynamics 
     void calcP();                             // articulated body inertias
     void calcZ(const VecVec6& spatialForces); // articulated body remainder forces
     void calcTreeAccel();                     // accels with forces from last calcZ
 
+    void fixAccelForConstraints();            // call after calcTreeAccel
+
+    void fixVel0(RVec& vel); // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
     void calcY();
@@ -98,7 +159,6 @@ public:
     /// Retrieve last-computed internal (joint) forces.
     void getInternalForces(RVec& T);
 
-    void calcLoopAccel();                     // TODO this has to move elsewhere
     void getConstraintCorrectedInternalForces(RVec& T); // TODO has to move elsewhere
 
     void propagateSVel();
@@ -123,6 +183,13 @@ private:
 
     // Map nodeNum to (level,offset).
     CDSList<RigidBodyNodeIndex> nodeNum2NodeMap;
+
+    CDSList<RBDistanceConstraint> distanceConstraints;
+
+    LengthConstraints* lConstraints;
+
+    // TODO: later this moves to state cache (sherm)
+    CDSList<RBStationRuntime>     stationRuntimeInfo;
 };
 
 #endif /* RIGID_BODY_TREE_H_ */

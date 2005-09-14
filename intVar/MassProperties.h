@@ -175,10 +175,10 @@ public:
 };
 
 inline Inertia operator+(const Inertia& l, const Inertia& r) {
-    Inertia t(l); t += r; return t;
+    return Inertia(l) += r;
 }
 inline Inertia operator-(const Inertia& l, const Inertia& r) {
-    Inertia t(l); t -= r; return t;
+    return Inertia(l) -= r;
 }
 
 /**

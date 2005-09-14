@@ -3,14 +3,11 @@
 
 #include <cdsVector.h>
 
-class AtomClusterNode;
-class AtomLoop;
+class RBDistanceConstraint;
 class IVM;
 template<class T> class CDSList;
 
 #include <cdsIostream.h>
-
-typedef CDSList<AtomClusterNode*> NodeList;
 
 class LengthConstraintsPrivates;
 class LengthSet;
@@ -19,7 +16,7 @@ class LengthConstraints {
 public:
     LengthConstraints(IVM*);
     ~LengthConstraints();
-    void construct(CDSList<AtomLoop>&);
+    void construct(CDSList<RBDistanceConstraint>&);
 
     void enforce(CDSVector<double,1>& pos,
                  CDSVector<double,1>& vel);

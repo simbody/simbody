@@ -76,11 +76,11 @@ public:
          int&                               cnt);
 
     // For use in building rigid body nodes:
-    const MassProperties& getMassPropertiesInBodyFrame() const;
-    const Frame&          getBodyFrameInParentFrame() const;
-    const Frame&          getJointFrameInBodyFrame() const;
-    JointType             getJointType() const;
-    bool                  getJointIsReversed() const;
+    const MassProperties& getMassPropertiesInBodyFrame()  const {return massProps;}
+    const Frame&          getReferenceBodyFrameInParent() const {return refBinP;}
+    const Frame&          getJointFrameInBodyFrame()      const {return JinB;}
+    JointType             getJointType()                  const {return jointType;}
+    bool                  getJointIsReversed()            const {return jointIsReversed;}
 
     /// Given a spatial orientation and location for this cluster, calculate
     /// where all the atoms are in space.
@@ -112,10 +112,33 @@ public:
     const IVM*          ivm;
     AtomList            atoms;
 
+protected:
+    int                 stateOffset;
+
+    // These are the body mass properties about the body origin OB and expressed
+    // in the body frame B.
+    MassProperties massProps;
+
+    JointType      jointType;
+    bool           jointIsReversed;
+
+    // Inboard joint frame. This is fixed forever once constructed and gives the
+    // orientation of the body-fixed J frame in the body frame B. This is an 
+    // identity matrix for some joint types.
+    Frame JinB;
+
+    // Reference configuration. This is the body frame origin location, measured
+    // in its parent's frame in the reference configuration. This vector is fixed
+    // IN THE PARENT after construction! The body origin can of course move relative to its
+    // parent, but that is not the meaning of this reference configuration vector.
+    // (Note however that the body origin is also the location of the inboard joint, 
+    // meaning that the origin point moves relative to the parent only due to translations.)
+    // Note that by definition the orientation of the body frame is identical to P
+    // in the reference configuration so we don't need to store it.
+    Frame refBinP;
+
 private:
     const IVMAtom*      parentAtom;   // atom in parent to which hinge is attached
-
-    int                 stateOffset;
     AtomClusterNode*    parent; 
     AtomClusterNodeList children;
     int                 level;        // how far from base
@@ -124,8 +147,9 @@ private:
     // the same AtomTree that owns the cluster.
     int                 rbIndex;
 
-    friend void combineNodes(const AtomClusterNode* node1,
-                             const AtomClusterNode* node2);
+
+    //friend void combineNodes(const AtomClusterNode* node1,
+    //                         const AtomClusterNode* node2);
 
     //  static void groupTorsion(const HingeNode*);
 

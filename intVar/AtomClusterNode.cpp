@@ -24,6 +24,8 @@ using namespace CDS;
 using CDSMath::sq;
 #endif /* USE_CDS_NAMESPACE */
 
+static Mat33 makeIdentityRotation();
+static const Mat33 R_I = makeIdentityRotation(); // handy to have around
 
 ////////////////////////////////////////////////
 // Implementation of AtomClusterNode methods. //
@@ -39,9 +41,12 @@ AtomClusterNode::AtomClusterNode(const IVM*       ivm,
     atoms(0,1),
     parentAtom(parAtom),
     stateOffset(-1),
+    jointType(UnknownJointType),
+    jointIsReversed(false),
     parent(parNode),
     children(0,0),
-    level(hingeAtom->index==0 ? 0 : parNode->getLevel()+1)
+    level(hingeAtom->index==0 ? 0 : parNode->getLevel()+1),
+    rbIndex(-1)
 {
     atoms.append(hingeAtom);
     hingeAtom->node = this;
@@ -149,11 +154,16 @@ public:
     //     existing behavior; later I hope to trash it. (sherm)
     //
     AtomClusterNodeSpec(const AtomClusterNode* node, int& cnt, const Mat33& rotBJ,
+                        JointType jt, bool isReversed,
                         bool addDummyOrigin=false)
-      : AtomClusterNode(*node), stateOffset(cnt),
-        refOrigin_P(0.), R_BJ(rotBJ) 
-    { 
+      : AtomClusterNode(*node)
+    {
+        stateOffset = cnt;
         cnt+=dof;   // leave room for this node's state variables
+
+        jointType       = jt;
+        jointIsReversed = isReversed;
+
 
         for (int i=0 ; i<atoms.size() ; i++)
             atoms[i]->node = this; 
@@ -165,16 +175,13 @@ public:
 
         // We *may* have a new atoms[0] now.
 
-        refOrigin_P = atoms[0]->pos - getParent()->getAtom(0)->pos;
+        refBinP.setFrame(R_I, atoms[0]->pos - getParent()->getAtom(0)->pos);
+        JinB.setFrame(rotBJ, Vec3(0.)); // joint is always located at body origin
         calcBodyProperties();
     }
 
     virtual ~AtomClusterNodeSpec() {}
 
-    const double& getMass()         const { return mass; }
-    const Vec3&   getCOM_B()        const { return comStation_B; }
-    const Mat33&  getInertia_OB_B() const { return inertia_OB_B; }
-    int           getStateOffset()  const { return stateOffset; }
 
     /*virtual*/int  getDOF() const { return dof; }
     virtual int  getDim() const { return dof; } // dim can be larger than dof
@@ -184,30 +191,8 @@ private:
     void addDummyOriginIfNeeded();
     void calcBodyProperties();
 
-private:
-    int     stateOffset;  //index into internal coord pos,vel,acc arrays
-
-    // These are the body mass properties about the body origin OB and expressed
-    // in the body frame B.
-    MassProperties massProps;
-
     // This serves as the owner for an extra 'dummy' IVMAtom needed by some joints.
     CDS::auto_ptr<IVMAtom> cmAtom;
-
-    // Inboard joint frame. This is fixed forever once constructed and gives the
-    // orientation of the body-fixed J frame in the body frame B. This is an 
-    // identity matrix for some joint types.
-    const Mat33 R_BJ;
-
-    // Reference configuration. This is the body frame origin location, measured
-    // in its parent's frame in the reference configuration. This vector is fixed
-    // IN THE PARENT after construction! The body origin can of course move relative to its
-    // parent, but that is not the meaning of this reference configuration vector.
-    // (Note however that the body origin is also the location of the inboard joint, 
-    // meaning that the origin point moves relative to the parent only due to translations.)
-    // Note that by definition the orientation of the body frame is identical to P
-    // in the reference configuration so we don't need to store it.
-    Vec3 refOrigin_P;
 
 };
 
@@ -217,8 +202,7 @@ private:
 //////////////////////////////////////////
 
 static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
-static Mat33 makeIdentityRotation();
-static const Mat33 R_I = makeIdentityRotation(); // handy to have around
+
 
 /**
  * Translate (Cartesian) joint. This provides three degrees of translational freedom
@@ -230,7 +214,7 @@ public:
     /*virtual*/ const char* type() { return "translate"; }
 
     ACNodeTranslate(const AtomClusterNode* node, int& cnt)
-      : AtomClusterNodeSpec<3>(node,cnt,R_I)
+      : AtomClusterNodeSpec<3>(node,cnt,R_I,CartesianJoint,false)
     { }
 };
 
@@ -244,7 +228,8 @@ public:
     ACNodeTranslateRotate3(const AtomClusterNode* node,
                           int&             cnt,
                           bool             shouldUseEuler)
-      : AtomClusterNodeSpec<6>(node,cnt,R_I,true), useEuler(shouldUseEuler)
+      : AtomClusterNodeSpec<6>(node,cnt,R_I,FreeJoint,false,true), 
+        useEuler(shouldUseEuler)
     { 
         if ( !useEuler )
             cnt++;
@@ -266,7 +251,8 @@ public:
     ACNodeRotate3(const AtomClusterNode* node,
                   int&                   cnt,
                   bool                   shouldUseEuler)
-      : AtomClusterNodeSpec<3>(node,cnt,R_I,true), useEuler(shouldUseEuler)
+      : AtomClusterNodeSpec<3>(node,cnt,R_I,OrientationJoint,false,true), 
+        useEuler(shouldUseEuler)
     { 
         if ( !useEuler )
             cnt++;
@@ -288,7 +274,8 @@ public:
     ACNodeRotate2(const AtomClusterNode* node,
                  const Vec3&             zVec,
                  int&                    cnt)
-      : AtomClusterNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec))
+      : AtomClusterNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec),
+                               UJoint,false)
     { 
     }
 
@@ -306,7 +293,8 @@ public:
     ACNodeTranslateRotate2(const AtomClusterNode*  node,
                           const Vec3&              zVec,
                           int&                     cnt)
-      : AtomClusterNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec))
+      : AtomClusterNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec),
+                               FreeLineJoint,false)
     { 
     }
 
@@ -322,7 +310,8 @@ public:
     ACNodeTorsion(const AtomClusterNode*   node,
                  const Vec3&               rotDir,
                  int&                      cnt)
-      : AtomClusterNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
+      : AtomClusterNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir),
+                               TorsionJoint,false)
     { 
     }
 
@@ -542,15 +531,13 @@ AtomClusterNodeSpec<dof>::calcBodyProperties() {
 
 template<int dof> void
 AtomClusterNodeSpec<dof>::print(int verbose) {
-/*
     if (verbose&InternalDynamics::printNodeForce) 
         cout << setprecision(8)
-             << atoms[0] << ": force: " << forceCartesian << '\n';
+             << atoms[0] << ": force: " << atoms[0]->force << '\n';
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
              << atoms[0] << ": pos: " << atoms[0]->pos << ' ' << atoms[0]->vel
-             << ' ' << sAcc << '\n';
-*/
+             << '\n';
 }
 
 

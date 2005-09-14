@@ -7,6 +7,8 @@
 #include "RigidBodyTree.h"
 #include "RigidBodyNode.h"
 
+#include "LengthConstraints.h"
+
 #include "vec3.h"
 
 #include "sthead.h"
@@ -29,6 +31,8 @@ typedef FixedMatrix<double,6> Mat66;
 typedef CDSList<Vec6>         VecVec6;
 
 RigidBodyTree::~RigidBodyTree() {
+    delete lConstraints;
+
     for (int i=0 ; i<rbNodeLevels.size() ; i++) {
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) 
             delete rbNodeLevels[i][j];
@@ -45,6 +49,49 @@ void RigidBodyTree::destructNode(RigidBodyNode* n) {
         destructNode( n->getChild(i) );
     rbNodeLevels[n->getLevel()].remove( rbNodeLevels[n->getLevel()].getIndex(n) );
     delete n;
+}
+
+// Add a new node, taking over the heap space.
+int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
+                                    const Frame&    referenceConfig,    // body frame in parent
+                                    RigidBodyNode*& nodep)
+{
+    RigidBodyNode* n = nodep; nodep=0;  // take ownership
+    const int level = parent.getLevel() + 1;
+    n->setLevel(level);
+
+    // Put node in tree at the right level
+    if (rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
+    const int nxt = rbNodeLevels[level].size();
+    rbNodeLevels[level].append(n);
+
+    // Assign a unique reference integer to this node, for use by caller
+    const int nodeNum = nodeNum2NodeMap.size();
+    nodeNum2NodeMap.append(RigidBodyNodeIndex(level,nxt));
+    n->setNodeNum(nodeNum);
+
+    // Link in to the tree topology (bidirectional).
+    parent.addChild(n);
+
+    return nodeNum;
+}
+
+// Add a distance constraint and allocate slots to hold the runtime information for
+// its stations. Return the assigned distance constraint index for caller's use.
+int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
+{
+    const int indx = distanceConstraints.size();
+    distanceConstraints.append(RBDistanceConstraint(s1,s2,d));
+    RBDistanceConstraint& dc = distanceConstraints[indx];
+    int rtnxt = stationRuntimeInfo.size();
+    distanceConstraints[indx].grabStationRuntimes(rtnxt);
+    stationRuntimeInfo.resize(rtnxt);
+    return indx;
+}
+
+void RigidBodyTree::finishConstruction(IVM* ivm) {
+    lConstraints = new LengthConstraints(ivm);
+    lConstraints->construct(distanceConstraints);
 }
 
 // Set generalized coordinates: sweep from base to tips.
@@ -67,6 +114,11 @@ void RigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) 
             rbNodeLevels[i][j]->enforceConstraints(pos,vel);
+}
+
+// Enforce loop constraints.
+void RigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
+    lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
 }
 
 // should be:
@@ -107,6 +159,15 @@ void RigidBodyTree::calcTreeAccel() {
             rbNodeLevels[i][j]->calcAccel();
 }
 
+// Acceleration fixup to account for constraints.
+void RigidBodyTree::fixAccelForConstraints() {
+    lConstraints->fixAccel();
+}
+
+void RigidBodyTree::fixVel0(RVec& vel) {
+    lConstraints->fixVel0(vel);
+}
+
 // Calc unconstrained internal forces from spatial forces: sweep from tip to base.
 void RigidBodyTree::calcTreeInternalForces(const VecVec6& spatialForces) {
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
@@ -121,6 +182,10 @@ void RigidBodyTree::getInternalForces(RVec& T) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getInternalForce(T);
+}
+
+void RigidBodyTree::getConstraintCorrectedInternalForces(RVec& T) {
+    lConstraints->fixGradient(T);
 }
 
 // Get current generalized coordinates (order doesn't matter).

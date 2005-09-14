@@ -17,7 +17,7 @@
 #include "LengthConstraints.h"
 #include "dinternal.h"
 #include "AtomTree.h"
-#include "AtomClusterNode.h"
+#include "RigidBodyNode.h"
 #include "dint-atom.h"
 #include "vec3.h"
 #include "cdsListAutoPtr.h"
@@ -47,7 +47,7 @@ class LoopWNodes;
 static int compareLevel(const LoopWNodes& l1,    //forward declarations
                         const LoopWNodes& l2);
 
-//static bool sameBranch(const AtomClusterNode* tip,
+//static bool sameBranch(const RigidBodyNode* tip,
 //                       const LoopWNodes& l );
 
 class BadNodeDef {};  //exception
@@ -62,46 +62,49 @@ class BadNodeDef {};  //exception
  * node or if they are on different molecules.
  */
 class LoopWNodes {
-    AtomClusterNode*          base; // highest-level common ancestor of tips
-    FixedVector<IVMAtom*,2,1> tips; // the two connected atoms, sorted so that
-                                    //   tips(1).level <= tips(2).level
-    FixedVector<NodeList,2,1> nodes;// the two paths: base..tip1, base..tip2,
-                                    //   incl. tip nodes but not base
-    const AtomClusterNode*    moleculeNode;
+    RigidBodyNode*                 base;    // highest-level common ancestor of tips
+    FixedVector<RBStation,2,1>     tips;    // the two connected stations, sorted so that
+                                            //   tips(1).level <= tips(2).level
+    FixedVector<RBNodePtrList,2,1> nodes;   // the two paths: base..tip1, base..tip2,
+                                            //   incl. tip nodes but not base
+    const RigidBodyNode*           moleculeNode;
 public:
     LoopWNodes() {}
-    LoopWNodes(const AtomLoop& l);
+    LoopWNodes(const RBDistanceConstraint& l);
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend void LengthConstraints::construct(CDSList<AtomLoop>&);
+    friend void LengthConstraints::construct(CDSList<RBDistanceConstraint>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
-    friend bool sameBranch(const AtomClusterNode* tip,
+    friend bool sameBranch(const RigidBodyNode* tip,
                            const LoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const AtomLoop& l) 
+LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc) 
 {
     using InternalDynamics::Exception;
 
-    if ( l.getTip1()->node == l.getTip2()->node ) {
+    const RigidBodyNode* dcNode1 = &dc.getStation(1).getNode();
+    const RigidBodyNode* dcNode2 = &dc.getStation(2).getNode();
+
+    if (dcNode1==dcNode2) {
         cout << "LoopWNodes::LoopWNodes: bad topology:\n\t"
-             << "loop atoms " << l.getTip1()
-             << " and  "      << l.getTip2()
+             << "loop stations " << dc.getStation(1)
+             << " and  "         << dc.getStation(2)
              << " are now in the same node. Deleting loop.\n";
         throw BadNodeDef();
     }
 
     // Ensure that tips(2) is the atom which is farther from the base.
-    if ( l.getTip1()->node->getLevel() > l.getTip2()->node->getLevel() )
-         tips(1) = l.getTip2(), tips(2) = l.getTip1();
-    else tips(1) = l.getTip1(), tips(2) = l.getTip2();
+    if ( dcNode1->getLevel() > dcNode2->getLevel() )
+         tips(1) = dc.getStation(2), tips(2) = dc.getStation(1);
+    else tips(1) = dc.getStation(1), tips(2) = dc.getStation(2);
 
     // Collect up the node path from tips(2) down to the last node on its
     // side of the loop which is at a higher level than tips(1) (may be none).
-    AtomClusterNode* node1 = tips(1)->node;
-    AtomClusterNode* node2 = tips(2)->node;
+    RigidBodyNode* node1 = &tips(1).getNode();
+    RigidBodyNode* node2 = &tips(2).getNode();
     while ( node2->getLevel() > node1->getLevel() ) {
         nodes(2).append(node2);
         node2 = node2->getParent();
@@ -113,9 +116,9 @@ LoopWNodes::LoopWNodes(const AtomLoop& l)
     while ( node1 != node2 ) {
         if ( node1->isGroundNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
-                 << "loop between atoms " << tips(1)->index << " and " 
-                 << tips(2)->index << "\n";
-            throw Exception("LoopWNodes::LoopWNodes: could not find base atom");
+                 << "loop between stations " << dc.getStation(1) << " and " 
+                 << dc.getStation(2) << "\n";
+            throw Exception("LoopWNodes::LoopWNodes: could not find base node");
         }
         nodes(1).append(node1);
         nodes(2).append(node2);
@@ -136,8 +139,8 @@ LoopWNodes::LoopWNodes(const AtomLoop& l)
 
     if ( moleculeNode->getLevel()<1 ) {
         cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
-             << "loop between atoms " << tips(1)->index << " and " 
-             << tips(2)->index << "\n";
+             << "loop between atoms " << dc.getStation(1) << " and " 
+             << dc.getStation(2) << "\n";
         throw Exception("LoopWNodes::LoopWNodes: could not find molecule node");
     }
 }
@@ -151,7 +154,7 @@ class LengthSet {
     LoopList                  loops;    
     CDSList<double>           lengths;
     int                       dim;
-    CDSList<AtomClusterNode*> nodeMap; //unique nodes (intersection of loops->nodes)
+    CDSList<RigidBodyNode*> nodeMap; //unique nodes (intersection of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
         : lConstraints(lConstraints), ivm(lConstraints->ivm), dim(0)
@@ -171,7 +174,7 @@ public:
     }
 
     void determineCouplings();
-    bool contains(AtomClusterNode* node) {
+    bool contains(RigidBodyNode* node) {
         bool found=false;
         for (int i=0 ; i<loops.size() ; i++)
             if (    loops[i].nodes(1).contains(node)
@@ -274,7 +277,7 @@ LengthSet::determineCouplings()
 // for (l_int i=0 ; i<loops.size() ; i++)
 //   for (int j=0 ; j<loops.size() ; j++)
 //     for (int bi=1 ; bi<=2 ; bi++)
-//     for (AtomClusterNode* node=loops[i].tips(bi)->node ;
+//     for (RigidBodyNode* node=loops[i].tips(bi)->node ;
 //          node->levelA() ; 
 //          node=node->parentA())
 //       for (int bj=1 ; bj<=2 ; bj++)
@@ -305,10 +308,10 @@ LengthSet::determineCouplings()
 }
 
 //static bool
-//sameBranch(const AtomClusterNode* tip,
+//sameBranch(const RigidBodyNode* tip,
 //           const LoopWNodes& l )
 //{
-// for ( const AtomClusterNode* node=tip ;
+// for ( const RigidBodyNode* node=tip ;
 //     node->levelA()            ;
 //     node=node->parentA()      )
 //   if (node == l.tips(1)->node || node == l.tips(2)->node)
@@ -322,7 +325,7 @@ LengthSet::determineCouplings()
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
 void
-LengthConstraints::construct(CDSList<AtomLoop>& iloops)
+LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops)
 {
     //clean up
     priv->constraints.resize(0);
@@ -500,7 +503,7 @@ public:
 
         // map the vector dir back to the appropriate elements of z
         for (int i=0 ; i<constraint->nodeMap.size() ; i++) {
-            const AtomClusterNode* n = constraint->nodeMap[i];
+            const RigidBodyNode* n = constraint->nodeMap[i];
             SubVec(z,n->getStateOffset(),n->getDim()) =  SubVec(dir,i+1,n->getDim());
         }
         return z;
@@ -647,7 +650,7 @@ LengthSet::calcGrad() const
                 phiT(b)[phiT(b).size()-1].set(0.0);
                 phiT(b)[phiT(b).size()-1].setDiag(1.0);
                 for (int j=l.nodes(b).size()-2 ; j>=0 ; j-- ) {
-                    AtomClusterNode* n = l.nodes(b)[j+1];
+                    RigidBodyNode* n = l.nodes(b)[j+1];
                     phiT(b)[j] = phiT(b)[j+1] * transpose( n->getPhi() );
                 }
             }
@@ -759,7 +762,7 @@ typedef SubVector<const Vec6>       SubVec6;
 static Vec3
 getAccel(const IVMAtom* a)
 {
-    const AtomClusterNode* n = a->node;
+    const RigidBodyNode* n = a->node;
     Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
     ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
     ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
@@ -776,8 +779,8 @@ computeA(const Vec3&    v1,
          const IVMAtom* a2,
          const Vec3&    v2)
 {
-    const AtomClusterNode* n1 = a1->node;
-    const AtomClusterNode* n2 = a2->node;
+    const RigidBodyNode* n1 = a1->node;
+    const RigidBodyNode* n2 = a2->node;
 
     Mat33 one(0.); one.setDiag(1.);
 

@@ -18,17 +18,25 @@ typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
 
 class AtomLoop {
 public:
-    AtomLoop() {}
+    AtomLoop()
+      : tip1(0), tip2(0), rbDistConstraintIndex(-1) {}
     AtomLoop(IVMAtom* baseAtom, IVMAtom* tipAtom)
-      : tip1(baseAtom), tip2(tipAtom)
-    { }
+      : tip1(baseAtom), tip2(tipAtom), rbDistConstraintIndex(-1) { }
 
-    IVMAtom* getTip1() const { return tip1; }
-    IVMAtom* getTip2() const { return tip2; }
+    IVMAtom* getTip1() const { assert(isValid()); return tip1; }
+    IVMAtom* getTip2() const { assert(isValid()); return tip2; }
 
-protected:
+    void setRBDistanceConstraintIndex(int ix) { rbDistConstraintIndex=ix; }
+    int  getRBDistanceConstraintIndex() const {
+        assert(isValid() && rbDistConstraintIndex >= 0);
+        return rbDistConstraintIndex;
+    }
+    bool isValid() const { return tip1 && tip2; }
+
+private:
     IVMAtom* tip1;
     IVMAtom* tip2;
+    int      rbDistConstraintIndex; // remember the corresponding constraint
 };
 
 /**
@@ -46,7 +54,7 @@ public:
     IVM*                         ivm;       // owner of the atoms
     CDSList<AtomClusterNodeList> nodeTree;  // the atom cluster tree
     CDSList<AtomLoop>            loops;
-    LengthConstraints*           lConstraints;
+
 private:
     RigidBodyTree rbTree;                   // the pure rigid body tree
     VecVec6       spatialForces;
@@ -98,6 +106,8 @@ public:
 
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const RVec& pos, RVec& vel);
+
+    void fixVel0(RVec& vel); // TODO - get rid of this
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints.

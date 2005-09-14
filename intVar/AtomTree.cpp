@@ -9,7 +9,7 @@
 
 #include "AtomClusterNode.h"
 #include "RigidBodyNode.h"
-#include "LengthConstraints.h"
+//#include "LengthConstraints.h"
 
 #include "dint-atom.h"
 #include "vec3.h"
@@ -55,7 +55,6 @@ public:
 };
 
 AtomTree::~AtomTree() {
-    delete lConstraints;
     for (int i=0; i<nodeTree.size(); i++) {
         for (int j=0 ; j<nodeTree[i].size() ; j++) 
             delete nodeTree[i][j];
@@ -139,10 +138,14 @@ RVec AtomTree::calcGetAccel() {
     return acc;
 }
 
+void AtomTree::fixVel0(RVec& vel) {
+    rbTree.fixVel0(vel);
+}
+
 RVec AtomTree::getAccel() {
     calcZ();
     rbTree.calcTreeAccel();
-    lConstraints->fixAccel();
+    rbTree.fixAccelForConstraints();
     RVec acc(getIVMDim()); 
     rbTree.getAcc(acc);
     return acc;
@@ -152,13 +155,13 @@ RVec AtomTree::getInternalForce() {
     calcSpatialForces();
     rbTree.calcTreeInternalForces(spatialForces);
     RVec T(getIVMDim());
-    lConstraints->fixGradient(T);
+    rbTree.getConstraintCorrectedInternalForces(T);
     return T;
 }
 
 void AtomTree::enforceConstraints(RVec& pos, RVec& vel) { 
     rbTree.enforceTreeConstraints(pos,vel); 
-    lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed?
+    rbTree.enforceConstraints(pos,vel);
 }
 
 //
@@ -311,11 +314,10 @@ mergeGroups(CDSList< CDSList<int> >& gList) {
 // Construct AtomClusterNode tree consisting of all molecules.
 //
 AtomTree::AtomTree(IVM* ivm_)
-  : ivm(ivm_), lConstraints(0)
+  : ivm(ivm_)
 {
     if ( ivm->atoms.size() == 0 ) return;
 
-    lConstraints = new LengthConstraints(ivm);
     CDSVector<bool,0> assignedAtoms( ivm->getAtoms().size() , false );
 
     loops.resize(0);
@@ -394,11 +396,22 @@ void AtomTree::createRigidBodyTree() {
                                         ac.getJointIsReversed());
             RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
             const int rbIndex = rbTree.addRigidBodyNode(
-                                        parent, ac.getBodyFrameInParentFrame(), rb);
+                                        parent,ac.getReferenceBodyFrameInParent(),rb);
             ac.setRBIndex(rbIndex);
         }
 
-    lConstraints->construct(loops);
+    for (int i=0; i<loops.size(); ++i) {
+        AtomLoop& al = loops[i];
+        IVMAtom&  t1 = *al.getTip1();
+        IVMAtom&  t2 = *al.getTip2();
+
+        RBStation s1(rbTree.getRigidBodyNode(t1.node->getRBIndex()), t1.station_B);
+        RBStation s2(rbTree.getRigidBodyNode(t2.node->getRBIndex()), t2.station_B);
+        double    d = sqrt(abs2(t2.pos - t1.pos));
+        al.setRBDistanceConstraintIndex(rbTree.addDistanceConstraint(s1,s2,d));
+    }
+
+    rbTree.finishConstruction(ivm);
 }
 
 void
@@ -621,7 +634,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
     // solve for desired internal velocities
     vel = calcGetAccel();
     setVel(vel);
-    lConstraints->fixVel0(vel);
+    fixVel0(vel);
 
     if ( ivm->verbose()&printVelFromCartCost ) {
         VecVec3 avel(ivm->atoms.size()-1);
