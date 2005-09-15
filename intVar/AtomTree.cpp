@@ -143,9 +143,8 @@ void AtomTree::fixVel0(RVec& vel) {
 }
 
 RVec AtomTree::getAccel() {
-    calcZ();
-    rbTree.calcTreeAccel();
-    rbTree.fixAccelForConstraints();
+    calcSpatialForces();
+    rbTree.calcLoopForwardDynamics(spatialForces);
     RVec acc(getIVMDim()); 
     rbTree.getAcc(acc);
     return acc;
@@ -386,6 +385,7 @@ AtomTree::AtomTree(IVM* ivm_)
 // with a "weld", which consists of 6 independent constraints.
 void AtomTree::createRigidBodyTree() {
     // Go through all nodes from base to tips.
+    int nextStateOffset=1; //offset into pos, vel, acc
     for (int i=0; i<nodeTree.size(); i++)
         for (int j=0; j<nodeTree[i].size(); j++) {
             AtomClusterNode& ac = *nodeTree[i][j];
@@ -393,7 +393,9 @@ void AtomTree::createRigidBodyTree() {
                                         ac.getMassPropertiesInBodyFrame(),
                                         ac.getJointFrameInBodyFrame(),
                                         ac.getJointType(), 
-                                        ac.getJointIsReversed());
+                                        ac.getJointIsReversed(),
+                                        ivm->minimization(),  // TODO: kludge
+                                        nextStateOffset); 
             RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
             const int rbIndex = rbTree.addRigidBodyNode(
                                         parent,ac.getReferenceBodyFrameInParent(),rb);

@@ -70,6 +70,7 @@ public:
 
     // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
+    const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
 
     const Vec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
     const Vec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
@@ -218,7 +219,12 @@ public:
     RVec  calcPosZ(const RVec& b) const;
     RMat  calcGrad() const;
     RMat  calcGInverse() const;
-    void  fixAccel();
+
+    void  calcConstraintForces() const; // updates runtime only
+    void  addInCorrectionForces(VecVec6& spatialForces) const; // spatialForces+=correction
+
+    void  fixAccel(); // TODO move to a higher level
+
     void  fixVel0(RVec&);
     void  fixInternalForce(RVec&);
     RVec0 multiForce(const RVec&, const RMat& mat);
@@ -287,61 +293,6 @@ compareLevel(const LoopWNodes& l1,
     else 
         return 0;
 }
-
-void 
-LengthSet::determineCouplings() 
-{
- 
-// for (int i=0 ; i<loops.size() ; i++)
-//   for (int j=0 ; j<loops.size() ; j++)
-//     for (int bi=1 ; bi<=2 ; bi++)
-//     for (int bj=1 ; bj<=2 ; bj++)
-//       coupled[ loops[i].tips(bi)->node ][ loops[j].tips(bj)->node ] = 1;
- 
-// for (l_int i=0 ; i<loops.size() ; i++)
-//   for (int j=0 ; j<loops.size() ; j++)
-//     for (int bi=1 ; bi<=2 ; bi++)
-//     for (RigidBodyNode* node=loops[i].tips(bi)->node ;
-//          node->levelA() ; 
-//          node=node->parentA())
-//       for (int bj=1 ; bj<=2 ; bj++)
-//         if (node == loops[j].tips(bj)->node) 
-//           coupled[ loops[i].tips(bi)->node ][ loops[j].tips(bj)->node ] = 1;
-//
-// // symmetrize
-// for (Map_b2::iterator iti=coupled.begin() ; iti!=coupled.end() ; ++iti)
-//   for (Map_b1::iterator itj=iti->second.begin() ; 
-//      itj!=iti->second.end()                   ; 
-//      ++itj                                    )
-//     if ( itj->second )
-//     coupled[ itj->first ][ iti->first ]  = 1;
-
-       
-// if ( InternalDynamics::verbose&InternalDynamics::printLoopDebug ) {
-//   cout << "coupling matrix:\n";
-//   for (l_int i=0 ; i<loops.size() ; i++)
-//     for (int j=0 ; j<loops.size() ; j++)
-//     for (int bi=1 ; bi<=2 ; bi++)
-//       for (int bj=1 ; bj<=2 ; bj++)
-//         cout << loops[i].tips(bi)->index << " " 
-//          << loops[j].tips(bj)->index << ": "
-//          << coupled[loops[i].tips(bi)->node][loops[j].tips(bj)->node] 
-//          << '\n';
-// }
-
-}
-
-//static bool
-//sameBranch(const RigidBodyNode* tip,
-//           const LoopWNodes& l )
-//{
-// for ( const RigidBodyNode* node=tip ;
-//     node->levelA()            ;
-//     node=node->parentA()      )
-//   if (node == l.tips(1)->node || node == l.tips(2)->node)
-//     return 1;
-// return 0;
-//}
 
 //1) construct: given list of loops 
 //   a) if appropriate issue warning and exit.
@@ -743,6 +694,23 @@ LengthSet::calcGInverse() const
 //     Do this step from tip to base.
 //
 
+bool LengthConstraints::calcConstraintForces() const {
+    if ( priv->accConstraints.size() == 0 )
+        return false;
+
+    ivm->calcY();
+
+    for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
+        priv->accConstraints[i]->calcConstraintForces();
+
+    return true;
+}
+
+void LengthConstraints::addInCorrectionForces(VecVec6& spatialForces) const {
+    for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
+        priv->accConstraints[i]->addInCorrectionForces(spatialForces);
+}
+
 bool 
 LengthConstraints::fixAccel()
 {
@@ -839,13 +807,17 @@ computeA(const Vec3&    v1,
 
 //
 // To be called for LengthSets consecutively from tip to base.
+// This will calculate a force for every station in every loop
+// contained in this LengthSet, and store that force in the runtime
+// block associated with that loop. It is up to the caller to do
+// something with these forces.
 //
 // See Section 2.6 on p. 294 of Schwieters & Clore, 
 // J. Magnetic Resonance 152:288-302. Equation reference below
 // are to that paper. (sherm)
 //
 void
-LengthSet::fixAccel()
+LengthSet::calcConstraintForces() const
 {
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -876,7 +848,7 @@ LengthSet::fixAccel()
                     if ( fabs(contrib) > maxElem ) maxElem = fabs(contrib);
                     if ( maxElem>0. && fabs(contrib)/maxElem < lConstraints->bandCut ) {
                         if ( ivm->verbose()&InternalDynamics::printLoopDebug )
-                            cout << "LengthSet::fixAccel: setting A("
+                            cout << "LengthSet::calcConstraintForces: setting A("
                                  << i << "," << j+1 << ".." << loops.size()-1 << ")["
                                  << bi << "," << bj << "] = 0\n";
                         break;  //don't compute smaller elements
@@ -903,12 +875,25 @@ LengthSet::fixAccel()
         loops[i].setTipForce(2, -frc);
         loops[i].setTipForce(1,  frc);
     }
+}
 
+void LengthSet::addInCorrectionForces(VecVec6& spatialForces) const {
+    for (int i=0; i<loops.size(); ++i) {
+        for (int t=1; t<=2; ++t) {
+            const RigidBodyNode& node = loops[i].tipNode(t);
+            const Vec3& force = loops[i].tipForce(t);
+            const Vec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
+            spatialForces[node.getNodeNum()] += blockVec(moment, force);
+        }
+    }
+}
+
+void LengthSet::fixAccel() {
+    calcConstraintForces();
     ivm->updateAccel();
 }
 
-void
-LengthSet::testAccel()
+void LengthSet::testAccel()
 {
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
@@ -1071,3 +1056,58 @@ LengthSet::fixVel0(RVec& iVel)
     ivm->tree()->setVel(iVel);
 }
    
+// NOTHING BELOW HERE IS BEING USED
+void 
+LengthSet::determineCouplings() 
+{
+ 
+// for (int i=0 ; i<loops.size() ; i++)
+//   for (int j=0 ; j<loops.size() ; j++)
+//     for (int bi=1 ; bi<=2 ; bi++)
+//     for (int bj=1 ; bj<=2 ; bj++)
+//       coupled[ loops[i].tips(bi)->node ][ loops[j].tips(bj)->node ] = 1;
+ 
+// for (l_int i=0 ; i<loops.size() ; i++)
+//   for (int j=0 ; j<loops.size() ; j++)
+//     for (int bi=1 ; bi<=2 ; bi++)
+//     for (RigidBodyNode* node=loops[i].tips(bi)->node ;
+//          node->levelA() ; 
+//          node=node->parentA())
+//       for (int bj=1 ; bj<=2 ; bj++)
+//         if (node == loops[j].tips(bj)->node) 
+//           coupled[ loops[i].tips(bi)->node ][ loops[j].tips(bj)->node ] = 1;
+//
+// // symmetrize
+// for (Map_b2::iterator iti=coupled.begin() ; iti!=coupled.end() ; ++iti)
+//   for (Map_b1::iterator itj=iti->second.begin() ; 
+//      itj!=iti->second.end()                   ; 
+//      ++itj                                    )
+//     if ( itj->second )
+//     coupled[ itj->first ][ iti->first ]  = 1;
+
+       
+// if ( InternalDynamics::verbose&InternalDynamics::printLoopDebug ) {
+//   cout << "coupling matrix:\n";
+//   for (l_int i=0 ; i<loops.size() ; i++)
+//     for (int j=0 ; j<loops.size() ; j++)
+//     for (int bi=1 ; bi<=2 ; bi++)
+//       for (int bj=1 ; bj<=2 ; bj++)
+//         cout << loops[i].tips(bi)->index << " " 
+//          << loops[j].tips(bj)->index << ": "
+//          << coupled[loops[i].tips(bi)->node][loops[j].tips(bj)->node] 
+//          << '\n';
+// }
+
+}
+
+//static bool
+//sameBranch(const RigidBodyNode* tip,
+//           const LoopWNodes& l )
+//{
+// for ( const RigidBodyNode* node=tip ;
+//     node->levelA()            ;
+//     node=node->parentA()      )
+//   if (node == l.tips(1)->node || node == l.tips(2)->node)
+//     return 1;
+// return 0;
+//}

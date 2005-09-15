@@ -1,11 +1,14 @@
 #ifndef LENGTH_CONSTRAINTS_H_
 #define LENGTH_CONSTRAINTS_H_
 
-#include <cdsVector.h>
+#include "cdsVector.h"
+#include "fixedVector.h"
 
 class RBDistanceConstraint;
 class IVM;
 template<class T> class CDSList;
+typedef FixedVector<double,6>   Vec6;
+typedef CDSList<Vec6> VecVec6;
 
 #include <cdsIostream.h>
 
@@ -20,6 +23,11 @@ public:
 
     void enforce(CDSVector<double,1>& pos,
                  CDSVector<double,1>& vel);
+
+    bool calcConstraintForces() const;
+    void addInCorrectionForces(VecVec6& spatialForces) const;
+
+
     bool fixAccel();
     void fixVel0(CDSVector<double,1>&);
     void fixGradient(CDSVector<double,1>&);

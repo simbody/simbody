@@ -163,6 +163,21 @@ public:
     /// constraints (other than quaterion constraints).
     void enforceConstraints(RVec& pos, RVec& vel);
 
+    /// Prepare for dynamics by calculating position-dependent quantities
+    /// like the articulated body inertias P.
+    void prepareForDynamics();
+
+    /// Given a set of spatial forces, calculate accelerations ignoring
+    /// constraints. Must have already called prepareForDynamics().
+    /// TODO: also applies stored internal forces (hinge torques) which
+    /// will cause surprises if non-zero.
+    void calcTreeForwardDynamics(const VecVec6& spatialForces);
+
+    /// Given a set of spatial forces, calculate acclerations resulting from
+    /// those forces and enforcement of acceleration constraints.
+    void calcLoopForwardDynamics(const VecVec6& spatialForces);
+
+
     /// Unconstrained (tree) dynamics 
     void calcP();                             // articulated body inertias
     void calcZ(const VecVec6& spatialForces); // articulated body remainder forces

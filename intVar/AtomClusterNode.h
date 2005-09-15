@@ -41,7 +41,7 @@ public:
                     IVMAtom*          hingeAtom,
                     const IVMAtom*    parentAtom,
                     AtomClusterNode*  parentNode);
-    AtomClusterNode(const AtomClusterNode&);
+    // default copy constructor
     AtomClusterNode& operator=(const AtomClusterNode&);
     virtual ~AtomClusterNode() {}
 

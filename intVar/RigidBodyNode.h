@@ -87,7 +87,9 @@ public:
         const MassProperties& m,            // mass properties in body frame
         const Frame&          jointFrame,   // inboard joint frame J in body frame
         JointType             type,
-        bool                  isReversed);  // child-to-parent orientation?
+        bool                  isReversed,   // child-to-parent orientation?
+        bool                  useEuler,     // TODO: kludge (true if minimizing)
+        int&                  nextStateOffset); 
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent.

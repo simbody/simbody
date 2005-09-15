@@ -161,16 +161,14 @@ public:
 template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
-
-    // We're presented with a node in the reference configuration. Derive appropriate
-    // quantities for the node, such as the atom stations on the body, and the reference
-    // locations and orientations.
-    //
-    RigidBodyNodeSpec(const RigidBodyNode* node, int& cnt, const Mat33& rotBJ)
-      : RigidBodyNode(*node), theta(0.), dTheta(0.), forceInternal(0.0) 
-    { 
+    RigidBodyNodeSpec(const MassProperties& mProps_B,
+                      const Frame& jointFrame,
+                      int& cnt)
+      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
+        theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
+    {
         stateOffset = cnt;
-        cnt+=dof;   // leave room for this node's state variables
+        cnt += dof;
     }
 
     virtual ~RigidBodyNodeSpec() {}
@@ -294,9 +292,11 @@ class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
-    RBNodeTranslate(const RigidBodyNode* node, int& cnt)
-      : RigidBodyNodeSpec<3>(node,cnt,ident33)
-    { }
+    RBNodeTranslate(const MassProperties& mProps_B,
+                    int&                  nextStateOffset)
+      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset)
+    {
+    }
 
     void calcJointKinematicsPos() { 
         OB_P = refOrigin_P + theta;
@@ -319,11 +319,11 @@ class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
-    RBNodeTorsion(const RigidBodyNode*   node,
-                  const Vec3&            rotDir,
-                  int&                   cnt)
-      : RigidBodyNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir))
-    { 
+    RBNodeTorsion(const MassProperties& mProps_B,
+                  const Frame&          jointFrame,
+                  int&                  nextStateOffset)
+      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
+    {
     }
 
     void calcJointKinematicsPos() { 
@@ -519,12 +519,13 @@ class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    RBNodeRotate3(const RigidBodyNode* node,
-                  int&                 cnt,
-                  bool                 useEuler)
-      : RigidBodyNodeSpec<3>(node,cnt,ident33),
-        ball(cnt,useEuler)
-    {}
+    RBNodeRotate3(const MassProperties& mProps_B,
+                  int&                  nextStateOffset,
+                  bool                  useEuler)
+      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset),
+        ball(nextStateOffset,useEuler)
+    {
+    }
     
     int  getDim() const { return ball.getBallDim(); } 
 
@@ -585,12 +586,13 @@ class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
 public:
     virtual const char* type() { return "full"; }
 
-    RBNodeTranslateRotate3(const RigidBodyNode* node,
-                           int&                 cnt,
-                           bool                 useEuler)
-      : RigidBodyNodeSpec<6>(node,cnt,ident33),
-        ball(cnt, useEuler)
-    { }
+    RBNodeTranslateRotate3(const MassProperties& mProps_B,
+                           int&                  nextStateOffset,
+                           bool                  useEuler)
+      : RigidBodyNodeSpec<6>(mProps_B,Frame(),nextStateOffset),
+        ball(nextStateOffset,useEuler)
+    {
+    }
     
     int  getDim() const { return ball.getBallDim() + 3; } 
 
@@ -671,11 +673,11 @@ class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
-    RBNodeRotate2(const RigidBodyNode* node,
-                  const Vec3&          zVec,
-                  int&                 cnt)
-      : RigidBodyNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec))
-    { 
+    RBNodeRotate2(const MassProperties& mProps_B,
+                  const Frame&          jointFrame,
+                  int&                  nextStateOffset)
+      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
+    {
     }
 
     void calcJointKinematicsPos() { 
@@ -728,11 +730,11 @@ class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
-    RBNodeTranslateRotate2(const RigidBodyNode*  node,
-                           const Vec3&           zVec,
-                           int&                  cnt)
-      : RigidBodyNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec))
-    { 
+    RBNodeTranslateRotate2(const MassProperties& mProps_B,
+                           const Frame&          jointFrame,
+                           int&                  nextStateOffset)
+      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
+    {
     }
 
     void calcJointKinematicsPos() { 
@@ -778,6 +780,45 @@ private:
     }  
 };
 
+////////////////////////////////////////////////
+// RigidBodyNode factory based on joint type. //
+////////////////////////////////////////////////
+
+/*static*/ RigidBodyNode*
+RigidBodyNode::create(
+    const MassProperties& m,            // mass properties in body frame
+    const Frame&          jointFrame,   // inboard joint frame J in body frame
+    JointType             type,
+    bool                  isReversed,
+    bool                  useEuler,
+    int&                  nxtStateOffset)   // child-to-parent orientation?
+{
+    assert(!isReversed);
+
+    switch(type) {
+
+    case TorsionJoint:
+        return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
+    case UJoint:        
+        return new RBNodeRotate2(m,jointFrame,nxtStateOffset);
+    case OrientationJoint:
+        return new RBNodeRotate3(m,nxtStateOffset,useEuler);
+    case CartesianJoint:
+        return new RBNodeTranslate(m,nxtStateOffset);
+    case FreeLineJoint:
+        return new RBNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
+    case FreeJoint:
+        return new RBNodeTranslateRotate3(m,nxtStateOffset,useEuler);
+    case SlidingJoint:
+    case CylinderJoint:
+    case PlanarJoint:
+    case GimbalJoint:
+    case WeldJoint:
+
+    default: 
+        assert(false);
+    };
+}
 
 /////////////////////////////////////////////////////////////
 // Implementation of RigidBodyNodeSpec base class methods. //
@@ -812,7 +853,8 @@ RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
 
 //
 // Calculate Pk and related quantities. The requires that the children
-// of the node have already had their quantities calculated.
+// of the node have already had their quantities calculated, i.e. this
+// is a tip to base recursion.
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcP() {
@@ -847,7 +889,7 @@ RigidBodyNodeSpec<dof>::calcP() {
     calcD_G(P);
     tau.set(0.0); tau.setDiag(1.0);
     tau -= G * H;
-    // calcZ();
+    psiT = MatrixTools::transpose(tau) * transpose(phi);
 }
  
 //
@@ -855,7 +897,6 @@ RigidBodyNodeSpec<dof>::calcP() {
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
-    psiT = MatrixTools::transpose(tau) * transpose(phi);
     z = P * a + b + spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
@@ -868,7 +909,8 @@ RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
 }
 
 //
-// Calculate acceleration in internal coordinates.
+// Calculate acceleration in internal coordinates, based on the last set
+// of forces that were fed to calcZ (as embodied in 'nu').
 // (Base to tip)
 //
 template<int dof> void 

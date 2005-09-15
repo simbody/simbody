@@ -52,6 +52,11 @@ void RBStation::calcAccInfo(RBStationRuntime& rt) const {
                    + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
 }
 
+ostream& operator<<(ostream& o, const RBStation& s) {
+    o << "station " << s.getStation() << " on node " << s.getNode() << std::endl;
+    return o;
+}
+
 void RBDistanceConstraint::calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
 {
     assert(isValid() && runtimeIndex >= 0);
@@ -172,6 +177,32 @@ void RigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
 // Enforce loop constraints.
 void RigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
     lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
+}
+
+
+// Prepare for dynamics by calculating position-dependent quantities
+// like the articulated body inertias P.
+void RigidBodyTree::prepareForDynamics() {
+    calcP();
+}
+
+// Given a set of spatial forces, calculate accelerations ignoring
+// constraints. Must have already called prepareForDynamics().
+// TODO: also applies stored internal forces (hinge torques) which
+// will cause surprises if non-zero.
+void RigidBodyTree::calcTreeForwardDynamics(const VecVec6& spatialForces) {
+    calcZ(spatialForces);
+    calcTreeAccel();
+}
+
+// Given a set of spatial forces, calculate acclerations resulting from
+// those forces and enforcement of acceleration constraints.
+void RigidBodyTree::calcLoopForwardDynamics(const VecVec6& spatialForces) {
+    VecVec6 sFrc = spatialForces;
+    calcTreeForwardDynamics(sFrc);
+    lConstraints->calcConstraintForces();
+    lConstraints->addInCorrectionForces(sFrc);
+    calcTreeForwardDynamics(sFrc);
 }
 
 // should be:

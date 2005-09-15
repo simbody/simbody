@@ -27,6 +27,27 @@ using CDSMath::sq;
 static Mat33 makeIdentityRotation();
 static const Mat33 R_I = makeIdentityRotation(); // handy to have around
 
+
+void
+InertiaTensor::calc(const Vec3&     center,
+                    const AtomList& aList) 
+{
+    set(0.0);
+    Mat33 &m = *this;
+    for (int cnt=0 ; cnt<aList.size() ; cnt++) {
+        const IVMAtom* a = &(*aList[cnt]);
+        m(0,0) += a->mass * (sq(a->pos(1)-center(1)) + sq(a->pos(2)-center(2)));
+        m(1,1) += a->mass * (sq(a->pos(0)-center(0)) + sq(a->pos(2)-center(2)));
+        m(2,2) += a->mass * (sq(a->pos(0)-center(0)) + sq(a->pos(1)-center(1)));
+        m(0,1) -= a->mass * (a->pos(0)-center(0)) * (a->pos(1)-center(1));
+        m(1,2) -= a->mass * (a->pos(1)-center(1)) * (a->pos(2)-center(2));
+        m(0,2) -= a->mass * (a->pos(0)-center(0)) * (a->pos(2)-center(2));
+    }
+    m(1,0) = m(0,1);
+    m(2,1) = m(1,2);
+    m(2,0) = m(0,2);
+}
+
 ////////////////////////////////////////////////
 // Implementation of AtomClusterNode methods. //
 ////////////////////////////////////////////////

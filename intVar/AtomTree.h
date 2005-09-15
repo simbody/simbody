@@ -135,8 +135,8 @@ public:
     /// Recalculate unconstrained accelerations given a new set of forces
     /// at the same state.
     void updateAccel() { 
-        calcZ();
-        rbTree.calcTreeAccel();
+        calcSpatialForces();
+        rbTree.calcTreeForwardDynamics(spatialForces);
     }
 
     int getDOF(); 

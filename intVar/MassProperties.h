@@ -245,7 +245,7 @@ private:
  */
 class Frame {
 public:
-    Frame() { }
+    Frame() {Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF.set(0.);}
     Frame(const Mat33& axesInR, const Vec3& originInR) {setFrame(axesInR,originInR);}
     Frame(const Vec3& originInR) {
         Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF=originInR;
