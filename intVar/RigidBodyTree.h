@@ -15,6 +15,8 @@ typedef CDSList<Vec6>             VecVec6;
 
 class IVM;
 class LengthConstraints;
+class RBStationRuntime;
+class RBDistanceConstraintRuntime;
 
 /**
  * A station is a point located on a particular rigid body. A station is
@@ -22,33 +24,32 @@ class LengthConstraints;
  */
 class RBStation {
 public:
-    RBStation()
-      : rbNode(0), runtimeIndex(-1) { } // so we can have arrays of these
-    RBStation(RigidBodyNode& n, const Vec3& pos)
-      : rbNode(&n), station(pos), runtimeIndex(-1) { }
+    RBStation() : rbNode(0) { } // so we can have arrays of these
+    RBStation(RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
-    void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
-    int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
+    void calcPosInfo(RBStationRuntime&) const;
+    void calcVelInfo(RBStationRuntime&) const;
+    void calcAccInfo(RBStationRuntime&) const;
 
     RigidBodyNode&       getNode()    const { assert(isValid()); return *rbNode; }
-    const Vec3&          getStation() const { assert(isValid()); return station; }
+    const Vec3&          getStation() const { assert(isValid()); return station_B; }
     bool                 isValid()    const { return rbNode != 0; }
 private:
     RigidBodyNode*       rbNode;
-    Vec3                 station;
-    int                  runtimeIndex;
+    Vec3                 station_B;
 };
+ostream& operator<<(ostream&, const RBStation&);
 
 class RBStationRuntime {
 public:
-    RBStationRuntime() { }
-
-    Vec3 station_G; // vector from body origin to station, reexpressed in G
-
-    Vec3 pos_G;     // spatial quantities
+    Vec3 station_G;    // vector from body origin OB to station, reexpressed in G
+    Vec3 stationVel_G; // velocity of station relative to velocity of OB, expr. in G
+    Vec3 pos_G;        // spatial quantities
     Vec3 vel_G;
     Vec3 acc_G;
+
+    Vec3 force_G;      // the constraint force (calculated)
 };
 
 /**
@@ -57,23 +58,44 @@ public:
  */
 class RBDistanceConstraint {
 public:
-    RBDistanceConstraint() : distance(-1.) {}
+    RBDistanceConstraint() : distance(-1.), runtimeIndex(-1) {}
     RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d) {
         assert(s1.isValid() && s2.isValid() && d >= 0.);
         stations[0] = s1; stations[1] = s2; distance = d;
+        runtimeIndex = -1;
     }
 
+    void calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
+    void calcVelInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
+    void calcAccInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
+
+    void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
+    int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
+
+    const double&    getDistance()     const { return distance; }
     const RBStation& getStation(int i) const { assert(isValid() && (i==1||i==2)); return stations[i-1]; }
     bool             isValid()         const { return distance >= 0.; }
-
-    // Take next available station runtime slots and update the slot index.
-    void grabStationRuntimes(int& nxtSlot) {
-        for (int i=0; i<1; ++i) stations[i].setRuntimeIndex(nxtSlot++);
-    }
 
 protected:
     double       distance;
     RBStation    stations[2];
+    int          runtimeIndex;
+};
+
+class RBDistanceConstraintRuntime {
+public:
+    RBDistanceConstraintRuntime() { }
+
+    RBStationRuntime stationRuntimes[2];
+
+    Vec3 fromTip1ToTip2_G;    // tip2.pos - tip1.pos
+    Vec3 unitDirection_G;     // fromTip1ToTip2/|fromTip1ToTip2|
+
+    Vec3 relVel_G;            // spatial relative velocity tip2.vel-tip1.vel
+
+    Real posErr;
+    Real velErr;
+    Real accErr;
 };
 
 /**
@@ -180,16 +202,14 @@ private:
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
     CDSList<RBNodePtrList> rbNodeLevels;
-
     // Map nodeNum to (level,offset).
     CDSList<RigidBodyNodeIndex> nodeNum2NodeMap;
 
-    CDSList<RBDistanceConstraint> distanceConstraints;
-
-    LengthConstraints* lConstraints;
-
+    CDSList<RBDistanceConstraint>        distanceConstraints;
     // TODO: later this moves to state cache (sherm)
-    CDSList<RBStationRuntime>     stationRuntimeInfo;
+    CDSList<RBDistanceConstraintRuntime> dcRuntimeInfo;
+    
+    LengthConstraints* lConstraints;
 };
 
 #endif /* RIGID_BODY_TREE_H_ */

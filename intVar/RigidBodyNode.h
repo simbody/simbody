@@ -151,6 +151,16 @@ public:
     const Vec3&      getSpatialLinVel() const
         {return *reinterpret_cast<const Vec3*>(&sVel[3]);}
 
+    /// Return the inertial angular acceleration of body frame B (i.e., angular
+    /// acceleration with respect to the ground frame), expressed in the ground frame.
+    const Vec3&      getSpatialAngAcc() const
+        {return *reinterpret_cast<const Vec3*>(&sAcc[0]);}
+
+    /// Return the inertial acceleration of OB (i.e., acceleration with respect
+    /// to the ground frame), expressed in the ground frame.
+    const Vec3&      getSpatialLinAcc() const
+        {return *reinterpret_cast<const Vec3*>(&sAcc[3]);}
+
     const Vec6&      getSpatialVel() const {return sVel;}
     const Vec6&      getSpatialAcc() const {return sAcc;}
 

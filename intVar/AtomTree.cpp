@@ -405,8 +405,8 @@ void AtomTree::createRigidBodyTree() {
         IVMAtom&  t1 = *al.getTip1();
         IVMAtom&  t2 = *al.getTip2();
 
-        RBStation s1(rbTree.getRigidBodyNode(t1.node->getRBIndex()), t1.station_B);
-        RBStation s2(rbTree.getRigidBodyNode(t2.node->getRBIndex()), t2.station_B);
+        RBStation s1(rbTree.updRigidBodyNode(t1.node->getRBIndex()), t1.station_B);
+        RBStation s2(rbTree.updRigidBodyNode(t2.node->getRBIndex()), t2.station_B);
         double    d = sqrt(abs2(t2.pos - t1.pos));
         al.setRBDistanceConstraintIndex(rbTree.addDistanceConstraint(s1,s2,d));
     }

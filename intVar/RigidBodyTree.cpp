@@ -30,6 +30,61 @@ typedef FixedVector<double,6> Vec6;
 typedef FixedMatrix<double,6> Mat66;
 typedef CDSList<Vec6>         VecVec6;
 
+
+void RBStation::calcPosInfo(RBStationRuntime& rt) const {
+    rt.station_G = getNode().getR_GB() * station_B;
+    rt.pos_G     = getNode().getOB_G() + rt.station_G;
+}
+
+void RBStation::calcVelInfo(RBStationRuntime& rt) const {
+    const Vec3& w_G = getNode().getSpatialAngVel();
+    const Vec3& v_G = getNode().getSpatialLinVel();
+    rt.stationVel_G = cross(w_G, rt.station_G);
+    rt.vel_G = v_G + rt.stationVel_G;
+}
+
+void RBStation::calcAccInfo(RBStationRuntime& rt) const {
+    const Vec3& w_G  = getNode().getSpatialAngVel();
+    const Vec3& v_G  = getNode().getSpatialLinVel();
+    const Vec3& aa_G = getNode().getSpatialAngAcc();
+    const Vec3& a_G  = getNode().getSpatialLinAcc();
+    rt.acc_G = a_G + cross(aa_G, rt.station_G)
+                   + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
+}
+
+void RBDistanceConstraint::calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+{
+    assert(isValid() && runtimeIndex >= 0);
+    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
+    for (int i=0; i<1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
+
+    rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
+    const double separation = sqrt(abs2(rt.fromTip1ToTip2_G));
+    rt.unitDirection_G = rt.fromTip1ToTip2_G / separation;
+    rt.posErr = distance - separation;
+}
+
+void RBDistanceConstraint::calcVelInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+{
+    assert(isValid() && runtimeIndex >= 0);
+    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
+    for (int i=0; i<1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
+
+    rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
+    rt.velErr = -dot( rt.unitDirection_G , rt.relVel_G );
+}
+
+void RBDistanceConstraint::calcAccInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+{
+    assert(isValid() && runtimeIndex >= 0);
+    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
+    for (int i=0; i<1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
+
+//XXX this doesn't look right
+    const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
+    rt.accErr = -(abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G));
+}
+
 RigidBodyTree::~RigidBodyTree() {
     delete lConstraints;
 
@@ -80,13 +135,11 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
 // its stations. Return the assigned distance constraint index for caller's use.
 int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
 {
-    const int indx = distanceConstraints.size();
-    distanceConstraints.append(RBDistanceConstraint(s1,s2,d));
-    RBDistanceConstraint& dc = distanceConstraints[indx];
-    int rtnxt = stationRuntimeInfo.size();
-    distanceConstraints[indx].grabStationRuntimes(rtnxt);
-    stationRuntimeInfo.resize(rtnxt);
-    return indx;
+    RBDistanceConstraint dc(s1,s2,d);
+    dc.setRuntimeIndex(dcRuntimeInfo.size());
+    dcRuntimeInfo.append(RBDistanceConstraintRuntime());
+    distanceConstraints.append(dc);
+    return distanceConstraints.size()-1;
 }
 
 void RigidBodyTree::finishConstruction(IVM* ivm) {

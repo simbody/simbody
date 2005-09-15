@@ -62,15 +62,40 @@ class BadNodeDef {};  //exception
  * node or if they are on different molecules.
  */
 class LoopWNodes {
-    RigidBodyNode*                 base;    // highest-level common ancestor of tips
-    FixedVector<RBStation,2,1>     tips;    // the two connected stations, sorted so that
-                                            //   tips(1).level <= tips(2).level
+public:
+    LoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
+    LoopWNodes(const RBDistanceConstraint&);
+
+    const double& getDistance() const { return rbDistCons->getDistance(); }
+
+    // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
+    const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
+
+    const Vec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
+    const Vec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
+    const Vec3& tipAcc(int i)   const {return getTipRuntime(i).acc_G;}
+    const Vec3& tipForce(int i) const {return getTipRuntime(i).force_G;}
+
+    // Use this for both forces and impulses.
+    void setTipForce(int i, const Vec3& f) const { updTipRuntime(i).force_G = f; }
+
+private:
+    int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
+    const RBStationRuntime& getTipRuntime(int i) const
+      { return rt->stationRuntimes[ix(i)-1]; }
+    RBStationRuntime& updTipRuntime(int i) const
+      { return rt->stationRuntimes[ix(i)-1]; }
+
+    const RBDistanceConstraint*  rbDistCons;  // reference to the constraint
+    RBDistanceConstraintRuntime* rt;          // ... and its runtime
+
+    // calculated info about the constraint
+    bool                           flipStations; // make sure station(1).level
+                                                 //   <= station(2).level
     FixedVector<RBNodePtrList,2,1> nodes;   // the two paths: base..tip1, base..tip2,
                                             //   incl. tip nodes but not base
+    RigidBodyNode*                 base;    // highest-level common ancestor of tips
     const RigidBodyNode*           moleculeNode;
-public:
-    LoopWNodes() {}
-    LoopWNodes(const RBDistanceConstraint& l);
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
@@ -81,7 +106,8 @@ public:
                            const LoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc) 
+LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc)
+  : rbDistCons(&dc), flipStations(false), base(0), moleculeNode(0)
 {
     using InternalDynamics::Exception;
 
@@ -97,9 +123,9 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc)
     }
 
     // Ensure that tips(2) is the atom which is farther from the base.
-    if ( dcNode1->getLevel() > dcNode2->getLevel() )
-         tips(1) = dc.getStation(2), tips(2) = dc.getStation(1);
-    else tips(1) = dc.getStation(1), tips(2) = dc.getStation(2);
+    flipStations = (dcNode1->getLevel() > dcNode2->getLevel());
+
+    // OK to use tips() at this point.
 
     // Collect up the node path from tips(2) down to the last node on its
     // side of the loop which is at a higher level than tips(1) (may be none).
@@ -116,8 +142,8 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc)
     while ( node1 != node2 ) {
         if ( node1->isGroundNode() ) {
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
-                 << "loop between stations " << dc.getStation(1) << " and " 
-                 << dc.getStation(2) << "\n";
+                 << "loop between stations " << tips(1) << " and " 
+                 << tips(2) << "\n";
             throw Exception("LoopWNodes::LoopWNodes: could not find base node");
         }
         nodes(1).append(node1);
@@ -139,8 +165,8 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc)
 
     if ( moleculeNode->getLevel()<1 ) {
         cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
-             << "loop between atoms " << dc.getStation(1) << " and " 
-             << dc.getStation(2) << "\n";
+             << "loop between atoms " << tips(1) << " and " 
+             << tips(2) << "\n";
         throw Exception("LoopWNodes::LoopWNodes: could not find molecule node");
     }
 }
@@ -152,9 +178,8 @@ class LengthSet {
     const LengthConstraints*  lConstraints;
     IVM*                      ivm;
     LoopList                  loops;    
-    CDSList<double>           lengths;
     int                       dim;
-    CDSList<RigidBodyNode*> nodeMap; //unique nodes (intersection of loops->nodes)
+    CDSList<RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
         : lConstraints(lConstraints), ivm(lConstraints->ivm), dim(0)
@@ -164,7 +189,6 @@ public:
 
     void addConstraint(const LoopWNodes& loop) {
         loops.append( LoopWNodes(loop) );
-        lengths.append( sqrt(abs2(loop.tips(1)->pos - loop.tips(2)->pos)) );
         for (int b=1 ; b<=2 ; b++)
             for (int i=0; i<loop.nodes(b).size(); i++)
                 if (!nodeMap.contains(loop.nodes(b)[i])) {
@@ -218,7 +242,7 @@ operator<<(ostream& os, const LengthSet& s)
     for (int i=0 ; i<s.loops.size() ; i++)
         os << setw(4) << s.loops[i].tips(1) << "<->" 
            << setw(4) << s.loops[i].tips(2)  << ": " 
-           << s.lengths[i] << "  ";
+           << s.loops[i].getDistance() << "  ";
     return os;
 }
 
@@ -410,7 +434,7 @@ class CalcPosB {
 public:
     CalcPosB(const LengthSet* constraint)
         : constraint(constraint) {}
-    RVec0 operator()(const RVec& pos) 
+    RVec0 operator()(const RVec& pos) const
         { return constraint->calcPosB(pos); }
 };
 
@@ -418,7 +442,7 @@ class CalcPosZ {
     const LengthSet* constraint;
 public:
     CalcPosZ(const LengthSet* constraint) : constraint(constraint) {}
-    RVec0 operator()(const RVec& b) 
+    RVec0 operator()(const RVec& b) const 
         { return constraint->calcPosZ(b); }
 };
 
@@ -442,8 +466,8 @@ LengthSet::calcPosB(const RVec& pos) const
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) 
-        b(i) = lengths[i] - 
-                sqrt(abs2(loops[i].tips(1)->pos - loops[i].tips(2)->pos));
+        b(i) = loops[i].getDistance() - 
+                sqrt(abs2(loops[i].tipPos(1) - loops[i].tipPos(2)));
     return b;
 }
 
@@ -454,14 +478,12 @@ RVec0
 LengthSet::calcVelB(const RVec& pos, const RVec& vel) const 
 {
     setPos(pos); // TODO (sherm: this is probably redundant)
-
     setVel(vel);
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
-        const IVMAtom* tip1 = loops[i].tips(1);
-        const IVMAtom* tip2 = loops[i].tips(2);
-        b(i) = -dot( unitVec(tip2->pos - tip1->pos) , tip2->vel - tip1->vel );
+        b(i) = -dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
+                      loops[i].tipVel(2) - loops[i].tipVel(1) );
     }
 
     return b;
@@ -594,16 +616,16 @@ LengthSet::fdgradf( const RVec& pos,
 {
     // Gradf gradf(tree);
     // gradf(x,grad); return;
-    double eps = 1e-8;
-    CalcPosB calcB(this);
-    RVec0 b = calcB(pos);
+    const double eps = 1e-8;
+    const CalcPosB calcB(this);
+    const RVec0 b = calcB(pos);
     int grad_indx=0;
     for (int i=0 ; i<nodeMap.size() ; i++) {
         int pos_indx=nodeMap[i]->getStateOffset();
         for (int j=0 ; j<nodeMap[i]->getDim() ; j++,pos_indx++,grad_indx++) {
             RVec posp = pos;
             posp(pos_indx) += eps;
-            RVec0 bp = calcB(posp);
+            const RVec0 bp = calcB(posp);
             for (int k=0 ; k<b.size() ; k++)
                 grad(grad_indx,k) = -(bp(k)-b(k)) / eps;
         }
@@ -657,11 +679,11 @@ LengthSet::calcGrad() const
         }
 
         // compute gradient
-        Vec3 uBond = unitVec(l.tips(2)->pos - l.tips(1)->pos);
+        Vec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
         FixedVector<FixedMatrix<double,3,6>,2,1> J;
         for (int b=1 ; b<=2 ; b++)
-            J(b) = blockMat12(-crossMat(l.tips(b)->pos -
-                                        l.tips(b)->node->getAtom(0)->pos), one);
+            J(b) = blockMat12(-crossMat(l.tipPos(b) -
+                                        l.tips(b).getNode().getOB_G()), one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
             RMat H = MatrixTools::transpose(nodeMap[j]->getH());
@@ -759,33 +781,33 @@ typedef SubVector<const Vec6>       SubVec6;
 // Calculate the acceleration of atom assuming that the spatial acceleration
 // of the body (node) it's on is available.
 //
-static Vec3
-getAccel(const IVMAtom* a)
-{
-    const RigidBodyNode* n = a->node;
-    Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
-    ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
-    ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
-    return ret;
-}
+//static Vec3
+//getAccel(const IVMAtom* a)
+//{
+//    const RigidBodyNode* n = a->node;
+//    Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
+//    ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
+//    ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
+//    return ret;
+//}
 
 //             T     -1 T   
 // Compute   v1 *(J M  J )_mn * v2   where the indices mn are given by 
-// the nodes associated with atoms a1 & a2.
+// the nodes associated with stations s1 & s2.
 //
 static double
 computeA(const Vec3&    v1,
-         const IVMAtom* a1,
-         const IVMAtom* a2,
+         const LoopWNodes& loop1, int s1,
+         const LoopWNodes& loop2, int s2,
          const Vec3&    v2)
 {
-    const RigidBodyNode* n1 = a1->node;
-    const RigidBodyNode* n2 = a2->node;
+    const RigidBodyNode* n1 = &loop1.tips(s1).getNode();
+    const RigidBodyNode* n2 = &loop2.tips(s2).getNode();
 
     Mat33 one(0.); one.setDiag(1.);
 
-    Vec6 t1 = v1 * blockMat12(crossMat(n1->getAtom(0)->pos - a1->pos),one);
-    Vec6 t2 = blockMat21(crossMat(a2->pos - n2->getAtom(0)->pos),one) * v2;
+    Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
+    Vec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * n1->getPsiT();
@@ -801,7 +823,7 @@ computeA(const Vec3&    v1,
             t1.set(0.);  //not in same branch (or same tree -- sherm)
             t2.set(0.);
             cout << "computeA: cycles wasted calculating missed branch: "
-                    << a1 << " <-> " << a2 << '\n';
+                    << loop1.tips(s1) << " <-> " << loop2.tips(s2) << '\n';
             return 0.;
         }
         t1 = t1 * n1->getPsiT();
@@ -831,10 +853,9 @@ LengthSet::fixAccel()
     // See Eq. [53] and the last term of Eq. [66].
     RVec0 rhs(loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        const IVMAtom* t = loops[i].tips(2);
-        const IVMAtom* b = loops[i].tips(1);
-        rhs(i) = -(abs2(t->vel - b->vel)
-                   + dot(getAccel(t) - getAccel(b) , t->pos - b->pos));
+        rhs(i) = -(abs2(loops[i].tipVel(2) - loops[i].tipVel(1))
+                   + dot(loops[i].tipAcc(2) - loops[i].tipAcc(1) , 
+                         loops[i].tipPos(2) - loops[i].tipPos(1)));
     }
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
@@ -842,14 +863,14 @@ LengthSet::fixAccel()
     // term of Eq. [66].
     RMat A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        const Vec3 v1 = loops[i].tips(2)->pos - loops[i].tips(1)->pos;
+        const Vec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<loops.size() ; j++) {
-                    const Vec3 v2 = loops[j].tips(2)->pos - loops[j].tips(1)->pos;
-                    double contrib = computeA(v1, loops[i].tips(bi),
-                                              loops[j].tips(bj), v2);
+                    const Vec3 v2 = loops[j].tipPos(2) - loops[j].tipPos(1);
+                    double contrib = computeA(v1, loops[i], bi,
+                                                  loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
 
                     if ( fabs(contrib) > maxElem ) maxElem = fabs(contrib);
@@ -878,11 +899,9 @@ LengthSet::fixAccel()
 
     // add forces due to these constraints
     for (int i=0 ; i<loops.size() ; i++) {
-        IVMAtom* b = loops[i].tips(1);
-        IVMAtom* t = loops[i].tips(2);
-        const Vec3 frc = lambda(i) * (t->pos - b->pos);
-        t->force -= frc;
-        b->force += frc;
+        const Vec3 frc = lambda(i) * (loops[i].tipPos(2) - loops[i].tipPos(1));
+        loops[i].setTipForce(2, -frc);
+        loops[i].setTipForce(1,  frc);
     }
 
     ivm->updateAccel();
@@ -893,13 +912,12 @@ LengthSet::testAccel()
 {
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
-        const IVMAtom* t = loops[i].tips(2);
-        const IVMAtom* b = loops[i].tips(1);
-        double test= dot( getAccel(t) - getAccel(b) , t->pos - b->pos ) +
-                     abs2( t->vel - b->vel );
+        double test= dot( loops[i].tipAcc(2) - loops[i].tipAcc(1),
+                          loops[i].tipPos(2) - loops[i].tipPos(1) ) +
+                     abs2( loops[i].tipVel(2) - loops[i].tipVel(1) );
         if ( fabs(test) > testTol )
             cout << "LengthSet::testAccel: constraint condition between atoms "
-                 << b << " and " << t << " violated.\n"
+                 << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
                  << "\tnorm of violation: " << fabs(test) << '\n';
     }
     cout.flush();
@@ -972,11 +990,9 @@ LengthSet::testInternalForce(const RVec& forceInternal)
 
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
-        IVMAtom* t = loops[i].tips(2);
-        IVMAtom* b = loops[i].tips(1);
         if ( test(i) > testTol )
             cout << "LengthSet::Gradient: constraint condition between atoms "
-                 << b << " and " << t << " violated.\n"
+                 << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
                  << "\tnorm of violation: " << test(i) << '\n';
     }
     cout.flush();
@@ -1003,8 +1019,8 @@ LengthSet::fixVel0(RVec& iVel)
 
     CDSVector<double> rhs(loops.size());
     for (int k=0 ; k<loops.size() ; k++) 
-        rhs(k) = dot(loops[k].tips(2)->pos - loops[k].tips(1)->pos ,
-                     loops[k].tips(2)->vel - loops[k].tips(1)->vel);
+        rhs(k) = dot(loops[k].tipPos(2) - loops[k].tipPos(1) ,
+                     loops[k].tipVel(2) - loops[k].tipVel(1));
 
     RMat mat(loops.size(),loops.size());
     CDSList<RVec> deltaIVel(loops.size(),0);
@@ -1018,9 +1034,16 @@ LengthSet::fixVel0(RVec& iVel)
         // inertia weighted like the initial condition method, rather than
         // atom weighted as here -- these two atoms are going to drag their
         // whole bodies with them.
-        loops[m].tips(2)->vel  = (loops[m].tips(2)->pos-loops[m].tips(1)->pos);
-        loops[m].tips(1)->vel  = -loops[m].tips(2)->vel / loops[m].tips(1)->mass;
-        loops[m].tips(2)->vel /=  loops[m].tips(2)->mass;
+
+        // TODO: I'm putting these probe impulses into the 'force' slot in
+        // the constraint runtimes, but the code below it still thinks these
+        // have gone into the 'vel' slot!!! (sherm)
+        // TODO: stations don't have mass so I had to set these to 1
+        const Vec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
+        const double mass1 = /*loops[m].tips(1)->mass*/ 1.;
+        const double mass2 = /*loops[m].tips(2)->mass*/ 1.;
+        loops[m].setTipForce(2,  probeImpulse / mass2);
+        loops[m].setTipForce(1, -probeImpulse / mass1);
 
         // calc deltaVa from k-th constraint condition
         //FIX: make sure that nodeMap is ordered by level
@@ -1034,8 +1057,8 @@ LengthSet::fixVel0(RVec& iVel)
         ivm->tree()->setVel( deltaIVel[m] );
 
         for (int n=0 ; n<loops.size() ; n++)
-            mat(n,m) = dot(loops[n].tips(2)->pos - loops[n].tips(1)->pos,
-                           loops[n].tips(2)->vel - loops[n].tips(1)->vel);
+            mat(n,m) = dot(loops[n].tipPos(2) - loops[n].tipPos(1),
+                           loops[n].tipVel(2) - loops[n].tipVel(1));
 
         //store results of l-th constraint on deltaVa-k
     }
