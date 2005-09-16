@@ -369,6 +369,20 @@ AtomTree::AtomTree(IVM* ivm_)
             nodeTree[i][j] = AtomClusterNode::constructFromPrototype( nodeTree[i][j] , hingeSpec, cnt);
         }
 
+    // Calculate the fixed stations for all the atoms.
+    for (int i=0; i<nodeTree.size(); i++)
+        for (int j=0; j<nodeTree[i].size(); j++) {
+            AtomClusterNode* n = nodeTree[i][j];
+            const Vec3 OB_G = n->atoms[0]->pos; // origin
+            cout << "NODE " << i << ":" << j << " origin " << OB_G << endl;
+            for (int a=0; a < n->atoms.size(); ++a) {
+                n->atoms[a]->station_B = n->atoms[a]->pos - OB_G;
+                cout << "  ATOM " << a << "(index " << n->atoms[a]->index << ")";
+                cout << " pos=" << n->atoms[a]->pos << " station=" << n->atoms[a]->station_B;
+                cout << endl;
+            }
+        }
+
     ivm->dof_ = getDOF();
     createRigidBodyTree();
 }
@@ -396,9 +410,13 @@ void AtomTree::createRigidBodyTree() {
                                         ac.getJointIsReversed(),
                                         ivm->minimization(),  // TODO: kludge
                                         nextStateOffset); 
-            RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
-            const int rbIndex = rbTree.addRigidBodyNode(
-                                        parent,ac.getReferenceBodyFrameInParent(),rb);
+            int rbIndex = -1;
+            if (ac.getParent()) {
+                RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
+                rbIndex = rbTree.addRigidBodyNode(parent,ac.getReferenceBodyFrameInParent(),rb);
+            } else
+                rbIndex = rbTree.addGroundNode(rb);
+
             ac.setRBIndex(rbIndex);
         }
 
@@ -636,7 +654,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
     // solve for desired internal velocities
     vel = calcGetAccel();
     setVel(vel);
-    fixVel0(vel);
+    /* sherm: TODO    fixVel0(vel); */
 
     if ( ivm->verbose()&printVelFromCartCost ) {
         VecVec3 avel(ivm->atoms.size()-1);

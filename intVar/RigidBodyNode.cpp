@@ -44,9 +44,10 @@ static const Mat33 zero33(0.);
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child) {
+void RigidBodyNode::addChild(RigidBodyNode* child, const Frame& referenceFrame) {
     children.append( child );
     child->setParent(this);
+    child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
 }
 
 //
@@ -127,13 +128,13 @@ operator<<(ostream& s, const RigidBodyNode& node) {
  * This is the distinguished body representing the immobile ground frame. Other bodies may
  * be fixed to this one, but only this is the actual Ground.
  */
-class GroundBody : public RigidBodyNode {
+class RBGroundBody : public RigidBodyNode {
 public:
-    GroundBody(const RigidBodyNode* node)
-      : RigidBodyNode(*node) {}
-    ~GroundBody() {}
+    RBGroundBody() // TODO: should set mass properties to infinity
+      : RigidBodyNode(MassProperties(),Vec3(0.),ident33,Vec3(0.)) {}
+    ~RBGroundBody() {}
 
-    /*virtual*/const char* type() { return "ground"; }
+    /*virtual*/const char* type() const { return "ground"; }
 
     /*virtual*/void calcP() {} 
     /*virtual*/void calcZ(const Vec6&) {} 
@@ -796,7 +797,8 @@ RigidBodyNode::create(
     assert(!isReversed);
 
     switch(type) {
-
+    case ThisIsGround:
+        return new RBGroundBody();
     case TorsionJoint:
         return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
     case UJoint:        
@@ -818,6 +820,8 @@ RigidBodyNode::create(
     default: 
         assert(false);
     };
+
+    return 0;
 }
 
 /////////////////////////////////////////////////////////////
@@ -990,9 +994,6 @@ RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& desiredVel) {
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::print(int verbose) const {
-    if (verbose&InternalDynamics::printNodeForce) 
-        cout << setprecision(8)
-             << ": force: " << forceCartesian << '\n';
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
              << ": pos: " << OB_G << ' ' << '\n';

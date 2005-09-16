@@ -131,7 +131,28 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
     n->setNodeNum(nodeNum);
 
     // Link in to the tree topology (bidirectional).
-    parent.addChild(n);
+    parent.addChild(n, referenceConfig);
+
+    return nodeNum;
+}
+
+// Add a new ground node, taking over the heap space.
+int RigidBodyTree::addGroundNode(RigidBodyNode*& gnodep)
+{
+    assert(String(gnodep->type())=="ground");
+
+    RigidBodyNode* n = gnodep; gnodep=0;  // take ownership
+    n->setLevel(0);
+
+    // Put ground node in tree at level 0
+    if (rbNodeLevels.size()==0) rbNodeLevels.resize(1);
+    const int nxt = rbNodeLevels[0].size();
+    rbNodeLevels[0].append(n);
+
+    // Assign a unique reference integer to this node, for use by caller
+    const int nodeNum = nodeNum2NodeMap.size();
+    nodeNum2NodeMap.append(RigidBodyNodeIndex(0,nxt));
+    n->setNodeNum(nodeNum);
 
     return nodeNum;
 }

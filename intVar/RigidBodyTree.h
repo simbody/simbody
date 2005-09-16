@@ -124,6 +124,8 @@ public:
                          const Frame&    referenceConfig,    // body frame in parent
                          RigidBodyNode*& nodep);
 
+    /// Same as addRigidBodyNode but special-cased for ground.
+    int addGroundNode(RigidBodyNode*& gnodep);
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
     /// its stations. Return the assigned distance constraint index for caller's use.

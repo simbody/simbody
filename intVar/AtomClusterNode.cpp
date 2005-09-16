@@ -145,6 +145,9 @@ public:
     GroundBody(const AtomClusterNode* node)
       : AtomClusterNode(*node)
     { 
+        jointType = ThisIsGround;
+        jointIsReversed = false;
+
         for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = Vec3(0.0); 
         for (l_int i=0 ; i<atoms.size() ; i++) atoms[i]->node = this; 
     }

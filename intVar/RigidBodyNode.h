@@ -92,8 +92,8 @@ public:
         int&                  nextStateOffset); 
 
     /// Register the passed-in node as a child of this one, and note in
-    /// the child that this is its parent.
-    void addChild(RigidBodyNode* child);
+    /// the child that this is its parent. Also set the reference frame in the child.
+    void addChild(RigidBodyNode* child, const Frame& referenceFrame);
 
     RigidBodyNode*   getParent() const {return parent;}
     void             setParent(RigidBodyNode* p) { parent=p; }
@@ -221,8 +221,10 @@ protected:
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
-        R_GB.set(0.);       // B frame is initially aligned with Ground
-        R_GB.setDiag(1.);
+        R_PB.set(0.); R_PB.setDiag(1.); OB_P.set(0.);
+        V_PB_G.set(0.); sVel.set(0.); sAcc.set(0.);
+        R_GB.set(0.); R_GB.setDiag(1.); OB_G.set(0.);
+        COMstation_G.set(0.);
     }
 
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
@@ -243,13 +245,13 @@ protected:
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
-    // after construction! The body origin can of course move relative to its
-    // parent, but that is not the meaning of this reference configuration vector.
+    // after this node is connected to its parent. The body origin can of course move relative
+    // to its parent, but that is not the meaning of this reference configuration vector.
     // (Note however that the body origin is also the location of the inboard joint, 
     // meaning that the origin point moves relative to the parent only due to translations.)
     // Note that by definition the orientation of the body frame is identical to P
     // in the reference configuration so we don't need to store it.
-    const Vec3   refOrigin_P;
+    Vec3          refOrigin_P;
 
     //      ... calculated on construction
     const Inertia inertia_CB_B;  // centroidal inertia, expr. in B
@@ -288,7 +290,6 @@ protected:
     Vec6         sVel;  // spatial velocity
 
     //      ... acceleration level
-    Vec6         forceCartesian;    // net spatial force
     Vec6         z;
     Vec6         Gepsilon;
     Vec6         sAcc;              // spatial acceleration

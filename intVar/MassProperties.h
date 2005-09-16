@@ -65,17 +65,18 @@ typedef float_type Real;
  */
 enum JointType {
     UnknownJointType    = 0,
-    WeldJoint           = 1,
-    TorsionJoint        = 2,
-    SlidingJoint        = 3,
-    UJoint              = 4,
-    CylinderJoint       = 5,
-    PlanarJoint         = 6,
-    GimbalJoint         = 7,
-    OrientationJoint    = 8,
-    CartesianJoint      = 9,
-    FreeLineJoint       = 10,
-    FreeJoint           = 11
+    ThisIsGround        = 1, // Ground's "inboard joint"
+    WeldJoint           = 2,
+    TorsionJoint        = 3,
+    SlidingJoint        = 4,
+    UJoint              = 5,
+    CylinderJoint       = 6,
+    PlanarJoint         = 7,
+    GimbalJoint         = 8,
+    OrientationJoint    = 9,
+    CartesianJoint      = 10,
+    FreeLineJoint       = 11,
+    FreeJoint           = 12
 };
 
 
