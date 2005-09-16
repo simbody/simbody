@@ -432,6 +432,8 @@ void AtomTree::createRigidBodyTree() {
     }
 
     rbTree.finishConstruction(ivm);
+
+    cout << rbTree << endl;
 }
 
 void
@@ -649,6 +651,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
     rbTree.setVel(vel); // zero velocities to nuke bias forces (no effect on atom vel)
 
     // calculate impulses from desired atomic momenta and convert to internal coordinates
+    calcP();
     propagateSVel();
 
     // solve for desired internal velocities

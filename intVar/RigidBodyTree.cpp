@@ -313,3 +313,19 @@ void RigidBodyTree::getAcc(RVec& acc) const {
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getAccel(acc);
 }
+
+ostream& operator<<(ostream& o, const RigidBodyTree& tree) {
+    o << "RigidBodyTree has " << tree.getNBodies() << " bodies (incl. G) in "
+      << tree.rbNodeLevels.size() << " levels." << endl;
+    o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << endl;
+    for (int i=0; i < tree.getNBodies(); ++i) {
+        o << i << "->" << tree.nodeNum2NodeMap[i].level << "," 
+                       << tree.nodeNum2NodeMap[i].offset << ";";
+        const RigidBodyNode& n = tree.getRigidBodyNode(i);
+        o << n.getNodeNum() << "," << n.getLevel() 
+          <<"("<< n.getStateOffset() <<":"<< n.getDim() <<")"<< endl;
+    }
+
+    return o;
+}
+

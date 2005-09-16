@@ -227,6 +227,9 @@ private:
     CDSList<RBDistanceConstraintRuntime> dcRuntimeInfo;
     
     LengthConstraints* lConstraints;
+    friend ostream& operator<<(ostream&, const RigidBodyTree&);
 };
+
+ostream& operator<<(ostream&, const RigidBodyTree&);
 
 #endif /* RIGID_BODY_TREE_H_ */

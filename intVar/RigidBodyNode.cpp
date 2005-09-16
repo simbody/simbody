@@ -283,6 +283,7 @@ typedef SubVector<const RVec> ConstRSubVec;
 typedef SubVector<Vec4>       RSubVec4;
 typedef SubVector<Vec5>       RSubVec5;
 typedef SubVector<Vec6>       RSubVec6;
+typedef SubVector<const Vec6> ConstRSubVec6;
 
 /**
  * Translate (Cartesian) joint. This provides three degrees of translational freedom
@@ -398,7 +399,7 @@ public:
             q     = ConstRSubVec(posv,stateOffset,4).vector();
     } 
 
-    void getBallPos(const Vec3& theta, int stateOffset, RVec& v) {
+    void getBallPos(const Vec3& theta, int stateOffset, RVec& v) const {
         if (useEuler) 
             RSubVec(v,stateOffset,3) = theta.vector();
         else  //integration step
@@ -406,14 +407,16 @@ public:
     }
 
     void setBallVel(int stateOffset, const RVec& velv, FixedVector<double,3>& dTheta) { 
-        assert( !useEuler );
-
-        dq = ConstRSubVec(velv,stateOffset,4).vector();
-        double a2[] = {-q(1), q(0),-q(3), q(2),
-                       -q(2), q(3), q(0),-q(1),
-                       -q(3),-q(2), q(1), q(0)};
-        FixedMatrix<double,3,4> M(a2);
-        dTheta = 2.0*( M * dq );
+        if (useEuler)
+            dTheta = ConstRSubVec(velv,stateOffset,3).vector();
+        else {
+            dq = ConstRSubVec(velv,stateOffset,4).vector();
+            double a2[] = {-q(1), q(0),-q(3), q(2),
+                        -q(2), q(3), q(0),-q(1),
+                        -q(3),-q(2), q(1), q(0)};
+            FixedMatrix<double,3,4> M(a2);
+            dTheta = 2.0*( M * dq );
+        }
     }
 
     void getBallVel(int stateOffset, RVec& velv) {
@@ -534,7 +537,7 @@ public:
         ball.setBallPos(stateOffset, posv, theta);
     } 
 
-    void getPos(RVec& posv) {
+    void getPos(RVec& posv) const {
         ball.getBallPos(theta, stateOffset, posv);
     }
 
@@ -605,9 +608,9 @@ public:
             ConstRSubVec(posv,stateOffset+ball.getBallDim(),3).vector();
     } 
 
-    void getPos(RVec& posv) {
-        ball.getBallPos(Vec3(RSubVec6(theta,0,3).vector()), stateOffset, posv);
-        RSubVec(posv,stateOffset+ball.getBallDim(),3) = RSubVec6(theta,3,3).vector();
+    void getPos(RVec& posv) const {
+        ball.getBallPos(Vec3(ConstRSubVec6(theta,0,3).vector()), stateOffset, posv);
+        RSubVec(posv,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(theta,3,3).vector();
     }
 
     // setPos must have been called previously
