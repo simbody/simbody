@@ -109,6 +109,7 @@ PC6::step(double& timeStep)
 
     // save
     acc0 = acc; dq30 = dq3; dq40 = dq4; dq50 = dq5;
+
     //prediction
     vel *= ( timeStep );          //rescale vel/acc
     acc *= ( 0.5*CDSMath::sq(timeStep) );
@@ -126,9 +127,12 @@ PC6::step(double& timeStep)
 
     vel *= ( 1.0/timeStep );   //get unscaled velocity
     tree()->enforceConstraints(pos,vel);
+
     tree()->setPosVel(pos,vel);
 
     ivm->calcEnergy();  //calc energies, derivatives
+    cout << "PE=" << std::setprecision(16) << ivm->Epotential() << endl;
+    cout << "KE=" << ivm->Ekinetic() << endl;
     if ( ivm->verbose()&printStepDebug )
     cout << "PC6::step: before velocity scale: energy: "
          << ivm->Etotal() << " temp: " << ivm->currentTemp() << '\n';

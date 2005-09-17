@@ -142,8 +142,11 @@ void AtomTree::fixVel0(RVec& vel) {
     rbTree.fixVel0(vel);
 }
 
+// One-stop shopping -- calculates everything except the
+// position & velocity kinematics.
 RVec AtomTree::getAccel() {
     calcSpatialForces();
+    rbTree.prepareForDynamics();
     rbTree.calcLoopForwardDynamics(spatialForces);
     RVec acc(getIVMDim()); 
     rbTree.getAcc(acc);

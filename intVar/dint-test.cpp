@@ -56,9 +56,10 @@ TestIVM::calcEnergy()
         for (int j=i+1 ; j<atoms.size() ; j++) {
             double dist2 = abs2( atoms[i]->pos - atoms[j]->pos );
             Epotential_ += k * dist2;
-            atoms[i]->force += k * (atoms[i]->pos - atoms[j]->pos);
-            atoms[j]->force += k * (atoms[j]->pos - atoms[i]->pos);
-            //     atoms[i]->force *= -1;
+            // sherm: reversed sign here; original was wrong but
+            // had a compensating sign change in calcZ()
+            atoms[i]->force -= k * (atoms[i]->pos - atoms[j]->pos);
+            atoms[j]->force -= k * (atoms[j]->pos - atoms[i]->pos);
         }
     }
     Epotential_ *= 0.5;
@@ -333,14 +334,10 @@ TestIVM::test()
     else 
         setVerbose( 0 );
 
-    int lexit = 0;
-    double stepsize=1e-6;
-    initDynamics(0);
-    double E0 = Etotal();
+    // Standardize the current state to avoid compounding small differences.
 
-    cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
-    cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
-
+    //cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
+    //cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
     const double ppp[] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     RVec pp; pp.copy(ppp,16);
     const double vvv[] =
@@ -351,9 +348,21 @@ TestIVM::test()
     RVec vv; vv.copy(vvv,16);
 
     getSolver()->setPos(pp); getSolver()->setVel(vv);
-    cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
-    cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
+    cout << "POS: " << setprecision(16) << getSolver()->getPos() << endl;
+    cout << "VEL: " << setprecision(16) << getSolver()->getVel() << endl;
     tree()->setPosVel(getSolver()->getPos(),getSolver()->getVel());
+    RVec aa = tree()->getAccel();
+    cout << "ACC: " << setprecision(16) << aa << endl;
+    
+    return 0;
+
+    int lexit = 0;
+    double stepsize=1e-6;
+    initDynamics(false);
+    double E0 = Etotal();
+
+    cout << "ETOTAL BEFORE STEP=" << E0 << endl;
+
 
     step(stepsize);
 
@@ -371,12 +380,12 @@ TestIVM::test()
 
     CDSList<Vec3> tv;
     tv.append(Vec3(0,0,0));
-    tv.append(Vec3(    .6523192444544815 , .06016935435394602, .2844877178141606 ));
-    tv.append(Vec3(    .05086118154323828,-.04506153298146813,-.08246129196430015));
+    tv.append(Vec3( .6523192444544815 , .06016935435394602, .2844877178141606 ));
+    tv.append(Vec3( .05086118154323828,-.04506153298146813,-.08246129196430015));
     tv.append(Vec3(-.1036569920762576 ,-.00280736791994937,-.03375358837610575));
     tv.append(Vec3(-.00115761337467347,-.03555578463202729,-.05191819456361482));
     tv.append(Vec3(-.08747009973676708, .04323643246703309, .04437764361572128));
-    tv.append(Vec3(    .02388993712409297,-.02368513074477553,-.02401287014865009));
+    tv.append(Vec3( .02388993712409297,-.02368513074477553,-.02401287014865009));
     tv.append(Vec3(-.02063275741060132, .01521822514720666, .01593677318721820));
     tv.append(Vec3(-.2509401063298388 , .07462330037371790, .08934386979265429));
       
@@ -401,7 +410,6 @@ TestIVM::test()
         }
     }
 
-    return 0; // XXX
 
     step(stepsize); step(stepsize); step(stepsize);
 
@@ -420,9 +428,9 @@ TestIVM::test()
             break;
         }
     }
+    cout << "initial/final energy: " 
+        << E0 << '/' << Etotal() << '\n';
     if (fabs(E0 - Etotal()) > 1e-3) {
-        cout << "initial/final energy: " 
-             << E0 << '/' << Etotal() << '\n';
         lexit=1;
     }
     if ( lexit==0 )
@@ -433,6 +441,8 @@ TestIVM::test()
     }
     }
     cout << endl;
+
+    return 0; // XXX
 
     // {
     //   cout << "minimizcg...";

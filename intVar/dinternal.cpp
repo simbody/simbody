@@ -504,8 +504,8 @@ IVM::initDynamics(bool reuseTopology)
 cout << "initDynamics: before velFromCartesian, vel=" << vel << endl;
         tree()->velFromCartesian(pos,vel);
 cout << "initDynamics: after velFromCartesian, vel=" << vel << endl;
-//        tree()->enforceConstraints(pos,vel);    //FIX: probably redundant
-//cout << "initDynamics: after enforceConstraints, pos=" << pos << endl;
+        tree()->enforceConstraints(pos,vel);    //FIX: probably redundant
+cout << "initDynamics: after enforceConstraints, pos=" << pos << endl;
         resetCM();
         tree()->setPosVel(pos,vel);
     }
@@ -515,7 +515,7 @@ cout << "initDynamics: after velFromCartesian, vel=" << vel << endl;
         acc = tree()->getAccel();
     getSolver()->init(pos,vel,acc);
 
-    cout << "initDynamics: end vel=" << vel << endl;
+cout << "initDynamics: end vel=" << vel << endl;
 }
 
 String

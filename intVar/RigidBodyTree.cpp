@@ -221,9 +221,10 @@ void RigidBodyTree::calcTreeForwardDynamics(const VecVec6& spatialForces) {
 void RigidBodyTree::calcLoopForwardDynamics(const VecVec6& spatialForces) {
     VecVec6 sFrc = spatialForces;
     calcTreeForwardDynamics(sFrc);
-    lConstraints->calcConstraintForces();
-    lConstraints->addInCorrectionForces(sFrc);
-    calcTreeForwardDynamics(sFrc);
+    if (lConstraints->calcConstraintForces()) {
+        lConstraints->addInCorrectionForces(sFrc);
+        calcTreeForwardDynamics(sFrc);
+    }
 }
 
 // should be:
