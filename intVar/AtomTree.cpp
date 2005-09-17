@@ -374,13 +374,8 @@ AtomTree::AtomTree(IVM* ivm_)
         for (int j=0; j<nodeTree[i].size(); j++) {
             AtomClusterNode* n = nodeTree[i][j];
             const Vec3 OB_G = n->atoms[0]->pos; // origin
-            cout << "NODE " << i << ":" << j << " origin " << OB_G << endl;
-            for (int a=0; a < n->atoms.size(); ++a) {
+            for (int a=0; a < n->atoms.size(); ++a)
                 n->atoms[a]->station_B = n->atoms[a]->pos - OB_G;
-                cout << "  ATOM " << a << "(index " << n->atoms[a]->index << ")";
-                cout << " pos=" << n->atoms[a]->pos << " station=" << n->atoms[a]->station_B;
-                cout << endl;
-            }
         }
 
     ivm->dof_ = getDOF();
@@ -432,8 +427,6 @@ void AtomTree::createRigidBodyTree() {
     }
 
     rbTree.finishConstruction(ivm);
-
-    cout << rbTree << endl;
 }
 
 void

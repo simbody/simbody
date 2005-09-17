@@ -73,6 +73,8 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     inertia_OB_G = orthoTransform(getInertia_OB_B(), getR_GB());
     COMstation_G = getR_GB()*getCOM_B();
 
+    COM_G = OB_G + COMstation_G;
+
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
@@ -217,6 +219,8 @@ public:
     virtual void setJointVel(const RVec& velv) {
         dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
     }
+    virtual void calcJointAccel() { }
+
     virtual void getPos(RVec& p) const {
         RSubVec(p,stateOffset,dof) = theta.vector();
     }
@@ -393,17 +397,13 @@ public:
     }
 
     void setBallPos(int stateOffset, const RVec& posv, FixedVector<double,3>& theta) {
-        if (useEuler)
-            theta = ConstRSubVec(posv,stateOffset,3).vector(); 
-        else //integration step using quaternion
-            q     = ConstRSubVec(posv,stateOffset,4).vector();
+        if (useEuler) theta = ConstRSubVec(posv,stateOffset,3).vector(); 
+        else          q     = ConstRSubVec(posv,stateOffset,4).vector();
     } 
 
-    void getBallPos(const Vec3& theta, int stateOffset, RVec& v) const {
-        if (useEuler) 
-            RSubVec(v,stateOffset,3) = theta.vector();
-        else  //integration step
-            RSubVec(v,stateOffset,4) = q.vector();
+    void getBallPos(const Vec3& theta, int stateOffset, RVec& posv) const {
+        if (useEuler) RSubVec(posv,stateOffset,3) = theta.vector();
+        else          RSubVec(posv,stateOffset,4) = q.vector();
     }
 
     void setBallVel(int stateOffset, const RVec& velv, FixedVector<double,3>& dTheta) { 
@@ -412,16 +412,40 @@ public:
         else {
             dq = ConstRSubVec(velv,stateOffset,4).vector();
             double a2[] = {-q(1), q(0),-q(3), q(2),
-                        -q(2), q(3), q(0),-q(1),
-                        -q(3),-q(2), q(1), q(0)};
+                           -q(2), q(3), q(0),-q(1),
+                           -q(3),-q(2), q(1), q(0)};
             FixedMatrix<double,3,4> M(a2);
             dTheta = 2.0*( M * dq );
         }
     }
 
-    void getBallVel(int stateOffset, RVec& velv) {
-        assert( !useEuler );
-        RSubVec(velv,stateOffset,4) = dq.vector();
+    void getBallVel(const Vec3& dTheta, int stateOffset, RVec& velv) const {
+        if (useEuler) RSubVec(velv,stateOffset,3) = dTheta.vector();
+        else          RSubVec(velv,stateOffset,4) = dq.vector();
+    }
+
+    void calcBallAccel(const Vec3& omega, const Vec3& dOmega)
+    {
+        // called after calcAccel
+        if (useEuler) return; // nothing to do here -- ddTheta is dOmega
+
+        const double a1[] = {-q(1),-q(2),-q(3),
+                              q(0), q(3),-q(2),
+                             -q(3), q(0), q(1),
+                              q(2),-q(1), q(0)};
+        const FixedMatrix<double,4,3> M(a1);
+        const double a2[] = {-dq(1),-dq(2),-dq(3),
+                              dq(0), dq(3),-dq(2),
+                             -dq(3), dq(0), dq(1),
+                              dq(2),-dq(1), dq(0)};
+        const FixedMatrix<double,4,3> dM( a2 );
+        ddq = 0.5*(dM*omega + M*dOmega);
+    }
+
+    void getBallAccel(const Vec3& ddTheta, int stateOffset, RVec& accv) const
+    {
+        if (useEuler) RSubVec(accv,stateOffset,3) = ddTheta.vector();
+        else          RSubVec(accv,stateOffset,4) = ddq.vector();
     }
 
     void calcR_PB(const Vec3& theta, Mat33& R_PB) {
@@ -466,28 +490,8 @@ public:
         }
     }
 
-    void getBallAccel(const Vec3& omega, const Vec3& dOmega, 
-                      int offset, RVec& acc)
-    {
-        // called after calcAccel
-        assert( !useEuler );
 
-        double a1[] = {-q(1),-q(2),-q(3),
-                        q(0), q(3),-q(2),
-                       -q(3), q(0), q(1),
-                        q(2),-q(1), q(0)};
-        FixedMatrix<double,4,3> M(a1);
-        double a2[] = {-dq(1),-dq(2),-dq(3),
-                        dq(0), dq(3),-dq(2),
-                       -dq(3), dq(0), dq(1),
-                        dq(2),-dq(1), dq(0)};
-        FixedMatrix<double,4,3> dM( a2 );
-        ddq = 0.5*(dM*omega + M*dOmega);
-
-        RSubVec(acc,offset,4) = ddq.vector();
-    }
-
-    void getBallInternalForce(const Vec3& forceInternal, int offset, RVec& v) {
+    void getBallInternalForce(const Vec3& forceInternal, int offset, RVec& v) const {
         //dependency: calcR_PB must be called first
         assert( useEuler );
 
@@ -501,14 +505,13 @@ public:
         RSubVec(v,offset,3) = eTorque.vector();
     }
 
-    void setBallDerivs(const Vec3& dTheta) {
+    void setBallDerivs(const Vec3& omega) {
         assert( !useEuler );
-        Vec3 omega  = dTheta;
-        double a[] = {-q(1),-q(2),-q(3),
-                       q(0), q(3),-q(2),
-                      -q(3), q(0), q(1),
-                       q(2),-q(1), q(0)};
-        FixedMatrix<double,4,3> M(a);
+        const double a[] = {-q(1),-q(2),-q(3),
+                             q(0), q(3),-q(2),
+                            -q(3), q(0), q(1),
+                             q(2),-q(1), q(0)};
+        const FixedMatrix<double,4,3> M(a);
         dq = 0.5*M*omega;
     } 
 };
@@ -546,8 +549,16 @@ public:
         ball.setBallVel(stateOffset, velv, dTheta);
     }
 
-    void getVel(RVec& velv) {
-        ball.getBallVel(stateOffset, velv);
+    void getVel(RVec& velv) const {
+        ball.getBallVel(dTheta, stateOffset, velv);
+    }
+
+    void calcJointAccel() {
+        ball.calcBallAccel(dTheta, ddTheta);
+    }
+
+    void getAccel(RVec& accv) const {
+        ball.getBallAccel(ddTheta, stateOffset, accv);
     }
 
     void calcJointKinematicsPos() { 
@@ -566,11 +577,7 @@ public:
         ball.enforceBallConstraints(stateOffset, posv, velv);
     }
 
-    void getAccel(RVec& acc) {
-        ball.getBallAccel(dTheta, ddTheta, stateOffset, acc);
-    }
-
-    void getInternalForce(RVec& v) {
+    void getInternalForce(RVec& v) const {
         ball.getBallInternalForce(forceInternal, stateOffset, v);
     }
 
@@ -621,10 +628,22 @@ public:
         RSubVec6(dTheta,3,3) = ConstRSubVec(velv,stateOffset+ball.getBallDim(),3).vector();
     }
 
-    void getVel(RVec& velv) {
-        ball.getBallVel(stateOffset, velv);
+    void getVel(RVec& velv) const {
+        ball.getBallVel(Vec3(ConstRSubVec6(dTheta,0,3).vector()), stateOffset, velv);
         RSubVec(velv, stateOffset+ball.getBallDim(), 3) 
-            = RSubVec6(dTheta,3,3).vector();
+            = ConstRSubVec6(dTheta,3,3).vector();
+    }
+
+    void calcJointAccel() {
+        // get angular vel/accel in the space-fixed frame
+        const Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
+        const Vec3 dOmega = RSubVec6(ddTheta, 0, 3).vector();
+        ball.calcBallAccel(omega, dOmega);
+    }
+
+    void getAccel(RVec& accv) const {
+        ball.getBallAccel(Vec3(ConstRSubVec6(ddTheta,0,3).vector()), stateOffset, accv);
+        RSubVec(accv,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(ddTheta,3,3).vector();
     }
 
     void calcJointKinematicsPos() {
@@ -645,18 +664,11 @@ public:
         ball.enforceBallConstraints(stateOffset, posv, velv);
     }
 
-    void getAccel(RVec& acc) {    
-        // get angular vel/accel in the space-fixed frame
-        const Vec3 omega  = RSubVec6( dTheta, 0, 3).vector();
-        const Vec3 dOmega = RSubVec6(ddTheta, 0, 3).vector();
-        ball.getBallAccel(omega, dOmega, stateOffset, acc);
-        RSubVec(acc,stateOffset+ball.getBallDim(),3) = RSubVec6(ddTheta,3,3).vector();
-    }
 
-    void getInternalForce(RVec& v) {
-        const Vec3 torque = RSubVec6(forceInternal, 0, 3).vector();
+    void getInternalForce(RVec& v) const {
+        const Vec3 torque = ConstRSubVec6(forceInternal, 0, 3).vector();
         ball.getBallInternalForce(torque, stateOffset, v);
-        RSubVec(v,stateOffset+ball.getBallDim(),3) = RSubVec6(forceInternal,3,3).vector();
+        RSubVec(v,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(forceInternal,3,3).vector();
 
     }
 
@@ -904,7 +916,7 @@ RigidBodyNodeSpec<dof>::calcP() {
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
-    z = P * a + b + spatialForce;
+    z = P * a + b - spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
         z += children[i]->phi
@@ -927,8 +939,9 @@ RigidBodyNodeSpec<dof>::calcAccel() {
     // base alpha = 0!!!!!!!!!!!!!
     Vec6 alphap = transpose(phi) * parent->sAcc;
     ddTheta = nu - MatrixTools::transpose(G) * alphap;
-
     sAcc   = alphap + MatrixTools::transpose(H) * ddTheta + a;  
+
+    calcJointAccel();   // in case joint isn't happy with just ddTheta
 }
 
 // To be called base to tip.

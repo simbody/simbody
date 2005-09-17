@@ -120,7 +120,7 @@ public:
     const Vec3&    getCOM_B()        const {return massProps_B.getCOM();}
     const Inertia& getInertia_OB_B() const {return massProps_B.getInertia();}
 
-    const Vec3&    getCOM_G()        const {return COMstation_G;}
+    const Vec3&    getCOM_G()        const {return COM_G;}
     const Inertia& getInertia_CB_B() const {return inertia_CB_B;}
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
@@ -224,7 +224,7 @@ protected:
         R_PB.set(0.); R_PB.setDiag(1.); OB_P.set(0.);
         V_PB_G.set(0.); sVel.set(0.); sAcc.set(0.);
         R_GB.set(0.); R_GB.setDiag(1.); OB_G.set(0.);
-        COMstation_G.set(0.);
+        COM_G.set(0.); COMstation_G.set(0.);
     }
 
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
@@ -273,6 +273,7 @@ protected:
     //      body frame and want it in ground, use vG = R_GB*vB. 
     Mat33        R_GB;
     Vec3         OB_G;          // origin of B meas & expr in G
+    Vec3         COM_G;         // B's COM, meas & expr in G
 
     Vec3         COMstation_G;  // measured from B origin, expr. in G
     Mat33        inertia_OB_G;  // about B's origin, expr. in G

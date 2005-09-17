@@ -8,6 +8,7 @@
 #include "dinternal.h"
 #include "dint-step.h"
 #include "dint-atom.h"
+#include "AtomTree.h"
 
 #include "cdsAuto_arr.h"
 #include "cdsAuto_ptr.h"
@@ -295,7 +296,7 @@ TestIVM::test()
     {
     cout << "resetCM...";  cout.flush();
     int lexit = 0;
-    //verbose |= printResetCM;
+    setVerbose( verbose() | InternalDynamics::printResetCM );
     resetCMflag=1;
     resetCM();
     CDSList<Vec3> t;
@@ -336,6 +337,23 @@ TestIVM::test()
     double stepsize=1e-6;
     initDynamics(0);
     double E0 = Etotal();
+
+    cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
+    cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
+
+    const double ppp[] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    RVec pp; pp.copy(ppp,16);
+    const double vvv[] =
+    { 0, 0.037815162217232946, 0.31330831062690517, -0.15183277630665748,
+    -0.034651476581566254, 0.052116388372425312, 0.096764143424580507, -0.087468696336768126,
+    0.043237135867033476, 0.044377840615720726, 0.049918150337433166, -0.031022849965583601,
+    0.023889927157317588, -0.023687097738606791, -0.024012355321359369, -0.58256826273780171 };
+    RVec vv; vv.copy(vvv,16);
+
+    getSolver()->setPos(pp); getSolver()->setVel(vv);
+    cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
+    cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
+    tree()->setPosVel(getSolver()->getPos(),getSolver()->getVel());
 
     step(stepsize);
 
@@ -382,6 +400,9 @@ TestIVM::test()
             lexit=1;
         }
     }
+
+    return 0; // XXX
+
     step(stepsize); step(stepsize); step(stepsize);
 
     stepsize=1e-4;
