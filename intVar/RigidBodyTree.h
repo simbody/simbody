@@ -65,9 +65,9 @@ public:
         runtimeIndex = -1;
     }
 
-    void calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
-    void calcVelInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
-    void calcAccInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const;
+    void calcPosInfo(RBDistanceConstraintRuntime&) const;
+    void calcVelInfo(RBDistanceConstraintRuntime&) const;
+    void calcAccInfo(RBDistanceConstraintRuntime&) const;
 
     void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
     int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}

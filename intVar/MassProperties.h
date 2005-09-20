@@ -139,9 +139,9 @@ public:
     }
 
     explicit Inertia(const Mat33& s) {
-        assert(fabs(s(0,1)-s(1,0))<1e-14 
-            && fabs(s(0,2)-s(2,0))<1e-14
-            && fabs(s(1,2)-s(2,1))<1e-14);
+        assert(close(s(0,1),s(1,0)) 
+            && close(s(0,2),s(2,0))
+            && close(s(1,2),s(2,1)));
         setInertia(s(0,0),s(1,1),s(2,2),
             0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
     }
@@ -180,6 +180,13 @@ public:
         t(0,1) = t(1,0) = xy;
         t(0,2) = t(2,0) = xz;
         t(1,2) = t(2,1) = yz;
+    }
+
+private:
+    static bool close(const Real& a, const Real& b) {
+        if (fabs(a-b) < 1e-13) return true;
+        if (fabs(a-b)/(fabs(a)+fabs(b)) < 0.5e-13) return true;
+        return false;
     }
 };
 

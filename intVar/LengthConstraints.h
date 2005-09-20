@@ -5,6 +5,7 @@
 #include "fixedVector.h"
 
 class RBDistanceConstraint;
+class RBDistanceConstraintRuntime;
 class IVM;
 template<class T> class CDSList;
 typedef FixedVector<double,6>   Vec6;
@@ -19,7 +20,8 @@ class LengthConstraints {
 public:
     LengthConstraints(IVM*);
     ~LengthConstraints();
-    void construct(CDSList<RBDistanceConstraint>&);
+    void construct(CDSList<RBDistanceConstraint>&,
+                   CDSList<RBDistanceConstraintRuntime>&);
 
     void enforce(CDSVector<double,1>& pos,
                  CDSVector<double,1>& vel);

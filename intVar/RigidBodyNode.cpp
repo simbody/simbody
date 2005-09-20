@@ -978,7 +978,7 @@ RigidBodyNodeSpec<dof>::calcY() {
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalForce(const Vec6& spatialForce) {
-    z = spatialForce;
+    z = -spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
         z += children[i]->phi * children[i]->z;

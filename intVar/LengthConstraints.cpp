@@ -64,7 +64,11 @@ class BadNodeDef {};  //exception
 class LoopWNodes {
 public:
     LoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
-    LoopWNodes(const RBDistanceConstraint&);
+    LoopWNodes(const RBDistanceConstraint&, CDSList<RBDistanceConstraintRuntime>&);
+
+    void calcPosInfo() const { rbDistCons->calcPosInfo(*rt); }
+    void calcVelInfo() const { rbDistCons->calcVelInfo(*rt); }
+    void calcAccInfo() const { rbDistCons->calcAccInfo(*rt); }
 
     const double& getDistance() const { return rbDistCons->getDistance(); }
 
@@ -100,15 +104,17 @@ private:
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend void LengthConstraints::construct(CDSList<RBDistanceConstraint>&);
+    friend void LengthConstraints::construct(CDSList<RBDistanceConstraint>&,
+                                             CDSList<RBDistanceConstraintRuntime>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
     friend bool sameBranch(const RigidBodyNode* tip,
                            const LoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc)
-  : rbDistCons(&dc), flipStations(false), base(0), moleculeNode(0)
+LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc,
+                       CDSList<RBDistanceConstraintRuntime>& rts)
+  : rbDistCons(&dc), rt(&rts[dc.getRuntimeIndex()]),flipStations(false), base(0), moleculeNode(0)
 {
     using InternalDynamics::Exception;
 
@@ -300,7 +306,8 @@ compareLevel(const LoopWNodes& l1,
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
 void
-LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops)
+LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops,
+                             CDSList<RBDistanceConstraintRuntime>& rts)
 {
     //clean up
     priv->constraints.resize(0);
@@ -313,7 +320,7 @@ LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops)
     LoopList loops;
     for (int i=0 ; i<iloops.size() ; i++) {
         try {
-            LoopWNodes loop( iloops[i] );
+            LoopWNodes loop( iloops[i], rts );
             loops.append( loop );
         }
         catch ( BadNodeDef ) {}
@@ -543,6 +550,9 @@ void LengthSet::setPos(const RVec& pos) const
 {
     for (int i=0 ; i<nodeMap.size() ; i++)
         nodeMap[i]->setPos(pos); //also calc necessary properties
+
+    for (int i=0; i<loops.size(); ++i)
+        loops[i].calcPosInfo();
 }
 
 // Must have called LengthSet::setPos() already.
@@ -550,6 +560,9 @@ void LengthSet::setVel(const RVec& vel) const
 {
     for (int i=0 ; i<nodeMap.size() ; i++)
         nodeMap[i]->setVel(vel); //also calc necessary properties
+
+    for (int i=0; i<loops.size(); ++i)
+        loops[i].calcVelInfo();
 }
 
 //
@@ -891,6 +904,8 @@ void LengthSet::addInCorrectionForces(VecVec6& spatialForces) const {
 void LengthSet::fixAccel() {
     calcConstraintForces();
     ivm->updateAccel();
+    for (int i=0; i<loops.size(); ++i)
+        loops[i].calcAccInfo();
 }
 
 void LengthSet::testAccel()

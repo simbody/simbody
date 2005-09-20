@@ -516,7 +516,7 @@ TestIVM::test()
         solverType = "Powell";
         //     integrateType = "Minimize";
         //     integrateType = "ConMin";
-        initDynamics(0);
+        initDynamics(false);
         if (debugging)
             printCM();
         for (int i=0 ; i<100 ; i++) {
@@ -556,6 +556,7 @@ TestIVM::test()
     cout << "  [function evaluations: " << fcnt << "]";
     }
     cout << endl;
+
 
     {
     cout << "conmin...";

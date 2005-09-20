@@ -57,10 +57,9 @@ ostream& operator<<(ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
     for (int i=0; i<1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
 
     rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
@@ -69,20 +68,18 @@ void RBDistanceConstraint::calcPosInfo(CDSList<RBDistanceConstraintRuntime>& rtL
     rt.posErr = distance - separation;
 }
 
-void RBDistanceConstraint::calcVelInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
     for (int i=0; i<1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
 
     rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
     rt.velErr = -dot( rt.unitDirection_G , rt.relVel_G );
 }
 
-void RBDistanceConstraint::calcAccInfo(CDSList<RBDistanceConstraintRuntime>& rtList) const
+void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    RBDistanceConstraintRuntime& rt = rtList[runtimeIndex];
     for (int i=0; i<1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
 
 //XXX this doesn't look right
@@ -170,7 +167,7 @@ int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s
 
 void RigidBodyTree::finishConstruction(IVM* ivm) {
     lConstraints = new LengthConstraints(ivm);
-    lConstraints->construct(distanceConstraints);
+    lConstraints->construct(distanceConstraints, dcRuntimeInfo);
 }
 
 // Set generalized coordinates: sweep from base to tips.
@@ -178,6 +175,10 @@ void RigidBodyTree::setPos(const RVec& pos)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setPos(pos); 
+
+    for (int i=0; i < distanceConstraints.size(); ++i)
+        distanceConstraints[i].calcPosInfo(
+            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 }
 
 // Set generalized speeds: sweep from base to tip.
@@ -186,6 +187,10 @@ void RigidBodyTree::setVel(const RVec& vel)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setVel(vel); 
+
+    for (int i=0; i < distanceConstraints.size(); ++i)
+        distanceConstraints[i].calcVelInfo(
+            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 }
 
 // Enforce coordinate constraints -- order doesn't matter.
@@ -291,6 +296,7 @@ void RigidBodyTree::getInternalForces(RVec& T) {
 }
 
 void RigidBodyTree::getConstraintCorrectedInternalForces(RVec& T) {
+    getInternalForces(T);
     lConstraints->fixGradient(T);
 }
 
