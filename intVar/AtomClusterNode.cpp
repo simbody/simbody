@@ -127,8 +127,11 @@ void AtomClusterNode::calcSpatialImpulse(Vec6& Impulse_OB_G) {
 
 ostream& 
 operator<<(ostream& s, const AtomClusterNode& node) {
-    for (int i=0 ; i<node.atoms.size() ; i++)
-        s << node.atoms[i] << ", ";
+    for (int i=0 ; i<node.atoms.size() ; i++) {
+        IVMAtom* a = node.atoms[i];
+        s << a << "p=" << a->pos << "v=" << a->vel << "| ";
+    }
+    s << "(rigid body " << node.getRBIndex() << ")";
     return s;
 }
 
@@ -154,7 +157,7 @@ public:
     ~GroundBody() {}
 
     // Implementations of virtual AtomClusterNode methods.
-    const char* type() { return "ground"; }
+    const char* type() const { return "ground"; }
     void print(int) {}
 };
 
@@ -235,7 +238,7 @@ static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
  */
 class ACNodeTranslate : public AtomClusterNodeSpec<3> {
 public:
-    /*virtual*/ const char* type() { return "translate"; }
+    /*virtual*/ const char* type() const { return "translate"; }
 
     ACNodeTranslate(const AtomClusterNode* node, int& cnt)
       : AtomClusterNodeSpec<3>(node,cnt,R_I,CartesianJoint,false)
@@ -259,7 +262,7 @@ public:
             cnt++;
     }
 
-    /*virtual*/ const char* type()  { return "full"; }
+    /*virtual*/ const char* type() const { return "full"; }
     /*virtual*/ int  getDim() const { return useEuler ? 6 : 7; } 
 private:
     bool   useEuler;          //if False, use Quaternion rep.
@@ -282,7 +285,7 @@ public:
             cnt++;
     }
 
-    /*virtual*/ const char* type()  { return "rotate3"; }
+    /*virtual*/ const char* type() const { return "rotate3"; }
     /*virtual*/ int  getDim() const { return useEuler ? 3 : 4; }
 private:
     bool   useEuler;          //if False, use Quaternion rep.
@@ -303,7 +306,7 @@ public:
     { 
     }
 
-    /*virtual*/ const char* type() { return "rotate2"; }
+    /*virtual*/ const char* type() const { return "rotate2"; }
 };
 
 /**
@@ -322,7 +325,7 @@ public:
     { 
     }
 
-    /*virtual*/ const char* type() { return "diatom"; }
+    /*virtual*/ const char* type() const { return "diatom"; }
 };
 
 /**
@@ -339,7 +342,7 @@ public:
     { 
     }
 
-    /*virtual*/ const char* type() { return "torsion"; }
+    /*virtual*/ const char* type() const { return "torsion"; }
 };
 
 

@@ -119,9 +119,11 @@ public:
     const double&  getMass()         const {return massProps_B.getMass();}
     const Vec3&    getCOM_B()        const {return massProps_B.getCOM();}
     const Inertia& getInertia_OB_B() const {return massProps_B.getInertia();}
+    const Inertia& getInertia_OB_G() const {return inertia_OB_G;}
 
     const Vec3&    getCOM_G()        const {return COM_G;}
     const Inertia& getInertia_CB_B() const {return inertia_CB_B;}
+
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
@@ -209,6 +211,10 @@ public:
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 
+    void nodeDump(ostream&) const;
+    virtual void nodeSpecDump(ostream& o) const { o<<"NODE SPEC type="<<type()<<endl; }
+
+
     static const double DEG2RAD; //using angles in degrees balances gradient
 
 protected:
@@ -276,7 +282,7 @@ protected:
     Vec3         COM_G;         // B's COM, meas & expr in G
 
     Vec3         COMstation_G;  // measured from B origin, expr. in G
-    Mat33        inertia_OB_G;  // about B's origin, expr. in G
+    Inertia      inertia_OB_G;  // about B's origin, expr. in G
 
     PhiMatrix    phi;           // spatial rigid body transition matrix
     Mat66        Mk;            // spatial inertia matrix

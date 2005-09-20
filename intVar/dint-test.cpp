@@ -335,7 +335,7 @@ TestIVM::test()
         setVerbose( 0 );
 
     // Standardize the current state to avoid compounding small differences.
-
+/*
     //cout << "POS: " << setprecision(20) << getSolver()->getPos() << endl;
     //cout << "VEL: " << setprecision(20) << getSolver()->getVel() << endl;
     const double ppp[] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -347,24 +347,23 @@ TestIVM::test()
     0.023889927157317588, -0.023687097738606791, -0.024012355321359369, -0.58256826273780171 };
     RVec vv; vv.copy(vvv,16);
 
+    vv.set(100.); pp.set(0.1); pp(1)=1.; pp(2)=pp(3)=pp(4)=0.;
     getSolver()->setPos(pp); getSolver()->setVel(vv);
     cout << "POS: " << setprecision(16) << getSolver()->getPos() << endl;
     cout << "VEL: " << setprecision(16) << getSolver()->getVel() << endl;
     tree()->setPosVel(getSolver()->getPos(),getSolver()->getVel());
     RVec aa = tree()->getAccel();
     cout << "ACC: " << setprecision(16) << aa << endl;
-    
-    return 0;
-
+*/
     int lexit = 0;
     double stepsize=1e-6;
     initDynamics(false);
     double E0 = Etotal();
 
-    cout << "ETOTAL BEFORE STEP=" << E0 << endl;
-
-
+    cout << "ETOTAL BEFORE STEP=" << setprecision(16) << E0 << endl;
+    cout << *tree() << endl;
     step(stepsize);
+    cout << "ETOTAL AFTER STEP=" << setprecision(16) << Etotal() << endl;
 
     CDSList<Vec3> tq;
     tq.append(Vec3(0,0,0));
@@ -441,8 +440,6 @@ TestIVM::test()
     }
     }
     cout << endl;
-
-    return 0; // XXX
 
     // {
     //   cout << "minimizcg...";

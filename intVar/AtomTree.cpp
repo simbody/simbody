@@ -610,10 +610,13 @@ AT_Build::buildAtomClusterNode(AtomClusterNode* node)
 ostream& 
 operator<<(ostream& s, const AtomTree& aTree) {
     for (int i=0 ; i<aTree.nodeTree.size() ; i++)
-        for (int j=0 ; j<aTree.nodeTree[i].size() ; j++)
+        for (int j=0 ; j<aTree.nodeTree[i].size() ; j++) {
+            const AtomClusterNode& ac = *aTree.nodeTree[i][j];
+            const RigidBodyNode& rb = aTree.rbTree.getRigidBodyNode(ac.getRBIndex());
             s << "\tnode " << i << ' ' << j 
-            << ": " << *aTree.nodeTree[i][j] << ' '
-            << aTree.nodeTree[i][j]->type() << '\n';
+            << ": " << ac << ' ' << ac.type() << '\n';
+            //rb.nodeDump(s);
+        }
     return s;
 }
 

@@ -70,7 +70,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    inertia_OB_G = orthoTransform(getInertia_OB_B(), getR_GB());
+    inertia_OB_G = Inertia(orthoTransform(getInertia_OB_B(), getR_GB()));
     COMstation_G = getR_GB()*getCOM_B();
 
     COM_G = OB_G + COMstation_G;
@@ -107,14 +107,19 @@ RigidBodyNode::calcJointIndependentKinematicsVel() {
     a += blockVec(Vec3(0.0), cross(pOmega, vel-pVel));
 }
 
-double
-RigidBodyNode::calcKineticEnergy() const {
+double RigidBodyNode::calcKineticEnergy() const {
     double ret = dot(sVel , Mk*sVel);
     return 0.5*ret;
 }
 
-ostream& 
-operator<<(ostream& s, const RigidBodyNode& node) {
+
+void RigidBodyNode::nodeDump(ostream& o) const {
+    o << "NODE DUMP level=" << level << " type=" << type() << endl;
+    nodeSpecDump(o);
+    o << "END OF NODE type=" << type() << endl;
+}
+
+ostream& operator<<(ostream& s, const RigidBodyNode& node) {
     s << "RIGID BODY NODE: '<<' not impl yet!";
     //for (int i=0 ; i<node.atoms.size() ; i++)
     //    s << node.atoms[i] << ", ";
@@ -252,6 +257,20 @@ public:
     void calcInternalForce(const Vec6& spatialForce);
     void prepareVelInternal();
     void propagateSVel(const Vec6& desiredVel);
+
+    void nodeSpecDump(ostream& o) const {
+        o << "stateOffset=" << stateOffset << " mass=" << getMass() 
+            << " COM_G=" << getCOM_G() << endl;
+        o << "inertia_OB_G=" << getInertia_OB_G() << endl;
+        o << "H=" << H << endl;
+        o << "SVel=" << sVel << endl;
+        o << "a=" << a << endl;
+        o << "b=" << b << endl;
+        o << "Th  =" << theta << endl;
+        o << "dTh =" << dTheta << endl;
+        o << "ddTh=" << ddTheta << endl;
+        o << "SAcc=" << sAcc << endl;
+    }
 protected:
     // These are the joint-specific quantities
     //      ... position level
@@ -720,7 +739,7 @@ private:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
-        const Mat33 R_PB = orthoTransform( Mat33(a) , R_BJ );
+        R_PB = orthoTransform( Mat33(a) , R_BJ );
     }
 
     void calcH() {
@@ -779,7 +798,7 @@ private:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
-        const Mat33 R_PB = orthoTransform( Mat33(R_JiJ) , R_BJ ); // orientation of B in parent P
+        R_PB = orthoTransform( Mat33(R_JiJ) , R_BJ ); // orientation of B in parent P
     }
 
     void calcH() {

@@ -106,7 +106,7 @@ public:
     virtual int getDOF() const {return 0;} //number of independent dofs
     virtual int getDim() const {return 0;} //# of generalized coords (>=#dofs)
 
-    virtual const char* type() { return "unknown"; }
+    virtual const char* type() const { return "unknown"; }
     virtual void print(int) { throw VirtualBaseMethod(); }
 public:
     const IVM*          ivm;

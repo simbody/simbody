@@ -138,6 +138,14 @@ public:
         t(1,2) = (t(2,1) = s(2,1));
     }
 
+    explicit Inertia(const Mat33& s) {
+        assert(fabs(s(0,1)-s(1,0))<1e-14 
+            && fabs(s(0,2)-s(2,0))<1e-14
+            && fabs(s(1,2)-s(2,1))<1e-14);
+        setInertia(s(0,0),s(1,1),s(2,2),
+            0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
+    }
+
     Inertia& operator=(const Inertia& s) {
         Mat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);

@@ -106,7 +106,11 @@ void
 PC6::step(double& timeStep)
 {
     using namespace InternalDynamics;
-
+    //cout << "Before PE=" << std::setprecision(16) << ivm->Epotential() << endl;
+    //cout << "KE=" << ivm->Ekinetic() << endl;
+    //cout << "pos=" << pos << endl;
+    //cout << "vel=" << vel << endl;
+    //cout << "acc=" << acc << endl;
     // save
     acc0 = acc; dq30 = dq3; dq40 = dq4; dq50 = dq5;
 
@@ -131,11 +135,11 @@ PC6::step(double& timeStep)
     tree()->setPosVel(pos,vel);
 
     ivm->calcEnergy();  //calc energies, derivatives
-    cout << "PE=" << std::setprecision(16) << ivm->Epotential() << endl;
-    cout << "KE=" << ivm->Ekinetic() << endl;
+    //cout << "Mid PE=" << std::setprecision(16) << ivm->Epotential() << endl;
+    //cout << "KE=" << ivm->Ekinetic() << endl;
     if ( ivm->verbose()&printStepDebug )
-    cout << "PC6::step: before velocity scale: energy: "
-         << ivm->Etotal() << " temp: " << ivm->currentTemp() << '\n';
+        cout << "PC6::step: before velocity scale: energy: "
+            << ivm->Etotal() << " temp: " << ivm->currentTemp() << '\n';
     double newTimeStep = timeStep;
     try {
         newTimeStep = timeStep * timeStepAdj->getFactor(ivm->Etotal());
@@ -187,6 +191,7 @@ PC6::step(double& timeStep)
     if ( ivm->verbose()&printStepDebug )
         cout << "PC6::step: after velocity scale: energy: "
              << ivm->Etotal() << " temp: " << ivm->currentTemp() << '\n';
-
+    //cout << "After PE=" << std::setprecision(16) << ivm->Epotential() << endl;
+    //cout << "KE=" << ivm->Ekinetic() << endl;
     timeStep = newTimeStep;
 }
