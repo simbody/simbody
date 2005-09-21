@@ -155,8 +155,15 @@ int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s
     return distanceConstraints.size()-1;
 }
 
-void RigidBodyTree::finishConstruction(IVM* ivm) {
-    lConstraints = new LengthConstraints(ivm);
+void RigidBodyTree::finishConstruction(const double& ctol, int verbose) {
+    DOFTotal = dimTotal = 0;
+    for (int i=0 ; i<rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
+            DOFTotal += rbNodeLevels[i][j]->getDOF();
+            dimTotal += rbNodeLevels[i][j]->getDim();
+        }
+
+    lConstraints = new LengthConstraints(*this, ctol, verbose);
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);
 }
 
@@ -262,11 +269,6 @@ void RigidBodyTree::calcTreeAccel() {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel();
-}
-
-// Acceleration fixup to account for constraints.
-void RigidBodyTree::fixAccelForConstraints() {
-    lConstraints->fixAccel();
 }
 
 void RigidBodyTree::fixVel0(RVec& vel) {

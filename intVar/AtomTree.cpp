@@ -426,7 +426,7 @@ void AtomTree::createRigidBodyTree() {
         al.setRBDistanceConstraintIndex(rbTree.addDistanceConstraint(s1,s2,d));
     }
 
-    rbTree.finishConstruction(ivm);
+    rbTree.finishConstruction(ivm->Ctolerance(), ivm->verbose());
 }
 
 void

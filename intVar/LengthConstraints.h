@@ -6,7 +6,7 @@
 
 class RBDistanceConstraint;
 class RBDistanceConstraintRuntime;
-class IVM;
+class RigidBodyTree;
 template<class T> class CDSList;
 typedef FixedVector<double,6>   Vec6;
 typedef CDSList<Vec6> VecVec6;
@@ -18,7 +18,7 @@ class LengthSet;
 
 class LengthConstraints {
 public:
-    LengthConstraints(IVM*);
+    LengthConstraints(RigidBodyTree&, const double& ctol, int verbose);
     ~LengthConstraints();
     void construct(CDSList<RBDistanceConstraint>&,
                    CDSList<RBDistanceConstraintRuntime>&);
@@ -29,8 +29,6 @@ public:
     bool calcConstraintForces() const;
     void addInCorrectionForces(VecVec6& spatialForces) const;
 
-
-    bool fixAccel();
     void fixVel0(CDSVector<double,1>&);
     void fixGradient(CDSVector<double,1>&);
 
@@ -40,7 +38,8 @@ private:
     int    maxIters;
     int    maxMin;
 
-    IVM*                       ivm;
+    RigidBodyTree&             rbTree;
+    const int                  verbose;
     LengthConstraintsPrivates* priv;
 
     friend class LengthSet;

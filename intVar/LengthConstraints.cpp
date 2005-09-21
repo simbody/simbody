@@ -15,10 +15,8 @@
  */
 
 #include "LengthConstraints.h"
-#include "dinternal.h"
-#include "AtomTree.h"
 #include "RigidBodyNode.h"
-#include "dint-atom.h"
+#include "RigidBodyTree.h"
 #include "vec3.h"
 #include "cdsListAutoPtr.h"
 #include "RVec.h"
@@ -183,13 +181,15 @@ typedef CDSList<LoopWNodes> LoopList;
 class LengthSet {
     static void construct(const LoopList& loops);
     const LengthConstraints*  lConstraints;
-    IVM*                      ivm;
+    RigidBodyTree&            rbTree;
+    const int                 verbose;
     LoopList                  loops;    
     int                       dim;
     CDSList<RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
-        : lConstraints(lConstraints), ivm(lConstraints->ivm), dim(0)
+        : lConstraints(lConstraints), rbTree(lConstraints->rbTree), 
+          verbose(lConstraints->verbose), dim(0)
     {
         addConstraint(loop);
     }
@@ -229,8 +229,6 @@ public:
     void  calcConstraintForces() const; // updates runtime only
     void  addInCorrectionForces(VecVec6& spatialForces) const; // spatialForces+=correction
 
-    void  fixAccel(); // TODO move to a higher level
-
     void  fixVel0(RVec&);
     void  fixInternalForce(RVec&);
     RVec0 multiForce(const RVec&, const RMat& mat);
@@ -268,16 +266,16 @@ public:
     NewtonRaphson             posMin, velMin;
 };
 
-LengthConstraints::LengthConstraints(IVM* ivm)
-    : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), ivm(ivm)
+LengthConstraints::LengthConstraints(RigidBodyTree& rbt, const double& ctol, int vbose)
+    : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), rbTree(rbt), verbose(vbose)
 {
     priv = new LengthConstraintsPrivates;
     priv->posMin.maxIters = maxIters;
     priv->posMin.maxMin   = maxMin;
-    priv->posMin.tol      = ivm->Ctolerance();
+    priv->posMin.tol      = ctol;
     priv->velMin.maxIters = maxIters;
     priv->velMin.maxMin   = maxMin;
-    priv->velMin.tol      = ivm->Ctolerance()*10;
+    priv->velMin.tol      = ctol*10;
 }
 
 LengthConstraints::~LengthConstraints()
@@ -377,7 +375,7 @@ LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops,
     for (l_int i=0 ; i<priv->accConstraints.size() ; i++)
         priv->accConstraints[i]->determineCouplings(); // XXX not implemented
 
-    if (priv->constraints.size()>0 && ivm->verbose()&InternalDynamics::printLoopInfo) {
+    if (priv->constraints.size()>0 && verbose&InternalDynamics::printLoopInfo) {
         cout << "LengthConstraints::construct: pos/vel length constraints found:\n";
         for (l_int i=0 ; i<priv->constraints.size() ; i++)
             cout << "\t" << *priv->constraints[i] << "\n";
@@ -457,7 +455,7 @@ RVec
 LengthSet::calcPosZ(const RVec& b) const
 {
     RVec dir = calcGInverse() * b;
-    RVec z(ivm->dim(),0.0);
+    RVec z(rbTree.getDim(),0.0);
 
     // map the vector dir back to the appropriate elements of z
     for (int i=0 ; i<nodeMap.size() ; i++) 
@@ -480,7 +478,7 @@ public:
       : constraint(constraint), gInverse(constraint->calcGInverse()) {}
     RVec operator()(const RVec& b) {
         RVec dir = gInverse * b;
-        RVec z(constraint->ivm->dim(),0.0);
+        RVec z(constraint->rbTree.getDim(),0.0);
 
         // map the vector dir back to the appropriate elements of z
         for (int i=0 ; i<constraint->nodeMap.size() ; i++) {
@@ -500,11 +498,11 @@ public:
 void
 LengthConstraints::enforce(RVec& pos, RVec& vel)
 {
-    priv->posMin.verbose  = ((ivm->verbose()&InternalDynamics::printLoopDebug) != 0);
-    priv->velMin.verbose  = ((ivm->verbose()&InternalDynamics::printLoopDebug) != 0);
+    priv->posMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
+    priv->velMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
     try { 
         for (int i=0 ; i<priv->constraints.size() ; i++) {
-            if ( ivm->verbose()&InternalDynamics::printLoopDebug )
+            if ( verbose&InternalDynamics::printLoopDebug )
                 cout << "LengthConstraints::enforce: position " 
                      << *(priv->constraints[i]) << '\n';
             priv->posMin.calc(pos,
@@ -512,7 +510,7 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
                               CalcPosZ(priv->constraints[i].get()));
         }
         for (int i=0 ; i<priv->constraints.size() ; i++) {
-            if ( ivm->verbose()&InternalDynamics::printLoopDebug )
+            if ( verbose&InternalDynamics::printLoopDebug )
                 cout << "LengthConstraints::enforce: velocity " 
                      << *priv->constraints[i] << '\n';
             priv->velMin.calc(vel,
@@ -691,8 +689,10 @@ RMat
 LengthSet::calcGInverse() const
 {
     RMat grad = calcGrad(); // <-- appears to be transpose of the actual dg/dtheta
-    if ( ivm->verbose() & InternalDynamics::printLoopDebug )
-        testGrad(ivm->tree()->getPos(),grad);
+    if ( verbose & InternalDynamics::printLoopDebug ) {
+        RVec pos(rbTree.getDim()); rbTree.getPos(pos);
+        testGrad(pos,grad);
+    }
 
     RMat ret(grad.rows(),grad.rows(),0.0); // <-- wrong dimension ??? sherm TODO
     if ( abs2(grad) > 1e-10 ) 
@@ -712,7 +712,7 @@ bool LengthConstraints::calcConstraintForces() const {
     if ( priv->accConstraints.size() == 0 )
         return false;
 
-    ivm->calcY();
+    rbTree.calcY();
 
     for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
         priv->accConstraints[i]->calcConstraintForces();
@@ -723,24 +723,6 @@ bool LengthConstraints::calcConstraintForces() const {
 void LengthConstraints::addInCorrectionForces(VecVec6& spatialForces) const {
     for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
         priv->accConstraints[i]->addInCorrectionForces(spatialForces);
-}
-
-bool 
-LengthConstraints::fixAccel()
-{
-    if ( priv->accConstraints.size() == 0 )
-        return 0;
-
-    ivm->calcY();
-
-    for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
-        priv->accConstraints[i]->fixAccel();
-
-    if ( ivm->verbose()&InternalDynamics::printLoopInfo )
-        for (l_int i=priv->accConstraints.size()-1 ; i>=0 ; i--) 
-            priv->accConstraints[i]->testAccel();
-
-    return 1;
 }
 
 void 
@@ -863,7 +845,7 @@ LengthSet::calcConstraintForces() const
 
                     if ( fabs(contrib) > maxElem ) maxElem = fabs(contrib);
                     if ( maxElem>0. && fabs(contrib)/maxElem < lConstraints->bandCut ) {
-                        if ( ivm->verbose()&InternalDynamics::printLoopDebug )
+                        if ( verbose&InternalDynamics::printLoopDebug )
                             cout << "LengthSet::calcConstraintForces: setting A("
                                  << i << "," << j+1 << ".." << loops.size()-1 << ")["
                                  << bi << "," << bj << "] = 0\n";
@@ -904,13 +886,6 @@ void LengthSet::addInCorrectionForces(VecVec6& spatialForces) const {
     }
 }
 
-void LengthSet::fixAccel() {
-    calcConstraintForces();
-    ivm->updateAccel();
-    for (int i=0; i<loops.size(); ++i)
-        loops[i].calcAccInfo();
-}
-
 void LengthSet::testAccel()
 {
     double testTol=1e-8;
@@ -933,8 +908,10 @@ void
 LengthSet::fixInternalForce(RVec& forceInternal)
 {
     RMat  grad = calcGrad();
-    if ( ivm->verbose() & InternalDynamics::printLoopDebug )
-        testGrad(ivm->tree()->getPos(),grad);
+    if ( verbose & InternalDynamics::printLoopDebug ) {
+        RVec pos(rbTree.getDim()); rbTree.getPos(pos);
+        testGrad(pos,grad);
+    }
     RVec0 rhs  = multiForce(forceInternal,grad); 
 
     RMat A = MatrixTools::transpose(grad) * grad;
@@ -1029,7 +1006,8 @@ LengthSet::fixVel0(RVec& iVel)
     CDSList<RVec> deltaIVel(loops.size(),0);
     for (int m=0 ; m<loops.size() ; m++) {
         iVel.set(0.0);
-        ivm->tree()->setVel( iVel );
+        rbTree.setVel( iVel );
+        deltaIVel[m].resize(iVel.size());
 
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
@@ -1038,8 +1016,8 @@ LengthSet::fixVel0(RVec& iVel)
         loops[m].setTipForce(2,  probeImpulse);
         loops[m].setTipForce(1, -probeImpulse);
 
-        VecVec6 spatialImpulse(ivm->tree()->getNRigidBodies());
-        for (int ii=0; ii < ivm->tree()->getNRigidBodies(); ++ii)
+        VecVec6 spatialImpulse(rbTree.getNBodies());
+        for (int ii=0; ii < rbTree.getNBodies(); ++ii)
             spatialImpulse[ii].set(0.);
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[m].tipNode(t);
@@ -1051,10 +1029,11 @@ LengthSet::fixVel0(RVec& iVel)
         // calc deltaVa from k-th constraint condition
         //FIX: make sure that nodeMap is ordered by level
         // get all nodes in given molecule, ordered by level
-        ivm->tree()->applyForces(spatialImpulse);
-        deltaIVel[m] = ivm->tree()->calcGetAccel();
+        rbTree.calcZ(spatialImpulse);
+        rbTree.calcTreeAccel();
+        rbTree.getAcc(deltaIVel[m]);
 
-        ivm->tree()->setVel( deltaIVel[m] );
+        rbTree.setVel( deltaIVel[m] );
 
         for (int n=0 ; n<loops.size() ; n++)
             mat(n,m) = dot(loops[n].tipPos(2) - loops[n].tipPos(1),
@@ -1068,7 +1047,7 @@ LengthSet::fixVel0(RVec& iVel)
     for (l_int m=0 ; m<loops.size() ; m++)
         iVel -= lambda(m) * deltaIVel[m];
 
-    ivm->tree()->setVel(iVel);
+    rbTree.setVel(iVel);
 }
    
 // NOTHING BELOW HERE IS BEING USED

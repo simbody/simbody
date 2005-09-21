@@ -111,7 +111,7 @@ public:
  */
 class RigidBodyTree {
 public:
-    RigidBodyTree() : lConstraints(0) { }
+    RigidBodyTree() : lConstraints(0), DOFTotal(-1), dimTotal(-1) { }
     ~RigidBodyTree();
 
     /// Take ownership of a new node, add it to the tree, and assign it
@@ -132,16 +132,13 @@ public:
     int addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d);
 
     /// Call this after all bodies & constraints have been added.
-    /// TODO: this "ivm" has to go.
-    void finishConstruction(IVM* ivm);
+    void finishConstruction(const double& ctol, int verbose);
 
     // includes ground
     int getNBodies() const { return nodeNum2NodeMap.size(); }
 
-//    int getLevel(int nodeNum) const { return getRigidBodyNode(nodeNum)->getLevel(); }
-
-    int getDOF() const; 
-    int getDim() const; 
+    int getDOF() const { return DOFTotal; } 
+    int getDim() const { return dimTotal; } 
 
     // Kinematics -- calculate spatial quantities from internal states.
     void setPos(const RVec& pos);
@@ -182,8 +179,6 @@ public:
     void calcZ(const VecVec6& spatialForces); // articulated body remainder forces
     void calcTreeAccel();                     // accels with forces from last calcZ
 
-    void fixAccelForConstraints();            // call after calcTreeAccel
-
     void fixVel0(RVec& vel); // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
@@ -211,6 +206,10 @@ private:
         RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
         int level, offset;
     };
+
+    // set by finishConstruction
+    int DOFTotal;   // summed over all nodes
+    int dimTotal;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
     CDSList<RBNodePtrList> rbNodeLevels;
