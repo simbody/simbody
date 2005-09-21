@@ -174,17 +174,6 @@ void AtomTree::enforceConstraints(RVec& pos, RVec& vel) {
     rbTree.enforceConstraints(pos,vel);
 }
 
-//
-// destructNode - should also work on partially constructed objects
-//
-void
-AtomTree::destructNode(AtomClusterNode* n) {
-    for (int i=0; i < n->getNChildren(); i++)
-        destructNode( n->getChild(i) );
-    nodeTree[n->getLevel()].remove( nodeTree[n->getLevel()].getIndex(n) );
-    delete n;
-}
-
 AT_Build::AT_Build( IVM*                ivm,
                     AtomTree*           atree,
                     AtomClusterNode*    acnode,
@@ -659,11 +648,12 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
 
     // calculate impulses from desired atomic momenta and convert to internal coordinates
     calcP();
-    propagateSVel();
+    calcSpatialImpulses(); // sets spatialForces vector
+    rbTree.calcZ(spatialForces);
 
     // solve for desired internal velocities
     vel = calcGetAccel();
-    setVel(vel);
+    setVel(vel);    // sets atom vels too
     fixVel0(vel);
 
     if ( ivm->verbose()&printVelFromCartCost ) {

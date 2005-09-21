@@ -135,9 +135,6 @@ public:
     /// TODO: this "ivm" has to go.
     void finishConstruction(IVM* ivm);
 
-    // deallocate subtree rooted at the indicated node
-    void destructNode(RigidBodyNode*); 
-
     // includes ground
     int getNBodies() const { return nodeNum2NodeMap.size(); }
 
@@ -162,7 +159,7 @@ public:
     void enforceTreeConstraints(RVec& pos, RVec& vel);
 
     /// This is a solver which tweaks the state to make it satisfy general
-    /// constraints (other than quaterion constraints).
+    /// constraints (other than quaternion constraints).
     void enforceConstraints(RVec& pos, RVec& vel);
 
     /// Prepare for dynamics by calculating position-dependent quantities
@@ -199,8 +196,6 @@ public:
     void getInternalForces(RVec& T);
 
     void getConstraintCorrectedInternalForces(RVec& T); // TODO has to move elsewhere
-
-    void propagateSVel();
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];

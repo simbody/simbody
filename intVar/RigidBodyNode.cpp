@@ -157,8 +157,6 @@ public:
     /*virtual*/void calcY() {}
     /*virtual*/void calcInternalForce(const Vec6&) {}
     /*virtual*/void calcAccel() {}
-    /*virtual*/void prepareVelInternal() {}
-    /*virtual*/void propagateSVel(const Vec6&) {}
 
     /*virtual*/void setPos(const RVec&) {}
     /*virtual*/void setVel(const RVec&) {}
@@ -264,8 +262,6 @@ public:
     void calcY();
     void calcAccel();
     void calcInternalForce(const Vec6& spatialForce);
-    void prepareVelInternal();
-    void propagateSVel(const Vec6& desiredVel);
 
     void nodeSpecDump(ostream& o) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
@@ -988,47 +984,6 @@ RigidBodyNodeSpec<dof>::calcInternalForce(const Vec6& spatialForce) {
 
     forceInternal += H * z; 
 }
-
-//
-// Set up various variables so that calling calcP followed by
-// calling getAcc returns the time-derivative of the internal coordinates.
-// This requires that sVel is previously set.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::prepareVelInternal() {
-    dTheta.set(0.0);
-    a.set(0.0);
-    b.set(0.0);
-    forceInternal.set(0.0);
-
-    // Note: Schwieters was computing a new spatial mass matrix here, according
-    // to Eqn. 80a in his paper. But as far as I can tell this is exactly the
-    // same as the ordinary mass matrix. (sherm 050906)
-    // Schwieters' comment: "set Mk = R * M * R^T"
-}
-
-//
-// Set up various variables so that calling calcP followed by
-// calling getAcc returns the internal velocities which best
-// approximate a set of desired velocities. See Section 3.1.3 in
-// Schwieters' paper: we're solving Eqn. 78. The passed-in
-// velocity is a mass weighted combination of the (unachievable)
-// initial atom velocities on this body. This is combined with
-// outboard desired velocities, and then the result is treated
-// as though it were a force. (sherm 050906)
-// To be called from tip to base.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::propagateSVel(const Vec6& desiredVel) {
-    //sAcc used as a temporary
-    sVel = desiredVel; // ???
-    sAcc = desiredVel;
-    for (int i=0 ; i<children.size() ; i++)
-        sAcc += children[i]->phi * children[i]->sAcc;
-    forceInternal = H * sAcc;
-}
-
-
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::print(int verbose) const {

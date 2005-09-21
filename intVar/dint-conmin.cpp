@@ -51,7 +51,7 @@ ConMin::costf(RVec& pos)
     tree()->setPosVel(pos,vel);
     ivm->calcEnergy();  //calc energies, derivatives
     if (ivm->verbose()&printStepDebug)
-        cout << "costf: " << ivm->Epotential() << '\n';
+        cout << "costf: " << setprecision(16) << ivm->Epotential() << '\n';
     return ivm->Epotential();
 }
 

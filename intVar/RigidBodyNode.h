@@ -195,9 +195,6 @@ public:
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
     virtual void calcInternalForce(const Vec6& spatialForce) {throw VirtualBaseMethod();}
-    virtual void prepareVelInternal()                        {throw VirtualBaseMethod();}
-    virtual void propagateSVel(const Vec6& desiredVel)       {throw VirtualBaseMethod();}
-
 
     virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
 

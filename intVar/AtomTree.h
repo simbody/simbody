@@ -127,13 +127,6 @@ public:
     void applyForces(const VecVec6& spatialForces) {
         rbTree.calcZ(spatialForces);
     }
-    
-    /// Use dynamics equations to solve velocity problem rather than accelerations.
-    /// Normal use requires that setVel(0) has been done earlier, but we won't check.
-    void propagateSVel() {
-        calcSpatialImpulses(); // sets spatialForces vector
-        rbTree.calcZ(spatialForces);
-    }
 
     void calcPandZ() { calcP(); calcZ(); }
     void calcY() { rbTree.calcY(); }
@@ -148,8 +141,6 @@ public:
     int getDOF(); 
     int getDim(); 
 
-    // deallocate a node and all its children (recursively)
-    void destructNode(AtomClusterNode*);
     void markAtoms(CDSVector<bool,0>& assignedAtoms);
     static void addCM(const AtomClusterNode* n,
                       double&                mass,

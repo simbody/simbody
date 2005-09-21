@@ -98,16 +98,6 @@ RigidBodyTree::~RigidBodyTree() {
     rbNodeLevels.resize(0);
 }
 
-//
-// destructNode - should also work on partially constructed objects
-//
-void RigidBodyTree::destructNode(RigidBodyNode* n) {
-    for (int i=0; i < n->getNChildren(); i++)
-        destructNode( n->getChild(i) );
-    rbNodeLevels[n->getLevel()].remove( rbNodeLevels[n->getLevel()].getIndex(n) );
-    delete n;
-}
-
 // Add a new node, taking over the heap space.
 int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
                                     const Frame&    referenceConfig,    // body frame in parent

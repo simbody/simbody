@@ -561,9 +561,9 @@ TestIVM::test()
     {
     cout << "conmin...";
     bool debugging=0;
-    if (debugging) 
+    if (debugging)
         setVerbose( verbose() | printCoords | printEnergy | 
-                    printNodePos | printNodeTheta );
+                    printNodePos | printNodeTheta | printStepDebug );
     else 
         setVerbose( 0 );
     fcnt = 0;
