@@ -440,7 +440,8 @@ LengthSet::calcVelB(const RVec& pos, const RVec& vel) const
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
-        b(i) = dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
+        // TODO why the minus sign here? (doesn't work right without it) sherm
+        b(i) = -dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
                     loops[i].tipVel(2) - loops[i].tipVel(1) );
     }
 
