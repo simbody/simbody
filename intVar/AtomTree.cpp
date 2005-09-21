@@ -9,7 +9,6 @@
 
 #include "AtomClusterNode.h"
 #include "RigidBodyNode.h"
-//#include "LengthConstraints.h"
 
 #include "dint-atom.h"
 #include "vec3.h"
@@ -148,6 +147,15 @@ RVec AtomTree::getAccel() {
     calcSpatialForces();
     rbTree.prepareForDynamics();
     rbTree.calcLoopForwardDynamics(spatialForces);
+    RVec acc(getIVMDim()); 
+    rbTree.getAcc(acc);
+    return acc;
+}
+
+RVec AtomTree::getAccelIgnoringConstraints() {
+    calcSpatialForces();
+    rbTree.prepareForDynamics();
+    rbTree.calcTreeForwardDynamics(spatialForces);
     RVec acc(getIVMDim()); 
     rbTree.getAcc(acc);
     return acc;
@@ -656,7 +664,7 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
     // solve for desired internal velocities
     vel = calcGetAccel();
     setVel(vel);
-    /* sherm: TODO    fixVel0(vel); */
+    fixVel0(vel);
 
     if ( ivm->verbose()&printVelFromCartCost ) {
         VecVec3 avel(ivm->atoms.size()-1);

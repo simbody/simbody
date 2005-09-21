@@ -53,14 +53,14 @@ void RBStation::calcAccInfo(RBStationRuntime& rt) const {
 }
 
 ostream& operator<<(ostream& o, const RBStation& s) {
-    o << "station " << s.getStation() << " on node " << s.getNode() << std::endl;
+    o << "station " << s.getStation() << " on node " << s.getNode().getNodeNum();
     return o;
 }
 
 void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
 
     rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
     const double separation = sqrt(abs2(rt.fromTip1ToTip2_G));
@@ -71,7 +71,7 @@ void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
 void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
 
     rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
     rt.velErr = -dot( rt.unitDirection_G , rt.relVel_G );
@@ -80,7 +80,7 @@ void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
 void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
 
 //XXX this doesn't look right
     const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
@@ -219,6 +219,10 @@ void RigidBodyTree::prepareForDynamics() {
 void RigidBodyTree::calcTreeForwardDynamics(const VecVec6& spatialForces) {
     calcZ(spatialForces);
     calcTreeAccel();
+    
+    for (int i=0; i < distanceConstraints.size(); ++i)
+        distanceConstraints[i].calcAccInfo(
+            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 }
 
 // Given a set of spatial forces, calculate acclerations resulting from

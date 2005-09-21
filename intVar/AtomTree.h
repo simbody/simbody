@@ -71,6 +71,7 @@ public:
 
     /// Call this when all AtomClusterNodes have been built.
     void createRigidBodyTree();
+    int getNRigidBodies() const { return rbTree.getNBodies(); }
 
     // Dig up cluster info from rigid body tree.
 
@@ -102,6 +103,7 @@ public:
 
     RVec calcGetAccel();
     RVec getAccel();
+    RVec getAccelIgnoringConstraints();
     RVec getInternalForce();
 
     /// This is a solver which generates internal velocities from spatial ones.
@@ -119,6 +121,10 @@ public:
     /// Dynamics -- calculate articulated body remainder forces.
     void calcZ() {
         calcSpatialForces();
+        rbTree.calcZ(spatialForces);
+    }
+
+    void applyForces(const VecVec6& spatialForces) {
         rbTree.calcZ(spatialForces);
     }
     

@@ -785,6 +785,8 @@ computeA(const Vec3&    v1,
     const RigidBodyNode* n1 = &loop1.tips(s1).getNode();
     const RigidBodyNode* n2 = &loop2.tips(s2).getNode();
 
+    cout << "computeA: n1=" << n1 << ", n2=" << n2 << endl;
+
     Mat33 one(0.); one.setDiag(1.);
 
     Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
@@ -815,7 +817,9 @@ computeA(const Vec3&    v1,
 
     // here n1==n2
 
-    return t1 * n1->getY() * t2;
+    double ret = t1 * n1->getY() * t2;
+    cout << "computeA returning " << ret << endl;
+    return ret;
 }
 
 //
@@ -1027,33 +1031,30 @@ LengthSet::fixVel0(RVec& iVel)
     for (int m=0 ; m<loops.size() ; m++) {
         iVel.set(0.0);
         ivm->tree()->setVel( iVel );
-        // sherm: I think the following is a unit "probe" velocity, projected
-        // along the separation vector, and then scaled by mass. 
-        // That would explain the fact that there are no velocities here!
-        // TODO: this doesn't seem wise to me -- the scaling should be
-        // inertia weighted like the initial condition method, rather than
-        // atom weighted as here -- these two atoms are going to drag their
-        // whole bodies with them.
 
-        // TODO: I'm putting these probe impulses into the 'force' slot in
-        // the constraint runtimes, but the code below it still thinks these
-        // have gone into the 'vel' slot!!! (sherm)
-        // TODO: stations don't have mass so I had to set these to 1
+        // sherm: I think the following is a unit "probe" velocity, projected
+        // along the separation vector. 
+        // That would explain the fact that there are no velocities here!
         const Vec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
-        const double mass1 = /*loops[m].tips(1)->mass*/ 1.;
-        const double mass2 = /*loops[m].tips(2)->mass*/ 1.;
-        loops[m].setTipForce(2,  probeImpulse / mass2);
-        loops[m].setTipForce(1, -probeImpulse / mass1);
+        loops[m].setTipForce(2,  probeImpulse);
+        loops[m].setTipForce(1, -probeImpulse);
+
+        VecVec6 spatialImpulse(ivm->tree()->getNRigidBodies());
+        for (int ii=0; ii < ivm->tree()->getNRigidBodies(); ++ii)
+            spatialImpulse[ii].set(0.);
+        for (int t=1; t<=2; ++t) {
+            const RigidBodyNode& node = loops[m].tipNode(t);
+            const Vec3& force = loops[m].tipForce(t);
+            const Vec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
+            spatialImpulse[node.getNodeNum()] += blockVec(moment, force);
+        }
 
         // calc deltaVa from k-th constraint condition
         //FIX: make sure that nodeMap is ordered by level
         // get all nodes in given molecule, ordered by level
-        ivm->tree()->propagateSVel();
-        ivm->tree()->calcZ();
-
-        // make sure that internal velocities of each node are correct
-
+        ivm->tree()->applyForces(spatialImpulse);
         deltaIVel[m] = ivm->tree()->calcGetAccel();
+
         ivm->tree()->setVel( deltaIVel[m] );
 
         for (int n=0 ; n<loops.size() ; n++)

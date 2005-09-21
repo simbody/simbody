@@ -227,10 +227,10 @@ protected:
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
-        R_PB.set(0.); R_PB.setDiag(1.); OB_P.set(0.);
+        R_PB.set(0.); R_PB.setDiag(1.); OB_P=refOrigin_P;
         V_PB_G.set(0.); sVel.set(0.); sAcc.set(0.);
         R_GB.set(0.); R_GB.setDiag(1.); OB_G.set(0.);
-        COM_G.set(0.); COMstation_G.set(0.);
+        COM_G.set(0.); COMstation_G = massProps_B.getCOM();
     }
 
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;

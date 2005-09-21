@@ -34,6 +34,14 @@ using CDSMath::sq;
 typedef FixedMatrix<double,2,3> Mat23;
 typedef FixedVector<double,5>   Vec5;
 
+
+typedef SubVector<RVec>       RSubVec;
+typedef SubVector<const RVec> ConstRSubVec;
+typedef SubVector<Vec4>       RSubVec4;
+typedef SubVector<Vec5>       RSubVec5;
+typedef SubVector<Vec6>       RSubVec6;
+typedef SubVector<const Vec6> ConstRSubVec6;
+
 static Mat23 catRow23(const Vec3& v1, const Vec3& v2);
 static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
 static Mat33 makeIdentity33();
@@ -48,6 +56,9 @@ void RigidBodyNode::addChild(RigidBodyNode* child, const Frame& referenceFrame) 
     children.append( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
+    child->R_GB = R_GB;
+    child->OB_G = OB_G + child->refOrigin_P;
+    child->COM_G = child->OB_G + child->COMstation_G;
 }
 
 //
@@ -120,9 +131,7 @@ void RigidBodyNode::nodeDump(ostream& o) const {
 }
 
 ostream& operator<<(ostream& s, const RigidBodyNode& node) {
-    s << "RIGID BODY NODE: '<<' not impl yet!";
-    //for (int i=0 ; i<node.atoms.size() ; i++)
-    //    s << node.atoms[i] << ", ";
+    node.nodeDump(s);
     return s;
 }
 
@@ -301,12 +310,6 @@ private:
 // Derived classes for each joint type. //
 //////////////////////////////////////////
 
-typedef SubVector<RVec>       RSubVec;
-typedef SubVector<const RVec> ConstRSubVec;
-typedef SubVector<Vec4>       RSubVec4;
-typedef SubVector<Vec5>       RSubVec5;
-typedef SubVector<Vec6>       RSubVec6;
-typedef SubVector<const Vec6> ConstRSubVec6;
 
 /**
  * Translate (Cartesian) joint. This provides three degrees of translational freedom

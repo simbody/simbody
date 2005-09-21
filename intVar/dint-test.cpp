@@ -680,8 +680,8 @@ TestIVM::test()
     else 
         verbose_ = 0;
 
-    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
-    /*|InternalDynamics::printLoopDebug*/); // XXX
+    //setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
+    //           |InternalDynamics::printLoopDebug);
 
     fcnt = 0;
     //double stepsize=0.1;
@@ -698,7 +698,7 @@ TestIVM::test()
     }
     bool ok=1;
     for (int ecnt=0 ; ecnt<1 ; ecnt++) {
-        initDynamics(0);
+        initDynamics(false);
         if (debugging)
             printCM();
         for (int i=0 ; i<100 ; i++) {
@@ -755,6 +755,7 @@ TestIVM::test()
     cout << "  [function evaluations: " << fcnt << "]\n";
     }
 
+
     {
     cout.flush();
     cout << "length constraints- integrated...";
@@ -767,8 +768,8 @@ TestIVM::test()
         verbose_ = 0;
 
     
-    setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
-    /*|InternalDynamics::printLoopDebug*/); // XXX
+    //setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
+    //|InternalDynamics::printLoopDebug);
 
     fcnt = 0;
     double stepsize=1e-3;
@@ -777,6 +778,23 @@ TestIVM::test()
     //FIX: LengthConstraints::maxIters = 40;
     solverType = "PC6";
     initCycle();
+//XXX
+    initDynamics(false);
+    cout << "POS: " << setprecision(16) << getSolver()->getPos() << endl;
+    cout << "VEL: " << setprecision(16) << getSolver()->getVel() << endl;
+    tree()->setPosVel(getSolver()->getPos(),getSolver()->getVel());
+    RVec aa = tree()->getAccelIgnoringConstraints();
+    cout << "Acc: " << setprecision(16) << aa << endl;
+    aa = tree()->getAccel();
+    cout << "ACC: " << setprecision(16) << aa << endl;
+    return 0;
+//XXX
+
+
+
+
+
+
     CDSList<double> bondLengths;
     for (int i=0 ; i<constraintList.size() ; i++) {
         IVMAtom* a1 = atoms[ constraintList[i].a ];
@@ -785,7 +803,7 @@ TestIVM::test()
     }
     double E0;
     for (int ecnt=0 ; ecnt<1 ; ecnt++) {
-        initDynamics(0);
+        initDynamics(false);
         calcEnergy();
         E0 = Etotal();
         if (debugging)
