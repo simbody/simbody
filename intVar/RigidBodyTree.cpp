@@ -74,7 +74,7 @@ void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
     for (int i=0; i<=1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
 
     rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
-    rt.velErr = -dot( rt.unitDirection_G , rt.relVel_G );
+    rt.velErr = dot( rt.unitDirection_G , rt.relVel_G );
 }
 
 void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
@@ -84,7 +84,7 @@ void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
 
 //XXX this doesn't look right
     const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
-    rt.accErr = -(abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G));
+    rt.accErr = abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G);
 }
 
 RigidBodyTree::~RigidBodyTree() {

@@ -231,6 +231,8 @@ protected:
         V_PB_G.set(0.); sVel.set(0.); sAcc.set(0.);
         R_GB.set(0.); R_GB.setDiag(1.); OB_G.set(0.);
         COM_G.set(0.); COMstation_G = massProps_B.getCOM();
+        phi = PhiMatrix(Vec3(0.));
+        psiT.set(0.); P.set(0.); z.set(0.); tau.set(0.); Gepsilon.set(0.); Y.set(0.);
     }
 
     typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;

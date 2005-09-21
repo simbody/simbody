@@ -768,8 +768,10 @@ TestIVM::test()
         verbose_ = 0;
 
     
-    //setVerbose(InternalDynamics::printNodeDef|InternalDynamics::printLoopInfo
-    //|InternalDynamics::printLoopDebug);
+    //setVerbose(InternalDynamics::printNodeDef
+        // |InternalDynamics::printLoopInfo
+        // |InternalDynamics::printLoopDebug
+    //);
 
     fcnt = 0;
     double stepsize=1e-3;
@@ -778,7 +780,7 @@ TestIVM::test()
     //FIX: LengthConstraints::maxIters = 40;
     solverType = "PC6";
     initCycle();
-//XXX
+/*
     initDynamics(false);
     cout << "POS: " << setprecision(16) << getSolver()->getPos() << endl;
     cout << "VEL: " << setprecision(16) << getSolver()->getVel() << endl;
@@ -788,12 +790,7 @@ TestIVM::test()
     aa = tree()->getAccel();
     cout << "ACC: " << setprecision(16) << aa << endl;
     return 0;
-//XXX
-
-
-
-
-
+*/
 
     CDSList<double> bondLengths;
     for (int i=0 ; i<constraintList.size() ; i++) {

@@ -440,8 +440,8 @@ LengthSet::calcVelB(const RVec& pos, const RVec& vel) const
 
     RVec0 b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
-        b(i) = -dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
-                      loops[i].tipVel(2) - loops[i].tipVel(1) );
+        b(i) = dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
+                    loops[i].tipVel(2) - loops[i].tipVel(1) );
     }
 
     return b;
@@ -785,8 +785,6 @@ computeA(const Vec3&    v1,
     const RigidBodyNode* n1 = &loop1.tips(s1).getNode();
     const RigidBodyNode* n2 = &loop2.tips(s2).getNode();
 
-    cout << "computeA: n1=" << n1 << ", n2=" << n2 << endl;
-
     Mat33 one(0.); one.setDiag(1.);
 
     Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
@@ -796,6 +794,7 @@ computeA(const Vec3&    v1,
         t1 = t1 * n1->getPsiT();
         n1 = n1->getParent();
     }
+
     while ( n2->getLevel() > n1->getLevel() ) {
         t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
         n2 = n2->getParent();
@@ -818,7 +817,6 @@ computeA(const Vec3&    v1,
     // here n1==n2
 
     double ret = t1 * n1->getY() * t2;
-    cout << "computeA returning " << ret << endl;
     return ret;
 }
 
@@ -842,9 +840,9 @@ LengthSet::calcConstraintForces() const
     // See Eq. [53] and the last term of Eq. [66].
     RVec0 rhs(loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        rhs(i) = -(abs2(loops[i].tipVel(2) - loops[i].tipVel(1))
+        rhs(i) = abs2(loops[i].tipVel(2) - loops[i].tipVel(1))
                    + dot(loops[i].tipAcc(2) - loops[i].tipAcc(1) , 
-                         loops[i].tipPos(2) - loops[i].tipPos(1)));
+                         loops[i].tipPos(2) - loops[i].tipPos(1));
     }
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
