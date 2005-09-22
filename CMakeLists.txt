@@ -1,5 +1,5 @@
 PROJECT (dint_test)
-SUBDIRS (CDSlib common intVar)
+SUBDIRS (CDSlib common Molecules RigidBodies)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
