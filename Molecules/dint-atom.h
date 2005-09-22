@@ -1,7 +1,9 @@
 #ifndef __dint_atom_hh__
 #define __dint_atom_hh__
 
-#include "atom.h"
+#include "vec3.h"
+
+//#include "atom.h"
 
 class AtomClusterNode;
 
@@ -13,7 +15,7 @@ public:
         node(0), station_B(-1.2345e67), station_G(-1.2345e67),
         pos(0.), vel(0.), force(0.)
     {}
-
+/*
     IVMAtom(const int   ix,
             const Atom& atom)
       : index(ix), mass(0.), fric(0.), bonds(0,1),
@@ -27,7 +29,7 @@ public:
         pos = a.pos(); vel = a.vel(); mass = a.mass(); fric = a.fric(); 
         return *this;
     }
-
+*/
 public:
     // atom information
     int    index;   // slot # in the atoms list

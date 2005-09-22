@@ -54,7 +54,8 @@ PublicIVM::init()
     atoms.resize(sim->numAtoms()+1);
     atoms[0] = new IVMAtom(0,0.);   // Ground's origin atom
     for (l_int i=1 ; i<=sim->numAtoms() ; i++) {
-        atoms[i] = new IVMAtom(i,sim->atomByID(i-1));
+        const Atom xatom = sim->atomByID(i-1); 
+        atoms[i] = new IVMAtom(i,xatom.mass()); // sherm: ignoring everything but mass here
     //   *atoms[i] = sim->atomByID(i-1); //FIX: remove repetition
         atoms[i]->fric *= frictionCoeff() * atoms[i]->mass 
                           * SimulationWorld::world()->timeFactor();
