@@ -1,5 +1,5 @@
-PROJECT (dint_test)
-SUBDIRS (CDSlib common Molecules RigidBodies)
+PROJECT (Simbody)
+SUBDIRS (CDSlib common RigidBodies Molecules)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build

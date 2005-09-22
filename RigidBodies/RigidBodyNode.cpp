@@ -7,8 +7,6 @@
  */
 
 #include "RigidBodyNode.h"
-#include "dinternal.h"
-#include "dint-step.h"
 #include "vec4.h"
 
 #include "cdsMath.h"
