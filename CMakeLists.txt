@@ -12,3 +12,25 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 
+
+#
+# Testing
+#
+
+IF (UNIX)
+  ADD_DEFINITIONS(-fprofile-arcs -ftest-coverage)
+  LINK_LIBRARIES(gcov)
+ENDIF (UNIX)
+
+INCLUDE (Dart)
+
+ENABLE_TESTING()
+
+IF (EXECUTABLE_OUTPUT_PATH)
+  SET (TEST_PATH ${EXECUTABLE_OUTPUT_PATH})
+ELSE (EXECUTABLE_OUTPUT_PATH)
+  SET (TEST_PATH .)
+ENDIF (EXECUTABLE_OUTPUT_PATH)
+
+ADD_TEST(testClass ${TEST_PATH}/CDSlib/testClass)
+ADD_TEST(MoleculeTest ${TEST_PATH}/Molecules/MoleculeTest)
