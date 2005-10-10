@@ -174,3 +174,4 @@ Simplex::amotry(const int&    ihi,
  }
  return ytry;
 } /* Simplex::amotry */
+

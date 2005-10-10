@@ -519,3 +519,4 @@ IVM::idAtom(int id) const {
     ret << id << ends;
     return ret.str();
 }
+

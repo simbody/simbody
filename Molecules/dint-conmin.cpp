@@ -330,3 +330,4 @@ ConMin::brent(  const double& ax,
     xmin=x;
     return fx;
 }
+

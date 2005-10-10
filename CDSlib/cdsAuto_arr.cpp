@@ -67,3 +67,4 @@ auto_arr_test()
  cout << (exit?"failed":"ok") << endl;
  return exit;
 } /* test */
+

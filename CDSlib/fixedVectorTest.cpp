@@ -125,3 +125,4 @@ FixedVector_test()
  cout << (exit?"failed":"ok") << endl;
  return exit;
 } /* test */
+
