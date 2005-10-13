@@ -53,7 +53,7 @@ typedef CDSVector<double,1>     RVec;
  * to define the bodies, all frames B are aligned with the ground frame G. You can
  * think of this as defining the B frames by painting images of the G frame on
  * each body (translated to B's origin OB) when we first see the bodies in the reference
- * frame. Later the bodies move and take their B frames with them. For convenience, we refer
+ * frame. Later the bodies move and take their B frames with them. For convenience, we
  * refer to the body frame of a body's unique parent as the 'P' frame. Initially frames P
  * and B are aligned (and both are aligned with Ground). Later the P and B frames
  * will differ, but only by the relative orientation and translation induced by
