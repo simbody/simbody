@@ -20,8 +20,9 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
 /**@file
- * Implementations of high level multibody modeling objects for Simbody.
+ * Implementations of opaque representations of multibody modeling objects for Simbody.
  */
 
 #include "MultibodyModeling.h"
