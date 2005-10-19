@@ -1,5 +1,5 @@
 PROJECT (Simbody)
-SUBDIRS (CDSlib common RigidBodies IVMMoleculeModeling)
+SUBDIRS (CDSlib common RigidBodies MultibodyModeling IVMMoleculeModeling)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
