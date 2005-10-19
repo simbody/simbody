@@ -1,5 +1,5 @@
 PROJECT (Simbody)
-SUBDIRS (CDSlib common RigidBodies Molecules)
+SUBDIRS (CDSlib common RigidBodies IVMMoleculeModeling)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
@@ -33,4 +33,4 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(testClass ${TEST_PATH}/CDSlib/testClass)
-ADD_TEST(MoleculeTest ${TEST_PATH}/Molecules/MoleculeTest)
+ADD_TEST(IVMMoleculeTest ${TEST_PATH}/IVMMoleculeModeling/IVMMoleculeTest)
