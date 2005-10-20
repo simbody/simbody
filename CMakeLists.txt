@@ -34,3 +34,4 @@ ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(testClass ${TEST_PATH}/CDSlib/testClass)
 ADD_TEST(IVMMoleculeTest ${TEST_PATH}/IVMMoleculeModeling/IVMMoleculeTest)
+ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/MultibodyModelingTest)

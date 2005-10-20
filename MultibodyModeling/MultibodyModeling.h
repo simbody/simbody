@@ -30,6 +30,7 @@
  */
 
 #include <string>
+#include <iostream>
 
 namespace simtk {
 
@@ -86,7 +87,9 @@ public:
     const String getFullName() const;
 private:
     class FrameRep* rep;
+    friend std::ostream& operator<<(std::ostream&, const Frame&);
 };
+std::ostream& operator<<(std::ostream& o, const Frame&);
 
 class Station {
 public:
@@ -100,6 +103,7 @@ public:
 private:
     class StationRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const Station&);
 
 class Direction {
 public:
@@ -112,58 +116,73 @@ public:
 private:
     class DirectionRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const Direction&);
 
 class MassElement {
 public:
     MassElement();
+    explicit MassElement(const String&);
     ~MassElement();
 private:
     class MassElementRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const MassElement&);
 
 class Body : public Frame {
 public:
     Body();
+    explicit Body(const String&);
     ~Body();
 private:
     class BodyRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const Body&);
 
 class RigidBody : public Body {
     RigidBody();
+    explicit RigidBody(const String&);
     ~RigidBody();
 public:
     class RigidBodyRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const RigidBody&);
 
 class DeformableBody : public Body {
     DeformableBody();
+    explicit DeformableBody(const String&);
     ~DeformableBody();
 public:
     class DeformableBodyRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const DeformableBody&);
 
 class Multibody : public Body {
     Multibody();
+    explicit Multibody(const String&);
     ~Multibody();
 public:
     class MultibodyRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const Multibody&);
 
 class Joint {
 public:
     Joint();
+    explicit Joint(const String&);
     ~Joint();
 private:
     class JointRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const Joint&);
 
 class MultibodySystem {
     MultibodySystem();
+    explicit MultibodySystem(const String&);
     ~MultibodySystem();
 public:
     class MultibodySystemRep* rep;
 };
+std::ostream& operator<<(std::ostream& o, const MultibodySystem&);
 
 } // namespace simtk
 

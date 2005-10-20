@@ -150,6 +150,7 @@ private:
 
 class StationRep {
 public:
+    StationRep(const Station&, const char* nm) : name(nm) { }
 private:
     std::string name;
     Placement   station;
@@ -157,6 +158,7 @@ private:
 
 class DirectionRep {
 public:
+    DirectionRep(const Direction&, const char* nm) : name(nm) { }
 private:
     std::string name;
     Placement   direction;
@@ -164,18 +166,21 @@ private:
 
 class MassElementRep {
 public:
+    MassElementRep(const MassElement&, const char* nm) : name(nm) { }
 private:
     std::string name;
 };
 
 class JointRep {
 public:
+    JointRep(const Joint&, const char* nm) : name(nm) { }
 private:
     std::string name;
 };
 
 class MultibodySystemRep {
 public:
+    MultibodySystemRep(const MultibodySystem&, const char* nm) : name(nm) { }
 private:
     std::string name;
 };
@@ -183,7 +188,7 @@ private:
 // Body extends Frame.
 class BodyRep {
 public:
-    BodyRep();
+    BodyRep(const Body&) { }
     void addMassElementLike(const MassElement&, const Placement&);
 private:
     std::vector<MassElement> childMassElements;
@@ -192,12 +197,14 @@ private:
 // RigidBody extends Body.
 class RigidBodyRep {
 public:
+    RigidBodyRep(const RigidBody&) { }
 private:
 };
 
 // DeformableBody extends Body.
 class DeformableBodyRep {
 public:
+    DeformableBodyRep(const DeformableBody&) { }
 private:
     std::string name;
 };
@@ -205,6 +212,7 @@ private:
 // Multibody extends Body.
 class MultibodyRep {
 public:
+    MultibodyRep(const Multibody&) { }
 private:
     std::string name;
 };
