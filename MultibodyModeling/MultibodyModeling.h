@@ -44,24 +44,36 @@ class DeformableBody;
 class Multibody;
 class MultibodySystem;
 
+typedef double Real;
+
 class Vec3 {
-    double d[3];
 public:
+    double d[3];
     Vec3() { }
     Vec3(double xx, double yy, double zz) { d[0]=xx; d[1]=yy; d[2]=zz; }
 };
+inline std::ostream& operator<<(std::ostream& o, const Vec3& v) {
+    return o << "~[" << v.d[0] << "," << v.d[1] << "," << v.d[2] << "]";
+}
 
 class Mat33 {
-    Vec3 cols[3];
 public:
+    Vec3 cols[3];
     Mat33() { }
     Mat33(Vec3 c1, Vec3 c2, Vec3 c3) { cols[0]=c1; cols[1]=c2; cols[2]=c3; }
 };
+inline std::ostream& operator<<(std::ostream& o, const Mat33& m) {
+    for (int i=0; i<3; ++i)
+      o << "[" << m.cols[0].d[i] << "," << m.cols[1].d[i] << "," << m.cols[2].d[i] 
+        << "]" << std::endl;
+    return o;
+}
 
 class String : public std::string {
 public:
     String() { }
     String(const char* c) : std::string(c) { }
+    String(const std::string& s) : std::string(s) { }
 };
 
 class MassProperties;
@@ -69,118 +81,163 @@ class Inertia;
 
 class Placement {
 public:
-    Placement();
+    Placement() : rep(0) { }
+    Placement(const Placement&);
+    Placement& operator=(const Placement&);
     ~Placement();
 
     bool hasPlacement() const;
     const Frame& getParentFrame() const;
 private:
     class PlacementRep* rep;
+    friend class PlacementRep;
 };
+std::ostream& operator<<(std::ostream& o, const Placement&);
 
 class Frame {
 public:
-    Frame();
+    Frame() : rep(0) { }
     explicit Frame(const String&);
+    Frame(const Frame&);    // placements are not copied
+    Frame& operator=(const Frame&);
     ~Frame(); 
 
-    const String getFullName() const;
+    String getFullName() const;
 private:
     class FrameRep* rep;
-    friend std::ostream& operator<<(std::ostream&, const Frame&);
+    friend class FrameRep;
 };
 std::ostream& operator<<(std::ostream& o, const Frame&);
 
 class Station {
 public:
-    Station();
+    Station() : rep(0) { }
     explicit Station(const String&);
+    Station(const Station&);    // placements are not copied
+    Station& operator=(const Station&);
     ~Station();
+
+    Vec3 getMeasureNumbers() const;
 
     void setName(const String&);
     void setPlacement(const Frame&, const Vec3&);
 
 private:
     class StationRep* rep;
+    friend class StationRep;
 };
 std::ostream& operator<<(std::ostream& o, const Station&);
 
 class Direction {
 public:
-    Direction();
+    Direction() : rep(0) { }
     explicit Direction(const String&);
+    Direction(const Direction&);    // placements are not copied
+    Direction& operator=(const Direction&);
     ~Direction();
+
+    Vec3 getMeasureNumbers() const;
     
     void setName(const String&);
     void setPlacement(const Frame&, const Vec3&);
 private:
     class DirectionRep* rep;
+    friend class DirectionRep;
 };
 std::ostream& operator<<(std::ostream& o, const Direction&);
 
+// This is an abstract handle class.
 class MassElement {
 public:
-    MassElement();
-    explicit MassElement(const String&);
+    MassElement() : rep(0) { }
+    MassElement(const MassElement&);    // placements are not copied
+    MassElement& operator=(const MassElement&);
     ~MassElement();
 private:
     class MassElementRep* rep;
+    friend class MassElementRep;
 };
 std::ostream& operator<<(std::ostream& o, const MassElement&);
 
+class PointMassElement : public MassElement {
+public:
+    PointMassElement();
+    explicit PointMassElement(const String&);
+    explicit PointMassElement(const Real&);  // default mass
+    PointMassElement(const Real&, const String&);   
+};
+
 class Body : public Frame {
 public:
-    Body();
+    Body() : rep(0) { }
     explicit Body(const String&);
+    Body(const Body&);
+    Body& operator=(const Body&);
     ~Body();
 private:
     class BodyRep* rep;
+    friend class BodyRep;
 };
 std::ostream& operator<<(std::ostream& o, const Body&);
 
 class RigidBody : public Body {
-    RigidBody();
+    RigidBody() : rep(0) { }
     explicit RigidBody(const String&);
+    RigidBody(const RigidBody&);
+    RigidBody& operator=(const RigidBody&);
     ~RigidBody();
 public:
     class RigidBodyRep* rep;
+    friend class RigidBodyRep;
 };
 std::ostream& operator<<(std::ostream& o, const RigidBody&);
 
 class DeformableBody : public Body {
-    DeformableBody();
+    DeformableBody() : rep(0) { }
     explicit DeformableBody(const String&);
+    DeformableBody(const DeformableBody&);
+    DeformableBody& operator=(const DeformableBody&);
     ~DeformableBody();
 public:
     class DeformableBodyRep* rep;
+    friend class DeformableBodyRep;
 };
 std::ostream& operator<<(std::ostream& o, const DeformableBody&);
 
 class Multibody : public Body {
-    Multibody();
+    Multibody() : rep(0) { }
     explicit Multibody(const String&);
+    Multibody(const Multibody&);
+    Multibody& operator=(const Multibody&);
     ~Multibody();
 public:
     class MultibodyRep* rep;
+    friend class MultibodyRep;
 };
 std::ostream& operator<<(std::ostream& o, const Multibody&);
 
 class Joint {
 public:
-    Joint();
+    Joint() : rep(0) { }
     explicit Joint(const String&);
+    Joint(const Joint&);
+    Joint& operator=(const Joint&);
     ~Joint();
 private:
     class JointRep* rep;
+    friend class JointRep;
 };
 std::ostream& operator<<(std::ostream& o, const Joint&);
 
 class MultibodySystem {
-    MultibodySystem();
+    MultibodySystem() : rep(0) { }
     explicit MultibodySystem(const String&);
+    MultibodySystem(const MultibodySystem&);
+    MultibodySystem& operator=(const MultibodySystem&);
     ~MultibodySystem();
 public:
     class MultibodySystemRep* rep;
+    friend class MultibodySystemRep;
 };
 std::ostream& operator<<(std::ostream& o, const MultibodySystem&);
 
