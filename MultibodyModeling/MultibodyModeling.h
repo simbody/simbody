@@ -29,7 +29,9 @@
  * nice behavior for the caller. We'll have plenty of time for speed later.
  */
 
-#include <string>
+#include "simtk/SimTK.h"
+#include "simmatrix/SmallMatrix.h"
+
 #include <iostream>
 
 namespace simtk {
@@ -43,39 +45,6 @@ class RigidBody;
 class DeformableBody;
 class Multibody;
 class MultibodySystem;
-
-typedef double Real;
-
-class Vec3 {
-public:
-    double d[3];
-    Vec3() { }
-    Vec3(double xx, double yy, double zz) { d[0]=xx; d[1]=yy; d[2]=zz; }
-};
-inline std::ostream& operator<<(std::ostream& o, const Vec3& v) {
-    return o << "~[" << v.d[0] << "," << v.d[1] << "," << v.d[2] << "]";
-}
-
-class Mat33 {
-public:
-    Vec3 cols[3];
-    Mat33() { }
-    Mat33(Vec3 c1, Vec3 c2, Vec3 c3) { cols[0]=c1; cols[1]=c2; cols[2]=c3; }
-};
-inline std::ostream& operator<<(std::ostream& o, const Mat33& m) {
-    for (int i=0; i<3; ++i)
-      o << "[" << m.cols[0].d[i] << "," << m.cols[1].d[i] << "," << m.cols[2].d[i] 
-        << "]" << std::endl;
-    return o;
-}
-
-class String : public std::string {
-public:
-    String() { }
-    String(const char* c) : std::string(c) { }
-    String(const std::string& s) : std::string(s) { }
-};
-
 class MassProperties;
 class Inertia;
 

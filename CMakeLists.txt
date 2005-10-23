@@ -5,13 +5,16 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
     SET(MATH_LIBS_TO_USE acml c m g2c)
     LINK_DIRECTORIES(/usr/local/lib /lib)
+    SET(SIMTK_FRAMEWORK_INSTALL_DIR /usr/local/SimTK/framework)
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE libacml_dll)
     LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/bin)
+    SET(SIMTK_FRAMEWORK_INSTALL_DIR "c:/Program Files/SimTK/framework")
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-
+LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simtk)
+LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simmatrix)
 
 #
 # Testing
