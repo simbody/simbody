@@ -42,27 +42,111 @@ namespace simtk {
 //    Frame,Station,Direction,MassElement,Body,Joint,RigidBody,DeformableBody,
 //    Multibody,MultibodySystem
 
+enum PlacementType {
+    UnknownPlacementType = 0,
+    BoolPlacementType = 1,
+    IntPlacementType  = 2,
+    RealPlacementType = 3,
+    Vec2PlacementType = 4,
+    Vec3PlacementType = 5,
+    Mat33PlacementType = 6
+};
+
 class PlacementRep {
 public:
-    PlacementRep(const Frame& f) : parentFrame(&f) { }
+    explicit PlacementRep(Placement& p) : handle(p) { }
     virtual ~PlacementRep() { }
 
-    bool hasPlacement() const { return parentFrame != 0; }
-    const Frame& getParentFrame() const {assert(parentFrame); return *parentFrame;}
+    const Placement& getPlacement() const {return handle;}
 
     virtual PlacementRep* clone() const = 0;
-    virtual std::string   getPlacementTypeName() const = 0;
+    virtual PlacementType getPlacementType() const = 0;
     virtual std::string   toString() const = 0;
 
-    // Placement helpers
-    static const PlacementRep* getRep(const Placement& p)   { return p.rep; }
-    static PlacementRep*       updRep(Placement& p)         { return p.rep; }
-    static void setRep(Placement& p, PlacementRep* rep)     
-    { assert(p.rep==0); p.rep=rep; }
-    static void replaceRep(Placement& p, PlacementRep* rep) { delete p.rep; p.rep=rep; }
-    static void clearRep(Placement& p) { replaceRep(p,0); }
+    static const char* getPlacementTypeName(PlacementType t) {
+        switch(t) {
+        case: UnknownPlacementType: return "unknown";
+        case: BoolPlacementType:    return "bool";
+        case: IntPlacementType:     return "int";
+        case: RealPlacementType:    return "Real";
+        case: Vec2PlacementType:    return "Vec2";
+        case: Vec3PlacementType:    return "Vec3";
+        case: Mat33PlacementType:   return "Mat33";
+        default: return "ILLEGAL PLACEMENT TYPE";
+        };
+    }
+
+    SIMTK_REP_HELPERS(Placement,PlacementRep)
 private:
-    const Frame*  parentFrame;    // reference to an existing Frame, don't delete!
+    Placement&      handle;    // the Placement whose rep this is
+};
+
+/**
+ * A PlacementRep whose value is a constant.
+ */
+class ConstantPlacementRep : public PlacementRep {
+public:
+    ConstantPlacementRep(ConstantPlacement& cp, bool b) 
+      : PlacementRep(cp), bv(b),  t(BoolPlacementType) { }
+    ConstantPlacementRep(ConstantPlacement& cp, int  i) 
+      : PlacementRep(cp), iv(i),  t(IntPlacementType) { }
+    ConstantPlacementRep(ConstantPlacement& cp, Real r) 
+      : PlacementRep(cp), rv(r),  t(RealPlacementType) { }
+    ConstantPlacementRep(ConstantPlacement& cp, const Vec2&  v) 
+      : PlacementRep(cp), v2(v),  t(Vec2PlacementType) { }
+    ConstantPlacementRep(ConstantPlacement& cp, const Vec3&  v) 
+      : PlacementRep(cp), v3(v),  t(Vec3PlacementType) { }
+    ConstantPlacementRep(ConstantPlacement& cp, const Mat33& m) 
+      : PlacementRep(cp), m33(m), t(Mat33PlacementType) { }
+
+    ConstantPlacementRep(const ConstantPlacementRep& src) : t(src.t) {
+        copyInValidValue(src);
+    }
+    ~ConstantPlacementRep() { }
+
+    PlacementType getPlacementType() const { return t; }
+    bool getValueBool() const {assert(t==BoolPlacementType); return bv;}
+    bool getValueInt () const {assert(t==IntPlacementType);  return iv;}
+    bool getValueReal() const {assert(t==RealPlacementType); return rv;}
+    bool getValueVec2() const {assert(t==Vec2PlacementType); return v2;}
+    bool getValueVec3() const {assert(t==Vec3PlacementType); return v3;}
+    bool getValueMat33()const {assert(t==Mat33PlacementType);return m33;}
+
+private:
+    // avoid references to uninitialized memory
+    void copyInValidValue(const ConstantPlacementRep& src) {
+        switch(t) {
+        case: BoolPlacementType:    bv  = src.bv; break;
+        case: IntPlacementType:     iv  = src.iv; break;
+        case: RealPlacementType:    rv  = src.rv; break;
+        case: Vec2PlacementType:    v2  = src.v2; break;
+        case: Vec3PlacementType:    v3  = src.v3; break;
+        case: Mat33PlacementType:   m33 = src.m33;break;
+        default: assert(false);
+        };
+    }
+
+private:
+    const PlacementType t;
+    bool bv;    // only one of these is valid
+    int  iv;
+    Real rv;
+    Vec2 v2;
+    Vec3 v3;
+    Mat33 m33;
+};
+
+/**
+ * A PlacementRep whose value is the placement of some feature.
+ */
+class FeaturePlacementRep : public PlacementRep {
+public:
+    explicit FeaturePlacementRep(FeaturePlacement& fp, const Feature& f)
+        : PlacementRep(fp), feature(f) { }
+    ~FeaturePlacementRep() { }
+    PlacementRep* clone() const {return FeaturePlacementRep(*this);}
+private:
+    Feature&    feature;
 };
 
 // TODO should be parameterizable.
@@ -154,134 +238,6 @@ private:
     Mat33   orientation;
 };
 
-class FrameRep {
-public:
-    FrameRep(const Frame& f) : name("frame") {
-        initializeFeatures(f);
-    }
-    FrameRep(const Frame& f, const char* nm) : name(nm) {
-        initializeFeatures(f);
-    }
-    const Placement& getPlacement() const { return place; }
-    void setPlacement(const Frame& f, const Vec3& org, const Mat33& ori) {
-        PlacementRep::setRep(place, new FixedFramePlacementRep(f,org,ori));
-    }
-    void removePlacement() {
-        PlacementRep::clearRep(place);
-    }
-
-    const std::vector<Station>& getStations() const { return childStations; }
-    const std::vector<Direction>& getDirections() const { return childDirections; }
-    const std::vector<Frame>& getFrames() const { return childFrames; }
-
-    const std::string getFullName() const { 
-        std::string s;
-        if (place.hasPlacement())
-            s = place.getParentFrame().getFullName() + "/";
-        return s + getLocalName(); 
-    }
-
-    const std::string getLocalName() const { return name; }
-
-    const Station& getOrigin() const { return childStations[0]; }
-    const Direction& getAxis(int i) const 
-      { assert(0<=i && i<=2); return childDirections[i]; }
-    const Direction& x() const { return childDirections[0]; }
-    const Direction& y() const { return childDirections[1]; }
-    const Direction& z() const { return childDirections[2]; }
-
-    const Station&   addStation  (const Placement&, const char* nm);
-    const Direction& addDirection(const Placement&, const char* nm);
-    const Frame&     addFrame    (const Placement&, const char* nm);
-
-    // Frame helpers
-    static const FrameRep* getRep(const Frame& f)   { return f.rep; }
-    static FrameRep*       updRep(Frame& f)         { return f.rep; }
-    static void setRep(Frame& f, FrameRep* rep)     { assert(f.rep==0); f.rep=rep; }
-    static void replaceRep(Frame& f, FrameRep* rep) { delete f.rep; f.rep=rep; }
-    static void clearRep(Frame& f) { replaceRep(f,0); }
-
-private:
-    void initializeFeatures(const Frame& f) {
-        childStations.clear();
-        childDirections.clear();
-        childFrames.clear();
-
-        childStations.push_back  (Station("O"));
-        childDirections.push_back(Direction("x"));
-        childDirections.push_back(Direction("y"));
-        childDirections.push_back(Direction("z"));
-
-        childStations[0].setPlacement  (f, Vec3(0,0,0));
-        childDirections[0].setPlacement(f, Vec3(1,0,0));
-        childDirections[1].setPlacement(f, Vec3(0,1,0));
-        childDirections[2].setPlacement(f, Vec3(0,0,1));
-    }
-
-private:
-    std::string       name;
-
-    // Objects wholly owned by this Frame and placed on it. The first
-    // station is this Frame's origin, and the first three Directions
-    // are this Frame's x,y,z axes, respectively. The rest are in no
-    // particular order.
-    std::vector<Station>   childStations;
-    std::vector<Direction> childDirections;
-    std::vector<Frame>     childFrames;
-
-    // If this Frame has been placed with respect to some other
-    // Frame, this is the placement information.
-    Placement place;
-};
-
-class StationRep {
-public:
-    StationRep(const Station&) : name("station") { }
-    StationRep(const Station&, const char* nm) : name(nm) { }
-    const Placement& getPlacement() const { return station; }
-    void setPlacement(const Frame& f, const Vec3& v) {
-        PlacementRep::setRep(station, new FixedStationPlacementRep(f,v));
-    }
-    void removePlacement() {
-        PlacementRep::clearRep(station);
-    }
-    const std::string& getName() const { return name; }
-
-    
-    // Station helpers
-    static const StationRep* getRep(const Station& s)   { return s.rep; }
-    static StationRep*       updRep(Station& s)         { return s.rep; }
-    static void setRep(Station& s, StationRep* rep)     { assert(s.rep==0); s.rep=rep; }
-    static void replaceRep(Station& s, StationRep* rep) { delete s.rep; s.rep=rep; }
-    static void clearRep(Station& s) { replaceRep(s,0); }
-private:
-    std::string name;
-    Placement   station;
-};
-
-class DirectionRep {
-public:
-    DirectionRep(const Direction&) : name("direction") { }
-    DirectionRep(const Direction&, const char* nm) : name(nm) { }
-    const Placement& getPlacement() const { return direction; }
-    void setPlacement(const Frame& f, const Vec3& v) {
-        PlacementRep::setRep(direction, new FixedDirectionPlacementRep(f,v));
-    }
-    void removePlacement() {
-        PlacementRep::clearRep(direction);
-    }
-    const std::string& getName() const { return name; }
-
-    // Direction helpers
-    static const DirectionRep* getRep(const Direction& d)   { return d.rep; }
-    static DirectionRep*       updRep(Direction& d)         { return d.rep; }
-    static void setRep(Direction& d, DirectionRep* rep)     { assert(d.rep==0); d.rep=rep; }
-    static void replaceRep(Direction& d, DirectionRep* rep) { delete d.rep; d.rep=rep; }
-    static void clearRep(Direction& d) { replaceRep(d,0); }
-private:
-    std::string name;
-    Placement   direction;
-};
 
 // Abstract base class for MassElements.
 class MassElementRep {
