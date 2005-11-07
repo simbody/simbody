@@ -47,8 +47,10 @@ namespace simtk {
 
 // Declared below.
 class Feature;
-class Parameter;
-class Measure;
+class RealParameter;
+class StationParameter;
+class RealMeasure;
+class StationMeasure;
 class Station;
 class Direction;
 class Orientation;
@@ -88,29 +90,42 @@ public:
     Feature&       updFeature    (const String&);
     Feature&       addFeatureLike(const Feature&, const String&);
 
-    const Parameter&   getParameter  (const String&) const;
-    const Measure&     getMeasure    (const String&) const;
+    const RealParameter&    getRealParameter   (const String&) const;
+    const StationParameter& getStationParameter(const String&) const;
+    const RealMeasure&      getRealMeasure     (const String&) const;
+    const StationMeasure&   getStationMeasure  (const String&) const;
+
     const Station&     getStation    (const String&) const;
     const Direction&   getDirection  (const String&) const;
     const Orientation& getOrientation(const String&) const;
     const Frame&       getFrame      (const String&) const;
 
-    Parameter&   updParameter  (const String&);
-    Measure&     updMeasure    (const String&);
+    RealParameter&    updRealParameter   (const String&);
+    StationParameter& updStationParameter(const String&);
+    RealMeasure&      updRealMeasure     (const String&);
+    StationMeasure&   updStationMeasure  (const String&);
+
     Station&     updStation    (const String&);
     Direction&   updDirection  (const String&);
     Orientation& updOrientation(const String&);
     Frame&       updFrame      (const String&);
 
-    Parameter&   addParameter  (const String&);
-    Measure&     addMeasure    (const String&);
+    RealParameter&    addRealParameter   (const String&);
+    StationParameter& addStationParameter(const String&);
+    RealMeasure&      addRealMeasure     (const String&);
+    StationMeasure&   addStationMeasure  (const String&);
+
     Station&     addStation    (const String&);
     Direction&   addDirection  (const String&);
     Orientation& addOrientation(const String&);
     Frame&       addFrame      (const String&);
 
-    Parameter&   addParameterLike  (const Parameter&,   const String&);
-    Measure&     addMeasureLike    (const Measure&,     const String&);
+
+    RealParameter&    addRealParameterLike   (const RealParameter&, const String&);
+    StationParameter& addStationParameterLike(const StationParameter&, const String&);
+    RealMeasure&      addRealMeasureLike     (const RealMeasure&, const String&);
+    StationMeasure&   addStationMeasureLike  (const StationMeasure&, const String&);
+
     Station&     addStationLike    (const Station&,     const String&);
     Direction&   addDirectionLike  (const Direction&,   const String&);
     Orientation& addOrientationLike(const Orientation&, const String&);
@@ -145,18 +160,32 @@ std::ostream& operator<<(std::ostream& o, const Feature&);
  *
  * Parameters cannot have subfeatures.
  */
-class Parameter : public Feature {
+class RealParameter : public Feature {
 public:
-    explicit Parameter(const String& name);
-    Parameter(const Parameter&);
-    Parameter& operator=(const Parameter&);
-    ~Parameter();
+    explicit RealParameter(const String& name);
+    RealParameter(const RealParameter&);
+    RealParameter& operator=(const RealParameter&);
+    ~RealParameter();
 
     void set(const Real&);
 
-    static bool             isInstanceOf(const Feature&);
-    static const Parameter& downcast(const Feature&);
-    static Parameter&       downcast(Feature&);
+    static bool                 isInstanceOf(const Feature&);
+    static const RealParameter& downcast(const Feature&);
+    static RealParameter&       downcast(Feature&);
+};
+
+class StationParameter : public Feature {
+public:
+    explicit StationParameter(const String& name);
+    StationParameter(const StationParameter&);
+    StationParameter& operator=(const StationParameter&);
+    ~StationParameter();
+
+    void set(const Vec3&);
+
+    static bool                    isInstanceOf(const Feature&);
+    static const StationParameter& downcast(const Feature&);
+    static StationParameter&       downcast(Feature&);
 };
 
 /**
@@ -168,18 +197,32 @@ public:
  * by some parent feature. A Measure's value is an expression
  * that can be evaluated at run time.
  */
-class Measure : public Feature {
+class RealMeasure : public Feature {
 public:
-    explicit Measure(const String& name);
-    Measure(const Measure&);
-    Measure& operator=(const Measure&);
-    ~Measure();
+    explicit RealMeasure(const String& name);
+    RealMeasure(const RealMeasure&);
+    RealMeasure& operator=(const RealMeasure&);
+    ~RealMeasure();
 
     void set(const Placement&);
 
-    static bool           isInstanceOf(const Feature&);
-    static const Measure& downcast(const Feature&);
-    static Measure&       downcast(Feature&);
+    static bool               isInstanceOf(const Feature&);
+    static const RealMeasure& downcast(const Feature&);
+    static RealMeasure&       downcast(Feature&);
+};
+
+class StationMeasure : public Feature {
+public:
+    explicit StationMeasure(const String& name);
+    StationMeasure(const StationMeasure&);
+    StationMeasure& operator=(const StationMeasure&);
+    ~StationMeasure();
+
+    void set(const Placement&);
+
+    static bool                  isInstanceOf(const Feature&);
+    static const StationMeasure& downcast(const Feature&);
+    static StationMeasure&       downcast(Feature&);
 };
 
 class Station : public Feature {

@@ -179,32 +179,60 @@ private:
     std::vector<Placement*>  placementExpressions;
 };
 
-class ParameterRep : public FeatureRep {
+class RealParameterRep : public FeatureRep {
 public:
-    ParameterRep(Parameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    RealParameterRep(RealParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
 
-    std::string getFeatureTypeName() const { return "Parameter"; }
+    std::string getFeatureTypeName() const { return "RealParameter"; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
-        ParameterRep* copy = new ParameterRep(*this);
+        RealParameterRep* copy = new RealParameterRep(*this);
         copy->cleanUpAfterClone(f);
         return copy;
     }
 
-    SIMTK_DOWNCAST(ParameterRep,FeatureRep);
+    SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
 };
 
-class MeasureRep : public FeatureRep {
+class StationParameterRep : public FeatureRep {
 public:
-    MeasureRep(Measure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    StationParameterRep(StationParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
 
-    std::string getFeatureTypeName() const { return "Measure"; }
+    std::string getFeatureTypeName() const { return "StationParameter"; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
-        MeasureRep* copy = new MeasureRep(*this);
+        StationParameterRep* copy = new StationParameterRep(*this);
         copy->cleanUpAfterClone(f);
         return copy;
     }
 
-    SIMTK_DOWNCAST(MeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(StationParameterRep,FeatureRep);
+};
+
+class RealMeasureRep : public FeatureRep {
+public:
+    RealMeasureRep(RealMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+
+    std::string getFeatureTypeName() const { return "RealMeasure"; }
+    FeatureRep* cloneWithoutPlacement(Feature& f) const {
+        RealMeasureRep* copy = new RealMeasureRep(*this);
+        copy->cleanUpAfterClone(f);
+        return copy;
+    }
+
+    SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
+};
+
+class StationMeasureRep : public FeatureRep {
+public:
+    StationMeasureRep(StationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+
+    std::string getFeatureTypeName() const { return "StationMeasure"; }
+    FeatureRep* cloneWithoutPlacement(Feature& f) const {
+        StationMeasureRep* copy = new StationMeasureRep(*this);
+        copy->cleanUpAfterClone(f);
+        return copy;
+    }
+
+    SIMTK_DOWNCAST(StationMeasureRep,FeatureRep);
 };
 
 class StationRep : public FeatureRep {
@@ -298,7 +326,7 @@ static int caseInsensitiveCompare(const std::string& key, const std::string& tes
     }
     // caution -- size() is unsigned, don't get clever here
     if (key.size() > minlen) return 1;
-    else if (key.size() < minlen) return -1;
+    else if (test.size() > minlen) return -1;
     return 0;
 }
 

@@ -49,19 +49,13 @@ class GeneralMassElement;
  */
 class MassElement : public Feature {
 public:
-    explicit MassElement(const String& name);
-    MassElement(const MassElement&);    // placements are not copied
-    MassElement& operator=(const MassElement&);
-    ~MassElement();
-
-    const Measure& getMassMeasure() const;
-    const Measure& getCenterOfMassMeasure() const;
+    const RealMeasure&    getMassMeasure() const;
+    const StationMeasure& getCentroidMeasure() const;
 
     static bool               isInstanceOf(const Feature&);
     static const MassElement& downcast(const Feature&);
     static MassElement&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const MassElement&);
 
 /**
  * A concrete mass element consisting only of a point mass. This has
@@ -78,12 +72,12 @@ public:
     // This constructor gives the "mass" parameter a constant value.
     PointMassElement(const String&, const Real&);
 
-    void setMass(const RealPlacement&);
-    void placePoint(const StationPlacement&);
+    void setMass(const Real&);
+    void placePoint(const Vec3&);
 
-    static bool                    isInstanceOf(const MassElement&);
-    static const PointMassElement& downcast(const MassElement&);
-    static PointMassElement&       downcast(MassElement&);
+    static bool                    isInstanceOf(const Feature&);
+    static const PointMassElement& downcast(const Feature&);
+    static PointMassElement&       downcast(Feature&);
 };
 
 /**

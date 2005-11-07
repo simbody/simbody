@@ -37,8 +37,74 @@ using std::ostream;
 namespace simtk {
 
     // MASS ELEMENT //
+const RealMeasure& MassElement::getMassMeasure() const {
+    assert(rep);
+    return MassElementRep::downcast(*rep).getMassMeasure();
+}
+const StationMeasure& MassElement::getCentroidMeasure() const {
+    assert(rep);
+    return MassElementRep::downcast(*rep).getCentroidMeasure();
+}
+
+/*static*/ bool             
+MassElement::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return MassElementRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const MassElement& 
+MassElement::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const MassElement&>(f);
+}
+
+/*static*/ MassElement&       
+MassElement::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<MassElement&>(f);
+}
 
     // POINT MASS ELEMENT //
+
+    // PARAMETER //
+PointMassElement::PointMassElement(const String& nm) {
+    rep = new PointMassElementRep(*this, std::string(nm));
+}
+PointMassElement::PointMassElement(const PointMassElement& src)
+  : MassElement(src) { }
+PointMassElement& PointMassElement::operator=(const PointMassElement& src) {
+    MassElement::operator=(src); return *this;
+}
+PointMassElement::~PointMassElement() { }
+
+PointMassElement::PointMassElement(const String& nm, const Real& m) {
+    rep = new PointMassElementRep(*this, std::string(nm));
+    PointMassElementRep::downcast(*rep).setMass(m);
+}
+void PointMassElement::setMass(const Real& m) {
+    assert(rep);
+    PointMassElementRep::downcast(*rep).setMass(m);
+}
+void PointMassElement::placePoint(const Vec3& v) {
+    assert(rep);
+    PointMassElementRep::downcast(*rep).placePoint(v);
+}
+
+/*static*/ bool             
+PointMassElement::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return PointMassElementRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const PointMassElement& 
+PointMassElement::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const PointMassElement&>(f);
+}
+
+/*static*/ PointMassElement&       
+PointMassElement::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<PointMassElement&>(f);
+}
 
     // SPHERE MASS ELEMENT //
 

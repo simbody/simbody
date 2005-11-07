@@ -49,6 +49,10 @@ int main() {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
+
+    cout << "blue=" << blue;
+    cout << "orange=" << orange;
+    cout << "green=" << green;
 /*
     // Create a cylinder mass element prototype. We're going
     // to give it constant radius and density, but leave the half-height

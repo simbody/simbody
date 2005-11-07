@@ -29,8 +29,70 @@
  */
 
 #include "MassElement.h"
+#include "FeatureRep.h"
 
 namespace simtk {
+
+/**
+ * This is a still-abstract Feature representation, common to all
+ * the MassElement features.
+ */
+class MassElementRep : public FeatureRep {
+public:
+    MassElementRep(MassElement& m, const std::string& nm) : FeatureRep(m,nm) { 
+        initializeFeatures();
+    }
+
+    const RealMeasure& getMassMeasure() const {
+        return RealMeasure::downcast(getChildFeature(0));
+    }
+    const StationMeasure& getCentroidMeasure() const {
+        return StationMeasure::downcast(getChildFeature(1));
+    }
+
+    // virtuals getFeatureTypeName() && cloneWithoutPlacement() still missing
+
+    SIMTK_DOWNCAST(MassElementRep,FeatureRep);
+private:
+    // Every MassElement defines some mass-oriented measures.
+    void initializeFeatures() {
+        addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
+        addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+    }
+};
+
+class PointMassElementRep : public MassElementRep {
+public:
+    PointMassElementRep(PointMassElement& pm, const std::string& nm) 
+      : MassElementRep(pm,nm) { 
+        initializeFeatures();
+    }
+
+    // some self-placements
+    void setMass(const Real& m) {
+        const Placement& p = addPlacementLike(RealPlacement(m));
+        updChildFeature("mass")->setPlacement(p);
+    }
+
+    void placePoint(const Vec3& v) {
+        const Placement& p = addPlacementLike(StationPlacement(v));
+        updChildFeature("station")->setPlacement(p);
+    }
+
+    std::string getFeatureTypeName() const { return "PointMassElement"; }
+    FeatureRep* cloneWithoutPlacement(Feature& f) const {
+        PointMassElementRep* copy = new PointMassElementRep(*this);
+        copy->cleanUpAfterClone(f);
+        return copy;
+    }
+
+    SIMTK_DOWNCAST2(PointMassElementRep,MassElementRep,FeatureRep);
+private:
+    void initializeFeatures() {
+        addFeatureLike(RealParameter("mass"), "mass");
+        addFeatureLike(Station("station"), "station");
+    }
+};
 
 } // namespace simtk
 

@@ -77,11 +77,17 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 }
 
 
+    // REAL PLACEMENT //
+RealPlacement::RealPlacement(const Real& r) {
+    rep = new RealConstantPlacementRep(*this,r);
+}
 
     // STATION PLACEMENT //
 StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(*this,v);
 }
+
+    // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     rep = new DirectionConstantPlacementRep(*this,v);
 }

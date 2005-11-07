@@ -86,22 +86,21 @@ String Feature::toString(const String& linePrefix) const {
     s << f.getFeatureTypeName() << " " << f.getFullName() << ": ";
     s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
                            : String("NO PLACEMENT"));
-    s << endl; 
 
     const size_t nChildren = f.getChildFeatures().size();
     const size_t nPlacement = f.getPlacementExpressions().size();
-
     const std::string nextIndent = linePrefix + "    ";
 
-    s << linePrefix << "  Child Features (" << nChildren << ")";
-    if (nChildren) s << ":";
-    for (size_t i=0; i < nChildren; ++i)
-        s  << endl << nextIndent << f.getChildFeature(i).toString(nextIndent);
-    s << endl;
-    s << linePrefix << "  Placement Expressions (" << nPlacement << ")";
-    if (nPlacement) s << ":";
-    for (size_t i=0; i < nPlacement; ++i)
-        s  << endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
+    if (nChildren) {
+        s << endl << linePrefix << "  Child Features (" << nChildren << "):";
+        for (size_t i=0; i < nChildren; ++i)
+            s  << endl << nextIndent << f.getChildFeature(i).toString(nextIndent);
+    }
+    if (nPlacement) {
+        s << endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
+        for (size_t i=0; i < nPlacement; ++i)
+            s  << endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
+    }
     return s.str();
 }
 
@@ -129,70 +128,135 @@ Feature& Feature::updFeature(const String& n) {
     if (!p) SIMTK_THROW2(Exception::FeatureNameNotFound,"Feature::updFeature",n);
     return *p;
 }
-const Parameter& Feature::getParameter(const String& n) const {
-    return Parameter::downcast(getFeature(n));
+
+const RealParameter& Feature::getRealParameter(const String& n) const {
+    return RealParameter::downcast(getFeature(n));
 }
-Parameter& Feature::updParameter(const String& n) {
-    return Parameter::downcast(updFeature(n));
+RealParameter& Feature::updRealParameter(const String& n) {
+    return RealParameter::downcast(updFeature(n));
 }
-Parameter& Feature::addParameter(const String& n) {
-    assert(rep); return Parameter::downcast(rep->addFeatureLike(Parameter(n), n));
+RealParameter& Feature::addRealParameter(const String& n) {
+    assert(rep); return RealParameter::downcast(rep->addFeatureLike(RealParameter(n), n));
 }
-Measure& Feature::addMeasure(const String& n) {
-    assert(rep); return Measure::downcast(rep->addFeatureLike(Measure(n), n));
+
+const StationParameter& Feature::getStationParameter(const String& n) const {
+    return StationParameter::downcast(getFeature(n));
+}
+StationParameter& Feature::updStationParameter(const String& n) {
+    return StationParameter::downcast(updFeature(n));
+}
+StationParameter& Feature::addStationParameter(const String& n) {
+    assert(rep); return StationParameter::downcast(rep->addFeatureLike(StationParameter(n), n));
+}
+
+RealMeasure& Feature::addRealMeasure(const String& n) {
+    assert(rep); return RealMeasure::downcast(rep->addFeatureLike(RealMeasure(n), n));
+}
+StationMeasure& Feature::addStationMeasure(const String& n) {
+    assert(rep); return StationMeasure::downcast(rep->addFeatureLike(StationMeasure(n), n));
 }
 Station& Feature::addStation(const String& n) {
     assert(rep); return Station::downcast(rep->addFeatureLike(Station(n), n));
 }
 
-    // PARAMETER //
-Parameter::Parameter(const String& nm)
-  { rep = new ParameterRep(*this, std::string(nm)); }
-Parameter::Parameter(const Parameter& src) : Feature(src) { }
-Parameter& Parameter::operator=(const Parameter& src)
+    // REAL PARAMETER //
+RealParameter::RealParameter(const String& nm)
+  { rep = new RealParameterRep(*this, std::string(nm)); }
+RealParameter::RealParameter(const RealParameter& src) : Feature(src) { }
+RealParameter& RealParameter::operator=(const RealParameter& src)
   { Feature::operator=(src); return *this; }
-Parameter::~Parameter() { }
+RealParameter::~RealParameter() { }
 
 /*static*/ bool             
-Parameter::isInstanceOf(const Feature& f) {
+RealParameter::isInstanceOf(const Feature& f) {
     if (!FeatureRep::getRep(f)) return false;
-    return ParameterRep::isA(*FeatureRep::getRep(f));
+    return RealParameterRep::isA(*FeatureRep::getRep(f));
 }
-/*static*/ const Parameter& 
-Parameter::downcast(const Feature& f) {
+/*static*/ const RealParameter& 
+RealParameter::downcast(const Feature& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<const Parameter&>(f);
+    return reinterpret_cast<const RealParameter&>(f);
 }
 
-/*static*/ Parameter&       
-Parameter::downcast(Feature& f) {
+/*static*/ RealParameter&       
+RealParameter::downcast(Feature& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<Parameter&>(f);
+    return reinterpret_cast<RealParameter&>(f);
 }
 
-    // MEASURE //
-Measure::Measure(const String& nm)
-  { rep = new MeasureRep(*this, std::string(nm)); }
-Measure::Measure(const Measure& src) : Feature(src) { }
-Measure& Measure::operator=(const Measure& src)
+    // STATION PARAMETER //
+StationParameter::StationParameter(const String& nm)
+  { rep = new StationParameterRep(*this, std::string(nm)); }
+StationParameter::StationParameter(const StationParameter& src) : Feature(src) { }
+StationParameter& StationParameter::operator=(const StationParameter& src)
   { Feature::operator=(src); return *this; }
-Measure::~Measure() { }
+StationParameter::~StationParameter() { }
 
 /*static*/ bool             
-Measure::isInstanceOf(const Feature& f) {
+StationParameter::isInstanceOf(const Feature& f) {
     if (!FeatureRep::getRep(f)) return false;
-    return MeasureRep::isA(*FeatureRep::getRep(f));
+    return StationParameterRep::isA(*FeatureRep::getRep(f));
 }
-/*static*/ const Measure& 
-Measure::downcast(const Feature& f) {
+/*static*/ const StationParameter& 
+StationParameter::downcast(const Feature& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<const Measure&>(f);
+    return reinterpret_cast<const StationParameter&>(f);
 }
 
-/*static*/ Measure&       
-Measure::downcast(Feature& f) {
+/*static*/ StationParameter&       
+StationParameter::downcast(Feature& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<Measure&>(f);
+    return reinterpret_cast<StationParameter&>(f);
+}
+
+    // REAL MEASURE //
+RealMeasure::RealMeasure(const String& nm)
+  { rep = new RealMeasureRep(*this, std::string(nm)); }
+RealMeasure::RealMeasure(const RealMeasure& src) : Feature(src) { }
+RealMeasure& RealMeasure::operator=(const RealMeasure& src)
+  { Feature::operator=(src); return *this; }
+RealMeasure::~RealMeasure() { }
+
+/*static*/ bool             
+RealMeasure::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return RealMeasureRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const RealMeasure& 
+RealMeasure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const RealMeasure&>(f);
+}
+
+/*static*/ RealMeasure&       
+RealMeasure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<RealMeasure&>(f);
+}
+
+    // STATION MEASURE //
+StationMeasure::StationMeasure(const String& nm)
+  { rep = new StationMeasureRep(*this, std::string(nm)); }
+StationMeasure::StationMeasure(const StationMeasure& src) : Feature(src) { }
+StationMeasure& StationMeasure::operator=(const StationMeasure& src)
+  { Feature::operator=(src); return *this; }
+StationMeasure::~StationMeasure() { }
+
+/*static*/ bool             
+StationMeasure::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return StationMeasureRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const StationMeasure& 
+StationMeasure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const StationMeasure&>(f);
+}
+
+/*static*/ StationMeasure&       
+StationMeasure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<StationMeasure&>(f);
 }
 
     // STATION //
