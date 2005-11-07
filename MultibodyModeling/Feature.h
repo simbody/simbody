@@ -128,6 +128,8 @@ public:
     void setPlacement(const Placement&);
     const Placement& getPlacement() const;
 
+    String toString(const String& linePrefix="") const;
+
 protected:
     class FeatureRep* rep;
     friend class FeatureRep;
@@ -247,7 +249,7 @@ public:
     static const Frame& downcast(const Feature&);
     static Frame&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const Frame&);
+//std::ostream& operator<<(std::ostream& o, const Frame&);
 
 
 

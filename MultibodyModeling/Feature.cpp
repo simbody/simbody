@@ -68,20 +68,45 @@ String Feature::getFeatureTypeName() const {
                : featureHasNoRep(*this);
 }
 
+void Feature::setPlacement(const Placement& p) {
+    assert(rep);
+    rep->setPlacement(p);
+}
+
+
+String Feature::toString(const String& linePrefix) const {
+    std::stringstream s;
+    s << "Feature ";
+    if (!rep) {
+        s << featureHasNoRep(*this);
+        return String(s.str());
+    }
+
+    const FeatureRep& f = *rep;
+    s << f.getFeatureTypeName() << " " << f.getFullName() << ": ";
+    s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
+                           : String("NO PLACEMENT"));
+    s << endl; 
+
+    const size_t nChildren = f.getChildFeatures().size();
+    const size_t nPlacement = f.getPlacementExpressions().size();
+
+    const std::string nextIndent = linePrefix + "    ";
+
+    s << linePrefix << "  Child Features (" << nChildren << ")";
+    if (nChildren) s << ":";
+    for (size_t i=0; i < nChildren; ++i)
+        s  << endl << nextIndent << f.getChildFeature(i).toString(nextIndent);
+    s << endl;
+    s << linePrefix << "  Placement Expressions (" << nPlacement << ")";
+    if (nPlacement) s << ":";
+    for (size_t i=0; i < nPlacement; ++i)
+        s  << endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
+    return s.str();
+}
 
 ostream& operator<<(ostream& o, const Feature& f) {
-    const FeatureRep* r = FeatureRep::getRep(f);
-    o << "Feature ";
-    if (!r)
-        return o << featureHasNoRep(f) << endl;
-
-    o << r->getFeatureTypeName() << " " << r->getFullName() << ": " 
-        << r->getPlacement() << endl;
-    o << "  Child Features:" << endl;
-    for (size_t i=0; i<r->getChildFeatures().size(); ++i)
-        o << "    " << r->getChildFeatures()[i];
-    o << endl;
-    return o;
+    return o << f.toString() << endl;
 }
 
 int Feature::getIndexInParent() const {
@@ -128,6 +153,23 @@ Parameter& Parameter::operator=(const Parameter& src)
   { Feature::operator=(src); return *this; }
 Parameter::~Parameter() { }
 
+/*static*/ bool             
+Parameter::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return ParameterRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Parameter& 
+Parameter::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Parameter&>(f);
+}
+
+/*static*/ Parameter&       
+Parameter::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Parameter&>(f);
+}
+
     // MEASURE //
 Measure::Measure(const String& nm)
   { rep = new MeasureRep(*this, std::string(nm)); }
@@ -135,6 +177,23 @@ Measure::Measure(const Measure& src) : Feature(src) { }
 Measure& Measure::operator=(const Measure& src)
   { Feature::operator=(src); return *this; }
 Measure::~Measure() { }
+
+/*static*/ bool             
+Measure::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return MeasureRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Measure& 
+Measure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Measure&>(f);
+}
+
+/*static*/ Measure&       
+Measure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Measure&>(f);
+}
 
     // STATION //
 Station::Station(const String& nm)
@@ -144,6 +203,23 @@ Station& Station::operator=(const Station& src)
   { Feature::operator=(src); return *this; }
 Station::~Station() { }
 
+/*static*/ bool             
+Station::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return StationRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Station& 
+Station::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Station&>(f);
+}
+
+/*static*/ Station&       
+Station::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Station&>(f);
+}
+
     // DIRECTION //
 Direction::Direction(const String& nm)
   { rep = new DirectionRep(*this, std::string(nm)); }
@@ -151,6 +227,23 @@ Direction::Direction(const Direction& src) : Feature(src) { }
 Direction& Direction::operator=(const Direction& src)
   { Feature::operator=(src); return *this; }
 Direction::~Direction() { }
+
+/*static*/ bool             
+Direction::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return DirectionRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Direction& 
+Direction::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Direction&>(f);
+}
+
+/*static*/ Direction&       
+Direction::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Direction&>(f);
+}
 
     // ORIENTATION //
 Orientation::Orientation(const String& nm)
@@ -160,6 +253,23 @@ Orientation& Orientation::operator=(const Orientation& src)
   { Feature::operator=(src); return *this; }
 Orientation::~Orientation() { }
 
+/*static*/ bool             
+Orientation::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return OrientationRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Orientation& 
+Orientation::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Orientation&>(f);
+}
+
+/*static*/ Orientation&       
+Orientation::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Orientation&>(f);
+}
+
     // FRAME //
 Frame::Frame(const String& nm)
   { rep = new FrameRep(*this, std::string(nm)); }
@@ -168,5 +278,21 @@ Frame& Frame::operator=(const Frame& src)
   { Feature::operator=(src); return *this; }
 Frame::~Frame() { }
 
+/*static*/ bool             
+Frame::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return FrameRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const Frame& 
+Frame::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Frame&>(f);
+}
+
+/*static*/ Frame&       
+Frame::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Frame&>(f);
+}
 
 } // namespace simtk

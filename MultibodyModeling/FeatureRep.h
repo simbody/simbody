@@ -57,8 +57,13 @@ namespace simtk {
 class FeatureRep {
 public:
     FeatureRep(Feature& f, const std::string& nm) 
-      : handle(&f), name(nm), parent(0), indexInParent(-1), placement(0) { }
-    virtual ~FeatureRep() { }
+      : handle(&f), name(nm), parent(0), indexInParent(-1), placement(0){ }
+    virtual ~FeatureRep() { 
+        for (size_t i=0; i < childFeatures.size(); ++i)
+            delete childFeatures[i];
+        for (size_t i=0; i < placementExpressions.size(); ++i)
+            delete placementExpressions[i];
+    }
 
     virtual std::string getFeatureTypeName() const = 0;
     virtual FeatureRep* cloneWithoutPlacement(Feature&) const = 0;
@@ -77,16 +82,26 @@ public:
     void setPlacement(const Placement& p) { placement = &p; }
     const Placement& getPlacement() const { return *placement; }
 
-    const std::vector<Feature>&   getChildFeatures() const {return childFeatures; }
-    const std::vector<Placement>& getPlacementExpressions() const {return placementExpressions;}
+    const std::vector<Feature*>&   getChildFeatures() const {return childFeatures; }
+    const std::vector<Placement*>& getPlacementExpressions() const {return placementExpressions;}
+
+    const Feature& getChildFeature(size_t i) const {
+        assert(childFeatures[i]);
+        return *childFeatures[i];
+    }
+
+    const Placement& getPlacementExpression(size_t i) const {
+        assert(placementExpressions[i]);
+        return *placementExpressions[i];
+    }
 
     const Feature* getChildFeature(const std::string& nm) const {
         size_t index;
-        return findChildFeatureIndex(nm,index) ? &childFeatures[index] : 0;
+        return findChildFeatureIndex(nm,index) ? childFeatures[index] : 0;
     }
     Feature* updChildFeature(const std::string& nm) {
         size_t index;
-        return findChildFeatureIndex(nm,index) ? &childFeatures[index] : 0;
+        return findChildFeatureIndex(nm,index) ? childFeatures[index] : 0;
     }
 
     const std::string getFullName() const { 
@@ -99,8 +114,8 @@ public:
     Feature& addFeatureLike(const Feature& f, const std::string& nm) {
         assert(getRep(f) && nm.size() > 0);
         const int index = (int)childFeatures.size();
-        childFeatures.push_back(f); // a copy of f but without external placements
-        Feature& newFeature = childFeatures[index];
+        childFeatures.push_back(new Feature(f)); // a copy of f but without external placements
+        Feature& newFeature = *childFeatures[index];
         updRep(newFeature)->setParent(*handle, index);
         updRep(newFeature)->setName(nm);
         return newFeature;
@@ -111,8 +126,8 @@ public:
     Placement& addPlacementLike(const Placement& p) {
         assert(PlacementRep::getRep(p));
         const int index = (int)placementExpressions.size();
-        placementExpressions.push_back(p); // a copy of p without an owner
-        Placement& newPlacement = placementExpressions[index];
+        placementExpressions.push_back(new Placement(p)); // a copy of p without an owner
+        Placement& newPlacement = *placementExpressions[index];
         PlacementRep::updRep(newPlacement)->setOwner(*handle, index);
         return newPlacement;
     }
@@ -133,7 +148,7 @@ private:
     // Otherwise return false and ix==childFeatures.size().
     bool findChildFeatureIndex(const std::string& nm, size_t& ix) const {
         for (ix=0; ix < getChildFeatures().size(); ++ix)
-            if (caseInsensitiveCompare(nm, childFeatures[ix].getName())==0)
+            if (caseInsensitiveCompare(nm, childFeatures[ix]->getName())==0)
                 return true;
         return false;   // not found
     }
@@ -157,11 +172,11 @@ private:
     const Placement*        placement;
 
     // Subfeatures wholly owned by this Feature.
-    std::vector<Feature>    childFeatures;
+    std::vector<Feature*>    childFeatures;
 
     // Placement expressions wholly owned by this Feature. These compute values
     // for the childFeatures of this Feature.
-    std::vector<Placement>  placementExpressions;
+    std::vector<Placement*>  placementExpressions;
 };
 
 class ParameterRep : public FeatureRep {
@@ -175,6 +190,7 @@ public:
         return copy;
     }
 
+    SIMTK_DOWNCAST(ParameterRep,FeatureRep);
 };
 
 class MeasureRep : public FeatureRep {
@@ -188,6 +204,7 @@ public:
         return copy;
     }
 
+    SIMTK_DOWNCAST(MeasureRep,FeatureRep);
 };
 
 class StationRep : public FeatureRep {
@@ -201,6 +218,7 @@ public:
         return copy;
     }
 
+    SIMTK_DOWNCAST(StationRep,FeatureRep);
 };
 
 class DirectionRep : public FeatureRep {
@@ -214,6 +232,7 @@ public:
         return copy;
     }
 
+    SIMTK_DOWNCAST(DirectionRep,FeatureRep);
 };
 
 class OrientationRep : public FeatureRep {
@@ -227,6 +246,7 @@ public:
         return copy;
     }
 
+    SIMTK_DOWNCAST(OrientationRep,FeatureRep);
 };
 
 class FrameRep : public FeatureRep {
@@ -243,13 +263,14 @@ public:
         return copy;
     }
 
-    const Station& getOrigin() const { return Station::downcast(getChildFeatures()[3]); }
+    const Station& getOrigin() const { return Station::downcast(*getChildFeatures()[3]); }
     const Direction& getAxis(int i) const 
-      { assert(0<=i && i<=2); return Direction::downcast(getChildFeatures()[i]); }
-    const Direction& x() const { return Direction::downcast(getChildFeatures()[0]); }
-    const Direction& y() const { return Direction::downcast(getChildFeatures()[1]); }
-    const Direction& z() const { return Direction::downcast(getChildFeatures()[2]); }
+      { assert(0<=i && i<=2); return Direction::downcast(*getChildFeatures()[i]); }
+    const Direction& x() const { return Direction::downcast(*getChildFeatures()[0]); }
+    const Direction& y() const { return Direction::downcast(*getChildFeatures()[1]); }
+    const Direction& z() const { return Direction::downcast(*getChildFeatures()[2]); }
 
+    SIMTK_DOWNCAST(FrameRep,FeatureRep);
 private:
     void initializeFeatures(const Frame& f) {
         Station&   O = Station::downcast  (addFeatureLike(Station("O"), "O"));

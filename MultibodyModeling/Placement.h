@@ -79,7 +79,9 @@ public:
     // a placement yet.
     Placement(const Feature&);
 
-private:
+    String toString(const String& linePrefix="") const;
+
+protected:
     class PlacementRep* rep;
     friend class PlacementRep;
 };

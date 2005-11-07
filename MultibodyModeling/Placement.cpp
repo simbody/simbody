@@ -37,8 +37,52 @@ using std::ostream;
 namespace simtk {
 
     // PLACEMENT //
+Placement::Placement(const Placement& src) { 
+    rep = src.rep ? src.rep->clone(*this) : 0;
+}
+Placement& Placement::operator=(const Placement& src) {
+    if (this != &src) {
+        delete rep;
+        rep = src.rep ? src.rep->clone(*this) : 0;
+    }
+    return *this;
+}
+Placement::~Placement() {
+    if (rep==0) return;
+    assert(&rep->getHandle() == this);
+    delete rep; rep=0;
+}
+const Feature& Placement::getOwner() const {
+    assert(rep && rep->hasOwner());
+    assert(&rep->getHandle() == this);
+    return rep->getOwner();
+}
+String Placement::toString(const String& linePrefix) const {
+    std::stringstream s;
+    s << "Placement ";
+    if (!rep) {
+        s << "at 0x" << this << " HAS NULL REP";
+        return s.str();
+    }
+    if (&rep->getHandle() != this) {
+        s << "at 0x" << this << " HAS MISMATCHED REP";
+        return s.str();
+    }
+    s << rep->toString(linePrefix);
+    return s.str();
+}
+
+std::ostream& operator<<(std::ostream& o, const Placement& p) {
+    return o << p.toString() << endl;
+}
 
 
 
-
+    // STATION PLACEMENT //
+StationPlacement::StationPlacement(const Vec3& v) {
+    rep = new StationConstantPlacementRep(*this,v);
+}
+DirectionPlacement::DirectionPlacement(const Vec3& v) {
+    rep = new DirectionConstantPlacementRep(*this,v);
+}
 } // namespace simtk

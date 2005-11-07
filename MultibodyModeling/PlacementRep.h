@@ -71,18 +71,18 @@ enum PlacementType {
 
 class PlacementRep {
 public:
-    explicit PlacementRep(Placement& p) : handle(p), owner(0) { }
+    explicit PlacementRep(Placement& p) : handle(&p), owner(0) { }
     virtual ~PlacementRep() { }
 
-    const Placement& getPlacement() const {return handle;}
+    const Placement& getHandle() const {return *handle;}
     const Feature&   getOwner()     const {assert(owner); return *owner;}
 
     bool hasOwner() const { return owner != 0; }
     void setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
 
     virtual PlacementType getPlacementType() const = 0;
-    virtual PlacementRep* clone() const = 0;
-    virtual std::string   toString() const = 0;
+    virtual PlacementRep* clone(Placement&) const = 0;  // clone but with new handle
+    virtual std::string   toString(const std::string& linePrefix) const = 0;
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
@@ -101,8 +101,13 @@ public:
     }
 
     SIMTK_REP_HELPERS(Placement,PlacementRep)
+protected:
+    void cleanUpAfterClone(Placement& p) {
+        handle = &p;
+        // TODO more to come
+    }
 private:
-    Placement&      handle;    // the Placement whose rep this is
+    Placement*      handle;    // the Placement whose rep this is
     const Feature*  owner;
     size_t          indexInOwner;
 };
@@ -131,8 +136,12 @@ public:
       : RealPlacementRep(p), value(r) { }
     ~RealConstantPlacementRep() { }
 
-    PlacementRep* clone() const { return new RealConstantPlacementRep(*this); }
-    std::string toString() const {
+    PlacementRep* clone(Placement& p) const {
+        RealConstantPlacementRep* copy = new RealConstantPlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+        return copy;
+    }
+    std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Real[" << value << "]";   
         return s.str();
@@ -148,7 +157,7 @@ public:
     enum OpKind { Plus, Minus, Times, Divide };
     explicit RealBinaryOpRR(OpKind k) : op(k) { }
 
-    RealPlacementOp* clone() const { return new RealBinaryOpRR(*this); }
+    RealPlacementOp* clone() const { return new RealBinaryOpRR(*this);}
     bool checkArgs(const std::vector<const Placement*>& args) const {
         return args.size() == 2 
                && PlacementRep::getRep(*args[0])->getPlacementType()==RealPlacementType
@@ -186,23 +195,27 @@ public:
     }
     ~RealExprPlacementRep() { }
 
-    PlacementRep* clone() const { return new RealExprPlacementRep(*this); }
-    std::string toString() const {
+    PlacementRep* clone(Placement& p) const {
+        RealExprPlacementRep* copy = new RealExprPlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+        return copy;
+    }
+    std::string toString(const std::string& linePrefix) const {
         std::stringstream s;
         s << func.getOpName() << "(";
         for (size_t i=0; i<args.size(); ++i)
-            s << (i>0?", ":"") << PlacementRep::getRep(*args[i])->toString();
+            s << (i>0?", ":"") 
+              << PlacementRep::getRep(*args[i])->toString(linePrefix);
         s << ")";
         return s.str();
     }
 
-    Real getValue() const { return func.apply(args); }
+    Real getValue(/*State*/) const { return func.apply(/*State,*/args); }
 private:
     const RealPlacementOp&        func;
     std::vector<const Placement*> args;
 };
 
-// TODO should be parameterizable.
 class StationPlacementRep : public PlacementRep {
 public:
     StationPlacementRep(Placement& p) : PlacementRep(p) { }
@@ -223,8 +236,12 @@ public:
 
     // Implementations of pure virtuals.
 
-    PlacementRep* clone() const { return new StationConstantPlacementRep(*this); }
-    std::string toString() const {
+    PlacementRep* clone(Placement& p) const {
+        StationConstantPlacementRep* copy = new StationConstantPlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+        return copy;
+    }
+    std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Station[" << loc << "]";
         return s.str();
@@ -259,8 +276,12 @@ public:
 
     // Implementations of pure virtuals.
 
-    PlacementRep* clone() const { return new DirectionConstantPlacementRep(*this); }
-    std::string toString() const {
+    PlacementRep* clone(Placement& p) const {
+        DirectionConstantPlacementRep* copy = new DirectionConstantPlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+        return copy;
+    }
+    std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Direction[" << dir << "]";
         return s.str();

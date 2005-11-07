@@ -39,6 +39,8 @@ using namespace simtk;
 int main() {
     Frame f("frame1");
     cout << f;
+
+/*
     ////////////////////////////////////
     // Create mass element prototypes //
     ////////////////////////////////////
@@ -92,7 +94,7 @@ int main() {
     lower.addParameter("halfHeight");
     lower.addStation("ballAttachPt");
 
-    lower.updStation("ballAttachPt").place(
+    lower.updStation("ballAttachPt").setPlacement(
                        StationPlacement(0., lower.getParameter("halfHeight"), 0.));
 
     // Now instantiate a tube on the body prototype.
@@ -131,4 +133,5 @@ int main() {
                  rightLeg.getFrame("upperAttachmentFrame"));//moving frame
 
     std::cout << mbs << std::endl; //let’s see what we’ve got
+    */
 }
