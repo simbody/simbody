@@ -53,7 +53,7 @@ int main() {
     cout << "blue=" << blue;
     cout << "orange=" << orange;
     cout << "green=" << green;
-/*
+
     // Create a cylinder mass element prototype. We're going
     // to give it constant radius and density, but leave the half-height
     // unspecified. So this will require a station, direction, and 
@@ -61,7 +61,9 @@ int main() {
     CylinderMassElement tubeProto("tube");
     tubeProto.setRadius(0.1);
     tubeProto.setMass(100.);
-    
+
+    cout << "tube=" << tubeProto;
+ /*   
     //////////////////////////////////
     // Create rigid body prototypes //
     //////////////////////////////////

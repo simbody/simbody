@@ -65,7 +65,6 @@ MassElement::downcast(Feature& f) {
 
     // POINT MASS ELEMENT //
 
-    // PARAMETER //
 PointMassElement::PointMassElement(const String& nm) {
     rep = new PointMassElementRep(*this, std::string(nm));
 }
@@ -110,4 +109,51 @@ PointMassElement::downcast(Feature& f) {
 
     // CYLINDER MASS ELEMENT //
 
+CylinderMassElement::CylinderMassElement(const String& nm) {
+    rep = new CylinderMassElementRep(*this, std::string(nm));
+}
+CylinderMassElement::CylinderMassElement(const CylinderMassElement& src)
+  : MassElement(src) { }
+CylinderMassElement& CylinderMassElement::operator=(const CylinderMassElement& src) {
+    MassElement::operator=(src); return *this;
+}
+CylinderMassElement::~CylinderMassElement() { }
+
+void CylinderMassElement::setMass(const Real& m) {
+    assert(rep);
+    CylinderMassElementRep::downcast(*rep).setMass(m);
+}
+void CylinderMassElement::setRadius(const Real& r) {
+    assert(rep);
+    CylinderMassElementRep::downcast(*rep).setRadius(r);
+}
+void CylinderMassElement::setHalfLength(const Real& h) {
+    assert(rep);
+    CylinderMassElementRep::downcast(*rep).setHalfLength(h);
+}
+void CylinderMassElement::placeCenter(const Vec3& c) {
+    assert(rep);
+    CylinderMassElementRep::downcast(*rep).placeCenter(c);
+}
+void CylinderMassElement::placeAxis(const Vec3& a) {
+    assert(rep);
+    CylinderMassElementRep::downcast(*rep).placeAxis(a);
+}
+
+/*static*/ bool             
+CylinderMassElement::isInstanceOf(const Feature& f) {
+    if (!FeatureRep::getRep(f)) return false;
+    return CylinderMassElementRep::isA(*FeatureRep::getRep(f));
+}
+/*static*/ const CylinderMassElement& 
+CylinderMassElement::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const CylinderMassElement&>(f);
+}
+
+/*static*/ CylinderMassElement&       
+CylinderMassElement::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<CylinderMassElement&>(f);
+}
 } // namespace simtk

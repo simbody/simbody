@@ -43,6 +43,7 @@ class Measure;
 
 // Declared below.
 class Placement;
+class FeaturePlacement;
 class RealPlacement;
 class RealConstantPlacement;
 class StationPlacement;
@@ -73,12 +74,6 @@ public:
 
     const Feature& getOwner() const;
 
-    // Create a Placement which is evaluated by returning the
-    // value of the indicated Feature's Placement. This is
-    // deferred until runtime; the Feature may not even have
-    // a placement yet.
-    Placement(const Feature&);
-
     String toString(const String& linePrefix="") const;
 
 protected:
@@ -86,6 +81,20 @@ protected:
     friend class PlacementRep;
 };
 std::ostream& operator<<(std::ostream& o, const Placement&);
+
+
+/**
+ * Create a Placement which is evaluated by returning the
+ * value of the indicated Feature's Placement. This is
+ * deferred until runtime; the Feature may not even have
+ * a placement yet.
+ */
+class FeaturePlacement : public Placement {
+public:
+    explicit FeaturePlacement(const Feature&);
+
+private:
+};
 
 class RealPlacement : public Placement {
 public:

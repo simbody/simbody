@@ -83,7 +83,7 @@ public:
     int            getIndexInParent() const; // -1 if no parent
     const Feature& getParentFeature() const;
 
-    String getFullName() const; // "ancestors/parent/name"
+    String getFullName() const; // "ancestors.parent.name"
     String getFeatureTypeName() const; // "Station", "Frame", etc.
 
     const Feature& getFeature    (const String&) const;

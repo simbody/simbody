@@ -58,6 +58,7 @@ class FeatureRep {
 public:
     FeatureRep(Feature& f, const std::string& nm) 
       : handle(&f), name(nm), parent(0), indexInParent(-1), placement(0){ }
+    
     virtual ~FeatureRep() { 
         for (size_t i=0; i < childFeatures.size(); ++i)
             delete childFeatures[i];
@@ -65,6 +66,7 @@ public:
             delete placementExpressions[i];
     }
 
+    virtual PlacementType getRequiredPlacementType() const = 0;
     virtual std::string getFeatureTypeName() const = 0;
     virtual FeatureRep* cloneWithoutPlacement(Feature&) const = 0;
 
@@ -136,7 +138,8 @@ public:
 protected:
     // Clones of FeatureReps correspond to a new handle Feature, and they
     // lose their associations with the upstream world (parent & ancestors).
-    // That means all Placement references which are not 
+    // That means all Placement references which are not owned by this 
+    // feature or its children are removed.
     void cleanUpAfterClone(Feature& f) {
         handle = &f;
         parent=0;
@@ -184,6 +187,7 @@ public:
     RealParameterRep(RealParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
 
     std::string getFeatureTypeName() const { return "RealParameter"; }
+    PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         RealParameterRep* copy = new RealParameterRep(*this);
         copy->cleanUpAfterClone(f);
@@ -198,6 +202,7 @@ public:
     StationParameterRep(StationParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
 
     std::string getFeatureTypeName() const { return "StationParameter"; }
+    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         StationParameterRep* copy = new StationParameterRep(*this);
         copy->cleanUpAfterClone(f);
@@ -212,6 +217,7 @@ public:
     RealMeasureRep(RealMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
 
     std::string getFeatureTypeName() const { return "RealMeasure"; }
+    PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         RealMeasureRep* copy = new RealMeasureRep(*this);
         copy->cleanUpAfterClone(f);
@@ -226,6 +232,7 @@ public:
     StationMeasureRep(StationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
 
     std::string getFeatureTypeName() const { return "StationMeasure"; }
+    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         StationMeasureRep* copy = new StationMeasureRep(*this);
         copy->cleanUpAfterClone(f);
@@ -240,6 +247,7 @@ public:
     StationRep(Station& s, const std::string& nm) : FeatureRep(s,nm) { }
 
     std::string getFeatureTypeName() const { return "Station"; }
+    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         StationRep* copy = new StationRep(*this);
         copy->cleanUpAfterClone(f);
@@ -254,6 +262,7 @@ public:
     DirectionRep(Direction& s, const std::string& nm) : FeatureRep(s,nm) { }
 
     std::string getFeatureTypeName() const { return "Direction"; }
+    PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         DirectionRep* copy = new DirectionRep(*this);
         copy->cleanUpAfterClone(f);
@@ -268,6 +277,7 @@ public:
     OrientationRep(Orientation& s, const std::string& nm) : FeatureRep(s,nm) { }
 
     std::string getFeatureTypeName() const { return "Orientation"; }
+    PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         OrientationRep* copy = new OrientationRep(*this);
         copy->cleanUpAfterClone(f);
@@ -280,11 +290,11 @@ public:
 class FrameRep : public FeatureRep {
 public:
     FrameRep(Frame& f, const std::string& nm) : FeatureRep(f,nm) {
-        initializeFeatures(f);
+        initializeFeatures();
     }
 
     std::string getFeatureTypeName() const { return "Frame"; }
-
+    PlacementType getRequiredPlacementType() const { return FramePlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         FrameRep* copy = new FrameRep(*this);
         copy->cleanUpAfterClone(f);
@@ -300,7 +310,7 @@ public:
 
     SIMTK_DOWNCAST(FrameRep,FeatureRep);
 private:
-    void initializeFeatures(const Frame& f) {
+    void initializeFeatures() {
         Station&   O = Station::downcast  (addFeatureLike(Station("O"), "O"));
         Direction& x = Direction::downcast(addFeatureLike(Direction("x"), "x"));
         Direction& y = Direction::downcast(addFeatureLike(Direction("y"), "y"));

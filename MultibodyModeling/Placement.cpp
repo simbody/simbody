@@ -26,7 +26,9 @@
 
 #include "SimbodyCommon.h"
 #include "Placement.h"
+#include "Feature.h"
 #include "PlacementRep.h"
+#include "FeatureRep.h"
 
 #include <string>
 #include <iostream> 
@@ -76,6 +78,11 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
     return o << p.toString() << endl;
 }
 
+    // FEATURE PLACEMENT //
+FeaturePlacement::FeaturePlacement(const Feature& f) {
+    rep = new FeaturePlacementRep(*this,f);
+}
+
 
     // REAL PLACEMENT //
 RealPlacement::RealPlacement(const Real& r) {
@@ -91,4 +98,10 @@ StationPlacement::StationPlacement(const Vec3& v) {
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     rep = new DirectionConstantPlacementRep(*this,v);
 }
+
+    // FEATURE PLACEMENT REP //
+PlacementType FeaturePlacementRep::getPlacementType() const { 
+    return FeatureRep::getRep(feature)->getRequiredPlacementType();
+}
+
 } // namespace simtk

@@ -56,7 +56,7 @@ public:
 
 
 enum PlacementType {
-    UnknownPlacementType = 0,
+    InvalidPlacementType = 0,
     BoolPlacementType,
     IntPlacementType,
     RealPlacementType,
@@ -86,7 +86,7 @@ public:
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
-        case UnknownPlacementType:      return "unknown";
+        case InvalidPlacementType:      return "INVALID";
         case BoolPlacementType:         return "bool";
         case IntPlacementType:          return "int";
         case RealPlacementType:         return "Real";
@@ -111,6 +111,33 @@ private:
     const Feature*  owner;
     size_t          indexInOwner;
 };
+
+/**
+ * A concrete PlacementRep whose value is the Placement of some Feature.
+ */
+class FeaturePlacementRep : public PlacementRep {
+public:
+    FeaturePlacementRep(FeaturePlacement& p, const Feature& f) 
+      : PlacementRep(p), feature(f) { }
+    ~FeaturePlacementRep() { }
+
+    PlacementType getPlacementType() const;
+
+    PlacementRep* clone(Placement& handle) const {
+        FeaturePlacementRep* copy = new FeaturePlacementRep(*this);
+        copy->cleanUpAfterClone(handle);
+        return copy;
+    }
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << "FeaturePlacement[" << feature.getFullName() << "]";   
+        return s.str();
+    }
+
+private:
+    const Feature& feature;
+};
+
 
 /**
  * A PlacementRep with a Real value. This is still abstract.

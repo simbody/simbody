@@ -80,6 +80,9 @@ public:
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
+    // PointMass has subfeatures that need Placement, but does not
+    // have its own Placement.
+    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
     FeatureRep* cloneWithoutPlacement(Feature& f) const {
         PointMassElementRep* copy = new PointMassElementRep(*this);
         copy->cleanUpAfterClone(f);
@@ -91,6 +94,67 @@ private:
     void initializeFeatures() {
         addFeatureLike(RealParameter("mass"), "mass");
         addFeatureLike(Station("station"), "station");
+
+        updChildFeature("massMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
+        updChildFeature("centroidMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("station"))));
+    }
+};
+
+class CylinderMassElementRep : public MassElementRep {
+public:
+    CylinderMassElementRep(CylinderMassElement& cm, const std::string& nm) 
+      : MassElementRep(cm,nm) { 
+        initializeFeatures();
+    }
+
+    // some self-placements
+    void setMass(const Real& m) {
+        const Placement& p = addPlacementLike(RealPlacement(m));
+        updChildFeature("mass")->setPlacement(p);
+    }
+    void setRadius(const Real& r) {
+        const Placement& p = addPlacementLike(RealPlacement(r));
+        updChildFeature("radius")->setPlacement(p);
+    }
+    void setHalfLength(const Real& h) {
+        const Placement& p = addPlacementLike(RealPlacement(h));
+        updChildFeature("halfLength")->setPlacement(p);
+    }
+    void placeCenter(const Vec3& c) {
+        const Placement& p = addPlacementLike(StationPlacement(c));
+        updChildFeature("center")->setPlacement(p);
+    }
+    void placeAxis(const Vec3& a) {
+        const Placement& p = addPlacementLike(DirectionPlacement(a));
+        updChildFeature("axis")->setPlacement(p);
+    }
+
+    std::string getFeatureTypeName() const { return "CylinderMassElement"; }
+
+    // Cylinder has subfeatures that need Placement, but does not
+    // have its own Placement.
+    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
+    FeatureRep* cloneWithoutPlacement(Feature& f) const {
+        CylinderMassElementRep* copy = new CylinderMassElementRep(*this);
+        copy->cleanUpAfterClone(f);
+        return copy;
+    }
+
+    SIMTK_DOWNCAST2(CylinderMassElementRep,MassElementRep,FeatureRep);
+private:
+    void initializeFeatures() {
+        addFeatureLike(RealParameter("mass"),       "mass");
+        addFeatureLike(RealParameter("radius"),     "radius");
+        addFeatureLike(RealParameter("halfLength"), "halfLength");
+        addFeatureLike(Station      ("center"),     "center");
+        addFeatureLike(Direction    ("axis"),       "axis");
+
+        updChildFeature("massMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
+        updChildFeature("centroidMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("center"))));
     }
 };
 

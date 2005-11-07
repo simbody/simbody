@@ -72,6 +72,8 @@ public:
     // This constructor gives the "mass" parameter a constant value.
     PointMassElement(const String&, const Real&);
 
+    // These create constant placements owned by the PointMassElement
+    // feature itself.
     void setMass(const Real&);
     void placePoint(const Vec3&);
 
@@ -93,13 +95,15 @@ public:
     SphereMassElement& operator=(const SphereMassElement&);
     ~SphereMassElement();
 
-    void setMass    (const RealPlacement&);
-    void setRadius  (const RealPlacement&);
-    void placeCenter(const StationPlacement&);
+    // These create constant placements owned by the SphereMassElement
+    // feature itself.
+    void setMass    (const Real&);
+    void setRadius  (const Real&);
+    void placeCenter(const Vec3&);
 
-    static bool                    isInstanceOf(const MassElement&);
-    static const PointMassElement& downcast(const MassElement&);
-    static PointMassElement&       downcast(MassElement&);
+    static bool                    isInstanceOf(const Feature&);
+    static const PointMassElement& downcast(const Feature&);
+    static PointMassElement&       downcast(Feature&);
 };
 
 /**
@@ -119,15 +123,17 @@ public:
     CylinderMassElement& operator=(const CylinderMassElement&);
     ~CylinderMassElement();
 
-    void setMass      (const RealPlacement&);
-    void setRadius    (const RealPlacement&);
-    void setHalfLength(const RealPlacement&);
-    void placeCenter  (const StationPlacement&);
-    void placeAxis    (const DirectionPlacement&);
+    // These create constant placements owned by the CylinderMassElement
+    // feature itself.
+    void setMass      (const Real&);
+    void setRadius    (const Real&);
+    void setHalfLength(const Real&);
+    void placeCenter  (const Vec3&);
+    void placeAxis    (const Vec3&);
 
-    static bool                    isInstanceOf(const MassElement&);
-    static const PointMassElement& downcast(const MassElement&);
-    static PointMassElement&       downcast(MassElement&);
+    static bool                       isInstanceOf(const Feature&);
+    static const CylinderMassElement& downcast(const Feature&);
+    static CylinderMassElement&       downcast(Feature&);
 };
 
 
