@@ -20,11 +20,28 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /**@file
- * Implementations of opaque representations of multibody modeling objects for Simbody.
+ * Implementations of MassElement Features for Simbody.
  */
 
-#include "MultibodyModeling.h"
-#include "MultibodyModelingRep.h"
+#include "SimbodyCommon.h"
+#include "MassElement.h"
+#include "MassElementRep.h"
 
+#include <string>
+#include <iostream> 
+#include <sstream>
+using std::endl;
+using std::ostream;
+
+namespace simtk {
+
+    // MASS ELEMENT //
+
+    // POINT MASS ELEMENT //
+
+    // SPHERE MASS ELEMENT //
+
+    // CYLINDER MASS ELEMENT //
+
+} // namespace simtk
