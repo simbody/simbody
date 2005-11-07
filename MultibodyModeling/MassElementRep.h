@@ -1,3 +1,6 @@
+#ifndef SIMTK_MASS_ELEMENT_REP_H_
+#define SIMTK_MASS_ELEMENT_REP_H_
+
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -20,12 +23,16 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 /**@file
- * Implementations of opaque representations of Placement objects for Simbody.
+ * Declarations for the *real* MassElement objects. These are opaque to
+ * users.
  */
 
-#include "SimbodyCommon.h"
-#include "Placement.h"
-#include "PlacementRep.h"
+#include "MassElement.h"
 
+namespace simtk {
+
+} // namespace simtk
+
+
+#endif // SIMTK_MASS_ELEMENT_REP_H_

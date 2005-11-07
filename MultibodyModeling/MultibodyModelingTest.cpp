@@ -40,7 +40,6 @@ int main() {
     Frame f("frame1");
     cout << f;
 
-/*
     ////////////////////////////////////
     // Create mass element prototypes //
     ////////////////////////////////////
@@ -50,7 +49,7 @@ int main() {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
-
+/*
     // Create a cylinder mass element prototype. We're going
     // to give it constant radius and density, but leave the half-height
     // unspecified. So this will require a station, direction, and 

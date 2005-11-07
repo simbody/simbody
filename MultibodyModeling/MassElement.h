@@ -28,19 +28,13 @@
  * be owned by bodies.
  */
 
+#include "Feature.h"
+
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
 #include <iostream>
 
 namespace simtk {
-
-class Feature;
-class Placement;
-class ScalarPlacement;
-class StationPlacement;
-class DirectionPlacement;
-class OrientationPlacement;
-class FramePlacement;
 
 // These are defined here.
 class MassElement;
@@ -62,6 +56,10 @@ public:
 
     const Measure& getMassMeasure() const;
     const Measure& getCenterOfMassMeasure() const;
+
+    static bool               isInstanceOf(const Feature&);
+    static const MassElement& downcast(const Feature&);
+    static MassElement&       downcast(Feature&);
 };
 std::ostream& operator<<(std::ostream& o, const MassElement&);
 
@@ -73,12 +71,19 @@ std::ostream& operator<<(std::ostream& o, const MassElement&);
 class PointMassElement : public MassElement {
 public:
     explicit PointMassElement(const String&);
+    PointMassElement(const PointMassElement&);    // placements are not copied
+    PointMassElement& operator=(const PointMassElement&);
+    ~PointMassElement();
 
     // This constructor gives the "mass" parameter a constant value.
     PointMassElement(const String&, const Real&);
 
-    void setMass(const ScalarPlacement&);
+    void setMass(const RealPlacement&);
     void placePoint(const StationPlacement&);
+
+    static bool                    isInstanceOf(const MassElement&);
+    static const PointMassElement& downcast(const MassElement&);
+    static PointMassElement&       downcast(MassElement&);
 };
 
 /**
@@ -90,10 +95,17 @@ public:
 class SphereMassElement : public MassElement {
 public:
     explicit SphereMassElement(const String&);
+    SphereMassElement(const SphereMassElement&);    // placements are not copied
+    SphereMassElement& operator=(const SphereMassElement&);
+    ~SphereMassElement();
 
-    void setMass    (const ScalarPlacement&);
-    void setRadius  (const ScalarPlacement&);
+    void setMass    (const RealPlacement&);
+    void setRadius  (const RealPlacement&);
     void placeCenter(const StationPlacement&);
+
+    static bool                    isInstanceOf(const MassElement&);
+    static const PointMassElement& downcast(const MassElement&);
+    static PointMassElement&       downcast(MassElement&);
 };
 
 /**
@@ -109,12 +121,19 @@ public:
 class CylinderMassElement : public MassElement {
 public:
     explicit CylinderMassElement(const String&);
+    CylinderMassElement(const CylinderMassElement&);    // placements are not copied
+    CylinderMassElement& operator=(const CylinderMassElement&);
+    ~CylinderMassElement();
 
-    void setMass      (const ScalarPlacement&);
-    void setRadius    (const ScalarPlacement&);
-    void setHalfLength(const ScalarPlacement&);
+    void setMass      (const RealPlacement&);
+    void setRadius    (const RealPlacement&);
+    void setHalfLength(const RealPlacement&);
     void placeCenter  (const StationPlacement&);
     void placeAxis    (const DirectionPlacement&);
+
+    static bool                    isInstanceOf(const MassElement&);
+    static const PointMassElement& downcast(const MassElement&);
+    static PointMassElement&       downcast(MassElement&);
 };
 
 
