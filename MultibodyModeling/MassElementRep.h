@@ -50,7 +50,7 @@ public:
         return StationMeasure::downcast(getChildFeature(1));
     }
 
-    // virtuals getFeatureTypeName() && cloneWithoutPlacement() still missing
+    // virtuals getFeatureTypeName() && clone() still missing
 
     SIMTK_DOWNCAST(MassElementRep,FeatureRep);
 private:
@@ -76,29 +76,22 @@ public:
 
     void placePoint(const Vec3& v) {
         const Placement& p = addPlacementLike(StationPlacement(v));
-        updChildFeature("station")->setPlacement(p);
+        setPlacement(p);
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
-    // PointMass has subfeatures that need Placement, but does not
-    // have its own Placement.
-    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
-    FeatureRep* cloneWithoutPlacement(Feature& f) const {
-        PointMassElementRep* copy = new PointMassElementRep(*this);
-        copy->cleanUpAfterClone(f);
-        return copy;
-    }
+    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
+    FeatureRep* clone() const { return new PointMassElementRep(*this); }
 
     SIMTK_DOWNCAST2(PointMassElementRep,MassElementRep,FeatureRep);
 private:
     void initializeFeatures() {
         addFeatureLike(RealParameter("mass"), "mass");
-        addFeatureLike(Station("station"), "station");
 
         updChildFeature("massMeasure")->setPlacement(
             addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
         updChildFeature("centroidMeasure")->setPlacement(
-            addPlacementLike(FeaturePlacement(*getChildFeature("station"))));
+            addPlacementLike(FeaturePlacement(getMyHandle())));
     }
 };
 
@@ -136,11 +129,7 @@ public:
     // Cylinder has subfeatures that need Placement, but does not
     // have its own Placement.
     PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
-    FeatureRep* cloneWithoutPlacement(Feature& f) const {
-        CylinderMassElementRep* copy = new CylinderMassElementRep(*this);
-        copy->cleanUpAfterClone(f);
-        return copy;
-    }
+    FeatureRep* clone() const { return new CylinderMassElementRep(*this); }
 
     SIMTK_DOWNCAST2(CylinderMassElementRep,MassElementRep,FeatureRep);
 private:

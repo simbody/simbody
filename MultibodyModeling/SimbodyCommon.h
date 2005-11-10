@@ -30,6 +30,9 @@
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
 
+#include <cassert>
+#include <vector>
+
 namespace simtk {
 
 namespace Exception {
@@ -43,7 +46,79 @@ public:
 private:
 };
 
-}
+class PlacementMustBeLocal : public Base {
+public:
+    PlacementMustBeLocal(const char* fn, int ln, String method, 
+                         String hostFeature, String offendingFeature) : Base(fn,ln)
+    {
+        setMessage(method + ": can't add placement expression to Feature '" 
+            + hostFeature + "' because it references Feature '"
+            + offendingFeature + "' which is not on this Feature tree.");
+    }
+private:
+};
+
+} // namespace simtk::Exception
+
+/**
+ * StableArray<T> is like std::vector<T> but the addresses of the inserted items
+ * never change, even if the array has to be resized. As a punishment
+ * for this guarantee, consecutive elements of a StableArray are not consecutive
+ * in memory.
+ */
+template <class T> class StableArray {
+public:
+    StableArray() { }
+    explicit StableArray(size_t z, const T& ival=T()) {
+        resize(z, ival);
+    }
+    StableArray(const StableArray& s) {
+        resize(s.size());
+        for (size_t i=0; i<s.size(); ++i)
+            *stuff[i] = *s.stuff[i];
+    }
+    StableArray& operator=(const StableArray& s) {
+        clear();
+        resize(s.size());
+        for (size_t i=0; i<s.size(); ++i)
+            *stuff[i] = *s.stuff[i];
+        return *this;
+    }
+    ~StableArray() { clear(); }
+
+    bool   empty() const { return stuff.size()==0; }
+    size_t size()  const { return stuff.size(); }
+    void resize(size_t newz, const T& ival=T()) {
+        const size_t oldz = stuff.size();
+        // If we're throwing anything away, destruct it.
+        for (size_t i=newz; i < oldz; ++i)
+            delete stuff[i];
+        stuff.resize(newz);
+        // If we're adding anything new, initialize it.
+        for (size_t i=oldz; i < newz; ++i)
+            stuff[i] = new T(ival); 
+    }
+    void clear()               {resize(0);}
+    void push_back(const T& t) {stuff.push_back(new T(t));}
+    void pop_back()            {assert(!empty()); resize(size()-1);}
+
+    const T& front() const {assert(!empty() && stuff[0]);        return *stuff[0];}
+    T&       front()       {assert(!empty() && stuff[0]);        return *stuff[0];}
+    const T& back()  const {assert(!empty() && stuff[size()-1]); return *stuff[size()-1];}
+    T&       back()        {assert(!empty() && stuff[size()-1]); return *stuff[size()-1];}
+
+    const T& operator[](size_t i) const {
+        assert(i < stuff.size() && stuff[i]);
+        return *stuff[i];
+    }
+    T& operator[](size_t i) {
+        assert(i < stuff.size() && stuff[i]);
+        return *stuff[i];
+    }
+
+private:
+    std::vector<T*> stuff;
+};
 
 
 } // namespace simtk

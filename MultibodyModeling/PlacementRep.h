@@ -71,18 +71,22 @@ enum PlacementType {
 
 class PlacementRep {
 public:
-    explicit PlacementRep(Placement& p) : handle(&p), owner(0) { }
+    explicit PlacementRep(Placement& p) : myHandle(&p), owner(0), indexInOwner(-1) { }
     virtual ~PlacementRep() { }
 
-    const Placement& getHandle() const {return *handle;}
-    const Feature&   getOwner()     const {assert(owner); return *owner;}
+    const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
+    const Feature&   getOwner()        const {assert(owner);    return *owner;}
+    int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
     bool hasOwner() const { return owner != 0; }
     void setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
 
     virtual PlacementType getPlacementType() const = 0;
-    virtual PlacementRep* clone(Placement&) const = 0;  // clone but with new handle
+    virtual void          clone(Placement&)  const = 0;  // clone but with new handle
     virtual std::string   toString(const std::string& linePrefix) const = 0;
+
+    virtual bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { offender=0; return true; }
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
@@ -103,13 +107,13 @@ public:
     SIMTK_REP_HELPERS(Placement,PlacementRep)
 protected:
     void cleanUpAfterClone(Placement& p) {
-        handle = &p;
-        // TODO more to come
+        myHandle = &p;
+        PlacementRep::setRep(p, this);
     }
 private:
-    Placement*      handle;    // the Placement whose rep this is
+    Placement*      myHandle;    // the Placement whose rep this is
     const Feature*  owner;
-    size_t          indexInOwner;
+    int             indexInOwner;
 };
 
 /**
@@ -118,24 +122,33 @@ private:
 class FeaturePlacementRep : public PlacementRep {
 public:
     FeaturePlacementRep(FeaturePlacement& p, const Feature& f) 
-      : PlacementRep(p), feature(f) { }
+      : PlacementRep(p), feature(&f) { }
     ~FeaturePlacementRep() { }
+
+    // Check that this feature is on the feature subtree rooted by "ancestor". If
+    // not return a pointer to this feature for use in a friendly error message.
+    // If this is the right tree, we return true with offender==NULL.
+    bool isLimitedToSubtree(const Feature& ancestor, const Feature*& offender) const;
 
     PlacementType getPlacementType() const;
 
-    PlacementRep* clone(Placement& handle) const {
+    void clone(Placement& handle) const {
+        // Note that pointer gets copied as-is. This will require repair when 
+        // we copy a Feature tree.
         FeaturePlacementRep* copy = new FeaturePlacementRep(*this);
         copy->cleanUpAfterClone(handle);
-        return copy;
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "FeaturePlacement[" << feature.getFullName() << "]";   
+        s << "FeaturePlacement[";
+        s << (feature ? feature->getFullName()
+                      : std::string("NULL FEATURE"));
+        s << "]";   
         return s.str();
     }
 
 private:
-    const Feature& feature;
+    const Feature* feature;
 };
 
 
@@ -163,10 +176,9 @@ public:
       : RealPlacementRep(p), value(r) { }
     ~RealConstantPlacementRep() { }
 
-    PlacementRep* clone(Placement& p) const {
+    void clone(Placement& p) const {
         RealConstantPlacementRep* copy = new RealConstantPlacementRep(*this);
         copy->cleanUpAfterClone(p);
-        return copy;
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
@@ -222,10 +234,9 @@ public:
     }
     ~RealExprPlacementRep() { }
 
-    PlacementRep* clone(Placement& p) const {
+    void clone(Placement& p) const {
         RealExprPlacementRep* copy = new RealExprPlacementRep(*this);
         copy->cleanUpAfterClone(p);
-        return copy;
     }
     std::string toString(const std::string& linePrefix) const {
         std::stringstream s;
@@ -263,10 +274,9 @@ public:
 
     // Implementations of pure virtuals.
 
-    PlacementRep* clone(Placement& p) const {
+    void clone(Placement& p) const {
         StationConstantPlacementRep* copy = new StationConstantPlacementRep(*this);
         copy->cleanUpAfterClone(p);
-        return copy;
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
@@ -303,10 +313,9 @@ public:
 
     // Implementations of pure virtuals.
 
-    PlacementRep* clone(Placement& p) const {
+    void clone(Placement& p) const {
         DirectionConstantPlacementRep* copy = new DirectionConstantPlacementRep(*this);
         copy->cleanUpAfterClone(p);
-        return copy;
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
@@ -319,14 +328,80 @@ private:
     Vec3 dir;
 };
 
+
+class OrientationPlacementRep : public PlacementRep {
+public:
+    OrientationPlacementRep(Placement& p) : PlacementRep(p) { }
+    virtual ~OrientationPlacementRep() { }
+
+    PlacementType getPlacementType() const { return OrientationPlacementType; }
+    // clone and toString are still missing
+
+    // These should allow for state to be passed in.
+    virtual Mat33  getMeasureNumbers(/*State*/)     const = 0;
+};
+
+// A concrete OrientationPlacement in which there are no variables.
+class OrientationConstantPlacementRep : public OrientationPlacementRep {
+public:
+    OrientationConstantPlacementRep(Placement& p, const Mat33& m)
+      : OrientationPlacementRep(p), ori(m) {
+        // TODO: check orientation matrix validity
+    }
+
+    // Implementations of pure virtuals.
+
+    void clone(Placement& p) const {
+        OrientationConstantPlacementRep* copy = new OrientationConstantPlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+    }
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << "Orientation[" << ori << "]";
+        return s.str();
+    }
+
+    Mat33 getMeasureNumbers(/*State*/) const { return ori; }
+private:
+    Mat33 ori;
+};
+
+/**
+ * FramePlacementRep is concrete because it always consists of references
+ * to an Orientation Feature and a Station Feature.
+ */
 class FramePlacementRep : public PlacementRep {
 public:
-    FramePlacementRep(Placement& p) : PlacementRep(p) { }
-    virtual ~FramePlacementRep() { }
+    FramePlacementRep(Placement& p, const Orientation& o, const Station& s)
+      : PlacementRep(p), orientation(&o), station(&s) { }
+    ~FramePlacementRep() { }
+
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
 
     PlacementType getPlacementType() const { return FramePlacementType; }
-    // clone and toString are still missing
+    void clone(Placement& p) const {
+        // Note that pointers are copied as-is. These will need repair if
+        // we're copying a whole Feature tree.
+        FramePlacementRep* copy = new FramePlacementRep(*this);
+        copy->cleanUpAfterClone(p);
+    }
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << "Frame[";
+        s << orientation ? orientation->toString()
+                         : std::string("NULL ORIENTATION FEATURE");
+        s << ", ";
+        s << station ? station->toString()
+                     : std::string("NULL ORIGIN FEATURE");
+        s << "]";
+        return s.str();
+    }
+    
+private:
+    const Orientation* orientation;
+    const Station*     station;
 };
+
 
 
 } // namespace simtk

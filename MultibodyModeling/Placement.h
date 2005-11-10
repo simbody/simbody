@@ -72,7 +72,9 @@ public:
     Placement& operator=(const Placement&);
     ~Placement();
 
+    bool           hasOwner() const;
     const Feature& getOwner() const;
+    int            getIndexInOwner() const;
 
     String toString(const String& linePrefix="") const;
 
@@ -159,8 +161,7 @@ public:
     FramePlacement(const Frame&);   // implicit conversions
     FramePlacement(const Station&); //   orientation inherited from 
                                     //   Station's owner
-    FramePlacement(const OrientationPlacement&, 
-                   const StationPlacement&);
+    FramePlacement(const Orientation&, const Station&);
 private:
 };
 

@@ -79,6 +79,7 @@ public:
     Feature& operator=(const Feature&);
     ~Feature();
 
+    bool           hasParentFeature() const;
     String         getName()          const; // name and index as known to parent
     int            getIndexInParent() const; // -1 if no parent
     const Feature& getParentFeature() const;
@@ -265,6 +266,8 @@ public:
     Orientation& operator=(const Orientation&);
     ~Orientation();
 
+    const Direction& getAxis(int) const;
+
     void placeOrientation(const OrientationPlacement&);
 
     static bool               isInstanceOf(const Feature&);
@@ -280,17 +283,20 @@ public:
     Frame& operator=(const Frame&);
     ~Frame();
 
-    const Station& getOrigin() const;
-    const Direction& getAxis(int) const;
-    const Direction& x() const;
-    const Direction& y() const;
-    const Direction& z() const;
+    const Station&     getOrigin() const;
+    const Orientation& getOrientation() const;
+    const Direction&   getAxis(int i) const {return getOrientation().getAxis(i);}
+    const Direction&   x()            const {return getOrientation().getAxis(0);}
+    const Direction&   y()            const {return getOrientation().getAxis(1);}
+    const Direction&   z()            const {return getOrientation().getAxis(2);}
 
     void placeFrame(const FramePlacement&);
 
     static bool         isInstanceOf(const Feature&);
     static const Frame& downcast(const Feature&);
     static Frame&       downcast(Feature&);
+protected:
+    Frame() { }
 };
 //std::ostream& operator<<(std::ostream& o, const Frame&);
 

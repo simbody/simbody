@@ -24,6 +24,7 @@
  * Test of high level multibody modeling objects for Simbody.
  */
 
+#include "SimbodyCommon.h"
 #include "Placement.h"
 #include "Feature.h"
 #include "MassElement.h"
@@ -37,6 +38,7 @@ using std::endl;
 using namespace simtk;
 
 int main() {
+try {
     Frame f("frame1");
     cout << f;
 
@@ -63,12 +65,13 @@ int main() {
     tubeProto.setMass(100.);
 
     cout << "tube=" << tubeProto;
- /*   
+  
     //////////////////////////////////
     // Create rigid body prototypes //
     //////////////////////////////////
 
     RigidBody upper("U");
+
 
     // Create some named stations and place them on the upper body.
     upper.addStation("greenPt",         Vec3(1, 0,0));
@@ -78,18 +81,26 @@ int main() {
     upper.addStation("leftAttachPt",    Vec3(0,-1,1));
     upper.addStation("rightAttachPt",   Vec3(1,-1,0));
 
+
     // Instantiate 'atom' mass elements and place them on their stations.
-    upper.addMassElementLike(green,  "green",   upper.getStation("greenPt"));
-    upper.addMassElementLike(orange, "orange",  upper.getStation("orangePt"));
-    upper.addMassElementLike(blue,   "blue1",   upper.getStation("pinnedBluePt"));
-    upper.addMassElementLike(blue,   "blue2",   upper.getStation("otherBluePt"));
+    upper.addMassElementLike(green,  "green",   
+        FeaturePlacement(upper.getStation("greenPt")));
+    upper.addMassElementLike(orange, "orange",  
+        FeaturePlacement(upper.getStation("orangePt")));
+    upper.addMassElementLike(blue,   "blue1",   
+        FeaturePlacement(upper.getStation("pinnedBluePt")));
+    upper.addMassElementLike(blue,   "blue2",   
+        FeaturePlacement(upper.getStation("otherBluePt")));
+
+    cout << "U=" << upper;
 
     // Create some joint frames at the appropriate stations (by default
     // they are aligned with the body frame).
-    upper.addFrame("pinFrame",          upper.getStation("pinnedBlue"));
+    upper.addFrame("pinFrame",          upper.getStation("pinnedBluePt"));
     upper.addFrame("leftBallFrame",     upper.getStation("leftAttachPt"));
     upper.addFrame("rightBallFrame",    upper.getStation("rightAttachPt"));
 
+/*
     // Now build the prototype for the lower bodies.
 
     RigidBody lower("L");
@@ -139,4 +150,8 @@ int main() {
 
     std::cout << mbs << std::endl; //let’s see what we’ve got
     */
+}
+catch(const Exception::Base& e) {
+    std::cout << e.getMessage() << std::endl;
+}
 }

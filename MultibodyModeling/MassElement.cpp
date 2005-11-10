@@ -66,7 +66,7 @@ MassElement::downcast(Feature& f) {
     // POINT MASS ELEMENT //
 
 PointMassElement::PointMassElement(const String& nm) {
-    rep = new PointMassElementRep(*this, std::string(nm));
+    (void)new PointMassElementRep(*this, std::string(nm));
 }
 PointMassElement::PointMassElement(const PointMassElement& src)
   : MassElement(src) { }
@@ -76,7 +76,7 @@ PointMassElement& PointMassElement::operator=(const PointMassElement& src) {
 PointMassElement::~PointMassElement() { }
 
 PointMassElement::PointMassElement(const String& nm, const Real& m) {
-    rep = new PointMassElementRep(*this, std::string(nm));
+    (void)new PointMassElementRep(*this, std::string(nm));
     PointMassElementRep::downcast(*rep).setMass(m);
 }
 void PointMassElement::setMass(const Real& m) {
@@ -110,7 +110,7 @@ PointMassElement::downcast(Feature& f) {
     // CYLINDER MASS ELEMENT //
 
 CylinderMassElement::CylinderMassElement(const String& nm) {
-    rep = new CylinderMassElementRep(*this, std::string(nm));
+    (void)new CylinderMassElementRep(*this, std::string(nm));
 }
 CylinderMassElement::CylinderMassElement(const CylinderMassElement& src)
   : MassElement(src) { }

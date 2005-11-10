@@ -40,12 +40,13 @@ namespace simtk {
 
 Feature::Feature(const Feature& f) : rep(0) {
     if (f.rep) 
-        rep = f.rep->cloneWithoutPlacement(*this);
+        f.rep->cloneWithoutExternalPlacements(*this);
 }
 Feature& Feature::operator=(const Feature& f) {
     if (this != &f) {
-        delete rep; 
-        rep = f.rep ? f.rep->cloneWithoutPlacement(*this) : 0;
+        delete rep; rep=0;
+        if (f.rep) 
+            f.rep->cloneWithoutExternalPlacements(*this);
     }
     return *this;
 }
@@ -87,8 +88,8 @@ String Feature::toString(const String& linePrefix) const {
     s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
                            : String("NO PLACEMENT"));
 
-    const size_t nChildren = f.getChildFeatures().size();
-    const size_t nPlacement = f.getPlacementExpressions().size();
+    const size_t nChildren = f.getNChildFeatures();
+    const size_t nPlacement = f.getNPlacementExpressions();
     const std::string nextIndent = linePrefix + "    ";
 
     if (nChildren) {
@@ -107,7 +108,10 @@ String Feature::toString(const String& linePrefix) const {
 ostream& operator<<(ostream& o, const Feature& f) {
     return o << f.toString() << endl;
 }
-
+bool Feature::hasParentFeature() const {
+    assert(rep);
+    return rep->hasParentFeature();
+}
 int Feature::getIndexInParent() const {
     assert(rep && rep->hasParentFeature());
     return rep->getIndexInParent();
@@ -161,7 +165,7 @@ Station& Feature::addStation(const String& n) {
 
     // REAL PARAMETER //
 RealParameter::RealParameter(const String& nm)
-  { rep = new RealParameterRep(*this, std::string(nm)); }
+  { (void)new RealParameterRep(*this, std::string(nm)); }
 RealParameter::RealParameter(const RealParameter& src) : Feature(src) { }
 RealParameter& RealParameter::operator=(const RealParameter& src)
   { Feature::operator=(src); return *this; }
@@ -186,7 +190,7 @@ RealParameter::downcast(Feature& f) {
 
     // STATION PARAMETER //
 StationParameter::StationParameter(const String& nm)
-  { rep = new StationParameterRep(*this, std::string(nm)); }
+  { (void)new StationParameterRep(*this, std::string(nm)); }
 StationParameter::StationParameter(const StationParameter& src) : Feature(src) { }
 StationParameter& StationParameter::operator=(const StationParameter& src)
   { Feature::operator=(src); return *this; }
@@ -211,7 +215,7 @@ StationParameter::downcast(Feature& f) {
 
     // REAL MEASURE //
 RealMeasure::RealMeasure(const String& nm)
-  { rep = new RealMeasureRep(*this, std::string(nm)); }
+  { (void)new RealMeasureRep(*this, std::string(nm)); }
 RealMeasure::RealMeasure(const RealMeasure& src) : Feature(src) { }
 RealMeasure& RealMeasure::operator=(const RealMeasure& src)
   { Feature::operator=(src); return *this; }
@@ -236,7 +240,7 @@ RealMeasure::downcast(Feature& f) {
 
     // STATION MEASURE //
 StationMeasure::StationMeasure(const String& nm)
-  { rep = new StationMeasureRep(*this, std::string(nm)); }
+  { (void)new StationMeasureRep(*this, std::string(nm)); }
 StationMeasure::StationMeasure(const StationMeasure& src) : Feature(src) { }
 StationMeasure& StationMeasure::operator=(const StationMeasure& src)
   { Feature::operator=(src); return *this; }
@@ -261,7 +265,7 @@ StationMeasure::downcast(Feature& f) {
 
     // STATION //
 Station::Station(const String& nm)
-  { rep = new StationRep(*this, std::string(nm)); }
+  { (void)new StationRep(*this, std::string(nm)); }
 Station::Station(const Station& src) : Feature(src) { }
 Station& Station::operator=(const Station& src)
   { Feature::operator=(src); return *this; }
@@ -286,7 +290,7 @@ Station::downcast(Feature& f) {
 
     // DIRECTION //
 Direction::Direction(const String& nm)
-  { rep = new DirectionRep(*this, std::string(nm)); }
+  { (void)new DirectionRep(*this, std::string(nm)); }
 Direction::Direction(const Direction& src) : Feature(src) { }
 Direction& Direction::operator=(const Direction& src)
   { Feature::operator=(src); return *this; }
@@ -311,7 +315,7 @@ Direction::downcast(Feature& f) {
 
     // ORIENTATION //
 Orientation::Orientation(const String& nm)
-  { rep = new OrientationRep(*this, std::string(nm)); }
+  { (void)new OrientationRep(*this, std::string(nm)); }
 Orientation::Orientation(const Orientation& src) : Feature(src) { }
 Orientation& Orientation::operator=(const Orientation& src)
   { Feature::operator=(src); return *this; }
@@ -336,11 +340,16 @@ Orientation::downcast(Feature& f) {
 
     // FRAME //
 Frame::Frame(const String& nm)
-  { rep = new FrameRep(*this, std::string(nm)); }
+  { (void)new FrameRep(*this, std::string(nm)); }
 Frame::Frame(const Frame& src) : Feature(src) { }
 Frame& Frame::operator=(const Frame& src)
   { Feature::operator=(src); return *this; }
 Frame::~Frame() { }
+
+const Orientation& Frame::getOrientation() const {
+    assert(rep);
+    return FrameRep::downcast(*rep).getOrientation();
+}
 
 /*static*/ bool             
 Frame::isInstanceOf(const Feature& f) {

@@ -35,6 +35,7 @@
  */
 
 #include "Feature.h"
+#include "MassElement.h"
 #include "Placement.h"
 
 #include "simtk/SimTK.h"
@@ -69,14 +70,15 @@ enum JointType {
     FreeJoint           = 12
 };
 
+/**
+ * This is an abstract class representing all the bodies.
+ */
 class Body : public Frame {
 public:
-    explicit Body(const String&);
-    Body(const Body&);
-    Body& operator=(const Body&);
-    ~Body();
+    const RealMeasure&    getMassMeasure() const;
+    const StationMeasure& getCentroidMeasure() const;
 
-    // Add features to this Frame
+    // Add features to this Body
     Station&   addStation(const String&);
     Station&   addStation(const String&, const StationPlacement&);
 
@@ -102,8 +104,11 @@ public:
 
     const Frame& getFrame(int) const;
     const Frame& getFrame(const String&) const;
+
+    static bool        isInstanceOf(const Feature&);
+    static const Body& downcast(const Feature&);
+    static Body&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const Body&);
 
 class RigidBody : public Body {
 public:
@@ -116,8 +121,11 @@ public:
     MassElement& addMassElementLike(const MassElement&, const String&,
                                     const Placement&);
     MassElement& addMassElementLike(const MassElement&, const String&);
+
+    static bool             isInstanceOf(const Feature&);
+    static const RigidBody& downcast(const Feature&);
+    static RigidBody&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const RigidBody&);
 
 class DeformableBody : public Body {
 public:
@@ -125,8 +133,11 @@ public:
     DeformableBody(const DeformableBody&);
     DeformableBody& operator=(const DeformableBody&);
     ~DeformableBody();
+
+    static bool                  isInstanceOf(const Feature&);
+    static const DeformableBody& downcast(const Feature&);
+    static DeformableBody&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const DeformableBody&);
 
 class Multibody : public Body {
 public:
@@ -144,8 +155,11 @@ public:
     Joint& addJoint(JointType, const String&,
                     const Placement& reference,
                     const Placement& moving);
+
+    static bool             isInstanceOf(const Feature&);
+    static const Multibody& downcast(const Feature&);
+    static Multibody&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const Multibody&);
 
 class Joint {
 public:
