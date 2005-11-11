@@ -166,9 +166,9 @@ Station& Feature::addStation(const String& n) {
     // REAL PARAMETER //
 RealParameter::RealParameter(const String& nm)
   { (void)new RealParameterRep(*this, std::string(nm)); }
-RealParameter::RealParameter(const RealParameter& src) : Feature(src) { }
+RealParameter::RealParameter(const RealParameter& src) : RealMeasure(src) { }
 RealParameter& RealParameter::operator=(const RealParameter& src)
-  { Feature::operator=(src); return *this; }
+  { RealMeasure::operator=(src); return *this; }
 RealParameter::~RealParameter() { }
 
 /*static*/ bool             
@@ -191,9 +191,9 @@ RealParameter::downcast(Feature& f) {
     // STATION PARAMETER //
 StationParameter::StationParameter(const String& nm)
   { (void)new StationParameterRep(*this, std::string(nm)); }
-StationParameter::StationParameter(const StationParameter& src) : Feature(src) { }
+StationParameter::StationParameter(const StationParameter& src) : StationMeasure(src) { }
 StationParameter& StationParameter::operator=(const StationParameter& src)
-  { Feature::operator=(src); return *this; }
+  { StationMeasure::operator=(src); return *this; }
 StationParameter::~StationParameter() { }
 
 /*static*/ bool             

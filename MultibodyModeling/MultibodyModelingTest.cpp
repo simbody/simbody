@@ -92,36 +92,37 @@ try {
     upper.addMassElementLike(blue,   "blue2",   
         FeaturePlacement(upper.getStation("otherBluePt")));
 
-    cout << "U=" << upper;
 
     // Create some joint frames at the appropriate stations (by default
     // they are aligned with the body frame).
     upper.addFrame("pinFrame",          upper.getStation("pinnedBluePt"));
     upper.addFrame("leftBallFrame",     upper.getStation("leftAttachPt"));
     upper.addFrame("rightBallFrame",    upper.getStation("rightAttachPt"));
+    cout << "U=" << upper;
 
-/*
+
     // Now build the prototype for the lower bodies.
 
     RigidBody lower("L");
 
     // Create a parameter for the cylinder half-height, and a station at
     // the top center of the cylinder where we can hook the ball joint.
-    lower.addParameter("halfHeight");
+    lower.addRealParameter("halfHeight");
     lower.addStation("ballAttachPt");
 
     lower.updStation("ballAttachPt").setPlacement(
-                       StationPlacement(0., lower.getParameter("halfHeight"), 0.));
+                       StationPlacement(lower.y(), lower.getRealParameter("halfHeight")));
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
-
+    cout << "L=" << lower;
+/*  
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
     tube.placeFeature("center", lower.getOrigin());
     tube.placeFeature("axis", DirectionPlacement::minus(lower.getStation("ballAttachPt"),
                                                           lower.getOrigin()));
-    
+  
     ////////////////////////////////////////////
     // Create an articulated multibody system //
     ////////////////////////////////////////////

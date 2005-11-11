@@ -87,6 +87,8 @@ public:
 
     virtual bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
       { offender=0; return true; }
+    virtual void repairFeatureReferences(const Feature& oldRoot, 
+                                         const Feature& newRoot) { }
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
@@ -129,6 +131,7 @@ public:
     // not return a pointer to this feature for use in a friendly error message.
     // If this is the right tree, we return true with offender==NULL.
     bool isLimitedToSubtree(const Feature& ancestor, const Feature*& offender) const;
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
 
     PlacementType getPlacementType() const;
 
@@ -140,7 +143,7 @@ public:
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "FeaturePlacement[";
+        s << "Feature[";
         s << (feature ? feature->getFullName()
                       : std::string("NULL FEATURE"));
         s << "]";   
@@ -280,7 +283,10 @@ public:
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Station[" << loc << "]";
+        s << "Station[";
+        if (loc == Vec3(0)) s << "0";
+        else s << loc;
+        s << "]";
         return s.str();
     }
 
@@ -319,7 +325,12 @@ public:
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Direction[" << dir << "]";
+        s << "Direction[";
+        if      (dir == Vec3(1,0,0)) s << "X";
+        else if (dir == Vec3(0,1,0)) s << "Y";
+        else if (dir == Vec3(0,0,1)) s << "Z";
+        else s << dir;
+        s << "]";
         return s.str();
     }
 
@@ -357,7 +368,10 @@ public:
     }
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Orientation[" << ori << "]";
+        s << "Orientation[";
+        if (ori == Mat33(1)) s << "I";
+        else s << ori(0) << ori(1) << ori(2);
+        s << "]";
         return s.str();
     }
 
@@ -377,6 +391,7 @@ public:
     ~FramePlacementRep() { }
 
     bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
 
     PlacementType getPlacementType() const { return FramePlacementType; }
     void clone(Placement& p) const {
@@ -388,11 +403,11 @@ public:
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Frame[";
-        s << orientation ? orientation->toString()
-                         : std::string("NULL ORIENTATION FEATURE");
+        s << (orientation ? orientation->getFullName()
+                          : std::string("NULL ORIENTATION FEATURE"));
         s << ", ";
-        s << station ? station->toString()
-                     : std::string("NULL ORIGIN FEATURE");
+        s << (station ? station->getFullName()
+                      : std::string("NULL ORIGIN FEATURE"));
         s << "]";
         return s.str();
     }

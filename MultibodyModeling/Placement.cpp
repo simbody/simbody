@@ -144,6 +144,16 @@ bool FeaturePlacementRep::isLimitedToSubtree
     offender = feature;
     return false;
 }
+
+void FeaturePlacementRep::repairFeatureReferences
+    (const Feature& oldRoot, const Feature& newRoot)
+{
+    assert(feature);
+    const Feature* corrFeature = FeatureRep::findCorrespondingFeature(oldRoot,*feature,newRoot);
+    assert(corrFeature);
+    feature = corrFeature;
+}
+
     // FRAME PLACEMENT REP //
 bool FramePlacementRep::isLimitedToSubtree
     (const Feature& root, const Feature*& offender) const
@@ -159,6 +169,17 @@ bool FramePlacementRep::isLimitedToSubtree
     }
     offender = 0;
     return true;
+}
+
+void FramePlacementRep::repairFeatureReferences
+    (const Feature& oldRoot, const Feature& newRoot)
+{
+    assert(orientation && station);
+    const Feature* corrOri = FeatureRep::findCorrespondingFeature(oldRoot,*orientation,newRoot);
+    const Feature* corrSta = FeatureRep::findCorrespondingFeature(oldRoot,*station,newRoot);
+    assert(corrOri && corrSta);
+    orientation = &Orientation::downcast(*corrOri);
+    station     = &Station::downcast(*corrSta);
 }
 
 } // namespace simtk

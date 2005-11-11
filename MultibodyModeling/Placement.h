@@ -38,8 +38,10 @@ class Station;
 class Direction;
 class Orientation;
 class Frame;
-class Parameter;
-class Measure;
+class RealParameter;
+class StationParameter;
+class RealMeasure;
+class StationMeasure;
 
 // Declared below.
 class Placement;
@@ -101,7 +103,7 @@ private:
 class RealPlacement : public Placement {
 public:
     RealPlacement(const Real&);
-    RealPlacement(const Parameter&); // verify scalar on construction
+    RealPlacement(const RealParameter&);
     static RealPlacement plus  (const RealPlacement& l,
                                 const RealPlacement& r);
     static RealPlacement minus (const RealPlacement& l,
@@ -125,9 +127,12 @@ public:
     StationPlacement(const Station&); //   "
     StationPlacement(const Frame&);   //   "
 
-    StationPlacement(const RealPlacement& x,
-                     const RealPlacement& y,
-                     const RealPlacement& z);
+    StationPlacement(const Direction&   v,
+                     const RealMeasure& scale);
+
+    StationPlacement(const RealMeasure& x,
+                     const RealMeasure& y,
+                     const RealMeasure& z);
 
     static StationPlacement   plus(const StationPlacement&,
                                    const DirectionPlacement&);
@@ -160,7 +165,9 @@ class FramePlacement : public Placement {
 public:
     FramePlacement(const Frame&);   // implicit conversions
     FramePlacement(const Station&); //   orientation inherited from 
-                                    //   Station's owner
+                                    //   Station's parent
+    FramePlacement(const Orientation&); // origin inherited from
+                                        // Orientation's parent
     FramePlacement(const Orientation&, const Station&);
 private:
 };

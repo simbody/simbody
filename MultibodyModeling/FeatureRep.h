@@ -209,6 +209,24 @@ public:
         return isFeatureInFeatureTree(oldRoot, p.getOwner());
     }
 
+    // If Feature f is a member of the Feature tree rooted at oldRoot, find
+    // the corresponding Feature in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const Feature* findCorrespondingFeature
+        (const Feature& oldRoot, const Feature& f, const Feature& newRoot)
+    {
+        std::vector<int> trace;
+        if (!isFeatureInFeatureTree(oldRoot,f,&trace))
+            return 0;
+
+        // Trace holds the indices needed to step from newRoot down to
+        // the corresponding Feature (in reverse order).
+        const Feature* newTreeRef = &newRoot;
+        for (size_t i=trace.size(); i >=1; --i)
+            newTreeRef = &newTreeRef->rep->getChildFeature(trace[i-1]);
+        return newTreeRef;
+    }
+
     SIMTK_REP_HELPERS(Feature,FeatureRep)
 private:
     // Return true and ix==feature index if a feature of the given name is found.
@@ -246,29 +264,15 @@ private:
         for (size_t i=0; i < (size_t)getNChildFeatures(); ++i)
             childFeatures[i].rep->fixPlacements(oldRoot, newRoot);
 
+        for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
+            PlacementRep::updRep(placementExpressions[i])
+                ->repairFeatureReferences(oldRoot,newRoot);
+
         if (placement)
             placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
     }
 
 
-
-    // If Feature f is a member of the Feature tree rooted at oldRoot, find
-    // the corresponding Feature in the tree rooted at newRoot (which is expected
-    // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const Feature* findCorrespondingFeature
-        (const Feature& oldRoot, const Feature& f, const Feature& newRoot)
-    {
-        std::vector<int> trace;
-        if (!isFeatureInFeatureTree(oldRoot,f,&trace))
-            return 0;
-
-        // Trace holds the indices needed to step from newRoot down to
-        // the corresponding Feature (in reverse order).
-        const Feature* newTreeRef = &newRoot;
-        for (size_t i=trace.size(); i >=1; --i)
-            newTreeRef = &newTreeRef->rep->getChildFeature(trace[i-1]);
-        return newTreeRef;
-    }
 
     
     // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
@@ -391,7 +395,8 @@ public:
 
 class FrameRep : public FeatureRep {
 public:
-    FrameRep(Frame& f, const std::string& nm) : FeatureRep(f,nm) {
+    FrameRep(Frame& f, const std::string& nm) 
+      : FeatureRep(f,nm), OIndex(-1), RIndex(-1) {
         initializeFeatures();
     }
 
@@ -399,18 +404,23 @@ public:
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
     FeatureRep* clone() const { return new FrameRep(*this); }
 
-    const Orientation& getOrientation() const {return Orientation::downcast(getChildFeature(0));}
-    const Station&     getOrigin()      const {return Station::downcast(getChildFeature(1)); }
+    const Orientation& getOrientation() const {return Orientation::downcast(getChildFeature(RIndex));}
+    const Station&     getOrigin()      const {return Station::downcast(getChildFeature(OIndex)); }
 
     SIMTK_DOWNCAST(FrameRep,FeatureRep);
 private:
     void initializeFeatures() {
-        Station&     O = Station::downcast    (addFeatureLike(Station("O"),     "origin"));
         Orientation& R = Orientation::downcast(addFeatureLike(Orientation("R"), "orientation"));
+        Station&     O = Station::downcast    (addFeatureLike(Station("O"),     "origin"));
+
+        RIndex = R.getIndexInParent();
+        OIndex = O.getIndexInParent();
 
         O.setPlacement(addPlacementLike(StationPlacement  (Vec3(0))));
         R.setPlacement(addPlacementLike(OrientationPlacement(Mat33(1))));
     }
+
+    int RIndex, OIndex; // feature indices
 };
 
 inline SubFeature::SubFeature(const SubFeature& sf) : Feature() {
