@@ -78,33 +78,6 @@ public:
     const RealMeasure&    getMassMeasure() const;
     const StationMeasure& getCentroidMeasure() const;
 
-    // Add features to this Body
-    Station&   addStation(const String&);
-    Station&   addStation(const String&, const StationPlacement&);
-
-    Direction& addDirection(const String&);
-    Direction& addDirection(const String&, const DirectionPlacement&);
-
-    Orientation& addOrientation(const String&);
-    Orientation& addOrientation(const String&, const OrientationPlacement&);
-
-    Frame& addFrame(const String&);
-    Frame& addFrame(const String&, const FramePlacement&);
-    Frame& addFrame(const String&, const OrientationPlacement&, 
-                                   const StationPlacement&);
-
-    const Station& getStation(int) const;
-    const Station& getStation(const String&) const;
-
-    const Direction& getDirection(int) const;
-    const Direction& getDirection(const String&) const;
-
-    const Orientation& getOrientation(int) const;
-    const Orientation& getOrientation(const String&) const;
-
-    const Frame& getFrame(int) const;
-    const Frame& getFrame(const String&) const;
-
     static bool        isInstanceOf(const Feature&);
     static const Body& downcast(const Feature&);
     static Body&       downcast(Feature&);

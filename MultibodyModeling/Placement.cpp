@@ -54,6 +54,13 @@ Placement::~Placement() {
     assert(&rep->getMyHandle() == this);
     delete rep; rep=0;
 }
+
+Placement::Placement(const Feature& f) {
+    rep = new FeaturePlacementRep(
+        reinterpret_cast<FeaturePlacement&>(*this),f);
+}
+
+
 bool Placement::hasOwner() const {
     return rep && rep->hasOwner();
 }
@@ -68,6 +75,15 @@ const Feature& Placement::getOwner() const {
     assert(&rep->getMyHandle() == this);
     return rep->getOwner();
 }
+
+bool Placement::isConstant() const {
+    return rep && rep->isConstant();
+}
+
+bool Placement::dependsOn(const Feature& f) const {
+    return rep && rep->dependsOn(f);
+}
+
 String Placement::toString(const String& linePrefix) const {
     std::stringstream s;
     s << "Placement ";
@@ -98,6 +114,23 @@ RealPlacement::RealPlacement(const Real& r) {
     rep = new RealConstantPlacementRep(*this,r);
 }
 
+/*static*/ bool             
+RealPlacement::isInstanceOf(const Placement& p) {
+    if (!PlacementRep::getRep(p)) return false;
+    return RealPlacementRep::isA(*PlacementRep::getRep(p));
+}
+/*static*/ const RealPlacement& 
+RealPlacement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const RealPlacement&>(p);
+}
+
+/*static*/ RealPlacement&       
+RealPlacement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<RealPlacement&>(p);
+}
+
     // STATION PLACEMENT //
 StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(*this,v);
@@ -126,8 +159,9 @@ FramePlacement::FramePlacement(const Station& s) {
 }
 
     // FEATURE PLACEMENT REP //
-PlacementType FeaturePlacementRep::getPlacementType() const { 
-    return FeatureRep::getRep(*feature)->getRequiredPlacementType();
+PlacementType FeaturePlacementRep::getPlacementType() const {
+    assert(feature);
+    return (*feature).getRep().getRequiredPlacementType();
 }
 
 // Check that this feature is on the feature subtree rooted by "ancestor". If

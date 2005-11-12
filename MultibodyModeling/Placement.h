@@ -74,9 +74,14 @@ public:
     Placement& operator=(const Placement&);
     ~Placement();
 
+    Placement(const Feature&);  // implicit conversion to a FeaturePlacement
+
     bool           hasOwner() const;
     const Feature& getOwner() const;
     int            getIndexInOwner() const;
+
+    bool isConstant() const;  // a plain old numerical value?
+    bool dependsOn(const Feature&) const; // recursive dependency check
 
     String toString(const String& linePrefix="") const;
 
@@ -95,13 +100,18 @@ std::ostream& operator<<(std::ostream& o, const Placement&);
  */
 class FeaturePlacement : public Placement {
 public:
+    FeaturePlacement() { }
     explicit FeaturePlacement(const Feature&);
 
+    static bool                    isInstanceOf(const Placement&);
+    static const FeaturePlacement& downcast(const Placement&);
+    static FeaturePlacement&       downcast(Placement&);
 private:
 };
 
 class RealPlacement : public Placement {
 public:
+    RealPlacement() { }
     RealPlacement(const Real&);
     RealPlacement(const RealParameter&);
     static RealPlacement plus  (const RealPlacement& l,
@@ -113,16 +123,26 @@ public:
     static RealPlacement divide(const RealPlacement& l,
                                 const RealPlacement& r);
     static RealPlacement length(const DirectionPlacement&);
+
+    static bool                 isInstanceOf(const Placement&);
+    static const RealPlacement& downcast(const Placement&);
+    static RealPlacement&       downcast(Placement&);
 private:
 };
 
 class RealConstantPlacement : public RealPlacement {
 public:
+    RealConstantPlacement() { }
     RealConstantPlacement(const Real&);
+
+    static bool                         isInstanceOf(const Placement&);
+    static const RealConstantPlacement& downcast(const Placement&);
+    static RealConstantPlacement&       downcast(Placement&);
 };
 
 class StationPlacement : public Placement {
 public:
+    StationPlacement() { }
     StationPlacement(const Vec3&);    // implicit conversion
     StationPlacement(const Station&); //   "
     StationPlacement(const Frame&);   //   "
@@ -136,11 +156,16 @@ public:
 
     static StationPlacement   plus(const StationPlacement&,
                                    const DirectionPlacement&);
+
+    static bool                    isInstanceOf(const Placement&);
+    static const StationPlacement& downcast(const Placement&);
+    static StationPlacement&       downcast(Placement&);
 private:
 };
 
 class DirectionPlacement : public Placement {
 public:
+    DirectionPlacement() { }
     DirectionPlacement(const Vec3&);      // implicit conversion
     DirectionPlacement(const Direction&); //   "
 
@@ -150,25 +175,38 @@ public:
                                     const StationPlacement& tail);
     static DirectionPlacement minus(const DirectionPlacement& l,
                                     const DirectionPlacement& r);
+
+    static bool                      isInstanceOf(const Placement&);
+    static const DirectionPlacement& downcast(const Placement&);
+    static DirectionPlacement&       downcast(Placement&);
 private:
 };
 
 // Three, mutually orthogonal, right handed directions.
 class OrientationPlacement : public Placement {
 public:
-    OrientationPlacement(); // identity
+    OrientationPlacement() { }
     OrientationPlacement(const Mat33&);      // implicit conversion
+
+    static bool                        isInstanceOf(const Placement&);
+    static const OrientationPlacement& downcast(const Placement&);
+    static OrientationPlacement&       downcast(Placement&);
 private:
 };
 
 class FramePlacement : public Placement {
 public:
+    FramePlacement() { }
     FramePlacement(const Frame&);   // implicit conversions
     FramePlacement(const Station&); //   orientation inherited from 
                                     //   Station's parent
     FramePlacement(const Orientation&); // origin inherited from
                                         // Orientation's parent
     FramePlacement(const Orientation&, const Station&);
+
+    static bool                  isInstanceOf(const Placement&);
+    static const FramePlacement& downcast(const Placement&);
+    static FramePlacement&       downcast(Placement&);
 private:
 };
 

@@ -85,10 +85,12 @@ public:
     virtual void          clone(Placement&)  const = 0;  // clone but with new handle
     virtual std::string   toString(const std::string& linePrefix) const = 0;
 
+    virtual bool isConstant() const { return false; }
     virtual bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
       { offender=0; return true; }
     virtual void repairFeatureReferences(const Feature& oldRoot, 
                                          const Feature& newRoot) { }
+    virtual bool dependsOn(const Feature&) const {return false;}
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
@@ -133,6 +135,11 @@ public:
     bool isLimitedToSubtree(const Feature& ancestor, const Feature*& offender) const;
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
 
+    bool dependsOn(const Feature& f) const {
+        assert(feature);
+        return feature->dependsOn(f);
+    }
+
     PlacementType getPlacementType() const;
 
     void clone(Placement& handle) const {
@@ -149,7 +156,7 @@ public:
         s << "]";   
         return s.str();
     }
-
+    SIMTK_DOWNCAST(FeaturePlacementRep,PlacementRep);
 private:
     const Feature* feature;
 };
@@ -168,6 +175,7 @@ public:
 
     // This should allow for state to be passed in.
     virtual Real getValue(/*State*/) const = 0;
+    SIMTK_DOWNCAST(RealPlacementRep,PlacementRep);
 };
 
 /**
@@ -178,6 +186,8 @@ public:
     RealConstantPlacementRep(Placement& p, const Real& r) 
       : RealPlacementRep(p), value(r) { }
     ~RealConstantPlacementRep() { }
+
+    bool isConstant() const { return true; }
 
     void clone(Placement& p) const {
         RealConstantPlacementRep* copy = new RealConstantPlacementRep(*this);
@@ -190,6 +200,8 @@ public:
     }
 
     Real getValue(/*State*/) const { return value; }
+
+    SIMTK_DOWNCAST2(RealConstantPlacementRep,RealPlacementRep,PlacementRep);
 private:
     Real value;
 };
@@ -237,6 +249,15 @@ public:
     }
     ~RealExprPlacementRep() { }
 
+    bool dependsOn(const Feature& f) const {
+        for (size_t i=0; i < args.size(); ++i) {
+            assert(args[i]);
+            if (args[i]->dependsOn(f))
+                return true;
+        }
+        return false;
+    }
+
     void clone(Placement& p) const {
         RealExprPlacementRep* copy = new RealExprPlacementRep(*this);
         copy->cleanUpAfterClone(p);
@@ -252,6 +273,8 @@ public:
     }
 
     Real getValue(/*State*/) const { return func.apply(/*State,*/args); }
+
+    SIMTK_DOWNCAST2(RealExprPlacementRep,RealPlacementRep,PlacementRep);
 private:
     const RealPlacementOp&        func;
     std::vector<const Placement*> args;
@@ -267,6 +290,7 @@ public:
 
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
+    SIMTK_DOWNCAST(StationPlacementRep,PlacementRep);
 };
 
 // A concrete StationPlacement in which there are no variables.
@@ -276,6 +300,7 @@ public:
       : StationPlacementRep(p), loc(v) { }
 
     // Implementations of pure virtuals.
+    bool isConstant() const { return true; }
 
     void clone(Placement& p) const {
         StationConstantPlacementRep* copy = new StationConstantPlacementRep(*this);
@@ -291,6 +316,8 @@ public:
     }
 
     Vec3 getMeasureNumbers(/*State*/) const { return loc; }
+
+    SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
 private:
     Vec3 loc;
 };
@@ -305,6 +332,7 @@ public:
 
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
+    SIMTK_DOWNCAST(DirectionPlacementRep,PlacementRep);
 };
 
 
@@ -318,6 +346,7 @@ public:
     }
 
     // Implementations of pure virtuals.
+    bool isConstant() const { return true; }
 
     void clone(Placement& p) const {
         DirectionConstantPlacementRep* copy = new DirectionConstantPlacementRep(*this);
@@ -335,6 +364,8 @@ public:
     }
 
     Vec3 getMeasureNumbers(/*State*/) const { return dir; }
+
+    SIMTK_DOWNCAST2(DirectionConstantPlacementRep,DirectionPlacementRep,PlacementRep);
 private:
     Vec3 dir;
 };
@@ -350,6 +381,7 @@ public:
 
     // These should allow for state to be passed in.
     virtual Mat33  getMeasureNumbers(/*State*/)     const = 0;
+    SIMTK_DOWNCAST(OrientationPlacementRep,PlacementRep);
 };
 
 // A concrete OrientationPlacement in which there are no variables.
@@ -361,6 +393,7 @@ public:
     }
 
     // Implementations of pure virtuals.
+    bool isConstant() const { return true; }
 
     void clone(Placement& p) const {
         OrientationConstantPlacementRep* copy = new OrientationConstantPlacementRep(*this);
@@ -376,6 +409,8 @@ public:
     }
 
     Mat33 getMeasureNumbers(/*State*/) const { return ori; }
+
+    SIMTK_DOWNCAST2(OrientationConstantPlacementRep,OrientationPlacementRep,PlacementRep);
 private:
     Mat33 ori;
 };
@@ -390,6 +425,9 @@ public:
       : PlacementRep(p), orientation(&o), station(&s) { }
     ~FramePlacementRep() { }
 
+    bool dependsOn(const Feature& f) const {
+        return orientation->dependsOn(f) || station->dependsOn(f);
+    }
     bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
 
@@ -411,7 +449,8 @@ public:
         s << "]";
         return s.str();
     }
-    
+
+    SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
 private:
     const Orientation* orientation;
     const Station*     station;

@@ -83,14 +83,10 @@ try {
 
 
     // Instantiate 'atom' mass elements and place them on their stations.
-    upper.addMassElementLike(green,  "green",   
-        FeaturePlacement(upper.getStation("greenPt")));
-    upper.addMassElementLike(orange, "orange",  
-        FeaturePlacement(upper.getStation("orangePt")));
-    upper.addMassElementLike(blue,   "blue1",   
-        FeaturePlacement(upper.getStation("pinnedBluePt")));
-    upper.addMassElementLike(blue,   "blue2",   
-        FeaturePlacement(upper.getStation("otherBluePt")));
+    upper.addMassElementLike(green,  "green",  upper.getStation("greenPt"));
+    upper.addMassElementLike(orange, "orange", upper.getStation("orangePt"));
+    upper.addMassElementLike(blue,   "blue1",  upper.getStation("pinnedBluePt"));
+    upper.addMassElementLike(blue,   "blue2",  upper.getStation("otherBluePt"));
 
 
     // Create some joint frames at the appropriate stations (by default
@@ -100,7 +96,10 @@ try {
     upper.addFrame("rightBallFrame",    upper.getStation("rightAttachPt"));
     cout << "U=" << upper;
 
+    upper.updStation("pinnedBluePt").
+        setPlacement(upper.getFrame("pinFrame").getOrigin());
 
+/*
     // Now build the prototype for the lower bodies.
 
     RigidBody lower("L");
@@ -116,7 +115,7 @@ try {
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
     cout << "L=" << lower;
-/*  
+  
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
     tube.placeFeature("center", lower.getOrigin());

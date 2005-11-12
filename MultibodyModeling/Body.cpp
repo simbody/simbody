@@ -39,51 +39,18 @@ namespace simtk {
     // BODY //
 const RealMeasure& Body::getMassMeasure() const {
     assert(rep);
-    return BodyRep::downcast(*rep).getMassMeasure();
+    return BodyRep::downcast(getRep()).getMassMeasure();
 }
 const StationMeasure& Body::getCentroidMeasure() const {
     assert(rep);
-    return BodyRep::downcast(*rep).getCentroidMeasure();
+    return BodyRep::downcast(getRep()).getCentroidMeasure();
 }
 
-Station& Body::addStation(const String& nm) {
-    assert(rep);
-    return Station::downcast(rep->addFeatureLike(Station(nm), nm));
-}
-Station& Body::addStation(const String& nm, const StationPlacement& pl) {
-    Placement& p = rep->addPlacementLike(pl);
-    Station& s = Station::downcast(rep->addFeatureLike(Station(nm), nm));
-    s.setPlacement(p);
-    return s;
-}
-
-Frame& Body::addFrame(const String& nm) {
-    assert(rep);
-    return Frame::downcast(rep->addFeatureLike(Frame(nm), nm));
-}
-Frame& Body::addFrame(const String& nm, const FramePlacement& pl) {
-    Placement& p = rep->addPlacementLike(pl);
-    Frame& s = Frame::downcast(rep->addFeatureLike(Frame(nm), nm));
-    s.setPlacement(p);
-    return s;
-}
-
-const Station& Body::getStation(int i) const {
-    assert(rep);
-    return Station::downcast(rep->getChildFeature(i));
-}
-const Station& Body::getStation(const String& nm) const {
-    assert(rep);
-    const Feature* fp = rep->getChildFeature(nm);
-    if (!fp)
-        SIMTK_THROW2(Exception::FeatureNameNotFound,"Body::getStation",nm);
-    return Station::downcast(*rep->getChildFeature(nm));
-}
 
 /*static*/ bool             
 Body::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return BodyRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return BodyRep::isA(f.getRep());
 }
 /*static*/ const Body& 
 Body::downcast(const Feature& f) {
@@ -111,19 +78,19 @@ RigidBody::~RigidBody() { }
 
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm,
                                            const Placement& pl) {
-    Placement& p = rep->addPlacementLike(pl);
-    MassElement& m = MassElement::downcast(rep->addFeatureLike(me, nm));
+    Placement& p = updRep().addPlacementLike(pl);
+    MassElement& m = MassElement::downcast(updRep().addFeatureLike(me, nm));
     m.setPlacement(p);
     return m;
 }
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm) {
-    return MassElement::downcast(rep->addFeatureLike(me, nm));
+    return MassElement::downcast(updRep().addFeatureLike(me, nm));
 }
 
 /*static*/ bool             
 RigidBody::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return RigidBodyRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return RigidBodyRep::isA(f.getRep());
 }
 /*static*/ const RigidBody& 
 RigidBody::downcast(const Feature& f) {

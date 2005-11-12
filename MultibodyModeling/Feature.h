@@ -83,6 +83,11 @@ public:
     int            getIndexInParent() const; // -1 if no parent
     const Feature& getParentFeature() const;
 
+    bool isSameFeature(const Feature& f) const {return &f == this;}
+
+    // True if this is the same feature as f or if 
+    bool dependsOn(const Feature& f) const;
+
     String getName()            const;
     String getFullName()        const; // "ancestors.parent.name"
     String getFeatureTypeName() const; // "Station", "Frame", etc.
@@ -107,24 +112,50 @@ public:
     Orientation&      updOrientation     (const String&);
     Frame&            updFrame           (const String&);
 
-    RealParameter&    addRealParameter   (const String&);
-    StationParameter& addStationParameter(const String&);
-    RealMeasure&      addRealMeasure     (const String&);
-    StationMeasure&   addStationMeasure  (const String&);
-    Station&          addStation         (const String&);
-    Direction&        addDirection       (const String&);
-    Orientation&      addOrientation     (const String&);
-    Frame&            addFrame           (const String&);
+    RealParameter&    addRealParameter
+                        (const String&, const RealPlacement& = RealPlacement());
+    RealMeasure&      addRealMeasure
+                        (const String&, const RealPlacement& = RealPlacement());
+    StationParameter& addStationParameter
+                        (const String&, const StationPlacement& = StationPlacement());
+    StationMeasure&   addStationMeasure
+                        (const String&, const StationPlacement& = StationPlacement());
+    Station&          addStation
+                        (const String&, const StationPlacement& = StationPlacement());
+    Direction&        addDirection
+                        (const String&, const DirectionPlacement& = DirectionPlacement());
+    Orientation&      addOrientation
+                        (const String&, const OrientationPlacement& = OrientationPlacement());
+    Frame&            addFrame
+                        (const String&, const FramePlacement& = FramePlacement());
 
-    Feature&          addFeatureLike         (const Feature&,          const String&);
-    RealParameter&    addRealParameterLike   (const RealParameter&,    const String&);
-    StationParameter& addStationParameterLike(const StationParameter&, const String&);
-    RealMeasure&      addRealMeasureLike     (const RealMeasure&,      const String&);
-    StationMeasure&   addStationMeasureLike  (const StationMeasure&,   const String&);
-    Station&          addStationLike         (const Station&,          const String&);
-    Direction&        addDirectionLike       (const Direction&,        const String&);
-    Orientation&      addOrientationLike     (const Orientation&,      const String&);
-    Frame&            addFrameLike           (const Frame&,            const String&);
+    Feature&          addFeatureLike
+                        (const Feature&,
+                         const String&, const Placement& = Placement());
+    RealParameter&    addRealParameterLike
+                        (const RealParameter&,
+                         const String&, const RealPlacement& = RealPlacement());
+    RealMeasure&      addRealMeasureLike
+                        (const RealMeasure&,
+                         const String&, const RealPlacement& = RealPlacement());
+    StationParameter& addStationParameterLike
+                        (const StationParameter&,
+                         const String&, const StationPlacement& = StationPlacement());
+    StationMeasure&   addStationMeasureLike
+                        (const StationMeasure&,
+                         const String&, const StationPlacement& = StationPlacement());
+    Station&          addStationLike
+                        (const Station&,
+                         const String&, const StationPlacement& = StationPlacement());
+    Direction&        addDirectionLike
+                        (const Direction&, 
+                         const String&, const DirectionPlacement& = DirectionPlacement());
+    Orientation&      addOrientationLike
+                        (const Orientation&,
+                         const String&, const OrientationPlacement& = OrientationPlacement());
+    Frame&            addFrameLike
+                        (const Frame&,
+                         const String&, const FramePlacement& = FramePlacement());
 
     // Subfeatures of this feature
     int            getNFeatures() const;
@@ -140,6 +171,11 @@ public:
 
     String toString(const String& linePrefix="") const;
 
+    // For internal use only.
+    bool                    hasRep() const {return rep != 0;}
+    const class FeatureRep& getRep() const {assert(rep); return *rep;}
+    class FeatureRep&       updRep()       {assert(rep); return *rep;}
+    void                    setRep(FeatureRep* fp) {assert(!rep); rep=fp;}
 protected:
     class FeatureRep* rep;
     friend class FeatureRep;

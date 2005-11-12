@@ -70,8 +70,7 @@ String Feature::getFeatureTypeName() const {
 }
 
 void Feature::setPlacement(const Placement& p) {
-    assert(rep);
-    rep->setPlacement(p);
+    updRep().setPlacement(p);
 }
 
 
@@ -109,26 +108,28 @@ ostream& operator<<(ostream& o, const Feature& f) {
     return o << f.toString() << endl;
 }
 bool Feature::hasParentFeature() const {
-    assert(rep);
-    return rep->hasParentFeature();
+    return getRep().hasParentFeature();
 }
 int Feature::getIndexInParent() const {
-    assert(rep && rep->hasParentFeature());
-    return rep->getIndexInParent();
+    assert(getRep().hasParentFeature());
+    return getRep().getIndexInParent();
 }
 const Feature& Feature::getParentFeature() const {
-    assert(rep && rep->hasParentFeature());
-    return rep->getParentFeature();
+    assert(getRep().hasParentFeature());
+    return getRep().getParentFeature();
 }
+bool Feature::dependsOn(const Feature& f) const {
+    if (isSameFeature(f)) return true;
+    return hasRep() && getRep().dependsOn(f);
+}
+
 const Feature& Feature::getFeature(const String& n) const {
-    assert(rep);
-    const Feature* f = rep->getChildFeature(std::string(n));
+    const Feature* f = getRep().getChildFeature(std::string(n));
     if (!f) SIMTK_THROW2(Exception::FeatureNameNotFound,"Feature::getFeature",n);
     return *f;
 }
 Feature& Feature::updFeature(const String& n) {
-    assert(rep);
-    Feature* p = rep->updChildFeature(std::string(n));
+    Feature* p = updRep().updChildFeature(std::string(n));
     if (!p) SIMTK_THROW2(Exception::FeatureNameNotFound,"Feature::updFeature",n);
     return *p;
 }
@@ -139,8 +140,14 @@ const RealParameter& Feature::getRealParameter(const String& n) const {
 RealParameter& Feature::updRealParameter(const String& n) {
     return RealParameter::downcast(updFeature(n));
 }
-RealParameter& Feature::addRealParameter(const String& n) {
-    assert(rep); return RealParameter::downcast(rep->addFeatureLike(RealParameter(n), n));
+RealParameter& Feature::addRealParameter(const String& n, const RealPlacement& p) {
+    RealParameter& r = RealParameter::downcast(
+                            updRep().addFeatureLike(RealParameter(n), n));
+    if (PlacementRep::getRep(p)) {
+        const RealPlacement& rp = RealPlacement::downcast(updRep().addPlacementLike(p));
+        r.setPlacement(rp);
+    }
+    return r;
 }
 
 const StationParameter& Feature::getStationParameter(const String& n) const {
@@ -149,18 +156,34 @@ const StationParameter& Feature::getStationParameter(const String& n) const {
 StationParameter& Feature::updStationParameter(const String& n) {
     return StationParameter::downcast(updFeature(n));
 }
-StationParameter& Feature::addStationParameter(const String& n) {
-    assert(rep); return StationParameter::downcast(rep->addFeatureLike(StationParameter(n), n));
+StationParameter& Feature::addStationParameter(const String& n, const StationPlacement& p) {
+    return StationParameter::downcast(updRep().addFeatureLike(StationParameter(n), n));
 }
 
-RealMeasure& Feature::addRealMeasure(const String& n) {
-    assert(rep); return RealMeasure::downcast(rep->addFeatureLike(RealMeasure(n), n));
+RealMeasure& Feature::addRealMeasure(const String& n, const RealPlacement& p) {
+    return RealMeasure::downcast(updRep().addFeatureLike(RealMeasure(n), n));
 }
-StationMeasure& Feature::addStationMeasure(const String& n) {
-    assert(rep); return StationMeasure::downcast(rep->addFeatureLike(StationMeasure(n), n));
+StationMeasure& Feature::addStationMeasure(const String& n, const StationPlacement& p) {
+    return StationMeasure::downcast(updRep().addFeatureLike(StationMeasure(n), n));
 }
-Station& Feature::addStation(const String& n) {
-    assert(rep); return Station::downcast(rep->addFeatureLike(Station(n), n));
+
+Station& Feature::addStation(const String& n, const StationPlacement& p) {
+    return Station::downcast(updRep().addFeatureLike(Station(n), n));
+}
+const Station& Feature::getStation(const String& nm) const {
+    return Station::downcast(getFeature(nm));
+}
+Station& Feature::updStation(const String& nm) {
+    return Station::downcast(updFeature(nm));
+}
+Frame& Feature::addFrame(const String& n, const FramePlacement& p) {
+    return Frame::downcast(updRep().addFeatureLike(Frame(n), n));
+}
+const Frame& Feature::getFrame(const String& nm) const {
+    return Frame::downcast(getFeature(nm));
+}
+Frame& Feature::updFrame(const String& nm) {
+    return Frame::downcast(updFeature(nm));
 }
 
     // REAL PARAMETER //
@@ -173,8 +196,8 @@ RealParameter::~RealParameter() { }
 
 /*static*/ bool             
 RealParameter::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return RealParameterRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return RealParameterRep::isA(f.getRep());
 }
 /*static*/ const RealParameter& 
 RealParameter::downcast(const Feature& f) {
@@ -198,8 +221,8 @@ StationParameter::~StationParameter() { }
 
 /*static*/ bool             
 StationParameter::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return StationParameterRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return StationParameterRep::isA(f.getRep());
 }
 /*static*/ const StationParameter& 
 StationParameter::downcast(const Feature& f) {
@@ -223,8 +246,8 @@ RealMeasure::~RealMeasure() { }
 
 /*static*/ bool             
 RealMeasure::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return RealMeasureRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return RealMeasureRep::isA(f.getRep());
 }
 /*static*/ const RealMeasure& 
 RealMeasure::downcast(const Feature& f) {
@@ -248,8 +271,8 @@ StationMeasure::~StationMeasure() { }
 
 /*static*/ bool             
 StationMeasure::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return StationMeasureRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return StationMeasureRep::isA(f.getRep());
 }
 /*static*/ const StationMeasure& 
 StationMeasure::downcast(const Feature& f) {
@@ -273,8 +296,8 @@ Station::~Station() { }
 
 /*static*/ bool             
 Station::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return StationRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return StationRep::isA(f.getRep());
 }
 /*static*/ const Station& 
 Station::downcast(const Feature& f) {
@@ -298,8 +321,8 @@ Direction::~Direction() { }
 
 /*static*/ bool             
 Direction::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return DirectionRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return DirectionRep::isA(f.getRep());
 }
 /*static*/ const Direction& 
 Direction::downcast(const Feature& f) {
@@ -323,8 +346,8 @@ Orientation::~Orientation() { }
 
 /*static*/ bool             
 Orientation::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return OrientationRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return OrientationRep::isA(f.getRep());
 }
 /*static*/ const Orientation& 
 Orientation::downcast(const Feature& f) {
@@ -347,14 +370,16 @@ Frame& Frame::operator=(const Frame& src)
 Frame::~Frame() { }
 
 const Orientation& Frame::getOrientation() const {
-    assert(rep);
-    return FrameRep::downcast(*rep).getOrientation();
+    return FrameRep::downcast(getRep()).getOrientation();
+}
+const Station& Frame::getOrigin() const {
+    return FrameRep::downcast(getRep()).getOrigin();
 }
 
 /*static*/ bool             
 Frame::isInstanceOf(const Feature& f) {
-    if (!FeatureRep::getRep(f)) return false;
-    return FrameRep::isA(*FeatureRep::getRep(f));
+    if (!f.hasRep()) return false;
+    return FrameRep::isA(f.getRep());
 }
 /*static*/ const Frame& 
 Frame::downcast(const Feature& f) {

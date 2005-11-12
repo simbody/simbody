@@ -100,10 +100,10 @@ public:
     void cloneWithoutExternalPlacements(Feature& newHandle) const {
         FeatureRep* copy = clone();
         copy->setMyHandle(newHandle);
-        FeatureRep::setRep(newHandle, copy);
+        newHandle.setRep(copy);
 
         // Re-parent all the copied child Features to their new parent,
-        // and fix the owned Placements to acknoledge their new owner.
+        // and fix the owned Placements to acknowledge their new owner.
         copy->reparentMyChildren();
 
         // Fix up all the internal placement references and delete the
@@ -122,9 +122,18 @@ public:
     bool hasPlacement() const { return placement != 0; }
     void setPlacement(const Placement& p) { 
         assert(PlacementRep::getRep(p)->getPlacementType() == getRequiredPlacementType());
+        assert(p.hasOwner());
+        assert(!p.getOwner().isSameFeature(getMyHandle()) || p.isConstant());
+        assert(FeatureRep::isFeatureInFeatureTree(p.getOwner(), getMyHandle()));
+        assert(!p.dependsOn(getMyHandle()));
         placement = &p; 
     }
     const Placement& getPlacement() const { return *placement; }
+
+    // Does the *placement* of this feature depend on the indicated one?
+    // Note that we don't care about our child features' placements.
+    bool dependsOn(const Feature& f) const 
+        { return placement && placement->dependsOn(f); }
 
     int getNChildFeatures()        const {return childFeatures.size();}
     int getNPlacementExpressions() const {return placementExpressions.size();}
@@ -149,13 +158,13 @@ public:
     }
 
     Feature& addFeatureLike(const Feature& f, const std::string& nm) {
-        assert(getRep(f) && nm.size() > 0);
+        assert(nm.size() > 0);
         const int index = (int)childFeatures.size();
         childFeatures.push_back(SubFeature()); // an empty handle
         Feature& newFeature = childFeatures[index];
-        FeatureRep::getRep(f)->cloneWithoutExternalPlacements(newFeature);
-        FeatureRep::updRep(newFeature)->setParentFeature(getMyHandle(), index);
-        FeatureRep::updRep(newFeature)->setName(nm);
+        f.getRep().cloneWithoutExternalPlacements(newFeature);
+        newFeature.updRep().setParentFeature(getMyHandle(), index);
+        newFeature.updRep().setName(nm);
         return newFeature;
     }
 
@@ -181,21 +190,25 @@ public:
     
     // Is Feature f in the tree rooted at oldRoot? If so, optionally return the 
     // series of indices required to get to this Feature from the root.
+    // Complexity is O(log n) where n is tree depth.
     static bool isFeatureInFeatureTree(const Feature& oldRoot, const Feature& f,
                                        std::vector<int>* trace=0)
     {
         if (trace) trace->clear();
         const Feature* const oldp = &oldRoot;
         const Feature*       fp   = &f;
-        for(;;) {
-            if (fp == oldp) return true;
-            if (!fp->rep->hasParentFeature())
-                break;
+
+        while (fp != oldp) {
+            const Feature* const fpParent = getParentPtr(*fp);
+            if (!fpParent) {
+                if (trace) trace->clear(); // never mind ...
+                return false;
+            }
             if (trace) trace->push_back(fp->rep->getIndexInParent());
-            fp = &fp->rep->getParentFeature();
+            fp = fpParent;
         }
-        if (trace) trace->clear(); // never mind ...
-        return false;
+
+        return true;
     }
 
     // Is Placement p owned by a Feature in the tree rooted at oldRoot? If so, 
@@ -227,7 +240,25 @@ public:
         return newTreeRef;
     }
 
-    SIMTK_REP_HELPERS(Feature,FeatureRep)
+    // Given two features, run up the tree towards the root to find
+    // their "least common denominator", i.e. the first shared node
+    // on the path back to the root. Return a pointer to that node
+    // if found, otherwise NULL meaning that the features aren't on
+    // the same tree.
+    // Complexity is O(log^2 n), where n is depth of Feature tree.
+    static const Feature* findYoungestCommonAncestor
+        (const Feature& f1, const Feature& f2)
+    {
+        const Feature* fp = &f1;
+        while (fp) {
+            if (isFeatureInFeatureTree(*fp, f2))
+                return fp;
+            fp = getParentPtr(*fp);
+        }
+        return 0;
+    }
+
+    //SIMTK_REP_HELPERS(Feature,FeatureRep)
 private:
     // Return true and ix==feature index if a feature of the given name is found.
     // Otherwise return false and ix==childFeatures.size().
@@ -236,6 +267,10 @@ private:
             if (caseInsensitiveCompare(nm, childFeatures[ix].getName())==0)
                 return true;
         return false;   // not found
+    }
+
+    static const Feature* getParentPtr(const Feature& f) {
+        return f.rep ? f.rep->parent : 0;
     }
 
     // We have just copied a Feature subtree so all the parent pointers are
@@ -424,7 +459,7 @@ private:
 };
 
 inline SubFeature::SubFeature(const SubFeature& sf) : Feature() {
-    if (sf.rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
+    if (rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
 }
 inline SubFeature& SubFeature::operator=(const SubFeature& sf) {
     if (&sf != this) {
