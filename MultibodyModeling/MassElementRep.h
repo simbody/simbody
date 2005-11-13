@@ -71,12 +71,12 @@ public:
     // some self-placements
     void setMass(const Real& m) {
         const Placement& p = addPlacementLike(RealPlacement(m));
-        updChildFeature("mass")->setPlacement(p);
+        updChildFeature("mass")->place(p);
     }
 
     void placePoint(const Vec3& v) {
         const Placement& p = addPlacementLike(StationPlacement(v));
-        setPlacement(p);
+        place(p);
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
@@ -88,9 +88,9 @@ private:
     void initializeFeatures() {
         addFeatureLike(RealParameter("mass"), "mass");
 
-        updChildFeature("massMeasure")->setPlacement(
+        updChildFeature("massMeasure")->place(
             addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
-        updChildFeature("centroidMeasure")->setPlacement(
+        updChildFeature("centroidMeasure")->place(
             addPlacementLike(FeaturePlacement(getMyHandle())));
     }
 };
@@ -105,23 +105,23 @@ public:
     // some self-placements
     void setMass(const Real& m) {
         const Placement& p = addPlacementLike(RealPlacement(m));
-        updChildFeature("mass")->setPlacement(p);
+        updChildFeature("mass")->place(p);
     }
     void setRadius(const Real& r) {
         const Placement& p = addPlacementLike(RealPlacement(r));
-        updChildFeature("radius")->setPlacement(p);
+        updChildFeature("radius")->place(p);
     }
     void setHalfLength(const Real& h) {
         const Placement& p = addPlacementLike(RealPlacement(h));
-        updChildFeature("halfLength")->setPlacement(p);
+        updChildFeature("halfLength")->place(p);
     }
     void placeCenter(const Vec3& c) {
         const Placement& p = addPlacementLike(StationPlacement(c));
-        updChildFeature("center")->setPlacement(p);
+        updChildFeature("center")->place(p);
     }
     void placeAxis(const Vec3& a) {
         const Placement& p = addPlacementLike(DirectionPlacement(a));
-        updChildFeature("axis")->setPlacement(p);
+        updChildFeature("axis")->place(p);
     }
 
     std::string getFeatureTypeName() const { return "CylinderMassElement"; }
@@ -140,9 +140,9 @@ private:
         addFeatureLike(Station      ("center"),     "center");
         addFeatureLike(Direction    ("axis"),       "axis");
 
-        updChildFeature("massMeasure")->setPlacement(
+        updChildFeature("massMeasure")->place(
             addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
-        updChildFeature("centroidMeasure")->setPlacement(
+        updChildFeature("centroidMeasure")->place(
             addPlacementLike(FeaturePlacement(*getChildFeature("center"))));
     }
 };

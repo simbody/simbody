@@ -75,6 +75,7 @@ public:
     virtual ~PlacementRep() { }
 
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
+    Placement&       updMyHandle()           {assert(myHandle); return *myHandle;}          
     const Feature&   getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
@@ -91,6 +92,13 @@ public:
     virtual void repairFeatureReferences(const Feature& oldRoot, 
                                          const Feature& newRoot) { }
     virtual bool dependsOn(const Feature&) const {return false;}
+
+    // A non-constant Placement may reference many Features, however we expect
+    // all of them to be on a common Feature tree. Here we are given the root of
+    // the expected tree and return the youngest feature in that tree which is
+    // an ancestor of *all* the features in the Placement. Don't call this
+    // method on a constant Placement (you can check first with isConstant());
+    virtual const Feature* findAncestorFeature(const Feature& root) const = 0;
 
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
@@ -140,7 +148,8 @@ public:
         return feature->dependsOn(f);
     }
 
-    PlacementType getPlacementType() const;
+    const Feature* findAncestorFeature(const Feature& root) const;
+    PlacementType  getPlacementType() const;
 
     void clone(Placement& handle) const {
         // Note that pointer gets copied as-is. This will require repair when 
@@ -199,6 +208,11 @@ public:
         return s.str();
     }
 
+    const Feature* findAncestorFeature(const Feature&) const {
+        assert(false); // not allowed for constants
+        return 0;
+    }
+
     Real getValue(/*State*/) const { return value; }
 
     SIMTK_DOWNCAST2(RealConstantPlacementRep,RealPlacementRep,PlacementRep);
@@ -249,6 +263,14 @@ public:
     }
     ~RealExprPlacementRep() { }
 
+    bool isConstant() const {
+        for (size_t i=0; i < args.size(); ++i) {
+            assert(args[i]);
+            if (!args[i]->isConstant()) return false;
+        }
+        return true;
+    }
+
     bool dependsOn(const Feature& f) const {
         for (size_t i=0; i < args.size(); ++i) {
             assert(args[i]);
@@ -257,6 +279,8 @@ public:
         }
         return false;
     }
+
+    const Feature* findAncestorFeature(const Feature& root) const;
 
     void clone(Placement& p) const {
         RealExprPlacementRep* copy = new RealExprPlacementRep(*this);
@@ -315,6 +339,11 @@ public:
         return s.str();
     }
 
+    const Feature* findAncestorFeature(const Feature&) const {
+        assert(false); // not allowed for constants
+        return 0;
+    }
+
     Vec3 getMeasureNumbers(/*State*/) const { return loc; }
 
     SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
@@ -363,6 +392,11 @@ public:
         return s.str();
     }
 
+    const Feature* findAncestorFeature(const Feature&) const {
+        assert(false); // not allowed for constants
+        return 0;
+    }
+
     Vec3 getMeasureNumbers(/*State*/) const { return dir; }
 
     SIMTK_DOWNCAST2(DirectionConstantPlacementRep,DirectionPlacementRep,PlacementRep);
@@ -408,6 +442,11 @@ public:
         return s.str();
     }
 
+    const Feature* findAncestorFeature(const Feature&) const {
+        assert(false); // not allowed for constants
+        return 0;
+    }
+
     Mat33 getMeasureNumbers(/*State*/) const { return ori; }
 
     SIMTK_DOWNCAST2(OrientationConstantPlacementRep,OrientationPlacementRep,PlacementRep);
@@ -430,6 +469,8 @@ public:
     }
     bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
+
+    const Feature* findAncestorFeature(const Feature& root) const;
 
     PlacementType getPlacementType() const { return FramePlacementType; }
     void clone(Placement& p) const {

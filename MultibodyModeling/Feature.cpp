@@ -21,7 +21,7 @@
  */
 
 /**@file
- * Implementations of high level multibody modeling objects for Simbody.
+ * Implementations of API-level multibody modeling objects for Simbody.
  */
 
 #include "SimbodyCommon.h"
@@ -33,6 +33,7 @@
 #include <sstream>
 using std::endl;
 using std::ostream;
+
 
 namespace simtk {
 
@@ -69,8 +70,21 @@ String Feature::getFeatureTypeName() const {
                : featureHasNoRep(*this);
 }
 
-void Feature::setPlacement(const Placement& p) {
-    updRep().setPlacement(p);
+bool Feature::hasPlacement() const {
+    return getRep().hasPlacement();
+}
+void Feature::place(const Placement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::place", exc.getMessage());
+    }
+}
+
+const Placement& Feature::getPlacement() const {
+    assert(hasPlacement());
+    return getRep().getPlacement();
 }
 
 
@@ -145,7 +159,7 @@ RealParameter& Feature::addRealParameter(const String& n, const RealPlacement& p
                             updRep().addFeatureLike(RealParameter(n), n));
     if (PlacementRep::getRep(p)) {
         const RealPlacement& rp = RealPlacement::downcast(updRep().addPlacementLike(p));
-        r.setPlacement(rp);
+        r.place(rp);
     }
     return r;
 }
@@ -187,6 +201,7 @@ Frame& Feature::updFrame(const String& nm) {
 }
 
     // REAL PARAMETER //
+
 RealParameter::RealParameter(const String& nm)
   { (void)new RealParameterRep(*this, std::string(nm)); }
 RealParameter::RealParameter(const RealParameter& src) : RealMeasure(src) { }
@@ -294,6 +309,15 @@ Station& Station::operator=(const Station& src)
   { Feature::operator=(src); return *this; }
 Station::~Station() { }
 
+void Station::place(const StationPlacement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Station::place", exc.getMessage());
+    }
+}
+
 /*static*/ bool             
 Station::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -318,6 +342,15 @@ Direction::Direction(const Direction& src) : Feature(src) { }
 Direction& Direction::operator=(const Direction& src)
   { Feature::operator=(src); return *this; }
 Direction::~Direction() { }
+
+void Direction::place(const DirectionPlacement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Direction::place", exc.getMessage());
+    }
+}
 
 /*static*/ bool             
 Direction::isInstanceOf(const Feature& f) {
@@ -344,6 +377,15 @@ Orientation& Orientation::operator=(const Orientation& src)
   { Feature::operator=(src); return *this; }
 Orientation::~Orientation() { }
 
+void Orientation::place(const OrientationPlacement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Orientation::place", exc.getMessage());
+    }
+}
+
 /*static*/ bool             
 Orientation::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -368,6 +410,15 @@ Frame::Frame(const Frame& src) : Feature(src) { }
 Frame& Frame::operator=(const Frame& src)
   { Feature::operator=(src); return *this; }
 Frame::~Frame() { }
+
+void Frame::place(const FramePlacement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Frame::place", exc.getMessage());
+    }
+}
 
 const Orientation& Frame::getOrientation() const {
     return FrameRep::downcast(getRep()).getOrientation();
@@ -394,3 +445,18 @@ Frame::downcast(Feature& f) {
 }
 
 } // namespace simtk
+
+
+
+static int caseInsensitiveCompare(const std::string& key, const std::string& test) {
+    const size_t minlen = std::min(key.size(), test.size());
+    for (size_t i=0; i < minlen; ++i) {
+        const int k = tolower(key[i]), t = tolower(test[i]);
+        if (k < t) return -1;
+        else if (k > t) return 1;
+    }
+    // caution -- size() is unsigned, don't get clever here
+    if (key.size() > minlen) return 1;
+    else if (test.size() > minlen) return -1;
+    return 0;
+}

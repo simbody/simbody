@@ -39,6 +39,7 @@ using std::ostream;
 namespace simtk {
 
     // PLACEMENT //
+
 Placement::Placement(const Placement& src) : rep(0) { 
     if (src.rep) src.rep->clone(*this);
 }
@@ -136,6 +137,11 @@ StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(*this,v);
 }
 
+StationPlacement::StationPlacement(const Station& s) {
+    rep = new FeaturePlacementRep(
+        *reinterpret_cast<FeaturePlacement*>(this),s);
+}
+
     // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     rep = new DirectionConstantPlacementRep(*this,v);
@@ -156,64 +162,6 @@ FramePlacement::FramePlacement(const Station& s) {
     assert(Frame::isInstanceOf(s.getParentFeature()));
     const Frame& parentFrame = Frame::downcast(s.getParentFeature());
     rep = new FramePlacementRep(*this,parentFrame.getOrientation(),s);
-}
-
-    // FEATURE PLACEMENT REP //
-PlacementType FeaturePlacementRep::getPlacementType() const {
-    assert(feature);
-    return (*feature).getRep().getRequiredPlacementType();
-}
-
-// Check that this feature is on the feature subtree rooted by "ancestor". If
-// not return a pointer to this feature for use in a friendly error message.
-// If this is the right tree, we return true with offender==NULL.
-bool FeaturePlacementRep::isLimitedToSubtree
-    (const Feature& root, const Feature*& offender) const
-{
-    assert(feature);
-    if (FeatureRep::isFeatureInFeatureTree(root, *feature)) {
-        offender = 0;
-        return true;
-    }
-    offender = feature;
-    return false;
-}
-
-void FeaturePlacementRep::repairFeatureReferences
-    (const Feature& oldRoot, const Feature& newRoot)
-{
-    assert(feature);
-    const Feature* corrFeature = FeatureRep::findCorrespondingFeature(oldRoot,*feature,newRoot);
-    assert(corrFeature);
-    feature = corrFeature;
-}
-
-    // FRAME PLACEMENT REP //
-bool FramePlacementRep::isLimitedToSubtree
-    (const Feature& root, const Feature*& offender) const
-{
-    assert(orientation && station);
-    if (!FeatureRep::isFeatureInFeatureTree(root, *orientation)) {
-        offender = orientation;
-        return false;
-    }
-    if (!FeatureRep::isFeatureInFeatureTree(root, *station)) {
-        offender = station;
-        return false;
-    }
-    offender = 0;
-    return true;
-}
-
-void FramePlacementRep::repairFeatureReferences
-    (const Feature& oldRoot, const Feature& newRoot)
-{
-    assert(orientation && station);
-    const Feature* corrOri = FeatureRep::findCorrespondingFeature(oldRoot,*orientation,newRoot);
-    const Feature* corrSta = FeatureRep::findCorrespondingFeature(oldRoot,*station,newRoot);
-    assert(corrOri && corrSta);
-    orientation = &Orientation::downcast(*corrOri);
-    station     = &Station::downcast(*corrSta);
 }
 
 } // namespace simtk

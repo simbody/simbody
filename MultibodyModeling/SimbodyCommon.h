@@ -37,6 +37,14 @@ namespace simtk {
 
 namespace Exception {
 
+class APIMethodFailed : public Base {
+public:
+    APIMethodFailed(const char* fn, int ln, String method, String cause) : Base(fn,ln)
+    {
+        setMessage(method + " failed because " + cause);
+    }
+};
+
 class FeatureNameNotFound : public Base {
 public:
     FeatureNameNotFound(const char* fn, int ln, String method, String name) : Base(fn,ln)
@@ -53,7 +61,22 @@ public:
     {
         setMessage(method + ": can't add placement expression to Feature '" 
             + hostFeature + "' because it references Feature '"
-            + offendingFeature + "' which is not on this Feature tree.");
+            + offendingFeature 
+            + "' (and possibly others) which is not a descendent of '"
+            + hostFeature + "'.");
+    }
+private:
+};
+
+class FeatureAndPlacementOnDifferentTrees : public Base {
+public:
+    FeatureAndPlacementOnDifferentTrees(const char* fn, int ln, 
+                                        String hostFeature, String offendingFeature) : Base(fn,ln)
+    {
+        setMessage(
+            "can't place Feature '" + hostFeature 
+            + "' because the supplied placement references Feature '" + offendingFeature
+            + "' (and possibly others) and their is no common ancestor.");
     }
 private:
 };

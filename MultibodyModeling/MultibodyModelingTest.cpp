@@ -81,6 +81,8 @@ try {
     upper.addStation("leftAttachPt",    Vec3(0,-1,1));
     upper.addStation("rightAttachPt",   Vec3(1,-1,0));
 
+    XXX no placements above
+
 
     // Instantiate 'atom' mass elements and place them on their stations.
     upper.addMassElementLike(green,  "green",  upper.getStation("greenPt"));
@@ -97,7 +99,8 @@ try {
     cout << "U=" << upper;
 
     upper.updStation("pinnedBluePt").
-        setPlacement(upper.getFrame("pinFrame").getOrigin());
+        place(upper.getFrame("pinFrame").getOrigin());
+    cout << "after moving pinnedBluePt to pinFrame.O, U=" << upper;
 
 /*
     // Now build the prototype for the lower bodies.

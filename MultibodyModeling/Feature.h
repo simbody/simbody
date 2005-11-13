@@ -42,25 +42,25 @@
 #include "simmatrix/SmallMatrix.h"
 
 #include <iostream>
+#include <cassert>
 
 namespace simtk {
 
-// Declared below.
+// Declared below. Indenting shows inheritance structure.
 class Feature;
-class RealParameter;
-class StationParameter;
-class RealMeasure;
-class StationMeasure;
-class Station;
-class Direction;
-class Orientation;
-class Frame;
-
+class   Station;
+class   Direction;
+class   Orientation;
+class   Frame;
+class   RealMeasure;
+class     RealParameter;
+class   StationParameter;
+class     StationMeasure;
 
 /**
  * Features form a tree because many Features have sub-Features (children).
  * Parent features own their children; destructing the parent destructs
- * all the children).
+ * all the children.
  *
  * Most features require placement in order to be useful (e.g.,
  * a Station has to have a location). A Feature's Placement may
@@ -79,19 +79,8 @@ public:
     Feature& operator=(const Feature&);
     ~Feature();
 
-    bool           hasParentFeature() const;
-    int            getIndexInParent() const; // -1 if no parent
-    const Feature& getParentFeature() const;
 
-    bool isSameFeature(const Feature& f) const {return &f == this;}
-
-    // True if this is the same feature as f or if 
-    bool dependsOn(const Feature& f) const;
-
-    String getName()            const;
-    String getFullName()        const; // "ancestors.parent.name"
-    String getFeatureTypeName() const; // "Station", "Frame", etc.
-
+    // Read-only access to subfeatures.
     const Feature&          getFeature         (const String&) const; // generic
     const RealParameter&    getRealParameter   (const String&) const; // type checked
     const StationParameter& getStationParameter(const String&) const; //   "
@@ -102,16 +91,19 @@ public:
     const Orientation&      getOrientation     (const String&) const;
     const Frame&            getFrame           (const String&) const;
 
-    Feature&          updFeature         (const String&);   // generic
-    RealParameter&    updRealParameter   (const String&);   // type checked
-    StationParameter& updStationParameter(const String&);   //   "
-    RealMeasure&      updRealMeasure     (const String&);
-    StationMeasure&   updStationMeasure  (const String&);
-    Station&          updStation         (const String&);
-    Direction&        updDirection       (const String&);
-    Orientation&      updOrientation     (const String&);
-    Frame&            updFrame           (const String&);
+    // Writable access to subfeatures, e.g. allowing placement.
+    Feature&                updFeature         (const String&);   // generic
+    RealParameter&          updRealParameter   (const String&);   // type checked
+    StationParameter&       updStationParameter(const String&);   //   "
+    RealMeasure&            updRealMeasure     (const String&);
+    StationMeasure&         updStationMeasure  (const String&);
+    Station&                updStation         (const String&);
+    Direction&              updDirection       (const String&);
+    Orientation&            updOrientation     (const String&);
+    Frame&                  updFrame           (const String&);
 
+    // Create a new subfeature on this feature with a given name and type, and
+    // optionally create a placement for it using the prototype placement supplied.
     RealParameter&    addRealParameter
                         (const String&, const RealPlacement& = RealPlacement());
     RealMeasure&      addRealMeasure
@@ -129,9 +121,17 @@ public:
     Frame&            addFrame
                         (const String&, const FramePlacement& = FramePlacement());
 
+    // This is similar to the "add" routines above, except that the newly created
+    // feature is modeled on the prototype feature supplied here. Again a placement
+    // may be supplied or not.
+
+    // This generic routine will create a subfeature of the specific type supplied
+    // in the first argument. If a Placement is provided, it must be appropriate
+    // for that kind of feature or a runtime error will occur.
     Feature&          addFeatureLike
                         (const Feature&,
                          const String&, const Placement& = Placement());
+
     RealParameter&    addRealParameterLike
                         (const RealParameter&,
                          const String&, const RealPlacement& = RealPlacement());
@@ -156,6 +156,20 @@ public:
     Frame&            addFrameLike
                         (const Frame&,
                          const String&, const FramePlacement& = FramePlacement());
+   
+    bool           hasParentFeature() const;
+    int            getIndexInParent() const; // -1 if no parent
+    const Feature& getParentFeature() const;
+
+    bool isSameFeature(const Feature& f) const {return &f == this;}
+
+    // True if this is the same feature as f or if the feature's placement
+    // depends on f's placement.
+    bool dependsOn(const Feature& f) const;
+
+    String getName()            const;
+    String getFullName()        const; // "ancestors.parent.name"
+    String getFeatureTypeName() const; // "Station", "Frame", etc.
 
     // Subfeatures of this feature
     int            getNFeatures() const;
@@ -164,10 +178,20 @@ public:
     void           placeFeature(const String&, const Placement&);
     void           placeFeature(int, const Placement&);
 
-    // true if Feature & all children have been placed
+    // True if this feature has been placed; its children may still be unplaced.
     bool hasPlacement() const;
-    void setPlacement(const Placement&);
     const Placement& getPlacement() const;
+
+    // Place this feature. This is overridden by derived classes to
+    // be more specific. In all cases, we look at whether the supplied
+    // placement has an owner. If so, we simply reference it after
+    // checking its suitability. If not, we will add a copy of this
+    // placement either (1) to this feature, if the placement is a 
+    // constant, or (2) to the "youngest common ancestor" of this
+    // feature and all the features referenced in the placement.
+    // A runtime error will occur if there is no common ancestor, or
+    // if the placement references the current feature (this).
+    void place(const Placement&);
 
     String toString(const String& linePrefix="") const;
 
@@ -205,7 +229,7 @@ public:
     RealMeasure& operator=(const RealMeasure&);
     ~RealMeasure();
 
-    void set(const Placement&);
+    void set(const RealPlacement&);
 
     static bool               isInstanceOf(const Feature&);
     static const RealMeasure& downcast(const Feature&);
@@ -245,7 +269,7 @@ public:
     StationMeasure& operator=(const StationMeasure&);
     ~StationMeasure();
 
-    void set(const Placement&);
+    void set(const StationPlacement&);
 
     static bool                  isInstanceOf(const Feature&);
     static const StationMeasure& downcast(const Feature&);
@@ -276,7 +300,7 @@ public:
     Station& operator=(const Station&);
     ~Station();
     
-    void placeStation(const StationPlacement&);
+    void place(const StationPlacement&);
 
     static bool           isInstanceOf(const Feature&);
     static const Station& downcast(const Feature&);
@@ -291,7 +315,7 @@ public:
     Direction& operator=(const Direction&);
     ~Direction();
 
-    void placeDirection(const DirectionPlacement&);
+    void place(const DirectionPlacement&);
 
     static bool             isInstanceOf(const Feature&);
     static const Direction& downcast(const Feature&);
@@ -307,8 +331,11 @@ public:
     ~Orientation();
 
     const Direction& getAxis(int) const;
+    const Direction&   x()        const {return getAxis(0);}
+    const Direction&   y()        const {return getAxis(1);}
+    const Direction&   z()        const {return getAxis(2);}
 
-    void placeOrientation(const OrientationPlacement&);
+    void place(const OrientationPlacement&);
 
     static bool               isInstanceOf(const Feature&);
     static const Orientation& downcast(const Feature&);
@@ -325,11 +352,12 @@ public:
     const Station&     getOrigin() const;
     const Orientation& getOrientation() const;
     const Direction&   getAxis(int i) const {return getOrientation().getAxis(i);}
-    const Direction&   x()            const {return getOrientation().getAxis(0);}
-    const Direction&   y()            const {return getOrientation().getAxis(1);}
-    const Direction&   z()            const {return getOrientation().getAxis(2);}
+    const Direction&   x()            const {return getOrientation().x();}
+    const Direction&   y()            const {return getOrientation().y();}
+    const Direction&   z()            const {return getOrientation().z();}
 
-    void placeFrame(const FramePlacement&);
+    void place(const FramePlacement&);
+    void place(const OrientationPlacement&, const StationPlacement&);
 
     static bool         isInstanceOf(const Feature&);
     static const Frame& downcast(const Feature&);
