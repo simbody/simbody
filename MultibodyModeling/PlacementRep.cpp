@@ -128,7 +128,7 @@ RealExprPlacementRep::findAncestorFeature(const Feature& root) const {
             continue;
         foundNonConst = true;
         const Feature* argAncestor = 
-            PlacementRep::getRep(*args[i])->findAncestorFeature(root);
+            args[i]->getRep().findAncestorFeature(root);
         if (ancestor && argAncestor)
             ancestor = FeatureRep::findYoungestCommonAncestor(*ancestor,*argAncestor);
         else ancestor = argAncestor;

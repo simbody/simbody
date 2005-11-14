@@ -85,6 +85,11 @@ public:
 
     String toString(const String& linePrefix="") const;
 
+    // For internal use only.
+    bool                      hasRep() const {return rep != 0;}
+    const class PlacementRep& getRep() const {assert(rep); return *rep;}
+    class PlacementRep&       updRep()       {assert(rep); return *rep;}
+    void                      setRep(PlacementRep* pp) {assert(!rep); rep=pp;}
 protected:
     class PlacementRep* rep;
     friend class PlacementRep;

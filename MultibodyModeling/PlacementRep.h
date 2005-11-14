@@ -116,11 +116,10 @@ public:
         };
     }
 
-    SIMTK_REP_HELPERS(Placement,PlacementRep)
 protected:
     void cleanUpAfterClone(Placement& p) {
         myHandle = &p;
-        PlacementRep::setRep(p, this);
+        p.setRep(this);
     }
 private:
     Placement*      myHandle;    // the Placement whose rep this is
@@ -228,8 +227,8 @@ public:
     RealPlacementOp* clone() const { return new RealBinaryOpRR(*this);}
     bool checkArgs(const std::vector<const Placement*>& args) const {
         return args.size() == 2 
-               && PlacementRep::getRep(*args[0])->getPlacementType()==RealPlacementType
-               && PlacementRep::getRep(*args[1])->getPlacementType()==RealPlacementType;
+               && args[0]->getRep().getPlacementType()==RealPlacementType
+               && args[1]->getRep().getPlacementType()==RealPlacementType;
     }
     std::string getOpName() const {
         char *p = 0;
@@ -291,7 +290,7 @@ public:
         s << func.getOpName() << "(";
         for (size_t i=0; i<args.size(); ++i)
             s << (i>0?", ":"") 
-              << PlacementRep::getRep(*args[i])->toString(linePrefix);
+              << args[i]->getRep().toString(linePrefix);
         s << ")";
         return s.str();
     }

@@ -80,8 +80,14 @@ PointMassElement::PointMassElement(const String& nm, const Real& m) {
 void PointMassElement::setMass(const Real& m) {
     PointMassElementRep::downcast(updRep()).setMass(m);
 }
-void PointMassElement::placePoint(const Vec3& v) {
-    PointMassElementRep::downcast(updRep()).placePoint(v);
+void PointMassElement::place(const StationPlacement& p) {
+    try {
+        updRep().place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, 
+            "PointMassElement::place", exc.getMessage());
+    }
 }
 
 /*static*/ bool             

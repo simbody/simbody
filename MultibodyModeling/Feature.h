@@ -186,9 +186,10 @@ public:
     // be more specific. In all cases, we look at whether the supplied
     // placement has an owner. If so, we simply reference it after
     // checking its suitability. If not, we will add a copy of this
-    // placement either (1) to this feature, if the placement is a 
-    // constant, or (2) to the "youngest common ancestor" of this
-    // feature and all the features referenced in the placement.
+    // placement either (1) if the placement is a constant, then to
+    // this feature's parent, or this feature if it has no parent, or
+    // (2) to the "youngest common ancestor" of this feature
+    // and all the features referenced in the placement.
     // A runtime error will occur if there is no common ancestor, or
     // if the placement references the current feature (this).
     void place(const Placement&);

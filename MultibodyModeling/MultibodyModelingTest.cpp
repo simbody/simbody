@@ -51,6 +51,7 @@ try {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
+    blue.place(Vec3(1,2,3));
 
     cout << "blue=" << blue;
     cout << "orange=" << orange;
@@ -81,15 +82,12 @@ try {
     upper.addStation("leftAttachPt",    Vec3(0,-1,1));
     upper.addStation("rightAttachPt",   Vec3(1,-1,0));
 
-    XXX no placements above
-
 
     // Instantiate 'atom' mass elements and place them on their stations.
     upper.addMassElementLike(green,  "green",  upper.getStation("greenPt"));
     upper.addMassElementLike(orange, "orange", upper.getStation("orangePt"));
     upper.addMassElementLike(blue,   "blue1",  upper.getStation("pinnedBluePt"));
     upper.addMassElementLike(blue,   "blue2",  upper.getStation("otherBluePt"));
-
 
     // Create some joint frames at the appropriate stations (by default
     // they are aligned with the body frame).
@@ -102,7 +100,7 @@ try {
         place(upper.getFrame("pinFrame").getOrigin());
     cout << "after moving pinnedBluePt to pinFrame.O, U=" << upper;
 
-/*
+
     // Now build the prototype for the lower bodies.
 
     RigidBody lower("L");
@@ -112,19 +110,20 @@ try {
     lower.addRealParameter("halfHeight");
     lower.addStation("ballAttachPt");
 
-    lower.updStation("ballAttachPt").setPlacement(
-                       StationPlacement(lower.y(), lower.getRealParameter("halfHeight")));
+   // lower.updStation("ballAttachPt").setPlacement(
+    //                   StationPlacement(lower.y(), lower.getRealParameter("halfHeight")));
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
-    cout << "L=" << lower;
+
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
     tube.placeFeature("center", lower.getOrigin());
-    tube.placeFeature("axis", DirectionPlacement::minus(lower.getStation("ballAttachPt"),
-                                                          lower.getOrigin()));
-  
+    //tube.placeFeature("axis", DirectionPlacement::minus(lower.getStation("ballAttachPt"),
+    //                                                      lower.getOrigin()));
+     cout << "L=" << lower; 
+     /*
     ////////////////////////////////////////////
     // Create an articulated multibody system //
     ////////////////////////////////////////////

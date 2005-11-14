@@ -96,7 +96,10 @@ String Placement::toString(const String& linePrefix) const {
         s << "at 0x" << this << " HAS MISMATCHED REP";
         return s.str();
     }
-    s << rep->toString(linePrefix);
+    if (hasOwner())
+         s << getOwner().getFullName() << "[" << getIndexInOwner() << "]";
+    else s << "NO OWNER";
+    s << ":" << rep->toString(linePrefix);
     return s.str();
 }
 
@@ -117,8 +120,8 @@ RealPlacement::RealPlacement(const Real& r) {
 
 /*static*/ bool             
 RealPlacement::isInstanceOf(const Placement& p) {
-    if (!PlacementRep::getRep(p)) return false;
-    return RealPlacementRep::isA(*PlacementRep::getRep(p));
+    if (!p.hasRep()) return false;
+    return RealPlacementRep::isA(p.getRep());
 }
 /*static*/ const RealPlacement& 
 RealPlacement::downcast(const Placement& p) {

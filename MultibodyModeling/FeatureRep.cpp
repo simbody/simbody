@@ -78,24 +78,29 @@ FeatureRep::cloneWithoutExternalPlacements(Feature& newHandle) const
 // If Placement p doesn't have an owner, we'll add a copy of it to
 // an appropriate feature and then use the copy; otherwise, we'll just
 // use p as-is.
-void FeatureRep::place(const Placement& p) { 
-    assert(PlacementRep::getRep(p)->getPlacementType() == getRequiredPlacementType());
+// TODO: should we *insist* that p not have an owner to avoid 
+// duplicate references?
+void FeatureRep::place(const Placement& p) {
+    assert(p.hasRep());
+    assert(p.getRep().getPlacementType() == getRequiredPlacementType());
 
     const Placement* placementToUse = &p;
     if (!p.hasOwner()) {
-        if (p.isConstant())
-            placementToUse = &addPlacementLike(p);
-        else {
+        if (p.isConstant()) {
+            FeatureRep& ownerFeatureRep =
+                hasParentFeature() ? getParentFeature().getRep() : *this;
+            placementToUse = &(ownerFeatureRep.addPlacementLike(p));
+        } else {
             const Feature& myRoot = findRootFeature();
             const Feature* offender;
-            if (!PlacementRep::getRep(p)->isLimitedToSubtree(myRoot, offender)) {
+            if (!p.getRep().isLimitedToSubtree(myRoot, offender)) {
                 SIMTK_THROW2(Exception::FeatureAndPlacementOnDifferentTrees,
                     getFullName(), offender->getFullName());
                 //NOTREACHED
             }
 
             const Feature& placementAncestor = 
-                *PlacementRep::getRep(p)->findAncestorFeature(myRoot);
+                *p.getRep().findAncestorFeature(myRoot);
 
             Feature* commonAncestor = 
                 findUpdYoungestCommonAncestor(updMyHandle(), placementAncestor);
@@ -127,10 +132,10 @@ FeatureRep::addFeatureLike(const Feature& f, const std::string& nm) {
 // grandchildren, etc.
 Placement& 
 FeatureRep::addPlacementLike(const Placement& p) {
-    assert(PlacementRep::getRep(p));
+    assert(p.hasRep());
 
     Feature* offender;
-    if (!PlacementRep::getRep(p)->isLimitedToSubtree(getMyHandle(),offender)) {
+    if (!p.getRep().isLimitedToSubtree(getMyHandle(),offender)) {
         SIMTK_THROW3(Exception::PlacementMustBeLocal,"FeatureRep::addPlacementLike",
             this->getFullName(),offender->getFullName());
     }
@@ -138,8 +143,8 @@ FeatureRep::addPlacementLike(const Placement& p) {
     const int index = (int)placementExpressions.size();
     placementExpressions.push_back(Placement());
     Placement& newPlacement = placementExpressions[index];
-    PlacementRep::getRep(p)->clone(newPlacement);
-    PlacementRep::updRep(newPlacement)->setOwner(getMyHandle(), index);
+    p.getRep().clone(newPlacement);
+    newPlacement.updRep().setOwner(getMyHandle(), index);
     return newPlacement;
 }
 
@@ -254,7 +259,7 @@ void FeatureRep::reparentMyChildren() {
     }
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
         assert(placementExpressions[i].getIndexInOwner() == i); // shouldn't change
-        PlacementRep::updRep(placementExpressions[i])->setOwner(getMyHandle(), i);
+        placementExpressions[i].updRep().setOwner(getMyHandle(), i);
     }
 }
 
@@ -270,8 +275,7 @@ void FeatureRep::fixPlacements(const Feature& oldRoot, const Feature& newRoot) {
         childFeatures[i].rep->fixPlacements(oldRoot, newRoot);
 
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
-        PlacementRep::updRep(placementExpressions[i])
-            ->repairFeatureReferences(oldRoot,newRoot);
+        placementExpressions[i].updRep().repairFeatureReferences(oldRoot,newRoot);
 
     if (placement)
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);

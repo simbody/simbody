@@ -76,7 +76,7 @@ public:
         setMessage(
             "can't place Feature '" + hostFeature 
             + "' because the supplied placement references Feature '" + offendingFeature
-            + "' (and possibly others) and their is no common ancestor.");
+            + "' (and possibly others) and there is no common ancestor.");
     }
 private:
 };
@@ -145,16 +145,5 @@ private:
 
 
 } // namespace simtk
-
-// rep helpers
-// These allow a rep class to manipulate the rep pointer in its handle class.
-// This avoids having to make the user-visible handle provide these routines
-// or make the rep pointer public.
-#define SIMTK_REP_HELPERS(HANDLECLASS,REPCLASS) \
-static const REPCLASS* getRep(const HANDLECLASS& s)   {return s.rep;} \
-static REPCLASS*       updRep(HANDLECLASS& s)         {return s.rep;} \
-static void setRep(HANDLECLASS& s, REPCLASS* rep)     {assert(s.rep==0);s.rep=rep;} \
-static void replaceRep(HANDLECLASS& s, REPCLASS* rep) {delete s.rep; s.rep=rep;}    \
-static void clearRep(HANDLECLASS& s)                  {replaceRep(s,0);}
 
 #endif // SIMTK_SIMBODY_COMMON_H_

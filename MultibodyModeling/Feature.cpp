@@ -82,6 +82,15 @@ void Feature::place(const Placement& p) {
     }
 }
 
+void Feature::placeFeature(const String& subfeatureName, const Placement& p) {
+    try {
+        updFeature(subfeatureName).place(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::placeFeature", exc.getMessage());
+    }
+}
+
 const Placement& Feature::getPlacement() const {
     assert(hasPlacement());
     return getRep().getPlacement();
@@ -155,13 +164,9 @@ RealParameter& Feature::updRealParameter(const String& n) {
     return RealParameter::downcast(updFeature(n));
 }
 RealParameter& Feature::addRealParameter(const String& n, const RealPlacement& p) {
-    RealParameter& r = RealParameter::downcast(
-                            updRep().addFeatureLike(RealParameter(n), n));
-    if (PlacementRep::getRep(p)) {
-        const RealPlacement& rp = RealPlacement::downcast(updRep().addPlacementLike(p));
-        r.place(rp);
-    }
-    return r;
+    RealParameter& rp = RealParameter::downcast(updRep().addFeatureLike(RealParameter(n), n));
+    if (p.hasRep()) rp.place(p);
+    return rp;
 }
 
 const StationParameter& Feature::getStationParameter(const String& n) const {
@@ -171,18 +176,26 @@ StationParameter& Feature::updStationParameter(const String& n) {
     return StationParameter::downcast(updFeature(n));
 }
 StationParameter& Feature::addStationParameter(const String& n, const StationPlacement& p) {
-    return StationParameter::downcast(updRep().addFeatureLike(StationParameter(n), n));
+    StationParameter& sp = StationParameter::downcast(updRep().addFeatureLike(StationParameter(n), n));
+    if (p.hasRep()) sp.place(p);
+    return sp;
 }
 
 RealMeasure& Feature::addRealMeasure(const String& n, const RealPlacement& p) {
-    return RealMeasure::downcast(updRep().addFeatureLike(RealMeasure(n), n));
+    RealMeasure& rm = RealMeasure::downcast(updRep().addFeatureLike(RealMeasure(n), n));
+    if (p.hasRep()) rm.place(p);
+    return rm;
 }
 StationMeasure& Feature::addStationMeasure(const String& n, const StationPlacement& p) {
-    return StationMeasure::downcast(updRep().addFeatureLike(StationMeasure(n), n));
+    StationMeasure& sm = StationMeasure::downcast(updRep().addFeatureLike(StationMeasure(n), n));
+    if (p.hasRep()) sm.place(p);
+    return sm;
 }
 
 Station& Feature::addStation(const String& n, const StationPlacement& p) {
-    return Station::downcast(updRep().addFeatureLike(Station(n), n));
+    Station& s = Station::downcast(updRep().addFeatureLike(Station(n), n));
+    if (p.hasRep()) s.place(p);
+    return s;
 }
 const Station& Feature::getStation(const String& nm) const {
     return Station::downcast(getFeature(nm));
@@ -191,7 +204,9 @@ Station& Feature::updStation(const String& nm) {
     return Station::downcast(updFeature(nm));
 }
 Frame& Feature::addFrame(const String& n, const FramePlacement& p) {
-    return Frame::downcast(updRep().addFeatureLike(Frame(n), n));
+    Frame& f = Frame::downcast(updRep().addFeatureLike(Frame(n), n));
+    if (p.hasRep()) f.place(p);
+    return f;
 }
 const Frame& Feature::getFrame(const String& nm) const {
     return Frame::downcast(getFeature(nm));

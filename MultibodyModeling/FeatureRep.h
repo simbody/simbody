@@ -316,8 +316,8 @@ private:
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        O.place(Vec3(0));
         R.place(Mat33(1));  // identity
+        O.place(Vec3(0));
     }
 
     int RIndex, OIndex; // feature indices

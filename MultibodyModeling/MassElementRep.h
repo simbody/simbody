@@ -74,11 +74,6 @@ public:
         updChildFeature("mass")->place(p);
     }
 
-    void placePoint(const Vec3& v) {
-        const Placement& p = addPlacementLike(StationPlacement(v));
-        place(p);
-    }
-
     std::string getFeatureTypeName() const { return "PointMassElement"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new PointMassElementRep(*this); }
