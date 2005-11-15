@@ -181,13 +181,13 @@ Vec3Placement::Vec3Placement(const Vec3& r) {
     (void)new Vec3ConstantPlacementRep(*this,r);
 }
 
-//Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
-//    rp.getRep().useAsVec3Placement(*this);
-//}
+Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
+    rp.getRep().useAsVec3Placement(*this);
+}
 
-//Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
-//    rm.getRep().useAsVec3Placement(*this);
-//}
+Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
+    rm.getRep().useAsVec3Placement(*this);
+}
 
 //Vec3Placement::Vec3Placement(const Feature& f) {
 //    f.getRep().useAsVec3Placement(*this);
@@ -297,6 +297,10 @@ OrientationPlacement::OrientationPlacement(const Mat33& m) {
     // FRAME PLACEMENT //
 FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
     (void)new FramePlacementRep(*this,o,s);
+}
+
+FramePlacement::FramePlacement(const Frame& f) {
+    f.getRep().useAsFramePlacement(*this);
 }
 
 FramePlacement::FramePlacement(const Station& s) {

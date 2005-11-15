@@ -279,6 +279,23 @@ public:
     SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
 };
 
+class Vec3ParameterRep : public FeatureRep {
+public:
+    Vec3ParameterRep(Vec3Parameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+
+    std::string getFeatureTypeName() const { return "Vec3Parameter"; }
+    PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
+    FeatureRep* clone() const { return new Vec3ParameterRep(*this); }
+
+    void useAsVec3Placement(Vec3Placement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
+    SIMTK_DOWNCAST(Vec3ParameterRep,FeatureRep);
+};
+
 class StationParameterRep : public FeatureRep {
 public:
     StationParameterRep(StationParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
@@ -288,12 +305,6 @@ public:
     FeatureRep* clone() const { return new StationParameterRep(*this); }
 
     void useAsStationPlacement(StationPlacement& handle) const {
-        (void)new FeaturePlacementRep(
-                    reinterpret_cast<FeaturePlacement&>(handle),
-                    getMyHandle());
-    }
-
-    void useAsVec3Placement(Vec3Placement& handle) const {
         (void)new FeaturePlacementRep(
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
@@ -319,6 +330,23 @@ public:
     SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
 };
 
+class Vec3MeasureRep : public FeatureRep {
+public:
+    Vec3MeasureRep(Vec3Measure& m, const std::string& nm) : FeatureRep(m,nm) { }
+
+    std::string getFeatureTypeName() const { return "Vec3Measure"; }
+    PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
+    FeatureRep* clone() const { return new Vec3MeasureRep(*this); }
+
+    void useAsVec3Placement(Vec3Placement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
+    SIMTK_DOWNCAST(Vec3MeasureRep,FeatureRep);
+};
+
 class StationMeasureRep : public FeatureRep {
 public:
     StationMeasureRep(StationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
@@ -328,12 +356,6 @@ public:
     FeatureRep* clone() const { return new StationMeasureRep(*this); }
 
     void useAsStationPlacement(StationPlacement& handle) const {
-        (void)new FeaturePlacementRep(
-                    reinterpret_cast<FeaturePlacement&>(handle),
-                    getMyHandle());
-    }
-
-    void useAsVec3Placement(Vec3Placement& handle) const {
         (void)new FeaturePlacementRep(
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
@@ -355,11 +377,7 @@ public:
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
     }
-    void useAsVec3Placement(Vec3Placement& handle) const {
-        (void)new FeaturePlacementRep(
-                    reinterpret_cast<FeaturePlacement&>(handle),
-                    getMyHandle());
-    }
+
     void useAsFramePlacement(FramePlacement& handle) const {
         if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
             SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
@@ -387,11 +405,7 @@ public:
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
     }
-    void useAsVec3Placement(Vec3Placement& handle) const {
-        (void)new FeaturePlacementRep(
-                    reinterpret_cast<FeaturePlacement&>(handle),
-                    getMyHandle());
-    }
+
     SIMTK_DOWNCAST(DirectionRep,FeatureRep);
 };
 

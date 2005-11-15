@@ -21,7 +21,7 @@
  */
 
 /**@file
- * Implementations of MassElement Features for Simbody.
+ * Implementations of Body Features for Simbody.
  */
 
 #include "SimbodyCommon.h"
@@ -107,5 +107,100 @@ RigidBody::downcast(Feature& f) {
     // DEFORMABLE BODY //
 
     // MULTIBODY //
+Multibody::Multibody(const String& nm) {
+    (void)new MultibodyRep(*this, std::string(nm));
+}
+Multibody::Multibody(const Multibody& src)
+  : Body(src) { }
+Multibody& Multibody::operator=(const Multibody& src) {
+    Body::operator=(src); return *this;
+}
+Multibody::~Multibody() { }
+
+const Frame& Multibody::getGroundFrame() const {
+    return getFrame("Ground");
+}
+
+RigidBody& Multibody::addGroundBody() {
+    RigidBody& subBody = 
+        RigidBody::downcast(updRep().addSubfeatureLike(RigidBody("Ground"), "Ground"));
+    return subBody;
+}
+
+RigidBody& Multibody::addRigidBody(const String& nm) {
+    RigidBody& subBody = 
+        RigidBody::downcast(updRep().addSubfeatureLike(RigidBody(nm), nm));
+    return subBody;
+}
+
+RigidBody& Multibody::addRigidBodyLike(const RigidBody& b, const String& nm) {
+    RigidBody& subBody = RigidBody::downcast(updRep().addSubfeatureLike(b, nm));
+    return subBody;
+}
+
+Body& Multibody::addBodyLike(const Body& b, const String& nm) {
+    Body& subBody = Body::downcast(updRep().addSubfeatureLike(b, nm));
+    return subBody;
+}
+
+Joint& Multibody::addJoint(JointType jt, const String& nm) {
+    Joint& j = Joint::downcast(updRep().addSubfeatureLike(Joint(jt,nm), nm));
+    return j;
+}
+
+Joint& Multibody::addJoint(JointType jt, const String& nm,
+                           const FramePlacement& reference,
+                           const FramePlacement& moving) {
+    Joint& j = Joint::downcast(updRep().addSubfeatureLike(Joint(jt,nm), nm));
+    j.updFrame("reference").place(reference);
+    j.updFrame("moving").place(moving);
+    return j;
+}
+
+/*static*/ bool             
+Multibody::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return MultibodyRep::isA(f.getRep());
+}
+/*static*/ const Multibody& 
+Multibody::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Multibody&>(f);
+}
+
+/*static*/ Multibody&       
+Multibody::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Multibody&>(f);
+}
+
+    // JOINT //
+
+Joint::Joint(JointType jt, const String& nm) {
+    (void)new JointRep(*this, jt, std::string(nm));
+}
+Joint::Joint(const Joint& src)
+  : Feature(src) { }
+Joint& Joint::operator=(const Joint& src) {
+    Feature::operator=(src); return *this;
+}
+Joint::~Joint() { }
+
+/*static*/ bool             
+Joint::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return JointRep::isA(f.getRep());
+}
+/*static*/ const Joint& 
+Joint::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Joint&>(f);
+}
+
+/*static*/ Joint&       
+Joint::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Joint&>(f);
+}
 
 } // namespace simtk

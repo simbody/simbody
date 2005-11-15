@@ -232,6 +232,32 @@ RealParameter::downcast(Feature& f) {
     return reinterpret_cast<RealParameter&>(f);
 }
 
+    // VEC3 PARAMETER //
+
+Vec3Parameter::Vec3Parameter(const String& nm)
+  { (void)new Vec3ParameterRep(*this, std::string(nm)); }
+Vec3Parameter::Vec3Parameter(const Vec3Parameter& src) : Vec3Measure(src) { }
+Vec3Parameter& Vec3Parameter::operator=(const Vec3Parameter& src)
+  { Vec3Measure::operator=(src); return *this; }
+Vec3Parameter::~Vec3Parameter() { }
+
+/*static*/ bool             
+Vec3Parameter::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return Vec3ParameterRep::isA(f.getRep());
+}
+/*static*/ const Vec3Parameter& 
+Vec3Parameter::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Vec3Parameter&>(f);
+}
+
+/*static*/ Vec3Parameter&       
+Vec3Parameter::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Vec3Parameter&>(f);
+}
+
     // STATION PARAMETER //
 StationParameter::StationParameter(const String& nm)
   { (void)new StationParameterRep(*this, std::string(nm)); }
@@ -280,6 +306,31 @@ RealMeasure::downcast(const Feature& f) {
 RealMeasure::downcast(Feature& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<RealMeasure&>(f);
+}
+
+    // VEC3 MEASURE //
+Vec3Measure::Vec3Measure(const String& nm)
+  { (void)new Vec3MeasureRep(*this, std::string(nm)); }
+Vec3Measure::Vec3Measure(const Vec3Measure& src) : Feature(src) { }
+Vec3Measure& Vec3Measure::operator=(const Vec3Measure& src)
+  { Feature::operator=(src); return *this; }
+Vec3Measure::~Vec3Measure() { }
+
+/*static*/ bool             
+Vec3Measure::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return Vec3MeasureRep::isA(f.getRep());
+}
+/*static*/ const Vec3Measure& 
+Vec3Measure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Vec3Measure&>(f);
+}
+
+/*static*/ Vec3Measure&       
+Vec3Measure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Vec3Measure&>(f);
 }
 
     // STATION MEASURE //

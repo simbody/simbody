@@ -113,6 +113,8 @@ try {
             Vec3Placement::scale(lower.getRealParameter("halfHeight"), 
                                  Vec3Placement::cast(DirectionPlacement(lower.y())))));
 
+    lower.addFrame("upperAttachmentFrame", lower.getStation("ballAttachPt"));
+
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
 
@@ -127,12 +129,13 @@ try {
         Vec3Placement::minus(Vec3Placement::cast(StationPlacement(lower.getStation("ballAttachPt"))),
                              Vec3Placement::cast(StationPlacement(lower.getOrigin())))));
      cout << "L=" << lower; 
-     /*
+
     ////////////////////////////////////////////
     // Create an articulated multibody system //
     ////////////////////////////////////////////
 	
     Multibody mbs("example1");
+
     mbs.addGroundBody();
     Body &upperBody = mbs.addBodyLike(upper, "upper"),
          &leftLeg   = mbs.addBodyLike(lower, "left"),
@@ -140,22 +143,22 @@ try {
 
     // Create a single parameter of the multibody which can be used
     // to control the two halfHeights together.
-    Parameter& hh = mbs.addParameter("halfHeight");
-    leftLeg .updFeature("tube").updParameter("halfHeight").set(hh);
-    rightLeg.updFeature("tube").updParameter("halfHeight").set(hh);
+    RealParameter& hh = mbs.addRealParameter("halfHeight");
+    leftLeg["tube"]["halfLength"].place(hh);
+    rightLeg["tube"]["halfLength"].place(hh);
 
     mbs.addJoint(PinJoint, "base2ground", 
                  mbs.getGroundFrame(),                      //reference frame
                  upperBody);                                //moving frame
     mbs.addJoint(BallJoint, "leftHipJoint",
-                 upperBody,                                 //reference frame
+                 upperBody.getFrame("leftBallFrame"),       //reference frame
                  leftLeg.getFrame("upperAttachmentFrame")); //moving frame
     mbs.addJoint(BallJoint, "rightHipJoint",
-                 upperBody,                                 //reference frame
+                 upperBody.getFrame("rightBallFrame"),      //reference frame
                  rightLeg.getFrame("upperAttachmentFrame"));//moving frame
 
     std::cout << mbs << std::endl; //let’s see what we’ve got
-    */
+
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

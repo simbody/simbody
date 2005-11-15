@@ -38,10 +38,12 @@ class Station;
 class Direction;
 class Orientation;
 class Frame;
-class RealParameter;
-class StationParameter;
 class RealMeasure;
+class   RealParameter;
+class Vec3Measure;
+class   Vec3Parameter;
 class StationMeasure;
+class   StationParameter;
 
 // Declared below.
 class Placement;
@@ -134,7 +136,7 @@ public:
                                 const RealPlacement& r);
     static RealPlacement divide(const RealPlacement& l,
                                 const RealPlacement& r);
-    static RealPlacement length(const DirectionPlacement&);
+    static RealPlacement length(const Vec3Placement&);
 
     static bool                 isInstanceOf(const Placement&);
     static const RealPlacement& downcast(const Placement&);
@@ -145,8 +147,8 @@ class Vec3Placement : public Placement {
 public:
     Vec3Placement() { }
     Vec3Placement(const Vec3&);
-    //Vec3Placement(const Vec3Parameter&);
-    //Vec3Placement(const Vec3Measure&);
+    Vec3Placement(const Vec3Parameter&);
+    Vec3Placement(const Vec3Measure&);
     //Vec3Placement(const Feature&);
 
     static Vec3Placement plus  (const Vec3Placement& l,

@@ -243,6 +243,38 @@ protected:
     RealParameter() { }
 };
 
+class Vec3Measure : public Feature {
+public:
+    explicit Vec3Measure(const String& name);
+    Vec3Measure(const Vec3Measure&);
+    Vec3Measure& operator=(const Vec3Measure&);
+    ~Vec3Measure();
+
+    void set(const Vec3Placement&);
+
+    static bool               isInstanceOf(const Feature&);
+    static const Vec3Measure& downcast(const Feature&);
+    static Vec3Measure&       downcast(Feature&);
+protected:
+    Vec3Measure() { }
+};
+
+class Vec3Parameter : public Vec3Measure {
+public:
+    explicit Vec3Parameter(const String& name);
+    Vec3Parameter(const Vec3Parameter&);
+    Vec3Parameter& operator=(const Vec3Parameter&);
+    ~Vec3Parameter();
+
+    void set(const Vec3&);
+
+    static bool                 isInstanceOf(const Feature&);
+    static const Vec3Parameter& downcast(const Feature&);
+    static Vec3Parameter&       downcast(Feature&);
+protected:
+    Vec3Parameter() { }
+};
+
 class StationMeasure : public Feature {
 public:
     explicit StationMeasure(const String& name);

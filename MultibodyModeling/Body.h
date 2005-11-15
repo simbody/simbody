@@ -122,30 +122,31 @@ public:
     const Frame& getGroundFrame() const;
 
     // add Multibody features
-    Body& addGroundBody();
-    Body& addBody(const String&);
+    RigidBody& addGroundBody();
+    RigidBody& addRigidBody(const String&);
+    RigidBody& addRigidBodyLike(const RigidBody&, const String&);
     Body& addBodyLike(const Body&, const String&);
+    Joint& addJoint(JointType, const String&);
     Joint& addJoint(JointType, const String&,
-                    const Placement& reference,
-                    const Placement& moving);
+                    const FramePlacement& reference,
+                    const FramePlacement& moving);
 
     static bool             isInstanceOf(const Feature&);
     static const Multibody& downcast(const Feature&);
     static Multibody&       downcast(Feature&);
 };
 
-class Joint {
+class Joint : public Feature {
 public:
-    Joint() : rep(0) { }
-    explicit Joint(const String&);
+    explicit Joint(JointType, const String&);
     Joint(const Joint&);
     Joint& operator=(const Joint&);
     ~Joint();
-private:
-    class JointRep* rep;
-    friend class JointRep;
+
+    static bool         isInstanceOf(const Feature&);
+    static const Joint& downcast(const Feature&);
+    static Joint&       downcast(Feature&);
 };
-std::ostream& operator<<(std::ostream& o, const Joint&);
 
 class MultibodySystem {
     MultibodySystem() : rep(0) { }

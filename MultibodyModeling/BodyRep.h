@@ -50,6 +50,8 @@ public:
         return StationMeasure::downcast(getSubfeature(centroidMeasureIndex));
     }
 
+    PlacementType getRequiredPlacementType() const { return FramePlacementType; }
+
     // virtuals getFeatureTypeName() && clone() still missing
 
     SIMTK_DOWNCAST2(BodyRep,FrameRep,FeatureRep);
@@ -71,7 +73,7 @@ public:
       : BodyRep(pm,nm) { }
 
     std::string   getFeatureTypeName() const { return "RigidBody"; }
-    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
+
     FeatureRep*   clone() const { return new RigidBodyRep(*this); }
 
     SIMTK_DOWNCAST2(RigidBodyRep,BodyRep,FeatureRep);
@@ -88,7 +90,55 @@ private:
     }
 };
 
+class MultibodyRep : public BodyRep {
+public:
+    MultibodyRep(Multibody& handle, const std::string& nm)
+      : BodyRep(handle,nm) { }
 
+    std::string   getFeatureTypeName() const { return "Multibody"; }
+
+    FeatureRep*   clone() const { return new MultibodyRep(*this); }
+
+    SIMTK_DOWNCAST2(MultibodyRep,BodyRep,FeatureRep);
+private:
+    void initializeFeatures() {
+
+/* TODO these measures need to have a FunctionPlacement (with runtime states)
+        updChildFeature("massMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
+        updChildFeature("centroidMeasure")->setPlacement(
+            addPlacementLike(FeaturePlacement(*getChildFeature("station"))));
+            */
+    }
+};
+
+
+class JointRep : public FeatureRep {
+public:
+    JointRep(Joint& j, JointType jt, const std::string& nm) 
+      : FeatureRep(j,nm), refIndex(-1), movIndex(-1) {
+        initializeSubfeatures();
+    }
+
+    std::string   getFeatureTypeName() const { return "Joint"; }
+    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
+    FeatureRep*   clone() const { return new JointRep(*this); }
+
+    const Frame& getReferenceFrame() const {return Frame::downcast(getSubfeature(refIndex));}
+    const Frame& getMovingFrame()    const {return Frame::downcast(getSubfeature(movIndex)); }
+
+    SIMTK_DOWNCAST(JointRep,FeatureRep);
+private:
+    void initializeSubfeatures() {
+        Frame& R = Frame::downcast(addSubfeatureLike(Frame("R"), "reference"));
+        Frame& M = Frame::downcast(addSubfeatureLike(Frame("M"), "moving"));
+
+        refIndex = R.getIndexInParent();
+        movIndex = M.getIndexInParent();
+    }
+
+    int refIndex, movIndex; // feature indices
+};
 
 } // namespace simtk
 
