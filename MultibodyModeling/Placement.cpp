@@ -122,8 +122,41 @@ RealPlacement::RealPlacement(const Real& r) {
     (void)new RealConstantPlacementRep(*this,r);
 }
 
+RealPlacement::RealPlacement(const RealParameter& rp) {
+    rp.getRep().useAsRealPlacement(*this);
+}
+
+RealPlacement::RealPlacement(const RealMeasure& rm) {
+    rm.getRep().useAsRealPlacement(*this);
+}
+
 RealPlacement::RealPlacement(const Feature& f) {
     f.getRep().useAsRealPlacement(*this);
+}
+
+/*static*/ RealPlacement
+RealPlacement::plus(const RealPlacement& l, const RealPlacement& r) {
+    RealPlacement x; // null rep
+    RealExprPlacementRep::binop(x,RealBinaryOpRR::Plus,l,r);
+    return x;
+}
+/*static*/ RealPlacement
+RealPlacement::minus(const RealPlacement& l, const RealPlacement& r) {
+    RealPlacement x; // null rep
+    RealExprPlacementRep::binop(x,RealBinaryOpRR::Minus,l,r);
+    return x;
+}
+/*static*/ RealPlacement
+RealPlacement::times(const RealPlacement& l, const RealPlacement& r) {
+    RealPlacement x; // null rep
+    RealExprPlacementRep::binop(x,RealBinaryOpRR::Times,l,r);
+    return x;
+}
+/*static*/ RealPlacement
+RealPlacement::divide(const RealPlacement& l, const RealPlacement& r) {
+    RealPlacement x; // null rep
+    RealExprPlacementRep::binop(x,RealBinaryOpRR::Divide,l,r);
+    return x;
 }
 
 /*static*/ bool             
@@ -156,9 +189,24 @@ StationPlacement::StationPlacement(const Feature& f) {
     f.getRep().useAsStationPlacement(*this);
 }
 
+/*static*/ StationPlacement
+StationPlacement::scale(const RealPlacement& s, const DirectionPlacement& d) {
+    StationPlacement x; // null rep
+    StationExprPlacementRep::scale(x,s,d);
+    return x;
+}
+
     // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     (void)new DirectionConstantPlacementRep(*this,v);
+}
+
+DirectionPlacement::DirectionPlacement(const Direction& d) {
+    d.getRep().useAsDirectionPlacement(*this);
+}
+
+DirectionPlacement::DirectionPlacement(const Feature& f) {
+    f.getRep().useAsDirectionPlacement(*this);
 }
 
     // ORIENTATION PLACEMENT //

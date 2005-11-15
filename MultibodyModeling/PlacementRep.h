@@ -37,21 +37,144 @@
 #include <sstream>
 
 namespace simtk {
+class PlacementRep;
+class   RealPlacementRep;
+class     RealExprPlacementRep;
+
+/**
+ * Abstract class representing an operator which acts on a list
+ * of Placement arguments to produce a placement expression. The
+ * result type is unspecified here but concrete classes will
+ * return specific types.
+ */
+class PlacementOp {
+public:
+    virtual ~PlacementOp() { }
+    virtual PlacementOp* clone() const = 0;
+    virtual bool checkArgs(const std::vector<Placement>&) const = 0;
+    virtual std::string getOpName() const = 0;
+};
 
 /**
  * Abstract class which represents an operator which returns a Real result
  * when applied to an argument list of Placements.
  */
-class RealPlacementOp {
+class RealPlacementOp : public PlacementOp {
 public:
     virtual ~RealPlacementOp() { }
-    virtual RealPlacementOp* clone() const = 0;
-    virtual bool checkArgs(const std::vector<const Placement*>&) const = 0;
-
-    virtual std::string getOpName() const = 0;
-
     // Run time
-    virtual Real apply(/*State,*/const std::vector<const Placement*>&) const = 0;
+    virtual Real apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(RealPlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Real result when applied to two Real placements.
+ */
+class RealBinaryOpRR : public RealPlacementOp {
+public:
+    enum OpKind { Plus, Minus, Times, Divide };
+    explicit RealBinaryOpRR(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new RealBinaryOpRR(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case Plus:   p="add<Real>"; break;
+            case Minus:  p="sub<Real>"; break;
+            case Times:  p="mul<Real>"; break;
+            case Divide: p="dvd<Real>"; break;
+            default: p="UNKNOWN RealBinaryOpRR";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet
+    Real apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return 0.;}
+
+private:
+    OpKind op;
+};
+
+/**
+ * Abstract class which represents an operator which returns a Station result
+ * when applied to an argument list of Placements.
+ */
+class StationPlacementOp : public PlacementOp {
+public:
+    virtual ~StationPlacementOp() { }
+    // Run time
+    virtual Vec3 apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(StationPlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Station result when applied to two Placements
+ * of whatever type is appropriate for the operator.
+ */
+class StationBinaryOp : public StationPlacementOp {
+public:
+    enum OpKind { Scale, Offset };
+    explicit StationBinaryOp(OpKind k) : op(k) { }
+
+    StationBinaryOp* clone() const { return new StationBinaryOp(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case Scale:  p="scale<Station>"; break;
+            case Offset: p="offset<Station>"; break;
+            default: p="UNKNOWN StationBinaryOp";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+
+private:
+    OpKind op;
+};
+
+
+/**
+ * This class captures the methods common to all Placement expressions, regardless
+ * of the specific return type.
+ */
+class PlacementExpr {
+public:
+    PlacementExpr(const PlacementOp&  f, const std::vector<const Placement*>& a) 
+      : func(f.clone()), args(a.size()) {
+        for (size_t i=0; i<a.size(); ++i)
+            args[i] = *a[i];
+        assert(f.checkArgs(args));
+    }
+    ~PlacementExpr() { }
+
+    bool exprIsConstant() const {
+        for (size_t i=0; i < args.size(); ++i) {
+            if (!args[i].isConstant()) return false;
+        }
+        return true;
+    }
+
+    bool exprDependsOn(const Feature& f) const {
+        for (size_t i=0; i < args.size(); ++i) {
+            if (args[i].dependsOn(f))
+                return true;
+        }
+        return false;
+    }
+
+    const Feature* exprFindAncestorFeature(const Feature& root) const;
+    std::string    exprToString(const std::string& linePrefix) const;
+    bool           exprIsLimitedToSubtree(const Feature& root, const Feature*& offender) const; 
+    void           exprRepairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
+protected:
+    Concretize<PlacementOp>   func;
+    std::vector<Placement>    args;
 };
 
 // TODO: shouldn't be necessary to have this enum; use virtual methods instead
@@ -207,15 +330,7 @@ public:
     // we copy a Feature tree.
     PlacementRep* clone() const {return new FeaturePlacementRep(*this);}
 
-    std::string toString(const std::string&) const {
-        std::stringstream s;
-        s << "Feature[";
-        s << (feature ? feature->getFullName()
-                      : std::string("NULL FEATURE"));
-        s << "]"; 
-        if (index != -1) s << "[" << index << "]";
-        return s.str();
-    }
+    std::string toString(const std::string&) const;
     SIMTK_DOWNCAST(FeaturePlacementRep,PlacementRep);
 private:
     const Feature* feature;
@@ -228,11 +343,12 @@ private:
  */
 class RealPlacementRep : public PlacementRep {
 public:
-    RealPlacementRep(Placement& p) : PlacementRep(p) { }
+    RealPlacementRep(RealPlacement& p) : PlacementRep(p) { }
     virtual ~RealPlacementRep() { }
 
     PlacementType getPlacementType() const { return RealPlacementType; }
     // clone, toString, findAncestorFeature are still missing
+
 
     // This should allow for state to be passed in.
     virtual Real getValue(/*State*/) const = 0;
@@ -244,7 +360,7 @@ public:
  */
 class RealConstantPlacementRep : public RealPlacementRep {
 public:
-    RealConstantPlacementRep(Placement& p, const Real& r) 
+    RealConstantPlacementRep(RealPlacement& p, const Real& r) 
       : RealPlacementRep(p), value(r) { }
     ~RealConstantPlacementRep() { }
 
@@ -270,91 +386,43 @@ private:
     Real value;
 };
 
-class RealBinaryOpRR : public RealPlacementOp {
-public:
-    enum OpKind { Plus, Minus, Times, Divide };
-    explicit RealBinaryOpRR(OpKind k) : op(k) { }
-
-    RealPlacementOp* clone() const { return new RealBinaryOpRR(*this);}
-    bool checkArgs(const std::vector<const Placement*>& args) const {
-        return args.size() == 2 
-               && args[0]->getRep().getPlacementType()==RealPlacementType
-               && args[1]->getRep().getPlacementType()==RealPlacementType;
-    }
-    std::string getOpName() const {
-        char *p = 0;
-        switch(op) {
-            case Plus:   p="add<Real>"; break;
-            case Minus:  p="sub<Real>"; break;
-            case Times:  p="mul<Real>"; break;
-            case Divide: p="dvd<Real>"; break;
-            default: p="UNKNOWN RealBinaryOpRR";
-        };
-        return std::string(p);
-    }
-
-    // XXX not yet
-    Real apply(/*State,*/ const std::vector<const Placement*>&) const {assert(false);}
-
-private:
-    OpKind op;
-};
 
 /**
  * A concrete PlacementRep whose value is a Real expression. This
  * is always Func(List<Placement>). 
  */
-class RealExprPlacementRep : public RealPlacementRep {
+class RealExprPlacementRep : public RealPlacementRep, public PlacementExpr {
 public:
-    RealExprPlacementRep(Placement& p, const RealPlacementOp&  f, 
-                                       const std::vector<const Placement*>& a) 
-      : RealPlacementRep(p), func(f), args(a) {
-        assert(f.checkArgs(args));
-    }
+    RealExprPlacementRep(RealPlacement& p, const RealPlacementOp&  f, 
+                                           const std::vector<const Placement*>& a) 
+      : RealPlacementRep(p), PlacementExpr(f,a)
+    { }
     ~RealExprPlacementRep() { }
 
-    bool isConstant() const {
-        for (size_t i=0; i < args.size(); ++i) {
-            assert(args[i]);
-            if (!args[i]->isConstant()) return false;
-        }
-        return true;
-    }
+    static RealExprPlacementRep* binop
+        (RealPlacement& handle, RealBinaryOpRR::OpKind,
+         const RealPlacement& l, const RealPlacement& r);
+    
+    PlacementRep*  clone() const {return new RealExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
+    bool           isConstant()                          const {return exprIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    bool dependsOn(const Feature& f) const {
-        for (size_t i=0; i < args.size(); ++i) {
-            assert(args[i]);
-            if (args[i]->dependsOn(f))
-                return true;
-        }
-        return false;
-    }
 
-    const Feature* findAncestorFeature(const Feature& root) const;
-
-    PlacementRep* clone() const {return new RealExprPlacementRep(*this);}
-
-    std::string toString(const std::string& linePrefix) const {
-        std::stringstream s;
-        s << func.getOpName() << "(";
-        for (size_t i=0; i<args.size(); ++i)
-            s << (i>0?", ":"") 
-              << args[i]->getRep().toString(linePrefix);
-        s << ")";
-        return s.str();
-    }
-
-    Real getValue(/*State*/) const { return func.apply(/*State,*/args); }
+    Real getValue(/*State*/) const 
+      { return RealPlacementOp::downcast(func).apply(/*State,*/args); }
 
     SIMTK_DOWNCAST2(RealExprPlacementRep,RealPlacementRep,PlacementRep);
-private:
-    const RealPlacementOp&        func;
-    std::vector<const Placement*> args;
 };
 
 class StationPlacementRep : public PlacementRep {
 public:
-    StationPlacementRep(Placement& p) : PlacementRep(p) { }
+    StationPlacementRep(StationPlacement& p) : PlacementRep(p) { }
     virtual ~StationPlacementRep() { }
 
     PlacementType getPlacementType() const { return StationPlacementType; }
@@ -368,7 +436,7 @@ public:
 // A concrete StationPlacement in which there are no variables.
 class StationConstantPlacementRep : public StationPlacementRep {
 public:
-    StationConstantPlacementRep(Placement& p, const Vec3& v)
+    StationConstantPlacementRep(StationPlacement& p, const Vec3& v)
       : StationPlacementRep(p), loc(v) { }
 
     // Implementations of pure virtuals.
@@ -395,6 +463,41 @@ public:
     SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
 private:
     Vec3 loc;
+};
+
+/**
+ * A concrete PlacementRep whose value is a Station expression. This
+ * is always Func(List<Placement>). 
+ */
+class StationExprPlacementRep : public StationPlacementRep, public PlacementExpr {
+public:
+    StationExprPlacementRep(StationPlacement& p, const StationPlacementOp&  f, 
+                                                 const std::vector<const Placement*>& a) 
+      : StationPlacementRep(p), PlacementExpr(f,a)
+    { }
+    ~StationExprPlacementRep() { }
+
+    static StationExprPlacementRep* scale
+        (StationPlacement& handle,
+         const RealPlacement&, const DirectionPlacement&);
+    static StationExprPlacementRep* scale
+        (StationPlacement& handle,
+         const RealPlacement&, const StationPlacement&);
+
+    PlacementRep*  clone() const {return new StationExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
+    bool           isConstant()                          const {return exprIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
+
+    Vec3 getMeasureNumbers(/*State*/) const 
+      { return StationPlacementOp::downcast(func).apply(/*State,*/args); }
+
+    SIMTK_DOWNCAST2(StationExprPlacementRep,StationPlacementRep,PlacementRep);
 };
 
 class DirectionPlacementRep : public PlacementRep {
@@ -537,6 +640,7 @@ private:
     const Orientation* orientation;
     const Station*     station;
 };
+
 
 } // namespace simtk
 

@@ -37,7 +37,55 @@ using std::endl;
 using std::ostream;
 
 namespace simtk {
-    // PLACEMENT REP //
+
+    // PLACEMENT EXPR //
+
+const Feature* 
+PlacementExpr::exprFindAncestorFeature(const Feature& root) const {
+    const Feature* ancestor = 0;
+    bool foundNonConst = false;
+    for (size_t i=0; i < args.size(); ++i) {
+        if (args[i].isConstant())
+            continue;
+        foundNonConst = true;
+        const Feature* argAncestor = 
+            args[i].getRep().findAncestorFeature(root);
+        if (ancestor && argAncestor)
+            ancestor = FeatureRep::findYoungestCommonAncestor(*ancestor,*argAncestor);
+        else ancestor = argAncestor;
+    }
+    assert(foundNonConst);
+    return ancestor;
+}
+
+std::string
+PlacementExpr::exprToString(const std::string& linePrefix) const {
+    std::stringstream s;
+    s << func->getOpName() << "(";
+    for (size_t i=0; i<args.size(); ++i)
+        s << (i>0?", ":"") 
+            << args[i].getRep().toString(linePrefix);
+    s << ")";
+    return s.str();
+}
+
+bool PlacementExpr::exprIsLimitedToSubtree
+    (const Feature& root, const Feature*& offender) const
+{
+    for (size_t i=0; i<args.size(); ++i)
+        if (!args[i].getRep().isLimitedToSubtree(root,offender))
+            return false;
+    return true;
+}
+
+void PlacementExpr::exprRepairFeatureReferences
+    (const Feature& oldRoot, const Feature& newRoot)
+{
+    for (size_t i=0; i<args.size(); ++i)
+        args[i].updRep().repairFeatureReferences(oldRoot,newRoot);
+}
+
+// PLACEMENT REP //
 
 
     // FEATURE PLACEMENT REP //
@@ -79,6 +127,16 @@ void FeaturePlacementRep::repairFeatureReferences
     feature = corrFeature;
 }
 
+std::string FeaturePlacementRep::toString(const std::string&) const {
+    std::stringstream s;
+    s << "Feature[";
+    s << (feature ? feature->getFullName()
+                    : std::string("NULL FEATURE"));
+    s << "]"; 
+    if (index != -1) s << "[" << index << "]";
+    return s.str();
+}
+
     // FRAME PLACEMENT REP //
 bool FramePlacementRep::isLimitedToSubtree
     (const Feature& root, const Feature*& offender) const
@@ -117,25 +175,60 @@ FramePlacementRep::findAncestorFeature(const Feature& root) const {
             ? ancestor : 0;
 }
 
+    // REAL PLACEMENT REP //
+
     // REAL EXPR PLACEMENT REP //
 
-const Feature* 
-RealExprPlacementRep::findAncestorFeature(const Feature& root) const {
-    const Feature* ancestor = 0;
-    bool foundNonConst = false;
-    for (size_t i=0; i < args.size(); ++i) {
-        assert(args[i]);
-        if (args[i]->isConstant())
-            continue;
-        foundNonConst = true;
-        const Feature* argAncestor = 
-            args[i]->getRep().findAncestorFeature(root);
-        if (ancestor && argAncestor)
-            ancestor = FeatureRep::findYoungestCommonAncestor(*ancestor,*argAncestor);
-        else ancestor = argAncestor;
+bool 
+RealBinaryOpRR::checkArgs(const std::vector<Placement>& args) const {
+    return args.size() == 2 
+            && args[0].getRep().getPlacementType()==RealPlacementType
+            && args[1].getRep().getPlacementType()==RealPlacementType;
+}
+
+/*static*/ RealExprPlacementRep*
+RealExprPlacementRep::binop(RealPlacement& handle, RealBinaryOpRR::OpKind op,
+                      const RealPlacement& l, const RealPlacement& r) {
+    std::vector<const Placement*> args(2);
+    args[0] = &l; args[1] = &r;
+    return new RealExprPlacementRep(handle, RealBinaryOpRR(op), args);
+}
+
+    // STATION PLACEMENT REP //
+
+    // STATION EXPR PLACEMENT REP //
+
+bool 
+StationBinaryOp::checkArgs(const std::vector<Placement>& args) const {
+    if (args.size() != 2) return false;
+    switch (op) {
+    case Scale:
+        return args[0].getRep().getPlacementType()==RealPlacementType
+            && (args[1].getRep().getPlacementType()==DirectionPlacementType
+                || args[1].getRep().getPlacementType()==StationPlacementType);
+    case Offset:
+        return args[0].getRep().getPlacementType()==StationPlacementType
+            && args[1].getRep().getPlacementType()==Vec3PlacementType;
+    default: 
+        assert(false);
     }
-    assert(foundNonConst);
-    return ancestor;
+    return false;
+}
+
+/*static*/ StationExprPlacementRep*
+StationExprPlacementRep::scale(StationPlacement& handle,
+                               const RealPlacement& s, const DirectionPlacement& d) {
+    std::vector<const Placement*> args(2);
+    args[0] = &s; args[1] = &d;
+    return new StationExprPlacementRep(handle, StationBinaryOp(StationBinaryOp::Scale), args);
+}
+
+/*static*/ StationExprPlacementRep*
+StationExprPlacementRep::scale(StationPlacement& handle,
+                               const RealPlacement& s, const StationPlacement& v) {
+    std::vector<const Placement*> args(2);
+    args[0] = &s; args[1] = &v;
+    return new StationExprPlacementRep(handle, StationBinaryOp(StationBinaryOp::Scale), args);
 }
 
 } // namespace simtk

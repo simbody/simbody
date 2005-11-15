@@ -123,6 +123,7 @@ public:
     RealPlacement() { }
     RealPlacement(const Real&);
     RealPlacement(const RealParameter&);
+    RealPlacement(const RealMeasure&);
     RealPlacement(const Feature&);
 
     static RealPlacement plus  (const RealPlacement& l,
@@ -155,8 +156,10 @@ public:
                      const RealMeasure& y,
                      const RealMeasure& z);
 
-    static StationPlacement   plus(const StationPlacement&,
-                                   const DirectionPlacement&);
+    static StationPlacement   plus (const StationPlacement&,
+                                    const DirectionPlacement&);
+    static StationPlacement   scale(const RealPlacement&,
+                                    const DirectionPlacement&);
 
     static bool                    isInstanceOf(const Placement&);
     static const StationPlacement& downcast(const Placement&);

@@ -392,6 +392,11 @@ void Orientation::place(const OrientationPlacement& p) {
     }
 }
 
+const Direction& 
+Orientation::getAxis(int i) const {
+    return OrientationRep::downcast(getRep()).getAxis(i);
+}
+
 /*static*/ bool             
 Orientation::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;

@@ -99,7 +99,6 @@ try {
     for (int i=0; i<upper.getNSubfeatures(); ++i)
         cout << upper[i].getFullName() << endl;
 
-
     // Now build the prototype for the lower bodies.
 
     RigidBody lower("L");
@@ -109,12 +108,15 @@ try {
     lower.addRealParameter("halfHeight");
     lower.addStation("ballAttachPt");
 
-   // lower.updStation("ballAttachPt").setPlacement(
-    //                   StationPlacement(lower.y(), lower.getRealParameter("halfHeight")));
+    lower.updStation("ballAttachPt").place(
+        StationPlacement::scale(lower.getRealParameter("halfHeight"), lower.y()));
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
 
+    lower.addRealMeasure("hh+9", 
+        RealPlacement::plus(lower["halfHeight"], 
+                            RealPlacement::divide(9.,lower["tube"]["mass"])));
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
