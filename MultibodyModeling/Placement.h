@@ -99,14 +99,19 @@ std::ostream& operator<<(std::ostream& o, const Placement&);
 
 /**
  * Create a Placement which is evaluated by returning the
- * value of the indicated Feature's Placement. This is
- * deferred until runtime; the Feature may not even have
- * a placement yet.
+ * value of the indicated Feature's Placement, with an
+ * optional index selecting some subcomponent of the
+ * Placement (e.g., selecting a particular axis from
+ * a Frame). Resolution of this reference is
+ * deferred until runtime; the Feature doesn't even need
+ * to *have* a placement at the time we create this
+ * reference.
  */
 class FeaturePlacement : public Placement {
 public:
     FeaturePlacement() { }
     explicit FeaturePlacement(const Feature&);
+    FeaturePlacement(const Feature&, int index);
 
     static bool                    isInstanceOf(const Placement&);
     static const FeaturePlacement& downcast(const Placement&);
@@ -119,6 +124,8 @@ public:
     RealPlacement() { }
     RealPlacement(const Real&);
     RealPlacement(const RealParameter&);
+    RealPlacement(const Feature&);
+
     static RealPlacement plus  (const RealPlacement& l,
                                 const RealPlacement& r);
     static RealPlacement minus (const RealPlacement& l,
@@ -151,6 +158,7 @@ public:
     StationPlacement(const Vec3&);    // implicit conversion
     StationPlacement(const Station&); //   "
     StationPlacement(const Frame&);   //   "
+    StationPlacement(const Feature&);
 
     StationPlacement(const Direction&   v,
                      const RealMeasure& scale);
@@ -173,6 +181,7 @@ public:
     DirectionPlacement() { }
     DirectionPlacement(const Vec3&);      // implicit conversion
     DirectionPlacement(const Direction&); //   "
+    DirectionPlacement(const Feature&);
 
     static DirectionPlacement plus (const DirectionPlacement& l,
                                     const DirectionPlacement& r);
@@ -192,6 +201,7 @@ class OrientationPlacement : public Placement {
 public:
     OrientationPlacement() { }
     OrientationPlacement(const Mat33&);      // implicit conversion
+    OrientationPlacement(const Feature&);
 
     static bool                        isInstanceOf(const Placement&);
     static const OrientationPlacement& downcast(const Placement&);
@@ -208,6 +218,7 @@ public:
     FramePlacement(const Orientation&); // origin inherited from
                                         // Orientation's parent
     FramePlacement(const Orientation&, const Station&);
+    FramePlacement(const Feature&);
 
     static bool                  isInstanceOf(const Placement&);
     static const FramePlacement& downcast(const Placement&);

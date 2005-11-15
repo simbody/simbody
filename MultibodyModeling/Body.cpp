@@ -79,12 +79,12 @@ RigidBody::~RigidBody() { }
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm,
                                            const Placement& pl) {
     Placement& p = updRep().addPlacementLike(pl);
-    MassElement& m = MassElement::downcast(updRep().addFeatureLike(me, nm));
+    MassElement& m = MassElement::downcast(updRep().addSubfeatureLike(me, nm));
     m.place(p);
     return m;
 }
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm) {
-    return MassElement::downcast(updRep().addFeatureLike(me, nm));
+    return MassElement::downcast(updRep().addSubfeatureLike(me, nm));
 }
 
 /*static*/ bool             

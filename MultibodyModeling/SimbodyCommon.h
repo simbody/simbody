@@ -41,15 +41,26 @@ class APIMethodFailed : public Base {
 public:
     APIMethodFailed(const char* fn, int ln, String method, String cause) : Base(fn,ln)
     {
-        setMessage(method + " failed because " + cause);
+        setMessage(method + " failed because:\n  " + cause);
     }
 };
 
-class FeatureNameNotFound : public Base {
+class SubfeatureNameNotFound : public Base {
 public:
-    FeatureNameNotFound(const char* fn, int ln, String method, String name) : Base(fn,ln)
+    SubfeatureNameNotFound(const char* fn, int ln, String subname, String featurename) : Base(fn,ln)
     {
-        setMessage(method + ": can't find any Feature named " + name);
+        setMessage("Can't find any subfeature named '" + subname + "' in '" + featurename + "'.");
+    }
+private:
+};
+
+class FeatureCantBeUsedAsPlacement : public Base {
+public:
+    FeatureCantBeUsedAsPlacement(const char* fn, int ln, String featureName, String featureTypeName,
+        String placementTypeNeeded) : Base(fn,ln)
+    {
+        setMessage("Can't use " + featureTypeName + " Feature '" + featureName 
+                   + "' as a " + placementTypeNeeded + " Placement.");
     }
 private:
 };

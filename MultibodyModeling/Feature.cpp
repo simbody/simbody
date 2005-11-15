@@ -82,15 +82,6 @@ void Feature::place(const Placement& p) {
     }
 }
 
-void Feature::placeFeature(const String& subfeatureName, const Placement& p) {
-    try {
-        updFeature(subfeatureName).place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::placeFeature", exc.getMessage());
-    }
-}
-
 const Placement& Feature::getPlacement() const {
     assert(hasPlacement());
     return getRep().getPlacement();
@@ -110,14 +101,14 @@ String Feature::toString(const String& linePrefix) const {
     s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
                            : String("NO PLACEMENT"));
 
-    const size_t nChildren = f.getNChildFeatures();
+    const size_t nSubfeatures = f.getNSubfeatures();
     const size_t nPlacement = f.getNPlacementExpressions();
     const std::string nextIndent = linePrefix + "    ";
 
-    if (nChildren) {
-        s << endl << linePrefix << "  Child Features (" << nChildren << "):";
-        for (size_t i=0; i < nChildren; ++i)
-            s  << endl << nextIndent << f.getChildFeature(i).toString(nextIndent);
+    if (nSubfeatures) {
+        s << endl << linePrefix << "  Subfeatures (" << nSubfeatures << "):";
+        for (size_t i=0; i < nSubfeatures; ++i)
+            s  << endl << nextIndent << f.getSubfeature(i).toString(nextIndent);
     }
     if (nPlacement) {
         s << endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
@@ -146,73 +137,73 @@ bool Feature::dependsOn(const Feature& f) const {
     return hasRep() && getRep().dependsOn(f);
 }
 
-const Feature& Feature::getFeature(const String& n) const {
-    const Feature* f = getRep().getChildFeature(std::string(n));
-    if (!f) SIMTK_THROW2(Exception::FeatureNameNotFound,"Feature::getFeature",n);
-    return *f;
-}
-Feature& Feature::updFeature(const String& n) {
-    Feature* p = updRep().updChildFeature(std::string(n));
-    if (!p) SIMTK_THROW2(Exception::FeatureNameNotFound,"Feature::updFeature",n);
-    return *p;
-}
+int Feature::getNSubfeatures() const
+  { return getRep().getNSubfeatures(); }
+const Feature& Feature::getSubfeature(int i) const
+  { return getRep().getSubfeature(i); }
+Feature& Feature::updSubfeature(int i)
+  { return updRep().updSubfeature(i); }
 
-const RealParameter& Feature::getRealParameter(const String& n) const {
-    return RealParameter::downcast(getFeature(n));
-}
-RealParameter& Feature::updRealParameter(const String& n) {
-    return RealParameter::downcast(updFeature(n));
-}
+// getXXX() methods
+const Feature& Feature::getSubfeature(const String& n) const 
+  { return getRep().getSubfeature(n); }
+const RealParameter& Feature::getRealParameter(const String& n) const
+  { return RealParameter::downcast(getSubfeature(n)); }
+const StationParameter& Feature::getStationParameter(const String& n) const
+  { return StationParameter::downcast(getSubfeature(n)); }
+const Station& Feature::getStation(const String& n) const
+  { return Station::downcast(getSubfeature(n)); }
+
+// updXXX() methods
+Feature& Feature::updSubfeature(const String& n)
+  { return updRep().updSubfeature(n); }
+RealParameter& Feature::updRealParameter(const String& n)
+  { return RealParameter::downcast(updSubfeature(n)); }
+StationParameter& Feature::updStationParameter(const String& n)
+  { return StationParameter::downcast(updSubfeature(n)); }
+Station& Feature::updStation(const String& n)
+  { return Station::downcast(updSubfeature(n)); }
+
+// addXXX() methods
 RealParameter& Feature::addRealParameter(const String& n, const RealPlacement& p) {
-    RealParameter& rp = RealParameter::downcast(updRep().addFeatureLike(RealParameter(n), n));
+    RealParameter& rp = RealParameter::downcast(updRep().addSubfeatureLike(RealParameter(n), n));
     if (p.hasRep()) rp.place(p);
     return rp;
 }
 
-const StationParameter& Feature::getStationParameter(const String& n) const {
-    return StationParameter::downcast(getFeature(n));
-}
-StationParameter& Feature::updStationParameter(const String& n) {
-    return StationParameter::downcast(updFeature(n));
-}
 StationParameter& Feature::addStationParameter(const String& n, const StationPlacement& p) {
-    StationParameter& sp = StationParameter::downcast(updRep().addFeatureLike(StationParameter(n), n));
+    StationParameter& sp = StationParameter::downcast(updRep().addSubfeatureLike(StationParameter(n), n));
     if (p.hasRep()) sp.place(p);
     return sp;
 }
 
 RealMeasure& Feature::addRealMeasure(const String& n, const RealPlacement& p) {
-    RealMeasure& rm = RealMeasure::downcast(updRep().addFeatureLike(RealMeasure(n), n));
+    RealMeasure& rm = RealMeasure::downcast(updRep().addSubfeatureLike(RealMeasure(n), n));
     if (p.hasRep()) rm.place(p);
     return rm;
 }
 StationMeasure& Feature::addStationMeasure(const String& n, const StationPlacement& p) {
-    StationMeasure& sm = StationMeasure::downcast(updRep().addFeatureLike(StationMeasure(n), n));
+    StationMeasure& sm = StationMeasure::downcast(updRep().addSubfeatureLike(StationMeasure(n), n));
     if (p.hasRep()) sm.place(p);
     return sm;
 }
 
 Station& Feature::addStation(const String& n, const StationPlacement& p) {
-    Station& s = Station::downcast(updRep().addFeatureLike(Station(n), n));
+    Station& s = Station::downcast(updRep().addSubfeatureLike(Station(n), n));
     if (p.hasRep()) s.place(p);
     return s;
 }
-const Station& Feature::getStation(const String& nm) const {
-    return Station::downcast(getFeature(nm));
-}
-Station& Feature::updStation(const String& nm) {
-    return Station::downcast(updFeature(nm));
-}
+
 Frame& Feature::addFrame(const String& n, const FramePlacement& p) {
-    Frame& f = Frame::downcast(updRep().addFeatureLike(Frame(n), n));
+    Frame& f = Frame::downcast(updRep().addSubfeatureLike(Frame(n), n));
     if (p.hasRep()) f.place(p);
     return f;
 }
 const Frame& Feature::getFrame(const String& nm) const {
-    return Frame::downcast(getFeature(nm));
+    return Frame::downcast(getSubfeature(nm));
 }
 Frame& Feature::updFrame(const String& nm) {
-    return Frame::downcast(updFeature(nm));
+    return Frame::downcast(updSubfeature(nm));
 }
 
     // REAL PARAMETER //

@@ -40,14 +40,14 @@ namespace simtk {
 class BodyRep : public FrameRep {
 public:
     BodyRep(Body& m, const std::string& nm) : FrameRep(m,nm) { 
-        initializeFeatures();
+        initializeSubfeatures();
     }
 
     const RealMeasure& getMassMeasure() const {
-        return RealMeasure::downcast(getChildFeature(0));
+        return RealMeasure::downcast(getSubfeature(massMeasureIndex));
     }
     const StationMeasure& getCentroidMeasure() const {
-        return StationMeasure::downcast(getChildFeature(1));
+        return StationMeasure::downcast(getSubfeature(centroidMeasureIndex));
     }
 
     // virtuals getFeatureTypeName() && clone() still missing
@@ -55,10 +55,14 @@ public:
     SIMTK_DOWNCAST2(BodyRep,FrameRep,FeatureRep);
 private:
     // Every Body defines some mass-oriented measures.
-    void initializeFeatures() {
-        addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
-        addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+    void initializeSubfeatures() {
+        Feature& mm = addSubfeatureLike(RealMeasure("massMeasure"), "massMeasure");
+        Feature& cm = addSubfeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+        massMeasureIndex     = mm.getIndexInParent();
+        centroidMeasureIndex = cm.getIndexInParent();
     }
+
+    int massMeasureIndex, centroidMeasureIndex;
 };
 
 class RigidBodyRep : public BodyRep {
@@ -66,15 +70,15 @@ public:
     RigidBodyRep(RigidBody& pm, const std::string& nm)
       : BodyRep(pm,nm) { }
 
-    std::string getFeatureTypeName() const { return "RigidBody"; }
+    std::string   getFeatureTypeName() const { return "RigidBody"; }
     PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
-    FeatureRep* clone() const { return new RigidBodyRep(*this); }
+    FeatureRep*   clone() const { return new RigidBodyRep(*this); }
 
     SIMTK_DOWNCAST2(RigidBodyRep,BodyRep,FeatureRep);
 private:
     void initializeFeatures() {
-        addFeatureLike(RealParameter("mass"), "mass");
-        addFeatureLike(Station("station"), "station");
+        addSubfeatureLike(RealParameter("mass"), "mass");
+        addSubfeatureLike(Station("station"), "station");
 /* TODO these measures need to have a FunctionPlacement
         updChildFeature("massMeasure")->setPlacement(
             addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));

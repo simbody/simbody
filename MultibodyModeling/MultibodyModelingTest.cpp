@@ -51,7 +51,7 @@ try {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
-    blue.place(Vec3(1,2,3));
+    blue.place(Vec3(1,2,3)); // a pointless self-placement
 
     cout << "blue=" << blue;
     cout << "orange=" << orange;
@@ -73,7 +73,6 @@ try {
 
     RigidBody upper("U");
 
-
     // Create some named stations and place them on the upper body.
     upper.addStation("greenPt",         Vec3(1, 0,0));
     upper.addStation("orangePt",        Vec3(0, 0,1));
@@ -84,21 +83,21 @@ try {
 
 
     // Instantiate 'atom' mass elements and place them on their stations.
-    upper.addMassElementLike(green,  "green",  upper.getStation("greenPt"));
-    upper.addMassElementLike(orange, "orange", upper.getStation("orangePt"));
-    upper.addMassElementLike(blue,   "blue1",  upper.getStation("pinnedBluePt"));
-    upper.addMassElementLike(blue,   "blue2",  upper.getStation("otherBluePt"));
+    upper.addMassElementLike(green,  "green",  upper["greenPt"]);
+    upper.addMassElementLike(orange, "orange", upper["orangePt"]);
+    upper.addMassElementLike(blue,   "blue1",  upper["pinnedBluePt"]);
+    upper.addMassElementLike(blue,   "blue2",  upper["otherBluePt"]);
 
     // Create some joint frames at the appropriate stations (by default
     // they are aligned with the body frame).
-    upper.addFrame("pinFrame",          upper.getStation("pinnedBluePt"));
-    upper.addFrame("leftBallFrame",     upper.getStation("leftAttachPt"));
-    upper.addFrame("rightBallFrame",    upper.getStation("rightAttachPt"));
+    upper.addFrame("pinFrame",          upper["pinnedBluePt"]);
+    upper.addFrame("leftBallFrame",     upper["leftAttachPt"]);
+    upper.addFrame("rightBallFrame",    upper["rightAttachPt"]);
     cout << "U=" << upper;
 
-    upper.updStation("pinnedBluePt").
-        place(upper.getFrame("pinFrame").getOrigin());
-    cout << "after moving pinnedBluePt to pinFrame.O, U=" << upper;
+    cout << "U's subfeatures:" << endl;
+    for (int i=0; i<upper.getNSubfeatures(); ++i)
+        cout << upper[i].getFullName() << endl;
 
 
     // Now build the prototype for the lower bodies.
@@ -119,7 +118,7 @@ try {
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
-    tube.placeFeature("center", lower.getOrigin());
+    tube["center"].place(lower.getOrigin());
     //tube.placeFeature("axis", DirectionPlacement::minus(lower.getStation("ballAttachPt"),
     //                                                      lower.getOrigin()));
      cout << "L=" << lower; 

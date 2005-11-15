@@ -110,24 +110,37 @@ public:
     void place(const Placement& p);
 
 
-    int getNChildFeatures()        const {return childFeatures.size();}
+    int getNSubfeatures()          const {return subfeatures.size();}
     int getNPlacementExpressions() const {return placementExpressions.size();}
 
-    const Feature&   getChildFeature(size_t i)        const {return childFeatures[i];}
+    const Feature&   getSubfeature(size_t i)          const {return subfeatures[i];}
+    Feature&         updSubfeature(size_t i)                {return subfeatures[i];}
     const Placement& getPlacementExpression(size_t i) const {return placementExpressions[i];}
 
-    const Feature* getChildFeature(const std::string& nm) const {
+    const Feature* findSubfeature(const std::string& nm) const {
         size_t index;
-        return findChildFeatureIndex(nm,index) ? &childFeatures[index] : 0;
+        return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
     }
-    Feature* updChildFeature(const std::string& nm) {
+    Feature* findUpdSubfeature(const std::string& nm) {
         size_t index;
-        return findChildFeatureIndex(nm,index) ? &childFeatures[index] : 0;
+        return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
+    }
+
+    const Feature& getSubfeature(const std::string& nm) const {
+        const Feature* f = findSubfeature(nm);
+        if (!f) SIMTK_THROW2(Exception::SubfeatureNameNotFound,nm,getFullName());
+        return *f;
+    }
+
+    Feature& updSubfeature(const std::string& nm) {
+        Feature* f = findUpdSubfeature(nm);
+        if (!f) SIMTK_THROW2(Exception::SubfeatureNameNotFound,nm,getFullName());
+        return *f;
     }
 
     std::string getFullName() const;
 
-    Feature&   addFeatureLike(const Feature& f, const std::string& nm);
+    Feature&   addSubfeatureLike(const Feature& f, const std::string& nm);
     Placement& addPlacementLike(const Placement& p);
 
     // Does the *placement* of this feature depend on the indicated one?
@@ -168,7 +181,7 @@ public:
 private:
     // Return true and ix==feature index if a feature of the given name is found.
     // Otherwise return false and ix==childFeatures.size().
-    bool findChildFeatureIndex(const std::string& nm, size_t& ix) const;
+    bool findSubfeatureIndex(const std::string& nm, size_t& ix) const;
 
     // We have just copied a Feature subtree so all the parent pointers are
     // still pointing to the old tree. Recursively repair them to point into
@@ -209,7 +222,7 @@ private:
     const Placement*        placement;
 
     // Subfeatures wholly owned by this Feature.
-    StableArray<SubFeature> childFeatures;
+    StableArray<SubFeature> subfeatures;
 
     // Placement expressions wholly owned by this Feature. These compute values
     // for the childFeatures of this Feature.
@@ -284,47 +297,69 @@ public:
 
 class OrientationRep : public FeatureRep {
 public:
-    OrientationRep(Orientation& s, const std::string& nm) : FeatureRep(s,nm) { }
+    OrientationRep(Orientation& o, const std::string& nm) : FeatureRep(o,nm)
+        { initializeSubfeatures(); }
 
-    std::string getFeatureTypeName() const { return "Orientation"; }
+    std::string   getFeatureTypeName() const { return "Orientation"; }
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
-    FeatureRep* clone() const { return new OrientationRep(*this); }
+    FeatureRep*   clone() const { return new OrientationRep(*this); }
+
+    const Direction& getAxis(int i) const
+      { assert(0<=i&&i<=2); return Direction::downcast(getSubfeature(axisIndices[i])); }
+    const Direction& x() const {return Direction::downcast(getSubfeature(axisIndices[0]));}
+    const Direction& y() const {return Direction::downcast(getSubfeature(axisIndices[1]));}
+    const Direction& z() const {return Direction::downcast(getSubfeature(axisIndices[2]));}
 
     SIMTK_DOWNCAST(OrientationRep,FeatureRep);
+private:
+    void initializeSubfeatures() {
+        Direction& x = Direction::downcast(addSubfeatureLike(Direction("x"), "x"));
+        Direction& y = Direction::downcast(addSubfeatureLike(Direction("y"), "y"));
+        Direction& z = Direction::downcast(addSubfeatureLike(Direction("z"), "z"));
+
+        axisIndices[0] = x.getIndexInParent();
+        axisIndices[1] = y.getIndexInParent();
+        axisIndices[2] = z.getIndexInParent();
+
+        for (int i=0; i<3; ++i)
+            updSubfeature(axisIndices[i]).place(FeaturePlacement(getMyHandle(), i));
+    }
+
+    int axisIndices[3];
 };
 
 class FrameRep : public FeatureRep {
 public:
     FrameRep(Frame& f, const std::string& nm) 
       : FeatureRep(f,nm), OIndex(-1), RIndex(-1) {
-        initializeFeatures();
+        initializeSubfeatures();
     }
 
-    std::string getFeatureTypeName() const { return "Frame"; }
+    std::string   getFeatureTypeName() const { return "Frame"; }
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
-    FeatureRep* clone() const { return new FrameRep(*this); }
+    FeatureRep*   clone() const { return new FrameRep(*this); }
 
-    const Orientation& getOrientation() const {return Orientation::downcast(getChildFeature(RIndex));}
-    const Station&     getOrigin()      const {return Station::downcast(getChildFeature(OIndex)); }
+    const Orientation& getOrientation() const {return Orientation::downcast(getSubfeature(RIndex));}
+    const Station&     getOrigin()      const {return Station::downcast(getSubfeature(OIndex)); }
 
     SIMTK_DOWNCAST(FrameRep,FeatureRep);
 private:
-    void initializeFeatures() {
-        Orientation& R = Orientation::downcast(addFeatureLike(Orientation("R"), "orientation"));
-        Station&     O = Station::downcast    (addFeatureLike(Station("O"),     "origin"));
+    void initializeSubfeatures() {
+        Orientation& R = Orientation::downcast(addSubfeatureLike(Orientation("R"), "orientation"));
+        Station&     O = Station::downcast    (addSubfeatureLike(Station("O"),     "origin"));
 
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        R.place(Mat33(1));  // identity
-        O.place(Vec3(0));
+        updSubfeature(RIndex).place(FeaturePlacement(getMyHandle(), 0));
+        updSubfeature(OIndex).place(FeaturePlacement(getMyHandle(), 1));
     }
 
     int RIndex, OIndex; // feature indices
 };
 
 inline SubFeature::SubFeature(const SubFeature& sf) : Feature() {
-    if (rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
+    if (sf.rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
 }
 inline SubFeature& SubFeature::operator=(const SubFeature& sf) {
     if (&sf != this) {

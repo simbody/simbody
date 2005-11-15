@@ -106,14 +106,57 @@ public:
         case BoolPlacementType:         return "bool";
         case IntPlacementType:          return "int";
         case RealPlacementType:         return "Real";
-        case StationPlacementType:      return "Station";
-        case DirectionPlacementType:    return "Direction";
-        case OrientationPlacementType:  return "Orientation";
-        case Vec2PlacementType:         return "Vec2";
-        case Vec3PlacementType:         return "Vec3";
-        case Mat33PlacementType:        return "Mat33";
+        case StationPlacementType:      return "Station";     // 3 Reals
+        case DirectionPlacementType:    return "Direction";   // 3 Reals
+        case OrientationPlacementType:  return "Orientation"; // 3 Directions
+        case FramePlacementType:        return "Frame"; // Orientation, Direction
+        case Vec2PlacementType:         return "Vec2";  // 2 Reals
+        case Vec3PlacementType:         return "Vec3";  // 3 Reals
+        case Mat33PlacementType:        return "Mat33"; // 3 Vec3's (columns)
         default: return "ILLEGAL PLACEMENT TYPE";
         };
+    }
+
+    static int getNIndicesAllowed(PlacementType t) {
+        switch(t) {
+        case StationPlacementType:      return 3; // 3 Reals
+        case DirectionPlacementType:    return 3; // 3 Reals
+        case OrientationPlacementType:  return 3; // 3 Directions
+        case FramePlacementType:        return 2; // Orientation, Station
+        case Vec2PlacementType:         return 2; // 2 Reals
+        case Vec3PlacementType:         return 3; // 3 Reals
+        case Mat33PlacementType:        return 3; // 3 Vec3's (columns)
+        default: return 0;
+        };
+    }
+
+    // If a PlacementType is indexed, what is the resulting PlacementType?
+    static PlacementType getIndexedPlacementType(PlacementType t, int i) {
+        if (i == -1) 
+            return t;   // -1 means not indexed, i.e., the whole thing
+
+        assert(0 <= i && i <= getNIndicesAllowed(t));
+        switch(t) {
+        case StationPlacementType:
+        case DirectionPlacementType: 
+        case Vec2PlacementType:
+        case Vec3PlacementType:         
+            return RealPlacementType;  
+
+        case OrientationPlacementType: 
+            return DirectionPlacementType;
+
+        case FramePlacementType:
+            return i==0 ? OrientationPlacementType : StationPlacementType;
+
+        case Mat33PlacementType:
+            return Vec3PlacementType;
+
+        default: assert(false);
+            //NOTREACHED
+        };
+        //NOTREACHED
+        return InvalidPlacementType;
     }
 
 protected:
@@ -128,12 +171,15 @@ private:
 };
 
 /**
- * A concrete PlacementRep whose value is the Placement of some Feature.
+ * A concrete PlacementRep whose value is the Placement of some Feature,
+ * or an indexed subcomponent of such a Placement.
  */
 class FeaturePlacementRep : public PlacementRep {
 public:
     FeaturePlacementRep(FeaturePlacement& p, const Feature& f) 
-      : PlacementRep(p), feature(&f) { }
+      : PlacementRep(p), feature(&f), index(-1) { }
+    FeaturePlacementRep(FeaturePlacement& p, const Feature& f, int ix) 
+      : PlacementRep(p), feature(&f), index(ix) { }
     ~FeaturePlacementRep() { }
 
     // Check that this feature is on the feature subtree rooted by "ancestor". If
@@ -161,12 +207,14 @@ public:
         s << "Feature[";
         s << (feature ? feature->getFullName()
                       : std::string("NULL FEATURE"));
-        s << "]";   
+        s << "]"; 
+        if (index != -1) s << "[" << index << "]";
         return s.str();
     }
     SIMTK_DOWNCAST(FeaturePlacementRep,PlacementRep);
 private:
     const Feature* feature;
+    const int      index;
 };
 
 

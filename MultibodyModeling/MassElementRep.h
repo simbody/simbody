@@ -40,14 +40,14 @@ namespace simtk {
 class MassElementRep : public FeatureRep {
 public:
     MassElementRep(MassElement& m, const std::string& nm) : FeatureRep(m,nm) { 
-        initializeFeatures();
+        initializeSubfeatures();
     }
 
     const RealMeasure& getMassMeasure() const {
-        return RealMeasure::downcast(getChildFeature(0));
+        return RealMeasure::downcast(getSubfeature(massMeasureIndex));
     }
     const StationMeasure& getCentroidMeasure() const {
-        return StationMeasure::downcast(getChildFeature(1));
+        return StationMeasure::downcast(getSubfeature(centroidMeasureIndex));
     }
 
     // virtuals getFeatureTypeName() && clone() still missing
@@ -55,23 +55,27 @@ public:
     SIMTK_DOWNCAST(MassElementRep,FeatureRep);
 private:
     // Every MassElement defines some mass-oriented measures.
-    void initializeFeatures() {
-        addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
-        addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+    void initializeSubfeatures() {
+        Feature& mm = addSubfeatureLike(RealMeasure("massMeasure"), "massMeasure");
+        Feature& cm = addSubfeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+        massMeasureIndex     = mm.getIndexInParent();
+        centroidMeasureIndex = cm.getIndexInParent();
     }
+
+    int massMeasureIndex, centroidMeasureIndex;
 };
 
 class PointMassElementRep : public MassElementRep {
 public:
     PointMassElementRep(PointMassElement& pm, const std::string& nm) 
       : MassElementRep(pm,nm) { 
-        initializeFeatures();
+        initializeSubfeatures();
     }
 
     // some self-placements
     void setMass(const Real& m) {
         const Placement& p = addPlacementLike(RealPlacement(m));
-        updChildFeature("mass")->place(p);
+        findUpdSubfeature("mass")->place(p);
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
@@ -80,12 +84,12 @@ public:
 
     SIMTK_DOWNCAST2(PointMassElementRep,MassElementRep,FeatureRep);
 private:
-    void initializeFeatures() {
-        addFeatureLike(RealParameter("mass"), "mass");
+    void initializeSubfeatures() {
+        addSubfeatureLike(RealParameter("mass"), "mass");
 
-        updChildFeature("massMeasure")->place(
-            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
-        updChildFeature("centroidMeasure")->place(
+        findUpdSubfeature("massMeasure")->place(
+            addPlacementLike(FeaturePlacement(*findSubfeature("mass"))));
+        findUpdSubfeature("centroidMeasure")->place(
             addPlacementLike(FeaturePlacement(getMyHandle())));
     }
 };
@@ -94,29 +98,29 @@ class CylinderMassElementRep : public MassElementRep {
 public:
     CylinderMassElementRep(CylinderMassElement& cm, const std::string& nm) 
       : MassElementRep(cm,nm) { 
-        initializeFeatures();
+        initializeSubfeatures();
     }
 
     // some self-placements
     void setMass(const Real& m) {
         const Placement& p = addPlacementLike(RealPlacement(m));
-        updChildFeature("mass")->place(p);
+        findUpdSubfeature("mass")->place(p);
     }
     void setRadius(const Real& r) {
         const Placement& p = addPlacementLike(RealPlacement(r));
-        updChildFeature("radius")->place(p);
+        findUpdSubfeature("radius")->place(p);
     }
     void setHalfLength(const Real& h) {
         const Placement& p = addPlacementLike(RealPlacement(h));
-        updChildFeature("halfLength")->place(p);
+        findUpdSubfeature("halfLength")->place(p);
     }
     void placeCenter(const Vec3& c) {
         const Placement& p = addPlacementLike(StationPlacement(c));
-        updChildFeature("center")->place(p);
+        findUpdSubfeature("center")->place(p);
     }
     void placeAxis(const Vec3& a) {
         const Placement& p = addPlacementLike(DirectionPlacement(a));
-        updChildFeature("axis")->place(p);
+        findUpdSubfeature("axis")->place(p);
     }
 
     std::string getFeatureTypeName() const { return "CylinderMassElement"; }
@@ -128,17 +132,17 @@ public:
 
     SIMTK_DOWNCAST2(CylinderMassElementRep,MassElementRep,FeatureRep);
 private:
-    void initializeFeatures() {
-        addFeatureLike(RealParameter("mass"),       "mass");
-        addFeatureLike(RealParameter("radius"),     "radius");
-        addFeatureLike(RealParameter("halfLength"), "halfLength");
-        addFeatureLike(Station      ("center"),     "center");
-        addFeatureLike(Direction    ("axis"),       "axis");
+    void initializeSubfeatures() {
+        addSubfeatureLike(RealParameter("mass"),       "mass");
+        addSubfeatureLike(RealParameter("radius"),     "radius");
+        addSubfeatureLike(RealParameter("halfLength"), "halfLength");
+        addSubfeatureLike(Station      ("center"),     "center");
+        addSubfeatureLike(Direction    ("axis"),       "axis");
 
-        updChildFeature("massMeasure")->place(
-            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
-        updChildFeature("centroidMeasure")->place(
-            addPlacementLike(FeaturePlacement(*getChildFeature("center"))));
+        findUpdSubfeature("massMeasure")->place(
+            addPlacementLike(FeaturePlacement(*findSubfeature("mass"))));
+        findUpdSubfeature("centroidMeasure")->place(
+            addPlacementLike(FeaturePlacement(*findSubfeature("center"))));
     }
 };
 

@@ -117,11 +117,11 @@ void FeatureRep::place(const Placement& p) {
 }
 
 Feature& 
-FeatureRep::addFeatureLike(const Feature& f, const std::string& nm) {
+FeatureRep::addSubfeatureLike(const Feature& f, const std::string& nm) {
     assert(nm.size() > 0);
-    const int index = (int)childFeatures.size();
-    childFeatures.push_back(SubFeature()); // an empty handle
-    Feature& newFeature = childFeatures[index];
+    const int index = (int)subfeatures.size();
+    subfeatures.push_back(SubFeature()); // an empty handle
+    Feature& newFeature = subfeatures[index];
     f.getRep().cloneWithoutExternalPlacements(newFeature);
     newFeature.updRep().setParentFeature(updMyHandle(), index);
     newFeature.updRep().setName(nm);
@@ -199,7 +199,7 @@ FeatureRep::findCorrespondingFeature
     // the corresponding Feature (in reverse order).
     const Feature* newTreeRef = &newRoot;
     for (size_t i=trace.size(); i >=1; --i)
-        newTreeRef = &newTreeRef->rep->getChildFeature(trace[i-1]);
+        newTreeRef = &newTreeRef->rep->getSubfeature(trace[i-1]);
     return newTreeRef;
 }
 
@@ -241,9 +241,9 @@ FeatureRep::findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2) {
 // Return true and ix==feature index if a feature of the given name is found.
 // Otherwise return false and ix==childFeatures.size().
 bool 
-FeatureRep::findChildFeatureIndex(const std::string& nm, size_t& ix) const {
-    for (ix=0; ix < (size_t)getNChildFeatures(); ++ix)
-        if (caseInsensitiveCompare(nm, childFeatures[ix].getName())==0)
+FeatureRep::findSubfeatureIndex(const std::string& nm, size_t& ix) const {
+    for (ix=0; ix < (size_t)getNSubfeatures(); ++ix)
+        if (caseInsensitiveCompare(nm, subfeatures[ix].getName())==0)
             return true;
     return false;   // not found
 }
@@ -252,10 +252,10 @@ FeatureRep::findChildFeatureIndex(const std::string& nm, size_t& ix) const {
 // still pointing to the old tree. Recursively repair them to point into
 // the new tree.
 void FeatureRep::reparentMyChildren() {
-    for (size_t i=0; i < (size_t)getNChildFeatures(); ++i) {
-        assert(childFeatures[i].rep->getIndexInParent() == i); // shouldn't change
-        childFeatures[i].rep->setParentFeature(updMyHandle(), i);
-        childFeatures[i].rep->reparentMyChildren();            // recurse
+    for (size_t i=0; i < (size_t)getNSubfeatures(); ++i) {
+        assert(subfeatures[i].rep->getIndexInParent() == i); // shouldn't change
+        subfeatures[i].rep->setParentFeature(updMyHandle(), i);
+        subfeatures[i].rep->reparentMyChildren();            // recurse
     }
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
         assert(placementExpressions[i].getIndexInOwner() == i); // shouldn't change
@@ -271,8 +271,8 @@ void FeatureRep::reparentMyChildren() {
 // If these pointers point outside the oldRoot tree, however, we'll just
 // set them to 0 in the newRoot copy.
 void FeatureRep::fixPlacements(const Feature& oldRoot, const Feature& newRoot) {
-    for (size_t i=0; i < (size_t)getNChildFeatures(); ++i)
-        childFeatures[i].rep->fixPlacements(oldRoot, newRoot);
+    for (size_t i=0; i < (size_t)getNSubfeatures(); ++i)
+        subfeatures[i].rep->fixPlacements(oldRoot, newRoot);
 
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
         placementExpressions[i].updRep().repairFeatureReferences(oldRoot,newRoot);

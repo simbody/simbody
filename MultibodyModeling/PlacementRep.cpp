@@ -51,7 +51,8 @@ FeaturePlacementRep::findAncestorFeature(const Feature& root) const {
 
 PlacementType FeaturePlacementRep::getPlacementType() const {
     assert(feature);
-    return (*feature).getRep().getRequiredPlacementType();
+    const PlacementType whole = (*feature).getRep().getRequiredPlacementType();
+    return index == -1 ? whole : getIndexedPlacementType(whole, index);
 }
 
 // Check that this feature is on the feature subtree rooted by "ancestor". If

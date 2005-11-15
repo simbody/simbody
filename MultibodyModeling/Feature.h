@@ -81,7 +81,7 @@ public:
 
 
     // Read-only access to subfeatures.
-    const Feature&          getFeature         (const String&) const; // generic
+    const Feature&          getSubfeature      (const String&) const; // generic
     const RealParameter&    getRealParameter   (const String&) const; // type checked
     const StationParameter& getStationParameter(const String&) const; //   "
     const RealMeasure&      getRealMeasure     (const String&) const;
@@ -92,7 +92,7 @@ public:
     const Frame&            getFrame           (const String&) const;
 
     // Writable access to subfeatures, e.g. allowing placement.
-    Feature&                updFeature         (const String&);   // generic
+    Feature&                updSubfeature      (const String&);   // generic
     RealParameter&          updRealParameter   (const String&);   // type checked
     StationParameter&       updStationParameter(const String&);   //   "
     RealMeasure&            updRealMeasure     (const String&);
@@ -128,34 +128,9 @@ public:
     // This generic routine will create a subfeature of the specific type supplied
     // in the first argument. If a Placement is provided, it must be appropriate
     // for that kind of feature or a runtime error will occur.
-    Feature&          addFeatureLike
+    Feature&          addSubfeatureLike
                         (const Feature&,
                          const String&, const Placement& = Placement());
-
-    RealParameter&    addRealParameterLike
-                        (const RealParameter&,
-                         const String&, const RealPlacement& = RealPlacement());
-    RealMeasure&      addRealMeasureLike
-                        (const RealMeasure&,
-                         const String&, const RealPlacement& = RealPlacement());
-    StationParameter& addStationParameterLike
-                        (const StationParameter&,
-                         const String&, const StationPlacement& = StationPlacement());
-    StationMeasure&   addStationMeasureLike
-                        (const StationMeasure&,
-                         const String&, const StationPlacement& = StationPlacement());
-    Station&          addStationLike
-                        (const Station&,
-                         const String&, const StationPlacement& = StationPlacement());
-    Direction&        addDirectionLike
-                        (const Direction&, 
-                         const String&, const DirectionPlacement& = DirectionPlacement());
-    Orientation&      addOrientationLike
-                        (const Orientation&,
-                         const String&, const OrientationPlacement& = OrientationPlacement());
-    Frame&            addFrameLike
-                        (const Frame&,
-                         const String&, const FramePlacement& = FramePlacement());
    
     bool           hasParentFeature() const;
     int            getIndexInParent() const; // -1 if no parent
@@ -172,11 +147,14 @@ public:
     String getFeatureTypeName() const; // "Station", "Frame", etc.
 
     // Subfeatures of this feature
-    int            getNFeatures() const;
-    const Feature& getFeature(int) const;
-    Feature&       updFeature(int);
-    void           placeFeature(const String&, const Placement&);
-    void           placeFeature(int, const Placement&);
+    int            getNSubfeatures()  const;
+    const Feature& getSubfeature(int) const;
+    Feature&       updSubfeature(int);
+
+    const Feature& operator[](int i) const           {return getSubfeature(i);}
+    Feature&       operator[](int i)                 {return updSubfeature(i);}
+    const Feature& operator[](const String& s) const {return getSubfeature(s);}
+    Feature&       operator[](const String& s)       {return updSubfeature(s);}
 
     // True if this feature has been placed; its children may still be unplaced.
     bool hasPlacement() const;
