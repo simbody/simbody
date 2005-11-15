@@ -85,7 +85,7 @@ void PlacementExpr::exprRepairFeatureReferences
         args[i].updRep().repairFeatureReferences(oldRoot,newRoot);
 }
 
-// PLACEMENT REP //
+    // PLACEMENT REP //
 
 
     // FEATURE PLACEMENT REP //

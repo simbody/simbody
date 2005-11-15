@@ -88,7 +88,7 @@ void FeatureRep::place(const Placement& p) {
     if (!p.hasOwner()) {
         if (p.isConstant()) {
             FeatureRep& ownerFeatureRep =
-                hasParentFeature() ? getParentFeature().getRep() : *this;
+                hasParentFeature() ? updParentFeature().updRep() : *this;
             placementToUse = &(ownerFeatureRep.addPlacementLike(p));
         } else {
             const Feature& myRoot = findRootFeature();
@@ -134,7 +134,7 @@ Placement&
 FeatureRep::addPlacementLike(const Placement& p) {
     assert(p.hasRep());
 
-    Feature* offender;
+    const Feature* offender;
     if (!p.getRep().isLimitedToSubtree(getMyHandle(),offender)) {
         SIMTK_THROW3(Exception::PlacementMustBeLocal,"FeatureRep::addPlacementLike",
             this->getFullName(),offender->getFullName());
