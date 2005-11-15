@@ -176,6 +176,71 @@ RealPlacement::downcast(Placement& p) {
     return reinterpret_cast<RealPlacement&>(p);
 }
 
+    // VEC3 PLACEMENT //
+Vec3Placement::Vec3Placement(const Vec3& r) {
+    (void)new Vec3ConstantPlacementRep(*this,r);
+}
+
+//Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
+//    rp.getRep().useAsVec3Placement(*this);
+//}
+
+//Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
+//    rm.getRep().useAsVec3Placement(*this);
+//}
+
+//Vec3Placement::Vec3Placement(const Feature& f) {
+//    f.getRep().useAsVec3Placement(*this);
+//}
+
+/*static*/ Vec3Placement
+Vec3Placement::plus(const Vec3Placement& l, const Vec3Placement& r) {
+    Vec3Placement x; // null rep
+    Vec3ExprPlacementRep::plus(x,l,r);
+    return x;
+}
+/*static*/ Vec3Placement
+Vec3Placement::minus(const Vec3Placement& l, const Vec3Placement& r) {
+    Vec3Placement x; // null rep
+    Vec3ExprPlacementRep::minus(x,l,r);
+    return x;
+}
+/*static*/ Vec3Placement
+Vec3Placement::scale(const RealPlacement& s, const Vec3Placement& v) {
+    Vec3Placement x; // null rep
+    Vec3ExprPlacementRep::scale(x,s,v);
+    return x;
+}
+/*static*/ Vec3Placement
+Vec3Placement::cast(const StationPlacement& s) {
+    Vec3Placement x; // null rep
+    Vec3ExprPlacementRep::cast(x,s);
+    return x;
+}
+/*static*/ Vec3Placement
+Vec3Placement::cast(const DirectionPlacement& d) {
+    Vec3Placement x; // null rep
+    Vec3ExprPlacementRep::cast(x,d);
+    return x;
+}
+
+/*static*/ bool             
+Vec3Placement::isInstanceOf(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return Vec3PlacementRep::isA(p.getRep());
+}
+/*static*/ const Vec3Placement& 
+Vec3Placement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const Vec3Placement&>(p);
+}
+
+/*static*/ Vec3Placement&       
+Vec3Placement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<Vec3Placement&>(p);
+}
+
     // STATION PLACEMENT //
 StationPlacement::StationPlacement(const Vec3& v) {
     (void)new StationConstantPlacementRep(*this,v);
@@ -190,9 +255,9 @@ StationPlacement::StationPlacement(const Feature& f) {
 }
 
 /*static*/ StationPlacement
-StationPlacement::scale(const RealPlacement& s, const DirectionPlacement& d) {
+StationPlacement::cast(const Vec3Placement& v) {
     StationPlacement x; // null rep
-    StationExprPlacementRep::scale(x,s,d);
+    StationExprPlacementRep::cast(x,v);
     return x;
 }
 
@@ -207,6 +272,21 @@ DirectionPlacement::DirectionPlacement(const Direction& d) {
 
 DirectionPlacement::DirectionPlacement(const Feature& f) {
     f.getRep().useAsDirectionPlacement(*this);
+}
+
+
+/*static*/ DirectionPlacement
+DirectionPlacement::normalize(const Vec3Placement& v) {
+    DirectionPlacement x; // null rep
+    DirectionExprPlacementRep::normalize(x,v);
+    return x;
+}
+
+/*static*/ DirectionPlacement
+DirectionPlacement::normalize(const StationPlacement& v) {
+    DirectionPlacement x; // null rep
+    DirectionExprPlacementRep::normalize(x,v);
+    return x;
 }
 
     // ORIENTATION PLACEMENT //

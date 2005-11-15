@@ -98,6 +98,49 @@ private:
 };
 
 /**
+ * Abstract class which represents an operator which returns a Vec3 result
+ * when applied to an argument list of Placements.
+ */
+class Vec3PlacementOp : public PlacementOp {
+public:
+    virtual ~Vec3PlacementOp() { }
+    // Run time
+    virtual Vec3 apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(Vec3PlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Vec3 result when applied to Placement
+ * arguments of whatever number and type is appropriate for the operator.
+ */
+class Vec3Ops : public Vec3PlacementOp {
+public:
+    enum OpKind { Scale, Plus, Minus, Cast };
+    explicit Vec3Ops(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new Vec3Ops(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case Scale: p="scale<Vec3>"; break;
+            case Plus:  p="add<Vec3>";   break;
+            case Minus: p="sub<Vec3>";   break;
+            case Cast:  p="cast<Vec3>";  break;
+            default:    p="UNKNOWN Vec3Op";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+
+private:
+    OpKind op;
+};
+
+/**
  * Abstract class which represents an operator which returns a Station result
  * when applied to an argument list of Placements.
  */
@@ -114,19 +157,20 @@ public:
  * Concrete class producing a Station result when applied to two Placements
  * of whatever type is appropriate for the operator.
  */
-class StationBinaryOp : public StationPlacementOp {
+class StationOps : public StationPlacementOp {
 public:
-    enum OpKind { Scale, Offset };
-    explicit StationBinaryOp(OpKind k) : op(k) { }
+    enum OpKind { Plus, Minus, Cast };
+    explicit StationOps(OpKind k) : op(k) { }
 
-    StationBinaryOp* clone() const { return new StationBinaryOp(*this);}
+    PlacementOp* clone() const { return new StationOps(*this);}
     bool checkArgs(const std::vector<Placement>& args) const;
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Scale:  p="scale<Station>"; break;
-            case Offset: p="offset<Station>"; break;
-            default: p="UNKNOWN StationBinaryOp";
+            case Plus:  p="add<Station>";  break;
+            case Minus: p="sub<Station>";  break;
+            case Cast:  p="cast<Station>"; break;
+            default: p="UNKNOWN StationOp";
         };
         return std::string(p);
     }
@@ -138,6 +182,45 @@ private:
     OpKind op;
 };
 
+/**
+ * Abstract class which represents an operator which returns a Direction result
+ * when applied to an argument list of Placements.
+ */
+class DirectionPlacementOp : public PlacementOp {
+public:
+    virtual ~DirectionPlacementOp() { }
+    // Run time
+    virtual Vec3 apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(DirectionPlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Direction result when applied to Placement
+ * arguments of whatever number and type is appropriate for the operator.
+ */
+class DirectionOps : public DirectionPlacementOp {
+public:
+    enum OpKind { Normalize };
+    explicit DirectionOps(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new DirectionOps(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case Normalize: p="normalize<Direction>"; break;
+            default:    p="UNKNOWN DirectionOp";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+
+private:
+    OpKind op;
+};
 
 /**
  * This class captures the methods common to all Placement expressions, regardless
@@ -420,6 +503,101 @@ public:
     SIMTK_DOWNCAST2(RealExprPlacementRep,RealPlacementRep,PlacementRep);
 };
 
+
+
+/**
+ * A PlacementRep with a Vec3 value. This is still abstract.
+ */
+class Vec3PlacementRep : public PlacementRep {
+public:
+    Vec3PlacementRep(Vec3Placement& p) : PlacementRep(p) { }
+    virtual ~Vec3PlacementRep() { }
+
+    PlacementType getPlacementType() const { return Vec3PlacementType; }
+    // clone, toString, findAncestorFeature are still missing
+
+
+    // This should allow for state to be passed in.
+    virtual Vec3 getValue(/*State*/) const = 0;
+    SIMTK_DOWNCAST(Vec3PlacementRep,PlacementRep);
+};
+
+/**
+ * A concrete PlacementRep whose value is a Vec3 constant.
+ */
+class Vec3ConstantPlacementRep : public Vec3PlacementRep {
+public:
+    Vec3ConstantPlacementRep(Vec3Placement& p, const Vec3& r) 
+      : Vec3PlacementRep(p), value(r) { }
+    ~Vec3ConstantPlacementRep() { }
+
+    bool isConstant() const { return true; }
+
+    PlacementRep* clone() const {return new Vec3ConstantPlacementRep(*this);}
+
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << "Vec3[" << value << "]";   
+        return s.str();
+    }
+
+    const Feature* findAncestorFeature(const Feature&) const {
+        assert(false); // not allowed for constants
+        return 0;
+    }
+
+    Vec3 getValue(/*State*/) const { return value; }
+
+    SIMTK_DOWNCAST2(Vec3ConstantPlacementRep,Vec3PlacementRep,PlacementRep);
+private:
+    Vec3 value;
+};
+
+
+/**
+ * A concrete PlacementRep whose value is a Vec3 expression. This
+ * is always Func(List<Placement>). 
+ */
+class Vec3ExprPlacementRep : public Vec3PlacementRep, public PlacementExpr {
+public:
+    Vec3ExprPlacementRep(Vec3Placement& p, const Vec3PlacementOp&  f, 
+                                           const std::vector<const Placement*>& a) 
+      : Vec3PlacementRep(p), PlacementExpr(f,a)
+    { }
+    ~Vec3ExprPlacementRep() { }
+
+    static Vec3ExprPlacementRep* scale
+        (Vec3Placement& handle,
+         const RealPlacement& l, const Vec3Placement& r);
+    static Vec3ExprPlacementRep* plus
+        (Vec3Placement& handle,
+         const Vec3Placement& l, const Vec3Placement& r);
+    static Vec3ExprPlacementRep* minus
+        (Vec3Placement& handle,
+         const Vec3Placement& l, const Vec3Placement& r);
+
+    static Vec3ExprPlacementRep* cast
+        (Vec3Placement& handle, const StationPlacement&);
+    static Vec3ExprPlacementRep* cast
+        (Vec3Placement& handle, const DirectionPlacement& r);
+
+    PlacementRep*  clone() const {return new Vec3ExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
+    bool           isConstant()                          const {return exprIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
+
+
+    Vec3 getValue(/*State*/) const 
+      { return Vec3PlacementOp::downcast(func).apply(/*State,*/args); }
+
+    SIMTK_DOWNCAST2(Vec3ExprPlacementRep,Vec3PlacementRep,PlacementRep);
+};
+
 class StationPlacementRep : public PlacementRep {
 public:
     StationPlacementRep(StationPlacement& p) : PlacementRep(p) { }
@@ -477,12 +655,12 @@ public:
     { }
     ~StationExprPlacementRep() { }
 
-    static StationExprPlacementRep* scale
-        (StationPlacement& handle,
-         const RealPlacement&, const DirectionPlacement&);
-    static StationExprPlacementRep* scale
-        (StationPlacement& handle,
-         const RealPlacement&, const StationPlacement&);
+    static StationExprPlacementRep* plus
+        (StationPlacement& handle, const StationPlacement&, const Vec3Placement&);
+    static StationExprPlacementRep* minus
+        (StationPlacement& handle, const StationPlacement&, const Vec3Placement&);
+    static StationExprPlacementRep* cast
+        (StationPlacement& handle, const Vec3Placement&);
 
     PlacementRep*  clone() const {return new StationExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
@@ -551,6 +729,39 @@ private:
     Vec3 dir;
 };
 
+/**
+ * A concrete PlacementRep whose value is a Direction expression. This
+ * is always Func(List<Placement>). 
+ */
+class DirectionExprPlacementRep : public DirectionPlacementRep, public PlacementExpr {
+public:
+    DirectionExprPlacementRep(DirectionPlacement& p, const DirectionPlacementOp&  f, 
+                                                     const std::vector<const Placement*>& a) 
+      : DirectionPlacementRep(p), PlacementExpr(f,a)
+    { }
+    ~DirectionExprPlacementRep() { }
+
+    static DirectionExprPlacementRep* normalize
+        (DirectionPlacement& handle, const Vec3Placement& v);
+    static DirectionExprPlacementRep* normalize
+        (DirectionPlacement& handle, const StationPlacement& v);
+
+    PlacementRep*  clone() const {return new DirectionExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
+    bool           isConstant()                          const {return exprIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
+
+
+    Vec3 getMeasureNumbers(/*State*/) const 
+      { return DirectionPlacementOp::downcast(func).apply(/*State,*/args); }
+
+    SIMTK_DOWNCAST2(DirectionExprPlacementRep,DirectionPlacementRep,PlacementRep);
+};
 
 class OrientationPlacementRep : public PlacementRep {
 public:

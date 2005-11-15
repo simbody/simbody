@@ -47,9 +47,9 @@ class StationMeasure;
 class Placement;
 class FeaturePlacement;
 class RealPlacement;
-class RealConstantPlacement;
+class Vec2Placement;
+class Vec3Placement;
 class StationPlacement;
-class StationConstantPlacement;
 class DirectionPlacement;
 class OrientationPlacement;
 class FramePlacement;
@@ -141,6 +141,29 @@ public:
     static RealPlacement&       downcast(Placement&);
 };
 
+class Vec3Placement : public Placement {
+public:
+    Vec3Placement() { }
+    Vec3Placement(const Vec3&);
+    //Vec3Placement(const Vec3Parameter&);
+    //Vec3Placement(const Vec3Measure&);
+    //Vec3Placement(const Feature&);
+
+    static Vec3Placement plus  (const Vec3Placement& l,
+                                const Vec3Placement& r);
+    static Vec3Placement minus (const Vec3Placement& l,
+                                const Vec3Placement& r);
+    static Vec3Placement scale (const RealPlacement& l,
+                                const Vec3Placement& r);
+
+    static Vec3Placement cast  (const StationPlacement& s);
+    static Vec3Placement cast  (const DirectionPlacement& d);
+
+    static bool                 isInstanceOf(const Placement&);
+    static const Vec3Placement& downcast(const Placement&);
+    static Vec3Placement&       downcast(Placement&);
+};
+
 class StationPlacement : public Placement {
 public:
     StationPlacement() { }
@@ -149,17 +172,11 @@ public:
     StationPlacement(const Frame&);   //   "
     StationPlacement(const Feature&);
 
-    StationPlacement(const Direction&   v,
-                     const RealMeasure& scale);
-
-    StationPlacement(const RealMeasure& x,
-                     const RealMeasure& y,
-                     const RealMeasure& z);
-
     static StationPlacement   plus (const StationPlacement&,
-                                    const DirectionPlacement&);
-    static StationPlacement   scale(const RealPlacement&,
-                                    const DirectionPlacement&);
+                                    const Vec3Placement&);
+    static StationPlacement   minus(const StationPlacement&,
+                                    const Vec3Placement&);
+    static StationPlacement   cast(const Vec3Placement&);
 
     static bool                    isInstanceOf(const Placement&);
     static const StationPlacement& downcast(const Placement&);
@@ -173,12 +190,8 @@ public:
     DirectionPlacement(const Direction&); //   "
     DirectionPlacement(const Feature&);
 
-    static DirectionPlacement plus (const DirectionPlacement& l,
-                                    const DirectionPlacement& r);
-    static DirectionPlacement minus(const StationPlacement& head,
-                                    const StationPlacement& tail);
-    static DirectionPlacement minus(const DirectionPlacement& l,
-                                    const DirectionPlacement& r);
+    static DirectionPlacement normalize(const Vec3Placement& v);
+    static DirectionPlacement normalize(const StationPlacement& v);
 
     static bool                      isInstanceOf(const Placement&);
     static const DirectionPlacement& downcast(const Placement&);

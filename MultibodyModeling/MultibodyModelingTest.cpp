@@ -109,7 +109,9 @@ try {
     lower.addStation("ballAttachPt");
 
     lower.updStation("ballAttachPt").place(
-        StationPlacement::scale(lower.getRealParameter("halfHeight"), lower.y()));
+        StationPlacement::cast(
+            Vec3Placement::scale(lower.getRealParameter("halfHeight"), 
+                                 Vec3Placement::cast(DirectionPlacement(lower.y())))));
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
@@ -121,8 +123,9 @@ try {
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
     tube["center"].place(lower.getOrigin());
-    //tube.placeFeature("axis", DirectionPlacement::minus(lower.getStation("ballAttachPt"),
-    //                                                      lower.getOrigin()));
+    tube["axis"].place(DirectionPlacement::normalize(
+        Vec3Placement::minus(Vec3Placement::cast(StationPlacement(lower.getStation("ballAttachPt"))),
+                             Vec3Placement::cast(StationPlacement(lower.getOrigin())))));
      cout << "L=" << lower; 
      /*
     ////////////////////////////////////////////

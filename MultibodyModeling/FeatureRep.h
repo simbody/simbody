@@ -106,6 +106,10 @@ public:
         SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
                      getFullName(), getFeatureTypeName(), "Real");
     }
+    virtual void useAsVec3Placement(Vec3Placement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Vec3");
+    }
     virtual void useAsStationPlacement(StationPlacement&) const {
         SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
                      getFullName(), getFeatureTypeName(), "Station");
@@ -289,6 +293,12 @@ public:
                     getMyHandle());
     }
 
+    void useAsVec3Placement(Vec3Placement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
     SIMTK_DOWNCAST(StationParameterRep,FeatureRep);
 };
 
@@ -323,6 +333,12 @@ public:
                     getMyHandle());
     }
 
+    void useAsVec3Placement(Vec3Placement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
     SIMTK_DOWNCAST(StationMeasureRep,FeatureRep);
 };
 
@@ -335,6 +351,11 @@ public:
     FeatureRep* clone() const { return new StationRep(*this); }
 
     void useAsStationPlacement(StationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+    void useAsVec3Placement(Vec3Placement& handle) const {
         (void)new FeaturePlacementRep(
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
@@ -366,7 +387,11 @@ public:
                     reinterpret_cast<FeaturePlacement&>(handle),
                     getMyHandle());
     }
-
+    void useAsVec3Placement(Vec3Placement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
     SIMTK_DOWNCAST(DirectionRep,FeatureRep);
 };
 
