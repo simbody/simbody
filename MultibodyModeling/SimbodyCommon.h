@@ -65,6 +65,20 @@ public:
 private:
 };
 
+class FeatureUsedAsFramePlacementMustBeOnFrame : public Base {
+public:
+    FeatureUsedAsFramePlacementMustBeOnFrame(const char* fn, int ln, 
+        String featureName, String featureTypeName,
+        String missingPlacementType) : Base(fn,ln)
+    {
+        setMessage("Can't use " + featureTypeName + " Feature '" + featureName 
+         + "' as a Frame Placement because it doesn't have a parent Frame"
+           " from which to inherit the " + missingPlacementType
+           + " Placement.");
+    }
+private:
+};
+
 class PlacementMustBeLocal : public Base {
 public:
     PlacementMustBeLocal(const char* fn, int ln, String method, 

@@ -239,6 +239,8 @@ public:
     static bool                 isInstanceOf(const Feature&);
     static const RealParameter& downcast(const Feature&);
     static RealParameter&       downcast(Feature&);
+protected:
+    RealParameter() { }
 };
 
 class StationMeasure : public Feature {
@@ -269,6 +271,8 @@ public:
     static bool                    isInstanceOf(const Feature&);
     static const StationParameter& downcast(const Feature&);
     static StationParameter&       downcast(Feature&);
+protected:
+    StationParameter() { }
 };
 
 class Station : public Feature {
@@ -284,6 +288,8 @@ public:
     static bool           isInstanceOf(const Feature&);
     static const Station& downcast(const Feature&);
     static Station&       downcast(Feature&);
+protected:
+    Station() { }
 };
 
 class Direction : public Feature {
@@ -299,6 +305,8 @@ public:
     static bool             isInstanceOf(const Feature&);
     static const Direction& downcast(const Feature&);
     static Direction&       downcast(Feature&);
+protected:
+    Direction() { }
 };
 
 class Orientation : public Feature {
@@ -319,6 +327,8 @@ public:
     static bool               isInstanceOf(const Feature&);
     static const Orientation& downcast(const Feature&);
     static Orientation&       downcast(Feature&);
+protected:
+    Orientation() { }
 };
 
 class Frame : public Feature {

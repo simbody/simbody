@@ -143,7 +143,7 @@ FeatureRep::addPlacementLike(const Placement& p) {
     const int index = (int)placementExpressions.size();
     placementExpressions.push_back(Placement());
     Placement& newPlacement = placementExpressions[index];
-    p.getRep().clone(newPlacement);
+    p.getRep().cloneWithNewHandle(newPlacement);
     newPlacement.updRep().setOwner(getMyHandle(), index);
     return newPlacement;
 }

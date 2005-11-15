@@ -73,7 +73,7 @@ class FeatureRep {
 public:
     FeatureRep(Feature& f, const std::string& nm) 
       : myHandle(&f), name(nm), parent(0), indexInParent(-1), placement(0) 
-    { f.rep = this; }
+      { f.setRep(this); }
 
     // Copying a Feature is tricky. The result should have all the child features
     // and the *internal* placements. External placements should evaporate. Note
@@ -93,6 +93,35 @@ public:
     virtual PlacementType getRequiredPlacementType()      const = 0;
     virtual std::string   getFeatureTypeName()            const = 0;
     virtual FeatureRep*   clone()                         const = 0;
+
+    // If this Feature can be used as the indicated placement type, return
+    // a new, unowned placement of the right type. Most commonly, the returned
+    // Placement will just be a recast FeaturePlacement referencing this Feature.
+    // For composite Features, this can be a recast FeaturePlacement
+    // referencing one of the Features's subfeatures.
+    // For example, if a Frame is used as a StationPlacement, we return a
+    // reference to the Frame's origin feature. Otherwise we return invalid
+    // placements (handles with no rep).
+    virtual void useAsRealPlacement(RealPlacement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Real");
+    }
+    virtual void useAsStationPlacement(StationPlacement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Station");
+    }
+    virtual void useAsDirectionPlacement(DirectionPlacement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Direction");
+    }    
+    virtual void useAsOrientationPlacement(OrientationPlacement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Orientation");
+    } 
+    virtual void useAsFramePlacement(FramePlacement&) const {
+        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                     getFullName(), getFeatureTypeName(), "Frame");
+    } 
 
     void cloneWithoutExternalPlacements(Feature& newHandle) const;
 
@@ -237,6 +266,12 @@ public:
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* clone() const { return new RealParameterRep(*this); }
 
+    void useAsRealPlacement(RealPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
     SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
 };
 
@@ -247,6 +282,12 @@ public:
     std::string getFeatureTypeName() const { return "StationParameter"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationParameterRep(*this); }
+
+    void useAsStationPlacement(StationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
 
     SIMTK_DOWNCAST(StationParameterRep,FeatureRep);
 };
@@ -259,6 +300,12 @@ public:
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* clone() const { return new RealMeasureRep(*this); }
 
+    void useAsRealPlacement(RealPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+
     SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
 };
 
@@ -269,6 +316,12 @@ public:
     std::string getFeatureTypeName() const { return "StationMeasure"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationMeasureRep(*this); }
+
+    void useAsStationPlacement(StationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
 
     SIMTK_DOWNCAST(StationMeasureRep,FeatureRep);
 };
@@ -281,6 +334,22 @@ public:
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationRep(*this); }
 
+    void useAsStationPlacement(StationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+    void useAsFramePlacement(FramePlacement& handle) const {
+        if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
+            SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
+                     getFullName(), "Station", "Orientation");
+            //NOTREACHED
+        }
+        const Frame& parentFrame = Frame::downcast(getParentFeature());
+        (void)new FramePlacementRep(handle, parentFrame.getOrientation(), 
+                                    Station::downcast(getMyHandle()));
+    }
+
     SIMTK_DOWNCAST(StationRep,FeatureRep);
 };
 
@@ -291,6 +360,12 @@ public:
     std::string getFeatureTypeName() const { return "Direction"; }
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     FeatureRep* clone() const { return new DirectionRep(*this); }
+
+    void useAsDirectionPlacement(DirectionPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
 
     SIMTK_DOWNCAST(DirectionRep,FeatureRep);
 };
@@ -304,6 +379,21 @@ public:
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     FeatureRep*   clone() const { return new OrientationRep(*this); }
 
+    void useAsOrientationPlacement(OrientationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+    void useAsFramePlacement(FramePlacement& handle) const {
+        if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
+            SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
+                     getFullName(), "Orientation", "Station");
+            //NOTREACHED
+        }
+        const Frame& parentFrame = Frame::downcast(getParentFeature());
+        (void)new FramePlacementRep(handle, Orientation::downcast(getMyHandle()),
+                                    parentFrame.getOrigin());
+    }
     const Direction& getAxis(int i) const
       { assert(0<=i&&i<=2); return Direction::downcast(getSubfeature(axisIndices[i])); }
     const Direction& x() const {return Direction::downcast(getSubfeature(axisIndices[0]));}
@@ -331,7 +421,7 @@ private:
 class FrameRep : public FeatureRep {
 public:
     FrameRep(Frame& f, const std::string& nm) 
-      : FeatureRep(f,nm), OIndex(-1), RIndex(-1) {
+      : FeatureRep(f,nm), RIndex(-1), OIndex(-1) {
         initializeSubfeatures();
     }
 
@@ -339,6 +429,21 @@ public:
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
     FeatureRep*   clone() const { return new FrameRep(*this); }
 
+    void useAsFramePlacement(FramePlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getMyHandle());
+    }
+    void useAsOrientationPlacement(OrientationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getOrientation());
+    }
+    void useAsStationPlacement(StationPlacement& handle) const {
+        (void)new FeaturePlacementRep(
+                    reinterpret_cast<FeaturePlacement&>(handle),
+                    getOrigin());
+    }
     const Orientation& getOrientation() const {return Orientation::downcast(getSubfeature(RIndex));}
     const Station&     getOrigin()      const {return Station::downcast(getSubfeature(OIndex)); }
 

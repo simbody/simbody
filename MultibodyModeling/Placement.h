@@ -116,7 +116,6 @@ public:
     static bool                    isInstanceOf(const Placement&);
     static const FeaturePlacement& downcast(const Placement&);
     static FeaturePlacement&       downcast(Placement&);
-private:
 };
 
 class RealPlacement : public Placement {
@@ -139,17 +138,6 @@ public:
     static bool                 isInstanceOf(const Placement&);
     static const RealPlacement& downcast(const Placement&);
     static RealPlacement&       downcast(Placement&);
-private:
-};
-
-class RealConstantPlacement : public RealPlacement {
-public:
-    RealConstantPlacement() { }
-    RealConstantPlacement(const Real&);
-
-    static bool                         isInstanceOf(const Placement&);
-    static const RealConstantPlacement& downcast(const Placement&);
-    static RealConstantPlacement&       downcast(Placement&);
 };
 
 class StationPlacement : public Placement {
@@ -173,7 +161,6 @@ public:
     static bool                    isInstanceOf(const Placement&);
     static const StationPlacement& downcast(const Placement&);
     static StationPlacement&       downcast(Placement&);
-private:
 };
 
 class DirectionPlacement : public Placement {
@@ -193,7 +180,6 @@ public:
     static bool                      isInstanceOf(const Placement&);
     static const DirectionPlacement& downcast(const Placement&);
     static DirectionPlacement&       downcast(Placement&);
-private:
 };
 
 // Three, mutually orthogonal, right handed directions.
@@ -206,7 +192,6 @@ public:
     static bool                        isInstanceOf(const Placement&);
     static const OrientationPlacement& downcast(const Placement&);
     static OrientationPlacement&       downcast(Placement&);
-private:
 };
 
 class FramePlacement : public Placement {
@@ -223,7 +208,6 @@ public:
     static bool                  isInstanceOf(const Placement&);
     static const FramePlacement& downcast(const Placement&);
     static FramePlacement&       downcast(Placement&);
-private:
 };
 
 } // namespace simtk

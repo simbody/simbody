@@ -40,12 +40,12 @@ namespace simtk {
     // PLACEMENT //
 
 Placement::Placement(const Placement& src) : rep(0) { 
-    if (src.rep) src.rep->clone(*this);
+    if (src.rep) src.rep->cloneWithNewHandle(*this);
 }
 Placement& Placement::operator=(const Placement& src) {
     if (this != &src) {
         delete rep; rep=0;
-        if (src.rep) src.rep->clone(*this);
+        if (src.rep) src.rep->cloneWithNewHandle(*this);
     }
     return *this;
 }
@@ -55,8 +55,8 @@ Placement::~Placement() {
     delete rep; rep=0;
 }
 
-Placement::Placement(const Feature& f) {
-    rep = new FeaturePlacementRep(
+Placement::Placement(const Feature& f) : rep(0) {
+    (void)new FeaturePlacementRep(
         reinterpret_cast<FeaturePlacement&>(*this),f);
 }
 
@@ -109,26 +109,21 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 
     // FEATURE PLACEMENT //
 FeaturePlacement::FeaturePlacement(const Feature& f) {
-    rep = new FeaturePlacementRep(*this,f);
+    (void)new FeaturePlacementRep(*this,f);
 }
 
 FeaturePlacement::FeaturePlacement(const Feature& f, int index) {
-    rep = new FeaturePlacementRep(*this,f,index);
+    (void)new FeaturePlacementRep(*this,f,index);
 }
 
 
     // REAL PLACEMENT //
 RealPlacement::RealPlacement(const Real& r) {
-    rep = new RealConstantPlacementRep(*this,r);
+    (void)new RealConstantPlacementRep(*this,r);
 }
-RealPlacement::RealPlacement(const Feature& f) {
-    if (f.getRep().getRequiredPlacementType() != RealPlacementType) {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     f.getFullName(), f.getFeatureTypeName(), "Real");
-        //NOTREACHED
-    }
 
-    rep = new FeaturePlacementRep(reinterpret_cast<FeaturePlacement&>(*this), f);
+RealPlacement::RealPlacement(const Feature& f) {
+    f.getRep().useAsRealPlacement(*this);
 }
 
 /*static*/ bool             
@@ -150,73 +145,42 @@ RealPlacement::downcast(Placement& p) {
 
     // STATION PLACEMENT //
 StationPlacement::StationPlacement(const Vec3& v) {
-    rep = new StationConstantPlacementRep(*this,v);
+    (void)new StationConstantPlacementRep(*this,v);
 }
 
 StationPlacement::StationPlacement(const Station& s) {
-    rep = new FeaturePlacementRep(
-        *reinterpret_cast<FeaturePlacement*>(this),s);
+    s.getRep().useAsStationPlacement(*this);
 }
 
 StationPlacement::StationPlacement(const Feature& f) {
-    switch(f.getRep().getRequiredPlacementType()) {
-        case StationPlacementType:
-            rep = new FeaturePlacementRep(reinterpret_cast<FeaturePlacement&>(*this), f);
-            return;
-
-        case FramePlacementType:
-            rep = new FeaturePlacementRep(reinterpret_cast<FeaturePlacement&>(*this), 
-                                          f["origin"]);
-            return;
-
-        default:
-            SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                         f.getFullName(), f.getFeatureTypeName(), "Station");
-            //NOTREACHED
-        };
+    f.getRep().useAsStationPlacement(*this);
 }
 
     // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
-    rep = new DirectionConstantPlacementRep(*this,v);
+    (void)new DirectionConstantPlacementRep(*this,v);
 }
 
     // ORIENTATION PLACEMENT //
 OrientationPlacement::OrientationPlacement(const Mat33& m) {
-    rep = new OrientationConstantPlacementRep(*this,m);
+    (void)new OrientationConstantPlacementRep(*this,m);
 }
 
     // FRAME PLACEMENT //
 FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
-    rep = new FramePlacementRep(*this,o,s);
+    (void)new FramePlacementRep(*this,o,s);
 }
 
 FramePlacement::FramePlacement(const Station& s) {
-    assert(s.hasParentFeature());
-    assert(Frame::isInstanceOf(s.getParentFeature()));
-    const Frame& parentFrame = Frame::downcast(s.getParentFeature());
-    rep = new FramePlacementRep(*this,parentFrame.getOrientation(),s);
+    s.getRep().useAsFramePlacement(*this);
+}
+
+FramePlacement::FramePlacement(const Orientation& o) {
+    o.getRep().useAsFramePlacement(*this);
 }
 
 FramePlacement::FramePlacement(const Feature& f) {
-    switch(f.getRep().getRequiredPlacementType()) {
-        case StationPlacementType: {
-            assert(f.hasParentFeature());
-            assert(Frame::isInstanceOf(f.getParentFeature()));
-            const Frame& parentFrame = Frame::downcast(f.getParentFeature());
-            XXX
-            rep = new FramePlacementRep(*this,parentFrame.getOrientation(),f);
-            return;
-        }
-        case FramePlacementType:
-            rep = new FeaturePlacementRep(reinterpret_cast<FeaturePlacement&>(*this), f);
-            return;
-
-        default:
-            SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                         f.getFullName(), f.getFeatureTypeName(), "Frame");
-            //NOTREACHED
-        };
+    f.getRep().useAsFramePlacement(*this);
 }
 
 } // namespace simtk

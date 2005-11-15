@@ -54,7 +54,7 @@ public:
     virtual Real apply(/*State,*/const std::vector<const Placement*>&) const = 0;
 };
 
-
+// TODO: shouldn't be necessary to have this enum; use virtual methods instead
 enum PlacementType {
     InvalidPlacementType = 0,
     BoolPlacementType,
@@ -71,7 +71,9 @@ enum PlacementType {
 
 class PlacementRep {
 public:
-    explicit PlacementRep(Placement& p) : myHandle(&p), owner(0), indexInOwner(-1) { }
+    explicit PlacementRep(Placement& p) : myHandle(&p), owner(0), indexInOwner(-1) {
+        p.setRep(this);
+    }
     virtual ~PlacementRep() { }
 
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
@@ -82,8 +84,17 @@ public:
     bool hasOwner() const { return owner != 0; }
     void setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
 
+    // Note that this copies all feature & placement reference pointers verbatim.
+    // The copy will require repair if we are copying a whole Feature tree
+    // to get the references to refer to objects in the new tree. 
+    void cloneWithNewHandle(Placement& p) const {
+        PlacementRep* pr = clone();
+        pr->myHandle = &p;
+        p.setRep(pr);
+    }
+
     virtual PlacementType getPlacementType() const = 0;
-    virtual void          clone(Placement&)  const = 0;  // clone but with new handle
+    virtual PlacementRep* clone()            const = 0;
     virtual std::string   toString(const std::string& linePrefix) const = 0;
 
     virtual bool isConstant() const { return false; }
@@ -159,11 +170,6 @@ public:
         return InvalidPlacementType;
     }
 
-protected:
-    void cleanUpAfterClone(Placement& p) {
-        myHandle = &p;
-        p.setRep(this);
-    }
 private:
     Placement*      myHandle;    // the Placement whose rep this is
     const Feature*  owner;
@@ -176,6 +182,7 @@ private:
  */
 class FeaturePlacementRep : public PlacementRep {
 public:
+//    FeaturePlacementRep(const Feature& f) : PlacementRep(), feature(&f), index(-1) { }
     FeaturePlacementRep(FeaturePlacement& p, const Feature& f) 
       : PlacementRep(p), feature(&f), index(-1) { }
     FeaturePlacementRep(FeaturePlacement& p, const Feature& f, int ix) 
@@ -196,12 +203,10 @@ public:
     const Feature* findAncestorFeature(const Feature& root) const;
     PlacementType  getPlacementType() const;
 
-    void clone(Placement& handle) const {
-        // Note that pointer gets copied as-is. This will require repair when 
-        // we copy a Feature tree.
-        FeaturePlacementRep* copy = new FeaturePlacementRep(*this);
-        copy->cleanUpAfterClone(handle);
-    }
+    // Note that pointer gets copied as-is. This will require repair when 
+    // we copy a Feature tree.
+    PlacementRep* clone() const {return new FeaturePlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Feature[";
@@ -227,7 +232,7 @@ public:
     virtual ~RealPlacementRep() { }
 
     PlacementType getPlacementType() const { return RealPlacementType; }
-    // clone and toString are still missing
+    // clone, toString, findAncestorFeature are still missing
 
     // This should allow for state to be passed in.
     virtual Real getValue(/*State*/) const = 0;
@@ -245,10 +250,8 @@ public:
 
     bool isConstant() const { return true; }
 
-    void clone(Placement& p) const {
-        RealConstantPlacementRep* copy = new RealConstantPlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+    PlacementRep* clone() const {return new RealConstantPlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Real[" << value << "]";   
@@ -329,10 +332,8 @@ public:
 
     const Feature* findAncestorFeature(const Feature& root) const;
 
-    void clone(Placement& p) const {
-        RealExprPlacementRep* copy = new RealExprPlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+    PlacementRep* clone() const {return new RealExprPlacementRep(*this);}
+
     std::string toString(const std::string& linePrefix) const {
         std::stringstream s;
         s << func.getOpName() << "(";
@@ -357,7 +358,7 @@ public:
     virtual ~StationPlacementRep() { }
 
     PlacementType getPlacementType() const { return StationPlacementType; }
-    // clone and toString are still missing
+    // clone, toString, findAncestorFeature are still missing
 
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
@@ -373,10 +374,8 @@ public:
     // Implementations of pure virtuals.
     bool isConstant() const { return true; }
 
-    void clone(Placement& p) const {
-        StationConstantPlacementRep* copy = new StationConstantPlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+    PlacementRep* clone() const {return new StationConstantPlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Station[";
@@ -404,7 +403,7 @@ public:
     virtual ~DirectionPlacementRep() { }
 
     PlacementType getPlacementType() const { return DirectionPlacementType; }
-    // clone and toString are still missing
+    // clone, toString, findAncestorFeature are still missing
 
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
@@ -424,10 +423,8 @@ public:
     // Implementations of pure virtuals.
     bool isConstant() const { return true; }
 
-    void clone(Placement& p) const {
-        DirectionConstantPlacementRep* copy = new DirectionConstantPlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+    PlacementRep* clone() const {return new DirectionConstantPlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Direction[";
@@ -458,7 +455,7 @@ public:
     virtual ~OrientationPlacementRep() { }
 
     PlacementType getPlacementType() const { return OrientationPlacementType; }
-    // clone and toString are still missing
+    // clone, toString, findAncestorFeature are still missing
 
     // These should allow for state to be passed in.
     virtual Mat33  getMeasureNumbers(/*State*/)     const = 0;
@@ -476,10 +473,8 @@ public:
     // Implementations of pure virtuals.
     bool isConstant() const { return true; }
 
-    void clone(Placement& p) const {
-        OrientationConstantPlacementRep* copy = new OrientationConstantPlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+    PlacementRep* clone() const {return new OrientationConstantPlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Orientation[";
@@ -507,7 +502,7 @@ private:
  */
 class FramePlacementRep : public PlacementRep {
 public:
-    FramePlacementRep(Placement& p, const Orientation& o, const Station& s)
+    FramePlacementRep(FramePlacement& p, const Orientation& o, const Station& s)
       : PlacementRep(p), orientation(&o), station(&s) { }
     ~FramePlacementRep() { }
 
@@ -520,12 +515,11 @@ public:
     const Feature* findAncestorFeature(const Feature& root) const;
 
     PlacementType getPlacementType() const { return FramePlacementType; }
-    void clone(Placement& p) const {
-        // Note that pointers are copied as-is. These will need repair if
-        // we're copying a whole Feature tree.
-        FramePlacementRep* copy = new FramePlacementRep(*this);
-        copy->cleanUpAfterClone(p);
-    }
+
+    // Note that pointers are copied as-is. These will need repair if
+    // we're copying a whole Feature tree.
+    PlacementRep* clone() const {return new FramePlacementRep(*this);}
+
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Frame[";
@@ -543,8 +537,6 @@ private:
     const Orientation* orientation;
     const Station*     station;
 };
-
-
 
 } // namespace simtk
 
