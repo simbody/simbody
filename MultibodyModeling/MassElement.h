@@ -75,8 +75,6 @@ public:
     // These create constant placements owned by the PointMassElement
     // feature itself.
     void setMass(const Real&);
-    void place(const StationPlacement&);
-    void place(const Feature& f) { MassElement::place(f); }
 
     static bool                    isInstanceOf(const Feature&);
     static const PointMassElement& downcast(const Feature&);
@@ -100,8 +98,6 @@ public:
     // feature itself.
     void setMass    (const Real&);
     void setRadius  (const Real&);
-    void place(const StationPlacement&);
-    void place(const Feature& f) { MassElement::place(f); }
 
     static bool                    isInstanceOf(const Feature&);
     static const PointMassElement& downcast(const Feature&);

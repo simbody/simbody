@@ -39,9 +39,8 @@ namespace simtk {
  */
 class BodyRep : public FrameRep {
 public:
-    BodyRep(Body& m, const std::string& nm) : FrameRep(m,nm) { 
-        initializeSubfeatures();
-    }
+    BodyRep(Body& m, const std::string& nm) : FrameRep(m,nm) { }
+    // must call initializeStandardSubfeatures to complete construction
 
     const RealMeasure& getMassMeasure() const {
         return RealMeasure::downcast(getSubfeature(massMeasureIndex));
@@ -55,30 +54,37 @@ public:
     // virtuals getFeatureTypeName() && clone() still missing
 
     SIMTK_DOWNCAST2(BodyRep,FrameRep,FeatureRep);
-private:
+
+protected:
     // Every Body defines some mass-oriented measures.
-    void initializeSubfeatures() {
+    virtual void initializeStandardSubfeatures() {
+        FrameRep::initializeStandardSubfeatures();
+
         Feature& mm = addSubfeatureLike(RealMeasure("massMeasure"), "massMeasure");
         Feature& cm = addSubfeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
         massMeasureIndex     = mm.getIndexInParent();
         centroidMeasureIndex = cm.getIndexInParent();
     }
 
+private:
     int massMeasureIndex, centroidMeasureIndex;
 };
 
 class RigidBodyRep : public BodyRep {
 public:
-    RigidBodyRep(RigidBody& pm, const std::string& nm)
-      : BodyRep(pm,nm) { }
+    RigidBodyRep(RigidBody& pm, const std::string& nm) : BodyRep(pm,nm) { }
+    // must call initializeStandardSubfeatures to complete construction
 
     std::string   getFeatureTypeName() const { return "RigidBody"; }
 
     FeatureRep*   clone() const { return new RigidBodyRep(*this); }
 
     SIMTK_DOWNCAST2(RigidBodyRep,BodyRep,FeatureRep);
-private:
-    void initializeFeatures() {
+
+protected:
+    virtual void initializeStandardSubfeatures() {
+        BodyRep::initializeStandardSubfeatures();
+
         addSubfeatureLike(RealParameter("mass"), "mass");
         addSubfeatureLike(Station("station"), "station");
 /* TODO these measures need to have a FunctionPlacement
@@ -94,14 +100,17 @@ class MultibodyRep : public BodyRep {
 public:
     MultibodyRep(Multibody& handle, const std::string& nm)
       : BodyRep(handle,nm) { }
+    // must call initializeStandardSubfeatures to complete construction
 
     std::string   getFeatureTypeName() const { return "Multibody"; }
 
     FeatureRep*   clone() const { return new MultibodyRep(*this); }
 
     SIMTK_DOWNCAST2(MultibodyRep,BodyRep,FeatureRep);
-private:
-    void initializeFeatures() {
+
+protected:
+    virtual void initializeStandardSubfeatures() {
+        BodyRep::initializeStandardSubfeatures();
 
 /* TODO these measures need to have a FunctionPlacement (with runtime states)
         updChildFeature("massMeasure")->setPlacement(
@@ -116,8 +125,12 @@ private:
 class JointRep : public FeatureRep {
 public:
     JointRep(Joint& j, JointType jt, const std::string& nm) 
-      : FeatureRep(j,nm), refIndex(-1), movIndex(-1) {
-        initializeSubfeatures();
+      : FeatureRep(j,nm), refIndex(-1), movIndex(-1) { }
+    // must call initializeStandardSubfeatures to complete construction
+
+    // no placement for the joint as a whole
+    Placement recastPlacement(const Placement& p) const {
+        return Placement();
     }
 
     std::string   getFeatureTypeName() const { return "Joint"; }
@@ -128,8 +141,8 @@ public:
     const Frame& getMovingFrame()    const {return Frame::downcast(getSubfeature(movIndex)); }
 
     SIMTK_DOWNCAST(JointRep,FeatureRep);
-private:
-    void initializeSubfeatures() {
+protected:
+    virtual void initializeStandardSubfeatures() {
         Frame& R = Frame::downcast(addSubfeatureLike(Frame("R"), "reference"));
         Frame& M = Frame::downcast(addSubfeatureLike(Frame("M"), "moving"));
 

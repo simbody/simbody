@@ -40,12 +40,12 @@ namespace simtk {
     // PLACEMENT //
 
 Placement::Placement(const Placement& src) : rep(0) { 
-    if (src.rep) src.rep->cloneWithNewHandle(*this);
+    if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
 }
 Placement& Placement::operator=(const Placement& src) {
     if (this != &src) {
         delete rep; rep=0;
-        if (src.rep) src.rep->cloneWithNewHandle(*this);
+        if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
     }
     return *this;
 }
@@ -60,6 +60,15 @@ Placement::Placement(const Feature& f) : rep(0) {
         reinterpret_cast<FeaturePlacement&>(*this),f);
 }
 
+Placement::Placement(const Real& r) : rep(0) {
+    (void)new RealConstantPlacementRep(
+        reinterpret_cast<RealPlacement&>(*this),r);
+}
+
+Placement::Placement(const Vec3& v) : rep(0) {
+    (void)new Vec3ConstantPlacementRep(
+        reinterpret_cast<Vec3Placement&>(*this),v);
+}
 
 bool Placement::hasOwner() const {
     return rep && rep->hasOwner();
@@ -107,19 +116,32 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
     return o << p.toString() << std::endl;
 }
 
+
+// unary
+Placement operator+(const Placement& f)          {return f;}
+Placement operator-(const Placement& f)          {return f.getRep().negate();}
+RealPlacement length(const Placement& f)         {return f.getRep().length();}
+DirectionPlacement normalize(const Placement& f) {return f.getRep().normalize();}
+
+// binary
+Placement operator+(const Placement& l, const Placement& r) {return l.getRep().add(r);} 
+Placement operator-(const Placement& l, const Placement& r) {return l.getRep().sub(r);}
+Placement operator*(const Placement& l, const Placement& r) {return l.getRep().mul(r);}
+Placement operator/(const Placement& l, const Placement& r) {return l.getRep().dvd(r);}
+
     // FEATURE PLACEMENT //
 FeaturePlacement::FeaturePlacement(const Feature& f) {
-    (void)new FeaturePlacementRep(*this,f);
+    rep = new FeaturePlacementRep(*this,f);
 }
 
 FeaturePlacement::FeaturePlacement(const Feature& f, int index) {
-    (void)new FeaturePlacementRep(*this,f,index);
+    rep = new FeaturePlacementRep(*this,f,index);
 }
 
 
     // REAL PLACEMENT //
 RealPlacement::RealPlacement(const Real& r) {
-    (void)new RealConstantPlacementRep(*this,r);
+    rep = new RealConstantPlacementRep(*this,r);
 }
 
 RealPlacement::RealPlacement(const RealParameter& rp) {
@@ -135,27 +157,33 @@ RealPlacement::RealPlacement(const Feature& f) {
 }
 
 /*static*/ RealPlacement
+RealPlacement::negate(const RealPlacement& a) {
+    RealPlacement x; // null rep
+    RealExprPlacementRep::unop(x,RealOps::Negate,a);
+    return x;
+}
+/*static*/ RealPlacement
 RealPlacement::plus(const RealPlacement& l, const RealPlacement& r) {
     RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealBinaryOpRR::Plus,l,r);
+    RealExprPlacementRep::binop(x,RealOps::Plus,l,r);
     return x;
 }
 /*static*/ RealPlacement
 RealPlacement::minus(const RealPlacement& l, const RealPlacement& r) {
     RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealBinaryOpRR::Minus,l,r);
+    RealExprPlacementRep::binop(x,RealOps::Minus,l,r);
     return x;
 }
 /*static*/ RealPlacement
 RealPlacement::times(const RealPlacement& l, const RealPlacement& r) {
     RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealBinaryOpRR::Times,l,r);
+    RealExprPlacementRep::binop(x,RealOps::Times,l,r);
     return x;
 }
 /*static*/ RealPlacement
 RealPlacement::divide(const RealPlacement& l, const RealPlacement& r) {
     RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealBinaryOpRR::Divide,l,r);
+    RealExprPlacementRep::binop(x,RealOps::Divide,l,r);
     return x;
 }
 
@@ -178,7 +206,7 @@ RealPlacement::downcast(Placement& p) {
 
     // VEC3 PLACEMENT //
 Vec3Placement::Vec3Placement(const Vec3& r) {
-    (void)new Vec3ConstantPlacementRep(*this,r);
+    rep = new Vec3ConstantPlacementRep(*this,r);
 }
 
 Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
@@ -194,33 +222,28 @@ Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
 //}
 
 /*static*/ Vec3Placement
-Vec3Placement::plus(const Vec3Placement& l, const Vec3Placement& r) {
+Vec3Placement::plus(const Placement& l, const Placement& r) {
     Vec3Placement x; // null rep
     Vec3ExprPlacementRep::plus(x,l,r);
     return x;
 }
 /*static*/ Vec3Placement
-Vec3Placement::minus(const Vec3Placement& l, const Vec3Placement& r) {
+Vec3Placement::minus(const Placement& l, const Placement& r) {
     Vec3Placement x; // null rep
     Vec3ExprPlacementRep::minus(x,l,r);
     return x;
 }
 /*static*/ Vec3Placement
-Vec3Placement::scale(const RealPlacement& s, const Vec3Placement& v) {
+Vec3Placement::scale(const Placement& s, const Placement& v) {
     Vec3Placement x; // null rep
     Vec3ExprPlacementRep::scale(x,s,v);
     return x;
 }
+
 /*static*/ Vec3Placement
-Vec3Placement::cast(const StationPlacement& s) {
+Vec3Placement::cast(const Placement& v) {
     Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::cast(x,s);
-    return x;
-}
-/*static*/ Vec3Placement
-Vec3Placement::cast(const DirectionPlacement& d) {
-    Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::cast(x,d);
+    Vec3ExprPlacementRep::cast(x,v);
     return x;
 }
 
@@ -243,7 +266,7 @@ Vec3Placement::downcast(Placement& p) {
 
     // STATION PLACEMENT //
 StationPlacement::StationPlacement(const Vec3& v) {
-    (void)new StationConstantPlacementRep(*this,v);
+    rep = new StationConstantPlacementRep(*this,v);
 }
 
 StationPlacement::StationPlacement(const Station& s) {
@@ -261,9 +284,27 @@ StationPlacement::cast(const Vec3Placement& v) {
     return x;
 }
 
+
+/*static*/ bool             
+StationPlacement::isInstanceOf(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return RealPlacementRep::isA(p.getRep());
+}
+/*static*/ const StationPlacement& 
+StationPlacement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const StationPlacement&>(p);
+}
+
+/*static*/ StationPlacement&       
+StationPlacement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<StationPlacement&>(p);
+}
+
     // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
-    (void)new DirectionConstantPlacementRep(*this,v);
+    rep = new DirectionConstantPlacementRep(*this,v);
 }
 
 DirectionPlacement::DirectionPlacement(const Direction& d) {
@@ -289,14 +330,49 @@ DirectionPlacement::normalize(const StationPlacement& v) {
     return x;
 }
 
+/*static*/ bool             
+DirectionPlacement::isInstanceOf(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return RealPlacementRep::isA(p.getRep());
+}
+/*static*/ const DirectionPlacement& 
+DirectionPlacement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const DirectionPlacement&>(p);
+}
+
+/*static*/ DirectionPlacement&       
+DirectionPlacement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<DirectionPlacement&>(p);
+}
+
     // ORIENTATION PLACEMENT //
 OrientationPlacement::OrientationPlacement(const Mat33& m) {
-    (void)new OrientationConstantPlacementRep(*this,m);
+    rep = new OrientationConstantPlacementRep(*this,m);
+}
+
+
+/*static*/ bool             
+OrientationPlacement::isInstanceOf(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return RealPlacementRep::isA(p.getRep());
+}
+/*static*/ const OrientationPlacement& 
+OrientationPlacement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const OrientationPlacement&>(p);
+}
+
+/*static*/ OrientationPlacement&       
+OrientationPlacement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<OrientationPlacement&>(p);
 }
 
     // FRAME PLACEMENT //
 FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
-    (void)new FramePlacementRep(*this,o,s);
+    rep = new FramePlacementRep(*this,o,s);
 }
 
 FramePlacement::FramePlacement(const Frame& f) {
@@ -313,6 +389,23 @@ FramePlacement::FramePlacement(const Orientation& o) {
 
 FramePlacement::FramePlacement(const Feature& f) {
     f.getRep().useAsFramePlacement(*this);
+}
+
+/*static*/ bool             
+FramePlacement::isInstanceOf(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return RealPlacementRep::isA(p.getRep());
+}
+/*static*/ const FramePlacement& 
+FramePlacement::downcast(const Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<const FramePlacement&>(p);
+}
+
+/*static*/ FramePlacement&       
+FramePlacement::downcast(Placement& p) {
+    assert(isInstanceOf(p));
+    return reinterpret_cast<FramePlacement&>(p);
 }
 
 } // namespace simtk

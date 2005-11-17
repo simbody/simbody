@@ -118,9 +118,11 @@ try {
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
 
-    lower.addRealMeasure("hh+9", 
-        RealPlacement::plus(lower["halfHeight"], 
-                            RealPlacement::divide(9.,lower["tube"]["mass"])));
+   // lower.addRealMeasure("hh9", 
+   //     RealPlacement::plus(lower["halfHeight"], 
+   //                         RealPlacement::divide(9.,lower["tube"]["mass"])));
+    lower.addRealMeasure("hh9", 
+        lower["halfHeight"] + 9./lower["tube"]["mass"]);
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
@@ -128,6 +130,10 @@ try {
     tube["axis"].place(DirectionPlacement::normalize(
         Vec3Placement::minus(Vec3Placement::cast(StationPlacement(lower.getStation("ballAttachPt"))),
                              Vec3Placement::cast(StationPlacement(lower.getOrigin())))));
+
+    tube["center"].place(lower["origin"]);
+    tube["axis"]  .place(lower["ballAttachPt"] - lower["origin"]);
+
      cout << "L=" << lower; 
 
     ////////////////////////////////////////////
@@ -143,9 +149,9 @@ try {
 
     // Create a single parameter of the multibody which can be used
     // to control the two halfHeights together.
-    RealParameter& hh = mbs.addRealParameter("halfHeight");
-    leftLeg["tube"]["halfLength"].place(hh);
-    rightLeg["tube"]["halfLength"].place(hh);
+    mbs.addRealParameter("halfHeight");
+    leftLeg ["tube"]["halfLength"].place(mbs["halfHeight"]);
+    rightLeg["tube"]["halfLength"].place(mbs["halfHeight"]);
 
     mbs.addJoint(PinJoint, "base2ground", 
                  mbs.getGroundFrame(),                      //reference frame

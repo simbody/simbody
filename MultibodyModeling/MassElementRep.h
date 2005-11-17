@@ -39,9 +39,9 @@ namespace simtk {
  */
 class MassElementRep : public FeatureRep {
 public:
-    MassElementRep(MassElement& m, const std::string& nm) : FeatureRep(m,nm) { 
-        initializeSubfeatures();
-    }
+    MassElementRep(MassElement& m, const std::string& nm) : FeatureRep(m,nm) { }
+    // must call initializeStandardSubfeatures() to complete construction.
+
 
     const RealMeasure& getMassMeasure() const {
         return RealMeasure::downcast(getSubfeature(massMeasureIndex));
@@ -53,23 +53,28 @@ public:
     // virtuals getFeatureTypeName() && clone() still missing
 
     SIMTK_DOWNCAST(MassElementRep,FeatureRep);
-private:
+
+protected:
     // Every MassElement defines some mass-oriented measures.
-    void initializeSubfeatures() {
+    virtual void initializeStandardSubfeatures() {
         Feature& mm = addSubfeatureLike(RealMeasure("massMeasure"), "massMeasure");
         Feature& cm = addSubfeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
         massMeasureIndex     = mm.getIndexInParent();
         centroidMeasureIndex = cm.getIndexInParent();
     }
 
+private:
     int massMeasureIndex, centroidMeasureIndex;
 };
 
 class PointMassElementRep : public MassElementRep {
 public:
     PointMassElementRep(PointMassElement& pm, const std::string& nm) 
-      : MassElementRep(pm,nm) { 
-        initializeSubfeatures();
+      : MassElementRep(pm,nm) { }
+    // must call initializeStandardSubfeatures() to complete construction.
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToStationPlacement();
     }
 
     // some self-placements
@@ -83,8 +88,12 @@ public:
     FeatureRep* clone() const { return new PointMassElementRep(*this); }
 
     SIMTK_DOWNCAST2(PointMassElementRep,MassElementRep,FeatureRep);
-private:
-    void initializeSubfeatures() {
+
+protected:
+    // This will be called from initializeStandardSubfeatures() in MassElement.
+    virtual void initializeStandardSubfeatures() {
+        MassElementRep::initializeStandardSubfeatures();
+
         addSubfeatureLike(RealParameter("mass"), "mass");
 
         findUpdSubfeature("massMeasure")->place(
@@ -97,8 +106,12 @@ private:
 class CylinderMassElementRep : public MassElementRep {
 public:
     CylinderMassElementRep(CylinderMassElement& cm, const std::string& nm) 
-      : MassElementRep(cm,nm) { 
-        initializeSubfeatures();
+      : MassElementRep(cm,nm) { }
+    // must call initializeStandardSubfeatures() to complete construction.
+
+    // no placement for the cylinder as a whole
+    Placement recastPlacement(const Placement& p) const {
+        return Placement();
     }
 
     // some self-placements
@@ -132,7 +145,10 @@ public:
 
     SIMTK_DOWNCAST2(CylinderMassElementRep,MassElementRep,FeatureRep);
 private:
-    void initializeSubfeatures() {
+    // This will be called from initializeStandardSubfeatures() in MassElement.
+    virtual void initializeStandardSubfeatures() {
+        MassElementRep::initializeStandardSubfeatures();
+
         addSubfeatureLike(RealParameter("mass"),       "mass");
         addSubfeatureLike(RealParameter("radius"),     "radius");
         addSubfeatureLike(RealParameter("halfLength"), "halfLength");

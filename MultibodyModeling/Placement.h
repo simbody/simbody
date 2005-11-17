@@ -77,6 +77,8 @@ public:
     ~Placement();
 
     Placement(const Feature&);  // implicit conversion to a FeaturePlacement
+    Placement(const Real&);     // implicit conversion to a RealPlacement
+    Placement(const Vec3&);     // implicit conversion to a Vec3Placement
 
     bool           hasOwner() const;
     const Feature& getOwner() const;
@@ -96,8 +98,21 @@ protected:
     class PlacementRep* rep;
     friend class PlacementRep;
 };
+
+// Global operators involving Placements.
 std::ostream& operator<<(std::ostream& o, const Placement&);
 
+// unary
+Placement operator+(const Placement& f);
+Placement operator-(const Placement& f);
+RealPlacement      length(const Placement& f);
+DirectionPlacement normalize(const Placement& f);
+
+// binary
+Placement operator+(const Placement& l, const Placement& r); 
+Placement operator-(const Placement& l, const Placement& r); 
+Placement operator*(const Placement& l, const Placement& r); 
+Placement operator/(const Placement& l, const Placement& r);
 
 /**
  * Create a Placement which is evaluated by returning the
@@ -128,6 +143,7 @@ public:
     RealPlacement(const RealMeasure&);
     RealPlacement(const Feature&);
 
+    static RealPlacement negate(const RealPlacement&);
     static RealPlacement plus  (const RealPlacement& l,
                                 const RealPlacement& r);
     static RealPlacement minus (const RealPlacement& l,
@@ -151,15 +167,13 @@ public:
     Vec3Placement(const Vec3Measure&);
     //Vec3Placement(const Feature&);
 
-    static Vec3Placement plus  (const Vec3Placement& l,
-                                const Vec3Placement& r);
-    static Vec3Placement minus (const Vec3Placement& l,
-                                const Vec3Placement& r);
-    static Vec3Placement scale (const RealPlacement& l,
-                                const Vec3Placement& r);
-
-    static Vec3Placement cast  (const StationPlacement& s);
-    static Vec3Placement cast  (const DirectionPlacement& d);
+    static Vec3Placement plus  (const Placement& l,
+                                const Placement& r);
+    static Vec3Placement minus (const Placement& l,
+                                const Placement& r);
+    static Vec3Placement scale (const Placement& l,
+                                const Placement& r);
+    static Vec3Placement cast  (const Placement& s);
 
     static bool                 isInstanceOf(const Placement&);
     static const Vec3Placement& downcast(const Placement&);

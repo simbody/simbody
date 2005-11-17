@@ -105,21 +105,21 @@ public:
     // Create a new subfeature on this feature with a given name and type, and
     // optionally create a placement for it using the prototype placement supplied.
     RealParameter&    addRealParameter
-                        (const String&, const RealPlacement& = RealPlacement());
+                        (const String&, const Placement& = Placement());
     RealMeasure&      addRealMeasure
-                        (const String&, const RealPlacement& = RealPlacement());
+                        (const String&, const Placement& = Placement());
     StationParameter& addStationParameter
-                        (const String&, const StationPlacement& = StationPlacement());
+                        (const String&, const Placement& = Placement());
     StationMeasure&   addStationMeasure
-                        (const String&, const StationPlacement& = StationPlacement());
+                        (const String&, const Placement& = Placement());
     Station&          addStation
-                        (const String&, const StationPlacement& = StationPlacement());
+                        (const String&, const Placement& = Placement());
     Direction&        addDirection
-                        (const String&, const DirectionPlacement& = DirectionPlacement());
+                        (const String&, const Placement& = Placement());
     Orientation&      addOrientation
-                        (const String&, const OrientationPlacement& = OrientationPlacement());
+                        (const String&, const Placement& = Placement());
     Frame&            addFrame
-                        (const String&, const FramePlacement& = FramePlacement());
+                        (const String&, const Placement& = Placement());
 
     // This is similar to the "add" routines above, except that the newly created
     // feature is modeled on the prototype feature supplied here. Again a placement
@@ -144,7 +144,7 @@ public:
 
     String getName()            const;
     String getFullName()        const; // "ancestors.parent.name"
-    String getFeatureTypeName() const; // "Station", "Frame", etc.
+    String getFeatureTypeName() const; // "Station", "Frame", etc. (for messages only)
 
     // Subfeatures of this feature
     int            getNSubfeatures()  const;
@@ -183,7 +183,69 @@ protected:
     class FeatureRep* rep;
     friend class FeatureRep;
 };
+
+// Global operators involving Features.
 std::ostream& operator<<(std::ostream& o, const Feature&);
+
+// Although these operators appear to act on Features, they actually
+// create a FeaturePlacement referring to the Features and then perform
+// the operations on the Placement.
+
+// unary(feature)
+inline Placement operator+(const Feature& f) {return  FeaturePlacement(f);}
+inline Placement operator-(const Feature& f) {return -FeaturePlacement(f);}
+inline RealPlacement      length(const Feature& f)    {return length(FeaturePlacement(f));}
+inline DirectionPlacement normalize(const Feature& f) {return normalize(FeaturePlacement(f));}
+
+// binary(feature,feature)
+inline Placement operator+(const Feature& l, const Feature& r) 
+  { return FeaturePlacement(l)+FeaturePlacement(r); }
+inline Placement operator-(const Feature& l, const Feature& r) 
+  { return FeaturePlacement(l)-FeaturePlacement(r); }
+inline Placement operator*(const Feature& l, const Feature& r) 
+  { return FeaturePlacement(l)*FeaturePlacement(r); }
+inline Placement operator/(const Feature& l, const Feature& r) 
+  { return FeaturePlacement(l)/FeaturePlacement(r); }
+
+// binary(placement,feature)
+inline Placement operator+(const Placement& l, const Feature& r) 
+  { return l+FeaturePlacement(r); }
+inline Placement operator-(const Placement& l, const Feature& r) 
+  { return l-FeaturePlacement(r); }
+inline Placement operator*(const Placement& l, const Feature& r) 
+  { return l*FeaturePlacement(r); }
+inline Placement operator/(const Placement& l, const Feature& r) 
+  { return l/FeaturePlacement(r); }
+
+// binary(feature,placement)
+inline Placement operator+(const Feature& l, const Placement& r) 
+  { return FeaturePlacement(l)+r; }
+inline Placement operator-(const Feature& l, const Placement& r) 
+  { return FeaturePlacement(l)-r; }
+inline Placement operator*(const Feature& l, const Placement& r) 
+  { return FeaturePlacement(l)*r; }
+inline Placement operator/(const Feature& l, const Placement& r) 
+  { return FeaturePlacement(l)/r; }
+
+// binary(real,feature)
+inline Placement operator+(const Real& l, const Feature& r) 
+  { return RealPlacement(l)+FeaturePlacement(r); }
+inline Placement operator-(const Real& l, const Feature& r) 
+  { return RealPlacement(l)-FeaturePlacement(r); }
+inline Placement operator*(const Real& l, const Feature& r) 
+  { return RealPlacement(l)*FeaturePlacement(r); }
+inline Placement operator/(const Real& l, const Feature& r) 
+  { return RealPlacement(l)/FeaturePlacement(r); }
+
+// binary(feature,real)
+inline Placement operator+(const Feature& l, const Real& r) 
+  { return FeaturePlacement(l)+RealPlacement(r); }
+inline Placement operator-(const Feature& l, const Real& r) 
+  { return FeaturePlacement(l)-RealPlacement(r); }
+inline Placement operator*(const Feature& l, const Real& r) 
+  { return FeaturePlacement(l)*RealPlacement(r); }
+inline Placement operator/(const Feature& l, const Real& r) 
+  { return FeaturePlacement(l)/RealPlacement(r); }
 
 /**
  * This is an expression yielding a value suitable for use
@@ -207,8 +269,6 @@ public:
     RealMeasure(const RealMeasure&);
     RealMeasure& operator=(const RealMeasure&);
     ~RealMeasure();
-
-    void set(const RealPlacement&);
 
     static bool               isInstanceOf(const Feature&);
     static const RealMeasure& downcast(const Feature&);
@@ -234,8 +294,6 @@ public:
     RealParameter& operator=(const RealParameter&);
     ~RealParameter();
 
-    void set(const Real&);
-
     static bool                 isInstanceOf(const Feature&);
     static const RealParameter& downcast(const Feature&);
     static RealParameter&       downcast(Feature&);
@@ -249,8 +307,6 @@ public:
     Vec3Measure(const Vec3Measure&);
     Vec3Measure& operator=(const Vec3Measure&);
     ~Vec3Measure();
-
-    void set(const Vec3Placement&);
 
     static bool               isInstanceOf(const Feature&);
     static const Vec3Measure& downcast(const Feature&);
@@ -266,8 +322,6 @@ public:
     Vec3Parameter& operator=(const Vec3Parameter&);
     ~Vec3Parameter();
 
-    void set(const Vec3&);
-
     static bool                 isInstanceOf(const Feature&);
     static const Vec3Parameter& downcast(const Feature&);
     static Vec3Parameter&       downcast(Feature&);
@@ -281,8 +335,6 @@ public:
     StationMeasure(const StationMeasure&);
     StationMeasure& operator=(const StationMeasure&);
     ~StationMeasure();
-
-    void set(const StationPlacement&);
 
     static bool                  isInstanceOf(const Feature&);
     static const StationMeasure& downcast(const Feature&);
@@ -298,8 +350,6 @@ public:
     StationParameter& operator=(const StationParameter&);
     ~StationParameter();
 
-    void set(const Vec3&);
-
     static bool                    isInstanceOf(const Feature&);
     static const StationParameter& downcast(const Feature&);
     static StationParameter&       downcast(Feature&);
@@ -314,8 +364,6 @@ public:
     Station(const Station&);
     Station& operator=(const Station&);
     ~Station();
-    
-    void place(const StationPlacement&);
 
     static bool           isInstanceOf(const Feature&);
     static const Station& downcast(const Feature&);
@@ -331,8 +379,6 @@ public:
     Direction(const Direction&);
     Direction& operator=(const Direction&);
     ~Direction();
-
-    void place(const DirectionPlacement&);
 
     static bool             isInstanceOf(const Feature&);
     static const Direction& downcast(const Feature&);
@@ -354,8 +400,6 @@ public:
     const Direction&   y()        const {return getAxis(1);}
     const Direction&   z()        const {return getAxis(2);}
 
-    void place(const OrientationPlacement&);
-
     static bool               isInstanceOf(const Feature&);
     static const Orientation& downcast(const Feature&);
     static Orientation&       downcast(Feature&);
@@ -376,9 +420,6 @@ public:
     const Direction&   x()            const {return getOrientation().x();}
     const Direction&   y()            const {return getOrientation().y();}
     const Direction&   z()            const {return getOrientation().z();}
-
-    void place(const FramePlacement&);
-    void place(const OrientationPlacement&, const StationPlacement&);
 
     static bool         isInstanceOf(const Feature&);
     static const Frame& downcast(const Feature&);

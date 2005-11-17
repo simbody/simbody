@@ -31,8 +31,6 @@
 #include <string>
 #include <iostream> 
 #include <sstream>
-using std::endl;
-using std::ostream;
 
 
 namespace simtk {
@@ -41,18 +39,18 @@ namespace simtk {
 
 Feature::Feature(const Feature& f) : rep(0) {
     if (f.rep) 
-        f.rep->cloneWithoutExternalPlacements(*this);
+        f.rep->cloneWithoutParentOrExternalPlacements(*this);
 }
 Feature& Feature::operator=(const Feature& f) {
     if (this != &f) {
         delete rep; rep=0;
         if (f.rep) 
-            f.rep->cloneWithoutExternalPlacements(*this);
+            f.rep->cloneWithoutParentOrExternalPlacements(*this);
     }
     return *this;
 }
 Feature::~Feature() { 
-    delete rep;
+    delete rep; rep = 0;
 }
 static String featureHasNoRep(const Feature& f) {
     std::ostringstream s;
@@ -106,20 +104,20 @@ String Feature::toString(const String& linePrefix) const {
     const std::string nextIndent = linePrefix + "    ";
 
     if (nSubfeatures) {
-        s << endl << linePrefix << "  Subfeatures (" << nSubfeatures << "):";
+        s << std::endl << linePrefix << "  Subfeatures (" << nSubfeatures << "):";
         for (size_t i=0; i < nSubfeatures; ++i)
-            s  << endl << nextIndent << f.getSubfeature(i).toString(nextIndent);
+            s  << std::endl << nextIndent << f.getSubfeature(i).toString(nextIndent);
     }
     if (nPlacement) {
-        s << endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
+        s << std::endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
         for (size_t i=0; i < nPlacement; ++i)
-            s  << endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
+            s  << std::endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
     }
     return s.str();
 }
 
-ostream& operator<<(ostream& o, const Feature& f) {
-    return o << f.toString() << endl;
+std::ostream& operator<<(std::ostream& o, const Feature& f) {
+    return o << f.toString() << std::endl;
 }
 bool Feature::hasParentFeature() const {
     return getRep().hasParentFeature();
@@ -151,8 +149,18 @@ const RealParameter& Feature::getRealParameter(const String& n) const
   { return RealParameter::downcast(getSubfeature(n)); }
 const StationParameter& Feature::getStationParameter(const String& n) const
   { return StationParameter::downcast(getSubfeature(n)); }
+const RealMeasure& Feature::getRealMeasure(const String& n) const
+  { return RealMeasure::downcast(getSubfeature(n)); }
+const StationMeasure& Feature::getStationMeasure(const String& n) const
+  { return StationMeasure::downcast(getSubfeature(n)); }
 const Station& Feature::getStation(const String& n) const
   { return Station::downcast(getSubfeature(n)); }
+const Direction& Feature::getDirection(const String& n) const
+  { return Direction::downcast(getSubfeature(n)); }
+const Orientation& Feature::getOrientation(const String& n) const
+  { return Orientation::downcast(getSubfeature(n)); }
+const Frame& Feature::getFrame(const String& n) const
+  { return Frame::downcast(getSubfeature(n)); }
 
 // updXXX() methods
 Feature& Feature::updSubfeature(const String& n)
@@ -161,55 +169,73 @@ RealParameter& Feature::updRealParameter(const String& n)
   { return RealParameter::downcast(updSubfeature(n)); }
 StationParameter& Feature::updStationParameter(const String& n)
   { return StationParameter::downcast(updSubfeature(n)); }
+RealMeasure& Feature::updRealMeasure(const String& n)
+  { return RealMeasure::downcast(updSubfeature(n)); }
+StationMeasure& Feature::updStationMeasure(const String& n)
+  { return StationMeasure::downcast(updSubfeature(n)); }
 Station& Feature::updStation(const String& n)
   { return Station::downcast(updSubfeature(n)); }
+Direction& Feature::updDirection(const String& n)
+  { return Direction::downcast(updSubfeature(n)); }
+Orientation& Feature::updOrientation(const String& n)
+  { return Orientation::downcast(updSubfeature(n)); }
+Frame& Feature::updFrame(const String& n)
+  { return Frame::downcast(updSubfeature(n)); }
 
 // addXXX() methods
-RealParameter& Feature::addRealParameter(const String& n, const RealPlacement& p) {
+RealParameter& Feature::addRealParameter(const String& n, const Placement& p) {
     RealParameter& rp = RealParameter::downcast(updRep().addSubfeatureLike(RealParameter(n), n));
     if (p.hasRep()) rp.place(p);
     return rp;
 }
-
-StationParameter& Feature::addStationParameter(const String& n, const StationPlacement& p) {
-    StationParameter& sp = StationParameter::downcast(updRep().addSubfeatureLike(StationParameter(n), n));
-    if (p.hasRep()) sp.place(p);
-    return sp;
-}
-
-RealMeasure& Feature::addRealMeasure(const String& n, const RealPlacement& p) {
+RealMeasure& Feature::addRealMeasure(const String& n, const Placement& p) {
     RealMeasure& rm = RealMeasure::downcast(updRep().addSubfeatureLike(RealMeasure(n), n));
     if (p.hasRep()) rm.place(p);
     return rm;
 }
-StationMeasure& Feature::addStationMeasure(const String& n, const StationPlacement& p) {
+StationParameter& Feature::addStationParameter(const String& n, const Placement& p) {
+    StationParameter& sp = StationParameter::downcast(updRep().addSubfeatureLike(StationParameter(n), n));
+    if (p.hasRep()) sp.place(p);
+    return sp;
+}
+StationMeasure& Feature::addStationMeasure(const String& n, const Placement& p) {
     StationMeasure& sm = StationMeasure::downcast(updRep().addSubfeatureLike(StationMeasure(n), n));
     if (p.hasRep()) sm.place(p);
     return sm;
 }
-
-Station& Feature::addStation(const String& n, const StationPlacement& p) {
+Station& Feature::addStation(const String& n, const Placement& p) {
     Station& s = Station::downcast(updRep().addSubfeatureLike(Station(n), n));
     if (p.hasRep()) s.place(p);
     return s;
 }
-
-Frame& Feature::addFrame(const String& n, const FramePlacement& p) {
+Direction& Feature::addDirection(const String& n, const Placement& p) {
+    Direction& d = Direction::downcast(updRep().addSubfeatureLike(Direction(n), n));
+    if (p.hasRep()) d.place(p);
+    return d;
+}
+Orientation& Feature::addOrientation(const String& n, const Placement& p) {
+    Orientation& o = Orientation::downcast(updRep().addSubfeatureLike(Orientation(n), n));
+    if (p.hasRep()) o.place(p);
+    return o;
+}
+Frame& Feature::addFrame(const String& n, const Placement& p) {
     Frame& f = Frame::downcast(updRep().addSubfeatureLike(Frame(n), n));
     if (p.hasRep()) f.place(p);
     return f;
 }
-const Frame& Feature::getFrame(const String& nm) const {
-    return Frame::downcast(getSubfeature(nm));
-}
-Frame& Feature::updFrame(const String& nm) {
-    return Frame::downcast(updSubfeature(nm));
+
+Feature& Feature::addSubfeatureLike(const Feature& f, const String& n, const Placement& p) {
+    Feature& fnew = updRep().addSubfeatureLike(f,n);
+    if (p.hasRep()) fnew.place(p);
+    return fnew;
 }
 
     // REAL PARAMETER //
 
-RealParameter::RealParameter(const String& nm)
-  { (void)new RealParameterRep(*this, std::string(nm)); }
+RealParameter::RealParameter(const String& nm) : RealMeasure() {
+    rep = new RealParameterRep(*this, std::string(nm)); 
+    rep->initializeStandardSubfeatures();
+}
 RealParameter::RealParameter(const RealParameter& src) : RealMeasure(src) { }
 RealParameter& RealParameter::operator=(const RealParameter& src)
   { RealMeasure::operator=(src); return *this; }
@@ -234,8 +260,10 @@ RealParameter::downcast(Feature& f) {
 
     // VEC3 PARAMETER //
 
-Vec3Parameter::Vec3Parameter(const String& nm)
-  { (void)new Vec3ParameterRep(*this, std::string(nm)); }
+Vec3Parameter::Vec3Parameter(const String& nm) : Vec3Measure() {
+    rep = new Vec3ParameterRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Vec3Parameter::Vec3Parameter(const Vec3Parameter& src) : Vec3Measure(src) { }
 Vec3Parameter& Vec3Parameter::operator=(const Vec3Parameter& src)
   { Vec3Measure::operator=(src); return *this; }
@@ -259,8 +287,10 @@ Vec3Parameter::downcast(Feature& f) {
 }
 
     // STATION PARAMETER //
-StationParameter::StationParameter(const String& nm)
-  { (void)new StationParameterRep(*this, std::string(nm)); }
+StationParameter::StationParameter(const String& nm) : StationMeasure() {
+    rep = new StationParameterRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 StationParameter::StationParameter(const StationParameter& src) : StationMeasure(src) { }
 StationParameter& StationParameter::operator=(const StationParameter& src)
   { StationMeasure::operator=(src); return *this; }
@@ -284,8 +314,10 @@ StationParameter::downcast(Feature& f) {
 }
 
     // REAL MEASURE //
-RealMeasure::RealMeasure(const String& nm)
-  { (void)new RealMeasureRep(*this, std::string(nm)); }
+RealMeasure::RealMeasure(const String& nm) : Feature() {
+    rep = new RealMeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 RealMeasure::RealMeasure(const RealMeasure& src) : Feature(src) { }
 RealMeasure& RealMeasure::operator=(const RealMeasure& src)
   { Feature::operator=(src); return *this; }
@@ -309,8 +341,10 @@ RealMeasure::downcast(Feature& f) {
 }
 
     // VEC3 MEASURE //
-Vec3Measure::Vec3Measure(const String& nm)
-  { (void)new Vec3MeasureRep(*this, std::string(nm)); }
+Vec3Measure::Vec3Measure(const String& nm) : Feature() {
+    rep = new Vec3MeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Vec3Measure::Vec3Measure(const Vec3Measure& src) : Feature(src) { }
 Vec3Measure& Vec3Measure::operator=(const Vec3Measure& src)
   { Feature::operator=(src); return *this; }
@@ -334,8 +368,10 @@ Vec3Measure::downcast(Feature& f) {
 }
 
     // STATION MEASURE //
-StationMeasure::StationMeasure(const String& nm)
-  { (void)new StationMeasureRep(*this, std::string(nm)); }
+StationMeasure::StationMeasure(const String& nm) : Feature() {
+    rep = new StationMeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 StationMeasure::StationMeasure(const StationMeasure& src) : Feature(src) { }
 StationMeasure& StationMeasure::operator=(const StationMeasure& src)
   { Feature::operator=(src); return *this; }
@@ -359,21 +395,14 @@ StationMeasure::downcast(Feature& f) {
 }
 
     // STATION //
-Station::Station(const String& nm)
-  { (void)new StationRep(*this, std::string(nm)); }
+Station::Station(const String& nm) : Feature() {
+    rep = new StationRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Station::Station(const Station& src) : Feature(src) { }
 Station& Station::operator=(const Station& src)
   { Feature::operator=(src); return *this; }
 Station::~Station() { }
-
-void Station::place(const StationPlacement& p) {
-    try {
-        updRep().place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Station::place", exc.getMessage());
-    }
-}
 
 /*static*/ bool             
 Station::isInstanceOf(const Feature& f) {
@@ -393,21 +422,14 @@ Station::downcast(Feature& f) {
 }
 
     // DIRECTION //
-Direction::Direction(const String& nm)
-  { (void)new DirectionRep(*this, std::string(nm)); }
+Direction::Direction(const String& nm) : Feature() {
+    rep = new DirectionRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Direction::Direction(const Direction& src) : Feature(src) { }
 Direction& Direction::operator=(const Direction& src)
   { Feature::operator=(src); return *this; }
 Direction::~Direction() { }
-
-void Direction::place(const DirectionPlacement& p) {
-    try {
-        updRep().place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Direction::place", exc.getMessage());
-    }
-}
 
 /*static*/ bool             
 Direction::isInstanceOf(const Feature& f) {
@@ -427,21 +449,14 @@ Direction::downcast(Feature& f) {
 }
 
     // ORIENTATION //
-Orientation::Orientation(const String& nm)
-  { (void)new OrientationRep(*this, std::string(nm)); }
+Orientation::Orientation(const String& nm) : Feature() {
+    rep = new OrientationRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Orientation::Orientation(const Orientation& src) : Feature(src) { }
 Orientation& Orientation::operator=(const Orientation& src)
   { Feature::operator=(src); return *this; }
 Orientation::~Orientation() { }
-
-void Orientation::place(const OrientationPlacement& p) {
-    try {
-        updRep().place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Orientation::place", exc.getMessage());
-    }
-}
 
 const Direction& 
 Orientation::getAxis(int i) const {
@@ -466,21 +481,14 @@ Orientation::downcast(Feature& f) {
 }
 
     // FRAME //
-Frame::Frame(const String& nm)
-  { (void)new FrameRep(*this, std::string(nm)); }
+Frame::Frame(const String& nm) : Feature() {
+    rep = new FrameRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
 Frame::Frame(const Frame& src) : Feature(src) { }
 Frame& Frame::operator=(const Frame& src)
   { Feature::operator=(src); return *this; }
 Frame::~Frame() { }
-
-void Frame::place(const FramePlacement& p) {
-    try {
-        updRep().place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Frame::place", exc.getMessage());
-    }
-}
 
 const Orientation& Frame::getOrientation() const {
     return FrameRep::downcast(getRep()).getOrientation();

@@ -60,10 +60,11 @@ Feature& FeatureRep::findUpdRootFeature() {
 }
 
 void 
-FeatureRep::cloneWithoutExternalPlacements(Feature& newHandle) const
+FeatureRep::cloneWithoutParentOrExternalPlacements(Feature& newHandle) const
 {
     FeatureRep* copy = clone();
     copy->setMyHandle(newHandle);
+    copy->parent = 0; copy->indexInParent = -1;
     newHandle.setRep(copy);
 
     // Re-parent all the copied child Features to their new parent,
@@ -75,45 +76,64 @@ FeatureRep::cloneWithoutExternalPlacements(Feature& newHandle) const
     copy->fixPlacements(this->getMyHandle(), copy->getMyHandle());
 }
 
-// If Placement p doesn't have an owner, we'll add a copy of it to
-// an appropriate feature and then use the copy; otherwise, we'll just
-// use p as-is.
-// TODO: should we *insist* that p not have an owner to avoid 
-// duplicate references?
+// Use a Placement like p (possibly recast to something else) for this
+// feature. Concrete FeatureRep's are responsible for interpreting the
+// Placement and possibly converting it to something usable.
 void FeatureRep::place(const Placement& p) {
     assert(p.hasRep());
-    assert(p.getRep().getPlacementType() == getRequiredPlacementType());
 
-    const Placement* placementToUse = &p;
-    if (!p.hasOwner()) {
-        if (p.isConstant()) {
-            FeatureRep& ownerFeatureRep =
-                hasParentFeature() ? updParentFeature().updRep() : *this;
-            placementToUse = &(ownerFeatureRep.addPlacementLike(p));
-        } else {
-            const Feature& myRoot = findRootFeature();
-            const Feature* offender;
-            if (!p.getRep().isLimitedToSubtree(myRoot, offender)) {
-                SIMTK_THROW2(Exception::FeatureAndPlacementOnDifferentTrees,
-                    getFullName(), offender->getFullName());
-                //NOTREACHED
-            }
-
-            const Feature& placementAncestor = 
-                *p.getRep().findAncestorFeature(myRoot);
-
-            Feature* commonAncestor = 
-                findUpdYoungestCommonAncestor(updMyHandle(), placementAncestor);
-            assert(commonAncestor); // there has to be one since they are on the same tree!
-            placementToUse = &(commonAncestor->updRep().addPlacementLike(p));
-        }
+    // If possible, create a fixed-up copy of p which is suitable for
+    // use as a Placement for this concrete FeatureRep.
+    Placement pTweaked = recastPlacement(p);
+    if (!pTweaked.hasRep()) {
+        SIMTK_THROW3(Exception::PlacementCantBeUsedForThisFeature,
+            PlacementRep::getPlacementTypeName(p.getRep().getPlacementType()),
+            getFullName(), getFeatureTypeName());
+        //NOTREACHED             
     }
-    const Placement& pl = *placementToUse;
-    assert(pl.hasOwner());
-    assert(!pl.getOwner().isSameFeature(getMyHandle()) || pl.isConstant());
-    assert(FeatureRep::isFeatureInFeatureTree(pl.getOwner(), getMyHandle()));
-    assert(!pl.dependsOn(getMyHandle()));
-    placement = &pl; 
+
+    assert(pTweaked.getRep().getPlacementType() == getRequiredPlacementType());
+
+    // If the Placement is a constant, it is a self-placement if this 
+    // Feature has no parent; otherwise, we'll put the constant Placement
+    // in the parent (making it external). This is a significant difference
+    // because in the self-placement case the placement remains after a
+    // copy, whereas external placements are removed by copy (or assign).
+    if (pTweaked.isConstant()) {
+        FeatureRep& ownerFeatureRep =
+            hasParentFeature() ? updParentFeature().updRep() : *this;
+        placement = &(ownerFeatureRep.addPlacementLike(pTweaked));
+        return;
+    } 
+    
+    // The placement is not a constant. In that case all its feature references
+    // must be on the same feature tree as this feature (although not necessarily
+    // *below* this feature). We will make the placement owner be the youngest
+    // common ancestor of this feature and all the features referenced by the
+    // placement.
+
+    const Feature& myRoot = findRootFeature();
+    const Feature* offender;
+    if (!pTweaked.getRep().isLimitedToSubtree(myRoot, offender)) {
+        SIMTK_THROW2(Exception::FeatureAndPlacementOnDifferentTrees,
+            getFullName(), offender->getFullName());
+        //NOTREACHED
+    }
+
+    const Feature& placementAncestor = 
+        *pTweaked.getRep().findAncestorFeature(myRoot);
+
+    Feature* commonAncestor = 
+        findUpdYoungestCommonAncestor(updMyHandle(), placementAncestor);
+    assert(commonAncestor); // there has to be one since they are on the same tree!
+    Placement& good = commonAncestor->updRep().addPlacementLike(pTweaked);
+
+    // Some sanity (insanity?) checks.
+    assert(good.hasOwner());
+    assert(!good.getOwner().isSameFeature(getMyHandle()));
+    assert(FeatureRep::isFeatureInFeatureTree(good.getOwner(), getMyHandle()));
+    assert(!good.dependsOn(getMyHandle()));
+    placement = &good; 
 }
 
 Feature& 
@@ -122,7 +142,7 @@ FeatureRep::addSubfeatureLike(const Feature& f, const std::string& nm) {
     const int index = (int)subfeatures.size();
     subfeatures.push_back(SubFeature()); // an empty handle
     Feature& newFeature = subfeatures[index];
-    f.getRep().cloneWithoutExternalPlacements(newFeature);
+    f.getRep().cloneWithoutParentOrExternalPlacements(newFeature);
     newFeature.updRep().setParentFeature(updMyHandle(), index);
     newFeature.updRep().setName(nm);
     return newFeature;
@@ -141,9 +161,9 @@ FeatureRep::addPlacementLike(const Placement& p) {
     }
 
     const int index = (int)placementExpressions.size();
-    placementExpressions.push_back(Placement());
+    placementExpressions.push_back(SubPlacement());
     Placement& newPlacement = placementExpressions[index];
-    p.getRep().cloneWithNewHandle(newPlacement);
+    p.getRep().cloneUnownedWithNewHandle(newPlacement);
     newPlacement.updRep().setOwner(getMyHandle(), index);
     return newPlacement;
 }
@@ -249,16 +269,17 @@ FeatureRep::findSubfeatureIndex(const std::string& nm, size_t& ix) const {
 }
 
 // We have just copied a Feature subtree so all the parent pointers are
-// still pointing to the old tree. Recursively repair them to point into
-// the new tree.
+// wrong. Recursively repair them to point into the new tree.
 void FeatureRep::reparentMyChildren() {
     for (size_t i=0; i < (size_t)getNSubfeatures(); ++i) {
-        assert(subfeatures[i].rep->getIndexInParent() == i); // shouldn't change
-        subfeatures[i].rep->setParentFeature(updMyHandle(), i);
-        subfeatures[i].rep->reparentMyChildren();            // recurse
+        assert(subfeatures[i].getRep().hasParentFeature());
+        assert(subfeatures[i].getRep().getIndexInParent() == i);    // shouldn't change
+        subfeatures[i].updRep().setParentFeature(updMyHandle(), i);
+        subfeatures[i].updRep().reparentMyChildren();               // recurse
     }
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
-        assert(placementExpressions[i].getIndexInOwner() == i); // shouldn't change
+        assert(placementExpressions[i].getRep().hasOwner());
+        assert(placementExpressions[i].getRep().getIndexInOwner() == i);
         placementExpressions[i].updRep().setOwner(getMyHandle(), i);
     }
 }
@@ -272,7 +293,7 @@ void FeatureRep::reparentMyChildren() {
 // set them to 0 in the newRoot copy.
 void FeatureRep::fixPlacements(const Feature& oldRoot, const Feature& newRoot) {
     for (size_t i=0; i < (size_t)getNSubfeatures(); ++i)
-        subfeatures[i].rep->fixPlacements(oldRoot, newRoot);
+        subfeatures[i].updRep().fixPlacements(oldRoot, newRoot);
 
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
         placementExpressions[i].updRep().repairFeatureReferences(oldRoot,newRoot);

@@ -58,6 +58,18 @@ public:
     ~SubFeature() { }
 };
 
+/**
+ * See SubFeature for an explanation of this class, which is just a Placement
+ * with modified copy & assignment behavior.
+ */
+class SubPlacement : public Placement {
+public:
+    SubPlacement() : Placement() { }
+    // Copy & assign do *not* invoke the Feature copy constructor.
+    inline SubPlacement(const SubPlacement& sf);
+    inline SubPlacement& operator=(const SubPlacement& sf);
+    ~SubPlacement() { }
+};
 
 /**
  * A Feature and its FeatureRep are logically part of the same object. There
@@ -73,7 +85,11 @@ class FeatureRep {
 public:
     FeatureRep(Feature& f, const std::string& nm) 
       : myHandle(&f), name(nm), parent(0), indexInParent(-1), placement(0) 
-      { f.setRep(this); }
+    { }
+
+    // Some Feature types must have a set of Subfeatures installed to complete
+    // their construction.
+    virtual void initializeStandardSubfeatures() { }
 
     // Copying a Feature is tricky. The result should have all the child features
     // and the *internal* placements. External placements should evaporate. Note
@@ -93,6 +109,11 @@ public:
     virtual PlacementType getRequiredPlacementType()      const = 0;
     virtual std::string   getFeatureTypeName()            const = 0;
     virtual FeatureRep*   clone()                         const = 0;
+
+    // Given a proposed placement for this feature, alter it if necessary
+    // and return either (1) a Placement that is acceptable, or (2) a
+    // Placement with a null rep indicating that the propose one was no good.
+    virtual Placement recastPlacement(const Placement&) const = 0;
 
     // If this Feature can be used as the indicated placement type, return
     // a new, unowned placement of the right type. Most commonly, the returned
@@ -127,7 +148,7 @@ public:
                      getFullName(), getFeatureTypeName(), "Frame");
     } 
 
-    void cloneWithoutExternalPlacements(Feature& newHandle) const;
+    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
 
     void               setName(const std::string& nm) {name = nm;}
     const std::string& getName() const                {return name;}
@@ -190,9 +211,7 @@ public:
     static bool isFeatureInFeatureTree(const Feature& oldRoot, const Feature& f,
                                        std::vector<int>* trace=0);
 
-    // Is Placement p owned by a Feature in the tree rooted at oldRoot? If so, 
-    // optionally return the series of indices required to get to this Placement's
-    // owner Feature from the root.
+    // Is Placement p owned by a Feature in the tree rooted at oldRoot?
     static bool isPlacementInFeatureTree(const Feature& oldRoot, const Placement& p);
 
     // If Feature f is a member of the Feature tree rooted at oldRoot, find
@@ -207,9 +226,9 @@ public:
     // if found, otherwise NULL meaning that the features aren't on
     // the same tree. If the features are the same, then
     // that feature is the answer.
-    // Complexity is O(log n) (3 passes) where n is depth of Feature tree.
+    // Complexity is O(log n) where n is depth of Feature tree.
     static const Feature* findYoungestCommonAncestor(const Feature& f1, const Feature& f2);
-    static Feature* findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2);
+    static Feature*       findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2);
 
 private:
     // Return true and ix==feature index if a feature of the given name is found.
@@ -240,35 +259,42 @@ private:
         return f.rep ? f.rep->parent : 0;
     }
 private:
-    Feature*                myHandle; // the Feature whose rep this is
-    std::string             name;
+    Feature*                  myHandle; // the Feature whose rep this is
+    std::string               name;
 
     // Owner information. If parent is 0 then this Feature is an unplaced
     // prototype. Otherwise this Feature is contained in the parent's
     // childFeatures list, with the given index.
-    Feature*                parent;
-    int                     indexInParent;
+    Feature*                  parent;
+    int                       indexInParent;
 
     // If this Feature has been placed, this is the placement information.
     // If present, this Placement must be owned by this Feature, its parent,
     // or one of its ancestors.
-    const Placement*        placement;
+    const Placement*          placement;
 
     // Subfeatures wholly owned by this Feature.
-    StableArray<SubFeature> subfeatures;
+    StableArray<SubFeature>   subfeatures;
 
     // Placement expressions wholly owned by this Feature. These compute values
     // for the childFeatures of this Feature.
-    StableArray<Placement>  placementExpressions;
+    StableArray<SubPlacement> placementExpressions;
 };
 
 class RealParameterRep : public FeatureRep {
 public:
     RealParameterRep(RealParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    // no standard Subfeatures
+
+    ~RealParameterRep() { }
 
     std::string getFeatureTypeName() const { return "RealParameter"; }
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* clone() const { return new RealParameterRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToRealPlacement();
+    }
 
     void useAsRealPlacement(RealPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -282,10 +308,17 @@ public:
 class Vec3ParameterRep : public FeatureRep {
 public:
     Vec3ParameterRep(Vec3Parameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    // no standard Subfeatures
+
+    ~Vec3ParameterRep() { }
 
     std::string getFeatureTypeName() const { return "Vec3Parameter"; }
     PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
     FeatureRep* clone() const { return new Vec3ParameterRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToVec3Placement();
+    }
 
     void useAsVec3Placement(Vec3Placement& handle) const {
         (void)new FeaturePlacementRep(
@@ -299,10 +332,17 @@ public:
 class StationParameterRep : public FeatureRep {
 public:
     StationParameterRep(StationParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    // no standard Subfeatures
+
+    ~StationParameterRep() { }
 
     std::string getFeatureTypeName() const { return "StationParameter"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationParameterRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToStationPlacement();
+    }
 
     void useAsStationPlacement(StationPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -316,10 +356,17 @@ public:
 class RealMeasureRep : public FeatureRep {
 public:
     RealMeasureRep(RealMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    // no standard Subfeatures
+
+    ~RealMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "RealMeasure"; }
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     FeatureRep* clone() const { return new RealMeasureRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToRealPlacement();
+    }
 
     void useAsRealPlacement(RealPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -333,10 +380,17 @@ public:
 class Vec3MeasureRep : public FeatureRep {
 public:
     Vec3MeasureRep(Vec3Measure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    // no standard Subfeatures
+
+    ~Vec3MeasureRep() { }
 
     std::string getFeatureTypeName() const { return "Vec3Measure"; }
     PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
     FeatureRep* clone() const { return new Vec3MeasureRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToVec3Placement();
+    }
 
     void useAsVec3Placement(Vec3Placement& handle) const {
         (void)new FeaturePlacementRep(
@@ -350,10 +404,17 @@ public:
 class StationMeasureRep : public FeatureRep {
 public:
     StationMeasureRep(StationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    // no standard Subfeatures
+
+    ~StationMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "StationMeasure"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationMeasureRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToStationPlacement();
+    }
 
     void useAsStationPlacement(StationPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -367,10 +428,17 @@ public:
 class StationRep : public FeatureRep {
 public:
     StationRep(Station& s, const std::string& nm) : FeatureRep(s,nm) { }
+    // no standard Subfeatures
+
+    ~StationRep() { }
 
     std::string getFeatureTypeName() const { return "Station"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     FeatureRep* clone() const { return new StationRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToStationPlacement();
+    }
 
     void useAsStationPlacement(StationPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -395,10 +463,17 @@ public:
 class DirectionRep : public FeatureRep {
 public:
     DirectionRep(Direction& s, const std::string& nm) : FeatureRep(s,nm) { }
+    // no standard Subfeatures
+
+    ~DirectionRep() { }
 
     std::string getFeatureTypeName() const { return "Direction"; }
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     FeatureRep* clone() const { return new DirectionRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToDirectionPlacement();
+    }
 
     void useAsDirectionPlacement(DirectionPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -412,11 +487,18 @@ public:
 class OrientationRep : public FeatureRep {
 public:
     OrientationRep(Orientation& o, const std::string& nm) : FeatureRep(o,nm)
-        { initializeSubfeatures(); }
+      { axisIndices[0]=axisIndices[1]=axisIndices[2] = -1; }
+    // must call initializeStandardSubfeatures() to complete construction.
+
+    ~OrientationRep() { }
 
     std::string   getFeatureTypeName() const { return "Orientation"; }
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     FeatureRep*   clone() const { return new OrientationRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToOrientationPlacement();
+    }
 
     void useAsOrientationPlacement(OrientationPlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -440,8 +522,9 @@ public:
     const Direction& z() const {return Direction::downcast(getSubfeature(axisIndices[2]));}
 
     SIMTK_DOWNCAST(OrientationRep,FeatureRep);
-private:
-    void initializeSubfeatures() {
+
+protected:
+    virtual void initializeStandardSubfeatures() {
         Direction& x = Direction::downcast(addSubfeatureLike(Direction("x"), "x"));
         Direction& y = Direction::downcast(addSubfeatureLike(Direction("y"), "y"));
         Direction& z = Direction::downcast(addSubfeatureLike(Direction("z"), "z"));
@@ -454,19 +537,25 @@ private:
             updSubfeature(axisIndices[i]).place(FeaturePlacement(getMyHandle(), i));
     }
 
+private:
     int axisIndices[3];
 };
 
 class FrameRep : public FeatureRep {
 public:
     FrameRep(Frame& f, const std::string& nm) 
-      : FeatureRep(f,nm), RIndex(-1), OIndex(-1) {
-        initializeSubfeatures();
-    }
+      : FeatureRep(f,nm), RIndex(-1), OIndex(-1) { }
+    // must call initializeStandardSubfeatures() to complete construction.
+
+    ~FrameRep() { }
 
     std::string   getFeatureTypeName() const { return "Frame"; }
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
     FeatureRep*   clone() const { return new FrameRep(*this); }
+
+    Placement recastPlacement(const Placement& p) const {
+        return p.getRep().castToFramePlacement();
+    }
 
     void useAsFramePlacement(FramePlacement& handle) const {
         (void)new FeaturePlacementRep(
@@ -487,8 +576,9 @@ public:
     const Station&     getOrigin()      const {return Station::downcast(getSubfeature(OIndex)); }
 
     SIMTK_DOWNCAST(FrameRep,FeatureRep);
-private:
-    void initializeSubfeatures() {
+
+protected:
+    virtual void initializeStandardSubfeatures() {
         Orientation& R = Orientation::downcast(addSubfeatureLike(Orientation("R"), "orientation"));
         Station&     O = Station::downcast    (addSubfeatureLike(Station("O"),     "origin"));
 
@@ -499,6 +589,7 @@ private:
         updSubfeature(OIndex).place(FeaturePlacement(getMyHandle(), 1));
     }
 
+private:
     int RIndex, OIndex; // feature indices
 };
 
@@ -513,6 +604,16 @@ inline SubFeature& SubFeature::operator=(const SubFeature& sf) {
     return *this;
 }
 
+inline SubPlacement::SubPlacement(const SubPlacement& sp) : Placement() {
+    if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
+}
+inline SubPlacement& SubPlacement::operator=(const SubPlacement& sp) {
+    if (&sp != this) {
+        delete rep; rep=0;
+        if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
+    }
+    return *this;
+}
 
 } // namespace simtk
 

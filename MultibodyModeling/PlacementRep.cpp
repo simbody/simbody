@@ -177,21 +177,72 @@ FramePlacementRep::findAncestorFeature(const Feature& root) const {
 
     // REAL PLACEMENT REP //
 
+Placement
+RealPlacementRep::mul(const Placement& r) const {
+    switch(r.getRep().getPlacementType()) {
+    case RealPlacementType: {
+        RealPlacement x; // null rep
+        RealExprPlacementRep::binop(x,RealOps::Times,getMyHandle(),r);
+        return x;
+    }
+    case Vec3PlacementType: {
+        Vec3Placement x;
+        Vec3ExprPlacementRep::scale(x,getMyHandle(),r);
+        return x;    
+    }
+    case StationPlacementType: 
+    case DirectionPlacementType:
+    {
+        Vec3Placement x;
+        Vec3ExprPlacementRep::scale(x,getMyHandle(),
+                                      Vec3Placement::cast(r));
+        return x; 
+    }
+    default:
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                        getPlacementTypeName(getPlacementType()),
+                        "*", getPlacementTypeName(r.getRep().getPlacementType()));
+    };
+    //NOTREACHED
+    return Placement();
+}
+
     // REAL EXPR PLACEMENT REP //
 
 bool 
-RealBinaryOpRR::checkArgs(const std::vector<Placement>& args) const {
-    return args.size() == 2 
-            && args[0].getRep().getPlacementType()==RealPlacementType
-            && args[1].getRep().getPlacementType()==RealPlacementType;
+RealOps::checkArgs(const std::vector<Placement>& args) const {
+    switch (op) {
+    case Negate: 
+        return args.size()==1
+            && args[0].getRep().getPlacementType()==RealPlacementType;
+    case Plus:
+    case Minus:
+    case Times:
+    case Divide:
+        return args.size() == 2 
+                && args[0].getRep().getPlacementType()==RealPlacementType
+                && args[1].getRep().getPlacementType()==RealPlacementType;
+    default:
+        assert(false);
+    }
+    //NOTREACHED
+    return false;
 }
 
 /*static*/ RealExprPlacementRep*
-RealExprPlacementRep::binop(RealPlacement& handle, RealBinaryOpRR::OpKind op,
-                      const RealPlacement& l, const RealPlacement& r) {
+RealExprPlacementRep::unop(RealPlacement& handle, RealOps::OpKind op,
+                      const Placement& a) {
+    std::vector<const Placement*> args(1);
+    args[0] = &a;
+    return new RealExprPlacementRep(handle, RealOps(op), args);
+}
+
+/*static*/ RealExprPlacementRep*
+RealExprPlacementRep::binop(RealPlacement& handle, RealOps::OpKind op,
+                      const Placement& l, const Placement& r) {
     std::vector<const Placement*> args(2);
     args[0] = &l; args[1] = &r;
-    return new RealExprPlacementRep(handle, RealBinaryOpRR(op), args);
+    return new RealExprPlacementRep(handle, RealOps(op), args);
 }
 
     // VEC3 PLACEMENT REP //
@@ -218,38 +269,33 @@ bool Vec3Ops::checkArgs(const std::vector<Placement>& args) const {
     default: 
         assert(false);
     }
+    //NOTREACHED
     return false;
 }
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::scale(Vec3Placement& handle, 
-                            const RealPlacement& s, const Vec3Placement& v) {
+                            const Placement& s, const Placement& v) {
     std::vector<const Placement*> args(2);
     args[0] = &s; args[1] = &v;
     return new Vec3ExprPlacementRep(handle, Vec3Ops(Vec3Ops::Scale), args);
 }
 /*static*/ Vec3ExprPlacementRep* 
 Vec3ExprPlacementRep::plus(Vec3Placement& handle,
-                           const Vec3Placement& l, const Vec3Placement& r) {
+                           const Placement& l, const Placement& r) {
     std::vector<const Placement*> args(2);
     args[0] = &l; args[1] = &r;
     return new Vec3ExprPlacementRep(handle, Vec3Ops(Vec3Ops::Plus), args);
 }
 /*static*/ Vec3ExprPlacementRep* 
 Vec3ExprPlacementRep::minus(Vec3Placement& handle,
-                            const Vec3Placement& l, const Vec3Placement& r) {
+                            const Placement& l, const Placement& r) {
     std::vector<const Placement*> args(2);
     args[0] = &l; args[1] = &r;
     return new Vec3ExprPlacementRep(handle, Vec3Ops(Vec3Ops::Minus), args);
 }
 /*static*/ Vec3ExprPlacementRep*
-Vec3ExprPlacementRep::cast(Vec3Placement& handle, const StationPlacement& v) {
-    std::vector<const Placement*> args(1);
-    args[0] = &v;
-    return new Vec3ExprPlacementRep(handle, Vec3Ops(Vec3Ops::Cast), args);
-}
-/*static*/ Vec3ExprPlacementRep*
-Vec3ExprPlacementRep::cast(Vec3Placement& handle, const DirectionPlacement& v) {
+Vec3ExprPlacementRep::cast(Vec3Placement& handle, const Placement& v) {
     std::vector<const Placement*> args(1);
     args[0] = &v;
     return new Vec3ExprPlacementRep(handle, Vec3Ops(Vec3Ops::Cast), args);

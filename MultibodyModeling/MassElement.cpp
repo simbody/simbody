@@ -63,8 +63,9 @@ MassElement::downcast(Feature& f) {
 
     // POINT MASS ELEMENT //
 
-PointMassElement::PointMassElement(const String& nm) {
-    (void)new PointMassElementRep(*this, std::string(nm));
+PointMassElement::PointMassElement(const String& nm) : MassElement() {
+    rep = new PointMassElementRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
 }
 PointMassElement::PointMassElement(const PointMassElement& src)
   : MassElement(src) { }
@@ -79,15 +80,6 @@ PointMassElement::PointMassElement(const String& nm, const Real& m) {
 }
 void PointMassElement::setMass(const Real& m) {
     PointMassElementRep::downcast(updRep()).setMass(m);
-}
-void PointMassElement::place(const StationPlacement& p) {
-    try {
-        updRep().place(p);
-    }
-    catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, 
-            "PointMassElement::place", exc.getMessage());
-    }
 }
 
 /*static*/ bool             
@@ -111,8 +103,9 @@ PointMassElement::downcast(Feature& f) {
 
     // CYLINDER MASS ELEMENT //
 
-CylinderMassElement::CylinderMassElement(const String& nm) {
-    (void)new CylinderMassElementRep(*this, std::string(nm));
+CylinderMassElement::CylinderMassElement(const String& nm) : MassElement() {
+    rep = new CylinderMassElementRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
 }
 CylinderMassElement::CylinderMassElement(const CylinderMassElement& src)
   : MassElement(src) { }

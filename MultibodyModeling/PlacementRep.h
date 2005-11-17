@@ -37,9 +37,6 @@
 #include <sstream>
 
 namespace simtk {
-class PlacementRep;
-class   RealPlacementRep;
-class     RealExprPlacementRep;
 
 /**
  * Abstract class representing an operator which acts on a list
@@ -71,21 +68,22 @@ public:
 /**
  * Concrete class producing a Real result when applied to two Real placements.
  */
-class RealBinaryOpRR : public RealPlacementOp {
+class RealOps : public RealPlacementOp {
 public:
-    enum OpKind { Plus, Minus, Times, Divide };
-    explicit RealBinaryOpRR(OpKind k) : op(k) { }
+    enum OpKind { Negate, Plus, Minus, Times, Divide };
+    explicit RealOps(OpKind k) : op(k) { }
 
-    PlacementOp* clone() const { return new RealBinaryOpRR(*this);}
+    PlacementOp* clone() const { return new RealOps(*this);}
     bool checkArgs(const std::vector<Placement>& args) const;
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
+            case Negate: p="negate<Real>"; break;
             case Plus:   p="add<Real>"; break;
             case Minus:  p="sub<Real>"; break;
             case Times:  p="mul<Real>"; break;
             case Divide: p="dvd<Real>"; break;
-            default: p="UNKNOWN RealBinaryOpRR";
+            default: p="UNKNOWN RealOp";
         };
         return std::string(p);
     }
@@ -277,26 +275,83 @@ enum PlacementType {
 
 class PlacementRep {
 public:
-    explicit PlacementRep(Placement& p) : myHandle(&p), owner(0), indexInOwner(-1) {
-        p.setRep(this);
-    }
+    explicit PlacementRep(Placement& p) : myHandle(&p), owner(0), indexInOwner(-1) { }
     virtual ~PlacementRep() { }
 
+    void             setMyHandle(Placement& p) {myHandle = &p;}
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
-    Placement&       updMyHandle()           {assert(myHandle); return *myHandle;}          
+    Placement&       updMyHandle()           {assert(myHandle); return *myHandle;} 
+
+    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
+    bool             hasOwner()        const {return owner != 0;}
     const Feature&   getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
-
-    bool hasOwner() const { return owner != 0; }
-    void setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
 
     // Note that this copies all feature & placement reference pointers verbatim.
     // The copy will require repair if we are copying a whole Feature tree
     // to get the references to refer to objects in the new tree. 
-    void cloneWithNewHandle(Placement& p) const {
+    void cloneUnownedWithNewHandle(Placement& p) const {
         PlacementRep* pr = clone();
-        pr->myHandle = &p;
+        pr->myHandle = &p; pr->owner = 0; pr->indexInOwner = -1;
         p.setRep(pr);
+    }
+
+    virtual Placement negate() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "-", getPlacementTypeName(getPlacementType()));
+    }
+    virtual RealPlacement length() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "length()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual DirectionPlacement normalize() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "normalize()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual Placement add(const Placement& r) const {
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                    getPlacementTypeName(getPlacementType()),
+                    "+", getPlacementTypeName(r.getRep().getPlacementType()));
+    }
+    virtual Placement sub(const Placement& r) const {
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                    getPlacementTypeName(getPlacementType()),
+                    "-", getPlacementTypeName(r.getRep().getPlacementType()));
+    }
+    virtual Placement mul(const Placement& r) const {
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                    getPlacementTypeName(getPlacementType()),
+                    "*", getPlacementTypeName(r.getRep().getPlacementType()));
+    }
+    virtual Placement dvd(const Placement& r) const {
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                    getPlacementTypeName(getPlacementType()),
+                    "/", getPlacementTypeName(r.getRep().getPlacementType()));
+    }
+
+    virtual RealPlacement castToRealPlacement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToRealPlacement()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual Vec3Placement castToVec3Placement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToVec3Placement()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual StationPlacement castToStationPlacement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToStationPlacement()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual DirectionPlacement castToDirectionPlacement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToDirectionPlacement()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual OrientationPlacement castToOrientationPlacement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToOrientationPlacement()", getPlacementTypeName(getPlacementType()));
+    }
+    virtual FramePlacement castToFramePlacement() const {
+        SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                     "castToFramePlacement()", getPlacementTypeName(getPlacementType()));
     }
 
     virtual PlacementType getPlacementType() const = 0;
@@ -432,10 +487,45 @@ public:
     PlacementType getPlacementType() const { return RealPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
+    Placement negate() const {
+        return RealPlacement::negate(getMyRealHandle());
+    }
+
+    Placement add(const Placement& r) const {
+        if (!RealPlacement::isInstanceOf(r))
+            SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                        getPlacementTypeName(getPlacementType()),
+                        "+", getPlacementTypeName(r.getRep().getPlacementType()));
+        return RealPlacement::plus(getMyRealHandle(), RealPlacement::downcast(r));
+    }
+    Placement sub(const Placement& r) const {
+        if (!RealPlacement::isInstanceOf(r))
+            SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                         getPlacementTypeName(getPlacementType()),
+                         "-", getPlacementTypeName(r.getRep().getPlacementType()));
+        return RealPlacement::minus(getMyRealHandle(), RealPlacement::downcast(r));
+    }
+
+    Placement mul(const Placement& r) const;
+
+    Placement dvd(const Placement& r) const {
+        if (!RealPlacement::isInstanceOf(r))
+            SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                         getPlacementTypeName(getPlacementType()),
+                         "/", getPlacementTypeName(r.getRep().getPlacementType()));
+        return RealPlacement::divide(getMyRealHandle(), RealPlacement::downcast(r));
+    }
+
+    RealPlacement castToRealPlacement() const {
+        return RealPlacement(getMyRealHandle()); // we can use it as is!
+    }
 
     // This should allow for state to be passed in.
     virtual Real getValue(/*State*/) const = 0;
     SIMTK_DOWNCAST(RealPlacementRep,PlacementRep);
+private:
+    const RealPlacement& getMyRealHandle() const
+      { return RealPlacement::downcast(getMyHandle()); }
 };
 
 /**
@@ -482,9 +572,10 @@ public:
     { }
     ~RealExprPlacementRep() { }
 
+    static RealExprPlacementRep* unop
+        (RealPlacement& handle, RealOps::OpKind, const Placement& a);
     static RealExprPlacementRep* binop
-        (RealPlacement& handle, RealBinaryOpRR::OpKind,
-         const RealPlacement& l, const RealPlacement& r);
+        (RealPlacement& handle, RealOps::OpKind, const Placement& l, const Placement& r);
     
     PlacementRep*  clone() const {return new RealExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
@@ -516,10 +607,24 @@ public:
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
+    Vec3Placement castToVec3Placement() const {
+        return Vec3Placement(getMyVec3Handle()); // we can use it as is!
+    }
+    DirectionPlacement castToDirectionPlacement() const {
+        return DirectionPlacement::normalize(getMyVec3Handle());
+    }
+
+    // Default inserts a cast operator, but we can do better than that for constants
+    // so we'll leave this virtual.
+    virtual StationPlacement castToStationPlacement() const {
+        return StationPlacement::cast(getMyVec3Handle());
+    }
 
     // This should allow for state to be passed in.
     virtual Vec3 getValue(/*State*/) const = 0;
     SIMTK_DOWNCAST(Vec3PlacementRep,PlacementRep);
+private:
+    const Vec3Placement& getMyVec3Handle() const {return Vec3Placement::downcast(getMyHandle());}
 };
 
 /**
@@ -530,6 +635,10 @@ public:
     Vec3ConstantPlacementRep(Vec3Placement& p, const Vec3& r) 
       : Vec3PlacementRep(p), value(r) { }
     ~Vec3ConstantPlacementRep() { }
+
+    StationPlacement castToStationPlacement() const {
+        return StationPlacement(value);
+    }
 
     bool isConstant() const { return true; }
 
@@ -567,19 +676,14 @@ public:
     ~Vec3ExprPlacementRep() { }
 
     static Vec3ExprPlacementRep* scale
-        (Vec3Placement& handle,
-         const RealPlacement& l, const Vec3Placement& r);
+        (Vec3Placement& handle, const Placement& l, const Placement& r);
     static Vec3ExprPlacementRep* plus
-        (Vec3Placement& handle,
-         const Vec3Placement& l, const Vec3Placement& r);
+        (Vec3Placement& handle, const Placement& l, const Placement& r);
     static Vec3ExprPlacementRep* minus
-        (Vec3Placement& handle,
-         const Vec3Placement& l, const Vec3Placement& r);
+        (Vec3Placement& handle, const Placement& l, const Placement& r);
 
     static Vec3ExprPlacementRep* cast
-        (Vec3Placement& handle, const StationPlacement&);
-    static Vec3ExprPlacementRep* cast
-        (Vec3Placement& handle, const DirectionPlacement& r);
+        (Vec3Placement& handle, const Placement&);
 
     PlacementRep*  clone() const {return new Vec3ExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}

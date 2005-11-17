@@ -65,6 +65,42 @@ public:
 private:
 };
 
+class PlacementCantBeUsedForThisFeature : public Base {
+public:
+    PlacementCantBeUsedForThisFeature(const char* fn, int ln,
+                                      String placementTypeName,
+                                      String featureName, String featureTypeName) : Base(fn,ln)
+    {
+        setMessage("Can't use " + placementTypeName + "Placement for "
+                   + featureTypeName + "Feature '" + featureName 
+                   + "'.");
+    }
+private:
+};
+
+class UnaryOperationNotAllowedForPlacementType : public Base {
+public:
+    UnaryOperationNotAllowedForPlacementType(const char* fn, int ln, 
+                                             String opName, String placementTypeName) 
+      : Base(fn,ln)
+    {
+        setMessage("Unary operator '" + opName + "' can't be used on a "
+                   + placementTypeName + "Placement.");
+    }
+};
+
+class InfixPlacementOperationNotAllowed : public Base {
+public:
+    InfixPlacementOperationNotAllowed(const char* fn, int ln, 
+                                      String leftTypeName, String opName,
+                                      String rightTypeName) 
+      : Base(fn,ln)
+    {
+        setMessage("Operation (" + leftTypeName + "Placement " + opName + 
+                   " " + rightTypeName + "Placement) is not supported.");
+    }
+};
+
 class FeatureUsedAsFramePlacementMustBeOnFrame : public Base {
 public:
     FeatureUsedAsFramePlacementMustBeOnFrame(const char* fn, int ln, 
@@ -140,7 +176,7 @@ public:
         const size_t oldz = stuff.size();
         // If we're throwing anything away, destruct it.
         for (size_t i=newz; i < oldz; ++i)
-            delete stuff[i];
+            {delete stuff[i]; stuff[i]=0;}
         stuff.resize(newz);
         // If we're adding anything new, initialize it.
         for (size_t i=oldz; i < newz; ++i)

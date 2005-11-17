@@ -66,8 +66,9 @@ Body::downcast(Feature& f) {
 
     // RIGID BODY //
 
-RigidBody::RigidBody(const String& nm) {
-    (void)new RigidBodyRep(*this, std::string(nm));
+RigidBody::RigidBody(const String& nm) : Body() {
+    rep = new RigidBodyRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
 }
 RigidBody::RigidBody(const RigidBody& src)
   : Body(src) { }
@@ -107,8 +108,9 @@ RigidBody::downcast(Feature& f) {
     // DEFORMABLE BODY //
 
     // MULTIBODY //
-Multibody::Multibody(const String& nm) {
-    (void)new MultibodyRep(*this, std::string(nm));
+Multibody::Multibody(const String& nm) : Body() {
+    rep = new MultibodyRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
 }
 Multibody::Multibody(const Multibody& src)
   : Body(src) { }
@@ -176,8 +178,9 @@ Multibody::downcast(Feature& f) {
 
     // JOINT //
 
-Joint::Joint(JointType jt, const String& nm) {
-    (void)new JointRep(*this, jt, std::string(nm));
+Joint::Joint(JointType jt, const String& nm) : Feature() {
+    rep = new JointRep(*this, jt, std::string(nm));
+    rep->initializeStandardSubfeatures();
 }
 Joint::Joint(const Joint& src)
   : Feature(src) { }
