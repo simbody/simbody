@@ -128,8 +128,8 @@ public:
     Body& addBodyLike(const Body&, const String&);
     Joint& addJoint(JointType, const String&);
     Joint& addJoint(JointType, const String&,
-                    const FramePlacement& reference,
-                    const FramePlacement& moving);
+                    const Placement& reference,
+                    const Placement& moving);
 
     static bool             isInstanceOf(const Feature&);
     static const Multibody& downcast(const Feature&);

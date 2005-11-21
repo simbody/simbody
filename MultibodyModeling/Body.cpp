@@ -151,8 +151,8 @@ Joint& Multibody::addJoint(JointType jt, const String& nm) {
 }
 
 Joint& Multibody::addJoint(JointType jt, const String& nm,
-                           const FramePlacement& reference,
-                           const FramePlacement& moving) {
+                           const Placement& reference,
+                           const Placement& moving) {
     Joint& j = Joint::downcast(updRep().addSubfeatureLike(Joint(jt,nm), nm));
     j.updFrame("reference").place(reference);
     j.updFrame("moving").place(moving);

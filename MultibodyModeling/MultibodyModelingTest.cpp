@@ -110,7 +110,7 @@ try {
 
     lower["ballAttachPt"].place(lower["halfHeight"] * lower.y());
 
-    lower.addFrame("upperAttachmentFrame", lower.getStation("ballAttachPt"));
+    lower.addFrame("upperAttachmentFrame", lower["ballAttachPt"]);
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
@@ -122,7 +122,7 @@ try {
     // because we want to control both with a single parameter.
     tube["center"].place(lower.getOrigin());
 
-    tube["center"].place(lower["origin"]);
+    //TODO: this should require an explicit normalize()
     tube["axis"]  .place(lower["ballAttachPt"] - lower.getOrigin());
 
      cout << "L=" << lower; 
@@ -148,11 +148,11 @@ try {
                  mbs.getGroundFrame(),                      //reference frame
                  upperBody);                                //moving frame
     mbs.addJoint(BallJoint, "leftHipJoint",
-                 upperBody.getFrame("leftBallFrame"),       //reference frame
-                 leftLeg.getFrame("upperAttachmentFrame")); //moving frame
+                 upperBody["leftBallFrame"],       //reference frame
+                 leftLeg["upperAttachmentFrame"]); //moving frame
     mbs.addJoint(BallJoint, "rightHipJoint",
-                 upperBody.getFrame("rightBallFrame"),      //reference frame
-                 rightLeg.getFrame("upperAttachmentFrame"));//moving frame
+                 upperBody["rightBallFrame"],      //reference frame
+                 rightLeg["upperAttachmentFrame"]);//moving frame
 
     std::cout << mbs << std::endl; //let’s see what we’ve got
 
