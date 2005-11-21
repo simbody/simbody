@@ -75,8 +75,9 @@ PointMassElement& PointMassElement::operator=(const PointMassElement& src) {
 PointMassElement::~PointMassElement() { }
 
 PointMassElement::PointMassElement(const String& nm, const Real& m) {
-    (void)new PointMassElementRep(*this, std::string(nm));
-    PointMassElementRep::downcast(updRep()).setMass(m);
+    rep = new PointMassElementRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+    setMass(m);
 }
 void PointMassElement::setMass(const Real& m) {
     PointMassElementRep::downcast(updRep()).setMass(m);

@@ -56,19 +56,20 @@ Placement::~Placement() {
 }
 
 Placement::Placement(const Feature& f) : rep(0) {
-    (void)new FeaturePlacementRep(
-        reinterpret_cast<FeaturePlacement&>(*this),f);
+    rep = f.getRep().createFeatureReference(*this);
 }
-
+Placement::Placement(const Feature& f, int i) : rep(0) {
+    rep = f.getRep().createFeatureReference(*this, i);
+}
 Placement::Placement(const Real& r) : rep(0) {
-    (void)new RealConstantPlacementRep(
-        reinterpret_cast<RealPlacement&>(*this),r);
+    rep = new RealConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
 }
-
 Placement::Placement(const Vec3& v) : rep(0) {
-    (void)new Vec3ConstantPlacementRep(
-        reinterpret_cast<Vec3Placement&>(*this),v);
+    rep = new Vec3ConstantPlacementRep(reinterpret_cast<Vec3Placement&>(*this), v);
 }
+//Placement::Placement(const Mat33& m) : rep(0) {
+//    rep = new Mat33ConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
+//}
 
 bool Placement::hasOwner() const {
     return rep && rep->hasOwner();
@@ -105,10 +106,10 @@ String Placement::toString(const String& linePrefix) const {
         return s.str();
     }
     if (hasOwner())
-        s << std::left << std::setw(2) << getIndexInOwner() 
-          << " " << getOwner().getFullName();
+        s << getOwner().getFullName() << ":"
+          << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
-    s << ":" << rep->toString(linePrefix);
+    s << " " << rep->toString(linePrefix);
     return s.str();
 }
 
@@ -129,31 +130,18 @@ Placement operator-(const Placement& l, const Placement& r) {return l.getRep().s
 Placement operator*(const Placement& l, const Placement& r) {return l.getRep().mul(r);}
 Placement operator/(const Placement& l, const Placement& r) {return l.getRep().dvd(r);}
 
-    // FEATURE PLACEMENT //
-FeaturePlacement::FeaturePlacement(const Feature& f) {
-    rep = new FeaturePlacementRep(*this,f);
-}
-
-FeaturePlacement::FeaturePlacement(const Feature& f, int index) {
-    rep = new FeaturePlacementRep(*this,f,index);
-}
-
-
     // REAL PLACEMENT //
+
 RealPlacement::RealPlacement(const Real& r) {
     rep = new RealConstantPlacementRep(*this,r);
 }
 
 RealPlacement::RealPlacement(const RealParameter& rp) {
-    rp.getRep().useAsRealPlacement(*this);
+    rep = rp.getRep().useFeatureAsRealPlacement(*this);
 }
 
 RealPlacement::RealPlacement(const RealMeasure& rm) {
-    rm.getRep().useAsRealPlacement(*this);
-}
-
-RealPlacement::RealPlacement(const Feature& f) {
-    f.getRep().useAsRealPlacement(*this);
+    rep = rm.getRep().useFeatureAsRealPlacement(*this);
 }
 
 /*static*/ RealPlacement
@@ -210,16 +198,12 @@ Vec3Placement::Vec3Placement(const Vec3& r) {
 }
 
 Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
-    rp.getRep().useAsVec3Placement(*this);
+    rep = rp.getRep().useFeatureAsVec3Placement(*this);
 }
 
 Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
-    rm.getRep().useAsVec3Placement(*this);
+    rep = rm.getRep().useFeatureAsVec3Placement(*this);
 }
-
-//Vec3Placement::Vec3Placement(const Feature& f) {
-//    f.getRep().useAsVec3Placement(*this);
-//}
 
 /*static*/ Vec3Placement
 Vec3Placement::plus(const Placement& l, const Placement& r) {
@@ -265,18 +249,25 @@ Vec3Placement::downcast(Placement& p) {
 }
 
     // STATION PLACEMENT //
+
+StationPlacement::StationPlacement(const Station& s) {
+    rep = s.getRep().useFeatureAsStationPlacement(*this);
+}
+StationPlacement::StationPlacement(const StationMeasure& s) {
+    rep = s.getRep().useFeatureAsStationPlacement(*this);
+}
+StationPlacement::StationPlacement(const StationParameter& s) {
+    rep = s.getRep().useFeatureAsStationPlacement(*this);
+}
 StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(*this,v);
 }
-
-StationPlacement::StationPlacement(const Station& s) {
-    s.getRep().useAsStationPlacement(*this);
+StationPlacement::StationPlacement(const Frame& f) {
+    rep = f.getOrigin().getRep().useFeatureAsStationPlacement(*this);
 }
-
 StationPlacement::StationPlacement(const Feature& f) {
-    f.getRep().useAsStationPlacement(*this);
+    rep = f.getRep().useFeatureAsStationPlacement(*this);
 }
-
 /*static*/ StationPlacement
 StationPlacement::cast(const Vec3Placement& v) {
     StationPlacement x; // null rep
@@ -288,7 +279,7 @@ StationPlacement::cast(const Vec3Placement& v) {
 /*static*/ bool             
 StationPlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
-    return RealPlacementRep::isA(p.getRep());
+    return StationPlacementRep::isA(p.getRep());
 }
 /*static*/ const StationPlacement& 
 StationPlacement::downcast(const Placement& p) {
@@ -303,18 +294,24 @@ StationPlacement::downcast(Placement& p) {
 }
 
     // DIRECTION PLACEMENT //
+DirectionPlacement::DirectionPlacement(const Direction& d) {
+    rep = d.getRep().useFeatureAsDirectionPlacement(*this);
+}
+DirectionPlacement::DirectionPlacement(const DirectionMeasure& d) {
+    rep = d.getRep().useFeatureAsDirectionPlacement(*this);
+}
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     rep = new DirectionConstantPlacementRep(*this,v);
 }
-
-DirectionPlacement::DirectionPlacement(const Direction& d) {
-    d.getRep().useAsDirectionPlacement(*this);
-}
-
 DirectionPlacement::DirectionPlacement(const Feature& f) {
-    f.getRep().useAsDirectionPlacement(*this);
+    rep = f.getRep().useFeatureAsDirectionPlacement(*this);
 }
-
+DirectionPlacement::DirectionPlacement(const Orientation& o, int i) {
+    rep = o.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
+}
+DirectionPlacement::DirectionPlacement(const Frame& f, int i) {
+    rep = f.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
+}
 
 /*static*/ DirectionPlacement
 DirectionPlacement::normalize(const Vec3Placement& v) {
@@ -333,7 +330,7 @@ DirectionPlacement::normalize(const StationPlacement& v) {
 /*static*/ bool             
 DirectionPlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
-    return RealPlacementRep::isA(p.getRep());
+    return DirectionPlacementRep::isA(p.getRep());
 }
 /*static*/ const DirectionPlacement& 
 DirectionPlacement::downcast(const Placement& p) {
@@ -348,15 +345,26 @@ DirectionPlacement::downcast(Placement& p) {
 }
 
     // ORIENTATION PLACEMENT //
+
+OrientationPlacement::OrientationPlacement(const Orientation& o) {
+    rep = o.getRep().useFeatureAsOrientationPlacement(*this);
+}
+OrientationPlacement::OrientationPlacement(const OrientationMeasure& om) {
+    rep = om.getRep().useFeatureAsOrientationPlacement(*this);
+}
 OrientationPlacement::OrientationPlacement(const Mat33& m) {
     rep = new OrientationConstantPlacementRep(*this,m);
 }
-
-
+OrientationPlacement::OrientationPlacement(const Frame& f) {
+    rep = f.getOrientation().getRep().useFeatureAsOrientationPlacement(*this);
+}
+OrientationPlacement::OrientationPlacement(const Feature& f) {
+    rep = f.getRep().useFeatureAsOrientationPlacement(*this);
+}
 /*static*/ bool             
 OrientationPlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
-    return RealPlacementRep::isA(p.getRep());
+    return OrientationPlacementRep::isA(p.getRep());
 }
 /*static*/ const OrientationPlacement& 
 OrientationPlacement::downcast(const Placement& p) {
@@ -372,29 +380,25 @@ OrientationPlacement::downcast(Placement& p) {
 
     // FRAME PLACEMENT //
 FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
-    rep = new FramePlacementRep(*this,o,s);
+    rep = new FrameExprPlacementRep(*this,o,s);
 }
 
 FramePlacement::FramePlacement(const Frame& f) {
-    f.getRep().useAsFramePlacement(*this);
+    rep = f.getRep().useFeatureAsFramePlacement(*this);
 }
 
 FramePlacement::FramePlacement(const Station& s) {
-    s.getRep().useAsFramePlacement(*this);
+    rep = s.getRep().useFeatureAsFramePlacement(*this);
 }
 
 FramePlacement::FramePlacement(const Orientation& o) {
-    o.getRep().useAsFramePlacement(*this);
-}
-
-FramePlacement::FramePlacement(const Feature& f) {
-    f.getRep().useAsFramePlacement(*this);
+    rep = o.getRep().useFeatureAsFramePlacement(*this);
 }
 
 /*static*/ bool             
 FramePlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
-    return RealPlacementRep::isA(p.getRep());
+    return FramePlacementRep::isA(p.getRep());
 }
 /*static*/ const FramePlacement& 
 FramePlacement::downcast(const Placement& p) {

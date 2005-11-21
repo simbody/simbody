@@ -54,8 +54,10 @@ class   Orientation;
 class   Frame;
 class   RealMeasure;
 class     RealParameter;
-class   StationParameter;
-class     StationMeasure;
+class   StationMeasure;
+class     StationParameter;
+class   DirectionMeasure;
+class   OrientationMeasure;
 
 /**
  * Features form a tree because many Features have sub-Features (children).
@@ -188,64 +190,64 @@ protected:
 std::ostream& operator<<(std::ostream& o, const Feature&);
 
 // Although these operators appear to act on Features, they actually
-// create a FeaturePlacement referring to the Features and then perform
+// create a Placement referring to the Features and then perform
 // the operations on the Placement.
 
 // unary(feature)
-inline Placement operator+(const Feature& f) {return  FeaturePlacement(f);}
-inline Placement operator-(const Feature& f) {return -FeaturePlacement(f);}
-inline RealPlacement      length(const Feature& f)    {return length(FeaturePlacement(f));}
-inline DirectionPlacement normalize(const Feature& f) {return normalize(FeaturePlacement(f));}
+inline Placement operator+(const Feature& f) {return  Placement(f);}
+inline Placement operator-(const Feature& f) {return -Placement(f);}
+inline RealPlacement      length(const Feature& f)    {return length(Placement(f));}
+inline DirectionPlacement normalize(const Feature& f) {return normalize(Placement(f));}
 
 // binary(feature,feature)
 inline Placement operator+(const Feature& l, const Feature& r) 
-  { return FeaturePlacement(l)+FeaturePlacement(r); }
+  { return Placement(l)+Placement(r); }
 inline Placement operator-(const Feature& l, const Feature& r) 
-  { return FeaturePlacement(l)-FeaturePlacement(r); }
+  { return Placement(l)-Placement(r); }
 inline Placement operator*(const Feature& l, const Feature& r) 
-  { return FeaturePlacement(l)*FeaturePlacement(r); }
+  { return Placement(l)*Placement(r); }
 inline Placement operator/(const Feature& l, const Feature& r) 
-  { return FeaturePlacement(l)/FeaturePlacement(r); }
+  { return Placement(l)/Placement(r); }
 
 // binary(placement,feature)
 inline Placement operator+(const Placement& l, const Feature& r) 
-  { return l+FeaturePlacement(r); }
+  { return l+Placement(r); }
 inline Placement operator-(const Placement& l, const Feature& r) 
-  { return l-FeaturePlacement(r); }
+  { return l-Placement(r); }
 inline Placement operator*(const Placement& l, const Feature& r) 
-  { return l*FeaturePlacement(r); }
+  { return l*Placement(r); }
 inline Placement operator/(const Placement& l, const Feature& r) 
-  { return l/FeaturePlacement(r); }
+  { return l/Placement(r); }
 
 // binary(feature,placement)
 inline Placement operator+(const Feature& l, const Placement& r) 
-  { return FeaturePlacement(l)+r; }
+  { return Placement(l)+r; }
 inline Placement operator-(const Feature& l, const Placement& r) 
-  { return FeaturePlacement(l)-r; }
+  { return Placement(l)-r; }
 inline Placement operator*(const Feature& l, const Placement& r) 
-  { return FeaturePlacement(l)*r; }
+  { return Placement(l)*r; }
 inline Placement operator/(const Feature& l, const Placement& r) 
-  { return FeaturePlacement(l)/r; }
+  { return Placement(l)/r; }
 
 // binary(real,feature)
 inline Placement operator+(const Real& l, const Feature& r) 
-  { return RealPlacement(l)+FeaturePlacement(r); }
+  { return RealPlacement(l)+Placement(r); }
 inline Placement operator-(const Real& l, const Feature& r) 
-  { return RealPlacement(l)-FeaturePlacement(r); }
+  { return RealPlacement(l)-Placement(r); }
 inline Placement operator*(const Real& l, const Feature& r) 
-  { return RealPlacement(l)*FeaturePlacement(r); }
+  { return RealPlacement(l)*Placement(r); }
 inline Placement operator/(const Real& l, const Feature& r) 
-  { return RealPlacement(l)/FeaturePlacement(r); }
+  { return RealPlacement(l)/Placement(r); }
 
 // binary(feature,real)
 inline Placement operator+(const Feature& l, const Real& r) 
-  { return FeaturePlacement(l)+RealPlacement(r); }
+  { return Placement(l)+RealPlacement(r); }
 inline Placement operator-(const Feature& l, const Real& r) 
-  { return FeaturePlacement(l)-RealPlacement(r); }
+  { return Placement(l)-RealPlacement(r); }
 inline Placement operator*(const Feature& l, const Real& r) 
-  { return FeaturePlacement(l)*RealPlacement(r); }
+  { return Placement(l)*RealPlacement(r); }
 inline Placement operator/(const Feature& l, const Real& r) 
-  { return FeaturePlacement(l)/RealPlacement(r); }
+  { return Placement(l)/RealPlacement(r); }
 
 /**
  * This is an expression yielding a value suitable for use
@@ -372,6 +374,23 @@ protected:
     Station() { }
 };
 
+
+class DirectionMeasure : public Feature {
+public:
+    explicit DirectionMeasure(const String& name);
+    DirectionMeasure(const DirectionMeasure&);
+    DirectionMeasure& operator=(const DirectionMeasure&);
+    ~DirectionMeasure();
+
+    static bool                  isInstanceOf(const Feature&);
+    static const DirectionMeasure& downcast(const Feature&);
+    static DirectionMeasure&       downcast(Feature&);
+protected:
+    DirectionMeasure() { }
+};
+
+// Sorry, no DirectionParameter (doesn't make sense to have one).
+
 class Direction : public Feature {
 public:
     explicit Direction(const String& name);
@@ -386,6 +405,22 @@ public:
 protected:
     Direction() { }
 };
+
+class OrientationMeasure : public Feature {
+public:
+    explicit OrientationMeasure(const String& name);
+    OrientationMeasure(const OrientationMeasure&);
+    OrientationMeasure& operator=(const OrientationMeasure&);
+    ~OrientationMeasure();
+
+    static bool                  isInstanceOf(const Feature&);
+    static const OrientationMeasure& downcast(const Feature&);
+    static OrientationMeasure&       downcast(Feature&);
+protected:
+    OrientationMeasure() { }
+};
+
+// Sorry, no OrientationParameter (doesn't make sense to have one).
 
 class Orientation : public Feature {
 public:

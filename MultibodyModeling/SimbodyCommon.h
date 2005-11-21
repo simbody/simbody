@@ -65,6 +65,30 @@ public:
 private:
 };
 
+class NoFeatureLevelPlacementForThisKindOfFeature : public Base {
+public:
+    NoFeatureLevelPlacementForThisKindOfFeature(const char* fn, int ln, 
+        String featureName, String featureTypeName) : Base(fn,ln)
+    {
+        setMessage("Can't use " + featureTypeName + " Feature '" + featureName 
+                   + "' as a Placement because this kind of Feature has no"
+                     " Feature-level Placement. Did you mean to use one of its Subfeatures?");
+    }
+private:
+};
+
+class IndexOutOfRangeForFeaturePlacementReference : public Base {
+public:
+    IndexOutOfRangeForFeaturePlacementReference(const char* fn, int ln, 
+        String featureName, String featureTypeName, int index) : Base(fn,ln)
+    {
+        setMessage("Index " + String(index)
+                   + " is out of range for a reference to the Placement of "
+                   + featureTypeName + " Feature '" + featureName + "'.");
+    }
+private:
+};
+
 class PlacementCantBeUsedForThisFeature : public Base {
 public:
     PlacementCantBeUsedForThisFeature(const char* fn, int ln,

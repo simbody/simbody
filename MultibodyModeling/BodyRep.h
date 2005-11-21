@@ -76,7 +76,6 @@ public:
     // must call initializeStandardSubfeatures to complete construction
 
     std::string   getFeatureTypeName() const { return "RigidBody"; }
-
     FeatureRep*   clone() const { return new RigidBodyRep(*this); }
 
     SIMTK_DOWNCAST2(RigidBodyRep,BodyRep,FeatureRep);
@@ -103,7 +102,6 @@ public:
     // must call initializeStandardSubfeatures to complete construction
 
     std::string   getFeatureTypeName() const { return "Multibody"; }
-
     FeatureRep*   clone() const { return new MultibodyRep(*this); }
 
     SIMTK_DOWNCAST2(MultibodyRep,BodyRep,FeatureRep);
@@ -134,8 +132,14 @@ public:
     }
 
     std::string   getFeatureTypeName() const { return "Joint"; }
-    PlacementType getRequiredPlacementType() const { return InvalidPlacementType; }
+    PlacementType getRequiredPlacementType() const { return VoidPlacementType; }
     FeatureRep*   clone() const { return new JointRep(*this); }
+    PlacementRep* createFeatureReference(Placement&, int) const {
+        SIMTK_THROW2(Exception::NoFeatureLevelPlacementForThisKindOfFeature,
+            getFullName(), getFeatureTypeName());
+        //NOTREACHED
+        return 0;
+    }
 
     const Frame& getReferenceFrame() const {return Frame::downcast(getSubfeature(refIndex));}
     const Frame& getMovingFrame()    const {return Frame::downcast(getSubfeature(movIndex)); }

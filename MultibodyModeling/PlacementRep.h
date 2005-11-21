@@ -38,6 +38,62 @@
 
 namespace simtk {
 
+// defined below
+class PlacementRep;
+class   BoolPlacementRep;
+class     BoolConstantPlacementRep;
+class     BoolFeaturePlacementRep;
+class     BoolExprPlacementRep;
+class   IntPlacementRep;
+class     IntConstantPlacementRep;
+class     IntFeaturePlacementRep;
+class     IntExprPlacementRep;
+class   RealPlacementRep;
+class     RealConstantPlacementRep;
+class     RealFeaturePlacementRep;
+class     RealExprPlacementRep;
+class   Vec2PlacementRep;
+class     Vec2ConstantPlacementRep;
+class     Vec2FeaturePlacementRep;
+class     Vec2ExprPlacementRep;
+class   Vec3PlacementRep;
+class     Vec3ConstantPlacementRep;
+class     Vec3FeaturePlacementRep;
+class     Vec3ExprPlacementRep;
+class   StationPlacementRep;
+class     StationConstantPlacementRep;
+class     StationFeaturePlacementRep;
+class     StationExprPlacementRep;
+class   DirectionPlacementRep;
+class     DirectionConstantPlacementRep;
+class     DirectionFeaturePlacementRep;
+class     DirectionExprPlacementRep;
+class   OrientationPlacementRep;
+class     OrientationConstantPlacementRep;
+class     OrientationFeaturePlacementRep;
+class     OrientationExprPlacementRep;
+class   PlacementListRep;
+class     PlacementListFeatureRep;
+class   FramePlacementRep;
+class     FrameConstantPlacementRep;
+class     FrameFeaturePlacementRep;
+
+// TODO: shouldn't be necessary to have this enum; use virtual methods instead
+enum PlacementType {
+    InvalidPlacementType = 0,
+    VoidPlacementType,
+    BoolPlacementType,
+    IntPlacementType,
+    RealPlacementType,
+    Vec2PlacementType,
+    Vec3PlacementType,
+    Mat33PlacementType,
+    StationPlacementType,
+    DirectionPlacementType,
+    OrientationPlacementType,
+    FramePlacementType
+};
+
 /**
  * Abstract class representing an operator which acts on a list
  * of Placement arguments to produce a placement expression. The
@@ -66,11 +122,12 @@ public:
 };
 
 /**
- * Concrete class producing a Real result when applied to two Real placements.
+ * Concrete class for operators producing Real placements.
  */
 class RealOps : public RealPlacementOp {
 public:
-    enum OpKind { Negate, Plus, Minus, Times, Divide };
+    enum OpKind { Negate, Length,                           // unary 
+                  Plus, Minus, Times, Divide, Distance };   // binary
     explicit RealOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new RealOps(*this);}
@@ -78,11 +135,13 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Negate: p="negate<Real>"; break;
-            case Plus:   p="add<Real>"; break;
-            case Minus:  p="sub<Real>"; break;
-            case Times:  p="mul<Real>"; break;
-            case Divide: p="dvd<Real>"; break;
+            case Negate:        p="negate<Real>"; break;
+            case Length:        p="length<Real>"; break;
+            case Plus:          p="add<Real>"; break;
+            case Minus:         p="sub<Real>"; break;
+            case Times:         p="mul<Real>"; break;
+            case Divide:        p="dvd<Real>"; break;
+            case Distance:      p="distance<Real>"; break;
             default: p="UNKNOWN RealOp";
         };
         return std::string(p);
@@ -114,7 +173,8 @@ public:
  */
 class Vec3Ops : public Vec3PlacementOp {
 public:
-    enum OpKind { Scale, Plus, Minus, Cast };
+    enum OpKind { Scale, Cast,          // unary
+                  Plus, Minus };        // binary
     explicit Vec3Ops(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new Vec3Ops(*this);}
@@ -123,9 +183,9 @@ public:
         char *p = 0;
         switch(op) {
             case Scale: p="scale<Vec3>"; break;
+            case Cast:  p="cast<Vec3>";  break;
             case Plus:  p="add<Vec3>";   break;
             case Minus: p="sub<Vec3>";   break;
-            case Cast:  p="cast<Vec3>";  break;
             default:    p="UNKNOWN Vec3Op";
         };
         return std::string(p);
@@ -157,7 +217,8 @@ public:
  */
 class StationOps : public StationPlacementOp {
 public:
-    enum OpKind { Plus, Minus, Cast };
+    enum OpKind { Cast,                 // unary
+                  Plus, Minus };        // binary
     explicit StationOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new StationOps(*this);}
@@ -165,9 +226,9 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Plus:  p="add<Station>";  break;
-            case Minus: p="sub<Station>";  break;
-            case Cast:  p="cast<Station>"; break;
+            case Cast:        p="cast<Station>"; break;
+            case Plus:        p="add<Station>";  break;
+            case Minus:       p="sub<Station>";  break;
             default: p="UNKNOWN StationOp";
         };
         return std::string(p);
@@ -207,7 +268,7 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Normalize: p="normalize<Direction>"; break;
+            case Normalize:     p="normalize<Direction>"; break;
             default:    p="UNKNOWN DirectionOp";
         };
         return std::string(p);
@@ -215,6 +276,86 @@ public:
 
     // XXX not yet
     Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+
+private:
+    OpKind op;
+};
+
+/**
+ * Abstract class which represents an operator which returns an Orientation
+ * matrix result when applied to an argument list of Placements.
+ */
+class OrientationPlacementOp : public PlacementOp {
+public:
+    virtual ~OrientationPlacementOp() { }
+    // Run time
+    virtual Mat33 apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(OrientationPlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Direction result when applied to Placement
+ * arguments of whatever number and type is appropriate for the operator.
+ */
+class OrientationOps : public OrientationPlacementOp {
+public:
+    enum OpKind { NoneYet };
+    explicit OrientationOps(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new OrientationOps(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case NoneYet: p="NoneYet<Orientation>"; break;
+            default:      p="UNKNOWN DirectionOp";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet
+    Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
+
+private:
+    OpKind op;
+};
+
+/**
+ * Abstract class which represents an operator which returns a Frame
+ * result when applied to an argument list of Placements.
+ */
+class FramePlacementOp : public PlacementOp {
+public:
+    virtual ~FramePlacementOp() { }
+    // Run time XXX TODO wrong return type; should be numerical Frame
+    virtual Mat33 apply(/*State,*/const std::vector<Placement>&) const = 0;
+
+    SIMTK_DOWNCAST(FramePlacementOp, PlacementOp);
+};
+
+/**
+ * Concrete class producing a Direction result when applied to Placement
+ * arguments of whatever number and type is appropriate for the operator.
+ */
+class FrameOps : public FramePlacementOp {
+public:
+    enum OpKind { NoneYet };
+    explicit FrameOps(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new FrameOps(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case NoneYet: p="???<Frame>"; break;
+            default:      p="UNKNOWN DirectionOp";
+        };
+        return std::string(p);
+    }
+
+    // XXX not yet TODO this is the wrong return type
+    Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
 
 private:
     OpKind op;
@@ -235,17 +376,15 @@ public:
     ~PlacementExpr() { }
 
     bool exprIsConstant() const {
-        for (size_t i=0; i < args.size(); ++i) {
+        for (size_t i=0; i < args.size(); ++i)
             if (!args[i].isConstant()) return false;
-        }
         return true;
     }
 
     bool exprDependsOn(const Feature& f) const {
-        for (size_t i=0; i < args.size(); ++i) {
+        for (size_t i=0; i < args.size(); ++i)
             if (args[i].dependsOn(f))
                 return true;
-        }
         return false;
     }
 
@@ -258,20 +397,50 @@ protected:
     std::vector<Placement>    args;
 };
 
-// TODO: shouldn't be necessary to have this enum; use virtual methods instead
-enum PlacementType {
-    InvalidPlacementType = 0,
-    BoolPlacementType,
-    IntPlacementType,
-    RealPlacementType,
-    StationPlacementType,
-    DirectionPlacementType,
-    OrientationPlacementType,
-    FramePlacementType,
-    Vec2PlacementType,
-    Vec3PlacementType,
-    Mat33PlacementType
+/**
+ * This class captures the methods common to all Placements which are simply
+ * references to the Placement of some Feature, or an indexed element
+ * of such a Placement.
+ */
+class FeatureReference {
+protected:
+    explicit FeatureReference(const Feature& f, int i = -1);
+    // default copy, assignment, destructor
+
+    const Feature& getReferencedFeature() const {
+        assert(feature);
+        return *feature;
+    }
+
+    const Placement& getReferencedPlacement() const {
+        assert(feature);
+        return feature->getPlacement();
+    }
+    bool isIndexed() const { assert(feature); return index != -1; }
+    int getPlacementIndex() const { assert(feature); return index; }
+
+    bool refIsConstant() const { return false; } // might be, but we can't count on it
+
+    bool refDependsOn(const Feature& f) const {
+        assert(feature);
+        return feature->dependsOn(f);
+    }
+
+    const Feature* refFindAncestorFeature(const Feature& root) const;
+    bool           refIsLimitedToSubtree(const Feature& root, const Feature*& offender) const; 
+    void           refRepairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
+    std::string    refToString(const std::string& linePrefix) const;
+
+    // Return the required placement type for the referenced feature (after indexing).
+    // That isn't necessary the same as the type of the enclosing Placement, which
+    // may be performing some kind of transformation (Station to Vec3, say.)
+    PlacementType refGetPlacementType() const;
+
+private:
+    const Feature* feature;
+    const int      index;
 };
+
 
 class PlacementRep {
 public:
@@ -375,31 +544,44 @@ public:
     static const char* getPlacementTypeName(PlacementType t) {
         switch(t) {
         case InvalidPlacementType:      return "INVALID";
+        case VoidPlacementType:         return "void";
         case BoolPlacementType:         return "bool";
         case IntPlacementType:          return "int";
         case RealPlacementType:         return "Real";
-        case StationPlacementType:      return "Station";     // 3 Reals
-        case DirectionPlacementType:    return "Direction";   // 3 Reals
-        case OrientationPlacementType:  return "Orientation"; // 3 Directions
-        case FramePlacementType:        return "Frame"; // Orientation, Direction
-        case Vec2PlacementType:         return "Vec2";  // 2 Reals
-        case Vec3PlacementType:         return "Vec3";  // 3 Reals
-        case Mat33PlacementType:        return "Mat33"; // 3 Vec3's (columns)
+        case StationPlacementType:      return "Station";
+        case DirectionPlacementType:    return "Direction";
+        case OrientationPlacementType:  return "Orientation";
+        case FramePlacementType:        return "Frame";
+        case Vec2PlacementType:         return "Vec2";
+        case Vec3PlacementType:         return "Vec3";
+        case Mat33PlacementType:        return "Mat33";
         default: return "ILLEGAL PLACEMENT TYPE";
         };
     }
 
     static int getNIndicesAllowed(PlacementType t) {
         switch(t) {
-        case StationPlacementType:      return 3; // 3 Reals
-        case DirectionPlacementType:    return 3; // 3 Reals
-        case OrientationPlacementType:  return 3; // 3 Directions
-        case FramePlacementType:        return 2; // Orientation, Station
+        case VoidPlacementType:         return 0; // can't use at all
+        case BoolPlacementType:
+        case IntPlacementType:
+        case RealPlacementType:         return 1; // no index or index==0 OK
+
         case Vec2PlacementType:         return 2; // 2 Reals
-        case Vec3PlacementType:         return 3; // 3 Reals
+
+        case Vec3PlacementType:
+        case StationPlacementType:
+        case DirectionPlacementType:    return 3; // 3 Reals
+
         case Mat33PlacementType:        return 3; // 3 Vec3's (columns)
-        default: return 0;
+        case OrientationPlacementType:  return 3; // 3 Directions
+
+        case FramePlacementType:        return 2; // Orientation, Station
+
+        default: 
+            assert(false);
         };
+        //NOTREACHED
+        return -1;
     }
 
     // If a PlacementType is indexed, what is the resulting PlacementType?
@@ -415,14 +597,14 @@ public:
         case Vec3PlacementType:         
             return RealPlacementType;  
 
+        case Mat33PlacementType:
+            return Vec3PlacementType;
+
         case OrientationPlacementType: 
             return DirectionPlacementType;
 
         case FramePlacementType:
             return i==0 ? OrientationPlacementType : StationPlacementType;
-
-        case Mat33PlacementType:
-            return Vec3PlacementType;
 
         default: assert(false);
             //NOTREACHED
@@ -437,43 +619,6 @@ private:
     int             indexInOwner;
 };
 
-/**
- * A concrete PlacementRep whose value is the Placement of some Feature,
- * or an indexed subcomponent of such a Placement.
- */
-class FeaturePlacementRep : public PlacementRep {
-public:
-//    FeaturePlacementRep(const Feature& f) : PlacementRep(), feature(&f), index(-1) { }
-    FeaturePlacementRep(FeaturePlacement& p, const Feature& f) 
-      : PlacementRep(p), feature(&f), index(-1) { }
-    FeaturePlacementRep(FeaturePlacement& p, const Feature& f, int ix) 
-      : PlacementRep(p), feature(&f), index(ix) { }
-    ~FeaturePlacementRep() { }
-
-    // Check that this feature is on the feature subtree rooted by "ancestor". If
-    // not return a pointer to this feature for use in a friendly error message.
-    // If this is the right tree, we return true with offender==NULL.
-    bool isLimitedToSubtree(const Feature& ancestor, const Feature*& offender) const;
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
-
-    bool dependsOn(const Feature& f) const {
-        assert(feature);
-        return feature->dependsOn(f);
-    }
-
-    const Feature* findAncestorFeature(const Feature& root) const;
-    PlacementType  getPlacementType() const;
-
-    // Note that pointer gets copied as-is. This will require repair when 
-    // we copy a Feature tree.
-    PlacementRep* clone() const {return new FeaturePlacementRep(*this);}
-
-    std::string toString(const std::string&) const;
-    SIMTK_DOWNCAST(FeaturePlacementRep,PlacementRep);
-private:
-    const Feature* feature;
-    const int      index;
-};
 
 
 /**
@@ -559,6 +704,31 @@ private:
     Real value;
 };
 
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Real placement.
+ */
+class RealFeaturePlacementRep : public RealPlacementRep, public FeatureReference {
+public:
+    RealFeaturePlacementRep(RealPlacement& p, const Feature& f, int index = -1) 
+      : RealPlacementRep(p), FeatureReference(f,index)
+    { }
+    ~RealFeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new RealFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    Real getValue(/*State*/) const;
+
+    SIMTK_DOWNCAST2(RealFeaturePlacementRep,RealPlacementRep,PlacementRep);
+};
 
 /**
  * A concrete PlacementRep whose value is a Real expression. This
@@ -662,6 +832,31 @@ private:
     Vec3 value;
 };
 
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Vec3 placement.
+ */
+class Vec3FeaturePlacementRep : public Vec3PlacementRep, public FeatureReference {
+public:
+    Vec3FeaturePlacementRep(Vec3Placement& p, const Feature& f, int index = -1) 
+      : Vec3PlacementRep(p), FeatureReference(f,index)
+    { }
+    ~Vec3FeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new Vec3FeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    Vec3 getValue(/*State*/) const;
+
+    SIMTK_DOWNCAST2(Vec3FeaturePlacementRep,Vec3PlacementRep,PlacementRep);
+};
 
 /**
  * A concrete PlacementRep whose value is a Vec3 expression. This
@@ -710,9 +905,23 @@ public:
     PlacementType getPlacementType() const { return StationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
+    Placement sub(const Placement& r) const {
+        if (StationPlacement::isInstanceOf(r))
+            return Vec3Placement::minus(getMyStationHandle(), StationPlacement::downcast(r));
+        if (Vec3Placement::isInstanceOf(r))
+            return Vec3Placement::minus(getMyStationHandle(), Vec3Placement::downcast(r));
+
+        SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
+                getPlacementTypeName(getPlacementType()),
+                "-", getPlacementTypeName(r.getRep().getPlacementType()));
+    }
+
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
     SIMTK_DOWNCAST(StationPlacementRep,PlacementRep);
+private:
+    const StationPlacement& getMyStationHandle() const 
+      { return StationPlacement::downcast(getMyHandle()); }
 };
 
 // A concrete StationPlacement in which there are no variables.
@@ -745,6 +954,49 @@ public:
     SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
 private:
     Vec3 loc;
+};
+
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Station placement.
+ */
+class StationFeaturePlacementRep : public StationPlacementRep, public FeatureReference {
+public:
+    StationFeaturePlacementRep(StationPlacement& p, const Feature& f, int index = -1) 
+      : StationPlacementRep(p), FeatureReference(f,index)
+    { }
+    ~StationFeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new StationFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    virtual FramePlacement castToFramePlacement() const {
+        if (!isIndexed() 
+            && Station::isInstanceOf(getReferencedFeature()) 
+            && getReferencedFeature().hasParentFeature()
+            && Frame::isInstanceOf(getReferencedFeature().getParentFeature()))
+        {
+            return FramePlacement(Frame::downcast(getReferencedFeature()
+                                                    .getParentFeature()).getOrientation(),
+                                  Station::downcast(getReferencedFeature()));
+        }
+
+        SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
+                     getReferencedFeature().getFullName(),
+                     getReferencedFeature().getFeatureTypeName(),
+                     "Orientation");
+    }
+
+    Vec3 getMeasureNumbers(/*State*/) const;
+
+    SIMTK_DOWNCAST2(StationFeaturePlacementRep,StationPlacementRep,PlacementRep);
 };
 
 /**
@@ -784,7 +1036,7 @@ public:
 
 class DirectionPlacementRep : public PlacementRep {
 public:
-    DirectionPlacementRep(Placement& p) : PlacementRep(p) { }
+    DirectionPlacementRep(DirectionPlacement& p) : PlacementRep(p) { }
     virtual ~DirectionPlacementRep() { }
 
     PlacementType getPlacementType() const { return DirectionPlacementType; }
@@ -799,7 +1051,7 @@ public:
 // A concrete DirectionPlacement in which there are no variables.
 class DirectionConstantPlacementRep : public DirectionPlacementRep {
 public:
-    DirectionConstantPlacementRep(Placement& p, const Vec3& v)
+    DirectionConstantPlacementRep(DirectionPlacement& p, const Vec3& v)
       : DirectionPlacementRep(p), dir(v) {
         const Real len = dir.norm();
         dir /= len;
@@ -831,6 +1083,32 @@ public:
     SIMTK_DOWNCAST2(DirectionConstantPlacementRep,DirectionPlacementRep,PlacementRep);
 private:
     Vec3 dir;
+};
+
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Direction placement.
+ */
+class DirectionFeaturePlacementRep : public DirectionPlacementRep, public FeatureReference {
+public:
+    DirectionFeaturePlacementRep(DirectionPlacement& p, const Feature& f, int index = -1) 
+      : DirectionPlacementRep(p), FeatureReference(f,index)
+    { }
+    ~DirectionFeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new DirectionFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    Vec3 getMeasureNumbers(/*State*/) const;
+
+    SIMTK_DOWNCAST2(DirectionFeaturePlacementRep,DirectionPlacementRep,PlacementRep);
 };
 
 /**
@@ -869,8 +1147,9 @@ public:
 
 class OrientationPlacementRep : public PlacementRep {
 public:
-    OrientationPlacementRep(Placement& p) : PlacementRep(p) { }
+    OrientationPlacementRep(OrientationPlacement& p) : PlacementRep(p) { }
     virtual ~OrientationPlacementRep() { }
+
 
     PlacementType getPlacementType() const { return OrientationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
@@ -883,7 +1162,7 @@ public:
 // A concrete OrientationPlacement in which there are no variables.
 class OrientationConstantPlacementRep : public OrientationPlacementRep {
 public:
-    OrientationConstantPlacementRep(Placement& p, const Mat33& m)
+    OrientationConstantPlacementRep(OrientationPlacement& p, const Mat33& m)
       : OrientationPlacementRep(p), ori(m) {
         // TODO: check orientation matrix validity
     }
@@ -915,47 +1194,143 @@ private:
 };
 
 /**
- * FramePlacementRep is concrete because it always consists of references
- * to an Orientation Feature and a Station Feature.
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Orientation placement.
  */
+class OrientationFeaturePlacementRep : public OrientationPlacementRep, public FeatureReference {
+public:
+    OrientationFeaturePlacementRep(OrientationPlacement& p, const Feature& f, int index = -1) 
+      : OrientationPlacementRep(p), FeatureReference(f,index)
+    { }
+    ~OrientationFeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new OrientationFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    Mat33 getMeasureNumbers(/*State*/) const;
+
+    SIMTK_DOWNCAST2(OrientationFeaturePlacementRep,OrientationPlacementRep,PlacementRep);
+};
+
+/**
+ * A concrete PlacementRep whose value is a Orientation expression. This
+ * is always Func(List<Placement>). 
+ */
+class OrientationExprPlacementRep : public OrientationPlacementRep, public PlacementExpr {
+public:
+    OrientationExprPlacementRep(OrientationPlacement& p, const OrientationPlacementOp&  f, 
+                                                         const std::vector<const Placement*>& a) 
+      : OrientationPlacementRep(p), PlacementExpr(f,a)
+    { }
+    ~OrientationExprPlacementRep() { }
+
+    PlacementRep*  clone() const {return new OrientationExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
+    bool           isConstant()                          const {return exprIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
+
+    Mat33 getMeasureNumbers(/*State*/) const 
+      { return OrientationPlacementOp::downcast(func).apply(/*State,*/args); }
+
+    SIMTK_DOWNCAST2(OrientationExprPlacementRep,OrientationPlacementRep,PlacementRep);
+};
+
 class FramePlacementRep : public PlacementRep {
 public:
-    FramePlacementRep(FramePlacement& p, const Orientation& o, const Station& s)
-      : PlacementRep(p), orientation(&o), station(&s) { }
-    ~FramePlacementRep() { }
+    FramePlacementRep(FramePlacement& p) : PlacementRep(p) { }
+    virtual ~FramePlacementRep() { }
+
+
+    PlacementType getPlacementType() const { return FramePlacementType; }
+    // clone, toString, findAncestorFeature are still missing
+
+    virtual Mat33 getOrientationMeasureNumbers(/*State*/) const = 0;
+    virtual Vec3  getOriginMeasureNumbers(/*State*/)      const = 0;
+
+    SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
+};
+
+/**
+ * FrameExprPlacementRep an expression with two subexpressions.
+ */
+class FrameExprPlacementRep : public FramePlacementRep {
+public:
+    FrameExprPlacementRep(FramePlacement& p, 
+        const OrientationPlacement& o, const StationPlacement& s) 
+      : FramePlacementRep(p), orientation(o), origin(s) { } 
+    ~FrameExprPlacementRep() { }
+
+    bool isConstant() const 
+      { return orientation.isConstant() && origin.isConstant(); }
 
     bool dependsOn(const Feature& f) const {
-        return orientation->dependsOn(f) || station->dependsOn(f);
+        return orientation.dependsOn(f) || origin.dependsOn(f);
     }
     bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
-
     const Feature* findAncestorFeature(const Feature& root) const;
 
-    PlacementType getPlacementType() const { return FramePlacementType; }
-
-    // Note that pointers are copied as-is. These will need repair if
-    // we're copying a whole Feature tree.
-    PlacementRep* clone() const {return new FramePlacementRep(*this);}
+    PlacementRep* clone() const {return new FrameExprPlacementRep(*this);}
 
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Frame[";
-        s << (orientation ? orientation->getFullName()
-                          : std::string("NULL ORIENTATION FEATURE"));
-        s << ", ";
-        s << (station ? station->getFullName()
-                      : std::string("NULL ORIGIN FEATURE"));
-        s << "]";
+        s << "Frame[" << orientation.toString() << ", " << origin.toString() << "]";
         return s.str();
     }
 
-    SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
+    Mat33 getOrientationMeasureNumbers(/*State*/) const {
+        return OrientationPlacementRep::downcast(orientation.getRep())
+            .getMeasureNumbers(/*State*/);
+    }
+    Vec3  getOriginMeasureNumbers(/*State*/)      const {
+        return StationPlacementRep::downcast(origin.getRep())
+            .getMeasureNumbers(/*State*/);
+    }
+
+    SIMTK_DOWNCAST2(FrameExprPlacementRep,FramePlacementRep,PlacementRep);
 private:
-    const Orientation* orientation;
-    const Station*     station;
+    OrientationPlacement orientation;
+    StationPlacement     origin;
 };
 
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Frame placement.
+ */
+class FrameFeaturePlacementRep : public FramePlacementRep, public FeatureReference {
+public:
+    FrameFeaturePlacementRep(FramePlacement& p, const Feature& f, int index = -1) 
+      : FramePlacementRep(p), FeatureReference(f,index)
+    { }
+    ~FrameFeaturePlacementRep() { }
+    
+    PlacementRep*  clone() const {return new FrameFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
+    bool           isConstant()                          const {return refIsConstant();}
+    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    Mat33 getOrientationMeasureNumbers(/*State*/) const;
+    Vec3  getOriginMeasureNumbers(/*State*/)      const;
+
+    SIMTK_DOWNCAST2(FrameFeaturePlacementRep,FramePlacementRep,PlacementRep);
+};
 
 } // namespace simtk
 

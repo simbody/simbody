@@ -46,7 +46,7 @@ std::string
 FeatureRep::getFullName() const { 
     std::string s;
     if (hasParentFeature())
-        s = getParentFeature().getFullName() + ".";
+        s = getParentFeature().getFullName() + "/";
     return s + getName(); 
 }
 
@@ -84,7 +84,9 @@ void FeatureRep::place(const Placement& p) {
 
     // If possible, create a fixed-up copy of p which is suitable for
     // use as a Placement for this concrete FeatureRep.
-    Placement pTweaked = recastPlacement(p);
+    Placement pTweaked = 
+        p.getRep().getPlacementType() == getRequiredPlacementType()
+        ? p : recastPlacement(p);
     if (!pTweaked.hasRep()) {
         SIMTK_THROW3(Exception::PlacementCantBeUsedForThisFeature,
             PlacementRep::getPlacementTypeName(p.getRep().getPlacementType()),
@@ -148,8 +150,9 @@ FeatureRep::addSubfeatureLike(const Feature& f, const std::string& nm) {
     return newFeature;
 }
 
-// TODO: this should only allow placements involving this feature, its children,
-// grandchildren, etc.
+// Note that we can only allow placements involving this feature, its children,
+// grandchildren, etc. -- no external references. Otherwise someone further
+// up the tree should own the new placement.
 Placement& 
 FeatureRep::addPlacementLike(const Placement& p) {
     assert(p.hasRep());
@@ -193,9 +196,7 @@ FeatureRep::isFeatureInFeatureTree(const Feature& oldRoot, const Feature& f,
     return true;
 }
 
-// Is Placement p owned by a Feature in the tree rooted at oldRoot? If so, 
-// optionally return the series of indices required to get to this Placement's
-// owner Feature from the root.
+// Is Placement p owned by a Feature in the tree rooted at oldRoot?
 /*static*/ bool 
 FeatureRep::isPlacementInFeatureTree(const Feature& oldRoot, const Placement& p)
 {
@@ -219,7 +220,7 @@ FeatureRep::findCorrespondingFeature
     // the corresponding Feature (in reverse order).
     const Feature* newTreeRef = &newRoot;
     for (size_t i=trace.size(); i >=1; --i)
-        newTreeRef = &newTreeRef->rep->getSubfeature(trace[i-1]);
+        newTreeRef = &newTreeRef->getRep().getSubfeature(trace[i-1]);
     return newTreeRef;
 }
 
@@ -286,14 +287,14 @@ void FeatureRep::reparentMyChildren() {
 
 // We have just created at newRoot a copy of the tree rooted at oldRoot, and the
 // current Feature (for which this is the Rep) is a node in the newRoot tree
-// (with correct myHandle). However, the 'parent' and 'placement' pointers 
+// (with correct myHandle). However, the 'placement' pointers 
 // still retain the values they had in the oldRoot tree; they must be 
 // changed to point to the corresponding entities in the newRoot tree.
 // If these pointers point outside the oldRoot tree, however, we'll just
 // set them to 0 in the newRoot copy.
 void FeatureRep::fixPlacements(const Feature& oldRoot, const Feature& newRoot) {
     for (size_t i=0; i < (size_t)getNSubfeatures(); ++i)
-        subfeatures[i].updRep().fixPlacements(oldRoot, newRoot);
+        subfeatures[i].updRep().fixPlacements(oldRoot, newRoot);    // recurse
 
     for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
         placementExpressions[i].updRep().repairFeatureReferences(oldRoot,newRoot);
@@ -312,10 +313,10 @@ FeatureRep::findCorrespondingPlacement
     if (!p.hasOwner()) return 0;
     const Feature* corrOwner = findCorrespondingFeature(oldRoot,p.getOwner(),newRoot);
     if (!corrOwner) return 0;
-    assert(corrOwner->rep);
+    assert(corrOwner->hasRep());
 
     const Placement* newTreeRef = 
-        &corrOwner->rep->getPlacementExpression(p.getIndexInOwner());
+        &corrOwner->getRep().getPlacementExpression(p.getIndexInOwner());
     assert(newTreeRef);
     assert(&newTreeRef->getOwner() == corrOwner);
     assert(newTreeRef->getIndexInOwner() == p.getIndexInOwner());

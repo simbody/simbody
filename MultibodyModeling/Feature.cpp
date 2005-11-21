@@ -85,7 +85,6 @@ const Placement& Feature::getPlacement() const {
     return getRep().getPlacement();
 }
 
-
 String Feature::toString(const String& linePrefix) const {
     std::stringstream s;
     s << "Feature ";
@@ -421,6 +420,33 @@ Station::downcast(Feature& f) {
     return reinterpret_cast<Station&>(f);
 }
 
+    // DIRECTION MEASURE //
+DirectionMeasure::DirectionMeasure(const String& nm) : Feature() {
+    rep = new DirectionMeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
+DirectionMeasure::DirectionMeasure(const DirectionMeasure& src) : Feature(src) { }
+DirectionMeasure& DirectionMeasure::operator=(const DirectionMeasure& src)
+  { Feature::operator=(src); return *this; }
+DirectionMeasure::~DirectionMeasure() { }
+
+/*static*/ bool             
+DirectionMeasure::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return DirectionMeasureRep::isA(f.getRep());
+}
+/*static*/ const DirectionMeasure& 
+DirectionMeasure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const DirectionMeasure&>(f);
+}
+
+/*static*/ DirectionMeasure&       
+DirectionMeasure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<DirectionMeasure&>(f);
+}
+
     // DIRECTION //
 Direction::Direction(const String& nm) : Feature() {
     rep = new DirectionRep(*this, std::string(nm));
@@ -446,6 +472,33 @@ Direction::downcast(const Feature& f) {
 Direction::downcast(Feature& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Direction&>(f);
+}
+
+    // ORIENTATION MEASURE //
+OrientationMeasure::OrientationMeasure(const String& nm) : Feature() {
+    rep = new OrientationMeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
+OrientationMeasure::OrientationMeasure(const OrientationMeasure& src) : Feature(src) { }
+OrientationMeasure& OrientationMeasure::operator=(const OrientationMeasure& src)
+  { Feature::operator=(src); return *this; }
+OrientationMeasure::~OrientationMeasure() { }
+
+/*static*/ bool             
+OrientationMeasure::isInstanceOf(const Feature& f) {
+    if (!f.hasRep()) return false;
+    return OrientationMeasureRep::isA(f.getRep());
+}
+/*static*/ const OrientationMeasure& 
+OrientationMeasure::downcast(const Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const OrientationMeasure&>(f);
+}
+
+/*static*/ OrientationMeasure&       
+OrientationMeasure::downcast(Feature& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<OrientationMeasure&>(f);
 }
 
     // ORIENTATION //
