@@ -348,7 +348,7 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case NoneYet: p="???<Frame>"; break;
+            case NoneYet: p="XXX<Frame>"; break;
             default:      p="UNKNOWN DirectionOp";
         };
         return std::string(p);
@@ -373,7 +373,7 @@ public:
             args[i] = *a[i];
         assert(f.checkArgs(args));
     }
-    ~PlacementExpr() { }
+    // default copy, assignment, destructor
 
     bool exprIsConstant() const {
         for (size_t i=0; i < args.size(); ++i)
@@ -432,7 +432,7 @@ protected:
     std::string    refToString(const std::string& linePrefix) const;
 
     // Return the required placement type for the referenced feature (after indexing).
-    // That isn't necessary the same as the type of the enclosing Placement, which
+    // That isn't necessarily the same as the type of the enclosing Placement, which
     // may be performing some kind of transformation (Station to Vec3, say.)
     PlacementType refGetPlacementType() const;
 
@@ -541,77 +541,11 @@ public:
     // method on a constant Placement (you can check first with isConstant());
     virtual const Feature* findAncestorFeature(const Feature& root) const = 0;
 
-    static const char* getPlacementTypeName(PlacementType t) {
-        switch(t) {
-        case InvalidPlacementType:      return "INVALID";
-        case VoidPlacementType:         return "void";
-        case BoolPlacementType:         return "bool";
-        case IntPlacementType:          return "int";
-        case RealPlacementType:         return "Real";
-        case StationPlacementType:      return "Station";
-        case DirectionPlacementType:    return "Direction";
-        case OrientationPlacementType:  return "Orientation";
-        case FramePlacementType:        return "Frame";
-        case Vec2PlacementType:         return "Vec2";
-        case Vec3PlacementType:         return "Vec3";
-        case Mat33PlacementType:        return "Mat33";
-        default: return "ILLEGAL PLACEMENT TYPE";
-        };
-    }
-
-    static int getNIndicesAllowed(PlacementType t) {
-        switch(t) {
-        case VoidPlacementType:         return 0; // can't use at all
-        case BoolPlacementType:
-        case IntPlacementType:
-        case RealPlacementType:         return 1; // no index or index==0 OK
-
-        case Vec2PlacementType:         return 2; // 2 Reals
-
-        case Vec3PlacementType:
-        case StationPlacementType:
-        case DirectionPlacementType:    return 3; // 3 Reals
-
-        case Mat33PlacementType:        return 3; // 3 Vec3's (columns)
-        case OrientationPlacementType:  return 3; // 3 Directions
-
-        case FramePlacementType:        return 2; // Orientation, Station
-
-        default: 
-            assert(false);
-        };
-        //NOTREACHED
-        return -1;
-    }
+    static const char* getPlacementTypeName(PlacementType t);
+    static int getNIndicesAllowed(PlacementType t);
 
     // If a PlacementType is indexed, what is the resulting PlacementType?
-    static PlacementType getIndexedPlacementType(PlacementType t, int i) {
-        if (i == -1) 
-            return t;   // -1 means not indexed, i.e., the whole thing
-
-        assert(0 <= i && i <= getNIndicesAllowed(t));
-        switch(t) {
-        case StationPlacementType:
-        case DirectionPlacementType: 
-        case Vec2PlacementType:
-        case Vec3PlacementType:         
-            return RealPlacementType;  
-
-        case Mat33PlacementType:
-            return Vec3PlacementType;
-
-        case OrientationPlacementType: 
-            return DirectionPlacementType;
-
-        case FramePlacementType:
-            return i==0 ? OrientationPlacementType : StationPlacementType;
-
-        default: assert(false);
-            //NOTREACHED
-        };
-        //NOTREACHED
-        return InvalidPlacementType;
-    }
+    static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
 private:
     Placement*      myHandle;    // the Placement whose rep this is
@@ -706,7 +640,8 @@ private:
 
 /**
  * A concrete PlacementRep whose value is the same as that of a specified
- * Feature which uses a Real placement.
+ * Feature which uses a Real placement, or whose placement is Real after
+ * indexing.
  */
 class RealFeaturePlacementRep : public RealPlacementRep, public FeatureReference {
 public:

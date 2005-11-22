@@ -123,7 +123,9 @@ try {
     tube["center"].place(lower.getOrigin());
 
     //TODO: this should require an explicit normalize()
-    tube["axis"]  .place(lower["ballAttachPt"] - lower.getOrigin());
+    tube["axis"].place(lower["ballAttachPt"] - lower.getOrigin());
+
+    tube["halfLength"].place(lower["halfHeight"]);
 
      cout << "L=" << lower; 
 
@@ -141,8 +143,8 @@ try {
     // Create a single parameter of the multibody which can be used
     // to control the two halfHeights together.
     mbs.addRealParameter("halfHeight");
-    leftLeg ["tube"]["halfLength"].place(mbs["halfHeight"]);
-    rightLeg["tube"]["halfLength"].place(mbs["halfHeight"]);
+    leftLeg ["halfHeight"].place(mbs["halfHeight"]);
+    rightLeg["halfHeight"].place(mbs["halfHeight"]);
 
     mbs.addJoint(PinJoint, "base2ground", 
                  mbs.getGroundFrame(),                      //reference frame

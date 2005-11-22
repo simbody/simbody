@@ -152,6 +152,83 @@ PlacementType FeatureReference::refGetPlacementType() const {
 
     // PLACEMENT REP //
 
+/*static*/ const char* 
+PlacementRep::getPlacementTypeName(PlacementType t) {
+    switch(t) {
+    case InvalidPlacementType:      return "INVALID";
+    case VoidPlacementType:         return "void";
+    case BoolPlacementType:         return "bool";
+    case IntPlacementType:          return "int";
+    case RealPlacementType:         return "Real";
+    case StationPlacementType:      return "Station";
+    case DirectionPlacementType:    return "Direction";
+    case OrientationPlacementType:  return "Orientation";
+    case FramePlacementType:        return "Frame";
+    case Vec2PlacementType:         return "Vec2";
+    case Vec3PlacementType:         return "Vec3";
+    case Mat33PlacementType:        return "Mat33";
+    default: return "ILLEGAL PLACEMENT TYPE";
+    };
+}
+
+/*static*/ int 
+PlacementRep::getNIndicesAllowed(PlacementType t) {
+    switch(t) {
+    case VoidPlacementType:         return 0; // can't use at all
+
+    case BoolPlacementType:
+    case IntPlacementType:
+    case RealPlacementType:         return 1; // no index or index==0 OK
+
+    case Vec2PlacementType:         return 2; // 2 Reals
+
+    case Vec3PlacementType:
+    case StationPlacementType:
+    case DirectionPlacementType:    return 3; // 3 Reals
+
+    case Mat33PlacementType:        return 3; // 3 Vec3's (columns)
+    case OrientationPlacementType:  return 3; // 3 Directions
+
+    case FramePlacementType:        return 2; // Orientation, Station
+
+    default: 
+        assert(false);
+    };
+    //NOTREACHED
+    return -1;
+}
+
+// If a PlacementType is indexed with this index, 
+// what is the resulting PlacementType?
+/*static*/ PlacementType 
+PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
+    if (i == -1) 
+        return t;   // -1 means not indexed, i.e., the whole thing
+
+    assert(0 <= i && i <= getNIndicesAllowed(t));
+    switch(t) {
+    case StationPlacementType:
+    case DirectionPlacementType: 
+    case Vec2PlacementType:
+    case Vec3PlacementType:         
+        return RealPlacementType;  
+
+    case Mat33PlacementType:
+        return Vec3PlacementType;
+
+    case OrientationPlacementType: 
+        return DirectionPlacementType;
+
+    case FramePlacementType:
+        return i==0 ? OrientationPlacementType : StationPlacementType;
+
+    default: assert(false);
+        //NOTREACHED
+    };
+    //NOTREACHED
+    return InvalidPlacementType;
+}
+
     // REAL PLACEMENT REP //
 
 Placement
@@ -211,22 +288,17 @@ bool
 RealOps::checkArgs(const std::vector<Placement>& args) const {
     switch (op) {
     case Negate: 
-        return args.size()==1
-            && args[0].getRep().getPlacementType()==RealPlacementType;
     case Length: 
-        return args.size()==1
-            && args[0].getRep().getPlacementType()==Vec3PlacementType;    
+        return args.size()==1 && RealPlacement::isInstanceOf(args[0]);    
     case Plus:
     case Minus:
     case Times:
     case Divide:
-        return args.size() == 2 
-                && args[0].getRep().getPlacementType()==RealPlacementType
-                && args[1].getRep().getPlacementType()==RealPlacementType;
+        return args.size()==2 && RealPlacement::isInstanceOf(args[0])
+                              && RealPlacement::isInstanceOf(args[1]);
     case Distance:
-        return args.size() == 2 
-                && args[0].getRep().getPlacementType()==StationPlacementType
-                && args[1].getRep().getPlacementType()==StationPlacementType;    
+        return args.size()==2 && StationPlacement::isInstanceOf(args[0])
+                              && StationPlacement::isInstanceOf(args[1]);    
     default:
         assert(false);
     }
@@ -275,26 +347,23 @@ Vec3 Vec3FeaturePlacementRep::getValue(/*State*/) const {
 bool Vec3Ops::checkArgs(const std::vector<Placement>& args) const {
     switch (op) {
     case Scale:
-        return args.size() == 2
-            && args[0].getRep().getPlacementType()==RealPlacementType
-            && args[1].getRep().getPlacementType()==Vec3PlacementType;
+        return args.size()==2 && RealPlacement::isInstanceOf(args[0])
+                              && Vec3Placement::isInstanceOf(args[1]);
     case Cast:
-        return args.size() == 1
-            && (   args[0].getRep().getPlacementType()==DirectionPlacementType
-                || args[0].getRep().getPlacementType()==StationPlacementType);
+        return args.size()==1 && (   DirectionPlacement::isInstanceOf(args[0])
+                                  || StationPlacement::isInstanceOf(args[0]));
     // v= v+v, but s+s not allowed
     case Plus:
-        return args.size() == 2
-            && args[0].getRep().getPlacementType()==Vec3PlacementType
-            && args[1].getRep().getPlacementType()==Vec3PlacementType;
+        return args.size()==2 && Vec3Placement::isInstanceOf(args[0])
+                              && Vec3Placement::isInstanceOf(args[1]);
     
-    // v= v-v, s-s OK
+    // v=v-v, v=s-s OK
     case Minus:
-        return args.size() == 2
-            && (  (   args[0].getRep().getPlacementType()==Vec3PlacementType
-                   && args[1].getRep().getPlacementType()==Vec3PlacementType)
-               || (   args[0].getRep().getPlacementType()==StationPlacementType
-                   && args[1].getRep().getPlacementType()==StationPlacementType)
+        return args.size()==2
+            && (  (   Vec3Placement::isInstanceOf(args[0])
+                   && Vec3Placement::isInstanceOf(args[1]))
+               || (   StationPlacement::isInstanceOf(args[0])
+                   && StationPlacement::isInstanceOf(args[1]))
                );
     default: 
         assert(false);
@@ -362,13 +431,13 @@ StationOps::checkArgs(const std::vector<Placement>& args) const {
 
     switch (op) {
     case Cast:
-        return args.size() == 1
-            && args[0].getRep().getPlacementType()==Vec3PlacementType;
+        return args.size()==1 && Vec3Placement::isInstanceOf(args[0]);
+
+    // s=s+v, s=s-v, BUT v=s-s and s+s is not meaningful without cast
     case Plus:
     case Minus:
-        return args.size() == 2
-            && args[0].getRep().getPlacementType()==StationPlacementType
-            && args[1].getRep().getPlacementType()==Vec3PlacementType;
+        return args.size()==2 && StationPlacement::isInstanceOf(args[0])
+                              && Vec3Placement::isInstanceOf(args[1]);
 
     default: 
         assert(false);
@@ -425,13 +494,16 @@ Vec3 DirectionFeaturePlacementRep::getMeasureNumbers(/*State*/) const {
 
 bool DirectionOps::checkArgs(const std::vector<Placement>& args) const {
     switch (op) {
+
     case Normalize:
-        return args.size() == 1
-            && (   args[0].getRep().getPlacementType()==Vec3PlacementType
-                || args[1].getRep().getPlacementType()==StationPlacementType);
+        return args.size()==1 && (   Vec3Placement::isInstanceOf(args[0])
+                                  || StationPlacement::isInstanceOf(args[0]));
+
     default: 
         assert(false);
+        //NOTREACHED
     }
+    //NOTREACHED
     return false;
 }
 

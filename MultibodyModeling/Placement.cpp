@@ -119,10 +119,10 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 
 
 // unary
-Placement operator+(const Placement& f)          {return f;}
-Placement operator-(const Placement& f)          {return f.getRep().negate();}
-RealPlacement length(const Placement& f)         {return f.getRep().length();}
-DirectionPlacement normalize(const Placement& f) {return f.getRep().normalize();}
+Placement          operator+(const Placement& p) {return p;}
+Placement          operator-(const Placement& p) {return p.getRep().negate();}
+RealPlacement      length   (const Placement& p) {return p.getRep().length();}
+DirectionPlacement normalize(const Placement& p) {return p.getRep().normalize();}
 
 // binary
 Placement operator+(const Placement& l, const Placement& r) {return l.getRep().add(r);} 
