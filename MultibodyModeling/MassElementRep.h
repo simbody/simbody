@@ -87,11 +87,16 @@ public:
     FeatureRep* clone() const { return new PointMassElementRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new StationFeaturePlacementRep(reinterpret_cast<StationPlacement&>(p), getMyHandle());
+            prep = new StationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED

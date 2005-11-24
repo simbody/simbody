@@ -320,8 +320,8 @@ public:
             //NOTREACHED
         }
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(p);
-        p.setRep(prep);
+        prep->setMyHandle(p); p.setRep(prep);
+        return prep;
     }
 
     Placement recastPlacement(const Placement& p) const {
@@ -330,8 +330,8 @@ public:
 
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle);
-        handle.setRep(prep);
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
@@ -371,8 +371,8 @@ public:
 
     PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
         PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle);
-        handle.setRep(prep);
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(Vec3ParameterRep,FeatureRep);
@@ -437,8 +437,8 @@ public:
             //NOTREACHED
         }
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(p);
-        p.setRep(prep);
+        prep->setMyHandle(p); p.setRep(prep);
+        return prep;
     }
 
     Placement recastPlacement(const Placement& p) const {
@@ -448,6 +448,7 @@ public:
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
@@ -627,6 +628,7 @@ public:
     PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
         PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(DirectionMeasureRep,FeatureRep);

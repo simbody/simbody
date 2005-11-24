@@ -675,12 +675,12 @@ public:
     Placement length() const;
     Placement normalize() const;
 
-    Placement add  (const Placement& r) const;
-    Placement sub  (const Placement& r) const;
-    Placement mul  (const Placement& r) const;
-    Placement dvd  (const Placement& r) const;
-    Placement dotProduct  (const Placement& r) const;
-    Placement crossProduct(const Placement& r) const;
+    Placement add  (const Placement& rhs) const;
+    Placement sub  (const Placement& rhs) const;
+    Placement mul  (const Placement& rhs) const;
+    Placement dvd  (const Placement& rhs) const;
+    Placement dotProduct  (const Placement& rhs) const;
+    Placement crossProduct(const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing

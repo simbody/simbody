@@ -602,6 +602,7 @@ Placement Vec3PlacementRep::negate() const {
     Vec3PlacementRep* result =
         isConstant() ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(-getValue())
                      : (Vec3PlacementRep*)Vec3ExprPlacementRep::negateOp(getMyHandle());
+    return Placement(result);
 }
 
 // result = length(vec3) (result is always real)
@@ -724,7 +725,7 @@ Placement Vec3PlacementRep::crossProduct(const Placement& r) const {
     // VEC3 FEATURE PLACEMENT REP //
 Vec3 Vec3FeaturePlacementRep::getValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Vec3 value = Vec3(NTraits<Real>::getNaN());
+    Vec3 value;
     if (!isIndexed())
         value = Vec3PlacementRep::downcast(p).getValue(/*State*/);
     else if (OrientationPlacementRep::isA(p))
