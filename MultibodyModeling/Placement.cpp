@@ -42,6 +42,12 @@ namespace simtk {
 Placement::Placement(const Placement& src) : rep(0) { 
     if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
 }
+
+Placement::Placement(PlacementRep* r) : rep(r) {
+    assert(r && !r->hasHandle());
+    r->setMyHandle(*this);
+}
+
 Placement& Placement::operator=(const Placement& src) {
     if (this != &src) {
         delete rep; rep=0;
@@ -62,10 +68,12 @@ Placement::Placement(const Feature& f, int i) : rep(0) {
     rep = f.getRep().createFeatureReference(*this, i);
 }
 Placement::Placement(const Real& r) : rep(0) {
-    rep = new RealConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
+    rep = new RealConstantPlacementRep(r);
+    rep->setMyHandle(*this);
 }
 Placement::Placement(const Vec3& v) : rep(0) {
-    rep = new Vec3ConstantPlacementRep(reinterpret_cast<Vec3Placement&>(*this), v);
+    rep = new Vec3ConstantPlacementRep(v);
+    rep->setMyHandle(*this);
 }
 //Placement::Placement(const Mat33& m) : rep(0) {
 //    rep = new Mat33ConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
@@ -119,10 +127,10 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 
 
 // unary
-Placement          operator+(const Placement& p) {return p;}
-Placement          operator-(const Placement& p) {return p.getRep().negate();}
-RealPlacement      length   (const Placement& p) {return p.getRep().length();}
-DirectionPlacement normalize(const Placement& p) {return p.getRep().normalize();}
+Placement operator+(const Placement& p) {return p;}
+Placement operator-(const Placement& p) {return p.getRep().negate();}
+Placement length   (const Placement& p) {return p.getRep().length();}
+Placement normalize(const Placement& p) {return p.getRep().normalize();}
 
 // binary
 Placement operator+(const Placement& l, const Placement& r) {return l.getRep().add(r);} 
@@ -133,7 +141,8 @@ Placement operator/(const Placement& l, const Placement& r) {return l.getRep().d
     // REAL PLACEMENT //
 
 RealPlacement::RealPlacement(const Real& r) {
-    rep = new RealConstantPlacementRep(*this,r);
+    rep = new RealConstantPlacementRep(r);
+    rep->setMyHandle(*this);
 }
 
 RealPlacement::RealPlacement(const RealParameter& rp) {
@@ -142,37 +151,6 @@ RealPlacement::RealPlacement(const RealParameter& rp) {
 
 RealPlacement::RealPlacement(const RealMeasure& rm) {
     rep = rm.getRep().useFeatureAsRealPlacement(*this);
-}
-
-/*static*/ RealPlacement
-RealPlacement::negate(const RealPlacement& a) {
-    RealPlacement x; // null rep
-    RealExprPlacementRep::unop(x,RealOps::Negate,a);
-    return x;
-}
-/*static*/ RealPlacement
-RealPlacement::plus(const RealPlacement& l, const RealPlacement& r) {
-    RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealOps::Plus,l,r);
-    return x;
-}
-/*static*/ RealPlacement
-RealPlacement::minus(const RealPlacement& l, const RealPlacement& r) {
-    RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealOps::Minus,l,r);
-    return x;
-}
-/*static*/ RealPlacement
-RealPlacement::times(const RealPlacement& l, const RealPlacement& r) {
-    RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealOps::Times,l,r);
-    return x;
-}
-/*static*/ RealPlacement
-RealPlacement::divide(const RealPlacement& l, const RealPlacement& r) {
-    RealPlacement x; // null rep
-    RealExprPlacementRep::binop(x,RealOps::Divide,l,r);
-    return x;
 }
 
 /*static*/ bool             
@@ -194,7 +172,8 @@ RealPlacement::downcast(Placement& p) {
 
     // VEC3 PLACEMENT //
 Vec3Placement::Vec3Placement(const Vec3& r) {
-    rep = new Vec3ConstantPlacementRep(*this,r);
+    rep = new Vec3ConstantPlacementRep(r);
+    rep->setMyHandle(*this);
 }
 
 Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
@@ -203,32 +182,6 @@ Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
 
 Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
     rep = rm.getRep().useFeatureAsVec3Placement(*this);
-}
-
-/*static*/ Vec3Placement
-Vec3Placement::plus(const Placement& l, const Placement& r) {
-    Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::plus(x,l,r);
-    return x;
-}
-/*static*/ Vec3Placement
-Vec3Placement::minus(const Placement& l, const Placement& r) {
-    Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::minus(x,l,r);
-    return x;
-}
-/*static*/ Vec3Placement
-Vec3Placement::scale(const Placement& s, const Placement& v) {
-    Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::scale(x,s,v);
-    return x;
-}
-
-/*static*/ Vec3Placement
-Vec3Placement::cast(const Placement& v) {
-    Vec3Placement x; // null rep
-    Vec3ExprPlacementRep::cast(x,v);
-    return x;
 }
 
 /*static*/ bool             
@@ -260,19 +213,14 @@ StationPlacement::StationPlacement(const StationParameter& s) {
     rep = s.getRep().useFeatureAsStationPlacement(*this);
 }
 StationPlacement::StationPlacement(const Vec3& v) {
-    rep = new StationConstantPlacementRep(*this,v);
+    rep = new StationConstantPlacementRep(v);
+    rep->setMyHandle(*this);
 }
 StationPlacement::StationPlacement(const Frame& f) {
     rep = f.getOrigin().getRep().useFeatureAsStationPlacement(*this);
 }
 StationPlacement::StationPlacement(const Feature& f) {
     rep = f.getRep().useFeatureAsStationPlacement(*this);
-}
-/*static*/ StationPlacement
-StationPlacement::cast(const Vec3Placement& v) {
-    StationPlacement x; // null rep
-    StationExprPlacementRep::cast(x,v);
-    return x;
 }
 
 
@@ -301,7 +249,8 @@ DirectionPlacement::DirectionPlacement(const DirectionMeasure& d) {
     rep = d.getRep().useFeatureAsDirectionPlacement(*this);
 }
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
-    rep = new DirectionConstantPlacementRep(*this,v);
+    rep = new DirectionConstantPlacementRep(v);
+    rep->setMyHandle(*this);
 }
 DirectionPlacement::DirectionPlacement(const Feature& f) {
     rep = f.getRep().useFeatureAsDirectionPlacement(*this);
@@ -311,20 +260,6 @@ DirectionPlacement::DirectionPlacement(const Orientation& o, int i) {
 }
 DirectionPlacement::DirectionPlacement(const Frame& f, int i) {
     rep = f.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
-}
-
-/*static*/ DirectionPlacement
-DirectionPlacement::normalize(const Vec3Placement& v) {
-    DirectionPlacement x; // null rep
-    DirectionExprPlacementRep::normalize(x,v);
-    return x;
-}
-
-/*static*/ DirectionPlacement
-DirectionPlacement::normalize(const StationPlacement& v) {
-    DirectionPlacement x; // null rep
-    DirectionExprPlacementRep::normalize(x,v);
-    return x;
 }
 
 /*static*/ bool             
@@ -353,7 +288,8 @@ OrientationPlacement::OrientationPlacement(const OrientationMeasure& om) {
     rep = om.getRep().useFeatureAsOrientationPlacement(*this);
 }
 OrientationPlacement::OrientationPlacement(const Mat33& m) {
-    rep = new OrientationConstantPlacementRep(*this,m);
+    rep = new OrientationConstantPlacementRep(m);
+    rep->setMyHandle(*this);
 }
 OrientationPlacement::OrientationPlacement(const Frame& f) {
     rep = f.getOrientation().getRep().useFeatureAsOrientationPlacement(*this);
@@ -380,7 +316,8 @@ OrientationPlacement::downcast(Placement& p) {
 
     // FRAME PLACEMENT //
 FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
-    rep = new FrameExprPlacementRep(*this,o,s);
+    rep = new FrameExprPlacementRep(o,s);
+    rep->setMyHandle(*this);
 }
 
 FramePlacement::FramePlacement(const Frame& f) {

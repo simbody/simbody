@@ -319,7 +319,9 @@ public:
                 getFullName(), getFeatureTypeName(), i);
             //NOTREACHED
         }
-        return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p), getMyHandle());
+        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(p);
+        p.setRep(prep);
     }
 
     Placement recastPlacement(const Placement& p) const {
@@ -327,7 +329,9 @@ public:
     }
 
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
-        return new RealFeaturePlacementRep(handle, getMyHandle());
+        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle);
+        handle.setRep(prep);
     }
 
     SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
@@ -343,12 +347,18 @@ public:
     std::string getFeatureTypeName() const { return "Vec3Parameter"; }
     PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
     FeatureRep* clone() const { return new Vec3ParameterRep(*this); }
-    PlacementRep* createFeatureReference(Placement& p, int i) const { 
+
+    PlacementRep* createFeatureReference(Placement& p, int i) const {
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new Vec3FeaturePlacementRep(reinterpret_cast<Vec3Placement&>(p), getMyHandle());
+            prep = new Vec3FeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -360,7 +370,9 @@ public:
     }
 
     PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
-        return new Vec3FeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle);
+        handle.setRep(prep);
     }
 
     SIMTK_DOWNCAST(Vec3ParameterRep,FeatureRep);
@@ -378,11 +390,16 @@ public:
     FeatureRep* clone() const { return new StationParameterRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new StationFeaturePlacementRep(reinterpret_cast<StationPlacement&>(p), getMyHandle());
+            prep = new StationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -394,7 +411,9 @@ public:
     }
 
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        return new StationFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(StationParameterRep,FeatureRep);
@@ -417,7 +436,9 @@ public:
                 getFullName(), getFeatureTypeName(), i);
             //NOTREACHED
         }
-        return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p), getMyHandle());
+        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(p);
+        p.setRep(prep);
     }
 
     Placement recastPlacement(const Placement& p) const {
@@ -425,7 +446,8 @@ public:
     }
 
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
-        return new RealFeaturePlacementRep(handle, getMyHandle());
+        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
     }
 
     SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
@@ -443,11 +465,17 @@ public:
     FeatureRep* clone() const { return new Vec3MeasureRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep = 0;
         if (i == -1) 
-            return new Vec3FeaturePlacementRep(reinterpret_cast<Vec3Placement&>(p), getMyHandle());
+            prep = new Vec3FeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -459,7 +487,9 @@ public:
     }
 
     PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
-        return new Vec3FeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(Vec3MeasureRep,FeatureRep);
@@ -477,11 +507,17 @@ public:
     FeatureRep* clone() const { return new StationMeasureRep(*this); }
  
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep = 0;
         if (i == -1) 
-            return new StationFeaturePlacementRep(reinterpret_cast<StationPlacement&>(p), getMyHandle());
+            prep = new StationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -493,7 +529,9 @@ public:
     }
 
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        return new StationFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(StationMeasureRep,FeatureRep);
@@ -511,11 +549,17 @@ public:
     FeatureRep* clone() const { return new StationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep = 0;
         if (i == -1) 
-            return new StationFeaturePlacementRep(reinterpret_cast<StationPlacement&>(p), getMyHandle());
+            prep = new StationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -527,7 +571,9 @@ public:
     }
 
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        return new StationFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
@@ -537,8 +583,10 @@ public:
             //NOTREACHED
         }
         const Frame& parentFrame = Frame::downcast(getParentFeature());
-        return new FrameExprPlacementRep(handle, parentFrame.getOrientation(), 
-                                         Station::downcast(getMyHandle()));
+        PlacementRep* prep = new FrameExprPlacementRep(parentFrame.getOrientation(), 
+                                                       Station::downcast(getMyHandle()));
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(StationRep,FeatureRep);
@@ -555,11 +603,17 @@ public:
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     FeatureRep* clone() const { return new DirectionMeasureRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep = 0;
         if (i == -1) 
-            return new DirectionFeaturePlacementRep(reinterpret_cast<DirectionPlacement&>(p), getMyHandle());
+            prep = new DirectionFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -571,7 +625,8 @@ public:
     }
 
     PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
-        return new DirectionFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
     }
 
     SIMTK_DOWNCAST(DirectionMeasureRep,FeatureRep);
@@ -588,11 +643,17 @@ public:
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     FeatureRep* clone() const { return new DirectionRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new DirectionFeaturePlacementRep(reinterpret_cast<DirectionPlacement&>(p), getMyHandle());
+            prep = new DirectionFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new RealFeaturePlacementRep(reinterpret_cast<RealPlacement&>(p),
-                                               getMyHandle(), i);
+            prep = new RealFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -604,7 +665,9 @@ public:
     }
 
     PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
-        return new DirectionFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(DirectionRep,FeatureRep);
@@ -622,11 +685,17 @@ public:
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     FeatureRep* clone() const { return new OrientationMeasureRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new OrientationFeaturePlacementRep(reinterpret_cast<OrientationPlacement&>(p), getMyHandle());
+            prep = new OrientationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new DirectionFeaturePlacementRep(reinterpret_cast<DirectionPlacement&>(p),
-                                                    getMyHandle(), i);
+            prep = new DirectionFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -638,7 +707,9 @@ public:
     }
 
     PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        return new OrientationFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
 
     SIMTK_DOWNCAST(OrientationMeasureRep,FeatureRep);
@@ -657,12 +728,16 @@ public:
     FeatureRep*   clone() const { return new OrientationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new OrientationFeaturePlacementRep(reinterpret_cast<OrientationPlacement&>(p), 
-                                                      getMyHandle());
+            prep = new OrientationFeaturePlacementRep(getMyHandle());
         else if (0<=i && i<3)
-            return new DirectionFeaturePlacementRep(reinterpret_cast<DirectionPlacement&>(p),
-                                                    getMyHandle(), i);
+            prep = new DirectionFeaturePlacementRep(getMyHandle(), i);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -674,7 +749,9 @@ public:
     }
 
     PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        return new OrientationFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
         if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
@@ -683,8 +760,10 @@ public:
             //NOTREACHED
         }
         const Frame& parentFrame = Frame::downcast(getParentFeature());
-        return new FrameExprPlacementRep(handle, Orientation::downcast(getMyHandle()),
-                                         parentFrame.getOrigin());
+        PlacementRep* prep = new FrameExprPlacementRep(Orientation::downcast(getMyHandle()),
+                                                       parentFrame.getOrigin());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
     const Direction& getAxis(int i) const
       { assert(0<=i&&i<=2); return Direction::downcast(getSubfeature(axisIndices[i])); }
@@ -727,15 +806,19 @@ public:
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
+        PlacementRep* prep=0;
         if (i == -1) 
-            return new FrameFeaturePlacementRep(reinterpret_cast<FramePlacement&>(p), 
-                                                getMyHandle());
+            prep = new FrameFeaturePlacementRep(getMyHandle());
         else if (i == 0)
-            return new OrientationFeaturePlacementRep(reinterpret_cast<OrientationPlacement&>(p),
-                                                      getMyHandle(), 0);
+            prep = new OrientationFeaturePlacementRep(getMyHandle(), 0);
         else if (i == 1)
-            return new StationFeaturePlacementRep(reinterpret_cast<StationPlacement&>(p),
-                                                  getMyHandle(), 1);
+            prep = new StationFeaturePlacementRep(getMyHandle(), 1);
+
+        if (prep) {
+            prep->setMyHandle(p); p.setRep(prep);
+            return prep;
+        }
+
         SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
@@ -747,13 +830,19 @@ public:
     }
 
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        return new FrameFeaturePlacementRep(handle,getMyHandle());
+        PlacementRep* prep = new FrameFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
     PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        return new OrientationFeaturePlacementRep(handle,getOrientation());
+        PlacementRep* prep = new OrientationFeaturePlacementRep(getOrientation());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        return new StationFeaturePlacementRep(handle,getOrigin());
+        PlacementRep* prep = new StationFeaturePlacementRep(getOrigin());
+        prep->setMyHandle(handle); handle.setRep(prep);
+        return prep;
     }
     const Orientation& getOrientation() const {return Orientation::downcast(getSubfeature(RIndex));}
     const Station&     getOrigin()      const {return Station::downcast(getSubfeature(OIndex)); }

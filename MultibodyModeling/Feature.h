@@ -190,8 +190,8 @@ std::ostream& operator<<(std::ostream& o, const Feature&);
 // unary(feature)
 inline Placement operator+(const Feature& f) {return  Placement(f);}
 inline Placement operator-(const Feature& f) {return -Placement(f);}
-inline RealPlacement      length(const Feature& f)    {return length(Placement(f));}
-inline DirectionPlacement normalize(const Feature& f) {return normalize(Placement(f));}
+inline Placement length   (const Feature& f) {return length(Placement(f));}
+inline Placement normalize(const Feature& f) {return normalize(Placement(f));}
 
 // binary(feature,feature)
 inline Placement operator+(const Feature& l, const Feature& r) 
