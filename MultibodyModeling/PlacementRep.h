@@ -72,7 +72,7 @@ class   OrientationPlacementRep;
 class     OrientationConstantPlacementRep;
 class     OrientationFeaturePlacementRep;
 class     OrientationExprPlacementRep;
-class   PlacementListRep;
+class   PlacementListRep; // TODO
 class     PlacementListFeatureRep;
 class   FramePlacementRep;
 class     FrameConstantPlacementRep;
@@ -432,31 +432,12 @@ public:
     explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1) { }
     virtual ~PlacementRep() { }
 
-    void             setMyHandle(Placement& p) {myHandle = &p;}
-    bool             hasHandle()       const {return myHandle != 0;}
-    const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
-    Placement&       updMyHandle()           {assert(myHandle); return *myHandle;} 
-
-    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
-    bool             hasOwner()        const {return owner != 0;}
-    const Feature&   getOwner()        const {assert(owner);    return *owner;}
-    int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
-
-    // Note that this copies all feature & placement reference pointers verbatim.
-    // The copy will require repair if we are copying a whole Feature tree
-    // to get the references to refer to objects in the new tree. 
-    void cloneUnownedWithNewHandle(Placement& p) const {
-        PlacementRep* pr = clone();
-        pr->myHandle = &p; pr->owner = 0; pr->indexInOwner = -1;
-        p.setRep(pr);
-    }
 
     // These are the generic Placement operators, overloaded by argument type.
     // The default implementations provided here throw an exception saying 
     // that the operator is not supported on the given arguments. Any concrete
-    // placement that thinks it knows how to implement one of these should 
+    // PlacementRep that thinks it knows how to implement one of these should 
     // override the default implementation.
-
 
     virtual RealPlacement        castToRealPlacement()        const;
     virtual Vec3Placement        castToVec3Placement()        const;
@@ -505,6 +486,25 @@ public:
     // method on a constant Placement (you can check first with isConstant());
     virtual const Feature* findAncestorFeature(const Feature& root) const = 0;
 
+    void             setMyHandle(Placement& p) {myHandle = &p;}
+    bool             hasHandle()       const {return myHandle != 0;}
+    const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
+    Placement&       updMyHandle()           {assert(myHandle); return *myHandle;} 
+
+    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
+    bool             hasOwner()        const {return owner != 0;}
+    const Feature&   getOwner()        const {assert(owner);    return *owner;}
+    int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
+
+    // Note that this copies all feature & placement reference pointers verbatim.
+    // The copy will require repair if we are copying a whole Feature tree
+    // to get the references to refer to objects in the new tree. 
+    void cloneUnownedWithNewHandle(Placement& p) const {
+        PlacementRep* pr = clone();
+        pr->myHandle = &p; pr->owner = 0; pr->indexInOwner = -1;
+        p.setRep(pr);
+    }
+
     static const char* getPlacementTypeName(PlacementType t);
     static int getNIndicesAllowed(PlacementType t);
 
@@ -512,9 +512,10 @@ public:
     static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
 private:
-    Placement*      myHandle;    // the Placement whose rep this is
-    const Feature*  owner;
-    int             indexInOwner;
+    Placement*      myHandle;     // the Placement whose rep this is
+
+    const Feature*  owner;        // The Feature (if any) which owns this Placement
+    int             indexInOwner; // ... and the index in its placementExpr list.
 };
 
 
@@ -533,7 +534,7 @@ public:
     // clone, toString, findAncestorFeature are still missing
 
     // These are unary operators on a RealPlacement or binary operators
-    // with a RealPlacement on the left, and a Placement of unknown type
+    // with a RealPlacement on the left and a Placement of unknown type
     // on the right.
 
     Placement genericNegate()  const;
@@ -546,13 +547,10 @@ public:
     Placement genericAsin()    const;
     Placement genericAcos()    const;
 
-    RealPlacement castToRealPlacement() const {return RealPlacement(getMyHandle());}
-
     Placement genericAdd(const Placement& r) const;
     Placement genericSub(const Placement& r) const;
     Placement genericMul(const Placement& r) const;
     Placement genericDvd(const Placement& r) const;
-
 
     // This should allow for state to be passed in.
     virtual Real getValue(/*State*/) const = 0;
@@ -624,8 +622,7 @@ public:
 class RealExprPlacementRep : public RealPlacementRep, public PlacementExpr {
 public:
     RealExprPlacementRep(const RealOps& f, const std::vector<const Placement*>& a) 
-      : RealPlacementRep(), PlacementExpr(f,a)
-    { }
+      : RealPlacementRep(), PlacementExpr(f,a) { }
     ~RealExprPlacementRep() { }
 
     // Supported RealExpr-building operators
@@ -697,7 +694,6 @@ public:
 
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing
-
 
     // This should allow for state to be passed in.
     virtual Vec3 getValue(/*State*/) const = 0;

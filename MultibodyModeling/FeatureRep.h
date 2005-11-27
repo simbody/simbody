@@ -859,8 +859,8 @@ protected:
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        updSubfeature(RIndex).place(Placement(getMyHandle(), 0));
-        updSubfeature(OIndex).place(Placement(getMyHandle(), 1));
+        updSubfeature(RIndex).place(OrientationPlacement(Mat33(1)));
+        updSubfeature(OIndex).place(StationPlacement(Vec3(0)));
     }
 
 private:

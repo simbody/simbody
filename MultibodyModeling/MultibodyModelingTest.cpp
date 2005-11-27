@@ -106,17 +106,13 @@ try {
     // Create a parameter for the cylinder half-height, and a station at
     // the top center of the cylinder where we can hook the ball joint.
     lower.addRealParameter("halfHeight");
-    lower.addStation("ballAttachPt");
-
-    lower["ballAttachPt"].place(lower["halfHeight"] * lower.y());
-
-    lower.addFrame("upperAttachmentFrame", lower["ballAttachPt"]);
+    lower.addStation      ("ballAttachPt",         lower["halfHeight"] * lower.y());
+    lower.addFrame        ("upperAttachmentFrame", lower["ballAttachPt"]);
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
 
-    lower.addRealMeasure("hh9", 
-        lower["halfHeight"] + 9./lower["tube"]["mass"]);
+    lower.addRealMeasure  ("hh9", lower["halfHeight"] + 9./lower["tube"]["mass"]);
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
@@ -127,7 +123,7 @@ try {
 
     tube["halfLength"].place(lower["halfHeight"]);
 
-     cout << "L=" << lower; 
+    cout << "L=" << lower; 
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -147,16 +143,18 @@ try {
     rightLeg["halfHeight"].place(mbs["halfHeight"]);
 
     mbs.addJoint(PinJoint, "base2ground", 
-                 mbs.getGroundFrame(),                      //reference frame
-                 upperBody);                                //moving frame
+                 mbs.getGroundFrame(),                  //reference frame
+                 mbs["upper"]);                         //moving frame
     mbs.addJoint(BallJoint, "leftHipJoint",
-                 upperBody["leftBallFrame"],       //reference frame
-                 leftLeg["upperAttachmentFrame"]); //moving frame
+                 mbs["upper"]["leftBallFrame"],         //reference frame
+                 mbs["left"]["upperAttachmentFrame"]);  //moving frame
     mbs.addJoint(BallJoint, "rightHipJoint",
-                 upperBody["rightBallFrame"],      //reference frame
-                 rightLeg["upperAttachmentFrame"]);//moving frame
+                 mbs["upper"]["rightBallFrame"],        //reference frame
+                 mbs["right"]["upperAttachmentFrame"]); //moving frame
 
+    std::cout << "***MULTIBODY SYSTEM***" << std::endl;
     std::cout << mbs << std::endl; //let’s see what we’ve got
+    std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 
 }
 catch(const Exception::Base& e) {
