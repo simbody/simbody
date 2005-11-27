@@ -128,14 +128,16 @@ std::ostream& operator<<(std::ostream& o, const Placement&);
 // unary
 Placement operator+(const Placement&);
 Placement operator-(const Placement&);
-Placement length   (const Placement&);
-Placement normalize(const Placement&);
+Placement abs (const Placement&);
+Placement sqrt(const Placement&);
+Placement exp (const Placement&);
+Placement log (const Placement&);
 Placement sin (const Placement&);
 Placement cos (const Placement&);
 Placement asin(const Placement&);
 Placement acos(const Placement&);
-Placement sqrt(const Placement&);
-Placement exp (const Placement&);
+Placement length   (const Placement&);
+Placement normalize(const Placement&);
 
 // binary
 Placement operator+(const Placement& l, const Placement& r); 
@@ -154,11 +156,13 @@ public:
     RealPlacement(const RealParameter&);
     RealPlacement(const RealMeasure&);
     explicit RealPlacement(const Feature&);
-    explicit RealPlacement(const Placement&);
+    //explicit RealPlacement(const Placement&);
 
     // For internal use only.
-    explicit RealPlacement(class RealPlacementRep*);
-    const RealPlacementRep& getRep() const;
+    explicit RealPlacement(class RealPlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const RealPlacementRep& getRep() const
+      { return *reinterpret_cast<const RealPlacementRep*>(rep); }
     static bool                 isInstanceOf(const Placement&);
     static const RealPlacement& downcast(const Placement&);
     static RealPlacement&       downcast(Placement&);
@@ -171,11 +175,13 @@ public:
     Vec3Placement(const Vec3Measure&);
     Vec3Placement(const Vec3Parameter&);
     explicit Vec3Placement(const Feature&);
-    explicit Vec3Placement(const Placement&);
+    //explicit Vec3Placement(const Placement&);
 
     // For internal use only.
-    explicit Vec3Placement(class Vec3PlacementRep*);
-    const Vec3PlacementRep&     getRep() const;
+    explicit Vec3Placement(class Vec3PlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const Vec3PlacementRep& getRep() const
+      { return *reinterpret_cast<const Vec3PlacementRep*>(rep); }    
     static bool                 isInstanceOf(const Placement&);
     static const Vec3Placement& downcast(const Placement&);
     static Vec3Placement&       downcast(Placement&);
@@ -190,11 +196,13 @@ public:
     explicit StationPlacement(const Vec3&);
     explicit StationPlacement(const Frame&);   // use the origin
     explicit StationPlacement(const Feature&);
-    explicit StationPlacement(const Placement&);
+    //explicit StationPlacement(const Placement&);
 
     // For internal use only.
-    explicit StationPlacement(class StationPlacementRep*);
-    const StationPlacementRep&     getRep() const;
+    explicit StationPlacement(class StationPlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const StationPlacementRep& getRep() const
+      { return *reinterpret_cast<const StationPlacementRep*>(rep); }    
     static bool                    isInstanceOf(const Placement&);
     static const StationPlacement& downcast(const Placement&);
     static StationPlacement&       downcast(Placement&);
@@ -208,13 +216,15 @@ public:
 
     explicit DirectionPlacement(const Vec3&);
     explicit DirectionPlacement(const Feature&);
-    explicit DirectionPlacement(const Placement&);
+    //explicit DirectionPlacement(const Placement&);
     DirectionPlacement(const Orientation&, int i);  // use the i'th axis
     DirectionPlacement(const Frame&, int i);        // use the i'th axis
 
     // For internal use only.
-    explicit DirectionPlacement(class DirectionPlacementRep*);
-    const DirectionPlacementRep&     getRep() const;
+    explicit DirectionPlacement(class DirectionPlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const DirectionPlacementRep& getRep() const
+      { return *reinterpret_cast<const DirectionPlacementRep*>(rep); } 
     static bool                      isInstanceOf(const Placement&);
     static const DirectionPlacement& downcast(const Placement&);
     static DirectionPlacement&       downcast(Placement&);
@@ -231,9 +241,13 @@ public:
     explicit OrientationPlacement(const Frame&);        // use the orientation
     explicit OrientationPlacement(const Feature&);
 
+    //explicit OrientationPlacement(const Placement&);
+
     // For internal use only.
-    explicit OrientationPlacement(class OrientationPlacementRep*);
-    const OrientationPlacementRep&     getRep() const;
+    explicit OrientationPlacement(class OrientationPlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const OrientationPlacementRep& getRep() const
+      { return *reinterpret_cast<const OrientationPlacementRep*>(rep); } 
     static bool                        isInstanceOf(const Placement&);
     static const OrientationPlacement& downcast(const Placement&);
     static OrientationPlacement&       downcast(Placement&);
@@ -252,9 +266,13 @@ public:
 
     FramePlacement(const Orientation&, const Station&);
 
+    //explicit FramePlacement(const Placement&);
+
     // For internal use only.
-    explicit FramePlacement(class FramePlacementRep*);
-    const FramePlacementRep&     getRep() const;
+    explicit FramePlacement(class FramePlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const FramePlacementRep& getRep() const
+      { return *reinterpret_cast<const FramePlacementRep*>(rep); } 
     static bool                  isInstanceOf(const Placement&);
     static const FramePlacement& downcast(const Placement&);
     static FramePlacement&       downcast(Placement&);

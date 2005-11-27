@@ -128,15 +128,27 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 
 // unary
 Placement operator+(const Placement& p) {return p;}
-Placement operator-(const Placement& p) {return p.getRep().negate();}
-Placement length   (const Placement& p) {return p.getRep().length();}
-Placement normalize(const Placement& p) {return p.getRep().normalize();}
+Placement operator-(const Placement& p) {return p.getRep().genericNegate();}
+Placement abs      (const Placement& p) {return p.getRep().genericAbs();}
+Placement sqrt     (const Placement& p) {return p.getRep().genericSqrt();}
+Placement exp      (const Placement& p) {return p.getRep().genericExp();}
+Placement log      (const Placement& p) {return p.getRep().genericLog();}
+Placement sin      (const Placement& p) {return p.getRep().genericSin();}
+Placement cos      (const Placement& p) {return p.getRep().genericCos();}
+Placement asin     (const Placement& p) {return p.getRep().genericAsin();}
+Placement acos     (const Placement& p) {return p.getRep().genericAcos();}
+Placement length   (const Placement& p) {return p.getRep().genericLength();}
+Placement normalize(const Placement& p) {return p.getRep().genericNormalize();}
 
 // binary
-Placement operator+(const Placement& l, const Placement& r) {return l.getRep().add(r);} 
-Placement operator-(const Placement& l, const Placement& r) {return l.getRep().sub(r);}
-Placement operator*(const Placement& l, const Placement& r) {return l.getRep().mul(r);}
-Placement operator/(const Placement& l, const Placement& r) {return l.getRep().dvd(r);}
+Placement operator+(const Placement& l, const Placement& r) {return l.getRep().genericAdd(r);} 
+Placement operator-(const Placement& l, const Placement& r) {return l.getRep().genericSub(r);}
+Placement operator*(const Placement& l, const Placement& r) {return l.getRep().genericMul(r);}
+Placement operator/(const Placement& l, const Placement& r) {return l.getRep().genericDvd(r);}
+Placement distance (const Placement& l, const Placement& r) {return l.getRep().genericDistance(r);}
+Placement angle    (const Placement& l, const Placement& r) {return l.getRep().genericAngle(r);}
+Placement dot      (const Placement& l, const Placement& r) {return l.getRep().genericDotProduct(r);}
+Placement cross    (const Placement& l, const Placement& r) {return l.getRep().genericCrossProduct(r);}
 
     // REAL PLACEMENT //
 
@@ -152,6 +164,11 @@ RealPlacement::RealPlacement(const RealParameter& rp) {
 RealPlacement::RealPlacement(const RealMeasure& rm) {
     rep = rm.getRep().useFeatureAsRealPlacement(*this);
 }
+
+RealPlacement::RealPlacement(const Feature& f) {
+    rep = f.getRep().useFeatureAsRealPlacement(*this);
+}
+
 
 /*static*/ bool             
 RealPlacement::isInstanceOf(const Placement& p) {

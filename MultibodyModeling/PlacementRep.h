@@ -114,9 +114,9 @@ public:
  */
 class RealOps : public PlacementOp {
 public:
-    enum OpKind { Negate, Abs, Sqrt, Exp, Sin, Cos, Asin, Acos, VectorLength, // unary 
+    enum OpKind { Negate, Abs, Sqrt, Exp, Log, Sin, Cos, Asin, Acos, VectorLength, // unary 
                   Add, Subtract, Multiply, Divide, DotProduct2, DotProduct3,  // binary
-                  PointDistance };
+                  PointDistance, AngleBetweenVectors };
 
     explicit RealOps(OpKind k) : op(k) { }
     // default copy, assignment, destructor
@@ -131,6 +131,7 @@ public:
             case Abs:           p="abs";      break;
             case Sqrt:          p="sqrt";     break;
             case Exp:           p="exp";      break;
+            case Log:           p="log";      break;
             case Sin:           p="sin";      break;
             case Cos:           p="cos";      break;
             case Asin:          p="asin";     break;
@@ -144,6 +145,8 @@ public:
             case DotProduct3:   p="dot3";     break;
             case DotProduct2:   p="dot2";     break;
             case PointDistance: p="distance"; break;
+            case AngleBetweenVectors: 
+                                p="angle"; break;
             default:            p="UNKNOWN OP";
         };
         return std::string(p) + "<Real>";
@@ -245,7 +248,7 @@ public:
  */
 class DirectionOps : public DirectionPlacementOp {
 public:
-    enum OpKind { Normalize };
+    enum OpKind { Negate, Normalize };
     explicit DirectionOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new DirectionOps(*this);}
@@ -253,6 +256,7 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
+            case Negate:    p="negate";    break;
             case Normalize: p="normalize"; break;
             default:        p="UNKNOWN OP";
         };
@@ -453,22 +457,6 @@ public:
     // placement that thinks it knows how to implement one of these should 
     // override the default implementation.
 
-    virtual Placement negate()    const;
-    virtual Placement abs()       const;
-    virtual Placement sqrt()      const;
-    virtual Placement sin()       const;
-    virtual Placement cos()       const;
-    virtual Placement asin()      const;
-    virtual Placement acos()      const;
-    virtual Placement length()    const;
-    virtual Placement normalize() const;
-    virtual Placement add(const Placement& r) const;
-    virtual Placement sub(const Placement& r) const ;
-    virtual Placement mul(const Placement& r) const;
-    virtual Placement dvd(const Placement& r) const;
-    virtual Placement distance(const Placement& r) const;
-    virtual Placement dotProduct  (const Placement& r) const;
-    virtual Placement crossProduct(const Placement& r) const;
 
     virtual RealPlacement        castToRealPlacement()        const;
     virtual Vec3Placement        castToVec3Placement()        const;
@@ -476,6 +464,28 @@ public:
     virtual DirectionPlacement   castToDirectionPlacement()   const;
     virtual OrientationPlacement castToOrientationPlacement() const;
     virtual FramePlacement       castToFramePlacement()       const;
+
+    virtual Placement genericNegate()    const;
+    virtual Placement genericAbs()       const;
+    virtual Placement genericSqrt()      const;
+    virtual Placement genericExp()       const;
+    virtual Placement genericLog()       const;
+    virtual Placement genericSin()       const;
+    virtual Placement genericCos()       const;
+    virtual Placement genericAsin()      const;
+    virtual Placement genericAcos()      const;
+    virtual Placement genericLength()    const;
+    virtual Placement genericNormalize() const;
+
+    virtual Placement genericAdd         (const Placement& rhs) const;
+    virtual Placement genericSub         (const Placement& rhs) const ;
+    virtual Placement genericMul         (const Placement& rhs) const;
+    virtual Placement genericDvd         (const Placement& rhs) const;
+    virtual Placement genericDistance    (const Placement& rhs) const;
+    virtual Placement genericAngle       (const Placement& rhs) const;
+    virtual Placement genericDotProduct  (const Placement& rhs) const;
+    virtual Placement genericCrossProduct(const Placement& rhs) const;
+
 
     virtual PlacementType getPlacementType() const = 0;
     virtual PlacementRep* clone()            const = 0;
@@ -526,22 +536,22 @@ public:
     // with a RealPlacement on the left, and a Placement of unknown type
     // on the right.
 
-    Placement negate()  const;
-    Placement abs()     const;
-    Placement sqrt()    const;
-    Placement exp()     const;
-    Placement log()     const;
-    Placement sin()     const;
-    Placement cos()     const;
-    Placement asin()    const;
-    Placement acos()    const;
+    Placement genericNegate()  const;
+    Placement genericAbs()     const;
+    Placement genericSqrt()    const;
+    Placement genericExp()     const;
+    Placement genericLog()     const;
+    Placement genericSin()     const;
+    Placement genericCos()     const;
+    Placement genericAsin()    const;
+    Placement genericAcos()    const;
 
     RealPlacement castToRealPlacement() const {return RealPlacement(getMyHandle());}
 
-    Placement add(const Placement& r) const;
-    Placement sub(const Placement& r) const;
-    Placement mul(const Placement& r) const;
-    Placement dvd(const Placement& r) const;
+    Placement genericAdd(const Placement& r) const;
+    Placement genericSub(const Placement& r) const;
+    Placement genericMul(const Placement& r) const;
+    Placement genericDvd(const Placement& r) const;
 
 
     // This should allow for state to be passed in.
@@ -671,31 +681,23 @@ public:
     const Vec3Placement& getMyHandle() const 
       { return Vec3Placement::downcast(PlacementRep::getMyHandle()); }
 
-    Placement negate() const;
-    Placement length() const;
-    Placement normalize() const;
+    DirectionPlacement castToDirectionPlacement() const;
+    StationPlacement   castToStationPlacement() const;
 
-    Placement add  (const Placement& rhs) const;
-    Placement sub  (const Placement& rhs) const;
-    Placement mul  (const Placement& rhs) const;
-    Placement dvd  (const Placement& rhs) const;
-    Placement dotProduct  (const Placement& rhs) const;
-    Placement crossProduct(const Placement& rhs) const;
+    Placement genericNegate() const;
+    Placement genericLength() const;
+    Placement genericNormalize() const;
+
+    Placement genericAdd  (const Placement& rhs) const;
+    Placement genericSub  (const Placement& rhs) const;
+    Placement genericMul  (const Placement& rhs) const;
+    Placement genericDvd  (const Placement& rhs) const;
+    Placement genericDotProduct  (const Placement& rhs) const;
+    Placement genericCrossProduct(const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    Vec3Placement castToVec3Placement() const {
-        return Vec3Placement(getMyHandle()); // we can use it as is!
-    }
-    DirectionPlacement castToDirectionPlacement() const {
-        return DirectionPlacement(normalize());
-    }
-
-    // Default inserts a cast operator, but we can do better than that for constants
-    // so we'll leave this virtual.
-    virtual StationPlacement castToStationPlacement() const 
-      { return StationPlacement(getMyHandle()); }
 
     // This should allow for state to be passed in.
     virtual Vec3 getValue(/*State*/) const = 0;
@@ -710,8 +712,6 @@ class Vec3ConstantPlacementRep : public Vec3PlacementRep {
 public:
     explicit Vec3ConstantPlacementRep(const Vec3& r) : Vec3PlacementRep(), value(r) { }
     ~Vec3ConstantPlacementRep() { }
-
-    StationPlacement castToStationPlacement() const {return StationPlacement(value);}
 
     bool isConstant() const { return true; }
 
@@ -777,8 +777,8 @@ public:
 
     static Vec3ExprPlacementRep* negateOp(const Vec3Placement&);
 
-    static Vec3ExprPlacementRep* recastOp(const StationPlacement&);
-    static Vec3ExprPlacementRep* recastOp(const DirectionPlacement&);
+    static Vec3ExprPlacementRep* recastStationOp(const StationPlacement&);
+    static Vec3ExprPlacementRep* recastDirectionOp(const DirectionPlacement&);
 
     static Vec3ExprPlacementRep* addOp (const Vec3Placement& l, const Vec3Placement& r);
     static Vec3ExprPlacementRep* subOp (const Vec3Placement& l, const Vec3Placement& r);
@@ -826,17 +826,20 @@ public:
     PlacementType getPlacementType() const { return StationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    Placement negate()    const;
-    Placement length()    const;
-    Placement normalize() const;
+    
+    Vec3Placement castToVec3Placement() const;
 
-    Placement add     (const Placement& r) const;
-    Placement sub     (const Placement& r) const;
-    Placement mul     (const Placement& r) const;
-    Placement dvd     (const Placement& r) const;
-    Placement dot     (const Placement& r) const;
-    Placement cross   (const Placement& r) const;
-    Placement distance(const Placement& r) const;
+    Placement genericNegate()    const;
+    Placement genericLength()    const;
+    Placement genericNormalize() const;
+
+    Placement genericAdd         (const Placement& rhs) const;
+    Placement genericSub         (const Placement& rhs) const;
+    Placement genericMul         (const Placement& rhs) const;
+    Placement genericDvd         (const Placement& rhs) const;
+    Placement genericDotProduct  (const Placement& rhs) const;
+    Placement genericCrossProduct(const Placement& rhs) const;
+    Placement genericDistance    (const Placement& rhs) const;
 
     // These should allow for state to be passed in.
     virtual Vec3  getMeasureNumbers(/*State*/)     const = 0;
@@ -931,7 +934,7 @@ public:
     
     // Supported StationExpr-building operators
 
-    static StationExprPlacementRep* recastOp(const Vec3Placement&);
+    static StationExprPlacementRep* recastVec3Op(const Vec3Placement&);
 
     static StationExprPlacementRep* addOp (const StationPlacement& l, const Vec3Placement& r);
     static StationExprPlacementRep* subOp (const StationPlacement& l, const Vec3Placement& r);
@@ -959,15 +962,24 @@ class DirectionPlacementRep : public PlacementRep {
 public:
     DirectionPlacementRep() : PlacementRep() { }
     virtual ~DirectionPlacementRep() { }
+    const DirectionPlacement& getMyHandle() const 
+      { return DirectionPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    Placement negate()    const;
+    Vec3Placement castToVec3Placement() const;
 
-    Placement add     (const Placement& r) const;
-    Placement sub     (const Placement& r) const;
-    Placement mul     (const Placement& r) const;
-    Placement dvd     (const Placement& r) const;
-    Placement dot     (const Placement& r) const;
-    Placement cross   (const Placement& r) const;
+    // Negating a direction yields another direction
+    Placement genericNegate() const;
+
+    // Direction {+-} Placement doesn't make sense: cast to
+    // Vec3 first if that's what you meant.
+
+    // Scaling a Direction by a scalar to produce a Vec3 is OK.
+    Placement genericMul         (const Placement& rhs) const;
+    Placement genericDvd         (const Placement& rhs) const;
+
+    // Dot(direction,placement) yields Real, Cross yields Vec3
+    Placement genericDotProduct  (const Placement& rhs) const;
+    Placement genericCrossProduct(const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return DirectionPlacementType; }
     // clone, toString, findAncestorFeature are still missing
@@ -1055,6 +1067,7 @@ public:
 
     // Supported DirectionExpr-building operators
 
+    static DirectionExprPlacementRep* negateOp    (const DirectionPlacement&);
     static DirectionExprPlacementRep* normalizeOp (const StationPlacement&);
     static DirectionExprPlacementRep* normalizeOp (const Vec3Placement&);
 
