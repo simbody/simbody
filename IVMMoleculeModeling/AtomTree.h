@@ -44,10 +44,6 @@ private:
  * clusters, and a RigidBodyTree in which each rigid body corresponds to one
  * of the clusters. AtomTree performs useful computations by delegation to
  * the RigidBodyTree and mapping the results back on to the clusters.
- *
- * TODO Currently constraints are dealt with exclusively at the AtomTree level (using RigidBodyTree
- * services) because the constraint handling has not yet been moved into the RigidBodyTree
- * and is still entangled with atoms. (sherm)
  */
 class AtomTree {
 public:
