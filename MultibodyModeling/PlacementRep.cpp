@@ -181,8 +181,9 @@ PlacementType FeatureReference::refGetPlacementType() const {
 // and needs to be repaired to point to the corresponding valueSlot in the new tree.
 void PlacementRep::repairValueReference(const Feature& oldRoot, const Feature& newRoot) {
     if (valueSlot)
-        valueSlot = FeatureRep::findCorrespondingPlacementValue
-                        (oldRoot,*valueSlot,newRoot);
+        valueSlot = const_cast<PlacementValue*>
+                        (FeatureRep::findCorrespondingPlacementValue
+                                    (oldRoot,*valueSlot,newRoot));
 }
 
 // These are the default implementations for the generic operators. Any 
@@ -528,24 +529,26 @@ Placement RealPlacementRep::genericDvd(const Placement& r) const {
 }
 
     // REAL FEATURE PLACEMENT REP //
-Real RealFeaturePlacementRep::getValue(/*State*/) const {
+const Real& RealFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Real value = NTraits<Real>::getNaN();
     if (!isIndexed()) 
-        value = RealPlacementRep::downcast(p).getValue(/*State*/);
-    else if (Vec3PlacementRep::isA(p))
-        value = Vec3PlacementRep::downcast(p).getValue(/*State*/)
-                [getPlacementIndex()];
-    else if (StationPlacementRep::isA(p))
-        value = StationPlacementRep::downcast(p).getValue(/*State*/)
-                [getPlacementIndex()];
-    else if (DirectionPlacementRep::isA(p))
-        value = DirectionPlacementRep::downcast(p).getValue(/*State*/)
-                [getPlacementIndex()];
-    else
-        assert(false);
+        return RealPlacementRep::downcast(p).getValue(/*State*/);
 
-    return value;
+    // indexed
+    if (Vec3PlacementRep::isA(p))
+        return Vec3PlacementRep::downcast(p).getValue(/*State*/)
+                [getPlacementIndex()];
+    if (StationPlacementRep::isA(p))
+        return StationPlacementRep::downcast(p).getValue(/*State*/)
+                [getPlacementIndex()];
+    if (DirectionPlacementRep::isA(p))
+        return DirectionPlacementRep::downcast(p).getValue(/*State*/)
+                [getPlacementIndex()];
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Real*>(0);
 }
 
     // REAL EXPR PLACEMENT REP //
@@ -824,18 +827,20 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
 }
 
     // VEC3 FEATURE PLACEMENT REP //
-Vec3 Vec3FeaturePlacementRep::getValue(/*State*/) const {
+const Vec3& Vec3FeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Vec3 value;
     if (!isIndexed())
-        value = Vec3PlacementRep::downcast(p).getValue(/*State*/);
-    else if (OrientationPlacementRep::isA(p))
-        value = OrientationPlacementRep::downcast(p).getValue(/*State*/)
-                (getPlacementIndex()); // round () to get column
-    else
-        assert(false);
+        return Vec3PlacementRep::downcast(p).getValue(/*State*/);
 
-    return value;
+    // indexed
+    if (OrientationPlacementRep::isA(p))
+        return OrientationPlacementRep::downcast(p).getValue(/*State*/)
+                (getPlacementIndex()); // round () to get column
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Vec3*>(0);
 }
 
     // VEC3 EXPR PLACEMENT REP //
@@ -1082,17 +1087,19 @@ Placement StationPlacementRep::genericDistance(const Placement& r) const {
 }
 
     // STATION FEATURE PLACEMENT REP //
-Vec3 StationFeaturePlacementRep::getMeasureNumbers(/*State*/) const {
+const Vec3& StationFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Vec3 value = Vec3(NTraits<Real>::getNaN());
     if (!isIndexed())
-        value = StationPlacementRep::downcast(p).getValue(/*State*/);
-    else if (FramePlacementRep::isA(p) && getPlacementIndex()==1)
-        value = FramePlacementRep::downcast(p).getOriginValue(/*State*/);
-    else
-        assert(false);
+        return StationPlacementRep::downcast(p).getValue(/*State*/);
 
-    return value;
+    // indexed
+    if (FramePlacementRep::isA(p) && getPlacementIndex()==1)
+        return FramePlacementRep::downcast(p).getOriginValue(/*State*/);
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Vec3*>(0);
 }
 
     // STATION EXPR PLACEMENT REP //
@@ -1231,18 +1238,21 @@ Placement DirectionPlacementRep::genericCrossProduct(const Placement& r) const {
 }
 
     // DIRECTION FEATURE PLACEMENT REP //
-Vec3 DirectionFeaturePlacementRep::getMeasureNumbers(/*State*/) const {
+const Vec3& DirectionFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Vec3 value = Vec3(NTraits<Real>::getNaN());
-    if (!isIndexed())
-        value = DirectionPlacementRep::downcast(p).getValue(/*State*/);
-    else if (OrientationPlacementRep::isA(p))
-        value = OrientationPlacementRep::downcast(p).getValue(/*State*/)
-            (getPlacementIndex()); // round brackets () to get column not row
-    else
-        assert(false);
 
-    return value;
+    if (!isIndexed())
+        return DirectionPlacementRep::downcast(p).getValue(/*State*/);
+
+    // indexed
+    if (OrientationPlacementRep::isA(p))
+        return OrientationPlacementRep::downcast(p).getValue(/*State*/)
+            (getPlacementIndex()); // round brackets () to get column not row
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Vec3*>(0);
 }
 
     // DIRECTION EXPR PLACEMENT REP //
@@ -1290,17 +1300,20 @@ DirectionExprPlacementRep::normalizeOp(const Vec3Placement& p)
     // ORIENTATION PLACEMENT REP //
 
     // ORIENTATION FEATURE PLACEMENT REP //
-Mat33 OrientationFeaturePlacementRep::getMeasureNumbers(/*State*/) const {
+const Mat33& OrientationFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Mat33 value = Mat33(NTraits<Real>::getNaN());
-    if (!isIndexed())
-        value = OrientationPlacementRep::downcast(p).getValue(/*State*/);
-    else if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
-        value = FramePlacementRep::downcast(p).getOrientationValue(/*State*/);
-    else
-        assert(false);
 
-    return value;
+    if (!isIndexed())
+        return OrientationPlacementRep::downcast(p).getValue(/*State*/);
+
+    // indexed
+    if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
+        return FramePlacementRep::downcast(p).getOrientationValue(/*State*/);
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Mat33*>(0);
 }
 
     // ORIENTATION EXPR PLACEMENT REP //
@@ -1329,26 +1342,16 @@ OrientationExprPlacementRep::binaryOp(OrientationOps::OpKind op,
 
 
     // FRAME FEATURE PLACEMENT REP //
-Mat33 FrameFeaturePlacementRep::getOrientationValue(/*State*/) const {
+const Mat34& FrameFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedPlacement().getRep();
-    Mat33 value = Mat33(NTraits<Real>::getNaN());
+
     if (!isIndexed())
-        value = FramePlacementRep::downcast(p).getOrientationValue(/*State*/);
-    else
-        assert(false);
+        return FramePlacementRep::downcast(p).getValue(/*State*/);
 
-    return value;
-}
+    assert(false);
+    //NOTREACHED
 
-Vec3 FrameFeaturePlacementRep::getOriginValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
-    Vec3 value = Vec3(NTraits<Real>::getNaN());
-    if (!isIndexed())
-        value = FramePlacementRep::downcast(p).getOriginValue(/*State*/);
-    else
-        assert(false);
-
-    return value;
+    return *reinterpret_cast<const Mat34*>(0);
 }
 
     // FRAME EXPR PLACEMENT REP //
@@ -1516,5 +1519,6 @@ PlacementValue_<T>& PlacementValue_<T>::downcast(PlacementValue& pv) {
 template class PlacementValue_<Real>;
 template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
+template class PlacementValue_<Mat34>;
 
 } // namespace simtk

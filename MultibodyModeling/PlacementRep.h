@@ -266,6 +266,7 @@ public:
     // XXX not yet
     Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
 
+    SIMTK_DOWNCAST2(DirectionOps, DirectionPlacementOp, PlacementOp);
 private:
     OpKind op;
 };
@@ -306,6 +307,7 @@ public:
     // XXX not yet
     Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
 
+    SIMTK_DOWNCAST2(OrientationOps, OrientationPlacementOp, PlacementOp);
 private:
     OpKind op;
 };
@@ -345,7 +347,7 @@ public:
 
     // XXX not yet TODO this is the wrong return type
     Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
-
+    SIMTK_DOWNCAST2(FrameOps, FramePlacementOp, PlacementOp);
 private:
     OpKind op;
 };
@@ -357,12 +359,16 @@ private:
 class PlacementExpr {
 public:
     PlacementExpr(const PlacementOp&  f, const std::vector<const Placement*>& a) 
-      : func(f.clone()), args(a.size()) {
+      : func(f.clone()), args(a.size())
+    {
         for (size_t i=0; i<a.size(); ++i)
             args[i] = *a[i];
         assert(f.checkArgs(args));
     }
     // default copy, assignment, destructor
+
+    const PlacementOp&            exprGetFunc() const {return func.getRef();}
+    const std::vector<Placement>& exprGetArgs() const {return args;}
 
     // Make sure all the arguments are realized.
     void exprRealize(/*State*/) const;
@@ -378,8 +384,8 @@ public:
     bool           exprIsLimitedToSubtree(const Feature& root, const Feature*& offender) const; 
     void           exprRepairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
 protected:
-    Concretize<PlacementOp>   func;
-    std::vector<Placement>    args;
+    const Concretize<PlacementOp>   func;
+    std::vector<Placement>          args; // logically const also
 };
 
 /**
@@ -431,9 +437,15 @@ public:
     explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1), valueSlot(0) { }
     virtual ~PlacementRep() { }
 
+    void                  assignValueSlot(PlacementValue& p) {valueSlot = &p;}
     bool                  hasValueSlot() const {return valueSlot != 0;}
     const PlacementValue& getValueSlot() const {assert(valueSlot); return *valueSlot;}
-    void                  assignValueSlot(PlacementValue& p) {valueSlot = &p;}
+
+    // yes, the upd routine is const!
+    PlacementValue& updValueSlot() const {
+        assert(valueSlot); return *const_cast<PlacementValue*>(valueSlot);
+    }
+
 
     // We have just copied a Feature tree and this PlacementRep is the new copy. If
     // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
@@ -523,13 +535,13 @@ public:
     static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
 private:
-    Placement*      myHandle;           // the Placement whose rep this is
+    Placement*      myHandle;     // the Placement whose rep this is
 
-    const Feature*  owner;              // The Feature (if any) which owns this Placement
-    int             indexInOwner;       // ... and the index in its placementExpr list.
+    const Feature*  owner;        // The Feature (if any) which owns this Placement
+    int             indexInOwner; // ... and the index in its placementExpr list.
 
-    const PlacementValue* valueSlot;    // Points to the cache entry designated to hold the
-                                        //   value of this placement expression, if any.
+    PlacementValue* valueSlot;    // Points to the cache entry designated to hold the
+                                  //   value of this placement expression, if any.
 };
 
 
@@ -541,8 +553,12 @@ class RealPlacementRep : public PlacementRep {
 public:
     RealPlacementRep() : PlacementRep() { }
     virtual ~RealPlacementRep() { }
+
     const RealPlacement& getMyHandle() const 
       { return RealPlacement::downcast(PlacementRep::getMyHandle()); }
+
+    PlacementValue_<Real>& updValueSlot() const
+      { return PlacementValue_<Real>::downcast(PlacementRep::updValueSlot()); } 
 
     PlacementType getPlacementType() const { return RealPlacementType; }
     // realize, clone, toString, findAncestorFeature are still missing
@@ -567,7 +583,7 @@ public:
     Placement genericDvd(const Placement& r) const;
 
     // This should allow for state to be passed in. Constant should override.
-    virtual Real getValue(/*State*/) const {
+    virtual const Real& getValue(/*State*/) const {
         assert(hasValueSlot());
         return PlacementValue_<Real>::downcast(getValueSlot()).get();
     }
@@ -600,7 +616,7 @@ public:
         return 0;
     }
 
-    Real getValue(/*State*/) const { return value; }
+    const Real& getValue(/*State*/) const { return value; }
 
     SIMTK_DOWNCAST2(RealConstantPlacementRep,RealPlacementRep,PlacementRep);
 private:
@@ -615,11 +631,14 @@ private:
 class RealFeaturePlacementRep : public RealPlacementRep, public FeatureReference {
 public:
     explicit RealFeaturePlacementRep(const Feature& f, int index = -1) 
-      : RealPlacementRep(), FeatureReference(f,index)
-    { }
+      : RealPlacementRep(), FeatureReference(f,index) { }
     ~RealFeaturePlacementRep() { }
     
-    void realize(/*State*/) const {refRealize(/*State*/);}
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
 
     PlacementRep*  clone() const {return new RealFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -631,9 +650,10 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    Real getValue(/*State*/) const;
-
     SIMTK_DOWNCAST2(RealFeaturePlacementRep,RealPlacementRep,PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Real& getReferencedValue(/*State*/) const;
 };
 
 /**
@@ -646,7 +666,11 @@ public:
       : RealPlacementRep(), PlacementExpr(f,a) { }
     ~RealExprPlacementRep() { }
 
-    void realize(/*State*/) const {exprRealize(/*State*/);}
+    void realize(/*State*/) const {
+        exprRealize(/*State*/);
+        updValueSlot().set(
+            RealOps::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs()));
+    }
 
     // Supported RealExpr-building operators
 
@@ -680,9 +704,6 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    Real getValue(/*State*/) const 
-      { return RealOps::downcast(func).apply(/*State,*/args); }
-
     SIMTK_DOWNCAST2(RealExprPlacementRep,RealPlacementRep,PlacementRep);
 private:
     static RealExprPlacementRep* unaryOp (RealOps::OpKind, const Placement&);
@@ -700,6 +721,8 @@ public:
     virtual ~Vec3PlacementRep() { }
     const Vec3Placement& getMyHandle() const 
       { return Vec3Placement::downcast(PlacementRep::getMyHandle()); }
+    PlacementValue_<Vec3>& updValueSlot() const
+      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
 
     DirectionPlacement castToDirectionPlacement() const;
     StationPlacement   castToStationPlacement() const;
@@ -719,7 +742,7 @@ public:
     // clone, toString, findAncestorFeature are still missing
 
     // Constant Rep should override this default.
-    virtual Vec3 getValue(/*State*/) const {
+    virtual const Vec3& getValue(/*State*/) const {
         assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
@@ -752,7 +775,7 @@ public:
         return 0;
     }
 
-    Vec3 getValue(/*State*/) const { return value; }
+    const Vec3& getValue(/*State*/) const { return value; }
 
     SIMTK_DOWNCAST2(Vec3ConstantPlacementRep,Vec3PlacementRep,PlacementRep);
 private:
@@ -768,9 +791,14 @@ public:
     explicit Vec3FeaturePlacementRep(const Feature& f, int index = -1) 
       : Vec3PlacementRep(), FeatureReference(f,index)
     { }
-    ~Vec3FeaturePlacementRep() { }
-     
-    void realize(/*State*/) const {refRealize(/*State*/);}   
+    ~Vec3FeaturePlacementRep() { }   
+    
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
+
     PlacementRep*  clone() const {return new Vec3FeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
@@ -781,10 +809,10 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    Vec3 getValue(/*State*/) const;
-
     SIMTK_DOWNCAST2(Vec3FeaturePlacementRep,Vec3PlacementRep,PlacementRep);
-};
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Vec3& getReferencedValue(/*State*/) const;};
 
 /**
  * A concrete PlacementRep whose value is a Vec3 expression. This
@@ -820,7 +848,11 @@ public:
 
     static Vec3ExprPlacementRep* crossOp(const Vec3Placement& l, const Vec3Placement& r);
 
-    void realize(/*State*/) const {exprRealize(/*State*/);}
+    void realize(/*State*/) const {
+        exprRealize(/*State*/);
+        updValueSlot().set(
+            Vec3Ops::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs()));
+    }
 
     PlacementRep*  clone() const {return new Vec3ExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
@@ -831,10 +863,6 @@ public:
       { return exprIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
-
-
-    Vec3 getValue(/*State*/) const 
-      { return Vec3Ops::downcast(func).apply(/*State,*/args); }
 
     SIMTK_DOWNCAST2(Vec3ExprPlacementRep,Vec3PlacementRep,PlacementRep);
 private:
@@ -848,6 +876,8 @@ public:
     virtual ~StationPlacementRep() { }
     const StationPlacement& getMyHandle() const 
       { return StationPlacement::downcast(PlacementRep::getMyHandle()); }
+    PlacementValue_<Vec3>& updValueSlot() const
+      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
 
     PlacementType getPlacementType() const { return StationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
@@ -868,7 +898,7 @@ public:
     Placement genericDistance    (const Placement& rhs) const;
 
     // Constant Rep should override this default.
-    virtual Vec3 getValue(/*State*/) const {
+    virtual const Vec3& getValue(/*State*/) const {
         assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
@@ -920,7 +950,12 @@ public:
     { }
     ~StationFeaturePlacementRep() { }
     
-    void realize(/*State*/) const {refRealize(/*State*/);}    
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
+
     PlacementRep*  clone() const {return new StationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
@@ -948,9 +983,10 @@ public:
                      "Orientation");
     }
 
-    Vec3 getMeasureNumbers(/*State*/) const;
-
     SIMTK_DOWNCAST2(StationFeaturePlacementRep,StationPlacementRep,PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Vec3& getReferencedValue(/*State*/) const;
 };
 
 /**
@@ -997,6 +1033,8 @@ public:
     virtual ~DirectionPlacementRep() { }
     const DirectionPlacement& getMyHandle() const 
       { return DirectionPlacement::downcast(PlacementRep::getMyHandle()); }
+    PlacementValue_<Vec3>& updValueSlot() const
+      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
 
     Vec3Placement castToVec3Placement() const;
 
@@ -1018,7 +1056,7 @@ public:
     // clone, toString, findAncestorFeature are still missing
 
     // Constant Rep should override this default.
-    virtual Vec3 getValue(/*State*/) const {
+    virtual const Vec3& getValue(/*State*/) const {
         assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
@@ -1076,7 +1114,12 @@ public:
     { }
     ~DirectionFeaturePlacementRep() { }
     
-    void realize(/*State*/) const {refRealize(/*State*/);}    
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
+
     PlacementRep*  clone() const {return new DirectionFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
@@ -1087,9 +1130,10 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    Vec3 getMeasureNumbers(/*State*/) const;
-
     SIMTK_DOWNCAST2(DirectionFeaturePlacementRep,DirectionPlacementRep,PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Vec3& getReferencedValue(/*State*/) const;
 };
 
 /**
@@ -1135,13 +1179,16 @@ class OrientationPlacementRep : public PlacementRep {
 public:
     OrientationPlacementRep() : PlacementRep() { }
     virtual ~OrientationPlacementRep() { }
-
+    const OrientationPlacement& getMyHandle() const 
+      { return OrientationPlacement::downcast(PlacementRep::getMyHandle()); }
+    PlacementValue_<Mat33>& updValueSlot() const
+      { return PlacementValue_<Mat33>::downcast(PlacementRep::updValueSlot()); } 
 
     PlacementType getPlacementType() const { return OrientationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
     // Constant Rep should override this default.
-    virtual Mat33 getValue(/*State*/) const {
+    virtual const Mat33& getValue(/*State*/) const {
         assert(hasValueSlot());
         return PlacementValue_<Mat33>::downcast(getValueSlot()).get();
     }
@@ -1177,7 +1224,7 @@ public:
         return 0;
     }
 
-    Mat33 getMeasureNumbers(/*State*/) const { return ori; }
+    const Mat33& getValue(/*State*/) const { return ori; }
 
     SIMTK_DOWNCAST2(OrientationConstantPlacementRep,OrientationPlacementRep,PlacementRep);
 private:
@@ -1194,8 +1241,13 @@ public:
       : OrientationPlacementRep(), FeatureReference(f,index)
     { }
     ~OrientationFeaturePlacementRep() { }
-    
-    void realize(/*State*/) const {refRealize(/*State*/);}    
+      
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
+
     PlacementRep*  clone() const {return new OrientationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
@@ -1206,9 +1258,10 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    Mat33 getMeasureNumbers(/*State*/) const;
-
     SIMTK_DOWNCAST2(OrientationFeaturePlacementRep,OrientationPlacementRep,PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Mat33& getReferencedValue(/*State*/) const;
 };
 
 /**
@@ -1251,13 +1304,27 @@ class FramePlacementRep : public PlacementRep {
 public:
     FramePlacementRep() : PlacementRep() { }
     virtual ~FramePlacementRep() { }
-
+    const FramePlacement& getMyHandle() const 
+      { return FramePlacement::downcast(PlacementRep::getMyHandle()); }
+    PlacementValue_<Mat34>& updValueSlot() const
+      { return PlacementValue_<Mat34>::downcast(PlacementRep::updValueSlot()); } 
 
     PlacementType getPlacementType() const { return FramePlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    virtual Mat33 getOrientationValue(/*State*/) const = 0;
-    virtual Vec3  getOriginValue(/*State*/)      const = 0;
+    virtual const Mat34& getValue(/*State*/) const {
+        assert(hasValueSlot());
+        return PlacementValue_<Mat34>::downcast(getValueSlot()).get();
+    }
+
+    const Mat33& getOrientationValue(/*State*/) const {
+        const Mat34& fv = getValue(/*State*/);
+        return reinterpret_cast<const Mat33&>(fv);
+    }
+
+    const Vec3& getOriginValue(/*State*/) const {
+        return getValue(/*State*/)(3); // 3rd column
+    }
 
     SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
 };
@@ -1273,7 +1340,12 @@ public:
     { }
     ~FrameFeaturePlacementRep() { }
     
-    void realize(/*State*/) const {refRealize(/*State*/);}    
+    void realize(/*State*/) const {
+        assert(hasValueSlot());
+        refRealize(/*State*/);
+        updValueSlot().set(getReferencedValue(/*State*/));
+    }
+
     PlacementRep*  clone() const {return new FrameFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
@@ -1284,9 +1356,10 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    Mat33 getOrientationValue(/*State*/) const;
-    Vec3  getOriginValue(/*State*/) const;
     SIMTK_DOWNCAST2(FrameFeaturePlacementRep,FramePlacementRep,PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Mat34& getReferencedValue(/*State*/) const;
 };
 
 /**
@@ -1312,8 +1385,12 @@ public:
     const Feature* findAncestorFeature(const Feature& root) const;
 
     void realize(/*State*/) const {
+        assert(hasValueSlot());
         orientation.getRep().realize(/*State*/);
         origin.getRep().realize(/*State*/);
+        const Mat33& ori = orientation.getRep().getValue(/*State*/);
+        const Mat34 fv(ori(0), ori(1), ori(2), origin.getRep().getValue(/*State*/));
+        updValueSlot().set(fv);
     }
 
     PlacementRep* clone() const {return new FrameExprPlacementRep(*this);}
@@ -1322,15 +1399,6 @@ public:
         std::stringstream s;
         s << "Frame[" << orientation.toString() << ", " << origin.toString() << "]";
         return s.str();
-    }
-
-    Mat33 getOrientationValue(/*State*/) const {
-        return OrientationPlacementRep::downcast(orientation.getRep())
-            .getValue(/*State*/);
-    }
-    Vec3  getOriginValue(/*State*/)      const {
-        return StationPlacementRep::downcast(origin.getRep())
-            .getValue(/*State*/);
     }
 
     SIMTK_DOWNCAST2(FrameExprPlacementRep,FramePlacementRep,PlacementRep);
