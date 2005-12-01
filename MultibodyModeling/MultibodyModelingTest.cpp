@@ -132,15 +132,15 @@ try {
     Multibody mbs("example1");
 
     mbs.addGroundBody();
-    Body &upperBody = mbs.addBodyLike(upper, "upper"),
-         &leftLeg   = mbs.addBodyLike(lower, "left"),
-         &rightLeg  = mbs.addBodyLike(lower, "right");
+    mbs.addBodyLike(upper, "upper");
+    mbs.addBodyLike(lower, "left");
+    mbs.addBodyLike(lower, "right");
 
     // Create a single parameter of the multibody which can be used
     // to control the two halfHeights together.
     mbs.addRealParameter("halfHeight");
-    leftLeg ["halfHeight"].place(mbs["halfHeight"]);
-    rightLeg["halfHeight"].place(mbs["halfHeight"]);
+    mbs["left"] ["halfHeight"].place(mbs["halfHeight"]);
+    mbs["right"]["halfHeight"].place(mbs["halfHeight"]);
 
     mbs.addJoint(PinJoint, "base2ground", 
                  mbs.getGroundFrame(),                  //reference frame
@@ -155,6 +155,28 @@ try {
     std::cout << "***MULTIBODY SYSTEM***" << std::endl;
     std::cout << mbs << std::endl; //let’s see what we’ve got
     std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
+
+    cout << "*** JOINTS ***" << endl;
+    for (int i=0; i<mbs.getNSubfeatures(); ++i)
+        if (Joint::isInstanceOf(mbs[i]))
+            cout << mbs[i].getFullName() << ":" << endl 
+                 << "  reference: " << mbs[i]["reference"].getPlacement() 
+                 << "  moving:    " << mbs[i]["moving"].getPlacement() 
+                 << endl;
+
+    // Any leftover parameters need external placements. We'll make a RuntimeFeature
+    // to hold them.
+//    RuntimeFeature rt("rt");
+ //   rt.addFeatureLike(mbs, "mbs");
+//    rt["mbs"]["halfHeight"].place(5.);
+
+//    rt.realize();
+//    cout << "upper mass=" << rt["mbs"]["upper"]["massMeasure"].getValue() << endl;
+
+
+    ///////////////////////////
+    // Build a RigidBodyTree //
+    ///////////////////////////
 
 }
 catch(const Exception::Base& e) {

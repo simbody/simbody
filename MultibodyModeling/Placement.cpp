@@ -50,15 +50,17 @@ Placement::Placement(PlacementRep* r) : rep(r) {
 
 Placement& Placement::operator=(const Placement& src) {
     if (this != &src) {
-        delete rep; rep=0;
+        if (rep && (&rep->getMyHandle() == this)) delete rep; 
+        rep=0;
         if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
     }
     return *this;
 }
 Placement::~Placement() {
-    if (rep==0) return;
-    assert(&rep->getMyHandle() == this);
-    delete rep; rep=0;
+    // This will blow up if rep doesn't have a handle -- we shouldn't
+    // be pointing to it in that case!
+    if (rep && (&rep->getMyHandle() == this)) delete rep; 
+    rep=0;
 }
 
 Placement::Placement(const Feature& f) : rep(0) {

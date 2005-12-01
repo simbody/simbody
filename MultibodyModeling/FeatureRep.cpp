@@ -59,6 +59,52 @@ Feature& FeatureRep::findUpdRootFeature() {
         ? updParentFeature().updRep().findUpdRootFeature() : updMyHandle();
 }
 
+// These are default implementations. Derived features which can actually
+// be used as a placement of the given type should override.
+
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsRealPlacement(RealPlacement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Real");
+    //NOTREACHED
+    return 0;
+}
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsVec3Placement(Vec3Placement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Vec3");
+    //NOTREACHED
+    return 0;
+}
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsStationPlacement(StationPlacement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Station");
+    //NOTREACHED
+    return 0;
+}
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsDirectionPlacement(DirectionPlacement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Direction");
+    //NOTREACHED
+    return 0;
+}    
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsOrientationPlacement(OrientationPlacement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Orientation");
+    //NOTREACHED
+    return 0;
+} 
+/*virtual*/ PlacementRep*
+FeatureRep::useFeatureAsFramePlacement(FramePlacement&) const {
+    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
+                    getFullName(), getFeatureTypeName(), "Frame");
+    //NOTREACHED
+    return 0;
+} 
+
 void 
 FeatureRep::cloneWithoutParentOrExternalPlacements(Feature& newHandle) const
 {
@@ -79,6 +125,19 @@ FeatureRep::cloneWithoutParentOrExternalPlacements(Feature& newHandle) const
 // Use a Placement like p (possibly recast to something else) for this
 // feature. Concrete FeatureRep's are responsible for interpreting the
 // Placement and possibly converting it to something usable.
+//
+// We have to decide on an owner feature for the placement expression.
+// That is the youngest common ancestor of this feature and all features
+// mentioned explicitly in the placement expression.
+//
+// If this placement is currently evalutable (meaning it is a constant
+// or references only features with evaluatable placements) then we
+// can allocate a value slot for it in the owner feature. In addition,
+// this may have enabled evaluation of any number of additional placements
+// which were dependent (directly or indirectly) on the placement of 
+// this feature. Value slots for a given placement expression x are always
+// owned by the oldest owner of any of the placements on which x recursively
+// depends.
 void FeatureRep::place(const Placement& p) {
     assert(p.hasRep());
 
@@ -105,14 +164,24 @@ void FeatureRep::place(const Placement& p) {
         FeatureRep& ownerFeatureRep =
             hasParentFeature() ? updParentFeature().updRep() : *this;
         placement = &(ownerFeatureRep.addPlacementLike(pTweaked));
+
+        // Since we just nailed down this Feature to a constant, any
+        // placements dependent on it may have become calculable now, if
+        // this was the last unresolved dependency. However, the value
+        // can't necessarily be cached in the above ownerFeature -- it has
+        // to go in the 'youngest common ancestor' of the owners of *all*
+        // the dependencies (applied recursively).
         return;
     } 
     
     // The placement is not a constant. In that case all its feature references
     // must be on the same feature tree as this feature (although not necessarily
     // *below* this feature). We will make the placement owner be the youngest
-    // common ancestor of this feature and all the features referenced by the
-    // placement.
+    // common ancestor of this feature and all the features referenced (directly)
+    // by the placement. Note that this is not a recursive search through the
+    // referenced features' placements -- we only care about direct feature 
+    // references, not how they are placed (they may not even have placements
+    // yet at all).
 
     const Feature& myRoot = findRootFeature();
     const Feature* offender;
@@ -134,7 +203,7 @@ void FeatureRep::place(const Placement& p) {
     assert(good.hasOwner());
     assert(!good.getOwner().isSameFeature(getMyHandle()));
     assert(FeatureRep::isFeatureInFeatureTree(good.getOwner(), getMyHandle()));
-    assert(!good.dependsOn(getMyHandle()));
+    assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
     placement = &good; 
 }
 
@@ -283,6 +352,11 @@ void FeatureRep::reparentMyChildren() {
         assert(placementExpressions[i].getRep().getIndexInOwner() == i);
         placementExpressions[i].updRep().setOwner(getMyHandle(), i);
     }
+    for (size_t i=0; i < (size_t)getNPlacementValues(); ++i) {
+        assert(placementValues[i].getRep().hasOwner());
+        assert(placementValues[i].getRep().getIndexInOwner() == i);
+        placementValues[i].updRep().setOwner(getMyHandle(), i);
+    }
 }
 
 // We have just created at newRoot a copy of the tree rooted at oldRoot, and the
@@ -296,8 +370,11 @@ void FeatureRep::fixPlacements(const Feature& oldRoot, const Feature& newRoot) {
     for (size_t i=0; i < (size_t)getNSubfeatures(); ++i)
         subfeatures[i].updRep().fixPlacements(oldRoot, newRoot);    // recurse
 
-    for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i)
-        placementExpressions[i].updRep().repairFeatureReferences(oldRoot,newRoot);
+    for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
+        PlacementRep& pr = placementExpressions[i].updRep();
+        pr.repairFeatureReferences(oldRoot,newRoot);
+        pr.repairValueReference(oldRoot,newRoot);
+    }
 
     if (placement)
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
@@ -320,6 +397,26 @@ FeatureRep::findCorrespondingPlacement
     assert(newTreeRef);
     assert(&newTreeRef->getOwner() == corrOwner);
     assert(newTreeRef->getIndexInOwner() == p.getIndexInOwner());
+    return newTreeRef;
+}
+
+// If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
+// find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
+// to be a copy of oldRoot). Return NULL if not found for any reason.
+/*static*/ const PlacementValue* 
+FeatureRep::findCorrespondingPlacementValue
+    (const Feature& oldRoot, const PlacementValue& v, const Feature& newRoot)
+{
+    if (!v.hasOwner()) return 0;
+    const Feature* corrOwner = findCorrespondingFeature(oldRoot,v.getOwner(),newRoot);
+    if (!corrOwner) return 0;
+    assert(corrOwner->hasRep());
+
+    const PlacementValue* newTreeRef = 
+        &corrOwner->getRep().getPlacementValue(v.getIndexInOwner());
+    assert(newTreeRef);
+    assert(&newTreeRef->getOwner() == corrOwner);
+    assert(newTreeRef->getIndexInOwner() == v.getIndexInOwner());
     return newTreeRef;
 }
 

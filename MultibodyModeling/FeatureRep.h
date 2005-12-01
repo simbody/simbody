@@ -65,7 +65,7 @@ public:
 class SubPlacement : public Placement {
 public:
     SubPlacement() : Placement() { }
-    // Copy & assign do *not* invoke the Feature copy constructor.
+    // Copy & assign do *not* invoke the Placement copy constructor.
     inline SubPlacement(const SubPlacement& sf);
     inline SubPlacement& operator=(const SubPlacement& sf);
     ~SubPlacement() { }
@@ -92,13 +92,19 @@ public:
     virtual void initializeStandardSubfeatures() { }
 
     // Copying a Feature is tricky. The result should have all the child features
-    // and the *internal* placements. External placements should evaporate. Note
-    // that the index numbers for features & placements we own must stay the
+    // and the *internal* placements and *internal* placement values.
+    // External placements and values should evaporate. Note that the index
+    // numbers for features, placements, and values we own must stay the
     // same so that internal references in the copy are the same as in the original.
     // However, this is all handled in the Feature copy & assignment methods --
     // FetureRep copying is elementwise and dumb and thus dangerous. The idea is
     // to get a straight copy and then go clean up the mess afterwards.
 
+    // default (bitwise) copy constructor and assignment -- look out!
+
+    // This is the guts of the smart Feature copy constructor that knows
+    // how to clean up all the bad pointers.
+    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
     
     virtual ~FeatureRep() { }
 
@@ -121,55 +127,24 @@ public:
     virtual Placement recastPlacement(const Placement&) const = 0;
 
     // If this Feature can be used as the indicated placement type, return
-    // a new, unowned placement of the right type. Most commonly, the returned
+    // a new, unowned Placement of the right type. Most commonly, the returned
     // Placement will just be a feature-reference Placement of the same
     // type as the whole Feature, however, for composite Features this may
     // be a reference to one of its subfeatures instead.
     // For example, if a Frame is used as a StationPlacement, we return a
     // reference to the Frame's origin feature.
     // The newly created PlacementRep will refer to the provided Placement handle, but
-    // the handles's rep will not be set (otherwise disaster would ensue if
+    // the handle's rep will not be set (otherwise disaster would ensue if
     // we throw an exception somewhere along the way). Be sure to put the
     // returned pointer into the same handle you pass in.
 
-    virtual PlacementRep* useFeatureAsRealPlacement(RealPlacement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Real");
-        //NOTREACHED
-        return 0;
-    }
-    virtual PlacementRep* useFeatureAsVec3Placement(Vec3Placement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Vec3");
-        //NOTREACHED
-        return 0;
-    }
-    virtual PlacementRep* useFeatureAsStationPlacement(StationPlacement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Station");
-        //NOTREACHED
-        return 0;
-    }
-    virtual PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Direction");
-        //NOTREACHED
-        return 0;
-    }    
-    virtual PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Orientation");
-        //NOTREACHED
-        return 0;
-    } 
-    virtual PlacementRep* useFeatureAsFramePlacement(FramePlacement&) const {
-        SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                     getFullName(), getFeatureTypeName(), "Frame");
-        //NOTREACHED
-        return 0;
-    } 
+    virtual PlacementRep* useFeatureAsRealPlacement(RealPlacement&) const;
+    virtual PlacementRep* useFeatureAsVec3Placement(Vec3Placement&) const;
+    virtual PlacementRep* useFeatureAsStationPlacement(StationPlacement&) const;
+    virtual PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement&) const;
+    virtual PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement&) const;
+    virtual PlacementRep* useFeatureAsFramePlacement(FramePlacement&) const;
 
-    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
 
     void               setName(const std::string& nm) {name = nm;}
     const std::string& getName() const                {return name;}
@@ -180,26 +155,24 @@ public:
     Feature&       updParentFeature() const {assert(hasParentFeature()); return *parent;}
     int            getIndexInParent() const {assert(hasParentFeature()); return indexInParent;}
 
-    bool hasPlacement() const { return placement != 0; }
-    const Placement& getPlacement() const
-      { assert(placement); return *placement; }
+    bool             hasPlacement() const {return placement != 0;}
+    const Placement& getPlacement() const {assert(placement); return *placement;}
     void place(const Placement& p);
-
 
     int getNSubfeatures()          const {return subfeatures.size();}
     int getNPlacementExpressions() const {return placementExpressions.size();}
+    int getNPlacementValues()      const {return placementValues.size();}
 
-    const Feature&   getSubfeature(size_t i)          const {return subfeatures[i];}
-    Feature&         updSubfeature(size_t i)                {return subfeatures[i];}
-    const Placement& getPlacementExpression(size_t i) const {return placementExpressions[i];}
+    const Feature&        getSubfeature(size_t i)          const {return subfeatures[i];}
+    Feature&              updSubfeature(size_t i)                {return subfeatures[i];}
+    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
+    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
 
     const Feature* findSubfeature(const std::string& nm) const {
-        size_t index;
-        return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
+        size_t index; return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
     }
     Feature* findUpdSubfeature(const std::string& nm) {
-        size_t index;
-        return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
+        size_t index; return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
     }
 
     const Feature& getSubfeature(const std::string& nm) const {
@@ -216,8 +189,9 @@ public:
 
     std::string getFullName() const;
 
-    Feature&   addSubfeatureLike(const Feature& f, const std::string& nm);
-    Placement& addPlacementLike(const Placement& p);
+    Feature&        addSubfeatureLike(const Feature& f, const std::string& nm);
+    Placement&      addPlacementLike(const Placement& p);
+    PlacementValue& addPlacementValueLike(const PlacementValue& v);
 
     // Does the *placement* of this feature depend on the indicated one?
     // Note that we don't care about our child features' placements.
@@ -241,6 +215,18 @@ public:
     // to be a copy of oldRoot). Return NULL if not found for any reason.
     static const Feature* findCorrespondingFeature
         (const Feature& oldRoot, const Feature& f, const Feature& newRoot);
+
+    // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
+    // find the corresponding Placement in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const Placement* findCorrespondingPlacement
+        (const Feature& oldRoot, const Placement& p, const Feature& newRoot);
+
+    // If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
+    // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const PlacementValue* findCorrespondingPlacementValue
+        (const Feature& oldRoot, const PlacementValue& v, const Feature& newRoot);
 
     // Given two features, run up the tree towards the root to find
     // their "least common denominator", i.e. the first shared node
@@ -271,11 +257,6 @@ private:
     // set them to 0 in the newRoot copy.
     void fixPlacements(const Feature& oldRoot, const Feature& newRoot);
 
-    // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
-    // find the corresponding Placement in the tree rooted at newRoot (which is expected
-    // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const Placement* findCorrespondingPlacement
-        (const Feature& oldRoot, const Placement& p, const Feature& newRoot);
     
     static const Feature* getParentPtr(const Feature& f) {
         return f.rep ? f.rep->parent : 0;
@@ -298,9 +279,19 @@ private:
     // Subfeatures wholly owned by this Feature.
     StableArray<SubFeature>   subfeatures;
 
-    // Placement expressions wholly owned by this Feature. These compute values
-    // for the childFeatures of this Feature.
+    // Placement expressions wholly owned by this Feature. These expressions
+    // can involve only Subfeatures of this Feature (or further descendents). But
+    // note that we stop at the Subfeature references -- we don't care where they 
+    // are placed or even *whether* they are placed. Only when Features are realized
+    // do we chase through Placements to calculate values.
     StableArray<SubPlacement> placementExpressions;
+
+    // This is like a State cache except it holds values for Placement expressions
+    // where the highest placement dependency is resolved at this Feature (i.e., is
+    // one of the placementExpressions stored above. But note that these values
+    // do not in general correspond to the placementExpression; they can be the
+    // values of lower-level placement expressions.
+    StableArray<PlacementValue> placementValues;
 };
 
 class RealParameterRep : public FeatureRep {

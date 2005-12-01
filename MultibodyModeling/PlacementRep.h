@@ -429,9 +429,17 @@ private:
 
 class PlacementRep {
 public:
-    explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1) { }
+    explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1), valueSlot(0) { }
     virtual ~PlacementRep() { }
 
+    bool                  hasValueSlot() const {return valueSlot != 0;}
+    const PlacementValue& getValueSlot() const {assert(valueSlot); return *valueSlot;}
+    void                  assignValueSlot(PlacementValue& p) {valueSlot = &p;}
+
+    // We have just copied a Feature tree and this PlacementRep is the new copy. If
+    // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
+    // and needs to be repaired to point to the corresponding valueSlot in the new tree.
+    void repairValueReference(const Feature& oldRoot, const Feature& newRoot);
 
     // These are the generic Placement operators, overloaded by argument type.
     // The default implementations provided here throw an exception saying 
@@ -501,7 +509,8 @@ public:
     // to get the references to refer to objects in the new tree. 
     void cloneUnownedWithNewHandle(Placement& p) const {
         PlacementRep* pr = clone();
-        pr->myHandle = &p; pr->owner = 0; pr->indexInOwner = -1;
+        pr->myHandle = &p;
+        pr->owner = 0; pr->indexInOwner = -1;
         p.setRep(pr);
     }
 
@@ -512,10 +521,13 @@ public:
     static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
 private:
-    Placement*      myHandle;     // the Placement whose rep this is
+    Placement*      myHandle;           // the Placement whose rep this is
 
-    const Feature*  owner;        // The Feature (if any) which owns this Placement
-    int             indexInOwner; // ... and the index in its placementExpr list.
+    const Feature*  owner;              // The Feature (if any) which owns this Placement
+    int             indexInOwner;       // ... and the index in its placementExpr list.
+
+    const PlacementValue* valueSlot;    // Points to the cache entry designated to hold the
+                                        //   value of this placement expression, if any.
 };
 
 
@@ -1282,6 +1294,72 @@ private:
     OrientationPlacement orientation;
     StationPlacement     origin;
 };
+
+class PlacementValueRep {
+public:
+    PlacementValueRep() : valid(false), myHandle(0), owner(0), indexInOwner(-1) { }
+    // warning: default copy & assignment are bitwise leaving bad pointers which must be corrected
+
+    virtual ~PlacementValueRep() { }
+    virtual PlacementValueRep* clone() const = 0;
+    virtual std::string toString(const std::string& linePrefix) const = 0;
+
+    // Create a copy of this PlacementValue using a new handle and
+    // getting rid of the owner.
+    void cloneUnownedWithNewHandle(PlacementValue& p) const {
+        PlacementValueRep* pr = clone();
+        pr->myHandle = &p;
+        pr->owner = 0; pr->indexInOwner = -1;
+        p.setRep(pr);
+    }
+
+    bool isValid() const { return valid; }
+    void setValid(bool v) { valid=v; }
+
+    void                  setMyHandle(PlacementValue& p) {myHandle = &p;}
+    bool                  hasHandle()       const {return myHandle != 0;}
+    const PlacementValue& getMyHandle()     const {assert(myHandle); return *myHandle;}
+    PlacementValue&       updMyHandle()           {assert(myHandle); return *myHandle;} 
+
+    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
+    bool             hasOwner()        const {return owner != 0;}
+    const Feature&   getOwner()        const {assert(owner);    return *owner;}
+    int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
+
+private:
+    bool valid;                         // Is the stored value (in the concrete Rep) meaningful?
+
+    PlacementValue* myHandle;           // the PlacementValue whose rep this is
+
+    const Feature*  owner;              // The Feature (if any) which owns this PlacementValue
+    int             indexInOwner;       // ... and the index in its placementValues list.
+};
+
+template <class T> class PlacementValueRep_ : public PlacementValueRep {
+public:
+    PlacementValueRep_<T>() : PlacementValueRep() { }
+    explicit PlacementValueRep_<T>(const T& v) : PlacementValueRep(), value(v) { }
+
+    const PlacementValueRep_<T>& getMyHandle() const 
+      { return PlacementValueRep_<T>::downcast(PlacementValueRep::getMyHandle()); }
+
+    PlacementValueRep* clone() const { return new PlacementValueRep_<T>(*this); }
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << TypeInfo<T>::name() << "(" << value << ")";   
+        return s.str();
+    }
+
+    const T& getValue() const     { return value; }
+    void     setValue(const T& v) {value=v; setValid(true);}
+
+    SIMTK_DOWNCAST(PlacementValueRep_<T>, PlacementValueRep);
+private:
+    T value;
+};
+
+
+
 
 } // namespace simtk
 

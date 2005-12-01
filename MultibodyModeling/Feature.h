@@ -81,6 +81,24 @@ public:
     Feature& operator=(const Feature&);
     ~Feature();
 
+    // calculate values for all fully-resolved placements
+    void realize() const;
+
+    // Return value of this feature's placement. Requires (a) that there is
+    // a placement, and (b) that its value is available due to a prior realize()
+    // call.
+    const PlacementValue& getValue() const { return getPlacement().getValue(); }
+
+
+    // True if this feature has been placed; its children may still be unplaced.
+    bool hasPlacement() const;
+    const Placement& getPlacement() const;
+
+    // Place this Feature using the supplied Placement expression
+    // as a prototype. We will choose an owner Feature for the new
+    // Placement, and then add a copy of the supplied one to that
+    // owner. Then this Feature will refer to that copy as its Placement.
+    void place(const Placement&);
 
     // Read-only access to subfeatures.
     const Feature&          getSubfeature      (const String&) const; // generic
@@ -145,7 +163,7 @@ public:
     bool dependsOn(const Feature& f) const;
 
     String getName()            const;
-    String getFullName()        const; // "ancestors.parent.name"
+    String getFullName()        const; // "ancestors/parent/name"
     String getFeatureTypeName() const; // "Station", "Frame", etc. (for messages only)
 
     // Subfeatures of this feature
@@ -158,15 +176,6 @@ public:
     const Feature& operator[](const String& s) const {return getSubfeature(s);}
     Feature&       operator[](const String& s)       {return updSubfeature(s);}
 
-    // True if this feature has been placed; its children may still be unplaced.
-    bool hasPlacement() const;
-    const Placement& getPlacement() const;
-
-    // Place this Feature using the supplied Placement expression
-    // as a prototype. We will choose an owner Feature for the new
-    // Placement, and then add a copy of the supplied one to that
-    // owner. Then this Feature will refer to that copy as its Placement.
-    void place(const Placement&);
 
     String toString(const String& linePrefix="") const;
 

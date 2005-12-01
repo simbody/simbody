@@ -43,14 +43,20 @@ Feature::Feature(const Feature& f) : rep(0) {
 }
 Feature& Feature::operator=(const Feature& f) {
     if (this != &f) {
-        delete rep; rep=0;
+        // This will blow up if rep doesn't have a handle -- we shouldn't
+        // be pointing to it in that case!
+        if (rep && (&rep->getMyHandle() == this)) delete rep; 
+        rep = 0;
         if (f.rep) 
             f.rep->cloneWithoutParentOrExternalPlacements(*this);
     }
     return *this;
 }
-Feature::~Feature() { 
-    delete rep; rep = 0;
+Feature::~Feature() {
+    // This will blow up if rep doesn't have a handle -- we shouldn't
+    // be pointing to it in that case!
+    if (rep && (&rep->getMyHandle() == this)) delete rep; 
+    rep = 0;
 }
 static String featureHasNoRep(const Feature& f) {
     std::ostringstream s;
@@ -98,9 +104,10 @@ String Feature::toString(const String& linePrefix) const {
     s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
                            : String("NO PLACEMENT"));
 
-    const size_t nSubfeatures = f.getNSubfeatures();
-    const size_t nPlacement = f.getNPlacementExpressions();
-    const std::string nextIndent = linePrefix + "    ";
+    const size_t nSubfeatures     = f.getNSubfeatures();
+    const size_t nPlacement       = f.getNPlacementExpressions();
+    const size_t nPlacementValues = f.getNPlacementValues();
+    const std::string nextIndent  = linePrefix + "    ";
 
     if (nSubfeatures) {
         s << std::endl << linePrefix << "  Subfeatures (" << nSubfeatures << "):";
@@ -111,6 +118,11 @@ String Feature::toString(const String& linePrefix) const {
         s << std::endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
         for (size_t i=0; i < nPlacement; ++i)
             s  << std::endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
+    }
+    if (nPlacementValues) {
+        s << std::endl << linePrefix << "  Placement Values (" << nPlacementValues << "):";
+        for (size_t i=0; i < nPlacementValues; ++i)
+            s  << std::endl << nextIndent << f.getPlacementValue(i).toString(nextIndent);
     }
     return s.str();
 }
