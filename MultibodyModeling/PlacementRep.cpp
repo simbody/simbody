@@ -607,12 +607,74 @@ RealOps::checkArgs(const std::vector<Placement>& args) const {
                               && Vec3Placement::isInstanceOf(args[1]);  
     case PointDistance:
         return args.size()==2 && StationPlacement::isInstanceOf(args[0])
-                              && StationPlacement::isInstanceOf(args[1]);    
+                              && StationPlacement::isInstanceOf(args[1]); 
+
+    case AngleBetweenDirections:
+        return args.size()==2 && DirectionPlacement::isInstanceOf(args[0])
+                              && DirectionPlacement::isInstanceOf(args[1]); 
+
     default:
         assert(false);
     }
     //NOTREACHED
     return false;
+}
+
+Real RealOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    Real val = NTraits<Real>::getNaN();
+    Real arg1, arg2;
+    if (args.size() > 0 && RealPlacement::isInstanceOf(args[0]))
+        arg1 = RealPlacement::downcast(args[0]).getRep().calcValue();
+    if (args.size() > 1 && RealPlacement::isInstanceOf(args[1]))
+        arg2 = RealPlacement::downcast(args[1]).getRep().calcValue();
+
+    switch (op) {
+    case Negate: val = -arg1; break;
+    case Abs:    val = std::abs(arg1); break;
+    case Sqrt:   val = std::sqrt(arg1); break;
+    case Exp:    val = std::exp(arg1); break;
+    case Log:    val = std::log(arg1); break;
+    case Sin:    val = std::sin(arg1); break;
+    case Cos:    val = std::cos(arg1); break;
+    case Asin:   val = std::asin(arg1); break;
+    case Acos:   val = std::acos(arg1); break;
+    case VectorLength:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue().norm(); 
+        break;
+
+    case Add:      val = arg1+arg2; break;
+    case Subtract: val = arg1-arg2; break;
+    case Multiply: val = arg1*arg2; break;
+    case Divide:   val = arg1/arg2; break; 
+
+    case DotProduct3: {
+        const Vec3 l = Vec3Placement::downcast(args[0]).getRep().calcValue();
+        const Vec3 r = Vec3Placement::downcast(args[1]).getRep().calcValue();
+        val = (~l)*r;
+        break;
+    }
+    case DotProduct2: {
+        assert(false);
+        break;
+    }
+    case PointDistance: {
+        const Vec3 head = StationPlacement::downcast(args[0]).getRep().calcValue();
+        const Vec3 tail = StationPlacement::downcast(args[1]).getRep().calcValue();
+        val = (head-tail).norm();
+        break;
+    }
+    case AngleBetweenDirections: {
+        const Vec3 v1 = DirectionPlacement::downcast(args[0]).getRep().calcValue();
+        const Vec3 v2 = DirectionPlacement::downcast(args[1]).getRep().calcValue();
+        Real dotprod = ~v1*v2;
+        if (dotprod < -1.) dotprod = -1.;   // watch for roundoff
+        else if (dotprod > 1.) dotprod = 1.;
+        val = std::acos(dotprod);
+        break;
+    }
+    default: assert(false);
+    }
+    return val;
 }
 
 /*static*/ RealExprPlacementRep*
@@ -680,6 +742,9 @@ RealExprPlacementRep::distanceOp(const StationPlacement& l, const StationPlaceme
 /*static*/ RealExprPlacementRep*
 RealExprPlacementRep::dot3Op    (const Vec3Placement& l,    const Vec3Placement& r)
   { return binaryOp(RealOps::DotProduct3, l, r); }
+/*static*/ RealExprPlacementRep*
+RealExprPlacementRep::angleOp(const DirectionPlacement& l, const DirectionPlacement& r)
+  { return binaryOp(RealOps::AngleBetweenDirections, l, r); }
 
     // VEC3 PLACEMENT REP //
 
@@ -857,6 +922,28 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
     return PlacementRep::genericCrossProduct(r);    // die
 }
 
+// result = angle(vec3, placement)
+//   We support 
+//     real = angle(vec3, vec3)
+//     real = angle(vec3, station)
+//     real = angle(vec3, direction)
+Placement Vec3PlacementRep::genericAngle(const Placement& r) const {
+    if (Vec3Placement::isInstanceOf(r)) {
+        const Vec3Placement& vp = Vec3Placement::downcast(r);
+        return angle(normalize(getMyHandle()), normalize(vp));
+    }
+    if (StationPlacement::isInstanceOf(r)) {
+        const StationPlacement& sp = StationPlacement::downcast(r);
+        return angle(normalize(getMyHandle()), normalize(sp));
+    }
+    if (DirectionPlacement::isInstanceOf(r)) {
+        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
+        return angle(normalize(getMyHandle()), dp);
+    }
+
+    return PlacementRep::genericAngle(r);    // die
+}
+
     // VEC3 FEATURE PLACEMENT REP //
 const Vec3& Vec3FeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
@@ -916,6 +1003,57 @@ bool Vec3Ops::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
+Vec3 Vec3Ops::apply(/*State,*/ const std::vector<Placement>& args) const {
+    Vec3 val;
+    switch(op) {
+    case RecastStation:
+        val = StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    case RecastDirection:
+        val = DirectionPlacement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    case Negate:
+        val = -Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    case Add:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/)
+              + Vec3Placement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+    
+    case Subtract:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/)
+              - Vec3Placement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    case StationDifference:
+        val = StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/)
+              - StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    // real is always on the right for scalar mul & dvd
+    case ScalarMultiply:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/)
+              * RealPlacement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    case ScalarDivide:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/)
+              / RealPlacement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    case CrossProduct:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/)
+              % Vec3Placement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    default: 
+        assert(false);
+    }
+    return val;
+}
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::unaryOp(Vec3Ops::OpKind op, const Placement& a) {
@@ -1117,6 +1255,28 @@ Placement StationPlacementRep::genericDistance(const Placement& r) const {
     return PlacementRep::genericDistance(r);    // die
 }
 
+// result = angle(station, placement)
+//   We support 
+//     real = angle(station, vec3)
+//     real = angle(station, station)
+//     real = angle(station, direction)
+Placement StationPlacementRep::genericAngle(const Placement& r) const {
+    if (Vec3Placement::isInstanceOf(r)) {
+        const Vec3Placement& vp = Vec3Placement::downcast(r);
+        return angle(normalize(getMyHandle()), normalize(vp));
+    }
+    if (StationPlacement::isInstanceOf(r)) {
+        const StationPlacement& sp = StationPlacement::downcast(r);
+        return angle(normalize(getMyHandle()), normalize(sp));
+    }
+    if (DirectionPlacement::isInstanceOf(r)) {
+        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
+        return angle(normalize(getMyHandle()), dp);
+    }
+
+    return PlacementRep::genericAngle(r);    // die
+}
+
     // STATION FEATURE PLACEMENT REP //
 const Vec3& StationFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
@@ -1152,6 +1312,30 @@ StationOps::checkArgs(const std::vector<Placement>& args) const {
     }
     //NOTREACHED
     return false;
+}
+
+Vec3 StationOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    Vec3 val;
+    switch (op) {
+    case RecastVec3:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    case Add:
+        val = StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/)
+              + Vec3Placement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    case Subtract:
+        val = StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/)
+              - Vec3Placement::downcast(args[1]).getRep().calcValue(/*State*/);
+        break;
+
+    default: 
+        assert(false);
+    //NOTREACHED
+    }
+    return val;
 }
 
 /*static*/ StationExprPlacementRep*
@@ -1268,6 +1452,37 @@ Placement DirectionPlacementRep::genericCrossProduct(const Placement& r) const {
     return PlacementRep::genericCrossProduct(r);    // die
 }
 
+// result = angle(direction, placement)
+//   We support 
+//     real = angle(direction, vec3)
+//     real = angle(direction, station)
+//     real = angle(direction, direction)
+// The last one invokes the actual real operator since it requires
+// no normalization.
+Placement DirectionPlacementRep::genericAngle(const Placement& r) const {
+    if (Vec3Placement::isInstanceOf(r)) {
+        const Vec3Placement& vp = Vec3Placement::downcast(r);
+        return angle(getMyHandle(), normalize(vp));
+    }
+    if (StationPlacement::isInstanceOf(r)) {
+        const StationPlacement& sp = StationPlacement::downcast(r);
+        return angle(getMyHandle(), normalize(sp));
+    }
+
+    if (DirectionPlacement::isInstanceOf(r)) {
+        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
+        if (isConstant() && dp.getRep().isConstant()) {
+            Real dotprod = ~calcValue() * dp.getRep().getValue();
+            if (dotprod < -1.) dotprod = -1.;
+            else if (dotprod > 1.) dotprod = 1.;
+            return RealPlacement(new RealConstantPlacementRep(std::acos(dotprod)));
+        }
+        return RealPlacement(RealExprPlacementRep::angleOp(getMyHandle(),dp));
+    }
+
+    return PlacementRep::genericAngle(r);    // die
+}
+
     // DIRECTION FEATURE PLACEMENT REP //
 const Vec3& DirectionFeaturePlacementRep::getReferencedValue(/*State*/) const {
     const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
@@ -1291,16 +1506,46 @@ const Vec3& DirectionFeaturePlacementRep::getReferencedValue(/*State*/) const {
 bool DirectionOps::checkArgs(const std::vector<Placement>& args) const {
     switch (op) {
 
-    case Normalize:
-        return args.size()==1 && (   Vec3Placement::isInstanceOf(args[0])
-                                  || StationPlacement::isInstanceOf(args[0]));
+    case Negate:
+        return args.size()==1 && DirectionPlacement::isInstanceOf(args[0]);
+
+    case NormalizeVec3:
+        return args.size()==1 && Vec3Placement::isInstanceOf(args[0]);
+
+    case NormalizeStation:
+        return args.size()==1 && StationPlacement::isInstanceOf(args[0]);
 
     default: 
         assert(false);
-        //NOTREACHED
     }
     //NOTREACHED
     return false;
+}
+
+Vec3 DirectionOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    Vec3 val;
+    switch (op) {
+
+    case Negate:
+        val = DirectionPlacement::downcast(args[0]).getRep().calcValue(/*State*/);
+        break;
+
+    case NormalizeVec3:
+        val = Vec3Placement::downcast(args[0]).getRep().calcValue(/*State*/);
+        val /= val.norm();
+        break;
+
+    case NormalizeStation:
+        val = StationPlacement::downcast(args[0]).getRep().calcValue(/*State*/);
+        val /= val.norm();
+        break;
+
+    default: 
+        assert(false);
+    //NOTREACHED
+    }
+
+    return val;
 }
 
 /*static*/ DirectionExprPlacementRep*
@@ -1323,10 +1568,10 @@ DirectionExprPlacementRep::negateOp(const DirectionPlacement& p)
   { return unaryOp(DirectionOps::Negate, p); }
 /*static*/ DirectionExprPlacementRep*
 DirectionExprPlacementRep::normalizeOp(const StationPlacement& p)
-  { return unaryOp(DirectionOps::Normalize, p); }
+  { return unaryOp(DirectionOps::NormalizeStation, p); }
 /*static*/ DirectionExprPlacementRep*
 DirectionExprPlacementRep::normalizeOp(const Vec3Placement& p)
-  { return unaryOp(DirectionOps::Normalize, p); }
+  { return unaryOp(DirectionOps::NormalizeVec3, p); }
 
     // ORIENTATION PLACEMENT REP //
 
@@ -1352,6 +1597,11 @@ const Mat33& OrientationFeaturePlacementRep::getReferencedValue(/*State*/) const
 bool OrientationOps::checkArgs(const std::vector<Placement>& args) const {
     assert(false); // none yet
     return false;
+}
+
+Mat33 OrientationOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    assert(false);
+    return Mat33();
 }
 
 /*static*/ OrientationExprPlacementRep*
@@ -1431,6 +1681,11 @@ FrameExprPlacementRep::findPlacementValueOwnerFeature(const Feature& youngestAll
 bool FrameOps::checkArgs(const std::vector<Placement>& args) const {
     assert(false); // none yet
     return false;
+}
+
+Mat34 FrameOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    assert(false);
+    return Mat34();
 }
 
 /////////////////////////////////////////////////////////////

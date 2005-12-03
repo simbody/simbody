@@ -177,10 +177,14 @@ const Feature& Feature::getSubfeature(const String& n) const
   { return getRep().getSubfeature(n); }
 const RealParameter& Feature::getRealParameter(const String& n) const
   { return RealParameter::downcast(getSubfeature(n)); }
+const Vec3Parameter& Feature::getVec3Parameter(const String& n) const
+  { return Vec3Parameter::downcast(getSubfeature(n)); }
 const StationParameter& Feature::getStationParameter(const String& n) const
   { return StationParameter::downcast(getSubfeature(n)); }
 const RealMeasure& Feature::getRealMeasure(const String& n) const
   { return RealMeasure::downcast(getSubfeature(n)); }
+const Vec3Measure& Feature::getVec3Measure(const String& n) const
+  { return Vec3Measure::downcast(getSubfeature(n)); }
 const StationMeasure& Feature::getStationMeasure(const String& n) const
   { return StationMeasure::downcast(getSubfeature(n)); }
 const Station& Feature::getStation(const String& n) const
@@ -197,10 +201,14 @@ Feature& Feature::updSubfeature(const String& n)
   { return updRep().updSubfeature(n); }
 RealParameter& Feature::updRealParameter(const String& n)
   { return RealParameter::downcast(updSubfeature(n)); }
+Vec3Parameter& Feature::updVec3Parameter(const String& n)
+  { return Vec3Parameter::downcast(updSubfeature(n)); }
 StationParameter& Feature::updStationParameter(const String& n)
   { return StationParameter::downcast(updSubfeature(n)); }
 RealMeasure& Feature::updRealMeasure(const String& n)
   { return RealMeasure::downcast(updSubfeature(n)); }
+Vec3Measure& Feature::updVec3Measure(const String& n)
+  { return Vec3Measure::downcast(updSubfeature(n)); }
 StationMeasure& Feature::updStationMeasure(const String& n)
   { return StationMeasure::downcast(updSubfeature(n)); }
 Station& Feature::updStation(const String& n)
@@ -222,6 +230,16 @@ RealMeasure& Feature::addRealMeasure(const String& n, const Placement& p) {
     RealMeasure& rm = RealMeasure::downcast(updRep().addSubfeatureLike(RealMeasure(n), n));
     if (p.hasRep()) rm.place(p);
     return rm;
+}
+Vec3Parameter& Feature::addVec3Parameter(const String& n, const Placement& p) {
+    Vec3Parameter& vp = Vec3Parameter::downcast(updRep().addSubfeatureLike(Vec3Parameter(n), n));
+    if (p.hasRep()) vp.place(p);
+    return vp;
+}
+Vec3Measure& Feature::addVec3Measure(const String& n, const Placement& p) {
+    Vec3Measure& vm = Vec3Measure::downcast(updRep().addSubfeatureLike(Vec3Measure(n), n));
+    if (p.hasRep()) vm.place(p);
+    return vm;
 }
 StationParameter& Feature::addStationParameter(const String& n, const Placement& p) {
     StationParameter& sp = StationParameter::downcast(updRep().addSubfeatureLike(StationParameter(n), n));

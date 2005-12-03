@@ -103,8 +103,10 @@ public:
     // Read-only access to subfeatures.
     const Feature&          getSubfeature      (const String&) const; // generic
     const RealParameter&    getRealParameter   (const String&) const; // type checked
-    const StationParameter& getStationParameter(const String&) const; //   "
+    const Vec3Parameter&    getVec3Parameter   (const String&) const; //   "
+    const StationParameter& getStationParameter(const String&) const;
     const RealMeasure&      getRealMeasure     (const String&) const;
+    const Vec3Measure&      getVec3Measure     (const String&) const;
     const StationMeasure&   getStationMeasure  (const String&) const;
     const Station&          getStation         (const String&) const;
     const Direction&        getDirection       (const String&) const;
@@ -114,8 +116,10 @@ public:
     // Writable access to subfeatures, e.g. allowing placement.
     Feature&                updSubfeature      (const String&);   // generic
     RealParameter&          updRealParameter   (const String&);   // type checked
-    StationParameter&       updStationParameter(const String&);   //   "
+    Vec3Parameter&          updVec3Parameter   (const String&);   //   "
+    StationParameter&       updStationParameter(const String&);
     RealMeasure&            updRealMeasure     (const String&);
+    Vec3Measure&            updVec3Measure     (const String&);
     StationMeasure&         updStationMeasure  (const String&);
     Station&                updStation         (const String&);
     Direction&              updDirection       (const String&);
@@ -126,7 +130,11 @@ public:
     // optionally create a placement for it using the prototype placement supplied.
     RealParameter&    addRealParameter
                         (const String&, const Placement& = Placement());
+    Vec3Parameter&    addVec3Parameter
+                        (const String&, const Placement& = Placement());
     RealMeasure&      addRealMeasure
+                        (const String&, const Placement& = Placement());
+    Vec3Measure&      addVec3Measure
                         (const String&, const Placement& = Placement());
     StationParameter& addStationParameter
                         (const String&, const Placement& = Placement());

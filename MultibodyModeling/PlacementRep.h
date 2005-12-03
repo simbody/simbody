@@ -116,7 +116,7 @@ class RealOps : public PlacementOp {
 public:
     enum OpKind { Negate, Abs, Sqrt, Exp, Log, Sin, Cos, Asin, Acos, VectorLength, // unary 
                   Add, Subtract, Multiply, Divide, DotProduct2, DotProduct3,  // binary
-                  PointDistance, AngleBetweenVectors };
+                  PointDistance, AngleBetweenDirections };
 
     explicit RealOps(OpKind k) : op(k) { }
     // default copy, assignment, destructor
@@ -145,7 +145,7 @@ public:
             case DotProduct3:   p="dot3";     break;
             case DotProduct2:   p="dot2";     break;
             case PointDistance: p="distance"; break;
-            case AngleBetweenVectors: 
+            case AngleBetweenDirections: 
                                 p="angle"; break;
             default:            p="UNKNOWN OP";
         };
@@ -153,8 +153,7 @@ public:
     }
 
     // Run time calculation of expression value.
-    // TODO
-    Real apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return 0.;}
+    Real apply(/*State,*/ const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(RealOps, PlacementOp);
 private:
@@ -191,8 +190,8 @@ public:
         return std::string(p) + "<Vec3>";
     }
 
-    // XXX not yet
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
+
     SIMTK_DOWNCAST(Vec3Ops, PlacementOp);
 private:
     OpKind op;
@@ -221,8 +220,8 @@ public:
         return std::string(p) + "<Station>";
     }
 
-    // XXX not yet
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
+
     SIMTK_DOWNCAST(StationOps, PlacementOp);
 private:
     OpKind op;
@@ -248,7 +247,7 @@ public:
  */
 class DirectionOps : public DirectionPlacementOp {
 public:
-    enum OpKind { Negate, Normalize };
+    enum OpKind { Negate, NormalizeVec3, NormalizeStation };
     explicit DirectionOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new DirectionOps(*this);}
@@ -256,15 +255,16 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Negate:    p="negate";    break;
-            case Normalize: p="normalize"; break;
-            default:        p="UNKNOWN OP";
+            case Negate:           p="negate";    break;
+            case NormalizeVec3:    p="normalizeVec3"; break;
+            case NormalizeStation: p="normalizeStation"; break;
+            default:               p="UNKNOWN OP";
         };
         return std::string(p) + "<Direction>";
     }
 
     // XXX not yet
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Vec3(0);}
+    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST2(DirectionOps, DirectionPlacementOp, PlacementOp);
 private:
@@ -304,8 +304,7 @@ public:
         return std::string(p) + "<Orientation>";
     }
 
-    // XXX not yet
-    Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
+    Mat33 apply(/*State,*/ const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST2(OrientationOps, OrientationPlacementOp, PlacementOp);
 private:
@@ -319,8 +318,8 @@ private:
 class FramePlacementOp : public PlacementOp {
 public:
     virtual ~FramePlacementOp() { }
-    // Run time XXX TODO wrong return type; should be numerical Frame
-    virtual Mat33 apply(/*State,*/const std::vector<Placement>&) const = 0;
+    // Run time
+    virtual Mat34 apply(/*State,*/const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(FramePlacementOp, PlacementOp);
 };
@@ -345,8 +344,8 @@ public:
         return std::string(p) + "<Frame>";
     }
 
-    // XXX not yet TODO this is the wrong return type
-    Mat33 apply(/*State,*/ const std::vector<Placement>&) const {assert(false); return Mat33(0);}
+    Mat34 apply(/*State,*/ const std::vector<Placement>&) const;
+
     SIMTK_DOWNCAST2(FrameOps, FramePlacementOp, PlacementOp);
 private:
     OpKind op;
@@ -737,9 +736,10 @@ public:
     static RealExprPlacementRep* mulOp(const RealPlacement& l, const RealPlacement& r);
     static RealExprPlacementRep* dvdOp(const RealPlacement& l, const RealPlacement& r);
 
-    static RealExprPlacementRep* distanceOp(const StationPlacement& l, const StationPlacement& r);
-    static RealExprPlacementRep* dot2Op    (const Vec2Placement& l,    const Vec2Placement& r);
-    static RealExprPlacementRep* dot3Op    (const Vec3Placement& l,    const Vec3Placement& r);
+    static RealExprPlacementRep* distanceOp(const StationPlacement&   l, const StationPlacement&   r);
+    static RealExprPlacementRep* dot2Op    (const Vec2Placement&      l, const Vec2Placement&      r);
+    static RealExprPlacementRep* dot3Op    (const Vec3Placement&      l, const Vec3Placement&      r);
+    static RealExprPlacementRep* angleOp   (const DirectionPlacement& l, const DirectionPlacement& r);
     
     PlacementRep*  clone() const {return new RealExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
@@ -788,6 +788,7 @@ public:
     Placement genericDvd  (const Placement& rhs) const;
     Placement genericDotProduct  (const Placement& rhs) const;
     Placement genericCrossProduct(const Placement& rhs) const;
+    Placement genericAngle(const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing
@@ -965,6 +966,7 @@ public:
     Placement genericDotProduct  (const Placement& rhs) const;
     Placement genericCrossProduct(const Placement& rhs) const;
     Placement genericDistance    (const Placement& rhs) const;
+    Placement genericAngle       (const Placement& rhs) const;
 
     // Constant Rep should override this default.
     virtual const Vec3& getValue(/*State*/) const {
@@ -1143,6 +1145,8 @@ public:
     // Dot(direction,placement) yields Real, Cross yields Vec3
     Placement genericDotProduct  (const Placement& rhs) const;
     Placement genericCrossProduct(const Placement& rhs) const;
+
+    Placement genericAngle       (const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return DirectionPlacementType; }
     // clone, toString, findAncestorFeature are still missing

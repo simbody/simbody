@@ -43,6 +43,37 @@ try {
     f.realize(/*State,*/ Stage::Startup);
     //cout << f;
 
+    f.addRealParameter("one").place(1.);
+    f.addRealParameter("negone");
+    f.addRealMeasure("zzz").place(f["one"]+f["negone"]);
+    f.addRealMeasure("ttt").place(f["one"]+abs(f["negone"]));
+    f.addRealMeasure("x2y").place(angle(f.x(),f.y()));
+    f.addVec3Measure("YCrossX").place(cross(f.y(),f.x()));
+
+    f.realize(/*State,*/ Stage::Startup);
+
+    try {
+        cout << "one=" << f["one"].getValue() << endl;
+        cout << "zzz=" << f["zzz"].getValue() << endl;
+        cout << "ttt=" << f["ttt"].getValue() << endl;
+    }
+    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
+
+    f["negone"].place(-1);
+    f.realize(/*State,*/ Stage::Startup);
+
+    try {
+        cout << "one=" << f["one"].getValue() << endl;
+        cout << "zzz=" << f["zzz"].getValue() << endl;
+        cout << "ttt=" << f["ttt"].getValue() << endl;
+        cout << "x2y=" << f["x2y"].getValue() << endl;
+        cout << "y%x=" << f["YCrossX"].getValue() << endl;
+    }
+    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
+
+    cout << f;
+
+
 
     ////////////////////////////////////
     // Create mass element prototypes //
@@ -177,8 +208,6 @@ try {
                  << "  reference: " << mbs[i]["reference"].getPlacement() 
                  << "  moving:    " << mbs[i]["moving"].getPlacement() 
                  << endl;
-
-
 
 
     // Any leftover parameters need external placements. We'll make a RuntimeFeature
