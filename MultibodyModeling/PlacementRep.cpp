@@ -33,6 +33,7 @@
 #include <string>
 #include <iostream> 
 #include <sstream>
+using std::cout;
 using std::endl;
 using std::ostream;
 
@@ -40,9 +41,9 @@ namespace simtk {
 
     // PLACEMENT EXPR //
 
-void PlacementExpr::exprRealize(/*State*/) const {
+void PlacementExpr::exprRealize(/*State,*/ Stage g) const {
     for (size_t i=0; i < args.size(); ++i)
-        args[i].getRep().realize(/*State*/);
+        args[i].realize(/*State,*/ g);
 }
 
 bool PlacementExpr::exprIsConstant() const {
@@ -59,21 +60,19 @@ bool PlacementExpr::exprDependsOn(const Feature& f) const {
 }
 
 const Feature* 
-PlacementExpr::exprFindAncestorFeature(const Feature& root) const {
-    const Feature* ancestor = 0;
-    bool foundNonConst = false;
-    for (size_t i=0; i < args.size(); ++i) {
-        if (args[i].isConstant())
-            continue;
-        foundNonConst = true;
-        const Feature* argAncestor = 
-            args[i].getRep().findAncestorFeature(root);
-        if (ancestor && argAncestor)
-            ancestor = FeatureRep::findYoungestCommonAncestor(*ancestor,*argAncestor);
-        else ancestor = argAncestor;
-    }
-    assert(foundNonConst);
+PlacementExpr::exprFindAncestorFeature(const Feature& youngestAllowed) const {
+    const Feature* ancestor = &youngestAllowed;
+    for (size_t i=0; ancestor && i < args.size(); ++i)
+        ancestor = args[i].getRep().findAncestorFeature(*ancestor);
     return ancestor;
+}
+
+const Feature* 
+PlacementExpr::exprFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
+    const Feature* valueOwner = &youngestAllowed;
+    for (size_t i=0; valueOwner && i < args.size(); ++i)
+        valueOwner = args[i].getRep().findPlacementValueOwnerFeature(*valueOwner);
+    return valueOwner;
 }
 
 std::string
@@ -117,17 +116,26 @@ FeatureReference::FeatureReference(const Feature& f, int i)
 }
 
 
-void FeatureReference::refRealize(/*State*/) const {
-    getReferencedPlacement().getRep().realize();
+void FeatureReference::refRealize(/*State,*/ Stage g) const {
+    if (getReferencedFeature().hasPlacement())
+        getReferencedFeature().getPlacement().realize(/*State,*/ g);
 }
 
 const Feature* 
-FeatureReference::refFindAncestorFeature(const Feature& root) const {
+FeatureReference::refFindAncestorFeature(const Feature& youngestAllowed) const {
     assert(feature);
-    return FeatureRep::isFeatureInFeatureTree(root, *feature) 
-            ? feature : 0;
+    return FeatureRep::findYoungestCommonAncestor(youngestAllowed, *feature);
 }
 
+// If the referenced Feature has no placement, we can't evaluate this placement so
+// there is *no* acceptable owner for the value.
+const Feature* 
+FeatureReference::refFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
+    assert(feature);
+    return feature->hasPlacement() 
+        ? feature->getPlacement().getRep().findPlacementValueOwnerFeature(youngestAllowed)
+        : 0;
+}
 
 // Check that this feature is on the feature subtree rooted by "ancestor". If
 // not return a pointer to this feature for use in a friendly error message.
@@ -381,6 +389,29 @@ PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
     return InvalidPlacementType;
 }
 
+void PlacementRep::checkPlacementConsistency(const Feature* expOwner, 
+                                             int expIndexInOwner,
+                                             const Feature& expRoot) const
+{
+    cout << "CHECK PLACEMENT CONSISTENCY FOR PlacementRep@" << this << endl;
+    if (!myHandle) 
+        cout << "*** NO HANDLE ***" << endl;
+    else if (myHandle->rep != this)
+        cout << "*** Handle->rep=" << myHandle->rep << " which is *** WRONG ***" << endl;
+    if (owner != expOwner)
+        cout << "*** WRONG OWNER@" << owner << "; should have been " << expOwner << endl;
+    if (indexInOwner != expIndexInOwner)
+        cout << "*** WRONG INDEX " << indexInOwner << "; should have been " << expIndexInOwner << endl;
+
+    const Feature* offender;
+    if (!isLimitedToSubtree(expRoot, offender)) {
+        cout << "*** Placement referenced feature '" << offender->getFullName() << "' in wrong tree" << endl;
+        cout << "*** Root should have been @" << &expRoot << ", not " << 
+            &offender->getRep().findRootFeature() << endl;
+    }
+}
+
+
     // REAL PLACEMENT REP //
 
 // result = -real (result is always real)
@@ -530,7 +561,7 @@ Placement RealPlacementRep::genericDvd(const Placement& r) const {
 
     // REAL FEATURE PLACEMENT REP //
 const Real& RealFeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
     if (!isIndexed()) 
         return RealPlacementRep::downcast(p).getValue(/*State*/);
 
@@ -828,7 +859,7 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
 
     // VEC3 FEATURE PLACEMENT REP //
 const Vec3& Vec3FeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
     if (!isIndexed())
         return Vec3PlacementRep::downcast(p).getValue(/*State*/);
 
@@ -1088,7 +1119,7 @@ Placement StationPlacementRep::genericDistance(const Placement& r) const {
 
     // STATION FEATURE PLACEMENT REP //
 const Vec3& StationFeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
     if (!isIndexed())
         return StationPlacementRep::downcast(p).getValue(/*State*/);
 
@@ -1239,7 +1270,7 @@ Placement DirectionPlacementRep::genericCrossProduct(const Placement& r) const {
 
     // DIRECTION FEATURE PLACEMENT REP //
 const Vec3& DirectionFeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
 
     if (!isIndexed())
         return DirectionPlacementRep::downcast(p).getValue(/*State*/);
@@ -1301,7 +1332,7 @@ DirectionExprPlacementRep::normalizeOp(const Vec3Placement& p)
 
     // ORIENTATION FEATURE PLACEMENT REP //
 const Mat33& OrientationFeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
 
     if (!isIndexed())
         return OrientationPlacementRep::downcast(p).getValue(/*State*/);
@@ -1343,7 +1374,7 @@ OrientationExprPlacementRep::binaryOp(OrientationOps::OpKind op,
 
     // FRAME FEATURE PLACEMENT REP //
 const Mat34& FrameFeaturePlacementRep::getReferencedValue(/*State*/) const {
-    const PlacementRep& p = getReferencedPlacement().getRep();
+    const PlacementRep& p = getReferencedFeature().getPlacement().getRep();
 
     if (!isIndexed())
         return FramePlacementRep::downcast(p).getValue(/*State*/);
@@ -1373,22 +1404,26 @@ void FrameExprPlacementRep::repairFeatureReferences
 
 
 const Feature*
-FrameExprPlacementRep::findAncestorFeature(const Feature& root) const {
-    assert(!isConstant()); // don't call!
+FrameExprPlacementRep::findAncestorFeature(const Feature& youngestAllowed) const {
+    const Feature* ancestor = &youngestAllowed;
+    ancestor = orientation.getRep().findAncestorFeature(*ancestor);
 
-    const Feature* ancestor = 0;
-    if (!orientation.isConstant())
-        ancestor =  orientation.getRep().findAncestorFeature(root);
-
-    const Feature* tmpAncestor = 0;
-    if (!origin.isConstant())
-        tmpAncestor =  origin.getRep().findAncestorFeature(root);
-
-    if (ancestor && tmpAncestor)
-        ancestor = FeatureRep::findYoungestCommonAncestor(*ancestor,*tmpAncestor);
-    else ancestor = tmpAncestor;
+    if (ancestor)
+        ancestor = origin.getRep().findAncestorFeature(*ancestor);
 
     return ancestor;
+}
+
+
+const Feature*
+FrameExprPlacementRep::findPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
+    const Feature* valueOwner = &youngestAllowed;
+    valueOwner = orientation.getRep().findPlacementValueOwnerFeature(*valueOwner);
+
+    if (valueOwner)
+        valueOwner = origin.getRep().findPlacementValueOwnerFeature(*valueOwner);
+
+    return valueOwner;
 }
 
     // FRAME EXPR PLACEMENT REP //
@@ -1452,7 +1487,7 @@ const Feature& PlacementValue::getOwner() const {
 
 String PlacementValue::toString(const String& linePrefix) const {
     std::stringstream s;
-    s << "Placement Value";
+    s << "Placement Value ";
     if (!rep) {
         s << "at 0x" << this << " HAS NULL REP";
         return s.str();
@@ -1469,20 +1504,38 @@ String PlacementValue::toString(const String& linePrefix) const {
     return s.str();
 }
 
+void PlacementValue::checkPlacementValueConsistency(const Feature* expOwner,
+                                                    int expIndexInOwner,
+                                                    const Feature& expRoot) const
+{
+    if (!rep)
+        std::cout << "checkPlacementValueConsistency(): NO REP!!!" << std::endl;
+    else
+        getRep().checkPlacementValueConsistency(expOwner,expIndexInOwner,expRoot);
+}
+
+std::ostream& operator<<(std::ostream& o, const PlacementValue& v) {
+    return o << v.toString();
+}
+
     // PLACEMENT VALUE <T> //
 
 template <class T>
-PlacementValue_<T>::PlacementValue_<T>() : PlacementValue()
-  { rep = new PlacementValueRep_<T>(); }
+PlacementValue_<T>::PlacementValue_<T>() : PlacementValue() { 
+    rep = new PlacementValueRep_<T>(); 
+    rep->setMyHandle(*this);
+}
 
 template <class T>
-PlacementValue_<T>::PlacementValue_<T>(const T& v) : PlacementValue()
-  { rep = new PlacementValueRep_<T>(v); }
+PlacementValue_<T>::PlacementValue_<T>(const T& v) : PlacementValue() {
+    rep = new PlacementValueRep_<T>(v);
+    rep->setMyHandle(*this);
+}
 
 template <class T>
 PlacementValue_<T>& PlacementValue_<T>::operator=(const T& v) {
     if (rep) set(v);
-    else rep = new PlacementValueRep_<T>(v);
+    else {rep = new PlacementValueRep_<T>(v); rep->setMyHandle(*this);}
     return *this;
 }
 
@@ -1520,5 +1573,23 @@ template class PlacementValue_<Real>;
 template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
 template class PlacementValue_<Mat34>;
+
+    // PLACEMENT VALUE REP //
+
+void PlacementValueRep::checkPlacementValueConsistency(const Feature* expOwner, 
+                                                       int expIndexInOwner,
+                                                       const Feature& expRoot) const
+{
+    cout << "CHECK PLACEMENT VALUE CONSISTENCY FOR PlacementValueRep@" << this << endl;
+    if (!myHandle) 
+        cout << "*** NO HANDLE ***" << endl;
+    else if (myHandle->rep != this)
+        cout << "*** Handle->rep=" << myHandle->rep << " which is *** WRONG ***" << endl;
+    if (owner != expOwner)
+        cout << "*** WRONG OWNER@" << owner << "; should have been " << expOwner << endl;
+    if (indexInOwner != expIndexInOwner)
+        cout << "*** WRONG INDEX " << indexInOwner << "; should have been " << expIndexInOwner << endl;
+}
+
 
 } // namespace simtk

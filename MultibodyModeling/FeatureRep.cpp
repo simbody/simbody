@@ -31,6 +31,7 @@
 #include <string>
 #include <iostream> 
 #include <sstream>
+using std::cout;
 using std::endl;
 using std::ostream;
 
@@ -41,6 +42,14 @@ static int caseInsensitiveCompare(const std::string& key, const std::string& tes
 namespace simtk {
 
     // FEATURE REP //
+
+void FeatureRep::realize(/*State,*/Stage g) const {
+    for (int i=0; i < getNSubfeatures(); ++i)
+        getSubfeature(i).realize(g);
+
+    if (hasPlacement()) 
+        getPlacement().realize(/*State,*/ g);
+}
 
 std::string 
 FeatureRep::getFullName() const { 
@@ -154,27 +163,8 @@ void FeatureRep::place(const Placement& p) {
     }
 
     assert(pTweaked.getRep().getPlacementType() == getRequiredPlacementType());
-
-    // If the Placement is a constant, it is a self-placement if this 
-    // Feature has no parent; otherwise, we'll put the constant Placement
-    // in the parent (making it external). This is a significant difference
-    // because in the self-placement case the placement remains after a
-    // copy, whereas external placements are removed by copy (or assign).
-    if (pTweaked.isConstant()) {
-        FeatureRep& ownerFeatureRep =
-            hasParentFeature() ? updParentFeature().updRep() : *this;
-        placement = &(ownerFeatureRep.addPlacementLike(pTweaked));
-
-        // Since we just nailed down this Feature to a constant, any
-        // placements dependent on it may have become calculable now, if
-        // this was the last unresolved dependency. However, the value
-        // can't necessarily be cached in the above ownerFeature -- it has
-        // to go in the 'youngest common ancestor' of the owners of *all*
-        // the dependencies (applied recursively).
-        return;
-    } 
     
-    // The placement is not a constant. In that case all its feature references
+    // If the Placement references any features, all its references
     // must be on the same feature tree as this feature (although not necessarily
     // *below* this feature). We will make the placement owner be the youngest
     // common ancestor of this feature and all the features referenced (directly)
@@ -183,25 +173,37 @@ void FeatureRep::place(const Placement& p) {
     // references, not how they are placed (they may not even have placements
     // yet at all).
 
-    const Feature& myRoot = findRootFeature();
     const Feature* offender;
-    if (!pTweaked.getRep().isLimitedToSubtree(myRoot, offender)) {
+    if (!pTweaked.getRep().isLimitedToSubtree(findRootFeature(), offender)) {
         SIMTK_THROW2(Exception::FeatureAndPlacementOnDifferentTrees,
             getFullName(), offender->getFullName());
         //NOTREACHED
     }
 
-    const Feature& placementAncestor = 
-        *pTweaked.getRep().findAncestorFeature(myRoot);
+    // If the Placement doesn't reference any features, it is a constant
+    // value and can be owned by anyone. If the current Feature is a
+    // prototype (has no parent) then we are "locking down" a value in
+    // the prototype and the current Feature can own the placement itself.
+    // If on the other hand the current Feature has a parent, then we
+    // want the parent to own the placement (making it external). This is a 
+    // significant difference because in the self-placement case the placement 
+    // would remain in place after a copy, whereas external placements are
+    // removed by copy (or assign). So either this Feature (if alone) or its
+    // parent will be the youngest conceivable owner for the new Placement.
+    const Feature& youngestAllowed = hasParentFeature() ? getParentFeature() : getMyHandle();
 
-    Feature* commonAncestor = 
-        findUpdYoungestCommonAncestor(updMyHandle(), placementAncestor);
+    const Feature* commonAncestor = 
+        pTweaked.getRep().findAncestorFeature(youngestAllowed);
     assert(commonAncestor); // there has to be one since they are on the same tree!
-    Placement& good = commonAncestor->updRep().addPlacementLike(pTweaked);
+
+    // Please look the other way for a moment while we make a small change to
+    // this const Feature ...
+    Placement& good = 
+        const_cast<Feature*>(commonAncestor)->updRep().addPlacementLike(pTweaked);
 
     // Some sanity (insanity?) checks.
     assert(good.hasOwner());
-    assert(!good.getOwner().isSameFeature(getMyHandle()));
+    assert(good.isConstant() || !good.getOwner().isSameFeature(getMyHandle()));
     assert(FeatureRep::isFeatureInFeatureTree(good.getOwner(), getMyHandle()));
     assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
     placement = &good; 
@@ -240,6 +242,17 @@ FeatureRep::addPlacementLike(const Placement& p) {
     return newPlacement;
 }
 
+PlacementValue& 
+FeatureRep::addPlacementValueLike(const PlacementValue& v) {
+    assert(v.hasRep());
+
+    const int index = (int)placementValues.size();
+    placementValues.push_back(PlacementValue());
+    PlacementValue& newPlacementValue = placementValues[index];
+    v.getRep().cloneUnownedWithNewHandle(newPlacementValue);
+    newPlacementValue.updRep().setOwner(getMyHandle(), index);
+    return newPlacementValue;
+}
 
 // Is Feature f in the tree rooted at oldRoot? If so, optionally return the 
 // series of indices required to get to this Feature from the root.
@@ -326,6 +339,34 @@ FeatureRep::findYoungestCommonAncestor(const Feature& f1, const Feature& f2)
 /*static*/ Feature* 
 FeatureRep::findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2) {
     return const_cast<Feature*>(findYoungestCommonAncestor(f1,f2));
+}
+
+// Debugging routine
+void FeatureRep::checkFeatureConsistency(const Feature* expParent, 
+                                         int expIndexInParent,
+                                         const Feature& root) const {
+    cout << "CHECK FEATURE CONSISTENCY FOR FeatureRep@" << this << "(" << getFullName() << ")" << endl;
+
+    if (!myHandle) 
+        cout << "*** NO HANDLE ***" << endl;
+    else if (myHandle->rep != this)
+        cout << "*** Handle->rep=" << myHandle->rep << " which is *** WRONG ***" << endl;
+
+    if (parent != expParent)
+        cout << " WRONG PARENT@" << parent << "; should have been " << expParent << endl;
+    if (indexInParent != expIndexInParent)
+        cout << "*** WRONG INDEX " << indexInParent << "; should have been " << expIndexInParent << endl;
+
+    if (!findRootFeature().isSameFeature(root)) {
+        cout << " WRONG ROOT@" << &findRootFeature() << "(" << findRootFeature().getFullName() << ")";
+        cout << "; should have been " << &root << "(" << root.getFullName() << ")" << endl;
+    }
+    for (size_t i=0; i<(size_t)getNSubfeatures(); ++i) 
+        getSubfeature(i).checkFeatureConsistency(&getMyHandle(), (int)i, root);
+    for (size_t i=0; i<(size_t)getNPlacementExpressions(); ++i) 
+        getPlacementExpression(i).checkPlacementConsistency(&getMyHandle(), (int)i, root);
+    for (size_t i=0; i < (size_t)getNPlacementValues(); ++i)
+        getPlacementValue(i).checkPlacementValueConsistency(&getMyHandle(), (int)i, root);
 }
 
 // Return true and ix==feature index if a feature of the given name is found.

@@ -81,6 +81,39 @@ Placement::Placement(const Vec3& v) : rep(0) {
 //    rep = new Mat33ConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
 //}
 
+// If the Placement has an owner, we might be able to find a place in the feature
+// try to stash its value. If so, we'll allocate one. Otherwise we're not going to
+// be able to realize() this Placement but we might still be able to realize() some
+// of the things it references. If we can realize all the downstream stuff then we'll
+// at least be able to calculate a value for this Placement when we want it (that is,
+// it an 'operator' rather than a 'response'.
+void Placement::realize(/*State,*/ Stage g) const {
+    const PlacementRep& pr = getRep();
+    if (pr.hasValidValue()) return; // already done!
+
+    if (pr.hasOwner() && !pr.hasValueSlot()) {
+        // can we get it a slot?
+        const Feature* f = pr.findPlacementValueOwnerFeature(pr.getOwner());
+        if (f) {
+            PlacementValue& pv = 
+                const_cast<Feature*>(f)->updRep().addPlacementValueLike(pr.createEmptyPlacementValue());
+            pr.assignValueSlot(pv);
+        }
+    }
+    pr.realize(/*State,*/ g);
+}
+
+const PlacementValue& Placement::getValue() const {
+    try {
+        return getRep().getValueSlot(/*State*/);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "getValue", "", exc.getMessageText());
+    }
+}
+
+
 bool Placement::hasOwner() const {
     return rep && rep->hasOwner();
 }
@@ -125,6 +158,15 @@ String Placement::toString(const String& linePrefix) const {
 
 std::ostream& operator<<(std::ostream& o, const Placement& p) {
     return o << p.toString() << std::endl;
+}
+
+void Placement::checkPlacementConsistency(const Feature* expOwner,
+                                          int expIndexInOwner,
+                                          const Feature& expRoot) const {
+    if (!rep)
+        std::cout << "checkPlacementConsistency(): NO REP!!!" << std::endl;
+    else
+        getRep().checkPlacementConsistency(expOwner,expIndexInOwner,expRoot);
 }
 
 

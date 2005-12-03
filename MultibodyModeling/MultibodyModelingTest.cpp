@@ -40,7 +40,9 @@ using namespace simtk;
 int main() {
 try {
     Frame f("frame1");
-    cout << f;
+    f.realize(/*State,*/ Stage::Startup);
+    //cout << f;
+
 
     ////////////////////////////////////
     // Create mass element prototypes //
@@ -93,13 +95,14 @@ try {
     upper.addFrame("pinFrame",          upper["pinnedBluePt"]);
     upper.addFrame("leftBallFrame",     upper["leftAttachPt"]);
     upper.addFrame("rightBallFrame",    upper["rightAttachPt"]);
-    cout << "U=" << upper;
+    //cout << "U=" << upper;
 
     cout << "U's subfeatures:" << endl;
     for (int i=0; i<upper.getNSubfeatures(); ++i)
         cout << upper[i].getFullName() << endl;
 
     // Now build the prototype for the lower bodies.
+
 
     RigidBody lower("L");
 
@@ -123,7 +126,7 @@ try {
 
     tube["halfLength"].place(lower["halfHeight"]);
 
-    cout << "L=" << lower; 
+    //cout << "L=" << lower; 
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -152,9 +155,20 @@ try {
                  mbs["upper"]["rightBallFrame"],        //reference frame
                  mbs["right"]["upperAttachmentFrame"]); //moving frame
 
-    std::cout << "***MULTIBODY SYSTEM***" << std::endl;
-    std::cout << mbs << std::endl; //let’s see what we’ve got
-    std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
+    mbs.realize(/*State,*/ Stage::Startup);
+
+    try {cout << "left/tube/axis=" << mbs["left"]["tube"]["axis"].getValue() << endl;}
+    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
+
+    mbs["halfHeight"].place(13.111);
+    mbs.realize(/*State,*/ Stage::Startup);
+
+    try {cout << "left/tube/axis=" << mbs["left"]["tube"]["axis"].getValue() << endl;}
+    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
+
+//    mbs.checkFeatureConsistency(0,-1,mbs);    std::cout << "***MULTIBODY SYSTEM***" << std::endl;
+   // std::cout << mbs << std::endl; //let’s see what we’ve got
+    //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 
     cout << "*** JOINTS ***" << endl;
     for (int i=0; i<mbs.getNSubfeatures(); ++i)
@@ -163,6 +177,9 @@ try {
                  << "  reference: " << mbs[i]["reference"].getPlacement() 
                  << "  moving:    " << mbs[i]["moving"].getPlacement() 
                  << endl;
+
+
+
 
     // Any leftover parameters need external placements. We'll make a RuntimeFeature
     // to hold them.

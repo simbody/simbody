@@ -82,12 +82,12 @@ public:
     ~Feature();
 
     // calculate values for all fully-resolved placements
-    void realize() const;
+    void realize(/*State,*/ Stage) const;
 
     // Return value of this feature's placement. Requires (a) that there is
     // a placement, and (b) that its value is available due to a prior realize()
     // call.
-    const PlacementValue& getValue() const { return getPlacement().getValue(); }
+    const PlacementValue& getValue() const;
 
 
     // True if this feature has been placed; its children may still be unplaced.
@@ -184,6 +184,9 @@ public:
     const class FeatureRep& getRep() const {assert(rep); return *rep;}
     class FeatureRep&       updRep()       {assert(rep); return *rep;}
     void                    setRep(FeatureRep* fp) {assert(!rep); rep=fp;}
+    void checkFeatureConsistency(const Feature* expParent,
+                                 int expIndexInParent,
+                                 const Feature& expRoot) const;
 protected:
     class FeatureRep* rep;
     friend class FeatureRep;

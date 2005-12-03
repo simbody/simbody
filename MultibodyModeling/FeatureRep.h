@@ -108,6 +108,8 @@ public:
     
     virtual ~FeatureRep() { }
 
+    void realize(/*State,*/ Stage g) const;
+
     void           setMyHandle(Feature& f) {myHandle = &f;}
     const Feature& getMyHandle() const     {assert(myHandle); return *myHandle;}
     Feature&       updMyHandle()           {assert(myHandle); return *myHandle;}
@@ -156,7 +158,13 @@ public:
     int            getIndexInParent() const {assert(hasParentFeature()); return indexInParent;}
 
     bool             hasPlacement() const {return placement != 0;}
-    const Placement& getPlacement() const {assert(placement); return *placement;}
+
+    const Placement& getPlacement() const {
+        if (!placement) 
+            SIMTK_THROW1(Exception::RepLevelException, "Feature has no placement");
+        return *placement;
+    }
+
     void place(const Placement& p);
 
     int getNSubfeatures()          const {return subfeatures.size();}
@@ -238,6 +246,10 @@ public:
     static const Feature* findYoungestCommonAncestor(const Feature& f1, const Feature& f2);
     static Feature*       findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2);
 
+    // For debugging
+    void checkFeatureConsistency(const Feature* expParent,
+                                 int expIndexInParent,
+                                 const Feature& expRoot) const;
 private:
     // Return true and ix==feature index if a feature of the given name is found.
     // Otherwise return false and ix==childFeatures.size().

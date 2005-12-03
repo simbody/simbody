@@ -45,6 +45,36 @@ public:
     }
 };
 
+
+class FeatureAPIMethodFailed : public Base {
+public:
+    FeatureAPIMethodFailed(const char* fn, int ln, String fullFeatureName,
+        String method, String argInfo, String cause) : Base(fn,ln)
+    {
+        setMessage("Feature('" + fullFeatureName + "')."
+                   + method + "(" + argInfo + ") failed because:\n  " + cause);
+    }
+};
+
+class PlacementAPIMethodFailed : public Base {
+public:
+    PlacementAPIMethodFailed(const char* fn, int ln,
+        String method, String argInfo, String cause) : Base(fn,ln)
+    {
+        setMessage("Placement."
+                   + method + "(" + argInfo + ") failed because:\n  " + cause);
+    }
+};
+
+// This just reports rep-level bad things up to the API level with a helpful string.
+class RepLevelException : public Base {
+public:
+    RepLevelException(const char* fn, int ln, String message) : Base(fn,ln)
+    {
+        setMessage(message);
+    }
+};
+
 class SubfeatureNameNotFound : public Base {
 public:
     SubfeatureNameNotFound(const char* fn, int ln, String subname, String featurename) : Base(fn,ln)

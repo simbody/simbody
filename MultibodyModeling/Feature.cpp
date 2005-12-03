@@ -74,6 +74,25 @@ String Feature::getFeatureTypeName() const {
                : featureHasNoRep(*this);
 }
 
+void Feature::realize(/*State,*/ Stage g) const {
+    try {
+        getRep().realize(g);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::realize()", exc.getMessage());
+    }
+}
+
+const PlacementValue& Feature::getValue(/*State*/) const {
+    try {
+        return getRep().getPlacement().getValue(/*State*/);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW4(Exception::FeatureAPIMethodFailed, getFullName(), 
+            "getValue", "", exc.getMessageText());
+    }
+}
+
 bool Feature::hasPlacement() const {
     return getRep().hasPlacement();
 }
@@ -82,7 +101,7 @@ void Feature::place(const Placement& p) {
         updRep().place(p);
     }
     catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::place", exc.getMessage());
+        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::place()", exc.getMessage());
     }
 }
 
@@ -239,6 +258,15 @@ Feature& Feature::addSubfeatureLike(const Feature& f, const String& n, const Pla
     Feature& fnew = updRep().addSubfeatureLike(f,n);
     if (p.hasRep()) fnew.place(p);
     return fnew;
+}
+
+void Feature::checkFeatureConsistency(const Feature* expParent,
+                                      int expIndexInParent,
+                                      const Feature& expRoot) const {
+    if (!rep)
+        std::cout << "checkFeatureConsistency(): NO REP!!!" << std::endl;
+    else
+        getRep().checkFeatureConsistency(expParent,expIndexInParent,expRoot);
 }
 
     // REAL PARAMETER //
