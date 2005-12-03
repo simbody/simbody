@@ -209,6 +209,22 @@ try {
                  << "  moving:    " << mbs[i]["moving"].getPlacement() 
                  << endl;
 
+    cout << "*** BODIES ***" << endl;
+    for (int i=0; i<mbs.getNSubfeatures(); ++i)
+        if (Body::isInstanceOf(mbs[i])) {
+            cout << mbs[i].getFullName() << ":" << endl;
+            Real tmass = 0.;
+            for (int j=0; j<mbs[i].getNSubfeatures(); ++j) {
+                if (MassElement::isInstanceOf(mbs[i][j])) {
+                    Real mass = MassElement::downcast(mbs[i][j]).getMassMeasure().getValue();
+                    cout << "  massElt " << mbs[i][j].getName() << " " << mass << endl;
+                    tmass += mass;
+                }
+            }
+            cout << "... total mass=" << tmass << endl;
+        }
+
+
 
     // Any leftover parameters need external placements. We'll make a RuntimeFeature
     // to hold them.

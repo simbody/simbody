@@ -286,6 +286,9 @@ public:
     RealMeasure& operator=(const RealMeasure&);
     ~RealMeasure();
 
+    const RealPlacement& getPlacement() const;
+    const Real& getValue() const;
+
     static bool               isInstanceOf(const Feature&);
     static const RealMeasure& downcast(const Feature&);
     static RealMeasure&       downcast(Feature&);
@@ -310,6 +313,9 @@ public:
     RealParameter& operator=(const RealParameter&);
     ~RealParameter();
 
+    const RealPlacement& getPlacement() const;
+    const Real& getValue() const;
+
     static bool                 isInstanceOf(const Feature&);
     static const RealParameter& downcast(const Feature&);
     static RealParameter&       downcast(Feature&);
@@ -323,6 +329,9 @@ public:
     Vec3Measure(const Vec3Measure&);
     Vec3Measure& operator=(const Vec3Measure&);
     ~Vec3Measure();
+
+    const Vec3Placement& getPlacement() const;
+    const Vec3& getValue() const;
 
     static bool               isInstanceOf(const Feature&);
     static const Vec3Measure& downcast(const Feature&);
@@ -338,6 +347,9 @@ public:
     Vec3Parameter& operator=(const Vec3Parameter&);
     ~Vec3Parameter();
 
+    const Vec3Placement& getPlacement() const;
+    const Vec3& getValue() const;
+
     static bool                 isInstanceOf(const Feature&);
     static const Vec3Parameter& downcast(const Feature&);
     static Vec3Parameter&       downcast(Feature&);
@@ -352,6 +364,9 @@ public:
     StationMeasure& operator=(const StationMeasure&);
     ~StationMeasure();
 
+    const StationPlacement& getPlacement() const;
+    const Vec3& getValue() const;
+
     static bool                  isInstanceOf(const Feature&);
     static const StationMeasure& downcast(const Feature&);
     static StationMeasure&       downcast(Feature&);
@@ -365,6 +380,9 @@ public:
     StationParameter(const StationParameter&);
     StationParameter& operator=(const StationParameter&);
     ~StationParameter();
+
+    const StationPlacement& getPlacement() const;
+    const Vec3& getValue() const;
 
     static bool                    isInstanceOf(const Feature&);
     static const StationParameter& downcast(const Feature&);
@@ -381,6 +399,9 @@ public:
     Station& operator=(const Station&);
     ~Station();
 
+    const StationPlacement& getPlacement() const;
+    const Vec3& getValue() const;
+
     static bool           isInstanceOf(const Feature&);
     static const Station& downcast(const Feature&);
     static Station&       downcast(Feature&);
@@ -395,6 +416,9 @@ public:
     DirectionMeasure(const DirectionMeasure&);
     DirectionMeasure& operator=(const DirectionMeasure&);
     ~DirectionMeasure();
+
+    const DirectionPlacement& getPlacement() const;
+    const Vec3& getValue() const;
 
     static bool                  isInstanceOf(const Feature&);
     static const DirectionMeasure& downcast(const Feature&);
@@ -413,6 +437,9 @@ public:
     Direction& operator=(const Direction&);
     ~Direction();
 
+    const DirectionPlacement& getPlacement() const;
+    const Vec3& getValue() const;
+
     static bool             isInstanceOf(const Feature&);
     static const Direction& downcast(const Feature&);
     static Direction&       downcast(Feature&);
@@ -426,6 +453,9 @@ public:
     OrientationMeasure(const OrientationMeasure&);
     OrientationMeasure& operator=(const OrientationMeasure&);
     ~OrientationMeasure();
+
+    const OrientationPlacement& getPlacement() const;
+    const Mat33& getValue() const;
 
     static bool                  isInstanceOf(const Feature&);
     static const OrientationMeasure& downcast(const Feature&);
@@ -443,6 +473,9 @@ public:
     Orientation(const Orientation&);
     Orientation& operator=(const Orientation&);
     ~Orientation();
+
+    const OrientationPlacement& getPlacement() const;
+    const Mat33& getValue() const;
 
     const Direction& getAxis(int) const;
     const Direction&   x()        const {return getAxis(0);}
@@ -462,6 +495,9 @@ public:
     Frame(const Frame&);
     Frame& operator=(const Frame&);
     ~Frame();
+
+    const FramePlacement& getPlacement() const;
+    const Mat34& getValue() const;
 
     const Station&     getOrigin() const;
     const Orientation& getOrientation() const;

@@ -298,6 +298,16 @@ RealParameter& RealParameter::operator=(const RealParameter& src)
   { RealMeasure::operator=(src); return *this; }
 RealParameter::~RealParameter() { }
 
+const RealPlacement& 
+RealParameter::getPlacement() const {
+    return RealPlacement::downcast(getRep().getPlacement());
+}
+
+const Real& 
+RealParameter::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 RealParameter::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -326,6 +336,16 @@ Vec3Parameter& Vec3Parameter::operator=(const Vec3Parameter& src)
   { Vec3Measure::operator=(src); return *this; }
 Vec3Parameter::~Vec3Parameter() { }
 
+const Vec3Placement& 
+Vec3Parameter::getPlacement() const {
+    return Vec3Placement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+Vec3Parameter::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 Vec3Parameter::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -352,6 +372,16 @@ StationParameter::StationParameter(const StationParameter& src) : StationMeasure
 StationParameter& StationParameter::operator=(const StationParameter& src)
   { StationMeasure::operator=(src); return *this; }
 StationParameter::~StationParameter() { }
+
+const StationPlacement& 
+StationParameter::getPlacement() const {
+    return StationPlacement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+StationParameter::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 /*static*/ bool             
 StationParameter::isInstanceOf(const Feature& f) {
@@ -380,6 +410,16 @@ RealMeasure& RealMeasure::operator=(const RealMeasure& src)
   { Feature::operator=(src); return *this; }
 RealMeasure::~RealMeasure() { }
 
+const RealPlacement& 
+RealMeasure::getPlacement() const {
+    return RealPlacement::downcast(getRep().getPlacement());
+}
+
+const Real& 
+RealMeasure::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 RealMeasure::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -406,6 +446,16 @@ Vec3Measure::Vec3Measure(const Vec3Measure& src) : Feature(src) { }
 Vec3Measure& Vec3Measure::operator=(const Vec3Measure& src)
   { Feature::operator=(src); return *this; }
 Vec3Measure::~Vec3Measure() { }
+
+const Vec3Placement& 
+Vec3Measure::getPlacement() const {
+    return Vec3Placement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+Vec3Measure::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 /*static*/ bool             
 Vec3Measure::isInstanceOf(const Feature& f) {
@@ -434,6 +484,16 @@ StationMeasure& StationMeasure::operator=(const StationMeasure& src)
   { Feature::operator=(src); return *this; }
 StationMeasure::~StationMeasure() { }
 
+const StationPlacement& 
+StationMeasure::getPlacement() const {
+    return StationPlacement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+StationMeasure::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 StationMeasure::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -460,6 +520,16 @@ Station::Station(const Station& src) : Feature(src) { }
 Station& Station::operator=(const Station& src)
   { Feature::operator=(src); return *this; }
 Station::~Station() { }
+
+const StationPlacement& 
+Station::getPlacement() const {
+    return StationPlacement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+Station::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 /*static*/ bool             
 Station::isInstanceOf(const Feature& f) {
@@ -488,6 +558,16 @@ DirectionMeasure& DirectionMeasure::operator=(const DirectionMeasure& src)
   { Feature::operator=(src); return *this; }
 DirectionMeasure::~DirectionMeasure() { }
 
+const DirectionPlacement& 
+DirectionMeasure::getPlacement() const {
+    return DirectionPlacement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+DirectionMeasure::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 DirectionMeasure::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -514,6 +594,16 @@ Direction::Direction(const Direction& src) : Feature(src) { }
 Direction& Direction::operator=(const Direction& src)
   { Feature::operator=(src); return *this; }
 Direction::~Direction() { }
+
+const DirectionPlacement& 
+Direction::getPlacement() const {
+    return DirectionPlacement::downcast(getRep().getPlacement());
+}
+
+const Vec3& 
+Direction::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 /*static*/ bool             
 Direction::isInstanceOf(const Feature& f) {
@@ -542,6 +632,16 @@ OrientationMeasure& OrientationMeasure::operator=(const OrientationMeasure& src)
   { Feature::operator=(src); return *this; }
 OrientationMeasure::~OrientationMeasure() { }
 
+const OrientationPlacement& 
+OrientationMeasure::getPlacement() const {
+    return OrientationPlacement::downcast(getRep().getPlacement());
+}
+
+const Mat33& 
+OrientationMeasure::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
+
 /*static*/ bool             
 OrientationMeasure::isInstanceOf(const Feature& f) {
     if (!f.hasRep()) return false;
@@ -568,6 +668,16 @@ Orientation::Orientation(const Orientation& src) : Feature(src) { }
 Orientation& Orientation::operator=(const Orientation& src)
   { Feature::operator=(src); return *this; }
 Orientation::~Orientation() { }
+
+const OrientationPlacement& 
+Orientation::getPlacement() const {
+    return OrientationPlacement::downcast(getRep().getPlacement());
+}
+
+const Mat33& 
+Orientation::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 const Direction& 
 Orientation::getAxis(int i) const {
@@ -600,6 +710,16 @@ Frame::Frame(const Frame& src) : Feature(src) { }
 Frame& Frame::operator=(const Frame& src)
   { Feature::operator=(src); return *this; }
 Frame::~Frame() { }
+
+const FramePlacement& 
+Frame::getPlacement() const {
+    return FramePlacement::downcast(getRep().getPlacement());
+}
+
+const Mat34& 
+Frame::getValue(/*State*/) const {
+    return getPlacement().getRep().getValue(/*State*/);
+}
 
 const Orientation& Frame::getOrientation() const {
     return FrameRep::downcast(getRep()).getOrientation();

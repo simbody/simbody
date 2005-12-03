@@ -619,7 +619,6 @@ public:
     Placement genericDvd(const Placement& r) const;
 
     const Real& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Real>::downcast(getValueSlot()).get();
     }
     virtual Real calcValue(/*State*/) const = 0;
@@ -795,7 +794,6 @@ public:
 
     // Constant Rep should override this default.
     virtual const Vec3& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -970,7 +968,6 @@ public:
 
     // Constant Rep should override this default.
     virtual const Vec3& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -1153,7 +1150,6 @@ public:
 
     // Constant Rep should override this default.
     virtual const Vec3& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -1302,7 +1298,6 @@ public:
 
     // Constant Rep should override this default.
     virtual const Mat33& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Mat33>::downcast(getValueSlot()).get();
     }
     virtual Mat33 calcValue(/*State*/) const = 0;
@@ -1447,7 +1442,6 @@ public:
     // clone, toString, findAncestorFeature are still missing
 
     virtual const Mat34& getValue(/*State*/) const {
-        assert(hasValueSlot());
         return PlacementValue_<Mat34>::downcast(getValueSlot()).get();
     }
 
