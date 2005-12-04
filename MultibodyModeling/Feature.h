@@ -457,7 +457,7 @@ public:
     const OrientationPlacement& getPlacement() const;
     const Mat33& getValue() const;
 
-    static bool                  isInstanceOf(const Feature&);
+    static bool                      isInstanceOf(const Feature&);
     static const OrientationMeasure& downcast(const Feature&);
     static OrientationMeasure&       downcast(Feature&);
 protected:

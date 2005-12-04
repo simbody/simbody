@@ -154,7 +154,7 @@ void FeatureRep::place(const Placement& p) {
     // use as a Placement for this concrete FeatureRep.
     Placement pTweaked = 
         p.getRep().getPlacementType() == getRequiredPlacementType()
-        ? p : recastPlacement(p);
+        ? p : convertToRequiredPlacementType(p);
     if (!pTweaked.hasRep()) {
         SIMTK_THROW3(Exception::PlacementCantBeUsedForThisFeature,
             PlacementRep::getPlacementTypeName(p.getRep().getPlacementType()),

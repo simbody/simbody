@@ -127,7 +127,7 @@ public:
     // must call initializeStandardSubfeatures to complete construction
 
     // no placement for the joint as a whole
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return Placement();
     }
 

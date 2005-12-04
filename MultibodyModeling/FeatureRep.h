@@ -84,35 +84,37 @@ public:
 class FeatureRep {
 public:
     FeatureRep(Feature& f, const std::string& nm) 
-      : myHandle(&f), name(nm), parent(0), indexInParent(-1), placement(0) 
-    { }
-
-    // Some Feature types must have a set of Subfeatures installed to complete
-    // their construction.
-    virtual void initializeStandardSubfeatures() { }
-
-    // Copying a Feature is tricky. The result should have all the child features
-    // and the *internal* placements and *internal* placement values.
-    // External placements and values should evaporate. Note that the index
-    // numbers for features, placements, and values we own must stay the
-    // same so that internal references in the copy are the same as in the original.
-    // However, this is all handled in the Feature copy & assignment methods --
-    // FetureRep copying is elementwise and dumb and thus dangerous. The idea is
-    // to get a straight copy and then go clean up the mess afterwards.
-
-    // default (bitwise) copy constructor and assignment -- look out!
-
-    // This is the guts of the smart Feature copy constructor that knows
-    // how to clean up all the bad pointers.
-    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
-    
+      : myHandle(&f), name(nm), parent(0), indexInParent(-1), placement(0) { }
     virtual ~FeatureRep() { }
 
-    void realize(/*State,*/ Stage g) const;
+    // Some Feature types need to get control after we have performed modeling
+    // operations that affect them. After construction, they may need to 
+    // install some standard subfeatures; after a new subfeature has been
+    // added they may need to perform some additional modeling (for example,
+    // adding a subfeature with mass may result in an update to the arguments
+    // of a 'totalMass' measure); and we offer control after the feature has
+    // been placed (that doesn't mean you can necessarily get a *value* for
+    // that placement; just the expression defining that value).
+    virtual void initializeStandardSubfeatures() { }
+    virtual void postProcessNewSubfeature(Feature&) { }
+    virtual void postProcessNewPlacement() { }
 
-    void           setMyHandle(Feature& f) {myHandle = &f;}
-    const Feature& getMyHandle() const     {assert(myHandle); return *myHandle;}
-    Feature&       updMyHandle()           {assert(myHandle); return *myHandle;}
+    // These routines allow a concrete FeatureRep to prevent the addition
+    // of inappropriate subfeatures, or the use of an inappropriate
+    // type of Placement for the feature as a whole.
+    virtual bool canAddSubfeatureLike(const Feature&)   const 
+    {return false;} //TODO: should be pure virtual
+    virtual bool canPlaceOnFeatureLike(const Feature&) const
+    {return false;} //TODO: should be pure virtual
+    virtual bool isRequiredPlacementType(const Placement&) const
+    {return false;}
+    virtual bool canConvertToRequiredPlacementType(const Placement&) const
+    {return false;} //TODO: should be pure virtual
+
+    // Given a proposed placement for this feature, alter it if necessary
+    // and return either (1) a Placement that is acceptable, or (2) a
+    // Placement with a null rep indicating that the proposed one was no good.
+    virtual Placement convertToRequiredPlacementType(const Placement&) const = 0;
 
     virtual PlacementType getRequiredPlacementType()      const = 0;
     virtual std::string   getFeatureTypeName()            const = 0;
@@ -123,10 +125,6 @@ public:
     // if we're given an index (-1 means the whole Placement).
     virtual PlacementRep* createFeatureReference(Placement&, int i = -1) const = 0;
 
-    // Given a proposed placement for this feature, alter it if necessary
-    // and return either (1) a Placement that is acceptable, or (2) a
-    // Placement with a null rep indicating that the proposed one was no good.
-    virtual Placement recastPlacement(const Placement&) const = 0;
 
     // If this Feature can be used as the indicated placement type, return
     // a new, unowned Placement of the right type. Most commonly, the returned
@@ -147,6 +145,26 @@ public:
     virtual PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement&) const;
     virtual PlacementRep* useFeatureAsFramePlacement(FramePlacement&) const;
 
+    // Copying a Feature is tricky. The result should have all the child features
+    // and the *internal* placements and *internal* placement values.
+    // External placements and values should evaporate. Note that the index
+    // numbers for features, placements, and values we own must stay the
+    // same so that internal references in the copy are the same as in the original.
+    // However, this is all handled in the Feature copy & assignment methods --
+    // FetureRep copying is elementwise and dumb and thus dangerous. The idea is
+    // to get a straight copy and then go clean up the mess afterwards.
+
+    // default (bitwise) copy constructor and assignment -- look out!
+
+    // This is the guts of the smart Feature copy constructor that knows
+    // how to clean up all the bad pointers.
+    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
+
+    void realize(/*State,*/ Stage g) const;
+
+    void           setMyHandle(Feature& f) {myHandle = &f;}
+    const Feature& getMyHandle() const     {assert(myHandle); return *myHandle;}
+    Feature&       updMyHandle()           {assert(myHandle); return *myHandle;}
 
     void               setName(const std::string& nm) {name = nm;}
     const std::string& getName() const                {return name;}
@@ -197,8 +215,8 @@ public:
 
     std::string getFullName() const;
 
-    Feature&        addSubfeatureLike(const Feature& f, const std::string& nm);
-    Placement&      addPlacementLike(const Placement& p);
+    Feature&        addSubfeatureLike    (const Feature& f, const std::string& nm);
+    Placement&      addPlacementLike     (const Placement& p);
     PlacementValue& addPlacementValueLike(const PlacementValue& v);
 
     // Does the *placement* of this feature depend on the indicated one?
@@ -327,7 +345,7 @@ public:
         return prep;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToRealPlacement();
     }
 
@@ -368,7 +386,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToVec3Placement();
     }
 
@@ -409,7 +427,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToStationPlacement();
     }
 
@@ -444,7 +462,7 @@ public:
         return prep;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToRealPlacement();
     }
 
@@ -486,7 +504,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToVec3Placement();
     }
 
@@ -528,7 +546,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToStationPlacement();
     }
 
@@ -570,7 +588,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToStationPlacement();
     }
 
@@ -624,7 +642,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToDirectionPlacement();
     }
 
@@ -665,7 +683,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToDirectionPlacement();
     }
 
@@ -707,7 +725,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToOrientationPlacement();
     }
 
@@ -749,7 +767,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToOrientationPlacement();
     }
 
@@ -830,7 +848,7 @@ public:
         return 0;
     }
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToFramePlacement();
     }
 

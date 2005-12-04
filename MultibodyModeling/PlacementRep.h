@@ -792,8 +792,7 @@ public:
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    // Constant Rep should override this default.
-    virtual const Vec3& getValue(/*State*/) const {
+    const Vec3& getValue(/*State*/) const {
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -830,8 +829,6 @@ public:
       { return &youngestFeature; }
     const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
       { return &youngestFeature; }
-
-    const Vec3& getValue(/*State*/) const { return value; }
 
     SIMTK_DOWNCAST2(Vec3ConstantPlacementRep,Vec3PlacementRep,PlacementRep);
 private:
@@ -950,7 +947,6 @@ public:
     PlacementType getPlacementType() const { return StationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    
     Vec3Placement castToVec3Placement() const;
 
     Placement genericNegate()    const;
@@ -966,8 +962,7 @@ public:
     Placement genericDistance    (const Placement& rhs) const;
     Placement genericAngle       (const Placement& rhs) const;
 
-    // Constant Rep should override this default.
-    virtual const Vec3& getValue(/*State*/) const {
+    const Vec3& getValue(/*State*/) const {
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -1005,8 +1000,6 @@ public:
       { return &youngestFeature; }
     const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
       { return &youngestFeature; }
-
-    Vec3 getMeasureNumbers(/*State*/) const { return loc; }
 
     SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
 private:
@@ -1108,9 +1101,6 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    Vec3 getMeasureNumbers(/*State*/) const 
-      { return StationOps::downcast(func).apply(/*State,*/args); }
-
     SIMTK_DOWNCAST2(StationExprPlacementRep,StationPlacementRep,PlacementRep);
 private:
     static StationExprPlacementRep* unaryOp (StationOps::OpKind, const Placement&);
@@ -1148,8 +1138,7 @@ public:
     PlacementType getPlacementType() const { return DirectionPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    // Constant Rep should override this default.
-    virtual const Vec3& getValue(/*State*/) const {
+    const Vec3& getValue(/*State*/) const {
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
@@ -1296,8 +1285,7 @@ public:
     PlacementType getPlacementType() const { return OrientationPlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    // Constant Rep should override this default.
-    virtual const Mat33& getValue(/*State*/) const {
+    const Mat33& getValue(/*State*/) const {
         return PlacementValue_<Mat33>::downcast(getValueSlot()).get();
     }
     virtual Mat33 calcValue(/*State*/) const = 0;
@@ -1338,8 +1326,6 @@ public:
       { return &youngestFeature; }
     const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
       { return &youngestFeature; }
-
-    const Mat33& getValue(/*State*/) const { return ori; }
 
     SIMTK_DOWNCAST2(OrientationConstantPlacementRep,OrientationPlacementRep,PlacementRep);
 private:
@@ -1441,7 +1427,7 @@ public:
     PlacementType getPlacementType() const { return FramePlacementType; }
     // clone, toString, findAncestorFeature are still missing
 
-    virtual const Mat34& getValue(/*State*/) const {
+    const Mat34& getValue(/*State*/) const {
         return PlacementValue_<Mat34>::downcast(getValueSlot()).get();
     }
 
@@ -1495,8 +1481,6 @@ public:
       { return &youngestFeature; }
     const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
       { return &youngestFeature; }
-
-    const Mat34& getValue(/*State*/) const { return frame; }
 
     SIMTK_DOWNCAST2(FrameConstantPlacementRep,FramePlacementRep,PlacementRep);
 private:

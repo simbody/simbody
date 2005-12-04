@@ -73,7 +73,7 @@ public:
       : MassElementRep(pm,nm), massIndex(-1) { }
     // must call initializeStandardSubfeatures() to complete construction.
 
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return p.getRep().castToStationPlacement();
     }
 
@@ -129,7 +129,7 @@ public:
     // must call initializeStandardSubfeatures() to complete construction.
 
     // no placement for the cylinder as a whole
-    Placement recastPlacement(const Placement& p) const {
+    Placement convertToRequiredPlacementType(const Placement& p) const {
         return Placement();
     }
 
