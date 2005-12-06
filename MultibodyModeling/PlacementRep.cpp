@@ -417,7 +417,7 @@ void PlacementRep::checkPlacementConsistency(const Feature* expOwner,
 // result = -real (result is always real)
 Placement RealPlacementRep::genericNegate() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(-getValue())
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(-calcValue())
                      : (RealPlacementRep*)RealExprPlacementRep::negateOp(getMyHandle());
     return Placement(result);
 }
@@ -425,7 +425,7 @@ Placement RealPlacementRep::genericNegate() const {
 // result = abs(real) (result is always real)
 Placement RealPlacementRep::genericAbs() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::abs(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::abs(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::absOp(getMyHandle());
     return Placement(result);
 }
@@ -433,7 +433,7 @@ Placement RealPlacementRep::genericAbs() const {
 // result = sqrt(real) (result is always real)
 Placement RealPlacementRep::genericSqrt() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::sqrt(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::sqrt(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::sqrtOp(getMyHandle());
     return Placement(result);
 }
@@ -441,7 +441,7 @@ Placement RealPlacementRep::genericSqrt() const {
 // result = exp(real) (result is always real)
 Placement RealPlacementRep::genericExp() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::exp(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::exp(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::expOp(getMyHandle());
     return Placement(result);
 }
@@ -449,7 +449,7 @@ Placement RealPlacementRep::genericExp() const {
 // result = log(real) (natural log, result is always real)
 Placement RealPlacementRep::genericLog() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::log(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::log(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::logOp(getMyHandle());
     return Placement(result);
 }
@@ -457,7 +457,7 @@ Placement RealPlacementRep::genericLog() const {
 // result = sin(real) (result is always real)
 Placement RealPlacementRep::genericSin() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::sin(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::sin(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::sinOp(getMyHandle());
     return Placement(result);
 }
@@ -465,7 +465,7 @@ Placement RealPlacementRep::genericSin() const {
 // result = cos(real) (result is always real)
 Placement RealPlacementRep::genericCos() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::cos(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::cos(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::cosOp(getMyHandle());
     return Placement(result);
 }
@@ -473,7 +473,7 @@ Placement RealPlacementRep::genericCos() const {
 // result = asin(real) (result is always real)
 Placement RealPlacementRep::genericAsin() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::asin(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::asin(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::asinOp(getMyHandle());
     return Placement(result);
 }
@@ -481,7 +481,7 @@ Placement RealPlacementRep::genericAsin() const {
 // result = acos(real) (result is always real)
 Placement RealPlacementRep::genericAcos() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::acos(getValue()))
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::acos(calcValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::acosOp(getMyHandle());
     return Placement(result);
 }
@@ -494,7 +494,7 @@ Placement RealPlacementRep::genericAdd(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         RealPlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (RealPlacementRep*)new RealConstantPlacementRep(getValue()+rp.getRep().getValue())
+                ? (RealPlacementRep*)new RealConstantPlacementRep(calcValue()+rp.getRep().calcValue())
                 : (RealPlacementRep*)RealExprPlacementRep::addOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -510,7 +510,7 @@ Placement RealPlacementRep::genericSub(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         RealPlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (RealPlacementRep*)new RealConstantPlacementRep(getValue()-rp.getRep().getValue())
+                ? (RealPlacementRep*)new RealConstantPlacementRep(calcValue()-rp.getRep().calcValue())
                 : (RealPlacementRep*)RealExprPlacementRep::subOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -529,7 +529,7 @@ Placement RealPlacementRep::genericMul(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         RealPlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (RealPlacementRep*)new RealConstantPlacementRep(getValue()*rp.getRep().getValue())
+                ? (RealPlacementRep*)new RealConstantPlacementRep(calcValue()*rp.getRep().calcValue())
                 : (RealPlacementRep*)RealExprPlacementRep::mulOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -551,7 +551,7 @@ Placement RealPlacementRep::genericDvd(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         RealPlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (RealPlacementRep*)new RealConstantPlacementRep(getValue()/rp.getRep().getValue())
+                ? (RealPlacementRep*)new RealConstantPlacementRep(calcValue()/rp.getRep().calcValue())
                 : (RealPlacementRep*)RealExprPlacementRep::dvdOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -750,14 +750,14 @@ RealExprPlacementRep::angleOp(const DirectionPlacement& l, const DirectionPlacem
 
 DirectionPlacement Vec3PlacementRep::castToDirectionPlacement() const {
     DirectionPlacementRep* result = 
-        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(getValue())
+        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(calcValue())
                      : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(getMyHandle()); 
     return DirectionPlacement(result);
 }
 
 StationPlacement Vec3PlacementRep::castToStationPlacement() const {
     StationPlacementRep* result = 
-        isConstant() ? (StationPlacementRep*)new StationConstantPlacementRep(getValue())
+        isConstant() ? (StationPlacementRep*)new StationConstantPlacementRep(calcValue())
                      : (StationPlacementRep*)StationExprPlacementRep::recastVec3Op(getMyHandle()); 
     return StationPlacement(result);
 }
@@ -765,7 +765,7 @@ StationPlacement Vec3PlacementRep::castToStationPlacement() const {
 // result = -vec3 (result is always vec3)
 Placement Vec3PlacementRep::genericNegate() const {
     Vec3PlacementRep* result =
-        isConstant() ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(-getValue())
+        isConstant() ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(-calcValue())
                      : (Vec3PlacementRep*)Vec3ExprPlacementRep::negateOp(getMyHandle());
     return Placement(result);
 }
@@ -773,7 +773,7 @@ Placement Vec3PlacementRep::genericNegate() const {
 // result = length(vec3) (result is always real)
 Placement Vec3PlacementRep::genericLength() const {
     RealPlacementRep* result = 
-        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(getValue().norm())
+        isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(calcValue().norm())
                      : (RealPlacementRep*)RealExprPlacementRep::lengthOp(getMyHandle());
     return Placement(result);
 }
@@ -781,7 +781,7 @@ Placement Vec3PlacementRep::genericLength() const {
 // result = normalize(vec3) (result is always Direction)
 Placement Vec3PlacementRep::genericNormalize() const {
     DirectionPlacementRep* result = 
-        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(getValue())
+        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(calcValue())
                      : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(getMyHandle());
     return Placement(result);
 }
@@ -795,7 +795,7 @@ Placement Vec3PlacementRep::genericAdd(const Placement& r) const {
         const Vec3Placement& vp = Vec3Placement::downcast(r);
         Vec3PlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
-                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(getValue()+vp.getRep().getValue())
+                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcValue()+vp.getRep().calcValue())
                 : (Vec3PlacementRep*)Vec3ExprPlacementRep::addOp(getMyHandle(),vp);
         return Placement(result);
     }
@@ -815,7 +815,7 @@ Placement Vec3PlacementRep::genericSub(const Placement& r) const {
         const Vec3Placement& vp = Vec3Placement::downcast(r);
         Vec3PlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
-                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(getValue()-vp.getRep().getValue())
+                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcValue()-vp.getRep().calcValue())
                 : (Vec3PlacementRep*)Vec3ExprPlacementRep::subOp(getMyHandle(),vp);
         return Placement(result);
     }
@@ -832,7 +832,7 @@ Placement Vec3PlacementRep::genericMul(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(getValue()*rp.getRep().getValue())
+                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcValue()*rp.getRep().calcValue())
                 : (Vec3PlacementRep*)Vec3ExprPlacementRep::smulOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -848,7 +848,7 @@ Placement Vec3PlacementRep::genericDvd(const Placement& r) const {
         const RealPlacement& rp = RealPlacement::downcast(r);
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
-                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(getValue()/rp.getRep().getValue())
+                ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcValue()/rp.getRep().calcValue())
                 : (Vec3PlacementRep*)Vec3ExprPlacementRep::sdvdOp(getMyHandle(),rp);
         return Placement(result);
     }
@@ -865,7 +865,7 @@ Placement Vec3PlacementRep::genericDotProduct(const Placement& r) const {
         const Vec3Placement& vp = Vec3Placement::downcast(r);
         RealPlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
-                ? (RealPlacementRep*)new RealConstantPlacementRep(~getValue()*vp.getRep().getValue())
+                ? (RealPlacementRep*)new RealConstantPlacementRep(~calcValue()*vp.getRep().calcValue())
                 : (RealPlacementRep*)RealExprPlacementRep::dot3Op(getMyHandle(),vp);
         return Placement(result);
     }
@@ -889,7 +889,7 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(cross(getValue(),vp.getRep().getValue()))
+                   new Vec3ConstantPlacementRep(cross(calcValue(),vp.getRep().calcValue()))
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::crossOp(getMyHandle(),vp);
         return Placement(result);
@@ -900,7 +900,7 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && sp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(cross(getValue(),sp.getRep().getValue()))
+                   new Vec3ConstantPlacementRep(cross(calcValue(),sp.getRep().calcValue()))
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::crossOp(getMyHandle(),
                                                  sp.getRep().castToVec3Placement());
@@ -912,7 +912,7 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && dp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(cross(getValue(),dp.getRep().getValue()))
+                   new Vec3ConstantPlacementRep(cross(calcValue(),dp.getRep().calcValue()))
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::crossOp(getMyHandle(),
                                                  dp.getRep().castToVec3Placement());
@@ -1126,7 +1126,7 @@ Vec3ExprPlacementRep::crossOp(const Vec3Placement& l, const Vec3Placement& r)
 Vec3Placement StationPlacementRep::castToVec3Placement() const {
     Vec3PlacementRep* result = 
         isConstant()
-          ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(getValue())
+          ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcValue())
           : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastStationOp(getMyHandle()); 
     return Vec3Placement(result);
 }
@@ -1155,7 +1155,7 @@ Placement StationPlacementRep::genericAdd(const Placement& r) const {
         StationPlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
                 ? (StationPlacementRep*)new StationConstantPlacementRep
-                                              (getValue()+vp.getRep().getValue())
+                                              (calcValue()+vp.getRep().calcValue())
                 : (StationPlacementRep*)StationExprPlacementRep::addOp(getMyHandle(),vp);
         return Placement(result);
     }
@@ -1173,7 +1173,7 @@ Placement StationPlacementRep::genericSub(const Placement& r) const {
         StationPlacementRep* result = 
             isConstant() && vp.getRep().isConstant()
                 ? (StationPlacementRep*)new StationConstantPlacementRep
-                                              (getValue()-vp.getRep().getValue())
+                                              (calcValue()-vp.getRep().calcValue())
                 : (StationPlacementRep*)StationExprPlacementRep::subOp(getMyHandle(),vp);
         return Placement(result);
     }
@@ -1183,7 +1183,7 @@ Placement StationPlacementRep::genericSub(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && sp.getRep().isConstant()
                 ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep
-                                              (getValue()-sp.getRep().getValue())
+                                              (calcValue()-sp.getRep().calcValue())
                 : (Vec3PlacementRep*)Vec3ExprPlacementRep::stationSubOp(getMyHandle(),sp);
         return Placement(result);
     }
@@ -1371,7 +1371,7 @@ Vec3Placement DirectionPlacementRep::castToVec3Placement() const {
     Vec3PlacementRep* result = 
         isConstant()
           ? (Vec3PlacementRep*)
-             new Vec3ConstantPlacementRep(getValue())
+             new Vec3ConstantPlacementRep(calcValue())
           : (Vec3PlacementRep*)
              Vec3ExprPlacementRep::recastDirectionOp(getMyHandle()); 
     return Vec3Placement(result);
@@ -1381,7 +1381,7 @@ Vec3Placement DirectionPlacementRep::castToVec3Placement() const {
 Placement DirectionPlacementRep::genericNegate() const {
     DirectionPlacementRep* result =
         isConstant() ? (DirectionPlacementRep*)
-                        new DirectionConstantPlacementRep(-getValue())
+                        new DirectionConstantPlacementRep(-calcValue())
                      : (DirectionPlacementRep*)
                         DirectionExprPlacementRep::negateOp(getMyHandle());
     return Placement(result);
@@ -1397,7 +1397,7 @@ Placement DirectionPlacementRep::genericMul(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(getValue()*rp.getRep().getValue())
+                   new Vec3ConstantPlacementRep(calcValue()*rp.getRep().calcValue())
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::smulOp(getMyHandle(),rp);
         return Placement(result);
@@ -1415,7 +1415,7 @@ Placement DirectionPlacementRep::genericDvd(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(getValue()/rp.getRep().getValue())
+                   new Vec3ConstantPlacementRep(calcValue()/rp.getRep().calcValue())
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::sdvdOp(getMyHandle(),rp);
         return Placement(result);
@@ -1472,7 +1472,7 @@ Placement DirectionPlacementRep::genericAngle(const Placement& r) const {
     if (DirectionPlacement::isInstanceOf(r)) {
         const DirectionPlacement& dp = DirectionPlacement::downcast(r);
         if (isConstant() && dp.getRep().isConstant()) {
-            Real dotprod = ~calcValue() * dp.getRep().getValue();
+            Real dotprod = ~calcValue() * dp.getRep().calcValue();
             if (dotprod < -1.) dotprod = -1.;
             else if (dotprod > 1.) dotprod = 1.;
             return RealPlacement(new RealConstantPlacementRep(std::acos(dotprod)));

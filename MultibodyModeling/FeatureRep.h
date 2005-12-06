@@ -194,11 +194,27 @@ public:
     const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
     const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
 
+    // This can accept a path name
     const Feature* findSubfeature(const std::string& nm) const {
-        size_t index; return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
+        std::vector<std::string> segments;
+        if (!isLegalFeaturePathname(nm, &segments)) {
+            if (segments.size())
+                SIMTK_THROW2(Exception::IllegalFeaturePathname,nm,segments.back());
+            else
+                SIMTK_THROW(Exception::EmptyFeaturePathname);
+            //NOTREACHED
+        }
+        const Feature* found = &getMyHandle();
+        for (size_t i=0; i<segments.size(); ++i) {
+            size_t index;
+            found = (found->getRep().findSubfeatureIndex(segments[i],index) 
+                     ? &found->getRep().subfeatures[index] : 0);
+            if (!found) break;
+        }
+        return found;
     }
     Feature* findUpdSubfeature(const std::string& nm) {
-        size_t index; return findSubfeatureIndex(nm,index) ? &subfeatures[index] : 0;
+        return const_cast<Feature*>(findSubfeature(nm));
     }
 
     const Feature& getSubfeature(const std::string& nm) const {
@@ -263,6 +279,11 @@ public:
     // Complexity is O(log n) where n is depth of Feature tree.
     static const Feature* findYoungestCommonAncestor(const Feature& f1, const Feature& f2);
     static Feature*       findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2);
+
+    // name utilities
+    static bool isLegalFeatureName(const std::string&);
+    static bool isLegalFeaturePathname(const std::string&, 
+                                       std::vector<std::string>* segments=0);
 
     // For debugging
     void checkFeatureConsistency(const Feature* expParent,

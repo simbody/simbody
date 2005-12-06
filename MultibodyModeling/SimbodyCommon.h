@@ -75,6 +75,24 @@ public:
     }
 };
 
+class EmptyFeaturePathname : public Base {
+public:
+    EmptyFeaturePathname(const char* fn, int ln) : Base(fn,ln)
+    {
+        setMessage("Feature pathname was empty.");
+    }
+private:
+};
+
+class IllegalFeaturePathname : public Base {
+public:
+    IllegalFeaturePathname(const char* fn, int ln, String pathname, String badseg) : Base(fn,ln)
+    {
+        setMessage("Feature pathname '" + pathname + "' is illegal at segment '" + badseg + "'.");
+    }
+private:
+};
+
 class SubfeatureNameNotFound : public Base {
 public:
     SubfeatureNameNotFound(const char* fn, int ln, String subname, String featurename) : Base(fn,ln)

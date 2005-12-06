@@ -207,6 +207,7 @@ void FeatureRep::place(const Placement& p) {
     assert(FeatureRep::isFeatureInFeatureTree(good.getOwner(), getMyHandle()));
     assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
     placement = &good; 
+    postProcessNewPlacement();
 }
 
 Feature& 
@@ -218,6 +219,7 @@ FeatureRep::addSubfeatureLike(const Feature& f, const std::string& nm) {
     f.getRep().cloneWithoutParentOrExternalPlacements(newFeature);
     newFeature.updRep().setParentFeature(updMyHandle(), index);
     newFeature.updRep().setName(nm);
+    postProcessNewSubfeature(newFeature);
     return newFeature;
 }
 
@@ -461,6 +463,43 @@ FeatureRep::findCorrespondingPlacementValue
     return newTreeRef;
 }
 
+// For now we'll allow only letters, digits, and underscore in names. Case is retained
+// for display but otherwise insignificant.
+bool FeatureRep::isLegalFeatureName(const std::string& n) {
+    if (n.size()==0) return false;
+    for (size_t i=0; i<n.size(); ++i)
+        if (!(isalnum(n[i]) || n[i]=='_'))
+            return false;
+    return true;
+}
+
+// Take pathname of the form xxx/yyy/zzz, check its validity and optionally
+// return as a list of separate feature names. We return true if we're successful,
+// false if the pathname is malformed in some way. In that case the last segment
+// returned will be the one that caused trouble.
+bool FeatureRep::isLegalFeaturePathname(const std::string& pathname, 
+                                        std::vector<std::string>* segments)
+{
+    std::string t;
+    const size_t end = pathname.size();
+    size_t nxt = 0;
+    if (segments) segments->clear();
+    bool foundAtLeastOne = false;
+    // for each segment
+    while (nxt < end) {
+        // for each character of a segment
+        while (nxt < end && pathname[nxt] != '/')
+            t += pathname[nxt++];
+        foundAtLeastOne = true;
+        if (segments) segments->push_back(t);
+        if (!isLegalFeatureName(t))
+            return false;
+        t.clear();
+        ++nxt; // skip '/' (or harmless extra increment at end)
+    }
+    return foundAtLeastOne;
+}
+
 } // namespace simtk
 
 
@@ -477,3 +516,4 @@ static int caseInsensitiveCompare(const std::string& key, const std::string& tes
     else if (test.size() > minlen) return -1;
     return 0;
 }
+

@@ -146,7 +146,7 @@ try {
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
 
-    lower.addRealMeasure  ("hh9", lower["halfHeight"] + 9./lower["tube"]["mass"]);
+    lower.addRealMeasure  ("hh9", lower["halfHeight"] + 9. / lower["tube/mass"]);
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
@@ -173,28 +173,28 @@ try {
     // Create a single parameter of the multibody which can be used
     // to control the two halfHeights together.
     mbs.addRealParameter("halfHeight");
-    mbs["left"] ["halfHeight"].place(mbs["halfHeight"]);
-    mbs["right"]["halfHeight"].place(mbs["halfHeight"]);
+    mbs["left/halfHeight"].place(mbs["halfHeight"]);
+    mbs["right/halfHeight"].place(mbs["halfHeight"]);
 
     mbs.addJoint(PinJoint, "base2ground", 
                  mbs.getGroundFrame(),                  //reference frame
                  mbs["upper"]);                         //moving frame
     mbs.addJoint(BallJoint, "leftHipJoint",
-                 mbs["upper"]["leftBallFrame"],         //reference frame
-                 mbs["left"]["upperAttachmentFrame"]);  //moving frame
+                 mbs["upper/leftBallFrame"],         //reference frame
+                 mbs["left/upperAttachmentFrame"]);  //moving frame
     mbs.addJoint(BallJoint, "rightHipJoint",
-                 mbs["upper"]["rightBallFrame"],        //reference frame
-                 mbs["right"]["upperAttachmentFrame"]); //moving frame
+                 mbs["upper/rightBallFrame"],        //reference frame
+                 mbs["right/upperAttachmentFrame"]); //moving frame
 
     mbs.realize(/*State,*/ Stage::Startup);
 
-    try {cout << "left/tube/axis=" << mbs["left"]["tube"]["axis"].getValue() << endl;}
+    try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
     mbs["halfHeight"].place(13.111);
     mbs.realize(/*State,*/ Stage::Startup);
 
-    try {cout << "left/tube/axis=" << mbs["left"]["tube"]["axis"].getValue() << endl;}
+    try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
 //    mbs.checkFeatureConsistency(0,-1,mbs);    std::cout << "***MULTIBODY SYSTEM***" << std::endl;
@@ -224,7 +224,11 @@ try {
             cout << "... total mass=" << tmass << endl;
         }
 
-
+    //FeatureList hasMass = mbs["upper"].select(MassElement::Selector());
+    //FeatureList masses = hasMass.getSubfeature("mass"); // elementwise indexing
+    //FeatureList centroids = hasMass.getSubfeature("centroid");
+    //Real upperMass = sum(masses);
+    //Vec3 upperCOM  = sum(prod(masses,centroids))/hasMass.size();
 
     // Any leftover parameters need external placements. We'll make a RuntimeFeature
     // to hold them.
