@@ -49,31 +49,32 @@ namespace simtk {
 // Declared below and elsewhere. Indenting shows inheritance structure.
 class Subsystem;
 class   Feature;
-class     Station;
-class     Direction;
-class     Orientation;
-class     Frame;
-class     RealMeasure;
-class       RealParameter;
-class     StationMeasure;
-class       StationParameter;
-class     DirectionMeasure;
-class     OrientationMeasure;
-class     MassElement;
-class       PointMassElement;
-class       SphereMassElement;
-class       CylinderMassElement;
-class       BrickMassElement;
-class   Body;
-class     RigidBody;
+class       Station;
+class       Direction;
+class       Orientation;
+class       Frame;
+class           Body;
+class               RigidBody;
+class               DeformableBody;
+class       RealMeasure;
+class           RealParameter;
+class       StationMeasure;
+class           StationParameter;
+class       DirectionMeasure;
+class       OrientationMeasure;
+class       MassElement;
+class           PointMassElement;
+class           SphereMassElement;
+class           CylinderMassElement;
+class           BrickMassElement;
 class   Joint;
-class     PinJoint;
-class     BallJoint;
+class       PinJoint;
+class       BallJoint;
 class   Multibody;
 
 /**
  * Subsystems form a tree because many of them have sub-Subsystems (children).
- * Parent subsystems own their children; destructing the parent destructs
+ * Parent subsystems own their children; i.e., destructing the parent destructs
  * all the children.
  *
  * Low-level "elemental" subsystems are called Features. Features require
@@ -96,7 +97,7 @@ public:
     // calculate values for all fully-resolved placements
     void realize(/*State,*/ Stage) const;
 
-    const Placement&      getPlacement()  const; // fails if subsystem is not a Feature
+    const Placement&      getPlacement()  const; // fails if Subsystem is not a Feature
     const PlacementValue& getValue()      const; //   "
     void place(const Placement&);                //   "
 
@@ -152,18 +153,18 @@ public:
                         (const String&, const Placement& = Placement());
 
     // This is similar to the "add" routines above, except that the newly created
-    // subsystem is modeled on the prototype subsystem supplied here.
+    // Subsystem is modeled on the prototype Subsystem supplied here.
     Subsystem&        addSubsystemLike(const Subsystem&, const String&);
 
-    // This generic routine will create a feature of the specific type supplied
-    // in the first argument. If a Placement is provided, it must be appropriate
-    // for that kind of feature or a runtime error will occur.
+    // This generic routine will create a Feature of the specific type supplied
+    // in the Subsystem argument, which must turn out to be a Feature. If a 
+    // Placement is provided, it must be appropriate for that kind of Feature.
     Feature&          addFeatureLike
                         (const Subsystem&,
                          const String&, const Placement& = Placement());
    
     bool              hasParentSubsystem() const;
-    int               getIndexInParent() const; // -1 if no parent
+    int               getIndexInParent()   const; // -1 if no parent
     const Subsystem&  getParentSubsystem() const;
 
     bool isSameSubsystem(const Subsystem& s) const;
@@ -185,10 +186,10 @@ public:
     String toString(const String& linePrefix="") const;
 
     // For internal use only.
-    bool                      hasRep() const {return rep != 0;}
-    const class SubsystemRep& getRep() const {assert(rep); return *rep;}
-    class SubsystemRep&       updRep()       {assert(rep); return *rep;}
-    void                      setRep(SubsystemRep* fp) {assert(!rep); rep=fp;}
+    bool                      hasRep() const            {return rep != 0;}
+    const class SubsystemRep& getRep() const            {assert(rep); return *rep;}
+    class SubsystemRep&       updRep()                  {assert(rep); return *rep;}
+    void                      setRep(SubsystemRep* fp)  {assert(!rep); rep=fp;}
     void checkSubsystemConsistency(const Subsystem* expParent,
                                    int              expIndexInParent,
                                    const Subsystem& expRoot) const;
@@ -216,8 +217,8 @@ public:
     const Placement& getPlacement() const;
 
     // Place this Feature using the supplied Placement expression
-    // as a prototype. We will choose an owner Feature for the new
-    // Placement, and then add a copy of the supplied one to that
+    // as a prototype. We will choose an owner Subsystem for the new
+    // Placement, and then add a copy of the prototype to that
     // owner. Then this Feature will refer to that copy as its Placement.
     void place(const Placement&);
 
@@ -245,61 +246,97 @@ std::ostream& operator<<(std::ostream& o, const Subsystem&);
 // create a Placement referring to the Features and then perform
 // the operations on the Placement.
 
-// unary(feature)
-inline Placement operator+(const Feature& f) {return  Placement(f);}
-inline Placement operator-(const Feature& f) {return -Placement(f);}
-inline Placement length   (const Feature& f) {return length(Placement(f));}
-inline Placement normalize(const Feature& f) {return normalize(Placement(f));}
+// unary
+inline Placement negate    (const Feature& f) {return negate   (Placement(f));}
+inline Placement abs       (const Feature& f) {return abs      (Placement(f));}
+inline Placement sqrt      (const Feature& f) {return sqrt     (Placement(f));}
+inline Placement exp       (const Feature& f) {return exp      (Placement(f));}
+inline Placement log       (const Feature& f) {return log      (Placement(f));}
+inline Placement sin       (const Feature& f) {return sin      (Placement(f));}
+inline Placement cos       (const Feature& f) {return cos      (Placement(f));}
+inline Placement asin      (const Feature& f) {return asin     (Placement(f));}
+inline Placement acos      (const Feature& f) {return acos     (Placement(f));}
+inline Placement length    (const Feature& f) {return length   (Placement(f));}
+inline Placement normalize (const Feature& f) {return normalize(Placement(f));}
 
-// binary(feature,feature)
-inline Placement operator+(const Feature& l, const Feature& r) 
-  { return Placement(l)+Placement(r); }
-inline Placement operator-(const Feature& l, const Feature& r) 
-  { return Placement(l)-Placement(r); }
-inline Placement operator*(const Feature& l, const Feature& r) 
-  { return Placement(l)*Placement(r); }
-inline Placement operator/(const Feature& l, const Feature& r) 
-  { return Placement(l)/Placement(r); }
+// binary (feature,feature)
+inline Placement add       (const Feature& l, const Feature& r) {return add(Placement(l),Placement(r));} 
+inline Placement subtract  (const Feature& l, const Feature& r) {return subtract(Placement(l),Placement(r));} 
+inline Placement multiply  (const Feature& l, const Feature& r) {return multiply(Placement(l),Placement(r));} 
+inline Placement divide    (const Feature& l, const Feature& r) {return divide(Placement(l),Placement(r));}
+inline Placement distance  (const Feature& l, const Feature& r) {return distance(Placement(l),Placement(r));}
+inline Placement angle     (const Feature& l, const Feature& r) {return angle(Placement(l),Placement(r));}
+inline Placement dot       (const Feature& l, const Feature& r) {return dot(Placement(l),Placement(r));}
+inline Placement cross     (const Feature& l, const Feature& r) {return cross(Placement(l),Placement(r));}
 
-// binary(placement,feature)
-inline Placement operator+(const Placement& l, const Feature& r) 
-  { return l+Placement(r); }
-inline Placement operator-(const Placement& l, const Feature& r) 
-  { return l-Placement(r); }
-inline Placement operator*(const Placement& l, const Feature& r) 
-  { return l*Placement(r); }
-inline Placement operator/(const Placement& l, const Feature& r) 
-  { return l/Placement(r); }
+// binary (feature,placement)
+inline Placement add       (const Feature& l, const Placement& r) {return add(Placement(l),r);} 
+inline Placement subtract  (const Feature& l, const Placement& r) {return subtract(Placement(l),r);} 
+inline Placement multiply  (const Feature& l, const Placement& r) {return multiply(Placement(l),r);} 
+inline Placement divide    (const Feature& l, const Placement& r) {return divide(Placement(l),r);}
+inline Placement distance  (const Feature& l, const Placement& r) {return distance(Placement(l),r);}
+inline Placement angle     (const Feature& l, const Placement& r) {return angle(Placement(l),r);}
+inline Placement dot       (const Feature& l, const Placement& r) {return dot(Placement(l),r);}
+inline Placement cross     (const Feature& l, const Placement& r) {return cross(Placement(l),r);}
 
-// binary(feature,placement)
-inline Placement operator+(const Feature& l, const Placement& r) 
-  { return Placement(l)+r; }
-inline Placement operator-(const Feature& l, const Placement& r) 
-  { return Placement(l)-r; }
-inline Placement operator*(const Feature& l, const Placement& r) 
-  { return Placement(l)*r; }
-inline Placement operator/(const Feature& l, const Placement& r) 
-  { return Placement(l)/r; }
+// binary (placement,feature)
+inline Placement add       (const Placement& l, const Feature& r) {return add(l,Placement(r));} 
+inline Placement subtract  (const Placement& l, const Feature& r) {return subtract(l,Placement(r));} 
+inline Placement multiply  (const Placement& l, const Feature& r) {return multiply(l,Placement(r));} 
+inline Placement divide    (const Placement& l, const Feature& r) {return divide(l,Placement(r));}
+inline Placement distance  (const Placement& l, const Feature& r) {return distance(l,Placement(r));}
+inline Placement angle     (const Placement& l, const Feature& r) {return angle(l,Placement(r));}
+inline Placement dot       (const Placement& l, const Feature& r) {return dot(l,Placement(r));}
+inline Placement cross     (const Placement& l, const Feature& r) {return cross(l,Placement(r));}
 
-// binary(real,feature)
-inline Placement operator+(const Real& l, const Feature& r) 
-  { return RealPlacement(l)+Placement(r); }
-inline Placement operator-(const Real& l, const Feature& r) 
-  { return RealPlacement(l)-Placement(r); }
-inline Placement operator*(const Real& l, const Feature& r) 
-  { return RealPlacement(l)*Placement(r); }
-inline Placement operator/(const Real& l, const Feature& r) 
-  { return RealPlacement(l)/Placement(r); }
+// Operator alternates for some of the above
 
-// binary(feature,real)
-inline Placement operator+(const Feature& l, const Real& r) 
-  { return Placement(l)+RealPlacement(r); }
-inline Placement operator-(const Feature& l, const Real& r) 
-  { return Placement(l)-RealPlacement(r); }
-inline Placement operator*(const Feature& l, const Real& r) 
-  { return Placement(l)*RealPlacement(r); }
-inline Placement operator/(const Feature& l, const Real& r) 
-  { return Placement(l)/RealPlacement(r); }
+// unary
+inline Placement operator-(const Feature& f) {return negate(f);}
+
+// binary (ff,fp,pf)
+inline Placement operator+(const Feature&   l, const Feature&   r) {return add(l,r);}
+inline Placement operator+(const Feature&   l, const Placement& r) {return add(l,r);}
+inline Placement operator+(const Placement& l, const Feature&   r) {return add(l,r);}
+inline Placement operator-(const Feature&   l, const Feature&   r) {return subtract(l,r);} 
+inline Placement operator-(const Feature&   l, const Placement& r) {return subtract(l,r);} 
+inline Placement operator-(const Placement& l, const Feature&   r) {return subtract(l,r);} 
+inline Placement operator*(const Feature&   l, const Feature&   r) {return multiply(l,r);} 
+inline Placement operator*(const Feature&   l, const Placement& r) {return multiply(l,r);} 
+inline Placement operator*(const Placement& l, const Feature&   r) {return multiply(l,r);} 
+inline Placement operator/(const Feature&   l, const Feature&   r) {return divide(l,r);} 
+inline Placement operator/(const Feature&   l, const Placement& r) {return divide(l,r);} 
+inline Placement operator/(const Placement& l, const Feature&   r) {return divide(l,r);} 
+
+// binary (feature,Real; Real,feature)
+inline Placement operator+(const Feature& l, const Real&    r) {return add(l,RealPlacement(r));}
+inline Placement operator+(const Real&    l, const Feature& r) {return add(RealPlacement(l),r);} 
+inline Placement operator-(const Feature& l, const Real&    r) {return subtract(l,RealPlacement(r));} 
+inline Placement operator-(const Real&    l, const Feature& r) {return subtract(RealPlacement(l),r);}  
+inline Placement operator*(const Feature& l, const Real&    r) {return multiply(l,RealPlacement(r));} 
+inline Placement operator*(const Real&    l, const Feature& r) {return multiply(RealPlacement(l),r);} 
+inline Placement operator/(const Feature& l, const Real&    r) {return divide(l,RealPlacement(r));} 
+inline Placement operator/(const Real&    l, const Feature& r) {return divide(RealPlacement(l),r);}
+
+// binary (feature,Vec3; Vec3,feature)
+inline Placement operator+(const Feature& l, const Vec3&    r) {return add(l,Vec3Placement(r));}
+inline Placement operator+(const Vec3&    l, const Feature& r) {return add(Vec3Placement(l),r);} 
+inline Placement operator-(const Feature& l, const Vec3&    r) {return subtract(l,Vec3Placement(r));} 
+inline Placement operator-(const Vec3&    l, const Feature& r) {return subtract(Vec3Placement(l),r);}  
+inline Placement operator*(const Feature& l, const Vec3&    r) {return multiply(l,Vec3Placement(r));} 
+inline Placement operator*(const Vec3&    l, const Feature& r) {return multiply(Vec3Placement(l),r);} 
+inline Placement operator/(const Feature& l, const Vec3&    r) {return divide(l,Vec3Placement(r));} 
+inline Placement operator/(const Vec3&    l, const Feature& r) {return divide(Vec3Placement(l),r);} 
+
+// binary (feature,Mat33; Mat33,feature) (TODO: Mat33Placement)
+inline Placement operator+(const Feature& l, const Mat33&    r) {return add(l,Placement(r));}
+inline Placement operator+(const Mat33&    l, const Feature& r) {return add(Placement(l),r);} 
+inline Placement operator-(const Feature& l, const Mat33&    r) {return subtract(l,Placement(r));} 
+inline Placement operator-(const Mat33&    l, const Feature& r) {return subtract(Placement(l),r);}  
+inline Placement operator*(const Feature& l, const Mat33&    r) {return multiply(l,Placement(r));} 
+inline Placement operator*(const Mat33&    l, const Feature& r) {return multiply(Placement(l),r);} 
+inline Placement operator/(const Feature& l, const Mat33&    r) {return divide(l,Placement(r));} 
+inline Placement operator/(const Mat33&    l, const Feature& r) {return divide(Placement(l),r);} 
 
 /**
  * This is an expression yielding a value suitable for use

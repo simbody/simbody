@@ -85,10 +85,7 @@ public:
 
     // These create a "feature placement" (reference to the placement
     // of a feature) of a particular type, but starting with a generic
-    // Subsystem, which must turn out to be a Feature. If the Feature type is already known it is implicitly
-    // converted to the corresponding Placement type at compile time
-    // instead, but for a generic Subsystem we can only convert to a
-    // generic Placement and choose the actual type at run time. Note that
+    // Subsystem, which must turn out to be a Feature. Note that
     // it is not necessary for the Feature to have a placement at the time
     // we create this reference; it need only have one by the time we
     // require a numerical value.
@@ -101,6 +98,7 @@ public:
     Placement(const Subsystem&, int index);
 
     void realize(/*State,*/ Stage) const;
+
     // This will throw an exception if this Placement's value has not 
     // already been realize()'d.
     const PlacementValue& getValue() const;
@@ -116,10 +114,10 @@ public:
 
     // For internal use only.
     explicit Placement(class PlacementRep*);
-    bool                      hasRep() const {return rep != 0;}
-    const class PlacementRep& getRep() const {assert(rep); return *rep;}
-    class PlacementRep&       updRep()       {assert(rep); return *rep;}
-    void                      setRep(PlacementRep* pp) {assert(!rep); rep=pp;}
+    bool                      hasRep() const            {return rep != 0;}
+    const class PlacementRep& getRep() const            {assert(rep); return *rep;}
+    class PlacementRep&       updRep()                  {assert(rep); return *rep;}
+    void                      setRep(PlacementRep* pp)  {assert(!rep); rep=pp;}
     void checkPlacementConsistency(const Subsystem* expOwner, 
                                    int              expIndexInOwner,
                                    const Subsystem& expRoot) const;
@@ -229,7 +227,6 @@ public:
     RealPlacement(const RealParameter&);
     RealPlacement(const RealMeasure&);
     explicit RealPlacement(const Feature&);
-    //explicit RealPlacement(const Placement&);
 
     // For internal use only.
     explicit RealPlacement(class RealPlacementRep* r) 
@@ -248,7 +245,6 @@ public:
     Vec3Placement(const Vec3Measure&);
     Vec3Placement(const Vec3Parameter&);
     explicit Vec3Placement(const Feature&);
-    //explicit Vec3Placement(const Placement&);
 
     // For internal use only.
     explicit Vec3Placement(class Vec3PlacementRep* r) 
@@ -269,7 +265,6 @@ public:
     explicit StationPlacement(const Vec3&);
     explicit StationPlacement(const Frame&);   // use the origin
     explicit StationPlacement(const Feature&);
-    //explicit StationPlacement(const Placement&);
 
     // For internal use only.
     explicit StationPlacement(class StationPlacementRep* r) 
@@ -289,7 +284,7 @@ public:
 
     explicit DirectionPlacement(const Vec3&);
     explicit DirectionPlacement(const Feature&);
-    //explicit DirectionPlacement(const Placement&);
+
     DirectionPlacement(const Orientation&, int i);  // use the i'th axis
     DirectionPlacement(const Frame&, int i);        // use the i'th axis
 
@@ -313,8 +308,6 @@ public:
     explicit OrientationPlacement(const Mat33&);
     explicit OrientationPlacement(const Frame&);        // use the orientation
     explicit OrientationPlacement(const Feature&);
-
-    //explicit OrientationPlacement(const Placement&);
 
     // For internal use only.
     explicit OrientationPlacement(class OrientationPlacementRep* r) 
