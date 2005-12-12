@@ -1591,7 +1591,7 @@ private:
 
 class PlacementValueRep {
 public:
-    PlacementValueRep() : valid(false), myHandle(0), owner(0), indexInOwner(-1) { }
+    PlacementValueRep() : valid(false), myHandle(0), owner(0), indexInOwner(-1), client(0) { }
     // warning: default copy & assignment are bitwise leaving bad pointers which must be corrected
 
     virtual ~PlacementValueRep() { }
@@ -1604,6 +1604,7 @@ public:
         PlacementValueRep* pr = clone();
         pr->myHandle = &p;
         pr->owner = 0; pr->indexInOwner = -1;
+        pr->client = 0;
         p.setRep(pr);
     }
 
@@ -1620,17 +1621,26 @@ public:
     const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
+    void             setClient(const Placement& p) {client = &p;}
+    bool             hasClient()        const {return client != 0;}
+    const Placement& getClient()        const {assert(client); return *client;}
+
     void checkPlacementValueConsistency(const Subsystem* expOwner, 
                                         int              expIndexInOwner,
                                         const Subsystem& expRoot) const;
 
 private:
-    bool valid;                          // Is the stored value (in the concrete Rep) meaningful?
+    bool valid;                    // Is the stored value (in the concrete Rep) meaningful?
 
-    PlacementValue*  myHandle;           // the PlacementValue whose rep this is
+    PlacementValue*  myHandle;     // the PlacementValue whose rep this is
 
-    const Subsystem* owner;              // The Subsystem (if any) which owns this PlacementValue
-    int              indexInOwner;       // ... and the index in its placementValues list.
+    const Subsystem* owner;        // The Subsystem (if any) which owns this PlacementValue
+    int              indexInOwner; // ... and the index in its placementValues list.
+
+
+    const Placement* client;       // The Placement expression (if any) for which this is the Value.
+                                   // That Placement's value pointer must point right
+                                   // back here (through the PlacementValue handle).
 };
 
 template <class T> class PlacementValueRep_ : public PlacementValueRep {

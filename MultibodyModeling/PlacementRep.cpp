@@ -1768,6 +1768,15 @@ String PlacementValue::toString(const String& linePrefix) const {
         s << getOwner().getFullName() << ":"
           << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
+    if (getRep().hasClient()) {
+        s << "[client:";
+        const Placement& p = getRep().getClient();
+        if (p.getRep().hasClient())
+            s << p.getRep().getClient().getFullName();
+        else 
+            s << "Placement@" << &p;
+        s << "]";
+    } else s << "[NO CLIENT]";
     s << " " << rep->toString(linePrefix);
     return s.str();
 }
@@ -1857,6 +1866,20 @@ void PlacementValueRep::checkPlacementValueConsistency(const Subsystem* expOwner
         cout << "*** WRONG OWNER@" << owner << "; should have been " << expOwner << endl;
     if (indexInOwner != expIndexInOwner)
         cout << "*** WRONG INDEX " << indexInOwner << "; should have been " << expIndexInOwner << endl;
+
+
+    if (expOwner == 0) {
+        if (client)
+          cout << "*** UNOWNED PLACEMENT VALUE HAD CLIENT ***" << endl;
+    } else {
+        if (!client) 
+            cout << "*** NO CLIENT ***" << endl;
+        else if (!client->getRep().hasValueSlot())
+            cout << "*** CLIENT HAS NO VALUE SLOT??? ***" << endl;
+        else if (&(client->getRep().getValueSlot().getRep()) != this)
+            cout << "*** CLIENT HAS WRONG PLACEMENT VALUE SLOT@" 
+                << &client->getRep().getValueSlot().getRep() << endl;
+    }
 }
 
 

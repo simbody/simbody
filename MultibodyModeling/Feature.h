@@ -279,6 +279,29 @@ inline Placement angle     (const Feature& l, const Placement& r) {return angle(
 inline Placement dot       (const Feature& l, const Placement& r) {return dot(Placement(l),r);}
 inline Placement cross     (const Feature& l, const Placement& r) {return cross(Placement(l),r);}
 
+inline Placement add       (const Feature& l, const Real& r) {return add(l,RealPlacement(r));} 
+inline Placement subtract  (const Feature& l, const Real& r) {return subtract(l,RealPlacement(r));} 
+inline Placement multiply  (const Feature& l, const Real& r) {return multiply(l,RealPlacement(r));} 
+inline Placement divide    (const Feature& l, const Real& r) {return divide(l,RealPlacement(r));}
+inline Placement distance  (const Feature& l, const Real& r) {return distance(l,RealPlacement(r));}
+inline Placement angle     (const Feature& l, const Real& r) {return angle(l,RealPlacement(r));}
+inline Placement dot       (const Feature& l, const Real& r) {return dot(l,RealPlacement(r));}
+inline Placement cross     (const Feature& l, const Real& r) {return cross(l,RealPlacement(r));}
+
+inline Placement add       (const Feature& l, const Vec3& r) {return add(l,Vec3Placement(r));} 
+inline Placement subtract  (const Feature& l, const Vec3& r) {return subtract(l,Vec3Placement(r));} 
+inline Placement multiply  (const Feature& l, const Vec3& r) {return multiply(l,Vec3Placement(r));} 
+inline Placement distance  (const Feature& l, const Vec3& r) {return distance(l,Vec3Placement(r));}
+inline Placement angle     (const Feature& l, const Vec3& r) {return angle(l,Vec3Placement(r));}
+inline Placement dot       (const Feature& l, const Vec3& r) {return dot(l,Vec3Placement(r));}
+inline Placement cross     (const Feature& l, const Vec3& r) {return cross(l,Vec3Placement(r));}
+
+// TODO: Mat33Placement
+inline Placement add       (const Feature& l, const Mat33& r) {return add(l,Placement(r));} 
+inline Placement subtract  (const Feature& l, const Mat33& r) {return subtract(l,Placement(r));} 
+inline Placement multiply  (const Feature& l, const Mat33& r) {return multiply(l,Placement(r));} 
+
+
 // binary (placement,feature)
 inline Placement add       (const Placement& l, const Feature& r) {return add(l,Placement(r));} 
 inline Placement subtract  (const Placement& l, const Feature& r) {return subtract(l,Placement(r));} 
@@ -288,6 +311,30 @@ inline Placement distance  (const Placement& l, const Feature& r) {return distan
 inline Placement angle     (const Placement& l, const Feature& r) {return angle(l,Placement(r));}
 inline Placement dot       (const Placement& l, const Feature& r) {return dot(l,Placement(r));}
 inline Placement cross     (const Placement& l, const Feature& r) {return cross(l,Placement(r));}
+
+inline Placement add       (const Real& l, const Feature& r) {return add(RealPlacement(l),r);} 
+inline Placement subtract  (const Real& l, const Feature& r) {return subtract(RealPlacement(l),r);} 
+inline Placement multiply  (const Real& l, const Feature& r) {return multiply(RealPlacement(l),r);} 
+inline Placement divide    (const Real& l, const Feature& r) {return divide(RealPlacement(l),r);}
+inline Placement distance  (const Real& l, const Feature& r) {return distance(RealPlacement(l),r);}
+inline Placement angle     (const Real& l, const Feature& r) {return angle(RealPlacement(l),r);}
+inline Placement dot       (const Real& l, const Feature& r) {return dot(RealPlacement(l),r);}
+inline Placement cross     (const Real& l, const Feature& r) {return cross(RealPlacement(l),r);}
+
+inline Placement add       (const Vec3& l, const Feature& r) {return add(Vec3Placement(l),r);} 
+inline Placement subtract  (const Vec3& l, const Feature& r) {return subtract(Vec3Placement(l),r);} 
+inline Placement multiply  (const Vec3& l, const Feature& r) {return multiply(Vec3Placement(l),r);} 
+inline Placement divide    (const Vec3& l, const Feature& r) {return divide(Vec3Placement(l),r);}
+inline Placement distance  (const Vec3& l, const Feature& r) {return distance(Vec3Placement(l),r);}
+inline Placement angle     (const Vec3& l, const Feature& r) {return angle(Vec3Placement(l),r);}
+inline Placement dot       (const Vec3& l, const Feature& r) {return dot(Vec3Placement(l),r);}
+inline Placement cross     (const Vec3& l, const Feature& r) {return cross(Vec3Placement(l),r);}
+
+// TODO: Mat33Placement
+inline Placement add       (const Mat33& l, const Feature& r) {return add(Placement(l),r);} 
+inline Placement subtract  (const Mat33& l, const Feature& r) {return subtract(Placement(l),r);} 
+inline Placement multiply  (const Mat33& l, const Feature& r) {return multiply(Placement(l),r);} 
+inline Placement divide    (const Mat33& l, const Feature& r) {return divide(Placement(l),r);}
 
 // Operator alternates for some of the above
 
@@ -309,34 +356,32 @@ inline Placement operator/(const Feature&   l, const Placement& r) {return divid
 inline Placement operator/(const Placement& l, const Feature&   r) {return divide(l,r);} 
 
 // binary (feature,Real; Real,feature)
-inline Placement operator+(const Feature& l, const Real&    r) {return add(l,RealPlacement(r));}
-inline Placement operator+(const Real&    l, const Feature& r) {return add(RealPlacement(l),r);} 
-inline Placement operator-(const Feature& l, const Real&    r) {return subtract(l,RealPlacement(r));} 
-inline Placement operator-(const Real&    l, const Feature& r) {return subtract(RealPlacement(l),r);}  
-inline Placement operator*(const Feature& l, const Real&    r) {return multiply(l,RealPlacement(r));} 
-inline Placement operator*(const Real&    l, const Feature& r) {return multiply(RealPlacement(l),r);} 
-inline Placement operator/(const Feature& l, const Real&    r) {return divide(l,RealPlacement(r));} 
-inline Placement operator/(const Real&    l, const Feature& r) {return divide(RealPlacement(l),r);}
+inline Placement operator+(const Feature& l, const Real&    r) {return add(l,r);}
+inline Placement operator+(const Real&    l, const Feature& r) {return add(l,r);} 
+inline Placement operator-(const Feature& l, const Real&    r) {return subtract(l,r);} 
+inline Placement operator-(const Real&    l, const Feature& r) {return subtract(l,r);}  
+inline Placement operator*(const Feature& l, const Real&    r) {return multiply(l,r);} 
+inline Placement operator*(const Real&    l, const Feature& r) {return multiply(l,r);} 
+inline Placement operator/(const Feature& l, const Real&    r) {return divide(l,r);} 
+inline Placement operator/(const Real&    l, const Feature& r) {return divide(l,r);}
 
 // binary (feature,Vec3; Vec3,feature)
-inline Placement operator+(const Feature& l, const Vec3&    r) {return add(l,Vec3Placement(r));}
-inline Placement operator+(const Vec3&    l, const Feature& r) {return add(Vec3Placement(l),r);} 
-inline Placement operator-(const Feature& l, const Vec3&    r) {return subtract(l,Vec3Placement(r));} 
-inline Placement operator-(const Vec3&    l, const Feature& r) {return subtract(Vec3Placement(l),r);}  
-inline Placement operator*(const Feature& l, const Vec3&    r) {return multiply(l,Vec3Placement(r));} 
-inline Placement operator*(const Vec3&    l, const Feature& r) {return multiply(Vec3Placement(l),r);} 
-inline Placement operator/(const Feature& l, const Vec3&    r) {return divide(l,Vec3Placement(r));} 
-inline Placement operator/(const Vec3&    l, const Feature& r) {return divide(Vec3Placement(l),r);} 
+inline Placement operator+(const Feature& l, const Vec3&    r) {return add(l,r);}
+inline Placement operator+(const Vec3&    l, const Feature& r) {return add(l,r);} 
+inline Placement operator-(const Feature& l, const Vec3&    r) {return subtract(l,r);} 
+inline Placement operator-(const Vec3&    l, const Feature& r) {return subtract(l,r);}  
+inline Placement operator*(const Feature& l, const Vec3&    r) {return multiply(l,r);} 
+inline Placement operator*(const Vec3&    l, const Feature& r) {return multiply(l,r);}  
+inline Placement operator/(const Vec3&    l, const Feature& r) {return divide(l,r);} 
 
 // binary (feature,Mat33; Mat33,feature) (TODO: Mat33Placement)
-inline Placement operator+(const Feature& l, const Mat33&    r) {return add(l,Placement(r));}
-inline Placement operator+(const Mat33&    l, const Feature& r) {return add(Placement(l),r);} 
-inline Placement operator-(const Feature& l, const Mat33&    r) {return subtract(l,Placement(r));} 
-inline Placement operator-(const Mat33&    l, const Feature& r) {return subtract(Placement(l),r);}  
-inline Placement operator*(const Feature& l, const Mat33&    r) {return multiply(l,Placement(r));} 
-inline Placement operator*(const Mat33&    l, const Feature& r) {return multiply(Placement(l),r);} 
-inline Placement operator/(const Feature& l, const Mat33&    r) {return divide(l,Placement(r));} 
-inline Placement operator/(const Mat33&    l, const Feature& r) {return divide(Placement(l),r);} 
+inline Placement operator+(const Feature& l, const Mat33&    r) {return add(l,r);}
+inline Placement operator+(const Mat33&    l, const Feature& r) {return add(l,r);} 
+inline Placement operator-(const Feature& l, const Mat33&    r) {return subtract(l,r);} 
+inline Placement operator-(const Mat33&    l, const Feature& r) {return subtract(l,r);}  
+inline Placement operator*(const Feature& l, const Mat33&    r) {return multiply(l,r);} 
+inline Placement operator*(const Mat33&    l, const Feature& r) {return multiply(l,r);} 
+inline Placement operator/(const Mat33&    l, const Feature& r) {return divide(l,r);} 
 
 /**
  * This is an expression yielding a value suitable for use

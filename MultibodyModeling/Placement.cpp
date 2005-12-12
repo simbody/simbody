@@ -101,6 +101,7 @@ void Placement::realize(/*State,*/ Stage g) const {
         if (s) {
             PlacementValue& pv = 
                 const_cast<Subsystem*>(s)->updRep().addPlacementValueLike(pr.createEmptyPlacementValue());
+            pv.updRep().setClient(*this);
             pr.assignValueSlot(pv);
         }
     }
@@ -156,6 +157,10 @@ String Placement::toString(const String& linePrefix) const {
         s << getOwner().getFullName() << ":"
           << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
+
+    if (getRep().hasClient())
+        s << "[client:" << getRep().getClient().getFullName() << "]";
+    else s << "[NO CLIENT]";
     s << " " << rep->toString(linePrefix);
     return s.str();
 }

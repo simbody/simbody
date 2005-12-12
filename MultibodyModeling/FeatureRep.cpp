@@ -47,9 +47,11 @@ void SubsystemRep::realize(/*State,*/Stage g) const {
     for (int i=0; i < getNSubsystems(); ++i)
         getSubsystem(i).realize(/*State,*/ g);
 
-    //XXX
-    //if (hasPlacement()) 
-    //    getPlacement().realize(/*State,*/ g);
+    if (FeatureRep::isA(*this)) {
+        const FeatureRep& fr = FeatureRep::downcast(*this);
+        if (fr.hasPlacement()) 
+            fr.getPlacement().realize(/*State,*/ g);
+    }
 }
 
 std::string 
@@ -529,7 +531,11 @@ void FeatureRep::place(const Placement& p) {
 void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot) {
     if (placement) {
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
-        if (placement) const_cast<Placement*>(placement)->updRep().setClient(getMyHandle());
+        if (placement) { 
+            const_cast<Placement*>(placement)->updRep().setClient(getMyHandle());
+            if (placement->getRep().hasValueSlot())
+                const_cast<Placement*>(placement)->updRep().updValueSlot().updRep().setClient(*placement);
+        }
     }
 }
 
