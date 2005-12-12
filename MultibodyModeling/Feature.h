@@ -46,62 +46,63 @@
 
 namespace simtk {
 
-// Declared below. Indenting shows inheritance structure.
-class Feature;
-class   Station;
-class   Direction;
-class   Orientation;
-class   Frame;
-class   RealMeasure;
-class     RealParameter;
-class   StationMeasure;
-class     StationParameter;
-class   DirectionMeasure;
-class   OrientationMeasure;
+// Declared below and elsewhere. Indenting shows inheritance structure.
+class Subsystem;
+class   Feature;
+class     Station;
+class     Direction;
+class     Orientation;
+class     Frame;
+class     RealMeasure;
+class       RealParameter;
+class     StationMeasure;
+class       StationParameter;
+class     DirectionMeasure;
+class     OrientationMeasure;
+class     MassElement;
+class       PointMassElement;
+class       SphereMassElement;
+class       CylinderMassElement;
+class       BrickMassElement;
+class   Body;
+class     RigidBody;
+class   Joint;
+class     PinJoint;
+class     BallJoint;
+class   Multibody;
 
 /**
- * Features form a tree because many Features have sub-Features (children).
- * Parent features own their children; destructing the parent destructs
+ * Subsystems form a tree because many of them have sub-Subsystems (children).
+ * Parent subsystems own their children; destructing the parent destructs
  * all the children.
  *
- * Most features require placement in order to be useful (e.g.,
- * a Station has to have a location). A Feature's Placement may
- * have a constant value, or can involve sibling, parent, or 
- * ancestor Features but not its own children. 
+ * Low-level "elemental" subsystems are called Features. Features require
+ * a Placement in order to be useful (e.g., a Station has to have a location).
+ * A Feature's Placement may have a constant value, or can involve sibling,
+ * parent, or ancestor Features but not its own children. 
  *
- * Every feature has a name and an index by which it is known
- * to its parent. Parentless features can exist but they can't
- * be placed. Parentless features still have a name but they do
- * not have an index.
+ * Every Subsystem has a name and an index by which it is known
+ * to its parent. Parentless subsystems can exist; they still have a
+ * name but they do not have an index. We call these "root" or "prototype"
+ * subsystems depending on intended use.
  */
-class Feature {
+class Subsystem {
 public:
-    Feature() : rep(0) { }
-    Feature(const Feature&);    // external placements are not copied or assigned
-    Feature& operator=(const Feature&);
-    ~Feature();
+    Subsystem() : rep(0) { }
+    Subsystem(const Subsystem&);    // external placements are not copied or assigned
+    Subsystem& operator=(const Subsystem&);
+    ~Subsystem();
 
     // calculate values for all fully-resolved placements
     void realize(/*State,*/ Stage) const;
 
-    // Return value of this feature's placement. Requires (a) that there is
-    // a placement, and (b) that its value is available due to a prior realize()
-    // call.
-    const PlacementValue& getValue() const;
+    const Placement&      getPlacement()  const; // fails if subsystem is not a Feature
+    const PlacementValue& getValue()      const; //   "
+    void place(const Placement&);                //   "
 
-
-    // True if this feature has been placed; its children may still be unplaced.
-    bool hasPlacement() const;
-    const Placement& getPlacement() const;
-
-    // Place this Feature using the supplied Placement expression
-    // as a prototype. We will choose an owner Feature for the new
-    // Placement, and then add a copy of the supplied one to that
-    // owner. Then this Feature will refer to that copy as its Placement.
-    void place(const Placement&);
-
-    // Read-only access to subfeatures.
-    const Feature&          getSubfeature      (const String&) const; // generic
+    // Read-only access to child subsystems.
+    const Subsystem&        getSubsystem       (const String&) const; // generic
+    const Feature&          getFeature         (const String&) const; // slightly less generic
     const RealParameter&    getRealParameter   (const String&) const; // type checked
     const Vec3Parameter&    getVec3Parameter   (const String&) const; //   "
     const StationParameter& getStationParameter(const String&) const;
@@ -113,8 +114,9 @@ public:
     const Orientation&      getOrientation     (const String&) const;
     const Frame&            getFrame           (const String&) const;
 
-    // Writable access to subfeatures, e.g. allowing placement.
-    Feature&                updSubfeature      (const String&);   // generic
+    // Writable access to subsystems, e.g. allowing feature placement.
+    Subsystem&              updSubsystem       (const String&);   // generic
+    Feature&                updFeature         (const String&);   // less generic
     RealParameter&          updRealParameter   (const String&);   // type checked
     Vec3Parameter&          updVec3Parameter   (const String&);   //   "
     StationParameter&       updStationParameter(const String&);
@@ -126,7 +128,7 @@ public:
     Orientation&            updOrientation     (const String&);
     Frame&                  updFrame           (const String&);
 
-    // Create a new subfeature on this feature with a given name and type, and
+    // Create a new feature on this subsystem with a given name and type, and
     // optionally create a placement for it using the prototype placement supplied.
     RealParameter&    addRealParameter
                         (const String&, const Placement& = Placement());
@@ -150,58 +152,94 @@ public:
                         (const String&, const Placement& = Placement());
 
     // This is similar to the "add" routines above, except that the newly created
-    // feature is modeled on the prototype feature supplied here. Again a placement
-    // may be supplied or not.
+    // subsystem is modeled on the prototype subsystem supplied here.
+    Subsystem&        addSubsystemLike(const Subsystem&, const String&);
 
-    // This generic routine will create a subfeature of the specific type supplied
+    // This generic routine will create a feature of the specific type supplied
     // in the first argument. If a Placement is provided, it must be appropriate
     // for that kind of feature or a runtime error will occur.
-    Feature&          addSubfeatureLike
-                        (const Feature&,
+    Feature&          addFeatureLike
+                        (const Subsystem&,
                          const String&, const Placement& = Placement());
    
-    bool           hasParentFeature() const;
-    int            getIndexInParent() const; // -1 if no parent
-    const Feature& getParentFeature() const;
+    bool              hasParentSubsystem() const;
+    int               getIndexInParent() const; // -1 if no parent
+    const Subsystem&  getParentSubsystem() const;
 
-    bool isSameFeature(const Feature& f) const {return &f == this;}
+    bool isSameSubsystem(const Subsystem& s) const;
+
+    String getName()              const;
+    String getFullName()          const; // "ancestors/parent/name"
+
+
+    // Subsystems which are children of this subsystem
+    int              getNSubsystems()  const;
+    const Subsystem& getSubsystem(int) const;
+    Subsystem&       updSubsystem(int);
+
+    const Subsystem& operator[](int i) const           {return getSubsystem(i);}
+    Subsystem&       operator[](int i)                 {return updSubsystem(i);}
+    const Subsystem& operator[](const String& s) const {return getSubsystem(s);}
+    Subsystem&       operator[](const String& s)       {return updSubsystem(s);}
+
+    String toString(const String& linePrefix="") const;
+
+    // For internal use only.
+    bool                      hasRep() const {return rep != 0;}
+    const class SubsystemRep& getRep() const {assert(rep); return *rep;}
+    class SubsystemRep&       updRep()       {assert(rep); return *rep;}
+    void                      setRep(SubsystemRep* fp) {assert(!rep); rep=fp;}
+    void checkSubsystemConsistency(const Subsystem* expParent,
+                                   int              expIndexInParent,
+                                   const Subsystem& expRoot) const;
+protected:
+    class SubsystemRep* rep;
+    friend class SubsystemRep;
+};
+
+class Feature : public Subsystem {
+public:
+    Feature(const Feature&);    // external placements are not copied or assigned
+    Feature& operator=(const Feature&);
+    ~Feature();
+
+    String getFeatureTypeName() const; // "Station", "Frame", etc. (for messages only)
+
+    // Return value of this feature's placement. Requires (a) that there is
+    // a placement, and (b) that its value is available due to a prior realize()
+    // call.
+    const PlacementValue& getValue() const;
+
+
+    // True if this feature has been placed; its children may still be unplaced.
+    bool hasPlacement() const;
+    const Placement& getPlacement() const;
+
+    // Place this Feature using the supplied Placement expression
+    // as a prototype. We will choose an owner Feature for the new
+    // Placement, and then add a copy of the supplied one to that
+    // owner. Then this Feature will refer to that copy as its Placement.
+    void place(const Placement&);
+
 
     // True if this is the same feature as f or if the feature's placement
     // depends on f's placement.
     bool dependsOn(const Feature& f) const;
 
-    String getName()            const;
-    String getFullName()        const; // "ancestors/parent/name"
-    String getFeatureTypeName() const; // "Station", "Frame", etc. (for messages only)
+    const class FeatureRep& getRep() const
+      { return *reinterpret_cast<const FeatureRep*>(rep); }    
+    class FeatureRep& updRep()
+      { return *reinterpret_cast<FeatureRep*>(rep); } 
 
-    // Subfeatures of this feature
-    int            getNSubfeatures()  const;
-    const Feature& getSubfeature(int) const;
-    Feature&       updSubfeature(int);
-
-    const Feature& operator[](int i) const           {return getSubfeature(i);}
-    Feature&       operator[](int i)                 {return updSubfeature(i);}
-    const Feature& operator[](const String& s) const {return getSubfeature(s);}
-    Feature&       operator[](const String& s)       {return updSubfeature(s);}
-
-
-    String toString(const String& linePrefix="") const;
-
-    // For internal use only.
-    bool                    hasRep() const {return rep != 0;}
-    const class FeatureRep& getRep() const {assert(rep); return *rep;}
-    class FeatureRep&       updRep()       {assert(rep); return *rep;}
-    void                    setRep(FeatureRep* fp) {assert(!rep); rep=fp;}
-    void checkFeatureConsistency(const Feature* expParent,
-                                 int expIndexInParent,
-                                 const Feature& expRoot) const;
+    static bool           isInstanceOf(const Subsystem&);
+    static const Feature& downcast(const Subsystem&);
+    static Feature&       downcast(Subsystem&);
 protected:
-    class FeatureRep* rep;
-    friend class FeatureRep;
+    Feature() { }
 };
 
-// Global operators involving Features.
-std::ostream& operator<<(std::ostream& o, const Feature&);
+// Global operators involving Subsystems and Features.
+std::ostream& operator<<(std::ostream& o, const Subsystem&);
 
 // Although these operators appear to act on Features, they actually
 // create a Placement referring to the Features and then perform
@@ -289,9 +327,9 @@ public:
     const RealPlacement& getPlacement() const;
     const Real& getValue() const;
 
-    static bool               isInstanceOf(const Feature&);
-    static const RealMeasure& downcast(const Feature&);
-    static RealMeasure&       downcast(Feature&);
+    static bool               isInstanceOf(const Subsystem&);
+    static const RealMeasure& downcast(const Subsystem&);
+    static RealMeasure&       downcast(Subsystem&);
 protected:
     RealMeasure() { }
 };
@@ -316,9 +354,9 @@ public:
     const RealPlacement& getPlacement() const;
     const Real& getValue() const;
 
-    static bool                 isInstanceOf(const Feature&);
-    static const RealParameter& downcast(const Feature&);
-    static RealParameter&       downcast(Feature&);
+    static bool                 isInstanceOf(const Subsystem&);
+    static const RealParameter& downcast(const Subsystem&);
+    static RealParameter&       downcast(Subsystem&);
 protected:
     RealParameter() { }
 };
@@ -333,9 +371,9 @@ public:
     const Vec3Placement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool               isInstanceOf(const Feature&);
-    static const Vec3Measure& downcast(const Feature&);
-    static Vec3Measure&       downcast(Feature&);
+    static bool               isInstanceOf(const Subsystem&);
+    static const Vec3Measure& downcast(const Subsystem&);
+    static Vec3Measure&       downcast(Subsystem&);
 protected:
     Vec3Measure() { }
 };
@@ -350,9 +388,9 @@ public:
     const Vec3Placement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool                 isInstanceOf(const Feature&);
-    static const Vec3Parameter& downcast(const Feature&);
-    static Vec3Parameter&       downcast(Feature&);
+    static bool                 isInstanceOf(const Subsystem&);
+    static const Vec3Parameter& downcast(const Subsystem&);
+    static Vec3Parameter&       downcast(Subsystem&);
 protected:
     Vec3Parameter() { }
 };
@@ -367,9 +405,9 @@ public:
     const StationPlacement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool                  isInstanceOf(const Feature&);
-    static const StationMeasure& downcast(const Feature&);
-    static StationMeasure&       downcast(Feature&);
+    static bool                  isInstanceOf(const Subsystem&);
+    static const StationMeasure& downcast(const Subsystem&);
+    static StationMeasure&       downcast(Subsystem&);
 protected:
     StationMeasure() { }
 };
@@ -384,9 +422,9 @@ public:
     const StationPlacement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool                    isInstanceOf(const Feature&);
-    static const StationParameter& downcast(const Feature&);
-    static StationParameter&       downcast(Feature&);
+    static bool                    isInstanceOf(const Subsystem&);
+    static const StationParameter& downcast(const Subsystem&);
+    static StationParameter&       downcast(Subsystem&);
 protected:
     StationParameter() { }
 };
@@ -402,9 +440,9 @@ public:
     const StationPlacement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool           isInstanceOf(const Feature&);
-    static const Station& downcast(const Feature&);
-    static Station&       downcast(Feature&);
+    static bool           isInstanceOf(const Subsystem&);
+    static const Station& downcast(const Subsystem&);
+    static Station&       downcast(Subsystem&);
 protected:
     Station() { }
 };
@@ -420,9 +458,9 @@ public:
     const DirectionPlacement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool                  isInstanceOf(const Feature&);
-    static const DirectionMeasure& downcast(const Feature&);
-    static DirectionMeasure&       downcast(Feature&);
+    static bool                    isInstanceOf(const Subsystem&);
+    static const DirectionMeasure& downcast(const Subsystem&);
+    static DirectionMeasure&       downcast(Subsystem&);
 protected:
     DirectionMeasure() { }
 };
@@ -440,9 +478,9 @@ public:
     const DirectionPlacement& getPlacement() const;
     const Vec3& getValue() const;
 
-    static bool             isInstanceOf(const Feature&);
-    static const Direction& downcast(const Feature&);
-    static Direction&       downcast(Feature&);
+    static bool             isInstanceOf(const Subsystem&);
+    static const Direction& downcast(const Subsystem&);
+    static Direction&       downcast(Subsystem&);
 protected:
     Direction() { }
 };
@@ -457,9 +495,9 @@ public:
     const OrientationPlacement& getPlacement() const;
     const Mat33& getValue() const;
 
-    static bool                      isInstanceOf(const Feature&);
-    static const OrientationMeasure& downcast(const Feature&);
-    static OrientationMeasure&       downcast(Feature&);
+    static bool                      isInstanceOf(const Subsystem&);
+    static const OrientationMeasure& downcast(const Subsystem&);
+    static OrientationMeasure&       downcast(Subsystem&);
 protected:
     OrientationMeasure() { }
 };
@@ -482,9 +520,9 @@ public:
     const Direction&   y()        const {return getAxis(1);}
     const Direction&   z()        const {return getAxis(2);}
 
-    static bool               isInstanceOf(const Feature&);
-    static const Orientation& downcast(const Feature&);
-    static Orientation&       downcast(Feature&);
+    static bool               isInstanceOf(const Subsystem&);
+    static const Orientation& downcast(const Subsystem&);
+    static Orientation&       downcast(Subsystem&);
 protected:
     Orientation() { }
 };
@@ -506,9 +544,9 @@ public:
     const Direction&   y()            const {return getOrientation().y();}
     const Direction&   z()            const {return getOrientation().z();}
 
-    static bool         isInstanceOf(const Feature&);
-    static const Frame& downcast(const Feature&);
-    static Frame&       downcast(Feature&);
+    static bool         isInstanceOf(const Subsystem&);
+    static const Frame& downcast(const Subsystem&);
+    static Frame&       downcast(Subsystem&);
 protected:
     Frame() { }
 };

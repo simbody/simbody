@@ -45,16 +45,17 @@ class BrickMassElement;
 class GeneralMassElement;
 
 /**
- * This is an abstract class representing all the mass elements.
+ * This is an abstract interface implemented by any Subsystem
+ * that carries mass.
  */
 class MassElement : public Feature {
 public:
     const RealMeasure&    getMassMeasure() const;
     const StationMeasure& getCentroidMeasure() const;
 
-    static bool               isInstanceOf(const Feature&);
-    static const MassElement& downcast(const Feature&);
-    static MassElement&       downcast(Feature&);
+    static bool               isInstanceOf(const Subsystem&);
+    static const MassElement& downcast(const Subsystem&);
+    static MassElement&       downcast(Subsystem&);
 };
 
 /**
@@ -76,9 +77,9 @@ public:
     // feature itself.
     void setMass(const Real&);
 
-    static bool                    isInstanceOf(const Feature&);
-    static const PointMassElement& downcast(const Feature&);
-    static PointMassElement&       downcast(Feature&);
+    static bool                    isInstanceOf(const Subsystem&);
+    static const PointMassElement& downcast(const Subsystem&);
+    static PointMassElement&       downcast(Subsystem&);
 };
 
 /**
@@ -99,9 +100,9 @@ public:
     void setMass    (const Real&);
     void setRadius  (const Real&);
 
-    static bool                    isInstanceOf(const Feature&);
-    static const PointMassElement& downcast(const Feature&);
-    static PointMassElement&       downcast(Feature&);
+    static bool                    isInstanceOf(const Subsystem&);
+    static const PointMassElement& downcast(const Subsystem&);
+    static PointMassElement&       downcast(Subsystem&);
 };
 
 /**
@@ -129,9 +130,9 @@ public:
     void placeCenter  (const Vec3&);
     void placeAxis    (const Vec3&);
 
-    static bool                       isInstanceOf(const Feature&);
-    static const CylinderMassElement& downcast(const Feature&);
-    static CylinderMassElement&       downcast(Feature&);
+    static bool                       isInstanceOf(const Subsystem&);
+    static const CylinderMassElement& downcast(const Subsystem&);
+    static CylinderMassElement&       downcast(Subsystem&);
 };
 
 

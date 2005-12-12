@@ -48,20 +48,20 @@ const StationMeasure& Body::getCentroidMeasure() const {
 
 
 /*static*/ bool             
-Body::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return BodyRep::isA(f.getRep());
+Body::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return BodyRep::isA(s.getRep());
 }
 /*static*/ const Body& 
-Body::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const Body&>(f);
+Body::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Body&>(s);
 }
 
 /*static*/ Body&       
-Body::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<Body&>(f);
+Body::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Body&>(s);
 }
 
     // RIGID BODY //
@@ -80,42 +80,42 @@ RigidBody::~RigidBody() { }
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm,
                                            const Placement& pl) {
     Placement& p = updRep().addPlacementLike(pl);
-    MassElement& m = MassElement::downcast(updRep().addSubfeatureLike(me, nm));
+    MassElement& m = MassElement::downcast(updRep().addFeatureLike(me, nm));
     m.place(p);
     return m;
 }
 MassElement& RigidBody::addMassElementLike(const MassElement& me, const String& nm) {
-    return MassElement::downcast(updRep().addSubfeatureLike(me, nm));
+    return MassElement::downcast(updRep().addSubsystemLike(me, nm));
 }
 
 /*static*/ bool             
-RigidBody::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return RigidBodyRep::isA(f.getRep());
+RigidBody::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return RigidBodyRep::isA(s.getRep());
 }
 /*static*/ const RigidBody& 
-RigidBody::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const RigidBody&>(f);
+RigidBody::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const RigidBody&>(s);
 }
 
 /*static*/ RigidBody&       
-RigidBody::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<RigidBody&>(f);
+RigidBody::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<RigidBody&>(s);
 }
 
     // DEFORMABLE BODY //
 
     // MULTIBODY //
-Multibody::Multibody(const String& nm) : Body() {
+Multibody::Multibody(const String& nm) : Subsystem() {
     rep = new MultibodyRep(*this, std::string(nm));
     rep->initializeStandardSubfeatures();
 }
 Multibody::Multibody(const Multibody& src)
-  : Body(src) { }
+  : Subsystem(src) { }
 Multibody& Multibody::operator=(const Multibody& src) {
-    Body::operator=(src); return *this;
+    Subsystem::operator=(src); return *this;
 }
 Multibody::~Multibody() { }
 
@@ -125,85 +125,85 @@ const Frame& Multibody::getGroundFrame() const {
 
 RigidBody& Multibody::addGroundBody() {
     RigidBody& subBody = 
-        RigidBody::downcast(updRep().addSubfeatureLike(RigidBody("Ground"), "Ground"));
+        RigidBody::downcast(updRep().addSubsystemLike(RigidBody("Ground"), "Ground"));
     return subBody;
 }
 
 RigidBody& Multibody::addRigidBody(const String& nm) {
     RigidBody& subBody = 
-        RigidBody::downcast(updRep().addSubfeatureLike(RigidBody(nm), nm));
+        RigidBody::downcast(updRep().addSubsystemLike(RigidBody(nm), nm));
     return subBody;
 }
 
 RigidBody& Multibody::addRigidBodyLike(const RigidBody& b, const String& nm) {
-    RigidBody& subBody = RigidBody::downcast(updRep().addSubfeatureLike(b, nm));
+    RigidBody& subBody = RigidBody::downcast(updRep().addSubsystemLike(b, nm));
     return subBody;
 }
 
 Body& Multibody::addBodyLike(const Body& b, const String& nm) {
-    Body& subBody = Body::downcast(updRep().addSubfeatureLike(b, nm));
+    Body& subBody = Body::downcast(updRep().addSubsystemLike(b, nm));
     return subBody;
 }
 
 Joint& Multibody::addJoint(JointType jt, const String& nm) {
-    Joint& j = Joint::downcast(updRep().addSubfeatureLike(Joint(jt,nm), nm));
+    Joint& j = Joint::downcast(updRep().addSubsystemLike(Joint(jt,nm), nm));
     return j;
 }
 
 Joint& Multibody::addJoint(JointType jt, const String& nm,
                            const Placement& reference,
                            const Placement& moving) {
-    Joint& j = Joint::downcast(updRep().addSubfeatureLike(Joint(jt,nm), nm));
+    Joint& j = Joint::downcast(updRep().addSubsystemLike(Joint(jt,nm), nm));
     j.updFrame("reference").place(reference);
     j.updFrame("moving").place(moving);
     return j;
 }
 
 /*static*/ bool             
-Multibody::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return MultibodyRep::isA(f.getRep());
+Multibody::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return MultibodyRep::isA(s.getRep());
 }
 /*static*/ const Multibody& 
-Multibody::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const Multibody&>(f);
+Multibody::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Multibody&>(s);
 }
 
 /*static*/ Multibody&       
-Multibody::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<Multibody&>(f);
+Multibody::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Multibody&>(s);
 }
 
     // JOINT //
 
-Joint::Joint(JointType jt, const String& nm) : Feature() {
+Joint::Joint(JointType jt, const String& nm) : Subsystem() {
     rep = new JointRep(*this, jt, std::string(nm));
     rep->initializeStandardSubfeatures();
 }
 Joint::Joint(const Joint& src)
-  : Feature(src) { }
+  : Subsystem(src) { }
 Joint& Joint::operator=(const Joint& src) {
-    Feature::operator=(src); return *this;
+    Subsystem::operator=(src); return *this;
 }
 Joint::~Joint() { }
 
 /*static*/ bool             
-Joint::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return JointRep::isA(f.getRep());
+Joint::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return JointRep::isA(s.getRep());
 }
 /*static*/ const Joint& 
-Joint::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const Joint&>(f);
+Joint::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Joint&>(s);
 }
 
 /*static*/ Joint&       
-Joint::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<Joint&>(f);
+Joint::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Joint&>(s);
 }
 
 } // namespace simtk

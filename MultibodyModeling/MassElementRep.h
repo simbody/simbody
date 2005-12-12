@@ -34,7 +34,7 @@
 namespace simtk {
 
 /**
- * This is a still-abstract Feature representation, common to all
+ * This is a still-abstract Subsystem representation, common to all
  * the MassElement features.
  */
 class MassElementRep : public FeatureRep {
@@ -44,21 +44,21 @@ public:
 
 
     const RealMeasure& getMassMeasure() const {
-        return RealMeasure::downcast(getSubfeature(massMeasureIndex));
+        return RealMeasure::downcast(getFeature(massMeasureIndex));
     }
     const StationMeasure& getCentroidMeasure() const {
-        return StationMeasure::downcast(getSubfeature(centroidMeasureIndex));
+        return StationMeasure::downcast(getFeature(centroidMeasureIndex));
     }
 
     // virtuals getFeatureTypeName() && clone() still missing
 
-    SIMTK_DOWNCAST(MassElementRep,FeatureRep);
+    SIMTK_DOWNCAST(MassElementRep,SubsystemRep);
 
 protected:
     // Every MassElement defines some mass-oriented measures.
     virtual void initializeStandardSubfeatures() {
-        Feature& mm = addSubfeatureLike(RealMeasure("massMeasure"), "massMeasure");
-        Feature& cm = addSubfeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+        Feature& mm = addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
+        Feature& cm = addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
         massMeasureIndex     = mm.getIndexInParent();
         centroidMeasureIndex = cm.getIndexInParent();
     }
@@ -79,12 +79,12 @@ public:
 
     // some self-placements
     void setMass(const Real& m) {
-        updSubfeature(massIndex).place(RealPlacement(m));
+        updFeature(massIndex).place(RealPlacement(m));
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
-    FeatureRep* clone() const { return new PointMassElementRep(*this); }
+    SubsystemRep* clone() const { return new PointMassElementRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
@@ -103,18 +103,18 @@ public:
         return 0;
     }
 
-    SIMTK_DOWNCAST2(PointMassElementRep,MassElementRep,FeatureRep);
+    SIMTK_DOWNCAST(PointMassElementRep,SubsystemRep);
 
 protected:
     // This will be called from initializeStandardSubfeatures() in MassElement.
     virtual void initializeStandardSubfeatures() {
         MassElementRep::initializeStandardSubfeatures();
 
-        massIndex = addSubfeatureLike(RealParameter("mass"), "mass")
+        massIndex = addFeatureLike(RealParameter("mass"), "mass")
                             .getIndexInParent();
 
-        findUpdSubfeature("massMeasure")->place(*findSubfeature("mass"));
-        findUpdSubfeature("centroidMeasure")->place(getMyHandle());
+        findUpdFeature("massMeasure")->place(*findFeature("mass"));
+        findUpdFeature("centroidMeasure")->place(getMyHandle());
     }
 
     int massIndex;
@@ -135,19 +135,19 @@ public:
 
     // some self-placements
     void setMass(const Real& m) {
-        updSubfeature(massIndex).place(RealPlacement(m));
+        updFeature(massIndex).place(RealPlacement(m));
     }
     void setRadius(const Real& r) {
-        updSubfeature(radiusIndex).place(RealPlacement(r));
+        updFeature(radiusIndex).place(RealPlacement(r));
     }
     void setHalfLength(const Real& h) {
-        updSubfeature(halfLengthIndex).place(RealPlacement(h));
+        updFeature(halfLengthIndex).place(RealPlacement(h));
     }
     void placeCenter(const Vec3& c) {
-        updSubfeature(centerIndex).place(StationPlacement(c));
+        updFeature(centerIndex).place(StationPlacement(c));
     }
     void placeAxis(const Vec3& a) {
-        updSubfeature(axisIndex).place(DirectionPlacement(a));
+        updFeature(axisIndex).place(DirectionPlacement(a));
     }
 
     std::string getFeatureTypeName() const { return "CylinderMassElement"; }
@@ -163,25 +163,25 @@ public:
         return 0;
     }
 
-    SIMTK_DOWNCAST2(CylinderMassElementRep,MassElementRep,FeatureRep);
+    SIMTK_DOWNCAST(CylinderMassElementRep,SubsystemRep);
 private:
     // This will be called from initializeStandardSubfeatures() in MassElement.
     virtual void initializeStandardSubfeatures() {
         MassElementRep::initializeStandardSubfeatures();
 
-        massIndex       = addSubfeatureLike(RealParameter("mass"),       "mass")
+        massIndex       = addFeatureLike(RealParameter("mass"),       "mass")
                             .getIndexInParent();
-        radiusIndex     = addSubfeatureLike(RealParameter("radius"),     "radius")
+        radiusIndex     = addFeatureLike(RealParameter("radius"),     "radius")
                             .getIndexInParent();
-        halfLengthIndex = addSubfeatureLike(RealParameter("halfLength"), "halfLength")
+        halfLengthIndex = addFeatureLike(RealParameter("halfLength"), "halfLength")
                             .getIndexInParent();
-        centerIndex     = addSubfeatureLike(Station      ("center"),     "center")
+        centerIndex     = addFeatureLike(Station      ("center"),     "center")
                             .getIndexInParent();
-        axisIndex       = addSubfeatureLike(Direction    ("axis"),       "axis")
+        axisIndex       = addFeatureLike(Direction    ("axis"),       "axis")
                             .getIndexInParent();
 
-        findUpdSubfeature("massMeasure")->place(*findSubfeature("mass"));
-        findUpdSubfeature("centroidMeasure")->place(*findSubfeature("center"));
+        findUpdFeature("massMeasure")->place(*findFeature("mass"));
+        findUpdFeature("centroidMeasure")->place(*findFeature("center"));
     }
 
     int massIndex, radiusIndex, halfLengthIndex, centerIndex, axisIndex;

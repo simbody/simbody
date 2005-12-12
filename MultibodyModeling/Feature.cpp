@@ -35,13 +35,14 @@
 
 namespace simtk {
 
-    // FEATURE //
+    // SUBSYSTEM //
 
-Feature::Feature(const Feature& f) : rep(0) {
+
+Subsystem::Subsystem(const Subsystem& f) : rep(0) {
     if (f.rep) 
         f.rep->cloneWithoutParentOrExternalPlacements(*this);
 }
-Feature& Feature::operator=(const Feature& f) {
+Subsystem& Subsystem::operator=(const Subsystem& f) {
     if (this != &f) {
         // This will blow up if rep doesn't have a handle -- we shouldn't
         // be pointing to it in that case!
@@ -52,35 +53,280 @@ Feature& Feature::operator=(const Feature& f) {
     }
     return *this;
 }
-Feature::~Feature() {
+Subsystem::~Subsystem() {
     // This will blow up if rep doesn't have a handle -- we shouldn't
     // be pointing to it in that case!
     if (rep && (&rep->getMyHandle() == this)) delete rep; 
     rep = 0;
 }
-static String featureHasNoRep(const Feature& f) {
+
+// It's the same Subsystem only if (1) they both have a rep, and
+// (2) both reps point to the same address.
+bool Subsystem::isSameSubsystem(const Subsystem& s) const {
+    return rep && (rep == s.rep);
+}
+
+static String subsystemHasNoRep(const Subsystem& f) {
     std::ostringstream s;
     s << "<FEATURE AT 0x" << &f << " WITH NULL REP>";
     return String(s.str());
 }
-String Feature::getName() const {
-    return rep ? String(rep->getName()) : featureHasNoRep(*this);
+String Subsystem::getName() const {
+    return rep ? String(rep->getName()) : subsystemHasNoRep(*this);
 }
-String Feature::getFullName() const {
-    return rep ? String(rep->getFullName()) : featureHasNoRep(*this);
-}
-String Feature::getFeatureTypeName() const {
-    return rep ? String(rep->getFeatureTypeName()) 
-               : featureHasNoRep(*this);
+String Subsystem::getFullName() const {
+    return rep ? String(rep->getFullName()) : subsystemHasNoRep(*this);
 }
 
-void Feature::realize(/*State,*/ Stage g) const {
+void Subsystem::realize(/*State,*/ Stage g) const {
     try {
         getRep().realize(g);
     }
     catch (const Exception::Base& exc) {
-        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::realize()", exc.getMessage());
+        SIMTK_THROW2(Exception::APIMethodFailed, "Subsystem::realize()", exc.getMessage());
     }
+}
+
+const Placement&
+Subsystem::getPlacement() const {
+    if (!Feature::isInstanceOf(*this)) {
+        SIMTK_THROW1(Exception::OnlyFeaturesHavePlacements, getFullName());
+        //NOTREACHED
+    }
+    return Feature::downcast(*this).getPlacement();
+}
+
+const PlacementValue&
+Subsystem::getValue() const {
+    return getPlacement().getValue();
+}
+
+void Subsystem::place(const Placement& p) {
+    if (!Feature::isInstanceOf(*this)) {
+        SIMTK_THROW1(Exception::OnlyFeaturesHavePlacements, getFullName());
+        //NOTREACHED
+    }
+    Feature::downcast(*this).place(p);
+}
+
+String Subsystem::toString(const String& linePrefix) const {
+    std::stringstream s;
+    s << "Subsystem ";
+    if (!rep) {
+        s << subsystemHasNoRep(*this);
+        return String(s.str());
+    }
+
+    const SubsystemRep& sr = *rep;
+    s << sr.getFullName() << ": ";
+
+    if (FeatureRep::isA(sr)) {
+        const FeatureRep& fr = FeatureRep::downcast(sr);
+        s << "Feature " << fr.getFeatureTypeName() << " ";
+        s << (fr.hasPlacement() ? fr.getPlacement().toString(linePrefix)
+                                : String("NO PLACEMENT"));
+    }
+
+    const size_t nSubsystems      = sr.getNSubsystems();
+    const size_t nPlacement       = sr.getNPlacementExpressions();
+    const size_t nPlacementValues = sr.getNPlacementValues();
+    const std::string nextIndent  = linePrefix + "    ";
+
+    if (nSubsystems) {
+        s << std::endl << linePrefix << "  Subsystems (" << nSubsystems << "):";
+        for (size_t i=0; i < nSubsystems; ++i)
+            s  << std::endl << nextIndent << sr.getSubsystem(i).toString(nextIndent);
+    }
+    if (nPlacement) {
+        s << std::endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
+        for (size_t i=0; i < nPlacement; ++i)
+            s  << std::endl << nextIndent << sr.getPlacementExpression(i).toString(nextIndent);
+    }
+    if (nPlacementValues) {
+        s << std::endl << linePrefix << "  Placement Values (" << nPlacementValues << "):";
+        for (size_t i=0; i < nPlacementValues; ++i)
+            s  << std::endl << nextIndent << sr.getPlacementValue(i).toString(nextIndent);
+    }
+    return s.str();
+}
+
+std::ostream& operator<<(std::ostream& o, const Subsystem& s) {
+    return o << s.toString() << std::endl;
+}
+bool Subsystem::hasParentSubsystem() const {
+    return getRep().hasParentSubsystem();
+}
+int Subsystem::getIndexInParent() const {
+    assert(getRep().hasParentSubsystem());
+    return getRep().getIndexInParent();
+}
+const Subsystem& Subsystem::getParentSubsystem() const {
+    assert(getRep().hasParentSubsystem());
+    return getRep().getParentSubsystem();
+}
+
+
+int Subsystem::getNSubsystems() const
+  { return getRep().getNSubsystems(); }
+const Subsystem& Subsystem::getSubsystem(int i) const
+  { return getRep().getSubsystem(i); }
+Subsystem& Subsystem::updSubsystem(int i)
+  { return updRep().updSubsystem(i); }
+
+// getXXX() methods
+const Subsystem& Subsystem::getSubsystem(const String& n) const 
+  { return getRep().getSubsystem(n); }
+const Feature& Subsystem::getFeature(const String& n) const 
+  { return Feature::downcast(getSubsystem(n)); }
+const RealParameter& Subsystem::getRealParameter(const String& n) const
+  { return RealParameter::downcast(getSubsystem(n)); }
+const Vec3Parameter& Subsystem::getVec3Parameter(const String& n) const
+  { return Vec3Parameter::downcast(getSubsystem(n)); }
+const StationParameter& Subsystem::getStationParameter(const String& n) const
+  { return StationParameter::downcast(getSubsystem(n)); }
+const RealMeasure& Subsystem::getRealMeasure(const String& n) const
+  { return RealMeasure::downcast(getSubsystem(n)); }
+const Vec3Measure& Subsystem::getVec3Measure(const String& n) const
+  { return Vec3Measure::downcast(getSubsystem(n)); }
+const StationMeasure& Subsystem::getStationMeasure(const String& n) const
+  { return StationMeasure::downcast(getSubsystem(n)); }
+const Station& Subsystem::getStation(const String& n) const
+  { return Station::downcast(getSubsystem(n)); }
+const Direction& Subsystem::getDirection(const String& n) const
+  { return Direction::downcast(getSubsystem(n)); }
+const Orientation& Subsystem::getOrientation(const String& n) const
+  { return Orientation::downcast(getSubsystem(n)); }
+const Frame& Subsystem::getFrame(const String& n) const
+  { return Frame::downcast(getSubsystem(n)); }
+
+// updXXX() methods
+Subsystem& Subsystem::updSubsystem(const String& n)
+  { return updRep().updSubsystem(n); }
+Feature& Subsystem::updFeature(const String& n)
+{ return Feature::downcast(updSubsystem(n)); }
+RealParameter& Subsystem::updRealParameter(const String& n)
+  { return RealParameter::downcast(updSubsystem(n)); }
+Vec3Parameter& Subsystem::updVec3Parameter(const String& n)
+  { return Vec3Parameter::downcast(updSubsystem(n)); }
+StationParameter& Subsystem::updStationParameter(const String& n)
+  { return StationParameter::downcast(updSubsystem(n)); }
+RealMeasure& Subsystem::updRealMeasure(const String& n)
+  { return RealMeasure::downcast(updSubsystem(n)); }
+Vec3Measure& Subsystem::updVec3Measure(const String& n)
+  { return Vec3Measure::downcast(updSubsystem(n)); }
+StationMeasure& Subsystem::updStationMeasure(const String& n)
+  { return StationMeasure::downcast(updSubsystem(n)); }
+Station& Subsystem::updStation(const String& n)
+  { return Station::downcast(updSubsystem(n)); }
+Direction& Subsystem::updDirection(const String& n)
+  { return Direction::downcast(updSubsystem(n)); }
+Orientation& Subsystem::updOrientation(const String& n)
+  { return Orientation::downcast(updSubsystem(n)); }
+Frame& Subsystem::updFrame(const String& n)
+  { return Frame::downcast(updSubsystem(n)); }
+
+// addXXX() methods
+RealParameter& Subsystem::addRealParameter(const String& n, const Placement& p) {
+    RealParameter& rp = RealParameter::downcast(updRep().addSubsystemLike(RealParameter(n), n));
+    if (p.hasRep()) rp.place(p);
+    return rp;
+}
+RealMeasure& Subsystem::addRealMeasure(const String& n, const Placement& p) {
+    RealMeasure& rm = RealMeasure::downcast(updRep().addSubsystemLike(RealMeasure(n), n));
+    if (p.hasRep()) rm.place(p);
+    return rm;
+}
+Vec3Parameter& Subsystem::addVec3Parameter(const String& n, const Placement& p) {
+    Vec3Parameter& vp = Vec3Parameter::downcast(updRep().addSubsystemLike(Vec3Parameter(n), n));
+    if (p.hasRep()) vp.place(p);
+    return vp;
+}
+Vec3Measure& Subsystem::addVec3Measure(const String& n, const Placement& p) {
+    Vec3Measure& vm = Vec3Measure::downcast(updRep().addSubsystemLike(Vec3Measure(n), n));
+    if (p.hasRep()) vm.place(p);
+    return vm;
+}
+StationParameter& Subsystem::addStationParameter(const String& n, const Placement& p) {
+    StationParameter& sp = StationParameter::downcast(updRep().addSubsystemLike(StationParameter(n), n));
+    if (p.hasRep()) sp.place(p);
+    return sp;
+}
+StationMeasure& Subsystem::addStationMeasure(const String& n, const Placement& p) {
+    StationMeasure& sm = StationMeasure::downcast(updRep().addSubsystemLike(StationMeasure(n), n));
+    if (p.hasRep()) sm.place(p);
+    return sm;
+}
+Station& Subsystem::addStation(const String& n, const Placement& p) {
+    Station& s = Station::downcast(updRep().addSubsystemLike(Station(n), n));
+    if (p.hasRep()) s.place(p);
+    return s;
+}
+Direction& Subsystem::addDirection(const String& n, const Placement& p) {
+    Direction& d = Direction::downcast(updRep().addSubsystemLike(Direction(n), n));
+    if (p.hasRep()) d.place(p);
+    return d;
+}
+Orientation& Subsystem::addOrientation(const String& n, const Placement& p) {
+    Orientation& o = Orientation::downcast(updRep().addSubsystemLike(Orientation(n), n));
+    if (p.hasRep()) o.place(p);
+    return o;
+}
+Frame& Subsystem::addFrame(const String& n, const Placement& p) {
+    Frame& f = Frame::downcast(updRep().addSubsystemLike(Frame(n), n));
+    if (p.hasRep()) f.place(p);
+    return f;
+}
+
+Subsystem& Subsystem::addSubsystemLike(const Subsystem& f, const String& n) {
+    return updRep().addSubsystemLike(f,n);
+}
+
+Feature& Subsystem::addFeatureLike(const Subsystem& f, const String& n, const Placement& p) {
+    Feature& fnew = updRep().addFeatureLike(f,n);
+    if (p.hasRep()) fnew.place(p);
+    return fnew;
+}
+
+void Subsystem::checkSubsystemConsistency(const Subsystem* expParent,
+                                          int              expIndexInParent,
+                                          const Subsystem& expRoot) const {
+    if (!rep)
+        std::cout << "checkSubsystemConsistency(): NO REP!!!" << std::endl;
+    else
+        getRep().checkSubsystemConsistency(expParent,expIndexInParent,expRoot);
+}
+
+    // FEATURE //
+Feature::Feature(const Feature& src) : Subsystem(src) { }
+Feature& Feature::operator=(const Feature& src)
+  { Subsystem::operator=(src); return *this; }
+Feature::~Feature() { }
+
+/*static*/ bool             
+Feature::isInstanceOf(const Subsystem& f) {
+    if (!f.hasRep()) return false;
+    return FeatureRep::isA(f.getRep());
+}
+/*static*/ const Feature& 
+Feature::downcast(const Subsystem& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const Feature&>(f);
+}
+
+/*static*/ Feature&       
+Feature::downcast(Subsystem& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<Feature&>(f);
+}
+
+bool Feature::dependsOn(const Feature& f) const {
+    if (isSameSubsystem(f)) return true;
+    return hasRep() && getRep().dependsOn(f);
+}
+
+String Feature::getFeatureTypeName() const {
+    return hasRep() ? String(getRep().getFeatureTypeName()) 
+               : subsystemHasNoRep(*this);
 }
 
 const PlacementValue& Feature::getValue(/*State*/) const {
@@ -109,184 +355,6 @@ const Placement& Feature::getPlacement() const {
     assert(hasPlacement());
     return getRep().getPlacement();
 }
-
-String Feature::toString(const String& linePrefix) const {
-    std::stringstream s;
-    s << "Feature ";
-    if (!rep) {
-        s << featureHasNoRep(*this);
-        return String(s.str());
-    }
-
-    const FeatureRep& f = *rep;
-    s << f.getFeatureTypeName() << " " << f.getFullName() << ": ";
-    s << (f.hasPlacement() ? f.getPlacement().toString(linePrefix)
-                           : String("NO PLACEMENT"));
-
-    const size_t nSubfeatures     = f.getNSubfeatures();
-    const size_t nPlacement       = f.getNPlacementExpressions();
-    const size_t nPlacementValues = f.getNPlacementValues();
-    const std::string nextIndent  = linePrefix + "    ";
-
-    if (nSubfeatures) {
-        s << std::endl << linePrefix << "  Subfeatures (" << nSubfeatures << "):";
-        for (size_t i=0; i < nSubfeatures; ++i)
-            s  << std::endl << nextIndent << f.getSubfeature(i).toString(nextIndent);
-    }
-    if (nPlacement) {
-        s << std::endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
-        for (size_t i=0; i < nPlacement; ++i)
-            s  << std::endl << nextIndent << f.getPlacementExpression(i).toString(nextIndent);
-    }
-    if (nPlacementValues) {
-        s << std::endl << linePrefix << "  Placement Values (" << nPlacementValues << "):";
-        for (size_t i=0; i < nPlacementValues; ++i)
-            s  << std::endl << nextIndent << f.getPlacementValue(i).toString(nextIndent);
-    }
-    return s.str();
-}
-
-std::ostream& operator<<(std::ostream& o, const Feature& f) {
-    return o << f.toString() << std::endl;
-}
-bool Feature::hasParentFeature() const {
-    return getRep().hasParentFeature();
-}
-int Feature::getIndexInParent() const {
-    assert(getRep().hasParentFeature());
-    return getRep().getIndexInParent();
-}
-const Feature& Feature::getParentFeature() const {
-    assert(getRep().hasParentFeature());
-    return getRep().getParentFeature();
-}
-bool Feature::dependsOn(const Feature& f) const {
-    if (isSameFeature(f)) return true;
-    return hasRep() && getRep().dependsOn(f);
-}
-
-int Feature::getNSubfeatures() const
-  { return getRep().getNSubfeatures(); }
-const Feature& Feature::getSubfeature(int i) const
-  { return getRep().getSubfeature(i); }
-Feature& Feature::updSubfeature(int i)
-  { return updRep().updSubfeature(i); }
-
-// getXXX() methods
-const Feature& Feature::getSubfeature(const String& n) const 
-  { return getRep().getSubfeature(n); }
-const RealParameter& Feature::getRealParameter(const String& n) const
-  { return RealParameter::downcast(getSubfeature(n)); }
-const Vec3Parameter& Feature::getVec3Parameter(const String& n) const
-  { return Vec3Parameter::downcast(getSubfeature(n)); }
-const StationParameter& Feature::getStationParameter(const String& n) const
-  { return StationParameter::downcast(getSubfeature(n)); }
-const RealMeasure& Feature::getRealMeasure(const String& n) const
-  { return RealMeasure::downcast(getSubfeature(n)); }
-const Vec3Measure& Feature::getVec3Measure(const String& n) const
-  { return Vec3Measure::downcast(getSubfeature(n)); }
-const StationMeasure& Feature::getStationMeasure(const String& n) const
-  { return StationMeasure::downcast(getSubfeature(n)); }
-const Station& Feature::getStation(const String& n) const
-  { return Station::downcast(getSubfeature(n)); }
-const Direction& Feature::getDirection(const String& n) const
-  { return Direction::downcast(getSubfeature(n)); }
-const Orientation& Feature::getOrientation(const String& n) const
-  { return Orientation::downcast(getSubfeature(n)); }
-const Frame& Feature::getFrame(const String& n) const
-  { return Frame::downcast(getSubfeature(n)); }
-
-// updXXX() methods
-Feature& Feature::updSubfeature(const String& n)
-  { return updRep().updSubfeature(n); }
-RealParameter& Feature::updRealParameter(const String& n)
-  { return RealParameter::downcast(updSubfeature(n)); }
-Vec3Parameter& Feature::updVec3Parameter(const String& n)
-  { return Vec3Parameter::downcast(updSubfeature(n)); }
-StationParameter& Feature::updStationParameter(const String& n)
-  { return StationParameter::downcast(updSubfeature(n)); }
-RealMeasure& Feature::updRealMeasure(const String& n)
-  { return RealMeasure::downcast(updSubfeature(n)); }
-Vec3Measure& Feature::updVec3Measure(const String& n)
-  { return Vec3Measure::downcast(updSubfeature(n)); }
-StationMeasure& Feature::updStationMeasure(const String& n)
-  { return StationMeasure::downcast(updSubfeature(n)); }
-Station& Feature::updStation(const String& n)
-  { return Station::downcast(updSubfeature(n)); }
-Direction& Feature::updDirection(const String& n)
-  { return Direction::downcast(updSubfeature(n)); }
-Orientation& Feature::updOrientation(const String& n)
-  { return Orientation::downcast(updSubfeature(n)); }
-Frame& Feature::updFrame(const String& n)
-  { return Frame::downcast(updSubfeature(n)); }
-
-// addXXX() methods
-RealParameter& Feature::addRealParameter(const String& n, const Placement& p) {
-    RealParameter& rp = RealParameter::downcast(updRep().addSubfeatureLike(RealParameter(n), n));
-    if (p.hasRep()) rp.place(p);
-    return rp;
-}
-RealMeasure& Feature::addRealMeasure(const String& n, const Placement& p) {
-    RealMeasure& rm = RealMeasure::downcast(updRep().addSubfeatureLike(RealMeasure(n), n));
-    if (p.hasRep()) rm.place(p);
-    return rm;
-}
-Vec3Parameter& Feature::addVec3Parameter(const String& n, const Placement& p) {
-    Vec3Parameter& vp = Vec3Parameter::downcast(updRep().addSubfeatureLike(Vec3Parameter(n), n));
-    if (p.hasRep()) vp.place(p);
-    return vp;
-}
-Vec3Measure& Feature::addVec3Measure(const String& n, const Placement& p) {
-    Vec3Measure& vm = Vec3Measure::downcast(updRep().addSubfeatureLike(Vec3Measure(n), n));
-    if (p.hasRep()) vm.place(p);
-    return vm;
-}
-StationParameter& Feature::addStationParameter(const String& n, const Placement& p) {
-    StationParameter& sp = StationParameter::downcast(updRep().addSubfeatureLike(StationParameter(n), n));
-    if (p.hasRep()) sp.place(p);
-    return sp;
-}
-StationMeasure& Feature::addStationMeasure(const String& n, const Placement& p) {
-    StationMeasure& sm = StationMeasure::downcast(updRep().addSubfeatureLike(StationMeasure(n), n));
-    if (p.hasRep()) sm.place(p);
-    return sm;
-}
-Station& Feature::addStation(const String& n, const Placement& p) {
-    Station& s = Station::downcast(updRep().addSubfeatureLike(Station(n), n));
-    if (p.hasRep()) s.place(p);
-    return s;
-}
-Direction& Feature::addDirection(const String& n, const Placement& p) {
-    Direction& d = Direction::downcast(updRep().addSubfeatureLike(Direction(n), n));
-    if (p.hasRep()) d.place(p);
-    return d;
-}
-Orientation& Feature::addOrientation(const String& n, const Placement& p) {
-    Orientation& o = Orientation::downcast(updRep().addSubfeatureLike(Orientation(n), n));
-    if (p.hasRep()) o.place(p);
-    return o;
-}
-Frame& Feature::addFrame(const String& n, const Placement& p) {
-    Frame& f = Frame::downcast(updRep().addSubfeatureLike(Frame(n), n));
-    if (p.hasRep()) f.place(p);
-    return f;
-}
-
-Feature& Feature::addSubfeatureLike(const Feature& f, const String& n, const Placement& p) {
-    Feature& fnew = updRep().addSubfeatureLike(f,n);
-    if (p.hasRep()) fnew.place(p);
-    return fnew;
-}
-
-void Feature::checkFeatureConsistency(const Feature* expParent,
-                                      int expIndexInParent,
-                                      const Feature& expRoot) const {
-    if (!rep)
-        std::cout << "checkFeatureConsistency(): NO REP!!!" << std::endl;
-    else
-        getRep().checkFeatureConsistency(expParent,expIndexInParent,expRoot);
-}
-
     // REAL PARAMETER //
 
 RealParameter::RealParameter(const String& nm) : RealMeasure() {
@@ -309,18 +377,18 @@ RealParameter::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-RealParameter::isInstanceOf(const Feature& f) {
+RealParameter::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return RealParameterRep::isA(f.getRep());
 }
 /*static*/ const RealParameter& 
-RealParameter::downcast(const Feature& f) {
+RealParameter::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const RealParameter&>(f);
 }
 
 /*static*/ RealParameter&       
-RealParameter::downcast(Feature& f) {
+RealParameter::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<RealParameter&>(f);
 }
@@ -347,18 +415,18 @@ Vec3Parameter::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-Vec3Parameter::isInstanceOf(const Feature& f) {
+Vec3Parameter::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return Vec3ParameterRep::isA(f.getRep());
 }
 /*static*/ const Vec3Parameter& 
-Vec3Parameter::downcast(const Feature& f) {
+Vec3Parameter::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Vec3Parameter&>(f);
 }
 
 /*static*/ Vec3Parameter&       
-Vec3Parameter::downcast(Feature& f) {
+Vec3Parameter::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Vec3Parameter&>(f);
 }
@@ -384,18 +452,18 @@ StationParameter::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-StationParameter::isInstanceOf(const Feature& f) {
+StationParameter::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return StationParameterRep::isA(f.getRep());
 }
 /*static*/ const StationParameter& 
-StationParameter::downcast(const Feature& f) {
+StationParameter::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const StationParameter&>(f);
 }
 
 /*static*/ StationParameter&       
-StationParameter::downcast(Feature& f) {
+StationParameter::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<StationParameter&>(f);
 }
@@ -421,18 +489,18 @@ RealMeasure::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-RealMeasure::isInstanceOf(const Feature& f) {
+RealMeasure::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return RealMeasureRep::isA(f.getRep());
 }
 /*static*/ const RealMeasure& 
-RealMeasure::downcast(const Feature& f) {
+RealMeasure::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const RealMeasure&>(f);
 }
 
 /*static*/ RealMeasure&       
-RealMeasure::downcast(Feature& f) {
+RealMeasure::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<RealMeasure&>(f);
 }
@@ -458,18 +526,18 @@ Vec3Measure::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-Vec3Measure::isInstanceOf(const Feature& f) {
+Vec3Measure::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return Vec3MeasureRep::isA(f.getRep());
 }
 /*static*/ const Vec3Measure& 
-Vec3Measure::downcast(const Feature& f) {
+Vec3Measure::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Vec3Measure&>(f);
 }
 
 /*static*/ Vec3Measure&       
-Vec3Measure::downcast(Feature& f) {
+Vec3Measure::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Vec3Measure&>(f);
 }
@@ -495,18 +563,18 @@ StationMeasure::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-StationMeasure::isInstanceOf(const Feature& f) {
+StationMeasure::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return StationMeasureRep::isA(f.getRep());
 }
 /*static*/ const StationMeasure& 
-StationMeasure::downcast(const Feature& f) {
+StationMeasure::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const StationMeasure&>(f);
 }
 
 /*static*/ StationMeasure&       
-StationMeasure::downcast(Feature& f) {
+StationMeasure::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<StationMeasure&>(f);
 }
@@ -532,18 +600,18 @@ Station::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-Station::isInstanceOf(const Feature& f) {
+Station::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return StationRep::isA(f.getRep());
 }
 /*static*/ const Station& 
-Station::downcast(const Feature& f) {
+Station::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Station&>(f);
 }
 
 /*static*/ Station&       
-Station::downcast(Feature& f) {
+Station::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Station&>(f);
 }
@@ -569,18 +637,18 @@ DirectionMeasure::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-DirectionMeasure::isInstanceOf(const Feature& f) {
+DirectionMeasure::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return DirectionMeasureRep::isA(f.getRep());
 }
 /*static*/ const DirectionMeasure& 
-DirectionMeasure::downcast(const Feature& f) {
+DirectionMeasure::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const DirectionMeasure&>(f);
 }
 
 /*static*/ DirectionMeasure&       
-DirectionMeasure::downcast(Feature& f) {
+DirectionMeasure::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<DirectionMeasure&>(f);
 }
@@ -606,18 +674,18 @@ Direction::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-Direction::isInstanceOf(const Feature& f) {
+Direction::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return DirectionRep::isA(f.getRep());
 }
 /*static*/ const Direction& 
-Direction::downcast(const Feature& f) {
+Direction::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Direction&>(f);
 }
 
 /*static*/ Direction&       
-Direction::downcast(Feature& f) {
+Direction::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Direction&>(f);
 }
@@ -643,18 +711,18 @@ OrientationMeasure::getValue(/*State*/) const {
 }
 
 /*static*/ bool             
-OrientationMeasure::isInstanceOf(const Feature& f) {
+OrientationMeasure::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return OrientationMeasureRep::isA(f.getRep());
 }
 /*static*/ const OrientationMeasure& 
-OrientationMeasure::downcast(const Feature& f) {
+OrientationMeasure::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const OrientationMeasure&>(f);
 }
 
 /*static*/ OrientationMeasure&       
-OrientationMeasure::downcast(Feature& f) {
+OrientationMeasure::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<OrientationMeasure&>(f);
 }
@@ -685,18 +753,18 @@ Orientation::getAxis(int i) const {
 }
 
 /*static*/ bool             
-Orientation::isInstanceOf(const Feature& f) {
+Orientation::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return OrientationRep::isA(f.getRep());
 }
 /*static*/ const Orientation& 
-Orientation::downcast(const Feature& f) {
+Orientation::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Orientation&>(f);
 }
 
 /*static*/ Orientation&       
-Orientation::downcast(Feature& f) {
+Orientation::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Orientation&>(f);
 }
@@ -729,18 +797,18 @@ const Station& Frame::getOrigin() const {
 }
 
 /*static*/ bool             
-Frame::isInstanceOf(const Feature& f) {
+Frame::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return FrameRep::isA(f.getRep());
 }
 /*static*/ const Frame& 
-Frame::downcast(const Feature& f) {
+Frame::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<const Frame&>(f);
 }
 
 /*static*/ Frame&       
-Frame::downcast(Feature& f) {
+Frame::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
     return reinterpret_cast<Frame&>(f);
 }

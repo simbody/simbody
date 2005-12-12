@@ -45,20 +45,20 @@ const StationMeasure& MassElement::getCentroidMeasure() const {
 }
 
 /*static*/ bool             
-MassElement::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return MassElementRep::isA(f.getRep());
+MassElement::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return MassElementRep::isA(s.getRep());
 }
 /*static*/ const MassElement& 
-MassElement::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const MassElement&>(f);
+MassElement::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MassElement&>(s);
 }
 
 /*static*/ MassElement&       
-MassElement::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<MassElement&>(f);
+MassElement::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MassElement&>(s);
 }
 
     // POINT MASS ELEMENT //
@@ -84,20 +84,20 @@ void PointMassElement::setMass(const Real& m) {
 }
 
 /*static*/ bool             
-PointMassElement::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return PointMassElementRep::isA(f.getRep());
+PointMassElement::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return PointMassElementRep::isA(s.getRep());
 }
 /*static*/ const PointMassElement& 
-PointMassElement::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const PointMassElement&>(f);
+PointMassElement::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const PointMassElement&>(s);
 }
 
 /*static*/ PointMassElement&       
-PointMassElement::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<PointMassElement&>(f);
+PointMassElement::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<PointMassElement&>(s);
 }
 
     // SPHERE MASS ELEMENT //
@@ -132,19 +132,19 @@ void CylinderMassElement::placeAxis(const Vec3& a) {
 }
 
 /*static*/ bool             
-CylinderMassElement::isInstanceOf(const Feature& f) {
-    if (!f.hasRep()) return false;
-    return CylinderMassElementRep::isA(f.getRep());
+CylinderMassElement::isInstanceOf(const Subsystem& s) {
+    if (!s.hasRep()) return false;
+    return CylinderMassElementRep::isA(s.getRep());
 }
 /*static*/ const CylinderMassElement& 
-CylinderMassElement::downcast(const Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<const CylinderMassElement&>(f);
+CylinderMassElement::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const CylinderMassElement&>(s);
 }
 
 /*static*/ CylinderMassElement&       
-CylinderMassElement::downcast(Feature& f) {
-    assert(isInstanceOf(f));
-    return reinterpret_cast<CylinderMassElement&>(f);
+CylinderMassElement::downcast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<CylinderMassElement&>(s);
 }
 } // namespace simtk

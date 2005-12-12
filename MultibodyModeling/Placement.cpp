@@ -63,10 +63,14 @@ Placement::~Placement() {
     rep=0;
 }
 
-Placement::Placement(const Feature& f) : rep(0) {
+Placement::Placement(const Subsystem& s) : rep(0) {
+    assert(Feature::isInstanceOf(s));
+    const Feature& f = Feature::downcast(s);
     rep = f.getRep().createFeatureReference(*this);
 }
-Placement::Placement(const Feature& f, int i) : rep(0) {
+Placement::Placement(const Subsystem& s, int i) : rep(0) {
+    assert(Feature::isInstanceOf(s));
+    const Feature& f = Feature::downcast(s);
     rep = f.getRep().createFeatureReference(*this, i);
 }
 Placement::Placement(const Real& r) : rep(0) {
@@ -93,10 +97,10 @@ void Placement::realize(/*State,*/ Stage g) const {
 
     if (pr.hasOwner() && !pr.hasValueSlot()) {
         // can we get it a slot?
-        const Feature* f = pr.findPlacementValueOwnerFeature(pr.getOwner());
-        if (f) {
+        const Subsystem* s = pr.findPlacementValueOwnerSubsystem(pr.getOwner());
+        if (s) {
             PlacementValue& pv = 
-                const_cast<Feature*>(f)->updRep().addPlacementValueLike(pr.createEmptyPlacementValue());
+                const_cast<Subsystem*>(s)->updRep().addPlacementValueLike(pr.createEmptyPlacementValue());
             pr.assignValueSlot(pv);
         }
     }
@@ -123,7 +127,7 @@ int Placement::getIndexInOwner() const {
     return rep->getIndexInOwner();
 }
 
-const Feature& Placement::getOwner() const {
+const Subsystem& Placement::getOwner() const {
     assert(rep && rep->hasOwner());
     assert(&rep->getMyHandle() == this);
     return rep->getOwner();
@@ -160,9 +164,9 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
     return o << p.toString() << std::endl;
 }
 
-void Placement::checkPlacementConsistency(const Feature* expOwner,
-                                          int expIndexInOwner,
-                                          const Feature& expRoot) const {
+void Placement::checkPlacementConsistency(const Subsystem* expOwner,
+                                          int              expIndexInOwner,
+                                          const Subsystem& expRoot) const {
     if (!rep)
         std::cout << "checkPlacementConsistency(): NO REP!!!" << std::endl;
     else
@@ -171,8 +175,7 @@ void Placement::checkPlacementConsistency(const Feature* expOwner,
 
 
 // unary
-Placement operator+(const Placement& p) {return p;}
-Placement operator-(const Placement& p) {return p.getRep().genericNegate();}
+Placement negate   (const Placement& p) {return p.getRep().genericNegate();}
 Placement abs      (const Placement& p) {return p.getRep().genericAbs();}
 Placement sqrt     (const Placement& p) {return p.getRep().genericSqrt();}
 Placement exp      (const Placement& p) {return p.getRep().genericExp();}
@@ -185,10 +188,10 @@ Placement length   (const Placement& p) {return p.getRep().genericLength();}
 Placement normalize(const Placement& p) {return p.getRep().genericNormalize();}
 
 // binary
-Placement operator+(const Placement& l, const Placement& r) {return l.getRep().genericAdd(r);} 
-Placement operator-(const Placement& l, const Placement& r) {return l.getRep().genericSub(r);}
-Placement operator*(const Placement& l, const Placement& r) {return l.getRep().genericMul(r);}
-Placement operator/(const Placement& l, const Placement& r) {return l.getRep().genericDvd(r);}
+Placement add      (const Placement& l, const Placement& r) {return l.getRep().genericAdd(r);} 
+Placement subtract (const Placement& l, const Placement& r) {return l.getRep().genericSub(r);}
+Placement multiply (const Placement& l, const Placement& r) {return l.getRep().genericMul(r);}
+Placement divide   (const Placement& l, const Placement& r) {return l.getRep().genericDvd(r);}
 Placement distance (const Placement& l, const Placement& r) {return l.getRep().genericDistance(r);}
 Placement angle    (const Placement& l, const Placement& r) {return l.getRep().genericAngle(r);}
 Placement dot      (const Placement& l, const Placement& r) {return l.getRep().genericDotProduct(r);}

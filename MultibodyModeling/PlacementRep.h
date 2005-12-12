@@ -266,7 +266,7 @@ public:
     // XXX not yet
     Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
 
-    SIMTK_DOWNCAST2(DirectionOps, DirectionPlacementOp, PlacementOp);
+    SIMTK_DOWNCAST(DirectionOps, PlacementOp);
 private:
     OpKind op;
 };
@@ -306,7 +306,7 @@ public:
 
     Mat33 apply(/*State,*/ const std::vector<Placement>&) const;
 
-    SIMTK_DOWNCAST2(OrientationOps, OrientationPlacementOp, PlacementOp);
+    SIMTK_DOWNCAST(OrientationOps, PlacementOp);
 private:
     OpKind op;
 };
@@ -346,7 +346,7 @@ public:
 
     Mat34 apply(/*State,*/ const std::vector<Placement>&) const;
 
-    SIMTK_DOWNCAST2(FrameOps, FramePlacementOp, PlacementOp);
+    SIMTK_DOWNCAST(FrameOps, PlacementOp);
 private:
     OpKind op;
 };
@@ -378,11 +378,11 @@ public:
     // Return true if any of the arguments depend on f.
     bool exprDependsOn(const Feature& f) const;
 
-    const Feature* exprFindAncestorFeature(const Feature& youngestAllowed) const;
-    const Feature* exprFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const;
-    std::string    exprToString(const std::string& linePrefix) const;
-    bool           exprIsLimitedToSubtree(const Feature& root, const Feature*& offender) const; 
-    void           exprRepairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
+    const Subsystem* exprFindAncestorSubsystem(const Subsystem& youngestAllowed) const;
+    const Subsystem* exprFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const;
+    std::string      exprToString(const std::string& linePrefix) const;
+    bool             exprIsLimitedToSubtree(const Subsystem& root, const Feature*& offender) const; 
+    void             exprRepairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot);
 protected:
     const Concretize<PlacementOp>   func;
     std::vector<Placement>          args; // logically const also
@@ -414,11 +414,11 @@ protected:
         assert(feature); return feature->dependsOn(f);
     }
 
-    const Feature* refFindAncestorFeature(const Feature& youngestAllowed) const;
-    const Feature* refFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const;
-    bool           refIsLimitedToSubtree(const Feature& root, const Feature*& offender) const; 
-    void           refRepairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
-    std::string    refToString(const std::string& linePrefix) const;
+    const Subsystem* refFindAncestorSubsystem(const Subsystem& youngestAllowed) const;
+    const Subsystem* refFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const;
+    bool             refIsLimitedToSubtree(const Subsystem& root, const Feature*& offender) const; 
+    void             refRepairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot);
+    std::string      refToString(const std::string& linePrefix) const;
 
     // Return the required placement type for the referenced feature (after indexing).
     // That isn't necessarily the same as the type of the enclosing Placement, which
@@ -465,7 +465,7 @@ public:
     // We have just copied a Feature tree and this PlacementRep is the new copy. If
     // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
     // and needs to be repaired to point to the corresponding valueSlot in the new tree.
-    void repairValueReference(const Feature& oldRoot, const Feature& newRoot);
+    void repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot);
 
     bool isRealizable() const { return hasValueSlot(); }
     virtual void realize(/*State,*/Stage) const = 0;
@@ -509,31 +509,31 @@ public:
     virtual std::string   toString(const std::string& linePrefix) const = 0;
 
     virtual bool isConstant() const { return false; }
-    virtual bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    virtual bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { offender=0; return true; }
-    virtual void repairFeatureReferences(const Feature& oldRoot, 
-                                         const Feature& newRoot) { }
+    virtual void repairFeatureReferences(const Subsystem& oldRoot, 
+                                         const Subsystem& newRoot) { }
     virtual bool dependsOn(const Feature&) const {return false;}
 
     // A non-constant Placement may reference many Features, however we expect
-    // all of them to be on a common Feature tree. Here we are given a feature in
-    // the expected tree and return the youngest feature in that tree which is
+    // all of them to be on a common Subsystem tree. Here we are given a subsystem in
+    // the expected tree and return the youngest subsystem in that tree which is
     // an ancestor of *all* the features in the Placement, but no younger
-    // than the 'youngestAllowed' feature supplied in the call, which provides
-    // a feature that can be used when the Placement doesn't reference any.
+    // than the 'youngestAllowed' subsystem supplied in the call, which provides
+    // a subsystem that can be used when the Placement doesn't reference any.
     // NOTE: this is to find a suitable owner for the *Placement*, not its
     // *value*. So we are only interested in directly referenced Features; we're
     // not going to recurse through their placements at all.
-    virtual const Feature* findAncestorFeature(const Feature& youngestAllowed) const = 0;
+    virtual const Subsystem* findAncestorSubsystem(const Subsystem& youngestAllowed) const = 0;
 
     // OK, but this one is a different story. Now we want to find the
-    // youngest Feature which can hold our PlacementValue cache entry. That
-    // Feature will be the oldest owner Feature for any placement involved
+    // youngest Subsystem which can hold our PlacementValue cache entry. That
+    // Subsystem will be the oldest owner Subsystem for any placement involved
     // in *evaluating* this Placement. That means we DO recurse through the
     // referenced Features' placements. If we encounter any unplaced feature
     // during this search, we'll stop and return NULL because the placement
     // can't yet be evaluated.
-    virtual const Feature* findPlacementValueOwnerFeature(const Feature& youngestAllowed) const = 0;
+    virtual const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const = 0;
 
 
 
@@ -542,9 +542,9 @@ public:
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
     Placement&       updMyHandle()           {assert(myHandle); return *myHandle;} 
 
-    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
+    void             setOwner(const Subsystem& s, int index) {owner = &s; indexInOwner=index;}
     bool             hasOwner()        const {return owner != 0;}
-    const Feature&   getOwner()        const {assert(owner);    return *owner;}
+    const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
     // Note that this copies all feature & placement reference pointers verbatim.
@@ -564,18 +564,18 @@ public:
     static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
     // For debugging
-    void checkPlacementConsistency(const Feature* expOwner, 
-                                   int expIndexInOwner,
-                                   const Feature& expRoot) const;
+    void checkPlacementConsistency(const Subsystem* expOwner, 
+                                   int              expIndexInOwner,
+                                   const Subsystem& expRoot) const;
 
 private:
-    Placement*      myHandle;     // the Placement whose rep this is
+    Placement*       myHandle;     // the Placement whose rep this is
 
-    const Feature*  owner;        // The Feature (if any) which owns this Placement
-    int             indexInOwner; // ... and the index in its placementExpr list.
+    const Subsystem* owner;        // The Feature (if any) which owns this Placement
+    int              indexInOwner; // ... and the index in its placementExpr list.
 
-    PlacementValue* valueSlot;    // Points to the cache entry designated to hold the
-                                  //   value of this placement expression, if any.
+    PlacementValue*  valueSlot;    // Points to the cache entry designated to hold the
+                                   //   value of this placement expression, if any.
 };
 
 
@@ -597,7 +597,7 @@ public:
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Real>();}
 
     PlacementType getPlacementType() const { return RealPlacementType; }
-    // realize, clone, toString, findAncestorFeature are still missing
+    // realize, clone, toString, findAncestorSubsystem are still missing
 
     // These are unary operators on a RealPlacement or binary operators
     // with a RealPlacement on the left and a Placement of unknown type
@@ -650,13 +650,13 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
 
-    SIMTK_DOWNCAST2(RealConstantPlacementRep,RealPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(RealConstantPlacementRep, PlacementRep);
 private:
     Real value;
 };
@@ -680,10 +680,10 @@ public:
     Real calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
 
     PlacementRep*  clone() const {return new RealFeaturePlacementRep(*this);}
-    std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    std::string    toString(const std::string& indent)     const {return refToString(indent);}
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
@@ -692,7 +692,7 @@ public:
     void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(RealFeaturePlacementRep,RealPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(RealFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Real& getReferencedValue(/*State*/) const;
@@ -742,18 +742,18 @@ public:
     
     PlacementRep*  clone() const {return new RealExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return exprFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return exprIsConstant();}
     bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(RealExprPlacementRep,RealPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(RealExprPlacementRep, PlacementRep);
 private:
     static RealExprPlacementRep* unaryOp (RealOps::OpKind, const Placement&);
     static RealExprPlacementRep* binaryOp(RealOps::OpKind, const Placement& l, const Placement& r);
@@ -790,7 +790,7 @@ public:
     Placement genericAngle(const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return Vec3PlacementType; }
-    // clone, toString, findAncestorFeature are still missing
+    // clone, toString, findAncestorSubsystem are still missing
 
     const Vec3& getValue(/*State*/) const {
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
@@ -825,12 +825,12 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
-    SIMTK_DOWNCAST2(Vec3ConstantPlacementRep,Vec3PlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(Vec3ConstantPlacementRep, PlacementRep);
 private:
     Vec3 value;
 };
@@ -855,18 +855,18 @@ public:
 
     PlacementRep*  clone() const {return new Vec3FeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(Vec3FeaturePlacementRep,Vec3PlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(Vec3FeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Vec3& getReferencedValue(/*State*/) const;};
@@ -917,18 +917,18 @@ public:
 
     PlacementRep*  clone() const {return new Vec3ExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return exprFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return exprIsConstant();}
     bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(Vec3ExprPlacementRep,Vec3PlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(Vec3ExprPlacementRep, PlacementRep);
 private:
     static Vec3ExprPlacementRep* unaryOp (Vec3Ops::OpKind, const Placement&);
     static Vec3ExprPlacementRep* binaryOp(Vec3Ops::OpKind, const Placement& l, const Placement& r);
@@ -945,7 +945,7 @@ public:
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
     PlacementType getPlacementType() const { return StationPlacementType; }
-    // clone, toString, findAncestorFeature are still missing
+    // clone, toString, findAncestorSubsystem are still missing
 
     Vec3Placement castToVec3Placement() const;
 
@@ -996,12 +996,12 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
-    SIMTK_DOWNCAST2(StationConstantPlacementRep,StationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(StationConstantPlacementRep, PlacementRep);
 private:
     Vec3 loc;
 };
@@ -1026,25 +1026,25 @@ public:
 
     PlacementRep*  clone() const {return new StationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
     virtual FramePlacement castToFramePlacement() const {
         if (!isIndexed() 
             && Station::isInstanceOf(getReferencedFeature()) 
-            && getReferencedFeature().hasParentFeature()
-            && Frame::isInstanceOf(getReferencedFeature().getParentFeature()))
+            && getReferencedFeature().hasParentSubsystem()
+            && Frame::isInstanceOf(getReferencedFeature().getParentSubsystem()))
         {
             return FramePlacement(Frame::downcast(getReferencedFeature()
-                                                    .getParentFeature()).getOrientation(),
+                                                    .getParentSubsystem()).getOrientation(),
                                   Station::downcast(getReferencedFeature()));
         }
 
@@ -1054,7 +1054,7 @@ public:
                      "Orientation");
     }
 
-    SIMTK_DOWNCAST2(StationFeaturePlacementRep,StationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(StationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Vec3& getReferencedValue(/*State*/) const;
@@ -1090,18 +1090,18 @@ public:
 
     PlacementRep*  clone() const {return new StationExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return exprFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return exprIsConstant();}
     bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(StationExprPlacementRep,StationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(StationExprPlacementRep, PlacementRep);
 private:
     static StationExprPlacementRep* unaryOp (StationOps::OpKind, const Placement&);
     static StationExprPlacementRep* binaryOp(StationOps::OpKind, const Placement& l, const Placement& r);
@@ -1136,7 +1136,7 @@ public:
     Placement genericAngle       (const Placement& rhs) const;
 
     PlacementType getPlacementType() const { return DirectionPlacementType; }
-    // clone, toString, findAncestorFeature are still missing
+    // clone, toString, findAncestorSubsystem are still missing
 
     const Vec3& getValue(/*State*/) const {
         return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
@@ -1179,12 +1179,12 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
-    SIMTK_DOWNCAST2(DirectionConstantPlacementRep,DirectionPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(DirectionConstantPlacementRep, PlacementRep);
 private:
     Vec3 dir;
 };
@@ -1209,18 +1209,18 @@ public:
 
     PlacementRep*  clone() const {return new DirectionFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(DirectionFeaturePlacementRep,DirectionPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(DirectionFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Vec3& getReferencedValue(/*State*/) const;
@@ -1255,18 +1255,18 @@ public:
 
     PlacementRep*  clone() const {return new DirectionExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return exprFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return exprIsConstant();}
     bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(DirectionExprPlacementRep,DirectionPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(DirectionExprPlacementRep, PlacementRep);
 private:
     static DirectionExprPlacementRep* unaryOp (DirectionOps::OpKind, const Placement&);
     static DirectionExprPlacementRep* binaryOp(DirectionOps::OpKind, const Placement& l, const Placement& r);
@@ -1283,7 +1283,7 @@ public:
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat33>();}
 
     PlacementType getPlacementType() const { return OrientationPlacementType; }
-    // clone, toString, findAncestorFeature are still missing
+    // clone, toString, findAncestorSubsystem are still missing
 
     const Mat33& getValue(/*State*/) const {
         return PlacementValue_<Mat33>::downcast(getValueSlot()).get();
@@ -1322,12 +1322,12 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
-    SIMTK_DOWNCAST2(OrientationConstantPlacementRep,OrientationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(OrientationConstantPlacementRep, PlacementRep);
 private:
     Mat33 ori;
 };
@@ -1352,18 +1352,18 @@ public:
 
     PlacementRep*  clone() const {return new OrientationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(OrientationFeaturePlacementRep,OrientationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(OrientationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Mat33& getReferencedValue(/*State*/) const;
@@ -1396,18 +1396,18 @@ public:
 
     PlacementRep*  clone() const {return new OrientationExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return exprFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return exprFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return exprIsConstant();}
     bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return exprRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(OrientationExprPlacementRep,OrientationPlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(OrientationExprPlacementRep, PlacementRep);
 private:
     static OrientationExprPlacementRep* unaryOp (OrientationOps::OpKind, const Placement&);
     static OrientationExprPlacementRep* binaryOp(OrientationOps::OpKind, 
@@ -1425,7 +1425,7 @@ public:
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat34>();}
 
     PlacementType getPlacementType() const { return FramePlacementType; }
-    // clone, toString, findAncestorFeature are still missing
+    // clone, toString, findAncestorSubsystem are still missing
 
     const Mat34& getValue(/*State*/) const {
         return PlacementValue_<Mat34>::downcast(getValueSlot()).get();
@@ -1477,12 +1477,12 @@ public:
         return s.str();
     }
 
-    const Feature* findAncestorFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestFeature) const
-      { return &youngestFeature; }
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
 
-    SIMTK_DOWNCAST2(FrameConstantPlacementRep,FramePlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(FrameConstantPlacementRep, PlacementRep);
 private:
     Mat34 frame;
 
@@ -1510,18 +1510,18 @@ public:
 
     PlacementRep*  clone() const {return new FrameFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
-    const Feature* findAncestorFeature(const Feature& f) const {return refFindAncestorFeature(f);}
-    const Feature* findPlacementValueOwnerFeature(const Feature& f) const 
-      { return refFindPlacementValueOwnerFeature(f); }
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
-    SIMTK_DOWNCAST2(FrameFeaturePlacementRep,FramePlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(FrameFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
     const Mat34& getReferencedValue(/*State*/) const;
@@ -1545,10 +1545,10 @@ public:
     bool dependsOn(const Feature& f) const {
         return orientation.dependsOn(f) || origin.dependsOn(f);
     }
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const;
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot);
-    const Feature* findAncestorFeature(const Feature& youngestAllowed) const;
-    const Feature* findPlacementValueOwnerFeature(const Feature& youngestAllowed) const;
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const;
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot);
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const;
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const;
 
     void realize(/*State,*/Stage g) const {
         orientation.realize(/*State,*/g);
@@ -1575,7 +1575,7 @@ public:
         return s.str();
     }
 
-    SIMTK_DOWNCAST2(FrameExprPlacementRep,FramePlacementRep,PlacementRep);
+    SIMTK_DOWNCAST(FrameExprPlacementRep, PlacementRep);
 private:
     OrientationPlacement orientation;
     StationPlacement     origin;
@@ -1609,22 +1609,22 @@ public:
     const PlacementValue& getMyHandle()     const {assert(myHandle); return *myHandle;}
     PlacementValue&       updMyHandle()           {assert(myHandle); return *myHandle;} 
 
-    void             setOwner(const Feature& f, int index) {owner = &f; indexInOwner=index;}
+    void             setOwner(const Subsystem& s, int index) {owner = &s; indexInOwner=index;}
     bool             hasOwner()        const {return owner != 0;}
-    const Feature&   getOwner()        const {assert(owner);    return *owner;}
+    const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
-    void checkPlacementValueConsistency(const Feature* expOwner, 
-                                        int expIndexInOwner,
-                                        const Feature& expRoot) const;
+    void checkPlacementValueConsistency(const Subsystem* expOwner, 
+                                        int              expIndexInOwner,
+                                        const Subsystem& expRoot) const;
 
 private:
-    bool valid;                         // Is the stored value (in the concrete Rep) meaningful?
+    bool valid;                          // Is the stored value (in the concrete Rep) meaningful?
 
-    PlacementValue* myHandle;           // the PlacementValue whose rep this is
+    PlacementValue*  myHandle;           // the PlacementValue whose rep this is
 
-    const Feature*  owner;              // The Feature (if any) which owns this PlacementValue
-    int             indexInOwner;       // ... and the index in its placementValues list.
+    const Subsystem* owner;              // The Subsystem (if any) which owns this PlacementValue
+    int              indexInOwner;       // ... and the index in its placementValues list.
 };
 
 template <class T> class PlacementValueRep_ : public PlacementValueRep {

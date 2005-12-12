@@ -75,29 +75,29 @@ public:
     }
 };
 
-class EmptyFeaturePathname : public Base {
+class EmptySubsystemPathname : public Base {
 public:
-    EmptyFeaturePathname(const char* fn, int ln) : Base(fn,ln)
+    EmptySubsystemPathname(const char* fn, int ln) : Base(fn,ln)
     {
-        setMessage("Feature pathname was empty.");
+        setMessage("Subsystem pathname was empty.");
     }
 private:
 };
 
-class IllegalFeaturePathname : public Base {
+class IllegalSubsystemPathname : public Base {
 public:
-    IllegalFeaturePathname(const char* fn, int ln, String pathname, String badseg) : Base(fn,ln)
+    IllegalSubsystemPathname(const char* fn, int ln, String pathname, String badseg) : Base(fn,ln)
     {
-        setMessage("Feature pathname '" + pathname + "' is illegal at segment '" + badseg + "'.");
+        setMessage("Subsystem pathname '" + pathname + "' is illegal at segment '" + badseg + "'.");
     }
 private:
 };
 
-class SubfeatureNameNotFound : public Base {
+class SubsystemNameNotFound : public Base {
 public:
-    SubfeatureNameNotFound(const char* fn, int ln, String subname, String featurename) : Base(fn,ln)
+    SubsystemNameNotFound(const char* fn, int ln, String subname, String parentname) : Base(fn,ln)
     {
-        setMessage("Can't find any subfeature named '" + subname + "' in '" + featurename + "'.");
+        setMessage("Can't find any subsystem named '" + subname + "' in '" + parentname + "'.");
     }
 private:
 };
@@ -109,6 +109,38 @@ public:
     {
         setMessage("Can't use " + featureTypeName + " Feature '" + featureName 
                    + "' as a " + placementTypeNeeded + " Placement.");
+    }
+private:
+};
+
+class OnlyFeaturesHavePlacements : public Base {
+public:
+    OnlyFeaturesHavePlacements(const char* fn, int ln, String subsysName) : Base(fn,ln)
+    {
+        setMessage("An attempt was made to access a Placement for Subsystem " + subsysName 
+                   + " which is not a Feature. Only Features have Placements.");
+    }
+private:
+};
+
+class ExpectedFeatureButGotSubsystem : public Base {
+public:
+    ExpectedFeatureButGotSubsystem(const char* fn, int ln, String subsysName, int index) : Base(fn,ln)
+    {
+        setMessage("Child Subsystem " + String(index) + " of Subsystem " + subsysName 
+                   + " is not a Feature, but this operation expects a Feature.");
+    }
+private:
+};
+
+class ExpectedFeaturePrototypeButGotSubsystem : public Base {
+public:
+    ExpectedFeaturePrototypeButGotSubsystem(const char* fn, int ln, 
+        String subsysName, String newName, String protoName) : Base(fn,ln)
+    {
+        setMessage("An attempt was made to add a Feature " + newName + " to Subsystem "
+                   + subsysName + " using a prototype named " + protoName 
+                   + " but the prototype was not a Feature.");
     }
 private:
 };

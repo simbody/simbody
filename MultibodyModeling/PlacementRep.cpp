@@ -59,19 +59,19 @@ bool PlacementExpr::exprDependsOn(const Feature& f) const {
     return false;
 }
 
-const Feature* 
-PlacementExpr::exprFindAncestorFeature(const Feature& youngestAllowed) const {
-    const Feature* ancestor = &youngestAllowed;
+const Subsystem* 
+PlacementExpr::exprFindAncestorSubsystem(const Subsystem& youngestAllowed) const {
+    const Subsystem* ancestor = &youngestAllowed;
     for (size_t i=0; ancestor && i < args.size(); ++i)
-        ancestor = args[i].getRep().findAncestorFeature(*ancestor);
+        ancestor = args[i].getRep().findAncestorSubsystem(*ancestor);
     return ancestor;
 }
 
-const Feature* 
-PlacementExpr::exprFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
-    const Feature* valueOwner = &youngestAllowed;
+const Subsystem* 
+PlacementExpr::exprFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const {
+    const Subsystem* valueOwner = &youngestAllowed;
     for (size_t i=0; valueOwner && i < args.size(); ++i)
-        valueOwner = args[i].getRep().findPlacementValueOwnerFeature(*valueOwner);
+        valueOwner = args[i].getRep().findPlacementValueOwnerSubsystem(*valueOwner);
     return valueOwner;
 }
 
@@ -87,7 +87,7 @@ PlacementExpr::exprToString(const std::string& linePrefix) const {
 }
 
 bool PlacementExpr::exprIsLimitedToSubtree
-    (const Feature& root, const Feature*& offender) const
+    (const Subsystem& root, const Feature*& offender) const
 {
     for (size_t i=0; i<args.size(); ++i)
         if (!args[i].getRep().isLimitedToSubtree(root,offender))
@@ -96,7 +96,7 @@ bool PlacementExpr::exprIsLimitedToSubtree
 }
 
 void PlacementExpr::exprRepairFeatureReferences
-    (const Feature& oldRoot, const Feature& newRoot)
+    (const Subsystem& oldRoot, const Subsystem& newRoot)
 {
     for (size_t i=0; i<args.size(); ++i)
         args[i].updRep().repairFeatureReferences(oldRoot,newRoot);
@@ -121,19 +121,19 @@ void FeatureReference::refRealize(/*State,*/ Stage g) const {
         getReferencedFeature().getPlacement().realize(/*State,*/ g);
 }
 
-const Feature* 
-FeatureReference::refFindAncestorFeature(const Feature& youngestAllowed) const {
+const Subsystem* 
+FeatureReference::refFindAncestorSubsystem(const Subsystem& youngestAllowed) const {
     assert(feature);
-    return FeatureRep::findYoungestCommonAncestor(youngestAllowed, *feature);
+    return SubsystemRep::findYoungestCommonAncestor(youngestAllowed, *feature);
 }
 
 // If the referenced Feature has no placement, we can't evaluate this placement so
 // there is *no* acceptable owner for the value.
-const Feature* 
-FeatureReference::refFindPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
+const Subsystem* 
+FeatureReference::refFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const {
     assert(feature);
     return feature->hasPlacement() 
-        ? feature->getPlacement().getRep().findPlacementValueOwnerFeature(youngestAllowed)
+        ? feature->getPlacement().getRep().findPlacementValueOwnerSubsystem(youngestAllowed)
         : 0;
 }
 
@@ -141,10 +141,10 @@ FeatureReference::refFindPlacementValueOwnerFeature(const Feature& youngestAllow
 // not return a pointer to this feature for use in a friendly error message.
 // If this is the right tree, we return true with offender==NULL.
 bool FeatureReference::refIsLimitedToSubtree
-    (const Feature& root, const Feature*& offender) const
+    (const Subsystem& root, const Feature*& offender) const
 {
     assert(feature);
-    if (FeatureRep::isFeatureInFeatureTree(root, *feature)) {
+    if (SubsystemRep::isSubsystemInSubsystemTree(root, *feature)) {
         offender = 0;
         return true;
     }
@@ -153,12 +153,12 @@ bool FeatureReference::refIsLimitedToSubtree
 }
 
 void FeatureReference::refRepairFeatureReferences
-    (const Feature& oldRoot, const Feature& newRoot)
+    (const Subsystem& oldRoot, const Subsystem& newRoot)
 {
     assert(feature);
-    const Feature* corrFeature = FeatureRep::findCorrespondingFeature(oldRoot,*feature,newRoot);
-    assert(corrFeature);
-    feature = corrFeature;
+    const Subsystem* corrFeature = SubsystemRep::findCorrespondingSubsystem(oldRoot,*feature,newRoot);
+    assert(corrFeature && Feature::isInstanceOf(*corrFeature));
+    feature = &Feature::downcast(*corrFeature);
 }
 
 std::string FeatureReference::refToString(const std::string&) const {
@@ -187,7 +187,7 @@ PlacementType FeatureReference::refGetPlacementType() const {
 // We have just copied a Feature tree and this PlacementRep is the new copy. If
 // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
 // and needs to be repaired to point to the corresponding valueSlot in the new tree.
-void PlacementRep::repairValueReference(const Feature& oldRoot, const Feature& newRoot) {
+void PlacementRep::repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot) {
     if (valueSlot)
         valueSlot = const_cast<PlacementValue*>
                         (FeatureRep::findCorrespondingPlacementValue
@@ -389,9 +389,9 @@ PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
     return InvalidPlacementType;
 }
 
-void PlacementRep::checkPlacementConsistency(const Feature* expOwner, 
-                                             int expIndexInOwner,
-                                             const Feature& expRoot) const
+void PlacementRep::checkPlacementConsistency(const Subsystem* expOwner, 
+                                             int              expIndexInOwner,
+                                             const Subsystem& expRoot) const
 {
     cout << "CHECK PLACEMENT CONSISTENCY FOR PlacementRep@" << this << endl;
     if (!myHandle) 
@@ -405,9 +405,9 @@ void PlacementRep::checkPlacementConsistency(const Feature* expOwner,
 
     const Feature* offender;
     if (!isLimitedToSubtree(expRoot, offender)) {
-        cout << "*** Placement referenced feature '" << offender->getFullName() << "' in wrong tree" << endl;
+        cout << "*** Placement referenced Feature '" << offender->getFullName() << "' in wrong tree" << endl;
         cout << "*** Root should have been @" << &expRoot << ", not " << 
-            &offender->getRep().findRootFeature() << endl;
+            &offender->getRep().findRootSubsystem() << endl;
     }
 }
 
@@ -1638,7 +1638,7 @@ const Mat34& FrameFeaturePlacementRep::getReferencedValue(/*State*/) const {
     // FRAME EXPR PLACEMENT REP //
 
 bool FrameExprPlacementRep::isLimitedToSubtree
-    (const Feature& root, const Feature*& offender) const
+    (const Subsystem& root, const Feature*& offender) const
 {
     if (!orientation.getRep().isLimitedToSubtree(root,offender))
         return false;
@@ -1646,32 +1646,32 @@ bool FrameExprPlacementRep::isLimitedToSubtree
 }
 
 void FrameExprPlacementRep::repairFeatureReferences
-    (const Feature& oldRoot, const Feature& newRoot)
+    (const Subsystem& oldRoot, const Subsystem& newRoot)
 {
     orientation.updRep().repairFeatureReferences(oldRoot,newRoot);
     origin.updRep().repairFeatureReferences(oldRoot,newRoot);
 }
 
 
-const Feature*
-FrameExprPlacementRep::findAncestorFeature(const Feature& youngestAllowed) const {
-    const Feature* ancestor = &youngestAllowed;
-    ancestor = orientation.getRep().findAncestorFeature(*ancestor);
+const Subsystem*
+FrameExprPlacementRep::findAncestorSubsystem(const Subsystem& youngestAllowed) const {
+    const Subsystem* ancestor = &youngestAllowed;
+    ancestor = orientation.getRep().findAncestorSubsystem(*ancestor);
 
     if (ancestor)
-        ancestor = origin.getRep().findAncestorFeature(*ancestor);
+        ancestor = origin.getRep().findAncestorSubsystem(*ancestor);
 
     return ancestor;
 }
 
 
-const Feature*
-FrameExprPlacementRep::findPlacementValueOwnerFeature(const Feature& youngestAllowed) const {
-    const Feature* valueOwner = &youngestAllowed;
-    valueOwner = orientation.getRep().findPlacementValueOwnerFeature(*valueOwner);
+const Subsystem*
+FrameExprPlacementRep::findPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const {
+    const Subsystem* valueOwner = &youngestAllowed;
+    valueOwner = orientation.getRep().findPlacementValueOwnerSubsystem(*valueOwner);
 
     if (valueOwner)
-        valueOwner = origin.getRep().findPlacementValueOwnerFeature(*valueOwner);
+        valueOwner = origin.getRep().findPlacementValueOwnerSubsystem(*valueOwner);
 
     return valueOwner;
 }
@@ -1734,7 +1734,7 @@ int PlacementValue::getIndexInOwner() const {
     return rep->getIndexInOwner();
 }
 
-const Feature& PlacementValue::getOwner() const {
+const Subsystem& PlacementValue::getOwner() const {
     assert(rep && rep->hasOwner());
     assert(&rep->getMyHandle() == this);
     return rep->getOwner();
@@ -1759,9 +1759,9 @@ String PlacementValue::toString(const String& linePrefix) const {
     return s.str();
 }
 
-void PlacementValue::checkPlacementValueConsistency(const Feature* expOwner,
-                                                    int expIndexInOwner,
-                                                    const Feature& expRoot) const
+void PlacementValue::checkPlacementValueConsistency(const Subsystem* expOwner,
+                                                    int              expIndexInOwner,
+                                                    const Subsystem& expRoot) const
 {
     if (!rep)
         std::cout << "checkPlacementValueConsistency(): NO REP!!!" << std::endl;
@@ -1831,9 +1831,9 @@ template class PlacementValue_<Mat34>;
 
     // PLACEMENT VALUE REP //
 
-void PlacementValueRep::checkPlacementValueConsistency(const Feature* expOwner, 
-                                                       int expIndexInOwner,
-                                                       const Feature& expRoot) const
+void PlacementValueRep::checkPlacementValueConsistency(const Subsystem* expOwner, 
+                                                       int              expIndexInOwner,
+                                                       const Subsystem& expRoot) const
 {
     cout << "CHECK PLACEMENT VALUE CONSISTENCY FOR PlacementValueRep@" << this << endl;
     if (!myHandle) 

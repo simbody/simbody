@@ -41,21 +41,21 @@
 namespace simtk {
 
 /**
- * This is a "helper" class which is just a Feature with different constructor
+ * This is a "helper" class which is just a Subsystem with different constructor
  * and assignment behavior. It exists because there are times we must treat
- * the "top level" Feature differently than its children, particularly when
- * we are copying subtrees around. Copying a Feature results in a copy with
+ * the "top level" Subsystem differently than its children, particularly when
+ * we are copying subtrees around. Copying a Subsystem results in a copy with
  * all its external placements removed and all its internal pointers tidied up.
- * Copying a SubFeature essentially copies all the bits leaving pointers pointing
+ * Copying a SubSubsystem essentially copies all the bits leaving pointers pointing
  * at whatever old junk they were pointing at before.
  */
-class SubFeature : public Feature {
+class SubSubsystem : public Subsystem {
 public:
-    SubFeature() : Feature() { }
+    SubSubsystem() : Subsystem() { }
     // Copy & assign do *not* invoke the Feature copy constructor.
-    inline SubFeature(const SubFeature& sf);
-    inline SubFeature& operator=(const SubFeature& sf);
-    ~SubFeature() { }
+    inline SubSubsystem(const SubSubsystem& sf);
+    inline SubSubsystem& operator=(const SubSubsystem& sf);
+    ~SubSubsystem() { }
 };
 
 /**
@@ -72,38 +72,265 @@ public:
 };
 
 /**
- * A Feature and its FeatureRep are logically part of the same object. There
- * is always a Feature handle (just a pointer) for every FeatureRep, and it
+ * A Subsystem and its SubsystemRep are logically part of the same object. There
+ * is always a Subsystem handle (just a pointer) for every SubsystemRep, and it
  * must be the case that this->handle.rep == this!
  *
- * FeatureRep is an abstract base class from which the reps for all the
- * concrete Features (e.g. StationRep) derive. The concrete features themselves
- * (e.g. Station) are dataless classes which derive from the concrete Feature
- * class (which contains only a single pointer).
+ * SubsystemRep is an abstract base class from which the reps for all the
+ * concrete Subsystems (e.g., Feature reps like StationRep) derive.
+ * The concrete subsystems themselves (e.g. Station) are dataless classes
+ * which derive from the concrete Subsystem class (which contains only a single pointer).
  */
-class FeatureRep {
+class SubsystemRep {
 public:
-    FeatureRep(Feature& f, const std::string& nm) 
-      : myHandle(&f), name(nm), parent(0), indexInParent(-1), placement(0) { }
-    virtual ~FeatureRep() { }
+    SubsystemRep(Subsystem& s, const std::string& nm) 
+      : myHandle(&s), name(nm), parent(0), indexInParent(-1) { }
+    virtual ~SubsystemRep() { }
 
-    // Some Feature types need to get control after we have performed modeling
+    // Some Subsystem types need to get control after we have performed modeling
     // operations that affect them. After construction, they may need to 
-    // install some standard subfeatures; after a new subfeature has been
+    // install some standard subfeatures (or sub-subsystems); after a new subfeature has been
     // added they may need to perform some additional modeling (for example,
     // adding a subfeature with mass may result in an update to the arguments
     // of a 'totalMass' measure); and we offer control after the feature has
     // been placed (that doesn't mean you can necessarily get a *value* for
     // that placement; just the expression defining that value).
     virtual void initializeStandardSubfeatures() { }
-    virtual void postProcessNewSubfeature(Feature&) { }
+    virtual void postProcessNewSubsystem(Subsystem&) { }
     virtual void postProcessNewPlacement() { }
 
-    // These routines allow a concrete FeatureRep to prevent the addition
-    // of inappropriate subfeatures, or the use of an inappropriate
-    // type of Placement for the feature as a whole.
-    virtual bool canAddSubfeatureLike(const Feature&)   const 
+    // This allows a concrete SubsystemRep to prevent the addition
+    // of inappropriate sub-subsystems.
+    virtual bool canAddSubsystemLike(const Subsystem&)   const 
     {return false;} //TODO: should be pure virtual
+
+    virtual SubsystemRep* clone() const = 0;
+
+    // Copying a Subsystem is tricky. The result should have all the child subsystems
+    // and the *internal* feature placements and *internal* placement values.
+    // External placements and values should evaporate. Note that the index
+    // numbers for subsystems, placements, and values we own must stay the
+    // same so that internal references in the copy are the same as in the original.
+    // However, this is all handled in the Subsystem copy & assignment methods --
+    // SubsystemRep copying is elementwise and dumb and thus dangerous. The idea is
+    // to get a straight copy and then go clean up the mess afterwards.
+
+    // default (bitwise) copy constructor and assignment -- look out!
+
+    // This is the guts of the smart Subsystem copy constructor that knows
+    // how to clean up all the bad pointers.
+    void cloneWithoutParentOrExternalPlacements(Subsystem& newHandle) const;
+
+    void realize(/*State,*/ Stage g) const;
+
+    void             setMyHandle(Subsystem& s) {myHandle = &s;}
+    const Subsystem& getMyHandle() const     {assert(myHandle); return *myHandle;}
+    Subsystem&       updMyHandle()           {assert(myHandle); return *myHandle;}
+
+    void               setName(const std::string& nm) {name = nm;}
+    const std::string& getName() const                {return name;}
+
+    void             setParentSubsystem(Subsystem& p, int ix) {parent = &p; indexInParent=ix;}
+    bool             hasParentSubsystem() const {return parent != 0;}
+    const Subsystem& getParentSubsystem() const {assert(hasParentSubsystem()); return *parent;}
+    Subsystem&       updParentSubsystem() const {assert(hasParentSubsystem()); return *parent;}
+    int              getIndexInParent() const {assert(hasParentSubsystem()); return indexInParent;}
+
+    int getNSubsystems()           const {return childSubsystems.size();}
+    int getNPlacementExpressions() const {return placementExpressions.size();}
+    int getNPlacementValues()      const {return placementValues.size();}
+
+    const Subsystem&      getSubsystem(size_t i) const {return childSubsystems[i];}
+    Subsystem&            updSubsystem(size_t i)       {return childSubsystems[i];}
+
+    const Feature& getFeature(size_t i) const {
+        const Subsystem& s = getSubsystem(i);
+        if (!Feature::isInstanceOf(s)) {
+            SIMTK_THROW2(Exception::ExpectedFeatureButGotSubsystem, getFullName(), i);
+            //NOTREACHED
+        }
+        return Feature::downcast(s);
+    }
+    Feature& updFeature(size_t i) {
+        return const_cast<Feature&>(getFeature(i));
+    }
+
+    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
+    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
+
+    // This can accept a path name
+    const Subsystem* findSubsystem(const std::string& nm) const {
+        std::vector<std::string> segments;
+        if (!isLegalSubsystemPathname(nm, &segments)) {
+            if (segments.size())
+                SIMTK_THROW2(Exception::IllegalSubsystemPathname,nm,segments.back());
+            else
+                SIMTK_THROW(Exception::EmptySubsystemPathname);
+            //NOTREACHED
+        }
+        const Subsystem* found = &getMyHandle();
+        for (size_t i=0; i<segments.size(); ++i) {
+            size_t index;
+            found = (found->getRep().findSubsystemIndex(segments[i],index) 
+                     ? &found->getRep().childSubsystems[index] : 0);
+            if (!found) break;
+        }
+        return found;
+    }
+    Subsystem* findUpdSubsystem(const std::string& nm) {
+        return const_cast<Subsystem*>(findSubsystem(nm));
+    }
+
+    const Feature* findFeature(const std::string& nm) const {
+        const Subsystem* sp = findSubsystem(nm);
+        assert(sp==0 || Feature::isInstanceOf(*sp));
+        return reinterpret_cast<const Feature*>(sp);
+    }
+    Feature* findUpdFeature(const std::string& nm) {
+        return const_cast<Feature*>(findFeature(nm));
+    }
+
+    const Subsystem& getSubsystem(const std::string& nm) const {
+        const Subsystem* s = findSubsystem(nm);
+        if (!s) SIMTK_THROW2(Exception::SubsystemNameNotFound,nm,getFullName());
+        return *s;
+    }
+
+    Subsystem& updSubsystem(const std::string& nm) {
+        Subsystem* s = findUpdSubsystem(nm);
+        if (!s) SIMTK_THROW2(Exception::SubsystemNameNotFound,nm,getFullName());
+        return *s;
+    }
+
+    std::string getFullName() const;
+
+    Subsystem&      addSubsystemLike     (const Subsystem& f, const std::string& nm);
+    Feature&        addFeatureLike       (const Subsystem& f, const std::string& nm);
+    Placement&      addPlacementLike     (const Placement& p);
+    PlacementValue& addPlacementValueLike(const PlacementValue& v);
+
+    const Subsystem& findRootSubsystem() const;
+    Subsystem&       findUpdRootSubsystem();       
+
+    // Is Subsystem f in the tree rooted at oldRoot? If so, optionally return the 
+    // series of indices required to get to this Subsystem from the root.
+    // Complexity is O(log n) where n is tree depth.
+    static bool isSubsystemInSubsystemTree(const Subsystem& oldRoot, const Subsystem& f,
+                                           std::vector<int>* trace=0);
+
+    // Is Placement p owned by a Subsystem in the tree rooted at oldRoot?
+    static bool isPlacementInSubsystemTree(const Subsystem& oldRoot, const Placement& p);
+
+    // If Subsystem s is a member of the Subsystem tree rooted at oldRoot, find
+    // the corresponding Subsystem in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const Subsystem* findCorrespondingSubsystem
+        (const Subsystem& oldRoot, const Subsystem& s, const Subsystem& newRoot);
+
+    // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
+    // find the corresponding Placement in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const Placement* findCorrespondingPlacement
+        (const Subsystem& oldRoot, const Placement& p, const Subsystem& newRoot);
+
+    // If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
+    // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
+    // to be a copy of oldRoot). Return NULL if not found for any reason.
+    static const PlacementValue* findCorrespondingPlacementValue
+        (const Subsystem& oldRoot, const PlacementValue& v, const Subsystem& newRoot);
+
+    // Given two subsystems, run up the tree towards the root to find
+    // their "least common denominator", i.e. the first shared node
+    // on the path back to the root. Return a pointer to that node
+    // if found, otherwise NULL meaning that the features aren't on
+    // the same tree. If the subsystems are the same, then
+    // that feature is the answer.
+    // Complexity is O(log n) where n is depth of Subsystem tree.
+    static const Subsystem* findYoungestCommonAncestor(const Subsystem& s1, const Subsystem& s2);
+    static Subsystem*       findUpdYoungestCommonAncestor(Subsystem& s1, const Subsystem& s2);
+
+    // name utilities
+    static bool isLegalSubsystemName(const std::string&);
+    static bool isLegalSubsystemPathname(const std::string&, 
+                                         std::vector<std::string>* segments=0);
+
+    // For debugging
+    void checkSubsystemConsistency(const Subsystem* expParent,
+                                   int              expIndexInParent,
+                                   const Subsystem& expRoot) const;
+private:
+    // Return true and ix==subsystem index if a subsystem of the given name is found.
+    // Otherwise return false and ix==subsystems.size().
+    bool findSubsystemIndex(const std::string& nm, size_t& ix) const;
+
+    // We have just copied a Subsystem subtree so all the parent pointers are
+    // still pointing to the old tree. Recursively repair them to point into
+    // the new tree.
+    void reparentMyChildren();
+
+    // We have just created at newRoot a copy of the tree rooted at oldRoot, and the
+    // current Subsystem (for which this is the Rep) is a node in the newRoot tree
+    // (with correct myHandle). However, the 'parent' and 'owner' pointers 
+    // still retain the values they had in the oldRoot tree; they must be 
+    // changed to point to the corresponding entities in the newRoot tree.
+    // If these pointers point outside the oldRoot tree, however, we'll just
+    // set them to 0 in the newRoot copy.
+    void fixPlacements(const Subsystem& oldRoot, const Subsystem& newRoot);
+    
+    static const Subsystem* getParentPtr(const Subsystem& s) {
+        return s.rep ? s.rep->parent : 0;
+    }
+private:
+    Subsystem*                  myHandle; // the Feature whose rep this is
+    std::string                 name;
+
+    // Owner information. If parent is 0 then this Feature is an unplaced
+    // prototype. Otherwise this Feature is contained in the parent's
+    // childFeatures list, with the given index.
+    Subsystem*                  parent;
+    int                         indexInParent;
+
+    // Subsystems wholly owned by this Subsystem.
+    StableArray<SubSubsystem>   childSubsystems;
+
+    // Placement expressions wholly owned by this Feature. These expressions
+    // can involve only Subfeatures of this Feature (or further descendents). But
+    // note that we stop at the Subfeature references -- we don't care where they 
+    // are placed or even *whether* they are placed. Only when Features are realized
+    // do we chase through Placements to calculate values.
+    StableArray<SubPlacement>   placementExpressions;
+
+    // This is like a State cache except it holds values for Placement expressions
+    // where the highest placement dependency is resolved at this Feature (i.e., is
+    // one of the placementExpressions stored above. But note that these values
+    // do not in general correspond to the placementExpression; they can be the
+    // values of lower-level placement expressions.
+    StableArray<PlacementValue> placementValues;
+};
+
+/**
+ * FeatureRep is a still-abstract SubsystemRep which adds handling of the Feature's
+ * placement to the basic SubsystemRep capabilities.
+ */
+class FeatureRep : public SubsystemRep {
+public:
+    FeatureRep(Feature& p, const std::string& nm)
+        : SubsystemRep(p,nm), placement(0) { }
+    virtual ~FeatureRep() { }
+
+    // let's be more precise
+    const Feature& getMyHandle() const
+      { return reinterpret_cast<const Feature&>(SubsystemRep::getMyHandle()); }
+    Feature&       updMyHandle()
+      { return reinterpret_cast<Feature&>(SubsystemRep::updMyHandle()); }
+
+    // This routine offers control after the feature has
+    // been placed (that doesn't mean you can necessarily get a *value* for
+    // that placement; just the expression defining that value).
+    virtual void postProcessNewPlacement() { }
+
+    // These allow the feature to weigh in on the suitability of a proposed
+    // placement for the feature.
     virtual bool canPlaceOnFeatureLike(const Feature&) const
     {return false;} //TODO: should be pure virtual
     virtual bool isRequiredPlacementType(const Placement&) const
@@ -118,13 +345,11 @@ public:
 
     virtual PlacementType getRequiredPlacementType()      const = 0;
     virtual std::string   getFeatureTypeName()            const = 0;
-    virtual FeatureRep*   clone()                         const = 0;
 
     // Create the appropriate concrete PlacementRep for a reference to the 
     // Placement of this kind of Feature, or to one of its Placement elements
     // if we're given an index (-1 means the whole Placement).
     virtual PlacementRep* createFeatureReference(Placement&, int i = -1) const = 0;
-
 
     // If this Feature can be used as the indicated placement type, return
     // a new, unowned Placement of the right type. Most commonly, the returned
@@ -145,36 +370,6 @@ public:
     virtual PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement&) const;
     virtual PlacementRep* useFeatureAsFramePlacement(FramePlacement&) const;
 
-    // Copying a Feature is tricky. The result should have all the child features
-    // and the *internal* placements and *internal* placement values.
-    // External placements and values should evaporate. Note that the index
-    // numbers for features, placements, and values we own must stay the
-    // same so that internal references in the copy are the same as in the original.
-    // However, this is all handled in the Feature copy & assignment methods --
-    // FetureRep copying is elementwise and dumb and thus dangerous. The idea is
-    // to get a straight copy and then go clean up the mess afterwards.
-
-    // default (bitwise) copy constructor and assignment -- look out!
-
-    // This is the guts of the smart Feature copy constructor that knows
-    // how to clean up all the bad pointers.
-    void cloneWithoutParentOrExternalPlacements(Feature& newHandle) const;
-
-    void realize(/*State,*/ Stage g) const;
-
-    void           setMyHandle(Feature& f) {myHandle = &f;}
-    const Feature& getMyHandle() const     {assert(myHandle); return *myHandle;}
-    Feature&       updMyHandle()           {assert(myHandle); return *myHandle;}
-
-    void               setName(const std::string& nm) {name = nm;}
-    const std::string& getName() const                {return name;}
-
-    void           setParentFeature(Feature& p, int ix) {parent = &p; indexInParent=ix;}
-    bool           hasParentFeature() const {return parent != 0;}
-    const Feature& getParentFeature() const {assert(hasParentFeature()); return *parent;}
-    Feature&       updParentFeature() const {assert(hasParentFeature()); return *parent;}
-    int            getIndexInParent() const {assert(hasParentFeature()); return indexInParent;}
-
     bool             hasPlacement() const {return placement != 0;}
 
     const Placement& getPlacement() const {
@@ -185,164 +380,20 @@ public:
 
     void place(const Placement& p);
 
-    int getNSubfeatures()          const {return subfeatures.size();}
-    int getNPlacementExpressions() const {return placementExpressions.size();}
-    int getNPlacementValues()      const {return placementValues.size();}
-
-    const Feature&        getSubfeature(size_t i)          const {return subfeatures[i];}
-    Feature&              updSubfeature(size_t i)                {return subfeatures[i];}
-    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
-    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
-
-    // This can accept a path name
-    const Feature* findSubfeature(const std::string& nm) const {
-        std::vector<std::string> segments;
-        if (!isLegalFeaturePathname(nm, &segments)) {
-            if (segments.size())
-                SIMTK_THROW2(Exception::IllegalFeaturePathname,nm,segments.back());
-            else
-                SIMTK_THROW(Exception::EmptyFeaturePathname);
-            //NOTREACHED
-        }
-        const Feature* found = &getMyHandle();
-        for (size_t i=0; i<segments.size(); ++i) {
-            size_t index;
-            found = (found->getRep().findSubfeatureIndex(segments[i],index) 
-                     ? &found->getRep().subfeatures[index] : 0);
-            if (!found) break;
-        }
-        return found;
-    }
-    Feature* findUpdSubfeature(const std::string& nm) {
-        return const_cast<Feature*>(findSubfeature(nm));
-    }
-
-    const Feature& getSubfeature(const std::string& nm) const {
-        const Feature* f = findSubfeature(nm);
-        if (!f) SIMTK_THROW2(Exception::SubfeatureNameNotFound,nm,getFullName());
-        return *f;
-    }
-
-    Feature& updSubfeature(const std::string& nm) {
-        Feature* f = findUpdSubfeature(nm);
-        if (!f) SIMTK_THROW2(Exception::SubfeatureNameNotFound,nm,getFullName());
-        return *f;
-    }
-
-    std::string getFullName() const;
-
-    Feature&        addSubfeatureLike    (const Feature& f, const std::string& nm);
-    Placement&      addPlacementLike     (const Placement& p);
-    PlacementValue& addPlacementValueLike(const PlacementValue& v);
-
     // Does the *placement* of this feature depend on the indicated one?
     // Note that we don't care about our child features' placements.
     bool dependsOn(const Feature& f) const 
         { return placement && placement->dependsOn(f); }
 
-    const Feature& findRootFeature() const;
-    Feature&       findUpdRootFeature();       
+    // This is for use by SubsystemRep after a copy to fix the placement pointer.
+    void fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot);
 
-    // Is Feature f in the tree rooted at oldRoot? If so, optionally return the 
-    // series of indices required to get to this Feature from the root.
-    // Complexity is O(log n) where n is tree depth.
-    static bool isFeatureInFeatureTree(const Feature& oldRoot, const Feature& f,
-                                       std::vector<int>* trace=0);
-
-    // Is Placement p owned by a Feature in the tree rooted at oldRoot?
-    static bool isPlacementInFeatureTree(const Feature& oldRoot, const Placement& p);
-
-    // If Feature f is a member of the Feature tree rooted at oldRoot, find
-    // the corresponding Feature in the tree rooted at newRoot (which is expected
-    // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const Feature* findCorrespondingFeature
-        (const Feature& oldRoot, const Feature& f, const Feature& newRoot);
-
-    // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
-    // find the corresponding Placement in the tree rooted at newRoot (which is expected
-    // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const Placement* findCorrespondingPlacement
-        (const Feature& oldRoot, const Placement& p, const Feature& newRoot);
-
-    // If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
-    // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
-    // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const PlacementValue* findCorrespondingPlacementValue
-        (const Feature& oldRoot, const PlacementValue& v, const Feature& newRoot);
-
-    // Given two features, run up the tree towards the root to find
-    // their "least common denominator", i.e. the first shared node
-    // on the path back to the root. Return a pointer to that node
-    // if found, otherwise NULL meaning that the features aren't on
-    // the same tree. If the features are the same, then
-    // that feature is the answer.
-    // Complexity is O(log n) where n is depth of Feature tree.
-    static const Feature* findYoungestCommonAncestor(const Feature& f1, const Feature& f2);
-    static Feature*       findUpdYoungestCommonAncestor(Feature& f1, const Feature& f2);
-
-    // name utilities
-    static bool isLegalFeatureName(const std::string&);
-    static bool isLegalFeaturePathname(const std::string&, 
-                                       std::vector<std::string>* segments=0);
-
-    // For debugging
-    void checkFeatureConsistency(const Feature* expParent,
-                                 int expIndexInParent,
-                                 const Feature& expRoot) const;
+    SIMTK_DOWNCAST(FeatureRep, SubsystemRep);
 private:
-    // Return true and ix==feature index if a feature of the given name is found.
-    // Otherwise return false and ix==childFeatures.size().
-    bool findSubfeatureIndex(const std::string& nm, size_t& ix) const;
-
-    // We have just copied a Feature subtree so all the parent pointers are
-    // still pointing to the old tree. Recursively repair them to point into
-    // the new tree.
-    void reparentMyChildren();
-
-    // We have just created at newRoot a copy of the tree rooted at oldRoot, and the
-    // current Feature (for which this is the Rep) is a node in the newRoot tree
-    // (with correct myHandle). However, the 'parent' and 'placement' pointers 
-    // still retain the values they had in the oldRoot tree; they must be 
-    // changed to point to the corresponding entities in the newRoot tree.
-    // If these pointers point outside the oldRoot tree, however, we'll just
-    // set them to 0 in the newRoot copy.
-    void fixPlacements(const Feature& oldRoot, const Feature& newRoot);
-
-    
-    static const Feature* getParentPtr(const Feature& f) {
-        return f.rep ? f.rep->parent : 0;
-    }
-private:
-    Feature*                  myHandle; // the Feature whose rep this is
-    std::string               name;
-
-    // Owner information. If parent is 0 then this Feature is an unplaced
-    // prototype. Otherwise this Feature is contained in the parent's
-    // childFeatures list, with the given index.
-    Feature*                  parent;
-    int                       indexInParent;
-
     // If this Feature has been placed, this is the placement information.
     // If present, this Placement must be owned by this Feature, its parent,
     // or one of its ancestors.
     const Placement*          placement;
-
-    // Subfeatures wholly owned by this Feature.
-    StableArray<SubFeature>   subfeatures;
-
-    // Placement expressions wholly owned by this Feature. These expressions
-    // can involve only Subfeatures of this Feature (or further descendents). But
-    // note that we stop at the Subfeature references -- we don't care where they 
-    // are placed or even *whether* they are placed. Only when Features are realized
-    // do we chase through Placements to calculate values.
-    StableArray<SubPlacement> placementExpressions;
-
-    // This is like a State cache except it holds values for Placement expressions
-    // where the highest placement dependency is resolved at this Feature (i.e., is
-    // one of the placementExpressions stored above. But note that these values
-    // do not in general correspond to the placementExpression; they can be the
-    // values of lower-level placement expressions.
-    StableArray<PlacementValue> placementValues;
 };
 
 class RealParameterRep : public FeatureRep {
@@ -354,7 +405,7 @@ public:
 
     std::string getFeatureTypeName() const { return "RealParameter"; }
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
-    FeatureRep* clone() const { return new RealParameterRep(*this); }
+    SubsystemRep* clone() const { return new RealParameterRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const {
         if (!(i==-1 || i==0)) {
             SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
@@ -376,7 +427,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(RealParameterRep,FeatureRep);
+    SIMTK_DOWNCAST(RealParameterRep,SubsystemRep);
 };
 
 class Vec3ParameterRep : public FeatureRep {
@@ -388,7 +439,7 @@ public:
 
     std::string getFeatureTypeName() const { return "Vec3Parameter"; }
     PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
-    FeatureRep* clone() const { return new Vec3ParameterRep(*this); }
+    SubsystemRep* clone() const { return new Vec3ParameterRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const {
         PlacementRep* prep=0;
@@ -417,7 +468,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(Vec3ParameterRep,FeatureRep);
+    SIMTK_DOWNCAST(Vec3ParameterRep,SubsystemRep);
 };
 
 class StationParameterRep : public FeatureRep {
@@ -429,7 +480,7 @@ public:
 
     std::string getFeatureTypeName() const { return "StationParameter"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
-    FeatureRep* clone() const { return new StationParameterRep(*this); }
+    SubsystemRep* clone() const { return new StationParameterRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
@@ -458,7 +509,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(StationParameterRep,FeatureRep);
+    SIMTK_DOWNCAST(StationParameterRep,SubsystemRep);
 };
 
 class RealMeasureRep : public FeatureRep {
@@ -470,7 +521,7 @@ public:
 
     std::string getFeatureTypeName() const { return "RealMeasure"; }
     PlacementType getRequiredPlacementType() const { return RealPlacementType; }
-    FeatureRep* clone() const { return new RealMeasureRep(*this); }
+    SubsystemRep* clone() const { return new RealMeasureRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const {
         if (!(i==-1 || i==0)) {
@@ -493,7 +544,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(RealMeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(RealMeasureRep,SubsystemRep);
 };
 
 class Vec3MeasureRep : public FeatureRep {
@@ -505,7 +556,7 @@ public:
 
     std::string getFeatureTypeName() const { return "Vec3Measure"; }
     PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
-    FeatureRep* clone() const { return new Vec3MeasureRep(*this); }
+    SubsystemRep* clone() const { return new Vec3MeasureRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep = 0;
@@ -535,7 +586,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(Vec3MeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(Vec3MeasureRep,SubsystemRep);
 };
 
 class StationMeasureRep : public FeatureRep {
@@ -547,7 +598,7 @@ public:
 
     std::string getFeatureTypeName() const { return "StationMeasure"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
-    FeatureRep* clone() const { return new StationMeasureRep(*this); }
+    SubsystemRep* clone() const { return new StationMeasureRep(*this); }
  
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep = 0;
@@ -577,7 +628,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(StationMeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(StationMeasureRep,SubsystemRep);
 };
 
 class StationRep : public FeatureRep {
@@ -589,7 +640,7 @@ public:
 
     std::string getFeatureTypeName() const { return "Station"; }
     PlacementType getRequiredPlacementType() const { return StationPlacementType; }
-    FeatureRep* clone() const { return new StationRep(*this); }
+    SubsystemRep* clone() const { return new StationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep = 0;
@@ -620,19 +671,19 @@ public:
     }
 
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
+        if (!(hasParentSubsystem() && Frame::isInstanceOf(getParentSubsystem()))) {
             SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
                      getFullName(), "Station", "Orientation");
             //NOTREACHED
         }
-        const Frame& parentFrame = Frame::downcast(getParentFeature());
+        const Frame& parentFrame = Frame::downcast(getParentSubsystem());
         PlacementRep* prep = new FrameExprPlacementRep(parentFrame.getOrientation(), 
                                                        Station::downcast(getMyHandle()));
         prep->setMyHandle(handle); handle.setRep(prep);
         return prep;
     }
 
-    SIMTK_DOWNCAST(StationRep,FeatureRep);
+    SIMTK_DOWNCAST(StationRep,SubsystemRep);
 };
 
 class DirectionMeasureRep : public FeatureRep {
@@ -644,7 +695,7 @@ public:
 
     std::string getFeatureTypeName() const { return "DirectionMeasure"; }
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
-    FeatureRep* clone() const { return new DirectionMeasureRep(*this); }
+    SubsystemRep* clone() const { return new DirectionMeasureRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep = 0;
         if (i == -1) 
@@ -673,7 +724,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(DirectionMeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(DirectionMeasureRep,SubsystemRep);
 };
 
 class DirectionRep : public FeatureRep {
@@ -685,7 +736,7 @@ public:
 
     std::string getFeatureTypeName() const { return "Direction"; }
     PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
-    FeatureRep* clone() const { return new DirectionRep(*this); }
+    SubsystemRep* clone() const { return new DirectionRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
         if (i == -1) 
@@ -714,7 +765,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(DirectionRep,FeatureRep);
+    SIMTK_DOWNCAST(DirectionRep,SubsystemRep);
 };
 
 
@@ -727,7 +778,7 @@ public:
 
     std::string getFeatureTypeName() const { return "OrientationMeasure"; }
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
-    FeatureRep* clone() const { return new OrientationMeasureRep(*this); }
+    SubsystemRep* clone() const { return new OrientationMeasureRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
         if (i == -1) 
@@ -756,7 +807,7 @@ public:
         return prep;
     }
 
-    SIMTK_DOWNCAST(OrientationMeasureRep,FeatureRep);
+    SIMTK_DOWNCAST(OrientationMeasureRep,SubsystemRep);
 };
 
 class OrientationRep : public FeatureRep {
@@ -769,7 +820,7 @@ public:
 
     std::string   getFeatureTypeName() const { return "Orientation"; }
     PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
-    FeatureRep*   clone() const { return new OrientationRep(*this); }
+    SubsystemRep*   clone() const { return new OrientationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
@@ -798,37 +849,37 @@ public:
         return prep;
     }
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentFeature() && Frame::isInstanceOf(getParentFeature()))) {
+        if (!(hasParentSubsystem() && Frame::isInstanceOf(getParentSubsystem()))) {
             SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
                      getFullName(), "Orientation", "Station");
             //NOTREACHED
         }
-        const Frame& parentFrame = Frame::downcast(getParentFeature());
+        const Frame& parentFrame = Frame::downcast(getParentSubsystem());
         PlacementRep* prep = new FrameExprPlacementRep(Orientation::downcast(getMyHandle()),
                                                        parentFrame.getOrigin());
         prep->setMyHandle(handle); handle.setRep(prep);
         return prep;
     }
     const Direction& getAxis(int i) const
-      { assert(0<=i&&i<=2); return Direction::downcast(getSubfeature(axisIndices[i])); }
-    const Direction& x() const {return Direction::downcast(getSubfeature(axisIndices[0]));}
-    const Direction& y() const {return Direction::downcast(getSubfeature(axisIndices[1]));}
-    const Direction& z() const {return Direction::downcast(getSubfeature(axisIndices[2]));}
+      { assert(0<=i&&i<=2); return Direction::downcast(getFeature(axisIndices[i])); }
+    const Direction& x() const {return Direction::downcast(getFeature(axisIndices[0]));}
+    const Direction& y() const {return Direction::downcast(getFeature(axisIndices[1]));}
+    const Direction& z() const {return Direction::downcast(getFeature(axisIndices[2]));}
 
-    SIMTK_DOWNCAST(OrientationRep,FeatureRep);
+    SIMTK_DOWNCAST(OrientationRep,SubsystemRep);
 
 protected:
     virtual void initializeStandardSubfeatures() {
-        Direction& x = Direction::downcast(addSubfeatureLike(Direction("x"), "x"));
-        Direction& y = Direction::downcast(addSubfeatureLike(Direction("y"), "y"));
-        Direction& z = Direction::downcast(addSubfeatureLike(Direction("z"), "z"));
+        Direction& x = Direction::downcast(addFeatureLike(Direction("x"), "x"));
+        Direction& y = Direction::downcast(addFeatureLike(Direction("y"), "y"));
+        Direction& z = Direction::downcast(addFeatureLike(Direction("z"), "z"));
 
         axisIndices[0] = x.getIndexInParent();
         axisIndices[1] = y.getIndexInParent();
         axisIndices[2] = z.getIndexInParent();
 
         for (int i=0; i<3; ++i)
-            updSubfeature(axisIndices[i]).place(Placement(getMyHandle(), i));
+            updFeature(axisIndices[i]).place(Placement(getMyHandle(), i));
     }
 
 private:
@@ -845,7 +896,7 @@ public:
 
     // still overrideable for bodies.
     virtual std::string   getFeatureTypeName() const { return "Frame"; }
-    virtual FeatureRep*   clone() const { return new FrameRep(*this); }
+    virtual SubsystemRep*   clone() const { return new FrameRep(*this); }
 
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
 
@@ -888,31 +939,31 @@ public:
         prep->setMyHandle(handle); handle.setRep(prep);
         return prep;
     }
-    const Orientation& getOrientation() const {return Orientation::downcast(getSubfeature(RIndex));}
-    const Station&     getOrigin()      const {return Station::downcast(getSubfeature(OIndex)); }
+    const Orientation& getOrientation() const {return Orientation::downcast(getFeature(RIndex));}
+    const Station&     getOrigin()      const {return Station::downcast(getFeature(OIndex)); }
 
-    SIMTK_DOWNCAST(FrameRep,FeatureRep);
+    SIMTK_DOWNCAST(FrameRep,SubsystemRep);
 
 protected:
     virtual void initializeStandardSubfeatures() {
-        Orientation& R = Orientation::downcast(addSubfeatureLike(Orientation("R"), "orientation"));
-        Station&     O = Station::downcast    (addSubfeatureLike(Station("O"),     "origin"));
+        Orientation& R = Orientation::downcast(addFeatureLike(Orientation("R"), "orientation"));
+        Station&     O = Station::downcast    (addFeatureLike(Station("O"),     "origin"));
 
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        updSubfeature(RIndex).place(OrientationPlacement(Mat33(1)));
-        updSubfeature(OIndex).place(StationPlacement(Vec3(0)));
+        updFeature(RIndex).place(OrientationPlacement(Mat33(1)));
+        updFeature(OIndex).place(StationPlacement(Vec3(0)));
     }
 
 private:
     int RIndex, OIndex; // feature indices
 };
 
-inline SubFeature::SubFeature(const SubFeature& sf) : Feature() {
+inline SubSubsystem::SubSubsystem(const SubSubsystem& sf) : Subsystem() {
     if (sf.rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
 }
-inline SubFeature& SubFeature::operator=(const SubFeature& sf) {
+inline SubSubsystem& SubSubsystem::operator=(const SubSubsystem& sf) {
     if (&sf != this) {
         delete rep; rep=0;
         if (sf.rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }

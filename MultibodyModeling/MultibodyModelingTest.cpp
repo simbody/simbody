@@ -60,12 +60,19 @@ try {
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
     f["negone"].place(-1);
+    Placement p;
+    p = 9.*(f["one"]+abs(f["negone"]));
+    f.addRealMeasure("ttt9").place(p);
     f.realize(/*State,*/ Stage::Startup);
+
+    try{cout << "p.getValue()=" << p.getValue() << endl;}
+    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
     try {
         cout << "one=" << f["one"].getValue() << endl;
         cout << "zzz=" << f["zzz"].getValue() << endl;
         cout << "ttt=" << f["ttt"].getValue() << endl;
+        cout << "ttt9=" << f["ttt9"].getValue() << endl;
         cout << "x2y=" << f["x2y"].getValue() << endl;
         cout << "y%x=" << f["YCrossX"].getValue() << endl;
     }
@@ -129,7 +136,7 @@ try {
     //cout << "U=" << upper;
 
     cout << "U's subfeatures:" << endl;
-    for (int i=0; i<upper.getNSubfeatures(); ++i)
+    for (int i=0; i<upper.getNSubsystems(); ++i)
         cout << upper[i].getFullName() << endl;
 
     // Now build the prototype for the lower bodies.
@@ -202,7 +209,7 @@ try {
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 
     cout << "*** JOINTS ***" << endl;
-    for (int i=0; i<mbs.getNSubfeatures(); ++i)
+    for (int i=0; i<mbs.getNSubsystems(); ++i)
         if (Joint::isInstanceOf(mbs[i]))
             cout << mbs[i].getFullName() << ":" << endl 
                  << "  reference: " << mbs[i]["reference"].getPlacement() 
@@ -210,11 +217,11 @@ try {
                  << endl;
 
     cout << "*** BODIES ***" << endl;
-    for (int i=0; i<mbs.getNSubfeatures(); ++i)
+    for (int i=0; i<mbs.getNSubsystems(); ++i)
         if (Body::isInstanceOf(mbs[i])) {
             cout << mbs[i].getFullName() << ":" << endl;
             Real tmass = 0.;
-            for (int j=0; j<mbs[i].getNSubfeatures(); ++j) {
+            for (int j=0; j<mbs[i].getNSubsystems(); ++j) {
                 if (MassElement::isInstanceOf(mbs[i][j])) {
                     Real mass = MassElement::downcast(mbs[i][j]).getMassMeasure().getValue();
                     cout << "  massElt " << mbs[i][j].getName() << " " << mass << endl;
@@ -234,10 +241,10 @@ try {
     // to hold them.
 //    RuntimeFeature rt("rt");
  //   rt.addFeatureLike(mbs, "mbs");
-//    rt["mbs"]["halfHeight"].place(5.);
+//    rt["mbs/halfHeight"].place(5.);
 
 //    rt.realize();
-//    cout << "upper mass=" << rt["mbs"]["upper"]["massMeasure"].getValue() << endl;
+//    cout << "upper mass=" << rt["mbs/upper/massMeasure"].getValue() << endl;
 
 
     ///////////////////////////

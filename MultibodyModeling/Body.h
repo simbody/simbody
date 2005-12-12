@@ -78,9 +78,9 @@ public:
     const RealMeasure&    getMassMeasure() const;
     const StationMeasure& getCentroidMeasure() const;
 
-    static bool        isInstanceOf(const Feature&);
-    static const Body& downcast(const Feature&);
-    static Body&       downcast(Feature&);
+    static bool        isInstanceOf(const Subsystem&);
+    static const Body& downcast(const Subsystem&);
+    static Body&       downcast(Subsystem&);
 };
 
 class RigidBody : public Body {
@@ -95,9 +95,9 @@ public:
                                     const Placement&);
     MassElement& addMassElementLike(const MassElement&, const String&);
 
-    static bool             isInstanceOf(const Feature&);
-    static const RigidBody& downcast(const Feature&);
-    static RigidBody&       downcast(Feature&);
+    static bool             isInstanceOf(const Subsystem&);
+    static const RigidBody& downcast(const Subsystem&);
+    static RigidBody&       downcast(Subsystem&);
 };
 
 class DeformableBody : public Body {
@@ -107,12 +107,12 @@ public:
     DeformableBody& operator=(const DeformableBody&);
     ~DeformableBody();
 
-    static bool                  isInstanceOf(const Feature&);
-    static const DeformableBody& downcast(const Feature&);
-    static DeformableBody&       downcast(Feature&);
+    static bool                  isInstanceOf(const Subsystem&);
+    static const DeformableBody& downcast(const Subsystem&);
+    static DeformableBody&       downcast(Subsystem&);
 };
 
-class Multibody : public Body {
+class Multibody : public Subsystem {
 public:
     explicit Multibody(const String&);
     Multibody(const Multibody&);
@@ -131,32 +131,32 @@ public:
                     const Placement& reference,
                     const Placement& moving);
 
-    static bool             isInstanceOf(const Feature&);
-    static const Multibody& downcast(const Feature&);
-    static Multibody&       downcast(Feature&);
+    static bool             isInstanceOf(const Subsystem&);
+    static const Multibody& downcast(const Subsystem&);
+    static Multibody&       downcast(Subsystem&);
 };
 
-class Joint : public Feature {
+class Joint : public Subsystem {
 public:
     explicit Joint(JointType, const String&);
     Joint(const Joint&);
     Joint& operator=(const Joint&);
     ~Joint();
 
-    static bool         isInstanceOf(const Feature&);
-    static const Joint& downcast(const Feature&);
-    static Joint&       downcast(Feature&);
+    static bool         isInstanceOf(const Subsystem&);
+    static const Joint& downcast(const Subsystem&);
+    static Joint&       downcast(Subsystem&);
 };
 
-class MultibodySystem {
-    MultibodySystem() : rep(0) { }
+class MultibodySystem : public Subsystem {
     explicit MultibodySystem(const String&);
     MultibodySystem(const MultibodySystem&);
     MultibodySystem& operator=(const MultibodySystem&);
     ~MultibodySystem();
-public:
-    class MultibodySystemRep* rep;
-    friend class MultibodySystemRep;
+
+    static bool                   isInstanceOf(const Subsystem&);
+    static const MultibodySystem& downcast(const Subsystem&);
+    static MultibodySystem&       downcast(Subsystem&);
 };
 std::ostream& operator<<(std::ostream& o, const MultibodySystem&);
 

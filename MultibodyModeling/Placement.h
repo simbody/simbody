@@ -33,6 +33,7 @@
 
 namespace simtk {
 
+class Subsystem;
 class Feature;
 class Station;
 class Direction;
@@ -84,9 +85,9 @@ public:
 
     // These create a "feature placement" (reference to the placement
     // of a feature) of a particular type, but starting with a generic
-    // Feature. If the Feature type is already known it is implicitly
+    // Subsystem, which must turn out to be a Feature. If the Feature type is already known it is implicitly
     // converted to the corresponding Placement type at compile time
-    // instead, but for a generic Feature we can only convert to a
+    // instead, but for a generic Subsystem we can only convert to a
     // generic Placement and choose the actual type at run time. Note that
     // it is not necessary for the Feature to have a placement at the time
     // we create this reference; it need only have one by the time we
@@ -96,17 +97,17 @@ public:
     // still references the indicated Feature (not one of its subfeatures)
     // but then selects a subcomponent of the resulting Placement as 
     // indicated by the index.
-    Placement(const Feature&);
-    Placement(const Feature&, int index);
+    Placement(const Subsystem&);
+    Placement(const Subsystem&, int index);
 
     void realize(/*State,*/ Stage) const;
     // This will throw an exception if this Placement's value has not 
     // already been realize()'d.
     const PlacementValue& getValue() const;
 
-    bool           hasOwner() const;
-    const Feature& getOwner() const;
-    int            getIndexInOwner() const;
+    bool             hasOwner() const;
+    const Subsystem& getOwner() const;
+    int              getIndexInOwner() const;
 
     bool isConstant() const;  // a plain old numerical value?
     bool dependsOn(const Feature&) const; // recursive dependency check
@@ -119,9 +120,9 @@ public:
     const class PlacementRep& getRep() const {assert(rep); return *rep;}
     class PlacementRep&       updRep()       {assert(rep); return *rep;}
     void                      setRep(PlacementRep* pp) {assert(!rep); rep=pp;}
-    void checkPlacementConsistency(const Feature* expOwner, 
-                                   int expIndexInOwner,
-                                   const Feature& expRoot) const;
+    void checkPlacementConsistency(const Subsystem* expOwner, 
+                                   int              expIndexInOwner,
+                                   const Subsystem& expRoot) const;
 protected:
     class PlacementRep* rep;
     friend class PlacementRep;
@@ -140,9 +141,9 @@ public:
     ~PlacementValue();
     bool isValid() const;
 
-    bool           hasOwner() const;
-    const Feature& getOwner() const;
-    int            getIndexInOwner() const;
+    bool             hasOwner() const;
+    const Subsystem& getOwner() const;
+    int              getIndexInOwner() const;
 
     String toString(const String& linePrefix="") const;
 
@@ -157,9 +158,9 @@ public:
     const PlacementValueRep& getRep() const {assert(rep); return *rep;}
     PlacementValueRep&       updRep()       {assert(rep); return *rep;}
     void                     setRep(PlacementValueRep* p) {assert(!rep); rep=p;}
-    void checkPlacementValueConsistency(const Feature* expOwner, 
-                                        int expIndexInOwner,
-                                        const Feature& expRoot) const;
+    void checkPlacementValueConsistency(const Subsystem* expOwner, 
+                                        int              expIndexInOwner,
+                                        const Subsystem& expRoot) const;
 };
 std::ostream& operator<<(std::ostream& o, const PlacementValue&);
 
@@ -192,28 +193,34 @@ public:
 std::ostream& operator<<(std::ostream& o, const Placement&);
 
 // unary
-Placement operator+(const Placement&);
-Placement operator-(const Placement&);
-Placement abs (const Placement&);
-Placement sqrt(const Placement&);
-Placement exp (const Placement&);
-Placement log (const Placement&);
-Placement sin (const Placement&);
-Placement cos (const Placement&);
-Placement asin(const Placement&);
-Placement acos(const Placement&);
-Placement length   (const Placement&);
-Placement normalize(const Placement&);
+Placement negate    (const Placement&);
+Placement abs       (const Placement&);
+Placement sqrt      (const Placement&);
+Placement exp       (const Placement&);
+Placement log       (const Placement&);
+Placement sin       (const Placement&);
+Placement cos       (const Placement&);
+Placement asin      (const Placement&);
+Placement acos      (const Placement&);
+Placement length    (const Placement&);
+Placement normalize (const Placement&);
 
 // binary
-Placement operator+(const Placement& l, const Placement& r); 
-Placement operator-(const Placement& l, const Placement& r); 
-Placement operator*(const Placement& l, const Placement& r); 
-Placement operator/(const Placement& l, const Placement& r);
-Placement distance (const Placement& l, const Placement& r);
-Placement angle    (const Placement& l, const Placement& r);
-Placement dot      (const Placement& l, const Placement& r);
-Placement cross    (const Placement& l, const Placement& r);
+Placement add       (const Placement& l, const Placement& r); 
+Placement subtract  (const Placement& l, const Placement& r); 
+Placement multiply  (const Placement& l, const Placement& r); 
+Placement divide    (const Placement& l, const Placement& r);
+Placement distance  (const Placement& l, const Placement& r);
+Placement angle     (const Placement& l, const Placement& r);
+Placement dot       (const Placement& l, const Placement& r);
+Placement cross     (const Placement& l, const Placement& r);
+
+// alternative access to some of above routines via overloaded operators
+inline Placement operator- (const Placement& p)                     {return negate(p);}
+inline Placement operator+ (const Placement& l, const Placement& r) {return add(l,r);} 
+inline Placement operator- (const Placement& l, const Placement& r) {return subtract(l,r);}
+inline Placement operator* (const Placement& l, const Placement& r) {return multiply(l,r);}
+inline Placement operator/ (const Placement& l, const Placement& r) {return divide(l,r);}
 
 class RealPlacement : public Placement {
 public:
