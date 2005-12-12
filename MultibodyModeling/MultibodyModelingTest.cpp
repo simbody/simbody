@@ -91,7 +91,7 @@ try {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
-    blue.place(Vec3(1,2,3)); // a pointless self-placement
+    //blue.place(Vec3(1,2,3)); // a pointless self-placement
 
     cout << "blue=" << blue;
     cout << "orange=" << orange;
@@ -204,7 +204,8 @@ try {
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-//    mbs.checkFeatureConsistency(0,-1,mbs);    std::cout << "***MULTIBODY SYSTEM***" << std::endl;
+    mbs.checkSubsystemConsistency(0,-1,mbs);    
+    //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
    // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 

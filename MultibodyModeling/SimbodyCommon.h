@@ -102,6 +102,15 @@ public:
 private:
 };
 
+class FeatureHasAlreadyBeenPlaced : public Base {
+public:
+    FeatureHasAlreadyBeenPlaced(const char* fn, int ln, String featureName) : Base(fn,ln)
+    {
+        setMessage("Can't place Feature " + featureName + " because it already has a Placement.");
+    }
+private:
+};
+
 class FeatureCantBeUsedAsPlacement : public Base {
 public:
     FeatureCantBeUsedAsPlacement(const char* fn, int ln, String featureName, String featureTypeName,

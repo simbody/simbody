@@ -311,7 +311,7 @@ void SubsystemRep::fixPlacements(const Subsystem& oldRoot, const Subsystem& newR
         FeatureRep::downcast(*this).fixFeaturePlacement(oldRoot,newRoot);
 }
 
-// If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
+// If Placement p's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
 // find the corresponding Placement in the tree rooted at newRoot (which is expected
 // to be a copy of oldRoot). Return NULL if not found for any reason.
 /*static*/ const Placement* 
@@ -331,7 +331,7 @@ SubsystemRep::findCorrespondingPlacement
     return newTreeRef;
 }
 
-// If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
+// If PlacementValue v's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
 // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
 // to be a copy of oldRoot). Return NULL if not found for any reason.
 /*static*/ const PlacementValue* 
@@ -452,8 +452,15 @@ FeatureRep::useFeatureAsFramePlacement(FramePlacement&) const {
 // which were dependent (directly or indirectly) on the placement of 
 // this feature. Value slots for a given placement expression x are always
 // owned by the oldest owner of any of the placements on which x recursively
-// depends.
+// depends. Note: we defer allocation of value slots until we're done 
+// constructing the subsystem (i.e., not here).
 void FeatureRep::place(const Placement& p) {
+    if (hasPlacement()) {
+        SIMTK_THROW1(Exception::FeatureHasAlreadyBeenPlaced,
+            getFullName());
+        //NOTREACHED  
+    }
+
     assert(p.hasRep());
 
     // If possible, create a fixed-up copy of p which is suitable for
@@ -513,14 +520,17 @@ void FeatureRep::place(const Placement& p) {
     assert(good.isConstant() || !good.getOwner().isSameSubsystem(getMyHandle()));
     assert(SubsystemRep::isSubsystemInSubsystemTree(good.getOwner(), getMyHandle()));
     assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
-    placement = &good; 
+    placement = &good;
+    good.updRep().setClient(getMyHandle());
     postProcessNewPlacement();
 }
 
-// This is for use by SubsystemRep after a copy to fix the placement pointer.
+// This is for use by SubsystemRep after a copy to fix the placement pointer and back pointer.
 void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot) {
-    if (placement)
+    if (placement) {
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
+        if (placement) const_cast<Placement*>(placement)->updRep().setClient(getMyHandle());
+    }
 }
 
 } // namespace simtk

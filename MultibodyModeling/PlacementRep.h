@@ -433,13 +433,13 @@ private:
 
 class PlacementRep {
 public:
-    explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1), valueSlot(0) { }
+    explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1), client(0), valueSlot(0) { }
     virtual ~PlacementRep() { }
 
     void assignValueSlot(PlacementValue& p) const
       { const_cast<PlacementValue*>(valueSlot) = &p; }
-    bool                  hasValueSlot()  const {return valueSlot != 0;}
-    bool                  hasValidValue() const {return valueSlot && valueSlot->isValid();}
+    bool hasValueSlot()  const {return valueSlot != 0;}
+    bool hasValidValue() const {return valueSlot && valueSlot->isValid();}
 
     const PlacementValue& getValueSlot() const {
         if (!valueSlot) 
@@ -460,7 +460,6 @@ public:
     }
 
     virtual PlacementValue createEmptyPlacementValue() const = 0;
-
 
     // We have just copied a Feature tree and this PlacementRep is the new copy. If
     // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
@@ -535,8 +534,6 @@ public:
     // can't yet be evaluated.
     virtual const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const = 0;
 
-
-
     void             setMyHandle(Placement& p) {myHandle = &p;}
     bool             hasHandle()       const {return myHandle != 0;}
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
@@ -547,6 +544,10 @@ public:
     const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
+    void             setClient(const Feature& f) {client = &f;}
+    bool             hasClient()        const {return client != 0;}
+    const Feature&   getClient()        const {assert(client); return *client;}
+
     // Note that this copies all feature & placement reference pointers verbatim.
     // The copy will require repair if we are copying a whole Feature tree
     // to get the references to refer to objects in the new tree. 
@@ -554,6 +555,7 @@ public:
         PlacementRep* pr = clone();
         pr->myHandle = &p;
         pr->owner = 0; pr->indexInOwner = -1;
+        pr->client = 0;
         p.setRep(pr);
     }
 
@@ -571,8 +573,12 @@ public:
 private:
     Placement*       myHandle;     // the Placement whose rep this is
 
-    const Subsystem* owner;        // The Feature (if any) which owns this Placement
+    const Subsystem* owner;        // The Subsystem (if any) which owns this Placement
     int              indexInOwner; // ... and the index in its placementExpr list.
+
+    const Feature*   client;       // The Feature (if any) for which this is the Placement.
+                                   // That Feature's placement pointer must point right
+                                   // back here (through the Placement handle).
 
     PlacementValue*  valueSlot;    // Points to the cache entry designated to hold the
                                    //   value of this placement expression, if any.

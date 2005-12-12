@@ -403,6 +403,19 @@ void PlacementRep::checkPlacementConsistency(const Subsystem* expOwner,
     if (indexInOwner != expIndexInOwner)
         cout << "*** WRONG INDEX " << indexInOwner << "; should have been " << expIndexInOwner << endl;
 
+    if (expOwner == 0) {
+        if (client)
+          cout << "*** UNOWNED PLACEMENT HAD CLIENT " << client->getFullName() << " ***" << endl;
+    } else {
+        if (!client) 
+            cout << "*** NO CLIENT ***" << endl;
+        else if (!client->hasPlacement())
+            cout << "*** CLIENT " << client->getFullName() << " HAS NO PLACEMENT??? ***" << endl;
+        else if (&(client->getPlacement().getRep()) != this)
+            cout << "*** CLIENT " << client->getFullName() << " HAS WRONG PLACEMENT@" 
+                << &client->getPlacement().getRep() << endl;
+    }
+
     const Feature* offender;
     if (!isLimitedToSubtree(expRoot, offender)) {
         cout << "*** Placement referenced Feature '" << offender->getFullName() << "' in wrong tree" << endl;

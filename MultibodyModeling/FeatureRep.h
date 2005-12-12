@@ -73,8 +73,8 @@ public:
 
 /**
  * A Subsystem and its SubsystemRep are logically part of the same object. There
- * is always a Subsystem handle (just a pointer) for every SubsystemRep, and it
- * must be the case that this->handle.rep == this!
+ * is always a Subsystem handle (just a pointer) for every SubsystemRep, and there
+ * must be exactly one where this->handle.rep == this!
  *
  * SubsystemRep is an abstract base class from which the reps for all the
  * concrete Subsystems (e.g., Feature reps like StationRep) derive.
@@ -134,7 +134,7 @@ public:
     bool             hasParentSubsystem() const {return parent != 0;}
     const Subsystem& getParentSubsystem() const {assert(hasParentSubsystem()); return *parent;}
     Subsystem&       updParentSubsystem() const {assert(hasParentSubsystem()); return *parent;}
-    int              getIndexInParent() const {assert(hasParentSubsystem()); return indexInParent;}
+    int              getIndexInParent()   const {assert(hasParentSubsystem()); return indexInParent;}
 
     int getNSubsystems()           const {return childSubsystems.size();}
     int getNPlacementExpressions() const {return placementExpressions.size();}
@@ -227,6 +227,14 @@ public:
     static const Subsystem* findCorrespondingSubsystem
         (const Subsystem& oldRoot, const Subsystem& s, const Subsystem& newRoot);
 
+    static const Feature* findCorrespondingFeature
+        (const Subsystem& oldRoot, const Feature& s, const Subsystem& newRoot)
+    {
+        const Subsystem* newSubsys = findCorrespondingSubsystem(oldRoot,s,newRoot);
+        assert(newSubsys==0 || Feature::isInstanceOf(*newSubsys));
+        return reinterpret_cast<const Feature*>(newSubsys);
+    }
+
     // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
     // find the corresponding Placement in the tree rooted at newRoot (which is expected
     // to be a copy of oldRoot). Return NULL if not found for any reason.
@@ -284,9 +292,9 @@ private:
     Subsystem*                  myHandle; // the Feature whose rep this is
     std::string                 name;
 
-    // Owner information. If parent is 0 then this Feature is an unplaced
-    // prototype. Otherwise this Feature is contained in the parent's
-    // childFeatures list, with the given index.
+    // Owner information. If parent is 0 then this Subsystem is an unowned
+    // prototype. Otherwise this Subsystem is contained in the parent's
+    // childSubsystems list, with the given index.
     Subsystem*                  parent;
     int                         indexInParent;
 
@@ -391,9 +399,9 @@ public:
     SIMTK_DOWNCAST(FeatureRep, SubsystemRep);
 private:
     // If this Feature has been placed, this is the placement information.
-    // If present, this Placement must be owned by this Feature, its parent,
-    // or one of its ancestors.
-    const Placement*          placement;
+    // If present, this Placement must be owned by this Feature, its parent
+    // Subsystem or one of its ancestors.
+    const Placement* placement;
 };
 
 class RealParameterRep : public FeatureRep {
