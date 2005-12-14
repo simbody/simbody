@@ -94,17 +94,6 @@ Placement::Placement(const Vec3& v) : rep(0) {
 void Placement::realize(/*State,*/ Stage g) const {
     const PlacementRep& pr = getRep();
     if (pr.hasValidValue()) return; // already done!
-
-    if (pr.hasOwner() && !pr.hasValueSlot()) {
-        // can we get it a slot?
-        const Subsystem* s = pr.findPlacementValueOwnerSubsystem(pr.getOwner());
-        if (s) {
-            PlacementValue& pv = 
-                const_cast<Subsystem*>(s)->updRep().addPlacementValueLike(pr.createEmptyPlacementValue());
-            pv.updRep().setClient(*this);
-            pr.assignValueSlot(pv);
-        }
-    }
     pr.realize(/*State,*/ g);
 }
 
@@ -158,8 +147,8 @@ String Placement::toString(const String& linePrefix) const {
           << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
 
-    if (getRep().hasClient())
-        s << "[client:" << getRep().getClient().getFullName() << "]";
+    if (getRep().hasClientFeature())
+        s << "[client:" << getRep().getClientFeature().getFullName() << "]";
     else s << "[NO CLIENT]";
     s << " " << rep->toString(linePrefix);
     return s.str();

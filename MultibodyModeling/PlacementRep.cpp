@@ -1768,11 +1768,11 @@ String PlacementValue::toString(const String& linePrefix) const {
         s << getOwner().getFullName() << ":"
           << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
-    if (getRep().hasClient()) {
+    if (getRep().hasClientPlacement()) {
         s << "[client:";
-        const Placement& p = getRep().getClient();
-        if (p.getRep().hasClient())
-            s << p.getRep().getClient().getFullName();
+        const Placement& p = getRep().getClientPlacement();
+        if (p.getRep().hasClientFeature())
+            s << p.getRep().getClientFeature().getFullName();
         else 
             s << "Placement@" << &p;
         s << "]";

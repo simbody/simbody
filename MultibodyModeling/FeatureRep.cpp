@@ -44,14 +44,39 @@ namespace simtk {
     // SUBSYSTEM REP //
 
 void SubsystemRep::realize(/*State,*/Stage g) const {
+    // Always let the children go first.
     for (int i=0; i < getNSubsystems(); ++i)
         getSubsystem(i).realize(/*State,*/ g);
 
-    if (FeatureRep::isA(*this)) {
-        const FeatureRep& fr = FeatureRep::downcast(*this);
-        if (fr.hasPlacement()) 
-            fr.getPlacement().realize(/*State,*/ g);
+    // For startup stage, we assume that we have recently modified the 
+    // model, i.e., features and placements have changed. So we need to
+    // (re)calculate the set of PlacementValues held by this Subsystem.
+    // Note that we just did this for all the children, so all lower
+    // PlacementValues should have been allocated. Nevertheless we have
+    // to do this recursively to find all the unassigned Placements whose
+    // highest Feature reference is one of the Placement expressions held here.
+    if (g == Stage::Startup) {
+        deleteAllPlacementValues();
+        allocatePlacementValueSlots(getMyHandle());
     }
+
+    // TODO: for now we just assume all our values are invalid. Dependency
+    // tracking would be better when costs are high.
+    for (int i=0; i < getNPlacementValues(); ++i)
+        updPlacementValue(i).updRep().setValid(false);
+
+    // TODO: current method will have side effect of realizing needed
+    // PlacementValues as we go, so many of these will be evaluated
+    // already by the time we get there.
+    for (int i=0; i < getNPlacementValues(); ++i)
+        if (!getPlacementValue(i).isValid())
+            getPlacementValue(i).getRep().getClientPlacement().realize(/*State,*/g);
+
+    //if (FeatureRep::isA(*this)) {
+    //    const FeatureRep& fr = FeatureRep::downcast(*this);
+    //    if (fr.hasPlacement()) 
+    //        fr.getPlacement().realize(/*State,*/ g);
+    //}
 }
 
 std::string 
@@ -134,9 +159,10 @@ SubsystemRep::addPlacementLike(const Placement& p) {
 }
 
 PlacementValue& 
-SubsystemRep::addPlacementValueLike(const PlacementValue& v) {
+SubsystemRep::addPlacementValueLike(const PlacementValue& v) const {
     assert(v.hasRep());
 
+    // 'placementValues' is mutable.
     const int index = (int)placementValues.size();
     placementValues.push_back(PlacementValue());
     PlacementValue& newPlacementValue = placementValues[index];
@@ -523,7 +549,7 @@ void FeatureRep::place(const Placement& p) {
     assert(SubsystemRep::isSubsystemInSubsystemTree(good.getOwner(), getMyHandle()));
     assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
     placement = &good;
-    good.updRep().setClient(getMyHandle());
+    good.updRep().setClientFeature(getMyHandle());
     postProcessNewPlacement();
 }
 
@@ -532,9 +558,10 @@ void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& 
     if (placement) {
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
         if (placement) { 
-            const_cast<Placement*>(placement)->updRep().setClient(getMyHandle());
+            const_cast<Placement*>(placement)->updRep().setClientFeature(getMyHandle());
             if (placement->getRep().hasValueSlot())
-                const_cast<Placement*>(placement)->updRep().updValueSlot().updRep().setClient(*placement);
+                const_cast<Placement*>(placement)->updRep().updValueSlot().updRep()
+                                                                .setClientPlacement(*placement);
         }
     }
 }

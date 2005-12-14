@@ -436,8 +436,9 @@ public:
     explicit PlacementRep() : myHandle(0), owner(0), indexInOwner(-1), client(0), valueSlot(0) { }
     virtual ~PlacementRep() { }
 
-    void assignValueSlot(PlacementValue& p) const
-      { const_cast<PlacementValue*>(valueSlot) = &p; }
+    // Note that value slots are mutable so these routines are const.
+    void assignValueSlot(PlacementValue& p) const {valueSlot = &p;}
+    void clearValueSlot() const {valueSlot=0;}
     bool hasValueSlot()  const {return valueSlot != 0;}
     bool hasValidValue() const {return valueSlot && valueSlot->isValid();}
 
@@ -544,9 +545,9 @@ public:
     const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
-    void             setClient(const Feature& f) {client = &f;}
-    bool             hasClient()        const {return client != 0;}
-    const Feature&   getClient()        const {assert(client); return *client;}
+    void             setClientFeature(const Feature& f) {client = &f;}
+    bool             hasClientFeature()        const {return client != 0;}
+    const Feature&   getClientFeature()        const {assert(client); return *client;}
 
     // Note that this copies all feature & placement reference pointers verbatim.
     // The copy will require repair if we are copying a whole Feature tree
@@ -580,7 +581,8 @@ private:
                                    // That Feature's placement pointer must point right
                                    // back here (through the Placement handle).
 
-    PlacementValue*  valueSlot;    // Points to the cache entry designated to hold the
+    mutable PlacementValue*  
+                     valueSlot;    // Points to the cache entry designated to hold the
                                    //   value of this placement expression, if any.
 };
 
@@ -1621,9 +1623,9 @@ public:
     const Subsystem& getOwner()        const {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
-    void             setClient(const Placement& p) {client = &p;}
-    bool             hasClient()        const {return client != 0;}
-    const Placement& getClient()        const {assert(client); return *client;}
+    void             setClientPlacement(const Placement& p) {client = &p;}
+    bool             hasClientPlacement()        const {return client != 0;}
+    const Placement& getClientPlacement()        const {assert(client); return *client;}
 
     void checkPlacementValueConsistency(const Subsystem* expOwner, 
                                         int              expIndexInOwner,

@@ -140,8 +140,15 @@ public:
     int getNPlacementExpressions() const {return placementExpressions.size();}
     int getNPlacementValues()      const {return placementValues.size();}
 
-    const Subsystem&      getSubsystem(size_t i) const {return childSubsystems[i];}
-    Subsystem&            updSubsystem(size_t i)       {return childSubsystems[i];}
+    const Subsystem&      getSubsystem(size_t i)           const {return childSubsystems[i];}
+    Subsystem&            updSubsystem(size_t i)                 {return childSubsystems[i];}
+
+    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
+    Placement&            updPlacementExpression(size_t i)       {return placementExpressions[i];}
+
+    // PlacementValues here are 'mutable', so the upd routine is const.
+    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
+    PlacementValue&       updPlacementValue(size_t i)      const {return placementValues[i];}
 
     const Feature& getFeature(size_t i) const {
         const Subsystem& s = getSubsystem(i);
@@ -155,8 +162,6 @@ public:
         return const_cast<Feature&>(getFeature(i));
     }
 
-    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
-    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
 
     // This can accept a path name
     const Subsystem* findSubsystem(const std::string& nm) const {
@@ -207,10 +212,48 @@ public:
     Subsystem&      addSubsystemLike     (const Subsystem& f, const std::string& nm);
     Feature&        addFeatureLike       (const Subsystem& f, const std::string& nm);
     Placement&      addPlacementLike     (const Placement& p);
-    PlacementValue& addPlacementValueLike(const PlacementValue& v);
+
+    // This is const because PlacementValues are mutable.
+    PlacementValue& addPlacementValueLike(const PlacementValue& v) const;
 
     const Subsystem& findRootSubsystem() const;
-    Subsystem&       findUpdRootSubsystem();       
+    Subsystem&       findUpdRootSubsystem();      
+
+    // Wipe out all PlacementValues. Note that this routine is const because PlacementValues
+    // are mutable.
+    void deleteAllPlacementValues() const {
+        // Erase all references to the placement values (these may be in child subsystems).
+        for (size_t i=0; i < placementValues.size(); ++i) {
+            PlacementValue& pv = placementValues[i];
+            if (pv.getRep().hasClientPlacement())
+                pv.getRep().getClientPlacement().getRep().clearValueSlot();
+        }
+        placementValues.clear();
+    }
+
+    // Run around this subsystem and its children looking for Placements which can be
+    // evaluated without going any higher in the Subsystem tree than the target Subsysytem, and
+    // allocate PlacementValue slots for them in the target.
+    void allocatePlacementValueSlots(const Subsystem& target) const {
+        // Always let the children go first.
+        for (int i=0; i < getNSubsystems(); ++i)
+            getSubsystem(i).getRep().allocatePlacementValueSlots(target);
+
+        for (int i=0; i < getNPlacementExpressions(); ++i) {
+            const PlacementRep& pr = getPlacementExpression(i).getRep();
+            assert(pr.hasOwner());
+            if (pr.hasValueSlot())
+                continue;
+            // can we get it a slot?
+            const Subsystem* s = pr.findPlacementValueOwnerSubsystem(target);
+            if (s) {
+                PlacementValue& pv = 
+                    s->getRep().addPlacementValueLike(pr.createEmptyPlacementValue());
+                pv.updRep().setClientPlacement(getPlacementExpression(i));
+                pr.assignValueSlot(pv);
+            }
+        }
+    }
 
     // Is Subsystem f in the tree rooted at oldRoot? If so, optionally return the 
     // series of indices required to get to this Subsystem from the root.
@@ -313,7 +356,7 @@ private:
     // one of the placementExpressions stored above. But note that these values
     // do not in general correspond to the placementExpression; they can be the
     // values of lower-level placement expressions.
-    StableArray<PlacementValue> placementValues;
+    mutable StableArray<PlacementValue> placementValues;
 };
 
 /**
