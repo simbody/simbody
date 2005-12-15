@@ -100,9 +100,9 @@ public:
     void setMass    (const Real&);
     void setRadius  (const Real&);
 
-    static bool                    isInstanceOf(const Subsystem&);
-    static const PointMassElement& downcast(const Subsystem&);
-    static PointMassElement&       downcast(Subsystem&);
+    static bool                     isInstanceOf(const Subsystem&);
+    static const SphereMassElement& downcast(const Subsystem&);
+    static SphereMassElement&       downcast(Subsystem&);
 };
 
 /**

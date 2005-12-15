@@ -172,7 +172,6 @@ public:
     String getName()              const;
     String getFullName()          const; // "ancestors/parent/name"
 
-
     // Subsystems which are children of this subsystem
     int              getNSubsystems()  const;
     const Subsystem& getSubsystem(int) const;

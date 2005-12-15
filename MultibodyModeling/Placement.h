@@ -186,7 +186,7 @@ public:
 
 
 // Global operators involving Placements. Note that these actually
-// represent families of operators overload based on their argument types.
+// represent families of operators overloaded based on their argument types.
 
 std::ostream& operator<<(std::ostream& o, const Placement&);
 
