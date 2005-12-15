@@ -29,6 +29,7 @@
 
 #include "SimbodyCommon.h"
 #include "Placement.h"
+#include "BasicPlacements.h"
 #include "PlacementValue.h"
 #include "Subsystem.h"
 #include "Feature.h"

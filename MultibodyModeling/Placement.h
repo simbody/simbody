@@ -24,7 +24,7 @@
  */
 
 /** @file
- * Placements definitions.
+ * Declaration of the client side Placement class, and associated global operators.
  */
 
 #include "SimbodyCommon.h"
@@ -35,42 +35,13 @@ namespace simtk {
 
 class Subsystem;
 class Feature;
-class Station;
-class Direction;
-class Orientation;
-class Frame;
-class RealMeasure;
-class   RealParameter;
-class Vec3Measure;
-class   Vec3Parameter;
-class StationMeasure;
-class   StationParameter;
-class DirectionMeasure;
-class OrientationMeasure;
-
-// Declared below.
-class Placement;
-class   RealPlacement;
-class   Vec2Placement;
-class   Vec3Placement;
-class   StationPlacement;
-class   DirectionPlacement;
-class   OrientationPlacement;
-class   FramePlacement;
-class   PlacementList;
-
 class PlacementValue;
 
-
-// 
-// Features provide a list of the placement types they need. Each of
-// these list elements must be associated with a <placementExpr> eventually.
-// Then these are evaluated at the appropriate runtime stage.
-//
-// <placement>'s have value types real, vec2, vec3, station, direction,
-// orientation, frame, list.
-//                     
-
+/**
+ * A Placement is an expression to be used to determine a specification for
+ * a particular Feature. In general it involves operators on the placements of
+ * other Features. The implementation is opaque.
+ */
 class Placement {
 public:
     Placement() : rep(0) { }
@@ -160,130 +131,6 @@ inline Placement operator+ (const Placement& l, const Placement& r) {return add(
 inline Placement operator- (const Placement& l, const Placement& r) {return subtract(l,r);}
 inline Placement operator* (const Placement& l, const Placement& r) {return multiply(l,r);}
 inline Placement operator/ (const Placement& l, const Placement& r) {return divide(l,r);}
-
-class RealPlacement : public Placement {
-public:
-    RealPlacement() { }
-    RealPlacement(const Real&);
-    RealPlacement(const RealParameter&);
-    RealPlacement(const RealMeasure&);
-    explicit RealPlacement(const Feature&);
-
-    // For internal use only.
-    explicit RealPlacement(class RealPlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const RealPlacementRep& getRep() const
-      { return *reinterpret_cast<const RealPlacementRep*>(rep); }
-    static bool                 isInstanceOf(const Placement&);
-    static const RealPlacement& downcast(const Placement&);
-    static RealPlacement&       downcast(Placement&);
-};
-
-class Vec3Placement : public Placement {
-public:
-    Vec3Placement() { }
-    Vec3Placement(const Vec3&);
-    Vec3Placement(const Vec3Measure&);
-    Vec3Placement(const Vec3Parameter&);
-    explicit Vec3Placement(const Feature&);
-
-    // For internal use only.
-    explicit Vec3Placement(class Vec3PlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const Vec3PlacementRep& getRep() const
-      { return *reinterpret_cast<const Vec3PlacementRep*>(rep); }    
-    static bool                 isInstanceOf(const Placement&);
-    static const Vec3Placement& downcast(const Placement&);
-    static Vec3Placement&       downcast(Placement&);
-};
-
-class StationPlacement : public Placement {
-public:
-    StationPlacement() { }
-    StationPlacement(const Station&);          // implicit conversion
-    StationPlacement(const StationMeasure&);   // implicit conversion
-    StationPlacement(const StationParameter&); // implicit conversion
-    explicit StationPlacement(const Vec3&);
-    explicit StationPlacement(const Frame&);   // use the origin
-    explicit StationPlacement(const Feature&);
-
-    // For internal use only.
-    explicit StationPlacement(class StationPlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const StationPlacementRep& getRep() const
-      { return *reinterpret_cast<const StationPlacementRep*>(rep); }    
-    static bool                    isInstanceOf(const Placement&);
-    static const StationPlacement& downcast(const Placement&);
-    static StationPlacement&       downcast(Placement&);
-};
-
-class DirectionPlacement : public Placement {
-public:
-    DirectionPlacement() { }
-    DirectionPlacement(const Direction&);           // implicit conversion
-    DirectionPlacement(const DirectionMeasure&);    // implicit conversion
-
-    explicit DirectionPlacement(const Vec3&);
-    explicit DirectionPlacement(const Feature&);
-
-    DirectionPlacement(const Orientation&, int i);  // use the i'th axis
-    DirectionPlacement(const Frame&, int i);        // use the i'th axis
-
-    // For internal use only.
-    explicit DirectionPlacement(class DirectionPlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const DirectionPlacementRep& getRep() const
-      { return *reinterpret_cast<const DirectionPlacementRep*>(rep); } 
-    static bool                      isInstanceOf(const Placement&);
-    static const DirectionPlacement& downcast(const Placement&);
-    static DirectionPlacement&       downcast(Placement&);
-};
-
-// Three, mutually orthogonal, right handed directions.
-class OrientationPlacement : public Placement {
-public:
-    OrientationPlacement() { }
-    OrientationPlacement(const Orientation&);           // implicit conversion
-    OrientationPlacement(const OrientationMeasure&);    // implicit conversion
-
-    explicit OrientationPlacement(const Mat33&);
-    explicit OrientationPlacement(const Frame&);        // use the orientation
-    explicit OrientationPlacement(const Feature&);
-
-    // For internal use only.
-    explicit OrientationPlacement(class OrientationPlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const OrientationPlacementRep& getRep() const
-      { return *reinterpret_cast<const OrientationPlacementRep*>(rep); } 
-    static bool                        isInstanceOf(const Placement&);
-    static const OrientationPlacement& downcast(const Placement&);
-    static OrientationPlacement&       downcast(Placement&);
-};
-
-class FramePlacement : public Placement {
-public:
-    FramePlacement() { }
-    FramePlacement(const Frame&);                       // implicit conversion
-
-    // Inherit the orientation from the Station feature's parent.
-    explicit FramePlacement(const Station&);
-
-    // Inherit the origin from the Orientation feature's parent.
-    explicit FramePlacement(const Orientation&);
-
-    FramePlacement(const Orientation&, const Station&);
-
-    //explicit FramePlacement(const Placement&);
-
-    // For internal use only.
-    explicit FramePlacement(class FramePlacementRep* r) 
-      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
-    const FramePlacementRep& getRep() const
-      { return *reinterpret_cast<const FramePlacementRep*>(rep); } 
-    static bool                  isInstanceOf(const Placement&);
-    static const FramePlacement& downcast(const Placement&);
-    static FramePlacement&       downcast(Placement&);
-};
 
 } // namespace simtk
 

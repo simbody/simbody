@@ -38,6 +38,7 @@
 #include "SimbodyCommon.h"
 #include "Subsystem.h"
 #include "Placement.h"
+#include "BasicPlacements.h"
 
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
