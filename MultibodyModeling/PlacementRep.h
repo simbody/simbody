@@ -29,6 +29,8 @@
 
 #include "SimbodyCommon.h"
 #include "Placement.h"
+#include "PlacementValue.h"
+#include "Subsystem.h"
 #include "Feature.h"
 
 #include <string>
@@ -1588,87 +1590,6 @@ private:
     OrientationPlacement orientation;
     StationPlacement     origin;
 };
-
-    // PLACEMENT VALUE REP //
-
-class PlacementValueRep {
-public:
-    PlacementValueRep() : valid(false), myHandle(0), owner(0), indexInOwner(-1), client(0) { }
-    // warning: default copy & assignment are bitwise leaving bad pointers which must be corrected
-
-    virtual ~PlacementValueRep() { }
-    virtual PlacementValueRep* clone() const = 0;
-    virtual std::string toString(const std::string& linePrefix) const = 0;
-
-    // Create a copy of this PlacementValue using a new handle and
-    // getting rid of the owner.
-    void cloneUnownedWithNewHandle(PlacementValue& p) const {
-        PlacementValueRep* pr = clone();
-        pr->myHandle = &p;
-        pr->owner = 0; pr->indexInOwner = -1;
-        pr->client = 0;
-        p.setRep(pr);
-    }
-
-    bool isValid() const { return valid; }
-    void setValid(bool v) { valid=v; }
-
-    void                  setMyHandle(PlacementValue& p) {myHandle = &p;}
-    bool                  hasHandle()       const {return myHandle != 0;}
-    const PlacementValue& getMyHandle()     const {assert(myHandle); return *myHandle;}
-    PlacementValue&       updMyHandle()           {assert(myHandle); return *myHandle;} 
-
-    void             setOwner(const Subsystem& s, int index) {owner = &s; indexInOwner=index;}
-    bool             hasOwner()        const {return owner != 0;}
-    const Subsystem& getOwner()        const {assert(owner);    return *owner;}
-    int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
-
-    void             setClientPlacement(const Placement& p) {client = &p;}
-    bool             hasClientPlacement()        const {return client != 0;}
-    const Placement& getClientPlacement()        const {assert(client); return *client;}
-
-    void checkPlacementValueConsistency(const Subsystem* expOwner, 
-                                        int              expIndexInOwner,
-                                        const Subsystem& expRoot) const;
-
-private:
-    bool valid;                    // Is the stored value (in the concrete Rep) meaningful?
-
-    PlacementValue*  myHandle;     // the PlacementValue whose rep this is
-
-    const Subsystem* owner;        // The Subsystem (if any) which owns this PlacementValue
-    int              indexInOwner; // ... and the index in its placementValues list.
-
-
-    const Placement* client;       // The Placement expression (if any) for which this is the Value.
-                                   // That Placement's value pointer must point right
-                                   // back here (through the PlacementValue handle).
-};
-
-template <class T> class PlacementValueRep_ : public PlacementValueRep {
-public:
-    PlacementValueRep_<T>() : PlacementValueRep() { }
-    explicit PlacementValueRep_<T>(const T& v) : PlacementValueRep(), value(v) { }
-
-    const PlacementValueRep_<T>& getMyHandle() const 
-      { return PlacementValueRep_<T>::downcast(PlacementValueRep::getMyHandle()); }
-
-    PlacementValueRep* clone() const { return new PlacementValueRep_<T>(*this); }
-    std::string toString(const std::string&) const {
-        std::stringstream s;
-        s << TypeInfo<T>::name() << "(" << value << ")";   
-        return s.str();
-    }
-
-    const T& getValue() const     { return value; }
-    void     setValue(const T& v) {value=v; setValid(true);}
-
-    SIMTK_DOWNCAST(PlacementValueRep_<T>, PlacementValueRep);
-private:
-    T value;
-};
-
-
 
 
 } // namespace simtk

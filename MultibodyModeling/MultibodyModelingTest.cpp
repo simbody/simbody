@@ -26,6 +26,8 @@
 
 #include "SimbodyCommon.h"
 #include "Placement.h"
+#include "PlacementValue.h"
+#include "Subsystem.h"
 #include "Feature.h"
 #include "MassElement.h"
 #include "Body.h"

@@ -126,65 +126,6 @@ protected:
     friend class PlacementRep;
 };
 
-/**
- * This class represents a PlacementValue of unknown type. The value can
- * be marked as valid or not. An attempt to access the actual value of an
- * invalid PlacementValue will throw an exception.
- */
-class PlacementValue {
-public:
-    PlacementValue() : rep(0) { }
-    PlacementValue(const PlacementValue&);
-    PlacementValue& operator=(const PlacementValue&);
-    ~PlacementValue();
-    bool isValid() const;
-
-    bool             hasOwner() const;
-    const Subsystem& getOwner() const;
-    int              getIndexInOwner() const;
-
-    String toString(const String& linePrefix="") const;
-
-protected:
-    class PlacementValueRep* rep;
-    friend class PlacementValueRep;
-
-public:
-    // internal use only
-    explicit PlacementValue(class PlacementValueRep*);
-    bool                     hasRep() const {return rep != 0;}
-    const PlacementValueRep& getRep() const {assert(rep); return *rep;}
-    PlacementValueRep&       updRep()       {assert(rep); return *rep;}
-    void                     setRep(PlacementValueRep* p) {assert(!rep); rep=p;}
-    void checkPlacementValueConsistency(const Subsystem* expOwner, 
-                                        int              expIndexInOwner,
-                                        const Subsystem& expRoot) const;
-};
-std::ostream& operator<<(std::ostream& o, const PlacementValue&);
-
-/**
- * These are the concrete PlacementValue classes. They must be instantiated
- * in the library for every supported type; despite appearances this is not
- * extensible on the client side.
- */
-template <class T> class PlacementValue_ : public PlacementValue {
-public:
-    PlacementValue_<T>(); // creates an invalid value of this type
-    explicit PlacementValue_<T>(const T&);
-    PlacementValue_<T>& operator=(const T&);
-    const T& get() const;
-    void set(const T&);
-
-    // implicit conversion to type T
-    operator const T&() const;
-
-    static bool                      isInstanceOf(const PlacementValue&);
-    static const PlacementValue_<T>& downcast(const PlacementValue&);
-    static PlacementValue_<T>&       downcast(PlacementValue&);
-};
-
-
-
 // Global operators involving Placements. Note that these actually
 // represent families of operators overloaded based on their argument types.
 
