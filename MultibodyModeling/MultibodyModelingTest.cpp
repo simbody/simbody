@@ -51,23 +51,24 @@ try {
     f.addVec3Measure("YCrossX").place(cross(f.y(),f.x()));
 
     f.realize(/*State,*/ Stage::Startup);
-
+    //cout << f;
+/*
     try {
         cout << "one=" << f["one"].getValue() << endl;
         cout << "zzz=" << f["zzz"].getValue() << endl;
         cout << "ttt=" << f["ttt"].getValue() << endl;
     }
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-
+*/
     f["negone"].place(-1);
     Placement p;
     p = 9.*(f["one"]+abs(f["negone"]));
     f.addRealMeasure("ttt9").place(p);
-    f.realize(/*State,*/ Stage::Startup);
-
+    f.realize(Stage::Startup);
+/*
     try{cout << "p.getValue()=" << p.getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-
+*/
     try {
         cout << "one=" << f["one"].getValue() << endl;
         cout << "zzz=" << f["zzz"].getValue() << endl;
@@ -78,8 +79,7 @@ try {
     }
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-    cout << f;
-
+    //cout << f;
 
 
     ////////////////////////////////////
@@ -93,9 +93,25 @@ try {
                         green ("green", 0.1);
     //blue.place(Vec3(1,2,3)); // a pointless self-placement
 
+    blue.realize(Stage::Startup);
+    orange.realize(Stage::Startup);
+    green.realize(Stage::Startup);
+
     cout << "blue=" << blue;
     cout << "orange=" << orange;
     cout << "green=" << green;
+
+    PointMassElement copyOfBlue = blue;
+    cout << "blue.getMassMeasure()=" << blue.getMassMeasure().getValue() << endl;
+
+    cout << "blue[centroidMeasure]=" << blue["centroidMeasure"] << endl;
+    Subsystem xx = blue["centroidMeasure"];
+    cout << "copy of blue[centroidMeasure]=" << xx << endl;
+
+    //copyOfBlue.checkSubsystemConsistency(0,-1,copyOfBlue);
+    //copyOfBlue.realize(Stage::Startup);
+    cout << "copyOfBlue=" << copyOfBlue << endl;
+    cout << "copyOfBlue [no realize].getMassMeasure()=" << copyOfBlue.getMassMeasure().getValue() << endl;
 
     // Create a cylinder mass element prototype. We're going
     // to give it constant radius and density, but leave the half-height
@@ -139,6 +155,10 @@ try {
     for (int i=0; i<upper.getNSubsystems(); ++i)
         cout << upper[i].getFullName() << endl;
 
+    upper.realize(Stage::Startup);
+
+
+
     // Now build the prototype for the lower bodies.
 
 
@@ -165,6 +185,9 @@ try {
     tube["halfLength"].place(lower["halfHeight"]);
 
     //cout << "L=" << lower; 
+    lower.realize(Stage::Startup);
+    cout  << "lower[tube]=" << lower["tube"] << endl;
+    cout  << "Subsystem(lower[tube])=" << Subsystem(lower["tube"]) << endl;
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -204,7 +227,7 @@ try {
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-    mbs.checkSubsystemConsistency(0,-1,mbs);    
+    //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
    // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;

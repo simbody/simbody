@@ -695,9 +695,9 @@ public:
 
     bool           isConstant()                          const {return refIsConstant();}
     bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
-    bool isLimitedToSubtree(const Feature& root, const Feature*& offender) const 
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
-    void repairFeatureReferences(const Feature& oldRoot, const Feature& newRoot)
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
 
     SIMTK_DOWNCAST(RealFeaturePlacementRep, PlacementRep);

@@ -72,6 +72,19 @@ public:
 };
 
 /**
+ * See SubFeature for an explanation of this class, which is just a PlacementValue
+ * with modified copy & assignment behavior.
+ */
+class SubPlacementValue : public PlacementValue {
+public:
+    SubPlacementValue() : PlacementValue() { }
+    // Copy & assign do *not* invoke the Placement copy constructor.
+    inline SubPlacementValue(const SubPlacementValue& sf);
+    inline SubPlacementValue& operator=(const SubPlacementValue& sf);
+    ~SubPlacementValue() { }
+};
+
+/**
  * A Subsystem and its SubsystemRep are logically part of the same object. There
  * is always a Subsystem handle (just a pointer) for every SubsystemRep, and there
  * must be exactly one where this->handle.rep == this!
@@ -246,7 +259,7 @@ public:
                 continue;
             // can we get it a slot?
             const Subsystem* s = pr.findPlacementValueOwnerSubsystem(target);
-            if (s) {
+            if (s && s->isSameSubsystem(target)) {
                 PlacementValue& pv = 
                     s->getRep().addPlacementValueLike(pr.createEmptyPlacementValue());
                 pv.updRep().setClientPlacement(getPlacementExpression(i));
@@ -356,7 +369,7 @@ private:
     // one of the placementExpressions stored above. But note that these values
     // do not in general correspond to the placementExpression; they can be the
     // values of lower-level placement expressions.
-    mutable StableArray<PlacementValue> placementValues;
+    mutable StableArray<SubPlacementValue> placementValues;
 };
 
 /**
@@ -1026,6 +1039,17 @@ inline SubPlacement::SubPlacement(const SubPlacement& sp) : Placement() {
     if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
 }
 inline SubPlacement& SubPlacement::operator=(const SubPlacement& sp) {
+    if (&sp != this) {
+        delete rep; rep=0;
+        if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
+    }
+    return *this;
+}
+
+inline SubPlacementValue::SubPlacementValue(const SubPlacementValue& sp) : PlacementValue() {
+    if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
+}
+inline SubPlacementValue& SubPlacementValue::operator=(const SubPlacementValue& sp) {
     if (&sp != this) {
         delete rep; rep=0;
         if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }

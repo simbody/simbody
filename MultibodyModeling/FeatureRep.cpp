@@ -68,6 +68,7 @@ void SubsystemRep::realize(/*State,*/Stage g) const {
     // TODO: current method will have side effect of realizing needed
     // PlacementValues as we go, so many of these will be evaluated
     // already by the time we get there.
+
     for (int i=0; i < getNPlacementValues(); ++i)
         if (!getPlacementValue(i).isValid())
             getPlacementValue(i).getRep().getClientPlacement().realize(/*State,*/g);
@@ -164,7 +165,7 @@ SubsystemRep::addPlacementValueLike(const PlacementValue& v) const {
 
     // 'placementValues' is mutable.
     const int index = (int)placementValues.size();
-    placementValues.push_back(PlacementValue());
+    placementValues.push_back(SubPlacementValue());
     PlacementValue& newPlacementValue = placementValues[index];
     v.getRep().cloneUnownedWithNewHandle(newPlacementValue);
     newPlacementValue.updRep().setOwner(getMyHandle(), index);
@@ -285,6 +286,16 @@ void SubsystemRep::checkSubsystemConsistency(const Subsystem* expParent,
         getPlacementExpression(i).checkPlacementConsistency(&getMyHandle(), (int)i, root);
     for (size_t i=0; i < (size_t)getNPlacementValues(); ++i)
         getPlacementValue(i).checkPlacementValueConsistency(&getMyHandle(), (int)i, root);
+
+    if (FeatureRep::isA(*this)) {
+        const FeatureRep& fr = FeatureRep::downcast(*this);
+        if (fr.hasPlacement()) {   // must be a Feature
+            if (!fr.getPlacement().hasOwner())
+                cout << "*** Feature " << getFullName() << "'s placement is unowned." << endl;
+            else if (!fr.getPlacement().getOwner().getRep().findRootSubsystem().isSameSubsystem(root))
+                cout << "*** Feature " << getFullName() << "'s placement is in wrong tree." << endl;
+        }
+    }
 }
 
 // Return true and ix==subsystem index if a subsystem of the given name is found.
@@ -473,14 +484,7 @@ FeatureRep::useFeatureAsFramePlacement(FramePlacement&) const {
 // That is the youngest common ancestor of this feature and all features
 // mentioned explicitly in the placement expression.
 //
-// If this placement is currently evalutable (meaning it is a constant
-// or references only features with evaluatable placements) then we
-// can allocate a value slot for it in the owner feature. In addition,
-// this may have enabled evaluation of any number of additional placements
-// which were dependent (directly or indirectly) on the placement of 
-// this feature. Value slots for a given placement expression x are always
-// owned by the oldest owner of any of the placements on which x recursively
-// depends. Note: we defer allocation of value slots until we're done 
+// Note: we defer allocation of value slots until we're done 
 // constructing the subsystem (i.e., not here).
 void FeatureRep::place(const Placement& p) {
     if (hasPlacement()) {
@@ -557,12 +561,8 @@ void FeatureRep::place(const Placement& p) {
 void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot) {
     if (placement) {
         placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
-        if (placement) { 
+        if (placement) 
             const_cast<Placement*>(placement)->updRep().setClientFeature(getMyHandle());
-            if (placement->getRep().hasValueSlot())
-                const_cast<Placement*>(placement)->updRep().updValueSlot().updRep()
-                                                                .setClientPlacement(*placement);
-        }
     }
 }
 

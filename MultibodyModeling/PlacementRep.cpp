@@ -128,13 +128,21 @@ FeatureReference::refFindAncestorSubsystem(const Subsystem& youngestAllowed) con
 }
 
 // If the referenced Feature has no placement, we can't evaluate this placement so
-// there is *no* acceptable owner for the value.
+// there is *no* acceptable owner for the value. If it does have a placement, then
+// the youngest place for its value is the common ancestor of youngestAllowed and
+// the placement's owner.
 const Subsystem* 
 FeatureReference::refFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const {
     assert(feature);
-    return feature->hasPlacement() 
-        ? feature->getPlacement().getRep().findPlacementValueOwnerSubsystem(youngestAllowed)
-        : 0;
+    if (!feature->hasPlacement())
+        return 0;
+    const PlacementRep& pr = feature->getPlacement().getRep();
+    assert(pr.hasOwner());  // a feature can't be placed on an unowned placement
+    const Subsystem* newYoungest = SubsystemRep::findYoungestCommonAncestor(youngestAllowed,
+                                                                            pr.getOwner());
+    assert(newYoungest);    // wrong tree???
+
+    return feature->getPlacement().getRep().findPlacementValueOwnerSubsystem(*newYoungest);
 }
 
 // Check that this feature is on the feature subtree rooted by "ancestor". If
@@ -188,10 +196,13 @@ PlacementType FeatureReference::refGetPlacementType() const {
 // it had a valueSlot, that valueSlot is still pointing into the old Feature tree
 // and needs to be repaired to point to the corresponding valueSlot in the new tree.
 void PlacementRep::repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot) {
-    if (valueSlot)
+    if (valueSlot) {
         valueSlot = const_cast<PlacementValue*>
                         (FeatureRep::findCorrespondingPlacementValue
                                     (oldRoot,*valueSlot,newRoot));
+        if (valueSlot)
+            valueSlot->updRep().setClientPlacement(getMyHandle());
+    }
 }
 
 // These are the default implementations for the generic operators. Any 
@@ -421,6 +432,14 @@ void PlacementRep::checkPlacementConsistency(const Subsystem* expOwner,
         cout << "*** Placement referenced Feature '" << offender->getFullName() << "' in wrong tree" << endl;
         cout << "*** Root should have been @" << &expRoot << ", not " << 
             &offender->getRep().findRootSubsystem() << endl;
+    }
+
+    if (hasValueSlot()) {
+        std::string nm = client ? client->getFullName() : "(NO CLIENT)";
+        if (!getValueSlot().hasOwner())
+            cout << "*** Placement for " << nm << "'s value slot is unowned." << endl;
+        else if (!getValueSlot().getOwner().getRep().findRootSubsystem().isSameSubsystem(expRoot))
+            cout << "*** Placement for " << nm << "'s value slot is in wrong tree." << endl;
     }
 }
 
