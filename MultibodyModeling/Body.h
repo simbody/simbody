@@ -35,6 +35,7 @@
  */
 
 #include "Feature.h"
+#include "BasicFeatures.h"
 #include "MassElement.h"
 #include "Placement.h"
 

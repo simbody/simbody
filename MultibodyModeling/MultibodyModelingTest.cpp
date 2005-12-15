@@ -29,6 +29,7 @@
 #include "PlacementValue.h"
 #include "Subsystem.h"
 #include "Feature.h"
+#include "BasicFeatures.h"
 #include "MassElement.h"
 #include "Body.h"
 

@@ -30,6 +30,7 @@
 
 #include "Body.h"
 #include "FeatureRep.h"
+#include "BasicFeaturesRep.h"
 
 namespace simtk {
 

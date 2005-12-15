@@ -32,6 +32,7 @@
 #include "PlacementValue.h"
 #include "Subsystem.h"
 #include "Feature.h"
+#include "BasicFeatures.h"
 
 #include <string>
 #include <vector>
