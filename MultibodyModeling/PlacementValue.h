@@ -75,6 +75,7 @@ public:
     explicit PlacementValue_<T>(const T&);
     PlacementValue_<T>& operator=(const T&);
     const T& get() const;
+    T& upd();
     void set(const T&);
 
     // implicit conversion to type T

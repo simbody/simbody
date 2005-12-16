@@ -44,13 +44,13 @@ String PlacementValueSlot::toString(const String& linePrefix) const {
         s << getOwner().getFullName() << ":"
           << std::left << std::setw(2) << getIndexInOwner();
     else s << "NO OWNER";
-    if (hasClientPlacement()) {
+    if (hasClientPlacementSlot()) {
         s << "[client:";
-        const Placement& p = getClientPlacement();
-        if (p.getRep().hasClientFeature())
-            s << p.getRep().getClientFeature().getFullName();
+        const PlacementSlot& p = getClientPlacementSlot();
+        if (p.hasClientFeature())
+            s << p.getClientFeature().getFullName();
         else 
-            s << "Placement@" << &p;
+            s << "PlacementSlot@" << &p;
         s << "]";
     } else s << "[NO CLIENT]";
     s << " " << value.toString(linePrefix);
@@ -59,7 +59,7 @@ String PlacementValueSlot::toString(const String& linePrefix) const {
 
 void PlacementValueSlot::throwInvalid() const {
     SIMTK_THROW1(Exception::AccessToInvalidPlacementValue,
-        getClientPlacement().getRep().getClientFeature().getFullName());
+        getClientPlacementSlot().getClientFeature().getFullName());
     //NOTREACHED
 }
 
@@ -79,11 +79,11 @@ void PlacementValueSlot::checkPlacementValueConsistency(const Subsystem* expOwne
     } else {
         if (!client) 
             cout << "*** NO CLIENT ***" << endl;
-        else if (!client->getRep().hasValueSlot())
+        else if (!client->hasValueSlot())
             cout << "*** CLIENT HAS NO VALUE SLOT??? ***" << endl;
-        else if (&(client->getRep().getValueSlot()) != this)
+        else if (&(client->getValueSlot()) != this)
             cout << "*** CLIENT HAS WRONG PLACEMENT VALUE SLOT@" 
-                 << &client->getRep().getValueSlot() << endl;
+                 << &client->getValueSlot() << endl;
     }
 
     const PlacementValueRep& pvr = value.getRep();

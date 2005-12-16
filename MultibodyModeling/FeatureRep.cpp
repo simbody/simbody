@@ -155,16 +155,16 @@ void FeatureRep::place(const Placement& p) {
 
     // Please look the other way for a moment while we make a small change to
     // this const Feature ...
-    Placement& good = 
+    PlacementSlot& good = 
         const_cast<Subsystem*>(commonAncestor)->updRep().addPlacementLike(pTweaked);
 
     // Some sanity (insanity?) checks.
     assert(good.hasOwner());
-    assert(good.isConstant() || !good.getOwner().isSameSubsystem(getMyHandle()));
+    assert(good.getPlacement().isConstant() || !good.getOwner().isSameSubsystem(getMyHandle()));
     assert(SubsystemRep::isSubsystemInSubsystemTree(good.getOwner(), getMyHandle()));
-    assert(!good.dependsOn(getMyHandle())); // depends on *is* recursive
+    assert(!good.getPlacement().dependsOn(getMyHandle())); // depends on *is* recursive
     placement = &good;
-    good.updRep().setClientFeature(getMyHandle());
+    good.setClientFeature(getMyHandle());
     postProcessNewPlacement();
 }
 
@@ -173,7 +173,7 @@ void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& 
     if (placement) {
         placement = findCorrespondingPlacementSlot(oldRoot,*placement,newRoot);
         if (placement) 
-            const_cast<Placement*>(placement)->updRep().setClientFeature(getMyHandle());
+            const_cast<PlacementSlot*>(placement)->setClientFeature(getMyHandle());
     }
 }
 

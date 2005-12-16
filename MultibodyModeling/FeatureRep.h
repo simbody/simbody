@@ -105,10 +105,14 @@ public:
 
     bool             hasPlacement() const {return placement != 0;}
 
-    const Placement& getPlacement() const {
+    const PlacementSlot& getPlacementSlot() const {
         if (!placement) 
-            SIMTK_THROW1(Exception::RepLevelException, "Feature has no placement");
+            SIMTK_THROW1(Exception::RepLevelException, 
+            "Feature has no placement");
         return *placement;
+    }
+    const Placement& getPlacement() const {
+        return getPlacementSlot().getPlacement();
     }
 
     void place(const Placement& p);
@@ -116,7 +120,7 @@ public:
     // Does the *placement* of this feature depend on the indicated one?
     // Note that we don't care about our child features' placements.
     bool dependsOn(const Feature& f) const 
-        { return placement && placement->dependsOn(f); }
+        { return placement && placement->getPlacement().dependsOn(f); }
 
     // This is for use by SubsystemRep after a copy to fix the placement pointer.
     void fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot);
@@ -124,9 +128,9 @@ public:
     SIMTK_DOWNCAST(FeatureRep, SubsystemRep);
 private:
     // If this Feature has been placed, this is the placement information.
-    // If present, this Placement must be owned by this Feature, its parent
+    // If present, this PlacementSlot must be owned by this Feature, its parent
     // Subsystem or one of its ancestors.
-    const Placement* placement;
+    const PlacementSlot* placement;
 };
 
 } // namespace simtk

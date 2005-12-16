@@ -41,6 +41,90 @@ static int caseInsensitiveCompare(const std::string& key, const std::string& tes
 
 namespace simtk {
 
+    // PLACEMENT SLOT //
+
+
+
+// We have just copied a Subsystem tree and this PlacementSlot is the new copy. If
+// it had a valueSlot, that valueSlot is still pointing into the old Subsystem tree
+// and needs to be repaired to point to the corresponding valueSlot in the new tree.
+void PlacementSlot::repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot) {
+    if (valueSlot) {
+        valueSlot = const_cast<PlacementValueSlot*>
+                        (FeatureRep::findCorrespondingPlacementValueSlot
+                                    (oldRoot,*valueSlot,newRoot));
+        if (valueSlot)
+            valueSlot->setClientPlacementSlot(*this);
+    }
+}
+
+String PlacementSlot::toString(const String& linePrefix) const {
+    std::stringstream s;
+    s << "PlacementSlot ";
+    if (hasOwner())
+        s << getOwner().getFullName() << ":"
+          << std::left << std::setw(2) << getIndexInOwner();
+    else s << "NO OWNER";
+    if (hasClientFeature())
+        s << "[client:" << getClientFeature().getFullName() << "]";
+    else s << "[NO CLIENT]";
+    s << " " << getPlacement().toString(linePrefix);
+    return s.str();
+}
+
+void PlacementSlot::checkPlacementConsistency(const Subsystem* expOwner, 
+                                              int              expIndexInOwner,
+                                              const Subsystem& expRoot) const
+{
+    cout << "CHECK PLACEMENT SLOT CONSISTENCY FOR PlacementSlot@" << this << endl;
+
+    if (owner != expOwner)
+        cout << "*** WRONG OWNER@" << owner << "; should have been " << expOwner << endl;
+    if (indexInOwner != expIndexInOwner)
+        cout << "*** WRONG INDEX " << indexInOwner << "; should have been " 
+             << expIndexInOwner << endl;
+
+    if (expOwner == 0) {
+        if (client)
+          cout << "*** UNOWNED PLACEMENT HAD CLIENT " << client->getFullName() << " ***" << endl;
+    } else {
+        if (!client) 
+            cout << "*** NO CLIENT ***" << endl;
+        else if (!client->getRep().hasPlacement())
+            cout << "*** CLIENT " << client->getFullName() << " HAS NO PLACEMENT??? ***" << endl;
+        else if (&(client->getRep().getPlacementSlot()) != this)
+            cout << "*** CLIENT " << client->getFullName() << " HAS WRONG PLACEMENT SLOT@" 
+                << &client->getRep().getPlacementSlot() << endl;
+    }
+
+    if (hasValueSlot()) {
+        std::string nm = client ? client->getFullName() : "(NO CLIENT)";
+        if (!getValueSlot().hasOwner())
+            cout << "*** Referenced entry for " << nm << "'s value slot is unowned." << endl;
+        else if (!getValueSlot().getOwner().getRep().findRootSubsystem().isSameSubsystem(expRoot))
+            cout << "*** Referenced entry " << nm << "'s value slot is in wrong tree." << endl;
+    }
+
+    // Check the Placement
+    if (!placement.hasRep()) 
+        cout << "*** PLACEMENT HAS NO REP ***" << endl;
+    else {
+        if (&placement.getRep().getMyHandle() != &placement)
+            cout << "*** placement.rep->handle=" << &placement.getRep().getMyHandle()
+                << " which is *** WRONG ***" << endl;
+        
+        const Feature* offender;
+        if (!placement.getRep().isLimitedToSubtree(expRoot, offender)) {
+            cout << "*** Placement referenced Feature '" << offender->getFullName() 
+                 << "' in wrong tree" << endl;
+            cout << "*** Root should have been @" << &expRoot << ", not " << 
+                &offender->getRep().findRootSubsystem() << endl;
+        }
+    }
+}
+
+    // SUBSYSTEM REP //
+
 void SubsystemRep::realize(Stage g) const {
     // Always let the children go first.
     for (int i=0; i < getNSubsystems(); ++i)
@@ -69,7 +153,7 @@ void SubsystemRep::realize(Stage g) const {
 
     for (int i=0; i < getNPlacementValues(); ++i)
         if (!getPlacementValueSlot(i).isValid())
-            getPlacementValueSlot(i).getClientPlacement().realize(g);
+            getPlacementValueSlot(i).getClientPlacementSlot().realize(g);
 
     //if (FeatureRep::isA(*this)) {
     //    const FeatureRep& fr = FeatureRep::downcast(*this);
@@ -139,7 +223,7 @@ SubsystemRep::cloneWithoutParentOrExternalPlacements(Subsystem& newHandle) const
 // Note that we can only allow placements involving internal features, e.g. children,
 // grandchildren, etc. -- no external references. Otherwise someone further
 // up the tree should own the new placement.
-Placement& 
+PlacementSlot& 
 SubsystemRep::addPlacementLike(const Placement& p) {
     assert(p.hasRep());
 
@@ -150,11 +234,10 @@ SubsystemRep::addPlacementLike(const Placement& p) {
     }
 
     const int index = (int)placementSlots.size();
-    placementSlots.push_back(SubPlacement());
-    Placement& newPlacement = placementSlots[index];
-    p.getRep().cloneUnownedWithNewHandle(newPlacement);
-    newPlacement.updRep().setOwner(getMyHandle(), index);
-    return newPlacement;
+    placementSlots.push_back(PlacementSlot(p));
+    PlacementSlot& newPlacementSlot = placementSlots[index];
+    newPlacementSlot.setOwner(getMyHandle(), index);
+    return newPlacementSlot;
 }
 
 PlacementValueSlot& 
@@ -193,9 +276,10 @@ SubsystemRep::isSubsystemInSubsystemTree(const Subsystem& oldRoot, const Subsyst
     return true;
 }
 
-// Is Placement p owned by a Feature in the tree rooted at oldRoot?
+// Is PlacementSlot p owned by a Feature in the tree rooted at oldRoot?
 /*static*/ bool 
-SubsystemRep::isPlacementInSubsystemTree(const Subsystem& oldRoot, const Placement& p)
+SubsystemRep::isPlacementInSubsystemTree(const Subsystem& oldRoot, 
+                                         const PlacementSlot& p)
 {
     if (!p.hasOwner())
         return false;   // a disembodied Placement
@@ -287,9 +371,9 @@ void SubsystemRep::checkSubsystemConsistency(const Subsystem* expParent,
     if (FeatureRep::isA(*this)) {
         const FeatureRep& fr = FeatureRep::downcast(*this);
         if (fr.hasPlacement()) {   // must be a Feature
-            if (!fr.getPlacement().hasOwner())
+            if (!fr.getPlacementSlot().hasOwner())
                 cout << "*** Feature " << getFullName() << "'s placement is unowned." << endl;
-            else if (!fr.getPlacement().getOwner().getRep().findRootSubsystem().isSameSubsystem(root))
+            else if (!fr.getPlacementSlot().getOwner().getRep().findRootSubsystem().isSameSubsystem(root))
                 cout << "*** Feature " << getFullName() << "'s placement is in wrong tree." << endl;
         }
     }
@@ -315,9 +399,9 @@ void SubsystemRep::reparentMyChildren() {
         childSubsystems[i].updRep().reparentMyChildren();               // recurse
     }
     for (size_t i=0; i < (size_t)getNPlacements(); ++i) {
-        assert(placementSlots[i].getRep().hasOwner());
-        assert(placementSlots[i].getRep().getIndexInOwner() == i);
-        placementSlots[i].updRep().setOwner(getMyHandle(), i);
+        assert(placementSlots[i].hasOwner());
+        assert(placementSlots[i].getIndexInOwner() == i);
+        placementSlots[i].setOwner(getMyHandle(), i);
     }
     for (size_t i=0; i < (size_t)getNPlacementValues(); ++i) {
         assert(placementValueSlots[i].hasOwner());
@@ -338,9 +422,9 @@ void SubsystemRep::fixPlacements(const Subsystem& oldRoot, const Subsystem& newR
         childSubsystems[i].updRep().fixPlacements(oldRoot, newRoot);    // recurse
 
     for (size_t i=0; i < (size_t)getNPlacements(); ++i) {
-        PlacementRep& pr = placementSlots[i].updRep();
-        pr.repairFeatureReferences(oldRoot,newRoot);
-        pr.repairValueReference(oldRoot,newRoot);
+        PlacementSlot& ps = placementSlots[i];
+        ps.updPlacement().updRep().repairFeatureReferences(oldRoot,newRoot);
+        ps.repairValueReference(oldRoot,newRoot);
     }
 
     if (FeatureRep::isA(*this))
@@ -350,16 +434,16 @@ void SubsystemRep::fixPlacements(const Subsystem& oldRoot, const Subsystem& newR
 // If Placement p's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
 // find the corresponding Placement in the tree rooted at newRoot (which is expected
 // to be a copy of oldRoot). Return NULL if not found for any reason.
-/*static*/ const Placement* 
+/*static*/ const PlacementSlot* 
 SubsystemRep::findCorrespondingPlacementSlot
-    (const Subsystem& oldRoot, const Placement& p, const Subsystem& newRoot)
+    (const Subsystem& oldRoot, const PlacementSlot& p, const Subsystem& newRoot)
 {
     if (!p.hasOwner()) return 0;
     const Subsystem* corrOwner = findCorrespondingSubsystem(oldRoot,p.getOwner(),newRoot);
     if (!corrOwner) return 0;
     assert(corrOwner->hasRep());
 
-    const Placement* newTreeRef = 
+    const PlacementSlot* newTreeRef = 
         &corrOwner->getRep().getPlacementSlot(p.getIndexInOwner());
     assert(newTreeRef);
     assert(&newTreeRef->getOwner() == corrOwner);

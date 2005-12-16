@@ -96,7 +96,7 @@ Subsystem::getPlacement() const {
 
 const PlacementValue&
 Subsystem::getValue() const {
-    return getPlacement().getValue();
+    return Feature::downcast(*this).getRep().getPlacementSlot().getValueSlot().getValue();
 }
 
 void Subsystem::place(const Placement& p) {
@@ -121,7 +121,7 @@ String Subsystem::toString(const String& linePrefix) const {
     if (FeatureRep::isA(sr)) {
         const FeatureRep& fr = FeatureRep::downcast(sr);
         s << "Feature " << fr.getFeatureTypeName() << " ";
-        s << (fr.hasPlacement() ? fr.getPlacement().toString(linePrefix)
+        s << (fr.hasPlacement() ? fr.getPlacementSlot().toString(linePrefix)
                                 : String("NO PLACEMENT"));
     }
 

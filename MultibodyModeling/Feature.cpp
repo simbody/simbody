@@ -75,9 +75,9 @@ String Feature::getFeatureTypeName() const {
                     : featureHasNoRep(*this);
 }
 
-const PlacementValue& Feature::getValue(/*State*/) const {
+const PlacementValue& Feature::getValue() const {
     try {
-        return getRep().getPlacement().getValue(/*State*/);
+        return getRep().getPlacementSlot().getValueSlot().getValue();
     }
     catch (const Exception::Base& exc) {
         SIMTK_THROW4(Exception::FeatureAPIMethodFailed, getFullName(), 
@@ -99,7 +99,7 @@ void Feature::place(const Placement& p) {
 
 const Placement& Feature::getPlacement() const {
     assert(hasPlacement());
-    return getRep().getPlacement();
+    return getRep().getPlacementSlot().getPlacement();
 }
 
 } // namespace simtk

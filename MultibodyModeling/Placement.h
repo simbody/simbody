@@ -68,15 +68,11 @@ public:
     Placement(const Subsystem&);
     Placement(const Subsystem&, int index);
 
-    void realize(/*State,*/ Stage) const;
+    void realize(Stage) const;
 
     // This will throw an exception if this Placement's value has not 
     // already been realize()'d.
-    const PlacementValue& getValue() const;
-
-    bool             hasOwner() const;
-    const Subsystem& getOwner() const;
-    int              getIndexInOwner() const;
+    PlacementValue   calcValue() const;
 
     bool isConstant() const;  // a plain old numerical value?
     bool dependsOn(const Feature&) const; // recursive dependency check

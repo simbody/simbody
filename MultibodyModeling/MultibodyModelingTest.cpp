@@ -230,7 +230,7 @@ try {
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-    mbs.checkSubsystemConsistency(0,-1,mbs);    
+    //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
    // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;

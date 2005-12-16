@@ -56,8 +56,8 @@ RealParameter::getPlacement() const {
 }
 
 const Real& 
-RealParameter::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+RealParameter::getValue() const {
+    return PlacementValue_<Real>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -94,8 +94,8 @@ Vec3Parameter::getPlacement() const {
 }
 
 const Vec3& 
-Vec3Parameter::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Vec3Parameter::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -131,8 +131,8 @@ StationParameter::getPlacement() const {
 }
 
 const Vec3& 
-StationParameter::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+StationParameter::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -168,8 +168,8 @@ RealMeasure::getPlacement() const {
 }
 
 const Real& 
-RealMeasure::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+RealMeasure::getValue() const {
+    return PlacementValue_<Real>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -205,8 +205,8 @@ Vec3Measure::getPlacement() const {
 }
 
 const Vec3& 
-Vec3Measure::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Vec3Measure::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -242,8 +242,8 @@ StationMeasure::getPlacement() const {
 }
 
 const Vec3& 
-StationMeasure::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+StationMeasure::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -279,8 +279,8 @@ Station::getPlacement() const {
 }
 
 const Vec3& 
-Station::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Station::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -316,8 +316,8 @@ DirectionMeasure::getPlacement() const {
 }
 
 const Vec3& 
-DirectionMeasure::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+DirectionMeasure::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -353,8 +353,8 @@ Direction::getPlacement() const {
 }
 
 const Vec3& 
-Direction::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Direction::getValue() const {
+    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -390,8 +390,8 @@ OrientationMeasure::getPlacement() const {
 }
 
 const Mat33& 
-OrientationMeasure::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+OrientationMeasure::getValue() const {
+    return PlacementValue_<Mat33>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -427,8 +427,8 @@ Orientation::getPlacement() const {
 }
 
 const Mat33& 
-Orientation::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Orientation::getValue() const {
+    return PlacementValue_<Mat33>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 const Direction& 
@@ -469,8 +469,8 @@ Frame::getPlacement() const {
 }
 
 const Mat34& 
-Frame::getValue(/*State*/) const {
-    return getPlacement().getRep().getValue(/*State*/);
+Frame::getValue() const {
+    return PlacementValue_<Mat34>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 const Orientation& Frame::getOrientation() const {

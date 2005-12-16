@@ -42,7 +42,10 @@ namespace simtk {
     // PLACEMENT //
 
 Placement::Placement(const Placement& src) : rep(0) { 
-    if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
+    if (src.rep) {
+        rep = src.rep->clone();
+        rep->setMyHandle(*this);
+    }
 }
 
 Placement::Placement(PlacementRep* r) : rep(r) {
@@ -54,7 +57,10 @@ Placement& Placement::operator=(const Placement& src) {
     if (this != &src) {
         if (rep && (&rep->getMyHandle() == this)) delete rep; 
         rep=0;
-        if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
+        if (src.rep) {
+            rep = src.rep->clone();
+            rep->setMyHandle(*this);
+        }
     }
     return *this;
 }
@@ -87,43 +93,30 @@ Placement::Placement(const Vec3& v) : rep(0) {
 //    rep = new Mat33ConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
 //}
 
-// If the Placement has an owner, we might be able to find a place in the feature
-// try to stash its value. If so, we'll allocate one. Otherwise we're not going to
-// be able to realize() this Placement but we might still be able to realize() some
-// of the things it references. If we can realize all the downstream stuff then we'll
-// at least be able to calculate a value for this Placement when we want it (that is,
-// it an 'operator' rather than a 'response'.
-void Placement::realize(/*State,*/ Stage g) const {
-    const PlacementRep& pr = getRep();
-    if (pr.hasValidValue()) return; // already done!
-    pr.realize(/*State,*/ g);
-}
-
-const PlacementValue& Placement::getValue() const {
+// If this Placement expression depends on Features which need to be
+// realized, we'll do that now. Then we will be able to do calcValue()
+// when we want the value (that is, a Placement is an 'operator'
+// rather than a 'response'.
+void Placement::realize(Stage g) const {
     try {
-        const PlacementValueSlot& pvs = getRep().getValueSlot();
-        return pvs.getValue();
+        getRep().realize(g);
     }
     catch (const Exception::Base& exc) {
         SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
-            "getValue", "", exc.getMessageText());
+            "realize", "", exc.getMessageText());
     }
 }
 
-
-bool Placement::hasOwner() const {
-    return rep && rep->hasOwner();
-}
-int Placement::getIndexInOwner() const {
-    assert(rep && rep->hasOwner());
-    assert(&rep->getMyHandle() == this);
-    return rep->getIndexInOwner();
-}
-
-const Subsystem& Placement::getOwner() const {
-    assert(rep && rep->hasOwner());
-    assert(&rep->getMyHandle() == this);
-    return rep->getOwner();
+PlacementValue Placement::calcValue() const {
+    try {
+        PlacementValue pv;
+        getRep().evaluate(pv);
+        return pv;
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "calcValue", "", exc.getMessageText());
+    }
 }
 
 bool Placement::isConstant() const {
@@ -145,29 +138,12 @@ String Placement::toString(const String& linePrefix) const {
         s << "at 0x" << this << " HAS MISMATCHED REP";
         return s.str();
     }
-    if (hasOwner())
-        s << getOwner().getFullName() << ":"
-          << std::left << std::setw(2) << getIndexInOwner();
-    else s << "NO OWNER";
-
-    if (getRep().hasClientFeature())
-        s << "[client:" << getRep().getClientFeature().getFullName() << "]";
-    else s << "[NO CLIENT]";
     s << " " << rep->toString(linePrefix);
     return s.str();
 }
 
 std::ostream& operator<<(std::ostream& o, const Placement& p) {
     return o << p.toString() << std::endl;
-}
-
-void Placement::checkPlacementConsistency(const Subsystem* expOwner,
-                                          int              expIndexInOwner,
-                                          const Subsystem& expRoot) const {
-    if (!rep)
-        std::cout << "checkPlacementConsistency(): NO REP!!!" << std::endl;
-    else
-        getRep().checkPlacementConsistency(expOwner,expIndexInOwner,expRoot);
 }
 
 // unary

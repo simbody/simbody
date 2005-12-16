@@ -121,6 +121,11 @@ const T& PlacementValue_<T>::get() const {
 }
 
 template <class T>
+T& PlacementValue_<T>::upd() {
+    return PlacementValueRep_<T>::downcast(updRep()).updValue();
+}
+
+template <class T>
 PlacementValue_<T>::operator const T&() const { return get(); }
 
 template <class T>
