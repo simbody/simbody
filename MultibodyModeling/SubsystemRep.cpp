@@ -41,10 +41,10 @@ static int caseInsensitiveCompare(const std::string& key, const std::string& tes
 
 namespace simtk {
 
-void SubsystemRep::realize(/*State,*/Stage g) const {
+void SubsystemRep::realize(Stage g) const {
     // Always let the children go first.
     for (int i=0; i < getNSubsystems(); ++i)
-        getSubsystem(i).realize(/*State,*/ g);
+        getSubsystem(i).realize(g);
 
     // For startup stage, we assume that we have recently modified the 
     // model, i.e., features and placements have changed. So we need to
@@ -61,15 +61,15 @@ void SubsystemRep::realize(/*State,*/Stage g) const {
     // TODO: for now we just assume all our values are invalid. Dependency
     // tracking would be better when costs are high.
     for (int i=0; i < getNPlacementValues(); ++i)
-        updPlacementValue(i).updRep().setValid(false);
+        updPlacementValueSlot(i).setValid(false);
 
     // TODO: current method will have side effect of realizing needed
     // PlacementValues as we go, so many of these will be evaluated
     // already by the time we get there.
 
     for (int i=0; i < getNPlacementValues(); ++i)
-        if (!getPlacementValue(i).isValid())
-            getPlacementValue(i).getRep().getClientPlacement().realize(/*State,*/g);
+        if (!getPlacementValueSlot(i).isValid())
+            getPlacementValueSlot(i).getClientPlacement().realize(g);
 
     //if (FeatureRep::isA(*this)) {
     //    const FeatureRep& fr = FeatureRep::downcast(*this);
@@ -149,25 +149,24 @@ SubsystemRep::addPlacementLike(const Placement& p) {
             this->getFullName(),offender->getFullName());
     }
 
-    const int index = (int)placementExpressions.size();
-    placementExpressions.push_back(SubPlacement());
-    Placement& newPlacement = placementExpressions[index];
+    const int index = (int)placementSlots.size();
+    placementSlots.push_back(SubPlacement());
+    Placement& newPlacement = placementSlots[index];
     p.getRep().cloneUnownedWithNewHandle(newPlacement);
     newPlacement.updRep().setOwner(getMyHandle(), index);
     return newPlacement;
 }
 
-PlacementValue& 
+PlacementValueSlot& 
 SubsystemRep::addPlacementValueLike(const PlacementValue& v) const {
     assert(v.hasRep());
 
-    // 'placementValues' is mutable.
-    const int index = (int)placementValues.size();
-    placementValues.push_back(SubPlacementValue());
-    PlacementValue& newPlacementValue = placementValues[index];
-    v.getRep().cloneUnownedWithNewHandle(newPlacementValue);
-    newPlacementValue.updRep().setOwner(getMyHandle(), index);
-    return newPlacementValue;
+    // 'placementValueSlots' is mutable.
+    const int index = (int)placementValueSlots.size();
+    placementValueSlots.push_back(PlacementValueSlot(v));
+    PlacementValueSlot& newPlacementValueSlot = placementValueSlots[index];
+    newPlacementValueSlot.setOwner(getMyHandle(), index);
+    return newPlacementValueSlot;
 }
 
 // Is Subsystem s in the tree rooted at oldRoot? If so, optionally return the 
@@ -280,10 +279,10 @@ void SubsystemRep::checkSubsystemConsistency(const Subsystem* expParent,
     }
     for (size_t i=0; i<(size_t)getNSubsystems(); ++i) 
         getSubsystem(i).checkSubsystemConsistency(&getMyHandle(), (int)i, root);
-    for (size_t i=0; i<(size_t)getNPlacementExpressions(); ++i) 
-        getPlacementExpression(i).checkPlacementConsistency(&getMyHandle(), (int)i, root);
+    for (size_t i=0; i<(size_t)getNPlacements(); ++i) 
+        getPlacementSlot(i).checkPlacementConsistency(&getMyHandle(), (int)i, root);
     for (size_t i=0; i < (size_t)getNPlacementValues(); ++i)
-        getPlacementValue(i).checkPlacementValueConsistency(&getMyHandle(), (int)i, root);
+        getPlacementValueSlot(i).checkPlacementValueConsistency(&getMyHandle(), (int)i, root);
 
     if (FeatureRep::isA(*this)) {
         const FeatureRep& fr = FeatureRep::downcast(*this);
@@ -315,15 +314,15 @@ void SubsystemRep::reparentMyChildren() {
         childSubsystems[i].updRep().setParentSubsystem(updMyHandle(), i);
         childSubsystems[i].updRep().reparentMyChildren();               // recurse
     }
-    for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
-        assert(placementExpressions[i].getRep().hasOwner());
-        assert(placementExpressions[i].getRep().getIndexInOwner() == i);
-        placementExpressions[i].updRep().setOwner(getMyHandle(), i);
+    for (size_t i=0; i < (size_t)getNPlacements(); ++i) {
+        assert(placementSlots[i].getRep().hasOwner());
+        assert(placementSlots[i].getRep().getIndexInOwner() == i);
+        placementSlots[i].updRep().setOwner(getMyHandle(), i);
     }
     for (size_t i=0; i < (size_t)getNPlacementValues(); ++i) {
-        assert(placementValues[i].getRep().hasOwner());
-        assert(placementValues[i].getRep().getIndexInOwner() == i);
-        placementValues[i].updRep().setOwner(getMyHandle(), i);
+        assert(placementValueSlots[i].hasOwner());
+        assert(placementValueSlots[i].getIndexInOwner() == i);
+        placementValueSlots[i].setOwner(getMyHandle(), i);
     }
 }
 
@@ -338,8 +337,8 @@ void SubsystemRep::fixPlacements(const Subsystem& oldRoot, const Subsystem& newR
     for (size_t i=0; i < (size_t)getNSubsystems(); ++i)
         childSubsystems[i].updRep().fixPlacements(oldRoot, newRoot);    // recurse
 
-    for (size_t i=0; i < (size_t)getNPlacementExpressions(); ++i) {
-        PlacementRep& pr = placementExpressions[i].updRep();
+    for (size_t i=0; i < (size_t)getNPlacements(); ++i) {
+        PlacementRep& pr = placementSlots[i].updRep();
         pr.repairFeatureReferences(oldRoot,newRoot);
         pr.repairValueReference(oldRoot,newRoot);
     }
@@ -352,7 +351,7 @@ void SubsystemRep::fixPlacements(const Subsystem& oldRoot, const Subsystem& newR
 // find the corresponding Placement in the tree rooted at newRoot (which is expected
 // to be a copy of oldRoot). Return NULL if not found for any reason.
 /*static*/ const Placement* 
-SubsystemRep::findCorrespondingPlacement
+SubsystemRep::findCorrespondingPlacementSlot
     (const Subsystem& oldRoot, const Placement& p, const Subsystem& newRoot)
 {
     if (!p.hasOwner()) return 0;
@@ -361,7 +360,7 @@ SubsystemRep::findCorrespondingPlacement
     assert(corrOwner->hasRep());
 
     const Placement* newTreeRef = 
-        &corrOwner->getRep().getPlacementExpression(p.getIndexInOwner());
+        &corrOwner->getRep().getPlacementSlot(p.getIndexInOwner());
     assert(newTreeRef);
     assert(&newTreeRef->getOwner() == corrOwner);
     assert(newTreeRef->getIndexInOwner() == p.getIndexInOwner());
@@ -371,17 +370,17 @@ SubsystemRep::findCorrespondingPlacement
 // If PlacementValue v's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
 // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
 // to be a copy of oldRoot). Return NULL if not found for any reason.
-/*static*/ const PlacementValue* 
-SubsystemRep::findCorrespondingPlacementValue
-    (const Subsystem& oldRoot, const PlacementValue& v, const Subsystem& newRoot)
+/*static*/ const PlacementValueSlot* 
+SubsystemRep::findCorrespondingPlacementValueSlot
+    (const Subsystem& oldRoot, const PlacementValueSlot& v, const Subsystem& newRoot)
 {
     if (!v.hasOwner()) return 0;
     const Subsystem* corrOwner = findCorrespondingSubsystem(oldRoot,v.getOwner(),newRoot);
     if (!corrOwner) return 0;
     assert(corrOwner->hasRep());
 
-    const PlacementValue* newTreeRef = 
-        &corrOwner->getRep().getPlacementValue(v.getIndexInOwner());
+    const PlacementValueSlot* newTreeRef = 
+        &corrOwner->getRep().getPlacementValueSlot(v.getIndexInOwner());
     assert(newTreeRef);
     assert(&newTreeRef->getOwner() == corrOwner);
     assert(newTreeRef->getIndexInOwner() == v.getIndexInOwner());

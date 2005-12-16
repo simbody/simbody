@@ -113,6 +113,8 @@ public:
     // been placed (that doesn't mean you can necessarily get a *value* for
     // that placement; just the expression defining that value).
     virtual void initializeStandardSubfeatures() { }
+    virtual void finalizeStandardSubfeatures() { }
+
     virtual void postProcessNewSubsystem(Subsystem&) { }
     virtual void postProcessNewPlacement() { }
 
@@ -153,19 +155,19 @@ public:
     Subsystem&       updParentSubsystem() const {assert(hasParentSubsystem()); return *parent;}
     int              getIndexInParent()   const {assert(hasParentSubsystem()); return indexInParent;}
 
-    int getNSubsystems()           const {return childSubsystems.size();}
-    int getNPlacementExpressions() const {return placementExpressions.size();}
-    int getNPlacementValues()      const {return placementValues.size();}
+    int getNSubsystems()       const {return childSubsystems.size();}
+    int getNPlacements()       const {return placementSlots.size();}
+    int getNPlacementValues()  const {return placementValueSlots.size();}
 
     const Subsystem&      getSubsystem(size_t i)           const {return childSubsystems[i];}
     Subsystem&            updSubsystem(size_t i)                 {return childSubsystems[i];}
 
-    const Placement&      getPlacementExpression(size_t i) const {return placementExpressions[i];}
-    Placement&            updPlacementExpression(size_t i)       {return placementExpressions[i];}
+    const Placement&  getPlacementSlot(size_t i) const {return placementSlots[i];}
+    Placement&        updPlacementSlot(size_t i)       {return placementSlots[i];}
 
     // PlacementValues here are 'mutable', so the upd routine is const.
-    const PlacementValue& getPlacementValue(size_t i)      const {return placementValues[i];}
-    PlacementValue&       updPlacementValue(size_t i)      const {return placementValues[i];}
+    const PlacementValueSlot& getPlacementValueSlot(size_t i) const {return placementValueSlots[i];}
+    PlacementValueSlot&       updPlacementValueSlot(size_t i) const {return placementValueSlots[i];}
 
     const Feature& getFeature(size_t i) const {
         const Subsystem& s = getSubsystem(i);
@@ -231,7 +233,7 @@ public:
     Placement&      addPlacementLike     (const Placement& p);
 
     // This is const because PlacementValues are mutable.
-    PlacementValue& addPlacementValueLike(const PlacementValue& v) const;
+    PlacementValueSlot& addPlacementValueLike(const PlacementValue& v) const;
 
     const Subsystem& findRootSubsystem() const;
     Subsystem&       findUpdRootSubsystem();      
@@ -240,34 +242,34 @@ public:
     // are mutable.
     void deleteAllPlacementValues() const {
         // Erase all references to the placement values (these may be in child subsystems).
-        for (size_t i=0; i < placementValues.size(); ++i) {
-            PlacementValue& pv = placementValues[i];
-            if (pv.getRep().hasClientPlacement())
-                pv.getRep().getClientPlacement().getRep().clearValueSlot();
+        for (size_t i=0; i < placementValueSlots.size(); ++i) {
+            PlacementValueSlot& pv = placementValueSlots[i];
+            if (pv.hasClientPlacement())
+                pv.getClientPlacement().getRep().clearValueSlot();
         }
-        placementValues.clear();
+        placementValueSlots.clear();
     }
 
     // Run around this subsystem and its children looking for Placements which can be
     // evaluated without going any higher in the Subsystem tree than the target Subsysytem, and
-    // allocate PlacementValue slots for them in the target.
+    // allocate PlacementValueSlots for them in the target.
     void allocatePlacementValueSlots(const Subsystem& target) const {
         // Always let the children go first.
         for (int i=0; i < getNSubsystems(); ++i)
             getSubsystem(i).getRep().allocatePlacementValueSlots(target);
 
-        for (int i=0; i < getNPlacementExpressions(); ++i) {
-            const PlacementRep& pr = getPlacementExpression(i).getRep();
-            assert(pr.hasOwner());
-            if (pr.hasValueSlot())
+        for (int i=0; i < getNPlacements(); ++i) {
+            const Placement& ps = getPlacementSlot(i);
+            assert(ps.hasOwner());
+            if (ps.getRep().hasValueSlot())
                 continue;
             // can we get it a slot?
-            const Subsystem* s = pr.findPlacementValueOwnerSubsystem(target);
+            const Subsystem* s = ps.getRep().findPlacementValueOwnerSubsystem(target);
             if (s && s->isSameSubsystem(target)) {
-                PlacementValue& pv = 
-                    s->getRep().addPlacementValueLike(pr.createEmptyPlacementValue());
-                pv.updRep().setClientPlacement(getPlacementExpression(i));
-                pr.assignValueSlot(pv);
+                PlacementValueSlot& pvs = 
+                    s->getRep().addPlacementValueLike(ps.getRep().createEmptyPlacementValue());
+                pvs.setClientPlacement(ps);
+                ps.getRep().assignValueSlot(pvs);
             }
         }
     }
@@ -278,7 +280,7 @@ public:
     static bool isSubsystemInSubsystemTree(const Subsystem& oldRoot, const Subsystem& f,
                                            std::vector<int>* trace=0);
 
-    // Is Placement p owned by a Subsystem in the tree rooted at oldRoot?
+    // Is PlacementSlot p owned by a Subsystem in the tree rooted at oldRoot?
     static bool isPlacementInSubsystemTree(const Subsystem& oldRoot, const Placement& p);
 
     // If Subsystem s is a member of the Subsystem tree rooted at oldRoot, find
@@ -295,17 +297,17 @@ public:
         return reinterpret_cast<const Feature*>(newSubsys);
     }
 
-    // If Placement p's owner Feature is a member of the Feature tree rooted at oldRoot,
-    // find the corresponding Placement in the tree rooted at newRoot (which is expected
+    // If PlacementSlot p's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
+    // find the corresponding PlacementSlot in the tree rooted at newRoot (which is expected
     // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const Placement* findCorrespondingPlacement
+    static const Placement* findCorrespondingPlacementSlot
         (const Subsystem& oldRoot, const Placement& p, const Subsystem& newRoot);
 
-    // If PlacementValue v's owner Feature is a member of the Feature tree rooted at oldRoot,
-    // find the corresponding PlacementValue in the tree rooted at newRoot (which is expected
+    // If PlacementValueSlot v's owner Subsystem is a member of the Subsystem tree rooted at oldRoot,
+    // find the corresponding PlacementValueSlot in the tree rooted at newRoot (which is expected
     // to be a copy of oldRoot). Return NULL if not found for any reason.
-    static const PlacementValue* findCorrespondingPlacementValue
-        (const Subsystem& oldRoot, const PlacementValue& v, const Subsystem& newRoot);
+    static const PlacementValueSlot* findCorrespondingPlacementValueSlot
+        (const Subsystem& oldRoot, const PlacementValueSlot& v, const Subsystem& newRoot);
 
     // Given two subsystems, run up the tree towards the root to find
     // their "least common denominator", i.e. the first shared node
@@ -366,14 +368,14 @@ private:
     // note that we stop at the Subfeature references -- we don't care where they 
     // are placed or even *whether* they are placed. Only when Features are realized
     // do we chase through Placements to calculate values.
-    StableArray<SubPlacement>   placementExpressions;
+    StableArray<SubPlacement>   placementSlots;
 
     // This is like a State cache except it holds values for Placement expressions
     // where the highest placement dependency is resolved at this Feature (i.e., is
     // one of the placementExpressions stored above. But note that these values
     // do not in general correspond to the placementExpression; they can be the
     // values of lower-level placement expressions.
-    mutable StableArray<SubPlacementValue> placementValues;
+    mutable StableArray<PlacementValueSlot> placementValueSlots;
 };
 
 

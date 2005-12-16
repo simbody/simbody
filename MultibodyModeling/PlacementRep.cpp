@@ -192,16 +192,16 @@ PlacementType FeatureReference::refGetPlacementType() const {
     // PLACEMENT REP //
 
 
-// We have just copied a Feature tree and this PlacementRep is the new copy. If
-// it had a valueSlot, that valueSlot is still pointing into the old Feature tree
+// We have just copied a Subsystem tree and this PlacementRep is the new copy. If
+// it had a valueSlot, that valueSlot is still pointing into the old Subsystem tree
 // and needs to be repaired to point to the corresponding valueSlot in the new tree.
 void PlacementRep::repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot) {
     if (valueSlot) {
-        valueSlot = const_cast<PlacementValue*>
-                        (FeatureRep::findCorrespondingPlacementValue
+        valueSlot = const_cast<PlacementValueSlot*>
+                        (FeatureRep::findCorrespondingPlacementValueSlot
                                     (oldRoot,*valueSlot,newRoot));
         if (valueSlot)
-            valueSlot->updRep().setClientPlacement(getMyHandle());
+            valueSlot->setClientPlacement(getMyHandle());
     }
 }
 

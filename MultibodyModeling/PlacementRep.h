@@ -31,6 +31,7 @@
 #include "Placement.h"
 #include "BasicPlacements.h"
 #include "PlacementValue.h"
+#include "PlacementValueRep.h"
 #include "Subsystem.h"
 #include "Feature.h"
 #include "BasicFeatures.h"
@@ -441,12 +442,12 @@ public:
     virtual ~PlacementRep() { }
 
     // Note that value slots are mutable so these routines are const.
-    void assignValueSlot(PlacementValue& p) const {valueSlot = &p;}
+    void assignValueSlot(PlacementValueSlot& p) const {valueSlot = &p;}
     void clearValueSlot() const {valueSlot=0;}
     bool hasValueSlot()  const {return valueSlot != 0;}
     bool hasValidValue() const {return valueSlot && valueSlot->isValid();}
 
-    const PlacementValue& getValueSlot() const {
+    const PlacementValueSlot& getValueSlot() const {
         if (!valueSlot) 
             SIMTK_THROW1(Exception::RepLevelException, 
                 "Placement has not been assigned a cache slot for its value");
@@ -457,11 +458,11 @@ public:
     }
 
     // yes, the upd routine is const!
-    PlacementValue& updValueSlot() const {
+    PlacementValueSlot& updValueSlot() const {
         if (!valueSlot) 
             SIMTK_THROW1(Exception::RepLevelException, 
                 "Placement has not been assigned a cache slot for its value");
-        return *const_cast<PlacementValue*>(valueSlot);
+        return *const_cast<PlacementValueSlot*>(valueSlot);
     }
 
     virtual PlacementValue createEmptyPlacementValue() const = 0;
@@ -585,12 +586,10 @@ private:
                                    // That Feature's placement pointer must point right
                                    // back here (through the Placement handle).
 
-    mutable PlacementValue*  
+    mutable PlacementValueSlot*  
                      valueSlot;    // Points to the cache entry designated to hold the
                                    //   value of this placement expression, if any.
 };
-
-
 
 /**
  * A PlacementRep with a Real value. This is still abstract.
@@ -603,8 +602,8 @@ public:
     const RealPlacement& getMyHandle() const 
       { return RealPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue_<Real>& updValueSlot() const
-      { return PlacementValue_<Real>::downcast(PlacementRep::updValueSlot()); } 
+    //PlacementValue_<Real>& updValueSlot() const
+    //  { return PlacementValue_<Real>::downcast(PlacementRep::updValueSlot()); } 
 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Real>();}
 
@@ -630,8 +629,12 @@ public:
     Placement genericMul(const Placement& r) const;
     Placement genericDvd(const Placement& r) const;
 
+    void setRealValue(const Real& r) const {
+        PlacementValue_<Real>::downcast(updValueSlot().updValue()).set(r);
+        updValueSlot().setValid(true);
+    }
     const Real& getValue(/*State*/) const {
-        return PlacementValue_<Real>::downcast(getValueSlot()).get();
+        return PlacementValue_<Real>::downcast(getValueSlot().getValue()).get();
     }
     virtual Real calcValue(/*State*/) const = 0;
     SIMTK_DOWNCAST(RealPlacementRep,PlacementRep);
@@ -647,8 +650,9 @@ public:
     ~RealConstantPlacementRep() { }
 
     void realize(/*State,*/Stage) const {
-        if (hasValueSlot())
-            updValueSlot().set(value);
+        if (hasValueSlot()) {
+            setRealValue(value);
+        }
     }
     Real calcValue(/*State*/) const { return value; }
 
@@ -687,7 +691,7 @@ public:
     void realize(/*State,*/Stage g) const {
         refRealize(/*State,*/ g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setRealValue(calcValue(/*State*/));
     }
     Real calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
 
@@ -720,13 +724,13 @@ public:
       : RealPlacementRep(), PlacementExpr(f,a) { }
     ~RealExprPlacementRep() { }
 
-    void realize(/*State,*/Stage g) const {
-        exprRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        exprRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setRealValue(calcValue());
     }
-    Real calcValue(/*State*/) const {
-        return RealOps::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs());
+    Real calcValue() const {
+        return RealOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 
     // Supported RealExpr-building operators
@@ -782,8 +786,6 @@ public:
     virtual ~Vec3PlacementRep() { }
     const Vec3Placement& getMyHandle() const 
       { return Vec3Placement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue_<Vec3>& updValueSlot() const
-      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
     DirectionPlacement castToDirectionPlacement() const;
@@ -804,8 +806,13 @@ public:
     PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
+    void setVec3Value(const Vec3& v) const { 
+       PlacementValue_<Vec3>::downcast(updValueSlot().updValue()).set(v);
+       updValueSlot().setValid(true);
+    } 
+
     const Vec3& getValue(/*State*/) const {
-        return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
+        return PlacementValue_<Vec3>::downcast(getValueSlot().getValue()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
 
@@ -823,7 +830,7 @@ public:
 
     void realize(/*State,*/Stage) const {
         if (hasValueSlot())
-            updValueSlot().set(value);
+            setVec3Value(value);
     }
     Vec3 calcValue(/*State*/) const { return value; }
 
@@ -858,12 +865,12 @@ public:
     { }
     ~Vec3FeaturePlacementRep() { }   
     
-    void realize(/*State,*/Stage g) const {
-        refRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        refRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
-    Vec3 calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
+    Vec3 calcValue() const { return getReferencedValue(); }
 
     PlacementRep*  clone() const {return new Vec3FeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -917,10 +924,10 @@ public:
 
     static Vec3ExprPlacementRep* crossOp(const Vec3Placement& l, const Vec3Placement& r);
 
-    void realize(/*State,*/Stage g) const {
-        exprRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        exprRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
     Vec3 calcValue(/*State*/) const {
         return Vec3Ops::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs());
@@ -952,8 +959,7 @@ public:
     virtual ~StationPlacementRep() { }
     const StationPlacement& getMyHandle() const 
       { return StationPlacement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue_<Vec3>& updValueSlot() const
-      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
+
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
     PlacementType getPlacementType() const { return StationPlacementType; }
@@ -974,8 +980,13 @@ public:
     Placement genericDistance    (const Placement& rhs) const;
     Placement genericAngle       (const Placement& rhs) const;
 
+    void setVec3Value(const Vec3& v) const { 
+       PlacementValue_<Vec3>::downcast(updValueSlot().updValue()).set(v);
+       updValueSlot().setValid(true);
+    } 
+
     const Vec3& getValue(/*State*/) const {
-        return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
+        return PlacementValue_<Vec3>::downcast(getValueSlot().getValue()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
 
@@ -991,7 +1002,7 @@ public:
 
     void realize(/*State,*/Stage) const {
         if (hasValueSlot())
-            updValueSlot().set(loc);
+            setVec3Value(loc);
     }
     Vec3 calcValue(/*State*/) const { return loc; }
 
@@ -1029,12 +1040,12 @@ public:
     { }
     ~StationFeaturePlacementRep() { }
     
-    void realize(/*State,*/Stage g) const {
-        refRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        refRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
-    Vec3 calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
+    Vec3 calcValue() const { return getReferencedValue(); }
 
     PlacementRep*  clone() const {return new StationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1069,7 +1080,7 @@ public:
     SIMTK_DOWNCAST(StationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Vec3& getReferencedValue(/*State*/) const;
+    const Vec3& getReferencedValue() const;
 };
 
 /**
@@ -1090,13 +1101,13 @@ public:
     static StationExprPlacementRep* addOp (const StationPlacement& l, const Vec3Placement& r);
     static StationExprPlacementRep* subOp (const StationPlacement& l, const Vec3Placement& r);
 
-    void realize(/*State,*/Stage g) const {
-        exprRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        exprRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
-    Vec3 calcValue(/*State*/) const {
-        return StationOps::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs());
+    Vec3 calcValue() const {
+        return StationOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 
 
@@ -1125,8 +1136,6 @@ public:
     virtual ~DirectionPlacementRep() { }
     const DirectionPlacement& getMyHandle() const 
       { return DirectionPlacement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue_<Vec3>& updValueSlot() const
-      { return PlacementValue_<Vec3>::downcast(PlacementRep::updValueSlot()); } 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
     Vec3Placement castToVec3Placement() const;
@@ -1150,8 +1159,13 @@ public:
     PlacementType getPlacementType() const { return DirectionPlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
+    void setVec3Value(const Vec3& v) const { 
+       PlacementValue_<Vec3>::downcast(updValueSlot().updValue()).set(v);
+       updValueSlot().setValid(true);
+    } 
+
     const Vec3& getValue(/*State*/) const {
-        return PlacementValue_<Vec3>::downcast(getValueSlot()).get();
+        return PlacementValue_<Vec3>::downcast(getValueSlot().getValue()).get();
     }
     virtual Vec3 calcValue(/*State*/) const = 0;
 
@@ -1170,11 +1184,11 @@ public:
 
 
     // Implementations of pure virtuals.
-    void realize(/*State,*/Stage) const {
+    void realize(Stage) const {
         if (hasValueSlot())
-            updValueSlot().set(dir);
+            setVec3Value(dir);
     }
-    Vec3 calcValue(/*State*/) const { return dir; }
+    Vec3 calcValue() const { return dir; }
 
     bool isConstant() const { return true; }
 
@@ -1212,12 +1226,12 @@ public:
     { }
     ~DirectionFeaturePlacementRep() { }
 
-    void realize(/*State,*/Stage g) const {
-        refRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        refRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
-    Vec3 calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
+    Vec3 calcValue() const { return getReferencedValue(); }
 
     PlacementRep*  clone() const {return new DirectionFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1235,7 +1249,7 @@ public:
     SIMTK_DOWNCAST(DirectionFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Vec3& getReferencedValue(/*State*/) const;
+    const Vec3& getReferencedValue() const;
 };
 
 /**
@@ -1256,13 +1270,13 @@ public:
     static DirectionExprPlacementRep* normalizeOp (const StationPlacement&);
     static DirectionExprPlacementRep* normalizeOp (const Vec3Placement&);
 
-    void realize(/*State,*/Stage g) const {
-        exprRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        exprRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setVec3Value(calcValue());
     }
-    Vec3 calcValue(/*State*/) const {
-        return DirectionOps::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs());
+    Vec3 calcValue() const {
+        return DirectionOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 
     PlacementRep*  clone() const {return new DirectionExprPlacementRep(*this);}
@@ -1290,15 +1304,19 @@ public:
     virtual ~OrientationPlacementRep() { }
     const OrientationPlacement& getMyHandle() const 
       { return OrientationPlacement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue_<Mat33>& updValueSlot() const
-      { return PlacementValue_<Mat33>::downcast(PlacementRep::updValueSlot()); } 
+
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat33>();}
 
     PlacementType getPlacementType() const { return OrientationPlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
+    void setMat33Value(const Mat33& v) const { 
+       PlacementValue_<Mat33>::downcast(updValueSlot().updValue()).set(v);
+       updValueSlot().setValid(true);
+    } 
+
     const Mat33& getValue(/*State*/) const {
-        return PlacementValue_<Mat33>::downcast(getValueSlot()).get();
+        return PlacementValue_<Mat33>::downcast(getValueSlot().getValue()).get();
     }
     virtual Mat33 calcValue(/*State*/) const = 0;
 
@@ -1315,11 +1333,11 @@ public:
 
     // Implementations of pure virtuals.
 
-    void realize(/*State,*/Stage) const {
+    void realize(Stage) const {
         if (hasValueSlot())
-            updValueSlot().set(ori);
+            setMat33Value(ori);
     }
-    Mat33 calcValue(/*State*/) const { return ori; }
+    Mat33 calcValue() const { return ori; }
 
     bool isConstant() const { return true; }
 
@@ -1355,12 +1373,12 @@ public:
     { }
     ~OrientationFeaturePlacementRep() { }
       
-    void realize(/*State,*/Stage g) const {
-        refRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        refRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setMat33Value(calcValue());
     }
-    Mat33 calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
+    Mat33 calcValue() const { return getReferencedValue(); }
 
     PlacementRep*  clone() const {return new OrientationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1378,7 +1396,7 @@ public:
     SIMTK_DOWNCAST(OrientationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Mat33& getReferencedValue(/*State*/) const;
+    const Mat33& getReferencedValue() const;
 };
 
 /**
@@ -1396,13 +1414,13 @@ public:
     // Supported OrientationExpr-building operators
     // NONE YET
 
-    void realize(/*State,*/Stage g) const {
-        exprRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        exprRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setMat33Value(calcValue());
     }
-    Mat33 calcValue(/*State*/) const {
-        return OrientationOps::downcast(exprGetFunc()).apply(/*State,*/exprGetArgs());
+    Mat33 calcValue() const {
+        return OrientationOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 
 
@@ -1432,15 +1450,19 @@ public:
     virtual ~FramePlacementRep() { }
     const FramePlacement& getMyHandle() const 
       { return FramePlacement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue_<Mat34>& updValueSlot() const
-      { return PlacementValue_<Mat34>::downcast(PlacementRep::updValueSlot()); } 
+
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat34>();}
 
     PlacementType getPlacementType() const { return FramePlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
+    void setMat34Value(const Mat34& v) const { 
+       PlacementValue_<Mat34>::downcast(updValueSlot().updValue()).set(v);
+       updValueSlot().setValid(true);
+    } 
+
     const Mat34& getValue(/*State*/) const {
-        return PlacementValue_<Mat34>::downcast(getValueSlot()).get();
+        return PlacementValue_<Mat34>::downcast(getValueSlot().getValue()).get();
     }
 
     const Mat33& getOrientationValue(/*State*/) const {
@@ -1467,11 +1489,11 @@ public:
 
     // Implementations of pure virtuals.
 
-    void realize(/*State,*/Stage) const {
+    void realize(Stage) const {
         if (hasValueSlot())
-            updValueSlot().set(frame);
+            setMat34Value(frame);
     }
-    Mat34 calcValue(/*State*/) const { return frame; }
+    Mat34 calcValue() const { return frame; }
 
     bool isConstant() const { return true; }
 
@@ -1513,12 +1535,12 @@ public:
     { }
     ~FrameFeaturePlacementRep() { }
 
-    void realize(/*State,*/Stage g) const {
-        refRealize(/*State,*/ g);
+    void realize(Stage g) const {
+        refRealize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setMat34Value(calcValue());
     }
-    Mat34 calcValue(/*State*/) const { return getReferencedValue(/*State*/); }
+    Mat34 calcValue() const { return getReferencedValue(); }
 
     PlacementRep*  clone() const {return new FrameFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1536,7 +1558,7 @@ public:
     SIMTK_DOWNCAST(FrameFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Mat34& getReferencedValue(/*State*/) const;
+    const Mat34& getReferencedValue() const;
 };
 
 /**
@@ -1562,11 +1584,11 @@ public:
     const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const;
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const;
 
-    void realize(/*State,*/Stage g) const {
-        orientation.realize(/*State,*/g);
-        origin.realize(/*State,*/g);
+    void realize(Stage g) const {
+        orientation.realize(g);
+        origin.realize(g);
         if (hasValueSlot())
-            updValueSlot().set(calcValue(/*State*/));
+            setMat34Value(calcValue());
     }
 
     // Everything should have already been realized if necessary to allow

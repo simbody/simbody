@@ -35,11 +35,11 @@ namespace simtk {
 
 class Subsystem;
 
-
 /**
- * This class represents a PlacementValue of unknown type. The value can
- * be marked as valid or not. An attempt to access the actual value of an
- * invalid PlacementValue will throw an exception.
+ * This class represents a PlacementValue of unknown type. This is ultimately
+ * just an ordinary value object, such as a number, with no additional bookkeeping
+ * done here. However, these are kept in PlacementValueSlots in Subsystems to serve
+ * as controlled values for Placements, keeping track of current validity.
  */
 class PlacementValue {
 public:
@@ -47,11 +47,6 @@ public:
     PlacementValue(const PlacementValue&);
     PlacementValue& operator=(const PlacementValue&);
     ~PlacementValue();
-    bool isValid() const;
-
-    bool             hasOwner() const;
-    const Subsystem& getOwner() const;
-    int              getIndexInOwner() const;
 
     String toString(const String& linePrefix="") const;
 
@@ -66,9 +61,6 @@ public:
     const PlacementValueRep& getRep() const {assert(rep); return *rep;}
     PlacementValueRep&       updRep()       {assert(rep); return *rep;}
     void                     setRep(PlacementValueRep* p) {assert(!rep); rep=p;}
-    void checkPlacementValueConsistency(const Subsystem* expOwner, 
-                                        int              expIndexInOwner,
-                                        const Subsystem& expRoot) const;
 };
 std::ostream& operator<<(std::ostream& o, const PlacementValue&);
 
@@ -92,8 +84,6 @@ public:
     static const PlacementValue_<T>& downcast(const PlacementValue&);
     static PlacementValue_<T>&       downcast(PlacementValue&);
 };
-
-
 
 } // namespace simtk
 

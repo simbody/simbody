@@ -66,6 +66,16 @@ public:
     }
 };
 
+class AccessToInvalidPlacementValue : public Base {
+public:
+    AccessToInvalidPlacementValue(const char* fn, int ln, String featureName) : Base(fn,ln)
+    {
+        setMessage("An attempt was made to access an invalid value for Feature '" + featureName 
+            + "'s Placement. Features must be realized before their values can be obtained.");
+    }
+private:
+};
+
 // This just reports rep-level bad things up to the API level with a helpful string.
 class RepLevelException : public Base {
 public:

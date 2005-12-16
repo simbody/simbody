@@ -27,8 +27,6 @@
 #include "SimbodyCommon.h"
 #include "PlacementValue.h"
 #include "PlacementValueRep.h"
-#include "Placement.h"
-#include "PlacementRep.h"
 
 #include <string>
 #include <iostream>
@@ -46,12 +44,15 @@ namespace simtk {
     // PLACEMENT VALUE //
 
 PlacementValue::PlacementValue(const PlacementValue& src) : rep(0) {
-    if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
+    if (src.rep) {
+        rep = src.rep->clone();
+        rep->setMyHandle(*this);
+    }
 }
 
 PlacementValue::PlacementValue(PlacementValueRep* r) : rep(r) {
-    assert(r && !r->hasHandle());
-    r->setMyHandle(*this);
+    assert(rep && !rep->hasHandle());
+    rep->setMyHandle(*this);
 }
 
 PlacementValue&
@@ -59,7 +60,10 @@ PlacementValue::operator=(const PlacementValue& src) {
     if (this != &src) {
         if (rep && (&rep->getMyHandle() == this)) delete rep; 
         rep=0;
-        if (src.rep) src.rep->cloneUnownedWithNewHandle(*this);
+        if (src.rep) {
+            rep = src.rep->clone();
+            rep->setMyHandle(*this);
+        }
     }
     return *this;
 }
@@ -69,25 +73,6 @@ PlacementValue::~PlacementValue() {
     // be pointing to it in that case!
     if (rep && (&rep->getMyHandle() == this)) delete rep; 
     rep=0;
-}
-
-bool PlacementValue::isValid() const {
-    return rep && rep->isValid();
-}
-
-bool PlacementValue::hasOwner() const {
-    return rep && rep->hasOwner();
-}
-int PlacementValue::getIndexInOwner() const {
-    assert(rep && rep->hasOwner());
-    assert(&rep->getMyHandle() == this);
-    return rep->getIndexInOwner();
-}
-
-const Subsystem& PlacementValue::getOwner() const {
-    assert(rep && rep->hasOwner());
-    assert(&rep->getMyHandle() == this);
-    return rep->getOwner();
 }
 
 String PlacementValue::toString(const String& linePrefix) const {
@@ -101,31 +86,8 @@ String PlacementValue::toString(const String& linePrefix) const {
         s << "at 0x" << this << " HAS MISMATCHED REP";
         return s.str();
     }
-    if (hasOwner())
-        s << getOwner().getFullName() << ":"
-          << std::left << std::setw(2) << getIndexInOwner();
-    else s << "NO OWNER";
-    if (getRep().hasClientPlacement()) {
-        s << "[client:";
-        const Placement& p = getRep().getClientPlacement();
-        if (p.getRep().hasClientFeature())
-            s << p.getRep().getClientFeature().getFullName();
-        else 
-            s << "Placement@" << &p;
-        s << "]";
-    } else s << "[NO CLIENT]";
     s << " " << rep->toString(linePrefix);
     return s.str();
-}
-
-void PlacementValue::checkPlacementValueConsistency(const Subsystem* expOwner,
-                                                    int              expIndexInOwner,
-                                                    const Subsystem& expRoot) const
-{
-    if (!rep)
-        std::cout << "checkPlacementValueConsistency(): NO REP!!!" << std::endl;
-    else
-        getRep().checkPlacementValueConsistency(expOwner,expIndexInOwner,expRoot);
 }
 
 std::ostream& operator<<(std::ostream& o, const PlacementValue& v) {

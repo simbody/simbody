@@ -126,7 +126,7 @@ String Subsystem::toString(const String& linePrefix) const {
     }
 
     const size_t nSubsystems      = sr.getNSubsystems();
-    const size_t nPlacement       = sr.getNPlacementExpressions();
+    const size_t nPlacement       = sr.getNPlacements();
     const size_t nPlacementValues = sr.getNPlacementValues();
     const std::string nextIndent  = linePrefix + "    ";
 
@@ -136,14 +136,14 @@ String Subsystem::toString(const String& linePrefix) const {
             s  << std::endl << nextIndent << sr.getSubsystem(i).toString(nextIndent);
     }
     if (nPlacement) {
-        s << std::endl << linePrefix << "  Placement Expressions (" << nPlacement << "):";
+        s << std::endl << linePrefix << "  Placement Slots (" << nPlacement << "):";
         for (size_t i=0; i < nPlacement; ++i)
-            s  << std::endl << nextIndent << sr.getPlacementExpression(i).toString(nextIndent);
+            s  << std::endl << nextIndent << sr.getPlacementSlot(i).toString(nextIndent);
     }
     if (nPlacementValues) {
-        s << std::endl << linePrefix << "  Placement Values (" << nPlacementValues << "):";
+        s << std::endl << linePrefix << "  PlacementValue Slots (" << nPlacementValues << "):";
         for (size_t i=0; i < nPlacementValues; ++i)
-            s  << std::endl << nextIndent << sr.getPlacementValue(i).toString(nextIndent);
+            s  << std::endl << nextIndent << sr.getPlacementValueSlot(i).toString(nextIndent);
     }
     return s.str();
 }

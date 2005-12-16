@@ -36,7 +36,7 @@ namespace simtk {
 
 /**
  * This is a still-abstract Feature representation, common to all
- * the Body features.
+ * the Body subsystems.
  */
 class BodyRep : public FrameRep {
 public:
@@ -85,14 +85,28 @@ protected:
     virtual void initializeStandardSubfeatures() {
         BodyRep::initializeStandardSubfeatures();
 
-        addFeatureLike(RealParameter("mass"), "mass");
-        addFeatureLike(Station("station"), "station");
-/* TODO these measures need to have a FunctionPlacement
-        updChildFeature("massMeasure")->setPlacement(
-            addPlacementLike(FeaturePlacement(*getChildFeature("mass"))));
-        updChildFeature("centroidMeasure")->setPlacement(
-            addPlacementLike(FeaturePlacement(*getChildFeature("station"))));
-            */
+    }
+
+    virtual void finalizeStandardSubfeatures() {
+        BodyRep::finalizeStandardSubfeatures();
+/*
+        // Make a placement list
+        std::vector<Placement> pl;
+        for (int i=0; i < getNSubsystems(); ++i) {
+            if (MassElement::isInstanceOf(getSubsystem(i))) {
+                const MassElement& me = MassElement::downcast(getSubsystem(i));
+                pl.push_back(Placement());
+                Placement& p = pl.last();
+                PlacementRep* pr = me.getMass().getRep().createFeatureReference(p);
+                p.updRep().setMyHandle(pr);
+            }
+        }
+
+        updMassMeasure().place(sum(pl));
+        updCentroidMeasure().place(weightedAverage(comList, massList));
+        //updInertiaMeasure().place(combineInertias(inerList, comList));
+*/                
+
     }
 };
 

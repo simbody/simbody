@@ -26,6 +26,8 @@
 
 #include "SimbodyCommon.h"
 #include "Placement.h"
+#include "PlacementValue.h"
+#include "PlacementValueRep.h"
 #include "Feature.h"
 #include "PlacementRep.h"
 #include "FeatureRep.h"
@@ -99,7 +101,8 @@ void Placement::realize(/*State,*/ Stage g) const {
 
 const PlacementValue& Placement::getValue() const {
     try {
-        return getRep().getValueSlot(/*State*/);
+        const PlacementValueSlot& pvs = getRep().getValueSlot();
+        return pvs.getValue();
     }
     catch (const Exception::Base& exc) {
         SIMTK_THROW3(Exception::PlacementAPIMethodFailed,

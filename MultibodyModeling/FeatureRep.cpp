@@ -171,7 +171,7 @@ void FeatureRep::place(const Placement& p) {
 // This is for use by SubsystemRep after a copy to fix the placement pointer and back pointer.
 void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot) {
     if (placement) {
-        placement = findCorrespondingPlacement(oldRoot,*placement,newRoot);
+        placement = findCorrespondingPlacementSlot(oldRoot,*placement,newRoot);
         if (placement) 
             const_cast<Placement*>(placement)->updRep().setClientFeature(getMyHandle());
     }

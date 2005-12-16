@@ -35,35 +35,63 @@ using std::endl;
 namespace simtk {
 
 
-    // PLACEMENT VALUE REP //
+    // PLACEMENT VALUE SLOT //
 
-void PlacementValueRep::checkPlacementValueConsistency(const Subsystem* expOwner, 
-                                                       int              expIndexInOwner,
-                                                       const Subsystem& expRoot) const
+String PlacementValueSlot::toString(const String& linePrefix) const {
+    std::stringstream s;
+    s << "PlacementValueSlot ";
+    if (hasOwner())
+        s << getOwner().getFullName() << ":"
+          << std::left << std::setw(2) << getIndexInOwner();
+    else s << "NO OWNER";
+    if (hasClientPlacement()) {
+        s << "[client:";
+        const Placement& p = getClientPlacement();
+        if (p.getRep().hasClientFeature())
+            s << p.getRep().getClientFeature().getFullName();
+        else 
+            s << "Placement@" << &p;
+        s << "]";
+    } else s << "[NO CLIENT]";
+    s << " " << value.toString(linePrefix);
+    return s.str();
+}
+
+void PlacementValueSlot::throwInvalid() const {
+    SIMTK_THROW1(Exception::AccessToInvalidPlacementValue,
+        getClientPlacement().getRep().getClientFeature().getFullName());
+    //NOTREACHED
+}
+
+void PlacementValueSlot::checkPlacementValueConsistency(const Subsystem* expOwner, 
+                                                        int              expIndexInOwner,
+                                                        const Subsystem& expRoot) const
 {
-    cout << "CHECK PLACEMENT VALUE CONSISTENCY FOR PlacementValueRep@" << this << endl;
-    if (!myHandle) 
-        cout << "*** NO HANDLE ***" << endl;
-    else if (myHandle->rep != this)
-        cout << "*** Handle->rep=" << myHandle->rep << " which is *** WRONG ***" << endl;
+    cout << "CHECK PLACEMENT VALUE CONSISTENCY FOR PlacementValueSlot@" << this << endl;
     if (owner != expOwner)
         cout << "*** WRONG OWNER@" << owner << "; should have been " << expOwner << endl;
     if (indexInOwner != expIndexInOwner)
         cout << "*** WRONG INDEX " << indexInOwner << "; should have been " << expIndexInOwner << endl;
 
-
     if (expOwner == 0) {
         if (client)
-          cout << "*** UNOWNED PLACEMENT VALUE HAD CLIENT ***" << endl;
+          cout << "*** UNOWNED PLACEMENT VALUE SLOT HAD CLIENT ***" << endl;
     } else {
         if (!client) 
             cout << "*** NO CLIENT ***" << endl;
         else if (!client->getRep().hasValueSlot())
             cout << "*** CLIENT HAS NO VALUE SLOT??? ***" << endl;
-        else if (&(client->getRep().getValueSlot().getRep()) != this)
+        else if (&(client->getRep().getValueSlot()) != this)
             cout << "*** CLIENT HAS WRONG PLACEMENT VALUE SLOT@" 
-                << &client->getRep().getValueSlot().getRep() << endl;
+                 << &client->getRep().getValueSlot() << endl;
     }
+
+    const PlacementValueRep& pvr = value.getRep();
+    if (!pvr.hasHandle()) 
+        cout << "*** NO HANDLE ***" << endl;
+    else if (&pvr.getMyHandle().getRep() != &pvr)
+        cout << "*** Handle->rep=" << &pvr.getMyHandle().getRep() 
+             << " which is *** WRONG ***" << endl;
 }
 
 
