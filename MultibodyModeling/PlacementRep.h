@@ -567,6 +567,7 @@ public:
     Placement genericDvd(const Placement& r) const;
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Real>::initializeToValueType(pv);
         evaluateReal(PlacementValue_<Real>::downcast(pv).upd());
     }
     virtual void evaluateReal(Real&) const = 0;
@@ -730,6 +731,7 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Vec3>::initializeToValueType(pv);
         evaluateVec3(PlacementValue_<Vec3>::downcast(pv).upd());
     }
     virtual void evaluateVec3(Vec3&) const = 0;
@@ -886,6 +888,7 @@ public:
     Placement genericAngle       (const Placement& rhs) const;
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Vec3>::initializeToValueType(pv);
         evaluateVec3(PlacementValue_<Vec3>::downcast(pv).upd());
     }
     virtual void evaluateVec3(Vec3&) const = 0;
@@ -1048,6 +1051,7 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Vec3>::initializeToValueType(pv);
         evaluateVec3(PlacementValue_<Vec3>::downcast(pv).upd());
     }
     virtual void evaluateVec3(Vec3&) const = 0;
@@ -1182,6 +1186,7 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Mat33>::initializeToValueType(pv);
         evaluateMat33(PlacementValue_<Mat33>::downcast(pv).upd());
     }
     virtual void evaluateMat33(Mat33&) const = 0;
@@ -1311,6 +1316,7 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Mat34>::initializeToValueType(pv);
         evaluateMat34(PlacementValue_<Mat34>::downcast(pv).upd());
     }
     virtual void evaluateMat34(Mat34&) const = 0;

@@ -50,6 +50,15 @@ class PlacementSlot;
  * administrative overhead for it.
  */
 class PlacementValueSlot {
+    PlacementValue       value;        // The stored value
+    bool                 valid;        // ... and whether it is meaningful.
+
+    const Subsystem*     owner;        // The Subsystem which owns this PlacementValueSlot
+    int                  indexInOwner; // ... and the index in its placementValueSlots list.
+
+    const PlacementSlot* client;       // The PlacementSlot holding the expression for which
+                                       // this slot holds the Value. That PlacementSlots's value
+                                       // pointer must point right back here.
 public:
     PlacementValueSlot() 
         : value(), valid(false), owner(0), indexInOwner(-1), client(0) { }
@@ -102,20 +111,21 @@ public:
                                         const Subsystem& expRoot) const;
 private:
     void throwInvalid() const;
-
-private:
-    PlacementValue       value;        // The stored value
-    bool                 valid;        // ... and whether it is meaningful.
-
-    const Subsystem*     owner;        // The Subsystem which owns this PlacementValueSlot
-    int                  indexInOwner; // ... and the index in its placementValueSlots list.
-
-    const PlacementSlot* client;       // The PlacementSlot holding the expression for which
-                                       // this slot holds the Value. That PlacementSlots's value
-                                       // pointer must point right back here.
 };
 
 class PlacementSlot {
+    Placement        placement;    // the Placement expression in this slot
+
+    const Subsystem* owner;        // The Subsystem (if any) which owns this Placement
+    int              indexInOwner; // ... and the index in its placementExpr list.
+
+    const Feature*   client;       // The Feature (if any) for which this is the Placement.
+                                   // That Feature's placement pointer must point right
+                                   // back here (through the Placement handle).
+
+    mutable PlacementValueSlot*  
+                     valueSlot;    // Points to the cache entry designated to hold the
+                                   //   value of this placement expression, if any.
 public:
     PlacementSlot() 
         : owner(0), indexInOwner(-1), client(0), valueSlot(0) { }
@@ -126,6 +136,11 @@ public:
     // which are *bitwise* leaving bad pointers which must be corrected afterwards.
     // Default destructor is OK.
 
+    /// If this Placement has a PlacementValueSlot assigned, then this method
+    /// makes sure first that everything our Placement depends on has been realized,
+    /// then evaluates our Placement and sticks the resulting value in the
+    /// assigned slot, which is marked as valid. If no slot has yet been assigned,
+    /// then this method does nothing.
     void realize(Stage g) const {
         if (hasValueSlot() /*&& !getValueSlot().isValid()*/) {
             placement.getRep().realize(g);
@@ -164,7 +179,7 @@ public:
         return getValueSlot().getValue();
     }
 
-    // yes, the upd routine is const!
+    /// yes, the upd routine is const!
     PlacementValueSlot& updValueSlot() const {
         if (!valueSlot) 
             SIMTK_THROW1(Exception::RepLevelException, 
@@ -172,9 +187,9 @@ public:
         return *const_cast<PlacementValueSlot*>(valueSlot);
     }
 
-    // We have just copied a Subsystem tree and this PlacementSlot is the new copy. If
-    // it had a valueSlot, that valueSlot is still pointing into the old Subsystem tree
-    // and needs to be repaired to point to the corresponding valueSlot in the new tree.
+    /// We have just copied a Subsystem tree and this PlacementSlot is the new copy. If
+    /// it had a valueSlot, that valueSlot is still pointing into the old Subsystem tree
+    /// and needs to be repaired to point to the corresponding valueSlot in the new tree.
     void repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot);
 
     void             setOwner(const Subsystem& s, int index) {owner = &s; indexInOwner=index;}
@@ -193,19 +208,6 @@ public:
                                    int              expIndexInOwner,
                                    const Subsystem& expRoot) const;
 
-private:
-    Placement        placement;    // the Placement expression in this slot
-
-    const Subsystem* owner;        // The Subsystem (if any) which owns this Placement
-    int              indexInOwner; // ... and the index in its placementExpr list.
-
-    const Feature*   client;       // The Feature (if any) for which this is the Placement.
-                                   // That Feature's placement pointer must point right
-                                   // back here (through the Placement handle).
-
-    mutable PlacementValueSlot*  
-                     valueSlot;    // Points to the cache entry designated to hold the
-                                   //   value of this placement expression, if any.
 };
 
 /**
@@ -226,31 +228,6 @@ public:
     ~SubSubsystem() { }
 };
 
-/**
- * See SubFeature for an explanation of this class, which is just a Placement
- * with modified copy & assignment behavior.
- */
-class SubPlacement : public Placement {
-public:
-    SubPlacement() : Placement() { }
-    // Copy & assign do *not* invoke the Placement copy constructor.
-    inline SubPlacement(const SubPlacement& sf);
-    inline SubPlacement& operator=(const SubPlacement& sf);
-    ~SubPlacement() { }
-};
-
-/**
- * See SubFeature for an explanation of this class, which is just a PlacementValue
- * with modified copy & assignment behavior.
- */
-class SubPlacementValue : public PlacementValue {
-public:
-    SubPlacementValue() : PlacementValue() { }
-    // Copy & assign do *not* invoke the Placement copy constructor.
-    inline SubPlacementValue(const SubPlacementValue& sf);
-    inline SubPlacementValue& operator=(const SubPlacementValue& sf);
-    ~SubPlacementValue() { }
-};
 
 /**
  * A Subsystem and its SubsystemRep are logically part of the same object. There
@@ -304,7 +281,7 @@ public:
     // how to clean up all the bad pointers.
     void cloneWithoutParentOrExternalPlacements(Subsystem& newHandle) const;
 
-    void realize(/*State,*/ Stage g) const;
+    void realize(Stage g) const;
 
     void             setMyHandle(Subsystem& s) {myHandle = &s;}
     const Subsystem& getMyHandle() const     {assert(myHandle); return *myHandle;}
@@ -346,25 +323,8 @@ public:
     }
 
 
-    // This can accept a path name
-    const Subsystem* findSubsystem(const std::string& nm) const {
-        std::vector<std::string> segments;
-        if (!isLegalSubsystemPathname(nm, &segments)) {
-            if (segments.size())
-                SIMTK_THROW2(Exception::IllegalSubsystemPathname,nm,segments.back());
-            else
-                SIMTK_THROW(Exception::EmptySubsystemPathname);
-            //NOTREACHED
-        }
-        const Subsystem* found = &getMyHandle();
-        for (size_t i=0; i<segments.size(); ++i) {
-            size_t index;
-            found = (found->getRep().findSubsystemIndex(segments[i],index) 
-                     ? &found->getRep().childSubsystems[index] : 0);
-            if (!found) break;
-        }
-        return found;
-    }
+    // These can accept a path name
+    const Subsystem* findSubsystem(const std::string& nm) const;
     Subsystem* findUpdSubsystem(const std::string& nm) {
         return const_cast<Subsystem*>(findSubsystem(nm));
     }
@@ -404,41 +364,12 @@ public:
 
     // Wipe out all PlacementValues. Note that this routine is const because PlacementValues
     // are mutable.
-    void deleteAllPlacementValues() const {
-        // Erase all references to the placement values (these may be in child subsystems).
-        for (size_t i=0; i < placementValueSlots.size(); ++i) {
-            PlacementValueSlot& pv = placementValueSlots[i];
-            if (pv.hasClientPlacementSlot())
-                pv.getClientPlacementSlot().clearValueSlot();
-        }
-        placementValueSlots.clear();
-    }
+    void deleteAllPlacementValues() const;
 
     // Run around this subsystem and its children looking for Placements which can be
     // evaluated without going any higher in the Subsystem tree than the target Subsysytem, and
     // allocate PlacementValueSlots for them in the target.
-    void allocatePlacementValueSlots(const Subsystem& target) const {
-        // Always let the children go first.
-        for (int i=0; i < getNSubsystems(); ++i)
-            getSubsystem(i).getRep().allocatePlacementValueSlots(target);
-
-        for (int i=0; i < getNPlacements(); ++i) {
-            const PlacementSlot& ps = getPlacementSlot(i);
-            assert(ps.hasOwner());
-            if (ps.hasValueSlot())
-                continue;
-            // can we get it a slot?
-            const Subsystem* s = ps.getPlacement().getRep()
-                                    .findPlacementValueOwnerSubsystem(target);
-            if (s && s->isSameSubsystem(target)) {
-                PlacementValueSlot& pvs = 
-                    s->getRep().addPlacementValueLike(
-                            ps.getPlacement().getRep().createEmptyPlacementValue());
-                pvs.setClientPlacementSlot(ps);
-                ps.assignValueSlot(pvs);
-            }
-        }
-    }
+    void allocatePlacementValueSlots(const Subsystem& target) const;
 
     // Is Subsystem f in the tree rooted at oldRoot? If so, optionally return the 
     // series of indices required to get to this Subsystem from the root.
@@ -518,16 +449,16 @@ private:
         return s.rep ? s.rep->parent : 0;
     }
 private:
-    Subsystem*                  myHandle; // the Feature whose rep this is
+    Subsystem*                  myHandle; // the Subsystem whose rep this is
     std::string                 name;
 
-    // Owner information. If parent is 0 then this Subsystem is an unowned
+    // Owner information. If parent is NULL then this Subsystem is an unowned
     // prototype. Otherwise this Subsystem is contained in the parent's
     // childSubsystems list, with the given index.
     Subsystem*                  parent;
     int                         indexInParent;
 
-    // Subsystems wholly owned by this Subsystem.
+    // Child subsystems wholly owned (parented) by this Subsystem.
     StableArray<SubSubsystem>   childSubsystems;
 
     // Placement expressions wholly owned by this Feature. These expressions
@@ -537,10 +468,12 @@ private:
     // do we chase through Placements to calculate values.
     StableArray<PlacementSlot>  placementSlots;
 
-    // This is like a State cache except it holds values for Placement expressions
-    // where the highest placement dependency is resolved at this Feature (i.e., is
-    // one of the placementExpressions stored above. But note that these values
-    // do not in general correspond to the placementExpression; they can be the
+    // This is a cache to hold computed values for Placement expressions. Specifically,
+    // it holds values for those Placements where the highest placement dependency (i.e.,
+    // the highest placement for any feature referenced by the placement expression)
+    // is resolved at this Subsystem. That is, the highest placement dependency can
+    // be found in the placementSlots list here. But note that these values
+    // do not in general correspond to the above placementSlots; they can be the
     // values of lower-level placement expressions.
     mutable StableArray<PlacementValueSlot> placementValueSlots;
 };
@@ -553,28 +486,6 @@ inline SubSubsystem& SubSubsystem::operator=(const SubSubsystem& sf) {
     if (&sf != this) {
         delete rep; rep=0;
         if (sf.rep) { rep = sf.rep->clone(); rep->setMyHandle(*this); }
-    }
-    return *this;
-}
-
-inline SubPlacement::SubPlacement(const SubPlacement& sp) : Placement() {
-    if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
-}
-inline SubPlacement& SubPlacement::operator=(const SubPlacement& sp) {
-    if (&sp != this) {
-        delete rep; rep=0;
-        if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
-    }
-    return *this;
-}
-
-inline SubPlacementValue::SubPlacementValue(const SubPlacementValue& sp) : PlacementValue() {
-    if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
-}
-inline SubPlacementValue& SubPlacementValue::operator=(const SubPlacementValue& sp) {
-    if (&sp != this) {
-        delete rep; rep=0;
-        if (sp.rep) { rep = sp.rep->clone(); rep->setMyHandle(*this); }
     }
     return *this;
 }

@@ -134,6 +134,14 @@ void PlacementValue_<T>::set(const T& v) {
 }
 
 template <class T>
+void PlacementValue_<T>::initializeToValueType(PlacementValue& pv) {
+    if (!pv.hasRep()) {
+        pv.setRep(new PlacementValueRep_<T>());
+        pv.updRep().setMyHandle(pv);
+    }
+}
+
+template <class T>
 bool PlacementValue_<T>::isInstanceOf(const PlacementValue& pv) {
     return PlacementValueRep_<T>::isA(pv.getRep());
 }

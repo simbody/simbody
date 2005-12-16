@@ -138,6 +138,7 @@ void SubsystemRep::realize(Stage g) const {
     // to do this recursively to find all the unassigned Placements whose
     // highest Feature reference is one of the Placement expressions held here.
     if (g == Stage::Startup) {
+        const_cast<SubsystemRep*>(this)->finalizeStandardSubfeatures();
         deleteAllPlacementValues();
         allocatePlacementValueSlots(getMyHandle());
     }
@@ -154,12 +155,26 @@ void SubsystemRep::realize(Stage g) const {
     for (int i=0; i < getNPlacementValues(); ++i)
         if (!getPlacementValueSlot(i).isValid())
             getPlacementValueSlot(i).getClientPlacementSlot().realize(g);
+}
 
-    //if (FeatureRep::isA(*this)) {
-    //    const FeatureRep& fr = FeatureRep::downcast(*this);
-    //    if (fr.hasPlacement()) 
-    //        fr.getPlacement().realize(/*State,*/ g);
-    //}
+const Subsystem*
+SubsystemRep::findSubsystem(const std::string& nm) const {
+    std::vector<std::string> segments;
+    if (!isLegalSubsystemPathname(nm, &segments)) {
+        if (segments.size())
+            SIMTK_THROW2(Exception::IllegalSubsystemPathname,nm,segments.back());
+        else
+            SIMTK_THROW(Exception::EmptySubsystemPathname);
+        //NOTREACHED
+    }
+    const Subsystem* found = &getMyHandle();
+    for (size_t i=0; i<segments.size(); ++i) {
+        size_t index;
+        found = (found->getRep().findSubsystemIndex(segments[i],index) 
+                    ? &found->getRep().childSubsystems[index] : 0);
+        if (!found) break;
+    }
+    return found;
 }
 
 std::string 
@@ -179,6 +194,43 @@ Subsystem& SubsystemRep::findUpdRootSubsystem() {
         ? updParentSubsystem().updRep().findUpdRootSubsystem() : updMyHandle();
 }
 
+// Wipe out all PlacementValues. Note that this routine is const because PlacementValues
+// are mutable.
+void SubsystemRep::deleteAllPlacementValues() const {
+    // Erase all references to the placement values (these may be in child subsystems).
+    for (size_t i=0; i < placementValueSlots.size(); ++i) {
+        PlacementValueSlot& pv = placementValueSlots[i];
+        if (pv.hasClientPlacementSlot())
+            pv.getClientPlacementSlot().clearValueSlot();
+    }
+    placementValueSlots.clear();
+}
+
+// Run around this subsystem and its children looking for Placements which can be
+// evaluated without going any higher in the Subsystem tree than the target Subsysytem, and
+// allocate PlacementValueSlots for them in the target.
+void SubsystemRep::allocatePlacementValueSlots(const Subsystem& target) const {
+    // Always let the children go first.
+    for (int i=0; i < getNSubsystems(); ++i)
+        getSubsystem(i).getRep().allocatePlacementValueSlots(target);
+
+    for (int i=0; i < getNPlacements(); ++i) {
+        const PlacementSlot& ps = getPlacementSlot(i);
+        assert(ps.hasOwner());
+        if (ps.hasValueSlot())
+            continue;
+        // can we get it a slot?
+        const Subsystem* s = ps.getPlacement().getRep()
+                                .findPlacementValueOwnerSubsystem(target);
+        if (s && s->isSameSubsystem(target)) {
+            PlacementValueSlot& pvs = 
+                s->getRep().addPlacementValueLike(
+                        ps.getPlacement().getRep().createEmptyPlacementValue());
+            pvs.setClientPlacementSlot(ps);
+            ps.assignValueSlot(pvs);
+        }
+    }
+}
 Subsystem& 
 SubsystemRep::addSubsystemLike(const Subsystem& s, const std::string& nm) {
     assert(nm.size() > 0);

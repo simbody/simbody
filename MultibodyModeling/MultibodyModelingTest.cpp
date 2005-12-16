@@ -43,7 +43,7 @@ using namespace simtk;
 int main() {
 try {
     Frame f("frame1");
-    f.realize(/*State,*/ Stage::Startup);
+    f.realize(Stage::Startup);
     //cout << f;
 
     f.addRealParameter("one").place(1.);
@@ -53,7 +53,7 @@ try {
     f.addRealMeasure("x2y").place(angle(f.x(),f.y()));
     f.addVec3Measure("YCrossX").place(cross(f.y(),f.x()));
 
-    f.realize(/*State,*/ Stage::Startup);
+    f.realize(Stage::Startup);
     //cout << f;
 /*
     try {
@@ -68,10 +68,10 @@ try {
     p = 9.*(f["one"]+abs(f["negone"]));
     f.addRealMeasure("ttt9").place(p);
     f.realize(Stage::Startup);
-/*
-    try{cout << "p.getValue()=" << p.getValue() << endl;}
+
+    try{cout << "p.calcValue()=" << p.calcValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-*/
+
     try {
         cout << "one=" << f["one"].getValue() << endl;
         cout << "zzz=" << f["zzz"].getValue() << endl;
@@ -158,7 +158,7 @@ try {
     for (int i=0; i<upper.getNSubsystems(); ++i)
         cout << upper[i].getFullName() << endl;
 
-    upper.realize(Stage::Startup);
+   // upper.realize(Stage::Startup);
 
 
 
@@ -188,9 +188,9 @@ try {
     tube["halfLength"].place(lower["halfHeight"]);
 
     //cout << "L=" << lower; 
-    lower.realize(Stage::Startup);
-    cout  << "lower[tube]=" << lower["tube"] << endl;
-    cout  << "Subsystem(lower[tube])=" << Subsystem(lower["tube"]) << endl;
+    //lower.realize(Stage::Startup);
+    //cout  << "lower[tube]=" << lower["tube"] << endl;
+    //cout  << "Subsystem(lower[tube])=" << Subsystem(lower["tube"]) << endl;
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -219,20 +219,26 @@ try {
                  mbs["upper/rightBallFrame"],        //reference frame
                  mbs["right/upperAttachmentFrame"]); //moving frame
 
-    mbs.realize(/*State,*/ Stage::Startup);
-
-    try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
-    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
     mbs["halfHeight"].place(13.111);
     mbs.realize(/*State,*/ Stage::Startup);
+
+    cout << "mbs/upper/massMeasure=" << mbs["upper/massMeasure"] << endl;
+    cout << "                     =" << mbs["upper/massMeasure"].getPlacement() << endl;
+    cout << "                     =" << mbs["upper/massMeasure"].getValue() << endl;
+    cout << "mbs/left/massMeasure =" << mbs["left/massMeasure"] << endl;
+    cout << "                     =" << mbs["left/massMeasure"].getPlacement() << endl;
+    cout << "                     =" << mbs["left/massMeasure"].getValue() << endl;
+    cout << "mbs/right/massMeasure=" << mbs["right/massMeasure"] << endl;
+    cout << "                     =" << mbs["right/massMeasure"].getPlacement() << endl;
+    cout << "                     =" << mbs["right/massMeasure"].getValue() << endl;
 
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
     //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
-   // std::cout << mbs << std::endl; //let’s see what we’ve got
+    // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 
     cout << "*** JOINTS ***" << endl;

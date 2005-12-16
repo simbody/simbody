@@ -46,10 +46,15 @@ public:
     const RealMeasure& getMassMeasure() const {
         return RealMeasure::downcast(getFeature(massMeasureIndex));
     }
+    RealMeasure& updMassMeasure() {
+        return RealMeasure::downcast(updFeature(massMeasureIndex));
+    }
     const StationMeasure& getCentroidMeasure() const {
         return StationMeasure::downcast(getFeature(centroidMeasureIndex));
     }
-
+    StationMeasure& updCentroidMeasure() {
+        return StationMeasure::downcast(updFeature(centroidMeasureIndex));
+    }
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
 
     // virtuals getFeatureTypeName() && clone() still missing
@@ -89,24 +94,17 @@ protected:
 
     virtual void finalizeStandardSubfeatures() {
         BodyRep::finalizeStandardSubfeatures();
-/*
-        // Make a placement list
-        std::vector<Placement> pl;
+
+        // Add up the masses and place the mass measure on the resulting Placement.
+        Placement totalMass(0.);
         for (int i=0; i < getNSubsystems(); ++i) {
             if (MassElement::isInstanceOf(getSubsystem(i))) {
                 const MassElement& me = MassElement::downcast(getSubsystem(i));
-                pl.push_back(Placement());
-                Placement& p = pl.last();
-                PlacementRep* pr = me.getMass().getRep().createFeatureReference(p);
-                p.updRep().setMyHandle(pr);
+                totalMass = add(totalMass, me.getMassMeasure());
             }
         }
 
-        updMassMeasure().place(sum(pl));
-        updCentroidMeasure().place(weightedAverage(comList, massList));
-        //updInertiaMeasure().place(combineInertias(inerList, comList));
-*/                
-
+        updMassMeasure().place(totalMass);            
     }
 };
 

@@ -81,6 +81,9 @@ public:
     // implicit conversion to type T
     operator const T&() const;
 
+    // Initialize an empty PlacementValue (i.e., rep==0) to contain values of type T.
+    static void initializeToValueType(PlacementValue&);
+
     static bool                      isInstanceOf(const PlacementValue&);
     static const PlacementValue_<T>& downcast(const PlacementValue&);
     static PlacementValue_<T>&       downcast(PlacementValue&);
