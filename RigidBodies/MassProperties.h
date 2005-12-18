@@ -115,7 +115,7 @@ public:
     /// For a collection of point masses, you can just add these together to
     /// produce a composite inertia as long as all the vectors are
     /// measured from the same point and expressed in the same frame.
-    Inertia(const double& m, const Vec3& p) {
+    Inertia(const Real& m, const Vec3& p) {
         Mat33& t = *this;
         const Real& x = p(0); const Real xx = x*x;
         const Real& y = p(1); const Real yy = y*y;
