@@ -76,8 +76,8 @@ enum JointType {
  */
 class Body : public Frame {
 public:
-    const RealMeasure&    getMassMeasure() const;
-    const StationMeasure& getCentroidMeasure() const;
+    const RealMeasure&    getMass() const;
+    const StationMeasure& getCentroid() const;
 
     static bool        isInstanceOf(const Subsystem&);
     static const Body& downcast(const Subsystem&);

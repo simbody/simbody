@@ -37,15 +37,18 @@ using std::ostream;
 namespace simtk {
 
     // BODY //
-const RealMeasure& Body::getMassMeasure() const {
+const RealMeasure& Body::getMass() const {
     assert(rep);
-    return BodyRep::downcast(getRep()).getMassMeasure();
+    return BodyRep::downcast(getRep()).getMass();
 }
-const StationMeasure& Body::getCentroidMeasure() const {
+const StationMeasure& Body::getCentroid() const {
     assert(rep);
-    return BodyRep::downcast(getRep()).getCentroidMeasure();
+    return BodyRep::downcast(getRep()).getCentroid();
 }
-
+//const InertiaMeasure& Body::getCentroidalInertia() const {
+//    assert(rep);
+//    return BodyRep::downcast(getRep()).getCentroidalInertia();
+//}
 
 /*static*/ bool             
 Body::isInstanceOf(const Subsystem& s) {

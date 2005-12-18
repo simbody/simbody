@@ -43,16 +43,16 @@ public:
     BodyRep(Body& m, const std::string& nm) : FrameRep(m,nm) { }
     // must call initializeStandardSubfeatures to complete construction
 
-    const RealMeasure& getMassMeasure() const {
+    const RealMeasure& getMass() const {
         return RealMeasure::downcast(getFeature(massMeasureIndex));
     }
-    RealMeasure& updMassMeasure() {
+    RealMeasure& updMass() {
         return RealMeasure::downcast(updFeature(massMeasureIndex));
     }
-    const StationMeasure& getCentroidMeasure() const {
+    const StationMeasure& getCentroid() const {
         return StationMeasure::downcast(getFeature(centroidMeasureIndex));
     }
-    StationMeasure& updCentroidMeasure() {
+    StationMeasure& updCentroid() {
         return StationMeasure::downcast(updFeature(centroidMeasureIndex));
     }
     PlacementType getRequiredPlacementType() const { return FramePlacementType; }
@@ -66,8 +66,8 @@ protected:
     virtual void initializeStandardSubfeatures() {
         FrameRep::initializeStandardSubfeatures();
 
-        Feature& mm = addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
-        Feature& cm = addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+        Feature& mm = addFeatureLike(RealMeasure("mass"), "mass");
+        Feature& cm = addFeatureLike(StationMeasure("centroid"), "centroid");
         massMeasureIndex     = mm.getIndexInParent();
         centroidMeasureIndex = cm.getIndexInParent();
     }
@@ -96,15 +96,23 @@ protected:
         BodyRep::finalizeStandardSubfeatures();
 
         // Add up the masses and place the mass measure on the resulting Placement.
-        Placement totalMass(0.);
+        RealPlacement totalMass(0.);
+        StationPlacement centroid(Vec3(0));
+        //InertiaPlacement inertia(Mat33(0));
         for (int i=0; i < getNSubsystems(); ++i) {
             if (MassElement::isInstanceOf(getSubsystem(i))) {
                 const MassElement& me = MassElement::downcast(getSubsystem(i));
-                totalMass = add(totalMass, me.getMassMeasure());
+                totalMass = RealPlacement::downcast(add(totalMass, me.getMassMeasure()));
+                centroid  = StationPlacement::downcast(add(centroid, me.getMassMeasure()*me.getCentroidMeasure()));
+                //inertia   = add(inertia, shiftInertia(me.getInertiaMeasure(),
+                //                                      me.getCentroidMeasure(),  // from
+                //                                      getCentroid()));          // to
             }
         }
-
-        updMassMeasure().replace(totalMass);            
+        updMass().replace(totalMass);
+        updCentroid().replace(centroid / getMass());
+        //updCentroidalInertia().replace(inertia);
+        //updOriginInertia().replace(shiftInertia(getCentroidalInertia(),getCentroid(),getOrigin()));
     }
 };
 

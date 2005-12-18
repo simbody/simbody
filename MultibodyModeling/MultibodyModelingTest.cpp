@@ -223,20 +223,31 @@ try {
     mbs["halfHeight"].place(13.111);
     mbs.realize(Stage::Startup);
 
-    cout << "mbs/upper/massMeasure=" << mbs["upper/massMeasure"] << endl;
-    cout << "                     =" << mbs["upper/massMeasure"].getPlacement() << endl;
-    cout << "                     =" << mbs["upper/massMeasure"].getValue() << endl;
-    cout << "mbs/left/massMeasure =" << mbs["left/massMeasure"] << endl;
-    cout << "                     =" << mbs["left/massMeasure"].getPlacement() << endl;
-    cout << "                     =" << mbs["left/massMeasure"].getValue() << endl;
-    cout << "mbs/right/massMeasure=" << mbs["right/massMeasure"] << endl;
-    cout << "                     =" << mbs["right/massMeasure"].getPlacement() << endl;
-    cout << "                     =" << mbs["right/massMeasure"].getValue() << endl;
-
+    cout << "***BODY MASSES:" << endl;
+    cout << "mbs/upper/mass=" << mbs["upper/mass"] << endl;
+    cout << "              =" << mbs["upper/mass"].getPlacement() << endl;
+    cout << "              =" << mbs["upper/mass"].getValue() << endl;
+    cout << "mbs/left/mass =" << mbs["left/mass"] << endl;
+    cout << "                     =" << mbs["left/mass"].getPlacement() << endl;
+    cout << "                     =" << mbs["left/mass"].getValue() << endl;
+    cout << "mbs/right/mass=" << mbs["right/mass"] << endl;
+    cout << "              =" << mbs["right/mass"].getPlacement() << endl;
+    cout << "                     =" << mbs["right/mass"].getValue() << endl;
+    cout << endl << "***BODY CENTROIDS:" << endl;
+    cout << "mbs/upper/centroid=" << mbs["upper/centroid"] << endl;
+    cout << "                  =" << mbs["upper/centroid"].getPlacement() << endl;
+    cout << "                  =" << mbs["upper/centroid"].getValue() << endl;
+    cout << "mbs/left/centroid =" << mbs["left/centroid"] << endl;
+    cout << "                  =" << mbs["left/centroid"].getPlacement() << endl;
+    cout << "                  =" << mbs["left/centroid"].getValue() << endl;
+    cout << "mbs/right/centroid=" << mbs["right/centroid"] << endl;
+    cout << "                  =" << mbs["right/centroid"].getPlacement() << endl;
+    cout << "                  =" << mbs["right/centroid"].getValue() << endl;
+    cout << endl;
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-    mbs.checkSubsystemConsistency(0,-1,mbs);    
+    //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
     // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
@@ -254,14 +265,18 @@ try {
         if (Body::isInstanceOf(mbs[i])) {
             cout << mbs[i].getFullName() << ":" << endl;
             Real tmass = 0.;
+            Vec3 tcom(0.);
             for (int j=0; j<mbs[i].getNSubsystems(); ++j) {
                 if (MassElement::isInstanceOf(mbs[i][j])) {
-                    Real mass = MassElement::downcast(mbs[i][j]).getMassMeasure().getValue();
-                    cout << "  massElt " << mbs[i][j].getName() << " " << mass << endl;
+                    const MassElement& me = MassElement::downcast(mbs[i][j]);
+                    Real mass = me.getMassMeasure().getValue();
+                    Vec3 com  = me.getCentroidMeasure().getValue();
+                    cout << "  massElt " << mbs[i][j].getName() << "mass=" << mass << " com=" << com << endl;
                     tmass += mass;
+                    tcom += mass*com;
                 }
             }
-            cout << "... total mass=" << tmass << endl;
+            cout << "... total mass=" << tmass << " centroid=" << tcom/tmass << endl;
         }
 
     //FeatureList hasMass = mbs["upper"].select(MassElement::Selector());
@@ -277,7 +292,7 @@ try {
 //    rt["mbs/halfHeight"].place(5.);
 
 //    rt.realize();
-//    cout << "upper mass=" << rt["mbs/upper/massMeasure"].getValue() << endl;
+//    cout << "upper mass=" << rt["mbs/upper/mass"].getValue() << endl;
 
 
     ///////////////////////////
