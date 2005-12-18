@@ -116,12 +116,12 @@ private:
 class PlacementSlot {
     Placement        placement;    // the Placement expression in this slot
 
-    const Subsystem* owner;        // The Subsystem (if any) which owns this Placement
+    Subsystem*       owner;        // The Subsystem (if any) which owns this Placement
     int              indexInOwner; // ... and the index in its placementExpr list.
 
-    const Feature*   client;       // The Feature (if any) for which this is the Placement.
+    Feature*         client;       // The Feature (if any) for which this is the Placement.
                                    // That Feature's placement pointer must point right
-                                   // back here (through the Placement handle).
+                                   // back here.
 
     mutable PlacementValueSlot*  
                      valueSlot;    // Points to the cache entry designated to hold the
@@ -192,14 +192,16 @@ public:
     /// and needs to be repaired to point to the corresponding valueSlot in the new tree.
     void repairValueReference(const Subsystem& oldRoot, const Subsystem& newRoot);
 
-    void             setOwner(const Subsystem& s, int index) {owner = &s; indexInOwner=index;}
+    void             setOwner(Subsystem& s, int index) {owner = &s; indexInOwner=index;}
     bool             hasOwner()        const {return owner != 0;}
     const Subsystem& getOwner()        const {assert(owner);    return *owner;}
+    Subsystem&       updOwner()              {assert(owner);    return *owner;}
     int              getIndexInOwner() const {assert(owner);    return indexInOwner;}
 
-    void             setClientFeature(const Feature& f) {client = &f;}
+    void             setClientFeature(Feature& f)    {client = &f;}
     bool             hasClientFeature()        const {return client != 0;}
     const Feature&   getClientFeature()        const {assert(client); return *client;}
+    Feature&         updClientFeature()              {assert(client); return *client;}
 
     String toString(const String& linePrefix) const;
 
@@ -364,7 +366,13 @@ public:
 
     // Wipe out all PlacementValues. Note that this routine is const because PlacementValues
     // are mutable.
-    void deleteAllPlacementValues() const;
+    void deleteAllPlacementValuesInThisSubsystem() const;
+
+    // This performs the above operation repeatedly going up the Subsystem tree.
+    void deleteAllPlacementValuesFromHereToRoot() const;
+
+    // Delete an unwanted Placement, cleaning up the mess afterwards.
+    void deletePlacementSlot(size_t i);
 
     // Run around this subsystem and its children looking for Placements which can be
     // evaluated without going any higher in the Subsystem tree than the target Subsysytem, and

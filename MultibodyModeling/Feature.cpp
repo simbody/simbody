@@ -96,7 +96,14 @@ void Feature::place(const Placement& p) {
         SIMTK_THROW2(Exception::APIMethodFailed, "Feature::place()", exc.getMessage());
     }
 }
-
+void Feature::replace(const Placement& p) {
+    try {
+        updRep().replace(p);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW2(Exception::APIMethodFailed, "Feature::replace()", exc.getMessage());
+    }
+}
 const Placement& Feature::getPlacement() const {
     assert(hasPlacement());
     return getRep().getPlacementSlot().getPlacement();

@@ -104,7 +104,7 @@ protected:
             }
         }
 
-        updMassMeasure().place(totalMass);            
+        updMassMeasure().replace(totalMass);            
     }
 };
 

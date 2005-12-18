@@ -188,7 +188,7 @@ try {
     tube["halfLength"].place(lower["halfHeight"]);
 
     //cout << "L=" << lower; 
-    //lower.realize(Stage::Startup);
+    lower.realize(Stage::Startup);
     //cout  << "lower[tube]=" << lower["tube"] << endl;
     //cout  << "Subsystem(lower[tube])=" << Subsystem(lower["tube"]) << endl;
 
@@ -221,7 +221,7 @@ try {
 
 
     mbs["halfHeight"].place(13.111);
-    mbs.realize(/*State,*/ Stage::Startup);
+    mbs.realize(Stage::Startup);
 
     cout << "mbs/upper/massMeasure=" << mbs["upper/massMeasure"] << endl;
     cout << "                     =" << mbs["upper/massMeasure"].getPlacement() << endl;
@@ -236,7 +236,7 @@ try {
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
-    //mbs.checkSubsystemConsistency(0,-1,mbs);    
+    mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
     // std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;

@@ -114,8 +114,18 @@ public:
     const Placement& getPlacement() const {
         return getPlacementSlot().getPlacement();
     }
+    PlacementSlot& updPlacementSlot() {
+        return const_cast<PlacementSlot&>(getPlacementSlot());
+    }
+
+    // Someone is deleting our placement. Erase the pointer.
+    void clearPlacementSlot() {
+        placement=0;
+    }
 
     void place(const Placement& p);
+    void replace(const Placement& p);
+    void removePlacement();
 
     // Does the *placement* of this feature depend on the indicated one?
     // Note that we don't care about our child features' placements.

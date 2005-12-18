@@ -97,6 +97,7 @@ public:
     // Placement, and then add a copy of the prototype to that
     // owner. Then this Feature will refer to that copy as its Placement.
     void place(const Placement&);
+    void replace(const Placement&); // change the existing Placement
 
 
     // True if this is the same feature as f or if the feature's placement

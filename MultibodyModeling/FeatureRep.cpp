@@ -91,7 +91,7 @@ FeatureRep::useFeatureAsFramePlacement(FramePlacement&) const {
 // feature. Concrete FeatureRep's are responsible for interpreting the
 // Placement and possibly converting it to something usable.
 //
-// We have to decide on an owner feature for the placement expression.
+// We have to decide on an owner Subsystem for the placement expression.
 // That is the youngest common ancestor of this feature and all features
 // mentioned explicitly in the placement expression.
 //
@@ -103,7 +103,17 @@ void FeatureRep::place(const Placement& p) {
             getFullName());
         //NOTREACHED  
     }
+    replace(p);
+}
 
+// If this Feature already has a placement, we have to delete it and
+// wipe out everything that might depend on it (for now, all placement
+// values in the current feature, its parent and ancestors).
+//
+// If the new placement should be held by the same Subsystem as the
+// current one, we'll re-use the same slot. Otherwise we'll mark the
+// current slot unused and get a new one somewhere else.
+void FeatureRep::replace(const Placement& p) {
     assert(p.hasRep());
 
     // If possible, create a fixed-up copy of p which is suitable for
@@ -153,19 +163,44 @@ void FeatureRep::place(const Placement& p) {
         pTweaked.getRep().findAncestorSubsystem(youngestAllowed);
     assert(commonAncestor); // there has to be one since they are on the same tree!
 
-    // Please look the other way for a moment while we make a small change to
-    // this const Feature ...
-    PlacementSlot& good = 
-        const_cast<Subsystem*>(commonAncestor)->updRep().addPlacementLike(pTweaked);
+    // Now we have to decide what to do with the current placement's slot (if any).
+    // If its owner subsystem is the same as commonAncestor we just calculated,
+    // then we want to keep the same slot. Otherwise we'll delete the old one
+    // and assign a new one.
+
+    if (hasPlacement()) {
+        if (commonAncestor->isSameSubsystem(getPlacementSlot().getOwner()))
+            updPlacementSlot().updPlacement() = pTweaked;
+        else
+            removePlacement();
+    }
+
+    if (!hasPlacement()) {
+        // Please look the other way for a moment while we make a small change to
+        // this const Feature ...
+        PlacementSlot& good = 
+            const_cast<Subsystem*>(commonAncestor)->updRep().addPlacementLike(pTweaked);
+        placement = &good;
+        good.setClientFeature(updMyHandle());
+    }
+
+    assert(hasPlacement());
 
     // Some sanity (insanity?) checks.
-    assert(good.hasOwner());
-    assert(good.getPlacement().isConstant() || !good.getOwner().isSameSubsystem(getMyHandle()));
-    assert(SubsystemRep::isSubsystemInSubsystemTree(good.getOwner(), getMyHandle()));
-    assert(!good.getPlacement().dependsOn(getMyHandle())); // depends on *is* recursive
-    placement = &good;
-    good.setClientFeature(getMyHandle());
+    const Subsystem& owner = getPlacementSlot().getOwner();
+    assert(getPlacement().isConstant() || !owner.isSameSubsystem(getMyHandle()));
+    assert(SubsystemRep::isSubsystemInSubsystemTree(owner, getMyHandle()));
+    assert(!getPlacement().dependsOn(getMyHandle())); // depends on *is* recursive
+
     postProcessNewPlacement();
+}
+
+void FeatureRep::removePlacement() {
+    if (!hasPlacement()) return;
+    Subsystem& owner = updPlacementSlot().updOwner();
+    owner.updRep().deletePlacementSlot(getPlacementSlot().getIndexInOwner());
+    // that should have cleared our reference here
+    assert(!hasPlacement());
 }
 
 // This is for use by SubsystemRep after a copy to fix the placement pointer and back pointer.
@@ -173,7 +208,7 @@ void FeatureRep::fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& 
     if (placement) {
         placement = findCorrespondingPlacementSlot(oldRoot,*placement,newRoot);
         if (placement) 
-            const_cast<PlacementSlot*>(placement)->setClientFeature(getMyHandle());
+            const_cast<PlacementSlot*>(placement)->setClientFeature(updMyHandle());
     }
 }
 

@@ -138,8 +138,8 @@ void SubsystemRep::realize(Stage g) const {
     // to do this recursively to find all the unassigned Placements whose
     // highest Feature reference is one of the Placement expressions held here.
     if (g == Stage::Startup) {
+        deleteAllPlacementValuesInThisSubsystem();
         const_cast<SubsystemRep*>(this)->finalizeStandardSubfeatures();
-        deleteAllPlacementValues();
         allocatePlacementValueSlots(getMyHandle());
     }
 
@@ -196,7 +196,7 @@ Subsystem& SubsystemRep::findUpdRootSubsystem() {
 
 // Wipe out all PlacementValues. Note that this routine is const because PlacementValues
 // are mutable.
-void SubsystemRep::deleteAllPlacementValues() const {
+void SubsystemRep::deleteAllPlacementValuesInThisSubsystem() const {
     // Erase all references to the placement values (these may be in child subsystems).
     for (size_t i=0; i < placementValueSlots.size(); ++i) {
         PlacementValueSlot& pv = placementValueSlots[i];
@@ -204,6 +204,21 @@ void SubsystemRep::deleteAllPlacementValues() const {
             pv.getClientPlacementSlot().clearValueSlot();
     }
     placementValueSlots.clear();
+}
+
+void SubsystemRep::deleteAllPlacementValuesFromHereToRoot() const {
+    const SubsystemRep* nxt = this;
+    do {
+        nxt->deleteAllPlacementValuesInThisSubsystem();
+        nxt = nxt->parent ? nxt->parent->rep : 0;
+    } while (nxt);
+}
+
+void SubsystemRep::deletePlacementSlot(size_t i) {
+    assert(i < placementSlots.size());
+    deleteAllPlacementValuesFromHereToRoot(); // a little extreme, I know
+    updPlacementSlot(i).updClientFeature().updRep().clearPlacementSlot();
+    placementSlots.erase(i);
 }
 
 // Run around this subsystem and its children looking for Placements which can be
@@ -288,7 +303,7 @@ SubsystemRep::addPlacementLike(const Placement& p) {
     const int index = (int)placementSlots.size();
     placementSlots.push_back(PlacementSlot(p));
     PlacementSlot& newPlacementSlot = placementSlots[index];
-    newPlacementSlot.setOwner(getMyHandle(), index);
+    newPlacementSlot.setOwner(updMyHandle(), index);
     return newPlacementSlot;
 }
 
@@ -453,7 +468,7 @@ void SubsystemRep::reparentMyChildren() {
     for (size_t i=0; i < (size_t)getNPlacements(); ++i) {
         assert(placementSlots[i].hasOwner());
         assert(placementSlots[i].getIndexInOwner() == i);
-        placementSlots[i].setOwner(getMyHandle(), i);
+        placementSlots[i].setOwner(updMyHandle(), i);
     }
     for (size_t i=0; i < (size_t)getNPlacementValues(); ++i) {
         assert(placementValueSlots[i].hasOwner());
