@@ -39,7 +39,8 @@ namespace simtk {
  */
 class MassElementRep : public FeatureRep {
 public:
-    MassElementRep(MassElement& m, const std::string& nm) : FeatureRep(m,nm) { }
+    MassElementRep(MassElement& m, const std::string& nm, const Placement& sample) 
+        : FeatureRep(m,nm,sample) { }
     // must call initializeStandardSubfeatures() to complete construction.
 
 
@@ -70,12 +71,9 @@ private:
 class PointMassElementRep : public MassElementRep {
 public:
     PointMassElementRep(PointMassElement& pm, const std::string& nm) 
-      : MassElementRep(pm,nm), massIndex(-1) { }
+        : MassElementRep(pm,nm,StationPlacement(Vec3(NTraits<Real>::getNaN()))), 
+          massIndex(-1) { }
     // must call initializeStandardSubfeatures() to complete construction.
-
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToStationPlacement();
-    }
 
     // some self-placements
     void setMass(const Real& m) {
@@ -83,7 +81,6 @@ public:
     }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
-    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     SubsystemRep* clone() const { return new PointMassElementRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -123,15 +120,10 @@ protected:
 class CylinderMassElementRep : public MassElementRep {
 public:
     CylinderMassElementRep(CylinderMassElement& cm, const std::string& nm) 
-      : MassElementRep(cm,nm),
+      : MassElementRep(cm,nm,Placement()),  // "void" placement
         massIndex(-1), radiusIndex(-1), halfLengthIndex(-1), centerIndex(-1), axisIndex(-1)
     { }
     // must call initializeStandardSubfeatures() to complete construction.
-
-    // no placement for the cylinder as a whole
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return Placement();
-    }
 
     // some self-placements
     void setMass(const Real& m) {
@@ -152,9 +144,6 @@ public:
 
     std::string getFeatureTypeName() const { return "CylinderMassElement"; }
 
-    // Cylinder has subfeatures that need Placement, but does not
-    // have its own Placement.
-    PlacementType getRequiredPlacementType() const { return VoidPlacementType; }
     FeatureRep* clone() const { return new CylinderMassElementRep(*this); }
     PlacementRep* createFeatureReference(Placement&, int) const {
         SIMTK_THROW2(Exception::NoFeatureLevelPlacementForThisKindOfFeature,

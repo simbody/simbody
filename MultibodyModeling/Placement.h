@@ -78,6 +78,11 @@ public:
     bool dependsOn(const Feature&) const; // recursive dependency check
 
     String toString(const String& linePrefix="") const;
+    String getPlacementTypeName() const;
+
+    bool hasSameType(const Placement&) const;
+    bool canConvertToSameType(const Placement&) const;
+    Placement convertToSameType(const Placement&) const;
 
     // For internal use only.
     explicit Placement(class PlacementRep*);

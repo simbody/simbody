@@ -194,8 +194,8 @@ const Direction& Subsystem::getDirection(const String& n) const
   { return Direction::downcast(getSubsystem(n)); }
 const Orientation& Subsystem::getOrientation(const String& n) const
   { return Orientation::downcast(getSubsystem(n)); }
-const Frame& Subsystem::getFrame(const String& n) const
-  { return Frame::downcast(getSubsystem(n)); }
+const FrameFeature& Subsystem::getFrame(const String& n) const
+  { return FrameFeature::downcast(getSubsystem(n)); }
 
 // updXXX() methods
 Subsystem& Subsystem::updSubsystem(const String& n)
@@ -220,8 +220,8 @@ Direction& Subsystem::updDirection(const String& n)
   { return Direction::downcast(updSubsystem(n)); }
 Orientation& Subsystem::updOrientation(const String& n)
   { return Orientation::downcast(updSubsystem(n)); }
-Frame& Subsystem::updFrame(const String& n)
-  { return Frame::downcast(updSubsystem(n)); }
+FrameFeature& Subsystem::updFrame(const String& n)
+  { return FrameFeature::downcast(updSubsystem(n)); }
 
 // addXXX() methods
 RealParameter& Subsystem::addRealParameter(const String& n, const Placement& p) {
@@ -269,8 +269,8 @@ Orientation& Subsystem::addOrientation(const String& n, const Placement& p) {
     if (p.hasRep()) o.place(p);
     return o;
 }
-Frame& Subsystem::addFrame(const String& n, const Placement& p) {
-    Frame& f = Frame::downcast(updRep().addSubsystemLike(Frame(n), n));
+FrameFeature& Subsystem::addFrame(const String& n, const Placement& p) {
+    FrameFeature& f = FrameFeature::downcast(updRep().addSubsystemLike(FrameFeature(n), n));
     if (p.hasRep()) f.place(p);
     return f;
 }

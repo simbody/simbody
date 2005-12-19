@@ -39,7 +39,7 @@ class Feature;
 class Station;
 class Direction;
 class Orientation;
-class Frame;
+class FrameFeature;
 class RealMeasure;
 class   RealParameter;
 class Vec3Measure;
@@ -70,14 +70,19 @@ public:
     RealPlacement(const RealMeasure&);
     explicit RealPlacement(const Feature&);
 
+    static bool          canConvert(const Placement&);
+    static RealPlacement convert(const Placement&);
+
+    static bool                 isInstanceOf(const Placement&);
+
+    static const RealPlacement& downcast(const Placement&);
+    static RealPlacement&       downcast(Placement&);
+
     // For internal use only.
     explicit RealPlacement(class RealPlacementRep* r) 
       : Placement(reinterpret_cast<PlacementRep*>(r)) { }
     const RealPlacementRep& getRep() const
       { return *reinterpret_cast<const RealPlacementRep*>(rep); }
-    static bool                 isInstanceOf(const Placement&);
-    static const RealPlacement& downcast(const Placement&);
-    static RealPlacement&       downcast(Placement&);
 };
 
 class Vec3Placement : public Placement {
@@ -87,6 +92,9 @@ public:
     Vec3Placement(const Vec3Measure&);
     Vec3Placement(const Vec3Parameter&);
     explicit Vec3Placement(const Feature&);
+
+    static bool          canConvert(const Placement&);
+    static Vec3Placement convert(const Placement&);
 
     // For internal use only.
     explicit Vec3Placement(class Vec3PlacementRep* r) 
@@ -105,7 +113,7 @@ public:
     StationPlacement(const StationMeasure&);   // implicit conversion
     StationPlacement(const StationParameter&); // implicit conversion
     explicit StationPlacement(const Vec3&);
-    explicit StationPlacement(const Frame&);   // use the origin
+    explicit StationPlacement(const FrameFeature&);   // use the origin
     explicit StationPlacement(const Feature&);
 
     // For internal use only.
@@ -128,7 +136,7 @@ public:
     explicit DirectionPlacement(const Feature&);
 
     DirectionPlacement(const Orientation&, int i);  // use the i'th axis
-    DirectionPlacement(const Frame&, int i);        // use the i'th axis
+    DirectionPlacement(const FrameFeature&, int i);        // use the i'th axis
 
     // For internal use only.
     explicit DirectionPlacement(class DirectionPlacementRep* r) 
@@ -148,7 +156,7 @@ public:
     OrientationPlacement(const OrientationMeasure&);    // implicit conversion
 
     explicit OrientationPlacement(const Mat33&);
-    explicit OrientationPlacement(const Frame&);        // use the orientation
+    explicit OrientationPlacement(const FrameFeature&);        // use the orientation
     explicit OrientationPlacement(const Feature&);
 
     // For internal use only.
@@ -164,7 +172,9 @@ public:
 class FramePlacement : public Placement {
 public:
     FramePlacement() { }
-    FramePlacement(const Frame&);                       // implicit conversion
+    FramePlacement(const FrameFeature&);                       // implicit conversion
+
+    explicit FramePlacement(const Mat34&);
 
     // Inherit the orientation from the Station feature's parent.
     explicit FramePlacement(const Station&);
@@ -173,8 +183,6 @@ public:
     explicit FramePlacement(const Orientation&);
 
     FramePlacement(const Orientation&, const Station&);
-
-    //explicit FramePlacement(const Placement&);
 
     // For internal use only.
     explicit FramePlacement(class FramePlacementRep* r) 

@@ -28,9 +28,9 @@
  * This is not the data structure used at run time, so the emphasis is on 
  * nice behavior for the caller. We'll have plenty of time for speed later.
  *
- * Feature: Station, Direction, Frame, MassElement, ...
+ * Feature: Station, Direction, FrameFeature, MassElement, ...
  * Placement: constant, expression or feature
- * Body: is a Frame, has (Feature,Placement) pairs
+ * Body: is a FrameFeature, has (Feature,Placement) pairs
  *
  */
 
@@ -74,7 +74,7 @@ enum JointType {
 /**
  * This is an abstract class representing all the bodies.
  */
-class Body : public Frame {
+class Body : public FrameFeature {
 public:
     const RealMeasure&    getMass() const;
     const StationMeasure& getCentroid() const;
@@ -120,7 +120,7 @@ public:
     Multibody& operator=(const Multibody&);
     ~Multibody();
 
-    const Frame& getGroundFrame() const;
+    const FrameFeature& getGroundFrame() const;
 
     // add Multibody features
     RigidBody& addGroundBody();

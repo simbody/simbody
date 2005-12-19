@@ -154,14 +154,14 @@ public:
     PlacementType getRequiredPlacementType() const { return VoidPlacementType; }
     SubsystemRep* clone() const { return new JointRep(*this); }
 
-    const Frame& getReferenceFrame() const {return Frame::downcast(getFeature(refIndex));}
-    const Frame& getMovingFrame()    const {return Frame::downcast(getFeature(movIndex)); }
+    const FrameFeature& getReferenceFrame() const {return FrameFeature::downcast(getFeature(refIndex));}
+    const FrameFeature& getMovingFrame()    const {return FrameFeature::downcast(getFeature(movIndex)); }
 
     SIMTK_DOWNCAST(JointRep,SubsystemRep);
 protected:
     virtual void initializeStandardSubfeatures() {
-        Frame& R = Frame::downcast(addFeatureLike(Frame("R"), "reference"));
-        Frame& M = Frame::downcast(addFeatureLike(Frame("M"), "moving"));
+        FrameFeature& R = FrameFeature::downcast(addFeatureLike(FrameFeature("R"), "reference"));
+        FrameFeature& M = FrameFeature::downcast(addFeatureLike(FrameFeature("M"), "moving"));
 
         refIndex = R.getIndexInParent();
         movIndex = M.getIndexInParent();

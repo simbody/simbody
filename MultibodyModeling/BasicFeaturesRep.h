@@ -42,13 +42,14 @@ namespace simtk {
 
 class RealParameterRep : public FeatureRep {
 public:
-    RealParameterRep(RealParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    RealParameterRep(RealParameter& p, const std::string& nm) 
+        : FeatureRep(p,nm,RealPlacement(NTraits<Real>::getNaN())) { }
     // no standard Subfeatures
 
     ~RealParameterRep() { }
 
     std::string getFeatureTypeName() const { return "RealParameter"; }
-    PlacementType getRequiredPlacementType() const { return RealPlacementType; }
+
     SubsystemRep* clone() const { return new RealParameterRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const {
         if (!(i==-1 || i==0)) {
@@ -61,9 +62,6 @@ public:
         return prep;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToRealPlacement();
-    }
 
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
@@ -76,13 +74,13 @@ public:
 
 class Vec3ParameterRep : public FeatureRep {
 public:
-    Vec3ParameterRep(Vec3Parameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    Vec3ParameterRep(Vec3Parameter& p, const std::string& nm) 
+        : FeatureRep(p,nm,Vec3Placement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~Vec3ParameterRep() { }
 
     std::string getFeatureTypeName() const { return "Vec3Parameter"; }
-    PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
     SubsystemRep* clone() const { return new Vec3ParameterRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const {
@@ -102,10 +100,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToVec3Placement();
-    }
-
     PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
         PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -117,13 +111,13 @@ public:
 
 class StationParameterRep : public FeatureRep {
 public:
-    StationParameterRep(StationParameter& p, const std::string& nm) : FeatureRep(p,nm) { }
+    StationParameterRep(StationParameter& p, const std::string& nm) 
+        : FeatureRep(p,nm,StationPlacement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~StationParameterRep() { }
 
     std::string getFeatureTypeName() const { return "StationParameter"; }
-    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     SubsystemRep* clone() const { return new StationParameterRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -143,10 +137,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToStationPlacement();
-    }
-
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
         PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -158,13 +148,13 @@ public:
 
 class RealMeasureRep : public FeatureRep {
 public:
-    RealMeasureRep(RealMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    RealMeasureRep(RealMeasure& m, const std::string& nm) 
+        : FeatureRep(m,nm,RealPlacement(NTraits<Real>::getNaN())) { }
     // no standard Subfeatures
 
     ~RealMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "RealMeasure"; }
-    PlacementType getRequiredPlacementType() const { return RealPlacementType; }
     SubsystemRep* clone() const { return new RealMeasureRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const {
@@ -178,10 +168,6 @@ public:
         return prep;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToRealPlacement();
-    }
-
     PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -193,13 +179,13 @@ public:
 
 class Vec3MeasureRep : public FeatureRep {
 public:
-    Vec3MeasureRep(Vec3Measure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    Vec3MeasureRep(Vec3Measure& m, const std::string& nm) 
+        : FeatureRep(m,nm,Vec3Placement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~Vec3MeasureRep() { }
 
     std::string getFeatureTypeName() const { return "Vec3Measure"; }
-    PlacementType getRequiredPlacementType() const { return Vec3PlacementType; }
     SubsystemRep* clone() const { return new Vec3MeasureRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -220,10 +206,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToVec3Placement();
-    }
-
     PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
         PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -235,13 +217,13 @@ public:
 
 class StationMeasureRep : public FeatureRep {
 public:
-    StationMeasureRep(StationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    StationMeasureRep(StationMeasure& m, const std::string& nm) 
+        : FeatureRep(m,nm,StationPlacement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~StationMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "StationMeasure"; }
-    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     SubsystemRep* clone() const { return new StationMeasureRep(*this); }
  
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -262,10 +244,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToStationPlacement();
-    }
-
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
         PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -277,13 +255,13 @@ public:
 
 class StationRep : public FeatureRep {
 public:
-    StationRep(Station& s, const std::string& nm) : FeatureRep(s,nm) { }
+    StationRep(Station& s, const std::string& nm) 
+        : FeatureRep(s,nm,StationPlacement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~StationRep() { }
 
     std::string getFeatureTypeName() const { return "Station"; }
-    PlacementType getRequiredPlacementType() const { return StationPlacementType; }
     SubsystemRep* clone() const { return new StationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -304,10 +282,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToStationPlacement();
-    }
-
     PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
         PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -315,12 +289,12 @@ public:
     }
 
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentSubsystem() && Frame::isInstanceOf(getParentSubsystem()))) {
+        if (!(hasParentSubsystem() && FrameFeature::isInstanceOf(getParentSubsystem()))) {
             SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
                      getFullName(), "Station", "Orientation");
             //NOTREACHED
         }
-        const Frame& parentFrame = Frame::downcast(getParentSubsystem());
+        const FrameFeature& parentFrame = FrameFeature::downcast(getParentSubsystem());
         PlacementRep* prep = new FrameExprPlacementRep(parentFrame.getOrientation(), 
                                                        Station::downcast(getMyHandle()));
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -332,13 +306,13 @@ public:
 
 class DirectionMeasureRep : public FeatureRep {
 public:
-    DirectionMeasureRep(DirectionMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    DirectionMeasureRep(DirectionMeasure& m, const std::string& nm) 
+        : FeatureRep(m,nm,DirectionPlacement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~DirectionMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "DirectionMeasure"; }
-    PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     SubsystemRep* clone() const { return new DirectionMeasureRep(*this); }
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep = 0;
@@ -358,10 +332,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToDirectionPlacement();
-    }
-
     PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
         PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -373,14 +343,15 @@ public:
 
 class DirectionRep : public FeatureRep {
 public:
-    DirectionRep(Direction& s, const std::string& nm) : FeatureRep(s,nm) { }
+    DirectionRep(Direction& s, const std::string& nm) 
+        : FeatureRep(s,nm,DirectionPlacement(Vec3(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~DirectionRep() { }
 
     std::string getFeatureTypeName() const { return "Direction"; }
-    PlacementType getRequiredPlacementType() const { return DirectionPlacementType; }
     SubsystemRep* clone() const { return new DirectionRep(*this); }
+
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
         if (i == -1) 
@@ -399,10 +370,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToDirectionPlacement();
-    }
-
     PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
         PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -415,14 +382,15 @@ public:
 
 class OrientationMeasureRep : public FeatureRep {
 public:
-    OrientationMeasureRep(OrientationMeasure& m, const std::string& nm) : FeatureRep(m,nm) { }
+    OrientationMeasureRep(OrientationMeasure& m, const std::string& nm) 
+        : FeatureRep(m,nm,OrientationPlacement(Mat33(NTraits<Real>::getNaN()))) { }
     // no standard Subfeatures
 
     ~OrientationMeasureRep() { }
 
     std::string getFeatureTypeName() const { return "OrientationMeasure"; }
-    PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     SubsystemRep* clone() const { return new OrientationMeasureRep(*this); }
+
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
         if (i == -1) 
@@ -441,10 +409,6 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToOrientationPlacement();
-    }
-
     PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
         PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -456,14 +420,14 @@ public:
 
 class OrientationRep : public FeatureRep {
 public:
-    OrientationRep(Orientation& o, const std::string& nm) : FeatureRep(o,nm)
+    OrientationRep(Orientation& o, const std::string& nm) 
+        : FeatureRep(o,nm,OrientationPlacement(Mat33(NTraits<Real>::getNaN())))
       { axisIndices[0]=axisIndices[1]=axisIndices[2] = -1; }
     // must call initializeStandardSubfeatures() to complete construction.
 
     ~OrientationRep() { }
 
     std::string   getFeatureTypeName() const { return "Orientation"; }
-    PlacementType getRequiredPlacementType() const { return OrientationPlacementType; }
     SubsystemRep*   clone() const { return new OrientationRep(*this); }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
@@ -483,22 +447,18 @@ public:
         return 0;
     }
 
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToOrientationPlacement();
-    }
-
     PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
         PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(handle); handle.setRep(prep);
         return prep;
     }
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentSubsystem() && Frame::isInstanceOf(getParentSubsystem()))) {
+        if (!(hasParentSubsystem() && FrameFeature::isInstanceOf(getParentSubsystem()))) {
             SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
                      getFullName(), "Orientation", "Station");
             //NOTREACHED
         }
-        const Frame& parentFrame = Frame::downcast(getParentSubsystem());
+        const FrameFeature& parentFrame = FrameFeature::downcast(getParentSubsystem());
         PlacementRep* prep = new FrameExprPlacementRep(Orientation::downcast(getMyHandle()),
                                                        parentFrame.getOrigin());
         prep->setMyHandle(handle); handle.setRep(prep);
@@ -532,17 +492,15 @@ private:
 
 class FrameRep : public FeatureRep {
 public:
-    FrameRep(Frame& f, const std::string& nm) 
-      : FeatureRep(f,nm), RIndex(-1), OIndex(-1) { }
+    FrameRep(FrameFeature& f, const std::string& nm) 
+      : FeatureRep(f,nm,FramePlacement(Mat34(NTraits<Real>::getNaN()))), RIndex(-1), OIndex(-1) { }
     // must call initializeStandardSubfeatures() to complete construction.
 
     ~FrameRep() { }
 
     // still overrideable for bodies.
-    virtual std::string   getFeatureTypeName() const { return "Frame"; }
+    virtual std::string   getFeatureTypeName() const { return "FrameFeature"; }
     virtual SubsystemRep*   clone() const { return new FrameRep(*this); }
-
-    PlacementType getRequiredPlacementType() const { return FramePlacementType; }
 
     PlacementRep* createFeatureReference(Placement& p, int i) const { 
         PlacementRep* prep=0;
@@ -562,10 +520,6 @@ public:
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
         return 0;
-    }
-
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return p.getRep().castToFramePlacement();
     }
 
     PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {

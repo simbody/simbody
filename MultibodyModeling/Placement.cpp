@@ -123,6 +123,28 @@ bool Placement::isConstant() const {
     return rep && rep->isConstant();
 }
 
+String Placement::getPlacementTypeName() const {
+    return rep ? rep->getPlacementTypeName() : "Void";
+}
+
+bool Placement::hasSameType(const Placement& p) const {
+    if (!rep) return !p.rep;
+    return rep->isSameType(p);
+}
+
+bool Placement::canConvertToSameType(const Placement& p) const {
+    if (!rep || !p.rep) return false;
+    return rep->canCreateFrom(p);
+}
+
+Placement Placement::convertToSameType(const Placement& p) const {
+    PlacementRep* converted = rep->createFrom(p);
+    assert(converted);
+    return Placement(converted);
+}
+
+
+
 bool Placement::dependsOn(const Feature& f) const {
     return rep && rep->dependsOn(f);
 }

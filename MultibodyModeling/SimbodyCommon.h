@@ -201,6 +201,17 @@ public:
 private:
 };
 
+class AFeatureCantBePlacedOnItself : public Base {
+public:
+    AFeatureCantBePlacedOnItself(const char* fn, int ln,
+                                 String featureName) : Base(fn,ln)
+    {
+        setMessage("Can't place Feature '" + featureName + "' on a Placement expression "
+                   "which directly or indirectly depends on that Feature.");
+    }
+private:
+};
+
 class UnaryOperationNotAllowedForPlacementType : public Base {
 public:
     UnaryOperationNotAllowedForPlacementType(const char* fn, int ln, 

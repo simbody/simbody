@@ -43,7 +43,7 @@ class   Feature;
 class       Station;
 class       Direction;
 class       Orientation;
-class       Frame;
+class       FrameFeature;
 class           Body;
 class               RigidBody;
 class               DeformableBody;
@@ -106,7 +106,7 @@ public:
     const Station&          getStation         (const String&) const;
     const Direction&        getDirection       (const String&) const;
     const Orientation&      getOrientation     (const String&) const;
-    const Frame&            getFrame           (const String&) const;
+    const FrameFeature&            getFrame           (const String&) const;
 
     // Writable access to subsystems, e.g. allowing feature placement.
     Subsystem&              updSubsystem       (const String&);   // generic
@@ -120,7 +120,7 @@ public:
     Station&                updStation         (const String&);
     Direction&              updDirection       (const String&);
     Orientation&            updOrientation     (const String&);
-    Frame&                  updFrame           (const String&);
+    FrameFeature&                  updFrame           (const String&);
 
     // Create a new feature on this subsystem with a given name and type, and
     // optionally create a placement for it using the prototype placement supplied.
@@ -142,7 +142,7 @@ public:
                         (const String&, const Placement& = Placement());
     Orientation&      addOrientation
                         (const String&, const Placement& = Placement());
-    Frame&            addFrame
+    FrameFeature&            addFrame
                         (const String&, const Placement& = Placement());
 
     // This is similar to the "add" routines above, except that the newly created

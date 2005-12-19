@@ -319,7 +319,7 @@ private:
 };
 
 /**
- * Abstract class which represents an operator which returns a Frame
+ * Abstract class which represents an operator which returns a FrameFeature
  * result when applied to an argument list of Placements.
  */
 class FramePlacementOp : public PlacementOp {
@@ -348,7 +348,7 @@ public:
             case NoneYet: p="NoneYet"; break;
             default:      p="UNKNOWN OP";
         };
-        return std::string(p) + "<Frame>";
+        return std::string(p) + "<FrameFeature>";
     }
 
     Mat34 apply(/*State,*/ const std::vector<Placement>&) const;
@@ -427,11 +427,6 @@ protected:
     void             refRepairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot);
     std::string      refToString(const std::string& linePrefix) const;
 
-    // Return the required placement type for the referenced feature (after indexing).
-    // That isn't necessarily the same as the type of the enclosing Placement, which
-    // may be performing some kind of transformation (Station to Vec3, say.)
-    PlacementType refGetPlacementType() const;
-
 private:
     const Feature* feature;
     const int      index;
@@ -443,26 +438,28 @@ public:
     explicit PlacementRep() : myHandle(0) { }
     virtual ~PlacementRep() { }
 
-    virtual PlacementValue createEmptyPlacementValue() const = 0;
-
     // This gets the Placement expression ready to evaluate.
     virtual void realize(Stage) const = 0;
 
-    // This performs the calculation.
+    // This performs the calculation and stuffs the result into the
+    // supplied PlacementValue.
     virtual void evaluate(PlacementValue&) const = 0;
 
-    // These are the generic Placement operators, overloaded by argument type.
-    // The default implementations provided here throw an exception saying 
-    // that the operator is not supported on the given arguments. Any concrete
-    // PlacementRep that thinks it knows how to implement one of these should 
-    // override the default implementation.
+    // Can we create an instance of this type of Placement by conversion
+    // from the Placement p? I.e., Vec3 might say yes if p were a
+    // Station and Station might say yes if p were a Frame. Note that these
+    // must be resolved at the parent class of a family of PlacementReps
+    // which are of the same type.
+    virtual bool canCreateFrom(const Placement& p) const = 0;
+    virtual PlacementRep* createFrom(const Placement&) const = 0;
+    virtual bool isSameType(const Placement&) const = 0;
 
-    virtual RealPlacement        castToRealPlacement()        const;
-    virtual Vec3Placement        castToVec3Placement()        const;
-    virtual StationPlacement     castToStationPlacement()     const;
-    virtual DirectionPlacement   castToDirectionPlacement()   const;
-    virtual OrientationPlacement castToOrientationPlacement() const;
-    virtual FramePlacement       castToFramePlacement()       const;
+    virtual std::string    getPlacementTypeName() const = 0;
+    virtual int            getNIndicesAllowed()   const = 0;
+    virtual PlacementValue createEmptyPlacementValue() const = 0;
+
+    virtual PlacementRep* clone()            const = 0;
+    virtual std::string   toString(const std::string& linePrefix) const = 0;
 
     virtual Placement genericNegate()    const;
     virtual Placement genericAbs()       const;
@@ -477,7 +474,7 @@ public:
     virtual Placement genericNormalize() const;
 
     virtual Placement genericAdd         (const Placement& rhs) const;
-    virtual Placement genericSub         (const Placement& rhs) const ;
+    virtual Placement genericSub         (const Placement& rhs) const;
     virtual Placement genericMul         (const Placement& rhs) const;
     virtual Placement genericDvd         (const Placement& rhs) const;
     virtual Placement genericDistance    (const Placement& rhs) const;
@@ -485,9 +482,6 @@ public:
     virtual Placement genericDotProduct  (const Placement& rhs) const;
     virtual Placement genericCrossProduct(const Placement& rhs) const;
 
-    virtual PlacementType getPlacementType() const = 0;
-    virtual PlacementRep* clone()            const = 0;
-    virtual std::string   toString(const std::string& linePrefix) const = 0;
 
     virtual bool isConstant() const { return false; }
     virtual bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
@@ -521,11 +515,8 @@ public:
     const Placement& getMyHandle()     const {assert(myHandle); return *myHandle;}
     Placement&       updMyHandle()           {assert(myHandle); return *myHandle;} 
 
-    static const char* getPlacementTypeName(PlacementType t);
-    static int getNIndicesAllowed(PlacementType t);
-
     // If a PlacementType is indexed, what is the resulting PlacementType?
-    static PlacementType getIndexedPlacementType(PlacementType t, int i);
+    //static PlacementType getIndexedPlacementType(PlacementType t, int i);
 
 private:
     Placement*       myHandle;     // the Placement whose rep this is
@@ -543,8 +534,14 @@ public:
       { return RealPlacement::downcast(PlacementRep::getMyHandle()); }
 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Real>();}
+    std::string    getPlacementTypeName()      const {return "Real";}
+    int            getNIndicesAllowed()        const {return 1;} // no index or index==0
 
-    PlacementType getPlacementType() const { return RealPlacementType; }
+    // TODO: at least Int should be convertable.
+    bool          canCreateFrom(const Placement& p) const { return false; }
+    PlacementRep* createFrom   (const Placement&) const { return 0; }
+    bool isSameType(const Placement& p) const {return RealPlacement::isInstanceOf(p);}
+
     // realize, clone, toString, findAncestorSubsystem are still missing
 
     // These are unary operators on a RealPlacement or binary operators
@@ -699,8 +696,6 @@ private:
     static RealExprPlacementRep* binaryOp(RealOps::OpKind, const Placement& l, const Placement& r);
 };
 
-
-
 /**
  * A PlacementRep with a Vec3 value. This is still abstract.
  */
@@ -710,10 +705,18 @@ public:
     virtual ~Vec3PlacementRep() { }
     const Vec3Placement& getMyHandle() const 
       { return Vec3Placement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
-    DirectionPlacement castToDirectionPlacement() const;
-    StationPlacement   castToStationPlacement() const;
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
+    std::string    getPlacementTypeName()      const {return "Vec3";}
+    int            getNIndicesAllowed()        const {return 3;} // 3 reals
+
+    static bool canCreateVec3From(const Placement& p);
+    static PlacementRep* createVec3From(const Placement& p);
+
+    bool          canCreateFrom(const Placement& p) const {return canCreateVec3From(p);}
+    PlacementRep* createFrom   (const Placement& p) const {return createVec3From(p);}
+
+    bool isSameType(const Placement& p) const {return Vec3Placement::isInstanceOf(p);}
 
     Placement genericNegate() const;
     Placement genericLength() const;
@@ -727,7 +730,6 @@ public:
     Placement genericCrossProduct(const Placement& rhs) const;
     Placement genericAngle(const Placement& rhs) const;
 
-    PlacementType getPlacementType() const { return Vec3PlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
@@ -868,11 +870,14 @@ public:
       { return StationPlacement::downcast(PlacementRep::getMyHandle()); }
 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
+    std::string    getPlacementTypeName()      const {return "Station";}
+    int            getNIndicesAllowed()        const {return 3;} // 3 reals
 
-    PlacementType getPlacementType() const { return StationPlacementType; }
+    bool          canCreateFrom(const Placement& p) const;
+    PlacementRep* createFrom   (const Placement& p) const;
+    bool isSameType(const Placement& p) const {return StationPlacement::isInstanceOf(p);}
+
     // clone, toString, findAncestorSubsystem are still missing
-
-    Vec3Placement castToVec3Placement() const;
 
     Placement genericNegate()    const;
     Placement genericLength()    const;
@@ -961,9 +966,9 @@ public:
         if (!isIndexed() 
             && Station::isInstanceOf(getReferencedFeature()) 
             && getReferencedFeature().hasParentSubsystem()
-            && Frame::isInstanceOf(getReferencedFeature().getParentSubsystem()))
+            && FrameFeature::isInstanceOf(getReferencedFeature().getParentSubsystem()))
         {
-            return FramePlacement(Frame::downcast(getReferencedFeature()
+            return FramePlacement(FrameFeature::downcast(getReferencedFeature()
                                                     .getParentSubsystem()).getOrientation(),
                                   Station::downcast(getReferencedFeature()));
         }
@@ -1027,9 +1032,14 @@ public:
     virtual ~DirectionPlacementRep() { }
     const DirectionPlacement& getMyHandle() const 
       { return DirectionPlacement::downcast(PlacementRep::getMyHandle()); }
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
 
-    Vec3Placement castToVec3Placement() const;
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
+    std::string    getPlacementTypeName() const { return "Direction"; }
+    int            getNIndicesAllowed()        const {return 3;} // 3 reals
+
+    bool          canCreateFrom(const Placement& p) const;
+    PlacementRep* createFrom   (const Placement& p) const;
+    bool isSameType(const Placement& p) const {return DirectionPlacement::isInstanceOf(p);}
 
     // Negating a direction yields another direction
     Placement genericNegate() const;
@@ -1047,7 +1057,6 @@ public:
 
     Placement genericAngle       (const Placement& rhs) const;
 
-    PlacementType getPlacementType() const { return DirectionPlacementType; }
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
@@ -1181,8 +1190,13 @@ public:
       { return OrientationPlacement::downcast(PlacementRep::getMyHandle()); }
 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat33>();}
+    std::string    getPlacementTypeName()      const {return "Orientation";}
+    int            getNIndicesAllowed()        const {return 3;} // 3 Directions
 
-    PlacementType getPlacementType() const { return OrientationPlacementType; }
+    bool canCreateFrom(const Placement& p) const {return false;}
+    PlacementRep* createFrom(const Placement& p) const {return 0;}
+    bool isSameType(const Placement& p) const {return OrientationPlacement::isInstanceOf(p);}
+
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
@@ -1311,8 +1325,13 @@ public:
       { return FramePlacement::downcast(PlacementRep::getMyHandle()); }
 
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat34>();}
+    std::string    getPlacementTypeName()      const {return "Frame";}
+    int            getNIndicesAllowed()        const {return 2;} // Orientation, Station
 
-    PlacementType getPlacementType() const { return FramePlacementType; }
+    bool canCreateFrom(const Placement& p) const {return false;}
+    PlacementRep* createFrom(const Placement& p) const {return 0;}
+    bool isSameType(const Placement& p) const {return FramePlacement::isInstanceOf(p);}
+
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
@@ -1369,7 +1388,7 @@ private:
 
 /**
  * A concrete PlacementRep whose value is the same as that of a specified
- * Feature which uses a Frame placement.
+ * Feature which uses a FrameFeature placement.
  */
 class FrameFeaturePlacementRep : public FramePlacementRep, public FeatureReference {
 public:
@@ -1437,7 +1456,7 @@ public:
 
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Frame[" << orientation.toString() << ", " << origin.toString() << "]";
+        s << "FrameFeature[" << orientation.toString() << ", " << origin.toString() << "]";
         return s.str();
     }
 

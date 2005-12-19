@@ -89,6 +89,17 @@ Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
     rep = rm.getRep().useFeatureAsVec3Placement(*this);
 }
 
+/*static*/bool Vec3Placement::canConvert(const Placement& p) {
+    if (!p.hasRep()) return false;
+    return Vec3PlacementRep::canCreateVec3From(p);
+}
+
+/*static*/Vec3Placement Vec3Placement::convert(const Placement& p) {
+PlacementRep* converted = Vec3PlacementRep::createVec3From(p);
+    assert(converted);
+    return Vec3Placement(reinterpret_cast<Vec3PlacementRep*>(converted));
+}
+
 /*static*/ bool             
 Vec3Placement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
@@ -121,7 +132,7 @@ StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
-StationPlacement::StationPlacement(const Frame& f) {
+StationPlacement::StationPlacement(const FrameFeature& f) {
     rep = f.getOrigin().getRep().useFeatureAsStationPlacement(*this);
 }
 StationPlacement::StationPlacement(const Feature& f) {
@@ -163,7 +174,7 @@ DirectionPlacement::DirectionPlacement(const Feature& f) {
 DirectionPlacement::DirectionPlacement(const Orientation& o, int i) {
     rep = o.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
 }
-DirectionPlacement::DirectionPlacement(const Frame& f, int i) {
+DirectionPlacement::DirectionPlacement(const FrameFeature& f, int i) {
     rep = f.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
 }
 
@@ -196,7 +207,7 @@ OrientationPlacement::OrientationPlacement(const Mat33& m) {
     rep = new OrientationConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }
-OrientationPlacement::OrientationPlacement(const Frame& f) {
+OrientationPlacement::OrientationPlacement(const FrameFeature& f) {
     rep = f.getOrientation().getRep().useFeatureAsOrientationPlacement(*this);
 }
 OrientationPlacement::OrientationPlacement(const Feature& f) {
@@ -225,8 +236,13 @@ FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
     rep->setMyHandle(*this);
 }
 
-FramePlacement::FramePlacement(const Frame& f) {
+FramePlacement::FramePlacement(const FrameFeature& f) {
     rep = f.getRep().useFeatureAsFramePlacement(*this);
+}
+
+FramePlacement::FramePlacement(const Mat34& m) {
+    rep = new FrameConstantPlacementRep(m);
+    rep->setMyHandle(*this);
 }
 
 FramePlacement::FramePlacement(const Station& s) {

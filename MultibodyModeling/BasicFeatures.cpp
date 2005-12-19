@@ -454,47 +454,47 @@ Orientation::downcast(Subsystem& f) {
 }
 
     // FRAME //
-Frame::Frame(const String& nm) : Feature() {
+FrameFeature::FrameFeature(const String& nm) : Feature() {
     rep = new FrameRep(*this, std::string(nm));
     rep->initializeStandardSubfeatures();
 }
-Frame::Frame(const Frame& src) : Feature(src) { }
-Frame& Frame::operator=(const Frame& src)
+FrameFeature::FrameFeature(const FrameFeature& src) : Feature(src) { }
+FrameFeature& FrameFeature::operator=(const FrameFeature& src)
   { Feature::operator=(src); return *this; }
-Frame::~Frame() { }
+FrameFeature::~FrameFeature() { }
 
 const FramePlacement& 
-Frame::getPlacement() const {
+FrameFeature::getPlacement() const {
     return FramePlacement::downcast(getRep().getPlacement());
 }
 
 const Mat34& 
-Frame::getValue() const {
+FrameFeature::getValue() const {
     return PlacementValue_<Mat34>::downcast(getRep().getPlacementSlot().getValue());
 }
 
-const Orientation& Frame::getOrientation() const {
+const Orientation& FrameFeature::getOrientation() const {
     return FrameRep::downcast(getRep()).getOrientation();
 }
-const Station& Frame::getOrigin() const {
+const Station& FrameFeature::getOrigin() const {
     return FrameRep::downcast(getRep()).getOrigin();
 }
 
 /*static*/ bool             
-Frame::isInstanceOf(const Subsystem& f) {
+FrameFeature::isInstanceOf(const Subsystem& f) {
     if (!f.hasRep()) return false;
     return FrameRep::isA(f.getRep());
 }
-/*static*/ const Frame& 
-Frame::downcast(const Subsystem& f) {
+/*static*/ const FrameFeature& 
+FrameFeature::downcast(const Subsystem& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<const Frame&>(f);
+    return reinterpret_cast<const FrameFeature&>(f);
 }
 
-/*static*/ Frame&       
-Frame::downcast(Subsystem& f) {
+/*static*/ FrameFeature&       
+FrameFeature::downcast(Subsystem& f) {
     assert(isInstanceOf(f));
-    return reinterpret_cast<Frame&>(f);
+    return reinterpret_cast<FrameFeature&>(f);
 }
 
 } // namespace simtk

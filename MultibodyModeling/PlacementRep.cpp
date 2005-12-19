@@ -107,8 +107,8 @@ void PlacementExpr::exprRepairFeatureReferences
 FeatureReference::FeatureReference(const Feature& f, int i) 
   : feature(&f), index(i)
 {
-    const PlacementType t = f.getRep().getRequiredPlacementType();
-    const int nElements = PlacementRep::getNIndicesAllowed(t);
+    const Placement& sample = f.getRep().getSamplePlacement();
+    const int nElements = sample.getRep().getNIndicesAllowed();
 
     // TODO: should this throw a nice message, or should we check higher up?
     assert(nElements > 0 // i.e., not void
@@ -171,22 +171,16 @@ void FeatureReference::refRepairFeatureReferences
 
 std::string FeatureReference::refToString(const std::string&) const {
     std::stringstream s;
-    const PlacementType t = feature 
-        ? feature->getRep().getRequiredPlacementType()
-        : InvalidPlacementType;
 
-    s << "Ref<" << PlacementRep::getPlacementTypeName(t) << ">[";
+    s << "Ref<";
+    s << (feature ? feature->getRep().getSamplePlacement().getPlacementTypeName()
+                  : "NONE");
+    s << ">[";
     s << (feature ? feature->getFullName()
                     : std::string("NULL FEATURE"));
     s << "]"; 
     if (index != -1) s << "[" << index << "]";
     return s.str();
-}
-
-PlacementType FeatureReference::refGetPlacementType() const {
-    assert(feature);
-    const PlacementType whole = (*feature).getRep().getRequiredPlacementType();
-    return index == -1 ? whole : PlacementRep::getIndexedPlacementType(whole, index);
 }
 
     // PLACEMENT REP //
@@ -198,167 +192,96 @@ PlacementType FeatureReference::refGetPlacementType() const {
 
 /*virtual*/ Placement PlacementRep::genericNegate() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "-", getPlacementTypeName(getPlacementType()));
+                    "-", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericAbs() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "abs", getPlacementTypeName(getPlacementType()));
+                    "abs", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericSqrt() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "sqrt", getPlacementTypeName(getPlacementType()));
+                    "sqrt", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericExp() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "exp", getPlacementTypeName(getPlacementType()));
+                    "exp", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericLog() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "log", getPlacementTypeName(getPlacementType()));
+                    "log", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericSin() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "sin", getPlacementTypeName(getPlacementType()));
+                    "sin", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericCos() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "cos", getPlacementTypeName(getPlacementType()));
+                    "cos", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericAsin() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "asin", getPlacementTypeName(getPlacementType()));
+                    "asin", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericAcos() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "acos", getPlacementTypeName(getPlacementType()));
+                    "acos", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericLength() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "length", getPlacementTypeName(getPlacementType()));
+                    "length", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericNormalize() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "normalize", getPlacementTypeName(getPlacementType()));
+                    "normalize", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericAdd(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "+", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "+", r.getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericSub(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "-", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "-", r.getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericMul(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "*", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "*", r.getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericDvd(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "/", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "/", r.getPlacementTypeName());
 }
 
 /*virtual*/ Placement PlacementRep::genericDistance(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "distance", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "distance", r.getPlacementTypeName());
 }
 
 /*virtual*/ Placement PlacementRep::genericAngle(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "angle", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "angle", r.getPlacementTypeName());
 }
 
 /*virtual*/ Placement PlacementRep::genericDotProduct(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "dot", getPlacementTypeName(r.getRep().getPlacementType()));
+                getPlacementTypeName(),
+                "dot", r.getPlacementTypeName());
 }
 
 /*virtual*/ Placement PlacementRep::genericCrossProduct(const Placement& r) const {
     SIMTK_THROW3(Exception::InfixPlacementOperationNotAllowed,
-                getPlacementTypeName(getPlacementType()),
-                "cross", getPlacementTypeName(r.getRep().getPlacementType()));
-}
-
-/*virtual*/ RealPlacement PlacementRep::castToRealPlacement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToRealPlacement()", getPlacementTypeName(getPlacementType()));
-}
-/*virtual*/ Vec3Placement PlacementRep::castToVec3Placement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToVec3Placement()", getPlacementTypeName(getPlacementType()));
-}
-/*virtual*/ StationPlacement PlacementRep::castToStationPlacement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToStationPlacement()", getPlacementTypeName(getPlacementType()));
-}
-/*virtual*/ DirectionPlacement PlacementRep::castToDirectionPlacement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToDirectionPlacement()", getPlacementTypeName(getPlacementType()));
-}
-/*virtual*/ OrientationPlacement PlacementRep::castToOrientationPlacement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToOrientationPlacement()", getPlacementTypeName(getPlacementType()));
-}
-/*virtual*/ FramePlacement PlacementRep::castToFramePlacement() const {
-    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
-                    "castToFramePlacement()", getPlacementTypeName(getPlacementType()));
-}
-
-/*static*/ const char* 
-PlacementRep::getPlacementTypeName(PlacementType t) {
-    switch(t) {
-    case InvalidPlacementType:      return "INVALID";
-    case VoidPlacementType:         return "void";
-    case BoolPlacementType:         return "bool";
-    case IntPlacementType:          return "int";
-    case RealPlacementType:         return "Real";
-    case StationPlacementType:      return "Station";
-    case DirectionPlacementType:    return "Direction";
-    case OrientationPlacementType:  return "Orientation";
-    case FramePlacementType:        return "Frame";
-    case Vec2PlacementType:         return "Vec2";
-    case Vec3PlacementType:         return "Vec3";
-    case Mat33PlacementType:        return "Mat33";
-    default: return "ILLEGAL PLACEMENT TYPE";
-    };
-}
-
-/*static*/ int 
-PlacementRep::getNIndicesAllowed(PlacementType t) {
-    switch(t) {
-    case VoidPlacementType:         return 0; // can't use at all
-
-    case BoolPlacementType:
-    case IntPlacementType:
-    case RealPlacementType:         return 1; // no index or index==0 OK
-
-    case Vec2PlacementType:         return 2; // 2 Reals
-
-    case Vec3PlacementType:
-    case StationPlacementType:
-    case DirectionPlacementType:    return 3; // 3 Reals
-
-    case Mat33PlacementType:        return 3; // 3 Vec3's (columns)
-    case OrientationPlacementType:  return 3; // 3 Directions
-
-    case FramePlacementType:        return 2; // Orientation, Station
-
-    default: 
-        assert(false);
-    };
-    //NOTREACHED
-    return -1;
+                getPlacementTypeName(),
+                "cross", r.getPlacementTypeName());
 }
 
 // If a PlacementType is indexed with this index, 
 // what is the resulting PlacementType?
-/*static*/ PlacementType 
+/*PlacementType 
 PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
     if (i == -1) 
         return t;   // -1 means not indexed, i.e., the whole thing
@@ -386,7 +309,7 @@ PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
     //NOTREACHED
     return InvalidPlacementType;
 }
-
+*/
 
 
     // REAL PLACEMENT REP //
@@ -515,7 +438,7 @@ Placement RealPlacementRep::genericMul(const Placement& r) const {
         return Vec3Placement::downcast(r) * getMyHandle();   // punt to vec3*real
 
     if (DirectionPlacement::isInstanceOf(r) || StationPlacement::isInstanceOf(r))
-        return r.getRep().castToVec3Placement() * getMyHandle(); // punt to vec3(r) * real
+        return Vec3Placement::convert(r) * getMyHandle(); // punt to vec3(r) * real
 
     return PlacementRep::genericMul(r);    // die
 }
@@ -719,19 +642,26 @@ RealExprPlacementRep::angleOp(const DirectionPlacement& l, const DirectionPlacem
   { return binaryOp(RealOps::AngleBetweenDirections, l, r); }
 
     // VEC3 PLACEMENT REP //
-
-DirectionPlacement Vec3PlacementRep::castToDirectionPlacement() const {
-    DirectionPlacementRep* result = 
-        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(calcVec3Value())
-                     : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(getMyHandle()); 
-    return DirectionPlacement(result);
+/*static*/ bool 
+Vec3PlacementRep::canCreateVec3From(const Placement& p) {
+    return StationPlacement::isInstanceOf(p)
+        || DirectionPlacement::isInstanceOf(p);
 }
 
-StationPlacement Vec3PlacementRep::castToStationPlacement() const {
-    StationPlacementRep* result = 
-        isConstant() ? (StationPlacementRep*)new StationConstantPlacementRep(calcVec3Value())
-                     : (StationPlacementRep*)StationExprPlacementRep::recastVec3Op(getMyHandle()); 
-    return StationPlacement(result);
+/*static*/ PlacementRep* 
+Vec3PlacementRep::createVec3From(const Placement& p) {
+    if (StationPlacement::isInstanceOf(p)) {
+        const StationPlacement& sp = StationPlacement::downcast(p);
+        return sp.isConstant()
+            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(sp.getRep().calcVec3Value())
+            : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastStationOp(sp);
+    } else if (DirectionPlacement::isInstanceOf(p)) {
+        const DirectionPlacement& dp = DirectionPlacement::downcast(p);
+        return dp.isConstant()
+            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcVec3Value())
+            : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastDirectionOp(dp);
+    }
+    return 0;
 }
 
 // result = -vec3 (result is always vec3)
@@ -842,10 +772,8 @@ Placement Vec3PlacementRep::genericDotProduct(const Placement& r) const {
         return Placement(result);
     }
 
-    if (DirectionPlacement::isInstanceOf(r)) {
-        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
-        return genericDotProduct(dp.getRep().castToVec3Placement()); // recursive call with improved argument
-    }
+    if (Vec3Placement::canConvert(r))
+        return genericDotProduct(Vec3Placement::convert(r)); // recursive call with improved argument
 
     return PlacementRep::genericDotProduct(r);    // die
 }
@@ -866,30 +794,9 @@ Placement Vec3PlacementRep::genericCrossProduct(const Placement& r) const {
                    Vec3ExprPlacementRep::crossOp(getMyHandle(),vp);
         return Placement(result);
     }
-
-    if (StationPlacement::isInstanceOf(r)) {
-        const StationPlacement& sp = StationPlacement::downcast(r);
-        Vec3PlacementRep* result = 
-            isConstant() && sp.getRep().isConstant()
-                ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(cross(calcVec3Value(),sp.getRep().calcVec3Value()))
-                : (Vec3PlacementRep*)
-                   Vec3ExprPlacementRep::crossOp(getMyHandle(),
-                                                 sp.getRep().castToVec3Placement());
-        return Placement(result);
-    }
-
-    if (DirectionPlacement::isInstanceOf(r)) {
-        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
-        Vec3PlacementRep* result = 
-            isConstant() && dp.getRep().isConstant()
-                ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(cross(calcVec3Value(),dp.getRep().calcVec3Value()))
-                : (Vec3PlacementRep*)
-                   Vec3ExprPlacementRep::crossOp(getMyHandle(),
-                                                 dp.getRep().castToVec3Placement());
-        return Placement(result);
-    }
+    
+    if (Vec3Placement::canConvert(r))
+        return genericCrossProduct(Vec3Placement::convert(r));
 
     return PlacementRep::genericCrossProduct(r);    // die
 }
@@ -904,14 +811,8 @@ Placement Vec3PlacementRep::genericAngle(const Placement& r) const {
         const Vec3Placement& vp = Vec3Placement::downcast(r);
         return angle(normalize(getMyHandle()), normalize(vp));
     }
-    if (StationPlacement::isInstanceOf(r)) {
-        const StationPlacement& sp = StationPlacement::downcast(r);
-        return angle(normalize(getMyHandle()), normalize(sp));
-    }
-    if (DirectionPlacement::isInstanceOf(r)) {
-        const DirectionPlacement& dp = DirectionPlacement::downcast(r);
-        return angle(normalize(getMyHandle()), dp);
-    }
+    if (Vec3Placement::canConvert(r)) 
+        return genericAngle(Vec3Placement::convert(r));
 
     return PlacementRep::genericAngle(r);    // die
 }
@@ -1097,27 +998,34 @@ Vec3ExprPlacementRep::crossOp(const Vec3Placement& l, const Vec3Placement& r)
 
     // STATION PLACEMENT REP //
 
-Vec3Placement StationPlacementRep::castToVec3Placement() const {
-    Vec3PlacementRep* result = 
-        isConstant()
-          ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(calcVec3Value())
-          : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastStationOp(getMyHandle()); 
-    return Vec3Placement(result);
+bool StationPlacementRep::canCreateFrom(const Placement& p) const {
+    return Vec3Placement::isInstanceOf(p);
+}
+
+PlacementRep*
+StationPlacementRep::createFrom(const Placement& p) const {
+    if (Vec3Placement::isInstanceOf(p)) {
+        const Vec3Placement& vp = Vec3Placement::downcast(p);
+        return vp.isConstant()
+            ? (StationPlacementRep*)new StationConstantPlacementRep(vp.getRep().calcVec3Value())
+            : (StationPlacementRep*)StationExprPlacementRep::recastVec3Op(vp);
+    }
+    return 0;
 }
 
 // result = -station (result is always vec3)
 Placement StationPlacementRep::genericNegate() const {
-    return -castToVec3Placement();
+    return -Vec3Placement::convert(getMyHandle());
 }
 
 // result = length(station) (result is always real)
 Placement StationPlacementRep::genericLength() const {
-    return length(castToVec3Placement());
+    return length(Vec3Placement::convert(getMyHandle()));
 }
 
 // result = normalize(station) (result is always Direction)
 Placement StationPlacementRep::genericNormalize() const {
-    return normalize(castToVec3Placement());
+    return normalize(Vec3Placement::convert(getMyHandle()));
 }
 
 // result = station + placement
@@ -1171,7 +1079,7 @@ Placement StationPlacementRep::genericSub(const Placement& r) const {
 // TODO: should we allow real = station*vec3, station*direction to be a dot product?
 Placement StationPlacementRep::genericMul(const Placement& r) const {
     if (RealPlacement::isInstanceOf(r)) {
-        return castToVec3Placement() * r;
+        return Vec3Placement::convert(getMyHandle()) * r;
     }
 
     return PlacementRep::genericMul(r);    // die
@@ -1182,7 +1090,7 @@ Placement StationPlacementRep::genericMul(const Placement& r) const {
 //     vec3 = station / real
 Placement StationPlacementRep::genericDvd(const Placement& r) const {
     if (RealPlacement::isInstanceOf(r)) {
-        return castToVec3Placement() / r;
+        return Vec3Placement::convert(getMyHandle()) / r;
     }
 
     return PlacementRep::genericDvd(r);    // die
@@ -1194,7 +1102,7 @@ Placement StationPlacementRep::genericDvd(const Placement& r) const {
 //     real = dot(station, direction)
 Placement StationPlacementRep::genericDotProduct(const Placement& r) const {
     if (Vec3Placement::isInstanceOf(r) || DirectionPlacement::isInstanceOf(r)) {
-        return dot(castToVec3Placement(), r);
+        return dot(Vec3Placement::convert(getMyHandle()), r);
     }
 
     return PlacementRep::genericDotProduct(r);    // die
@@ -1211,7 +1119,7 @@ Placement StationPlacementRep::genericCrossProduct(const Placement& r) const {
         || DirectionPlacement::isInstanceOf(r)
         || StationPlacement::isInstanceOf(r))
     {
-        return cross(castToVec3Placement(), r);
+        return cross(Vec3Placement::convert(getMyHandle()), r);
     }
 
     return PlacementRep::genericCrossProduct(r);    // die
@@ -1343,15 +1251,19 @@ StationExprPlacementRep::subOp(const StationPlacement& l, const Vec3Placement& r
 
     // DIRECTION PLACEMENT REP //
 
+bool DirectionPlacementRep::canCreateFrom(const Placement& p) const {
+    return Vec3Placement::isInstanceOf(p);
+}
 
-Vec3Placement DirectionPlacementRep::castToVec3Placement() const {
-    Vec3PlacementRep* result = 
-        isConstant()
-          ? (Vec3PlacementRep*)
-             new Vec3ConstantPlacementRep(calcVec3Value())
-          : (Vec3PlacementRep*)
-             Vec3ExprPlacementRep::recastDirectionOp(getMyHandle()); 
-    return Vec3Placement(result);
+PlacementRep*
+DirectionPlacementRep::createFrom(const Placement& p) const {
+    if (Vec3Placement::isInstanceOf(p)) {
+        const Vec3Placement& vp = Vec3Placement::downcast(p);
+        return vp.isConstant()
+            ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(vp.getRep().calcVec3Value())
+            : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(vp);
+    }
+    return 0;
 }
 
 // result = -direction (result is always direction)
@@ -1407,7 +1319,7 @@ Placement DirectionPlacementRep::genericDvd(const Placement& r) const {
 //     real = dot(direction, direction)
 Placement DirectionPlacementRep::genericDotProduct(const Placement& r) const {
     if (Vec3Placement::isInstanceOf(r) || DirectionPlacement::isInstanceOf(r)) {
-        return dot(castToVec3Placement(), r);
+        return dot(Vec3Placement::convert(getMyHandle()), r);
     }
 
     return PlacementRep::genericDotProduct(r);    // die
@@ -1423,7 +1335,7 @@ Placement DirectionPlacementRep::genericCrossProduct(const Placement& r) const {
         || DirectionPlacement::isInstanceOf(r)
         || StationPlacement::isInstanceOf(r))
     {
-        return cross(castToVec3Placement(), r);
+        return cross(Vec3Placement::convert(getMyHandle()), r);
     }
 
     return PlacementRep::genericCrossProduct(r);    // die

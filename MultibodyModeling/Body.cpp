@@ -121,7 +121,7 @@ Multibody& Multibody::operator=(const Multibody& src) {
 }
 Multibody::~Multibody() { }
 
-const Frame& Multibody::getGroundFrame() const {
+const FrameFeature& Multibody::getGroundFrame() const {
     return getFrame("Ground");
 }
 

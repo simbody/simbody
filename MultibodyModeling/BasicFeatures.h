@@ -206,6 +206,8 @@ protected:
 };
 
 // Sorry, no DirectionParameter (doesn't make sense to have one).
+// If you want one, it should be achieved by rotating a DirectionFeature
+// using a RealParameter representing an angle.
 
 class Direction : public Feature {
 public:
@@ -267,12 +269,12 @@ protected:
     Orientation() { }
 };
 
-class Frame : public Feature {
+class FrameFeature : public Feature {
 public:
-    explicit Frame(const String& name);
-    Frame(const Frame&);
-    Frame& operator=(const Frame&);
-    ~Frame();
+    explicit FrameFeature(const String& name);
+    FrameFeature(const FrameFeature&);
+    FrameFeature& operator=(const FrameFeature&);
+    ~FrameFeature();
 
     const FramePlacement& getPlacement() const;
     const Mat34& getValue() const;
@@ -284,11 +286,11 @@ public:
     const Direction&   y()            const {return getOrientation().y();}
     const Direction&   z()            const {return getOrientation().z();}
 
-    static bool         isInstanceOf(const Subsystem&);
-    static const Frame& downcast(const Subsystem&);
-    static Frame&       downcast(Subsystem&);
+    static bool                isInstanceOf(const Subsystem&);
+    static const FrameFeature& downcast(const Subsystem&);
+    static FrameFeature&       downcast(Subsystem&);
 protected:
-    Frame() { }
+    FrameFeature() { }
 };
 
 } // namespace simtk

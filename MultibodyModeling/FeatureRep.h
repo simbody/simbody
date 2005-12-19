@@ -47,8 +47,8 @@ namespace simtk {
  */
 class FeatureRep : public SubsystemRep {
 public:
-    FeatureRep(Feature& p, const std::string& nm)
-        : SubsystemRep(p,nm), placement(0) { }
+    FeatureRep(Feature& p, const std::string& nm, const Placement& placementSample)
+        : SubsystemRep(p,nm), placement(0), sample(placementSample) { }
     virtual ~FeatureRep() { }
 
     // let's be more precise
@@ -64,19 +64,26 @@ public:
 
     // These allow the feature to weigh in on the suitability of a proposed
     // placement for the feature.
-    virtual bool canPlaceOnFeatureLike(const Feature&) const
-    {return false;} //TODO: should be pure virtual
-    virtual bool isRequiredPlacementType(const Placement&) const
-    {return false;}
-    virtual bool canConvertToRequiredPlacementType(const Placement&) const
-    {return false;} //TODO: should be pure virtual
 
-    // Given a proposed placement for this feature, alter it if necessary
-    // and return either (1) a Placement that is acceptable, or (2) a
-    // Placement with a null rep indicating that the proposed one was no good.
-    virtual Placement convertToRequiredPlacementType(const Placement&) const = 0;
+    // Generate an sample Placement of the correct type for this Feature.
+    // Methods of this Placement can be used to probe the suitability of
+    // proposed Placements.
+    const Placement& getSamplePlacement() const {return sample;}
 
-    virtual PlacementType getRequiredPlacementType()      const = 0;
+    bool isRequiredPlacementType(const Placement& p) const
+      { return getSamplePlacement().hasSameType(p); }
+    bool canConvertToRequiredPlacementType(const Placement& p) const
+      { return getSamplePlacement().canConvertToSameType(p); }
+    bool isAllowablePlacementType(const Placement& p) const
+      { return isRequiredPlacementType(p) || canConvertToRequiredPlacementType(p); }
+
+    // Given a proposed placement for this Feature which is not of the 
+    // required type, use it to generate a placement which is of the
+    // right type. Throws an exception if it doesn't work; use 
+    // canConvertToRequiredPlacementType() to check first.
+    Placement convertToRequiredPlacementType(const Placement& p) const
+      { return getSamplePlacement().convertToSameType(p); }
+
     virtual std::string   getFeatureTypeName()            const = 0;
 
     // Create the appropriate concrete PlacementRep for a reference to the 
@@ -141,6 +148,8 @@ private:
     // If present, this PlacementSlot must be owned by this Feature, its parent
     // Subsystem or one of its ancestors.
     const PlacementSlot* placement;
+
+    const Placement sample;
 };
 
 } // namespace simtk

@@ -118,17 +118,28 @@ void FeatureRep::replace(const Placement& p) {
 
     // If possible, create a fixed-up copy of p which is suitable for
     // use as a Placement for this concrete FeatureRep.
-    Placement pTweaked = 
-        p.getRep().getPlacementType() == getRequiredPlacementType()
-        ? p : convertToRequiredPlacementType(p);
-    if (!pTweaked.hasRep()) {
+
+    Placement pTweaked;
+    const Placement* sourcePlacement = 0;
+    if (isRequiredPlacementType(p))
+        sourcePlacement = &p;
+    else if (canConvertToRequiredPlacementType(p)) {
+        pTweaked = convertToRequiredPlacementType(p);
+        sourcePlacement = &pTweaked;
+    }
+
+    if (!sourcePlacement) {
         SIMTK_THROW3(Exception::PlacementCantBeUsedForThisFeature,
-            PlacementRep::getPlacementTypeName(p.getRep().getPlacementType()),
+            p.getPlacementTypeName(),
             getFullName(), getFeatureTypeName());
         //NOTREACHED             
     }
 
-    assert(pTweaked.getRep().getPlacementType() == getRequiredPlacementType());
+    assert(isRequiredPlacementType(*sourcePlacement));
+
+    // convenient abbreviations
+    const Placement&    src    = *sourcePlacement;
+    const PlacementRep& srcRep = src.getRep();
     
     // If the Placement references any features, all its references
     // must be on the same feature tree as this feature (although not necessarily
@@ -140,9 +151,20 @@ void FeatureRep::replace(const Placement& p) {
     // yet at all).
 
     const Feature* offender;
-    if (!pTweaked.getRep().isLimitedToSubtree(findRootSubsystem(), offender)) {
+    if (!srcRep.isLimitedToSubtree(findRootSubsystem(), offender)) {
         SIMTK_THROW2(Exception::FeatureAndPlacementOnDifferentTrees,
             getFullName(), offender->getFullName());
+        //NOTREACHED
+    }
+
+    // The Placement cannot depend directly or indirectly on this 
+    // Feature or we have a very awkward dependency of a Feature on
+    // itself. This *might* be solvable by iteration, but we certainly
+    // aren't going to attempt that! Much more likely, this is an
+    // error on the part of the person putting the model together.
+    if (srcRep.dependsOn(getMyHandle())) {
+        SIMTK_THROW1(Exception::AFeatureCantBePlacedOnItself,
+            getFullName());
         //NOTREACHED
     }
 
@@ -160,7 +182,7 @@ void FeatureRep::replace(const Placement& p) {
         ? getParentSubsystem() : SubsystemRep::getMyHandle();
 
     const Subsystem* commonAncestor = 
-        pTweaked.getRep().findAncestorSubsystem(youngestAllowed);
+        srcRep.findAncestorSubsystem(youngestAllowed);
     assert(commonAncestor); // there has to be one since they are on the same tree!
 
     // Now we have to decide what to do with the current placement's slot (if any).
@@ -170,7 +192,7 @@ void FeatureRep::replace(const Placement& p) {
 
     if (hasPlacement()) {
         if (commonAncestor->isSameSubsystem(getPlacementSlot().getOwner()))
-            updPlacementSlot().updPlacement() = pTweaked;
+            updPlacementSlot().updPlacement() = src;
         else
             removePlacement();
     }
@@ -178,19 +200,17 @@ void FeatureRep::replace(const Placement& p) {
     if (!hasPlacement()) {
         // Please look the other way for a moment while we make a small change to
         // this const Feature ...
-        PlacementSlot& good = 
-            const_cast<Subsystem*>(commonAncestor)->updRep().addPlacementLike(pTweaked);
-        placement = &good;
-        good.setClientFeature(updMyHandle());
+        PlacementSlot& newSlot = 
+            const_cast<Subsystem*>(commonAncestor)->updRep().addPlacementLike(src);
+        placement = &newSlot;
+        newSlot.setClientFeature(updMyHandle());
     }
 
-    assert(hasPlacement());
-
     // Some sanity (insanity?) checks.
+    assert(hasPlacement());
     const Subsystem& owner = getPlacementSlot().getOwner();
     assert(getPlacement().isConstant() || !owner.isSameSubsystem(getMyHandle()));
     assert(SubsystemRep::isSubsystemInSubsystemTree(owner, getMyHandle()));
-    assert(!getPlacement().dependsOn(getMyHandle())); // depends on *is* recursive
 
     postProcessNewPlacement();
 }

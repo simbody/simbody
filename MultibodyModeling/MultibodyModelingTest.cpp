@@ -42,7 +42,7 @@ using namespace simtk;
 
 int main() {
 try {
-    Frame f("frame1");
+    FrameFeature f("frame1");
     f.realize(Stage::Startup);
     //cout << f;
 
@@ -54,7 +54,7 @@ try {
     f.addVec3Measure("YCrossX").place(cross(f.y(),f.x()));
 
     f.realize(Stage::Startup);
-    //cout << f;
+    cout << f;
 /*
     try {
         cout << "one=" << f["one"].getValue() << endl;
