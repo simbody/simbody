@@ -3,24 +3,24 @@
 
 #include <fixedMatrix.h>
 
-class Mat33 : public FixedMatrix<float_type,3> {
+class CDSMat33 : public FixedMatrix<float_type,3> {
 public:
-  typedef Mat33  TransposeType;
+  typedef CDSMat33  TransposeType;
 
   typedef float_type Float;
-  Mat33() : FixedMatrix<float_type,3>() {}
-  Mat33(const FixedMatrixBase<float_type,3,3>& m)
+  CDSMat33() : FixedMatrix<float_type,3>() {}
+  CDSMat33(const FixedMatrixBase<float_type,3,3>& m)
     : FixedMatrix<float_type,3,3>(m) {}
-  explicit Mat33(const Float& x)   //initialize to constant
+  explicit CDSMat33(const Float& x)   //initialize to constant
     : FixedMatrix<float_type,3>(x) {}
-  explicit Mat33(const Float* x)   //initialize from row-major array
+  explicit CDSMat33(const Float* x)   //initialize from row-major array
     : FixedMatrix<float_type,3>(x) {}
 
-  Mat33& operator=(const FixedMatrixBase<float_type,3,3>& m)
+  CDSMat33& operator=(const FixedMatrixBase<float_type,3,3>& m)
   { FixedMatrixBase<float_type,3,3>::operator=(m); return *this;}
 
   inline
-  explicit Mat33(
+  explicit CDSMat33(
         const Float& m11, //specify values of all elements
 		const Float& m12,
 		const Float& m13,
@@ -32,7 +32,7 @@ public:
 		const Float& m33);
 };
 
-Mat33::Mat33(
+CDSMat33::CDSMat33(
        const float_type& m11,
 	   const float_type& m12,
 	   const float_type& m13,
