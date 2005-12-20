@@ -107,6 +107,14 @@ void Subsystem::place(const Placement& p) {
     Feature::downcast(*this).place(p);
 }
 
+void Subsystem::replace(const Placement& p) {
+    if (!Feature::isInstanceOf(*this)) {
+        SIMTK_THROW1(Exception::OnlyFeaturesHavePlacements, getFullName());
+        //NOTREACHED
+    }
+    Feature::downcast(*this).replace(p);
+}
+
 String Subsystem::toString(const String& linePrefix) const {
     std::stringstream s;
     s << "Subsystem ";

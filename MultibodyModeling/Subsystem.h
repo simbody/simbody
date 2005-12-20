@@ -93,6 +93,7 @@ public:
     const Placement&      getPlacement()  const; // fails if Subsystem is not a Feature
     const PlacementValue& getValue()      const; //   "
     void place(const Placement&);                //   "
+    void replace(const Placement&);              //   "
 
     // Read-only access to child subsystems.
     const Subsystem&        getSubsystem       (const String&) const; // generic

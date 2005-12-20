@@ -71,28 +71,8 @@ protected:
         centroidMeasureIndex = cm.getIndexInParent();
     }
 
-private:
-    int massMeasureIndex, centroidMeasureIndex;
-};
-
-class RigidBodyRep : public BodyRep {
-public:
-    RigidBodyRep(RigidBody& pm, const std::string& nm) : BodyRep(pm,nm) { }
-    // must call initializeStandardSubfeatures to complete construction
-
-    std::string   getFeatureTypeName() const { return "RigidBody"; }
-    FeatureRep*   clone() const { return new RigidBodyRep(*this); }
-
-    SIMTK_DOWNCAST(RigidBodyRep,SubsystemRep);
-
-protected:
-    virtual void initializeStandardSubfeatures() {
-        BodyRep::initializeStandardSubfeatures();
-
-    }
-
     virtual void finalizeStandardSubfeatures() {
-        BodyRep::finalizeStandardSubfeatures();
+        FrameRep::finalizeStandardSubfeatures();
 
         // Add up the masses and place the mass measure on the resulting Placement.
         RealPlacement totalMass(0.);
@@ -112,6 +92,29 @@ protected:
         updCentroid().replace(centroid / getMass());
         //updCentroidalInertia().replace(inertia);
         //updOriginInertia().replace(shiftInertia(getCentroidalInertia(),getCentroid(),getOrigin()));
+    }
+
+private:
+    int massMeasureIndex, centroidMeasureIndex;
+};
+
+class RigidBodyRep : public BodyRep {
+public:
+    RigidBodyRep(RigidBody& pm, const std::string& nm) : BodyRep(pm,nm) { }
+    // must call initializeStandardSubfeatures to complete construction
+
+    std::string   getFeatureTypeName() const { return "RigidBody"; }
+    FeatureRep*   clone() const { return new RigidBodyRep(*this); }
+
+    SIMTK_DOWNCAST(RigidBodyRep,SubsystemRep);
+
+protected:
+    virtual void initializeStandardSubfeatures() {
+        BodyRep::initializeStandardSubfeatures();
+    }
+
+    virtual void finalizeStandardSubfeatures() {
+        BodyRep::finalizeStandardSubfeatures();
     }
 };
 
@@ -143,11 +146,6 @@ public:
     JointRep(Joint& j, JointType jt, const std::string& nm) 
       : SubsystemRep(j,nm), refIndex(-1), movIndex(-1) { }
     // must call initializeStandardSubfeatures to complete construction
-
-    // no placement for the joint as a whole
-    Placement convertToRequiredPlacementType(const Placement& p) const {
-        return Placement();
-    }
 
     std::string   getFeatureTypeName() const { return "Joint"; }
 
