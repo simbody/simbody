@@ -401,7 +401,7 @@ AtomClusterNode::constructFromPrototype
 
     AtomClusterNode* newNode=0;
     const IVM* ivm = node->ivm;
-    String type = hingeSpec.type;
+    CDSString type = hingeSpec.type;
     type.downcase();
 
     if ( type == "ground" ) 

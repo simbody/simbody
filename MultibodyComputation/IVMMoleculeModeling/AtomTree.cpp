@@ -542,7 +542,7 @@ AT_Build::buildAtomClusterNode(AtomClusterNode* node)
                             if (   !cAtom->bonds.contains(ivm->atoms[ivm->hingeList[k].atom0])
                                 || !cAtom->bonds.contains(ivm->atoms[ivm->hingeList[k].atom1]) )
                             {
-                                String mesg = String("AT_Build::buildNode: ") +
+                                CDSString mesg = CDSString("AT_Build::buildNode: ") +
                                                     ivm->hingeList[k].type +
                                                     ": specified atoms not bound.";
                                 cerr << mesg << '\n'

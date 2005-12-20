@@ -110,7 +110,7 @@ public:
     //  void setMinimization(bool m) { minimization_=m; }
 
     //get descriptive string given atom id
-    virtual String idAtom(int id) const;
+    virtual CDSString idAtom(int id) const;
 
 protected:
     AtomTree*          tree_;
@@ -149,7 +149,7 @@ protected:
     AtomList                             atoms;
     CDSList< CDSList<int> >              groupList;
     CDSList<InternalDynamics::HingeSpec> hingeList;
-    String                               solverType;
+    CDSString                               solverType;
     CDSList<int>                         oldBaseAtoms;
 
     RVecSizeType rvecSize_;

@@ -29,7 +29,7 @@ PDBTool::PDBTool(const char*    filename,
 } /* constructor */
 
 void
-PDBTool::addRemark(const String &newVal)
+PDBTool::addRemark(const CDSString &newVal)
 {
  myRemarksList_.append(newVal);
 }
@@ -40,7 +40,7 @@ PDBTool::clearRemarks()
  myRemarksList_.resize(0);
 }
 
-CDSList< String > 
+CDSList< CDSString > 
 PDBTool::remarks() const
 {
  return myRemarksList_;
@@ -58,20 +58,20 @@ PDBTool::useIupacNames()
  useXplorNames_ = 0;
 }
 
-static String
-xplorAtomName(String oldVal)
+static CDSString
+xplorAtomName(CDSString oldVal)
 {
  //
- // Given an atom name, return a 4-char String
+ // Given an atom name, return a 4-char CDSString
  // in xplor name format, ie.,
  //
  // 3-char names have a leading space and numbers at end
  // 4-char names have numbers at end
  //
 
- String newVal;
- String aSpace(" ");
- String numbers("0123456789");
+ CDSString newVal;
+ CDSString aSpace(" ");
+ CDSString numbers("0123456789");
   
  // strip out whitespace, limit length to 4 chars
 
@@ -80,7 +80,7 @@ xplorAtomName(String oldVal)
  tempStream >> oldVal;
   
  if (numbers.contains(subString(oldVal, 0, 1)) && 
-     subString(oldVal, 1, 2) == String("H")) 
+     subString(oldVal, 1, 2) == CDSString("H")) 
    oldVal = subString(oldVal, 1) + subString(oldVal, 0, 1);
  
  switch(oldVal.length()) {
@@ -112,11 +112,11 @@ xplorAtomName(String oldVal)
  return newVal;
 } /* xplorAtomName */
 
-static String
-iupacAtomName(String oldVal)
+static CDSString
+iupacAtomName(CDSString oldVal)
 {
  //
- // Given an atom name, return a 4-char String
+ // Given an atom name, return a 4-char CDSString
  // in IUPAC name format, ie.,
  //
  // xplor names that that end in a number have that
@@ -125,12 +125,12 @@ iupacAtomName(String oldVal)
  // names that don't then begin with a number get a leading space
  //
 
- String newVal;
- String aSpace(" ");
- String numbers("0123456789");
+ CDSString newVal;
+ CDSString aSpace(" ");
+ CDSString numbers("0123456789");
  int trailingNumber;
 
- String lastOldValChar = subString(oldVal, oldVal.length());
+ CDSString lastOldValChar = subString(oldVal, oldVal.length());
 
  if (numbers.contains(lastOldValChar))
    trailingNumber = 1;
@@ -147,7 +147,7 @@ iupacAtomName(String oldVal)
 } /* iupacAtomName */
 
 static bool
-fileExists(const String& filename)
+fileExists(const CDSString& filename)
 {
  struct stat statStruct;
  int ret = stat(filename,&statStruct);
@@ -158,7 +158,7 @@ fileExists(const String& filename)
 } /* fileExists */
 
 static void
-renameGreater(const String& name,
+renameGreater(const CDSString& name,
 		    int     cnt)
 {
  OStringStream filename;
@@ -175,7 +175,7 @@ renameGreater(const String& name,
 } /* renameGreater */
 
 static void
-renameBackupFiles(const String& name)
+renameBackupFiles(const CDSString& name)
 {
  if ( !fileExists(name) ) 
    return;
@@ -200,7 +200,7 @@ PDBTool::write()
  ofstream outfile( filename() );
 
  if (!outfile) 
-   throw CDS::exception(String("unable to open output file ") 
+   throw CDS::exception(CDSString("unable to open output file ") 
 			+ filename());
 
  for (int i = 0; i < myRemarksList_.size(); ++i) 
@@ -217,7 +217,7 @@ PDBTool::write()
    outfile << "ATOM  ";
    outfile << setw(5) << x+1 << " ";
 
-   String curName(curAtom.atomName());
+   CDSString curName(curAtom.atomName());
    if (useXplorNames_)
      curName = xplorAtomName(curName);
    else
@@ -261,10 +261,10 @@ PDBTool::write()
  outfile.close();
 } /* write */
 
-static String 
-pdbHash(const String &segName, 
+static CDSString 
+pdbHash(const CDSString &segName, 
 	const int resNum, 
-	const String &atomName) 
+	const CDSString &atomName) 
 {
  StringStream tempStream;
  tempStream << atomName;
@@ -290,7 +290,7 @@ PDBTool::read()
  ifstream infile( filename() );
 
  if (!infile) 
-   throw CDS::exception(String("unable to open input file ") + 
+   throw CDS::exception(CDSString("unable to open input file ") + 
 			filename());
 
  // clear the old remarks
@@ -299,11 +299,11 @@ PDBTool::read()
 
  // index the selection for fast lookups during line-by-line read
 
- CDSMap<String,int> selIndex;
+ CDSMap<CDSString,int> selIndex;
 
  for (int x = 0; x < selection().size(); x++) {
    const Atom curAtom = selection()[x];
-   String curKey = pdbHash(curAtom.segmentName(), 
+   CDSString curKey = pdbHash(curAtom.segmentName(), 
 			   curAtom.residueNum() , 
 			   curAtom.atomName()   );
    selIndex[curKey] = curAtom.index();
@@ -314,18 +314,18 @@ PDBTool::read()
  // for each line,
  while ( infile.good()) {
 
-   String curLine;
+   CDSString curLine;
    readline(infile, curLine);
 
    // check the line type
 
-   String lineType = subString(curLine, 0, 6);    
+   CDSString lineType = subString(curLine, 0, 6);    
 
    if (lineType == "REMARK") {
 
      // handle remarks
 
-     String *rem = new String;
+     CDSString *rem = new CDSString;
      *rem = subString(curLine, 6, -1);
 
      this->addRemark(*rem);
@@ -335,7 +335,7 @@ PDBTool::read()
      // handle atom lines
 
      int id, resNum;
-     String atomName, resName, chainName, insertion, insertion2, segName;
+     CDSString atomName, resName, chainName, insertion, insertion2, segName;
      float x, y, z, b, q;
 
      StringStream tempStream;
@@ -407,7 +407,7 @@ PDBTool::read()
      // If it is, reset its position.
      //
 
-     String curKey = pdbHash(segName, resNum, atomName);
+     CDSString curKey = pdbHash(segName, resNum, atomName);
       
      if (selIndex.exists(curKey)) {
        int index = selIndex[curKey];

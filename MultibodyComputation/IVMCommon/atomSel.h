@@ -20,7 +20,7 @@ class AtomSel {
   Simulation* sim_;
   int ok_;
 
-  String sel;
+  CDSString sel;
   CDSList<int> aList_;
   mutable CDSList<bool> boolList_;
 
@@ -47,7 +47,7 @@ public:
   Atom operator[](const int i) { return Atom(sim_,aList_[i]); }
   const Atom operator[](const int i) const { return Atom(sim_,aList_[i]); }
 
-  String string() const { return sel; }
+  CDSString string() const { return sel; }
 
   //void apply(const AtomSelAction&);
   //void apply(AtomSelAction::Base&);

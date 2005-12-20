@@ -13,43 +13,43 @@ namespace MatrixTools {
   //
   // return a column of the matrix
   //
-template<class Matrix>
-CDSVector<typename Matrix::ElementType>
-getColumn(const Matrix&,
+template<class MATRIX>
+CDSVector<typename MATRIX::ElementType>
+getColumn(const MATRIX&,
 	  const int);
 
   //
   // return a row of the matrix
   //
-template<class Matrix>
-CDSVector<typename Matrix::ElementType>
-getRow(const Matrix&,
+template<class MATRIX>
+CDSVector<typename MATRIX::ElementType>
+getRow(const MATRIX&,
        const int);
 
   //
   // set a column of the matrix
   //
-template<class Matrix, class Vector>
+template<class MATRIX, class Vector>
 void
-setColumn(      Matrix&,
+setColumn(      MATRIX&,
 	  const int,
 	  const Vector&);
 
   //
   // set a row of the matrix
   //
-template<class Matrix, class Vector>
+template<class MATRIX, class Vector>
 void
-setRow(      Matrix&,
+setRow(      MATRIX&,
        const int,
        const Vector&);
 
   //
   // return matrix transpose
   //
-template<class Matrix>
-typename Matrix::TransposeType
-transpose(const Matrix &m);
+template<class MATRIX>
+typename MATRIX::TransposeType
+transpose(const MATRIX &m);
 
   //
   // matrix inversion
@@ -96,19 +96,19 @@ template<class T> class SVDResults; //forward decl.
   // perform singular value decomposition
   //
 
-template<class Matrix>
-SVDResults<typename Matrix::ElementType>
-svd(const Matrix&                                  m,
+template<class MATRIX>
+SVDResults<typename MATRIX::ElementType>
+svd(const MATRIX&                                  m,
     const char                                     jobu,
     const char                                     jobvt,
-	SVDResults<typename Matrix::ElementType> ret);
+	SVDResults<typename MATRIX::ElementType> ret);
 
-template<class Matrix> inline
-SVDResults<typename Matrix::ElementType>
-svd(const Matrix&                                  m,
+template<class MATRIX> inline
+SVDResults<typename MATRIX::ElementType>
+svd(const MATRIX&                                  m,
     const char                                     jobu='A',
     const char                                     jobvt='A')
-{ return svd(m,jobu,jobvt,SVDResults<typename Matrix::ElementType>()); }
+{ return svd(m,jobu,jobvt,SVDResults<typename MATRIX::ElementType>()); }
 
 template<class T>
 class SVDResults {
@@ -142,8 +142,8 @@ template<class T>
 class EigenResults<FullMatrix<T> >{
 public:
   struct EigenPair { 
-    CDS::Complex<T> value;
-    CDSVector< CDS::Complex<T> > vector;
+    CDS::CDSComplex<T> value;
+    CDSVector< CDS::CDSComplex<T> > vector;
   };
   //pairs are returned in complex conjugate pairs
   CDSList< EigenPair > eigenPairs;
@@ -167,7 +167,7 @@ public: // ??
   int          info;
 };
 
-template<class Matrix>
+template<class MATRIX>
 class EigenResults {
   //currently only setup for symmetric matrices
 };

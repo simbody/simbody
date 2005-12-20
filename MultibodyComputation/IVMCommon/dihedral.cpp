@@ -10,7 +10,7 @@ Dihedral::Dihedral(const AtomSel& a0,
 		   const AtomSel& a3)
   : a0(a0[0]), a1(a1[0]), a2(a2[0]), a3(a3[0])
 {
- String msg = "Dihedral: ";
+ CDSString msg = "Dihedral: ";
  bool ok=1;
 
  if ( a0.size()!=1 ) {

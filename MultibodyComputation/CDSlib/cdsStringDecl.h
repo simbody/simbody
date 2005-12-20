@@ -13,7 +13,7 @@
 #include <cdsIostream.h>
 
 template<class CHAR>
-class CDSString;
+class CDSString_;
 
 template<class CHAR>
 class CDSStringRep {
@@ -41,11 +41,11 @@ public:
   } 
   //  CDSStringRep(const int s) : len(s) { sl = new CHAR[len+1]; count=1; }
   ~CDSStringRep() { delete [] sl; };
-  friend class CDSString<CHAR>;
+  friend class CDSString_<CHAR>;
 };
 
 template<class CHAR=char>
-class CDSString {
+class CDSString_ {
   CDSStringRep<CHAR>* rep;
   void calc_len() const;
 
@@ -56,13 +56,13 @@ class CDSString {
       rep= new CDSStringRep<CHAR>(rep);}
     }
 public:
-  CDSString(const CHAR* s="",
+  CDSString_(const CHAR* s="",
 		  int len=-1,
 	    const int blockSize=8);
-  CDSString(const CDSString&);
-  ~CDSString() { if (--rep->count <= 0) delete rep; }
+  CDSString_(const CDSString_&);
+  ~CDSString_() { if (--rep->count <= 0) delete rep; }
 
-  //  CDSString operator()(const char*);
+  //  CDSString_ operator()(const char*);
   //  operator char*();
   operator const CHAR*() const {return rep->sl;}
   char* charPtr() { return rep->sl; }  // use this very carefully
@@ -73,12 +73,12 @@ public:
   void blockSize(const int bs) { rep->blockSize = bs; }
   int  blockSize()             { return rep->blockSize; }
 
-  CDSString& operator=(const CHAR);
-  CDSString& operator=(const CDSString&);
-  CDSString& operator=(const CHAR*);
-  CDSString& operator+=(const CDSString&);
-  CDSString& operator+=(const CHAR*);
-  CDSString& operator+=(const CHAR);
+  CDSString_& operator=(const CHAR);
+  CDSString_& operator=(const CDSString_&);
+  CDSString_& operator=(const CHAR*);
+  CDSString_& operator+=(const CDSString_&);
+  CDSString_& operator+=(const CHAR*);
+  CDSString_& operator+=(const CHAR);
 
   
 
@@ -86,14 +86,14 @@ public:
   void upcase();
   unsigned int length() const {if (rep->len<0) calc_len(); return rep->len;}
 
-  CDSList<CDSString> split(const CHAR* sep="\t ") const;
+  CDSList<CDSString_> split(const CHAR* sep="\t ") const;
 
   bool contains(const CHAR*) const;
   bool matches(const CHAR* str,
 		     bool  ignoreCase=0) const;
 
 private:
-  static int doGsub(      CDSString<CHAR>& s,
+  static int doGsub(      CDSString_<CHAR>& s,
 		    const CHAR* s1,
 		    const CHAR* s2);
 public:
@@ -115,74 +115,74 @@ public:
 // this could be considerably simplified if we redefine
 // operatorX(const CHAR*, const CHAR*), but this seems quite unwise.
 template<class CHAR>
-inline bool operator==(const CDSString<CHAR>& s1,const CDSString<CHAR>& s2)
+inline bool operator==(const CDSString_<CHAR>& s1,const CDSString_<CHAR>& s2)
 {return s1.matches(s2);}
 template<class CHAR>
-inline bool operator==(const CHAR* s1,const CDSString<CHAR>& s2)
+inline bool operator==(const CHAR* s1,const CDSString_<CHAR>& s2)
 {return s2.matches(s1);}
 template<class CHAR>
-inline bool operator==(const CDSString<CHAR>& s1,const CHAR* s2)
+inline bool operator==(const CDSString_<CHAR>& s1,const CHAR* s2)
 {return s1.matches(s2);}
 template<class CHAR>
-inline bool operator!=(const CDSString<CHAR>& s1,const CDSString<CHAR>& s2) 
+inline bool operator!=(const CDSString_<CHAR>& s1,const CDSString_<CHAR>& s2) 
 {return !operator==(s1,s2);}
 template<class CHAR>
-inline bool operator!=(const CHAR* s1,const CDSString<CHAR>& s2)
+inline bool operator!=(const CHAR* s1,const CDSString_<CHAR>& s2)
 {return !operator==(s1,s2);}
 template<class CHAR>
-inline bool operator!=(const CDSString<CHAR>& s1,const CHAR* s2)
+inline bool operator!=(const CDSString_<CHAR>& s1,const CHAR* s2)
 {return !operator==(s1,s2);}
 
 template<class CHAR>
 bool operatorLess(const CHAR* s1,
 		  const CHAR* s2);
 template<class CHAR>
-inline bool operator<(const CDSString<CHAR>& s1,const CDSString<CHAR>& s2)
+inline bool operator<(const CDSString_<CHAR>& s1,const CDSString_<CHAR>& s2)
 { return operatorLess((const CHAR*)s1,(const CHAR*)s2); }
 template<class CHAR>
-inline bool operator<(const CHAR* s1,const CDSString<CHAR>& s2)
+inline bool operator<(const CHAR* s1,const CDSString_<CHAR>& s2)
 { return operatorLess(s1,(const CHAR*)s2); }
 template<class CHAR>
-inline bool operator<(const CDSString<CHAR>& s1,const CHAR* s2)
+inline bool operator<(const CDSString_<CHAR>& s1,const CHAR* s2)
 {return operatorLess((const CHAR*)s1,s2); }
 
 template<class CHAR>
 bool operatorGreater(const CHAR* s1,
 		     const CHAR* s2);
 template<class CHAR>
-inline bool operator>(const CDSString<CHAR>& s1,const CDSString<CHAR>& s2)
+inline bool operator>(const CDSString_<CHAR>& s1,const CDSString_<CHAR>& s2)
 { return operatorGreater((const CHAR*)s1,(const CHAR*)s2); }
 template<class CHAR>
-inline bool operator>(const CHAR* s1,const CDSString<CHAR>& s2)
+inline bool operator>(const CHAR* s1,const CDSString_<CHAR>& s2)
 { return operatorGreater(s1,(const CHAR*)s2); }
 template<class CHAR>
-inline bool operator>(const CDSString<CHAR>& s1,const CHAR* s2)
+inline bool operator>(const CDSString_<CHAR>& s1,const CHAR* s2)
 {return operatorGreater((const CHAR*)s1,s2); }
 
 
 
 //other operators
 template<class CHAR>
-ostream& operator<<(ostream& s, const CDSString<CHAR>& x);
+ostream& operator<<(ostream& s, const CDSString_<CHAR>& x);
 template<class CHAR>
-istream& operator>>(istream& s, CDSString<CHAR>& x);
+istream& operator>>(istream& s, CDSString_<CHAR>& x);
 template<class CHAR>
-void readline(istream&,CDSString<CHAR>&);
+void readline(istream&,CDSString_<CHAR>&);
 template<class CHAR>
-CDSString<CHAR> operator+(const CDSString<CHAR>&,const CDSString<CHAR>&);
+CDSString_<CHAR> operator+(const CDSString_<CHAR>&,const CDSString_<CHAR>&);
 template<class CHAR>
-CDSString<CHAR> operator+(const CDSString<CHAR>&,const CHAR*);
+CDSString_<CHAR> operator+(const CDSString_<CHAR>&,const CHAR*);
 template<class CHAR>
-CDSString<CHAR> operator+(const CDSString<CHAR>&,CHAR);
+CDSString_<CHAR> operator+(const CDSString_<CHAR>&,CHAR);
 template<class CHAR>
-CDSString<CHAR> operator+(const CHAR* s1,const CDSString<CHAR>& s2)
-{ return CDSString<CHAR>(s1) + s2; }
+CDSString_<CHAR> operator+(const CHAR* s1,const CDSString_<CHAR>& s2)
+{ return CDSString_<CHAR>(s1) + s2; }
 template<class CHAR>
-CDSString<CHAR> subString(const CDSString<CHAR>&,
+CDSString_<CHAR> subString(const CDSString_<CHAR>&,
 			  const int              beg,
 				int              end=-1);
 
-typedef CDSString<char> String;
+typedef CDSString_<char> CDSString;
 
 int CDSString_test();
 

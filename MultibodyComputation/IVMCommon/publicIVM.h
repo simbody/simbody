@@ -58,7 +58,7 @@ public:
     void resetCM() { IVM::resetCMflag=1; }
 
     //given an atom index, return a descriptive string
-    virtual String idAtom(int id) const;
+    virtual CDSString idAtom(int id) const;
 
     //bonds to ignore when considering molecular topology
     void setBondExclude(const CDSList<Pair>& list ) { bondExclude_=list; }

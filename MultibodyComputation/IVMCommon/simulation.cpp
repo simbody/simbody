@@ -160,7 +160,7 @@ Simulation::setAtomName(      int i,
  markAsModified();
 }
 
-String
+CDSString
 Simulation::atomString(int id) const
 {
  StringStream ret;
@@ -231,10 +231,10 @@ Simulation::resizeAtomArrays(const int size)
  // atom property innitialization 
  //
  for (int i=oldsize ; i<size ; i++) {
-   atomNameList_[i] = String( "none",4,0 );
-   residueNameList_[i] = String( "none",4,0 );
+   atomNameList_[i] = CDSString( "none",4,0 );
+   residueNameList_[i] = CDSString( "none",4,0 );
    residueNumList_[i]  = -1;
-   segmentNameList_[i] = String( "none",4,0 );
+   segmentNameList_[i] = CDSString( "none",4,0 );
    atomPosList_[i] = CDSVec3(Atom::INVALID_COORD, 
 			  Atom::INVALID_COORD, 
 			  Atom::INVALID_COORD);

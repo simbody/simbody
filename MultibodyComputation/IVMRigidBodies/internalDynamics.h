@@ -28,7 +28,7 @@ enum {                            //possible values for verbose (bit field)
 };
 
 struct HingeSpec {
-    String type;
+    CDSString type;
     int atom0;  //extra data
     int atom1;
     HingeSpec(const char* type="none") : type(type), atom0(-2), atom1(-2) {}

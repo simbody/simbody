@@ -10,13 +10,13 @@
  */
 class PotList : public Pot {
 public:
-    PotList(const String name="");
+    PotList(const CDSString name="");
 
     // adding/removing/listing potential terms in list
     void add( rc_Pot& pot);
-    void remove(const String& instanceName);
+    void remove(const CDSString& instanceName);
     void removeAll();
-    rc_Pot byName(const String& instanceName);
+    rc_Pot byName(const CDSString& instanceName);
     CDSList< rc_Pot > list() { return list_; }
 
     //convenience (to make it act like a list)
@@ -36,7 +36,7 @@ public:
     void clearEnergyReports()                      { energyReports_.resize(0); }
     CDSList<EnergyReport> energyReports() {return energyReports_;}
 
-    String showReport() const;
+    CDSString showReport() const;
 
 private:
     CDSList< EnergyReport > energyReports_; 

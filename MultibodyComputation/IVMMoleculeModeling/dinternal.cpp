@@ -203,7 +203,7 @@ IVM::step(double& timeStep) {
             ok=1;
         }
         catch ( Exception a ) {
-            if ( String(a.mess).contains("large time-step") ) {
+            if ( CDSString(a.mess).contains("large time-step") ) {
                 cout << "InternalDynamics::step: large timestep detected. Halving.\n";
                 timeStep *= 0.5;
                 if ( timeStep < minStepSize() ) {
@@ -513,7 +513,7 @@ IVM::initDynamics(bool reuseTopology)
     getSolver()->init(pos,vel,acc);
 }
 
-String
+CDSString
 IVM::idAtom(int id) const {
     StringStream ret;
     ret << id << ends;

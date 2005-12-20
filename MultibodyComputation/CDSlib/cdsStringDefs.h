@@ -9,7 +9,7 @@
 
 template<class CHAR> 
 void
-CDSString<CHAR>::resize(const int len)
+CDSString_<CHAR>::resize(const int len)
   //
   // make rep large enough to hold string of length len
   //
@@ -33,7 +33,7 @@ CDSString<CHAR>::resize(const int len)
 
  
 template<class CHAR>
-CDSString<CHAR>::CDSString(const CHAR* s,
+CDSString_<CHAR>::CDSString_(const CHAR* s,
                  int   slen,
                const int   bs) 
   //
@@ -57,7 +57,7 @@ CDSString<CHAR>::CDSString(const CHAR* s,
 } /* copy constructor */
 
 template<class CHAR>
-CDSString<CHAR>::CDSString(const CDSString<CHAR>& cs) 
+CDSString_<CHAR>::CDSString_(const CDSString_<CHAR>& cs) 
   //
   // copy constructor
   //
@@ -70,8 +70,8 @@ CDSString<CHAR>::CDSString(const CDSString<CHAR>& cs)
 } /* copy constructor */
 
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator=(const CDSString<CHAR>& cs) 
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator=(const CDSString_<CHAR>& cs) 
   //
   // assignment operator
   //
@@ -91,8 +91,8 @@ CDSString<CHAR>::operator=(const CDSString<CHAR>& cs)
 } /* operator= */
 
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator=(const CHAR* s) 
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator=(const CHAR* s) 
   //
   // assignment operator- from CHAR*
   //
@@ -105,8 +105,8 @@ CDSString<CHAR>::operator=(const CHAR* s)
 } /* operator= (const char*) */
 
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator=(const CHAR s) 
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator=(const CHAR s) 
   //
   // assignment operator
   //
@@ -119,27 +119,27 @@ CDSString<CHAR>::operator=(const CHAR s)
 
 template<class CHAR>
 void
-CDSString<CHAR>::calc_len() const
+CDSString_<CHAR>::calc_len() const
   // internal routine
 {
  rep->len = strlen(rep->sl);
 } /* calc_len */
 
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator+=(const CDSString<CHAR>& cs)
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator+=(const CDSString_<CHAR>& cs)
 {
  int len = length() + cs.length();
  resize( len );
  strcat(rep->sl,cs.rep->sl);
 
  return *this;
-} /* operator+= (CDSString) */
+} /* operator+= (CDSString_) */
  
  
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator+=(const CHAR* s)
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator+=(const CHAR* s)
 {
  int len = length()+strlen(s);
  resize( len );
@@ -151,8 +151,8 @@ CDSString<CHAR>::operator+=(const CHAR* s)
  
  
 template<class CHAR>
-CDSString<CHAR>&
-CDSString<CHAR>::operator+=(const CHAR c)
+CDSString_<CHAR>&
+CDSString_<CHAR>::operator+=(const CHAR c)
 {
  int len = length()+1;
  resize( len );
@@ -164,7 +164,7 @@ CDSString<CHAR>::operator+=(const CHAR c)
  
 template<class CHAR>
 void 
-CDSString<CHAR>::downcase()
+CDSString_<CHAR>::downcase()
 {
  splitRep();
 
@@ -174,7 +174,7 @@ CDSString<CHAR>::downcase()
 
 template<class CHAR>
 void 
-CDSString<CHAR>::upcase()
+CDSString_<CHAR>::upcase()
 {
  splitRep();
  
@@ -184,7 +184,7 @@ CDSString<CHAR>::upcase()
 
 template<class CHAR>
 bool
-CDSString<CHAR>::contains(const CHAR* s) const
+CDSString_<CHAR>::contains(const CHAR* s) const
 {
  int s_len = strlen(s);
  for (unsigned i=0 ; i<length() ; i++) {
@@ -201,7 +201,7 @@ CDSString<CHAR>::contains(const CHAR* s) const
 
 template<class CHAR>
 int
-CDSString<CHAR>::doGlob(const CHAR* text, 
+CDSString_<CHAR>::doGlob(const CHAR* text, 
             const CHAR* p   )
   //
   //  Do shell-style pattern matching for ?, \, [], and * characters.
@@ -275,14 +275,14 @@ CDSString<CHAR>::doGlob(const CHAR* text,
 
 template<class CHAR>
 bool
-CDSString<CHAR>::glob(const CHAR* s         ,
+CDSString_<CHAR>::glob(const CHAR* s         ,
               const bool  ignoreCase) const
 {
 // if (s == "*")   broken
 //   return 1;
 
- CDSString<CHAR> tmpText = *this;
- CDSString<CHAR> tmpS    = s;
+ CDSString_<CHAR> tmpText = *this;
+ CDSString_<CHAR> tmpS    = s;
  if ( ignoreCase ) {
    tmpText.downcase();
    tmpS.downcase();
@@ -294,7 +294,7 @@ CDSString<CHAR>::glob(const CHAR* s         ,
 
 template<class CHAR>
 int
-CDSString<CHAR>::doGsub(      CDSString<CHAR>& s ,
+CDSString_<CHAR>::doGsub(      CDSString_<CHAR>& s ,
             const CHAR*            s1,
             const CHAR*            s2)
 {
@@ -308,7 +308,7 @@ CDSString<CHAR>::doGsub(      CDSString<CHAR>& s ,
    for ( ; j<s1_len ; j++)
      if (s[i+j] != s1[j]) break;
    if (j==s1_len) {
-     CDSString<CHAR> os = s;
+     CDSString_<CHAR> os = s;
      s.rep->sl[i] = '\0';
      s.calc_len();
      s += s2;
@@ -325,7 +325,7 @@ CDSString<CHAR>::doGsub(      CDSString<CHAR>& s ,
 
 template<class CHAR>
 int
-CDSString<CHAR>::gsub(const CHAR* s1,
+CDSString_<CHAR>::gsub(const CHAR* s1,
               const CHAR* s2,
               const bool  recurse)
 {
@@ -366,7 +366,7 @@ CDSString<CHAR>::gsub(const CHAR* s1,
 
 template<class CHAR>
 bool
-CDSString<CHAR>::matches(const CHAR* str,
+CDSString_<CHAR>::matches(const CHAR* str,
                    bool  ignoreCase) const
 {
  if ( length() != strlen(str) )
@@ -400,11 +400,11 @@ operatorGreater(const CHAR* s1,
 } /* operatorGreater */
 
 template<class CHAR>
-CDSList< CDSString<CHAR> >
-CDSString<CHAR>::split(const CHAR* sep) const
+CDSList< CDSString_<CHAR> >
+CDSString_<CHAR>::split(const CHAR* sep) const
 {
- CDSString<CHAR> tmp = *this;
- CDSList< CDSString<CHAR> > ret;
+ CDSString_<CHAR> tmp = *this;
+ CDSList< CDSString_<CHAR> > ret;
 
  tmp.splitRep(); //strtok modifies the rep
  for ( CHAR* s = strtok(tmp.rep->sl,sep) ; s ; s = strtok(0,sep) )
@@ -414,8 +414,8 @@ CDSString<CHAR>::split(const CHAR* sep) const
 } /* split */
 
 //bool
-//operator==(const CDSString& s1,
-//         const CDSString& s2)
+//operator==(const CDSString_& s1,
+//         const CDSString_& s2)
 //{
 //  if ( s1.length() != s2.length() ) return 0;
 //  for (int i=0 ; i<s1.length() ; i++) {
@@ -425,7 +425,7 @@ CDSString<CHAR>::split(const CHAR* sep) const
 //} /* operator== */
 //
 //bool
-//operator==(const CDSString& s1,
+//operator==(const CDSString_& s1,
 //         const char*      str)
 //{
 //  if ( s1.length() != strlen(str) ) return 0;
@@ -437,44 +437,44 @@ CDSString<CHAR>::split(const CHAR* sep) const
 //
 //bool
 //operator==(const char*      str,
-//         const CDSString& s1)
+//         const CDSString_& s1)
 //{
 //  return operator==(s1,str);
 //} /* operator== */
 
 template<class CHAR>
-CDSString<CHAR>
-operator+(const CDSString<CHAR>& s1,
-      const CDSString<CHAR>& s2)
+CDSString_<CHAR>
+operator+(const CDSString_<CHAR>& s1,
+      const CDSString_<CHAR>& s2)
 {
- CDSString<CHAR> ret(s1);
+ CDSString_<CHAR> ret(s1);
  ret += s2;
  return ret;
 } /* operator+ */
 
 template<class CHAR>
-CDSString<CHAR>
-operator+(const CDSString<CHAR>& s1,
+CDSString_<CHAR>
+operator+(const CDSString_<CHAR>& s1,
       const CHAR*            s2)
 {
- CDSString<CHAR> ret(s1);
+ CDSString_<CHAR> ret(s1);
  ret += s2;
  return ret;
 } /* operator+ */
 
 template<class CHAR>
-CDSString<CHAR>
-operator+(const CDSString<CHAR>& s1,
+CDSString_<CHAR>
+operator+(const CDSString_<CHAR>& s1,
         CHAR             c)
 {
- CDSString<CHAR> ret(s1);
+ CDSString_<CHAR> ret(s1);
  ret += c;
  return ret;
 } /* operator+ */
 
 template<class CHAR>
 ostream&
-operator<<(ostream& s, const CDSString<CHAR>& x)
+operator<<(ostream& s, const CDSString_<CHAR>& x)
 {
  if ( ! (s.flags()&ios::right) )
    for (int i=0 ; i<int(s.width()-x.length()) ; i++)
@@ -500,7 +500,7 @@ operator<<(ostream& s, const CDSString<CHAR>& x)
 template<class CHAR>
 istream& 
 operator>>(istream&         s, 
-           CDSString<CHAR>& x)
+           CDSString_<CHAR>& x)
 {
  FMTFLAGS_TYPE flags = s.flags();
  const bool skipWhite = (flags & ios::skipws) != 0;
@@ -524,7 +524,7 @@ operator>>(istream&         s,
 template<class CHAR>
 void 
 readline(istream&         is,
-         CDSString<CHAR>& x)
+         CDSString_<CHAR>& x)
 {
  // long flags = is.flags();
  // is.unsetf(ios::skipws);
@@ -548,8 +548,8 @@ readline(istream&         is,
 } /* readline */
 
 template<class CHAR>
-CDSString<CHAR> 
-subString(const CDSString<CHAR>& s,
+CDSString_<CHAR> 
+subString(const CDSString_<CHAR>& s,
           const int              beg,
           int                    end)
 {
@@ -559,7 +559,7 @@ subString(const CDSString<CHAR>& s,
  if ( end<0 || end>(int)s.length() )
    end = s.length();
 
- CDSString<CHAR> ret(((const char*)s)+beg,end-beg);
+ CDSString_<CHAR> ret(((const char*)s)+beg,end-beg);
 
  return ret;
 } /* subString */

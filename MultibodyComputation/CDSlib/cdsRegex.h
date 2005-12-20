@@ -20,7 +20,7 @@ public:
   
   int findIndex(const char* string,  //returns -1 on failure
 		const int   offset);
-  String match() const;              //returns most recent match
+  CDSString match() const;              //returns most recent match
   int endIndex() const;              //index of 1st char after last match
 
   class exception: public CDS_NAMESPACE(exception) { 

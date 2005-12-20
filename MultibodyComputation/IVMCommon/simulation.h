@@ -81,7 +81,7 @@ public:
   Atom atomByID(int index)        { return Atom(this,index); } 
 
   // return string identifying atom by id
-  virtual String atomString(int index) const; 
+  virtual CDSString atomString(int index) const; 
 
 
 
@@ -168,15 +168,15 @@ protected:
   //
 
   int id_;
-  String name_;
+  CDSString name_;
 
   int numAtoms_;
   int numBonds_;
-  CDSList< String >     atomNameList_;
-  CDSList< String >     residueNameList_;
+  CDSList< CDSString >     atomNameList_;
+  CDSList< CDSString >     residueNameList_;
   CDSList< int >        residueNumList_;
-  CDSList< String >     segmentNameList_;
-  CDSList< String >     chemTypeList_;
+  CDSList< CDSString >     segmentNameList_;
+  CDSList< CDSString >     chemTypeList_;
   CDSList< float_type > atomMassList_;
   CDSList< float_type > atomFricList_;
   CDSList< float_type > atomRadiusList_;

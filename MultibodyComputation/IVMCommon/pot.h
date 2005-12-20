@@ -13,7 +13,7 @@ class DerivList;
  */
 class Pot {
 public: 
-    Pot(const String& potName, const String& instanceName)
+    Pot(const CDSString& potName, const CDSString& instanceName)
       : potName_(potName), instanceName_(instanceName), scale_(1.)
     { }
     virtual ~Pot() {}
@@ -65,8 +65,8 @@ protected:
     // instance vbls
     //
 
-    String potName_;
-    String instanceName_;
+    CDSString potName_;
+    CDSString instanceName_;
     float_type scale_;
 };
 

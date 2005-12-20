@@ -4,7 +4,7 @@
 #include <cdsIostream.h> 
 #include <cdsString.h>
 
-//  stream based on CDSString class
+//  stream based on CDSString_ class
 //
 // FIX: currently only works with CHAR==char
 //
@@ -16,17 +16,17 @@ class CDSStringStreamBuf : public streambuf
 {
 public:
   CDSStringStreamBuf();
-  CDSStringStreamBuf(const CDSString<CHAR>& s);
+  CDSStringStreamBuf(const CDSString_<CHAR>& s);
   virtual ~CDSStringStreamBuf();
 
   
-  CDSString<CHAR> str() ;
-  CDSString<CHAR> str_volatile() ;
+  CDSString_<CHAR> str() ;
+  CDSString_<CHAR> str_volatile() ;
 
 private:
-  CDSString<CHAR> str_;
-  void setup(CDSString<CHAR> get,
-	     CDSString<CHAR> put);
+  CDSString_<CHAR> str_;
+  void setup(CDSString_<CHAR> get,
+	     CDSString_<CHAR> put);
 
 protected:                      // Overridden virtual member functions.
   virtual int underflow();
@@ -48,14 +48,14 @@ template<class CHAR>
 class CDSIStringStream : public istream
 {
 public:
-  explicit CDSIStringStream( const CDSString<CHAR>& );
+  explicit CDSIStringStream( const CDSString_<CHAR>& );
   explicit CDSIStringStream(const CHAR*);
   //CDSIStringStream(CHAR* , streamsize);
   //CDSIStringStream(const CHAR*, streamsize);
   virtual ~CDSIStringStream();
   
   //CDSStringStreamBuf<CHAR>* rdbuf() const;
-  CDSString<CHAR> str() { return buf.str(); }
+  CDSString_<CHAR> str() { return buf.str(); }
 
 private:
   CDSStringStreamBuf<CHAR> buf;
@@ -72,11 +72,11 @@ public:
   //ostrstream(char*, int, ios_base::openmode = ios_base::out);
   virtual ~CDSOStringStream();
 
-  // a copy of the strbuf CDSString is returned
-  CDSString<CHAR> str() { return buf.str(); }
+  // a copy of the strbuf CDSString_ is returned
+  CDSString_<CHAR> str() { return buf.str(); }
   //the string returned by str_volatile will change with future streambuf
   // operations - but no copy is made.
-  CDSString<CHAR> str_volatile() { return buf.str_volatile(); }
+  CDSString_<CHAR> str_volatile() { return buf.str_volatile(); }
 
 private:
   CDSStringStreamBuf<CHAR> buf;
@@ -88,7 +88,7 @@ class CDSStringStream : public iostream
 {
 public:
   CDSStringStream();
-//  CDSStringStream(CDSString<CHAR>&, int, 
+//  CDSStringStream(CDSString_<CHAR>&, int, 
 //		    std::ios_base::openmode = 
 //		    std::ios_base::in | std::ios_base::out);
   virtual ~CDSStringStream();
@@ -96,8 +96,8 @@ public:
   //CDSStringStreamBuf<CHAR>* rdbuf() const;
   //void freeze(bool = true);
   //int pcount() const;
-  CDSString<CHAR> str() { return buf.str(); }
-  CDSString<CHAR> str_volatile() { return buf.str_volatile(); }
+  CDSString_<CHAR> str() { return buf.str(); }
+  CDSString_<CHAR> str_volatile() { return buf.str_volatile(); }
 
 private:
   CDSStringStreamBuf<CHAR> buf;

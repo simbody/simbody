@@ -7,10 +7,10 @@ CDSStringStreamBuf<CHAR>::CDSStringStreamBuf()
 } /* constructor */
 
 template<class CHAR>
-CDSStringStreamBuf<CHAR>::CDSStringStreamBuf(const CDSString<CHAR>& s) :
+CDSStringStreamBuf<CHAR>::CDSStringStreamBuf(const CDSString_<CHAR>& s) :
   str_(s)
 {
- setup(s,CDSString<CHAR>());
+ setup(s,CDSString_<CHAR>());
 } /* constructor */
 
 template<class CHAR>
@@ -20,8 +20,8 @@ CDSStringStreamBuf<CHAR>::~CDSStringStreamBuf()
 
 template<class CHAR>
 void
-CDSStringStreamBuf<CHAR>::setup(CDSString<CHAR> get, 
-				CDSString<CHAR> put)
+CDSStringStreamBuf<CHAR>::setup(CDSString_<CHAR> get, 
+				CDSString_<CHAR> put)
 {
  if ( put.length() ) {
    char* putCharPtr = put.charPtr();
@@ -120,9 +120,9 @@ CDSStringStreamBuf<CHAR>::overflow(int c)
 } /* overflow */
 
 template<class CHAR>
-CDSString<CHAR>
+CDSString_<CHAR>
 CDSStringStreamBuf<CHAR>::str()
-  // return a CDSString containing the current contents of the StreamBuf
+  // return a CDSString_ containing the current contents of the StreamBuf
   //
   // this is a little tricky: if we make a copy of the string,
   // there is a performance hit. If we return just the underlying String
@@ -130,14 +130,14 @@ CDSStringStreamBuf<CHAR>::str()
 {
  const CHAR* endptr= pptr();
  while ( endptr>pbase() && *(endptr-1)=='\0'  ) endptr--;
- CDSString<CHAR> ret(str_,endptr-pbase());
+ CDSString_<CHAR> ret(str_,endptr-pbase());
  return ret;
 } /* str */
 
 template<class CHAR>
-CDSString<CHAR>
+CDSString_<CHAR>
 CDSStringStreamBuf<CHAR>::str_volatile()
-  // return a CDSString containing the current contents of the StreamBuf
+  // return a CDSString_ containing the current contents of the StreamBuf
   //
   // this is a little tricky: if we make a copy of the string,
   // there is a performance hit. If we return just the underlying String
@@ -158,7 +158,7 @@ CDSStringStreamBuf<CHAR>::setbuf(char* p,
 {
  cout << "NOT TESTED: setbuf: " << str_ << ' ' << p << endl;
  if ( p && len )
-   str_ = CDSString<CHAR>(p,len);
+   str_ = CDSString_<CHAR>(p,len);
  return this;
 } /* setbuf */
 
@@ -260,7 +260,7 @@ CDSOStringStream<CHAR>::~CDSOStringStream()
 //
 
 template<class CHAR>
-CDSIStringStream<CHAR>::CDSIStringStream(const CDSString<CHAR>& s)
+CDSIStringStream<CHAR>::CDSIStringStream(const CDSString_<CHAR>& s)
   : ios(), istream(0), buf(s)
 {
  ios::init(&buf);

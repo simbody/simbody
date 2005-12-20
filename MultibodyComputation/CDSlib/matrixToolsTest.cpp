@@ -10,7 +10,7 @@
 #include "fixedVector.h"
 #include "fixedMatrix.h"
 
-using CDS::Complex;
+using CDS::CDSComplex;
 
 
 static double
@@ -21,7 +21,7 @@ dot(const FixedVector<double,3>& v1,
  return ret;
 } /* dot */
 
-typedef Complex<double> DComplex;
+typedef CDSComplex<double> DComplex;
 
 static DComplex
 dot(const FixedVector<DComplex,3>& v1,
@@ -228,9 +228,9 @@ MatrixTools::matrixToolsTest()
 
    if ( norm(ret.eigenPairs[2].value)>tol ||
 	norm(ret.eigenPairs[0].value-
-	     Complex<double>(16.116843969807042990,0))>tol ||
+	     CDSComplex<double>(16.116843969807042990,0))>tol ||
 	norm(ret.eigenPairs[1].value-
-	     Complex<double>(-1.1168439698070429898,0))>tol ) {
+	     CDSComplex<double>(-1.1168439698070429898,0))>tol ) {
      cerr << "full eigen: eigenvalue error. eigenvalues: " 
 	  << ret.eigenPairs[0].value << " "
 	  << ret.eigenPairs[1].value << " "

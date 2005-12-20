@@ -15,9 +15,6 @@
 
 class CDSVec3;
 
-template<class CHAR> class CDSString;
-typedef CDSString<char> String;
-
 typedef FixedVector<double,6>   Vec6;
 typedef FixedMatrix<double,6,6> Mat66;
 typedef CDSMatrix<double>       RMat;

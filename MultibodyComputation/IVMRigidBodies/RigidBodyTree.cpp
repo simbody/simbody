@@ -126,7 +126,7 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
 // Add a new ground node, taking over the heap space.
 int RigidBodyTree::addGroundNode(RigidBodyNode*& gnodep)
 {
-    assert(String(gnodep->type())=="ground");
+    assert(CDSString(gnodep->type())=="ground");
 
     RigidBodyNode* n = gnodep; gnodep=0;  // take ownership
     n->setLevel(0);

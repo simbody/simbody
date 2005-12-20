@@ -30,13 +30,13 @@ public:
   //
 
   ACCESSOR(selection,Selection,AtomSel);
-  ACCESSOR(filename,Filename,String);
+  ACCESSOR(filename,Filename,CDSString);
   ACCESSOR(makeBackup,MakeBackup,bool);
 
-  void addRemark (const String &newVal);
+  void addRemark (const CDSString &newVal);
   void clearRemarks ();
 
-  CDSList< String > remarks() const;
+  CDSList< CDSString > remarks() const;
 
   void useXplorNames();
   void useIupacNames();
@@ -68,7 +68,7 @@ protected:
   // instance vbls
   //
 
-  CDSList<String> myRemarksList_;
+  CDSList<CDSString> myRemarksList_;
   int useXplorNames_;
 
   CDSVector< float_type > aux1_;

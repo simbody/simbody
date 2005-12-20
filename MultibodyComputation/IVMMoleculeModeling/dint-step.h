@@ -9,8 +9,6 @@
 #include "RVec.h"
 
 class AtomTree;
-template<class CHAR> class CDSString;
-typedef CDSString<char> String;
 
 /**
  * Abstract base class repesenting "solvers" which are either integrators
@@ -22,7 +20,7 @@ public:
     virtual ~Solver() {}
 
     // initialize new solver of given type
-    static Solver* create(const String& type,
+    static Solver* create(const CDSString& type,
                           IVM*          ivm);
 
     virtual void init(const RVec& pos,

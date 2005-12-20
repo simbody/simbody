@@ -258,7 +258,7 @@ PublicIVM::setHingeList(const CDSList<HingeSpec>& list ) {
         }
 }
 
-String
+CDSString
 PublicIVM::idAtom(int t_id) const
 {
     StringStream ret;

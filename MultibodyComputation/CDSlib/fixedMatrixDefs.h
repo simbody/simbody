@@ -8,7 +8,7 @@ FixedMatrixBase<T,s1,s2>::resize(int r,
 { 
  if ( r!=rows() ||
       c!=cols()   ) 
-   throw CDS::exception(String("FixedMatrix::resize: ") +
+   throw CDS::exception(CDSString("FixedMatrix::resize: ") +
 			"illegal resize operation attempted.");
 } /* resize */
 		

@@ -448,7 +448,7 @@ MinimizeCG::step(double& timeStep)
 
 // Solver factory.
 Solver*
-Solver::create(const String& type, IVM* ivm)
+Solver::create(const CDSString& type, IVM* ivm)
 {
     Solver* ret;
     if ( type.matches(PC6::getType(),true) )

@@ -145,7 +145,7 @@ PC6::step(double& timeStep)
         newTimeStep = timeStep * timeStepAdj->getFactor(ivm->Etotal());
     }
     catch ( InternalDynamics::Exception e ) {
-        if ( String(e.mess).contains("large time-step") )
+        if ( CDSString(e.mess).contains("large time-step") )
             stepUndo();
         throw;
     }

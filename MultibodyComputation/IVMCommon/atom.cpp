@@ -85,7 +85,7 @@ void
 Atom::setCharge(const float_type& x)
     { sim->setAtomCharge(index(),x); }
 
-String
+CDSString
 Atom::string() const 
     { return sim->atomString(index()); }
 

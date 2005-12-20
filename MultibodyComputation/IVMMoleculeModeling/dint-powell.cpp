@@ -255,7 +255,7 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
         }
     }
     catch ( InternalDynamics::Exception e) {
-        if ( String(e.mess).contains("LengthSet::enforce") ) {
+        if ( CDSString(e.mess).contains("LengthSet::enforce") ) {
             getMinVals();
             if (ivm->verbose()&printStepInfo) 
                 cout << "Powell::step: step terminated because of unmet constraint.\n";

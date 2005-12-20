@@ -32,10 +32,10 @@ public:
 		const char* velFilename);
   void outputStepInfo(const int     step,
 		      const double& stepsize,
-		      const String& type);
+		      const CDSString& type);
   void fixAtomsFromExternal(const int   natom,
 			    const long* imove);
-  String idAtom(int id) const;
+  CDSString idAtom(int id) const;
   void entry();
 };
 

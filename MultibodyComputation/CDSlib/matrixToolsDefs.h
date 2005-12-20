@@ -9,38 +9,38 @@
 #include <cdsMath.h>
 #include <cdsSStream.h>
 
-using CDS::Complex;
+using CDS::CDSComplex;
 
 
 namespace MatrixTools {
 
-template<class Matrix>
-CDSVector<typename Matrix::ElementType>
-getColumn(const Matrix& m,
+template<class MATRIX>
+CDSVector<typename MATRIX::ElementType>
+getColumn(const MATRIX& m,
 	  const int     col)
 {
- CDSVector<typename Matrix::ElementType> ret(m.rows());
+ CDSVector<typename MATRIX::ElementType> ret(m.rows());
  for (int i=0 ; i<m.rows() ; i++)
    ret(i) = m(i+m.offset1(),col);
  return ret;
 } /* getColumn */
 
 
-template<class Matrix>
-CDSVector<typename Matrix::ElementType>
-getRow(const Matrix& m,
+template<class MATRIX>
+CDSVector<typename MATRIX::ElementType>
+getRow(const MATRIX& m,
        const int     row)
 {
- CDSVector<typename Matrix::ElementType> ret(m.cols());
+ CDSVector<typename MATRIX::ElementType> ret(m.cols());
  for (int i=0 ; i<m.cols() ; i++)
    ret(i) = m(row,i+m.offset2());
  return ret;
 } /* getRow */
 
 
-template<class Matrix, class Vector>
+template<class MATRIX, class Vector>
 void
-setColumn(      Matrix& m,
+setColumn(      MATRIX& m,
 	  const int     col,
 	  const Vector& v)
 {
@@ -49,9 +49,9 @@ setColumn(      Matrix& m,
 } /* setColumn */
 
 
-template<class Matrix, class Vector>
+template<class MATRIX, class Vector>
 void
-setRow(      Matrix& m,
+setRow(      MATRIX& m,
        const int     row,
        const Vector& v)
 {
@@ -60,11 +60,11 @@ setRow(      Matrix& m,
 } /* setRow */
 
 
-template<class Matrix>
-typename Matrix::TransposeType
-transpose(const Matrix& m)
+template<class MATRIX>
+typename MATRIX::TransposeType
+transpose(const MATRIX& m)
 {
- typename Matrix::TransposeType r;
+ typename MATRIX::TransposeType r;
  r.resize(m.cols(),m.rows());
  for (int i=0 ; i<m.rows() ; i++)
    for (int j=0 ; j<m.cols() ; j++) 
@@ -274,7 +274,7 @@ callEigen(const MATRIX&              matrix,
 
  ret.eigenPairs.resize(matrix.cols());
  for (int i=0 ; i<matrix.cols() ; i++) {
-   ret.eigenPairs[i].value = Complex<T>( values_r(i), values_i(i) );
+   ret.eigenPairs[i].value = CDSComplex<T>( values_r(i), values_i(i) );
    ret.eigenPairs[i].vector.resize( matrix.cols() );
  }
 
@@ -282,27 +282,27 @@ callEigen(const MATRIX&              matrix,
    for (int i=0 ; i<matrix.cols() ; i++)
      for (int j=0 ; j<matrix.cols() ; j++)
        if ( values_i(i) != 0. ) {
-	 ret.eigenPairs[i].vector(j) = Complex<T>(vectors_l(j,i),
+	 ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_l(j,i),
 						  vectors_l(j,i+1));
-	 ret.eigenPairs[i+1].vector(j) = Complex<T>(vectors_l(j,i),
+	 ret.eigenPairs[i+1].vector(j) = CDSComplex<T>(vectors_l(j,i),
 						    -vectors_l(j,i+1));
 	 i++;
        } else 
-	 ret.eigenPairs[i].vector(j) = Complex<T>(vectors_l(j,i),0.);
+	 ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_l(j,i),0.);
  
  if ( jobvr == 'V' )
    for (int i=0 ; i<matrix.cols() ; i++) {
      if ( values_i(i) != 0. ) {
        for (int j=0 ; j<matrix.cols() ; j++) {
-	 ret.eigenPairs[i].vector(j) = Complex<T>(vectors_r(j,i),
+	 ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_r(j,i),
 						  vectors_r(j,i+1));
-	 ret.eigenPairs[i+1].vector(j) = Complex<T>(vectors_r(j,i),
+	 ret.eigenPairs[i+1].vector(j) = CDSComplex<T>(vectors_r(j,i),
 						    -vectors_r(j,i+1));
        }
        i++;
      } else 
        for (int j=0 ; j<matrix.cols() ; j++)
-	 ret.eigenPairs[i].vector(j) = Complex<T>(vectors_r(j,i),0.);
+	 ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_r(j,i),0.);
    }
 
  return ret;   
@@ -386,14 +386,14 @@ callEigenFull(const char   &JOBVL,
 { throw CDS::exception("callEigenFull not defined"); }
 
 namespace MatrixTools {
-template<class Matrix>
-MatrixTools::SVDResults<typename Matrix::ElementType>
-svd(const Matrix&                                               matrix,
+template<class MATRIX>
+MatrixTools::SVDResults<typename MATRIX::ElementType>
+svd(const MATRIX&                                               matrix,
     const char                                                  jobu,
     const char                                                  jobvt,
-	  MatrixTools::SVDResults<typename Matrix::ElementType> ret)
+	  MatrixTools::SVDResults<typename MATRIX::ElementType> ret)
 {
- typedef typename Matrix::ElementType T;
+ typedef typename MATRIX::ElementType T;
 
  int m = matrix.rows();
  int n = matrix.cols();
@@ -410,7 +410,7 @@ svd(const Matrix&                                               matrix,
    case 'S' : ret.u.resize(m,CDSMath::min(m,n)); break;
    case 'N' : ret.u.resize(1,0); break;
      //case 'O' : ret.u.resize(1,0); break;
-   default: throw CDS::exception(String("callSVD: bad value for jobu argument: ") +
+   default: throw CDS::exception(CDSString("callSVD: bad value for jobu argument: ") +
 			    jobu);
  }
 
@@ -419,7 +419,7 @@ svd(const Matrix&                                               matrix,
    case 'S' : ret.vT.resize(CDSMath::min(m,n),n); break;
    case 'N' : ret.vT.resize(1,0); break;
      //case 'O' : ret.vT.resize(1,0); break;
-   default: throw CDS::exception(String("callSVD: bad value for jobvt argument: ") +
+   default: throw CDS::exception(CDSString("callSVD: bad value for jobvt argument: ") +
 			    jobvt);
  }
 
@@ -627,13 +627,13 @@ callSPTRF<double>(const char& UPLO,
 //
 
 namespace MatrixTools {
-template<class Matrix>
-EigenResults<typename Matrix::MatrixType>
-eigen(const Matrix&              matrix,
+template<class MATRIX>
+EigenResults<typename MATRIX::MatrixType>
+eigen(const MATRIX&              matrix,
       const char                 jobz,
-	    EigenResults<typename Matrix::MatrixType> ret)
+	    EigenResults<typename MATRIX::MatrixType> ret)
 {
- typedef typename Matrix::ElementType T;
+ typedef typename MATRIX::ElementType T;
 
  if (matrix.rows()==0) return ret;
 

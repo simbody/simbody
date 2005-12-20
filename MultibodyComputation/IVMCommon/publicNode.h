@@ -13,13 +13,13 @@ public:
     ACCESSOR(startIndex,StartIndex,int);
     ACCESSOR(parentAtom,ParentAtom,int);
 
-    String       type()  { return type_; }
+    CDSString       type()  { return type_; }
     CDSList<int> atoms() {return atoms_;}     // note that atoms[0] is hinge atom
 
-    void setType (const String       &v) { type_=v; }
+    void setType (const CDSString       &v) { type_=v; }
     void setAtoms(const CDSList<int> &v) { atoms_=v;}
 private:
-    String       type_;
+    CDSString       type_;
     CDSList<int> atoms_;
 };
 

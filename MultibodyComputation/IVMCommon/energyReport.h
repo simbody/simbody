@@ -17,11 +17,11 @@
 class EnergyReport {
   
 public:
-  String     name;
+  CDSString     name;
   float_type energy;
   float_type deviation;
 
-  EnergyReport(const String     name="",
+  EnergyReport(const CDSString     name="",
 	       const float_type energy=0.,
 	       const float_type deviation=0.) :
     name(name), energy(energy), deviation(deviation) {}

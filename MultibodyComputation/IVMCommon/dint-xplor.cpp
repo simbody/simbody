@@ -103,7 +103,7 @@ XplorIVM::initXplor()
     initTopology();
 }
 
-String
+CDSString
 XplorIVM::idAtom(int id) const {
     StringStream ret;
     ret << id << ' ';
@@ -115,9 +115,9 @@ XplorIVM::idAtom(int id) const {
         ret << "[IVM atom]";
     else {
         int lid = id-1;
-        ret << String(xplorVars.resName+lid*4,4) << ' ' 
-            << String(xplorVars.resNum+lid*4,4)  << ' ' 
-            << String(xplorVars.atomName+lid*4,4);
+        ret << CDSString(xplorVars.resName+lid*4,4) << ' ' 
+            << CDSString(xplorVars.resNum+lid*4,4)  << ' ' 
+            << CDSString(xplorVars.atomName+lid*4,4);
     }
     ret << ends;
     return ret.str();
@@ -234,7 +234,7 @@ ostream& help(ostream& ostr)
     return ostr;
 }
 
-String
+CDSString
 formatHingeSpec(const IVM* ivm, const InternalDynamics::HingeSpec& spec)
 {
     StringStream ret;
@@ -341,10 +341,10 @@ XplorIVM::info( ostream&    ostr,
 void
 XplorIVM::outputStepInfo(const int     step,
                          const double& stepsize,
-                         const String& type)
+                         const CDSString& type)
 {
     FMTFLAGS_TYPE oflags = cout.flags();
-    // String type = integrateType + " ";
+    // CDSString type = integrateType + " ";
     cout.setf(ios::left,ios::adjustfield);
     cout << " -- " << setw(11) << setfill('-') << type+" " 
          << setfill(' ') << setw(0);
@@ -411,11 +411,11 @@ XplorIVM::entry()
     double    finalTime=0.0;
     int       steps=0;
     long      done=0;
-    String prompt = "Internal Dynamics>";
-    String trajFilename;
-    String velFilename;
+    CDSString prompt = "Internal Dynamics>";
+    CDSString trajFilename;
+    CDSString velFilename;
     int    formattedOutput=0;
-    String format="12Z6      ";
+    CDSString format="12Z6      ";
     double scale=10000.0;
     double offset=800;
     int    nCMresets=0;  //how often to remove CM translation/rotation
@@ -432,7 +432,7 @@ XplorIVM::entry()
         FORTRAN(nextwd,NEXTWD)(prompt,prompt.length());
         long used=0;
         FORTRAN(miscom,MISCOM)(prompt,used,prompt.length());
-        const String wd(xplorVars.wd,4);
+        const CDSString wd(xplorVars.wd,4);
         if (! used) {
             if ( xplorVars.wd[0] == '?' || wd == "INFO" ) {
                 info(cout,finalTime,stepsize,nprint,nsavc,nsavv,reuseIntVar,steps,
@@ -511,11 +511,11 @@ XplorIVM::entry()
                 long tmp;
                 FORTRAN(nexti,NEXTI)("NPRInt=",tmp,7); 
                 nprint = (tmp<1) ? 1 : tmp;
-            } else if ( String(xplorVars.wd,5) == "NSAVC" ) {
+            } else if ( CDSString(xplorVars.wd,5) == "NSAVC" ) {
                 long tmp;
                 FORTRAN(nexti,NEXTI)("NSAVC=",tmp,6);
                 nsavc = tmp;
-            } else if ( String(xplorVars.wd,5) == "NSAVV" ) {
+            } else if ( CDSString(xplorVars.wd,5) == "NSAVV" ) {
                 long tmp;
                 FORTRAN(nexti,NEXTI)("NSAVV=",tmp,6);
                 nsavv = tmp;
@@ -607,7 +607,7 @@ XplorIVM::entry()
                     cout << "Caught exception: " << e.mess << '\n';
                     cout << "Failed to automatically determine torsion angles.\n";
                 }
-            } else if ( String(xplorVars.wd,3) == "FIX" ) {
+            } else if ( CDSString(xplorVars.wd,3) == "FIX" ) {
                 auto_arr<long> flags(new long[xplorVars.natom]);
                 long  nflags;
                 FORTRAN(selcta,SELCTA)(flags,nflags,
@@ -690,7 +690,7 @@ XplorIVM::entry()
                 FORTRAN(nextst,NEXTST)("ARG=",argstr,5,largstr);
                 for (int i=0 ; i<largstr ; i++) 
                     if ( argstr[i]==' ' ) argstr[i] = '\0';       
-                if ( String(argstr) == "GROUP" ) {
+                if ( CDSString(argstr) == "GROUP" ) {
                     cout << "groups: \n";
                     for (int i=0 ; i<groupList.size() ; i++) {
                         for (int j=0 ; j<groupList[i].size() ; j++)
@@ -698,9 +698,9 @@ XplorIVM::entry()
                         cout << '\n';
                     }
                 }
-                //     } else if ( String(argstr) == "NODE" ) {
+                //     } else if ( CDSString(argstr) == "NODE" ) {
                 //       FORTRAN(nextlo,NEXTLO)("PRINt NODE=",printNodeInfo,11);
-                if ( String(argstr) == "HINGE" ) {
+                if ( CDSString(argstr) == "HINGE" ) {
                     cout << "Hinge Type   Hinges with the following atoms: \n";
                     FMTFLAGS_TYPE oflags = cout.flags();
                     cout.setf( ios::left );
@@ -710,13 +710,13 @@ XplorIVM::entry()
                 //         cout << " " << setw(9) << hingeList[i].type << "   "
                 //          << hingeList[i].aList << '\n';
                     cout.flags( oflags );
-                } else if ( String(argstr) == "VERBOSE" ) {
+                } else if ( CDSString(argstr) == "VERBOSE" ) {
                     const int largstr=80;
                     char argstr[largstr]; 
                     FORTRAN(nextst,NEXTST)("PRINt VERBOSE=",argstr,14,largstr);
                     for (int i=0 ; i<largstr ; i++) 
                         if ( argstr[i]==' ' ) argstr[i] = '\0';    
-                    String s(argstr); s.downcase();
+                    CDSString s(argstr); s.downcase();
                     if ( s == "reset"   )    verbose_ =0;
                     else if ( s == "all"   ) verbose_ =0xffff;
                     else {

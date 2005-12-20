@@ -7,7 +7,7 @@ const char*
 toString(const EnumNameMap* map, 
 	 const int          key)
 {
- for (int i=0 ; String("last enum") != map[i].name ; i++)
+ for (int i=0 ; CDSString("last enum") != map[i].name ; i++)
    if ( map[i].val == key )
      return map[i].name;
 

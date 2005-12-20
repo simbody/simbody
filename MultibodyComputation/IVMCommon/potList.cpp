@@ -7,7 +7,7 @@
 #include <cdsIomanip.h>
 
 
-PotList::PotList(const String name)
+PotList::PotList(const CDSString name)
   : Pot("PotList",name)
 {
 }
@@ -17,9 +17,9 @@ byNameComparer(const rc_Pot& a,
 	       const rc_Pot& b) 
 {
  int ret = 1;
- if ( String(a->instanceName()) < b->instanceName() )
+ if ( CDSString(a->instanceName()) < b->instanceName() )
    ret = -1;
- else if ( String(a->instanceName()) == b->instanceName() )
+ else if ( CDSString(a->instanceName()) == b->instanceName() )
    ret = 0;
 
  return ret;
@@ -32,7 +32,7 @@ PotList::add(rc_Pot& pot)
  if ( pot.ptr() == this )
    throw CDS::exception("PotList::add: can't add self to list.");
 
- if ( String(pot->instanceName()).length() == 0 )
+ if ( CDSString(pot->instanceName()).length() == 0 )
    throw CDS::exception("PotList::add: term has null name.");
 
  //
@@ -40,7 +40,7 @@ PotList::add(rc_Pot& pot)
  //
  bool present=0;
  for (int i=0 ; i<list_.size() ; i++)
-   if ( list_[i]->instanceName() == String(pot->instanceName()) ) {
+   if ( list_[i]->instanceName() == CDSString(pot->instanceName()) ) {
      present=1;
      break;
    }
@@ -52,7 +52,7 @@ PotList::add(rc_Pot& pot)
 } /* add */
 
 void 
-PotList::remove(const String& instanceName)
+PotList::remove(const CDSString& instanceName)
 {
 
  for (int i=0 ; i<list_.size() ; i++)
@@ -61,13 +61,13 @@ PotList::remove(const String& instanceName)
      return;
    }
 
- throw CDS::out_of_range(String("PotList::remove: no term named ") + 
+ throw CDS::out_of_range(CDSString("PotList::remove: no term named ") + 
 			 instanceName);
 
 } /* remove */
 
 rc_Pot 
-PotList::byName(const String& instanceName)
+PotList::byName(const CDSString& instanceName)
 {
 
  for (int i=0 ; i<list_.size() ; i++)
@@ -75,7 +75,7 @@ PotList::byName(const String& instanceName)
      return list_[i];
    }
 
- throw CDS::out_of_range(String("PotList::byName: no term named ") + 
+ throw CDS::out_of_range(CDSString("PotList::byName: no term named ") + 
 			 instanceName);
 
 } /* remove */
@@ -130,8 +130,8 @@ PotList::calcEnergyAndDerivs(DerivList& derivList)
  return EnergyReport(instanceName(),totEner,0.);
 } /* calcEnergyAndDerivs */
 
-String
+CDSString
 PotList::showReport() const
 {
- return String("FIX: write me");
+ return CDSString("FIX: write me");
 } /* showReport */

@@ -27,7 +27,7 @@ CDSStringStream_test()
  {
    IStringStream str( "42 hello" );
    int num;
-   String s;
+   CDSString s;
    str >> num >> s;
    if ( num != 42 || s != "hello" ) {
      cerr << "CDSIStringSream: failure: " << num << ' ' << s << endl;

@@ -55,7 +55,7 @@ public:
     //  void setRadius(const float_type& newVal) ;
     void setCharge(const float_type& newVal) ;
 
-    String string() const;
+    CDSString string() const;
 
     Simulation* simulation() { return sim; }
     const Simulation* simulation() const { return (const Simulation*)sim; }

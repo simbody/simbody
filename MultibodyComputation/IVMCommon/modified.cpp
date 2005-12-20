@@ -14,7 +14,7 @@ void
 ModifiedBase::unRegister(const Simulation* sim)
 {
  if (  !registeredSimulations.contains(sim) )
-   throw CDS::exception(String("ModifiedBase::unRegister: ") +
+   throw CDS::exception(CDSString("ModifiedBase::unRegister: ") +
 			"mismatch in registration status");
 
  registeredSimulations.remove( registeredSimulations.getIndex(sim) );

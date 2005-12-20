@@ -29,8 +29,8 @@ public:
   // Returns a list of the values of those variables in the 
   // same order as they were requested.
   //
-  CDSList< String > command(const char*            cmd,
-			    const CDSList<String>& names);
+  CDSList< CDSString > command(const char*            cmd,
+			    const CDSList<CDSString>& names);
   void shell();
 
   // allows you to eval an xplor selection from python
