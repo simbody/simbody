@@ -1,5 +1,5 @@
 PROJECT (Simbody)
-SUBDIRS (CDSlib common RigidBodies MultibodyModeling IVMMoleculeModeling)
+SUBDIRS (Mechanics MultibodyComputation MultibodyModeling)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
@@ -35,6 +35,6 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(testClass ${TEST_PATH}/CDSlib/testClass)
-ADD_TEST(IVMMoleculeTest ${TEST_PATH}/IVMMoleculeModeling/IVMMoleculeTest)
+ADD_TEST(testClass             ${TEST_PATH}/MultibodyComputation/CDSlib/testClass)
+ADD_TEST(IVMMoleculeTest       ${TEST_PATH}/MultibodyComputation/IVMMoleculeModeling/IVMMoleculeTest)
 ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/MultibodyModelingTest)
