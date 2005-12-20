@@ -62,13 +62,6 @@ public:
         return prep;
     }
 
-
-    PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
-        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
     SIMTK_DOWNCAST(RealParameterRep,SubsystemRep);
 };
 
@@ -98,12 +91,6 @@ public:
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
         return 0;
-    }
-
-    PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
-        PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
     }
 
     SIMTK_DOWNCAST(Vec3ParameterRep,SubsystemRep);
@@ -137,12 +124,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
     SIMTK_DOWNCAST(StationParameterRep,SubsystemRep);
 };
 
@@ -165,12 +146,6 @@ public:
         }
         PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
         prep->setMyHandle(p); p.setRep(prep);
-        return prep;
-    }
-
-    PlacementRep* useFeatureAsRealPlacement(RealPlacement& handle) const {
-        PlacementRep* prep = new RealFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
         return prep;
     }
 
@@ -206,12 +181,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsVec3Placement(Vec3Placement& handle) const {
-        PlacementRep* prep = new Vec3FeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
     SIMTK_DOWNCAST(Vec3MeasureRep,SubsystemRep);
 };
 
@@ -242,12 +211,6 @@ public:
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
         return 0;
-    }
-
-    PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
     }
 
     SIMTK_DOWNCAST(StationMeasureRep,SubsystemRep);
@@ -282,25 +245,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        PlacementRep* prep = new StationFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
-    PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentSubsystem() && FrameFeature::isInstanceOf(getParentSubsystem()))) {
-            SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
-                     getFullName(), "Station", "Orientation");
-            //NOTREACHED
-        }
-        const FrameFeature& parentFrame = FrameFeature::downcast(getParentSubsystem());
-        PlacementRep* prep = new FrameExprPlacementRep(parentFrame.getOrientation(), 
-                                                       Station::downcast(getMyHandle()));
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
     SIMTK_DOWNCAST(StationRep,SubsystemRep);
 };
 
@@ -330,12 +274,6 @@ public:
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
         return 0;
-    }
-
-    PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
-        PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
     }
 
     SIMTK_DOWNCAST(DirectionMeasureRep,SubsystemRep);
@@ -368,12 +306,6 @@ public:
             getFullName(), getFeatureTypeName(), i);
         //NOTREACHED
         return 0;
-    }
-
-    PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement& handle) const {
-        PlacementRep* prep = new DirectionFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
     }
 
     SIMTK_DOWNCAST(DirectionRep,SubsystemRep);
@@ -409,12 +341,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-
     SIMTK_DOWNCAST(OrientationMeasureRep,SubsystemRep);
 };
 
@@ -447,23 +373,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        PlacementRep* prep = new OrientationFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-    PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        if (!(hasParentSubsystem() && FrameFeature::isInstanceOf(getParentSubsystem()))) {
-            SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
-                     getFullName(), "Orientation", "Station");
-            //NOTREACHED
-        }
-        const FrameFeature& parentFrame = FrameFeature::downcast(getParentSubsystem());
-        PlacementRep* prep = new FrameExprPlacementRep(Orientation::downcast(getMyHandle()),
-                                                       parentFrame.getOrigin());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
     const Direction& getAxis(int i) const
       { assert(0<=i&&i<=2); return Direction::downcast(getFeature(axisIndices[i])); }
     const Direction& x() const {return Direction::downcast(getFeature(axisIndices[0]));}
@@ -522,21 +431,6 @@ public:
         return 0;
     }
 
-    PlacementRep* useFeatureAsFramePlacement(FramePlacement& handle) const {
-        PlacementRep* prep = new FrameFeaturePlacementRep(getMyHandle());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-    PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement& handle) const {
-        PlacementRep* prep = new OrientationFeaturePlacementRep(getOrientation());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
-    PlacementRep* useFeatureAsStationPlacement(StationPlacement& handle) const {
-        PlacementRep* prep = new StationFeaturePlacementRep(getOrigin());
-        prep->setMyHandle(handle); handle.setRep(prep);
-        return prep;
-    }
     const Orientation& getOrientation() const {return Orientation::downcast(getFeature(RIndex));}
     const Station&     getOrigin()      const {return Station::downcast(getFeature(OIndex)); }
 

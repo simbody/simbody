@@ -55,7 +55,6 @@ public:
     StationMeasure& updCentroid() {
         return StationMeasure::downcast(updFeature(centroidMeasureIndex));
     }
-    PlacementType getRequiredPlacementType() const { return FramePlacementType; }
 
     // virtuals getFeatureTypeName() && clone() still missing
 
@@ -151,7 +150,7 @@ public:
     }
 
     std::string   getFeatureTypeName() const { return "Joint"; }
-    PlacementType getRequiredPlacementType() const { return VoidPlacementType; }
+
     SubsystemRep* clone() const { return new JointRep(*this); }
 
     const FrameFeature& getReferenceFrame() const {return FrameFeature::downcast(getFeature(refIndex));}

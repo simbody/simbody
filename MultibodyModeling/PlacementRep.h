@@ -85,22 +85,6 @@ class   FramePlacementRep;
 class     FrameConstantPlacementRep;
 class     FrameFeaturePlacementRep;
 
-// TODO: shouldn't be necessary to have this enum; use virtual methods instead
-enum PlacementType {
-    InvalidPlacementType = 0,
-    VoidPlacementType,
-    BoolPlacementType,
-    IntPlacementType,
-    RealPlacementType,
-    Vec2PlacementType,
-    Vec3PlacementType,
-    Mat33PlacementType,
-    StationPlacementType,
-    DirectionPlacementType,
-    OrientationPlacementType,
-    FramePlacementType
-};
-
 /**
  * Abstract class representing an operator which acts on a list
  * of Placement arguments to produce a placement expression. The
@@ -405,7 +389,7 @@ protected:
     explicit FeatureReference(const Feature& f, int i = -1);
     // default copy, assignment, destructor
 
-    const Feature& getReferencedFeature() const {
+    const Feature& refGetReferencedFeature() const {
         assert(feature); return *feature;
     }
 
@@ -450,13 +434,20 @@ public:
     // Station and Station might say yes if p were a Frame. Note that these
     // must be resolved at the parent class of a family of PlacementReps
     // which are of the same type.
-    virtual bool canCreateFrom(const Placement& p) const = 0;
-    virtual PlacementRep* createFrom(const Placement&) const = 0;
-    virtual bool isSameType(const Placement&) const = 0;
+    virtual PlacementRep* 
+        createPlacementFrom(const Placement&, bool dontThrow=false) const = 0;
+    virtual bool isSamePlacementType(const Placement&) const = 0;
 
     virtual std::string    getPlacementTypeName() const = 0;
     virtual int            getNIndicesAllowed()   const = 0;
     virtual PlacementValue createEmptyPlacementValue() const = 0;
+
+
+    virtual bool isConstant() const { return false; }
+    virtual bool isFeatureReference() const { return false; }
+    virtual const Feature& getReferencedFeature() const {
+        SIMTK_THROW(Exception::NotAFeatureReferencePlacement);
+    }
 
     virtual PlacementRep* clone()            const = 0;
     virtual std::string   toString(const std::string& linePrefix) const = 0;
@@ -483,7 +474,6 @@ public:
     virtual Placement genericCrossProduct(const Placement& rhs) const;
 
 
-    virtual bool isConstant() const { return false; }
     virtual bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { offender=0; return true; }
     virtual void repairFeatureReferences(const Subsystem& oldRoot, 
@@ -537,10 +527,10 @@ public:
     std::string    getPlacementTypeName()      const {return "Real";}
     int            getNIndicesAllowed()        const {return 1;} // no index or index==0
 
-    // TODO: at least Int should be convertable.
-    bool          canCreateFrom(const Placement& p) const { return false; }
-    PlacementRep* createFrom   (const Placement&) const { return 0; }
-    bool isSameType(const Placement& p) const {return RealPlacement::isInstanceOf(p);}
+    static PlacementRep* createRealPlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createRealPlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return RealPlacement::isInstanceOf(p);}
 
     // realize, clone, toString, findAncestorSubsystem are still missing
 
@@ -618,6 +608,9 @@ public:
     
     void realize(Stage g) const {refRealize(g);}
     void evaluateReal(Real& r) const {r=getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
 
     PlacementRep*  clone() const {return new RealFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)     const {return refToString(indent);}
@@ -710,13 +703,10 @@ public:
     std::string    getPlacementTypeName()      const {return "Vec3";}
     int            getNIndicesAllowed()        const {return 3;} // 3 reals
 
-    static bool canCreateVec3From(const Placement& p);
-    static PlacementRep* createVec3From(const Placement& p);
-
-    bool          canCreateFrom(const Placement& p) const {return canCreateVec3From(p);}
-    PlacementRep* createFrom   (const Placement& p) const {return createVec3From(p);}
-
-    bool isSameType(const Placement& p) const {return Vec3Placement::isInstanceOf(p);}
+    static PlacementRep* createVec3PlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createVec3PlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return Vec3Placement::isInstanceOf(p);}
 
     Placement genericNegate() const;
     Placement genericLength() const;
@@ -786,6 +776,9 @@ public:
     
     void realize(Stage g) const {refRealize(g);}
     void evaluateVec3(Vec3& v) const {v=getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
 
     PlacementRep*  clone() const {return new Vec3FeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -873,9 +866,11 @@ public:
     std::string    getPlacementTypeName()      const {return "Station";}
     int            getNIndicesAllowed()        const {return 3;} // 3 reals
 
-    bool          canCreateFrom(const Placement& p) const;
-    PlacementRep* createFrom   (const Placement& p) const;
-    bool isSameType(const Placement& p) const {return StationPlacement::isInstanceOf(p);}
+
+    static PlacementRep* createStationPlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createStationPlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return StationPlacement::isInstanceOf(p);}
 
     // clone, toString, findAncestorSubsystem are still missing
 
@@ -948,6 +943,9 @@ public:
     
     void realize(Stage g) const {refRealize(g);}
     void evaluateVec3(Vec3& v) const {v = getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
 
     PlacementRep*  clone() const {return new StationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1037,9 +1035,10 @@ public:
     std::string    getPlacementTypeName() const { return "Direction"; }
     int            getNIndicesAllowed()        const {return 3;} // 3 reals
 
-    bool          canCreateFrom(const Placement& p) const;
-    PlacementRep* createFrom   (const Placement& p) const;
-    bool isSameType(const Placement& p) const {return DirectionPlacement::isInstanceOf(p);}
+    static PlacementRep* createDirectionPlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createDirectionPlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return DirectionPlacement::isInstanceOf(p);}
 
     // Negating a direction yields another direction
     Placement genericNegate() const;
@@ -1122,6 +1121,9 @@ public:
     void realize(Stage g) const {refRealize(g);}
     void evaluateVec3(Vec3& v) const {v = getReferencedValue();}
 
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
+
     PlacementRep*  clone() const {return new DirectionFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
     const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
@@ -1193,9 +1195,10 @@ public:
     std::string    getPlacementTypeName()      const {return "Orientation";}
     int            getNIndicesAllowed()        const {return 3;} // 3 Directions
 
-    bool canCreateFrom(const Placement& p) const {return false;}
-    PlacementRep* createFrom(const Placement& p) const {return 0;}
-    bool isSameType(const Placement& p) const {return OrientationPlacement::isInstanceOf(p);}
+    static PlacementRep* createOrientationPlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createOrientationPlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return OrientationPlacement::isInstanceOf(p);}
 
     // clone, toString, findAncestorSubsystem are still missing
 
@@ -1258,6 +1261,9 @@ public:
       
     void realize(Stage g) const {refRealize(g);}
     void evaluateMat33(Mat33& m) const {m = getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
 
     PlacementRep*  clone() const {return new OrientationFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}
@@ -1328,9 +1334,10 @@ public:
     std::string    getPlacementTypeName()      const {return "Frame";}
     int            getNIndicesAllowed()        const {return 2;} // Orientation, Station
 
-    bool canCreateFrom(const Placement& p) const {return false;}
-    PlacementRep* createFrom(const Placement& p) const {return 0;}
-    bool isSameType(const Placement& p) const {return FramePlacement::isInstanceOf(p);}
+    static PlacementRep* createFramePlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createFramePlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return FramePlacement::isInstanceOf(p);}
 
     // clone, toString, findAncestorSubsystem are still missing
 
@@ -1399,6 +1406,9 @@ public:
 
     void realize(Stage g) const {refRealize(g);}
     void evaluateMat34(Mat34& m) const {m = getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
 
     PlacementRep*  clone() const {return new FrameFeaturePlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return refToString(indent);}

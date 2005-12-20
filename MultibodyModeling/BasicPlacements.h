@@ -182,6 +182,8 @@ public:
     // Inherit the origin from the Orientation feature's parent.
     explicit FramePlacement(const Orientation&);
 
+    explicit FramePlacement(const Feature&);
+
     FramePlacement(const Orientation&, const Station&);
 
     // For internal use only.

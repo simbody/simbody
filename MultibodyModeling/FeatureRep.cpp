@@ -40,53 +40,6 @@ namespace simtk {
 
     // FEATURE REP //
 
-// These are default implementations. Derived features which can actually
-// be used as a placement of the given type should override.
-
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsRealPlacement(RealPlacement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Real");
-    //NOTREACHED
-    return 0;
-}
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsVec3Placement(Vec3Placement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Vec3");
-    //NOTREACHED
-    return 0;
-}
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsStationPlacement(StationPlacement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Station");
-    //NOTREACHED
-    return 0;
-}
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsDirectionPlacement(DirectionPlacement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Direction");
-    //NOTREACHED
-    return 0;
-}    
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsOrientationPlacement(OrientationPlacement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Orientation");
-    //NOTREACHED
-    return 0;
-} 
-/*virtual*/ PlacementRep*
-FeatureRep::useFeatureAsFramePlacement(FramePlacement&) const {
-    SIMTK_THROW3(Exception::FeatureCantBeUsedAsPlacement,
-                    getFullName(), getFeatureTypeName(), "Frame");
-    //NOTREACHED
-    return 0;
-} 
-
-
 // Use a Placement like p (possibly recast to something else) for this
 // feature. Concrete FeatureRep's are responsible for interpreting the
 // Placement and possibly converting it to something usable.
@@ -121,18 +74,12 @@ void FeatureRep::replace(const Placement& p) {
 
     Placement pTweaked;
     const Placement* sourcePlacement = 0;
-    if (isRequiredPlacementType(p))
+    if (getSamplePlacement().getRep().isSamePlacementType(p))
         sourcePlacement = &p;
-    else if (canConvertToRequiredPlacementType(p)) {
+    else {
+        // This will throw an exception if it doesn't work.
         pTweaked = convertToRequiredPlacementType(p);
         sourcePlacement = &pTweaked;
-    }
-
-    if (!sourcePlacement) {
-        SIMTK_THROW3(Exception::PlacementCantBeUsedForThisFeature,
-            p.getPlacementTypeName(),
-            getFullName(), getFeatureTypeName());
-        //NOTREACHED             
     }
 
     assert(isRequiredPlacementType(*sourcePlacement));

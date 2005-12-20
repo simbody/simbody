@@ -46,15 +46,22 @@ RealPlacement::RealPlacement(const Real& r) {
 }
 
 RealPlacement::RealPlacement(const RealParameter& rp) {
-    rep = rp.getRep().useFeatureAsRealPlacement(*this);
+    rep = rp.getRep().createFeatureReference(*this);
 }
 
 RealPlacement::RealPlacement(const RealMeasure& rm) {
-    rep = rm.getRep().useFeatureAsRealPlacement(*this);
+    rep = rm.getRep().createFeatureReference(*this);
 }
 
 RealPlacement::RealPlacement(const Feature& f) {
-    rep = f.getRep().useFeatureAsRealPlacement(*this);
+    try {
+        rep = RealPlacementRep::createRealPlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "RealPlacement", f.getFullName(), exc.getMessageText());
+    }
 }
 
 
@@ -82,20 +89,23 @@ Vec3Placement::Vec3Placement(const Vec3& r) {
 }
 
 Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
-    rep = rp.getRep().useFeatureAsVec3Placement(*this);
+    rep = rp.getRep().createFeatureReference(*this);
 }
 
 Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
-    rep = rm.getRep().useFeatureAsVec3Placement(*this);
+    rep = rm.getRep().createFeatureReference(*this);
 }
 
 /*static*/bool Vec3Placement::canConvert(const Placement& p) {
     if (!p.hasRep()) return false;
-    return Vec3PlacementRep::canCreateVec3From(p);
+    PlacementRep* converted = Vec3PlacementRep::createVec3PlacementFrom(p, true);
+    if (!converted) return false;
+    delete converted;
+    return true;
 }
 
 /*static*/Vec3Placement Vec3Placement::convert(const Placement& p) {
-PlacementRep* converted = Vec3PlacementRep::createVec3From(p);
+    PlacementRep* converted = Vec3PlacementRep::createVec3PlacementFrom(p);
     assert(converted);
     return Vec3Placement(reinterpret_cast<Vec3PlacementRep*>(converted));
 }
@@ -120,23 +130,31 @@ Vec3Placement::downcast(Placement& p) {
     // STATION PLACEMENT //
 
 StationPlacement::StationPlacement(const Station& s) {
-    rep = s.getRep().useFeatureAsStationPlacement(*this);
+    rep = s.getRep().createFeatureReference(*this);
 }
 StationPlacement::StationPlacement(const StationMeasure& s) {
-    rep = s.getRep().useFeatureAsStationPlacement(*this);
+    rep = s.getRep().createFeatureReference(*this);
 }
 StationPlacement::StationPlacement(const StationParameter& s) {
-    rep = s.getRep().useFeatureAsStationPlacement(*this);
+    rep = s.getRep().createFeatureReference(*this);
 }
 StationPlacement::StationPlacement(const Vec3& v) {
     rep = new StationConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
 StationPlacement::StationPlacement(const FrameFeature& f) {
-    rep = f.getOrigin().getRep().useFeatureAsStationPlacement(*this);
+    rep = new StationFeaturePlacementRep(f.getOrigin());
+    rep->setMyHandle(*this);
 }
 StationPlacement::StationPlacement(const Feature& f) {
-    rep = f.getRep().useFeatureAsStationPlacement(*this);
+    try {
+        rep = StationPlacementRep::createStationPlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "StationPlacement", f.getFullName(), exc.getMessageText());
+    }
 }
 
 
@@ -159,23 +177,32 @@ StationPlacement::downcast(Placement& p) {
 
     // DIRECTION PLACEMENT //
 DirectionPlacement::DirectionPlacement(const Direction& d) {
-    rep = d.getRep().useFeatureAsDirectionPlacement(*this);
+    rep = d.getRep().createFeatureReference(*this);
 }
 DirectionPlacement::DirectionPlacement(const DirectionMeasure& d) {
-    rep = d.getRep().useFeatureAsDirectionPlacement(*this);
+    rep = d.getRep().createFeatureReference(*this);
 }
 DirectionPlacement::DirectionPlacement(const Vec3& v) {
     rep = new DirectionConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
 DirectionPlacement::DirectionPlacement(const Feature& f) {
-    rep = f.getRep().useFeatureAsDirectionPlacement(*this);
+    try {
+        rep = DirectionPlacementRep::createDirectionPlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "DirectionPlacement", f.getFullName(), exc.getMessageText());
+    }
 }
 DirectionPlacement::DirectionPlacement(const Orientation& o, int i) {
-    rep = o.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
+    rep = new DirectionFeaturePlacementRep(o.getAxis(i));
+    rep->setMyHandle(*this);
 }
 DirectionPlacement::DirectionPlacement(const FrameFeature& f, int i) {
-    rep = f.getAxis(i).getRep().useFeatureAsDirectionPlacement(*this);
+    rep = new DirectionFeaturePlacementRep(f.getAxis(i));
+    rep->setMyHandle(*this);
 }
 
 /*static*/ bool             
@@ -198,20 +225,28 @@ DirectionPlacement::downcast(Placement& p) {
     // ORIENTATION PLACEMENT //
 
 OrientationPlacement::OrientationPlacement(const Orientation& o) {
-    rep = o.getRep().useFeatureAsOrientationPlacement(*this);
+    rep = o.getRep().createFeatureReference(*this);
 }
 OrientationPlacement::OrientationPlacement(const OrientationMeasure& om) {
-    rep = om.getRep().useFeatureAsOrientationPlacement(*this);
+    rep = om.getRep().createFeatureReference(*this);
 }
 OrientationPlacement::OrientationPlacement(const Mat33& m) {
     rep = new OrientationConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }
 OrientationPlacement::OrientationPlacement(const FrameFeature& f) {
-    rep = f.getOrientation().getRep().useFeatureAsOrientationPlacement(*this);
+    rep = new OrientationFeaturePlacementRep(f.getOrientation());
+    rep->setMyHandle(*this);
 }
 OrientationPlacement::OrientationPlacement(const Feature& f) {
-    rep = f.getRep().useFeatureAsOrientationPlacement(*this);
+    try {
+        rep = OrientationPlacementRep::createOrientationPlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "OrientationPlacement", f.getFullName(), exc.getMessageText());
+    }
 }
 /*static*/ bool             
 OrientationPlacement::isInstanceOf(const Placement& p) {
@@ -237,7 +272,7 @@ FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
 }
 
 FramePlacement::FramePlacement(const FrameFeature& f) {
-    rep = f.getRep().useFeatureAsFramePlacement(*this);
+    rep = f.getRep().createFeatureReference(*this);
 }
 
 FramePlacement::FramePlacement(const Mat34& m) {
@@ -246,11 +281,36 @@ FramePlacement::FramePlacement(const Mat34& m) {
 }
 
 FramePlacement::FramePlacement(const Station& s) {
-    rep = s.getRep().useFeatureAsFramePlacement(*this);
+    try {
+        rep = FramePlacementRep::createFramePlacementFrom(Placement(s));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "FramePlacement", s.getFullName(), exc.getMessageText());
+    }
 }
 
 FramePlacement::FramePlacement(const Orientation& o) {
-    rep = o.getRep().useFeatureAsFramePlacement(*this);
+    try {
+        rep = FramePlacementRep::createFramePlacementFrom(Placement(o));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "FramePlacement", o.getFullName(), exc.getMessageText());
+    }
+}
+
+FramePlacement::FramePlacement(const Feature& f) {
+    try {
+        rep = FramePlacementRep::createFramePlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "FramePlacement", f.getFullName(), exc.getMessageText());
+    }
 }
 
 /*static*/ bool             

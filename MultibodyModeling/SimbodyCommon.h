@@ -132,6 +132,18 @@ public:
 private:
 };
 
+class PlacementCantBeConvertedToRightType : public Base {
+public:
+    PlacementCantBeConvertedToRightType(const char* fn, int ln, 
+        String placementTypeNeeded, String srcType, String srcDescription) : Base(fn,ln)
+    {
+        setMessage("Can't use the supplied " + srcType + " Placement to create a "
+            + placementTypeNeeded + " Placement. Supplied Placement was:\n"
+            + srcDescription);
+    }
+private:
+};
+
 class OnlyFeaturesHavePlacements : public Base {
 public:
     OnlyFeaturesHavePlacements(const char* fn, int ln, String subsysName) : Base(fn,ln)
@@ -148,6 +160,15 @@ public:
     {
         setMessage("Child Subsystem " + String(index) + " of Subsystem " + subsysName 
                    + " is not a Feature, but this operation expects a Feature.");
+    }
+private:
+};
+
+class NotAFeatureReferencePlacement : public Base {
+public:
+    NotAFeatureReferencePlacement(const char* fn, int ln) : Base(fn,ln)
+    {
+        setMessage("getReferencedFeature() was called on a Placement which was not a Feature reference.");
     }
 private:
 };

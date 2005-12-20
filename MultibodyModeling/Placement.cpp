@@ -123,27 +123,24 @@ bool Placement::isConstant() const {
     return rep && rep->isConstant();
 }
 
+bool Placement::isFeatureReference() const {
+    return rep && rep->isFeatureReference();
+}
+
+const Feature& 
+Placement::getReferencedFeature() const {
+    try {
+        return getRep().getReferencedFeature();
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "getReferencedFeature", "", exc.getMessageText());
+    }
+}
+
 String Placement::getPlacementTypeName() const {
     return rep ? rep->getPlacementTypeName() : "Void";
 }
-
-bool Placement::hasSameType(const Placement& p) const {
-    if (!rep) return !p.rep;
-    return rep->isSameType(p);
-}
-
-bool Placement::canConvertToSameType(const Placement& p) const {
-    if (!rep || !p.rep) return false;
-    return rep->canCreateFrom(p);
-}
-
-Placement Placement::convertToSameType(const Placement& p) const {
-    PlacementRep* converted = rep->createFrom(p);
-    assert(converted);
-    return Placement(converted);
-}
-
-
 
 bool Placement::dependsOn(const Feature& f) const {
     return rep && rep->dependsOn(f);

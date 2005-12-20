@@ -117,8 +117,8 @@ FeatureReference::FeatureReference(const Feature& f, int i)
 
 
 void FeatureReference::refRealize(/*State,*/ Stage g) const {
-    if (getReferencedFeature().hasPlacement())
-        getReferencedFeature().getRep().getPlacementSlot().realize(g);
+    if (refGetReferencedFeature().hasPlacement())
+        refGetReferencedFeature().getRep().getPlacementSlot().realize(g);
 }
 
 const Subsystem* 
@@ -313,6 +313,19 @@ PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
 
 
     // REAL PLACEMENT REP //
+
+/*static*/ PlacementRep* 
+RealPlacementRep::createRealPlacementFrom(const Placement& p, bool dontThrow) {
+    if (RealPlacement::isInstanceOf(p))
+        return p.getRep().clone();
+
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Real", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
+    }
+    return 0;
+}
 
 // result = -real (result is always real)
 Placement RealPlacementRep::genericNegate() const {
@@ -642,14 +655,12 @@ RealExprPlacementRep::angleOp(const DirectionPlacement& l, const DirectionPlacem
   { return binaryOp(RealOps::AngleBetweenDirections, l, r); }
 
     // VEC3 PLACEMENT REP //
-/*static*/ bool 
-Vec3PlacementRep::canCreateVec3From(const Placement& p) {
-    return StationPlacement::isInstanceOf(p)
-        || DirectionPlacement::isInstanceOf(p);
-}
 
 /*static*/ PlacementRep* 
-Vec3PlacementRep::createVec3From(const Placement& p) {
+Vec3PlacementRep::createVec3PlacementFrom(const Placement& p, bool dontThrow) {
+    if (Vec3Placement::isInstanceOf(p))
+        return p.getRep().clone();
+
     if (StationPlacement::isInstanceOf(p)) {
         const StationPlacement& sp = StationPlacement::downcast(p);
         return sp.isConstant()
@@ -660,6 +671,11 @@ Vec3PlacementRep::createVec3From(const Placement& p) {
         return dp.isConstant()
             ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcVec3Value())
             : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastDirectionOp(dp);
+    }
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Vec3", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
     }
     return 0;
 }
@@ -998,17 +1014,21 @@ Vec3ExprPlacementRep::crossOp(const Vec3Placement& l, const Vec3Placement& r)
 
     // STATION PLACEMENT REP //
 
-bool StationPlacementRep::canCreateFrom(const Placement& p) const {
-    return Vec3Placement::isInstanceOf(p);
-}
+/*static*/ PlacementRep*
+StationPlacementRep::createStationPlacementFrom(const Placement& p, bool dontThrow) {
+    if (StationPlacement::isInstanceOf(p))
+        return p.getRep().clone();
 
-PlacementRep*
-StationPlacementRep::createFrom(const Placement& p) const {
     if (Vec3Placement::isInstanceOf(p)) {
         const Vec3Placement& vp = Vec3Placement::downcast(p);
         return vp.isConstant()
             ? (StationPlacementRep*)new StationConstantPlacementRep(vp.getRep().calcVec3Value())
             : (StationPlacementRep*)StationExprPlacementRep::recastVec3Op(vp);
+    }
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Station", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
     }
     return 0;
 }
@@ -1251,17 +1271,21 @@ StationExprPlacementRep::subOp(const StationPlacement& l, const Vec3Placement& r
 
     // DIRECTION PLACEMENT REP //
 
-bool DirectionPlacementRep::canCreateFrom(const Placement& p) const {
-    return Vec3Placement::isInstanceOf(p);
-}
+/*static*/ PlacementRep*
+DirectionPlacementRep::createDirectionPlacementFrom(const Placement& p, bool dontThrow) {
+    if (DirectionPlacement::isInstanceOf(p))
+        return p.getRep().clone();
 
-PlacementRep*
-DirectionPlacementRep::createFrom(const Placement& p) const {
     if (Vec3Placement::isInstanceOf(p)) {
         const Vec3Placement& vp = Vec3Placement::downcast(p);
         return vp.isConstant()
             ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(vp.getRep().calcVec3Value())
             : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(vp);
+    }
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Direction", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
     }
     return 0;
 }
@@ -1465,6 +1489,19 @@ DirectionExprPlacementRep::normalizeOp(const Vec3Placement& p)
 
     // ORIENTATION PLACEMENT REP //
 
+/*static*/ PlacementRep* 
+OrientationPlacementRep::createOrientationPlacementFrom(const Placement& p, bool dontThrow) {
+    if (OrientationPlacement::isInstanceOf(p))
+        return p.getRep().clone();
+
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Orientation", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
+    }
+    return 0;
+}
+
     // ORIENTATION FEATURE PLACEMENT REP //
 const Mat33& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
@@ -1515,6 +1552,42 @@ OrientationExprPlacementRep::binaryOp(OrientationOps::OpKind op,
 
     // FRAME PLACEMENT REP //
 
+// In addition to a straightforward Frame placement, a FrameFeature can be
+// placed on a Station or Orientation Feature, if we can pick up the missing
+// piece from that Feature's parent Frame. So we'll say yes if the proposed
+// Placement is an unindexed Feature reference to either a Station or
+// Orientation Feature, provided that Feature's parent is a FrameFeature.
+
+/*static*/ PlacementRep* 
+FramePlacementRep::createFramePlacementFrom(const Placement& p, bool dontThrow) {
+    if (FramePlacement::isInstanceOf(p))
+        return p.getRep().clone();
+
+    if (p.isFeatureReference()) {
+        const Feature& refFeature = p.getReferencedFeature();
+
+        if (refFeature.hasParentSubsystem() 
+            && FrameFeature::isInstanceOf(refFeature.getParentSubsystem()))
+        {
+            const FrameFeature& frame = FrameFeature::downcast(refFeature.getParentSubsystem());
+
+            // Check that both the Placement and reference feature have the same type to
+            // make sure there is no indexing.
+            if (StationPlacement::isInstanceOf(p) && Station::isInstanceOf(refFeature))
+                return new FrameExprPlacementRep(OrientationPlacement(frame.getOrientation()), 
+                                                StationPlacement::downcast(p));
+            else if (OrientationPlacement::isInstanceOf(p) && Orientation::isInstanceOf(refFeature)) 
+                return new FrameExprPlacementRep(OrientationPlacement::downcast(p), 
+                                                StationPlacement(frame.getOrigin()));
+        }
+    }
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Frame", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
+    }
+    return 0;
+}
 
     // FRAME FEATURE PLACEMENT REP //
 const Mat34& FrameFeaturePlacementRep::getReferencedValue() const {

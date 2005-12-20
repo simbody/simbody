@@ -249,7 +249,7 @@ try {
 
     //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
-    // std::cout << mbs << std::endl; //let’s see what we’ve got
+    //std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
 
     cout << "*** JOINTS ***" << endl;

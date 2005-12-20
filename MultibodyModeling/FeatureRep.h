@@ -65,24 +65,19 @@ public:
     // These allow the feature to weigh in on the suitability of a proposed
     // placement for the feature.
 
-    // Generate an sample Placement of the correct type for this Feature.
+    // Generate a sample Placement of the correct type for this Feature.
     // Methods of this Placement can be used to probe the suitability of
     // proposed Placements.
     const Placement& getSamplePlacement() const {return sample;}
+    bool isRequiredPlacementType(const Placement& p) const {
+        return getSamplePlacement().getRep().isSamePlacementType(p);
+    }
 
-    bool isRequiredPlacementType(const Placement& p) const
-      { return getSamplePlacement().hasSameType(p); }
-    bool canConvertToRequiredPlacementType(const Placement& p) const
-      { return getSamplePlacement().canConvertToSameType(p); }
-    bool isAllowablePlacementType(const Placement& p) const
-      { return isRequiredPlacementType(p) || canConvertToRequiredPlacementType(p); }
-
-    // Given a proposed placement for this Feature which is not of the 
+    // Given a proposed placement for this Feature which may not be of the 
     // required type, use it to generate a placement which is of the
-    // right type. Throws an exception if it doesn't work; use 
-    // canConvertToRequiredPlacementType() to check first.
+    // right type. Throws an exception if it doesn't work.
     Placement convertToRequiredPlacementType(const Placement& p) const
-      { return getSamplePlacement().convertToSameType(p); }
+      { return Placement(getSamplePlacement().getRep().createPlacementFrom(p)); }
 
     virtual std::string   getFeatureTypeName()            const = 0;
 
@@ -90,25 +85,6 @@ public:
     // Placement of this kind of Feature, or to one of its Placement elements
     // if we're given an index (-1 means the whole Placement).
     virtual PlacementRep* createFeatureReference(Placement&, int i = -1) const = 0;
-
-    // If this Feature can be used as the indicated placement type, return
-    // a new, unowned Placement of the right type. Most commonly, the returned
-    // Placement will just be a feature-reference Placement of the same
-    // type as the whole Feature, however, for composite Features this may
-    // be a reference to one of its subfeatures instead.
-    // For example, if a Frame is used as a StationPlacement, we return a
-    // reference to the Frame's origin feature.
-    // The newly created PlacementRep will refer to the provided Placement handle, but
-    // the handle's rep will not be set (otherwise disaster would ensue if
-    // we throw an exception somewhere along the way). Be sure to put the
-    // returned pointer into the same handle you pass in.
-
-    virtual PlacementRep* useFeatureAsRealPlacement(RealPlacement&) const;
-    virtual PlacementRep* useFeatureAsVec3Placement(Vec3Placement&) const;
-    virtual PlacementRep* useFeatureAsStationPlacement(StationPlacement&) const;
-    virtual PlacementRep* useFeatureAsDirectionPlacement(DirectionPlacement&) const;
-    virtual PlacementRep* useFeatureAsOrientationPlacement(OrientationPlacement&) const;
-    virtual PlacementRep* useFeatureAsFramePlacement(FramePlacement&) const;
 
     bool             hasPlacement() const {return placement != 0;}
 

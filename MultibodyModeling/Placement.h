@@ -70,19 +70,19 @@ public:
 
     void realize(Stage) const;
 
-    // This will throw an exception if this Placement's value has not 
-    // already been realize()'d.
+    // This will throw an exception if any of this Placement's dependencies
+    // have not yet been realized. Note that this will always succeed if
+    // this is a constant Placement.
     PlacementValue   calcValue() const;
 
-    bool isConstant() const;  // a plain old numerical value?
+    bool isConstant()         const; // a plain old numerical value?
+    bool isFeatureReference() const; // just a reference to a feature?
+    const Feature& getReferencedFeature() const; // only if isFeatureReference()==true
+
     bool dependsOn(const Feature&) const; // recursive dependency check
 
     String toString(const String& linePrefix="") const;
-    String getPlacementTypeName() const;
-
-    bool hasSameType(const Placement&) const;
-    bool canConvertToSameType(const Placement&) const;
-    Placement convertToSameType(const Placement&) const;
+    String getPlacementTypeName() const; // for messages only
 
     // For internal use only.
     explicit Placement(class PlacementRep*);
