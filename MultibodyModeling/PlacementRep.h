@@ -400,10 +400,7 @@ protected:
     void refRealize(/*State,*/Stage) const;
 
     bool refIsConstant() const { return false; } // might be, but we can't count on it
-
-    bool refDependsOn(const Feature& f) const {
-        assert(feature); return feature->dependsOn(f);
-    }
+    bool refDependsOn(const Feature& f) const;
 
     const Subsystem* refFindAncestorSubsystem(const Subsystem& youngestAllowed) const;
     const Subsystem* refFindPlacementValueOwnerSubsystem(const Subsystem& youngestAllowed) const;

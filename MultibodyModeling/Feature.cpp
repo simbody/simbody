@@ -59,11 +59,6 @@ Feature::downcast(Subsystem& f) {
     return reinterpret_cast<Feature&>(f);
 }
 
-bool Feature::dependsOn(const Feature& f) const {
-    if (isSameSubsystem(f)) return true;
-    return hasRep() && getRep().dependsOn(f);
-}
-
 static String featureHasNoRep(const Feature& f) {
     std::ostringstream s;
     s << "<FEATURE AT 0x" << &f << " WITH NULL REP>";

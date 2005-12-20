@@ -65,7 +65,7 @@ public:
     ~RealMeasure();
 
     const RealPlacement& getPlacement() const;
-    const Real& getValue() const;
+    const Real&          getValue()     const;
 
     static bool               isInstanceOf(const Subsystem&);
     static const RealMeasure& downcast(const Subsystem&);
@@ -92,7 +92,7 @@ public:
     ~RealParameter();
 
     const RealPlacement& getPlacement() const;
-    const Real& getValue() const;
+    const Real&          getValue()     const;
 
     static bool                 isInstanceOf(const Subsystem&);
     static const RealParameter& downcast(const Subsystem&);
@@ -109,7 +109,7 @@ public:
     ~Vec3Measure();
 
     const Vec3Placement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&          getValue()     const;
 
     static bool               isInstanceOf(const Subsystem&);
     static const Vec3Measure& downcast(const Subsystem&);
@@ -126,7 +126,7 @@ public:
     ~Vec3Parameter();
 
     const Vec3Placement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&          getValue()     const;
 
     static bool                 isInstanceOf(const Subsystem&);
     static const Vec3Parameter& downcast(const Subsystem&);
@@ -143,7 +143,7 @@ public:
     ~StationMeasure();
 
     const StationPlacement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&             getValue()     const;
 
     static bool                  isInstanceOf(const Subsystem&);
     static const StationMeasure& downcast(const Subsystem&);
@@ -160,7 +160,7 @@ public:
     ~StationParameter();
 
     const StationPlacement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&             getValue()     const;
 
     static bool                    isInstanceOf(const Subsystem&);
     static const StationParameter& downcast(const Subsystem&);
@@ -178,7 +178,7 @@ public:
     ~Station();
 
     const StationPlacement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&             getValue()     const;
 
     static bool           isInstanceOf(const Subsystem&);
     static const Station& downcast(const Subsystem&);
@@ -196,7 +196,7 @@ public:
     ~DirectionMeasure();
 
     const DirectionPlacement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&               getValue()     const;
 
     static bool                    isInstanceOf(const Subsystem&);
     static const DirectionMeasure& downcast(const Subsystem&);
@@ -218,7 +218,7 @@ public:
     ~Direction();
 
     const DirectionPlacement& getPlacement() const;
-    const Vec3& getValue() const;
+    const Vec3&               getValue()     const;
 
     static bool             isInstanceOf(const Subsystem&);
     static const Direction& downcast(const Subsystem&);
@@ -235,7 +235,7 @@ public:
     ~OrientationMeasure();
 
     const OrientationPlacement& getPlacement() const;
-    const Mat33& getValue() const;
+    const Mat33&                getValue()     const;
 
     static bool                      isInstanceOf(const Subsystem&);
     static const OrientationMeasure& downcast(const Subsystem&);
@@ -255,12 +255,12 @@ public:
     ~Orientation();
 
     const OrientationPlacement& getPlacement() const;
-    const Mat33& getValue() const;
+    const Mat33&                getValue()     const;
 
     const Direction& getAxis(int) const;
-    const Direction&   x()        const {return getAxis(0);}
-    const Direction&   y()        const {return getAxis(1);}
-    const Direction&   z()        const {return getAxis(2);}
+    const Direction& x()          const {return getAxis(0);}
+    const Direction& y()          const {return getAxis(1);}
+    const Direction& z()          const {return getAxis(2);}
 
     static bool               isInstanceOf(const Subsystem&);
     static const Orientation& downcast(const Subsystem&);
@@ -277,14 +277,14 @@ public:
     ~FrameFeature();
 
     const FramePlacement& getPlacement() const;
-    const Mat34& getValue() const;
+    const Mat34&          getValue()     const;
 
-    const Station&     getOrigin() const;
+    const Station&     getOrigin()      const;
     const Orientation& getOrientation() const;
-    const Direction&   getAxis(int i) const {return getOrientation().getAxis(i);}
-    const Direction&   x()            const {return getOrientation().x();}
-    const Direction&   y()            const {return getOrientation().y();}
-    const Direction&   z()            const {return getOrientation().z();}
+    const Direction&   getAxis(int i)   const {return getOrientation().getAxis(i);}
+    const Direction&   x()              const {return getOrientation().x();}
+    const Direction&   y()              const {return getOrientation().y();}
+    const Direction&   z()              const {return getOrientation().z();}
 
     static bool                isInstanceOf(const Subsystem&);
     static const FrameFeature& downcast(const Subsystem&);

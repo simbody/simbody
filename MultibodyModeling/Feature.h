@@ -24,14 +24,8 @@
  */
 
 /** @file
- * User-visible definitions for the objects that go into building a multibody system.
- * This is not the data structure used at run time, so the emphasis is on 
- * nice behavior for the caller. We'll have plenty of time for speed later.
- *
- * Feature: Station, Direction, Frame, MassElement, ...
- * Placement: constant, expression or feature
- * Body: is a Frame, has (Feature,Placement) pairs
- *
+ * User-visible (client side) definitions for the objects that go into building
+ * a multibody system.
  */
 
 
@@ -48,7 +42,8 @@
 
 namespace simtk {
 
-// Declared below and elsewhere. Indenting shows inheritance structure.
+// Declared below and elsewhere. Indenting shows inheritance structure. Some of 
+// this may be wishful thinking at this point.
 class Subsystem;
 class   Feature;
 class       Station;
@@ -74,6 +69,10 @@ class       PinJoint;
 class       BallJoint;
 class   Multibody;
 
+/**
+ * A Feature is a kind of small Subsystem which has a Placement, or at least has
+ * provision for a Placement.
+ */
 class Feature : public Subsystem {
 public:
     Feature(const Feature&);    // external placements are not copied or assigned
@@ -98,11 +97,6 @@ public:
     // owner. Then this Feature will refer to that copy as its Placement.
     void place(const Placement&);
     void replace(const Placement&); // change the existing Placement
-
-
-    // True if this is the same feature as f or if the feature's placement
-    // depends on f's placement.
-    bool dependsOn(const Feature& f) const;
 
     const class FeatureRep& getRep() const
       { return *reinterpret_cast<const FeatureRep*>(rep); }    

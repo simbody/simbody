@@ -110,11 +110,6 @@ public:
     void replace(const Placement& p);
     void removePlacement();
 
-    // Does the *placement* of this feature depend on the indicated one?
-    // Note that we don't care about our child features' placements.
-    bool dependsOn(const Feature& f) const 
-        { return placement && placement->getPlacement().dependsOn(f); }
-
     // This is for use by SubsystemRep after a copy to fix the placement pointer.
     void fixFeaturePlacement(const Subsystem& oldRoot, const Subsystem& newRoot);
 

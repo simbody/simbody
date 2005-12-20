@@ -169,6 +169,13 @@ void FeatureReference::refRepairFeatureReferences
     feature = &Feature::downcast(*corrFeature);
 }
 
+bool
+FeatureReference::refDependsOn(const Feature& f) const {
+    assert(feature); 
+    return feature->isSameSubsystem(f)
+        || feature->hasPlacement() && feature->getPlacement().dependsOn(f);
+}
+
 std::string FeatureReference::refToString(const std::string&) const {
     std::stringstream s;
 
