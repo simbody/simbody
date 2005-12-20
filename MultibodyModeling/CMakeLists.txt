@@ -3,7 +3,6 @@ FILE(GLOB INCLUDE_FILES *.h)
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/MultibodyModeling
                     ${PROJECT_SOURCE_DIR}/MultibodyComputation/IVMRigidBodies
-                    ${PROJECT_SOURCE_DIR}/MultibodyComputation/CDSlib
                     ${SIMTK_FRAMEWORK_INSTALL_DIR}/include)
 ADD_LIBRARY(MultibodyModeling ${SOURCE_FILES} ${INCLUDE_FILES})
 
