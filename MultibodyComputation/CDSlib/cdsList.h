@@ -11,7 +11,7 @@
 #include <sthead.h> 
 #include <cdsIostream.h> 
 #include <cdsMath.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 
 #include <cassert>
 
@@ -62,13 +62,13 @@ public:
 
   CDSList& operator= (const  CDSList<T>&);
   template<class VECTOR>
-  CDSList& operator= (const CDS::Vector<VECTOR>&);
+  CDSList& operator= (const CDS::GenericVector<VECTOR>&);
 
   // convert to generic vector
-  CDS::Vector<CDSList<T> > vector() 
-     { return CDS::Vector<CDSList<T> >(*this); }
-  const CDS::Vector<CDSList<T> > vector() const
-     { return CDS::Vector<CDSList<T> >(*this); }
+  CDS::GenericVector<CDSList<T> > vector() 
+     { return CDS::GenericVector<CDSList<T> >(*this); }
+  const CDS::GenericVector<CDSList<T> > vector() const
+     { return CDS::GenericVector<CDSList<T> >(*this); }
 
   const T  &operator[] (const int &index) const;
         T  &operator[] (const int &index);
@@ -322,7 +322,7 @@ CDSList<T>::operator=(const CDSList<T> &l)
 template<class T> 
 template<class VECTOR>
 CDSList<T>& 
-CDSList<T>::operator=(const CDS::Vector<VECTOR>& v)
+CDSList<T>::operator=(const CDS::GenericVector<VECTOR>& v)
   //
   // assignment of vector to list
   //

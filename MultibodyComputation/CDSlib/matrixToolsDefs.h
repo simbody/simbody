@@ -38,22 +38,22 @@ getRow(const MATRIX& m,
 } /* getRow */
 
 
-template<class MATRIX, class Vector>
+template<class MATRIX, class VECTOR>
 void
 setColumn(      MATRIX& m,
 	  const int     col,
-	  const Vector& v)
+	  const VECTOR& v)
 {
  for (int i=0 ; i<m.rows() ; i++)
    m(i+m.offset1(),col) = v(i+v.offset());
 } /* setColumn */
 
 
-template<class MATRIX, class Vector>
+template<class MATRIX, class VECTOR>
 void
 setRow(      MATRIX& m,
        const int     row,
-       const Vector& v)
+       const VECTOR& v)
 {
  for (int i=0 ; i<m.cols() ; i++)
    m(row,i+m.offset2()) = v(i+v.offset());

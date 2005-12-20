@@ -2,7 +2,7 @@
 #define __fixedVectorDecl_h__ 1
 
 //
-// Numeric Vector class with fixed dimension with local storage
+// Numeric GenericVector class with fixed dimension with local storage
 //
 //
 
@@ -12,7 +12,7 @@
 
 #include <assert.h>
 #include <cdsExcept.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 
 // This gives the proper declaration of FixedMatrix with default
 // template parameters.
@@ -42,7 +42,7 @@ public:
   //  template<int OFFSET>
   //  FixedVectorBase(const CDSVector<T,OFFSET>& v);
   template<class VEC>
-  FixedVectorBase(const CDS::Vector<VEC>& v) //generic constructor from vector
+  FixedVectorBase(const CDS::GenericVector<VEC>& v) //generic constructor from vector
   { 
    assert(SIZE==v.size()); 
    for (int i=0 ; i<SIZE ; i++) d_[i]=v(v.offset()+i); 
@@ -55,7 +55,7 @@ public:
   FixedVectorBase<T,SIZE>& operator=(const FixedVectorBase<T,SIZE>& v)
   { for (int i=0 ; i<SIZE ; i++) d_[i] = v.d_[i]; return *this; }
   template<class VEC>
-  FixedVectorBase<T,SIZE>& operator=(const CDS::Vector<VEC>&);
+  FixedVectorBase<T,SIZE>& operator=(const CDS::GenericVector<VEC>&);
   //
   inline const FixedVectorBase& operator+=(const FixedVectorBase&);
   const FixedVectorBase& operator-=(const FixedVectorBase&);
@@ -95,7 +95,7 @@ public:
   FixedVector(const FixedVectorBase<T,SIZE>& v) : 
     FixedVectorBase<T,SIZE>(v) {}
   template<class VECTOR>
-  FixedVector(const CDS::Vector<VECTOR>& v) :
+  FixedVector(const CDS::GenericVector<VECTOR>& v) :
     FixedVectorBase<T,SIZE>(v) {}
 
   // access to the raw array
@@ -103,10 +103,10 @@ public:
   T*       updData()       { return FixedVectorBase<T,SIZE>::updData(); }
 
   // conversion to generic vector
-  CDS::Vector<FixedVector<T,SIZE,OFFSET> > vector()
-  { return CDS::Vector<FixedVector<T,SIZE,OFFSET> >(*this); }
-  const CDS::Vector<FixedVector<T,SIZE,OFFSET> > vector() const
-  { return CDS::Vector<FixedVector<T,SIZE,OFFSET> >(*this); }
+  CDS::GenericVector<FixedVector<T,SIZE,OFFSET> > vector()
+  { return CDS::GenericVector<FixedVector<T,SIZE,OFFSET> >(*this); }
+  const CDS::GenericVector<FixedVector<T,SIZE,OFFSET> > vector() const
+  { return CDS::GenericVector<FixedVector<T,SIZE,OFFSET> >(*this); }
 
   int offset() const { return OFFSET; }
   //

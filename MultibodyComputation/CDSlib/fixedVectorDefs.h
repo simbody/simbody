@@ -8,7 +8,7 @@ using namespace std;
 template<class T, int SIZE>
 template<class VEC>
 FixedVectorBase<T,SIZE>&
-FixedVectorBase<T,SIZE>::operator=(const CDS::Vector<VEC>& v)
+FixedVectorBase<T,SIZE>::operator=(const CDS::GenericVector<VEC>& v)
 { 
  if ((FixedVectorBase<T,SIZE>*)&v == this) return *this; //self-assignment
  assert(SIZE==v.size());

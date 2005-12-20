@@ -11,16 +11,16 @@
 
 using namespace std;
 
-template<class Matrix>
+template<class MATRIX>
 class SubMatrix {
-  Matrix&  m;
+  MATRIX&  m;
   int offset1_;
   int offset2_;
   int size1;
   int size2;
 public:
-  typedef typename Matrix::ElementType ElementType;
-  SubMatrix(Matrix&  m,
+  typedef typename MATRIX::ElementType ElementType;
+  SubMatrix(MATRIX&  m,
 	    int offset1,
 	    int offset2,
 	    int size1,
@@ -37,8 +37,8 @@ public:
   int offset1() const { return 0;}    //indexing into m is zero-offset
   int offset2() const { return 0;}    //indexing into m is zero-offset
 
-  SubMatrix<Matrix>&
-  operator=(const SubMatrix<Matrix>& mright) {
+  SubMatrix<MATRIX>&
+  operator=(const SubMatrix<MATRIX>& mright) {
    assert(mright.rows() == rows());
    assert(mright.cols() == cols());
    for (int i=0 ; i<mright.rows() ; i++)
@@ -48,7 +48,7 @@ public:
    return *this;
   }
   template<class Matrix2>
-  SubMatrix<Matrix>&
+  SubMatrix<MATRIX>&
   operator=(const Matrix2& mright) {
    assert(mright.rows() == rows());
    assert(mright.cols() == cols());
@@ -60,9 +60,9 @@ public:
   }
 
   //assignment from Vector
-  template<class Vector>
-  SubMatrix<Matrix>&
-  assignFromVector(const Vector& vector);
+  template<class VECTOR>
+  SubMatrix<MATRIX>&
+  assignFromVector(const VECTOR& vector);
 
   CDSVector<ElementType,0> convertToVector();
   
@@ -80,7 +80,7 @@ public:
    return m(offset1_+i,offset2_+j);
   }
   template<class Matrix2>           //operator+=
-  SubMatrix<Matrix>&
+  SubMatrix<MATRIX>&
   operator+=(const Matrix2& mr) {
    assert(mr.rows() == rows());
    assert(mr.cols() == cols());
@@ -92,9 +92,9 @@ public:
 
 };
 
-template<class Matrix>
+template<class MATRIX>
 ostream& operator<<(      ostream&           s,
-		    const SubMatrix<Matrix>& m)
+		    const SubMatrix<MATRIX>& m)
 {
  int width = s.width(); // apply width to numeric fields only
  s << "{ ";
@@ -111,36 +111,36 @@ ostream& operator<<(      ostream&           s,
 } /* operator<< */
 
 //only for square, FixedMatrix
-template<class MatrixType, class Matrix> 
+template<class MatrixType, class MATRIX> 
 MatrixType
 operator*(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2);
+	  const SubMatrix<MATRIX>&  m2);
 
 //only for square, FixedMatrix
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
-operator*(const SubMatrix<Matrix>&  m1,
+operator*(const SubMatrix<MATRIX>&  m1,
 	  const MatrixType&         m2);
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
 operator+(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2);
+	  const SubMatrix<MATRIX>&  m2);
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
-operator+(const SubMatrix<Matrix>&  m1,
+operator+(const SubMatrix<MATRIX>&  m1,
 	  const MatrixType&         m2)
 { return m2+m1; }
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
 operator-(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2);
+	  const SubMatrix<MATRIX>&  m2);
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
-operator-(const SubMatrix<Matrix>&  m1,
+operator-(const SubMatrix<MATRIX>&  m1,
 	  const MatrixType&         m2);
 
 int SubMatrix_test();

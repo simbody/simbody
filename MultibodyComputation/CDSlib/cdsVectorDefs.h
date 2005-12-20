@@ -128,7 +128,7 @@ CDSVectorBase<T,ALLOC> &CDSVectorBase<T,ALLOC>::operator-=(const CDSVectorBase<T
 template<class T,int OFFSET,class ALLOC> 
 template<class VEC>
 CDSVector<T,OFFSET,ALLOC>& 
-CDSVector<T,OFFSET,ALLOC>::operator=(const CDS::Vector<VEC>& v)
+CDSVector<T,OFFSET,ALLOC>::operator=(const CDS::GenericVector<VEC>& v)
 {
  resize( v.size() );
 

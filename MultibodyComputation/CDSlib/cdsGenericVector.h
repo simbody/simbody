@@ -14,10 +14,10 @@ CDS_BEGIN_NAMESPACE
 //
 
 template<class VECTOR>
-struct Vector {
+struct GenericVector {
   VECTOR& v;
-  explicit Vector(VECTOR& v) : v(v) {}
-  explicit Vector(const VECTOR& v) : v( (VECTOR&)v ) {}
+  explicit GenericVector(VECTOR& v) : v(v) {}
+  explicit GenericVector(const VECTOR& v) : v( (VECTOR&)v ) {}
 
   //type of data in the vector
   typedef typename VECTOR::ElementType ElementType;

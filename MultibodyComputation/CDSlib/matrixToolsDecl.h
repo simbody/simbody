@@ -29,20 +29,20 @@ getRow(const MATRIX&,
   //
   // set a column of the matrix
   //
-template<class MATRIX, class Vector>
+template<class MATRIX, class VECTOR>
 void
 setColumn(      MATRIX&,
 	  const int,
-	  const Vector&);
+	  const VECTOR&);
 
   //
   // set a row of the matrix
   //
-template<class MATRIX, class Vector>
+template<class MATRIX, class VECTOR>
 void
 setRow(      MATRIX&,
        const int,
-       const Vector&);
+       const VECTOR&);
 
   //
   // return matrix transpose

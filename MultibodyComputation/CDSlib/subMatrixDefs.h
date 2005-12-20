@@ -1,10 +1,10 @@
 #ifndef __subMatrixDefs_h__
 #define __subMatrixDefs_h__
 
-template<class Matrix>
-template<class Vector>
-SubMatrix<Matrix>&
-SubMatrix<Matrix>::assignFromVector(const Vector& vector)
+template<class MATRIX>
+template<class VECTOR>
+SubMatrix<MATRIX>&
+SubMatrix<MATRIX>::assignFromVector(const VECTOR& vector)
 {
  if ( rows()==1 && cols()==vector.size() )
    for (int i=0 ; i<cols() ; i++)
@@ -17,9 +17,9 @@ SubMatrix<Matrix>::assignFromVector(const Vector& vector)
  return *this;
 } /* assignFromVector */
 
-template<class Matrix>
-CDSVector<typename Matrix::ElementType>
-SubMatrix<Matrix>::convertToVector()
+template<class MATRIX>
+CDSVector<typename MATRIX::ElementType>
+SubMatrix<MATRIX>::convertToVector()
 {
  CDSVector<ElementType> ret;
  if ( rows()==1 ) {
@@ -35,14 +35,14 @@ SubMatrix<Matrix>::convertToVector()
  return ret;
 } /* convertToVector */
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
 operator*(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2)
+	  const SubMatrix<MATRIX>&  m2)
 {
  assert( m1.cols() == m2.rows() );
 
- MatrixType r((typename Matrix::ElementType)0); //works only for square m1,m2!!
+ MatrixType r((typename MATRIX::ElementType)0); //works only for square m1,m2!!
  for (int i=0 ; i<m1.rows() ; i++)
    for (int k=0 ; k<m2.cols() ; k++)
      for (int j=0 ; j<m1.cols() ; j++) 
@@ -51,14 +51,14 @@ operator*(const MatrixType&         m1,
  return r;
 } /* operator* (matrix,matrix) */
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
-operator*(const SubMatrix<Matrix>&  m1,
+operator*(const SubMatrix<MATRIX>&  m1,
 	  const MatrixType&         m2)
 {
  assert( m1.cols() == m2.rows() );
 
- MatrixType r((typename Matrix::ElementType)0); //works only for square m1,m2!!
+ MatrixType r((typename MATRIX::ElementType)0); //works only for square m1,m2!!
  for (int i=0 ; i<m1.rows() ; i++)
    for (int k=0 ; k<m2.cols() ; k++)
      for (int j=0 ; j<m1.cols() ; j++) 
@@ -67,10 +67,10 @@ operator*(const SubMatrix<Matrix>&  m1,
  return r;
 } /* operator* (matrix,matrix) */
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
 operator+(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2)
+	  const SubMatrix<MATRIX>&  m2)
 {
  assert( m1.cols() == m2.cols() );
  assert( m1.rows() == m2.rows() );
@@ -83,10 +83,10 @@ operator+(const MatrixType&         m1,
 } /* operator* (matrix,matrix) */
 
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
 operator-(const MatrixType&         m1,
-	  const SubMatrix<Matrix>&  m2)
+	  const SubMatrix<MATRIX>&  m2)
 {
  assert( m1.cols() == m2.cols() );
  assert( m1.rows() == m2.rows() );
@@ -98,9 +98,9 @@ operator-(const MatrixType&         m1,
  return r;
 } /* operator* (matrix,matrix) */
 
-template<class MatrixType, class Matrix>
+template<class MatrixType, class MATRIX>
 MatrixType
-operator-(const SubMatrix<Matrix>&  m1,
+operator-(const SubMatrix<MATRIX>&  m1,
 	  const MatrixType&         m2)
 {
  assert( m1.cols() == m2.cols() );

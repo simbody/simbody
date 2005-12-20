@@ -3,7 +3,7 @@
 #define __cdsComplex_hh__
 
 #include <math.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 #include <cdsExcept.h>
 
 #include <iostream>
@@ -163,7 +163,7 @@ imag(const CDSComplex<T>& z)
 
 template<class VECTOR>
 VECTOR
-conj(const Vector<VECTOR>& v)
+conj(const GenericVector<VECTOR>& v)
 {
  VECTOR ret=v.v;
  for (int i=0 ; i<ret.size() ; i++)

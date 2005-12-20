@@ -2,7 +2,7 @@
 #define __vec3_hh__
 
 #include <fixedVector.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 #include <cdsMath.h>
 #include "cdsMat33.h"
 
@@ -12,7 +12,7 @@ public:
     explicit CDSVec3(const float_type& x) : FixedVector<float_type,3>(x) {}
     explicit CDSVec3(const float_type* x) : FixedVector<float_type,3>(x) {}
     template <class VEC>
-    CDSVec3(const CDS::Vector<VEC>& v) : FixedVector<float_type,3>(v) {}
+    CDSVec3(const CDS::GenericVector<VEC>& v) : FixedVector<float_type,3>(v) {}
     CDSVec3(const FixedVector<float_type,3> &v) : FixedVector<float_type,3>(v) {}
 
     explicit CDSVec3(const float_type& x,
@@ -22,7 +22,7 @@ public:
     { ((FixedVector<float_type,3>&) *this) = v; return *this; }
 
     template<class VEC>
-    CDSVec3& operator=(const CDS::Vector<VEC>& v)
+    CDSVec3& operator=(const CDS::GenericVector<VEC>& v)
     { ((FixedVector<float_type,3>&) *this) = v; return *this; }
     //template<class VEC>
     //CDSVec3& operator=(const CDSVector<VEC>& v)

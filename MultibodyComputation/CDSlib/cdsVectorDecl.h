@@ -1,6 +1,6 @@
 /*
  *  CDSVector.hh
- *  headers for my own Vector template class
+ *  headers for my own GenericVector template class
  *
  *  This is for big arrays which can dynamically change size. For small 
  *  arrays of fixed size, use FixedVector.
@@ -17,7 +17,7 @@
 
 #include <cdsAlloc.h>
 #include <cdsMath.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 
 template<class T, class ALLOC>             //forward declarations
 class CDSVectorBase;
@@ -157,13 +157,13 @@ public:
   T&       updData(int i)       {return CDSVectorBase<T,ALLOC>::updData(i);}
   const T& getData(int i) const {return CDSVectorBase<T,ALLOC>::getData(i);}
 
-  //assignment from generic Vector
+  //assignment from generic GenericVector
   template<class VEC>
-  CDSVector<T,offset_,ALLOC> &operator=(const CDS::Vector<VEC>& v);
+  CDSVector<T,offset_,ALLOC> &operator=(const CDS::GenericVector<VEC>& v);
 
   //convert to generic vector
-  CDS::Vector<CDSVector<T,offset_,ALLOC> > vector()
-  { return CDS::Vector<CDSVector<T,offset_,ALLOC> >(*this); }
+  CDS::GenericVector<CDSVector<T,offset_,ALLOC> > vector()
+  { return CDS::GenericVector<CDSVector<T,offset_,ALLOC> >(*this); }
 
   //members not present in CDSVectorBase
   int offset() const {return offset_;}

@@ -3,7 +3,7 @@
 #define __subVector_hh__
 
 #include <assert.h>
-#include <vector.h>
+#include "cdsGenericVector.h"
 
 #include <iostream>
 #include <iomanip>
@@ -39,18 +39,18 @@ public:
 
   // assignment from generic vector
   template<class VEC>
-  void operator=(const CDS::Vector<VEC>& vright) {
+  void operator=(const CDS::GenericVector<VEC>& vright) {
    assert(vright.size() == size());
    for (int i=0 ; i<vright.size() ; i++)
      v(offset_+i) = vright(vright.offset()+i);
   }
 
   // conversion to generic vector
-  CDS::Vector<SubVector<V> > vector()
-  { return CDS::Vector<SubVector<V> >(*this); }
+  CDS::GenericVector<SubVector<V> > vector()
+  { return CDS::GenericVector<SubVector<V> >(*this); }
 
-  const CDS::Vector<SubVector<V> > vector() const
-  { return CDS::Vector<SubVector<V> >(*this); }
+  const CDS::GenericVector<SubVector<V> > vector() const
+  { return CDS::GenericVector<SubVector<V> >(*this); }
 
   //template<class VEC>
   //SubVector<V>&
@@ -74,7 +74,7 @@ public:
   }
   template<class VEC>           //operator+=
   SubVector<V>&
-  operator+=(const CDS::Vector<VEC>& vr) {
+  operator+=(const CDS::GenericVector<VEC>& vr) {
    assert(vr.size() == size());
    for (int i=0 ; i<vr.size() ; i++)
      v(offset_+i) += vr(vr.offset()+i);
