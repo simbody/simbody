@@ -783,8 +783,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return refFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return refIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -839,8 +839,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return exprFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return exprIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isConstant()                const {return exprIsConstant();}
+    bool dependsOn(const Feature& f) const {return exprDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -950,29 +950,12 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return refFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return refIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
       { return refRepairFeatureReferences(oldRoot, newRoot); }
-
-    virtual FramePlacement castToFramePlacement() const {
-        if (!isIndexed() 
-            && Station::isInstanceOf(getReferencedFeature()) 
-            && getReferencedFeature().hasParentSubsystem()
-            && FrameFeature::isInstanceOf(getReferencedFeature().getParentSubsystem()))
-        {
-            return FramePlacement(FrameFeature::downcast(getReferencedFeature()
-                                                    .getParentSubsystem()).getOrientation(),
-                                  Station::downcast(getReferencedFeature()));
-        }
-
-        SIMTK_THROW3(Exception::FeatureUsedAsFramePlacementMustBeOnFrame,
-                     getReferencedFeature().getFullName(),
-                     getReferencedFeature().getFeatureTypeName(),
-                     "Orientation");
-    }
 
     SIMTK_DOWNCAST(StationFeaturePlacementRep, PlacementRep);
 private:
@@ -1268,8 +1251,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return refFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return refIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -1306,8 +1289,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return exprFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return exprIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isConstant()                const {return exprIsConstant();}
+    bool dependsOn(const Feature& f) const {return exprDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -1355,8 +1338,6 @@ public:
       : FramePlacementRep(), frame(m) {
         // TODO: check orientation matrix validity
     }
-
-    // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
     void evaluateMat34(Mat34& m) const {m=frame;}
@@ -1413,8 +1394,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return refFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return refIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
