@@ -129,7 +129,7 @@ public:
         t(1,2) = t(2,1) = -m*y*z;
     }
 
-    // We only look at the lower triangles, but fill in the whole matrix.
+    /// We only look at the lower triangles, but fill in the whole matrix.
     Inertia(const Inertia& s) {
         Mat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
@@ -183,6 +183,7 @@ public:
     }
 
 private:
+    //TODO: the tolerance here should be a function of Real's precision
     static bool close(const Real& a, const Real& b) {
         if (fabs(a-b) < 1e-13) return true;
         if (fabs(a-b)/(fabs(a)+fabs(b)) < 0.5e-13) return true;
