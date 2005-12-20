@@ -1,7 +1,7 @@
 
 #include "dihedral.h"
 
-#include <vec3.h>
+#include "cdsVec3.h"
 #include <atomSel.h>
 
 Dihedral::Dihedral(const AtomSel& a0,
@@ -40,13 +40,13 @@ Dihedral::Dihedral(const AtomSel& a0,
 float_type
 Dihedral::value()
 {
- Vec3 v1 = a0.pos()-a1.pos();
- Vec3 v2 = a2.pos()-a1.pos();
- Vec3 v3 = a1.pos()-a2.pos();
- Vec3 v4 = a3.pos()-a2.pos();
+ CDSVec3 v1 = a0.pos()-a1.pos();
+ CDSVec3 v2 = a2.pos()-a1.pos();
+ CDSVec3 v3 = a1.pos()-a2.pos();
+ CDSVec3 v4 = a3.pos()-a2.pos();
 
  float_type dp = dot(unitVec(cross(v1,v2)), unitVec(cross(v3,v4)));
- Vec3 cp = cross(unitVec(cross(v1,v2)), unitVec(cross(v3,v4)));
+ CDSVec3 cp = cross(unitVec(cross(v1,v2)), unitVec(cross(v3,v4)));
 
  float_type val = acos(dp);
 

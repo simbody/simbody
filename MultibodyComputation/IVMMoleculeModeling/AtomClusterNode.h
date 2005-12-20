@@ -4,8 +4,8 @@
 #include "internalDynamics.h"
 #include "MassProperties.h"
 
-#include "vec3.h"
-#include "Mat33.h"
+#include "cdsVec3.h"
+#include "cdsMat33.h"
 #include "cdsList.h"
 
 class IVM;
@@ -16,11 +16,11 @@ typedef CDSList<IVMAtom*>         AtomList;
 typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
 typedef FixedVector<double,6>     Vec6;
 
-class InertiaTensor : public Mat33 {
+class InertiaTensor : public CDSMat33 {
 public:
-    InertiaTensor() : Mat33(0.0) {}
+    InertiaTensor() : CDSMat33(0.0) {}
     //  InertiaTensor(const InertiaTensor&);
-    void calc(const Vec3&     center,
+    void calc(const CDSVec3&     center,
               const AtomList&       );
 };
 
@@ -84,7 +84,7 @@ public:
 
     /// Given a spatial orientation and location for this cluster, calculate
     /// where all the atoms are in space.
-    void calcAtomPos(const Mat33& R_GB, const Vec3& OB_G);
+    void calcAtomPos(const CDSMat33& R_GB, const CDSVec3& OB_G);
 
     /// Given the spatial velocity (angular,linear) of this cluster at its origin,
     /// calculate the velocity of each atom and store that with the atom. 

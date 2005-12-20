@@ -34,8 +34,8 @@ const char* Atom::residueName() const { return sim->residueName(index_); }
 const char* Atom::atomName() const    { return sim->atomName(index_); }
 const char* Atom::chemType() const    { return sim->chemType(index_); }
 int   Atom::residueNum() const        { return sim->residueNum(index_); }
-Vec3  Atom::pos() const               { return sim->atomPos(index_); }
-Vec3  Atom::vel() const               { return sim->atomVel(index_); }
+CDSVec3  Atom::pos() const               { return sim->atomPos(index_); }
+CDSVec3  Atom::vel() const               { return sim->atomVel(index_); }
 const float_type& Atom::mass() const  { return sim->atomMass(index_); }
 const float_type& Atom::fric() const  { return sim->atomFric(index_); }
 //const float_type& Atom::radius() const  { return sim->atomRadius(index_); }
@@ -62,11 +62,11 @@ Atom::setResidueNum(int x)
     { sim->setResidueNum(index(),x); }
 
 void
-Atom::setPos(const Vec3& v)
+Atom::setPos(const CDSVec3& v)
     { sim->setAtomPos(index(),v); }
 
 void
-Atom::setVel(const Vec3& v)
+Atom::setVel(const CDSVec3& v)
     { sim->setAtomVel(index(),v); }
 
 void

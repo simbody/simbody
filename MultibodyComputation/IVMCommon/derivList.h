@@ -4,7 +4,7 @@
 
 #include <cdsList.h>
 #include <cdsVector.h>
-#include <vec3.h>
+#include "cdsVec3.h"
 #include <mmapAlloc.h>
 #include <simulation.h>
 #include <atom.h>
@@ -14,7 +14,7 @@ class Simulation;
 
 class DerivList {
 public:
-  typedef CDSVector<Vec3,0> VectorVec3;
+  typedef CDSVector<CDSVec3,0> VectorVec3;
 
   CDSList< VectorVec3 > derivList;
   
@@ -42,16 +42,16 @@ public:
    return derivList[sim->id()];
   }
 
-//  Vec3& operator[](const Atom& anAtom)
+//  CDSVec3& operator[](const Atom& anAtom)
 //  {
 //   return (*this)[anAtom.simulation()][anAtom.index()];
 //  }
-  Vec3& operator[](const Atom& anAtom)
+  CDSVec3& operator[](const Atom& anAtom)
   {
    return (*this)[anAtom.simulation()][anAtom.index()];
   }
 
-  const Vec3& operator[](const Atom& anAtom) const
+  const CDSVec3& operator[](const Atom& anAtom) const
   {
    return (*this)[anAtom.simulation()][anAtom.index()];
   }

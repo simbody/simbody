@@ -4,7 +4,7 @@
 #include <simulation.h>
 #include <matrixTools.h>
 #include <fixedSymMatrix.h>
-#include "Mat33.h"
+#include "cdsMat33.h"
 
 
 void 
@@ -18,7 +18,7 @@ void
 AtomSelAction::Translate::run(Simulation* sim,
 			      int         index)
 {
- Vec3 newPos = sim->atomPos(index) + trans;
+ CDSVec3 newPos = sim->atomPos(index) + trans;
  sim->setAtomPos(index,newPos);
 } /* Translate */
 
@@ -26,7 +26,7 @@ void
 AtomSelAction::Rotate::run(Simulation* sim,
 			   int         index)
 {
- Vec3 newPos = center + rot * (sim->atomPos(index) - center);
+ CDSVec3 newPos = center + rot * (sim->atomPos(index) - center);
  sim->setAtomPos(index,newPos);
 } /* Rotate */
 
@@ -37,7 +37,7 @@ AtomSelAction::Fit::init(const AtomSel& sel)
  if ( !fitBy.size() )
    return;
 
- CDSVector<Vec3> fitted;
+ CDSVector<CDSVec3> fitted;
  if ( altCoords ) {
    fitted = *altCoords;
    if ( altCoords->size() != sel.simulation()->numAtoms() )
@@ -45,8 +45,8 @@ AtomSelAction::Fit::init(const AtomSel& sel)
  } else
    fitted = sel.simulation()->atomPosArr();
 
- Vec3 qcm(0.);
- Vec3 qcmTo(0.);
+ CDSVec3 qcm(0.);
+ CDSVec3 qcmTo(0.);
  float_type totMass=0.;
  for (int i=0 ; i<fitBy.size() ; i++) {
    totMass += fitBy[i].mass();
@@ -56,14 +56,14 @@ AtomSelAction::Fit::init(const AtomSel& sel)
  qcm /= totMass;
  qcmTo /= totMass;
 
- Mat33 R(0.);
+ CDSMat33 R(0.);
  for (int i=0 ; i<fitBy.size() ; i++)
    for (int a=0 ; a<3 ; a++)
      for (int b=0 ; b<3 ; b++)
        R(a,b) += fitBy[i].mass() * (fitted[fitBy[i].index()]-qcm)[b] * 
 		 (fitTo[ fitBy[i].index() ]-qcmTo)[a];
 
- Mat33 S(0.);
+ CDSMat33 S(0.);
  for (int i=0 ; i<fitBy.size() ; i++)
    for (int a=0 ; a<3 ; a++)
      for (int b=0 ; b<3 ; b++)
@@ -76,7 +76,7 @@ AtomSelAction::Fit::init(const AtomSel& sel)
  using MatrixTools::EigenResults;
  using MatrixTools::eigen;
  // FIX: SymMat3 RTR(transpose(R) * R): want generic matrix stuff
- Mat33 RTR = transpose(R) * R;
+ CDSMat33 RTR = transpose(R) * R;
  SymMat33 tmp;
  for (int i=0 ; i<3 ; i++)
    for (int j=i ; j<3 ; j++)
@@ -86,12 +86,12 @@ AtomSelAction::Fit::init(const AtomSel& sel)
 
  //resulting eigenpairs are sorted from smallest to largest
 
- FixedVector<Vec3,3> a;
+ FixedVector<CDSVec3,3> a;
  a[0] = results.eigenPairs[2].vector.vector();
  a[1] = results.eigenPairs[1].vector.vector();
  a[2] = cross(a[0],a[1]);
 
- FixedVector<Vec3,3> b;
+ FixedVector<CDSVec3,3> b;
  b[0] = unitVec( R*a[0] );
  b[1] = unitVec( R*a[1] );
  b[2] = cross(b[0],b[1]);
@@ -111,7 +111,7 @@ void
 AtomSelAction::Fit::run(Simulation* sim,
 			int         index)
 {
- Vec3 pos = sim->atomPos(index);
+ CDSVec3 pos = sim->atomPos(index);
 
  if ( altCoords )
    pos = (*altCoords)[index];

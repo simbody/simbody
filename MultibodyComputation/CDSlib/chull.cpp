@@ -1015,7 +1015,7 @@ CHull<VERTEX>::checkHull()
 
 #ifdef TESTING
 
-#include <vec3.h>
+#include "cdsVec3.h"
 struct Vec3Vertex: public Vec3 {
   int index;
 

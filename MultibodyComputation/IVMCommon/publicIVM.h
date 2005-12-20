@@ -178,8 +178,8 @@ private:
     CDSList<Pair>   bondExclude_;
     PotList         potList_;
     Simulation*     sim;
-    CDSVector<Vec3> shadowPos;      //vectors shadowing simulation values
-    CDSVector<Vec3> shadowVel;
+    CDSVector<CDSVec3> shadowPos;      //vectors shadowing simulation values
+    CDSVector<CDSVec3> shadowVel;
 
     //  sync members for private interface
     void syncPos();

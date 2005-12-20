@@ -96,29 +96,29 @@ TestIVM::init()
     atoms[6]->bonds.append( atoms[7] );
     atoms[7]->bonds.append( atoms[6] );
 
-    atoms[1]->pos = Vec3(22.304,  25.009,  14.716);
-    atoms[2]->pos = Vec3(22.861,  24.772,  13.871);
-    atoms[3]->pos = Vec3(22.882,  25.590,  13.228);
-    atoms[4]->pos = Vec3(22.240,  23.610,  13.175);
-    atoms[5]->pos = Vec3(23.831,  24.530,  14.156);
-    atoms[6]->pos = Vec3(22.441,  22.352,  14.024);
-    atoms[7]->pos = Vec3(23.241,  22.330,  14.937);
+    atoms[1]->pos = CDSVec3(22.304,  25.009,  14.716);
+    atoms[2]->pos = CDSVec3(22.861,  24.772,  13.871);
+    atoms[3]->pos = CDSVec3(22.882,  25.590,  13.228);
+    atoms[4]->pos = CDSVec3(22.240,  23.610,  13.175);
+    atoms[5]->pos = CDSVec3(23.831,  24.530,  14.156);
+    atoms[6]->pos = CDSVec3(22.441,  22.352,  14.024);
+    atoms[7]->pos = CDSVec3(23.241,  22.330,  14.937);
 
-    atoms[1]->vel = Vec3(1.0 , 0, 0);
-    atoms[2]->vel = Vec3(0.0 , 0, 0);
-    atoms[3]->vel = Vec3(0.0 , 0, 0);
-    atoms[4]->vel = Vec3(0.0 , 0, 0);
-    atoms[5]->vel = Vec3(0.0 , 0, 0);
-    atoms[6]->vel = Vec3(0.0 , 0, 0);
-    atoms[7]->vel = Vec3(0.0 , 0, 0);
+    atoms[1]->vel = CDSVec3(1.0 , 0, 0);
+    atoms[2]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[3]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[4]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[5]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[6]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[7]->vel = CDSVec3(0.0 , 0, 0);
 
-    atoms[1]->force = Vec3(0.0 , 0, 0);
-    atoms[2]->force = Vec3(0.0 , 0, 0);
-    atoms[3]->force = Vec3(0.0 , 0, 0);
-    atoms[4]->force = Vec3(0.0 , 0, 0);
-    atoms[5]->force = Vec3(0.0 , 0, 0);
-    atoms[6]->force = Vec3(0.0 , 0, 0);
-    atoms[7]->force = Vec3(0.0 , 0, 0);
+    atoms[1]->force = CDSVec3(0.0 , 0, 0);
+    atoms[2]->force = CDSVec3(0.0 , 0, 0);
+    atoms[3]->force = CDSVec3(0.0 , 0, 0);
+    atoms[4]->force = CDSVec3(0.0 , 0, 0);
+    atoms[5]->force = CDSVec3(0.0 , 0, 0);
+    atoms[6]->force = CDSVec3(0.0 , 0, 0);
+    atoms[7]->force = CDSVec3(0.0 , 0, 0);
 
     groupList.resize(0);
     hingeList.resize(0);
@@ -186,53 +186,53 @@ TestIVM::initCycle()
     atoms[13]->bonds.append( atoms[14] );
     atoms[14]->bonds.append( atoms[13] );
 
-    atoms[1 ]->pos = Vec3(51.407,    48.981,     12.253);         
-    atoms[2 ]->pos = Vec3(51.486,    47.935,     13.271);         
-    atoms[3 ]->pos = Vec3(50.940,    47.075,     12.913);         
-    atoms[4 ]->pos = Vec3(52.935,    47.479,     13.621);         
-    atoms[5 ]->pos = Vec3(53.614,    47.873,     12.880);         
-    atoms[6 ]->pos = Vec3(53.055,    46.062,     13.646);         
-    atoms[7 ]->pos = Vec3(53.397,    45.808,     14.505);         
-    atoms[8 ]->pos = Vec3(53.354,    48.022,     14.977);         
-    atoms[9 ]->pos = Vec3(53.150,    49.082,     15.018);         
-    atoms[10]->pos = Vec3(54.410,    47.853,     15.122);         
-    atoms[11]->pos = Vec3(52.799,    47.517,     15.753);         
-    atoms[12]->pos = Vec3(50.707,    48.281,     14.531);         
-    atoms[13]->pos = Vec3(50.914,    49.332,     15.148);         
-    atoms[14]->pos = Vec3(52.914,    50.332,     15.148);         
-    atoms[15]->pos = Vec3(50.914,    48.332,     14.148);         
+    atoms[1 ]->pos = CDSVec3(51.407,    48.981,     12.253);         
+    atoms[2 ]->pos = CDSVec3(51.486,    47.935,     13.271);         
+    atoms[3 ]->pos = CDSVec3(50.940,    47.075,     12.913);         
+    atoms[4 ]->pos = CDSVec3(52.935,    47.479,     13.621);         
+    atoms[5 ]->pos = CDSVec3(53.614,    47.873,     12.880);         
+    atoms[6 ]->pos = CDSVec3(53.055,    46.062,     13.646);         
+    atoms[7 ]->pos = CDSVec3(53.397,    45.808,     14.505);         
+    atoms[8 ]->pos = CDSVec3(53.354,    48.022,     14.977);         
+    atoms[9 ]->pos = CDSVec3(53.150,    49.082,     15.018);         
+    atoms[10]->pos = CDSVec3(54.410,    47.853,     15.122);         
+    atoms[11]->pos = CDSVec3(52.799,    47.517,     15.753);         
+    atoms[12]->pos = CDSVec3(50.707,    48.281,     14.531);         
+    atoms[13]->pos = CDSVec3(50.914,    49.332,     15.148);         
+    atoms[14]->pos = CDSVec3(52.914,    50.332,     15.148);         
+    atoms[15]->pos = CDSVec3(50.914,    48.332,     14.148);         
 
-    atoms[1 ]->vel = Vec3(20.0, 0, 0);
-    atoms[2 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[3 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[4 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[5 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[6 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[7 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[8 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[9 ]->vel = Vec3(0.0 , 0, 0);
-    atoms[10]->vel = Vec3(0.0 , 0, 0);
-    atoms[11]->vel = Vec3(0.0 , 0, 0);
-    atoms[12]->vel = Vec3(0.0 , 0, 0);
-    atoms[13]->vel = Vec3(0.0 , 0, 0);
-    atoms[14]->vel = Vec3(0.0 , 0, 0);
-    atoms[15]->vel = Vec3(0.0 , 0, 0);
+    atoms[1 ]->vel = CDSVec3(20.0, 0, 0);
+    atoms[2 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[3 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[4 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[5 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[6 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[7 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[8 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[9 ]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[10]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[11]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[12]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[13]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[14]->vel = CDSVec3(0.0 , 0, 0);
+    atoms[15]->vel = CDSVec3(0.0 , 0, 0);
 
-    atoms[1 ]->force = Vec3(0.0 , 0, 0);
-    atoms[2 ]->force = Vec3(0.0 , 0, 0);
-    atoms[3 ]->force = Vec3(0.0 , 0, 0);
-    atoms[4 ]->force = Vec3(0.0 , 0, 0);
-    atoms[5 ]->force = Vec3(0.0 , 0, 0);
-    atoms[6 ]->force = Vec3(0.0 , 0, 0);
-    atoms[7 ]->force = Vec3(0.0 , 0, 0);
-    atoms[8 ]->force = Vec3(0.0 , 0, 0);
-    atoms[9 ]->force = Vec3(0.0 , 0, 0);
-    atoms[10]->force = Vec3(0.0 , 0, 0);
-    atoms[11]->force = Vec3(0.0 , 0, 0);
-    atoms[12]->force = Vec3(0.0 , 0, 0);
-    atoms[13]->force = Vec3(0.0 , 0, 0);
-    atoms[14]->force = Vec3(0.0 , 0, 0);
-    atoms[15]->force = Vec3(0.0 , 0, 0);
+    atoms[1 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[2 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[3 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[4 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[5 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[6 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[7 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[8 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[9 ]->force = CDSVec3(0.0 , 0, 0);
+    atoms[10]->force = CDSVec3(0.0 , 0, 0);
+    atoms[11]->force = CDSVec3(0.0 , 0, 0);
+    atoms[12]->force = CDSVec3(0.0 , 0, 0);
+    atoms[13]->force = CDSVec3(0.0 , 0, 0);
+    atoms[14]->force = CDSVec3(0.0 , 0, 0);
+    atoms[15]->force = CDSVec3(0.0 , 0, 0);
 
     // break cycles and add constraints
     constraintList.resize(0);
@@ -272,16 +272,16 @@ TestIVM::test()
     {
     cout << "initial velocities...";
     int lexit = 0;
-    CDSList<Vec3> t;
-    t.append(Vec3(0,0,0));
-    t.append(Vec3( .7907862337485985,  .09013290236325137,  .3165658097354623));
-    t.append(Vec3( .1357399466529780, -.04150486007265110, -.0783012106372617));
-    t.append(Vec3(-.0115291096445745,  .00003488899585902, -.0302656514525142));
-    t.append(Vec3(-.0069196995302082, -.0018069623013814 , -.0172916085258486));
-    t.append(Vec3(0,0,0));
-    t.append(Vec3(0,0,0));
-    t.append(Vec3(0,0,0));
-    t.append(Vec3(-.1947872267530600, .09268407916055810, .1082815629728186));
+    CDSList<CDSVec3> t;
+    t.append(CDSVec3(0,0,0));
+    t.append(CDSVec3( .7907862337485985,  .09013290236325137,  .3165658097354623));
+    t.append(CDSVec3( .1357399466529780, -.04150486007265110, -.0783012106372617));
+    t.append(CDSVec3(-.0115291096445745,  .00003488899585902, -.0302656514525142));
+    t.append(CDSVec3(-.0069196995302082, -.0018069623013814 , -.0172916085258486));
+    t.append(CDSVec3(0,0,0));
+    t.append(CDSVec3(0,0,0));
+    t.append(CDSVec3(0,0,0));
+    t.append(CDSVec3(-.1947872267530600, .09268407916055810, .1082815629728186));
 
     for (int i=0 ; i<atoms.size() ; i++)
         if ( abs2(atoms[i]->vel - t[i]) > tol*tol ) {
@@ -300,16 +300,16 @@ TestIVM::test()
     //setVerbose( verbose() | InternalDynamics::printResetCM );
     resetCMflag=1;
     resetCM();
-    CDSList<Vec3> t;
-    t.append(Vec3(0,0,0));
-    t.append(Vec3( .6523185106045116 , .06017487086985825, .2844882418348770 ));
-    t.append(Vec3( .0508587296756875 ,-.04505921778863320,-.08246160309446333));
-    t.append(Vec3(-.1036573357528213 ,-.00280589578215078,-.03375494675339982));
-    t.append(Vec3(-.00115774397098383,-.03555440171077225,-.05191902572074229));
-    t.append(Vec3(-.08746869633676819, .04323713586703393, .04437784061572216));
-    t.append(Vec3( .02388992715731684,-.02368709773860604,-.02401235532135897));
-    t.append(Vec3(-.02063272401050720, .01521653799906133, .01593726233525430));
-    t.append(Vec3(-.2509439280717113 , .07462619327086268, .08934397222309618));
+    CDSList<CDSVec3> t;
+    t.append(CDSVec3(0,0,0));
+    t.append(CDSVec3( .6523185106045116 , .06017487086985825, .2844882418348770 ));
+    t.append(CDSVec3( .0508587296756875 ,-.04505921778863320,-.08246160309446333));
+    t.append(CDSVec3(-.1036573357528213 ,-.00280589578215078,-.03375494675339982));
+    t.append(CDSVec3(-.00115774397098383,-.03555440171077225,-.05191902572074229));
+    t.append(CDSVec3(-.08746869633676819, .04323713586703393, .04437784061572216));
+    t.append(CDSVec3( .02388992715731684,-.02368709773860604,-.02401235532135897));
+    t.append(CDSVec3(-.02063272401050720, .01521653799906133, .01593726233525430));
+    t.append(CDSVec3(-.2509439280717113 , .07462619327086268, .08934397222309618));
       
     for (int i=0 ; i<atoms.size() ; i++)
         if ( abs2(atoms[i]->vel - t[i]) > tol*tol ) {
@@ -341,28 +341,28 @@ TestIVM::test()
 
     step(stepsize);
 
-    CDSList<Vec3> tq;
-    tq.append(Vec3(0,0,0));
+    CDSList<CDSVec3> tq;
+    tq.append(CDSVec3(0,0,0));
 
-    tq.append(Vec3(22.30400065231726, 25.00900006017106, 14.71600028448686));
-    tq.append(Vec3(22.86100005086041, 24.77199995493966, 13.87099991753850));
-    tq.append(Vec3(22.88199989634295, 25.58999999719345, 13.22799996624573));
-    tq.append(Vec3(22.23999999884240, 23.60999996444499, 13.17499994808156));
-    tq.append(Vec3(23.83099991253047, 24.53000004323679, 14.15600004437767));
-    tq.append(Vec3(22.44100002388992, 22.35199997631407, 14.02399997598730));
-    tq.append(Vec3(23.24099997936724, 22.33000001521754, 14.93700001593694));
-    tq.append(Vec3(22.56319974905955, 24.57630007462422, 13.48420008934329));
+    tq.append(CDSVec3(22.30400065231726, 25.00900006017106, 14.71600028448686));
+    tq.append(CDSVec3(22.86100005086041, 24.77199995493966, 13.87099991753850));
+    tq.append(CDSVec3(22.88199989634295, 25.58999999719345, 13.22799996624573));
+    tq.append(CDSVec3(22.23999999884240, 23.60999996444499, 13.17499994808156));
+    tq.append(CDSVec3(23.83099991253047, 24.53000004323679, 14.15600004437767));
+    tq.append(CDSVec3(22.44100002388992, 22.35199997631407, 14.02399997598730));
+    tq.append(CDSVec3(23.24099997936724, 22.33000001521754, 14.93700001593694));
+    tq.append(CDSVec3(22.56319974905955, 24.57630007462422, 13.48420008934329));
 
-    CDSList<Vec3> tv;
-    tv.append(Vec3(0,0,0));
-    tv.append(Vec3( .6523192444544815 , .06016935435394602, .2844877178141606 ));
-    tv.append(Vec3( .05086118154323828,-.04506153298146813,-.08246129196430015));
-    tv.append(Vec3(-.1036569920762576 ,-.00280736791994937,-.03375358837610575));
-    tv.append(Vec3(-.00115761337467347,-.03555578463202729,-.05191819456361482));
-    tv.append(Vec3(-.08747009973676708, .04323643246703309, .04437764361572128));
-    tv.append(Vec3( .02388993712409297,-.02368513074477553,-.02401287014865009));
-    tv.append(Vec3(-.02063275741060132, .01521822514720666, .01593677318721820));
-    tv.append(Vec3(-.2509401063298388 , .07462330037371790, .08934386979265429));
+    CDSList<CDSVec3> tv;
+    tv.append(CDSVec3(0,0,0));
+    tv.append(CDSVec3( .6523192444544815 , .06016935435394602, .2844877178141606 ));
+    tv.append(CDSVec3( .05086118154323828,-.04506153298146813,-.08246129196430015));
+    tv.append(CDSVec3(-.1036569920762576 ,-.00280736791994937,-.03375358837610575));
+    tv.append(CDSVec3(-.00115761337467347,-.03555578463202729,-.05191819456361482));
+    tv.append(CDSVec3(-.08747009973676708, .04323643246703309, .04437764361572128));
+    tv.append(CDSVec3( .02388993712409297,-.02368513074477553,-.02401287014865009));
+    tv.append(CDSVec3(-.02063275741060132, .01521822514720666, .01593677318721820));
+    tv.append(CDSVec3(-.2509401063298388 , .07462330037371790, .08934386979265429));
       
     double tol = 1e-12;
     for (int i=0 ; i<atoms.size() ; i++) {

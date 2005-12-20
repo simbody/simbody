@@ -1,7 +1,7 @@
 #ifndef __dint_atom_hh__
 #define __dint_atom_hh__
 
-#include "vec3.h"
+#include "cdsVec3.h"
 
 //#include "atom.h"
 
@@ -41,13 +41,13 @@ public:
 
     // clustering information
     AtomClusterNode*    node;
-    Vec3                station_B;    // location in node's local frame
+    CDSVec3                station_B;    // location in node's local frame
 
     // Initial and then calculated spatial (Cartesian) info.
-    Vec3 station_G; // station expressed in G (still measured from OB)
-    Vec3 pos;
-    Vec3 vel;
-    Vec3 force; // this is the Cartesian force applied to this atom
+    CDSVec3 station_G; // station expressed in G (still measured from OB)
+    CDSVec3 pos;
+    CDSVec3 vel;
+    CDSVec3 force; // this is the Cartesian force applied to this atom
 };
 
 ostream& operator<<(ostream &s,const IVMAtom* a);

@@ -11,7 +11,7 @@
 #include "RigidBodyNode.h"
 
 #include "dint-atom.h"
-#include "vec3.h"
+#include "cdsVec3.h"
 
 #include <sthead.h>
 #include <cdsMath.h>
@@ -112,7 +112,7 @@ double AtomTree::getClusterMass(int level, int indx) const {
     return rb.getMass();
 }
 
-const Vec3& AtomTree::getClusterCOM_G(int level, int indx) const {
+const CDSVec3& AtomTree::getClusterCOM_G(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
     const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.getCOM_G();
@@ -373,7 +373,7 @@ AtomTree::AtomTree(IVM* ivm_)
     for (int i=0; i<nodeTree.size(); i++)
         for (int j=0; j<nodeTree[i].size(); j++) {
             AtomClusterNode* n = nodeTree[i][j];
-            const Vec3 OB_G = n->atoms[0]->pos; // origin
+            const CDSVec3 OB_G = n->atoms[0]->pos; // origin
             for (int a=0; a < n->atoms.size(); ++a)
                 n->atoms[a]->station_B = n->atoms[a]->pos - OB_G;
         }
@@ -432,7 +432,7 @@ void AtomTree::createRigidBodyTree() {
 void
 AtomTree::addCM(const AtomClusterNode* n,
                 double&                mass,
-                Vec3&                  pos)
+                CDSVec3&                  pos)
 {
     for (int i=0 ; i<n->atoms.size() ; i++) {
         if ( n->atoms[i]->mass>0.0 ) {
@@ -449,10 +449,10 @@ AtomTree::addCM(const AtomClusterNode* n,
 //
 // Calls addCM to recursively determine center of mass of node and children.
 //
-Vec3
+CDSVec3
 AtomTree::findCM(const AtomClusterNode* n) {
     double mass=0.;
-    Vec3 pos(0.,0.,0.);
+    CDSVec3 pos(0.,0.,0.);
     addCM(n,mass,pos);
     pos /= mass;
     return pos;
@@ -617,7 +617,7 @@ operator<<(ostream& s, const AtomTree& aTree) {
     return s;
 }
 
-typedef CDSVector<Vec3> VecVec3;
+typedef CDSVector<CDSVec3> VecVec3;
 
 
 //  (see CDS notes of 3/27/00)

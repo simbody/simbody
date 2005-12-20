@@ -91,9 +91,9 @@ XplorIVM::initXplor()
 
     for (l_int i=1 ; i<=natom ; i++) {
         IVMAtom* a = atoms[i];
-        a->pos = Vec3(xplorVars.x[i-1]  , xplorVars.y[i-1]  , xplorVars.z[i-1] );
-        a->vel = Vec3(xplorVars.xv[i-1] , xplorVars.yv[i-1] , xplorVars.zv[i-1]);
-        a->force = Vec3(xplorVars.dx[i-1] , 
+        a->pos = CDSVec3(xplorVars.x[i-1]  , xplorVars.y[i-1]  , xplorVars.z[i-1] );
+        a->vel = CDSVec3(xplorVars.xv[i-1] , xplorVars.yv[i-1] , xplorVars.zv[i-1]);
+        a->force = CDSVec3(xplorVars.dx[i-1] , 
                         xplorVars.dy[i-1] , 
                         xplorVars.dz[i-1]);
         a->fric = frictionCoeff() * xplorVars.fbeta[i-1] 

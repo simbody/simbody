@@ -1,7 +1,7 @@
 #ifndef __atom_hh__
 #define __atom_hh__
 
-#include "vec3.h"
+#include "cdsVec3.h"
 #include "cdsString.h"
 
 class Simulation;
@@ -36,8 +36,8 @@ public:
     const char* atomName() const    ;
     const char* chemType() const    ;
     int   residueNum() const        ;
-    Vec3  pos() const;
-    Vec3  vel() const;
+    CDSVec3  pos() const;
+    CDSVec3  vel() const;
     const float_type& mass() const  ;
     const float_type& fric() const  ;
     //  const float_type& radius() const;
@@ -48,8 +48,8 @@ public:
     void setAtomName(const char* newName)     ;
     void setChemType(const char* newName)     ;
     void setResidueNum(int newNum)         ;
-    void setPos(const Vec3& v);
-    void setVel(const Vec3& v);
+    void setPos(const CDSVec3& v);
+    void setVel(const CDSVec3& v);
     void setMass(const float_type& newVal)   ;
     void setFric(const float_type& newVal)   ;
     //  void setRadius(const float_type& newVal) ;

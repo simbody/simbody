@@ -60,7 +60,7 @@ Simulation::clearBondedPairList()
 
 
 void
-Simulation::setAtomPosArr(const CDSVector<Vec3>& arr)
+Simulation::setAtomPosArr(const CDSVector<CDSVec3>& arr)
 {
  if (arr.size() != numAtoms())
    throw CDS::exception("FIX: setAtomPosArr: array should have size numAtoms");
@@ -70,7 +70,7 @@ Simulation::setAtomPosArr(const CDSVector<Vec3>& arr)
 } /* setAtomPosArr */
 
 void
-Simulation::setAtomVelArr(const CDSVector<Vec3>& arr)
+Simulation::setAtomVelArr(const CDSVector<CDSVec3>& arr)
 {
  if (arr.size() != numAtoms())
    throw CDS::exception("FIX: setAtomVelArr: array should have size numAtoms");
@@ -82,7 +82,7 @@ Simulation::setAtomVelArr(const CDSVector<Vec3>& arr)
 
 void 
 Simulation::setAtomPos(      int i, 
-		       const Vec3& newVal)
+		       const CDSVec3& newVal)
 {
  atomPosList_[i] = newVal;
  markAsModified();
@@ -90,7 +90,7 @@ Simulation::setAtomPos(      int i,
 
 void 
 Simulation::setAtomVel(      int i, 
-		       const Vec3& newVal)
+		       const CDSVec3& newVal)
 {
  atomVelList_[i] = newVal;
  markAsModified();
@@ -235,10 +235,10 @@ Simulation::resizeAtomArrays(const int size)
    residueNameList_[i] = String( "none",4,0 );
    residueNumList_[i]  = -1;
    segmentNameList_[i] = String( "none",4,0 );
-   atomPosList_[i] = Vec3(Atom::INVALID_COORD, 
+   atomPosList_[i] = CDSVec3(Atom::INVALID_COORD, 
 			  Atom::INVALID_COORD, 
 			  Atom::INVALID_COORD);
-   atomVelList_[i] = Vec3(0, 0, 0);
+   atomVelList_[i] = CDSVec3(0, 0, 0);
    atomMassList_[i] = 0;
    atomFricList_[i] = 0;
    atomRadiusList_[i] = 0;

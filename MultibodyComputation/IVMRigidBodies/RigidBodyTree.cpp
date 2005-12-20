@@ -9,7 +9,7 @@
 
 #include "LengthConstraints.h"
 
-#include "vec3.h"
+#include "cdsVec3.h"
 
 #include "sthead.h"
 #include "cdsMath.h"
@@ -37,17 +37,17 @@ void RBStation::calcPosInfo(RBStationRuntime& rt) const {
 }
 
 void RBStation::calcVelInfo(RBStationRuntime& rt) const {
-    const Vec3& w_G = getNode().getSpatialAngVel();
-    const Vec3& v_G = getNode().getSpatialLinVel();
+    const CDSVec3& w_G = getNode().getSpatialAngVel();
+    const CDSVec3& v_G = getNode().getSpatialLinVel();
     rt.stationVel_G = cross(w_G, rt.station_G);
     rt.vel_G = v_G + rt.stationVel_G;
 }
 
 void RBStation::calcAccInfo(RBStationRuntime& rt) const {
-    const Vec3& w_G  = getNode().getSpatialAngVel();
-    const Vec3& v_G  = getNode().getSpatialLinVel();
-    const Vec3& aa_G = getNode().getSpatialAngAcc();
-    const Vec3& a_G  = getNode().getSpatialLinAcc();
+    const CDSVec3& w_G  = getNode().getSpatialAngVel();
+    const CDSVec3& v_G  = getNode().getSpatialLinVel();
+    const CDSVec3& aa_G = getNode().getSpatialAngAcc();
+    const CDSVec3& a_G  = getNode().getSpatialLinAcc();
     rt.acc_G = a_G + cross(aa_G, rt.station_G)
                    + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
 }
@@ -83,7 +83,7 @@ void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
     for (int i=0; i<=1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
 
 //XXX this doesn't look right
-    const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
+    const CDSVec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
     rt.accErr = abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G);
 }
 

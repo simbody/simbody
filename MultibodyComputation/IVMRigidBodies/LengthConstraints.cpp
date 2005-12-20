@@ -17,7 +17,7 @@
 #include "LengthConstraints.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyTree.h"
-#include "vec3.h"
+#include "cdsVec3.h"
 #include "cdsListAutoPtr.h"
 #include "RVec.h"
 #include "cdsMath.h"
@@ -74,13 +74,13 @@ public:
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
 
-    const Vec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
-    const Vec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
-    const Vec3& tipAcc(int i)   const {return getTipRuntime(i).acc_G;}
-    const Vec3& tipForce(int i) const {return getTipRuntime(i).force_G;}
+    const CDSVec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
+    const CDSVec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
+    const CDSVec3& tipAcc(int i)   const {return getTipRuntime(i).acc_G;}
+    const CDSVec3& tipForce(int i) const {return getTipRuntime(i).force_G;}
 
     // Use this for both forces and impulses.
-    void setTipForce(int i, const Vec3& f) const { updTipRuntime(i).force_G = f; }
+    void setTipForce(int i, const CDSVec3& f) const { updTipRuntime(i).force_G = f; }
 
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
@@ -624,7 +624,7 @@ RMat
 LengthSet::calcGrad() const
 {
     RMat grad(dim,loops.size(),0.0);
-    Mat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
+    CDSMat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
 
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
@@ -642,7 +642,7 @@ LengthSet::calcGrad() const
         }
 
         // compute gradient
-        Vec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
+        CDSVec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
         FixedVector<FixedMatrix<double,3,6>,2,1> J;
         for (int b=1 ; b<=2 ; b++)
             J(b) = blockMat12(-crossMat(l.tipPos(b) -
@@ -656,9 +656,9 @@ LengthSet::calcGrad() const
             for (int k=0 ; k<H.cols() ; k++) {
                 Vec6 Hcol = subCol(H,k,0,5).vector();
                 if ( l1_indx >= 0 ) { 
-                    elem = -dot(uBond , Vec3(J(1) * phiT(1)[l1_indx]*Hcol));
+                    elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
-                    elem = dot(uBond , Vec3(J(2) * phiT(2)[l2_indx]*Hcol));
+                    elem = dot(uBond , CDSVec3(J(2) * phiT(2)[l2_indx]*Hcol));
                 }
                 grad(g_indx++,i) = elem;
             }
@@ -745,11 +745,11 @@ typedef SubVector<const Vec6>       SubVec6;
 // Calculate the acceleration of atom assuming that the spatial acceleration
 // of the body (node) it's on is available.
 //
-//static Vec3
+//static CDSVec3
 //getAccel(const IVMAtom* a)
 //{
 //    const RigidBodyNode* n = a->node;
-//    Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
+//    CDSVec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
 //    ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
 //    ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
 //    return ret;
@@ -760,15 +760,15 @@ typedef SubVector<const Vec6>       SubVec6;
 // the nodes associated with stations s1 & s2.
 //
 static double
-computeA(const Vec3&    v1,
+computeA(const CDSVec3&    v1,
          const LoopWNodes& loop1, int s1,
          const LoopWNodes& loop2, int s2,
-         const Vec3&    v2)
+         const CDSVec3&    v2)
 {
     const RigidBodyNode* n1 = &loop1.tips(s1).getNode();
     const RigidBodyNode* n2 = &loop2.tips(s2).getNode();
 
-    Mat33 one(0.); one.setDiag(1.);
+    CDSMat33 one(0.); one.setDiag(1.);
 
     Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
     Vec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
@@ -833,12 +833,12 @@ LengthSet::calcConstraintForces() const
     // term of Eq. [66].
     RMat A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        const Vec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
+        const CDSVec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<loops.size() ; j++) {
-                    const Vec3 v2 = loops[j].tipPos(2) - loops[j].tipPos(1);
+                    const CDSVec3 v2 = loops[j].tipPos(2) - loops[j].tipPos(1);
                     double contrib = computeA(v1, loops[i], bi,
                                                   loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
@@ -869,7 +869,7 @@ LengthSet::calcConstraintForces() const
 
     // add forces due to these constraints
     for (int i=0 ; i<loops.size() ; i++) {
-        const Vec3 frc = lambda(i) * (loops[i].tipPos(2) - loops[i].tipPos(1));
+        const CDSVec3 frc = lambda(i) * (loops[i].tipPos(2) - loops[i].tipPos(1));
         loops[i].setTipForce(2, -frc);
         loops[i].setTipForce(1,  frc);
     }
@@ -879,8 +879,8 @@ void LengthSet::addInCorrectionForces(VecVec6& spatialForces) const {
     for (int i=0; i<loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
-            const Vec3& force = loops[i].tipForce(t);
-            const Vec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
+            const CDSVec3& force = loops[i].tipForce(t);
+            const CDSVec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
             spatialForces[node.getNodeNum()] += blockVec(moment, force);
         }
     }
@@ -1012,7 +1012,7 @@ LengthSet::fixVel0(RVec& iVel)
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
         // That would explain the fact that there are no velocities here!
-        const Vec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
+        const CDSVec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
         loops[m].setTipForce(2,  probeImpulse);
         loops[m].setTipForce(1, -probeImpulse);
 
@@ -1021,8 +1021,8 @@ LengthSet::fixVel0(RVec& iVel)
             spatialImpulse[ii].set(0.);
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[m].tipNode(t);
-            const Vec3& force = loops[m].tipForce(t);
-            const Vec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
+            const CDSVec3& force = loops[m].tipForce(t);
+            const CDSVec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
             spatialImpulse[node.getNodeNum()] += blockVec(moment, force);
         }
 

@@ -16,7 +16,7 @@ DerivList::init(const Simulation* sim)
  if ( derivList[sim->id()].size() != sim->numAtoms() )
    derivList[sim->id()].resize( sim->numAtoms() );
 
- static Vec3 zeroVec( (float_type)0. );
+ static CDSVec3 zeroVec( (float_type)0. );
  for (int i=0 ; i<sim->numAtoms() ; i++)
    derivList[sim->id()](i) = zeroVec;
 } /* init */
@@ -25,7 +25,7 @@ DerivList::init(const Simulation* sim)
 void
 DerivList::clear()
 {
- Vec3 zero(0.);
+ CDSVec3 zero(0.);
  for (int i=0 ; i<derivList.size() ; i++)
    for (int j=0 ; j<derivList[i].size() ; j++)
      derivList[i][j] = zero;

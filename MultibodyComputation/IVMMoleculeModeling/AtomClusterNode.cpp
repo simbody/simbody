@@ -24,16 +24,16 @@ using namespace CDS;
 using CDSMath::sq;
 #endif /* USE_CDS_NAMESPACE */
 
-static Mat33 makeIdentityRotation();
-static const Mat33 R_I = makeIdentityRotation(); // handy to have around
+static CDSMat33 makeIdentityRotation();
+static const CDSMat33 R_I = makeIdentityRotation(); // handy to have around
 
 
 void
-InertiaTensor::calc(const Vec3&     center,
+InertiaTensor::calc(const CDSVec3&     center,
                     const AtomList& aList) 
 {
     set(0.0);
-    Mat33 &m = *this;
+    CDSMat33 &m = *this;
     for (int cnt=0 ; cnt<aList.size() ; cnt++) {
         const IVMAtom* a = &(*aList[cnt]);
         m(0,0) += a->mass * (sq(a->pos(1)-center(1)) + sq(a->pos(2)-center(2)));
@@ -77,7 +77,7 @@ void AtomClusterNode::addChild(AtomClusterNode* node) {
     children.append( node );
 }
 
-void AtomClusterNode::calcAtomPos(const Mat33& R_GB, const Vec3& OB_G) {
+void AtomClusterNode::calcAtomPos(const CDSMat33& R_GB, const CDSVec3& OB_G) {
     atoms[0]->pos = OB_G;
     for (int i=1 ; i<atoms.size() ; i++) {
         IVMAtom& a = *atoms[i];
@@ -87,8 +87,8 @@ void AtomClusterNode::calcAtomPos(const Mat33& R_GB, const Vec3& OB_G) {
 }
 
 void AtomClusterNode::calcAtomVel(const Vec6& V_OB_G) {
-    const Vec3& w_G = *reinterpret_cast<const Vec3*>(&V_OB_G[0]);
-    const Vec3& v_G = *reinterpret_cast<const Vec3*>(&V_OB_G[3]);
+    const CDSVec3& w_G = *reinterpret_cast<const CDSVec3*>(&V_OB_G[0]);
+    const CDSVec3& v_G = *reinterpret_cast<const CDSVec3*>(&V_OB_G[3]);
 
     atoms[0]->vel = v_G;
     for (int i=1 ; i<atoms.size() ; i++) {
@@ -98,11 +98,11 @@ void AtomClusterNode::calcAtomVel(const Vec6& V_OB_G) {
 }
 
 void AtomClusterNode::calcSpatialForce(Vec6& F_OB_G) {
-    Vec3 moment(0.), force(0.);
+    CDSVec3 moment(0.), force(0.);
     // notice that the sign is screwey [??? CDS comment, I don't see it (sherm)]
     for (int i=0 ; i<atoms.size() ; i++) {
         const IVMAtom& a = *atoms[i];
-        Vec3 aForce = a.force;
+        CDSVec3 aForce = a.force;
         if (ivm->frictionCoeff() != 0.)
             aForce += a.fric * a.vel * (1. - ivm->bathTemp()/ivm->currentTemp());
         moment += cross(a.pos - atoms[0]->pos, aForce);
@@ -115,10 +115,10 @@ void AtomClusterNode::calcSpatialForce(Vec6& F_OB_G) {
 // spatial impulse for this node. This can then be used in the dynamic equations
 // instead of a force, yielding velocities rather than accelerations.
 void AtomClusterNode::calcSpatialImpulse(Vec6& Impulse_OB_G) {
-    Vec3 angular(0.), linear(0.);
+    CDSVec3 angular(0.), linear(0.);
     for (int i=0 ; i<atoms.size() ; i++) {
         const IVMAtom& a = *atoms[i];
-        const Vec3 aMomentum = a.mass*a.vel;
+        const CDSVec3 aMomentum = a.mass*a.vel;
         angular += cross(a.pos - atoms[0]->pos, aMomentum);
         linear  += aMomentum;
     }
@@ -151,7 +151,7 @@ public:
         jointType = ThisIsGround;
         jointIsReversed = false;
 
-        for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = Vec3(0.0); 
+        for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = CDSVec3(0.0); 
         for (l_int i=0 ; i<atoms.size() ; i++) atoms[i]->node = this; 
     }
     ~GroundBody() {}
@@ -180,7 +180,7 @@ public:
     //     attached to the current body. At the moment I'm just preserving the
     //     existing behavior; later I hope to trash it. (sherm)
     //
-    AtomClusterNodeSpec(const AtomClusterNode* node, int& cnt, const Mat33& rotBJ,
+    AtomClusterNodeSpec(const AtomClusterNode* node, int& cnt, const CDSMat33& rotBJ,
                         JointType jt, bool isReversed,
                         bool addDummyOrigin=false)
       : AtomClusterNode(*node)
@@ -203,7 +203,7 @@ public:
         // We *may* have a new atoms[0] now.
 
         refBinP.setFrame(R_I, atoms[0]->pos - getParent()->getAtom(0)->pos);
-        JinB.setFrame(rotBJ, Vec3(0.)); // joint is always located at body origin
+        JinB.setFrame(rotBJ, CDSVec3(0.)); // joint is always located at body origin
         calcBodyProperties();
     }
 
@@ -228,7 +228,7 @@ private:
 // Derived classes for each joint type. //
 //////////////////////////////////////////
 
-static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
+static CDSMat33 makeJointFrameFromZAxis(const CDSVec3& zVec);
 
 
 /**
@@ -299,7 +299,7 @@ private:
 class ACNodeRotate2 : public AtomClusterNodeSpec<2> {
 public:
     ACNodeRotate2(const AtomClusterNode* node,
-                 const Vec3&             zVec,
+                 const CDSVec3&             zVec,
                  int&                    cnt)
       : AtomClusterNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec),
                                UJoint,false)
@@ -318,7 +318,7 @@ public:
 class ACNodeTranslateRotate2 : public AtomClusterNodeSpec<5> {
 public:
     ACNodeTranslateRotate2(const AtomClusterNode*  node,
-                          const Vec3&              zVec,
+                          const CDSVec3&              zVec,
                           int&                     cnt)
       : AtomClusterNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec),
                                FreeLineJoint,false)
@@ -335,7 +335,7 @@ public:
 class ACNodeTorsion : public AtomClusterNodeSpec<1> {
 public:
     ACNodeTorsion(const AtomClusterNode*   node,
-                 const Vec3&               rotDir,
+                 const CDSVec3&               rotDir,
                  int&                      cnt)
       : AtomClusterNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir),
                                TorsionJoint,false)
@@ -416,7 +416,7 @@ AtomClusterNode::constructFromPrototype
         IVMAtom* atom1 = ivm->getAtoms()[ hingeSpec.atom1 ];
 
         //direction perp. to two bonds
-        Vec3 dir = cross(atom0->pos - node->atoms[0]->pos,
+        CDSVec3 dir = cross(atom0->pos - node->atoms[0]->pos,
                          atom1->pos - node->atoms[0]->pos);
         if ( norm(dir) > 1e-12 ) {
             newNode = new ACNodeTorsion(node, dir, cnt);
@@ -432,14 +432,14 @@ AtomClusterNode::constructFromPrototype
                 //rotation matrix which takes the z-axis
                 // to (atoms[0]->pos - parentAtom->pos)
                 // notes of 12/6/99 - CDS
-                const Vec3 u = unitVec( atom1->pos - node->atoms[0]->pos );
+                const CDSVec3 u = unitVec( atom1->pos - node->atoms[0]->pos );
                 double theta = acos( u.z() );
                 double psi   = atan2( u.x() , u.y() );
                 double a[] = { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
                               -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
                                0        , -sin(theta)         , cos(theta)         };
-                Vec3 x(1,0,0);
-                dir = Mat33(a) * x;
+                CDSVec3 x(1,0,0);
+                dir = CDSMat33(a) * x;
                 cerr << "norm: " << dot(u,dir) << endl; // should be zero
                 newNode = new ACNodeTorsion(node, dir, cnt);
             }
@@ -538,13 +538,13 @@ AtomClusterNodeSpec<dof>::addDummyOriginIfNeeded() {
 template<int dof> void 
 AtomClusterNodeSpec<dof>::calcBodyProperties() {
     double  mass = atoms[0]->mass;
-    Vec3    comStation_B(0.);
+    CDSVec3    comStation_B(0.);
     Inertia inertia_OB_B;   // defaults to zero
 
-    const Vec3 OB = atoms[0]->pos;
+    const CDSVec3 OB = atoms[0]->pos;
     for (int i=1; i<atoms.size(); ++i) {
         const double   m = atoms[i]->mass;
-        const Vec3     S = atoms[i]->pos - OB; // atom station
+        const CDSVec3     S = atoms[i]->pos - OB; // atom station
 
         atoms[i]->station_B  = S;
         mass                += m;
@@ -576,9 +576,9 @@ AtomClusterNodeSpec<dof>::print(int verbose) {
 // frame by taking the B frame z axis into alignment 
 // with the passed-in zDir vector. This is not unique.
 // notes of 12/6/99 - CDS
-static Mat33
-makeJointFrameFromZAxis(const Vec3& zVec) {
-    const Vec3 zDir = unitVec(zVec);
+static CDSMat33
+makeJointFrameFromZAxis(const CDSVec3& zVec) {
+    const CDSVec3 zDir = unitVec(zVec);
 
     // Calculate spherical coordinates.
     double theta = acos( zDir.z() );             // zenith (90-elevation)
@@ -593,12 +593,12 @@ makeJointFrameFromZAxis(const Vec3& zVec) {
         { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
          -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
           0        , -sin(theta)         , cos(theta)         };
-    return Mat33(R_BJ); // == R_PJi
+    return CDSMat33(R_BJ); // == R_PJi
 }
 
-static Mat33
+static CDSMat33
 makeIdentityRotation() {
-    Mat33 ret(0.);
+    CDSMat33 ret(0.);
     ret.setDiag(1.);
     return ret;
 }

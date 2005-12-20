@@ -411,7 +411,7 @@ PDBTool::read()
       
      if (selIndex.exists(curKey)) {
        int index = selIndex[curKey];
-       sim->setAtomPos(index, Vec3(x,y,z));
+       sim->setAtomPos(index, CDSVec3(x,y,z));
        aux1_[index] = q;
        aux2_[index] = b;
      }

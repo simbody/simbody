@@ -5,7 +5,7 @@
 #include <cdsList.h>
 #include <cdsMap.h>
 #include <cdsString.h>
-#include <vec3.h>
+#include "cdsVec3.h"
 #include <atom.h>
 #include <cdsPair.h>
 #include <cdsVector.h>
@@ -99,13 +99,13 @@ public:
   // to permit fast access 
   //
 
-  virtual CDSVector<Vec3> atomPosArr() const { return atomPosList_; }
-  virtual CDSVector<Vec3> atomVelArr() const { return atomVelList_; }
-  virtual void setAtomPosArr(const CDSVector<Vec3>&);
-  virtual void setAtomVelArr(const CDSVector<Vec3>&);
+  virtual CDSVector<CDSVec3> atomPosArr() const { return atomPosList_; }
+  virtual CDSVector<CDSVec3> atomVelArr() const { return atomVelList_; }
+  virtual void setAtomPosArr(const CDSVector<CDSVec3>&);
+  virtual void setAtomVelArr(const CDSVector<CDSVec3>&);
 
-  virtual void   setAtomPos(int index, const Vec3& newVal);
-  virtual void   setAtomVel(int index, const Vec3& newVal);
+  virtual void   setAtomPos(int index, const CDSVec3& newVal);
+  virtual void   setAtomVel(int index, const CDSVec3& newVal);
   virtual void  setAtomMass(int index, const float_type& newVal);
   virtual void  setAtomFric(int index, const float_type& newVal);
   virtual void  setAtomCharge(int index, const float_type& newVal);
@@ -116,8 +116,8 @@ public:
   virtual void    setAtomName(int index, const char* newVal);
   virtual void    setChemType(int index, const char* newVal);
     
-  virtual const Vec3&        atomPos(int index) const;
-  virtual const Vec3&        atomVel(int index) const;
+  virtual const CDSVec3&        atomPos(int index) const;
+  virtual const CDSVec3&        atomVel(int index) const;
   virtual const float_type& atomMass(int index) const;
   virtual const float_type& atomFric(int index) const;
   virtual const float_type& atomCharge(int index) const;
@@ -182,8 +182,8 @@ protected:
   CDSList< float_type > atomRadiusList_;
   CDSList< float_type > atomChargeList_;
 
-  CDSVector< Vec3 >       atomPosList_;
-  CDSVector< Vec3 >       atomVelList_;
+  CDSVector< CDSVec3 >       atomPosList_;
+  CDSVector< CDSVec3 >       atomVelList_;
 
   CDSList< Pair >          bondPairList_;
   mutable CDSList< ModifiedBase* > dependentList_;
@@ -199,13 +199,13 @@ protected:
 // inline function declarations
 //
 
-inline const Vec3 &
+inline const CDSVec3 &
 Simulation::atomPos(int i) const
 {
  return atomPosList_[i];
 }
 
-inline const Vec3 &
+inline const CDSVec3 &
 Simulation::atomVel(int i) const
 {
  return atomVelList_[i] ;

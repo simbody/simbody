@@ -12,7 +12,7 @@
 class IVMAtom;
 class AtomTree;
 class AT_Build;
-class Vec3;
+class CDSVec3;
 class AtomClusterNode;
 class Solver;
 
@@ -22,9 +22,9 @@ typedef CDSVector<double,1>     RVec;   // first element has index 1
 typedef int    (*RVecSizeType)(const RVec&);
 typedef double (*RVecProdType)(const RVec&, const RVec&);
 
-typedef int    (*VecVec3SizeType)(const CDSVector<Vec3>&);
-typedef double (*VecVec3ProdType)(const CDSVector<Vec3>&, 
-                                  const CDSVector<Vec3>&);
+typedef int    (*VecVec3SizeType)(const CDSVector<CDSVec3>&);
+typedef double (*VecVec3ProdType)(const CDSVector<CDSVec3>&, 
+                                  const CDSVector<CDSVec3>&);
 /**
  * This class owns the atoms and some instructions, builds the
  * multibody system from them and performs all the analyses.
@@ -49,15 +49,15 @@ public:
     /// Length squared of an RVec.
     double rvecAbs2(const RVec& v) { return rvecProd(v,v); }
 
-    /// The dimension of a CDSVector<Vec3>.
-    int vecVec3Prod(const CDSVector<Vec3>& v) { return vecVec3Size_(v); }
+    /// The dimension of a CDSVector<CDSVec3>.
+    int vecVec3Prod(const CDSVector<CDSVec3>& v) { return vecVec3Size_(v); }
 
-    /// The inner product of two CDSVector<Vec3>'s.
-    double vecVec3Prod(const CDSVector<Vec3>& v1,
-                       const CDSVector<Vec3>& v2) { return vecVec3Prod_(v1,v2); }
+    /// The inner product of two CDSVector<CDSVec3>'s.
+    double vecVec3Prod(const CDSVector<CDSVec3>& v1,
+                       const CDSVector<CDSVec3>& v2) { return vecVec3Prod_(v1,v2); }
 
-    /// Length squared of a CDSVector<Vec3>.
-    double vecVec3Abs2(const CDSVector<Vec3>& v) { return vecVec3Prod(v,v); }
+    /// Length squared of a CDSVector<CDSVec3>.
+    double vecVec3Abs2(const CDSVector<CDSVec3>& v) { return vecVec3Prod(v,v); }
 
     void initAtoms(const int     natom,
                    const double* massA,
@@ -158,9 +158,9 @@ protected:
     VecVec3ProdType vecVec3Prod_;
     static int    defaultRVecSize(const RVec&);
     static double defaultRVecProd(const RVec&, const RVec&);
-    static int    defaultVecVec3Size(const CDSVector<Vec3>&);
-    static double defaultVecVec3Prod(const CDSVector<Vec3>&, 
-                                     const CDSVector<Vec3>&);
+    static int    defaultVecVec3Size(const CDSVector<CDSVec3>&);
+    static double defaultVecVec3Prod(const CDSVector<CDSVec3>&, 
+                                     const CDSVector<CDSVec3>&);
 
     friend class AtomTree;
     friend class AT_Build;

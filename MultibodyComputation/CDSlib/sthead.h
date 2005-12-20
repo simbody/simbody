@@ -25,6 +25,7 @@
 #  define FLOAT_TYPE double
 #endif
 typedef FLOAT_TYPE float_type;
+typedef float_type CDSReal;
 
 
 #ifndef TRUE

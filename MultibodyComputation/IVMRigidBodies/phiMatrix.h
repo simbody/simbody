@@ -4,7 +4,7 @@
 // support for efficient matrix multiplication involving the special phi
 // matrix
 
-#include <vec3.h>
+#include "cdsVec3.h"
 #include <fixedVector.h>
 #include <fixedMatrix.h>
 #include <subVector.h>
@@ -20,17 +20,17 @@ public:
     typedef PhiMatrixTranspose TransposeType;
 
     PhiMatrix() { l_(0) = 1.31e30; }
-    PhiMatrix(const Vec3& l) : l_(l) {}
+    PhiMatrix(const CDSVec3& l) : l_(l) {}
 
-    const Vec3& l() const { assert( l_(0) != 1.31e30 ); return l_; }
+    const CDSVec3& l() const { assert( l_(0) != 1.31e30 ); return l_; }
 private:
-    Vec3 l_;
+    CDSVec3 l_;
 };
 
 class PhiMatrixTranspose {
 public:
   PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
-  const Vec3 l() const {return phi.l();}
+  const CDSVec3 l() const {return phi.l();}
 private:
   const PhiMatrix& phi;
 };

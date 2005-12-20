@@ -4,8 +4,8 @@
 
 class Simulation;
 
-#include <vec3.h>
-#include "Mat33.h"
+#include "cdsVec3.h"
+#include "cdsMat33.h"
 #include <cdsVector.h>
 #include <cdsMap.h>
 #include <atomSel.h>
@@ -32,43 +32,43 @@ namespace AtomSelAction {
   };
 
   class SetVelAction : public Base {
-    Vec3 vel;
+    CDSVec3 vel;
   public:
-    SetVelAction(const Vec3& vel) : vel(vel) {}
+    SetVelAction(const CDSVec3& vel) : vel(vel) {}
     virtual void run(Simulation* sim,
 		     int         index);
   };
 
   class Translate : public Base {
-    Vec3 trans;
+    CDSVec3 trans;
   public:
-    Translate(const Vec3& trans) : trans(trans) {}
+    Translate(const CDSVec3& trans) : trans(trans) {}
     virtual void run(Simulation* sim,
 		     int         index);
   };
 
   class Rotate : public Base {
-    Mat33 rot;
-    Vec3  center;
+    CDSMat33 rot;
+    CDSVec3  center;
   public:
-    Rotate(const Mat33& rot,
-	   const Vec3 center=Vec3(0,0,0)) : 
+    Rotate(const CDSMat33& rot,
+	   const CDSVec3 center=CDSVec3(0,0,0)) : 
       rot(rot), center(center) {}
     virtual void run(Simulation* sim,
 		     int         index);
   };
 
   class Fit : public Base {
-    Mat33 rot;
-    Vec3  trans;
+    CDSMat33 rot;
+    CDSVec3  trans;
     
-    CDSVector<Vec3> fitTo;
+    CDSVector<CDSVec3> fitTo;
     AtomSel       fitBy;
-    CDSVector<Vec3>* altCoords;
+    CDSVector<CDSVec3>* altCoords;
   public:
-    Fit(const CDSVector<Vec3>& fitTo,
+    Fit(const CDSVector<CDSVec3>& fitTo,
 	const AtomSel&       fitBy,
-	      CDSVector<Vec3>* altCoords=0) : 
+	      CDSVector<CDSVec3>* altCoords=0) : 
       rot(1,0,0,
 	  0,1,0,
 	  0,0,1), 
@@ -82,8 +82,8 @@ namespace AtomSelAction {
     virtual void run(Simulation* sim,
 		     int         index);
 
-    Mat33 rotation()    { return rot; }
-    Vec3  translation() { return trans; }
+    CDSMat33 rotation()    { return rot; }
+    CDSVec3  translation() { return trans; }
   };
 
   class RMSD : public Base {
@@ -93,9 +93,9 @@ namespace AtomSelAction {
     CDSMap<int, int> count;
     CDSMap<int, float_type> byResidue_;
 
-    CDSVector<Vec3> compare;
+    CDSVector<CDSVec3> compare;
   public:
-    RMSD(const CDSVector<Vec3>& compare) : 
+    RMSD(const CDSVector<CDSVec3>& compare) : 
       size(0), sum(0.), compare(compare) {}
 
     virtual void init(const AtomSel& sel);
