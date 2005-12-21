@@ -100,7 +100,7 @@ RigidBodyTree::~RigidBodyTree() {
 
 // Add a new node, taking over the heap space.
 int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
-                                    const Frame&    referenceConfig,    // body frame in parent
+                                    const RBFrame&  referenceConfig,    // body frame in parent
                                     RigidBodyNode*& nodep)
 {
     RigidBodyNode* n = nodep; nodep=0;  // take ownership

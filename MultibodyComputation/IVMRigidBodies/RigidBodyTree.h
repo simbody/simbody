@@ -121,7 +121,7 @@ public:
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
     int addRigidBodyNode(RigidBodyNode&  parent,
-                         const Frame&    referenceConfig,    // body frame in parent
+                         const RBFrame&  referenceConfig,    // body frame in parent
                          RigidBodyNode*& nodep);
 
     /// Same as addRigidBodyNode but special-cased for ground.

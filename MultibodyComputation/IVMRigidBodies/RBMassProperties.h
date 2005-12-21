@@ -1,5 +1,5 @@
-#ifndef MASS_PROPERTIES_H_
-#define MASS_PROPERTIES_H_
+#ifndef RB_MASS_PROPERTIES_H_
+#define RB_MASS_PROPERTIES_H_
 
 /** @file
  *
@@ -97,14 +97,14 @@ enum JointType {
  * nonsingular bodies (that is, a body composed of at least three
  * noncollinear point masses).
  */
-class Inertia : public CDSMat33 {
+class RBInertia : public CDSMat33 {
 public:
     /// Default is the inertia of a point mass about that point, i.e. 0.
-    Inertia() : CDSMat33(0.) {}
+    RBInertia() : CDSMat33(0.) {}
 
     /// Note the order of these arguments: moments of inertia first, then 
     /// products of inertia.
-    Inertia(const CDSReal& xx, const CDSReal& yy, const CDSReal& zz,
+    RBInertia(const CDSReal& xx, const CDSReal& yy, const CDSReal& zz,
             const CDSReal& xy, const CDSReal& xz, const CDSReal& yz)
         { setInertia(xx,yy,zz,xy,xz,yz); }
 
@@ -115,7 +115,7 @@ public:
     /// For a collection of point masses, you can just add these together to
     /// produce a composite inertia as long as all the vectors are
     /// measured from the same point and expressed in the same frame.
-    Inertia(const CDSReal& m, const CDSVec3& p) {
+    RBInertia(const CDSReal& m, const CDSVec3& p) {
         CDSMat33& t = *this;
         const CDSReal& x = p(0); const CDSReal xx = x*x;
         const CDSReal& y = p(1); const CDSReal yy = y*y;
@@ -130,7 +130,7 @@ public:
     }
 
     /// We only look at the lower triangles, but fill in the whole matrix.
-    Inertia(const Inertia& s) {
+    RBInertia(const RBInertia& s) {
         CDSMat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
         t(0,1) = (t(1,0) = s(1,0));
@@ -138,7 +138,7 @@ public:
         t(1,2) = (t(2,1) = s(2,1));
     }
 
-    explicit Inertia(const CDSMat33& s) {
+    explicit RBInertia(const CDSMat33& s) {
         assert(close(s(0,1),s(1,0)) 
             && close(s(0,2),s(2,0))
             && close(s(1,2),s(2,1)));
@@ -146,7 +146,7 @@ public:
             0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
     }
 
-    Inertia& operator=(const Inertia& s) {
+    RBInertia& operator=(const RBInertia& s) {
         CDSMat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
         t(0,1) = (t(1,0) = s(1,0));
@@ -155,7 +155,7 @@ public:
         return *this;
     }
 
-    Inertia& operator+=(const Inertia& s) {
+    RBInertia& operator+=(const RBInertia& s) {
         CDSMat33& t = *this;
         t(0,0) += s(0,0); t(1,1) += s(1,1);  t(2,2) += s(2,2);
         t(0,1) = (t(1,0) += s(1,0));
@@ -164,7 +164,7 @@ public:
         return *this;
     }
 
-    Inertia& operator-=(const Inertia& s) {
+    RBInertia& operator-=(const RBInertia& s) {
         CDSMat33& t = *this;
         t(0,0) -= s(0,0); t(1,1) -= s(1,1);  t(2,2) -= s(2,2);
         t(0,1) = (t(1,0) -= s(1,0));
@@ -191,11 +191,11 @@ private:
     }
 };
 
-inline Inertia operator+(const Inertia& l, const Inertia& r) {
-    return Inertia(l) += r;
+inline RBInertia operator+(const RBInertia& l, const RBInertia& r) {
+    return RBInertia(l) += r;
 }
-inline Inertia operator-(const Inertia& l, const Inertia& r) {
-    return Inertia(l) -= r;
+inline RBInertia operator-(const RBInertia& l, const RBInertia& r) {
+    return RBInertia(l) -= r;
 }
 
 /**
@@ -203,36 +203,36 @@ inline Inertia operator-(const Inertia& l, const Inertia& r) {
  * The centroid is a vector from B's origin, expressed in the B frame.
  * The inertia is taken about the B origin, and expressed in B.
  */
-class MassProperties {
+class RBMassProperties {
 public:
-    MassProperties() { setMassProperties(0.,CDSVec3(0.),Inertia()); }
-    MassProperties(const CDSReal& m, const CDSVec3& com, const Inertia& inertia)
+    RBMassProperties() { setMassProperties(0.,CDSVec3(0.),RBInertia()); }
+    RBMassProperties(const CDSReal& m, const CDSVec3& com, const RBInertia& inertia)
       { setMassProperties(m,com,inertia); }
 
-    void setMassProperties(const CDSReal& m, const CDSVec3& com, const Inertia& inertia)
+    void setMassProperties(const CDSReal& m, const CDSVec3& com, const RBInertia& inertia)
       { mass=m; comInB=com; inertia_OB_B=inertia; }
 
     const CDSReal&    getMass()    const { return mass; }
     const CDSVec3&    getCOM()     const { return comInB; }
-    const Inertia& getInertia() const { return inertia_OB_B; }
+    const RBInertia&  getInertia() const { return inertia_OB_B; }
 
-    Inertia calcCentroidalInertia() const {
-        return inertia_OB_B - Inertia(mass, comInB);
+    RBInertia calcCentroidalInertia() const {
+        return inertia_OB_B - RBInertia(mass, comInB);
     }
-    Inertia calcShiftedInertia(const CDSVec3& newOriginB) const {
-        return calcCentroidalInertia() + Inertia(mass, newOriginB-comInB);
+    RBInertia calcShiftedInertia(const CDSVec3& newOriginB) const {
+        return calcCentroidalInertia() + RBInertia(mass, newOriginB-comInB);
     }
-    MassProperties calcShiftedMassProps(const CDSVec3& newOriginB) const {
-        return MassProperties(mass, comInB-newOriginB,
-                              calcShiftedInertia(newOriginB));
+    RBMassProperties calcShiftedMassProps(const CDSVec3& newOriginB) const {
+        return RBMassProperties(mass, comInB-newOriginB,
+                                calcShiftedInertia(newOriginB));
     }
 
     bool isMassless()   const { return mass==0.; }
 
 private:
-    CDSReal mass;
-    CDSVec3 comInB;         // meas. from B origin, expr. in B
-    Inertia inertia_OB_B;   // about B origin, expr. in B
+    CDSReal   mass;
+    CDSVec3   comInB;         // meas. from B origin, expr. in B
+    RBInertia inertia_OB_B;   // about B origin, expr. in B
 };
 
 /**
@@ -260,11 +260,11 @@ private:
  * to reinterpret Frame objects in any appropriate manner that depends
  * on this memory layout.
  */
-class Frame {
+class RBFrame {
 public:
-    Frame() {Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF.set(0.);}
-    Frame(const CDSMat33& axesInR, const CDSVec3& originInR) {setFrame(axesInR,originInR);}
-    Frame(const CDSVec3& originInR) {
+    RBFrame() {Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF.set(0.);}
+    RBFrame(const CDSMat33& axesInR, const CDSVec3& originInR) {setFrame(axesInR,originInR);}
+    RBFrame(const CDSVec3& originInR) {
         Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF=originInR;
     }
     // default copy, assignment, destructor
@@ -277,8 +277,8 @@ public:
     CDSVec3  xformVector2Ref  (const CDSVec3& vF)      const { return Rot_RF*vF; }
     CDSVec3  xformStation2Ref (const CDSVec3& sF)      const { return Loc_RF + xformVector2Ref(sF); }
     CDSMat33 xformRotation2Ref(const CDSMat33& Rot_FX) const { return Rot_RF*Rot_FX; }
-    Frame xformFrame2Ref(const Frame& fF) const 
-      { return Frame(xformRotation2Ref(fF.Rot_RF), xformStation2Ref(fF.Loc_RF)); }
+    RBFrame  xformFrame2Ref   (const RBFrame& fF) const 
+      { return RBFrame(xformRotation2Ref(fF.Rot_RF), xformStation2Ref(fF.Loc_RF)); }
 
     const CDSMat33& getRot_RF() const { return Rot_RF; }
     CDSMat33&       updRot_RF()       { return Rot_RF; }
@@ -287,14 +287,14 @@ public:
     CDSVec3&        updLoc_RF()       { return Loc_RF; }
 
     // Computation-free conversions
-    const CDSReal*  getFrameAsArray(const Frame& f) const {return reinterpret_cast<const CDSReal*>(&f);}
-    CDSReal*        updFrameAsArray(Frame& f)             {return reinterpret_cast<CDSReal*>(&f);}
-    const Frame& getArrayAsFrame(const CDSReal* r)  const {return *reinterpret_cast<const Frame*>(r);}
-    Frame&       updArrayAsFrame(CDSReal* r)              {return *reinterpret_cast<Frame*>(r);}
+    const CDSReal*  getFrameAsArray(const RBFrame& f)  const {return reinterpret_cast<const CDSReal*>(&f);}
+    CDSReal*        updFrameAsArray(RBFrame& f)              {return reinterpret_cast<CDSReal*>(&f);}
+    const RBFrame&  getArrayAsFrame(const CDSReal* r)  const {return *reinterpret_cast<const RBFrame*>(r);}
+    RBFrame&        updArrayAsFrame(CDSReal* r)              {return *reinterpret_cast<RBFrame*>(r);}
 
 private:
     CDSMat33 Rot_RF;   // rotation matrix that expresses F's axes in R
     CDSVec3  Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
 };
 
-#endif /* MASS_PROPERTIES_H_ */
+#endif /* RB_MASS_PROPERTIES_H_ */

@@ -2,7 +2,7 @@
 #define ATOM_CLUSTER_NODE_H_
 
 #include "internalDynamics.h"
-#include "MassProperties.h"
+#include "RBMassProperties.h"
 
 #include "cdsVec3.h"
 #include "cdsMat33.h"
@@ -76,11 +76,11 @@ public:
          int&                               cnt);
 
     // For use in building rigid body nodes:
-    const MassProperties& getMassPropertiesInBodyFrame()  const {return massProps;}
-    const Frame&          getReferenceBodyFrameInParent() const {return refBinP;}
-    const Frame&          getJointFrameInBodyFrame()      const {return JinB;}
-    JointType             getJointType()                  const {return jointType;}
-    bool                  getJointIsReversed()            const {return jointIsReversed;}
+    const RBMassProperties& getMassPropertiesInBodyFrame()  const {return massProps;}
+    const RBFrame&          getReferenceBodyFrameInParent() const {return refBinP;}
+    const RBFrame&          getJointFrameInBodyFrame()      const {return JinB;}
+    JointType               getJointType()                  const {return jointType;}
+    bool                    getJointIsReversed()            const {return jointIsReversed;}
 
     /// Given a spatial orientation and location for this cluster, calculate
     /// where all the atoms are in space.
@@ -117,15 +117,15 @@ protected:
 
     // These are the body mass properties about the body origin OB and expressed
     // in the body frame B.
-    MassProperties massProps;
+    RBMassProperties massProps;
 
-    JointType      jointType;
-    bool           jointIsReversed;
+    JointType        jointType;
+    bool             jointIsReversed;
 
     // Inboard joint frame. This is fixed forever once constructed and gives the
     // orientation of the body-fixed J frame in the body frame B. This is an 
     // identity matrix for some joint types.
-    Frame JinB;
+    RBFrame JinB;
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
@@ -135,7 +135,7 @@ protected:
     // meaning that the origin point moves relative to the parent only due to translations.)
     // Note that by definition the orientation of the body frame is identical to P
     // in the reference configuration so we don't need to store it.
-    Frame refBinP;
+    RBFrame refBinP;
 
 private:
     const IVMAtom*      parentAtom;   // atom in parent to which hinge is attached

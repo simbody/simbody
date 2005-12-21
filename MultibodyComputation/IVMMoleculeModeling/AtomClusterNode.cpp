@@ -539,7 +539,7 @@ template<int dof> void
 AtomClusterNodeSpec<dof>::calcBodyProperties() {
     double  mass = atoms[0]->mass;
     CDSVec3    comStation_B(0.);
-    Inertia inertia_OB_B;   // defaults to zero
+    RBInertia  inertia_OB_B;   // defaults to zero
 
     const CDSVec3 OB = atoms[0]->pos;
     for (int i=1; i<atoms.size(); ++i) {
@@ -549,7 +549,7 @@ AtomClusterNodeSpec<dof>::calcBodyProperties() {
         atoms[i]->station_B  = S;
         mass                += m;
         comStation_B        += m*S;
-        inertia_OB_B        += Inertia(m,S);
+        inertia_OB_B        += RBInertia(m,S);
     }
     comStation_B /= mass;
 

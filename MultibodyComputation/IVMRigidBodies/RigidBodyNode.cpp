@@ -50,7 +50,7 @@ static const CDSMat33 zero33(0.);
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child, const Frame& referenceFrame) {
+void RigidBodyNode::addChild(RigidBodyNode* child, const RBFrame& referenceFrame) {
     children.append( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
@@ -79,7 +79,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    inertia_OB_G = Inertia(orthoTransform(getInertia_OB_B(), getR_GB()));
+    inertia_OB_G = RBInertia(orthoTransform(getInertia_OB_B(), getR_GB()));
     COMstation_G = getR_GB()*getCOM_B();
 
     COM_G = OB_G + COMstation_G;
@@ -145,7 +145,7 @@ ostream& operator<<(ostream& s, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
+      : RigidBodyNode(RBMassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -174,8 +174,8 @@ public:
 template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
-    RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const Frame& jointFrame,
+    RigidBodyNodeSpec(const RBMassProperties& mProps_B,
+                      const RBFrame& jointFrame,
                       int& cnt)
       : RigidBodyNode(mProps_B,CDSVec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
@@ -314,9 +314,9 @@ class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
-    RBNodeTranslate(const MassProperties& mProps_B,
-                    int&                  nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset)
+    RBNodeTranslate(const RBMassProperties& mProps_B,
+                    int&                    nextStateOffset)
+      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset)
     {
     }
 
@@ -341,9 +341,9 @@ class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
-    RBNodeTorsion(const MassProperties& mProps_B,
-                  const Frame&          jointFrame,
-                  int&                  nextStateOffset)
+    RBNodeTorsion(const RBMassProperties& mProps_B,
+                  const RBFrame&          jointFrame,
+                  int&                    nextStateOffset)
       : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -542,10 +542,10 @@ class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    RBNodeRotate3(const MassProperties& mProps_B,
-                  int&                  nextStateOffset,
-                  bool                  useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset),
+    RBNodeRotate3(const RBMassProperties& mProps_B,
+                  int&                    nextStateOffset,
+                  bool                    useEuler)
+      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -613,10 +613,10 @@ class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
 public:
     virtual const char* type() { return "full"; }
 
-    RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           int&                  nextStateOffset,
-                           bool                  useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,Frame(),nextStateOffset),
+    RBNodeTranslateRotate3(const RBMassProperties& mProps_B,
+                           int&                    nextStateOffset,
+                           bool                    useEuler)
+      : RigidBodyNodeSpec<6>(mProps_B,RBFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -705,9 +705,9 @@ class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
-    RBNodeRotate2(const MassProperties& mProps_B,
-                  const Frame&          jointFrame,
-                  int&                  nextStateOffset)
+    RBNodeRotate2(const RBMassProperties& mProps_B,
+                  const RBFrame&          jointFrame,
+                  int&                    nextStateOffset)
       : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -762,9 +762,9 @@ class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
-    RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const Frame&          jointFrame,
-                           int&                  nextStateOffset)
+    RBNodeTranslateRotate2(const RBMassProperties& mProps_B,
+                           const RBFrame&          jointFrame,
+                           int&                    nextStateOffset)
       : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -818,12 +818,12 @@ private:
 
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
-    const MassProperties& m,            // mass properties in body frame
-    const Frame&          jointFrame,   // inboard joint frame J in body frame
-    JointType             type,
-    bool                  isReversed,
-    bool                  useEuler,
-    int&                  nxtStateOffset)   // child-to-parent orientation?
+    const RBMassProperties& m,            // mass properties in body frame
+    const RBFrame&          jointFrame,   // inboard joint frame J in body frame
+    JointType               type,
+    bool                    isReversed,
+    bool                    useEuler,
+    int&                    nxtStateOffset)   // child-to-parent orientation?
 {
     assert(!isReversed);
 
