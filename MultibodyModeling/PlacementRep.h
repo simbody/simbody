@@ -144,7 +144,7 @@ public:
     }
 
     // Run time calculation of expression value.
-    Real apply(/*State,*/ const std::vector<Placement>&) const;
+    Real apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(RealOps, PlacementOp);
 private:
@@ -181,7 +181,7 @@ public:
         return std::string(p) + "<Vec3>";
     }
 
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
+    Vec3 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(Vec3Ops, PlacementOp);
 private:
@@ -211,7 +211,7 @@ public:
         return std::string(p) + "<Station>";
     }
 
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
+    Vec3 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(StationOps, PlacementOp);
 private:
@@ -226,7 +226,7 @@ class DirectionPlacementOp : public PlacementOp {
 public:
     virtual ~DirectionPlacementOp() { }
     // Run time
-    virtual Vec3 apply(/*State,*/const std::vector<Placement>&) const = 0;
+    virtual Vec3 apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(DirectionPlacementOp, PlacementOp);
 };
@@ -254,8 +254,7 @@ public:
         return std::string(p) + "<Direction>";
     }
 
-    // XXX not yet
-    Vec3 apply(/*State,*/ const std::vector<Placement>&) const;
+    Vec3 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(DirectionOps, PlacementOp);
 private:
@@ -270,7 +269,7 @@ class OrientationPlacementOp : public PlacementOp {
 public:
     virtual ~OrientationPlacementOp() { }
     // Run time
-    virtual Mat33 apply(/*State,*/const std::vector<Placement>&) const = 0;
+    virtual Mat33 apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(OrientationPlacementOp, PlacementOp);
 };
@@ -295,7 +294,7 @@ public:
         return std::string(p) + "<Orientation>";
     }
 
-    Mat33 apply(/*State,*/ const std::vector<Placement>&) const;
+    Mat33 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(OrientationOps, PlacementOp);
 private:
@@ -310,7 +309,7 @@ class FramePlacementOp : public PlacementOp {
 public:
     virtual ~FramePlacementOp() { }
     // Run time
-    virtual Mat34 apply(/*State,*/const std::vector<Placement>&) const = 0;
+    virtual Mat34 apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(FramePlacementOp, PlacementOp);
 };
@@ -335,7 +334,7 @@ public:
         return std::string(p) + "<FrameFeature>";
     }
 
-    Mat34 apply(/*State,*/ const std::vector<Placement>&) const;
+    Mat34 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(FrameOps, PlacementOp);
 private:
@@ -397,7 +396,7 @@ protected:
     int getPlacementIndex() const { assert(feature); return index; }
 
     // Make sure this Feature's placement has been realized.
-    void refRealize(/*State,*/Stage) const;
+    void refRealize(Stage) const;
 
     bool refIsConstant() const { return false; } // might be, but we can't count on it
     bool refDependsOn(const Feature& f) const;
@@ -615,8 +614,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return refFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return refIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return refDependsOn(f);}
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return refIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -673,8 +672,8 @@ public:
     const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
       { return exprFindPlacementValueOwnerSubsystem(s); }
 
-    bool           isConstant()                          const {return exprIsConstant();}
-    bool           dependsOn(const Feature& f)           const {return exprDependsOn(f);}
+    bool isConstant()                const {return exprIsConstant();}
+    bool dependsOn(const Feature& f) const {return exprDependsOn(f);}
     bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
       { return exprIsLimitedToSubtree(root,offender); }
     void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
@@ -862,7 +861,6 @@ public:
     PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
     std::string    getPlacementTypeName()      const {return "Station";}
     int            getNIndicesAllowed()        const {return 3;} // 3 reals
-
 
     static PlacementRep* createStationPlacementFrom(const Placement&, bool dontThrow=false);
     PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 

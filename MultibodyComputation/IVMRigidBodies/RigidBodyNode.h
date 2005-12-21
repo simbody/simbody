@@ -114,60 +114,60 @@ public:
 
     const MassProperties& getMassProperties() const {return massProps_B;}
     const double&  getMass()         const {return massProps_B.getMass();}
-    const CDSVec3&    getCOM_B()        const {return massProps_B.getCOM();}
+    const CDSVec3& getCOM_B()        const {return massProps_B.getCOM();}
     const Inertia& getInertia_OB_B() const {return massProps_B.getInertia();}
     const Inertia& getInertia_OB_G() const {return inertia_OB_G;}
 
-    const CDSVec3&    getCOM_G()        const {return COM_G;}
+    const CDSVec3& getCOM_G()        const {return COM_G;}
     const Inertia& getInertia_CB_B() const {return inertia_CB_B;}
 
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const CDSMat33&     getR_GB() const {return R_GB;}
+    const CDSMat33&  getR_GB() const {return R_GB;}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const CDSVec3&      getOB_G() const {return OB_G; }
+    const CDSVec3&   getOB_G() const {return OB_G; }
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
     /// P here) in the ground frame G.
-    const CDSMat33&     getR_GP() const {assert(parent); return parent->getR_GB();}
+    const CDSMat33&  getR_GP() const {assert(parent); return parent->getR_GB();}
 
     /// Return OP_G, the spatial location of the origin of the P frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const CDSVec3&      getOP_G() const {assert(parent); return parent->getOB_G();}
+    const CDSVec3&   getOP_G() const {assert(parent); return parent->getOB_G();}
 
     void setSpatialVel(const CDSVec6& v) { sVel=v; }
 
     /// Return the inertial angular velocity of body frame B (i.e., angular
     /// velocity with respect to the ground frame), expressed in the ground frame.
-    const CDSVec3&      getSpatialAngVel() const
+    const CDSVec3&   getSpatialAngVel() const
         {return *reinterpret_cast<const CDSVec3*>(&sVel[0]);}
 
     /// Return the inertial velocity of OB (i.e., velocity with respect
     /// to the ground frame), expressed in the ground frame.
-    const CDSVec3&      getSpatialLinVel() const
+    const CDSVec3&   getSpatialLinVel() const
         {return *reinterpret_cast<const CDSVec3*>(&sVel[3]);}
 
     /// Return the inertial angular acceleration of body frame B (i.e., angular
     /// acceleration with respect to the ground frame), expressed in the ground frame.
-    const CDSVec3&      getSpatialAngAcc() const
+    const CDSVec3&   getSpatialAngAcc() const
         {return *reinterpret_cast<const CDSVec3*>(&sAcc[0]);}
 
     /// Return the inertial acceleration of OB (i.e., acceleration with respect
     /// to the ground frame), expressed in the ground frame.
-    const CDSVec3&      getSpatialLinAcc() const
+    const CDSVec3&   getSpatialLinAcc() const
         {return *reinterpret_cast<const CDSVec3*>(&sAcc[3]);}
 
-    const CDSVec6&      getSpatialVel() const {return sVel;}
-    const CDSVec6&      getSpatialAcc() const {return sAcc;}
+    const CDSVec6&   getSpatialVel() const {return sVel;}
+    const CDSVec6&   getSpatialAcc() const {return sAcc;}
 
     const PhiMatrix& getPhi()  const {return phi;}
-    const CDSMat66&     getPsiT() const {return psiT;}
-    const CDSMat66&     getY()    const {return Y;}
+    const CDSMat66&  getPsiT() const {return psiT;}
+    const CDSMat66&  getY()    const {return Y;}
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
@@ -187,7 +187,7 @@ public:
     virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
-    virtual void calcZ    (const CDSVec6& spatialForce)         {throw VirtualBaseMethod();}
+    virtual void calcZ    (const CDSVec6& spatialForce)      {throw VirtualBaseMethod();}
     virtual void calcY()                                     {throw VirtualBaseMethod();}
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
@@ -242,8 +242,8 @@ protected:
     // Fixed forever in the body-local frame B:
     //      ... supplied on construction
     const MassProperties massProps_B;
-    const CDSMat33  R_BJ;          // orientation of inboard joint frame J, in B
-    const CDSVec3   OJ_B;          // origin of J, measured from B origin, expr. in B
+    const CDSMat33 R_BJ;          // orientation of inboard joint frame J, in B
+    const CDSVec3  OJ_B;          // origin of J, measured from B origin, expr. in B
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
@@ -253,19 +253,19 @@ protected:
     // meaning that the origin point moves relative to the parent only due to translations.)
     // Note that by definition the orientation of the body frame is identical to P
     // in the reference configuration so we don't need to store it.
-    CDSVec3          refOrigin_P;
+    CDSVec3        refOrigin_P;
 
     //      ... calculated on construction
-    const Inertia inertia_CB_B;  // centroidal inertia, expr. in B
+    const Inertia  inertia_CB_B;  // centroidal inertia, expr. in B
 
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
     //      ... position level
-    CDSMat33        R_PB; // orientation of B in P
-    CDSVec3         OB_P; // location of B origin meas & expr in P frame
+    CDSMat33 R_PB; // orientation of B in P
+    CDSVec3  OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
-    CDSVec6         V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+    CDSVec6  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
 
     // Calculated spatial quantities
     //      ... position level
@@ -273,29 +273,29 @@ protected:
     //      Rotation (direction cosine matrix) expressing the body frame B
     //      in the ground frame G. That is, if you have a vector vB expressed
     //      body frame and want it in ground, use vG = R_GB*vB. 
-    CDSMat33        R_GB;
-    CDSVec3         OB_G;          // origin of B meas & expr in G
-    CDSVec3         COM_G;         // B's COM, meas & expr in G
+    CDSMat33 R_GB;
+    CDSVec3  OB_G;          // origin of B meas & expr in G
+    CDSVec3  COM_G;         // B's COM, meas & expr in G
 
-    CDSVec3         COMstation_G;  // measured from B origin, expr. in G
-    Inertia      inertia_OB_G;  // about B's origin, expr. in G
+    CDSVec3  COMstation_G;  // measured from B origin, expr. in G
+    Inertia  inertia_OB_G;  // about B's origin, expr. in G
 
-    PhiMatrix    phi;           // spatial rigid body transition matrix
-    CDSMat66        Mk;            // spatial inertia matrix
-    CDSMat66        P;             // articulated body spatial inertia
-    CDSMat66        tau;
-    CDSMat66        psiT;
-    CDSMat66        Y;             // diag of Omega - for loop constraints
+    PhiMatrix phi;           // spatial rigid body transition matrix
+    CDSMat66  Mk;            // spatial inertia matrix
+    CDSMat66  P;             // articulated body spatial inertia
+    CDSMat66  tau;
+    CDSMat66  psiT;
+    CDSMat66  Y;             // diag of Omega - for loop constraints
 
     //      ... velocity level
-    CDSVec6         a;     // spatial coriolis acceleration
-    CDSVec6         b;     // spatial gyroscopic force
-    CDSVec6         sVel;  // spatial velocity
+    CDSVec6   a;     // spatial coriolis acceleration
+    CDSVec6   b;     // spatial gyroscopic force
+    CDSVec6   sVel;  // spatial velocity
 
     //      ... acceleration level
-    CDSVec6         z;
-    CDSVec6         Gepsilon;
-    CDSVec6         sAcc;              // spatial acceleration
+    CDSVec6   z;
+    CDSVec6   Gepsilon;
+    CDSVec6   sAcc;              // spatial acceleration
 
 
     virtual void velFromCartesian() {}

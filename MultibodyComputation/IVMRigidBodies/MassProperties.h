@@ -230,8 +230,8 @@ public:
     bool isMassless()   const { return mass==0.; }
 
 private:
-    CDSReal    mass;
-    CDSVec3    comInB;         // meas. from B origin, expr. in B
+    CDSReal mass;
+    CDSVec3 comInB;         // meas. from B origin, expr. in B
     Inertia inertia_OB_B;   // about B origin, expr. in B
 };
 
