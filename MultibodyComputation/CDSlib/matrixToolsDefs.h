@@ -441,13 +441,13 @@ svd(const MATRIX&                                               matrix,
 //
 // perform generalized orthogonal transform on m: S * m * transpose(S)
 //
-//template<class Matrix> 
-//Matrix
-//MatrixTools::orthoTransform(const Matrix& m,
-//		    const Matrix& S)
+//template<class MATRIX> 
+//MATRIX
+//MatrixTools::orthoTransform(const MATRIX& m,
+//		    const MATRIX& S)
 //  // return S * m * transpose(S);
 //{
-// typedef typename Matrix::ElementType T;
+// typedef typename MATRIX::ElementType T;
 // 
 // assert( m.rows() == m.cols() );
 // assert( m.rows() == S.cols() );
@@ -458,7 +458,7 @@ svd(const MATRIX&                                               matrix,
 //     for (int j=0 ; j<m.rows() ; j++) 
 //       dum(i,k) += S(i,j) * m(j,k);
 //
-// Matrix ret;
+// MATRIX ret;
 // ret.resize(S.rows(),S.rows());
 // for (int i=0 ; i<ret.rows() ; i++) 
 //   for (int j=0 ; j<ret.cols() ; j++) 
@@ -514,7 +514,7 @@ callEigenFull<double>(const char   &JOBVL,
 //
 //template<>
 //inline void 
-//callEigen<Matrix<double> >(const char   &JOBZ,
+//callEigen<GenericMatrix<double> >(const char   &JOBZ,
 //			   const char   &UPLO,
 //			   const int    &N,
 //				 double A[],

@@ -6,7 +6,7 @@
 #include <cassert>
 #include "cdsExcept.h"
 #include "cdsString.h"
-#include "matrix.h"
+#include "cdsGenericMatrix.h"
 
 #include "cdsIostream.h"
 #include "cdsIomanip.h"

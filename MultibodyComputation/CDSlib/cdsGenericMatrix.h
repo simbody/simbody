@@ -3,17 +3,17 @@
 #define __matrix__hh__
 
 template<class T>
-class Matrix {
+class GenericMatrix {
 public:
   typedef T ElementType;
 };
 
 template<class T>
-class SymmetricMatrix : public Matrix<T> {
+class SymmetricMatrix : public GenericMatrix<T> {
 };
 
 template<class T>
-class FullMatrix : public Matrix<T> {
+class FullMatrix : public GenericMatrix<T> {
 };
 
 

@@ -2,11 +2,11 @@
 #ifndef __matrixToolsDecl_h__
 #define __matrixToolsDecl_h__
 
-#include <cdsVector.h>
-#include <cdsList.h>
-#include <cdsMatrix.h>
-#include <cdsComplex.h>
-#include <matrix.h>
+#include "cdsVector.h"
+#include "cdsList.h"
+#include "cdsMatrix.h"
+#include "cdsComplex.h"
+#include "cdsGenericMatrix.h"
 
 namespace MatrixTools {
 
@@ -85,10 +85,10 @@ inverse(const MATRIX& matrix)
 //  //
 //  // return S * m * transpose(S); FIX: return type is problematic
 //  //
-//template<class Matrix> 
-//Matrix
-//orthoTransform(const Matrix& m,
-//	       const Matrix& S);
+//template<class MATRIX> 
+//MATRIX
+//orthoTransform(const MATRIX& m,
+//	       const MATRIX& S);
 
 template<class T> class SVDResults; //forward decl.
 
@@ -186,7 +186,7 @@ class EigenResults {
 //  int          info;
 //};
 //
-////template<class Matrix>
+////template<class MATRIX>
 //struct EigenResults {
 //  //currently only setup for symmetric matrices
 //  struct EigenPair { 
@@ -204,7 +204,7 @@ class EigenResults {
 
 };
 
-//requirements for class Matrix:
+//requirements for class GenericMatrix:
 //
 // has operator()(int,int) to get, set elements
 // has members cols(), rows() which return dimensions

@@ -13,7 +13,7 @@
 #include <cdsVector.h>
 #include <assert.h>
 #include "cdsExcept.h"
-#include "matrix.h"
+#include "cdsGenericMatrix.h"
 
 template<class T>
 class CDSMatrixBase;
