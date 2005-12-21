@@ -86,7 +86,7 @@ void AtomClusterNode::calcAtomPos(const CDSMat33& R_GB, const CDSVec3& OB_G) {
     }
 }
 
-void AtomClusterNode::calcAtomVel(const Vec6& V_OB_G) {
+void AtomClusterNode::calcAtomVel(const CDSVec6& V_OB_G) {
     const CDSVec3& w_G = *reinterpret_cast<const CDSVec3*>(&V_OB_G[0]);
     const CDSVec3& v_G = *reinterpret_cast<const CDSVec3*>(&V_OB_G[3]);
 
@@ -97,7 +97,7 @@ void AtomClusterNode::calcAtomVel(const Vec6& V_OB_G) {
     }
 }
 
-void AtomClusterNode::calcSpatialForce(Vec6& F_OB_G) {
+void AtomClusterNode::calcSpatialForce(CDSVec6& F_OB_G) {
     CDSVec3 moment(0.), force(0.);
     // notice that the sign is screwey [??? CDS comment, I don't see it (sherm)]
     for (int i=0 ; i<atoms.size() ; i++) {
@@ -114,7 +114,7 @@ void AtomClusterNode::calcSpatialForce(Vec6& F_OB_G) {
 // Given a set of desired atomic velocities, combine these into a mass-weighted
 // spatial impulse for this node. This can then be used in the dynamic equations
 // instead of a force, yielding velocities rather than accelerations.
-void AtomClusterNode::calcSpatialImpulse(Vec6& Impulse_OB_G) {
+void AtomClusterNode::calcSpatialImpulse(CDSVec6& Impulse_OB_G) {
     CDSVec3 angular(0.), linear(0.);
     for (int i=0 ; i<atoms.size() ; i++) {
         const IVMAtom& a = *atoms[i];

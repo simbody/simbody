@@ -31,9 +31,9 @@ static CDSMap<int,EnsembleSimulation*> sizeOneSimulations;
 
 typedef int    (*RVecSizeType)(const RVec&);
 typedef double (*RVecProdType)(const RVec&, const RVec&);
-typedef int    (*VecVec3SizeType)(const CDSVector<Vec3>&);
-typedef double (*VecVec3ProdType)(const CDSVector<Vec3>&, 
-				  const CDSVector<Vec3>&);
+typedef int    (*VecVec3SizeType)(const CDSVector<CDSVec3>&);
+typedef double (*VecVec3ProdType)(const CDSVector<CDSVec3>&, 
+				  const CDSVector<CDSVec3>&);
 
 static RVecSizeType    rVecSize=0;
 static RVecProdType    rVecProd=0;
@@ -371,8 +371,8 @@ EnsembleSimulation::EnsembleSimulation(const char*       name,
    currentSimulation_=this;
    rVecSize    = vectorSize<RVec>;
    rVecProd    = vectorProduct<RVec>;
-   vecVec3Size = vectorSize< CDSVector<Vec3> >;
-   vecVec3Prod = vectorProduct< CDSVector<Vec3> >;
+   vecVec3Size = vectorSize< CDSVector<CDSVec3> >;
+   vecVec3Prod = vectorProduct< CDSVector<CDSVec3> >;
    // enable SIGCHLD
    signal(SIGCHLD,signal_childDied);
    signal(SIGABRT,SIG_DFL);
@@ -601,10 +601,10 @@ EnsembleSimulation::kineticEnergy()
 } /* kineticEnergy */
 
 
-CDSVector<Vec3> 
+CDSVector<CDSVec3> 
 EnsembleSimulation::meanAtomPosArr() const
 { 
- CDSVector<Vec3> ret = members(0)->atomPosArr();
+ CDSVector<CDSVec3> ret = members(0)->atomPosArr();
  for (int i=0 ; i<numAtoms() ; i++)
    ret[i] *= weight(0);
 
@@ -617,7 +617,7 @@ EnsembleSimulation::meanAtomPosArr() const
 
 
 void
-EnsembleSimulation::setAtomPosArr(const CDSVector<Vec3>& list)
+EnsembleSimulation::setAtomPosArr(const CDSVector<CDSVec3>& list)
 { 
  member()->setAtomPosArr(list); 
  markAsModified();
@@ -625,7 +625,7 @@ EnsembleSimulation::setAtomPosArr(const CDSVector<Vec3>& list)
 } /* setAtomPosArr */
 
 void
-EnsembleSimulation::setAtomVelArr(const CDSVector<Vec3>& list)
+EnsembleSimulation::setAtomVelArr(const CDSVector<CDSVec3>& list)
 { 
  member()->setAtomVelArr(list); 
  markAsModified();
@@ -736,13 +736,13 @@ EnsembleMemberSimulation::resize()
 
 } /* resize */
 
-CDSVector<Vec3> 
+CDSVector<CDSVec3> 
 EnsembleMemberSimulation::atomPosArr() const
 { 
  if ( ensembleSim()->size()==1 )
    return subSim()->atomPosArr();
 
- CDSVector<Vec3> ret( numAtoms() );
+ CDSVector<CDSVec3> ret( numAtoms() );
 
  for (int i=0 ; i<numAtoms() ; i++)
      ret[i] = atomPos(i);  //FIX: this is lazy/slow
@@ -750,13 +750,13 @@ EnsembleMemberSimulation::atomPosArr() const
  return ret;
 } /* atomPosArr */
 
-CDSVector<Vec3> 
+CDSVector<CDSVec3> 
 EnsembleMemberSimulation::atomVelArr() const
 { 
  if ( ensembleSim()->size()==1 )
    return subSim()->atomVelArr();
 
- CDSVector<Vec3> ret( numAtoms() );
+ CDSVector<CDSVec3> ret( numAtoms() );
 
  for (int i=0 ; i<numAtoms() ; i++)
      ret[i] = atomVel(i);  //FIX: this is lazy/slow
@@ -765,7 +765,7 @@ EnsembleMemberSimulation::atomVelArr() const
 } /* atomVelArr */
 
 void 
-EnsembleMemberSimulation::setAtomPosArr(const CDSVector<Vec3>& v)
+EnsembleMemberSimulation::setAtomPosArr(const CDSVector<CDSVec3>& v)
 {
  if ( ensembleSim()->size()==1 ) {
    subSim()->setAtomPosArr(v);
@@ -778,7 +778,7 @@ EnsembleMemberSimulation::setAtomPosArr(const CDSVector<Vec3>& v)
 } /* setAtomPosArr */
 
 void 
-EnsembleMemberSimulation::setAtomVelArr(const CDSVector<Vec3>& v)
+EnsembleMemberSimulation::setAtomVelArr(const CDSVector<CDSVec3>& v)
 {
  if ( ensembleSim()->size()==1 ) {
    subSim()->setAtomVelArr(v);
@@ -792,7 +792,7 @@ EnsembleMemberSimulation::setAtomVelArr(const CDSVector<Vec3>& v)
 
 void 
 EnsembleMemberSimulation::setAtomPos(      int i, 
-				     const Vec3& v)
+				     const CDSVec3& v)
 {
  if ( ensembleSim()->size()==1 ) {
    subSim()->setAtomPos(i,v);
@@ -807,7 +807,7 @@ EnsembleMemberSimulation::setAtomPos(      int i,
 
 void 
 EnsembleMemberSimulation::setAtomVel(      int i, 
-				     const Vec3& v)
+				     const CDSVec3& v)
 {
  if ( ensembleSim()->size()==1 ) {
    subSim()->setAtomVel(i,v);
@@ -934,8 +934,8 @@ EnsembleRMSD::run(Simulation* sim,
    Simulation* member1 = esim->members( index1 );
    for (int index2=index1+1 ; index2<esim->size() ; index2++) {
      Simulation* member2 = esim->members( index2 );
-     Vec3 vec1 = member1->atomPos( atom.index() );
-     Vec3 vec2 = member2->atomPos( atom.index() );
+     CDSVec3 vec1 = member1->atomPos( atom.index() );
+     CDSVec3 vec2 = member2->atomPos( atom.index() );
      double val = abs2( vec1-vec2 );
      rmsd_ += val;
      byResidue_[resid] += val;

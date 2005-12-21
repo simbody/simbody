@@ -11,7 +11,7 @@
 
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
 typedef CDSVector<double,1>       RVec;   // first element has index 1
-typedef CDSList<Vec6>             VecVec6;
+typedef CDSList<CDSVec6>          CDSVecVec6;
 
 class IVM;
 class LengthConstraints;
@@ -167,16 +167,16 @@ public:
     /// constraints. Must have already called prepareForDynamics().
     /// TODO: also applies stored internal forces (hinge torques) which
     /// will cause surprises if non-zero.
-    void calcTreeForwardDynamics(const VecVec6& spatialForces);
+    void calcTreeForwardDynamics(const CDSVecVec6& spatialForces);
 
     /// Given a set of spatial forces, calculate acclerations resulting from
     /// those forces and enforcement of acceleration constraints.
-    void calcLoopForwardDynamics(const VecVec6& spatialForces);
+    void calcLoopForwardDynamics(const CDSVecVec6& spatialForces);
 
 
     /// Unconstrained (tree) dynamics 
     void calcP();                             // articulated body inertias
-    void calcZ(const VecVec6& spatialForces); // articulated body remainder forces
+    void calcZ(const CDSVecVec6& spatialForces); // articulated body remainder forces
     void calcTreeAccel();                     // accels with forces from last calcZ
 
     void fixVel0(RVec& vel); // TODO -- yuck
@@ -185,7 +185,7 @@ public:
     void calcY();
 
     /// Convert spatial forces to internal (joint) forces, ignoring constraints.
-    void calcTreeInternalForces(const VecVec6& spatialForces);
+    void calcTreeInternalForces(const CDSVecVec6& spatialForces);
 
     /// Retrieve last-computed internal (joint) forces.
     void getInternalForces(RVec& T);

@@ -49,11 +49,11 @@ public:
   //const Atom& atomByID(int i);
   Pair bondPairByID(int i);
 
-  CDSList<Vec3> atomPosArr() const             { return sim->atomPosArr(); }
-  void setAtomPosArr(const CDSList<Vec3>& arr) { sim->setAtomPosArr(arr); }
+  CDSList<CDSVec3> atomPosArr() const             { return sim->atomPosArr(); }
+  void setAtomPosArr(const CDSList<CDSVec3>& arr) { sim->setAtomPosArr(arr); }
 
-  void   setAtomPos(const int i, const Vec3& newVal);
-  void   setAtomVel(const int i, const Vec3& newVal);
+  void   setAtomPos(const int i, const CDSVec3& newVal);
+  void   setAtomVel(const int i, const CDSVec3& newVal);
   void  setAtomMass(const int i, const float_type newVal);
   void  setAtomFric(const int i, const float_type newVal);
   void  setAtomCharge(const int i, const float_type newVal);
@@ -64,8 +64,8 @@ public:
   void    setAtomName(const int i, const char* newVal);
   //  void    setFullName(const int i, const char* newVal);
   
-  Vec3        atomPos(const int i) const;
-  Vec3        atomVel(const int i) const;
+  CDSVec3     atomPos(const int i) const;
+  CDSVec3     atomVel(const int i) const;
   float_type  atomMass(const int i) const;
   float_type  atomFric(const int i) const;
   float_type  atomCharge(const int i) const;

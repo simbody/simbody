@@ -14,14 +14,14 @@ class AtomTree;
  * Abstract base class repesenting "solvers" which are either integrators
  * or minimizers. Concrete numerical methods derive from this class.
  */
-class Solver {
+class CDSSolver {
 public: 
-    Solver(IVM* ivm) : ivm(ivm) {}
-    virtual ~Solver() {}
+    CDSSolver(IVM* ivm) : ivm(ivm) {}
+    virtual ~CDSSolver() {}
 
     // initialize new solver of given type
-    static Solver* create(const CDSString& type,
-                          IVM*          ivm);
+    static CDSSolver* create(const CDSString& type,
+                             IVM*             ivm);
 
     virtual void init(const RVec& pos,
                       const RVec& vel,

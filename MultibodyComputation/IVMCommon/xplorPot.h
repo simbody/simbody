@@ -13,8 +13,8 @@ class XplorSimulation;
 
 class XplorPot : public Pot {
 public:
-  XplorPot(const String&     instanceName,
-		 Simulation* defaultSimulation);
+  XplorPot(const CDSString&     instanceName,
+		   Simulation* defaultSimulation);
   
   virtual EnergyReport calcEnergy();
   virtual EnergyReport calcEnergyAndDerivs(DerivList&);

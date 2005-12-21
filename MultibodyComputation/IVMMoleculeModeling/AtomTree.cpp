@@ -28,8 +28,8 @@
 using namespace InternalDynamics;
 using MatrixTools::inverse;
 
-typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat66;
+typedef FixedVector<double,6> CDSVec6;
+typedef FixedMatrix<double,6> CDSMat66;
 
 
 //
@@ -62,7 +62,7 @@ AtomTree::~AtomTree() {
     nodeTree.resize(0);
 }
 
-void AtomTree::setClusterVelFromSVel(int level, int indx, const Vec6& sVel) {
+void AtomTree::setClusterVelFromSVel(int level, int indx, const CDSVec6& sVel) {
     AtomClusterNode& ac = *nodeTree[level][indx];
     RigidBodyNode& rb = rbTree.updRigidBodyNode(ac.getRBIndex());
     return rb.setVelFromSVel(sVel);
@@ -118,7 +118,7 @@ const CDSVec3& AtomTree::getClusterCOM_G(int level, int indx) const {
     return rb.getCOM_G();
 }
 
-const Vec6& AtomTree::getClusterSpatialVel(int level, int indx) const {
+const CDSVec6& AtomTree::getClusterSpatialVel(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
     const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.getSpatialVel();

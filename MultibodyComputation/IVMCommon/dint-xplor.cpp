@@ -680,7 +680,7 @@ XplorIVM::entry()
             } else if ( wd == "ITYP" ) {
                 const int largstr=80;
                 char argstr[largstr]; 
-                FORTRAN(nextst,NEXTST)("Solver type=",argstr,17,largstr);
+                FORTRAN(nextst,NEXTST)("CDSSolver type=",argstr,17,largstr);
                 for (int i=0 ; i<largstr ; i++) 
                     if ( argstr[i]==' ' ) argstr[i] = '\0';       
                         solverType = argstr;
@@ -794,7 +794,7 @@ XplorIVM::entry()
             try {
                 step(stepsize);
             }
-            catch ( Solver::Finished ) {
+            catch ( CDSSolver::Finished ) {
                 done=1;
             }
             if ( finalTime>0.0 && time >= finalTime )

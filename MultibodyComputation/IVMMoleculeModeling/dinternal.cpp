@@ -41,8 +41,8 @@
 using namespace InternalDynamics;
 using MatrixTools::inverse;
 
-typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat66;
+typedef FixedVector<double,6> CDSVec6;
+typedef FixedMatrix<double,6> CDSMat66;
 
 IVM::IVM() 
   : tree_(0),                  solver_(0),
@@ -256,8 +256,8 @@ IVM::calcTemperature() {
     // approxTemperature(); //FIX: temporary. remove after testing.
 }
  
-typedef SubVector<Vec6> RSubVec6;
-typedef SubVector<const Vec6> ConstRSubVec6;
+typedef SubVector<CDSVec6> RSubVec6;
+typedef SubVector<const CDSVec6> ConstRSubVec6;
 
 //
 // Using current atom positions/velocities.
@@ -292,7 +292,7 @@ IVM::resetCM()
             const AtomClusterNode* n  = tree()->nodeTree[i][j];
             const double acMass       = tree()->getClusterMass(i,j);
             const CDSVec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
-            const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+            const CDSVec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
 
             IVMAtom *a = new IVMAtom( nodes.size() , acMass );
             a->pos = acCOM_G;
@@ -342,9 +342,9 @@ IVM::resetCM()
 
     for (int i=0; i<tree()->nodeTree[1].size(); i++) {
         AtomClusterNode* n = tree()->nodeTree[1][i];
-        const Vec6& acSpatialVel = tree()->getClusterSpatialVel(1,i);
+        const CDSVec6& acSpatialVel = tree()->getClusterSpatialVel(1,i);
 
-        Vec6 sVel = acSpatialVel 
+        CDSVec6 sVel = acSpatialVel 
                     - blockVec(omega, velCM + cross(omega, n->getAtom(0)->pos-posCM));
 
         tree()->setClusterVelFromSVel(1,i,sVel);
@@ -362,7 +362,7 @@ IVM::resetCM()
                 const AtomClusterNode* n  = tree()->nodeTree[i][j];
                 const double acMass       = tree()->getClusterMass(i,j);
                 const CDSVec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
-                const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+                const CDSVec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
 
                 CDSVec3 vCM = CDSVec3( ConstRSubVec6(acSpatialVel,3,3).vector() )
                                  - cross( ConstRSubVec6(acSpatialVel,0,3).vector() , 
@@ -377,7 +377,7 @@ IVM::resetCM()
                 const AtomClusterNode* n  = tree()->nodeTree[i][j];
                 const double acMass       = tree()->getClusterMass(i,j);
                 const CDSVec3&  acCOM_G      = tree()->getClusterCOM_G(i,j);
-                const Vec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
+                const CDSVec6&  acSpatialVel = tree()->getClusterSpatialVel(i,j);
 
                 CDSVec3 vCM = CDSVec3( ConstRSubVec6(acSpatialVel,3,3).vector() ) - 
                                 cross( ConstRSubVec6(acSpatialVel,0,3).vector() , 
@@ -471,7 +471,7 @@ IVM::initTopology()
     // solver must be defined to determine hinge setup
     //  (whether to use euler angles or quaternions)
     if (getSolver()) delete solver_;
-    solver_ = Solver::create(solverType,this);
+    solver_ = CDSSolver::create(solverType,this);
 
     if (tree())
         delete tree_;

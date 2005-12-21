@@ -14,7 +14,7 @@ class AtomTree;
 class AT_Build;
 class CDSVec3;
 class AtomClusterNode;
-class Solver;
+class CDSSolver;
 
 typedef CDSList< IVMAtom* >     AtomList;
 typedef CDSVector<double,1>     RVec;   // first element has index 1
@@ -78,8 +78,8 @@ public:
     const AtomList& getAtoms()  const { return atoms; }
     const AtomTree* tree()      const { return tree_; }
     AtomTree*       tree()            { return tree_; }
-    const Solver*   getSolver() const { return solver_; }
-    Solver*         getSolver()       { return solver_; }
+    const CDSSolver*   getSolver() const { return solver_; }
+    CDSSolver*         getSolver()       { return solver_; }
 
     int    dof()                  const { return dof_; }
     int    dim()                  const { return dim_; }
@@ -114,7 +114,7 @@ public:
 
 protected:
     AtomTree*          tree_;
-    Solver*            solver_;
+    CDSSolver*            solver_;
 
     int dof_;   //number of degrees of freedom
     int dim_;   //number of degrees of freedom+constraints

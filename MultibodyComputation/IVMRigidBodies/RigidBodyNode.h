@@ -15,8 +15,8 @@
 
 class CDSVec3;
 
-typedef FixedVector<double,6>   Vec6;
-typedef FixedMatrix<double,6,6> Mat66;
+typedef FixedVector<double,6>   CDSVec6;
+typedef FixedMatrix<double,6,6> CDSMat66;
 typedef CDSMatrix<double>       RMat;
 typedef CDSVector<double,1>     RVec;
 
@@ -140,7 +140,7 @@ public:
     /// measured from the ground origin and expressed in ground.
     const CDSVec3&      getOP_G() const {assert(parent); return parent->getOB_G();}
 
-    void setSpatialVel(const Vec6& v) { sVel=v; }
+    void setSpatialVel(const CDSVec6& v) { sVel=v; }
 
     /// Return the inertial angular velocity of body frame B (i.e., angular
     /// velocity with respect to the ground frame), expressed in the ground frame.
@@ -162,12 +162,12 @@ public:
     const CDSVec3&      getSpatialLinAcc() const
         {return *reinterpret_cast<const CDSVec3*>(&sAcc[3]);}
 
-    const Vec6&      getSpatialVel() const {return sVel;}
-    const Vec6&      getSpatialAcc() const {return sAcc;}
+    const CDSVec6&      getSpatialVel() const {return sVel;}
+    const CDSVec6&      getSpatialAcc() const {return sAcc;}
 
     const PhiMatrix& getPhi()  const {return phi;}
-    const Mat66&     getPsiT() const {return psiT;}
-    const Mat66&     getY()    const {return Y;}
+    const CDSMat66&     getPsiT() const {return psiT;}
+    const CDSMat66&     getY()    const {return Y;}
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
@@ -187,13 +187,13 @@ public:
     virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
-    virtual void calcZ    (const Vec6& spatialForce)         {throw VirtualBaseMethod();}
+    virtual void calcZ    (const CDSVec6& spatialForce)         {throw VirtualBaseMethod();}
     virtual void calcY()                                     {throw VirtualBaseMethod();}
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
-    virtual void calcInternalForce(const Vec6& spatialForce) {throw VirtualBaseMethod();}
+    virtual void calcInternalForce(const CDSVec6& spatialForce) {throw VirtualBaseMethod();}
 
-    virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
+    virtual void setVelFromSVel(const CDSVec6&) {throw VirtualBaseMethod();}
 
 
     virtual void getPos(RVec&)   const {throw VirtualBaseMethod();}
@@ -265,7 +265,7 @@ protected:
     CDSVec3         OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
-    Vec6         V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+    CDSVec6         V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
 
     // Calculated spatial quantities
     //      ... position level
@@ -281,21 +281,21 @@ protected:
     Inertia      inertia_OB_G;  // about B's origin, expr. in G
 
     PhiMatrix    phi;           // spatial rigid body transition matrix
-    Mat66        Mk;            // spatial inertia matrix
-    Mat66        P;             // articulated body spatial inertia
-    Mat66        tau;
-    Mat66        psiT;
-    Mat66        Y;             // diag of Omega - for loop constraints
+    CDSMat66        Mk;            // spatial inertia matrix
+    CDSMat66        P;             // articulated body spatial inertia
+    CDSMat66        tau;
+    CDSMat66        psiT;
+    CDSMat66        Y;             // diag of Omega - for loop constraints
 
     //      ... velocity level
-    Vec6         a;     // spatial coriolis acceleration
-    Vec6         b;     // spatial gyroscopic force
-    Vec6         sVel;  // spatial velocity
+    CDSVec6         a;     // spatial coriolis acceleration
+    CDSVec6         b;     // spatial gyroscopic force
+    CDSVec6         sVel;  // spatial velocity
 
     //      ... acceleration level
-    Vec6         z;
-    Vec6         Gepsilon;
-    Vec6         sAcc;              // spatial acceleration
+    CDSVec6         z;
+    CDSVec6         Gepsilon;
+    CDSVec6         sAcc;              // spatial acceleration
 
 
     virtual void velFromCartesian() {}

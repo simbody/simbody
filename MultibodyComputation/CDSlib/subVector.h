@@ -2,7 +2,7 @@
 #ifndef __subVector_hh__
 #define __subVector_hh__
 
-#include <assert.h>
+#include <cassert>
 #include "cdsGenericVector.h"
 
 #include <iostream>

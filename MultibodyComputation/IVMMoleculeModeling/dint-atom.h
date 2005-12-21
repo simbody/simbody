@@ -41,7 +41,7 @@ public:
 
     // clustering information
     AtomClusterNode*    node;
-    CDSVec3                station_B;    // location in node's local frame
+    CDSVec3             station_B;    // location in node's local frame
 
     // Initial and then calculated spatial (Cartesian) info.
     CDSVec3 station_G; // station expressed in G (still measured from OB)

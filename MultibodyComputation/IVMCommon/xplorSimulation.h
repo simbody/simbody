@@ -46,13 +46,13 @@ public:
   // the proper modified... flags are set
   //
 
-  virtual void setAtomPosArr(const CDSVector<Vec3>&);
-  virtual void setAtomVelArr(const CDSVector<Vec3>&);
+  virtual void setAtomPosArr(const CDSVector<CDSVec3>&);
+  virtual void setAtomVelArr(const CDSVector<CDSVec3>&);
 
   virtual void   setAtomPos(      int   i, 
-			    const Vec3& newVal);
+			    const CDSVec3& newVal);
   virtual void   setAtomVel(      int i, 
-			    const Vec3& newVal);
+			    const CDSVec3& newVal);
   virtual void  setAtomMass(      int i, 
 			    const float_type& newVal);
   virtual void  setAtomFric(      int i, 

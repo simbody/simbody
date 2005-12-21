@@ -1016,12 +1016,12 @@ CHull<VERTEX>::checkHull()
 #ifdef TESTING
 
 #include "cdsVec3.h"
-struct Vec3Vertex: public Vec3 {
+struct Vec3Vertex: public CDSVec3 {
   int index;
 
-  Vec3Vertex(const Vec3& v) : Vec3(v), index(-1) {}
+  Vec3Vertex(const CDSVec3& v) : CDSVec3(v), index(-1) {}
 
-  typedef Vec3 Point3;
+  typedef CDSVec3 Point3;
 };
 
 int testCHull()
@@ -1033,91 +1033,91 @@ int testCHull()
 
  CHull<Vec3Vertex> chull;
 
- chull.addVertex( Vec3( -1.181, -14.208,  -2.087) );
- chull.addVertex( Vec3( -1.414, -15.034,  -1.432) );
- chull.addVertex( Vec3(  0.322, -13.916,  -2.033) );
- chull.addVertex( Vec3(  0.637, -13.844,  -1.003) );
- chull.addVertex( Vec3(  0.525, -12.983,  -2.537) );
- chull.addVertex( Vec3(  1.091, -15.044,  -2.722) );
- chull.addVertex( Vec3(  0.787, -15.108,  -3.756) );
- chull.addVertex( Vec3(  0.880, -15.980,  -2.226) );
- chull.addVertex( Vec3(  2.866, -14.700,  -2.633) );
- chull.addVertex( Vec3(  3.365, -15.692,  -4.063) );
- chull.addVertex( Vec3(  4.443, -15.730,  -4.117) );
- chull.addVertex( Vec3(  2.975, -15.245,  -4.965) );
- chull.addVertex( Vec3(  2.975, -16.694,  -3.960) );
- chull.addVertex( Vec3( -1.940, -12.965,  -1.634) );
- chull.addVertex( Vec3( -2.215, -12.073,  -2.438) );
- chull.addVertex( Vec3( -1.578, -14.575,  -3.441) );
- chull.addVertex( Vec3( -1.350, -13.797,  -4.093) );
- chull.addVertex( Vec3( -2.601, -14.758,  -3.465) );
- chull.addVertex( Vec3( -1.066, -15.432,  -3.732) );
- chull.addVertex( Vec3( -2.232, -12.888,  -0.349) );
- chull.addVertex( Vec3( -2.000, -13.630,   0.247) );
- chull.addVertex( Vec3( -2.896, -11.708,   0.190) );
- chull.addVertex( Vec3( -3.499, -11.257,  -0.585) );
- chull.addVertex( Vec3( -3.797, -12.076,   1.376) );
- chull.addVertex( Vec3( -4.547, -12.782,   1.050) );
- chull.addVertex( Vec3( -4.280, -11.185,   1.748) );
- chull.addVertex( Vec3( -2.960, -12.704,   2.494) );
- chull.addVertex( Vec3( -2.425, -11.928,   3.022) );
- chull.addVertex( Vec3( -2.254, -13.400,   2.067) );
- chull.addVertex( Vec3( -3.878, -13.444,   3.469) );
- chull.addVertex( Vec3( -3.434, -14.293,   4.215) );
- chull.addVertex( Vec3( -5.150, -13.155,   3.493) );
- chull.addVertex( Vec3( -5.506, -12.463,   2.898) );
- chull.addVertex( Vec3( -5.749, -13.630,   4.106) );
- chull.addVertex( Vec3( -1.805, -10.740,   0.629) );
- chull.addVertex( Vec3( -0.959, -11.089,   1.455) );
- chull.addVertex( Vec3( -1.867,  -9.526,   0.123) );
- chull.addVertex( Vec3( -2.569,  -9.310,  -0.526) );
- chull.addVertex( Vec3( -0.908,  -8.498,   0.512) );
- chull.addVertex( Vec3( -0.113,  -8.954,   1.084) );
- chull.addVertex( Vec3( -0.310,  -7.814,  -0.721) );
- chull.addVertex( Vec3(  0.300,  -6.981,  -0.404) );
- chull.addVertex( Vec3( -1.110,  -7.454,  -1.350) );
- chull.addVertex( Vec3(  0.542,  -8.783,  -1.507) );
- chull.addVertex( Vec3( -0.049,  -9.590,  -2.488) );
- chull.addVertex( Vec3( -1.112,  -9.528,  -2.669) );
- chull.addVertex( Vec3(  1.921,  -8.867,  -1.270) );
- chull.addVertex( Vec3(  2.378,  -8.244,  -0.516) );
- chull.addVertex( Vec3(  0.737, -10.477,  -3.234) );
- chull.addVertex( Vec3(  0.282, -11.093,  -3.995) );
- chull.addVertex( Vec3(  2.707,  -9.759,  -2.011) );
- chull.addVertex( Vec3(  3.769,  -9.826,  -1.826) );
- chull.addVertex( Vec3(  2.114, -10.564,  -2.992) );
- chull.addVertex( Vec3(  2.891, -11.432,  -3.730) );
- chull.addVertex( Vec3(  3.767, -11.453,  -3.338) );
- chull.addVertex( Vec3( -1.658,  -7.479,   1.353) );
- chull.addVertex( Vec3( -2.859,  -7.282,   1.169) );
- chull.addVertex( Vec3( -0.948,  -6.835,   2.253) );
- chull.addVertex( Vec3(  0.011,  -7.026,   2.317) );
- chull.addVertex( Vec3( -1.523,  -5.850,   3.160) );
- chull.addVertex( Vec3( -2.584,  -5.766,   2.977) );
- chull.addVertex( Vec3( -1.287,  -6.298,   4.604) );
- chull.addVertex( Vec3( -0.225,  -6.409,   4.767) );
- chull.addVertex( Vec3( -1.776,  -7.248,   4.760) );
- chull.addVertex( Vec3( -1.839,  -5.287,   5.609) );
- chull.addVertex( Vec3( -2.872,  -5.075,   5.378) );
- chull.addVertex( Vec3( -1.264,  -4.374,   5.556) );
- chull.addVertex( Vec3( -1.740,  -5.873,   7.021) );
- chull.addVertex( Vec3( -1.850,  -5.080,   7.745) );
- chull.addVertex( Vec3( -0.775,  -6.342,   7.146) );
- chull.addVertex( Vec3( -2.841,  -6.914,   7.239) );
- chull.addVertex( Vec3( -2.724,  -7.718,   6.528) );
- chull.addVertex( Vec3( -3.808,  -6.452,   7.104) );
- chull.addVertex( Vec3( -2.736,  -7.454,   8.624) );
- chull.addVertex( Vec3( -1.793,  -7.869,   8.764) );
- chull.addVertex( Vec3( -3.461,  -8.186,   8.767) );
- chull.addVertex( Vec3( -2.882,  -6.684,   9.308) );
- chull.addVertex( Vec3( -0.851,  -4.504,   2.928) );
- chull.addVertex( Vec3(  0.351,  -4.424,   2.685) );
- chull.addVertex( Vec3( -1.651,  -3.463,   3.076) );
- chull.addVertex( Vec3( -2.603,  -3.617,   3.247) );
- chull.addVertex( Vec3( -1.160,  -2.090,   2.992) );
- chull.addVertex( Vec3( -0.092,  -2.110,   2.831) );
- chull.addVertex( Vec3( -1.822,  -1.314,   1.842) );
- chull.addVertex( Vec3( -2.895,  -1.370,   1.952) );
+ chull.addVertex( CDSVec3( -1.181, -14.208,  -2.087) );
+ chull.addVertex( CDSVec3( -1.414, -15.034,  -1.432) );
+ chull.addVertex( CDSVec3(  0.322, -13.916,  -2.033) );
+ chull.addVertex( CDSVec3(  0.637, -13.844,  -1.003) );
+ chull.addVertex( CDSVec3(  0.525, -12.983,  -2.537) );
+ chull.addVertex( CDSVec3(  1.091, -15.044,  -2.722) );
+ chull.addVertex( CDSVec3(  0.787, -15.108,  -3.756) );
+ chull.addVertex( CDSVec3(  0.880, -15.980,  -2.226) );
+ chull.addVertex( CDSVec3(  2.866, -14.700,  -2.633) );
+ chull.addVertex( CDSVec3(  3.365, -15.692,  -4.063) );
+ chull.addVertex( CDSVec3(  4.443, -15.730,  -4.117) );
+ chull.addVertex( CDSVec3(  2.975, -15.245,  -4.965) );
+ chull.addVertex( CDSVec3(  2.975, -16.694,  -3.960) );
+ chull.addVertex( CDSVec3( -1.940, -12.965,  -1.634) );
+ chull.addVertex( CDSVec3( -2.215, -12.073,  -2.438) );
+ chull.addVertex( CDSVec3( -1.578, -14.575,  -3.441) );
+ chull.addVertex( CDSVec3( -1.350, -13.797,  -4.093) );
+ chull.addVertex( CDSVec3( -2.601, -14.758,  -3.465) );
+ chull.addVertex( CDSVec3( -1.066, -15.432,  -3.732) );
+ chull.addVertex( CDSVec3( -2.232, -12.888,  -0.349) );
+ chull.addVertex( CDSVec3( -2.000, -13.630,   0.247) );
+ chull.addVertex( CDSVec3( -2.896, -11.708,   0.190) );
+ chull.addVertex( CDSVec3( -3.499, -11.257,  -0.585) );
+ chull.addVertex( CDSVec3( -3.797, -12.076,   1.376) );
+ chull.addVertex( CDSVec3( -4.547, -12.782,   1.050) );
+ chull.addVertex( CDSVec3( -4.280, -11.185,   1.748) );
+ chull.addVertex( CDSVec3( -2.960, -12.704,   2.494) );
+ chull.addVertex( CDSVec3( -2.425, -11.928,   3.022) );
+ chull.addVertex( CDSVec3( -2.254, -13.400,   2.067) );
+ chull.addVertex( CDSVec3( -3.878, -13.444,   3.469) );
+ chull.addVertex( CDSVec3( -3.434, -14.293,   4.215) );
+ chull.addVertex( CDSVec3( -5.150, -13.155,   3.493) );
+ chull.addVertex( CDSVec3( -5.506, -12.463,   2.898) );
+ chull.addVertex( CDSVec3( -5.749, -13.630,   4.106) );
+ chull.addVertex( CDSVec3( -1.805, -10.740,   0.629) );
+ chull.addVertex( CDSVec3( -0.959, -11.089,   1.455) );
+ chull.addVertex( CDSVec3( -1.867,  -9.526,   0.123) );
+ chull.addVertex( CDSVec3( -2.569,  -9.310,  -0.526) );
+ chull.addVertex( CDSVec3( -0.908,  -8.498,   0.512) );
+ chull.addVertex( CDSVec3( -0.113,  -8.954,   1.084) );
+ chull.addVertex( CDSVec3( -0.310,  -7.814,  -0.721) );
+ chull.addVertex( CDSVec3(  0.300,  -6.981,  -0.404) );
+ chull.addVertex( CDSVec3( -1.110,  -7.454,  -1.350) );
+ chull.addVertex( CDSVec3(  0.542,  -8.783,  -1.507) );
+ chull.addVertex( CDSVec3( -0.049,  -9.590,  -2.488) );
+ chull.addVertex( CDSVec3( -1.112,  -9.528,  -2.669) );
+ chull.addVertex( CDSVec3(  1.921,  -8.867,  -1.270) );
+ chull.addVertex( CDSVec3(  2.378,  -8.244,  -0.516) );
+ chull.addVertex( CDSVec3(  0.737, -10.477,  -3.234) );
+ chull.addVertex( CDSVec3(  0.282, -11.093,  -3.995) );
+ chull.addVertex( CDSVec3(  2.707,  -9.759,  -2.011) );
+ chull.addVertex( CDSVec3(  3.769,  -9.826,  -1.826) );
+ chull.addVertex( CDSVec3(  2.114, -10.564,  -2.992) );
+ chull.addVertex( CDSVec3(  2.891, -11.432,  -3.730) );
+ chull.addVertex( CDSVec3(  3.767, -11.453,  -3.338) );
+ chull.addVertex( CDSVec3( -1.658,  -7.479,   1.353) );
+ chull.addVertex( CDSVec3( -2.859,  -7.282,   1.169) );
+ chull.addVertex( CDSVec3( -0.948,  -6.835,   2.253) );
+ chull.addVertex( CDSVec3(  0.011,  -7.026,   2.317) );
+ chull.addVertex( CDSVec3( -1.523,  -5.850,   3.160) );
+ chull.addVertex( CDSVec3( -2.584,  -5.766,   2.977) );
+ chull.addVertex( CDSVec3( -1.287,  -6.298,   4.604) );
+ chull.addVertex( CDSVec3( -0.225,  -6.409,   4.767) );
+ chull.addVertex( CDSVec3( -1.776,  -7.248,   4.760) );
+ chull.addVertex( CDSVec3( -1.839,  -5.287,   5.609) );
+ chull.addVertex( CDSVec3( -2.872,  -5.075,   5.378) );
+ chull.addVertex( CDSVec3( -1.264,  -4.374,   5.556) );
+ chull.addVertex( CDSVec3( -1.740,  -5.873,   7.021) );
+ chull.addVertex( CDSVec3( -1.850,  -5.080,   7.745) );
+ chull.addVertex( CDSVec3( -0.775,  -6.342,   7.146) );
+ chull.addVertex( CDSVec3( -2.841,  -6.914,   7.239) );
+ chull.addVertex( CDSVec3( -2.724,  -7.718,   6.528) );
+ chull.addVertex( CDSVec3( -3.808,  -6.452,   7.104) );
+ chull.addVertex( CDSVec3( -2.736,  -7.454,   8.624) );
+ chull.addVertex( CDSVec3( -1.793,  -7.869,   8.764) );
+ chull.addVertex( CDSVec3( -3.461,  -8.186,   8.767) );
+ chull.addVertex( CDSVec3( -2.882,  -6.684,   9.308) );
+ chull.addVertex( CDSVec3( -0.851,  -4.504,   2.928) );
+ chull.addVertex( CDSVec3(  0.351,  -4.424,   2.685) );
+ chull.addVertex( CDSVec3( -1.651,  -3.463,   3.076) );
+ chull.addVertex( CDSVec3( -2.603,  -3.617,   3.247) );
+ chull.addVertex( CDSVec3( -1.160,  -2.090,   2.992) );
+ chull.addVertex( CDSVec3( -0.092,  -2.110,   2.831) );
+ chull.addVertex( CDSVec3( -1.822,  -1.314,   1.842) );
+ chull.addVertex( CDSVec3( -2.895,  -1.370,   1.952) );
 
  chull.create();
 
@@ -1126,37 +1126,37 @@ int testCHull()
    exit=1;
  }
 
- CDSList<Vec3> overtices;
- overtices.append( Vec3( 0.88, -15.98, -2.226 ) );
- overtices.append( Vec3( 4.443, -15.73, -4.117 ) );
- overtices.append( Vec3( 2.975, -15.245, -4.965 ) );
- overtices.append( Vec3( 2.975, -16.694, -3.96 ) );
- overtices.append( Vec3( -1.35, -13.797, -4.093 ) );
- overtices.append( Vec3( -2.601, -14.758, -3.465 ) );
- overtices.append( Vec3( -1.066, -15.432, -3.732 ) );
- overtices.append( Vec3( -3.499, -11.257, -0.585 ) );
- overtices.append( Vec3( -3.434, -14.293, 4.215 ) );
- overtices.append( Vec3( -5.506, -12.463, 2.898 ) );
- overtices.append( Vec3( -5.749, -13.63, 4.106 ) );
- overtices.append( Vec3( -1.112, -9.528, -2.669 ) );
- overtices.append( Vec3( 0.282, -11.093, -3.995 ) );
- overtices.append( Vec3( 3.769, -9.826, -1.826 ) );
- overtices.append( Vec3( 2.891, -11.432, -3.73 ) );
- overtices.append( Vec3( 3.767, -11.453, -3.338 ) );
- overtices.append( Vec3( -1.85, -5.08, 7.745 ) );
- overtices.append( Vec3( -0.775, -6.342, 7.146 ) );
- overtices.append( Vec3( -3.808, -6.452, 7.104 ) );
- overtices.append( Vec3( -1.793, -7.869, 8.764 ) );
- overtices.append( Vec3( -3.461, -8.186, 8.767 ) );
- overtices.append( Vec3( -2.882, -6.684, 9.308 ) );
- overtices.append( Vec3( -1.16, -2.09, 2.992 ) );
- overtices.append( Vec3( -0.092, -2.11, 2.831 ) );
- overtices.append( Vec3( -1.822, -1.314, 1.842 ) );
- overtices.append( Vec3( -2.895, -1.37, 1.952 ) );
+ CDSList<CDSVec3> overtices;
+ overtices.append( CDSVec3( 0.88, -15.98, -2.226 ) );
+ overtices.append( CDSVec3( 4.443, -15.73, -4.117 ) );
+ overtices.append( CDSVec3( 2.975, -15.245, -4.965 ) );
+ overtices.append( CDSVec3( 2.975, -16.694, -3.96 ) );
+ overtices.append( CDSVec3( -1.35, -13.797, -4.093 ) );
+ overtices.append( CDSVec3( -2.601, -14.758, -3.465 ) );
+ overtices.append( CDSVec3( -1.066, -15.432, -3.732 ) );
+ overtices.append( CDSVec3( -3.499, -11.257, -0.585 ) );
+ overtices.append( CDSVec3( -3.434, -14.293, 4.215 ) );
+ overtices.append( CDSVec3( -5.506, -12.463, 2.898 ) );
+ overtices.append( CDSVec3( -5.749, -13.63, 4.106 ) );
+ overtices.append( CDSVec3( -1.112, -9.528, -2.669 ) );
+ overtices.append( CDSVec3( 0.282, -11.093, -3.995 ) );
+ overtices.append( CDSVec3( 3.769, -9.826, -1.826 ) );
+ overtices.append( CDSVec3( 2.891, -11.432, -3.73 ) );
+ overtices.append( CDSVec3( 3.767, -11.453, -3.338 ) );
+ overtices.append( CDSVec3( -1.85, -5.08, 7.745 ) );
+ overtices.append( CDSVec3( -0.775, -6.342, 7.146 ) );
+ overtices.append( CDSVec3( -3.808, -6.452, 7.104 ) );
+ overtices.append( CDSVec3( -1.793, -7.869, 8.764 ) );
+ overtices.append( CDSVec3( -3.461, -8.186, 8.767 ) );
+ overtices.append( CDSVec3( -2.882, -6.684, 9.308 ) );
+ overtices.append( CDSVec3( -1.16, -2.09, 2.992 ) );
+ overtices.append( CDSVec3( -0.092, -2.11, 2.831 ) );
+ overtices.append( CDSVec3( -1.822, -1.314, 1.842 ) );
+ overtices.append( CDSVec3( -2.895, -1.37, 1.952 ) );
 
  CDSList<Vec3Vertex> vertices = chull.vertices();
  for (int i=0 ; i<vertices.size() ; i++)
-   if ( norm(Vec3(vertices[i]) - overtices[i]) >1e-5 )
+   if ( norm(CDSVec3(vertices[i]) - overtices[i]) >1e-5 )
      cout << "vertex " << i << " " << vertices[i] 
 	  << " != " << overtices[i] << '\n';
  

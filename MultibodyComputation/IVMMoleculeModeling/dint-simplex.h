@@ -6,7 +6,7 @@
 /**
  * Simplex  minimization.
  */
-class Simplex : public Solver {
+class Simplex : public CDSSolver {
 public:
     Simplex(IVM*      ivm);
 

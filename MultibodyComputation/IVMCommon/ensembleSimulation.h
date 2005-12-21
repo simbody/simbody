@@ -127,7 +127,7 @@ public:
   virtual const Pair& bondPairByID(int bondIndex) const;
 
   // return string identifying atom by id
-  virtual String atomString(int index) const;
+  virtual CDSString atomString(int index) const;
 
   //
   // custom selector
@@ -138,14 +138,14 @@ public:
   // access to atom properties
   //
 
-  CDSVector<Vec3> meanAtomPosArr() const;
-  virtual CDSVector<Vec3> atomPosArr() const;
-  virtual CDSVector<Vec3> atomVelArr() const;
-  virtual void setAtomPosArr(const CDSVector<Vec3>&);
-  virtual void setAtomVelArr(const CDSVector<Vec3>&);
+  CDSVector<CDSVec3> meanAtomPosArr() const;
+  virtual CDSVector<CDSVec3> atomPosArr() const;
+  virtual CDSVector<CDSVec3> atomVelArr() const;
+  virtual void setAtomPosArr(const CDSVector<CDSVec3>&);
+  virtual void setAtomVelArr(const CDSVector<CDSVec3>&);
 
-  virtual void setAtomPos(int index, const Vec3& newVal);
-  virtual void setAtomVel(int index, const Vec3& newVal);
+  virtual void setAtomPos(int index, const CDSVec3& newVal);
+  virtual void setAtomVel(int index, const CDSVec3& newVal);
   virtual void setAtomMass(int index, const float_type& newVal);
   virtual void setAtomFric(int index, const float_type& newVal);
   virtual void setAtomCharge(int index, const float_type& newVal);
@@ -155,8 +155,8 @@ public:
   virtual void setAtomName(int index, const char* newVal);
   virtual void setChemType(int index, const char* newVal);
     
-  virtual const Vec3& atomPos(int index) const;
-  virtual const Vec3& atomVel(int index) const;
+  virtual const CDSVec3& atomPos(int index) const;
+  virtual const CDSVec3& atomVel(int index) const;
   virtual const float_type& atomMass(int index) const;
   virtual const float_type& atomFric(int index) const;
   virtual const float_type& atomCharge(int index) const;
@@ -228,7 +228,7 @@ class EnsembleMemberSimulation : public Simulation {
 				 EnsembleSimulation* sim,
 			   const int                 memberIndex);
 public:
-  typedef CDSVector< Vec3,0,EnsembleSimulation::SharedAlloc > VectorVec3;
+  typedef CDSVector< CDSVec3,0,EnsembleSimulation::SharedAlloc > VectorVec3;
   
   //
   // constructor/destructor
@@ -281,17 +281,17 @@ public:
   const Pair& bondPairByID(int bondIndex) const 
   { return subSim()->bondPairByID(bondIndex); }
 
-  virtual String atomString(int index) const 
+  virtual CDSString atomString(int index) const 
   { return subSim()->atomString(index); }
 
 
-  virtual CDSVector<Vec3> atomPosArr() const;
-  virtual CDSVector<Vec3> atomVelArr() const;
-  virtual void setAtomPosArr(const CDSVector<Vec3>&);
-  virtual void setAtomVelArr(const CDSVector<Vec3>&);
+  virtual CDSVector<CDSVec3> atomPosArr() const;
+  virtual CDSVector<CDSVec3> atomVelArr() const;
+  virtual void setAtomPosArr(const CDSVector<CDSVec3>&);
+  virtual void setAtomVelArr(const CDSVector<CDSVec3>&);
 
-  virtual void setAtomPos(int index, const Vec3& newVal);
-  virtual void setAtomVel(int index, const Vec3& newVal);
+  virtual void setAtomPos(int index, const CDSVec3& newVal);
+  virtual void setAtomVel(int index, const CDSVec3& newVal);
   virtual void setAtomMass(int index, const float_type& newVal);
   virtual void setAtomFric(int index, const float_type& newVal);
   virtual void setAtomCharge(int index, const float_type& newVal);
@@ -301,8 +301,8 @@ public:
   virtual void setAtomName(int index, const char* newVal);
   virtual void setChemType(int index, const char* newVal);
     
-  virtual inline const Vec3&        atomPos(int index) const;
-  virtual inline const Vec3&        atomVel(int index) const;
+  virtual inline const CDSVec3&        atomPos(int index) const;
+  virtual inline const CDSVec3&        atomVel(int index) const;
   virtual inline const float_type& atomMass(int index) const;
   virtual inline const float_type& atomFric(int index) const;
   virtual inline const float_type& atomCharge(int index) const;
@@ -356,7 +356,7 @@ inline const Pair&
 EnsembleSimulation::bondPairByID(int bondIndex) const
 { return member()->bondPairByID(bondIndex); }
 
-inline String
+inline CDSString
 EnsembleSimulation::atomString(int index) const
 { return member()->atomString(index); }
 
@@ -364,20 +364,20 @@ inline CDSList< int >
 EnsembleSimulation::select(const char* str) const
 { return member()->select(str); }
 
-inline CDSVector<Vec3>
+inline CDSVector<CDSVec3>
 EnsembleSimulation::atomPosArr() const
 { return member()->atomPosArr(); }
-inline CDSVector<Vec3>
+inline CDSVector<CDSVec3>
 EnsembleSimulation::atomVelArr() const
 { return member()->atomVelArr(); }
 
 
 
 inline void
-EnsembleSimulation::setAtomPos(int index, const Vec3& newVal)
+EnsembleSimulation::setAtomPos(int index, const CDSVec3& newVal)
 { member()->setAtomPos(index,newVal); }
 inline void
-EnsembleSimulation::setAtomVel(int index, const Vec3& newVal)
+EnsembleSimulation::setAtomVel(int index, const CDSVec3& newVal)
 { member()->setAtomVel(index,newVal); }
 inline void
 EnsembleSimulation::setAtomMass(int index, const float_type& newVal)
@@ -404,10 +404,10 @@ inline void
 EnsembleSimulation::setChemType(int index, const char* newVal)
 { member()->setChemType(index,newVal); }
     
-inline const Vec3&
+inline const CDSVec3&
 EnsembleSimulation::atomPos(int index) const
 { return member()->atomPos(index); }
-inline const Vec3&
+inline const CDSVec3&
 EnsembleSimulation::atomVel(int index) const
 { return member()->atomVel(index); }
 inline const float_type&
@@ -439,7 +439,7 @@ EnsembleSimulation::chemType(int index) const
 // inline methods for EnsembleMemberSimulation
 //
 
-inline const Vec3 &
+inline const CDSVec3 &
 EnsembleMemberSimulation::atomPos(int i) const
 {
  if ( ensembleSim()->size()==1 )
@@ -448,7 +448,7 @@ EnsembleMemberSimulation::atomPos(int i) const
  return atomPosVec_(i);
 }
 
-inline const Vec3 &
+inline const CDSVec3 &
 EnsembleMemberSimulation::atomVel(int i) const
 {
  if ( ensembleSim()->size()==1 )

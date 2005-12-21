@@ -157,7 +157,7 @@ PublicIVM::step(double& stepsize)
     try {
         IVM::step(stepsize);
     }
-    catch ( Solver::Finished ) {
+    catch ( CDSSolver::Finished ) {
         done=1;
     }
     if ( !minimization() ) 

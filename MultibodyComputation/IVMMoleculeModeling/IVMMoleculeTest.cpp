@@ -399,7 +399,7 @@ TestIVM::test()
             step(stepsize);
             printCM();
         }
-        catch ( Solver::Finished ) {
+        catch ( CDSSolver::Finished ) {
             break;
         }
     }
@@ -452,7 +452,7 @@ TestIVM::test()
     //         step(s);
     //         InternalDynamics::printCM();
     //       }
-    //       catch ( Solver::Finished ) {
+    //       catch ( CDSSolver::Finished ) {
     //         break;
     //       }
     //     }
@@ -510,7 +510,7 @@ TestIVM::test()
                     step(s);
                     printCM();
                 }
-                catch ( Solver::Finished ) {
+                catch ( CDSSolver::Finished ) {
                     break;
                 }
         }
@@ -569,7 +569,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Solver::Finished ) {
+            catch ( CDSSolver::Finished ) {
                 break;
             }
         }
@@ -624,7 +624,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Solver::Finished ) {
+            catch ( CDSSolver::Finished ) {
                 break;
             }
         }
@@ -692,7 +692,7 @@ TestIVM::test()
                 step(s);
                 printCM();
             }
-            catch ( Solver::Finished f ) {
+            catch ( CDSSolver::Finished f ) {
                 ok = f.ok;
                 if ( !ok ) 
                     cout << "minimizer exited with error status: " << ok << '\n';
@@ -781,7 +781,7 @@ TestIVM::test()
                 step(stepsize);
                 printCM();
             }
-            catch ( Solver::Finished ) {
+            catch ( CDSSolver::Finished ) {
                 break;
             }
         }

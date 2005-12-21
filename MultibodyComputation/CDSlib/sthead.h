@@ -6,7 +6,7 @@
 
 //define FORTRAN macro
 #ifndef NO_FORTRAN
-#  include <f77defs.h>
+#  include "f77defs.h"
 #endif /* ! NO_FORTRAN */
 
 /*this is usually nothing at all*/
@@ -19,7 +19,7 @@
 #define FMTFLAGS_TYPE long
 
 //architecture-dependent definitions
-#include <arch.h>
+#include "arch.h"
 
 #ifndef FLOAT_TYPE
 #  define FLOAT_TYPE double

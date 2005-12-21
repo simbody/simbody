@@ -6,7 +6,7 @@
 /**
  * Powell's method minimization.
  */
-class Powell : public Solver {
+class Powell : public CDSSolver {
 public:
     Powell(IVM* ivm);
     void init(const RVec& pos,

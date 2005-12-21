@@ -9,7 +9,7 @@ template<class VERTEX>
 class CHullImpl;
 
 // requirement for class VERTEX:
-//   methods: methods of class Vec3
+//   methods: methods of class CDSVec3
 //   a typedef named Point3 which defines the Vertex type
 //   an integer member named index
 

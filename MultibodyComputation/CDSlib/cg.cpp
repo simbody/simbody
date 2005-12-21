@@ -10,10 +10,10 @@ using CDSMath::sq;
 #include <cdsIostream.h>
 
 
-typedef FixedVector<double,2> Vec2;
-double costf(const Vec2& x) { return sq(x(0)-1)+(x(0)-1)*x(1)+sq(x(1)); }
-void   gradf(const Vec2& x,
-		   Vec2& grad)
+typedef FixedVector<double,2> CDSVec2;
+double costf(const CDSVec2& x) { return sq(x(0)-1)+(x(0)-1)*x(1)+sq(x(1)); }
+void   gradf(const CDSVec2& x,
+		   CDSVec2& grad)
 { grad(0) = 2*(x(0)-1) + x(1); grad(1) = (x(0)-1) + 2*x(1); }
 
 class StopCondition {
@@ -23,8 +23,8 @@ public:
 	
   bool operator()(      int     iter,
 		  const double& cost,
-		  const Vec2&   x,
-		  const Vec2&   grad) {
+		  const CDSVec2&   x,
+		  const CDSVec2&   grad) {
 //   cout << "iter: " << iter 
 //	  << "  x: " << x
 //	  << "  cost: " << cost 
@@ -39,7 +39,7 @@ namespace CG {
    int exit=0;
    cout << "testing CG...";
 
-   Vec2 x; x(0) = 3; x(1) = 3;
+   CDSVec2 x; x(0) = 3; x(1) = 3;
    double cost;
    cg(costf,gradf,x,cost,StopCondition(1e-16));
    if ( fabs(x(0)-1.0)>1e-12 || fabs(x(1)-0.0)>1e-12 ) {

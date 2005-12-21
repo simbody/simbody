@@ -25,9 +25,9 @@ typedef SubVector<const RVec> ConstRSubVec;
 //  Solvers
 //
 
-class RungeKutta : public Solver {
+class RungeKutta : public CDSSolver {
 public: 
-    RungeKutta(IVM*  ivm) : Solver(ivm) {}
+    RungeKutta(IVM*  ivm) : CDSSolver(ivm) {}
 
     void init(const RVec& pos, const RVec& vel, const RVec& acc) { 
         this->pos = pos; 
@@ -80,7 +80,7 @@ RungeKutta::step(double& timeStep)
     ivm->resetCM();
 }
 
-class Gear : public Solver {
+class Gear : public CDSSolver {
     RVec acc;
     RVec acc1, acc2, acc3;
     RVec prevAcc;
@@ -88,7 +88,7 @@ class Gear : public Solver {
     RungeKutta rk;
 public:
     //  Gear(RVec& acc) : acc1(acc), acc2(acc), acc3(acc) {} //lazy init
-    Gear(IVM*  ivm) : Solver(ivm), rk(ivm) {}
+    Gear(IVM*  ivm) : CDSSolver(ivm), rk(ivm) {}
 
     void init(const RVec& p, const RVec& v, const RVec& a) {
         pos = p;
@@ -163,7 +163,7 @@ Gear::step(double& timeStep)
 //
 // Milne predictor-corrector taken from Hamming, Chapter 23
 //
-class Milne : public Solver {
+class Milne : public CDSSolver {
     //  RVec y0, 
     RVec y1, y2, y3;
     RVec dy0, dy1, dy2;
@@ -198,7 +198,7 @@ public:
         B2 = (-1. +   A2 +  9.*A3) / 3.0;
     }
 
-    Milne(IVM*  ivm) : Solver(ivm), rk(ivm) {}
+    Milne(IVM*  ivm) : CDSSolver(ivm), rk(ivm) {}
 
     void init(const RVec& p, const RVec& v, const RVec& a) 
     {
@@ -253,10 +253,10 @@ Milne::step(double& timeStep)
     dy2 = dy1 ; dy1 = dy0 ; dy0 = dy_ ; 
 }
 
-class Verlet : public Solver {
+class Verlet : public CDSSolver {
     RVec velOldHalf;
 public:
-    Verlet(IVM*  ivm) : Solver(ivm) {} 
+    Verlet(IVM*  ivm) : CDSSolver(ivm) {} 
     void init(const RVec& p, const RVec& v, const RVec& a) {
         pos = p;
         vel = v;
@@ -303,7 +303,7 @@ Verlet::step(double& timeStep)
 //
 // from numerical recipes routine powell
 //
-class MinimizeCG  : public Solver {
+class MinimizeCG  : public CDSSolver {
     double  costTol;
     double  sqGradTol;
 
@@ -315,7 +315,7 @@ class MinimizeCG  : public Solver {
     RVec   g;
     RVec   h;
 public:
-    MinimizeCG(IVM* ivm) : Solver(ivm) {}
+    MinimizeCG(IVM* ivm) : CDSSolver(ivm) {}
 
     void init(const RVec& p, const RVec& v, const RVec& a) {
         pos = p;
@@ -446,11 +446,11 @@ MinimizeCG::step(double& timeStep)
     dfx = h;
 }
 
-// Solver factory.
-Solver*
-Solver::create(const CDSString& type, IVM* ivm)
+// CDSSolver factory.
+CDSSolver*
+CDSSolver::create(const CDSString& type, IVM* ivm)
 {
-    Solver* ret;
+    CDSSolver* ret;
     if ( type.matches(PC6::getType(),true) )
         ret = new PC6(ivm);
     else if ( type.matches(Gear::getType(),true) )

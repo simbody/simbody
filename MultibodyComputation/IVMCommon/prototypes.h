@@ -6,7 +6,7 @@
 // x-plor subroutines which we call
 //
 
-#include <f77defs.h>
+#include "f77defs.h"
 
 extern "C" {
 void FORTRAN(xplor_init,XPLOR_INIT)(long&  wrnlen,

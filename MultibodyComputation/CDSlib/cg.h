@@ -6,7 +6,7 @@
 // conjugate gradient minimizer ala Numerical Recipes Powell algorithm
 //
 // requires:
-//   S    costf(const Vec& x)
+//   S    costf(const VEC& x)
 //   void gradf(const RVec& x , RVec& grad)
 //   bool finished(      int     iter,
 //  	           const double& cost,
@@ -16,29 +16,29 @@
 // CDS - 3/29/00
 //
 
-template<class Costf,class Gradf,class Vec,class S,class Condition>
+template<class Costf,class Gradf,class VEC,class S,class Condition>
 void 
 cg(Costf     costf,
    Gradf     gradf,
-   Vec&      x,
+   VEC&      x,
    S&        cost,
    Condition finished);
 
 
-template<class Costf,class Gradf,class Vec,class S,class Condition>
+template<class Costf,class Gradf,class VEC,class S,class Condition>
 void 
 cg(Costf     costf,
    Gradf     gradf,
-   Vec&      x,
+   VEC&      x,
    S&        cost,
    Condition finished)
 {
  S fx = costf(x);
- Vec dfx = x; //to properly size gradient.
+ VEC dfx = x; //to properly size gradient.
  gradf(x,dfx);
  dfx *= -1;
- Vec g = dfx;
- Vec h = dfx;
+ VEC g = dfx;
+ VEC h = dfx;
  double stepsize=1.0;
  
  cost = fx;
@@ -63,10 +63,10 @@ cg(Costf     costf,
 
 #if 0
 // gradient-less version
-template<class Costf,class Vec,class S,class Condition>
+template<class Costf,class VEC,class S,class Condition>
 void 
 cg(Costf     costf,
-   Vec&      x,
+   VEC&      x,
    S&        cost,
    Condition finished)
 //p,xi,n,ftol,iter,fret,func)
@@ -82,7 +82,7 @@ cg(Costf     costf,
 //	  ptt=vector(1,n);
 //	  xit=vector(1,n);
 
-// CDSVector<Vec,1> xi(x.size());
+// CDSVector<VEC,1> xi(x.size());
 // for (int i=1 ; i<=x.size() ; i++) {
 //   xi(i).resize(x.size());
 //   xi(i).set(0);
@@ -91,9 +91,9 @@ cg(Costf     costf,
 //
 // cost = costf(x);
 
- Vec xt = x;
- Vec xit;
- Vec xtt;
+ VEC xt = x;
+ VEC xit;
+ VEC xtt;
  S fxtt;
  S del;
  for (int iter=1 ; ; iter++) {

@@ -6,7 +6,7 @@
 /**
  * Conjugate gradient minimization.
  */
-class ConMin : public Solver {
+class ConMin : public CDSSolver {
 public:
     ConMin(IVM*      ivm);
 

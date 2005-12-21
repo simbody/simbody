@@ -57,14 +57,14 @@ XplorSimulation::xplorVars()
 } /* xplorVars */
 
 void
-XplorSimulation::setAtomPosArr(const CDSVector<Vec3>& arr)
+XplorSimulation::setAtomPosArr(const CDSVector<CDSVec3>& arr)
 {
  modified |= modified_pos;
  Simulation::setAtomPosArr(arr);
 } /* setAtomPosArr */
 
 void
-XplorSimulation::setAtomVelArr(const CDSVector<Vec3>& arr)
+XplorSimulation::setAtomVelArr(const CDSVector<CDSVec3>& arr)
 {
  modified |= modified_vel;
  Simulation::setAtomVelArr(arr);
@@ -78,7 +78,7 @@ XplorSimulation::setAtomVelArr(const CDSVector<Vec3>& arr)
 
 void
 XplorSimulation::setAtomPos(      int   i, 
-			    const Vec3& newVal) 
+			    const CDSVec3& newVal) 
 {
  modified |= modified_pos;
  Simulation::setAtomPos(i, newVal);
@@ -86,7 +86,7 @@ XplorSimulation::setAtomPos(      int   i,
 
 void
 XplorSimulation::setAtomVel(      int   i, 
-			    const Vec3& newVal)
+			    const CDSVec3& newVal)
 {
  modified |= modified_vel;
  Simulation::setAtomVel(i, newVal);
@@ -309,11 +309,11 @@ XplorSimulation::syncPosFrom()
 
  for (int i=0 ; i < xplorVars()->natom ; i++)
    if ( xplorVars()->x[i]<9998.0 )
-     atomPosList_[i] =  Vec3(xplorVars()->x[i],
+     atomPosList_[i] =  CDSVec3(xplorVars()->x[i],
 			    xplorVars()->y[i],
 			    xplorVars()->z[i]);
    else
-     atomPosList_[i] = Vec3(Atom::INVALID_COORD,
+     atomPosList_[i] = CDSVec3(Atom::INVALID_COORD,
 			   Atom::INVALID_COORD,
 			   Atom::INVALID_COORD);
 } /* syncPosFrom */
@@ -324,7 +324,7 @@ XplorSimulation::syncVelFrom()
  initFrom();
 
  for (int i=0 ; i < xplorVars()->natom ; i++)
-   atomVelList_[i] = Vec3(xplorVars()->xv[i],
+   atomVelList_[i] = CDSVec3(xplorVars()->xv[i],
 			 xplorVars()->yv[i],
 			 xplorVars()->zv[i]);
 
@@ -490,7 +490,7 @@ FORTRAN(scripting_energy)()
  float_type nonXplorEner = 
    sim->calcNonXplorEnergyAndDeriv(derivList);
 
- const CDSVector<Vec3>& deriv = derivList[sim];
+ const CDSVector<CDSVec3>& deriv = derivList[sim];
  XplorVars* xplorVars = sim->xplorVars();
  for (int i=0 ; i < xplorVars->natom ; i++) {
    xplorVars->dx[i] += deriv(i).x();

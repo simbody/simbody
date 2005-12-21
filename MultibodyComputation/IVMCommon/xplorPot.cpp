@@ -104,7 +104,7 @@ XplorPot::calcEnergyAndDerivs(DerivList& derivs)
  DerivList::VectorVec3& deriv = derivs[ sim ];
 
  for (int i=0 ; i < sim->xplorVars()->natom ; i++)
-   deriv(i) += Vec3(sim->xplorVars()->dx[i],
+   deriv(i) += CDSVec3(sim->xplorVars()->dx[i],
 		    sim->xplorVars()->dy[i],
 		    sim->xplorVars()->dz[i]);
 

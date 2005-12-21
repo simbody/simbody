@@ -26,9 +26,9 @@
 using namespace InternalDynamics;
 using MatrixTools::inverse;
 
-typedef FixedVector<double,6> Vec6;
-typedef FixedMatrix<double,6> Mat66;
-typedef CDSList<Vec6>         VecVec6;
+typedef FixedVector<double,6> CDSVec6;
+typedef FixedMatrix<double,6> CDSMat66;
+typedef CDSList<CDSVec6>      CDSVecVec6;
 
 
 void RBStation::calcPosInfo(RBStationRuntime& rt) const {
@@ -213,7 +213,7 @@ void RigidBodyTree::prepareForDynamics() {
 // constraints. Must have already called prepareForDynamics().
 // TODO: also applies stored internal forces (hinge torques) which
 // will cause surprises if non-zero.
-void RigidBodyTree::calcTreeForwardDynamics(const VecVec6& spatialForces) {
+void RigidBodyTree::calcTreeForwardDynamics(const CDSVecVec6& spatialForces) {
     calcZ(spatialForces);
     calcTreeAccel();
     
@@ -224,8 +224,8 @@ void RigidBodyTree::calcTreeForwardDynamics(const VecVec6& spatialForces) {
 
 // Given a set of spatial forces, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const VecVec6& spatialForces) {
-    VecVec6 sFrc = spatialForces;
+void RigidBodyTree::calcLoopForwardDynamics(const CDSVecVec6& spatialForces) {
+    CDSVecVec6 sFrc = spatialForces;
     calcTreeForwardDynamics(sFrc);
     if (lConstraints->calcConstraintForces()) {
         lConstraints->addInCorrectionForces(sFrc);
@@ -248,7 +248,7 @@ void RigidBodyTree::calcP() {
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcZ(const VecVec6& spatialForces) {
+void RigidBodyTree::calcZ(const CDSVecVec6& spatialForces) {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
@@ -276,7 +276,7 @@ void RigidBodyTree::fixVel0(RVec& vel) {
 }
 
 // Calc unconstrained internal forces from spatial forces: sweep from tip to base.
-void RigidBodyTree::calcTreeInternalForces(const VecVec6& spatialForces) {
+void RigidBodyTree::calcTreeInternalForces(const CDSVecVec6& spatialForces) {
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];

@@ -227,7 +227,7 @@ public:
     RMat  calcGInverse() const;
 
     void  calcConstraintForces() const; // updates runtime only
-    void  addInCorrectionForces(VecVec6& spatialForces) const; // spatialForces+=correction
+    void  addInCorrectionForces(CDSVecVec6& spatialForces) const; // spatialForces+=correction
 
     void  fixVel0(RVec&);
     void  fixInternalForce(RVec&);
@@ -628,7 +628,7 @@ LengthSet::calcGrad() const
 
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
-        FixedVector<CDSList<Mat66>,2,1> phiT;
+        FixedVector<CDSList<CDSMat66>,2,1> phiT;
         for (int b=1 ; b<=2 ; b++) {
             phiT(b).resize( l.nodes(b).size() );
             if ( l.nodes(b).size() ) {
@@ -654,7 +654,7 @@ LengthSet::calcGrad() const
             int l1_indx = l.nodes(1).getIndex(nodeMap[j]);
             int l2_indx = l.nodes(2).getIndex(nodeMap[j]);
             for (int k=0 ; k<H.cols() ; k++) {
-                Vec6 Hcol = subCol(H,k,0,5).vector();
+                CDSVec6 Hcol = subCol(H,k,0,5).vector();
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
@@ -720,7 +720,7 @@ bool LengthConstraints::calcConstraintForces() const {
     return true;
 }
 
-void LengthConstraints::addInCorrectionForces(VecVec6& spatialForces) const {
+void LengthConstraints::addInCorrectionForces(CDSVecVec6& spatialForces) const {
     for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
         priv->accConstraints[i]->addInCorrectionForces(spatialForces);
 }
@@ -738,8 +738,8 @@ LengthConstraints::fixGradient(RVec& forceInternal)
         priv->constraints[i]->testInternalForce(forceInternal);
 }
 
-typedef SubVector<const Vec6>       SubVec6;
-typedef SubVector<const Vec6>       SubVec6;
+typedef SubVector<const CDSVec6>       SubVec6;
+typedef SubVector<const CDSVec6>       SubVec6;
 
 //
 // Calculate the acceleration of atom assuming that the spatial acceleration
@@ -770,8 +770,8 @@ computeA(const CDSVec3&    v1,
 
     CDSMat33 one(0.); one.setDiag(1.);
 
-    Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
-    Vec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
+    CDSVec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
+    CDSVec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * n1->getPsiT();
@@ -875,7 +875,7 @@ LengthSet::calcConstraintForces() const
     }
 }
 
-void LengthSet::addInCorrectionForces(VecVec6& spatialForces) const {
+void LengthSet::addInCorrectionForces(CDSVecVec6& spatialForces) const {
     for (int i=0; i<loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
@@ -1016,7 +1016,7 @@ LengthSet::fixVel0(RVec& iVel)
         loops[m].setTipForce(2,  probeImpulse);
         loops[m].setTipForce(1, -probeImpulse);
 
-        VecVec6 spatialImpulse(rbTree.getNBodies());
+        CDSVecVec6 spatialImpulse(rbTree.getNBodies());
         for (int ii=0; ii < rbTree.getNBodies(); ++ii)
             spatialImpulse[ii].set(0.);
         for (int t=1; t<=2; ++t) {

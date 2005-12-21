@@ -1,5 +1,5 @@
-#ifndef MAT33_H_
-#define MAT33_H_
+#ifndef CDS_MAT33_H_
+#define CDS_MAT33_H_
 
 #include <fixedMatrix.h>
 
@@ -48,4 +48,4 @@ CDSMat33::CDSMat33(
     data(2,0) = m31; data(2,1) = m32; data(2,2) = m33;
 }
 
-#endif /* MAT33_H_ */
+#endif /* CDS_MAT33_H_ */

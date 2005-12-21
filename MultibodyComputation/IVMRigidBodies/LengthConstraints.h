@@ -8,8 +8,8 @@ class RBDistanceConstraint;
 class RBDistanceConstraintRuntime;
 class RigidBodyTree;
 template<class T> class CDSList;
-typedef FixedVector<double,6>   Vec6;
-typedef CDSList<Vec6> VecVec6;
+typedef FixedVector<double,6>   CDSVec6;
+typedef CDSList<CDSVec6> CDSVecVec6;
 
 #include <cdsIostream.h>
 
@@ -27,7 +27,7 @@ public:
                  CDSVector<double,1>& vel);
 
     bool calcConstraintForces() const;
-    void addInCorrectionForces(VecVec6& spatialForces) const;
+    void addInCorrectionForces(CDSVecVec6& spatialForces) const;
 
     void fixVel0(CDSVector<double,1>&);
     void fixGradient(CDSVector<double,1>&);

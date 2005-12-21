@@ -25,7 +25,7 @@ using InternalDynamics::printStepInfo;
 
 
 Powell::Powell(IVM* ivm)
-  : Solver(ivm), mxfcon(2), maxlin(5) 
+  : CDSSolver(ivm), mxfcon(2), maxlin(5) 
 {}
 
 void

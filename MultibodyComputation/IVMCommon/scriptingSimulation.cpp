@@ -58,14 +58,14 @@ ScriptingSimulation::bondPairByID(int i)
 { return sim->bondPairByID(i); }
 
 void
-ScriptingSimulation::setAtomPos(const int i, const Vec3& newVal) {
+ScriptingSimulation::setAtomPos(const int i, const CDSVec3& newVal) {
 
   checkIndexRange(i);
   sim->setAtomPos(i, newVal);
 }
 
 void
-ScriptingSimulation::setAtomVel(const int i, const Vec3& newVal) {
+ScriptingSimulation::setAtomVel(const int i, const CDSVec3& newVal) {
 
   checkIndexRange(i);
   sim->setAtomVel(i, newVal);
@@ -128,14 +128,14 @@ ScriptingSimulation::setAtomName(const int i, const char* newVal) {
 //}
 
 
-Vec3         
+CDSVec3         
 ScriptingSimulation::atomPos(const int i) const {
 
   checkIndexRange(i);
   return sim->atomPos(i);
 }
 
-Vec3         
+CDSVec3         
 ScriptingSimulation::atomVel(const int i) const {
 
   checkIndexRange(i);

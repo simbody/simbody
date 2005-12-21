@@ -6,12 +6,12 @@
 #include "mnbrak.h"
 #include "brent.h"
 
-template<class Vec, class S, class Func>
+template<class VEC, class S, class Func>
 void 
 linemin(Func func,
-	Vec& p,
+	VEC& p,
 	S&   fret,
-	Vec& xi  ,
+	VEC& xi  ,
 	S&   stepsize);
 
 
@@ -19,35 +19,35 @@ linemin(Func func,
 //T
 //f1dim(S& x)
 //{
-// Vec xt = pcom + x*xicom;
+// VEC xt = pcom + x*xicom;
 // f = nrfunc(xt);
 // return f;
 //}
 
-template<class Vec, class S, class Func>
+template<class VEC, class S, class Func>
 class F1Dim {
-  const Vec& p;
-  const Vec& xi;
+  const VEC& p;
+  const VEC& xi;
   Func func;
 public:
-  F1Dim(const Vec& p,
-	const Vec& xi,
+  F1Dim(const VEC& p,
+	const VEC& xi,
 	      Func func) :
     p(p), xi(xi), func(func) {}
   S operator()(const S& x) {
-    Vec xt = p + x*xi;
+    VEC xt = p + x*xi;
     return func(xt);
   }
 };
 
 
 
-template<class Vec, class  S, class Func>
+template<class VEC, class  S, class Func>
 void 
 linemin(Func func,
-	Vec& p,
+	VEC& p,
 	S&   fret,
-	Vec& xi  ,
+	VEC& xi  ,
 	S&   stepsize)
 {
  S ax = 0;
@@ -55,7 +55,7 @@ linemin(Func func,
  S xx = stepsize;
  S fa, fb, fx;
  mnbrak(ax,xx,bx,fa,fx,fb,
-	F1Dim<Vec,S,Func>(p,xi,func));
+	F1Dim<VEC,S,Func>(p,xi,func));
 // if (ax < 0.0) cout << "linemin: ax<0: " << ax << '\n';
 // if (xx < 0.0) cout << "linemin: xx<0: " << xx << '\n';
 // if (bx < 0.0) cout << "linemin: bx<0: " << bx << '\n';
@@ -68,7 +68,7 @@ linemin(Func func,
    
  
  fret = brent(ax,xx,bx,
-	      F1Dim<Vec,S,Func>(p,xi,func),stepsize);
+	      F1Dim<VEC,S,Func>(p,xi,func),stepsize);
 // cout << "linemin: fret: " << fret << '\n';
  xi *= stepsize;
  p += xi;

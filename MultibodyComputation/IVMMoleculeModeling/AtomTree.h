@@ -53,7 +53,7 @@ public:
 
 private:
     RigidBodyTree rbTree;                   // the pure rigid body tree
-    VecVec6       spatialForces;
+    CDSVecVec6       spatialForces;
 public:
     AtomTree(IVM*);
     ~AtomTree();
@@ -78,12 +78,12 @@ public:
     const CDSVec3& getClusterCOM_G(int level, int indx) const;
 
     /// Get the spatial velocity of this cluster. Requires previous call to setVel().
-    const Vec6& getClusterSpatialVel(int level, int indx) const;
+    const CDSVec6& getClusterSpatialVel(int level, int indx) const;
 
     /// Set this cluster's inboard joint coordinates to best approximate
     /// the desired spatial velocity, taking into account the spatial
     /// velocity of the parent.
-    void setClusterVelFromSVel(int level, int indx, const Vec6& sVel);
+    void setClusterVelFromSVel(int level, int indx, const CDSVec6& sVel);
 
     /// Calculate the kinetic energy contribution of a single cluster
     /// from its spatial velocity. Requires previous call to setVel().
@@ -120,7 +120,7 @@ public:
         rbTree.calcZ(spatialForces);
     }
 
-    void applyForces(const VecVec6& spatialForces) {
+    void applyForces(const CDSVecVec6& spatialForces) {
         rbTree.calcZ(spatialForces);
     }
 
@@ -140,7 +140,7 @@ public:
     void markAtoms(CDSVector<bool,0>& assignedAtoms);
     static void addCM(const AtomClusterNode* n,
                       double&                mass,
-                      CDSVec3&                  pos);
+                      CDSVec3&               pos);
 
     static CDSVec3 findCM(const AtomClusterNode* n);
 

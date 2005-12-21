@@ -14,7 +14,7 @@ class AtomClusterNode;
 class RigidBodyNode;
 typedef CDSList<IVMAtom*>         AtomList;
 typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
-typedef FixedVector<double,6>     Vec6;
+typedef FixedVector<double,6>     CDSVec6;
 
 class InertiaTensor : public CDSMat33 {
 public:
@@ -89,19 +89,19 @@ public:
     /// Given the spatial velocity (angular,linear) of this cluster at its origin,
     /// calculate the velocity of each atom and store that with the atom. 
     /// calcAtomPos() must have been called previously.
-    void calcAtomVel(const Vec6& V_OB_G);
+    void calcAtomVel(const CDSVec6& V_OB_G);
 
     /// Assuming calcAtomPos() and calcAtomVel() have already been called, and
     /// that the atoms have forces applied to them, this will combine all those
     /// atomic forces into a single spatial force acting on the cluster at its
     /// origin and return that force. TODO: currently the bath temperature maintenance force is
     /// generated here and added to the total.
-    void calcSpatialForce(Vec6& F_OB_G);
+    void calcSpatialForce(CDSVec6& F_OB_G);
 
     /// Given a set of desired atomic velocities, combine these into a mass-weighted
     /// spatial impulse for this node. This can then be used in the dynamic equations
     /// instead of a force, yielding velocities rather than accelerations.
-    void calcSpatialImpulse(Vec6& Impulse_OB_G);
+    void calcSpatialImpulse(CDSVec6& Impulse_OB_G);
 
     virtual int getDOF() const {return 0;} //number of independent dofs
     virtual int getDim() const {return 0;} //# of generalized coords (>=#dofs)

@@ -10,8 +10,8 @@
 #include <subVector.h>
 #include <subMatrix.h>
 
-typedef FixedVector<double,6>   Vec6;
-typedef FixedMatrix<double,6,6> Mat66;
+typedef FixedVector<double,6>   CDSVec6;
+typedef FixedMatrix<double,6,6> CDSMat66;
 
 class PhiMatrixTranspose;
 
@@ -42,16 +42,16 @@ transpose(const PhiMatrix& phi)
     return ret;
 }
   
-inline Vec6
+inline CDSVec6
 operator*(const PhiMatrix& phi,
-          const Vec6&      vec)
+          const CDSVec6&      vec)
 {
-    const SubVector<const Vec6> v1(vec,0,3);
-    const SubVector<const Vec6> v2(vec,3,3);
+    const SubVector<const CDSVec6> v1(vec,0,3);
+    const SubVector<const CDSVec6> v2(vec,3,3);
 
     FixedVector<double,6> ret;
-    SubVector<Vec6> rv1(ret,0,3);
-    SubVector<Vec6> rv2(ret,3,3);
+    SubVector<CDSVec6> rv1(ret,0,3);
+    SubVector<CDSVec6> rv2(ret,3,3);
 
     rv1 = (v1 + cross(phi.l() , v2.vector())).vector();
     rv2 = v2.vector();
@@ -59,16 +59,16 @@ operator*(const PhiMatrix& phi,
     return ret;
 }
 
-inline Vec6
+inline CDSVec6
 operator*(const PhiMatrixTranspose& phiT,
-          const Vec6&               vec)
+          const CDSVec6&            vec)
 {
-    const SubVector<const Vec6> v1(vec,0,3);
-    const SubVector<const Vec6> v2(vec,3,3);
+    const SubVector<const CDSVec6> v1(vec,0,3);
+    const SubVector<const CDSVec6> v2(vec,3,3);
 
-    Vec6 ret;
-    SubVector<Vec6> rv1(ret,0,3);
-    SubVector<Vec6> rv2(ret,3,3);
+    CDSVec6 ret;
+    SubVector<CDSVec6> rv1(ret,0,3);
+    SubVector<CDSVec6> rv2(ret,3,3);
 
     rv1 = v1.vector();
     rv2 = (v2 + cross(v1.vector() , phiT.l())).vector();
@@ -76,20 +76,20 @@ operator*(const PhiMatrixTranspose& phiT,
     return ret;
 }
 
-inline Mat66
-operator*(const Mat66&               mat,
+inline CDSMat66
+operator*(const CDSMat66&           mat,
           const PhiMatrixTranspose& phiT)
 {
-    SubMatrix<const Mat66> m11(mat,0,0,3,3);
-    SubMatrix<const Mat66> m12(mat,0,3,3,3);
-    SubMatrix<const Mat66> m21(mat,3,0,3,3);
-    SubMatrix<const Mat66> m22(mat,3,3,3,3);
+    SubMatrix<const CDSMat66> m11(mat,0,0,3,3);
+    SubMatrix<const CDSMat66> m12(mat,0,3,3,3);
+    SubMatrix<const CDSMat66> m21(mat,3,0,3,3);
+    SubMatrix<const CDSMat66> m22(mat,3,3,3,3);
 
-    Mat66 ret;
-    SubMatrix<Mat66> rm11(ret,0,0,3,3);
-    SubMatrix<Mat66> rm12(ret,0,3,3,3);
-    SubMatrix<Mat66> rm21(ret,3,0,3,3);
-    SubMatrix<Mat66> rm22(ret,3,3,3,3);
+    CDSMat66 ret;
+    SubMatrix<CDSMat66> rm11(ret,0,0,3,3);
+    SubMatrix<CDSMat66> rm12(ret,0,3,3,3);
+    SubMatrix<CDSMat66> rm21(ret,3,0,3,3);
+    SubMatrix<CDSMat66> rm22(ret,3,3,3,3);
 
     rm11 = m11 - m12 * crossMat(phiT.l());
     rm12 = m12;

@@ -30,15 +30,15 @@ using CDSMath::sq;
 // for gcc-2.95 to compile this source.
 
 typedef FixedMatrix<double,2,3> Mat23;
-typedef FixedVector<double,5>   Vec5;
+typedef FixedVector<double,5>   CDSVec5;
 
 
 typedef SubVector<RVec>       RSubVec;
 typedef SubVector<const RVec> ConstRSubVec;
 typedef SubVector<CDSVec4>    RSubVec4;
-typedef SubVector<Vec5>       RSubVec5;
-typedef SubVector<Vec6>       RSubVec6;
-typedef SubVector<const Vec6> ConstRSubVec6;
+typedef SubVector<CDSVec5>       RSubVec5;
+typedef SubVector<CDSVec6>       RSubVec6;
+typedef SubVector<const CDSVec6> ConstRSubVec6;
 
 static Mat23 catRow23(const CDSVec3& v1, const CDSVec3& v2);
 static CDSMat33 makeJointFrameFromZAxis(const CDSVec3& zVec);
@@ -151,14 +151,14 @@ public:
     /*virtual*/const char* type() const { return "ground"; }
 
     /*virtual*/void calcP() {} 
-    /*virtual*/void calcZ(const Vec6&) {} 
+    /*virtual*/void calcZ(const CDSVec6&) {} 
     /*virtual*/void calcY() {}
-    /*virtual*/void calcInternalForce(const Vec6&) {}
+    /*virtual*/void calcInternalForce(const CDSVec6&) {}
     /*virtual*/void calcAccel() {}
 
     /*virtual*/void setPos(const RVec&) {}
     /*virtual*/void setVel(const RVec&) {}
-    /*virtual*/void setVelFromSVel(const Vec6&) {}
+    /*virtual*/void setVelFromSVel(const CDSVec6&) {}
     /*virtual*/void enforceConstraints(RVec& pos, RVec& vel) {}
 
     /*virtual*/void getPos(RVec&)   const {}
@@ -250,16 +250,16 @@ public:
     virtual void   print(int) const;
 
 
-    virtual void setVelFromSVel(const Vec6&);
+    virtual void setVelFromSVel(const CDSVec6&);
     virtual void enforceConstraints(RVec& pos, RVec& vel) {}
 
     virtual RMat getH() const { return RMat(H); }
 
     void calcP();
-    void calcZ(const Vec6& spatialForce);
+    void calcZ(const CDSVec6& spatialForce);
     void calcY();
     void calcAccel();
-    void calcInternalForce(const Vec6& spatialForce);
+    void calcInternalForce(const CDSVec6& spatialForce);
 
     void nodeSpecDump(ostream& o) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
@@ -293,7 +293,7 @@ protected:
     FixedVector<double,dof>     forceInternal;
 
 private:
-    void calcD_G(const Mat66& P);
+    void calcD_G(const CDSMat66& P);
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
@@ -597,7 +597,7 @@ public:
         ball.getBallInternalForce(forceInternal, stateOffset, v);
     }
 
-    void setVelFromSVel(const Vec6& sVel) {
+    void setVelFromSVel(const CDSVec6& sVel) {
         RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
         ball.setBallDerivs(dTheta);
     } 
@@ -688,7 +688,7 @@ public:
 
     }
 
-    void setVelFromSVel(const Vec6& sVel) {
+    void setVelFromSVel(const CDSVec6& sVel) {
         RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
         const CDSVec3 omega  = RSubVec6( dTheta, 0, 3).vector();
         ball.setBallDerivs(omega);
@@ -864,12 +864,12 @@ RigidBodyNode::create(
 // to be called from base to tip.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(const Vec6& sVel) {
+RigidBodyNodeSpec<dof>::setVelFromSVel(const CDSVec6& sVel) {
     dTheta = H * (sVel - transpose(phi)*parent->sVel);
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcD_G(const Mat66& P) {
+RigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
     using InternalDynamics::Exception;
     FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
     try {
@@ -900,21 +900,21 @@ RigidBodyNodeSpec<dof>::calcP() {
     //
     P = Mk;
 
-    SubMatrix<Mat66> p11(P,0,0,3,3);
-    SubMatrix<Mat66> p12(P,0,3,3,3);
-    SubMatrix<Mat66> p21(P,3,0,3,3);
-    SubMatrix<Mat66> p22(P,3,3,3,3);
+    SubMatrix<CDSMat66> p11(P,0,0,3,3);
+    SubMatrix<CDSMat66> p12(P,0,3,3,3);
+    SubMatrix<CDSMat66> p21(P,3,0,3,3);
+    SubMatrix<CDSMat66> p22(P,3,3,3,3);
     for (int i=0 ; i<children.size() ; i++) {
         // this version is readable
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
         CDSMat33 lt = crossMat(children[i]->getOB_G() - getOB_G());
-        Mat66 M  = children[i]->tau * children[i]->P;
-        SubMatrix<Mat66> m11(M,0,0,3,3);
-        SubMatrix<Mat66> m12(M,0,3,3,3);
-        SubMatrix<Mat66> m21(M,3,0,3,3);
-        SubMatrix<Mat66> m22(M,3,3,3,3);
+        CDSMat66 M  = children[i]->tau * children[i]->P;
+        SubMatrix<CDSMat66> m11(M,0,0,3,3);
+        SubMatrix<CDSMat66> m12(M,0,3,3,3);
+        SubMatrix<CDSMat66> m21(M,3,0,3,3);
+        SubMatrix<CDSMat66> m22(M,3,3,3,3);
         p11 += m11+lt*m21-m12*lt-lt*m22*lt;
         p12 += m12+lt*m22;
         p21 += m21-m22*lt;
@@ -931,7 +931,7 @@ RigidBodyNodeSpec<dof>::calcP() {
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(const Vec6& spatialForce) {
+RigidBodyNodeSpec<dof>::calcZ(const CDSVec6& spatialForce) {
     z = P * a + b - spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
@@ -953,7 +953,7 @@ RigidBodyNodeSpec<dof>::calcAccel() {
     // const Node* pNode = parentHinge.remNode;
     //make sure that this is phi is correct - FIX ME!
     // base alpha = 0!!!!!!!!!!!!!
-    Vec6 alphap = transpose(phi) * parent->sAcc;
+    CDSVec6 alphap = transpose(phi) * parent->sAcc;
     ddTheta = nu - MatrixTools::transpose(G) * alphap;
     sAcc   = alphap + MatrixTools::transpose(H) * ddTheta + a;  
 
@@ -974,7 +974,7 @@ RigidBodyNodeSpec<dof>::calcY() {
 // Should be called only once after calcProps.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalForce(const Vec6& spatialForce) {
+RigidBodyNodeSpec<dof>::calcInternalForce(const CDSVec6& spatialForce) {
     z = -spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
