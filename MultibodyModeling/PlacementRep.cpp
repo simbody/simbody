@@ -1557,6 +1557,168 @@ OrientationExprPlacementRep::binaryOp(OrientationOps::OpKind op,
     return new OrientationExprPlacementRep(OrientationOps(op), args);
 }
 
+    // INERTIA PLACEMENT REP //
+
+/*static*/ PlacementRep* 
+InertiaPlacementRep::createInertiaPlacementFrom(const Placement& p, bool dontThrow) {
+    if (InertiaPlacement::isInstanceOf(p))
+        return p.getRep().clone();
+
+    if (!dontThrow) {
+        SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
+            "Inertia", p.getPlacementTypeName(), p.toString());
+        //NOTREACHED
+    }
+    return 0;
+}
+
+// result = inertia + placement
+//   We support only
+//     inertia = inertia + inertia
+Placement InertiaPlacementRep::genericAdd(const Placement& r) const {
+    if (InertiaPlacement::isInstanceOf(r)) {
+        const InertiaPlacement& ip = InertiaPlacement::downcast(r);
+        InertiaPlacementRep* result = 
+            isConstant() && ip.getRep().isConstant()
+                ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(calcInertiaValue()+ip.getRep().calcInertiaValue())
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::addOp(getMyHandle(),ip);
+        return Placement(result);
+    }
+
+    return PlacementRep::genericAdd(r);    // die
+}
+
+// result = inertia - placement
+//   We support only
+//     inertia = inertia - inertia
+Placement InertiaPlacementRep::genericSub(const Placement& r) const {
+    if (InertiaPlacement::isInstanceOf(r)) {
+        const InertiaPlacement& ip = InertiaPlacement::downcast(r);
+        InertiaPlacementRep* result = 
+            isConstant() && ip.getRep().isConstant()
+                ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(calcInertiaValue()-ip.getRep().calcInertiaValue())
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::subOp(getMyHandle(),ip);
+        return Placement(result);
+    }
+
+    return PlacementRep::genericSub(r);    // die
+}
+
+    // INERTIA FEATURE PLACEMENT REP //
+const Inertia& InertiaFeaturePlacementRep::getReferencedValue() const {
+    const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
+
+    if (!isIndexed())
+        return PlacementValue_<Inertia>::downcast(ps.getValue()).get();
+
+    assert(false);
+    //NOTREACHED
+
+    return *reinterpret_cast<const Inertia*>(0);
+}
+
+    // INERTIA EXPR PLACEMENT REP //
+bool InertiaOps::checkArgs(const std::vector<Placement>& args) const {
+    switch (op) {
+
+    // i=i+i
+    case Add:
+        return args.size()==2 && InertiaPlacement::isInstanceOf(args[0])
+                              && InertiaPlacement::isInstanceOf(args[1]);
+    
+    // i=i-i
+    case Subtract:
+        return args.size()==2 && InertiaPlacement::isInstanceOf(args[0])
+                              && InertiaPlacement::isInstanceOf(args[1]);
+
+    // i=transform(i, rotation)
+    case Transform:
+        return args.size()==2 && InertiaPlacement::isInstanceOf(args[0])
+                              && OrientationPlacement::isInstanceOf(args[1]);
+
+    // i=shift(i,from,to,totalMass)
+    case Shift:
+        return args.size()==4 && InertiaPlacement::isInstanceOf(args[0])
+                              && StationPlacement::isInstanceOf(args[1])
+                              && StationPlacement::isInstanceOf(args[2])
+                              && RealPlacement::isInstanceOf(args[3]);
+
+    default: 
+        assert(false);
+    }
+    //NOTREACHED
+    return false;
+}
+
+Inertia InertiaOps::apply(const std::vector<Placement>& args) const {
+    Inertia val;
+    switch(op) {
+    case Add:
+        val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
+              + InertiaPlacement::downcast(args[1]).getRep().calcInertiaValue();
+        break;
+    
+    case Subtract:
+        val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
+              - InertiaPlacement::downcast(args[1]).getRep().calcInertiaValue();
+        break;
+
+    case Transform:
+        val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
+              .xform(OrientationPlacement::downcast(args[1]).getRep().calcMat33Value());
+        break;
+
+    // i=shift(i,from,to,totalMass)
+    case Shift:
+        val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
+              .shiftToCOM  (RealPlacement::downcast(args[3]).getRep().calcRealValue(),
+                            StationPlacement::downcast(args[1]).getRep().calcVec3Value())
+              .shiftFromCOM(RealPlacement::downcast(args[3]).getRep().calcRealValue(),
+                            StationPlacement::downcast(args[2]).getRep().calcVec3Value());        break;
+
+    default: 
+        assert(false);
+    }
+    return val;
+}
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::unaryOp(InertiaOps::OpKind op, const Placement& a) {
+    std::vector<const Placement*> args(1);
+    args[0] = &a;
+    return new InertiaExprPlacementRep(InertiaOps(op), args);
+}
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::binaryOp(InertiaOps::OpKind op, 
+                               const Placement& l, const Placement& r) {
+    std::vector<const Placement*> args(2);
+    args[0] = &l; args[1] = &r;
+    return new InertiaExprPlacementRep(InertiaOps(op), args);
+}
+
+// Supported InertiaExpr-building operators
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::addOp (const InertiaPlacement& l, const InertiaPlacement& r)
+  { return binaryOp(InertiaOps::Add, l, r); }
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::subOp (const InertiaPlacement& l, const InertiaPlacement& r)
+  { return binaryOp(InertiaOps::Subtract, l, r); }
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::xformOp (const InertiaPlacement& i, const OrientationPlacement& r)
+  { return binaryOp(InertiaOps::Transform, i, r); }
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::shiftOp(const InertiaPlacement& i,
+                                 const StationPlacement& from,
+                                 const StationPlacement& to,
+                                 const RealPlacement&    mtot)
+{ 
+    std::vector<const Placement*> args(4);
+    args[0] = &i; args[1] = &from; args[2] = &to; args[3] = &mtot;
+    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::Shift), args);
+}
+
     // FRAME PLACEMENT REP //
 
 // In addition to a straightforward Frame placement, a FrameFeature can be

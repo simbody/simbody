@@ -55,6 +55,18 @@ public:
     StationMeasure& updCentroid() {
         return StationMeasure::downcast(updFeature(centroidMeasureIndex));
     }
+    const InertiaMeasure& getInertia() const {
+        return InertiaMeasure::downcast(getFeature(inertiaMeasureIndex));
+    }
+    InertiaMeasure& updInertia() {
+        return InertiaMeasure::downcast(updFeature(inertiaMeasureIndex));
+    }
+    const InertiaMeasure& getCentralInertia() const {
+        return InertiaMeasure::downcast(getFeature(centralInertiaMeasureIndex));
+    }
+    InertiaMeasure& updCentralInertia() {
+        return InertiaMeasure::downcast(updFeature(centralInertiaMeasureIndex));
+    }
 
     // virtuals getFeatureTypeName() && clone() still missing
 
@@ -65,10 +77,14 @@ protected:
     virtual void initializeStandardSubfeatures() {
         FrameRep::initializeStandardSubfeatures();
 
-        Feature& mm = addFeatureLike(RealMeasure("mass"), "mass");
-        Feature& cm = addFeatureLike(StationMeasure("centroid"), "centroid");
-        massMeasureIndex     = mm.getIndexInParent();
-        centroidMeasureIndex = cm.getIndexInParent();
+        Feature& mm  = addFeatureLike(RealMeasure("mass"), "mass");
+        Feature& cm  = addFeatureLike(StationMeasure("centroid"), "centroid");
+        Feature& im  = addFeatureLike(InertiaMeasure("inertia"), "inertia");
+        Feature& cim = addFeatureLike(InertiaMeasure("centralInertia"), "centralInertia");
+        massMeasureIndex            = mm.getIndexInParent();
+        centroidMeasureIndex        = cm.getIndexInParent();
+        inertiaMeasureIndex         = im.getIndexInParent();
+        centralInertiaMeasureIndex  = cim.getIndexInParent();
     }
 
     virtual void finalizeStandardSubfeatures() {
@@ -77,25 +93,24 @@ protected:
         // Add up the masses and place the mass measure on the resulting Placement.
         RealPlacement totalMass(0.);
         StationPlacement centroid(Vec3(0));
-        //InertiaPlacement inertia(Mat33(0));
+        InertiaPlacement inertia(Mat33(0));
         for (int i=0; i < getNSubsystems(); ++i) {
             if (MassElement::isInstanceOf(getSubsystem(i))) {
                 const MassElement& me = MassElement::downcast(getSubsystem(i));
-                totalMass = RealPlacement::downcast(add(totalMass, me.getMassMeasure()));
-                centroid  = StationPlacement::downcast(add(centroid, me.getMassMeasure()*me.getCentroidMeasure()));
-                //inertia   = add(inertia, shiftInertia(me.getInertiaMeasure(),
-                //                                      me.getCentroidMeasure(),  // from
-                //                                      getCentroid()));          // to
+                totalMass = RealPlacement::downcast   (add(totalMass, me.getMassMeasure()));
+                centroid  = StationPlacement::downcast(add(centroid,  me.getMassMeasure()*me.getCentroidMeasure()));
+                inertia   = InertiaPlacement::downcast(add(inertia,   me.getInertiaMeasure()));
             }
         }
         updMass().replace(totalMass);
         updCentroid().replace(centroid / getMass());
-        //updCentroidalInertia().replace(inertia);
-        //updOriginInertia().replace(shiftInertia(getCentroidalInertia(),getCentroid(),getOrigin()));
+        updInertia().replace(inertia);
+        updCentralInertia().replace(InertiaPlacement(getInertia())
+                                        .shift(getOrigin(),getCentroid(),getMass()));
     }
 
 private:
-    int massMeasureIndex, centroidMeasureIndex;
+    int massMeasureIndex, centroidMeasureIndex, inertiaMeasureIndex, centralInertiaMeasureIndex;
 };
 
 class RigidBodyRep : public BodyRep {

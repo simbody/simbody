@@ -28,6 +28,7 @@
  */
 
 #include "simbody/SimbodyCommon.h"
+#include "simbody/MassProperties.h"
 #include "Placement.h"
 
 #include <iostream>
@@ -48,6 +49,7 @@ class StationMeasure;
 class   StationParameter;
 class DirectionMeasure;
 class OrientationMeasure;
+class InertiaMeasure;
 
 // Declared below.
 class Placement;
@@ -167,6 +169,30 @@ public:
     static bool                        isInstanceOf(const Placement&);
     static const OrientationPlacement& downcast(const Placement&);
     static OrientationPlacement&       downcast(Placement&);
+};
+
+// A symmetric matrix.
+class InertiaPlacement : public Placement {
+public:
+    InertiaPlacement() { }
+    InertiaPlacement(const InertiaMeasure&);    // implicit conversion
+
+    explicit InertiaPlacement(const Mat33&);
+    explicit InertiaPlacement(const Inertia&);
+    explicit InertiaPlacement(const Feature&);
+
+    InertiaPlacement shift(const StationPlacement& from,
+                           const StationPlacement& to,
+                           const RealPlacement&    totalMass) const;
+
+    // For internal use only.
+    explicit InertiaPlacement(class InertiaPlacementRep* r) 
+      : Placement(reinterpret_cast<PlacementRep*>(r)) { }
+    const InertiaPlacementRep& getRep() const
+      { return *reinterpret_cast<const InertiaPlacementRep*>(rep); } 
+    static bool                    isInstanceOf(const Placement&);
+    static const InertiaPlacement& downcast(const Placement&);
+    static InertiaPlacement&       downcast(Placement&);
 };
 
 class FramePlacement : public Placement {

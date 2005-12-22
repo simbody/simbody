@@ -9,5 +9,5 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/MultibodyModeling
 ADD_LIBRARY(MultibodyModeling ${SOURCE_FILES} ${INCLUDE_FILES})
 
 ADD_EXECUTABLE(MultibodyModelingTest ${SOURCE_FILES} ${INCLUDE_FILES})
-TARGET_LINK_LIBRARIES(MultibodyModelingTest MultibodyModeling IVMRigidBodies CDSlib
+TARGET_LINK_LIBRARIES(MultibodyModelingTest MultibodyModeling Mechanics IVMRigidBodies CDSlib
                       BigMatrix SmallMatrix Scalar simtk ${MATH_LIBS_TO_USE})

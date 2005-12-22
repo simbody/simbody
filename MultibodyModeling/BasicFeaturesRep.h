@@ -399,6 +399,32 @@ private:
     int axisIndices[3];
 };
 
+
+class InertiaMeasureRep : public FeatureRep {
+public:
+    InertiaMeasureRep(InertiaMeasure& m, const std::string& nm) 
+        : FeatureRep(m,nm,InertiaPlacement(Mat33(NTraits<Real>::getNaN()))) { }
+    // no standard Subfeatures
+
+    ~InertiaMeasureRep() { }
+
+    std::string getFeatureTypeName() const { return "InertiaMeasure"; }
+    SubsystemRep* clone() const { return new InertiaMeasureRep(*this); }
+
+    PlacementRep* createFeatureReference(Placement& p, int i) const {
+        if (!(i==-1 || i==0)) {
+            SIMTK_THROW3(Exception::IndexOutOfRangeForFeaturePlacementReference,
+                getFullName(), getFeatureTypeName(), i);
+            //NOTREACHED
+        }
+        PlacementRep* prep = new InertiaFeaturePlacementRep(getMyHandle());
+        prep->setMyHandle(p); p.setRep(prep);
+        return prep;
+    }
+
+    SIMTK_DOWNCAST(InertiaMeasureRep,SubsystemRep);
+};
+
 class FrameRep : public FeatureRep {
 public:
     FrameRep(FrameFeature& f, const std::string& nm) 

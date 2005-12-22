@@ -51,7 +51,8 @@ class GeneralMassElement;
 class MassElement : public Feature {
 public:
     const RealMeasure&    getMassMeasure() const;
-    const StationMeasure& getCentroidMeasure() const;
+    const StationMeasure& getCentroidMeasure() const;   // measured from body origin, exp. in body frame
+    const InertiaMeasure& getInertiaMeasure() const;    // about body origin, exp. in body frame
 
     static bool               isInstanceOf(const Subsystem&);
     static const MassElement& downcast(const Subsystem&);

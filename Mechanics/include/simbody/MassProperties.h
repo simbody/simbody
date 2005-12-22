@@ -125,7 +125,8 @@ public:
     }
 
     /// Re-express this inertia from frame F to frame B, given the orientation
-    /// of B in F.
+    /// of B in F. This is a similarity transform since rotation matrices are
+    /// orthogonal.
     Inertia xform(const Mat33& R_FB) const {
         return Inertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
     }
@@ -147,6 +148,12 @@ public:
     inline Inertia shiftFromCOM(const Real& mtot, const Vec3& p) const;
 
     Real trace() const {return I_OF_F(0,0) + I_OF_F(1,1) + I_OF_F(2,2);}
+
+    // Note that we are copying into the Mat33 here so this will still
+    // work if we decide to switch to a SymMat33 when they exist.
+    Mat33 toMat33() const {
+        return I_OF_F;
+    }
 
 private:
     //TODO: the tolerance here should be a function of Real's precision
@@ -177,6 +184,8 @@ inline Inertia Inertia::shiftToCOM(const Real& mtot, const Vec3& CF) const {
 inline Inertia Inertia::shiftFromCOM(const Real& mtot, const Vec3& p) const {
     return *this + Inertia(mtot,p);
 }
+
+std::ostream& operator<<(std::ostream& o, const Inertia&);
 
 /**
  * This class contains the mass, centroid, and inertia of a rigid body B.

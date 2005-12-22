@@ -269,6 +269,23 @@ protected:
     Orientation() { }
 };
 
+class InertiaMeasure : public Feature {
+public:
+    explicit InertiaMeasure(const String& name);
+    InertiaMeasure(const InertiaMeasure&);
+    InertiaMeasure& operator=(const InertiaMeasure&);
+    ~InertiaMeasure();
+
+    const InertiaPlacement& getPlacement() const;
+    const Inertia&          getValue()     const;
+
+    static bool                  isInstanceOf(const Subsystem&);
+    static const InertiaMeasure& downcast(const Subsystem&);
+    static InertiaMeasure&       downcast(Subsystem&);
+protected:
+    InertiaMeasure() { }
+};
+
 class FrameFeature : public Feature {
 public:
     explicit FrameFeature(const String& name);

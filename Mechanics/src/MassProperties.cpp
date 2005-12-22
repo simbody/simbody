@@ -27,9 +27,14 @@
 #include "simbody/SimbodyCommon.h"
 #include "simbody/MassProperties.h"
 
+#include <iostream>
+
 namespace simtk {
 
-// NOTHING YET
+std::ostream& operator<<(std::ostream& o, const Inertia& i) {
+    return o << i.toMat33();
+}
+
 
 } // namespace simtk
 

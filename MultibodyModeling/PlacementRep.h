@@ -79,6 +79,10 @@ class   OrientationPlacementRep;
 class     OrientationConstantPlacementRep;
 class     OrientationFeaturePlacementRep;
 class     OrientationExprPlacementRep;
+class   InertiaPlacementRep;
+class     InertiaConstantPlacementRep;
+class     InertiaFeaturePlacementRep;
+class     InertiaExprPlacementRep;
 class   PlacementListRep; // TODO
 class     PlacementListFeatureRep;
 class   FramePlacementRep;
@@ -297,6 +301,36 @@ public:
     Mat33 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(OrientationOps, PlacementOp);
+private:
+    OpKind op;
+};
+
+/**
+ * Concrete class producing an Inertia result when applied to Placement
+ * arguments of whatever number and type is appropriate for the operator.
+ */
+class InertiaOps : public PlacementOp {
+public:
+    enum OpKind { Add, Subtract, Transform, Shift };
+    explicit InertiaOps(OpKind k) : op(k) { }
+
+    PlacementOp* clone() const { return new InertiaOps(*this);}
+    bool checkArgs(const std::vector<Placement>& args) const;
+    std::string getOpName() const {
+        char *p = 0;
+        switch(op) {
+            case Add:               p="add";        break;
+            case Subtract:          p="sub";        break;
+            case Transform:         p="xform";      break;
+            case Shift:             p="shift";      break;
+            default:                p="UNKNOWN OP";
+        };
+        return std::string(p) + "<Inertia>";
+    }
+
+    Inertia apply(const std::vector<Placement>&) const;
+
+    SIMTK_DOWNCAST(InertiaOps, PlacementOp);
 private:
     OpKind op;
 };
@@ -1300,6 +1334,156 @@ private:
     static OrientationExprPlacementRep* binaryOp(OrientationOps::OpKind, 
                                                  const Placement& l, const Placement& r);
 };
+
+// INERTIA
+
+class InertiaPlacementRep : public PlacementRep {
+public:
+    InertiaPlacementRep() : PlacementRep() { }
+    virtual ~InertiaPlacementRep() { }
+    const InertiaPlacement& getMyHandle() const 
+      { return InertiaPlacement::downcast(PlacementRep::getMyHandle()); }
+
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Inertia>();}
+    std::string    getPlacementTypeName()      const {return "Inertia";}
+    int            getNIndicesAllowed()        const {return 1;} // i.e., only the whole thing
+
+    Placement genericAdd(const Placement& r) const;
+    Placement genericSub(const Placement& r) const;
+
+    static PlacementRep* createInertiaPlacementFrom(const Placement&, bool dontThrow=false);
+    PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
+      { return createInertiaPlacementFrom(p,dontThrow); }
+    bool isSamePlacementType(const Placement& p) const {return InertiaPlacement::isInstanceOf(p);}
+
+    // clone, toString, findAncestorSubsystem are still missing
+
+    void evaluate(PlacementValue& pv) const {
+        PlacementValue_<Inertia>::initializeToValueType(pv);
+        evaluateInertia(PlacementValue_<Inertia>::downcast(pv).upd());
+    }
+    virtual void evaluateInertia(Inertia&) const = 0;
+    Inertia calcInertiaValue() const {Inertia i;evaluateInertia(i);return i;}
+
+    SIMTK_DOWNCAST(InertiaPlacementRep,PlacementRep);
+};
+
+// A concrete InertiaPlacement in which there are no variables.
+class InertiaConstantPlacementRep : public InertiaPlacementRep {
+public:
+    explicit InertiaConstantPlacementRep(const Inertia& i)
+      : InertiaPlacementRep(), inertia(i) {
+        // TODO: check orientation matrix validity
+    }
+
+    // Implementations of pure virtuals.
+
+    void realize(Stage) const { }   // always ready to evaluate
+    void evaluateInertia(Inertia& i) const {i=inertia;}
+
+    bool isConstant() const { return true; }
+
+    PlacementRep* clone() const {return new InertiaConstantPlacementRep(*this);}
+
+    std::string toString(const std::string&) const {
+        std::stringstream s;
+        s << "Inertia[" << inertia << "]";
+        return s.str();
+    }
+
+    const Subsystem* findAncestorSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& youngestSubsystem) const
+      { return &youngestSubsystem; }
+
+    SIMTK_DOWNCAST(InertiaConstantPlacementRep, PlacementRep);
+private:
+    Inertia inertia;
+};
+
+/**
+ * A concrete PlacementRep whose value is the same as that of a specified
+ * Feature which uses a Inertia placement.
+ */
+class InertiaFeaturePlacementRep : public InertiaPlacementRep, public FeatureReference {
+public:
+    explicit InertiaFeaturePlacementRep(const Feature& f, int index = -1) 
+      : InertiaPlacementRep(), FeatureReference(f,index)
+    { }
+    ~InertiaFeaturePlacementRep() { }
+      
+    void realize(Stage g) const {refRealize(g);}
+    void evaluateInertia(Inertia& i) const {i = getReferencedValue();}
+
+    bool isFeatureReference() const {return true;}
+    const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
+
+    PlacementRep*  clone() const {return new InertiaFeaturePlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return refToString(indent);}
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return refFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return refFindPlacementValueOwnerSubsystem(s); }
+
+    bool isConstant()                const {return refIsConstant();}
+    bool dependsOn(const Feature& f) const {return refDependsOn(f);}
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
+      { return refIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
+      { return refRepairFeatureReferences(oldRoot, newRoot); }
+
+    SIMTK_DOWNCAST(InertiaFeaturePlacementRep, PlacementRep);
+private:
+    // Get the numerical value of the referenced placement, after indexing.
+    const Inertia& getReferencedValue() const;
+};
+
+/**
+ * A concrete PlacementRep whose value is a Inertia expression. This
+ * is always Func(List<Placement>). 
+ */
+class InertiaExprPlacementRep : public InertiaPlacementRep, public PlacementExpr {
+public:
+    InertiaExprPlacementRep(const InertiaOps&  f, 
+                            const std::vector<const Placement*>& a) 
+      : InertiaPlacementRep(), PlacementExpr(f,a)
+    { }
+    ~InertiaExprPlacementRep() { }
+
+    // Supported InertiaExpr-building operators
+    static InertiaExprPlacementRep* addOp (const InertiaPlacement& l, const InertiaPlacement& r);
+    static InertiaExprPlacementRep* subOp (const InertiaPlacement& l, const InertiaPlacement& r);
+    static InertiaExprPlacementRep* xformOp (const InertiaPlacement& i, const OrientationPlacement& r);
+    static InertiaExprPlacementRep* shiftOp(const InertiaPlacement& i,
+                                            const StationPlacement& from,
+                                            const StationPlacement& to,
+                                            const RealPlacement&    mtot);
+
+    void realize(Stage g) const {exprRealize(g);}
+    void evaluateInertia(Inertia& i) const
+      { i = InertiaOps::downcast(exprGetFunc()).apply(exprGetArgs()); }
+
+    PlacementRep*  clone() const {return new InertiaExprPlacementRep(*this);}
+    std::string    toString(const std::string& indent)   const {return exprToString(indent);}
+    const Subsystem* findAncestorSubsystem(const Subsystem& s) const {return exprFindAncestorSubsystem(s);}
+    const Subsystem* findPlacementValueOwnerSubsystem(const Subsystem& s) const 
+      { return exprFindPlacementValueOwnerSubsystem(s); }
+
+    bool isConstant()                const {return exprIsConstant();}
+    bool dependsOn(const Feature& f) const {return exprDependsOn(f);}
+    bool isLimitedToSubtree(const Subsystem& root, const Feature*& offender) const 
+      { return exprIsLimitedToSubtree(root,offender); }
+    void repairFeatureReferences(const Subsystem& oldRoot, const Subsystem& newRoot)
+      { return exprRepairFeatureReferences(oldRoot, newRoot); }
+
+    SIMTK_DOWNCAST(InertiaExprPlacementRep, PlacementRep);
+private:
+    static InertiaExprPlacementRep* unaryOp (InertiaOps::OpKind, const Placement&);
+    static InertiaExprPlacementRep* binaryOp(InertiaOps::OpKind, 
+                                             const Placement& l, const Placement& r);
+};
+
+
+// FRAME
 
 class FramePlacementRep : public PlacementRep {
 public:
