@@ -27,7 +27,7 @@
  * The opaque implementation of Placements.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 #include "BasicPlacements.h"
 #include "PlacementValue.h"

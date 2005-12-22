@@ -27,7 +27,7 @@
  * Definitions for mundane Placement types.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 
 #include <iostream>

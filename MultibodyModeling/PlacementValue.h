@@ -27,7 +27,7 @@
  * Definitions for the API-level, client side PlacementValue classes.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 
 #include <iostream>
 

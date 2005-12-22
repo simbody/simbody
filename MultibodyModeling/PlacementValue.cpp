@@ -24,7 +24,7 @@
  * Implementation of PlacementValue and PlacementValue_<T> API methods.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "PlacementValue.h"
 #include "PlacementValueRep.h"
 

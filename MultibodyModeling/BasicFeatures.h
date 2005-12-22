@@ -28,7 +28,7 @@
  */
 
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Feature.h"
 
 #include "simtk/SimTK.h"

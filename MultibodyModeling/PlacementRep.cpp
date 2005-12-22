@@ -24,7 +24,7 @@
  * Implementation of non-inline PlacementRep methods.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 #include "Feature.h"
 #include "PlacementRep.h"

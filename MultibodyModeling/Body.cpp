@@ -24,7 +24,7 @@
  * Implementations of Body Features for Simbody.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Body.h"
 #include "BodyRep.h"
 

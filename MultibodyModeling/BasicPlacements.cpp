@@ -24,7 +24,7 @@
  * Implementation of BasicPlacement handle classes.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 #include "BasicPlacements.h"
 #include "Feature.h"

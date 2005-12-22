@@ -24,7 +24,7 @@
  * Implementation of Placement handles.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 #include "PlacementValue.h"
 #include "PlacementValueRep.h"

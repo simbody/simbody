@@ -29,7 +29,7 @@
  * (shared library) then the client doesn't require relinking either.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Subsystem.h"
 #include "Feature.h"
 #include "Placement.h"

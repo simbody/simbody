@@ -24,7 +24,7 @@
  * Implementations of non-inline methods of SubsystemRep.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "SubsystemRep.h"
 #include "FeatureRep.h"
 

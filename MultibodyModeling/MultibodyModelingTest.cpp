@@ -24,7 +24,7 @@
  * Test of high level multibody modeling objects for Simbody.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Placement.h"
 #include "PlacementValue.h"
 #include "Subsystem.h"

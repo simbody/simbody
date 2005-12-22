@@ -27,7 +27,7 @@
  * Definitions of the BasicFeature Rep methods.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "FeatureRep.h"
 #include "Feature.h"
 #include "Placement.h"

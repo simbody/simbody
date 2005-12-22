@@ -28,7 +28,7 @@
  * users.
  */
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "SubsystemRep.h"
 #include "Feature.h"
 #include "Placement.h"

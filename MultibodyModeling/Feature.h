@@ -29,7 +29,7 @@
  */
 
 
-#include "SimbodyCommon.h"
+#include "simbody/SimbodyCommon.h"
 #include "Subsystem.h"
 #include "Placement.h"
 #include "BasicPlacements.h"
