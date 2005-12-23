@@ -43,6 +43,9 @@ const RealMeasure& MassElement::getMassMeasure() const {
 const StationMeasure& MassElement::getCentroidMeasure() const {
     return MassElementRep::downcast(getRep()).getCentroidMeasure();
 }
+const InertiaMeasure& MassElement::getInertiaMeasure() const {
+    return MassElementRep::downcast(getRep()).getInertiaMeasure();
+}
 
 /*static*/ bool             
 MassElement::isInstanceOf(const Subsystem& s) {
@@ -77,10 +80,10 @@ PointMassElement::~PointMassElement() { }
 PointMassElement::PointMassElement(const String& nm, const Real& m) {
     rep = new PointMassElementRep(*this, std::string(nm));
     rep->initializeStandardSubfeatures();
-    setMass(m);
+    setPointMass(m);
 }
-void PointMassElement::setMass(const Real& m) {
-    PointMassElementRep::downcast(updRep()).setMass(m);
+void PointMassElement::setPointMass(const Real& m) {
+    PointMassElementRep::downcast(updRep()).setPointMass(m);
 }
 
 /*static*/ bool             

@@ -1604,6 +1604,25 @@ Placement InertiaPlacementRep::genericSub(const Placement& r) const {
     return PlacementRep::genericSub(r);    // die
 }
 
+// inertia = shift(inertia, from, to, totalMass)
+InertiaPlacement 
+InertiaPlacementRep::shift(const StationPlacement& from,
+                           const StationPlacement& to,
+                           const RealPlacement&    totalMass) const
+{
+    const bool calcNow = isConstant() && from.isConstant() 
+                         && to.isConstant() && totalMass.isConstant();
+
+    InertiaPlacementRep* result = 
+        calcNow ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(
+                    calcInertiaValue().shift(from.getRep().calcVec3Value(),
+                                             to.getRep().calcVec3Value(),
+                                             totalMass.getRep().calcRealValue()))
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::shiftOp
+                                            (getMyHandle(),from,to,totalMass);
+    return InertiaPlacement(result);
+}
+
     // INERTIA FEATURE PLACEMENT REP //
 const Inertia& InertiaFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
@@ -1643,6 +1662,10 @@ bool InertiaOps::checkArgs(const std::vector<Placement>& args) const {
                               && StationPlacement::isInstanceOf(args[2])
                               && RealPlacement::isInstanceOf(args[3]);
 
+    // i=pointMass(loc, mass)
+    case PointMass:
+        return args.size()==2 && StationPlacement::isInstanceOf(args[0])
+                              && RealPlacement::isInstanceOf(args[1]);
     default: 
         assert(false);
     }
@@ -1671,11 +1694,17 @@ Inertia InertiaOps::apply(const std::vector<Placement>& args) const {
     // i=shift(i,from,to,totalMass)
     case Shift:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
-              .shiftToCOM  (RealPlacement::downcast(args[3]).getRep().calcRealValue(),
-                            StationPlacement::downcast(args[1]).getRep().calcVec3Value())
-              .shiftFromCOM(RealPlacement::downcast(args[3]).getRep().calcRealValue(),
-                            StationPlacement::downcast(args[2]).getRep().calcVec3Value());        break;
+              .shiftToCOM  (StationPlacement::downcast(args[1]).getRep().calcVec3Value(),
+                            RealPlacement::downcast   (args[3]).getRep().calcRealValue())
+              .shiftFromCOM(StationPlacement::downcast(args[2]).getRep().calcVec3Value(),
+                            RealPlacement::downcast   (args[3]).getRep().calcRealValue());
+        break;
 
+    // i=pointMass(loc,mass)
+    case PointMass:
+        val = Inertia(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
+                      RealPlacement::downcast(args[1]).getRep().calcRealValue());
+        break;
     default: 
         assert(false);
     }
@@ -1718,6 +1747,10 @@ InertiaExprPlacementRep::shiftOp(const InertiaPlacement& i,
     args[0] = &i; args[1] = &from; args[2] = &to; args[3] = &mtot;
     return new InertiaExprPlacementRep(InertiaOps(InertiaOps::Shift), args);
 }
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::ptMassOp(const StationPlacement& loc,
+                                  const RealPlacement&    mass)
+  { return binaryOp(InertiaOps::PointMass, loc, mass); }
 
     // FRAME PLACEMENT REP //
 

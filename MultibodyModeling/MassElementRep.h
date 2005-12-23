@@ -43,13 +43,20 @@ public:
         : FeatureRep(m,nm,sample) { }
     // must call initializeStandardSubfeatures() to complete construction.
 
+    const RealMeasure& getMassMeasure() const
+      { return RealMeasure::downcast(getFeature(massMeasureIndex)); }
+    RealMeasure&       updMassMeasure()
+      { return RealMeasure::downcast(updFeature(massMeasureIndex)); }
 
-    const RealMeasure& getMassMeasure() const {
-        return RealMeasure::downcast(getFeature(massMeasureIndex));
-    }
-    const StationMeasure& getCentroidMeasure() const {
-        return StationMeasure::downcast(getFeature(centroidMeasureIndex));
-    }
+    const StationMeasure& getCentroidMeasure() const
+      { return StationMeasure::downcast(getFeature(centroidMeasureIndex)); }
+    StationMeasure&       updCentroidMeasure()
+      { return StationMeasure::downcast(updFeature(centroidMeasureIndex)); }
+
+    const InertiaMeasure& getInertiaMeasure() const
+      { return InertiaMeasure::downcast(getFeature(inertiaMeasureIndex)); }
+    InertiaMeasure&       updInertiaMeasure()
+      { return InertiaMeasure::downcast(updFeature(inertiaMeasureIndex)); }
 
     // virtuals getFeatureTypeName() && clone() still missing
 
@@ -60,12 +67,14 @@ protected:
     virtual void initializeStandardSubfeatures() {
         Feature& mm = addFeatureLike(RealMeasure("massMeasure"), "massMeasure");
         Feature& cm = addFeatureLike(StationMeasure("centroidMeasure"), "centroidMeasure");
+        Feature& im = addFeatureLike(InertiaMeasure("inertiaMeasure"), "inertiaMeasure");
         massMeasureIndex     = mm.getIndexInParent();
         centroidMeasureIndex = cm.getIndexInParent();
+        inertiaMeasureIndex  = im.getIndexInParent();
     }
 
 private:
-    int massMeasureIndex, centroidMeasureIndex;
+    int massMeasureIndex, centroidMeasureIndex, inertiaMeasureIndex;
 };
 
 class PointMassElementRep : public MassElementRep {
@@ -75,10 +84,12 @@ public:
           massIndex(-1) { }
     // must call initializeStandardSubfeatures() to complete construction.
 
-    // some self-placements
-    void setMass(const Real& m) {
-        updFeature(massIndex).place(RealPlacement(m));
-    }
+    void setPointMass(const Real& m)
+      { updPointMass().place(RealPlacement(m)); }
+    const RealParameter& getPointMass() const
+      { return RealParameter::downcast(getFeature(massIndex)); }
+    RealParameter& updPointMass()
+      { return RealParameter::downcast(updFeature(massIndex)); }
 
     std::string getFeatureTypeName() const { return "PointMassElement"; }
     SubsystemRep* clone() const { return new PointMassElementRep(*this); }
@@ -107,11 +118,11 @@ protected:
     virtual void initializeStandardSubfeatures() {
         MassElementRep::initializeStandardSubfeatures();
 
-        massIndex = addFeatureLike(RealParameter("mass"), "mass")
-                            .getIndexInParent();
+        massIndex = addFeatureLike(RealParameter("mass"), "mass").getIndexInParent();
 
-        findUpdFeature("massMeasure")->place(*findFeature("mass"));
-        findUpdFeature("centroidMeasure")->place(getMyHandle());
+        updMassMeasure().place(getPointMass());
+        updCentroidMeasure().place(getMyHandle());
+        updInertiaMeasure().place(InertiaPlacement(getCentroidMeasure(), getMassMeasure()));
     }
 
     int massIndex;

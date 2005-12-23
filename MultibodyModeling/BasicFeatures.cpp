@@ -453,6 +453,44 @@ Orientation::downcast(Subsystem& f) {
     return reinterpret_cast<Orientation&>(f);
 }
 
+
+    // INERTIA MEASURE //
+InertiaMeasure::InertiaMeasure(const String& nm) : Feature() {
+    rep = new InertiaMeasureRep(*this, std::string(nm));
+    rep->initializeStandardSubfeatures();
+}
+InertiaMeasure::InertiaMeasure(const InertiaMeasure& src) : Feature(src) { }
+InertiaMeasure& InertiaMeasure::operator=(const InertiaMeasure& src)
+  { Feature::operator=(src); return *this; }
+InertiaMeasure::~InertiaMeasure() { }
+
+const InertiaPlacement& 
+InertiaMeasure::getPlacement() const {
+    return InertiaPlacement::downcast(getRep().getPlacement());
+}
+
+const Inertia& 
+InertiaMeasure::getValue() const {
+    return PlacementValue_<Inertia>::downcast(getRep().getPlacementSlot().getValue());
+}
+
+/*static*/ bool             
+InertiaMeasure::isInstanceOf(const Subsystem& f) {
+    if (!f.hasRep()) return false;
+    return InertiaMeasureRep::isA(f.getRep());
+}
+/*static*/ const InertiaMeasure& 
+InertiaMeasure::downcast(const Subsystem& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<const InertiaMeasure&>(f);
+}
+
+/*static*/ InertiaMeasure&       
+InertiaMeasure::downcast(Subsystem& f) {
+    assert(isInstanceOf(f));
+    return reinterpret_cast<InertiaMeasure&>(f);
+}
+
     // FRAME //
 FrameFeature::FrameFeature(const String& nm) : Feature() {
     rep = new FrameRep(*this, std::string(nm));

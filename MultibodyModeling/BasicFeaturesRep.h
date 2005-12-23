@@ -403,7 +403,7 @@ private:
 class InertiaMeasureRep : public FeatureRep {
 public:
     InertiaMeasureRep(InertiaMeasure& m, const std::string& nm) 
-        : FeatureRep(m,nm,InertiaPlacement(Mat33(NTraits<Real>::getNaN()))) { }
+        : FeatureRep(m,nm,InertiaPlacement(Inertia(Mat33(NTraits<Real>::getNaN())))) { }
     // no standard Subfeatures
 
     ~InertiaMeasureRep() { }

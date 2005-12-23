@@ -311,7 +311,7 @@ private:
  */
 class InertiaOps : public PlacementOp {
 public:
-    enum OpKind { Add, Subtract, Transform, Shift };
+    enum OpKind { Add, Subtract, Transform, Shift, PointMass };
     explicit InertiaOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new InertiaOps(*this);}
@@ -323,6 +323,7 @@ public:
             case Subtract:          p="sub";        break;
             case Transform:         p="xform";      break;
             case Shift:             p="shift";      break;
+            case PointMass:         p="pointMass";  break;
             default:                p="UNKNOWN OP";
         };
         return std::string(p) + "<Inertia>";
@@ -1351,6 +1352,10 @@ public:
     Placement genericAdd(const Placement& r) const;
     Placement genericSub(const Placement& r) const;
 
+    InertiaPlacement shift(const StationPlacement& from,
+                           const StationPlacement& to,
+                           const RealPlacement&    totalMass) const;
+
     static PlacementRep* createInertiaPlacementFrom(const Placement&, bool dontThrow=false);
     PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
       { return createInertiaPlacementFrom(p,dontThrow); }
@@ -1457,6 +1462,8 @@ public:
                                             const StationPlacement& from,
                                             const StationPlacement& to,
                                             const RealPlacement&    mtot);
+    static InertiaExprPlacementRep* ptMassOp(const StationPlacement& loc,
+                                             const RealPlacement&    mass);
 
     void realize(Stage g) const {exprRealize(g);}
     void evaluateInertia(Inertia& i) const

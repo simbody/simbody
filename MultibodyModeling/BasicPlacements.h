@@ -177,7 +177,9 @@ public:
     InertiaPlacement() { }
     InertiaPlacement(const InertiaMeasure&);    // implicit conversion
 
-    explicit InertiaPlacement(const Mat33&);
+    // Construct the inertia of a point mass located at p having mass m.
+    InertiaPlacement(const StationPlacement& p, const RealPlacement& m);
+
     explicit InertiaPlacement(const Inertia&);
     explicit InertiaPlacement(const Feature&);
 

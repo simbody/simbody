@@ -74,9 +74,7 @@ public:
     // This constructor gives the "mass" parameter a constant value.
     PointMassElement(const String&, const Real&);
 
-    // These create constant placements owned by the PointMassElement
-    // feature itself.
-    void setMass(const Real&);
+    void setPointMass(const Real&);
 
     static bool                    isInstanceOf(const Subsystem&);
     static const PointMassElement& downcast(const Subsystem&);

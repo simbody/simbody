@@ -270,6 +270,12 @@ OrientationPlacement::downcast(Placement& p) {
 InertiaPlacement::InertiaPlacement(const InertiaMeasure& im) {
     rep = im.getRep().createFeatureReference(*this);
 }
+
+InertiaPlacement::InertiaPlacement(const StationPlacement& p, const RealPlacement& m) {
+    rep = InertiaExprPlacementRep::ptMassOp(p,m);
+    rep->setMyHandle(*this);
+}
+
 InertiaPlacement::InertiaPlacement(const Inertia& m) {
     rep = new InertiaConstantPlacementRep(m);
     rep->setMyHandle(*this);
@@ -284,6 +290,24 @@ InertiaPlacement::InertiaPlacement(const Feature& f) {
             "InertiaPlacement", f.getFullName(), exc.getMessageText());
     }
 }
+
+InertiaPlacement
+InertiaPlacement::shift(const StationPlacement& from,
+                        const StationPlacement& to,
+                        const RealPlacement&    totalMass) const
+{
+    try {
+        return getRep().shift(from,to,totalMass);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "InertiaPlacement::shift", "", exc.getMessageText());
+    }
+    //NOTREACHED
+    return InertiaPlacement();
+}
+
+
 /*static*/ bool             
 InertiaPlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;

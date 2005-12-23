@@ -244,6 +244,18 @@ try {
     cout << "                  =" << mbs["right/centroid"].getPlacement() << endl;
     cout << "                  =" << mbs["right/centroid"].getValue() << endl;
     cout << endl;
+    cout << endl << "***BODY INERTIAS:" << endl;
+    cout << "mbs/upper/inertia =" << mbs["upper/inertia"] << endl;
+    cout << "                  =" << mbs["upper/inertia"].getPlacement() << endl;
+    cout << "                  =" << mbs["upper/inertia"].getValue() << endl;
+    cout << "mbs/left/inertia  =" << mbs["left/inertia"] << endl;
+    cout << "                  =" << mbs["left/inertia"].getPlacement() << endl;
+    cout << "                  =" << mbs["left/inertia"].getValue() << endl;
+    cout << "mbs/right/inertia =" << mbs["right/inertia"] << endl;
+    cout << "                  =" << mbs["right/inertia"].getPlacement() << endl;
+    cout << "                  =" << mbs["right/inertia"].getValue() << endl;
+    cout << endl;
+
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
     catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
 
