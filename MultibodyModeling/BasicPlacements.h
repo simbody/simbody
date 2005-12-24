@@ -180,7 +180,7 @@ public:
     // Construct the inertia of a point mass located at p having mass m.
     InertiaPlacement(const StationPlacement& p, const RealPlacement& m);
 
-    explicit InertiaPlacement(const Inertia&);
+    explicit InertiaPlacement(const MatInertia&);
     explicit InertiaPlacement(const Feature&);
 
     InertiaPlacement shift(const StationPlacement& from,

@@ -163,6 +163,6 @@ template class PlacementValue_<Real>;
 template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
 template class PlacementValue_<Mat34>;
-template class PlacementValue_<Inertia>;
+template class PlacementValue_<MatInertia>;
 
 } // namespace simtk

@@ -277,7 +277,7 @@ public:
     ~InertiaMeasure();
 
     const InertiaPlacement& getPlacement() const;
-    const Inertia&          getValue()     const;
+    const MatInertia&       getValue()     const;
 
     static bool                  isInstanceOf(const Subsystem&);
     static const InertiaMeasure& downcast(const Subsystem&);

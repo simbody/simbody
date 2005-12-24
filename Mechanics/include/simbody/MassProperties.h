@@ -14,46 +14,76 @@
 namespace simtk {
 
 /**
- * The physical meaning of an Inertia tensor is the distribution of
- * a rigid body's mass about a *particular* point. The measure numbers
- * of the Inertia must be expressed in a particular frame. Because
- * Inertia is a tensor, there is a "left frame" and "right frame".
- * These will always be the same so we'll only indicate the frame 
+ * The physical meaning of an inertia is the current distribution of
+ * a rigid body's mass about a *particular* point. If that point is the
+ * center of mass of the body, then the measured inertia is called
+ * the "central inertia" of that body. To write down the inertia, we
+ * need to calculate the six scalars of the inertia tensor, which
+ * is a symmetric 3x3 matrix. These scalars must be expressed in 
+ * an arbitrary but specified coordinate system. So a MatInertia
+ * is meaningful only in conjunction with a particular frame, fixed
+ * to the body, whose origin is the point about which the inertia is being
+ * measured, and in whose coordinate system this measurement is being
+ * expressed.
+ *
+ * This low-level MatInertia class does not attempt to keep track of *which*
+ * frame it is in. It concentrates instead on providing construction and
+ * operations involving inertia which can proceed using only an implicit
+ * frame F. Clients of this class are responsible for keeping track of that frame.
+ * In particular, in order to shift the inertia's "measured-about" point one
+ * must know whether either the starting or final inertia is central,
+ * because we must always shift inertias by passing through the central inertia.
+ * So this class provides operations for doing the shifting, but expects
+ * to be told by the client where to find the center of mass.
+ *
+ * Re-expressing an MatInertia in a different coordinate system does not
+ * entail a change of physical meaning in the way that shifting it to a
+ * different point does. Note that because inertia is a tensor, there is
+ * a "left frame" and "right frame". For our purposes, these
+ * will always be the same so we'll only indicate the frame 
  * once, as in 'I_pt_frame'. This should be understood to mean
- * 'frame_I_pt_frame' and re-expressing an Inertia requires both a
- * left and right multiply by the rotation matrix.
- *
- * So I_OB_B is the inertia about body B's origin point OB, expressed in B, while
+ * 'frame_I_pt_frame' and re-expressing an MatInertia requires both a
+ * left and right multiply by the rotation matrix. So I_OB_B is the
+ * inertia about body B's origin point OB, expressed in B, while
  * I_OB_G is the same physical quantity but expressed in Ground (the latter
- * is a component of the Spatial Inertia). Conversion is done like this:
+ * is a component of the Spatial MatInertia). Conversion is done like this:
  *    I_OB_G = R_GB * I_OB_B * R_BG  (and recall that R_GB=~R_BG)
+ * The central inertia would be I_CB_B for body B.
  *
- * It is often useful to know the inertia about a body's center of mass
- * (called the "centroidal inertia"). This would be I_CB_B for body B.
- *
- * An Inertia is a symmetric matrix and is positive definite for
+ * A MatInertia is a symmetric matrix and is positive definite for
  * nonsingular bodies (that is, a body composed of at least three
  * noncollinear point masses).
  */
-class Inertia {
+class MatInertia {
 public:
-    /// Default is the inertia of a point mass about that point, i.e. 0.
-    Inertia() : I_OF_F(0.) {}
+    /// Default is a NaN-ed out mess to avoid accidents.
+    MatInertia() : I_OF_F(NTraits<Real>::getNaN()) {}
 
-    /// Note the order of these arguments: moments of inertia first, then 
-    /// products of inertia.
-    Inertia(const Real& xx, const Real& yy, const Real& zz,
+    /// Create an principal inertia matrix with identical diagonal elements.
+    /// Most commonly we create MatInertia(0) for initialization of an inertia
+    /// calculation (that is also the inertia of a point mass located at
+    /// the origin). This can also be used with a non-zero value as the
+    /// inertia of a sphere centered at the origin.
+    explicit MatInertia(const Real& r) : I_OF_F(r) { }
+
+    /// Create a principal inertia matrix (only non-zero on diagonal).
+    MatInertia(const Real& xx, const Real& yy, const Real& zz)
+        { setInertia(xx,yy,zz,0.,0.,0.); }
+
+    /// This is a general inertia matrix. Note the order of these
+    /// arguments: moments of inertia first, then products of inertia.
+    MatInertia(const Real& xx, const Real& yy, const Real& zz,
             const Real& xy, const Real& xz, const Real& yz)
         { setInertia(xx,yy,zz,xy,xz,yz); }
 
     /// Given a point mass located at a given point p in some frame F, 
     /// construct I_OF_F, that is, the inertia of that point mass about
-    /// F's origin, expressed in F. 
+    /// F's origin, expressed in F (that is, in F's coordinate system). 
     ///
     /// For a collection of point masses, you can just add these together to
     /// produce a composite inertia as long as all the vectors are
     /// measured from the same point and expressed in the same frame.
-    Inertia(const Real& m, const Vec3& p) {
+    MatInertia(const Vec3& p, const Real& m) {
         Mat33& t = I_OF_F;
         const Real& x = p(0); const Real xx = x*x;
         const Real& y = p(1); const Real yy = y*y;
@@ -68,7 +98,7 @@ public:
     }
 
     /// We only look at the lower triangles, but fill in the whole matrix.
-    Inertia(const Inertia& src) {
+    MatInertia(const MatInertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
@@ -77,7 +107,7 @@ public:
         t(1,2) = (t(2,1) = s(2,1));
     }
 
-    explicit Inertia(const Mat33& s) {
+    explicit MatInertia(const Mat33& s) {
         assert(close(s(0,1),s(1,0)) 
             && close(s(0,2),s(2,0))
             && close(s(1,2),s(2,1)));
@@ -85,7 +115,7 @@ public:
             0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
     }
 
-    Inertia& operator=(const Inertia& src) {
+    MatInertia& operator=(const MatInertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
@@ -95,7 +125,7 @@ public:
         return *this;
     }
 
-    Inertia& operator+=(const Inertia& src) {
+    MatInertia& operator+=(const MatInertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
         t(0,0) += s(0,0); t(1,1) += s(1,1);  t(2,2) += s(2,2);
@@ -105,7 +135,7 @@ public:
         return *this;
     }
 
-    Inertia& operator-=(const Inertia& src) {
+    MatInertia& operator-=(const MatInertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
         t(0,0) -= s(0,0); t(1,1) -= s(1,1);  t(2,2) -= s(2,2);
@@ -124,28 +154,33 @@ public:
         t(1,2) = t(2,1) = yz;
     }
 
-    /// Re-express this inertia from frame F to frame B, given the orientation
-    /// of B in F. This is a similarity transform since rotation matrices are
-    /// orthogonal.
-    Inertia xform(const Mat33& R_FB) const {
-        return Inertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
-    }
 
     /// Assume that the current inertia is about the F frame's origin OF, and
     /// expressed in F. Given the vector from OF to the body center of mass CF,
     /// and the total mass of the body, we can shift the inertia to the center
-    /// of mass. This produces a new Inertia I' whose (implicit) frame F' is
-    /// aligned with F but has origin CF (an Inertia like that is called a "central
+    /// of mass. This produces a new MatInertia I' whose (implicit) frame F' is
+    /// aligned with F but has origin CF (an inertia like that is called a "central
     /// inertia". I' = I - Icom where Icom is the inertia of a fictitious
     /// point mass of mass mtot located at CF (measured in F) about OF.
-    inline Inertia shiftToCOM(const Real& mtot, const Vec3& CF) const;
+    inline MatInertia shiftToCOM(const Vec3& CF, const Real& mtot) const;
 
     /// Assuming that the current inertia I is a central inertia (that is, it is
     /// inertia about the body center of mass CF), shift it to some other point p
     /// measured from the center of mass. This produces a new inertia I' about
     /// the point p given by I' = I + Ip where Ip is the inertia of a fictitious
     /// point mass of mass mtot (the total body mass) located at p, about CF.
-    inline Inertia shiftFromCOM(const Real& mtot, const Vec3& p) const;
+    inline MatInertia shiftFromCOM(const Vec3& p, const Real& mtot) const;
+
+    MatInertia shift(const Vec3& from, const Vec3& to, const Real& mtot) const {
+        return shiftToCOM(from,mtot).shiftFromCOM(to,mtot);
+    }
+
+    /// Re-express this inertia from frame F to frame B, given the orientation
+    /// of B in F. This is a similarity transform since rotation matrices are
+    /// orthogonal.
+    MatInertia rotate(const Mat33& R_FB) const {
+        return MatInertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
+    }
 
     Real trace() const {return I_OF_F(0,0) + I_OF_F(1,1) + I_OF_F(2,2);}
 
@@ -154,6 +189,38 @@ public:
     Mat33 toMat33() const {
         return I_OF_F;
     }
+
+    // MatInertia factory for some common mass elements. Each defines its own
+    // frame aligned (when possible) with principal moments. Each has unit
+    // mass and its center of mass located at the origin. Use this with shiftFromCOM()
+    // to move it somewhere else, and with xform() to express the inertia
+    // in another frame. Mass enters linearly in inertia, so just multiply
+    // by the actual mass to scale these properly.
+    static MatInertia point() {return MatInertia(0.);}
+    static MatInertia sphere(const Real& r) {return MatInertia(0.4*r*r);}
+
+    // Cylinder is aligned along z axis, use radius and half-length.
+    // If r==0 this is a thin rod; hz=0 it is a thin disk.
+    static MatInertia cylinder(const Real& r, const Real& hz) {
+        const Real Ixx = 0.25*r*r + (Real(1)/Real(3))*hz*hz;
+        return MatInertia(Ixx,Ixx,0.5*r*r);
+    }
+
+    // Brick given by half-lengths in each direction. One dimension zero
+    // gives inertia of a thin rectangular sheet; two zero gives inertia
+    // of a thin rod in the remaining direction.
+    static MatInertia brick(const Real& hx, const Real& hy, const Real& hz) {
+        const Real oo3 = Real(1)/Real(3);
+        const Real hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
+        return MatInertia(oo3*(hy2+hz2), oo3*(hx2+hz2), oo3*(hx2+hy2));
+    }
+
+    // Ellipsoid given by half-lengths in each direction.
+    static MatInertia ellipsoid(const Real& hx, const Real& hy, const Real& hz) {
+        const Real hx2=hx*hx, hy2=hy*hy, hz2=hz*hz;
+        return MatInertia(0.2*(hy2+hz2), 0.2*(hx2+hz2), 0.2*(hx2+hy2));
+    }
+
 
 private:
     //TODO: the tolerance here should be a function of Real's precision
@@ -164,7 +231,7 @@ private:
     }
 
 private:
-    // Inertia expressed in frame F and about F's origin OF. Note that frame F
+    // MatInertia expressed in frame F and about F's origin OF. Note that frame F
     // is implicit here; all we actually have are the inertia scalars. This is 
     // a symmetric matrix but we keep all the elements here, and manage them
     // so that the reflected elements are *exactly* equal.
@@ -172,20 +239,20 @@ private:
     Mat33 I_OF_F;                  
 };
 
-inline Inertia operator+(const Inertia& l, const Inertia& r) {
-    return Inertia(l) += r;
+inline MatInertia operator+(const MatInertia& l, const MatInertia& r) {
+    return MatInertia(l) += r;
 }
-inline Inertia operator-(const Inertia& l, const Inertia& r) {
-    return Inertia(l) -= r;
+inline MatInertia operator-(const MatInertia& l, const MatInertia& r) {
+    return MatInertia(l) -= r;
 }
-inline Inertia Inertia::shiftToCOM(const Real& mtot, const Vec3& CF) const {
-    return *this - Inertia(mtot,CF);
+inline MatInertia MatInertia::shiftToCOM(const Vec3& CF, const Real& mtot) const {
+    return *this - MatInertia(CF, mtot);
 }
-inline Inertia Inertia::shiftFromCOM(const Real& mtot, const Vec3& p) const {
-    return *this + Inertia(mtot,p);
+inline MatInertia MatInertia::shiftFromCOM(const Vec3& p, const Real& mtot) const {
+    return *this + MatInertia(p, mtot);
 }
 
-std::ostream& operator<<(std::ostream& o, const Inertia&);
+std::ostream& operator<<(std::ostream& o, const MatInertia&);
 
 /**
  * This class contains the mass, centroid, and inertia of a rigid body B.
@@ -195,22 +262,22 @@ std::ostream& operator<<(std::ostream& o, const Inertia&);
 /*
 class MassProperties {
 public:
-    MassProperties() { setMassProperties(0.,Vec3(0.),Inertia()); }
-    MassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
+    MassProperties() { setMassProperties(0.,Vec3(0.),MatInertia()); }
+    MassProperties(const Real& m, const Vec3& com, const MatInertia& inertia)
       { setMassProperties(m,com,inertia); }
 
-    void setMassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
+    void setMassProperties(const Real& m, const Vec3& com, const MatInertia& inertia)
       { mass=m; comInB=com; inertia_OB_B=inertia; }
 
     const Real&    getMass()    const { return mass; }
     const Vec3&    getCOM()     const { return comInB; }
-    const Inertia& getInertia() const { return inertia_OB_B; }
+    const MatInertia& getInertia() const { return inertia_OB_B; }
 
-    Inertia calcCentroidalInertia() const {
-        return inertia_OB_B - Inertia(mass, comInB);
+    MatInertia calcCentroidalInertia() const {
+        return inertia_OB_B - MatInertia(mass, comInB);
     }
-    Inertia calcShiftedInertia(const Vec3& newOriginB) const {
-        return calcCentroidalInertia() + Inertia(mass, newOriginB-comInB);
+    MatInertia calcShiftedInertia(const Vec3& newOriginB) const {
+        return calcCentroidalInertia() + MatInertia(mass, newOriginB-comInB);
     }
     MassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
         return MassProperties(mass, comInB-newOriginB,
@@ -222,7 +289,7 @@ public:
 private:
     Real mass;
     Vec3 comInB;         // meas. from B origin, expr. in B
-    Inertia inertia_OB_B;   // about B origin, expr. in B
+    MatInertia inertia_OB_B;   // about B origin, expr. in B
 };
 */
 /**

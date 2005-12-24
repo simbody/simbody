@@ -1566,7 +1566,7 @@ InertiaPlacementRep::createInertiaPlacementFrom(const Placement& p, bool dontThr
 
     if (!dontThrow) {
         SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
-            "Inertia", p.getPlacementTypeName(), p.toString());
+            "MatInertia", p.getPlacementTypeName(), p.toString());
         //NOTREACHED
     }
     return 0;
@@ -1624,16 +1624,16 @@ InertiaPlacementRep::shift(const StationPlacement& from,
 }
 
     // INERTIA FEATURE PLACEMENT REP //
-const Inertia& InertiaFeaturePlacementRep::getReferencedValue() const {
+const MatInertia& InertiaFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<Inertia>::downcast(ps.getValue()).get();
+        return PlacementValue_<MatInertia>::downcast(ps.getValue()).get();
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const Inertia*>(0);
+    return *reinterpret_cast<const MatInertia*>(0);
 }
 
     // INERTIA EXPR PLACEMENT REP //
@@ -1673,8 +1673,8 @@ bool InertiaOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-Inertia InertiaOps::apply(const std::vector<Placement>& args) const {
-    Inertia val;
+MatInertia InertiaOps::apply(const std::vector<Placement>& args) const {
+    MatInertia val;
     switch(op) {
     case Add:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
@@ -1702,7 +1702,7 @@ Inertia InertiaOps::apply(const std::vector<Placement>& args) const {
 
     // i=pointMass(loc,mass)
     case PointMass:
-        val = Inertia(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
+        val = MatInertia(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
                       RealPlacement::downcast(args[1]).getRep().calcRealValue());
         break;
     default: 

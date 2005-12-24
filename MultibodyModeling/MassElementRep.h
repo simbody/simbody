@@ -180,8 +180,27 @@ private:
         axisIndex       = addFeatureLike(Direction    ("axis"),       "axis")
                             .getIndexInParent();
 
-        findUpdFeature("massMeasure")->place(*findFeature("mass"));
-        findUpdFeature("centroidMeasure")->place(*findFeature("center"));
+        updMassMeasure().place(getFeature(massIndex));
+        updCentroidMeasure().place(getFeature(centerIndex));
+
+        // MatInertia about the body origin: get the cylinder's principal moments in its
+        // own frame (with z being the long axis, and the origin at the COM). Then
+        // transform to the body frame and shift to the body origin.
+        const Real oo3 = Real(1)/Real(3);   // "one over" 3
+        const RealPlacement      r(getFeature(radiusIndex));
+        const RealPlacement      h(getFeature(halfLengthIndex));
+        const RealPlacement      m(getFeature(massIndex));
+        const DirectionPlacement z(getFeature(axisIndex));
+        const StationPlacement   c(getFeature(centerIndex));
+        const RealPlacement      Izz(m*0.5*square(r));
+        const RealPlacement      Ixx(m*(0.25*square(r) + oo3*square(h)));
+
+        // This is a reference frame for the cylinder, measured from and expressed
+        // in the body frame. The x and y axes are arbitrary due to symmetry.
+        const FramePlacement     F_BC(OrientationPlacement(z,2), c);
+
+        updInertiaMeasure().place(
+            InertiaPlacement(Ixx,Ixx,Izz).xformFromCOM(~F_BC));
     }
 
     int massIndex, radiusIndex, halfLengthIndex, centerIndex, axisIndex;
