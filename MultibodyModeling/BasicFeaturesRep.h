@@ -315,7 +315,7 @@ public:
 class OrientationMeasureRep : public FeatureRep {
 public:
     OrientationMeasureRep(OrientationMeasure& m, const std::string& nm) 
-        : FeatureRep(m,nm,OrientationPlacement(Mat33(NTraits<Real>::getNaN()))) { }
+        : FeatureRep(m,nm,OrientationPlacement(MatRotation())) { }
     // no standard Subfeatures
 
     ~OrientationMeasureRep() { }
@@ -347,7 +347,7 @@ public:
 class OrientationRep : public FeatureRep {
 public:
     OrientationRep(Orientation& o, const std::string& nm) 
-        : FeatureRep(o,nm,OrientationPlacement(Mat33(NTraits<Real>::getNaN())))
+        : FeatureRep(o,nm,OrientationPlacement(MatRotation()))
       { axisIndices[0]=axisIndices[1]=axisIndices[2] = -1; }
     // must call initializeStandardSubfeatures() to complete construction.
 
@@ -471,7 +471,7 @@ protected:
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        updFeature(RIndex).place(OrientationPlacement(Mat33(1)));
+        updFeature(RIndex).place(OrientationPlacement(MatRotation()));
         updFeature(OIndex).place(StationPlacement(Vec3(0)));
     }
 

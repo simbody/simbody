@@ -25,6 +25,9 @@
  */
 
 #include "simbody/SimbodyCommon.h"
+#include "simbody/Orientation.h"
+#include "simbody/MassProperties.h"
+
 #include "Placement.h"
 #include "Feature.h"
 #include "PlacementRep.h"
@@ -208,6 +211,14 @@ std::string FeatureReference::refToString(const std::string&) const {
 /*virtual*/ Placement PlacementRep::genericSqrt() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
                     "sqrt", getPlacementTypeName());
+}
+/*virtual*/ Placement PlacementRep::genericSquare() const {
+    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                    "square", getPlacementTypeName());
+}
+/*virtual*/ Placement PlacementRep::genericCube() const {
+    SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
+                    "cube", getPlacementTypeName());
 }
 /*virtual*/ Placement PlacementRep::genericExp() const {
     SIMTK_THROW2(Exception::UnaryOperationNotAllowedForPlacementType,
@@ -579,8 +590,8 @@ Real RealOps::apply(/*State,*/ const std::vector<Placement>& args) const {
         break;
     }
     case AngleBetweenDirections: {
-        const Vec3 v1 = DirectionPlacement::downcast(args[0]).getRep().calcVec3Value();
-        const Vec3 v2 = DirectionPlacement::downcast(args[1]).getRep().calcVec3Value();
+        const Vec3 v1 = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
+        const Vec3 v2 = DirectionPlacement::downcast(args[1]).getRep().calcUnitVec3Value();
         Real dotprod = ~v1*v2;
         if (dotprod < -1.) dotprod = -1.;   // watch for roundoff
         else if (dotprod > 1.) dotprod = 1.;
@@ -676,7 +687,7 @@ Vec3PlacementRep::createVec3PlacementFrom(const Placement& p, bool dontThrow) {
     } else if (DirectionPlacement::isInstanceOf(p)) {
         const DirectionPlacement& dp = DirectionPlacement::downcast(p);
         return dp.isConstant()
-            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcVec3Value())
+            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcUnitVec3Value())
             : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastDirectionOp(dp);
     }
     if (!dontThrow) {
@@ -706,7 +717,7 @@ Placement Vec3PlacementRep::genericLength() const {
 // result = normalize(vec3) (result is always Direction)
 Placement Vec3PlacementRep::genericNormalize() const {
     DirectionPlacementRep* result = 
-        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(calcVec3Value())
+        isConstant() ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(UnitVec3(calcVec3Value()))
                      : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(getMyHandle());
     return Placement(result);
 }
@@ -909,7 +920,7 @@ Vec3 Vec3Ops::apply(/*State,*/ const std::vector<Placement>& args) const {
         break;
 
     case RecastDirection:
-        val = DirectionPlacement::downcast(args[0]).getRep().calcVec3Value();
+        val = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
         break;
 
     case Negate:
@@ -1286,7 +1297,7 @@ DirectionPlacementRep::createDirectionPlacementFrom(const Placement& p, bool don
     if (Vec3Placement::isInstanceOf(p)) {
         const Vec3Placement& vp = Vec3Placement::downcast(p);
         return vp.isConstant()
-            ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(vp.getRep().calcVec3Value())
+            ? (DirectionPlacementRep*)new DirectionConstantPlacementRep(UnitVec3(vp.getRep().calcVec3Value()))
             : (DirectionPlacementRep*)DirectionExprPlacementRep::normalizeOp(vp);
     }
     if (!dontThrow) {
@@ -1301,7 +1312,7 @@ DirectionPlacementRep::createDirectionPlacementFrom(const Placement& p, bool don
 Placement DirectionPlacementRep::genericNegate() const {
     DirectionPlacementRep* result =
         isConstant() ? (DirectionPlacementRep*)
-                        new DirectionConstantPlacementRep(-calcVec3Value())
+                        new DirectionConstantPlacementRep(-calcUnitVec3Value())
                      : (DirectionPlacementRep*)
                         DirectionExprPlacementRep::negateOp(getMyHandle());
     return Placement(result);
@@ -1317,7 +1328,7 @@ Placement DirectionPlacementRep::genericMul(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(calcVec3Value()*rp.getRep().calcRealValue())
+                   new Vec3ConstantPlacementRep(calcUnitVec3Value()*rp.getRep().calcRealValue())
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::smulOp(getMyHandle(),rp);
         return Placement(result);
@@ -1335,7 +1346,7 @@ Placement DirectionPlacementRep::genericDvd(const Placement& r) const {
         Vec3PlacementRep* result = 
             isConstant() && rp.getRep().isConstant()
                 ? (Vec3PlacementRep*)
-                   new Vec3ConstantPlacementRep(calcVec3Value()/rp.getRep().calcRealValue())
+                   new Vec3ConstantPlacementRep(calcUnitVec3Value()/rp.getRep().calcRealValue())
                 : (Vec3PlacementRep*)
                    Vec3ExprPlacementRep::sdvdOp(getMyHandle(),rp);
         return Placement(result);
@@ -1392,7 +1403,7 @@ Placement DirectionPlacementRep::genericAngle(const Placement& r) const {
     if (DirectionPlacement::isInstanceOf(r)) {
         const DirectionPlacement& dp = DirectionPlacement::downcast(r);
         if (isConstant() && dp.getRep().isConstant()) {
-            Real dotprod = ~calcVec3Value() * dp.getRep().calcVec3Value();
+            Real dotprod = ~calcUnitVec3Value().asVec3() * dp.getRep().calcUnitVec3Value().asVec3();
             if (dotprod < -1.) dotprod = -1.;
             else if (dotprod > 1.) dotprod = 1.;
             return RealPlacement(new RealConstantPlacementRep(std::acos(dotprod)));
@@ -1404,22 +1415,22 @@ Placement DirectionPlacementRep::genericAngle(const Placement& r) const {
 }
 
     // DIRECTION FEATURE PLACEMENT REP //
-const Vec3& DirectionFeaturePlacementRep::getReferencedValue() const {
+const UnitVec3& DirectionFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<Vec3>::downcast(ps.getValue()).get();
+        return PlacementValue_<UnitVec3>::downcast(ps.getValue()).get();
 
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
     if (OrientationPlacementRep::isA(p))
-        return PlacementValue_<Mat33>::downcast(ps.getValue()).get()
+        return PlacementValue_<MatRotation>::downcast(ps.getValue()).get()
             (getPlacementIndex()); // round brackets () to get column not row
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const Vec3*>(0);
+    return *reinterpret_cast<const UnitVec3*>(0);
 }
 
     // DIRECTION EXPR PLACEMENT REP //
@@ -1443,22 +1454,20 @@ bool DirectionOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-Vec3 DirectionOps::apply(/*State,*/ const std::vector<Placement>& args) const {
-    Vec3 val;
+UnitVec3 DirectionOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+    UnitVec3 val;
     switch (op) {
 
     case Negate:
-        val = DirectionPlacement::downcast(args[0]).getRep().calcVec3Value();
+        val = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
         break;
 
     case NormalizeVec3:
-        val = Vec3Placement::downcast(args[0]).getRep().calcVec3Value();
-        val /= val.norm();
+        val = UnitVec3(Vec3Placement::downcast(args[0]).getRep().calcVec3Value());
         break;
 
     case NormalizeStation:
-        val = StationPlacement::downcast(args[0]).getRep().calcVec3Value();
-        val /= val.norm();
+        val = UnitVec3(StationPlacement::downcast(args[0]).getRep().calcVec3Value());
         break;
 
     default: 
@@ -1510,36 +1519,55 @@ OrientationPlacementRep::createOrientationPlacementFrom(const Placement& p, bool
 }
 
     // ORIENTATION FEATURE PLACEMENT REP //
-const Mat33& OrientationFeaturePlacementRep::getReferencedValue() const {
+const MatRotation& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<Mat33>::downcast(ps.getValue()).get();
+        return PlacementValue_<MatRotation>::downcast(ps.getValue()).get();
 
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
 
     // We want the first 3 columns of the Frame Mat34.
     if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
-        return reinterpret_cast<const Mat33&>
+        return reinterpret_cast<const MatRotation&>
                 (PlacementValue_<Mat34>::downcast(ps.getValue()).get());
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const Mat33*>(0);
+    return *reinterpret_cast<const MatRotation*>(0);
 }
 
     // ORIENTATION EXPR PLACEMENT REP //
 
 bool OrientationOps::checkArgs(const std::vector<Placement>& args) const {
-    assert(false); // none yet
+    switch (op) {
+
+    // given the direction of the z axis, create a complete set of 3 axes
+    case CreateFromZAxis:
+        return args.size()==1 && DirectionPlacement::isInstanceOf(args[0]);
+
+    default: 
+        assert(false);
+    }
+    //NOTREACHED
     return false;
 }
 
-Mat33 OrientationOps::apply(/*State,*/ const std::vector<Placement>& args) const {
-    assert(false);
-    return Mat33();
+MatRotation OrientationOps::apply(const std::vector<Placement>& args) const {
+    MatRotation val;
+    switch(op) {
+
+    case CreateFromZAxis:
+        val = MatRotation(DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value());
+        break;
+
+    default:
+        assert(false);
+        //NOTREACHED
+    }
+    return val;
 }
 
 /*static*/ OrientationExprPlacementRep*
@@ -1688,7 +1716,7 @@ MatInertia InertiaOps::apply(const std::vector<Placement>& args) const {
 
     case Transform:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
-              .xform(OrientationPlacement::downcast(args[1]).getRep().calcMat33Value());
+              .xform(OrientationPlacement::downcast(args[1]).getRep().calcMatRotationValue());
         break;
 
     // i=shift(i,from,to,totalMass)

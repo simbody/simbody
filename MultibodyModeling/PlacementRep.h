@@ -230,7 +230,7 @@ class DirectionPlacementOp : public PlacementOp {
 public:
     virtual ~DirectionPlacementOp() { }
     // Run time
-    virtual Vec3 apply(const std::vector<Placement>&) const = 0;
+    virtual UnitVec3 apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(DirectionPlacementOp, PlacementOp);
 };
@@ -258,7 +258,7 @@ public:
         return std::string(p) + "<Direction>";
     }
 
-    Vec3 apply(const std::vector<Placement>&) const;
+    UnitVec3 apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(DirectionOps, PlacementOp);
 private:
@@ -273,18 +273,18 @@ class OrientationPlacementOp : public PlacementOp {
 public:
     virtual ~OrientationPlacementOp() { }
     // Run time
-    virtual Mat33 apply(const std::vector<Placement>&) const = 0;
+    virtual MatRotation apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(OrientationPlacementOp, PlacementOp);
 };
 
 /**
- * Concrete class producing a Direction result when applied to Placement
+ * Concrete class producing an Orientation result when applied to Placement
  * arguments of whatever number and type is appropriate for the operator.
  */
 class OrientationOps : public OrientationPlacementOp {
 public:
-    enum OpKind { NoneYet };
+    enum OpKind { CreateFromZAxis };
     explicit OrientationOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new OrientationOps(*this);}
@@ -292,13 +292,13 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case NoneYet: p="NoneYet"; break;
-            default:      p="UNKNOWN OP";
+            case CreateFromZAxis: p="fromZAxis"; break;
+            default:              p="UNKNOWN OP";
         };
         return std::string(p) + "<Orientation>";
     }
 
-    Mat33 apply(const std::vector<Placement>&) const;
+    MatRotation apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(OrientationOps, PlacementOp);
 private:
@@ -486,6 +486,8 @@ public:
     virtual Placement genericNegate()    const;
     virtual Placement genericAbs()       const;
     virtual Placement genericSqrt()      const;
+    virtual Placement genericSquare()    const;
+    virtual Placement genericCube()      const;
     virtual Placement genericExp()       const;
     virtual Placement genericLog()       const;
     virtual Placement genericSin()       const;
@@ -1044,7 +1046,7 @@ public:
     const DirectionPlacement& getMyHandle() const 
       { return DirectionPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Vec3>();}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<UnitVec3>();}
     std::string    getPlacementTypeName() const { return "Direction"; }
     int            getNIndicesAllowed()        const {return 3;} // 3 reals
 
@@ -1072,11 +1074,11 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<Vec3>::initializeToValueType(pv);
-        evaluateVec3(PlacementValue_<Vec3>::downcast(pv).upd());
+        PlacementValue_<UnitVec3>::initializeToValueType(pv);
+        evaluateUnitVec3(PlacementValue_<UnitVec3>::downcast(pv).upd());
     }
-    virtual void evaluateVec3(Vec3&) const = 0;
-    Vec3 calcVec3Value() const {Vec3 v;evaluateVec3(v);return v;}
+    virtual void evaluateUnitVec3(UnitVec3&) const = 0;
+    UnitVec3 calcUnitVec3Value() const {UnitVec3 v;evaluateUnitVec3(v);return v;}
 
     SIMTK_DOWNCAST(DirectionPlacementRep,PlacementRep);
 };
@@ -1085,15 +1087,12 @@ public:
 // A concrete DirectionPlacement in which there are no variables.
 class DirectionConstantPlacementRep : public DirectionPlacementRep {
 public:
-    explicit DirectionConstantPlacementRep(const Vec3& v)
-      : DirectionPlacementRep(), dir(v) {
-        const Real len = dir.norm();
-        dir /= len; // let there be NaN's!
-    }
+    explicit DirectionConstantPlacementRep(const UnitVec3& v)
+      : DirectionPlacementRep(), dir(v) { }
 
     // Implementations of pure virtuals.
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateVec3(Vec3& v) const {v=dir;}
+    void evaluateUnitVec3(UnitVec3& v) const {v=dir;}
 
     bool isConstant() const { return true; }
 
@@ -1102,9 +1101,9 @@ public:
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Direction[";
-        if      (dir == Vec3(1,0,0)) s << "X";
-        else if (dir == Vec3(0,1,0)) s << "Y";
-        else if (dir == Vec3(0,0,1)) s << "Z";
+        if      (dir.asVec3() == Vec3(1,0,0)) s << "X";
+        else if (dir.asVec3() == Vec3(0,1,0)) s << "Y";
+        else if (dir.asVec3() == Vec3(0,0,1)) s << "Z";
         else s << dir;
         s << "]";
         return s.str();
@@ -1117,7 +1116,7 @@ public:
 
     SIMTK_DOWNCAST(DirectionConstantPlacementRep, PlacementRep);
 private:
-    Vec3 dir;
+    UnitVec3 dir;
 };
 
 /**
@@ -1132,7 +1131,7 @@ public:
     ~DirectionFeaturePlacementRep() { }
 
     void realize(Stage g) const {refRealize(g);}
-    void evaluateVec3(Vec3& v) const {v = getReferencedValue();}
+    void evaluateUnitVec3(UnitVec3& v) const {v = getReferencedValue();}
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1153,7 +1152,7 @@ public:
     SIMTK_DOWNCAST(DirectionFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Vec3& getReferencedValue() const;
+    const UnitVec3& getReferencedValue() const;
 };
 
 /**
@@ -1175,7 +1174,7 @@ public:
     static DirectionExprPlacementRep* normalizeOp (const Vec3Placement&);
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateVec3(Vec3& v) const
+    void evaluateUnitVec3(UnitVec3& v) const
       { v = DirectionOps::downcast(exprGetFunc()).apply(exprGetArgs()); }
 
     PlacementRep*  clone() const {return new DirectionExprPlacementRep(*this);}
@@ -1204,7 +1203,7 @@ public:
     const OrientationPlacement& getMyHandle() const 
       { return OrientationPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat33>();}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<MatRotation>();}
     std::string    getPlacementTypeName()      const {return "Orientation";}
     int            getNIndicesAllowed()        const {return 3;} // 3 Directions
 
@@ -1216,11 +1215,11 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<Mat33>::initializeToValueType(pv);
-        evaluateMat33(PlacementValue_<Mat33>::downcast(pv).upd());
+        PlacementValue_<MatRotation>::initializeToValueType(pv);
+        evaluateMatRotation(PlacementValue_<MatRotation>::downcast(pv).upd());
     }
-    virtual void evaluateMat33(Mat33&) const = 0;
-    Mat33 calcMat33Value() const {Mat33 m;evaluateMat33(m);return m;}
+    virtual void evaluateMatRotation(MatRotation&) const = 0;
+    MatRotation calcMatRotationValue() const {MatRotation m;evaluateMatRotation(m);return m;}
 
     SIMTK_DOWNCAST(OrientationPlacementRep,PlacementRep);
 };
@@ -1228,7 +1227,7 @@ public:
 // A concrete OrientationPlacement in which there are no variables.
 class OrientationConstantPlacementRep : public OrientationPlacementRep {
 public:
-    explicit OrientationConstantPlacementRep(const Mat33& m)
+    explicit OrientationConstantPlacementRep(const MatRotation& m)
       : OrientationPlacementRep(), ori(m) {
         // TODO: check orientation matrix validity
     }
@@ -1236,7 +1235,7 @@ public:
     // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateMat33(Mat33& m) const {m=ori;}
+    void evaluateMatRotation(MatRotation& m) const {m=ori;}
 
     bool isConstant() const { return true; }
 
@@ -1245,7 +1244,7 @@ public:
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Orientation[";
-        if (ori == Mat33(1)) s << "I";
+        if (ori.asMat33() == Mat33(1)) s << "I";
         else s << ori(0) << ori(1) << ori(2);
         s << "]";
         return s.str();
@@ -1258,7 +1257,7 @@ public:
 
     SIMTK_DOWNCAST(OrientationConstantPlacementRep, PlacementRep);
 private:
-    Mat33 ori;
+    MatRotation ori;
 };
 
 /**
@@ -1273,7 +1272,7 @@ public:
     ~OrientationFeaturePlacementRep() { }
       
     void realize(Stage g) const {refRealize(g);}
-    void evaluateMat33(Mat33& m) const {m = getReferencedValue();}
+    void evaluateMatRotation(MatRotation& m) const {m = getReferencedValue();}
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1294,7 +1293,7 @@ public:
     SIMTK_DOWNCAST(OrientationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Mat33& getReferencedValue() const;
+    const MatRotation& getReferencedValue() const;
 };
 
 /**
@@ -1313,7 +1312,7 @@ public:
     // NONE YET
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateMat33(Mat33& m) const
+    void evaluateMatRotation(MatRotation& m) const
       { m = OrientationOps::downcast(exprGetFunc()).apply(exprGetArgs()); }
 
     PlacementRep*  clone() const {return new OrientationExprPlacementRep(*this);}
@@ -1624,8 +1623,8 @@ public:
         origin.getRep().realize(g);
     }
     void evaluateMat34(Mat34& m) const {
-        Mat33& axesv = reinterpret_cast<Mat33&>(m);
-        orientation.getRep().evaluateMat33(axesv);
+        MatRotation& axesv = reinterpret_cast<MatRotation&>(m);
+        orientation.getRep().evaluateMatRotation(axesv);
         origin.getRep().evaluateVec3(m(3));
     }
 

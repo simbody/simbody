@@ -1,5 +1,5 @@
 PROJECT (Simbody)
-SUBDIRS (Mechanics MultibodyComputation MultibodyModeling)
+SUBDIRS (Geometry Mechanics MultibodyComputation MultibodyModeling)
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build

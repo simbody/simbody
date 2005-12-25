@@ -7,9 +7,8 @@ FILE(GLOB INCLUDE_FILES
     include/simbody/internal/*.h
     src/*.h)
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Mechanics/include
-                    ${PROJECT_SOURCE_DIR}/Geometry/include  
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Geometry/include 
                     ${PROJECT_SOURCE_DIR}/include
                     ${SIMTK_FRAMEWORK_INSTALL_DIR}/include)
 
-ADD_LIBRARY(Mechanics ${SOURCE_FILES} ${INCLUDE_FILES})
+ADD_LIBRARY(Geometry ${SOURCE_FILES} ${INCLUDE_FILES})

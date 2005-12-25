@@ -197,7 +197,7 @@ private:
 
         // This is a reference frame for the cylinder, measured from and expressed
         // in the body frame. The x and y axes are arbitrary due to symmetry.
-        const FramePlacement     F_BC(OrientationPlacement(z,2), c);
+        const FramePlacement     F_BC(OrientationPlacement(z), c);
 
         updInertiaMeasure().place(
             InertiaPlacement(Ixx,Ixx,Izz).xformFromCOM(~F_BC));

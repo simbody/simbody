@@ -118,6 +118,7 @@ protected:
 inline Placement negate    (const Feature& f) {return negate   (Placement(f));}
 inline Placement abs       (const Feature& f) {return abs      (Placement(f));}
 inline Placement sqrt      (const Feature& f) {return sqrt     (Placement(f));}
+inline Placement square    (const Feature& f) {return sqrt     (Placement(f));}
 inline Placement exp       (const Feature& f) {return exp      (Placement(f));}
 inline Placement log       (const Feature& f) {return log      (Placement(f));}
 inline Placement sin       (const Feature& f) {return sin      (Placement(f));}

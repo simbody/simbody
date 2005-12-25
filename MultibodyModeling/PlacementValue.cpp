@@ -25,6 +25,7 @@
  */
 
 #include "simbody/SimbodyCommon.h"
+#include "simbody/Orientation.h"
 #include "simbody/MassProperties.h"
 #include "PlacementValue.h"
 #include "PlacementValueRep.h"
@@ -164,5 +165,6 @@ template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
 template class PlacementValue_<Mat34>;
 template class PlacementValue_<MatInertia>;
-
+template class PlacementValue_<MatRotation>;
+template class PlacementValue_<UnitVec3>;
 } // namespace simtk

@@ -31,7 +31,7 @@
 
 namespace simtk {
 
-std::ostream& operator<<(std::ostream& o, const Inertia& i) {
+std::ostream& operator<<(std::ostream& o, const MatInertia& i) {
     return o << i.toMat33();
 }
 

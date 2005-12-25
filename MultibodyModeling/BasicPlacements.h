@@ -28,6 +28,7 @@
  */
 
 #include "simbody/SimbodyCommon.h"
+#include "simbody/Orientation.h"
 #include "simbody/MassProperties.h"
 #include "Placement.h"
 
@@ -71,6 +72,7 @@ public:
     RealPlacement(const RealParameter&);
     RealPlacement(const RealMeasure&);
     explicit RealPlacement(const Feature&);
+    explicit RealPlacement(const Placement&);
 
     static bool          canConvert(const Placement&);
     static RealPlacement convert(const Placement&);
@@ -94,6 +96,7 @@ public:
     Vec3Placement(const Vec3Measure&);
     Vec3Placement(const Vec3Parameter&);
     explicit Vec3Placement(const Feature&);
+    explicit Vec3Placement(const Placement&);
 
     static bool          canConvert(const Placement&);
     static Vec3Placement convert(const Placement&);
@@ -117,6 +120,7 @@ public:
     explicit StationPlacement(const Vec3&);
     explicit StationPlacement(const FrameFeature&);   // use the origin
     explicit StationPlacement(const Feature&);
+    explicit StationPlacement(const Placement&);
 
     // For internal use only.
     explicit StationPlacement(class StationPlacementRep* r) 
@@ -134,8 +138,10 @@ public:
     DirectionPlacement(const Direction&);           // implicit conversion
     DirectionPlacement(const DirectionMeasure&);    // implicit conversion
 
+    explicit DirectionPlacement(const UnitVec3&);
     explicit DirectionPlacement(const Vec3&);
     explicit DirectionPlacement(const Feature&);
+    explicit DirectionPlacement(const Placement&);
 
     DirectionPlacement(const Orientation&, int i);  // use the i'th axis
     DirectionPlacement(const FrameFeature&, int i);        // use the i'th axis
@@ -157,9 +163,10 @@ public:
     OrientationPlacement(const Orientation&);           // implicit conversion
     OrientationPlacement(const OrientationMeasure&);    // implicit conversion
 
-    explicit OrientationPlacement(const Mat33&);
+    explicit OrientationPlacement(const MatRotation&);
     explicit OrientationPlacement(const FrameFeature&);        // use the orientation
     explicit OrientationPlacement(const Feature&);
+    explicit OrientationPlacement(const Placement&);
 
     // For internal use only.
     explicit OrientationPlacement(class OrientationPlacementRep* r) 
@@ -180,8 +187,16 @@ public:
     // Construct the inertia of a point mass located at p having mass m.
     InertiaPlacement(const StationPlacement& p, const RealPlacement& m);
 
+    // Construct from principal moments.
+    InertiaPlacement(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz);
+
+    // Construct from general inertia terms. Note the order.
+    InertiaPlacement(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz,
+                     const RealPlacement& Ixy, const RealPlacement& Ixz, const RealPlacement& Iyz);
+
     explicit InertiaPlacement(const MatInertia&);
     explicit InertiaPlacement(const Feature&);
+    explicit InertiaPlacement(const Placement&);
 
     InertiaPlacement shift(const StationPlacement& from,
                            const StationPlacement& to,
@@ -211,6 +226,7 @@ public:
     explicit FramePlacement(const Orientation&);
 
     explicit FramePlacement(const Feature&);
+    explicit FramePlacement(const Placement&);
 
     FramePlacement(const Orientation&, const Station&);
 

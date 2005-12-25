@@ -182,7 +182,7 @@ DirectionPlacement::DirectionPlacement(const Direction& d) {
 DirectionPlacement::DirectionPlacement(const DirectionMeasure& d) {
     rep = d.getRep().createFeatureReference(*this);
 }
-DirectionPlacement::DirectionPlacement(const Vec3& v) {
+DirectionPlacement::DirectionPlacement(const UnitVec3& v) {
     rep = new DirectionConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
@@ -230,7 +230,7 @@ OrientationPlacement::OrientationPlacement(const Orientation& o) {
 OrientationPlacement::OrientationPlacement(const OrientationMeasure& om) {
     rep = om.getRep().createFeatureReference(*this);
 }
-OrientationPlacement::OrientationPlacement(const Mat33& m) {
+OrientationPlacement::OrientationPlacement(const MatRotation& m) {
     rep = new OrientationConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }

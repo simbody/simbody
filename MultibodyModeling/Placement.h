@@ -107,6 +107,7 @@ std::ostream& operator<<(std::ostream& o, const Placement&);
 Placement negate    (const Placement&);
 Placement abs       (const Placement&);
 Placement sqrt      (const Placement&);
+Placement square    (const Placement&);
 Placement exp       (const Placement&);
 Placement log       (const Placement&);
 Placement sin       (const Placement&);
