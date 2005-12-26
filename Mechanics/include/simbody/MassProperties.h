@@ -14,17 +14,25 @@
 namespace simtk {
 
 /**
- * The physical meaning of an inertia is the current distribution of
+ * The physical meaning of an inertia is the distribution of
  * a rigid body's mass about a *particular* point. If that point is the
  * center of mass of the body, then the measured inertia is called
  * the "central inertia" of that body. To write down the inertia, we
  * need to calculate the six scalars of the inertia tensor, which
  * is a symmetric 3x3 matrix. These scalars must be expressed in 
  * an arbitrary but specified coordinate system. So a MatInertia
- * is meaningful only in conjunction with a particular frame, fixed
+ * is meaningful only in conjunction with a particular set of axes, fixed
  * to the body, whose origin is the point about which the inertia is being
  * measured, and in whose coordinate system this measurement is being
- * expressed.
+ * expressed. Note that changing the reference point results in a new
+ * physical quantity, but changing the reference axes only affects the
+ * measure numbers of that quantity. For any reference point, there
+ * is a unique set of reference axes in which the inertia tensor is
+ * diagonal; those are called the "principal axes" of the body at that
+ * point, and the resulting diagonal elements are the "principal moments
+ * of inertia". When we speak of an inertia being "in" a frame, we mean
+ * the physical quantity measured about the frame's origin and then expressed
+ * in the frame's axes.
  *
  * This low-level MatInertia class does not attempt to keep track of *which*
  * frame it is in. It concentrates instead on providing construction and
@@ -73,7 +81,7 @@ public:
     /// This is a general inertia matrix. Note the order of these
     /// arguments: moments of inertia first, then products of inertia.
     MatInertia(const Real& xx, const Real& yy, const Real& zz,
-            const Real& xy, const Real& xz, const Real& yz)
+               const Real& xy, const Real& xz, const Real& yz)
         { setInertia(xx,yy,zz,xy,xz,yz); }
 
     /// Given a point mass located at a given point p in some frame F, 
@@ -85,9 +93,9 @@ public:
     /// measured from the same point and expressed in the same frame.
     MatInertia(const Vec3& p, const Real& m) {
         Mat33& t = I_OF_F;
-        const Real& x = p(0); const Real xx = x*x;
-        const Real& y = p(1); const Real yy = y*y;
-        const Real& z = p(2); const Real zz = z*z;
+        const Real& x = p[0]; const Real xx = x*x;
+        const Real& y = p[1]; const Real yy = y*y;
+        const Real& z = p[2]; const Real zz = z*z;
 
         t(0,0)          =  m*(yy + zz);
         t(1,1)          =  m*(xx + zz);
@@ -145,6 +153,19 @@ public:
         return *this;
     }
 
+    MatInertia& operator*=(const Real& r) {
+        I_OF_F *= r;
+        return *this;
+    }
+    MatInertia& operator/=(const Real& r) {
+        I_OF_F /= r;
+        return *this;
+    }
+    void setInertia(const Real& xx, const Real& yy, const Real& zz) {
+        I_OF_F = 0.; I_OF_F(0,0) = xx; I_OF_F(1,1) = yy;  I_OF_F(2,2) = zz;
+    }
+
+
     void setInertia(const Real& xx, const Real& yy, const Real& zz,
                     const Real& xy, const Real& xz, const Real& yz) {
         Mat33& t = I_OF_F;
@@ -153,7 +174,6 @@ public:
         t(0,2) = t(2,0) = xz;
         t(1,2) = t(2,1) = yz;
     }
-
 
     /// Assume that the current inertia is about the F frame's origin OF, and
     /// expressed in F. Given the vector from OF to the body center of mass CF,
@@ -171,14 +191,10 @@ public:
     /// point mass of mass mtot (the total body mass) located at p, about CF.
     inline MatInertia shiftFromCOM(const Vec3& p, const Real& mtot) const;
 
-    MatInertia shift(const Vec3& from, const Vec3& to, const Real& mtot) const {
-        return shiftToCOM(from,mtot).shiftFromCOM(to,mtot);
-    }
-
     /// Re-express this inertia from frame F to frame B, given the orientation
     /// of B in F. This is a similarity transform since rotation matrices are
     /// orthogonal.
-    MatInertia rotate(const Mat33& R_FB) const {
+    MatInertia changeAxes(const Mat33& R_FB) const {
         return MatInertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
     }
 
@@ -244,6 +260,15 @@ inline MatInertia operator+(const MatInertia& l, const MatInertia& r) {
 }
 inline MatInertia operator-(const MatInertia& l, const MatInertia& r) {
     return MatInertia(l) -= r;
+}
+inline MatInertia operator*(const MatInertia& i, const Real& r) {
+    return MatInertia(i) *= r;
+}
+inline MatInertia operator*(const Real& r, const MatInertia& i) {
+    return MatInertia(i) *= r;
+}
+inline MatInertia operator/(const MatInertia& i, const Real& r) {
+    return MatInertia(i) /= r;
 }
 inline MatInertia MatInertia::shiftToCOM(const Vec3& CF, const Real& mtot) const {
     return *this - MatInertia(CF, mtot);

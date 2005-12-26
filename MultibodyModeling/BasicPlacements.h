@@ -168,6 +168,12 @@ public:
     explicit OrientationPlacement(const Feature&);
     explicit OrientationPlacement(const Placement&);
 
+    // Returns the transpose of this rotation, which is the inverse rotation matrix.
+    OrientationPlacement invert() const;
+
+    // Create a set of axes with the indicated Z axis, but arbitrary X & Y.
+    static OrientationPlacement createFromZAxis(const DirectionPlacement& z);
+
     // For internal use only.
     explicit OrientationPlacement(class OrientationPlacementRep* r) 
       : Placement(reinterpret_cast<PlacementRep*>(r)) { }
@@ -198,9 +204,11 @@ public:
     explicit InertiaPlacement(const Feature&);
     explicit InertiaPlacement(const Placement&);
 
-    InertiaPlacement shift(const StationPlacement& from,
-                           const StationPlacement& to,
-                           const RealPlacement&    totalMass) const;
+    InertiaPlacement changeAxes(const OrientationPlacement&) const;
+    InertiaPlacement shiftFromCOM(const StationPlacement& to,
+                                  const RealPlacement&    totalMass) const;
+    InertiaPlacement shiftToCOM(const StationPlacement& to,
+                                const RealPlacement&    totalMass) const;
 
     // For internal use only.
     explicit InertiaPlacement(class InertiaPlacementRep* r) 

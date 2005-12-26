@@ -50,9 +50,9 @@ private:
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
 
 // Scalar multiply and divide don't preserve 'unitness'
-Vec3 operator*(const UnitVec3& v, const Real& r) {return v.asVec3()*r;}
-Vec3 operator*(const Real& r, const UnitVec3& v) {return v.asVec3()*r;}
-Vec3 operator/(const UnitVec3& v, const Real& r) {return v.asVec3()/r;}
+inline Vec3 operator*(const UnitVec3& v, const Real& r) {return v.asVec3()*r;}
+inline Vec3 operator*(const Real& r, const UnitVec3& v) {return v.asVec3()*r;}
+inline Vec3 operator/(const UnitVec3& v, const Real& r) {return v.asVec3()/r;}
 
 /**
  * This class is a Mat33 plus an ironclad guarantee that the matrix represents
@@ -106,13 +106,13 @@ private:
 };
 std::ostream& operator<<(std::ostream& o, const MatRotation& m);
 
-MatRotation operator*(const MatRotation& l, const MatRotation& r) {
+inline MatRotation operator*(const MatRotation& l, const MatRotation& r) {
     return MatRotation(l.asMat33()*r.asMat33());
 }
-UnitVec3 operator*(const MatRotation& R, const UnitVec3& v) {
+inline UnitVec3 operator*(const MatRotation& R, const UnitVec3& v) {
     return UnitVec3(R.asMat33()*v.asVec3(), true);
 }
-Vec3 operator*(const MatRotation& R, const Vec3& v) {
+inline Vec3 operator*(const MatRotation& R, const Vec3& v) {
     return R.asMat33()*v;
 }
 /**

@@ -109,7 +109,7 @@ public:
  */
 class RealOps : public PlacementOp {
 public:
-    enum OpKind { Negate, Abs, Sqrt, Exp, Log, Sin, Cos, Asin, Acos, VectorLength, // unary 
+    enum OpKind { Negate, Abs, Sqrt, Square, Cube, Exp, Log, Sin, Cos, Asin, Acos, VectorLength, // unary 
                   Add, Subtract, Multiply, Divide, DotProduct2, DotProduct3,  // binary
                   PointDistance, AngleBetweenDirections };
 
@@ -125,6 +125,8 @@ public:
             case Negate:        p="negate";   break;
             case Abs:           p="abs";      break;
             case Sqrt:          p="sqrt";     break;
+            case Square:        p="square";   break;
+            case Cube:          p="cube";     break;
             case Exp:           p="exp";      break;
             case Log:           p="log";      break;
             case Sin:           p="sin";      break;
@@ -284,7 +286,7 @@ public:
  */
 class OrientationOps : public OrientationPlacementOp {
 public:
-    enum OpKind { CreateFromZAxis };
+    enum OpKind { CreateFromZAxis, Invert };
     explicit OrientationOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new OrientationOps(*this);}
@@ -292,8 +294,9 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case CreateFromZAxis: p="fromZAxis"; break;
-            default:              p="UNKNOWN OP";
+            case CreateFromZAxis:  p="fromZAxis";        break;
+            case Invert:           p="invert";           break;
+            default:               p="UNKNOWN OP";
         };
         return std::string(p) + "<Orientation>";
     }
@@ -311,7 +314,7 @@ private:
  */
 class InertiaOps : public PlacementOp {
 public:
-    enum OpKind { Add, Subtract, Transform, Shift, PointMass };
+    enum OpKind { Add, Subtract, ChangeAxes, ShiftFromCOM, ShiftToCOM, PointMass, PrincipalMoments, FullInertia };
     explicit InertiaOps(OpKind k) : op(k) { }
 
     PlacementOp* clone() const { return new InertiaOps(*this);}
@@ -319,11 +322,14 @@ public:
     std::string getOpName() const {
         char *p = 0;
         switch(op) {
-            case Add:               p="add";        break;
-            case Subtract:          p="sub";        break;
-            case Transform:         p="xform";      break;
-            case Shift:             p="shift";      break;
-            case PointMass:         p="pointMass";  break;
+            case Add:               p="add";              break;
+            case Subtract:          p="sub";              break;
+            case ChangeAxes:        p="changeAxes";       break;
+            case ShiftFromCOM:      p="shiftFromCOM";     break;
+            case ShiftToCOM:        p="shiftToCOM";       break;
+            case PointMass:         p="pointMass";        break;
+            case PrincipalMoments:  p="principalMoments"; break;
+            case FullInertia:       p="fullInertia";      break;
             default:                p="UNKNOWN OP";
         };
         return std::string(p) + "<MatInertia>";
@@ -574,6 +580,8 @@ public:
     Placement genericNegate()  const;
     Placement genericAbs()     const;
     Placement genericSqrt()    const;
+    Placement genericSquare()  const;
+    Placement genericCube()    const;
     Placement genericExp()     const;
     Placement genericLog()     const;
     Placement genericSin()     const;
@@ -685,6 +693,8 @@ public:
     static RealExprPlacementRep* negateOp(const RealPlacement&);
     static RealExprPlacementRep* absOp   (const RealPlacement&);
     static RealExprPlacementRep* sqrtOp  (const RealPlacement&);
+    static RealExprPlacementRep* squareOp(const RealPlacement&);
+    static RealExprPlacementRep* cubeOp  (const RealPlacement&);
     static RealExprPlacementRep* expOp   (const RealPlacement&);
     static RealExprPlacementRep* logOp   (const RealPlacement&);
     static RealExprPlacementRep* sinOp   (const RealPlacement&);
@@ -1207,6 +1217,9 @@ public:
     std::string    getPlacementTypeName()      const {return "Orientation";}
     int            getNIndicesAllowed()        const {return 3;} // 3 Directions
 
+    OrientationPlacement invert() const;
+    static OrientationPlacement createFromZAxis(const DirectionPlacement& z);
+
     static PlacementRep* createOrientationPlacementFrom(const Placement&, bool dontThrow=false);
     PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
       { return createOrientationPlacementFrom(p,dontThrow); }
@@ -1309,7 +1322,8 @@ public:
     ~OrientationExprPlacementRep() { }
 
     // Supported OrientationExpr-building operators
-    // NONE YET
+    static OrientationExprPlacementRep* createFromZOp(const DirectionPlacement& z);
+    static OrientationExprPlacementRep* invertOp     (const OrientationPlacement&);
 
     void realize(Stage g) const {exprRealize(g);}
     void evaluateMatRotation(MatRotation& m) const
@@ -1351,9 +1365,11 @@ public:
     Placement genericAdd(const Placement& r) const;
     Placement genericSub(const Placement& r) const;
 
-    InertiaPlacement shift(const StationPlacement& from,
-                           const StationPlacement& to,
-                           const RealPlacement&    totalMass) const;
+    InertiaPlacement shiftToCOM(const StationPlacement& com,
+                                const RealPlacement&    totalMass) const;
+    InertiaPlacement shiftFromCOM(const StationPlacement& pt,
+                                  const RealPlacement&    totalMass) const;
+    InertiaPlacement changeAxes(const OrientationPlacement&) const;
 
     static PlacementRep* createInertiaPlacementFrom(const Placement&, bool dontThrow=false);
     PlacementRep* createPlacementFrom(const Placement& p, bool dontThrow) const 
@@ -1456,13 +1472,20 @@ public:
     // Supported InertiaExpr-building operators
     static InertiaExprPlacementRep* addOp (const InertiaPlacement& l, const InertiaPlacement& r);
     static InertiaExprPlacementRep* subOp (const InertiaPlacement& l, const InertiaPlacement& r);
-    static InertiaExprPlacementRep* xformOp (const InertiaPlacement& i, const OrientationPlacement& r);
-    static InertiaExprPlacementRep* shiftOp(const InertiaPlacement& i,
-                                            const StationPlacement& from,
-                                            const StationPlacement& to,
-                                            const RealPlacement&    mtot);
+    static InertiaExprPlacementRep* changeAxesOp (const InertiaPlacement& i, const OrientationPlacement& r);
+    static InertiaExprPlacementRep* shiftFromCOMOp(const InertiaPlacement& i,
+                                                   const StationPlacement& to,
+                                                   const RealPlacement&    mtot);
+    static InertiaExprPlacementRep* shiftToCOMOp(const InertiaPlacement& i,
+                                                 const StationPlacement& com,
+                                                 const RealPlacement&    mtot);
     static InertiaExprPlacementRep* ptMassOp(const StationPlacement& loc,
                                              const RealPlacement&    mass);
+    static InertiaExprPlacementRep* principalMomentsOp(const RealPlacement& Ixx,
+                                                       const RealPlacement& Iyy,
+                                                       const RealPlacement& Izz);
+    static InertiaExprPlacementRep* fullInertiaOp(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz,
+                                                  const RealPlacement& Ixy, const RealPlacement& Iyz, const RealPlacement& Ixz);
 
     void realize(Stage g) const {exprRealize(g);}
     void evaluateInertia(MatInertia& i) const

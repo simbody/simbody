@@ -64,6 +64,16 @@ RealPlacement::RealPlacement(const Feature& f) {
     }
 }
 
+RealPlacement::RealPlacement(const Placement& p) {
+    try {
+        rep = RealPlacementRep::createRealPlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "RealPlacement", "Placement", exc.getMessageText());
+    }
+}
 
 /*static*/ bool             
 RealPlacement::isInstanceOf(const Placement& p) {
@@ -94,6 +104,28 @@ Vec3Placement::Vec3Placement(const Vec3Parameter& rp) {
 
 Vec3Placement::Vec3Placement(const Vec3Measure& rm) {
     rep = rm.getRep().createFeatureReference(*this);
+}
+
+Vec3Placement::Vec3Placement(const Feature& f) {
+    try {
+        rep = Vec3PlacementRep::createVec3PlacementFrom(Placement(f));
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "Vec3Placement", f.getFullName(), exc.getMessageText());
+    }
+}
+
+Vec3Placement::Vec3Placement(const Placement& p) {
+    try {
+        rep = Vec3PlacementRep::createVec3PlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "Vec3Placement", "Placement", exc.getMessageText());
+    }
 }
 
 /*static*/bool Vec3Placement::canConvert(const Placement& p) {
@@ -157,6 +189,16 @@ StationPlacement::StationPlacement(const Feature& f) {
     }
 }
 
+StationPlacement::StationPlacement(const Placement& p) {
+    try {
+        rep = StationPlacementRep::createStationPlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "StationPlacement", "Placement", exc.getMessageText());
+    }
+}
 
 /*static*/ bool             
 StationPlacement::isInstanceOf(const Placement& p) {
@@ -186,6 +228,10 @@ DirectionPlacement::DirectionPlacement(const UnitVec3& v) {
     rep = new DirectionConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
+DirectionPlacement::DirectionPlacement(const Vec3& v) {
+    rep = new DirectionConstantPlacementRep(UnitVec3(v));
+    rep->setMyHandle(*this);
+}
 DirectionPlacement::DirectionPlacement(const Feature& f) {
     try {
         rep = DirectionPlacementRep::createDirectionPlacementFrom(Placement(f));
@@ -194,6 +240,16 @@ DirectionPlacement::DirectionPlacement(const Feature& f) {
     catch (const Exception::Base& exc) {
         SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
             "DirectionPlacement", f.getFullName(), exc.getMessageText());
+    }
+}
+DirectionPlacement::DirectionPlacement(const Placement& p) {
+    try {
+        rep = DirectionPlacementRep::createDirectionPlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "DirectionPlacement", "Placement", exc.getMessageText());
     }
 }
 DirectionPlacement::DirectionPlacement(const Orientation& o, int i) {
@@ -248,6 +304,47 @@ OrientationPlacement::OrientationPlacement(const Feature& f) {
             "OrientationPlacement", f.getFullName(), exc.getMessageText());
     }
 }
+
+OrientationPlacement::OrientationPlacement(const Placement& p) {
+    try {
+        rep = OrientationPlacementRep::createOrientationPlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "OrientationPlacement", "Placement", exc.getMessageText());
+    }
+}
+
+OrientationPlacement
+OrientationPlacement::invert() const
+{
+    try {
+        return getRep().invert();
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "OrientationPlacement::invert", "", exc.getMessageText());
+    }
+    //NOTREACHED
+    return OrientationPlacement();
+}
+
+
+/*static*/ OrientationPlacement
+OrientationPlacement::createFromZAxis(const DirectionPlacement& z)
+{
+    try {
+        return OrientationPlacementRep::createFromZAxis(z);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "OrientationPlacement::createFromZAxis", "z", exc.getMessageText());
+    }
+    //NOTREACHED
+    return OrientationPlacement();
+}
+
 /*static*/ bool             
 OrientationPlacement::isInstanceOf(const Placement& p) {
     if (!p.hasRep()) return false;
@@ -276,10 +373,24 @@ InertiaPlacement::InertiaPlacement(const StationPlacement& p, const RealPlacemen
     rep->setMyHandle(*this);
 }
 
+InertiaPlacement::InertiaPlacement(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz)
+{
+    rep = InertiaExprPlacementRep::principalMomentsOp(Ixx,Iyy,Izz);
+    rep->setMyHandle(*this);
+}
+
+InertiaPlacement::InertiaPlacement(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz,
+                                   const RealPlacement& Ixy, const RealPlacement& Ixz, const RealPlacement& Iyz)
+{
+    rep = InertiaExprPlacementRep::fullInertiaOp(Ixx,Iyy,Izz,Ixy,Ixz,Iyz);
+    rep->setMyHandle(*this);
+}
+
 InertiaPlacement::InertiaPlacement(const MatInertia& m) {
     rep = new InertiaConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }
+
 InertiaPlacement::InertiaPlacement(const Feature& f) {
     try {
         rep = InertiaPlacementRep::createInertiaPlacementFrom(Placement(f));
@@ -291,22 +402,60 @@ InertiaPlacement::InertiaPlacement(const Feature& f) {
     }
 }
 
-InertiaPlacement
-InertiaPlacement::shift(const StationPlacement& from,
-                        const StationPlacement& to,
-                        const RealPlacement&    totalMass) const
-{
+InertiaPlacement::InertiaPlacement(const Placement& p) {
     try {
-        return getRep().shift(from,to,totalMass);
+        rep = InertiaPlacementRep::createInertiaPlacementFrom(p);
+        rep->setMyHandle(*this);
     }
     catch (const Exception::Base& exc) {
         SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
-            "InertiaPlacement::shift", "", exc.getMessageText());
+            "InertiaPlacement", "Placement", exc.getMessageText());
+    }
+}
+
+InertiaPlacement
+InertiaPlacement::changeAxes(const OrientationPlacement& r) const
+{
+    try {
+        return getRep().changeAxes(r);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "InertiaPlacement::changeAxes", "", exc.getMessageText());
     }
     //NOTREACHED
     return InertiaPlacement();
 }
 
+InertiaPlacement
+InertiaPlacement::shiftFromCOM(const StationPlacement& to,
+                               const RealPlacement&    totalMass) const
+{
+    try {
+        return getRep().shiftFromCOM(to,totalMass);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "InertiaPlacement::shiftFromCOM", "", exc.getMessageText());
+    }
+    //NOTREACHED
+    return InertiaPlacement();
+}
+
+InertiaPlacement
+InertiaPlacement::shiftToCOM(const StationPlacement& com,
+                             const RealPlacement&    totalMass) const
+{
+    try {
+        return getRep().shiftToCOM(com,totalMass);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "InertiaPlacement::shiftToCOM", "", exc.getMessageText());
+    }
+    //NOTREACHED
+    return InertiaPlacement();
+}
 
 /*static*/ bool             
 InertiaPlacement::isInstanceOf(const Placement& p) {
@@ -370,6 +519,17 @@ FramePlacement::FramePlacement(const Feature& f) {
     catch (const Exception::Base& exc) {
         SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
             "FramePlacement", f.getFullName(), exc.getMessageText());
+    }
+}
+
+FramePlacement::FramePlacement(const Placement& p) {
+    try {
+        rep = FramePlacementRep::createFramePlacementFrom(p);
+        rep->setMyHandle(*this);
+    }
+    catch (const Exception::Base& exc) {
+        SIMTK_THROW3(Exception::PlacementAPIMethodFailed,
+            "FramePlacement", "Placement", exc.getMessageText());
     }
 }
 

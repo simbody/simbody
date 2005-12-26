@@ -196,7 +196,7 @@ public:
     ~DirectionMeasure();
 
     const DirectionPlacement& getPlacement() const;
-    const Vec3&               getValue()     const;
+    const UnitVec3&           getValue()     const;
 
     static bool                    isInstanceOf(const Subsystem&);
     static const DirectionMeasure& downcast(const Subsystem&);
@@ -212,13 +212,13 @@ protected:
 class Direction : public Feature {
 public:
     explicit Direction(const String& name);
-    Direction(const String& name, const Vec3& defaultValue);
+    Direction(const String& name, const Vec3& defaultValue);    // normalizes automatically
     Direction(const Direction&);
     Direction& operator=(const Direction&);
     ~Direction();
 
     const DirectionPlacement& getPlacement() const;
-    const Vec3&               getValue()     const;
+    const UnitVec3&           getValue()     const;
 
     static bool             isInstanceOf(const Subsystem&);
     static const Direction& downcast(const Subsystem&);
@@ -235,7 +235,7 @@ public:
     ~OrientationMeasure();
 
     const OrientationPlacement& getPlacement() const;
-    const Mat33&                getValue()     const;
+    const MatRotation&          getValue()     const;
 
     static bool                      isInstanceOf(const Subsystem&);
     static const OrientationMeasure& downcast(const Subsystem&);
@@ -249,13 +249,13 @@ protected:
 class Orientation : public Feature {
 public:
     explicit Orientation(const String& name);
-    Orientation(const String& name, const Mat33& defaultValue);
+    Orientation(const String& name, const MatRotation& defaultValue);
     Orientation(const Orientation&);
     Orientation& operator=(const Orientation&);
     ~Orientation();
 
     const OrientationPlacement& getPlacement() const;
-    const Mat33&                getValue()     const;
+    const MatRotation&          getValue()     const;
 
     const Direction& getAxis(int) const;
     const Direction& x()          const {return getAxis(0);}

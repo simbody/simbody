@@ -315,9 +315,9 @@ DirectionMeasure::getPlacement() const {
     return DirectionPlacement::downcast(getRep().getPlacement());
 }
 
-const Vec3& 
+const UnitVec3& 
 DirectionMeasure::getValue() const {
-    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<UnitVec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -352,9 +352,9 @@ Direction::getPlacement() const {
     return DirectionPlacement::downcast(getRep().getPlacement());
 }
 
-const Vec3& 
+const UnitVec3& 
 Direction::getValue() const {
-    return PlacementValue_<Vec3>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<UnitVec3>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -389,9 +389,9 @@ OrientationMeasure::getPlacement() const {
     return OrientationPlacement::downcast(getRep().getPlacement());
 }
 
-const Mat33& 
+const MatRotation& 
 OrientationMeasure::getValue() const {
-    return PlacementValue_<Mat33>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<MatRotation>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -426,9 +426,9 @@ Orientation::getPlacement() const {
     return OrientationPlacement::downcast(getRep().getPlacement());
 }
 
-const Mat33& 
+const MatRotation& 
 Orientation::getValue() const {
-    return PlacementValue_<Mat33>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<MatRotation>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 const Direction& 

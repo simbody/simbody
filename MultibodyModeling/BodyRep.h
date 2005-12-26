@@ -111,7 +111,7 @@ protected:
         updCentroid().replace(centroid / getMass());
         updInertia().replace(inertia);
         updCentralInertia().replace(InertiaPlacement(getInertia())
-                                        .shift(getOrigin(),getCentroid(),getMass()));
+                                        .shiftToCOM(getCentroid(),getMass()));
     }
 
 private:

@@ -191,16 +191,17 @@ private:
         const RealPlacement      h(getFeature(halfLengthIndex));
         const RealPlacement      m(getFeature(massIndex));
         const DirectionPlacement z(getFeature(axisIndex));
-        const StationPlacement   c(getFeature(centerIndex));
+        const StationPlacement   o(-getFeature(centerIndex));
         const RealPlacement      Izz(m*0.5*square(r));
         const RealPlacement      Ixx(m*(0.25*square(r) + oo3*square(h)));
 
         // This is a reference frame for the cylinder, measured from and expressed
         // in the body frame. The x and y axes are arbitrary due to symmetry.
-        const FramePlacement     F_BC(OrientationPlacement(z), c);
+        const OrientationPlacement R_CB = OrientationPlacement::createFromZAxis(z);
+        const OrientationPlacement R_BC(R_CB.invert());
 
         updInertiaMeasure().place(
-            InertiaPlacement(Ixx,Ixx,Izz).xformFromCOM(~F_BC));
+            InertiaPlacement(Ixx,Ixx,Izz).shiftFromCOM(o,m).changeAxes(R_BC));
     }
 
     int massIndex, radiusIndex, halfLengthIndex, centerIndex, axisIndex;

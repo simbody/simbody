@@ -297,39 +297,6 @@ std::string FeatureReference::refToString(const std::string&) const {
                 "cross", r.getPlacementTypeName());
 }
 
-// If a PlacementType is indexed with this index, 
-// what is the resulting PlacementType?
-/*PlacementType 
-PlacementRep::getIndexedPlacementType(PlacementType t, int i) {
-    if (i == -1) 
-        return t;   // -1 means not indexed, i.e., the whole thing
-
-    assert(0 <= i && i <= getNIndicesAllowed(t));
-    switch(t) {
-    case StationPlacementType:
-    case DirectionPlacementType: 
-    case Vec2PlacementType:
-    case Vec3PlacementType:         
-        return RealPlacementType;  
-
-    case Mat33PlacementType:
-        return Vec3PlacementType;
-
-    case OrientationPlacementType: 
-        return DirectionPlacementType;
-
-    case FramePlacementType:
-        return i==0 ? OrientationPlacementType : StationPlacementType;
-
-    default: assert(false);
-        //NOTREACHED
-    };
-    //NOTREACHED
-    return InvalidPlacementType;
-}
-*/
-
-
     // REAL PLACEMENT REP //
 
 /*static*/ PlacementRep* 
@@ -367,6 +334,24 @@ Placement RealPlacementRep::genericSqrt() const {
         isConstant() ? (RealPlacementRep*)new RealConstantPlacementRep(std::sqrt(calcRealValue()))
                      : (RealPlacementRep*)RealExprPlacementRep::sqrtOp(getMyHandle());
     return Placement(result);
+}
+
+// result = square(real) (result is always real)
+Placement RealPlacementRep::genericSquare() const {
+    if (isConstant()) {
+        const Real r = calcRealValue();
+        return Placement(new RealConstantPlacementRep(r*r));
+    }
+    return Placement(RealExprPlacementRep::squareOp(getMyHandle()));
+}
+
+// result = cube(real) (result is always real)
+Placement RealPlacementRep::genericCube() const {
+    if (isConstant()) {
+        const Real r = calcRealValue();
+        return Placement(new RealConstantPlacementRep(r*r*r));
+    }
+    return Placement(RealExprPlacementRep::cubeOp(getMyHandle()));
 }
 
 // result = exp(real) (result is always real)
@@ -514,7 +499,7 @@ bool
 RealOps::checkArgs(const std::vector<Placement>& args) const {
     switch (op) {
     // unary
-    case Negate: case Abs: case Sqrt: case Exp:
+    case Negate: case Abs: case Sqrt: case Square: case Cube: case Exp:
     case Sin:    case Cos: case Asin: case Acos:
         return args.size()==1 && RealPlacement::isInstanceOf(args[0]); 
     case VectorLength:
@@ -546,7 +531,7 @@ RealOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-Real RealOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+Real RealOps::apply(const std::vector<Placement>& args) const {
     Real val = NTraits<Real>::getNaN();
     Real arg1, arg2;
     if (args.size() > 0 && RealPlacement::isInstanceOf(args[0]))
@@ -555,13 +540,15 @@ Real RealOps::apply(/*State,*/ const std::vector<Placement>& args) const {
         arg2 = RealPlacement::downcast(args[1]).getRep().calcRealValue();
 
     switch (op) {
-    case Negate: val = -arg1; break;
-    case Abs:    val = std::abs(arg1); break;
+    case Negate: val = -arg1;           break;
+    case Abs:    val = std::abs(arg1);  break;
     case Sqrt:   val = std::sqrt(arg1); break;
-    case Exp:    val = std::exp(arg1); break;
-    case Log:    val = std::log(arg1); break;
-    case Sin:    val = std::sin(arg1); break;
-    case Cos:    val = std::cos(arg1); break;
+    case Square: val = arg1*arg1;       break;
+    case Cube:   val = arg1*arg1*arg1;  break;
+    case Exp:    val = std::exp(arg1);  break;
+    case Log:    val = std::log(arg1);  break;
+    case Sin:    val = std::sin(arg1);  break;
+    case Cos:    val = std::cos(arg1);  break;
     case Asin:   val = std::asin(arg1); break;
     case Acos:   val = std::acos(arg1); break;
     case VectorLength:
@@ -628,10 +615,16 @@ RealExprPlacementRep::absOp   (const RealPlacement& rp)
 RealExprPlacementRep::sqrtOp  (const RealPlacement& rp)
   { return unaryOp(RealOps::Sqrt, rp); }
 /*static*/ RealExprPlacementRep*
-RealExprPlacementRep::expOp  (const RealPlacement& rp)
+RealExprPlacementRep::squareOp(const RealPlacement& rp)
+  { return unaryOp(RealOps::Square, rp); }
+/*static*/ RealExprPlacementRep*
+RealExprPlacementRep::cubeOp  (const RealPlacement& rp)
+  { return unaryOp(RealOps::Cube, rp); }
+/*static*/ RealExprPlacementRep*
+RealExprPlacementRep::expOp   (const RealPlacement& rp)
   { return unaryOp(RealOps::Exp, rp); }
 /*static*/ RealExprPlacementRep*
-RealExprPlacementRep::logOp  (const RealPlacement& rp)
+RealExprPlacementRep::logOp   (const RealPlacement& rp)
   { return unaryOp(RealOps::Log, rp); }
 /*static*/ RealExprPlacementRep*
 RealExprPlacementRep::sinOp   (const RealPlacement& rp)
@@ -920,7 +913,7 @@ Vec3 Vec3Ops::apply(/*State,*/ const std::vector<Placement>& args) const {
         break;
 
     case RecastDirection:
-        val = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
+        val = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value().asVec3();
         break;
 
     case Negate:
@@ -1518,6 +1511,29 @@ OrientationPlacementRep::createOrientationPlacementFrom(const Placement& p, bool
     return 0;
 }
 
+// rotation = this->invert()
+OrientationPlacement 
+OrientationPlacementRep::invert() const
+{
+    OrientationPlacementRep* result = 
+        isConstant() ? (OrientationPlacementRep*)new OrientationConstantPlacementRep(~calcMatRotationValue())
+                     : (OrientationPlacementRep*)OrientationExprPlacementRep::invertOp(getMyHandle());
+    return OrientationPlacement(result);
+}
+
+// rotation = createFromZAxis(z)
+/*static*/ OrientationPlacement 
+OrientationPlacementRep::createFromZAxis(const DirectionPlacement& z)
+{
+    const bool calcNow = z.isConstant();
+
+    OrientationPlacementRep* result = 
+        calcNow ? (OrientationPlacementRep*)new OrientationConstantPlacementRep(MatRotation(z.getRep().calcUnitVec3Value()))
+                : (OrientationPlacementRep*)OrientationExprPlacementRep::createFromZOp(z);
+
+    return OrientationPlacement(result);
+}
+
     // ORIENTATION FEATURE PLACEMENT REP //
 const MatRotation& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
@@ -1548,6 +1564,10 @@ bool OrientationOps::checkArgs(const std::vector<Placement>& args) const {
     case CreateFromZAxis:
         return args.size()==1 && DirectionPlacement::isInstanceOf(args[0]);
 
+    // given a rotation matrix, return its inverse
+    case Invert:
+        return args.size()==1 && OrientationPlacement::isInstanceOf(args[0]);
+
     default: 
         assert(false);
     }
@@ -1561,6 +1581,10 @@ MatRotation OrientationOps::apply(const std::vector<Placement>& args) const {
 
     case CreateFromZAxis:
         val = MatRotation(DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value());
+        break;
+
+    case Invert:
+        val = ~OrientationPlacement::downcast(args[0]).getRep().calcMatRotationValue();
         break;
 
     default:
@@ -1584,6 +1608,14 @@ OrientationExprPlacementRep::binaryOp(OrientationOps::OpKind op,
     args[0] = &l; args[1] = &r;
     return new OrientationExprPlacementRep(OrientationOps(op), args);
 }
+
+/*static*/ OrientationExprPlacementRep*
+OrientationExprPlacementRep::createFromZOp(const DirectionPlacement& z)
+  { return unaryOp(OrientationOps::CreateFromZAxis, z); }
+
+/*static*/ OrientationExprPlacementRep*
+OrientationExprPlacementRep::invertOp(const OrientationPlacement& r)
+  { return unaryOp(OrientationOps::Invert, r); }
 
     // INERTIA PLACEMENT REP //
 
@@ -1632,22 +1664,49 @@ Placement InertiaPlacementRep::genericSub(const Placement& r) const {
     return PlacementRep::genericSub(r);    // die
 }
 
-// inertia = shift(inertia, from, to, totalMass)
+// inertia = changeAxes(inertia, axes)
 InertiaPlacement 
-InertiaPlacementRep::shift(const StationPlacement& from,
-                           const StationPlacement& to,
-                           const RealPlacement&    totalMass) const
+InertiaPlacementRep::changeAxes(const OrientationPlacement& r) const
 {
-    const bool calcNow = isConstant() && from.isConstant() 
-                         && to.isConstant() && totalMass.isConstant();
+    const bool calcNow = isConstant() && r.isConstant();
 
     InertiaPlacementRep* result = 
         calcNow ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(
-                    calcInertiaValue().shift(from.getRep().calcVec3Value(),
-                                             to.getRep().calcVec3Value(),
-                                             totalMass.getRep().calcRealValue()))
-                : (InertiaPlacementRep*)InertiaExprPlacementRep::shiftOp
-                                            (getMyHandle(),from,to,totalMass);
+                    calcInertiaValue().changeAxes(r.getRep().calcMatRotationValue()))
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::changeAxesOp
+                                            (getMyHandle(),r);
+    return InertiaPlacement(result);
+}
+
+// inertia = shiftFromCOM(inertia, to, totalMass)
+InertiaPlacement 
+InertiaPlacementRep::shiftFromCOM(const StationPlacement& to,
+                                  const RealPlacement&    totalMass) const
+{
+    const bool calcNow = isConstant() && to.isConstant() && totalMass.isConstant();
+
+    InertiaPlacementRep* result = 
+        calcNow ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(
+                    calcInertiaValue().shiftFromCOM(to.getRep().calcVec3Value(),
+                                                    totalMass.getRep().calcRealValue()))
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::shiftFromCOMOp
+                                            (getMyHandle(),to,totalMass);
+    return InertiaPlacement(result);
+}
+
+// inertia = shiftToCOM(inertia, com, totalMass)
+InertiaPlacement 
+InertiaPlacementRep::shiftToCOM(const StationPlacement& com,
+                                const RealPlacement&    totalMass) const
+{
+    const bool calcNow = isConstant() && com.isConstant() && totalMass.isConstant();
+
+    InertiaPlacementRep* result = 
+        calcNow ? (InertiaPlacementRep*)new InertiaConstantPlacementRep(
+                    calcInertiaValue().shiftToCOM(com.getRep().calcVec3Value(),
+                                                  totalMass.getRep().calcRealValue()))
+                : (InertiaPlacementRep*)InertiaExprPlacementRep::shiftToCOMOp
+                                            (getMyHandle(),com,totalMass);
     return InertiaPlacement(result);
 }
 
@@ -1679,21 +1738,36 @@ bool InertiaOps::checkArgs(const std::vector<Placement>& args) const {
                               && InertiaPlacement::isInstanceOf(args[1]);
 
     // i=transform(i, rotation)
-    case Transform:
+    case ChangeAxes:
         return args.size()==2 && InertiaPlacement::isInstanceOf(args[0])
                               && OrientationPlacement::isInstanceOf(args[1]);
 
-    // i=shift(i,from,to,totalMass)
-    case Shift:
-        return args.size()==4 && InertiaPlacement::isInstanceOf(args[0])
+    // i=shift(i,pt,totalMass)
+    case ShiftToCOM:
+    case ShiftFromCOM:
+        return args.size()==3 && InertiaPlacement::isInstanceOf(args[0])
                               && StationPlacement::isInstanceOf(args[1])
-                              && StationPlacement::isInstanceOf(args[2])
-                              && RealPlacement::isInstanceOf(args[3]);
+                              && RealPlacement::isInstanceOf(args[2]);
 
     // i=pointMass(loc, mass)
     case PointMass:
         return args.size()==2 && StationPlacement::isInstanceOf(args[0])
                               && RealPlacement::isInstanceOf(args[1]);
+
+    case PrincipalMoments: {
+        if (args.size() != 3) return false;
+        for (size_t i=0; i<args.size(); ++i)
+            if (!RealPlacement::isInstanceOf(args[i])) return false;
+        return true;
+    }
+
+    case FullInertia: {
+        if (args.size() != 6) return false;
+        for (size_t i=0; i<args.size(); ++i)
+            if (!RealPlacement::isInstanceOf(args[i])) return false;
+        return true;
+    }
+
     default: 
         assert(false);
     }
@@ -1714,25 +1788,48 @@ MatInertia InertiaOps::apply(const std::vector<Placement>& args) const {
               - InertiaPlacement::downcast(args[1]).getRep().calcInertiaValue();
         break;
 
-    case Transform:
+    case ChangeAxes:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
-              .xform(OrientationPlacement::downcast(args[1]).getRep().calcMatRotationValue());
+              .changeAxes(OrientationPlacement::downcast(args[1]).getRep().calcMatRotationValue());
         break;
 
-    // i=shift(i,from,to,totalMass)
-    case Shift:
+    // i=shift(i,to,totalMass)
+    case ShiftFromCOM:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
-              .shiftToCOM  (StationPlacement::downcast(args[1]).getRep().calcVec3Value(),
-                            RealPlacement::downcast   (args[3]).getRep().calcRealValue())
-              .shiftFromCOM(StationPlacement::downcast(args[2]).getRep().calcVec3Value(),
-                            RealPlacement::downcast   (args[3]).getRep().calcRealValue());
+              .shiftFromCOM(StationPlacement::downcast(args[1]).getRep().calcVec3Value(),
+                            RealPlacement::downcast   (args[2]).getRep().calcRealValue());
+        break;
+
+    // i=shift(i,to,totalMass)
+    case ShiftToCOM:
+        val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
+              .shiftToCOM(StationPlacement::downcast(args[1]).getRep().calcVec3Value(),
+                          RealPlacement::downcast   (args[2]).getRep().calcRealValue());
         break;
 
     // i=pointMass(loc,mass)
     case PointMass:
         val = MatInertia(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
-                      RealPlacement::downcast(args[1]).getRep().calcRealValue());
+                         RealPlacement::downcast(args[1]).getRep().calcRealValue());
         break;
+
+    // i=principalMoments(Ixx,Iyy,Izz)
+    case PrincipalMoments:
+        val = MatInertia(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[1]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[2]).getRep().calcRealValue());
+        break;
+
+    // i=fullInertia(Ixx,Iyy,Izz,Ixy,Iyz,Ixz)
+    case FullInertia:
+        val = MatInertia(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[1]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[2]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[3]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[4]).getRep().calcRealValue(),
+                         RealPlacement::downcast(args[5]).getRep().calcRealValue());
+        break;
+
     default: 
         assert(false);
     }
@@ -1762,23 +1859,54 @@ InertiaExprPlacementRep::addOp (const InertiaPlacement& l, const InertiaPlacemen
 /*static*/ InertiaExprPlacementRep*
 InertiaExprPlacementRep::subOp (const InertiaPlacement& l, const InertiaPlacement& r)
   { return binaryOp(InertiaOps::Subtract, l, r); }
+
 /*static*/ InertiaExprPlacementRep*
-InertiaExprPlacementRep::xformOp (const InertiaPlacement& i, const OrientationPlacement& r)
-  { return binaryOp(InertiaOps::Transform, i, r); }
+InertiaExprPlacementRep::changeAxesOp (const InertiaPlacement& i, const OrientationPlacement& r)
+  { return binaryOp(InertiaOps::ChangeAxes, i, r); }
+
 /*static*/ InertiaExprPlacementRep*
-InertiaExprPlacementRep::shiftOp(const InertiaPlacement& i,
-                                 const StationPlacement& from,
-                                 const StationPlacement& to,
-                                 const RealPlacement&    mtot)
+InertiaExprPlacementRep::shiftFromCOMOp(const InertiaPlacement& i,
+                                        const StationPlacement& to,
+                                        const RealPlacement&    mtot)
 { 
-    std::vector<const Placement*> args(4);
-    args[0] = &i; args[1] = &from; args[2] = &to; args[3] = &mtot;
-    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::Shift), args);
+    std::vector<const Placement*> args(3);
+    args[0] = &i; args[1] = &to; args[2] = &mtot;
+    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::ShiftFromCOM), args);
 }
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::shiftToCOMOp(const InertiaPlacement& i,
+                                      const StationPlacement& com,
+                                      const RealPlacement&    mtot)
+{ 
+    std::vector<const Placement*> args(3);
+    args[0] = &i; args[1] = &com; args[2] = &mtot;
+    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::ShiftToCOM), args);
+}
+
 /*static*/ InertiaExprPlacementRep*
 InertiaExprPlacementRep::ptMassOp(const StationPlacement& loc,
                                   const RealPlacement&    mass)
   { return binaryOp(InertiaOps::PointMass, loc, mass); }
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::principalMomentsOp(const RealPlacement& Ixx,
+                                            const RealPlacement& Iyy,
+                                            const RealPlacement& Izz)
+{
+    std::vector<const Placement*> args(3);
+    args[0] = &Ixx; args[1] = &Iyy; args[2] = &Izz;
+    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::PrincipalMoments), args);
+}
+
+/*static*/ InertiaExprPlacementRep*
+InertiaExprPlacementRep::fullInertiaOp(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz,
+                                       const RealPlacement& Ixy, const RealPlacement& Iyz, const RealPlacement& Ixz)
+{
+    std::vector<const Placement*> args(6);
+    args[0] = &Ixx; args[1] = &Iyy; args[2] = &Izz; args[3] = &Ixy; args[4] = &Iyz; args[5] = &Ixz;
+    return new InertiaExprPlacementRep(InertiaOps(InertiaOps::FullInertia), args);
+}
 
     // FRAME PLACEMENT REP //
 

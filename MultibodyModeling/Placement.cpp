@@ -169,6 +169,8 @@ std::ostream& operator<<(std::ostream& o, const Placement& p) {
 Placement negate   (const Placement& p) {return p.getRep().genericNegate();}
 Placement abs      (const Placement& p) {return p.getRep().genericAbs();}
 Placement sqrt     (const Placement& p) {return p.getRep().genericSqrt();}
+Placement square   (const Placement& p) {return p.getRep().genericSquare();}
+Placement cube     (const Placement& p) {return p.getRep().genericCube();}
 Placement exp      (const Placement& p) {return p.getRep().genericExp();}
 Placement log      (const Placement& p) {return p.getRep().genericLog();}
 Placement sin      (const Placement& p) {return p.getRep().genericSin();}
