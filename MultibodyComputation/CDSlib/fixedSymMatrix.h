@@ -295,7 +295,7 @@ FixedSymMatrixBase<T,SIZE>::resize(int r,
 { 
  if ( r!=rows() ||
       c!=cols()   ) 
-      throw CDS::exception(String("FixedSymMatrix::resize: ") +
+      throw CDS::exception(CDSString("FixedSymMatrix::resize: ") +
 			"illegal resize operation attempted.");
 } /* resize */
 		
