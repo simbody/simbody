@@ -94,6 +94,15 @@ Subsystem::getPlacement() const {
     return Feature::downcast(*this).getPlacement();
 }
 
+const Feature&
+Subsystem::getPlacementFeature() const {
+    if (!Feature::isInstanceOf(*this)) {
+        SIMTK_THROW1(Exception::OnlyFeaturesHavePlacements, getFullName());
+        //NOTREACHED
+    }
+    return Feature::downcast(*this).getPlacement().getReferencedFeature();
+}
+
 const PlacementValue&
 Subsystem::getValue() const {
     return Feature::downcast(*this).getRep().getPlacementSlot().getValueSlot().getValue();

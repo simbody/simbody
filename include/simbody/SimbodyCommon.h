@@ -154,12 +154,40 @@ public:
 private:
 };
 
-class ExpectedFeatureButGotSubsystem : public Base {
+class ExpectedFeatureIndexButGotSubsystem : public Base {
 public:
-    ExpectedFeatureButGotSubsystem(const char* fn, int ln, String subsysName, int index) : Base(fn,ln)
+    ExpectedFeatureIndexButGotSubsystem(const char* fn, int ln, String subsysName, int index) : Base(fn,ln)
     {
         setMessage("Child Subsystem " + String(index) + " of Subsystem " + subsysName 
                    + " is not a Feature, but this operation expects a Feature.");
+    }
+private:
+};
+
+class ExpectedFeatureButGotSubsystem : public Base {
+public:
+    ExpectedFeatureButGotSubsystem(const char* fn, int ln, String subsysName) : Base(fn,ln)
+    {
+        setMessage("Subsystem " + subsysName 
+                   + " is not a Feature, but this operation expects a Feature.");
+    }
+private:
+};
+
+class FeatureIsNotPlacedOnABody : public Base {
+public:
+    FeatureIsNotPlacedOnABody(const char* fn, int ln, String featureName) : Base(fn,ln)
+    {
+        setMessage("Feature " + featureName + "'s Placement is not owned by a Body.");
+    }
+private:
+};
+
+class ExpectedFeatureToHaveFeatureReferencePlacement : public Base {
+public:
+    ExpectedFeatureToHaveFeatureReferencePlacement(const char* fn, int ln, String featureName) : Base(fn,ln)
+    {
+        setMessage("Feature " + featureName + "'s Placement is not a Feature reference.");
     }
 private:
 };
@@ -168,7 +196,7 @@ class NotAFeatureReferencePlacement : public Base {
 public:
     NotAFeatureReferencePlacement(const char* fn, int ln) : Base(fn,ln)
     {
-        setMessage("getReferencedFeature() was called on a Placement which was not a Feature reference.");
+        setMessage("Expected a Feature reference Placement.");
     }
 private:
 };

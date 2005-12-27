@@ -50,6 +50,25 @@ const StationMeasure& Body::getCentroid() const {
 //    return BodyRep::downcast(getRep()).getCentroidalInertia();
 //}
 
+/*static*/ const Body&
+Body::getPlacementBody(const Subsystem& s) {
+    if (!Feature::isInstanceOf(s))
+        SIMTK_THROW1(Exception::ExpectedFeatureButGotSubsystem, s.getFullName());
+    const Feature& f = Feature::downcast(s);
+    const Placement& p = f.getPlacement();
+    if (!p.isFeatureReference())
+        SIMTK_THROW1(Exception::ExpectedFeatureToHaveFeatureReferencePlacement, s.getFullName());
+    const Subsystem* next = &p.getReferencedFeature();
+    while (next) {
+        if (Body::isInstanceOf(*next))
+            return Body::downcast(*next);
+        next = next->hasParentSubsystem() ? &next->getParentSubsystem() : 0;
+    }
+    SIMTK_THROW1(Exception::FeatureIsNotPlacedOnABody, s.getFullName());
+    //NOTREACHED
+    return *reinterpret_cast<const Body*>(0);
+}
+
 /*static*/ bool             
 Body::isInstanceOf(const Subsystem& s) {
     if (!s.hasRep()) return false;

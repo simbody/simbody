@@ -224,36 +224,22 @@ try {
     mbs.realize(Stage::Startup);
 
     cout << "***BODY MASSES:" << endl;
-    cout << "mbs/upper/mass=" << mbs["upper/mass"] << endl;
-    cout << "              =" << mbs["upper/mass"].getPlacement() << endl;
-    cout << "              =" << mbs["upper/mass"].getValue() << endl;
-    cout << "mbs/left/mass =" << mbs["left/mass"] << endl;
-    cout << "                     =" << mbs["left/mass"].getPlacement() << endl;
-    cout << "                     =" << mbs["left/mass"].getValue() << endl;
-    cout << "mbs/right/mass=" << mbs["right/mass"] << endl;
-    cout << "              =" << mbs["right/mass"].getPlacement() << endl;
-    cout << "                     =" << mbs["right/mass"].getValue() << endl;
+    cout << "mbs/upper/mass=" << mbs["upper/mass"].getValue() << endl;
+    cout << "mbs/left/mass =" << mbs["left/mass"].getValue() << endl;
+    cout << "mbs/right/mass=" << mbs["right/mass"].getValue() << endl;
     cout << endl << "***BODY CENTROIDS:" << endl;
-    cout << "mbs/upper/centroid=" << mbs["upper/centroid"] << endl;
-    cout << "                  =" << mbs["upper/centroid"].getPlacement() << endl;
-    cout << "                  =" << mbs["upper/centroid"].getValue() << endl;
-    cout << "mbs/left/centroid =" << mbs["left/centroid"] << endl;
-    cout << "                  =" << mbs["left/centroid"].getPlacement() << endl;
-    cout << "                  =" << mbs["left/centroid"].getValue() << endl;
-    cout << "mbs/right/centroid=" << mbs["right/centroid"] << endl;
-    cout << "                  =" << mbs["right/centroid"].getPlacement() << endl;
-    cout << "                  =" << mbs["right/centroid"].getValue() << endl;
+    cout << "mbs/upper/centroid=" << mbs["upper/centroid"].getValue() << endl;
+    cout << "mbs/left/centroid =" << mbs["left/centroid"].getValue() << endl;
+    cout << "mbs/right/centroid=" << mbs["right/centroid"].getValue() << endl;
     cout << endl;
     cout << endl << "***BODY INERTIAS:" << endl;
-    cout << "mbs/upper/inertia =" << mbs["upper/inertia"] << endl;
-    cout << "                  =" << mbs["upper/inertia"].getPlacement() << endl;
-    cout << "                  =" << mbs["upper/inertia"].getValue() << endl;
-    cout << "mbs/left/inertia  =" << mbs["left/inertia"] << endl;
-    cout << "                  =" << mbs["left/inertia"].getPlacement() << endl;
-    cout << "                  =" << mbs["left/inertia"].getValue() << endl;
-    cout << "mbs/right/inertia =" << mbs["right/inertia"] << endl;
-    cout << "                  =" << mbs["right/inertia"].getPlacement() << endl;
-    cout << "                  =" << mbs["right/inertia"].getValue() << endl;
+    cout << "mbs/upper/inertia =" << mbs["upper/inertia"].getValue() << endl;
+    cout << "mbs/left/inertia  =" << mbs["left/inertia"].getValue() << endl;
+    cout << "mbs/right/inertia =" << mbs["right/inertia"].getValue() << endl;
+    cout << endl << "***BODY CENTRAL INERTIAS:" << endl;
+    cout << "upper =" << mbs["upper/centralInertia"].getValue() << endl;
+    cout << "left  =" << mbs["left/centralInertia"].getValue() << endl;
+    cout << "right =" << mbs["right/centralInertia"].getValue() << endl;
     cout << endl;
 
     try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
@@ -291,25 +277,40 @@ try {
             cout << "... total mass=" << tmass << " centroid=" << tcom/tmass << endl;
         }
 
-    //FeatureList hasMass = mbs["upper"].select(MassElement::Selector());
-    //FeatureList masses = hasMass.getSubfeature("mass"); // elementwise indexing
-    //FeatureList centroids = hasMass.getSubfeature("centroid");
-    //Real upperMass = sum(masses);
-    //Vec3 upperCOM  = sum(prod(masses,centroids))/hasMass.size();
-
-    // Any leftover parameters need external placements. We'll make a RuntimeFeature
-    // to hold them.
-//    RuntimeFeature rt("rt");
- //   rt.addFeatureLike(mbs, "mbs");
-//    rt["mbs/halfHeight"].place(5.);
-
-//    rt.realize();
-//    cout << "upper mass=" << rt["mbs/upper/mass"].getValue() << endl;
-
 
     ///////////////////////////
     // Build a RigidBodyTree //
     ///////////////////////////
+
+    // First find a tree within the multibody system.
+    typedef std::pair<const Body*,int> BLev;
+    std::vector<BLev> bodyStack;
+    size_t nxt=0;
+    bodyStack.push_back(BLev(&Body::downcast(mbs["Ground"]),0));
+    while (nxt < bodyStack.size()) {
+        cout << "Looking at body " << bodyStack[nxt].first->getFullName() << endl;
+        for (int i=0; i<mbs.getNSubsystems(); ++i) {
+            if (!Joint::isInstanceOf(mbs[i])) continue;
+            if (!Body::getPlacementBody(mbs[i]["reference"]).isSameSubsystem(*bodyStack[nxt].first)) continue;
+            cout << "  Joint " << mbs[i].getName() << endl;
+            cout << "    Ref Pl Feature="
+                << mbs[i]["reference"].getPlacementFeature().getFullName()
+                << " Body=" << Body::getPlacementBody(mbs[i]["reference"]).getFullName() << endl;
+            cout << "    Mov Pl Feature=" 
+                << mbs[i]["moving"].getPlacementFeature().getFullName()
+                << " Body=" << Body::getPlacementBody(mbs[i]["moving"]).getFullName() << endl;
+            bodyStack.push_back(BLev(&Body::getPlacementBody(mbs[i]["moving"]),
+                                     bodyStack[nxt].second+1));
+        }
+        ++nxt;
+    }
+    cout << "**** TREE ****" << endl;
+    for (size_t i=0; i<bodyStack.size(); ++i)
+        cout << bodyStack[i].second << ": " << bodyStack[i].first->getFullName() << endl;
+
+
+    //RigidBodyTree t;
+
 
 }
 catch(const Exception::Base& e) {

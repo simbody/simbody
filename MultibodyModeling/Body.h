@@ -79,6 +79,12 @@ public:
     const RealMeasure&    getMass() const;
     const StationMeasure& getCentroid() const;
 
+    // We are given a Subsystem which must turn out to be a Feature that has
+    // a Placement. Starting with the Placement's owner, search up the tree to
+    // find the first Body. If anything goes wrong (e.g., no Body) we'll
+    // throw a helpful exception.
+    static const Body& getPlacementBody(const Subsystem&);
+
     static bool        isInstanceOf(const Subsystem&);
     static const Body& downcast(const Subsystem&);
     static Body&       downcast(Subsystem&);

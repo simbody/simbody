@@ -315,7 +315,7 @@ public:
     const Feature& getFeature(size_t i) const {
         const Subsystem& s = getSubsystem(i);
         if (!Feature::isInstanceOf(s)) {
-            SIMTK_THROW2(Exception::ExpectedFeatureButGotSubsystem, getFullName(), i);
+            SIMTK_THROW2(Exception::ExpectedFeatureIndexButGotSubsystem, getFullName(), i);
             //NOTREACHED
         }
         return Feature::downcast(s);

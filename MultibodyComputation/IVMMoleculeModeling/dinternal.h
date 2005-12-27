@@ -75,11 +75,11 @@ public:
     bool minimization() const;
 
     // get accessors
-    const AtomList& getAtoms()  const { return atoms; }
-    const AtomTree* tree()      const { return tree_; }
-    AtomTree*       tree()            { return tree_; }
-    const CDSSolver*   getSolver() const { return solver_; }
-    CDSSolver*         getSolver()       { return solver_; }
+    const AtomList&     getAtoms()  const { return atoms; }
+    const AtomTree*     tree()      const { return tree_; }
+    AtomTree*           tree()            { return tree_; }
+    const CDSSolver*    getSolver() const { return solver_; }
+    CDSSolver*          getSolver()       { return solver_; }
 
     int    dof()                  const { return dof_; }
     int    dim()                  const { return dim_; }
@@ -114,7 +114,7 @@ public:
 
 protected:
     AtomTree*          tree_;
-    CDSSolver*            solver_;
+    CDSSolver*         solver_;
 
     int dof_;   //number of degrees of freedom
     int dim_;   //number of degrees of freedom+constraints
@@ -149,7 +149,7 @@ protected:
     AtomList                             atoms;
     CDSList< CDSList<int> >              groupList;
     CDSList<InternalDynamics::HingeSpec> hingeList;
-    CDSString                               solverType;
+    CDSString                            solverType;
     CDSList<int>                         oldBaseAtoms;
 
     RVecSizeType rvecSize_;

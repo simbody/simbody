@@ -33,11 +33,11 @@ public:
     void calcAccInfo(RBStationRuntime&) const;
 
     RigidBodyNode&       getNode()    const { assert(isValid()); return *rbNode; }
-    const CDSVec3&          getStation() const { assert(isValid()); return station_B; }
+    const CDSVec3&       getStation() const { assert(isValid()); return station_B; }
     bool                 isValid()    const { return rbNode != 0; }
 private:
     RigidBodyNode*       rbNode;
-    CDSVec3                 station_B;
+    CDSVec3              station_B;
 };
 ostream& operator<<(ostream&, const RBStation&);
 
