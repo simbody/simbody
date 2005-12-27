@@ -13,6 +13,16 @@
 
 namespace simtk {
 
+// Spatial vectors are used for (orientation,translation) quantities.
+// These include
+//      spatial velocity     = (angularVelocity,linearVelocity)
+//      spatial acceleration = (angularAcceleration,linearAcceleration)
+//      generalized forces   = (torque,force)
+// Spatial configuration has to be handled differently though since
+// orientation is not a vector quantity. (We use "Frame" for this concept
+// which includes an orientation matrix and a translation vector.)
+typedef Vec<2, Vec3> SpatialVector;
+
 /**
  * The physical meaning of an inertia is the distribution of
  * a rigid body's mass about a *particular* point. If that point is the

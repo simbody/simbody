@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_MODELING_H_
-#define SIMTK_SIMBODY_MODELING_H_
+#ifndef SIMTK_SIMBODY_STATE_H_
+#define SIMTK_SIMBODY_STATE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -24,19 +24,26 @@
  */
 
 /** @file
- * This internal header provides one-stop shopping for all the other
- * internal headers needed for Simbody modeling.
+ * User-visible, client side declaration of Subsystem.
  */
 
-#include "simbody/internal/PlacementValue.h"
-#include "simbody/internal/Placement.h"
-#include "simbody/internal/BasicPlacements.h"
-#include "simbody/internal/Subsystem.h"
-#include "simbody/internal/Feature.h"
-#include "simbody/internal/BasicFeatures.h"
-#include "simbody/internal/MassElement.h"
-#include "simbody/internal/Body.h"
-#include "simbody/internal/State.h"
+#include "simbody/internal/SimbodyCommon.h"
+
+namespace simtk {
+
+class State {
+public:
+    State();
+    ~State();
+    State(const State&);
+    State& operator=(const State&);
+
+private:
+    class StateRep* rep;
+    friend class StateRep;
+};
 
 
-#endif // SIMTK_SIMBODY_MODELING_H_
+} // namespace simtk
+
+#endif // SIMTK_SIMBODY_STATE_H_

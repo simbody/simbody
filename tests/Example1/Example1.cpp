@@ -36,49 +36,6 @@ using namespace simtk;
 
 int main() {
 try {
-    FrameFeature f("frame1");
-    f.realize(Stage::Startup);
-    //cout << f;
-
-    f.addRealParameter("one").place(1.);
-    f.addRealParameter("negone");
-    f.addRealMeasure("zzz").place(f["one"]+f["negone"]);
-    f.addRealMeasure("ttt").place(f["one"]+abs(f["negone"]));
-    f.addRealMeasure("x2y").place(angle(f.x(),f.y()));
-    f.addVec3Measure("YCrossX").place(cross(f.y(),f.x()));
-
-    f.realize(Stage::Startup);
-    cout << f;
-/*
-    try {
-        cout << "one=" << f["one"].getValue() << endl;
-        cout << "zzz=" << f["zzz"].getValue() << endl;
-        cout << "ttt=" << f["ttt"].getValue() << endl;
-    }
-    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-*/
-    f["negone"].place(-1);
-    Placement p;
-    p = 9.*(f["one"]+abs(f["negone"]));
-    f.addRealMeasure("ttt9").place(p);
-    f.realize(Stage::Startup);
-
-    try{cout << "p.calcValue()=" << p.calcValue() << endl;}
-    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-
-    try {
-        cout << "one=" << f["one"].getValue() << endl;
-        cout << "zzz=" << f["zzz"].getValue() << endl;
-        cout << "ttt=" << f["ttt"].getValue() << endl;
-        cout << "ttt9=" << f["ttt9"].getValue() << endl;
-        cout << "x2y=" << f["x2y"].getValue() << endl;
-        cout << "y%x=" << f["YCrossX"].getValue() << endl;
-    }
-    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-
-    //cout << f;
-
-
     ////////////////////////////////////
     // Create mass element prototypes //
     ////////////////////////////////////
@@ -88,27 +45,6 @@ try {
     PointMassElement    blue  ("blue",  2.5), 
                         orange("orange",1.),
                         green ("green", 0.1);
-    //blue.place(Vec3(1,2,3)); // a pointless self-placement
-
-    blue.realize(Stage::Startup);
-    orange.realize(Stage::Startup);
-    green.realize(Stage::Startup);
-
-    cout << "blue=" << blue;
-    cout << "orange=" << orange;
-    cout << "green=" << green;
-
-    PointMassElement copyOfBlue = blue;
-    cout << "blue.getMassMeasure()=" << blue.getMassMeasure().getValue() << endl;
-
-    cout << "blue[centroidMeasure]=" << blue["centroidMeasure"] << endl;
-    Subsystem xx = blue["centroidMeasure"];
-    cout << "copy of blue[centroidMeasure]=" << xx << endl;
-
-    //copyOfBlue.checkSubsystemConsistency(0,-1,copyOfBlue);
-    //copyOfBlue.realize(Stage::Startup);
-    cout << "copyOfBlue=" << copyOfBlue << endl;
-    cout << "copyOfBlue [no realize].getMassMeasure()=" << copyOfBlue.getMassMeasure().getValue() << endl;
 
     // Create a cylinder mass element prototype. We're going
     // to give it constant radius and density, but leave the half-height
@@ -117,8 +53,6 @@ try {
     CylinderMassElement tubeProto("tube");
     tubeProto.setRadius(0.1);
     tubeProto.setMass(100.);
-
-    cout << "tube=" << tubeProto;
   
     //////////////////////////////////
     // Create rigid body prototypes //
@@ -134,7 +68,6 @@ try {
     upper.addStation("leftAttachPt",    Vec3(0,-1,1));
     upper.addStation("rightAttachPt",   Vec3(1,-1,0));
 
-
     // Instantiate 'atom' mass elements and place them on their stations.
     upper.addMassElementLike(green,  "green",  upper["greenPt"]);
     upper.addMassElementLike(orange, "orange", upper["orangePt"]);
@@ -146,18 +79,8 @@ try {
     upper.addFrame("pinFrame",          upper["pinnedBluePt"]);
     upper.addFrame("leftBallFrame",     upper["leftAttachPt"]);
     upper.addFrame("rightBallFrame",    upper["rightAttachPt"]);
-    //cout << "U=" << upper;
-
-    cout << "U's subfeatures:" << endl;
-    for (int i=0; i<upper.getNSubsystems(); ++i)
-        cout << upper[i].getFullName() << endl;
-
-   // upper.realize(Stage::Startup);
-
-
 
     // Now build the prototype for the lower bodies.
-
 
     RigidBody lower("L");
 
@@ -169,8 +92,6 @@ try {
 
     // Now instantiate a tube on the body prototype.
     MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
-
-    lower.addRealMeasure  ("hh9", lower["halfHeight"] + 9. / lower["tube/mass"]);
   
     // Place the center and axis, but leave the halfHeight parameter unresolved
     // because we want to control both with a single parameter.
@@ -180,11 +101,6 @@ try {
     tube["axis"].place(lower["ballAttachPt"] - lower.getOrigin());
 
     tube["halfLength"].place(lower["halfHeight"]);
-
-    //cout << "L=" << lower; 
-    lower.realize(Stage::Startup);
-    //cout  << "lower[tube]=" << lower["tube"] << endl;
-    //cout  << "Subsystem(lower[tube])=" << Subsystem(lower["tube"]) << endl;
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
