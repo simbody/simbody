@@ -1,1 +1,1 @@
-SUBDIRS (CDSlib IVMRigidBodies IVMMoleculeModeling IVMXplorInterface)
+SUBDIRS (CDSlib IVMRigidBodies IVMSimbodyInterface IVMMoleculeModeling IVMXplorInterface)
