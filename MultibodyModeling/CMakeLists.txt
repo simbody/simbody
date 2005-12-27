@@ -1,5 +1,7 @@
-FILE(GLOB SOURCE_FILES *.cpp)
-FILE(GLOB INCLUDE_FILES *.h)
+SUBDIRS (tests)
+
+FILE(GLOB SOURCE_FILES src/*.cpp)
+FILE(GLOB INCLUDE_FILES include/simbody/*.h include/simbody/internal/*.h src/*.h)
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/MultibodyModeling
                     ${PROJECT_SOURCE_DIR}/Mechanics/include
