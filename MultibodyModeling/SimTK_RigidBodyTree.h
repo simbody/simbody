@@ -59,7 +59,7 @@ class RigidBody;
  * Free        6 Coords are Orientation and Cartesian
  * 
  */
-enum JointType {
+enum XXJointType {
     UnknownJointType    = 0,
     WeldJoint           = 1,
     TorsionJoint        = 2,
@@ -78,7 +78,7 @@ enum JointType {
 
 
 /**
- * RigidBodyTree is a multibody system restricted to unconstrained tree topology
+ * XXRigidBodyTree is a multibody system restricted to unconstrained tree topology
  * and rigid bodies. That is, there are no loops or constraints, and body stations,
  * frames, and mass properties are constants when expressed in the body frame.
  *
@@ -117,18 +117,18 @@ enum JointType {
  *    w = M*v          mass times a user-supplied vector v (inverse dynamics)
  *    w = inv(M)*v     mass inverse times user-supplied vector v (fwd dynamics)   
  */
-class RigidBodyTree { 
+class XXRigidBodyTree { 
 public:
-    RigidBodyTree();
-    RigidBodyTree(const RigidBodyTree&);
-    RigidBodyTree& operator=(const RigidBodyTree&);
-    ~RigidBodyTree();
+    XXRigidBodyTree();
+    XXRigidBodyTree(const XXRigidBodyTree&);
+    XXRigidBodyTree& operator=(const XXRigidBodyTree&);
+    ~XXRigidBodyTree();
 
     /// Add a new body connected to one of the existing bodies by
     /// a Joint. Body 0 (Ground) is predefined at construction.
     int addBody(const MassProperties&, const Frame& frameInB, 
                 int   parent,          const Frame& frameInP,
-                const JointType&);
+                const XXJointType&);
 
     /// Return number of defined bodies, including ground. This is
     /// one more than the number of (tree) joints.
@@ -204,20 +204,20 @@ private:
     std::vector< std::vector<MultibodyTreeNode> > level;
 };
 
-// RigidBodyTree inlines
+// XXRigidBodyTree inlines
 
-inline Vec3  RigidBodyTree::xformVector2Ground(const State& s, int body, const Vec3& vB) const
+inline Vec3  XXRigidBodyTree::xformVector2Ground(const State& s, int body, const Vec3& vB) const
   { return getBodyFrameInGround(s,body).xformVector2Ref(vB); }
-inline Vec3  RigidBodyTree::xformStation2Ground(const State& s, int body, const Vec3& sB) const
+inline Vec3  XXRigidBodyTree::xformStation2Ground(const State& s, int body, const Vec3& sB) const
   { return getBodyFrameInGround(s,body).xformStation2Ref(sB); }
-inline Frame RigidBodyTree::xformFrame2Ground(const State& s, int body, const Frame& fB) const
+inline Frame XXRigidBodyTree::xformFrame2Ground(const State& s, int body, const Frame& fB) const
   { return getBodyFrameInGround(s,body).xformFrame2Ref(fB); }
 
-inline Vec3  RigidBodyTree::xformVector2Parent(const State& s, int body, const Vec3& vB) const
+inline Vec3  XXRigidBodyTree::xformVector2Parent(const State& s, int body, const Vec3& vB) const
   { return getBodyFrameInParent(s,body).xformVector2Ref(vB); }
-inline Vec3  RigidBodyTree::xformStation2Parent(const State& s, int body, const Vec3& sB) const
+inline Vec3  XXRigidBodyTree::xformStation2Parent(const State& s, int body, const Vec3& sB) const
   { return getBodyFrameInParent(s,body).xformStation2Ref(sB); }
-inline Frame RigidBodyTree::xformFrame2Parent(const State& s, int body, const Frame& fB) const
+inline Frame XXRigidBodyTree::xformFrame2Parent(const State& s, int body, const Frame& fB) const
   { return getBodyFrameInParent(s,body).xformFrame2Ref(fB); }
 
 #endif /* SIMTK_RIGIDBODY_TREE_H_ */
