@@ -1,5 +1,13 @@
 PROJECT (Simbody)
-SUBDIRS (Geometry Mechanics MultibodyComputation MultibodyModeling)
+SUBDIRS (Geometry Mechanics MultibodyComputation MultibodyModeling tests)
+
+## Pick up any top-level stuff
+FILE(GLOB SOURCE_FILES src/*.cpp )
+FILE(GLOB INCLUDE_FILES include/simbody/*.h include/simbody/internal/*.h src/*.h)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
+ADD_LIBRARY(simbody ${SOURCE_FILES} ${INCLUDE_FILES})
+
+
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
@@ -13,6 +21,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     SET(SIMTK_FRAMEWORK_INSTALL_DIR "c:/Program Files/SimTK/framework")
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+SET(CMAKE_INSTALL_PREFIX ${SIMTK_FRAMEWORK_INSTALL_DIR})
 LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simtk)
 LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simmatrix)
 
@@ -37,4 +46,5 @@ ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(testClass             ${TEST_PATH}/MultibodyComputation/CDSlib/testClass)
 ADD_TEST(IVMMoleculeTest       ${TEST_PATH}/MultibodyComputation/IVMMoleculeModeling/IVMMoleculeTest)
-ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/MultibodyModelingTest)
+ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/tests/MultibodyModelingTest/MultibodyModelingTest)
+ADD_TEST(Example1              ${TEST_PATH}/tests/Example1/Example1)

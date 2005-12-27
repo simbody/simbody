@@ -2,7 +2,6 @@ SUBDIRS(tests)
 
 FILE(GLOB SOURCE_FILES src/*.cpp )
 FILE(GLOB INCLUDE_FILES 
-    include/*.h
     include/simbody/*.h
     include/simbody/internal/*.h
     src/*.h)
