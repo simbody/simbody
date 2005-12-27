@@ -27,10 +27,11 @@
  * Definitions of the BasicFeature Rep methods.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Feature.h"
+#include "simbody/internal/Placement.h"
+
 #include "FeatureRep.h"
-#include "Feature.h"
-#include "Placement.h"
 #include "PlacementRep.h"
 
 #include <string>

@@ -24,10 +24,11 @@
  * Implementations of API-level BasicFeature methods.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "SubsystemRep.h"
-#include "Feature.h"
-#include "BasicFeatures.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Subsystem.h"
+#include "simbody/internal/Feature.h"
+#include "simbody/internal/BasicFeatures.h"
+
 #include "SubsystemRep.h"
 #include "FeatureRep.h"
 #include "BasicFeaturesRep.h"

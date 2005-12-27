@@ -24,8 +24,9 @@
  * Implementations of MassElement Features for Simbody.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "MassElement.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/MassElement.h"
+
 #include "MassElementRep.h"
 
 #include <string>

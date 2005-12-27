@@ -24,12 +24,12 @@
  * Implementation of non-inline PlacementRep methods.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "simbody/Orientation.h"
-#include "simbody/MassProperties.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Geometry.h"
+#include "simbody/internal/Mechanics.h"
+#include "simbody/internal/Placement.h"
+#include "simbody/internal/Feature.h"
 
-#include "Placement.h"
-#include "Feature.h"
 #include "PlacementRep.h"
 #include "FeatureRep.h"
 

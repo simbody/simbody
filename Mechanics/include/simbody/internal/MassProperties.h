@@ -1,5 +1,5 @@
-#ifndef MASS_PROPERTIES_H_
-#define MASS_PROPERTIES_H_
+#ifndef SIMTK_SIMBODY_MASS_PROPERTIES_H_
+#define SIMTK_SIMBODY_MASS_PROPERTIES_H_
 
 /** @file
  *
@@ -7,7 +7,7 @@
  * those messy inertias.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
 
 #include <iostream>
 
@@ -321,4 +321,4 @@ private:
 
 } // namespace simtk
 
-#endif /* MASS_PROPERTIES_H_ */
+#endif /* SIMTK_SIMBODY_MASS_PROPERTIES_H_ */

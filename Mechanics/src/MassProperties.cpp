@@ -24,8 +24,8 @@
  * Implementations of non-inline methods of MassProperties classes.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "simbody/MassProperties.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/MassProperties.h"
 
 #include <iostream>
 

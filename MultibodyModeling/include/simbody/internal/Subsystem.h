@@ -27,9 +27,11 @@
  * User-visible, client side declaration of Subsystem.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "Placement.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Placement.h"
+
 #include "simtk/SimTK.h"
+
 #include <iostream>
 
 namespace simtk {

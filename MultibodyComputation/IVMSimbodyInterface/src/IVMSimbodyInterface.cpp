@@ -24,7 +24,7 @@
  * Implementation of the IVM Simbody interface.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
 #include "simbody/IVMSimbodyInterface.h"
 
 #include "RigidBodyTree.h"

@@ -24,8 +24,9 @@
  * Implementations of API-level methods behind the client-side Subsystem.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "Feature.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Feature.h"
+
 #include "FeatureRep.h"
 
 #include <string>

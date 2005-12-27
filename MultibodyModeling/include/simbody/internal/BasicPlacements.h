@@ -27,10 +27,10 @@
  * Definitions for mundane Placement types.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "simbody/Orientation.h"
-#include "simbody/MassProperties.h"
-#include "Placement.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Geometry.h"
+#include "simbody/internal/Mechanics.h"
+#include "simbody/internal/Placement.h"
 
 #include <iostream>
 

@@ -29,11 +29,12 @@
  * (shared library) then the client doesn't require relinking either.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "Subsystem.h"
-#include "Feature.h"
-#include "Placement.h"
-#include "PlacementValue.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Subsystem.h"
+#include "simbody/internal/Feature.h"
+#include "simbody/internal/Placement.h"
+#include "simbody/internal/PlacementValue.h"
+
 #include "PlacementRep.h"
 
 #include <string>

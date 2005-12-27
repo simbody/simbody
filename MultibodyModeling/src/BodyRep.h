@@ -28,12 +28,12 @@
  * users.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "simbody/MassProperties.h"
-#include "Placement.h"
-#include "BasicPlacements.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Mechanics.h"
+#include "simbody/internal/Placement.h"
+#include "simbody/internal/BasicPlacements.h"
+#include "simbody/internal/Body.h"
 
-#include "Body.h"
 #include "FeatureRep.h"
 #include "BasicFeaturesRep.h"
 

@@ -27,7 +27,7 @@
  * Declaration of the client side Placement class, and associated global operators.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
 
 #include <iostream>
 

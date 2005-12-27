@@ -24,8 +24,9 @@
  * Implementations of non-inline methods of BasicFeature Reps.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "BasicFeatures.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/BasicFeatures.h"
+
 #include "BasicFeaturesRep.h"
 
 #include <string>

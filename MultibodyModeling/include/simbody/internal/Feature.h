@@ -1,5 +1,5 @@
-#ifndef SIMTK_FEATURE_H_
-#define SIMTK_FEATURE_H_
+#ifndef SIMTK_SIMBODY_FEATURE_H_
+#define SIMTK_SIMBODY_FEATURE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -29,10 +29,10 @@
  */
 
 
-#include "simbody/SimbodyCommon.h"
-#include "Subsystem.h"
-#include "Placement.h"
-#include "BasicPlacements.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Subsystem.h"
+#include "simbody/internal/Placement.h"
+#include "simbody/internal/BasicPlacements.h"
 
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
@@ -254,4 +254,4 @@ inline Placement operator/(const Mat33&    l, const Feature& r) {return divide(l
 
 } // namespace simtk
 
-#endif // SIMTK_FEATURE_H_
+#endif // SIMTK_SIMBODY_FEATURE_H_

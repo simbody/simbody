@@ -1,5 +1,5 @@
-#ifndef ORIENTATION_H_
-#define ORIENTATION_H_
+#ifndef SIMTK_SIMBODY_ORIENTATION_H_
+#define SIMTK_SIMBODY_ORIENTATION_H_
 
 /** @file
  *
@@ -182,4 +182,4 @@ private:
 
 } // namespace simtk
 
-#endif /* ORIENTATION_H_ */
+#endif // SIMTK_SIMBODY_ORIENTATION_H_

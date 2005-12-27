@@ -7,7 +7,7 @@
  * simulation toolset.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
 
 #include <iostream>
 

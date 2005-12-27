@@ -27,8 +27,8 @@
  * The opaque, library side implementation of PlacementValues.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "PlacementValue.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/PlacementValue.h"
 
 #include <string>
 #include <cassert>

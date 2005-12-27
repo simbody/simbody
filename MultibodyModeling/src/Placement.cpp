@@ -24,11 +24,12 @@
  * Implementation of Placement handles.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "Placement.h"
-#include "PlacementValue.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Placement.h"
+#include "simbody/internal/PlacementValue.h"
+#include "simbody/internal/Feature.h"
+
 #include "PlacementValueRep.h"
-#include "Feature.h"
 #include "PlacementRep.h"
 #include "FeatureRep.h"
 

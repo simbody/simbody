@@ -24,10 +24,11 @@
  * Implementation of PlacementValue and PlacementValue_<T> API methods.
  */
 
-#include "simbody/SimbodyCommon.h"
-#include "simbody/Orientation.h"
-#include "simbody/MassProperties.h"
-#include "PlacementValue.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Geometry.h"
+#include "simbody/internal/Mechanics.h"
+#include "simbody/internal/PlacementValue.h"
+
 #include "PlacementValueRep.h"
 
 #include <string>

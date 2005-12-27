@@ -24,9 +24,10 @@
  * Implementations of non-inline methods of FeatureRep.
  */
 
-#include "simbody/SimbodyCommon.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Feature.h"
+
 #include "SubsystemRep.h"
-#include "Feature.h"
 #include "FeatureRep.h"
 
 #include <string>

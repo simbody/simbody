@@ -28,8 +28,8 @@
  */
 
 
-#include "simbody/SimbodyCommon.h"
-#include "Feature.h"
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Feature.h"
 
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"

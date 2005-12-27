@@ -34,6 +34,5 @@
 #include "simbody/internal/Geometry.h"
 #include "simbody/internal/Mechanics.h"
 #include "simbody/internal/SimbodyModeling.h"
-#include "simbody/internal/IVMSimbodyInterface.h"
 
 #endif // SIMTK_SIMBODY_H_
