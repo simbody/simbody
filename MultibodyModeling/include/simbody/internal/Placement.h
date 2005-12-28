@@ -28,6 +28,8 @@
  */
 
 #include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Geometry.h"
+#include "simbody/internal/Mechanics.h"
 
 #include <iostream>
 
@@ -53,6 +55,10 @@ public:
     Placement(const Real&);
     Placement(const Vec3&);
     Placement(const Mat33&);
+    Placement(const UnitVec3&);
+    Placement(const MatRotation&);
+    Placement(const MatInertia&);
+    Placement(const Frame&);
 
     // These create a "feature placement" (reference to the placement
     // of a feature) of a particular type, but starting with a generic

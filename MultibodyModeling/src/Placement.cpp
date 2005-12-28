@@ -90,9 +90,26 @@ Placement::Placement(const Vec3& v) : rep(0) {
     rep = new Vec3ConstantPlacementRep(v);
     rep->setMyHandle(*this);
 }
-//Placement::Placement(const Mat33& m) : rep(0) {
-//    rep = new Mat33ConstantPlacementRep(reinterpret_cast<RealPlacement&>(*this), r);
-//}
+
+Placement::Placement(const UnitVec3& v) : rep(0) {
+    rep = new DirectionConstantPlacementRep(v);
+    rep->setMyHandle(*this);
+}
+
+Placement::Placement(const MatInertia& i) : rep(0) {
+    rep = new InertiaConstantPlacementRep(i);
+    rep->setMyHandle(*this);
+}
+
+Placement::Placement(const MatRotation& r) : rep(0) {
+    rep = new OrientationConstantPlacementRep(r);
+    rep->setMyHandle(*this);
+}
+
+Placement::Placement(const Frame& f) : rep(0) {
+    rep = new FrameConstantPlacementRep(f);
+    rep->setMyHandle(*this);
+}
 
 // If this Placement expression depends on Features which need to be
 // realized, we'll do that now. Then we will be able to do calcValue()

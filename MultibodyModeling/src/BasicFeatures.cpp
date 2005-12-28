@@ -507,9 +507,9 @@ FrameFeature::getPlacement() const {
     return FramePlacement::downcast(getRep().getPlacement());
 }
 
-const Mat34& 
+const Frame& 
 FrameFeature::getValue() const {
-    return PlacementValue_<Mat34>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<Frame>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 const Orientation& FrameFeature::getOrientation() const {

@@ -192,36 +192,19 @@ try {
     // Build a RigidBodyTree //
     ///////////////////////////
 
-    // First find a tree within the multibody system.
-    typedef std::pair<const Body*,int> BLev;
-    std::vector<BLev> bodyStack;
-    size_t nxt=0;
-    bodyStack.push_back(BLev(&Body::downcast(mbs["Ground"]),0));
-    while (nxt < bodyStack.size()) {
-        cout << "Looking at body " << bodyStack[nxt].first->getFullName() << endl;
-        for (int i=0; i<mbs.getNSubsystems(); ++i) {
-            if (!Joint::isInstanceOf(mbs[i])) continue;
-            if (!Body::getPlacementBody(mbs[i]["reference"]).isSameSubsystem(*bodyStack[nxt].first)) continue;
-            cout << "  Joint " << mbs[i].getName() << endl;
-            cout << "    Ref Pl Feature="
-                << mbs[i]["reference"].getPlacementFeature().getFullName()
-                << " Body=" << Body::getPlacementBody(mbs[i]["reference"]).getFullName() << endl;
-            cout << "    Mov Pl Feature=" 
-                << mbs[i]["moving"].getPlacementFeature().getFullName()
-                << " Body=" << Body::getPlacementBody(mbs[i]["moving"]).getFullName() << endl;
-            bodyStack.push_back(BLev(&Body::getPlacementBody(mbs[i]["moving"]),
-                                     bodyStack[nxt].second+1));
-        }
-        ++nxt;
-    }
-    cout << "**** TREE ****" << endl;
-    for (size_t i=0; i<bodyStack.size(); ++i)
-        cout << bodyStack[i].second << ": " << bodyStack[i].first->getFullName() << endl;
 
+    IVMSimbodyInterface instance(mbs);
 
-    //RigidBodyTree t;
+    cout << "MatRotation(z)=" << MatRotation(UnitVec3(0,0,1)) << endl;
+    cout << "MatRotation(" << UnitVec3(.1,.2,.3) << ")="
+        << MatRotation(UnitVec3(.1,.2,.3)) << endl; 
 
-
+    UnitVec3 u(0.1,-3.2,7);
+    cout << "u=" << u << " u.perp=" << u.perp() 
+         << " ~u*u.perp=" << ~u*u.perp() << " u%u.perp(),1-norm=" 
+         << u%u.perp() << "," << 1-(u%u.perp()).norm() << endl;
+    cout << "u*~u=" << u*~u << endl;
+    cout << "u*~u.perp=" << u*~u.perp() << endl;
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

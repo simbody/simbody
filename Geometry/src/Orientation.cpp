@@ -42,6 +42,7 @@ namespace simtk {
 // direction than zF (e.g., move its largest coord), then cross it with zF to get the first 
 // perpendicular. Normalize that, cross again and you have a frame.
 // Must be careful about signs to get a right-handed set.
+// TODO: (sherm) Uh, shouldn't the 3rd column of the result just be zF?
 MatRotation::MatRotation(const UnitVec3& zF) {
     // Use the individual measure numbers (i.e., projections of zF
     // onto the G coordinate axes) to calculate spherical coordinates,
@@ -66,6 +67,10 @@ std::ostream& operator<<(std::ostream& o, const MatRotation& m) {
 }
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v) {
     return o << v.asVec3();
+}
+
+std::ostream& operator<<(std::ostream& o, const Frame& f) {
+    return o << "{" << f.getAxes() << f.getOrigin() << "}";
 }
 
 } // namespace simtk

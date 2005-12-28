@@ -577,8 +577,8 @@ Real RealOps::apply(const std::vector<Placement>& args) const {
         break;
     }
     case AngleBetweenDirections: {
-        const Vec3 v1 = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
-        const Vec3 v2 = DirectionPlacement::downcast(args[1]).getRep().calcUnitVec3Value();
+        const UnitVec3 v1 = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
+        const UnitVec3 v2 = DirectionPlacement::downcast(args[1]).getRep().calcUnitVec3Value();
         Real dotprod = ~v1*v2;
         if (dotprod < -1.) dotprod = -1.;   // watch for roundoff
         else if (dotprod > 1.) dotprod = 1.;
@@ -680,7 +680,7 @@ Vec3PlacementRep::createVec3PlacementFrom(const Placement& p, bool dontThrow) {
     } else if (DirectionPlacement::isInstanceOf(p)) {
         const DirectionPlacement& dp = DirectionPlacement::downcast(p);
         return dp.isConstant()
-            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcUnitVec3Value())
+            ? (Vec3PlacementRep*)new Vec3ConstantPlacementRep(dp.getRep().calcUnitVec3Value().asVec3())
             : (Vec3PlacementRep*)Vec3ExprPlacementRep::recastDirectionOp(dp);
     }
     if (!dontThrow) {
@@ -1200,8 +1200,7 @@ const Vec3& StationFeaturePlacementRep::getReferencedValue() const {
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
     if (FramePlacementRep::isA(p) && getPlacementIndex()==1)
-        return PlacementValue_<Mat34>::downcast(ps.getValue()).get()
-            (3); // round brackets () to get column not row
+        return PlacementValue_<Frame>::downcast(ps.getValue()).get().getOrigin();
 
     assert(false);
     //NOTREACHED
@@ -1544,10 +1543,8 @@ const MatRotation& OrientationFeaturePlacementRep::getReferencedValue() const {
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
 
-    // We want the first 3 columns of the Frame Mat34.
     if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
-        return reinterpret_cast<const MatRotation&>
-                (PlacementValue_<Mat34>::downcast(ps.getValue()).get());
+        return PlacementValue_<Frame>::downcast(ps.getValue()).get().getAxes();
 
     assert(false);
     //NOTREACHED
@@ -1933,10 +1930,10 @@ FramePlacementRep::createFramePlacementFrom(const Placement& p, bool dontThrow) 
             // make sure there is no indexing.
             if (StationPlacement::isInstanceOf(p) && Station::isInstanceOf(refFeature))
                 return new FrameExprPlacementRep(OrientationPlacement(frame.getOrientation()), 
-                                                StationPlacement::downcast(p));
+                                                 StationPlacement::downcast(p));
             else if (OrientationPlacement::isInstanceOf(p) && Orientation::isInstanceOf(refFeature)) 
                 return new FrameExprPlacementRep(OrientationPlacement::downcast(p), 
-                                                StationPlacement(frame.getOrigin()));
+                                                 StationPlacement(frame.getOrigin()));
         }
     }
     if (!dontThrow) {
@@ -1948,16 +1945,16 @@ FramePlacementRep::createFramePlacementFrom(const Placement& p, bool dontThrow) 
 }
 
     // FRAME FEATURE PLACEMENT REP //
-const Mat34& FrameFeaturePlacementRep::getReferencedValue() const {
+const Frame& FrameFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<Mat34>::downcast(ps.getValue()).get();
+        return PlacementValue_<Frame>::downcast(ps.getValue()).get();
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const Mat34*>(0);
+    return *reinterpret_cast<const Frame*>(0);
 }
 
     // FRAME EXPR PLACEMENT REP //
@@ -2008,9 +2005,9 @@ bool FrameOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-Mat34 FrameOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+Frame FrameOps::apply(/*State,*/ const std::vector<Placement>& args) const {
     assert(false);
-    return Mat34();
+    return Frame();
 }
 
 } // namespace simtk

@@ -351,7 +351,7 @@ class FramePlacementOp : public PlacementOp {
 public:
     virtual ~FramePlacementOp() { }
     // Run time
-    virtual Mat34 apply(const std::vector<Placement>&) const = 0;
+    virtual Frame apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(FramePlacementOp, PlacementOp);
 };
@@ -376,7 +376,7 @@ public:
         return std::string(p) + "<FrameFeature>";
     }
 
-    Mat34 apply(const std::vector<Placement>&) const;
+    Frame apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(FrameOps, PlacementOp);
 private:
@@ -1522,7 +1522,7 @@ public:
     const FramePlacement& getMyHandle() const 
       { return FramePlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Mat34>();}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Frame>();}
     std::string    getPlacementTypeName()      const {return "Frame";}
     int            getNIndicesAllowed()        const {return 2;} // Orientation, Station
 
@@ -1534,11 +1534,11 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<Mat34>::initializeToValueType(pv);
-        evaluateMat34(PlacementValue_<Mat34>::downcast(pv).upd());
+        PlacementValue_<Frame>::initializeToValueType(pv);
+        evaluateFrame(PlacementValue_<Frame>::downcast(pv).upd());
     }
-    virtual void evaluateMat34(Mat34&) const = 0;
-    Mat34 calcMat34Value() const {Mat34 m;evaluateMat34(m);return m;}
+    virtual void evaluateFrame(Frame&) const = 0;
+    Frame calcFrameValue() const {Frame m;evaluateFrame(m);return m;}
 
     SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
 };
@@ -1546,13 +1546,13 @@ public:
 // A concrete FramePlacement in which there are no variables.
 class FrameConstantPlacementRep : public FramePlacementRep {
 public:
-    explicit FrameConstantPlacementRep(const Mat34& m)
+    explicit FrameConstantPlacementRep(const Frame& m)
       : FramePlacementRep(), frame(m) {
         // TODO: check orientation matrix validity
     }
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateMat34(Mat34& m) const {m=frame;}
+    void evaluateFrame(Frame& m) const {m=frame;}
 
     bool isConstant() const { return true; }
 
@@ -1561,11 +1561,11 @@ public:
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Frame[axes={";
-        if (extractOrientation() == Mat33(1)) s << "I";
-        else s << extractOrientation()(0) << extractOrientation()(1) << extractOrientation()(2);
+        if (frame.getAxes().asMat33() == Mat33(1)) s << "I";
+        else s << frame.getAxes().getAxis(0) << frame.getAxes().getAxis(1) << frame.getAxes().getAxis(2);
         s << "},origin=";
-        if (extractOrigin() == Vec3(0)) s << "0";
-        else s << extractOrigin();
+        if (frame.getOrigin() == Vec3(0)) s << "0";
+        else s << frame.getOrigin();
         s << "]";
         return s.str();
     }
@@ -1577,10 +1577,7 @@ public:
 
     SIMTK_DOWNCAST(FrameConstantPlacementRep, PlacementRep);
 private:
-    Mat34 frame;
-
-    const Mat33& extractOrientation() const {return *reinterpret_cast<const Mat33*>(&frame);}
-    const Vec3&  extractOrigin()      const {return frame(3);} // i.e., 4th column
+    Frame frame;
 };
 
 /**
@@ -1595,7 +1592,7 @@ public:
     ~FrameFeaturePlacementRep() { }
 
     void realize(Stage g) const {refRealize(g);}
-    void evaluateMat34(Mat34& m) const {m = getReferencedValue();}
+    void evaluateFrame(Frame& m) const {m = getReferencedValue();}
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1616,7 +1613,7 @@ public:
     SIMTK_DOWNCAST(FrameFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Mat34& getReferencedValue() const;
+    const Frame& getReferencedValue() const;
 };
 
 /**
@@ -1646,10 +1643,9 @@ public:
         orientation.getRep().realize(g);
         origin.getRep().realize(g);
     }
-    void evaluateMat34(Mat34& m) const {
-        MatRotation& axesv = reinterpret_cast<MatRotation&>(m);
-        orientation.getRep().evaluateMatRotation(axesv);
-        origin.getRep().evaluateVec3(m(3));
+    void evaluateFrame(Frame& m) const {
+        orientation.getRep().evaluateMatRotation(m.updAxes());
+        origin.getRep().evaluateVec3(m.updOrigin());
     }
 
     PlacementRep* clone() const {return new FrameExprPlacementRep(*this);}

@@ -30,15 +30,26 @@ class UnitVec3 {
 public:
     UnitVec3() : dir(NTraits<Real>::getNaN()) { }
     explicit UnitVec3(const Vec3& v) : dir(v/v.norm()) { }
+    UnitVec3(const Real& x, const Real& y, const Real& z) : dir(x,y,z) {
+        dir /= dir.norm();
+    }
 
     const Vec3& asVec3() const {return dir;}
 
-    // Implicit conversion to read-only Vec3 when appropriate.
-    // Note that there is no such conversion to non-const Vec3.
-    operator const Vec3&() const {return dir;}
-
     UnitVec3 negate()    const {return UnitVec3(-dir,true);}
     UnitVec3 operator-() const {return negate();}
+    Row3     operator~() const {return ~dir;}
+
+    // Return a unit vector perpendicular to this one (arbitrary).
+    UnitVec3 perp() const {
+        // Choose the coordinate axis which makes the largest angle
+        // with this vector.
+        const Vec3 v( std::abs(dir[0]), std::abs(dir[1]), std::abs(dir[2]) );
+        const int minIx = v[0] <= v[1] ? (v[0] <= v[2] ? 0 : 2)
+                                       : (v[1] <= v[2] ? 1 : 2);
+        Vec3 axis(0.); axis[minIx]=1.;
+        return UnitVec3(dir % axis);    // normalize the cross product and return
+    }
 
     const Real& operator[](int i) const {return dir[i];}
 private:
@@ -50,9 +61,17 @@ private:
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
 
 // Scalar multiply and divide don't preserve 'unitness'
-inline Vec3 operator*(const UnitVec3& v, const Real& r) {return v.asVec3()*r;}
-inline Vec3 operator*(const Real& r, const UnitVec3& v) {return v.asVec3()*r;}
-inline Vec3 operator/(const UnitVec3& v, const Real& r) {return v.asVec3()/r;}
+inline Vec3  operator*(const UnitVec3& v, const Real& r) {return v.asVec3()*r;}
+inline Vec3  operator*(const Real& r, const UnitVec3& v) {return v.asVec3()*r;}
+inline Vec3  operator/(const UnitVec3& v, const Real& r) {return v.asVec3()/r;}
+
+inline Real  operator*(const Row3&     r, const UnitVec3& u) {return r*u.asVec3();}
+inline Mat33 operator*(const UnitVec3& u, const Row3&     r) {return u.asVec3()*r;}
+inline Vec3  operator%(const UnitVec3& u, const UnitVec3& v) {return u.asVec3()%v.asVec3();}
+inline Vec3  operator%(const Vec3&     v, const UnitVec3& u) {return v%u.asVec3();}
+inline Vec3  operator%(const UnitVec3& u, const Vec3&     v) {return u.asVec3()%v;}
+inline Row3  operator%(const Row3&     r, const UnitVec3& u) {return r%u.asVec3();}
+inline Row3  operator%(const UnitVec3& u, const Row3&     r) {return u.asVec3()%r;}
 
 /**
  * This class is a Mat33 plus an ironclad guarantee that the matrix represents
@@ -84,7 +103,7 @@ public:
     /// but are otherwise arbitrary.
     explicit MatRotation(const UnitVec3& z);
 
-    const UnitVec3& getAxis(int i)
+    const UnitVec3& getAxis(int i) const
       { return reinterpret_cast<const UnitVec3&>(R_GF(i)); }
 
     // TODO: with much agony involving templates this could be made free.
@@ -96,9 +115,6 @@ public:
 
     const Mat33& asMat33() const {return R_GF;}
 
-    // Implicit conversion to read-only Vec3 when appropriate.
-    // Note that there is no such conversion to non-const Vec3.
-    operator const Mat33&() const {return R_GF;}
 private:
     // We're trusting that m is a rotation.
     explicit MatRotation(const Mat33& m) : R_GF(m) { }
@@ -109,11 +125,20 @@ std::ostream& operator<<(std::ostream& o, const MatRotation& m);
 inline MatRotation operator*(const MatRotation& l, const MatRotation& r) {
     return MatRotation(l.asMat33()*r.asMat33());
 }
+inline Mat33 operator*(const MatRotation& l, const Mat33& r) {
+    return l.asMat33()*r;
+}
+inline Mat33 operator*(const Mat33& l, const MatRotation& r) {
+    return l*r.asMat33();
+}
 inline UnitVec3 operator*(const MatRotation& R, const UnitVec3& v) {
     return UnitVec3(R.asMat33()*v.asVec3(), true);
 }
 inline Vec3 operator*(const MatRotation& R, const Vec3& v) {
     return R.asMat33()*v;
+}
+inline Row3 operator*(const Row3& r, const MatRotation& R) {
+    return r*R.asMat33();
 }
 /**
  * This class represents an orthogonal, right-handed coordinate frame F, 
@@ -179,6 +204,7 @@ private:
     MatRotation Rot_RF;   // rotation matrix that expresses F's axes in R
     Vec3        Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
 };
+std::ostream& operator<<(std::ostream& o, const Frame&);
 
 } // namespace simtk
 

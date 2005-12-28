@@ -76,8 +76,10 @@ enum JointType {
  */
 class Body : public FrameFeature {
 public:
-    const RealMeasure&    getMass() const;
-    const StationMeasure& getCentroid() const;
+    const RealMeasure&    getMass()             const;
+    const StationMeasure& getMassCenter()       const;
+    const InertiaMeasure& getInertia()          const;
+    const InertiaMeasure& getCentralInertia()   const;
 
     // We are given a Subsystem which must turn out to be a Feature that has
     // a Placement. Starting with the Placement's owner, search up the tree to
@@ -149,6 +151,9 @@ public:
     Joint(const Joint&);
     Joint& operator=(const Joint&);
     ~Joint();
+
+    const FrameFeature& getReferenceFrame() const;
+    const FrameFeature& getMovingFrame()    const;
 
     static bool         isInstanceOf(const Subsystem&);
     static const Joint& downcast(const Subsystem&);

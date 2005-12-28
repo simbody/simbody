@@ -40,7 +40,9 @@ public:
     const Frame&         getBodyConfiguration(const State&, int body) const;
     const SpatialVector& getBodyVelocity     (const State&, int body) const;
     const SpatialVector& getBodyAcceleration (const State&, int body) const;
-
+private:
+    class IVMSimbodyInterfaceRep* rep;
+    friend class IVMSimbodyInterfaceRep;
 };
 
 

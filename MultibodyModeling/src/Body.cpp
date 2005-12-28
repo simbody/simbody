@@ -42,14 +42,18 @@ const RealMeasure& Body::getMass() const {
     assert(rep);
     return BodyRep::downcast(getRep()).getMass();
 }
-const StationMeasure& Body::getCentroid() const {
+const StationMeasure& Body::getMassCenter() const {
     assert(rep);
-    return BodyRep::downcast(getRep()).getCentroid();
+    return BodyRep::downcast(getRep()).getMassCenter();
 }
-//const InertiaMeasure& Body::getCentroidalInertia() const {
-//    assert(rep);
-//    return BodyRep::downcast(getRep()).getCentroidalInertia();
-//}
+const InertiaMeasure& Body::getInertia() const {
+    assert(rep);
+    return BodyRep::downcast(getRep()).getInertia();
+}
+const InertiaMeasure& Body::getCentralInertia() const {
+    assert(rep);
+    return BodyRep::downcast(getRep()).getCentralInertia();
+}
 
 /*static*/ const Body&
 Body::getPlacementBody(const Subsystem& s) {
@@ -210,6 +214,15 @@ Joint& Joint::operator=(const Joint& src) {
     Subsystem::operator=(src); return *this;
 }
 Joint::~Joint() { }
+
+const FrameFeature& 
+Joint::getReferenceFrame() const {
+    return JointRep::downcast(getRep()).getReferenceFrame();
+}
+const FrameFeature&
+Joint::getMovingFrame() const {
+    return JointRep::downcast(getRep()).getMovingFrame();
+}
 
 /*static*/ bool             
 Joint::isInstanceOf(const Subsystem& s) {
