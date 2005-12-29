@@ -37,6 +37,28 @@ using std::endl;
 
 #include <vector>
 
+static CDSVec3 toCDSVec3(const Vec3& v) {
+    return CDSVec3(v[0],v[1],v[2]);
+}
+
+static CDSMat33 toCDSMat33(const Mat33& m) {
+    return CDSMat33(m(0,0), m(0,1), m(0,2),
+                    m(1,0), m(1,1), m(1,2),
+                    m(2,0), m(2,1), m(2,2));
+}
+
+static RBInertia toRBInertia(const MatInertia& i) {
+    return RBInertia(toCDSMat33(i.toMat33()));
+}
+
+static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+    return RBMassProperties(m, toCDSVec3(c), toRBInertia(i));
+}
+
+static RBFrame toRBFrame(const Frame& f) {
+    return RBFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
+}
+
     // IVM SIMBODY INTERFACE //
 
 IVMSimbodyInterface::IVMSimbodyInterface(const Multibody& m) : rep(0) {
@@ -64,7 +86,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
             if (!Body::getPlacementBody(joints[i]->getReferenceFrame())
                      .isSameSubsystem(mbs2tree[nxt].getBody())) continue;
             mbs2tree.push_back(TreeMap(&Body::getPlacementBody(joints[i]->getMovingFrame()),
-                                       &Body::getPlacementBody(joints[i]->getReferenceFrame()),
+                                       nxt, // index of parent
                                        joints[i],
                                        mbs2tree[nxt].getLevel() + 1));
         }
@@ -75,11 +97,20 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
 
     cout << "**** TREE ****" << endl;
+    int nextStateOffset = 0;
     for (size_t i=0; i<mbs2tree.size(); ++i) {
         cout << mbs2tree[i].getLevel() << ": " << mbs2tree[i].getBody().getFullName() << endl;
-        if (!mbs2tree[i].getLevel()) continue;
-        cout << " Joint: "  << mbs2tree[i].getJoint().getFullName() 
-             << " Parent: " << mbs2tree[i].getParent().getFullName() << endl;
+        if (!mbs2tree[i].getLevel()) {
+            RigidBodyNode* rb = RigidBodyNode::create(RBMassProperties(), RBFrame(), RBThisIsGround,
+                                      false, false, nextStateOffset);
+            const int rbIndex = tree.addGroundNode(rb);
+            mbs2tree[i].setRBIndex(rbIndex);
+            continue;
+        }
+        TreeMap& parentEntry = mbs2tree[mbs2tree[i].getParentIndex()];
+        cout << Joint::getJointTypeName(mbs2tree[i].getJoint().getJointType())
+             << " Joint: "  << mbs2tree[i].getJoint().getFullName() 
+             << " Parent: " << parentEntry.getBody().getFullName() << endl;
 
         const Real& mass = mbs2tree[i].getBody().getMass().getValue();
         const Vec3& com  = mbs2tree[i].getBody().getMassCenter().getValue();
@@ -88,8 +119,51 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
         const Frame& frame = mbs2tree[i].getJoint().getMovingFrame().getValue();
         cout << "frame=" << frame << endl;
+
+        cout << "JointType=" << mbs2tree[i].getJoint().getJointType()
+             << "  RBJointType=" << mapToRBJointType(mbs2tree[i].getJoint().getJointType())
+             << endl;
+
+        const int save = nextStateOffset;
+        RigidBodyNode* rb = RigidBodyNode::create(
+            toRBMassProperties(mass,com,iner),
+            toRBFrame(frame),
+            mapToRBJointType(mbs2tree[i].getJoint().getJointType()),
+            false,
+            false,
+            nextStateOffset);
+        cout << "CREATED: states " << save << "-" << nextStateOffset-1 << endl;
+
+
+        RigidBodyNode& parent = tree.updRigidBodyNode(parentEntry.getRBIndex());
+        const int rbIndex = tree.addRigidBodyNode(parent,RBFrame()/*XXX*/,rb);
+        mbs2tree[i].setRBIndex(rbIndex);
     }
 
+    tree.finishConstruction(1e-6, 0);
 
+    std::cout << "*** RigidBodyTree:" << std::endl << tree << std::endl;
+}
+   
+/*static*/ RBJointType
+IVMSimbodyInterfaceRep::mapToRBJointType(Joint::JointType jt) {
+    switch (jt) {
+    case Joint::UnknownJointType:   return RBUnknownJointType;
+    case Joint::ThisIsGround:       return RBThisIsGround;
+    case Joint::Weld:               return RBWeldJoint;
+    case Joint::Torsion:            return RBTorsionJoint;  // aka PinJoint
+    case Joint::Sliding:            return RBSlidingJoint;
+    case Joint::Universal:          return RBUJoint;
+    case Joint::Cylinder:           return RBCylinderJoint;
+    case Joint::Planar:             return RBPlanarJoint;
+    case Joint::Gimbal:             return RBGimbalJoint;
+    case Joint::Orientation:        return RBOrientationJoint; // aka BallJoint
+    case Joint::Cartesian:          return RBCartesianJoint;
+    case Joint::FreeLine:           return RBFreeLineJoint;
+    case Joint::Free:               return RBFreeJoint;
+    default: assert(false);
+    }
+    //NOTREACHED
+    return RBUnknownJointType;
 }
 

@@ -171,12 +171,12 @@ Body& Multibody::addBodyLike(const Body& b, const String& nm) {
     return subBody;
 }
 
-Joint& Multibody::addJoint(JointType jt, const String& nm) {
+Joint& Multibody::addJoint(Joint::JointType jt, const String& nm) {
     Joint& j = Joint::downcast(updRep().addSubsystemLike(Joint(jt,nm), nm));
     return j;
 }
 
-Joint& Multibody::addJoint(JointType jt, const String& nm,
+Joint& Multibody::addJoint(Joint::JointType jt, const String& nm,
                            const Placement& reference,
                            const Placement& moving) {
     Joint& j = Joint::downcast(updRep().addSubsystemLike(Joint(jt,nm), nm));
@@ -204,7 +204,7 @@ Multibody::downcast(Subsystem& s) {
 
     // JOINT //
 
-Joint::Joint(JointType jt, const String& nm) : Subsystem() {
+Joint::Joint(Joint::JointType jt, const String& nm) : Subsystem() {
     rep = new JointRep(*this, jt, std::string(nm));
     rep->initializeStandardSubfeatures();
 }
@@ -222,6 +222,32 @@ Joint::getReferenceFrame() const {
 const FrameFeature&
 Joint::getMovingFrame() const {
     return JointRep::downcast(getRep()).getMovingFrame();
+}
+Joint::JointType
+Joint::getJointType() const {
+    return JointRep::downcast(getRep()).getJointType();
+}
+
+/*static*/ String
+Joint::getJointTypeName(Joint::JointType jt) {
+    switch(jt) {
+    case UnknownJointType:  return "UnknownJointType";
+    case ThisIsGround:      return "ThisIsGround";
+    case Weld:              return "Weld";
+    case Torsion:           return "Torsion";
+    case Sliding:           return "Sliding";
+    case Universal:         return "Universal";
+    case Cylinder:          return "Cylinder";
+    case Planar:            return "Planar";
+    case Gimbal:            return "Gimbal";
+    case Orientation:       return "Orientation";
+    case Cartesian:         return "Cartesian";
+    case FreeLine:          return "FreeLine";
+    case Free:              return "Free";
+    default: assert(false);
+    }
+    //NOTREACHED
+    return "<BAD Joint::JointType " + String(jt) + ">";
 }
 
 /*static*/ bool             

@@ -63,20 +63,20 @@ typedef float_type CDSReal;
  * Free        6 Coords are Orientation and Cartesian
  * 
  */
-enum JointType {
-    UnknownJointType    = 0,
-    ThisIsGround        = 1, // Ground's "inboard joint"
-    WeldJoint           = 2,
-    TorsionJoint        = 3,
-    SlidingJoint        = 4,
-    UJoint              = 5,
-    CylinderJoint       = 6,
-    PlanarJoint         = 7,
-    GimbalJoint         = 8,
-    OrientationJoint    = 9,
-    CartesianJoint      = 10,
-    FreeLineJoint       = 11,
-    FreeJoint           = 12
+enum RBJointType {
+    RBUnknownJointType    = 0,
+    RBThisIsGround        = 1, // Ground's "inboard joint"
+    RBWeldJoint           = 2,
+    RBTorsionJoint        = 3,
+    RBSlidingJoint        = 4,
+    RBUJoint              = 5,
+    RBCylinderJoint       = 6,
+    RBPlanarJoint         = 7,
+    RBGimbalJoint         = 8,
+    RBOrientationJoint    = 9,
+    RBCartesianJoint      = 10,
+    RBFreeLineJoint       = 11,
+    RBFreeJoint           = 12
 };
 
 

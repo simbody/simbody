@@ -202,13 +202,13 @@ try {
     mbs["left/halfHeight"].place(mbs["halfHeight"]);
     mbs["right/halfHeight"].place(mbs["halfHeight"]);
 
-    mbs.addJoint(PinJoint, "base2ground", 
+    mbs.addJoint(Joint::Pin, "base2ground", 
                  mbs.getGroundFrame(),                  //reference frame
                  mbs["upper"]);                         //moving frame
-    mbs.addJoint(BallJoint, "leftHipJoint",
+    mbs.addJoint(Joint::Ball, "leftHipJoint",
                  mbs["upper/leftBallFrame"],         //reference frame
                  mbs["left/upperAttachmentFrame"]);  //moving frame
-    mbs.addJoint(BallJoint, "rightHipJoint",
+    mbs.addJoint(Joint::Ball, "rightHipJoint",
                  mbs["upper/rightBallFrame"],        //reference frame
                  mbs["right/upperAttachmentFrame"]); //moving frame
 

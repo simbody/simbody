@@ -166,8 +166,8 @@ protected:
 
 class JointRep : public SubsystemRep {
 public:
-    JointRep(Joint& j, JointType jt, const std::string& nm) 
-      : SubsystemRep(j,nm), refIndex(-1), movIndex(-1) { }
+    JointRep(Joint& j, Joint::JointType jt, const std::string& nm) 
+      : SubsystemRep(j,nm), jointType(jt), refIndex(-1), movIndex(-1) { }
     // must call initializeStandardSubfeatures to complete construction
 
     std::string   getFeatureTypeName() const { return "Joint"; }
@@ -176,6 +176,7 @@ public:
 
     const FrameFeature& getReferenceFrame() const {return FrameFeature::downcast(getFeature(refIndex));}
     const FrameFeature& getMovingFrame()    const {return FrameFeature::downcast(getFeature(movIndex)); }
+    Joint::JointType    getJointType()      const {return jointType;}
 
     SIMTK_DOWNCAST(JointRep,SubsystemRep);
 protected:
@@ -187,7 +188,8 @@ protected:
         movIndex = M.getIndexInParent();
     }
 
-    int refIndex, movIndex; // feature indices
+    Joint::JointType    jointType;
+    int                 refIndex, movIndex; // feature indices
 };
 
 } // namespace simtk

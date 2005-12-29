@@ -820,7 +820,7 @@ private:
 RigidBodyNode::create(
     const RBMassProperties& m,            // mass properties in body frame
     const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-    JointType               type,
+    RBJointType             type,
     bool                    isReversed,
     bool                    useEuler,
     int&                    nxtStateOffset)   // child-to-parent orientation?
@@ -828,25 +828,25 @@ RigidBodyNode::create(
     assert(!isReversed);
 
     switch(type) {
-    case ThisIsGround:
+    case RBThisIsGround:
         return new RBGroundBody();
-    case TorsionJoint:
+    case RBTorsionJoint:
         return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
-    case UJoint:        
+    case RBUJoint:        
         return new RBNodeRotate2(m,jointFrame,nxtStateOffset);
-    case OrientationJoint:
+    case RBOrientationJoint:
         return new RBNodeRotate3(m,nxtStateOffset,useEuler);
-    case CartesianJoint:
+    case RBCartesianJoint:
         return new RBNodeTranslate(m,nxtStateOffset);
-    case FreeLineJoint:
+    case RBFreeLineJoint:
         return new RBNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
-    case FreeJoint:
+    case RBFreeJoint:
         return new RBNodeTranslateRotate3(m,nxtStateOffset,useEuler);
-    case SlidingJoint:
-    case CylinderJoint:
-    case PlanarJoint:
-    case GimbalJoint:
-    case WeldJoint:
+    case RBSlidingJoint:
+    case RBCylinderJoint:
+    case RBPlanarJoint:
+    case RBGimbalJoint:
+    case RBWeldJoint:
 
     default: 
         assert(false);

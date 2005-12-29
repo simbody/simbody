@@ -83,7 +83,7 @@ public:
     static RigidBodyNode* create(
         const RBMassProperties& m,            // mass properties in body frame
         const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-        JointType               type,
+        RBJointType             type,
         bool                    isReversed,   // child-to-parent orientation?
         bool                    useEuler,     // TODO: kludge (true if minimizing)
         int&                    nextStateOffset); 

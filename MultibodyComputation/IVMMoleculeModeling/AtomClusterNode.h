@@ -79,7 +79,7 @@ public:
     const RBMassProperties& getMassPropertiesInBodyFrame()  const {return massProps;}
     const RBFrame&          getReferenceBodyFrameInParent() const {return refBinP;}
     const RBFrame&          getJointFrameInBodyFrame()      const {return JinB;}
-    JointType               getJointType()                  const {return jointType;}
+    RBJointType             getJointType()                  const {return jointType;}
     bool                    getJointIsReversed()            const {return jointIsReversed;}
 
     /// Given a spatial orientation and location for this cluster, calculate
@@ -119,7 +119,7 @@ protected:
     // in the body frame B.
     RBMassProperties massProps;
 
-    JointType        jointType;
+    RBJointType      jointType;
     bool             jointIsReversed;
 
     // Inboard joint frame. This is fixed forever once constructed and gives the

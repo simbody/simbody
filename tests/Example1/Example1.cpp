@@ -119,13 +119,13 @@ try {
     mbs["left/halfHeight"].place(mbs["halfHeight"]);
     mbs["right/halfHeight"].place(mbs["halfHeight"]);
 
-    mbs.addJoint(PinJoint, "base2ground", 
+    mbs.addJoint(Joint::Pin, "base2ground", 
                  mbs.getGroundFrame(),                  //reference frame
                  mbs["upper"]);                         //moving frame
-    mbs.addJoint(BallJoint, "leftHipJoint",
+    mbs.addJoint(Joint::Ball, "leftHipJoint",
                  mbs["upper/leftBallFrame"],         //reference frame
                  mbs["left/upperAttachmentFrame"]);  //moving frame
-    mbs.addJoint(BallJoint, "rightHipJoint",
+    mbs.addJoint(Joint::Ball, "rightHipJoint",
                  mbs["upper/rightBallFrame"],        //reference frame
                  mbs["right/upperAttachmentFrame"]); //moving frame
 
@@ -133,59 +133,10 @@ try {
     mbs["halfHeight"].place(13.111);
     mbs.realize(Stage::Startup);
 
-    cout << "***BODY MASSES:" << endl;
-    cout << "mbs/upper/mass=" << mbs["upper/mass"].getValue() << endl;
-    cout << "mbs/left/mass =" << mbs["left/mass"].getValue() << endl;
-    cout << "mbs/right/mass=" << mbs["right/mass"].getValue() << endl;
-    cout << endl << "***BODY CENTROIDS:" << endl;
-    cout << "mbs/upper/centroid=" << mbs["upper/centroid"].getValue() << endl;
-    cout << "mbs/left/centroid =" << mbs["left/centroid"].getValue() << endl;
-    cout << "mbs/right/centroid=" << mbs["right/centroid"].getValue() << endl;
-    cout << endl;
-    cout << endl << "***BODY INERTIAS:" << endl;
-    cout << "mbs/upper/inertia =" << mbs["upper/inertia"].getValue() << endl;
-    cout << "mbs/left/inertia  =" << mbs["left/inertia"].getValue() << endl;
-    cout << "mbs/right/inertia =" << mbs["right/inertia"].getValue() << endl;
-    cout << endl << "***BODY CENTRAL INERTIAS:" << endl;
-    cout << "upper =" << mbs["upper/centralInertia"].getValue() << endl;
-    cout << "left  =" << mbs["left/centralInertia"].getValue() << endl;
-    cout << "right =" << mbs["right/centralInertia"].getValue() << endl;
-    cout << endl;
-
-    try {cout << "left/tube/axis=" << mbs["left/tube/axis"].getValue() << endl;}
-    catch(const Exception::Base& e) {std::cout << e.getMessage() << std::endl;}
-
     //mbs.checkSubsystemConsistency(0,-1,mbs);    
     //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
     //std::cout << mbs << std::endl; //let’s see what we’ve got
     //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
-
-    cout << "*** JOINTS ***" << endl;
-    for (int i=0; i<mbs.getNSubsystems(); ++i)
-        if (Joint::isInstanceOf(mbs[i]))
-            cout << mbs[i].getFullName() << ":" << endl 
-                 << "  reference: " << mbs[i]["reference"].getPlacement() 
-                 << "  moving:    " << mbs[i]["moving"].getPlacement() 
-                 << endl;
-
-    cout << "*** BODIES ***" << endl;
-    for (int i=0; i<mbs.getNSubsystems(); ++i)
-        if (Body::isInstanceOf(mbs[i])) {
-            cout << mbs[i].getFullName() << ":" << endl;
-            Real tmass = 0.;
-            Vec3 tcom(0.);
-            for (int j=0; j<mbs[i].getNSubsystems(); ++j) {
-                if (MassElement::isInstanceOf(mbs[i][j])) {
-                    const MassElement& me = MassElement::downcast(mbs[i][j]);
-                    Real mass = me.getMassMeasure().getValue();
-                    Vec3 com  = me.getCentroidMeasure().getValue();
-                    cout << "  massElt " << mbs[i][j].getName() << "mass=" << mass << " com=" << com << endl;
-                    tmass += mass;
-                    tcom += mass*com;
-                }
-            }
-            cout << "... total mass=" << tmass << " centroid=" << tcom/tmass << endl;
-        }
 
 
     ///////////////////////////
@@ -195,16 +146,6 @@ try {
 
     IVMSimbodyInterface instance(mbs);
 
-    cout << "MatRotation(z)=" << MatRotation(UnitVec3(0,0,1)) << endl;
-    cout << "MatRotation(" << UnitVec3(.1,.2,.3) << ")="
-        << MatRotation(UnitVec3(.1,.2,.3)) << endl; 
-
-    UnitVec3 u(0.1,-3.2,7);
-    cout << "u=" << u << " u.perp=" << u.perp() 
-         << " ~u*u.perp=" << ~u*u.perp() << " u%u.perp(),1-norm=" 
-         << u%u.perp() << "," << 1-(u%u.perp()).norm() << endl;
-    cout << "u*~u=" << u*~u << endl;
-    cout << "u*~u.perp=" << u*~u.perp() << endl;
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

@@ -62,7 +62,7 @@ AtomClusterNode::AtomClusterNode(const IVM*       ivm,
     atoms(0,1),
     parentAtom(parAtom),
     stateOffset(-1),
-    jointType(UnknownJointType),
+    jointType(RBUnknownJointType),
     jointIsReversed(false),
     parent(parNode),
     children(0,0),
@@ -148,7 +148,7 @@ public:
     GroundBody(const AtomClusterNode* node)
       : AtomClusterNode(*node)
     { 
-        jointType = ThisIsGround;
+        jointType = RBThisIsGround;
         jointIsReversed = false;
 
         for (int i=0 ; i<atoms.size() ; i++) atoms[i]->vel = CDSVec3(0.0); 
@@ -181,7 +181,7 @@ public:
     //     existing behavior; later I hope to trash it. (sherm)
     //
     AtomClusterNodeSpec(const AtomClusterNode* node, int& cnt, const CDSMat33& rotBJ,
-                        JointType jt, bool isReversed,
+                        RBJointType jt, bool isReversed,
                         bool addDummyOrigin=false)
       : AtomClusterNode(*node)
     {
@@ -241,7 +241,7 @@ public:
     /*virtual*/ const char* type() const { return "translate"; }
 
     ACNodeTranslate(const AtomClusterNode* node, int& cnt)
-      : AtomClusterNodeSpec<3>(node,cnt,R_I,CartesianJoint,false)
+      : AtomClusterNodeSpec<3>(node,cnt,R_I,RBCartesianJoint,false)
     { }
 };
 
@@ -255,7 +255,7 @@ public:
     ACNodeTranslateRotate3(const AtomClusterNode* node,
                           int&             cnt,
                           bool             shouldUseEuler)
-      : AtomClusterNodeSpec<6>(node,cnt,R_I,FreeJoint,false,true), 
+      : AtomClusterNodeSpec<6>(node,cnt,R_I,RBFreeJoint,false,true), 
         useEuler(shouldUseEuler)
     { 
         if ( !useEuler )
@@ -278,7 +278,7 @@ public:
     ACNodeRotate3(const AtomClusterNode* node,
                   int&                   cnt,
                   bool                   shouldUseEuler)
-      : AtomClusterNodeSpec<3>(node,cnt,R_I,OrientationJoint,false,true), 
+      : AtomClusterNodeSpec<3>(node,cnt,R_I,RBOrientationJoint,false,true), 
         useEuler(shouldUseEuler)
     { 
         if ( !useEuler )
@@ -302,7 +302,7 @@ public:
                  const CDSVec3&             zVec,
                  int&                    cnt)
       : AtomClusterNodeSpec<2>(node,cnt,makeJointFrameFromZAxis(zVec),
-                               UJoint,false)
+                               RBUJoint,false)
     { 
     }
 
@@ -321,7 +321,7 @@ public:
                           const CDSVec3&              zVec,
                           int&                     cnt)
       : AtomClusterNodeSpec<5>(node,cnt,makeJointFrameFromZAxis(zVec),
-                               FreeLineJoint,false)
+                               RBFreeLineJoint,false)
     { 
     }
 
@@ -338,7 +338,7 @@ public:
                  const CDSVec3&               rotDir,
                  int&                      cnt)
       : AtomClusterNodeSpec<1>(node,cnt,makeJointFrameFromZAxis(rotDir),
-                               TorsionJoint,false)
+                               RBTorsionJoint,false)
     { 
     }
 

@@ -18,20 +18,25 @@ using namespace simtk;
 #include <iostream>
 #include <vector>
 
-struct TreeMap {
-    const Body* body;
-    const Body* parent;
-    const Joint* joint;
-    int level;
-
-    TreeMap() : body(0), parent(0), joint(0), level(-1) { }
-    TreeMap(const Body* b, const Body* p, const Joint* j, int l)
-        : body(b), parent(p), joint(j), level(l) { }
+class TreeMap {
+public:
+    TreeMap() : body(0), parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
+    TreeMap(const Body* b, size_t pix, const Joint* j, int l)
+        : body(b), parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
 
     const Body&  getBody()   const {assert(body);   return *body;}
-    const Body&  getParent() const {assert(parent); return *parent;}
+    size_t       getParentIndex() const {assert(parentIndex != size_t(-1)); return parentIndex;}
     const Joint& getJoint()  const {assert(joint);  return *joint;}
     int          getLevel()  const {return level;}
+    void         setRBIndex(int ix) {rbIndex=ix;}
+    int          getRBIndex() const {assert(rbIndex != -1); return rbIndex;}
+
+private:
+    const Body*     body;
+    size_t          parentIndex;
+    const Joint*    joint;
+    int             level;
+    int             rbIndex;
 };
 
 
@@ -60,6 +65,8 @@ public:
     const Frame&         getBodyConfiguration(const State&, int body) const;
     const SpatialVector& getBodyVelocity     (const State&, int body) const;
     const SpatialVector& getBodyAcceleration (const State&, int body) const;
+
+    static RBJointType mapToRBJointType(Joint::JointType jt);
 private:
     IVMSimbodyInterface* handle;
 

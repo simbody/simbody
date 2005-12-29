@@ -53,24 +53,6 @@ class Multibody;
 class Joint;
 
 
-enum JointType {
-    UnknownJointType    = 0,
-    ThisIsGround        = 1, // Ground's "inboard joint"
-    WeldJoint           = 2,
-    TorsionJoint        = 3,
-    PinJoint            = TorsionJoint,
-    SlidingJoint        = 4,
-    UJoint              = 5,
-    CylinderJoint       = 6,
-    PlanarJoint         = 7,
-    GimbalJoint         = 8,
-    OrientationJoint    = 9,
-    BallJoint           = OrientationJoint,
-    CartesianJoint      = 10,
-    FreeLineJoint       = 11,
-    FreeJoint           = 12
-};
-
 /**
  * This is an abstract class representing all the bodies.
  */
@@ -121,6 +103,44 @@ public:
     static DeformableBody&       downcast(Subsystem&);
 };
 
+
+class Joint : public Subsystem {
+public:
+    enum JointType {
+        UnknownJointType    = 0,
+        ThisIsGround        = 1, // Ground's "inboard joint"
+        Weld                = 2,
+        Torsion             = 3,
+        Sliding             = 4,
+        Universal           = 5,
+        Cylinder            = 6,
+        Planar              = 7,
+        Gimbal              = 8,
+        Orientation         = 9,
+        Cartesian           = 10,
+        FreeLine            = 11,
+        Free                = 12
+    };
+    // synonyms
+    static const JointType Pin  = Torsion;
+    static const JointType Ball = Orientation;
+
+    explicit Joint(JointType, const String&);
+    Joint(const Joint&);
+    Joint& operator=(const Joint&);
+    ~Joint();
+
+    const FrameFeature& getReferenceFrame() const;
+    const FrameFeature& getMovingFrame()    const;
+    JointType           getJointType()      const;
+
+    static String       getJointTypeName(JointType);
+
+    static bool         isInstanceOf(const Subsystem&);
+    static const Joint& downcast(const Subsystem&);
+    static Joint&       downcast(Subsystem&);
+};
+
 class Multibody : public Subsystem {
 public:
     explicit Multibody(const String&);
@@ -135,29 +155,14 @@ public:
     RigidBody& addRigidBody(const String&);
     RigidBody& addRigidBodyLike(const RigidBody&, const String&);
     Body& addBodyLike(const Body&, const String&);
-    Joint& addJoint(JointType, const String&);
-    Joint& addJoint(JointType, const String&,
+    Joint& addJoint(Joint::JointType, const String&);
+    Joint& addJoint(Joint::JointType, const String&,
                     const Placement& reference,
                     const Placement& moving);
 
     static bool             isInstanceOf(const Subsystem&);
     static const Multibody& downcast(const Subsystem&);
     static Multibody&       downcast(Subsystem&);
-};
-
-class Joint : public Subsystem {
-public:
-    explicit Joint(JointType, const String&);
-    Joint(const Joint&);
-    Joint& operator=(const Joint&);
-    ~Joint();
-
-    const FrameFeature& getReferenceFrame() const;
-    const FrameFeature& getMovingFrame()    const;
-
-    static bool         isInstanceOf(const Subsystem&);
-    static const Joint& downcast(const Subsystem&);
-    static Joint&       downcast(Subsystem&);
 };
 
 class MultibodySystem : public Subsystem {
