@@ -20,11 +20,18 @@ using namespace simtk;
 
 class TreeMap {
 public:
-    TreeMap() : body(0), parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
-    TreeMap(const Body* b, size_t pix, const Joint* j, int l)
-        : body(b), parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
+    TreeMap() : body(0), frame_BR(), frame_RJ(), 
+                parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
+    TreeMap(const Body* b, const Frame& ref, const Frame& jInRef, size_t pix, const Joint* j, int l)
+        : body(b), frame_BR(ref), frame_RJ(jInRef), 
+          parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
 
-    const Body&  getBody()   const {assert(body);   return *body;}
+    const Body&  getBody()           const          {assert(body); return *body;}
+    const Frame& getRefFrameInBody() const          {assert(body); return frame_BR;}
+    void         setRefFrameInBody(const Frame& f)  {frame_BR=f;}
+    const Frame& getJointFrameInRef() const         {assert(body); return frame_RJ;}
+    void         setJointFrameInRef(const Frame& f) {frame_RJ=f;}
+
     size_t       getParentIndex() const {assert(parentIndex != size_t(-1)); return parentIndex;}
     const Joint& getJoint()  const {assert(joint);  return *joint;}
     int          getLevel()  const {return level;}
@@ -33,6 +40,8 @@ public:
 
 private:
     const Body*     body;
+    Frame           frame_BR;   // reference frame R meas & expr in B; default=I
+    Frame           frame_RJ;   // inboard joint frame meas & expr in ref frame R
     size_t          parentIndex;
     const Joint*    joint;
     int             level;

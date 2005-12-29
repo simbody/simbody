@@ -71,6 +71,10 @@ IVMSimbodyInterface::IVMSimbodyInterface(const Multibody& m) : rep(0) {
 IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m) 
   : handle(0), mbs(m)
 {
+    // Make sure the subsystem has been realized so we can get numerical
+    // values out of it.
+    mbs.realize(Stage::Startup);
+
     // First find a tree within the multibody system.
 
     std::vector<const Joint*> joints;
@@ -80,12 +84,21 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
 
     size_t nxt=0;
-    mbs2tree.push_back(TreeMap(&Body::downcast(mbs["Ground"]),0,0,0));
+    mbs2tree.push_back(TreeMap(&Body::downcast(mbs["Ground"]),Frame(),Frame(),0,0,0));
     while (nxt < mbs2tree.size()) {
         for (size_t i=0; i<joints.size(); ++i) {
             if (!Body::getPlacementBody(joints[i]->getReferenceFrame())
                      .isSameSubsystem(mbs2tree[nxt].getBody())) continue;
+
+
+            // Calculate the reference frame, which is located at origin of J
+            // and aligned with its parent's reference frame.
+            const Frame& BJ = joints[i]->getMovingFrame().getValue();        // on B
+            const Frame& PJi = joints[i]->getReferenceFrame().getValue();    // on P
+            const Frame BR(BJ.getAxes()*~PJi.getAxes(), BJ.getOrigin());
+
             mbs2tree.push_back(TreeMap(&Body::getPlacementBody(joints[i]->getMovingFrame()),
+                                       BR, Frame(PJi.getAxes(), Vec3(0)), // RJ
                                        nxt, // index of parent
                                        joints[i],
                                        mbs2tree[nxt].getLevel() + 1));
@@ -93,7 +106,6 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
         ++nxt;
     }
 
-    mbs.realize(Stage::Startup);
 
 
     cout << "**** TREE ****" << endl;
@@ -117,8 +129,10 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
         const MatInertia& iner = mbs2tree[i].getBody().getInertia().getValue();
         cout << "mass=" << mass << " com=" << com << " iner=" << iner << endl;
 
-        const Frame& frame = mbs2tree[i].getJoint().getMovingFrame().getValue();
-        cout << "frame=" << frame << endl;
+        const Frame& fBJ = mbs2tree[i].getJoint().getMovingFrame().getValue();
+        cout << "frame_BJ=" << fBJ << endl;
+        cout << "frame_BR=" << mbs2tree[i].getRefFrameInBody() << endl;
+        cout << "frame_RJ=" << mbs2tree[i].getJointFrameInRef() << endl;
 
         cout << "JointType=" << mbs2tree[i].getJoint().getJointType()
              << "  RBJointType=" << mapToRBJointType(mbs2tree[i].getJoint().getJointType())
@@ -127,7 +141,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
         const int save = nextStateOffset;
         RigidBodyNode* rb = RigidBodyNode::create(
             toRBMassProperties(mass,com,iner),
-            toRBFrame(frame),
+            toRBFrame(mbs2tree[i].getJointFrameInRef()),
             mapToRBJointType(mbs2tree[i].getJoint().getJointType()),
             false,
             false,

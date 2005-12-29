@@ -29,13 +29,12 @@ using CDSMath::sq;
 // and that defined in phiMatrix.hh is ugly, but seems required is order
 // for gcc-2.95 to compile this source.
 
-typedef FixedMatrix<double,2,3> Mat23;
-typedef FixedVector<double,5>   CDSVec5;
+typedef FixedMatrix<double,2,3>  Mat23;
+typedef FixedVector<double,5>    CDSVec5;
 
-
-typedef SubVector<RVec>       RSubVec;
-typedef SubVector<const RVec> ConstRSubVec;
-typedef SubVector<CDSVec4>    RSubVec4;
+typedef SubVector<RVec>          RSubVec;
+typedef SubVector<const RVec>    ConstRSubVec;
+typedef SubVector<CDSVec4>       RSubVec4;
 typedef SubVector<CDSVec5>       RSubVec5;
 typedef SubVector<CDSVec6>       RSubVec6;
 typedef SubVector<const CDSVec6> ConstRSubVec6;
@@ -99,10 +98,10 @@ void
 RigidBodyNode::calcJointIndependentKinematicsVel() {
     setSpatialVel(transpose(phi) * parent->getSpatialVel()
                   + V_PB_G);
-    const CDSVec3& omega = getSpatialAngVel();
-    const CDSVec3 gMoment = cross(omega, inertia_OB_G * omega);
-    const CDSVec3 gForce  = getMass() * cross(omega, 
-                                           cross(omega, COMstation_G));
+    const CDSVec3& omega   = getSpatialAngVel();
+    const CDSVec3  gMoment = cross(omega, inertia_OB_G * omega);
+    const CDSVec3  gForce  = getMass() * cross(omega, 
+                                               cross(omega, COMstation_G));
     b = blockVec(gMoment, gForce);
 
     const CDSVec3& vel    = getSpatialLinVel();
@@ -110,8 +109,8 @@ RigidBodyNode::calcJointIndependentKinematicsVel() {
     const CDSVec3& pVel   = parent->getSpatialLinVel();
 
     // calc a: coriolis acceleration
-    a = blockMat22(crossMat(pOmega),   CDSMat33(0.0),
-                      CDSMat33(0.0)   , crossMat(pOmega)) 
+    a = blockMat22(crossMat(pOmega), CDSMat33(0.0),
+                   CDSMat33(0.0)   , crossMat(pOmega)) 
         * V_PB_G;
     a += blockVec(CDSVec3(0.0), cross(pOmega, vel-pVel));
 }

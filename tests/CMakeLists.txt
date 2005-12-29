@@ -1,3 +1,3 @@
-SUBDIRS (Example1)
+SUBDIRS (Example1 Pendulum1)
 
 
