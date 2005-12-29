@@ -1001,11 +1001,11 @@ Vec3ExprPlacementRep::smulOp(const Vec3Placement& l, const RealPlacement& r)
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::smulOp(const StationPlacement& l, const RealPlacement& r)
-  { return binaryOp(Vec3Ops::ScalarMultiply, l, r); }
+  { return binaryOp(Vec3Ops::ScalarMultiply, Vec3Placement(l), r); }
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::smulOp(const DirectionPlacement& l, const RealPlacement& r)
-  { return binaryOp(Vec3Ops::ScalarMultiply, l, r); }
+  { return binaryOp(Vec3Ops::ScalarMultiply, Vec3Placement(l), r); }
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::sdvdOp(const Vec3Placement& l, const RealPlacement& r)
@@ -1013,11 +1013,11 @@ Vec3ExprPlacementRep::sdvdOp(const Vec3Placement& l, const RealPlacement& r)
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::sdvdOp(const StationPlacement& l, const RealPlacement& r)
-  { return binaryOp(Vec3Ops::ScalarDivide, l, r); }
+  { return binaryOp(Vec3Ops::ScalarDivide, Vec3Placement(l), r); }
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::sdvdOp(const DirectionPlacement& l, const RealPlacement& r)
-  { return binaryOp(Vec3Ops::ScalarDivide, l, r); }
+  { return binaryOp(Vec3Ops::ScalarDivide, Vec3Placement(l), r); }
 
 /*static*/ Vec3ExprPlacementRep*
 Vec3ExprPlacementRep::crossOp(const Vec3Placement& l, const Vec3Placement& r)
@@ -1451,7 +1451,7 @@ UnitVec3 DirectionOps::apply(/*State,*/ const std::vector<Placement>& args) cons
     switch (op) {
 
     case Negate:
-        val = DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
+        val = -DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value();
         break;
 
     case NormalizeVec3:

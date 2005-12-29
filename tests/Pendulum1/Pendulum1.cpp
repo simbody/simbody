@@ -21,7 +21,34 @@
  */
 
 /**@file
- * Test of high level multibody modeling objects for Simbody.
+ * A one-body pendulum, to test proper frame alignment and basic
+ * functioning of Simbody.
+ */
+
+/* Sketch:
+ *
+ *     |           \  
+ *     *--          *--
+ *    / G          / Ji
+ *
+ *
+ *   |           |
+ *   *==---------*==---------W
+ *  / J         / B         weight
+ *   <--- h/2 ---|--- h/2 --->
+ *
+ *
+ * The pendulum is a massless rod with origin frame
+ * B, joint attachment frame J, and a point mass W.
+ * The rod length is h, with the joint and mass
+ * located in opposite directions along the B
+ * frame X axis.
+ *
+ * There is a frame Ji on Ground which will connect
+ * to J via a torsion joint around their mutual z axis.
+ * Note that Ji may not be aligned with G, and J may
+ * differ from B so the reference configuration may 
+ * involve twisting the pendulum around somewhat.
  */
 
 #include "simbody/Simbody.h"
@@ -36,71 +63,28 @@ using namespace simtk;
 
 int main() {
 try {
-    ////////////////////////////////////
-    // Create mass element prototypes //
-    ////////////////////////////////////
-
-    // Create point masses with constant values for their mass parameter.
-    // These will require a "station" placement.
-    PointMassElement    blue  ("blue",  2.5), 
-                        orange("orange",1.),
-                        green ("green", 0.1);
-
-    // Create a cylinder mass element prototype. We're going
-    // to give it constant radius and density, but leave the half-height
-    // unspecified. So this will require a station, direction, and 
-    // scalar parameter placement.
-    CylinderMassElement tubeProto("tube");
-    tubeProto.setRadius(0.1);
-    tubeProto.setMass(100.);
-  
     //////////////////////////////////
-    // Create rigid body prototypes //
+    // Create rigid body prototype  //
     //////////////////////////////////
 
-    RigidBody upper("U");
+    RigidBody rod("P");
 
-    // Create some named stations and place them on the upper body.
-    upper.addStation("greenPt",         Vec3(1, 0,0));
-    upper.addStation("orangePt",        Vec3(0, 0,1));
-    upper.addStation("pinnedBluePt",    Vec3(0, 1,0));
-    upper.addStation("otherBluePt",     Vec3(1, 0,1));
-    upper.addStation("leftAttachPt",    Vec3(0,-1,1));
-    upper.addStation("rightAttachPt",   Vec3(1,-1,0));
+    rod.addRealParameter("h");
+    rod.addRealParameter("m"); // for the mass
 
-    // Instantiate 'atom' mass elements and place them on their stations.
-    upper.addMassElementLike(green,  "green",  upper["greenPt"]);
-    upper.addMassElementLike(orange, "orange", upper["orangePt"]);
-    upper.addMassElementLike(blue,   "blue1",  upper["pinnedBluePt"]);
-    upper.addMassElementLike(blue,   "blue2",  upper["otherBluePt"]);
+    // Create stations at which we will locate the J frame and 
+    rod.addStation("weightLocation", rod.x()*rod["h"]/2);
+    rod.addStation("jointLocation", -rod.x()*rod["h"]/2);
 
-    // Create some joint frames at the appropriate stations (by default
-    // they are aligned with the body frame).
-    upper.addFrame("pinFrame",          upper["pinnedBluePt"]);
-    upper.addFrame("leftBallFrame",     upper["leftAttachPt"]);
-    upper.addFrame("rightBallFrame",    upper["rightAttachPt"]);
+    // Add the weight and place its mass on m.
+    rod.addFeatureLike(PointMassElement("W"), "weight", rod["weightLocation"]);
+    rod["weight/mass"].place(rod["m"]);
 
-    // Now build the prototype for the lower bodies.
+    // Add the joint frame. For now it is aligned with the rod frame.
+    rod.addFrame("jointFrame",  
+        MatRotation(UnitVec3(0,1,0)),
+        rod["jointLocation"]);
 
-    RigidBody lower("L");
-
-    // Create a parameter for the cylinder half-height, and a station at
-    // the top center of the cylinder where we can hook the ball joint.
-    lower.addRealParameter("halfHeight");
-    lower.addStation      ("ballAttachPt",         lower["halfHeight"] * lower.y());
-    lower.addFrame        ("upperAttachmentFrame", lower["ballAttachPt"]);
-
-    // Now instantiate a tube on the body prototype.
-    MassElement& tube = lower.addMassElementLike(tubeProto, "tube");
-  
-    // Place the center and axis, but leave the halfHeight parameter unresolved
-    // because we want to control both with a single parameter.
-    tube["center"].place(lower.getOrigin());
-
-    //TODO: this should require an explicit normalize()
-    tube["axis"].place(lower["ballAttachPt"] - lower.getOrigin());
-
-    tube["halfLength"].place(lower["halfHeight"]);
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -109,40 +93,22 @@ try {
     Multibody mbs("example1");
 
     mbs.addGroundBody();
-    mbs.addBodyLike(upper, "upper");
-    mbs.addBodyLike(lower, "left");
-    mbs.addBodyLike(lower, "right");
+    mbs.addBodyLike(rod, "rod");
 
-    // Create a single parameter of the multibody which can be used
-    // to control the two halfHeights together.
-    mbs.addRealParameter("halfHeight");
-    mbs["left/halfHeight"].place(mbs["halfHeight"]);
-    mbs["right/halfHeight"].place(mbs["halfHeight"]);
+    mbs["ground"].addStation("rodJointLocation", Vec3(10,0,0));
+    mbs["ground"].addFrame("rodJointFrame", mbs["ground/rodJointLocation"]);
 
-    mbs.addJoint(Joint::Pin, "base2ground", 
-                 mbs.getGroundFrame(),               //reference frame
-                 mbs["upper"]);                      //moving frame
-    mbs.addJoint(Joint::Ball, "leftHipJoint",
-                 mbs["upper/leftBallFrame"],         //reference frame
-                 mbs["left/upperAttachmentFrame"]);  //moving frame
-    mbs.addJoint(Joint::Ball, "rightHipJoint",
-                 mbs["upper/rightBallFrame"],        //reference frame
-                 mbs["right/upperAttachmentFrame"]); //moving frame
-
-
-    mbs["halfHeight"].place(13.111);
-    mbs.realize(Stage::Startup);
-
-    //mbs.checkSubsystemConsistency(0,-1,mbs);    
-    //std::cout << "***MULTIBODY SYSTEM***" << std::endl;
-    //std::cout << mbs << std::endl; //let’s see what we’ve got
-    //std::cout << "***END OF MULTIBODY SYSTEM***" << std::endl;
+    mbs.addJoint(Joint::Pin, "rodJoint", 
+                 mbs["ground/rodJointFrame"],        //reference frame
+                 mbs["rod/jointFrame"]);             //moving frame
 
 
     ///////////////////////////
     // Build a RigidBodyTree //
     ///////////////////////////
 
+    mbs["rod/h"].place(5);
+    mbs["rod/m"].place(3);
 
     IVMSimbodyInterface instance(mbs);
 

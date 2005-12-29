@@ -292,7 +292,11 @@ FrameFeature& Subsystem::addFrame(const String& n, const Placement& p) {
     if (p.hasRep()) f.place(p);
     return f;
 }
-
+FrameFeature& Subsystem::addFrame(const String& n, const Placement& axes, const Placement& origin) {
+    FrameFeature& f = FrameFeature::downcast(updRep().addSubsystemLike(FrameFeature(n), n));
+    f.place(FramePlacement(OrientationPlacement(axes), StationPlacement(origin)));
+    return f;
+}
 Subsystem& Subsystem::addSubsystemLike(const Subsystem& f, const String& n) {
     return updRep().addSubsystemLike(f,n);
 }

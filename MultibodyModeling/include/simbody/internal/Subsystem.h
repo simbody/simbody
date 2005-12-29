@@ -151,6 +151,8 @@ public:
                         (const String&, const Placement& = Placement());
     FrameFeature&     addFrame
                         (const String&, const Placement& = Placement());
+    FrameFeature&     addFrame
+                        (const String&, const Placement& axes, const Placement& origin);
 
     // This is similar to the "add" routines above, except that the newly created
     // Subsystem is modeled on the prototype Subsystem supplied here.

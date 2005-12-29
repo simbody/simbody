@@ -236,7 +236,7 @@ public:
     explicit FramePlacement(const Feature&);
     explicit FramePlacement(const Placement&);
 
-    FramePlacement(const Orientation&, const Station&);
+    FramePlacement(const OrientationPlacement&, const StationPlacement&);
 
     // For internal use only.
     explicit FramePlacement(class FramePlacementRep* r) 

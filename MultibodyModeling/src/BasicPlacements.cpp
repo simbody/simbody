@@ -476,7 +476,7 @@ InertiaPlacement::downcast(Placement& p) {
 }
 
     // FRAME PLACEMENT //
-FramePlacement::FramePlacement(const Orientation& o, const Station& s) {
+FramePlacement::FramePlacement(const OrientationPlacement& o, const StationPlacement& s) {
     rep = new FrameExprPlacementRep(o,s);
     rep->setMyHandle(*this);
 }
