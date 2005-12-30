@@ -37,18 +37,27 @@ using std::endl;
 
 #include <vector>
 
-static CDSVec3 toCDSVec3(const Vec3& v) {
-    return CDSVec3(v[0],v[1],v[2]);
-}
+static CDSVec3 toCDSVec3(const Vec3& v) {return CDSVec3(v[0],v[1],v[2]);}
+static Vec3    toVec3(const CDSVec3& v) {return Vec3(v[0],v[1],v[2]);}
 
 static CDSMat33 toCDSMat33(const Mat33& m) {
     return CDSMat33(m(0,0), m(0,1), m(0,2),
                     m(1,0), m(1,1), m(1,2),
                     m(2,0), m(2,1), m(2,2));
 }
-
+static Mat33 toMat33(const CDSMat33& m) {
+    return Mat33(Row3(m(0,0), m(0,1), m(0,2)),
+                 Row3(m(1,0), m(1,1), m(1,2)),
+                 Row3(m(2,0), m(2,1), m(2,2)));
+}
 static RBInertia toRBInertia(const MatInertia& i) {
     return RBInertia(toCDSMat33(i.toMat33()));
+}
+static MatInertia toMatInertia(const RBInertia& i) {
+    return MatInertia(toMat33(i));
+}
+static MatRotation toMatRotation(const CDSMat33& m) {
+    return reinterpret_cast<const MatRotation&>(toMat33(m));
 }
 
 static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
@@ -58,12 +67,56 @@ static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const M
 static RBFrame toRBFrame(const Frame& f) {
     return RBFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
 }
-
+static Frame toFrame(const RBFrame& f) {
+    return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
+}
     // IVM SIMBODY INTERFACE //
 
 IVMSimbodyInterface::IVMSimbodyInterface(const Multibody& m) : rep(0) {
     rep = new IVMSimbodyInterfaceRep(m);
     rep->setMyHandle(*this);
+}
+
+int IVMSimbodyInterface::getNBodies()     const {return rep->getRigidBodyTree().getNBodies();}
+int IVMSimbodyInterface::getNParameters() const {return 0;}
+int IVMSimbodyInterface::getNQ()          const {return rep->getRigidBodyTree().getDim();}
+int IVMSimbodyInterface::getNU()          const {return rep->getRigidBodyTree().getDOF();}
+
+
+Frame // TODO: this should return a reference to a cache entry
+IVMSimbodyInterface::getBodyConfiguration(const State&, const Body& b) const
+{
+    const RBTreeMap& info = rep->getBodyInfo(b);
+    const Frame& BR = info.getRefFrameInBody();
+    const RigidBodyNode& n = rep->getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
+    const MatRotation GR = toMatRotation(n.getR_GB()); // B is really R
+    const Vec3        OR_G = toVec3(n.getOB_G());
+    return Frame(GR * ~BR.getAxes(), OR_G - BR.getOrigin());
+}
+
+SpatialVector // TODO: this should return a reference to a cache entry
+IVMSimbodyInterface::getBodyVelocity(const State&, const Body& b) const
+{
+    return SpatialVector();
+}
+
+void IVMSimbodyInterface::applyPointForce(const State&, const Body& b, const Vec3& pt, const Vec3& frc, 
+                     Array<SpatialVector>& bodyForces) const
+{
+}
+
+void IVMSimbodyInterface::applyBodyTorque(const State&, const Body& b, const Vec3& trq, 
+                     Array<SpatialVector>& bodyForces) const
+{
+}
+
+void IVMSimbodyInterface::applyGravity(const State&, const Vec3& g, Array<SpatialVector>& bodyForces) const
+{
+}
+
+void IVMSimbodyInterface::applyHingeForce(const State&, const Joint& j, int axis, const Real& frc, 
+                     Vector& hingeForces) const
+{
 }
 
     // IVM SIMBODY INTERFACE REP //
@@ -84,7 +137,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
 
     size_t nxt=0;
-    mbs2tree.push_back(TreeMap(&Body::downcast(mbs["Ground"]),Frame(),Frame(),0,0,0));
+    mbs2tree.push_back(RBTreeMap(&Body::downcast(mbs["Ground"]),Frame(),Frame(),0,0,0));
     while (nxt < mbs2tree.size()) {
         for (size_t i=0; i<joints.size(); ++i) {
             if (!Body::getPlacementBody(joints[i]->getReferenceFrame())
@@ -97,11 +150,11 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
             const Frame& PJi = joints[i]->getReferenceFrame().getValue();    // on P
             const Frame BR(BJ.getAxes()*~PJi.getAxes(), BJ.getOrigin());
 
-            mbs2tree.push_back(TreeMap(&Body::getPlacementBody(joints[i]->getMovingFrame()),
-                                       BR, Frame(PJi.getAxes(), Vec3(0)), // RJ
-                                       nxt, // index of parent
-                                       joints[i],
-                                       mbs2tree[nxt].getLevel() + 1));
+            mbs2tree.push_back(RBTreeMap(&Body::getPlacementBody(joints[i]->getMovingFrame()),
+                                         BR, Frame(PJi.getAxes(), Vec3(0)), // RJ
+                                         nxt, // index of parent
+                                         joints[i],
+                                         mbs2tree[nxt].getLevel() + 1));
         }
         ++nxt;
     }
@@ -119,7 +172,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
             mbs2tree[i].setRBIndex(rbIndex);
             continue;
         }
-        TreeMap& parentEntry = mbs2tree[mbs2tree[i].getParentIndex()];
+        RBTreeMap& parentEntry = mbs2tree[mbs2tree[i].getParentIndex()];
         cout << Joint::getJointTypeName(mbs2tree[i].getJoint().getJointType())
              << " Joint: "  << mbs2tree[i].getJoint().getFullName() 
              << " Parent: " << parentEntry.getBody().getFullName() << endl;

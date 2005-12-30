@@ -18,13 +18,13 @@ using namespace simtk;
 #include <iostream>
 #include <vector>
 
-class TreeMap {
+class RBTreeMap {
 public:
-    TreeMap() : body(0), frame_BR(), frame_RJ(), 
-                parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
-    TreeMap(const Body* b, const Frame& ref, const Frame& jInRef, size_t pix, const Joint* j, int l)
-        : body(b), frame_BR(ref), frame_RJ(jInRef), 
-          parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
+    RBTreeMap() : body(0), frame_BR(), frame_RJ(), 
+                  parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
+    RBTreeMap(const Body* b, const Frame& ref, const Frame& jInRef, size_t pix, const Joint* j, int l)
+      : body(b), frame_BR(ref), frame_RJ(jInRef), 
+        parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
 
     const Body&  getBody()           const          {assert(body); return *body;}
     const Frame& getRefFrameInBody() const          {assert(body); return frame_BR;}
@@ -53,6 +53,18 @@ class IVMSimbodyInterfaceRep /* : public RigidBodyMechanicsResource(?) */ {
 public:
     IVMSimbodyInterfaceRep(const Multibody&);
 
+    const Multibody& getMultibody() const {return mbs;}
+    const RigidBodyTree& getRigidBodyTree() const {return tree;}
+
+    const RBTreeMap& getBodyInfo(const Body& b) const {
+        // TODO: info must be stored with (or indexed by) body directly for speed
+        for (size_t i=0; i<mbs2tree.size(); ++i) 
+            if (b.isSameSubsystem(mbs2tree[i].getBody()))
+                return mbs2tree[i];
+        assert(false); // where is it?
+        return *reinterpret_cast<const RBTreeMap*>(0);
+    }
+
     int getNBodies() const;
     int getNParameters() const;
     int getNQ() const;
@@ -80,7 +92,7 @@ private:
     IVMSimbodyInterface* handle;
 
     Multibody               mbs;  // private copy
-    std::vector<TreeMap>    mbs2tree;
+    std::vector<RBTreeMap>  mbs2tree;
     RigidBodyTree           tree;
 
 };

@@ -96,7 +96,9 @@ try {
     mbs.addBodyLike(rod, "rod");
 
     mbs["ground"].addStation("rodJointLocation", Vec3(10,0,0));
-    mbs["ground"].addFrame("rodJointFrame", mbs["ground/rodJointLocation"]);
+    mbs["ground"].addFrame("rodJointFrame",
+        MatRotation(UnitVec3(0,1,0)),
+        mbs["ground/rodJointLocation"]);
 
     mbs.addJoint(Joint::Pin, "rodJoint", 
                  mbs["ground/rodJointFrame"],        //reference frame
