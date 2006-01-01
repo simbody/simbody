@@ -32,14 +32,20 @@ public:
     void enforceMotionConstraints(State&) const;
 
     const Vector& getQDot(const State&) const;
-    Vector calcUDot(const State&, const Array<SpatialVector>& bodyForces,
-                                  const Vector&               hingeForces);
+    Vector calcUDot(const State&, 
+                    const Array<SpatialVector>& bodyForces,
+                    const Vector&               hingeForces) const;
 
     // Initialize the two force arrays, resizing if necessary and setting all to zero.
+    // WARNING: forces may be accumulated in whatever manner is best for the underlying
+    // computations. Be sure to use the access routines below; do not attempt to
+    // fill in these arrays yourself.
     void clearForces(Array<SpatialVector>& bodyForces, Vector& hingeForces) const {
         bodyForces.resize(getNBodies()); hingeForces.resize(getNU());
         bodyForces = SpatialVector(Vec3(0.)); hingeForces = 0.;
     }
+
+    State getDefaultState() const;
 
     // Given a station on a body (measured from & expressed in the body's frame), and a
     // force vector (expressed in the body's frame), convert that to an appropriate

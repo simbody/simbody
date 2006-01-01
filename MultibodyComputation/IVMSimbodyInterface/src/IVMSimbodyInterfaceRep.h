@@ -55,6 +55,7 @@ public:
 
     const Multibody& getMultibody() const {return mbs;}
     const RigidBodyTree& getRigidBodyTree() const {return tree;}
+    RigidBodyTree&       updRigidBodyTree()       {return tree;}
 
     const RBTreeMap& getBodyInfo(const Body& b) const {
         // TODO: info must be stored with (or indexed by) body directly for speed
@@ -63,6 +64,10 @@ public:
                 return mbs2tree[i];
         assert(false); // where is it?
         return *reinterpret_cast<const RBTreeMap*>(0);
+    }
+
+    const RBTreeMap& getBodyInfoByIndex(int ix) const {
+        return mbs2tree[ix];
     }
 
     int getNBodies() const;

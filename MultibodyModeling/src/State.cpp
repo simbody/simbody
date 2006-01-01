@@ -40,6 +40,11 @@ State::State()
   : rep(new StateRep()) {
 }
 
+State::State(int nq, int nu)
+  : rep(new StateRep()) {
+    rep->resize(nq,nu);
+}
+
 State::~State() {
     delete rep;
 }
@@ -56,6 +61,14 @@ State& State::operator=(const State& src) {
             rep = src.rep->clone();
     }
     return *this;
+}
+
+
+const Vector& State::getQ() const {
+    return rep->getConfiguration();
+}
+const Vector& State::getU() const{
+    return rep->getMotion();
 }
 
 } // namespace simtk

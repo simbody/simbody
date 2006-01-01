@@ -45,6 +45,15 @@ public:
 
     StateRep* clone() const { return new StateRep(*this); }
 
+    void resize(int nq, int nu) {
+        configuration.resize(nq); configuration = 0.;   //TODO: preserve old values?
+        motion.resize(nu);        motion = 0.;
+    }
+
+    const Vector& getParameters() const { return parameters;}
+    const Vector& getConfiguration() const {return configuration;}
+    const Vector& getMotion() const {return motion;}
+
 private:
     Vector parameters;
     Vector configuration;

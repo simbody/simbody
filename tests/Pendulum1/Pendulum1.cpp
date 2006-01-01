@@ -27,8 +27,8 @@
 
 /* Sketch:
  *
- *     |           \  
- *     *--          *--
+ *     |           \           | g
+ *     *--          *--        v
  *    / G          / Ji
  *
  *
@@ -46,6 +46,7 @@
  *
  * There is a frame Ji on Ground which will connect
  * to J via a torsion joint around their mutual z axis.
+ * Gravity is in the -y direction of the Ground frame.
  * Note that Ji may not be aligned with G, and J may
  * differ from B so the reference configuration may 
  * involve twisting the pendulum around somewhat.
@@ -80,11 +81,19 @@ try {
     rod.addFeatureLike(PointMassElement("W"), "weight", rod["weightLocation"]);
     rod["weight/mass"].place(rod["m"]);
 
-    // Add the joint frame. For now it is aligned with the rod frame.
-    rod.addFrame("jointFrame",  
-        MatRotation(UnitVec3(0,1,0)),
-        rod["jointLocation"]);
+    // Add the joint frame. 
+    
+    // Here it is aligned with the rod frame (rod is horizontal as pictured).
+    //rod.addFrame("jointFrame",  
+    //    MatRotation(),
+    //    rod["jointLocation"]);
 
+    // Here it is aligned so that the rod is hanging straight down at 0.
+    const Mat33 jj(Vec3(0,1,0),Vec3(-1,0,0),Vec3(0,0,1));
+
+    rod.addFrame("jointFrame",  
+        reinterpret_cast<const MatRotation&>(jj),
+        rod["jointLocation"]);
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //
@@ -97,7 +106,7 @@ try {
 
     mbs["ground"].addStation("rodJointLocation", Vec3(10,0,0));
     mbs["ground"].addFrame("rodJointFrame",
-        MatRotation(UnitVec3(0,1,0)),
+        MatRotation(),
         mbs["ground/rodJointLocation"]);
 
     mbs.addJoint(Joint::Pin, "rodJoint", 
@@ -112,7 +121,20 @@ try {
     mbs["rod/h"].place(5);
     mbs["rod/m"].place(3);
 
+    //mbs.realize(Stage::Startup);
+    //cout << "MBS=" << mbs << endl;
+
     IVMSimbodyInterface instance(mbs);
+    State s = instance.getDefaultState();
+    Array<SpatialVector> bodyForces;
+    Vector               hingeForces;
+    instance.clearForces(bodyForces,hingeForces);
+    instance.realizeParameters(s);
+    instance.realizeConfiguration(s);
+    instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
+    instance.realizeMotion(s);
+    Vector udot = instance.calcUDot(s,bodyForces,hingeForces);
+    cout << "udot=" << udot << endl;
 
 }
 catch(const Exception::Base& e) {

@@ -28,15 +28,20 @@
  */
 
 #include "simbody/internal/SimbodyCommon.h"
+#include "simmatrix/BigMatrix.h"
 
 namespace simtk {
 
 class State {
 public:
     State();
+    State(int nq, int nu);
     ~State();
     State(const State&);
     State& operator=(const State&);
+
+    const Vector& getQ() const;
+    const Vector& getU() const;
 
 private:
     class StateRep* rep;

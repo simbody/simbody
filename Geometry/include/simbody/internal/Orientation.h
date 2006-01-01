@@ -142,20 +142,22 @@ inline Row3 operator*(const Row3& r, const MatRotation& R) {
 }
 /**
  * This class represents an orthogonal, right-handed coordinate frame F, 
- * measured from and expressed in a reference coordinate frame R. F consists of
- * 3 perpendicular unit vectors defining its axes as viewed from R, 
- * and a vector from R's origin point OR to F's origin point OF. Note that
- * the meaning of "R" comes from the context in which frame F is used.
- * We use the phrase "frame F is in frame R" to describe the above relationship,
- * that is, "in" means both measured in and expressed in. 
+ * measured from and expressed in a base (reference) coordinate frame B.
+ * F consists of 3 perpendicular unit vectors defining its axes XF as
+ * viewed from B (that is, as expressed in B's axes XB), and a vector
+ * from B's origin point OB to F's origin point OF. Note that
+ * the meaning of "B" comes from the context in which frame F is used.
+ * We use the phrase "frame F is in frame B" to describe the above relationship,
+ * that is, "in" means both measured from and expressed in. 
  *
  * The axis vectors are ordered 1-2-3 or x-y-z as you prefer, with
  * z = x X y, making a right-handed set. These axes are arranged as
- * columns of a 3x3 matrix Rot_RF = [ x y z ] which is a direction cosine
- * (rotation) matrix useful for conversions between frame R and F. For
+ * columns of a 3x3 matrix X_BF = [ x y z ] which is a direction cosine
+ * (rotation) matrix useful for conversions between frame B and F. (The
+ * columns of X_BF are F's coordinate axes, expressed in B.) For
  * example, given a vector vF expressed in the F frame, that same vector
- * re-expressed in R is given by vR = Rot_RF*vF. The origin point Loc_RF is 
- * stored as the vector Loc_RF=(OF-OR) and expressed in R.
+ * re-expressed in B is given by vB = X_BF*vF. F's origin point OF is 
+ * stored as the vector OF_B=(OF-OB) and expressed in B.
  *
  * This is a "POD" (plain old data) class with a well-defined memory
  * layout on which a client of this class may depend: There are 
@@ -167,42 +169,45 @@ inline Row3 operator*(const Row3& r, const MatRotation& R) {
  */
 class Frame {
 public:
-    Frame() : Rot_RF(), Loc_RF(0.) { }
-    Frame(const MatRotation& axesInR, const Vec3& originInR)
-        : Rot_RF(axesInR), Loc_RF(originInR) { }
-    explicit Frame(const MatRotation& axesInR)
-        : Rot_RF(axesInR), Loc_RF(0.) { }
-    explicit Frame(const Vec3& originInR) 
-        : Rot_RF(), Loc_RF(originInR) { }
+    Frame() : X_BF(), OF_B(0.) { }
+    Frame(const MatRotation& axesInB, const Vec3& orgInB) : X_BF(axesInB), OF_B(orgInB) { }
+    explicit Frame(const MatRotation& axesInB) : X_BF(axesInB), OF_B(0.) { }
+    explicit Frame(const Vec3& orgInB)         : X_BF(), OF_B(orgInB) { }
     // default copy, assignment, destructor
 
-    void setFrame(const MatRotation& axesInR, const Vec3& originInR) 
-     { Rot_RF=axesInR; Loc_RF=originInR; }
+    void setFrame(const MatRotation& axesInB, const Vec3& orgInB) 
+      { X_BF=axesInB; OF_B=orgInB; }
 
-    // Transform various items measured and expressed in F to those same
-    // items measured and expressed in F's reference frame R.
-    Vec3  xformVector2Ref  (const Vec3& vF)      const { return Rot_RF*vF; }
-    Vec3  xformStation2Ref (const Vec3& sF)      const { return Loc_RF + xformVector2Ref(sF); }
-    MatRotation xformRotation2Ref(const MatRotation& Rot_FX) const 
-      { return Rot_RF*Rot_FX; }
-    Frame xformFrame2Ref(const Frame& fF) const 
-      { return Frame(xformRotation2Ref(fF.Rot_RF), xformStation2Ref(fF.Loc_RF)); }
+    // If this is frame F measured and expressed in B, return frame B
+    // measured and expressed in F. This is the inverse of F in that
+    // it maps from F to B rather than from B to F.
+    Frame invert() const {
+        const MatRotation rot_FR = ~X_BF;
+        return Frame(rot_FR, rot_FR*(-OF_B));
+    }
+    // return frame_RX
+    Frame compose(const Frame& frame_FX) const {
+        const MatRotation rot_RX = X_BF * frame_FX.getAxes();
+        return Frame(rot_RX, OF_B + X_BF * frame_FX.getOrigin());
+    }
+    Vec3 xformFrameVecToBase(const Vec3& vF) const {return X_BF*vF;}
+    Vec3 xformBaseVecToFrame(const Vec3& vR) const {return ~X_BF*vR;}
+    Vec3 shiftFrameStationToBase(const Vec3& sF) const {
+        return OF_B + xformFrameVecToBase(sF);
+    }
+    Vec3 shiftBaseStationToFrame(const Vec3& sB) const {
+        return xformBaseVecToFrame(sB - OF_B);
+    }
 
-    const MatRotation& getAxes() const { return Rot_RF; }
-    MatRotation&       updAxes()       { return Rot_RF; }
+    const MatRotation& getAxes() const { return X_BF; }
+    MatRotation&       updAxes()       { return X_BF; }
 
-    const Vec3&  getOrigin() const { return Loc_RF; }
-    Vec3&        updOrigin()       { return Loc_RF; }
-
-    // Computation-free conversions
-    const Real*  getFrameAsArray(const Frame& f) const {return reinterpret_cast<const Real*>(&f);}
-    Real*        updFrameAsArray(Frame& f)             {return reinterpret_cast<Real*>(&f);}
-    const Frame& getArrayAsFrame(const Real* r)  const {return *reinterpret_cast<const Frame*>(r);}
-    Frame&       updArrayAsFrame(Real* r)              {return *reinterpret_cast<Frame*>(r);}
+    const Vec3&  getOrigin() const { return OF_B; }
+    Vec3&        updOrigin()       { return OF_B; }
 
 private:
-    MatRotation Rot_RF;   // rotation matrix that expresses F's axes in R
-    Vec3        Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
+    MatRotation X_BF;   // rotation matrix that expresses F's axes in R
+    Vec3        OF_B;   // location of F's origin measured from B's origin, expressed in B 
 };
 std::ostream& operator<<(std::ostream& o, const Frame&);
 
