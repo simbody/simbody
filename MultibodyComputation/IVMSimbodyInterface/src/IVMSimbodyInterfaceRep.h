@@ -21,7 +21,7 @@ using namespace simtk;
 class RBTreeMap {
 public:
     RBTreeMap() : body(0), frame_BR(), frame_RJ(), 
-                  parentIndex(-1), joint(0), level(-1), rbIndex(-1) { }
+                  parentIndex(badSizeTValue()), joint(0), level(-1), rbIndex(-1) { }
     RBTreeMap(const Body* b, const Frame& ref, const Frame& jInRef, size_t pix, const Joint* j, int l)
       : body(b), frame_BR(ref), frame_RJ(jInRef), 
         parentIndex(pix), joint(j), level(l), rbIndex(-1) { }
@@ -46,6 +46,12 @@ private:
     const Joint*    joint;
     int             level;
     int             rbIndex;
+
+    // This is to avoid compiler warnings
+    size_t badSizeTValue() const {
+        size_t x(0);
+        return (x-1); // i.e., 0xfffffff etc.
+    }
 };
 
 

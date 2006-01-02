@@ -57,9 +57,9 @@ MatRotation::MatRotation(const UnitVec3& zF) {
     // first rotate by -theta around the G frame x axis, 
     // then rotate by -psi around the G frame z axis.
 
-    R_GF = Mat33(Row3( cp, ct*sp, sp*st),
-                 Row3(-sp, ct*cp, cp*st),
-                 Row3(  0,   -st,    ct));
+    rot_GF = Mat33(Row3( cp, ct*sp, sp*st),
+                   Row3(-sp, ct*cp, cp*st),
+                   Row3(  0,   -st,    ct));
 }
 
 std::ostream& operator<<(std::ostream& o, const MatRotation& m) {

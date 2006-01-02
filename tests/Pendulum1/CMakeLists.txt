@@ -11,5 +11,5 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include
 
 
 ADD_EXECUTABLE(Pendulum1 ${SOURCE_FILES} ${INCLUDE_FILES})
-TARGET_LINK_LIBRARIES(Pendulum1 MultibodyModeling Mechanics Geometry IVMSimbodyInterface IVMRigidBodies CDSlib
+TARGET_LINK_LIBRARIES(Pendulum1 IVMSimbodyInterface MultibodyModeling Mechanics Geometry IVMRigidBodies CDSlib
                       BigMatrix SmallMatrix Scalar simtk ${MATH_LIBS_TO_USE})

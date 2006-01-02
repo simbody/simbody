@@ -80,7 +80,8 @@ static MatInertia toMatInertia(const RBInertia& i) {
     return MatInertia(toMat33(i));
 }
 static MatRotation toMatRotation(const CDSMat33& m) {
-    return reinterpret_cast<const MatRotation&>(toMat33(m));
+    const Mat33 m33 = toMat33(m);
+    return reinterpret_cast<const MatRotation&>(m33);
 }
 
 static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {

@@ -84,16 +84,15 @@ try {
     // Add the joint frame. 
     
     // Here it is aligned with the rod frame (rod is horizontal as pictured).
-    //rod.addFrame("jointFrame",  
-    //    MatRotation(),
-    //    rod["jointLocation"]);
+    rod.addFrame("jointFrame",  
+        MatRotation(),
+        rod["jointLocation"]);
 
     // Here it is aligned so that the rod is hanging straight down at 0.
     const Mat33 jj(Vec3(0,1,0),Vec3(-1,0,0),Vec3(0,0,1));
-
-    rod.addFrame("jointFrame",  
-        reinterpret_cast<const MatRotation&>(jj),
-        rod["jointLocation"]);
+    //rod.addFrame("jointFrame",  
+    //    reinterpret_cast<const MatRotation&>(jj),
+    //    rod["jointLocation"]);
 
     ////////////////////////////////////////////
     // Create an articulated multibody system //

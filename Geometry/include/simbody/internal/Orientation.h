@@ -16,6 +16,7 @@
 namespace simtk {
 
 class UnitVec3;
+class UnitRow3;
 class MatRotation;
 class Frame;
 
@@ -25,37 +26,45 @@ class Frame;
  *      - all components are NaN.
  * Thus it is a pure direction.
  */
-class UnitVec3 {
-    Vec3 dir;   // a unit vector
+class UnitVec3 : public Vec3 {
 public:
-    UnitVec3() : dir(NTraits<Real>::getNaN()) { }
-    explicit UnitVec3(const Vec3& v) : dir(v/v.norm()) { }
-    UnitVec3(const Real& x, const Real& y, const Real& z) : dir(x,y,z) {
-        dir /= dir.norm();
+    UnitVec3() : Vec3(NTraits<Real>::getNaN()) { }
+    UnitVec3(const UnitVec3& u) : Vec3(static_cast<const Vec3&>(u)) { }
+    explicit UnitVec3(const Vec3& v) : Vec3(v/v.norm()) { }
+
+    UnitVec3(const Real& x, const Real& y, const Real& z) 
+      : Vec3(x,y,z)
+    {
+        static_cast<Vec3&>(*this) /= norm();
     }
 
-    const Vec3& asVec3() const {return dir;}
+    UnitVec3& operator=(const UnitVec3& u) {
+        Vec3::operator=(static_cast<const Vec3&>(u)); 
+        return *this;
+    }
 
-    UnitVec3 negate()    const {return UnitVec3(-dir,true);}
+    const Vec3& asVec3() const {return *this;}
+
+    UnitVec3 negate()    const {return UnitVec3(-asVec3(),true);}
     UnitVec3 operator-() const {return negate();}
-    Row3     operator~() const {return ~dir;}
+    Row3     operator~() const {return ~asVec3();}
 
     // Return a unit vector perpendicular to this one (arbitrary).
     UnitVec3 perp() const {
         // Choose the coordinate axis which makes the largest angle
         // with this vector.
-        const Vec3 v( std::abs(dir[0]), std::abs(dir[1]), std::abs(dir[2]) );
+        const Vec3 v(abs());
         const int minIx = v[0] <= v[1] ? (v[0] <= v[2] ? 0 : 2)
                                        : (v[1] <= v[2] ? 1 : 2);
         Vec3 axis(0.); axis[minIx]=1.;
-        return UnitVec3(dir % axis);    // normalize the cross product and return
+        return UnitVec3(asVec3() % axis);    // normalize the cross product and return
     }
 
-    const Real& operator[](int i) const {return dir[i];}
+    const Real& operator[](int i) const {return asVec3()[i];}
 private:
     // This constructor is only for our friends whom we trust to
     // give us an already-normalized vector.
-    UnitVec3(const Vec3& v, bool) : dir(v) { }
+    UnitVec3(const Vec3& v, bool) : Vec3(v) { }
     friend UnitVec3 operator*(const MatRotation&, const UnitVec3&);
 };
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
@@ -75,28 +84,34 @@ inline Row3  operator%(const UnitVec3& u, const Row3&     r) {return u.asVec3()%
 
 /**
  * This class is a Mat33 plus an ironclad guarantee that the matrix represents
- * a pure rotation. A rotation is an orthogonal matrix whose columns and rows
- * are directions (that is, unit vectors) which are mutually
- * orthogonal. Furthermore, if the columns (or rows) are
- * labeled x,y,z it always holds that z = x X y ensuring that
- * this is a rotation and not a reflection.
+ * a pure rotation. Having this as a separate class allows us both to ensure
+ * that we have a legitimate rotation matrix, and to take advantage of
+ * knowledge about the properties of these matrices. For example, multiplication
+ * by a rotation matrix preserves the length of a vector so unit vectors
+ * are still unit vectors afterwards and don't need to be normalized again.
+ * 
+ * A rotation is an orthogonal matrix whose columns and rows
+ * are directions (that is, unit vectors) which are mutually orthogonal. 
+ * Furthermore, if the columns (or rows) are labeled x,y,z it always holds
+ * that z = x X y (rather than -(x X y)) ensuring that this is a rotation
+ * and not a reflection.
  *
  * A rotation matrix is formed from a Cartesian coordinate frame
  * simply by using the x,y,z axes of the coordinate frame as
  * the columns of the rotation matrix. That is, if you have 
- * a frame F with its axes expressed in frame G, you can write
- * this as a matrix  R_GF = [ x y z ] which when applied to
+ * a frame F with its axes column vectors x,y,z expressed in frame G, you can write
+ * this as a matrix  rot_GF = [ x y z ] which when applied to
  * a vector with measure numbers expressed in F yields that same
- * vector re-expressed in G: v_G = R_GF * v_F. Because a rotation
- * is orthogonal its transpose is its inverse, which is
- * also a rotation. So we write R_FG = transpose(R_GF), and this
- * matrix can be used to rotate in the other direction: 
- * v_F = R_FG * v_G = ~R_GF*v_G.
+ * vector re-expressed in G: v_G = rot_GF * v_F. Because a rotation
+ * is orthogonal its transpose is its inverse, which is also a rotation.
+ * So we write rot_FG = ~rot_GF (where "~" is SimTK for "transpose"), and
+ * this matrix can be used to rotate in the other direction: 
+ *      v_F = rot_FG * v_G = ~rot_GF * v_G.
  */
 class MatRotation {
-    Mat33 R_GF; // xyz axes of frame F expressed in frame G
+    Mat33 rot_GF; // xyz axes of frame F expressed in frame G
 public:
-    MatRotation() : R_GF(1.) { }
+    MatRotation() : rot_GF(1.) { }    // default is identity
 
     /// Create a Rotation matrix by specifying only its z axis. 
     /// The resulting x and y axes will be appropriately perpendicular
@@ -104,20 +119,20 @@ public:
     explicit MatRotation(const UnitVec3& z);
 
     const UnitVec3& getAxis(int i) const
-      { return reinterpret_cast<const UnitVec3&>(R_GF(i)); }
+      { return reinterpret_cast<const UnitVec3&>(rot_GF(i)); }
 
     // TODO: with much agony involving templates this could be made free.
-    MatRotation operator~() const {return MatRotation(~R_GF);}
+    MatRotation operator~() const {return MatRotation(~rot_GF);}
 
     const UnitVec3& operator()(int i) const {
-        return reinterpret_cast<const UnitVec3&>(R_GF(i));
+        return reinterpret_cast<const UnitVec3&>(rot_GF(i));
     }
 
-    const Mat33& asMat33() const {return R_GF;}
+    const Mat33& asMat33() const {return rot_GF;}
 
 private:
     // We're trusting that m is a rotation.
-    explicit MatRotation(const Mat33& m) : R_GF(m) { }
+    explicit MatRotation(const Mat33& m) : rot_GF(m) { }
     friend MatRotation operator*(const MatRotation&,const MatRotation&);
 };
 std::ostream& operator<<(std::ostream& o, const MatRotation& m);
@@ -140,6 +155,7 @@ inline Vec3 operator*(const MatRotation& R, const Vec3& v) {
 inline Row3 operator*(const Row3& r, const MatRotation& R) {
     return r*R.asMat33();
 }
+
 /**
  * This class represents an orthogonal, right-handed coordinate frame F, 
  * measured from and expressed in a base (reference) coordinate frame B.
