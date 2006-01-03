@@ -134,15 +134,29 @@ try {
 
     IVMSimbodyInterface instance(mbs);
     State s = instance.getDefaultState();
-    Array<SpatialVector> bodyForces;
-    Vector               hingeForces;
-    instance.clearForces(bodyForces,hingeForces);
-    instance.realizeParameters(s);
-    instance.realizeConfiguration(s);
-    instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
-    instance.realizeMotion(s);
-    Vector udot = instance.calcUDot(s,bodyForces,hingeForces);
-    cout << "udot=" << udot << endl;
+    s.updQ()[0] = -1.5; // almost hanging straight down
+
+    const Real h = 0.0001;
+    const Real tstart = 0.;
+    const Real tmax = 10.;
+    for (int step=0; ; ++step) { 
+        const Real t = tstart + step*h;
+        if (t > tmax) break;
+
+        Array<SpatialVector> bodyForces;
+        Vector               hingeForces;
+        instance.clearForces(bodyForces,hingeForces);
+        instance.realizeParameters(s);
+        instance.realizeConfiguration(s);
+        if (!(step % 100))
+            cout << t << " " << s.getQ()[0] << " " << s.getU()[0] << endl;
+        instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
+        instance.realizeMotion(s);
+        Vector udot = instance.calcUDot(s,bodyForces,hingeForces);
+        //cout << "udot=" << udot << endl;
+        s.updQ() += h*s.getU();
+        s.updU() += h*udot;
+    }
 
 }
 catch(const Exception::Base& e) {

@@ -50,10 +50,13 @@ public:
         motion.resize(nu);        motion = 0.;
     }
 
-    const Vector& getParameters() const { return parameters;}
+    const Vector& getParameters()    const {return parameters;}
     const Vector& getConfiguration() const {return configuration;}
-    const Vector& getMotion() const {return motion;}
+    const Vector& getMotion()        const {return motion;}
 
+     Vector& updParameters()    {return parameters;}
+     Vector& updConfiguration() {return configuration;}
+     Vector& updMotion()        {return motion;}
 private:
     Vector parameters;
     Vector configuration;

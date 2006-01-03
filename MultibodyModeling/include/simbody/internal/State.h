@@ -43,6 +43,9 @@ public:
     const Vector& getQ() const;
     const Vector& getU() const;
 
+    Vector& updQ();
+    Vector& updU();
+
 private:
     class StateRep* rep;
     friend class StateRep;

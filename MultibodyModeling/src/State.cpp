@@ -71,4 +71,11 @@ const Vector& State::getU() const{
     return rep->getMotion();
 }
 
+Vector& State::updQ()  {
+    return rep->updConfiguration();
+}
+Vector& State::updU() {
+    return rep->updMotion();
+}
+
 } // namespace simtk
