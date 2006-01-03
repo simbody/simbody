@@ -32,10 +32,14 @@ public:
     UnitVec3(const UnitVec3& u) : Vec3(static_cast<const Vec3&>(u)) { }
     explicit UnitVec3(const Vec3& v) : Vec3(v/v.norm()) { }
 
-    UnitVec3(const Real& x, const Real& y, const Real& z) 
-      : Vec3(x,y,z)
-    {
+    UnitVec3(const Real& x, const Real& y, const Real& z) : Vec3(x,y,z) {
         static_cast<Vec3&>(*this) /= norm();
+    }
+
+    // Create a unit axis vector 100 010 001
+    explicit UnitVec3(int axis) : Vec3(0.) {
+        assert(0 <= axis && axis <= 2);
+        (*this)[axis] = 1.;
     }
 
     UnitVec3& operator=(const UnitVec3& u) {
@@ -43,28 +47,38 @@ public:
         return *this;
     }
 
-    const Vec3& asVec3() const {return *this;}
+    const Vec3& asVec3() const {return static_cast<const Vec3&>(*this);}
 
+    // Override Vec3 methods which preserve length.
     UnitVec3 negate()    const {return UnitVec3(-asVec3(),true);}
     UnitVec3 operator-() const {return negate();}
-    Row3     operator~() const {return ~asVec3();}
 
-    // Return a unit vector perpendicular to this one (arbitrary).
-    UnitVec3 perp() const {
-        // Choose the coordinate axis which makes the largest angle
-        // with this vector.
-        const Vec3 v(abs());
-        const int minIx = v[0] <= v[1] ? (v[0] <= v[2] ? 0 : 2)
-                                       : (v[1] <= v[2] ? 1 : 2);
-        Vec3 axis(0.); axis[minIx]=1.;
-        return UnitVec3(asVec3() % axis);    // normalize the cross product and return
+    // We have to define these here since we had to override the writable
+    // versions to make them private.
+    const Real& operator[](int i) const {return Vec3::operator[](i);}
+    const Real& operator()(int i) const {return Vec3::operator()(i);}
+
+    // Return a vector whose measure numbers are the absolute values
+    // of the ones here. This will still have unit length but will be
+    // a reflection of this unit vector into the first octant (+x,+y,+z).
+    UnitVec3 abs() const {
+        return UnitVec3(asVec3().abs(),true);
     }
 
-    const Real& operator[](int i) const {return asVec3()[i];}
+    // Return a unit vector perpendicular to this one (arbitrary).
+    inline UnitVec3 perp() const;
+
 private:
     // This constructor is only for our friends whom we trust to
     // give us an already-normalized vector.
     UnitVec3(const Vec3& v, bool) : Vec3(v) { }
+
+    // These must be overridden here to "privatize" them. Only the elite
+    // few can be trusted to update a single measure number without
+    // blowing the unit vector guarantee.
+    Real& operator[](int i) {return Vec3::operator[](i);}
+    Real& operator()(int i) {return Vec3::operator()(i);}
+
     friend UnitVec3 operator*(const MatRotation&, const UnitVec3&);
 };
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
@@ -81,6 +95,16 @@ inline Vec3  operator%(const Vec3&     v, const UnitVec3& u) {return v%u.asVec3(
 inline Vec3  operator%(const UnitVec3& u, const Vec3&     v) {return u.asVec3()%v;}
 inline Row3  operator%(const Row3&     r, const UnitVec3& u) {return r%u.asVec3();}
 inline Row3  operator%(const UnitVec3& u, const Row3&     r) {return u.asVec3()%r;}
+
+inline UnitVec3 UnitVec3::perp() const {
+    // Choose the coordinate axis which makes the largest angle
+    // with this vector, that is, has the "least u" along it.
+    const UnitVec3 u(abs());    // reflect to first octant
+    const int minAxis = u[0] <= u[1] ? (u[0] <= u[2] ? 0 : 2)
+                                     : (u[1] <= u[2] ? 1 : 2);
+    // Cross returns a Vec3 result (see operator above), which is then normalized.
+    return UnitVec3(*this % UnitVec3(minAxis));
+}
 
 /**
  * This class is a Mat33 plus an ironclad guarantee that the matrix represents

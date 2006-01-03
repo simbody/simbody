@@ -62,6 +62,12 @@ using std::endl;
 
 using namespace simtk;
 
+static void tryPerp() {
+    UnitVec3 u(1.,-2.,.3);
+    UnitVec3 up(u.perp());
+    cout << "u=" << u << " u.perp=" << up << " u*u.perp=" << ~u*up << endl;
+}
+
 int main() {
 try {
     //////////////////////////////////
@@ -111,6 +117,9 @@ try {
     mbs.addJoint(Joint::Pin, "rodJoint", 
                  mbs["ground/rodJointFrame"],        //reference frame
                  mbs["rod/jointFrame"]);             //moving frame
+
+    tryPerp();
+
 
 
     ///////////////////////////
