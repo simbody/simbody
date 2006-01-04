@@ -29,6 +29,7 @@
 
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
+#include "simmatrix/BigMatrix.h"
 
 #include <cassert>
 #include <vector>
