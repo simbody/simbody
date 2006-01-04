@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_MODELING_H_
-#define SIMTK_SIMBODY_MODELING_H_
+#ifndef SIMTK_SIMBODY_INVESTIGATION_H_
+#define SIMTK_SIMBODY_INVESTIGATION_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -24,22 +24,34 @@
  */
 
 /** @file
- * This internal header provides one-stop shopping for all the other
- * internal headers needed for Simbody modeling.
+ * User-visible, client side declaration of Investigation.
  */
 
-#include "simbody/internal/PlacementValue.h"
-#include "simbody/internal/Placement.h"
-#include "simbody/internal/BasicPlacements.h"
-#include "simbody/internal/Subsystem.h"
-#include "simbody/internal/Feature.h"
-#include "simbody/internal/BasicFeatures.h"
-#include "simbody/internal/MassElement.h"
-#include "simbody/internal/Body.h"
+#include "simbody/internal/SimbodyCommon.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/Model.h"
-#include "simbody/internal/Investigation.h"
-#include "simbody/internal/Reporter.h"
+
+namespace simtk {
+
+class Investigation {
+public:
+    Investigation() : rep(0) { }
+    Investigation(const Model&);
+    ~Investigation();
+    Investigation(const Investigation&);
+    Investigation& operator=(const Investigation&);
+
+    const Model& getModel() const;
+    const State& getCurrentState() const;
+    State&       updCurrentState();
+    void         setState(const State&);
+
+private:
+    class InvestigationRep* rep;
+    friend class InvestigationRep;
+};
 
 
-#endif // SIMTK_SIMBODY_MODELING_H_
+} // namespace simtk
+
+#endif // SIMTK_SIMBODY_INVESTIGATION_H_

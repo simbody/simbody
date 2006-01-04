@@ -129,6 +129,14 @@ try {
     mbs["rod/h"].place(5);
     mbs["rod/m"].place(3);
 
+   // IVMRigidBodyModel pend(mbs);
+   // DynamicInvestigation d(pend);
+
+
+
+
+
+
     //mbs.realize(Stage::Startup);
     //cout << "MBS=" << mbs << endl;
 

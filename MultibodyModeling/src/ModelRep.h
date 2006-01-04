@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_MODELING_H_
-#define SIMTK_SIMBODY_MODELING_H_
+#ifndef SIMTK_SIMBODY_MODEL_REP_H_
+#define SIMTK_SIMBODY_MODEL_REP_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -23,23 +23,30 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/** @file
- * This internal header provides one-stop shopping for all the other
- * internal headers needed for Simbody modeling.
+/**@file
+ * Declaration of the library side (rep) of the client Model class. Rebuilding this
+ * code does not require recompiling client-side code, and if the library is a DLL
+ * (shared library) then the client doesn't require relinking either.
  */
 
-#include "simbody/internal/PlacementValue.h"
-#include "simbody/internal/Placement.h"
-#include "simbody/internal/BasicPlacements.h"
-#include "simbody/internal/Subsystem.h"
-#include "simbody/internal/Feature.h"
-#include "simbody/internal/BasicFeatures.h"
-#include "simbody/internal/MassElement.h"
-#include "simbody/internal/Body.h"
-#include "simbody/internal/State.h"
+#include "simbody/internal/SimbodyCommon.h"
 #include "simbody/internal/Model.h"
-#include "simbody/internal/Investigation.h"
-#include "simbody/internal/Reporter.h"
+
+namespace simtk {
+
+class ModelRep {
+public:
+    ModelRep() { }
+    virtual ~ModelRep() { }
+
+    virtual ModelRep* clone() const = 0;
+
+private:
+
+};
 
 
-#endif // SIMTK_SIMBODY_MODELING_H_
+} // namespace simtk
+
+
+#endif // SIMTK_SIMBODY_MODEL_REP_H_

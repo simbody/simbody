@@ -41,6 +41,8 @@ class PlacementValue;
 
 // Declared below and elsewhere. Indenting shows inheritance structure.
 class Subsystem;
+typedef Subsystem System;
+
 class   Feature;
 class       Station;
 class       Direction;
