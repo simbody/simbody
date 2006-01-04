@@ -7,7 +7,7 @@
 #include "cdsVector.h"
 #include "cdsPair.h"
 
-#include "internalDynamics.h"
+#include "RBInternalDynamics.h"
 
 class IVMAtom;
 class AtomTree;
@@ -146,11 +146,11 @@ protected:
     void groupTorsion(const AtomClusterNode*);
     void initTree();
 
-    AtomList                             atoms;
-    CDSList< CDSList<int> >              groupList;
-    CDSList<InternalDynamics::HingeSpec> hingeList;
-    CDSString                            solverType;
-    CDSList<int>                         oldBaseAtoms;
+    AtomList                                   atoms;
+    CDSList< CDSList<int> >                    groupList;
+    CDSList<IVMInternalDynamics::IVMHingeSpec> hingeList;
+    CDSString                                  solverType;
+    CDSList<int>                               oldBaseAtoms;
 
     RVecSizeType rvecSize_;
     RVecProdType rvecProd_;

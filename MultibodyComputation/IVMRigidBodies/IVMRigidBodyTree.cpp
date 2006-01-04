@@ -1,13 +1,13 @@
 /**@file
  *
- * Implementation of RigidBodyTree.
+ * Implementation of IVMRigidBodyTree.
  * Note: there must be no mention of atoms anywhere in this code.
  */
 
-#include "RigidBodyTree.h"
-#include "RigidBodyNode.h"
+#include "IVMRigidBodyTree.h"
+#include "IVMRigidBodyNode.h"
 
-#include "LengthConstraints.h"
+#include "IVMLengthConstraints.h"
 
 #include "cdsVec3.h"
 
@@ -23,7 +23,7 @@
 #include "cdsIomanip.h"
 #include "cdsFstream.h"
 
-using namespace InternalDynamics;
+using namespace IVMInternalDynamics;
 using MatrixTools::inverse;
 
 typedef FixedVector<double,6> CDSVec6;
@@ -87,7 +87,7 @@ void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
     rt.accErr = abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G);
 }
 
-RigidBodyTree::~RigidBodyTree() {
+IVMRigidBodyTree::~IVMRigidBodyTree() {
     delete lConstraints;
 
     for (int i=0 ; i<rbNodeLevels.size() ; i++) {
@@ -99,11 +99,11 @@ RigidBodyTree::~RigidBodyTree() {
 }
 
 // Add a new node, taking over the heap space.
-int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
-                                    const RBFrame&  referenceConfig,    // body frame in parent
-                                    RigidBodyNode*& nodep)
+int IVMRigidBodyTree::addRigidBodyNode(IVMRigidBodyNode&  parent,
+                                       const RBFrame&     referenceConfig,    // body frame in parent
+                                       IVMRigidBodyNode*& nodep)
 {
-    RigidBodyNode* n = nodep; nodep=0;  // take ownership
+    IVMRigidBodyNode* n = nodep; nodep=0;  // take ownership
     const int level = parent.getLevel() + 1;
     n->setLevel(level);
 
@@ -124,11 +124,11 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&  parent,
 }
 
 // Add a new ground node, taking over the heap space.
-int RigidBodyTree::addGroundNode(RigidBodyNode*& gnodep)
+int IVMRigidBodyTree::addGroundNode(IVMRigidBodyNode*& gnodep)
 {
     assert(CDSString(gnodep->type())=="ground");
 
-    RigidBodyNode* n = gnodep; gnodep=0;  // take ownership
+    IVMRigidBodyNode* n = gnodep; gnodep=0;  // take ownership
     n->setLevel(0);
 
     // Put ground node in tree at level 0
@@ -146,7 +146,7 @@ int RigidBodyTree::addGroundNode(RigidBodyNode*& gnodep)
 
 // Add a distance constraint and allocate slots to hold the runtime information for
 // its stations. Return the assigned distance constraint index for caller's use.
-int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
+int IVMRigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
 {
     RBDistanceConstraint dc(s1,s2,d);
     dc.setRuntimeIndex(dcRuntimeInfo.size());
@@ -155,7 +155,7 @@ int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s
     return distanceConstraints.size()-1;
 }
 
-void RigidBodyTree::finishConstruction(const double& ctol, int verbose) {
+void IVMRigidBodyTree::finishConstruction(const double& ctol, int verbose) {
     DOFTotal = dimTotal = 0;
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
@@ -163,12 +163,12 @@ void RigidBodyTree::finishConstruction(const double& ctol, int verbose) {
             dimTotal += rbNodeLevels[i][j]->getDim();
         }
 
-    lConstraints = new LengthConstraints(*this, ctol, verbose);
+    lConstraints = new IVMLengthConstraints(*this, ctol, verbose);
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::setPos(const RVec& pos)  {
+void IVMRigidBodyTree::setPos(const RVec& pos)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setPos(pos); 
@@ -180,7 +180,7 @@ void RigidBodyTree::setPos(const RVec& pos)  {
 
 // Set generalized speeds: sweep from base to tip.
 // setPos() must have been called already.
-void RigidBodyTree::setVel(const RVec& vel)  {
+void IVMRigidBodyTree::setVel(const RVec& vel)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setVel(vel); 
@@ -191,21 +191,21 @@ void RigidBodyTree::setVel(const RVec& vel)  {
 }
 
 // Enforce coordinate constraints -- order doesn't matter.
-void RigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
+void IVMRigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) 
             rbNodeLevels[i][j]->enforceConstraints(pos,vel);
 }
 
 // Enforce loop constraints.
-void RigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
+void IVMRigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
     lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
 }
 
 
 // Prepare for dynamics by calculating position-dependent quantities
 // like the articulated body inertias P.
-void RigidBodyTree::prepareForDynamics() {
+void IVMRigidBodyTree::prepareForDynamics() {
     calcP();
 }
 
@@ -213,7 +213,7 @@ void RigidBodyTree::prepareForDynamics() {
 // constraints. Must have already called prepareForDynamics().
 // TODO: also applies stored internal forces (hinge torques) which
 // will cause surprises if non-zero.
-void RigidBodyTree::calcTreeForwardDynamics(const CDSVecVec6& spatialForces) {
+void IVMRigidBodyTree::calcTreeForwardDynamics(const CDSVecVec6& spatialForces) {
     calcZ(spatialForces);
     calcTreeAccel();
     
@@ -224,7 +224,7 @@ void RigidBodyTree::calcTreeForwardDynamics(const CDSVecVec6& spatialForces) {
 
 // Given a set of spatial forces, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const CDSVecVec6& spatialForces) {
+void IVMRigidBodyTree::calcLoopForwardDynamics(const CDSVecVec6& spatialForces) {
     CDSVecVec6 sFrc = spatialForces;
     calcTreeForwardDynamics(sFrc);
     if (lConstraints->calcConstraintForces()) {
@@ -237,7 +237,7 @@ void RigidBodyTree::calcLoopForwardDynamics(const CDSVecVec6& spatialForces) {
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcP() {
+void IVMRigidBodyTree::calcP() {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
@@ -248,83 +248,83 @@ void RigidBodyTree::calcP() {
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcZ(const CDSVecVec6& spatialForces) {
+void IVMRigidBodyTree::calcZ(const CDSVecVec6& spatialForces) {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
-            RigidBodyNode& node = *rbNodeLevels[i][j];
+            IVMRigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcZ(spatialForces[node.getNodeNum()]);
         }
 }
 
 // Y is used for length constraints: sweep from base to tip.
-void RigidBodyTree::calcY() {
+void IVMRigidBodyTree::calcY() {
     for (int i=0; i < rbNodeLevels.size(); i++)
         for (int j=0; j < rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->calcY();
 }
 
 // Calc acceleration: sweep from base to tip.
-void RigidBodyTree::calcTreeAccel() {
+void IVMRigidBodyTree::calcTreeAccel() {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel();
 }
 
-void RigidBodyTree::fixVel0(RVec& vel) {
+void IVMRigidBodyTree::fixVel0(RVec& vel) {
     lConstraints->fixVel0(vel);
 }
 
 // Calc unconstrained internal forces from spatial forces: sweep from tip to base.
-void RigidBodyTree::calcTreeInternalForces(const CDSVecVec6& spatialForces) {
+void IVMRigidBodyTree::calcTreeInternalForces(const CDSVecVec6& spatialForces) {
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) {
-            RigidBodyNode& node = *rbNodeLevels[i][j];
+            IVMRigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcInternalForce(spatialForces[node.getNodeNum()]);
         }
 }
 
 // Retrieve already-computed internal forces (order doesn't matter).
-void RigidBodyTree::getInternalForces(RVec& T) {
+void IVMRigidBodyTree::getInternalForces(RVec& T) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getInternalForce(T);
 }
 
-void RigidBodyTree::getConstraintCorrectedInternalForces(RVec& T) {
+void IVMRigidBodyTree::getConstraintCorrectedInternalForces(RVec& T) {
     getInternalForces(T);
     lConstraints->fixGradient(T);
 }
 
 // Get current generalized coordinates (order doesn't matter).
-void RigidBodyTree::getPos(RVec& pos) const {
+void IVMRigidBodyTree::getPos(RVec& pos) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getPos(pos); 
 }
 
 // Get current generalized speeds (order doesn't matter).
-void RigidBodyTree::getVel(RVec& vel) const {
+void IVMRigidBodyTree::getVel(RVec& vel) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getVel(vel); 
 }
 
 // Retrieve already-calculated accelerations (order doesn't matter)
-void RigidBodyTree::getAcc(RVec& acc) const {
+void IVMRigidBodyTree::getAcc(RVec& acc) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getAccel(acc);
 }
 
-ostream& operator<<(ostream& o, const RigidBodyTree& tree) {
-    o << "RigidBodyTree has " << tree.getNBodies() << " bodies (incl. G) in "
+ostream& operator<<(ostream& o, const IVMRigidBodyTree& tree) {
+    o << "IVMRigidBodyTree has " << tree.getNBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << endl;
     o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << endl;
     for (int i=0; i < tree.getNBodies(); ++i) {
         o << i << "->" << tree.nodeNum2NodeMap[i].level << "," 
                        << tree.nodeNum2NodeMap[i].offset << ";";
-        const RigidBodyNode& n = tree.getRigidBodyNode(i);
+        const IVMRigidBodyNode& n = tree.getRigidBodyNode(i);
         o << n.getNodeNum() << "," << n.getLevel() 
           <<"("<< n.getStateOffset() <<":"<< n.getDim() <<")"<< endl;
     }

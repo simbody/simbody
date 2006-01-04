@@ -25,18 +25,18 @@ public:
     double getFactor(const double& energy) {
         double ret = 1.0;
         if ( !active() ) return ret;
-        if (ivm->verbose()&InternalDynamics::printStepDebug)
+        if (ivm->verbose()&IVMInternalDynamics::printStepDebug)
             cout << "TimeStepAdj: energy: " << energy
                  << " pe: " << ivm->Epotential()
                  << " ke: " << ivm->Ekinetic()
                  << " energyPrev: " << energyPrev << '\n';
         double deltaE = fabs( energy - energyPrev );
         if ( deltaE > ivm->maxDeltaE() ) 
-            throw InternalDynamics::Exception("large time-step");
+            throw IVMInternalDynamics::IVMException("large time-step");
         if ( deltaE > 0.0 ) 
             ret = sqrt(1 + (deltaE_ref-deltaE) / (tau*deltaE));
         ret = CDSMath::min(ret , maxFactor);
-        if (ivm->verbose()&InternalDynamics::printStepDebug)
+        if (ivm->verbose()&IVMInternalDynamics::printStepDebug)
             cout << "TimeStepAdj: deltaE: " << deltaE 
                  << "   factor: " << ret << '\n';
         return ret;
@@ -105,7 +105,7 @@ PC6::stepUndo() {
 void
 PC6::step(double& timeStep)
 {
-    using namespace InternalDynamics;
+    using namespace IVMInternalDynamics;
     //cout << "Before PE=" << std::setprecision(16) << ivm->Epotential() << endl;
     //cout << "KE=" << ivm->Ekinetic() << endl;
     //cout << "pos=" << pos << endl;
@@ -144,7 +144,7 @@ PC6::step(double& timeStep)
     try {
         newTimeStep = timeStep * timeStepAdj->getFactor(ivm->Etotal());
     }
-    catch ( InternalDynamics::Exception e ) {
+    catch ( IVMInternalDynamics::IVMException e ) {
         if ( CDSString(e.mess).contains("large time-step") )
             stepUndo();
         throw;

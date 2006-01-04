@@ -1,25 +1,25 @@
-#ifndef LENGTH_CONSTRAINTS_H_
-#define LENGTH_CONSTRAINTS_H_
+#ifndef IVM_LENGTH_CONSTRAINTS_H_
+#define IVM_LENGTH_CONSTRAINTS_H_
 
 #include "cdsVector.h"
 #include "fixedVector.h"
 
 class RBDistanceConstraint;
 class RBDistanceConstraintRuntime;
-class RigidBodyTree;
+class IVMRigidBodyTree;
 template<class T> class CDSList;
 typedef FixedVector<double,6>   CDSVec6;
 typedef CDSList<CDSVec6> CDSVecVec6;
 
 #include <cdsIostream.h>
 
-class LengthConstraintsPrivates;
-class LengthSet;
+class IVMLengthConstraintsPrivates;
+class IVMLengthSet;
 
-class LengthConstraints {
+class IVMLengthConstraints {
 public:
-    LengthConstraints(RigidBodyTree&, const double& ctol, int verbose);
-    ~LengthConstraints();
+    IVMLengthConstraints(IVMRigidBodyTree&, const double& ctol, int verbose);
+    ~IVMLengthConstraints();
     void construct(CDSList<RBDistanceConstraint>&,
                    CDSList<RBDistanceConstraintRuntime>&);
 
@@ -38,12 +38,12 @@ private:
     int    maxIters;
     int    maxMin;
 
-    RigidBodyTree&             rbTree;
-    const int                  verbose;
-    LengthConstraintsPrivates* priv;
+    IVMRigidBodyTree&             rbTree;
+    const int                     verbose;
+    IVMLengthConstraintsPrivates* priv;
 
-    friend class LengthSet;
+    friend class IVMLengthSet;
 };
 
 
-#endif /* LENGTH_CONSTRAINTS_H_ */
+#endif // IVM_LENGTH_CONSTRAINTS_H_

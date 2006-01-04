@@ -4,11 +4,11 @@
  */
 
 #include "AtomTree.h"
-#include "internalDynamics.h"
+#include "RBInternalDynamics.h"
 #include "dinternal.h"
 
 #include "AtomClusterNode.h"
-#include "RigidBodyNode.h"
+#include "IVMRigidBodyNode.h"
 
 #include "dint-atom.h"
 #include "cdsVec3.h"
@@ -25,7 +25,7 @@
 #include <cdsIomanip.h>
 #include <cdsFstream.h>
 
-using namespace InternalDynamics;
+using namespace IVMInternalDynamics;
 using MatrixTools::inverse;
 
 typedef FixedVector<double,6> CDSVec6;
@@ -64,7 +64,7 @@ AtomTree::~AtomTree() {
 
 void AtomTree::setClusterVelFromSVel(int level, int indx, const CDSVec6& sVel) {
     AtomClusterNode& ac = *nodeTree[level][indx];
-    RigidBodyNode& rb = rbTree.updRigidBodyNode(ac.getRBIndex());
+    IVMRigidBodyNode& rb = rbTree.updRigidBodyNode(ac.getRBIndex());
     return rb.setVelFromSVel(sVel);
 }
 
@@ -72,7 +72,7 @@ void AtomTree::calcAtomPos() {
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
-            const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
             ac.calcAtomPos(rb.getR_GB(), rb.getOB_G());
         }
 }
@@ -81,7 +81,7 @@ void AtomTree::calcAtomVel() {
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
-            const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
             ac.calcAtomVel(rb.getSpatialVel());
         }
 }
@@ -108,25 +108,25 @@ void AtomTree::calcSpatialImpulses() {
 
 double AtomTree::getClusterMass(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.getMass();
 }
 
 const CDSVec3& AtomTree::getClusterCOM_G(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.getCOM_G();
 }
 
 const CDSVec6& AtomTree::getClusterSpatialVel(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.getSpatialVel();
 }
 
 double AtomTree::calcClusterKineticEnergy(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const RigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
     return rb.calcKineticEnergy();
 }
 
@@ -361,7 +361,7 @@ AtomTree::AtomTree(IVM* ivm_)
     for (int i=1 ; i<nodeTree.size() ; i++)
         for (int j=0 ; j<nodeTree[i].size() ; j++) {
             AtomClusterNode* n = nodeTree[i][j];
-            HingeSpec hingeSpec("unknown");
+            IVMHingeSpec hingeSpec("unknown");
             for (int k=0 ; k<ivm->hingeList.size() ; k++)
                 //FIX: should check for redundant hinge specifications
                 if ( ivm->hingeList[k].aList.contains( n->atoms[0]->index ) )
@@ -398,7 +398,7 @@ void AtomTree::createRigidBodyTree() {
     for (int i=0; i<nodeTree.size(); i++)
         for (int j=0; j<nodeTree[i].size(); j++) {
             AtomClusterNode& ac = *nodeTree[i][j];
-            RigidBodyNode*   rb = RigidBodyNode::create(
+            IVMRigidBodyNode*   rb = IVMRigidBodyNode::create(
                                         ac.getMassPropertiesInBodyFrame(),
                                         ac.getJointFrameInBodyFrame(),
                                         ac.getJointType(), 
@@ -407,7 +407,7 @@ void AtomTree::createRigidBodyTree() {
                                         nextStateOffset); 
             int rbIndex = -1;
             if (ac.getParent()) {
-                RigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
+                IVMRigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
                 rbIndex = rbTree.addRigidBodyNode(parent,ac.getReferenceBodyFrameInParent(),rb);
             } else
                 rbIndex = rbTree.addGroundNode(rb);
@@ -550,7 +550,7 @@ AT_Build::buildAtomClusterNode(AtomClusterNode* node)
                                     << "\tother atoms: " 
                                     << ivm->atoms[ivm->hingeList[k].atom0]
                                     << " " << ivm->atoms[ivm->hingeList[k].atom1] << endl;
-                                throw Exception(mesg);
+                                throw IVMException(mesg);
                             }
 
                             // pAtom -- cAtom  --> pAtom -- (newAtom -- cAtom)
@@ -575,7 +575,7 @@ AT_Build::buildAtomClusterNode(AtomClusterNode* node)
                             // bendtorsion hinges require insertion of a new node containing 
                             // one of the resulting atoms
                             if (ivm->hingeList[k].type == "bendtorsion") {
-                                InternalDynamics::HingeSpec hingeSpec;
+                                IVMInternalDynamics::IVMHingeSpec hingeSpec;
                                 hingeSpec.type = "torsion";
                                 hingeSpec.aList.append( newAtom->index );
                                 ivm->hingeList.append( hingeSpec );
@@ -609,7 +609,7 @@ operator<<(ostream& s, const AtomTree& aTree) {
     for (int i=0 ; i<aTree.nodeTree.size() ; i++)
         for (int j=0 ; j<aTree.nodeTree[i].size() ; j++) {
             const AtomClusterNode& ac = *aTree.nodeTree[i][j];
-            const RigidBodyNode& rb = aTree.rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = aTree.rbTree.getRigidBodyNode(ac.getRBIndex());
             s << "\tnode " << i << ' ' << j 
             << ": " << ac << ' ' << ac.type() << '\n';
             //rb.nodeDump(s);

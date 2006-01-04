@@ -18,7 +18,7 @@
 #include "AtomClusterNode.h"
 
 #include "dint-step.h"
-#include "LengthConstraints.h"
+#include "IVMLengthConstraints.h"
 
 #include "linemin.h"
 #include "dint-atom.h"
@@ -38,7 +38,7 @@
 #include "cdsFstream.h"
 #include "cdsAuto_arr.h"
 
-using namespace InternalDynamics;
+using namespace IVMInternalDynamics;
 using MatrixTools::inverse;
 
 typedef FixedVector<double,6> CDSVec6;
@@ -82,7 +82,7 @@ bool
 IVM::minimization() const { 
     if ( !solver_ ) {
         cout << "IVM::minimization: solver not yet defined.\n" << flush;
-        throw Exception("IVM::minimization: solver not yet defined.");
+        throw IVMException("IVM::minimization: solver not yet defined.");
     }
     return getSolver()->minimization(); 
 }
@@ -202,16 +202,16 @@ IVM::step(double& timeStep) {
             getSolver()->step(timeStep);
             ok=1;
         }
-        catch ( Exception a ) {
+        catch ( IVMException a ) {
             if ( CDSString(a.mess).contains("large time-step") ) {
-                cout << "InternalDynamics::step: large timestep detected. Halving.\n";
+                cout << "IVMInternalDynamics::step: large timestep detected. Halving.\n";
                 timeStep *= 0.5;
                 if ( timeStep < minStepSize() ) {
-                    cout << "InternalDynamics::step: stepsize too small." << endl;
-                    throw InternalDynamics::Exception("stepsize too small");
+                    cout << "IVMInternalDynamics::step: stepsize too small." << endl;
+                    throw IVMInternalDynamics::IVMException("stepsize too small");
                 }
             } else {
-                cout << "InternalDynamics::step: caught assertion failure:\n"
+                cout << "IVMInternalDynamics::step: caught assertion failure:\n"
                 << "\t" << a.mess << '\n';
                 cout.flush();
                 throw;
@@ -221,7 +221,7 @@ IVM::step(double& timeStep) {
 }
  
 //void
-//InternalDynamics::approxTemperature()
+//IVMInternalDynamics::approxTemperature()
 //{
 // approxTemp = 0.0;
 // for (int i=0 ; i<tree->nodeTree.size() ; i++)
@@ -327,7 +327,7 @@ IVM::resetCM()
             omega = inverse(inertia) * L;
         } 
         catch ( CDS_NAMESPACE(SingularError) ) {
-            cout << "InternalDynamics::resetCM: singular inertia Tensor.\n";
+            cout << "IVMInternalDynamics::resetCM: singular inertia Tensor.\n";
         }
     } else if ( nodes.size() == 2) {
         CDSVec3 r = nodes[1]->pos - nodes[0]->pos;

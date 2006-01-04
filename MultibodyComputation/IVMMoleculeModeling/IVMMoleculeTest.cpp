@@ -126,12 +126,12 @@ TestIVM::init()
     initDynamics(false); // don't reuse old topology
 
     groupTorsion();
-    InternalDynamics::HingeSpec hingeSpec("torsion");
+    IVMInternalDynamics::IVMHingeSpec hingeSpec("torsion");
     for (int i=0 ; i<=natom ; i++)
         hingeSpec.aList.append( i );
     hingeList.append( hingeSpec );
     // verbose |= printNodeDef;
-    // InternalDynamics::initDynamics();
+    // IVMInternalDynamics::initDynamics();
 }
 
 //
@@ -246,7 +246,7 @@ TestIVM::initCycle()
     initDynamics(false);    // don't reuse toplogy
 
     groupTorsion();
-    InternalDynamics::HingeSpec hingeSpec("torsion");
+    IVMInternalDynamics::IVMHingeSpec hingeSpec("torsion");
     for (int i=0 ; i<=natom ; i++)
         hingeSpec.aList.append( i );
     hingeList.append( hingeSpec );
@@ -322,7 +322,7 @@ TestIVM::test()
     } 
     cout << endl;
 
-    using namespace InternalDynamics;
+    using namespace IVMInternalDynamics;
     {
     cout << "step...";cout.flush();
     bool debugging=0;

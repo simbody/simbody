@@ -1,8 +1,8 @@
-#ifndef RIGID_BODY_NODE_H_
-#define RIGID_BODY_NODE_H_
+#ifndef IVM_RIGID_BODY_NODE_H_
+#define IVM_RIGID_BODY_NODE_H_
 
-#include "phiMatrix.h"
-#include "internalDynamics.h"
+#include "IVMPhiMatrix.h"
+#include "RBInternalDynamics.h"
 
 #include "fixedMatrix.h"
 #include "cdsMatrix.h"
@@ -26,7 +26,7 @@ typedef CDSVector<double,1>     RVec;
  * the joint connecting it to its parent. Concrete classes are derived from this one to
  * represent each specific type of joint.
  *
- * RigidBodyNodes are linked into a tree structure, organized into levels as described 
+ * IVMRigidBodyNodes are linked into a tree structure, organized into levels as described 
  * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
  * level 0 and containing only atoms fixed to ground. The level 1 nodes (referred to
  * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
@@ -71,16 +71,16 @@ typedef CDSVector<double,1>     RVec;
  * explicitly. With these definitions we can easily calculate R_PB as
  *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*(R_BJ)'.
  */
-class RigidBodyNode {
+class IVMRigidBodyNode {
 public:
     class VirtualBaseMethod {};    // an exception
 
-    virtual ~RigidBodyNode() {}
+    virtual ~IVMRigidBodyNode() {}
 
-    RigidBodyNode& operator=(const RigidBodyNode&);
+    IVMRigidBodyNode& operator=(const IVMRigidBodyNode&);
 
     /// Factory for producing concrete RigidBodyNodes based on joint type.
-    static RigidBodyNode* create(
+    static IVMRigidBodyNode* create(
         const RBMassProperties& m,            // mass properties in body frame
         const RBFrame&          jointFrame,   // inboard joint frame J in body frame
         RBJointType             type,
@@ -90,13 +90,13 @@ public:
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
-    void addChild(RigidBodyNode* child, const RBFrame& referenceFrame);
+    void addChild(IVMRigidBodyNode* child, const RBFrame& referenceFrame);
 
-    RigidBodyNode*   getParent() const {return parent;}
-    void             setParent(RigidBodyNode* p) { parent=p; }
+    IVMRigidBodyNode*   getParent() const {return parent;}
+    void                setParent(IVMRigidBodyNode* p) { parent=p; }
 
-    int              getNChildren()  const {return children.size();}
-    RigidBodyNode*   getChild(int i) const {return (i<children.size()?children[i]:0);}
+    int                 getNChildren()  const {return children.size();}
+    IVMRigidBodyNode*   getChild(int i) const {return (i<children.size()?children[i]:0);}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
@@ -165,9 +165,9 @@ public:
     const CDSVec6&   getSpatialVel() const {return sVel;}
     const CDSVec6&   getSpatialAcc() const {return sAcc;}
 
-    const PhiMatrix& getPhi()  const {return phi;}
-    const CDSMat66&  getPsiT() const {return psiT;}
-    const CDSMat66&  getY()    const {return Y;}
+    const IVMPhiMatrix& getPhi()  const {return phi;}
+    const CDSMat66&     getPsiT() const {return psiT;}
+    const CDSMat66&     getY()    const {return Y;}
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
@@ -214,9 +214,9 @@ public:
 protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
-    RigidBodyNode(const RBMassProperties& mProps_B,
-                  const CDSVec3& originOfB_P, // and R_BP=I in ref config
-                  const CDSMat33& rot_BJ, const CDSVec3& originOfJ_B)
+    IVMRigidBodyNode(const RBMassProperties& mProps_B,
+                     const CDSVec3& originOfB_P, // and R_BP=I in ref config
+                     const CDSMat33& rot_BJ, const CDSVec3& originOfJ_B)
       : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
@@ -225,17 +225,17 @@ protected:
         V_PB_G.set(0.); sVel.set(0.); sAcc.set(0.);
         R_GB.set(0.); R_GB.setDiag(1.); OB_G.set(0.);
         COM_G.set(0.); COMstation_G = massProps_B.getCOM();
-        phi = PhiMatrix(CDSVec3(0.));
+        phi = IVMPhiMatrix(CDSVec3(0.));
         psiT.set(0.); P.set(0.); z.set(0.); tau.set(0.); Gepsilon.set(0.); Y.set(0.);
     }
 
-    typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
+    typedef CDSList<IVMRigidBodyNode*>   IVMRigidBodyNodeList;
 
-    int               stateOffset;  //index into internal coord pos,vel,acc arrays
-    RigidBodyNode*    parent; 
-    RigidBodyNodeList children;
-    int               level;        //how far from base 
-    int               nodeNum;      //unique ID number in RigidBodyTree
+    int                  stateOffset;  //index into internal coord pos,vel,acc arrays
+    IVMRigidBodyNode*    parent; 
+    IVMRigidBodyNodeList children;
+    int                  level;        //how far from base 
+    int                  nodeNum;      //unique ID number in IVMRigidBodyTree
 
     // These are the body properties
 
@@ -280,7 +280,7 @@ protected:
     CDSVec3    COMstation_G;  // measured from B origin, expr. in G
     RBInertia  inertia_OB_G;  // about B's origin, expr. in G
 
-    PhiMatrix phi;           // spatial rigid body transition matrix
+    IVMPhiMatrix phi;        // spatial rigid body transition matrix
     CDSMat66  Mk;            // spatial inertia matrix
     CDSMat66  P;             // articulated body spatial inertia
     CDSMat66  tau;
@@ -300,7 +300,7 @@ protected:
 
     virtual void velFromCartesian() {}
 
-    friend ostream& operator<<(ostream& s, const RigidBodyNode&);
+    friend ostream& operator<<(ostream& s, const IVMRigidBodyNode&);
     template<int dof> friend class RigidBodyNodeSpec;
 
 private:   
@@ -318,4 +318,4 @@ private:
     void calcJointIndependentKinematicsVel();
 };
 
-#endif /* RIGID_BODY_NODE_H_ */
+#endif // IVM_RIGID_BODY_NODE_H_

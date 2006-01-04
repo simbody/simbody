@@ -13,8 +13,8 @@ using namespace CDS;
 // from numerical recipes routine powell
 //
 
-using InternalDynamics::printStepDebug;
-using InternalDynamics::printStepInfo;
+using IVMInternalDynamics::printStepDebug;
+using IVMInternalDynamics::printStepInfo;
 
 ConMin::ConMin(IVM* ivm)
     : CDSSolver(ivm)

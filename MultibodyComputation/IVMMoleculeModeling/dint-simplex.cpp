@@ -20,8 +20,8 @@ const static double GAMMA = 2.0;
 
 
 
-using InternalDynamics::printStepDebug;
-using InternalDynamics::printStepInfo;
+using IVMInternalDynamics::printStepDebug;
+using IVMInternalDynamics::printStepInfo;
 
 
 Simplex::Simplex(IVM* ivm) : CDSSolver(ivm) {}

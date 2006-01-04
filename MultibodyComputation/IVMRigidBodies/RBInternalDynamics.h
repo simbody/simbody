@@ -8,7 +8,7 @@
 // namespace with common defs
 //
 
-namespace InternalDynamics {
+namespace IVMInternalDynamics {
 
 enum {                            //possible values for verbose (bit field)
     printCoords          = 1,
@@ -27,21 +27,21 @@ enum {                            //possible values for verbose (bit field)
     printLoopInfo        = 8192
 };
 
-struct HingeSpec {
+struct IVMHingeSpec {
     CDSString type;
     int atom0;  //extra data
     int atom1;
-    HingeSpec(const char* type="none") : type(type), atom0(-2), atom1(-2) {}
+    IVMHingeSpec(const char* type="none") : type(type), atom0(-2), atom1(-2) {}
     CDSList<int> aList;
 };
 
 //  ostream& operator<<(      ostream&  s,
 //            const HingeSpec& h);
 
-class Exception { 
+class IVMException { 
 public: 
     const char* mess; 
-    Exception(const char* mess) : mess(mess) {}
+    IVMException(const char* mess) : mess(mess) {}
 };
    
 };

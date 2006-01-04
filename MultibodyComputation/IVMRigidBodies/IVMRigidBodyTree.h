@@ -1,20 +1,20 @@
-#ifndef RIGID_BODY_TREE_H_
-#define RIGID_BODY_TREE_H_
+#ifndef IVM_RIGID_BODY_TREE_H_
+#define IVM_RIGID_BODY_TREE_H_
 
 #include "cdsList.h"
 #include "cdsVector.h"
 #include "cdsVec3.h"
 
-#include "RigidBodyNode.h"
+#include "IVMRigidBodyNode.h"
 
 #include <cassert>
 
-typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSVector<double,1>       RVec;   // first element has index 1
-typedef CDSList<CDSVec6>          CDSVecVec6;
+typedef CDSList<IVMRigidBodyNode*>   RBNodePtrList;
+typedef CDSVector<double,1>          RVec;   // first element has index 1
+typedef CDSList<CDSVec6>             CDSVecVec6;
 
 class IVM;
-class LengthConstraints;
+class IVMLengthConstraints;
 class RBStationRuntime;
 class RBDistanceConstraintRuntime;
 
@@ -25,18 +25,18 @@ class RBDistanceConstraintRuntime;
 class RBStation {
 public:
     RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(RigidBodyNode& n, const CDSVec3& pos) : rbNode(&n), station_B(pos) { }
+    RBStation(IVMRigidBodyNode& n, const CDSVec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
     void calcPosInfo(RBStationRuntime&) const;
     void calcVelInfo(RBStationRuntime&) const;
     void calcAccInfo(RBStationRuntime&) const;
 
-    RigidBodyNode&       getNode()    const { assert(isValid()); return *rbNode; }
+    IVMRigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
     const CDSVec3&       getStation() const { assert(isValid()); return station_B; }
     bool                 isValid()    const { return rbNode != 0; }
 private:
-    RigidBodyNode*       rbNode;
+    IVMRigidBodyNode*    rbNode;
     CDSVec3              station_B;
 };
 ostream& operator<<(ostream&, const RBStation&);
@@ -99,20 +99,20 @@ public:
 };
 
 /**
- * The RigidBodyTree class owns the tree of joint-connected rigid bodies, called
- * RigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
+ * The IVMRigidBodyTree class owns the tree of joint-connected rigid bodies, called
+ * IVMRigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
  * being bodies which are connected to ground (base bodies), level 2 connected to
  * level 1 and so on. Nodes at the same level are stored together in an array,
  * but the order does not reflect the logical tree structure; that is maintained
  * via parent & children pointers kept in the nodes.
  * 
- * RigidBodyTree is the owner of the RigidBodyNode objects (which are abstract), pointers to
- * which are stored in the tree.
+ * IVMRigidBodyTree is the owner of the IVMRigidBodyNode objects (which are abstract),
+ * pointers to which are stored in the tree.
  */
-class RigidBodyTree {
+class IVMRigidBodyTree {
 public:
-    RigidBodyTree() : lConstraints(0), DOFTotal(-1), dimTotal(-1) { }
-    ~RigidBodyTree();
+    IVMRigidBodyTree() : lConstraints(0), DOFTotal(-1), dimTotal(-1) { }
+    ~IVMRigidBodyTree();
 
     /// Take ownership of a new node, add it to the tree, and assign it
     /// a node number. This is NOT a regular labeling; it is just
@@ -120,12 +120,12 @@ public:
     /// small enough integer to make it a reasonable index, but don't depend
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
-    int addRigidBodyNode(RigidBodyNode&  parent,
-                         const RBFrame&  referenceConfig,    // body frame in parent
-                         RigidBodyNode*& nodep);
+    int addRigidBodyNode(IVMRigidBodyNode&  parent,
+                         const RBFrame&     referenceConfig,    // body frame in parent
+                         IVMRigidBodyNode*& nodep);
 
     /// Same as addRigidBodyNode but special-cased for ground.
-    int addGroundNode(RigidBodyNode*& gnodep);
+    int addGroundNode(IVMRigidBodyNode*& gnodep);
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
     /// its stations. Return the assigned distance constraint index for caller's use.
@@ -192,11 +192,11 @@ public:
 
     void getConstraintCorrectedInternalForces(RVec& T); // TODO has to move elsewhere
 
-    const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
+    const IVMRigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
         return *rbNodeLevels[ix.level][ix.offset];
     }
-    RigidBodyNode& updRigidBodyNode(int nodeNum) {
+    IVMRigidBodyNode& updRigidBodyNode(int nodeNum) {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
         return *rbNodeLevels[ix.level][ix.offset];
     }
@@ -220,10 +220,10 @@ private:
     // TODO: later this moves to state cache (sherm)
     CDSList<RBDistanceConstraintRuntime> dcRuntimeInfo;
     
-    LengthConstraints* lConstraints;
-    friend ostream& operator<<(ostream&, const RigidBodyTree&);
+    IVMLengthConstraints* lConstraints;
+    friend ostream& operator<<(ostream&, const IVMRigidBodyTree&);
 };
 
-ostream& operator<<(ostream&, const RigidBodyTree&);
+ostream& operator<<(ostream&, const IVMRigidBodyTree&);
 
-#endif /* RIGID_BODY_TREE_H_ */
+#endif // IVM_RIGID_BODY_TREE_H_

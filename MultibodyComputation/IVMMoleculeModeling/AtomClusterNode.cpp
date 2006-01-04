@@ -393,11 +393,11 @@ public:
 //
 /*static*/ AtomClusterNode*
 AtomClusterNode::constructFromPrototype
-    (AtomClusterNode*&                  node,
-     const InternalDynamics::HingeSpec& hingeSpec,
-     int&                               cnt)
+    (AtomClusterNode*&                        node,
+     const IVMInternalDynamics::IVMHingeSpec& hingeSpec,
+     int&                                     cnt)
 {
-    using InternalDynamics::Exception;
+    using IVMInternalDynamics::IVMException;
 
     AtomClusterNode* newNode=0;
     const IVM* ivm = node->ivm;
@@ -484,7 +484,7 @@ AtomClusterNode::constructFromPrototype
         cerr << "Bad Hinge type or topology not supported.\n";
         cerr << "atom cluster node at level " << node->level 
              << " containing atoms: " << node->atoms << '\n';
-        throw Exception("Bad Hinge type or topology not supported");
+        throw IVMException("Bad Hinge type or topology not supported");
     }
 
     //
@@ -558,10 +558,10 @@ AtomClusterNodeSpec<dof>::calcBodyProperties() {
 
 template<int dof> void
 AtomClusterNodeSpec<dof>::print(int verbose) {
-    if (verbose&InternalDynamics::printNodeForce) 
+    if (verbose&IVMInternalDynamics::printNodeForce) 
         cout << setprecision(8)
              << atoms[0] << ": force: " << atoms[0]->force << '\n';
-    if (verbose&InternalDynamics::printNodePos) 
+    if (verbose&IVMInternalDynamics::printNodePos) 
         cout << setprecision(8)
              << atoms[0] << ": pos: " << atoms[0]->pos << ' ' << atoms[0]->vel
              << '\n';

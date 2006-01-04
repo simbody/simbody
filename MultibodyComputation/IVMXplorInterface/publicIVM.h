@@ -11,13 +11,13 @@
 #include <simulation.h>
 #include <enumNameMap.h>
 #include "dinternal.h"
-#include "internalDynamics.h"
+#include "RBInternalDynamics.h"
 #include "publicNode.h"
 #include "potList.h"
 #include <modified.h>
 
 
-using InternalDynamics::HingeSpec;
+using IVMInternalDynamics::IVMHingeSpec;
 
 class PublicNode;
 
@@ -81,7 +81,7 @@ public:
     //specification of hinge type assigned to atoms
     //  note that the specified atoms are not grouped together in fixed
     //  nodes: use groupList for that purpose.
-    void setHingeList(const CDSList<HingeSpec>& list );
+    void setHingeList(const CDSList<IVMHingeSpec>& list );
 
     //set internal variable velocities to be as close as possible to
     // the current Cartesian counterparts
@@ -92,7 +92,7 @@ public:
     CDSList< CDSList<int> >  groupList();
     CDSList<Pair>            constraintList();
     CDSList<int>             oldBaseAtoms();
-    CDSList<HingeSpec>       hingeList();
+    CDSList<IVMHingeSpec>    hingeList();
     CDSVector<double>        pos() const;
 
     //simple get-accessors
@@ -144,22 +144,22 @@ public:
     void setMinStepSize(const float_type& v)   { minStepSize_=v; }
     void setPotList(const PotList& p)          { potList_ = p; }
 
-    // insert constants from InternalDynamics namespace
+    // insert constants from IVMInternalDynamics namespace
     enum VerboseFlags {
-        printCoords          = InternalDynamics::printCoords,          
-        printResetCM         = InternalDynamics::printResetCM,         
-        printVelFromCartCost = InternalDynamics::printVelFromCartCost, 
-        printTemperature     = InternalDynamics::printTemperature,     
-        printEnergy          = InternalDynamics::printEnergy,          
-        printCMVel           = InternalDynamics::printCMVel,           
-        printNodeForce       = InternalDynamics::printNodeForce,       
-        printNodePos         = InternalDynamics::printNodePos,         
-        printNodeTheta       = InternalDynamics::printNodeTheta,       
-        printStepDebug       = InternalDynamics::printStepDebug,       
-        printStepInfo        = InternalDynamics::printStepInfo,        
-        printNodeDef         = InternalDynamics::printNodeDef,         
-        printLoopDebug       = InternalDynamics::printLoopDebug,       
-        printLoopInfo        = InternalDynamics::printLoopInfo
+        printCoords          = IVMInternalDynamics::printCoords,          
+        printResetCM         = IVMInternalDynamics::printResetCM,         
+        printVelFromCartCost = IVMInternalDynamics::printVelFromCartCost, 
+        printTemperature     = IVMInternalDynamics::printTemperature,     
+        printEnergy          = IVMInternalDynamics::printEnergy,          
+        printCMVel           = IVMInternalDynamics::printCMVel,           
+        printNodeForce       = IVMInternalDynamics::printNodeForce,       
+        printNodePos         = IVMInternalDynamics::printNodePos,         
+        printNodeTheta       = IVMInternalDynamics::printNodeTheta,       
+        printStepDebug       = IVMInternalDynamics::printStepDebug,       
+        printStepInfo        = IVMInternalDynamics::printStepInfo,        
+        printNodeDef         = IVMInternalDynamics::printNodeDef,         
+        printLoopDebug       = IVMInternalDynamics::printLoopDebug,       
+        printLoopInfo        = IVMInternalDynamics::printLoopInfo
     };  
 
     //  ostream& print(ostream& ostr);

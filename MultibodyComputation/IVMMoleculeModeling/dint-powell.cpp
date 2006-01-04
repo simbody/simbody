@@ -20,8 +20,8 @@ using namespace CDS;
 #endif /* USE_CDS_NAMESPACE */
 
 
-using InternalDynamics::printStepDebug;
-using InternalDynamics::printStepInfo;
+using IVMInternalDynamics::printStepDebug;
+using IVMInternalDynamics::printStepInfo;
 
 
 Powell::Powell(IVM* ivm)
@@ -254,7 +254,7 @@ Powell::step(double& stepsize)   //FIX: stepsize is not used...
             }
         }
     }
-    catch ( InternalDynamics::Exception e) {
+    catch ( IVMInternalDynamics::IVMException e) {
         if ( CDSString(e.mess).contains("LengthSet::enforce") ) {
             getMinVals();
             if (ivm->verbose()&printStepInfo) 

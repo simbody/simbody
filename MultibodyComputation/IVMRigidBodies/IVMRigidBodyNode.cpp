@@ -6,7 +6,7 @@
  * tree -- either base to tip or tip to base.
  */
 
-#include "RigidBodyNode.h"
+#include "IVMRigidBodyNode.h"
 #include "cdsVec4.h"
 
 #include "cdsMath.h"
@@ -46,10 +46,10 @@ static const CDSMat33 ident33 = makeIdentity33(); // handy to have around
 static const CDSMat33 zero33(0.);
 
 //////////////////////////////////////////////
-// Implementation of RigidBodyNode methods. //
+// Implementation of IVMRigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child, const RBFrame& referenceFrame) {
+void IVMRigidBodyNode::addChild(IVMRigidBodyNode* child, const RBFrame& referenceFrame) {
     children.append( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
@@ -62,13 +62,13 @@ void RigidBodyNode::addChild(RigidBodyNode* child, const RBFrame& referenceFrame
 // Calc posCM, mass, Mk
 //      phi, inertia
 // Should be calc'd from base to tip.
-void RigidBodyNode::calcJointIndependentKinematicsPos() {
+void IVMRigidBodyNode::calcJointIndependentKinematicsPos() {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const CDSVec3 OB_OP_G = getR_GP()*OB_P;
 
     // The Phi matrix conveniently performs parent-to-child shifting
     // on spatial quantities.
-    phi = PhiMatrix(OB_OP_G);
+    phi = IVMPhiMatrix(OB_OP_G);
 
     // Get spatial configuration of this body.
     R_GB = getR_GP() * R_PB;
@@ -95,7 +95,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
 // gyroscopic force b, coriolis acceleration a. This must be
 // called base to tip: depends on parent's sVel, V_PB_G.
 void 
-RigidBodyNode::calcJointIndependentKinematicsVel() {
+IVMRigidBodyNode::calcJointIndependentKinematicsVel() {
     setSpatialVel(transpose(phi) * parent->getSpatialVel()
                   + V_PB_G);
     const CDSVec3& omega   = getSpatialAngVel();
@@ -115,36 +115,36 @@ RigidBodyNode::calcJointIndependentKinematicsVel() {
     a += blockVec(CDSVec3(0.0), cross(pOmega, vel-pVel));
 }
 
-double RigidBodyNode::calcKineticEnergy() const {
+double IVMRigidBodyNode::calcKineticEnergy() const {
     double ret = dot(sVel , Mk*sVel);
     return 0.5*ret;
 }
 
 
-void RigidBodyNode::nodeDump(ostream& o) const {
+void IVMRigidBodyNode::nodeDump(ostream& o) const {
     o << "NODE DUMP level=" << level << " type=" << type() << endl;
     nodeSpecDump(o);
     o << "END OF NODE type=" << type() << endl;
 }
 
-ostream& operator<<(ostream& s, const RigidBodyNode& node) {
+ostream& operator<<(ostream& s, const IVMRigidBodyNode& node) {
     node.nodeDump(s);
     return s;
 }
 
 
 ////////////////////////////////////////////////
-// Define classes derived from RigidBodyNode. //
+// Define classes derived from IVMRigidBodyNode. //
 ////////////////////////////////////////////////
 
 /**
  * This is the distinguished body representing the immobile ground frame. Other bodies may
  * be fixed to this one, but only this is the actual Ground.
  */
-class RBGroundBody : public RigidBodyNode {
+class RBGroundBody : public IVMRigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(RBMassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
+      : IVMRigidBodyNode(RBMassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -171,12 +171,12 @@ public:
 };
 
 template<int dof>
-class RigidBodyNodeSpec : public RigidBodyNode {
+class RigidBodyNodeSpec : public IVMRigidBodyNode {
 public:
     RigidBodyNodeSpec(const RBMassProperties& mProps_B,
                       const RBFrame& jointFrame,
                       int& cnt)
-      : RigidBodyNode(mProps_B,CDSVec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
+      : IVMRigidBodyNode(mProps_B,CDSVec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
         stateOffset = cnt;
@@ -295,8 +295,8 @@ private:
     void calcD_G(const CDSMat66& P);
 };
 
-/*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
-//const double RigidBodyNode::DEG2RAD = 1.0;  //always use radians
+/*static*/const double IVMRigidBodyNode::DEG2RAD = PI / 180.;
+//const double IVMRigidBodyNode::DEG2RAD = 1.0;  //always use radians
 
 
 //////////////////////////////////////////
@@ -359,7 +359,7 @@ public:
 
 private:
     void calcR_PB() {
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
+        //   double scale=IVMInternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0;
         double sinTau = sin( scale * theta(0) );
         double cosTau = cos( scale * theta(0) );
@@ -466,12 +466,12 @@ public:
     void calcR_PB(const CDSVec3& theta, CDSMat33& R_PB) {
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
-            cPhi   = cos( theta(0) *RigidBodyNode::DEG2RAD );
-            sPhi   = sin( theta(0) *RigidBodyNode::DEG2RAD );
-            cTheta = cos( theta(1) *RigidBodyNode::DEG2RAD );
-            sTheta = sin( theta(1) *RigidBodyNode::DEG2RAD );
-            cPsi   = cos( theta(2) *RigidBodyNode::DEG2RAD );
-            sPsi   = sin( theta(2) *RigidBodyNode::DEG2RAD );
+            cPhi   = cos( theta(0) *IVMRigidBodyNode::DEG2RAD );
+            sPhi   = sin( theta(0) *IVMRigidBodyNode::DEG2RAD );
+            cTheta = cos( theta(1) *IVMRigidBodyNode::DEG2RAD );
+            sTheta = sin( theta(1) *IVMRigidBodyNode::DEG2RAD );
+            cPsi   = cos( theta(2) *IVMRigidBodyNode::DEG2RAD );
+            sPsi   = sin( theta(2) *IVMRigidBodyNode::DEG2RAD );
             
             // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
             // of Spacecraft Dynamics.
@@ -515,7 +515,7 @@ public:
                       -sPhi        , cPhi        , 0     ,
                        cPhi*cTheta , sPhi*cTheta ,-sTheta };
         CDSMat33 M(a);
-        CDSVec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
+        CDSVec3 eTorque = IVMRigidBodyNode::DEG2RAD * M * torque;
 
         RSubVec(v,offset,3) = eTorque.vector();
     }
@@ -723,7 +723,7 @@ public:
 
 private:
     void calcR_PB() { 
-        //double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
+        //double scale=IVMInternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0; 
         double sinPhi = sin( scale * theta(0) );
         double cosPhi = cos( scale * theta(0) );
@@ -739,7 +739,7 @@ private:
     }
 
     void calcH() {
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
+        //   double scale=IVMInternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
         const CDSMat33 tmpR_GB = getR_GP() * R_PB;
 
@@ -780,7 +780,7 @@ public:
 
 private:
     void calcR_PB() { 
-        // double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
+        // double scale=IVMInternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0;
         double sinPhi = sin( scale * theta(0) );
         double cosPhi = cos( scale * theta(0) );
@@ -798,7 +798,7 @@ private:
     }
 
     void calcH() {
-        //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
+        //double scale=IVMInternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
         const CDSMat33 tmpR_GB = getR_GP() * R_PB;
 
@@ -812,11 +812,11 @@ private:
 };
 
 ////////////////////////////////////////////////
-// RigidBodyNode factory based on joint type. //
+// IVMRigidBodyNode factory based on joint type. //
 ////////////////////////////////////////////////
 
-/*static*/ RigidBodyNode*
-RigidBodyNode::create(
+/*static*/ IVMRigidBodyNode*
+IVMRigidBodyNode::create(
     const RBMassProperties& m,            // mass properties in body frame
     const RBFrame&          jointFrame,   // inboard joint frame J in body frame
     RBJointType             type,
@@ -869,7 +869,7 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(const CDSVec6& sVel) {
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
-    using InternalDynamics::Exception;
+    using IVMInternalDynamics::IVMException;
     FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
     try {
         DI = inverse(D);
@@ -880,7 +880,7 @@ RigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
              << "node level: " << level << '\n'
              << "number of children: " << children.size() << '\n'
              << endl;
-        throw Exception("calcD_G: singular D matrix. Bad topology?");
+        throw IVMException("calcD_G: singular D matrix. Bad topology?");
     }
     G = P * MatrixTools::transpose(H) * DI;
 }
@@ -984,10 +984,10 @@ RigidBodyNodeSpec<dof>::calcInternalForce(const CDSVec6& spatialForce) {
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::print(int verbose) const {
-    if (verbose&InternalDynamics::printNodePos) 
+    if (verbose&IVMInternalDynamics::printNodePos) 
         cout << setprecision(8)
              << ": pos: " << OB_G << ' ' << '\n';
-    if (verbose&InternalDynamics::printNodeTheta) 
+    if (verbose&IVMInternalDynamics::printNodeTheta) 
         cout << setprecision(8)
              << ": theta: " 
              << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';

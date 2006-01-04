@@ -1,7 +1,7 @@
 #ifndef ATOM_CLUSTER_NODE_H_
 #define ATOM_CLUSTER_NODE_H_
 
-#include "internalDynamics.h"
+#include "RBInternalDynamics.h"
 #include "RBMassProperties.h"
 
 #include "cdsVec3.h"
@@ -11,7 +11,7 @@
 class IVM;
 class IVMAtom;
 class AtomClusterNode;
-class RigidBodyNode;
+class IVMRigidBodyNode;
 typedef CDSList<IVMAtom*>         AtomList;
 typedef CDSList<AtomClusterNode*> AtomClusterNodeList;
 typedef FixedVector<double,6>     CDSVec6;
@@ -71,9 +71,9 @@ public:
     /// From a temporary node which has been used to collect up clusters of atoms,
     /// generate one that includes a joint, and free the old one.
     static AtomClusterNode* constructFromPrototype
-        (AtomClusterNode*&                  oldNode,
-         const InternalDynamics::HingeSpec& type,
-         int&                               cnt);
+        (AtomClusterNode*&                        oldNode,
+         const IVMInternalDynamics::IVMHingeSpec& type,
+         int&                                     cnt);
 
     // For use in building rigid body nodes:
     const RBMassProperties& getMassPropertiesInBodyFrame()  const {return massProps;}

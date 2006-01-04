@@ -201,9 +201,9 @@ PublicIVM::oldBaseAtoms() {
     return ret;
 }
 
-CDSList<HingeSpec> 
+CDSList<IVMHingeSpec> 
 PublicIVM::hingeList() { 
-    CDSList<HingeSpec> ret = IVM::hingeList;
+    CDSList<IVMHingeSpec> ret = IVM::hingeList;
     for (int i=0 ; i<ret.size() ; i++)
         for (int j=0 ; j<ret[i].aList.size() ; j++) {
             ret[i].aList[j]--;
@@ -248,7 +248,7 @@ PublicIVM::setOldBaseAtoms(const CDSList<int>& list ) {
 }
  
 void 
-PublicIVM::setHingeList(const CDSList<HingeSpec>& list ) { 
+PublicIVM::setHingeList(const CDSList<IVMHingeSpec>& list ) { 
     IVM::hingeList = list; 
     for (int i=0 ; i<list.size() ; i++)
         for (int j=0 ; j<list[i].aList.size() ; j++) {
@@ -290,7 +290,7 @@ PublicIVM::setPos(const CDSVector<double>& newPos) {
 
     if ( oldPos.size() != newPos.size() ) {
         cerr << "PublicIVM::setPos: size mismatch" << endl;
-        throw InternalDynamics::Exception("PulbicIVM::setPos: size mismatch");
+        throw IVMInternalDynamics::IVMException("PulbicIVM::setPos: size mismatch");
     }
 
     RVec pos = newPos;

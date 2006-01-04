@@ -67,7 +67,7 @@ XplorIVM::calcEnergy() {
 }
 
 //
-// initialize InternalDynamics quantities from xplor values
+// initialize IVMInternalDynamics quantities from xplor values
 //
 void 
 XplorIVM::initXplor()
@@ -132,7 +132,7 @@ public:
     };
     CDSList<ValPair> list;
     VerboseList() {
-    using namespace InternalDynamics;
+    using namespace IVMInternalDynamics;
     list.append( ValPair(   printCoords          , "coords"         ));
     list.append( ValPair(   printResetCM         , "resetcm"        ));
     list.append( ValPair(   printVelFromCartCost , "velfromcartcost"));
@@ -235,7 +235,7 @@ ostream& help(ostream& ostr)
 }
 
 CDSString
-formatHingeSpec(const IVM* ivm, const InternalDynamics::HingeSpec& spec)
+formatHingeSpec(const IVM* ivm, const IVMInternalDynamics::IVMHingeSpec& spec)
 {
     StringStream ret;
     ret.setf( ios::left );
@@ -589,7 +589,7 @@ XplorIVM::entry()
                         initXplor();
                 try {
                     groupTorsion();
-                    InternalDynamics::HingeSpec hingeSpec;
+                    IVMInternalDynamics::IVMHingeSpec hingeSpec;
                     hingeSpec.type = "torsion";
                     for (l_int i=1 ; i<=natom ; i++) {
                         bool inHinge=0;
@@ -603,7 +603,7 @@ XplorIVM::entry()
                     }
                     hingeList.append( hingeSpec );
                 }
-                catch ( InternalDynamics::Exception e ) {
+                catch ( IVMInternalDynamics::IVMException e ) {
                     cout << "Caught exception: " << e.mess << '\n';
                     cout << "Failed to automatically determine torsion angles.\n";
                 }
@@ -641,7 +641,7 @@ XplorIVM::entry()
                 FORTRAN(selcta,SELCTA)(flags,nflags,
                         xplorVars.x,xplorVars.y,xplorVars.z,1);
                 FORTRAN(makind,MAKIND)(flags,xplorVars.natom,nflags); 
-                InternalDynamics::HingeSpec hingeSpec;
+                IVMInternalDynamics::IVMHingeSpec hingeSpec;
                 hingeSpec.type = typestr;
                 hingeSpec.type.downcase();
                 for (l_int i=0 ; i<nflags ; i++)
@@ -825,12 +825,12 @@ XplorIVM::entry()
         FORTRAN(declar,DECLAR)("DINT_STEPS","DP",dum,dum,(double)iter,10,2,0);
         if ( coordUnit>0 ) FORTRAN(vclose,VCLOSE)(coordUnit,"KEEP",error,4);
     }
-    catch ( InternalDynamics::Exception e) {
-        cout << "InternalDynamics> uncaught exception: " << e.mess << endl;
+    catch ( IVMInternalDynamics::IVMException e) {
+        cout << "IVMInternalDynamics> uncaught exception: " << e.mess << endl;
         throw;
     }
     catch ( ... ) {
-        cout << "InternalDynamics> unknown uncaught exception" << endl;
+        cout << "IVMInternalDynamics> unknown uncaught exception" << endl;
         throw;
     }
 } 

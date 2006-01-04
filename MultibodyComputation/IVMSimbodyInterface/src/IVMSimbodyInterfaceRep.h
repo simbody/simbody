@@ -11,7 +11,7 @@
 #include "simbody/Simbody.h"
 #include "simbody/IVMSimbodyInterface.h"
 
-#include "RigidBodyTree.h"
+#include "IVMRigidBodyTree.h"
 
 using namespace simtk;
 
@@ -60,8 +60,8 @@ public:
     IVMSimbodyInterfaceRep(const Multibody&);
 
     const Multibody& getMultibody() const {return mbs;}
-    const RigidBodyTree& getRigidBodyTree() const {return tree;}
-    RigidBodyTree&       updRigidBodyTree()       {return tree;}
+    const IVMRigidBodyTree& getRigidBodyTree() const {return tree;}
+    IVMRigidBodyTree&       updRigidBodyTree()       {return tree;}
 
     const RBTreeMap& getBodyInfo(const Body& b) const {
         // TODO: info must be stored with (or indexed by) body directly for speed
@@ -100,11 +100,11 @@ public:
 
     static RBJointType mapToRBJointType(Joint::JointType jt);
 private:
-    IVMSimbodyInterface* handle;
+    IVMSimbodyInterface*    handle;
 
     Multibody               mbs;  // private copy
     std::vector<RBTreeMap>  mbs2tree;
-    RigidBodyTree           tree;
+    IVMRigidBodyTree        tree;
 
 };
 

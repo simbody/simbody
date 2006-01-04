@@ -4,7 +4,7 @@
 #include "cdsList.h"
 #include "cdsVector.h"
 
-#include "RigidBodyTree.h"
+#include "IVMRigidBodyTree.h"
 
 class AtomClusterNode;
 class LengthConstraints;
@@ -52,7 +52,7 @@ public:
     CDSList<AtomLoop>            loops;
 
 private:
-    RigidBodyTree rbTree;                   // the pure rigid body tree
+    IVMRigidBodyTree rbTree;                   // the pure rigid body tree
     CDSVecVec6       spatialForces;
 public:
     AtomTree(IVM*);

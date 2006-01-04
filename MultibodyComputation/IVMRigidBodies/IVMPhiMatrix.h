@@ -1,5 +1,5 @@
-#ifndef __phiMatrix_hh__
-#define __phiMatrix_hh__
+#ifndef IVM_PHI_MATRIX_H_
+#define IVM_PHI_MATRIX_H_
 
 // support for efficient matrix multiplication involving the special phi
 // matrix
@@ -13,37 +13,37 @@
 typedef FixedVector<double,6>   CDSVec6;
 typedef FixedMatrix<double,6,6> CDSMat66;
 
-class PhiMatrixTranspose;
+class IVMPhiMatrixTranspose;
 
-class PhiMatrix {
+class IVMPhiMatrix {
 public:
-    typedef PhiMatrixTranspose TransposeType;
+    typedef IVMPhiMatrixTranspose TransposeType;
 
-    PhiMatrix() { l_(0) = 1.31e30; }
-    PhiMatrix(const CDSVec3& l) : l_(l) {}
+    IVMPhiMatrix() { l_(0) = 1.31e30; }
+    IVMPhiMatrix(const CDSVec3& l) : l_(l) {}
 
     const CDSVec3& l() const { assert( l_(0) != 1.31e30 ); return l_; }
 private:
     CDSVec3 l_;
 };
 
-class PhiMatrixTranspose {
+class IVMPhiMatrixTranspose {
 public:
-  PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
+  IVMPhiMatrixTranspose(const IVMPhiMatrix& phi) : phi(phi) {}
   const CDSVec3 l() const {return phi.l();}
 private:
-  const PhiMatrix& phi;
+  const IVMPhiMatrix& phi;
 };
 
-inline PhiMatrixTranspose
-transpose(const PhiMatrix& phi)
+inline IVMPhiMatrixTranspose
+transpose(const IVMPhiMatrix& phi)
 {
-    PhiMatrixTranspose ret(phi);
+    IVMPhiMatrixTranspose ret(phi);
     return ret;
 }
   
 inline CDSVec6
-operator*(const PhiMatrix& phi,
+operator*(const IVMPhiMatrix& phi,
           const CDSVec6&      vec)
 {
     const SubVector<const CDSVec6> v1(vec,0,3);
@@ -60,7 +60,7 @@ operator*(const PhiMatrix& phi,
 }
 
 inline CDSVec6
-operator*(const PhiMatrixTranspose& phiT,
+operator*(const IVMPhiMatrixTranspose& phiT,
           const CDSVec6&            vec)
 {
     const SubVector<const CDSVec6> v1(vec,0,3);
@@ -78,7 +78,7 @@ operator*(const PhiMatrixTranspose& phiT,
 
 inline CDSMat66
 operator*(const CDSMat66&           mat,
-          const PhiMatrixTranspose& phiT)
+          const IVMPhiMatrixTranspose& phiT)
 {
     SubMatrix<const CDSMat66> m11(mat,0,0,3,3);
     SubMatrix<const CDSMat66> m12(mat,0,3,3,3);
@@ -99,4 +99,4 @@ operator*(const CDSMat66&           mat,
     return ret;
 }
 
-#endif /*  __phiMatrix_hh__ */
+#endif // IVM_PHI_MATRIX_H_

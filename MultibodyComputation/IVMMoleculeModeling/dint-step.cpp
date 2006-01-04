@@ -470,7 +470,7 @@ CDSSolver::create(const CDSString& type, IVM* ivm)
     else if ( type.matches(Simplex::getType(),true) )
         ret = new Simplex(ivm);
     else {
-        throw InternalDynamics::Exception("Bad solver specification");
+        throw IVMInternalDynamics::IVMException("Bad solver specification");
     }
     return ret;
 }
