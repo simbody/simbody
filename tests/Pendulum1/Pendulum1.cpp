@@ -118,9 +118,6 @@ try {
                  mbs["ground/rodJointFrame"],        //reference frame
                  mbs["rod/jointFrame"]);             //moving frame
 
-    tryPerp();
-
-
 
     ///////////////////////////
     // Build a RigidBodyTree //
