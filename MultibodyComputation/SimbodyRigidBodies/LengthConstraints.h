@@ -1,7 +1,9 @@
 #ifndef LENGTH_CONSTRAINTS_H_
 #define LENGTH_CONSTRAINTS_H_
 
-#include "cdsVector.h"
+#include "simbody/internal/SimbodyCommon.h"
+using namespace simtk;
+
 #include "fixedVector.h"
 
 class RBDistanceConstraint;
@@ -23,14 +25,14 @@ public:
     void construct(CDSList<RBDistanceConstraint>&,
                    CDSList<RBDistanceConstraintRuntime>&);
 
-    void enforce(CDSVector<double,1>& pos,
-                 CDSVector<double,1>& vel);
+    void enforce(Vector& pos,
+                 Vector& vel);
 
     bool calcConstraintForces() const;
     void addInCorrectionForces(CDSVecVec6& spatialForces) const;
 
-    void fixVel0(CDSVector<double,1>&);
-    void fixGradient(CDSVector<double,1>&);
+    void fixVel0(Vector&);
+    void fixGradient(Vector&);
 
 private:
     //  double tol;

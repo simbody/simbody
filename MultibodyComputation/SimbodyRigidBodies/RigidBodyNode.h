@@ -2,13 +2,12 @@
 #define RIGID_BODY_NODE_H_
 
 #include "simbody/internal/SimbodyCommon.h"
+using namespace simtk;
 
 #include "phiMatrix.h"
 #include "internalDynamics.h"
 
 #include "fixedMatrix.h"
-#include "cdsMatrix.h"
-#include "cdsVector.h"
 #include "cdsList.h"
 
 #include "RBMassProperties.h"
@@ -19,8 +18,6 @@ class CDSVec3;
 
 typedef FixedVector<double,6>   CDSVec6;
 typedef FixedMatrix<double,6,6> CDSMat66;
-typedef CDSMatrix<double>       RMat;
-typedef CDSVector<double,1>     RVec;
 
 
 /**
@@ -173,12 +170,12 @@ public:
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
-    virtual void setPos(const RVec&)=0;
+    virtual void setPos(const Vector&)=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes setPos()
     /// has already been called.
-    virtual void setVel(const RVec&)=0;
+    virtual void setVel(const Vector&)=0;
 
     double calcKineticEnergy() const;   // from spatial quantities only
 
@@ -186,7 +183,7 @@ public:
     virtual int         getDOF()   const {return 0;} //number of independent dofs
     virtual int         getDim()   const {return 0;} //dofs plus quaternion constraints
 
-    virtual void enforceConstraints(RVec& pos, RVec& vel) {throw VirtualBaseMethod();}
+    virtual void enforceConstraints(Vector& pos, Vector& vel) {throw VirtualBaseMethod();}
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
     virtual void calcZ    (const CDSVec6& spatialForce)      {throw VirtualBaseMethod();}
@@ -198,12 +195,12 @@ public:
     virtual void setVelFromSVel(const CDSVec6&) {throw VirtualBaseMethod();}
 
 
-    virtual void getPos(RVec&)   const {throw VirtualBaseMethod();}
-    virtual void getVel(RVec&)   const {throw VirtualBaseMethod();}
-    virtual void getAccel(RVec&) const {throw VirtualBaseMethod();}
+    virtual void getPos(Vector&)   const {throw VirtualBaseMethod();}
+    virtual void getVel(Vector&)   const {throw VirtualBaseMethod();}
+    virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
-    virtual void getInternalForce(RVec&) const {throw VirtualBaseMethod();}
-    virtual RMat getH() const {throw VirtualBaseMethod();}
+    virtual void getInternalForce(Vector&) const {throw VirtualBaseMethod();}
+    virtual Matrix getH() const {throw VirtualBaseMethod();}
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 

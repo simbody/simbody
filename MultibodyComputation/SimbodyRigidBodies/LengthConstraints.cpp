@@ -14,16 +14,17 @@
  * Deal with loop bond-length constraints.
  */
 
+#include "simbody/internal/SimbodyCommon.h"
+using namespace simtk;
+
 #include "LengthConstraints.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyTree.h"
 #include "cdsVec3.h"
 #include "cdsListAutoPtr.h"
-#include "RVec.h"
 #include "cdsMath.h"
 #include "cdsMatrix.h"
 #include "fixedVector.h"
-#include "cdsVector.h"
 #include "subVector.h"
 #include "subMatrix.h"
 #include "matrixTools.h"

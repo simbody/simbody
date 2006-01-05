@@ -32,8 +32,6 @@ using CDSMath::sq;
 typedef FixedMatrix<double,2,3>  Mat23;
 typedef FixedVector<double,5>    CDSVec5;
 
-typedef SubVector<RVec>          RSubVec;
-typedef SubVector<const RVec>    ConstRSubVec;
 typedef SubVector<CDSVec4>       RSubVec4;
 typedef SubVector<CDSVec5>       RSubVec5;
 typedef SubVector<CDSVec6>       RSubVec6;
@@ -155,16 +153,16 @@ public:
     /*virtual*/void calcInternalForce(const CDSVec6&) {}
     /*virtual*/void calcAccel() {}
 
-    /*virtual*/void setPos(const RVec&) {}
-    /*virtual*/void setVel(const RVec&) {}
+    /*virtual*/void setPos(const Vector&) {}
+    /*virtual*/void setVel(const Vector&) {}
     /*virtual*/void setVelFromSVel(const CDSVec6&) {}
-    /*virtual*/void enforceConstraints(RVec& pos, RVec& vel) {}
+    /*virtual*/void enforceConstraints(Vector& pos, Vector& vel) {}
 
-    /*virtual*/void getPos(RVec&)   const {}
-    /*virtual*/void getVel(RVec&)   const {}
-    /*virtual*/void getAccel(RVec&) const {}
+    /*virtual*/void getPos(Vector&)   const {}
+    /*virtual*/void getVel(Vector&)   const {}
+    /*virtual*/void getAccel(Vector&) const {}
 
-    /*virtual*/void getInternalForce(RVec&) const {}
+    /*virtual*/void getInternalForce(Vector&) const {}
     // virtual RMat getH()
 
     void print(int) {}
@@ -205,7 +203,7 @@ public:
     virtual void calcJointKinematicsVel()=0;
 
     /// Set a new configuration and calculate the consequent kinematics.
-    void setPos(const RVec& posv) {
+    void setPos(const Vector& posv) {
         forceInternal.set(0.);  // forget these
         setJointPos(posv);
         calcJointKinematicsPos();
@@ -214,7 +212,7 @@ public:
 
     /// Set new velocities for the current configuration, and calculate
     /// all the velocity-dependent terms.
-    void setVel(const RVec& velv) {
+    void setVel(const Vector& velv) {
         // anything to initialize?
         setJointVel(velv);
         calcJointKinematicsVel();
@@ -222,25 +220,25 @@ public:
     }
 
     // These unfortunately need to be overridden for joints using quaternions.
-    virtual void setJointPos(const RVec& posv) {
-        theta  = ConstRSubVec(posv,stateOffset,dof).vector();
+    virtual void setJointPos(const Vector& posv) {
+        theta  = *reinterpret_cast<const FixedVector<double,dof>*>(&posv[stateOffset]);
     }
-    virtual void setJointVel(const RVec& velv) {
-        dTheta = ConstRSubVec(velv,stateOffset,dof).vector();
+    virtual void setJointVel(const Vector& velv) {
+        dTheta = *reinterpret_cast<const FixedVector<double,dof>*>(&velv[stateOffset]);
     }
     virtual void calcJointAccel() { }
 
-    virtual void getPos(RVec& p) const {
-        RSubVec(p,stateOffset,dof) = theta.vector();
+    virtual void getPos(Vector& p) const {
+        *reinterpret_cast<FixedVector<double,dof>*>(&p[stateOffset]) = theta.vector();
     }
-    virtual void getVel(RVec& v) const {
-        RSubVec(v,stateOffset,dof) = dTheta.vector();
+    virtual void getVel(Vector& v) const {
+        *reinterpret_cast<FixedVector<double,dof>*>(&v[stateOffset]) = dTheta.vector();
     }   
-    virtual void getAccel(RVec& a) const {
-        RSubVec(a,stateOffset,dof) = ddTheta.vector();
+    virtual void getAccel(Vector& a) const {
+        *reinterpret_cast<FixedVector<double,dof>*>(&a[stateOffset]) = ddTheta.vector();
     }
-    virtual void getInternalForce(RVec& t) const {
-        RSubVec(t,stateOffset,dof) = forceInternal.vector();
+    virtual void getInternalForce(Vector& t) const {
+        *reinterpret_cast<FixedVector<double,dof>*>(&t[stateOffset]) = forceInternal.vector();
     }
 
     int          getDOF() const { return dof; }
@@ -250,9 +248,15 @@ public:
 
 
     virtual void setVelFromSVel(const CDSVec6&);
-    virtual void enforceConstraints(RVec& pos, RVec& vel) {}
+    virtual void enforceConstraints(Vector& pos, Vector& vel) {}
 
-    virtual RMat getH() const { return RMat(H); }
+    virtual Matrix getH() const { 
+        Matrix m(dof,6);
+        for (int i=0; i<dof; ++i)
+            for (int j=0; j<6; ++j) 
+                m(i,j) = H(i,j);
+        return m; 
+    }
 
     void calcP();
     void calcZ(const CDSVec6& spatialForce);
@@ -411,21 +415,21 @@ public:
         if (useEuler) return 3; else return 4; 
     }
 
-    void setBallPos(int stateOffset, const RVec& posv, FixedVector<double,3>& theta) {
-        if (useEuler) theta = ConstRSubVec(posv,stateOffset,3).vector(); 
-        else          q     = ConstRSubVec(posv,stateOffset,4).vector();
+    void setBallPos(int stateOffset, const Vector& posv, FixedVector<double,3>& theta) {
+        if (useEuler) theta = *reinterpret_cast<const FixedVector<double,3>*>(&posv[stateOffset]);
+        else          q     = *reinterpret_cast<const FixedVector<double,4>*>(&posv[stateOffset]);
     } 
 
-    void getBallPos(const CDSVec3& theta, int stateOffset, RVec& posv) const {
-        if (useEuler) RSubVec(posv,stateOffset,3) = theta.vector();
-        else          RSubVec(posv,stateOffset,4) = q.vector();
+    void getBallPos(const CDSVec3& theta, int stateOffset, Vector& posv) const {
+        if (useEuler) *reinterpret_cast<FixedVector<double,3>*>(&posv[stateOffset]) = theta;
+        else          *reinterpret_cast<FixedVector<double,4>*>(&posv[stateOffset]) = q;
     }
 
-    void setBallVel(int stateOffset, const RVec& velv, FixedVector<double,3>& dTheta) { 
+    void setBallVel(int stateOffset, const Vector& velv, FixedVector<double,3>& dTheta) { 
         if (useEuler)
-            dTheta = ConstRSubVec(velv,stateOffset,3).vector();
+            dTheta = *reinterpret_cast<const FixedVector<double,3>*>(&velv[stateOffset]);
         else {
-            dq = ConstRSubVec(velv,stateOffset,4).vector();
+            dq = *reinterpret_cast<const FixedVector<double,4>*>(&velv[stateOffset]);
             double a2[] = {-q(1), q(0),-q(3), q(2),
                            -q(2), q(3), q(0),-q(1),
                            -q(3),-q(2), q(1), q(0)};
@@ -434,9 +438,9 @@ public:
         }
     }
 
-    void getBallVel(const CDSVec3& dTheta, int stateOffset, RVec& velv) const {
-        if (useEuler) RSubVec(velv,stateOffset,3) = dTheta.vector();
-        else          RSubVec(velv,stateOffset,4) = dq.vector();
+    void getBallVel(const CDSVec3& dTheta, int stateOffset, Vector& velv) const {
+        if (useEuler) *reinterpret_cast<FixedVector<double,3>*>(&velv[stateOffset]) = dTheta;
+        else          *reinterpret_cast<FixedVector<double,4>*>(&velv[stateOffset]) = dq;
     }
 
     void calcBallAccel(const CDSVec3& omega, const CDSVec3& dOmega)
@@ -457,10 +461,10 @@ public:
         ddq = 0.5*(dM*omega + M*dOmega);
     }
 
-    void getBallAccel(const CDSVec3& ddTheta, int stateOffset, RVec& accv) const
+    void getBallAccel(const CDSVec3& ddTheta, int stateOffset, Vector& accv) const
     {
-        if (useEuler) RSubVec(accv,stateOffset,3) = ddTheta.vector();
-        else          RSubVec(accv,stateOffset,4) = ddq.vector();
+        if (useEuler) *reinterpret_cast<FixedVector<double,3>*>(&accv[stateOffset]) = ddTheta;
+        else          *reinterpret_cast<FixedVector<double,4>*>(&accv[stateOffset]) = ddq;
     }
 
     void calcR_PB(const CDSVec3& theta, CDSMat33& R_PB) {
@@ -492,21 +496,21 @@ public:
         }
     }
 
-    void enforceBallConstraints(int offset, RVec& posv, RVec& velv) {
+    void enforceBallConstraints(int offset, Vector& posv, Vector& velv) {
         if ( !useEuler ) {
-            q  = RSubVec(posv,offset,4).vector();
-            dq = RSubVec(velv,offset,4).vector();
+            q  = *reinterpret_cast<const FixedVector<double,4>*>(&posv[offset]);
+            dq = *reinterpret_cast<const FixedVector<double,4>*>(&velv[offset]);
 
             q  /= norm(q);     // Normalize Euler parameters at each time step.
             dq -= dot(q,dq)*q; // Also fix velocity: error is prop. to position component.
 
-            RSubVec(posv,offset,4) =  q.vector();
-            RSubVec(velv,offset,4) = dq.vector();
+            *reinterpret_cast<FixedVector<double,4>*>(&posv[offset]) =  q;
+            *reinterpret_cast<FixedVector<double,4>*>(&velv[offset]) = dq;
         }
     }
 
 
-    void getBallInternalForce(const CDSVec3& forceInternal, int offset, RVec& v) const {
+    void getBallInternalForce(const CDSVec3& forceInternal, int offset, Vector& v) const {
         //dependency: calcR_PB must be called first
         assert( useEuler );
 
@@ -517,7 +521,7 @@ public:
         CDSMat33 M(a);
         CDSVec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
 
-        RSubVec(v,offset,3) = eTorque.vector();
+        *reinterpret_cast<FixedVector<double,3>*>(&v[offset]) = eTorque;
     }
 
     void setBallDerivs(const CDSVec3& omega) {
@@ -551,20 +555,20 @@ public:
     
     int  getDim() const { return ball.getBallDim(); } 
 
-    void setJointPos(const RVec& posv) {
+    void setJointPos(const Vector& posv) {
         ball.setBallPos(stateOffset, posv, theta);
     } 
 
-    void getPos(RVec& posv) const {
+    void getPos(Vector& posv) const {
         ball.getBallPos(theta, stateOffset, posv);
     }
 
     // setPos must have been called previously
-    void setJointVel(const RVec& velv) {
+    void setJointVel(const Vector& velv) {
         ball.setBallVel(stateOffset, velv, dTheta);
     }
 
-    void getVel(RVec& velv) const {
+    void getVel(Vector& velv) const {
         ball.getBallVel(dTheta, stateOffset, velv);
     }
 
@@ -572,7 +576,7 @@ public:
         ball.calcBallAccel(dTheta, ddTheta);
     }
 
-    void getAccel(RVec& accv) const {
+    void getAccel(Vector& accv) const {
         ball.getBallAccel(ddTheta, stateOffset, accv);
     }
 
@@ -588,11 +592,11 @@ public:
         V_PB_G = MatrixTools::transpose(H) * dTheta;
     }
 
-    void enforceConstraints(RVec& posv, RVec& velv) {
+    void enforceConstraints(Vector& posv, Vector& velv) {
         ball.enforceBallConstraints(stateOffset, posv, velv);
     }
 
-    void getInternalForce(RVec& v) const {
+    void getInternalForce(Vector& v) const {
         ball.getBallInternalForce(forceInternal, stateOffset, v);
     }
 
@@ -622,30 +626,32 @@ public:
     
     int  getDim() const { return ball.getBallDim() + 3; } 
 
-    void setJointPos(const RVec& posv) {
+    void setJointPos(const Vector& posv) {
         CDSVec3 th;
         ball.setBallPos(stateOffset, posv, th);
         RSubVec6(theta,0,3) = th.vector();
         RSubVec6(theta,3,3) = 
-            ConstRSubVec(posv,stateOffset+ball.getBallDim(),3).vector();
+            (*reinterpret_cast<const FixedVector<double,3>*>(&posv[stateOffset+ball.getBallDim()])).vector();
     } 
 
-    void getPos(RVec& posv) const {
+    void getPos(Vector& posv) const {
         ball.getBallPos(CDSVec3(ConstRSubVec6(theta,0,3).vector()), stateOffset, posv);
-        RSubVec(posv,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(theta,3,3).vector();
+        *reinterpret_cast<FixedVector<double,3>*>(&posv[stateOffset+ball.getBallDim()]) 
+            = ConstRSubVec6(theta,3,3).vector();
     }
 
     // setPos must have been called previously
-    void setJointVel(const RVec& velv) {
+    void setJointVel(const Vector& velv) {
         CDSVec3 dTh;
         ball.setBallVel(stateOffset, velv, dTh);
         RSubVec6(dTheta,0,3) = dTh.vector();
-        RSubVec6(dTheta,3,3) = ConstRSubVec(velv,stateOffset+ball.getBallDim(),3).vector();
+        RSubVec6(dTheta,3,3) = 
+            (*reinterpret_cast<const FixedVector<double,3>*>(&velv[stateOffset+ball.getBallDim()])).vector();
     }
 
-    void getVel(RVec& velv) const {
+    void getVel(Vector& velv) const {
         ball.getBallVel(CDSVec3(ConstRSubVec6(dTheta,0,3).vector()), stateOffset, velv);
-        RSubVec(velv, stateOffset+ball.getBallDim(), 3) 
+        *reinterpret_cast<FixedVector<double,3>*>(&velv[stateOffset+ball.getBallDim()]) 
             = ConstRSubVec6(dTheta,3,3).vector();
     }
 
@@ -656,9 +662,10 @@ public:
         ball.calcBallAccel(omega, dOmega);
     }
 
-    void getAccel(RVec& accv) const {
+    void getAccel(Vector& accv) const {
         ball.getBallAccel(CDSVec3(ConstRSubVec6(ddTheta,0,3).vector()), stateOffset, accv);
-        RSubVec(accv,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(ddTheta,3,3).vector();
+        *reinterpret_cast<FixedVector<double,3>*>(&accv[stateOffset+ball.getBallDim()]) 
+            = ConstRSubVec6(ddTheta,3,3).vector();
     }
 
     void calcJointKinematicsPos() {
@@ -675,16 +682,16 @@ public:
         V_PB_G = MatrixTools::transpose(H) * dTheta;
     }
 
-    void enforceConstraints(RVec& posv, RVec& velv) {
+    void enforceConstraints(Vector& posv, Vector& velv) {
         ball.enforceBallConstraints(stateOffset, posv, velv);
     }
 
 
-    void getInternalForce(RVec& v) const {
+    void getInternalForce(Vector& v) const {
         const CDSVec3 torque = ConstRSubVec6(forceInternal, 0, 3).vector();
         ball.getBallInternalForce(torque, stateOffset, v);
-        RSubVec(v,stateOffset+ball.getBallDim(),3) = ConstRSubVec6(forceInternal,3,3).vector();
-
+        *reinterpret_cast<FixedVector<double,3>*>(&v[stateOffset+ball.getBallDim()]) 
+            = ConstRSubVec6(forceInternal,3,3).vector();
     }
 
     void setVelFromSVel(const CDSVec6& sVel) {

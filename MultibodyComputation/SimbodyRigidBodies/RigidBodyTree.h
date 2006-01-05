@@ -2,9 +2,9 @@
 #define RIGID_BODY_TREE_H_
 
 #include "simbody/internal/SimbodyCommon.h"
+using namespace simtk;
 
 #include "cdsList.h"
-#include "cdsVector.h"
 #include "cdsVec3.h"
 
 #include "RigidBodyNode.h"
@@ -12,7 +12,6 @@
 #include <cassert>
 
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSVector<double,1>       RVec;   // first element has index 1
 typedef CDSList<CDSVec6>          CDSVecVec6;
 
 class IVM;
@@ -143,23 +142,23 @@ public:
     int getDim() const { return dimTotal; } 
 
     // Kinematics -- calculate spatial quantities from internal states.
-    void setPos(const RVec& pos);
-    void setVel(const RVec& vel);
+    void setPos(const Vector& pos);
+    void setVel(const Vector& vel);
 
-    void getPos(RVec& pos) const;
-    void getVel(RVec& vel) const;
-    void getAcc(RVec& acc) const;
+    void getPos(Vector& pos) const;
+    void getVel(Vector& vel) const;
+    void getAcc(Vector& acc) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
-    void velFromCartesian(const RVec& pos, RVec& vel);
+    void velFromCartesian(const Vector& pos, Vector& vel);
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints (just quaternions constraints; ignores loops).
-    void enforceTreeConstraints(RVec& pos, RVec& vel);
+    void enforceTreeConstraints(Vector& pos, Vector& vel);
 
     /// This is a solver which tweaks the state to make it satisfy general
     /// constraints (other than quaternion constraints).
-    void enforceConstraints(RVec& pos, RVec& vel);
+    void enforceConstraints(Vector& pos, Vector& vel);
 
     /// Prepare for dynamics by calculating position-dependent quantities
     /// like the articulated body inertias P.
@@ -181,7 +180,7 @@ public:
     void calcZ(const CDSVecVec6& spatialForces); // articulated body remainder forces
     void calcTreeAccel();                     // accels with forces from last calcZ
 
-    void fixVel0(RVec& vel); // TODO -- yuck
+    void fixVel0(Vector& vel); // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
     void calcY();
@@ -190,9 +189,9 @@ public:
     void calcTreeInternalForces(const CDSVecVec6& spatialForces);
 
     /// Retrieve last-computed internal (joint) forces.
-    void getInternalForces(RVec& T);
+    void getInternalForces(Vector& T);
 
-    void getConstraintCorrectedInternalForces(RVec& T); // TODO has to move elsewhere
+    void getConstraintCorrectedInternalForces(Vector& T); // TODO has to move elsewhere
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];

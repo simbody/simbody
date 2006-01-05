@@ -15,7 +15,6 @@
 #include "cdsMath.h"
 #include "cdsString.h"
 #include "cdsSStream.h"
-#include "cdsVector.h"
 #include "fixedVector.h"
 #include "subVector.h"
 #include "fixedMatrix.h"
@@ -168,7 +167,7 @@ void RigidBodyTree::finishConstruction(const double& ctol, int verbose) {
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::setPos(const RVec& pos)  {
+void RigidBodyTree::setPos(const Vector& pos)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setPos(pos); 
@@ -180,7 +179,7 @@ void RigidBodyTree::setPos(const RVec& pos)  {
 
 // Set generalized speeds: sweep from base to tip.
 // setPos() must have been called already.
-void RigidBodyTree::setVel(const RVec& vel)  {
+void RigidBodyTree::setVel(const Vector& vel)  {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->setVel(vel); 
@@ -191,14 +190,14 @@ void RigidBodyTree::setVel(const RVec& vel)  {
 }
 
 // Enforce coordinate constraints -- order doesn't matter.
-void RigidBodyTree::enforceTreeConstraints(RVec& pos, RVec& vel) {
+void RigidBodyTree::enforceTreeConstraints(Vector& pos, Vector& vel) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++) 
             rbNodeLevels[i][j]->enforceConstraints(pos,vel);
 }
 
 // Enforce loop constraints.
-void RigidBodyTree::enforceConstraints(RVec& pos, RVec& vel) {
+void RigidBodyTree::enforceConstraints(Vector& pos, Vector& vel) {
     lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
 }
 
@@ -271,7 +270,7 @@ void RigidBodyTree::calcTreeAccel() {
             rbNodeLevels[i][j]->calcAccel();
 }
 
-void RigidBodyTree::fixVel0(RVec& vel) {
+void RigidBodyTree::fixVel0(Vector& vel) {
     lConstraints->fixVel0(vel);
 }
 
@@ -285,33 +284,33 @@ void RigidBodyTree::calcTreeInternalForces(const CDSVecVec6& spatialForces) {
 }
 
 // Retrieve already-computed internal forces (order doesn't matter).
-void RigidBodyTree::getInternalForces(RVec& T) {
+void RigidBodyTree::getInternalForces(Vector& T) {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getInternalForce(T);
 }
 
-void RigidBodyTree::getConstraintCorrectedInternalForces(RVec& T) {
+void RigidBodyTree::getConstraintCorrectedInternalForces(Vector& T) {
     getInternalForces(T);
     lConstraints->fixGradient(T);
 }
 
 // Get current generalized coordinates (order doesn't matter).
-void RigidBodyTree::getPos(RVec& pos) const {
+void RigidBodyTree::getPos(Vector& pos) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getPos(pos); 
 }
 
 // Get current generalized speeds (order doesn't matter).
-void RigidBodyTree::getVel(RVec& vel) const {
+void RigidBodyTree::getVel(Vector& vel) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getVel(vel); 
 }
 
 // Retrieve already-calculated accelerations (order doesn't matter)
-void RigidBodyTree::getAcc(RVec& acc) const {
+void RigidBodyTree::getAcc(Vector& acc) const {
     for (int i=0 ; i<rbNodeLevels.size() ; i++)
         for (int j=0 ; j<rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getAccel(acc);
