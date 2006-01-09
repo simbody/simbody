@@ -1,13 +1,13 @@
-#ifndef __newtonRaphson_h__
-#define __newtonRaphson_h__
+#ifndef CDS_NEWTON_RAPHSON_H_
+#define CDS_NEWTON_RAPHSON_H_
 
-#include <cdsMath.h>
-#include <cdsExcept.h>
+#include "cdsMath.h"
+#include "cdsExcept.h"
 
 #include <iostream>
 using namespace std;
 
-class NewtonRaphson {
+class CDSNewtonRaphson {
 public:
     int    maxMin;
     int    maxIters;
@@ -16,7 +16,7 @@ public:
     double zTol;  // minimization will quit if gradient norm is smaller
     ostream& errStream;
 
-    NewtonRaphson(ostream& errStream=cerr)
+    CDSNewtonRaphson(ostream& errStream=cerr)
       : maxMin( 20 ) , maxIters( 20 ), verbose(0), tol(1e-8), 
         zTol( 1e-8 ), errStream(errStream)
     { }
@@ -25,14 +25,14 @@ public:
     void calc(VecType& x, CalcB calcB, CalcZ calcZ) 
     {
         if ( verbose )
-            errStream << "NewtonRaphson: start.\n";
+            errStream << "CDSNewtonRaphson: start.\n";
         VecType b = calcB(x);
         double norm = sqrt(abs2(b)) / x.size();
         double zTol2 = CDSMath::sq(zTol * x.size());
         double onorm=norm;
         int  iters=0;
         if ( verbose )
-            errStream << "NewtonRaphson: iter: " 
+            errStream << "CDSNewtonRaphson: iter: " 
                       << iters << "  norm: " << norm << '\n';
         bool finished=(norm < tol);
         while (!finished) {
@@ -47,22 +47,22 @@ public:
             norm = sqrt(abs2(b)) / x.size();
 
             if ( norm > onorm && verbose)
-                errStream << "NewtonRaphson: newton-Raphson failed."
+                errStream << "CDSNewtonRaphson: newton-Raphson failed."
                           << " Trying gradient search.\n";
 
             int mincnt = maxMin;
             z *= -1.0;
             while ( norm > onorm ) {
                 if ( mincnt < 1 ) 
-                    throw Fail("NewtonRaphson: too many minimization steps taken.\n");
+                    throw Fail("CDSNewtonRaphson: too many minimization steps taken.\n");
                 z *= 0.5;
                 if ( abs2(z) < zTol2 )
-                    throw Fail("NewtonRaphson: minimization: gradient too small.\n");
+                    throw Fail("CDSNewtonRaphson: minimization: gradient too small.\n");
                 x = ox + z;
                 b = calcB(x);
                 norm = sqrt(abs2(b)) / x.size();
                 if ( verbose )
-                    errStream << "NewtonRaphson: iter: " 
+                    errStream << "CDSNewtonRaphson: iter: " 
                               << iters << "  norm: " << norm << '\n';
                 mincnt--;
             }
@@ -70,13 +70,13 @@ public:
             onorm = norm;
 
             if ( verbose )
-                errStream << "NewtonRaphson: iter: " 
+                errStream << "CDSNewtonRaphson: iter: " 
                           << iters << "  norm: " << norm << '\n';
             
             if (norm < tol)
                 finished=1;
             if (iters > maxIters) 
-                throw Fail("NewtonRaphson: maxIters exceeded");
+                throw Fail("CDSNewtonRaphson: maxIters exceeded");
         }
     }
 
@@ -86,4 +86,4 @@ public:
     };
 };
 
-#endif /* __newtonRaphson_h__ */
+#endif // CDS_NEWTON_RAPHSON_H_

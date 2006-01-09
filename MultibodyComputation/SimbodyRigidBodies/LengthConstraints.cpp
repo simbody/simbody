@@ -23,7 +23,6 @@ using namespace simtk;
 #include "cdsVec3.h"
 #include "cdsListAutoPtr.h"
 #include "cdsMath.h"
-#include "cdsMatrix.h"
 #include "fixedVector.h"
 #include "subVector.h"
 #include "subMatrix.h"
@@ -35,12 +34,6 @@ using namespace simtk;
 using namespace CDS;
 using MatrixTools::inverse;
 #endif /* USE_CDS_NAMESPACE */
-
-typedef CDSMatrix<double>     RMat;
-typedef CDSVector<double,0>   RVec0;
-typedef SubVector<RVec>       SubVec;
-typedef SubVector<const RVec> ConstSubVec;
-typedef SubMatrix<RMat>       SubMat;
 
 class LoopWNodes;
 static int compareLevel(const LoopWNodes& l1,    //forward declarations
@@ -218,33 +211,33 @@ public:
         return found;
     }
 
-    void  setPos(const RVec& pos) const;
-    void  setVel(const RVec& vel) const;
-    RVec  getPos();
-    RVec0 calcPosB(const RVec& pos) const;
-    RVec0 calcVelB(const RVec& pos, const RVec& vel) const;
-    RVec  calcPosZ(const RVec& b) const;
-    RMat  calcGrad() const;
-    RMat  calcGInverse() const;
+    void  setPos(const Vector& pos) const;
+    void  setVel(const Vector& vel) const;
+    Vector getPos();
+    Vector calcPosB(const Vector& pos) const;
+    Vector calcVelB(const Vector& pos, const Vector& vel) const;
+    Vector calcPosZ(const Vector& b) const;
+    Matrix calcGrad() const;
+    Matrix calcGInverse() const;
 
     void  calcConstraintForces() const; // updates runtime only
     void  addInCorrectionForces(CDSVecVec6& spatialForces) const; // spatialForces+=correction
 
-    void  fixVel0(RVec&);
-    void  fixInternalForce(RVec&);
-    RVec0 multiForce(const RVec&, const RMat& mat);
-    void  addForce(RVec&, const RVec& ve);
+    void   fixVel0(Vector&);
+    void   fixInternalForce(Vector&);
+    Vector multiForce(const Vector&, const Matrix& mat);
+    void   addForce(Vector&, const Vector& ve);
 
     void testAccel();
-    void testInternalForce(const RVec&);
+    void testInternalForce(const Vector&);
     friend ostream& operator<<(ostream& os, const LengthSet& s);
     friend class CalcPosB;
     friend class CalcVelB;
     friend class CalcPosZ;
     friend class CalcVelZ;
 
-    void fdgradf(const RVec& pos, RMat& grad) const;
-    void testGrad(const RVec& pos, const RMat& grad) const;
+    void fdgradf(const Vector& pos, Matrix& grad) const;
+    void testGrad(const Vector& pos, const Matrix& grad) const;
 };
 
 ostream& 
@@ -391,7 +384,7 @@ class CalcPosB {
 public:
     CalcPosB(const LengthSet* constraint)
         : constraint(constraint) {}
-    RVec0 operator()(const RVec& pos) const
+    Vector operator()(const Vector& pos) const
         { return constraint->calcPosB(pos); }
 };
 
@@ -399,29 +392,29 @@ class CalcPosZ {
     const LengthSet* constraint;
 public:
     CalcPosZ(const LengthSet* constraint) : constraint(constraint) {}
-    RVec0 operator()(const RVec& b) const 
+    Vector operator()(const Vector& b) const 
         { return constraint->calcPosZ(b); }
 };
 
 class CalcVelB {
     const LengthSet* constraint;
-    const RVec& pos;
+    const Vector& pos;
 public:
-    CalcVelB(const LengthSet* constraint, const RVec& pos)
+    CalcVelB(const LengthSet* constraint, const Vector& pos)
         : constraint(constraint), pos(pos) {}
-    RVec0 operator()(const RVec& vel) 
+    Vector operator()(const Vector& vel) 
         { return constraint->calcVelB(pos,vel); }
 };
 
 //
 // calculate the constraint violation (zero when constraint met)
 //
-RVec0
-LengthSet::calcPosB(const RVec& pos) const
+Vector
+LengthSet::calcPosB(const Vector& pos) const
 {
     setPos(pos);
 
-    RVec0 b( loops.size() );
+    Vector b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) 
         b(i) = loops[i].getDistance() - 
                 sqrt(abs2(loops[i].tipPos(1) - loops[i].tipPos(2)));
@@ -431,13 +424,13 @@ LengthSet::calcPosB(const RVec& pos) const
 //
 // calculate the constraint violation (zero when constraint met)
 //
-RVec0
-LengthSet::calcVelB(const RVec& pos, const RVec& vel) const 
+Vector
+LengthSet::calcVelB(const Vector& pos, const Vector& vel) const 
 {
     setPos(pos); // TODO (sherm: this is probably redundant)
     setVel(vel);
 
-    RVec0 b( loops.size() );
+    Vector b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
         // TODO why the minus sign here? (doesn't work right without it) sherm
         b(i) = -dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
@@ -452,16 +445,18 @@ LengthSet::calcVelB(const RVec& pos, const RVec& vel) const
 // a state update which should drive those violations to zero (if they
 // were linear).
 //
-RVec
-LengthSet::calcPosZ(const RVec& b) const
+Vector
+LengthSet::calcPosZ(const Vector& b) const
 {
-    RVec dir = calcGInverse() * b;
-    RVec z(rbTree.getDim(),0.0);
+    const Vector dir = calcGInverse() * b;
+    Vector       z(rbTree.getDim(),0.0);
 
     // map the vector dir back to the appropriate elements of z
-    for (int i=0 ; i<nodeMap.size() ; i++) 
-        SubVec(z,nodeMap[i]->getStateOffset(), nodeMap[i]->getDim())
-            = SubVec(dir,i+1,nodeMap[i]->getDim());
+    for (int i=0 ; i<nodeMap.size() ; i++) {
+        const int dim  = nodeMap[i]->getDim();
+        const int offs = nodeMap[i]->getStateOffset();
+        z(offs,dim) = dir(i,dim);
+    }
 
     return z;
 }
@@ -473,18 +468,21 @@ LengthSet::calcPosZ(const RVec& b) const
 //
 class CalcVelZ {
     const LengthSet* constraint;
-    const RMat       gInverse;
+    const Matrix     gInverse;
 public:
     CalcVelZ(const LengthSet* constraint)
       : constraint(constraint), gInverse(constraint->calcGInverse()) {}
-    RVec operator()(const RVec& b) {
-        RVec dir = gInverse * b;
-        RVec z(constraint->rbTree.getDim(),0.0);
+
+    Vector operator()(const Vector& b) {
+        const Vector dir = gInverse * b;
+        Vector       z(constraint->rbTree.getDim(),0.0);
 
         // map the vector dir back to the appropriate elements of z
         for (int i=0 ; i<constraint->nodeMap.size() ; i++) {
             const RigidBodyNode* n = constraint->nodeMap[i];
-            SubVec(z,n->getStateOffset(),n->getDim()) =  SubVec(dir,i+1,n->getDim());
+            const int dim  = n->getDim();
+            const int offs = n->getStateOffset();
+            z(offs,dim) = dir(i,dim);
         }
         return z;
     }
@@ -497,7 +495,7 @@ public:
 // (that is, after the position correction. I don't think that is happening
 // below.
 void
-LengthConstraints::enforce(RVec& pos, RVec& vel)
+LengthConstraints::enforce(Vector& pos, Vector& vel)
 {
     priv->posMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
     priv->velMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
@@ -546,7 +544,7 @@ LengthConstraints::enforce(RVec& pos, RVec& vel)
 //
 
 
-void LengthSet::setPos(const RVec& pos) const
+void LengthSet::setPos(const Vector& pos) const
 {
     for (int i=0 ; i<nodeMap.size() ; i++)
         nodeMap[i]->setPos(pos); //also calc necessary properties
@@ -556,7 +554,7 @@ void LengthSet::setPos(const RVec& pos) const
 }
 
 // Must have called LengthSet::setPos() already.
-void LengthSet::setVel(const RVec& vel) const
+void LengthSet::setVel(const Vector& vel) const
 {
     for (int i=0 ; i<nodeMap.size() ; i++)
         nodeMap[i]->setVel(vel); //also calc necessary properties
@@ -575,21 +573,21 @@ void LengthSet::setVel(const RVec& vel) const
 // version. Presumes that calcEnergy has been called previously with current 
 // value of ipos.
 void 
-LengthSet::fdgradf( const RVec& pos,
-                    RMat&       grad) const 
+LengthSet::fdgradf( const Vector& pos,
+                    Matrix&       grad) const 
 {
     // Gradf gradf(tree);
     // gradf(x,grad); return;
     const double eps = 1e-8;
     const CalcPosB calcB(this);
-    const RVec0 b = calcB(pos);
+    const Vector b = calcB(pos);
     int grad_indx=0;
     for (int i=0 ; i<nodeMap.size() ; i++) {
         int pos_indx=nodeMap[i]->getStateOffset();
         for (int j=0 ; j<nodeMap[i]->getDim() ; j++,pos_indx++,grad_indx++) {
-            RVec posp = pos;
+            Vector posp = pos;
             posp(pos_indx) += eps;
-            const RVec0 bp = calcB(posp);
+            const Vector bp = calcB(posp);
             for (int k=0 ; k<b.size() ; k++)
                 grad(grad_indx,k) = -(bp(k)-b(k)) / eps;
         }
@@ -597,16 +595,16 @@ LengthSet::fdgradf( const RVec& pos,
 }
 
 void 
-LengthSet::testGrad(const RVec& pos, const RMat& grad) const
+LengthSet::testGrad(const Vector& pos, const Matrix& grad) const
 {
     double tol = 1e-4;
     // Costf costf(tree);
     // double f = costf(x);
-    RMat fdgrad(dim,loops.size());
+    Matrix fdgrad(dim,loops.size());
     fdgradf(pos,fdgrad);
 
-    for (int i=0 ; i<grad.rows() ; i++)
-        for (int j=0 ; j<grad.cols() ; j++)
+    for (int i=0 ; i<grad.nrow() ; i++)
+        for (int j=0 ; j<grad.ncol() ; j++)
             if (fabs(grad(i,j)-fdgrad(i,j)) > fabs(tol))
                 cout << "testGrad: error in gradient: " 
                      << setw(2) << i << ' '
@@ -621,10 +619,10 @@ LengthSet::testGrad(const RVec& pos, const RMat& grad) const
 //
 // sherm: this appears to calculate the transpose of G
 //
-RMat
+Matrix
 LengthSet::calcGrad() const
 {
-    RMat grad(dim,loops.size(),0.0);
+    Matrix grad(dim,loops.size(),0.0);
     CDSMat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
 
     for (int i=0 ; i<loops.size() ; i++) {
@@ -650,11 +648,11 @@ LengthSet::calcGrad() const
                                         l.tips(b).getNode().getOB_G()), one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
-            RMat H = MatrixTools::transpose(nodeMap[j]->getH());
+            const Matrix H = ~nodeMap[j]->getH();
             double elem=0.0;
             int l1_indx = l.nodes(1).getIndex(nodeMap[j]);
             int l2_indx = l.nodes(2).getIndex(nodeMap[j]);
-            for (int k=0 ; k<H.cols() ; k++) {
+            for (int k=0 ; k<H.ncol() ; k++) {
                 CDSVec6 Hcol = subCol(H,k,0,5).vector();
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
@@ -669,11 +667,11 @@ LengthSet::calcGrad() const
 } 
 
 static double 
-abs2(const RMat& m)
+abs2(const Matrix& m)
 {
     double ret=0.;
-    for (int i=0 ; i<m.rows() ; i++)
-        for (int j=0 ; j<m.cols() ; j++)
+    for (int i=0 ; i<m.nrow() ; i++)
+        for (int j=0 ; j<m.ncol() ; j++)
             ret += CDSMath::sq( m(i,j) );
     return ret;
 }
@@ -686,18 +684,18 @@ abs2(const RMat& m)
 //     Want least squares solution x to G'x=b. Normal equations are
 //     GG'x=Gb, x=inv(GG')Gb ??? [returning G inv(G'G) below] ???
 //     ??? either this is wrong or I don't understand
-RMat
+Matrix
 LengthSet::calcGInverse() const
 {
-    RMat grad = calcGrad(); // <-- appears to be transpose of the actual dg/dtheta
+    Matrix grad = calcGrad(); // <-- appears to be transpose of the actual dg/dtheta
     if ( verbose & InternalDynamics::printLoopDebug ) {
-        RVec pos(rbTree.getDim()); rbTree.getPos(pos);
+        Vector pos(rbTree.getDim()); rbTree.getPos(pos);
         testGrad(pos,grad);
     }
 
-    RMat ret(grad.rows(),grad.rows(),0.0); // <-- wrong dimension ??? sherm TODO
+    Matrix ret(grad.nrow(),grad.nrow(),0.0); // <-- wrong dimension ??? sherm TODO
     if ( abs2(grad) > 1e-10 ) 
-        ret = grad * inverse( MatrixTools::transpose(grad)*grad );
+        ret = grad * inverse( ~grad*grad );
     return ret;
 }
 
@@ -727,7 +725,7 @@ void LengthConstraints::addInCorrectionForces(CDSVecVec6& spatialForces) const {
 }
 
 void 
-LengthConstraints::fixGradient(RVec& forceInternal)
+LengthConstraints::fixGradient(Vector& forceInternal)
 {
     if ( priv->constraints.size() == 0 )
         return;
@@ -822,7 +820,7 @@ LengthSet::calcConstraintForces() const
     // LengthSet. We get a single scalar error per loop, since each
     // contains one distance constraint.
     // See Eq. [53] and the last term of Eq. [66].
-    RVec0 rhs(loops.size(),0.);
+    Vector rhs(loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
         rhs(i) = abs2(loops[i].tipVel(2) - loops[i].tipVel(1))
                    + dot(loops[i].tipAcc(2) - loops[i].tipAcc(1) , 
@@ -832,7 +830,7 @@ LengthSet::calcConstraintForces() const
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
     // the constrained points and Q is the constraint Jacobian. See first 
     // term of Eq. [66].
-    RMat A(loops.size(),loops.size(),0.);
+    Matrix A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
         const CDSVec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
         for (int bi=1 ; bi<=2 ; bi++)
@@ -866,7 +864,7 @@ LengthSet::calcConstraintForces() const
             A(i,j) = A(j,i);
 
     //FIX: using inverse is inefficient
-    const RVec0 lambda = inverse(A) * rhs;
+    const Vector lambda = inverse(A) * rhs;
 
     // add forces due to these constraints
     for (int i=0 ; i<loops.size() ; i++) {
@@ -906,68 +904,69 @@ void LengthSet::testAccel()
 // Fix internal force such that it obeys the constraint conditions.
 //
 void
-LengthSet::fixInternalForce(RVec& forceInternal)
+LengthSet::fixInternalForce(Vector& forceInternal)
 {
-    RMat  grad = calcGrad();
+    Matrix  grad = calcGrad();
     if ( verbose & InternalDynamics::printLoopDebug ) {
-        RVec pos(rbTree.getDim()); rbTree.getPos(pos);
+        Vector pos(rbTree.getDim()); 
+        rbTree.getPos(pos);
         testGrad(pos,grad);
     }
-    RVec0 rhs  = multiForce(forceInternal,grad); 
+    const Vector rhs  = multiForce(forceInternal,grad); 
 
-    RMat A = MatrixTools::transpose(grad) * grad;
+    const Matrix A = ~grad * grad;
 
     //FIX: using inverse is inefficient
-    RVec0 lambda = inverse(A) * rhs;
+    const Vector lambda = inverse(A) * rhs;
 
     // add forces due to these constraints
     addForce(forceInternal, grad * lambda); 
 }
 
-RVec0 
-LengthSet::multiForce(const RVec& forceInternal, const RMat& mat)
+Vector 
+LengthSet::multiForce(const Vector& forceInternal, const Matrix& mat)
 {
-    RVec vec(dim);    //build vector same size as smallMat
-    int indx=1;
+    Vector vec(dim);    //build vector same size as smallMat
+    int indx=0;
     for (int j=0 ; j<nodeMap.size() ; j++) {
-        int dim = nodeMap[j]->getDim();
-        SubVec(vec,indx,dim) =
-            ConstSubVec(forceInternal, nodeMap[j]->getStateOffset(),dim).vector();
+        const int dim  = nodeMap[j]->getDim();
+        const int offs = nodeMap[j]->getStateOffset();
+        vec(indx,dim) = forceInternal(offs,dim);
         indx += dim;
     }
 
     //FIX: using transpose is inefficient
-    RVec0 ret = MatrixTools::transpose(mat) * vec; 
+    const Vector ret = MatrixTools::transpose(mat) * vec; 
     return ret;
 }
 
 void
-LengthSet::addForce(RVec& forceInternal,
-                    const RVec& vec)
+LengthSet::addForce(Vector& forceInternal,
+                    const Vector& vec)
 {
-    int indx=1;
+    int indx=0;
     for (int j=0 ; j<nodeMap.size() ; j++) {
-        const int dim = nodeMap[j]->getDim();
-        SubVec(forceInternal, nodeMap[j]->getStateOffset(),dim)
-            -= ConstSubVec(vec,indx,dim);
+        const int dim  = nodeMap[j]->getDim();
+        const int offs = nodeMap[j]->getStateOffset();
+        forceInternal(offs,dim) -= vec(indx,dim);
         indx += dim;
     }
 }
 
 void
-LengthSet::testInternalForce(const RVec& forceInternal)
+LengthSet::testInternalForce(const Vector& forceInternal)
 {
-    RVec vec(dim);    //build vector same size as smallMat (index from 1)
-    int indx=1;
+    Vector vec(dim);    //build vector same size as smallMat (index from 1)
+    int indx=0;
     for (int j=0 ; j<nodeMap.size() ; j++) {
-        const int dim = nodeMap[j]->getDim();
-        SubVec(vec,indx,dim) = 
-            ConstSubVec(forceInternal,nodeMap[j]->getStateOffset(),dim).vector();
+        const int dim  = nodeMap[j]->getDim();
+        const int offs = nodeMap[j]->getStateOffset();
+        vec(indx,dim) = forceInternal(offs,dim);
         indx += dim;
     }
 
-    RMat grad = calcGrad();
-    RVec0 test = MatrixTools::transpose(grad) * vec;
+    const Matrix grad = calcGrad();
+    const Vector test = MatrixTools::transpose(grad) * vec;
 
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
@@ -980,7 +979,7 @@ LengthSet::testInternalForce(const RVec& forceInternal)
 }
 
 void
-LengthConstraints::fixVel0(RVec& iVel)
+LengthConstraints::fixVel0(Vector& iVel)
 {
     // use molecule grouping
     for (int i=0 ; i<priv->accConstraints.size() ; i++)
@@ -993,20 +992,20 @@ LengthConstraints::fixVel0(RVec& iVel)
 // small as possible.
 //
 void
-LengthSet::fixVel0(RVec& iVel)
+LengthSet::fixVel0(Vector& iVel)
 {
     // store internal velocities
-    RVec iVel0 = iVel;
+    Vector iVel0 = iVel;
 
-    CDSVector<double> rhs(loops.size());
+    Vector rhs(loops.size());
     for (int k=0 ; k<loops.size() ; k++) 
         rhs(k) = dot(loops[k].tipPos(2) - loops[k].tipPos(1) ,
                      loops[k].tipVel(2) - loops[k].tipVel(1));
 
-    RMat mat(loops.size(),loops.size());
-    CDSList<RVec> deltaIVel(loops.size(),0);
+    Matrix mat(loops.size(),loops.size());
+    CDSList<Vector> deltaIVel(loops.size(),0);
     for (int m=0 ; m<loops.size() ; m++) {
-        iVel.set(0.0);
+        iVel = 0.;
         rbTree.setVel( iVel );
         deltaIVel[m].resize(iVel.size());
 
@@ -1042,7 +1041,7 @@ LengthSet::fixVel0(RVec& iVel)
 
         //store results of l-th constraint on deltaVa-k
     }
-    RVec0 lambda = inverse(mat) * rhs;
+    const Vector lambda = inverse(mat) * rhs;
 
     iVel = iVel0;
     for (l_int m=0 ; m<loops.size() ; m++)

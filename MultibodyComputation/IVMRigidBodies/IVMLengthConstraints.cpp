@@ -27,7 +27,7 @@
 #include "subVector.h"
 #include "subMatrix.h"
 #include "matrixTools.h"
-#include "newtonRaphson.h"
+#include "cdsNewtonRaphson.h"
 #include "cdsIomanip.h"
 
 #ifdef USE_CDS_NAMESPACE 
@@ -263,7 +263,7 @@ public:
 public:
     CDSListAutoPtr<IVMLengthSet> constraints;     // used for pos, vel
     CDSListAutoPtr<IVMLengthSet> accConstraints;  // used for acc
-    NewtonRaphson             posMin, velMin;
+    CDSNewtonRaphson             posMin, velMin;
 };
 
 IVMLengthConstraints::IVMLengthConstraints(IVMRigidBodyTree& rbt, const double& ctol, int vbose)
@@ -518,7 +518,7 @@ IVMLengthConstraints::enforce(RVec& pos, RVec& vel)
                               CalcVelZ(priv->constraints[i].get()));
         }
     }
-    catch ( NewtonRaphson::Fail cptn ) {
+    catch ( CDSNewtonRaphson::Fail cptn ) {
         cout << "IVMLengthConstraints::enforce: exception: "
              << cptn.mess << '\n';
     } 

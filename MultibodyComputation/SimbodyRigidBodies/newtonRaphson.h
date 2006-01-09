@@ -1,8 +1,8 @@
-#ifndef __newtonRaphson_h__
-#define __newtonRaphson_h__
+#ifndef NEWTON_RAPHSON_H_
+#define NEWTON_RAPHSON_H_
 
-#include <cdsMath.h>
-#include <cdsExcept.h>
+#include "cdsMath.h"
+#include "cdsExcept.h"
 
 #include <iostream>
 using namespace std;
@@ -86,4 +86,4 @@ public:
     };
 };
 
-#endif /* __newtonRaphson_h__ */
+#endif // NEWTON_RAPHSON_H_
