@@ -27,7 +27,7 @@ public:
         if ( verbose )
             errStream << "NewtonRaphson: start.\n";
         VecType b = calcB(x);
-        double norm = sqrt(abs2(b)) / x.size();
+        double norm = b.norm() / x.size();
         double zTol2 = CDSMath::sq(zTol * x.size());
         double onorm=norm;
         int  iters=0;
@@ -44,7 +44,7 @@ public:
             iters++;
 
             b = calcB(x);
-            norm = sqrt(abs2(b)) / x.size();
+            norm = b.norm() / x.size();
 
             if ( norm > onorm && verbose)
                 errStream << "NewtonRaphson: newton-Raphson failed."
@@ -56,11 +56,11 @@ public:
                 if ( mincnt < 1 ) 
                     throw Fail("NewtonRaphson: too many minimization steps taken.\n");
                 z *= 0.5;
-                if ( abs2(z) < zTol2 )
+                if ( z.normSqr() < zTol2 )
                     throw Fail("NewtonRaphson: minimization: gradient too small.\n");
                 x = ox + z;
                 b = calcB(x);
-                norm = sqrt(abs2(b)) / x.size();
+                norm = b.norm() / x.size();
                 if ( verbose )
                     errStream << "NewtonRaphson: iter: " 
                               << iters << "  norm: " << norm << '\n';

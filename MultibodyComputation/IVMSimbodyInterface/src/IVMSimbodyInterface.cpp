@@ -49,7 +49,7 @@ static SpatialVector toSpatialVector(const CDSVec6& v)
 
 static CDSVecVec6 toCDSVecVec6(const Array<SpatialVector>& a) {
     CDSVecVec6 vv(a.size());
-    for (size_t i=0; i < a.size(); ++i)
+    for (int i=0; i < (int)a.size(); ++i)
         vv(i) = toCDSVec6(a[i]);
     return vv;
 }
@@ -60,9 +60,9 @@ static CDSMat33 toCDSMat33(const Mat33& m) {
                     m(2,0), m(2,1), m(2,2));
 }
 static RVec toRVec(const Vector& v) {
-    RVec r((int)v.size());   // a 1-based vector
-    for (size_t i=0; i < v.size(); ++i)
-        r[(int)i+1] = v[i];
+    RVec r(v.size());   // a 1-based vector
+    for (int i=0; i < v.size(); ++i)
+        r[i+1] = v[i];
     return r;
 }
 static Vector toVector(const RVec& r) {

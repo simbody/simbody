@@ -653,7 +653,8 @@ LengthSet::calcGrad() const
             int l1_indx = l.nodes(1).getIndex(nodeMap[j]);
             int l2_indx = l.nodes(2).getIndex(nodeMap[j]);
             for (int k=0 ; k<H.ncol() ; k++) {
-                CDSVec6 Hcol = subCol(H,k,0,5).vector();
+                const Vec6 t = Vec6::getAs(&H(k)[0]);
+                CDSVec6 Hcol; for (int ii=0;ii<6;++ii) Hcol[ii]=t[ii]; // TODO
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
@@ -689,7 +690,8 @@ LengthSet::calcGInverse() const
 {
     Matrix grad = calcGrad(); // <-- appears to be transpose of the actual dg/dtheta
     if ( verbose & InternalDynamics::printLoopDebug ) {
-        Vector pos(rbTree.getDim()); rbTree.getPos(pos);
+        Vector pos(rbTree.getDim()); 
+        rbTree.getPos(pos);
         testGrad(pos,grad);
     }
 
@@ -935,8 +937,7 @@ LengthSet::multiForce(const Vector& forceInternal, const Matrix& mat)
         indx += dim;
     }
 
-    //FIX: using transpose is inefficient
-    const Vector ret = MatrixTools::transpose(mat) * vec; 
+    const Vector ret = ~mat * vec; 
     return ret;
 }
 
@@ -966,7 +967,7 @@ LengthSet::testInternalForce(const Vector& forceInternal)
     }
 
     const Matrix grad = calcGrad();
-    const Vector test = MatrixTools::transpose(grad) * vec;
+    const Vector test = ~grad * vec;
 
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {

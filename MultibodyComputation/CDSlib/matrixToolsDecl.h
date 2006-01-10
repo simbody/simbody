@@ -16,7 +16,7 @@ namespace MatrixTools {
 template<class MATRIX>
 CDSVector<typename MATRIX::ElementType>
 getColumn(const MATRIX&,
-	  const int);
+	      const int);
 
   //
   // return a row of the matrix
@@ -32,8 +32,8 @@ getRow(const MATRIX&,
 template<class MATRIX, class VECTOR>
 void
 setColumn(      MATRIX&,
-	  const int,
-	  const VECTOR&);
+	      const int,
+	      const VECTOR&);
 
   //
   // set a row of the matrix
@@ -59,24 +59,22 @@ template<class T> class InverseResults; //forward decl.
 template<class T>
 class InverseResults<FullMatrix<T> >{
 public:
-  CDSVector<T> work;
-  int          info;
+    CDSVector<T> work;
+    int          info;
 };
 
 template<class T>
 class InverseResults<SymmetricMatrix<T> >{
 public:
-  CDSVector<T> work;
-  int          info;
+    CDSVector<T> work;
+    int          info;
 };
 
-template<class MATRIX>
-MATRIX
+template<class MATRIX> MATRIX
 inverse(const MATRIX& matrix,
-	      InverseResults<typename MATRIX::MatrixType> ret);
+	    InverseResults<typename MATRIX::MatrixType> ret);
 
-template<class MATRIX> inline
-MATRIX
+template<class MATRIX> inline MATRIX
 inverse(const MATRIX& matrix)
 { return inverse(matrix, InverseResults<typename MATRIX::MatrixType>()); }
 
@@ -113,11 +111,11 @@ svd(const MATRIX&                                  m,
 template<class T>
 class SVDResults {
 public:
-  CDSVector<T> sigma;
-  CDSMatrix<T> u;
-  CDSMatrix<T> vT;
-  CDSVector<T> work;
-  int          info;
+    CDSVector<T> sigma;
+    CDSMatrix<T> u;
+    CDSMatrix<T> vT;
+    CDSVector<T> work;
+    int          info;
 };
 
 template<class T> class EigenResults; //forward decl.
@@ -141,30 +139,31 @@ eigen(const MATRIX&                  m,
 template<class T>
 class EigenResults<FullMatrix<T> >{
 public:
-  struct EigenPair { 
-    CDS::CDSComplex<T> value;
-    CDSVector< CDS::CDSComplex<T> > vector;
-  };
-  //pairs are returned in complex conjugate pairs
-  CDSList< EigenPair > eigenPairs;
-  CDSVector<T> work;
-  int          info;
+    struct EigenPair { 
+        CDS::CDSComplex<T> value;
+        CDSVector< CDS::CDSComplex<T> > vector;
+    };
+
+    //pairs are returned in complex conjugate pairs
+    CDSList< EigenPair > eigenPairs;
+    CDSVector<T> work;
+    int          info;
 };
 
 template<class T>
 class EigenResults<SymmetricMatrix<T> > {
 public:
-  //currently only setup for symmetric matrices
-  struct EigenPair { 
-    T value;
-    CDSVector<T> vector;
-  };
-  //pairs are returned in order of magnitude of the eigenvalue,
-  // smallest to largest
-public: // ??
-  CDSList< EigenPair > eigenPairs;
-  CDSVector<T> work;
-  int          info;
+    //currently only setup for symmetric matrices
+    struct EigenPair { 
+        T            value;
+        CDSVector<T> vector;
+    };
+
+    //pairs are returned in order of magnitude of the eigenvalue,
+    // smallest to largest
+    CDSList< EigenPair > eigenPairs;
+    CDSVector<T> work;
+    int          info;
 };
 
 template<class MATRIX>
