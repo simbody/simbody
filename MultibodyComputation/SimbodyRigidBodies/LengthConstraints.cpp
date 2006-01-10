@@ -32,7 +32,6 @@ using namespace simtk;
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
-using MatrixTools::inverse;
 #endif /* USE_CDS_NAMESPACE */
 
 class LoopWNodes;
@@ -697,7 +696,7 @@ LengthSet::calcGInverse() const
 
     Matrix ret(grad.nrow(),grad.nrow(),0.0); // <-- wrong dimension ??? sherm TODO
     if ( abs2(grad) > 1e-10 ) 
-        ret = grad * inverse( ~grad*grad );
+        ret = grad * (~grad*grad).invert();
     return ret;
 }
 
@@ -866,7 +865,7 @@ LengthSet::calcConstraintForces() const
             A(i,j) = A(j,i);
 
     //FIX: using inverse is inefficient
-    const Vector lambda = inverse(A) * rhs;
+    const Vector lambda = A.invert() * rhs;
 
     // add forces due to these constraints
     for (int i=0 ; i<loops.size() ; i++) {
@@ -919,7 +918,7 @@ LengthSet::fixInternalForce(Vector& forceInternal)
     const Matrix A = ~grad * grad;
 
     //FIX: using inverse is inefficient
-    const Vector lambda = inverse(A) * rhs;
+    const Vector lambda = A.invert() * rhs;
 
     // add forces due to these constraints
     addForce(forceInternal, grad * lambda); 
@@ -1042,10 +1041,10 @@ LengthSet::fixVel0(Vector& iVel)
 
         //store results of l-th constraint on deltaVa-k
     }
-    const Vector lambda = inverse(mat) * rhs;
+    const Vector lambda = mat.invert() * rhs;
 
     iVel = iVel0;
-    for (l_int m=0 ; m<loops.size() ; m++)
+    for (int m=0 ; m<loops.size() ; m++)
         iVel -= lambda(m) * deltaIVel[m];
 
     rbTree.setVel(iVel);
