@@ -22,7 +22,7 @@ namespace simtk {
 // Spatial configuration has to be handled differently though since
 // orientation is not a vector quantity. (We use "Frame" for this concept
 // which includes an orientation matrix and a translation vector.)
-typedef Vec<2, Vec3> SpatialVector;
+typedef Vec<2, Vec3> SpatialVec;
 
 /**
  * The physical meaning of an inertia is the distribution of

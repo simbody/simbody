@@ -39,15 +39,15 @@ using std::endl;
 
 static CDSVec3 toCDSVec3(const Vec3& v) {return CDSVec3(v[0],v[1],v[2]);}
 static Vec3    toVec3(const CDSVec3& v) {return Vec3(v[0],v[1],v[2]);}
-static CDSVec6 toCDSVec6(const SpatialVector& v) { 
+static CDSVec6 toCDSVec6(const SpatialVec& v) { 
     CDSVec6 cv;
     for (int i=0; i<3; ++i) cv[i] = v[0][i], cv[i+3] = v[1][i];
     return cv;
 }
-static SpatialVector toSpatialVector(const CDSVec6& v) 
-  { return SpatialVector(Vec3(v[0],v[1],v[2]),Vec3(v[3],v[4],v[5])); }
+static SpatialVec toSpatialVector(const CDSVec6& v) 
+  { return SpatialVec(Vec3(v[0],v[1],v[2]),Vec3(v[3],v[4],v[5])); }
 
-static CDSVecVec6 toCDSVecVec6(const Array<SpatialVector>& a) {
+static CDSVecVec6 toCDSVecVec6(const Array<SpatialVec>& a) {
     CDSVecVec6 vv(a.size());
     for (int i=0; i < (int)a.size(); ++i)
         vv(i) = toCDSVec6(a[i]);
@@ -73,8 +73,8 @@ static Mat33 toMat33(const CDSMat33& m) {
                  Row3(m(1,0), m(1,1), m(1,2)),
                  Row3(m(2,0), m(2,1), m(2,2)));
 }
-static RBInertia toRBInertia(const MatInertia& i) {
-    return RBInertia(toCDSMat33(i.toMat33()));
+static IVMInertia toIVMInertia(const MatInertia& i) {
+    return IVMInertia(toCDSMat33(i.toMat33()));
 }
 static MatInertia toMatInertia(const RBInertia& i) {
     return MatInertia(toMat33(i));
@@ -84,20 +84,21 @@ static MatRotation toMatRotation(const CDSMat33& m) {
     return reinterpret_cast<const MatRotation&>(m33);
 }
 
-static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
-    return RBMassProperties(m, toCDSVec3(c), toRBInertia(i));
+static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+    return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
 }
 
-static RBFrame toRBFrame(const Frame& f) {
-    return RBFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
+static IVMFrame toIVMFrame(const Frame& f) {
+    return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
 }
-static Frame toFrame(const RBFrame& f) {
+static Frame toFrame(const IVMFrame& f) {
     return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
 }
     // IVM SIMBODY INTERFACE //
 
-IVMSimbodyInterface::IVMSimbodyInterface(const Multibody& m) : rep(0) {
-    rep = new IVMSimbodyInterfaceRep(m);
+IVMSimbodyInterface::IVMSimbodyInterface(const Multibody& m, bool oldStyle) : rep(0) {
+    rep = oldStyle ? (IVMSimbodyInterfaceRep*)new OldIVMSimbodyInterfaceRep(m)
+                   : (IVMSimbodyInterfaceRep*)new NewIVMSimbodyInterfaceRep(m);
     rep->setMyHandle(*this);
 }
 
@@ -139,7 +140,7 @@ IVMSimbodyInterface::getQDot(const State& s) const {
 
 Vector 
 IVMSimbodyInterface::calcUDot(const State& s, 
-                              const Array<SpatialVector>& bodyForces,
+                              const Array<SpatialVec>& bodyForces,
                               const Vector& hingeForces) const
 {
     IVMRigidBodyTree& tree = const_cast<IVMSimbodyInterfaceRep*>(rep)->updRigidBodyTree();
@@ -168,10 +169,10 @@ IVMSimbodyInterface::getBodyConfiguration(const State&, const Body& b) const
     return F_GR.compose(F_RB);
 }
 
-SpatialVector // TODO: this should return a reference to a cache entry
+SpatialVec // TODO: this should return a reference to a cache entry
 IVMSimbodyInterface::getBodyVelocity(const State&, const Body& b) const
 {
-    return SpatialVector();
+    return SpatialVec();
 }
 
 State IVMSimbodyInterface::getDefaultState() const {
@@ -182,7 +183,7 @@ State IVMSimbodyInterface::getDefaultState() const {
 // The passed in point is measured from the Simbody origin OB and expressed in B. We 
 // want it measured from the IVM origin OR and expressed in G. And we want the force in G.
 void IVMSimbodyInterface::applyPointForce(const State& s, const Body& b, const Vec3& pt_B, const Vec3& frc_B, 
-                     Array<SpatialVector>& bodyForces) const
+                     Array<SpatialVec>& bodyForces) const
 {
     const RBTreeMap& info  = rep->getBodyInfo(b);
     const int        index = info.getRBIndex();
@@ -199,7 +200,7 @@ void IVMSimbodyInterface::applyPointForce(const State& s, const Body& b, const V
 }
 
 void IVMSimbodyInterface::applyBodyTorque(const State& s, const Body& b, const Vec3& trq_B, 
-                     Array<SpatialVector>& bodyForces) const
+                     Array<SpatialVec>& bodyForces) const
 {
     const RBTreeMap& info  = rep->getBodyInfo(b);
     const int        index = info.getRBIndex();
@@ -210,7 +211,7 @@ void IVMSimbodyInterface::applyBodyTorque(const State& s, const Body& b, const V
 }
 
 // Given g in the ground frame, apply a force mg to the center of mass of each body.
-void IVMSimbodyInterface::applyGravity(const State& s, const Vec3& g, Array<SpatialVector>& bodyForces) const
+void IVMSimbodyInterface::applyGravity(const State& s, const Vec3& g, Array<SpatialVec>& bodyForces) const
 {
     const IVMRigidBodyTree& tree = rep->getRigidBodyTree();
     // skip ground
@@ -284,7 +285,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
     for (size_t i=0; i<mbs2tree.size(); ++i) {
         cout << mbs2tree[i].getLevel() << ": " << mbs2tree[i].getBody().getFullName() << endl;
         if (!mbs2tree[i].getLevel()) {
-            IVMRigidBodyNode* rb = IVMRigidBodyNode::create(RBMassProperties(), RBFrame(), RBThisIsGround,
+            IVMRigidBodyNode* rb = IVMRigidBodyNode::create(IVMMassProperties(), IVMFrame(), IVMThisIsGround,
                                       false, false, nextStateOffset);
             const int rbIndex = tree.addGroundNode(rb);
             mbs2tree[i].setRBIndex(rbIndex);
@@ -320,9 +321,9 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
         const int save = nextStateOffset;
         IVMRigidBodyNode* rb = IVMRigidBodyNode::create(
-            toRBMassProperties(mass,com_R,iner_OR_R),
-            toRBFrame(mbs2tree[i].getJointFrameInRef()),
-            mapToRBJointType(mbs2tree[i].getJoint().getJointType()),
+            toIVMMassProperties(mass,com_R,iner_OR_R),
+            toIVMFrame(mbs2tree[i].getJointFrameInRef()),
+            mapToIVMJointType(mbs2tree[i].getJoint().getJointType()),
             false,
             false,
             nextStateOffset);

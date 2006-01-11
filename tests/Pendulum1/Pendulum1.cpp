@@ -130,10 +130,6 @@ try {
    // DynamicInvestigation d(pend);
 
 
-
-
-
-
     //mbs.realize(Stage::Startup);
     //cout << "MBS=" << mbs << endl;
 
@@ -148,8 +144,8 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        Array<SpatialVector> bodyForces;
-        Vector               hingeForces;
+        Array<SpatialVec> bodyForces;
+        Vector             hingeForces;
         instance.clearForces(bodyForces,hingeForces);
         instance.realizeParameters(s);
         instance.realizeConfiguration(s);

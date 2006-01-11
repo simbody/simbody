@@ -9,28 +9,28 @@
 
 #include <cassert>
 
-typedef CDSList<IVMRigidBodyNode*>   RBNodePtrList;
+typedef CDSList<IVMRigidBodyNode*>   IVMNodePtrList;
 typedef CDSVector<double,1>          RVec;   // first element has index 1
 typedef CDSList<CDSVec6>             CDSVecVec6;
 
 class IVM;
 class IVMLengthConstraints;
-class RBStationRuntime;
-class RBDistanceConstraintRuntime;
+class IVMStationRuntime;
+class IVMDistanceConstraintRuntime;
 
 /**
  * A station is a point located on a particular rigid body. A station is
  * measured from the body frame origin and expressed in the body frame.
  */
-class RBStation {
+class IVMStation {
 public:
-    RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(IVMRigidBodyNode& n, const CDSVec3& pos) : rbNode(&n), station_B(pos) { }
+    IVMStation() : rbNode(0) { } // so we can have arrays of these
+    IVMStation(IVMRigidBodyNode& n, const CDSVec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
-    void calcPosInfo(RBStationRuntime&) const;
-    void calcVelInfo(RBStationRuntime&) const;
-    void calcAccInfo(RBStationRuntime&) const;
+    void calcPosInfo(IVMStationRuntime&) const;
+    void calcVelInfo(IVMStationRuntime&) const;
+    void calcAccInfo(IVMStationRuntime&) const;
 
     IVMRigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
     const CDSVec3&       getStation() const { assert(isValid()); return station_B; }
@@ -39,9 +39,9 @@ private:
     IVMRigidBodyNode*    rbNode;
     CDSVec3              station_B;
 };
-ostream& operator<<(ostream&, const RBStation&);
+ostream& operator<<(ostream&, const IVMStation&);
 
-class RBStationRuntime {
+class IVMStationRuntime {
 public:
     CDSVec3 station_G;    // vector from body origin OB to station, reexpressed in G
     CDSVec3 stationVel_G; // velocity of station relative to velocity of OB, expr. in G
@@ -56,37 +56,37 @@ public:
  * This class requests that two stations, one on each of two rigid bodies,
  * be maintained at a certain separation distance at all times.
  */
-class RBDistanceConstraint {
+class IVMDistanceConstraint {
 public:
-    RBDistanceConstraint() : distance(-1.), runtimeIndex(-1) {}
-    RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d) {
+    IVMDistanceConstraint() : distance(-1.), runtimeIndex(-1) {}
+    IVMDistanceConstraint(const IVMStation& s1, const IVMStation& s2, const double& d) {
         assert(s1.isValid() && s2.isValid() && d >= 0.);
         stations[0] = s1; stations[1] = s2; distance = d;
         runtimeIndex = -1;
     }
 
-    void calcPosInfo(RBDistanceConstraintRuntime&) const;
-    void calcVelInfo(RBDistanceConstraintRuntime&) const;
-    void calcAccInfo(RBDistanceConstraintRuntime&) const;
+    void calcPosInfo(IVMDistanceConstraintRuntime&) const;
+    void calcVelInfo(IVMDistanceConstraintRuntime&) const;
+    void calcAccInfo(IVMDistanceConstraintRuntime&) const;
 
     void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
     int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
 
-    const double&    getDistance()     const { return distance; }
-    const RBStation& getStation(int i) const { assert(isValid() && (i==1||i==2)); return stations[i-1]; }
-    bool             isValid()         const { return distance >= 0.; }
+    const double&     getDistance()     const { return distance; }
+    const IVMStation& getStation(int i) const { assert(isValid() && (i==1||i==2)); return stations[i-1]; }
+    bool              isValid()         const { return distance >= 0.; }
 
 protected:
     double       distance;
-    RBStation    stations[2];
+    IVMStation   stations[2];
     int          runtimeIndex;
 };
 
-class RBDistanceConstraintRuntime {
+class IVMDistanceConstraintRuntime {
 public:
-    RBDistanceConstraintRuntime() { }
+    IVMDistanceConstraintRuntime() { }
 
-    RBStationRuntime stationRuntimes[2];
+    IVMStationRuntime stationRuntimes[2];
 
     CDSVec3 fromTip1ToTip2_G;    // tip2.pos - tip1.pos
     CDSVec3 unitDirection_G;     // fromTip1ToTip2/|fromTip1ToTip2|
@@ -121,7 +121,7 @@ public:
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
     int addRigidBodyNode(IVMRigidBodyNode&  parent,
-                         const RBFrame&     referenceConfig,    // body frame in parent
+                         const IVMFrame&    referenceConfig,    // body frame in parent
                          IVMRigidBodyNode*& nodep);
 
     /// Same as addRigidBodyNode but special-cased for ground.
@@ -129,7 +129,7 @@ public:
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
     /// its stations. Return the assigned distance constraint index for caller's use.
-    int addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d);
+    int addDistanceConstraint(const IVMStation& s1, const IVMStation& s2, const double& d);
 
     /// Call this after all bodies & constraints have been added.
     void finishConstruction(const double& ctol, int verbose);
@@ -212,13 +212,13 @@ private:
     int dimTotal;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
-    CDSList<RBNodePtrList> rbNodeLevels;
+    CDSList<IVMNodePtrList> rbNodeLevels;
     // Map nodeNum to (level,offset).
     CDSList<RigidBodyNodeIndex> nodeNum2NodeMap;
 
-    CDSList<RBDistanceConstraint>        distanceConstraints;
+    CDSList<IVMDistanceConstraint>        distanceConstraints;
     // TODO: later this moves to state cache (sherm)
-    CDSList<RBDistanceConstraintRuntime> dcRuntimeInfo;
+    CDSList<IVMDistanceConstraintRuntime> dcRuntimeInfo;
     
     IVMLengthConstraints* lConstraints;
     friend ostream& operator<<(ostream&, const IVMRigidBodyTree&);

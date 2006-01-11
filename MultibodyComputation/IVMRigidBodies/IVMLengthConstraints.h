@@ -4,8 +4,8 @@
 #include "cdsVector.h"
 #include "fixedVector.h"
 
-class RBDistanceConstraint;
-class RBDistanceConstraintRuntime;
+class IVMDistanceConstraint;
+class IVMDistanceConstraintRuntime;
 class IVMRigidBodyTree;
 template<class T> class CDSList;
 typedef FixedVector<double,6>   CDSVec6;
@@ -20,8 +20,8 @@ class IVMLengthConstraints {
 public:
     IVMLengthConstraints(IVMRigidBodyTree&, const double& ctol, int verbose);
     ~IVMLengthConstraints();
-    void construct(CDSList<RBDistanceConstraint>&,
-                   CDSList<RBDistanceConstraintRuntime>&);
+    void construct(CDSList<IVMDistanceConstraint>&,
+                   CDSList<IVMDistanceConstraintRuntime>&);
 
     void enforce(CDSVector<double,1>& pos,
                  CDSVector<double,1>& vel);

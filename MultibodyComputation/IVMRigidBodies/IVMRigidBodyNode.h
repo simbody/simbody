@@ -2,14 +2,14 @@
 #define IVM_RIGID_BODY_NODE_H_
 
 #include "IVMPhiMatrix.h"
-#include "RBInternalDynamics.h"
+#include "IVMInternalDynamics.h"
 
 #include "fixedMatrix.h"
 #include "cdsMatrix.h"
 #include "cdsVector.h"
 #include "cdsList.h"
 
-#include "RBMassProperties.h"
+#include "IVMMassProperties.h"
 
 #include <cassert>
 
@@ -81,16 +81,16 @@ public:
 
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static IVMRigidBodyNode* create(
-        const RBMassProperties& m,            // mass properties in body frame
-        const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-        RBJointType             type,
+        const IVMMassProperties& m,            // mass properties in body frame
+        const IVMFrame&          jointFrame,   // inboard joint frame J in body frame
+        IVMJointType            type,
         bool                    isReversed,   // child-to-parent orientation?
         bool                    useEuler,     // TODO: kludge (true if minimizing)
         int&                    nextStateOffset); 
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
-    void addChild(IVMRigidBodyNode* child, const RBFrame& referenceFrame);
+    void addChild(IVMRigidBodyNode* child, const IVMFrame& referenceFrame);
 
     IVMRigidBodyNode*   getParent() const {return parent;}
     void                setParent(IVMRigidBodyNode* p) { parent=p; }
@@ -112,14 +112,14 @@ public:
 
     int              getStateOffset() const {return stateOffset;}
 
-    const RBMassProperties& getMassProperties() const {return massProps_B;}
+    const IVMMassProperties& getMassProperties() const {return massProps_B;}
     const double&    getMass()         const {return massProps_B.getMass();}
     const CDSVec3&   getCOM_B()        const {return massProps_B.getCOM();}
-    const RBInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
-    const RBInertia& getInertia_OB_G() const {return inertia_OB_G;}
+    const IVMInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
+    const IVMInertia& getInertia_OB_G() const {return inertia_OB_G;}
 
     const CDSVec3& getCOM_G()          const {return COM_G;}
-    const RBInertia& getInertia_CB_B() const {return inertia_CB_B;}
+    const IVMInertia& getInertia_CB_B() const {return inertia_CB_B;}
 
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
@@ -214,7 +214,7 @@ public:
 protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
-    IVMRigidBodyNode(const RBMassProperties& mProps_B,
+    IVMRigidBodyNode(const IVMMassProperties& mProps_B,
                      const CDSVec3& originOfB_P, // and R_BP=I in ref config
                      const CDSMat33& rot_BJ, const CDSVec3& originOfJ_B)
       : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
@@ -241,7 +241,7 @@ protected:
 
     // Fixed forever in the body-local frame B:
     //      ... supplied on construction
-    const RBMassProperties massProps_B;
+    const IVMMassProperties massProps_B;
     const CDSMat33 R_BJ;          // orientation of inboard joint frame J, in B
     const CDSVec3  OJ_B;          // origin of J, measured from B origin, expr. in B
 
@@ -256,7 +256,7 @@ protected:
     CDSVec3        refOrigin_P;
 
     //      ... calculated on construction
-    const RBInertia  inertia_CB_B;  // centroidal inertia, expr. in B
+    const IVMInertia  inertia_CB_B;  // centroidal inertia, expr. in B
 
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
@@ -278,7 +278,7 @@ protected:
     CDSVec3  COM_G;         // B's COM, meas & expr in G
 
     CDSVec3    COMstation_G;  // measured from B origin, expr. in G
-    RBInertia  inertia_OB_G;  // about B's origin, expr. in G
+    IVMInertia  inertia_OB_G;  // about B's origin, expr. in G
 
     IVMPhiMatrix phi;        // spatial rigid body transition matrix
     CDSMat66  Mk;            // spatial inertia matrix

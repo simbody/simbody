@@ -49,7 +49,7 @@ static const CDSMat33 zero33(0.);
 // Implementation of IVMRigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void IVMRigidBodyNode::addChild(IVMRigidBodyNode* child, const RBFrame& referenceFrame) {
+void IVMRigidBodyNode::addChild(IVMRigidBodyNode* child, const IVMFrame& referenceFrame) {
     children.append( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
@@ -78,7 +78,7 @@ void IVMRigidBodyNode::calcJointIndependentKinematicsPos() {
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    inertia_OB_G = RBInertia(orthoTransform(getInertia_OB_B(), getR_GB()));
+    inertia_OB_G = IVMInertia(orthoTransform(getInertia_OB_B(), getR_GB()));
     COMstation_G = getR_GB()*getCOM_B();
 
     COM_G = OB_G + COMstation_G;
@@ -133,19 +133,19 @@ ostream& operator<<(ostream& s, const IVMRigidBodyNode& node) {
 }
 
 
-////////////////////////////////////////////////
+///////////////////////////////////////////////////
 // Define classes derived from IVMRigidBodyNode. //
-////////////////////////////////////////////////
+///////////////////////////////////////////////////
 
 /**
  * This is the distinguished body representing the immobile ground frame. Other bodies may
  * be fixed to this one, but only this is the actual Ground.
  */
-class RBGroundBody : public IVMRigidBodyNode {
+class IVMGroundBody : public IVMRigidBodyNode {
 public:
-    RBGroundBody() // TODO: should set mass properties to infinity
-      : IVMRigidBodyNode(RBMassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
-    ~RBGroundBody() {}
+    IVMGroundBody() // TODO: should set mass properties to infinity
+      : IVMRigidBodyNode(IVMMassProperties(),CDSVec3(0.),ident33,CDSVec3(0.)) {}
+    ~IVMGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
 
@@ -173,8 +173,8 @@ public:
 template<int dof>
 class RigidBodyNodeSpec : public IVMRigidBodyNode {
 public:
-    RigidBodyNodeSpec(const RBMassProperties& mProps_B,
-                      const RBFrame& jointFrame,
+    RigidBodyNodeSpec(const IVMMassProperties& mProps_B,
+                      const IVMFrame& jointFrame,
                       int& cnt)
       : IVMRigidBodyNode(mProps_B,CDSVec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
@@ -309,13 +309,13 @@ private:
  * which is suitable (e.g.) for connecting a free atom to ground.
  * The joint frame J is aligned with the body frame B.
  */
-class RBNodeTranslate : public RigidBodyNodeSpec<3> {
+class IVMNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
-    RBNodeTranslate(const RBMassProperties& mProps_B,
+    IVMNodeTranslate(const IVMMassProperties& mProps_B,
                     int&                    nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset)
+      : RigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset)
     {
     }
 
@@ -336,12 +336,12 @@ public:
  * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
  * about a particular axis.
  */
-class RBNodeTorsion : public RigidBodyNodeSpec<1> {
+class IVMNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
-    RBNodeTorsion(const RBMassProperties& mProps_B,
-                  const RBFrame&          jointFrame,
+    IVMNodeTorsion(const IVMMassProperties& mProps_B,
+                  const IVMFrame&          jointFrame,
                   int&                    nextStateOffset)
       : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -384,7 +384,7 @@ private:
 
 /**
  * This class contains all the odd things required by a ball joint.
- * Any RBNode joint type which contains a ball should define a member
+ * Any IVMNode joint type which contains a ball should define a member
  * of this class and delegate to it.
  */
 class ContainedBallJoint {
@@ -536,15 +536,15 @@ public:
  * unrestricted orientation.
  * The joint frame J is aligned with the body frame B.
  */
-class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
+class IVMNodeRotate3 : public RigidBodyNodeSpec<3> {
     ContainedBallJoint ball;
 public:
     virtual const char* type() { return "rotate3"; }
 
-    RBNodeRotate3(const RBMassProperties& mProps_B,
+    IVMNodeRotate3(const IVMMassProperties& mProps_B,
                   int&                    nextStateOffset,
                   bool                    useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset),
+      : RigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -607,15 +607,15 @@ public:
  * translation and rotation for a free rigid body.
  * The joint frame J is aligned with the body frame B.
  */
-class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
+class IVMNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
     ContainedBallJoint ball;
 public:
     virtual const char* type() { return "full"; }
 
-    RBNodeTranslateRotate3(const RBMassProperties& mProps_B,
+    IVMNodeTranslateRotate3(const IVMMassProperties& mProps_B,
                            int&                    nextStateOffset,
                            bool                    useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,RBFrame(),nextStateOffset),
+      : RigidBodyNodeSpec<6>(mProps_B,IVMFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -700,12 +700,12 @@ public:
  * perpendicular to zDir. This is appropriate for diatoms and for allowing 
  * torsion+bond angle bending.
  */
-class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
+class IVMNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
-    RBNodeRotate2(const RBMassProperties& mProps_B,
-                  const RBFrame&          jointFrame,
+    IVMNodeRotate2(const IVMMassProperties& mProps_B,
+                  const IVMFrame&          jointFrame,
                   int&                    nextStateOffset)
       : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -757,12 +757,12 @@ private:
  * translation but rotation only about directions perpendicular to the body's
  * inertialess axis.
  */
-class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
+class IVMNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
-    RBNodeTranslateRotate2(const RBMassProperties& mProps_B,
-                           const RBFrame&          jointFrame,
+    IVMNodeTranslateRotate2(const IVMMassProperties& mProps_B,
+                           const IVMFrame&          jointFrame,
                            int&                    nextStateOffset)
       : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -817,9 +817,9 @@ private:
 
 /*static*/ IVMRigidBodyNode*
 IVMRigidBodyNode::create(
-    const RBMassProperties& m,            // mass properties in body frame
-    const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-    RBJointType             type,
+    const IVMMassProperties& m,            // mass properties in body frame
+    const IVMFrame&          jointFrame,   // inboard joint frame J in body frame
+    IVMJointType            type,
     bool                    isReversed,
     bool                    useEuler,
     int&                    nxtStateOffset)   // child-to-parent orientation?
@@ -827,25 +827,25 @@ IVMRigidBodyNode::create(
     assert(!isReversed);
 
     switch(type) {
-    case RBThisIsGround:
-        return new RBGroundBody();
-    case RBTorsionJoint:
-        return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
-    case RBUJoint:        
-        return new RBNodeRotate2(m,jointFrame,nxtStateOffset);
-    case RBOrientationJoint:
-        return new RBNodeRotate3(m,nxtStateOffset,useEuler);
-    case RBCartesianJoint:
-        return new RBNodeTranslate(m,nxtStateOffset);
-    case RBFreeLineJoint:
-        return new RBNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
-    case RBFreeJoint:
-        return new RBNodeTranslateRotate3(m,nxtStateOffset,useEuler);
-    case RBSlidingJoint:
-    case RBCylinderJoint:
-    case RBPlanarJoint:
-    case RBGimbalJoint:
-    case RBWeldJoint:
+    case IVMThisIsGround:
+        return new IVMGroundBody();
+    case IVMTorsionJoint:
+        return new IVMNodeTorsion(m,jointFrame,nxtStateOffset);
+    case IVMUJoint:        
+        return new IVMNodeRotate2(m,jointFrame,nxtStateOffset);
+    case IVMOrientationJoint:
+        return new IVMNodeRotate3(m,nxtStateOffset,useEuler);
+    case IVMCartesianJoint:
+        return new IVMNodeTranslate(m,nxtStateOffset);
+    case IVMFreeLineJoint:
+        return new IVMNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
+    case IVMFreeJoint:
+        return new IVMNodeTranslateRotate3(m,nxtStateOffset,useEuler);
+    case IVMSlidingJoint:
+    case IVMCylinderJoint:
+    case IVMPlanarJoint:
+    case IVMGimbalJoint:
+    case IVMWeldJoint:
 
     default: 
         assert(false);

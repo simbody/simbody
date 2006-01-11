@@ -16,7 +16,7 @@ using namespace simtk;
 
 class IVMSimbodyInterface /* : public RigidBodyMechanicsResource(?) */ {
 public:
-    IVMSimbodyInterface(const Multibody&);
+    explicit IVMSimbodyInterface(const Multibody&, bool oldStyle=false);
 
     int getNBodies() const;
     int getNParameters() const;
@@ -33,16 +33,16 @@ public:
 
     const Vector& getQDot(const State&) const;
     Vector calcUDot(const State&, 
-                    const Array<SpatialVector>& bodyForces,
-                    const Vector&               hingeForces) const;
+                    const Array<SpatialVec>& bodyForces,
+                    const Vector&            hingeForces) const;
 
     // Initialize the two force arrays, resizing if necessary and setting all to zero.
     // WARNING: forces may be accumulated in whatever manner is best for the underlying
     // computations. Be sure to use the access routines below; do not attempt to
     // fill in these arrays yourself.
-    void clearForces(Array<SpatialVector>& bodyForces, Vector& hingeForces) const {
+    void clearForces(Array<SpatialVec>& bodyForces, Vector& hingeForces) const {
         bodyForces.resize(getNBodies()); hingeForces.resize(getNU());
-        bodyForces = SpatialVector(Vec3(0.)); hingeForces = 0.;
+        bodyForces = SpatialVec(Vec3(0.)); hingeForces = 0.;
     }
 
     State getDefaultState() const;
@@ -55,17 +55,17 @@ public:
     // been realized to at least the Configuration level. Of course it is possible that 
     // calculating the applied force must be done even later.
     void applyPointForce(const State&, const Body&, const Vec3& pt, const Vec3& frc, 
-                         Array<SpatialVector>& bodyForces) const;
+                         Array<SpatialVec>& bodyForces) const;
 
     // Similar operation for a torque.
     void applyBodyTorque(const State&, const Body&, const Vec3& trq, 
-                         Array<SpatialVector>& bodyForces) const;
+                         Array<SpatialVec>& bodyForces) const;
 
     // Given a uniform acceleration field g expressed in the ground frame, apply an
     // appropriate gravitational force to each body. This is a Configuration-stage
     // operator because we have to know how the bodies are oriented in order to
     // figure out in which direction gravity is tugging at them.
-    void applyGravity(const State&, const Vec3& g, Array<SpatialVector>& bodyForces) const;
+    void applyGravity(const State&, const Vec3& g, Array<SpatialVec>& bodyForces) const;
 
     // Apply a force along or around a particular generalized coordinate. This is
     // a Modeling-stage operator -- all we need to know is the allocation of
@@ -75,7 +75,7 @@ public:
 
     // TODO: these should return cache references
     Frame         getBodyConfiguration(const State&, const Body&) const;
-    SpatialVector getBodyVelocity     (const State&, const Body&) const;
+    SpatialVec getBodyVelocity     (const State&, const Body&) const;
 private:
     class IVMSimbodyInterfaceRep* rep;
     friend class IVMSimbodyInterfaceRep;

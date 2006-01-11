@@ -31,19 +31,19 @@ typedef FixedMatrix<double,6> CDSMat66;
 typedef CDSList<CDSVec6>      CDSVecVec6;
 
 
-void RBStation::calcPosInfo(RBStationRuntime& rt) const {
+void IVMStation::calcPosInfo(IVMStationRuntime& rt) const {
     rt.station_G = getNode().getR_GB() * station_B;
     rt.pos_G     = getNode().getOB_G() + rt.station_G;
 }
 
-void RBStation::calcVelInfo(RBStationRuntime& rt) const {
+void IVMStation::calcVelInfo(IVMStationRuntime& rt) const {
     const CDSVec3& w_G = getNode().getSpatialAngVel();
     const CDSVec3& v_G = getNode().getSpatialLinVel();
     rt.stationVel_G = cross(w_G, rt.station_G);
     rt.vel_G = v_G + rt.stationVel_G;
 }
 
-void RBStation::calcAccInfo(RBStationRuntime& rt) const {
+void IVMStation::calcAccInfo(IVMStationRuntime& rt) const {
     const CDSVec3& w_G  = getNode().getSpatialAngVel();
     const CDSVec3& v_G  = getNode().getSpatialLinVel();
     const CDSVec3& aa_G = getNode().getSpatialAngAcc();
@@ -52,12 +52,12 @@ void RBStation::calcAccInfo(RBStationRuntime& rt) const {
                    + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
 }
 
-ostream& operator<<(ostream& o, const RBStation& s) {
+ostream& operator<<(ostream& o, const IVMStation& s) {
     o << "station " << s.getStation() << " on node " << s.getNode().getNodeNum();
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
+void IVMDistanceConstraint::calcPosInfo(IVMDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
     for (int i=0; i<=1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
@@ -68,7 +68,7 @@ void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
     rt.posErr = distance - separation;
 }
 
-void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
+void IVMDistanceConstraint::calcVelInfo(IVMDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
     for (int i=0; i<=1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
@@ -77,7 +77,7 @@ void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
     rt.velErr = dot( rt.unitDirection_G , rt.relVel_G );
 }
 
-void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
+void IVMDistanceConstraint::calcAccInfo(IVMDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
     for (int i=0; i<=1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
@@ -100,7 +100,7 @@ IVMRigidBodyTree::~IVMRigidBodyTree() {
 
 // Add a new node, taking over the heap space.
 int IVMRigidBodyTree::addRigidBodyNode(IVMRigidBodyNode&  parent,
-                                       const RBFrame&     referenceConfig,    // body frame in parent
+                                       const IVMFrame&     referenceConfig,    // body frame in parent
                                        IVMRigidBodyNode*& nodep)
 {
     IVMRigidBodyNode* n = nodep; nodep=0;  // take ownership
@@ -146,11 +146,11 @@ int IVMRigidBodyTree::addGroundNode(IVMRigidBodyNode*& gnodep)
 
 // Add a distance constraint and allocate slots to hold the runtime information for
 // its stations. Return the assigned distance constraint index for caller's use.
-int IVMRigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
+int IVMRigidBodyTree::addDistanceConstraint(const IVMStation& s1, const IVMStation& s2, const double& d)
 {
-    RBDistanceConstraint dc(s1,s2,d);
+    IVMDistanceConstraint dc(s1,s2,d);
     dc.setRuntimeIndex(dcRuntimeInfo.size());
-    dcRuntimeInfo.append(RBDistanceConstraintRuntime());
+    dcRuntimeInfo.append(IVMDistanceConstraintRuntime());
     distanceConstraints.append(dc);
     return distanceConstraints.size()-1;
 }

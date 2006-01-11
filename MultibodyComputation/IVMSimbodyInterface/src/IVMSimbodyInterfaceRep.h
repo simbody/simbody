@@ -12,6 +12,7 @@
 #include "simbody/IVMSimbodyInterface.h"
 
 #include "IVMRigidBodyTree.h"
+#include "RigidBodyTree.h"
 
 using namespace simtk;
 
@@ -60,8 +61,7 @@ public:
     IVMSimbodyInterfaceRep(const Multibody&);
 
     const Multibody& getMultibody() const {return mbs;}
-    const IVMRigidBodyTree& getRigidBodyTree() const {return tree;}
-    IVMRigidBodyTree&       updRigidBodyTree()       {return tree;}
+
 
     const RBTreeMap& getBodyInfo(const Body& b) const {
         // TODO: info must be stored with (or indexed by) body directly for speed
@@ -94,9 +94,9 @@ public:
     void setMyHandle(IVMSimbodyInterface& h) {handle=&h;}
     const IVMSimbodyInterface& getMyHandle() const {assert(handle); return *handle;}
 
-    const Frame&         getBodyConfiguration(const State&, int body) const;
-    const SpatialVector& getBodyVelocity     (const State&, int body) const;
-    const SpatialVector& getBodyAcceleration (const State&, int body) const;
+    const Frame&      getBodyConfiguration(const State&, int body) const;
+    const SpatialVec& getBodyVelocity     (const State&, int body) const;
+    const SpatialVec& getBodyAcceleration (const State&, int body) const;
 
     static RBJointType mapToRBJointType(Joint::JointType jt);
 private:
@@ -104,10 +104,28 @@ private:
 
     Multibody               mbs;  // private copy
     std::vector<RBTreeMap>  mbs2tree;
-    IVMRigidBodyTree        tree;
-
 };
 
+class OldIVMSimbodyInterfaceRep : public IVMSimbodyInterfaceRep {
+public:
+    OldIVMSimbodyInterfaceRep(const Multibody& m) : IVMSimbodyInterfaceRep(m) { }
+
+    const IVMRigidBodyTree& getRigidBodyTree() const {return tree;}
+    IVMRigidBodyTree&       updRigidBodyTree()       {return tree;}
+private:
+    IVMRigidBodyTree tree;
+};
+
+
+class NewIVMSimbodyInterfaceRep : public IVMSimbodyInterfaceRep {
+public:
+    NewIVMSimbodyInterfaceRep(const Multibody& m) : IVMSimbodyInterfaceRep(m) { }
+
+    const RigidBodyTree& getRigidBodyTree() const {return tree;}
+    RigidBodyTree&       updRigidBodyTree()       {return tree;}
+private:
+    RigidBodyTree tree;
+};
 
 
 #endif // IVM_SIMBODY_INTERFACE_REP_H_

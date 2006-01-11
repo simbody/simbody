@@ -62,7 +62,7 @@ class BadNodeDef {};  //exception
 class LoopWNodes {
 public:
     LoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
-    LoopWNodes(const RBDistanceConstraint&, CDSList<RBDistanceConstraintRuntime>&);
+    LoopWNodes(const IVMDistanceConstraint&, CDSList<IVMDistanceConstraintRuntime>&);
 
     void calcPosInfo() const { rbDistCons->calcPosInfo(*rt); }
     void calcVelInfo() const { rbDistCons->calcVelInfo(*rt); }
@@ -71,7 +71,7 @@ public:
     const double& getDistance() const { return rbDistCons->getDistance(); }
 
     // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
-    const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
+    const IVMStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const IVMRigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
 
     const CDSVec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
@@ -84,34 +84,34 @@ public:
 
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
-    const RBStationRuntime& getTipRuntime(int i) const
+    const IVMStationRuntime& getTipRuntime(int i) const
       { return rt->stationRuntimes[ix(i)-1]; }
-    RBStationRuntime& updTipRuntime(int i) const
+    IVMStationRuntime& updTipRuntime(int i) const
       { return rt->stationRuntimes[ix(i)-1]; }
 
-    const RBDistanceConstraint*  rbDistCons;  // reference to the constraint
-    RBDistanceConstraintRuntime* rt;          // ... and its runtime
+    const IVMDistanceConstraint*  rbDistCons;  // reference to the constraint
+    IVMDistanceConstraintRuntime* rt;          // ... and its runtime
 
     // calculated info about the constraint
     bool                           flipStations; // make sure station(1).level
                                                  //   <= station(2).level
-    FixedVector<RBNodePtrList,2,1> nodes;   // the two paths: base..tip1, base..tip2,
+    FixedVector<IVMNodePtrList,2,1> nodes;   // the two paths: base..tip1, base..tip2,
                                             //   incl. tip nodes but not base
     IVMRigidBodyNode*                 base;    // highest-level common ancestor of tips
     const IVMRigidBodyNode*           moleculeNode;
 
     friend class IVMLengthSet;
     friend ostream& operator<<(ostream& os, const IVMLengthSet& s);
-    friend void IVMLengthConstraints::construct(CDSList<RBDistanceConstraint>&,
-                                             CDSList<RBDistanceConstraintRuntime>&);
+    friend void IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>&,
+                                                CDSList<IVMDistanceConstraintRuntime>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
     friend bool sameBranch(const IVMRigidBodyNode* tip,
                            const LoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc,
-                       CDSList<RBDistanceConstraintRuntime>& rts)
+LoopWNodes::LoopWNodes(const IVMDistanceConstraint& dc,
+                       CDSList<IVMDistanceConstraintRuntime>& rts)
   : rbDistCons(&dc), rt(&rts[dc.getRuntimeIndex()]),flipStations(false), base(0), moleculeNode(0)
 {
     using IVMInternalDynamics::IVMException;
@@ -304,8 +304,8 @@ compareLevel(const LoopWNodes& l1,
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
 void
-IVMLengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops,
-                             CDSList<RBDistanceConstraintRuntime>& rts)
+IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>& iloops,
+                                CDSList<IVMDistanceConstraintRuntime>& rts)
 {
     //clean up
     priv->constraints.resize(0);

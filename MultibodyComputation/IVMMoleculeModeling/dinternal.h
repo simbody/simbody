@@ -7,7 +7,7 @@
 #include "cdsVector.h"
 #include "cdsPair.h"
 
-#include "RBInternalDynamics.h"
+#include "IVMInternalDynamics.h"
 
 class IVMAtom;
 class AtomTree;
