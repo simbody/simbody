@@ -604,8 +604,8 @@ IVMLengthSet::testGrad(const RVec& pos, const RMat& grad) const
     RMat fdgrad(dim,loops.size());
     fdgradf(pos,fdgrad);
 
-    for (int i=0 ; i<grad.rows() ; i++)
-        for (int j=0 ; j<grad.cols() ; j++)
+    for (int i=0 ; i<grad.nrow() ; i++)
+        for (int j=0 ; j<grad.ncol() ; j++)
             if (fabs(grad(i,j)-fdgrad(i,j)) > fabs(tol))
                 cout << "testGrad: error in gradient: " 
                      << setw(2) << i << ' '
@@ -653,7 +653,7 @@ IVMLengthSet::calcGrad() const
             double elem=0.0;
             int l1_indx = l.nodes(1).getIndex(nodeMap[j]);
             int l2_indx = l.nodes(2).getIndex(nodeMap[j]);
-            for (int k=0 ; k<H.cols() ; k++) {
+            for (int k=0 ; k<H.ncol() ; k++) {
                 CDSVec6 Hcol = subCol(H,k,0,5).vector();
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
@@ -671,8 +671,8 @@ static double
 abs2(const RMat& m)
 {
     double ret=0.;
-    for (int i=0 ; i<m.rows() ; i++)
-        for (int j=0 ; j<m.cols() ; j++)
+    for (int i=0 ; i<m.nrow() ; i++)
+        for (int j=0 ; j<m.ncol() ; j++)
             ret += CDSMath::sq( m(i,j) );
     return ret;
 }
@@ -694,7 +694,7 @@ IVMLengthSet::calcGInverse() const
         testGrad(pos,grad);
     }
 
-    RMat ret(grad.rows(),grad.rows(),0.0); // <-- wrong dimension ??? sherm TODO
+    RMat ret(grad.nrow(),grad.nrow(),0.0); // <-- wrong dimension ??? sherm TODO
     if ( abs2(grad) > 1e-10 ) 
         ret = grad * inverse( MatrixTools::transpose(grad)*grad );
     return ret;

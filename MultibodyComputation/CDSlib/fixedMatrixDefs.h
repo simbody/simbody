@@ -6,8 +6,8 @@ void
 FixedMatrixBase<T,s1,s2>::resize(int r,
 				 int c) 
 { 
- if ( r!=rows() ||
-      c!=cols()   ) 
+ if ( r!=nrow() ||
+      c!=ncol()   ) 
    throw CDS::exception(CDSString("FixedMatrix::resize: ") +
 			"illegal resize operation attempted.");
 } /* resize */

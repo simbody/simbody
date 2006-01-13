@@ -206,7 +206,7 @@ class EigenResults {
 //requirements for class GenericMatrix:
 //
 // has operator()(int,int) to get, set elements
-// has members cols(), rows() which return dimensions
+// has members ncol(), nrow() which return dimensions
 // has member resize(int,int) to specify dimensions
 //
 // has typedef ElementType

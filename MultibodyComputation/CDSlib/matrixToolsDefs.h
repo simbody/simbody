@@ -18,8 +18,8 @@ CDSVector<typename MATRIX::ElementType>
 getColumn(const MATRIX& m,
 	      const int     col)
 {
-    CDSVector<typename MATRIX::ElementType> ret(m.rows());
-    for (int i=0 ; i<m.rows() ; i++)
+    CDSVector<typename MATRIX::ElementType> ret(m.nrow());
+    for (int i=0 ; i<m.nrow() ; i++)
         ret(i) = m(i+m.offset1(),col);
     return ret;
 }
@@ -30,8 +30,8 @@ CDSVector<typename MATRIX::ElementType>
 getRow(const MATRIX& m,
        const int     row)
 {
-    CDSVector<typename MATRIX::ElementType> ret(m.cols());
-    for (int i=0 ; i<m.cols() ; i++)
+    CDSVector<typename MATRIX::ElementType> ret(m.ncol());
+    for (int i=0 ; i<m.ncol() ; i++)
         ret(i) = m(row,i+m.offset2());
     return ret;
 }
@@ -42,7 +42,7 @@ setColumn(      MATRIX& m,
 	      const int     col,
 	      const VECTOR& v)
 {
-    for (int i=0 ; i<m.rows() ; i++)
+    for (int i=0 ; i<m.nrow() ; i++)
         m(i+m.offset1(),col) = v(i+v.offset());
 }
 
@@ -52,7 +52,7 @@ setRow(      MATRIX& m,
        const int     row,
        const VECTOR& v)
 {
-    for (int i=0 ; i<m.cols() ; i++)
+    for (int i=0 ; i<m.ncol() ; i++)
         m(row,i+m.offset2()) = v(i+v.offset());
 }
 
@@ -62,9 +62,9 @@ typename MATRIX::TransposeType
 transpose(const MATRIX& m)
 {
     typename MATRIX::TransposeType r;
-    r.resize(m.cols(),m.rows());
-    for (int i=0 ; i<m.rows() ; i++)
-        for (int j=0 ; j<m.cols() ; j++) 
+    r.resize(m.ncol(),m.nrow());
+    for (int i=0 ; i<m.nrow() ; i++)
+        for (int j=0 ; j<m.ncol() ; j++) 
             r(j,i) = m(i,j);
     return r;
 }
@@ -76,9 +76,9 @@ template<class MATRIX> MATRIX
 callInverse(const MATRIX& matrix,
 		    InverseResults<FullMatrix<typename MATRIX::ElementType> >)
 {
-    assert( matrix.rows()==matrix.cols() );
+    assert( matrix.nrow()==matrix.ncol() );
 
-    const int size=matrix.rows();
+    const int size=matrix.nrow();
 
     CDSVector<int,1> ipiv(size);
 
@@ -119,7 +119,7 @@ callInverse(const MATRIX& matrix,
 {
     typedef typename MATRIX::ElementType T;
 
-    const int size=matrix.rows();
+    const int size=matrix.nrow();
 
     CDSVector<int,1> ipiv(size);
 
@@ -154,7 +154,7 @@ inverse(const MATRIX& matrix,
 {
     typedef typename MATRIX::ElementType T;
 
-    if ( matrix.rows()==0 ) return matrix;
+    if ( matrix.nrow()==0 ) return matrix;
 
     return callInverse(matrix,results);
 }
@@ -230,31 +230,31 @@ callEigen(const MATRIX&              matrix,
 {
     typedef typename MATRIX::ElementType T;
     MATRIX trashedByLapack = matrix;
-    ret.work.resize(3*matrix.cols());
+    ret.work.resize(3*matrix.ncol());
 
-    CDSVector<T > values_r(matrix.rows());
-    CDSVector<T > values_i(matrix.rows());
-    CDSMatrix<T > vectors_r(1,matrix.rows());
-    CDSMatrix<T > vectors_l(1,matrix.rows());
+    CDSVector<T > values_r(matrix.nrow());
+    CDSVector<T > values_i(matrix.nrow());
+    CDSMatrix<T > vectors_r(1,matrix.nrow());
+    CDSMatrix<T > vectors_l(1,matrix.nrow());
 
     char jobvl = 'N';
     char jobvr = 'N';
     if ( jobz == 'V' || jobz == 'R' ) {
         jobvr = 'V';
-        ret.work.resize(4*matrix.rows());
-        vectors_r.resize(matrix.rows(),matrix.cols());
+        ret.work.resize(4*matrix.nrow());
+        vectors_r.resize(matrix.nrow(),matrix.ncol());
     }
     if ( jobz == 'L' ) {
         jobvl = 'V';
-        ret.work.resize(4*matrix.rows());
-        vectors_l.resize(matrix.rows(),matrix.cols());
+        ret.work.resize(4*matrix.nrow());
+        vectors_l.resize(matrix.nrow(),matrix.ncol());
     }
 
     callEigenFull(jobvl,jobvr,
-                  matrix.cols(),trashedByLapack.pointer(),matrix.cols(),
+                  matrix.ncol(),trashedByLapack.pointer(),matrix.ncol(),
                   values_r.pointer(),values_i.pointer(),
-                  vectors_l.pointer(),vectors_l.rows(),
-                  vectors_r.pointer(),vectors_r.rows(),
+                  vectors_l.pointer(),vectors_l.nrow(),
+                  vectors_r.pointer(),vectors_r.nrow(),
                   ret.work.pointer(),ret.work.size(),
                   ret.info);
 
@@ -272,15 +272,15 @@ callEigen(const MATRIX&              matrix,
         throw CDS::exception(s.str());
     }
 
-    ret.eigenPairs.resize(matrix.cols());
-    for (int i=0 ; i<matrix.cols() ; i++) {
+    ret.eigenPairs.resize(matrix.ncol());
+    for (int i=0 ; i<matrix.ncol() ; i++) {
         ret.eigenPairs[i].value = CDSComplex<T>( values_r(i), values_i(i) );
-        ret.eigenPairs[i].vector.resize( matrix.cols() );
+        ret.eigenPairs[i].vector.resize( matrix.ncol() );
     }
 
     if ( jobvl == 'V' )
-        for (int i=0 ; i<matrix.cols() ; i++)
-            for (int j=0 ; j<matrix.cols() ; j++)
+        for (int i=0 ; i<matrix.ncol() ; i++)
+            for (int j=0 ; j<matrix.ncol() ; j++)
                 if ( values_i(i) != 0. ) {
                     ret.eigenPairs[i].vector(j) 
                         = CDSComplex<T>(vectors_l(j,i), vectors_l(j,i+1));
@@ -291,9 +291,9 @@ callEigen(const MATRIX&              matrix,
                     ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_l(j,i),0.);
 
     if ( jobvr == 'V' )
-        for (int i=0 ; i<matrix.cols() ; i++) {
+        for (int i=0 ; i<matrix.ncol() ; i++) {
             if ( values_i(i) != 0. ) {
-                for (int j=0 ; j<matrix.cols() ; j++) {
+                for (int j=0 ; j<matrix.ncol() ; j++) {
                     ret.eigenPairs[i].vector(j) 
                         = CDSComplex<T>(vectors_r(j,i), vectors_r(j,i+1));
                     ret.eigenPairs[i+1].vector(j) 
@@ -301,7 +301,7 @@ callEigen(const MATRIX&              matrix,
                 }
                 i++;
             } else 
-                for (int j=0 ; j<matrix.cols() ; j++)
+                for (int j=0 ; j<matrix.ncol() ; j++)
                     ret.eigenPairs[i].vector(j) = CDSComplex<T>(vectors_r(j,i),0.);
         }
 
@@ -317,14 +317,14 @@ callEigen(const MATRIX&              matrix,
 {
     typedef typename MATRIX::ElementType T;
     MATRIX trashedByLapack = matrix;
-    ret.work.resize(3*matrix.cols());
+    ret.work.resize(3*matrix.ncol());
 
-    CDSVector<T> values(matrix.rows());
-    CDSMatrix<T> vectors(matrix.rows(),matrix.cols());
+    CDSVector<T> values(matrix.nrow());
+    CDSMatrix<T> vectors(matrix.nrow(),matrix.ncol());
 
-    callEigenSymmetric(jobz,'L',matrix.cols(),trashedByLapack.pointer(),
+    callEigenSymmetric(jobz,'L',matrix.ncol(),trashedByLapack.pointer(),
                        values.pointer(),
-                       vectors.pointer(),vectors.rows(),
+                       vectors.pointer(),vectors.nrow(),
                        ret.work.pointer(),
                        ret.info);
 
@@ -343,11 +343,11 @@ callEigen(const MATRIX&              matrix,
         throw CDS::exception(s.str());
     }
 
-    ret.eigenPairs.resize(matrix.cols());
-    for (int i=0 ; i<matrix.cols() ; i++) {
+    ret.eigenPairs.resize(matrix.ncol());
+    for (int i=0 ; i<matrix.ncol() ; i++) {
         ret.eigenPairs[i].value = values(i);
-        ret.eigenPairs[i].vector.resize( matrix.cols() );
-        for (int j=0 ; j<matrix.cols() ; j++)
+        ret.eigenPairs[i].vector.resize( matrix.ncol() );
+        for (int j=0 ; j<matrix.ncol() ; j++)
             ret.eigenPairs[i].vector(j) = vectors(j,i);
     }
     return ret;
@@ -396,8 +396,8 @@ svd(const MATRIX&   matrix,
 {
     typedef typename MATRIX::ElementType T;
 
-    int m = matrix.rows();
-    int n = matrix.cols();
+    int m = matrix.nrow();
+    int n = matrix.ncol();
 
     int minWorkSize = CDSMath::max(3*CDSMath::min(m,n)+
                       CDSMath::max(m,n),5*CDSMath::min(m,n));
@@ -432,7 +432,7 @@ svd(const MATRIX&   matrix,
 
     callSVD(jobu,jobvt,m,n,trashedBySVD.pointer(),m,
             ret.sigma.pointer(),
-            ret.u.pointer(),ret.u.rows(),ret.vT.pointer(),ret.vT.rows(),
+            ret.u.pointer(),ret.u.nrow(),ret.vT.pointer(),ret.vT.nrow(),
             ret.work.pointer(),ret.work.size(),ret.info);
     return ret;
 }
@@ -449,24 +449,24 @@ svd(const MATRIX&   matrix,
 //{
 // typedef typename MATRIX::ElementType T;
 // 
-// assert( m.rows() == m.cols() );
-// assert( m.rows() == S.cols() );
+// assert( m.nrow() == m.ncol() );
+// assert( m.nrow() == S.ncol() );
 //
-// CDSMatrix<T> dum(S.rows(),S.cols(),(T)0);
-// for (int i=0 ; i<dum.rows() ; i++) 
-//   for (int k=0 ; k<dum.cols() ; k++) 
-//     for (int j=0 ; j<m.rows() ; j++) 
+// CDSMatrix<T> dum(S.nrow(),S.ncol(),(T)0);
+// for (int i=0 ; i<dum.nrow() ; i++) 
+//   for (int k=0 ; k<dum.ncol() ; k++) 
+//     for (int j=0 ; j<m.nrow() ; j++) 
 //       dum(i,k) += S(i,j) * m(j,k);
 //
 // MATRIX ret;
-// ret.resize(S.rows(),S.rows());
-// for (int i=0 ; i<ret.rows() ; i++) 
-//   for (int j=0 ; j<ret.cols() ; j++) 
+// ret.resize(S.nrow(),S.nrow());
+// for (int i=0 ; i<ret.nrow() ; i++) 
+//   for (int j=0 ; j<ret.ncol() ; j++) 
 //     ret(i,j) = (T)0;
 //
-// for (int i=0 ; i<ret.rows() ; i++) 
-//   for (int k=0 ; k<ret.cols() ; k++) 
-//     for (int j=0 ; j<m.rows() ; j++) 
+// for (int i=0 ; i<ret.nrow() ; i++) 
+//   for (int k=0 ; k<ret.ncol() ; k++) 
+//     for (int j=0 ; j<m.nrow() ; j++) 
 //       ret(i,k) += dum(i,j) * S(k,j);
 // 
 // return ret;
@@ -605,14 +605,14 @@ callSPTRF<double>(const char &UPLO,
 //operator*(const Matrix1& m1,
 //	    const Matrix2& m2)
 //{
-// assert( m1.cols() == m2.rows() );
+// assert( m1.ncol() == m2.nrow() );
 //
 // typedef typename Matrix1::ElementType T;
 //
-// CDSMatrix<T> ret(m1.rows(),m2.cols(),(T)0);
-// for (int i=0 ; i<m1.rows() ; i++)
-//   for (int k=0 ; k<m2.cols() ; k++)
-//     for (int j=0 ; j<m1.cols() ; j++) 
+// CDSMatrix<T> ret(m1.nrow(),m2.ncol(),(T)0);
+// for (int i=0 ; i<m1.nrow() ; i++)
+//   for (int k=0 ; k<m2.ncol() ; k++)
+//     for (int j=0 ; j<m1.ncol() ; j++) 
 //	 r(i,k) += m1(i,j) * m2(j,k);
 //
 // return r;
@@ -632,7 +632,7 @@ eigen(const MATRIX&              matrix,
 {
     typedef typename MATRIX::ElementType T;
 
-    if (matrix.rows()==0) return ret;
+    if (matrix.nrow()==0) return ret;
 
     return callEigen(matrix,jobz,ret);
 }

@@ -75,7 +75,8 @@ public:
 
     // TODO: these should return cache references
     Frame         getBodyConfiguration(const State&, const Body&) const;
-    SpatialVec getBodyVelocity     (const State&, const Body&) const;
+    SpatialVec    getBodyVelocity     (const State&, const Body&) const;
+    SpatialVec    getBodyAcceleration (const State&, const Body&) const;
 private:
     class IVMSimbodyInterfaceRep* rep;
     friend class IVMSimbodyInterfaceRep;

@@ -22,7 +22,7 @@ class CDSMatrix;
 
 template<class T>
 class CDSMatrixRep {
-  int size1;      //# rows
+  int size1;      //# nrow
   int size2;      //# columns
   T* data;
   int count;
@@ -70,8 +70,8 @@ public:
   ~CDSMatrixBase ();
 
   CDSMatrixBase<T> &resize(const int b1,const int e1);
-  int rows() const { return rep->size1; }
-  int cols() const { return rep->size2; }
+  int nrow() const { return rep->size1; }
+  int ncol() const { return rep->size2; }
 
   T&       updData(int i, int j); 
   const T& getData(int i, int j) const;
@@ -153,12 +153,12 @@ T&
 CDSMatrixBase<T>::updData(const int i1,
                           const int i2)
 {
- assert( i1>=0 && i1<rows() );
- assert( i2>=0 && i2<cols() );
+ assert( i1>=0 && i1<nrow() );
+ assert( i2>=0 && i2<ncol() );
 
  splitRep();
 
- return rep->data[i1 + i2*rows()]; //column major
+ return rep->data[i1 + i2*nrow()]; //column major
 } /* data */
 
 template<class T> inline
@@ -167,10 +167,10 @@ CDSMatrixBase<T>::getData(const int i1,
                           const int i2) const
   //const version
 {
- assert( i1>=0 && i1<rows() );
- assert( i2>=0 && i2<cols() );
+ assert( i1>=0 && i1<nrow() );
+ assert( i2>=0 && i2<ncol() );
 
- return rep->data[i1 + i2*rows()];
+ return rep->data[i1 + i2*nrow()];
 } /* const data */
 
 template<class T,int o1, int o2>

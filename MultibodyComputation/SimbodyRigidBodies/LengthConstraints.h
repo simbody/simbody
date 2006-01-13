@@ -4,14 +4,11 @@
 #include "simbody/internal/SimbodyCommon.h"
 using namespace simtk;
 
-#include "fixedVector.h"
-
 class RBDistanceConstraint;
 class RBDistanceConstraintRuntime;
 class RigidBodyTree;
 template<class T> class CDSList;
-typedef FixedVector<double,6>   CDSVec6;
-typedef CDSList<CDSVec6> CDSVecVec6;
+typedef CDSList<Vec6> CDSVecVec6;
 
 #include <cdsIostream.h>
 

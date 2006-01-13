@@ -29,20 +29,20 @@ public:
   {
    assert(offset1>=m.offset1());
    assert(offset2>=m.offset2());
-   assert(offset1+size1<=m.offset1()+m.rows());
-   assert(offset2+size2<=m.offset2()+m.cols());
+   assert(offset1+size1<=m.offset1()+m.nrow());
+   assert(offset2+size2<=m.offset2()+m.ncol());
   }
-  int rows()  	const { return size1;}
-  int cols()  	const { return size2;}
+  int nrow()  	const { return size1;}
+  int ncol()  	const { return size2;}
   int offset1() const { return 0;}    //indexing into m is zero-offset
   int offset2() const { return 0;}    //indexing into m is zero-offset
 
   SubMatrix<MATRIX>&
   operator=(const SubMatrix<MATRIX>& mright) {
-   assert(mright.rows() == rows());
-   assert(mright.cols() == cols());
-   for (int i=0 ; i<mright.rows() ; i++)
-     for (int j=0 ; j<mright.cols() ; j++)
+   assert(mright.nrow() == nrow());
+   assert(mright.ncol() == ncol());
+   for (int i=0 ; i<mright.nrow() ; i++)
+     for (int j=0 ; j<mright.ncol() ; j++)
        m(offset1_+i,offset2_+j) = mright(mright.offset1()+i,
 					 mright.offset2()+j);
    return *this;
@@ -50,10 +50,10 @@ public:
   template<class Matrix2>
   SubMatrix<MATRIX>&
   operator=(const Matrix2& mright) {
-   assert(mright.rows() == rows());
-   assert(mright.cols() == cols());
-   for (int i=0 ; i<mright.rows() ; i++)
-     for (int j=0 ; j<mright.cols() ; j++)
+   assert(mright.nrow() == nrow());
+   assert(mright.ncol() == ncol());
+   for (int i=0 ; i<mright.nrow() ; i++)
+     for (int j=0 ; j<mright.ncol() ; j++)
        m(offset1_+i,offset2_+j) = mright(mright.offset1()+i,
 					 mright.offset2()+j);
    return *this;
@@ -82,10 +82,10 @@ public:
   template<class Matrix2>           //operator+=
   SubMatrix<MATRIX>&
   operator+=(const Matrix2& mr) {
-   assert(mr.rows() == rows());
-   assert(mr.cols() == cols());
-   for (int i=0 ; i<mr.rows() ; i++)
-     for (int j=0 ; j<mr.cols() ; j++)
+   assert(mr.nrow() == nrow());
+   assert(mr.ncol() == ncol());
+   for (int i=0 ; i<mr.nrow() ; i++)
+     for (int j=0 ; j<mr.ncol() ; j++)
        m(offset1_+i,offset2_+j) += mr(mr.offset1()+i,mr.offset2()+j);
    return *this;
   }
@@ -98,13 +98,13 @@ ostream& operator<<(      ostream&           s,
 {
  int width = s.width(); // apply width to numeric fields only
  s << "{ ";
- for (int i=0 ; i<m.rows() ; i++) {
+ for (int i=0 ; i<m.nrow() ; i++) {
    s << "{ ";
    s << setw(width) << m(i,0); //will fail for vectors of size 0!
-   for (int j=1 ; j<m.cols() ; j++) 
+   for (int j=1 ; j<m.ncol() ; j++) 
      s << ", " << setw(width) << m(i,j) ;
    s << " }";
-   if (i<m.rows()-1) s << ", ";
+   if (i<m.nrow()-1) s << ", ";
  }
  s << " }";
  return s;

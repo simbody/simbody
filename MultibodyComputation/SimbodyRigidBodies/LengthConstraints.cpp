@@ -20,7 +20,6 @@ using namespace simtk;
 #include "LengthConstraints.h"
 #include "RigidBodyNode.h"
 #include "RigidBodyTree.h"
-#include "cdsVec3.h"
 #include "cdsListAutoPtr.h"
 #include "cdsMath.h"
 #include "fixedVector.h"
@@ -29,6 +28,8 @@ using namespace simtk;
 #include "matrixTools.h"
 #include "newtonRaphson.h"
 #include "cdsIomanip.h"
+
+#include <vector>
 
 #ifdef USE_CDS_NAMESPACE 
 using namespace CDS;
@@ -67,13 +68,13 @@ public:
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
 
-    const CDSVec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
-    const CDSVec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
-    const CDSVec3& tipAcc(int i)   const {return getTipRuntime(i).acc_G;}
-    const CDSVec3& tipForce(int i) const {return getTipRuntime(i).force_G;}
+    const Vec3& tipPos(int i)   const {return getTipRuntime(i).pos_G;}
+    const Vec3& tipVel(int i)   const {return getTipRuntime(i).vel_G;}
+    const Vec3& tipAcc(int i)   const {return getTipRuntime(i).acc_G;}
+    const Vec3& tipForce(int i) const {return getTipRuntime(i).force_G;}
 
     // Use this for both forces and impulses.
-    void setTipForce(int i, const CDSVec3& f) const { updTipRuntime(i).force_G = f; }
+    void setTipForce(int i, const Vec3& f) const { updTipRuntime(i).force_G = f; }
 
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
@@ -88,7 +89,7 @@ private:
     // calculated info about the constraint
     bool                           flipStations; // make sure station(1).level
                                                  //   <= station(2).level
-    FixedVector<RBNodePtrList,2,1> nodes;   // the two paths: base..tip1, base..tip2,
+    RBNodePtrList                  nodes[2];   // the two paths: base..tip1, base..tip2,
                                             //   incl. tip nodes but not base
     RigidBodyNode*                 base;    // highest-level common ancestor of tips
     const RigidBodyNode*           moleculeNode;
@@ -130,7 +131,7 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc,
     RigidBodyNode* node1 = &tips(1).getNode();
     RigidBodyNode* node2 = &tips(2).getNode();
     while ( node2->getLevel() > node1->getLevel() ) {
-        nodes(2).append(node2);
+        nodes[1].append(node2);
         node2 = node2->getParent();
     }
 
@@ -144,8 +145,8 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc,
                  << tips(2) << "\n";
             throw Exception("LoopWNodes::LoopWNodes: could not find base node");
         }
-        nodes(1).append(node1);
-        nodes(2).append(node2);
+        nodes[0].append(node1);
+        nodes[1].append(node2);
         node1 = node1->getParent();
         node2 = node2->getParent();
     }
@@ -153,8 +154,8 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint& dc,
     base = node1;   // that's the common ancestor
 
     // We want these in base-to-tip order.
-    nodes(1).reverse();
-    nodes(2).reverse();
+    nodes[0].reverse();
+    nodes[1].reverse();
 
     // find molecule node (level==1 node)
     for (moleculeNode=base; 
@@ -178,7 +179,7 @@ class LengthSet {
     const int                 verbose;
     LoopList                  loops;    
     int                       dim;
-    CDSList<RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
+    CDSList<RigidBodyNode*>   nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
         : lConstraints(lConstraints), rbTree(lConstraints->rbTree), 
@@ -189,11 +190,11 @@ public:
 
     void addConstraint(const LoopWNodes& loop) {
         loops.append( LoopWNodes(loop) );
-        for (int b=1 ; b<=2 ; b++)
-            for (int i=0; i<loop.nodes(b).size(); i++)
-                if (!nodeMap.contains(loop.nodes(b)[i])) {
-                    dim += loop.nodes(b)[i]->getDim();
-                    nodeMap.append( loop.nodes(b)[i] );
+        for (int b=0 ; b<2 ; b++)
+            for (int i=0; i<loop.nodes[b].size(); i++)
+                if (!nodeMap.contains(loop.nodes[b][i])) {
+                    dim += loop.nodes[b][i]->getDim();
+                    nodeMap.append( loop.nodes[b][i] );
                 }
     }
 
@@ -201,8 +202,8 @@ public:
     bool contains(RigidBodyNode* node) {
         bool found=false;
         for (int i=0 ; i<loops.size() ; i++)
-            if (    loops[i].nodes(1).contains(node)
-                 || loops[i].nodes(2).contains(node) ) 
+            if (    loops[i].nodes[0].contains(node)
+                 || loops[i].nodes[1].contains(node) ) 
             {
                 found=true;
                 break;
@@ -330,10 +331,10 @@ LengthConstraints::construct(CDSList<RBDistanceConstraint>& iloops,
         priv->constraints.append( new LengthSet(this, loops[i]) );
         for (int j=i+1 ; j<loops.size() ; j++)
             for (int k=0 ; k<priv->constraints.size() ; k++)
-                if (   (loops[j].nodes(1).size()
-                        && priv->constraints[k]->contains(loops[j].nodes(1)[0]))
-                    || (loops[j].nodes(2).size()
-                        && priv->constraints[k]->contains(loops[j].nodes(2)[0])))
+                if (   (loops[j].nodes[0].size()
+                        && priv->constraints[k]->contains(loops[j].nodes[0][0]))
+                    || (loops[j].nodes[1].size()
+                        && priv->constraints[k]->contains(loops[j].nodes[1][0])))
                 {
                     //add length constraint to loop i
                     priv->constraints[i]->addConstraint(loops[j]);
@@ -416,7 +417,7 @@ LengthSet::calcPosB(const Vector& pos) const
     Vector b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) 
         b(i) = loops[i].getDistance() - 
-                sqrt(abs2(loops[i].tipPos(1) - loops[i].tipPos(2)));
+                (loops[i].tipPos(1) - loops[i].tipPos(2)).normSqr();
     return b;
 }
 
@@ -432,8 +433,8 @@ LengthSet::calcVelB(const Vector& pos, const Vector& vel) const
     Vector b( loops.size() );
     for (int i=0 ; i<loops.size() ; i++) {
         // TODO why the minus sign here? (doesn't work right without it) sherm
-        b(i) = -dot( unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)),
-                    loops[i].tipVel(2) - loops[i].tipVel(1) );
+        b(i) = -   ~(unitVec(loops[i].tipPos(2) - loops[i].tipPos(1)))
+                 *  (loops[i].tipVel(2) - loops[i].tipVel(1));
     }
 
     return b;
@@ -622,42 +623,41 @@ Matrix
 LengthSet::calcGrad() const
 {
     Matrix grad(dim,loops.size(),0.0);
-    CDSMat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
+    const Mat33 one(1);  //FIX: should be done once
 
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
-        FixedVector<CDSList<CDSMat66>,2,1> phiT;
-        for (int b=1 ; b<=2 ; b++) {
-            phiT(b).resize( l.nodes(b).size() );
-            if ( l.nodes(b).size() ) {
-                phiT(b)[phiT(b).size()-1].set(0.0);
-                phiT(b)[phiT(b).size()-1].setDiag(1.0);
-                for (int j=l.nodes(b).size()-2 ; j>=0 ; j-- ) {
-                    RigidBodyNode* n = l.nodes(b)[j+1];
-                    phiT(b)[j] = phiT(b)[j+1] * transpose( n->getPhi() );
+        CDSList<Mat66> phiT[2];
+        for (int b=0 ; b<2 ; b++) {
+            phiT[b].resize( l.nodes[b].size() );
+            if ( l.nodes[b].size() ) {
+                phiT[b][phiT[b].size()-1] = 1;  // identity
+                for (int j=l.nodes[b].size()-2 ; j>=0 ; j-- ) {
+                    RigidBodyNode* n = l.nodes[b][j+1];
+                    phiT[b][j] = phiT[b][j+1] * transpose( n->getPhi() );
                 }
             }
         }
 
         // compute gradient
-        CDSVec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
-        FixedVector<FixedMatrix<double,3,6>,2,1> J;
+        Vec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
+        Mat<3,6> J[2];
         for (int b=1 ; b<=2 ; b++)
-            J(b) = blockMat12(-crossMat(l.tipPos(b) -
+            // TODO: get rid of this b-1; make tips 0-based
+            J[b-1] = blockMat12(-crossMat(l.tipPos(b) -
                                         l.tips(b).getNode().getOB_G()), one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
             const Matrix H = ~nodeMap[j]->getH();
             double elem=0.0;
-            int l1_indx = l.nodes(1).getIndex(nodeMap[j]);
-            int l2_indx = l.nodes(2).getIndex(nodeMap[j]);
+            int l1_indx = l.nodes[0].getIndex(nodeMap[j]);
+            int l2_indx = l.nodes[1].getIndex(nodeMap[j]);
             for (int k=0 ; k<H.ncol() ; k++) {
-                const Vec6 t = Vec6::getAs(&H(k)[0]);
-                CDSVec6 Hcol; for (int ii=0;ii<6;++ii) Hcol[ii]=t[ii]; // TODO
+                const Vec6 Hcol = Vec6::getAs(&H(k)[0]);
                 if ( l1_indx >= 0 ) { 
-                    elem = -dot(uBond , CDSVec3(J(1) * phiT(1)[l1_indx]*Hcol));
+                    elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
-                    elem = dot(uBond , CDSVec3(J(2) * phiT(2)[l2_indx]*Hcol));
+                    elem =  dot(uBond , Vec3(J[1] * phiT[1][l2_indx]*Hcol));
                 }
                 grad(g_indx++,i) = elem;
             }
@@ -738,18 +738,15 @@ LengthConstraints::fixGradient(Vector& forceInternal)
         priv->constraints[i]->testInternalForce(forceInternal);
 }
 
-typedef SubVector<const CDSVec6>       SubVec6;
-typedef SubVector<const CDSVec6>       SubVec6;
-
 //
 // Calculate the acceleration of atom assuming that the spatial acceleration
 // of the body (node) it's on is available.
 //
-//static CDSVec3
+//static Vec3
 //getAccel(const IVMAtom* a)
 //{
 //    const RigidBodyNode* n = a->node;
-//    CDSVec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
+//    Vec3 ret( SubVec6(n->getSpatialAcc(),3,3).vector() );
 //    ret += cross( SubVec6(n->getSpatialAcc(),0,3).vector() , a->pos - n->getAtom(0)->pos );
 //    ret += cross( SubVec6(n->getSpatialVel(),0,3).vector() , a->vel - n->getAtom(0)->vel );
 //    return ret;
@@ -760,18 +757,18 @@ typedef SubVector<const CDSVec6>       SubVec6;
 // the nodes associated with stations s1 & s2.
 //
 static double
-computeA(const CDSVec3&    v1,
+computeA(const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
          const LoopWNodes& loop2, int s2,
-         const CDSVec3&    v2)
+         const Vec3&    v2)
 {
     const RigidBodyNode* n1 = &loop1.tips(s1).getNode();
     const RigidBodyNode* n2 = &loop2.tips(s2).getNode();
 
-    CDSMat33 one(0.); one.setDiag(1.);
+    const Mat33 one(1);
 
-    CDSVec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
-    CDSVec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
+    Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
+    Vec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * n1->getPsiT();
@@ -779,20 +776,20 @@ computeA(const CDSVec3&    v1,
     }
 
     while ( n2->getLevel() > n1->getLevel() ) {
-        t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+        t2 = ~n2->getPsiT() * t2;
         n2 = n2->getParent();
     }
 
     while ( n1 != n2 ) {
         if (n1->isGroundNode() || n2->isGroundNode()  ) {
-            t1.set(0.);  //not in same branch (or same tree -- sherm)
-            t2.set(0.);
+            t1 = 0.;  //not in same branch (or same tree -- sherm)
+            t2 = 0.;
             cout << "computeA: cycles wasted calculating missed branch: "
                     << loop1.tips(s1) << " <-> " << loop2.tips(s2) << '\n';
             return 0.;
         }
         t1 = t1 * n1->getPsiT();
-        t2 = MatrixTools::transpose(n2->getPsiT()) * t2;
+        t2 = ~n2->getPsiT() * t2;
         n1 = n1->getParent();
         n2 = n2->getParent();
     }
@@ -823,7 +820,7 @@ LengthSet::calcConstraintForces() const
     // See Eq. [53] and the last term of Eq. [66].
     Vector rhs(loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        rhs(i) = abs2(loops[i].tipVel(2) - loops[i].tipVel(1))
+        rhs(i) = (loops[i].tipVel(2) - loops[i].tipVel(1)).normSqr()
                    + dot(loops[i].tipAcc(2) - loops[i].tipAcc(1) , 
                          loops[i].tipPos(2) - loops[i].tipPos(1));
     }
@@ -833,12 +830,12 @@ LengthSet::calcConstraintForces() const
     // term of Eq. [66].
     Matrix A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<loops.size() ; i++) {
-        const CDSVec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
+        const Vec3 v1 = loops[i].tipPos(2) - loops[i].tipPos(1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<loops.size() ; j++) {
-                    const CDSVec3 v2 = loops[j].tipPos(2) - loops[j].tipPos(1);
+                    const Vec3 v2 = loops[j].tipPos(2) - loops[j].tipPos(1);
                     double contrib = computeA(v1, loops[i], bi,
                                                   loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
@@ -869,7 +866,7 @@ LengthSet::calcConstraintForces() const
 
     // add forces due to these constraints
     for (int i=0 ; i<loops.size() ; i++) {
-        const CDSVec3 frc = lambda(i) * (loops[i].tipPos(2) - loops[i].tipPos(1));
+        const Vec3 frc = lambda(i) * (loops[i].tipPos(2) - loops[i].tipPos(1));
         loops[i].setTipForce(2, -frc);
         loops[i].setTipForce(1,  frc);
     }
@@ -879,8 +876,8 @@ void LengthSet::addInCorrectionForces(CDSVecVec6& spatialForces) const {
     for (int i=0; i<loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
-            const CDSVec3& force = loops[i].tipForce(t);
-            const CDSVec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
+            const Vec3& force = loops[i].tipForce(t);
+            const Vec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
             spatialForces[node.getNodeNum()] += blockVec(moment, force);
         }
     }
@@ -890,9 +887,9 @@ void LengthSet::testAccel()
 {
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
-        double test= dot( loops[i].tipAcc(2) - loops[i].tipAcc(1),
-                          loops[i].tipPos(2) - loops[i].tipPos(1) ) +
-                     abs2( loops[i].tipVel(2) - loops[i].tipVel(1) );
+        double test=   ( ~(loops[i].tipAcc(2) - loops[i].tipAcc(1))
+                        * (loops[i].tipPos(2) - loops[i].tipPos(1)))
+                     + (loops[i].tipVel(2)-loops[i].tipVel(1)).normSqr();
         if ( fabs(test) > testTol )
             cout << "LengthSet::testAccel: constraint condition between atoms "
                  << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
@@ -1012,17 +1009,17 @@ LengthSet::fixVel0(Vector& iVel)
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
         // That would explain the fact that there are no velocities here!
-        const CDSVec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
+        const Vec3 probeImpulse = loops[m].tipPos(2)-loops[m].tipPos(1);
         loops[m].setTipForce(2,  probeImpulse);
         loops[m].setTipForce(1, -probeImpulse);
 
         CDSVecVec6 spatialImpulse(rbTree.getNBodies());
         for (int ii=0; ii < rbTree.getNBodies(); ++ii)
-            spatialImpulse[ii].set(0.);
+            spatialImpulse[ii] = 0;
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[m].tipNode(t);
-            const CDSVec3& force = loops[m].tipForce(t);
-            const CDSVec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
+            const Vec3& force = loops[m].tipForce(t);
+            const Vec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
             spatialImpulse[node.getNodeNum()] += blockVec(moment, force);
         }
 

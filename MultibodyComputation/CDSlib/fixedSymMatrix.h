@@ -46,8 +46,8 @@ public:
   FixedSymMatrixBase(const FixedSymMatrixBase<T,SIZE>& m) 
   {for (int i=0 ; i<SIZE*(SIZE+1)/2 ; i++) d_[i]=m.d_[i]; }
 
-  int rows() const { return SIZE; }
-  int cols() const { return SIZE; }
+  int nrow() const { return SIZE; }
+  int ncol() const { return SIZE; }
 
   void resize(int r,
 	      int c);
@@ -127,7 +127,7 @@ public:
 template<class T,int SIZE>
 inline T&
 FixedSymMatrixBase<T,SIZE>::updData(const int i1,
-				 const int j1)
+				                    const int j1)
 {
  assert(i1>=0 && i1<SIZE);
  assert(j1>=0 && j1<SIZE);
@@ -142,7 +142,7 @@ FixedSymMatrixBase<T,SIZE>::updData(const int i1,
 template<class T,int SIZE>
 const inline T&
 FixedSymMatrixBase<T,SIZE>::getData(const int i1,
-				 const int j1) const
+				                    const int j1) const
 {
  assert(i1>=0 && i1<SIZE);
  assert(j1>=0 && j1<SIZE);
@@ -187,9 +187,9 @@ operator*(const FixedSymMatrix<T,SIZE>& m1,
 	      const FixedSymMatrix<T,SIZE>& m2)
 {
  FixedSymMatrix<T,SIZE> r((T)0);
- const int s1 = m1.rows();
- const int s2 = m1.cols();
- const int s3 = m2.cols();
+ const int s1 = m1.nrow();
+ const int s2 = m1.ncol();
+ const int s3 = m2.ncol();
  for (int i=0 ; i<s1 ; i++)
    for (int k=0 ; k<s3 ; k++)
      for (int j=0 ; j<s2 ; j++) 
@@ -293,8 +293,8 @@ void
 FixedSymMatrixBase<T,SIZE>::resize(int r,
 				   int c)
 { 
- if ( r!=rows() ||
-      c!=cols()   ) 
+ if ( r!=nrow() ||
+      c!=ncol()   ) 
       throw CDS::exception(CDSString("FixedSymMatrix::resize: ") +
 			"illegal resize operation attempted.");
 } /* resize */

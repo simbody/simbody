@@ -133,30 +133,40 @@ try {
     //mbs.realize(Stage::Startup);
     //cout << "MBS=" << mbs << endl;
 
-    IVMSimbodyInterface instance(mbs);
-    State s = instance.getDefaultState();
-    s.updQ()[0] = -1.5; // almost hanging straight down
+    IVMSimbodyInterface instanceOld(mbs, true);  // old style
+    IVMSimbodyInterface instanceNew(mbs, false); // new style
+    State sOld = instanceOld.getDefaultState();
+    State sNew = instanceNew.getDefaultState();
+    sOld.updQ()[0] = sNew.updQ()[0] = -1.5; // almost hanging straight down
 
     const Real h = 0.0001;
     const Real tstart = 0.;
     const Real tmax = 10.;
+    cout << "     OLD         NEW    " << endl;
     for (int step=0; ; ++step) { 
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        Array<SpatialVec> bodyForces;
+        Array<SpatialVec>  bodyForces;
         Vector             hingeForces;
-        instance.clearForces(bodyForces,hingeForces);
-        instance.realizeParameters(s);
-        instance.realizeConfiguration(s);
+        instanceOld.clearForces(bodyForces,hingeForces);
+        instanceOld.realizeParameters(sOld);    instanceNew.realizeParameters(sNew);
+        instanceOld.realizeConfiguration(sOld); instanceNew.realizeConfiguration(sNew);
         if (!(step % 100))
-            cout << t << " " << s.getQ()[0] << " " << s.getU()[0] << endl;
-        instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
-        instance.realizeMotion(s);
-        Vector udot = instance.calcUDot(s,bodyForces,hingeForces);
+            cout << t << " " 
+                 << sOld.getQ()[0] << " " << sOld.getU()[0] 
+                 << "        \t" << sNew.getQ()[0] << " " << sNew.getU()[0] 
+                 << endl;
+        instanceOld.applyGravity(sOld,Vec3(0,-9.8,0),bodyForces);
+        instanceOld.realizeMotion(sOld); instanceNew.realizeMotion(sNew);
+        Vector udotOld = instanceOld.calcUDot(sOld,bodyForces,hingeForces);
+        Vector udotNew = instanceNew.calcUDot(sNew,bodyForces,hingeForces);
         //cout << "udot=" << udot << endl;
-        s.updQ() += h*s.getU();
-        s.updU() += h*udot;
+        sOld.updQ() += h*sOld.getU();
+        sOld.updU() += h*udotOld;
+
+        sNew.updQ() += h*sNew.getU();
+        sNew.updU() += h*udotNew;
     }
 
 }

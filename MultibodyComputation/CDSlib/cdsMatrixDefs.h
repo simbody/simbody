@@ -64,9 +64,9 @@ template<class T>
 template<class MAT>
 CDSMatrixBase<T>::CDSMatrixBase(const MAT &m)
 {
- rep = new CDSMatrixRep<T>(m.rows(),m.cols());
- for (int i=0 ; i<rows() ; i++)
-   for (int j=0 ; j<cols() ; j++)
+ rep = new CDSMatrixRep<T>(m.nrow(),m.ncol());
+ for (int i=0 ; i<nrow() ; i++)
+   for (int j=0 ; j<ncol() ; j++)
      updData(i,j) = m(m.offset1()+i,m.offset2()+j);
 }
 
@@ -82,13 +82,13 @@ CDSMatrixBase<T>::~CDSMatrixBase()
 
 template<class T>
 CDSMatrixBase<T>& 
-CDSMatrixBase<T>::resize(const int rows,
-			 const int cols)
+CDSMatrixBase<T>::resize(const int nrow,
+			 const int ncol)
 {
- if (rows != rep->size1 ||
-     cols != rep->size2   ) {
+ if (nrow != rep->size1 ||
+     ncol != rep->size2   ) {
    if (--rep->count <= 0) delete rep;
-   rep = new CDSMatrixRep<T>(rows,cols);
+   rep = new CDSMatrixRep<T>(nrow,ncol);
  }
  
  //FIX: should there be a copy operation???
@@ -114,7 +114,7 @@ template<class T>
 inline void
 CDSMatrixBase<T>::set(const T &x)
 {
- for (int i=0 ; i<rows()*cols() ; i++)
+ for (int i=0 ; i<nrow()*ncol() ; i++)
    rep->data[i] = x;
 } /* set */
 
@@ -123,7 +123,7 @@ template<class T>
 inline void
 CDSMatrixBase<T>::setDiag(const T &x)
 {
- for (int i=0 ; i<((rows()<cols())?rows():cols()) ; i++)
+ for (int i=0 ; i<((nrow()<ncol())?nrow():ncol()) ; i++)
    updData(i,i) = x;
 }
 
@@ -133,7 +133,7 @@ template<class X>
 CDSMatrixBase<T>&
 CDSMatrixBase<T>::scale(const X& x)
 {
- for (int i=0 ; i<rows()*cols() ; i++)
+ for (int i=0 ; i<nrow()*ncol() ; i++)
    rep->data[i] *= x;
  return *this;
 } /* scale */
@@ -170,8 +170,8 @@ CDSMatrix<T>
 operator+(const CDSMatrix<T>& m1,
 	  const CDSMatrix<T>& m2)
 {
- assert( m1.cols() == m2.cols() );
- assert( m1.rows() == m2.rows() );
+ assert( m1.ncol() == m2.ncol() );
+ assert( m1.nrow() == m2.nrow() );
 
  CDSMatrix<T> r = m1;
  r += m2;
@@ -184,8 +184,8 @@ CDSMatrix<T>
 operator-(const CDSMatrix<T>& m1,
 	  const CDSMatrix<T>& m2)
 {
- assert( m1.cols() == m2.cols() );
- assert( m1.rows() == m2.rows() );
+ assert( m1.ncol() == m2.ncol() );
+ assert( m1.nrow() == m2.nrow() );
 
  CDSMatrix<T> r = m1;
  r -= m2;
@@ -198,12 +198,12 @@ CDSMatrix<T>
 operator*(const CDSMatrix<T>& m1,
 	  const CDSMatrix<T>& m2)
 {
- assert( m1.cols() == m2.rows() );
+ assert( m1.ncol() == m2.nrow() );
 
- CDSMatrix<T> r(m1.rows(),m2.cols(),(T)0);
- for (int i=0 ; i<m1.rows() ; i++)
-   for (int k=0 ; k<m2.cols() ; k++)
-     for (int j=0 ; j<m1.cols() ; j++) 
+ CDSMatrix<T> r(m1.nrow(),m2.ncol(),(T)0);
+ for (int i=0 ; i<m1.nrow() ; i++)
+   for (int k=0 ; k<m2.ncol() ; k++)
+     for (int j=0 ; j<m1.ncol() ; j++) 
        r(i,k) += m1(i,j) * m2(j,k);
 
  return r;
@@ -214,11 +214,11 @@ CDSVector<T>
 operator*(const CDSMatrixBase<T>& m,
 	      const CDSVectorBase<T>& v)
 {
- assert( m.cols() == v.size() );
- CDSVector<T> r(m.rows(),(T)0);
+ assert( m.ncol() == v.size() );
+ CDSVector<T> r(m.nrow(),(T)0);
  
- for (int i=0 ; i<m.rows() ; i++) 
-   for (int j=0 ; j<m.cols() ; j++) 
+ for (int i=0 ; i<m.nrow() ; i++) 
+   for (int j=0 ; j<m.ncol() ; j++) 
      r(i) += m.getData(i,j) * v.getData(j);
  
  return r;
@@ -228,9 +228,9 @@ operator*(const CDSMatrixBase<T>& m,
 //CDSMatrix<T>
 //transpose(const CDSMatrix<T> &m)
 //{
-// CDSMatrix<T> r(m.cols(),m.rows());
-// for (int i=0 ; i<m.rows() ; i++)
-//   for (int j=0 ; j<m.cols() ; j++) 
+// CDSMatrix<T> r(m.ncol(),m.nrow());
+// for (int i=0 ; i<m.nrow() ; i++)
+//   for (int j=0 ; j<m.ncol() ; j++) 
 //     r(j,i) = m(i,j);
 // return r;
 //} /* transpose */
@@ -244,23 +244,23 @@ blockMat22(const CDSMatrix<T>& m11,
 	   const CDSMatrix<T>& m21,
 	   const CDSMatrix<T>& m22)
 {
- assert( m11.rows() == m12.rows() );
- assert( m11.cols() == m21.cols() );
- assert( m12.cols() == m22.cols() );
- assert( m21.rows() == m22.rows() );
- CDSMatrix<T> ret( m11.rows()+m21.rows() , m11.cols()+m12.cols() );
- for (int i=0 ; i<m11.rows() ; i++)
-   for (int j=0 ; j<m11.cols() ; j++)
+ assert( m11.nrow() == m12.nrow() );
+ assert( m11.ncol() == m21.ncol() );
+ assert( m12.ncol() == m22.ncol() );
+ assert( m21.nrow() == m22.nrow() );
+ CDSMatrix<T> ret( m11.nrow()+m21.nrow() , m11.ncol()+m12.ncol() );
+ for (int i=0 ; i<m11.nrow() ; i++)
+   for (int j=0 ; j<m11.ncol() ; j++)
      ret(i,j) = m11(i,j);
- for (l_int i=0 ; i<m12.rows() ; i++)
-   for (int j=0 ; j<m12.cols() ; j++)
-     ret(i,j+m11.cols()) = m12(i,j);
- for (l_int i=0 ; i<m21.rows() ; i++)
-   for (int j=0 ; j<m21.cols() ; j++)
-     ret(i+m11.rows(),j) = m21(i,j);
- for (l_int i=0 ; i<m22.rows() ; i++)
-   for (int j=0 ; j<m22.cols() ; j++)
-     ret(i+m11.rows(),j+m11.cols()) = m22(i,j);
+ for (l_int i=0 ; i<m12.nrow() ; i++)
+   for (int j=0 ; j<m12.ncol() ; j++)
+     ret(i,j+m11.ncol()) = m12(i,j);
+ for (l_int i=0 ; i<m21.nrow() ; i++)
+   for (int j=0 ; j<m21.ncol() ; j++)
+     ret(i+m11.nrow(),j) = m21(i,j);
+ for (l_int i=0 ; i<m22.nrow() ; i++)
+   for (int j=0 ; j<m22.ncol() ; j++)
+     ret(i+m11.nrow(),j+m11.ncol()) = m22(i,j);
  return ret;
 } /* blockMat22 */
 
@@ -269,14 +269,14 @@ CDSMatrix<T>
 blockMat12(const CDSMatrix<T>& m1,
 	   const CDSMatrix<T>& m2)
 {
- assert( m1.rows() == m2.rows() );
- CDSMatrix<T> ret(m1.rows(),m1.cols()+m2.cols());
- for (int i=0 ; i<m1.rows() ; i++)
-   for (int j=0 ; j<m1.cols() ; j++)
+ assert( m1.nrow() == m2.nrow() );
+ CDSMatrix<T> ret(m1.nrow(),m1.ncol()+m2.ncol());
+ for (int i=0 ; i<m1.nrow() ; i++)
+   for (int j=0 ; j<m1.ncol() ; j++)
      ret(i,j) = m1(i,j);
- for (l_int i=0 ; i<m2.rows() ; i++)
-   for (int j=0 ; j<m2.cols() ; j++)
-     ret(i,j+m1.cols()) = m2(i,j);
+ for (l_int i=0 ; i<m2.nrow() ; i++)
+   for (int j=0 ; j<m2.ncol() ; j++)
+     ret(i,j+m1.ncol()) = m2(i,j);
  return ret;
 } /* blockMat12 */
 
@@ -285,14 +285,14 @@ CDSMatrix<T>
 blockMat21(const CDSMatrix<T>& m1,
 	   const CDSMatrix<T>& m2)
 {
- assert( m1.cols() == m2.cols() );
- CDSMatrix<T> ret(m1.rows()+m2.rows(),m1.cols());
- for (int i=0 ; i<m1.rows() ; i++)
-   for (int j=0 ; j<m1.cols() ; j++)
+ assert( m1.ncol() == m2.ncol() );
+ CDSMatrix<T> ret(m1.nrow()+m2.nrow(),m1.ncol());
+ for (int i=0 ; i<m1.nrow() ; i++)
+   for (int j=0 ; j<m1.ncol() ; j++)
      ret(i,j) = m1(i,j);
- for (l_int i=0 ; i<m2.rows() ; i++)
-   for (int j=0 ; j<m2.cols() ; j++)
-     ret(m1.rows()+i,j) = m2(i,j);
+ for (l_int i=0 ; i<m2.nrow() ; i++)
+   for (int j=0 ; j<m2.ncol() ; j++)
+     ret(m1.nrow()+i,j) = m2(i,j);
  return ret;
 } /* blockMat21 */
 
@@ -316,9 +316,9 @@ blockMat21(const CDSMatrix<T>& m1,
 //       double&           d   )
 //	    //from Numerical Recipes
 //{
-// assert( a.rows() == a.cols()    );
-// assert( a.rows() == indx.size() );
-// const int    size=a.cols();
+// assert( a.nrow() == a.ncol()    );
+// assert( a.nrow() == indx.size() );
+// const int    size=a.ncol();
 // const double TINY=1e-20;//....
 // CDSVector<double,1> vv(size);
 //
@@ -379,10 +379,10 @@ blockMat21(const CDSMatrix<T>& m1,
 //  // solve a x = b  (for x) -- place solution in b
 //  //
 //{
-// assert( a.rows() == a.cols() );
-// assert( a.rows() == indx.size() );
+// assert( a.nrow() == a.ncol() );
+// assert( a.nrow() == indx.size() );
 // assert( b.size() == indx.size() );
-// const int size = a.rows();
+// const int size = a.nrow();
 // int ii=0;
 // for (int i=1 ; i<=size ; i++) {
 //   int ip = indx(i);
@@ -407,8 +407,8 @@ blockMat21(const CDSMatrix<T>& m1,
 //CDSMatrix<T>
 //inverse(const CDSMatrix<T>& m)
 //{
-// assert( m.rows()==m.cols() );
-// const int size=m.rows();
+// assert( m.nrow()==m.ncol() );
+// const int size=m.nrow();
 // double d;
 // CDSMatrix<T,1,1> a = m;
 // //( (CDSMatrix<T,size,size,1,1>&)m );
@@ -436,19 +436,19 @@ orthoTransform(const CDSMatrix<T>& m,
 	       const CDSMatrix<T>& S)
   // return S * m * transpose(S);
 {
- assert( m.rows() == m.cols() );
- assert( m.rows() == S.cols() );
+ assert( m.nrow() == m.ncol() );
+ assert( m.nrow() == S.ncol() );
 
- CDSMatrix<T> dum(S.rows(),S.cols(),(T)0);
- for (int i=0 ; i<dum.rows() ; i++) 
-   for (int k=0 ; k<dum.cols() ; k++) 
-     for (int j=0 ; j<m.rows() ; j++) 
+ CDSMatrix<T> dum(S.nrow(),S.ncol(),(T)0);
+ for (int i=0 ; i<dum.nrow() ; i++) 
+   for (int k=0 ; k<dum.ncol() ; k++) 
+     for (int j=0 ; j<m.nrow() ; j++) 
        dum(i,k) += S(i,j) * m(j,k);
 
- CDSMatrix<T> ret(S.rows(),S.rows(),(T)0);
- for (l_int i=0 ; i<ret.rows() ; i++) 
-   for (int k=0 ; k<ret.cols() ; k++) 
-     for (int j=0 ; j<m.rows() ; j++) 
+ CDSMatrix<T> ret(S.nrow(),S.nrow(),(T)0);
+ for (l_int i=0 ; i<ret.nrow() ; i++) 
+   for (int k=0 ; k<ret.ncol() ; k++) 
+     for (int j=0 ; j<m.nrow() ; j++) 
        ret(i,k) += dum(i,j) * S(k,j);
  
  return ret;
@@ -479,15 +479,15 @@ operator>>(istream& s, CDSMatrixBase<T>& m)
  s.setf(ios::skipws);
  char c; 
  s>>c; if ( c!='{' ) throw typename CDSMatrixBase<T>::IOError();
- for (int i=0 ; i<m.rows() ; i++) {
+ for (int i=0 ; i<m.nrow() ; i++) {
    s>>c; if ( c!='{' ) throw typename CDSMatrixBase<T>::IOError();
    s >> m.updData(i,0); // this will cause error if the matrix has a zero size!
-   for (int j=1 ; j<m.cols() ; j++) {
+   for (int j=1 ; j<m.ncol() ; j++) {
      s >> c; if ( c!=',' ) throw typename CDSMatrixBase<T>::IOError();
      s >> m.updData(i,j);
      s>>c; if ( c!='}' ) throw typename CDSMatrixBase<T>::IOError();
    }
-   if (i<m.rows()-1) {
+   if (i<m.nrow()-1) {
      s >> c; if ( c!=',' ) throw typename CDSMatrixBase<T>::IOError();
    }
  }
@@ -502,13 +502,13 @@ operator<<(ostream& s, const CDSMatrixBase<T>& m)
 {
  int width = s.width(); // apply width to numeric fields only
  s << "{ ";
- for (int i=0 ; i<m.rows() ; i++) {
+ for (int i=0 ; i<m.nrow() ; i++) {
    s << "{ ";
    s << setw(width) << m.getData(i,0); //will fail for vectors of size 0!
-   for (int j=1 ; j<m.cols() ; j++) 
+   for (int j=1 ; j<m.ncol() ; j++) 
      s << ", " << setw(width) << m.getData(i,j) ;
    s << " }";
-   if (i<m.rows()-1) s << ", ";
+   if (i<m.nrow()-1) s << ", ";
  }
  s << " }";
  return s;

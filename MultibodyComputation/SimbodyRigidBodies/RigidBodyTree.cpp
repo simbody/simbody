@@ -9,25 +9,16 @@
 
 #include "LengthConstraints.h"
 
-#include "cdsVec3.h"
-
 #include "sthead.h"
 #include "cdsMath.h"
 #include "cdsString.h"
 #include "cdsSStream.h"
-#include "fixedVector.h"
-#include "subVector.h"
-#include "fixedMatrix.h"
-#include "matrixTools.h"
 #include "cdsIomanip.h"
 #include "cdsFstream.h"
 
 using namespace InternalDynamics;
-using MatrixTools::inverse;
 
-typedef FixedVector<double,6> CDSVec6;
-typedef FixedMatrix<double,6> CDSMat66;
-typedef CDSList<CDSVec6>      CDSVecVec6;
+typedef CDSList<Vec6>      CDSVecVec6;
 
 
 void RBStation::calcPosInfo(RBStationRuntime& rt) const {
@@ -36,17 +27,17 @@ void RBStation::calcPosInfo(RBStationRuntime& rt) const {
 }
 
 void RBStation::calcVelInfo(RBStationRuntime& rt) const {
-    const CDSVec3& w_G = getNode().getSpatialAngVel();
-    const CDSVec3& v_G = getNode().getSpatialLinVel();
+    const Vec3& w_G = getNode().getSpatialAngVel();
+    const Vec3& v_G = getNode().getSpatialLinVel();
     rt.stationVel_G = cross(w_G, rt.station_G);
     rt.vel_G = v_G + rt.stationVel_G;
 }
 
 void RBStation::calcAccInfo(RBStationRuntime& rt) const {
-    const CDSVec3& w_G  = getNode().getSpatialAngVel();
-    const CDSVec3& v_G  = getNode().getSpatialLinVel();
-    const CDSVec3& aa_G = getNode().getSpatialAngAcc();
-    const CDSVec3& a_G  = getNode().getSpatialLinAcc();
+    const Vec3& w_G  = getNode().getSpatialAngVel();
+    const Vec3& v_G  = getNode().getSpatialLinVel();
+    const Vec3& aa_G = getNode().getSpatialAngAcc();
+    const Vec3& a_G  = getNode().getSpatialLinAcc();
     rt.acc_G = a_G + cross(aa_G, rt.station_G)
                    + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
 }
@@ -62,7 +53,7 @@ void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
     for (int i=0; i<=1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
 
     rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
-    const double separation = sqrt(abs2(rt.fromTip1ToTip2_G));
+    const double separation = rt.fromTip1ToTip2_G.norm();
     rt.unitDirection_G = rt.fromTip1ToTip2_G / separation;
     rt.posErr = distance - separation;
 }
@@ -73,7 +64,7 @@ void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
     for (int i=0; i<=1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
 
     rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
-    rt.velErr = dot( rt.unitDirection_G , rt.relVel_G );
+    rt.velErr = ~rt.unitDirection_G * rt.relVel_G;
 }
 
 void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
@@ -82,8 +73,8 @@ void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
     for (int i=0; i<=1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
 
 //XXX this doesn't look right
-    const CDSVec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
-    rt.accErr = abs2(rt.relVel_G) + dot(relAcc_G, rt.fromTip1ToTip2_G);
+    const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
+    rt.accErr = rt.relVel_G.normSqr() + (~relAcc_G * rt.fromTip1ToTip2_G);
 }
 
 RigidBodyTree::~RigidBodyTree() {

@@ -11,5 +11,5 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include
 
 
 ADD_EXECUTABLE(Example1 ${SOURCE_FILES} ${INCLUDE_FILES})
-TARGET_LINK_LIBRARIES(Example1 IVMSimbodyInterface MultibodyModeling Mechanics Geometry IVMRigidBodies CDSlib
+TARGET_LINK_LIBRARIES(Example1 IVMSimbodyInterface SimbodyRigidBodies MultibodyModeling Mechanics Geometry IVMRigidBodies CDSlib
                       BigMatrix SmallMatrix Scalar simtk ${MATH_LIBS_TO_USE})

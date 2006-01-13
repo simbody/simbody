@@ -5,14 +5,13 @@
 using namespace simtk;
 
 #include "cdsList.h"
-#include "cdsVec3.h"
 
 #include "RigidBodyNode.h"
 
 #include <cassert>
 
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSList<CDSVec6>          CDSVecVec6;
+typedef CDSList<Vec6>             CDSVecVec6;
 
 class IVM;
 class LengthConstraints;
@@ -26,31 +25,31 @@ class RBDistanceConstraintRuntime;
 class RBStation {
 public:
     RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(RigidBodyNode& n, const CDSVec3& pos) : rbNode(&n), station_B(pos) { }
+    RBStation(RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
     void calcPosInfo(RBStationRuntime&) const;
     void calcVelInfo(RBStationRuntime&) const;
     void calcAccInfo(RBStationRuntime&) const;
 
-    RigidBodyNode&       getNode()    const { assert(isValid()); return *rbNode; }
-    const CDSVec3&       getStation() const { assert(isValid()); return station_B; }
-    bool                 isValid()    const { return rbNode != 0; }
+    RigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
+    const Vec3&       getStation() const { assert(isValid()); return station_B; }
+    bool              isValid()    const { return rbNode != 0; }
 private:
-    RigidBodyNode*       rbNode;
-    CDSVec3              station_B;
+    RigidBodyNode*    rbNode;
+    Vec3              station_B;
 };
 ostream& operator<<(ostream&, const RBStation&);
 
 class RBStationRuntime {
 public:
-    CDSVec3 station_G;    // vector from body origin OB to station, reexpressed in G
-    CDSVec3 stationVel_G; // velocity of station relative to velocity of OB, expr. in G
-    CDSVec3 pos_G;        // spatial quantities
-    CDSVec3 vel_G;
-    CDSVec3 acc_G;
+    Vec3 station_G;    // vector from body origin OB to station, reexpressed in G
+    Vec3 stationVel_G; // velocity of station relative to velocity of OB, expr. in G
+    Vec3 pos_G;        // spatial quantities
+    Vec3 vel_G;
+    Vec3 acc_G;
 
-    CDSVec3 force_G;      // the constraint force (calculated)
+    Vec3 force_G;      // the constraint force (calculated)
 };
 
 /**
@@ -89,14 +88,14 @@ public:
 
     RBStationRuntime stationRuntimes[2];
 
-    CDSVec3 fromTip1ToTip2_G;    // tip2.pos - tip1.pos
-    CDSVec3 unitDirection_G;     // fromTip1ToTip2/|fromTip1ToTip2|
+    Vec3 fromTip1ToTip2_G;    // tip2.pos - tip1.pos
+    Vec3 unitDirection_G;     // fromTip1ToTip2/|fromTip1ToTip2|
 
-    CDSVec3 relVel_G;            // spatial relative velocity tip2.vel-tip1.vel
+    Vec3 relVel_G;            // spatial relative velocity tip2.vel-tip1.vel
 
-    CDSReal posErr;
-    CDSReal velErr;
-    CDSReal accErr;
+    Real posErr;
+    Real velErr;
+    Real accErr;
 };
 
 /**

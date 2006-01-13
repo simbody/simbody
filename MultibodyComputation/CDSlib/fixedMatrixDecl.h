@@ -47,8 +47,8 @@ public:
   FixedMatrixBase(const FixedMatrixBase<T,size1,size2>& m) 
     {for (int i=0 ; i<size1*size2 ; i++) d_[i]=m.d_[i]; }
 
-  int rows() const { return size1; }
-  int cols() const { return size2; }
+  int nrow() const { return size1; }
+  int ncol() const { return size2; }
 
   void resize(int r,
 	      int c);

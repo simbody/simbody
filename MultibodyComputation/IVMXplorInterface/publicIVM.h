@@ -11,7 +11,7 @@
 #include <simulation.h>
 #include <enumNameMap.h>
 #include "dinternal.h"
-#include "RBInternalDynamics.h"
+#include "IVMInternalDynamics.h"
 #include "publicNode.h"
 #include "potList.h"
 #include <modified.h>

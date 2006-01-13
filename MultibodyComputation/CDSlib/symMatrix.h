@@ -21,7 +21,7 @@ class SymMatrix;
 
 template<class T>
 class SymMatrixRep {
-  int size;      //# rows/columns
+  int size;      //# nrow/columns
   T* data;
   int count;
 public:
@@ -60,8 +60,8 @@ public:
   ~SymMatrixBase ();
 
   SymMatrixBase<T> &resize(const int b1,const int e1);
-  int rows() const { return rep->size; }
-  int cols() const { return rep->size; }
+  int nrow() const { return rep->size; }
+  int ncol() const { return rep->size; }
 
   T&       updData(int i, int j); 
   const T& getData(int i, int j) const;
@@ -132,8 +132,8 @@ T&
 SymMatrixBase<T>::updData(const int i1,
                           const int j1)
 {
- assert( i1>=0 && i1<rows() );
- assert( j1>=0 && j1<cols() );
+ assert( i1>=0 && i1<nrow() );
+ assert( j1>=0 && j1<ncol() );
 
  splitRep();
 
@@ -150,8 +150,8 @@ SymMatrixBase<T>::getData(const int i1,
                           const int j1) const
   //const version
 {
- assert( i1>=0 && i1<rows() );
- assert( j1>=0 && j1<cols() );
+ assert( i1>=0 && i1<nrow() );
+ assert( j1>=0 && j1<ncol() );
 
  int i=i1;
  int j=j1;
@@ -240,9 +240,9 @@ template<class T>
 template<class MAT>
 SymMatrixBase<T>::SymMatrixBase(const MAT &m)
 {
- rep = new SymMatrixRep<T>(m.rows());
- for (int i=0 ; i<rows() ; i++)
-   for (int j=i ; j<cols() ; j++)
+ rep = new SymMatrixRep<T>(m.nrow());
+ for (int i=0 ; i<nrow() ; i++)
+   for (int j=i ; j<ncol() ; j++)
      updData(i,j) = m(m.offset1()+i,m.offset2()+j);
 }
 
@@ -258,14 +258,14 @@ SymMatrixBase<T>::~SymMatrixBase()
 
 template<class T>
 SymMatrixBase<T>& 
-SymMatrixBase<T>::resize(const int rows,
-             const int cols)
+SymMatrixBase<T>::resize(const int nrow,
+             const int ncol)
 {
- assert( rows == cols );
+ assert( nrow == ncol );
 
- if (rows != rep->size ) {
+ if (nrow != rep->size ) {
    if (--rep->count <= 0) delete rep;
-   rep = new SymMatrixRep<T>(rows);
+   rep = new SymMatrixRep<T>(nrow);
  }
  
  //FIX: should there be a copy operation???
@@ -300,7 +300,7 @@ template<class T>
 inline void
 SymMatrixBase<T>::setDiag(const T &x)
 {
- for (int i=0 ; i<rows() ; i++)
+ for (int i=0 ; i<nrow() ; i++)
    updData(i,i) = x;
 }
 
@@ -346,12 +346,12 @@ SymMatrixBase<T>::operator-=(const SymMatrixBase<T>& m)
 //operator*(const SymMatrix<T>& m1,
 //      const SymMatrix<T>& m2)
 //{
-// assert( m1.cols() == m2.rows() );
+// assert( m1.ncol() == m2.nrow() );
 //
-// SymMatrix<T> r(m1.rows(),m2.cols(),(T)0);
-// for (int i=0 ; i<m1.rows() ; i++)
-//   for (int k=0 ; k<m2.cols() ; k++)
-//     for (int j=0 ; j<m1.cols() ; j++) 
+// SymMatrix<T> r(m1.nrow(),m2.ncol(),(T)0);
+// for (int i=0 ; i<m1.nrow() ; i++)
+//   for (int k=0 ; k<m2.ncol() ; k++)
+//     for (int j=0 ; j<m1.ncol() ; j++) 
 //       r(i,k) += m1(i,j) * m2(j,k);
 //
 // return r;
@@ -362,11 +362,11 @@ SymMatrixBase<T>::operator-=(const SymMatrixBase<T>& m)
 //operator*(const SymMatrixBase<T>& m,
 //      const CDSVectorBase<T>& v)
 //{
-// assert( m.cols() == v.size() );
-// CDSVector<T> r(m.rows(),(T)0);
+// assert( m.ncol() == v.size() );
+// CDSVector<T> r(m.nrow(),(T)0);
 // 
-// for (int i=0 ; i<m.rows() ; i++) 
-//   for (int j=0 ; j<m.cols() ; j++) 
+// for (int i=0 ; i<m.nrow() ; i++) 
+//   for (int j=0 ; j<m.ncol() ; j++) 
 //     r(i) += m.data(i,j) * v.data(j);
 // 
 // return r;
@@ -383,15 +383,15 @@ operator>>(istream& s, SymMatrixBase<T>& m)
  s.setf(ios::skipws);
  char c; 
  s>>c; if ( c!='{' ) throw SymMatrixBase<T>::IOError();
- for (int i=0 ; i<m.rows() ; i++) {
+ for (int i=0 ; i<m.nrow() ; i++) {
    s>>c; if ( c!='{' ) throw SymMatrixBase<T>::IOError();
    s >> m.data(i,0); // this will cause error if the matrix has a zero size!
-   for (int j=1 ; j<m.cols() ; j++) {
+   for (int j=1 ; j<m.ncol() ; j++) {
      s >> c; if ( c!=',' ) throw SymMatrixBase<T>::IOError();
      s >> m.data(i,j);
      s>>c; if ( c!='}' ) throw SymMatrixBase<T>::IOError();
    }
-   if (i<m.rows()-1) {
+   if (i<m.nrow()-1) {
      s >> c; if ( c!=',' ) throw SymMatrixBase<T>::IOError();
    }
  }
@@ -406,13 +406,13 @@ operator<<(ostream& s, const SymMatrixBase<T>& m)
 {
  int width = s.width(); // apply width to numeric fields only
  s << "{ ";
- for (int i=0 ; i<m.rows() ; i++) {
+ for (int i=0 ; i<m.nrow() ; i++) {
    s << "{ ";
    s << setw(width) << m.getData(i,0); //will fail for vectors of size 0!
-   for (int j=1 ; j<m.cols() ; j++) 
+   for (int j=1 ; j<m.ncol() ; j++) 
      s << ", " << setw(width) << m.getData(i,j) ;
    s << " }";
-   if (i<m.rows()-1) s << ", ";
+   if (i<m.nrow()-1) s << ", ";
  }
  s << " }";
  return s;

@@ -12,8 +12,6 @@
 #include "fixedVector.h"
 #include "cdsList.h"
 
-typedef float_type CDSReal;
-
 
 /**
  * Built-in joint types.
@@ -97,15 +95,15 @@ enum RBJointType {
  * nonsingular bodies (that is, a body composed of at least three
  * noncollinear point masses).
  */
-class RBInertia : public CDSMat33 {
+class RBInertia : public Mat33 {
 public:
     /// Default is the inertia of a point mass about that point, i.e. 0.
-    RBInertia() : CDSMat33(0.) {}
+    RBInertia() : Mat33(0.) {}
 
     /// Note the order of these arguments: moments of inertia first, then 
     /// products of inertia.
-    RBInertia(const CDSReal& xx, const CDSReal& yy, const CDSReal& zz,
-            const CDSReal& xy, const CDSReal& xz, const CDSReal& yz)
+    RBInertia(const Real& xx, const Real& yy, const Real& zz,
+            const Real& xy, const Real& xz, const Real& yz)
         { setInertia(xx,yy,zz,xy,xz,yz); }
 
     /// Given a point mass located at a given point p in some frame F, 
@@ -115,11 +113,11 @@ public:
     /// For a collection of point masses, you can just add these together to
     /// produce a composite inertia as long as all the vectors are
     /// measured from the same point and expressed in the same frame.
-    RBInertia(const CDSReal& m, const CDSVec3& p) {
-        CDSMat33& t = *this;
-        const CDSReal& x = p(0); const CDSReal xx = x*x;
-        const CDSReal& y = p(1); const CDSReal yy = y*y;
-        const CDSReal& z = p(2); const CDSReal zz = z*z;
+    RBInertia(const Real& m, const Vec3& p) {
+        Mat33& t = *this;
+        const Real& x = p(0); const Real xx = x*x;
+        const Real& y = p(1); const Real yy = y*y;
+        const Real& z = p(2); const Real zz = z*z;
 
         t(0,0)          =  m*(yy + zz);
         t(1,1)          =  m*(xx + zz);
@@ -131,14 +129,14 @@ public:
 
     /// We only look at the lower triangles, but fill in the whole matrix.
     RBInertia(const RBInertia& s) {
-        CDSMat33& t = *this;
+        Mat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
         t(0,1) = (t(1,0) = s(1,0));
         t(0,2) = (t(2,0) = s(2,0));
         t(1,2) = (t(2,1) = s(2,1));
     }
 
-    explicit RBInertia(const CDSMat33& s) {
+    explicit RBInertia(const Mat33& s) {
         assert(close(s(0,1),s(1,0)) 
             && close(s(0,2),s(2,0))
             && close(s(1,2),s(2,1)));
@@ -147,7 +145,7 @@ public:
     }
 
     RBInertia& operator=(const RBInertia& s) {
-        CDSMat33& t = *this;
+        Mat33& t = *this;
         t(0,0) = s(0,0); t(1,1) = s(1,1);  t(2,2) = s(2,2);
         t(0,1) = (t(1,0) = s(1,0));
         t(0,2) = (t(2,0) = s(2,0));
@@ -156,7 +154,7 @@ public:
     }
 
     RBInertia& operator+=(const RBInertia& s) {
-        CDSMat33& t = *this;
+        Mat33& t = *this;
         t(0,0) += s(0,0); t(1,1) += s(1,1);  t(2,2) += s(2,2);
         t(0,1) = (t(1,0) += s(1,0));
         t(0,2) = (t(2,0) += s(2,0));
@@ -165,7 +163,7 @@ public:
     }
 
     RBInertia& operator-=(const RBInertia& s) {
-        CDSMat33& t = *this;
+        Mat33& t = *this;
         t(0,0) -= s(0,0); t(1,1) -= s(1,1);  t(2,2) -= s(2,2);
         t(0,1) = (t(1,0) -= s(1,0));
         t(0,2) = (t(2,0) -= s(2,0));
@@ -173,9 +171,9 @@ public:
         return *this;
     }
 
-    void setInertia(const CDSReal& xx, const CDSReal& yy, const CDSReal& zz,
-                    const CDSReal& xy, const CDSReal& xz, const CDSReal& yz) {
-        CDSMat33& t = *this;
+    void setInertia(const Real& xx, const Real& yy, const Real& zz,
+                    const Real& xy, const Real& xz, const Real& yz) {
+        Mat33& t = *this;
         t(0,0) = xx; t(1,1) = yy;  t(2,2) = zz;
         t(0,1) = t(1,0) = xy;
         t(0,2) = t(2,0) = xz;
@@ -183,8 +181,8 @@ public:
     }
 
 private:
-    //TODO: the tolerance here should be a function of CDSReal's precision
-    static bool close(const CDSReal& a, const CDSReal& b) {
+    //TODO: the tolerance here should be a function of Real's precision
+    static bool close(const Real& a, const Real& b) {
         if (fabs(a-b) < 1e-13) return true;
         if (fabs(a-b)/(fabs(a)+fabs(b)) < 0.5e-13) return true;
         return false;
@@ -205,24 +203,24 @@ inline RBInertia operator-(const RBInertia& l, const RBInertia& r) {
  */
 class RBMassProperties {
 public:
-    RBMassProperties() { setMassProperties(0.,CDSVec3(0.),RBInertia()); }
-    RBMassProperties(const CDSReal& m, const CDSVec3& com, const RBInertia& inertia)
+    RBMassProperties() { setMassProperties(0.,Vec3(0.),RBInertia()); }
+    RBMassProperties(const Real& m, const Vec3& com, const RBInertia& inertia)
       { setMassProperties(m,com,inertia); }
 
-    void setMassProperties(const CDSReal& m, const CDSVec3& com, const RBInertia& inertia)
+    void setMassProperties(const Real& m, const Vec3& com, const RBInertia& inertia)
       { mass=m; comInB=com; inertia_OB_B=inertia; }
 
-    const CDSReal&    getMass()    const { return mass; }
-    const CDSVec3&    getCOM()     const { return comInB; }
+    const Real&    getMass()    const { return mass; }
+    const Vec3&    getCOM()     const { return comInB; }
     const RBInertia&  getInertia() const { return inertia_OB_B; }
 
     RBInertia calcCentroidalInertia() const {
         return inertia_OB_B - RBInertia(mass, comInB);
     }
-    RBInertia calcShiftedInertia(const CDSVec3& newOriginB) const {
+    RBInertia calcShiftedInertia(const Vec3& newOriginB) const {
         return calcCentroidalInertia() + RBInertia(mass, newOriginB-comInB);
     }
-    RBMassProperties calcShiftedMassProps(const CDSVec3& newOriginB) const {
+    RBMassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
         return RBMassProperties(mass, comInB-newOriginB,
                                 calcShiftedInertia(newOriginB));
     }
@@ -230,8 +228,8 @@ public:
     bool isMassless()   const { return mass==0.; }
 
 private:
-    CDSReal   mass;
-    CDSVec3   comInB;         // meas. from B origin, expr. in B
+    Real   mass;
+    Vec3   comInB;         // meas. from B origin, expr. in B
     RBInertia inertia_OB_B;   // about B origin, expr. in B
 };
 
@@ -262,39 +260,40 @@ private:
  */
 class RBFrame {
 public:
-    RBFrame() {Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF.set(0.);}
-    RBFrame(const CDSMat33& axesInR, const CDSVec3& originInR) {setFrame(axesInR,originInR);}
-    RBFrame(const CDSVec3& originInR) {
-        Rot_RF.set(0.); Rot_RF.setDiag(1.); Loc_RF=originInR;
+    RBFrame() : Rot_RF(1), Loc_RF(0) { } // identity rotation and 0 origin
+
+    RBFrame(const Mat33& axesInR, const Vec3& originInR) {setFrame(axesInR,originInR);}
+    RBFrame(const Vec3& originInR) {
+        Rot_RF = 1; Loc_RF=originInR;
     }
     // default copy, assignment, destructor
 
-    void setFrame(const CDSMat33& axesInR, const CDSVec3& originInR) 
+    void setFrame(const Mat33& axesInR, const Vec3& originInR) 
         {Rot_RF=axesInR; Loc_RF=originInR;}
 
     // Transform various items measured and expressed in F to those same
     // items measured and expressed in F's reference frame R.
-    CDSVec3  xformVector2Ref  (const CDSVec3& vF)      const { return Rot_RF*vF; }
-    CDSVec3  xformStation2Ref (const CDSVec3& sF)      const { return Loc_RF + xformVector2Ref(sF); }
-    CDSMat33 xformRotation2Ref(const CDSMat33& Rot_FX) const { return Rot_RF*Rot_FX; }
+    Vec3  xformVector2Ref  (const Vec3& vF)      const { return Rot_RF*vF; }
+    Vec3  xformStation2Ref (const Vec3& sF)      const { return Loc_RF + xformVector2Ref(sF); }
+    Mat33 xformRotation2Ref(const Mat33& Rot_FX) const { return Rot_RF*Rot_FX; }
     RBFrame  xformFrame2Ref   (const RBFrame& fF) const 
       { return RBFrame(xformRotation2Ref(fF.Rot_RF), xformStation2Ref(fF.Loc_RF)); }
 
-    const CDSMat33& getRot_RF() const { return Rot_RF; }
-    CDSMat33&       updRot_RF()       { return Rot_RF; }
+    const Mat33& getRot_RF() const { return Rot_RF; }
+    Mat33&       updRot_RF()       { return Rot_RF; }
 
-    const CDSVec3&  getLoc_RF() const { return Loc_RF; }
-    CDSVec3&        updLoc_RF()       { return Loc_RF; }
+    const Vec3&  getLoc_RF() const { return Loc_RF; }
+    Vec3&        updLoc_RF()       { return Loc_RF; }
 
     // Computation-free conversions
-    const CDSReal*  getFrameAsArray(const RBFrame& f)  const {return reinterpret_cast<const CDSReal*>(&f);}
-    CDSReal*        updFrameAsArray(RBFrame& f)              {return reinterpret_cast<CDSReal*>(&f);}
-    const RBFrame&  getArrayAsFrame(const CDSReal* r)  const {return *reinterpret_cast<const RBFrame*>(r);}
-    RBFrame&        updArrayAsFrame(CDSReal* r)              {return *reinterpret_cast<RBFrame*>(r);}
+    const Real*  getFrameAsArray(const RBFrame& f)  const {return reinterpret_cast<const Real*>(&f);}
+    Real*        updFrameAsArray(RBFrame& f)              {return reinterpret_cast<Real*>(&f);}
+    const RBFrame&  getArrayAsFrame(const Real* r)  const {return *reinterpret_cast<const RBFrame*>(r);}
+    RBFrame&        updArrayAsFrame(Real* r)              {return *reinterpret_cast<RBFrame*>(r);}
 
 private:
-    CDSMat33 Rot_RF;   // rotation matrix that expresses F's axes in R
-    CDSVec3  Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
+    Mat33 Rot_RF;   // rotation matrix that expresses F's axes in R
+    Vec3  Loc_RF;   // location of F's origin measured from R's origin, expressed in R 
 };
 
 #endif /* RB_MASS_PROPERTIES_H_ */
