@@ -1,13 +1,12 @@
 #ifndef RIGID_BODY_NODE_H_
 #define RIGID_BODY_NODE_H_
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/Simbody.h"
 using namespace simtk;
 
 #include "phiMatrix.h"
 #include "internalDynamics.h"
 
-#include "fixedMatrix.h"
 #include "cdsList.h"
 
 #include "RBMassProperties.h"
@@ -133,7 +132,7 @@ public:
     /// measured from the ground origin and expressed in ground.
     const Vec3&   getOP_G() const {assert(parent); return parent->getOB_G();}
 
-    void setSpatialVel(const Vec6& v) { sVel=v; }
+    void setSpatialVel(const SpatialVec& v) { sVel=v; }
 
     /// Return the inertial angular velocity of body frame B (i.e., angular
     /// velocity with respect to the ground frame), expressed in the ground frame.
@@ -155,12 +154,12 @@ public:
     const Vec3&   getSpatialLinAcc() const
         {return *reinterpret_cast<const Vec3*>(&sAcc[3]);}
 
-    const Vec6&   getSpatialVel() const {return sVel;}
-    const Vec6&   getSpatialAcc() const {return sAcc;}
+    const SpatialVec&   getSpatialVel() const {return sVel;}
+    const SpatialVec&   getSpatialAcc() const {return sAcc;}
 
     const PhiMatrix& getPhi()  const {return phi;}
-    const Mat66&  getPsiT() const {return psiT;}
-    const Mat66&  getY()    const {return Y;}
+    const SpatialMat&  getPsiT() const {return psiT;}
+    const SpatialMat&  getY()    const {return Y;}
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
@@ -180,13 +179,13 @@ public:
     virtual void enforceConstraints(Vector& pos, Vector& vel) {throw VirtualBaseMethod();}
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
-    virtual void calcZ    (const Vec6& spatialForce)      {throw VirtualBaseMethod();}
+    virtual void calcZ    (const SpatialVec& spatialForce)      {throw VirtualBaseMethod();}
     virtual void calcY()                                     {throw VirtualBaseMethod();}
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
-    virtual void calcInternalForce(const Vec6& spatialForce) {throw VirtualBaseMethod();}
+    virtual void calcInternalForce(const SpatialVec& spatialForce) {throw VirtualBaseMethod();}
 
-    virtual void setVelFromSVel(const Vec6&) {throw VirtualBaseMethod();}
+    virtual void setVelFromSVel(const SpatialVec&) {throw VirtualBaseMethod();}
 
 
     virtual void getPos(Vector&)   const {throw VirtualBaseMethod();}
@@ -258,7 +257,7 @@ protected:
     Vec3  OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
-    Vec6  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+    SpatialVec  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
 
     // Calculated spatial quantities
     //      ... position level
@@ -274,21 +273,21 @@ protected:
     RBInertia  inertia_OB_G;  // about B's origin, expr. in G
 
     PhiMatrix phi;           // spatial rigid body transition matrix
-    Mat66  Mk;            // spatial inertia matrix
-    Mat66  P;             // articulated body spatial inertia
-    Mat66  tau;
-    Mat66  psiT;
-    Mat66  Y;             // diag of Omega - for loop constraints
+    SpatialMat  Mk;            // spatial inertia matrix
+    SpatialMat  P;             // articulated body spatial inertia
+    SpatialMat  tau;
+    SpatialMat  psiT;
+    SpatialMat  Y;             // diag of Omega - for loop constraints
 
     //      ... velocity level
-    Vec6   a;     // spatial coriolis acceleration
-    Vec6   b;     // spatial gyroscopic force
-    Vec6   sVel;  // spatial velocity
+    SpatialVec   a;     // spatial coriolis acceleration
+    SpatialVec   b;     // spatial gyroscopic force
+    SpatialVec   sVel;  // spatial velocity
 
     //      ... acceleration level
-    Vec6   z;
-    Vec6   Gepsilon;
-    Vec6   sAcc;              // spatial acceleration
+    SpatialVec   z;
+    SpatialVec   Gepsilon;
+    SpatialVec   sAcc;              // spatial acceleration
 
 
     virtual void velFromCartesian() {}

@@ -1,7 +1,7 @@
 #ifndef RIGID_BODY_TREE_H_
 #define RIGID_BODY_TREE_H_
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/Simbody.h"
 using namespace simtk;
 
 #include "cdsList.h"
@@ -11,7 +11,7 @@ using namespace simtk;
 #include <cassert>
 
 typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSList<Vec6>             CDSVecVec6;
+typedef CDSList<SpatialVec>       CDSVecVec6;
 
 class IVM;
 class LengthConstraints;

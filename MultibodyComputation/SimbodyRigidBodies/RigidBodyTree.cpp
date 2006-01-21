@@ -18,7 +18,7 @@
 
 using namespace InternalDynamics;
 
-typedef CDSList<Vec6>      CDSVecVec6;
+typedef CDSList<SpatialVec> CDSVecVec6;
 
 
 void RBStation::calcPosInfo(RBStationRuntime& rt) const {

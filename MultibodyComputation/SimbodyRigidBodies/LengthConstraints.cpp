@@ -641,19 +641,19 @@ LengthSet::calcGrad() const
 
         // compute gradient
         Vec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
-        Mat<3,6> J[2];
+        Mat<1,2,Mat33> J[2];
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
-            J[b-1] = blockMat12(-crossMat(l.tipPos(b) -
-                                        l.tips(b).getNode().getOB_G()), one);
+            J[b-1] = Mat<1,2,Mat33>(-crossMat(l.tipPos(b) -
+                                              l.tips(b).getNode().getOB_G()), one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
-            const Matrix H = ~nodeMap[j]->getH();
+            const Matrix Ht = ~nodeMap[j]->getH();
             double elem=0.0;
             int l1_indx = l.nodes[0].getIndex(nodeMap[j]);
             int l2_indx = l.nodes[1].getIndex(nodeMap[j]);
-            for (int k=0 ; k<H.ncol() ; k++) {
-                const Vec6 Hcol = Vec6::getAs(&H(k)[0]);
+            for (int k=0 ; k<Ht.ncol() ; k++) {
+                const Vec6 Hcol = Vec6::getAs(&Ht(k)[0]);
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
@@ -767,8 +767,8 @@ computeA(const Vec3&    v1,
 
     const Mat33 one(1);
 
-    Vec6 t1 = v1 * blockMat12(crossMat(n1->getOB_G() - loop1.tipPos(s1)),one);
-    Vec6 t2 = blockMat21(crossMat(loop2.tipPos(s2) - n2->getOB_G()),one) * v2;
+    SpatialRow t1 = ~v1 * Mat<1,2,Mat33>(crossMat(n1->getOB_G() - loop1.tipPos(s1)), one);
+    SpatialVec t2 = Mat<2,1,Mat33>(crossMat(loop2.tipPos(s2) - n2->getOB_G()), one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * n1->getPsiT();
@@ -878,7 +878,7 @@ void LengthSet::addInCorrectionForces(CDSVecVec6& spatialForces) const {
             const RigidBodyNode& node = loops[i].tipNode(t);
             const Vec3& force = loops[i].tipForce(t);
             const Vec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
-            spatialForces[node.getNodeNum()] += blockVec(moment, force);
+            spatialForces[node.getNodeNum()] += SpatialVec(moment, force);
         }
     }
 }
@@ -887,8 +887,8 @@ void LengthSet::testAccel()
 {
     double testTol=1e-8;
     for (int i=0 ; i<loops.size() ; i++) {
-        double test=   ( ~(loops[i].tipAcc(2) - loops[i].tipAcc(1))
-                        * (loops[i].tipPos(2) - loops[i].tipPos(1)))
+        double test=   dot(loops[i].tipAcc(2) - loops[i].tipAcc(1),
+                           loops[i].tipPos(2) - loops[i].tipPos(1))
                      + (loops[i].tipVel(2)-loops[i].tipVel(1)).normSqr();
         if ( fabs(test) > testTol )
             cout << "LengthSet::testAccel: constraint condition between atoms "
@@ -1020,7 +1020,7 @@ LengthSet::fixVel0(Vector& iVel)
             const RigidBodyNode& node = loops[m].tipNode(t);
             const Vec3& force = loops[m].tipForce(t);
             const Vec3& moment = cross(loops[m].tipPos(t) - node.getOB_G(), force);
-            spatialImpulse[node.getNodeNum()] += blockVec(moment, force);
+            spatialImpulse[node.getNodeNum()] += SpatialVec(moment, force);
         }
 
         // calc deltaVa from k-th constraint condition

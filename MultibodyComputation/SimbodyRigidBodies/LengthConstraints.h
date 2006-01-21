@@ -1,14 +1,14 @@
 #ifndef LENGTH_CONSTRAINTS_H_
 #define LENGTH_CONSTRAINTS_H_
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/Simbody.h"
 using namespace simtk;
 
 class RBDistanceConstraint;
 class RBDistanceConstraintRuntime;
 class RigidBodyTree;
 template<class T> class CDSList;
-typedef CDSList<Vec6> CDSVecVec6;
+typedef CDSList<SpatialVec> CDSVecVec6;
 
 #include <cdsIostream.h>
 

@@ -47,58 +47,28 @@ transpose(const PhiMatrix& phi)
     return ret;
 }
   
-inline Vec6
-operator*(const PhiMatrix& phi,
-          const Vec6&   vec)
+inline SpatialVec
+operator*(const PhiMatrix&  phi,
+          const SpatialVec& v)
 {
-    const Vec3& v1 = vec.getSubVec<3>(0);
-    const Vec3& v2 = vec.getSubVec<3>(3);
-
-    Vec6 ret;
-
-    ret.updSubVec<3>(0) = v1 + phi.l() % v2;
-    ret.updSubVec<3>(3) = v2;
-
-    return ret;
+    return SpatialVec(v[0] + phi.l() % v[1],
+                      v[1]);
 }
 
-inline Vec6
+inline SpatialVec
 operator*(const PhiMatrixTranspose& phiT,
-          const Vec6&            vec)
+          const SpatialVec&         v)
 {
-    const Vec3& v1 = vec.getSubVec<3>(0);
-    const Vec3& v2 = vec.getSubVec<3>(3);
-
-    Vec6 ret;
-
-    ret.updSubVec<3>(0) = v1;
-    ret.updSubVec<3>(3) = v2 + v1 % phiT.l();
-
-    return ret;
+    return SpatialVec(v[0],
+                      v[1] + v[0] % phiT.l());
 }
 
-inline Mat66
-operator*(const Mat66&              mat,
+inline SpatialMat
+operator*(const SpatialMat&         m,
           const PhiMatrixTranspose& phiT)
 {
-    typedef Mat66::SubMat<3,3>::Type SubMat33;
-    const SubMat33& m11 = mat.getSubMat<3,3>(0,0);
-    const SubMat33& m12 = mat.getSubMat<3,3>(0,3);
-    const SubMat33& m21 = mat.getSubMat<3,3>(3,0);
-    const SubMat33& m22 = mat.getSubMat<3,3>(3,3);
-
-    Mat66 ret;
-    SubMat33& rm11 = ret.updSubMat<3,3>(0,0);
-    SubMat33& rm12 = ret.updSubMat<3,3>(0,3);
-    SubMat33& rm21 = ret.updSubMat<3,3>(3,0);
-    SubMat33& rm22 = ret.updSubMat<3,3>(3,3);
-
-    rm11 = m11 - m12 * crossMat(phiT.l());
-    rm12 = m12;
-    rm21 = m21 - m22 * crossMat(phiT.l());
-    rm22 = m22;
-
-    return ret;
+    return SpatialMat( m(0,0) - m(0,1) * crossMat(phiT.l()), m(0,1),
+                       m(1,0) - m(1,1) * crossMat(phiT.l()), m(1,1) );
 }
 
 #endif /*  __phiMatrix_hh__ */
