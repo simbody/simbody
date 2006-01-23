@@ -205,10 +205,10 @@ public:
 
     // These unfortunately need to be overridden for joints using quaternions.
     virtual void setJointPos(const Vector& posv) {
-        theta  = *reinterpret_cast<const FixedVector<double,dof>*>(&posv[stateOffset]);
+        theta  = Vec<dof>::getAs(&posv[stateOffset]);
     }
     virtual void setJointVel(const Vector& velv) {
-        dTheta = *reinterpret_cast<const FixedVector<double,dof>*>(&velv[stateOffset]);
+        dTheta = Vec<dof>::getAs(&velv[stateOffset]);
     }
     virtual void calcJointAccel() { }
 
@@ -268,9 +268,9 @@ protected:
     // These are the joint-specific quantities
     //      ... position level
     Vec<dof>                theta;   // internal coordinates
-    Vec<dof, SpatialRow>    H;       // joint transition matrix (spatial)
+    Mat<dof, 2, Row3>       H;       // joint transition matrix (spatial)
     Mat<dof,dof>            DI;
-    Row<dof, SpatialVec>    G;
+    Mat<2, dof, Vec3>       G;
 
     //      ... velocity level
     Vec<dof>                dTheta;  // internal coordinate time derivatives
@@ -800,11 +800,11 @@ private:
         Vec3 x = scale * tmpR_GB * (R_BJ * Vec3(1,0,0));
         Vec3 y = scale * tmpR_GB * (R_BJ * Vec3(0,1,0));
 
-        H = Mat<5,1, SpatialRow>(SpatialRow(  ~x   ,  Row3(0)),
-                                 SpatialRow(  ~y   ,  Row3(0)),
-                                 SpatialRow(Row3(0), ~R_GP(0)),
-                                 SpatialRow(Row3(0), ~R_GP(1)),
-                                 SpatialRow(Row3(0), ~R_GP(2)));
+        H[0] = SpatialRow(  ~x   ,  Row3(0));
+        H[1] = SpatialRow(  ~y   ,  Row3(0));
+        H[2] = SpatialRow(Row3(0), ~R_GP(0));
+        H[3] = SpatialRow(Row3(0), ~R_GP(1));
+        H[4] = SpatialRow(Row3(0), ~R_GP(2));
     }  
 };
 
@@ -867,9 +867,9 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(const SpatialVec& sVel) {
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcD_G(const SpatialMat& P) {
     using InternalDynamics::Exception;
-    FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
+    const Mat<dof,dof> D = H * P * ~H;
     try {
-        DI = inverse(D);
+        DI = D.invert();
     }
     catch ( SingularError ) {
         cerr << "calcD_G: singular D matrix: " << D << '\n'
@@ -879,7 +879,7 @@ RigidBodyNodeSpec<dof>::calcD_G(const SpatialMat& P) {
              << endl;
         throw Exception("calcD_G: singular D matrix. Bad topology?");
     }
-    G = P * MatrixTools::transpose(H) * DI;
+    G = P * ~H * DI;
 }
 
 //
@@ -911,7 +911,7 @@ RigidBodyNodeSpec<dof>::calcP() {
     calcD_G(P);
     tau = 1.; // identity matrix
     tau -= G * H;
-    psiT = ~tau * transpose(phi);
+    psiT = ~tau * ~phi;
 }
  
 //
@@ -950,7 +950,7 @@ RigidBodyNodeSpec<dof>::calcAccel() {
 // To be called base to tip.
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcY() {
-    Y = (H * DI * ~H) + (psiT * parent->Y * ~psiT);
+    Y = (~H * DI * H) + (psiT * parent->Y * ~psiT);
 }
 
 //

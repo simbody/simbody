@@ -46,13 +46,25 @@ transpose(const PhiMatrix& phi)
     PhiMatrixTranspose ret(phi);
     return ret;
 }
-  
+
+inline PhiMatrixTranspose
+operator~(const PhiMatrix& phi) {return transpose(phi);}
+
 inline SpatialVec
 operator*(const PhiMatrix&  phi,
           const SpatialVec& v)
 {
     return SpatialVec(v[0] + phi.l() % v[1],
                       v[1]);
+}
+
+inline SpatialMat
+operator*(const PhiMatrix&  phi,
+          const SpatialMat& m)
+{
+    const Mat33 x = crossMat(phi.l());
+    return SpatialMat( m(0,0) + x*m(1,0), m(0,1) + x*m(1,1),
+                           m(1,0)       ,     m(1,1));
 }
 
 inline SpatialVec
@@ -63,12 +75,23 @@ operator*(const PhiMatrixTranspose& phiT,
                       v[1] + v[0] % phiT.l());
 }
 
+
+inline SpatialMat
+operator*(const SpatialMat::THerm&  m,
+          const PhiMatrixTranspose& phiT)
+{
+    const Mat33 x = crossMat(phiT.l());
+    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),
+                       m(1,0) - m(1,1) * x, m(1,1) );
+}
+
 inline SpatialMat
 operator*(const SpatialMat&         m,
           const PhiMatrixTranspose& phiT)
 {
-    return SpatialMat( m(0,0) - m(0,1) * crossMat(phiT.l()), m(0,1),
-                       m(1,0) - m(1,1) * crossMat(phiT.l()), m(1,1) );
+    const Mat33 x = crossMat(phiT.l());
+    return SpatialMat( m(0,0) - m(0,1) * x, m(0,1),
+                       m(1,0) - m(1,1) * x, m(1,1) );
 }
 
 #endif /*  __phiMatrix_hh__ */

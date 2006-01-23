@@ -627,7 +627,7 @@ LengthSet::calcGrad() const
 
     for (int i=0 ; i<loops.size() ; i++) {
         const LoopWNodes& l = loops[i];
-        CDSList<Mat66> phiT[2];
+        CDSList<SpatialMat> phiT[2];
         for (int b=0 ; b<2 ; b++) {
             phiT[b].resize( l.nodes[b].size() );
             if ( l.nodes[b].size() ) {
@@ -641,11 +641,11 @@ LengthSet::calcGrad() const
 
         // compute gradient
         Vec3 uBond = unitVec(l.tipPos(2) - l.tipPos(1));
-        Mat<1,2,Mat33> J[2];
+        Row<2,Mat33> J[2];
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
-            J[b-1] = Mat<1,2,Mat33>(-crossMat(l.tipPos(b) -
-                                              l.tips(b).getNode().getOB_G()), one);
+            J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(b) -
+                                            l.tips(b).getNode().getOB_G()),   one);
         int g_indx=0;
         for (int j=0 ; j<nodeMap.size() ; j++) {
             const Matrix Ht = ~nodeMap[j]->getH();
@@ -653,7 +653,7 @@ LengthSet::calcGrad() const
             int l1_indx = l.nodes[0].getIndex(nodeMap[j]);
             int l2_indx = l.nodes[1].getIndex(nodeMap[j]);
             for (int k=0 ; k<Ht.ncol() ; k++) {
-                const Vec6 Hcol = Vec6::getAs(&Ht(k)[0]);
+                const SpatialVec Hcol = SpatialVec::getAs(&Vec3::getAs(&Ht(k)[0]));
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*Hcol));
                 } else if ( l2_indx >= 0 ) { 
@@ -767,8 +767,8 @@ computeA(const Vec3&    v1,
 
     const Mat33 one(1);
 
-    SpatialRow t1 = ~v1 * Mat<1,2,Mat33>(crossMat(n1->getOB_G() - loop1.tipPos(s1)), one);
-    SpatialVec t2 = Mat<2,1,Mat33>(crossMat(loop2.tipPos(s2) - n2->getOB_G()), one) * v2;
+    SpatialRow t1 = ~v1 * Row<2,Mat33>(crossMat(n1->getOB_G() - loop1.tipPos(s1)), one);
+    SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(s2) - n2->getOB_G()), one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
         t1 = t1 * n1->getPsiT();
