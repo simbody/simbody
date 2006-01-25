@@ -130,14 +130,15 @@ try {
    // DynamicInvestigation d(pend);
 
 
-    //mbs.realize(Stage::Startup);
+    mbs.realize(Stage::Startup);
     //cout << "MBS=" << mbs << endl;
 
     IVMSimbodyInterface instanceOld(mbs, true);  // old style
     IVMSimbodyInterface instanceNew(mbs, false); // new style
     State sOld = instanceOld.getDefaultState();
     State sNew = instanceNew.getDefaultState();
-    sOld.updQ()[0] = sNew.updQ()[0] = -1.5; // almost hanging straight down
+    sOld.updQ()[0] = -1.5; // almost hanging straight down
+    sNew.updQ()[0] = -1.5; // almost hanging straight down
 
     const Real h = 0.0001;
     const Real tstart = 0.;
@@ -158,7 +159,8 @@ try {
                  << "        \t" << sNew.getQ()[0] << " " << sNew.getU()[0] 
                  << endl;
         instanceOld.applyGravity(sOld,Vec3(0,-9.8,0),bodyForces);
-        instanceOld.realizeMotion(sOld); instanceNew.realizeMotion(sNew);
+        instanceOld.realizeMotion(sOld); 
+        instanceNew.realizeMotion(sNew);
         Vector udotOld = instanceOld.calcUDot(sOld,bodyForces,hingeForces);
         Vector udotNew = instanceNew.calcUDot(sNew,bodyForces,hingeForces);
         //cout << "udot=" << udot << endl;

@@ -301,7 +301,7 @@ protected:
     virtual void velFromCartesian() {}
 
     friend ostream& operator<<(ostream& s, const IVMRigidBodyNode&);
-    template<int dof> friend class RigidBodyNodeSpec;
+    template<int dof> friend class IVMRigidBodyNodeSpec;
 
 private:   
     /// Calculate all spatial configuration quantities, assuming availability of

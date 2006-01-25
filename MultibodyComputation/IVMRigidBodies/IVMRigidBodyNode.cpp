@@ -171,9 +171,9 @@ public:
 };
 
 template<int dof>
-class RigidBodyNodeSpec : public IVMRigidBodyNode {
+class IVMRigidBodyNodeSpec : public IVMRigidBodyNode {
 public:
-    RigidBodyNodeSpec(const IVMMassProperties& mProps_B,
+    IVMRigidBodyNodeSpec(const IVMMassProperties& mProps_B,
                       const IVMFrame& jointFrame,
                       int& cnt)
       : IVMRigidBodyNode(mProps_B,CDSVec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
@@ -183,7 +183,7 @@ public:
         cnt += dof;
     }
 
-    virtual ~RigidBodyNodeSpec() {}
+    virtual ~IVMRigidBodyNodeSpec() {}
 
     /// Calculate joint-specific kinematic quantities dependent only
     /// on positions. This routine may assume that *all* position 
@@ -309,13 +309,13 @@ private:
  * which is suitable (e.g.) for connecting a free atom to ground.
  * The joint frame J is aligned with the body frame B.
  */
-class IVMNodeTranslate : public RigidBodyNodeSpec<3> {
+class IVMNodeTranslate : public IVMRigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
     IVMNodeTranslate(const IVMMassProperties& mProps_B,
                     int&                    nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset)
+      : IVMRigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset)
     {
     }
 
@@ -336,14 +336,14 @@ public:
  * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
  * about a particular axis.
  */
-class IVMNodeTorsion : public RigidBodyNodeSpec<1> {
+class IVMNodeTorsion : public IVMRigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
     IVMNodeTorsion(const IVMMassProperties& mProps_B,
                   const IVMFrame&          jointFrame,
                   int&                    nextStateOffset)
-      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
+      : IVMRigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
     {
     }
 
@@ -536,7 +536,7 @@ public:
  * unrestricted orientation.
  * The joint frame J is aligned with the body frame B.
  */
-class IVMNodeRotate3 : public RigidBodyNodeSpec<3> {
+class IVMNodeRotate3 : public IVMRigidBodyNodeSpec<3> {
     ContainedBallJoint ball;
 public:
     virtual const char* type() { return "rotate3"; }
@@ -544,7 +544,7 @@ public:
     IVMNodeRotate3(const IVMMassProperties& mProps_B,
                   int&                    nextStateOffset,
                   bool                    useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset),
+      : IVMRigidBodyNodeSpec<3>(mProps_B,IVMFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -597,7 +597,7 @@ public:
     }
 
     void setVelFromSVel(const CDSVec6& sVel) {
-        RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
+        IVMRigidBodyNodeSpec<3>::setVelFromSVel(sVel);
         ball.setBallDerivs(dTheta);
     } 
 };
@@ -607,7 +607,7 @@ public:
  * translation and rotation for a free rigid body.
  * The joint frame J is aligned with the body frame B.
  */
-class IVMNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
+class IVMNodeTranslateRotate3 : public IVMRigidBodyNodeSpec<6> {
     ContainedBallJoint ball;
 public:
     virtual const char* type() { return "full"; }
@@ -615,7 +615,7 @@ public:
     IVMNodeTranslateRotate3(const IVMMassProperties& mProps_B,
                            int&                    nextStateOffset,
                            bool                    useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,IVMFrame(),nextStateOffset),
+      : IVMRigidBodyNodeSpec<6>(mProps_B,IVMFrame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -688,7 +688,7 @@ public:
     }
 
     void setVelFromSVel(const CDSVec6& sVel) {
-        RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
+        IVMRigidBodyNodeSpec<6>::setVelFromSVel(sVel);
         const CDSVec3 omega  = RSubVec6( dTheta, 0, 3).vector();
         ball.setBallDerivs(omega);
     } 
@@ -700,14 +700,14 @@ public:
  * perpendicular to zDir. This is appropriate for diatoms and for allowing 
  * torsion+bond angle bending.
  */
-class IVMNodeRotate2 : public RigidBodyNodeSpec<2> {
+class IVMNodeRotate2 : public IVMRigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
     IVMNodeRotate2(const IVMMassProperties& mProps_B,
                   const IVMFrame&          jointFrame,
                   int&                    nextStateOffset)
-      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
+      : IVMRigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
     {
     }
 
@@ -757,14 +757,14 @@ private:
  * translation but rotation only about directions perpendicular to the body's
  * inertialess axis.
  */
-class IVMNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
+class IVMNodeTranslateRotate2 : public IVMRigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
     IVMNodeTranslateRotate2(const IVMMassProperties& mProps_B,
                            const IVMFrame&          jointFrame,
                            int&                    nextStateOffset)
-      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
+      : IVMRigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
     {
     }
 
@@ -855,7 +855,7 @@ IVMRigidBodyNode::create(
 }
 
 /////////////////////////////////////////////////////////////
-// Implementation of RigidBodyNodeSpec base class methods. //
+// Implementation of IVMRigidBodyNodeSpec base class methods. //
 /////////////////////////////////////////////////////////////
 
 
@@ -863,12 +863,12 @@ IVMRigidBodyNode::create(
 // to be called from base to tip.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(const CDSVec6& sVel) {
+IVMRigidBodyNodeSpec<dof>::setVelFromSVel(const CDSVec6& sVel) {
     dTheta = H * (sVel - transpose(phi)*parent->sVel);
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
+IVMRigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
     using IVMInternalDynamics::IVMException;
     FixedMatrix<double,dof,dof> D = orthoTransform(P,H);
     try {
@@ -891,7 +891,7 @@ RigidBodyNodeSpec<dof>::calcD_G(const CDSMat66& P) {
 // is a tip to base recursion.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcP() {
+IVMRigidBodyNodeSpec<dof>::calcP() {
     //
     //how much do we need to keep around?
     // it looks like nu and G are the only ones needed for the acceleration
@@ -930,7 +930,7 @@ RigidBodyNodeSpec<dof>::calcP() {
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(const CDSVec6& spatialForce) {
+IVMRigidBodyNodeSpec<dof>::calcZ(const CDSVec6& spatialForce) {
     z = P * a + b - spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
@@ -948,7 +948,7 @@ RigidBodyNodeSpec<dof>::calcZ(const CDSVec6& spatialForce) {
 // (Base to tip)
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel() {
+IVMRigidBodyNodeSpec<dof>::calcAccel() {
     // const Node* pNode = parentHinge.remNode;
     //make sure that this is phi is correct - FIX ME!
     // base alpha = 0!!!!!!!!!!!!!
@@ -961,7 +961,7 @@ RigidBodyNodeSpec<dof>::calcAccel() {
 
 // To be called base to tip.
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcY() {
+IVMRigidBodyNodeSpec<dof>::calcY() {
     Y = orthoTransform(DI,MatrixTools::transpose(H))
         + orthoTransform(parent->Y,psiT);
 }
@@ -973,7 +973,7 @@ RigidBodyNodeSpec<dof>::calcY() {
 // Should be called only once after calcProps.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalForce(const CDSVec6& spatialForce) {
+IVMRigidBodyNodeSpec<dof>::calcInternalForce(const CDSVec6& spatialForce) {
     z = -spatialForce;
 
     for (int i=0 ; i<children.size() ; i++) 
@@ -983,7 +983,7 @@ RigidBodyNodeSpec<dof>::calcInternalForce(const CDSVec6& spatialForce) {
 }
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::print(int verbose) const {
+IVMRigidBodyNodeSpec<dof>::print(int verbose) const {
     if (verbose&IVMInternalDynamics::printNodePos) 
         cout << setprecision(8)
              << ": pos: " << OB_G << ' ' << '\n';
