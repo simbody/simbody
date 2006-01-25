@@ -47,7 +47,7 @@ static CDSVec6 toCDSVec6(const SpatialVec& v) {
 static SpatialVec toSpatialVector(const CDSVec6& v) 
   { return SpatialVec(Vec3(v[0],v[1],v[2]),Vec3(v[3],v[4],v[5])); }
 
-static CDSVecVec6 toCDSVecVec6(const Array<SpatialVec>& a) {
+static CDSVecVec6 toCDSVecVec6(const Vector_<SpatialVec>& a) {
     CDSVecVec6 vv(a.size());
     for (int i=0; i < (int)a.size(); ++i)
         vv(i) = toCDSVec6(a[i]);
@@ -80,7 +80,7 @@ static RBInertia toRBInertia(const MatInertia& i) {
     return RBInertia(i.toMat33());
 }
 static MatInertia toMatInertia(const RBInertia& i) {
-    return MatInertia(toMat33(i));
+    return MatInertia(i);
 }
 static MatRotation toMatRotation(const CDSMat33& m) {
     const Mat33 m33 = toMat33(m);
@@ -96,7 +96,7 @@ static IVMFrame toIVMFrame(const Frame& f) {
 }
 
 static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
-    return RBMassProperties(m, toCDSVec3(c), toRBInertia(i));
+    return RBMassProperties(m, c, RBInertia(i.toMat33()));
 }
 
 static RBFrame toRBFrame(const Frame& f) {
@@ -149,7 +149,7 @@ IVMSimbodyInterface::getQDot(const State& s) const {
 
 Vector 
 IVMSimbodyInterface::calcUDot(const State& s, 
-                              const Array<SpatialVec>& bodyForces,
+                              const Vector_<SpatialVec>& bodyForces,
                               const Vector& hingeForces) const
 {
     return rep->calcUDot(s,bodyForces,hingeForces);
@@ -187,7 +187,7 @@ State IVMSimbodyInterface::getDefaultState() const {
 // want it measured from the IVM origin OR and expressed in G. And we want the force in G.
 void IVMSimbodyInterface::applyPointForce(const State& s, const Body& b,
                                           const Vec3& pt_B, const Vec3& frc_B, 
-                                          Array<SpatialVec>& bodyForces) const
+                                          Vector_<SpatialVec>& bodyForces) const
 {
     const RBTreeMap& info  = rep->getBodyInfo(b);
     const int        index = info.getRBIndex();
@@ -204,7 +204,7 @@ void IVMSimbodyInterface::applyPointForce(const State& s, const Body& b,
 }
 
 void IVMSimbodyInterface::applyBodyTorque(const State& s, const Body& b, const Vec3& trq_B, 
-                                          Array<SpatialVec>& bodyForces) const
+                                          Vector_<SpatialVec>& bodyForces) const
 {
     const RBTreeMap& info    = rep->getBodyInfo(b);
     const int        rbIndex = info.getRBIndex();
@@ -216,7 +216,7 @@ void IVMSimbodyInterface::applyBodyTorque(const State& s, const Body& b, const V
 
 // Given g in the ground frame, apply a force mg to the center of mass of each body.
 void IVMSimbodyInterface::applyGravity(const State& s, const Vec3& g, 
-                                       Array<SpatialVec>& bodyForces) const
+                                       Vector_<SpatialVec>& bodyForces) const
 {
     // skip ground
     for (int i=1; i < getNBodies(); ++i) {
@@ -360,7 +360,7 @@ void OldIVMSimbodyInterfaceRep::realizeMotion(const State& s) const {
 
 Vector
 OldIVMSimbodyInterfaceRep::calcUDot(const State& s, 
-                        const Array<SpatialVec>& bodyForces,
+                        const Vector_<SpatialVec>& bodyForces,
                         const Vector& hingeForces) const
 {
     IVMRigidBodyTree& t = const_cast<IVMRigidBodyTree&>(tree);
@@ -446,12 +446,12 @@ void OldIVMSimbodyInterfaceRep::buildTree() {
 
 Vector
 NewIVMSimbodyInterfaceRep::calcUDot(const State& s, 
-                        const Array<SpatialVec>& bodyForces,
+                        const Vector_<SpatialVec>& bodyForces,
                         const Vector& hingeForces) const
 {
     RigidBodyTree& t = const_cast<RigidBodyTree&>(tree);
     t.prepareForDynamics();
-    t.calcLoopForwardDynamics(toCDSVecVec6(bodyForces));
+    t.calcLoopForwardDynamics(bodyForces);
     Vector a(s.getU().size());
     tree.getAcc(a);
     return a;
@@ -464,7 +464,7 @@ NewIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body
     const Frame& F_BR = info.getRefFrameInBody();
     const RigidBodyNode& n = getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
 
-    const Frame F_GR(toMatRotation(n.getR_GB()), toVec3(n.getOB_G()));
+    const Frame F_GR(MatRotation::trustMe(n.getR_GB()), n.getOB_G());
     const Frame F_RB(F_BR.invert());
     return F_GR.compose(F_RB);
 }

@@ -7,11 +7,6 @@
  * those messy inertias.
  */
 
-#include "cdsVec3.h"
-#include "cdsMat33.h"
-#include "fixedVector.h"
-#include "cdsList.h"
-
 
 /**
  * Built-in joint types.

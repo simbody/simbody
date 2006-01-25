@@ -4,14 +4,14 @@
 #include "simbody/Simbody.h"
 using namespace simtk;
 
-#include "cdsList.h"
-
 #include "RigidBodyNode.h"
 
 #include <cassert>
+#include <vector>
+#include <iostream>
 
-typedef CDSList<RigidBodyNode*>   RBNodePtrList;
-typedef CDSList<SpatialVec>       CDSVecVec6;
+typedef std::vector<RigidBodyNode*>   RBNodePtrList;
+typedef Vector_<SpatialVec>           SpatialVecList;
 
 class IVM;
 class LengthConstraints;
@@ -39,7 +39,7 @@ private:
     RigidBodyNode*    rbNode;
     Vec3              station_B;
 };
-ostream& operator<<(ostream&, const RBStation&);
+std::ostream& operator<<(std::ostream&, const RBStation&);
 
 class RBStationRuntime {
 public:
@@ -167,16 +167,16 @@ public:
     /// constraints. Must have already called prepareForDynamics().
     /// TODO: also applies stored internal forces (hinge torques) which
     /// will cause surprises if non-zero.
-    void calcTreeForwardDynamics(const CDSVecVec6& spatialForces);
+    void calcTreeForwardDynamics(const SpatialVecList& spatialForces);
 
     /// Given a set of spatial forces, calculate acclerations resulting from
     /// those forces and enforcement of acceleration constraints.
-    void calcLoopForwardDynamics(const CDSVecVec6& spatialForces);
+    void calcLoopForwardDynamics(const SpatialVecList& spatialForces);
 
 
     /// Unconstrained (tree) dynamics 
     void calcP();                             // articulated body inertias
-    void calcZ(const CDSVecVec6& spatialForces); // articulated body remainder forces
+    void calcZ(const SpatialVecList& spatialForces); // articulated body remainder forces
     void calcTreeAccel();                     // accels with forces from last calcZ
 
     void fixVel0(Vector& vel); // TODO -- yuck
@@ -185,7 +185,7 @@ public:
     void calcY();
 
     /// Convert spatial forces to internal (joint) forces, ignoring constraints.
-    void calcTreeInternalForces(const CDSVecVec6& spatialForces);
+    void calcTreeInternalForces(const SpatialVecList& spatialForces);
 
     /// Retrieve last-computed internal (joint) forces.
     void getInternalForces(Vector& T);
@@ -212,18 +212,18 @@ private:
     int dimTotal;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
-    CDSList<RBNodePtrList> rbNodeLevels;
+    std::vector<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum to (level,offset).
-    CDSList<RigidBodyNodeIndex> nodeNum2NodeMap;
+    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
 
-    CDSList<RBDistanceConstraint>        distanceConstraints;
+    std::vector<RBDistanceConstraint>        distanceConstraints;
     // TODO: later this moves to state cache (sherm)
-    CDSList<RBDistanceConstraintRuntime> dcRuntimeInfo;
+    std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
     
     LengthConstraints* lConstraints;
-    friend ostream& operator<<(ostream&, const RigidBodyTree&);
+    friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
 };
 
-ostream& operator<<(ostream&, const RigidBodyTree&);
+std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
 
 #endif /* RIGID_BODY_TREE_H_ */

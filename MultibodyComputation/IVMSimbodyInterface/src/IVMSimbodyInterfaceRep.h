@@ -86,7 +86,7 @@ public:
 
     virtual const Vector& getQDot(const State&) const = 0;
     virtual Vector        calcUDot(const State& s, 
-                                   const Array<SpatialVec>& bodyForces,
+                                   const Vector_<SpatialVec>& bodyForces,
                                    const Vector& hingeForces) const = 0;
 
     virtual Frame      getBodyConfiguration(const State&, const Body& body) const = 0;
@@ -157,7 +157,7 @@ public:
     }
 
     Vector        calcUDot(const State& s, 
-                           const Array<SpatialVec>& bodyForces,
+                           const Vector_<SpatialVec>& bodyForces,
                            const Vector& hingeForces) const;
 
     Frame getBodyConfiguration(const State& s, const Body& body) const;
@@ -217,7 +217,7 @@ public:
     }
 
     Vector        calcUDot(const State& s, 
-                           const Array<SpatialVec>& bodyForces,
+                           const Vector_<SpatialVec>& bodyForces,
                            const Vector& hingeForces) const;
 
     Frame getBodyConfiguration(const State& s, const Body& body) const;

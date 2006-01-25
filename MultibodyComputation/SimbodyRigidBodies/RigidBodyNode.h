@@ -6,12 +6,10 @@ using namespace simtk;
 
 #include "phiMatrix.h"
 #include "internalDynamics.h"
-
-#include "cdsList.h"
-
 #include "RBMassProperties.h"
 
 #include <cassert>
+#include <vector>
 
 /**
  * This is an abstract class representing a body and its (generic) inboard joint, that is,
@@ -87,8 +85,8 @@ public:
     RigidBodyNode*   getParent() const {return parent;}
     void             setParent(RigidBodyNode* p) { parent=p; }
 
-    int              getNChildren()  const {return children.size();}
-    RigidBodyNode*   getChild(int i) const {return (i<children.size()?children[i]:0);}
+    int              getNChildren()  const {return (int)children.size();}
+    RigidBodyNode*   getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
@@ -136,23 +134,19 @@ public:
 
     /// Return the inertial angular velocity of body frame B (i.e., angular
     /// velocity with respect to the ground frame), expressed in the ground frame.
-    const Vec3&   getSpatialAngVel() const
-        {return *reinterpret_cast<const Vec3*>(&sVel[0]);}
+    const Vec3&   getSpatialAngVel() const {return sVel[0];}
 
     /// Return the inertial velocity of OB (i.e., velocity with respect
     /// to the ground frame), expressed in the ground frame.
-    const Vec3&   getSpatialLinVel() const
-        {return *reinterpret_cast<const Vec3*>(&sVel[3]);}
+    const Vec3&   getSpatialLinVel() const {return sVel[1];}
 
     /// Return the inertial angular acceleration of body frame B (i.e., angular
     /// acceleration with respect to the ground frame), expressed in the ground frame.
-    const Vec3&   getSpatialAngAcc() const
-        {return *reinterpret_cast<const Vec3*>(&sAcc[0]);}
+    const Vec3&   getSpatialAngAcc() const {return sAcc[0];}
 
     /// Return the inertial acceleration of OB (i.e., acceleration with respect
     /// to the ground frame), expressed in the ground frame.
-    const Vec3&   getSpatialLinAcc() const
-        {return *reinterpret_cast<const Vec3*>(&sAcc[3]);}
+    const Vec3&   getSpatialLinAcc() const {return sAcc[1];}
 
     const SpatialVec&   getSpatialVel() const {return sVel;}
     const SpatialVec&   getSpatialAcc() const {return sAcc;}
@@ -197,8 +191,8 @@ public:
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 
-    void nodeDump(ostream&) const;
-    virtual void nodeSpecDump(ostream& o) const { o<<"NODE SPEC type="<<type()<<endl; }
+    void nodeDump(std::ostream&) const;
+    virtual void nodeSpecDump(std::ostream& o) const { o<<"NODE SPEC type="<<type()<<std::endl; }
 
 
     static const double DEG2RAD; //using angles in degrees balances gradient
@@ -209,7 +203,7 @@ protected:
     RigidBodyNode(const RBMassProperties& mProps_B,
                   const Vec3& originOfB_P, // and R_BP=I in ref config
                   const Mat33& rot_BJ, const Vec3& originOfJ_B)
-      : stateOffset(-1), parent(0), children(0,0), level(-1), nodeNum(-1),
+      : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
@@ -221,7 +215,7 @@ protected:
         psiT=0; P=0; z=0; tau=0; Gepsilon=0; Y=0;
     }
 
-    typedef CDSList<RigidBodyNode*>   RigidBodyNodeList;
+    typedef std::vector<RigidBodyNode*>   RigidBodyNodeList;
 
     int               stateOffset;  //index into internal coord pos,vel,acc arrays
     RigidBodyNode*    parent; 
@@ -292,7 +286,7 @@ protected:
 
     virtual void velFromCartesian() {}
 
-    friend ostream& operator<<(ostream& s, const RigidBodyNode&);
+    friend std::ostream& operator<<(std::ostream& s, const RigidBodyNode&);
     template<int dof> friend class RigidBodyNodeSpec;
 
 private:   

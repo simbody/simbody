@@ -326,6 +326,25 @@ public:
 private:
 };
 
+class NewtonRaphsonFailure : public Base {
+public:
+    NewtonRaphsonFailure(const char* fn, int ln, String msg) : Base(fn,ln)
+    {
+        setMessage("NewtonRaphson failure: " + msg);
+    }
+private:
+};
+
+
+class LoopConstraintConstructionFailure : public Base {
+public:
+    LoopConstraintConstructionFailure(const char* fn, int ln, String msg) : Base(fn,ln)
+    {
+        setMessage("Loop constraint construction failure: " + msg);
+    }
+private:
+};
+
 } // namespace simtk::Exception
 
 /**

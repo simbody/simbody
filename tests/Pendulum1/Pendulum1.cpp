@@ -147,8 +147,8 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        Array<SpatialVec>  bodyForces;
-        Vector             hingeForces;
+        Vector_<SpatialVec>  bodyForces;
+        Vector               hingeForces;
         instanceOld.clearForces(bodyForces,hingeForces);
         instanceOld.realizeParameters(sOld);    instanceNew.realizeParameters(sNew);
         instanceOld.realizeConfiguration(sOld); instanceNew.realizeConfiguration(sNew);

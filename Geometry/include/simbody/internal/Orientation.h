@@ -154,6 +154,8 @@ public:
 
     const Mat33& asMat33() const {return rot_GF;}
 
+    static MatRotation trustMe(const Mat33& m) {return MatRotation(m);}
+
 private:
     // We're trusting that m is a rotation.
     explicit MatRotation(const Mat33& m) : rot_GF(m) { }

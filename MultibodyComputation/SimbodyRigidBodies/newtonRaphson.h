@@ -1,11 +1,9 @@
 #ifndef NEWTON_RAPHSON_H_
 #define NEWTON_RAPHSON_H_
 
-#include "cdsMath.h"
-#include "cdsExcept.h"
+#include "simbody/internal/SimbodyCommon.h"
 
 #include <iostream>
-using namespace std;
 
 class NewtonRaphson {
 public:
@@ -14,9 +12,9 @@ public:
     bool   verbose;
     double tol;
     double zTol;  // minimization will quit if gradient norm is smaller
-    ostream& errStream;
+    std::ostream& errStream;
 
-    NewtonRaphson(ostream& errStream=cerr)
+    NewtonRaphson(std::ostream& errStream=std::cerr)
       : maxMin( 20 ) , maxIters( 20 ), verbose(0), tol(1e-8), 
         zTol( 1e-8 ), errStream(errStream)
     { }
@@ -28,7 +26,8 @@ public:
             errStream << "NewtonRaphson: start.\n";
         VecType b = calcB(x);
         double norm = b.norm() / x.size();
-        double zTol2 = CDSMath::sq(zTol * x.size());
+        const double zTolz = zTol*x.size();
+        const double zTol2 = zTolz*zTolz;
         double onorm=norm;
         int  iters=0;
         if ( verbose )
@@ -54,10 +53,10 @@ public:
             z *= -1.0;
             while ( norm > onorm ) {
                 if ( mincnt < 1 ) 
-                    throw Fail("NewtonRaphson: too many minimization steps taken.\n");
+                    SIMTK_THROW1(Exception::NewtonRaphsonFailure, "too many minimization steps taken");
                 z *= 0.5;
                 if ( z.normSqr() < zTol2 )
-                    throw Fail("NewtonRaphson: minimization: gradient too small.\n");
+                    SIMTK_THROW1(Exception::NewtonRaphsonFailure, "gradient too small");
                 x = ox + z;
                 b = calcB(x);
                 norm = b.norm() / x.size();
@@ -76,14 +75,10 @@ public:
             if (norm < tol)
                 finished=1;
             if (iters > maxIters) 
-                throw Fail("NewtonRaphson: maxIters exceeded");
+                SIMTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
         }
     }
 
-    //exception
-    struct Fail : public CDS_NAMESPACE(exception) {
-        Fail(const char* m) : CDS_NAMESPACE(exception)(m) {}
-    };
 };
 
 #endif // NEWTON_RAPHSON_H_

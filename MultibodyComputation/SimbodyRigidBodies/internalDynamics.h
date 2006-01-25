@@ -24,12 +24,6 @@ enum {                            //possible values for verbose (bit field)
     printLoopInfo        = 8192
 };
 
-class Exception { 
-public: 
-    const char* mess; 
-    Exception(const char* mess) : mess(mess) {}
-};
-
 };
 
 #endif /* __internalDynamics_hh__ */

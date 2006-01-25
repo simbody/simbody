@@ -7,15 +7,12 @@
  */
 
 #include "RigidBodyNode.h"
-#include "cdsMath.h"
-#include "cdsAuto_ptr.h"
 
-#include "cdsIomanip.h"
-
-#ifdef USE_CDS_NAMESPACE 
-using namespace CDS;
-using CDSMath::sq;
-#endif /* USE_CDS_NAMESPACE */
+#include <iostream>
+#include <iomanip>
+using std::cout;
+using std::endl;
+using std::setprecision;
 
 typedef Mat<2,3>  Mat23;
 typedef Vec<5>    Vec5;
@@ -29,7 +26,7 @@ static const Mat33 zero33(0);
 //////////////////////////////////////////////
 
 void RigidBodyNode::addChild(RigidBodyNode* child, const RBFrame& referenceFrame) {
-    children.append( child );
+    children.push_back( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
     child->R_GB = R_GB;
@@ -103,13 +100,13 @@ Real RigidBodyNode::calcKineticEnergy() const {
 }
 
 
-void RigidBodyNode::nodeDump(ostream& o) const {
-    o << "NODE DUMP level=" << level << " type=" << type() << endl;
+void RigidBodyNode::nodeDump(std::ostream& o) const {
+    o << "NODE DUMP level=" << level << " type=" << type() << std::endl;
     nodeSpecDump(o);
-    o << "END OF NODE type=" << type() << endl;
+    o << "END OF NODE type=" << type() << std::endl;
 }
 
-ostream& operator<<(ostream& s, const RigidBodyNode& node) {
+std::ostream& operator<<(std::ostream& s, const RigidBodyNode& node) {
     node.nodeDump(s);
     return s;
 }
@@ -251,18 +248,18 @@ public:
     void calcAccel();
     void calcInternalForce(const SpatialVec& spatialForce);
 
-    void nodeSpecDump(ostream& o) const {
+    void nodeSpecDump(std::ostream& o) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
-            << " COM_G=" << getCOM_G() << endl;
-        o << "inertia_OB_G=" << getInertia_OB_G() << endl;
-        o << "H=" << H << endl;
-        o << "SVel=" << sVel << endl;
-        o << "a=" << a << endl;
-        o << "b=" << b << endl;
-        o << "Th  =" << theta << endl;
-        o << "dTh =" << dTheta << endl;
-        o << "ddTh=" << ddTheta << endl;
-        o << "SAcc=" << sAcc << endl;
+            << " COM_G=" << getCOM_G() << std::endl;
+        o << "inertia_OB_G=" << getInertia_OB_G() << std::endl;
+        o << "H=" << H << std::endl;
+        o << "SVel=" << sVel << std::endl;
+        o << "a=" << a << std::endl;
+        o << "b=" << b << std::endl;
+        o << "Th  =" << theta << std::endl;
+        o << "dTh =" << dTheta << std::endl;
+        o << "ddTh=" << ddTheta << std::endl;
+        o << "SAcc=" << sAcc << std::endl;
     }
 protected:
     // These are the joint-specific quantities
@@ -286,7 +283,7 @@ private:
     void calcD_G(const SpatialMat& P);
 };
 
-/*static*/const double RigidBodyNode::DEG2RAD = PI / 180.;
+/*static*/const double RigidBodyNode::DEG2RAD = std::acos(-1.) / 180.; // i.e., pi/180
 //const double RigidBodyNode::DEG2RAD = 1.0;  //always use radians
 
 
@@ -472,13 +469,13 @@ public:
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
             R_PB = R_JiJ; // because P=Ji and B=J for this kind of joint
         } else {
+            const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
+            const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
+            const Real q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
             const Mat33 R_JiJ  //rotation matrix - active-sense coordinates
-                (sq(q(0))+sq(q(1))-
-                 sq(q(2))-sq(q(3))      , 2*(q(1)*q(2)-q(0)*q(3)), 2*(q(1)*q(3)+q(0)*q(2)),
-                 2*(q(1)*q(2)+q(0)*q(3)),(sq(q(0))-sq(q(1))+
-                                          sq(q(2))-sq(q(3)))     , 2*(q(2)*q(3)-q(0)*q(1)),
-                 2*(q(1)*q(3)-q(0)*q(2)), 2*(q(2)*q(3)+q(0)*q(1)), (sq(q(0))-sq(q(1))-
-                                                                    sq(q(2))+sq(q(3))));
+                (q00+q11-q22-q33,   2*(q12-q03)  ,   2*(q13+q02),
+                   2*(q12+q03)  , q00-q11+q22-q33,   2*(q23-q01),
+                   2*(q13-q02)  ,   2*(q23+q01)  , q00-q11-q22+q33);
             R_PB = R_JiJ; // see above
         }
     }
@@ -866,19 +863,9 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(const SpatialVec& sVel) {
 
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcD_G(const SpatialMat& P) {
-    using InternalDynamics::Exception;
     const Mat<dof,dof> D = H * P * ~H;
-    try {
-        DI = D.invert();
-    }
-    catch ( SingularError ) {
-        cerr << "calcD_G: singular D matrix: " << D << '\n'
-             << "H matrix: " << H << '\n'
-             << "node level: " << level << '\n'
-             << "number of children: " << children.size() << '\n'
-             << endl;
-        throw Exception("calcD_G: singular D matrix. Bad topology?");
-    }
+    // this will throw an exception if the matrix is ill conditioned
+    DI = D.invert();
     G = P * ~H * DI;
 }
 
@@ -895,7 +882,7 @@ RigidBodyNodeSpec<dof>::calcP() {
     // calc. The others can be freed after the parent is done with them.
     //
     P = Mk;
-    for (int i=0 ; i<children.size() ; i++) {
+    for (int i=0 ; i<(int)children.size() ; i++) {
         // this version is readable
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
@@ -921,7 +908,7 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(const SpatialVec& spatialForce) {
     z = P * a + b - spatialForce;
 
-    for (int i=0 ; i<children.size() ; i++) 
+    for (int i=0 ; i<(int)children.size() ; i++) 
         z += children[i]->phi
              * (children[i]->z + children[i]->Gepsilon);
 
@@ -963,7 +950,7 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalForce(const SpatialVec& spatialForce) {
     z = -spatialForce;
 
-    for (int i=0 ; i<children.size() ; i++) 
+    for (int i=0 ; i<(int)children.size() ; i++) 
         z += children[i]->phi * children[i]->z;
 
     forceInternal += H * z; 
