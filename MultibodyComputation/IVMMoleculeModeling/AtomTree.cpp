@@ -432,7 +432,7 @@ void AtomTree::createRigidBodyTree() {
 void
 AtomTree::addCM(const AtomClusterNode* n,
                 double&                mass,
-                CDSVec3&                  pos)
+                CDSVec3&               pos)
 {
     for (int i=0 ; i<n->atoms.size() ; i++) {
         if ( n->atoms[i]->mass>0.0 ) {

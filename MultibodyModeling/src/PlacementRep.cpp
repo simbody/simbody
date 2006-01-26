@@ -932,7 +932,7 @@ Vec3 Vec3Ops::apply(/*State,*/ const std::vector<Placement>& args) const {
 
     case StationDifference:
         val = StationPlacement::downcast(args[0]).getRep().calcVec3Value()
-              - StationPlacement::downcast(args[0]).getRep().calcVec3Value();
+              - StationPlacement::downcast(args[1]).getRep().calcVec3Value();
         break;
 
     // real is always on the right for scalar mul & dvd

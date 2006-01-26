@@ -30,7 +30,8 @@ class UnitVec3 : public Vec3 {
 public:
     UnitVec3() : Vec3(NTraits<Real>::getNaN()) { }
     UnitVec3(const UnitVec3& u) : Vec3(static_cast<const Vec3&>(u)) { }
-    explicit UnitVec3(const Vec3& v) : Vec3(v/v.norm()) { }
+    explicit UnitVec3(const Vec3& v) : Vec3(v/v.norm()) { 
+    }
 
     UnitVec3(const Real& x, const Real& y, const Real& z) : Vec3(x,y,z) {
         static_cast<Vec3&>(*this) /= norm();

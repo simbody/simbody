@@ -83,10 +83,10 @@ public:
     static IVMRigidBodyNode* create(
         const IVMMassProperties& m,            // mass properties in body frame
         const IVMFrame&          jointFrame,   // inboard joint frame J in body frame
-        IVMJointType            type,
-        bool                    isReversed,   // child-to-parent orientation?
-        bool                    useEuler,     // TODO: kludge (true if minimizing)
-        int&                    nextStateOffset); 
+        IVMJointType             type,
+        bool                     isReversed,   // child-to-parent orientation?
+        bool                     useEuler,     // TODO: kludge (true if minimizing)
+        int&                     nextStateOffset); 
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
@@ -113,12 +113,12 @@ public:
     int              getStateOffset() const {return stateOffset;}
 
     const IVMMassProperties& getMassProperties() const {return massProps_B;}
-    const double&    getMass()         const {return massProps_B.getMass();}
-    const CDSVec3&   getCOM_B()        const {return massProps_B.getCOM();}
+    const double&    getMass()          const {return massProps_B.getMass();}
+    const CDSVec3&   getCOM_B()         const {return massProps_B.getCOM();}
     const IVMInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
     const IVMInertia& getInertia_OB_G() const {return inertia_OB_G;}
 
-    const CDSVec3& getCOM_G()          const {return COM_G;}
+    const CDSVec3& getCOM_G()           const {return COM_G;}
     const IVMInertia& getInertia_CB_B() const {return inertia_CB_B;}
 
 

@@ -29,7 +29,7 @@ static const CDSMat33 R_I = makeIdentityRotation(); // handy to have around
 
 
 void
-InertiaTensor::calc(const CDSVec3&     center,
+InertiaTensor::calc(const CDSVec3&  center,
                     const AtomList& aList) 
 {
     set(0.0);

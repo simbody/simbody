@@ -1089,7 +1089,11 @@ public:
         evaluateUnitVec3(PlacementValue_<UnitVec3>::downcast(pv).upd());
     }
     virtual void evaluateUnitVec3(UnitVec3&) const = 0;
-    UnitVec3 calcUnitVec3Value() const {UnitVec3 v;evaluateUnitVec3(v);return v;}
+    UnitVec3 calcUnitVec3Value() const {
+        UnitVec3 v;
+        evaluateUnitVec3(v);
+        return v;
+    }
 
     SIMTK_DOWNCAST(DirectionPlacementRep,PlacementRep);
 };
@@ -1142,7 +1146,9 @@ public:
     ~DirectionFeaturePlacementRep() { }
 
     void realize(Stage g) const {refRealize(g);}
-    void evaluateUnitVec3(UnitVec3& v) const {v = getReferencedValue();}
+    void evaluateUnitVec3(UnitVec3& v) const {
+        v = getReferencedValue();
+    }
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1233,7 +1239,11 @@ public:
         evaluateMatRotation(PlacementValue_<MatRotation>::downcast(pv).upd());
     }
     virtual void evaluateMatRotation(MatRotation&) const = 0;
-    MatRotation calcMatRotationValue() const {MatRotation m;evaluateMatRotation(m);return m;}
+    MatRotation calcMatRotationValue() const {
+        MatRotation m;
+        evaluateMatRotation(m);
+        return m;
+    }
 
     SIMTK_DOWNCAST(OrientationPlacementRep,PlacementRep);
 };
@@ -1249,7 +1259,9 @@ public:
     // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateMatRotation(MatRotation& m) const {m=ori;}
+    void evaluateMatRotation(MatRotation& m) const {
+        m=ori;
+    }
 
     bool isConstant() const { return true; }
 
@@ -1286,7 +1298,9 @@ public:
     ~OrientationFeaturePlacementRep() { }
       
     void realize(Stage g) const {refRealize(g);}
-    void evaluateMatRotation(MatRotation& m) const {m = getReferencedValue();}
+    void evaluateMatRotation(MatRotation& m) const {
+        m = getReferencedValue();
+    }
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1327,8 +1341,9 @@ public:
     static OrientationExprPlacementRep* invertOp     (const OrientationPlacement&);
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateMatRotation(MatRotation& m) const
-      { m = OrientationOps::downcast(exprGetFunc()).apply(exprGetArgs()); }
+    void evaluateMatRotation(MatRotation& m) const { 
+        m = OrientationOps::downcast(exprGetFunc()).apply(exprGetArgs());
+    }
 
     PlacementRep*  clone() const {return new OrientationExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
@@ -1400,7 +1415,9 @@ public:
     // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateInertia(MatInertia& i) const {i=inertia;}
+    void evaluateInertia(MatInertia& i) const {
+        i=inertia;
+    }
 
     bool isConstant() const { return true; }
 
@@ -1434,7 +1451,9 @@ public:
     ~InertiaFeaturePlacementRep() { }
       
     void realize(Stage g) const {refRealize(g);}
-    void evaluateInertia(MatInertia& i) const {i = getReferencedValue();}
+    void evaluateInertia(MatInertia& i) const {
+        i = getReferencedValue();
+    }
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1489,8 +1508,9 @@ public:
                                                   const RealPlacement& Ixy, const RealPlacement& Iyz, const RealPlacement& Ixz);
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateInertia(MatInertia& i) const
-      { i = InertiaOps::downcast(exprGetFunc()).apply(exprGetArgs()); }
+    void evaluateInertia(MatInertia& i) const {
+        i = InertiaOps::downcast(exprGetFunc()).apply(exprGetArgs());
+    }
 
     PlacementRep*  clone() const {return new InertiaExprPlacementRep(*this);}
     std::string    toString(const std::string& indent)   const {return exprToString(indent);}
