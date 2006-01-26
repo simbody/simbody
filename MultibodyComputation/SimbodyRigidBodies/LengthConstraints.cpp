@@ -348,7 +348,7 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
                 {
                     //add length constraint to loop i
                     priv->constraints[i].addConstraint(loops[j]);
-                    loops.erase(&loops[j]);
+                    loops.erase(loops.begin() + j); // STL for &loops[j]
                     j--;
                     break;
                 }
@@ -363,7 +363,7 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
         for (int j=i+1 ; j<(int)accLoops.size() ; j++)
             if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
                 priv->accConstraints[i].addConstraint(accLoops[j]);
-                accLoops.erase(&accLoops[j]);
+                accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
                 j--;
             }
         //     for (int b=1 ; b<=2 ; b++) 
