@@ -15,20 +15,13 @@
 #include "cdsVector.h"
 #include "cdsVec3.h"
 
-class IVMRigidBodyNode; // TODO: this must go
-
 typedef FixedVector<double,6>        CDSVec6;
-typedef CDSList<IVMRigidBodyNode*>   IVMNodePtrList;
 typedef CDSVector<double,1>          RVec;   // first element has index 1
 typedef CDSList<CDSVec6>             CDSVecVec6;
 
-class IVM;
 class IVMFrame;
-class IVMStation;
-class IVMLengthConstraints;
-class IVMStationRuntime;
-class IVMDistanceConstraintRuntime;
-
+class IVMMassProperties;
+enum  IVMJointType;
 
 /**
  * This class provides as virtual methods all the operations of the IVMRigidBodyTree,
@@ -46,24 +39,38 @@ public:
     // TODO: The next 4 routines have to be fixed to eliminate the direct
     // reference to the node.
 
-    /// Take ownership of a new node, add it to the tree, and assign it
+    /// Create a new node, add it to the tree, and assign it
     /// a node number. This is NOT a regular labeling; it is just
     /// for reference. You can depend on nodeNum being (a) unique, and (b) a
     /// small enough integer to make it a reasonable index, but don't depend
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
-    virtual int addRigidBodyNode(IVMRigidBodyNode&  parent,
-                         const IVMFrame&    referenceConfig,    // body frame in parent
-                         IVMRigidBodyNode*& nodep)=0;
+
+    virtual int addRigidBodyNode(int parentNodeNum,
+                         const IVMFrame&          refConfig,    // body frame in parent
+                         const IVMMassProperties& massProps,    // mass properties in body frame
+                         const IVMFrame&          jointFrame,   // inboard joint frame J in body frame
+                         const IVMJointType&      jtype,
+                         bool                     isReversed,
+                         bool                     useEuler,
+                         int&                     nxtStateOffset)=0;
 
     /// Same as addRigidBodyNode but special-cased for ground.
-    virtual int addGroundNode(IVMRigidBodyNode*& gnodep)=0;
-    virtual const IVMRigidBodyNode& getRigidBodyNode(int nodeNum) const=0;
-    virtual IVMRigidBodyNode& updRigidBodyNode(int nodeNum) = 0;
+    virtual int addGroundNode()=0;
+
+    virtual void    RBNodeSetVelFromSVel(int nodeNum, const CDSVec6& sVel)=0;
+    virtual void    RBNodeGetConfig(int nodeNum, CDSMat33& R_GB, CDSVec3& OB_G) const=0;
+    virtual CDSVec6 RBNodeGetSpatialVel(int nodeNum) const=0;
+    virtual double  RBNodeGetMass(int nodeNum) const=0;
+    virtual CDSVec3 RBNodeGetCOM_G(int nodeNum) const=0;
+    virtual double  RBNodeCalcKineticEnergy(int nodeNum) const=0;
+    virtual void    RBNodeDump(int nodeNum, std::ostream&) const=0;
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
     /// its stations. Return the assigned distance constraint index for caller's use.
-    virtual int addDistanceConstraint(const IVMStation& s1, const IVMStation& s2, const double& d)=0;
+    virtual int addDistanceConstraint(int nodeNum1, const CDSVec3& station1,
+                                      int nodeNum2, const CDSVec3& station2,
+                                      double distance) = 0;
 
     /// Call this after all bodies & constraints have been added.
     virtual void finishConstruction(const double& ctol, int verbose)=0;

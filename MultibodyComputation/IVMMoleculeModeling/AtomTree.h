@@ -4,8 +4,6 @@
 #include "cdsList.h"
 #include "cdsVector.h"
 
-#include "IVMRigidBodyTree.h"
-
 #include "IVMMoleculeRBTreeInterface.h"
 
 class AtomClusterNode;
@@ -85,10 +83,10 @@ public:
 
     /// Get cluster's center of mass, measured and expressed in the the
     /// ground frame. Requires previous call to setPos().
-    const CDSVec3& getClusterCOM_G(int level, int indx) const;
+    const CDSVec3 getClusterCOM_G(int level, int indx) const;
 
     /// Get the spatial velocity of this cluster. Requires previous call to setVel().
-    const CDSVec6& getClusterSpatialVel(int level, int indx) const;
+    const CDSVec6 getClusterSpatialVel(int level, int indx) const;
 
     /// Set this cluster's inboard joint coordinates to best approximate
     /// the desired spatial velocity, taking into account the spatial

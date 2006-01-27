@@ -16,26 +16,73 @@ public:
     IVMMoleculeRBTreeInterface* clone() const 
       { return new IVMRigidBodyTreeMolIfc(*this); }
 
-      // TODO: THESE NEED WORK TO GET RID OF NODE
-    int addRigidBodyNode(IVMRigidBodyNode&  parent,
-                         const IVMFrame&    referenceConfig,    // body frame in parent
-                         IVMRigidBodyNode*& nodep)
+    int addRigidBodyNode(int parentNodeNum,
+                         const IVMFrame&          refConfig,    // body frame in parent
+                         const IVMMassProperties& massProps,    // mass properties in body frame
+                         const IVMFrame&          jointFrame,   // inboard joint frame J in body frame
+                         const IVMJointType&      jtype,
+                         bool                     isReversed,
+                         bool                     useEuler,
+                         int&                     nxtStateOffset) 
     {
-        return ivmTree.addRigidBodyNode(parent,referenceConfig,nodep);
-    }
-    int addGroundNode(IVMRigidBodyNode*& gnodep) {
-        return ivmTree.addGroundNode(gnodep);
-    }
-    const IVMRigidBodyNode& getRigidBodyNode(int nodeNum) const {
-        return ivmTree.getRigidBodyNode(nodeNum);
-    }
-    IVMRigidBodyNode& updRigidBodyNode(int nodeNum) {
-        return ivmTree.updRigidBodyNode(nodeNum);
+        IVMRigidBodyNode* nodep = IVMRigidBodyNode::create(
+                                        massProps, jointFrame, jtype, 
+                                        isReversed, useEuler, nxtStateOffset); 
+        return ivmTree.addRigidBodyNode(ivmTree.updRigidBodyNode(parentNodeNum),
+                                        refConfig, nodep);
     }
 
-    int addDistanceConstraint(const IVMStation& s1, const IVMStation& s2,
-                              const double& d) {
-        return ivmTree.addDistanceConstraint(s1,s2,d);
+    int addGroundNode() {
+        int dummy;
+        IVMRigidBodyNode* gnodep = IVMRigidBodyNode::create(
+                                    IVMMassProperties(),
+                                    IVMFrame(),
+                                    IVMThisIsGround,
+                                    false, false, dummy);
+        return ivmTree.addGroundNode(gnodep);
+    }
+
+    void RBNodeSetVelFromSVel(int nodeNum, const CDSVec6& sVel) {
+        IVMRigidBodyNode& rb = ivmTree.updRigidBodyNode(nodeNum);
+        rb.setVelFromSVel(sVel);
+    }
+    void RBNodeGetConfig(int nodeNum, CDSMat33& R_GB, CDSVec3& OB_G) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        R_GB = rb.getR_GB(); OB_G = rb.getOB_G();
+    }
+
+    CDSVec6 RBNodeGetSpatialVel(int nodeNum) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        return rb.getSpatialVel();
+    }
+
+    double RBNodeGetMass(int nodeNum) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        return rb.getMass();
+    }
+
+    CDSVec3 RBNodeGetCOM_G(int nodeNum) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        return rb.getCOM_G();
+    }
+
+    double RBNodeCalcKineticEnergy(int nodeNum) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        return rb.calcKineticEnergy();
+    }
+
+    void RBNodeDump(int nodeNum, std::ostream& s) const {
+        const IVMRigidBodyNode& rb = ivmTree.getRigidBodyNode(nodeNum);
+        return rb.nodeDump(s);
+    }
+
+    int addDistanceConstraint(int nodeNum1, const CDSVec3& station1,
+                              int nodeNum2, const CDSVec3& station2,
+                              double distance)
+    {
+        IVMStation s1(ivmTree.updRigidBodyNode(nodeNum1), station1);
+        IVMStation s2(ivmTree.updRigidBodyNode(nodeNum2), station2);
+        return ivmTree.addDistanceConstraint(s1,s2,distance);
     }
 
     void finishConstruction(const double& ctol, int verbose) {
