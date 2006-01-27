@@ -6,6 +6,8 @@
 
 #include "IVMRigidBodyTree.h"
 
+#include "IVMMoleculeRBTreeInterface.h"
+
 class AtomClusterNode;
 class LengthConstraints;
 class IVM;
@@ -52,13 +54,21 @@ public:
     CDSList<AtomLoop>            loops;
 
 private:
-    IVMRigidBodyTree rbTree;                   // the pure rigid body tree
-    CDSVecVec6       spatialForces;
+    IVMMoleculeRBTreeInterface*  rbTree;     // the pure rigid body tree
+    CDSVecVec6                   spatialForces;
+
+    const IVMMoleculeRBTreeInterface& getRBTree() const 
+      { assert(rbTree); return *rbTree;}
+    IVMMoleculeRBTreeInterface& updRBTree()
+      { assert(rbTree); return *rbTree;}
+
 public:
     AtomTree(IVM*);
     ~AtomTree();
     AtomTree(const AtomTree&);
     AtomTree& operator=(const AtomTree&);
+
+
 
     void addAtomClusterNode(AtomClusterNode* node);
 
@@ -67,7 +77,7 @@ public:
 
     /// Call this when all AtomClusterNodes have been built.
     void createRigidBodyTree();
-    int getNRigidBodies() const { return rbTree.getNBodies(); }
+    int getNRigidBodies() const { return getRBTree().getNBodies(); }
 
     // Dig up cluster info from rigid body tree.
 
@@ -90,12 +100,12 @@ public:
     double calcClusterKineticEnergy(int level, int indx) const;
 
     // Kinematics -- calculate spatial quantities from internal states.
-    void setPos(const RVec& pos) { rbTree.setPos(pos); calcAtomPos(); }
-    void setVel(const RVec& vel) { rbTree.setVel(vel); calcAtomVel(); }
+    void setPos(const RVec& pos) { updRBTree().setPos(pos); calcAtomPos(); }
+    void setVel(const RVec& vel) { updRBTree().setVel(vel); calcAtomVel(); }
     void setPosVel(const RVec& p, const RVec& v) { setPos(p); setVel(v); }
 
-    RVec getPos() const { RVec pos(getIVMDim()); rbTree.getPos(pos); return pos; }
-    RVec getVel() const { RVec vel(getIVMDim()); rbTree.getVel(vel); return vel; }
+    RVec getPos() const { RVec pos(getIVMDim()); getRBTree().getPos(pos); return pos; }
+    RVec getVel() const { RVec vel(getIVMDim()); getRBTree().getVel(vel); return vel; }
 
     RVec calcGetAccel();
     RVec getAccel();
@@ -112,26 +122,26 @@ public:
     void enforceConstraints(RVec& pos, RVec& vel);
 
     /// Dynamics -- calculate articulated body inertias.
-    void calcP() { rbTree.calcP(); }
+    void calcP() { updRBTree().calcP(); }
 
     /// Dynamics -- calculate articulated body remainder forces.
     void calcZ() {
         calcSpatialForces();
-        rbTree.calcZ(spatialForces);
+        updRBTree().calcZ(spatialForces);
     }
 
     void applyForces(const CDSVecVec6& spatialForces) {
-        rbTree.calcZ(spatialForces);
+        updRBTree().calcZ(spatialForces);
     }
 
     void calcPandZ() { calcP(); calcZ(); }
-    void calcY() { rbTree.calcY(); }
+    void calcY()     { updRBTree().calcY(); }
 
     /// Recalculate unconstrained accelerations given a new set of forces
     /// at the same state.
     void updateAccel() { 
         calcSpatialForces();
-        rbTree.calcTreeForwardDynamics(spatialForces);
+        updRBTree().calcTreeForwardDynamics(spatialForces);
     }
 
     int getDOF(); 

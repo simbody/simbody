@@ -60,11 +60,12 @@ AtomTree::~AtomTree() {
         nodeTree[i].resize(0);
     }
     nodeTree.resize(0);
+    delete rbTree;
 }
 
 void AtomTree::setClusterVelFromSVel(int level, int indx, const CDSVec6& sVel) {
     AtomClusterNode& ac = *nodeTree[level][indx];
-    IVMRigidBodyNode& rb = rbTree.updRigidBodyNode(ac.getRBIndex());
+    IVMRigidBodyNode& rb = updRBTree().updRigidBodyNode(ac.getRBIndex());
     return rb.setVelFromSVel(sVel);
 }
 
@@ -72,7 +73,7 @@ void AtomTree::calcAtomPos() {
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
-            const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
             ac.calcAtomPos(rb.getR_GB(), rb.getOB_G());
         }
 }
@@ -81,13 +82,13 @@ void AtomTree::calcAtomVel() {
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
-            const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
             ac.calcAtomVel(rb.getSpatialVel());
         }
 }
 
 void AtomTree::calcSpatialForces() {
-    spatialForces.resize(rbTree.getNBodies());
+    spatialForces.resize(getRBTree().getNBodies());
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
@@ -97,7 +98,7 @@ void AtomTree::calcSpatialForces() {
 
 // note that results go into spatialForces vector
 void AtomTree::calcSpatialImpulses() {
-    spatialForces.resize(rbTree.getNBodies());
+    spatialForces.resize(getRBTree().getNBodies());
     for (int l=0; l<nodeTree.size(); l++)
         for (int j=0; j<nodeTree[l].size(); j++) {
             AtomClusterNode&     ac = *nodeTree[l][j];
@@ -108,70 +109,70 @@ void AtomTree::calcSpatialImpulses() {
 
 double AtomTree::getClusterMass(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
     return rb.getMass();
 }
 
 const CDSVec3& AtomTree::getClusterCOM_G(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
     return rb.getCOM_G();
 }
 
 const CDSVec6& AtomTree::getClusterSpatialVel(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
     return rb.getSpatialVel();
 }
 
 double AtomTree::calcClusterKineticEnergy(int level, int indx) const {
     const AtomClusterNode& ac = *nodeTree[level][indx];
-    const IVMRigidBodyNode& rb = rbTree.getRigidBodyNode(ac.getRBIndex());
+    const IVMRigidBodyNode& rb = getRBTree().getRigidBodyNode(ac.getRBIndex());
     return rb.calcKineticEnergy();
 }
 
 RVec AtomTree::calcGetAccel() { 
     RVec acc(getIVMDim()); 
-    rbTree.calcTreeAccel();
-    rbTree.getAcc(acc);
+    updRBTree().calcTreeAccel();
+    getRBTree().getAcc(acc);
     return acc;
 }
 
 void AtomTree::fixVel0(RVec& vel) {
-    rbTree.fixVel0(vel);
+    updRBTree().fixVel0(vel);
 }
 
 // One-stop shopping -- calculates everything except the
 // position & velocity kinematics.
 RVec AtomTree::getAccel() {
     calcSpatialForces();
-    rbTree.prepareForDynamics();
-    rbTree.calcLoopForwardDynamics(spatialForces);
+    updRBTree().prepareForDynamics();
+    updRBTree().calcLoopForwardDynamics(spatialForces);
     RVec acc(getIVMDim()); 
-    rbTree.getAcc(acc);
+    getRBTree().getAcc(acc);
     return acc;
 }
 
 RVec AtomTree::getAccelIgnoringConstraints() {
     calcSpatialForces();
-    rbTree.prepareForDynamics();
-    rbTree.calcTreeForwardDynamics(spatialForces);
+    updRBTree().prepareForDynamics();
+    updRBTree().calcTreeForwardDynamics(spatialForces);
     RVec acc(getIVMDim()); 
-    rbTree.getAcc(acc);
+    getRBTree().getAcc(acc);
     return acc;
 }
 
 RVec AtomTree::getInternalForce() {
     calcSpatialForces();
-    rbTree.calcTreeInternalForces(spatialForces);
+    updRBTree().calcTreeInternalForces(spatialForces);
     RVec T(getIVMDim());
-    rbTree.getConstraintCorrectedInternalForces(T);
+    updRBTree().getConstraintCorrectedInternalForces(T);
     return T;
 }
 
 void AtomTree::enforceConstraints(RVec& pos, RVec& vel) { 
-    rbTree.enforceTreeConstraints(pos,vel); 
-    rbTree.enforceConstraints(pos,vel);
+    updRBTree().enforceTreeConstraints(pos,vel); 
+    updRBTree().enforceConstraints(pos,vel);
 }
 
 AT_Build::AT_Build( IVM*                ivm,
@@ -313,7 +314,7 @@ mergeGroups(CDSList< CDSList<int> >& gList) {
 // Construct AtomClusterNode tree consisting of all molecules.
 //
 AtomTree::AtomTree(IVM* ivm_)
-  : ivm(ivm_)
+  : ivm(ivm_), rbTree(0)
 {
     if ( ivm->atoms.size() == 0 ) return;
 
@@ -393,6 +394,9 @@ AtomTree::AtomTree(IVM* ivm_)
 // to leave the bonds alone, split bodies instead, and reconnect them
 // with a "weld", which consists of 6 independent constraints.
 void AtomTree::createRigidBodyTree() {
+    if (rbTree) delete rbTree;
+    rbTree = IVMMoleculeRBTreeInterface::create(false); // old style
+
     // Go through all nodes from base to tips.
     int nextStateOffset=1; //offset into pos, vel, acc
     for (int i=0; i<nodeTree.size(); i++)
@@ -407,10 +411,10 @@ void AtomTree::createRigidBodyTree() {
                                         nextStateOffset); 
             int rbIndex = -1;
             if (ac.getParent()) {
-                IVMRigidBodyNode& parent = rbTree.updRigidBodyNode(ac.getParent()->getRBIndex());
-                rbIndex = rbTree.addRigidBodyNode(parent,ac.getReferenceBodyFrameInParent(),rb);
+                IVMRigidBodyNode& parent = updRBTree().updRigidBodyNode(ac.getParent()->getRBIndex());
+                rbIndex = updRBTree().addRigidBodyNode(parent,ac.getReferenceBodyFrameInParent(),rb);
             } else
-                rbIndex = rbTree.addGroundNode(rb);
+                rbIndex = updRBTree().addGroundNode(rb);
 
             ac.setRBIndex(rbIndex);
         }
@@ -420,13 +424,13 @@ void AtomTree::createRigidBodyTree() {
         IVMAtom&  t1 = *al.getTip1();
         IVMAtom&  t2 = *al.getTip2();
 
-        IVMStation s1(rbTree.updRigidBodyNode(t1.node->getRBIndex()), t1.station_B);
-        IVMStation s2(rbTree.updRigidBodyNode(t2.node->getRBIndex()), t2.station_B);
+        IVMStation s1(updRBTree().updRigidBodyNode(t1.node->getRBIndex()), t1.station_B);
+        IVMStation s2(updRBTree().updRigidBodyNode(t2.node->getRBIndex()), t2.station_B);
         double    d = sqrt(abs2(t2.pos - t1.pos));
-        al.setRBDistanceConstraintIndex(rbTree.addDistanceConstraint(s1,s2,d));
+        al.setRBDistanceConstraintIndex(updRBTree().addDistanceConstraint(s1,s2,d));
     }
 
-    rbTree.finishConstruction(ivm->Ctolerance(), ivm->verbose());
+    updRBTree().finishConstruction(ivm->Ctolerance(), ivm->verbose());
 }
 
 void
@@ -609,7 +613,7 @@ operator<<(ostream& s, const AtomTree& aTree) {
     for (int i=0 ; i<aTree.nodeTree.size() ; i++)
         for (int j=0 ; j<aTree.nodeTree[i].size() ; j++) {
             const AtomClusterNode& ac = *aTree.nodeTree[i][j];
-            const IVMRigidBodyNode& rb = aTree.rbTree.getRigidBodyNode(ac.getRBIndex());
+            const IVMRigidBodyNode& rb = aTree.getRBTree().getRigidBodyNode(ac.getRBIndex());
             s << "\tnode " << i << ' ' << j 
             << ": " << ac << ' ' << ac.type() << '\n';
             //rb.nodeDump(s);
@@ -644,12 +648,12 @@ AtomTree::velFromCartesian(const RVec& pos, RVec& vel)
 
     setPos(pos);        // set configuration and calculate related kinematics (incl. atom pos)
     vel.set(0.0);
-    rbTree.setVel(vel); // zero velocities to nuke bias forces (no effect on atom vel)
+    updRBTree().setVel(vel); // zero velocities to nuke bias forces (no effect on atom vel)
 
     // calculate impulses from desired atomic momenta and convert to internal coordinates
     calcP();
     calcSpatialImpulses(); // sets spatialForces vector
-    rbTree.calcZ(spatialForces);
+    updRBTree().calcZ(spatialForces);
 
     // solve for desired internal velocities
     vel = calcGetAccel();
