@@ -41,12 +41,12 @@ typedef SubVector<RVec>       SubVec;
 typedef SubVector<const RVec> ConstSubVec;
 typedef SubMatrix<RMat>       SubMat;
 
-class LoopWNodes;
-static int compareLevel(const LoopWNodes& l1,    //forward declarations
-                        const LoopWNodes& l2);
+class IVMLoopWNodes;
+static int compareLevel(const IVMLoopWNodes& l1,    //forward declarations
+                        const IVMLoopWNodes& l2);
 
 //static bool sameBranch(const IVMRigidBodyNode* tip,
-//                       const LoopWNodes& l );
+//                       const IVMLoopWNodes& l );
 
 class BadNodeDef {};  //exception
 
@@ -59,10 +59,10 @@ class BadNodeDef {};  //exception
  * We will throw an exception if the loop ends are both on the same
  * node or if they are on different molecules.
  */
-class LoopWNodes {
+class IVMLoopWNodes {
 public:
-    LoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
-    LoopWNodes(const IVMDistanceConstraint&, CDSList<IVMDistanceConstraintRuntime>&);
+    IVMLoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
+    IVMLoopWNodes(const IVMDistanceConstraint&, CDSList<IVMDistanceConstraintRuntime>&);
 
     void calcPosInfo() const { rbDistCons->calcPosInfo(*rt); }
     void calcVelInfo() const { rbDistCons->calcVelInfo(*rt); }
@@ -104,13 +104,13 @@ private:
     friend ostream& operator<<(ostream& os, const IVMLengthSet& s);
     friend void IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>&,
                                                 CDSList<IVMDistanceConstraintRuntime>&);
-    friend int compareLevel(const LoopWNodes& l1,
-                            const LoopWNodes& l2);
+    friend int compareLevel(const IVMLoopWNodes& l1,
+                            const IVMLoopWNodes& l2);
     friend bool sameBranch(const IVMRigidBodyNode* tip,
-                           const LoopWNodes& l );
+                           const IVMLoopWNodes& l );
 };
 
-LoopWNodes::LoopWNodes(const IVMDistanceConstraint& dc,
+IVMLoopWNodes::IVMLoopWNodes(const IVMDistanceConstraint& dc,
                        CDSList<IVMDistanceConstraintRuntime>& rts)
   : rbDistCons(&dc), rt(&rts[dc.getRuntimeIndex()]),flipStations(false), base(0), moleculeNode(0)
 {
@@ -120,7 +120,7 @@ LoopWNodes::LoopWNodes(const IVMDistanceConstraint& dc,
     const IVMRigidBodyNode* dcNode2 = &dc.getStation(2).getNode();
 
     if (dcNode1==dcNode2) {
-        cout << "LoopWNodes::LoopWNodes: bad topology:\n\t"
+        cout << "IVMLoopWNodes::IVMLoopWNodes: bad topology:\n\t"
              << "loop stations " << dc.getStation(1)
              << " and  "         << dc.getStation(2)
              << " are now in the same node. Deleting loop.\n";
@@ -146,10 +146,10 @@ LoopWNodes::LoopWNodes(const IVMDistanceConstraint& dc,
     // up the nodes along the two paths (but not the common ancestor).
     while ( node1 != node2 ) {
         if ( node1->isGroundNode() ) {
-            cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
+            cerr << "IVMLoopWNodes::IVMLoopWNodes: could not find base node.\n\t"
                  << "loop between stations " << tips(1) << " and " 
                  << tips(2) << "\n";
-            throw IVMException("LoopWNodes::LoopWNodes: could not find base node");
+            throw IVMException("IVMLoopWNodes::IVMLoopWNodes: could not find base node");
         }
         nodes(1).append(node1);
         nodes(2).append(node2);
@@ -169,33 +169,34 @@ LoopWNodes::LoopWNodes(const IVMDistanceConstraint& dc,
          moleculeNode=moleculeNode->getParent()) ;
 
     if ( moleculeNode->getLevel()<1 ) {
-        cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
+        cerr << "IVMLoopWNodes::IVMLoopWNodes: could not find molecule node.\n\t"
              << "loop between atoms " << tips(1) << " and " 
              << tips(2) << "\n";
-        throw IVMException("LoopWNodes::LoopWNodes: could not find molecule node");
+        throw IVMException("IVMLoopWNodes::IVMLoopWNodes: could not find molecule node");
     }
 }
 
-typedef CDSList<LoopWNodes> LoopList;
+typedef CDSList<IVMLoopWNodes> IVMLoopList;
 
 class IVMLengthSet {
-    static void construct(const LoopList& loops);
+    static void construct(const IVMLoopList& loops);
     const IVMLengthConstraints*  lConstraints;
     IVMRigidBodyTree&            rbTree;
-    const int                 verbose;
-    LoopList                  loops;    
-    int                       dim;
-    CDSList<IVMRigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
+    const int                    verbose;
+    IVMLoopList                  loops;    
+    int                          dim;
+    CDSList<IVMRigidBodyNode*>   nodeMap; //unique nodes (union of loops->nodes)
 public:
-    IVMLengthSet(const IVMLengthConstraints* lConstraints, const LoopWNodes& loop)
+    IVMLengthSet(const IVMLengthConstraints* lConstraints, 
+                 const IVMLoopWNodes& loop)
         : lConstraints(lConstraints), rbTree(lConstraints->rbTree), 
           verbose(lConstraints->verbose), dim(0)
     {
         addConstraint(loop);
     }
 
-    void addConstraint(const LoopWNodes& loop) {
-        loops.append( LoopWNodes(loop) );
+    void addConstraint(const IVMLoopWNodes& loop) {
+        loops.append( IVMLoopWNodes(loop) );
         for (int b=1 ; b<=2 ; b++)
             for (int i=0; i<loop.nodes(b).size(); i++)
                 if (!nodeMap.contains(loop.nodes(b)[i])) {
@@ -237,10 +238,10 @@ public:
     void testAccel();
     void testInternalForce(const RVec&);
     friend ostream& operator<<(ostream& os, const IVMLengthSet& s);
-    friend class CalcPosB;
-    friend class CalcVelB;
-    friend class CalcPosZ;
-    friend class CalcVelZ;
+    friend class IVMCalcPosB;
+    friend class IVMCalcVelB;
+    friend class IVMCalcPosZ;
+    friend class IVMCalcVelZ;
 
     void fdgradf(const RVec& pos, RMat& grad) const;
     void testGrad(const RVec& pos, const RMat& grad) const;
@@ -284,11 +285,11 @@ IVMLengthConstraints::~IVMLengthConstraints()
 }
 
 //
-// compare LoopWNodes by base node level value
+// compare IVMLoopWNodes by base node level value
 //
 static int
-compareLevel(const LoopWNodes& l1,
-             const LoopWNodes& l2) 
+compareLevel(const IVMLoopWNodes& l1,
+             const IVMLoopWNodes& l2) 
 { 
     if ( l1.base->getLevel() > l2.base->getLevel() ) 
         return 1;
@@ -315,10 +316,10 @@ IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>& iloops,
     //   //issue error message?
     //   return;
 
-    LoopList loops;
+    IVMLoopList loops;
     for (int i=0 ; i<iloops.size() ; i++) {
         try {
-            LoopWNodes loop( iloops[i], rts );
+            IVMLoopWNodes loop( iloops[i], rts );
             loops.append( loop );
         }
         catch ( BadNodeDef ) {}
@@ -326,7 +327,7 @@ IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>& iloops,
 
     // sort loops by base->level
     loops.sort(compareLevel);
-    LoopList accLoops = loops;  //version for acceleration
+    IVMLoopList accLoops = loops;  //version for acceleration
 
     // find intersections -- this version keeps hierarchical loops distinct
     // sherm: the loops are considered coupled if a lower one includes the
@@ -385,28 +386,28 @@ IVMLengthConstraints::construct(CDSList<IVMDistanceConstraint>& iloops,
     }
 }
 
-class CalcPosB {
+class IVMCalcPosB {
     const IVMLengthSet* constraint;
 public:
-    CalcPosB(const IVMLengthSet* constraint)
+    IVMCalcPosB(const IVMLengthSet* constraint)
         : constraint(constraint) {}
     RVec0 operator()(const RVec& pos) const
         { return constraint->calcPosB(pos); }
 };
 
-class CalcPosZ {
+class IVMCalcPosZ {
     const IVMLengthSet* constraint;
 public:
-    CalcPosZ(const IVMLengthSet* constraint) : constraint(constraint) {}
+    IVMCalcPosZ(const IVMLengthSet* constraint) : constraint(constraint) {}
     RVec0 operator()(const RVec& b) const 
         { return constraint->calcPosZ(b); }
 };
 
-class CalcVelB {
+class IVMCalcVelB {
     const IVMLengthSet* constraint;
     const RVec& pos;
 public:
-    CalcVelB(const IVMLengthSet* constraint, const RVec& pos)
+    IVMCalcVelB(const IVMLengthSet* constraint, const RVec& pos)
         : constraint(constraint), pos(pos) {}
     RVec0 operator()(const RVec& vel) 
         { return constraint->calcVelB(pos,vel); }
@@ -470,11 +471,11 @@ IVMLengthSet::calcPosZ(const RVec& b) const
 // a state update which would drive those violations to zero (if they
 // are linear and well conditioned).
 //
-class CalcVelZ {
+class IVMCalcVelZ {
     const IVMLengthSet* constraint;
     const RMat       gInverse;
 public:
-    CalcVelZ(const IVMLengthSet* constraint)
+    IVMCalcVelZ(const IVMLengthSet* constraint)
       : constraint(constraint), gInverse(constraint->calcGInverse()) {}
     RVec operator()(const RVec& b) {
         RVec dir = gInverse * b;
@@ -506,16 +507,16 @@ IVMLengthConstraints::enforce(RVec& pos, RVec& vel)
                 cout << "IVMLengthConstraints::enforce: position " 
                      << *(priv->constraints[i]) << '\n';
             priv->posMin.calc(pos,
-                              CalcPosB(priv->constraints[i].get()),
-                              CalcPosZ(priv->constraints[i].get()));
+                              IVMCalcPosB(priv->constraints[i].get()),
+                              IVMCalcPosZ(priv->constraints[i].get()));
         }
         for (int i=0 ; i<priv->constraints.size() ; i++) {
             if ( verbose&IVMInternalDynamics::printLoopDebug )
                 cout << "IVMLengthConstraints::enforce: velocity " 
                      << *priv->constraints[i] << '\n';
             priv->velMin.calc(vel,
-                              CalcVelB(priv->constraints[i].get(),pos),
-                              CalcVelZ(priv->constraints[i].get()));
+                              IVMCalcVelB(priv->constraints[i].get(),pos),
+                              IVMCalcVelZ(priv->constraints[i].get()));
         }
     }
     catch ( CDSNewtonRaphson::Fail cptn ) {
@@ -580,7 +581,7 @@ IVMLengthSet::fdgradf( const RVec& pos,
     // Gradf gradf(tree);
     // gradf(x,grad); return;
     const double eps = 1e-8;
-    const CalcPosB calcB(this);
+    const IVMCalcPosB calcB(this);
     const RVec0 b = calcB(pos);
     int grad_indx=0;
     for (int i=0 ; i<nodeMap.size() ; i++) {
@@ -627,7 +628,7 @@ IVMLengthSet::calcGrad() const
     CDSMat33 one(0.0); one.setDiag(1.0);  //FIX: should be done once
 
     for (int i=0 ; i<loops.size() ; i++) {
-        const LoopWNodes& l = loops[i];
+        const IVMLoopWNodes& l = loops[i];
         FixedVector<CDSList<CDSMat66>,2,1> phiT;
         for (int b=1 ; b<=2 ; b++) {
             phiT(b).resize( l.nodes(b).size() );
@@ -761,8 +762,8 @@ typedef SubVector<const CDSVec6>       SubVec6;
 //
 static double
 computeA(const CDSVec3&    v1,
-         const LoopWNodes& loop1, int s1,
-         const LoopWNodes& loop2, int s2,
+         const IVMLoopWNodes& loop1, int s1,
+         const IVMLoopWNodes& loop2, int s2,
          const CDSVec3&    v2)
 {
     const IVMRigidBodyNode* n1 = &loop1.tips(s1).getNode();
@@ -1096,7 +1097,7 @@ IVMLengthSet::determineCouplings()
 
 //static bool
 //sameBranch(const IVMRigidBodyNode* tip,
-//           const LoopWNodes& l )
+//           const IVMLoopWNodes& l )
 //{
 // for ( const IVMRigidBodyNode* node=tip ;
 //     node->levelA()            ;

@@ -149,7 +149,7 @@ public:
     void getAcc(Vector& acc) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
-    void velFromCartesian(const Vector& pos, Vector& vel);
+    void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints (just quaternions constraints; ignores loops).

@@ -16,6 +16,8 @@ public:
     IVMMoleculeRBTreeInterface* clone() const 
       { return new IVMRigidBodyTreeMolIfc(*this); }
 
+    int getInitialStateOffset() const {return 1;}
+
     int addRigidBodyNode(int parentNodeNum,
                          const IVMFrame&          refConfig,    // body frame in parent
                          const IVMMassProperties& massProps,    // mass properties in body frame
@@ -141,10 +143,302 @@ private:
     IVMRigidBodyTree ivmTree;
 };
 
+
+    // INTERFACE TO NEW SIMBODY RIGID BODY CODE
+
+#include "RigidBodyTree.h"
+
+
+static CDSVec3 toCDSVec3(const Vec3& v) {return CDSVec3(v[0],v[1],v[2]);}
+static Vec3    toVec3(const CDSVec3& v) {return Vec3(v[0],v[1],v[2]);}
+static CDSVec6 toCDSVec6(const SpatialVec& v) { 
+    CDSVec6 cv;
+    for (int i=0; i<3; ++i) cv[i] = v[0][i], cv[i+3] = v[1][i];
+    return cv;
+}
+static SpatialVec toSpatialVec(const CDSVec6& v) 
+  { return SpatialVec(Vec3(v[0],v[1],v[2]),Vec3(v[3],v[4],v[5])); }
+
+static CDSVecVec6 toCDSVecVec6(const Vector_<SpatialVec>& a) {
+    CDSVecVec6 vv(a.size());
+    for (int i=0; i < (int)a.size(); ++i)
+        vv(i) = toCDSVec6(a[i]);
+    return vv;
+}
+
+static Vector_<SpatialVec> toSpatialVecList(const CDSVecVec6& vv) {
+    Vector_<SpatialVec> svl(vv.size());
+    for (int i=0; i < (int)vv.size(); ++i)
+        svl[i] = toSpatialVec(vv(i));
+    return svl;
+}
+
+static CDSMat33 toCDSMat33(const Mat33& m) {
+    return CDSMat33(m(0,0), m(0,1), m(0,2),
+                    m(1,0), m(1,1), m(1,2),
+                    m(2,0), m(2,1), m(2,2));
+}
+static RVec toRVec(const Vector& v) {
+    RVec r(v.size());   // a 1-based vector
+    for (int i=0; i < v.size(); ++i)
+        r[i+1] = v[i];
+    return r;
+}
+static Vector toVector(const RVec& r) {
+    return Vector(r.size(), r.pointer());
+}
+static Mat33 toMat33(const CDSMat33& m) {
+    return Mat33(Row3(m(0,0), m(0,1), m(0,2)),
+                 Row3(m(1,0), m(1,1), m(1,2)),
+                 Row3(m(2,0), m(2,1), m(2,2)));
+}
+static IVMInertia toIVMInertia(const MatInertia& i) {
+    return IVMInertia(toCDSMat33(i.toMat33()));
+}
+static RBInertia toRBInertia(const MatInertia& i) {
+    return RBInertia(i.toMat33());
+}
+static RBInertia toRBInertia(const IVMInertia& i) {
+    return RBInertia(toMat33(i));
+}
+static MatInertia toMatInertia(const RBInertia& i) {
+    return MatInertia(i);
+}
+static MatRotation toMatRotation(const CDSMat33& m) {
+    const Mat33 m33 = toMat33(m);
+    return reinterpret_cast<const MatRotation&>(m33);
+}
+
+static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+    return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
+}
+
+
+static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+    return RBMassProperties(m, c, RBInertia(i.toMat33()));
+}
+
+static RBMassProperties toRBMassProperties(const IVMMassProperties& mp) {
+    return RBMassProperties(mp.getMass(), toVec3(mp.getCOM()), 
+                            toRBInertia(mp.getInertia()));
+}
+
+static IVMFrame toIVMFrame(const Frame& f) {
+    return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
+}
+
+static RBFrame toRBFrame(const IVMFrame& f) {
+    return RBFrame(toMat33(f.getRot_RF()), toVec3(f.getLoc_RF()));
+}
+
+static RBFrame toRBFrame(const Frame& f) {
+    return RBFrame(f.getAxes().asMat33(), f.getOrigin());
+}
+
+static Frame toFrame(const IVMFrame& f) {
+    return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
+}
+
+static RBJointType
+toRBJointType(IVMJointType jt) {
+    switch (jt) {
+    case IVMUnknownJointType:        return RBUnknownJointType;
+    case IVMThisIsGround:            return RBThisIsGround;
+    case IVMWeldJoint:               return RBWeldJoint;
+    case IVMTorsionJoint:            return RBTorsionJoint;  // aka PinJoint
+    case IVMSlidingJoint:            return RBSlidingJoint;
+    case IVMUJoint:                  return RBUJoint;
+    case IVMCylinderJoint:           return RBCylinderJoint;
+    case IVMPlanarJoint:             return RBPlanarJoint;
+    case IVMGimbalJoint:             return RBGimbalJoint;
+    case IVMOrientationJoint:        return RBOrientationJoint; // aka BallJoint
+    case IVMCartesianJoint:          return RBCartesianJoint;
+    case IVMFreeLineJoint:           return RBFreeLineJoint;
+    case IVMFreeJoint:               return RBFreeJoint;
+    default: assert(false);
+    }
+    //NOTREACHED
+    return RBUnknownJointType;
+}
+
+class SimbodyRigidBodyTreeMolIfc : public  IVMMoleculeRBTreeInterface {
+public:
+    SimbodyRigidBodyTreeMolIfc() { }
+    ~SimbodyRigidBodyTreeMolIfc() { }
+
+    IVMMoleculeRBTreeInterface* clone() const 
+      { return new SimbodyRigidBodyTreeMolIfc(*this); }
+
+    int getInitialStateOffset() const {return 0;}
+
+    int addRigidBodyNode(int parentNodeNum,
+                         const IVMFrame&          IVMrefConfig,    // body frame in parent
+                         const IVMMassProperties& IVMmassProps,    // mass properties in body frame
+                         const IVMFrame&          IVMjointFrame,   // inboard joint frame J in body frame
+                         const IVMJointType&      IVMjtype,
+                         bool                     isReversed,
+                         bool                     useEuler,
+                         int&                     nxtStateOffset) 
+    {
+        const RBFrame          refConfig  = toRBFrame(IVMrefConfig);
+        const RBMassProperties massProps  = toRBMassProperties(IVMmassProps);
+        const RBFrame          jointFrame = toRBFrame(IVMjointFrame);
+        const RBJointType      jtype      = toRBJointType(IVMjtype);
+
+        RigidBodyNode* nodep = RigidBodyNode::create(
+                                        massProps, jointFrame, jtype, 
+                                        isReversed, useEuler, nxtStateOffset); 
+        return simTree.addRigidBodyNode(simTree.updRigidBodyNode(parentNodeNum),
+                                        refConfig, nodep);
+    }
+
+    int addGroundNode() {
+        int dummy;
+        RigidBodyNode* gnodep = RigidBodyNode::create(
+                                    RBMassProperties(),
+                                    RBFrame(),
+                                    RBThisIsGround,
+                                    false, false, dummy);
+        return simTree.addGroundNode(gnodep);
+    }
+
+    void RBNodeSetVelFromSVel(int nodeNum, const CDSVec6& sVel) {
+        RigidBodyNode& rb = simTree.updRigidBodyNode(nodeNum);
+        rb.setVelFromSVel(toSpatialVec(sVel));
+    }
+    void RBNodeGetConfig(int nodeNum, CDSMat33& R_GB, CDSVec3& OB_G) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        R_GB = toCDSMat33(rb.getR_GB()); OB_G = toCDSVec3(rb.getOB_G());
+    }
+
+    CDSVec6 RBNodeGetSpatialVel(int nodeNum) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        return toCDSVec6(rb.getSpatialVel());
+    }
+
+    double RBNodeGetMass(int nodeNum) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        return rb.getMass();
+    }
+
+    CDSVec3 RBNodeGetCOM_G(int nodeNum) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        return toCDSVec3(rb.getCOM_G());
+    }
+
+    double RBNodeCalcKineticEnergy(int nodeNum) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        return rb.calcKineticEnergy();
+    }
+
+    void RBNodeDump(int nodeNum, std::ostream& s) const {
+        const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
+        return rb.nodeDump(s);
+    }
+
+    int addDistanceConstraint(int nodeNum1, const CDSVec3& station1,
+                              int nodeNum2, const CDSVec3& station2,
+                              double distance)
+    {
+        RBStation s1(simTree.updRigidBodyNode(nodeNum1), toVec3(station1));
+        RBStation s2(simTree.updRigidBodyNode(nodeNum2), toVec3(station2));
+        return simTree.addDistanceConstraint(s1,s2,distance);
+    }
+
+    void finishConstruction(const double& ctol, int verbose) {
+        simTree.finishConstruction(ctol,verbose);
+    }
+
+    int getNBodies() const {return simTree.getNBodies();}
+
+    int getDOF() const {return simTree.getDOF();} 
+    int getDim() const {return simTree.getDim();} 
+
+    void setPos(const RVec& pos) {simTree.setPos(toVector(pos));}
+    void setVel(const RVec& vel) {simTree.setVel(toVector(vel));}
+
+    void getPos(RVec& pos) const {
+        Vector p(pos.size());
+        simTree.getPos(p);
+        pos = toRVec(p);
+    }
+    void getVel(RVec& vel) const {
+        Vector v(vel.size());
+        simTree.getVel(v);
+        vel = toRVec(v);
+    }
+    void getAcc(RVec& acc) const {
+        Vector a(acc.size());
+        simTree.getAcc(a);
+        acc = toRVec(a);
+    }
+    
+    void velFromCartesian(const RVec& pos, RVec& vel) {
+        Vector v(vel.size());
+        simTree.velFromCartesian(toVector(pos),v);
+        vel = toRVec(v);
+    }
+    void enforceTreeConstraints(RVec& pos, RVec& vel) {
+        Vector p(pos.size()), v(vel.size());
+        p = toVector(pos); v = toVector(vel);
+        simTree.enforceTreeConstraints(p,v);
+        pos = toRVec(p); vel = toRVec(v);
+    }
+    void enforceConstraints(RVec& pos, RVec& vel) {
+        Vector p(pos.size()), v(vel.size());
+        p = toVector(pos); v = toVector(vel);
+        simTree.enforceConstraints(p,v);
+        pos = toRVec(p); vel = toRVec(v);
+    }
+    void prepareForDynamics() {
+        simTree.prepareForDynamics();
+    }
+    void calcTreeForwardDynamics(const CDSVecVec6& spatialForces) {
+        const Vector_<SpatialVec> svl = toSpatialVecList(spatialForces);
+        simTree.calcTreeForwardDynamics(svl);
+    }
+    void calcLoopForwardDynamics(const CDSVecVec6& spatialForces) {
+        const Vector_<SpatialVec> svl = toSpatialVecList(spatialForces);
+        simTree.calcLoopForwardDynamics(svl);
+    }
+
+    void calcP() {simTree.calcP();}
+    void calcZ(const CDSVecVec6& spatialForces) {
+        const Vector_<SpatialVec> svl = toSpatialVecList(spatialForces);
+        simTree.calcZ(svl);
+    }
+    void calcTreeAccel()    {simTree.calcTreeAccel();}
+    void fixVel0(RVec& vel) {
+        Vector v(vel.size());
+        v = toVector(vel);
+        simTree.fixVel0(v);
+        vel = toRVec(v);
+    }
+    void calcY()            {simTree.calcY();}
+    void calcTreeInternalForces(const CDSVecVec6& spatialForces) {
+        const Vector_<SpatialVec> svl = toSpatialVecList(spatialForces);
+        simTree.calcTreeInternalForces(svl);
+    }
+    void getInternalForces(RVec& T) {
+        Vector t(T.size());
+        simTree.getInternalForces(t);
+        T = toRVec(t);
+    }
+
+    void getConstraintCorrectedInternalForces(RVec& T) {
+        Vector t(T.size());
+        simTree.getConstraintCorrectedInternalForces(t);
+        T = toRVec(t);
+    }
+private:
+    RigidBodyTree simTree;
+};
+
+
 /*static*/ IVMMoleculeRBTreeInterface*
 IVMMoleculeRBTreeInterface::create(bool newStyle) {
-    assert(!newStyle);
-    return new IVMRigidBodyTreeMolIfc();
+    return newStyle ? (IVMMoleculeRBTreeInterface*)new SimbodyRigidBodyTreeMolIfc()
+                    : (IVMMoleculeRBTreeInterface*)new IVMRigidBodyTreeMolIfc();
 }
 
 

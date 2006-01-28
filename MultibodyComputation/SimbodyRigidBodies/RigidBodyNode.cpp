@@ -144,7 +144,7 @@ public:
     /*virtual*/void getAccel(Vector&) const {}
 
     /*virtual*/void getInternalForce(Vector&) const {}
-    // virtual RMat getH()
+    // /*virtual*/ const SpatialRow getHRow(int i) const;
 
     void print(int) {}
 };
@@ -230,17 +230,10 @@ public:
 
     virtual void setVelFromSVel(const SpatialVec&);
     virtual void enforceConstraints(Vector& pos, Vector& vel) {}
-/*
-    virtual Matrix getH() const { 
-        Matrix m(dof,6);
-        for (int i=0; i<dof; ++i)
-            for (int j=0; j<6; ++j) 
-                m(i,j) = H(i,j);
-        return m; 
-    }
-*/
 
-    const SpatialRow& getHRow(int i) const {return H[i];}
+    const SpatialRow getHRow(int i) const {
+        return H[i];
+    }
 
     void calcP();
     void calcZ(const SpatialVec& spatialForce);

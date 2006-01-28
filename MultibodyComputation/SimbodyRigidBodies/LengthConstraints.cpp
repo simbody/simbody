@@ -658,7 +658,6 @@ LengthSet::calcGrad() const
                                             l.tips(b).getNode().getOB_G()),   one);
         int g_indx=0;
         for (int j=0 ; j<(int)nodeMap.size() ; j++) {
-            const Matrix Ht = ~nodeMap[j]->getH();
             double elem=0.0;
 
             // We just want to get the index at which nodeMap[j] is found in the
@@ -673,12 +672,12 @@ LengthSet::calcGrad() const
             const int l1_indx = (found0==n0.end() ? -1 : found0-n0.begin());
             const int l2_indx = (found1==n1.end() ? -1 : found1-n1.begin());
 
-            for (int k=0 ; k<Ht.ncol() ; k++) {
-                const SpatialVec Hcol = SpatialVec::getAs(&Vec3::getAs(&Ht(k)[0]));
+            for (int k=0 ; k < nodeMap[j]->getDOF() ; k++) {
+                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(k);
                 if ( l1_indx >= 0 ) { 
-                    elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*Hcol));
+                    elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*HtCol));
                 } else if ( l2_indx >= 0 ) { 
-                    elem =  dot(uBond , Vec3(J[1] * phiT[1][l2_indx]*Hcol));
+                    elem =  dot(uBond , Vec3(J[1] * phiT[1][l2_indx]*HtCol));
                 }
                 grad(g_indx++,i) = elem;
             }

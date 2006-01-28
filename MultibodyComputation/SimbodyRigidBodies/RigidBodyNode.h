@@ -187,7 +187,10 @@ public:
     virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
     virtual void getInternalForce(Vector&) const {throw VirtualBaseMethod();}
-    virtual Matrix getH() const {throw VirtualBaseMethod();}
+
+    // Don't ask for a *reference* to a SpatialRow because elements may
+    // be packed differently in H -- we're copying out of H here.
+    virtual const SpatialRow getHRow(int i) const {throw VirtualBaseMethod();}
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 

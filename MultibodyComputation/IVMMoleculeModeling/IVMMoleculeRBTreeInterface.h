@@ -35,6 +35,7 @@ public:
 
     static IVMMoleculeRBTreeInterface* create(bool newStyle);
     virtual IVMMoleculeRBTreeInterface* clone() const=0;
+    virtual int getInitialStateOffset() const=0; // either 0 or 1
 
     // TODO: The next 4 routines have to be fixed to eliminate the direct
     // reference to the node.

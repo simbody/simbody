@@ -389,10 +389,11 @@ AtomTree::AtomTree(IVM* ivm_)
 // with a "weld", which consists of 6 independent constraints.
 void AtomTree::createRigidBodyTree() {
     if (rbTree) delete rbTree;
-    rbTree = IVMMoleculeRBTreeInterface::create(false); // old style
+    //rbTree = IVMMoleculeRBTreeInterface::create(false); // old style
+    rbTree = IVMMoleculeRBTreeInterface::create(true); // new style
 
     // Go through all nodes from base to tips.
-    int nextStateOffset=1; //offset into pos, vel, acc
+    int nextStateOffset=getRBTree().getInitialStateOffset(); //offset into pos, vel, acc (0 or 1)
     for (int i=0; i<nodeTree.size(); i++)
         for (int j=0; j<nodeTree[i].size(); j++) {
             AtomClusterNode& ac = *nodeTree[i][j];
