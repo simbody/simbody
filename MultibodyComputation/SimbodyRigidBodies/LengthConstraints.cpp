@@ -427,7 +427,7 @@ LengthSet::calcPosB(const Vector& pos) const
     Vector b( loops.size() );
     for (int i=0 ; i<(int)loops.size() ; i++) 
         b(i) = loops[i].getDistance() - 
-                (loops[i].tipPos(1) - loops[i].tipPos(2)).normSqr();
+                (loops[i].tipPos(1) - loops[i].tipPos(2)).norm();
     return b;
 }
 
