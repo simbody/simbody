@@ -14,10 +14,6 @@ using std::cout;
 using std::endl;
 using std::setprecision;
 
-static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
-static const Mat33 ident33(1); // handy to have around
-static const Mat33 zero33(0);
-
 //////////////////////////////////////////////
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
@@ -51,7 +47,6 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    // TODO: symmetric transform needs to be handled better
     inertia_OB_G = getInertia_OB_B().changeAxes(~getR_GB());
     COMstation_G = getR_GB()*getCOM_B();
 
@@ -62,7 +57,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // that transpose(offDiag) = -offDiag.
     const Mat33 offDiag = getMass()*crossMat(COMstation_G);
     Mk = SpatialMat( inertia_OB_G.toMat33() ,     offDiag ,
-                           -offDiag         , getMass()*ident33 );
+                           -offDiag         , getMass()*Mat33(1) );
 }
 
 // Calculate velocity-related quantities: spatial velocity (sVel),
@@ -70,12 +65,11 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
 // called base to tip: depends on parent's sVel, V_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel() {
-    setSpatialVel(transpose(phi) * parent->getSpatialVel()
+    setSpatialVel(~phi * parent->getSpatialVel()
                   + V_PB_G);
     const Vec3& omega   = getSpatialAngVel();
-    const Vec3  gMoment = cross(omega, inertia_OB_G * omega);
-    const Vec3  gForce  = getMass() * cross(omega, 
-                                            cross(omega, COMstation_G));
+    const Vec3  gMoment = omega % (inertia_OB_G * omega);
+    const Vec3  gForce  = getMass() * (omega % (omega % COMstation_G));
     b = SpatialVec(gMoment, 
                    gForce);
 
@@ -87,8 +81,8 @@ RigidBodyNode::calcJointIndependentKinematicsVel() {
     a = SpatialMat(crossMat(pOmega),    Mat33(0.),
                       Mat33(0.)    , crossMat(pOmega)) 
         * V_PB_G;
-    a += SpatialVec(       Vec3(0.), 
-                    cross(pOmega, vel-pVel));
+    a += SpatialVec(     Vec3(0.), 
+                    pOmega % (vel-pVel));
 }
 
 Real RigidBodyNode::calcKineticEnergy() const {
@@ -357,7 +351,7 @@ private:
     void calcH() {
         // This only works because the joint z axis is the same in B & P
         // because that's what we rotate around.
-        const Vec3 z = getR_GP() * (R_BJ * Vec3(0,0,1)); // R_BJ=R_PJi
+        const Vec3 z = getR_GP() * R_BJ(2); // R_BJ=R_PJi
         H[0] = SpatialRow( ~z, Row3(0) );
     }  
 };
@@ -725,8 +719,8 @@ private:
         double scale=1.0;
         const MatRotation tmpR_GB = getR_GP() * R_PB;
 
-        const Vec3 x = scale * (tmpR_GB * (R_BJ * Vec3(1,0,0)));
-        const Vec3 y = scale * (tmpR_GB * (R_BJ * Vec3(0,1,0)));
+        const Vec3 x = scale * (tmpR_GB * R_BJ(0));
+        const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
         H[0] = SpatialRow(~x, Row3(0));
         H[1] = SpatialRow(~y, Row3(0));
@@ -785,8 +779,8 @@ private:
         const MatRotation& R_GP = getR_GP();
         const MatRotation tmpR_GB = R_GP * R_PB;
 
-        Vec3 x = scale * (tmpR_GB * (R_BJ * Vec3(1,0,0)));
-        Vec3 y = scale * (tmpR_GB * (R_BJ * Vec3(0,1,0)));
+        const Vec3 x = scale * (tmpR_GB * R_BJ(0));
+        const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
         H[0] = SpatialRow(  ~x   ,  Row3(0));
         H[1] = SpatialRow(  ~y   ,  Row3(0));
@@ -849,7 +843,7 @@ RigidBodyNode::create(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::setVelFromSVel(const SpatialVec& sVel) {
-    dTheta = H * (sVel - transpose(phi)*parent->sVel);
+    dTheta = H * (sVel - ~phi * parent->sVel);
 }
 
 template<int dof> void
@@ -878,11 +872,11 @@ RigidBodyNodeSpec<dof>::calcP() {
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        const Mat33 lt = crossMat(children[i]->getOB_G() - getOB_G());
+        const Mat33      lt = crossMat(children[i]->getOB_G() - getOB_G());
         const SpatialMat M  = children[i]->tau * children[i]->P;
-        P(0,0) += M(0,0)+lt*M(1,0)-M(0,1)*lt-lt*M(1,1)*lt;
-        P(0,1) += M(0,1)+lt*M(1,1);
-        P(1,0) += M(1,0)-M(1,1)*lt;
+        P(0,0) += M(0,0) + lt*M(1,0) - M(0,1)*lt - lt*M(1,1)*lt;
+        P(0,1) += M(0,1) + lt*M(1,1);
+        P(1,0) += M(1,0) - M(1,1)*lt;
         P(1,1) += M(1,1);
     }
 
@@ -918,9 +912,9 @@ RigidBodyNodeSpec<dof>::calcAccel() {
     // const Node* pNode = parentHinge.remNode;
     //make sure that this is phi is correct - FIX ME!
     // base alpha = 0!!!!!!!!!!!!!
-    SpatialVec alphap = transpose(phi) * parent->sAcc;
+    const SpatialVec alphap = ~phi * parent->sAcc;
     ddTheta = nu - ~G * alphap;
-    sAcc   = alphap + ~H * ddTheta + a;  
+    sAcc    = alphap + ~H * ddTheta + a;  
 
     calcJointAccel();   // in case joint isn't happy with just ddTheta
 }
@@ -956,33 +950,5 @@ RigidBodyNodeSpec<dof>::print(int verbose) const {
         cout << setprecision(8)
              << ": theta: " 
              << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';
-}
-
-/////////////////////////////////////
-// Miscellaneous utility routines. //
-/////////////////////////////////////
-
-// Calculate a rotation matrix R_BJ which defines the J
-// frame by taking the B frame z axis into alignment 
-// with the passed-in zDir vector. This is not unique.
-// notes of 12/6/99 - CDS
-static Mat33
-makeJointFrameFromZAxis(const Vec3& zVec) {
-    const Vec3 zDir = unitVec(zVec);
-
-    // Calculate spherical coordinates.
-    double theta = acos( zDir[2] );             // zenith (90-elevation)
-    double psi   = atan2( zDir[0] , zDir[1] ); // 90-azimuth
-
-    // This is a space fixed 1-2-3 sequence with angles
-    // a1=-theta, a2=0, a3=-psi. That is, to get from B to J
-    // first rotate by -theta around the B frame x axis, 
-    // then rotate by -psi around the B frame z axis. (sherm)
-
-    const double R_BJ[] = 
-        { cos(psi) , cos(theta)*sin(psi) , sin(psi)*sin(theta),
-         -sin(psi) , cos(theta)*cos(psi) , cos(psi)*sin(theta),
-          0        , -sin(theta)         , cos(theta)         };
-    return Mat33(R_BJ); // == R_PJi
 }
 
