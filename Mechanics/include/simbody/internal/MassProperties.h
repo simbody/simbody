@@ -265,7 +265,8 @@ private:
     // a symmetric matrix but we keep all the elements here, and manage them
     // so that the reflected elements are *exactly* equal.
     // TODO: should use a SymMat33 type.
-    Mat33 I_OF_F;                  
+    Mat33 I_OF_F;
+    friend Vec3 operator*(const MatInertia& i, const Vec3& w);
 };
 
 inline MatInertia operator+(const MatInertia& l, const MatInertia& r) {
@@ -280,6 +281,9 @@ inline MatInertia operator*(const MatInertia& i, const Real& r) {
 inline MatInertia operator*(const Real& r, const MatInertia& i) {
     return MatInertia(i) *= r;
 }
+inline Vec3 operator*(const MatInertia& i, const Vec3& w) {
+    return i.I_OF_F * w;
+}
 inline MatInertia operator/(const MatInertia& i, const Real& r) {
     return MatInertia(i) /= r;
 }
@@ -292,12 +296,12 @@ inline MatInertia MatInertia::shiftFromCOM(const Vec3& p, const Real& mtot) cons
 
 std::ostream& operator<<(std::ostream& o, const MatInertia&);
 
+
 /**
  * This class contains the mass, centroid, and inertia of a rigid body B.
  * The centroid is a vector from B's origin, expressed in the B frame.
  * The inertia is taken about the B origin, and expressed in B.
  */
-/*
 class MassProperties {
 public:
     MassProperties() { setMassProperties(0.,Vec3(0.),MatInertia()); }
@@ -307,15 +311,15 @@ public:
     void setMassProperties(const Real& m, const Vec3& com, const MatInertia& inertia)
       { mass=m; comInB=com; inertia_OB_B=inertia; }
 
-    const Real&    getMass()    const { return mass; }
-    const Vec3&    getCOM()     const { return comInB; }
+    const Real&       getMass()    const { return mass; }
+    const Vec3&       getCOM()     const { return comInB; }
     const MatInertia& getInertia() const { return inertia_OB_B; }
 
     MatInertia calcCentroidalInertia() const {
-        return inertia_OB_B - MatInertia(mass, comInB);
+        return inertia_OB_B - MatInertia(comInB, mass);
     }
     MatInertia calcShiftedInertia(const Vec3& newOriginB) const {
-        return calcCentroidalInertia() + MatInertia(mass, newOriginB-comInB);
+        return calcCentroidalInertia() + MatInertia(newOriginB-comInB, mass);
     }
     MassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
         return MassProperties(mass, comInB-newOriginB,
@@ -325,12 +329,10 @@ public:
     bool isMassless()   const { return mass==0.; }
 
 private:
-    Real mass;
-    Vec3 comInB;         // meas. from B origin, expr. in B
-    MatInertia inertia_OB_B;   // about B origin, expr. in B
+    Real        mass;
+    Vec3        comInB;         // meas. from B origin, expr. in B
+    MatInertia  inertia_OB_B;   // about B origin, expr. in B
 };
-*/
-
 
 } // namespace simtk
 

@@ -14,9 +14,6 @@ using std::cout;
 using std::endl;
 using std::setprecision;
 
-typedef Mat<2,3>  Mat23;
-typedef Vec<5>    Vec5;
-
 static Mat33 makeJointFrameFromZAxis(const Vec3& zVec);
 static const Mat33 ident33(1); // handy to have around
 static const Mat33 zero33(0);
@@ -25,10 +22,10 @@ static const Mat33 zero33(0);
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child, const RBFrame& referenceFrame) {
+void RigidBodyNode::addChild(RigidBodyNode* child, const Frame& referenceFrame) {
     children.push_back( child );
     child->setParent(this);
-    child->refOrigin_P = referenceFrame.getLoc_RF();    // ignore frame for now, it's always identity
+    child->refOrigin_P = referenceFrame.getOrigin(); // ignore frame for now, it's always identity
     child->R_GB = R_GB;
     child->OB_G = OB_G + child->refOrigin_P;
     child->COM_G = child->OB_G + child->COMstation_G;
@@ -55,7 +52,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // spatial inertia matrix Mk.
 
     // TODO: symmetric transform needs to be handled better
-    inertia_OB_G = RBInertia(getR_GB()* getInertia_OB_B()* ~getR_GB());
+    inertia_OB_G = getInertia_OB_B().changeAxes(~getR_GB());
     COMstation_G = getR_GB()*getCOM_B();
 
     COM_G = OB_G + COMstation_G;
@@ -64,8 +61,8 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
     const Mat33 offDiag = getMass()*crossMat(COMstation_G);
-    Mk = SpatialMat( inertia_OB_G , offDiag ,
-                    -offDiag      , getMass()*ident33 );
+    Mk = SpatialMat( inertia_OB_G.toMat33() ,     offDiag ,
+                           -offDiag         , getMass()*ident33 );
 }
 
 // Calculate velocity-related quantities: spatial velocity (sVel),
@@ -123,7 +120,7 @@ std::ostream& operator<<(std::ostream& s, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(RBMassProperties(),Vec3(0.),ident33,Vec3(0.)) {}
+      : RigidBodyNode(MassProperties(),Vec3(0.),MatRotation(),Vec3(0.)) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -144,7 +141,7 @@ public:
     /*virtual*/void getAccel(Vector&) const {}
 
     /*virtual*/void getInternalForce(Vector&) const {}
-    // /*virtual*/ const SpatialRow getHRow(int i) const;
+    // /*virtual*/ const SpatialRow& getHRow(int i) const;
 
     void print(int) {}
 };
@@ -152,10 +149,10 @@ public:
 template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
-    RigidBodyNodeSpec(const RBMassProperties& mProps_B,
-                      const RBFrame& jointFrame,
+    RigidBodyNodeSpec(const MassProperties& mProps_B,
+                      const Frame& jointFrame,
                       int& cnt)
-      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame.getRot_RF(),jointFrame.getLoc_RF()),
+      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame.getAxes(),jointFrame.getOrigin()),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
         stateOffset = cnt;
@@ -231,7 +228,7 @@ public:
     virtual void setVelFromSVel(const SpatialVec&);
     virtual void enforceConstraints(Vector& pos, Vector& vel) {}
 
-    const SpatialRow getHRow(int i) const {
+    const SpatialRow& getHRow(int i) const {
         return H[i];
     }
 
@@ -257,10 +254,11 @@ public:
 protected:
     // These are the joint-specific quantities
     //      ... position level
-    Vec<dof>                theta;   // internal coordinates
-    Mat<dof, 2, Row3>       H;       // joint transition matrix (spatial)
-    Mat<dof,dof>            DI;
-    Mat<2, dof, Vec3>       G;
+    Vec<dof>            theta;   // internal coordinates
+    Mat<dof,2,Row3,1,2> H;       // joint transition matrix (spatial); note row-order packing
+                                 //   so that transpose will be a nice column-packed matrix
+    Mat<dof,dof>        DI;
+    Mat<2,dof,Vec3>     G;       // structure is like ~H; that is, default column-packed matrix
 
     //      ... velocity level
     Vec<dof>                dTheta;  // internal coordinate time derivatives
@@ -294,20 +292,20 @@ class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
-    RBNodeTranslate(const RBMassProperties& mProps_B,
-                    int&                    nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset)
+    RBNodeTranslate(const MassProperties& mProps_B,
+                    int&                  nextStateOffset)
+      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset)
     {
     }
 
     void calcJointKinematicsPos() { 
         OB_P = refOrigin_P + theta;
-        R_PB = ident33; // Cartesian joint can't change orientation
+        R_PB = MatRotation(); // Cartesian joint can't change orientation
 
         // Note that this is spatial (and R_GP=R_GB for this joint)
-        H[0] = SpatialRow( Row3(0), (~getR_GP())[0] );
-        H[1] = SpatialRow( Row3(0), (~getR_GP())[1] );
-        H[2] = SpatialRow( Row3(0), (~getR_GP())[2] );
+        H[0] = SpatialRow( Row3(0), ~getR_GP()(0) );
+        H[1] = SpatialRow( Row3(0), ~getR_GP()(1) );
+        H[2] = SpatialRow( Row3(0), ~getR_GP()(2) );
     }
 
     void calcJointKinematicsVel() { 
@@ -323,9 +321,9 @@ class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
-    RBNodeTorsion(const RBMassProperties& mProps_B,
-                  const RBFrame&          jointFrame,
-                  int&                    nextStateOffset)
+    RBNodeTorsion(const MassProperties& mProps_B,
+                  const Frame&          jointFrame,
+                  int&                  nextStateOffset)
       : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -346,10 +344,10 @@ private:
         double scale=1.0;
         double sinTau = sin( scale * theta(0) );
         double cosTau = cos( scale * theta(0) );
-        double a[] = { cosTau , -sinTau , 0.0 ,
+        const Mat33 a( cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
-                       0.0    ,  0.0    , 1.0 };
-        const Mat33 R_JiJ(a); //rotation about z-axis
+                       0.0    ,  0.0    , 1.0 );
+        const MatRotation R_JiJ = MatRotation::trustMe(a); //rotation about z-axis
 
         // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
         R_PB = R_BJ * R_JiJ * ~R_BJ;
@@ -444,7 +442,7 @@ public:
         else          Vec4::updAs(&accv[stateOffset]) = ddq;
     }
 
-    void calcR_PB(const Vec3& theta, Mat33& R_PB) {
+    void calcR_PB(const Vec3& theta, MatRotation& R_PB) {
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
             cPhi   = cos( theta(0) *RigidBodyNode::DEG2RAD );
@@ -460,7 +458,7 @@ public:
                 ( cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
-            R_PB = R_JiJ; // because P=Ji and B=J for this kind of joint
+            R_PB = MatRotation::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
             const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
             const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
@@ -469,7 +467,7 @@ public:
                 (q00+q11-q22-q33,   2*(q12-q03)  ,   2*(q13+q02),
                    2*(q12+q03)  , q00-q11+q22-q33,   2*(q23-q01),
                    2*(q13-q02)  ,   2*(q23+q01)  , q00-q11-q22+q33);
-            R_PB = R_JiJ; // see above
+            R_PB = MatRotation::trustMe(R_JiJ); // see above
         }
     }
 
@@ -520,10 +518,10 @@ class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    RBNodeRotate3(const RBMassProperties& mProps_B,
-                  int&                    nextStateOffset,
-                  bool                    useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,RBFrame(),nextStateOffset),
+    RBNodeRotate3(const MassProperties& mProps_B,
+                  int&                  nextStateOffset,
+                  bool                  useEuler)
+      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -559,9 +557,9 @@ public:
         OB_P = refOrigin_P; // ball joint can't move B origin in P
         ball.calcR_PB(theta, R_PB);
         // H matrix in space-fixed (P) coords
-        H[0] = SpatialRow( (~getR_GP())[0], Row3(0) );
-        H[1] = SpatialRow( (~getR_GP())[1], Row3(0) );
-        H[2] = SpatialRow( (~getR_GP())[2], Row3(0) );
+        H[0] = SpatialRow( ~getR_GP()(0), Row3(0) );
+        H[1] = SpatialRow( ~getR_GP()(1), Row3(0) );
+        H[2] = SpatialRow( ~getR_GP()(2), Row3(0) );
    }
 
     // Note that dTheta = w_PB_P = ang vel of B in P, expr in P
@@ -593,10 +591,10 @@ class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
 public:
     virtual const char* type() { return "full"; }
 
-    RBNodeTranslateRotate3(const RBMassProperties& mProps_B,
-                           int&                    nextStateOffset,
-                           bool                    useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,RBFrame(),nextStateOffset),
+    RBNodeTranslateRotate3(const MassProperties& mProps_B,
+                           int&                  nextStateOffset,
+                           bool                  useEuler)
+      : RigidBodyNodeSpec<6>(mProps_B,Frame(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -649,8 +647,8 @@ public:
 
         // H matrix in space-fixed (P) coords
         for (int i=0; i<3; ++i) {
-            H[i]   = SpatialRow( (~getR_GP())[i],     Row3(0) );
-            H[i+3] = SpatialRow(     Row3(0),     (~getR_GP())[i] );
+            H[i]   = SpatialRow( ~getR_GP()(i),     Row3(0) );
+            H[i+3] = SpatialRow(     Row3(0),     ~getR_GP()(i) );
         }
     }
 
@@ -688,9 +686,9 @@ class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "rotate2"; }
 
-    RBNodeRotate2(const RBMassProperties& mProps_B,
-                  const RBFrame&          jointFrame,
-                  int&                    nextStateOffset)
+    RBNodeRotate2(const MassProperties& mProps_B,
+                  const Frame&          jointFrame,
+                  int&                  nextStateOffset)
       : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -714,21 +712,21 @@ private:
         double sinPsi = sin( scale * theta(1) );
         double cosPsi = cos( scale * theta(1) );
 
-        double a[] =  //Ry(psi) * Rx(phi)
-            {cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
+        const Mat33 a //Ry(psi) * Rx(phi)
+            (cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
              0      , cosPhi        , -sinPhi      ,
-            -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi};
+            -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
-        R_PB = R_BJ * Mat33(a) * ~R_BJ;
+        R_PB = R_BJ * MatRotation::trustMe(a) * ~R_BJ;
     }
 
     void calcH() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const Mat33 tmpR_GB = getR_GP() * R_PB;
+        const MatRotation tmpR_GB = getR_GP() * R_PB;
 
-        const Vec3 x = scale * tmpR_GB * (R_BJ * Vec3(1,0,0));
-        const Vec3 y = scale * tmpR_GB * (R_BJ * Vec3(0,1,0));
+        const Vec3 x = scale * (tmpR_GB * (R_BJ * Vec3(1,0,0)));
+        const Vec3 y = scale * (tmpR_GB * (R_BJ * Vec3(0,1,0)));
 
         H[0] = SpatialRow(~x, Row3(0));
         H[1] = SpatialRow(~y, Row3(0));
@@ -745,9 +743,9 @@ class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
     virtual const char* type() { return "diatom"; }
 
-    RBNodeTranslateRotate2(const RBMassProperties& mProps_B,
-                           const RBFrame&          jointFrame,
-                           int&                    nextStateOffset)
+    RBNodeTranslateRotate2(const MassProperties& mProps_B,
+                           const Frame&          jointFrame,
+                           int&                  nextStateOffset)
       : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
     {
     }
@@ -778,17 +776,17 @@ private:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
-        R_PB = R_BJ * R_JiJ * ~R_BJ; // orientation of B in parent P
+        R_PB = R_BJ * MatRotation::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
     }
 
     void calcH() {
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const Mat33& R_GP = getR_GP();
-        const Mat33 tmpR_GB = R_GP * R_PB;
+        const MatRotation& R_GP = getR_GP();
+        const MatRotation tmpR_GB = R_GP * R_PB;
 
-        Vec3 x = scale * tmpR_GB * (R_BJ * Vec3(1,0,0));
-        Vec3 y = scale * tmpR_GB * (R_BJ * Vec3(0,1,0));
+        Vec3 x = scale * (tmpR_GB * (R_BJ * Vec3(1,0,0)));
+        Vec3 y = scale * (tmpR_GB * (R_BJ * Vec3(0,1,0)));
 
         H[0] = SpatialRow(  ~x   ,  Row3(0));
         H[1] = SpatialRow(  ~y   ,  Row3(0));
@@ -804,35 +802,35 @@ private:
 
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
-    const RBMassProperties& m,            // mass properties in body frame
-    const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-    RBJointType             type,
-    bool                    isReversed,
-    bool                    useEuler,
-    int&                    nxtStateOffset)   // child-to-parent orientation?
+    const MassProperties& m,            // mass properties in body frame
+    const Frame&          jointFrame,   // inboard joint frame J in body frame
+    Joint::JointType      type,
+    bool                  isReversed,
+    bool                  useEuler,
+    int&                  nxtStateOffset)   // child-to-parent orientation?
 {
     assert(!isReversed);
 
     switch(type) {
-    case RBThisIsGround:
+    case Joint::ThisIsGround:
         return new RBGroundBody();
-    case RBTorsionJoint:
+    case Joint::Torsion:
         return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
-    case RBUJoint:        
+    case Joint::Universal:        
         return new RBNodeRotate2(m,jointFrame,nxtStateOffset);
-    case RBOrientationJoint:
+    case Joint::Orientation:
         return new RBNodeRotate3(m,nxtStateOffset,useEuler);
-    case RBCartesianJoint:
+    case Joint::Cartesian:
         return new RBNodeTranslate(m,nxtStateOffset);
-    case RBFreeLineJoint:
+    case Joint::FreeLine:
         return new RBNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
-    case RBFreeJoint:
+    case Joint::Free:
         return new RBNodeTranslateRotate3(m,nxtStateOffset,useEuler);
-    case RBSlidingJoint:
-    case RBCylinderJoint:
-    case RBPlanarJoint:
-    case RBGimbalJoint:
-    case RBWeldJoint:
+    case Joint::Sliding:
+    case Joint::Cylinder:
+    case Joint::Planar:
+    case Joint::Gimbal:
+    case Joint::Weld:
 
     default: 
         assert(false);

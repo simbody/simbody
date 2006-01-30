@@ -225,13 +225,13 @@ public:
     // measured and expressed in F. This is the inverse of F in that
     // it maps from F to B rather than from B to F.
     Frame invert() const {
-        const MatRotation rot_FR = ~X_BF;
-        return Frame(rot_FR, rot_FR*(-OF_B));
+        const MatRotation rot_FB = ~X_BF;
+        return Frame(rot_FB, rot_FB*(-OF_B));
     }
     // return frame_RX
     Frame compose(const Frame& frame_FX) const {
-        const MatRotation rot_RX = X_BF * frame_FX.getAxes();
-        return Frame(rot_RX, OF_B + X_BF * frame_FX.getOrigin());
+        const MatRotation rot_BX = X_BF * frame_FX.getAxes();
+        return Frame(rot_BX, OF_B + X_BF * frame_FX.getOrigin());
     }
     Vec3 xformFrameVecToBase(const Vec3& vF) const {return X_BF*vF;}
     Vec3 xformBaseVecToFrame(const Vec3& vR) const {return ~X_BF*vR;}

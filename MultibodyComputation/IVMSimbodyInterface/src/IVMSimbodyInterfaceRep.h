@@ -116,7 +116,6 @@ public:
     void setMyHandle(IVMSimbodyInterface& h) {handle=&h;}
     const IVMSimbodyInterface& getMyHandle() const {assert(handle); return *handle;}
 
-    static RBJointType mapToRBJointType(Joint::JointType jt);
     static IVMJointType mapToIVMJointType(Joint::JointType jt);
 
 protected:

@@ -6,7 +6,6 @@ using namespace simtk;
 
 #include "phiMatrix.h"
 #include "internalDynamics.h"
-#include "RBMassProperties.h"
 
 #include <cassert>
 #include <vector>
@@ -71,16 +70,16 @@ public:
 
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
-        const RBMassProperties& m,            // mass properties in body frame
-        const RBFrame&          jointFrame,   // inboard joint frame J in body frame
-        RBJointType             type,
+        const MassProperties& m,            // mass properties in body frame
+        const Frame&            jointFrame,   // inboard joint frame J in body frame
+        Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
         bool                    useEuler,     // TODO: kludge (true if minimizing)
         int&                    nextStateOffset); 
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
-    void addChild(RigidBodyNode* child, const RBFrame& referenceFrame);
+    void addChild(RigidBodyNode* child, const Frame& referenceFrame);
 
     RigidBodyNode*   getParent() const {return parent;}
     void             setParent(RigidBodyNode* p) { parent=p; }
@@ -102,20 +101,20 @@ public:
 
     int              getStateOffset() const {return stateOffset;}
 
-    const RBMassProperties& getMassProperties() const {return massProps_B;}
+    const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&      getMass()         const {return massProps_B.getMass();}
     const Vec3&      getCOM_B()        const {return massProps_B.getCOM();}
-    const RBInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
-    const RBInertia& getInertia_OB_G() const {return inertia_OB_G;}
+    const MatInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
+    const MatInertia& getInertia_OB_G() const {return inertia_OB_G;}
 
     const Vec3& getCOM_G()             const {return COM_G;}
-    const RBInertia& getInertia_CB_B() const {return inertia_CB_B;}
+    const MatInertia& getInertia_CB_B() const {return inertia_CB_B;}
 
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const Mat33&  getR_GB() const {return R_GB;}
+    const MatRotation&  getR_GB() const {return R_GB;}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -124,7 +123,7 @@ public:
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
     /// P here) in the ground frame G.
-    const Mat33&  getR_GP() const {assert(parent); return parent->getR_GB();}
+    const MatRotation&  getR_GP() const {assert(parent); return parent->getR_GB();}
 
     /// Return OP_G, the spatial location of the origin of the P frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -188,9 +187,8 @@ public:
 
     virtual void getInternalForce(Vector&) const {throw VirtualBaseMethod();}
 
-    // Don't ask for a *reference* to a SpatialRow because elements may
-    // be packed differently in H -- we're copying out of H here.
-    virtual const SpatialRow getHRow(int i) const {throw VirtualBaseMethod();}
+    // Note that this requires rows of H to be packed like SpatialRow.
+    virtual const SpatialRow& getHRow(int i) const {throw VirtualBaseMethod();}
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 
@@ -203,16 +201,16 @@ public:
 protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
-    RigidBodyNode(const RBMassProperties& mProps_B,
+    RigidBodyNode(const MassProperties& mProps_B,
                   const Vec3& originOfB_P, // and R_BP=I in ref config
-                  const Mat33& rot_BJ, const Vec3& originOfJ_B)
+                  const MatRotation& rot_BJ, const Vec3& originOfJ_B)
       : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
-        R_PB=1; OB_P=refOrigin_P;
+        R_PB=MatRotation(); OB_P=refOrigin_P;
         V_PB_G=0; sVel=0; sAcc=0;
-        R_GB=1; OB_G=0;
+        R_GB=MatRotation(); OB_G=0;
         COM_G = 0.; COMstation_G = massProps_B.getCOM();
         phi = PhiMatrix(Vec3(0));
         psiT=0; P=0; z=0; tau=0; Gepsilon=0; Y=0;
@@ -230,9 +228,9 @@ protected:
 
     // Fixed forever in the body-local frame B:
     //      ... supplied on construction
-    const RBMassProperties massProps_B;
-    const Mat33 R_BJ;          // orientation of inboard joint frame J, in B
-    const Vec3  OJ_B;          // origin of J, measured from B origin, expr. in B
+    const MassProperties massProps_B;
+    const MatRotation R_BJ; // orientation of inboard joint frame J, in B
+    const Vec3        OJ_B; // origin of J, measured from B origin, expr. in B
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
@@ -245,13 +243,13 @@ protected:
     Vec3        refOrigin_P;
 
     //      ... calculated on construction
-    const RBInertia  inertia_CB_B;  // centroidal inertia, expr. in B
+    const MatInertia  inertia_CB_B;  // centroidal inertia, expr. in B
 
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
     //      ... position level
-    Mat33 R_PB; // orientation of B in P
-    Vec3  OB_P; // location of B origin meas & expr in P frame
+    MatRotation R_PB; // orientation of B in P
+    Vec3        OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
     SpatialVec  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
@@ -262,12 +260,12 @@ protected:
     //      Rotation (direction cosine matrix) expressing the body frame B
     //      in the ground frame G. That is, if you have a vector vB expressed
     //      body frame and want it in ground, use vG = R_GB*vB. 
-    Mat33 R_GB;
-    Vec3  OB_G;          // origin of B meas & expr in G
-    Vec3  COM_G;         // B's COM, meas & expr in G
+    MatRotation R_GB;
+    Vec3        OB_G;  // origin of B meas & expr in G
+    Vec3        COM_G; // B's COM, meas & expr in G
 
-    Vec3    COMstation_G;  // measured from B origin, expr. in G
-    RBInertia  inertia_OB_G;  // about B's origin, expr. in G
+    Vec3        COMstation_G;  // measured from B origin, expr. in G
+    MatInertia  inertia_OB_G;  // about B's origin, expr. in G
 
     PhiMatrix phi;           // spatial rigid body transition matrix
     SpatialMat  Mk;            // spatial inertia matrix

@@ -195,14 +195,9 @@ static Mat33 toMat33(const CDSMat33& m) {
 static IVMInertia toIVMInertia(const MatInertia& i) {
     return IVMInertia(toCDSMat33(i.toMat33()));
 }
-static RBInertia toRBInertia(const MatInertia& i) {
-    return RBInertia(i.toMat33());
-}
-static RBInertia toRBInertia(const IVMInertia& i) {
-    return RBInertia(toMat33(i));
-}
-static MatInertia toMatInertia(const RBInertia& i) {
-    return MatInertia(i);
+
+static MatInertia toMatInertia(const IVMInertia& i) {
+    return MatInertia(toMat33(i));
 }
 static MatRotation toMatRotation(const CDSMat33& m) {
     const Mat33 m33 = toMat33(m);
@@ -213,52 +208,39 @@ static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const
     return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
 }
 
-
-static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
-    return RBMassProperties(m, c, RBInertia(i.toMat33()));
-}
-
-static RBMassProperties toRBMassProperties(const IVMMassProperties& mp) {
-    return RBMassProperties(mp.getMass(), toVec3(mp.getCOM()), 
-                            toRBInertia(mp.getInertia()));
+static MassProperties toMassProperties(const IVMMassProperties& mp) {
+    return MassProperties(mp.getMass(), toVec3(mp.getCOM()), 
+                          toMatInertia(mp.getInertia()));
 }
 
 static IVMFrame toIVMFrame(const Frame& f) {
     return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
 }
 
-static RBFrame toRBFrame(const IVMFrame& f) {
-    return RBFrame(toMat33(f.getRot_RF()), toVec3(f.getLoc_RF()));
-}
-
-static RBFrame toRBFrame(const Frame& f) {
-    return RBFrame(f.getAxes().asMat33(), f.getOrigin());
-}
-
 static Frame toFrame(const IVMFrame& f) {
     return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
 }
 
-static RBJointType
-toRBJointType(IVMJointType jt) {
+static Joint::JointType
+toJointType(IVMJointType jt) {
     switch (jt) {
-    case IVMUnknownJointType:        return RBUnknownJointType;
-    case IVMThisIsGround:            return RBThisIsGround;
-    case IVMWeldJoint:               return RBWeldJoint;
-    case IVMTorsionJoint:            return RBTorsionJoint;  // aka PinJoint
-    case IVMSlidingJoint:            return RBSlidingJoint;
-    case IVMUJoint:                  return RBUJoint;
-    case IVMCylinderJoint:           return RBCylinderJoint;
-    case IVMPlanarJoint:             return RBPlanarJoint;
-    case IVMGimbalJoint:             return RBGimbalJoint;
-    case IVMOrientationJoint:        return RBOrientationJoint; // aka BallJoint
-    case IVMCartesianJoint:          return RBCartesianJoint;
-    case IVMFreeLineJoint:           return RBFreeLineJoint;
-    case IVMFreeJoint:               return RBFreeJoint;
+    case IVMUnknownJointType:        return Joint::UnknownJointType;
+    case IVMThisIsGround:            return Joint::ThisIsGround;
+    case IVMWeldJoint:               return Joint::Weld;
+    case IVMTorsionJoint:            return Joint::Torsion;  // aka PinJoint
+    case IVMSlidingJoint:            return Joint::Sliding;
+    case IVMUJoint:                  return Joint::Universal;
+    case IVMCylinderJoint:           return Joint::Cylinder;
+    case IVMPlanarJoint:             return Joint::Planar;
+    case IVMGimbalJoint:             return Joint::Gimbal;
+    case IVMOrientationJoint:        return Joint::Orientation; // aka BallJoint
+    case IVMCartesianJoint:          return Joint::Cartesian;
+    case IVMFreeLineJoint:           return Joint::FreeLine;
+    case IVMFreeJoint:               return Joint::Free;
     default: assert(false);
     }
     //NOTREACHED
-    return RBUnknownJointType;
+    return Joint::UnknownJointType;
 }
 
 class SimbodyRigidBodyTreeMolIfc : public  IVMMoleculeRBTreeInterface {
@@ -280,10 +262,10 @@ public:
                          bool                     useEuler,
                          int&                     nxtStateOffset) 
     {
-        const RBFrame          refConfig  = toRBFrame(IVMrefConfig);
-        const RBMassProperties massProps  = toRBMassProperties(IVMmassProps);
-        const RBFrame          jointFrame = toRBFrame(IVMjointFrame);
-        const RBJointType      jtype      = toRBJointType(IVMjtype);
+        const Frame            refConfig  = toFrame(IVMrefConfig);
+        const MassProperties   massProps  = toMassProperties(IVMmassProps);
+        const Frame            jointFrame = toFrame(IVMjointFrame);
+        const Joint::JointType jtype      = toJointType(IVMjtype);
 
         RigidBodyNode* nodep = RigidBodyNode::create(
                                         massProps, jointFrame, jtype, 
@@ -295,9 +277,9 @@ public:
     int addGroundNode() {
         int dummy;
         RigidBodyNode* gnodep = RigidBodyNode::create(
-                                    RBMassProperties(),
-                                    RBFrame(),
-                                    RBThisIsGround,
+                                    MassProperties(),
+                                    Frame(),
+                                    Joint::ThisIsGround,
                                     false, false, dummy);
         return simTree.addGroundNode(gnodep);
     }
@@ -308,7 +290,7 @@ public:
     }
     void RBNodeGetConfig(int nodeNum, CDSMat33& R_GB, CDSVec3& OB_G) const {
         const RigidBodyNode& rb = simTree.getRigidBodyNode(nodeNum);
-        R_GB = toCDSMat33(rb.getR_GB()); OB_G = toCDSVec3(rb.getOB_G());
+        R_GB = toCDSMat33(rb.getR_GB().asMat33()); OB_G = toCDSVec3(rb.getOB_G());
     }
 
     CDSVec6 RBNodeGetSpatialVel(int nodeNum) const {

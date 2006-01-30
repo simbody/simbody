@@ -76,12 +76,7 @@ static Mat33 toMat33(const CDSMat33& m) {
 static IVMInertia toIVMInertia(const MatInertia& i) {
     return IVMInertia(toCDSMat33(i.toMat33()));
 }
-static RBInertia toRBInertia(const MatInertia& i) {
-    return RBInertia(i.toMat33());
-}
-static MatInertia toMatInertia(const RBInertia& i) {
-    return MatInertia(i);
-}
+
 static MatRotation toMatRotation(const CDSMat33& m) {
     const Mat33 m33 = toMat33(m);
     return reinterpret_cast<const MatRotation&>(m33);
@@ -93,14 +88,6 @@ static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const
 
 static IVMFrame toIVMFrame(const Frame& f) {
     return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
-}
-
-static RBMassProperties toRBMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
-    return RBMassProperties(m, c, RBInertia(i.toMat33()));
-}
-
-static RBFrame toRBFrame(const Frame& f) {
-    return RBFrame(f.getAxes().asMat33(), f.getOrigin());
 }
 
 static Frame toFrame(const IVMFrame& f) {
@@ -303,28 +290,6 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
     }
 }
    
-/*static*/ RBJointType
-IVMSimbodyInterfaceRep::mapToRBJointType(Joint::JointType jt) {
-    switch (jt) {
-    case Joint::UnknownJointType:   return RBUnknownJointType;
-    case Joint::ThisIsGround:       return RBThisIsGround;
-    case Joint::Weld:               return RBWeldJoint;
-    case Joint::Torsion:            return RBTorsionJoint;  // aka PinJoint
-    case Joint::Sliding:            return RBSlidingJoint;
-    case Joint::Universal:          return RBUJoint;
-    case Joint::Cylinder:           return RBCylinderJoint;
-    case Joint::Planar:             return RBPlanarJoint;
-    case Joint::Gimbal:             return RBGimbalJoint;
-    case Joint::Orientation:        return RBOrientationJoint; // aka BallJoint
-    case Joint::Cartesian:          return RBCartesianJoint;
-    case Joint::FreeLine:           return RBFreeLineJoint;
-    case Joint::Free:               return RBFreeJoint;
-    default: assert(false);
-    }
-    //NOTREACHED
-    return RBUnknownJointType;
-}
-   
 /*static*/ IVMJointType
 IVMSimbodyInterfaceRep::mapToIVMJointType(Joint::JointType jt) {
     switch (jt) {
@@ -464,7 +429,7 @@ NewIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body
     const Frame& F_BR = info.getRefFrameInBody();
     const RigidBodyNode& n = getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
 
-    const Frame F_GR(MatRotation::trustMe(n.getR_GB()), n.getOB_G());
+    const Frame F_GR(n.getR_GB(), n.getOB_G());
     const Frame F_RB(F_BR.invert());
     return F_GR.compose(F_RB);
 }
@@ -479,7 +444,7 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         // Deal with ground.
         cout << childEntry.getLevel() << ": " << childEntry.getBody().getFullName() << endl;
         if (!childEntry.getLevel()) {
-            RigidBodyNode* rb = RigidBodyNode::create(RBMassProperties(), RBFrame(), RBThisIsGround,
+            RigidBodyNode* rb = RigidBodyNode::create(MassProperties(), Frame(), Joint::ThisIsGround,
                                       false, false, nextStateOffset);
             const int rbIndex = tree.addGroundNode(rb);
             childEntry.setRBIndex(rbIndex);
@@ -503,23 +468,22 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         cout << "frame_RJ=" << childEntry.getJointFrameInRef()  << endl;
 
         cout << "JointType=" << mbs2tree[i].getJoint().getJointType()
-             << "  RBJointType=" << mapToRBJointType(mbs2tree[i].getJoint().getJointType())
              << endl;
 
         const int save = nextStateOffset;
         RigidBodyNode* rb = RigidBodyNode::create(
-            toRBMassProperties(childEntry.getMass(), 
-                                childEntry.getCOMInRef(), 
-                                childEntry.getInertiaAboutRef()),
-            toRBFrame(childEntry.getJointFrameInRef()),
-            mapToRBJointType(childEntry.getJoint().getJointType()),
+            MassProperties(childEntry.getMass(), 
+                           childEntry.getCOMInRef(), 
+                           childEntry.getInertiaAboutRef()),
+            childEntry.getJointFrameInRef(),
+            childEntry.getJoint().getJointType(),
             false,
             false,
             nextStateOffset);
         cout << "CREATED: states " << save << "-" << nextStateOffset-1 << endl;
 
         RigidBodyNode& parent = tree.updRigidBodyNode(parentEntry.getRBIndex());
-        const int rbIndex = tree.addRigidBodyNode(parent,RBFrame()/*XXX*/,rb);
+        const int rbIndex = tree.addRigidBodyNode(parent,Frame()/*XXX*/,rb);
         childEntry.setRBIndex(rbIndex);
     }
 
