@@ -75,6 +75,7 @@ public:
     virtual int getNParameters() const = 0;
     virtual int getNQ() const = 0;
     virtual int getNU() const = 0;
+    virtual State getDefaultState() const = 0;
 
     virtual void realizeParameters(const State&) const = 0;
     virtual void realizeConfiguration(const State&) const = 0;
@@ -138,6 +139,7 @@ public:
     int getNParameters() const {return 0;}
     int getNQ()          const {return getRigidBodyTree().getDim();}
     int getNU()          const {return getRigidBodyTree().getDim();}
+    State getDefaultState() const;
 
     void realizeParameters(const State& s) const { }
     void realizeConfiguration(const State& s) const;
@@ -192,6 +194,7 @@ public:
     int getNParameters() const {return 0;}
     int getNQ()          const {return getRigidBodyTree().getDim();}
     int getNU()          const {return getRigidBodyTree().getDim();}
+    State getDefaultState() const;
 
     void realizeParameters(const State& s) const { }
     void realizeConfiguration(const State& s) const {

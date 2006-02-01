@@ -37,9 +37,6 @@ public:
     virtual IVMMoleculeRBTreeInterface* clone() const=0;
     virtual int getInitialStateOffset() const=0; // either 0 or 1
 
-    // TODO: The next 4 routines have to be fixed to eliminate the direct
-    // reference to the node.
-
     /// Create a new node, add it to the tree, and assign it
     /// a node number. This is NOT a regular labeling; it is just
     /// for reference. You can depend on nodeNum being (a) unique, and (b) a

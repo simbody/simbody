@@ -17,7 +17,7 @@ using namespace simtk;
  *
  * RigidBodyNodes are linked into a tree structure, organized into levels as described 
  * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
- * level 0 and containing only atoms fixed to ground. The level 1 nodes (referred to
+ * level 0. The level 1 nodes (referred to
  * as 'base nodes') are those attached directly to the Ground node, level 2's attach 
  * to level 1's, etc. Every node but Ground has exactly one parent node, whose
  * level is always one less than the current node. Any node may have an arbitrary number 
@@ -28,11 +28,11 @@ using namespace simtk;
  * We use the naming convention R_XY to mean a rotation matrix (3x3 direction
  * cosine matrix) expressing the orientation of frame Y in frame X. Given a vector
  * vY expressed in Y, you can re-express that in X via vX=R_XY*vY. To go the
- * other direction use R_YX=R_XY' (apostrophe is Matlab for "transpose"). This convention
+ * other direction use R_YX=~R_XY (tilde '~' is SimTK for "transpose"). This convention
  * provides flawless composition of rotations as long as you "match up" the frames
  * (i.e., adjacent frame symbols must be the same). So if you have R_XY and R_ZX 
  * and you want R_YZ you can easily get it like this:
- *     R_YZ = R_YX*R_XZ = (R_XY')*(R_ZX') = (R_ZX*R_XY)'.
+ *     R_YZ = R_YX*R_XZ = (~R_XY)*(~R_ZX) = ~(R_ZX*R_XY).
  * Also note that these are orthogonal matrices so R_XY*R_YX=I.
  *
  * Every body has a body frame B. In the reference configuration that we use
@@ -58,7 +58,7 @@ using namespace simtk;
  * induced by the joint coordinates. Note that because of how we define the 
  * reference configuration, R_PJi = R_BJ so we don't need to store both matrices
  * explicitly. With these definitions we can easily calculate R_PB as
- *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*(R_BJ)'.
+ *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*~R_BJ.
  */
 class RigidBodyNode {
 public:
@@ -70,7 +70,7 @@ public:
 
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
-        const MassProperties& m,            // mass properties in body frame
+        const MassProperties&   m,            // mass properties in body frame
         const Frame&            jointFrame,   // inboard joint frame J in body frame
         Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
@@ -102,12 +102,12 @@ public:
     int              getStateOffset() const {return stateOffset;}
 
     const MassProperties& getMassProperties() const {return massProps_B;}
-    const Real&      getMass()         const {return massProps_B.getMass();}
-    const Vec3&      getCOM_B()        const {return massProps_B.getCOM();}
-    const MatInertia& getInertia_OB_B() const {return massProps_B.getInertia();}
-    const MatInertia& getInertia_OB_G() const {return inertia_OB_G;}
+    const Real&           getMass()           const {return massProps_B.getMass();}
+    const Vec3&           getCOM_B()          const {return massProps_B.getCOM();}
+    const MatInertia&     getInertia_OB_B()   const {return massProps_B.getInertia();}
+    const MatInertia&     getInertia_OB_G()   const {return inertia_OB_G;}
 
-    const Vec3& getCOM_G()             const {return COM_G;}
+    const Vec3&       getCOM_G()        const {return COM_G;}
     const MatInertia& getInertia_CB_B() const {return inertia_CB_B;}
 
 
@@ -150,7 +150,7 @@ public:
     const SpatialVec&   getSpatialVel() const {return sVel;}
     const SpatialVec&   getSpatialAcc() const {return sAcc;}
 
-    const PhiMatrix& getPhi()  const {return phi;}
+    const PhiMatrix&   getPhi()  const {return phi;}
     const SpatialMat&  getPsiT() const {return psiT;}
     const SpatialMat&  getY()    const {return Y;}
 
@@ -163,7 +163,7 @@ public:
     /// has already been called.
     virtual void setVel(const Vector&)=0;
 
-    double calcKineticEnergy() const;   // from spatial quantities only
+    Real calcKineticEnergy() const;   // from spatial quantities only
 
     virtual const char* type()     const {return "unknown";}
     virtual int         getDOF()   const {return 0;} //number of independent dofs
@@ -172,7 +172,7 @@ public:
     virtual void enforceConstraints(Vector& pos, Vector& vel) {throw VirtualBaseMethod();}
 
     virtual void calcP()                                     {throw VirtualBaseMethod();}
-    virtual void calcZ    (const SpatialVec& spatialForce)      {throw VirtualBaseMethod();}
+    virtual void calcZ(const SpatialVec& spatialForce)       {throw VirtualBaseMethod();}
     virtual void calcY()                                     {throw VirtualBaseMethod();}
     virtual void calcAccel()                                 {throw VirtualBaseMethod();}
 
@@ -180,9 +180,8 @@ public:
 
     virtual void setVelFromSVel(const SpatialVec&) {throw VirtualBaseMethod();}
 
-
-    virtual void getPos(Vector&)   const {throw VirtualBaseMethod();}
-    virtual void getVel(Vector&)   const {throw VirtualBaseMethod();}
+    virtual void getPos  (Vector&) const {throw VirtualBaseMethod();}
+    virtual void getVel  (Vector&) const {throw VirtualBaseMethod();}
     virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
     virtual void getInternalForce(Vector&) const {throw VirtualBaseMethod();}
@@ -195,15 +194,15 @@ public:
     void nodeDump(std::ostream&) const;
     virtual void nodeSpecDump(std::ostream& o) const { o<<"NODE SPEC type="<<type()<<std::endl; }
 
-
     static const double DEG2RAD; //using angles in degrees balances gradient
 
 protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
-                  const Vec3& originOfB_P, // and R_BP=I in ref config
-                  const MatRotation& rot_BJ, const Vec3& originOfJ_B)
+                  const Vec3&           originOfB_P, // and R_BP=I in ref config
+                  const MatRotation&    rot_BJ, 
+                  const Vec3&           originOfJ_B)
       : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
@@ -267,7 +266,7 @@ protected:
     Vec3        COMstation_G;  // measured from B origin, expr. in G
     MatInertia  inertia_OB_G;  // about B's origin, expr. in G
 
-    PhiMatrix phi;           // spatial rigid body transition matrix
+    PhiMatrix   phi;           // spatial rigid body transition matrix
     SpatialMat  Mk;            // spatial inertia matrix
     SpatialMat  P;             // articulated body spatial inertia
     SpatialMat  tau;
@@ -305,4 +304,4 @@ private:
     void calcJointIndependentKinematicsVel();
 };
 
-#endif /* RIGID_BODY_NODE_H_ */
+#endif // RIGID_BODY_NODE_H_

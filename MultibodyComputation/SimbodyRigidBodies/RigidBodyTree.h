@@ -226,4 +226,4 @@ private:
 
 std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
 
-#endif /* RIGID_BODY_TREE_H_ */
+#endif // RIGID_BODY_TREE_H_

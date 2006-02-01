@@ -145,6 +145,36 @@ try {
 
     IVMSimbodyInterface instance(mbs);
 
+    State s = instance.getDefaultState();
+    Vec4& q = Vec4::updAs(&s.updQ()[1]);
+    q = Vec4(.5,.3,.2,.1);
+    q = q/q.norm();
+
+    const Real h = 0.0001;
+    const Real tstart = 0.;
+    const Real tmax = 10.;
+    for (int step=0; ; ++step) { 
+        const Real t = tstart + step*h;
+        if (t > tmax) break;
+
+        Vector_<SpatialVec>  bodyForces;
+        Vector               hingeForces;
+        instance.clearForces(bodyForces,hingeForces);
+        instance.realizeParameters(s);
+        instance.realizeConfiguration(s);
+        if (!(step % 100)) {
+            cout << t;
+            for (int i=0; i<s.getQ().size(); ++i)
+                cout << " " << s.getQ()[i];
+            cout << endl;
+        }
+        instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
+        instance.realizeMotion(s); 
+        Vector udot = instance.calcUDot(s,bodyForces,hingeForces);
+        s.updQ() += h*s.getU();
+        s.updU() += h*udot;
+    }
+
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

@@ -166,7 +166,7 @@ IVMSimbodyInterface::getBodyAcceleration(const State& s, const Body& b) const
 }
 
 State IVMSimbodyInterface::getDefaultState() const {
-    return State(getNQ(), getNU());
+    return rep->getDefaultState();
 }
 
 // Accumulate the forces at the IVM reference frame origin (the inboard joint location).
@@ -314,6 +314,16 @@ IVMSimbodyInterfaceRep::mapToIVMJointType(Joint::JointType jt) {
 
     // OLD IVM SIMBODY INTERFACE REP
 
+State OldIVMSimbodyInterfaceRep::getDefaultState() const {
+    const IVMRigidBodyTree& t = getRigidBodyTree();
+    State s(getNQ(),getNU());
+    RVec pos(getNQ()), vel(getNQ());
+    t.getPos(pos); t.getVel(vel);
+    s.updQ() = toVector(pos);
+    s.updU() = toVector(vel);
+    return s;
+}
+
 void OldIVMSimbodyInterfaceRep::realizeConfiguration(const State& s) const {
     IVMRigidBodyTree& t = const_cast<IVMRigidBodyTree&>(tree);
     t.setPos(toRVec(s.getQ()));
@@ -408,6 +418,14 @@ void OldIVMSimbodyInterfaceRep::buildTree() {
 }
 
     // NEW IVM SIMBODY INTERFACE REP
+
+State NewIVMSimbodyInterfaceRep::getDefaultState() const {
+    const RigidBodyTree& t = getRigidBodyTree();
+    State s(getNQ(),getNU());
+    t.getPos(s.updQ()); t.getVel(s.updU());
+    return s;
+}
+
 
 Vector
 NewIVMSimbodyInterfaceRep::calcUDot(const State& s, 
