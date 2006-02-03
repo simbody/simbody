@@ -147,8 +147,8 @@ try {
 
     State s = instance.getDefaultState();
     Vec4& q = Vec4::updAs(&s.updQ()[1]);
-    q = Vec4(.5,.3,.2,.1);
-    q = q/q.norm();
+   // q = Vec4(.5,.3,.2,.1);
+   // q = q/q.norm();
 
     const Real h = 0.0001;
     const Real tstart = 0.;
@@ -163,9 +163,14 @@ try {
         instance.realizeParameters(s);
         instance.realizeConfiguration(s);
         if (!(step % 100)) {
+            Frame upper = instance.getBodyConfiguration(s, mbs["upper"]);
+            Frame left  = instance.getBodyConfiguration(s, mbs["left"]);
+            Frame right = instance.getBodyConfiguration(s, mbs["left"]);
+            Vec3 uCOM = upper.shiftFrameStationToBase(
+
             cout << t;
-            for (int i=0; i<s.getQ().size(); ++i)
-                cout << " " << s.getQ()[i];
+            //for (int i=0; i<s.getQ().size(); ++i)
+            //    cout << " " << s.getQ()[i];
             cout << endl;
         }
         instance.applyGravity(s,Vec3(0,-9.8,0),bodyForces);
