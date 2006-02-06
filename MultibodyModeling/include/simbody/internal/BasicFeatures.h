@@ -235,7 +235,7 @@ public:
     ~OrientationMeasure();
 
     const OrientationPlacement& getPlacement() const;
-    const MatRotation&          getValue()     const;
+    const RotationMat&          getValue()     const;
 
     static bool                      isInstanceOf(const Subsystem&);
     static const OrientationMeasure& downcast(const Subsystem&);
@@ -249,13 +249,13 @@ protected:
 class Orientation : public Feature {
 public:
     explicit Orientation(const String& name);
-    Orientation(const String& name, const MatRotation& defaultValue);
+    Orientation(const String& name, const RotationMat& defaultValue);
     Orientation(const Orientation&);
     Orientation& operator=(const Orientation&);
     ~Orientation();
 
     const OrientationPlacement& getPlacement() const;
-    const MatRotation&          getValue()     const;
+    const RotationMat&          getValue()     const;
 
     const Direction& getAxis(int) const;
     const Direction& x()          const {return getAxis(0);}

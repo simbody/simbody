@@ -1416,7 +1416,7 @@ const UnitVec3& DirectionFeaturePlacementRep::getReferencedValue() const {
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
     if (OrientationPlacementRep::isA(p))
-        return PlacementValue_<MatRotation>::downcast(ps.getValue()).get()
+        return PlacementValue_<RotationMat>::downcast(ps.getValue()).get()
             (getPlacementIndex()); // round brackets () to get column not row
 
     assert(false);
@@ -1527,18 +1527,18 @@ OrientationPlacementRep::createFromZAxis(const DirectionPlacement& z)
     const bool calcNow = z.isConstant();
 
     OrientationPlacementRep* result = 
-        calcNow ? (OrientationPlacementRep*)new OrientationConstantPlacementRep(MatRotation(z.getRep().calcUnitVec3Value()))
+        calcNow ? (OrientationPlacementRep*)new OrientationConstantPlacementRep(RotationMat(z.getRep().calcUnitVec3Value()))
                 : (OrientationPlacementRep*)OrientationExprPlacementRep::createFromZOp(z);
 
     return OrientationPlacement(result);
 }
 
     // ORIENTATION FEATURE PLACEMENT REP //
-const MatRotation& OrientationFeaturePlacementRep::getReferencedValue() const {
+const RotationMat& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<MatRotation>::downcast(ps.getValue()).get();
+        return PlacementValue_<RotationMat>::downcast(ps.getValue()).get();
 
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
@@ -1549,7 +1549,7 @@ const MatRotation& OrientationFeaturePlacementRep::getReferencedValue() const {
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const MatRotation*>(0);
+    return *reinterpret_cast<const RotationMat*>(0);
 }
 
     // ORIENTATION EXPR PLACEMENT REP //
@@ -1572,12 +1572,12 @@ bool OrientationOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-MatRotation OrientationOps::apply(const std::vector<Placement>& args) const {
-    MatRotation val;
+RotationMat OrientationOps::apply(const std::vector<Placement>& args) const {
+    RotationMat val;
     switch(op) {
 
     case CreateFromZAxis:
-        val = MatRotation(DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value());
+        val = RotationMat(DirectionPlacement::downcast(args[0]).getRep().calcUnitVec3Value());
         break;
 
     case Invert:

@@ -207,7 +207,7 @@ public:
     /// Re-express this inertia from frame F to frame B, given the orientation
     /// of B in F. This is a similarity transform since rotation matrices are
     /// orthogonal.
-    MatInertia changeAxes(const MatRotation& R_FB) const {
+    MatInertia changeAxes(const RotationMat& R_FB) const {
         return MatInertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
     }
 

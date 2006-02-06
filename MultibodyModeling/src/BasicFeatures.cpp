@@ -390,9 +390,9 @@ OrientationMeasure::getPlacement() const {
     return OrientationPlacement::downcast(getRep().getPlacement());
 }
 
-const MatRotation& 
+const RotationMat& 
 OrientationMeasure::getValue() const {
-    return PlacementValue_<MatRotation>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<RotationMat>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             
@@ -427,9 +427,9 @@ Orientation::getPlacement() const {
     return OrientationPlacement::downcast(getRep().getPlacement());
 }
 
-const MatRotation& 
+const RotationMat& 
 Orientation::getValue() const {
-    return PlacementValue_<MatRotation>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<RotationMat>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 const Direction& 

@@ -114,7 +114,7 @@ std::ostream& operator<<(std::ostream& s, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),Vec3(0.),MatRotation(),Vec3(0.)) {}
+      : RigidBodyNode(MassProperties(),Vec3(0.),RotationMat(),Vec3(0.)) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -294,7 +294,7 @@ public:
 
     void calcJointKinematicsPos() { 
         OB_P = refOrigin_P + theta;
-        R_PB = MatRotation(); // Cartesian joint can't change orientation
+        R_PB = RotationMat(); // Cartesian joint can't change orientation
 
         // Note that this is spatial (and R_GP=R_GB for this joint)
         H[0] = SpatialRow( Row3(0), ~getR_GP()(0) );
@@ -341,7 +341,7 @@ private:
         const Mat33 a( cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 );
-        const MatRotation R_JiJ = MatRotation::trustMe(a); //rotation about z-axis
+        const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
 
         // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
         R_PB = R_BJ * R_JiJ * ~R_BJ;
@@ -436,7 +436,7 @@ public:
         else          Vec4::updAs(&accv[stateOffset]) = ddq;
     }
 
-    void calcR_PB(const Vec3& theta, MatRotation& R_PB) {
+    void calcR_PB(const Vec3& theta, RotationMat& R_PB) {
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
             cPhi   = cos( theta(0) *RigidBodyNode::DEG2RAD );
@@ -452,7 +452,7 @@ public:
                 ( cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
                   sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
-            R_PB = MatRotation::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
+            R_PB = RotationMat::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
             const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
             const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
@@ -461,7 +461,7 @@ public:
                 (q00+q11-q22-q33,   2*(q12-q03)  ,   2*(q13+q02),
                    2*(q12+q03)  , q00-q11+q22-q33,   2*(q23-q01),
                    2*(q13-q02)  ,   2*(q23+q01)  , q00-q11-q22+q33);
-            R_PB = MatRotation::trustMe(R_JiJ); // see above
+            R_PB = RotationMat::trustMe(R_JiJ); // see above
         }
     }
 
@@ -711,13 +711,13 @@ private:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
-        R_PB = R_BJ * MatRotation::trustMe(a) * ~R_BJ;
+        R_PB = R_BJ * RotationMat::trustMe(a) * ~R_BJ;
     }
 
     void calcH() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const MatRotation tmpR_GB = getR_GP() * R_PB;
+        const RotationMat tmpR_GB = getR_GP() * R_PB;
 
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));
@@ -770,14 +770,14 @@ private:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
-        R_PB = R_BJ * MatRotation::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
+        R_PB = R_BJ * RotationMat::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
     }
 
     void calcH() {
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const MatRotation& R_GP = getR_GP();
-        const MatRotation tmpR_GB = R_GP * R_PB;
+        const RotationMat& R_GP = getR_GP();
+        const RotationMat tmpR_GB = R_GP * R_PB;
 
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));

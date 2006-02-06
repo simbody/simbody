@@ -163,7 +163,7 @@ public:
     OrientationPlacement(const Orientation&);           // implicit conversion
     OrientationPlacement(const OrientationMeasure&);    // implicit conversion
 
-    explicit OrientationPlacement(const MatRotation&);
+    explicit OrientationPlacement(const RotationMat&);
     explicit OrientationPlacement(const FrameFeature&);        // use the orientation
     explicit OrientationPlacement(const Feature&);
     explicit OrientationPlacement(const Placement&);

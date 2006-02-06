@@ -287,7 +287,7 @@ OrientationPlacement::OrientationPlacement(const Orientation& o) {
 OrientationPlacement::OrientationPlacement(const OrientationMeasure& om) {
     rep = om.getRep().createFeatureReference(*this);
 }
-OrientationPlacement::OrientationPlacement(const MatRotation& m) {
+OrientationPlacement::OrientationPlacement(const RotationMat& m) {
     rep = new OrientationConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }

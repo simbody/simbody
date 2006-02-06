@@ -17,7 +17,7 @@ namespace simtk {
 
 class UnitVec3;
 class UnitRow3;
-class MatRotation;
+class RotationMat;
 class Frame;
 
 /**
@@ -80,7 +80,7 @@ private:
     Real& operator[](int i) {return Vec3::operator[](i);}
     Real& operator()(int i) {return Vec3::operator()(i);}
 
-    friend UnitVec3 operator*(const MatRotation&, const UnitVec3&);
+    friend UnitVec3 operator*(const RotationMat&, const UnitVec3&);
 };
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
 
@@ -133,21 +133,21 @@ inline UnitVec3 UnitVec3::perp() const {
  * this matrix can be used to rotate in the other direction: 
  *      v_F = rot_FG * v_G = ~rot_GF * v_G.
  */
-class MatRotation {
+class RotationMat {
     Mat33 rot_GF; // xyz axes of frame F expressed in frame G
 public:
-    MatRotation() : rot_GF(1.) { }    // default is identity
+    RotationMat() : rot_GF(1.) { }    // default is identity
 
     /// Create a Rotation matrix by specifying only its z axis. 
     /// The resulting x and y axes will be appropriately perpendicular
     /// but are otherwise arbitrary.
-    explicit MatRotation(const UnitVec3& z);
+    explicit RotationMat(const UnitVec3& z);
 
     const UnitVec3& getAxis(int i) const
       { return reinterpret_cast<const UnitVec3&>(rot_GF(i)); }
 
     // TODO: with much agony involving templates this could be made free.
-    MatRotation operator~() const {return MatRotation(~rot_GF);}
+    RotationMat operator~() const {return RotationMat(~rot_GF);}
 
     const UnitVec3& operator()(int i) const {
         return reinterpret_cast<const UnitVec3&>(rot_GF(i));
@@ -155,31 +155,31 @@ public:
 
     const Mat33& asMat33() const {return rot_GF;}
 
-    static MatRotation trustMe(const Mat33& m) {return MatRotation(m);}
+    static RotationMat trustMe(const Mat33& m) {return RotationMat(m);}
 
 private:
     // We're trusting that m is a rotation.
-    explicit MatRotation(const Mat33& m) : rot_GF(m) { }
-    friend MatRotation operator*(const MatRotation&,const MatRotation&);
+    explicit RotationMat(const Mat33& m) : rot_GF(m) { }
+    friend RotationMat operator*(const RotationMat&,const RotationMat&);
 };
-std::ostream& operator<<(std::ostream& o, const MatRotation& m);
+std::ostream& operator<<(std::ostream& o, const RotationMat& m);
 
-inline MatRotation operator*(const MatRotation& l, const MatRotation& r) {
-    return MatRotation(l.asMat33()*r.asMat33());
+inline RotationMat operator*(const RotationMat& l, const RotationMat& r) {
+    return RotationMat(l.asMat33()*r.asMat33());
 }
-inline Mat33 operator*(const MatRotation& l, const Mat33& r) {
+inline Mat33 operator*(const RotationMat& l, const Mat33& r) {
     return l.asMat33()*r;
 }
-inline Mat33 operator*(const Mat33& l, const MatRotation& r) {
+inline Mat33 operator*(const Mat33& l, const RotationMat& r) {
     return l*r.asMat33();
 }
-inline UnitVec3 operator*(const MatRotation& R, const UnitVec3& v) {
+inline UnitVec3 operator*(const RotationMat& R, const UnitVec3& v) {
     return UnitVec3(R.asMat33()*v.asVec3(), true);
 }
-inline Vec3 operator*(const MatRotation& R, const Vec3& v) {
+inline Vec3 operator*(const RotationMat& R, const Vec3& v) {
     return R.asMat33()*v;
 }
-inline Row3 operator*(const Row3& r, const MatRotation& R) {
+inline Row3 operator*(const Row3& r, const RotationMat& R) {
     return r*R.asMat33();
 }
 
@@ -213,24 +213,24 @@ inline Row3 operator*(const Row3& r, const MatRotation& R) {
 class Frame {
 public:
     Frame() : X_BF(), OF_B(0.) { }
-    Frame(const MatRotation& axesInB, const Vec3& orgInB) : X_BF(axesInB), OF_B(orgInB) { }
-    explicit Frame(const MatRotation& axesInB) : X_BF(axesInB), OF_B(0.) { }
+    Frame(const RotationMat& axesInB, const Vec3& orgInB) : X_BF(axesInB), OF_B(orgInB) { }
+    explicit Frame(const RotationMat& axesInB) : X_BF(axesInB), OF_B(0.) { }
     explicit Frame(const Vec3& orgInB)         : X_BF(), OF_B(orgInB) { }
     // default copy, assignment, destructor
 
-    void setFrame(const MatRotation& axesInB, const Vec3& orgInB) 
+    void setFrame(const RotationMat& axesInB, const Vec3& orgInB) 
       { X_BF=axesInB; OF_B=orgInB; }
 
     // If this is frame F measured and expressed in B, return frame B
     // measured and expressed in F. This is the inverse of F in that
     // it maps from F to B rather than from B to F.
     Frame invert() const {
-        const MatRotation rot_FB = ~X_BF;
+        const RotationMat rot_FB = ~X_BF;
         return Frame(rot_FB, rot_FB*(-OF_B));
     }
     // return frame_RX
     Frame compose(const Frame& frame_FX) const {
-        const MatRotation rot_BX = X_BF * frame_FX.getAxes();
+        const RotationMat rot_BX = X_BF * frame_FX.getAxes();
         return Frame(rot_BX, OF_B + X_BF * frame_FX.getOrigin());
     }
     Vec3 xformFrameVecToBase(const Vec3& vF) const {return X_BF*vF;}
@@ -242,14 +242,14 @@ public:
         return xformBaseVecToFrame(sB - OF_B);
     }
 
-    const MatRotation& getAxes() const { return X_BF; }
-    MatRotation&       updAxes()       { return X_BF; }
+    const RotationMat& getAxes() const { return X_BF; }
+    RotationMat&       updAxes()       { return X_BF; }
 
     const Vec3&  getOrigin() const { return OF_B; }
     Vec3&        updOrigin()       { return OF_B; }
 
 private:
-    MatRotation X_BF;   // rotation matrix that expresses F's axes in R
+    RotationMat X_BF;   // rotation matrix that expresses F's axes in R
     Vec3        OF_B;   // location of F's origin measured from B's origin, expressed in B 
 };
 std::ostream& operator<<(std::ostream& o, const Frame&);

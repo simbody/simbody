@@ -91,13 +91,13 @@ try {
     
     // Here it is aligned with the rod frame (rod is horizontal as pictured).
     rod.addFrame("jointFrame",  
-        MatRotation(),
+        RotationMat(),
         rod["jointLocation"]);
 
     // Here it is aligned so that the rod is hanging straight down at 0.
     const Mat33 jj(Vec3(0,1,0),Vec3(-1,0,0),Vec3(0,0,1));
     //rod.addFrame("jointFrame",  
-    //    reinterpret_cast<const MatRotation&>(jj),
+    //    reinterpret_cast<const RotationMat&>(jj),
     //    rod["jointLocation"]);
 
     ////////////////////////////////////////////
@@ -111,7 +111,7 @@ try {
 
     mbs["ground"].addStation("rodJointLocation", Vec3(10,0,0));
     mbs["ground"].addFrame("rodJointFrame",
-        MatRotation(),
+        RotationMat(),
         mbs["ground/rodJointLocation"]);
 
     mbs.addJoint(Joint::Pin, "rodJoint", 

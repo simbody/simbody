@@ -316,7 +316,7 @@ public:
 class OrientationMeasureRep : public FeatureRep {
 public:
     OrientationMeasureRep(OrientationMeasure& m, const std::string& nm) 
-        : FeatureRep(m,nm,OrientationPlacement(MatRotation())) { }
+        : FeatureRep(m,nm,OrientationPlacement(RotationMat())) { }
     // no standard Subfeatures
 
     ~OrientationMeasureRep() { }
@@ -348,7 +348,7 @@ public:
 class OrientationRep : public FeatureRep {
 public:
     OrientationRep(Orientation& o, const std::string& nm) 
-        : FeatureRep(o,nm,OrientationPlacement(MatRotation()))
+        : FeatureRep(o,nm,OrientationPlacement(RotationMat()))
       { axisIndices[0]=axisIndices[1]=axisIndices[2] = -1; }
     // must call initializeStandardSubfeatures() to complete construction.
 
@@ -472,7 +472,7 @@ protected:
         RIndex = R.getIndexInParent();
         OIndex = O.getIndexInParent();
 
-        updFeature(RIndex).place(OrientationPlacement(MatRotation()));
+        updFeature(RIndex).place(OrientationPlacement(RotationMat()));
         updFeature(OIndex).place(StationPlacement(Vec3(0)));
     }
 

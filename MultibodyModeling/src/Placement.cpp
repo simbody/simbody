@@ -101,7 +101,7 @@ Placement::Placement(const MatInertia& i) : rep(0) {
     rep->setMyHandle(*this);
 }
 
-Placement::Placement(const MatRotation& r) : rep(0) {
+Placement::Placement(const RotationMat& r) : rep(0) {
     rep = new OrientationConstantPlacementRep(r);
     rep->setMyHandle(*this);
 }

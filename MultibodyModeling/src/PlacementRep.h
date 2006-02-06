@@ -276,7 +276,7 @@ class OrientationPlacementOp : public PlacementOp {
 public:
     virtual ~OrientationPlacementOp() { }
     // Run time
-    virtual MatRotation apply(const std::vector<Placement>&) const = 0;
+    virtual RotationMat apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(OrientationPlacementOp, PlacementOp);
 };
@@ -302,7 +302,7 @@ public:
         return std::string(p) + "<Orientation>";
     }
 
-    MatRotation apply(const std::vector<Placement>&) const;
+    RotationMat apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(OrientationOps, PlacementOp);
 private:
@@ -1220,7 +1220,7 @@ public:
     const OrientationPlacement& getMyHandle() const 
       { return OrientationPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<MatRotation>();}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<RotationMat>();}
     std::string    getPlacementTypeName()      const {return "Orientation";}
     int            getNIndicesAllowed()        const {return 3;} // 3 Directions
 
@@ -1235,12 +1235,12 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<MatRotation>::initializeToValueType(pv);
-        evaluateMatRotation(PlacementValue_<MatRotation>::downcast(pv).upd());
+        PlacementValue_<RotationMat>::initializeToValueType(pv);
+        evaluateMatRotation(PlacementValue_<RotationMat>::downcast(pv).upd());
     }
-    virtual void evaluateMatRotation(MatRotation&) const = 0;
-    MatRotation calcMatRotationValue() const {
-        MatRotation m;
+    virtual void evaluateMatRotation(RotationMat&) const = 0;
+    RotationMat calcMatRotationValue() const {
+        RotationMat m;
         evaluateMatRotation(m);
         return m;
     }
@@ -1251,7 +1251,7 @@ public:
 // A concrete OrientationPlacement in which there are no variables.
 class OrientationConstantPlacementRep : public OrientationPlacementRep {
 public:
-    explicit OrientationConstantPlacementRep(const MatRotation& m)
+    explicit OrientationConstantPlacementRep(const RotationMat& m)
       : OrientationPlacementRep(), ori(m) {
         // TODO: check orientation matrix validity
     }
@@ -1259,7 +1259,7 @@ public:
     // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateMatRotation(MatRotation& m) const {
+    void evaluateMatRotation(RotationMat& m) const {
         m=ori;
     }
 
@@ -1283,7 +1283,7 @@ public:
 
     SIMTK_DOWNCAST(OrientationConstantPlacementRep, PlacementRep);
 private:
-    MatRotation ori;
+    RotationMat ori;
 };
 
 /**
@@ -1298,7 +1298,7 @@ public:
     ~OrientationFeaturePlacementRep() { }
       
     void realize(Stage g) const {refRealize(g);}
-    void evaluateMatRotation(MatRotation& m) const {
+    void evaluateMatRotation(RotationMat& m) const {
         m = getReferencedValue();
     }
 
@@ -1321,7 +1321,7 @@ public:
     SIMTK_DOWNCAST(OrientationFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const MatRotation& getReferencedValue() const;
+    const RotationMat& getReferencedValue() const;
 };
 
 /**
@@ -1341,7 +1341,7 @@ public:
     static OrientationExprPlacementRep* invertOp     (const OrientationPlacement&);
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateMatRotation(MatRotation& m) const { 
+    void evaluateMatRotation(RotationMat& m) const { 
         m = OrientationOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 

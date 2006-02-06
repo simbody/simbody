@@ -43,7 +43,7 @@ namespace simtk {
 // perpendicular. Normalize that, cross again and you have a frame.
 // Must be careful about signs to get a right-handed set.
 // TODO: (sherm) Uh, shouldn't the 3rd column of the result just be zF?
-MatRotation::MatRotation(const UnitVec3& zF) {
+RotationMat::RotationMat(const UnitVec3& zF) {
     // Use the individual measure numbers (i.e., projections of zF
     // onto the G coordinate axes) to calculate spherical coordinates,
     // considering an equatorial x-y plane with z North.
@@ -62,7 +62,7 @@ MatRotation::MatRotation(const UnitVec3& zF) {
                    Row3(  0,   -st,    ct));
 }
 
-std::ostream& operator<<(std::ostream& o, const MatRotation& m) {
+std::ostream& operator<<(std::ostream& o, const RotationMat& m) {
     return o << m.asMat33();
 }
 std::ostream& operator<<(std::ostream& o, const UnitVec3& v) {

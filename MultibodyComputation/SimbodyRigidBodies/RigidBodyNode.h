@@ -114,7 +114,7 @@ public:
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const MatRotation&  getR_GB() const {return R_GB;}
+    const RotationMat&  getR_GB() const {return R_GB;}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -123,7 +123,7 @@ public:
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
     /// P here) in the ground frame G.
-    const MatRotation&  getR_GP() const {assert(parent); return parent->getR_GB();}
+    const RotationMat&  getR_GP() const {assert(parent); return parent->getR_GB();}
 
     /// Return OP_G, the spatial location of the origin of the P frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -201,15 +201,15 @@ protected:
     /// concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
                   const Vec3&           originOfB_P, // and R_BP=I in ref config
-                  const MatRotation&    rot_BJ, 
+                  const RotationMat&    rot_BJ, 
                   const Vec3&           originOfJ_B)
       : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
     {
-        R_PB=MatRotation(); OB_P=refOrigin_P;
+        R_PB=RotationMat(); OB_P=refOrigin_P;
         V_PB_G=0; sVel=0; sAcc=0;
-        R_GB=MatRotation(); OB_G=0;
+        R_GB=RotationMat(); OB_G=0;
         COM_G = 0.; COMstation_G = massProps_B.getCOM();
         phi = PhiMatrix(Vec3(0));
         psiT=0; P=0; z=0; tau=0; Gepsilon=0; Y=0;
@@ -228,7 +228,7 @@ protected:
     // Fixed forever in the body-local frame B:
     //      ... supplied on construction
     const MassProperties massProps_B;
-    const MatRotation R_BJ; // orientation of inboard joint frame J, in B
+    const RotationMat R_BJ; // orientation of inboard joint frame J, in B
     const Vec3        OJ_B; // origin of J, measured from B origin, expr. in B
 
     // Reference configuration. This is the body frame origin location, measured
@@ -247,7 +247,7 @@ protected:
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
     //      ... position level
-    MatRotation R_PB; // orientation of B in P
+    RotationMat R_PB; // orientation of B in P
     Vec3        OB_P; // location of B origin meas & expr in P frame
 
     //      ... velocity level
@@ -259,7 +259,7 @@ protected:
     //      Rotation (direction cosine matrix) expressing the body frame B
     //      in the ground frame G. That is, if you have a vector vB expressed
     //      body frame and want it in ground, use vG = R_GB*vB. 
-    MatRotation R_GB;
+    RotationMat R_GB;
     Vec3        OB_G;  // origin of B meas & expr in G
     Vec3        COM_G; // B's COM, meas & expr in G
 

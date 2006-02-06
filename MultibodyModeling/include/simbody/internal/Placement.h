@@ -56,7 +56,7 @@ public:
     Placement(const Vec3&);
     Placement(const Mat33&);
     Placement(const UnitVec3&);
-    Placement(const MatRotation&);
+    Placement(const RotationMat&);
     Placement(const MatInertia&);
     Placement(const Frame&);
 

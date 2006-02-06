@@ -77,9 +77,9 @@ static IVMInertia toIVMInertia(const MatInertia& i) {
     return IVMInertia(toCDSMat33(i.toMat33()));
 }
 
-static MatRotation toMatRotation(const CDSMat33& m) {
+static RotationMat toMatRotation(const CDSMat33& m) {
     const Mat33 m33 = toMat33(m);
-    return reinterpret_cast<const MatRotation&>(m33);
+    return reinterpret_cast<const RotationMat&>(m33);
 }
 
 static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
