@@ -9,17 +9,16 @@
 
 namespace simtk {
 
-class MassProperties;
 class TransformMat;
 class JointSpecification;
 class InertiaMat;
 class ForceSystem;
-class SpatialVec;
-class SpatialMat;
-class Vector;
 class SimbodyTreeRep;
+class MassProperties;
 
 struct SimbodyTreeResults {
+    Stage realizationLevel;     // must be kept up to date by State changes
+
     // TODO: constraint runtimes
 
     // TODO: Modeling
@@ -32,7 +31,7 @@ struct SimbodyTreeResults {
     //   distance constraint distances & station positions
 
     // Configuration
-    std::vector<TransformMat> bodyConfigInParent; // nb
+    std::vector<TransformMat> bodyConfigInParent; // nb (joint config)
     std::vector<TransformMat> bodyConfigInGround; // nb
     Vector_<SpatialMat>       bodySpatialInertia; // nb
 
@@ -40,21 +39,21 @@ struct SimbodyTreeResults {
     Matrix_<Vec3> storageForHt;                   // 2 x ndof
 
     // Motion
-    Vector_<SpatialVec> bodyVelocityInParent; // nb
-    Vector_<SpatialVec> bodyVelocityInGround; // nb
+    Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
+    Vector_<SpatialVec> bodyVelocityInGround;     // nb
 
-    Vector velocityConstraintErrors;          // nvc
-    Vector qdot;                              // nq
+    Vector velocityConstraintErrors;              // nvc
+    Vector qdot;                                  // nq
 
     // Dynamics
-    Vector_<SpatialMat> articulatedBodyInertia;     // nb (P)
-    Vector_<SpatialVec> bodyAccelerationInGround;   // nb
-    Vector_<SpatialVec> coriolisForces;             // nb (& gyroscopic, Pa+b)
+    Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
+    Vector_<SpatialVec> bodyAccelerationInGround; // nb
+    Vector_<SpatialVec> coriolisForces;           // nb (& gyroscopic, Pa+b)
 
-    Vector accelerationConstraintErrors; // nac
-    Vector udotAndLambda;                // nu+nac
-    Vector netHingeForces;               // nu (T-(~Am+R(F+C))
-    Vector qdotdot;                      // nq
+    Vector accelerationConstraintErrors;          // nac
+    Vector udotAndLambda;                         // nu+nac
+    Vector netHingeForces;                        // nu (T-(~Am+R(F+C))
+    Vector qdotdot;                               // nq
 
     // dynamic temporaries
     Vector_<Real>       storageForDI;   // sum(nu[j]^2)
@@ -66,7 +65,7 @@ struct SimbodyTreeResults {
 
 struct SimbodyTreeState {
     // Modeling
-    bool   useEulerAngles;
+    bool              useEulerAngles;
     std::vector<bool> prescribed;           // nb
     std::vector<bool> enabled;              // nac
 
@@ -118,7 +117,7 @@ public:
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
     int addRigidBody(int parent,
-                     const TransformMat&       parentJointFrameInP);
+                     const TransformMat&       parentJointFrameInP,
                      const JointSpecification& joint,
                      const TransformMat&       bodyJointFrameInB,
                      const MassProperties&);
@@ -126,7 +125,7 @@ public:
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
     int addMasslessBody(int parent,
-                        const TransformMat&       parentJointFrameInP);
+                        const TransformMat&       parentJointFrameInP,
                         const JointSpecification& joint,
                         const TransformMat&       bodyJointFrameInB);
 
@@ -159,15 +158,22 @@ public:
     /// Constrain frames fixed to each of two distinct bodies to
     /// remain superimposed. Parent and child here mean nothing!
     /// This adds six constraint equations.
-    int addWeldConstraint(int parent, const TranformMat& frameInP,
-                          int child,  const TranformMat& frameInC);
+    int addWeldConstraint(int parent, const TransformMat& frameInP,
+                          int child,  const TransformMat& frameInC);
 
     /// Topology and default values are frozen after this call.
     void         finishConstruction();
     const State& getDefaultState() const;
     void         realize(const State&, Stage) const;
 
-    /// These require realize(Initialize) afterwards.
+    // These require realize(Modeling) afterwards.
+
+    /// For all ball and free joints, decide what method we should use
+    /// to model their orientations. Choices are: quaternions (best
+    /// for dynamics), or rotation angles (1-2-3 Euler sequence, good for
+    /// optimization). TODO: allow settable zero rotation for Euler sequence,
+    /// with convenient way to say "this is zero".
+    void setUseRotationAngles(State&, bool) const;
     void setJointIsPrescribed(State&, int joint, bool) const;
     void setConstraintIsEnabled(State&, int constraint, bool) const;
 
@@ -189,8 +195,6 @@ public:
     void applyBodyTorque (State&, int body, 
                           const Vec3& torqueInG) const;
     void applyJointForce(State&, int joint, const Real*) const;
-
-
 
 
     const TransformMat& getBodyConfiguration(const State&, int body) const;

@@ -13,17 +13,17 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## A gcc build
     SET(MATH_LIBS_TO_USE acml c m g2c)
     LINK_DIRECTORIES(/usr/local/lib /lib)
-    SET(SIMTK_FRAMEWORK_INSTALL_DIR /usr/local/SimTK/framework)
+    SET(SIMTK_CORE_INSTALL_DIR /usr/local/SimTK/core)
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE libacml_dll)
     LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/bin)
-    SET(SIMTK_FRAMEWORK_INSTALL_DIR "c:/Program Files/SimTK/framework")
+    SET(SIMTK_CORE_INSTALL_DIR "c:/Program Files/SimTK/core")
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-SET(CMAKE_INSTALL_PREFIX ${SIMTK_FRAMEWORK_INSTALL_DIR})
-LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simtk)
-LINK_DIRECTORIES(${SIMTK_FRAMEWORK_INSTALL_DIR}/lib/simmatrix)
+SET(CMAKE_INSTALL_PREFIX ${SIMTK_CORE_INSTALL_DIR})
+LINK_DIRECTORIES(${SIMTK_CORE_INSTALL_DIR}/lib/simtk)
+LINK_DIRECTORIES(${SIMTK_CORE_INSTALL_DIR}/lib/simmatrix)
 
 #
 # Testing
@@ -48,3 +48,4 @@ ADD_TEST(testClass             ${TEST_PATH}/MultibodyComputation/CDSlib/testClas
 ADD_TEST(IVMMoleculeTest       ${TEST_PATH}/MultibodyComputation/IVMMoleculeModeling/IVMMoleculeTest)
 ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/tests/MultibodyModelingTest/MultibodyModelingTest)
 ADD_TEST(Example1              ${TEST_PATH}/tests/Example1/Example1)
+ADD_TEST(Pendulum1             ${TEST_PATH}/tests/Pendulum1/Pendulum1)

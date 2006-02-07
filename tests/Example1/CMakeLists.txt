@@ -7,7 +7,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include
                     ${PROJECT_SOURCE_DIR}/Mechanics/include
                     ${PROJECT_SOURCE_DIR}/MultibodyComputation/IVMSimbodyInterface/include
                     ${PROJECT_SOURCE_DIR}/MultibodyModeling/include
-                    ${SIMTK_FRAMEWORK_INSTALL_DIR}/include)
+                    ${SIMTK_CORE_INSTALL_DIR}/include)
 
 
 ADD_EXECUTABLE(Example1 ${SOURCE_FILES} ${INCLUDE_FILES})

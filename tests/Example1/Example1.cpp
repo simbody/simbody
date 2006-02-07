@@ -163,10 +163,10 @@ try {
         instance.realizeParameters(s);
         instance.realizeConfiguration(s);
         if (!(step % 100)) {
-            Frame upper = instance.getBodyConfiguration(s, mbs["upper"]);
-            Frame left  = instance.getBodyConfiguration(s, mbs["left"]);
-            Frame right = instance.getBodyConfiguration(s, mbs["left"]);
-            Vec3 uCOM = upper.shiftFrameStationToBase(
+            //Frame upper = instance.getBodyConfiguration(s, Body::downcast(mbs["upper"]));
+            //Frame left  = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
+            //Frame right = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
+            //XXX
 
             cout << t;
             //for (int i=0; i<s.getQ().size(); ++i)
