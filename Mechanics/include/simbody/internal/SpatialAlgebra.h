@@ -1,5 +1,30 @@
-#ifndef __phiMatrix_hh__
-#define __phiMatrix_hh__
+#ifndef SIMTK_SIMBODY_SPATIAL_ALGEBRA_H_
+#define SIMTK_SIMBODY_SPATIAL_ALGEBRA_H_
+
+/** @file
+ *
+ * These are declarations for special matrices and vectors of use in implementing
+ * Rodriguez and Jain's Spatial Operator Algebra.
+ */
+
+#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/Geometry.h"
+
+#include <iostream>
+
+namespace simtk {
+
+// Spatial vectors are used for (orientation,translation) quantities.
+// These include
+//      spatial velocity     = (angularVelocity,linearVelocity)
+//      spatial acceleration = (angularAcceleration,linearAcceleration)
+//      generalized forces   = (torque,force)
+// Spatial configuration has to be handled differently though since
+// orientation is not a vector quantity. (We use "TransformMat" for this concept
+// which includes an orientation matrix and a translation vector.)
+typedef Vec<2,   Vec3>  SpatialVec;
+typedef Row<2,   Row3>  SpatialRow;
+typedef Mat<2,2, Mat33> SpatialMat;
 
 // support for efficient matrix multiplication involving the special phi
 // matrix
@@ -94,4 +119,6 @@ operator*(const SpatialMat&         m,
                        m(1,0) - m(1,1) * x, m(1,1) );
 }
 
-#endif /*  __phiMatrix_hh__ */
+} // namespace simtk
+
+#endif // SIMTK_SIMBODY_SPATIAL_ALGEBRA_H_

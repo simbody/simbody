@@ -7,5 +7,6 @@
  */
 
 #include "simbody/internal/MassProperties.h"
+#include "simbody/internal/SpatialAlgebra.h"
 
 #endif // SIMTK_SIMBODY_MECHANICS_H_

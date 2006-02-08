@@ -4,7 +4,6 @@
 #include "simbody/Simbody.h"
 using namespace simtk;
 
-#include "phiMatrix.h"
 #include "internalDynamics.h"
 
 #include <cassert>
