@@ -7,7 +7,6 @@ FILE(GLOB INCLUDE_FILES
     src/*.h)
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/Geometry/include 
-                    ${PROJECT_SOURCE_DIR}/include
-                    ${SIMTK_CORE_INSTALL_DIR}/include)
+                    ${PROJECT_SOURCE_DIR}/include)
 
 ADD_LIBRARY(Geometry ${SOURCE_FILES} ${INCLUDE_FILES})

@@ -8,22 +8,43 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
 ADD_LIBRARY(simbody ${SOURCE_FILES} ${INCLUDE_FILES})
 
 
+#
+# Find the right place to look for dependency resolution (which
+# can be the default install directory or specified SIMTK_SDK directory).
+#
+# Also, etermine which math libraries to use for this platform.
+# TODO: change ACML to simtklapack when it is ready.
+#
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
     ## A gcc build
     SET(MATH_LIBS_TO_USE acml c m g2c)
     LINK_DIRECTORIES(/usr/local/lib /lib)
-    SET(SIMTK_CORE_INSTALL_DIR /usr/local/SimTK/core)
+
+    IF(NOT SIMTK_SDK)
+        SET(SIMTK_SDK /usr/local/SimTK/core)
+    ENDIF(NOT SIMTK_SDK)
+
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE libacml_dll)
     LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/bin)
-    SET(SIMTK_CORE_INSTALL_DIR "c:/Program Files/SimTK/core")
+
+    IF(NOT SIMTK_SDK)
+        SET(SIMTK_SDK "c:/Program Files/SimTK/core")
+    ENDIF(NOT SIMTK_SDK)
+
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-SET(CMAKE_INSTALL_PREFIX ${SIMTK_CORE_INSTALL_DIR})
-LINK_DIRECTORIES(${SIMTK_CORE_INSTALL_DIR}/lib/simtk)
-LINK_DIRECTORIES(${SIMTK_CORE_INSTALL_DIR}/lib/simmatrix)
+SET(CMAKE_INSTALL_PREFIX ${SIMTK_SDK})
+
+LINK_DIRECTORIES(${SIMTK_SDK}/lib/simtk)
+LINK_DIRECTORIES(${SIMTK_SDK}/lib/simmatrix)
+INCLUDE_DIRECTORIES(${SIMTK_SDK}/include)
+
+
 
 #
 # Testing

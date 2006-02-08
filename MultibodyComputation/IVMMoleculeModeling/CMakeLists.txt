@@ -8,8 +8,7 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/MultibodyComputation/IVMMoleculeModeli
                     ${PROJECT_SOURCE_DIR}/MultibodyModeling/include
                     ${PROJECT_SOURCE_DIR}/include 
                     ${PROJECT_SOURCE_DIR}/Geometry/include
-                    ${PROJECT_SOURCE_DIR}/Mechanics/include
-                    ${SIMTK_CORE_INSTALL_DIR}/include)
+                    ${PROJECT_SOURCE_DIR}/Mechanics/include)
 
 ADD_LIBRARY(IVMMoleculeModeling ${SOURCE_FILES} ${INCLUDE_FILES})
 

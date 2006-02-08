@@ -5,8 +5,7 @@ FILE(GLOB INCLUDE_FILES *.h)
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include 
                     ${PROJECT_SOURCE_DIR}/Geometry/include
                     ${PROJECT_SOURCE_DIR}/Mechanics/include
-                    ${PROJECT_SOURCE_DIR}/MultibodyModeling/include
-                    ${SIMTK_CORE_INSTALL_DIR}/include)
+                    ${PROJECT_SOURCE_DIR}/MultibodyModeling/include)
 
 
 ADD_EXECUTABLE(MultibodyModelingTest ${SOURCE_FILES} ${INCLUDE_FILES})
