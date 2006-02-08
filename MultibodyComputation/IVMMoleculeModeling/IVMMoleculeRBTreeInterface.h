@@ -14,14 +14,11 @@
 #include "cdsList.h"
 #include "cdsVector.h"
 #include "cdsVec3.h"
+#include "IVMMassProperties.h"
 
 typedef FixedVector<double,6>        CDSVec6;
 typedef CDSVector<double,1>          RVec;   // first element has index 1
 typedef CDSList<CDSVec6>             CDSVecVec6;
-
-class IVMFrame;
-class IVMMassProperties;
-enum  IVMJointType;
 
 /**
  * This class provides as virtual methods all the operations of the IVMRigidBodyTree,

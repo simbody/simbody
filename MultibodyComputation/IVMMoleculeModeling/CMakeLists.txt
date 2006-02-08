@@ -14,5 +14,5 @@ ADD_LIBRARY(IVMMoleculeModeling ${SOURCE_FILES} ${INCLUDE_FILES})
 
 ADD_EXECUTABLE(IVMMoleculeTest ${SOURCE_FILES} ${INCLUDE_FILES})
 TARGET_LINK_LIBRARIES(IVMMoleculeTest IVMRigidBodies CDSlib
-                      SimbodyRigidBodies 
+                      SimbodyRigidBodies simmatrix
                       ${MATH_LIBS_TO_USE})
