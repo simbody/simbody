@@ -101,7 +101,7 @@ protected:
         // Add up the masses and place the mass measure on the resulting Placement.
         RealPlacement    totalMass(0.);
         StationPlacement com(Vec3(0));
-        InertiaPlacement inertia(MatInertia(0.));
+        InertiaPlacement inertia(InertiaMat(0.));
         for (int i=0; i < getNSubsystems(); ++i) {
             if (MassElement::isInstanceOf(getSubsystem(i))) {
                 const MassElement& me = MassElement::downcast(getSubsystem(i));

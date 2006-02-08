@@ -185,7 +185,7 @@ private:
         updMassMeasure().place(getFeature(massIndex));
         updCentroidMeasure().place(getFeature(centerIndex));
 
-        // MatInertia about the body origin: get the cylinder's principal moments in its
+        // InertiaMat about the body origin: get the cylinder's principal moments in its
         // own frame (with z being the long axis, and the origin at the COM). Then
         // transform to the body frame and shift to the body origin.
         const Real oo3 = Real(1)/Real(3);   // "one over" 3

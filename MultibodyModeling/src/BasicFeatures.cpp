@@ -470,9 +470,9 @@ InertiaMeasure::getPlacement() const {
     return InertiaPlacement::downcast(getRep().getPlacement());
 }
 
-const MatInertia& 
+const InertiaMat& 
 InertiaMeasure::getValue() const {
-    return PlacementValue_<MatInertia>::downcast(getRep().getPlacementSlot().getValue());
+    return PlacementValue_<InertiaMat>::downcast(getRep().getPlacementSlot().getValue());
 }
 
 /*static*/ bool             

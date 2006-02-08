@@ -57,7 +57,7 @@ public:
     Placement(const Mat33&);
     Placement(const UnitVec3&);
     Placement(const RotationMat&);
-    Placement(const MatInertia&);
+    Placement(const InertiaMat&);
     Placement(const Frame&);
 
     // These create a "feature placement" (reference to the placement

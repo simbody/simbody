@@ -1623,7 +1623,7 @@ InertiaPlacementRep::createInertiaPlacementFrom(const Placement& p, bool dontThr
 
     if (!dontThrow) {
         SIMTK_THROW3(Exception::PlacementCantBeConvertedToRightType,
-            "MatInertia", p.getPlacementTypeName(), p.toString());
+            "InertiaMat", p.getPlacementTypeName(), p.toString());
         //NOTREACHED
     }
     return 0;
@@ -1708,16 +1708,16 @@ InertiaPlacementRep::shiftToCOM(const StationPlacement& com,
 }
 
     // INERTIA FEATURE PLACEMENT REP //
-const MatInertia& InertiaFeaturePlacementRep::getReferencedValue() const {
+const InertiaMat& InertiaFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<MatInertia>::downcast(ps.getValue()).get();
+        return PlacementValue_<InertiaMat>::downcast(ps.getValue()).get();
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const MatInertia*>(0);
+    return *reinterpret_cast<const InertiaMat*>(0);
 }
 
     // INERTIA EXPR PLACEMENT REP //
@@ -1772,8 +1772,8 @@ bool InertiaOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-MatInertia InertiaOps::apply(const std::vector<Placement>& args) const {
-    MatInertia val;
+InertiaMat InertiaOps::apply(const std::vector<Placement>& args) const {
+    InertiaMat val;
     switch(op) {
     case Add:
         val = InertiaPlacement::downcast(args[0]).getRep().calcInertiaValue()
@@ -1806,20 +1806,20 @@ MatInertia InertiaOps::apply(const std::vector<Placement>& args) const {
 
     // i=pointMass(loc,mass)
     case PointMass:
-        val = MatInertia(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
+        val = InertiaMat(StationPlacement::downcast(args[0]).getRep().calcVec3Value(),
                          RealPlacement::downcast(args[1]).getRep().calcRealValue());
         break;
 
     // i=principalMoments(Ixx,Iyy,Izz)
     case PrincipalMoments:
-        val = MatInertia(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
+        val = InertiaMat(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
                          RealPlacement::downcast(args[1]).getRep().calcRealValue(),
                          RealPlacement::downcast(args[2]).getRep().calcRealValue());
         break;
 
     // i=fullInertia(Ixx,Iyy,Izz,Ixy,Iyz,Ixz)
     case FullInertia:
-        val = MatInertia(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
+        val = InertiaMat(RealPlacement::downcast(args[0]).getRep().calcRealValue(),
                          RealPlacement::downcast(args[1]).getRep().calcRealValue(),
                          RealPlacement::downcast(args[2]).getRep().calcRealValue(),
                          RealPlacement::downcast(args[3]).getRep().calcRealValue(),

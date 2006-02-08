@@ -96,7 +96,7 @@ Placement::Placement(const UnitVec3& v) : rep(0) {
     rep->setMyHandle(*this);
 }
 
-Placement::Placement(const MatInertia& i) : rep(0) {
+Placement::Placement(const InertiaMat& i) : rep(0) {
     rep = new InertiaConstantPlacementRep(i);
     rep->setMyHandle(*this);
 }

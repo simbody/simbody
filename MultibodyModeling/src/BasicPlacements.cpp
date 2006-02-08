@@ -387,7 +387,7 @@ InertiaPlacement::InertiaPlacement(const RealPlacement& Ixx, const RealPlacement
     rep->setMyHandle(*this);
 }
 
-InertiaPlacement::InertiaPlacement(const MatInertia& m) {
+InertiaPlacement::InertiaPlacement(const InertiaMat& m) {
     rep = new InertiaConstantPlacementRep(m);
     rep->setMyHandle(*this);
 }

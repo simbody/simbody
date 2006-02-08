@@ -25,7 +25,7 @@ public:
                   parentIndex(badSizeTValue()), joint(0), level(-1), rbIndex(-1) { }
 
     RBTreeMap(const Body* b, const Frame& ref, const Frame& jInRef,
-              const Real& m, const Vec3& cm_R, const MatInertia& iner_R,
+              const Real& m, const Vec3& cm_R, const InertiaMat& iner_R,
               size_t pix, const Joint* j, int l)
       : body(b), frame_BR(ref), frame_RJ(jInRef), 
         mass(m), com_R(cm_R), iner_OR_R(iner_R),
@@ -41,7 +41,7 @@ public:
 
     const Real&       getMass()            const {assert(body); return mass;}
     const Vec3&       getCOMInRef()        const {assert(body); return com_R;}
-    const MatInertia& getInertiaAboutRef() const {assert(body); return iner_OR_R;}
+    const InertiaMat& getInertiaAboutRef() const {assert(body); return iner_OR_R;}
 
     size_t       getParentIndex() const {assert(parentIndex != size_t(-1)); return parentIndex;}
     const Joint& getJoint()  const {assert(joint);  return *joint;}
@@ -55,7 +55,7 @@ private:
     Frame           frame_RJ;   // inboard joint frame meas & expr in ref frame R
     Real            mass;
     Vec3            com_R;      // COM, meas & expr in ref frame R
-    MatInertia      iner_OR_R;  // Inertia about R origin, expr. in R
+    InertiaMat      iner_OR_R;  // Inertia about R origin, expr. in R
     size_t          parentIndex;
     const Joint*    joint;
     int             level;

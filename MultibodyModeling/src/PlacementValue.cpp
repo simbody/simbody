@@ -165,7 +165,7 @@ template class PlacementValue_<Real>;
 template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
 template class PlacementValue_<Frame>;
-template class PlacementValue_<MatInertia>;
+template class PlacementValue_<InertiaMat>;
 template class PlacementValue_<RotationMat>;
 template class PlacementValue_<UnitVec3>;
 } // namespace simtk

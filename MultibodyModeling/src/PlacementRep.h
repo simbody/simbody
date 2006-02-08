@@ -310,7 +310,7 @@ private:
 };
 
 /**
- * Concrete class producing an MatInertia result when applied to Placement
+ * Concrete class producing an InertiaMat result when applied to Placement
  * arguments of whatever number and type is appropriate for the operator.
  */
 class InertiaOps : public PlacementOp {
@@ -333,10 +333,10 @@ public:
             case FullInertia:       p="fullInertia";      break;
             default:                p="UNKNOWN OP";
         };
-        return std::string(p) + "<MatInertia>";
+        return std::string(p) + "<InertiaMat>";
     }
 
-    MatInertia apply(const std::vector<Placement>&) const;
+    InertiaMat apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(InertiaOps, PlacementOp);
 private:
@@ -1374,8 +1374,8 @@ public:
     const InertiaPlacement& getMyHandle() const 
       { return InertiaPlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<MatInertia>();}
-    std::string    getPlacementTypeName()      const {return "MatInertia";}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<InertiaMat>();}
+    std::string    getPlacementTypeName()      const {return "InertiaMat";}
     int            getNIndicesAllowed()        const {return 1;} // i.e., only the whole thing
 
     Placement genericAdd(const Placement& r) const;
@@ -1395,11 +1395,11 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<MatInertia>::initializeToValueType(pv);
-        evaluateInertia(PlacementValue_<MatInertia>::downcast(pv).upd());
+        PlacementValue_<InertiaMat>::initializeToValueType(pv);
+        evaluateInertia(PlacementValue_<InertiaMat>::downcast(pv).upd());
     }
-    virtual void evaluateInertia(MatInertia&) const = 0;
-    MatInertia calcInertiaValue() const {MatInertia i;evaluateInertia(i);return i;}
+    virtual void evaluateInertia(InertiaMat&) const = 0;
+    InertiaMat calcInertiaValue() const {InertiaMat i;evaluateInertia(i);return i;}
 
     SIMTK_DOWNCAST(InertiaPlacementRep,PlacementRep);
 };
@@ -1407,7 +1407,7 @@ public:
 // A concrete InertiaPlacement in which there are no variables.
 class InertiaConstantPlacementRep : public InertiaPlacementRep {
 public:
-    explicit InertiaConstantPlacementRep(const MatInertia& i)
+    explicit InertiaConstantPlacementRep(const InertiaMat& i)
       : InertiaPlacementRep(), inertia(i) {
         // TODO: check orientation matrix validity
     }
@@ -1415,7 +1415,7 @@ public:
     // Implementations of pure virtuals.
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateInertia(MatInertia& i) const {
+    void evaluateInertia(InertiaMat& i) const {
         i=inertia;
     }
 
@@ -1425,7 +1425,7 @@ public:
 
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "MatInertia[" << inertia << "]";
+        s << "InertiaMat[" << inertia << "]";
         return s.str();
     }
 
@@ -1436,12 +1436,12 @@ public:
 
     SIMTK_DOWNCAST(InertiaConstantPlacementRep, PlacementRep);
 private:
-    MatInertia inertia;
+    InertiaMat inertia;
 };
 
 /**
  * A concrete PlacementRep whose value is the same as that of a specified
- * Feature which uses a MatInertia placement.
+ * Feature which uses a InertiaMat placement.
  */
 class InertiaFeaturePlacementRep : public InertiaPlacementRep, public FeatureReference {
 public:
@@ -1451,7 +1451,7 @@ public:
     ~InertiaFeaturePlacementRep() { }
       
     void realize(Stage g) const {refRealize(g);}
-    void evaluateInertia(MatInertia& i) const {
+    void evaluateInertia(InertiaMat& i) const {
         i = getReferencedValue();
     }
 
@@ -1474,11 +1474,11 @@ public:
     SIMTK_DOWNCAST(InertiaFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const MatInertia& getReferencedValue() const;
+    const InertiaMat& getReferencedValue() const;
 };
 
 /**
- * A concrete PlacementRep whose value is a MatInertia expression. This
+ * A concrete PlacementRep whose value is a InertiaMat expression. This
  * is always Func(List<Placement>). 
  */
 class InertiaExprPlacementRep : public InertiaPlacementRep, public PlacementExpr {
@@ -1508,7 +1508,7 @@ public:
                                                   const RealPlacement& Ixy, const RealPlacement& Iyz, const RealPlacement& Ixz);
 
     void realize(Stage g) const {exprRealize(g);}
-    void evaluateInertia(MatInertia& i) const {
+    void evaluateInertia(InertiaMat& i) const {
         i = InertiaOps::downcast(exprGetFunc()).apply(exprGetArgs());
     }
 

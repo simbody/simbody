@@ -73,7 +73,7 @@ static Mat33 toMat33(const CDSMat33& m) {
                  Row3(m(1,0), m(1,1), m(1,2)),
                  Row3(m(2,0), m(2,1), m(2,2)));
 }
-static IVMInertia toIVMInertia(const MatInertia& i) {
+static IVMInertia toIVMInertia(const InertiaMat& i) {
     return IVMInertia(toCDSMat33(i.toMat33()));
 }
 
@@ -82,7 +82,7 @@ static RotationMat toMatRotation(const CDSMat33& m) {
     return reinterpret_cast<const RotationMat&>(m33);
 }
 
-static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const InertiaMat& i) {
     return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
 }
 
@@ -250,7 +250,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
     size_t nxt=0;
     mbs2tree.push_back(RBTreeMap(&Body::downcast(mbs["Ground"]),Frame(),Frame(),
-                       NTraits<Real>::getInfinity(), Vec3(0), MatInertia(), // mass, com, inertia
+                       NTraits<Real>::getInfinity(), Vec3(0), InertiaMat(), // mass, com, inertia
                        0,0,0)); // no parent, no inboard joint, level 0
 
     while (nxt < mbs2tree.size()) {
@@ -273,12 +273,12 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
             const Real&       mass      = childBody.getMass().getValue();
             const Vec3&       com_B     = childBody.getMassCenter().getValue();
-            const MatInertia& iner_OB_B = childBody.getInertia().getValue();
+            const InertiaMat& iner_OB_B = childBody.getInertia().getValue();
 
             const Vec3 com_R = fBR.shiftBaseStationToFrame(com_B);
-            const MatInertia iner_CB_B = iner_OB_B.shiftToCOM(com_B,mass);
-            const MatInertia iner_CB_R = iner_CB_B.changeAxes(fBR.getAxes());
-            const MatInertia iner_OR_R = iner_CB_R.shiftFromCOM(-com_R,mass);
+            const InertiaMat iner_CB_B = iner_OB_B.shiftToCOM(com_B,mass);
+            const InertiaMat iner_CB_R = iner_CB_B.changeAxes(fBR.getAxes());
+            const InertiaMat iner_OR_R = iner_CB_R.shiftFromCOM(-com_R,mass);
 
             mbs2tree.push_back(RBTreeMap(&childBody,
                                          fBR, fRJ, mass, com_R, iner_OR_R,

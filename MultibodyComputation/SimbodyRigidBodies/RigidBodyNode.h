@@ -104,11 +104,11 @@ public:
     const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&           getMass()           const {return massProps_B.getMass();}
     const Vec3&           getCOM_B()          const {return massProps_B.getCOM();}
-    const MatInertia&     getInertia_OB_B()   const {return massProps_B.getInertia();}
-    const MatInertia&     getInertia_OB_G()   const {return inertia_OB_G;}
+    const InertiaMat&     getInertia_OB_B()   const {return massProps_B.getInertia();}
+    const InertiaMat&     getInertia_OB_G()   const {return inertia_OB_G;}
 
     const Vec3&       getCOM_G()        const {return COM_G;}
-    const MatInertia& getInertia_CB_B() const {return inertia_CB_B;}
+    const InertiaMat& getInertia_CB_B() const {return inertia_CB_B;}
 
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
@@ -242,7 +242,7 @@ protected:
     Vec3        refOrigin_P;
 
     //      ... calculated on construction
-    const MatInertia  inertia_CB_B;  // centroidal inertia, expr. in B
+    const InertiaMat  inertia_CB_B;  // centroidal inertia, expr. in B
 
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
@@ -264,7 +264,7 @@ protected:
     Vec3        COM_G; // B's COM, meas & expr in G
 
     Vec3        COMstation_G;  // measured from B origin, expr. in G
-    MatInertia  inertia_OB_G;  // about B's origin, expr. in G
+    InertiaMat  inertia_OB_G;  // about B's origin, expr. in G
 
     PhiMatrix   phi;           // spatial rigid body transition matrix
     SpatialMat  Mk;            // spatial inertia matrix

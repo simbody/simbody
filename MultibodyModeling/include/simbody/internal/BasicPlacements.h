@@ -200,7 +200,7 @@ public:
     InertiaPlacement(const RealPlacement& Ixx, const RealPlacement& Iyy, const RealPlacement& Izz,
                      const RealPlacement& Ixy, const RealPlacement& Ixz, const RealPlacement& Iyz);
 
-    explicit InertiaPlacement(const MatInertia&);
+    explicit InertiaPlacement(const InertiaMat&);
     explicit InertiaPlacement(const Feature&);
     explicit InertiaPlacement(const Placement&);
 

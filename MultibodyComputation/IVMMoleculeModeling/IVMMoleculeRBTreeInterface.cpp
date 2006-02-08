@@ -192,19 +192,19 @@ static Mat33 toMat33(const CDSMat33& m) {
                  Row3(m(1,0), m(1,1), m(1,2)),
                  Row3(m(2,0), m(2,1), m(2,2)));
 }
-static IVMInertia toIVMInertia(const MatInertia& i) {
+static IVMInertia toIVMInertia(const InertiaMat& i) {
     return IVMInertia(toCDSMat33(i.toMat33()));
 }
 
-static MatInertia toMatInertia(const IVMInertia& i) {
-    return MatInertia(toMat33(i));
+static InertiaMat toMatInertia(const IVMInertia& i) {
+    return InertiaMat(toMat33(i));
 }
 static RotationMat toMatRotation(const CDSMat33& m) {
     const Mat33 m33 = toMat33(m);
     return reinterpret_cast<const RotationMat&>(m33);
 }
 
-static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const MatInertia& i) {
+static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const InertiaMat& i) {
     return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
 }
 
