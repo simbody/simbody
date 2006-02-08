@@ -11,4 +11,4 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include
 
 ADD_EXECUTABLE(MultibodyModelingTest ${SOURCE_FILES} ${INCLUDE_FILES})
 TARGET_LINK_LIBRARIES(MultibodyModelingTest MultibodyModeling Mechanics Geometry
-                      BigMatrix SmallMatrix Scalar simtk ${MATH_LIBS_TO_USE})
+                      simmatrix simtk ${MATH_LIBS_TO_USE})

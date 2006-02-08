@@ -9,4 +9,4 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/MultibodyComputation/SimbodyRigidBodie
                     ${SIMTK_CORE_INSTALL_DIR}/include)
 ADD_LIBRARY(SimbodyRigidBodies ${SOURCE_FILES} ${INCLUDE_FILES})
 
-TARGET_LINK_LIBRARIES(SimbodyRigidBodies Mechanics Geometry BigMatrix)
+TARGET_LINK_LIBRARIES(SimbodyRigidBodies Mechanics Geometry simmatrix)
