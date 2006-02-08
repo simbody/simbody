@@ -164,7 +164,7 @@ PlacementValue_<T>& PlacementValue_<T>::downcast(PlacementValue& pv) {
 template class PlacementValue_<Real>;
 template class PlacementValue_<Vec3>;
 template class PlacementValue_<Mat33>;
-template class PlacementValue_<Frame>;
+template class PlacementValue_<TransformMat>;
 template class PlacementValue_<InertiaMat>;
 template class PlacementValue_<RotationMat>;
 template class PlacementValue_<UnitVec3>;

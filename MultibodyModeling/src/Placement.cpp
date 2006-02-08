@@ -106,7 +106,7 @@ Placement::Placement(const RotationMat& r) : rep(0) {
     rep->setMyHandle(*this);
 }
 
-Placement::Placement(const Frame& f) : rep(0) {
+Placement::Placement(const TransformMat& f) : rep(0) {
     rep = new FrameConstantPlacementRep(f);
     rep->setMyHandle(*this);
 }

@@ -1200,7 +1200,7 @@ const Vec3& StationFeaturePlacementRep::getReferencedValue() const {
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
     if (FramePlacementRep::isA(p) && getPlacementIndex()==1)
-        return PlacementValue_<Frame>::downcast(ps.getValue()).get().getOrigin();
+        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getOrigin();
 
     assert(false);
     //NOTREACHED
@@ -1544,7 +1544,7 @@ const RotationMat& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementRep& p = ps.getPlacement().getRep();
 
     if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
-        return PlacementValue_<Frame>::downcast(ps.getValue()).get().getAxes();
+        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getAxes();
 
     assert(false);
     //NOTREACHED
@@ -1945,16 +1945,16 @@ FramePlacementRep::createFramePlacementFrom(const Placement& p, bool dontThrow) 
 }
 
     // FRAME FEATURE PLACEMENT REP //
-const Frame& FrameFeaturePlacementRep::getReferencedValue() const {
+const TransformMat& FrameFeaturePlacementRep::getReferencedValue() const {
     const PlacementSlot& ps = getReferencedFeature().getRep().getPlacementSlot();
 
     if (!isIndexed())
-        return PlacementValue_<Frame>::downcast(ps.getValue()).get();
+        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get();
 
     assert(false);
     //NOTREACHED
 
-    return *reinterpret_cast<const Frame*>(0);
+    return *reinterpret_cast<const TransformMat*>(0);
 }
 
     // FRAME EXPR PLACEMENT REP //
@@ -2005,9 +2005,9 @@ bool FrameOps::checkArgs(const std::vector<Placement>& args) const {
     return false;
 }
 
-Frame FrameOps::apply(/*State,*/ const std::vector<Placement>& args) const {
+TransformMat FrameOps::apply(/*State,*/ const std::vector<Placement>& args) const {
     assert(false);
-    return Frame();
+    return TransformMat();
 }
 
 } // namespace simtk

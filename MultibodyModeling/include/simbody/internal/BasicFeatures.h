@@ -294,7 +294,7 @@ public:
     ~FrameFeature();
 
     const FramePlacement& getPlacement() const;
-    const Frame&          getValue()     const;
+    const TransformMat&   getValue()     const;
 
     const Station&     getOrigin()      const;
     const Orientation& getOrientation() const;

@@ -213,12 +213,12 @@ static MassProperties toMassProperties(const IVMMassProperties& mp) {
                           toMatInertia(mp.getInertia()));
 }
 
-static IVMFrame toIVMFrame(const Frame& f) {
+static IVMFrame toIVMFrame(const TransformMat& f) {
     return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
 }
 
-static Frame toFrame(const IVMFrame& f) {
-    return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
+static TransformMat toFrame(const IVMFrame& f) {
+    return TransformMat(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
 }
 
 static Joint::JointType
@@ -262,9 +262,9 @@ public:
                          bool                     useEuler,
                          int&                     nxtStateOffset) 
     {
-        const Frame            refConfig  = toFrame(IVMrefConfig);
+        const TransformMat            refConfig  = toFrame(IVMrefConfig);
         const MassProperties   massProps  = toMassProperties(IVMmassProps);
-        const Frame            jointFrame = toFrame(IVMjointFrame);
+        const TransformMat            jointFrame = toFrame(IVMjointFrame);
         const Joint::JointType jtype      = toJointType(IVMjtype);
 
         RigidBodyNode* nodep = RigidBodyNode::create(
@@ -278,7 +278,7 @@ public:
         int dummy;
         RigidBodyNode* gnodep = RigidBodyNode::create(
                                     MassProperties(),
-                                    Frame(),
+                                    TransformMat(),
                                     Joint::ThisIsGround,
                                     false, false, dummy);
         return simTree.addGroundNode(gnodep);

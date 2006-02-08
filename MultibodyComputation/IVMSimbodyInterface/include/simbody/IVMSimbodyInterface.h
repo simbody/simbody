@@ -74,7 +74,7 @@ public:
                          Vector& hingeForces) const;
 
     // TODO: these should return cache references
-    Frame         getBodyConfiguration(const State&, const Body&) const;
+    TransformMat  getBodyConfiguration(const State&, const Body&) const;
     SpatialVec    getBodyVelocity     (const State&, const Body&) const;
     SpatialVec    getBodyAcceleration (const State&, const Body&) const;
 private:

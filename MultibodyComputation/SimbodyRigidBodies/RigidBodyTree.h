@@ -120,9 +120,9 @@ public:
     /// small enough integer to make it a reasonable index, but don't depend
     /// on it having any particular value or being sequential or even
     /// monotonically increasing.
-    int addRigidBodyNode(RigidBodyNode&  parent,
-                         const Frame&    referenceConfig, // body frame in parent
-                         RigidBodyNode*& nodep);
+    int addRigidBodyNode(RigidBodyNode&      parent,
+                         const TransformMat& referenceConfig, // body frame in parent
+                         RigidBodyNode*&     nodep);
 
     /// Same as addRigidBodyNode but special-cased for ground.
     int addGroundNode(RigidBodyNode*& gnodep);

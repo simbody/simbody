@@ -351,7 +351,7 @@ class FramePlacementOp : public PlacementOp {
 public:
     virtual ~FramePlacementOp() { }
     // Run time
-    virtual Frame apply(const std::vector<Placement>&) const = 0;
+    virtual TransformMat apply(const std::vector<Placement>&) const = 0;
 
     SIMTK_DOWNCAST(FramePlacementOp, PlacementOp);
 };
@@ -376,7 +376,7 @@ public:
         return std::string(p) + "<FrameFeature>";
     }
 
-    Frame apply(const std::vector<Placement>&) const;
+    TransformMat apply(const std::vector<Placement>&) const;
 
     SIMTK_DOWNCAST(FrameOps, PlacementOp);
 private:
@@ -1542,7 +1542,7 @@ public:
     const FramePlacement& getMyHandle() const 
       { return FramePlacement::downcast(PlacementRep::getMyHandle()); }
 
-    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<Frame>();}
+    PlacementValue createEmptyPlacementValue() const {return PlacementValue_<TransformMat>();}
     std::string    getPlacementTypeName()      const {return "Frame";}
     int            getNIndicesAllowed()        const {return 2;} // Orientation, Station
 
@@ -1554,11 +1554,11 @@ public:
     // clone, toString, findAncestorSubsystem are still missing
 
     void evaluate(PlacementValue& pv) const {
-        PlacementValue_<Frame>::initializeToValueType(pv);
-        evaluateFrame(PlacementValue_<Frame>::downcast(pv).upd());
+        PlacementValue_<TransformMat>::initializeToValueType(pv);
+        evaluateFrame(PlacementValue_<TransformMat>::downcast(pv).upd());
     }
-    virtual void evaluateFrame(Frame&) const = 0;
-    Frame calcFrameValue() const {Frame m;evaluateFrame(m);return m;}
+    virtual void evaluateFrame(TransformMat&) const = 0;
+    TransformMat calcFrameValue() const {TransformMat m;evaluateFrame(m);return m;}
 
     SIMTK_DOWNCAST(FramePlacementRep,PlacementRep);
 };
@@ -1566,13 +1566,13 @@ public:
 // A concrete FramePlacement in which there are no variables.
 class FrameConstantPlacementRep : public FramePlacementRep {
 public:
-    explicit FrameConstantPlacementRep(const Frame& m)
+    explicit FrameConstantPlacementRep(const TransformMat& m)
       : FramePlacementRep(), frame(m) {
         // TODO: check orientation matrix validity
     }
 
     void realize(Stage) const { }   // always ready to evaluate
-    void evaluateFrame(Frame& m) const {m=frame;}
+    void evaluateFrame(TransformMat& m) const {m=frame;}
 
     bool isConstant() const { return true; }
 
@@ -1580,7 +1580,7 @@ public:
 
     std::string toString(const std::string&) const {
         std::stringstream s;
-        s << "Frame[axes={";
+        s << "Xform[axes={";
         if (frame.getAxes().asMat33() == Mat33(1)) s << "I";
         else s << frame.getAxes().getAxis(0) << frame.getAxes().getAxis(1) << frame.getAxes().getAxis(2);
         s << "},origin=";
@@ -1597,7 +1597,7 @@ public:
 
     SIMTK_DOWNCAST(FrameConstantPlacementRep, PlacementRep);
 private:
-    Frame frame;
+    TransformMat frame;
 };
 
 /**
@@ -1612,7 +1612,7 @@ public:
     ~FrameFeaturePlacementRep() { }
 
     void realize(Stage g) const {refRealize(g);}
-    void evaluateFrame(Frame& m) const {m = getReferencedValue();}
+    void evaluateFrame(TransformMat& m) const {m = getReferencedValue();}
 
     bool isFeatureReference() const {return true;}
     const Feature& getReferencedFeature() const {return refGetReferencedFeature();}
@@ -1633,7 +1633,7 @@ public:
     SIMTK_DOWNCAST(FrameFeaturePlacementRep, PlacementRep);
 private:
     // Get the numerical value of the referenced placement, after indexing.
-    const Frame& getReferencedValue() const;
+    const TransformMat& getReferencedValue() const;
 };
 
 /**
@@ -1663,7 +1663,7 @@ public:
         orientation.getRep().realize(g);
         origin.getRep().realize(g);
     }
-    void evaluateFrame(Frame& m) const {
+    void evaluateFrame(TransformMat& m) const {
         orientation.getRep().evaluateMatRotation(m.updAxes());
         origin.getRep().evaluateVec3(m.updOrigin());
     }

@@ -18,7 +18,7 @@ namespace simtk {
 class UnitVec3;
 class UnitRow3;
 class RotationMat;
-class Frame;
+class TransformMat;
 
 /**
  * This class is a Vec3 plus an ironclad guarantee either that:
@@ -184,22 +184,24 @@ inline Row3 operator*(const Row3& r, const RotationMat& R) {
 }
 
 /**
- * This class represents an orthogonal, right-handed coordinate frame F, 
- * measured from and expressed in a base (reference) coordinate frame B.
- * F consists of 3 perpendicular unit vectors defining its axes XF as
- * viewed from B (that is, as expressed in B's axes XB), and a vector
- * from B's origin point OB to F's origin point OF. Note that
- * the meaning of "B" comes from the context in which frame F is used.
- * We use the phrase "frame F is in frame B" to describe the above relationship,
- * that is, "in" means both measured from and expressed in. 
+ * This class represents the rotate-and-shift transform which gives the 
+ * location and orientation of a new frame F in a base (reference) frame
+ * B. A frame is an orthogonal, right-handed set of three axes, and an
+ * origin point. A transform X from frame B to F consists of 3 perpendicular
+ * unit vectors defining F's axes as viewed from B (that is, as expressed in 
+ * the basis formed by B's axes), and a vector from B's origin point OB to F's
+ * origin point OF. Note that the meaning of "B" comes from the context in
+ * which the transform is used. We use the phrase "frame F is in frame B" to
+ * describe the above relationship, that is, "in" means both measured from
+ * and expressed in. 
  *
- * The axis vectors are ordered 1-2-3 or x-y-z as you prefer, with
- * z = x X y, making a right-handed set. These axes are arranged as
- * columns of a 3x3 matrix X_BF = [ x y z ] which is a direction cosine
+ * The axis vectors constitute a RotationMat. They are ordered 1-2-3 or x-y-z
+ & as you prefer, with z = x X y, making a right-handed set. These axes are arranged
+ * as columns of a 3x3 rotation matrix R_BF = [ x y z ] which is a direction cosine
  * (rotation) matrix useful for conversions between frame B and F. (The
- * columns of X_BF are F's coordinate axes, expressed in B.) For
+ * columns of R_BF are F's coordinate axes, expressed in B.) For
  * example, given a vector vF expressed in the F frame, that same vector
- * re-expressed in B is given by vB = X_BF*vF. F's origin point OF is 
+ * re-expressed in B is given by vB = R_BF*vF. F's origin point OF is 
  * stored as the vector OF_B=(OF-OB) and expressed in B.
  *
  * This is a "POD" (plain old data) class with a well-defined memory
@@ -207,34 +209,38 @@ inline Row3 operator*(const Row3& r, const RotationMat& R) {
  * exactly 4 consecutive, packed 3-vectors in the order x,y,z,O.
  * That is, this class is equivalent to an array of 12 Reals with 
  * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,O1,O2,O3. It is expressly allowed
- * to reinterpret Frame objects in any appropriate manner that depends
+ * to reinterpret TransformMat objects in any appropriate manner that depends
  * on this memory layout.
  */
-class Frame {
+class TransformMat {
 public:
-    Frame() : X_BF(), OF_B(0.) { }
-    Frame(const RotationMat& axesInB, const Vec3& orgInB) : X_BF(axesInB), OF_B(orgInB) { }
-    explicit Frame(const RotationMat& axesInB) : X_BF(axesInB), OF_B(0.) { }
-    explicit Frame(const Vec3& orgInB)         : X_BF(), OF_B(orgInB) { }
+    TransformMat() : R_BF(), OF_B(0.) { }
+    TransformMat(const RotationMat& axesInB, const Vec3& orgInB) 
+      : R_BF(axesInB), OF_B(orgInB) { }
+    explicit TransformMat(const RotationMat& axesInB) : R_BF(axesInB), OF_B(0.) { }
+    explicit TransformMat(const Vec3& orgInB)         : R_BF(), OF_B(orgInB) { }
     // default copy, assignment, destructor
 
     void setFrame(const RotationMat& axesInB, const Vec3& orgInB) 
-      { X_BF=axesInB; OF_B=orgInB; }
+      { R_BF=axesInB; OF_B=orgInB; }
 
     // If this is frame F measured and expressed in B, return frame B
     // measured and expressed in F. This is the inverse of F in that
     // it maps from F to B rather than from B to F.
-    Frame invert() const {
-        const RotationMat rot_FB = ~X_BF;
-        return Frame(rot_FB, rot_FB*(-OF_B));
+    // TODO: need TransformMatInverse type to avoid computation & copying.
+    TransformMat invert() const {
+        const RotationMat rot_FB = ~R_BF;
+        return TransformMat(rot_FB, rot_FB*(-OF_B));
     }
-    // return frame_RX
-    Frame compose(const Frame& frame_FX) const {
-        const RotationMat rot_BX = X_BF * frame_FX.getAxes();
-        return Frame(rot_BX, OF_B + X_BF * frame_FX.getOrigin());
+
+    // return frame_RY
+    TransformMat compose(const TransformMat& frame_FY) const {
+        const RotationMat rot_BY = R_BF * frame_FY.getAxes();
+        return TransformMat(rot_BY, OF_B + R_BF * frame_FY.getOrigin());
     }
-    Vec3 xformFrameVecToBase(const Vec3& vF) const {return X_BF*vF;}
-    Vec3 xformBaseVecToFrame(const Vec3& vR) const {return ~X_BF*vR;}
+
+    Vec3 xformFrameVecToBase(const Vec3& vF) const {return R_BF*vF;}
+    Vec3 xformBaseVecToFrame(const Vec3& vR) const {return ~R_BF*vR;}
     Vec3 shiftFrameStationToBase(const Vec3& sF) const {
         return OF_B + xformFrameVecToBase(sF);
     }
@@ -242,17 +248,17 @@ public:
         return xformBaseVecToFrame(sB - OF_B);
     }
 
-    const RotationMat& getAxes() const { return X_BF; }
-    RotationMat&       updAxes()       { return X_BF; }
+    const RotationMat& getAxes() const { return R_BF; }
+    RotationMat&       updAxes()       { return R_BF; }
 
     const Vec3&  getOrigin() const { return OF_B; }
     Vec3&        updOrigin()       { return OF_B; }
 
 private:
-    RotationMat X_BF;   // rotation matrix that expresses F's axes in R
+    RotationMat R_BF;   // rotation matrix that expresses F's axes in R
     Vec3        OF_B;   // location of F's origin measured from B's origin, expressed in B 
 };
-std::ostream& operator<<(std::ostream& o, const Frame&);
+std::ostream& operator<<(std::ostream& o, const TransformMat&);
 
 } // namespace simtk
 

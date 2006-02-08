@@ -429,7 +429,7 @@ public:
 class FrameRep : public FeatureRep {
 public:
     FrameRep(FrameFeature& f, const std::string& nm) 
-      : FeatureRep(f,nm,FramePlacement(Frame())), 
+      : FeatureRep(f,nm,FramePlacement(TransformMat())), 
         RIndex(-1), OIndex(-1) { }
     // must call initializeStandardSubfeatures() to complete construction.
 

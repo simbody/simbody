@@ -20,7 +20,7 @@ namespace simtk {
 //      spatial acceleration = (angularAcceleration,linearAcceleration)
 //      generalized forces   = (torque,force)
 // Spatial configuration has to be handled differently though since
-// orientation is not a vector quantity. (We use "Frame" for this concept
+// orientation is not a vector quantity. (We use "TransformMat" for this concept
 // which includes an orientation matrix and a translation vector.)
 typedef Vec<2,   Vec3>  SpatialVec;
 typedef Row<2,   Row3>  SpatialRow;

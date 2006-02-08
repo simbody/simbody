@@ -49,7 +49,7 @@ class   Feature;
 class       Station;
 class       Direction;
 class       Orientation;
-class       Frame;
+class       FrameFeature;
 class           Body;
 class               RigidBody;
 class               DeformableBody;

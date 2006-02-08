@@ -58,7 +58,7 @@ public:
     Placement(const UnitVec3&);
     Placement(const RotationMat&);
     Placement(const InertiaMat&);
-    Placement(const Frame&);
+    Placement(const TransformMat&);
 
     // These create a "feature placement" (reference to the placement
     // of a feature) of a particular type, but starting with a generic

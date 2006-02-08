@@ -86,12 +86,12 @@ static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const
     return IVMMassProperties(m, toCDSVec3(c), toIVMInertia(i));
 }
 
-static IVMFrame toIVMFrame(const Frame& f) {
+static IVMFrame toIVMFrame(const TransformMat& f) {
     return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
 }
 
-static Frame toFrame(const IVMFrame& f) {
-    return Frame(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
+static TransformMat toFrame(const IVMFrame& f) {
+    return TransformMat(toMatRotation(f.getRot_RF()), toVec3(f.getLoc_RF()));
 }
     // IVM SIMBODY INTERFACE //
 
@@ -147,7 +147,7 @@ IVMSimbodyInterface::calcUDot(const State& s,
 // TODO: this should return a reference to a cache entry but that is awkward at the moment
 // since we and IVM don't agree on the body frame. IVM uses the computed reference frame;
 // Simbody uses a frame chosen by the user. Note that SD/FAST works like IVM in this regard.
-Frame
+TransformMat
 IVMSimbodyInterface::getBodyConfiguration(const State& s, const Body& b) const
 {
     return rep->getBodyConfiguration(s,b);
@@ -178,9 +178,9 @@ void IVMSimbodyInterface::applyPointForce(const State& s, const Body& b,
 {
     const RBTreeMap& info  = rep->getBodyInfo(b);
     const int        index = info.getRBIndex();
-    const Frame&     F_BR  = info.getRefFrameInBody();
-    const Frame      F_GB  = getBodyConfiguration(s,b);
-    const Frame      F_GR  = F_GB.compose(F_BR);
+    const TransformMat&     F_BR  = info.getRefFrameInBody();
+    const TransformMat      F_GB  = getBodyConfiguration(s,b);
+    const TransformMat      F_GR  = F_GB.compose(F_BR);
 
     const Vec3 pt_R  = F_BR.shiftBaseStationToFrame(pt_B); // vector from OR to pt, expressed in R
     const Vec3 pt_RG = F_GR.xformFrameVecToBase(pt_R);     // re-express in G (but still measured from OR)
@@ -196,7 +196,7 @@ void IVMSimbodyInterface::applyBodyTorque(const State& s, const Body& b, const V
     const RBTreeMap& info    = rep->getBodyInfo(b);
     const int        rbIndex = info.getRBIndex();
 
-    const Frame F_GB  = getBodyConfiguration(s,b);
+    const TransformMat F_GB  = getBodyConfiguration(s,b);
     const Vec3  trq_G = F_GB.xformFrameVecToBase(trq_B);    // re-express in G
     bodyForces[rbIndex][0] += trq_G;
 }
@@ -209,12 +209,12 @@ void IVMSimbodyInterface::applyGravity(const State& s, const Vec3& g,
     for (int i=1; i < getNBodies(); ++i) {
         const RBTreeMap& info    = rep->getBodyInfoByIndex(i);
         const Body&      body    = info.getBody();
-        const Frame&     F_BR    = info.getRefFrameInBody();
+        const TransformMat&     F_BR    = info.getRefFrameInBody();
         const Vec3&      com_R   = info.getCOMInRef();
         const Real&      mass    = info.getMass();
 
-        const Frame      F_GB    = getBodyConfiguration(s,body);
-        const Frame      F_GR    = F_GB.compose(F_BR);
+        const TransformMat      F_GB    = getBodyConfiguration(s,body);
+        const TransformMat      F_GR    = F_GB.compose(F_BR);
         const int        rbIndex = info.getRBIndex();
 
         const Vec3 com_RG = F_GR.xformFrameVecToBase(com_R); // OR to COM, in G
@@ -249,7 +249,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
 
     size_t nxt=0;
-    mbs2tree.push_back(RBTreeMap(&Body::downcast(mbs["Ground"]),Frame(),Frame(),
+    mbs2tree.push_back(RBTreeMap(&Body::downcast(mbs["Ground"]),TransformMat(),TransformMat(),
                        NTraits<Real>::getInfinity(), Vec3(0), InertiaMat(), // mass, com, inertia
                        0,0,0)); // no parent, no inboard joint, level 0
 
@@ -266,10 +266,10 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
             // Calculate the reference frame, which is located at origin of J
             // and aligned with its parent's reference frame.
-            const Frame& fBJ  = joints[i]->getMovingFrame().getValue();       // on B
-            const Frame& fPJi = joints[i]->getReferenceFrame().getValue();    // on P
-            const Frame fBR(fBJ.getAxes()*~fPJi.getAxes(), fBJ.getOrigin());
-            const Frame fRJ(fPJi.getAxes(), Vec3(0));
+            const TransformMat& fBJ  = joints[i]->getMovingFrame().getValue();       // on B
+            const TransformMat& fPJi = joints[i]->getReferenceFrame().getValue();    // on P
+            const TransformMat fBR(fBJ.getAxes()*~fPJi.getAxes(), fBJ.getOrigin());
+            const TransformMat fRJ(fPJi.getAxes(), Vec3(0));
 
             const Real&       mass      = childBody.getMass().getValue();
             const Vec3&       com_B     = childBody.getMassCenter().getValue();
@@ -346,15 +346,15 @@ OldIVMSimbodyInterfaceRep::calcUDot(const State& s,
     return toVector(a);
 }
 
-Frame
+TransformMat
 OldIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body) const {
     // Get from IVM the body reference frame R in ground.
     const RBTreeMap& info = getBodyInfo(body);
-    const Frame& F_BR = info.getRefFrameInBody();
+    const TransformMat& F_BR = info.getRefFrameInBody();
     const IVMRigidBodyNode& n = getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
 
-    const Frame F_GR(toMatRotation(n.getR_GB()), toVec3(n.getOB_G()));
-    const Frame F_RB(F_BR.invert());
+    const TransformMat F_GR(toMatRotation(n.getR_GB()), toVec3(n.getOB_G()));
+    const TransformMat F_RB(F_BR.invert());
     return F_GR.compose(F_RB);
 }
 
@@ -440,15 +440,15 @@ NewIVMSimbodyInterfaceRep::calcUDot(const State& s,
     return a;
 }
 
-Frame
+TransformMat
 NewIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body) const {
     // Get from IVM the body reference frame R in ground.
     const RBTreeMap& info = getBodyInfo(body);
-    const Frame& F_BR = info.getRefFrameInBody();
+    const TransformMat& F_BR = info.getRefFrameInBody();
     const RigidBodyNode& n = getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
 
-    const Frame F_GR(n.getR_GB(), n.getOB_G());
-    const Frame F_RB(F_BR.invert());
+    const TransformMat F_GR(n.getR_GB(), n.getOB_G());
+    const TransformMat F_RB(F_BR.invert());
     return F_GR.compose(F_RB);
 }
 
@@ -462,7 +462,7 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         // Deal with ground.
         cout << childEntry.getLevel() << ": " << childEntry.getBody().getFullName() << endl;
         if (!childEntry.getLevel()) {
-            RigidBodyNode* rb = RigidBodyNode::create(MassProperties(), Frame(), Joint::ThisIsGround,
+            RigidBodyNode* rb = RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
                                       false, false, nextStateOffset);
             const int rbIndex = tree.addGroundNode(rb);
             childEntry.setRBIndex(rbIndex);
@@ -501,7 +501,7 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         cout << "CREATED: states " << save << "-" << nextStateOffset-1 << endl;
 
         RigidBodyNode& parent = tree.updRigidBodyNode(parentEntry.getRBIndex());
-        const int rbIndex = tree.addRigidBodyNode(parent,Frame()/*XXX*/,rb);
+        const int rbIndex = tree.addRigidBodyNode(parent,TransformMat()/*XXX*/,rb);
         childEntry.setRBIndex(rbIndex);
     }
 

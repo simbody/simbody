@@ -83,7 +83,7 @@ protected:
         FrameRep::initializeStandardSubfeatures();
 
         // Place the body frame on itself.
-        place(Frame());
+        place(TransformMat());
 
         Feature& mm  = addFeatureLike(RealMeasure("mass"), "mass");
         Feature& cm  = addFeatureLike(StationMeasure("centroid"), "centroid");

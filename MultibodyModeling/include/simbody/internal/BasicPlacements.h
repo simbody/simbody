@@ -225,7 +225,7 @@ public:
     FramePlacement() { }
     FramePlacement(const FrameFeature&);                       // implicit conversion
 
-    explicit FramePlacement(const Frame&);
+    explicit FramePlacement(const TransformMat&);
 
     // Inherit the orientation from the Station feature's parent.
     explicit FramePlacement(const Station&);

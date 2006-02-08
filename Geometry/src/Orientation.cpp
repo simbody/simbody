@@ -69,8 +69,8 @@ std::ostream& operator<<(std::ostream& o, const UnitVec3& v) {
     return o << v.asVec3();
 }
 
-std::ostream& operator<<(std::ostream& o, const Frame& f) {
-    return o << "{" << f.getAxes() << f.getOrigin() << "}";
+std::ostream& operator<<(std::ostream& o, const TransformMat& x) {
+    return o << "{" << x.getAxes() << x.getOrigin() << "}";
 }
 
 } // namespace simtk

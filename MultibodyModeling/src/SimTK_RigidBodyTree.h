@@ -126,8 +126,8 @@ public:
 
     /// Add a new body connected to one of the existing bodies by
     /// a Joint. Body 0 (Ground) is predefined at construction.
-    int addBody(const MassProperties&, const Frame& frameInB, 
-                int   parent,          const Frame& frameInP,
+    int addBody(const MassProperties&, const TransformMat& frameInB, 
+                int   parent,          const TransformMat& frameInP,
                 const XXJointType&);
 
     /// Return number of defined bodies, including ground. This is
@@ -142,19 +142,19 @@ public:
 
     /// Obtain the spatial location and orientation of the body frame, by
     /// returning the frame in Ground which is currently overlaid on the body frame.
-    const Frame& getBodyFrameInGround(const State&, int body) const;
+    const TransformMat& getBodyFrameInGround(const State&, int body) const;
 
     /// Obtain the location and orientation of the body frame in its parent frame, by
     /// returning the frame in Parent which is currently overlaid on the body frame.
-    const Frame& getBodyFrameInParent(const State&, int body) const;
+    const TransformMat& getBodyFrameInParent(const State&, int body) const;
 
     inline Vec3  xformVector2Ground (const State&, int body, const Vec3&  vB) const;
     inline Vec3  xformStation2Ground(const State&, int body, const Vec3&  sB) const;
-    inline Frame xformFrame2Ground  (const State&, int body, const Frame& fB) const;
+    inline TransformMat xformFrame2Ground  (const State&, int body, const TransformMat& fB) const;
 
     inline Vec3  xformVector2Parent (const State&, int body, const Vec3&  vB) const;
     inline Vec3  xformStation2Parent(const State&, int body, const Vec3&  sB) const;
-    inline Frame xformFrame2Parent  (const State&, int body, const Frame& fB) const;
+    inline TransformMat xformFrame2Parent  (const State&, int body, const TransformMat& fB) const;
 
     /// Return mass properties of subtree rooted at this body, as though
     /// all joints were welded.
@@ -210,14 +210,14 @@ inline Vec3  XXRigidBodyTree::xformVector2Ground(const State& s, int body, const
   { return getBodyFrameInGround(s,body).xformVector2Ref(vB); }
 inline Vec3  XXRigidBodyTree::xformStation2Ground(const State& s, int body, const Vec3& sB) const
   { return getBodyFrameInGround(s,body).xformStation2Ref(sB); }
-inline Frame XXRigidBodyTree::xformFrame2Ground(const State& s, int body, const Frame& fB) const
+inline TransformMat XXRigidBodyTree::xformFrame2Ground(const State& s, int body, const TransformMat& fB) const
   { return getBodyFrameInGround(s,body).xformFrame2Ref(fB); }
 
 inline Vec3  XXRigidBodyTree::xformVector2Parent(const State& s, int body, const Vec3& vB) const
   { return getBodyFrameInParent(s,body).xformVector2Ref(vB); }
 inline Vec3  XXRigidBodyTree::xformStation2Parent(const State& s, int body, const Vec3& sB) const
   { return getBodyFrameInParent(s,body).xformStation2Ref(sB); }
-inline Frame XXRigidBodyTree::xformFrame2Parent(const State& s, int body, const Frame& fB) const
+inline TransformMat XXRigidBodyTree::xformFrame2Parent(const State& s, int body, const TransformMat& fB) const
   { return getBodyFrameInParent(s,body).xformFrame2Ref(fB); }
 
 #endif /* SIMTK_RIGIDBODY_TREE_H_ */

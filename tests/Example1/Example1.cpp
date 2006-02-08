@@ -163,9 +163,9 @@ try {
         instance.realizeParameters(s);
         instance.realizeConfiguration(s);
         if (!(step % 100)) {
-            //Frame upper = instance.getBodyConfiguration(s, Body::downcast(mbs["upper"]));
-            //Frame left  = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
-            //Frame right = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
+            //TransformMat upper = instance.getBodyConfiguration(s, Body::downcast(mbs["upper"]));
+            //TransformMat left  = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
+            //TransformMat right = instance.getBodyConfiguration(s, Body::downcast(mbs["left"]));
             //XXX
 
             cout << t;

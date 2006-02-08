@@ -24,7 +24,7 @@ public:
     RBTreeMap() : body(0), frame_BR(), frame_RJ(), mass(0), com_R(0), iner_OR_R(),
                   parentIndex(badSizeTValue()), joint(0), level(-1), rbIndex(-1) { }
 
-    RBTreeMap(const Body* b, const Frame& ref, const Frame& jInRef,
+    RBTreeMap(const Body* b, const TransformMat& ref, const TransformMat& jInRef,
               const Real& m, const Vec3& cm_R, const InertiaMat& iner_R,
               size_t pix, const Joint* j, int l)
       : body(b), frame_BR(ref), frame_RJ(jInRef), 
@@ -34,10 +34,10 @@ public:
     }
 
     const Body&  getBody()           const          {assert(body); return *body;}
-    const Frame& getRefFrameInBody() const          {assert(body); return frame_BR;}
-    void         setRefFrameInBody(const Frame& f)  {frame_BR=f;}
-    const Frame& getJointFrameInRef() const         {assert(body); return frame_RJ;}
-    void         setJointFrameInRef(const Frame& f) {frame_RJ=f;}
+    const TransformMat& getRefFrameInBody() const          {assert(body); return frame_BR;}
+    void         setRefFrameInBody(const TransformMat& f)  {frame_BR=f;}
+    const TransformMat& getJointFrameInRef() const         {assert(body); return frame_RJ;}
+    void         setJointFrameInRef(const TransformMat& f) {frame_RJ=f;}
 
     const Real&       getMass()            const {assert(body); return mass;}
     const Vec3&       getCOMInRef()        const {assert(body); return com_R;}
@@ -51,8 +51,8 @@ public:
 
 private:
     const Body*     body;
-    Frame           frame_BR;   // reference frame R meas & expr in B; default=I
-    Frame           frame_RJ;   // inboard joint frame meas & expr in ref frame R
+    TransformMat           frame_BR;   // reference frame R meas & expr in B; default=I
+    TransformMat           frame_RJ;   // inboard joint frame meas & expr in ref frame R
     Real            mass;
     Vec3            com_R;      // COM, meas & expr in ref frame R
     InertiaMat      iner_OR_R;  // Inertia about R origin, expr. in R
@@ -90,7 +90,7 @@ public:
                                    const Vector_<SpatialVec>& bodyForces,
                                    const Vector& hingeForces) const = 0;
 
-    virtual Frame      getBodyConfiguration(const State&, const Body& body) const = 0;
+    virtual TransformMat      getBodyConfiguration(const State&, const Body& body) const = 0;
     virtual SpatialVec getBodyVelocity     (const State&, const Body& body) const = 0;
     virtual SpatialVec getBodyAcceleration (const State&, const Body& body) const = 0;
 
@@ -161,7 +161,7 @@ public:
                            const Vector_<SpatialVec>& bodyForces,
                            const Vector& hingeForces) const;
 
-    Frame getBodyConfiguration(const State& s, const Body& body) const;
+    TransformMat getBodyConfiguration(const State& s, const Body& body) const;
 
     SpatialVec getBodyVelocity     (const State&, const Body& body) const {
         assert(false);
@@ -222,7 +222,7 @@ public:
                            const Vector_<SpatialVec>& bodyForces,
                            const Vector& hingeForces) const;
 
-    Frame getBodyConfiguration(const State& s, const Body& body) const;
+    TransformMat getBodyConfiguration(const State& s, const Body& body) const;
 
     SpatialVec getBodyVelocity     (const State&, const Body& body) const {
         assert(false);

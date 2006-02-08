@@ -257,7 +257,7 @@ private:
  * exactly 4 consecutive, packed 3-vectors in the order x,y,z,O.
  * That is, this class is equivalent to an array of 12 Reals with 
  * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,O1,O2,O3. It is expressly allowed
- * to reinterpret Frame objects in any appropriate manner that depends
+ * to reinterpret IVMFrame objects in any appropriate manner that depends
  * on this memory layout.
  */
 class IVMFrame {

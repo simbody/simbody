@@ -18,7 +18,7 @@ using std::setprecision;
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child, const Frame& referenceFrame) {
+void RigidBodyNode::addChild(RigidBodyNode* child, const TransformMat& referenceFrame) {
     children.push_back( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getOrigin(); // ignore frame for now, it's always identity
@@ -144,7 +144,7 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const Frame& jointFrame,
+                      const TransformMat& jointFrame,
                       int& cnt)
       : RigidBodyNode(mProps_B,Vec3(0.),jointFrame.getAxes(),jointFrame.getOrigin()),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
@@ -288,7 +288,7 @@ public:
 
     RBNodeTranslate(const MassProperties& mProps_B,
                     int&                  nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset)
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextStateOffset)
     {
     }
 
@@ -316,7 +316,7 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const Frame&          jointFrame,
+                  const TransformMat&          jointFrame,
                   int&                  nextStateOffset)
       : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -515,7 +515,7 @@ public:
     RBNodeRotate3(const MassProperties& mProps_B,
                   int&                  nextStateOffset,
                   bool                  useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,Frame(),nextStateOffset),
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -588,7 +588,7 @@ public:
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
                            int&                  nextStateOffset,
                            bool                  useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,Frame(),nextStateOffset),
+      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextStateOffset),
         ball(nextStateOffset,useEuler)
     {
     }
@@ -681,7 +681,7 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const Frame&          jointFrame,
+                  const TransformMat&          jointFrame,
                   int&                  nextStateOffset)
       : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -738,7 +738,7 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const Frame&          jointFrame,
+                           const TransformMat&          jointFrame,
                            int&                  nextStateOffset)
       : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
     {
@@ -797,7 +797,7 @@ private:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
-    const Frame&          jointFrame,   // inboard joint frame J in body frame
+    const TransformMat&          jointFrame,   // inboard joint frame J in body frame
     Joint::JointType      type,
     bool                  isReversed,
     bool                  useEuler,

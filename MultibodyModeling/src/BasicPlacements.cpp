@@ -485,7 +485,7 @@ FramePlacement::FramePlacement(const FrameFeature& f) {
     rep = f.getRep().createFeatureReference(*this);
 }
 
-FramePlacement::FramePlacement(const Frame& f) {
+FramePlacement::FramePlacement(const TransformMat& f) {
     rep = new FrameConstantPlacementRep(f);
     rep->setMyHandle(*this);
 }

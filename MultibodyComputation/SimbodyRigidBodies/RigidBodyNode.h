@@ -71,7 +71,7 @@ public:
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
         const MassProperties&   m,            // mass properties in body frame
-        const Frame&            jointFrame,   // inboard joint frame J in body frame
+        const TransformMat&     jointFrame,   // inboard joint frame J in body frame
         Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
         bool                    useEuler,     // TODO: kludge (true if minimizing)
@@ -79,7 +79,7 @@ public:
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
-    void addChild(RigidBodyNode* child, const Frame& referenceFrame);
+    void addChild(RigidBodyNode* child, const TransformMat& referenceFrame);
 
     RigidBodyNode*   getParent() const {return parent;}
     void             setParent(RigidBodyNode* p) { parent=p; }
