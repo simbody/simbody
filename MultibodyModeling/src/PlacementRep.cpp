@@ -1200,7 +1200,7 @@ const Vec3& StationFeaturePlacementRep::getReferencedValue() const {
     // indexed
     const PlacementRep& p = ps.getPlacement().getRep();
     if (FramePlacementRep::isA(p) && getPlacementIndex()==1)
-        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getOrigin();
+        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getTranslation();
 
     assert(false);
     //NOTREACHED
@@ -1544,7 +1544,7 @@ const RotationMat& OrientationFeaturePlacementRep::getReferencedValue() const {
     const PlacementRep& p = ps.getPlacement().getRep();
 
     if (FramePlacementRep::isA(p) && getPlacementIndex()==0)
-        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getAxes();
+        return PlacementValue_<TransformMat>::downcast(ps.getValue()).get().getRotation();
 
     assert(false);
     //NOTREACHED

@@ -70,7 +70,7 @@ std::ostream& operator<<(std::ostream& o, const UnitVec3& v) {
 }
 
 std::ostream& operator<<(std::ostream& o, const TransformMat& x) {
-    return o << "{" << x.getAxes() << x.getOrigin() << "}";
+    return o << "{" << x.getRotation() << x.getTranslation() << "}";
 }
 
 } // namespace simtk

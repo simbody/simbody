@@ -113,11 +113,11 @@ public:
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const RotationMat&  getR_GB() const {return R_GB;}
+    const RotationMat&  getR_GB() const {return X_GB.getRotation();}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const Vec3&   getOB_G() const {return OB_G; }
+    const Vec3&   getOB_G() const {return X_GB.getTranslation(); }
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
@@ -200,15 +200,14 @@ protected:
     /// concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
                   const Vec3&           originOfB_P, // and R_BP=I in ref config
-                  const RotationMat&    rot_BJ, 
-                  const Vec3&           originOfJ_B)
+                  const TransformMat&   xform_BJ)
       : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
-        R_BJ(rot_BJ), OJ_B(originOfJ_B), refOrigin_P(originOfB_P)
+        X_BJ(xform_BJ), refOrigin_P(originOfB_P)
     {
-        R_PB=RotationMat(); OB_P=refOrigin_P;
+        X_PB=TransformMat(RotationMat(),refOrigin_P);
         V_PB_G=0; sVel=0; sAcc=0;
-        R_GB=RotationMat(); OB_G=0;
+        X_GB=TransformMat();
         COM_G = 0.; COMstation_G = massProps_B.getCOM();
         phi = PhiMatrix(Vec3(0));
         psiT=0; P=0; z=0; tau=0; Gepsilon=0; Y=0;
@@ -227,8 +226,8 @@ protected:
     // Fixed forever in the body-local frame B:
     //      ... supplied on construction
     const MassProperties massProps_B;
-    const RotationMat R_BJ; // orientation of inboard joint frame J, in B
-    const Vec3        OJ_B; // origin of J, measured from B origin, expr. in B
+    const TransformMat X_BJ; // orientation and location of inboard joint frame J
+                             //   measured & expressed in body frame B
 
     // Reference configuration. This is the body frame origin location, measured
     // in its parent's frame in the reference configuration. This vector is fixed
@@ -238,39 +237,36 @@ protected:
     // meaning that the origin point moves relative to the parent only due to translations.)
     // Note that by definition the orientation of the body frame is identical to P
     // in the reference configuration so we don't need to store it.
-    Vec3        refOrigin_P;
+    Vec3 refOrigin_P;
 
     //      ... calculated on construction
-    const InertiaMat  inertia_CB_B;  // centroidal inertia, expr. in B
+    const InertiaMat inertia_CB_B;  // centroidal inertia, expr. in B
 
     // Calculated relative quantities (these are joint-relative quantities, 
     // but not dof dependent).
     //      ... position level
-    RotationMat R_PB; // orientation of B in P
-    Vec3        OB_P; // location of B origin meas & expr in P frame
+    TransformMat X_PB; // configuration of B frame in P, meas & expr in P
 
     //      ... velocity level
-    SpatialVec  V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
+    SpatialVec   V_PB_G; // relative velocity of B in P, but expressed in G (omega & v)
 
     // Calculated spatial quantities
     //      ... position level
 
-    //      Rotation (direction cosine matrix) expressing the body frame B
-    //      in the ground frame G. That is, if you have a vector vB expressed
-    //      body frame and want it in ground, use vG = R_GB*vB. 
-    RotationMat R_GB;
-    Vec3        OB_G;  // origin of B meas & expr in G
-    Vec3        COM_G; // B's COM, meas & expr in G
+    //      Configuration of body B frame measured from & expressed in G.
+    TransformMat X_GB;
 
-    Vec3        COMstation_G;  // measured from B origin, expr. in G
-    InertiaMat  inertia_OB_G;  // about B's origin, expr. in G
+    Vec3         COM_G; // B's COM, meas & expr in G
 
-    PhiMatrix   phi;           // spatial rigid body transition matrix
-    SpatialMat  Mk;            // spatial inertia matrix
-    SpatialMat  P;             // articulated body spatial inertia
-    SpatialMat  tau;
-    SpatialMat  psiT;
-    SpatialMat  Y;             // diag of Omega - for loop constraints
+    Vec3         COMstation_G;  // measured from B origin, expr. in G
+    InertiaMat   inertia_OB_G;  // about B's origin, expr. in G
+
+    PhiMatrix    phi;           // spatial rigid body transition matrix
+    SpatialMat   Mk;            // spatial inertia matrix
+    SpatialMat   P;             // articulated body spatial inertia
+    SpatialMat   tau;
+    SpatialMat   psiT;
+    SpatialMat   Y;             // diag of Omega - for loop constraints
 
     //      ... velocity level
     SpatialVec   a;     // spatial coriolis acceleration
@@ -291,8 +287,7 @@ protected:
 private:   
     /// Calculate all spatial configuration quantities, assuming availability of
     /// joint-specific relative quantities.
-    ///   R_GB
-    ///   OB_G
+    ///   X_GB
     void calcJointIndependentKinematicsPos();
 
     /// Calcluate all spatial velocity quantities, assuming availability of

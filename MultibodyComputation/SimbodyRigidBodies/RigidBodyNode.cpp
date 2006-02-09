@@ -21,10 +21,10 @@ using std::setprecision;
 void RigidBodyNode::addChild(RigidBodyNode* child, const TransformMat& referenceFrame) {
     children.push_back( child );
     child->setParent(this);
-    child->refOrigin_P = referenceFrame.getOrigin(); // ignore frame for now, it's always identity
-    child->R_GB = R_GB;
-    child->OB_G = OB_G + child->refOrigin_P;
-    child->COM_G = child->OB_G + child->COMstation_G;
+    child->refOrigin_P = referenceFrame.getTranslation(); // ignore rotation for now, it's always identity
+    child->X_GB = TransformMat(X_GB.getRotation(), 
+                               X_GB.getTranslation() + child->refOrigin_P);
+    child->COM_G = child->X_GB.getTranslation() + child->COMstation_G;
 }
 
 //
@@ -33,15 +33,15 @@ void RigidBodyNode::addChild(RigidBodyNode* child, const TransformMat& reference
 // Should be calc'd from base to tip.
 void RigidBodyNode::calcJointIndependentKinematicsPos() {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 OB_OP_G = getR_GP()*OB_P;
+    const Vec3 OB_OP_G = getR_GP() * X_PB.getTranslation();
 
     // The Phi matrix conveniently performs parent-to-child shifting
     // on spatial quantities.
     phi = PhiMatrix(OB_OP_G);
 
     // Get spatial configuration of this body.
-    R_GB = getR_GP() * R_PB;
-    OB_G = getOP_G() + OB_OP_G;
+    X_GB = TransformMat(getR_GP() * X_PB.getRotation(),
+                        getOP_G() + OB_OP_G);
 
     // Calculate spatial mass properties. That means we need to transform
     // the local mass moments into the Ground frame and reconstruct the
@@ -50,7 +50,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
     inertia_OB_G = getInertia_OB_B().changeAxes(~getR_GB());
     COMstation_G = getR_GB()*getCOM_B();
 
-    COM_G = OB_G + COMstation_G;
+    COM_G = X_GB.getTranslation() + COMstation_G;
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
@@ -65,24 +65,30 @@ void RigidBodyNode::calcJointIndependentKinematicsPos() {
 // called base to tip: depends on parent's sVel, V_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel() {
-    setSpatialVel(~phi * parent->getSpatialVel()
-                  + V_PB_G);
+    setSpatialVel(~phi*parent->getSpatialVel() + V_PB_G);
     const Vec3& omega   = getSpatialAngVel();
-    const Vec3  gMoment = omega % (inertia_OB_G * omega);
-    const Vec3  gForce  = getMass() * (omega % (omega % COMstation_G));
-    b = SpatialVec(gMoment, 
-                   gForce);
+
+    b = SpatialVec(     omega % (inertia_OB_G*omega),         // gyroscopic moment
+                   getMass()*(omega % (omega%COMstation_G))); // gyroscopic force
 
     const Vec3& vel    = getSpatialLinVel();
     const Vec3& pOmega = parent->getSpatialAngVel();
     const Vec3& pVel   = parent->getSpatialLinVel();
 
-    // calc a: coriolis acceleration
-    a = SpatialMat(crossMat(pOmega),    Mat33(0.),
-                      Mat33(0.)    , crossMat(pOmega)) 
-        * V_PB_G;
-    a += SpatialVec(     Vec3(0.), 
-                    pOmega % (vel-pVel));
+    // Calc a: coriolis acceleration.
+    // Sherm TODO: See Schwieters & Clore Eq. [16], which uses *this*
+    // body's omega (w_k) while the code below uses the *parent* pOmega
+    // (w_k-1). Compare with Jain, Vaidehi, & Rodriguez 1991, Eq. 4.4,
+    // esp. the following paragraph saying that the cross product
+    // will be the same whether we use omega or pOmega in the 2nd term,
+    // because they can only differ along H which is constant between P & B.
+    // (caution: JV&R number backwards so the parent is w_k+1 there).
+    // Is that also true in the first term? I.e., can we use pOmega, omega,
+    // or both below and get the same answers? Anyway the code below is
+    // consistent with JV&R but not obviously consistent with S&C.
+    a =   SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
+        + crossMat(pOmega) * V_PB_G;
+    //  + crossMat(omega)  * V_PB_G;  <-- should work too?
 }
 
 Real RigidBodyNode::calcKineticEnergy() const {
@@ -114,7 +120,7 @@ std::ostream& operator<<(std::ostream& s, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),Vec3(0.),RotationMat(),Vec3(0.)) {}
+      : RigidBodyNode(MassProperties(),Vec3(0.),TransformMat()) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -146,7 +152,7 @@ public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
                       const TransformMat& jointFrame,
                       int& cnt)
-      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame.getAxes(),jointFrame.getOrigin()),
+      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
         stateOffset = cnt;
@@ -292,9 +298,9 @@ public:
     {
     }
 
-    void calcJointKinematicsPos() { 
-        OB_P = refOrigin_P + theta;
-        R_PB = RotationMat(); // Cartesian joint can't change orientation
+    void calcJointKinematicsPos() {
+        // Cartesian joint can't change orientation
+        X_PB = TransformMat(RotationMat(), refOrigin_P + theta);
 
         // Note that this is spatial (and R_GP=R_GB for this joint)
         H[0] = SpatialRow( Row3(0), ~getR_GP()(0) );
@@ -323,8 +329,18 @@ public:
     }
 
     void calcJointKinematicsPos() { 
-        OB_P = refOrigin_P; // torsion joint can't move B origin in P
-        calcR_PB();
+        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
+        const double scale=1.0;
+        const double sinTau = sin( scale * theta(0) );
+        const double cosTau = cos( scale * theta(0) );
+        const Mat33 a( cosTau , -sinTau , 0.0 ,
+                       sinTau ,  cosTau , 0.0 ,
+                       0.0    ,  0.0    , 1.0 );
+        const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
+
+        // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
+        const RotationMat& R_BJ = X_BJ.getRotation();
+        X_PB = TransformMat(R_BJ * R_JiJ * ~R_BJ, refOrigin_P); // torsion can't move B origin in P
         calcH();
     }
 
@@ -333,24 +349,11 @@ public:
     }
 
 private:
-    void calcR_PB() {
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        double scale=1.0;
-        double sinTau = sin( scale * theta(0) );
-        double cosTau = cos( scale * theta(0) );
-        const Mat33 a( cosTau , -sinTau , 0.0 ,
-                       sinTau ,  cosTau , 0.0 ,
-                       0.0    ,  0.0    , 1.0 );
-        const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
-
-        // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
-        R_PB = R_BJ * R_JiJ * ~R_BJ;
-    };
-
     // Calc H matrix in space-fixed coords.
     void calcH() {
         // This only works because the joint z axis is the same in B & P
         // because that's what we rotate around.
+        const RotationMat& R_BJ = X_BJ.getRotation();
         const Vec3 z = getR_GP() * R_BJ(2); // R_BJ=R_PJi
         H[0] = SpatialRow( ~z, Row3(0) );
     }  
@@ -548,8 +551,9 @@ public:
     }
 
     void calcJointKinematicsPos() { 
-        OB_P = refOrigin_P; // ball joint can't move B origin in P
-        ball.calcR_PB(theta, R_PB);
+        X_PB.updTranslation() = refOrigin_P; // ball joint can't move B origin in P
+        ball.calcR_PB(theta, X_PB.updRotation());
+
         // H matrix in space-fixed (P) coords
         H[0] = SpatialRow( ~getR_GP()(0), Row3(0) );
         H[1] = SpatialRow( ~getR_GP()(1), Row3(0) );
@@ -636,8 +640,8 @@ public:
     }
 
     void calcJointKinematicsPos() {
-        OB_P = refOrigin_P + theta.getSubVec<3>(3);
-        ball.calcR_PB(theta.getSubVec<3>(0), R_PB);
+        X_PB.updTranslation() = refOrigin_P + theta.getSubVec<3>(3);
+        ball.calcR_PB(theta.getSubVec<3>(0), X_PB.updRotation());
 
         // H matrix in space-fixed (P) coords
         for (int i=0; i<3; ++i) {
@@ -688,8 +692,8 @@ public:
     }
 
     void calcJointKinematicsPos() { 
-        OB_P = refOrigin_P; // no translation with this joint
-        calcR_PB();
+        X_PB.updTranslation() = refOrigin_P; // no translation with this joint
+        calcR_PB(X_PB.updRotation());
         calcH();
     }
 
@@ -698,7 +702,7 @@ public:
     }
 
 private:
-    void calcR_PB() { 
+    void calcR_PB(RotationMat& R_PB) { 
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0; 
         double sinPhi = sin( scale * theta(0) );
@@ -711,14 +715,16 @@ private:
              0      , cosPhi        , -sinPhi      ,
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
+        const RotationMat& R_BJ = X_BJ.getRotation();
         R_PB = R_BJ * RotationMat::trustMe(a) * ~R_BJ;
     }
 
     void calcH() {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const RotationMat tmpR_GB = getR_GP() * R_PB;
+        const RotationMat tmpR_GB = getR_GP() * X_PB.getRotation();
 
+        const RotationMat& R_BJ = X_BJ.getRotation();
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
@@ -745,8 +751,8 @@ public:
     }
 
     void calcJointKinematicsPos() { 
-        OB_P = refOrigin_P + theta.getSubVec<3>(2);
-        calcR_PB();
+        X_PB.updTranslation() = refOrigin_P + theta.getSubVec<3>(2);
+        calcR_PB(X_PB.updRotation());
         calcH();
     }
 
@@ -755,7 +761,7 @@ public:
     }
 
 private:
-    void calcR_PB() { 
+    void calcR_PB(RotationMat& R_PB) { 
         // double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0;
         double sinPhi = sin( scale * theta(0) );
@@ -770,6 +776,7 @@ private:
             -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
 
         // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
+        const RotationMat& R_BJ = X_BJ.getRotation();
         R_PB = R_BJ * RotationMat::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
     }
 
@@ -777,8 +784,9 @@ private:
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
         const RotationMat& R_GP = getR_GP();
-        const RotationMat tmpR_GB = R_GP * R_PB;
+        const RotationMat tmpR_GB = R_GP * X_PB.getRotation();
 
+        const RotationMat& R_BJ = X_BJ.getRotation();
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
@@ -945,7 +953,7 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::print(int verbose) const {
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
-             << ": pos: " << OB_G << ' ' << '\n';
+             << ": pos: " << X_GB.getTranslation() << ' ' << '\n';
     if (verbose&InternalDynamics::printNodeTheta) 
         cout << setprecision(8)
              << ": theta: " 

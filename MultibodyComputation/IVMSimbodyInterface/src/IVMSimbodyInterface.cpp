@@ -87,7 +87,7 @@ static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const
 }
 
 static IVMFrame toIVMFrame(const TransformMat& f) {
-    return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
+    return IVMFrame(toCDSMat33(f.getRotation().asMat33()), toCDSVec3(f.getTranslation()));
 }
 
 static TransformMat toFrame(const IVMFrame& f) {
@@ -268,8 +268,9 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
             // and aligned with its parent's reference frame.
             const TransformMat& fBJ  = joints[i]->getMovingFrame().getValue();       // on B
             const TransformMat& fPJi = joints[i]->getReferenceFrame().getValue();    // on P
-            const TransformMat fBR(fBJ.getAxes()*~fPJi.getAxes(), fBJ.getOrigin());
-            const TransformMat fRJ(fPJi.getAxes(), Vec3(0));
+            const TransformMat fBR(fBJ.getRotation()*~fPJi.getRotation(), 
+                                   fBJ.getTranslation());
+            const TransformMat fRJ(fPJi.getRotation(), Vec3(0));
 
             const Real&       mass      = childBody.getMass().getValue();
             const Vec3&       com_B     = childBody.getMassCenter().getValue();
@@ -277,7 +278,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
             const Vec3 com_R = fBR.shiftBaseStationToFrame(com_B);
             const InertiaMat iner_CB_B = iner_OB_B.shiftToCOM(com_B,mass);
-            const InertiaMat iner_CB_R = iner_CB_B.changeAxes(fBR.getAxes());
+            const InertiaMat iner_CB_R = iner_CB_B.changeAxes(fBR.getRotation());
             const InertiaMat iner_OR_R = iner_CB_R.shiftFromCOM(-com_R,mass);
 
             mbs2tree.push_back(RBTreeMap(&childBody,

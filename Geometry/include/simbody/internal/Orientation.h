@@ -235,8 +235,8 @@ public:
 
     // return frame_RY
     TransformMat compose(const TransformMat& frame_FY) const {
-        const RotationMat rot_BY = R_BF * frame_FY.getAxes();
-        return TransformMat(rot_BY, OF_B + R_BF * frame_FY.getOrigin());
+        const RotationMat rot_BY = R_BF * frame_FY.getRotation();
+        return TransformMat(rot_BY, OF_B + R_BF * frame_FY.getTranslation());
     }
 
     Vec3 xformFrameVecToBase(const Vec3& vF) const {return R_BF*vF;}
@@ -248,11 +248,11 @@ public:
         return xformBaseVecToFrame(sB - OF_B);
     }
 
-    const RotationMat& getAxes() const { return R_BF; }
-    RotationMat&       updAxes()       { return R_BF; }
+    const RotationMat& getRotation() const { return R_BF; }
+    RotationMat&       updRotation()       { return R_BF; }
 
-    const Vec3&  getOrigin() const { return OF_B; }
-    Vec3&        updOrigin()       { return OF_B; }
+    const Vec3&  getTranslation() const { return OF_B; }
+    Vec3&        updTranslation()       { return OF_B; }
 
 private:
     RotationMat R_BF;   // rotation matrix that expresses F's axes in R

@@ -214,7 +214,7 @@ static MassProperties toMassProperties(const IVMMassProperties& mp) {
 }
 
 static IVMFrame toIVMFrame(const TransformMat& f) {
-    return IVMFrame(toCDSMat33(f.getAxes().asMat33()), toCDSVec3(f.getOrigin()));
+    return IVMFrame(toCDSMat33(f.getRotation().asMat33()), toCDSVec3(f.getTranslation()));
 }
 
 static TransformMat toFrame(const IVMFrame& f) {
