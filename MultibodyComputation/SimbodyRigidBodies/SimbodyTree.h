@@ -7,6 +7,8 @@
 #include <vector>
 #include <iostream>
 
+class RigidBodyTree;
+
 namespace simtk {
 
 class TransformMat;
@@ -16,73 +18,54 @@ class ForceSystem;
 class SimbodyTreeRep;
 class MassProperties;
 
-struct SimbodyTreeResults {
-    Stage realizationLevel;     // must be kept up to date by State changes
-
-    // TODO: constraint runtimes
-
-    // TODO: Modeling
-    //   counts of various things resulting from modeling choices,
-    //   constraint enabling, prescribed motion
-
-    // TODO: Parameters
-    //   body mass props; particle masses
-    //   X_BJ, X_PJi transforms
-    //   distance constraint distances & station positions
-
-    // Configuration
-    std::vector<TransformMat> bodyConfigInParent; // nb (joint config)
-    std::vector<TransformMat> bodyConfigInGround; // nb
-    Vector_<SpatialMat>       bodySpatialInertia; // nb
-
-    Vector positionConstraintErrors;              // npc
-    Matrix_<Vec3> storageForHt;                   // 2 x ndof
-
-    // Motion
-    Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
-    Vector_<SpatialVec> bodyVelocityInGround;     // nb
-
-    Vector velocityConstraintErrors;              // nvc
-    Vector qdot;                                  // nq
-
-    // Dynamics
-    Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
-    Vector_<SpatialVec> bodyAccelerationInGround; // nb
-    Vector_<SpatialVec> coriolisForces;           // nb (& gyroscopic, Pa+b)
-
-    Vector accelerationConstraintErrors;          // nac
-    Vector udotAndLambda;                         // nu+nac
-    Vector netHingeForces;                        // nu (T-(~Am+R(F+C))
-    Vector qdotdot;                               // nq
-
-    // dynamic temporaries
-    Vector_<Real>       storageForDI;   // sum(nu[j]^2)
-    Matrix_<Vec3>       storageForG;    // 2 X ndof
-    Vector              nu;
-    Vector              epsilon;
-
+class JointSpecification {
+public:
+    JointSpecification(const Joint::JointType t, bool rev)
+        : type(t), reversed(rev) { }
+    Joint::JointType getJointType() const {return type;}
+    bool isReversed() const {return reversed;}
+private:
+    Joint::JointType type;
+    bool             reversed;
 };
 
-struct SimbodyTreeState {
-    // Modeling
-    bool              useEulerAngles;
-    std::vector<bool> prescribed;           // nb
-    std::vector<bool> enabled;              // nac
+/** 
+ * Coordinate allocation:
+ * Body 0 is ground and has no coordinates. Same for bodies which are welded. We
+ * still set qoff and uoff as we would if these had dofs, but nu==nu==0 for these
+ * so the next body has the same qoff & uoff.
+ *
+ *
+ *   Body       1       2    3      4      ...
+ *         ---------- ----- --- ---------- ---
+ *      q |          |     |   |          |
+ *         ---------- ----- --- ---------- ---
+ *                    ^
+ *                    qoff[2], nq[2], nqmax[2]
+ *
+ *   Body       1     2    3    4      ...
+ *         -------- ----- --- -------- ---
+ *      u |        |     |   |        |
+ *         -------- ----- --- -------- ---
+ *                  ^
+ *                  uoff[2], nu[2] (==ndof[2])
+ *
+ * qdot, qdotdot are allocated exactly as for q. Derivatives of unused coordinates
+ * are set to 0.
+ * udot, prescribedUdot are allocated exactly as for u. All udots are set.
+ * Entries of prescribedUdot which do not correspond to prescribed joints will
+ * be ignored and need not be set.
+ */
 
-    // Parametrization
-    // TODO: body masses, etc.
+class SBState {
+public:
+    SBState() : vars(0), cache(0) { }
+    ~SBState();
+    SBState(const SBState&);
+    SBState& operator=(const SBState&);
 
-    // Configuration
-    Vector q;                               // nq
-
-    // Motion
-    Vector u;                               // nu
-
-    // Dynamics
-    Vector_<SpatialVec> appliedBodyForces;  // nb
-    Vector              appliedJointForces; // nu
-    Vector              prescribedUdot;     // nu
-
+    class SimbodyTreeVariables*         vars;
+    mutable class SimbodyTreeResults*   cache;
 };
 
 
@@ -163,55 +146,92 @@ public:
 
     /// Topology and default values are frozen after this call.
     void         finishConstruction();
-    const State& getDefaultState() const;
-    void         realize(const State&, Stage) const;
+    void         realize(const SBState&, Stage) const;
 
-    // These require realize(Modeling) afterwards.
+
+    // These are available after finishConstruction().
+
+    /// The number of bodies includes all rigid bodies, particles, massless
+    /// bodies and ground. Bodies and their inboard joints have the same 
+    /// number, starting with ground at 0 with a regular labeling such
+    /// that children have higher body numbers than their parents. Joint 0
+    /// is meaningless, but otherwise joint n is the inboard joint of body n.
+    int getNBodies() const;
+
+    /// The sum of all the joint degrees of freedom. This is also the length
+    /// of state variable vector u.
+    int getTotalDOF() const; 
+
+    /// The sum of all the q vector allocations for each joint. These may not
+    /// all be in use.
+    int getTotalQAlloc() const;
+
+    /// This is the total number of defined constraints, each of which may
+    /// generate more than one constraint equation.
+    int getNConstraints() const;
+
+    /// This is the sum of all the allocations for constraint multipliers.
+    int getTotalMaxNMult() const;
+
+    // Per-body info.
+    int getQIndex(int body) const;
+    int getQAlloc(int body) const; // must wait for modeling for actual NQ
+    int getUIndex(int body) const;
+    int getDOF   (int body) const; // always same as # u's
+
+    // Per-constraint info;
+    int getMultIndex(int constraint) const;
+    int getMaxNMult (int constraint) const;  // wait for modeling to get actual NMult
 
     /// For all ball and free joints, decide what method we should use
     /// to model their orientations. Choices are: quaternions (best
     /// for dynamics), or rotation angles (1-2-3 Euler sequence, good for
     /// optimization). TODO: allow settable zero rotation for Euler sequence,
     /// with convenient way to say "this is zero".
-    void setUseRotationAngles(State&, bool) const;
-    void setJointIsPrescribed(State&, int joint, bool) const;
-    void setConstraintIsEnabled(State&, int constraint, bool) const;
+    void setUseEulerAngles(SBState&, bool) const;
+    void setJointIsPrescribed(SBState&, int joint, bool) const;
+    void setConstraintIsEnabled(SBState&, int constraint, bool) const;
 
+    // Return modeling information from the SBState.
+    bool usingEulerAngles() const;
+    bool isJointPrescribed  (const SBState&, int joint)      const;
+    bool isConstraintEnabled(const SBState&, int constraint) const;
 
-    void setJointQ(State&, int joint, const Real*) const;
-    void setJointU(State&, int joint, const Real*) const;
-    void setPrescribedUdot(State&, int joint, const Real*) const;
+    /// Modeling Stage (available after realize(Modeling))
+    const SBState& getDefaultState() const;
 
-    // Return modeling information from the State.
-    bool isJointPrescribed  (const State&, int joint) const;
-    bool isConstraintEnabled(const State&, int constraint) const;
+    // Parameter setting & getting would go here 
 
+    void setJointQ(SBState&, int joint, const Real*) const;
+    void setJointU(SBState&, int joint, const Real*) const;
+    void setPrescribedUdot(SBState&, int joint, const Real*) const;
+    void clearAppliedForces(SBState&) const;
 
-    void clearAppliedForces(State&) const;
+    /// Configuration Stage. 
 
-    void applyGravity    (State&) const;
-    void applyPointForce (State&, int body, const Vec3& stationInB, 
+    void applyGravity    (SBState&, const Vec3& g) const;
+    void applyPointForce (SBState&, int body, const Vec3& stationInB, 
                           const Vec3& forceInG) const;
-    void applyBodyTorque (State&, int body, 
+    void applyBodyTorque (SBState&, int body, 
                           const Vec3& torqueInG) const;
-    void applyJointForce(State&, int joint, const Real*) const;
+    void applyJointForce(SBState&, int body, const Real*) const;
 
 
-    const TransformMat& getBodyConfiguration(const State&, int body) const;
-    const SpatialVec&   getBodyVelocity     (const State&, int body) const;
-    const SpatialVec&   getBodyAcceleration (const State&, int body) const;
+    const TransformMat& getBodyConfiguration(const SBState&, int body) const;
+    const SpatialVec&   getBodyVelocity     (const SBState&, int body) const;
+    const SpatialVec&   getBodyAcceleration (const SBState&, int body) const;
 
-    Real&        updTime(State&) const;
-    Vector&      updQ   (State&) const;
-    Vector&      updU   (State&) const;
-    ForceSystem& updForceSystem(State&) const;
+    Vector&      updQ   (SBState&) const;
+    Vector&      updU   (SBState&) const;
+    ForceSystem& updForceSystem(SBState&) const;
 
-    const Vector& getQDot   (const State&) const;
-    const Vector& getUDot   (const State&) const;
-    const Vector& getQDotDot(const State&) const;
+    const Vector& getQDot   (const SBState&) const;
+    const Vector& getUDot   (const SBState&) const;
+    const Vector& getQDotDot(const SBState&) const;
 
 private:
-    SimbodyTreeRep* rep;
+    RigidBodyTree* rep;
+    //SimbodyTreeRep* rep;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyTree&);

@@ -10,6 +10,25 @@
 
 #include <string>
 
+SBState::~SBState() {
+    delete vars;
+    delete cache;
+}
+
+SBState::SBState(const SBState& src) : vars(0), cache(0) {
+    if (src.vars)  vars  = new SimbodyTreeVariables(*src.vars);
+    if (src.cache) cache = new SimbodyTreeResults(*src.cache);
+}
+
+SBState& SBState::operator=(const SBState& src) {
+    if (&src != this) {
+        delete vars; delete cache; vars = 0; cache = 0;
+        if (src.vars)  vars  = new SimbodyTreeVariables(*src.vars);
+        if (src.cache) cache = new SimbodyTreeResults(*src.cache);
+    }
+    return *this;
+}
+
 
 void RBStation::calcPosInfo(RBStationRuntime& rt) const {
     rt.station_G = getNode().getR_GB() * station_B;
@@ -103,25 +122,22 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&      parent,
     return nodeNum;
 }
 
-// Add a new ground node, taking over the heap space.
-int RigidBodyTree::addGroundNode(RigidBodyNode*& gnodep)
-{
-    assert(std::string(gnodep->type())=="ground");
+// Add a new ground node. Must be first node added during construction.
+void RigidBodyTree::addGroundNode() {
+    // Make sure this is the first body
+    assert(nodeNum2NodeMap.size() == 0);
+    assert(rbNodeLevels.size() == 0);
 
-    RigidBodyNode* n = gnodep; gnodep=0;  // take ownership
+    RigidBodyNode* n = 
+        RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
+                              false, false, nextUSlot, nextQSlot);
     n->setLevel(0);
 
     // Put ground node in tree at level 0
-    if (rbNodeLevels.size()==0) rbNodeLevels.resize(1);
-    const int nxt = rbNodeLevels[0].size();
+    rbNodeLevels.resize(1);
     rbNodeLevels[0].push_back(n);
-
-    // Assign a unique reference integer to this node, for use by caller
-    const int nodeNum = nodeNum2NodeMap.size();
-    nodeNum2NodeMap.push_back(RigidBodyNodeIndex(0,nxt));
-    n->setNodeNum(nodeNum);
-
-    return nodeNum;
+    nodeNum2NodeMap.push_back(RigidBodyNodeIndex(0,0));
+    n->setNodeNum(0);
 }
 
 // Add a distance constraint and allocate slots to hold the runtime information for
@@ -135,23 +151,41 @@ int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s
     return distanceConstraints.size()-1;
 }
 
-void RigidBodyTree::finishConstruction(const double& ctol, int verbose) {
-    DOFTotal = dimTotal = 0;
+// Here we lock in the topological structure of the multibody system,
+// and compute allocation sizes for state variables.
+void RigidBodyTree::realizeConstruction(const double& ctol, int verbose) {
+    DOFTotal = SqDOFTotal = maxNQTotal = 0;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            DOFTotal += rbNodeLevels[i][j]->getDOF();
-            dimTotal += rbNodeLevels[i][j]->getDim();
+            const int ndof = rbNodeLevels[i][j]->getDOF();
+            DOFTotal += ndof; SqDOFTotal += ndof*ndof;
+            maxNQTotal += rbNodeLevels[i][j]->getMaxNQ();
         }
 
     lConstraints = new LengthConstraints(*this, ctol, verbose);
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);
 }
 
-// Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::setPos(const Vector& pos)  {
+// Here we lock in modeling choices like whether to use quaternions or Euler
+// angles; what joints are prescribed, etc.
+void RigidBodyTree::realizeModeling(const SBState& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->setPos(pos); 
+            rbNodeLevels[i][j]->realizeModeling(s); 
+}
+
+// Here we lock in parameterization of the model, such as body masses.
+void RigidBodyTree::realizeParameters(const SBState& s) const {
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeParameters(s); 
+}
+
+// Set generalized coordinates: sweep from base to tips.
+void RigidBodyTree::realizeConfiguration(const Vector& pos)  {
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->realizeConfiguration(pos); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcPosInfo(
@@ -160,10 +194,10 @@ void RigidBodyTree::setPos(const Vector& pos)  {
 
 // Set generalized speeds: sweep from base to tip.
 // setPos() must have been called already.
-void RigidBodyTree::setVel(const Vector& vel)  {
+void RigidBodyTree::realizeVelocity(const Vector& vel)  {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->setVel(vel); 
+            rbNodeLevels[i][j]->realizeVelocity(vel); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcVelInfo(
@@ -306,7 +340,8 @@ std::ostream& operator<<(std::ostream& o, const RigidBodyTree& tree) {
                        << tree.nodeNum2NodeMap[i].offset << ";";
         const RigidBodyNode& n = tree.getRigidBodyNode(i);
         o << n.getNodeNum() << "," << n.getLevel() 
-          <<"("<< n.getStateOffset() <<":"<< n.getDim() <<")"<< std::endl;
+          <<"(u"<< n.getUIndex()<<":"<<n.getDOF() 
+          <<",q"<< n.getQIndex()<<":"<<n.getMaxNQ()<<")"<< std::endl;
     }
 
     return o;

@@ -131,8 +131,10 @@ public:
     /*virtual*/void calcInternalForce(const SpatialVec&) {}
     /*virtual*/void calcAccel() {}
 
-    /*virtual*/void setPos(const Vector&) {}
-    /*virtual*/void setVel(const Vector&) {}
+    /*virtual*/void realizeModeling(const SBState&) const {}
+    /*virtual*/void realizeParameters(const SBState&) const {}
+    /*virtual*/void realizeConfiguration(const Vector&) {}
+    /*virtual*/void realizeVelocity(const Vector&) {}
     /*virtual*/void setVelFromSVel(const SpatialVec&) {}
     /*virtual*/void enforceConstraints(Vector& pos, Vector& vel) {}
 
@@ -150,13 +152,14 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const TransformMat& jointFrame,
-                      int& cnt)
+                      const TransformMat&   jointFrame,
+                      int&                  nextUSlot,
+                      int&                  nextQSlot)
       : RigidBodyNode(mProps_B,Vec3(0.),jointFrame),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
-        stateOffset = cnt;
-        cnt += dof;
+        uIndex = nextUSlot; nextUSlot += getDOF();
+        qIndex = nextQSlot; nextQSlot += getMaxNQ();
     }
 
     virtual ~RigidBodyNodeSpec() {}
@@ -180,8 +183,14 @@ public:
     ///   V_PB_G  relative velocity of B in P, expr. in G
     virtual void calcJointKinematicsVel()=0;
 
+    void realizeModeling(const simtk::SBState&) const {
+    }
+
+    void realizeParameters(const simtk::SBState&) const {
+    }
+
     /// Set a new configuration and calculate the consequent kinematics.
-    void setPos(const Vector& posv) {
+    void realizeConfiguration(const Vector& posv) {
         forceInternal = 0.;  // forget these
         setJointPos(posv);
         calcJointKinematicsPos();
@@ -190,7 +199,7 @@ public:
 
     /// Set new velocities for the current configuration, and calculate
     /// all the velocity-dependent terms.
-    void setVel(const Vector& velv) {
+    void realizeVelocity(const Vector& velv) {
         // anything to initialize?
         setJointVel(velv);
         calcJointKinematicsVel();
@@ -219,8 +228,9 @@ public:
         Vec<dof>::updAs(&t[stateOffset]) = forceInternal;
     }
 
-    int          getDOF() const { return dof; }
-    virtual int  getDim() const { return dof; } // dim can be larger than dof
+    int          getDOF()              const { return dof; }
+    virtual int  getMaxNQ()            const { return dof; } // maxNQ can be larger than dof
+    virtual int  getNQ(bool useAngles) const { return dof; } // DOF <= NQ <= maxNQ
 
     virtual void   print(int) const;
 
@@ -254,11 +264,11 @@ public:
 protected:
     // These are the joint-specific quantities
     //      ... position level
-    Vec<dof>            theta;   // internal coordinates
-    Mat<dof,2,Row3,1,2> H;       // joint transition matrix (spatial); note row-order packing
-                                 //   so that transpose will be a nice column-packed matrix
-    Mat<dof,dof>        DI;
-    Mat<2,dof,Vec3>     G;       // structure is like ~H; that is, default column-packed matrix
+    Vec<dof>                theta;   // internal coordinates
+    Mat<dof,2,Row3,1,2>     H;       // joint transition matrix (spatial); note row-order packing
+                                     //   so that transpose will be a nice column-packed matrix
+    Mat<dof,dof>            DI;
+    Mat<2,dof,Vec3>         G;       // structure is like ~H; that is, default column-packed matrix
 
     //      ... velocity level
     Vec<dof>                dTheta;  // internal coordinate time derivatives
@@ -293,8 +303,9 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
-                    int&                  nextStateOffset)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextStateOffset)
+                    int&                  nextUSlot,
+                    int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextQSlot)
     {
     }
 
@@ -322,17 +333,18 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const TransformMat&          jointFrame,
-                  int&                  nextStateOffset)
-      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextStateOffset)
+                  const TransformMat&   jointFrame,
+                  int&                  nextUSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextQSlot)
     {
     }
 
     void calcJointKinematicsPos() { 
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         const double scale=1.0;
-        const double sinTau = sin( scale * theta(0) );
-        const double cosTau = cos( scale * theta(0) );
+        const double sinTau = sin( scale * theta[0] );
+        const double cosTau = cos( scale * theta[0] );
         const Mat33 a( cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 );
@@ -365,6 +377,8 @@ private:
  * of this class and delegate to it.
  */
 class ContainedBallJoint {
+    Mat43   E;  // qdot = 0.5*E*u (and u=2*~E*qdot)
+    Mat43   dE; // dE/dt
     Vec4    q; //Euler parameters for rotation relative to parent
     Vec4    dq;
     Vec4    ddq;
@@ -376,78 +390,74 @@ class ContainedBallJoint {
 public:
     virtual const char* type() { return "rotate3"; }
 
-    ContainedBallJoint(int& cnt, bool shouldUseEuler)
-      : q(1.0,0.0,0.0,0.0), dq(0.), ddq(0.), 
+    ContainedBallJoint(bool shouldUseEuler)
+      : q(1,0,0,0), dq(0), ddq(0), 
         useEuler(shouldUseEuler)
     { 
-        if ( !useEuler )
-            cnt++;
     }
-    
-    int  getBallDim() const { 
+
+    int getBallDOF() const {return 3;}
+    int getBallMaxNQ() const {return 4;} 
+    int getBallNQ(bool useAngles) const { 
         if (useEuler) return 3; else return 4; 
     }
 
-    void setBallPos(int stateOffset, const Vector& posv, Vec3& theta) {
-        if (useEuler) theta = Vec3::getAs(&posv[stateOffset]);
-        else          q     = Vec4::getAs(&posv[stateOffset]);
+    void setBallPos(int qIndex, const Vector& posv, Vec3& theta) {
+        if (useEuler) 
+            theta = Vec3::getAs(&posv[qIndex]);
+        else {
+            q = Vec4::getAs(&posv[qIndex]);
+            //TODO: should normalize q here?
+            E = Mat43(-q[1],-q[2],-q[3],
+                       q[0], q[3],-q[2],    // TODO: signs???
+                      -q[3], q[0], q[1],
+                       q[2],-q[1], q[0]);
+        }
     } 
 
-    void getBallPos(const Vec3& theta, int stateOffset, Vector& posv) const {
-        if (useEuler) Vec3::updAs(&posv[stateOffset]) = theta;
-        else          Vec4::updAs(&posv[stateOffset]) = q;
+    void getBallPos(const Vec3& theta, int qIndex, Vector& posv) const {
+        if (useEuler) Vec3::updAs(&posv[qIndex]) = theta;
+        else          Vec4::updAs(&posv[qIndex]) = q;
     }
 
-    void setBallVel(int stateOffset, const Vector& velv, Vec3& dTheta) { 
-        if (useEuler)
-            dTheta = Vec3::getAs(&velv[stateOffset]);
-        else {
-            dq = Vec4::getAs(&velv[stateOffset]);
-            const Mat34 M(-q(1), q(0),-q(3), q(2),
-                          -q(2), q(3), q(0),-q(1),
-                          -q(3),-q(2), q(1), q(0));
-            dTheta = 2.0*( M * dq );
+    void setBallVel(int uIndex, const Vector& velv, Vec3& dTheta) { 
+        dTheta = Vec3::getAs(&velv[uIndex]);
+        if (useEuler) {
+            dq = 0.5*(E*dTheta);
+            dE = Mat43(-dq[1],-dq[2],-dq[3],
+                        dq[0], dq[3],-dq[2],    // TODO: signs???
+                       -dq[3], dq[0], dq[1],
+                        dq[2],-dq[1], dq[0]);
         }
     }
 
-    void getBallVel(const Vec3& dTheta, int stateOffset, Vector& velv) const {
-        if (useEuler) Vec3::updAs(&velv[stateOffset]) = dTheta;
-        else          Vec4::updAs(&velv[stateOffset]) = dq;
+    void getBallVel(const Vec3& dTheta, int uIndex, Vector& velv) const {
+        Vec3::updAs(&velv[uIndex]) = dTheta;
+        // TODO: dq??
     }
 
     void calcBallAccel(const Vec3& omega, const Vec3& dOmega)
     {
         // called after calcAccel
         if (useEuler) return; // nothing to do here -- ddTheta is dOmega
-
-        const Mat43 M(-q(1),-q(2),-q(3),
-                       q(0), q(3),-q(2),
-                      -q(3), q(0), q(1),
-                       q(2),-q(1), q(0));
-
-        const Mat43 dM(-dq(1),-dq(2),-dq(3),
-                        dq(0), dq(3),-dq(2),
-                       -dq(3), dq(0), dq(1),
-                        dq(2),-dq(1), dq(0));
-
-        ddq = 0.5*(dM*omega + M*dOmega);
+        ddq = 0.5*(dE*omega + E*dOmega);
     }
 
-    void getBallAccel(const Vec3& ddTheta, int stateOffset, Vector& accv) const
+    void getBallAccel(const Vec3& ddTheta, int uIndex, Vector& accv) const
     {
-        if (useEuler) Vec3::updAs(&accv[stateOffset]) = ddTheta;
-        else          Vec4::updAs(&accv[stateOffset]) = ddq;
+        Vec3::updAs(&accv[uIndex]) = ddTheta;
+        // TODO: ddq ??
     }
 
     void calcR_PB(const Vec3& theta, RotationMat& R_PB) {
         if (useEuler) {
             // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
-            cPhi   = cos( theta(0) *RigidBodyNode::DEG2RAD );
-            sPhi   = sin( theta(0) *RigidBodyNode::DEG2RAD );
-            cTheta = cos( theta(1) *RigidBodyNode::DEG2RAD );
-            sTheta = sin( theta(1) *RigidBodyNode::DEG2RAD );
-            cPsi   = cos( theta(2) *RigidBodyNode::DEG2RAD );
-            sPsi   = sin( theta(2) *RigidBodyNode::DEG2RAD );
+            cPhi   = cos( theta[0] *RigidBodyNode::DEG2RAD );
+            sPhi   = sin( theta[0] *RigidBodyNode::DEG2RAD );
+            cTheta = cos( theta[1] *RigidBodyNode::DEG2RAD );
+            sTheta = sin( theta[1] *RigidBodyNode::DEG2RAD );
+            cPsi   = cos( theta[2] *RigidBodyNode::DEG2RAD );
+            sPsi   = sin( theta[2] *RigidBodyNode::DEG2RAD );
             
             // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
             // of Spacecraft Dynamics.
@@ -457,6 +467,7 @@ public:
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
             R_PB = RotationMat::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
+            // TODO: should normalize q here??
             const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
             const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
             const Real q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
@@ -468,21 +479,27 @@ public:
         }
     }
 
-    void enforceBallConstraints(int offset, Vector& posv, Vector& velv) {
+    // Fix up the quaternions in posv. Side effect: also cleans up q and dq locally.
+    void enforceBallConstraints(int qIndex, int uIndex, Vector& posv, Vector& velv) {
         if ( !useEuler ) {
-            q  = Vec4::getAs(&posv[offset]);
-            dq = Vec4::getAs(&velv[offset]);
+            q  = Vec4::getAs(&posv[qIndex]);
+            //dq = Vec4::getAs(&velv[offset]);
 
             q  /= q.norm();     // Normalize Euler parameters at each time step.
-            dq -= dot(q,dq)*q; // Also fix velocity: error is prop. to position component.
+            //dq -= dot(q,dq)*q; // Also fix velocity: error is prop. to position component.
+            const Mat43 ENorm(-q[1],-q[2],-q[3],
+                               q[0], q[3],-q[2],    // TODO: signs???
+                              -q[3], q[0], q[1],
+                               q[2],-q[1], q[0]);
+            const Vec3 w = Vec3::getAs(&velv[uIndex]);
+            dq = 0.5*(ENorm*w);
 
-            Vec4::updAs(&posv[offset]) =  q;
-            Vec4::updAs(&velv[offset]) = dq;
+            Vec4::updAs(&posv[qIndex]) =  q;
         }
     }
 
 
-    void getBallInternalForce(const Vec3& forceInternal, int offset, Vector& v) const {
+    void getBallInternalForce(const Vec3& forceInternal, int uIndex, Vector& v) const {
         //dependency: calcR_PB must be called first
         assert( useEuler );
 
@@ -492,16 +509,12 @@ public:
                        cPhi*cTheta , sPhi*cTheta ,-sTheta );
         Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
 
-        Vec3::updAs(&v[offset]) = eTorque;
+        Vec3::updAs(&v[uIndex]) = eTorque;
     }
 
     void setBallDerivs(const Vec3& omega) {
         assert( !useEuler );
-        const Mat43 M(-q(1),-q(2),-q(3),
-                       q(0), q(3),-q(2),
-                      -q(3), q(0), q(1),
-                       q(2),-q(1), q(0));
-        dq = 0.5*M*omega;
+        dq = 0.5*E*omega;
     } 
 };
 
@@ -516,30 +529,32 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  int&                  nextStateOffset,
+                  int&                  nextUSlot,
+                  int&                  nextQSlot,
                   bool                  useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextStateOffset),
-        ball(nextStateOffset,useEuler)
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextQSlot),
+        ball(useEuler)
     {
     }
     
-    int  getDim() const { return ball.getBallDim(); } 
+    int getMaxNQ()           const  { return ball.getBallMaxNQ(); }
+    int getNQ(bool useAngles) const { return ball.getBallNQ(useAngles); } 
 
     void setJointPos(const Vector& posv) {
-        ball.setBallPos(stateOffset, posv, theta);
+        ball.setBallPos(qIndex, posv, theta);
     } 
 
     void getPos(Vector& posv) const {
-        ball.getBallPos(theta, stateOffset, posv);
+        ball.getBallPos(theta, qIndex, posv);
     }
 
     // setPos must have been called previously
     void setJointVel(const Vector& velv) {
-        ball.setBallVel(stateOffset, velv, dTheta);
+        ball.setBallVel(uIndex, velv, dTheta);
     }
 
     void getVel(Vector& velv) const {
-        ball.getBallVel(dTheta, stateOffset, velv);
+        ball.getBallVel(dTheta, uIndex, velv);
     }
 
     void calcJointAccel() {
@@ -547,7 +562,7 @@ public:
     }
 
     void getAccel(Vector& accv) const {
-        ball.getBallAccel(ddTheta, stateOffset, accv);
+        ball.getBallAccel(ddTheta, uIndex, accv);
     }
 
     void calcJointKinematicsPos() { 
@@ -566,11 +581,11 @@ public:
     }
 
     void enforceConstraints(Vector& posv, Vector& velv) {
-        ball.enforceBallConstraints(stateOffset, posv, velv);
+        ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
     }
 
     void getInternalForce(Vector& v) const {
-        ball.getBallInternalForce(forceInternal, stateOffset, v);
+        ball.getBallInternalForce(forceInternal, uIndex, v);
     }
 
     void setVelFromSVel(const SpatialVec& sVel) {
@@ -590,39 +605,41 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           int&                  nextStateOffset,
+                           int&                  nextUSlot,
+                           int&                  nextQSlot,
                            bool                  useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextStateOffset),
-        ball(nextStateOffset,useEuler)
+      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextQSlot),
+        ball(useEuler)
     {
     }
     
-    int  getDim() const { return ball.getBallDim() + 3; } 
+    int getMaxNQ()            const { return 3 + ball.getBallMaxNQ(); }
+    int getNQ(bool useAngles) const { return 3 + ball.getBallNQ(useAngles); } 
 
     void setJointPos(const Vector& posv) {
         Vec3 th;
-        ball.setBallPos(stateOffset, posv, th);
+        ball.setBallPos(qIndex, posv, th);
         theta.updSubVec<3>(0) = th;
-        theta.updSubVec<3>(3) = Vec3::getAs(&posv[stateOffset+ball.getBallDim()]);
+        theta.updSubVec<3>(3) = Vec3::getAs(&posv[qIndex+ball.getBallNQ()]);
     } 
 
     void getPos(Vector& posv) const {
-        ball.getBallPos(theta.getSubVec<3>(0), stateOffset, posv);
-        Vec3::updAs(&posv[stateOffset+ball.getBallDim()]) 
+        ball.getBallPos(theta.getSubVec<3>(0), qIndex, posv);
+        Vec3::updAs(&posv[qIndex+ball.getBallNQ()]) 
             = theta.getSubVec<3>(3);
     }
 
     // setPos must have been called previously
     void setJointVel(const Vector& velv) {
         Vec3 dTh;
-        ball.setBallVel(stateOffset, velv, dTh);
+        ball.setBallVel(uIndex, velv, dTh);
         dTheta.updSubVec<3>(0) = dTh;
-        dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[stateOffset+ball.getBallDim()]);
+        dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[uIndex+ball.getBallDOF()]);
     }
 
     void getVel(Vector& velv) const {
-        ball.getBallVel(dTheta.getSubVec<3>(0), stateOffset, velv);
-        Vec3::updAs(&velv[stateOffset+ball.getBallDim()]) 
+        ball.getBallVel(dTheta.getSubVec<3>(0), uIndex, velv);
+        Vec3::updAs(&velv[uIndex+ball.getBallDOF()]) 
             = dTheta.getSubVec<3>(3);
     }
 
@@ -634,8 +651,8 @@ public:
     }
 
     void getAccel(Vector& accv) const {
-        ball.getBallAccel(ddTheta.getSubVec<3>(0), stateOffset, accv);
-        Vec3::updAs(&accv[stateOffset+ball.getBallDim()]) 
+        ball.getBallAccel(ddTheta.getSubVec<3>(0), uIndex, accv);
+        Vec3::updAs(&accv[uIndex+ball.getBallDOF()]) 
             = ddTheta.getSubVec<3>(3);
     }
 
@@ -656,14 +673,14 @@ public:
     }
 
     void enforceConstraints(Vector& posv, Vector& velv) {
-        ball.enforceBallConstraints(stateOffset, posv, velv);
+        ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
     }
 
 
     void getInternalForce(Vector& v) const {
         const Vec3 torque = forceInternal.getSubVec<3>(0);
-        ball.getBallInternalForce(torque, stateOffset, v);
-        Vec3::updAs(&v[stateOffset+ball.getBallDim()]) =
+        ball.getBallInternalForce(torque, uIndex, v);
+        Vec3::updAs(&v[uIndex+ball.getBallDOF()]) =
             forceInternal.getSubVec<3>(3);
     }
 
@@ -685,9 +702,10 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const TransformMat&          jointFrame,
-                  int&                  nextStateOffset)
-      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextStateOffset)
+                  const TransformMat&   jointFrame,
+                  int&                  nextUSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextQSlot)
     {
     }
 
@@ -705,10 +723,10 @@ private:
     void calcR_PB(RotationMat& R_PB) { 
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0; 
-        double sinPhi = sin( scale * theta(0) );
-        double cosPhi = cos( scale * theta(0) );
-        double sinPsi = sin( scale * theta(1) );
-        double cosPsi = cos( scale * theta(1) );
+        double sinPhi = sin( scale * theta[0] );
+        double cosPhi = cos( scale * theta[0] );
+        double sinPsi = sin( scale * theta[1] );
+        double cosPsi = cos( scale * theta[1] );
 
         const Mat33 a //Ry(psi) * Rx(phi)
             (cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
@@ -744,9 +762,10 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const TransformMat&          jointFrame,
-                           int&                  nextStateOffset)
-      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextStateOffset)
+                           const TransformMat&   jointFrame,
+                           int&                  nextUSlot,
+                           int&                  nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextQSlot)
     {
     }
 
@@ -764,10 +783,10 @@ private:
     void calcR_PB(RotationMat& R_PB) { 
         // double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
         double scale=1.0;
-        double sinPhi = sin( scale * theta(0) );
-        double cosPhi = cos( scale * theta(0) );
-        double sinPsi = sin( scale * theta(1) );
-        double cosPsi = cos( scale * theta(1) );
+        double sinPhi = sin( scale * theta[0] );
+        double cosPhi = cos( scale * theta[0] );
+        double sinPsi = sin( scale * theta[1] );
+        double cosPsi = cos( scale * theta[1] );
 
         // space (parent)-fixed 1-2-3 sequence (rotation 3=0)
         const Mat33 R_JiJ  //Ry(psi) * Rx(phi)
@@ -805,11 +824,12 @@ private:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
-    const TransformMat&          jointFrame,   // inboard joint frame J in body frame
+    const TransformMat&   jointFrame,   // inboard joint frame J in body frame
     Joint::JointType      type,
-    bool                  isReversed,
+    bool                  isReversed,   // child-to-parent orientation?
     bool                  useEuler,
-    int&                  nxtStateOffset)   // child-to-parent orientation?
+    int&                  nxtUSlot,
+    int&                  nxtQSlot)  
 {
     assert(!isReversed);
 
@@ -817,17 +837,17 @@ RigidBodyNode::create(
     case Joint::ThisIsGround:
         return new RBGroundBody();
     case Joint::Torsion:
-        return new RBNodeTorsion(m,jointFrame,nxtStateOffset);
+        return new RBNodeTorsion(m,jointFrame,nxtUSlot,nxtQSlot);
     case Joint::Universal:        
-        return new RBNodeRotate2(m,jointFrame,nxtStateOffset);
+        return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtQSlot);
     case Joint::Orientation:
-        return new RBNodeRotate3(m,nxtStateOffset,useEuler);
+        return new RBNodeRotate3(m,nxtUSlot,nxtQSlot,useEuler);
     case Joint::Cartesian:
-        return new RBNodeTranslate(m,nxtStateOffset);
+        return new RBNodeTranslate(m,nxtUSlot,nxtQSlot);
     case Joint::FreeLine:
-        return new RBNodeTranslateRotate2(m,jointFrame,nxtStateOffset);
+        return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtQSlot);
     case Joint::Free:
-        return new RBNodeTranslateRotate3(m,nxtStateOffset,useEuler);
+        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtQSlot,useEuler);
     case Joint::Sliding:
     case Joint::Cylinder:
     case Joint::Planar:

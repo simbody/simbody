@@ -2,12 +2,15 @@
 #define RIGID_BODY_NODE_H_
 
 #include "simbody/Simbody.h"
-using namespace simtk;
+#include "SimbodyTree.h"
+#include "SimbodyTreeState.h"
 
 #include "internalDynamics.h"
 
 #include <cassert>
 #include <vector>
+
+using namespace simtk;
 
 /**
  * This is an abstract class representing a body and its (generic) inboard joint, that is,
@@ -74,7 +77,8 @@ public:
         Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
         bool                    useEuler,     // TODO: kludge (true if minimizing)
-        int&                    nextStateOffset); 
+        int&                    nxtU,
+        int&                    nxtQ); 
 
     /// Register the passed-in node as a child of this one, and note in
     /// the child that this is its parent. Also set the reference frame in the child.
@@ -98,7 +102,8 @@ public:
     bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
 
-    int              getStateOffset() const {return stateOffset;}
+    int              getUIndex() const {return uIndex;}
+    int              getQIndex() const {return qIndex;}
 
     const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&           getMass()           const {return massProps_B.getMass();}
@@ -153,20 +158,23 @@ public:
     const SpatialMat&  getPsiT() const {return psiT;}
     const SpatialMat&  getY()    const {return Y;}
 
+    virtual void realizeModeling  (const simtk::SBState&) const=0;
+    virtual void realizeParameters(const simtk::SBState&) const=0;
+
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
-    virtual void setPos(const Vector&)=0;
+    virtual void realizeConfiguration(const Vector&)=0;
 
     /// Introduce new values for generalized speeds and calculate
-    /// all the velocity-dependent kinematic terms. Assumes setPos()
+    /// all the velocity-dependent kinematic terms. Assumes realizeConfiguration()
     /// has already been called.
-    virtual void setVel(const Vector&)=0;
+    virtual void realizeVelocity(const Vector&)=0;
 
     Real calcKineticEnergy() const;   // from spatial quantities only
 
     virtual const char* type()     const {return "unknown";}
     virtual int         getDOF()   const {return 0;} //number of independent dofs
-    virtual int         getDim()   const {return 0;} //dofs plus quaternion constraints
+    virtual int         getMaxNQ() const {return 0;} //dofs plus quaternion constraints
 
     virtual void enforceConstraints(Vector& pos, Vector& vel) {throw VirtualBaseMethod();}
 
@@ -201,7 +209,7 @@ protected:
     RigidBodyNode(const MassProperties& mProps_B,
                   const Vec3&           originOfB_P, // and R_BP=I in ref config
                   const TransformMat&   xform_BJ)
-      : stateOffset(-1), parent(0), children(), level(-1), nodeNum(-1),
+      : uIndex(-1), qIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         X_BJ(xform_BJ), refOrigin_P(originOfB_P)
     {
@@ -215,7 +223,8 @@ protected:
 
     typedef std::vector<RigidBodyNode*>   RigidBodyNodeList;
 
-    int               stateOffset;  //index into internal coord pos,vel,acc arrays
+    int               uIndex;   // index into internal coord vel,acc arrays
+    int               qIndex;   // index into internal coord pos array
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
     int               level;        //how far from base 

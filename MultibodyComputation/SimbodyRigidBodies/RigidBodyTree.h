@@ -2,8 +2,10 @@
 #define RIGID_BODY_TREE_H_
 
 #include "simbody/Simbody.h"
+#include "SimbodyTree.h"
 using namespace simtk;
 
+#include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
 
 #include <cassert>
@@ -111,7 +113,12 @@ public:
  */
 class RigidBodyTree {
 public:
-    RigidBodyTree() : lConstraints(0), DOFTotal(-1), dimTotal(-1) { }
+    RigidBodyTree() 
+      : nextUSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), lConstraints(0) 
+      { addGroundNode(); }
+
+    RigidBodyTree(const RigidBodyTree&);
+    RigidBodyTree& operator=(const RigidBodyTree&);
     ~RigidBodyTree();
 
     /// Take ownership of a new node, add it to the tree, and assign it
@@ -124,25 +131,32 @@ public:
                          const TransformMat& referenceConfig, // body frame in parent
                          RigidBodyNode*&     nodep);
 
-    /// Same as addRigidBodyNode but special-cased for ground.
-    int addGroundNode(RigidBodyNode*& gnodep);
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
     /// its stations. Return the assigned distance constraint index for caller's use.
     int addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d);
 
     /// Call this after all bodies & constraints have been added.
-    void finishConstruction(const double& ctol, int verbose);
+    void realizeConstruction(const double& ctol, int verbose);
+
+    /// Call this after all modeling choices have been made, such as whether
+    /// to use quaternions, what joints to prescribe, etc.
+    void realizeModeling(const SBState&) const;
+
+    /// Call this after all available parameters have been given values,
+    /// e.g. body masses.
+    void realizeParameters(const SBState&) const;
 
     // includes ground
     int getNBodies() const { return nodeNum2NodeMap.size(); }
 
-    int getDOF() const { return DOFTotal; } 
-    int getDim() const { return dimTotal; } 
+    int getTotalDOF()    const { return DOFTotal; }
+    int getTotalSqDOF()  const { return SqDOFTotal; }
+    int getTotalQAlloc() const { return maxNQTotal; } 
 
     // Kinematics -- calculate spatial quantities from internal states.
-    void setPos(const Vector& pos);
-    void setVel(const Vector& vel);
+    void realizeConfiguration(const Vector& pos);
+    void realizeVelocity(const Vector& vel);
 
     void getPos(Vector& pos) const;
     void getVel(Vector& vel) const;
@@ -207,9 +221,17 @@ private:
         int level, offset;
     };
 
+    // Initialize to 0 at beginning of construction. These are for doling
+    // out Q & U state variables to the nodes.
+    int nextUSlot;
+    int nextQSlot;
+
     // set by finishConstruction
     int DOFTotal;   // summed over all nodes
-    int dimTotal;
+    int SqDOFTotal; // sum of squares of ndofs per node
+    int maxNQTotal; // sum of dofs with room for quaternions
+
+    SBState defaultState;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
     std::vector<RBNodePtrList>      rbNodeLevels;
@@ -221,7 +243,10 @@ private:
     std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
     
     LengthConstraints* lConstraints;
+
+    void addGroundNode();
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
+    friend class SimbodyTree;
 };
 
 std::ostream& operator<<(std::ostream&, const RigidBodyTree&);

@@ -24,7 +24,7 @@
  */
 
 /** @file
- * User-visible, client side declaration of Subsystem.
+ * User-visible, client side declaration of State.
  */
 
 #include "simbody/internal/SimbodyCommon.h"
