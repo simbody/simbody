@@ -138,8 +138,10 @@ public:
     /*virtual*/void setVelFromSVel(const SpatialVec&) {}
     /*virtual*/void enforceConstraints(Vector& pos, Vector& vel) {}
 
-    /*virtual*/void getPos(Vector&)   const {}
-    /*virtual*/void getVel(Vector&)   const {}
+    /*virtual*/void getDefaultParameters(SBState&)    const {}
+    /*virtual*/void getDefaultConfiguration(SBState&) const {}
+    /*virtual*/void getDefaultVelocity(SBState&)      const {}
+
     /*virtual*/void getAccel(Vector&) const {}
 
     /*virtual*/void getInternalForce(Vector&) const {}
@@ -215,12 +217,17 @@ public:
     }
     virtual void calcJointAccel() { }
 
-    virtual void getPos(Vector& p) const {
-        Vec<dof>::updAs(&p[stateOffset]) = theta;
+    // We are assuming that the caller is taking care of state validity.
+    virtual void getDefaultParameters(SBState& s) const {
+        // TODO none yet
     }
-    virtual void getVel(Vector& v) const {
-        Vec<dof>::updAs(&v[stateOffset]) = dTheta;
-    }   
+    virtual void getDefaultConfiguration(SBState& s) const {
+        Vec<dof>::updAs(&s.vars->q[qIndex]) = theta;
+    }
+    virtual void getDefaultVelocity(SBState& s) const {
+        Vec<dof>::updAs(&s.vars->u[uIndex]) = dTheta;
+    }
+
     virtual void getAccel(Vector& a) const {
         Vec<dof>::updAs(&a[stateOffset]) = ddTheta;
     }
@@ -544,7 +551,8 @@ public:
         ball.setBallPos(qIndex, posv, theta);
     } 
 
-    void getPos(Vector& posv) const {
+    void getDefaultConfiguration(SBState& s) const {
+        Vector& posv = s.vars->q;
         ball.getBallPos(theta, qIndex, posv);
     }
 
@@ -553,7 +561,8 @@ public:
         ball.setBallVel(uIndex, velv, dTheta);
     }
 
-    void getVel(Vector& velv) const {
+    void getDefaultVelocity(SBState& s) const {
+        Vector& velv = s.vars->u;
         ball.getBallVel(dTheta, uIndex, velv);
     }
 
@@ -623,7 +632,8 @@ public:
         theta.updSubVec<3>(3) = Vec3::getAs(&posv[qIndex+ball.getBallNQ()]);
     } 
 
-    void getPos(Vector& posv) const {
+    void getDefaultConfiguration(SBState& s) const {
+        Vector& posv = s.vars->q;
         ball.getBallPos(theta.getSubVec<3>(0), qIndex, posv);
         Vec3::updAs(&posv[qIndex+ball.getBallNQ()]) 
             = theta.getSubVec<3>(3);
@@ -637,7 +647,8 @@ public:
         dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[uIndex+ball.getBallDOF()]);
     }
 
-    void getVel(Vector& velv) const {
+    void getDefaultVelocity(SBState& s) const {
+        Vector& velv = s.vars->u;
         ball.getBallVel(dTheta.getSubVec<3>(0), uIndex, velv);
         Vec3::updAs(&velv[uIndex+ball.getBallDOF()]) 
             = dTheta.getSubVec<3>(3);

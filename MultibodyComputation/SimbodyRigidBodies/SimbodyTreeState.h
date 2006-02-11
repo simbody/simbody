@@ -8,16 +8,24 @@
 
 namespace simtk {
 
+
 class SimbodyTreeResults {
 public:
-    SimbodyTreeResults() { } // everything has length 0
+    SimbodyTreeResults() : stage(UninitializedStage) { } // everything has length 0
     // default copy, copy assign, destruct
+
+    // This allocation routine should be called by realizeModeling(). Before that
+    // we don't know enough about what to put here.
 
     // nDofs==nu==#joint forces
     // nSqDofs=sum(nu[j]^2) for all joints j
-    void resize(int nBodies, int nDofs, int nSqDofs, int maxNQs,
-                int npc, int nvc, int nac) // pos, vel, acc constraints
+    void allocateCache(int nBodies, int nDofs, int nSqDofs, int maxNQs,
+                       int npc, int nvc, int nac) // pos, vel, acc constraints
     {
+        assert(stage >= BuiltStage);
+        stage = BuiltStage; // roll back if necessary
+
+        // These contain uninitialized junk.
         bodyConfigInParent.resize(nBodies);
         bodyConfigInGround.resize(nBodies);
         bodySpatialInertia.resize(nBodies);
@@ -41,7 +49,7 @@ public:
         epsilon.resize(nDofs);
     }
 
-    Stage realizationLevel;     // must be kept up to date by State changes
+    SBStage stage;     // must be kept up to date by State changes
 
     // TODO: constraint runtimes
 
@@ -106,16 +114,41 @@ public:
     SimbodyTreeVariables() : useEulerAngles(false) { }
 
     // nDofs==nu==#joint forces
-    void resize(int nBodies, int nDofs, int maxNQs,
-                int nac) // acc constraints
-    {
+
+    // Call this after realizeConstruction(). These are the variables we need
+    // to specify our modeling choices. We can't allocate the rest until we see
+    // how we'll be modeling.
+    void allocateModelingVars(int nBodies, int nConstraints) {
+        useEulerAngles = false;
         prescribed.resize(nBodies);         prescribed.assign(nBodies,false);
-        enabled.resize(nac);                enabled.assign(nBodies,false);
+        enabled.resize(nConstraints);       enabled.assign(nConstraints,false);
+    }
+
+    // Call this after realizeModeling(). We now know everything we need to know
+    // to allocate and initialize the remaining state variables.
+    void allocateAllVars(int nDofs, int maxNQs, int nac) // acc constraints
+    {
+        const int nBodies      = prescribed.size();
+        const int nConstraints = enabled.size();
         q.resize(maxNQs);                   q.setToNaN();
         u.resize(nDofs);                    u.setToNaN();
         appliedBodyForces.resize(nBodies);  appliedBodyForces.setToNaN();
         appliedJointForces.resize(nDofs);   appliedJointForces.setToNaN();
         prescribedUdot.resize(nDofs);       prescribedUdot.setToNaN();
+    }
+
+    void setVelocitiesToZero() {
+        u.setToZero();
+    }
+
+    void clearForces() {
+        appliedBodyForces.setToZero();
+        appliedJointForces.setToZero();
+    }
+
+    // This locks all the joints that are prescribed.
+    void setPrescribedAccelerationsToZero() {
+        prescribedUdot.setToZero();
     }
 
     // Modeling

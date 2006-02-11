@@ -57,12 +57,27 @@ private:
  * be ignored and need not be set.
  */
 
+enum SBStage {
+    UninitializedStage  = 0,    // these are ordered
+    BuiltStage          = 1,
+    ModeledStage        = 2,
+    ParametrizedStage   = 3,
+    TimedStage          = 4,
+    ConfiguredStage     = 5,
+    MovingStage         = 6,
+    ReactingStage       = 7
+};
+
 class SBState {
 public:
     SBState() : vars(0), cache(0) { }
     ~SBState();
     SBState(const SBState&);
     SBState& operator=(const SBState&);
+
+    void allocate(); // allocate empty vars & cache
+
+    SBStage getStage() const;
 
     class SimbodyTreeVariables*         vars;
     mutable class SimbodyTreeResults*   cache;
@@ -145,8 +160,14 @@ public:
                           int child,  const TransformMat& frameInC);
 
     /// Topology and default values are frozen after this call.
-    void         finishConstruction();
-    void         realize(const SBState&, Stage) const;
+    void realizeConstruction();
+    void realizeModeling     (const SBState&) const;
+    void realizeParameters   (const SBState&) const;
+    void realizeConfiguration(const SBState&) const;
+    void realizeMotion       (const SBState&) const;
+    void realizeReaction     (const SBState&) const;
+
+    void realize(const SBState&, SBStage) const;
 
 
     // These are available after finishConstruction().
@@ -171,7 +192,7 @@ public:
     int getNConstraints() const;
 
     /// This is the sum of all the allocations for constraint multipliers.
-    int getTotalMaxNMult() const;
+    int getTotalMultAlloc() const;
 
     // Per-body info.
     int getQIndex(int body) const;
@@ -193,7 +214,7 @@ public:
     void setConstraintIsEnabled(SBState&, int constraint, bool) const;
 
     // Return modeling information from the SBState.
-    bool usingEulerAngles() const;
+    bool getUseEulerAngles  (const SBState&) const;
     bool isJointPrescribed  (const SBState&, int joint)      const;
     bool isConstraintEnabled(const SBState&, int constraint) const;
 

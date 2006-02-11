@@ -114,7 +114,8 @@ public:
 class RigidBodyTree {
 public:
     RigidBodyTree() 
-      : nextUSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), lConstraints(0) 
+      : nextUSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
+        built(false), lConstraints(0) 
       { addGroundNode(); }
 
     RigidBodyTree(const RigidBodyTree&);
@@ -139,27 +140,97 @@ public:
     /// Call this after all bodies & constraints have been added.
     void realizeConstruction(const double& ctol, int verbose);
 
+        // CALLABLE AFTER realizeConstruction()
+
+    const SBState& getDefaultState() const {return defaultState;}
+
+    // includes ground
+    int getNBodies()      const {assert(built); return nodeNum2NodeMap.size();}
+    int getNConstraints() const {assert(built); return distanceConstraints.size();}
+
+    int getTotalDOF()    const {assert(built); return DOFTotal;}
+    int getTotalSqDOF()  const {assert(built); return SqDOFTotal;}
+    int getTotalQAlloc() const {assert(built); return maxNQTotal;}
+
+    int getTotalMultAlloc() const {assert(built); assert(false); return -1;} // TODO
+
+    int getQIndex(int body) const {assert(built);return getRigidBodyNode(body).getQIndex();}
+    int getQAlloc(int body) const {assert(built);return getRigidBodyNode(body).getMaxNQ();}
+    int getUIndex(int body) const {assert(built);return getRigidBodyNode(body).getUIndex();}
+    int getDOF   (int body) const {assert(built);return getRigidBodyNode(body).getDOF();}
+
+    int getMultIndex(int constraint) const {assert(built);assert(false); return -1;} //TODO
+    int getMaxNMult (int constraint) const {assert(built);assert(false); return -1;} //TODO
+
+
+    // Modeling info.
+    void setDefaultModelingValues(SBState& s) {
+        assert(s.getStage() >= BuiltStage);
+        s.cache->stage = BuiltStage; // trim back if necessary
+        s.vars->useEulerAngles = false;
+        s.vars->prescribed.assign(getNBodies(), false);
+        s.vars->enabled.assign(getNConstraints(), false);
+    }
+    void setUseEulerAngles(SBState& s, bool useAngles) const {
+        assert(s.getStage() >= BuiltStage);
+        if (s.getStage() >= ModeledStage && (s.vars->useEulerAngles == useAngles))
+            return; // no change
+        s.cache->stage = BuiltStage; // back up if necessary
+        s.vars->useEulerAngles = useAngles;
+    }
+    void setJointIsPrescribed(SBState& s, int joint, bool prescribe) const {
+        assert(s.getStage() >= BuiltStage);
+        if (s.getStage() >= ModeledStage && (s.vars->prescribed[joint] == prescribe))
+            return; // no change
+        s.cache->stage = BuiltStage; // back up if necessary
+        s.vars->prescribed[joint] = prescribe;
+    }
+    void setConstraintIsEnabled(SBState& s, int constraint, bool enable) const {
+        assert(s.getStage() >= BuiltStage);
+        if (s.getStage() >= ModeledStage && (s.vars->enabled[constraint] == enable))
+            return; // no change
+        s.cache->stage = BuiltStage; // back up if necessary
+        s.vars->enabled[constraint] = enable;   
+    }
+
+    bool getUseEulerAngles(const SBState& s) const {
+        assert(s.getStage() >= ModeledStage);
+        return s.vars->useEulerAngles;
+    }
+    bool isJointPrescribed(const SBState& s, int joint) const {
+        assert(s.getStage() >= ModeledStage);
+        return s.vars->prescribed[joint];
+    }
+    bool isConstraintEnabled(const SBState& s, int constraint) const {
+        assert(s.getStage() >= ModeledStage);
+        return s.vars->enabled[constraint];
+    }
+
     /// Call this after all modeling choices have been made, such as whether
     /// to use quaternions, what joints to prescribe, etc.
     void realizeModeling(const SBState&) const;
+
+        // CALLABLE AFTER realizeModeling()
 
     /// Call this after all available parameters have been given values,
     /// e.g. body masses.
     void realizeParameters(const SBState&) const;
 
-    // includes ground
-    int getNBodies() const { return nodeNum2NodeMap.size(); }
-
-    int getTotalDOF()    const { return DOFTotal; }
-    int getTotalSqDOF()  const { return SqDOFTotal; }
-    int getTotalQAlloc() const { return maxNQTotal; } 
 
     // Kinematics -- calculate spatial quantities from internal states.
-    void realizeConfiguration(const Vector& pos);
-    void realizeVelocity(const Vector& vel);
+    void realizeConfiguration(const SBState&);
+    void realizeMotion(const SBState&);
 
-    void getPos(Vector& pos) const;
-    void getVel(Vector& vel) const;
+    // Dynamics -- calculate accelerations and internal forces from 
+    // forces and prescribed accelerations supplied in the State.
+    void realizeReaction(const SBState&) const;
+
+
+    void getDefaultParameters   (SBState&) const;
+    void getDefaultConfiguration(SBState&) const;
+    void getDefaultVelocity     (SBState&) const;
+
+
     void getAcc(Vector& acc) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
@@ -226,11 +297,16 @@ private:
     int nextUSlot;
     int nextQSlot;
 
-    // set by finishConstruction
+    // set by realizeConstruction
     int DOFTotal;   // summed over all nodes
     int SqDOFTotal; // sum of squares of ndofs per node
     int maxNQTotal; // sum of dofs with room for quaternions
 
+    bool built;
+
+    // This is a complete State available immediately after realizeConstruction().
+    // It contains default Modeling values, and everything else is allocated in
+    // accordance with those. It has been realized through ModelingStage.
     SBState defaultState;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.

@@ -29,6 +29,17 @@ SBState& SBState::operator=(const SBState& src) {
     return *this;
 }
 
+void SBState::allocate() {
+    delete vars; delete cache; // just in case
+    vars  = new SimbodyTreeVariables();
+    cache = new SimbodyTreeResults();   // stage is still UninitializedStage;
+}
+
+SBStage SBState::getStage() const { 
+    if (!cache) return UninitializedStage;
+    return cache->stage;
+}
+
 
 void RBStation::calcPosInfo(RBStationRuntime& rt) const {
     rt.station_G = getNode().getR_GB() * station_B;
@@ -164,25 +175,64 @@ void RigidBodyTree::realizeConstruction(const double& ctol, int verbose) {
 
     lConstraints = new LengthConstraints(*this, ctol, verbose);
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);
+
+    defaultState.allocate();
+    defaultState.vars->allocateModelingVars(getNBodies(), getNConstraints());
+    defaultState.cache->stage = BuiltStage;
+    setDefaultModelingValues(defaultState);
+    realizeModeling(defaultState);
+    defaultState.vars->allocateAllVars(getTotalDOF(), getTotalQAlloc(), getNConstraints());
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->getDefaultParameters(defaultState);
+    realizeParameters(defaultState);
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->getDefaultConfiguration(defaultState); 
+    realizeConfiguration(defaultState);
+
+    defaultState.vars->setVelocitiesToZero();
+    realizeMotion(defaultState);
+
+    defaultState.vars->clearForces();
+
+    // just to be tidy -- shouldn't do anything
+    defaultState.vars->setPrescribedAccelerationsToZero();
+    realizeReaction(defaultState);
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
 void RigidBodyTree::realizeModeling(const SBState& s) const {
+    assert(s.getStage() >= BuiltStage);
+    if (s.getStage() >= ModeledStage) return;
+
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeModeling(s); 
+
+    s.cache->stage = ModeledStage;
 }
 
 // Here we lock in parameterization of the model, such as body masses.
 void RigidBodyTree::realizeParameters(const SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    if (s.getStage() >= ParametrizedStage) return;
+
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeParameters(s); 
+    s.cache->stage = ParametrizedStage;
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::realizeConfiguration(const Vector& pos)  {
+void RigidBodyTree::realizeConfiguration(const SBState& s)  {
+    assert(s.getStage() >= ParametrizedStage);
+    if (s.getStage() >= ConfiguredStage) return;
+
+    const Vector& pos = s.vars->q;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeConfiguration(pos); 
@@ -190,11 +240,17 @@ void RigidBodyTree::realizeConfiguration(const Vector& pos)  {
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcPosInfo(
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
+
+    s.cache->stage = ConfiguredStage;
 }
 
 // Set generalized speeds: sweep from base to tip.
-// setPos() must have been called already.
-void RigidBodyTree::realizeVelocity(const Vector& vel)  {
+// realizeConfiguration() must have been called already.
+void RigidBodyTree::realizeMotion(const SBState& s)  {
+    assert(s.getStage() >= ConfiguredStage);
+    if (s.getStage() >= MovingStage) return;
+
+    const Vector& vel = s.vars->u;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeVelocity(vel); 
@@ -202,6 +258,17 @@ void RigidBodyTree::realizeVelocity(const Vector& vel)  {
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcVelInfo(
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
+
+    s.cache->stage = MovingStage;
+}
+
+void RigidBodyTree::realizeReaction(const SBState& s)  const {
+    assert(s.getStage() >= MovingStage);
+    if (s.getStage() >= ReactingStage) return;
+
+    assert(false); // TODO
+
+    s.cache->stage = ReactingStage;
 }
 
 // Enforce coordinate constraints -- order doesn't matter.
@@ -310,18 +377,43 @@ void RigidBodyTree::getConstraintCorrectedInternalForces(Vector& T) {
     lConstraints->fixGradient(T);
 }
 
-// Get current generalized coordinates (order doesn't matter).
-void RigidBodyTree::getPos(Vector& pos) const {
+// Get default parameter values for each node and write them into
+// the supplied State. We expect the State to have been realized
+// through ModeledStage.
+void RigidBodyTree::getDefaultParameters(SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    s.cache->stage = ModeledStage; // back up if necessary
+
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->getPos(pos); 
+            rbNodeLevels[i][j]->getDefaultConfiguration(s); 
 }
 
-// Get current generalized speeds (order doesn't matter).
-void RigidBodyTree::getVel(Vector& vel) const {
+// Get default position states for each node and write them into
+// the supplied State. We expect the State to have been realized
+// through ParametrizedStage since parameters might affect the
+// configuration defaults.
+void RigidBodyTree::getDefaultConfiguration(SBState& s) const {
+    assert(s.getStage() >= ParametrizedStage);
+    s.cache->stage = ParametrizedStage; // back up if necessary
+
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->getVel(vel); 
+            rbNodeLevels[i][j]->getDefaultConfiguration(s); 
+}
+
+// Get default velocity states for each node and write them into
+// the supplied State. We expect the State to have been realized
+// through ConfiguredStage. TODO: this is weird. Shouldn't the
+// default velocities just be zero? Or perhaps some kind of 
+// prescribed motion initialization should take place here?
+void RigidBodyTree::getDefaultVelocity(SBState& s) const {
+    assert(s.getStage() >= ConfiguredStage);
+    s.cache->stage = ConfiguredStage; // back up if necessary
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->getDefaultVelocity(s); 
 }
 
 // Retrieve already-calculated accelerations (order doesn't matter)

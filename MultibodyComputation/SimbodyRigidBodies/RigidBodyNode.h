@@ -187,8 +187,10 @@ public:
 
     virtual void setVelFromSVel(const SpatialVec&) {throw VirtualBaseMethod();}
 
-    virtual void getPos  (Vector&) const {throw VirtualBaseMethod();}
-    virtual void getVel  (Vector&) const {throw VirtualBaseMethod();}
+    virtual void getDefaultParameters   (SBState&) const {throw VirtualBaseMethod();}
+    virtual void getDefaultConfiguration(SBState&) const {throw VirtualBaseMethod();}
+    virtual void getDefaultVelocity     (SBState&) const {throw VirtualBaseMethod();}
+
     virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
     virtual void getInternalForce(Vector&) const {throw VirtualBaseMethod();}
