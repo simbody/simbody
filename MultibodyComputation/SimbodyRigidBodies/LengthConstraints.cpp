@@ -86,9 +86,9 @@ private:
     // calculated info about the constraint
     bool                           flipStations; // make sure station(1).level
                                                  //   <= station(2).level
-    RBNodePtrList                  nodes[2];   // the two paths: base..tip1, base..tip2,
-                                            //   incl. tip nodes but not base
-    RigidBodyNode*                 base;    // highest-level common ancestor of tips
+    RBNodePtrList                  nodes[2];     // the two paths: base..tip1, base..tip2,
+                                                 //   incl. tip nodes but not base
+    RigidBodyNode*                 base;         // highest-level common ancestor of tips
     const RigidBodyNode*           moleculeNode;
 
     friend class LengthSet;
@@ -357,7 +357,9 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
     // find intersections - group all loops with tip->trunk relationship
     // TODO sherm: I don't understand why these have to be more coupled than
     // the pos/vel constraints. (This code couples all the loops on the same
-    // molecule).
+    // molecule). I asked Schwieters and he didn't know either but said he
+    // would have to think about it. He thought maybe he had cut some corners here
+    // and over-coupled the loops but he wasn't sure.
     for (int i=0 ; i<(int)accLoops.size() ; i++) {
         priv->accConstraints.push_back(LengthSet(this, accLoops[i]));
         for (int j=i+1 ; j<(int)accLoops.size() ; j++)
@@ -417,7 +419,7 @@ public:
 };
 
 //
-// calculate the constraint violation (zero when constraint met)
+// Calculate the position constraint violation (zero when constraint met).
 //
 Vector
 LengthSet::calcPosB(const Vector& pos) const
@@ -432,7 +434,7 @@ LengthSet::calcPosB(const Vector& pos) const
 }
 
 //
-// calculate the constraint violation (zero when constraint met)
+// Calculate the velocity constraint violation (zero when constraint met).
 //
 Vector
 LengthSet::calcVelB(const Vector& pos, const Vector& vel) const 
@@ -463,9 +465,9 @@ LengthSet::calcPosZ(const Vector& b) const
 
     // map the vector dir back to the appropriate elements of z
     for (int i=0 ; i<(int)nodeMap.size() ; i++) {
-        const int dim  = nodeMap[i]->getDim();
+        const int d    = nodeMap[i]->getDim();
         const int offs = nodeMap[i]->getStateOffset();
-        z(offs,dim) = dir(i,dim);
+        z(offs,d) = dir(i,d);
     }
 
     return z;
@@ -490,9 +492,9 @@ public:
         // map the vector dir back to the appropriate elements of z
         for (int i=0 ; i<(int)constraint->nodeMap.size() ; i++) {
             const RigidBodyNode* n = constraint->nodeMap[i];
-            const int dim  = n->getDim();
+            const int d    = n->getDim();
             const int offs = n->getStateOffset();
-            z(offs,dim) = dir(i,dim);
+            z(offs,d) = dir(i,d);
         }
         return z;
     }
@@ -886,8 +888,8 @@ void LengthSet::addInCorrectionForces(SpatialVecList& spatialForces) const {
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
-            const Vec3& force = loops[i].tipForce(t);
-            const Vec3& moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
+            const Vec3 force = loops[i].tipForce(t);
+            const Vec3 moment = cross(loops[i].tipPos(t) - node.getOB_G(), force);
             spatialForces[node.getNodeNum()] += SpatialVec(moment, force);
         }
     }
@@ -937,10 +939,10 @@ LengthSet::multiForce(const Vector& forceInternal, const Matrix& mat)
     Vector vec(dim);    //build vector same size as smallMat
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
-        const int dim  = nodeMap[j]->getDim();
+        const int d    = nodeMap[j]->getDim();
         const int offs = nodeMap[j]->getStateOffset();
-        vec(indx,dim) = forceInternal(offs,dim);
-        indx += dim;
+        vec(indx,d) = forceInternal(offs,d);
+        indx += d;
     }
 
     const Vector ret = ~mat * vec; 
@@ -953,10 +955,10 @@ LengthSet::addForce(Vector& forceInternal,
 {
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
-        const int dim  = nodeMap[j]->getDim();
+        const int d    = nodeMap[j]->getDim();
         const int offs = nodeMap[j]->getStateOffset();
-        forceInternal(offs,dim) -= vec(indx,dim);
-        indx += dim;
+        forceInternal(offs,d) -= vec(indx,d);
+        indx += d;
     }
 }
 
@@ -966,10 +968,10 @@ LengthSet::testInternalForce(const Vector& forceInternal)
     Vector vec(dim);    //build vector same size as smallMat (index from 1)
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
-        const int dim  = nodeMap[j]->getDim();
+        const int d    = nodeMap[j]->getDim();
         const int offs = nodeMap[j]->getStateOffset();
-        vec(indx,dim) = forceInternal(offs,dim);
-        indx += dim;
+        vec(indx,d) = forceInternal(offs,d);
+        indx += d;
     }
 
     const Matrix grad = calcGrad();

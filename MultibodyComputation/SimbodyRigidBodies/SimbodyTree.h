@@ -114,7 +114,7 @@ public:
 
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addRigidBody(int parent,
+    int addRigidBody(int                       parent,
                      const TransformMat&       parentJointFrameInP,
                      const JointSpecification& joint,
                      const TransformMat&       bodyJointFrameInB,
@@ -122,7 +122,7 @@ public:
 
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addMasslessBody(int parent,
+    int addMasslessBody(int                       parent,
                         const TransformMat&       parentJointFrameInP,
                         const JointSpecification& joint,
                         const TransformMat&       bodyJointFrameInB);
@@ -170,7 +170,7 @@ public:
     void realize(const SBState&, SBStage) const;
 
 
-    // These are available after finishConstruction().
+    // These are available after realizeConstruction().
 
     /// The number of bodies includes all rigid bodies, particles, massless
     /// bodies and ground. Bodies and their inboard joints have the same 
@@ -179,6 +179,10 @@ public:
     /// is meaningless, but otherwise joint n is the inboard joint of body n.
     int getNBodies() const;
 
+    /// This is the total number of defined constraints, each of which may
+    /// generate more than one constraint equation.
+    int getNConstraints() const;
+
     /// The sum of all the joint degrees of freedom. This is also the length
     /// of state variable vector u.
     int getTotalDOF() const; 
@@ -186,10 +190,6 @@ public:
     /// The sum of all the q vector allocations for each joint. These may not
     /// all be in use.
     int getTotalQAlloc() const;
-
-    /// This is the total number of defined constraints, each of which may
-    /// generate more than one constraint equation.
-    int getNConstraints() const;
 
     /// This is the sum of all the allocations for constraint multipliers.
     int getTotalMultAlloc() const;
@@ -206,7 +206,7 @@ public:
 
     /// For all ball and free joints, decide what method we should use
     /// to model their orientations. Choices are: quaternions (best
-    /// for dynamics), or rotation angles (1-2-3 Euler sequence, good for
+    /// for dynamics), or rotation angles (3-2-1 Euler sequence, good for
     /// optimization). TODO: allow settable zero rotation for Euler sequence,
     /// with convenient way to say "this is zero".
     void setUseEulerAngles(SBState&, bool) const;

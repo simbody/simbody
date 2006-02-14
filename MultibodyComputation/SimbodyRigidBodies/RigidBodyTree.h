@@ -30,9 +30,9 @@ public:
     RBStation(RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
-    void calcPosInfo(RBStationRuntime&) const;
-    void calcVelInfo(RBStationRuntime&) const;
-    void calcAccInfo(RBStationRuntime&) const;
+    void calcPosInfo(const SBState&, RBStationRuntime&) const;
+    void calcVelInfo(const SBState&, RBStationRuntime&) const;
+    void calcAccInfo(const SBState&, RBStationRuntime&) const;
 
     RigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
     const Vec3&       getStation() const { assert(isValid()); return station_B; }
@@ -67,9 +67,9 @@ public:
         runtimeIndex = -1;
     }
 
-    void calcPosInfo(RBDistanceConstraintRuntime&) const;
-    void calcVelInfo(RBDistanceConstraintRuntime&) const;
-    void calcAccInfo(RBDistanceConstraintRuntime&) const;
+    void calcPosInfo(const SBState&, RBDistanceConstraintRuntime&) const;
+    void calcVelInfo(const SBState&, RBDistanceConstraintRuntime&) const;
+    void calcAccInfo(const SBState&, RBDistanceConstraintRuntime&) const;
 
     void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
     int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
@@ -114,7 +114,7 @@ public:
 class RigidBodyTree {
 public:
     RigidBodyTree() 
-      : nextUSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
+      : nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), lConstraints(0) 
       { addGroundNode(); }
 
@@ -169,6 +169,7 @@ public:
         s.cache->stage = BuiltStage; // trim back if necessary
         s.vars->useEulerAngles = false;
         s.vars->prescribed.assign(getNBodies(), false);
+        s.vars->prescribed[0] = true; // ground
         s.vars->enabled.assign(getNConstraints(), false);
     }
     void setUseEulerAngles(SBState& s, bool useAngles) const {
@@ -216,6 +217,16 @@ public:
     /// e.g. body masses.
     void realizeParameters(const SBState&) const;
 
+    const Vector& getQ(const SBState&) const;
+    Vector&       updQ(SBState&)       const;
+
+    const Vector& getU(const SBState&) const;
+    Vector&       updU(SBState&)       const;
+
+    const Vector& getQdot(const SBState&) const;
+    const Vector& getUdot(const SBState&) const;
+    const Vector& getQdotDot(const SBState&) const;
+
 
     // Kinematics -- calculate spatial quantities from internal states.
     void realizeConfiguration(const SBState&);
@@ -229,53 +240,50 @@ public:
     void getDefaultParameters   (SBState&) const;
     void getDefaultConfiguration(SBState&) const;
     void getDefaultVelocity     (SBState&) const;
-
-
-    void getAcc(Vector& acc) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints (just quaternions constraints; ignores loops).
-    void enforceTreeConstraints(Vector& pos, Vector& vel);
+    void enforceQuaternionConstraints(SBState&);
 
     /// This is a solver which tweaks the state to make it satisfy general
     /// constraints (other than quaternion constraints).
-    void enforceConstraints(Vector& pos, Vector& vel);
+    void enforceLengthConstraints(SBState&);
 
     /// Prepare for dynamics by calculating position-dependent quantities
     /// like the articulated body inertias P.
-    void prepareForDynamics();
+    void prepareForDynamics(const SBState&);
 
     /// Given a set of spatial forces, calculate accelerations ignoring
     /// constraints. Must have already called prepareForDynamics().
     /// TODO: also applies stored internal forces (hinge torques) which
     /// will cause surprises if non-zero.
-    void calcTreeForwardDynamics(const SpatialVecList& spatialForces);
+    void calcTreeForwardDynamics(const SBState&, const SpatialVecList& spatialForces);
 
     /// Given a set of spatial forces, calculate acclerations resulting from
     /// those forces and enforcement of acceleration constraints.
-    void calcLoopForwardDynamics(const SpatialVecList& spatialForces);
+    void calcLoopForwardDynamics(const SBState&, const SpatialVecList& spatialForces);
 
 
     /// Unconstrained (tree) dynamics 
-    void calcP();                             // articulated body inertias
-    void calcZ(const SpatialVecList& spatialForces); // articulated body remainder forces
-    void calcTreeAccel();                     // accels with forces from last calcZ
+    void calcP(const SBState&);                             // articulated body inertias
+    void calcZ(const SBState&, const SpatialVecList& spatialForces); // articulated body remainder forces
+    void calcTreeAccel(const SBState&);                     // accels with forces from last calcZ
 
     void fixVel0(Vector& vel); // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
-    void calcY();
+    void calcY(const SBState&);
 
     /// Convert spatial forces to internal (joint) forces, ignoring constraints.
-    void calcTreeInternalForces(const SpatialVecList& spatialForces);
+    void calcTreeInternalForces(const SBState&, const SpatialVecList& spatialForces);
 
     /// Retrieve last-computed internal (joint) forces.
-    void getInternalForces(Vector& T);
+    void getInternalForces(const SBState&, Vector& T);
 
-    void getConstraintCorrectedInternalForces(Vector& T); // TODO has to move elsewhere
+    void getConstraintCorrectedInternalForces(const SBState&, Vector& T); // TODO has to move elsewhere
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
@@ -295,6 +303,7 @@ private:
     // Initialize to 0 at beginning of construction. These are for doling
     // out Q & U state variables to the nodes.
     int nextUSlot;
+    int nextUSqSlot;
     int nextQSlot;
 
     // set by realizeConstruction

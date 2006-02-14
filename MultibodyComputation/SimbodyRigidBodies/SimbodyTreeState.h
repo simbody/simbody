@@ -28,7 +28,12 @@ public:
         // These contain uninitialized junk.
         bodyConfigInParent.resize(nBodies);
         bodyConfigInGround.resize(nBodies);
+        bodyToParentShift.resize(nBodies);
+        bodyInertiaInGround.resize(nBodies);
         bodySpatialInertia.resize(nBodies);
+        bodyCOMInGround.resize(nBodies);
+        bodyCOMStationInGround.resize(nBodies);
+
         positionConstraintErrors.resize(npc);
         storageForHt.resize(2,nDofs);
         bodyVelocityInParent.resize(nBodies);
@@ -37,12 +42,16 @@ public:
         qdot.resize(maxNQs);
         articulatedBodyInertia.resize(nBodies);
         bodyAccelerationInGround.resize(nBodies);
-        coriolisForces.resize(nBodies);
+        coriolisAcceleration.resize(nBodies);
+        gyroscopicForces.resize(nBodies);
         udot.resize(nDofs);
         lambda.resize(nac);
         accelerationConstraintErrors.resize(nac);
         netHingeForces.resize(nDofs);
         qdotdot.resize(maxNQs);
+        psiT.resize(nBodies);
+        tau.resize(nBodies);
+        Y.resize(nBodies);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2,nDofs);
         nu.resize(nDofs);
@@ -65,22 +74,27 @@ public:
     // Configuration
     std::vector<TransformMat> bodyConfigInParent; // nb (joint config)
     std::vector<TransformMat> bodyConfigInGround; // nb
-    Vector_<SpatialMat>       bodySpatialInertia; // nb
+    std::vector<PhiMatrix>    bodyToParentShift;  // nb (phi)
+    std::vector<InertiaMat>   bodyInertiaInGround;// nb (I_OB_G)
+    Vector_<SpatialMat>       bodySpatialInertia; // nb (Mk)
+    Vector_<Vec3>             bodyCOMInGround;    // nb (COM_G)
+    Vector_<Vec3>             bodyCOMStationInGround; // nb (COMstation_G)
 
     Vector positionConstraintErrors;              // npc
     Matrix_<Vec3> storageForHt;                   // 2 x ndof
 
     // Motion
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
-    Vector_<SpatialVec> bodyVelocityInGround;     // nb
+    Vector_<SpatialVec> bodyVelocityInGround;     // nb (sVel)
 
     Vector velocityConstraintErrors;              // nvc
     Vector qdot;                                  // nq
 
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
-    Vector_<SpatialVec> bodyAccelerationInGround; // nb
-    Vector_<SpatialVec> coriolisForces;           // nb (& gyroscopic, Pa+b)
+    Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
+    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
+    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
 
     Vector udot;                                  // nu
     Vector lambda;                                // nac
@@ -89,11 +103,16 @@ public:
     Vector qdotdot;                               // nq
 
     // dynamic temporaries
-    Vector_<Real>       storageForDI;   // sum(nu[j]^2)
-    Matrix_<Vec3>       storageForG;    // 2 X ndof
+    Vector_<SpatialMat> psiT;                     // nb
+    Vector_<SpatialMat> tau;                      // nb
+    Vector_<SpatialMat> Y;                        // nb
+
+    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
+    Matrix_<Vec3>       storageForG;              // 2 X ndof
     Vector              nu;
     Vector              epsilon;
-
+    Vector_<SpatialVec> z;                        // nb
+    Vector_<SpatialVec> Gepsilon;                 // nb
 };
 
 /** 
@@ -111,6 +130,26 @@ public:
  */
 class SimbodyTreeVariables {
 public:
+    // Modeling
+    bool              useEulerAngles;
+    std::vector<bool> prescribed;           // nb  (# bodies & joints, 0 always true)
+    std::vector<bool> enabled;              // nac (# acceleration constraints)
+
+    // Parametrization
+    // TODO: body masses, etc.
+
+    // Configuration
+    Vector q;                               // nq
+
+    // Motion
+    Vector u;                               // nu  (== ndof)
+
+    // Dynamics
+    Vector_<SpatialVec> appliedBodyForces;  // nb
+    Vector              appliedJointForces; // nu
+    Vector              prescribedUdot;     // nu
+
+public:
     SimbodyTreeVariables() : useEulerAngles(false) { }
 
     // nDofs==nu==#joint forces
@@ -120,8 +159,10 @@ public:
     // how we'll be modeling.
     void allocateModelingVars(int nBodies, int nConstraints) {
         useEulerAngles = false;
-        prescribed.resize(nBodies);         prescribed.assign(nBodies,false);
-        enabled.resize(nConstraints);       enabled.assign(nConstraints,false);
+        prescribed.resize(nBodies); 
+        prescribed.assign(nBodies,false); prescribed[0]=true; // ground
+        enabled.resize(nConstraints);
+        enabled.assign(nConstraints,false);
     }
 
     // Call this after realizeModeling(). We now know everything we need to know
@@ -150,26 +191,6 @@ public:
     void setPrescribedAccelerationsToZero() {
         prescribedUdot.setToZero();
     }
-
-    // Modeling
-    bool              useEulerAngles;
-    std::vector<bool> prescribed;           // nb
-    std::vector<bool> enabled;              // nac
-
-    // Parametrization
-    // TODO: body masses, etc.
-
-    // Configuration
-    Vector q;                               // nq
-
-    // Motion
-    Vector u;                               // nu
-
-    // Dynamics
-    Vector_<SpatialVec> appliedBodyForces;  // nb
-    Vector              appliedJointForces; // nu
-    Vector              prescribedUdot;     // nu
-
 };
 
 }; // namespace simtk

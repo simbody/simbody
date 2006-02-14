@@ -41,23 +41,23 @@ SBStage SBState::getStage() const {
 }
 
 
-void RBStation::calcPosInfo(RBStationRuntime& rt) const {
-    rt.station_G = getNode().getR_GB() * station_B;
-    rt.pos_G     = getNode().getOB_G() + rt.station_G;
+void RBStation::calcPosInfo(const SBState& s, RBStationRuntime& rt) const {
+    rt.station_G = getNode().getR_GB(s) * station_B;
+    rt.pos_G     = getNode().getOB_G(s) + rt.station_G;
 }
 
-void RBStation::calcVelInfo(RBStationRuntime& rt) const {
-    const Vec3& w_G = getNode().getSpatialAngVel();
-    const Vec3& v_G = getNode().getSpatialLinVel();
+void RBStation::calcVelInfo(const SBState& s, RBStationRuntime& rt) const {
+    const Vec3& w_G = getNode().getSpatialAngVel(s);
+    const Vec3& v_G = getNode().getSpatialLinVel(s);
     rt.stationVel_G = cross(w_G, rt.station_G);
     rt.vel_G = v_G + rt.stationVel_G;
 }
 
-void RBStation::calcAccInfo(RBStationRuntime& rt) const {
-    const Vec3& w_G  = getNode().getSpatialAngVel();
-    const Vec3& v_G  = getNode().getSpatialLinVel();
-    const Vec3& aa_G = getNode().getSpatialAngAcc();
-    const Vec3& a_G  = getNode().getSpatialLinAcc();
+void RBStation::calcAccInfo(const SBState& s, RBStationRuntime& rt) const {
+    const Vec3& w_G  = getNode().getSpatialAngVel(s);
+    const Vec3& v_G  = getNode().getSpatialLinVel(s);
+    const Vec3& aa_G = getNode().getSpatialAngAcc(s);
+    const Vec3& a_G  = getNode().getSpatialLinAcc(s);
     rt.acc_G = a_G + cross(aa_G, rt.station_G)
                    + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
 }
@@ -67,10 +67,10 @@ std::ostream& operator<<(std::ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
+void RBDistanceConstraint::calcPosInfo(const SBState& s, RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcPosInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcPosInfo(s, rt.stationRuntimes[i]);
 
     rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
     const double separation = rt.fromTip1ToTip2_G.norm();
@@ -78,19 +78,19 @@ void RBDistanceConstraint::calcPosInfo(RBDistanceConstraintRuntime& rt) const
     rt.posErr = distance - separation;
 }
 
-void RBDistanceConstraint::calcVelInfo(RBDistanceConstraintRuntime& rt) const
+void RBDistanceConstraint::calcVelInfo(const SBState& s, RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcVelInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcVelInfo(s, rt.stationRuntimes[i]);
 
     rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
     rt.velErr = ~rt.unitDirection_G * rt.relVel_G;
 }
 
-void RBDistanceConstraint::calcAccInfo(RBDistanceConstraintRuntime& rt) const
+void RBDistanceConstraint::calcAccInfo(const SBState& s, RBDistanceConstraintRuntime& rt) const
 {
     assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcAccInfo(rt.stationRuntimes[i]);
+    for (int i=0; i<=1; ++i) stations[i].calcAccInfo(s, rt.stationRuntimes[i]);
 
 //XXX this doesn't look right
     const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
@@ -141,7 +141,7 @@ void RigidBodyTree::addGroundNode() {
 
     RigidBodyNode* n = 
         RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
-                              false, false, nextUSlot, nextQSlot);
+                              false, false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
 
     // Put ground node in tree at level 0
@@ -232,13 +232,12 @@ void RigidBodyTree::realizeConfiguration(const SBState& s)  {
     assert(s.getStage() >= ParametrizedStage);
     if (s.getStage() >= ConfiguredStage) return;
 
-    const Vector& pos = s.vars->q;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeConfiguration(pos); 
+            rbNodeLevels[i][j]->realizeConfiguration(s); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcPosInfo(
+        distanceConstraints[i].calcPosInfo(s,
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 
     s.cache->stage = ConfiguredStage;
@@ -250,13 +249,12 @@ void RigidBodyTree::realizeMotion(const SBState& s)  {
     assert(s.getStage() >= ConfiguredStage);
     if (s.getStage() >= MovingStage) return;
 
-    const Vector& vel = s.vars->u;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeVelocity(vel); 
+            rbNodeLevels[i][j]->realizeVelocity(s); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcVelInfo(
+        distanceConstraints[i].calcVelInfo(s,
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 
     s.cache->stage = MovingStage;
@@ -271,46 +269,81 @@ void RigidBodyTree::realizeReaction(const SBState& s)  const {
     s.cache->stage = ReactingStage;
 }
 
+// Access to continuous state variables and their derivatives.
+
+const Vector& RigidBodyTree::getQ(const SBState& s) const {
+    assert(s.getStage() >= ConfiguredStage);
+    return s.vars->q;
+}
+Vector& RigidBodyTree::updQ(SBState& s) const {
+    assert(s.getStage() >= ParametrizedStage);
+    s.cache->stage = ParametrizedStage; // back up if necessary
+    return s.vars->q;
+}
+const Vector& RigidBodyTree::getU(const SBState& s) const {
+    assert(s.getStage() >= MovingStage);
+    return s.vars->u;
+}
+Vector& RigidBodyTree::updU(SBState& s) const {
+    assert(s.getStage() >= ConfiguredStage);
+    s.cache->stage = ConfiguredStage; // back up if necessary
+    return s.vars->u;
+}
+const Vector& RigidBodyTree::getQdot(const SBState& s) const {
+    assert(s.getStage() >= MovingStage);
+    return s.cache->qdot;
+}
+const Vector& RigidBodyTree::getUdot(const SBState& s) const {
+    assert(s.getStage() >= ReactingStage);
+    return s.cache->udot;
+}
+const Vector& RigidBodyTree::getQdotDot(const SBState& s) const {
+    assert(s.getStage() >= ReactingStage);
+    return s.cache->qdotdot;
+}
+
 // Enforce coordinate constraints -- order doesn't matter.
-void RigidBodyTree::enforceTreeConstraints(Vector& pos, Vector& vel) {
+void RigidBodyTree::enforceQuaternionConstraints(SBState& s) {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->enforceConstraints(pos,vel);
+            rbNodeLevels[i][j]->enforceQuaternionConstraints(s);
 }
 
 // Enforce loop constraints.
-void RigidBodyTree::enforceConstraints(Vector& pos, Vector& vel) {
+void RigidBodyTree::enforceLengthConstraints(SBState& s) {
+    Vector& pos = updQ(s);
+    Vector& vel = updU(s);
     lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
 }
 
 
 // Prepare for dynamics by calculating position-dependent quantities
 // like the articulated body inertias P.
-void RigidBodyTree::prepareForDynamics() {
-    calcP();
+void RigidBodyTree::prepareForDynamics(const SBState& s) {
+    calcP(s);
 }
 
 // Given a set of spatial forces, calculate accelerations ignoring
 // constraints. Must have already called prepareForDynamics().
 // TODO: also applies stored internal forces (hinge torques) which
 // will cause surprises if non-zero.
-void RigidBodyTree::calcTreeForwardDynamics(const SpatialVecList& spatialForces) {
-    calcZ(spatialForces);
-    calcTreeAccel();
+void RigidBodyTree::calcTreeForwardDynamics(const SBState& s, const SpatialVecList& spatialForces) {
+    calcZ(s,spatialForces);
+    calcTreeAccel(s);
     
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcAccInfo(
+        distanceConstraints[i].calcAccInfo(s,
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 }
 
 // Given a set of spatial forces, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcLoopForwardDynamics(const SBState& s, const SpatialVecList& spatialForces) {
     SpatialVecList sFrc = spatialForces;
-    calcTreeForwardDynamics(sFrc);
+    calcTreeForwardDynamics(s, sFrc);
     if (lConstraints->calcConstraintForces()) {
         lConstraints->addInCorrectionForces(sFrc);
-        calcTreeForwardDynamics(sFrc);
+        calcTreeForwardDynamics(s, sFrc);
     }
 }
 
@@ -318,38 +351,38 @@ void RigidBodyTree::calcLoopForwardDynamics(const SpatialVecList& spatialForces)
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcP() {
+void RigidBodyTree::calcP(const SBState& s) {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcP();
+            rbNodeLevels[i][j]->calcP(s);
 }
 
 // should be:
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcZ(const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcZ(const SBState& s, const SpatialVecList& spatialForces) {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(spatialForces[node.getNodeNum()]);
+            node.calcZ(s, spatialForces[node.getNodeNum()]);
         }
 }
 
 // Y is used for length constraints: sweep from base to tip.
-void RigidBodyTree::calcY() {
+void RigidBodyTree::calcY(const SBState& s) {
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcY();
+            rbNodeLevels[i][j]->calcY(s);
 }
 
 // Calc acceleration: sweep from base to tip.
-void RigidBodyTree::calcTreeAccel() {
+void RigidBodyTree::calcTreeAccel(const SBState& s) {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcAccel();
+            rbNodeLevels[i][j]->calcAccel(s);
 }
 
 void RigidBodyTree::fixVel0(Vector& vel) {
@@ -357,23 +390,23 @@ void RigidBodyTree::fixVel0(Vector& vel) {
 }
 
 // Calc unconstrained internal forces from spatial forces: sweep from tip to base.
-void RigidBodyTree::calcTreeInternalForces(const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcTreeInternalForces(const SBState& s, const SpatialVecList& spatialForces) {
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInternalForce(spatialForces[node.getNodeNum()]);
+            node.calcInternalForce(s, spatialForces[node.getNodeNum()]);
         }
 }
 
 // Retrieve already-computed internal forces (order doesn't matter).
-void RigidBodyTree::getInternalForces(Vector& T) {
+void RigidBodyTree::getInternalForces(const SBState& s, Vector& T) {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->getInternalForce(T);
+            rbNodeLevels[i][j]->getInternalForce(s, T);
 }
 
-void RigidBodyTree::getConstraintCorrectedInternalForces(Vector& T) {
-    getInternalForces(T);
+void RigidBodyTree::getConstraintCorrectedInternalForces(const SBState& s, Vector& T) {
+    getInternalForces(s,T);
     lConstraints->fixGradient(T);
 }
 
@@ -414,13 +447,6 @@ void RigidBodyTree::getDefaultVelocity(SBState& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->getDefaultVelocity(s); 
-}
-
-// Retrieve already-calculated accelerations (order doesn't matter)
-void RigidBodyTree::getAcc(Vector& acc) const {
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->getAccel(acc);
 }
 
 std::ostream& operator<<(std::ostream& o, const RigidBodyTree& tree) {

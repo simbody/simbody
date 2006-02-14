@@ -22,58 +22,60 @@ void RigidBodyNode::addChild(RigidBodyNode* child, const TransformMat& reference
     children.push_back( child );
     child->setParent(this);
     child->refOrigin_P = referenceFrame.getTranslation(); // ignore rotation for now, it's always identity
-    child->X_GB = TransformMat(X_GB.getRotation(), 
-                               X_GB.getTranslation() + child->refOrigin_P);
-    child->COM_G = child->X_GB.getTranslation() + child->COMstation_G;
+    //child->X_GB = TransformMat(X_GB.getRotation(), 
+    //                           X_GB.getTranslation() + child->refOrigin_P);
+    //child->COM_G = child->X_GB.getTranslation() + child->COMstation_G;
 }
 
 //
 // Calc posCM, mass, Mk
 //      phi, inertia
 // Should be calc'd from base to tip.
-void RigidBodyNode::calcJointIndependentKinematicsPos() {
+void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 OB_OP_G = getR_GP() * X_PB.getTranslation();
+    const Vec3 OB_OP_G = getR_GP(s) * getX_PB(s).getTranslation();
 
     // The Phi matrix conveniently performs parent-to-child shifting
     // on spatial quantities.
-    phi = PhiMatrix(OB_OP_G);
+    updPhi(s) = PhiMatrix(OB_OP_G);
 
     // Get spatial configuration of this body.
-    X_GB = TransformMat(getR_GP() * X_PB.getRotation(),
-                        getOP_G() + OB_OP_G);
+    updX_GB(s) = TransformMat(getR_GP(s) * getX_PB(s).getRotation(),
+                              getOP_G(s) + OB_OP_G);
 
     // Calculate spatial mass properties. That means we need to transform
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    inertia_OB_G = getInertia_OB_B().changeAxes(~getR_GB());
-    COMstation_G = getR_GB()*getCOM_B();
+    updInertia_OB_G(s) = getInertia_OB_B(s).changeAxes(~getR_GB(s));
+    updCB_G(s)         = getR_GB(s)*getCOM_B(s);
 
-    COM_G = X_GB.getTranslation() + COMstation_G;
+    updCOM_G(s) = getX_GB(s).getTranslation() + getCB_G(s);
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
-    const Mat33 offDiag = getMass()*crossMat(COMstation_G);
-    Mk = SpatialMat( inertia_OB_G.toMat33() ,     offDiag ,
-                           -offDiag         , getMass()*Mat33(1) );
+    const Mat33 offDiag = getMass(s)*crossMat(getCB_G(s));
+    updMk(s) = SpatialMat( getInertia_OB_G(s).toMat33() ,     offDiag ,
+                                   -offDiag             , getMass(s)*Mat33(1) );
 }
 
 // Calculate velocity-related quantities: spatial velocity (sVel),
 // gyroscopic force b, coriolis acceleration a. This must be
 // called base to tip: depends on parent's sVel, V_PB_G.
 void 
-RigidBodyNode::calcJointIndependentKinematicsVel() {
-    setSpatialVel(~phi*parent->getSpatialVel() + V_PB_G);
-    const Vec3& omega   = getSpatialAngVel();
+RigidBodyNode::calcJointIndependentKinematicsVel(const SBState& s) {
+    updV_GB(s) = ~getPhi(s)*parent->getV_GB(s) + getV_PB_G(s);
+    const Vec3& omega = getV_GB(s)[0];  // spatial angular velocity
+    const Vec3& vel   = getV_GB(s)[1];  // spatial linear velocity
 
-    b = SpatialVec(     omega % (inertia_OB_G*omega),         // gyroscopic moment
-                   getMass()*(omega % (omega%COMstation_G))); // gyroscopic force
+    updGyroscopicForce(s) = 
+        SpatialVec(    omega % (getInertia_OB_G(s)*omega),    // gyroscopic moment
+                   getMass(s)*(omega % (omega % getCB_G(s)))); // gyroscopic force
 
-    const Vec3& vel    = getSpatialLinVel();
-    const Vec3& pOmega = parent->getSpatialAngVel();
-    const Vec3& pVel   = parent->getSpatialLinVel();
+    // Parent velocity.
+    const Vec3& pOmega = parent->getV_GB(s)[0];
+    const Vec3& pVel   = parent->getV_GB(s)[1];
 
     // Calc a: coriolis acceleration.
     // Sherm TODO: See Schwieters & Clore Eq. [16], which uses *this*
@@ -86,13 +88,14 @@ RigidBodyNode::calcJointIndependentKinematicsVel() {
     // Is that also true in the first term? I.e., can we use pOmega, omega,
     // or both below and get the same answers? Anyway the code below is
     // consistent with JV&R but not obviously consistent with S&C.
-    a =   SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
-        + crossMat(pOmega) * V_PB_G;
-    //  + crossMat(omega)  * V_PB_G;  <-- should work too?
+    updCoriolisAcceleration(s) = 
+        SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
+          + crossMat(pOmega) * getV_PB_G(s);
+    //    + crossMat(omega)  * getV_PB_G(s);  <-- should work too?
 }
 
-Real RigidBodyNode::calcKineticEnergy() const {
-    const Real ret = dot(sVel , Mk*sVel);
+Real RigidBodyNode::calcKineticEnergy(const SBState& s) const {
+    const Real ret = dot(getV_GB(s) , getMk(s)*getV_GB(s));
     return 0.5*ret;
 }
 
@@ -103,9 +106,9 @@ void RigidBodyNode::nodeDump(std::ostream& o) const {
     o << "END OF NODE type=" << type() << std::endl;
 }
 
-std::ostream& operator<<(std::ostream& s, const RigidBodyNode& node) {
-    node.nodeDump(s);
-    return s;
+std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
+    node.nodeDump(o);
+    return o;
 }
 
 
@@ -125,29 +128,29 @@ public:
 
     /*virtual*/const char* type() const { return "ground"; }
 
-    /*virtual*/void calcP() {} 
-    /*virtual*/void calcZ(const SpatialVec&) {} 
-    /*virtual*/void calcY() {}
-    /*virtual*/void calcInternalForce(const SpatialVec&) {}
-    /*virtual*/void calcAccel() {}
+    /*virtual*/void calcP(const SBState&) {} 
+    /*virtual*/void calcZ(const SBState&, const SpatialVec&) {} 
+    /*virtual*/void calcY(const SBState&) {}
+    /*virtual*/void calcInternalForce(const SBState&, const SpatialVec&) {}
+    /*virtual*/void calcAccel(const SBState&) {}
 
     /*virtual*/void realizeModeling(const SBState&) const {}
     /*virtual*/void realizeParameters(const SBState&) const {}
-    /*virtual*/void realizeConfiguration(const Vector&) {}
-    /*virtual*/void realizeVelocity(const Vector&) {}
-    /*virtual*/void setVelFromSVel(const SpatialVec&) {}
-    /*virtual*/void enforceConstraints(Vector& pos, Vector& vel) {}
+    /*virtual*/void realizeConfiguration(const SBState&) {}
+    /*virtual*/void realizeVelocity(const SBState&) {}
+    /*virtual*/void setVelFromSVel(SBState&,const SpatialVec&) {}
+    /*virtual*/void enforceQuaternionConstraints(SBState&) {}
 
     /*virtual*/void getDefaultParameters(SBState&)    const {}
     /*virtual*/void getDefaultConfiguration(SBState&) const {}
     /*virtual*/void getDefaultVelocity(SBState&)      const {}
 
-    /*virtual*/void getAccel(Vector&) const {}
+    /*virtual*/void getAccel(const SBState&, Vector&) const {}
 
-    /*virtual*/void getInternalForce(Vector&) const {}
+    /*virtual*/void getInternalForce(const SBState&, Vector&) const {}
     // /*virtual*/ const SpatialRow& getHRow(int i) const;
 
-    void print(int) {}
+    void print(const SBState&, int) {}
 };
 
 template<int dof>
@@ -156,12 +159,14 @@ public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
                       const TransformMat&   jointFrame,
                       int&                  nextUSlot,
+                      int&                  nextUSqSlot,
                       int&                  nextQSlot)
       : RigidBodyNode(mProps_B,Vec3(0.),jointFrame),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
-        uIndex = nextUSlot; nextUSlot += getDOF();
-        qIndex = nextQSlot; nextQSlot += getMaxNQ();
+        uIndex   = nextUSlot;   nextUSlot   += getDOF();
+        uSqIndex = nextUSqSlot; nextUSqSlot += getDOF()*getDOF();
+        qIndex   = nextQSlot;   nextQSlot   += getMaxNQ();
     }
 
     virtual ~RigidBodyNodeSpec() {}
@@ -174,7 +179,7 @@ public:
     ///   R_PB  the orientation of the B frame in its parent's frame
     ///   OB_P  the location of B's origin in its parent (meas. from OP)
     ///   H     the joint transition matrix
-    virtual void calcJointKinematicsPos()=0;
+    virtual void calcJointKinematicsPos(const SBState&)=0;
 
     /// Calculate joint-specific kinematic quantities dependent on
     /// on velocities. This routine may assume that *all* position 
@@ -183,7 +188,7 @@ public:
     /// that the velocity state variables (dTheta) are available. The
     /// quanitites that must be computed are:
     ///   V_PB_G  relative velocity of B in P, expr. in G
-    virtual void calcJointKinematicsVel()=0;
+    virtual void calcJointKinematicsVel(const SBState&)=0;
 
     void realizeModeling(const simtk::SBState&) const {
     }
@@ -192,81 +197,162 @@ public:
     }
 
     /// Set a new configuration and calculate the consequent kinematics.
-    void realizeConfiguration(const Vector& posv) {
+    void realizeConfiguration(const SBState& s) {
         forceInternal = 0.;  // forget these
-        setJointPos(posv);
-        calcJointKinematicsPos();
-        calcJointIndependentKinematicsPos();
+        setJointPos(s);
+        calcJointKinematicsPos(s);
+        calcJointIndependentKinematicsPos(s);
     }
 
     /// Set new velocities for the current configuration, and calculate
     /// all the velocity-dependent terms.
-    void realizeVelocity(const Vector& velv) {
+    void realizeVelocity(const SBState& s) {
         // anything to initialize?
-        setJointVel(velv);
-        calcJointKinematicsVel();
-        calcJointIndependentKinematicsVel();
+        setJointVel(s);
+        calcJointKinematicsVel(s);
+        calcJointIndependentKinematicsVel(s);
     }
 
     // These unfortunately need to be overridden for joints using quaternions.
-    virtual void setJointPos(const Vector& posv) {
-        theta  = Vec<dof>::getAs(&posv[stateOffset]);
+    virtual void setJointPos(const SBState& s) {
+        theta  = getQ(s);
     }
-    virtual void setJointVel(const Vector& velv) {
-        dTheta = Vec<dof>::getAs(&velv[stateOffset]);
+    virtual void setJointVel(const SBState& s) {
+        dTheta = getU(s);
     }
-    virtual void calcJointAccel() { }
+    virtual void calcJointAccel(const SBState&) { }
 
     // We are assuming that the caller is taking care of state validity.
     virtual void getDefaultParameters(SBState& s) const {
         // TODO none yet
     }
     virtual void getDefaultConfiguration(SBState& s) const {
-        Vec<dof>::updAs(&s.vars->q[qIndex]) = theta;
+        updQ(s) = theta;
     }
     virtual void getDefaultVelocity(SBState& s) const {
-        Vec<dof>::updAs(&s.vars->u[uIndex]) = dTheta;
+        updU(s) = dTheta;
     }
 
-    virtual void getAccel(Vector& a) const {
-        Vec<dof>::updAs(&a[stateOffset]) = ddTheta;
+    virtual void getAccel(SBState& s) const {
+        updUdot(s) = ddTheta;
     }
-    virtual void getInternalForce(Vector& t) const {
-        Vec<dof>::updAs(&t[stateOffset]) = forceInternal;
+    virtual void getInternalForce(SBState& s) const {
+        updInternalForce(s) = forceInternal;
     }
 
     int          getDOF()              const { return dof; }
     virtual int  getMaxNQ()            const { return dof; } // maxNQ can be larger than dof
-    virtual int  getNQ(bool useAngles) const { return dof; } // DOF <= NQ <= maxNQ
+    virtual int  getNQ(const SBState&) const { return dof; } // DOF <= NQ <= maxNQ
 
-    virtual void   print(int) const;
+    virtual void print(const SBState&, int) const;
 
 
-    virtual void setVelFromSVel(const SpatialVec&);
-    virtual void enforceConstraints(Vector& pos, Vector& vel) {}
+    virtual void setVelFromSVel(SBState& s, const SpatialVec&);
+    virtual void enforceQuaternionConstraints(SBState&) {}
 
-    const SpatialRow& getHRow(int i) const {
-        return H[i];
+    const SpatialRow& getHRow(const SBState& s, int i) const {
+        return getH(s)[i];
     }
 
-    void calcP();
-    void calcZ(const SpatialVec& spatialForce);
-    void calcY();
-    void calcAccel();
-    void calcInternalForce(const SpatialVec& spatialForce);
+    // Access to body-oriented state and cache entries is the same for all nodes,
+    // and joint oriented access is almost the same but parametrized by dof. There is a special
+    // case for quaternions because they use an extra state variable, and although we don't
+    // have to we make special scalar routines available for 1-dof joints. Note that all State access
+    // routines are inline, not virtual, so the cost is just an indirection and an index.
 
-    void nodeSpecDump(std::ostream& o) const {
+    // State variables (read only).
+    const Vec<dof>&   getQ             (const SBState& s) const {return Vec<dof>::getAs(&s.vars->q[qIndex]);}
+    const Vec<dof>&   getU             (const SBState& s) const {return Vec<dof>::getAs(&s.vars->u[uIndex]);}
+    const Vec<dof>&   getJointForce    (const SBState& s) const {return Vec<dof>::getAs(&s.vars->appliedJointForces[uIndex]);}
+    const Vec<dof>&   getPrescribedUdot(const SBState& s) const {return Vec<dof>::getAs(&s.vars->prescribedUdot[uIndex]);}
+
+    // Special case for quaternions
+    const Vec4& getQuat(const SBState& s) const{return Vec4::getAs(&s.vars->q[qIndex]);} 
+
+    // Special case state access for 1-dof joints
+    const Real& get1Q             (const SBState& s) const {return s.vars->q[qIndex];}
+    const Real& get1U             (const SBState& s) const {return s.vars->u[uIndex];}
+    const Real& get1JointForce    (const SBState& s) const {return s.vars->appliedJointForces[uIndex];}
+    const Real& get1PrescribedUdot(const SBState& s) const {return s.vars->prescribedUdot[uIndex];}
+
+    // State variables for updating; be careful.
+    Vec<dof>& updQ(SBState& s) const {return Vec<dof>::updAs(&s.vars->q[qIndex]);}
+    Vec<dof>& updU(SBState& s) const {return Vec<dof>::updAs(&s.vars->u[uIndex]);}
+
+    // Cache entries (cache is mutable in a const State)
+
+        // Configuration
+
+    // TODO: should store as H or else always reference Ht
+    const Mat<dof,2,Row3,1,2>& getH(const SBState& s) const
+      { return ~Mat<2,dof,Vec3>::getAs(&s.cache->storageForHt(0,uIndex)); }
+    Mat<dof,2,Row3,1,2>&       updH(const SBState& s) const
+      { return ~Mat<2,dof,Vec3>::updAs(&s.cache->storageForHt(0,uIndex)); }
+
+        // Motion
+
+
+    const Vec<dof>&   getQdot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdot[qIndex]);}
+    Vec<dof>&         updQdot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdot[qIndex]);}
+    const Vec4&       getQuatDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdot[qIndex]);}
+    Vec4&             updQuatDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdot[qIndex]);}
+    const Real&       get1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
+    Real&             upd1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
+
+        // Dynamics
+    const Vec<dof>&   getUdot (const SBState& s) const {return Vec<dof>::getAs(&s.cache->udot[uIndex]);}
+    Vec<dof>&         updUdot (const SBState& s) const {return Vec<dof>::updAs(&s.cache->udot[uIndex]);}
+    const Real&       get1Udot(const SBState& s) const {return s.cache->udot[uIndex];}
+    Real&             upd1Udot(const SBState& s) const {return s.cache->udot[uIndex];}
+
+    const Vec<dof>&   getQdotDot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdotdot[qIndex]);}
+    Vec<dof>&         updQdotDot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdotdot[qIndex]);}
+    const Vec4&       getQuatDotDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdotdot[qIndex]);}
+    Vec4&             updQuatDotDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdotdot[qIndex]);}
+
+    const Vec<dof>&   getInternalForce (const SBState& s) const {return Vec<dof>::getAs(&s.cache->netHingeForces[uIndex]);}
+    Vec<dof>&         updInternalForce (const SBState& s) const {return Vec<dof>::updAs(&s.cache->netHingeForces[uIndex]);}
+    const Real&       get1InternalForce(const SBState& s) const {return s.cache->netHingeForces[uIndex];}
+    Real&             upd1InternalForce(const SBState& s) const {return s.cache->netHingeForces[uIndex];}
+
+    const Mat<dof,dof>& getDI(const SBState& s) const 
+      { return Mat<dof,dof>::getAs(&s.cache->storageForDI[uSqIndex]); }
+    Mat<dof,dof>&       updDI(const SBState& s) const 
+      { return Mat<dof,dof>::updAs(&s.cache->storageForDI[uSqIndex]); }
+
+    const Mat<2,dof,Vec3>& getG(const SBState& s) const
+      { return Mat<2,dof,Vec3>::getAs(&s.cache->storageForG(0,uIndex)); }
+    Mat<2,dof,Vec3>&       updG(const SBState& s) const
+      { return Mat<2,dof,Vec3>::updAs(&s.cache->storageForG(0,uIndex)); }
+
+    const Vec<dof>&   getNu (const SBState& s) const {return Vec<dof>::getAs(&s.cache->nu[uIndex]);}
+    Vec<dof>&         updNu (const SBState& s) const {return Vec<dof>::updAs(&s.cache->nu[uIndex]);}
+    const Real&       get1Nu(const SBState& s) const {return s.cache->nu[uIndex];}
+    Real&             upd1Nu(const SBState& s) const {return s.cache->nu[uIndex];}
+
+    const Vec<dof>&   getEpsilon (const SBState& s) const {return Vec<dof>::getAs(&s.cache->epsilon[uIndex]);}
+    Vec<dof>&         updEpsilon (const SBState& s) const {return Vec<dof>::updAs(&s.cache->epsilon[uIndex]);}
+    const Real&       get1Epsilon(const SBState& s) const {return s.cache->epsilon[uIndex];}
+    Real&             upd1Epsilon(const SBState& s) const {return s.cache->epsilon[uIndex];}
+
+    void calcP(const SBState& s);
+    void calcZ(const SBState& s, const SpatialVec& spatialForce);
+    void calcY(const SBState& s);
+    void calcAccel(const SBState& s);
+    void calcInternalForce(const SBState& s, const SpatialVec& spatialForce);
+
+    void nodeSpecDump(std::ostream& o, const SBState& s) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
-            << " COM_G=" << getCOM_G() << std::endl;
-        o << "inertia_OB_G=" << getInertia_OB_G() << std::endl;
-        o << "H=" << H << std::endl;
-        o << "SVel=" << sVel << std::endl;
-        o << "a=" << a << std::endl;
-        o << "b=" << b << std::endl;
-        o << "Th  =" << theta << std::endl;
-        o << "dTh =" << dTheta << std::endl;
-        o << "ddTh=" << ddTheta << std::endl;
-        o << "SAcc=" << sAcc << std::endl;
+            << " COM_G=" << getCOM_G(s) << std::endl;
+        o << "inertia_OB_G=" << getInertia_OB_G(s) << std::endl;
+        o << "H=" << getH(s) << std::endl;
+        o << "SVel=" << getV_GB(s) << std::endl;
+        o << "a=" << getCoriolisAcceleration(s) << std::endl;
+        o << "b=" << getGyroscopicForce(s) << std::endl;
+        o << "Th  =" << getQ(s) << std::endl;
+        o << "dTh =" << getU(s) << std::endl;
+        o << "ddTh=" << getUdot(s) << std::endl;
+        o << "SAcc=" << getA_GB(s) << std::endl;
     }
 protected:
     // These are the joint-specific quantities
@@ -286,9 +372,6 @@ protected:
     Vec<dof>                nu;
     Vec<dof>                epsilon;
     Vec<dof>                forceInternal;
-
-private:
-    void calcD_G(const SpatialMat& P);
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = std::acos(-1.) / 180.; // i.e., pi/180
@@ -311,23 +394,24 @@ public:
 
     RBNodeTranslate(const MassProperties& mProps_B,
                     int&                  nextUSlot,
+                    int&                  nextUSqSlot,
                     int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos() {
+    void calcJointKinematicsPos(const SBState& s) {
         // Cartesian joint can't change orientation
-        X_PB = TransformMat(RotationMat(), refOrigin_P + theta);
+        updX_PB(s) = TransformMat(RotationMat(), refOrigin_P + getQ(s));
 
-        // Note that this is spatial (and R_GP=R_GB for this joint)
-        H[0] = SpatialRow( Row3(0), ~getR_GP()(0) );
-        H[1] = SpatialRow( Row3(0), ~getR_GP()(1) );
-        H[2] = SpatialRow( Row3(0), ~getR_GP()(2) );
+        // Note that H is spatial (and R_GP=R_GB for this joint)
+        updH(s)[0] = SpatialRow( Row3(0), ~getR_GP(s)(0) );
+        updH(s)[1] = SpatialRow( Row3(0), ~getR_GP(s)(1) );
+        updH(s)[2] = SpatialRow( Row3(0), ~getR_GP(s)(2) );
     }
 
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 };
 
@@ -342,16 +426,17 @@ public:
     RBNodeTorsion(const MassProperties& mProps_B,
                   const TransformMat&   jointFrame,
                   int&                  nextUSlot,
+                  int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos() { 
+    void calcJointKinematicsPos(const SBState& s) { 
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        const double scale=1.0;
-        const double sinTau = sin( scale * theta[0] );
-        const double cosTau = cos( scale * theta[0] );
+        const Real scale=1.0;
+        const Real sinTau = sin( scale * theta[0] );
+        const Real cosTau = cos( scale * theta[0] );
         const Mat33 a( cosTau , -sinTau , 0.0 ,
                        sinTau ,  cosTau , 0.0 ,
                        0.0    ,  0.0    , 1.0 );
@@ -359,23 +444,18 @@ public:
 
         // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
         const RotationMat& R_BJ = X_BJ.getRotation();
-        X_PB = TransformMat(R_BJ * R_JiJ * ~R_BJ, refOrigin_P); // torsion can't move B origin in P
-        calcH();
-    }
-
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
-    }
-
-private:
-    // Calc H matrix in space-fixed coords.
-    void calcH() {
+        updX_PB(s) = TransformMat(R_BJ * R_JiJ * ~R_BJ, refOrigin_P); // torsion can't move B origin in P
+   
+        // Calc H matrix in space-fixed coords.
         // This only works because the joint z axis is the same in B & P
         // because that's what we rotate around.
-        const RotationMat& R_BJ = X_BJ.getRotation();
-        const Vec3 z = getR_GP() * R_BJ(2); // R_BJ=R_PJi
-        H[0] = SpatialRow( ~z, Row3(0) );
-    }  
+        const Vec3 z = getR_GP(s) * R_BJ(2); // R_BJ=R_PJi
+        updH(s)[0] = SpatialRow( ~z, Row3(0) );
+    }
+
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
+    }
 };
 
 /**
@@ -537,17 +617,19 @@ public:
 
     RBNodeRotate3(const MassProperties& mProps_B,
                   int&                  nextUSlot,
+                  int&                  nextUSqSlot,
                   int&                  nextQSlot,
                   bool                  useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextQSlot),
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot),
         ball(useEuler)
     {
     }
     
-    int getMaxNQ()           const  { return ball.getBallMaxNQ(); }
-    int getNQ(bool useAngles) const { return ball.getBallNQ(useAngles); } 
+    int getMaxNQ()              const {return ball.getBallMaxNQ();}
+    int getNQ(const SBState& s) const {return ball.getBallNQ(getUseEulerAngles(s));} 
 
-    void setJointPos(const Vector& posv) {
+    void setJointPos(const SBState& s) {
+        const Vector& posv = s.vars->q;
         ball.setBallPos(qIndex, posv, theta);
     } 
 
@@ -557,7 +639,8 @@ public:
     }
 
     // setPos must have been called previously
-    void setJointVel(const Vector& velv) {
+    void setJointVel(const SBState& s) {
+        const Vector& velv = s.vars->u;
         ball.setBallVel(uIndex, velv, dTheta);
     }
 
@@ -570,35 +653,39 @@ public:
         ball.calcBallAccel(dTheta, ddTheta);
     }
 
-    void getAccel(Vector& accv) const {
+    void getAccel(SBState& s) const {
+        Vector& accv = s.cache->udot;
         ball.getBallAccel(ddTheta, uIndex, accv);
     }
 
-    void calcJointKinematicsPos() { 
-        X_PB.updTranslation() = refOrigin_P; // ball joint can't move B origin in P
-        ball.calcR_PB(theta, X_PB.updRotation());
+    void calcJointKinematicsPos(const SBState& s) { 
+        updX_PB(s).updTranslation() = refOrigin_P; // ball joint can't move B origin in P
+        ball.calcR_PB(theta, updX_PB(s).updRotation());
 
         // H matrix in space-fixed (P) coords
-        H[0] = SpatialRow( ~getR_GP()(0), Row3(0) );
-        H[1] = SpatialRow( ~getR_GP()(1), Row3(0) );
-        H[2] = SpatialRow( ~getR_GP()(2), Row3(0) );
+        updH(s)[0] = SpatialRow( ~getR_GP(s)(0), Row3(0) );
+        updH(s)[1] = SpatialRow( ~getR_GP(s)(1), Row3(0) );
+        updH(s)[2] = SpatialRow( ~getR_GP(s)(2), Row3(0) );
    }
 
     // Note that dTheta = w_PB_P = ang vel of B in P, expr in P
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
-    void enforceConstraints(Vector& posv, Vector& velv) {
+    void enforceQuaternionConstraints(const SBState& s) {
+        Vector& posv = s.vars->q;
+        Vector& velv = s.vars->u;
         ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
     }
 
-    void getInternalForce(Vector& v) const {
-        ball.getBallInternalForce(forceInternal, uIndex, v);
+    void getInternalForce(const SBState& s) const {
+        Vector& f = s.cache->netHingeForces;
+        ball.getBallInternalForce(forceInternal, uIndex, f);
     }
 
-    void setVelFromSVel(const SpatialVec& sVel) {
-        RigidBodyNodeSpec<3>::setVelFromSVel(sVel);
+    void setVelFromSVel(SBState& s, const SpatialVec& sVel) {
+        RigidBodyNodeSpec<3>::setVelFromSVel(s, sVel);
         ball.setBallDerivs(dTheta);
     } 
 };
@@ -615,36 +702,39 @@ public:
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
                            int&                  nextUSlot,
+                           int&                  nextUSqSlot,
                            int&                  nextQSlot,
                            bool                  useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextQSlot),
+      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot),
         ball(useEuler)
     {
     }
     
-    int getMaxNQ()            const { return 3 + ball.getBallMaxNQ(); }
-    int getNQ(bool useAngles) const { return 3 + ball.getBallNQ(useAngles); } 
+    int getMaxNQ()              const { return 3 + ball.getBallMaxNQ(); }
+    int getNQ(const SBState& s) const { return 3 + ball.getBallNQ(getUseEulerAngles(s)); } 
 
-    void setJointPos(const Vector& posv) {
+    void setJointPos(const SBState& s) {
+        const Vector& posv = s.vars->q;
         Vec3 th;
         ball.setBallPos(qIndex, posv, th);
         theta.updSubVec<3>(0) = th;
-        theta.updSubVec<3>(3) = Vec3::getAs(&posv[qIndex+ball.getBallNQ()]);
+        theta.updSubVec<3>(3) = Vec3::getAs(&posv[qIndex + ball.getBallNQ(getUseEulerAngles(s))]);
     } 
 
     void getDefaultConfiguration(SBState& s) const {
         Vector& posv = s.vars->q;
         ball.getBallPos(theta.getSubVec<3>(0), qIndex, posv);
-        Vec3::updAs(&posv[qIndex+ball.getBallNQ()]) 
+        Vec3::updAs(&posv[qIndex+ball.getBallNQ(getUseEulerAngles(s))]) 
             = theta.getSubVec<3>(3);
     }
 
     // setPos must have been called previously
-    void setJointVel(const Vector& velv) {
+    void setJointVel(const SBState& s) {
+        const Vector& velv = s.vars->q;
         Vec3 dTh;
         ball.setBallVel(uIndex, velv, dTh);
         dTheta.updSubVec<3>(0) = dTh;
-        dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[uIndex+ball.getBallDOF()]);
+        dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[uIndex + ball.getBallDOF()]);
     }
 
     void getDefaultVelocity(SBState& s) const {
@@ -661,42 +751,45 @@ public:
         ball.calcBallAccel(omega, dOmega);
     }
 
-    void getAccel(Vector& accv) const {
+    void getAccel(SBState& s) const {
+        Vector& accv = s.cache->udot;
         ball.getBallAccel(ddTheta.getSubVec<3>(0), uIndex, accv);
         Vec3::updAs(&accv[uIndex+ball.getBallDOF()]) 
             = ddTheta.getSubVec<3>(3);
     }
 
-    void calcJointKinematicsPos() {
-        X_PB.updTranslation() = refOrigin_P + theta.getSubVec<3>(3);
-        ball.calcR_PB(theta.getSubVec<3>(0), X_PB.updRotation());
+    void calcJointKinematicsPos(const SBState& s) {
+        updX_PB(s).updTranslation() = refOrigin_P + theta.getSubVec<3>(3);
+        ball.calcR_PB(theta.getSubVec<3>(0), updX_PB(s).updRotation());
 
         // H matrix in space-fixed (P) coords
         for (int i=0; i<3; ++i) {
-            H[i]   = SpatialRow( ~getR_GP()(i),     Row3(0) );
-            H[i+3] = SpatialRow(     Row3(0),     ~getR_GP()(i) );
+            updH(s)[i]   = SpatialRow( ~getR_GP(s)(i),     Row3(0) );
+            updH(s)[i+3] = SpatialRow(     Row3(0),     ~getR_GP(s)(i) );
         }
     }
 
     // Note that dTheta[0..2] = w_PB_P = ang vel of B in P, expr in P
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
-    void enforceConstraints(Vector& posv, Vector& velv) {
+    void enforceQuaternionConstraints(const SBState& s) {
+        Vector& posv = s.vars->q;
+        Vector& velv = s.vars->u;
         ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
     }
 
-
-    void getInternalForce(Vector& v) const {
+    void getInternalForce(const SBState& s) const {
+        Vector& f = s.cache->netHingeForces;
         const Vec3 torque = forceInternal.getSubVec<3>(0);
-        ball.getBallInternalForce(torque, uIndex, v);
-        Vec3::updAs(&v[uIndex+ball.getBallDOF()]) =
+        ball.getBallInternalForce(torque, uIndex, f);
+        Vec3::updAs(&f[uIndex + ball.getBallDOF()]) =
             forceInternal.getSubVec<3>(3);
     }
 
-    void setVelFromSVel(const SpatialVec& sVel) {
-        RigidBodyNodeSpec<6>::setVelFromSVel(sVel);
+    void setVelFromSVel(SBState& s, const SpatialVec& sVel) {
+        RigidBodyNodeSpec<6>::setVelFromSVel(s, sVel);
         const Vec3 omega  = dTheta.getSubVec<3>(0);
         ball.setBallDerivs(omega);
     } 
@@ -715,19 +808,20 @@ public:
     RBNodeRotate2(const MassProperties& mProps_B,
                   const TransformMat&   jointFrame,
                   int&                  nextUSlot,
+                  int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos() { 
-        X_PB.updTranslation() = refOrigin_P; // no translation with this joint
-        calcR_PB(X_PB.updRotation());
-        calcH();
+    void calcJointKinematicsPos(const SBState& s) { 
+        updX_PB(s).updTranslation() = refOrigin_P; // no translation with this joint
+        calcR_PB(updX_PB(s).updRotation());
+        calcH(s);
     }
 
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
 private:
@@ -748,17 +842,17 @@ private:
         R_PB = R_BJ * RotationMat::trustMe(a) * ~R_BJ;
     }
 
-    void calcH() {
+    void calcH(const SBState& s) {
         //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const RotationMat tmpR_GB = getR_GP() * X_PB.getRotation();
+        const RotationMat tmpR_GB = getR_GP(s) * getX_PB(s).getRotation();
 
         const RotationMat& R_BJ = X_BJ.getRotation();
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
-        H[0] = SpatialRow(~x, Row3(0));
-        H[1] = SpatialRow(~y, Row3(0));
+        updH(s)[0] = SpatialRow(~x, Row3(0));
+        updH(s)[1] = SpatialRow(~y, Row3(0));
     }  
 };
 
@@ -775,19 +869,20 @@ public:
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
                            const TransformMat&   jointFrame,
                            int&                  nextUSlot,
+                           int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos() { 
-        X_PB.updTranslation() = refOrigin_P + theta.getSubVec<3>(2);
-        calcR_PB(X_PB.updRotation());
-        calcH();
+    void calcJointKinematicsPos(const SBState& s) { 
+        updX_PB(s).updTranslation() = refOrigin_P + theta.getSubVec<3>(2);
+        calcR_PB(updX_PB(s).updRotation());
+        calcH(s);
     }
 
-    void calcJointKinematicsVel() { 
-        V_PB_G = ~H * dTheta;
+    void calcJointKinematicsVel(const SBState& s) { 
+        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
 private:
@@ -810,21 +905,21 @@ private:
         R_PB = R_BJ * RotationMat::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
     }
 
-    void calcH() {
+    void calcH(const SBState& s) {
         //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
         double scale=1.0;
-        const RotationMat& R_GP = getR_GP();
-        const RotationMat tmpR_GB = R_GP * X_PB.getRotation();
+        const RotationMat& R_GP = getR_GP(s);
+        const RotationMat tmpR_GB = R_GP * getX_PB(s).getRotation();
 
         const RotationMat& R_BJ = X_BJ.getRotation();
         const Vec3 x = scale * (tmpR_GB * R_BJ(0));
         const Vec3 y = scale * (tmpR_GB * R_BJ(1));
 
-        H[0] = SpatialRow(  ~x   ,  Row3(0));
-        H[1] = SpatialRow(  ~y   ,  Row3(0));
-        H[2] = SpatialRow(Row3(0), ~R_GP(0));
-        H[3] = SpatialRow(Row3(0), ~R_GP(1));
-        H[4] = SpatialRow(Row3(0), ~R_GP(2));
+        updH(s)[0] = SpatialRow(  ~x   ,  Row3(0));
+        updH(s)[1] = SpatialRow(  ~y   ,  Row3(0));
+        updH(s)[2] = SpatialRow(Row3(0), ~R_GP(0));
+        updH(s)[3] = SpatialRow(Row3(0), ~R_GP(1));
+        updH(s)[4] = SpatialRow(Row3(0), ~R_GP(2));
     }  
 };
 
@@ -840,6 +935,7 @@ RigidBodyNode::create(
     bool                  isReversed,   // child-to-parent orientation?
     bool                  useEuler,
     int&                  nxtUSlot,
+    int&                  nxtUSqSlot,
     int&                  nxtQSlot)  
 {
     assert(!isReversed);
@@ -848,17 +944,17 @@ RigidBodyNode::create(
     case Joint::ThisIsGround:
         return new RBGroundBody();
     case Joint::Torsion:
-        return new RBNodeTorsion(m,jointFrame,nxtUSlot,nxtQSlot);
+        return new RBNodeTorsion(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Universal:        
-        return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtQSlot);
+        return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Orientation:
-        return new RBNodeRotate3(m,nxtUSlot,nxtQSlot,useEuler);
+        return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot,useEuler);
     case Joint::Cartesian:
-        return new RBNodeTranslate(m,nxtUSlot,nxtQSlot);
+        return new RBNodeTranslate(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::FreeLine:
-        return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtQSlot);
+        return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Free:
-        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtQSlot,useEuler);
+        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot,useEuler);
     case Joint::Sliding:
     case Joint::Cylinder:
     case Joint::Planar:
@@ -881,16 +977,8 @@ RigidBodyNode::create(
 // to be called from base to tip.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(const SpatialVec& sVel) {
-    dTheta = H * (sVel - ~phi * parent->sVel);
-}
-
-template<int dof> void
-RigidBodyNodeSpec<dof>::calcD_G(const SpatialMat& P) {
-    const Mat<dof,dof> D = H * P * ~H;
-    // this will throw an exception if the matrix is ill conditioned
-    DI = D.invert();
-    G = P * ~H * DI;
+RigidBodyNodeSpec<dof>::setVelFromSVel(SBState& s, const SpatialVec& sVel) {
+    updU(s) = getH(s) * (sVel - (~getPhi(s) * parent->getV_GB(s)));
 }
 
 //
@@ -899,46 +987,81 @@ RigidBodyNodeSpec<dof>::calcD_G(const SpatialMat& P) {
 // is a tip to base recursion.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcP() {
+RigidBodyNodeSpec<dof>::calcP(const SBState& s) {
     //
     //how much do we need to keep around?
     // it looks like nu and G are the only ones needed for the acceleration
     // calc. The others can be freed after the parent is done with them.
     //
-    P = Mk;
+    SpatialMat& P = updP(s);
+    P = getMk(s);
     for (int i=0 ; i<(int)children.size() ; i++) {
         // this version is readable
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        const Mat33      lt = crossMat(children[i]->getOB_G() - getOB_G());
-        const SpatialMat M  = children[i]->tau * children[i]->P;
+        const Mat33      lt = crossMat(children[i]->getOB_G(s) - getOB_G(s));
+        const SpatialMat M  = children[i]->getTau(s) * children[i]->getP(s);
         P(0,0) += M(0,0) + lt*M(1,0) - M(0,1)*lt - lt*M(1,1)*lt;
         P(0,1) += M(0,1) + lt*M(1,1);
         P(1,0) += M(1,0) - M(1,1)*lt;
         P(1,1) += M(1,1);
     }
 
-    calcD_G(P);
-    tau = 1.; // identity matrix
-    tau -= G * H;
-    psiT = ~tau * ~phi;
+    const Mat<dof,dof> D = getH(s) * P * ~getH(s);
+    // this will throw an exception if the matrix is ill conditioned
+    updDI(s) = D.invert();
+    updG(s) = P * ~getH(s) * getDI(s);
+
+    updTau(s) = 1.; // identity matrix
+    updTau(s) -= getG(s) * getH(s);
+    updPsiT(s) = ~getTau(s) * ~getPhi(s);
 }
  
 //
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(const SpatialVec& spatialForce) {
-    z = P * a + b - spatialForce;
+RigidBodyNodeSpec<dof>::calcZ(const SBState& s, const SpatialVec& spatialForce) {
+    SpatialVec& z = updZ(s);
+    z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) - spatialForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) 
-        z += children[i]->phi
-             * (children[i]->z + children[i]->Gepsilon);
+        z += children[i]->getPhi(s)
+             * (children[i]->getZ(s) + children[i]->getGepsilon(s));
 
-    epsilon  = forceInternal - H*z;
-    nu       = DI * epsilon;
-    Gepsilon = G * epsilon;
+    updEpsilon(s)  = getInternalForce(s) - getH(s)*z;
+    updNu(s)       = getDI(s) * getEpsilon(s);
+    updGepsilon(s) = getG(s)  * getEpsilon(s);
+}
+
+
+//
+// Calculate sum of internal force and effective forces due to Cartesian
+// forces.
+// To be called from tip to base.
+// Should be called only once after calcProps.
+// TODO: sherm: this looks wrong. There needs to be a -Hz adjustment made
+// when shifting forces from child to parent to eliminate those forces
+// that are directed along the hinge axes and thus not felt by the parent.
+// See calcZ() above which shifts z-GHz from the children rather than just
+// z as does this routine. This would correspond to a system in which all
+// the *outboard* joints were locked. Is that what's wanted here?
+// Possible explanation: if the supplied spatial force is viewed as the derivative of this 
+// body's potential energy, then what we're calculating here might be 
+// partial(E)/partial(q) for our joint coords q, where E is potential energy
+// from all bodies outboard of this one. Elsewhere this function
+// seems to be used in the original IVM code in energy minimization only.
+//
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcInternalForce(const SBState& s, const SpatialVec& spatialForce) {
+    SpatialVec& z = updZ(s);
+    z = -spatialForce;
+
+    for (int i=0 ; i<(int)children.size() ; i++) 
+        z += children[i]->getPhi(s) * children[i]->getZ(s);
+
+    updInternalForce(s) += getH(s) * z; 
 }
 
 //
@@ -947,47 +1070,33 @@ RigidBodyNodeSpec<dof>::calcZ(const SpatialVec& spatialForce) {
 // (Base to tip)
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel() {
+RigidBodyNodeSpec<dof>::calcAccel(const SBState& s) {
     // const Node* pNode = parentHinge.remNode;
     //make sure that this is phi is correct - FIX ME!
     // base alpha = 0!!!!!!!!!!!!!
-    const SpatialVec alphap = ~phi * parent->sAcc;
-    ddTheta = nu - ~G * alphap;
-    sAcc    = alphap + ~H * ddTheta + a;  
+    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s);
+    ddTheta = getNu(s) - (~getG(s)*alphap);
+    updA_GB(s)    = alphap + (~getH(s)*ddTheta) + getCoriolisAcceleration(s);  
 
-    calcJointAccel();   // in case joint isn't happy with just ddTheta
+    calcJointAccel(s);   // in case joint isn't happy with just ddTheta
 }
 
 // To be called base to tip.
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcY() {
-    Y = (~H * DI * H) + (psiT * parent->Y * ~psiT);
+RigidBodyNodeSpec<dof>::calcY(const SBState& s) {
+    updY(s) = (~getH(s) * getDI(s) * getH(s)) 
+                + (getPsiT(s) * parent->getY(s) * ~getPsiT(s));
 }
 
-//
-// Calculate sum of internal force and effective forces due to Cartesian
-// forces.
-// To be called from tip to base.
-// Should be called only once after calcProps.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalForce(const SpatialVec& spatialForce) {
-    z = -spatialForce;
-
-    for (int i=0 ; i<(int)children.size() ; i++) 
-        z += children[i]->phi * children[i]->z;
-
-    forceInternal += H * z; 
-}
 
 template<int dof> void
-RigidBodyNodeSpec<dof>::print(int verbose) const {
+RigidBodyNodeSpec<dof>::print(const SBState& s, int verbose) const {
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
-             << ": pos: " << X_GB.getTranslation() << ' ' << '\n';
+             << ": pos: " << getX_GB(s).getTranslation() << ' ' << '\n';
     if (verbose&InternalDynamics::printNodeTheta) 
         cout << setprecision(8)
              << ": theta: " 
-             << theta << ' ' << dTheta  << ' ' << ddTheta  << '\n';
+             << getQ(s) << ' ' << getU(s)  << ' ' << getUdot(s)  << '\n';
 }
 
