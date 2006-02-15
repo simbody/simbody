@@ -277,13 +277,24 @@ public:
     /// Part of constrained dynamics (TODO -- more to move here)
     void calcY(const SBState&);
 
-    /// Convert spatial forces to internal (joint) forces, ignoring constraints.
-    void calcTreeInternalForces(const SBState&, const SpatialVecList& spatialForces);
+    /// Calculate the product J*X where J is the partial velocity Jacobian dV/du
+    /// and X is a vector of SpatialVec's, one per body. See Eq. 76&77 in
+    /// Schwieters' paper, and see 81a & b for a use of this routine to compute
+    /// energy gradient in internal coordinates. In that case X=dE/dR, that is
+    /// the gradient of the energy w.r.t. atomic positions, summed and shifted
+    /// to body origins. There we are pretending dR/dq is the same as dV/du, which
+    /// will be true if dq/dt = u, which works for all cases except quaternions.
+    /// Schwieters handles that by using Euler angles for orientation coordinates
+    /// when doing minimizations. But note that the routine works in terms of u,
+    /// not q, so it produces a meaningful result in all cases, just not one that
+    /// can be mapped directly back to quaternion coordinates. This is an O(n)
+    /// operator which can be called after realizeConfiguration().
+    /// It has no effect on the cache.
+    void calcInternalGradientFromSpatial(const SBState&, const SpatialVecList& X, 
+                                         Vector& JX);
 
-    /// Retrieve last-computed internal (joint) forces.
-    void getInternalForces(const SBState&, Vector& T);
-
-    void getConstraintCorrectedInternalForces(const SBState&, Vector& T); // TODO has to move elsewhere
+    /// Pass in internal forces in T; they will be adjusted by this routine.
+    void calcConstraintCorrectedInternalForces(const SBState&, Vector& T); 
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];

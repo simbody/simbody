@@ -18,13 +18,8 @@ using std::setprecision;
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
 
-void RigidBodyNode::addChild(RigidBodyNode* child, const TransformMat& referenceFrame) {
+void RigidBodyNode::addChild(RigidBodyNode* child) {
     children.push_back( child );
-    child->setParent(this);
-    child->refOrigin_P = referenceFrame.getTranslation(); // ignore rotation for now, it's always identity
-    //child->X_GB = TransformMat(X_GB.getRotation(), 
-    //                           X_GB.getTranslation() + child->refOrigin_P);
-    //child->COM_G = child->X_GB.getTranslation() + child->COMstation_G;
 }
 
 //
@@ -267,7 +262,7 @@ public:
     const Vec<dof>&   getPrescribedUdot(const SBState& s) const {return Vec<dof>::getAs(&s.vars->prescribedUdot[uIndex]);}
 
     // Special case for quaternions
-    const Vec4& getQuat(const SBState& s) const{return Vec4::getAs(&s.vars->q[qIndex]);} 
+    const Vec4& getQuat(const SBState& s) const{return Vec4::getAs(&s.vars->q[qIndex+quatOffs]);} 
 
     // Special case state access for 1-dof joints
     const Real& get1Q             (const SBState& s) const {return s.vars->q[qIndex];}
@@ -276,8 +271,9 @@ public:
     const Real& get1PrescribedUdot(const SBState& s) const {return s.vars->prescribedUdot[uIndex];}
 
     // State variables for updating; be careful.
-    Vec<dof>& updQ(SBState& s) const {return Vec<dof>::updAs(&s.vars->q[qIndex]);}
-    Vec<dof>& updU(SBState& s) const {return Vec<dof>::updAs(&s.vars->u[uIndex]);}
+    Vec<dof>& updQ   (SBState& s) const {return Vec<dof>::updAs(&s.vars->q[qIndex]);}
+    Vec<dof>& updU   (SBState& s) const {return Vec<dof>::updAs(&s.vars->u[uIndex]);}
+    Vec4&     updQuat(SBState& s) const {return Vec4::updAs(&s.vars->q[qIndex+quatOffs]);} 
 
     // Cache entries (cache is mutable in a const State)
 
@@ -289,13 +285,19 @@ public:
     Mat<dof,2,Row3,1,2>&       updH(const SBState& s) const
       { return ~Mat<2,dof,Vec3>::updAs(&s.cache->storageForHt(0,uIndex)); }
 
-        // Motion
+    // These are sines and cosines of angular qs. The rest of the slots are garbage.
+    const Vec<dof,Vec2>& getSinCosQ(const SBState& s) const {return Vec<dof,Vec2>::getAs(&s.cache->sinCosQ[qIndex]);}
+    Vec<dof,Vec2>&       updSinCosQ(const SBState& s) const {return Vec<dof,Vec2>::updAs(&s.cache->sinCosQ[qIndex]);}
+    // Special case for 1dof rotations.
+    const Vec2& get1SinCosQ(const SBState& s) const {return s.cache->sinCosQ[qIndex];}
+    Vec2&       upd1SinCosQ(const SBState& s) const {return s.cache->sinCosQ[qIndex];}
 
+        // Motion
 
     const Vec<dof>&   getQdot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdot[qIndex]);}
     Vec<dof>&         updQdot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdot[qIndex]);}
-    const Vec4&       getQuatDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdot[qIndex]);}
-    Vec4&             updQuatDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdot[qIndex]);}
+    const Vec4&       getQuatDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdot[qIndex+quatOffs]);}
+    Vec4&             updQuatDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdot[qIndex+quatOffs]);}
     const Real&       get1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
     Real&             upd1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
 
@@ -307,8 +309,8 @@ public:
 
     const Vec<dof>&   getQdotDot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdotdot[qIndex]);}
     Vec<dof>&         updQdotDot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdotdot[qIndex]);}
-    const Vec4&       getQuatDotDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdotdot[qIndex]);}
-    Vec4&             updQuatDotDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdotdot[qIndex]);}
+    const Vec4&       getQuatDotDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdotdot[qIndex+quatOffs]);}
+    Vec4&             updQuatDotDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdotdot[qIndex+quatOffs]);}
 
     const Vec<dof>&   getInternalForce (const SBState& s) const {return Vec<dof>::getAs(&s.cache->netHingeForces[uIndex]);}
     Vec<dof>&         updInternalForce (const SBState& s) const {return Vec<dof>::updAs(&s.cache->netHingeForces[uIndex]);}
@@ -339,7 +341,8 @@ public:
     void calcZ(const SBState& s, const SpatialVec& spatialForce);
     void calcY(const SBState& s);
     void calcAccel(const SBState& s);
-    void calcInternalForce(const SBState& s, const SpatialVec& spatialForce);
+    void calcInternalGradientFromSpatial(const SBState&, Vector_<SpatialVec>& zTmp,
+                                         const Vector_<SpatialVec>& X, Vector& JX);
 
     void nodeSpecDump(std::ostream& o, const SBState& s) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
@@ -433,13 +436,13 @@ public:
     }
 
     void calcJointKinematicsPos(const SBState& s) { 
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        const Real scale=1.0;
-        const Real sinTau = sin( scale * theta[0] );
-        const Real cosTau = cos( scale * theta[0] );
-        const Mat33 a( cosTau , -sinTau , 0.0 ,
-                       sinTau ,  cosTau , 0.0 ,
-                       0.0    ,  0.0    , 1.0 );
+        const Real q = get1Q(s); // angular coordinate
+        const Real sinTau = sin(q), cosTau = cos(q);
+        upd1SinCosQ(s) = Vec2(sinTau, cosTau);
+
+        const Mat33 a( cosTau , -sinTau , 0. ,
+                       sinTau ,  cosTau , 0. ,
+                       0.     ,  0.     , 1. );
         const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
 
         // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
@@ -464,32 +467,16 @@ public:
  * of this class and delegate to it.
  */
 class ContainedBallJoint {
-    Mat43   E;  // qdot = 0.5*E*u (and u=2*~E*qdot)
-    Mat43   dE; // dE/dt
-    Vec4    q; //Euler parameters for rotation relative to parent
-    Vec4    dq;
-    Vec4    ddq;
-    double cPhi, sPhi;        //trig functions of Euler angles
-    double cPsi, sPsi;        //used for minimizations
-    double cTheta, sTheta;
-    bool   useEuler;          //if False, use Quaternion rep.
-
 public:
-    virtual const char* type() { return "rotate3"; }
+    ContainedBallJoint() { }
 
-    ContainedBallJoint(bool shouldUseEuler)
-      : q(1,0,0,0), dq(0), ddq(0), 
-        useEuler(shouldUseEuler)
-    { 
-    }
-
-    int getBallDOF() const {return 3;}
-    int getBallMaxNQ() const {return 4;} 
-    int getBallNQ(bool useAngles) const { 
-        if (useEuler) return 3; else return 4; 
-    }
+    int getBallDOF()                const {return 3;}
+    int getBallMaxNQ()              const {return 4;} 
+    int getBallNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
 
     void setBallPos(int qIndex, const Vector& posv, Vec3& theta) {
+        Mat43   E;  // qdot = 0.5*E*u (and u=2*~E*qdot)
+
         if (useEuler) 
             theta = Vec3::getAs(&posv[qIndex]);
         else {
@@ -502,14 +489,16 @@ public:
         }
     } 
 
-    void getBallPos(const Vec3& theta, int qIndex, Vector& posv) const {
-        if (useEuler) Vec3::updAs(&posv[qIndex]) = theta;
-        else          Vec4::updAs(&posv[qIndex]) = q;
+    // ballIndex is the offset in q at which we can find the first ball coordinate.
+    void getBallDefaultConfig(SBState& s, int ballIndex) const {
+        if (getUseEulerAngles(s)) Vec3::updAs(&s.vars->q[ballIndex]) = Vec3(0,0,0);
+        else                      Vec4::updAs(&s.vars->q[ballIndex]) = Vec4(1,0,0,0);
     }
 
     void setBallVel(int uIndex, const Vector& velv, Vec3& dTheta) { 
+        Mat43 dE; // dE/dt
         dTheta = Vec3::getAs(&velv[uIndex]);
-        if (useEuler) {
+        if (!useEuler) {
             dq = 0.5*(E*dTheta);
             dE = Mat43(-dq[1],-dq[2],-dq[3],
                         dq[0], dq[3],-dq[2],    // TODO: signs???
@@ -536,15 +525,19 @@ public:
         // TODO: ddq ??
     }
 
-    void calcR_PB(const Vec3& theta, RotationMat& R_PB) {
-        if (useEuler) {
-            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles 
-            cPhi   = cos( theta[0] *RigidBodyNode::DEG2RAD );
-            sPhi   = sin( theta[0] *RigidBodyNode::DEG2RAD );
-            cTheta = cos( theta[1] *RigidBodyNode::DEG2RAD );
-            sTheta = sin( theta[1] *RigidBodyNode::DEG2RAD );
-            cPsi   = cos( theta[2] *RigidBodyNode::DEG2RAD );
-            sPsi   = sin( theta[2] *RigidBodyNode::DEG2RAD );
+    void calcR_PB(const SBState& s, RotationMat& R_PB) {
+        if (getUseEulerAngles(s)) {
+            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles
+            const Vec3&  th  = getQ(s);
+            Vec<3,Vec2>& scq = updSinCosQ(s);
+            for (int i=0; i<3; ++i) {
+                const Real scaledTh = th[i]*RigidBodyNode::DEG2RAD; // TODO: get rid of this junk!
+                scq[i] = Vec2(sin(scaledTh), cos(scaledTh));
+            }
+
+            const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
+            const Real sTheta = scq[1][0], cTheta = scq[1][1];
+            const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
             
             // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
             // of Spacecraft Dynamics.
@@ -554,10 +547,13 @@ public:
                  -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
             R_PB = RotationMat::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
         } else {
-            // TODO: should normalize q here??
+            // (sherm 060214) Added normalization of q's here. We don't want geometry-distorting
+            // rotation matrices under any circumstances.
+            const Vec4 q = getQuat(s)/getQuat(s).norm();
             const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
             const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
             const Real q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
+
             const Mat33 R_JiJ  //rotation matrix - active-sense coordinates
                 (q00+q11-q22-q33,   2*(q12-q03)  ,   2*(q13+q02),
                    2*(q12+q03)  , q00-q11+q22-q33,   2*(q23-q01),
@@ -586,9 +582,14 @@ public:
     }
 
 
-    void getBallInternalForce(const Vec3& forceInternal, int uIndex, Vector& v) const {
+    void getBallInternalForce(const SBState& s, const Vec3& forceInternal, int uIndex, Vector& v) const {
         //dependency: calcR_PB must be called first
         assert( useEuler );
+
+        const Vec<3,Vec2>& scq = getSinCosQ(s);
+        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
+        const Real sTheta = scq[1][0], cTheta = scq[1][1];
+        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
 
         Vec3 torque = forceInternal;
         const Mat33 M( 0.          , 0.          , 1.    ,
@@ -618,15 +619,13 @@ public:
     RBNodeRotate3(const MassProperties& mProps_B,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
-                  int&                  nextQSlot,
-                  bool                  useEuler)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot),
-        ball(useEuler)
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
     
     int getMaxNQ()              const {return ball.getBallMaxNQ();}
-    int getNQ(const SBState& s) const {return ball.getBallNQ(getUseEulerAngles(s));} 
+    int getNQ(const SBState& s) const {return ball.getBallNQ(s);} 
 
     void setJointPos(const SBState& s) {
         const Vector& posv = s.vars->q;
@@ -634,8 +633,11 @@ public:
     } 
 
     void getDefaultConfiguration(SBState& s) const {
-        Vector& posv = s.vars->q;
-        ball.getBallPos(theta, qIndex, posv);
+        ball.getBallDefaultConfig(s, qIndex+0);
+    }
+    
+    void getDefaultVelocity(SBState& s) const {
+        updU(s) = 0; // no funny business here
     }
 
     // setPos must have been called previously
@@ -644,10 +646,6 @@ public:
         ball.setBallVel(uIndex, velv, dTheta);
     }
 
-    void getDefaultVelocity(SBState& s) const {
-        Vector& velv = s.vars->u;
-        ball.getBallVel(dTheta, uIndex, velv);
-    }
 
     void calcJointAccel() {
         ball.calcBallAccel(dTheta, ddTheta);
@@ -660,7 +658,7 @@ public:
 
     void calcJointKinematicsPos(const SBState& s) { 
         updX_PB(s).updTranslation() = refOrigin_P; // ball joint can't move B origin in P
-        ball.calcR_PB(theta, updX_PB(s).updRotation());
+        ball.calcR_PB(s, updX_PB(s).updRotation());
 
         // H matrix in space-fixed (P) coords
         updH(s)[0] = SpatialRow( ~getR_GP(s)(0), Row3(0) );
@@ -1037,31 +1035,32 @@ RigidBodyNodeSpec<dof>::calcZ(const SBState& s, const SpatialVec& spatialForce) 
 
 
 //
-// Calculate sum of internal force and effective forces due to Cartesian
-// forces.
-// To be called from tip to base.
-// Should be called only once after calcProps.
-// TODO: sherm: this looks wrong. There needs to be a -Hz adjustment made
-// when shifting forces from child to parent to eliminate those forces
-// that are directed along the hinge axes and thus not felt by the parent.
-// See calcZ() above which shifts z-GHz from the children rather than just
-// z as does this routine. This would correspond to a system in which all
-// the *outboard* joints were locked. Is that what's wanted here?
-// Possible explanation: if the supplied spatial force is viewed as the derivative of this 
-// body's potential energy, then what we're calculating here might be 
-// partial(E)/partial(q) for our joint coords q, where E is potential energy
-// from all bodies outboard of this one. Elsewhere this function
-// seems to be used in the original IVM code in energy minimization only.
+// Calculate product of partial velocities J and a gradient vector on each of the
+// outboard bodies. This is to be called tip to base, with temporary zTmp initialized
+// to zero before the first call. Requires that Phi and H are available, so this
+// should only be called in ConfiguredStage or higher. This does not change the cache at all.
+// NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
+// applied hinge gradients if there are any; just add those in at the end if you want them.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalForce(const SBState& s, const SpatialVec& spatialForce) {
-    SpatialVec& z = updZ(s);
-    z = -spatialForce;
+RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
+    (const SBState& s, Vector_<SpatialVec>& zTmp,
+     const Vector_<SpatialVec>& X, Vector& JX)
+{
+    const SpatialVec& in  = X[getNodeNum()];
+    Vec<dof>&         out = Vec<dof>::updAs(&JX[getUIndex()]);
+    SpatialVec&       z   = zTmp[getNodeNum()];
 
-    for (int i=0 ; i<(int)children.size() ; i++) 
-        z += children[i]->getPhi(s) * children[i]->getZ(s);
+    z = -in;    // sherm: why the minus sign here?
 
-    updInternalForce(s) += getH(s) * z; 
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
+        const PhiMatrix&  phiChild = children[i]->getPhi(s);
+
+        z += phiChild * zChild;
+    }
+
+    out = getH(s) * z; 
 }
 
 //

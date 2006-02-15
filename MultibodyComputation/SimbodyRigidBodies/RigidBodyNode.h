@@ -81,9 +81,8 @@ public:
         int&                    nxtUSq,
         int&                    nxtQ); 
 
-    /// Register the passed-in node as a child of this one, and note in
-    /// the child that this is its parent. Also set the reference frame in the child.
-    void addChild(RigidBodyNode* child, const TransformMat& referenceFrame);
+    /// Register the passed-in node as a child of this one.
+    void addChild(RigidBodyNode* child);
 
         // TOPOLOGICAL INFO: no State needed
 
@@ -251,14 +250,16 @@ public:
     virtual int         getDOF()   const {return 0;} //number of independent dofs
     virtual int         getMaxNQ() const {return 0;} //dofs plus quaternion constraints
 
-    virtual void enforceQuaternionConstraints(const simtk::SBState&) {throw VirtualBaseMethod();}
+    virtual void enforceQuaternionConstraints(const SBState&) {throw VirtualBaseMethod();}
 
     virtual void calcP(const SBState&)                                 {throw VirtualBaseMethod();}
     virtual void calcZ(const SBState&, const SpatialVec& spatialForce) {throw VirtualBaseMethod();}
     virtual void calcY(const SBState&)                                 {throw VirtualBaseMethod();}
     virtual void calcAccel(const SBState&)                             {throw VirtualBaseMethod();}
 
-    virtual void calcInternalForce(const SBState&, const SpatialVec& spatialForce) {throw VirtualBaseMethod();}
+    virtual void calcInternalGradientFromSpatial(const SBState&, Vector_<SpatialVec>& zTmp,
+                                                 const Vector_<SpatialVec>& X, Vector& JX)
+      { throw VirtualBaseMethod(); }
 
     virtual void setVelFromSVel(SBState&, const SpatialVec&) {throw VirtualBaseMethod();}
 

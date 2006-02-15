@@ -128,7 +128,13 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&      parent,
     n->setNodeNum(nodeNum);
 
     // Link in to the tree topology (bidirectional).
-    parent.addChild(n, referenceConfig);
+    parent.addChild(n);
+    n->setParent(&parent);
+
+    n->refOrigin_P = referenceConfig.getTranslation(); // ignore rotation for now, it's always identity
+    //n->X_GB = TransformMat(X_GB.getRotation(), 
+    //                           X_GB.getTranslation() + n->refOrigin_P);
+    //n->COM_G = child->X_GB.getTranslation() + n->COMstation_G;
 
     return nodeNum;
 }
@@ -389,24 +395,32 @@ void RigidBodyTree::fixVel0(Vector& vel) {
     lConstraints->fixVel0(vel);
 }
 
-// Calc unconstrained internal forces from spatial forces: sweep from tip to base.
-void RigidBodyTree::calcTreeInternalForces(const SBState& s, const SpatialVecList& spatialForces) {
+// If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
+// this routine will return d(something)/du for internal generalized speeds u. If
+// instead you have d(something)/dR where R is a spatial configuration, this routine
+// returns d(something)/dq PROVIDED that dq/dt = u for all q's. That's not true for
+// quaternions, so be careful how you use this routine.
+// In Kane's terminology, we are calculating the product of a (generalized)
+// partial velocity with some vector.
+void RigidBodyTree::calcInternalGradientFromSpatial(const SBState& s, 
+                                                    const Vector_<SpatialVec>& X,
+                                                    Vector& JX) 
+{
+    assert(X.size() == getNBodies());
+    assert(s.getStage() >= ConfiguredStage);
+
+    Vector_<SpatialVec> zTemp(getTotalDOF()); zTemp.setToZero();
+    JX.resize(getTotalDOF());
+
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInternalForce(s, spatialForces[node.getNodeNum()]);
+            node.calcInternalGradientFromSpatial(s, zTemp, X, JX);
         }
 }
 
-// Retrieve already-computed internal forces (order doesn't matter).
-void RigidBodyTree::getInternalForces(const SBState& s, Vector& T) {
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->getInternalForce(s, T);
-}
-
-void RigidBodyTree::getConstraintCorrectedInternalForces(const SBState& s, Vector& T) {
-    getInternalForces(s,T);
+// Pass in a set of internal forces in T; we'll modify them here.
+void RigidBodyTree::calcConstraintCorrectedInternalForces(const SBState& s, Vector& T) {
     lConstraints->fixGradient(T);
 }
 

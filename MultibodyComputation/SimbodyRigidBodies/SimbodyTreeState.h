@@ -36,6 +36,8 @@ public:
 
         positionConstraintErrors.resize(npc);
         storageForHt.resize(2,nDofs);
+        sinCosQ.resize(maxNQs);
+
         bodyVelocityInParent.resize(nBodies);
         bodyVelocityInGround.resize(nBodies);
         velocityConstraintErrors.resize(nvc);
@@ -78,10 +80,11 @@ public:
     std::vector<InertiaMat>   bodyInertiaInGround;// nb (I_OB_G)
     Vector_<SpatialMat>       bodySpatialInertia; // nb (Mk)
     Vector_<Vec3>             bodyCOMInGround;    // nb (COM_G)
-    Vector_<Vec3>             bodyCOMStationInGround; // nb (COMstation_G)
+    Vector_<Vec3>             bodyCOMStationInGround;   // nb (COMstation_G)
 
-    Vector positionConstraintErrors;              // npc
-    Matrix_<Vec3> storageForHt;                   // 2 x ndof
+    Vector                    positionConstraintErrors; // npc
+    Matrix_<Vec3>             storageForHt;       // 2 x ndof
+    std::vector<Vec2>         sinCosQ;            // nq: sin(qi),cos(qi) for angular qs
 
     // Motion
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
