@@ -160,6 +160,7 @@ public:
                           int child,  const TransformMat& frameInC);
 
     /// Topology and default values are frozen after this call.
+    // TODO: "formulation" instead of "modeling" stage?
     void realizeConstruction();
     void realizeModeling     (const SBState&) const;
     void realizeParameters   (const SBState&) const;

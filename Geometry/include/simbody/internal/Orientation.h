@@ -15,10 +15,14 @@
 
 namespace simtk {
 
-class UnitVec3;
-class UnitRow3;
+template <int S> class UnitVec;
+template <int S> class UnitRow;
 class RotationMat;
+class InverseRotationMat;
 class TransformMat;
+class InverseTransformMat;
+
+typedef UnitVec<1> UnitVec3;
 
 /**
  * This class is a Vec3 plus an ironclad guarantee either that:
@@ -26,42 +30,70 @@ class TransformMat;
  *      - all components are NaN.
  * Thus it is a pure direction.
  */
-class UnitVec3 : public Vec3 {
+template <int S>
+class UnitVec : public Vec<3,Real,S> {
 public:
-    UnitVec3() : Vec3(NTraits<Real>::getNaN()) { }
-    UnitVec3(const UnitVec3& u) : Vec3(static_cast<const Vec3&>(u)) { }
-    explicit UnitVec3(const Vec3& v) : Vec3(v/v.norm()) { 
-    }
+    typedef Vec<3,Real,S> BaseVec;
+    typedef UnitRow<S>    TransposeType;
 
-    UnitVec3(const Real& x, const Real& y, const Real& z) : Vec3(x,y,z) {
-        static_cast<Vec3&>(*this) /= norm();
+    UnitVec() : BaseVec(NTraits<Real>::getNaN()) { }
+
+    // Copy constructor.
+    UnitVec(const UnitVec& u) 
+      : BaseVec(static_cast<const BaseVec&>(u)) { }
+
+    // Automatic conversion from UnitVec with different stride.
+    template <int S2> UnitVec(const UnitVec<S2>& u)
+        : BaseVec(static_cast<const typename UnitVec<S2>::BaseVec&>(u)) { }
+
+    // Explicit conversion from Vec to UnitVec, requiring expensive normalization.
+    explicit UnitVec(const BaseVec& v) : BaseVec(v/v.norm()) { }
+    template <int S2> explicit UnitVec(const Vec<3,Real,S2>& v)
+        : BaseVec(v/v.norm()) { }
+
+    UnitVec(const Real& x, const Real& y, const Real& z) : BaseVec(x,y,z) {
+        static_cast<BaseVec&>(*this) /= norm();
     }
 
     // Create a unit axis vector 100 010 001
-    explicit UnitVec3(int axis) : Vec3(0.) {
+    explicit UnitVec(int axis) : BaseVec(0) {
         assert(0 <= axis && axis <= 2);
         (*this)[axis] = 1.;
     }
 
-    UnitVec3& operator=(const UnitVec3& u) {
-        Vec3::operator=(static_cast<const Vec3&>(u)); 
+    UnitVec& operator=(const UnitVec& u) {
+        BaseVec::operator=(static_cast<const BaseVec&>(u)); 
+        return *this;
+    }
+    template <int S2> UnitVec& operator=(const UnitVec<S2>& u) {
+        BaseVec::operator=(static_cast<const UnitVec<S2>::BaseVec&>(u));
         return *this;
     }
 
-    const Vec3& asVec3() const {return static_cast<const Vec3&>(*this);}
+    const BaseVec& asVec3() const {return static_cast<const BaseVec&>(*this);}
 
-    // Override Vec3 methods which preserve length.
+    // Override Vec3 methods which preserve length. These return the 
+    // packed UnitVec regardless of our stride.
     UnitVec3 negate()    const {return UnitVec3(-asVec3(),true);}
     UnitVec3 operator-() const {return negate();}
 
+    const TransposeType& operator~() const {
+        *reinterpret_cast<const TransposeType*>(this);
+    }
+    TransposeType& operator~() {
+        *reinterpret_cast<const TransposeType*>(this);
+    }
+
     // We have to define these here since we had to override the writable
     // versions to make them private.
-    const Real& operator[](int i) const {return Vec3::operator[](i);}
-    const Real& operator()(int i) const {return Vec3::operator()(i);}
+    const Real& operator[](int i) const {return BaseVec::operator[](i);}
+    const Real& operator()(int i) const {return BaseVec::operator()(i);}
 
     // Return a vector whose measure numbers are the absolute values
     // of the ones here. This will still have unit length but will be
     // a reflection of this unit vector into the first octant (+x,+y,+z).
+    // Note that we are returning the packed form of UnitVec regardless
+    // of our stride here.
     UnitVec3 abs() const {
         return UnitVec3(asVec3().abs(),true);
     }
@@ -72,32 +104,18 @@ public:
 private:
     // This constructor is only for our friends whom we trust to
     // give us an already-normalized vector.
-    UnitVec3(const Vec3& v, bool) : Vec3(v) { }
+    UnitVec(const BaseVec& v, bool) : BaseVec(v) { }
+    template <int S2> UnitVec(const Vec<3,Real,S2>& v, bool) : BaseVec(v) { }
 
     // These must be overridden here to "privatize" them. Only the elite
     // few can be trusted to update a single measure number without
     // blowing the unit vector guarantee.
-    Real& operator[](int i) {return Vec3::operator[](i);}
-    Real& operator()(int i) {return Vec3::operator()(i);}
-
-    friend UnitVec3 operator*(const RotationMat&, const UnitVec3&);
+    Real& operator[](int i) {return BaseVec::operator[](i);}
+    Real& operator()(int i) {return BaseVec::operator()(i);}
 };
-std::ostream& operator<<(std::ostream& o, const UnitVec3& v);
 
-// Scalar multiply and divide don't preserve 'unitness'
-inline Vec3  operator*(const UnitVec3& v, const Real& r) {return v.asVec3()*r;}
-inline Vec3  operator*(const Real& r, const UnitVec3& v) {return v.asVec3()*r;}
-inline Vec3  operator/(const UnitVec3& v, const Real& r) {return v.asVec3()/r;}
-
-inline Real  operator*(const Row3&     r, const UnitVec3& u) {return r*u.asVec3();}
-inline Mat33 operator*(const UnitVec3& u, const Row3&     r) {return u.asVec3()*r;}
-inline Vec3  operator%(const UnitVec3& u, const UnitVec3& v) {return u.asVec3()%v.asVec3();}
-inline Vec3  operator%(const Vec3&     v, const UnitVec3& u) {return v%u.asVec3();}
-inline Vec3  operator%(const UnitVec3& u, const Vec3&     v) {return u.asVec3()%v;}
-inline Row3  operator%(const Row3&     r, const UnitVec3& u) {return r%u.asVec3();}
-inline Row3  operator%(const UnitVec3& u, const Row3&     r) {return u.asVec3()%r;}
-
-inline UnitVec3 UnitVec3::perp() const {
+template <int S>
+inline UnitVec3 UnitVec<S>::perp() const {
     // Choose the coordinate axis which makes the largest angle
     // with this vector, that is, has the "least u" along it.
     const UnitVec3 u(abs());    // reflect to first octant
@@ -105,6 +123,98 @@ inline UnitVec3 UnitVec3::perp() const {
                                      : (u[1] <= u[2] ? 1 : 2);
     // Cross returns a Vec3 result (see operator above), which is then normalized.
     return UnitVec3(*this % UnitVec3(minAxis));
+}
+
+/**
+ * This type is used for the transpose of UnitVec, and as the returned row
+ * type of a RotationMat. Don't construct these directly.
+ */
+template <int S>
+class UnitRow : public Row<3,Real,S> {
+public:
+    typedef Row<3,Real,S> BaseRow;
+    typedef UnitVec<S>    TransposeType;
+
+    UnitRow() : BaseRow(NTraits<Real>::getNaN()) { }
+
+    // Copy constructor.
+    UnitRow(const UnitRow& u) 
+      : BaseRow(static_cast<const BaseRow&>(u)) { }
+
+    // Automatic conversion from UnitRow with different stride.
+    template <int S2> UnitRow(const UnitRow<S2>& u)
+        : BaseRow(static_cast<const typename UnitRow<S2>::BaseRow&>(u)) { }
+
+    // Copy assignment.
+    UnitRow& operator=(const UnitRow& u) {
+        BaseRow::operator=(static_cast<const BaseRow&>(u)); 
+        return *this;
+    }
+    // Assignment from UnitRow with different stride.
+    template <int S2> UnitRow& operator=(const UnitRow<S2>& u) {
+        BaseRow::operator=(static_cast<const UnitRow<S2>::BaseRow&>(u));
+        return *this;
+    }
+
+    // Create a unit axis vector 100 010 001
+    explicit UnitRow(int axis) : BaseRow(0) {
+        assert(0 <= axis && axis <= 2);
+        (*this)[axis] = 1.;
+    }
+
+    const BaseRow& asRow3() const {return static_cast<const BaseRow&>(*this);}
+
+    // Override Row3 methods which preserve length. These return the 
+    // packed UnitRow regardless of our stride.
+    UnitRow<1> negate()    const {return UnitRow<1>(-asRow3(),true);}
+    UnitRow<1> operator-() const {return negate();}
+
+    const TransposeType& operator~() const {
+        *reinterpret_cast<const TransposeType*>(this);
+    }
+    TransposeType& operator~() {
+        *reinterpret_cast<const TransposeType*>(this);
+    }
+
+    // We have to define these here since we had to override the writable
+    // versions to make them private.
+    const Real& operator[](int i) const {return BaseRow::operator[](i);}
+    const Real& operator()(int i) const {return BaseRow::operator()(i);}
+
+    // Return a vector whose measure numbers are the absolute values
+    // of the ones here. This will still have unit length but will be
+    // a reflection of this unit vector into the first octant (+x,+y,+z).
+    // Note that we are returning the packed form of UnitVec regardless
+    // of our stride here.
+    UnitRow<1> abs() const {
+        return UnitRow<1>(asRow3().abs(),true);
+    }
+
+    // Return a unit row vector perpendicular to this one (arbitrary).
+    inline UnitRow<1> perp() const;
+
+private:
+    // This constructor is only for our friends whom we trust to
+    // give us an already-normalized vector.
+    UnitRow(const BaseRow& v, bool) : BaseRow(v) { }
+    template <int S2> UnitRow(const Row<3,Real,S2>& v, bool) : BaseRow(v) { }
+
+    // These must be overridden here to "privatize" them. Only the elite
+    // few can be trusted to update a single measure number without
+    // blowing the unit vector guarantee.
+    Real& operator[](int i) {return BaseRow::operator[](i);}
+    Real& operator()(int i) {return BaseRow::operator()(i);}
+};
+
+template <int S>
+inline UnitRow<1> UnitRow<S>::perp() const {
+    // Choose the coordinate axis which makes the largest angle
+    // with this vector, that is, has the "least u" along it.
+    const UnitRow<1> u(abs());    // reflect to first octant
+    const int minAxis = u[0] <= u[1] ? (u[0] <= u[2] ? 0 : 2)
+                                     : (u[1] <= u[2] ? 1 : 2);
+    // Cross returns a Vec3 result (see operator above), which is then normalized.
+    return UnitRow<1>(*this % UnitRow<1>(minAxis));
 }
 
 /**
@@ -133,54 +243,147 @@ inline UnitVec3 UnitVec3::perp() const {
  * this matrix can be used to rotate in the other direction: 
  *      v_F = rot_FG * v_G = ~rot_GF * v_G.
  */
-class RotationMat {
-    Mat33 rot_GF; // xyz axes of frame F expressed in frame G
+class RotationMat : public Mat33 {
 public:
-    RotationMat() : rot_GF(1.) { }    // default is identity
+    typedef Mat33 BaseMat;
+    typedef UnitVec<BaseMat::RowSpacing> ColType;
+    typedef UnitRow<BaseMat::ColSpacing> RowType;
+
+    RotationMat() : BaseMat(1) { }    // default is identity
 
     /// Create a Rotation matrix by specifying only its z axis. 
     /// The resulting x and y axes will be appropriately perpendicular
-    /// but are otherwise arbitrary.
+    /// but are otherwise arbitrary. This will work for any stride
+    /// UnitVec because there is always an implicit conversion
+    /// available to the packed form used as the argument.
     explicit RotationMat(const UnitVec3& z);
 
-    const UnitVec3& getAxis(int i) const
-      { return reinterpret_cast<const UnitVec3&>(rot_GF(i)); }
-
-    // TODO: with much agony involving templates this could be made free.
-    RotationMat operator~() const {return RotationMat(~rot_GF);}
-
-    const UnitVec3& operator()(int i) const {
-        return reinterpret_cast<const UnitVec3&>(rot_GF(i));
+    RotationMat(const RotationMat& R) : BaseMat(R) { }
+    RotationMat& operator=(const RotationMat& R) {
+        BaseMat::operator=(R.asMat33()); return *this;
     }
 
-    const Mat33& asMat33() const {return rot_GF;}
+    const InverseRotationMat& invert() const {
+        return *reinterpret_cast<const InverseRotationMat*>(this);
+    }
+    InverseRotationMat& updInvert() {
+        return *reinterpret_cast<InverseRotationMat*>(this);
+    }
+
+    // Note that this does not have unit stride.
+    const RowType& row(int i) const {
+        return reinterpret_cast<const RowType&>(asMat33()[i]);
+    }
+    const ColType& col(int j) const {
+        return reinterpret_cast<const ColType&>(asMat33()(j));
+    }
+
+    const InverseRotationMat& operator~() const {return invert();}
+    InverseRotationMat&       operator~()       {return updInvert();}
+
+    const RowType& operator[](int i) const {return row(i);}
+    const ColType& operator()(int j) const {return col(j);}
+
+    const BaseMat& asMat33() const {
+        return *static_cast<const BaseMat*>(this);
+    }
 
     static RotationMat trustMe(const Mat33& m) {return RotationMat(m);}
 
 private:
     // We're trusting that m is a rotation.
-    explicit RotationMat(const Mat33& m) : rot_GF(m) { }
+    explicit RotationMat(const BaseMat& m) : BaseMat(m) { }
+    template <int CS, int RS>
+    explicit RotationMat(const Mat<3,3,Real,CS,RS>& m) : BaseMat(m) { }
+
     friend RotationMat operator*(const RotationMat&,const RotationMat&);
 };
+
+class InverseRotationMat : public Mat33::TransposeType {
+public:
+    typedef Mat33::TransposeType BaseMat;
+    typedef UnitVec<BaseMat::RowSpacing> ColType;
+    typedef UnitRow<BaseMat::ColSpacing> RowType;
+
+    // Don't construct one these; they should only occur as expression intermediates.
+    // But if you must ...
+    InverseRotationMat() : BaseMat(1) { }
+
+    InverseRotationMat(const InverseRotationMat& R) : BaseMat(R) { }
+    InverseRotationMat& operator=(const InverseRotationMat& R) {
+        BaseMat::operator=(R.asMat33()); return *this;
+    }
+
+    // Implicit conversion to RotationMat.
+    operator RotationMat() const {
+        return RotationMat::trustMe(asMat33());
+    }
+
+    const RotationMat& invert() const {
+        return *reinterpret_cast<const RotationMat*>(this);
+    }
+    RotationMat& updInvert() {
+        return *reinterpret_cast<RotationMat*>(this);
+    }
+
+    // Note that this does not have unit stride.
+    const RowType& row(int i) const {
+        return reinterpret_cast<const RowType&>(asMat33()[i]);
+    }
+    const ColType& col(int j) const {
+        return reinterpret_cast<const ColType&>(asMat33()(j));
+    }
+
+    const RotationMat& operator~() const {return invert();}
+    RotationMat&       operator~()       {return updInvert();}
+
+    const RowType& operator[](int i) const {return row(i);}
+    const ColType& operator()(int j) const {return col(j);}
+
+    const BaseMat& asMat33() const {
+        return *static_cast<const BaseMat*>(this);
+    }
+};
+
+
 std::ostream& operator<<(std::ostream& o, const RotationMat& m);
 
-inline RotationMat operator*(const RotationMat& l, const RotationMat& r) {
-    return RotationMat(l.asMat33()*r.asMat33());
+template <int S> inline UnitVec<1>
+operator*(const RotationMat& R, const UnitVec<S>& v) {
+    return UnitVec<1>(R.asMat33()*v.asVec3(), true);
 }
-inline Mat33 operator*(const RotationMat& l, const Mat33& r) {
-    return l.asMat33()*r;
+template <int S> inline UnitRow<1>
+operator*(const UnitRow<S>& r, const RotationMat& R) {
+    return UnitRow<1>(r.asRow3(), R.asMat33(), true);
 }
-inline Mat33 operator*(const Mat33& l, const RotationMat& r) {
-    return l*r.asMat33();
+
+template <int S> inline UnitVec<1>
+operator*(const InverseRotationMat& R, const UnitVec<S>& v) {
+    return UnitVec<1>(R.asMat33()*v.asVec3(), true);
 }
-inline UnitVec3 operator*(const RotationMat& R, const UnitVec3& v) {
-    return UnitVec3(R.asMat33()*v.asVec3(), true);
+template <int S> inline UnitRow<1>
+operator*(const UnitRow<S>& r, const InverseRotationMat& R) {
+    return UnitRow<1>(r.asRow3(), R.asMat33(), true);
 }
-inline Vec3 operator*(const RotationMat& R, const Vec3& v) {
-    return R.asMat33()*v;
+
+inline RotationMat
+operator*(const RotationMat& R1, const RotationMat& R2) {
+    return RotationMat::trustMe(R1*R2);
 }
-inline Row3 operator*(const Row3& r, const RotationMat& R) {
-    return r*R.asMat33();
+
+inline RotationMat
+operator*(const RotationMat& R1, const InverseRotationMat& R2) {
+    return RotationMat::trustMe(R1*R2);
+}
+
+inline RotationMat
+operator*(const InverseRotationMat& R1, const RotationMat& R2) {
+    return RotationMat::trustMe(R1*R2);
+}
+
+inline RotationMat
+operator*(const InverseRotationMat& R1, const InverseRotationMat& R2) {
+    return RotationMat::trustMe(R1*R2);
 }
 
 /**
@@ -202,62 +405,247 @@ inline Row3 operator*(const Row3& r, const RotationMat& R) {
  * columns of R_BF are F's coordinate axes, expressed in B.) For
  * example, given a vector vF expressed in the F frame, that same vector
  * re-expressed in B is given by vB = R_BF*vF. F's origin point OF is 
- * stored as the vector OF_B=(OF-OB) and expressed in B.
+ * stored as the translation vector T_BF=(OF-OB) and expressed in B.
+ *
+ * TransformMat is designed to behave as much as possible like the computer
+ * graphics 4x4 transform X which would be arranged like this:
+ *
+ *         [       |   ]
+ *     X = [   R   | T ]    R is a 3x3 orthogonal rotation matrix
+ *         [.......|...]    T os a 3x1 translation vector
+ *         [ 0 0 0   1 ]
+ *
+ * These can be composed directly by matrix multiplication, but more 
+ * importantly they have a particularly simple inverse:
+ *
+ *    -1   [       |    ]
+ *   X   = [  ~R   | T* ]   ~R is R transpose, T* = ~R(-T).
+ *         [.......|....]
+ *         [ 0 0 0   1  ] 
+ *
+ * This inverse is so simple that we compute it simply by defining another
+ * type, InverseTransformMat, which is identical to TransformMat in memory but
+ * behaves as though it contains the inverse. That way we invert just by
+ * changing point of view (recasting) rather than computing.
  *
  * This is a "POD" (plain old data) class with a well-defined memory
  * layout on which a client of this class may depend: There are 
- * exactly 4 consecutive, packed 3-vectors in the order x,y,z,O.
+ * exactly 4 consecutive, packed 3-vectors in the order x,y,z,T.
  * That is, this class is equivalent to an array of 12 Reals with 
- * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,O1,O2,O3. It is expressly allowed
+ * the order x1,x2,x3,y1,y2,y3,z1,z2,z3,T1,T2,T3. It is expressly allowed
  * to reinterpret TransformMat objects in any appropriate manner that depends
  * on this memory layout.
  */
 class TransformMat {
 public:
-    TransformMat() : R_BF(), OF_B(0.) { }
-    TransformMat(const RotationMat& axesInB, const Vec3& orgInB) 
-      : R_BF(axesInB), OF_B(orgInB) { }
-    explicit TransformMat(const RotationMat& axesInB) : R_BF(axesInB), OF_B(0.) { }
-    explicit TransformMat(const Vec3& orgInB)         : R_BF(), OF_B(orgInB) { }
+    TransformMat()                                    : R_BF(),  T_BF(0) { }
+    TransformMat(const RotationMat& R, const Vec3& T) : R_BF(R), T_BF(T) { }
+    explicit TransformMat(const RotationMat& R)       : R_BF(R), T_BF(0) { }
+    explicit TransformMat(const Vec3& T)              : R_BF(),  T_BF(T) { }
     // default copy, assignment, destructor
 
-    void setFrame(const RotationMat& axesInB, const Vec3& orgInB) 
-      { R_BF=axesInB; OF_B=orgInB; }
+    // Assignment from InverseTransformMat. This means that the 
+    // transform we're assigning to must end up with the same meaning
+    // as the inverse transform X has, so we'll need:
+    //          T == X.T()
+    //          R == X.R()
+    // Cost: one frame conversion and a negation, 18 flops.
+    // Definition is below after InverseTransformMat is declared.
+    inline TransformMat& operator=(const InverseTransformMat& X);
 
-    // If this is frame F measured and expressed in B, return frame B
-    // measured and expressed in F. This is the inverse of F in that
-    // it maps from F to B rather than from B to F.
-    // TODO: need TransformMatInverse type to avoid computation & copying.
-    TransformMat invert() const {
-        const RotationMat rot_FB = ~R_BF;
-        return TransformMat(rot_FB, rot_FB*(-OF_B));
+    void set(const RotationMat& R, const Vec3& T) {T_BF=T; R_BF=R;}
+
+    // Inverting one of these just casts it to a TransformInverseMat.
+    const InverseTransformMat& invert() const {
+        return *reinterpret_cast<const InverseTransformMat*>(this);
+    }
+    InverseTransformMat& updInvert() {
+        return *reinterpret_cast<InverseTransformMat*>(this);
     }
 
-    // return frame_RY
-    TransformMat compose(const TransformMat& frame_FY) const {
-        const RotationMat rot_BY = R_BF * frame_FY.getRotation();
-        return TransformMat(rot_BY, OF_B + R_BF * frame_FY.getTranslation());
+    // Overload transpose to mean inversion.
+    const InverseTransformMat& operator~() const {return invert();}
+    InverseTransformMat&       operator~()       {return updInvert();}
+
+    // Return X_BY=X_BF*X_FY. Cost is 63 flops.
+    TransformMat compose(const TransformMat& X_FY) const {
+        return TransformMat(R_BF * X_FY.R(),
+                            T_BF + R_BF * X_FY.T());
     }
 
+    // Return X_BY=X_BF*X_FY, but now X_FY is represented as ~X_YF. Cost
+    // is an extra 18 flops to calculate X_FY.T(), total 81 flops.
+    // Definition is below after InverseTransformMat is declared.
+    inline TransformMat compose(const InverseTransformMat& X_FY) const;
+
+    // Costs 15 flops to transform vectors in either direction.
     Vec3 xformFrameVecToBase(const Vec3& vF) const {return R_BF*vF;}
     Vec3 xformBaseVecToFrame(const Vec3& vR) const {return ~R_BF*vR;}
+
+    // Costs 18 flops to transform & shift stations either direction.
     Vec3 shiftFrameStationToBase(const Vec3& sF) const {
-        return OF_B + xformFrameVecToBase(sF);
+        return T_BF + xformFrameVecToBase(sF);
     }
     Vec3 shiftBaseStationToFrame(const Vec3& sB) const {
-        return xformBaseVecToFrame(sB - OF_B);
+        return xformBaseVecToFrame(sB - T_BF);
     }
 
-    const RotationMat& getRotation() const { return R_BF; }
-    RotationMat&       updRotation()       { return R_BF; }
+    const RotationMat& R()    const { return R_BF; }
+    RotationMat&       updR()       { return R_BF; }
 
-    const Vec3&  getTranslation() const { return OF_B; }
-    Vec3&        updTranslation()       { return OF_B; }
+    const InverseRotationMat& RInv()    const { return ~R_BF; }
+    InverseRotationMat&       updRInv()       { return ~R_BF; }
+
+    const Vec3&  T()    const        {return T_BF;}
+    Vec3&        updT()              {return T_BF;}
+    void         setT(const Vec3& T) {T_BF=T;}
+
+    // Costs 18 flops to calculate the inverse translation.
+    Vec3 TInv() const { return -(~R_BF*T_BF); }
+
+    // Sorry, can't update TInv as an lvalue, but here we
+    // want -(~R_BF*T_BF)=T_FB => T_BF=-(R_BF*T_FB). Cost: 18 flops.
+    void setTInv(const Vec3& T_FB) {
+        T_BF = -(R_BF*T_FB);
+    }
 
 private:
     RotationMat R_BF;   // rotation matrix that expresses F's axes in R
-    Vec3        OF_B;   // location of F's origin measured from B's origin, expressed in B 
+    Vec3        T_BF;   // location of F's origin measured from B's origin, expressed in B 
 };
+
+/*
+ * Transform from frame B to frame F, but with the internal representation inverted.
+ * That is, we store R*,T* here but the transform this represents is
+ *
+ *  B F    [       |   ]
+ *   X   = [   R   | T ]   where R=~(R*), T = - ~(R*)(T*).
+ *         [.......|...]
+ *         [ 0 0 0   1 ] 
+ */
+class InverseTransformMat {
+public:
+    InverseTransformMat() : R_FB(), T_FB(0) { }
+    // default copy, assignment, destructor
+
+    // Implicit conversion to TransformMat
+    operator TransformMat() const {
+        return TransformMat(R(), T());
+    }
+
+    // Assignment from TransformMat. This means that the inverse
+    // transform we're assigning to must end up with the same meaning
+    // as the inverse transform X has, so we'll need:
+    //          T* == X.TInv()
+    //          R* == X.RInv()
+    // Cost: one frame conversion and a negation for TInv, 18 flops.
+    InverseTransformMat& operator=(const TransformMat& X) {
+        // Be careful to do this in the right order in case X and this
+        // are the same object, i.e. ~X = X which is weird but has
+        // the same meaning as X = ~X, i.e. invert X in place.
+        T_FB = X.TInv(); // This might change X.T ...
+        R_FB = X.RInv(); // ... but this doesn't depend on X.T.
+    }
+
+    // Inverting one of these just recasts it back to a TransformMat.
+    const TransformMat& invert() const {
+        return *reinterpret_cast<const TransformMat*>(this);
+    }
+    TransformMat& updInvert() {
+        return *reinterpret_cast<TransformMat*>(this);
+    }
+
+    // Overload transpose to mean inversion.
+    const TransformMat& operator~() const {return invert();}
+    TransformMat&       operator~()       {return updInvert();}
+
+    // Return X_BY=X_BF*X_FY, where X_BF (this) is represented here as ~X_FB. This
+    // costs exactly the same as a composition of two TransformMats (63 flops).
+    TransformMat compose(const TransformMat& X_FY) const {
+        return TransformMat(~R_FB * X_FY.R(),
+                            ~R_FB *(X_FY.T() - T_FB));
+    }
+    // Return X_BY=X_BF*X_FY, but now both xforms are represented by their inverses.
+    // This costs one extra vector transformation and a negation (18 flops) more
+    // than a composition of two TransformMats, for a total of 81 flops.
+    TransformMat compose(const InverseTransformMat& X_FY) const {
+        return TransformMat( ~R_FB * X_FY.R(),
+                             ~R_FB *(X_FY.T() - T_FB));
+    }
+
+    // Forward and inverse vector transformations cost the same here as
+    // for a TransformMat (or for that matter, a RotationMat): 15 flops.
+    Vec3 xformFrameVecToBase(const Vec3& vF) const {return ~R_FB*vF;}
+    Vec3 xformBaseVecToFrame(const Vec3& vB) const {return  R_FB*vB;}
+
+    // Forward and inverse station shift & transform cost the same here
+    // as for a TransformMat: 18 flops.
+    Vec3 shiftFrameStationToBase(const Vec3& sF) const {
+        return ~R_FB*(sF-T_FB);
+    }
+    Vec3 shiftBaseStationToFrame(const Vec3& sB) const {
+        return R_FB*sB + T_FB;
+    }
+    
+    const InverseRotationMat& R()       const {return ~R_FB;}
+    InverseRotationMat&       updR()          {return ~R_FB;}
+
+    const RotationMat&        RInv()    const {return R_FB;}
+    RotationMat&              updRInv()       {return R_FB;}
+
+    // Costs 18 flops to look at the real translation vector.
+    Vec3 T() const {return -(~R_FB*T_FB);}
+    // no updT lvalue
+
+    // Sorry, can't update translation as an lvalue, but here we
+    // want -(R_BF*T_FB)=T_BF => T_FB=-(R_FB*T_BF). Cost: 18 flops.
+    void setT(const Vec3& T_BF) {
+        T_FB = -(R_FB*T_BF);
+    }
+
+    // Inverse translation is free.
+    const Vec3& TInv() const           {return T_FB;}
+    void        setTInv(const Vec3& T) {T_FB=T;}
+
+private:
+    // DATA LAYOUT MUST BE IDENTICAL TO TransformMat !!
+    RotationMat R_FB; // transpose of our rotation matrix, R_BF
+    Vec3        T_FB; // our translation is -(R_BF*T_FB)=-(~R_FB*T_FB)
+};
+
+// These had to wait for InverseTransformMat to be declared.
+
+inline TransformMat& 
+TransformMat::operator=(const InverseTransformMat& X) {
+    // Be careful to do this in the right order in case X and this
+    // are the same object, i.e. we're doing X = ~X, inverting X in place.
+    T_BF = X.T(); // This might change X.T ...
+    R_BF = X.R(); // ... but this doesn't depend on X.T.
+}
+
+inline TransformMat 
+TransformMat::compose(const InverseTransformMat& X_FY) const {
+    return TransformMat(R_BF * X_FY.R(),
+                        T_BF + R_BF * X_FY.T());
+}
+
+inline TransformMat
+operator*(const TransformMat& X1, const TransformMat& X2) {
+    return X1.compose(X2);
+}
+inline TransformMat
+operator*(const TransformMat& X1, const InverseTransformMat& X2) {
+    return X1.compose(X2);
+}
+inline TransformMat
+operator*(const InverseTransformMat& X1, const TransformMat& X2) {
+    return X1.compose(X2);
+}
+inline TransformMat
+operator*(const InverseTransformMat& X1, const InverseTransformMat& X2) {
+    return X1.compose(X2);
+}
+
 std::ostream& operator<<(std::ostream& o, const TransformMat&);
 
 } // namespace simtk

@@ -76,7 +76,6 @@ public:
         const TransformMat&     jointFrame,   // inboard joint frame J in body frame
         Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
-        bool                    useEuler,     // TODO: kludge (true if minimizing)
         int&                    nxtU,
         int&                    nxtUSq,
         int&                    nxtQ); 
@@ -160,11 +159,11 @@ public:
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
     /// in the ground frame G).
-    const RotationMat& getR_GB(const SBState& s) const {return getX_GB(s).getRotation();}
+    const RotationMat& getR_GB(const SBState& s) const {return getX_GB(s).R();}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).getTranslation(); }
+    const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call

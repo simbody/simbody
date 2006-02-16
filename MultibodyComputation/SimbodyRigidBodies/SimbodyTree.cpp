@@ -19,9 +19,9 @@ SimbodyTree::SimbodyTree() {
 
 int SimbodyTree::addRigidBody(
     int                       parent,
-    const TransformMat&       parentJointFrameInP,
+    const TransformMat&       parentJointFrameInP,  // X_PJi
     const JointSpecification& joint,
-    const TransformMat&       bodyJointFrameInB,
+    const TransformMat&       bodyJointFrameInB,    // X_BJ
     const MassProperties&     mp)
 {
     const int save = rep->nextUSlot;
@@ -35,7 +35,9 @@ int SimbodyTree::addRigidBody(
     cout << "CREATED: states " << save << "-" << rep->nextUSlot-1 << endl;
 
     RigidBodyNode& pn = rep->updRigidBodyNode(parent);
-    const int rbIndex = rep->addRigidBodyNode(pn,TransformMat()/*XXX*/,rb);
+    const int rbIndex = rep->addRigidBodyNode(pn,
+        parentJointFrameInP*~bodyJointFrameInB, // X_PB when joint coords are 0
+        rb);
     return rbIndex;
 }
 

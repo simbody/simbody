@@ -701,15 +701,13 @@ public:
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
-                           int&                  nextQSlot,
-                           bool                  useEuler)
-      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot),
-        ball(useEuler)
+                           int&                  nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
     
-    int getMaxNQ()              const { return 3 + ball.getBallMaxNQ(); }
-    int getNQ(const SBState& s) const { return 3 + ball.getBallNQ(getUseEulerAngles(s)); } 
+    int getMaxNQ()              const { return ball.getBallMaxNQ() + 3; }
+    int getNQ(const SBState& s) const { return ball.getBallNQ(getUseEulerAngles(s)) + 3; } 
 
     void setJointPos(const SBState& s) {
         const Vector& posv = s.vars->q;
@@ -824,12 +822,11 @@ public:
 
 private:
     void calcR_PB(RotationMat& R_PB) { 
-        //double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        double scale=1.0; 
-        double sinPhi = sin( scale * theta[0] );
-        double cosPhi = cos( scale * theta[0] );
-        double sinPsi = sin( scale * theta[1] );
-        double cosPsi = cos( scale * theta[1] );
+        const Vec2& q = getQ(s); // angular coordinate
+        const Real sinPhi = sin(q[0]), cosPhi = cos(q[0]);
+        const Real sinPsi = sin(q[1]), cosPsi = cos(q[1]);
+        updSinCosQ(s)[0] = Vec2(sinPhi, cosPhi);
+        updSinCosQ(s)[1] = Vec2(sinPsi, cosPsi);
 
         const Mat33 a //Ry(psi) * Rx(phi)
             (cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
@@ -841,13 +838,11 @@ private:
     }
 
     void calcH(const SBState& s) {
-        //   double scale=InternalDynamics::minimization?DEG2RAD:1.0;
-        double scale=1.0;
         const RotationMat tmpR_GB = getR_GP(s) * getX_PB(s).getRotation();
 
         const RotationMat& R_BJ = X_BJ.getRotation();
-        const Vec3 x = scale * (tmpR_GB * R_BJ(0));
-        const Vec3 y = scale * (tmpR_GB * R_BJ(1));
+        const Vec3 x = tmpR_GB * R_BJ(0);
+        const Vec3 y = tmpR_GB * R_BJ(1);
 
         updH(s)[0] = SpatialRow(~x, Row3(0));
         updH(s)[1] = SpatialRow(~y, Row3(0));
@@ -885,12 +880,11 @@ public:
 
 private:
     void calcR_PB(RotationMat& R_PB) { 
-        // double scale=InternalDynamics::minimization?DEG2RAD:1.0; ??
-        double scale=1.0;
-        double sinPhi = sin( scale * theta[0] );
-        double cosPhi = cos( scale * theta[0] );
-        double sinPsi = sin( scale * theta[1] );
-        double cosPsi = cos( scale * theta[1] );
+        const Vec5& q = getQ(s); // first two are angular coordinate
+        const Real sinPhi = sin(q[0]), cosPhi = cos(q[0]);
+        const Real sinPsi = sin(q[1]), cosPsi = cos(q[1]);
+        updSinCosQ(s)[0] = Vec2(sinPhi, cosPhi);
+        updSinCosQ(s)[1] = Vec2(sinPsi, cosPsi);
 
         // space (parent)-fixed 1-2-3 sequence (rotation 3=0)
         const Mat33 R_JiJ  //Ry(psi) * Rx(phi)
@@ -904,14 +898,12 @@ private:
     }
 
     void calcH(const SBState& s) {
-        //double scale=InternalDynamics::minimization?DEG2RAD:1.0;
-        double scale=1.0;
         const RotationMat& R_GP = getR_GP(s);
         const RotationMat tmpR_GB = R_GP * getX_PB(s).getRotation();
 
         const RotationMat& R_BJ = X_BJ.getRotation();
-        const Vec3 x = scale * (tmpR_GB * R_BJ(0));
-        const Vec3 y = scale * (tmpR_GB * R_BJ(1));
+        const Vec3 x = tmpR_GB * R_BJ(0);
+        const Vec3 y = tmpR_GB * R_BJ(1);
 
         updH(s)[0] = SpatialRow(  ~x   ,  Row3(0));
         updH(s)[1] = SpatialRow(  ~y   ,  Row3(0));
@@ -931,7 +923,6 @@ RigidBodyNode::create(
     const TransformMat&   jointFrame,   // inboard joint frame J in body frame
     Joint::JointType      type,
     bool                  isReversed,   // child-to-parent orientation?
-    bool                  useEuler,
     int&                  nxtUSlot,
     int&                  nxtUSqSlot,
     int&                  nxtQSlot)  
@@ -946,13 +937,13 @@ RigidBodyNode::create(
     case Joint::Universal:        
         return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Orientation:
-        return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot,useEuler);
+        return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Cartesian:
         return new RBNodeTranslate(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::FreeLine:
         return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Free:
-        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot,useEuler);
+        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Sliding:
     case Joint::Cylinder:
     case Joint::Planar:
