@@ -67,6 +67,7 @@ ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(testClass             ${TEST_PATH}/MultibodyComputation/CDSlib/testClass)
 ADD_TEST(IVMMoleculeTest       ${TEST_PATH}/MultibodyComputation/IVMMoleculeModeling/IVMMoleculeTest)
+ADD_TEST(OrientationTest       ${TEST_PATH}/Geometry/tests/OrientationTest/OrientationTest)
 ADD_TEST(MultibodyModelingTest ${TEST_PATH}/MultibodyModeling/tests/MultibodyModelingTest/MultibodyModelingTest)
 ADD_TEST(Example1              ${TEST_PATH}/tests/Example1/Example1)
 ADD_TEST(Pendulum1             ${TEST_PATH}/tests/Pendulum1/Pendulum1)

@@ -1581,13 +1581,11 @@ public:
     std::string toString(const std::string&) const {
         std::stringstream s;
         s << "Xform[axes={";
-        if (frame.getRotation().asMat33() == Mat33(1)) s << "I";
-        else s << frame.getRotation().getAxis(0) 
-               << frame.getRotation().getAxis(1) 
-               << frame.getRotation().getAxis(2);
+        if (frame.R().asMat33() == Mat33(1)) s << "I";
+        else s << frame.x() << frame.y() << frame.z();
         s << "},origin=";
-        if (frame.getTranslation() == Vec3(0)) s << "0";
-        else s << frame.getTranslation();
+        if (frame.T() == Vec3(0)) s << "0";
+        else s << frame.T();
         s << "]";
         return s.str();
     }
@@ -1666,8 +1664,8 @@ public:
         origin.getRep().realize(g);
     }
     void evaluateFrame(TransformMat& m) const {
-        orientation.getRep().evaluateMatRotation(m.updRotation());
-        origin.getRep().evaluateVec3(m.updTranslation());
+        orientation.getRep().evaluateMatRotation(m.updR());
+        origin.getRep().evaluateVec3(m.updT());
     }
 
     PlacementRep* clone() const {return new FrameExprPlacementRep(*this);}

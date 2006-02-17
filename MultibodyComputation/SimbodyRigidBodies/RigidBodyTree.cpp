@@ -131,7 +131,7 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&      parent,
     parent.addChild(n);
     n->setParent(&parent);
 
-    n->refOrigin_P = referenceConfig.getTranslation(); // ignore rotation for now, it's always identity
+    n->refOrigin_P = referenceConfig.T(); // ignore rotation for now, it's always identity
     //n->X_GB = TransformMat(X_GB.getRotation(), 
     //                           X_GB.getTranslation() + n->refOrigin_P);
     //n->COM_G = child->X_GB.getTranslation() + n->COMstation_G;
@@ -147,7 +147,7 @@ void RigidBodyTree::addGroundNode() {
 
     RigidBodyNode* n = 
         RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
-                              false, false, nextUSlot, nextUSqSlot, nextQSlot);
+                              false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
 
     // Put ground node in tree at level 0

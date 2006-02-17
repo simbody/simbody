@@ -30,7 +30,6 @@ int SimbodyTree::addRigidBody(
         bodyJointFrameInB,
         joint.getJointType(),
         joint.isReversed(),
-        false,
         rep->nextUSlot, rep->nextUSqSlot, rep->nextQSlot);
     cout << "CREATED: states " << save << "-" << rep->nextUSlot-1 << endl;
 

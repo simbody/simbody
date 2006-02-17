@@ -87,7 +87,7 @@ static IVMMassProperties toIVMMassProperties(const Real& m, const Vec3& c, const
 }
 
 static IVMFrame toIVMFrame(const TransformMat& f) {
-    return IVMFrame(toCDSMat33(f.getRotation().asMat33()), toCDSVec3(f.getTranslation()));
+    return IVMFrame(toCDSMat33(f.R().asMat33()), toCDSVec3(f.T()));
 }
 
 static TransformMat toFrame(const IVMFrame& f) {
@@ -268,9 +268,8 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
             // and aligned with its parent's reference frame.
             const TransformMat& fBJ  = joints[i]->getMovingFrame().getValue();       // on B
             const TransformMat& fPJi = joints[i]->getReferenceFrame().getValue();    // on P
-            const TransformMat fBR(fBJ.getRotation()*~fPJi.getRotation(), 
-                                   fBJ.getTranslation());
-            const TransformMat fRJ(fPJi.getRotation(), Vec3(0));
+            const TransformMat fBR(fBJ.R()*~fPJi.R(), fBJ.T());
+            const TransformMat fRJ(fPJi.R(), Vec3(0));
 
             const Real&       mass      = childBody.getMass().getValue();
             const Vec3&       com_B     = childBody.getMassCenter().getValue();
@@ -456,7 +455,7 @@ NewIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body
 
 void NewIVMSimbodyInterfaceRep::buildTree() {
     cout << "**** NEW RB TREE ****" << endl;
-    int nextStateOffset = 0; // Because Vectors are 0-based
+    int nextUOffset=0, nextUSqOffset=0, nextQOffset=0; // Because Vectors are 0-based
     for (size_t i=0; i<mbs2tree.size(); ++i) {
         RBTreeMap& childEntry = mbs2tree[i];
 
@@ -464,7 +463,7 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         cout << childEntry.getLevel() << ": " << childEntry.getBody().getFullName() << endl;
         if (!childEntry.getLevel()) {
             RigidBodyNode* rb = RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
-                                      false, false, nextStateOffset);
+                                      false, nextUOffset, nextUSqOffset, nextQOffset);
             const int rbIndex = tree.addGroundNode(rb);
             childEntry.setRBIndex(rbIndex);
             continue;
@@ -489,7 +488,8 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
         cout << "JointType=" << mbs2tree[i].getJoint().getJointType()
              << endl;
 
-        const int save = nextStateOffset;
+        const int saveU = nextUOffset;
+        const int saveQ = nextQOffset;
         RigidBodyNode* rb = RigidBodyNode::create(
             MassProperties(childEntry.getMass(), 
                            childEntry.getCOMInRef(), 
@@ -497,15 +497,15 @@ void NewIVMSimbodyInterfaceRep::buildTree() {
             childEntry.getJointFrameInRef(),
             childEntry.getJoint().getJointType(),
             false,
-            false,
-            nextStateOffset);
-        cout << "CREATED: states " << save << "-" << nextStateOffset-1 << endl;
+            nextUOffset, nextUSqOffset, nextQOffset);
+        cout << "CREATED: states U: " << saveU << "-" << nextUOffset-1 << endl;
+        cout << "CREATED: states Q: " << saveQ << "-" << nextQOffset-1 << endl;
 
         RigidBodyNode& parent = tree.updRigidBodyNode(parentEntry.getRBIndex());
         const int rbIndex = tree.addRigidBodyNode(parent,TransformMat()/*XXX*/,rb);
         childEntry.setRBIndex(rbIndex);
     }
 
-    tree.finishConstruction(1e-6, 0);
+    tree.realizeConstruction(1e-6, 0);
     std::cout << "*** RigidBodyTree:" << std::endl << tree << std::endl;
 }

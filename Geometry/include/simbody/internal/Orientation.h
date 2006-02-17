@@ -58,7 +58,7 @@ public:
     // Create a unit axis vector 100 010 001
     explicit UnitVec(int axis) : BaseVec(0) {
         assert(0 <= axis && axis <= 2);
-        (*this)[axis] = 1.;
+        BaseVec::operator[](axis) = 1.;
     }
 
     UnitVec& operator=(const UnitVec& u) {
@@ -78,14 +78,14 @@ public:
     UnitVec3 operator-() const {return negate();}
 
     const TransposeType& operator~() const {
-        *reinterpret_cast<const TransposeType*>(this);
+        return *reinterpret_cast<const TransposeType*>(this);
     }
     TransposeType& operator~() {
-        *reinterpret_cast<const TransposeType*>(this);
+        return *reinterpret_cast<TransposeType*>(this);
     }
 
-    // We have to define these here since we had to override the writable
-    // versions to make them private.
+    // We have to define these here so that the non-const ones won't be
+    // inherited. We don't trust anyone to write on one element of a UnitVec!
     const Real& operator[](int i) const {return BaseVec::operator[](i);}
     const Real& operator()(int i) const {return BaseVec::operator()(i);}
 
@@ -106,12 +106,6 @@ private:
     // give us an already-normalized vector.
     UnitVec(const BaseVec& v, bool) : BaseVec(v) { }
     template <int S2> UnitVec(const Vec<3,Real,S2>& v, bool) : BaseVec(v) { }
-
-    // These must be overridden here to "privatize" them. Only the elite
-    // few can be trusted to update a single measure number without
-    // blowing the unit vector guarantee.
-    Real& operator[](int i) {return BaseVec::operator[](i);}
-    Real& operator()(int i) {return BaseVec::operator()(i);}
 };
 
 template <int S>
@@ -121,7 +115,7 @@ inline UnitVec3 UnitVec<S>::perp() const {
     const UnitVec3 u(abs());    // reflect to first octant
     const int minAxis = u[0] <= u[1] ? (u[0] <= u[2] ? 0 : 2)
                                      : (u[1] <= u[2] ? 1 : 2);
-    // Cross returns a Vec3 result (see operator above), which is then normalized.
+    // Cross returns a Vec3 result which is then normalized.
     return UnitVec3(*this % UnitVec3(minAxis));
 }
 
@@ -156,10 +150,19 @@ public:
         return *this;
     }
 
+    // Explicit conversion from Row to UnitRow, requiring expensive normalization.
+    explicit UnitRow(const BaseRow& v) : BaseRow(v/v.norm()) { }
+    template <int S2> explicit UnitRow(const Row<3,Real,S2>& v)
+        : BaseRow(v/v.norm()) { }
+
+    UnitRow(const Real& x, const Real& y, const Real& z) : BaseRow(x,y,z) {
+        static_cast<BaseRow&>(*this) /= norm();
+    }
+
     // Create a unit axis vector 100 010 001
     explicit UnitRow(int axis) : BaseRow(0) {
         assert(0 <= axis && axis <= 2);
-        (*this)[axis] = 1.;
+        BaseRow::operator[](axis) = 1.;
     }
 
     const BaseRow& asRow3() const {return static_cast<const BaseRow&>(*this);}
@@ -170,14 +173,14 @@ public:
     UnitRow<1> operator-() const {return negate();}
 
     const TransposeType& operator~() const {
-        *reinterpret_cast<const TransposeType*>(this);
+        return *reinterpret_cast<const TransposeType*>(this);
     }
     TransposeType& operator~() {
-        *reinterpret_cast<const TransposeType*>(this);
+        return *reinterpret_cast<TransposeType*>(this);
     }
 
-    // We have to define these here since we had to override the writable
-    // versions to make them private.
+    // We have to define these here so that the non-const ones won't be
+    // inherited. We don't trust anyone to write on one element of a UnitRow!
     const Real& operator[](int i) const {return BaseRow::operator[](i);}
     const Real& operator()(int i) const {return BaseRow::operator()(i);}
 
@@ -198,12 +201,6 @@ private:
     // give us an already-normalized vector.
     UnitRow(const BaseRow& v, bool) : BaseRow(v) { }
     template <int S2> UnitRow(const Row<3,Real,S2>& v, bool) : BaseRow(v) { }
-
-    // These must be overridden here to "privatize" them. Only the elite
-    // few can be trusted to update a single measure number without
-    // blowing the unit vector guarantee.
-    Real& operator[](int i) {return BaseRow::operator[](i);}
-    Real& operator()(int i) {return BaseRow::operator()(i);}
 };
 
 template <int S>
@@ -213,7 +210,7 @@ inline UnitRow<1> UnitRow<S>::perp() const {
     const UnitRow<1> u(abs());    // reflect to first octant
     const int minAxis = u[0] <= u[1] ? (u[0] <= u[2] ? 0 : 2)
                                      : (u[1] <= u[2] ? 1 : 2);
-    // Cross returns a Vec3 result (see operator above), which is then normalized.
+    // Cross returns a Row3 result which is then normalized.
     return UnitRow<1>(*this % UnitRow<1>(minAxis));
 }
 
@@ -277,6 +274,9 @@ public:
     const ColType& col(int j) const {
         return reinterpret_cast<const ColType&>(asMat33()(j));
     }
+    const ColType& x() const {return col(0);}
+    const ColType& y() const {return col(1);}
+    const ColType& z() const {return col(2);}
 
     const InverseRotationMat& operator~() const {return invert();}
     InverseRotationMat&       operator~()       {return updInvert();}
@@ -333,6 +333,9 @@ public:
     const ColType& col(int j) const {
         return reinterpret_cast<const ColType&>(asMat33()(j));
     }
+    const ColType& x() const {return col(0);}
+    const ColType& y() const {return col(1);}
+    const ColType& z() const {return col(2);}
 
     const RotationMat& operator~() const {return invert();}
     RotationMat&       operator~()       {return updInvert();}
@@ -368,22 +371,22 @@ operator*(const UnitRow<S>& r, const InverseRotationMat& R) {
 
 inline RotationMat
 operator*(const RotationMat& R1, const RotationMat& R2) {
-    return RotationMat::trustMe(R1*R2);
+    return RotationMat::trustMe(R1.asMat33()*R2.asMat33());
 }
 
 inline RotationMat
 operator*(const RotationMat& R1, const InverseRotationMat& R2) {
-    return RotationMat::trustMe(R1*R2);
+    return RotationMat::trustMe(R1.asMat33()*R2.asMat33());
 }
 
 inline RotationMat
 operator*(const InverseRotationMat& R1, const RotationMat& R2) {
-    return RotationMat::trustMe(R1*R2);
+    return RotationMat::trustMe(R1.asMat33()*R2.asMat33());
 }
 
 inline RotationMat
 operator*(const InverseRotationMat& R1, const InverseRotationMat& R2) {
-    return RotationMat::trustMe(R1*R2);
+    return RotationMat::trustMe(R1.asMat33()*R2.asMat33());
 }
 
 /**
@@ -493,6 +496,10 @@ public:
     const RotationMat& R()    const { return R_BF; }
     RotationMat&       updR()       { return R_BF; }
 
+    const RotationMat::ColType& x() const {return R().x();}
+    const RotationMat::ColType& y() const {return R().y();}
+    const RotationMat::ColType& z() const {return R().z();}
+
     const InverseRotationMat& RInv()    const { return ~R_BF; }
     InverseRotationMat&       updRInv()       { return ~R_BF; }
 
@@ -509,6 +516,7 @@ public:
         T_BF = -(R_BF*T_FB);
     }
 
+    const Mat34& asMat34() const {return Mat34::getAs(reinterpret_cast<const Real*>(this));}
 private:
     RotationMat R_BF;   // rotation matrix that expresses F's axes in R
     Vec3        T_BF;   // location of F's origin measured from B's origin, expressed in B 
@@ -589,6 +597,10 @@ public:
     
     const InverseRotationMat& R()       const {return ~R_FB;}
     InverseRotationMat&       updR()          {return ~R_FB;}
+
+    const InverseRotationMat::ColType& x() const {return R().x();}
+    const InverseRotationMat::ColType& y() const {return R().y();}
+    const InverseRotationMat::ColType& z() const {return R().z();}
 
     const RotationMat&        RInv()    const {return R_FB;}
     RotationMat&              updRInv()       {return R_FB;}

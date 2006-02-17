@@ -28,14 +28,14 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 // Should be calc'd from base to tip.
 void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 OB_OP_G = getR_GP(s) * getX_PB(s).getTranslation();
+    const Vec3 OB_OP_G = getR_GP(s) * getX_PB(s).T();
 
     // The Phi matrix conveniently performs parent-to-child shifting
     // on spatial quantities.
     updPhi(s) = PhiMatrix(OB_OP_G);
 
     // Get spatial configuration of this body.
-    updX_GB(s) = TransformMat(getR_GP(s) * getX_PB(s).getRotation(),
+    updX_GB(s) = TransformMat(getR_GP(s) * getX_PB(s).R(),
                               getOP_G(s) + OB_OP_G);
 
     // Calculate spatial mass properties. That means we need to transform
@@ -45,7 +45,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
     updInertia_OB_G(s) = getInertia_OB_B(s).changeAxes(~getR_GB(s));
     updCB_G(s)         = getR_GB(s)*getCOM_B(s);
 
-    updCOM_G(s) = getX_GB(s).getTranslation() + getCB_G(s);
+    updCOM_G(s) = getX_GB(s).T() + getCB_G(s);
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
@@ -446,7 +446,7 @@ public:
         const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
 
         // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
-        const RotationMat& R_BJ = X_BJ.getRotation();
+        const RotationMat& R_BJ = X_BJ.R();
         updX_PB(s) = TransformMat(R_BJ * R_JiJ * ~R_BJ, refOrigin_P); // torsion can't move B origin in P
    
         // Calc H matrix in space-fixed coords.
