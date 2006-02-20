@@ -101,7 +101,6 @@ public:
     // Return a unit vector perpendicular to this one (arbitrary).
     inline UnitVec3 perp() const;
 
-private:
     // This constructor is only for our friends whom we trust to
     // give us an already-normalized vector.
     UnitVec(const BaseVec& v, bool) : BaseVec(v) { }
@@ -196,7 +195,6 @@ public:
     // Return a unit row vector perpendicular to this one (arbitrary).
     inline UnitRow<1> perp() const;
 
-private:
     // This constructor is only for our friends whom we trust to
     // give us an already-normalized vector.
     UnitRow(const BaseRow& v, bool) : BaseRow(v) { }

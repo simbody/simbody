@@ -118,7 +118,7 @@ std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),Vec3(0.),TransformMat()) {}
+      : RigidBodyNode(MassProperties(),TransformMat(),TransformMat()) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -156,7 +156,7 @@ public:
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNode(mProps_B,Vec3(0.),jointFrame),
+      : RigidBodyNode(mProps_B,TransformMat(),jointFrame),
         theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
     {
         uIndex   = nextUSlot;   nextUSlot   += getDOF();
@@ -166,24 +166,37 @@ public:
 
     virtual ~RigidBodyNodeSpec() {}
 
+    // This is the type of the joint transition matrix H.
+    typedef Mat<dof,2,Row3,1,2> HType;
+
     /// Calculate joint-specific kinematic quantities dependent only
     /// on positions. This routine may assume that *all* position 
     /// kinematics (not just joint-specific) has been done for the parent,
-    /// and that the position state variables (theta) are available. The
+    /// and that the position state variables q are available. The
     /// quanitites that must be computed are:
-    ///   R_PB  the orientation of the B frame in its parent's frame
-    ///   OB_P  the location of B's origin in its parent (meas. from OP)
-    ///   H     the joint transition matrix
-    virtual void calcJointKinematicsPos(const SBState&)=0;
+    ///   - sines & cosines of angular coordinates
+    ///   - internally normalized quaternions
+    ///   - X_Jb_J cross-joint transform: configuration of body's inboard
+    ///              joint frame J in corresponding parent body frame Jb           
+    ///   - X_PB   the configuration of the B frame in its parent's frame
+    ///   - X_GB   the configuration of the B frame in ground
+    ///   - H      the joint transition matrix
+    virtual void calcJointKinematicsPos
+        (const SBState&, Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_Jb_J, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)=0;
 
     /// Calculate joint-specific kinematic quantities dependent on
     /// on velocities. This routine may assume that *all* position 
     /// kinematics (not just joint-specific) has been done for this node,
     /// that all velocity kinematics has been done for the parent, and
-    /// that the velocity state variables (dTheta) are available. The
+    /// that the velocity state variables (u) are available. The
     /// quanitites that must be computed are:
     ///   V_PB_G  relative velocity of B in P, expr. in G
-    virtual void calcJointKinematicsVel(const SBState&)=0;
+    /// The code is the same for all joints, although parametrized by dof.
+    void calcJointKinematicsVel(const SBState& s) {
+        updV_PB_G(s) = ~getH(s) * getU(s);
+    }
 
     void realizeModeling(const simtk::SBState&) const {
     }
@@ -195,7 +208,10 @@ public:
     void realizeConfiguration(const SBState& s) {
         forceInternal = 0.;  // forget these
         setJointPos(s);
-        calcJointKinematicsPos(s);
+        calcJointKinematicsPos(s,
+            s.cache->sq,s.cache->cq,s.cache->qnorm,
+            updX_JbJ(s), updX_PB(s), updX_GB(s),
+            H);
         calcJointIndependentKinematicsPos(s);
     }
 
@@ -255,25 +271,43 @@ public:
     // have to we make special scalar routines available for 1-dof joints. Note that all State access
     // routines are inline, not virtual, so the cost is just an indirection and an index.
 
-    // State variables (read only).
-    const Vec<dof>&   getQ             (const SBState& s) const {return Vec<dof>::getAs(&s.vars->q[qIndex]);}
-    const Vec<dof>&   getU             (const SBState& s) const {return Vec<dof>::getAs(&s.vars->u[uIndex]);}
-    const Vec<dof>&   getJointForce    (const SBState& s) const {return Vec<dof>::getAs(&s.vars->appliedJointForces[uIndex]);}
-    const Vec<dof>&   getPrescribedUdot(const SBState& s) const {return Vec<dof>::getAs(&s.vars->prescribedUdot[uIndex]);}
+    // General joint-dependent select-my-goodies-from-the-pool routines.
+    const Vec<dof>&     fromQ  (const Vector& q)   const {return Vec<dof>::getAs(&q[qIndex]);}
+    Vec<dof>&           toQ    (      Vector& q)   const {return Vec<dof>::updAs(&q[qIndex]);}
+    const Vec<dof>&     fromU  (const Vector& u)   const {return Vec<dof>::getAs(&u[uIndex]);}
+    Vec<dof>&           toU    (      Vector& u)   const {return Vec<dof>::updAs(&u[uIndex]);}
+    const Mat<dof,dof>& fromUSq(const Vector& uSq) const {return Mat<dof,dof>::getAs(&uSq[uSqIndex]);}
+    Mat<dof,dof>&       toUSq  (      Vector& uSq) const {return Mat<dof,dof>::updAs(&uSq[uSqIndex]);}
 
-    // Special case for quaternions
-    const Vec4& getQuat(const SBState& s) const{return Vec4::getAs(&s.vars->q[qIndex+quatOffs]);} 
+    // Same, but specialized for the common case where dof=1 so everything is scalar.
+    const Real& from1Q  (const Vector& q)   const {return q[qIndex];}
+    Real&       to1Q    (      Vector& q)   const {return q[qIndex];}
+    const Real& from1U  (const Vector& u)   const {return u[uIndex];}
+    Real&       to1U    (      Vector& u)   const {return u[uIndex];}
+    const Real& from1USq(const Vector& uSq) const {return uSq[uSqIndex];}
+    Real&       to1USq  (      Vector& uSq) const {return uSq[uSqIndex];}
+
+    // Applications of the above extraction routines to particular interesting items in the State. Note
+    // that you can't use these for quaternions since they extract "dof" items.
+
+    // State variables (read only).
+    const Vec<dof>&   getQ             (const SBState& s) const {return fromQ(s.vars->q);}
+    const Vec<dof>&   getU             (const SBState& s) const {return fromU(s.vars->u);}
+    const Vec<dof>&   getJointForce    (const SBState& s) const {return fromU(s.vars->appliedJointForces);}
+    const Vec<dof>&   getPrescribedUdot(const SBState& s) const {return fromU(s.vars->prescribedUdot);}
 
     // Special case state access for 1-dof joints
-    const Real& get1Q             (const SBState& s) const {return s.vars->q[qIndex];}
-    const Real& get1U             (const SBState& s) const {return s.vars->u[uIndex];}
-    const Real& get1JointForce    (const SBState& s) const {return s.vars->appliedJointForces[uIndex];}
-    const Real& get1PrescribedUdot(const SBState& s) const {return s.vars->prescribedUdot[uIndex];}
+    const Real& get1Q             (const SBState& s) const {return from1Q(s.vars->q);}
+    const Real& get1U             (const SBState& s) const {return from1U(s.vars->u);}
+    const Real& get1JointForce    (const SBState& s) const {return from1U(s.vars->appliedJointForces);}
+    const Real& get1PrescribedUdot(const SBState& s) const {return from1U(s.vars->prescribedUdot);}
 
-    // State variables for updating; be careful.
-    Vec<dof>& updQ   (SBState& s) const {return Vec<dof>::updAs(&s.vars->q[qIndex]);}
-    Vec<dof>& updU   (SBState& s) const {return Vec<dof>::updAs(&s.vars->u[uIndex]);}
-    Vec4&     updQuat(SBState& s) const {return Vec4::updAs(&s.vars->q[qIndex+quatOffs]);} 
+    // State variables for updating; be careful. This is only appropriate for "solvers", such as
+    // a method which modifies state variables to satisfy constraints.
+    Vec<dof>& updQ (SBState& s) const {return toQ(s.vars->q);}
+    Vec<dof>& updU (SBState& s) const {return toU(s.vars->u);} 
+    Real&     upd1Q(SBState& s) const {return to1Q(s.vars->q);}
+    Real&     upd1U(SBState& s) const {return to1U(s.vars->u);} 
 
     // Cache entries (cache is mutable in a const State)
 
@@ -286,56 +320,56 @@ public:
       { return ~Mat<2,dof,Vec3>::updAs(&s.cache->storageForHt(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
-    const Vec<dof,Vec2>& getSinCosQ(const SBState& s) const {return Vec<dof,Vec2>::getAs(&s.cache->sinCosQ[qIndex]);}
-    Vec<dof,Vec2>&       updSinCosQ(const SBState& s) const {return Vec<dof,Vec2>::updAs(&s.cache->sinCosQ[qIndex]);}
-    // Special case for 1dof rotations.
-    const Vec2& get1SinCosQ(const SBState& s) const {return s.cache->sinCosQ[qIndex];}
-    Vec2&       upd1SinCosQ(const SBState& s) const {return s.cache->sinCosQ[qIndex];}
+    const Vec<dof>&   getSinQ   (const SBState& s) const {return fromQ (s.cache->sq);}
+    Vec<dof>&         updSinQ   (const SBState& s) const {return toQ   (s.cache->sq);}
+    const Real&       get1SinQ  (const SBState& s) const {return from1Q(s.cache->sq);}
+    Real&             upd1SinQ  (const SBState& s) const {return to1Q  (s.cache->sq);}
+
+    const Vec<dof>&   getCosQ   (const SBState& s) const {return fromQ (s.cache->cq);}
+    Vec<dof>&         updCosQ   (const SBState& s) const {return toQ   (s.cache->cq);}
+    const Real&       get1CosQ  (const SBState& s) const {return from1Q(s.cache->cq);}
+    Real&             upd1CosQ  (const SBState& s) const {return to1Q  (s.cache->cq);}
 
         // Motion
 
-    const Vec<dof>&   getQdot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdot[qIndex]);}
-    Vec<dof>&         updQdot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdot[qIndex]);}
-    const Vec4&       getQuatDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdot[qIndex+quatOffs]);}
-    Vec4&             updQuatDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdot[qIndex+quatOffs]);}
-    const Real&       get1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
-    Real&             upd1Qdot  (const SBState& s) const {return s.cache->qdot[qIndex];}
+    const Vec<dof>&   getQdot   (const SBState& s) const {return fromQ (s.cache->qdot);}
+    Vec<dof>&         updQdot   (const SBState& s) const {return toQ   (s.cache->qdot);}
+    const Real&       get1Qdot  (const SBState& s) const {return from1Q(s.cache->qdot);}
+    Real&             upd1Qdot  (const SBState& s) const {return to1Q  (s.cache->qdot);}
 
         // Dynamics
-    const Vec<dof>&   getUdot (const SBState& s) const {return Vec<dof>::getAs(&s.cache->udot[uIndex]);}
-    Vec<dof>&         updUdot (const SBState& s) const {return Vec<dof>::updAs(&s.cache->udot[uIndex]);}
-    const Real&       get1Udot(const SBState& s) const {return s.cache->udot[uIndex];}
-    Real&             upd1Udot(const SBState& s) const {return s.cache->udot[uIndex];}
+    const Vec<dof>&   getUdot   (const SBState& s) const {return fromU (s.cache->udot);}
+    Vec<dof>&         updUdot   (const SBState& s) const {return toU   (s.cache->udot);}
+    const Real&       get1Udot  (const SBState& s) const {return from1U(s.cache->udot);}
+    Real&             upd1Udot  (const SBState& s) const {return to1U  (s.cache->udot);}
 
-    const Vec<dof>&   getQdotDot   (const SBState& s) const {return Vec<dof>::getAs(&s.cache->qdotdot[qIndex]);}
-    Vec<dof>&         updQdotDot   (const SBState& s) const {return Vec<dof>::updAs(&s.cache->qdotdot[qIndex]);}
-    const Vec4&       getQuatDotDot(const SBState& s) const {return Vec4::getAs(&s.cache->qdotdot[qIndex+quatOffs]);}
-    Vec4&             updQuatDotDot(const SBState& s) const {return Vec4::updAs(&s.cache->qdotdot[qIndex+quatOffs]);}
+    const Vec<dof>&   getQdotDot (const SBState& s) const {return fromQ (&s.cache->qdotdot);}
+    Vec<dof>&         updQdotDot (const SBState& s) const {return toQ   (&s.cache->qdotdot);}
+    const Real&       get1QdotDot(const SBState& s) const {return from1Q(s.cache->qdotdot);}
+    Real&             upd1QdotDot(const SBState& s) const {return to1Q  (s.cache->qdotdot);}
 
-    const Vec<dof>&   getInternalForce (const SBState& s) const {return Vec<dof>::getAs(&s.cache->netHingeForces[uIndex]);}
-    Vec<dof>&         updInternalForce (const SBState& s) const {return Vec<dof>::updAs(&s.cache->netHingeForces[uIndex]);}
-    const Real&       get1InternalForce(const SBState& s) const {return s.cache->netHingeForces[uIndex];}
-    Real&             upd1InternalForce(const SBState& s) const {return s.cache->netHingeForces[uIndex];}
+    const Vec<dof>&   getInternalForce (const SBState& s) const {return fromU (s.cache->netHingeForces);}
+    Vec<dof>&         updInternalForce (const SBState& s) const {return toU   (s.cache->netHingeForces);}
+    const Real&       get1InternalForce(const SBState& s) const {return from1U(s.cache->netHingeForces);}
+    Real&             upd1InternalForce(const SBState& s) const {return to1U  (s.cache->netHingeForces);}
 
-    const Mat<dof,dof>& getDI(const SBState& s) const 
-      { return Mat<dof,dof>::getAs(&s.cache->storageForDI[uSqIndex]); }
-    Mat<dof,dof>&       updDI(const SBState& s) const 
-      { return Mat<dof,dof>::updAs(&s.cache->storageForDI[uSqIndex]); }
+    const Mat<dof,dof>& getDI(const SBState& s) const {return fromUSq(s.cache->storageForDI);}
+    Mat<dof,dof>&       updDI(const SBState& s) const {return toUSq  (s.cache->storageForDI);}
 
     const Mat<2,dof,Vec3>& getG(const SBState& s) const
       { return Mat<2,dof,Vec3>::getAs(&s.cache->storageForG(0,uIndex)); }
     Mat<2,dof,Vec3>&       updG(const SBState& s) const
       { return Mat<2,dof,Vec3>::updAs(&s.cache->storageForG(0,uIndex)); }
 
-    const Vec<dof>&   getNu (const SBState& s) const {return Vec<dof>::getAs(&s.cache->nu[uIndex]);}
-    Vec<dof>&         updNu (const SBState& s) const {return Vec<dof>::updAs(&s.cache->nu[uIndex]);}
-    const Real&       get1Nu(const SBState& s) const {return s.cache->nu[uIndex];}
-    Real&             upd1Nu(const SBState& s) const {return s.cache->nu[uIndex];}
+    const Vec<dof>&   getNu (const SBState& s) const {return fromU (s.cache->nu);}
+    Vec<dof>&         updNu (const SBState& s) const {return toU   (s.cache->nu);}
+    const Real&       get1Nu(const SBState& s) const {return from1U(s.cache->nu);}
+    Real&             upd1Nu(const SBState& s) const {return to1U  (s.cache->nu);}
 
-    const Vec<dof>&   getEpsilon (const SBState& s) const {return Vec<dof>::getAs(&s.cache->epsilon[uIndex]);}
-    Vec<dof>&         updEpsilon (const SBState& s) const {return Vec<dof>::updAs(&s.cache->epsilon[uIndex]);}
-    const Real&       get1Epsilon(const SBState& s) const {return s.cache->epsilon[uIndex];}
-    Real&             upd1Epsilon(const SBState& s) const {return s.cache->epsilon[uIndex];}
+    const Vec<dof>&   getEpsilon (const SBState& s) const {return fromU (s.cache->epsilon);}
+    Vec<dof>&         updEpsilon (const SBState& s) const {return toU   (s.cache->epsilon);}
+    const Real&       get1Epsilon(const SBState& s) const {return from1U(s.cache->epsilon);}
+    Real&             upd1Epsilon(const SBState& s) const {return to1U  (s.cache->epsilon);}
 
     void calcP(const SBState& s);
     void calcZ(const SBState& s, const SpatialVec& spatialForce);
@@ -387,9 +421,11 @@ protected:
 
 
 /**
- * Translate (Cartesian) joint. This provides three degrees of translational freedom
- * which is suitable (e.g.) for connecting a free atom to ground.
- * The joint frame J is aligned with the body frame B.
+ * Translate (Cartesian) joint. This provides three degrees of
+ * translational freedom which is suitable (e.g.) for connecting a
+ * free atom to ground. The Cartesian directions are the axes of
+ * the parent body's Jb frame, with J=Jb when all 3 coords are 0,
+ * and the orientation of J in Jb is 0 forever.
  */
 class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
@@ -403,24 +439,95 @@ public:
     {
     }
 
-    void calcJointKinematicsPos(const SBState& s) {
-        // Cartesian joint can't change orientation
-        updX_PB(s) = TransformMat(RotationMat(), refOrigin_P + getQ(s));
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
+        // no angles or quaternions
 
-        // Note that H is spatial (and R_GP=R_GB for this joint)
-        updH(s)[0] = SpatialRow( Row3(0), ~getR_GP(s)(0) );
-        updH(s)[1] = SpatialRow( Row3(0), ~getR_GP(s)(1) );
-        updH(s)[2] = SpatialRow( Row3(0), ~getR_GP(s)(2) );
+        const TransformMat& refX_PB = getRefX_PB(s);    // reference config of B in P
+        const TransformMat& X_BJ    = getX_BJ(s);       // fixed config of J in B
+        const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
+
+        // Calculated already since we're going base to tip.
+        const TransformMat& X_GP    = getX_GP(s); // parent orientation in ground
+
+        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // A Cartesian joint can't change orientation. 
+        X_JbJ = TransformMat(RotationMat(), getQ(s));
+
+        // T_JbB is B's origin measured from Jb, expr. in Jb
+        const Vec3 T_JbB = X_JbJ.T() + (~X_BJ).T(); // TODO: precalculate X_JB.
+        X_PB             = TransformMat(refX_PB.R(), refX_PB.T() + X_PJb.R() * T_JbB);
+        X_GB             = X_GP * X_PB;
+
+        // Note that H is spatial. The current spatial directions for our qs are
+        // the axes of the Jb frame expressed in Ground.
+        const RotationMat R_GJb = X_GP.R()*X_PJb.R();
+        H[0] = SpatialRow( Row3(0), ~R_GJb.x() );
+        H[1] = SpatialRow( Row3(0), ~R_GJb.y() );
+        H[2] = SpatialRow( Row3(0), ~R_GJb.z() );
+    }
+};
+
+
+
+/**
+ * Sliding joint (1 dof translation). The translation is along the z
+ * axis of the parent body's Jb frame, with J=Jb when the coordinate
+ * is zero and the orientation of J in Jb frozen at 0 forever.
+ */
+class RBNodeSlider : public RigidBodyNodeSpec<1> {
+public:
+    virtual const char* type() { return "slider"; }
+
+    RBNodeSlider(const MassProperties& mProps_B,
+                  const TransformMat&   jointFrame,
+                  int&                  nextUSlot,
+                  int&                  nextUSqSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+    {
     }
 
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
+        // no angles or quaternions
+
+        const TransformMat& refX_PB = getRefX_PB(s);    // reference config of B in P
+        const TransformMat& X_BJ    = getX_BJ(s);       // fixed config of J in B
+        const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
+
+        // Calculated already since we're going base to tip.
+        const TransformMat& X_GP    = getX_GP(s); // parent configuration in ground
+
+        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // A sliding joint can't change orientation, and only translates along z. 
+        X_JbJ = TransformMat(RotationMat(), Vec3(0.,0.,get1Q(s)));
+
+        // T_JbB is B's origin measured from Jb, expr. in Jb
+        const Vec3 T_JbB = X_JbJ.T() + (~X_BJ).T(); // TODO: precalculate X_JB.
+        X_PB             = TransformMat(refX_PB.R(), refX_PB.T() + X_PJb.R() * T_JbB);
+        X_GB             = X_GP * X_PB;
+
+        // Note that H is spatial. The current spatial directions for our q is
+        // the z axis of the Jb frame expressed in Ground.
+        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
+        H[0] = SpatialRow( Row3(0), ~z_GJb );
     }
 };
 
 /**
  * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
- * about a particular axis.
+ * about a particular axis, the z axis of the parent's Jb frame, which is 
+ * aligned forever with the z axis of the body's J frame. In addition, the
+ * origin points of J and Jb are identical forever.
  */
 class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
@@ -435,37 +542,171 @@ public:
     {
     }
 
-    void calcJointKinematicsPos(const SBState& s) { 
-        const Real q = get1Q(s); // angular coordinate
-        const Real sinTau = sin(q), cosTau = cos(q);
-        upd1SinCosQ(s) = Vec2(sinTau, cosTau);
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    { 
+        const Real&            q  = get1Q(s);    // angular coordinate
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
 
-        const Mat33 a( cosTau , -sinTau , 0. ,
-                       sinTau ,  cosTau , 0. ,
-                       0.     ,  0.     , 1. );
-        const RotationMat R_JiJ = RotationMat::trustMe(a); //rotation about z-axis
+        Real& sq = to1Q(sine);      // nicer names for our entries
+        Real& cq = to1Q(cosine);
+        
+        sq = sin(q); cq = cos(q);
+        // no quaternions
 
-        // We need R_PB=R_PJi*R_JiJ*R_JB. But R_PJi==R_BJ, so this works:
-        const RotationMat& R_BJ = X_BJ.R();
-        updX_PB(s) = TransformMat(R_BJ * R_JiJ * ~R_BJ, refOrigin_P); // torsion can't move B origin in P
-   
+        // This is the rotation matrix corresponding to a rotation by q about z.
+        const Mat33 a( cq , -sq , 0. ,
+                       sq ,  cq , 0. ,
+                       0. ,  0. , 1. );
+
+        // We're only updating the orientation here because a torsion joint
+        // can't translate.
+        X_JbJ = TransformMat(RotationMat::trustMe(a), Vec3(0.));
+
+        // Note that both orientation and position of B in P can change
+        X_PB = X_PJb * X_JbJ * ~X_BJ;
+        X_GB = X_GP * X_PB;
+
         // Calc H matrix in space-fixed coords.
-        // This only works because the joint z axis is the same in B & P
-        // because that's what we rotate around.
-        const Vec3 z = getR_GP(s) * R_BJ(2); // R_BJ=R_PJi
-        updH(s)[0] = SpatialRow( ~z, Row3(0) );
-    }
-
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
+        // This works because the joint z axis is the same in J & Jb
+        // since that's what we rotate around.
+        const Vec3 z_G = X_GP.R() * X_PJb.z();
+        H[0] = SpatialRow( ~z_G, Row3(0) );
     }
 };
 
 /**
- * This class contains all the odd things required by a ball joint.
- * Any RBNode joint type which contains a ball should define a member
- * of this class and delegate to it.
+ * U-joint like joint type which allows rotation about the two axes
+ * perpendicular to zDir. This is appropriate for diatoms and for allowing 
+ * torsion+bond angle bending.
  */
+class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
+public:
+    virtual const char* type() { return "rotate2"; }
+
+    RBNodeRotate2(const MassProperties& mProps_B,
+                  const TransformMat&   jointFrame,
+                  int&                  nextUSlot,
+                  int&                  nextUSqSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+    }
+
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    { 
+        const Vec2& q  = getQ(s); // angular coordinates
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+
+        Vec2& sq = toQ(sine);      // nicer names for our entries
+        Vec2& cq = toQ(cosine);
+        
+        sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
+        // no quaternions
+
+        // TODO: sherm, is this body fixed 213, with the 3rd rotation 0?
+        const Mat33 a //Ry(psi) * Rx(phi)
+            (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
+               0.  ,    cq[0]    ,   -sq[0]   ,
+            -sq[1] , cq[1]*sq[0] , cq[1]*cq[0]);
+
+        // We're only updating the orientation here because a U-joint
+        // can't translate.
+        X_JbJ = TransformMat(RotationMat::trustMe(a), Vec3(0.));
+
+        // Note that both orientation and position of B in P can change
+        const TransformMat X_PJ = X_PJb * X_JbJ;
+        X_PB = X_PJ * ~X_BJ;
+        X_GB = X_GP * X_PB;
+
+        // The coordinates are defined in the body-fixed (that is, J) frame, so
+        // the orientation of J in ground gives the instantaneous spatial 
+        // meaning of the coordinates.
+        const RotationMat R_GJ = X_GP.R() * X_PJ.R();
+        H[0] = SpatialRow(~R_GJ.x(), Row3(0));
+        H[1] = SpatialRow(~R_GJ.y(), Row3(0));
+    }
+};
+
+/**
+ * The "diatom" joint is the equivalent of a free joint for a body with no inertia in
+ * one direction, such as one composed of just two atoms. It allows unrestricted
+ * translation but rotation only about directions perpendicular to the body's
+ * inertialess axis.
+ * The coordinate definitions are a combination of a rotate2 joint and a
+ * Cartesian joint. The first 2 are rotational, the next 3 are translations.
+ * However, the rotations don't affect the translations.
+ */
+class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
+public:
+    virtual const char* type() { return "diatom"; }
+
+    RBNodeTranslateRotate2(const MassProperties& mProps_B,
+                           const TransformMat&   jointFrame,
+                           int&                  nextUSlot,
+                           int&                  nextUSqSlot,
+                           int&                  nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+    }
+
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    { 
+        const Vec<5>&       q     = getQ(s);     // joint coordinates
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+
+        Vec2& sq = toQ(sine).updSubVec<2>(0);    // nicer names for our entries
+        Vec2& cq = toQ(cosine).updSubVec<2>(0);
+        
+        sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
+        // no quaternions
+
+        // TODO: sherm, is this body fixed 213, with the 3rd rotation 0?
+        const Mat33 a //Ry(psi) * Rx(phi)       TODO: make this a feature of RotationMat
+            (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
+               0.  ,    cq[0]    ,   -sq[0]   ,
+            -sq[1] , cq[1]*sq[0] , cq[1]*cq[0]);
+
+        X_JbJ = TransformMat(RotationMat::trustMe(a), q.getSubVec<3>(2));
+
+        const TransformMat X_PJ = X_PJb * X_JbJ;
+        X_PB = X_PJ * ~X_BJ;
+        X_GB = X_GP * X_PB;
+
+        // The rotational coordinates are defined in the body-fixed (that is, J) frame, so
+        // the orientation of J in ground gives the instantaneous spatial 
+        // meaning of those coordinates. The translational coordinates, on the other
+        // hand are defined "space fixed" in the Jb frame.
+        const RotationMat R_GJ  = X_GP.R() * X_PJ.R();
+        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
+        H[0] = SpatialRow(~R_GJ.x(),   Row3(0));
+        H[1] = SpatialRow(~R_GJ.y(),   Row3(0));
+        H[2] = SpatialRow( Row3(0) , ~R_GJb.x());
+        H[3] = SpatialRow( Row3(0) , ~R_GJb.y());
+        H[4] = SpatialRow( Row3(0) , ~R_GJb.z());
+    }
+};
+/*
+/// This class contains all the odd things required by a ball joint.
+/// Any RBNode joint type which contains a ball should define a member
+/// of this class and delegate to it.
 class ContainedBallJoint {
 public:
     ContainedBallJoint() { }
@@ -606,11 +847,9 @@ public:
     } 
 };
 
-/**
- * Ball joint. This provides three degrees of rotational freedom, i.e.,
- * unrestricted orientation.
- * The joint frame J is aligned with the body frame B.
- */
+/// Ball joint. This provides three degrees of rotational freedom, i.e.,
+/// unrestricted orientation.
+/// The joint frame J is aligned with the body frame B.
 class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
     ContainedBallJoint ball;
 public:
@@ -656,7 +895,12 @@ public:
         ball.getBallAccel(ddTheta, uIndex, accv);
     }
 
-    void calcJointKinematicsPos(const SBState& s) { 
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
         updX_PB(s).updTranslation() = refOrigin_P; // ball joint can't move B origin in P
         ball.calcR_PB(s, updX_PB(s).updRotation());
 
@@ -665,11 +909,6 @@ public:
         updH(s)[1] = SpatialRow( ~getR_GP(s)(1), Row3(0) );
         updH(s)[2] = SpatialRow( ~getR_GP(s)(2), Row3(0) );
    }
-
-    // Note that dTheta = w_PB_P = ang vel of B in P, expr in P
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
-    }
 
     void enforceQuaternionConstraints(const SBState& s) {
         Vector& posv = s.vars->q;
@@ -688,11 +927,9 @@ public:
     } 
 };
 
-/**
- * Free joint. This is a six degree of freedom joint providing unrestricted 
- * translation and rotation for a free rigid body.
- * The joint frame J is aligned with the body frame B.
- */
+/// Free joint. This is a six degree of freedom joint providing unrestricted 
+/// translation and rotation for a free rigid body.
+/// The joint frame J is aligned with the body frame B.
 class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
     ContainedBallJoint ball;
 public:
@@ -754,7 +991,12 @@ public:
             = ddTheta.getSubVec<3>(3);
     }
 
-    void calcJointKinematicsPos(const SBState& s) {
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
         updX_PB(s).updTranslation() = refOrigin_P + theta.getSubVec<3>(3);
         ball.calcR_PB(theta.getSubVec<3>(0), updX_PB(s).updRotation());
 
@@ -763,11 +1005,6 @@ public:
             updH(s)[i]   = SpatialRow( ~getR_GP(s)(i),     Row3(0) );
             updH(s)[i+3] = SpatialRow(     Row3(0),     ~getR_GP(s)(i) );
         }
-    }
-
-    // Note that dTheta[0..2] = w_PB_P = ang vel of B in P, expr in P
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
     void enforceQuaternionConstraints(const SBState& s) {
@@ -790,128 +1027,7 @@ public:
         ball.setBallDerivs(omega);
     } 
 };
-
-
-/**
- * U-joint like joint type which allows rotation about the two axes
- * perpendicular to zDir. This is appropriate for diatoms and for allowing 
- * torsion+bond angle bending.
- */
-class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
-public:
-    virtual const char* type() { return "rotate2"; }
-
-    RBNodeRotate2(const MassProperties& mProps_B,
-                  const TransformMat&   jointFrame,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
-    {
-    }
-
-    void calcJointKinematicsPos(const SBState& s) { 
-        updX_PB(s).updTranslation() = refOrigin_P; // no translation with this joint
-        calcR_PB(updX_PB(s).updRotation());
-        calcH(s);
-    }
-
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
-    }
-
-private:
-    void calcR_PB(RotationMat& R_PB) { 
-        const Vec2& q = getQ(s); // angular coordinate
-        const Real sinPhi = sin(q[0]), cosPhi = cos(q[0]);
-        const Real sinPsi = sin(q[1]), cosPsi = cos(q[1]);
-        updSinCosQ(s)[0] = Vec2(sinPhi, cosPhi);
-        updSinCosQ(s)[1] = Vec2(sinPsi, cosPsi);
-
-        const Mat33 a //Ry(psi) * Rx(phi)
-            (cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
-             0      , cosPhi        , -sinPhi      ,
-            -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
-
-        const RotationMat& R_BJ = X_BJ.getRotation();
-        R_PB = R_BJ * RotationMat::trustMe(a) * ~R_BJ;
-    }
-
-    void calcH(const SBState& s) {
-        const RotationMat tmpR_GB = getR_GP(s) * getX_PB(s).getRotation();
-
-        const RotationMat& R_BJ = X_BJ.getRotation();
-        const Vec3 x = tmpR_GB * R_BJ(0);
-        const Vec3 y = tmpR_GB * R_BJ(1);
-
-        updH(s)[0] = SpatialRow(~x, Row3(0));
-        updH(s)[1] = SpatialRow(~y, Row3(0));
-    }  
-};
-
-/**
- * The "diatom" joint is the equivalent of a free joint for a body with no inertia in
- * one direction, such as one composed of just two atoms. It allows unrestricted
- * translation but rotation only about directions perpendicular to the body's
- * inertialess axis.
- */
-class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
-public:
-    virtual const char* type() { return "diatom"; }
-
-    RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const TransformMat&   jointFrame,
-                           int&                  nextUSlot,
-                           int&                  nextUSqSlot,
-                           int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
-    {
-    }
-
-    void calcJointKinematicsPos(const SBState& s) { 
-        updX_PB(s).updTranslation() = refOrigin_P + theta.getSubVec<3>(2);
-        calcR_PB(updX_PB(s).updRotation());
-        calcH(s);
-    }
-
-    void calcJointKinematicsVel(const SBState& s) { 
-        updV_PB_G(s) = ~getH(s) * getU(s);
-    }
-
-private:
-    void calcR_PB(RotationMat& R_PB) { 
-        const Vec5& q = getQ(s); // first two are angular coordinate
-        const Real sinPhi = sin(q[0]), cosPhi = cos(q[0]);
-        const Real sinPsi = sin(q[1]), cosPsi = cos(q[1]);
-        updSinCosQ(s)[0] = Vec2(sinPhi, cosPhi);
-        updSinCosQ(s)[1] = Vec2(sinPsi, cosPsi);
-
-        // space (parent)-fixed 1-2-3 sequence (rotation 3=0)
-        const Mat33 R_JiJ  //Ry(psi) * Rx(phi)
-            (cosPsi , sinPsi*sinPhi , sinPsi*cosPhi,
-             0      , cosPhi        , -sinPhi      ,
-            -sinPsi , cosPsi*sinPhi , cosPsi*cosPhi);
-
-        // calculates R0*a*R0'  (R0=R_BJ(==R_PJi), a=R_JiJ)
-        const RotationMat& R_BJ = X_BJ.getRotation();
-        R_PB = R_BJ * RotationMat::trustMe(R_JiJ) * ~R_BJ; // orientation of B in parent P
-    }
-
-    void calcH(const SBState& s) {
-        const RotationMat& R_GP = getR_GP(s);
-        const RotationMat tmpR_GB = R_GP * getX_PB(s).getRotation();
-
-        const RotationMat& R_BJ = X_BJ.getRotation();
-        const Vec3 x = tmpR_GB * R_BJ(0);
-        const Vec3 y = tmpR_GB * R_BJ(1);
-
-        updH(s)[0] = SpatialRow(  ~x   ,  Row3(0));
-        updH(s)[1] = SpatialRow(  ~y   ,  Row3(0));
-        updH(s)[2] = SpatialRow(Row3(0), ~R_GP(0));
-        updH(s)[3] = SpatialRow(Row3(0), ~R_GP(1));
-        updH(s)[4] = SpatialRow(Row3(0), ~R_GP(2));
-    }  
-};
+*/
 
 ////////////////////////////////////////////////
 // RigidBodyNode factory based on joint type. //
@@ -936,14 +1052,14 @@ RigidBodyNode::create(
         return new RBNodeTorsion(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Universal:        
         return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Orientation:
-        return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    //case Joint::Orientation:
+    //    return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Cartesian:
         return new RBNodeTranslate(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::FreeLine:
         return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Free:
-        return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    //case Joint::Free:
+    //    return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Sliding:
     case Joint::Cylinder:
     case Joint::Planar:
@@ -1015,11 +1131,15 @@ RigidBodyNodeSpec<dof>::calcZ(const SBState& s, const SpatialVec& spatialForce) 
     SpatialVec& z = updZ(s);
     z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) - spatialForce;
 
-    for (int i=0 ; i<(int)children.size() ; i++) 
-        z += children[i]->getPhi(s)
-             * (children[i]->getZ(s) + children[i]->getGepsilon(s));
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const SpatialVec& zChild    = children[i]->getZ(s);
+        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
+        const SpatialVec& GepsChild = children[i]->getGepsilon(s);
 
-    updEpsilon(s)  = getInternalForce(s) - getH(s)*z;
+        z += phiChild * (zChild + GepsChild);
+    }
+
+    updEpsilon(s)  = getInternalForce(s) - getH(s)*z; // TODO: pass in hinge forces
     updNu(s)       = getDI(s) * getEpsilon(s);
     updGepsilon(s) = getG(s)  * getEpsilon(s);
 }
@@ -1061,12 +1181,12 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcAccel(const SBState& s) {
-    // const Node* pNode = parentHinge.remNode;
-    //make sure that this is phi is correct - FIX ME!
-    // base alpha = 0!!!!!!!!!!!!!
-    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s);
-    ddTheta = getNu(s) - (~getG(s)*alphap);
-    updA_GB(s)    = alphap + (~getH(s)*ddTheta) + getCoriolisAcceleration(s);  
+    Vec<dof>&        udot   = updUdot(s);
+    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s); // ground A_GB is 0
+
+
+    udot       = getNu(s) - (~getG(s)*alphap);
+    updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
 
     calcJointAccel(s);   // in case joint isn't happy with just ddTheta
 }
@@ -1083,7 +1203,7 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::print(const SBState& s, int verbose) const {
     if (verbose&InternalDynamics::printNodePos) 
         cout << setprecision(8)
-             << ": pos: " << getX_GB(s).getTranslation() << ' ' << '\n';
+             << ": pos: " << getX_GB(s).T() << ' ' << '\n';
     if (verbose&InternalDynamics::printNodeTheta) 
         cout << setprecision(8)
              << ": theta: " 

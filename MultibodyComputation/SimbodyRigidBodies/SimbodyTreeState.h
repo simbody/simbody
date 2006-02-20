@@ -26,6 +26,11 @@ public:
         stage = BuiltStage; // roll back if necessary
 
         // These contain uninitialized junk.
+        sq.resize(maxNQs);
+        cq.resize(maxNQs);
+        qnorm.resize(maxNQs);
+        storageForHt.resize(2,nDofs);
+        bodyJointInParentJointFrame.resize(nBodies);
         bodyConfigInParent.resize(nBodies);
         bodyConfigInGround.resize(nBodies);
         bodyToParentShift.resize(nBodies);
@@ -35,8 +40,6 @@ public:
         bodyCOMStationInGround.resize(nBodies);
 
         positionConstraintErrors.resize(npc);
-        storageForHt.resize(2,nDofs);
-        sinCosQ.resize(maxNQs);
 
         bodyVelocityInParent.resize(nBodies);
         bodyVelocityInGround.resize(nBodies);
@@ -74,17 +77,23 @@ public:
     //   distance constraint distances & station positions
 
     // Configuration
-    std::vector<TransformMat> bodyConfigInParent; // nb (joint config)
-    std::vector<TransformMat> bodyConfigInGround; // nb
-    std::vector<PhiMatrix>    bodyToParentShift;  // nb (phi)
-    std::vector<InertiaMat>   bodyInertiaInGround;// nb (I_OB_G)
-    Vector_<SpatialMat>       bodySpatialInertia; // nb (Mk)
-    Vector_<Vec3>             bodyCOMInGround;    // nb (COM_G)
-    Vector_<Vec3>             bodyCOMStationInGround;   // nb (COMstation_G)
+    Vector sq, cq;  // nq  Sin&cos of angle q's in appropriate slots; otherwise garbage
+    Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
+                    //       all else is garbage.
+    Matrix_<Vec3> storageForHt; // 2 x ndof
+
+    std::vector<TransformMat> bodyJointInParentJointFrame;  // nb (X_Jb_J)
+
+    std::vector<TransformMat> bodyConfigInParent;           // nb (X_PB)
+    std::vector<TransformMat> bodyConfigInGround;           // nb (X_GB)
+    std::vector<PhiMatrix>    bodyToParentShift;            // nb (phi)
+    std::vector<InertiaMat>   bodyInertiaInGround;          // nb (I_OB_G)
+    Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
+    Vector_<Vec3>             bodyCOMInGround;              // nb (COM_G)
+    Vector_<Vec3>             bodyCOMStationInGround;       // nb (COMstation_G)
 
     Vector                    positionConstraintErrors; // npc
-    Matrix_<Vec3>             storageForHt;       // 2 x ndof
-    std::vector<Vec2>         sinCosQ;            // nq: sin(qi),cos(qi) for angular qs
+
 
     // Motion
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)

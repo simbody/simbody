@@ -19,7 +19,7 @@ SimbodyTree::SimbodyTree() {
 
 int SimbodyTree::addRigidBody(
     int                       parent,
-    const TransformMat&       parentJointFrameInP,  // X_PJi
+    const TransformMat&       parentJointFrameInP,  // X_PJb
     const JointSpecification& joint,
     const TransformMat&       bodyJointFrameInB,    // X_BJ
     const MassProperties&     mp)

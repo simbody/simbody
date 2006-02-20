@@ -326,7 +326,7 @@ private:
 
     // This is a complete State available immediately after realizeConstruction().
     // It contains default Modeling values, and everything else is allocated in
-    // accordance with those. It has been realized through ModelingStage.
+    // accordance with those.
     SBState defaultState;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.

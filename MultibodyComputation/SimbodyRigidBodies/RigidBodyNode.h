@@ -82,12 +82,13 @@ public:
 
     /// Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);
+    void setParent(RigidBodyNode* p) { parent=p; }
+    void setNodeNum(int n) {nodeNum=n;}
+    void setLevel(int i)   {level=i;}
 
         // TOPOLOGICAL INFO: no State needed
 
     RigidBodyNode*   getParent() const {return parent;}
-    void             setParent(RigidBodyNode* p) { parent=p; }
-
     int              getNChildren()  const {return (int)children.size();}
     RigidBodyNode*   getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
@@ -95,16 +96,31 @@ public:
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
     /// Ground node) are called 'base' nodes.
     int              getLevel() const  {return level;}
-    void             setLevel(int i)   {level=i;}
 
     int              getNodeNum() const {return nodeNum;}
-    void             setNodeNum(int n)  {nodeNum=n;}
 
     bool             isGroundNode() const { return level==0; }
     bool             isBaseNode()   const { return level==1; }
 
     int              getUIndex() const {return uIndex;}
     int              getQIndex() const {return qIndex;}
+
+    // Access routines for plucking the right per-body data from the pool in the State.
+    const TransformMat& fromB(const std::vector<TransformMat>& x) const {return x[nodeNum];}
+    const PhiMatrix&    fromB(const std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
+    const InertiaMat&   fromB(const std::vector<InertiaMat>&   i) const {return i[nodeNum];}
+    int                 fromB(const std::vector<int>&          i) const {return i[nodeNum];}
+    const SpatialVec&   fromB(const Vector_<SpatialVec>&       v) const {return v[nodeNum];}
+    const SpatialMat&   fromB(const Vector_<SpatialMat>&       m) const {return m[nodeNum];}
+    const Vec3&         fromB(const Vector_<Vec3>&             v) const {return v[nodeNum];}
+
+    TransformMat& toB(std::vector<TransformMat>& x) const {return x[nodeNum];}
+    PhiMatrix&    toB(std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
+    InertiaMat&   toB(std::vector<InertiaMat>&   i) const {return i[nodeNum];}
+    int&          toB(std::vector<int>&          i) const {return i[nodeNum];}
+    SpatialVec&   toB(Vector_<SpatialVec>&       v) const {return v[nodeNum];}
+    SpatialMat&   toB(Vector_<SpatialMat>&       m) const {return m[nodeNum];}
+    Vec3&         toB(Vector_<Vec3>&             v) const {return v[nodeNum];}
 
         // MODELING INFO
     const bool getUseEulerAngles(const SBState& s) const {return s.vars->useEulerAngles;}
@@ -118,43 +134,53 @@ public:
     const Vec3&           getCOM_B         (const SBState&) const {return massProps_B.getCOM();}
     const InertiaMat&     getInertia_OB_B  (const SBState&) const {return massProps_B.getInertia();}
     const InertiaMat&     getInertia_CB_B  (const SBState&) const {return inertia_CB_B;}
+    const TransformMat&   getX_BJ          (const SBState&) const {return X_BJ;}
+    const TransformMat&   getX_PJb         (const SBState&) const {return X_PJb;}
+    const TransformMat&   getRefX_PB       (const SBState&) const {return refX_PB;}
 
         // CONFIGURATION INFO
 
+    /// Extract from the cache  X_JbJ, the cross-joint transformation matrix giving the configuration
+    /// of this body's inboard joint frame J, measured from and expressed in the corresponding outboard
+    /// joint frame Jb attached to the parent. This transformation is defined to be zero (that is, Jb=J)
+    /// in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
+    /// This is NOT a spatial transformation.
+    const TransformMat& getX_JbJ(const SBState& s) const {return fromB(s.cache->bodyJointInParentJointFrame);}
+    TransformMat&       updX_JbJ(const SBState& s) const {return toB  (s.cache->bodyJointInParentJointFrame);}
+
+    /// Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
+    /// of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
+    /// a spatial transformation.
+    const TransformMat& getX_PB(const SBState& s) const {return fromB(s.cache->bodyConfigInParent);}
+    TransformMat&       updX_PB(const SBState& s) const {return toB  (s.cache->bodyConfigInParent);}
 
     /// Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     /// body's frame B measured from and expressed in ground. This consists of a rotation matrix
     /// R_GB, and a ground-frame vector OB_G from ground's origin to the origin point of frame B.
-    const TransformMat& getX_GB(const SBState& s) const {return s.cache->bodyConfigInGround[nodeNum];}
-    TransformMat&       updX_GB(const SBState& s) const {return s.cache->bodyConfigInGround[nodeNum];}
-
-    /// Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
-    /// of this body's frame B measured from and expressed in its *parent* frame. Thus this is NOT
-    /// a spatial transformation.
-    const TransformMat& getX_PB(const SBState& s) const {return s.cache->bodyConfigInParent[nodeNum];}
-    TransformMat&       updX_PB(const SBState& s) const {return s.cache->bodyConfigInParent[nodeNum];}
+    const TransformMat& getX_GB(const SBState& s) const {return fromB(s.cache->bodyConfigInGround);}
+    TransformMat&       updX_GB(const SBState& s) const {return toB  (s.cache->bodyConfigInGround);}
 
     /// Extract from the cache the body-to-parent shift matrix "phi". 
-    const PhiMatrix&    getPhi(const SBState& s) const {return s.cache->bodyToParentShift[nodeNum];}
-    PhiMatrix&          updPhi(const SBState& s) const {return s.cache->bodyToParentShift[nodeNum];}
+    const PhiMatrix&    getPhi(const SBState& s) const {return fromB(s.cache->bodyToParentShift);}
+    PhiMatrix&          updPhi(const SBState& s) const {return toB  (s.cache->bodyToParentShift);}
 
     /// Extract this body's spatial inertia matrix from the cache. This contains the mass properties
     /// measured from (and about) the body frame origin, but expressed in the *ground* frame.
-    const SpatialMat&   getMk(const SBState& s) const {return s.cache->bodySpatialInertia[nodeNum];}
-    SpatialMat&         updMk(const SBState& s) const {return s.cache->bodySpatialInertia[nodeNum];}
+    const SpatialMat&   getMk(const SBState& s) const {return fromB(s.cache->bodySpatialInertia);}
+    SpatialMat&         updMk(const SBState& s) const {return toB  (s.cache->bodySpatialInertia);}
 
     /// Extract from the cache the location of the body's center of mass, measured from the ground
     /// origin and expressed in ground.
-    const Vec3& getCOM_G(const SBState& s) const {return s.cache->bodyCOMInGround[nodeNum];}
-    Vec3&       updCOM_G(const SBState& s) const {return s.cache->bodyCOMInGround[nodeNum];}
+    const Vec3& getCOM_G(const SBState& s) const {return fromB(s.cache->bodyCOMInGround);}
+    Vec3&       updCOM_G(const SBState& s) const {return toB  (s.cache->bodyCOMInGround);}
 
     /// Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-    const Vec3& getCB_G(const SBState& s) const {return s.cache->bodyCOMStationInGround[nodeNum];}
-    Vec3&       updCB_G(const SBState& s) const {return s.cache->bodyCOMStationInGround[nodeNum];}
+    const Vec3& getCB_G(const SBState& s) const {return fromB(s.cache->bodyCOMStationInGround);}
+    Vec3&       updCB_G(const SBState& s) const {return toB  (s.cache->bodyCOMStationInGround);}
 
     /// Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const InertiaMat& getInertia_OB_G(const SBState& s) const {return s.cache->bodyInertiaInGround[nodeNum];}
-    InertiaMat&       updInertia_OB_G(const SBState& s) const {return s.cache->bodyInertiaInGround[nodeNum];}
+    const InertiaMat& getInertia_OB_G(const SBState& s) const {return fromB(s.cache->bodyInertiaInGround);}
+    InertiaMat&       updInertia_OB_G(const SBState& s) const {return toB  (s.cache->bodyInertiaInGround);}
 
     /// Return R_GB, the rotation (direction cosine) matrix giving the 
     /// spatial orientation of this body's frame B (that is, B's orientation
@@ -164,6 +190,8 @@ public:
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
     const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
+
+    const TransformMat& getX_GP(const SBState& s) const {assert(parent); return parent->getX_GB(s);}
 
     /// Return R_GP, the rotation (direction cosine) matrix giving the
     /// orientation of this body's *parent's* body frame (which we'll call
@@ -179,15 +207,15 @@ public:
     /// Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     /// expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     /// of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getV_GB   (const SBState& s) const {return s.cache->bodyVelocityInGround[nodeNum];}
-    SpatialVec&       updV_GB   (const SBState& s) const {return s.cache->bodyVelocityInGround[nodeNum];}
+    const SpatialVec& getV_GB   (const SBState& s) const {return fromB(s.cache->bodyVelocityInGround);}
+    SpatialVec&       updV_GB   (const SBState& s) const {return toB  (s.cache->bodyVelocityInGround);}
 
     /// Extract from the cache V_PB_G, the *spatial* velocity of this body's frame B, that is the
     /// cross-joint velocity measured with respect to the parent frame, but then expressed in the
     /// *ground* frame. This contains the angular velocity of B in P, and the linear velocity
     /// of B's origin point OB in P, with both vectors expressed in *G*.
-    const SpatialVec& getV_PB_G (const SBState& s) const {return s.cache->bodyVelocityInParent[nodeNum];}
-    SpatialVec&       updV_PB_G (const SBState& s) const {return s.cache->bodyVelocityInParent[nodeNum];}
+    const SpatialVec& getV_PB_G (const SBState& s) const {return fromB(s.cache->bodyVelocityInParent);}
+    SpatialVec&       updV_PB_G (const SBState& s) const {return toB  (s.cache->bodyVelocityInParent);}
 
     const SpatialVec& getSpatialVel   (const SBState& s) const {return getV_GB(s);}
     const Vec3&       getSpatialAngVel(const SBState& s) const {return getV_GB(s)[0];}
@@ -195,41 +223,41 @@ public:
 
         // DYNAMICS INFO
 
-    const SpatialVec& getBodyForce(const SBState& s) const {return s.vars->appliedBodyForces[nodeNum];}
+    const SpatialVec& getBodyForce(const SBState& s) const {return fromB(s.vars->appliedBodyForces);}
  
-    const SpatialVec& getCoriolisAcceleration(const SBState& s) const {return s.cache->coriolisAcceleration[nodeNum];}
-    SpatialVec&       updCoriolisAcceleration(const SBState& s) const {return s.cache->coriolisAcceleration[nodeNum];}
+    const SpatialVec& getCoriolisAcceleration(const SBState& s) const {return fromB(s.cache->coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(const SBState& s) const {return toB  (s.cache->coriolisAcceleration);}
  
-    const SpatialVec& getGyroscopicForce(const SBState& s) const {return s.cache->gyroscopicForces[nodeNum];}
-    SpatialVec&       updGyroscopicForce(const SBState& s) const {return s.cache->gyroscopicForces[nodeNum];}
+    const SpatialVec& getGyroscopicForce(const SBState& s) const {return fromB(s.cache->gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(const SBState& s) const {return toB  (s.cache->gyroscopicForces);}
     
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
     /// linear acceleration of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getA_GB (const SBState& s) const {return s.cache->bodyAccelerationInGround[nodeNum];}
-    SpatialVec&       updA_GB (const SBState& s) const {return s.cache->bodyAccelerationInGround[nodeNum];}
+    const SpatialVec& getA_GB (const SBState& s) const {return fromB(s.cache->bodyAccelerationInGround);}
+    SpatialVec&       updA_GB (const SBState& s) const {return toB  (s.cache->bodyAccelerationInGround);}
 
     const SpatialVec& getSpatialAcc   (const SBState& s) const {return getA_GB(s);}
     const Vec3&       getSpatialAngAcc(const SBState& s) const {return getA_GB(s)[0];}
     const Vec3&       getSpatialLinAcc(const SBState& s) const {return getA_GB(s)[1];}
 
-    const SpatialMat& getP    (const SBState& s) const {return s.cache->articulatedBodyInertia[nodeNum];}
-    SpatialMat&       updP    (const SBState& s) const {return s.cache->articulatedBodyInertia[nodeNum];}
+    const SpatialMat& getP    (const SBState& s) const {return fromB(s.cache->articulatedBodyInertia);}
+    SpatialMat&       updP    (const SBState& s) const {return toB  (s.cache->articulatedBodyInertia);}
 
-    const SpatialVec& getZ(const SBState& s) const {return s.cache->z[nodeNum];}
-    SpatialVec&       updZ(const SBState& s) const {return s.cache->z[nodeNum];}
+    const SpatialVec& getZ(const SBState& s) const {return fromB(s.cache->z);}
+    SpatialVec&       updZ(const SBState& s) const {return toB  (s.cache->z);}
 
-    const SpatialVec& getGepsilon(const SBState& s) const {return s.cache->Gepsilon[nodeNum];}
-    SpatialVec&       updGepsilon(const SBState& s) const {return s.cache->Gepsilon[nodeNum];}
+    const SpatialVec& getGepsilon(const SBState& s) const {return fromB(s.cache->Gepsilon);}
+    SpatialVec&       updGepsilon(const SBState& s) const {return toB  (s.cache->Gepsilon);}
 
-    const SpatialMat&  getPsiT(const SBState& s) const {return s.cache->psiT[nodeNum];}
-    SpatialMat&        updPsiT(const SBState& s) const {return s.cache->psiT[nodeNum];}
+    const SpatialMat& getPsiT(const SBState& s) const {return fromB(s.cache->psiT);}
+    SpatialMat&       updPsiT(const SBState& s) const {return toB  (s.cache->psiT);}
 
-    const SpatialMat&  getTau(const SBState& s) const {return s.cache->tau[nodeNum];}
-    SpatialMat&        updTau(const SBState& s) const {return s.cache->tau[nodeNum];}
+    const SpatialMat& getTau(const SBState& s) const {return fromB(s.cache->tau);}
+    SpatialMat&       updTau(const SBState& s) const {return toB  (s.cache->tau);}
 
-    const SpatialMat&  getY(const SBState& s) const {return s.cache->Y[nodeNum];}
-    SpatialMat&        updY(const SBState& s) const {return s.cache->Y[nodeNum];}
+    const SpatialMat& getY(const SBState& s) const {return fromB(s.cache->Y);}
+    SpatialMat&       updY(const SBState& s) const {return toB  (s.cache->Y);}
 
     virtual void realizeModeling  (const SBState&) const=0;
     virtual void realizeParameters(const SBState&) const=0;
@@ -284,18 +312,12 @@ protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
-                  const Vec3&           originOfB_P, // and R_BP=I in ref config
+                  const TransformMat&   xform_PJb,
                   const TransformMat&   xform_BJ)
       : uIndex(-1), qIndex(-1), uSqIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
-        X_BJ(xform_BJ), refOrigin_P(originOfB_P)
+        X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ)
     {
-       // X_PB=TransformMat(RotationMat(),refOrigin_P);
-       // V_PB_G=0; sVel=0; sAcc=0;
-      //  X_GB=TransformMat();
-       // COM_G = 0.; COMstation_G = massProps_B.getCOM();
-      //  phi = PhiMatrix(Vec3(0));
-       // psiT=0; P=0; z=0; tau=0; Gepsilon=0; Y=0;
     }
 
     typedef std::vector<RigidBodyNode*>   RigidBodyNodeList;
@@ -309,27 +331,35 @@ protected:
     int               level;        //how far from base 
     int               nodeNum;      //unique ID number in RigidBodyTree
 
-    // These are the body properties
+    // These are the default body properties, all supplied or calculated on
+    // construction. TODO: they should be 
+    // (optionally?) overrideable by Parameter-level cache entries.
 
-    // Fixed forever in the body-local frame B:
-    //      ... supplied on construction
+    /// This is the mass, center of mass, and inertia as supplied at construction.
+    /// Here the inertia is taken about the B origin OB.
     const MassProperties massProps_B;
-    const TransformMat   X_BJ; // orientation and location of inboard joint frame J
-                               //   measured & expressed in body frame B
 
-    // Reference configuration. This is the body frame origin location, measured
-    // in its parent's frame in the reference configuration. This vector is fixed
-    // after this node is connected to its parent. The body origin can of course move relative
-    // to its parent, but that is not the meaning of this reference configuration vector.
-    // (Note however that the body origin is also the location of the inboard joint, 
-    // meaning that the origin point moves relative to the parent only due to translations.)
-    // Note that by definition the orientation of the body frame is identical to P
-    // in the reference configuration so we don't need to store it.
-    // TODO: this is frame Ji
-    Vec3 refOrigin_P;
+    /// This is the supplied inertia, shifted to the center of mass. It is still
+    /// a constant expressed in B, but is taken about the COM.
+    const InertiaMat     inertia_CB_B;
 
-    //      ... calculated on construction
-    const InertiaMat inertia_CB_B;  // centroidal inertia, expr. in B
+    /// Orientation and location of inboard joint frame J, measured
+    /// and expressed in body frame B/
+    const TransformMat   X_BJ; 
+
+    /// This is set when we attach this node to its parent in the tree. This is the
+    /// configuration of the parent's outboard joint attachment frame corresponding
+    /// to body B (Jb) measured from and expressed in the parent frame P. It is 
+    /// a constant in frame P. TODO: make it parameterizable.
+    const TransformMat   X_PJb;
+
+    /// Reference configuration. This is the body frame B as measured and expressed in
+    /// parent frame P *in the reference configuration*, that is, when B's inboard joint
+    /// coordinates are all zero, so that Jb=J (see previous members). This is a constant
+    /// after body B is attached to P in the tree: refX_PB = X_PJb * ~X_BJ. 
+    /// The body B frame can of course move relative to its parent, but that is not
+    /// the meaning of this reference configuration vector.
+    const TransformMat   refX_PB;
 
     virtual void velFromCartesian() {}
 
