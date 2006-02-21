@@ -42,8 +42,8 @@ SBStage SBState::getStage() const {
 
 
 void RBStation::calcPosInfo(const SBState& s, RBStationRuntime& rt) const {
-    rt.station_G = getNode().getR_GB(s) * station_B;
-    rt.pos_G     = getNode().getOB_G(s) + rt.station_G;
+    rt.station_G = getNode().getX_GB(s).R() * station_B;
+    rt.pos_G     = getNode().getX_GB(s).T() + rt.station_G;
 }
 
 void RBStation::calcVelInfo(const SBState& s, RBStationRuntime& rt) const {
@@ -108,12 +108,18 @@ RigidBodyTree::~RigidBodyTree() {
     rbNodeLevels.resize(0);
 }
 
-// Add a new node, taking over the heap space.
-int RigidBodyTree::addRigidBodyNode(RigidBodyNode&      parent,
-                                    const TransformMat& referenceConfig, // body frame in parent
-                                    RigidBodyNode*&     nodep)
+int RigidBodyTree::addRigidBodyNode
+    (RigidBodyNode&          parent,
+     const MassProperties&   m,            // mass properties in body frame
+     const TransformMat&     X_PJb,        // parent's frame for attaching this joint
+     const TransformMat&     X_BJ,         // inboard joint frame J in body frame
+     Joint::JointType        type,
+     bool                    isReversed,   // child-to-parent orientation?
+     int&                    nxtU,
+     int&                    nxtUSq,
+     int&                    nxtQ)
 {
-    RigidBodyNode* n = nodep; nodep=0;  // take ownership
+    RigidBodyNode* n = RigidBodyNode::create(m,X_PJb,X_BJ,type,isReversed,nxtU,nxtUSq,nxtQ);
     const int level = parent.getLevel() + 1;
     n->setLevel(level);
 
@@ -131,7 +137,6 @@ int RigidBodyTree::addRigidBodyNode(RigidBodyNode&      parent,
     parent.addChild(n);
     n->setParent(&parent);
 
-    n->refOrigin_P = referenceConfig.T(); // ignore rotation for now, it's always identity
     //n->X_GB = TransformMat(X_GB.getRotation(), 
     //                           X_GB.getTranslation() + n->refOrigin_P);
     //n->COM_G = child->X_GB.getTranslation() + n->COMstation_G;
@@ -146,7 +151,7 @@ void RigidBodyTree::addGroundNode() {
     assert(rbNodeLevels.size() == 0);
 
     RigidBodyNode* n = 
-        RigidBodyNode::create(MassProperties(), TransformMat(), Joint::ThisIsGround,
+        RigidBodyNode::create(MassProperties(), TransformMat(), TransformMat(), Joint::ThisIsGround,
                               false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
 
@@ -347,8 +352,8 @@ void RigidBodyTree::calcTreeForwardDynamics(const SBState& s, const SpatialVecLi
 void RigidBodyTree::calcLoopForwardDynamics(const SBState& s, const SpatialVecList& spatialForces) {
     SpatialVecList sFrc = spatialForces;
     calcTreeForwardDynamics(s, sFrc);
-    if (lConstraints->calcConstraintForces()) {
-        lConstraints->addInCorrectionForces(sFrc);
+    if (lConstraints->calcConstraintForces(s)) {
+        lConstraints->addInCorrectionForces(s, sFrc);
         calcTreeForwardDynamics(s, sFrc);
     }
 }
@@ -391,8 +396,8 @@ void RigidBodyTree::calcTreeAccel(const SBState& s) {
             rbNodeLevels[i][j]->calcAccel(s);
 }
 
-void RigidBodyTree::fixVel0(Vector& vel) {
-    lConstraints->fixVel0(vel);
+void RigidBodyTree::fixVel0(const SBState& s, Vector& vel) {
+    lConstraints->fixVel0(s, vel);
 }
 
 // If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
@@ -421,7 +426,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const SBState& s,
 
 // Pass in a set of internal forces in T; we'll modify them here.
 void RigidBodyTree::calcConstraintCorrectedInternalForces(const SBState& s, Vector& T) {
-    lConstraints->fixGradient(T);
+    lConstraints->fixGradient(s, T);
 }
 
 // Get default parameter values for each node and write them into

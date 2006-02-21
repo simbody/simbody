@@ -122,15 +122,18 @@ public:
     RigidBodyTree& operator=(const RigidBodyTree&);
     ~RigidBodyTree();
 
-    /// Take ownership of a new node, add it to the tree, and assign it
-    /// a node number. This is NOT a regular labeling; it is just
-    /// for reference. You can depend on nodeNum being (a) unique, and (b) a
-    /// small enough integer to make it a reasonable index, but don't depend
-    /// on it having any particular value or being sequential or even
-    /// monotonically increasing.
-    int addRigidBodyNode(RigidBodyNode&      parent,
-                         const TransformMat& referenceConfig, // body frame in parent
-                         RigidBodyNode*&     nodep);
+    /// Create a new node, add it to the tree, and assign it
+    /// a node number, which is a regular labeling starting with node 0 which is ground.
+    int addRigidBodyNode
+        (RigidBodyNode&          parent,
+         const MassProperties&   m,            // mass properties in body frame
+         const TransformMat&     X_PJb,        // parent's frame for attaching this joint
+         const TransformMat&     X_BJ,         // inboard joint frame J in body frame
+         Joint::JointType        type,
+         bool                    isReversed,   // child-to-parent orientation?
+         int&                    nxtU,
+         int&                    nxtUSq,
+         int&                    nxtQ); 
 
 
     /// Add a distance constraint and allocate slots to hold the runtime information for
@@ -272,7 +275,7 @@ public:
     void calcZ(const SBState&, const SpatialVecList& spatialForces); // articulated body remainder forces
     void calcTreeAccel(const SBState&);                     // accels with forces from last calcZ
 
-    void fixVel0(Vector& vel); // TODO -- yuck
+    void fixVel0(const SBState&, Vector& vel); // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
     void calcY(const SBState&);

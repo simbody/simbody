@@ -25,11 +25,11 @@ public:
     void enforce(Vector& pos,
                  Vector& vel);
 
-    bool calcConstraintForces() const;
-    void addInCorrectionForces(SpatialVecList& spatialForces) const;
+    bool calcConstraintForces(const SBState&) const;
+    void addInCorrectionForces(const SBState&, SpatialVecList& spatialForces) const;
 
-    void fixVel0(Vector&);
-    void fixGradient(Vector&);
+    void fixVel0(const SBState&, Vector&);
+    void fixGradient(const SBState&, Vector&);
 
 private:
     //  double tol;

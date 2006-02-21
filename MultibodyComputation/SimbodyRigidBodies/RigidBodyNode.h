@@ -37,30 +37,17 @@ using namespace simtk;
  *     R_YZ = R_YX*R_XZ = (~R_XY)*(~R_ZX) = ~(R_ZX*R_XY).
  * Also note that these are orthogonal matrices so R_XY*R_YX=I.
  *
- * Every body has a body frame B. In the reference configuration that we use
- * to define the bodies, all frames B are aligned with the ground frame G. You can
- * think of this as defining the B frames by painting images of the G frame on
- * each body (translated to B's origin OB) when we first see the bodies in the reference
- * frame. Later the bodies move and take their B frames with them. For convenience, we
- * refer to the body frame of a body's unique parent as the 'P' frame. Initially frames P
- * and B are aligned (and both are aligned with Ground). Later the P and B frames
- * will differ, but only by the relative orientation and translation induced by
- * the joint connecting B to P. That is, rotation matrix R_PB expresses the
- * relative orientation between the parent and child caused by the current
- * joint coordinates. When all of that joint's coordinates are 0, B and P will
- * once again be aligned (R_PB=I) although of course in general they will not be 
- * aligned with Ground unless *all* the joint coordinates between B and G are zero.
+ * Every body has a body frame B, and an inboard joint frame J. For convenience, we
+ * refer to the body frame of a body's unique parent as the 'P' frame. There is
+ * a frame Jb on P which is where B's inboard joint attaches. When all the joint
+ * coordinates are 0, J==Jb. The transform X_JbJ tracks the across-joint change
+ * in configuration induced by the generalized coordinates q.
  *
- * In addition to the B frame fixed on every body, the inboard joint has its own 
- * frame J, which is fixed with respect to B. In some cases J and B will be the
- * same, but not always. The constant rotation matrix R_BJ provides the orientation
- * of the inboard joint's frame in its body's frame. If B is the i'th child of
- * its parent P, then there is also a parent-fixed frame Ji which is the image of J
- * when the joint coordinates are zero. That is, R_JiJ is the orientation change
- * induced by the joint coordinates. Note that because of how we define the 
- * reference configuration, R_PJi = R_BJ so we don't need to store both matrices
- * explicitly. With these definitions we can easily calculate R_PB as
- *     R_PB = R_PJi*R_JiJ*R_JB = R_BJ*R_JiJ*~R_BJ.
+ * The inboard joint frame J is fixed with respect to B, and Jb is fixed with
+ * respect to P. In some cases J and B or Jb and P will be the same, but not always.
+ * The constant transforms X_BJ and X_PJb provides the configuration of the joint
+ * frames with respect to their body frames. With these definitions we can
+ * easily calculate X_PB as X_PB = X_PJb*X_JbJ*X_JB.
  */
 class RigidBodyNode {
 public:
@@ -73,7 +60,8 @@ public:
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
         const MassProperties&   m,            // mass properties in body frame
-        const TransformMat&     jointFrame,   // inboard joint frame J in body frame
+        const TransformMat&     X_PJb,        // parent's attachment frame for this joint
+        const TransformMat&     X_BJ,         // inboard joint frame J in body frame
         Joint::JointType        type,
         bool                    isReversed,   // child-to-parent orientation?
         int&                    nxtU,
@@ -133,9 +121,12 @@ public:
     const Real&           getMass          (const SBState&) const {return massProps_B.getMass();}
     const Vec3&           getCOM_B         (const SBState&) const {return massProps_B.getCOM();}
     const InertiaMat&     getInertia_OB_B  (const SBState&) const {return massProps_B.getInertia();}
-    const InertiaMat&     getInertia_CB_B  (const SBState&) const {return inertia_CB_B;}
     const TransformMat&   getX_BJ          (const SBState&) const {return X_BJ;}
     const TransformMat&   getX_PJb         (const SBState&) const {return X_PJb;}
+
+    // These are calculated on construction.
+    const InertiaMat&     getInertia_CB_B  (const SBState&) const {return inertia_CB_B;}
+    const TransformMat&   getX_JB          (const SBState&) const {return X_JB;}
     const TransformMat&   getRefX_PB       (const SBState&) const {return refX_PB;}
 
         // CONFIGURATION INFO
@@ -182,25 +173,15 @@ public:
     const InertiaMat& getInertia_OB_G(const SBState& s) const {return fromB(s.cache->bodyInertiaInGround);}
     InertiaMat&       updInertia_OB_G(const SBState& s) const {return toB  (s.cache->bodyInertiaInGround);}
 
-    /// Return R_GB, the rotation (direction cosine) matrix giving the 
-    /// spatial orientation of this body's frame B (that is, B's orientation
-    /// in the ground frame G).
-    const RotationMat& getR_GB(const SBState& s) const {return getX_GB(s).R();}
-
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
+    //const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
 
     const TransformMat& getX_GP(const SBState& s) const {assert(parent); return parent->getX_GB(s);}
 
-    /// Return R_GP, the rotation (direction cosine) matrix giving the
-    /// orientation of this body's *parent's* body frame (which we'll call
-    /// P here) in the ground frame G.
-    const RotationMat& getR_GP(const SBState& s) const {assert(parent); return parent->getR_GB(s);}
-
     /// Return OP_G, the spatial location of the origin of the P frame, that is, 
     /// measured from the ground origin and expressed in ground.
-    const Vec3&        getOP_G(const SBState& s) const {assert(parent); return parent->getOB_G(s);}
+    //const Vec3&        getOP_G(const SBState& s) const {assert(parent); return parent->getOB_G(s);}
 
             // VELOCITY INFO
 
@@ -316,7 +297,7 @@ protected:
                   const TransformMat&   xform_BJ)
       : uIndex(-1), qIndex(-1), uSqIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
-        X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ)
+        X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ), X_JB(~xform_BJ)
     {
     }
 
@@ -344,8 +325,9 @@ protected:
     const InertiaMat     inertia_CB_B;
 
     /// Orientation and location of inboard joint frame J, measured
-    /// and expressed in body frame B/
+    /// and expressed in body frame B.
     const TransformMat   X_BJ; 
+    const TransformMat   X_JB; // inverse of X_BJ, calculated on construction
 
     /// This is set when we attach this node to its parent in the tree. This is the
     /// configuration of the parent's outboard joint attachment frame corresponding

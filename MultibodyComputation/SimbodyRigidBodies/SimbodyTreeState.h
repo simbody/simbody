@@ -82,7 +82,7 @@ public:
                     //       all else is garbage.
     Matrix_<Vec3> storageForHt; // 2 x ndof
 
-    std::vector<TransformMat> bodyJointInParentJointFrame;  // nb (X_Jb_J)
+    std::vector<TransformMat> bodyJointInParentJointFrame;  // nb (X_JbJ)
 
     std::vector<TransformMat> bodyConfigInParent;           // nb (X_PB)
     std::vector<TransformMat> bodyConfigInGround;           // nb (X_GB)

@@ -26,25 +26,22 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 // Calc posCM, mass, Mk
 //      phi, inertia
 // Should be calc'd from base to tip.
+// We depend on transforms X_PB and X_GB being available.
 void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 OB_OP_G = getR_GP(s) * getX_PB(s).T();
+    const Vec3 T_PB_G = getX_GP(s).R() * getX_PB(s).T();
 
     // The Phi matrix conveniently performs child-to-parent shifting
     // on spatial quantities (forces); its transpose does parent-to-child
     // shifting for velocities.
-    updPhi(s) = PhiMatrix(OB_OP_G);
-
-    // Get spatial configuration of this body.
-    updX_GB(s) = TransformMat(getR_GP(s) * getX_PB(s).R(),
-                              getOP_G(s) + OB_OP_G);
+    updPhi(s) = PhiMatrix(T_PB_G);
 
     // Calculate spatial mass properties. That means we need to transform
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    updInertia_OB_G(s) = getInertia_OB_B(s).changeAxes(~getR_GB(s));
-    updCB_G(s)         = getR_GB(s)*getCOM_B(s);
+    updInertia_OB_G(s) = getInertia_OB_B(s).changeAxes(~getX_GB(s).R());
+    updCB_G(s)         = getX_GB(s).R()*getCOM_B(s);
 
     updCOM_G(s) = getX_GB(s).T() + getCB_G(s);
 
@@ -153,12 +150,12 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const TransformMat&   jointFrame,
+                      const TransformMat&   X_PJb,
+                      const TransformMat&   X_BJ,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNode(mProps_B,TransformMat(),jointFrame),
-        theta(0.), dTheta(0.), ddTheta(0.), forceInternal(0.)
+      : RigidBodyNode(mProps_B, X_PJb, X_BJ)
     {
         uIndex   = nextUSlot;   nextUSlot   += getDOF();
         uSqIndex = nextUSqSlot; nextUSqSlot += getDOF()*getDOF();
@@ -170,22 +167,48 @@ public:
     // This is the type of the joint transition matrix H.
     typedef Mat<dof,2,Row3,1,2> HType;
 
-    /// Calculate joint-specific kinematic quantities dependent only
-    /// on positions. This routine may assume that *all* position 
-    /// kinematics (not just joint-specific) has been done for the parent,
-    /// and that the position state variables q are available. The
-    /// quanitites that must be computed are:
-    ///   - sines & cosines of angular coordinates
-    ///   - internally normalized quaternions
-    ///   - X_Jb_J cross-joint transform: configuration of body's inboard
-    ///              joint frame J in corresponding parent body frame Jb           
-    ///   - X_PB   the configuration of the B frame in its parent's frame
-    ///   - X_GB   the configuration of the B frame in ground
-    ///   - H      the joint transition matrix
-    virtual void calcJointKinematicsPos
-        (const SBState&, Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_Jb_J, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)=0;
+
+    // The following routines calculate joint-specific position kinematic
+    // quantities. They may assume that *all* position kinematics (not just
+    // joint-specific) has been done for the parent, and that the position
+    // state variables q are available. Each routine may also assume that the
+    // previous routines have been called, in the order below.
+    // The routines are structured as operators -- they use the State but
+    // do not change anything in it, including the cache. Instead they are
+    // passed argument to write their results into. In practice, these
+    // arguments will typically be in the State cache (see below).
+
+    /// This mandatory routine performs expensive floating point operations sin,cos,sqrt
+    /// in one place so we don't end up repeating them. sin&cos are used only
+    /// for joints which have angular coordinates, and qnorm is only for joints
+    /// which are using quaternions. Other joints can provide a null routine.
+    /// Each of the passed-in Vectors is a "q-like" object, that is, allocated
+    /// to the bodies in a manner parallel to the q state variable.
+    virtual void calcJointSinCosQNorm
+        (const SBState&, Vector& sine, Vector& cosine, Vector& qnorm) const=0;
+
+    /// This mandatory routine calculates the across-joint transform X_JbJ generated
+    /// by the current q values. This may depend on sines & cosines or normalized
+    /// quaternions already being available in the State cache.
+    virtual void calcAcrossJointTransform(const SBState&, TransformMat& X_JbJ) const=0;
+
+    /// This routine is NOT joint specific, but cannot be called until the across-joint
+    /// transform X_JbJ has been calculated and is available in the State cache.
+    void calcBodyTransforms(const SBState& s, TransformMat& X_PB, TransformMat& X_GB) const 
+    {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_JbJ = getX_JbJ(s); // just calculated
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+
+        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB
+        X_GB = X_GP * X_PB;
+    }
+
+    /// This mandatory routine calcluates the joint transition matrix H, giving the
+    /// change of *spatial* velocity induced by the generalized speeds u for this
+    /// joint. It may depend on X_PB and X_GB having been calculated already.
+    virtual void calcJointTransitionMatrix(const SBState&, HType& H) const=0;
 
     /// Calculate joint-specific kinematic quantities dependent on
     /// on velocities. This routine may assume that *all* position 
@@ -207,12 +230,11 @@ public:
 
     /// Set a new configuration and calculate the consequent kinematics.
     void realizeConfiguration(const SBState& s) {
-        forceInternal = 0.;  // forget these
-        setJointPos(s);
-        calcJointKinematicsPos(s,
-            s.cache->sq,s.cache->cq,s.cache->qnorm,
-            updX_JbJ(s), updX_PB(s), updX_GB(s),
-            H);
+        calcJointSinCosQNorm     (s, s.cache->sq,s.cache->cq,s.cache->qnorm);
+        calcAcrossJointTransform (s, updX_JbJ(s));
+        calcBodyTransforms       (s, updX_PB(s), updX_GB(s));
+        calcJointTransitionMatrix(s, updH(s));
+
         calcJointIndependentKinematicsPos(s);
     }
 
@@ -220,18 +242,10 @@ public:
     /// all the velocity-dependent terms.
     void realizeVelocity(const SBState& s) {
         // anything to initialize?
-        setJointVel(s);
         calcJointKinematicsVel(s);
         calcJointIndependentKinematicsVel(s);
     }
 
-    // These unfortunately need to be overridden for joints using quaternions.
-    virtual void setJointPos(const SBState& s) {
-        theta  = getQ(s);
-    }
-    virtual void setJointVel(const SBState& s) {
-        dTheta = getU(s);
-    }
     virtual void calcJointAccel(const SBState&) { }
 
     // We are assuming that the caller is taking care of state validity.
@@ -239,17 +253,10 @@ public:
         // TODO none yet
     }
     virtual void getDefaultConfiguration(SBState& s) const {
-        updQ(s) = theta;
+        updQ(s) = 0.;
     }
     virtual void getDefaultVelocity(SBState& s) const {
-        updU(s) = dTheta;
-    }
-
-    virtual void getAccel(SBState& s) const {
-        updUdot(s) = ddTheta;
-    }
-    virtual void getInternalForce(SBState& s) const {
-        updInternalForce(s) = forceInternal;
+        updU(s) = 0.;
     }
 
     int          getDOF()              const { return dof; }
@@ -258,9 +265,8 @@ public:
 
     virtual void print(const SBState&, int) const;
 
-
     virtual void setVelFromSVel(SBState& s, const SpatialVec&);
-    virtual void enforceQuaternionConstraints(SBState&) {}
+    virtual void enforceQuaternionConstraints(SBState&) { }
 
     const SpatialRow& getHRow(const SBState& s, int i) const {
         return getH(s)[i];
@@ -292,6 +298,12 @@ public:
     const Vec4& fromQuat(const Vector& q) const {return Vec4::getAs(&q[qIndex]);}
     Vec4&       toQuat  (      Vector& q) const {return Vec4::updAs(&q[qIndex]);}
 
+    // Extract a Vec3 from a Q-like or U-like object, beginning at an offset from the qIndex or uIndex.
+    const Vec3& fromQVec3(const Vector& q, int offs) const {return Vec3::getAs(&q[qIndex+offs]);}
+    Vec3&       toQVec3  (      Vector& q, int offs) const {return Vec3::updAs(&q[qIndex+offs]);}
+    const Vec3& fromUVec3(const Vector& u, int offs) const {return Vec3::getAs(&u[uIndex+offs]);}
+    Vec3&       toUVec3  (      Vector& u, int offs) const {return Vec3::updAs(&u[uIndex+offs]);}
+
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
 
@@ -307,8 +319,10 @@ public:
     const Real& get1JointForce    (const SBState& s) const {return from1U(s.vars->appliedJointForces);}
     const Real& get1PrescribedUdot(const SBState& s) const {return from1U(s.vars->prescribedUdot);}
 
-    // Special case for quaternions.
-    const Vec4& getQuat(const SBState& s) const {return fromQuat(s.vars->q);}
+    // Special case for quaternions and Vec3 at offset.
+    const Vec4& getQuat (const SBState& s)           const {return fromQuat(s.vars->q);}
+    const Vec3& getQVec3(const SBState& s, int offs) const {return fromQVec3(s.vars->q, offs);}
+    const Vec3& getUVec3(const SBState& s, int offs) const {return fromUVec3(s.vars->u, offs);}
 
     // State variables for updating; be careful. This is only appropriate for "solvers", such as
     // a method which modifies state variables to satisfy constraints.
@@ -317,8 +331,10 @@ public:
     Real&     upd1Q(SBState& s) const {return to1Q(s.vars->q);}
     Real&     upd1U(SBState& s) const {return to1U(s.vars->u);} 
 
-    // Special case for quaternions.
-    Vec4& updQuat(SBState& s) const {return toQuat(s.vars->q);}
+    // Special case for quaternions and Vec3 at offset.
+    Vec4& updQuat (SBState& s)           const {return toQuat(s.vars->q);}
+    Vec3& updQVec3(SBState& s, int offs) const {return toQVec3(s.vars->q, offs);}
+    Vec3& updUVec3(SBState& s, int offs) const {return toUVec3(s.vars->u, offs);}
 
     // Cache entries (cache is mutable in a const State)
 
@@ -340,6 +356,10 @@ public:
     Vec<dof>&         updCosQ   (const SBState& s) const {return toQ   (s.cache->cq);}
     const Real&       get1CosQ  (const SBState& s) const {return from1Q(s.cache->cq);}
     Real&             upd1CosQ  (const SBState& s) const {return to1Q  (s.cache->cq);}
+
+    // These are normalized quaternions in slots for balls. Everything else is garbage.
+    const Vec4&       getQNorm  (const SBState& s) const {return fromQuat(s.cache->qnorm);}
+    Vec4&             updQNorm  (const SBState& s) const {return toQuat  (s.cache->qnorm);}
 
         // Motion
 
@@ -403,6 +423,7 @@ public:
         o << "SAcc=" << getA_GB(s) << std::endl;
     }
 protected:
+    /*
     // These are the joint-specific quantities
     //      ... position level
     Vec<dof>                theta;   // internal coordinates
@@ -420,6 +441,7 @@ protected:
     Vec<dof>                nu;
     Vec<dof>                epsilon;
     Vec<dof>                forceInternal;
+    */
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = std::acos(-1.) / 180.; // i.e., pi/180
@@ -443,36 +465,34 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
+                    const TransformMat&   X_PJb,
+                    const TransformMat&   X_BJ,
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    {
-        // no angles or quaternions
+        // Implementations of virtual methods.
 
-        const TransformMat& refX_PB = getRefX_PB(s);    // reference config of B in P
-        const TransformMat& X_BJ    = getX_BJ(s);       // fixed config of J in B
+    // This is required but does nothing here since we there are no rotations for this joint.
+    void calcJointSinCosQNorm
+        (const SBState&, Vector& sine, Vector& cosine, Vector& qnorm) const { }
+
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // A Cartesian joint can't change orientation. 
+        X_JbJ = TransformMat(RotationMat(), getQ(s));
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
         const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
         const TransformMat& X_GP    = getX_GP(s); // parent orientation in ground
-
-        // Translation vector q is expressed in Jb (and J since they have same orientation).
-        // A Cartesian joint can't change orientation. 
-        X_JbJ = TransformMat(RotationMat(), getQ(s));
-
-        // T_JbB is B's origin measured from Jb, expr. in Jb
-        const Vec3 T_JbB = X_JbJ.T() + (~X_BJ).T(); // TODO: precalculate X_JB.
-        X_PB             = TransformMat(refX_PB.R(), refX_PB.T() + X_PJb.R() * T_JbB);
-        X_GB             = X_GP * X_PB;
 
         // Note that H is spatial. The current spatial directions for our qs are
         // the axes of the Jb frame expressed in Ground.
@@ -495,37 +515,33 @@ public:
     virtual const char* type() { return "slider"; }
 
     RBNodeSlider(const MassProperties& mProps_B,
-                  const TransformMat&   jointFrame,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+                 const TransformMat&   X_PJb,
+                 const TransformMat&   X_BJ,
+                 int&                  nextUSlot,
+                 int&                  nextUSqSlot,
+                 int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
+        // Implementations of virtual methods.
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    {
-        // no angles or quaternions
+    // This is required but does nothing here since we there are no rotations for this joint.
+    void calcJointSinCosQNorm
+        (const SBState&, Vector& sine, Vector& cosine, Vector& qnorm) const { }
 
-        const TransformMat& refX_PB = getRefX_PB(s);    // reference config of B in P
-        const TransformMat& X_BJ    = getX_BJ(s);       // fixed config of J in B
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // A sliding joint can't change orientation, and only translates along z. 
+        X_JbJ = TransformMat(RotationMat(), Vec3(0.,0.,get1Q(s)));
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
         const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
         const TransformMat& X_GP    = getX_GP(s); // parent configuration in ground
-
-        // Translation vector q is expressed in Jb (and J since they have same orientation).
-        // A sliding joint can't change orientation, and only translates along z. 
-        X_JbJ = TransformMat(RotationMat(), Vec3(0.,0.,get1Q(s)));
-
-        // T_JbB is B's origin measured from Jb, expr. in Jb
-        const Vec3 T_JbB = X_JbJ.T() + (~X_BJ).T(); // TODO: precalculate X_JB.
-        X_PB             = TransformMat(refX_PB.R(), refX_PB.T() + X_PJb.R() * T_JbB);
-        X_GB             = X_GP * X_PB;
 
         // Note that H is spatial. The current spatial directions for our q is
         // the z axis of the Jb frame expressed in Ground.
@@ -545,44 +561,42 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const TransformMat&   jointFrame,
+                  const TransformMat&   X_PJb,
+                  const TransformMat&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    { 
-        const Real&            q  = get1Q(s);    // angular coordinate
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
-
-        Real& sq = to1Q(sine);      // nicer names for our entries
-        Real& cq = to1Q(cosine);
-        
-        sq = sin(q); cq = cos(q);
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm
+        (const SBState& s, Vector& sine, Vector& cosine, Vector& qnorm) const
+    {
+        const Real& q = get1Q(s); // angular coordinate
+        to1Q(sine)    = std::sin(q);
+        to1Q(cosine)  = std::cos(q);
         // no quaternions
+    }
 
-        // This is the rotation matrix corresponding to a rotation by q about z.
-        // Any Euler sequence x-y-3 with the first two rotations zero matches.
-        const Mat33 a( cq , -sq , 0. ,
-                       sq ,  cq , 0. ,
-                       0. ,  0. , 1. );
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        const Real& q  = get1Q(s);    // angular coordinate
 
         // We're only updating the orientation here because a torsion joint
-        // can't translate.
-        X_JbJ = TransformMat(RotationMat::trustMe(a), Vec3(0.));
+        // can't translate (it is defined as a rotation about the z axis).
+        X_JbJ.updR().setToRotationAboutZ(q);
+        X_JbJ.updT() = 0.;
+    }
 
-        // Note that both orientation and position of B in P can change
-        X_PB = X_PJb * X_JbJ * ~X_BJ;
-        X_GB = X_GP * X_PB;
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
+        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // Calc H matrix in space-fixed coords.
@@ -603,46 +617,42 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const TransformMat&   jointFrame,
+                  const TransformMat&   X_PJb,
+                  const TransformMat&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    { 
-        const Vec2& q  = getQ(s); // angular coordinates
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
-
-        Vec2& sq = toQ(sine);      // nicer names for our entries
-        Vec2& cq = toQ(cosine);
-        
-        sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm
+        (const SBState& s, Vector& sine, Vector& cosine, Vector& qnorm) const
+    {
+        const Vec2& q = getQ(s); // angular coordinates
+        toQ(sine)   = Vec2(std::sin(q[0]), std::sin(q[1]));
+        toQ(cosine) = Vec2(std::cos(q[0]), std::cos(q[1]));
         // no quaternions
+    }
 
-        // This is a space-fixed rotation sequence, with a rotation first
-        // about the x axis by phi==q[0], then about the original y axis
-        // by psi=q[1]. TODO: should be part of RotationMat class.
-        const Mat33 a //Ry(psi) * Rx(phi)
-            (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
-               0.  ,    cq[0]    ,   -sq[0]   ,
-            -sq[1] , cq[1]*sq[0] , cq[1]*cq[0]);
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        const Vec2& q  = getQ(s); // angular coordinates
 
         // We're only updating the orientation here because a U-joint
         // can't translate.
-        X_JbJ = TransformMat(RotationMat::trustMe(a), Vec3(0.));
+        X_JbJ.updR().setToSpaceFixed12(q);
+        X_JbJ.updT() = 0.;
+    }
 
-        // Note that both orientation and position of B in P can change
-        X_PB = X_PJb * X_JbJ * ~X_BJ;
-        X_GB = X_GP * X_PB;
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
+        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // The coordinates are defined in the space-fixed (that is, Jb) frame, so
@@ -668,43 +678,40 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const TransformMat&   jointFrame,
+                           const TransformMat&   X_PJb,
+                           const TransformMat&   X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    { 
-        const Vec<5>&       q     = getQ(s);     // joint coordinates
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm
+        (const SBState& s, Vector& sine, Vector& cosine, Vector& qnorm) const
+    {
+        const Vec2& q = getQ(s).getSubVec<2>(0); // angular coordinates
+        toQ(sine).updSubVec<2>(0)   = Vec2(std::sin(q[0]), std::sin(q[1]));
+        toQ(cosine).updSubVec<2>(0) = Vec2(std::cos(q[0]), std::cos(q[1]));
+        // no quaternions
+    }
+
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        const Vec<5>& q = getQ(s);     // joint coordinates
+
+        X_JbJ.updR().setToSpaceFixed12(q.getSubVec<2>(0));
+        X_JbJ.updT() = q.getSubVec<3>(2);
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
         const TransformMat& X_BJ  = getX_BJ(s);  // fixed
         const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
+        const TransformMat& X_GB  = getX_GB(s);  // just calculated
 
-        Vec2& sq = toQ(sine).updSubVec<2>(0);    // nicer names for our entries
-        Vec2& cq = toQ(cosine).updSubVec<2>(0);
-        
-        sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
-        // no quaternions
-
-        // This is a space-fixed 1-2-0 rotation sequence, with a rotation first
-        // about the x axis by phi==q[0], then about the original y axis
-        // by psi=q[1]. TODO: should be part of RotationMat class.
-        const Mat33 a //Ry(psi) * Rx(phi)
-            (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
-               0.  ,    cq[0]    ,   -sq[0]   ,
-            -sq[1] , cq[1]*sq[0] , cq[1]*cq[0]);
-
-        X_JbJ = TransformMat(RotationMat::trustMe(a), q.getSubVec<3>(2));
-
-        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
-        X_GB = X_GP * X_PB;
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // The rotational coordinates are defined in the space-fixed 
@@ -715,7 +722,7 @@ public:
         H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
         H[2] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
         H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
+        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.z());    
     }
 };
 
@@ -730,32 +737,47 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  const TransformMat&   jointFrame,
+                  const TransformMat&   X_PJb,
+                  const TransformMat&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm
+        (const SBState& s, Vector& sine, Vector& cosine, Vector& qnorm) const
     {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+        if (getUseEulerAngles(s)) {
+            const Vec3& q = getQ(s); // angular coordinates
+            toQ(sine)   = Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
+            toQ(cosine) = Vec3(std::cos(q[0]), std::cos(q[1]), std::cos(q[2]));
+            // no quaternions
+        } else {
+            // no angles
+            const Vec4& q = getQuat(s); // unnormalized quaternion from state
+            toQuat(qnorm) = q / q.norm();
+        }
+    }
 
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
         X_JbJ.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(s))
             X_JbJ.updR().setToBodyFixed321(getQ(s));
         else
             X_JbJ.updR().setToQuaternion(getQuat(s));
+    }
 
-        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
-        X_GB = X_GP * X_PB;
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
+        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // The rotational coordinates are defined in the space-fixed 
@@ -835,37 +857,49 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const TransformMat&   jointFrame,
+                           const TransformMat&   X_PJb,
+                           const TransformMat&   X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<6>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
     }
 
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm
+        (const SBState& s, Vector& sine, Vector& cosine, Vector& qnorm) const
     {
+        if (getUseEulerAngles(s)) {
+            const Vec3& q = getQ(s).getSubVec<3>(0); // angular coordinates
+            toQ(sine).updSubVec<3>(0)   = Vec3(std::sin(q[0]), std::sin(q[1]), std::sin(q[2]));
+            toQ(cosine).updSubVec<3>(0) = Vec3(std::cos(q[0]), std::cos(q[1]), std::cos(q[2]));
+            // no quaternions
+        } else {
+            // no angles
+            const Vec4& q = getQuat(s); // unnormalized quaternion from state
+            toQuat(qnorm) = q / q.norm();
+        }
+    }
+
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(const SBState& s, TransformMat& X_JbJ) const {
+        if (getUseEulerAngles(s)) {
+            X_JbJ.updR().setToBodyFixed321(getQVec3(s,0));
+            X_JbJ.updT() = getQVec3(s,3);
+        } else {
+            X_JbJ.updR().setToQuaternion(getQuat(s));
+            X_JbJ.updT() = getQVec3(s,4);
+        }
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(const SBState& s, HType& H) const {
         const TransformMat& X_BJ  = getX_BJ(s);  // fixed
         const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
+        const TransformMat& X_GB  = getX_GB(s);  // just calculated
 
-        X_JbJ.updT() = 0.; // This joint can't translate.
-        if (getUseEulerAngles(s)) {
-            const Vec6& q = getQ(s);
-            X_JbJ.updR().setToBodyFixed321(q.getSubVec<3>(0));
-            X_JbJ.updT() = q.getSubVec<3>(3);
-        } else {
-            const Vec<7>& q = Vec<7>::getAs(&s.vars->q[qIndex]);
-            X_JbJ.updR().setToQuaternion(q.getSubVec<4>(0));
-            X_JbJ.updT() = q.getSubVec<3>(4);
-        }
-
-        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
-        X_GB = X_GP * X_PB;
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // The rotational speeds are defined in the space-fixed 
@@ -881,44 +915,46 @@ public:
     }
 
     void calcQdot(const SBState& s, Vector& qdot) const {
-        const Vec6& u = getU(s); // first 3 are angular velocity of J in Jb 
+        const Vec3& w_JbJ = getUVec3(s,0); // Angular velocity
+        const Vec3& v_JbJ = getUVec3(s,3); // Linear velocity
         if (getUseEulerAngles(s)) {
-            const Vec6& q  = getQ(s);
-            Vec6&       qd = toQ(qdot);
-            qd.updSubVec<3>(0) = RotationMat::convertAngVelToBodyFixed321Dot
-                                    (q.getSubVec<3>(0), u.getSubVec<3>(0));
-            qd.updSubVec<3>(3) = u.getSubVec<3>(3);
+            const Vec3& theta = getQVec3(s,0); // Euler angles
+            toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed321Dot(theta,w_JbJ);
+            toQVec3(qdot,3) = v_JbJ;
         } else {
-            const Vec<7>& q  = Vec<7>::getAs(&s.vars->q[qIndex]);
-            Vec<7>&       qd = Vec<7>::updAs(&qdot[qIndex]);
-            qd.updSubVec<4>(0) = RotationMat::convertAngVelToQuaternionDot
-                                    (q.getSubVec<4>(0), u.getSubVec<3>(0));
-            qd.updSubVec<3>(4) = u.getSubVec<3>(3);
+            const Vec4& quat = getQuat(s);
+            toQuat (qdot)   = RotationMat::convertAngVelToQuaternionDot(quat,w_JbJ);
+            toQVec3(qdot,4) = v_JbJ;
         }
     }
  
     void calcQdotdot(const SBState& s, Vector& qdotdot) const {
-        /*XXX TODO
-        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
-        const Vec3& w_JbJ_dot = getUdot(s);
-        if (getUseEulerAngles(s))
-            toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed321DotDot
-                                  (getQ(s),w_JbJ,w_JbJ_dot);
-        else
-            toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
-                                  (getQuat(s),w_JbJ,w_JbJ_dot);
-        */
+        const Vec3& w_JbJ     = getUVec3(s,0); // angular velocity of J in Jb
+        const Vec3& v_JbJ     = getUVec3(s,3); // linear velocity
+        const Vec3& w_JbJ_dot = getUdot(s).getSubVec<3>(0);
+        const Vec3& v_JbJ_dot = getUdot(s).getSubVec<3>(3);
+        if (getUseEulerAngles(s)) {
+            const Vec3& theta  = getQVec3(s,0); // Euler angles
+            toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed321DotDot
+                                                (theta,w_JbJ,w_JbJ_dot);
+            toQVec3(qdotdot,3) = v_JbJ_dot;
+        } else {
+            const Vec4& quat  = getQuat(s);
+            toQuat(qdotdot)   = RotationMat::convertAngVelDotToQuaternionDotDot
+                                                (quat,w_JbJ,w_JbJ_dot);
+            toQVec3(qdotdot,4) = v_JbJ_dot;
+        }
     }
 
-    int getMaxNQ()              const {return 4;}
-    int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
+    int getMaxNQ()              const {return 7;}
+    int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 6 : 7;} 
 
     void getDefaultConfiguration(SBState& s) const {
-        if (getUseEulerAngles(s)) updQ(s) = 0.;
+        if (getUseEulerAngles(s)) 
+            updQ(s) = 0.;
         else {
-            Vec<7>& q = Vec<7>::updAs(&s.vars->q[qIndex]);
-            q.updSubVec<4>(0) = Vec4(1,0,0,0);
-            q.updSubVec<3>(4) = 0.;
+            updQuat(s)    = Vec4(1,0,0,0);
+            updQVec3(s,4) = 0.;
         }
     }
     
@@ -954,331 +990,6 @@ public:
         */
     }
 };
-/*
-/// This class contains all the odd things required by a ball joint.
-/// Any RBNode joint type which contains a ball should define a member
-/// of this class and delegate to it.
-class ContainedBallJoint {
-public:
-    ContainedBallJoint() { }
-
-    int getBallDOF()                const {return 3;}
-    int getBallMaxNQ()              const {return 4;} 
-    int getBallNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
-
-    void setBallPos(int qIndex, const Vector& posv, Vec3& theta) {
-        Mat43   E;  // qdot = 0.5*E*u (and u=2*~E*qdot)
-
-        if (useEuler) 
-            theta = Vec3::getAs(&posv[qIndex]);
-        else {
-            q = Vec4::getAs(&posv[qIndex]);
-            //TODO: should normalize q here?
-            E = Mat43(-q[1],-q[2],-q[3],
-                       q[0], q[3],-q[2],    // TODO: signs???
-                      -q[3], q[0], q[1],
-                       q[2],-q[1], q[0]);
-        }
-    } 
-
-    // ballIndex is the offset in q at which we can find the first ball coordinate.
-    void getBallDefaultConfig(SBState& s, int ballIndex) const {
-        if (getUseEulerAngles(s)) Vec3::updAs(&s.vars->q[ballIndex]) = Vec3(0,0,0);
-        else                      Vec4::updAs(&s.vars->q[ballIndex]) = Vec4(1,0,0,0);
-    }
-
-    void setBallVel(int uIndex, const Vector& velv, Vec3& dTheta) { 
-        Mat43 dE; // dE/dt
-        dTheta = Vec3::getAs(&velv[uIndex]);
-        if (!useEuler) {
-            dq = 0.5*(E*dTheta);
-            dE = Mat43(-dq[1],-dq[2],-dq[3],
-                        dq[0], dq[3],-dq[2],    // TODO: signs???
-                       -dq[3], dq[0], dq[1],
-                        dq[2],-dq[1], dq[0]);
-        }
-    }
-
-    void getBallVel(const Vec3& dTheta, int uIndex, Vector& velv) const {
-        Vec3::updAs(&velv[uIndex]) = dTheta;
-        // TODO: dq??
-    }
-
-    void calcBallAccel(const Vec3& omega, const Vec3& dOmega)
-    {
-        // called after calcAccel
-        if (useEuler) return; // nothing to do here -- ddTheta is dOmega
-        ddq = 0.5*(dE*omega + E*dOmega);
-    }
-
-    void getBallAccel(const Vec3& ddTheta, int uIndex, Vector& accv) const
-    {
-        Vec3::updAs(&accv[uIndex]) = ddTheta;
-        // TODO: ddq ??
-    }
-
-    void calcR_PB(const SBState& s, RotationMat& R_PB) {
-        if (getUseEulerAngles(s)) {
-            // theta = (Phi, Theta, Psi) Euler ``3-2-1'' angles
-            const Vec3&  th  = getQ(s);
-            Vec<3,Vec2>& scq = updSinCosQ(s);
-            for (int i=0; i<3; ++i) {
-                const Real scaledTh = th[i]*RigidBodyNode::DEG2RAD; // TODO: get rid of this junk!
-                scq[i] = Vec2(sin(scaledTh), cos(scaledTh));
-            }
-
-            const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
-            const Real sTheta = scq[1][0], cTheta = scq[1][1];
-            const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
-            
-            // (sherm 050726) This matches Kane's Body-three 3-2-1 sequence on page 423
-            // of Spacecraft Dynamics.
-            const Mat33 R_JiJ
-                ( cPhi*cTheta , -sPhi*cPsi+cPhi*sTheta*sPsi , sPhi*sPsi+cPhi*sTheta*cPsi,
-                  sPhi*cTheta ,  cPhi*cPsi+sPhi*sTheta*sPsi ,-cPhi*sPsi+sPhi*sTheta*cPsi,
-                 -sTheta      ,  cTheta*sPsi                , cTheta*cPsi               );
-            R_PB = RotationMat::trustMe(R_JiJ); // because P=Ji and B=J for this kind of joint
-        } else {
-            // (sherm 060214) Added normalization of q's here. We don't want geometry-distorting
-            // rotation matrices under any circumstances.
-            const Vec4 q = getQuat(s)/getQuat(s).norm();
-            const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
-            const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
-            const Real q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
-
-            const Mat33 R_JiJ  //rotation matrix - active-sense coordinates
-                (q00+q11-q22-q33,   2*(q12-q03)  ,   2*(q13+q02),
-                   2*(q12+q03)  , q00-q11+q22-q33,   2*(q23-q01),
-                   2*(q13-q02)  ,   2*(q23+q01)  , q00-q11-q22+q33);
-            R_PB = RotationMat::trustMe(R_JiJ); // see above
-        }
-    }
-
-    // Fix up the quaternions in posv. Side effect: also cleans up q and dq locally.
-    void enforceBallConstraints(int qIndex, int uIndex, Vector& posv, Vector& velv) {
-        if ( !useEuler ) {
-            q  = Vec4::getAs(&posv[qIndex]);
-            //dq = Vec4::getAs(&velv[offset]);
-
-            q  /= q.norm();     // Normalize Euler parameters at each time step.
-            //dq -= dot(q,dq)*q; // Also fix velocity: error is prop. to position component.
-            const Mat43 ENorm(-q[1],-q[2],-q[3],
-                               q[0], q[3],-q[2],    // TODO: signs???
-                              -q[3], q[0], q[1],
-                               q[2],-q[1], q[0]);
-            const Vec3 w = Vec3::getAs(&velv[uIndex]);
-            dq = 0.5*(ENorm*w);
-
-            Vec4::updAs(&posv[qIndex]) =  q;
-        }
-    }
-
-
-    void getBallInternalForce(const SBState& s, const Vec3& forceInternal, int uIndex, Vector& v) const {
-        //dependency: calcR_PB must be called first
-        assert( useEuler );
-
-        const Vec<3,Vec2>& scq = getSinCosQ(s);
-        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
-        const Real sTheta = scq[1][0], cTheta = scq[1][1];
-        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
-
-        Vec3 torque = forceInternal;
-        const Mat33 M( 0.          , 0.          , 1.    ,
-                      -sPhi        , cPhi        , 0.    ,
-                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
-        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
-
-        Vec3::updAs(&v[uIndex]) = eTorque;
-    }
-
-    void setBallDerivs(const Vec3& omega) {
-        assert( !useEuler );
-        dq = 0.5*E*omega;
-    } 
-};
-
-/// Ball joint. This provides three degrees of rotational freedom, i.e.,
-/// unrestricted orientation.
-/// The joint frame J is aligned with the body frame B.
-class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
-    ContainedBallJoint ball;
-public:
-    virtual const char* type() { return "rotate3"; }
-
-    RBNodeRotate3(const MassProperties& mProps_B,
-                  int&                  nextUSlot,
-                  int&                  nextUSqSlot,
-                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
-    {
-    }
-    
-    int getMaxNQ()              const {return ball.getBallMaxNQ();}
-    int getNQ(const SBState& s) const {return ball.getBallNQ(s);} 
-
-    void setJointPos(const SBState& s) {
-        const Vector& posv = s.vars->q;
-        ball.setBallPos(qIndex, posv, theta);
-    } 
-
-    void getDefaultConfiguration(SBState& s) const {
-        ball.getBallDefaultConfig(s, qIndex+0);
-    }
-    
-    void getDefaultVelocity(SBState& s) const {
-        updU(s) = 0; // no funny business here
-    }
-
-    // setPos must have been called previously
-    void setJointVel(const SBState& s) {
-        const Vector& velv = s.vars->u;
-        ball.setBallVel(uIndex, velv, dTheta);
-    }
-
-
-    void calcJointAccel() {
-        ball.calcBallAccel(dTheta, ddTheta);
-    }
-
-    void getAccel(SBState& s) const {
-        Vector& accv = s.cache->udot;
-        ball.getBallAccel(ddTheta, uIndex, accv);
-    }
-
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    {
-        updX_PB(s).updTranslation() = refOrigin_P; // ball joint can't move B origin in P
-        ball.calcR_PB(s, updX_PB(s).updRotation());
-
-        // H matrix in space-fixed (P) coords
-        updH(s)[0] = SpatialRow( ~getR_GP(s)(0), Row3(0) );
-        updH(s)[1] = SpatialRow( ~getR_GP(s)(1), Row3(0) );
-        updH(s)[2] = SpatialRow( ~getR_GP(s)(2), Row3(0) );
-   }
-
-    void enforceQuaternionConstraints(const SBState& s) {
-        Vector& posv = s.vars->q;
-        Vector& velv = s.vars->u;
-        ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
-    }
-
-    void getInternalForce(const SBState& s) const {
-        Vector& f = s.cache->netHingeForces;
-        ball.getBallInternalForce(forceInternal, uIndex, f);
-    }
-
-    void setVelFromSVel(SBState& s, const SpatialVec& sVel) {
-        RigidBodyNodeSpec<3>::setVelFromSVel(s, sVel);
-        ball.setBallDerivs(dTheta);
-    } 
-};
-
-/// Free joint. This is a six degree of freedom joint providing unrestricted 
-/// translation and rotation for a free rigid body.
-/// The joint frame J is aligned with the body frame B.
-class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
-    ContainedBallJoint ball;
-public:
-    virtual const char* type() { return "full"; }
-
-    RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           int&                  nextUSlot,
-                           int&                  nextUSqSlot,
-                           int&                  nextQSlot)
-      : RigidBodyNodeSpec<6>(mProps_B,TransformMat(),nextUSlot,nextUSqSlot,nextQSlot)
-    {
-    }
-    
-    int getMaxNQ()              const { return ball.getBallMaxNQ() + 3; }
-    int getNQ(const SBState& s) const { return ball.getBallNQ(getUseEulerAngles(s)) + 3; } 
-
-    void setJointPos(const SBState& s) {
-        const Vector& posv = s.vars->q;
-        Vec3 th;
-        ball.setBallPos(qIndex, posv, th);
-        theta.updSubVec<3>(0) = th;
-        theta.updSubVec<3>(3) = Vec3::getAs(&posv[qIndex + ball.getBallNQ(getUseEulerAngles(s))]);
-    } 
-
-    void getDefaultConfiguration(SBState& s) const {
-        Vector& posv = s.vars->q;
-        ball.getBallPos(theta.getSubVec<3>(0), qIndex, posv);
-        Vec3::updAs(&posv[qIndex+ball.getBallNQ(getUseEulerAngles(s))]) 
-            = theta.getSubVec<3>(3);
-    }
-
-    // setPos must have been called previously
-    void setJointVel(const SBState& s) {
-        const Vector& velv = s.vars->q;
-        Vec3 dTh;
-        ball.setBallVel(uIndex, velv, dTh);
-        dTheta.updSubVec<3>(0) = dTh;
-        dTheta.updSubVec<3>(3) = Vec3::getAs(&velv[uIndex + ball.getBallDOF()]);
-    }
-
-    void getDefaultVelocity(SBState& s) const {
-        Vector& velv = s.vars->u;
-        ball.getBallVel(dTheta.getSubVec<3>(0), uIndex, velv);
-        Vec3::updAs(&velv[uIndex+ball.getBallDOF()]) 
-            = dTheta.getSubVec<3>(3);
-    }
-
-    void calcJointAccel() {
-        // get angular vel/accel in the space-fixed frame
-        const Vec3 omega  =  dTheta.getSubVec<3>(0);
-        const Vec3 dOmega = ddTheta.getSubVec<3>(0);
-        ball.calcBallAccel(omega, dOmega);
-    }
-
-    void getAccel(SBState& s) const {
-        Vector& accv = s.cache->udot;
-        ball.getBallAccel(ddTheta.getSubVec<3>(0), uIndex, accv);
-        Vec3::updAs(&accv[uIndex+ball.getBallDOF()]) 
-            = ddTheta.getSubVec<3>(3);
-    }
-
-    void calcJointKinematicsPos
-        (const SBState& s, 
-         Vector& sine, Vector& cosine, Vector& qnorm,
-         TransformMat& X_JbJ, TransformMat& X_PB,
-         TransformMat& X_GB, HType& H)
-    {
-        updX_PB(s).updTranslation() = refOrigin_P + theta.getSubVec<3>(3);
-        ball.calcR_PB(theta.getSubVec<3>(0), updX_PB(s).updRotation());
-
-        // H matrix in space-fixed (P) coords
-        for (int i=0; i<3; ++i) {
-            updH(s)[i]   = SpatialRow( ~getR_GP(s)(i),     Row3(0) );
-            updH(s)[i+3] = SpatialRow(     Row3(0),     ~getR_GP(s)(i) );
-        }
-    }
-
-    void enforceQuaternionConstraints(const SBState& s) {
-        Vector& posv = s.vars->q;
-        Vector& velv = s.vars->u;
-        ball.enforceBallConstraints(qIndex, uIndex, posv, velv);
-    }
-
-    void getInternalForce(const SBState& s) const {
-        Vector& f = s.cache->netHingeForces;
-        const Vec3 torque = forceInternal.getSubVec<3>(0);
-        ball.getBallInternalForce(torque, uIndex, f);
-        Vec3::updAs(&f[uIndex + ball.getBallDOF()]) =
-            forceInternal.getSubVec<3>(3);
-    }
-
-    void setVelFromSVel(SBState& s, const SpatialVec& sVel) {
-        RigidBodyNodeSpec<6>::setVelFromSVel(s, sVel);
-        const Vec3 omega  = dTheta.getSubVec<3>(0);
-        ball.setBallDerivs(omega);
-    } 
-};
-*/
 
 ////////////////////////////////////////////////
 // RigidBodyNode factory based on joint type. //
@@ -1287,7 +998,8 @@ public:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
-    const TransformMat&   jointFrame,   // inboard joint frame J in body frame
+    const TransformMat&   X_PJb,        // parent's attachment frame for this joint
+    const TransformMat&   X_BJ,         // inboard joint frame J in body frame
     Joint::JointType      type,
     bool                  isReversed,   // child-to-parent orientation?
     int&                  nxtUSlot,
@@ -1300,18 +1012,19 @@ RigidBodyNode::create(
     case Joint::ThisIsGround:
         return new RBGroundBody();
     case Joint::Torsion:
-        return new RBNodeTorsion(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTorsion(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Universal:        
-        return new RBNodeRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    //case Joint::Orientation:
-    //    return new RBNodeRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    case Joint::Orientation:
+        return new RBNodeRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Cartesian:
-        return new RBNodeTranslate(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTranslate(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::FreeLine:
-        return new RBNodeTranslateRotate2(m,jointFrame,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    //case Joint::Free:
-    //    return new RBNodeTranslateRotate3(m,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTranslateRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    case Joint::Free:
+        return new RBNodeTranslateRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Sliding:
+        return new RBNodeSlider(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Joint::Cylinder:
     case Joint::Planar:
     case Joint::Gimbal:
@@ -1356,7 +1069,7 @@ RigidBodyNodeSpec<dof>::calcP(const SBState& s) {
         // P += orthoTransform( children[i]->tau * children[i]->P ,
         //                      transpose(children[i]->phiT) );
         // this version is not
-        const Mat33      lt = crossMat(children[i]->getOB_G(s) - getOB_G(s));
+        const Mat33      lt = crossMat(children[i]->getX_GB(s).T() - getX_GB(s).T());
         const SpatialMat M  = children[i]->getTau(s) * children[i]->getP(s);
         P(0,0) += M(0,0) + lt*M(1,0) - M(0,1)*lt - lt*M(1,1)*lt;
         P(0,1) += M(0,1) + lt*M(1,1);

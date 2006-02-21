@@ -31,19 +31,19 @@ private:
 
 /** 
  * Coordinate allocation:
- * Body 0 is ground and has no coordinates. Same for bodies which are welded. We
- * still set qoff and uoff as we would if these had dofs, but nu==nu==0 for these
- * so the next body has the same qoff & uoff.
+ * Body 0 is ground and has no coordinates. Welded bodies have a higher body number
+ * but no coordinates. We still set qoff and uoff as we would if these had dofs,
+ * but nu==nu==0 for these so the next body has the same qoff & uoff.
  *
  *
- *   Body       1       2    3      4      ...
+ *   Body 0     1       2    3      4      ...
  *         ---------- ----- --- ---------- ---
  *      q |          |     |   |          |
  *         ---------- ----- --- ---------- ---
  *                    ^
  *                    qoff[2], nq[2], nqmax[2]
  *
- *   Body       1     2    3    4      ...
+ *   Body 0     1     2    3    4      ...
  *         -------- ----- --- -------- ---
  *      u |        |     |   |        |
  *         -------- ----- --- -------- ---

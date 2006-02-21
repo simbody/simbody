@@ -25,18 +25,13 @@ int SimbodyTree::addRigidBody(
     const MassProperties&     mp)
 {
     const int save = rep->nextUSlot;
-    RigidBodyNode* rb = RigidBodyNode::create(
-        mp,
-        bodyJointFrameInB,
-        joint.getJointType(),
-        joint.isReversed(),
-        rep->nextUSlot, rep->nextUSqSlot, rep->nextQSlot);
-    cout << "CREATED: states " << save << "-" << rep->nextUSlot-1 << endl;
 
     RigidBodyNode& pn = rep->updRigidBodyNode(parent);
     const int rbIndex = rep->addRigidBodyNode(pn,
-        parentJointFrameInP*~bodyJointFrameInB, // X_PB when joint coords are 0
-        rb);
+        mp, parentJointFrameInP, bodyJointFrameInB, joint.getJointType(), joint.isReversed(),
+        rep->nextUSlot, rep->nextUSqSlot, rep->nextQSlot);
+
+    cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << rep->nextUSlot-1 << endl;
     return rbIndex;
 }
 
