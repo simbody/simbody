@@ -288,6 +288,10 @@ public:
     const Real& from1USq(const Vector& uSq) const {return uSq[uSqIndex];}
     Real&       to1USq  (      Vector& uSq) const {return uSq[uSqIndex];}
 
+    // Same, specialized for quaternions. We're assuming that the quaternion comes first in the coordinates.
+    const Vec4& fromQuat(const Vector& q) const {return Vec4::getAs(&q[qIndex]);}
+    Vec4&       toQuat  (      Vector& q) const {return Vec4::updAs(&q[qIndex]);}
+
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
 
@@ -303,12 +307,18 @@ public:
     const Real& get1JointForce    (const SBState& s) const {return from1U(s.vars->appliedJointForces);}
     const Real& get1PrescribedUdot(const SBState& s) const {return from1U(s.vars->prescribedUdot);}
 
+    // Special case for quaternions.
+    const Vec4& getQuat(const SBState& s) const {return fromQuat(s.vars->q);}
+
     // State variables for updating; be careful. This is only appropriate for "solvers", such as
     // a method which modifies state variables to satisfy constraints.
     Vec<dof>& updQ (SBState& s) const {return toQ(s.vars->q);}
     Vec<dof>& updU (SBState& s) const {return toU(s.vars->u);} 
     Real&     upd1Q(SBState& s) const {return to1Q(s.vars->q);}
     Real&     upd1U(SBState& s) const {return to1U(s.vars->u);} 
+
+    // Special case for quaternions.
+    Vec4& updQuat(SBState& s) const {return toQuat(s.vars->q);}
 
     // Cache entries (cache is mutable in a const State)
 
@@ -706,6 +716,242 @@ public:
         H[2] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
         H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
         H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
+    }
+};
+
+/// Ball joint. This provides three degrees of rotational freedom, i.e.,
+/// unrestricted orientation of the body's J frame in the parent's Jb frame.
+/// The 3 u's are the cross-joint angular velocity vector of J in Jb, and
+/// udot's are the angular velocity time derivative. The q's, however, are
+/// either 3 Euler angles in a 3-2-1 body-fixed sequence, or 4 quaternions.
+/// In that case we calculate either 3 or 4 qdots from the u's.
+class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
+public:
+    virtual const char* type() { return "rotate3"; }
+
+    RBNodeRotate3(const MassProperties& mProps_B,
+                  const TransformMat&   jointFrame,
+                  int&                  nextUSlot,
+                  int&                  nextUSqSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+    }
+
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+
+        X_JbJ.updT() = 0.; // This joint can't translate.
+        if (getUseEulerAngles(s))
+            X_JbJ.updR().setToBodyFixed321(getQ(s));
+        else
+            X_JbJ.updR().setToQuaternion(getQuat(s));
+
+        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
+        X_GB = X_GP * X_PB;
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+
+        // The rotational coordinates are defined in the space-fixed 
+        // (that is, Jb) frame, so the orientation of Jb in ground gives
+        // the instantaneous spatial meaning of those coordinates. 
+        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
+        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
+        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
+    }
+
+    void calcQdot(const SBState& s, Vector& qdot) const {
+        const Vec3& w_JbJ = getU(s); // angular velocity of J in Jb 
+        if (getUseEulerAngles(s))
+            toQ(qdot) = RotationMat::convertAngVelToBodyFixed321Dot(getQ(s),w_JbJ);
+        else
+            toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(getQuat(s),w_JbJ);
+    }
+ 
+    void calcQdotdot(const SBState& s, Vector& qdotdot) const {
+        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
+        const Vec3& w_JbJ_dot = getUdot(s);
+        if (getUseEulerAngles(s))
+            toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed321DotDot
+                                  (getQ(s),w_JbJ,w_JbJ_dot);
+        else
+            toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
+                                  (getQuat(s),w_JbJ,w_JbJ_dot);
+    }
+
+    int getMaxNQ()              const {return 4;}
+    int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
+
+    void getDefaultConfiguration(SBState& s) const {
+        if (getUseEulerAngles(s)) updQ(s) = 0.;
+        else updQuat(s) = Vec4(1.,0.,0.,0.);
+    }
+    
+    void getDefaultVelocity(SBState& s) const {
+        updU(s) = 0; // no funny business here
+    }
+
+    void enforceQuaternionConstraints(SBState& s) {
+        if (getUseEulerAngles(s)) return;
+        Vec4& quat = updQuat(s);
+        quat = quat / quat.norm();
+    }
+
+    void getInternalForce(const SBState& s) const {
+        assert(false); // TODO: decompose cross-joint torque into 321 gimbal torques
+        /* OLD BALL CODE:
+        Vector& f = s.cache->netHingeForces;
+        //dependency: calcR_PB must be called first
+        assert( useEuler );
+
+        const Vec<3,Vec2>& scq = getSinCosQ(s);
+        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
+        const Real sTheta = scq[1][0], cTheta = scq[1][1];
+        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
+
+        Vec3 torque = forceInternal;
+        const Mat33 M( 0.          , 0.          , 1.    ,
+                      -sPhi        , cPhi        , 0.    ,
+                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
+        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
+
+        Vec3::updAs(&v[uIndex]) = eTorque;
+        */
+    }
+};
+
+/// Free joint. This provides six degrees of freedom, three rotational and
+/// three translational. The rotation is like the ball joint above; the
+/// translation is like the Cartesian joint above.
+class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
+public:
+    virtual const char* type() { return "full"; }
+
+    RBNodeTranslateRotate3(const MassProperties& mProps_B,
+                           const TransformMat&   jointFrame,
+                           int&                  nextUSlot,
+                           int&                  nextUSqSlot,
+                           int&                  nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,jointFrame,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+    }
+
+    void calcJointKinematicsPos
+        (const SBState& s, 
+         Vector& sine, Vector& cosine, Vector& qnorm,
+         TransformMat& X_JbJ, TransformMat& X_PB,
+         TransformMat& X_GB, HType& H)
+    {
+        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
+        const TransformMat& X_PJb = getX_PJb(s); // fixed
+        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+
+        X_JbJ.updT() = 0.; // This joint can't translate.
+        if (getUseEulerAngles(s)) {
+            const Vec6& q = getQ(s);
+            X_JbJ.updR().setToBodyFixed321(q.getSubVec<3>(0));
+            X_JbJ.updT() = q.getSubVec<3>(3);
+        } else {
+            const Vec<7>& q = Vec<7>::getAs(&s.vars->q[qIndex]);
+            X_JbJ.updR().setToQuaternion(q.getSubVec<4>(0));
+            X_JbJ.updT() = q.getSubVec<3>(4);
+        }
+
+        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
+        X_GB = X_GP * X_PB;
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+
+        // The rotational speeds are defined in the space-fixed 
+        // (that is, Jb) frame, so the orientation of Jb in ground gives
+        // the instantaneous spatial meaning of those coordinates. 
+        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
+        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
+        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
+        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
+        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
+        H[5] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
+    }
+
+    void calcQdot(const SBState& s, Vector& qdot) const {
+        const Vec6& u = getU(s); // first 3 are angular velocity of J in Jb 
+        if (getUseEulerAngles(s)) {
+            const Vec6& q  = getQ(s);
+            Vec6&       qd = toQ(qdot);
+            qd.updSubVec<3>(0) = RotationMat::convertAngVelToBodyFixed321Dot
+                                    (q.getSubVec<3>(0), u.getSubVec<3>(0));
+            qd.updSubVec<3>(3) = u.getSubVec<3>(3);
+        } else {
+            const Vec<7>& q  = Vec<7>::getAs(&s.vars->q[qIndex]);
+            Vec<7>&       qd = Vec<7>::updAs(&qdot[qIndex]);
+            qd.updSubVec<4>(0) = RotationMat::convertAngVelToQuaternionDot
+                                    (q.getSubVec<4>(0), u.getSubVec<3>(0));
+            qd.updSubVec<3>(4) = u.getSubVec<3>(3);
+        }
+    }
+ 
+    void calcQdotdot(const SBState& s, Vector& qdotdot) const {
+        /*XXX TODO
+        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
+        const Vec3& w_JbJ_dot = getUdot(s);
+        if (getUseEulerAngles(s))
+            toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed321DotDot
+                                  (getQ(s),w_JbJ,w_JbJ_dot);
+        else
+            toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
+                                  (getQuat(s),w_JbJ,w_JbJ_dot);
+        */
+    }
+
+    int getMaxNQ()              const {return 4;}
+    int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
+
+    void getDefaultConfiguration(SBState& s) const {
+        if (getUseEulerAngles(s)) updQ(s) = 0.;
+        else {
+            Vec<7>& q = Vec<7>::updAs(&s.vars->q[qIndex]);
+            q.updSubVec<4>(0) = Vec4(1,0,0,0);
+            q.updSubVec<3>(4) = 0.;
+        }
+    }
+    
+    void getDefaultVelocity(SBState& s) const {
+        updU(s) = 0; // no funny business here
+    }
+
+    void enforceQuaternionConstraints(SBState& s) {
+        if (getUseEulerAngles(s)) return;
+        Vec4& quat = updQuat(s);
+        quat = quat / quat.norm();
+    }
+
+    void getInternalForce(const SBState& s) const {
+        assert(false); // TODO: decompose cross-joint torque into 321 gimbal torques
+        /* OLD BALL CODE:
+        Vector& f = s.cache->netHingeForces;
+        //dependency: calcR_PB must be called first
+        assert( useEuler );
+
+        const Vec<3,Vec2>& scq = getSinCosQ(s);
+        const Real sPhi   = scq[0][0], cPhi   = scq[0][1];
+        const Real sTheta = scq[1][0], cTheta = scq[1][1];
+        const Real sPsi   = scq[2][0], cPsi   = scq[2][1];
+
+        Vec3 torque = forceInternal;
+        const Mat33 M( 0.          , 0.          , 1.    ,
+                      -sPhi        , cPhi        , 0.    ,
+                       cPhi*cTheta , sPhi*cTheta ,-sTheta );
+        Vec3 eTorque = RigidBodyNode::DEG2RAD * M * torque;
+
+        Vec3::updAs(&v[uIndex]) = eTorque;
+        */
     }
 };
 /*
