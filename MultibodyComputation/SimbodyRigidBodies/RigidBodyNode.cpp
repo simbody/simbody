@@ -30,8 +30,9 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 OB_OP_G = getR_GP(s) * getX_PB(s).T();
 
-    // The Phi matrix conveniently performs parent-to-child shifting
-    // on spatial quantities.
+    // The Phi matrix conveniently performs child-to-parent shifting
+    // on spatial quantities (forces); its transpose does parent-to-child
+    // shifting for velocities.
     updPhi(s) = PhiMatrix(OB_OP_G);
 
     // Get spatial configuration of this body.
@@ -560,6 +561,7 @@ public:
         // no quaternions
 
         // This is the rotation matrix corresponding to a rotation by q about z.
+        // Any Euler sequence x-y-3 with the first two rotations zero matches.
         const Mat33 a( cq , -sq , 0. ,
                        sq ,  cq , 0. ,
                        0. ,  0. , 1. );
@@ -571,12 +573,13 @@ public:
         // Note that both orientation and position of B in P can change
         X_PB = X_PJb * X_JbJ * ~X_BJ;
         X_GB = X_GP * X_PB;
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
         // Calc H matrix in space-fixed coords.
         // This works because the joint z axis is the same in J & Jb
         // since that's what we rotate around.
         const Vec3 z_G = X_GP.R() * X_PJb.z();
-        H[0] = SpatialRow( ~z_G, Row3(0) );
+        H[0] = SpatialRow( ~z_G, ~(z_G % T_JB_G) );
     }
 };
 
@@ -615,7 +618,9 @@ public:
         sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
         // no quaternions
 
-        // TODO: sherm, is this body fixed 213, with the 3rd rotation 0?
+        // This is a space-fixed rotation sequence, with a rotation first
+        // about the x axis by phi==q[0], then about the original y axis
+        // by psi=q[1]. TODO: should be part of RotationMat class.
         const Mat33 a //Ry(psi) * Rx(phi)
             (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
                0.  ,    cq[0]    ,   -sq[0]   ,
@@ -626,16 +631,16 @@ public:
         X_JbJ = TransformMat(RotationMat::trustMe(a), Vec3(0.));
 
         // Note that both orientation and position of B in P can change
-        const TransformMat X_PJ = X_PJb * X_JbJ;
-        X_PB = X_PJ * ~X_BJ;
+        X_PB = X_PJb * X_JbJ * ~X_BJ;
         X_GB = X_GP * X_PB;
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
-        // The coordinates are defined in the body-fixed (that is, J) frame, so
-        // the orientation of J in ground gives the instantaneous spatial 
+        // The coordinates are defined in the space-fixed (that is, Jb) frame, so
+        // the orientation of Jb in ground gives the instantaneous spatial 
         // meaning of the coordinates.
-        const RotationMat R_GJ = X_GP.R() * X_PJ.R();
-        H[0] = SpatialRow(~R_GJ.x(), Row3(0));
-        H[1] = SpatialRow(~R_GJ.y(), Row3(0));
+        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
+        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
     }
 };
 
@@ -678,29 +683,29 @@ public:
         sq[0]=sin(q[0]); cq[0]=cos(q[0]); sq[1]=sin(q[1]); cq[1]=cos(q[1]);
         // no quaternions
 
-        // TODO: sherm, is this body fixed 213, with the 3rd rotation 0?
-        const Mat33 a //Ry(psi) * Rx(phi)       TODO: make this a feature of RotationMat
+        // This is a space-fixed 1-2-0 rotation sequence, with a rotation first
+        // about the x axis by phi==q[0], then about the original y axis
+        // by psi=q[1]. TODO: should be part of RotationMat class.
+        const Mat33 a //Ry(psi) * Rx(phi)
             (cq[1] , sq[1]*sq[0] , sq[1]*cq[0],
                0.  ,    cq[0]    ,   -sq[0]   ,
             -sq[1] , cq[1]*sq[0] , cq[1]*cq[0]);
 
         X_JbJ = TransformMat(RotationMat::trustMe(a), q.getSubVec<3>(2));
 
-        const TransformMat X_PJ = X_PJb * X_JbJ;
-        X_PB = X_PJ * ~X_BJ;
+        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB=~X_BJ
         X_GB = X_GP * X_PB;
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
-        // The rotational coordinates are defined in the body-fixed (that is, J) frame, so
-        // the orientation of J in ground gives the instantaneous spatial 
-        // meaning of those coordinates. The translational coordinates, on the other
-        // hand are defined "space fixed" in the Jb frame.
-        const RotationMat R_GJ  = X_GP.R() * X_PJ.R();
+        // The rotational coordinates are defined in the space-fixed 
+        // (that is, Jb) frame, so the orientation of Jb in ground gives
+        // the instantaneous spatial meaning of those coordinates. 
         const RotationMat R_GJb = X_GP.R() * X_PJb.R();
-        H[0] = SpatialRow(~R_GJ.x(),   Row3(0));
-        H[1] = SpatialRow(~R_GJ.y(),   Row3(0));
-        H[2] = SpatialRow( Row3(0) , ~R_GJb.x());
-        H[3] = SpatialRow( Row3(0) , ~R_GJb.y());
-        H[4] = SpatialRow( Row3(0) , ~R_GJb.z());
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
+        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
+        H[2] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
     }
 };
 /*

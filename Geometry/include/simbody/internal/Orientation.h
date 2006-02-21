@@ -244,7 +244,7 @@ public:
     typedef UnitVec<BaseMat::RowSpacing> ColType;
     typedef UnitRow<BaseMat::ColSpacing> RowType;
 
-    RotationMat() : BaseMat(1) { }    // default is identity
+    RotationMat() : BaseMat(1.) { }    // default is identity
 
     /// Create a Rotation matrix by specifying only its z axis. 
     /// The resulting x and y axes will be appropriately perpendicular
@@ -256,6 +256,145 @@ public:
     RotationMat(const RotationMat& R) : BaseMat(R) { }
     RotationMat& operator=(const RotationMat& R) {
         BaseMat::operator=(R.asMat33()); return *this;
+    }
+
+    /// Set this RotationMat to represent a rotation of +q radians
+    /// around the base frame's 0,0,1 axis.
+    void setToRotationAboutZ(const Real& q) {
+        const Real sq = std::sin(q), cq = std::cos(q);
+        *static_cast<Mat33*>(this) = Mat33( cq , -sq , 0. ,
+                                            sq ,  cq , 0. ,
+                                            0. ,  0. , 1. );
+    }
+
+    /// Set this RotationMat to represent a rotation of +q0 about
+    /// the base frame's X axis, followed by a rotation of +q1 about
+    /// the base frame's (unchanged) Y axis.
+    void setToSpaceFixed12(const Vec2& q) {
+        const Real sq0 = std::sin(q[0]), cq0 = std::cos(q[0]);
+        const Real sq1 = std::sin(q[1]), cq1 = std::cos(q[1]);
+        *static_cast<Mat33*>(this) = Mat33( cq1 , sq1*sq0 , sq1*cq0,
+                                             0. ,   cq0   ,   -sq0 ,
+                                           -sq1 , cq1*sq0 , cq1*cq0);
+    }
+
+    /// Set this RotationMat to represent a rotation of +q0 about
+    /// the body frame's Z axis, followed by a rotation of +q1 about
+    /// the body frame's NEW Y axis, followed by a rotation of +q3
+    /// about the body frame's NEW X axis.
+    void setToBodyFixed321(const Vec3& q) {
+        const Real sq0 = std::sin(q[0]), cq0 = std::cos(q[0]);
+        const Real sq1 = std::sin(q[1]), cq1 = std::cos(q[1]);
+        const Real sq2 = std::sin(q[2]), cq2 = std::cos(q[2]);
+        *static_cast<Mat33*>(this) = 
+            Mat33( cq0*cq1 , cq0*sq1*sq2-sq0*cq2 , cq0*sq1*cq2+sq0*sq2,
+                   sq0*cq1 , sq0*sq1*sq2+cq0*cq2 , sq0*sq1*cq2-cq0*sq2,
+                    -sq1   ,       cq1*sq2       ,      cq1*cq2        );
+    }
+
+    /// Set this RotationMat to represent the same rotation as
+    /// the passed-in quaternion. The 0th element is the quaternion
+    /// scalar. The quaternion is normalized before use to ensure
+    /// a non-distorting rotation matrix.
+    void setToQuaternion(const Vec4& qin) {
+        const Vec4 q = qin / qin.norm();
+        const Real q00=q[0]*q[0], q11=q[1]*q[1], q22=q[2]*q[2], q33=q[3]*q[3];
+        const Real q01=q[0]*q[1], q02=q[0]*q[2], q03=q[0]*q[3];
+        const Real q12=q[1]*q[2], q13=q[1]*q[3], q23=q[2]*q[3];
+
+        *static_cast<Mat33*>(this) = 
+            Mat33(q00+q11-q22-q33,   2.*(q12-q03)  ,   2.*(q13+q02),
+                    2.*(q12+q03)  , q00-q11+q22-q33,   2.*(q23-q01),
+                    2.*(q13-q02)  ,   2.*(q23+q01)  , q00-q11-q22+q33);
+    }
+
+    /// Given Euler angles forming a body-fixed 3-2-1 sequence, and the relative
+    /// angular velocity vector of B in the parent frame, return the Euler angle
+    /// derivatives. You are dead if q[1] gets near 90 degrees!
+    /// See Kane's Spacecraft Dynamics, page 428, body-three: 3-2-1.
+    static Vec3 convertAngVelToBodyFixed321Dot(const Vec3& q, const Vec3& w) {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 E( 0. ,   s2oc1  ,  c2oc1  ,
+                       0. ,     c2   ,   -s2   ,
+                       1. , s1*s2oc1 , s1*c2oc1 );
+        return E*w;
+    }
+
+    // TODO: sherm: is this right?
+    static Vec3 convertAngVelDotToBodyFixed321DotDot
+        (const Vec3& q, const Vec3& w, const Vec3& wdot)
+    {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 E( 0. ,   s2oc1  ,  c2oc1  ,
+                       0. ,     c2   ,   -s2   ,
+                       1. , s1*s2oc1 , s1*c2oc1 );
+        const Vec3 qdot = E*w;
+
+        const Real t =  qdot[1]*qdot[2]*s1*ooc1;
+        const Real a =  t*c2oc1; // d/dt s2oc1
+        const Real b = -t*s2oc1; // d/dt c2oc1
+
+        const Mat33 Edot( 0. ,       a           ,         b         ,
+                          0. ,   -qdot[2]*s2     ,    -qdot[2]*c2    ,
+                          0. , s1*a + qdot[1]*s2 , s1*b + qdot[1]*c2 );
+
+        return E*wdot + Edot*w;
+    }
+
+    // Inverse of the above routine.
+    static Vec3 convertBodyFixed321DotToAngVel(const Vec3& q, const Vec3& qd) {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 Einv(  -s1  ,  0. , 1. ,
+                          c1*s2 ,  c2 , 0. ,
+                          c1*c2 , -s2 , 0. );
+        return Einv*qd;
+    }
+
+    /// Given a possibly unnormalized quaternion (0th element is the scalar) and the
+    /// relative angular velocity vector of B in its parent, return the
+    /// quaternion derivatives. This is never singular.
+    static Vec4 convertAngVelToQuaternionDot(const Vec4& q, const Vec3& w) {
+        const Mat43 E(-q[1],-q[2],-q[3],
+                       q[0], q[3],-q[2],    // TODO: signs???
+                      -q[3], q[0], q[1],
+                       q[2],-q[1], q[0]);
+        return 0.5*(E*w);
+    }
+
+    static Vec4 convertAngVelDotToQuaternionDotDot
+        (const Vec4& q, const Vec3& w, const Vec3& wdot)
+    {
+        const Mat43 E(-q[1],-q[2],-q[3],
+                       q[0], q[3],-q[2],    // TODO: signs???
+                      -q[3], q[0], q[1],
+                       q[2],-q[1], q[0]);
+        const Vec4  qdot = 0.5*E*w;
+        const Mat43 Edot(-qdot[1],-qdot[2],-qdot[3],
+                          qdot[0], qdot[3],-qdot[2],
+                         -qdot[3], qdot[0], qdot[1],
+                          qdot[2],-qdot[1], qdot[0]);
+
+        return 0.5*(Edot*w + E*wdot);
+    }
+
+    /// Inverse of the above routine.
+    static Vec3 convertQuaternionDotToAngVel(const Vec4& q, const Vec4& qd) {
+        const Mat34 Et(-q[1], q[0],-q[3], q[2],  // TODO: signs???
+                       -q[2], q[3], q[0],-q[1],
+                       -q[3],-q[2], q[1], q[0]);
+        return 2.*(Et*qd);
     }
 
     const InverseRotationMat& invert() const {
