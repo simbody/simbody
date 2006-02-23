@@ -243,8 +243,10 @@ public:
     const SpatialVec&   getBodyVelocity     (const SBState&, int body) const;
     const SpatialVec&   getBodyAcceleration (const SBState&, int body) const;
 
-    Vector&      updQ   (SBState&) const;
-    Vector&      updU   (SBState&) const;
+    void setQ(SBState&, const Vector& q) const;
+    void setU(SBState&, const Vector& u) const;
+    VectorView& updQ(SBState&) const;
+    VectorView& updU(SBState&) const;
     ForceSystem& updForceSystem(SBState&) const;
 
     const Vector& getQDot   (const SBState&) const;

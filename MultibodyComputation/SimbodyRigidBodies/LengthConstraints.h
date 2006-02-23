@@ -22,13 +22,12 @@ public:
     void construct(std::vector<RBDistanceConstraint>&,
                    std::vector<RBDistanceConstraintRuntime>&);
 
-    void enforce(Vector& pos,
-                 Vector& vel);
+    void enforce(SBState&, Vector& pos, Vector& vel);
 
     bool calcConstraintForces(const SBState&) const;
     void addInCorrectionForces(const SBState&, SpatialVecList& spatialForces) const;
 
-    void fixVel0(const SBState&, Vector&);
+    void fixVel0(SBState&, Vector&);
     void fixGradient(const SBState&, Vector&);
 
 private:

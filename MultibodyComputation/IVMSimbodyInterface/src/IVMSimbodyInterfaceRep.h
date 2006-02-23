@@ -192,9 +192,9 @@ public:
 
     int getNBodies()     const {return getRigidBodyTree().getNBodies();}
     int getNParameters() const {return 0;}
-    int getNQ()          const {return getRigidBodyTree().getDim();}
-    int getNU()          const {return getRigidBodyTree().getDim();}
-    State getDefaultState() const;
+    int getNQ()          const {return getRigidBodyTree().getTotalQAlloc();}
+    int getNU()          const {return getRigidBodyTree().getTotalDOF();}
+    State getDefaultState() const {return getRigidBodyTree().getDefaultState();}
 
     void realizeParameters(const State& s) const { }
     void realizeConfiguration(const State& s) const {

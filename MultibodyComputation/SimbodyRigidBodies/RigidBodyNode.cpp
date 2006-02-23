@@ -27,7 +27,8 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 //      phi, inertia
 // Should be calc'd from base to tip.
 // We depend on transforms X_PB and X_GB being available.
-void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
+void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) const
+{
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 T_PB_G = getX_GP(s).R() * getX_PB(s).T();
 
@@ -57,7 +58,8 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(const SBState& s) {
 // gyroscopic force b, coriolis acceleration a. This must be
 // called base to tip: depends on parent's sVel, V_PB_G.
 void 
-RigidBodyNode::calcJointIndependentKinematicsVel(const SBState& s) {
+RigidBodyNode::calcJointIndependentKinematicsVel(const SBState& s) const
+{
     updV_GB(s) = ~getPhi(s)*parent->getV_GB(s) + getV_PB_G(s);
     const Vec3& omega = getV_GB(s)[0];  // spatial angular velocity
     const Vec3& vel   = getV_GB(s)[1];  // spatial linear velocity
@@ -120,19 +122,23 @@ public:
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
+    /*virtual*/int getDOF() const { return 0; }
+    /*virtual*/int getMaxNQ() const { return 0; }
+    /*virtual*/int getNQ(const SBState&) const { return 0; }
 
-    /*virtual*/void calcP(const SBState&) {} 
-    /*virtual*/void calcZ(const SBState&, const SpatialVec&) {} 
-    /*virtual*/void calcY(const SBState&) {}
-    /*virtual*/void calcInternalForce(const SBState&, const SpatialVec&) {}
-    /*virtual*/void calcAccel(const SBState&) {}
+
+    /*virtual*/void calcP(const SBState&) const {} 
+    /*virtual*/void calcZ(const SBState&, const SpatialVec&) const {} 
+    /*virtual*/void calcY(const SBState&) const {}
+    /*virtual*/void calcInternalForce(const SBState&, const SpatialVec&) const {}
+    /*virtual*/void calcAccel(const SBState&) const {}
 
     /*virtual*/void realizeModeling(const SBState&) const {}
     /*virtual*/void realizeParameters(const SBState&) const {}
-    /*virtual*/void realizeConfiguration(const SBState&) {}
-    /*virtual*/void realizeVelocity(const SBState&) {}
+    /*virtual*/void realizeConfiguration(const SBState&) const {}
+    /*virtual*/void realizeMotion(const SBState&) const {}
     /*virtual*/void setVelFromSVel(SBState&,const SpatialVec&) {}
-    /*virtual*/void enforceQuaternionConstraints(SBState&) {}
+    /*virtual*/void enforceQuaternionConstraints(SBState&) const {}
 
     /*virtual*/void getDefaultParameters(SBState&)    const {}
     /*virtual*/void getDefaultConfiguration(SBState&) const {}
@@ -218,7 +224,7 @@ public:
     /// quanitites that must be computed are:
     ///   V_PB_G  relative velocity of B in P, expr. in G
     /// The code is the same for all joints, although parametrized by dof.
-    void calcJointKinematicsVel(const SBState& s) {
+    void calcJointKinematicsVel(const SBState& s) const {
         updV_PB_G(s) = ~getH(s) * getU(s);
     }
 
@@ -229,7 +235,7 @@ public:
     }
 
     /// Set a new configuration and calculate the consequent kinematics.
-    void realizeConfiguration(const SBState& s) {
+    void realizeConfiguration(const SBState& s) const {
         calcJointSinCosQNorm     (s, s.cache->sq,s.cache->cq,s.cache->qnorm);
         calcAcrossJointTransform (s, updX_JbJ(s));
         calcBodyTransforms       (s, updX_PB(s), updX_GB(s));
@@ -240,13 +246,13 @@ public:
 
     /// Set new velocities for the current configuration, and calculate
     /// all the velocity-dependent terms.
-    void realizeVelocity(const SBState& s) {
+    void realizeMotion(const SBState& s) const {
         // anything to initialize?
         calcJointKinematicsVel(s);
         calcJointIndependentKinematicsVel(s);
     }
 
-    virtual void calcJointAccel(const SBState&) { }
+    virtual void calcJointAccel(const SBState&) const { }
 
     // We are assuming that the caller is taking care of state validity.
     virtual void getDefaultParameters(SBState& s) const {
@@ -259,14 +265,26 @@ public:
         updU(s) = 0.;
     }
 
+    // setQ and setU extract this node's values from the supplied
+    // q-sized or u-sized array and put them in the corresponding
+    // locations in the State. Joints which need quaternions should
+    // override setQ to copy the extra q.
+    virtual void setQ(SBState& s, const Vector& q) const {
+        updQ(s) = fromQ(q);
+    }
+
+    virtual void setU(SBState& s, const Vector& u) const {
+        updU(s) = fromU(u);
+    }
+
     int          getDOF()              const { return dof; }
     virtual int  getMaxNQ()            const { return dof; } // maxNQ can be larger than dof
     virtual int  getNQ(const SBState&) const { return dof; } // DOF <= NQ <= maxNQ
 
     virtual void print(const SBState&, int) const;
 
-    virtual void setVelFromSVel(SBState& s, const SpatialVec&);
-    virtual void enforceQuaternionConstraints(SBState&) { }
+    virtual void setVelFromSVel(SBState& s, const SpatialVec&) const;
+    virtual void enforceQuaternionConstraints(SBState&) const { }
 
     const SpatialRow& getHRow(const SBState& s, int i) const {
         return getH(s)[i];
@@ -402,12 +420,12 @@ public:
     const Real&       get1Epsilon(const SBState& s) const {return from1U(s.cache->epsilon);}
     Real&             upd1Epsilon(const SBState& s) const {return to1U  (s.cache->epsilon);}
 
-    void calcP(const SBState& s);
-    void calcZ(const SBState& s, const SpatialVec& spatialForce);
-    void calcY(const SBState& s);
-    void calcAccel(const SBState& s);
+    void calcP(const SBState& s) const;
+    void calcZ(const SBState& s, const SpatialVec& spatialForce) const;
+    void calcY(const SBState& s) const;
+    void calcAccel(const SBState& s) const;
     void calcInternalGradientFromSpatial(const SBState&, Vector_<SpatialVec>& zTmp,
-                                         const Vector_<SpatialVec>& X, Vector& JX);
+                                         const Vector_<SpatialVec>& X, Vector& JX) const;
 
     void nodeSpecDump(std::ostream& o, const SBState& s) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
@@ -808,6 +826,13 @@ public:
                                   (getQuat(s),w_JbJ,w_JbJ_dot);
     }
 
+    void setQ(SBState& s, const Vector& q) const {
+        if (getUseEulerAngles(s))
+            updQ(s) = fromQ(q);
+        else
+            updQuat(s) = fromQuat(q);
+    }
+
     int getMaxNQ()              const {return 4;}
     int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
 
@@ -946,6 +971,15 @@ public:
         }
     }
 
+    void setQ(SBState& s, const Vector& q) const {
+        if (getUseEulerAngles(s))
+            updQ(s) = fromQ(q);
+        else {
+            updQuat(s)    = fromQuat(q);
+            updQVec3(s,4) = fromQVec3(q,4);
+        }
+    }
+
     int getMaxNQ()              const {return 7;}
     int getNQ(const SBState& s) const {return getUseEulerAngles(s) ? 6 : 7;} 
 
@@ -1046,7 +1080,9 @@ RigidBodyNode::create(
 // to be called from base to tip.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(SBState& s, const SpatialVec& sVel) {
+RigidBodyNodeSpec<dof>::setVelFromSVel(SBState& s, 
+                                       const SpatialVec& sVel) const 
+{
     updU(s) = getH(s) * (sVel - (~getPhi(s) * parent->getV_GB(s)));
 }
 
@@ -1056,7 +1092,7 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(SBState& s, const SpatialVec& sVel) {
 // is a tip to base recursion.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcP(const SBState& s) {
+RigidBodyNodeSpec<dof>::calcP(const SBState& s) const {
     //
     //how much do we need to keep around?
     // it looks like nu and G are the only ones needed for the acceleration
@@ -1091,7 +1127,9 @@ RigidBodyNodeSpec<dof>::calcP(const SBState& s) {
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(const SBState& s, const SpatialVec& spatialForce) {
+RigidBodyNodeSpec<dof>::calcZ(const SBState& s, 
+                              const SpatialVec& spatialForce) const 
+{
     SpatialVec& z = updZ(s);
     z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) - spatialForce;
 
@@ -1120,7 +1158,7 @@ RigidBodyNodeSpec<dof>::calcZ(const SBState& s, const SpatialVec& spatialForce) 
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
     (const SBState& s, Vector_<SpatialVec>& zTmp,
-     const Vector_<SpatialVec>& X, Vector& JX)
+     const Vector_<SpatialVec>& X, Vector& JX) const
 {
     const SpatialVec& in  = X[getNodeNum()];
     Vec<dof>&         out = Vec<dof>::updAs(&JX[getUIndex()]);
@@ -1144,7 +1182,7 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
 // (Base to tip)
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel(const SBState& s) {
+RigidBodyNodeSpec<dof>::calcAccel(const SBState& s) const {
     Vec<dof>&        udot   = updUdot(s);
     const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s); // ground A_GB is 0
 
@@ -1157,7 +1195,7 @@ RigidBodyNodeSpec<dof>::calcAccel(const SBState& s) {
 
 // To be called base to tip.
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcY(const SBState& s) {
+RigidBodyNodeSpec<dof>::calcY(const SBState& s) const {
     updY(s) = (~getH(s) * getDI(s) * getH(s)) 
                 + (getPsiT(s) * parent->getY(s) * ~getPsiT(s));
 }

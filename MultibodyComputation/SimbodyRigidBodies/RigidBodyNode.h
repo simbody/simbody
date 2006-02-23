@@ -245,36 +245,39 @@ public:
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
-    virtual void realizeConfiguration(const SBState&)=0;
+    virtual void realizeConfiguration(const SBState&) const=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes realizeConfiguration()
     /// has already been called.
-    virtual void realizeVelocity(const SBState&)=0;
+    virtual void realizeMotion(const SBState&) const=0;
 
     Real calcKineticEnergy(const SBState&) const;   // from spatial quantities only
 
     virtual const char* type()     const {return "unknown";}
-    virtual int         getDOF()   const {return 0;} //number of independent dofs
-    virtual int         getMaxNQ() const {return 0;} //dofs plus quaternion constraints
+    virtual int         getDOF()   const=0; //number of independent dofs
+    virtual int         getMaxNQ() const=0; //dofs plus quaternion constraints
+    virtual int         getNQ(const SBState&) const=0; //actual number of q's
 
     virtual void enforceQuaternionConstraints(const SBState&) {throw VirtualBaseMethod();}
 
-    virtual void calcP(const SBState&)                                 {throw VirtualBaseMethod();}
+    virtual void calcP(const SBState&) const                           {throw VirtualBaseMethod();}
     virtual void calcZ(const SBState&, const SpatialVec& spatialForce) {throw VirtualBaseMethod();}
-    virtual void calcY(const SBState&)                                 {throw VirtualBaseMethod();}
-    virtual void calcAccel(const SBState&)                             {throw VirtualBaseMethod();}
+    virtual void calcY(const SBState&) const                           {throw VirtualBaseMethod();}
+    virtual void calcAccel(const SBState&) const                       {throw VirtualBaseMethod();}
 
-    virtual void calcInternalGradientFromSpatial(const SBState&, Vector_<SpatialVec>& zTmp,
-                                                 const Vector_<SpatialVec>& X, Vector& JX)
+    virtual void calcInternalGradientFromSpatial
+        (const SBState&, Vector_<SpatialVec>& zTmp,
+         const Vector_<SpatialVec>& X, Vector& JX) const
       { throw VirtualBaseMethod(); }
 
-    virtual void setVelFromSVel(SBState&, const SpatialVec&) {throw VirtualBaseMethod();}
+    virtual void setVelFromSVel(SBState&, const SpatialVec&) const {throw VirtualBaseMethod();}
 
     virtual void getDefaultParameters   (SBState&) const {throw VirtualBaseMethod();}
     virtual void getDefaultConfiguration(SBState&) const {throw VirtualBaseMethod();}
     virtual void getDefaultVelocity     (SBState&) const {throw VirtualBaseMethod();}
-
+    virtual void setQ(SBState& s, const Vector& q) const {throw VirtualBaseMethod();}
+    virtual void setU(SBState& s, const Vector& u) const {throw VirtualBaseMethod();}
     virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
     virtual void getInternalForce(const SBState&, Vector&) const {throw VirtualBaseMethod();}
@@ -351,15 +354,11 @@ protected:
 private:   
     /// Calculate all spatial configuration quantities, assuming availability of
     /// joint-specific relative quantities.
-    ///   X_GB
-    void calcJointIndependentKinematicsPos(const SBState&);
+    void calcJointIndependentKinematicsPos(const SBState&) const;
 
     /// Calcluate all spatial velocity quantities, assuming availability of
     /// joint-specific relative quantities and all position kinematics.
-    ///   sVel  spatial velocity of B
-    ///   a     spatial Coriolis acceleration
-    ///   b     spatial gyroscopic force
-    void calcJointIndependentKinematicsVel(const SBState&);
+    void calcJointIndependentKinematicsVel(const SBState&) const;
 };
 
 #endif // RIGID_BODY_NODE_H_

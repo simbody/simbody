@@ -92,3 +92,19 @@ const SBState&
 SimbodyTree::getDefaultState() const {
     return rep->getDefaultState();
 }
+
+void SimbodyTree::setQ(SBState& s, const Vector& q) const {
+    rep->setQ(s,q);
+}
+
+void SimbodyTree::setU(SBState& s, const Vector& u) const {
+    rep->setU(s,u);
+}
+
+VectorView& SimbodyTree::updQ(SBState& s) const {
+    return rep->updQ(s);
+}
+
+VectorView& SimbodyTree::updU(SBState& s) const {
+    return rep->updU(s);
+}

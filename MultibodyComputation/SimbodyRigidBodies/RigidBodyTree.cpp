@@ -137,10 +137,6 @@ int RigidBodyTree::addRigidBodyNode
     parent.addChild(n);
     n->setParent(&parent);
 
-    //n->X_GB = TransformMat(X_GB.getRotation(), 
-    //                           X_GB.getTranslation() + n->refOrigin_P);
-    //n->COM_G = child->X_GB.getTranslation() + n->COMstation_G;
-
     return nodeNum;
 }
 
@@ -239,7 +235,7 @@ void RigidBodyTree::realizeParameters(const SBState& s) const {
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::realizeConfiguration(const SBState& s)  {
+void RigidBodyTree::realizeConfiguration(const SBState& s) const {
     assert(s.getStage() >= ParametrizedStage);
     if (s.getStage() >= ConfiguredStage) return;
 
@@ -256,13 +252,13 @@ void RigidBodyTree::realizeConfiguration(const SBState& s)  {
 
 // Set generalized speeds: sweep from base to tip.
 // realizeConfiguration() must have been called already.
-void RigidBodyTree::realizeMotion(const SBState& s)  {
+void RigidBodyTree::realizeMotion(const SBState& s) const {
     assert(s.getStage() >= ConfiguredStage);
     if (s.getStage() >= MovingStage) return;
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeVelocity(s); 
+            rbNodeLevels[i][j]->realizeMotion(s); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcVelInfo(s,
@@ -281,25 +277,46 @@ void RigidBodyTree::realizeReaction(const SBState& s)  const {
 }
 
 // Access to continuous state variables and their derivatives.
+void RigidBodyTree::setQ(SBState& s, const Vector& q) const {
+    assert(q.size() == getTotalQAlloc());
+    assert(s.getStage() >= ModeledStage);
+    if (s.getStage() > TimedStage)
+        s.cache->stage = TimedStage;    // back up if necessary
+    s.vars->q = q;
+}
+
+void RigidBodyTree::setU(SBState& s, const Vector& u) const {
+    assert(u.size() == getTotalDOF());
+    assert(s.getStage() >= ModeledStage);
+    if (s.getStage() > ConfiguredStage)
+        s.cache->stage = ConfiguredStage;    // back up if necessary
+    s.vars->u = u;
+}
+
+VectorView& RigidBodyTree::updQ(SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    if (s.getStage() > TimedStage)
+        s.cache->stage = TimedStage;    // back up if necessary
+    return s.vars->q.updAsVectorView();
+}
+
+VectorView& RigidBodyTree::updU(SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    if (s.getStage() > ConfiguredStage)
+        s.cache->stage = ConfiguredStage;    // back up if necessary
+    return s.vars->u.updAsVectorView();
+}
 
 const Vector& RigidBodyTree::getQ(const SBState& s) const {
     assert(s.getStage() >= ConfiguredStage);
     return s.vars->q;
 }
-Vector& RigidBodyTree::updQ(SBState& s) const {
-    assert(s.getStage() >= ParametrizedStage);
-    s.cache->stage = ParametrizedStage; // back up if necessary
-    return s.vars->q;
-}
+
 const Vector& RigidBodyTree::getU(const SBState& s) const {
     assert(s.getStage() >= MovingStage);
     return s.vars->u;
 }
-Vector& RigidBodyTree::updU(SBState& s) const {
-    assert(s.getStage() >= ConfiguredStage);
-    s.cache->stage = ConfiguredStage; // back up if necessary
-    return s.vars->u;
-}
+
 const Vector& RigidBodyTree::getQdot(const SBState& s) const {
     assert(s.getStage() >= MovingStage);
     return s.cache->qdot;
@@ -314,23 +331,23 @@ const Vector& RigidBodyTree::getQdotDot(const SBState& s) const {
 }
 
 // Enforce coordinate constraints -- order doesn't matter.
-void RigidBodyTree::enforceQuaternionConstraints(SBState& s) {
+void RigidBodyTree::enforceQuaternionConstraints(SBState& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
             rbNodeLevels[i][j]->enforceQuaternionConstraints(s);
 }
 
 // Enforce loop constraints.
-void RigidBodyTree::enforceLengthConstraints(SBState& s) {
-    Vector& pos = updQ(s);
-    Vector& vel = updU(s);
-    lConstraints->enforce(pos,vel); //FIX: previous constraints still obeyed? (CDS)
+void RigidBodyTree::enforceLengthConstraints(SBState& s) const {
+    VectorView& pos = updQ(s);
+    VectorView& vel = updU(s);
+    lConstraints->enforce(s,pos,vel); //FIX: previous constraints still obeyed? (CDS)
 }
 
 
 // Prepare for dynamics by calculating position-dependent quantities
 // like the articulated body inertias P.
-void RigidBodyTree::prepareForDynamics(const SBState& s) {
+void RigidBodyTree::prepareForDynamics(const SBState& s) const {
     calcP(s);
 }
 
@@ -338,7 +355,9 @@ void RigidBodyTree::prepareForDynamics(const SBState& s) {
 // constraints. Must have already called prepareForDynamics().
 // TODO: also applies stored internal forces (hinge torques) which
 // will cause surprises if non-zero.
-void RigidBodyTree::calcTreeForwardDynamics(const SBState& s, const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcTreeForwardDynamics(const SBState& s, 
+                                            const SpatialVecList& spatialForces) const
+{
     calcZ(s,spatialForces);
     calcTreeAccel(s);
     
@@ -349,7 +368,9 @@ void RigidBodyTree::calcTreeForwardDynamics(const SBState& s, const SpatialVecLi
 
 // Given a set of spatial forces, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const SBState& s, const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcLoopForwardDynamics(const SBState& s, 
+                                            const SpatialVecList& spatialForces) const 
+{
     SpatialVecList sFrc = spatialForces;
     calcTreeForwardDynamics(s, sFrc);
     if (lConstraints->calcConstraintForces(s)) {
@@ -362,7 +383,7 @@ void RigidBodyTree::calcLoopForwardDynamics(const SBState& s, const SpatialVecLi
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcP(const SBState& s) {
+void RigidBodyTree::calcP(const SBState& s) const {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -373,7 +394,9 @@ void RigidBodyTree::calcP(const SBState& s) {
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcZ(const SBState& s, const SpatialVecList& spatialForces) {
+void RigidBodyTree::calcZ(const SBState& s, 
+                          const SpatialVecList& spatialForces) const
+{
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
@@ -383,20 +406,20 @@ void RigidBodyTree::calcZ(const SBState& s, const SpatialVecList& spatialForces)
 }
 
 // Y is used for length constraints: sweep from base to tip.
-void RigidBodyTree::calcY(const SBState& s) {
+void RigidBodyTree::calcY(const SBState& s) const {
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->calcY(s);
 }
 
 // Calc acceleration: sweep from base to tip.
-void RigidBodyTree::calcTreeAccel(const SBState& s) {
+void RigidBodyTree::calcTreeAccel(const SBState& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcAccel(s);
 }
 
-void RigidBodyTree::fixVel0(const SBState& s, Vector& vel) {
+void RigidBodyTree::fixVel0(SBState& s, Vector& vel) const {
     lConstraints->fixVel0(s, vel);
 }
 

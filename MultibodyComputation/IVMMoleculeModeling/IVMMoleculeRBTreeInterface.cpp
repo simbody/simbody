@@ -214,7 +214,7 @@ static MassProperties toMassProperties(const IVMMassProperties& mp) {
 }
 
 static IVMFrame toIVMFrame(const TransformMat& f) {
-    return IVMFrame(toCDSMat33(f.getRotation().asMat33()), toCDSVec3(f.getTranslation()));
+    return IVMFrame(toCDSMat33(f.R().asMat33()), toCDSVec3(f.T()));
 }
 
 static TransformMat toFrame(const IVMFrame& f) {
@@ -262,10 +262,10 @@ public:
                          bool                     useEuler,
                          int&                     nxtStateOffset) 
     {
-        const TransformMat            refConfig  = toFrame(IVMrefConfig);
+        const TransformMat     refConfig  = toFrame(IVMrefConfig);
         const MassProperties   massProps  = toMassProperties(IVMmassProps);
-        const TransformMat            jointFrame = toFrame(IVMjointFrame);
-        const Joint::JointType jtype      = toJointType(IVMjtype);
+        const TransformMat     jointFrame = toFrame(IVMjointFrame);
+        const Joint::JointType jtype = toJointType(IVMjtype);
 
         RigidBodyNode* nodep = RigidBodyNode::create(
                                         massProps, jointFrame, jtype, 
@@ -328,7 +328,7 @@ public:
     }
 
     void finishConstruction(const double& ctol, int verbose) {
-        simTree.finishConstruction(ctol,verbose);
+        simTree.realizeConstruction(ctol,verbose);
     }
 
     int getNBodies() const {return simTree.getNBodies();}

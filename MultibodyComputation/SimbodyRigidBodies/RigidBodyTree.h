@@ -220,11 +220,14 @@ public:
     /// e.g. body masses.
     void realizeParameters(const SBState&) const;
 
+    void setQ(SBState&, const Vector& q) const;
+    void setU(SBState&, const Vector& u) const;
+
     const Vector& getQ(const SBState&) const;
-    Vector&       updQ(SBState&)       const;
+    VectorView&   updQ(SBState&)       const;
 
     const Vector& getU(const SBState&) const;
-    Vector&       updU(SBState&)       const;
+    VectorView&   updU(SBState&)       const;
 
     const Vector& getQdot(const SBState&) const;
     const Vector& getUdot(const SBState&) const;
@@ -232,8 +235,8 @@ public:
 
 
     // Kinematics -- calculate spatial quantities from internal states.
-    void realizeConfiguration(const SBState&);
-    void realizeMotion(const SBState&);
+    void realizeConfiguration(const SBState&) const;
+    void realizeMotion(const SBState&) const;
 
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
@@ -249,36 +252,38 @@ public:
 
     /// This is a solver which tweaks the state to make it satisfy position
     /// and velocity constraints (just quaternions constraints; ignores loops).
-    void enforceQuaternionConstraints(SBState&);
+    void enforceQuaternionConstraints(SBState&) const;
 
     /// This is a solver which tweaks the state to make it satisfy general
     /// constraints (other than quaternion constraints).
-    void enforceLengthConstraints(SBState&);
+    void enforceLengthConstraints(SBState&) const;
 
     /// Prepare for dynamics by calculating position-dependent quantities
     /// like the articulated body inertias P.
-    void prepareForDynamics(const SBState&);
+    void prepareForDynamics(const SBState&) const;
 
     /// Given a set of spatial forces, calculate accelerations ignoring
     /// constraints. Must have already called prepareForDynamics().
     /// TODO: also applies stored internal forces (hinge torques) which
     /// will cause surprises if non-zero.
-    void calcTreeForwardDynamics(const SBState&, const SpatialVecList& spatialForces);
+    void calcTreeForwardDynamics(const SBState&, 
+                                 const SpatialVecList& spatialForces) const;
 
     /// Given a set of spatial forces, calculate acclerations resulting from
     /// those forces and enforcement of acceleration constraints.
-    void calcLoopForwardDynamics(const SBState&, const SpatialVecList& spatialForces);
+    void calcLoopForwardDynamics(const SBState&, 
+                                 const SpatialVecList& spatialForces) const;
 
 
     /// Unconstrained (tree) dynamics 
-    void calcP(const SBState&);                             // articulated body inertias
-    void calcZ(const SBState&, const SpatialVecList& spatialForces); // articulated body remainder forces
-    void calcTreeAccel(const SBState&);                     // accels with forces from last calcZ
+    void calcP(const SBState&) const;                        // articulated body inertias
+    void calcZ(const SBState&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
+    void calcTreeAccel(const SBState&) const;                // accels with forces from last calcZ
 
-    void fixVel0(const SBState&, Vector& vel); // TODO -- yuck
+    void fixVel0(SBState&, Vector& vel) const; // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
-    void calcY(const SBState&);
+    void calcY(const SBState&) const;
 
     /// Calculate the product J*X where J is the partial velocity Jacobian dV/du
     /// and X is a vector of SpatialVec's, one per body. See Eq. 76&77 in
@@ -339,7 +344,7 @@ private:
 
     std::vector<RBDistanceConstraint>        distanceConstraints;
     // TODO: later this moves to state cache (sherm)
-    std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
+    mutable std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
     
     LengthConstraints* lConstraints;
 

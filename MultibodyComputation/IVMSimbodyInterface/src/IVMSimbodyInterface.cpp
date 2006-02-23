@@ -277,7 +277,7 @@ IVMSimbodyInterfaceRep::IVMSimbodyInterfaceRep(const Multibody& m)
 
             const Vec3 com_R = fBR.shiftBaseStationToFrame(com_B);
             const InertiaMat iner_CB_B = iner_OB_B.shiftToCOM(com_B,mass);
-            const InertiaMat iner_CB_R = iner_CB_B.changeAxes(fBR.getRotation());
+            const InertiaMat iner_CB_R = iner_CB_B.changeAxes(fBR.R());
             const InertiaMat iner_OR_R = iner_CB_R.shiftFromCOM(-com_R,mass);
 
             mbs2tree.push_back(RBTreeMap(&childBody,
@@ -447,7 +447,7 @@ NewIVMSimbodyInterfaceRep::getBodyConfiguration(const State& s, const Body& body
     const TransformMat& F_BR = info.getRefFrameInBody();
     const RigidBodyNode& n = getRigidBodyTree().getRigidBodyNode(info.getRBIndex());
 
-    const TransformMat F_GR(n.getR_GB(), n.getOB_G());
+    const TransformMat F_GR(n.getX_GB());
     const TransformMat F_RB(F_BR.invert());
     return F_GR.compose(F_RB);
 }
