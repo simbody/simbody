@@ -18,17 +18,6 @@ class ForceSystem;
 class SimbodyTreeRep;
 class MassProperties;
 
-class JointSpecification {
-public:
-    JointSpecification(const Joint::JointType t, bool rev)
-        : type(t), reversed(rev) { }
-    Joint::JointType getJointType() const {return type;}
-    bool isReversed() const {return reversed;}
-private:
-    Joint::JointType type;
-    bool             reversed;
-};
-
 /** 
  * Coordinate allocation:
  * Body 0 is ground and has no coordinates. Welded bodies have a higher body number
@@ -242,6 +231,11 @@ public:
     const TransformMat& getBodyConfiguration(const SBState&, int body) const;
     const SpatialVec&   getBodyVelocity     (const SBState&, int body) const;
     const SpatialVec&   getBodyAcceleration (const SBState&, int body) const;
+
+    const Vector& getQ(const SBState&) const;
+    const Vector& getU(const SBState&) const;
+    const Vector& getAppliedJointForces(const SBState&) const;
+    const Vector_<SpatialVec>& getAppliedBodyForces(const SBState&) const;
 
     void setQ(SBState&, const Vector& q) const;
     void setU(SBState&, const Vector& u) const;

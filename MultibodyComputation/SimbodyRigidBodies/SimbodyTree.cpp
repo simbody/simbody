@@ -93,6 +93,23 @@ SimbodyTree::getDefaultState() const {
     return rep->getDefaultState();
 }
 
+const Vector&
+SimbodyTree::getQ(const SBState& s) const {
+    return rep->getQ(s);
+}
+const Vector&
+SimbodyTree::getU(const SBState& s) const {
+    return rep->getU(s);
+}
+const Vector&
+SimbodyTree::getAppliedJointForces(const SBState& s) const {
+    return rep->getAppliedJointForces(s);
+}
+const Vector_<SpatialVec>&
+SimbodyTree::getAppliedBodyForces(const SBState& s) const {
+    return rep->getAppliedBodyForces(s);
+}
+
 void SimbodyTree::setQ(SBState& s, const Vector& q) const {
     rep->setQ(s,q);
 }
@@ -107,4 +124,36 @@ VectorView& SimbodyTree::updQ(SBState& s) const {
 
 VectorView& SimbodyTree::updU(SBState& s) const {
     return rep->updU(s);
+}
+
+void SimbodyTree::clearAppliedForces(SBState& s) const {
+    rep->clearAppliedForces(s);
+}
+void SimbodyTree::applyGravity(SBState& s, const Vec3& g) const {
+    rep->applyGravity(s,g);
+}
+void SimbodyTree::applyPointForce(SBState& s, int body, const Vec3& stationInB, 
+                                  const Vec3& forceInG) const 
+{
+}
+void SimbodyTree::applyBodyTorque(SBState& s, int body, 
+                                  const Vec3& torqueInG) const 
+{
+}
+void SimbodyTree::applyJointForce(SBState& s, int body, const Real*) const {
+}
+
+const TransformMat&
+SimbodyTree::getBodyConfiguration(const SBState& s, int body) const {
+    return rep->getRigidBodyNode(body).getX_GB(s);
+}
+
+const SpatialVec&
+SimbodyTree::getBodyVelocity(const SBState& s, int body) const {
+    return rep->getRigidBodyNode(body).getV_GB(s);
+}
+
+const SpatialVec&
+SimbodyTree::getBodyAcceleration(const SBState& s, int body) const {
+    return rep->getRigidBodyNode(body).getA_GB(s);
 }

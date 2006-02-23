@@ -14,7 +14,7 @@ public:
     SimbodyTreeResults() : stage(UninitializedStage) { } // everything has length 0
     // default copy, copy assign, destruct
 
-    // This allocation routine should be called by realizeModeling(). Before that
+    // This allocation routine should be called after realizeModeling(). Before that
     // we don't know enough about what to put here.
 
     // nDofs==nu==#joint forces
@@ -22,45 +22,51 @@ public:
     void allocateCache(int nBodies, int nDofs, int nSqDofs, int maxNQs,
                        int npc, int nvc, int nac) // pos, vel, acc constraints
     {
-        assert(stage >= BuiltStage);
-        stage = BuiltStage; // roll back if necessary
+        const SpatialVec zVec(Vec3(0));
+        const SpatialMat zMat(Mat33(0));
+        assert(stage >= ModeledStage);
+        stage = ModeledStage; // roll back if necessary
 
-        // These contain uninitialized junk.
+        // These contain uninitialized junk. Body-indexed entries get their
+        // ground elements set appropriately now and forever.
         sq.resize(maxNQs);
         cq.resize(maxNQs);
         qnorm.resize(maxNQs);
         storageForHt.resize(2,nDofs);
-        bodyJointInParentJointFrame.resize(nBodies);
-        bodyConfigInParent.resize(nBodies);
-        bodyConfigInGround.resize(nBodies);
-        bodyToParentShift.resize(nBodies);
-        bodyInertiaInGround.resize(nBodies);
-        bodySpatialInertia.resize(nBodies);
-        bodyCOMInGround.resize(nBodies);
-        bodyCOMStationInGround.resize(nBodies);
+
+        bodyJointInParentJointFrame.resize(nBodies); bodyJointInParentJointFrame[0].setToZero();
+        bodyConfigInParent.resize(nBodies);          bodyConfigInParent[0].setToZero();
+        bodyConfigInGround.resize(nBodies);          bodyConfigInGround[0].setToZero();
+        bodyToParentShift.resize(nBodies);           bodyToParentShift[0].setToZero();
+        bodyInertiaInGround.resize(nBodies); // TODO
+        bodySpatialInertia.resize(nBodies);  // TODO
+        bodyCOMInGround.resize(nBodies);             bodyCOMInGround[0] = 0.;
+        bodyCOMStationInGround.resize(nBodies);      bodyCOMStationInGround[0] = 0.;
 
         positionConstraintErrors.resize(npc);
 
-        bodyVelocityInParent.resize(nBodies);
-        bodyVelocityInGround.resize(nBodies);
+        bodyVelocityInParent.resize(nBodies);       bodyVelocityInParent[0] = zVec;
+        bodyVelocityInGround.resize(nBodies);       bodyVelocityInGround[0] = zVec;
         velocityConstraintErrors.resize(nvc);
         qdot.resize(maxNQs);
-        articulatedBodyInertia.resize(nBodies);
-        bodyAccelerationInGround.resize(nBodies);
-        coriolisAcceleration.resize(nBodies);
-        gyroscopicForces.resize(nBodies);
+        articulatedBodyInertia.resize(nBodies); // TODO
+        bodyAccelerationInGround.resize(nBodies);   bodyAccelerationInGround[0] = zVec;
+        coriolisAcceleration.resize(nBodies);       coriolisAcceleration[0] = zVec;
+        gyroscopicForces.resize(nBodies);           gyroscopicForces[0] = zVec;
         udot.resize(nDofs);
         lambda.resize(nac);
         accelerationConstraintErrors.resize(nac);
         netHingeForces.resize(nDofs);
         qdotdot.resize(maxNQs);
-        psiT.resize(nBodies);
-        tau.resize(nBodies);
-        Y.resize(nBodies);
+        psiT.resize(nBodies); // TODO
+        tau.resize(nBodies); // TODO
+        Y.resize(nBodies); // TODO
         storageForDI.resize(nSqDofs);
         storageForG.resize(2,nDofs);
         nu.resize(nDofs);
         epsilon.resize(nDofs);
+        z.resize(nBodies);
+        Gepsilon.resize(nBodies); // TODO
     }
 
     SBStage stage;     // must be kept up to date by State changes
@@ -185,7 +191,10 @@ public:
         const int nConstraints = enabled.size();
         q.resize(maxNQs);                   q.setToNaN();
         u.resize(nDofs);                    u.setToNaN();
+
         appliedBodyForces.resize(nBodies);  appliedBodyForces.setToNaN();
+        appliedBodyForces[0] = SpatialVec(Vec3(0)); // ground
+
         appliedJointForces.resize(nDofs);   appliedJointForces.setToNaN();
         prescribedUdot.resize(nDofs);       prescribedUdot.setToNaN();
     }

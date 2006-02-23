@@ -113,7 +113,8 @@ int RigidBodyTree::addRigidBodyNode
      const MassProperties&   m,            // mass properties in body frame
      const TransformMat&     X_PJb,        // parent's frame for attaching this joint
      const TransformMat&     X_BJ,         // inboard joint frame J in body frame
-     Joint::JointType        type,
+     JointSpecification::JointType        
+                             type,
      bool                    isReversed,   // child-to-parent orientation?
      int&                    nxtU,
      int&                    nxtUSq,
@@ -147,7 +148,8 @@ void RigidBodyTree::addGroundNode() {
     assert(rbNodeLevels.size() == 0);
 
     RigidBodyNode* n = 
-        RigidBodyNode::create(MassProperties(), TransformMat(), TransformMat(), Joint::ThisIsGround,
+        RigidBodyNode::create(MassProperties(), TransformMat(), TransformMat(), 
+                              JointSpecification::ThisIsGround,
                               false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
 
@@ -188,7 +190,10 @@ void RigidBodyTree::realizeConstruction(const double& ctol, int verbose) {
     defaultState.cache->stage = BuiltStage;
     setDefaultModelingValues(defaultState);
     realizeModeling(defaultState);
-    defaultState.vars->allocateAllVars(getTotalDOF(), getTotalQAlloc(), getNConstraints());
+    defaultState.vars->allocateAllVars(DOFTotal, maxNQTotal, getNConstraints());
+    defaultState.cache->allocateCache
+        (getNBodies(),DOFTotal,SqDOFTotal,maxNQTotal,
+         getNConstraints(),getNConstraints(),getNConstraints());
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -271,7 +276,8 @@ void RigidBodyTree::realizeReaction(const SBState& s)  const {
     assert(s.getStage() >= MovingStage);
     if (s.getStage() >= ReactingStage) return;
 
-    assert(false); // TODO
+    prepareForDynamics(s);
+    calcLoopForwardDynamics(s, s.vars->appliedBodyForces);
 
     s.cache->stage = ReactingStage;
 }
@@ -315,6 +321,17 @@ const Vector& RigidBodyTree::getQ(const SBState& s) const {
 const Vector& RigidBodyTree::getU(const SBState& s) const {
     assert(s.getStage() >= MovingStage);
     return s.vars->u;
+}
+
+const Vector& 
+RigidBodyTree::getAppliedJointForces(const SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    return s.vars->appliedJointForces;
+}
+const Vector_<SpatialVec>& 
+RigidBodyTree::getAppliedBodyForces(const SBState& s) const {
+    assert(s.getStage() >= ModeledStage);
+    return s.vars->appliedBodyForces;
 }
 
 const Vector& RigidBodyTree::getQdot(const SBState& s) const {

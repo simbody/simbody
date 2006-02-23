@@ -146,7 +146,6 @@ public:
 
     /*virtual*/void getAccel(const SBState&, Vector&) const {}
 
-    /*virtual*/void getInternalForce(const SBState&, Vector&) const {}
     // /*virtual*/ const SpatialRow& getHRow(int i) const;
 
     void print(const SBState&, int) {}
@@ -328,14 +327,14 @@ public:
     // State variables (read only).
     const Vec<dof>&   getQ             (const SBState& s) const {return fromQ(s.vars->q);}
     const Vec<dof>&   getU             (const SBState& s) const {return fromU(s.vars->u);}
-    const Vec<dof>&   getJointForce    (const SBState& s) const {return fromU(s.vars->appliedJointForces);}
-    const Vec<dof>&   getPrescribedUdot(const SBState& s) const {return fromU(s.vars->prescribedUdot);}
+    const Vec<dof>&   getAppliedJointForce(const SBState& s) const {return fromU(s.vars->appliedJointForces);}
+    const Vec<dof>&   getPrescribedUdot   (const SBState& s) const {return fromU(s.vars->prescribedUdot);}
 
     // Special case state access for 1-dof joints
     const Real& get1Q             (const SBState& s) const {return from1Q(s.vars->q);}
     const Real& get1U             (const SBState& s) const {return from1U(s.vars->u);}
-    const Real& get1JointForce    (const SBState& s) const {return from1U(s.vars->appliedJointForces);}
-    const Real& get1PrescribedUdot(const SBState& s) const {return from1U(s.vars->prescribedUdot);}
+    const Real& get1AppliedJointForce(const SBState& s) const {return from1U(s.vars->appliedJointForces);}
+    const Real& get1PrescribedUdot   (const SBState& s) const {return from1U(s.vars->prescribedUdot);}
 
     // Special case for quaternions and Vec3 at offset.
     const Vec4& getQuat (const SBState& s)           const {return fromQuat(s.vars->q);}
@@ -397,10 +396,10 @@ public:
     const Real&       get1QdotDot(const SBState& s) const {return from1Q(s.cache->qdotdot);}
     Real&             upd1QdotDot(const SBState& s) const {return to1Q  (s.cache->qdotdot);}
 
-    const Vec<dof>&   getInternalForce (const SBState& s) const {return fromU (s.cache->netHingeForces);}
-    Vec<dof>&         updInternalForce (const SBState& s) const {return toU   (s.cache->netHingeForces);}
-    const Real&       get1InternalForce(const SBState& s) const {return from1U(s.cache->netHingeForces);}
-    Real&             upd1InternalForce(const SBState& s) const {return to1U  (s.cache->netHingeForces);}
+    const Vec<dof>&   getNetHingeForce (const SBState& s) const {return fromU (s.cache->netHingeForces);}
+    Vec<dof>&         updNetHingeForce (const SBState& s) const {return toU   (s.cache->netHingeForces);}
+    const Real&       get1NetHingeForce (const SBState& s) const {return from1U(s.cache->netHingeForces);}
+    Real&             upd1NetHingeForce(const SBState& s) const {return to1U  (s.cache->netHingeForces);}
 
     const Mat<dof,dof>& getDI(const SBState& s) const {return fromUSq(s.cache->storageForDI);}
     Mat<dof,dof>&       updDI(const SBState& s) const {return toUSq  (s.cache->storageForDI);}
@@ -1034,7 +1033,8 @@ RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
     const TransformMat&   X_PJb,        // parent's attachment frame for this joint
     const TransformMat&   X_BJ,         // inboard joint frame J in body frame
-    Joint::JointType      type,
+    JointSpecification::JointType      
+                          type,
     bool                  isReversed,   // child-to-parent orientation?
     int&                  nxtUSlot,
     int&                  nxtUSqSlot,
@@ -1043,26 +1043,26 @@ RigidBodyNode::create(
     assert(!isReversed);
 
     switch(type) {
-    case Joint::ThisIsGround:
+    case JointSpecification::ThisIsGround:
         return new RBGroundBody();
-    case Joint::Torsion:
+    case JointSpecification::Torsion:
         return new RBNodeTorsion(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Universal:        
+    case JointSpecification::Universal:        
         return new RBNodeRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Orientation:
+    case JointSpecification::Orientation:
         return new RBNodeRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Cartesian:
+    case JointSpecification::Cartesian:
         return new RBNodeTranslate(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::FreeLine:
+    case JointSpecification::FreeLine:
         return new RBNodeTranslateRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Free:
+    case JointSpecification::Free:
         return new RBNodeTranslateRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Sliding:
+    case JointSpecification::Sliding:
         return new RBNodeSlider(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Joint::Cylinder:
-    case Joint::Planar:
-    case Joint::Gimbal:
-    case Joint::Weld:
+    case JointSpecification::Cylinder:
+    case JointSpecification::Planar:
+    case JointSpecification::Gimbal:
+    case JointSpecification::Weld:
 
     default: 
         assert(false);
@@ -1141,7 +1141,7 @@ RigidBodyNodeSpec<dof>::calcZ(const SBState& s,
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(s)  = getInternalForce(s) - getH(s)*z; // TODO: pass in hinge forces
+    updEpsilon(s)  = getAppliedJointForce(s) - getH(s)*z; // TODO: pass in hinge forces
     updNu(s)       = getDI(s) * getEpsilon(s);
     updGepsilon(s) = getG(s)  * getEpsilon(s);
 }

@@ -49,10 +49,13 @@ class PhiMatrix {
 public:
     typedef PhiMatrixTranspose TransposeType;
 
-    PhiMatrix() { l_(0) = 1.31e30; }
+    PhiMatrix() { setToNaN(); }
     PhiMatrix(const Vec3& l) : l_(l) {}
 
-    const Vec3& l() const { assert( l_(0) != 1.31e30 ); return l_; }
+    void setToZero() { l_ = 0.; }
+    void setToNaN()  { l_.setToNaN(); }
+
+    const Vec3& l() const { return l_; }
 private:
     Vec3 l_;
 };

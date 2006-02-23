@@ -258,6 +258,15 @@ public:
         BaseMat::operator=(R.asMat33()); return *this;
     }
 
+    /// By zero we mean "zero rotation", i.e., an identity matrix.
+    void setToZero() {
+        *static_cast<Mat33*>(this) = 1.;
+    }
+
+    void setToNaN() {
+        static_cast<Mat33*>(this)->setToNaN();
+    }
+
     /// Set this RotationMat to represent a rotation of +q radians
     /// around the base frame's 0,0,1 axis.
     void setToRotationAboutZ(const Real& q) {
@@ -594,6 +603,15 @@ public:
     inline TransformMat& operator=(const InverseTransformMat& X);
 
     void set(const RotationMat& R, const Vec3& T) {T_BF=T; R_BF=R;}
+
+    /// By zero we mean "zero transform", i.e., an identity rotation and zero translation.
+    void setToZero() {
+        R_BF.setToZero(); T_BF = 0.;
+    }
+
+    void setToNaN() {
+        R_BF.setToNaN(); T_BF.setToNaN();
+    }
 
     // Inverting one of these just casts it to a TransformInverseMat.
     const InverseTransformMat& invert() const {

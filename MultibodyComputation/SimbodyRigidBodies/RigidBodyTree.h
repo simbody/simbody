@@ -129,7 +129,8 @@ public:
          const MassProperties&   m,            // mass properties in body frame
          const TransformMat&     X_PJb,        // parent's frame for attaching this joint
          const TransformMat&     X_BJ,         // inboard joint frame J in body frame
-         Joint::JointType        type,
+         JointSpecification::JointType        
+                                 type,
          bool                    isReversed,   // child-to-parent orientation?
          int&                    nxtU,
          int&                    nxtUSq,
@@ -143,13 +144,16 @@ public:
     /// Call this after all bodies & constraints have been added.
     void realizeConstruction(const double& ctol, int verbose);
 
+    // These counts can be obtained even during construction, where they
+    // just return the current counts.
+    // includes ground
+    int getNBodies()      const {return nodeNum2NodeMap.size();}
+    int getNConstraints() const {return distanceConstraints.size();}
+
         // CALLABLE AFTER realizeConstruction()
 
     const SBState& getDefaultState() const {return defaultState;}
 
-    // includes ground
-    int getNBodies()      const {assert(built); return nodeNum2NodeMap.size();}
-    int getNConstraints() const {assert(built); return distanceConstraints.size();}
 
     int getTotalDOF()    const {assert(built); return DOFTotal;}
     int getTotalSqDOF()  const {assert(built); return SqDOFTotal;}
@@ -229,6 +233,9 @@ public:
     const Vector& getU(const SBState&) const;
     VectorView&   updU(SBState&)       const;
 
+    const Vector& getAppliedJointForces(const SBState&) const;
+    const Vector_<SpatialVec>& getAppliedBodyForces(const SBState&) const;
+
     const Vector& getQdot(const SBState&) const;
     const Vector& getUdot(const SBState&) const;
     const Vector& getQdotDot(const SBState&) const;
@@ -242,6 +249,39 @@ public:
     // forces and prescribed accelerations supplied in the State.
     void realizeReaction(const SBState&) const;
 
+    void clearAppliedForces(SBState& s) const {
+        assert(s.cache->stage >= ModeledStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+        s.vars->appliedJointForces.setToZero();
+        s.vars->appliedBodyForces.setToZero();
+    }
+
+    void applyGravity(SBState& s, const Vec3& g) const {
+        assert(s.cache->stage >= ConfiguredStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+        for (int body=1; body<getNBodies(); ++body) {
+            const RigidBodyNode& n = getRigidBodyNode(body);
+            applyPointForce(s, body, n.getCOM_B(s), n.getMass(s)*g);
+        }
+    }
+
+    void applyPointForce (SBState& s, int body, const Vec3& stationInB, 
+                          const Vec3& forceInG) const
+    {
+        assert(s.cache->stage >= ConfiguredStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+
+        const RotationMat& R_GB = getRigidBodyNode(body).getX_GB(s).R();
+        s.vars->appliedBodyForces[body] += 
+            SpatialVec((R_GB*stationInB) % forceInG, forceInG);
+    }
+
+    void applyBodyTorque (SBState&, int body, 
+                          const Vec3& torqueInG) const;
+    void applyJointForce(SBState&, int body, const Real*) const;
 
     void getDefaultParameters   (SBState&) const;
     void getDefaultConfiguration(SBState&) const;

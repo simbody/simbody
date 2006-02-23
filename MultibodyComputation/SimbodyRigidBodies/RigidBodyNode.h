@@ -62,7 +62,8 @@ public:
         const MassProperties&   m,            // mass properties in body frame
         const TransformMat&     X_PJb,        // parent's attachment frame for this joint
         const TransformMat&     X_BJ,         // inboard joint frame J in body frame
-        Joint::JointType        type,
+        JointSpecification::JointType        
+                                type,
         bool                    isReversed,   // child-to-parent orientation?
         int&                    nxtU,
         int&                    nxtUSq,
@@ -262,7 +263,8 @@ public:
     virtual void enforceQuaternionConstraints(const SBState&) {throw VirtualBaseMethod();}
 
     virtual void calcP(const SBState&) const                           {throw VirtualBaseMethod();}
-    virtual void calcZ(const SBState&, const SpatialVec& spatialForce) {throw VirtualBaseMethod();}
+    virtual void calcZ(const SBState&, const SpatialVec& spatialForce) const
+      { throw VirtualBaseMethod(); }
     virtual void calcY(const SBState&) const                           {throw VirtualBaseMethod();}
     virtual void calcAccel(const SBState&) const                       {throw VirtualBaseMethod();}
 
