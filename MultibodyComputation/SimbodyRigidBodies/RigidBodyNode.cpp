@@ -85,8 +85,8 @@ RigidBodyNode::calcJointIndependentKinematicsVel(const SBState& s) const
     // consistent with JV&R but not obviously consistent with S&C.
     updCoriolisAcceleration(s) = 
         SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
-          + crossMat(pOmega) * getV_PB_G(s);
-    //    + crossMat(omega)  * getV_PB_G(s);  <-- should work too?
+         // + crossMat(pOmega) * getV_PB_G(s); <-- IVM original
+        + crossMat(omega)  * getV_PB_G(s); // JV&R paper
 }
 
 Real RigidBodyNode::calcKineticEnergy(const SBState& s) const {

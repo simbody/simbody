@@ -227,6 +227,36 @@ public:
     void setQ(SBState&, const Vector& q) const;
     void setU(SBState&, const Vector& u) const;
 
+    void setJointQ(SBState& s, int body, int axis, const Real& r) const {
+        assert(s.cache->stage >= ModeledStage);
+        if (s.cache->stage > TimedStage)
+            s.cache->stage = TimedStage; // back up if necessary
+
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        assert(0 <= axis && axis < n.getNQ(s));
+        s.vars->q[n.getQIndex()+axis] = r;
+    }
+
+    void setJointU(SBState& s, int body, int axis, const Real& r) const {
+        assert(s.cache->stage >= ModeledStage);
+        if (s.cache->stage > ConfiguredStage)
+            s.cache->stage = ConfiguredStage; // back up if necessary
+
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        assert(0 <= axis && axis < n.getDOF());
+        s.vars->u[n.getUIndex()+axis] = r;
+    }
+
+    void setPrescribedUdot(SBState& s, int body, int axis, const Real& r) const {
+        assert(s.cache->stage >= ModeledStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        assert(0 <= axis && axis < n.getDOF());
+        s.vars->prescribedUdot[n.getUIndex()+axis] = r;
+    }
+
     const Vector& getQ(const SBState&) const;
     VectorView&   updQ(SBState&)       const;
 
@@ -267,8 +297,8 @@ public:
         }
     }
 
-    void applyPointForce (SBState& s, int body, const Vec3& stationInB, 
-                          const Vec3& forceInG) const
+    void applyPointForce(SBState& s, int body, const Vec3& stationInB, 
+                         const Vec3& forceInG) const
     {
         assert(s.cache->stage >= ConfiguredStage);
         if (s.cache->stage > MovingStage)
@@ -279,9 +309,23 @@ public:
             SpatialVec((R_GB*stationInB) % forceInG, forceInG);
     }
 
-    void applyBodyTorque (SBState&, int body, 
-                          const Vec3& torqueInG) const;
-    void applyJointForce(SBState&, int body, const Real*) const;
+    void applyBodyTorque(SBState& s, int body, const Vec3& torqueInG) const {
+        assert(s.cache->stage >= ConfiguredStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+
+        s.vars->appliedBodyForces[body] += SpatialVec(torqueInG, Vec3(0));
+    }
+
+    void applyJointForce(SBState& s, int body, int axis, const Real& r) const {
+        assert(s.cache->stage >= ConfiguredStage);
+        if (s.cache->stage > MovingStage)
+            s.cache->stage = MovingStage; // back up if necessary
+
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        assert(0 <= axis && axis < n.getDOF());
+        s.vars->appliedJointForces[n.getUIndex()+axis] = r;
+    }
 
     void getDefaultParameters   (SBState&) const;
     void getDefaultConfiguration(SBState&) const;

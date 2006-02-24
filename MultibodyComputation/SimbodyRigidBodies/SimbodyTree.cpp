@@ -126,6 +126,18 @@ VectorView& SimbodyTree::updU(SBState& s) const {
     return rep->updU(s);
 }
 
+void SimbodyTree::setJointQ(SBState& s, int body, int axis, const Real& r) const {
+    return rep->setJointQ(s,body,axis,r);
+}
+void SimbodyTree::setJointU(SBState& s, int body, int axis, const Real& r) const {
+    return rep->setJointU(s,body,axis,r);
+}
+
+
+void SimbodyTree::setPrescribedUdot(SBState& s, int body, int axis, const Real& r) const {
+    return rep->setPrescribedUdot(s,body,axis,r);
+}
+
 void SimbodyTree::clearAppliedForces(SBState& s) const {
     rep->clearAppliedForces(s);
 }
@@ -135,12 +147,15 @@ void SimbodyTree::applyGravity(SBState& s, const Vec3& g) const {
 void SimbodyTree::applyPointForce(SBState& s, int body, const Vec3& stationInB, 
                                   const Vec3& forceInG) const 
 {
+    rep->applyPointForce(s,body,stationInB,forceInG);
 }
 void SimbodyTree::applyBodyTorque(SBState& s, int body, 
                                   const Vec3& torqueInG) const 
 {
+    rep->applyBodyTorque(s,body,torqueInG);
 }
-void SimbodyTree::applyJointForce(SBState& s, int body, const Real*) const {
+void SimbodyTree::applyJointForce(SBState& s, int body, int axis, const Real& d) const {
+    rep->applyJointForce(s,body,axis,d);
 }
 
 const TransformMat&

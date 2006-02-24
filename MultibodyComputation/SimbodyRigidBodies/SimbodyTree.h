@@ -213,9 +213,9 @@ public:
 
     // Parameter setting & getting would go here 
 
-    void setJointQ(SBState&, int joint, const Real*) const;
-    void setJointU(SBState&, int joint, const Real*) const;
-    void setPrescribedUdot(SBState&, int joint, const Real*) const;
+    void setJointQ(SBState&, int body, int axis, const Real&) const;
+    void setJointU(SBState&, int body, int axis, const Real&) const;
+    void setPrescribedUdot(SBState&, int body, int axis, const Real&) const;
     void clearAppliedForces(SBState&) const;
 
     /// Configuration Stage. 
@@ -225,7 +225,7 @@ public:
                           const Vec3& forceInG) const;
     void applyBodyTorque (SBState&, int body, 
                           const Vec3& torqueInG) const;
-    void applyJointForce(SBState&, int body, const Real*) const;
+    void applyJointForce(SBState&, int body, int axis, const Real&) const;
 
 
     const TransformMat& getBodyConfiguration(const SBState&, int body) const;

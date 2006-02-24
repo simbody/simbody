@@ -86,11 +86,20 @@ try {
 
     pend.clearAppliedForces(s);
     pend.applyGravity(s, Vec3(0.,-9.8,0.));
+    pend.applyJointForce(s, 1, 0, 147);
+
+    pend.setJointU(s, 1, 0, 10.);
 
     cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
     cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
 
     pend.realizeMotion(s);
+
+    SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
+    cout << "body vel: " << bodyVel << endl;
+
+    cout << "wXwXr=" << bodyVel[0] % (bodyVel[0] % Vec3(2.5,0,0)) << endl;
+
     pend.realizeReaction(s);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
