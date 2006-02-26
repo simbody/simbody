@@ -112,23 +112,23 @@ public:
     Vec3&         toB(Vector_<Vec3>&             v) const {return v[nodeNum];}
 
         // MODELING INFO
-    const bool getUseEulerAngles(const SBState& s) const {return s.vars->useEulerAngles;}
-    const bool isPrescribed     (const SBState& s) const {return s.vars->prescribed[nodeNum];}
+    const bool getUseEulerAngles(const SBStateRep& s) const {return s.modelVars.useEulerAngles;}
+    const bool isPrescribed     (const SBStateRep& s) const {return s.modelVars.prescribed[nodeNum];}
 
         // PARAMETRIZATION INFO
 
     // TODO: These ignore State currently since they aren't parametrizable.
-    const MassProperties& getMassProperties(const SBState&) const {return massProps_B;}
-    const Real&           getMass          (const SBState&) const {return massProps_B.getMass();}
-    const Vec3&           getCOM_B         (const SBState&) const {return massProps_B.getCOM();}
-    const InertiaMat&     getInertia_OB_B  (const SBState&) const {return massProps_B.getInertia();}
-    const TransformMat&   getX_BJ          (const SBState&) const {return X_BJ;}
-    const TransformMat&   getX_PJb         (const SBState&) const {return X_PJb;}
+    const MassProperties& getMassProperties(const SBStateRep&) const {return massProps_B;}
+    const Real&           getMass          (const SBStateRep&) const {return massProps_B.getMass();}
+    const Vec3&           getCOM_B         (const SBStateRep&) const {return massProps_B.getCOM();}
+    const InertiaMat&     getInertia_OB_B  (const SBStateRep&) const {return massProps_B.getInertia();}
+    const TransformMat&   getX_BJ          (const SBStateRep&) const {return X_BJ;}
+    const TransformMat&   getX_PJb         (const SBStateRep&) const {return X_PJb;}
 
     // These are calculated on construction.
-    const InertiaMat&     getInertia_CB_B  (const SBState&) const {return inertia_CB_B;}
-    const TransformMat&   getX_JB          (const SBState&) const {return X_JB;}
-    const TransformMat&   getRefX_PB       (const SBState&) const {return refX_PB;}
+    const InertiaMat&     getInertia_CB_B  (const SBStateRep&) const {return inertia_CB_B;}
+    const TransformMat&   getX_JB          (const SBStateRep&) const {return X_JB;}
+    const TransformMat&   getRefX_PB       (const SBStateRep&) const {return refX_PB;}
 
         // CONFIGURATION INFO
 
@@ -137,155 +137,159 @@ public:
     /// joint frame Jb attached to the parent. This transformation is defined to be zero (that is, Jb=J)
     /// in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
     /// This is NOT a spatial transformation.
-    const TransformMat& getX_JbJ(const SBState& s) const {return fromB(s.cache->bodyJointInParentJointFrame);}
-    TransformMat&       updX_JbJ(const SBState& s) const {return toB  (s.cache->bodyJointInParentJointFrame);}
+    const TransformMat& getX_JbJ(const SBStateRep& s) const {return fromB(s.configCache.bodyJointInParentJointFrame);}
+    TransformMat&       updX_JbJ(const SBStateRep& s) const {return toB  (s.configCache.bodyJointInParentJointFrame);}
 
     /// Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     /// of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
     /// a spatial transformation.
-    const TransformMat& getX_PB(const SBState& s) const {return fromB(s.cache->bodyConfigInParent);}
-    TransformMat&       updX_PB(const SBState& s) const {return toB  (s.cache->bodyConfigInParent);}
+    const TransformMat& getX_PB(const SBStateRep& s) const {return fromB(s.configCache.bodyConfigInParent);}
+    TransformMat&       updX_PB(const SBStateRep& s) const {return toB  (s.configCache.bodyConfigInParent);}
 
     /// Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     /// body's frame B measured from and expressed in ground. This consists of a rotation matrix
     /// R_GB, and a ground-frame vector OB_G from ground's origin to the origin point of frame B.
-    const TransformMat& getX_GB(const SBState& s) const {return fromB(s.cache->bodyConfigInGround);}
-    TransformMat&       updX_GB(const SBState& s) const {return toB  (s.cache->bodyConfigInGround);}
+    const TransformMat& getX_GB(const SBStateRep& s) const {return fromB(s.configCache.bodyConfigInGround);}
+    TransformMat&       updX_GB(const SBStateRep& s) const {return toB  (s.configCache.bodyConfigInGround);}
 
     /// Extract from the cache the body-to-parent shift matrix "phi". 
-    const PhiMatrix&    getPhi(const SBState& s) const {return fromB(s.cache->bodyToParentShift);}
-    PhiMatrix&          updPhi(const SBState& s) const {return toB  (s.cache->bodyToParentShift);}
+    const PhiMatrix&    getPhi(const SBStateRep& s) const {return fromB(s.configCache.bodyToParentShift);}
+    PhiMatrix&          updPhi(const SBStateRep& s) const {return toB  (s.configCache.bodyToParentShift);}
 
     /// Extract this body's spatial inertia matrix from the cache. This contains the mass properties
     /// measured from (and about) the body frame origin, but expressed in the *ground* frame.
-    const SpatialMat&   getMk(const SBState& s) const {return fromB(s.cache->bodySpatialInertia);}
-    SpatialMat&         updMk(const SBState& s) const {return toB  (s.cache->bodySpatialInertia);}
+    const SpatialMat&   getMk(const SBStateRep& s) const {return fromB(s.configCache.bodySpatialInertia);}
+    SpatialMat&         updMk(const SBStateRep& s) const {return toB  (s.configCache.bodySpatialInertia);}
 
     /// Extract from the cache the location of the body's center of mass, measured from the ground
     /// origin and expressed in ground.
-    const Vec3& getCOM_G(const SBState& s) const {return fromB(s.cache->bodyCOMInGround);}
-    Vec3&       updCOM_G(const SBState& s) const {return toB  (s.cache->bodyCOMInGround);}
+    const Vec3& getCOM_G(const SBStateRep& s) const {return fromB(s.configCache.bodyCOMInGround);}
+    Vec3&       updCOM_G(const SBStateRep& s) const {return toB  (s.configCache.bodyCOMInGround);}
 
     /// Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-    const Vec3& getCB_G(const SBState& s) const {return fromB(s.cache->bodyCOMStationInGround);}
-    Vec3&       updCB_G(const SBState& s) const {return toB  (s.cache->bodyCOMStationInGround);}
+    const Vec3& getCB_G(const SBStateRep& s) const {return fromB(s.configCache.bodyCOMStationInGround);}
+    Vec3&       updCB_G(const SBStateRep& s) const {return toB  (s.configCache.bodyCOMStationInGround);}
 
     /// Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const InertiaMat& getInertia_OB_G(const SBState& s) const {return fromB(s.cache->bodyInertiaInGround);}
-    InertiaMat&       updInertia_OB_G(const SBState& s) const {return toB  (s.cache->bodyInertiaInGround);}
+    const InertiaMat& getInertia_OB_G(const SBStateRep& s) const {return fromB(s.configCache.bodyInertiaInGround);}
+    InertiaMat&       updInertia_OB_G(const SBStateRep& s) const {return toB  (s.configCache.bodyInertiaInGround);}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
     //const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
 
-    const TransformMat& getX_GP(const SBState& s) const {assert(parent); return parent->getX_GB(s);}
-
-    /// Return OP_G, the spatial location of the origin of the P frame, that is, 
-    /// measured from the ground origin and expressed in ground.
-    //const Vec3&        getOP_G(const SBState& s) const {assert(parent); return parent->getOB_G(s);}
+    const TransformMat& getX_GP(const SBStateRep& s) const {assert(parent); return parent->getX_GB(s);}
 
             // VELOCITY INFO
 
     /// Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     /// expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     /// of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getV_GB   (const SBState& s) const {return fromB(s.cache->bodyVelocityInGround);}
-    SpatialVec&       updV_GB   (const SBState& s) const {return toB  (s.cache->bodyVelocityInGround);}
+    const SpatialVec& getV_GB   (const SBStateRep& s) const {return fromB(s.motionCache.bodyVelocityInGround);}
+    SpatialVec&       updV_GB   (const SBStateRep& s) const {return toB  (s.motionCache.bodyVelocityInGround);}
 
     /// Extract from the cache V_PB_G, the *spatial* velocity of this body's frame B, that is the
     /// cross-joint velocity measured with respect to the parent frame, but then expressed in the
     /// *ground* frame. This contains the angular velocity of B in P, and the linear velocity
     /// of B's origin point OB in P, with both vectors expressed in *G*.
-    const SpatialVec& getV_PB_G (const SBState& s) const {return fromB(s.cache->bodyVelocityInParent);}
-    SpatialVec&       updV_PB_G (const SBState& s) const {return toB  (s.cache->bodyVelocityInParent);}
+    const SpatialVec& getV_PB_G (const SBStateRep& s) const {return fromB(s.motionCache.bodyVelocityInParent);}
+    SpatialVec&       updV_PB_G (const SBStateRep& s) const {return toB  (s.motionCache.bodyVelocityInParent);}
 
-    const SpatialVec& getSpatialVel   (const SBState& s) const {return getV_GB(s);}
-    const Vec3&       getSpatialAngVel(const SBState& s) const {return getV_GB(s)[0];}
-    const Vec3&       getSpatialLinVel(const SBState& s) const {return getV_GB(s)[1];}
+    const SpatialVec& getSpatialVel   (const SBStateRep& s) const {return getV_GB(s);}
+    const Vec3&       getSpatialAngVel(const SBStateRep& s) const {return getV_GB(s)[0];}
+    const Vec3&       getSpatialLinVel(const SBStateRep& s) const {return getV_GB(s)[1];}
 
         // DYNAMICS INFO
 
-    const SpatialVec& getBodyForce(const SBState& s) const {return fromB(s.vars->appliedBodyForces);}
+    const SpatialVec& getBodyForce(const SBStateRep& s) const {return fromB(s.dynamicVars.appliedBodyForces);}
  
-    const SpatialVec& getCoriolisAcceleration(const SBState& s) const {return fromB(s.cache->coriolisAcceleration);}
-    SpatialVec&       updCoriolisAcceleration(const SBState& s) const {return toB  (s.cache->coriolisAcceleration);}
+    const SpatialVec& getCoriolisAcceleration(const SBStateRep& s) const {return fromB(s.dynamicCache.coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(const SBStateRep& s) const {return toB  (s.dynamicCache.coriolisAcceleration);}
  
-    const SpatialVec& getGyroscopicForce(const SBState& s) const {return fromB(s.cache->gyroscopicForces);}
-    SpatialVec&       updGyroscopicForce(const SBState& s) const {return toB  (s.cache->gyroscopicForces);}
+    const SpatialVec& getGyroscopicForce(const SBStateRep& s) const {return fromB(s.dynamicCache.gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(const SBStateRep& s) const {return toB  (s.dynamicCache.gyroscopicForces);}
     
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
     /// linear acceleration of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getA_GB (const SBState& s) const {return fromB(s.cache->bodyAccelerationInGround);}
-    SpatialVec&       updA_GB (const SBState& s) const {return toB  (s.cache->bodyAccelerationInGround);}
+    const SpatialVec& getA_GB (const SBStateRep& s) const {return fromB(s.dynamicCache.bodyAccelerationInGround);}
+    SpatialVec&       updA_GB (const SBStateRep& s) const {return toB  (s.dynamicCache.bodyAccelerationInGround);}
 
-    const SpatialVec& getSpatialAcc   (const SBState& s) const {return getA_GB(s);}
-    const Vec3&       getSpatialAngAcc(const SBState& s) const {return getA_GB(s)[0];}
-    const Vec3&       getSpatialLinAcc(const SBState& s) const {return getA_GB(s)[1];}
+    const SpatialVec& getSpatialAcc   (const SBStateRep& s) const {return getA_GB(s);}
+    const Vec3&       getSpatialAngAcc(const SBStateRep& s) const {return getA_GB(s)[0];}
+    const Vec3&       getSpatialLinAcc(const SBStateRep& s) const {return getA_GB(s)[1];}
 
-    const SpatialMat& getP    (const SBState& s) const {return fromB(s.cache->articulatedBodyInertia);}
-    SpatialMat&       updP    (const SBState& s) const {return toB  (s.cache->articulatedBodyInertia);}
+    const SpatialMat& getP    (const SBStateRep& s) const {return fromB(s.dynamicCache.articulatedBodyInertia);}
+    SpatialMat&       updP    (const SBStateRep& s) const {return toB  (s.dynamicCache.articulatedBodyInertia);}
 
-    const SpatialVec& getZ(const SBState& s) const {return fromB(s.cache->z);}
-    SpatialVec&       updZ(const SBState& s) const {return toB  (s.cache->z);}
+    const SpatialVec& getZ(const SBStateRep& s) const {return fromB(s.dynamicCache.z);}
+    SpatialVec&       updZ(const SBStateRep& s) const {return toB  (s.dynamicCache.z);}
 
-    const SpatialVec& getGepsilon(const SBState& s) const {return fromB(s.cache->Gepsilon);}
-    SpatialVec&       updGepsilon(const SBState& s) const {return toB  (s.cache->Gepsilon);}
+    const SpatialVec& getGepsilon(const SBStateRep& s) const {return fromB(s.dynamicCache.Gepsilon);}
+    SpatialVec&       updGepsilon(const SBStateRep& s) const {return toB  (s.dynamicCache.Gepsilon);}
 
-    const SpatialMat& getPsiT(const SBState& s) const {return fromB(s.cache->psiT);}
-    SpatialMat&       updPsiT(const SBState& s) const {return toB  (s.cache->psiT);}
+    const SpatialMat& getPsiT(const SBStateRep& s) const {return fromB(s.dynamicCache.psiT);}
+    SpatialMat&       updPsiT(const SBStateRep& s) const {return toB  (s.dynamicCache.psiT);}
 
-    const SpatialMat& getTau(const SBState& s) const {return fromB(s.cache->tau);}
-    SpatialMat&       updTau(const SBState& s) const {return toB  (s.cache->tau);}
+    const SpatialMat& getTau(const SBStateRep& s) const {return fromB(s.dynamicCache.tau);}
+    SpatialMat&       updTau(const SBStateRep& s) const {return toB  (s.dynamicCache.tau);}
 
-    const SpatialMat& getY(const SBState& s) const {return fromB(s.cache->Y);}
-    SpatialMat&       updY(const SBState& s) const {return toB  (s.cache->Y);}
+    const SpatialMat& getY(const SBStateRep& s) const {return fromB(s.dynamicCache.Y);}
+    SpatialMat&       updY(const SBStateRep& s) const {return toB  (s.dynamicCache.Y);}
 
-    virtual void realizeModeling  (const SBState&) const=0;
-    virtual void realizeParameters(const SBState&) const=0;
+    virtual void realizeModeling  (const SBStateRep&) const=0;
+    virtual void realizeParameters(const SBStateRep&) const=0;
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
-    virtual void realizeConfiguration(const SBState&) const=0;
+    virtual void realizeConfiguration(const SBStateRep&) const=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes realizeConfiguration()
     /// has already been called.
-    virtual void realizeMotion(const SBState&) const=0;
+    virtual void realizeMotion(const SBStateRep&) const=0;
 
-    Real calcKineticEnergy(const SBState&) const;   // from spatial quantities only
+    // These are called just after new state variables are allocated,
+    // in case there are any node-specific default values. At the Configuration
+    // stage, for example, the default ball joint q's will be set to 1,0,0,0.
+    // Most of these will use the default implementations here, i.e. do nothing.
+    virtual void setDefaultModelingValues     (const SBStateRep&, SBModelingVars&)      const {}
+    virtual void setDefaultParameterValues    (const SBStateRep&, SBParameterVars&)     const {}
+    virtual void setDefaultTimeValues         (const SBStateRep&, SBTimeVars&)          const {}
+    virtual void setDefaultConfigurationValues(const SBStateRep&, SBConfigurationVars&) const {}
+    virtual void setDefaultMotionValues       (const SBStateRep&, SBMotionVars&)        const {}
+    virtual void setDefaultDynamicValues      (const SBStateRep&, SBDynamicVars&)       const {}
+
+    Real calcKineticEnergy(const SBStateRep&) const;   // from spatial quantities only
 
     virtual const char* type()     const {return "unknown";}
     virtual int         getDOF()   const=0; //number of independent dofs
     virtual int         getMaxNQ() const=0; //dofs plus quaternion constraints
-    virtual int         getNQ(const SBState&) const=0; //actual number of q's
+    virtual int         getNQ(const SBStateRep&) const=0; //actual number of q's
 
-    virtual void enforceQuaternionConstraints(const SBState&) {throw VirtualBaseMethod();}
+    virtual void enforceQuaternionConstraints(const SBStateRep&) {throw VirtualBaseMethod();}
 
-    virtual void calcP(const SBState&) const                           {throw VirtualBaseMethod();}
-    virtual void calcZ(const SBState&, const SpatialVec& spatialForce) const
+    virtual void calcP(const SBStateRep&) const                           {throw VirtualBaseMethod();}
+    virtual void calcZ(const SBStateRep&, const SpatialVec& spatialForce) const
       { throw VirtualBaseMethod(); }
-    virtual void calcY(const SBState&) const                           {throw VirtualBaseMethod();}
-    virtual void calcAccel(const SBState&) const                       {throw VirtualBaseMethod();}
+    virtual void calcY(const SBStateRep&) const                           {throw VirtualBaseMethod();}
+    virtual void calcAccel(const SBStateRep&) const                       {throw VirtualBaseMethod();}
 
     virtual void calcInternalGradientFromSpatial
-        (const SBState&, Vector_<SpatialVec>& zTmp,
+        (const SBStateRep&, Vector_<SpatialVec>& zTmp,
          const Vector_<SpatialVec>& X, Vector& JX) const
       { throw VirtualBaseMethod(); }
 
-    virtual void setVelFromSVel(SBState&, const SpatialVec&) const {throw VirtualBaseMethod();}
+    virtual void setVelFromSVel(SBStateRep&, const SpatialVec&) const {throw VirtualBaseMethod();}
 
-    virtual void getDefaultParameters   (SBState&) const {throw VirtualBaseMethod();}
-    virtual void getDefaultConfiguration(SBState&) const {throw VirtualBaseMethod();}
-    virtual void getDefaultVelocity     (SBState&) const {throw VirtualBaseMethod();}
-    virtual void setQ(SBState& s, const Vector& q) const {throw VirtualBaseMethod();}
-    virtual void setU(SBState& s, const Vector& u) const {throw VirtualBaseMethod();}
+    virtual void setQ(SBStateRep& s, const Vector& q) const {throw VirtualBaseMethod();}
+    virtual void setU(SBStateRep& s, const Vector& u) const {throw VirtualBaseMethod();}
     virtual void getAccel(Vector&) const {throw VirtualBaseMethod();}
 
-    virtual void getInternalForce(const SBState&, Vector&) const {throw VirtualBaseMethod();}
+    virtual void getInternalForce(const SBStateRep&, Vector&) const {throw VirtualBaseMethod();}
 
     // Note that this requires rows of H to be packed like SpatialRow.
-    virtual const SpatialRow& getHRow(const SBState&, int i) const {throw VirtualBaseMethod();}
+    virtual const SpatialRow& getHRow(const SBStateRep&, int i) const {throw VirtualBaseMethod();}
 
     virtual void print(int) const { throw VirtualBaseMethod(); }
 
@@ -356,11 +360,11 @@ protected:
 private:   
     /// Calculate all spatial configuration quantities, assuming availability of
     /// joint-specific relative quantities.
-    void calcJointIndependentKinematicsPos(const SBState&) const;
+    void calcJointIndependentKinematicsPos(const SBStateRep&) const;
 
     /// Calcluate all spatial velocity quantities, assuming availability of
     /// joint-specific relative quantities and all position kinematics.
-    void calcJointIndependentKinematicsVel(const SBState&) const;
+    void calcJointIndependentKinematicsVel(const SBStateRep&) const;
 };
 
 #endif // RIGID_BODY_NODE_H_

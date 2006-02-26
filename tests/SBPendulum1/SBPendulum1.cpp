@@ -70,16 +70,22 @@ try {
     Real m = 3.;
     TransformMat groundFrame;
     TransformMat jointFrame(Vec3(-L/2,0,0));
-    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m));
+    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1.,0.,0.));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
     int theBody = 
-      pend.addRigidBody(0, groundFrame, JointSpecification(JointSpecification::Pin, false),
+      pend.addRigidBody(0, groundFrame, 
+                        //JointSpecification(JointSpecification::Pin, false),
+                        JointSpecification(JointSpecification::Ball, false),
                         jointFrame, mprops);
     pend.realizeConstruction();
+    SBState s = pend.getInitialState();
 
-    SBState s = pend.getDefaultState();
+    // set Modeling stuff (s)
+    pend.setUseEulerAngles(s, false); // this is the default
+    pend.realizeModeling(s);
+
     pend.realizeConfiguration(s);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
@@ -105,46 +111,33 @@ try {
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
     cout << "body acc: " << bodyAcc << endl;
 
-/*
-
-    IVMSimbodyInterface instanceOld(mbs, true);  // old style
-    IVMSimbodyInterface instanceNew(mbs, false); // new style
-    State sOld = instanceOld.getDefaultState();
-    State sNew = instanceNew.getDefaultState();
-    sOld.updQ()[0] = -1.5; // almost hanging straight down
-    sNew.updQ()[0] = -1.5; // almost hanging straight down
+    pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
+    //pend.updQ(s)[0] = -1.5; // almost hanging straight down
+    pend.updU(s) = 0;
 
     const Real h = 0.0001;
     const Real tstart = 0.;
     const Real tmax = 10.;
-    cout << "     OLD         NEW    " << endl;
     for (int step=0; ; ++step) { 
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        Vector_<SpatialVec>  bodyForces;
-        Vector               hingeForces;
-        instanceOld.clearForces(bodyForces,hingeForces);
-        instanceOld.realizeParameters(sOld);    instanceNew.realizeParameters(sNew);
-        instanceOld.realizeConfiguration(sOld); instanceNew.realizeConfiguration(sNew);
+        pend.clearAppliedForces(s);
+        pend.realizeConfiguration(s);
+        pend.realizeMotion(s); 
         if (!(step % 100))
             cout << t << " " 
-                 << sOld.getQ()[0] << " " << sOld.getU()[0] 
-                 << "        \t" << sNew.getQ()[0] << " " << sNew.getU()[0] 
+                 << pend.getQ(s) << " " << pend.getU(s) 
                  << endl;
-        instanceOld.applyGravity(sOld,Vec3(0,-9.8,0),bodyForces);
-        instanceOld.realizeMotion(sOld); 
-        instanceNew.realizeMotion(sNew);
-        Vector udotOld = instanceOld.calcUDot(sOld,bodyForces,hingeForces);
-        Vector udotNew = instanceNew.calcUDot(sNew,bodyForces,hingeForces);
-        //cout << "udot=" << udot << endl;
-        sOld.updQ() += h*sOld.getU();
-        sOld.updU() += h*udotOld;
+        Vector qdot = pend.getQDot(s);
+        pend.applyGravity(s,Vec3(0,-9.8,0));
+        pend.realizeReaction(s);
+        Vector udot = pend.getUDot(s);
 
-        sNew.updQ() += h*sNew.getU();
-        sNew.updU() += h*udotNew;
+        //cout << "qdot=" << qdot << "  udot=" << udot << endl;
+        pend.updQ(s) += h*qdot;
+        pend.updU(s) += h*udot;
     }
-    */
 
 }
 catch(const Exception::Base& e) {

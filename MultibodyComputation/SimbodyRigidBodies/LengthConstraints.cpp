@@ -55,9 +55,9 @@ public:
     LoopWNodes() : rbDistCons(0), rt(0), flipStations(false), base(0), moleculeNode(0) {}
     LoopWNodes(const RBDistanceConstraint&, std::vector<RBDistanceConstraintRuntime>&);
 
-    void calcPosInfo(const SBState& s) const { rbDistCons->calcPosInfo(s, *rt); }
-    void calcVelInfo(const SBState& s) const { rbDistCons->calcVelInfo(s, *rt); }
-    void calcAccInfo(const SBState& s) const { rbDistCons->calcAccInfo(s, *rt); }
+    void calcPosInfo(const SBStateRep& s) const { rbDistCons->calcPosInfo(s, *rt); }
+    void calcVelInfo(const SBStateRep& s) const { rbDistCons->calcVelInfo(s, *rt); }
+    void calcAccInfo(const SBStateRep& s) const { rbDistCons->calcAccInfo(s, *rt); }
 
     const double& getDistance() const { return rbDistCons->getDistance(); }
 
@@ -215,33 +215,33 @@ public:
         return found;
     }
 
-    void  setPos(SBState&, const Vector& pos) const;
-    void  setVel(SBState&, const Vector& vel) const;
+    void  setPos(SBStateRep&, const Vector& pos) const;
+    void  setVel(SBStateRep&, const Vector& vel) const;
     Vector getPos();
-    Vector calcPosB(SBState&, const Vector& pos) const;
-    Vector calcVelB(SBState&, const Vector& pos, const Vector& vel) const;
-    Vector calcPosZ(const SBState&, const Vector& b) const;
-    Matrix calcGrad(const SBState&) const;
-    Matrix calcGInverse(const SBState&) const;
+    Vector calcPosB(SBStateRep&, const Vector& pos) const;
+    Vector calcVelB(SBStateRep&, const Vector& pos, const Vector& vel) const;
+    Vector calcPosZ(const SBStateRep&, const Vector& b) const;
+    Matrix calcGrad(const SBStateRep&) const;
+    Matrix calcGInverse(const SBStateRep&) const;
 
-    void  calcConstraintForces(const SBState&) const; // updates runtime only
-    void  addInCorrectionForces(const SBState&, SpatialVecList& spatialForces) const; // spatialForces+=correction
+    void  calcConstraintForces(const SBStateRep&) const; // updates runtime only
+    void  addInCorrectionForces(const SBStateRep&, SpatialVecList& spatialForces) const; // spatialForces+=correction
 
-    void   fixVel0(SBState&, Vector&);
-    void   fixInternalForce(const SBState&, Vector&);
+    void   fixVel0(SBStateRep&, Vector&);
+    void   fixInternalForce(const SBStateRep&, Vector&);
     Vector multiForce(const Vector&, const Matrix& mat);
     void   subtractVecFromForces(Vector& frc, const Vector& vec);
 
     void testAccel();
-    void testInternalForce(const SBState&, const Vector&);
+    void testInternalForce(const SBStateRep&, const Vector&);
     friend ostream& operator<<(ostream& os, const LengthSet& s);
     friend class CalcPosB;
     friend class CalcVelB;
     friend class CalcPosZ;
     friend class CalcVelZ;
 
-    void fdgradf(SBState&, const Vector& pos, Matrix& grad) const;
-    void testGrad(SBState&, const Vector& pos, const Matrix& grad) const;
+    void fdgradf(SBStateRep&, const Vector& pos, Matrix& grad) const;
+    void testGrad(SBStateRep&, const Vector& pos, const Matrix& grad) const;
 };
 
 ostream& 
@@ -392,31 +392,31 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
 }
 
 class CalcPosB {
-    SBState&   s;
+    SBStateRep&   s;
     const LengthSet* lengthSet;
 public:
-    CalcPosB(SBState& ss, const LengthSet* lset)
+    CalcPosB(SBStateRep& ss, const LengthSet* lset)
         : s(ss), lengthSet(lset) {}
     Vector operator()(const Vector& pos) const
         { return lengthSet->calcPosB(s,pos); }
 };
 
 class CalcPosZ {
-    const SBState&   s;
+    const SBStateRep&   s;
     const LengthSet* lengthSet;
 public:
-    CalcPosZ(const SBState& ss, const LengthSet* constraint) 
+    CalcPosZ(const SBStateRep& ss, const LengthSet* constraint) 
         : s(ss), lengthSet(constraint) {}
     Vector operator()(const Vector& b) const 
         { return lengthSet->calcPosZ(s, b); }
 };
 
 class CalcVelB {
-    SBState&         s;
+    SBStateRep&         s;
     const Vector&    pos;
     const LengthSet* lengthSet;
 public:
-    CalcVelB(SBState& ss, const Vector& q, const LengthSet* constraint)
+    CalcVelB(SBStateRep& ss, const Vector& q, const LengthSet* constraint)
         : s(ss), pos(q), lengthSet(constraint) {}
     Vector operator()(const Vector& vel) 
         { return lengthSet->calcVelB(s,pos,vel); }
@@ -426,7 +426,7 @@ public:
 // Calculate the position constraint violation (zero when constraint met).
 //
 Vector
-LengthSet::calcPosB(SBState& s, const Vector& pos) const
+LengthSet::calcPosB(SBStateRep& s, const Vector& pos) const
 {
     setPos(s, pos);
 
@@ -441,7 +441,7 @@ LengthSet::calcPosB(SBState& s, const Vector& pos) const
 // Calculate the velocity constraint violation (zero when constraint met).
 //
 Vector
-LengthSet::calcVelB(SBState& s, const Vector& pos, const Vector& vel) const 
+LengthSet::calcVelB(SBStateRep& s, const Vector& pos, const Vector& vel) const 
 {
     setPos(s, pos); // TODO (sherm: this is probably redundant)
     setVel(s, vel);
@@ -462,7 +462,7 @@ LengthSet::calcVelB(SBState& s, const Vector& pos, const Vector& vel) const
 // were linear).
 //
 Vector
-LengthSet::calcPosZ(const SBState& s, const Vector& b) const
+LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
 {
     const Vector dir = calcGInverse(s) * b;
     Vector       z(getRBTree().getTotalQAlloc(),0.0);
@@ -486,11 +486,11 @@ LengthSet::calcPosZ(const SBState& s, const Vector& b) const
 // are linear and well conditioned).
 //
 class CalcVelZ {
-    const SBState&   s;
+    const SBStateRep&   s;
     const LengthSet* lengthSet;
     const Matrix     gInverse;
 public:
-    CalcVelZ(const SBState& ss, const LengthSet* lset)
+    CalcVelZ(const SBStateRep& ss, const LengthSet* lset)
       : s(ss), lengthSet(lset), gInverse(lengthSet->calcGInverse(s)) {}
 
     Vector operator()(const Vector& b) {
@@ -518,7 +518,7 @@ public:
 // (that is, after the position correction. I don't think that is happening
 // below.
 void
-LengthConstraints::enforce(SBState& s, Vector& pos, Vector& vel)
+LengthConstraints::enforce(SBStateRep& s, Vector& pos, Vector& vel)
 {
     priv->posMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
     priv->velMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
@@ -567,14 +567,14 @@ LengthConstraints::enforce(SBState& s, Vector& pos, Vector& vel)
 //
 
 
-void LengthSet::setPos(SBState& s, const Vector& pos) const
+void LengthSet::setPos(SBStateRep& s, const Vector& pos) const
 {
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setQ(s, pos);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.cache->stage >= ConfiguredStage)
-        s.cache->stage = TimedStage; // back up if needed
+    if (s.getStage(getRBTree()) >= ConfiguredStage)
+        s.setStage(getRBTree(), TimedStage); // back up if needed
 
     // sherm TODO: this now computes kinematics for the whole system,
     // but it should only have to update the loop we are interested in.
@@ -591,14 +591,14 @@ void LengthSet::setPos(SBState& s, const Vector& pos) const
 }
 
 // Must have called LengthSet::setPos() already.
-void LengthSet::setVel(SBState& s, const Vector& vel) const
+void LengthSet::setVel(SBStateRep& s, const Vector& vel) const
 {
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setU(s, vel);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.cache->stage >= MovingStage)
-        s.cache->stage = ConfiguredStage; // back up if needed
+    if (s.getStage(getRBTree()) >= MovingStage)
+        s.setStage(getRBTree(), ConfiguredStage); // back up if needed
 
     getRBTree().realizeMotion(s);
 
@@ -617,7 +617,7 @@ void LengthSet::setVel(SBState& s, const Vector& vel) const
 // version. Presumes that calcEnergy has been called previously with current 
 // value of ipos.
 void 
-LengthSet::fdgradf(SBState& s,
+LengthSet::fdgradf(SBStateRep& s,
                    const Vector&  pos,
                    Matrix&        grad) const 
 {
@@ -640,7 +640,7 @@ LengthSet::fdgradf(SBState& s,
 }
 
 void 
-LengthSet::testGrad(SBState& s, const Vector& pos, const Matrix& grad) const
+LengthSet::testGrad(SBStateRep& s, const Vector& pos, const Matrix& grad) const
 {
     double tol = 1e-4;
 
@@ -674,7 +674,7 @@ LengthSet::testGrad(SBState& s, const Vector& pos, const Matrix& grad) const
 // coordinates").
 //
 Matrix
-LengthSet::calcGrad(const SBState& s) const
+LengthSet::calcGrad(const SBStateRep& s) const
 {
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once
@@ -741,11 +741,11 @@ LengthSet::calcGrad(const SBState& s) const
 //     GG'x=Gb, x=inv(GG')Gb ??? [returning G inv(G'G) below] ???
 //     ??? either this is wrong or I don't understand
 Matrix
-LengthSet::calcGInverse(const SBState& s) const
+LengthSet::calcGInverse(const SBStateRep& s) const
 {
     Matrix grad = calcGrad(s); // <-- appears to be transpose of the actual dg/dtheta
     if ( getVerbose() & InternalDynamics::printLoopDebug ) {
-        SBState sTmp = s;
+        SBStateRep sTmp = s;
         Vector pos = getRBTree().getQ(s);
         testGrad(sTmp,pos,grad);
     }
@@ -764,7 +764,7 @@ LengthSet::calcGInverse(const SBState& s) const
 //     Do this step from tip to base.
 //
 
-bool LengthConstraints::calcConstraintForces(const SBState& s) const {
+bool LengthConstraints::calcConstraintForces(const SBStateRep& s) const {
     if ( priv->accConstraints.size() == 0 )
         return false;
 
@@ -776,13 +776,13 @@ bool LengthConstraints::calcConstraintForces(const SBState& s) const {
     return true;
 }
 
-void LengthConstraints::addInCorrectionForces(const SBState& s, SpatialVecList& spatialForces) const {
+void LengthConstraints::addInCorrectionForces(const SBStateRep& s, SpatialVecList& spatialForces) const {
     for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
         priv->accConstraints[i].addInCorrectionForces(s, spatialForces);
 }
 
 void 
-LengthConstraints::fixGradient(const SBState& s, Vector& forceInternal)
+LengthConstraints::fixGradient(const SBStateRep& s, Vector& forceInternal)
 {
     if ( priv->constraints.size() == 0 )
         return;
@@ -813,7 +813,7 @@ LengthConstraints::fixGradient(const SBState& s, Vector& forceInternal)
 // the nodes associated with stations s1 & s2.
 //
 static double
-computeA(const SBState& s,
+computeA(const SBStateRep& s,
          const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
          const LoopWNodes& loop2, int s2,
@@ -869,7 +869,7 @@ computeA(const SBState& s,
 // are to that paper. (sherm)
 //
 void
-LengthSet::calcConstraintForces(const SBState& s) const
+LengthSet::calcConstraintForces(const SBStateRep& s) const
 {
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -929,7 +929,7 @@ LengthSet::calcConstraintForces(const SBState& s) const
     }
 }
 
-void LengthSet::addInCorrectionForces(const SBState& s, SpatialVecList& spatialForces) const {
+void LengthSet::addInCorrectionForces(const SBStateRep& s, SpatialVecList& spatialForces) const {
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
@@ -959,11 +959,11 @@ void LengthSet::testAccel()
 // Fix internal force such that it obeys the constraint conditions.
 //
 void
-LengthSet::fixInternalForce(const SBState& s, Vector& forceInternal)
+LengthSet::fixInternalForce(const SBStateRep& s, Vector& forceInternal)
 {
     Matrix  grad = calcGrad(s);
     if ( getVerbose() & InternalDynamics::printLoopDebug ) {
-        SBState sTmp = s;
+        SBStateRep sTmp = s;
         Vector pos = getRBTree().getQ(s);
         testGrad(sTmp,pos,grad);
     }
@@ -1022,7 +1022,7 @@ LengthSet::subtractVecFromForces(Vector& forceInternal,
 }
 
 void
-LengthSet::testInternalForce(const SBState& s, const Vector& forceInternal)
+LengthSet::testInternalForce(const SBStateRep& s, const Vector& forceInternal)
 {
     // sherm 060222:
     assert(forceInternal.size() == getRBTree().getTotalDOF());
@@ -1051,7 +1051,7 @@ LengthSet::testInternalForce(const SBState& s, const Vector& forceInternal)
 }
 
 void
-LengthConstraints::fixVel0(SBState& s, Vector& iVel)
+LengthConstraints::fixVel0(SBStateRep& s, Vector& iVel)
 {
     // use molecule grouping
     for (int i=0 ; i<(int)priv->accConstraints.size() ; i++)
@@ -1064,7 +1064,7 @@ LengthConstraints::fixVel0(SBState& s, Vector& iVel)
 // small as possible.
 //
 void
-LengthSet::fixVel0(SBState& s, Vector& iVel)
+LengthSet::fixVel0(SBStateRep& s, Vector& iVel)
 {
     assert(iVel.size() == getRBTree().getTotalDOF());
 
@@ -1115,7 +1115,7 @@ LengthSet::fixVel0(SBState& s, Vector& iVel)
         // get all nodes in given molecule, ordered by level
         getRBTree().calcZ(s, spatialImpulse);
         getRBTree().calcTreeAccel(s);
-        deltaIVel[m] = getRBTree().getUdot(s);
+        deltaIVel[m] = getRBTree().getUDot(s);
 
         // Set the new velocities.
         getRBTree().setU(s, deltaIVel[m] );

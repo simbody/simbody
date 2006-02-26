@@ -57,19 +57,18 @@ enum SBStage {
     ReactingStage       = 7
 };
 
+// This is the handle class for the hidden SBState implementation.
+class SBStateRep;
 class SBState {
 public:
-    SBState() : vars(0), cache(0) { }
+    SBState() : rep(0) { }
     ~SBState();
     SBState(const SBState&);
     SBState& operator=(const SBState&);
 
-    void allocate(); // allocate empty vars & cache
-
-    SBStage getStage() const;
-
-    class SimbodyTreeVariables*         vars;
-    mutable class SimbodyTreeResults*   cache;
+    const SBStateRep& getRep() const {assert(rep); return *rep;}
+    SBStateRep&       updRep()       {assert(rep); return *rep;}
+    SBStateRep* rep;
 };
 
 
@@ -151,6 +150,8 @@ public:
     /// Topology and default values are frozen after this call.
     // TODO: "formulation" instead of "modeling" stage?
     void realizeConstruction();
+    const SBState& getInitialState() const;
+
     void realizeModeling     (const SBState&) const;
     void realizeParameters   (const SBState&) const;
     void realizeConfiguration(const SBState&) const;
@@ -194,6 +195,7 @@ public:
     int getMultIndex(int constraint) const;
     int getMaxNMult (int constraint) const;  // wait for modeling to get actual NMult
 
+
     /// For all ball and free joints, decide what method we should use
     /// to model their orientations. Choices are: quaternions (best
     /// for dynamics), or rotation angles (3-2-1 Euler sequence, good for
@@ -208,8 +210,6 @@ public:
     bool isJointPrescribed  (const SBState&, int joint)      const;
     bool isConstraintEnabled(const SBState&, int constraint) const;
 
-    /// Modeling Stage (available after realize(Modeling))
-    const SBState& getDefaultState() const;
 
     // Parameter setting & getting would go here 
 
