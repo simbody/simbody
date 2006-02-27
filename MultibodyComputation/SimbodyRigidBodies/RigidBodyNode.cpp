@@ -302,8 +302,9 @@ public:
     {
         toU(v.u) = 0.;
     }
-    virtual void setDefaultDynamicValues(const SBStateRep&, 
-                                         SBDynamicVars& v) const
+    virtual void setDefaultDynamicsValues(const SBStateRep&, SBDynamicsVars&) const {}
+    virtual void setDefaultReactionValues(const SBStateRep&, 
+                                          SBReactionVars& v) const
     {
         toB(v.appliedBodyForces) = SpatialVec(Vec3(0), Vec3(0));
         toU(v.appliedJointForces) = 0.;
@@ -373,14 +374,14 @@ public:
     // State variables (read only).
     const Vec<dof>&   getQ             (const SBStateRep& s) const {return fromQ(s.configVars.q);}
     const Vec<dof>&   getU             (const SBStateRep& s) const {return fromU(s.motionVars.u);}
-    const Vec<dof>&   getAppliedJointForce(const SBStateRep& s) const {return fromU(s.dynamicVars.appliedJointForces);}
-    const Vec<dof>&   getPrescribedUdot   (const SBStateRep& s) const {return fromU(s.dynamicVars.prescribedUdot);}
+    const Vec<dof>&   getAppliedJointForce(const SBStateRep& s) const {return fromU(s.reactionVars.appliedJointForces);}
+    const Vec<dof>&   getPrescribedUdot   (const SBStateRep& s) const {return fromU(s.reactionVars.prescribedUdot);}
 
     // Special case state access for 1-dof joints
     const Real& get1Q             (const SBStateRep& s) const {return from1Q(s.configVars.q);}
     const Real& get1U             (const SBStateRep& s) const {return from1U(s.motionVars.u);}
-    const Real& get1AppliedJointForce(const SBStateRep& s) const {return from1U(s.dynamicVars.appliedJointForces);}
-    const Real& get1PrescribedUdot   (const SBStateRep& s) const {return from1U(s.dynamicVars.prescribedUdot);}
+    const Real& get1AppliedJointForce(const SBStateRep& s) const {return from1U(s.reactionVars.appliedJointForces);}
+    const Real& get1PrescribedUdot   (const SBStateRep& s) const {return from1U(s.reactionVars.prescribedUdot);}
 
     // Special case for quaternions and Vec3 at offset.
     const Vec4& getQuat (const SBStateRep& s)           const {return fromQuat(s.configVars.q);}
@@ -432,38 +433,40 @@ public:
     Real&             upd1QDot  (const SBStateRep& s) const {return to1Q  (s.motionCache.qdot);}
 
         // Dynamics
-    const Vec<dof>&   getUDot   (const SBStateRep& s) const {return fromU (s.dynamicCache.udot);}
-    Vec<dof>&         updUDot   (const SBStateRep& s) const {return toU   (s.dynamicCache.udot);}
-    const Real&       get1UDot  (const SBStateRep& s) const {return from1U(s.dynamicCache.udot);}
-    Real&             upd1UDot  (const SBStateRep& s) const {return to1U  (s.dynamicCache.udot);}
-
-    const Vec<dof>&   getQDotDot (const SBStateRep& s) const {return fromQ (&s.dynamicCache.qdotdot);}
-    Vec<dof>&         updQDotDot (const SBStateRep& s) const {return toQ   (&s.dynamicCache.qdotdot);}
-    const Real&       get1QDotDot(const SBStateRep& s) const {return from1Q(s.dynamicCache.qdotdot);}
-    Real&             upd1QDotDot(const SBStateRep& s) const {return to1Q  (s.dynamicCache.qdotdot);}
-
-    const Vec<dof>&   getNetHingeForce (const SBStateRep& s) const {return fromU (s.dynamicCache.netHingeForces);}
-    Vec<dof>&         updNetHingeForce (const SBStateRep& s) const {return toU   (s.dynamicCache.netHingeForces);}
-    const Real&       get1NetHingeForce (const SBStateRep& s) const {return from1U(s.dynamicCache.netHingeForces);}
-    Real&             upd1NetHingeForce(const SBStateRep& s) const {return to1U  (s.dynamicCache.netHingeForces);}
-
-    const Mat<dof,dof>& getDI(const SBStateRep& s) const {return fromUSq(s.dynamicCache.storageForDI);}
-    Mat<dof,dof>&       updDI(const SBStateRep& s) const {return toUSq  (s.dynamicCache.storageForDI);}
+    const Mat<dof,dof>& getDI(const SBStateRep& s) const {return fromUSq(s.dynamicsCache.storageForDI);}
+    Mat<dof,dof>&       updDI(const SBStateRep& s) const {return toUSq  (s.dynamicsCache.storageForDI);}
 
     const Mat<2,dof,Vec3>& getG(const SBStateRep& s) const
-      { return Mat<2,dof,Vec3>::getAs(&s.dynamicCache.storageForG(0,uIndex)); }
+      { return Mat<2,dof,Vec3>::getAs(&s.dynamicsCache.storageForG(0,uIndex)); }
     Mat<2,dof,Vec3>&       updG(const SBStateRep& s) const
-      { return Mat<2,dof,Vec3>::updAs(&s.dynamicCache.storageForG(0,uIndex)); }
+      { return Mat<2,dof,Vec3>::updAs(&s.dynamicsCache.storageForG(0,uIndex)); }
 
-    const Vec<dof>&   getNu (const SBStateRep& s) const {return fromU (s.dynamicCache.nu);}
-    Vec<dof>&         updNu (const SBStateRep& s) const {return toU   (s.dynamicCache.nu);}
-    const Real&       get1Nu(const SBStateRep& s) const {return from1U(s.dynamicCache.nu);}
-    Real&             upd1Nu(const SBStateRep& s) const {return to1U  (s.dynamicCache.nu);}
+        // Reaction
+    const Vec<dof>&   getUDot   (const SBStateRep& s) const {return fromU (s.reactionCache.udot);}
+    Vec<dof>&         updUDot   (const SBStateRep& s) const {return toU   (s.reactionCache.udot);}
+    const Real&       get1UDot  (const SBStateRep& s) const {return from1U(s.reactionCache.udot);}
+    Real&             upd1UDot  (const SBStateRep& s) const {return to1U  (s.reactionCache.udot);}
 
-    const Vec<dof>&   getEpsilon (const SBStateRep& s) const {return fromU (s.dynamicCache.epsilon);}
-    Vec<dof>&         updEpsilon (const SBStateRep& s) const {return toU   (s.dynamicCache.epsilon);}
-    const Real&       get1Epsilon(const SBStateRep& s) const {return from1U(s.dynamicCache.epsilon);}
-    Real&             upd1Epsilon(const SBStateRep& s) const {return to1U  (s.dynamicCache.epsilon);}
+    const Vec<dof>&   getQDotDot (const SBStateRep& s) const {return fromQ (&s.reactionCache.qdotdot);}
+    Vec<dof>&         updQDotDot (const SBStateRep& s) const {return toQ   (&s.reactionCache.qdotdot);}
+    const Real&       get1QDotDot(const SBStateRep& s) const {return from1Q(s.reactionCache.qdotdot);}
+    Real&             upd1QDotDot(const SBStateRep& s) const {return to1Q  (s.reactionCache.qdotdot);}
+
+    const Vec<dof>&   getNetHingeForce (const SBStateRep& s) const {return fromU (s.reactionCache.netHingeForces);}
+    Vec<dof>&         updNetHingeForce (const SBStateRep& s) const {return toU   (s.reactionCache.netHingeForces);}
+    const Real&       get1NetHingeForce (const SBStateRep& s) const {return from1U(s.reactionCache.netHingeForces);}
+    Real&             upd1NetHingeForce(const SBStateRep& s) const {return to1U  (s.reactionCache.netHingeForces);}
+
+
+    const Vec<dof>&   getNu (const SBStateRep& s) const {return fromU (s.reactionCache.nu);}
+    Vec<dof>&         updNu (const SBStateRep& s) const {return toU   (s.reactionCache.nu);}
+    const Real&       get1Nu(const SBStateRep& s) const {return from1U(s.reactionCache.nu);}
+    Real&             upd1Nu(const SBStateRep& s) const {return to1U  (s.reactionCache.nu);}
+
+    const Vec<dof>&   getEpsilon (const SBStateRep& s) const {return fromU (s.reactionCache.epsilon);}
+    Vec<dof>&         updEpsilon (const SBStateRep& s) const {return toU   (s.reactionCache.epsilon);}
+    const Real&       get1Epsilon(const SBStateRep& s) const {return from1U(s.reactionCache.epsilon);}
+    Real&             upd1Epsilon(const SBStateRep& s) const {return to1U  (s.reactionCache.epsilon);}
 
     void calcP(const SBStateRep& s) const;
     void calcZ(const SBStateRep& s, const SpatialVec& spatialForce) const;
@@ -1197,7 +1200,7 @@ RigidBodyNodeSpec<dof>::calcAccel(const SBStateRep& s) const {
     udot       = getNu(s) - (~getG(s)*alphap);
     updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
 
-    calcQDotDot(s, s.dynamicCache.qdotdot);   
+    calcQDotDot(s, s.reactionCache.qdotdot);   
 }
 
  

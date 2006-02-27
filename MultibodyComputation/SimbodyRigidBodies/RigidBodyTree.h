@@ -14,7 +14,8 @@ class SBParameterVars;
 class SBTimeVars;
 class SBConfigurationVars;
 class SBMotionVars;
-class SBDynamicVars;
+class SBDynamicsVars;
+class SBReactionVars;
 }
 
 #include <cassert>
@@ -164,6 +165,7 @@ public:
     void realizeTime         (const SBStateRep&) const;
     void realizeConfiguration(const SBStateRep&) const;
     void realizeMotion       (const SBStateRep&) const;
+    void realizeDynamics     (const SBStateRep&) const;
     void realizeReaction     (const SBStateRep&) const;
 
     Real calcKineticEnergy(const SBStateRep&) const;
@@ -199,7 +201,8 @@ public:
     void setDefaultTimeValues         (const SBStateRep&, SBTimeVars&)          const;
     void setDefaultConfigurationValues(const SBStateRep&, SBConfigurationVars&) const;
     void setDefaultMotionValues       (const SBStateRep&, SBMotionVars&)        const;
-    void setDefaultDynamicValues      (const SBStateRep&, SBDynamicVars&)       const;
+    void setDefaultDynamicsValues     (const SBStateRep&, SBDynamicsVars&)      const;
+    void setDefaultReactionValues     (const SBStateRep&, SBReactionVars&)      const;
 
 
 

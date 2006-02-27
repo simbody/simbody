@@ -207,35 +207,35 @@ public:
 
         // DYNAMICS INFO
 
-    const SpatialVec& getBodyForce(const SBStateRep& s) const {return fromB(s.dynamicVars.appliedBodyForces);}
+    const SpatialVec& getBodyForce(const SBStateRep& s) const {return fromB(s.reactionVars.appliedBodyForces);}
 
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
     /// linear acceleration of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getA_GB (const SBStateRep& s) const {return fromB(s.dynamicCache.bodyAccelerationInGround);}
-    SpatialVec&       updA_GB (const SBStateRep& s) const {return toB  (s.dynamicCache.bodyAccelerationInGround);}
+    const SpatialVec& getA_GB (const SBStateRep& s) const {return fromB(s.reactionCache.bodyAccelerationInGround);}
+    SpatialVec&       updA_GB (const SBStateRep& s) const {return toB  (s.reactionCache.bodyAccelerationInGround);}
 
     const SpatialVec& getSpatialAcc   (const SBStateRep& s) const {return getA_GB(s);}
     const Vec3&       getSpatialAngAcc(const SBStateRep& s) const {return getA_GB(s)[0];}
     const Vec3&       getSpatialLinAcc(const SBStateRep& s) const {return getA_GB(s)[1];}
 
-    const SpatialMat& getP    (const SBStateRep& s) const {return fromB(s.dynamicCache.articulatedBodyInertia);}
-    SpatialMat&       updP    (const SBStateRep& s) const {return toB  (s.dynamicCache.articulatedBodyInertia);}
+    const SpatialMat& getP    (const SBStateRep& s) const {return fromB(s.dynamicsCache.articulatedBodyInertia);}
+    SpatialMat&       updP    (const SBStateRep& s) const {return toB  (s.dynamicsCache.articulatedBodyInertia);}
 
-    const SpatialVec& getZ(const SBStateRep& s) const {return fromB(s.dynamicCache.z);}
-    SpatialVec&       updZ(const SBStateRep& s) const {return toB  (s.dynamicCache.z);}
+    const SpatialVec& getZ(const SBStateRep& s) const {return fromB(s.reactionCache.z);}
+    SpatialVec&       updZ(const SBStateRep& s) const {return toB  (s.reactionCache.z);}
 
-    const SpatialVec& getGepsilon(const SBStateRep& s) const {return fromB(s.dynamicCache.Gepsilon);}
-    SpatialVec&       updGepsilon(const SBStateRep& s) const {return toB  (s.dynamicCache.Gepsilon);}
+    const SpatialVec& getGepsilon(const SBStateRep& s) const {return fromB(s.reactionCache.Gepsilon);}
+    SpatialVec&       updGepsilon(const SBStateRep& s) const {return toB  (s.reactionCache.Gepsilon);}
 
-    const SpatialMat& getPsiT(const SBStateRep& s) const {return fromB(s.dynamicCache.psiT);}
-    SpatialMat&       updPsiT(const SBStateRep& s) const {return toB  (s.dynamicCache.psiT);}
+    const SpatialMat& getPsiT(const SBStateRep& s) const {return fromB(s.dynamicsCache.psiT);}
+    SpatialMat&       updPsiT(const SBStateRep& s) const {return toB  (s.dynamicsCache.psiT);}
 
-    const SpatialMat& getTau(const SBStateRep& s) const {return fromB(s.dynamicCache.tau);}
-    SpatialMat&       updTau(const SBStateRep& s) const {return toB  (s.dynamicCache.tau);}
+    const SpatialMat& getTau(const SBStateRep& s) const {return fromB(s.dynamicsCache.tau);}
+    SpatialMat&       updTau(const SBStateRep& s) const {return toB  (s.dynamicsCache.tau);}
 
-    const SpatialMat& getY(const SBStateRep& s) const {return fromB(s.dynamicCache.Y);}
-    SpatialMat&       updY(const SBStateRep& s) const {return toB  (s.dynamicCache.Y);}
+    const SpatialMat& getY(const SBStateRep& s) const {return fromB(s.dynamicsCache.Y);}
+    SpatialMat&       updY(const SBStateRep& s) const {return toB  (s.dynamicsCache.Y);}
 
     virtual void realizeModeling  (const SBStateRep&) const=0;
     virtual void realizeParameters(const SBStateRep&) const=0;
@@ -258,7 +258,8 @@ public:
     virtual void setDefaultTimeValues         (const SBStateRep&, SBTimeVars&)          const {}
     virtual void setDefaultConfigurationValues(const SBStateRep&, SBConfigurationVars&) const {}
     virtual void setDefaultMotionValues       (const SBStateRep&, SBMotionVars&)        const {}
-    virtual void setDefaultDynamicValues      (const SBStateRep&, SBDynamicVars&)       const {}
+    virtual void setDefaultDynamicsValues     (const SBStateRep&, SBDynamicsVars&)      const {}
+    virtual void setDefaultReactionValues     (const SBStateRep&, SBReactionVars&)      const {}
 
     Real calcKineticEnergy(const SBStateRep&) const;   // from spatial quantities only
 

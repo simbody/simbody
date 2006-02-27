@@ -46,14 +46,15 @@ class MassProperties;
  */
 
 enum SBStage {
-    UninitializedStage  = 0,    // these are ordered
+    UninitializedStage  = 0, // these are ordered
     BuiltStage          = 1,
     ModeledStage        = 2,
     ParametrizedStage   = 3,
     TimedStage          = 4,
     ConfiguredStage     = 5,
     MovingStage         = 6,
-    ReactingStage       = 7
+    DynamicsStage       = 7, // dynamic properties & operators available
+    ReactingStage       = 8  // accelerations & reaction forces available
 };
 
 // This is the handle class for the hidden SBState implementation.
@@ -156,6 +157,7 @@ public:
     void realizeTime         (const SBState&) const;
     void realizeConfiguration(const SBState&) const;
     void realizeMotion       (const SBState&) const;
+    void realizeDynamics    (const SBState&) const;
     void realizeReaction     (const SBState&) const;
 
     void realize(const SBState&, SBStage) const;
@@ -170,7 +172,7 @@ public:
     /// Requires realization through MovingStage.
     Real calcKineticEnergy(const SBState&) const;
 
-    /// Requires realization through MovingStage.
+    /// Requires realization through DynamicsStage.
     void calcTreeUDot(const SBState&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,

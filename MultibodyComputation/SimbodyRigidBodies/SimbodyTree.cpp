@@ -45,6 +45,7 @@ void SimbodyTree::realizeParameters   (const SBState& s) const {rep->realizePara
 void SimbodyTree::realizeTime         (const SBState& s) const {rep->realizeTime(s.getRep());}
 void SimbodyTree::realizeConfiguration(const SBState& s) const {rep->realizeConfiguration(s.getRep());}
 void SimbodyTree::realizeMotion       (const SBState& s) const {rep->realizeMotion(s.getRep());}
+void SimbodyTree::realizeDynamics     (const SBState& s) const {rep->realizeDynamics(s.getRep());}
 void SimbodyTree::realizeReaction     (const SBState& s) const {rep->realizeReaction(s.getRep());}
 void SimbodyTree::realize(const SBState& s, SBStage g) const {
     rep->realize(s.getRep(), g);

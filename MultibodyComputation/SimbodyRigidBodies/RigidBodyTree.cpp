@@ -175,7 +175,8 @@ void RigidBodyTree::realize(const SBStateRep& s, SBStage stage) const {
         case ParametrizedStage:  realizeTime(s);         break;
         case TimedStage:         realizeConfiguration(s);break;
         case ConfiguredStage:    realizeMotion(s);       break;
-        case MovingStage:        realizeReaction(s);     break;
+        case MovingStage:        realizeDynamics(s);     break;
+        case DynamicsStage:      realizeReaction(s);     break;
         default: assert(false);
         }
     }
@@ -289,14 +290,24 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
     s.setStage(*this, MovingStage);
 }
 
+void RigidBodyTree::realizeDynamics(const SBStateRep& s)  const {
+    assert(s.getStage(*this) >= DynamicsStage-1);
+    if (s.getStage(*this) >= DynamicsStage) return;
+
+    s.allocateCacheIfNeeded(*this, DynamicsStage);
+
+    prepareForDynamics(s);
+
+    s.setStage(*this, DynamicsStage);
+}
+
 void RigidBodyTree::realizeReaction(const SBStateRep& s)  const {
     assert(s.getStage(*this) >= ReactingStage-1);
     if (s.getStage(*this) >= ReactingStage) return;
 
     s.allocateCacheIfNeeded(*this, ReactingStage);
 
-    prepareForDynamics(s);
-    calcLoopForwardDynamics(s, s.dynamicVars.appliedBodyForces);
+    calcLoopForwardDynamics(s, s.reactionVars.appliedBodyForces);
 
     s.setStage(*this, ReactingStage);
 }
@@ -390,20 +401,35 @@ void RigidBodyTree::setDefaultMotionValues(const SBStateRep& s,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultDynamicValues(const SBStateRep& s, 
-                                            SBDynamicVars& dynamicVars) const 
+void RigidBodyTree::setDefaultDynamicsValues(const SBStateRep& s, 
+                                             SBDynamicsVars& dynamicsVars) const 
 {
     assert(s.getStage(*this) >= ModeledStage);
 
-    // Tree-level defaults
-    dynamicVars.appliedJointForces.setToZero();
-    dynamicVars.appliedBodyForces.setToZero();
-    dynamicVars.prescribedUdot.setToZero();
+    // Tree-level defaults (none)
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultDynamicValues(s, dynamicVars);
+            rbNodeLevels[i][j]->setDefaultDynamicsValues(s, dynamicsVars);
+
+    // TODO: constraint defaults
+}
+
+void RigidBodyTree::setDefaultReactionValues(const SBStateRep& s, 
+                                             SBReactionVars& reactionVars) const 
+{
+    assert(s.getStage(*this) >= ModeledStage);
+
+    // Tree-level defaults
+    reactionVars.appliedJointForces.setToZero();
+    reactionVars.appliedBodyForces.setToZero();
+    reactionVars.prescribedUdot.setToZero();
+
+    // Node/joint-level defaults
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
+            rbNodeLevels[i][j]->setDefaultReactionValues(s, reactionVars);
 
     // TODO: constraint defaults
 }
@@ -453,17 +479,17 @@ void RigidBodyTree::setJointU(SBStateRep& s, int body, int axis, const Real& r) 
 
 
 void RigidBodyTree::setPrescribedUdot(SBStateRep& s, int body, int axis, const Real& r) const {
-    SBDynamicVars& dynamicVars = s.updDynamicVars(*this); // check/adjust stage
+    SBReactionVars& reactionVars = s.updReactionVars(*this); // check/adjust stage
 
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
-    dynamicVars.prescribedUdot[n.getUIndex()+axis] = r;
+    reactionVars.prescribedUdot[n.getUIndex()+axis] = r;
 }
 
 void RigidBodyTree::clearAppliedForces(SBStateRep& s) const {
-    SBDynamicVars& dynamicVars = s.updDynamicVars(*this); // check/adjust stage
-    dynamicVars.appliedJointForces.setToZero();
-    dynamicVars.appliedBodyForces.setToZero();
+    SBReactionVars& reactionVars = s.updReactionVars(*this); // check/adjust stage
+    reactionVars.appliedJointForces.setToZero();
+    reactionVars.appliedBodyForces.setToZero();
 }
 
 void RigidBodyTree::applyGravity(SBStateRep& s, const Vec3& g) const {
@@ -478,25 +504,25 @@ void RigidBodyTree::applyGravity(SBStateRep& s, const Vec3& g) const {
 void RigidBodyTree::applyPointForce(SBStateRep& s, int body, const Vec3& stationInB, 
                         const Vec3& forceInG) const
 {
-    SBDynamicVars& dynamicVars = s.updDynamicVars(*this); // check/adjust stage
+    SBReactionVars& reactionVars = s.updReactionVars(*this); // check/adjust stage
 
     const RotationMat& R_GB = getRigidBodyNode(body).getX_GB(s).R();
-    dynamicVars.appliedBodyForces[body] += 
+    reactionVars.appliedBodyForces[body] += 
         SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
 void RigidBodyTree::applyBodyTorque(SBStateRep& s, int body, const Vec3& torqueInG) const {
-    SBDynamicVars& dynamicVars = s.updDynamicVars(*this); // check/adjust stage
+    SBReactionVars& reactionVars = s.updReactionVars(*this); // check/adjust stage
 
-    dynamicVars.appliedBodyForces[body] += SpatialVec(torqueInG, Vec3(0));
+    reactionVars.appliedBodyForces[body] += SpatialVec(torqueInG, Vec3(0));
 }
 
 void RigidBodyTree::applyJointForce(SBStateRep& s, int body, int axis, const Real& r) const {
-    SBDynamicVars& dynamicVars = s.updDynamicVars(*this); // check/adjust stage
+    SBReactionVars& reactionVars = s.updReactionVars(*this); // check/adjust stage
 
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
-    dynamicVars.appliedJointForces[n.getUIndex()+axis] = r;
+    reactionVars.appliedJointForces[n.getUIndex()+axis] = r;
 }
 
 // Access to continuous state variables and their derivatives.
@@ -535,13 +561,13 @@ const Vector& RigidBodyTree::getU(const SBStateRep& s) const {
 
 const Vector& 
 RigidBodyTree::getAppliedJointForces(const SBStateRep& s) const {
-    const SBDynamicVars& dynamicVars = s.getDynamicVars(*this);
-    return dynamicVars.appliedJointForces;
+    const SBReactionVars& reactionVars = s.getReactionVars(*this);
+    return reactionVars.appliedJointForces;
 }
 const Vector_<SpatialVec>& 
 RigidBodyTree::getAppliedBodyForces(const SBStateRep& s) const {
-    const SBDynamicVars& dynamicVars = s.getDynamicVars(*this);
-    return dynamicVars.appliedBodyForces;
+    const SBReactionVars& reactionVars = s.getReactionVars(*this);
+    return reactionVars.appliedBodyForces;
 }
 
 const Vector& RigidBodyTree::getQDot(const SBStateRep& s) const {
@@ -549,12 +575,12 @@ const Vector& RigidBodyTree::getQDot(const SBStateRep& s) const {
     return motionCache.qdot;
 }
 const Vector& RigidBodyTree::getUDot(const SBStateRep& s) const {
-    const SBDynamicCache& dynamicCache = s.getDynamicCache(*this);
-    return dynamicCache.udot;
+    const SBReactionCache& reactionCache = s.getReactionCache(*this);
+    return reactionCache.udot;
 }
 const Vector& RigidBodyTree::getQDotDot(const SBStateRep& s) const {
-    const SBDynamicCache& dynamicCache = s.getDynamicCache(*this);
-    return dynamicCache.qdotdot;
+    const SBReactionCache& reactionCache = s.getReactionCache(*this);
+    return reactionCache.qdotdot;
 }
 
 void RigidBodyTree::enforceConfigurationConstraints(SBStateRep& s) const {
@@ -692,7 +718,7 @@ void RigidBodyTree::calcTreeUDot(const SBStateRep& s,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    udot) const 
 {
-    assert(s.getStage(*this) >= MovingStage);
+    assert(s.getStage(*this) >= DynamicsStage);
     assert(jointForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNBodies());
     udot.resize(getTotalDOF());
@@ -700,8 +726,6 @@ void RigidBodyTree::calcTreeUDot(const SBStateRep& s,
     Vector_<SpatialVec> allZ(getNBodies());
     Vector_<SpatialVec> allGepsilon(getNBodies());
     Vector              allEpsilon(getTotalDOF());
-
-    calcP(s); // TODO: KLUDGE -- can't do this here!!!!
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {

@@ -36,7 +36,8 @@
  *    TimedStage
  *    ConfiguredStage        (positions)
  *    MovingStage            (velocities)
- *    ReactingStage          (dynamics)
+ *    DynamicsStage          dynamic operators available
+ *    ReactingStage          (response to forces in the state)
  *
  * Construction proceeds until all the bodies and constraints have been specified. After
  * that, realizeConstruction() is called. Construction-related 
@@ -76,14 +77,16 @@ class SBParameterVars;
 class SBTimeVars;
 class SBConfigurationVars;
 class SBMotionVars;
-class SBDynamicVars;
+class SBDynamicsVars;
+class SBReactionVars;
 
-class SBModelingResults;
-class SBParameterResults;
-class SBTimeResults;
-class SBConfigurationResults;
-class SBMotionResults;
-class SBDynamicResults;
+class SBModelingCache;
+class SBParameterCache;
+class SBTimeCache;
+class SBConfigurationCache;
+class SBMotionCache;
+class SBDynamicsCache;
+class SBReactionCache;
 
 class SBStateRep;
 
@@ -220,25 +223,47 @@ public:
     }
 };
 
-class SBDynamicCache {
+class SBDynamicsCache {
 public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
-    Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
 
+    Vector_<SpatialMat> psiT;                     // nb
+    Vector_<SpatialMat> tau;                      // nb TODO: probably don't need to save this
+    Vector_<SpatialMat> Y;                        // nb
+
+    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
+    Matrix_<Vec3>       storageForG;              // 2 X ndof
+
+public:
+    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+        // Pull out construction-stage information from the tree.
+        const int nBodies = tree.getNBodies();
+        const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
+        const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
+        const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
+        const int nac     = tree.getNConstraints(); // acceleration constraints        
+        
+        articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
+
+        psiT.resize(nBodies); // TODO: ground initialization
+        tau.resize(nBodies); // TODO: ground initialization
+        Y.resize(nBodies); // TODO: ground initialization
+        storageForDI.resize(nSqDofs);
+        storageForG.resize(2,nDofs);
+    }
+};
+
+
+class SBReactionCache {
+public:
+    Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
     Vector udot;                                  // nu
     Vector lambda;                                // nac
     Vector accelerationConstraintErrors;          // nac
     Vector netHingeForces;                        // nu (T-(~Am+R(F+C))
     Vector qdotdot;                               // nq
 
-    // dynamic temporaries
-    Vector_<SpatialMat> psiT;                     // nb
-    Vector_<SpatialMat> tau;                      // nb
-    Vector_<SpatialMat> Y;                        // nb
-
-    Vector_<Real>       storageForDI;             // sum(nu[j]^2)
-    Matrix_<Vec3>       storageForG;              // 2 X ndof
     Vector              nu;
     Vector              epsilon;
     Vector_<SpatialVec> z;                        // nb
@@ -251,8 +276,6 @@ public:
         const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
         const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
         const int nac     = tree.getNConstraints(); // acceleration constraints        
-        
-        articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
@@ -262,11 +285,7 @@ public:
         accelerationConstraintErrors.resize(nac);
         netHingeForces.resize(nDofs);
         qdotdot.resize(maxNQs);
-        psiT.resize(nBodies); // TODO: ground initialization
-        tau.resize(nBodies); // TODO: ground initialization
-        Y.resize(nBodies); // TODO: ground initialization
-        storageForDI.resize(nSqDofs);
-        storageForG.resize(2,nDofs);
+
         nu.resize(nDofs);
         epsilon.resize(nDofs);
         z.resize(nBodies);
@@ -285,8 +304,9 @@ public:
  *     Parametrization: setting of physical parameters, e.g. mass
  *       (Time: not relevant to MultibodyTree)
  *     Configuration:   position and orientation values (2nd order continuous)
- *     Velocity:        rates
- *     Dynamics:        forces & prescribed accelerations   
+ *     Motion:          rates
+ *     Dynamics;        dynamic quantities & operators available
+ *     Reaction:        response to forces & prescribed accelerations in State 
  *
  */
 
@@ -353,7 +373,15 @@ public:
     }
 };
 
-class SBDynamicVars {
+class SBDynamicsVars {
+public:
+    // none
+public:
+    void allocate(const RigidBodyTree&, const SBStateRep&) const {
+    }
+};
+
+class SBReactionVars {
 public:
     Vector_<SpatialVec> appliedBodyForces;  // nb
     Vector              appliedJointForces; // nu
@@ -362,7 +390,7 @@ public:
 
     // We can access the tree or state variable & cache up to ModeledStage.
     void allocate(const RigidBodyTree& tree, const SBStateRep&) const {    
-        SBDynamicVars& mutvars = *const_cast<SBDynamicVars*>(this);
+        SBReactionVars& mutvars = *const_cast<SBReactionVars*>(this);
 
         mutvars.appliedBodyForces.resize(tree.getNBodies());  
         mutvars.appliedBodyForces.setToNaN();
@@ -431,8 +459,10 @@ public:
         tree.setDefaultConfigurationValues(*this, mutableState.configVars); 
         motionVars.allocate (tree, *this);   
         tree.setDefaultMotionValues(*this, mutableState.motionVars); 
-        dynamicVars.allocate(tree, *this);   
-        tree.setDefaultDynamicValues(*this, mutableState.dynamicVars); 
+        dynamicsVars.allocate(tree, *this);   
+        tree.setDefaultDynamicsValues(*this, mutableState.dynamicsVars); 
+        reactionVars.allocate(tree, *this);   
+        tree.setDefaultReactionValues(*this, mutableState.reactionVars); 
     }
 
     // We're about to realize stage g and we want to make sure the cache entries we'll
@@ -449,12 +479,13 @@ public:
 
         // These are uninitialized, i.e. garbage (NaN during Debug).
         switch (g) {
-        case ModeledStage:      modelCache.allocate  (tree); break;
-        case ParametrizedStage: paramCache.allocate  (tree, *this); break;
-        case TimedStage:        timeCache.allocate   (tree, *this); break;
-        case ConfiguredStage:   configCache.allocate (tree, *this); break;
-        case MovingStage:       motionCache.allocate (tree, *this); break;
-        case ReactingStage:     dynamicCache.allocate(tree, *this); break;
+        case ModeledStage:      modelCache.allocate   (tree); break;
+        case ParametrizedStage: paramCache.allocate   (tree, *this); break;
+        case TimedStage:        timeCache.allocate    (tree, *this); break;
+        case ConfiguredStage:   configCache.allocate  (tree, *this); break;
+        case MovingStage:       motionCache.allocate  (tree, *this); break;
+        case DynamicsStage:     dynamicsCache.allocate(tree, *this); break;
+        case ReactingStage:     reactionCache.allocate(tree, *this); break;
         default: assert(false);
         }
     }
@@ -512,17 +543,26 @@ public:
             stage = SBStage(MovingStage-1); // backup if necessary
         return motionVars;
     }
-    const SBDynamicVars& getDynamicVars(const RigidBodyTree& tree) const {
+    const SBDynamicsVars& getDynamicsVars(const RigidBodyTree& tree) const {
         assert(getStage(tree) >= ModeledStage);
-        return dynamicVars;
+        return dynamicsVars;
     }
-    SBDynamicVars& updDynamicVars(const RigidBodyTree& tree) {
+    SBDynamicsVars& updDynamicsVars(const RigidBodyTree& tree) {
+        assert(getStage(tree) >= ModeledStage);
+        if (getStage(tree) >= DynamicsStage)
+            stage = SBStage(DynamicsStage-1); // backup if necessary
+        return dynamicsVars;
+    }
+    const SBReactionVars& getReactionVars(const RigidBodyTree& tree) const {
+        assert(getStage(tree) >= ModeledStage);
+        return reactionVars;
+    }
+    SBReactionVars& updReactionVars(const RigidBodyTree& tree) {
         assert(getStage(tree) >= ModeledStage);
         if (getStage(tree) >= ReactingStage)
             stage = SBStage(ReactingStage-1); // backup if necessary
-        return dynamicVars;
+        return reactionVars;
     }
-
         // STAGE-CHECKED CACHE ACCESS
 
     // If the "inProgress" flag is set it means that we are still calculating the
@@ -580,15 +620,25 @@ public:
         assert(getStage(tree) >= MovingStage-1);
         return motionCache;
     }
-    const SBDynamicCache& getDynamicCache(const RigidBodyTree& tree, 
-                                          bool inProgress=false) const 
+    const SBDynamicsCache& getDynamicsCache(const RigidBodyTree& tree, 
+                                            bool inProgress=false) const 
+    {
+        assert(getStage(tree) >= (inProgress ? DynamicsStage-1 : DynamicsStage));
+        return dynamicsCache;
+    }
+    SBDynamicsCache& updDynamicsCache(const RigidBodyTree& tree) const {
+        assert(getStage(tree) >= DynamicsStage-1);
+        return dynamicsCache;
+    }
+    const SBReactionCache& getReactionCache(const RigidBodyTree& tree, 
+                                            bool inProgress=false) const 
     {
         assert(getStage(tree) >= (inProgress ? ReactingStage-1 : ReactingStage));
-        return dynamicCache;
+        return reactionCache;
     }
-    SBDynamicCache& updDynamicCache(const RigidBodyTree& tree) const {
+    SBReactionCache& updReactionCache(const RigidBodyTree& tree) const {
         assert(getStage(tree) >= ReactingStage-1);
-        return dynamicCache;
+        return reactionCache;
     }
 private:
     SBModelingVars      modelVars; // allocation sizes & default values only are mutable
@@ -596,7 +646,8 @@ private:
     SBTimeVars          timeVars;
     SBConfigurationVars configVars;
     SBMotionVars        motionVars;
-    SBDynamicVars       dynamicVars;
+    SBDynamicsVars      dynamicsVars;
+    SBReactionVars      reactionVars;
     
     mutable SBStage              stage; // last stage completed
 
@@ -605,7 +656,8 @@ private:
     mutable SBTimeCache          timeCache;
     mutable SBConfigurationCache configCache;
     mutable SBMotionCache        motionCache;
-    mutable SBDynamicCache       dynamicCache;
+    mutable SBDynamicsCache      dynamicsCache;
+    mutable SBReactionCache      reactionCache;
 
     SBState* handle;
     friend class RigidBodyTree;
