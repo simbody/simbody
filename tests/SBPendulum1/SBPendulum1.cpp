@@ -131,13 +131,22 @@ try {
             cout << t << " " 
                  << pend.getQ(s) << " " << pend.getU(s) 
                  << endl;
-        Vector qdot = pend.getQDot(s);
+        const Vector qdot = pend.getQDot(s);
 
         pend.clearAppliedForces(s);
         pend.applyGravity(s,Vec3(0,-9.8,0));
         pend.realize(s, ReactingStage);
 
-        Vector udot = pend.getUDot(s);
+        const Vector udot = pend.getUDot(s);
+        Vector udot2;
+        pend.calcTreeUDot(s, 
+            pend.getAppliedJointForces(s),
+            pend.getAppliedBodyForces(s),
+            udot2);
+        if (!(step % 100)) {
+            cout << "udot = " << udot << endl;
+            cout << "udot2= " << udot2 << endl;
+        }
 
         //cout << "qdot=" << qdot << "  udot=" << udot << endl;
         pend.updQ(s) += h*qdot;

@@ -14,7 +14,6 @@ namespace simtk {
 class TransformMat;
 class JointSpecification;
 class InertiaMat;
-class ForceSystem;
 class SimbodyTreeRep;
 class MassProperties;
 
@@ -161,6 +160,22 @@ public:
 
     void realize(const SBState&, SBStage) const;
 
+    // Operators
+
+    /// Requires realization through ConfiguredStage.
+    void calcInternalGradientFromSpatial(const SBState&,
+        const Vector_<SpatialVec>& dEdR,
+        Vector&                    dEdQ) const; // really Qbar
+
+    /// Requires realization through MovingStage.
+    Real calcKineticEnergy(const SBState&) const;
+
+    /// Requires realization through MovingStage.
+    void calcTreeUDot(const SBState&,
+        const Vector&              jointForces,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector&                    udot) const;
+
     // Constraint projections.
 
     void enforceConfigurationConstraints(SBState&) const;
@@ -246,8 +261,6 @@ public:
     void setU(SBState&, const Vector& u) const;
     VectorView& updQ(SBState&) const;
     VectorView& updU(SBState&) const;
-    ForceSystem& updForceSystem(SBState&) const;
-
 
     const Vector& getQDot   (const SBState&) const;
     const Vector& getUDot   (const SBState&) const;

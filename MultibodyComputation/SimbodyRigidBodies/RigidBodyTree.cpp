@@ -671,6 +671,58 @@ void RigidBodyTree::fixVel0(SBStateRep& s, Vector& vel) const {
     lConstraints->fixVel0(s, vel);
 }
 
+Real RigidBodyTree::calcKineticEnergy(const SBStateRep& s) const {
+    assert(s.getStage(*this) >= MovingStage);
+
+    Real ke = 0.;
+
+    // Skip ground level 0!
+    for (int i=1 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            ke += rbNodeLevels[i][j]->calcKineticEnergy(s);
+
+    return ke;
+}
+
+//
+// Operator for open-loop dynamics.
+//
+void RigidBodyTree::calcTreeUDot(const SBStateRep& s,
+    const Vector&              jointForces,
+    const Vector_<SpatialVec>& bodyForces,
+    Vector&                    udot) const 
+{
+    assert(s.getStage(*this) >= MovingStage);
+    assert(jointForces.size() == getTotalDOF());
+    assert(bodyForces.size() == getNBodies());
+    udot.resize(getTotalDOF());
+
+    Vector_<SpatialVec> allZ(getNBodies());
+    Vector_<SpatialVec> allGepsilon(getNBodies());
+    Vector              allEpsilon(getTotalDOF());
+
+    calcP(s); // TODO: KLUDGE -- can't do this here!!!!
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcUDotPass1Inward(s,
+                jointForces, bodyForces, allZ, allGepsilon,
+                allEpsilon);
+        }
+
+    //TODO: can reuse one of the above temps. Also, I think you
+    //      can use udot to hold epsilon and then update it.
+    Vector_<SpatialVec> allA_GB(getNBodies());
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcUDotPass2Outward(s, allEpsilon, allA_GB, udot);
+        }
+}
+
+
 // If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
 // this routine will return d(something)/du for internal generalized speeds u. If
 // instead you have d(something)/dR where R is a spatial configuration, this routine
@@ -685,7 +737,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const SBStateRep& s,
     assert(X.size() == getNBodies());
     assert(s.getStage(*this) >= ConfiguredStage);
 
-    Vector_<SpatialVec> zTemp(getTotalDOF()); zTemp.setToZero();
+    Vector_<SpatialVec> zTemp(getNBodies()); zTemp.setToZero();
     JX.resize(getTotalDOF());
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)

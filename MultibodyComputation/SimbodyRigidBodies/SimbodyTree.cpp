@@ -50,6 +50,25 @@ void SimbodyTree::realize(const SBState& s, SBStage g) const {
     rep->realize(s.getRep(), g);
 }
 
+void SimbodyTree::calcInternalGradientFromSpatial(const SBState& s,
+    const Vector_<SpatialVec>& dEdR,
+    Vector&                    dEdQ) const
+{
+    rep->calcInternalGradientFromSpatial(s.getRep(),dEdR,dEdQ);
+}
+
+Real SimbodyTree::calcKineticEnergy(const SBState& s) const {
+    return rep->calcKineticEnergy(s.getRep());
+}
+
+void SimbodyTree::calcTreeUDot(const SBState& s,
+    const Vector&              jointForces,
+    const Vector_<SpatialVec>& bodyForces,
+    Vector&                    udot) const
+{
+    rep->calcTreeUDot(s.getRep(),jointForces,bodyForces,udot);
+}
+
 // Topological info. Note the lack of a State argument.
 int SimbodyTree::getNBodies()        const {return rep->getNBodies();}
 int SimbodyTree::getTotalDOF()       const {return rep->getTotalDOF();}

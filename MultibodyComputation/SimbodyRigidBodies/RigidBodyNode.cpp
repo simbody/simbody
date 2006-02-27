@@ -141,6 +141,24 @@ public:
     /*virtual*/void setVelFromSVel(SBStateRep&,const SpatialVec&) {}
     /*virtual*/bool enforceQuaternionConstraints(SBStateRep&) const {return false;}
 
+    /*virtual*/void calcUDotPass1Inward(const SBStateRep& s,
+        const Vector&              jointForces,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    allEpsilon) const
+    {
+        allZ[0] = -bodyForces[0];
+        allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
+    } 
+    /*virtual*/void calcUDotPass2Outward(const SBStateRep& s,
+        const Vector&                   epsilonTmp,
+        Vector_<SpatialVec>&            allA_GB,
+        Vector&                         allUDot) const
+    {
+        allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
+    }
+
     /*virtual*/void setDefaultModelingValues(const SBStateRep& s, 
                                              SBModelingVars& v) const
     {
@@ -454,6 +472,17 @@ public:
     void calcInternalGradientFromSpatial(const SBStateRep&, Vector_<SpatialVec>& zTmp,
                                          const Vector_<SpatialVec>& X, Vector& JX) const;
 
+    void calcUDotPass1Inward(const SBStateRep& s,
+        const Vector&              jointForces,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    allEpsilon) const; 
+    void calcUDotPass2Outward(const SBStateRep& s,
+        const Vector&                   epsilonTmp,
+        Vector_<SpatialVec>&            allA_GB,
+        Vector&                         allUDot) const;
+
     void nodeSpecDump(std::ostream& o, const SBStateRep& s) const {
         o << "stateOffset=" << stateOffset << " mass=" << getMass() 
             << " COM_G=" << getCOM_G(s) << std::endl;
@@ -467,26 +496,6 @@ public:
         o << "ddTh=" << getUdot(s) << std::endl;
         o << "SAcc=" << getA_GB(s) << std::endl;
     }
-protected:
-    /*
-    // These are the joint-specific quantities
-    //      ... position level
-    Vec<dof>                theta;   // internal coordinates
-    Mat<dof,2,Row3,1,2>     H;       // joint transition matrix (spatial); note row-order packing
-                                     //   so that transpose will be a nice column-packed matrix
-    Mat<dof,dof>            DI;
-    Mat<2,dof,Vec3>         G;       // structure is like ~H; that is, default column-packed matrix
-
-    //      ... velocity level
-    Vec<dof>                dTheta;  // internal coordinate time derivatives
-
-    //      ... acceleration level
-    Vec<dof>                ddTheta; // - from the eq. of motion
-
-    Vec<dof>                nu;
-    Vec<dof>                epsilon;
-    Vec<dof>                forceInternal;
-    */
 };
 
 /*static*/const double RigidBodyNode::DEG2RAD = std::acos(-1.) / 180.; // i.e., pi/180
@@ -1174,6 +1183,82 @@ RigidBodyNodeSpec<dof>::calcZ(const SBStateRep& s,
     updGepsilon(s) = getG(s)  * getEpsilon(s);
 }
 
+//
+// Calculate acceleration in internal coordinates, based on the last set
+// of forces that were fed to calcZ (as embodied in 'nu').
+// (Base to tip)
+//
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcAccel(const SBStateRep& s) const {
+    Vec<dof>&        udot   = updUDot(s);
+    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s); // ground A_GB is 0
+
+
+    udot       = getNu(s) - (~getG(s)*alphap);
+    updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
+
+    calcQDotDot(s, s.dynamicCache.qdotdot);   
+}
+
+ 
+//
+// To be called from tip to base.
+// Temps do not need to be initialized.
+//
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcUDotPass1Inward(const SBStateRep& s,
+    const Vector&              jointForces,
+    const Vector_<SpatialVec>& bodyForces,
+    Vector_<SpatialVec>&       allZ,
+    Vector_<SpatialVec>&       allGepsilon,
+    Vector&                    allEpsilon) const 
+{
+    const Vec<dof>&   myJointForce = fromU(jointForces);
+    const SpatialVec& myBodyForce  = fromB(bodyForces);
+    SpatialVec&       z            = toB(allZ);
+    SpatialVec&       Geps         = toB(allGepsilon);
+    Vec<dof>&         eps          = toU(allEpsilon);
+
+    // TODO: this product and sum could have been precalculated
+    z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) 
+        - myBodyForce;
+
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
+        const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+        const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+
+        z += phiChild * (zChild + GepsChild);
+    }
+
+    eps  = myJointForce - getH(s)*z;
+    Geps = getG(s)  * eps;
+}
+
+//
+// Calculate acceleration in internal coordinates, based on the last set
+// of forces that were reduced into epsilon (e.g., see above).
+// Base to tip: temp allA_GB does not need to be initialized before
+// beginning the iteration.
+//
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const SBStateRep& s,
+    const Vector&                   allEpsilon,
+    Vector_<SpatialVec>&            allA_GB,
+    Vector&                         allUDot) const
+{
+    const Vec<dof>& eps  = fromU(allEpsilon);
+    SpatialVec&     A_GB = toB(allA_GB);
+    Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
+
+    // Shift parent's A_GB outward. (Ground A_GB is zero.)
+    const SpatialVec A_GP = parent->getNodeNum()== 0 
+        ? SpatialVec(Vec3(0), Vec3(0))
+        : ~getPhi(s) * allA_GB[parent->getNodeNum()];
+
+    udot = getDI(s) * eps - (~getG(s)*A_GP);
+    A_GB = A_GP + ~getH(s)*udot + getCoriolisAcceleration(s);  
+}
 
 //
 // Calculate product of partial velocities J and a gradient vector on each of the
@@ -1204,22 +1289,6 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
     out = getH(s) * z; 
 }
 
-//
-// Calculate acceleration in internal coordinates, based on the last set
-// of forces that were fed to calcZ (as embodied in 'nu').
-// (Base to tip)
-//
-template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel(const SBStateRep& s) const {
-    Vec<dof>&        udot   = updUDot(s);
-    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s); // ground A_GB is 0
-
-
-    udot       = getNu(s) - (~getG(s)*alphap);
-    updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
-
-    calcQDotDot(s, s.dynamicCache.qdotdot);   
-}
 
 // To be called base to tip.
 template<int dof> void
