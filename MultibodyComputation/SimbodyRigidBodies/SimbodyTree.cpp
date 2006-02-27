@@ -42,6 +42,7 @@ void SimbodyTree::realizeConstruction() {
 }
 void SimbodyTree::realizeModeling     (const SBState& s) const {rep->realizeModeling(s.getRep());}
 void SimbodyTree::realizeParameters   (const SBState& s) const {rep->realizeParameters(s.getRep());}
+void SimbodyTree::realizeTime         (const SBState& s) const {rep->realizeTime(s.getRep());}
 void SimbodyTree::realizeConfiguration(const SBState& s) const {rep->realizeConfiguration(s.getRep());}
 void SimbodyTree::realizeMotion       (const SBState& s) const {rep->realizeMotion(s.getRep());}
 void SimbodyTree::realizeReaction     (const SBState& s) const {rep->realizeReaction(s.getRep());}
@@ -113,6 +114,9 @@ void SimbodyTree::applyBodyTorque(SBState& s, int body, const Vec3& torqueInG) c
   { rep->applyBodyTorque(s.updRep(),body,torqueInG); }
 void SimbodyTree::applyJointForce(SBState& s, int body, int axis, const Real& d) const
   { rep->applyJointForce(s.updRep(),body,axis,d); }
+
+void SimbodyTree::enforceQuaternionConstraints(SBState& s) const
+  { rep->enforceQuaternionConstraints(s.updRep()); }
 
 const TransformMat&
 SimbodyTree::getBodyConfiguration(const SBState& s, int body) const

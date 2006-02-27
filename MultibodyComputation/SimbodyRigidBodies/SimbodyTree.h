@@ -154,6 +154,7 @@ public:
 
     void realizeModeling     (const SBState&) const;
     void realizeParameters   (const SBState&) const;
+    void realizeTime         (const SBState&) const;
     void realizeConfiguration(const SBState&) const;
     void realizeMotion       (const SBState&) const;
     void realizeReaction     (const SBState&) const;
@@ -242,6 +243,8 @@ public:
     VectorView& updQ(SBState&) const;
     VectorView& updU(SBState&) const;
     ForceSystem& updForceSystem(SBState&) const;
+
+    void enforceQuaternionConstraints(SBState&) const;
 
     const Vector& getQDot   (const SBState&) const;
     const Vector& getUDot   (const SBState&) const;

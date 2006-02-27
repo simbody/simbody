@@ -194,7 +194,13 @@ public:
     /// of B's origin point OB in P, with both vectors expressed in *G*.
     const SpatialVec& getV_PB_G (const SBStateRep& s) const {return fromB(s.motionCache.bodyVelocityInParent);}
     SpatialVec&       updV_PB_G (const SBStateRep& s) const {return toB  (s.motionCache.bodyVelocityInParent);}
-
+ 
+    const SpatialVec& getCoriolisAcceleration(const SBStateRep& s) const {return fromB(s.motionCache.coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(const SBStateRep& s) const {return toB  (s.motionCache.coriolisAcceleration);}
+ 
+    const SpatialVec& getGyroscopicForce(const SBStateRep& s) const {return fromB(s.motionCache.gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(const SBStateRep& s) const {return toB  (s.motionCache.gyroscopicForces);}
+    
     const SpatialVec& getSpatialVel   (const SBStateRep& s) const {return getV_GB(s);}
     const Vec3&       getSpatialAngVel(const SBStateRep& s) const {return getV_GB(s)[0];}
     const Vec3&       getSpatialLinVel(const SBStateRep& s) const {return getV_GB(s)[1];}
@@ -202,13 +208,7 @@ public:
         // DYNAMICS INFO
 
     const SpatialVec& getBodyForce(const SBStateRep& s) const {return fromB(s.dynamicVars.appliedBodyForces);}
- 
-    const SpatialVec& getCoriolisAcceleration(const SBStateRep& s) const {return fromB(s.dynamicCache.coriolisAcceleration);}
-    SpatialVec&       updCoriolisAcceleration(const SBStateRep& s) const {return toB  (s.dynamicCache.coriolisAcceleration);}
- 
-    const SpatialVec& getGyroscopicForce(const SBStateRep& s) const {return fromB(s.dynamicCache.gyroscopicForces);}
-    SpatialVec&       updGyroscopicForce(const SBStateRep& s) const {return toB  (s.dynamicCache.gyroscopicForces);}
-    
+
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
     /// linear acceleration of B's origin point OB in G, with both vectors expressed in G.
@@ -267,7 +267,7 @@ public:
     virtual int         getMaxNQ() const=0; //dofs plus quaternion constraints
     virtual int         getNQ(const SBStateRep&) const=0; //actual number of q's
 
-    virtual void enforceQuaternionConstraints(const SBStateRep&) {throw VirtualBaseMethod();}
+    virtual bool enforceQuaternionConstraints(SBStateRep&) const=0;
 
     virtual void calcP(const SBStateRep&) const                           {throw VirtualBaseMethod();}
     virtual void calcZ(const SBStateRep&, const SpatialVec& spatialForce) const

@@ -16,13 +16,19 @@ SBState::~SBState() {
 }
 
 SBState::SBState(const SBState& src) : rep(0) {
-    if (src.rep) rep = new SBStateRep(*src.rep);
+    if (src.rep) {
+        rep = new SBStateRep(*src.rep);
+        rep->setMyHandle(*this);
+    }
 }
 
 SBState& SBState::operator=(const SBState& src) {
     if (&src != this) {
         delete rep; rep = 0;
-        if (src.rep) rep = new SBStateRep(*src.rep);
+        if (src.rep) {
+            rep = new SBStateRep(*src.rep);
+            rep->setMyHandle(*this);
+        }
     }
     return *this;
 }
@@ -200,8 +206,9 @@ void RigidBodyTree::realizeConstruction() {
 
     assert(initialState.rep == 0);
     initialState.rep = new SBStateRep();
+    initialState.rep->setMyHandle(initialState);
     initialState.rep->setStage(*this, BuiltStage);
-    initialState.rep->allocateVarsIfNeeded(*this, ModeledStage);
+    initialState.rep->initializeModelingVars(*this);
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
@@ -217,7 +224,7 @@ void RigidBodyTree::realizeModeling(const SBStateRep& s) const {
             rbNodeLevels[i][j]->realizeModeling(s); 
 
     s.setStage(*this, ModeledStage);
-    s.allocateVarsIfNeeded(*this, SBStage(ModeledStage + 1));
+    s.initializeAllVars(*this);
 }
 
 // Here we lock in parameterization of the model, such as body masses.
@@ -232,7 +239,6 @@ void RigidBodyTree::realizeParameters(const SBStateRep& s) const {
             rbNodeLevels[i][j]->realizeParameters(s); 
 
     s.setStage(*this, ParametrizedStage);
-    s.allocateVarsIfNeeded(*this, SBStage(ParametrizedStage + 1));
 }
 
 void RigidBodyTree::realizeTime(const SBStateRep& s) const {
@@ -244,7 +250,6 @@ void RigidBodyTree::realizeTime(const SBStateRep& s) const {
     // nothing yet 
 
     s.setStage(*this, TimedStage);
-    s.allocateVarsIfNeeded(*this, SBStage(TimedStage + 1));
 }
 
 // Set generalized coordinates: sweep from base to tips.
@@ -263,7 +268,6 @@ void RigidBodyTree::realizeConfiguration(const SBStateRep& s) const {
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 
     s.setStage(*this, ConfiguredStage);
-    s.allocateVarsIfNeeded(*this, SBStage(ConfiguredStage + 1));
 }
 
 // Set generalized speeds: sweep from base to tip.
@@ -283,7 +287,6 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 
     s.setStage(*this, MovingStage);
-    s.allocateVarsIfNeeded(*this, SBStage(MovingStage + 1));
 }
 
 void RigidBodyTree::realizeReaction(const SBStateRep& s)  const {
@@ -296,7 +299,6 @@ void RigidBodyTree::realizeReaction(const SBStateRep& s)  const {
     calcLoopForwardDynamics(s, s.dynamicVars.appliedBodyForces);
 
     s.setStage(*this, ReactingStage);
-    // no more variables to allocate
 }
 
 
@@ -312,8 +314,7 @@ int RigidBodyTree::getDOF   (int body) const
 void RigidBodyTree::setDefaultModelingValues(const SBStateRep& s, 
                                              SBModelingVars& modelVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage-1);
-    s.setStage(*this, SBStage(ModeledStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= BuiltStage);
 
     // Tree-level defaults
     modelVars.useEulerAngles = false;
@@ -332,8 +333,7 @@ void RigidBodyTree::setDefaultModelingValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultParameterValues(const SBStateRep& s, 
                                               SBParameterVars& paramVars) const 
 {
-    assert(s.getStage(*this) >= ParametrizedStage-1);
-    s.setStage(*this, SBStage(ParametrizedStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= ModeledStage);
 
     // Tree-level defaults (none)
 
@@ -348,8 +348,7 @@ void RigidBodyTree::setDefaultParameterValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultTimeValues(const SBStateRep& s, 
                                          SBTimeVars& timeVars) const 
 {
-    assert(s.getStage(*this) >= TimedStage-1);
-    s.setStage(*this, SBStage(TimedStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= ModeledStage);
 
     // Tree-level defaults (none)
 
@@ -364,8 +363,7 @@ void RigidBodyTree::setDefaultTimeValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultConfigurationValues(const SBStateRep& s, 
                                                   SBConfigurationVars& configVars) const 
 {
-    assert(s.getStage(*this) >= ConfiguredStage-1);
-    s.setStage(*this, SBStage(ConfiguredStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= ModeledStage);
 
     // Tree-level defaults (none)
 
@@ -380,8 +378,7 @@ void RigidBodyTree::setDefaultConfigurationValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultMotionValues(const SBStateRep& s, 
                                            SBMotionVars& motionVars) const 
 {
-    assert(s.getStage(*this) >= MovingStage-1);
-    s.setStage(*this, SBStage(MovingStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= ModeledStage);
 
     // Tree-level defaults (none)
 
@@ -396,8 +393,7 @@ void RigidBodyTree::setDefaultMotionValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultDynamicValues(const SBStateRep& s, 
                                             SBDynamicVars& dynamicVars) const 
 {
-    assert(s.getStage(*this) >= ReactingStage-1);
-    s.setStage(*this, SBStage(ReactingStage-1)); // back up if necessary
+    assert(s.getStage(*this) >= ModeledStage);
 
     // Tree-level defaults
     dynamicVars.appliedJointForces.setToZero();
@@ -563,9 +559,16 @@ const Vector& RigidBodyTree::getQDotDot(const SBStateRep& s) const {
 
 // Enforce coordinate constraints -- order doesn't matter.
 void RigidBodyTree::enforceQuaternionConstraints(SBStateRep& s) const {
+    assert(s.getStage(*this) >= ModeledStage);
+
+    bool anyChange = false;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->enforceQuaternionConstraints(s);
+            if (rbNodeLevels[i][j]->enforceQuaternionConstraints(s))
+                anyChange = true;
+
+    if (anyChange && s.getStage(*this) >= ConfiguredStage)
+        s.setStage(*this, SBStage(ConfiguredStage-1));
 }
 
 // Enforce loop constraints.

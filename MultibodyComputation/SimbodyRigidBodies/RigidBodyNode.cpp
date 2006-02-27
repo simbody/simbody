@@ -139,11 +139,13 @@ public:
     /*virtual*/void realizeConfiguration(const SBStateRep&) const {}
     /*virtual*/void realizeMotion(const SBStateRep&) const {}
     /*virtual*/void setVelFromSVel(SBStateRep&,const SpatialVec&) {}
-    /*virtual*/void enforceQuaternionConstraints(SBStateRep&) const {}
+    /*virtual*/bool enforceQuaternionConstraints(SBStateRep&) const {return false;}
 
-    /*virtual*/void getDefaultParameters(SBStateRep&)    const {}
-    /*virtual*/void getDefaultConfiguration(SBStateRep&) const {}
-    /*virtual*/void getDefaultVelocity(SBStateRep&)      const {}
+    /*virtual*/void setDefaultModelingValues(const SBStateRep& s, 
+                                             SBModelingVars& v) const
+    {
+        v.prescribed[0] = true; // ground's motion is prescribed to zero
+    }
 
     /*virtual*/void getAccel(const SBStateRep&, Vector&) const {}
 
@@ -265,15 +267,29 @@ public:
         calcJointIndependentKinematicsVel(s);
     }
 
-    // We are assuming that the caller is taking care of state validity.
-    virtual void getDefaultParameters(SBStateRep& s) const {
-        // TODO none yet
+    // These routines give each node a chance to set appropriate defaults in a piece
+    // of the state corresponding to a particular stage. Default implementations here
+    // assume non-ball joint; override if necessary.
+    virtual void setDefaultModelingValues (const SBStateRep&, SBModelingVars&)  const {}
+    virtual void setDefaultParameterValues(const SBStateRep&, SBParameterVars&) const {}
+    virtual void setDefaultTimeValues     (const SBStateRep&, SBTimeVars&)      const {}
+
+    virtual void setDefaultConfigurationValues(const SBStateRep& s, 
+                                               SBConfigurationVars& v) const 
+    {
+        toQ(v.q) = 0.;
     }
-    virtual void getDefaultConfiguration(SBStateRep& s) const {
-        updQ(s) = 0.;
+    virtual void setDefaultMotionValues(const SBStateRep&, 
+                                        SBMotionVars& v) const 
+    {
+        toU(v.u) = 0.;
     }
-    virtual void getDefaultVelocity(SBStateRep& s) const {
-        updU(s) = 0.;
+    virtual void setDefaultDynamicValues(const SBStateRep&, 
+                                         SBDynamicVars& v) const
+    {
+        toB(v.appliedBodyForces) = SpatialVec(Vec3(0), Vec3(0));
+        toU(v.appliedJointForces) = 0.;
+        toU(v.prescribedUdot) = 0.;
     }
 
     // setQ and setU extract this node's values from the supplied
@@ -295,7 +311,7 @@ public:
     virtual void print(const SBStateRep&, int) const;
 
     virtual void setVelFromSVel(SBStateRep& s, const SpatialVec&) const;
-    virtual void enforceQuaternionConstraints(SBStateRep&) const { }
+    virtual bool enforceQuaternionConstraints(SBStateRep&) const {return false;}
 
     const SpatialRow& getHRow(const SBStateRep& s, int i) const {
         return getH(s)[i];
@@ -847,19 +863,19 @@ public:
     int getMaxNQ()              const {return 4;}
     int getNQ(const SBStateRep& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
 
-    void getDefaultConfiguration(SBStateRep& s) const {
-        if (getUseEulerAngles(s)) updQ(s) = 0.;
-        else updQuat(s) = Vec4(1.,0.,0.,0.);
-    }
-    
-    void getDefaultVelocity(SBStateRep& s) const {
-        updU(s) = 0; // no funny business here
+    void setDefaultConfigurationValues(const SBStateRep& s, 
+                                       SBConfigurationVars& v) const 
+    {
+        if (getUseEulerAngles(s)) toQ(v.q) = 0.;
+        else toQuat(v.q) = Vec4(1.,0.,0.,0.);
     }
 
-    void enforceQuaternionConstraints(SBStateRep& s) {
-        if (getUseEulerAngles(s)) return;
+    bool enforceQuaternionConstraints(SBStateRep& s) const {
+        if (getUseEulerAngles(s)) 
+            return false;   // no change
         Vec4& quat = updQuat(s);
         quat = quat / quat.norm();
+        return true;
     }
 
     void getInternalForce(const SBStateRep& s) const {
@@ -994,23 +1010,23 @@ public:
     int getMaxNQ()              const {return 7;}
     int getNQ(const SBStateRep& s) const {return getUseEulerAngles(s) ? 6 : 7;} 
 
-    void getDefaultConfiguration(SBStateRep& s) const {
+    void setDefaultConfigurationValues(const SBStateRep& s, 
+                                       SBConfigurationVars& v) const 
+    {
         if (getUseEulerAngles(s)) 
-            updQ(s) = 0.;
+            toQ(v.q) = 0.;
         else {
-            updQuat(s)    = Vec4(1,0,0,0);
-            updQVec3(s,4) = 0.;
+            toQuat(v.q) = Vec4(1.,0.,0.,0.);
+            toQVec3(v.q,4) = 0.;
         }
     }
-    
-    void getDefaultVelocity(SBStateRep& s) const {
-        updU(s) = 0; // no funny business here
-    }
 
-    void enforceQuaternionConstraints(SBStateRep& s) {
-        if (getUseEulerAngles(s)) return;
+    bool enforceQuaternionConstraints(SBStateRep& s) const {
+        if (getUseEulerAngles(s)) 
+            return false; // no change
         Vec4& quat = updQuat(s);
         quat = quat / quat.norm();
+        return true;
     }
 
     void getInternalForce(const SBStateRep& s) const {

@@ -85,33 +85,35 @@ try {
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.realizeModeling(s);
+    pend.realizeParameters(s);
+    pend.realizeTime(s);
 
     pend.realizeConfiguration(s);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
+    pend.setJointU(s, 1, 0, 10.);
+
     pend.clearAppliedForces(s);
     pend.applyGravity(s, Vec3(0.,-9.8,0.));
     pend.applyJointForce(s, 1, 0, 147);
 
-    pend.setJointU(s, 1, 0, 10.);
-
-    cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
-    cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
-
     pend.realizeMotion(s);
-
     SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
     cout << "body vel: " << bodyVel << endl;
 
     cout << "wXwXr=" << bodyVel[0] % (bodyVel[0] % Vec3(2.5,0,0)) << endl;
+
+
+    cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
+    cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
 
     pend.realizeReaction(s);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
     cout << "body acc: " << bodyAcc << endl;
 
-    pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
+    //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
     pend.updU(s) = 0;
 
@@ -122,14 +124,18 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        pend.clearAppliedForces(s);
+        pend.enforceQuaternionConstraints(s);
         pend.realizeConfiguration(s);
         pend.realizeMotion(s); 
+
         if (!(step % 100))
             cout << t << " " 
                  << pend.getQ(s) << " " << pend.getU(s) 
                  << endl;
         Vector qdot = pend.getQDot(s);
+
+        pend.clearAppliedForces(s);
+
         pend.applyGravity(s,Vec3(0,-9.8,0));
         pend.realizeReaction(s);
         Vector udot = pend.getUDot(s);
