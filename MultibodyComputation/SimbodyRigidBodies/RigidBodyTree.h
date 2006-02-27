@@ -249,11 +249,8 @@ public:
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
-    /// This is a solver which tweaks the state to make it satisfy
-    /// quaternions constraints; ignores loops. If any change is made
-    /// the stage will be backed up to just before ConfiguredStage.
-    /// You should always call realize(ConfiguredStage) after this.
-    void enforceQuaternionConstraints(SBStateRep&) const;
+    void enforceConfigurationConstraints(SBStateRep&) const;
+    void enforceMotionConstraints(SBStateRep&) const;
 
     /// This is a solver which tweaks the state to make it satisfy general
     /// constraints (other than quaternion constraints).

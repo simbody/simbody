@@ -24,6 +24,10 @@ public:
 
     void enforce(SBStateRep&, Vector& pos, Vector& vel);
 
+    // Returns true if any change was made in the state.
+    bool enforceConfigurationConstraints(SBStateRep&) const;
+    bool enforceMotionConstraints(SBStateRep&) const;
+
     bool calcConstraintForces(const SBStateRep&) const;
     void addInCorrectionForces(const SBStateRep&, SpatialVecList& spatialForces) const;
 

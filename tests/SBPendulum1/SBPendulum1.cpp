@@ -84,11 +84,8 @@ try {
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
-    pend.realizeModeling(s);
-    pend.realizeParameters(s);
-    pend.realizeTime(s);
 
-    pend.realizeConfiguration(s);
+    pend.realize(s, ConfiguredStage);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
@@ -98,7 +95,7 @@ try {
     pend.applyGravity(s, Vec3(0.,-9.8,0.));
     pend.applyJointForce(s, 1, 0, 147);
 
-    pend.realizeMotion(s);
+    pend.realize(s, MovingStage);
     SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
     cout << "body vel: " << bodyVel << endl;
 
@@ -108,7 +105,7 @@ try {
     cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
     cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
 
-    pend.realizeReaction(s);
+    pend.realize(s, ReactingStage);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
     cout << "body acc: " << bodyAcc << endl;
@@ -124,9 +121,11 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        pend.enforceQuaternionConstraints(s);
-        pend.realizeConfiguration(s);
-        pend.realizeMotion(s); 
+        pend.enforceConfigurationConstraints(s);
+        pend.realize(s,ConfiguredStage);
+
+        pend.enforceMotionConstraints(s);
+        pend.realize(s,MovingStage);
 
         if (!(step % 100))
             cout << t << " " 
@@ -135,9 +134,9 @@ try {
         Vector qdot = pend.getQDot(s);
 
         pend.clearAppliedForces(s);
-
         pend.applyGravity(s,Vec3(0,-9.8,0));
-        pend.realizeReaction(s);
+        pend.realize(s, ReactingStage);
+
         Vector udot = pend.getUDot(s);
 
         //cout << "qdot=" << qdot << "  udot=" << udot << endl;

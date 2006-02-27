@@ -553,6 +553,58 @@ LengthConstraints::enforce(SBStateRep& s, Vector& pos, Vector& vel)
 }
 
 
+
+// Project out the position constraint errors from the given state. 
+bool
+LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
+{
+    assert(s.getStage(rbTree) >= ConfiguredStage-1);
+    Vector& pos = rbTree.updQ(s);
+
+    bool anyChanges = false;
+
+    try { 
+        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
+            anyChanges = true; // TODO: assuming for now
+            priv->posMin.calc(pos,
+                              CalcPosB(s, &priv->constraints[i]),
+                              CalcPosZ(s, &priv->constraints[i]));
+        }
+    }
+    catch ( simtk::Exception::NewtonRaphsonFailure cptn ) {
+        cout << "LengthConstraints::enforceConfigurationConstraints: exception: "
+             << cptn.getMessage() << '\n';
+    } 
+
+    return anyChanges;
+}
+
+// Project out the velocity constraint errors from the given state. 
+bool
+LengthConstraints::enforceMotionConstraints(SBStateRep& s) const
+{
+    assert(s.getStage(rbTree) >= MovingStage-1);
+    const Vector& pos = rbTree.getQ(s);
+    Vector&       vel = rbTree.updU(s);
+
+    bool anyChanges = false;
+
+    try { 
+        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
+            anyChanges = true; // TODO: assuming for now
+            priv->velMin.calc(vel,
+                              CalcVelB(s, pos, &priv->constraints[i]),
+                              CalcVelZ(s, &priv->constraints[i]));
+        }
+    }
+    catch ( simtk::Exception::NewtonRaphsonFailure cptn ) {
+        cout << "LengthConstraints::enforceMotionConstraints: exception: "
+             << cptn.getMessage() << '\n';
+    } 
+
+    return anyChanges;
+}
+
 //
 //// on each iteration
 //// for each loop

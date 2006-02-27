@@ -557,18 +557,32 @@ const Vector& RigidBodyTree::getQDotDot(const SBStateRep& s) const {
     return dynamicCache.qdotdot;
 }
 
-// Enforce coordinate constraints -- order doesn't matter.
-void RigidBodyTree::enforceQuaternionConstraints(SBStateRep& s) const {
-    assert(s.getStage(*this) >= ModeledStage);
+void RigidBodyTree::enforceConfigurationConstraints(SBStateRep& s) const {
+    assert(s.getStage(*this) >= ConfiguredStage-1);
 
+    // Fix coordinates first.
     bool anyChange = false;
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
             if (rbNodeLevels[i][j]->enforceQuaternionConstraints(s))
                 anyChange = true;
+ 
+    // Now fix the position constraints produced by defined length constraints.
+    if (lConstraints->enforceConfigurationConstraints(s))
+        anyChange = true;
 
     if (anyChange && s.getStage(*this) >= ConfiguredStage)
         s.setStage(*this, SBStage(ConfiguredStage-1));
+}
+
+void RigidBodyTree::enforceMotionConstraints(SBStateRep& s) const {
+    assert(s.getStage(*this) >= MovingStage-1);
+
+    // Currently there are no coordinate constraints for velocity.
+    const bool anyChange = lConstraints->enforceMotionConstraints(s);
+
+    if (anyChange && s.getStage(*this) >= MovingStage)
+        s.setStage(*this, SBStage(MovingStage-1));
 }
 
 // Enforce loop constraints.

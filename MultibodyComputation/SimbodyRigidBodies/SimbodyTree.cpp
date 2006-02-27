@@ -46,6 +46,9 @@ void SimbodyTree::realizeTime         (const SBState& s) const {rep->realizeTime
 void SimbodyTree::realizeConfiguration(const SBState& s) const {rep->realizeConfiguration(s.getRep());}
 void SimbodyTree::realizeMotion       (const SBState& s) const {rep->realizeMotion(s.getRep());}
 void SimbodyTree::realizeReaction     (const SBState& s) const {rep->realizeReaction(s.getRep());}
+void SimbodyTree::realize(const SBState& s, SBStage g) const {
+    rep->realize(s.getRep(), g);
+}
 
 // Topological info. Note the lack of a State argument.
 int SimbodyTree::getNBodies()        const {return rep->getNBodies();}
@@ -115,8 +118,10 @@ void SimbodyTree::applyBodyTorque(SBState& s, int body, const Vec3& torqueInG) c
 void SimbodyTree::applyJointForce(SBState& s, int body, int axis, const Real& d) const
   { rep->applyJointForce(s.updRep(),body,axis,d); }
 
-void SimbodyTree::enforceQuaternionConstraints(SBState& s) const
-  { rep->enforceQuaternionConstraints(s.updRep()); }
+void SimbodyTree::enforceConfigurationConstraints(SBState& s) const
+  { rep->enforceConfigurationConstraints(s.updRep()); }
+void SimbodyTree::enforceMotionConstraints(SBState& s) const
+  { rep->enforceMotionConstraints(s.updRep()); }
 
 const TransformMat&
 SimbodyTree::getBodyConfiguration(const SBState& s, int body) const

@@ -161,6 +161,10 @@ public:
 
     void realize(const SBState&, SBStage) const;
 
+    // Constraint projections.
+
+    void enforceConfigurationConstraints(SBState&) const;
+    void enforceMotionConstraints(SBState&) const;
 
     // These are available after realizeConstruction().
 
@@ -244,7 +248,6 @@ public:
     VectorView& updU(SBState&) const;
     ForceSystem& updForceSystem(SBState&) const;
 
-    void enforceQuaternionConstraints(SBState&) const;
 
     const Vector& getQDot   (const SBState&) const;
     const Vector& getUDot   (const SBState&) const;
