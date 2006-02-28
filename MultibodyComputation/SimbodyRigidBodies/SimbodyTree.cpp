@@ -116,8 +116,8 @@ SimbodyTree::getAppliedBodyForces(const SBState& s) const {
 
 void SimbodyTree::setQ(SBState& s, const Vector& q) const {rep->setQ(s.updRep(),q);}
 void SimbodyTree::setU(SBState& s, const Vector& u) const {rep->setU(s.updRep(),u);}
-VectorView& SimbodyTree::updQ(SBState& s) const {return rep->updQ(s.updRep());}
-VectorView& SimbodyTree::updU(SBState& s) const {return rep->updU(s.updRep());}
+Vector& SimbodyTree::updQ(SBState& s) const {return rep->updQ(s.updRep());}
+Vector& SimbodyTree::updU(SBState& s) const {return rep->updU(s.updRep());}
 
 void SimbodyTree::setJointQ(SBState& s, int body, int axis, const Real& r) const
   { return rep->setJointQ(s.updRep(),body,axis,r); }

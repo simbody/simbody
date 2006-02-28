@@ -194,13 +194,7 @@ public:
     /// of B's origin point OB in P, with both vectors expressed in *G*.
     const SpatialVec& getV_PB_G (const SBStateRep& s) const {return fromB(s.motionCache.bodyVelocityInParent);}
     SpatialVec&       updV_PB_G (const SBStateRep& s) const {return toB  (s.motionCache.bodyVelocityInParent);}
- 
-    const SpatialVec& getCoriolisAcceleration(const SBStateRep& s) const {return fromB(s.motionCache.coriolisAcceleration);}
-    SpatialVec&       updCoriolisAcceleration(const SBStateRep& s) const {return toB  (s.motionCache.coriolisAcceleration);}
- 
-    const SpatialVec& getGyroscopicForce(const SBStateRep& s) const {return fromB(s.motionCache.gyroscopicForces);}
-    SpatialVec&       updGyroscopicForce(const SBStateRep& s) const {return toB  (s.motionCache.gyroscopicForces);}
-    
+
     const SpatialVec& getSpatialVel   (const SBStateRep& s) const {return getV_GB(s);}
     const Vec3&       getSpatialAngVel(const SBStateRep& s) const {return getV_GB(s)[0];}
     const Vec3&       getSpatialLinVel(const SBStateRep& s) const {return getV_GB(s)[1];}
@@ -221,6 +215,15 @@ public:
 
     const SpatialMat& getP    (const SBStateRep& s) const {return fromB(s.dynamicsCache.articulatedBodyInertia);}
     SpatialMat&       updP    (const SBStateRep& s) const {return toB  (s.dynamicsCache.articulatedBodyInertia);}
+ 
+    const SpatialVec& getCoriolisAcceleration(const SBStateRep& s) const {return fromB(s.dynamicsCache.coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(const SBStateRep& s) const {return toB  (s.dynamicsCache.coriolisAcceleration);}
+ 
+    const SpatialVec& getGyroscopicForce(const SBStateRep& s) const {return fromB(s.dynamicsCache.gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(const SBStateRep& s) const {return toB  (s.dynamicsCache.gyroscopicForces);}
+ 
+    const SpatialVec& getCentrifugalForces(const SBStateRep& s) const {return fromB(s.dynamicsCache.centrifugalForces);}
+    SpatialVec&       updCentrifugalForces(const SBStateRep& s) const {return toB  (s.dynamicsCache.centrifugalForces);}
 
     const SpatialVec& getZ(const SBStateRep& s) const {return fromB(s.reactionCache.z);}
     SpatialVec&       updZ(const SBStateRep& s) const {return toB  (s.reactionCache.z);}
@@ -262,6 +265,18 @@ public:
     virtual void setDefaultReactionValues     (const SBStateRep&, SBReactionVars&)      const {}
 
     Real calcKineticEnergy(const SBStateRep&) const;   // from spatial quantities only
+  
+    /// Calculate all spatial configuration quantities, assuming availability of
+    /// joint-specific relative quantities.
+    void calcJointIndependentKinematicsPos(const SBStateRep&) const;
+
+    /// Calcluate all spatial velocity quantities, assuming availability of
+    /// joint-specific relative quantities and all position kinematics.
+    void calcJointIndependentKinematicsVel(const SBStateRep&) const;
+
+    /// Calculate velocity-dependent quantities which will be needed for
+    // computing accelerations.
+    void calcJointIndependentDynamicsVel(const SBStateRep&) const;
 
     virtual const char* type()     const {return "unknown";}
     virtual int         getDOF()   const=0; //number of independent dofs
@@ -269,8 +284,8 @@ public:
     virtual int         getNQ(const SBStateRep&) const=0; //actual number of q's
 
     virtual bool enforceQuaternionConstraints(SBStateRep&) const=0;
+    virtual void calcArticulatedBodyInertiasInward(const SBStateRep& s) const=0;
 
-    virtual void calcP(const SBStateRep&) const                           {throw VirtualBaseMethod();}
     virtual void calcZ(const SBStateRep&, const SpatialVec& spatialForce) const
       { throw VirtualBaseMethod(); }
     virtual void calcYOutward(const SBStateRep&) const                    {throw VirtualBaseMethod();}
@@ -370,17 +385,6 @@ protected:
     friend std::ostream& operator<<(std::ostream& s, const RigidBodyNode&);
     template<int dof> friend class RigidBodyNodeSpec;
 
-private:   
-    /// Calculate all spatial configuration quantities, assuming availability of
-    /// joint-specific relative quantities.
-    void calcJointIndependentKinematicsPos(const SBStateRep&) const;
-
-    /// Calcluate all spatial velocity quantities, assuming availability of
-    /// joint-specific relative quantities and all position kinematics.
-    void calcJointIndependentKinematicsVel(const SBStateRep&) const;
-
-    /// Calculate quantities which will be needed for computing accelerations.
-    void calcJointIndependentDynamics(const SBStateRep&) const;
 };
 
 #endif // RIGID_BODY_NODE_H_

@@ -290,13 +290,21 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
     s.setStage(*this, MovingStage);
 }
 
+
+// Prepare for dynamics by calculating position-dependent quantities
+// like the articulated body inertias P, and velocity-dependent
+// quantities like the Coriolis acceleration.
+
 void RigidBodyTree::realizeDynamics(const SBStateRep& s)  const {
     assert(s.getStage(*this) >= DynamicsStage-1);
     if (s.getStage(*this) >= DynamicsStage) return;
 
     s.allocateCacheIfNeeded(*this, DynamicsStage);
 
-    prepareForDynamics(s);
+    calcArticulatedBodyInertias(s);
+    for (int i=0; i < (int)rbNodeLevels.size(); i++)
+        for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
+            rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(s);
 
     s.setStage(*this, DynamicsStage);
 }
@@ -621,19 +629,15 @@ void RigidBodyTree::enforceLengthConstraints(SBStateRep& s) const {
 }
 
 
-// Prepare for dynamics by calculating position-dependent quantities
-// like the articulated body inertias P.
-void RigidBodyTree::prepareForDynamics(const SBStateRep& s) const {
-    calcP(s);
-}
-
 // Given a set of spatial forces, calculate accelerations ignoring
-// constraints. Must have already called prepareForDynamics().
+// constraints. Must have already called realizeDynamics().
 // TODO: also applies stored internal forces (hinge torques) which
 // will cause surprises if non-zero.
 void RigidBodyTree::calcTreeForwardDynamics(const SBStateRep& s, 
                                             const SpatialVecList& spatialForces) const
 {
+    assert(s.getStage(*this) >= ReactingStage-1);
+
     calcZ(s,spatialForces);
     calcTreeAccel(s);
     
@@ -647,6 +651,8 @@ void RigidBodyTree::calcTreeForwardDynamics(const SBStateRep& s,
 void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s, 
                                             const SpatialVecList& spatialForces) const 
 {
+    assert(s.getStage(*this) >= ReactingStage-1);
+
     SpatialVecList sFrc = spatialForces;
     calcTreeForwardDynamics(s, sFrc);
     if (lConstraints->calcConstraintForces(s)) {
@@ -659,11 +665,11 @@ void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s,
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcP(const SBStateRep& s) const {
+void RigidBodyTree::calcArticulatedBodyInertias(const SBStateRep& s) const {
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcP(s);
+            rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(s);
 }
 
 // should be:

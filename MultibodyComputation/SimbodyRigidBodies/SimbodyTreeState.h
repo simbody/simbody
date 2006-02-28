@@ -192,8 +192,6 @@ public:
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;     // nb (sVel)
 
-    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
-    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
 
     Vector velocityConstraintErrors;              // nvc
     Vector qdot;                                  // nq
@@ -212,12 +210,6 @@ public:
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        coriolisAcceleration.resize(nBodies);       
-        coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));;
-
-        gyroscopicForces.resize(nBodies);           
-        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));;
-
         velocityConstraintErrors.resize(nvc);
         qdot.resize(maxNQs);
     }
@@ -227,6 +219,10 @@ class SBDynamicsCache {
 public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
+
+    Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
+    Vector_<SpatialVec> gyroscopicForces;         // nb (b)
+    Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
 
     Vector_<SpatialMat> psi;                      // nb
     Vector_<SpatialMat> tauBar;                   // nb
@@ -246,6 +242,15 @@ public:
         const int nac     = tree.getNConstraints(); // acceleration constraints        
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
+
+        coriolisAcceleration.resize(nBodies);       
+        coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        gyroscopicForces.resize(nBodies);           
+        gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        centrifugalForces.resize(nBodies);           
+        centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         psi.resize(nBodies); // TODO: ground initialization
         tauBar.resize(nBodies); // TODO: ground initialization

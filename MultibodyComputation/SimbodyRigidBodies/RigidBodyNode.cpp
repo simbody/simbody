@@ -57,40 +57,13 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(const SBStateRep& s) const
                                    -offDiag             , getMass(s)*Mat33(1) );
 }
 
-// Calculate velocity-related quantities: spatial velocity (sVel),
-// gyroscopic force b, coriolis acceleration a. This must be
+// Calculate velocity-related quantities: spatial velocity (sVel). This must be
 // called base to tip: depends on parent's spatial velocity, and
 // the just-calculated cross-joint spatial velocity V_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel(const SBStateRep& s) const
 {
     updV_GB(s) = ~getPhi(s)*parent->getV_GB(s) + getV_PB_G(s);
-    const Vec3& omega = getV_GB(s)[0];  // spatial angular velocity
-    const Vec3& vel   = getV_GB(s)[1];  // spatial linear velocity
-
-    updGyroscopicForce(s) = 
-        SpatialVec(    omega % (getInertia_OB_G(s)*omega),    // gyroscopic moment
-                   getMass(s)*(omega % (omega % getCB_G(s)))); // gyroscopic force
-
-    // Parent velocity.
-    const Vec3& pOmega = parent->getV_GB(s)[0];
-    const Vec3& pVel   = parent->getV_GB(s)[1];
-
-    // Calc a: coriolis acceleration.
-    // Sherm TODO: See Schwieters & Clore Eq. [16], which uses *this*
-    // body's omega (w_k) while the code below uses the *parent* pOmega
-    // (w_k-1). Compare with Jain, Vaidehi, & Rodriguez 1991, Eq. 4.4,
-    // esp. the following paragraph saying that the cross product
-    // will be the same whether we use omega or pOmega in the 2nd term,
-    // because they can only differ along H which is constant between P & B.
-    // (caution: JV&R number backwards so the parent is w_k+1 there).
-    // Is that also true in the first term? I.e., can we use pOmega, omega,
-    // or both below and get the same answers? Anyway the code below is
-    // consistent with JV&R but not obviously consistent with S&C.
-    updCoriolisAcceleration(s) = 
-        SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
-         // + crossMat(pOmega) * getV_PB_G(s); <-- IVM original
-        + crossMat(omega)  * getV_PB_G(s); // JV&R paper
 }
 
 Real RigidBodyNode::calcKineticEnergy(const SBStateRep& s) const {
@@ -103,8 +76,15 @@ Real RigidBodyNode::calcKineticEnergy(const SBStateRep& s) const {
 // This routine expects that all spatial velocities & spatial inertias are
 // already available, but does not have to be called in any particular order.
 void 
-RigidBodyNode::calcJointIndependentDynamics(const SBStateRep& s) const
+RigidBodyNode::calcJointIndependentDynamicsVel(const SBStateRep& s) const
 {
+    if (nodeNum == 0) { // ground, just in case
+        updGyroscopicForce(s)      = SpatialVec(Vec3(0), Vec3(0));
+        updCoriolisAcceleration(s) = SpatialVec(Vec3(0), Vec3(0));
+        updCentrifugalForces(s)    = SpatialVec(Vec3(0), Vec3(0));
+        return;
+    }
+
     const Vec3& omega = getV_GB(s)[0];  // spatial angular velocity
     const Vec3& vel   = getV_GB(s)[1];  // spatial linear velocity
 
@@ -131,6 +111,9 @@ RigidBodyNode::calcJointIndependentDynamics(const SBStateRep& s) const
         SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
          // + crossMat(pOmega) * getV_PB_G(s); <-- IVM original
         + crossMat(omega)  * getV_PB_G(s); // JV&R paper
+
+    updCentrifugalForces(s) =
+        getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s);
 }
 
 void RigidBodyNode::nodeDump(std::ostream& o) const {
@@ -164,8 +147,6 @@ public:
     /*virtual*/int getMaxNQ() const { return 0; }
     /*virtual*/int getNQ(const SBStateRep&) const { return 0; }
 
-
-    /*virtual*/void calcP(const SBStateRep&) const {} 
     /*virtual*/void calcZ(const SBStateRep&, const SpatialVec&) const {} 
     /*virtual*/void calcY(const SBStateRep&) const {}
     /*virtual*/void calcInternalForce(const SBStateRep&, const SpatialVec&) const {}
@@ -177,6 +158,12 @@ public:
     /*virtual*/void realizeMotion(const SBStateRep&) const {}
     /*virtual*/void setVelFromSVel(SBStateRep&,const SpatialVec&) {}
     /*virtual*/bool enforceQuaternionConstraints(SBStateRep&) const {return false;}
+    
+    /*virtual*/void calcArticulatedBodyInertiasInward(const SBStateRep&) const {}
+
+    /*virtual*/ void calcInternalGradientFromSpatial
+        (const SBStateRep&, Vector_<SpatialVec>&,
+            const Vector_<SpatialVec>&, Vector&) const { }
 
     /*virtual*/void calcUDotPass1Inward(const SBStateRep& s,
         const Vector&              jointForces,
@@ -326,7 +313,7 @@ public:
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
     void calcArticulatedBodyInertiasInward(const SBStateRep& s) const;
 
-    // calcJointIndependentDynamics() must be called after ArticulatedBodyInertias.
+    // calcJointIndependentDynamicsVel() must be called after ArticulatedBodyInertias.
 
     // This dynamics-stage calculation is needed for handling constraints. It
     // must be called base-to-tip (outward);
@@ -480,6 +467,9 @@ public:
     Real&             upd1QDot  (const SBStateRep& s) const {return to1Q  (s.motionCache.qdot);}
 
         // Dynamics
+    const Mat<dof,dof>& getD(const SBStateRep& s) const {return fromUSq(s.dynamicsCache.storageForD);}
+    Mat<dof,dof>&       updD(const SBStateRep& s) const {return toUSq  (s.dynamicsCache.storageForD);}
+
     const Mat<dof,dof>& getDI(const SBStateRep& s) const {return fromUSq(s.dynamicsCache.storageForDI);}
     Mat<dof,dof>&       updDI(const SBStateRep& s) const {return toUSq  (s.dynamicsCache.storageForDI);}
 
@@ -515,7 +505,6 @@ public:
     const Real&       get1Epsilon(const SBStateRep& s) const {return from1U(s.reactionCache.epsilon);}
     Real&             upd1Epsilon(const SBStateRep& s) const {return to1U  (s.reactionCache.epsilon);}
 
-    void calcP(const SBStateRep& s) const;
     void calcZ(const SBStateRep& s, const SpatialVec& spatialForce) const;
 
     void calcAccel(const SBStateRep& s) const;
@@ -1174,43 +1163,6 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(SBStateRep& s,
 }
 
 //
-// Calculate Pk and related quantities. The requires that the children
-// of the node have already had their quantities calculated, i.e. this
-// is a tip to base recursion.
-//
-template<int dof> void
-RigidBodyNodeSpec<dof>::calcP(const SBStateRep& s) const {
-    //
-    //how much do we need to keep around?
-    // it looks like nu and G are the only ones needed for the acceleration
-    // calc. The others can be freed after the parent is done with them.
-    //
-    SpatialMat& P = updP(s);
-    P = getMk(s);
-    for (int i=0 ; i<(int)children.size() ; i++) {
-        // this version is readable
-        // P += orthoTransform( children[i]->tau * children[i]->P ,
-        //                      transpose(children[i]->phiT) );
-        // this version is not
-        const Mat33      lt = crossMat(children[i]->getX_GB(s).T() - getX_GB(s).T());
-        const SpatialMat M  = children[i]->getTauBar(s) * children[i]->getP(s);
-        P(0,0) += M(0,0) + lt*M(1,0) - M(0,1)*lt - lt*M(1,1)*lt;
-        P(0,1) += M(0,1) + lt*M(1,1);
-        P(1,0) += M(1,0) - M(1,1)*lt;
-        P(1,1) += M(1,1);
-    }
-
-    const Mat<dof,dof> D = getH(s) * P * ~getH(s);
-    // this will throw an exception if the matrix is ill conditioned
-    updDI(s) = D.invert();
-    updG(s)  = P * ~getH(s) * getDI(s);
-
-    updTauBar(s)  = 1.; // identity matrix
-    updTauBar(s) -= getG(s) * getH(s);
-    updPsi(s)     = getPhi(s) * getTauBar(s);
-}
-
-//
 // Given only position-related quantities from the State 
 //      Mk  (this body's spatial inertia matrix)
 //      Phi (composite body child-to-parent shift matrix)
@@ -1243,7 +1195,7 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
     const Mat<2,dof,Vec3> PHt = getP(s) * ~getH(s);
     updD(s)  = getH(s) * PHt;
     // this will throw an exception if the matrix is ill conditioned
-    updDI(s) = D.invert();
+    updDI(s) = getD(s).invert();
     updG(s)  = PHt * getDI(s);
 
     // TODO: change sign on tau to make it GH-I instead, which only requires
@@ -1275,7 +1227,7 @@ RigidBodyNodeSpec<dof>::calcZ(const SBStateRep& s,
                               const SpatialVec& spatialForce) const 
 {
     SpatialVec& z = updZ(s);
-    z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) - spatialForce;
+    z = getCentrifugalForces(s) - spatialForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const SpatialVec& zChild    = children[i]->getZ(s);
@@ -1326,9 +1278,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(const SBStateRep& s,
     SpatialVec&       Geps         = toB(allGepsilon);
     Vec<dof>&         eps          = toU(allEpsilon);
 
-    // TODO: this product and sum could have been precalculated
-    z = getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s) 
-        - myBodyForce;
+    z = getCentrifugalForces(s) - myBodyForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(s);
@@ -1369,8 +1319,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const SBStateRep& s,
 
 //
 // Calculate product of partial velocities J and a gradient vector on each of the
-// outboard bodies. This is to be called tip to base, with temporary zTmp initialized
-// to zero before the first call. Requires that Phi and H are available, so this
+// outboard bodies. This is to be called tip to base. Requires that Phi and H are available, so this
 // should only be called in ConfiguredStage or higher. This does not change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
 // applied hinge gradients if there are any; just add those in at the end if you want them.
@@ -1384,7 +1333,7 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
     Vec<dof>&         out = Vec<dof>::updAs(&JX[getUIndex()]);
     SpatialVec&       z   = zTmp[getNodeNum()];
 
-    z = -in;    // sherm: why the minus sign here?
+    z = in;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];

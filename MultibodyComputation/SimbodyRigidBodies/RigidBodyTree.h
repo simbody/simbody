@@ -284,10 +284,6 @@ public:
     /// constraints (other than quaternion constraints).
     void enforceLengthConstraints(SBStateRep&) const;
 
-    /// Prepare for dynamics by calculating position-dependent quantities
-    /// like the articulated body inertias P.
-    void prepareForDynamics(const SBStateRep&) const;
-
     /// Given a set of spatial forces, calculate accelerations ignoring
     /// constraints. Must have already called prepareForDynamics().
     /// TODO: also applies stored internal forces (hinge torques) which
@@ -302,7 +298,7 @@ public:
 
 
     /// Unconstrained (tree) dynamics 
-    void calcP(const SBStateRep&) const;                        // articulated body inertias
+    void calcArticulatedBodyInertias(const SBStateRep&) const;                        // articulated body inertias
     void calcZ(const SBStateRep&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
     void calcTreeAccel(const SBStateRep&) const;                // accels with forces from last calcZ
 

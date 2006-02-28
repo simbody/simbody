@@ -157,7 +157,7 @@ public:
     void realizeTime         (const SBState&) const;
     void realizeConfiguration(const SBState&) const;
     void realizeMotion       (const SBState&) const;
-    void realizeDynamics    (const SBState&) const;
+    void realizeDynamics     (const SBState&) const;
     void realizeReaction     (const SBState&) const;
 
     void realize(const SBState&, SBStage) const;
@@ -261,8 +261,8 @@ public:
 
     void setQ(SBState&, const Vector& q) const;
     void setU(SBState&, const Vector& u) const;
-    VectorView& updQ(SBState&) const;
-    VectorView& updU(SBState&) const;
+    Vector& updQ(SBState&) const;
+    Vector& updU(SBState&) const;
 
     const Vector& getQDot   (const SBState&) const;
     const Vector& getUDot   (const SBState&) const;
@@ -270,7 +270,6 @@ public:
 
 private:
     RigidBodyTree* rep;
-    //SimbodyTreeRep* rep;
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyTree&);

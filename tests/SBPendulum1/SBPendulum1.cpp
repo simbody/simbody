@@ -89,6 +89,14 @@ try {
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
+    Vector_<SpatialVec> dEdR(2);
+    dEdR[0] = 0;
+    dEdR[1] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
+    Vector dEdQ;
+    pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
+    cout << "dEdR=" << dEdR << endl;
+    cout << "dEdQ=" << dEdQ << endl;
+
     pend.setJointU(s, 1, 0, 10.);
 
     pend.clearAppliedForces(s);
