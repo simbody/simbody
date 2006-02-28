@@ -228,11 +228,11 @@ public:
     const SpatialVec& getGepsilon(const SBStateRep& s) const {return fromB(s.reactionCache.Gepsilon);}
     SpatialVec&       updGepsilon(const SBStateRep& s) const {return toB  (s.reactionCache.Gepsilon);}
 
-    const SpatialMat& getPsiT(const SBStateRep& s) const {return fromB(s.dynamicsCache.psiT);}
-    SpatialMat&       updPsiT(const SBStateRep& s) const {return toB  (s.dynamicsCache.psiT);}
+    const SpatialMat& getPsi(const SBStateRep& s) const {return fromB(s.dynamicsCache.psi);}
+    SpatialMat&       updPsi(const SBStateRep& s) const {return toB  (s.dynamicsCache.psi);}
 
-    const SpatialMat& getTau(const SBStateRep& s) const {return fromB(s.dynamicsCache.tau);}
-    SpatialMat&       updTau(const SBStateRep& s) const {return toB  (s.dynamicsCache.tau);}
+    const SpatialMat& getTauBar(const SBStateRep& s) const {return fromB(s.dynamicsCache.tauBar);}
+    SpatialMat&       updTauBar(const SBStateRep& s) const {return toB  (s.dynamicsCache.tauBar);}
 
     const SpatialMat& getY(const SBStateRep& s) const {return fromB(s.dynamicsCache.Y);}
     SpatialMat&       updY(const SBStateRep& s) const {return toB  (s.dynamicsCache.Y);}
@@ -273,7 +273,7 @@ public:
     virtual void calcP(const SBStateRep&) const                           {throw VirtualBaseMethod();}
     virtual void calcZ(const SBStateRep&, const SpatialVec& spatialForce) const
       { throw VirtualBaseMethod(); }
-    virtual void calcY(const SBStateRep&) const                           {throw VirtualBaseMethod();}
+    virtual void calcYOutward(const SBStateRep&) const                    {throw VirtualBaseMethod();}
     virtual void calcAccel(const SBStateRep&) const                       {throw VirtualBaseMethod();}
 
     virtual void calcInternalGradientFromSpatial
@@ -378,6 +378,9 @@ private:
     /// Calcluate all spatial velocity quantities, assuming availability of
     /// joint-specific relative quantities and all position kinematics.
     void calcJointIndependentKinematicsVel(const SBStateRep&) const;
+
+    /// Calculate quantities which will be needed for computing accelerations.
+    void calcJointIndependentDynamics(const SBStateRep&) const;
 };
 
 #endif // RIGID_BODY_NODE_H_

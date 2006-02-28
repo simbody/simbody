@@ -605,13 +605,15 @@ void RigidBodyTree::enforceMotionConstraints(SBStateRep& s) const {
     assert(s.getStage(*this) >= MovingStage-1);
 
     // Currently there are no coordinate constraints for velocity.
+
+    // Fix the velocity constraints produced by defined length constraints.
     const bool anyChange = lConstraints->enforceMotionConstraints(s);
 
     if (anyChange && s.getStage(*this) >= MovingStage)
         s.setStage(*this, SBStage(MovingStage-1));
 }
 
-// Enforce loop constraints.
+// Enforce loop constraints. TODO: OBSOLETE
 void RigidBodyTree::enforceLengthConstraints(SBStateRep& s) const {
     Vector& pos = updQ(s);
     Vector& vel = updU(s);
@@ -683,7 +685,7 @@ void RigidBodyTree::calcZ(const SBStateRep& s,
 void RigidBodyTree::calcY(const SBStateRep& s) const {
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcY(s);
+            rbNodeLevels[i][j]->calcYOutward(s);
 }
 
 // Calc acceleration: sweep from base to tip.

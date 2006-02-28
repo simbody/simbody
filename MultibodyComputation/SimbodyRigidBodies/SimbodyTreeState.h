@@ -228,10 +228,11 @@ public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
-    Vector_<SpatialMat> psiT;                     // nb
-    Vector_<SpatialMat> tau;                      // nb TODO: probably don't need to save this
+    Vector_<SpatialMat> psi;                      // nb
+    Vector_<SpatialMat> tauBar;                   // nb
     Vector_<SpatialMat> Y;                        // nb
 
+    Vector_<Real>       storageForD;              // sum(nu[j]^2)
     Vector_<Real>       storageForDI;             // sum(nu[j]^2)
     Matrix_<Vec3>       storageForG;              // 2 X ndof
 
@@ -246,9 +247,10 @@ public:
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
-        psiT.resize(nBodies); // TODO: ground initialization
-        tau.resize(nBodies); // TODO: ground initialization
+        psi.resize(nBodies); // TODO: ground initialization
+        tauBar.resize(nBodies); // TODO: ground initialization
         Y.resize(nBodies); // TODO: ground initialization
+        storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2,nDofs);
     }

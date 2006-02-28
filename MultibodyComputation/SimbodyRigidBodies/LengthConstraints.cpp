@@ -880,12 +880,12 @@ computeA(const SBStateRep& s,
     SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(s2) - n2->getX_GB(s).T()), one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
-        t1 = t1 * n1->getPsiT(s);
+        t1 = t1 * ~n1->getPsi(s);
         n1 = n1->getParent();
     }
 
     while ( n2->getLevel() > n1->getLevel() ) {
-        t2 = ~n2->getPsiT(s) * t2;
+        t2 = n2->getPsi(s) * t2;
         n2 = n2->getParent();
     }
 
@@ -897,8 +897,8 @@ computeA(const SBStateRep& s,
                     << loop1.tips(s1) << " <-> " << loop2.tips(s2) << '\n';
             return 0.;
         }
-        t1 = t1 * n1->getPsiT(s);
-        t2 = ~n2->getPsiT(s) * t2;
+        t1 = t1 * ~n1->getPsi(s);
+        t2 = n2->getPsi(s) * t2;
         n1 = n1->getParent();
         n2 = n2->getParent();
     }
