@@ -43,7 +43,7 @@ class BadNodeDef {};  //exception
 
 /**
  * Collect up useful information about a loop. 
- * This includes the two connected atoms, ordered by level, and the
+ * This includes the two connected stations, ordered by level, and the
  * paths from each of the associated nodes back to the common ancestor.
  * We also identify the molecule base node for the molecule which
  * contains both ends of the loop.

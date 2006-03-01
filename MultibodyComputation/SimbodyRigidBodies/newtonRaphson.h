@@ -78,7 +78,6 @@ public:
                 SIMTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
         }
     }
-
 };
 
 #endif // NEWTON_RAPHSON_H_

@@ -29,7 +29,7 @@
  *
  *     |           \           | g
  *     *--          *--        v
- *    / G          / Ji
+ *    / G          / Jb
  *
  *
  *   |           |
@@ -44,10 +44,10 @@
  * located in opposite directions along the B
  * frame X axis.
  *
- * There is a frame Ji on Ground which will connect
+ * There is a frame Jb on Ground which will connect
  * to J via a torsion joint around their mutual z axis.
  * Gravity is in the -y direction of the Ground frame.
- * Note that Ji may not be aligned with G, and J may
+ * Note that Jb may not be aligned with G, and J may
  * differ from B so the reference configuration may 
  * involve twisting the pendulum around somewhat.
  */
@@ -69,21 +69,30 @@ try {
     Real L = 5.; 
     Real m = 3.;
     TransformMat groundFrame;
+    TransformMat baseFrame;
+
+    //int baseBody =
+     //   pend.addRigidBody(0, groundFrame, 
+     //                     JointSpecification(JointSpecification::Pin, false),
+      //                    TransformMat(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
     TransformMat jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
+    Vec3 gravity(0.,-9.8,0.);
     int theBody = 
-      pend.addRigidBody(0, groundFrame, 
-                        //JointSpecification(JointSpecification::Pin, false),
+      pend.addRigidBody(0, TransformMat(), 
+                        //JointSpecification(JointSpecification::Cartesian, false),
+                        //JointSpecification(JointSpecification::Sliding, false),
+                        JointSpecification(JointSpecification::Pin, false),
                         //JointSpecification(JointSpecification::Ball, false),
-                        JointSpecification(JointSpecification::Free, false),
+                        //JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
     int theConstraint =
-        pend.addConstantDistanceConstraint(0, Vec3(0),
+        pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
                                            theBody, Vec3(0,0,0),
-                                           L/2);
+                                           L/2+std::sqrt(2.));
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
 
@@ -105,7 +114,7 @@ try {
     pend.setJointU(s, 1, 0, 10.);
 
     pend.clearAppliedForces(s);
-    pend.applyGravity(s, Vec3(0.,-9.8,0.));
+    pend.applyGravity(s, gravity);
     pend.applyJointForce(s, 1, 0, 147);
 
     pend.realize(s, MovingStage);
@@ -130,7 +139,8 @@ try {
 
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
-    pend.updU(s) = 0;
+    pend.updU(s)[0] = -10.;
+    pend.updQ(s)[0] = -.1;
 
     const Real h = 0.0001;
     const Real tstart = 0.;
@@ -139,20 +149,40 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-       // pend.enforceConfigurationConstraints(s);
+        pend.enforceConfigurationConstraints(s);
         pend.realize(s,ConfiguredStage);
 
-        //pend.enforceMotionConstraints(s);
+        pend.enforceMotionConstraints(s);
         pend.realize(s,MovingStage);
-
-        if (!(step % 100))
-            cout << t << " " 
-                 << pend.getQ(s) << " " << pend.getU(s) 
-                 << endl;
         const Vector qdot = pend.getQDot(s);
 
         pend.clearAppliedForces(s);
-        pend.applyGravity(s,Vec3(0,-9.8,0));
+        pend.applyGravity(s,gravity);
+
+        TransformMat x = pend.getBodyConfiguration(s,theBody);
+        SpatialVec   v = pend.getBodyVelocity(s,theBody);
+        /*
+        Vec3 err = x.T()-Vec3(2.5,0.,0.);
+        Real d = err.norm();
+        Real k = m*gravity.norm(); // stiffness, should balance at 1
+        Real c = 10.; // damping
+        Vec3 fk = -k*err;
+        Real fc = -c*pend.getU(s)[2];
+        pend.applyPointForce(s,theBody,Vec3(0,0,0),fk);
+        pend.applyJointForce(s,theBody,2,fc);
+        */
+
+        if (!(step % 100)) {
+            cout << t << " " 
+                 << pend.getQ(s) << " " << pend.getU(s) 
+                 << endl;
+            cout << "body config=" << x;
+            cout << "body velocity=" << v << endl;
+            //cout << "err=" << err << " |err|=" << d << endl;
+            //cout << "spring force=" << fk << endl;
+            //cout << "damping joint forces=" << fc << endl;
+        }
+
         pend.realize(s, ReactingStage);
 
         const Vector udot = pend.getUDot(s);
