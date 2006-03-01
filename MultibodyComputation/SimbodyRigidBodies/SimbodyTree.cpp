@@ -36,6 +36,17 @@ int SimbodyTree::addRigidBody(
     return rbIndex;
 }
 
+
+int SimbodyTree::addConstantDistanceConstraint
+    (int parent, const Vec3& stationInP,
+     int child,  const Vec3& stationInC,
+     const Real& distance)
+{
+    const RBStation p(rep->updRigidBodyNode(parent), stationInP);
+    const RBStation c(rep->updRigidBodyNode(child), stationInC);
+    return rep->addDistanceConstraint(p,c,distance);
+}
+
 // Note the lack of a State argument when completing construction.
 void SimbodyTree::realizeConstruction() {
     rep->realizeConstruction();

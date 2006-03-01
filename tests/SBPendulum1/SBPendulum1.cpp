@@ -70,7 +70,7 @@ try {
     Real m = 3.;
     TransformMat groundFrame;
     TransformMat jointFrame(Vec3(-L/2,0,0));
-    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1.,0.,0.));
+    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
@@ -80,6 +80,10 @@ try {
                         //JointSpecification(JointSpecification::Ball, false),
                         JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
+    int theConstraint =
+        pend.addConstantDistanceConstraint(0, Vec3(0),
+                                           theBody, Vec3(0,0,0),
+                                           L/2);
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
 
@@ -135,10 +139,10 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        pend.enforceConfigurationConstraints(s);
+       // pend.enforceConfigurationConstraints(s);
         pend.realize(s,ConfiguredStage);
 
-        pend.enforceMotionConstraints(s);
+        //pend.enforceMotionConstraints(s);
         pend.realize(s,MovingStage);
 
         if (!(step % 100))

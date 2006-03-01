@@ -158,6 +158,7 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint&               dc,
          moleculeNode->getLevel()>1 ; 
          moleculeNode=moleculeNode->getParent()) ;
 
+    /* TODO: sherm 060228: allow ground as base node
     if ( moleculeNode->getLevel()<1 ) {
         cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
              << "loop between atoms " << tips(1) << " and " 
@@ -165,6 +166,7 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint&               dc,
         SIMTK_THROW1(simtk::Exception::LoopConstraintConstructionFailure, 
                      "could not find 'molecule' node");
     }
+    */
 }
 
 typedef std::vector<LoopWNodes> LoopList;
@@ -364,9 +366,11 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
         priv->accConstraints.push_back(LengthSet(this, accLoops[i]));
         for (int j=i+1 ; j<(int)accLoops.size() ; j++)
             if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
-                priv->accConstraints[i].addConstraint(accLoops[j]);
-                accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
-                j--;
+                if (!accLoops[i].moleculeNode->isGroundNode()) { // sherm 060228
+                    priv->accConstraints[i].addConstraint(accLoops[j]);
+                    accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
+                    j--;
+                }
             }
         //     for (int b=1 ; b<=2 ; b++) 
         //     if ( sameBranch(accLoops[i].tips(b)->node,accLoops[j]) ||

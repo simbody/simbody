@@ -254,7 +254,10 @@ public:
 
         psi.resize(nBodies); // TODO: ground initialization
         tauBar.resize(nBodies); // TODO: ground initialization
-        Y.resize(nBodies); // TODO: ground initialization
+
+        Y.resize(nBodies);
+        Y[0] = SpatialMat(Mat33(0));
+
         storageForD.resize(nSqDofs);
         storageForDI.resize(nSqDofs);
         storageForG.resize(2,nDofs);

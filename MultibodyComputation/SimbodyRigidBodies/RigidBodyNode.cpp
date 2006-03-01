@@ -148,7 +148,7 @@ public:
     /*virtual*/int getNQ(const SBStateRep&) const { return 0; }
 
     /*virtual*/void calcZ(const SBStateRep&, const SpatialVec&) const {} 
-    /*virtual*/void calcY(const SBStateRep&) const {}
+    /*virtual*/void calcYOutward(const SBStateRep&) const {}
     /*virtual*/void calcInternalForce(const SBStateRep&, const SpatialVec&) const {}
     /*virtual*/void calcAccel(const SBStateRep&) const {}
 

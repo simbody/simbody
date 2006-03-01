@@ -684,7 +684,7 @@ void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s) const
 {
     assert(s.getStage(*this) >= ReactingStage-1);
 
-    Vector_<SpatialVec> cFrc(getTotalDOF()); 
+    Vector_<SpatialVec> cFrc(getNBodies()); 
     cFrc.setToZero();
 
     calcTreeForwardDynamics(s, 0, 0);
