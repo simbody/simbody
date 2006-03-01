@@ -295,6 +295,12 @@ public:
         (const SBStateRep&, Vector_<SpatialVec>& zTmp,
          const Vector_<SpatialVec>& X, Vector& JX) const
       { throw VirtualBaseMethod(); }
+    virtual void calcEquivalentJointForces(const SBStateRep& s,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    jointForces) const
+      { throw VirtualBaseMethod(); }
     virtual void calcUDotPass1Inward(const SBStateRep& s,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -307,6 +313,16 @@ public:
         Vector_<SpatialVec>&            allA_GB,
         Vector&                         allUDot) const
       { throw VirtualBaseMethod(); }
+
+    virtual void calcQDot(const SBStateRep& s,
+        const Vector& u,
+        Vector&       qdot) const
+    { throw VirtualBaseMethod(); }
+
+    virtual void calcQDotDot(const SBStateRep& s,
+        const Vector& udot,
+        Vector&       qdotdot) const
+    { throw VirtualBaseMethod(); }
 
     virtual void setVelFromSVel(SBStateRep&, const SpatialVec&) const {throw VirtualBaseMethod();}
 

@@ -165,6 +165,16 @@ public:
         (const SBStateRep&, Vector_<SpatialVec>&,
             const Vector_<SpatialVec>&, Vector&) const { }
 
+    /*virtual*/ void calcEquivalentJointForces(const SBStateRep& s,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    jointForces) const 
+    { 
+        allZ[0] = bodyForces[0];
+        allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
+    }
+
     /*virtual*/void calcUDotPass1Inward(const SBStateRep& s,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -172,7 +182,7 @@ public:
         Vector_<SpatialVec>&       allGepsilon,
         Vector&                    allEpsilon) const
     {
-        allZ[0] = -bodyForces[0];
+        allZ[0] = -bodyForces[0]; // TODO sign is weird
         allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     } 
     /*virtual*/void calcUDotPass2Outward(const SBStateRep& s,
@@ -275,12 +285,12 @@ public:
     // These next two routines are options, but if you supply one you
     // must supply the other. (That is, ball-containing joints provide
     // both of these routines.)
-    virtual void calcQDot(const SBStateRep& s, Vector& qdot) const {
-        toQ(qdot) = getU(s);    // default is qdot=u
+    virtual void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
+        toQ(qdot) = fromU(u);        // default is qdot=u
     }
 
-    virtual void calcQDotDot(const SBStateRep& s, Vector& qdotdot) const {
-        toQ(qdotdot) = getUDot(s);  // default is qdotdot=udot
+    virtual void calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
+        toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
     void realizeModeling(const simtk::SBStateRep&) const {
@@ -305,7 +315,7 @@ public:
     // Set new velocities for the current configuration, and calculate
     // all the velocity-dependent terms. Must call base-to-tip.
     void realizeMotion(const SBStateRep& s) const {
-        calcQDot(s, s.motionCache.qdot);
+        calcQDot(s, s.motionVars.u, s.motionCache.qdot);
         calcJointKinematicsVel(s);
         calcJointIndependentKinematicsVel(s);
     }
@@ -510,6 +520,12 @@ public:
     void calcAccel(const SBStateRep& s) const;
     void calcInternalGradientFromSpatial(const SBStateRep&, Vector_<SpatialVec>& zTmp,
                                          const Vector_<SpatialVec>& X, Vector& JX) const;
+
+    void calcEquivalentJointForces(const SBStateRep& s,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    jointForces) const;
 
     void calcUDotPass1Inward(const SBStateRep& s,
         const Vector&              jointForces,
@@ -882,17 +898,17 @@ public:
         H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
     }
 
-    void calcQDot(const SBStateRep& s, Vector& qdot) const {
-        const Vec3& w_JbJ = getU(s); // angular velocity of J in Jb 
+    void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
+        const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
         if (getUseEulerAngles(s))
             toQ(qdot) = RotationMat::convertAngVelToBodyFixed321Dot(getQ(s),w_JbJ);
         else
             toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(getQuat(s),w_JbJ);
     }
  
-    void calcQDotDot(const SBStateRep& s, Vector& qdotdot) const {
+    void calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
         const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
-        const Vec3& w_JbJ_dot = getUDot(s);
+        const Vec3& w_JbJ_dot = fromU(udot);
         if (getUseEulerAngles(s))
             toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed321DotDot
                                   (getQ(s),w_JbJ,w_JbJ_dot);
@@ -1014,9 +1030,9 @@ public:
         H[5] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
     }
 
-    void calcQDot(const SBStateRep& s, Vector& qdot) const {
-        const Vec3& w_JbJ = getUVec3(s,0); // Angular velocity
-        const Vec3& v_JbJ = getUVec3(s,3); // Linear velocity
+    void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
+        const Vec3& w_JbJ = fromUVec3(u,0); // Angular velocity
+        const Vec3& v_JbJ = fromUVec3(u,3); // Linear velocity
         if (getUseEulerAngles(s)) {
             const Vec3& theta = getQVec3(s,0); // Euler angles
             toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed321Dot(theta,w_JbJ);
@@ -1028,11 +1044,11 @@ public:
         }
     }
  
-    void calcQDotDot(const SBStateRep& s, Vector& qdotdot) const {
+    void calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
         const Vec3& w_JbJ     = getUVec3(s,0); // angular velocity of J in Jb
         const Vec3& v_JbJ     = getUVec3(s,3); // linear velocity
-        const Vec3& w_JbJ_dot = getUDot(s).getSubVec<3>(0);
-        const Vec3& v_JbJ_dot = getUDot(s).getSubVec<3>(3);
+        const Vec3& w_JbJ_dot = fromUVec3(udot,0);
+        const Vec3& v_JbJ_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(s)) {
             const Vec3& theta  = getQVec3(s,0); // Euler angles
             toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed321DotDot
@@ -1256,7 +1272,7 @@ RigidBodyNodeSpec<dof>::calcAccel(const SBStateRep& s) const {
     udot       = getNu(s) - (~getG(s)*alphap);
     updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
 
-    calcQDotDot(s, s.reactionCache.qdotdot);   
+    calcQDotDot(s, s.reactionCache.udot, s.reactionCache.qdotdot);   
 }
 
  
@@ -1343,6 +1359,36 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
     }
 
     out = getH(s) * z; 
+}
+
+//
+// To be called from tip to base.
+// Temps do not need to be initialized.
+//
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcEquivalentJointForces(const SBStateRep& s,
+    const Vector_<SpatialVec>& bodyForces,
+    Vector_<SpatialVec>&       allZ,
+    Vector_<SpatialVec>&       allGepsilon,
+    Vector&                    jointForces) const 
+{
+    const SpatialVec& myBodyForce  = fromB(bodyForces);
+    SpatialVec&       z            = toB(allZ);
+    SpatialVec&       Geps         = toB(allGepsilon);
+    Vec<dof>&         eps          = toU(jointForces);
+
+    z = myBodyForce;
+
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
+        const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+        const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+
+        z += phiChild * (zChild + GepsChild);
+    }
+
+    eps  = getH(s) * z;
+    Geps = getG(s) * eps;
 }
 
 

@@ -172,11 +172,27 @@ public:
     /// Requires realization through MovingStage.
     Real calcKineticEnergy(const SBState&) const;
 
+    /// Requires realization through DynamicsStage although
+    /// velocities are irrelevant.
+    void calcTreeEquivalentJointForces(const SBState&, 
+        const Vector_<SpatialVec>& bodyForces,
+        Vector&                    jointForces) const;
+
     /// Requires realization through DynamicsStage.
     void calcTreeUDot(const SBState&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot) const;
+
+    // Must be in ConfiguredStage to calculate qdot = Q*u.
+    void calcQDot(const SBState& s,
+        const Vector& u,
+        Vector&       qdot) const;
+
+    // Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
+    void calcQDotDot(const SBState& s,
+        const Vector& udot,
+        Vector&       qdotdot) const;
 
     // Constraint projections.
 

@@ -58,6 +58,13 @@ void SimbodyTree::calcInternalGradientFromSpatial(const SBState& s,
     rep->calcInternalGradientFromSpatial(s.getRep(),dEdR,dEdQ);
 }
 
+void SimbodyTree::calcTreeEquivalentJointForces(const SBState& s, 
+    const Vector_<SpatialVec>& bodyForces,
+    Vector&                    jointForces) const
+{
+    rep->calcTreeEquivalentJointForces(s.getRep(),bodyForces,jointForces);
+}
+
 Real SimbodyTree::calcKineticEnergy(const SBState& s) const {
     return rep->calcKineticEnergy(s.getRep());
 }
@@ -67,7 +74,25 @@ void SimbodyTree::calcTreeUDot(const SBState& s,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    udot) const
 {
-    rep->calcTreeUDot(s.getRep(),jointForces,bodyForces,udot);
+    Vector              netHingeForces; // unwanted side effects
+    Vector_<SpatialVec> A_GB;
+
+    rep->calcTreeAccelerations(s.getRep(),jointForces,bodyForces,
+        netHingeForces, A_GB, udot);
+}
+
+void SimbodyTree::calcQDot(const SBState& s,
+    const Vector& u,
+    Vector&       qdot) const
+{
+    rep->calcQDot(s.getRep(), u, qdot);
+}
+
+void SimbodyTree::calcQDotDot(const SBState& s,
+    const Vector& udot,
+    Vector&       qdotdot) const
+{
+    rep->calcQDotDot(s.getRep(), udot, qdotdot);
 }
 
 // Topological info. Note the lack of a State argument.

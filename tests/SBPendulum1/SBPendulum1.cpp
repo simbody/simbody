@@ -77,7 +77,8 @@ try {
     int theBody = 
       pend.addRigidBody(0, groundFrame, 
                         //JointSpecification(JointSpecification::Pin, false),
-                        JointSpecification(JointSpecification::Ball, false),
+                        //JointSpecification(JointSpecification::Ball, false),
+                        JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
@@ -112,6 +113,11 @@ try {
 
     cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
     cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
+
+    pend.realize(s, DynamicsStage);
+    Vector equivT;
+    pend.calcTreeEquivalentJointForces(s, pend.getAppliedBodyForces(s), equivT);
+    cout << "body forces -> equiv joint forces=" << equivT << endl;
 
     pend.realize(s, ReactingStage);
 

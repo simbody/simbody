@@ -315,7 +315,8 @@ void RigidBodyTree::realizeReaction(const SBStateRep& s)  const {
 
     s.allocateCacheIfNeeded(*this, ReactingStage);
 
-    calcLoopForwardDynamics(s, s.reactionVars.appliedBodyForces);
+    calcLoopForwardDynamics(s);
+    calcQDotDot(s, s.reactionCache.udot, s.reactionCache.qdotdot);
 
     s.setStage(*this, ReactingStage);
 }
@@ -629,35 +630,67 @@ void RigidBodyTree::enforceLengthConstraints(SBStateRep& s) const {
 }
 
 
-// Given a set of spatial forces, calculate accelerations ignoring
-// constraints. Must have already called realizeDynamics().
-// TODO: also applies stored internal forces (hinge torques) which
-// will cause surprises if non-zero.
-void RigidBodyTree::calcTreeForwardDynamics(const SBStateRep& s, 
-                                            const SpatialVecList& spatialForces) const
+// Given a forces in the state, calculate accelerations ignoring
+// constraints, and leave the results in the state. 
+// Must have already called realizeDynamics().
+// We also allow some extra forces to be supplied, with the intent
+// that these will be used to deal with internal forces generated
+// by constraints. 
+void RigidBodyTree::calcTreeForwardDynamics (const SBStateRep& s,
+     const Vector*              extraJointForces,
+     const Vector_<SpatialVec>* extraBodyForces) const
 {
     assert(s.getStage(*this) >= ReactingStage-1);
 
-    calcZ(s,spatialForces);
-    calcTreeAccel(s);
+    Vector              totalJointForces;
+    Vector_<SpatialVec> totalBodyForces;
+
+    // inputs
+    const Vector& jointForces = s.reactionVars.appliedJointForces;
+    const Vector_<SpatialVec>&
+                  bodyForces  = s.reactionVars.appliedBodyForces;
+
+    const Vector*              jointForcesToUse = &jointForces;
+    const Vector_<SpatialVec>* bodyForcesToUse = &bodyForces;
+
+    if (extraJointForces) {
+        totalJointForces = jointForces + *extraJointForces;
+        jointForcesToUse = &totalJointForces;
+    }
+
+    if (extraBodyForces) {
+        totalBodyForces = bodyForces + *extraBodyForces;
+        bodyForcesToUse = &totalBodyForces;
+    }
+
+    // outputs
+    Vector& netHingeForces  = s.reactionCache.netHingeForces;
+    Vector& udot            = s.reactionCache.udot;
+    Vector_<SpatialVec>& 
+            A_GB            = s.reactionCache.bodyAccelerationInGround;
+
+    calcTreeAccelerations(s, *jointForcesToUse, *bodyForcesToUse,
+                          netHingeForces, A_GB, udot);
     
+    // Calculate constraint acceleration errors.
     for (size_t i=0; i < distanceConstraints.size(); ++i)
         distanceConstraints[i].calcAccInfo(s,
             dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
 }
 
-// Given a set of spatial forces, calculate acclerations resulting from
+// Given the set of forces in the state, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s, 
-                                            const SpatialVecList& spatialForces) const 
+void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s) const 
 {
     assert(s.getStage(*this) >= ReactingStage-1);
 
-    SpatialVecList sFrc = spatialForces;
-    calcTreeForwardDynamics(s, sFrc);
+    Vector_<SpatialVec> cFrc(getTotalDOF()); 
+    cFrc.setToZero();
+
+    calcTreeForwardDynamics(s, 0, 0);
     if (lConstraints->calcConstraintForces(s)) {
-        lConstraints->addInCorrectionForces(s, sFrc);
-        calcTreeForwardDynamics(s, sFrc);
+        lConstraints->addInCorrectionForces(s, cFrc);
+        calcTreeForwardDynamics(s, 0, &cFrc);
     }
 }
 
@@ -721,39 +754,64 @@ Real RigidBodyTree::calcKineticEnergy(const SBStateRep& s) const {
 //
 // Operator for open-loop dynamics.
 //
-void RigidBodyTree::calcTreeUDot(const SBStateRep& s,
+void RigidBodyTree::calcTreeAccelerations(const SBStateRep& s,
     const Vector&              jointForces,
     const Vector_<SpatialVec>& bodyForces,
+    Vector&                    netHingeForces,
+    Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
     assert(s.getStage(*this) >= DynamicsStage);
     assert(jointForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNBodies());
+
+    netHingeForces.resize(getTotalDOF());
+    A_GB.resize(getNBodies());
     udot.resize(getTotalDOF());
 
+    // Temporaries
     Vector_<SpatialVec> allZ(getNBodies());
     Vector_<SpatialVec> allGepsilon(getNBodies());
-    Vector              allEpsilon(getTotalDOF());
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcUDotPass1Inward(s,
                 jointForces, bodyForces, allZ, allGepsilon,
-                allEpsilon);
+                netHingeForces);
         }
-
-    //TODO: can reuse one of the above temps. Also, I think you
-    //      can use udot to hold epsilon and then update it.
-    Vector_<SpatialVec> allA_GB(getNBodies());
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass2Outward(s, allEpsilon, allA_GB, udot);
+            node.calcUDotPass2Outward(s, netHingeForces, A_GB, udot);
         }
 }
 
+
+// Must be in ConfigurationStage to calculate qdot = Q*u.
+void RigidBodyTree::calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
+    assert(s.getStage(*this) >= ConfiguredStage);
+    assert(u.size() == getTotalDOF());
+    qdot.resize(getTotalQAlloc());
+
+    // Skip ground; it doesn't have qdots!
+    for (int i=1; i<(int)rbNodeLevels.size(); i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->calcQDot(s, u, qdot);
+}
+
+// Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
+void RigidBodyTree::calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
+    assert(s.getStage(*this) >= MovingStage);
+    assert(udot.size() == getTotalDOF());
+    qdotdot.resize(getTotalQAlloc());
+
+    // Skip ground; it doesn't have qdots!
+    for (int i=1; i<(int)rbNodeLevels.size(); i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            rbNodeLevels[i][j]->calcQDotDot(s, udot, qdotdot);
+}
 
 // If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
 // this routine will return d(something)/du for internal generalized speeds u. If
@@ -776,6 +834,27 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const SBStateRep& s,
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcInternalGradientFromSpatial(s, zTemp, X, JX);
+        }
+}
+
+void RigidBodyTree::calcTreeEquivalentJointForces(const SBStateRep& s, 
+    const Vector_<SpatialVec>& bodyForces,
+    Vector&                    jointForces)
+{
+    assert(s.getStage(*this) >= DynamicsStage);
+    assert(bodyForces.size() == getNBodies());
+    jointForces.resize(getTotalDOF());
+
+    Vector_<SpatialVec> allZ(getNBodies());
+    Vector_<SpatialVec> allGepsilon(getNBodies());
+
+    // Don't do ground's level since ground has no inboard joint.
+    for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcEquivalentJointForces(s,
+                bodyForces, allZ, allGepsilon,
+                jointForces);
         }
 }
 

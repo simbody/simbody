@@ -188,10 +188,31 @@ public:
         const SpatialVecList& X, 
         Vector&               JX);
 
-    void calcTreeUDot(const SBStateRep&,
+    // Given a set of body forces, return the equivalent set of joint torques 
+    // IGNORING CONSTRAINTS.
+    // Must be in DynamicsStage so that articulated body inertias are available,
+    // however, velocities are ignored. This operator has NO effect on the state
+    // cache. It makes a single O(N) pass.
+    void calcTreeEquivalentJointForces(const SBStateRep&, 
+        const Vector_<SpatialVec>& bodyForces,
+        Vector&                    jointForces);
+
+    void calcTreeAccelerations(const SBStateRep& s,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    udot) const;
+        Vector&                    netHingeForces,
+        Vector_<SpatialVec>&       A_GB,
+        Vector&                    udot) const; 
+
+    // Must be in ConfiguredStage to calculate qdot = Q*u.
+    void calcQDot(const SBStateRep& s,
+        const Vector& u,
+        Vector&       qdot) const;
+
+    // Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
+    void calcQDotDot(const SBStateRep& s,
+        const Vector& udot,
+        Vector&       qdotdot) const;
 
     const SBState& getInitialState() const {
         assert(built); return initialState;
@@ -284,17 +305,6 @@ public:
     /// constraints (other than quaternion constraints).
     void enforceLengthConstraints(SBStateRep&) const;
 
-    /// Given a set of spatial forces, calculate accelerations ignoring
-    /// constraints. Must have already called prepareForDynamics().
-    /// TODO: also applies stored internal forces (hinge torques) which
-    /// will cause surprises if non-zero.
-    void calcTreeForwardDynamics(const SBStateRep&, 
-                                 const SpatialVecList& spatialForces) const;
-
-    /// Given a set of spatial forces, calculate acclerations resulting from
-    /// those forces and enforcement of acceleration constraints.
-    void calcLoopForwardDynamics(const SBStateRep&, 
-                                 const SpatialVecList& spatialForces) const;
 
 
     /// Unconstrained (tree) dynamics 
@@ -358,6 +368,21 @@ private:
     LengthConstraints* lConstraints;
 
     void addGroundNode();
+
+    // Given a forces in the state, calculate accelerations ignoring
+    // constraints, and leave the results in the state. 
+    // Must have already called realizeDynamics().
+    // We also allow some extra forces to be supplied, with the intent
+    // that these will be used to deal with internal forces generated
+    // by constraints. 
+    void calcTreeForwardDynamics (const SBStateRep& s,
+        const Vector*              extraJointForces,
+        const Vector_<SpatialVec>* extraBodyForces) const;
+
+    // Given a set of forces in the state, calculate acclerations resulting from
+    // those forces and enforcement of acceleration constraints, and update the state.
+    void calcLoopForwardDynamics(const SBStateRep&) const;
+
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
     friend class SimbodyTree;
 };
