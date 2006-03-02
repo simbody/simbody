@@ -76,18 +76,18 @@ public:
  * The Simbody low-level multibody tree interface.
  * Equations represented:
  *
- *               qdot = Q u
- *   M udot + ~A mult = f
- *             A udot = b(t,q,u)
+ *                     qdot = Q u
+ *   M udot + ~A mult + R*C = T + R*F
+ *                   A udot = b(t,q,u)
  *
- *           v(t,q,u) = 0
- *             g(t,q) = 0
+ *                 v(t,q,u) = 0
+ *                   g(t,q) = 0
  * 
- * where            f = T - R*(F + C(q,u))
- * where T is user-applied joint forces, F is user-applied body
- * forces and torques and gravity, and C includes coriolis and
- * gyroscopic forces. R* is the operator that maps spatial forces
- * to joint forces.
+ * where M(q) is the mass matrix, A(q) the constraint matrix, C(q,u)
+ * the coriolis and gyroscopic forces, T is user-applied joint forces,
+ * F is user-applied body forces and torques and gravity. 
+ * R* is the operator that maps spatial forces to joint forces (partial
+ * velocity matrix in Kane's terminology).
  *
  * We calculate the constraint multipliers like this:
  *           AM~A mult = A udot0-b, udot0=inv(M)f
@@ -249,14 +249,14 @@ public:
     bool isConstraintEnabled(const SBState&, int constraint) const;
 
 
-    // Parameter setting & getting would go here 
+    // TODO: Parameter setting & getting will go here 
 
     void setJointQ(SBState&, int body, int axis, const Real&) const;
     void setJointU(SBState&, int body, int axis, const Real&) const;
     void setPrescribedUdot(SBState&, int body, int axis, const Real&) const;
     void clearAppliedForces(SBState&) const;
 
-    /// Configuration Stage. 
+    // Configuration Stage. 
 
     void applyGravity    (SBState&, const Vec3& g) const;
     void applyPointForce (SBState&, int body, const Vec3& stationInB, 

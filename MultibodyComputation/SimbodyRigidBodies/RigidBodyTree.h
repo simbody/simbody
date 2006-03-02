@@ -356,7 +356,7 @@ private:
     // accordance with those.
     SBState initialState;
 
-    // This holds pointers to nodes and serves to map (level,offset) to nodeSeqNo.
+    // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     std::vector<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum to (level,offset).
     std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
