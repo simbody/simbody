@@ -98,10 +98,13 @@ try {
         pend.addCoincidentStationsConstraint(0, TransformMat().T(),
                                             theBody, jointFrame.T());
  */  
+
+    TransformMat harderOne;
+    harderOne.updR().setToBodyFixed123(Vec3(0,0,0));
+    harderOne.updT() = jointFrame.T()+Vec3(1,2,3);
     int weldConstraint =
         pend.addWeldConstraint(0, TransformMat(),
-                              theBody, TransformMat(jointFrame.R(),
-                                                    jointFrame.T()+Vec3(.0,.0,3.)));    
+                              theBody, harderOne);    
     
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
@@ -109,10 +112,21 @@ try {
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
+    pend.realize(s, ModeledStage);
+
+    pend.setJointQ(s,1,0,0);
+    pend.setJointQ(s,1,3,-1.1);
+    pend.setJointQ(s,1,4,-2.2);
+    pend.setJointQ(s,1,5,-3.3);
 
     pend.realize(s, ConfiguredStage);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
+
+    pend.enforceConfigurationConstraints(s);
+    pend.realize(s, ConfiguredStage);
+
+    cout << "after assembly body frame: " << pend.getBodyConfiguration(s,theBody); 
 
     Vector_<SpatialVec> dEdR(2);
     dEdR[0] = 0;

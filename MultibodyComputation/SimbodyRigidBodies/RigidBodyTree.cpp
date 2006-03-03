@@ -242,7 +242,7 @@ void RigidBodyTree::realizeConstruction() {
     for (int i=0; i<(int)constraintNodes.size(); ++i)
         constraintNodes[i]->finishConstruction(*this);
 
-    lConstraints = new LengthConstraints(*this, 1e-6,0); // TODO: get rid of these numbers
+    lConstraints = new LengthConstraints(*this, 1e-8,0); // TODO: get rid of these numbers
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);
     built = true;
 

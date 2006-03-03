@@ -226,6 +226,7 @@ public:
     Vector calcPosZ(const SBStateRep&, const Vector& b) const;
     Matrix calcGrad(const SBStateRep&) const;
     Matrix calcGInverse(const SBStateRep&) const;
+    Matrix calcGInverseFD(const SBStateRep&) const;
 
     void  calcConstraintForces(const SBStateRep&) const; // updates runtime only
     void  addInCorrectionForces(const SBStateRep&, SpatialVecList& spatialForces) const; // spatialForces+=correction
@@ -470,19 +471,22 @@ Vector
 LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
 {
     const Vector dir = calcGInverse(s) * b;
-    Vector       z(getRBTree().getTotalQAlloc(),0.0);
+    Vector       zu(getRBTree().getTotalDOF(),0.0);
+    Vector       zq(getRBTree().getTotalQAlloc(),0.0);
 
     // map the vector dir back to the appropriate elements of z
     int indx=0; // sherm 060222: I added this
     for (int i=0 ; i<(int)nodeMap.size() ; i++) {
-        const int d    = nodeMap[i]->getNQ(s);
-        const int offs = nodeMap[i]->getQIndex();
-        z(offs,d) = dir(indx,d);
+        const int d    = nodeMap[i]->getDOF();
+        const int offs = nodeMap[i]->getUIndex();
+        zu(offs,d) = dir(indx,d);
         indx += d;
+
+        nodeMap[i]->calcQDot(s,zu,zq);  // change u's to qdot's
     }
     assert(indx == ndofThisSet);
 
-    return z;
+    return zq;
 }
 
 //
@@ -690,8 +694,10 @@ LengthSet::fdgradf(SBStateRep& s,
             Vector posp = pos;
             posp(pos_indx) += eps;
             const Vector bp = calcB(posp);
+            posp(pos_indx) -= 2.*eps;
+            const Vector bpm = calcB(posp);
             for (int k=0 ; k<b.size() ; k++)
-                grad(grad_indx,k) = -(bp(k)-b(k)) / eps;
+                grad(grad_indx,k) = -(bp(k)-bpm(k)) / (2.*eps);
         }
     }
 }
@@ -801,18 +807,32 @@ Matrix
 LengthSet::calcGInverse(const SBStateRep& s) const
 {
     Matrix grad = calcGrad(s); // <-- appears to be transpose of the actual dg/dtheta
-    if ( getVerbose() & InternalDynamics::printLoopDebug ) {
+    if ( false ) {
         SBStateRep sTmp = s;
         Vector pos = getRBTree().getQ(s);
         testGrad(sTmp,pos,grad);
     }
 
-    Matrix ret(grad.nrow(),grad.nrow(),0.0); // <-- wrong dimension ??? sherm TODO
+    Matrix ret(grad.nrow(),grad.ncol(),0.0);
     if ( grad.normSqr() > 1e-10 ) 
-        ret = grad * (~grad*grad).invert();
+        //ret = grad * (~grad*grad).invert();
+        ret = (grad*~grad).invert()*grad; // sherm: these seem to work the same
     return ret;
 }
+Matrix
+LengthSet::calcGInverseFD(const SBStateRep& s) const
+{
+    Matrix grad(ndofThisSet,loops.size()); // <-- appears to be transpose of the actual dg/dtheta
+    SBStateRep sTmp = s;
+    Vector pos = getRBTree().getQ(s);
+    fdgradf(sTmp,pos,grad);
 
+    Matrix ret(grad.nrow(),grad.ncol(),0.0);
+    if ( grad.normSqr() > 1e-10 ) 
+        //ret = grad * (~grad*grad).invert();
+        ret = (grad*~grad).invert()*grad; // sherm: these seem to work the same
+    return ret;
+}
 //acceleration:
 //  0) after initial acceleration calculation:
 //  1) calculate Y (block diagonal matrix) for all nodes (base to tip)

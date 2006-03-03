@@ -334,10 +334,11 @@ public:
     }
 
     /// Given Euler angles forming a body-fixed 3-2-1 sequence, and the relative
-    /// angular velocity vector of B in the parent frame, return the Euler angle
+    /// angular velocity vector of B in the parent frame, *BUT EXPRESSED IN
+    /// THE BODY FRAME*, return the Euler angle
     /// derivatives. You are dead if q[1] gets near 90 degrees!
     /// See Kane's Spacecraft Dynamics, page 428, body-three: 3-2-1.
-    static Vec3 convertAngVelToBodyFixed321Dot(const Vec3& q, const Vec3& w) {
+    static Vec3 convertAngVelToBodyFixed321Dot(const Vec3& q, const Vec3& w_PB_B) {
         const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
         const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
         const Real ooc1 = Real(1)/c1;
@@ -346,11 +347,27 @@ public:
         const Mat33 E( 0. ,   s2oc1  ,  c2oc1  ,
                        0. ,     c2   ,   -s2   ,
                        1. , s1*s2oc1 , s1*c2oc1 );
-        return E*w;
+        return E * w_PB_B;
+    }
+
+
+    // Inverse of the above routine. Returned angular velocity is B in P,
+    // expressed in *B*: w_PB_B.
+    static Vec3 convertBodyFixed321DotToAngVel(const Vec3& q, const Vec3& qd) {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 Einv(  -s1  ,  0. , 1. ,
+                          c1*s2 ,  c2 , 0. ,
+                          c1*c2 , -s2 , 0. );
+        return Einv*qd;
     }
     
     /// Given Euler angles forming a body-fixed 1-2-3 sequence, and the relative
-    /// angular velocity vector of B in the parent frame, return the Euler angle
+    /// angular velocity vector of B in the parent frame,  *BUT EXPRESSED IN
+    /// THE BODY FRAME*, return the Euler angle
     /// derivatives. You are dead if q[1] gets near 90 degrees!
     /// See Kane's Spacecraft Dynamics, page 427, body-three: 1-2-3.
     static Vec3 convertAngVelToBodyFixed123Dot(const Vec3& q, const Vec3& w) {
@@ -365,9 +382,24 @@ public:
         return E*w;
     }
 
-    // TODO: sherm: is this right?
+    // Inverse of the above routine. Returned angular velocity is B in P,
+    // expressed in *B*: w_PB_B.
+    static Vec3 convertBodyFixed123DotToAngVel(const Vec3& q, const Vec3& qd) {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 Einv( c1*c2 ,  s2 , 0. ,
+                         -c1*s2 ,  c2 , 0. ,
+                           s1   ,  0. , 1. );
+        return Einv*qd;
+    }
+
+    // TODO: sherm: is this right? Warning: everything is measured in the
+    // *PARENT* frame, but has to be expressed in the *BODY* frame.
     static Vec3 convertAngVelDotToBodyFixed321DotDot
-        (const Vec3& q, const Vec3& w, const Vec3& wdot)
+        (const Vec3& q, const Vec3& w_PB_B, const Vec3& wdot)
     {
         const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
         const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
@@ -377,7 +409,7 @@ public:
         const Mat33 E( 0. ,   s2oc1  ,  c2oc1  ,
                        0. ,     c2   ,   -s2   ,
                        1. , s1*s2oc1 , s1*c2oc1 );
-        const Vec3 qdot = E*w;
+        const Vec3 qdot = E * w_PB_B;
 
         const Real t =  qdot[1]*qdot[2]*s1*ooc1;
         const Real a =  t*c2oc1; // d/dt s2oc1
@@ -387,12 +419,13 @@ public:
                           0. ,   -qdot[2]*s2     ,    -qdot[2]*c2    ,
                           0. , s1*a + qdot[1]*s2 , s1*b + qdot[1]*c2 );
 
-        return E*wdot + Edot*w;
+        return E*wdot + Edot*w_PB_B;
     }
 
-    // TODO: sherm: is this right?
+    // TODO: sherm: is this right? Warning: everything is measured in the
+    // *PARENT* frame, but has to be expressed in the *BODY* frame.
     static Vec3 convertAngVelDotToBodyFixed123DotDot
-        (const Vec3& q, const Vec3& w, const Vec3& wdot)
+        (const Vec3& q, const Vec3& w_PB_B, const Vec3& wdot)
     {
         const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
         const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
@@ -402,7 +435,7 @@ public:
         const Mat33 E(    c2oc1  , -s2oc1  , 0.,
                             s2   ,    c2   , 0.,
                        -s1*c2oc1 , s1*s2oc1, 1. );
-        const Vec3 qdot = E*w;
+        const Vec3 qdot = E * w_PB_B;
 
         const Real t =  qdot[1]*qdot[2]*s1*ooc1;
         const Real a =  t*c2oc1; // d/dt s2oc1
@@ -412,50 +445,40 @@ public:
                              qdot[2]*c2     ,    -qdot[2]*s2    , 0.,
                          -s1*b - qdot[1]*c2 , s1*a + qdot[1]*s2 , 0. );
 
-        return E*wdot + Edot*w;
+        return E*wdot + Edot*w_PB_B;
     }
 
-    // Inverse of the above routine.
-    static Vec3 convertBodyFixed321DotToAngVel(const Vec3& q, const Vec3& qd) {
-        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
-        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
-        const Real ooc1 = Real(1)/c1;
-        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
-
-        const Mat33 Einv(  -s1  ,  0. , 1. ,
-                          c1*s2 ,  c2 , 0. ,
-                          c1*c2 , -s2 , 0. );
-        return Einv*qd;
-    }
 
     /// Given a possibly unnormalized quaternion (0th element is the scalar) and the
-    /// relative angular velocity vector of B in its parent, return the
-    /// quaternion derivatives. This is never singular.
-    static Vec4 convertAngVelToQuaternionDot(const Vec4& q, const Vec3& w) {
+    /// relative angular velocity vector of B in its parent, expressed 
+    /// in the *PARENT*, return the quaternion derivatives. This is never singular.
+    static Vec4 convertAngVelToQuaternionDot(const Vec4& q, const Vec3& w_PB_P) {
         const Mat43 E(-q[1],-q[2],-q[3],
                        q[0], q[3],-q[2],    // TODO: signs???
                       -q[3], q[0], q[1],
                        q[2],-q[1], q[0]);
-        return 0.5*(E*w);
+        return 0.5*(E*w_PB_P);
     }
 
+    /// Everything is measured and expressed in the parent.
     static Vec4 convertAngVelDotToQuaternionDotDot
-        (const Vec4& q, const Vec3& w, const Vec3& wdot)
+        (const Vec4& q, const Vec3& w_PB_P, const Vec3& wdot)
     {
         const Mat43 E(-q[1],-q[2],-q[3],
                        q[0], q[3],-q[2],    // TODO: signs???
                       -q[3], q[0], q[1],
                        q[2],-q[1], q[0]);
-        const Vec4  qdot = 0.5*E*w;
+        const Vec4  qdot = 0.5*E*w_PB_P;
         const Mat43 Edot(-qdot[1],-qdot[2],-qdot[3],
                           qdot[0], qdot[3],-qdot[2],
                          -qdot[3], qdot[0], qdot[1],
                           qdot[2],-qdot[1], qdot[0]);
 
-        return 0.5*(Edot*w + E*wdot);
+        return 0.5*(Edot*w_PB_P + E*wdot);
     }
 
-    /// Inverse of the above routine.
+    /// Inverse of the above routine. Returned AngVel is expressed in
+    /// the *PARENT* frame: w_PB_P.
     static Vec3 convertQuaternionDotToAngVel(const Vec4& q, const Vec4& qd) {
         const Mat34 Et(-q[1], q[0],-q[3], q[2],  // TODO: signs???
                        -q[2], q[3], q[0],-q[1],

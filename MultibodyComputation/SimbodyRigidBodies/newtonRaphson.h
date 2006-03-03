@@ -15,7 +15,7 @@ public:
     std::ostream& errStream;
 
     NewtonRaphson(std::ostream& errStream=std::cerr)
-      : maxMin( 20 ) , maxIters( 20 ), verbose(1), tol(1e-8), 
+      : maxMin( 20 ) , maxIters( 20 ), verbose(0), tol(1e-8), 
         zTol( 1e-8 ), errStream(errStream)
     { }
 
@@ -52,7 +52,6 @@ public:
                           << " Trying gradient search.\n";
 
             int mincnt = maxMin;
-            z *= -1.0;
             while ( norm > onorm ) {
                 if ( mincnt < 1 ) 
                     SIMTK_THROW1(Exception::NewtonRaphsonFailure, "too many minimization steps taken");

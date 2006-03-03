@@ -896,19 +896,23 @@ public:
 
     void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
         const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
-        if (getUseEulerAngles(s))
-            toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(getQ(s),w_JbJ);
-        else
+        if (getUseEulerAngles(s)) {
+            const RotationMat& R_JbJ = getX_JbJ(s).R();
+            toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(getQ(s),
+                                        ~R_JbJ*w_JbJ); // need w in *body*, not parent
+        } else
             toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(getQuat(s),w_JbJ);
     }
  
     void calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
-        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
+        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_JbJ_dot = fromU(udot);
-        if (getUseEulerAngles(s))
+
+        if (getUseEulerAngles(s)) {
+            const RotationMat& R_JbJ = getX_JbJ(s).R();
             toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed123DotDot
-                                  (getQ(s),w_JbJ,w_JbJ_dot);
-        else
+                                  (getQ(s), ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
+        } else
             toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
                                   (getQuat(s),w_JbJ,w_JbJ_dot);
     }
@@ -1033,8 +1037,10 @@ public:
         const Vec3& w_JbJ = fromUVec3(u,0); // Angular velocity
         const Vec3& v_JbJ = fromUVec3(u,3); // Linear velocity
         if (getUseEulerAngles(s)) {
+            const RotationMat& R_JbJ = getX_JbJ(s).R();
             const Vec3& theta = getQVec3(s,0); // Euler angles
-            toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed123Dot(theta,w_JbJ);
+            toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed123Dot(theta,
+                                            ~R_JbJ*w_JbJ); // need w in *body*, not parent
             toQVec3(qdot,3) = v_JbJ;
             //cout << "EulerAngles: " << theta << endl;
             //cout << "   w_JbJ=" << w_JbJ << "  v_JbJ=" << v_JbJ << endl;
@@ -1052,9 +1058,10 @@ public:
         const Vec3& w_JbJ_dot = fromUVec3(udot,0);
         const Vec3& v_JbJ_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(s)) {
+            const RotationMat& R_JbJ = getX_JbJ(s).R();
             const Vec3& theta  = getQVec3(s,0); // Euler angles
             toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed123DotDot
-                                                (theta,w_JbJ,w_JbJ_dot);
+                                                (theta, ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
             toQVec3(qdotdot,3) = v_JbJ_dot;
             //cout << "   w_JbJ_dot=" << w_JbJ_dot << "  v_JbJ_dot=" << v_JbJ_dot << endl;
             //cout << "   qdotdot=" << fromQVec3(qdotdot,0) << endl;
