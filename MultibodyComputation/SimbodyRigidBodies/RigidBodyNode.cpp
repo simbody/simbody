@@ -553,10 +553,6 @@ public:
     }
 };
 
-/*static*/const double RigidBodyNode::DEG2RAD = std::acos(-1.) / 180.; // i.e., pi/180
-//const double RigidBodyNode::DEG2RAD = 1.0;  //always use radians
-
-
 //////////////////////////////////////////
 // Derived classes for each joint type. //
 //////////////////////////////////////////
@@ -875,7 +871,7 @@ public:
     void calcAcrossJointTransform(const SBStateRep& s, TransformMat& X_JbJ) const {
         X_JbJ.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(s))
-            X_JbJ.updR().setToBodyFixed321(getQ(s));
+            X_JbJ.updR().setToBodyFixed123(getQ(s));
         else
             X_JbJ.updR().setToQuaternion(getQuat(s));
     }
@@ -901,7 +897,7 @@ public:
     void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
         const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
         if (getUseEulerAngles(s))
-            toQ(qdot) = RotationMat::convertAngVelToBodyFixed321Dot(getQ(s),w_JbJ);
+            toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(getQ(s),w_JbJ);
         else
             toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(getQuat(s),w_JbJ);
     }
@@ -910,7 +906,7 @@ public:
         const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb
         const Vec3& w_JbJ_dot = fromU(udot);
         if (getUseEulerAngles(s))
-            toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed321DotDot
+            toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed123DotDot
                                   (getQ(s),w_JbJ,w_JbJ_dot);
         else
             toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
@@ -943,7 +939,7 @@ public:
     }
 
     void getInternalForce(const SBStateRep& s) const {
-        assert(false); // TODO: decompose cross-joint torque into 321 gimbal torques
+        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
         //dependency: calcR_PB must be called first
@@ -1001,7 +997,7 @@ public:
     // Calculate X_JbJ.
     void calcAcrossJointTransform(const SBStateRep& s, TransformMat& X_JbJ) const {
         if (getUseEulerAngles(s)) {
-            X_JbJ.updR().setToBodyFixed321(getQVec3(s,0));
+            X_JbJ.updR().setToBodyFixed123(getQVec3(s,0));
             X_JbJ.updT() = getQVec3(s,3);
         } else {
             X_JbJ.updR().setToQuaternion(getQuat(s));
@@ -1028,6 +1024,9 @@ public:
         H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
         H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
         H[5] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
+
+        //cout << "T_JB_G=" << T_JB_G << endl;
+        //cout << "H=" << H;
     }
 
     void calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
@@ -1035,8 +1034,11 @@ public:
         const Vec3& v_JbJ = fromUVec3(u,3); // Linear velocity
         if (getUseEulerAngles(s)) {
             const Vec3& theta = getQVec3(s,0); // Euler angles
-            toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed321Dot(theta,w_JbJ);
+            toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed123Dot(theta,w_JbJ);
             toQVec3(qdot,3) = v_JbJ;
+            //cout << "EulerAngles: " << theta << endl;
+            //cout << "   w_JbJ=" << w_JbJ << "  v_JbJ=" << v_JbJ << endl;
+            //cout << "   qdot=" << fromQVec3(qdot,0) << endl;
         } else {
             const Vec4& quat = getQuat(s);
             toQuat (qdot)   = RotationMat::convertAngVelToQuaternionDot(quat,w_JbJ);
@@ -1051,9 +1053,11 @@ public:
         const Vec3& v_JbJ_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(s)) {
             const Vec3& theta  = getQVec3(s,0); // Euler angles
-            toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed321DotDot
+            toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed123DotDot
                                                 (theta,w_JbJ,w_JbJ_dot);
             toQVec3(qdotdot,3) = v_JbJ_dot;
+            //cout << "   w_JbJ_dot=" << w_JbJ_dot << "  v_JbJ_dot=" << v_JbJ_dot << endl;
+            //cout << "   qdotdot=" << fromQVec3(qdotdot,0) << endl;
         } else {
             const Vec4& quat  = getQuat(s);
             toQuat(qdotdot)   = RotationMat::convertAngVelDotToQuaternionDotDot
@@ -1094,7 +1098,7 @@ public:
     }
 
     void getInternalForce(const SBStateRep& s) const {
-        assert(false); // TODO: decompose cross-joint torque into 321 gimbal torques
+        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
         //dependency: calcR_PB must be called first

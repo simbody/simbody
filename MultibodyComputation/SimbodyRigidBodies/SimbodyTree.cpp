@@ -36,15 +36,33 @@ int SimbodyTree::addRigidBody(
     return rbIndex;
 }
 
-
 int SimbodyTree::addConstantDistanceConstraint
     (int parent, const Vec3& stationInP,
      int child,  const Vec3& stationInC,
      const Real& distance)
 {
-    const RBStation p(rep->updRigidBodyNode(parent), stationInP);
-    const RBStation c(rep->updRigidBodyNode(child), stationInC);
-    return rep->addDistanceConstraint(p,c,distance);
+    return rep->addConstantDistanceConstraint(
+       rep->getRigidBodyNode(parent), stationInP,
+       rep->getRigidBodyNode(child),  stationInC,
+       distance);
+}
+
+int SimbodyTree::addCoincidentStationsConstraint
+    (int parent, const Vec3& stationInP,
+     int child,  const Vec3& stationInC)
+{
+    return rep->addCoincidentStationsConstraint(
+       rep->getRigidBodyNode(parent), stationInP,
+       rep->getRigidBodyNode(child),  stationInC);
+}
+
+int SimbodyTree::addWeldConstraint
+    (int parent, const TransformMat& frameInP,
+     int child,  const TransformMat& frameInC)
+{
+    return rep->addWeldConstraint(
+       rep->getRigidBodyNode(parent), frameInP,
+       rep->getRigidBodyNode(child),  frameInC);
 }
 
 // Note the lack of a State argument when completing construction.

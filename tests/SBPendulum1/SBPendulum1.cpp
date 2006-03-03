@@ -85,19 +85,30 @@ try {
       pend.addRigidBody(0, TransformMat(), 
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
-                        JointSpecification(JointSpecification::Pin, false),
+                        //JointSpecification(JointSpecification::Pin, false),
                         //JointSpecification(JointSpecification::Ball, false),
-                        //JointSpecification(JointSpecification::Free, false),
+                        JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
-    int theConstraint =
+   /* int theConstraint =
         pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
                                            theBody, Vec3(0,0,0),
                                            L/2+std::sqrt(2.));
+*/ /*
+    int ballConstraint =
+        pend.addCoincidentStationsConstraint(0, TransformMat().T(),
+                                            theBody, jointFrame.T());
+ */  
+    int weldConstraint =
+        pend.addWeldConstraint(0, TransformMat(),
+                              theBody, TransformMat(jointFrame.R(),
+                                                    jointFrame.T()+Vec3(.0,.0,3.)));    
+    
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
+    pend.setUseEulerAngles(s, true);
 
     pend.realize(s, ConfiguredStage);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
@@ -139,8 +150,13 @@ try {
 
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
-    pend.updU(s)[0] = -10.;
-    pend.updQ(s)[0] = -.1;
+    pend.setJointU(s, 1, 0,   0.);
+    pend.setJointU(s, 1, 1,   0.);
+    //pend.setJointU(s, 1, 2, -10.);
+    pend.setJointU(s, 1, 2,   0.);
+
+    //pend.updQ(s)[2] = -.1;
+    //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
     const Real h = 0.0001;
     const Real tstart = 0.;

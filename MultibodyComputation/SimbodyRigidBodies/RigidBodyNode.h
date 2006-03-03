@@ -340,8 +340,6 @@ public:
     void nodeDump(std::ostream&) const;
     virtual void nodeSpecDump(std::ostream& o) const { o<<"NODE SPEC type="<<type()<<std::endl; }
 
-    static const double DEG2RAD; //using angles in degrees balances gradient
-
 protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.

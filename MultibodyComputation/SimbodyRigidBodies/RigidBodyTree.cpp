@@ -7,6 +7,7 @@
 #include "RigidBodyTree.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
+#include "ConstraintNode.h"
 #include "LengthConstraints.h"
 
 #include <string>
@@ -90,10 +91,14 @@ void RBDistanceConstraint::calcAccInfo(const SBStateRep& s, RBDistanceConstraint
 }
 
 RigidBodyTree::~RigidBodyTree() {
-    delete lConstraints;
+    delete lConstraints; lConstraints=0;
 
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) {
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
+    for (int i=0; i<(int)constraintNodes.size(); ++i)
+        delete constraintNodes[i];
+    constraintNodes.resize(0);
+
+    for (int i=0; i<(int)rbNodeLevels.size(); ++i) {
+        for (int j=0; j<(int)rbNodeLevels[i].size(); ++j) 
             delete rbNodeLevels[i][j];
         rbNodeLevels[i].resize(0);
     }
@@ -152,9 +157,45 @@ void RigidBodyTree::addGroundNode() {
     n->setNodeNum(0);
 }
 
+int RigidBodyTree::addConstantDistanceConstraint(
+    const RigidBodyNode& parent, const Vec3& stationInP,
+    const RigidBodyNode& child,  const Vec3& stationInC,
+    const Real& distance)
+{
+    ConstraintNode* cn = new ConstantDistanceConstraintNode(parent,stationInP,child,stationInC,distance);
+    return addConstraintNode(cn);
+}
+
+int RigidBodyTree::addCoincidentStationsConstraint(
+    const RigidBodyNode& parent, const Vec3& stationInP,
+    const RigidBodyNode& child,  const Vec3& stationInC)
+{
+    ConstraintNode* cn = new CoincidentStationsConstraintNode(parent,stationInP,child,stationInC);
+    return addConstraintNode(cn);
+}
+
+
+int RigidBodyTree::addWeldConstraint(
+    const RigidBodyNode& parent, const TransformMat& frameInP,
+    const RigidBodyNode& child,  const TransformMat& frameInC)
+{
+    ConstraintNode* cn = new WeldConstraintNode(parent,frameInP,child,frameInC);
+    return addConstraintNode(cn);
+}
+
+// Store an already-allocated abstract constraint in the RigidBody tree, assigning
+// it a constraint number which is returned. The RigidBodyTree takes over ownership
+// of the ConstraintNode; don't use the pointer any more!
+int RigidBodyTree::addConstraintNode(ConstraintNode*& cn) {
+    cn->setConstraintNum(constraintNodes.size());
+    constraintNodes.push_back(cn);
+    cn = 0; // it's all mine now!
+    return constraintNodes.size()-1;
+}
+
 // Add a distance constraint and allocate slots to hold the runtime information for
 // its stations. Return the assigned distance constraint index for caller's use.
-int RigidBodyTree::addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d)
+int RigidBodyTree::addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const double& d)
 {
     RBDistanceConstraint dc(s1,s2,d);
     dc.setRuntimeIndex(dcRuntimeInfo.size());
@@ -191,12 +232,15 @@ void RigidBodyTree::realizeConstruction() {
     // Not built yet. Let's count topological things.
 
     DOFTotal = SqDOFTotal = maxNQTotal = 0;
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+    for (int i=0; i<(int)rbNodeLevels.size() ; ++i) 
+        for (int j=0; j<(int)rbNodeLevels[i].size(); ++j) {
             const int ndof = rbNodeLevels[i][j]->getDOF();
             DOFTotal += ndof; SqDOFTotal += ndof*ndof;
             maxNQTotal += rbNodeLevels[i][j]->getMaxNQ();
         }
+
+    for (int i=0; i<(int)constraintNodes.size(); ++i)
+        constraintNodes[i]->finishConstruction(*this);
 
     lConstraints = new LengthConstraints(*this, 1e-6,0); // TODO: get rid of these numbers
     lConstraints->construct(distanceConstraints, dcRuntimeInfo);

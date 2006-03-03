@@ -15,7 +15,7 @@ public:
     std::ostream& errStream;
 
     NewtonRaphson(std::ostream& errStream=std::cerr)
-      : maxMin( 20 ) , maxIters( 20 ), verbose(0), tol(1e-8), 
+      : maxMin( 20 ) , maxIters( 20 ), verbose(1), tol(1e-8), 
         zTol( 1e-8 ), errStream(errStream)
     { }
 
@@ -36,6 +36,8 @@ public:
         bool finished=(norm < tol);
         while (!finished) {
             VecType ox = x;
+            cout << "NR: vars=" << x << endl; 
+            cout << "NR: errs=" << b << endl;
             
             VecType z = calcZ(b);
             x += z;

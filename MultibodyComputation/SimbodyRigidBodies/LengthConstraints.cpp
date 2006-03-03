@@ -26,6 +26,7 @@ using namespace simtk;
 #include <iostream>
 using std::ostream;
 using std::cout;
+using std::endl;
 using std::cerr;
 using std::setw;
 
@@ -84,12 +85,12 @@ private:
     RBDistanceConstraintRuntime* rt;          // ... and its runtime
 
     // calculated info about the constraint
-    bool                           flipStations; // make sure station(1).level
-                                                 //   <= station(2).level
-    RBNodePtrList                  nodes[2];     // the two paths: base..tip1, base..tip2,
-                                                 //   incl. tip nodes but not base
-    RigidBodyNode*                 base;         // highest-level common ancestor of tips
-    const RigidBodyNode*           moleculeNode;
+    bool                              flipStations; // make sure station(1).level
+                                                    //   <= station(2).level
+    std::vector<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
+                                                    //   incl. tip nodes but not base
+    const RigidBodyNode*              base;         // highest-level common ancestor of tips
+    const RigidBodyNode*              moleculeNode;
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
@@ -123,8 +124,8 @@ LoopWNodes::LoopWNodes(const RBDistanceConstraint&               dc,
 
     // Collect up the node path from tips(2) down to the last node on its
     // side of the loop which is at a higher level than tips(1) (may be none).
-    RigidBodyNode* node1 = &tips(1).getNode();
-    RigidBodyNode* node2 = &tips(2).getNode();
+    const RigidBodyNode* node1 = &tips(1).getNode();
+    const RigidBodyNode* node2 = &tips(2).getNode();
     while ( node2->getLevel() > node1->getLevel() ) {
         nodes[1].push_back(node2);
         node2 = node2->getParent();
@@ -173,10 +174,10 @@ typedef std::vector<LoopWNodes> LoopList;
 
 class LengthSet {
     static void construct(const LoopList& loops);
-    const LengthConstraints*    lConstraints;
-    LoopList                    loops;    
-    int                         ndofThisSet;
-    std::vector<RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
+    const LengthConstraints*          lConstraints;
+    LoopList                          loops;    
+    int                               ndofThisSet;
+    std::vector<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet() : lConstraints(0), ndofThisSet(0) { }
     LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
@@ -202,11 +203,11 @@ public:
     }
 
     void determineCouplings();
-    bool contains(RigidBodyNode* node) {
+    bool contains(const RigidBodyNode* node) {
         bool found=false;
         for (size_t i=0 ; i<loops.size() ; i++) {
-            const std::vector<RigidBodyNode*>& n0 = loops[i].nodes[0];
-            const std::vector<RigidBodyNode*>& n1 = loops[i].nodes[1];
+            const std::vector<const RigidBodyNode*>& n0 = loops[i].nodes[0];
+            const std::vector<const RigidBodyNode*>& n1 = loops[i].nodes[1];
             if (   (std::find(n0.begin(),n0.end(),node) != n0.end())
                 || (std::find(n1.begin(),n1.end(),node) != n1.end()))
             {
@@ -366,11 +367,11 @@ LengthConstraints::construct(std::vector<RBDistanceConstraint>&        iloops,
         priv->accConstraints.push_back(LengthSet(this, accLoops[i]));
         for (int j=i+1 ; j<(int)accLoops.size() ; j++)
             if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
-                if (!accLoops[i].moleculeNode->isGroundNode()) { // sherm 060228
+                //if (!accLoops[i].moleculeNode->isGroundNode()) { // sherm 060228
                     priv->accConstraints[i].addConstraint(accLoops[j]);
                     accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
                     j--;
-                }
+                //}
             }
         //     for (int b=1 ; b<=2 ; b++) 
         //     if ( sameBranch(accLoops[i].tips(b)->node,accLoops[j]) ||
@@ -743,7 +744,7 @@ LengthSet::calcGrad(const SBStateRep& s) const
             if ( l.nodes[b].size() ) {
                 phiT[b][phiT[b].size()-1] = 1;  // identity
                 for (int j=l.nodes[b].size()-2 ; j>=0 ; j-- ) {
-                    RigidBodyNode* n = l.nodes[b][j+1];
+                    const RigidBodyNode* n = l.nodes[b][j+1];
                     phiT[b][j] = phiT[b][j+1] * ~n->getPhi(s);
                 }
             }
@@ -762,11 +763,11 @@ LengthSet::calcGrad(const SBStateRep& s) const
 
             // We just want to get the index at which nodeMap[j] is found in the
             // std::vector (or -1 if not found) but that's not so easy!
-            const std::vector<RigidBodyNode*>& n0 = l.nodes[0];
-            const std::vector<RigidBodyNode*>& n1 = l.nodes[1];
-            std::vector<RigidBodyNode*>::const_iterator found0 =
+            const std::vector<const RigidBodyNode*>& n0 = l.nodes[0];
+            const std::vector<const RigidBodyNode*>& n1 = l.nodes[1];
+            std::vector<const RigidBodyNode*>::const_iterator found0 =
                 std::find(n0.begin(),n0.end(),nodeMap[j]);
-            std::vector<RigidBodyNode*>::const_iterator found1 =
+            std::vector<const RigidBodyNode*>::const_iterator found1 =
                 std::find(n1.begin(),n1.end(),nodeMap[j]);
 
             const int l1_indx = (found0==n0.end() ? -1 : found0-n0.begin());
@@ -974,8 +975,13 @@ LengthSet::calcConstraintForces(const SBStateRep& s) const
         for (int j=0 ; j<i ; j++)
             A(i,j) = A(j,i);
 
+    //cout << "Solve A lambda=rhs; A=" << A;
+    //cout << "  rhs = " << rhs << endl;
+
     //FIX: using inverse is inefficient
     const Vector lambda = A.invert() * rhs;
+
+    //cout << "  lambda = " << lambda << endl;
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {

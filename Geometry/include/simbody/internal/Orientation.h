@@ -291,6 +291,7 @@ public:
     /// the body frame's Z axis, followed by a rotation of +q1 about
     /// the body frame's NEW Y axis, followed by a rotation of +q3
     /// about the body frame's NEW X axis.
+    /// See Kane, Spacecraft Dynamics, pg. 423, body-three: 3-2-1.
     void setToBodyFixed321(const Vec3& q) {
         const Real sq0 = std::sin(q[0]), cq0 = std::cos(q[0]);
         const Real sq1 = std::sin(q[1]), cq1 = std::cos(q[1]);
@@ -299,6 +300,21 @@ public:
             Mat33( cq0*cq1 , cq0*sq1*sq2-sq0*cq2 , cq0*sq1*cq2+sq0*sq2,
                    sq0*cq1 , sq0*sq1*sq2+cq0*cq2 , sq0*sq1*cq2-cq0*sq2,
                     -sq1   ,       cq1*sq2       ,      cq1*cq2        );
+    }
+
+    /// Set this RotationMat to represent a rotation of +q0 about
+    /// the body frame's X axis, followed by a rotation of +q1 about
+    /// the body frame's NEW Y axis, followed by a rotation of +q3
+    /// about the body frame's NEW Z axis.
+    /// See Kane, Spacecraft Dynamics, pg. 423, body-three: 1-2-3.
+    void setToBodyFixed123(const Vec3& q) {
+        const Real sq0 = std::sin(q[0]), cq0 = std::cos(q[0]);
+        const Real sq1 = std::sin(q[1]), cq1 = std::cos(q[1]);
+        const Real sq2 = std::sin(q[2]), cq2 = std::cos(q[2]);
+        *static_cast<Mat33*>(this) = 
+            Mat33(      cq1*cq2        ,       -cq1*sq2       ,  sq1    ,
+                   sq0*sq1*cq2+cq0*sq2 , -sq0*sq1*sq2+cq0*cq2 , -sq0*cq1,
+                   -cq0*sq1*cq2+sq0*sq2 , cq0*sq1*sq2+sq0*cq2 ,  cq0*cq1 );
     }
 
     /// Set this RotationMat to represent the same rotation as
@@ -332,6 +348,22 @@ public:
                        1. , s1*s2oc1 , s1*c2oc1 );
         return E*w;
     }
+    
+    /// Given Euler angles forming a body-fixed 1-2-3 sequence, and the relative
+    /// angular velocity vector of B in the parent frame, return the Euler angle
+    /// derivatives. You are dead if q[1] gets near 90 degrees!
+    /// See Kane's Spacecraft Dynamics, page 427, body-three: 1-2-3.
+    static Vec3 convertAngVelToBodyFixed123Dot(const Vec3& q, const Vec3& w) {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 E(    c2oc1  , -s2oc1  , 0.,
+                            s2   ,    c2   , 0.,
+                       -s1*c2oc1 , s1*s2oc1, 1. );
+        return E*w;
+    }
 
     // TODO: sherm: is this right?
     static Vec3 convertAngVelDotToBodyFixed321DotDot
@@ -354,6 +386,31 @@ public:
         const Mat33 Edot( 0. ,       a           ,         b         ,
                           0. ,   -qdot[2]*s2     ,    -qdot[2]*c2    ,
                           0. , s1*a + qdot[1]*s2 , s1*b + qdot[1]*c2 );
+
+        return E*wdot + Edot*w;
+    }
+
+    // TODO: sherm: is this right?
+    static Vec3 convertAngVelDotToBodyFixed123DotDot
+        (const Vec3& q, const Vec3& w, const Vec3& wdot)
+    {
+        const Real s1 = std::sin(q[1]), c1 = std::cos(q[1]);
+        const Real s2 = std::sin(q[2]), c2 = std::cos(q[2]);
+        const Real ooc1 = Real(1)/c1;
+        const Real s2oc1 = s2*ooc1, c2oc1 = c2*ooc1;
+
+        const Mat33 E(    c2oc1  , -s2oc1  , 0.,
+                            s2   ,    c2   , 0.,
+                       -s1*c2oc1 , s1*s2oc1, 1. );
+        const Vec3 qdot = E*w;
+
+        const Real t =  qdot[1]*qdot[2]*s1*ooc1;
+        const Real a =  t*c2oc1; // d/dt s2oc1
+        const Real b = -t*s2oc1; // d/dt c2oc1
+
+        const Mat33 Edot(       b           ,        -a         , 0.,
+                             qdot[2]*c2     ,    -qdot[2]*s2    , 0.,
+                         -s1*b - qdot[1]*c2 , s1*a + qdot[1]*s2 , 0. );
 
         return E*wdot + Edot*w;
     }

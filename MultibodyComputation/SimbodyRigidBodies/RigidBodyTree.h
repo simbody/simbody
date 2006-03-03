@@ -6,6 +6,7 @@
 using namespace simtk;
 
 class RigidBodyNode;
+class ConstraintNode;
 
 namespace simtk {
 class SBStateRep;
@@ -37,19 +38,19 @@ class RBDistanceConstraintRuntime;
 class RBStation {
 public:
     RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
+    RBStation(const RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
     // default copy, assignment, destructor
 
     void calcPosInfo(const SBStateRep&, RBStationRuntime&) const;
     void calcVelInfo(const SBStateRep&, RBStationRuntime&) const;
     void calcAccInfo(const SBStateRep&, RBStationRuntime&) const;
 
-    RigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
+    const RigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
     const Vec3&       getStation() const { assert(isValid()); return station_B; }
     bool              isValid()    const { return rbNode != 0; }
 private:
-    RigidBodyNode*    rbNode;
-    Vec3              station_B;
+    const RigidBodyNode* rbNode;
+    Vec3                 station_B;
 };
 std::ostream& operator<<(std::ostream&, const RBStation&);
 
@@ -132,8 +133,8 @@ public:
     RigidBodyTree& operator=(const RigidBodyTree&);
     ~RigidBodyTree();
 
-    /// Create a new node, add it to the tree, and assign it
-    /// a node number, which is a regular labeling starting with node 0 which is ground.
+    // Create a new node, add it to the tree, and assign it
+    // a node number, which is a regular labeling starting with node 0 which is ground.
     int addRigidBodyNode
         (RigidBodyNode&          parent,
          const MassProperties&   m,            // mass properties in body frame
@@ -147,9 +148,27 @@ public:
          int&                    nxtQ); 
 
 
-    /// Add a distance constraint and allocate slots to hold the runtime information for
-    /// its stations. Return the assigned distance constraint index for caller's use.
-    int addDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d);
+    // Constrain stations on each of two distinct bodies to remain a
+    // particular distance apart at all times. Distance must be
+    // significantly greater than 0 so that this can be implemented as a
+    // single constraint force acting along the instantaneous line between
+    // the stations. Parent and child distinction here is meaningless.
+    int addConstantDistanceConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
+                                      const RigidBodyNode& child,  const Vec3& stationInC,
+                                      const Real& distance);
+
+    // Constrain stations on each of two distinct bodies to remain superimposed.
+    // This restricts all translation but no rotation so adds three constraint
+    // equations. Parent and child distinction here is meaningless.
+    int addCoincidentStationsConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
+                                        const RigidBodyNode& child,  const Vec3& stationInC);
+
+    // Constrain frames fixed to each of two distinct bodies to remain
+    // superimposed. Parent and child here mean nothing! This adds six
+    // constraint equations.
+    int addWeldConstraint(const RigidBodyNode& parent, const TransformMat& frameInP,
+                          const RigidBodyNode& child,  const TransformMat& frameInC);
+
 
     /// This is available any time.
     SBStage getStage(const SBStateRep&) const;
@@ -332,6 +351,10 @@ public:
 
     bool isBuilt() const {return built;}
 
+    // Add a distance constraint equation and allocate slots to hold the runtime information for
+    // its stations. Return the assigned distance constraint index for caller's use.
+    int addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const double& d);
+
 private:
     struct RigidBodyNodeIndex {
         RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
@@ -361,6 +384,12 @@ private:
     // Map nodeNum to (level,offset).
     std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
 
+    // This holds pointers to the abstract constraint nodes which correspond
+    // the the user's idea of constraints in a manner analogous to the
+    // linked bodies represented by RigidBodyNodes. Each of these may generate
+    // several constraint equations.
+    std::vector<ConstraintNode*>    constraintNodes;
+
     std::vector<RBDistanceConstraint>        distanceConstraints;
     // TODO: later this moves to state cache (sherm)
     mutable std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
@@ -368,6 +397,7 @@ private:
     LengthConstraints* lConstraints;
 
     void addGroundNode();
+    int addConstraintNode(ConstraintNode*&);
 
     // Given a forces in the state, calculate accelerations ignoring
     // constraints, and leave the results in the state. 

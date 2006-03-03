@@ -452,6 +452,7 @@ public:
         tree.setDefaultModelingValues(*this, mutableState.modelVars); 
     }
 
+    // Initialize the rest of the variables.
     void initializeAllVars(const RigidBodyTree& tree) const {
         assert(getStage(tree) >= ModeledStage);
         if (getStage(tree) > ModeledStage)
@@ -459,8 +460,7 @@ public:
 
         SBStateRep& mutableState = *const_cast<SBStateRep*>(this);
 
-        modelVars.allocate(tree); 
-        tree.setDefaultModelingValues(*this, mutableState.modelVars); 
+        // Don't initialize modeling vars!
         paramVars.allocate(tree, *this);  
         tree.setDefaultParameterValues(*this, mutableState.paramVars); 
         timeVars.allocate(tree, *this);   
