@@ -320,12 +320,6 @@ public:
     void enforceConfigurationConstraints(SBStateRep&) const;
     void enforceMotionConstraints(SBStateRep&) const;
 
-    /// This is a solver which tweaks the state to make it satisfy general
-    /// constraints (other than quaternion constraints).
-    void enforceLengthConstraints(SBStateRep&) const;
-
-
-
     /// Unconstrained (tree) dynamics 
     void calcArticulatedBodyInertias(const SBStateRep&) const;                        // articulated body inertias
     void calcZ(const SBStateRep&, const SpatialVecList& spatialForces) const; // articulated body remainder forces

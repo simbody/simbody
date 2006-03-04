@@ -666,14 +666,6 @@ void RigidBodyTree::enforceMotionConstraints(SBStateRep& s) const {
         s.setStage(*this, SBStage(MovingStage-1));
 }
 
-// Enforce loop constraints. TODO: OBSOLETE
-void RigidBodyTree::enforceLengthConstraints(SBStateRep& s) const {
-    Vector& pos = updQ(s);
-    Vector& vel = updU(s);
-    lConstraints->enforce(s,pos,vel); //FIX: previous constraints still obeyed? (CDS)
-}
-
-
 // Given a forces in the state, calculate accelerations ignoring
 // constraints, and leave the results in the state. 
 // Must have already called realizeDynamics().

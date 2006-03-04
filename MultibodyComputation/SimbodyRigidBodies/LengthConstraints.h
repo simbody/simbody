@@ -22,8 +22,6 @@ public:
     void construct(std::vector<RBDistanceConstraint>&,
                    std::vector<RBDistanceConstraintRuntime>&);
 
-    void enforce(SBStateRep&, Vector& pos, Vector& vel);
-
     // Returns true if any change was made in the state.
     bool enforceConfigurationConstraints(SBStateRep&) const;
     bool enforceMotionConstraints(SBStateRep&) const;

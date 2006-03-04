@@ -467,10 +467,35 @@ LengthSet::calcVelB(SBStateRep& s, const Vector& pos, const Vector& vel) const
 // a state update which should drive those violations to zero (if they
 // were linear).
 //
+// This is a little tricky since the gradient we have is actually the
+// gradient of the *velocity* errors with respect to the generalized speeds,
+// but we want the gradient of the *position* errors with respect to 
+// the generalized coordinates. The theory goes something like this:
+//
+//       d perr    d perr_dot   d verr    d u
+//       ------  = ---------- = ------ * -----
+//        d q      d qdot        d u     d qdot
+//
+// Let P = d perr/dq, G = d verr/du, Q = d qdot/du.
+//
+// We want to find a change deltaq that will elimate the current error -b:
+// P deltaq = b. Instead we solve G * x = b, where x = inv(Q) * deltaq,
+// and then solve deltaq = Q * x. Conveniently Q is our friendly invertible
+// relation between qdot's and u's: qdot = Q*u.
+//
+// TODO: I have oversimplified the above since we are really solving the
+// normal equation ~GG*x=~Gb, but that is hidden here since the inverse
+// gradient we are supplied is really inv(~GG)*~G and is thus ready to
+// be used as describe above. In any case this is a bad way to do 
+// a least squares solution, which should be done instead using a 
+// pseudoinverse calculated with an SVD or better, a complete orthogonal
+// factorization (QTZ).
+//
 Vector
 LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
 {
-    const Vector dir = calcGInverse(s) * b;
+    const Vector x = calcGInverse(s) * b;
+
     Vector       zu(getRBTree().getTotalDOF(),0.0);
     Vector       zq(getRBTree().getTotalQAlloc(),0.0);
 
@@ -479,9 +504,10 @@ LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
     for (int i=0 ; i<(int)nodeMap.size() ; i++) {
         const int d    = nodeMap[i]->getDOF();
         const int offs = nodeMap[i]->getUIndex();
-        zu(offs,d) = dir(indx,d);
+        zu(offs,d) = x(indx,d);
         indx += d;
 
+        // Make qdot = Q*u.
         nodeMap[i]->calcQDot(s,zu,zq);  // change u's to qdot's
     }
     assert(indx == ndofThisSet);
@@ -493,6 +519,9 @@ LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
 // Given a vector containing violations of velocity constraints, calculate
 // a state update which would drive those violations to zero (if they
 // are linear and well conditioned).
+//
+// This is simpler than CalcVelP because we have the right gradient here (it's
+// the same one in both places).
 //
 class CalcVelZ {
     const SBStateRep&   s;
@@ -519,49 +548,6 @@ public:
         return z;
     }
 };
-
-//
-// Project out the position and velocity constraint errors from the given
-// state. 
-// XXX (sherm): Velocity errors should be calculated using the updated positions
-// (that is, after the position correction. I don't think that is happening
-// below.
-void
-LengthConstraints::enforce(SBStateRep& s, Vector& pos, Vector& vel)
-{
-    priv->posMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
-    priv->velMin.verbose  = ((verbose&InternalDynamics::printLoopDebug) != 0);
-    try { 
-        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
-            if ( verbose&InternalDynamics::printLoopDebug )
-                cout << "LengthConstraints::enforce: position " 
-                     << priv->constraints[i] << '\n';
-            priv->posMin.calc(pos,
-                              CalcPosB(s, &priv->constraints[i]),
-                              CalcPosZ(s, &priv->constraints[i]));
-        }
-        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
-            if ( verbose&InternalDynamics::printLoopDebug )
-                cout << "LengthConstraints::enforce: velocity " 
-                     << priv->constraints[i] << '\n';
-            priv->velMin.calc(vel,
-                              CalcVelB(s, pos, &priv->constraints[i]),
-                              CalcVelZ(s, &priv->constraints[i]));
-        }
-    }
-    catch ( simtk::Exception::NewtonRaphsonFailure cptn ) {
-        cout << "LengthConstraints::enforce: exception: "
-             << cptn.getMessage() << '\n';
-    } 
-// catch ( ... ) {
-//   cout << "LengthConstraints::enforce: exception: "
-//      << "uncaught exception in NewtonRaphson.\n" << ends;
-//   cout.flush();
-//   throw;
-// }
-}
-
-
 
 // Project out the position constraint errors from the given state. 
 bool
@@ -736,6 +722,22 @@ LengthSet::testGrad(SBStateRep& s, const Vector& pos, const Matrix& grad) const
 // which is 0,0,0 at the current orientation. ("instant
 // coordinates").
 //
+// sherm: 060303 This routine uses the joint transition matrices H,
+// which can be thought of as Jacobians d V_PB_G / d uB, that is
+// partial derivative of the cross-joint relative *spatial* velocity
+// with respect to that joint's generalized speeds uB. This allows
+// analytic computation of d verr / d u where verr is the set of
+// distance constraint velocity errors for the current set of 
+// coupled loops, and u are the generalized speeds for all joints
+// which contribute to any of those loops. Some times this is the
+// gradient we want, but we also want to use this routine to
+// calculate d perr / d q, which we can't get directly. But it
+// is easily finagled into the right gradient; see CalcPosZ above.
+// The trickiest part is that we use nice physical variables for
+// generalized speeds, like angular velocities for ball joints,
+// but we use awkward mathematical constructs like quaternions and
+// Euler angles for q's.
+//
 Matrix
 LengthSet::calcGrad(const SBStateRep& s) const
 {
@@ -800,13 +802,16 @@ LengthSet::calcGrad(const SBStateRep& s) const
 // TODO (sherm) I THINK this is trying to create a pseudoinverse
 // using normal equations which is numerically bad. Should use an SVD
 // or QTZ factorization instead.
-//     Want least squares solution x to G'x=b. Normal equations are
-//     GG'x=Gb, x=inv(GG')Gb ??? [returning G inv(G'G) below] ???
-//     ??? either this is wrong or I don't understand
+//
+// We want to get a least squares solution x to Gx=b. "Normal equations"
+// are ~GGx=~Gb, x=[inv(~GG)~G]*b. We want to return the quantity in brackets
+// so we're ready to multiply by right hand sides b. One confusion introduced
+// here is that calcGrad() calculates the *transpose* of G, let's call it g.
+// Then we want to return [inv(g*~g)g]. Ergo ...
 Matrix
 LengthSet::calcGInverse(const SBStateRep& s) const
 {
-    Matrix grad = calcGrad(s); // <-- appears to be transpose of the actual dg/dtheta
+    const Matrix grad = calcGrad(s); // <-- appears to be transpose of the actual dg/dtheta
     if ( false ) {
         SBStateRep sTmp = s;
         Vector pos = getRBTree().getQ(s);
@@ -815,8 +820,10 @@ LengthSet::calcGInverse(const SBStateRep& s) const
 
     Matrix ret(grad.nrow(),grad.ncol(),0.0);
     if ( grad.normSqr() > 1e-10 ) 
-        //ret = grad * (~grad*grad).invert();
-        ret = (grad*~grad).invert()*grad; // sherm: these seem to work the same
+        ret = (grad*~grad).invert()*grad; // sherm: Schwieters was calculating this as
+                                          // g*(~g*g).invert() which is seems to produce
+                                          // the same result but requires inverting a MUCH
+                                          // bigger matrix.
     return ret;
 }
 Matrix
@@ -829,8 +836,7 @@ LengthSet::calcGInverseFD(const SBStateRep& s) const
 
     Matrix ret(grad.nrow(),grad.ncol(),0.0);
     if ( grad.normSqr() > 1e-10 ) 
-        //ret = grad * (~grad*grad).invert();
-        ret = (grad*~grad).invert()*grad; // sherm: these seem to work the same
+        ret = (grad*~grad).invert()*grad; // see comment in calcGInverse().
     return ret;
 }
 //acceleration:
@@ -989,7 +995,8 @@ LengthSet::calcConstraintForces(const SBStateRep& s) const
     // (sherm) Ouch -- this part is very crude. If this is known to be well 
     // conditioned it should be factored with a symmetric method
     // like Cholesky, otherwise use an SVD (or better, complete orthogonal
-    // factorization QTZ) to get appropriate least squares solution.
+    // factorization QTZ) [on a different, "non squared" matrix?] to get
+    // appropriate least squares solution.
 
     for (int i=0 ; i<(int)loops.size() ; i++)   //fill lower triangle
         for (int j=0 ; j<i ; j++)
