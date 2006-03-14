@@ -803,27 +803,43 @@ LengthSet::calcGrad(const SBStateRep& s) const
 // using normal equations which is numerically bad. Should use an SVD
 // or QTZ factorization instead.
 //
-// We want to get a least squares solution x to Gx=b. "Normal equations"
-// are ~GGx=~Gb, x=[inv(~GG)~G]*b. We want to return the quantity in brackets
-// so we're ready to multiply by right hand sides b. One confusion introduced
-// here is that calcGrad() calculates the *transpose* of G, let's call it g.
-// Then we want to return [inv(g*~g)g]. Ergo ...
+// sherm 060314:
+//                           n
+//                  --------------------
+//                 |                    |
+//     A (mXn) = m |                    |   rank(A) <= m.
+//                 |                    |
+//                  --------------------
+//
+// The nXm pseudo-inverse A+ of a matrix A is A+ = V S+ ~U, where A=U*S*~V
+// is the singular value decomposition (SVD) of A, and S+ is the inverse
+// of the diagonal matrix S with some zeroes thrown it at the end after
+// we run out of rank(A). For an underdetermined system with full row
+// rank, that is, assuming m < n and rank(A)=m, you can do a poor
+// numerical calculation of this as A+ = ~A*inv(A*~A). In the overdetermined
+// case we have m > n and rank(A)=n, in which case A+ = inv(~A*A)*~A.
+//
+// Now we have gradient G (nuXnc). We're assuming nu > nc and rank(G)=nc, i.e.,
+// no redundant constraints (not a good assumption in general!). We would like
+// to get a least squares solution to ~G x = b where x has dimension nu and
+// b has dimension nc. So if we set A=~G we have the underdetermined system
+// depicted above and want to return A+ = ~A*inv(A*~A) = G*inv(~G*G). Ergo ...
 Matrix
 LengthSet::calcGInverse(const SBStateRep& s) const
 {
-    const Matrix grad = calcGrad(s); // <-- appears to be transpose of the actual dg/dtheta
-    if ( false ) {
-        SBStateRep sTmp = s;
-        Vector pos = getRBTree().getQ(s);
-        testGrad(sTmp,pos,grad);
-    }
+    const Matrix A = ~calcGrad(s); // now A is dg/dtheta
+    const int m = A.nrow(); // see picture above
+    const int n = A.ncol();
 
-    Matrix ret(grad.nrow(),grad.ncol(),0.0);
-    if ( grad.normSqr() > 1e-10 ) 
-        ret = (grad*~grad).invert()*grad; // sherm: Schwieters was calculating this as
-                                          // g*(~g*g).invert() which is seems to produce
-                                          // the same result but requires inverting a MUCH
-                                          // bigger matrix.
+    Matrix ret(n,m,0.);
+    if ( A.normSqr() > 1e-10 ) {
+        if (m < n)
+            ret = ~A * (A * ~A).invert(); // normal underdetermined case
+        else if (m > n)
+            ret = (A * ~A).invert() * ~A; // wow, that's a lot of constraints!
+        else 
+            ret = A.invert();             // not likely
+    }
     return ret;
 }
 Matrix
@@ -834,9 +850,19 @@ LengthSet::calcGInverseFD(const SBStateRep& s) const
     Vector pos = getRBTree().getQ(s);
     fdgradf(sTmp,pos,grad);
 
-    Matrix ret(grad.nrow(),grad.ncol(),0.0);
-    if ( grad.normSqr() > 1e-10 ) 
-        ret = (grad*~grad).invert()*grad; // see comment in calcGInverse().
+    const Matrix A = grad; // now A is dg/dtheta
+    const int m = A.nrow(); // see picture above
+    const int n = A.ncol();
+
+    Matrix ret(n,m,0.);
+    if ( A.normSqr() > 1e-10 ) {
+        if (m < n)
+            ret = ~A * (A * ~A).invert(); // normal underdetermined case
+        else if (m > n)
+            ret = (A * ~A).invert() * ~A; // wow, that's a lot of constraints!
+        else 
+            ret = A.invert();             // not likely
+    }
     return ret;
 }
 //acceleration:
@@ -1002,7 +1028,7 @@ LengthSet::calcConstraintForces(const SBStateRep& s) const
         for (int j=0 ; j<i ; j++)
             A(i,j) = A(j,i);
 
-    //cout << "Solve A lambda=rhs; A=" << A;
+    //cout << "Solve A lambda=rhs; A=" << A; 
     //cout << "  rhs = " << rhs << endl;
 
     //FIX: using inverse is inefficient

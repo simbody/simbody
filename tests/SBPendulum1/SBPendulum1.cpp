@@ -93,19 +93,19 @@ try {
         pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
                                            theBody, Vec3(0,0,0),
                                            L/2+std::sqrt(2.));
-*/ /*
+*/ 
     int ballConstraint =
         pend.addCoincidentStationsConstraint(0, TransformMat().T(),
                                             theBody, jointFrame.T());
- */  
+ /* 
 
     TransformMat harderOne;
-    harderOne.updR().setToBodyFixed123(Vec3(0,0,0));
-    harderOne.updT() = jointFrame.T()+Vec3(1,2,3);
+    harderOne.updR().setToBodyFixed123(Vec3(.01,.01,.01));
+    harderOne.updT() = jointFrame.T()+Vec3(0,0,0);
     int weldConstraint =
         pend.addWeldConstraint(0, TransformMat(),
                               theBody, harderOne);    
-    
+   */ 
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
 
@@ -115,9 +115,9 @@ try {
     pend.realize(s, ModeledStage);
 
     pend.setJointQ(s,1,0,0);
-    pend.setJointQ(s,1,3,-1.1);
-    pend.setJointQ(s,1,4,-2.2);
-    pend.setJointQ(s,1,5,-3.3);
+   // pend.setJointQ(s,1,3,-1.1);
+   // pend.setJointQ(s,1,4,-2.2);
+   // pend.setJointQ(s,1,5,-3.3);
 
     pend.realize(s, ConfiguredStage);
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
@@ -165,9 +165,9 @@ try {
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
     pend.setJointU(s, 1, 0,   0.);
-    pend.setJointU(s, 1, 1,   0.);
+    //pend.setJointU(s, 1, 1,   0.);
     //pend.setJointU(s, 1, 2, -10.);
-    pend.setJointU(s, 1, 2,   0.);
+   // pend.setJointU(s, 1, 2,   0.);
 
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);

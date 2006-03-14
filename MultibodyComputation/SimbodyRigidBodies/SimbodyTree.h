@@ -21,7 +21,7 @@ class MassProperties;
  * Coordinate allocation:
  * Body 0 is ground and has no coordinates. Welded bodies have a higher body number
  * but no coordinates. We still set qoff and uoff as we would if these had dofs,
- * but nu==nu==0 for these so the next body has the same qoff & uoff.
+ * but nq==nu==0 for these so the next body has the same qoff & uoff.
  *
  *
  *   Body 0     1       2    3      4      ...
@@ -205,7 +205,9 @@ public:
     /// bodies and ground. Bodies and their inboard joints have the same 
     /// number, starting with ground at 0 with a regular labeling such
     /// that children have higher body numbers than their parents. Joint 0
-    /// is meaningless, but otherwise joint n is the inboard joint of body n.
+    /// is meaningless (or I suppose you could think of it as the weld
+    /// joint that attaches ground to the universe), but otherwise 
+    /// joint n is the inboard joint of body n.
     int getNBodies() const;
 
     /// This is the total number of defined constraints, each of which may
