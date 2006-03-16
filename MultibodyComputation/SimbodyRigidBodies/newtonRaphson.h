@@ -36,8 +36,8 @@ public:
         bool finished=(norm < tol);
         while (!finished) {
             VecType ox = x;
-            cout << "NR: vars=" << x << endl; 
-            cout << "NR: errs=" << b << endl;
+            std::cout << "NR: vars=" << x << std::endl; 
+            std::cout << "NR: errs=" << b << std::endl;
             
             VecType z = calcZ(b);
             x += z;

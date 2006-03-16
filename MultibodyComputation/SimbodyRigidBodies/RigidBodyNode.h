@@ -96,17 +96,25 @@ public:
 
     // Access routines for plucking the right per-body data from the pool in the State.
     const TransformMat& fromB(const std::vector<TransformMat>& x) const {return x[nodeNum];}
+    const TransformMat& fromB(const Array<TransformMat>&       x) const {return x[nodeNum];}
     const PhiMatrix&    fromB(const std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
+    const PhiMatrix&    fromB(const Array<PhiMatrix>&          p) const {return p[nodeNum];}
     const InertiaMat&   fromB(const std::vector<InertiaMat>&   i) const {return i[nodeNum];}
+    const InertiaMat&   fromB(const Array<InertiaMat>&         i) const {return i[nodeNum];}
     int                 fromB(const std::vector<int>&          i) const {return i[nodeNum];}
+    int                 fromB(const Array<int>&                i) const {return i[nodeNum];}
     const SpatialVec&   fromB(const Vector_<SpatialVec>&       v) const {return v[nodeNum];}
     const SpatialMat&   fromB(const Vector_<SpatialMat>&       m) const {return m[nodeNum];}
     const Vec3&         fromB(const Vector_<Vec3>&             v) const {return v[nodeNum];}
 
     TransformMat& toB(std::vector<TransformMat>& x) const {return x[nodeNum];}
+    TransformMat& toB(Array<TransformMat>&       x) const {return x[nodeNum];}
     PhiMatrix&    toB(std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
+    PhiMatrix&    toB(Array<PhiMatrix>&          p) const {return p[nodeNum];}
     InertiaMat&   toB(std::vector<InertiaMat>&   i) const {return i[nodeNum];}
+    InertiaMat&   toB(Array<InertiaMat>&         i) const {return i[nodeNum];}
     int&          toB(std::vector<int>&          i) const {return i[nodeNum];}
+    int&          toB(Array<int>&                i) const {return i[nodeNum];}
     SpatialVec&   toB(Vector_<SpatialVec>&       v) const {return v[nodeNum];}
     SpatialMat&   toB(Vector_<SpatialMat>&       m) const {return m[nodeNum];}
     Vec3&         toB(Vector_<Vec3>&             v) const {return v[nodeNum];}

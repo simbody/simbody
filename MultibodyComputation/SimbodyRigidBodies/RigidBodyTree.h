@@ -7,6 +7,8 @@ using namespace simtk;
 
 class RigidBodyNode;
 class ConstraintNode;
+class RBDistanceConstraint;
+class RBStation;
 
 namespace simtk {
 class SBStateRep;
@@ -28,88 +30,6 @@ typedef Vector_<SpatialVec>           SpatialVecList;
 
 class IVM;
 class LengthConstraints;
-class RBStationRuntime;
-class RBDistanceConstraintRuntime;
-
-/**
- * A station is a point located on a particular rigid body. A station is
- * measured from the body frame origin and expressed in the body frame.
- */
-class RBStation {
-public:
-    RBStation() : rbNode(0) { } // so we can have arrays of these
-    RBStation(const RigidBodyNode& n, const Vec3& pos) : rbNode(&n), station_B(pos) { }
-    // default copy, assignment, destructor
-
-    void calcPosInfo(const SBStateRep&, RBStationRuntime&) const;
-    void calcVelInfo(const SBStateRep&, RBStationRuntime&) const;
-    void calcAccInfo(const SBStateRep&, RBStationRuntime&) const;
-
-    const RigidBodyNode&    getNode()    const { assert(isValid()); return *rbNode; }
-    const Vec3&       getStation() const { assert(isValid()); return station_B; }
-    bool              isValid()    const { return rbNode != 0; }
-private:
-    const RigidBodyNode* rbNode;
-    Vec3                 station_B;
-};
-std::ostream& operator<<(std::ostream&, const RBStation&);
-
-class RBStationRuntime {
-public:
-    Vec3 station_G;    // vector from body origin OB to station, reexpressed in G
-    Vec3 stationVel_G; // velocity of station relative to velocity of OB, expr. in G
-    Vec3 pos_G;        // spatial quantities
-    Vec3 vel_G;
-    Vec3 acc_G;
-
-    Vec3 force_G;      // the constraint force (calculated)
-};
-
-/**
- * This class requests that two stations, one on each of two rigid bodies,
- * be maintained at a certain separation distance at all times.
- */
-class RBDistanceConstraint {
-public:
-    RBDistanceConstraint() : distance(-1.), runtimeIndex(-1) {}
-    RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const double& d) {
-        assert(s1.isValid() && s2.isValid() && d >= 0.);
-        stations[0] = s1; stations[1] = s2; distance = d;
-        runtimeIndex = -1;
-    }
-
-    void calcPosInfo(const SBStateRep&, RBDistanceConstraintRuntime&) const;
-    void calcVelInfo(const SBStateRep&, RBDistanceConstraintRuntime&) const;
-    void calcAccInfo(const SBStateRep&, RBDistanceConstraintRuntime&) const;
-
-    void setRuntimeIndex(int ix) {assert(ix>=0); runtimeIndex=ix;}
-    int  getRuntimeIndex() const {assert(isValid()&&runtimeIndex>=0); return runtimeIndex;}
-
-    const double&    getDistance()     const { return distance; }
-    const RBStation& getStation(int i) const { assert(isValid() && (i==1||i==2)); return stations[i-1]; }
-    bool             isValid()         const { return distance >= 0.; }
-
-protected:
-    double       distance;
-    RBStation    stations[2];
-    int          runtimeIndex;
-};
-
-class RBDistanceConstraintRuntime {
-public:
-    RBDistanceConstraintRuntime() { }
-
-    RBStationRuntime stationRuntimes[2];
-
-    Vec3 fromTip1ToTip2_G;    // tip2.pos - tip1.pos
-    Vec3 unitDirection_G;     // fromTip1ToTip2/|fromTip1ToTip2|
-
-    Vec3 relVel_G;            // spatial relative velocity tip2.vel-tip1.vel
-
-    Real posErr;
-    Real velErr;
-    Real accErr;
-};
 
 /**
  * The RigidBodyTree class owns the tree of joint-connected rigid bodies, called
@@ -244,13 +164,14 @@ public:
     void setDefaultDynamicsValues     (const SBStateRep&, SBDynamicsVars&)      const;
     void setDefaultReactionValues     (const SBStateRep&, SBReactionVars&)      const;
 
-
-
     // These counts can be obtained even during construction, where they
     // just return the current counts.
     // includes ground
     int getNBodies()      const {return nodeNum2NodeMap.size();}
-    int getNConstraints() const {return distanceConstraints.size();}
+    int getNConstraints() const {return constraintNodes.size();}
+
+    // A single constraint may generate multiple of these.
+    int getNDistanceConstraints() const {return distanceConstraints.size();}
 
         // CALLABLE AFTER realizeConstruction()
 
@@ -301,8 +222,6 @@ public:
     const Vector& getQDotDot(const SBStateRep&) const;
 
 
-
-
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
 
@@ -347,7 +266,7 @@ public:
 
     // Add a distance constraint equation and allocate slots to hold the runtime information for
     // its stations. Return the assigned distance constraint index for caller's use.
-    int addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const double& d);
+    int addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const Real& d);
 
 private:
     struct RigidBodyNodeIndex {
@@ -382,11 +301,8 @@ private:
     // the the user's idea of constraints in a manner analogous to the
     // linked bodies represented by RigidBodyNodes. Each of these may generate
     // several constraint equations.
-    std::vector<ConstraintNode*>    constraintNodes;
-
-    std::vector<RBDistanceConstraint>        distanceConstraints;
-    // TODO: later this moves to state cache (sherm)
-    mutable std::vector<RBDistanceConstraintRuntime> dcRuntimeInfo;
+    std::vector<ConstraintNode*>       constraintNodes;
+    std::vector<RBDistanceConstraint*> distanceConstraints;
     
     LengthConstraints* lConstraints;
 

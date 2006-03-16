@@ -5,6 +5,8 @@
 #include "SimbodyTree.h"
 #include "SimbodyTreeState.h"
 
+#include "LengthConstraints.h"
+
 #include <cassert>
 #include <vector>
 

@@ -539,7 +539,7 @@ public:
         Vector&                         allUDot) const;
 
     void nodeSpecDump(std::ostream& o, const SBStateRep& s) const {
-        o << "stateOffset=" << stateOffset << " mass=" << getMass() 
+        o << "uIndex=" << uIndex << " mass=" << getMass() 
             << " COM_G=" << getCOM_G(s) << std::endl;
         o << "inertia_OB_G=" << getInertia_OB_G(s) << std::endl;
         o << "H=" << getH(s) << std::endl;
@@ -548,7 +548,7 @@ public:
         o << "b=" << getGyroscopicForce(s) << std::endl;
         o << "Th  =" << getQ(s) << std::endl;
         o << "dTh =" << getU(s) << std::endl;
-        o << "ddTh=" << getUdot(s) << std::endl;
+        o << "ddTh=" << getUDot(s) << std::endl;
         o << "SAcc=" << getA_GB(s) << std::endl;
     }
 };

@@ -107,7 +107,8 @@ public:
 
 class SBParameterCache {
 public:
-    // none yet
+    bool applyGravity;  // set after we see what value is in gravity parameter
+
     // TODO: Parameters
     //   body mass props; particle masses
     //   X_BJ, X_PJi transforms
@@ -115,6 +116,7 @@ public:
 
 public:
     void allocate(const RigidBodyTree&, const SBStateRep&) {
+        applyGravity = false;
     }
 };
 
@@ -135,17 +137,26 @@ public:
                     //       all else is garbage.
     Matrix_<Vec3> storageForHt; // 2 x ndof
 
-    std::vector<TransformMat> bodyJointInParentJointFrame;  // nb (X_JbJ)
+    Array<TransformMat> bodyJointInParentJointFrame;  // nb (X_JbJ)
 
-    std::vector<TransformMat> bodyConfigInParent;           // nb (X_PB)
-    std::vector<TransformMat> bodyConfigInGround;           // nb (X_GB)
-    std::vector<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    std::vector<InertiaMat>   bodyInertiaInGround;          // nb (I_OB_G)
-    Vector_<SpatialMat>       bodySpatialInertia;           // nb (Mk)
-    Vector_<Vec3>             bodyCOMInGround;              // nb (COM_G)
-    Vector_<Vec3>             bodyCOMStationInGround;       // nb (COMstation_G)
+    Array<TransformMat> bodyConfigInParent;           // nb (X_PB)
+    Array<TransformMat> bodyConfigInGround;           // nb (X_GB)
+    Array<PhiMatrix>    bodyToParentShift;            // nb (phi)
+    Array<InertiaMat>   bodyInertiaInGround;          // nb (I_OB_G)
+    Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)
+    Vector_<Vec3>       bodyCOMInGround;              // nb (COM_G)
+    Vector_<Vec3>       bodyCOMStationInGround;       // nb (COMstation_G)
 
-    Vector                    positionConstraintErrors;     // npc
+    Vector              positionConstraintErrors;     // npc
+
+    // Distance constraint calculations. These are indexed by
+    // *distance constraint* number, not *constraint* number.
+    Vector_<Vec3> station_G[2];   // vec from body origin OB to station, expr. in G
+    Vector_<Vec3> pos_G[2];       // vec from ground origin to station, expr. in G
+
+    Vector_<Vec3> fromTip1ToTip2_G; // tip2.pos-tip1.pos
+    Vector_<Vec3> unitDirection_G;  // fromTip1ToTip2/|fromTip1ToTip2|
+
 
 public:
     void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
@@ -153,7 +164,8 @@ public:
         const int nBodies = tree.getNBodies();
         const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
         const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int npc     = tree.getNConstraints(); // position constraints
+        const int npc     = tree.getNDistanceConstraints(); // position constraints
+        const int ndc     = tree.getNDistanceConstraints();
 
         // These contain uninitialized junk. Body-indexed entries get their
         // ground elements set appropriately now and forever.
@@ -184,6 +196,12 @@ public:
         bodyCOMStationInGround[0] = 0.;
 
         positionConstraintErrors.resize(npc);
+
+        station_G[0].resize(ndc); station_G[1].resize(ndc);
+        pos_G[0].resize(ndc); pos_G[1].resize(ndc);
+
+        fromTip1ToTip2_G.resize(ndc);
+        unitDirection_G.resize(ndc);
     }
 };
 
@@ -192,17 +210,24 @@ public:
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;     // nb (sVel)
 
+    Vector qdot;                                  // nq
 
     Vector velocityConstraintErrors;              // nvc
-    Vector qdot;                                  // nq
+
+    // Distance constraint calculations. These are indexed by
+    // *distance constraint* number, not *constraint* number.
+    Vector_<Vec3> stationVel_G[2]; // vel of station relative to body origin, expr. in G
+    Vector_<Vec3> vel_G[2];        // tip velocities relative to G, expr. in G
+    Vector_<Vec3> relVel_G;        // spatial relative velocity tip2.velG-tip1.velG
+
 public:
     void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.getNBodies();
         const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
         const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-
-        const int nvc     = tree.getNConstraints(); // velocity constraints
+        const int nvc     = tree.getNDistanceConstraints(); // velocity constraints
+        const int ndc     = tree.getNDistanceConstraints();
 
         bodyVelocityInParent.resize(nBodies);       
         bodyVelocityInParent[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -210,8 +235,12 @@ public:
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        velocityConstraintErrors.resize(nvc);
         qdot.resize(maxNQs);
+
+        velocityConstraintErrors.resize(nvc);
+        stationVel_G[0].resize(ndc); stationVel_G[1].resize(ndc);
+        vel_G[0].resize(ndc); vel_G[1].resize(ndc);
+        relVel_G.resize(ndc);
     }
 };
 
@@ -239,7 +268,7 @@ public:
         const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
         const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
         const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int nac     = tree.getNConstraints(); // acceleration constraints        
+        const int nac     = tree.getNDistanceConstraints(); // acceleration constraints        
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
@@ -270,7 +299,6 @@ public:
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
     Vector udot;                                  // nu
     Vector lambda;                                // nac
-    Vector accelerationConstraintErrors;          // nac
     Vector netHingeForces;                        // nu (T-(~Am+R(F+C))
     Vector qdotdot;                               // nq
 
@@ -278,6 +306,14 @@ public:
     Vector              epsilon;
     Vector_<SpatialVec> z;                        // nb
     Vector_<SpatialVec> Gepsilon;                 // nb
+
+    Vector accelerationConstraintErrors;          // nac
+
+    // Distance constraint calculations. These are indexed by
+    // *distance constraint* number, not *constraint* number.
+    Vector_<Vec3> acc_G[2];   // acc of tip relative to ground, expr. in G
+    Vector_<Vec3> force_G[2]; // the constraint forces applied to each point
+
 public:
     void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
         // Pull out construction-stage information from the tree.
@@ -285,14 +321,14 @@ public:
         const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
         const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
         const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int nac     = tree.getNConstraints(); // acceleration constraints        
+        const int nac     = tree.getNDistanceConstraints(); // acceleration constraints 
+        const int ndc     = tree.getNDistanceConstraints();
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
 
         udot.resize(nDofs);
         lambda.resize(nac);
-        accelerationConstraintErrors.resize(nac);
         netHingeForces.resize(nDofs);
         qdotdot.resize(maxNQs);
 
@@ -301,6 +337,10 @@ public:
         z.resize(nBodies);
 
         Gepsilon.resize(nBodies); // TODO: ground initialization
+
+        accelerationConstraintErrors.resize(nac);
+        acc_G[0].resize(ndc); acc_G[1].resize(ndc);
+        force_G[0].resize(ndc); force_G[1].resize(ndc);
     }
 };
 
@@ -322,9 +362,9 @@ public:
 
 class SBModelingVars {
 public:
-    bool              useEulerAngles;
-    std::vector<bool> prescribed;           // nb  (# bodies & joints, 0 always true)
-    std::vector<bool> enabled;              // nac (# acceleration constraints)
+    bool        useEulerAngles;
+    Array<bool> prescribed;           // nb  (# bodies & joints, 0 always true)
+    Array<bool> enabled;              // nac (# acceleration constraints)
 public:
 
     // We have to allocate these without looking at any other
@@ -343,11 +383,15 @@ public:
 
 class SBParameterVars {
 public:
+    Vec3 gravity;
+
     // TODO: body masses, etc.
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
     void allocate(const RigidBodyTree&, const SBStateRep&) const {
+        SBParameterVars& mutvars = *const_cast<SBParameterVars*>(this);
+        mutvars.gravity.setToNaN();
     }
 };
 
@@ -672,6 +716,7 @@ private:
     SBState* handle;
     friend class RigidBodyTree;
     friend class RigidBodyNode;
+    friend class RBDistanceConstraint;
     template <int dof> friend class RigidBodyNodeSpec;
 };
 

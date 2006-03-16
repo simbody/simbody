@@ -12,6 +12,7 @@
 
 #include <string>
 
+
 SBState::~SBState() {
     delete rep;
 }
@@ -34,61 +35,6 @@ SBState& SBState::operator=(const SBState& src) {
     return *this;
 }
 
-void RBStation::calcPosInfo(const SBStateRep& s, RBStationRuntime& rt) const {
-    rt.station_G = getNode().getX_GB(s).R() * station_B;
-    rt.pos_G     = getNode().getX_GB(s).T() + rt.station_G;
-}
-
-void RBStation::calcVelInfo(const SBStateRep& s, RBStationRuntime& rt) const {
-    const Vec3& w_G = getNode().getSpatialAngVel(s);
-    const Vec3& v_G = getNode().getSpatialLinVel(s);
-    rt.stationVel_G = cross(w_G, rt.station_G);
-    rt.vel_G = v_G + rt.stationVel_G;
-}
-
-void RBStation::calcAccInfo(const SBStateRep& s, RBStationRuntime& rt) const {
-    const Vec3& w_G  = getNode().getSpatialAngVel(s);
-    const Vec3& v_G  = getNode().getSpatialLinVel(s);
-    const Vec3& aa_G = getNode().getSpatialAngAcc(s);
-    const Vec3& a_G  = getNode().getSpatialLinAcc(s);
-    rt.acc_G = a_G + cross(aa_G, rt.station_G)
-                   + cross(w_G, rt.stationVel_G); // i.e., w X (wXr)
-}
-
-std::ostream& operator<<(std::ostream& o, const RBStation& s) {
-    o << "station " << s.getStation() << " on node " << s.getNode().getNodeNum();
-    return o;
-}
-
-void RBDistanceConstraint::calcPosInfo(const SBStateRep& s, RBDistanceConstraintRuntime& rt) const
-{
-    assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcPosInfo(s, rt.stationRuntimes[i]);
-
-    rt.fromTip1ToTip2_G = rt.stationRuntimes[1].pos_G - rt.stationRuntimes[0].pos_G;
-    const double separation = rt.fromTip1ToTip2_G.norm();
-    rt.unitDirection_G = rt.fromTip1ToTip2_G / separation;
-    rt.posErr = distance - separation;
-}
-
-void RBDistanceConstraint::calcVelInfo(const SBStateRep& s, RBDistanceConstraintRuntime& rt) const
-{
-    assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcVelInfo(s, rt.stationRuntimes[i]);
-
-    rt.relVel_G = rt.stationRuntimes[1].vel_G - rt.stationRuntimes[0].vel_G;
-    rt.velErr = ~rt.unitDirection_G * rt.relVel_G;
-}
-
-void RBDistanceConstraint::calcAccInfo(const SBStateRep& s, RBDistanceConstraintRuntime& rt) const
-{
-    assert(isValid() && runtimeIndex >= 0);
-    for (int i=0; i<=1; ++i) stations[i].calcAccInfo(s, rt.stationRuntimes[i]);
-
-//XXX this doesn't look right
-    const Vec3 relAcc_G = rt.stationRuntimes[1].acc_G - rt.stationRuntimes[0].acc_G;
-    rt.accErr = rt.relVel_G.normSqr() + (~relAcc_G * rt.fromTip1ToTip2_G);
-}
 
 RigidBodyTree::~RigidBodyTree() {
     delete lConstraints; lConstraints=0;
@@ -96,6 +42,10 @@ RigidBodyTree::~RigidBodyTree() {
     for (int i=0; i<(int)constraintNodes.size(); ++i)
         delete constraintNodes[i];
     constraintNodes.resize(0);
+
+    for (int i=0; i<(int)distanceConstraints.size(); ++i)
+        delete distanceConstraints[i];
+    distanceConstraints.resize(0);
 
     for (int i=0; i<(int)rbNodeLevels.size(); ++i) {
         for (int j=0; j<(int)rbNodeLevels[i].size(); ++j) 
@@ -197,9 +147,8 @@ int RigidBodyTree::addConstraintNode(ConstraintNode*& cn) {
 // its stations. Return the assigned distance constraint index for caller's use.
 int RigidBodyTree::addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const double& d)
 {
-    RBDistanceConstraint dc(s1,s2,d);
-    dc.setRuntimeIndex(dcRuntimeInfo.size());
-    dcRuntimeInfo.push_back(RBDistanceConstraintRuntime());
+    RBDistanceConstraint* dc = new RBDistanceConstraint(s1,s2,d);
+    dc->setDistanceConstraintNum(distanceConstraints.size());
     distanceConstraints.push_back(dc);
     return distanceConstraints.size()-1;
 }
@@ -243,7 +192,7 @@ void RigidBodyTree::realizeConstruction() {
         constraintNodes[i]->finishConstruction(*this);
 
     lConstraints = new LengthConstraints(*this, 1e-8,0); // TODO: get rid of these numbers
-    lConstraints->construct(distanceConstraints, dcRuntimeInfo);
+    lConstraints->construct(distanceConstraints);
     built = true;
 
     // Now allocate in initialState the variable we need for the modeling stage,
@@ -279,6 +228,9 @@ void RigidBodyTree::realizeParameters(const SBStateRep& s) const {
 
     s.allocateCacheIfNeeded(*this, ParametrizedStage);
 
+    // Calculate whether we should apply gravity.
+    s.paramCache.applyGravity = !(s.paramVars.gravity == Vec3(0.));
+
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeParameters(s); 
@@ -309,8 +261,7 @@ void RigidBodyTree::realizeConfiguration(const SBStateRep& s) const {
             rbNodeLevels[i][j]->realizeConfiguration(s); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcPosInfo(s,
-            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
+        distanceConstraints[i]->calcPosInfo(s);
 
     s.setStage(*this, ConfiguredStage);
 }
@@ -328,8 +279,7 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
             rbNodeLevels[i][j]->realizeMotion(s); 
 
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcVelInfo(s,
-            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
+        distanceConstraints[i]->calcVelInfo(s);
 
     s.setStage(*this, MovingStage);
 }
@@ -382,9 +332,11 @@ void RigidBodyTree::setDefaultModelingValues(const SBStateRep& s,
 
     // Tree-level defaults
     modelVars.useEulerAngles = false;
-    modelVars.prescribed.assign(getNBodies(), false);
+    //modelVars.prescribed.assign(getNBodies(), false);
+    modelVars.prescribed = false;
     modelVars.prescribed[0] = true; // ground
-    modelVars.enabled.assign(getNConstraints(), false);
+    //modelVars.enabled.assign(getNConstraints(), false);
+    modelVars.enabled = false;
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -399,7 +351,8 @@ void RigidBodyTree::setDefaultParameterValues(const SBStateRep& s,
 {
     assert(s.getStage(*this) >= ModeledStage);
 
-    // Tree-level defaults (none)
+    // Tree-level defaults
+    paramVars.gravity = 0.;
 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -710,8 +663,7 @@ void RigidBodyTree::calcTreeForwardDynamics (const SBStateRep& s,
     
     // Calculate constraint acceleration errors.
     for (size_t i=0; i < distanceConstraints.size(); ++i)
-        distanceConstraints[i].calcAccInfo(s,
-            dcRuntimeInfo[distanceConstraints[i].getRuntimeIndex()]);
+        distanceConstraints[i]->calcAccInfo(s);
 }
 
 // Given the set of forces in the state, calculate acclerations resulting from

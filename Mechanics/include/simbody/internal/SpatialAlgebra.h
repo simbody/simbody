@@ -63,7 +63,7 @@ private:
 class PhiMatrixTranspose {
 public:
   PhiMatrixTranspose(const PhiMatrix& phi) : phi(phi) {}
-  const Vec3 l() const {return phi.l();}
+  const Vec3& l() const {return phi.l();}
 private:
   const PhiMatrix& phi;
 };
@@ -122,6 +122,17 @@ operator*(const SpatialMat&         m,
                        m(1,0) - m(1,1) * x, m(1,1) );
 }
 
+inline bool
+operator==(const PhiMatrix& p1, const PhiMatrix& p2)
+{
+    return p1.l() == p2.l();
+}
+
+inline bool
+operator==(const PhiMatrixTranspose& p1, const PhiMatrixTranspose& p2)
+{
+    return p1.l() == p2.l();
+}
 } // namespace simtk
 
 #endif // SIMTK_SIMBODY_SPATIAL_ALGEBRA_H_

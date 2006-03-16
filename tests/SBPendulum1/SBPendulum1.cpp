@@ -86,26 +86,36 @@ try {
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         //JointSpecification(JointSpecification::Pin, false),
-                        //JointSpecification(JointSpecification::Ball, false),
-                        JointSpecification(JointSpecification::Free, false),
+                        JointSpecification(JointSpecification::Ball, false),
+                        //JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
-   /* int theConstraint =
+
+/*
+    int secondBody = 
+      pend.addRigidBody(theBody, TransformMat(Vec3(L/2,0,0)), 
+                        //JointSpecification(JointSpecification::Cartesian, false),
+                        //JointSpecification(JointSpecification::Sliding, false),
+                        JointSpecification(JointSpecification::Pin, false),
+                        //JointSpecification(JointSpecification::Ball, false),
+                        //JointSpecification(JointSpecification::Free, false),
+                        jointFrame, mprops);
+*/
+    int theConstraint =
         pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
                                            theBody, Vec3(0,0,0),
                                            L/2+std::sqrt(2.));
-*/ 
-    int ballConstraint =
-        pend.addCoincidentStationsConstraint(0, TransformMat().T(),
-                                            theBody, jointFrame.T());
- /* 
-
+ 
+    //int ballConstraint =
+   //     pend.addCoincidentStationsConstraint(0, TransformMat().T(),
+    //                                        theBody, jointFrame.T()); 
+/*
     TransformMat harderOne;
-    harderOne.updR().setToBodyFixed123(Vec3(.01,.01,.01));
-    harderOne.updT() = jointFrame.T()+Vec3(0,0,0);
+    harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
+    harderOne.updT() = jointFrame.T()+Vec3(.1,.2,.3);
     int weldConstraint =
         pend.addWeldConstraint(0, TransformMat(),
                               theBody, harderOne);    
-   */ 
+*/
     pend.realizeConstruction();
     SBState s = pend.getInitialState();
 
@@ -114,12 +124,21 @@ try {
     pend.setUseEulerAngles(s, true);
     pend.realize(s, ModeledStage);
 
-    pend.setJointQ(s,1,0,0);
+    //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);
    // pend.setJointQ(s,1,4,-2.2);
    // pend.setJointQ(s,1,5,-3.3);
 
+
+// XXXXXX TODO XXXXX this next statement wrecks the heap
     pend.realize(s, ConfiguredStage);
+
+
+        goto outtahere;
+
+        /*
+
+
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
@@ -128,9 +147,10 @@ try {
 
     cout << "after assembly body frame: " << pend.getBodyConfiguration(s,theBody); 
 
-    Vector_<SpatialVec> dEdR(2);
+    Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
-    dEdR[1] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
+    for (int i=1; i < pend.getNBodies()-1; ++i)
+        dEdR[1] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
     Vector dEdQ;
     pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
     cout << "dEdR=" << dEdR << endl;
@@ -174,7 +194,8 @@ try {
 
     const Real h = 0.0001;
     const Real tstart = 0.;
-    const Real tmax = 10.;
+    const Real tmax = .1;
+
     for (int step=0; ; ++step) { 
         const Real t = tstart + step*h;
         if (t > tmax) break;
@@ -191,16 +212,15 @@ try {
 
         TransformMat x = pend.getBodyConfiguration(s,theBody);
         SpatialVec   v = pend.getBodyVelocity(s,theBody);
-        /*
-        Vec3 err = x.T()-Vec3(2.5,0.,0.);
-        Real d = err.norm();
-        Real k = m*gravity.norm(); // stiffness, should balance at 1
-        Real c = 10.; // damping
-        Vec3 fk = -k*err;
-        Real fc = -c*pend.getU(s)[2];
-        pend.applyPointForce(s,theBody,Vec3(0,0,0),fk);
-        pend.applyJointForce(s,theBody,2,fc);
-        */
+
+        //Vec3 err = x.T()-Vec3(2.5,0.,0.);
+        //Real d = err.norm();
+        //Real k = m*gravity.norm(); // stiffness, should balance at 1
+        // Real c = 10.; // damping
+        //Vec3 fk = -k*err;
+        //Real fc = -c*pend.getU(s)[2];
+        //pend.applyPointForce(s,theBody,Vec3(0,0,0),fk);
+        //pend.applyJointForce(s,theBody,2,fc);
 
         if (!(step % 100)) {
             cout << t << " " 
@@ -212,6 +232,7 @@ try {
             //cout << "spring force=" << fk << endl;
             //cout << "damping joint forces=" << fc << endl;
         }
+
 
         pend.realize(s, ReactingStage);
 
@@ -230,7 +251,8 @@ try {
         pend.updQ(s) += h*qdot;
         pend.updU(s) += h*udot;
     }
-
+*/
+outtahere:;
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

@@ -294,6 +294,11 @@ inline InertiaMat InertiaMat::shiftFromCOM(const Vec3& p, const Real& mtot) cons
     return *this + InertiaMat(p, mtot);
 }
 
+inline bool
+operator==(const InertiaMat& i1, const InertiaMat& i2) {
+    return i1.toMat33() == i2.toMat33();    // TODO should use underlying rep
+}
+
 std::ostream& operator<<(std::ostream& o, const InertiaMat&);
 
 

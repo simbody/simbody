@@ -52,7 +52,7 @@ public:
         : BaseVec(v/v.norm()) { }
 
     UnitVec(const Real& x, const Real& y, const Real& z) : BaseVec(x,y,z) {
-        static_cast<BaseVec&>(*this) /= norm();
+        static_cast<BaseVec&>(*this) /= BaseVec::norm();
     }
 
     // Create a unit axis vector 100 010 001
@@ -66,7 +66,7 @@ public:
         return *this;
     }
     template <int S2> UnitVec& operator=(const UnitVec<S2>& u) {
-        BaseVec::operator=(static_cast<const UnitVec<S2>::BaseVec&>(u));
+        BaseVec::operator=(static_cast<const typename UnitVec<S2>::BaseVec&>(u));
         return *this;
     }
 
@@ -145,7 +145,7 @@ public:
     }
     // Assignment from UnitRow with different stride.
     template <int S2> UnitRow& operator=(const UnitRow<S2>& u) {
-        BaseRow::operator=(static_cast<const UnitRow<S2>::BaseRow&>(u));
+        BaseRow::operator=(static_cast<const typename UnitRow<S2>::BaseRow&>(u));
         return *this;
     }
 
@@ -155,7 +155,7 @@ public:
         : BaseRow(v/v.norm()) { }
 
     UnitRow(const Real& x, const Real& y, const Real& z) : BaseRow(x,y,z) {
-        static_cast<BaseRow&>(*this) /= norm();
+        static_cast<BaseRow&>(*this) /= BaseRow::norm();
     }
 
     // Create a unit axis vector 100 010 001
@@ -891,6 +891,10 @@ operator*(const InverseTransformMat& X1, const TransformMat& X2) {
 inline TransformMat
 operator*(const InverseTransformMat& X1, const InverseTransformMat& X2) {
     return X1.compose(X2);
+}
+inline bool
+operator==(const TransformMat& X1, const TransformMat& X2) {
+    return X1.R()==X2.R() && X1.T()==X2.T();
 }
 
 std::ostream& operator<<(std::ostream& o, const TransformMat&);

@@ -251,7 +251,9 @@ public:
     bool isConstraintEnabled(const SBState&, int constraint) const;
 
 
-    // TODO: Parameter setting & getting will go here 
+    // Parameter setting & getting
+    void setGravity(SBState&, const Vec3& g) const; // any time after modeling
+    const Vec3& getGravity(const SBState&) const;
 
     void setJointQ(SBState&, int body, int axis, const Real&) const;
     void setJointU(SBState&, int body, int axis, const Real&) const;
@@ -260,7 +262,10 @@ public:
 
     // Configuration Stage. 
 
+    // OBSOLETE
     void applyGravity    (SBState&, const Vec3& g) const;
+
+
     void applyPointForce (SBState&, int body, const Vec3& stationInB, 
                           const Vec3& forceInG) const;
     void applyBodyTorque (SBState&, int body, 
