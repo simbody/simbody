@@ -193,7 +193,7 @@ class LengthConstraints {
 public:
     LengthConstraints(const RigidBodyTree&, const double& ctol, int verbose);
     ~LengthConstraints();
-    void construct(const std::vector<RBDistanceConstraint*>&);
+    void construct(const Array<RBDistanceConstraint*>&);
 
     // Returns true if any change was made in the state.
     bool enforceConfigurationConstraints(SBStateRep&) const;

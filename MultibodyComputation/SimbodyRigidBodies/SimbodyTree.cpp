@@ -18,6 +18,10 @@ SimbodyTree::SimbodyTree() {
     rep = new RigidBodyTree();
 }
 
+SimbodyTree::~SimbodyTree() {
+    delete rep;
+}
+
 int SimbodyTree::addRigidBody(
     int                       parent,
     const TransformMat&       parentJointFrameInP,  // X_PJb

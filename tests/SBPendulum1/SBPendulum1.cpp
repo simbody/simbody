@@ -86,8 +86,8 @@ try {
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         //JointSpecification(JointSpecification::Pin, false),
-                        JointSpecification(JointSpecification::Ball, false),
-                        //JointSpecification(JointSpecification::Free, false),
+                        //JointSpecification(JointSpecification::Ball, false),
+                        JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
 
 /*
@@ -100,14 +100,14 @@ try {
                         //JointSpecification(JointSpecification::Free, false),
                         jointFrame, mprops);
 */
-    int theConstraint =
-        pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
-                                           theBody, Vec3(0,0,0),
-                                           L/2+std::sqrt(2.));
+    //int theConstraint =
+    //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
+    //                                       theBody, Vec3(0,0,0),
+    //                                       L/2+std::sqrt(2.));
  
-    //int ballConstraint =
-   //     pend.addCoincidentStationsConstraint(0, TransformMat().T(),
-    //                                        theBody, jointFrame.T()); 
+    int ballConstraint =
+        pend.addCoincidentStationsConstraint(0, TransformMat().T(),
+                                            theBody, jointFrame.T()); 
 /*
     TransformMat harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
@@ -129,15 +129,7 @@ try {
    // pend.setJointQ(s,1,4,-2.2);
    // pend.setJointQ(s,1,5,-3.3);
 
-
-// XXXXXX TODO XXXXX this next statement wrecks the heap
     pend.realize(s, ConfiguredStage);
-
-
-        goto outtahere;
-
-        /*
-
 
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
@@ -194,7 +186,7 @@ try {
 
     const Real h = 0.0001;
     const Real tstart = 0.;
-    const Real tmax = .1;
+    const Real tmax = 10;
 
     for (int step=0; ; ++step) { 
         const Real t = tstart + step*h;
@@ -251,8 +243,7 @@ try {
         pend.updQ(s) += h*qdot;
         pend.updU(s) += h*udot;
     }
-*/
-outtahere:;
+
 }
 catch(const Exception::Base& e) {
     std::cout << e.getMessage() << std::endl;

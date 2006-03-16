@@ -117,7 +117,7 @@ private:
 
     friend class LengthSet;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend void LengthConstraints::construct(const std::vector<RBDistanceConstraint*>&);
+    friend void LengthConstraints::construct(const Array<RBDistanceConstraint*>&);
     friend int compareLevel(const LoopWNodes& l1,
                             const LoopWNodes& l2);
     friend bool sameBranch(const RigidBodyNode* tip,
@@ -288,8 +288,10 @@ public:
     NewtonRaphson          posMin, velMin;
 };
 
-LengthConstraints::LengthConstraints(const RigidBodyTree& rbt, const double& ctol, int vbose)
-    : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), rbTree(rbt), verbose(vbose)
+LengthConstraints::LengthConstraints
+    (const RigidBodyTree& rbt, const Real& ctol, int vbose)
+  : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), 
+    rbTree(rbt), verbose(vbose), priv(0)
 {
     priv = new LengthConstraintsPrivates;
     priv->posMin.maxIters = maxIters;
@@ -331,7 +333,7 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
 void
-LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops)
+LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
 {
     //clean up
     priv->constraints.resize(0);
@@ -342,7 +344,7 @@ LengthConstraints::construct(const std::vector<RBDistanceConstraint*>& iloops)
     //   return;
 
     LoopList loops;
-    for (size_t i=0 ; i<iloops.size() ; i++) {
+    for (int i=0 ; i < (int)iloops.size() ; i++) {
         try {
             LoopWNodes loop(rbTree, *iloops[i] );
             loops.push_back( loop );

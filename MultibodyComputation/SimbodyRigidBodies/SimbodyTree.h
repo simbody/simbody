@@ -99,6 +99,9 @@ class SimbodyTree {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyTree();
+    ~SimbodyTree();
+    SimbodyTree(const SimbodyTree&);
+    SimbodyTree& operator=(const SimbodyTree&);
 
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.

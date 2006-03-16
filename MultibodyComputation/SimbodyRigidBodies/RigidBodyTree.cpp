@@ -143,11 +143,14 @@ int RigidBodyTree::addConstraintNode(ConstraintNode*& cn) {
     return constraintNodes.size()-1;
 }
 
-// Add a distance constraint and allocate slots to hold the runtime information for
-// its stations. Return the assigned distance constraint index for caller's use.
-int RigidBodyTree::addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const double& d)
+// Add a distance constraint and assign it to use a particular multiplier. 
+// Return the assigned distance constraint index for caller's use.
+int RigidBodyTree::addOneDistanceConstraintEquation(
+    const RBStation& s1, const RBStation& s2, const Real& d,
+    int multIndex)
 {
     RBDistanceConstraint* dc = new RBDistanceConstraint(s1,s2,d);
+    dc->setMultIndex(multIndex);
     dc->setDistanceConstraintNum(distanceConstraints.size());
     distanceConstraints.push_back(dc);
     return distanceConstraints.size()-1;
@@ -188,8 +191,12 @@ void RigidBodyTree::realizeConstruction() {
             maxNQTotal += rbNodeLevels[i][j]->getMaxNQ();
         }
 
-    for (int i=0; i<(int)constraintNodes.size(); ++i)
+    int nxtMultIndex = 0; // dole out the multipliers
+    for (int i=0; i<(int)constraintNodes.size(); ++i) {
+        constraintNodes[i]->setMultIndex(nxtMultIndex); // must assign mults first
+        nxtMultIndex += constraintNodes[i]->getNMult();
         constraintNodes[i]->finishConstruction(*this);
+    }
 
     lConstraints = new LengthConstraints(*this, 1e-8,0); // TODO: get rid of these numbers
     lConstraints->construct(distanceConstraints);
@@ -260,7 +267,7 @@ void RigidBodyTree::realizeConfiguration(const SBStateRep& s) const {
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeConfiguration(s); 
 
-    for (size_t i=0; i < distanceConstraints.size(); ++i)
+    for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcPosInfo(s);
 
     s.setStage(*this, ConfiguredStage);
@@ -278,7 +285,7 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeMotion(s); 
 
-    for (size_t i=0; i < distanceConstraints.size(); ++i)
+    for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcVelInfo(s);
 
     s.setStage(*this, MovingStage);
@@ -662,7 +669,7 @@ void RigidBodyTree::calcTreeForwardDynamics (const SBStateRep& s,
                           netHingeForces, A_GB, udot);
     
     // Calculate constraint acceleration errors.
-    for (size_t i=0; i < distanceConstraints.size(); ++i)
+    for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcAccInfo(s);
 }
 

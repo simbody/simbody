@@ -25,27 +25,32 @@ public:
     virtual const char* type()     const=0;
     virtual ConstraintNode* clone() const=0;
 
-    // This gives each constraint node a chance to grab resources from
-    // the RigidBodyTree. The node is responsible for remembering which
-    // resources belong to it. Currently the only resource is a set
-    // of distance constraints and the corresponding state entries.
-    virtual void finishConstruction(RigidBodyTree&) {assert(false);}
 
         // TOPOLOGICAL INFO: no State needed
 
-    int getConstraintNum()   const {return constraintNum;}
-    int getMultIndex() const {return multIndex;}
+    int  getConstraintNum() const {return constraintNum;}
+    void setConstraintNum(int n)  {constraintNum=n;}
+
+    int  getMultIndex() const {assert(multIndex>=0); return multIndex;}
+    void setMultIndex(int ix) {multIndex=ix;}
 
     // TODO: should this be variable based on modeling stage info?
     virtual int getNMult() const=0; // # lambda slots
 
-    void setConstraintNum(int n) {constraintNum=n;}
+    
+    // This gives each constraint node a chance to grab resources from
+    // the RigidBodyTree. The node is responsible for remembering which
+    // resources belong to it. Currently the only resource is a set
+    // of distance constraints and the corresponding state entries.
+    // We expect to know our allocated multipliers prior to this call so
+    // we can dole out the slots to our subsidiary constraint equations.
+    virtual void finishConstruction(RigidBodyTree&) {assert(false);}
+
+
 protected:
     // This is the constructor for the abstract base type for use by the derived
     // concrete types in their constructors.
     ConstraintNode() : multIndex(-1), constraintNum(-1) { }
-
-    typedef std::vector<RigidBodyNode*>   RigidBodyNodeList;
 
     int               multIndex;      // index into lambda array
     int               constraintNum;  // unique ID number in RigidBodyTree
@@ -72,7 +77,8 @@ public:
     /*virtual*/ void finishConstruction(RigidBodyTree& tree) {
         const RBStation s1(body1, station1);
         const RBStation s2(body2, station2);
-        distanceConstraintIndex = tree.addOneDistanceConstraintEquation(s1,s2,separation);
+        distanceConstraintIndex = 
+            tree.addOneDistanceConstraintEquation(s1,s2,separation,getMultIndex());
     }
 
     /*virtual*/ const char* type()     const {return "separation";}
@@ -112,10 +118,11 @@ public:
         const RBStation s1y(body1, station1+Vec3(0,1,0));       
         const RBStation s1z(body1, station1+Vec3(0,0,1));
         const RBStation s2(body2, station2);
+        const int ix = getMultIndex();
         firstDistanceConstraintIndex = 
-              tree.addOneDistanceConstraintEquation(s1x,s2,1.);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.);
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.);
+              tree.addOneDistanceConstraintEquation(s1x,s2,1.,ix+0);
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,ix+1);
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,ix+2);
     }
 
     /*virtual*/ const char* type()     const {return "separation";}
@@ -162,12 +169,14 @@ public:
         const RBStation s2y(body2, station2+frame2.y());       
         const RBStation s2z(body2, station2+frame2.z());
 
+        const int ix = getMultIndex();
+
         // This is a "coincident station" constraint holding the frame
         // origins together (see above).
         firstDistanceConstraintIndex = 
-              tree.addOneDistanceConstraintEquation(s1x,s2,1.);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.);
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.);
+              tree.addOneDistanceConstraintEquation(s1x,s2,1.,ix+0);
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,ix+1);
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,ix+2);
 
         // This is an "align axes" constraint. This has an unfortunate
         // symmetry when rotating 180 degrees about any axis.
@@ -176,9 +185,9 @@ public:
         // eliminate the rotational symmetries when assembling from
         // far away.
         const Real d = std::sqrt(2.);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2z,d); // restrain x rot
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2x,d); // restrain y rot
-        (void)tree.addOneDistanceConstraintEquation(s1x,s2y,d); // restrain z rot    
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2z,d,ix+3); // restrain x rot
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2x,d,ix+4); // restrain y rot
+        (void)tree.addOneDistanceConstraintEquation(s1x,s2y,d,ix+5); // restrain z rot    
     }
 
     /*virtual*/ const char* type()     const {return "separation";}

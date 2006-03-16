@@ -264,9 +264,11 @@ public:
 
     bool isBuilt() const {return built;}
 
-    // Add a distance constraint equation and allocate slots to hold the runtime information for
-    // its stations. Return the assigned distance constraint index for caller's use.
-    int addOneDistanceConstraintEquation(const RBStation& s1, const RBStation& s2, const Real& d);
+    // Add a distance constraint equation and assign it a particular multiplier
+    // slot to use. Return the assigned distance constraint index for caller's use.
+    int addOneDistanceConstraintEquation(
+        const RBStation& s1, const RBStation& s2, const Real& d,
+        int multIndex);
 
 private:
     struct RigidBodyNodeIndex {
@@ -293,7 +295,7 @@ private:
     SBState initialState;
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
-    std::vector<RBNodePtrList>      rbNodeLevels;
+    Array<RBNodePtrList>      rbNodeLevels;
     // Map nodeNum to (level,offset).
     std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
 
@@ -301,8 +303,8 @@ private:
     // the the user's idea of constraints in a manner analogous to the
     // linked bodies represented by RigidBodyNodes. Each of these may generate
     // several constraint equations.
-    std::vector<ConstraintNode*>       constraintNodes;
-    std::vector<RBDistanceConstraint*> distanceConstraints;
+    Array<ConstraintNode*>       constraintNodes;
+    Array<RBDistanceConstraint*> distanceConstraints;
     
     LengthConstraints* lConstraints;
 
