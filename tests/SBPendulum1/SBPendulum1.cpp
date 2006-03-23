@@ -53,7 +53,6 @@
  */
 
 #include "simbody/Simbody.h"
-#include "SimbodyTree.h"
 
 #include <string>
 #include <iostream>

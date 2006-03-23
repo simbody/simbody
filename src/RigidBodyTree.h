@@ -2,7 +2,6 @@
 #define RIGID_BODY_TREE_H_
 
 #include "simbody/Simbody.h"
-#include "SimbodyTree.h"
 using namespace simtk;
 
 class RigidBodyNode;

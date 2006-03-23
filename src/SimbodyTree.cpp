@@ -4,7 +4,6 @@
  */
 
 #include "simbody/Simbody.h"
-#include "SimbodyTree.h"
 #include "RigidBodyTree.h"
 #include "RigidBodyNode.h"
 

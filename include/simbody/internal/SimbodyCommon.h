@@ -30,6 +30,8 @@
 #include "simtk/SimTK.h"
 #include "simmatrix/SmallMatrix.h"
 #include "simmatrix/BigMatrix.h"
+#include "simbody/internal/Geometry.h"
+#include "simbody/internal/Mechanics.h"
 
 #include <cassert>
 #include <vector>

@@ -2,7 +2,6 @@
 #define RIGID_BODY_NODE_H_
 
 #include "simbody/Simbody.h"
-#include "SimbodyTree.h"
 #include "SimbodyTreeState.h"
 
 #include "internalDynamics.h"

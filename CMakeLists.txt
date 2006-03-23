@@ -4,7 +4,11 @@ SUBDIRS (Geometry Mechanics tests)
 ## Pick up any top-level stuff
 FILE(GLOB SOURCE_FILES src/*.cpp )
 FILE(GLOB INCLUDE_FILES include/simbody/*.h include/simbody/internal/*.h src/*.h)
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
+
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include
+                    ${PROJECT_SOURCE_DIR}/Geometry/include
+                    ${PROJECT_SOURCE_DIR}/Mechanics/include)
+
 ADD_LIBRARY(simbody ${SOURCE_FILES} ${INCLUDE_FILES})
 
 
@@ -30,7 +34,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
     SET(MATH_LIBS_TO_USE libacml_dll)
-    LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/bin)
+    LINK_DIRECTORIES("c:/Program Files/SimTK/core/lib")
 
     IF(NOT SIMTK_SDK)
         SET(SIMTK_SDK "c:/Program Files/SimTK/core")
@@ -42,6 +46,7 @@ SET(CMAKE_INSTALL_PREFIX ${SIMTK_SDK})
 
 LINK_DIRECTORIES(${SIMTK_SDK}/lib/simtk)
 LINK_DIRECTORIES(${SIMTK_SDK}/lib/simmatrix)
+LINK_DIRECTORIES(${SIMTK_SDK}/lib)
 INCLUDE_DIRECTORIES(${SIMTK_SDK}/include)
 
 
@@ -66,3 +71,4 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(OrientationTest       ${TEST_PATH}/Geometry/tests/OrientationTest/OrientationTest)
+ADD_TEST(SBPendulum1           ${TEST_PATH}/tests/SBPendulum1/SBPendulum1)
