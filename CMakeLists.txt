@@ -1,5 +1,5 @@
 PROJECT (Simbody)
-SUBDIRS (Geometry Mechanics MultibodyComputation tests)
+SUBDIRS (Geometry Mechanics tests)
 
 ## Pick up any top-level stuff
 FILE(GLOB SOURCE_FILES src/*.cpp )
@@ -65,6 +65,4 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(testClass             ${TEST_PATH}/MultibodyComputation/CDSlib/testClass)
-ADD_TEST(IVMMoleculeTest       ${TEST_PATH}/MultibodyComputation/IVMMoleculeModeling/IVMMoleculeTest)
 ADD_TEST(OrientationTest       ${TEST_PATH}/Geometry/tests/OrientationTest/OrientationTest)

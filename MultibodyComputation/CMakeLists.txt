@@ -1,1 +1,0 @@
-SUBDIRS (SimbodyRigidBodies CDSlib IVMRigidBodies IVMSimbodyInterface IVMMoleculeModeling IVMXplorInterface)
