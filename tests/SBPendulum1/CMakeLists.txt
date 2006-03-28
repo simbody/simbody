@@ -1,12 +1,8 @@
 FILE(GLOB SOURCE_FILES *.cpp)
 FILE(GLOB INCLUDE_FILES *.h)
 
+ADD_EXECUTABLE(SBPendulum1       ${SOURCE_FILES} ${INCLUDE_FILES})
+ADD_EXECUTABLE(SBPendulum1Static ${SOURCE_FILES} ${INCLUDE_FILES})
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include 
-                    ${PROJECT_SOURCE_DIR}/Geometry/include
-                    ${PROJECT_SOURCE_DIR}/Mechanics/include)
-
-
-ADD_EXECUTABLE(SBPendulum1 ${SOURCE_FILES} ${INCLUDE_FILES})
-TARGET_LINK_LIBRARIES(SBPendulum1 simbody Mechanics Geometry
-                      simmatrix simtk ${MATH_LIBS_TO_USE})
+TARGET_LINK_LIBRARIES(SBPendulum1       ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(SBPendulum1Static ${STATIC_TARGET})
