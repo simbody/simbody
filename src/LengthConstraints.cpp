@@ -14,7 +14,7 @@
  * Deal with loop bond-length constraints.
  */
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/common.h"
 using namespace simtk;
 
 #include "LengthConstraints.h"

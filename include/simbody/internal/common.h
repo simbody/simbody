@@ -24,16 +24,38 @@
  */
 
 /** @file
- * Common include file for all Simbody modules.
+ * Every Simbody header and source file should include this header before
+ * any other Simbody header.
  */
 
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
-#include "simbody/internal/Geometry.h"
-#include "simbody/internal/Mechanics.h"
 
 #include <cassert>
 #include <vector>
+
+// When building a shared library 'xyz', CMake defines a symbol 'xyz_EXPORTS'
+// for use in distinguishing builds from client use of a header. The following
+// is specific for the current 'simtk' library and doesn't affect other
+// libraries even if they use this one.
+#ifdef WIN32
+    #ifdef simbody_EXPORTS
+        #define SIMTK_SIMBODY_API __declspec(dllexport)
+    #elif defined(SIMTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
+        #define SIMTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
+    #else
+        #define SIMTK_SIMBODY_API // This works both for static & dynamic clients
+    #endif
+#else
+    #define SIMTK_SIMBODY_API // Linux, Mac
+#endif
+
+// Every SimTK Core library must provide these two routines, with the library
+// name appearing after the "version_" and "about_".
+extern "C" {
+    SIMTK_SIMBODY_API void simtk_version_simbody(int* major, int* minor, int* build);
+    SIMTK_SIMBODY_API void simtk_about_simbody(const char* key, int maxlen, char* value);
+}
 
 namespace simtk {
 

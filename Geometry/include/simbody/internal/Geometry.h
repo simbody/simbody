@@ -5,7 +5,7 @@
  *
  * This header collects all the Geometry headers in one place.
  */
-
+#include "simbody/internal/common.h"
 #include "simbody/internal/Orientation.h"
 
 #endif /* SIMTK_SIMBODY_GEOMETRY_H_ */

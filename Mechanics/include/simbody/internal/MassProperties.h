@@ -7,7 +7,7 @@
  * those messy inertias.
  */
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/Geometry.h"
 
 #include <iostream>
@@ -75,7 +75,7 @@ typedef Mat<2,2, Mat33> SpatialMat;
  * nonsingular bodies (that is, a body composed of at least three
  * noncollinear point masses).
  */
-class InertiaMat {
+class SIMTK_SIMBODY_API InertiaMat {
 public:
     /// Default is a NaN-ed out mess to avoid accidents.
     InertiaMat() : I_OF_F(NTraits<Real>::getNaN()) {}
@@ -299,7 +299,8 @@ operator==(const InertiaMat& i1, const InertiaMat& i2) {
     return i1.toMat33() == i2.toMat33();    // TODO should use underlying rep
 }
 
-std::ostream& operator<<(std::ostream& o, const InertiaMat&);
+SIMTK_SIMBODY_API std::ostream& 
+operator<<(std::ostream& o, const InertiaMat&);
 
 
 /**
@@ -307,7 +308,7 @@ std::ostream& operator<<(std::ostream& o, const InertiaMat&);
  * The centroid is a vector from B's origin, expressed in the B frame.
  * The inertia is taken about the B origin, and expressed in B.
  */
-class MassProperties {
+class SIMTK_SIMBODY_API MassProperties {
 public:
     MassProperties() { setMassProperties(0.,Vec3(0.),InertiaMat()); }
     MassProperties(const Real& m, const Vec3& com, const InertiaMat& inertia)

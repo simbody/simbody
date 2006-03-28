@@ -59,7 +59,7 @@ enum SBStage {
 
 // This is the handle class for the hidden SBState implementation.
 class SBStateRep;
-class SBState {
+class SIMTK_SIMBODY_API SBState {
 public:
     SBState() : rep(0) { }
     ~SBState();
@@ -95,7 +95,7 @@ public:
  * mult: mult = pinv(AM~A)(A inv(M)f - b). Then the real udot is
  * udot = udot0 - udotC, with udotC = inv(M)(~A mult).
  */
-class SimbodyTree {
+class SIMTK_SIMBODY_API SimbodyTree {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyTree();
@@ -298,7 +298,8 @@ private:
     RigidBodyTree* rep;
 };
 
-std::ostream& operator<<(std::ostream&, const SimbodyTree&);
+SIMTK_SIMBODY_API std::ostream& 
+operator<<(std::ostream&, const SimbodyTree&);
 
 };
 

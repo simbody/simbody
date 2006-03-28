@@ -1,7 +1,7 @@
 #ifndef NEWTON_RAPHSON_H_
 #define NEWTON_RAPHSON_H_
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/common.h"
 
 #include <iostream>
 

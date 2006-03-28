@@ -7,7 +7,7 @@
  * Rodriguez and Jain's Spatial Operator Algebra.
  */
 
-#include "simbody/internal/SimbodyCommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/Geometry.h"
 
 #include <iostream>
@@ -29,7 +29,6 @@ typedef Mat<2,2, Mat33> SpatialMat;
 // support for efficient matrix multiplication involving the special phi
 // matrix
 
-#include "simbody/internal/SimbodyCommon.h"
 using namespace simtk;
 
 class PhiMatrixTranspose;

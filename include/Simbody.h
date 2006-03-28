@@ -30,9 +30,10 @@
 
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/Geometry.h"
 #include "simbody/internal/Mechanics.h"
-#include "simbody/internal/SimbodyCommon.h"
+
 #include "simbody/internal/SimbodyTree.h"
 
 

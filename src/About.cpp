@@ -26,7 +26,7 @@
 
 
 #include "SimTKcommon.h"
-#include "simmatrix/internal/common.h"
+#include "simbody/internal/common.h"
 
 #include <string>
 #include <cstring>
@@ -39,22 +39,22 @@
 #define MAKE_STRING(a) STR(a)
 
 #define GET_VERSION_STRING  \
-    MAKE_VERSION_STRING(SIMTK_SIMMATRIX_MAJOR_VERSION,  \
-                        SIMTK_SIMMATRIX_MINOR_VERSION,  \
-                        SIMTK_SIMMATRIX_BUILD_VERSION)
+    MAKE_VERSION_STRING(SIMTK_SIMBODY_MAJOR_VERSION,  \
+                        SIMTK_SIMBODY_MINOR_VERSION,  \
+                        SIMTK_SIMBODY_BUILD_VERSION)
 
 #define GET_COPYRIGHT_STRING \
-    MAKE_COPYRIGHT_STRING(SIMTK_SIMMATRIX_COPYRIGHT_YEARS, \
-                          SIMTK_SIMMATRIX_AUTHORS)
+    MAKE_COPYRIGHT_STRING(SIMTK_SIMBODY_COPYRIGHT_YEARS, \
+                          SIMTK_SIMBODY_AUTHORS)
 
 #define GET_AUTHORS_STRING \
-    MAKE_STRING(SIMTK_SIMMATRIX_AUTHORS)
+    MAKE_STRING(SIMTK_SIMBODY_AUTHORS)
 
 #define GET_LIBRARY_STRING \
-    MAKE_STRING(SIMTK_SIMMATRIX_LIBRARY_NAME)
+    MAKE_STRING(SIMTK_SIMBODY_LIBRARY_NAME)
 
 #define GET_TYPE_STRING \
-    MAKE_STRING(SIMTK_SIMMATRIX_TYPE)
+    MAKE_STRING(SIMTK_SIMBODY_TYPE)
 
 #ifndef NDEBUG
     #define GET_DEBUG_STRING "debug"
@@ -64,16 +64,16 @@
 
 extern "C" {
 
-void simtk_version_simmatrix(int* major, int* minor, int* build) {
+void simtk_version_simbody(int* major, int* minor, int* build) {
     static const char* l = "SIMTK library="   GET_LIBRARY_STRING;
     static const char* t = "SIMTK type="      GET_TYPE_STRING;
     static const char* d = "SIMTK debug="     GET_DEBUG_STRING;
     static const char* v = "SIMTK version="   GET_VERSION_STRING;
     static const char* c = "SIMTK copyright=" GET_COPYRIGHT_STRING;
 
-    if (major) *major = SIMTK_SIMMATRIX_MAJOR_VERSION;
-    if (minor) *minor = SIMTK_SIMMATRIX_MINOR_VERSION;
-    if (build) *build = SIMTK_SIMMATRIX_BUILD_VERSION;
+    if (major) *major = SIMTK_SIMBODY_MAJOR_VERSION;
+    if (minor) *minor = SIMTK_SIMBODY_MINOR_VERSION;
+    if (build) *build = SIMTK_SIMBODY_BUILD_VERSION;
 
     // Force statics to be present in the binary (Release mode otherwise 
     // optimizes them away).
@@ -83,7 +83,7 @@ void simtk_version_simmatrix(int* major, int* minor, int* build) {
     }
 }
 
-void simtk_about_simmatrix(const char* key, int maxlen, char* value) {
+void simtk_about_simbody(const char* key, int maxlen, char* value) {
     if (maxlen <= 0 || value==0) return;
     value[0] = '\0'; // in case we don't find a match
     if (key==0) return;

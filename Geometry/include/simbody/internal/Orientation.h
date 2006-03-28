@@ -10,6 +10,7 @@
 
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
+#include "simbody/internal/common.h"
 
 #include <iostream>
 
@@ -238,7 +239,7 @@ inline UnitRow<1> UnitRow<S>::perp() const {
  * this matrix can be used to rotate in the other direction: 
  *      v_F = rot_FG * v_G = ~rot_GF * v_G.
  */
-class RotationMat : public Mat33 {
+class SIMTK_SIMBODY_API RotationMat : public Mat33 {
 public:
     typedef Mat33 BaseMat;
     typedef UnitVec<BaseMat::RowSpacing> ColType;
@@ -525,7 +526,7 @@ private:
     friend RotationMat operator*(const RotationMat&,const RotationMat&);
 };
 
-class InverseRotationMat : public Mat33::TransposeType {
+class SIMTK_SIMBODY_API InverseRotationMat : public Mat33::TransposeType {
 public:
     typedef Mat33::TransposeType BaseMat;
     typedef UnitVec<BaseMat::RowSpacing> ColType;
@@ -575,7 +576,8 @@ public:
 };
 
 
-std::ostream& operator<<(std::ostream& o, const RotationMat& m);
+SIMTK_SIMBODY_API std::ostream& 
+operator<<(std::ostream& o, const RotationMat& m);
 
 template <int S> inline UnitVec<1>
 operator*(const RotationMat& R, const UnitVec<S>& v) {
@@ -665,7 +667,7 @@ operator*(const InverseRotationMat& R1, const InverseRotationMat& R2) {
  * to reinterpret TransformMat objects in any appropriate manner that depends
  * on this memory layout.
  */
-class TransformMat {
+class SIMTK_SIMBODY_API TransformMat {
 public:
     TransformMat()                                    : R_BF(),  T_BF(0) { }
     TransformMat(const RotationMat& R, const Vec3& T) : R_BF(R), T_BF(T) { }
@@ -766,7 +768,7 @@ private:
  *         [.......|...]
  *         [ 0 0 0   1 ] 
  */
-class InverseTransformMat {
+class SIMTK_SIMBODY_API InverseTransformMat {
 public:
     InverseTransformMat() : R_FB(), T_FB(0) { }
     // default copy, assignment, destructor
@@ -788,6 +790,7 @@ public:
         // the same meaning as X = ~X, i.e. invert X in place.
         T_FB = X.TInv(); // This might change X.T ...
         R_FB = X.RInv(); // ... but this doesn't depend on X.T.
+        return *this;
     }
 
     // Inverting one of these just recasts it back to a TransformMat.
@@ -868,6 +871,7 @@ TransformMat::operator=(const InverseTransformMat& X) {
     // are the same object, i.e. we're doing X = ~X, inverting X in place.
     T_BF = X.T(); // This might change X.T ...
     R_BF = X.R(); // ... but this doesn't depend on X.T.
+    return *this;
 }
 
 inline TransformMat 
@@ -897,7 +901,8 @@ operator==(const TransformMat& X1, const TransformMat& X2) {
     return X1.R()==X2.R() && X1.T()==X2.T();
 }
 
-std::ostream& operator<<(std::ostream& o, const TransformMat&);
+SIMTK_SIMBODY_API std::ostream& 
+operator<<(std::ostream& o, const TransformMat&);
 
 } // namespace simtk
 
