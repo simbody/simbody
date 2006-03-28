@@ -52,7 +52,7 @@
  * involve twisting the pendulum around somewhat.
  */
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 
 #include <string>
 #include <iostream>

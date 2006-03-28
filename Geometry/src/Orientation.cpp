@@ -25,8 +25,8 @@
  * with orientation.
  */
 
-#include "simtk/SimTK.h"
-#include "simmatrix/SmallMatrix.h"
+#include "SimTKcommon.h"
+#include "Simmatrix.h"
 #include "simbody/internal/Orientation.h"
 
 #include <iostream>

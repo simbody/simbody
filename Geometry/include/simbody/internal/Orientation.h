@@ -8,8 +8,8 @@
  * vectors and matrices.
  */
 
-#include "simtk/SimTK.h"
-#include "simmatrix/SmallMatrix.h"
+#include "SimTKcommon.h"
+#include "Simmatrix.h"
 
 #include <iostream>
 
