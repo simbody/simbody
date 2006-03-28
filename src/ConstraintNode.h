@@ -1,7 +1,7 @@
 #ifndef SIMTK_SIMBODY_CONSTRAINT_NODE_H_
 #define SIMTK_SIMBODY_CONSTRAINT_NODE_H_
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 #include "SimbodyTreeState.h"
 
 #include "LengthConstraints.h"

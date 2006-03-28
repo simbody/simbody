@@ -1,7 +1,7 @@
 #ifndef LENGTH_CONSTRAINTS_H_
 #define LENGTH_CONSTRAINTS_H_
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 using namespace simtk;
 
 #include "RigidBodyTree.h"

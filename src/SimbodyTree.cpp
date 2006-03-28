@@ -3,7 +3,7 @@
  * Implementation of SimbodyTree.
  */
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 #include "RigidBodyTree.h"
 #include "RigidBodyNode.h"
 

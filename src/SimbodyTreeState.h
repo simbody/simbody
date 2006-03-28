@@ -59,7 +59,7 @@
  * and then advance to stage Whatevered. 
  */
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 
 #include <cassert>
 #include <vector>

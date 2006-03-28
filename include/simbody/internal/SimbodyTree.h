@@ -1,7 +1,7 @@
 #ifndef SIMTK_SIMBODY_TREE_H_
 #define SIMTK_SIMBODY_TREE_H_
 
-#include "simbody/Simbody.h"
+#include "Simbody.h"
 
 #include <cassert>
 #include <vector>
