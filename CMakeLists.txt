@@ -28,7 +28,7 @@ SUBDIRS (staticTarget sharedTarget tests)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMBODY_SOURCE_SUBDIRS . Geometry Mechanics)
+SET(SIMBODY_SOURCE_SUBDIRS .)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
@@ -113,7 +113,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
         SET(MATH_LIBS_TO_USE libacml_dll)
         ADD_DEFINITIONS(-DSIMTK_USE_ACML_LAPACK)
     ELSE (SIMTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE simtkblas simtklapack)
+        SET(MATH_LIBS_TO_USE simtklapack)
     ENDIF (SIMTK_LAPACK_DOWNSHIFT STREQUAL "acml")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -183,8 +183,6 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
-ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
 ADD_TEST(SBPendulum1              ${TEST_PATH}/SBPendulum1)
 ADD_TEST(SBPendulum1Static        ${TEST_PATH}/SBPendulum1Static)
 
