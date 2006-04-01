@@ -39,22 +39,25 @@
 #define MAKE_STRING(a) STR(a)
 
 #define GET_VERSION_STRING  \
-    MAKE_VERSION_STRING(SIMTK_SIMBODY_MAJOR_VERSION,  \
-                        SIMTK_SIMBODY_MINOR_VERSION,  \
-                        SIMTK_SIMBODY_BUILD_VERSION)
+    MAKE_VERSION_STRING(SimTK_SIMBODY_MAJOR_VERSION,  \
+                        SimTK_SIMBODY_MINOR_VERSION,  \
+                        SimTK_SIMBODY_BUILD_VERSION)
 
 #define GET_COPYRIGHT_STRING \
-    MAKE_COPYRIGHT_STRING(SIMTK_SIMBODY_COPYRIGHT_YEARS, \
-                          SIMTK_SIMBODY_AUTHORS)
+    MAKE_COPYRIGHT_STRING(SimTK_SIMBODY_COPYRIGHT_YEARS, \
+                          SimTK_SIMBODY_AUTHORS)
+
+#define GET_SVN_REVISION_STRING \
+    MAKE_STRING(SimTK_SIMBODY_SVN_REVISION)
 
 #define GET_AUTHORS_STRING \
-    MAKE_STRING(SIMTK_SIMBODY_AUTHORS)
+    MAKE_STRING(SimTK_SIMBODY_AUTHORS)
 
 #define GET_LIBRARY_STRING \
-    MAKE_STRING(SIMTK_SIMBODY_LIBRARY_NAME)
+    MAKE_STRING(SimTK_SIMBODY_LIBRARY_NAME)
 
 #define GET_TYPE_STRING \
-    MAKE_STRING(SIMTK_SIMBODY_TYPE)
+    MAKE_STRING(SimTK_SIMBODY_TYPE)
 
 #ifndef NDEBUG
     #define GET_DEBUG_STRING "debug"
@@ -64,26 +67,27 @@
 
 extern "C" {
 
-void simtk_version_simbody(int* major, int* minor, int* build) {
-    static const char* l = "SIMTK library="   GET_LIBRARY_STRING;
-    static const char* t = "SIMTK type="      GET_TYPE_STRING;
-    static const char* d = "SIMTK debug="     GET_DEBUG_STRING;
-    static const char* v = "SIMTK version="   GET_VERSION_STRING;
-    static const char* c = "SIMTK copyright=" GET_COPYRIGHT_STRING;
+void SimTK_version_simbody(int* major, int* minor, int* build) {
+    static const char* l = "SimTK library="   GET_LIBRARY_STRING;
+    static const char* t = "SimTK type="      GET_TYPE_STRING;
+    static const char* d = "SimTK debug="     GET_DEBUG_STRING;
+    static const char* v = "SimTK version="   GET_VERSION_STRING;
+    static const char* r = "SimTK svn_revision=" GET_SVN_REVISION_STRING;
+    static const char* c = "SimTK copyright=" GET_COPYRIGHT_STRING;
 
-    if (major) *major = SIMTK_SIMBODY_MAJOR_VERSION;
-    if (minor) *minor = SIMTK_SIMBODY_MINOR_VERSION;
-    if (build) *build = SIMTK_SIMBODY_BUILD_VERSION;
+    if (major) *major = SimTK_SIMBODY_MAJOR_VERSION;
+    if (minor) *minor = SimTK_SIMBODY_MINOR_VERSION;
+    if (build) *build = SimTK_SIMBODY_BUILD_VERSION;
 
     // Force statics to be present in the binary (Release mode otherwise 
     // optimizes them away).
     volatile int i=0;
     if (i) { // never true, but compiler doesn't know ...
-        *major = *l + *t + *d + *v + *c;
+        *major = *l + *t + *d + *v + *r + *c;
     }
 }
 
-void simtk_about_simbody(const char* key, int maxlen, char* value) {
+void SimTK_about_simbody(const char* key, int maxlen, char* value) {
     if (maxlen <= 0 || value==0) return;
     value[0] = '\0'; // in case we don't find a match
     if (key==0) return;
@@ -98,6 +102,7 @@ void simtk_about_simbody(const char* key, int maxlen, char* value) {
     else if (skey == "library")   v = GET_LIBRARY_STRING;
     else if (skey == "type")      v = GET_TYPE_STRING;
     else if (skey == "copyright") v = GET_COPYRIGHT_STRING;
+    else if (skey == "svn_revision") v = GET_SVN_REVISION_STRING;
     else if (skey == "authors")   v = GET_AUTHORS_STRING;
     else if (skey == "debug")     v = GET_DEBUG_STRING;
 

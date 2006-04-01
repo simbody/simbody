@@ -9,7 +9,7 @@
 #include <cassert>
 #include <vector>
 
-using namespace simtk;
+using namespace SimTK;
 
 /**
  * This is an abstract class representing a body and its (generic) inboard joint, that is,

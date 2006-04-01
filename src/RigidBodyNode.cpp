@@ -293,10 +293,10 @@ public:
         toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
-    void realizeModeling(const simtk::SBStateRep&) const {
+    void realizeModeling(const SimTK::SBStateRep&) const {
     }
 
-    void realizeParameters(const simtk::SBStateRep&) const {
+    void realizeParameters(const SimTK::SBStateRep&) const {
     }
 
     // Set a new configuration and calculate the consequent kinematics.

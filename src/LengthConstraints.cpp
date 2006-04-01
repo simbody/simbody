@@ -15,7 +15,7 @@
  */
 
 #include "simbody/internal/common.h"
-using namespace simtk;
+using namespace SimTK;
 
 #include "LengthConstraints.h"
 #include "RigidBodyNode.h"
@@ -135,7 +135,7 @@ LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
              << "loop stations " << dc.getStation(1)
              << " and  "         << dc.getStation(2)
              << " are now in the same node. Deleting loop.\n";
-        SIMTK_THROW1(simtk::Exception::LoopConstraintConstructionFailure, "bad topology");
+        SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, "bad topology");
     }
 
     // Ensure that tips(2) is the atom which is farther from the base.
@@ -160,7 +160,7 @@ LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
             cerr << "LoopWNodes::LoopWNodes: could not find base node.\n\t"
                  << "loop between stations " << tips(1) << " and " 
                  << tips(2) << "\n";
-            SIMTK_THROW1(simtk::Exception::LoopConstraintConstructionFailure, 
+            SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, 
                          "could not find base node");
         }
         nodes[0].push_back(node1);
@@ -185,7 +185,7 @@ LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
         cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
              << "loop between atoms " << tips(1) << " and " 
              << tips(2) << "\n";
-        SIMTK_THROW1(simtk::Exception::LoopConstraintConstructionFailure, 
+        SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, 
                      "could not find 'molecule' node");
     }
     */
@@ -581,7 +581,7 @@ LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
                               CalcPosZ(s, &priv->constraints[i]));
         }
     }
-    catch ( simtk::Exception::NewtonRaphsonFailure cptn ) {
+    catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
         cout << "LengthConstraints::enforceConfigurationConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 
@@ -607,7 +607,7 @@ LengthConstraints::enforceMotionConstraints(SBStateRep& s) const
                               CalcVelZ(s, &priv->constraints[i]));
         }
     }
-    catch ( simtk::Exception::NewtonRaphsonFailure cptn ) {
+    catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
         cout << "LengthConstraints::enforceMotionConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 

@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_H_
-#define SIMTK_SIMBODY_H_
+#ifndef SimTK_SIMBODY_H_
+#define SimTK_SIMBODY_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -34,4 +34,4 @@
 #include "simbody/internal/SimbodyTree.h"
 
 
-#endif // SIMTK_SIMBODY_H_
+#endif // SimTK_SIMBODY_H_

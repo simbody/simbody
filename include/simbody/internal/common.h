@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_COMMON_H_
-#define SIMTK_SIMBODY_COMMON_H_
+#ifndef SimTK_SIMBODY_COMMON_H_
+#define SimTK_SIMBODY_COMMON_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -40,24 +40,24 @@
 // libraries even if they use this one.
 #ifdef WIN32
     #ifdef simbody_EXPORTS
-        #define SIMTK_SIMBODY_API __declspec(dllexport)
-    #elif defined(SIMTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
-        #define SIMTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
+        #define SimTK_SIMBODY_API __declspec(dllexport)
+    #elif defined(SimTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
+        #define SimTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
     #else
-        #define SIMTK_SIMBODY_API // This works both for static & dynamic clients
+        #define SimTK_SIMBODY_API // This works both for static & dynamic clients
     #endif
 #else
-    #define SIMTK_SIMBODY_API // Linux, Mac
+    #define SimTK_SIMBODY_API // Linux, Mac
 #endif
 
 // Every SimTK Core library must provide these two routines, with the library
 // name appearing after the "version_" and "about_".
 extern "C" {
-    SIMTK_SIMBODY_API void simtk_version_simbody(int* major, int* minor, int* build);
-    SIMTK_SIMBODY_API void simtk_about_simbody(const char* key, int maxlen, char* value);
+    SimTK_SIMBODY_API void SimTK_version_simbody(int* major, int* minor, int* build);
+    SimTK_SIMBODY_API void SimTK_about_simbody(const char* key, int maxlen, char* value);
 }
 
-namespace simtk {
+namespace SimTK {
 
 class JointSpecification {
 public:
@@ -398,7 +398,7 @@ public:
 private:
 };
 
-} // namespace simtk::Exception
+} // namespace SimTK::Exception
 
 /**
  * StableArray<T> is like std::vector<T> but more stable in two ways:
@@ -594,6 +594,6 @@ private:
 };
 
 
-} // namespace simtk
+} // namespace SimTK
 
-#endif // SIMTK_SIMBODY_COMMON_H_
+#endif // SimTK_SIMBODY_COMMON_H_

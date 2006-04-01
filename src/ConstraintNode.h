@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_CONSTRAINT_NODE_H_
-#define SIMTK_SIMBODY_CONSTRAINT_NODE_H_
+#ifndef SimTK_SIMBODY_CONSTRAINT_NODE_H_
+#define SimTK_SIMBODY_CONSTRAINT_NODE_H_
 
 #include "Simbody.h"
 #include "SimbodyTreeState.h"
@@ -9,7 +9,7 @@
 #include <cassert>
 #include <vector>
 
-using namespace simtk;
+using namespace SimTK;
 
 /**
  * This class represents a "constraint", which is in general a set of related
@@ -203,4 +203,4 @@ private:
     int firstDistanceConstraintIndex;
 };
 
-#endif // SIMTK_SIMBODY_CONSTRAINT_NODE_H_
+#endif // SimTK_SIMBODY_CONSTRAINT_NODE_H_

@@ -41,15 +41,31 @@ SET(SIMBODY_BUILD_VERSION 1)
 SET(SIMBODY_COPYRIGHT_YEARS "2005-6")
 SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
 
-# TODO: quotes below shouldn't be present for Visual Studio
-ADD_DEFINITIONS(-DSIMTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
-                -DSIMTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
-                -DSIMTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
-		-DSIMTK_SIMBODY_BUILD_VERSION=${SIMBODY_BUILD_VERSION}
-		-DSIMTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
-		-DSIMTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
 
-# -DSIMTK_SIMBODY_LIBRARY_TYPE has to be defined in the target subdirectories.
+# Get the Subversion revision number
+EXEC_PROGRAM ( svnversion
+                ARGS  ${PROJECT_SOURCE_DIR}
+                OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
+
+ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
+                -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
+                -DSimTK_SIMBODY_MINOR_VERSION=${SIMBODY_MINOR_VERSION}
+		-DSimTK_SIMBODY_BUILD_VERSION=${SIMBODY_BUILD_VERSION})
+
+# CMake quotes automatically when building Visual Studio projects but we need
+# to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
+# in Visual Studio which end up in the binary.
+IF(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION="${SIMBODY_SVN_REVISION}"
+                   -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
+                   -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
+ELSE(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION=${SIMBODY_SVN_REVISION}
+                   -DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
+                   -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
+ENDIF(UNIX)
+
+# -DSimTK_SIMBODY_TYPE has to be defined in the target subdirectories.
 # -Dsimbody_EXPORTS defined automatically when Windows DLL build is being done.
 
 # Report the version number to the CMake UI
@@ -85,36 +101,41 @@ ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
 
 
 # Choose a LAPACK to link with.
-SET(SIMTK_LAPACK SimTK CACHE STRING "What LAPACK to link with (ACML or SimTK)")
-IF(NOT SIMTK_LAPACK)
-    SET(SIMTK_LAPACK SimTK)
-ENDIF(NOT SIMTK_LAPACK)
-STRING(TOLOWER ${SIMTK_LAPACK} SIMTK_LAPACK_DOWNSHIFT)
+SET(SimTK_LAPACK SimTK CACHE STRING "What LAPACK to link with (ACML or SimTK)")
+IF(NOT SimTK_LAPACK)
+    SET(SimTK_LAPACK SimTK)
+ENDIF(NOT SimTK_LAPACK)
+STRING(TOLOWER ${SimTK_LAPACK} SimTK_LAPACK_DOWNSHIFT)
 
 
 # Find the right place to look for dependency resolution (which
-# can be the default install directory or specified SIMTK_SDK directory).
+# can be the default install directory or specified SimTK_SDK directory).
 #
 # Also, determine which math libraries to use for this platform.
-# TODO: change ACML to simtklapack when it is ready.
 #
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## A gcc build
-    SET(MATH_LIBS_TO_USE acml c m g2c)
+    IF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+        SET(MATH_LIBS_TO_USE acml)
+        ADD_DEFINITIONS(-DSimTK_USE_ACML_LAPACK)
+    ELSE (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+        SET(MATH_LIBS_TO_USE SimTKlapack)
+    ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+
+    SET(MATH_LIBS_TO_USE ${MATH_LIBS_TO_USE} c m g2c)
     LINK_DIRECTORIES(/usr/local/lib /lib)
-    ADD_DEFINITIONS(-DSIMTK_USE_ACML_LAPACK)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
-    IF (SIMTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+    IF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
         SET(MATH_LIBS_TO_USE libacml_dll)
-        ADD_DEFINITIONS(-DSIMTK_USE_ACML_LAPACK)
-    ELSE (SIMTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE simtklapack)
-    ENDIF (SIMTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+        ADD_DEFINITIONS(-DSimTK_USE_ACML_LAPACK)
+    ELSE (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+        SET(MATH_LIBS_TO_USE SimTKlapack)
+    ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
@@ -190,37 +211,37 @@ ADD_TEST(SBPendulum1Static        ${TEST_PATH}/SBPendulum1Static)
 # Installation
 #
 # CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. If SIMTK_SDK is set then
+# set to something incorrect by CMake. If SimTK_SDK is set then
 # it is a sandbox installation area, otherwise we want to install
 # include /usr/local/SimTK or c:\Program Files\SimTK.
 
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-    IF(SIMTK_SDK)
-        SET(SIMTK_INSTALL_PREFIX ${SIMTK_SDK})
-    ELSE(SIMTK_SDK)
-        SET(SIMTK_INSTALL_PREFIX "/usr/local/SimTK")
-    ENDIF(SIMTK_SDK)
+    IF(SimTK_SDK)
+        SET(SimTK_INSTALL_PREFIX ${SimTK_SDK})
+    ELSE(SimTK_SDK)
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+    ENDIF(SimTK_SDK)
 
     # unix or cygwin; cygwin requires some trickery
     IF(CYGWIN)
-        SET(SIMTK_INSTALL_PREFIX C:/cygwin${SIMTK_INSTALL_PREFIX})
+        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX})
     ENDIF(CYGWIN)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-    IF(SIMTK_SDK)
-        SET(SIMTK_INSTALL_PREFIX ${SIMTK_SDK})
-    ELSE(SIMTK_SDK)
-        SET(SIMTK_INSTALL_PREFIX "C:/Program Files/SimTK")
-    ENDIF(SIMTK_SDK)
+    IF(SimTK_SDK)
+        SET(SimTK_INSTALL_PREFIX ${SimTK_SDK})
+    ELSE(SimTK_SDK)
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+    ENDIF(SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-SET(CMAKE_INSTALL_PREFIX ${SIMTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
+SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
-INCLUDE_DIRECTORIES(${SIMTK_INSTALL_PREFIX}/core/include)
-LINK_DIRECTORIES(${SIMTK_INSTALL_PREFIX}/core/lib)
+INCLUDE_DIRECTORIES(${SimTK_INSTALL_PREFIX}/core/include)
+LINK_DIRECTORIES(${SimTK_INSTALL_PREFIX}/core/lib)
 
 # libraries are installed from their subdirectories; headers here
 

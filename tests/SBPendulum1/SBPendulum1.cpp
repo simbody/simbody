@@ -52,6 +52,8 @@
  * involve twisting the pendulum around somewhat.
  */
 
+#include "SimTKcommon.h"
+#include "Simmatrix.h"
 #include "Simbody.h"
 
 #include <string>
@@ -59,9 +61,40 @@
 using std::cout;
 using std::endl;
 
-using namespace simtk;
+using namespace SimTK;
 
 int main() {
+    int major,minor,build;
+    char out[100];
+    const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
+
+    //SimTK_version_SimTKlapack(&major,&minor,&build);
+    //std::printf("SimTKlapack library version: %d.%d.%d\n", major, minor, build);
+
+
+    SimTK_version_SimTKcommon(&major,&minor,&build);
+    std::printf("==> SimTKcommon library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_SimTKcommon():\n");
+    for (const char** p = keylist; *p; ++p) {
+        SimTK_about_SimTKcommon(*p, 100, out);
+        std::printf("      about(%s)='%s'\n", *p, out);
+    }
+    SimTK_version_simmatrix(&major,&minor,&build);
+    std::printf("==> simmatrix library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_simmatrix():\n");
+    for (const char** p = keylist; *p; ++p) {
+        SimTK_about_simmatrix(*p, 100, out);
+        std::printf("      about(%s)='%s'\n", *p, out);
+    }
+    SimTK_version_simbody(&major,&minor,&build);
+    std::printf("==> simbody library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_simbody():\n");
+    for (const char** p = keylist; *p; ++p) {
+        SimTK_about_simbody(*p, 100, out);
+        std::printf("      about(%s)='%s'\n", *p, out);
+    }
+
+
 try {
     SimbodyTree pend;
 

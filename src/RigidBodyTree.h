@@ -2,14 +2,14 @@
 #define RIGID_BODY_TREE_H_
 
 #include "Simbody.h"
-using namespace simtk;
+using namespace SimTK;
 
 class RigidBodyNode;
 class ConstraintNode;
 class RBDistanceConstraint;
 class RBStation;
 
-namespace simtk {
+namespace SimTK {
 class SBStateRep;
 class SBModelingVars;
 class SBParameterVars;

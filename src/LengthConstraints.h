@@ -2,7 +2,7 @@
 #define LENGTH_CONSTRAINTS_H_
 
 #include "Simbody.h"
-using namespace simtk;
+using namespace SimTK;
 
 #include "RigidBodyTree.h"
 #include "SimbodyTreeState.h"

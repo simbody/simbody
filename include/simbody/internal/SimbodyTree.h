@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_TREE_H_
-#define SIMTK_SIMBODY_TREE_H_
+#ifndef SimTK_SIMBODY_TREE_H_
+#define SimTK_SIMBODY_TREE_H_
 
 #include "Simbody.h"
 
@@ -9,7 +9,7 @@
 
 class RigidBodyTree;
 
-namespace simtk {
+namespace SimTK {
 
 class TransformMat;
 class JointSpecification;
@@ -59,7 +59,7 @@ enum SBStage {
 
 // This is the handle class for the hidden SBState implementation.
 class SBStateRep;
-class SIMTK_SIMBODY_API SBState {
+class SimTK_SIMBODY_API SBState {
 public:
     SBState() : rep(0) { }
     ~SBState();
@@ -95,7 +95,7 @@ public:
  * mult: mult = pinv(AM~A)(A inv(M)f - b). Then the real udot is
  * udot = udot0 - udotC, with udotC = inv(M)(~A mult).
  */
-class SIMTK_SIMBODY_API SimbodyTree {
+class SimTK_SIMBODY_API SimbodyTree {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyTree();
@@ -298,9 +298,9 @@ private:
     RigidBodyTree* rep;
 };
 
-SIMTK_SIMBODY_API std::ostream& 
+SimTK_SIMBODY_API std::ostream& 
 operator<<(std::ostream&, const SimbodyTree&);
 
 };
 
-#endif // SIMTK_SIMBODY_TREE_H_
+#endif // SimTK_SIMBODY_TREE_H_

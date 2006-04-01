@@ -54,10 +54,10 @@ public:
             int mincnt = maxMin;
             while ( norm > onorm ) {
                 if ( mincnt < 1 ) 
-                    SIMTK_THROW1(Exception::NewtonRaphsonFailure, "too many minimization steps taken");
+                    SimTK_THROW1(Exception::NewtonRaphsonFailure, "too many minimization steps taken");
                 z *= 0.5;
                 if ( z.normSqr() < zTol2 )
-                    SIMTK_THROW1(Exception::NewtonRaphsonFailure, "gradient too small");
+                    SimTK_THROW1(Exception::NewtonRaphsonFailure, "gradient too small");
                 x = ox + z;
                 b = calcB(x);
                 norm = b.norm() / x.size();
@@ -76,7 +76,7 @@ public:
             if (norm < tol)
                 finished=1;
             if (iters > maxIters) 
-                SIMTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
+                SimTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
         }
     }
 };

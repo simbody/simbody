@@ -1,5 +1,5 @@
-#ifndef SIMTK_SIMBODY_TREE_STATE_H_
-#define SIMTK_SIMBODY_TREE_STATE_H_
+#ifndef SimTK_SIMBODY_TREE_STATE_H_
+#define SimTK_SIMBODY_TREE_STATE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -68,7 +68,7 @@ class RigidBodyTree;
 class RigidBodyNode;
 template <int dof> class RigidBodyNodeSpec;
 
-namespace simtk {
+namespace SimTK {
 
  // defined below
 
@@ -720,6 +720,6 @@ private:
     template <int dof> friend class RigidBodyNodeSpec;
 };
 
-}; // namespace simtk
+}; // namespace SimTK
 
-#endif // SIMTK_SIMBODY_TREE_STATE_H_
+#endif // SimTK_SIMBODY_TREE_STATE_H_
