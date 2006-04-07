@@ -1347,7 +1347,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const SBStateRep& s,
 //
 // Calculate product of partial velocities J and a gradient vector on each of the
 // outboard bodies. This is to be called tip to base. Requires that Phi and H are available, so this
-// should only be called in ConfiguredStage or higher. This does not change the cache at all.
+// should only be called in Stage::Configured or higher. This does not change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
 // applied hinge gradients if there are any; just add those in at the end if you want them.
 //

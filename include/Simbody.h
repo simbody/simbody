@@ -31,7 +31,9 @@
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/State.h"
+#include "simbody/internal/SimbodyState.h"
 #include "simbody/internal/SimbodyTree.h"
-
+#include "simbody/internal/SimbodyForces.h"
 
 #endif // SimTK_SIMBODY_H_

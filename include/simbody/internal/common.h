@@ -91,6 +91,7 @@ private:
 
 namespace Exception {
 
+
 class APIMethodFailed : public Base {
 public:
     APIMethodFailed(const char* fn, int ln, String method, String cause) : Base(fn,ln)

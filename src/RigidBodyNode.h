@@ -1,7 +1,7 @@
 #ifndef RIGID_BODY_NODE_H_
 #define RIGID_BODY_NODE_H_
 
-#include "Simbody.h"
+#include "simbody/internal/common.h"
 #include "SimbodyTreeState.h"
 
 #include "internalDynamics.h"

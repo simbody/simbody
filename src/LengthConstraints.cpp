@@ -568,7 +568,7 @@ public:
 bool
 LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
 {
-    assert(s.getStage(rbTree) >= ConfiguredStage-1);
+    assert(s.getStage(rbTree) >= Stage::Configured-1);
     Vector& pos = rbTree.updQ(s);
 
     bool anyChanges = false;
@@ -593,7 +593,7 @@ LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
 bool
 LengthConstraints::enforceMotionConstraints(SBStateRep& s) const
 {
-    assert(s.getStage(rbTree) >= MovingStage-1);
+    assert(s.getStage(rbTree) >= Stage(Stage::Moving).prev());
     const Vector& pos = rbTree.getQ(s);
     Vector&       vel = rbTree.updU(s);
 
@@ -635,8 +635,8 @@ void LengthSet::setPos(SBStateRep& s, const Vector& pos) const
         nodeMap[i]->setQ(s, pos);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.getStage(getRBTree()) >= ConfiguredStage)
-        s.setStage(getRBTree(), TimedStage); // back up if needed
+    if (s.getStage(getRBTree()) >= Stage::Configured)
+        s.setStage(getRBTree(), Stage::Timed); // back up if needed
 
     // sherm TODO: this now computes kinematics for the whole system,
     // but it should only have to update the loop we are interested in.
@@ -659,8 +659,8 @@ void LengthSet::setVel(SBStateRep& s, const Vector& vel) const
         nodeMap[i]->setU(s, vel);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.getStage(getRBTree()) >= MovingStage)
-        s.setStage(getRBTree(), ConfiguredStage); // back up if needed
+    if (s.getStage(getRBTree()) >= Stage::Moving)
+        s.setStage(getRBTree(), Stage::Configured); // back up if needed
 
     getRBTree().realizeMotion(s);
 

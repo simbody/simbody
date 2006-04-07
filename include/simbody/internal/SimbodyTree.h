@@ -1,7 +1,8 @@
 #ifndef SimTK_SIMBODY_TREE_H_
 #define SimTK_SIMBODY_TREE_H_
 
-#include "Simbody.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/SimbodyState.h"
 
 #include <cassert>
 #include <vector>
@@ -17,60 +18,62 @@ class InertiaMat;
 class SimbodyTreeRep;
 class MassProperties;
 
-/** 
- * Coordinate allocation:
- * Body 0 is ground and has no coordinates. Welded bodies have a higher body number
- * but no coordinates. We still set qoff and uoff as we would if these had dofs,
- * but nq==nu==0 for these so the next body has the same qoff & uoff.
+
+/**
+ * This class holds a full set of applied forces, including body
+ * forces (by which we mean forces and torques), and joint forces..
  *
+ * Body forces are expressed in the ground frame. Joints constitute
+ * their own frames, and joint forces are applied as per-joint-DOF
+ * scalars whose meanings depend on the quirks of the individual
+ * joints.
  *
- *   Body 0     1       2    3      4      ...
- *         ---------- ----- --- ---------- ---
- *      q |          |     |   |          |
- *         ---------- ----- --- ---------- ---
- *                    ^
- *                    qoff[2], nq[2], nqmax[2]
- *
- *   Body 0     1     2    3    4      ...
- *         -------- ----- --- -------- ---
- *      u |        |     |   |        |
- *         -------- ----- --- -------- ---
- *                  ^
- *                  uoff[2], nu[2] (==ndof[2])
- *
- * qdot, qdotdot are allocated exactly as for q. Derivatives of unused coordinates
- * are set to 0.
- * udot, prescribedUdot are allocated exactly as for u. All udots are set.
- * Entries of prescribedUdot which do not correspond to prescribed joints will
- * be ignored and need not be set.
+ * Note that this is a low-level container class; it does not know
+ * the joint types or current configuration of the bodies. It just
+ * knows how many items of each type there are. It must be given to a
+ * SimbodyTree, along with the current state, in order to be
+ * interpreted correctly.
  */
-
-enum SBStage {
-    UninitializedStage  = 0, // these are ordered
-    BuiltStage          = 1,
-    ModeledStage        = 2,
-    ParametrizedStage   = 3,
-    TimedStage          = 4,
-    ConfiguredStage     = 5,
-    MovingStage         = 6,
-    DynamicsStage       = 7, // dynamic properties & operators available
-    ReactingStage       = 8  // accelerations & reaction forces available
-};
-
-// This is the handle class for the hidden SBState implementation.
-class SBStateRep;
-class SimTK_SIMBODY_API SBState {
+class SimbodyForceSet {
 public:
-    SBState() : rep(0) { }
-    ~SBState();
-    SBState(const SBState&);
-    SBState& operator=(const SBState&);
+    SimbodyForceSet() { }
+    SimbodyForceSet(int nBody, int nDOFs) : bodyForces(nBody), jointForces(nDOFs) { }
+    // default copy, assignment, destructor
 
-    const SBStateRep& getRep() const {assert(rep); return *rep;}
-    SBStateRep&       updRep()       {assert(rep); return *rep;}
-    SBStateRep* rep;
+    void resize(int nBody, int nDOFs) 
+       {bodyForces.resize(nBody); jointForces.resize(nDOFs);}
+
+    /// Set all forces to zero.
+    void clear() {clearBodyForces(); clearJointForces();}
+
+    /// Clear only the body forces, leaving joint forces alone.
+    void clearBodyForces()  {bodyForces.setToZero();}
+
+    /// Clear only the joint forces, leaving the body forces alone.
+    void clearJointForces() {jointForces.setToZero();}
+
+    const Vector_<SpatialVec>& getBodyForces() const {return bodyForces;}
+    Vector_<SpatialVec>&       updBodyForces()       {return bodyForces;}
+
+    const Vector& getJointForces() const {return jointForces;}
+    Vector&       updJointForces()       {return jointForces;}
+
+    // Named assignment operators; prefer the actual operators in C++
+    SimbodyForceSet& assign  (const SimbodyForceSet& f) {return (*this = f);}
+    SimbodyForceSet& add     (const SimbodyForceSet& f) 
+       {bodyForces+=f.bodyForces; jointForces+=f.jointForces; return *this;}
+    SimbodyForceSet& subtract(const SimbodyForceSet& f) 
+       {bodyForces-=f.bodyForces; jointForces-=f.jointForces; return *this;}
+    SimbodyForceSet& scale   (const Real& s) {bodyForces*=s; jointForces*=s; return *this;}
+
+    SimbodyForceSet& operator+=(const SimbodyForceSet& f) {return add(f);}
+    SimbodyForceSet& operator-=(const SimbodyForceSet& f) {return subtract(f);}
+    SimbodyForceSet& operator*=(const Real& s)            {return scale(s);}
+private:
+    Vector_<SpatialVec> bodyForces;
+    Vector_<Vec3>       particleForces;
+    Vector_<Real>       jointForces;
 };
-
 
 /**
  * The Simbody low-level multibody tree interface.
@@ -163,11 +166,11 @@ public:
     void realizeDynamics     (const SBState&) const;
     void realizeReaction     (const SBState&) const;
 
-    void realize(const SBState&, SBStage) const;
+    void realize(const SBState&, Stage) const;
 
     // Operators
 
-    /// Requires realization through ConfiguredStage.
+    /// Requires realization through Stage::Configured.
     void calcInternalGradientFromSpatial(const SBState&,
         const Vector_<SpatialVec>& dEdR,
         Vector&                    dEdQ) const; // really Qbar
@@ -187,7 +190,7 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot) const;
 
-    // Must be in ConfiguredStage to calculate qdot = Q*u.
+    // Must be in Stage::Configured to calculate qdot = Q*u.
     void calcQDot(const SBState& s,
         const Vector& u,
         Vector&       qdot) const;
@@ -279,6 +282,11 @@ public:
     const TransformMat& getBodyConfiguration(const SBState&, int body) const;
     const SpatialVec&   getBodyVelocity     (const SBState&, int body) const;
     const SpatialVec&   getBodyAcceleration (const SBState&, int body) const;
+
+    const Vec3 getStationLocation(const SBState& s, int body, const Vec3& station_B) const {
+        const TransformMat& X_GB = getBodyConfiguration(s, body);
+        return X_GB.T() + X_GB.R() * station_B;
+    }
 
     const Vector& getQ(const SBState&) const;
     const Vector& getU(const SBState&) const;

@@ -1,7 +1,8 @@
 #ifndef RIGID_BODY_TREE_H_
 #define RIGID_BODY_TREE_H_
 
-#include "Simbody.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/SimbodyTree.h"
 using namespace SimTK;
 
 class RigidBodyNode;
@@ -90,11 +91,11 @@ public:
 
 
     /// This is available any time.
-    SBStage getStage(const SBStateRep&) const;
+    Stage getStage(const SBStateRep&) const;
 
     /// This will realize the state up to the indicated stage, possibly advancing
     /// multiple stages internally by calling each "realizeWhatever()" routine in order.
-    void realize(const SBStateRep& s, SBStage stage) const;
+    void realize(const SBStateRep& s, Stage stage) const;
 
     /// Call this after all bodies & constraints have been added.
     void realizeConstruction (); // will set built==true
@@ -142,7 +143,7 @@ public:
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot) const; 
 
-    // Must be in ConfiguredStage to calculate qdot = Q*u.
+    // Must be in Stage::Configured to calculate qdot = Q*u.
     void calcQDot(const SBStateRep& s,
         const Vector& u,
         Vector&       qdot) const;

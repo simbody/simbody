@@ -156,20 +156,20 @@ int RigidBodyTree::addOneDistanceConstraintEquation(
     return distanceConstraints.size()-1;
 }
 
-SBStage RigidBodyTree::getStage(const SBStateRep& s) const {
+Stage RigidBodyTree::getStage(const SBStateRep& s) const {
     return s.getStage(*this);
 }
 
-void RigidBodyTree::realize(const SBStateRep& s, SBStage stage) const {
+void RigidBodyTree::realize(const SBStateRep& s, Stage stage) const {
     while (s.getStage(*this) < stage) {
         switch (s.getStage(*this)) {
-        case BuiltStage:         realizeModeling(s);     break;
-        case ModeledStage:       realizeParameters(s);   break;
-        case ParametrizedStage:  realizeTime(s);         break;
-        case TimedStage:         realizeConfiguration(s);break;
-        case ConfiguredStage:    realizeMotion(s);       break;
-        case MovingStage:        realizeDynamics(s);     break;
-        case DynamicsStage:      realizeReaction(s);     break;
+        case Stage::Built:         realizeModeling(s);     break;
+        case Stage::Modeled:       realizeParameters(s);   break;
+        case Stage::Parametrized:  realizeTime(s);         break;
+        case Stage::Timed:         realizeConfiguration(s);break;
+        case Stage::Configured:    realizeMotion(s);       break;
+        case Stage::Moving:        realizeDynamics(s);     break;
+        case Stage::Dynamics:      realizeReaction(s);     break;
         default: assert(false);
         }
     }
@@ -208,32 +208,32 @@ void RigidBodyTree::realizeConstruction() {
     assert(initialState.rep == 0);
     initialState.rep = new SBStateRep();
     initialState.rep->setMyHandle(initialState);
-    initialState.rep->setStage(*this, BuiltStage);
+    initialState.rep->setStage(*this, Stage::Built);
     initialState.rep->initializeModelingVars(*this);
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
 void RigidBodyTree::realizeModeling(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= ModeledStage-1);
-    if (s.getStage(*this) >= ModeledStage) return;
+    assert(s.getStage(*this) >= Stage::Modeled-1);
+    if (s.getStage(*this) >= Stage::Modeled) return;
 
-    s.allocateCacheIfNeeded(*this, ModeledStage);
+    s.allocateCacheIfNeeded(*this, Stage::Modeled);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeModeling(s); 
 
-    s.setStage(*this, ModeledStage);
+    s.setStage(*this, Stage::Modeled);
     s.initializeAllVars(*this);
 }
 
 // Here we lock in parameterization of the model, such as body masses.
 void RigidBodyTree::realizeParameters(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= ParametrizedStage-1);
-    if (s.getStage(*this) >= ParametrizedStage) return;
+    assert(s.getStage(*this) >= Stage::Parametrized-1);
+    if (s.getStage(*this) >= Stage::Parametrized) return;
 
-    s.allocateCacheIfNeeded(*this, ParametrizedStage);
+    s.allocateCacheIfNeeded(*this, Stage::Parametrized);
 
     // Calculate whether we should apply gravity.
     s.paramCache.applyGravity = !(s.paramVars.gravity == Vec3(0.));
@@ -242,26 +242,26 @@ void RigidBodyTree::realizeParameters(const SBStateRep& s) const {
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeParameters(s); 
 
-    s.setStage(*this, ParametrizedStage);
+    s.setStage(*this, Stage::Parametrized);
 }
 
 void RigidBodyTree::realizeTime(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= TimedStage-1);
-    if (s.getStage(*this) >= TimedStage) return;
+    assert(s.getStage(*this) >= Stage::Timed-1);
+    if (s.getStage(*this) >= Stage::Timed) return;
 
-    s.allocateCacheIfNeeded(*this, TimedStage);
+    s.allocateCacheIfNeeded(*this, Stage::Timed);
 
     // nothing yet 
 
-    s.setStage(*this, TimedStage);
+    s.setStage(*this, Stage::Timed);
 }
 
 // Set generalized coordinates: sweep from base to tips.
 void RigidBodyTree::realizeConfiguration(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= ConfiguredStage-1);
-    if (s.getStage(*this) >= ConfiguredStage) return;
+    assert(s.getStage(*this) >= Stage::Configured-1);
+    if (s.getStage(*this) >= Stage::Configured) return;
 
-    s.allocateCacheIfNeeded(*this, ConfiguredStage);
+    s.allocateCacheIfNeeded(*this, Stage::Configured);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -270,16 +270,16 @@ void RigidBodyTree::realizeConfiguration(const SBStateRep& s) const {
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcPosInfo(s);
 
-    s.setStage(*this, ConfiguredStage);
+    s.setStage(*this, Stage::Configured);
 }
 
 // Set generalized speeds: sweep from base to tip.
 // realizeConfiguration() must have been called already.
 void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= MovingStage-1);
-    if (s.getStage(*this) >= MovingStage) return;
+    assert(s.getStage(*this) >= Stage::Moving-1);
+    if (s.getStage(*this) >= Stage::Moving) return;
 
-    s.allocateCacheIfNeeded(*this, MovingStage);
+    s.allocateCacheIfNeeded(*this, Stage::Moving);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -288,7 +288,7 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcVelInfo(s);
 
-    s.setStage(*this, MovingStage);
+    s.setStage(*this, Stage::Moving);
 }
 
 
@@ -297,29 +297,29 @@ void RigidBodyTree::realizeMotion(const SBStateRep& s) const {
 // quantities like the Coriolis acceleration.
 
 void RigidBodyTree::realizeDynamics(const SBStateRep& s)  const {
-    assert(s.getStage(*this) >= DynamicsStage-1);
-    if (s.getStage(*this) >= DynamicsStage) return;
+    assert(s.getStage(*this) >= Stage::Dynamics-1);
+    if (s.getStage(*this) >= Stage::Dynamics) return;
 
-    s.allocateCacheIfNeeded(*this, DynamicsStage);
+    s.allocateCacheIfNeeded(*this, Stage::Dynamics);
 
     calcArticulatedBodyInertias(s);
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(s);
 
-    s.setStage(*this, DynamicsStage);
+    s.setStage(*this, Stage::Dynamics);
 }
 
 void RigidBodyTree::realizeReaction(const SBStateRep& s)  const {
-    assert(s.getStage(*this) >= ReactingStage-1);
-    if (s.getStage(*this) >= ReactingStage) return;
+    assert(s.getStage(*this) >= Stage::Reacting-1);
+    if (s.getStage(*this) >= Stage::Reacting) return;
 
-    s.allocateCacheIfNeeded(*this, ReactingStage);
+    s.allocateCacheIfNeeded(*this, Stage::Reacting);
 
     calcLoopForwardDynamics(s);
     calcQDotDot(s, s.reactionCache.udot, s.reactionCache.qdotdot);
 
-    s.setStage(*this, ReactingStage);
+    s.setStage(*this, Stage::Reacting);
 }
 
 
@@ -335,7 +335,7 @@ int RigidBodyTree::getDOF   (int body) const
 void RigidBodyTree::setDefaultModelingValues(const SBStateRep& s, 
                                              SBModelingVars& modelVars) const 
 {
-    assert(s.getStage(*this) >= BuiltStage);
+    assert(s.getStage(*this) >= Stage::Built);
 
     // Tree-level defaults
     modelVars.useEulerAngles = false;
@@ -356,7 +356,7 @@ void RigidBodyTree::setDefaultModelingValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultParameterValues(const SBStateRep& s, 
                                               SBParameterVars& paramVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults
     paramVars.gravity = 0.;
@@ -372,7 +372,7 @@ void RigidBodyTree::setDefaultParameterValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultTimeValues(const SBStateRep& s, 
                                          SBTimeVars& timeVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults (none)
 
@@ -387,7 +387,7 @@ void RigidBodyTree::setDefaultTimeValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultConfigurationValues(const SBStateRep& s, 
                                                   SBConfigurationVars& configVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults (none)
 
@@ -402,7 +402,7 @@ void RigidBodyTree::setDefaultConfigurationValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultMotionValues(const SBStateRep& s, 
                                            SBMotionVars& motionVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults (none)
 
@@ -417,7 +417,7 @@ void RigidBodyTree::setDefaultMotionValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultDynamicsValues(const SBStateRep& s, 
                                              SBDynamicsVars& dynamicsVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults (none)
 
@@ -432,7 +432,7 @@ void RigidBodyTree::setDefaultDynamicsValues(const SBStateRep& s,
 void RigidBodyTree::setDefaultReactionValues(const SBStateRep& s, 
                                              SBReactionVars& reactionVars) const 
 {
-    assert(s.getStage(*this) >= ModeledStage);
+    assert(s.getStage(*this) >= Stage::Modeled);
 
     // Tree-level defaults
     reactionVars.appliedJointForces.setToZero();
@@ -506,7 +506,7 @@ void RigidBodyTree::clearAppliedForces(SBStateRep& s) const {
 }
 
 void RigidBodyTree::applyGravity(SBStateRep& s, const Vec3& g) const {
-    assert(s.getStage(*this) >= ConfiguredStage);
+    assert(s.getStage(*this) >= Stage::Configured);
 
     for (int body=1; body<getNBodies(); ++body) {
         const RigidBodyNode& n = getRigidBodyNode(body);
@@ -597,7 +597,7 @@ const Vector& RigidBodyTree::getQDotDot(const SBStateRep& s) const {
 }
 
 void RigidBodyTree::enforceConfigurationConstraints(SBStateRep& s) const {
-    assert(s.getStage(*this) >= ConfiguredStage-1);
+    assert(s.getStage(*this) >= Stage::Configured-1);
 
     // Fix coordinates first.
     bool anyChange = false;
@@ -610,20 +610,20 @@ void RigidBodyTree::enforceConfigurationConstraints(SBStateRep& s) const {
     if (lConstraints->enforceConfigurationConstraints(s))
         anyChange = true;
 
-    if (anyChange && s.getStage(*this) >= ConfiguredStage)
-        s.setStage(*this, SBStage(ConfiguredStage-1));
+    if (anyChange && s.getStage(*this) >= Stage::Configured)
+        s.setStage(*this, Stage(Stage::Configured).prev());
 }
 
 void RigidBodyTree::enforceMotionConstraints(SBStateRep& s) const {
-    assert(s.getStage(*this) >= MovingStage-1);
+    assert(s.getStage(*this) >= Stage::Moving-1);
 
     // Currently there are no coordinate constraints for velocity.
 
     // Fix the velocity constraints produced by defined length constraints.
     const bool anyChange = lConstraints->enforceMotionConstraints(s);
 
-    if (anyChange && s.getStage(*this) >= MovingStage)
-        s.setStage(*this, SBStage(MovingStage-1));
+    if (anyChange && s.getStage(*this) >= Stage::Moving)
+        s.setStage(*this, Stage(Stage::Moving).prev());
 }
 
 // Given a forces in the state, calculate accelerations ignoring
@@ -636,7 +636,7 @@ void RigidBodyTree::calcTreeForwardDynamics (const SBStateRep& s,
      const Vector*              extraJointForces,
      const Vector_<SpatialVec>* extraBodyForces) const
 {
-    assert(s.getStage(*this) >= ReactingStage-1);
+    assert(s.getStage(*this) >= Stage::Reacting-1);
 
     Vector              totalJointForces;
     Vector_<SpatialVec> totalBodyForces;
@@ -677,7 +677,7 @@ void RigidBodyTree::calcTreeForwardDynamics (const SBStateRep& s,
 // those forces and enforcement of acceleration constraints.
 void RigidBodyTree::calcLoopForwardDynamics(const SBStateRep& s) const 
 {
-    assert(s.getStage(*this) >= ReactingStage-1);
+    assert(s.getStage(*this) >= Stage::Reacting-1);
 
     Vector_<SpatialVec> cFrc(getNBodies()); 
     cFrc.setToZero();
@@ -734,7 +734,7 @@ void RigidBodyTree::fixVel0(SBStateRep& s, Vector& vel) const {
 }
 
 Real RigidBodyTree::calcKineticEnergy(const SBStateRep& s) const {
-    assert(s.getStage(*this) >= MovingStage);
+    assert(s.getStage(*this) >= Stage::Moving);
 
     Real ke = 0.;
 
@@ -756,7 +756,7 @@ void RigidBodyTree::calcTreeAccelerations(const SBStateRep& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
-    assert(s.getStage(*this) >= DynamicsStage);
+    assert(s.getStage(*this) >= Stage::Dynamics);
     assert(jointForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNBodies());
 
@@ -786,7 +786,7 @@ void RigidBodyTree::calcTreeAccelerations(const SBStateRep& s,
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void RigidBodyTree::calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot) const {
-    assert(s.getStage(*this) >= ConfiguredStage);
+    assert(s.getStage(*this) >= Stage::Configured);
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
 
@@ -796,9 +796,9 @@ void RigidBodyTree::calcQDot(const SBStateRep& s, const Vector& u, Vector& qdot)
             rbNodeLevels[i][j]->calcQDot(s, u, qdot);
 }
 
-// Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
+// Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
 void RigidBodyTree::calcQDotDot(const SBStateRep& s, const Vector& udot, Vector& qdotdot) const {
-    assert(s.getStage(*this) >= MovingStage);
+    assert(s.getStage(*this) >= Stage::Moving);
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
 
@@ -820,7 +820,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const SBStateRep& s,
                                                     Vector& JX) 
 {
     assert(X.size() == getNBodies());
-    assert(s.getStage(*this) >= ConfiguredStage);
+    assert(s.getStage(*this) >= Stage::Configured);
 
     Vector_<SpatialVec> zTemp(getNBodies()); zTemp.setToZero();
     JX.resize(getTotalDOF());
@@ -836,7 +836,7 @@ void RigidBodyTree::calcTreeEquivalentJointForces(const SBStateRep& s,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    jointForces)
 {
-    assert(s.getStage(*this) >= DynamicsStage);
+    assert(s.getStage(*this) >= Stage::Dynamics);
     assert(bodyForces.size() == getNBodies());
     jointForces.resize(getTotalDOF());
 

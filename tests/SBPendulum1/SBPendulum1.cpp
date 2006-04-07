@@ -63,7 +63,55 @@ using std::endl;
 
 using namespace SimTK;
 
+class System {
+};
+
+class Study {
+};
+
+class MechanicalSubsystem;
+class ForceSubsystem;
+
+class MultibodySystem : public System {
+    MultibodySystem();
+    const State& getInitialState() const;
+
+    void realize(const State&, Stage) const;
+private:
+    SimbodyTree    tree;
+//    ForceSubsystem forces;
+};
+
+void stateTest() {
+  try {
+    State s;
+    s.advanceToStage(Stage::Built);
+
+    long q1 = s.allocateQRange(3);
+    long q2 = s.allocateQRange(2);
+
+    printf("q1,2=%d,%d\n", q1, q2);
+    cout << s;
+
+    long dv = s.allocateDiscreteVariable(Stage::Dynamics, new Value<int>(5));
+
+
+    s.advanceToStage(Stage::Modeled);
+        long dv2 = s.allocateDiscreteVariable(Stage::Configured, new Value<int>(5));
+
+    Value<int>::downcast(s.updDiscreteVariable(dv)) = 71;
+    cout << s.getDiscreteVariable(dv) << endl;
+
+  }
+  catch(const std::exception& e) {
+      printf("*** STATE TEST EXCEPTION\n%s\n***\n", e.what());
+  }
+
+}
+
 int main() {
+    stateTest();
+
     int major,minor,build;
     char out[100];
     const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
@@ -154,20 +202,20 @@ try {
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
-    pend.realize(s, ModeledStage);
+    pend.realize(s, Stage::Modeled);
 
     //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);
    // pend.setJointQ(s,1,4,-2.2);
    // pend.setJointQ(s,1,5,-3.3);
 
-    pend.realize(s, ConfiguredStage);
+    pend.realize(s, Stage::Configured);
 
     TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
     pend.enforceConfigurationConstraints(s);
-    pend.realize(s, ConfiguredStage);
+    pend.realize(s, Stage::Configured);
 
     cout << "after assembly body frame: " << pend.getBodyConfiguration(s,theBody); 
 
@@ -186,7 +234,7 @@ try {
     pend.applyGravity(s, gravity);
     pend.applyJointForce(s, 1, 0, 147);
 
-    pend.realize(s, MovingStage);
+    pend.realize(s, Stage::Moving);
     SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
     cout << "body vel: " << bodyVel << endl;
 
@@ -196,12 +244,12 @@ try {
     cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
     cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
 
-    pend.realize(s, DynamicsStage);
+    pend.realize(s, Stage::Dynamics);
     Vector equivT;
     pend.calcTreeEquivalentJointForces(s, pend.getAppliedBodyForces(s), equivT);
     cout << "body forces -> equiv joint forces=" << equivT << endl;
 
-    pend.realize(s, ReactingStage);
+    pend.realize(s, Stage::Reacting);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
     cout << "body acc: " << bodyAcc << endl;
@@ -225,10 +273,10 @@ try {
         if (t > tmax) break;
 
         pend.enforceConfigurationConstraints(s);
-        pend.realize(s,ConfiguredStage);
+        pend.realize(s,Stage::Configured);
 
         pend.enforceMotionConstraints(s);
-        pend.realize(s,MovingStage);
+        pend.realize(s,Stage::Moving);
         const Vector qdot = pend.getQDot(s);
 
         pend.clearAppliedForces(s);
@@ -258,7 +306,7 @@ try {
         }
 
 
-        pend.realize(s, ReactingStage);
+        pend.realize(s, Stage::Reacting);
 
         const Vector udot = pend.getUDot(s);
         Vector udot2;
