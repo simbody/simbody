@@ -82,6 +82,34 @@ private:
 //    ForceSubsystem forces;
 };
 
+class MultibodyDynamicsStudy : public Study {
+public:
+    MultibodyDynamicsStudy(const MultibodySystem& mbs);
+
+    void setCurrentState(const State& s) {currentState=s;}
+    const State& getCurrentState() const {return currentState;}
+    State& updCurrentState() {return currentState;}
+
+
+
+private:
+    const MultibodySystem& multibody;
+    State currentState;
+};
+
+class Integrator {
+public:
+    Integrator(/*options*/);
+
+    void step(const System&, State&, const Real& dt);
+
+};
+
+void nothingYet() {
+    SimbodyTree tree;
+
+}
+
 void stateTest() {
   try {
     State s;

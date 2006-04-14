@@ -100,6 +100,12 @@ public:
     //   counts of various things resulting from modeling choices,
     //   constraint enabling, prescribed motion
 
+    long parametersIndex, parameterCacheIndex;
+    long qIndex, qCacheIndex;
+    long uIndex, uCacheIndex;
+    long dynamicsCacheIndex;
+    long reactionIndex, reactionCacheIndex;
+
 public:
     void allocate(const RigidBodyTree&) {
     }

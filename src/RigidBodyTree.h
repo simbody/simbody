@@ -11,7 +11,6 @@ class RBDistanceConstraint;
 class RBStation;
 
 namespace SimTK {
-class SBStateRep;
 class SBModelingVars;
 class SBParameterVars;
 class SBTimeVars;
@@ -46,7 +45,7 @@ class RigidBodyTree {
 public:
     RigidBodyTree() 
       : nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
-        built(false), lConstraints(0) 
+        built(false), modelingVarsIndex(-1), modelingCacheIndex(-1), lConstraints(0) 
       { addGroundNode(); }
 
     RigidBodyTree(const RigidBodyTree&);
@@ -89,25 +88,17 @@ public:
     int addWeldConstraint(const RigidBodyNode& parent, const TransformMat& frameInP,
                           const RigidBodyNode& child,  const TransformMat& frameInC);
 
+    // Call this after all bodies & constraints have been added.
+    void realizeConstruction (State&); // will set built==true
+    void realizeModeling     (State&) const;
+    void realizeParameters   (const State&) const;
+    void realizeTime         (const State&) const;
+    void realizeConfiguration(const State&) const;
+    void realizeMotion       (const State&) const;
+    void realizeDynamics     (const State&) const;
+    void realizeReaction     (const State&) const;
 
-    /// This is available any time.
-    Stage getStage(const SBStateRep&) const;
-
-    /// This will realize the state up to the indicated stage, possibly advancing
-    /// multiple stages internally by calling each "realizeWhatever()" routine in order.
-    void realize(const SBStateRep& s, Stage stage) const;
-
-    /// Call this after all bodies & constraints have been added.
-    void realizeConstruction (); // will set built==true
-    void realizeModeling     (const SBStateRep&) const;
-    void realizeParameters   (const SBStateRep&) const;
-    void realizeTime         (const SBStateRep&) const;
-    void realizeConfiguration(const SBStateRep&) const;
-    void realizeMotion       (const SBStateRep&) const;
-    void realizeDynamics     (const SBStateRep&) const;
-    void realizeReaction     (const SBStateRep&) const;
-
-    Real calcKineticEnergy(const SBStateRep&) const;
+    Real calcKineticEnergy(const State&) const;
 
 
     /// Calculate the product J*X where J is the partial velocity Jacobian dV/du
@@ -123,7 +114,7 @@ public:
     /// can be mapped directly back to quaternion coordinates. This is an O(n)
     /// operator which can be called after realizeConfiguration().
     /// It has no effect on the cache.
-    void calcInternalGradientFromSpatial(const SBStateRep&, 
+    void calcInternalGradientFromSpatial(const State&, 
         const SpatialVecList& X, 
         Vector&               JX);
 
@@ -132,11 +123,11 @@ public:
     // Must be in DynamicsStage so that articulated body inertias are available,
     // however, velocities are ignored. This operator has NO effect on the state
     // cache. It makes a single O(N) pass.
-    void calcTreeEquivalentJointForces(const SBStateRep&, 
+    void calcTreeEquivalentJointForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    jointForces);
 
-    void calcTreeAccelerations(const SBStateRep& s,
+    void calcTreeAccelerations(const State& s,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
@@ -144,25 +135,22 @@ public:
         Vector&                    udot) const; 
 
     // Must be in Stage::Configured to calculate qdot = Q*u.
-    void calcQDot(const SBStateRep& s,
+    void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
     // Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
-    void calcQDotDot(const SBStateRep& s,
+    void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    const SBState& getInitialState() const {
-        assert(built); return initialState;
-    }
-    void setDefaultModelingValues     (const SBStateRep&, SBModelingVars&)      const;
-    void setDefaultParameterValues    (const SBStateRep&, SBParameterVars&)     const;
-    void setDefaultTimeValues         (const SBStateRep&, SBTimeVars&)          const;
-    void setDefaultConfigurationValues(const SBStateRep&, SBConfigurationVars&) const;
-    void setDefaultMotionValues       (const SBStateRep&, SBMotionVars&)        const;
-    void setDefaultDynamicsValues     (const SBStateRep&, SBDynamicsVars&)      const;
-    void setDefaultReactionValues     (const SBStateRep&, SBReactionVars&)      const;
+    void setDefaultModelingValues     (const State&, SBModelingVars&)      const;
+    void setDefaultParameterValues    (const State&, SBParameterVars&)     const;
+    void setDefaultTimeValues         (const State&, SBTimeVars&)          const;
+    void setDefaultConfigurationValues(const State&, SBConfigurationVars&) const;
+    void setDefaultMotionValues       (const State&, SBMotionVars&)        const;
+    void setDefaultDynamicsValues     (const State&, SBDynamicsVars&)      const;
+    void setDefaultReactionValues     (const State&, SBReactionVars&)      const;
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.
@@ -192,66 +180,66 @@ public:
 
     // Modeling info.
 
-    void setUseEulerAngles(SBStateRep& s, bool useAngles) const;
-    void setJointIsPrescribed(SBStateRep& s, int joint, bool prescribe) const;
-    void setConstraintIsEnabled(SBStateRep& s, int constraint, bool enable) const;
-    bool getUseEulerAngles(const SBStateRep& s) const;
-    bool isJointPrescribed(const SBStateRep& s, int joint) const;
-    bool isConstraintEnabled(const SBStateRep& s, int constraint) const;
+    void setUseEulerAngles(State& s, bool useAngles) const;
+    void setJointIsPrescribed(State& s, int joint, bool prescribe) const;
+    void setConstraintIsEnabled(State& s, int constraint, bool enable) const;
+    bool getUseEulerAngles(const State& s) const;
+    bool isJointPrescribed(const State& s, int joint) const;
+    bool isConstraintEnabled(const State& s, int constraint) const;
 
         // CALLABLE AFTER realizeModeling()
 
-    void setQ(SBStateRep&, const Vector& q) const;
-    void setU(SBStateRep&, const Vector& u) const;
+    void setQ(State&, const Vector& q) const;
+    void setU(State&, const Vector& u) const;
 
-    void setJointQ(SBStateRep& s, int body, int axis, const Real& r) const;
-    void setJointU(SBStateRep& s, int body, int axis, const Real& r) const;
-    void setPrescribedUdot(SBStateRep& s, int body, int axis, const Real& r) const;
+    void setJointQ(State& s, int body, int axis, const Real& r) const;
+    void setJointU(State& s, int body, int axis, const Real& r) const;
+    void setPrescribedUdot(State& s, int body, int axis, const Real& r) const;
 
-    const Vector& getQ(const SBStateRep&) const;
-    Vector&       updQ(SBStateRep&)       const;
+    const Vector& getQ(const State&) const;
+    Vector&       updQ(State&)       const;
 
-    const Vector& getU(const SBStateRep&) const;
-    Vector&       updU(SBStateRep&)       const;
+    const Vector& getU(const State&) const;
+    Vector&       updU(State&)       const;
 
-    const Vector& getAppliedJointForces(const SBStateRep&) const;
-    const Vector_<SpatialVec>& getAppliedBodyForces(const SBStateRep&) const;
+    const Vector& getAppliedJointForces(const State&) const;
+    const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
-    const Vector& getQDot(const SBStateRep&) const;
-    const Vector& getUDot(const SBStateRep&) const;
-    const Vector& getQDotDot(const SBStateRep&) const;
+    const Vector& getQDot(const State&) const;
+    const Vector& getUDot(const State&) const;
+    const Vector& getQDotDot(const State&) const;
 
 
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
 
 
-    void clearAppliedForces(SBStateRep& s) const;
-    void applyGravity(SBStateRep& s, const Vec3& g) const;
-    void applyPointForce(SBStateRep& s, int body, const Vec3& stationInB, 
+    void clearAppliedForces(State& s) const;
+    void applyGravity(State& s, const Vec3& g) const;
+    void applyPointForce(State& s, int body, const Vec3& stationInB, 
                          const Vec3& forceInG) const;
-    void applyBodyTorque(SBStateRep& s, int body, const Vec3& torqueInG) const;
-    void applyJointForce(SBStateRep& s, int body, int axis, const Real& r) const;
+    void applyBodyTorque(State& s, int body, const Vec3& torqueInG) const;
+    void applyJointForce(State& s, int body, int axis, const Real& r) const;
     
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
-    void enforceConfigurationConstraints(SBStateRep&) const;
-    void enforceMotionConstraints(SBStateRep&) const;
+    void enforceConfigurationConstraints(State&) const;
+    void enforceMotionConstraints(State&) const;
 
     /// Unconstrained (tree) dynamics 
-    void calcArticulatedBodyInertias(const SBStateRep&) const;                        // articulated body inertias
-    void calcZ(const SBStateRep&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
-    void calcTreeAccel(const SBStateRep&) const;                // accels with forces from last calcZ
+    void calcArticulatedBodyInertias(const State&) const;                        // articulated body inertias
+    void calcZ(const State&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
+    void calcTreeAccel(const State&) const;                // accels with forces from last calcZ
 
-    void fixVel0(SBStateRep&, Vector& vel) const; // TODO -- yuck
+    void fixVel0(State&, Vector& vel) const; // TODO -- yuck
 
     /// Part of constrained dynamics (TODO -- more to move here)
-    void calcY(const SBStateRep&) const;
+    void calcY(const State&) const;
 
 
     /// Pass in internal forces in T; they will be adjusted by this routine.
-    void calcConstraintCorrectedInternalForces(const SBStateRep&, Vector& T); 
+    void calcConstraintCorrectedInternalForces(const State&, Vector& T); 
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
@@ -289,10 +277,20 @@ private:
 
     bool built;
 
-    // This is a complete State available immediately after realizeConstruction().
-    // It contains default Modeling values, and everything else is allocated in
-    // accordance with those.
-    SBState initialState;
+    // These are the slots we were given in the State to hold our Modeled-stage
+    // variables and cache.
+    int modelingVarsIndex;
+    int modelingCacheIndex;
+
+    const SBModelingCache& getModelingCache(const State& s) const {
+        return Value<SBModelingCache>::downcast
+            (s.getCacheEntry(modelingCacheIndex)).get();
+    }
+    SBModelingCache&       updModelingCache(const State& s) const { //mutable
+        return Value<SBModelingCache>::downcast
+            (s.updCacheEntry(modelingCacheIndex)).upd();
+    }
+
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array<RBNodePtrList>      rbNodeLevels;
@@ -317,13 +315,13 @@ private:
     // We also allow some extra forces to be supplied, with the intent
     // that these will be used to deal with internal forces generated
     // by constraints. 
-    void calcTreeForwardDynamics (const SBStateRep& s,
+    void calcTreeForwardDynamics (const State& s,
         const Vector*              extraJointForces,
         const Vector_<SpatialVec>* extraBodyForces) const;
 
     // Given a set of forces in the state, calculate acclerations resulting from
     // those forces and enforcement of acceleration constraints, and update the state.
-    void calcLoopForwardDynamics(const SBStateRep&) const;
+    void calcLoopForwardDynamics(const State&) const;
 
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
     friend class SimbodyTree;

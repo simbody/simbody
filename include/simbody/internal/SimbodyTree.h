@@ -153,57 +153,69 @@ public:
     int addWeldConstraint(int parent, const TransformMat& frameInP,
                           int child,  const TransformMat& frameInC);
 
-    /// Topology and default values are frozen after this call.
-    // TODO: "formulation" instead of "modeling" stage?
-    void realizeConstruction();
-    const SBState& getInitialState() const;
+    /// Topology and default values are frozen after this call, and all
+    /// Modeling variables have been allocated slots in the State and
+    /// given appropriate default values. The State's stage cannot be
+    /// any higher than Allocated.
+    void realizeConstruction(State&);
 
-    void realizeModeling     (const SBState&) const;
-    void realizeParameters   (const SBState&) const;
-    void realizeTime         (const SBState&) const;
-    void realizeConfiguration(const SBState&) const;
-    void realizeMotion       (const SBState&) const;
-    void realizeDynamics     (const SBState&) const;
-    void realizeReaction     (const SBState&) const;
+    /// All Modeling choices are frozen after this call, and all remaining
+    /// State variables have been allocated and given appropriate initial
+    /// values. Modeling variables are NOT changed by this call. The
+    /// State's stage cannot be any higher than Built.
+    void realizeModeling    (State&) const;
+
+    void realizeParameters   (const State&) const;
+    void realizeTime         (const State&) const;
+    void realizeConfiguration(const State&) const;
+    void realizeMotion       (const State&) const;
+    void realizeDynamics     (const State&) const;
+
+    /// To generate a reaction (i.e., accelerations) from this State we
+    /// will need the help of a ForceSubsystem to extract its forces
+    /// from the State.
+    /// TODO: an alternative design would be not to allow this here
+    /// but to have the common parent System generate the reactions.
+    void realizeReaction     (const State&/*, const ForceSubsystem&*/) const;
 
     void realize(const SBState&, Stage) const;
 
     // Operators
 
     /// Requires realization through Stage::Configured.
-    void calcInternalGradientFromSpatial(const SBState&,
+    void calcInternalGradientFromSpatial(const State&,
         const Vector_<SpatialVec>& dEdR,
         Vector&                    dEdQ) const; // really Qbar
 
     /// Requires realization through MovingStage.
-    Real calcKineticEnergy(const SBState&) const;
+    Real calcKineticEnergy(const State&) const;
 
     /// Requires realization through DynamicsStage although
     /// velocities are irrelevant.
-    void calcTreeEquivalentJointForces(const SBState&, 
+    void calcTreeEquivalentJointForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    jointForces) const;
 
     /// Requires realization through DynamicsStage.
-    void calcTreeUDot(const SBState&,
+    void calcTreeUDot(const State&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot) const;
 
     // Must be in Stage::Configured to calculate qdot = Q*u.
-    void calcQDot(const SBState& s,
+    void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    // Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
-    void calcQDotDot(const SBState& s,
+    // Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
+    void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
 
     // Constraint projections.
 
-    void enforceConfigurationConstraints(SBState&) const;
-    void enforceMotionConstraints(SBState&) const;
+    void enforceConfigurationConstraints(State&) const;
+    void enforceMotionConstraints(State&) const;
 
     // These are available after realizeConstruction().
 
@@ -247,60 +259,60 @@ public:
     /// for dynamics), or rotation angles (3-2-1 Euler sequence, good for
     /// optimization). TODO: allow settable zero rotation for Euler sequence,
     /// with convenient way to say "this is zero".
-    void setUseEulerAngles(SBState&, bool) const;
-    void setJointIsPrescribed(SBState&, int joint, bool) const;
-    void setConstraintIsEnabled(SBState&, int constraint, bool) const;
+    void setUseEulerAngles(State&, bool) const;
+    void setJointIsPrescribed(State&, int joint, bool) const;
+    void setConstraintIsEnabled(State&, int constraint, bool) const;
 
     // Return modeling information from the SBState.
-    bool getUseEulerAngles  (const SBState&) const;
-    bool isJointPrescribed  (const SBState&, int joint)      const;
-    bool isConstraintEnabled(const SBState&, int constraint) const;
+    bool getUseEulerAngles  (const State&) const;
+    bool isJointPrescribed  (const State&, int joint)      const;
+    bool isConstraintEnabled(const State&, int constraint) const;
 
 
     // Parameter setting & getting
-    void setGravity(SBState&, const Vec3& g) const; // any time after modeling
-    const Vec3& getGravity(const SBState&) const;
+    void setGravity(State&, const Vec3& g) const; // any time after modeling
+    const Vec3& getGravity(const State&) const;
 
-    void setJointQ(SBState&, int body, int axis, const Real&) const;
-    void setJointU(SBState&, int body, int axis, const Real&) const;
-    void setPrescribedUdot(SBState&, int body, int axis, const Real&) const;
-    void clearAppliedForces(SBState&) const;
+    void setJointQ(State&, int body, int axis, const Real&) const;
+    void setJointU(State&, int body, int axis, const Real&) const;
+    void setPrescribedUdot(State&, int body, int axis, const Real&) const;
+    void clearAppliedForces(State&) const;
 
     // Configuration Stage. 
 
     // OBSOLETE
-    void applyGravity    (SBState&, const Vec3& g) const;
+    void applyGravity    (State&, const Vec3& g) const;
 
 
-    void applyPointForce (SBState&, int body, const Vec3& stationInB, 
+    void applyPointForce (State&, int body, const Vec3& stationInB, 
                           const Vec3& forceInG) const;
-    void applyBodyTorque (SBState&, int body, 
+    void applyBodyTorque (State&, int body, 
                           const Vec3& torqueInG) const;
-    void applyJointForce(SBState&, int body, int axis, const Real&) const;
+    void applyJointForce(State&, int body, int axis, const Real&) const;
 
 
-    const TransformMat& getBodyConfiguration(const SBState&, int body) const;
-    const SpatialVec&   getBodyVelocity     (const SBState&, int body) const;
-    const SpatialVec&   getBodyAcceleration (const SBState&, int body) const;
+    const TransformMat& getBodyConfiguration(const State&, int body) const;
+    const SpatialVec&   getBodyVelocity     (const State&, int body) const;
+    const SpatialVec&   getBodyAcceleration (const State&, int body) const;
 
-    const Vec3 getStationLocation(const SBState& s, int body, const Vec3& station_B) const {
+    const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
         const TransformMat& X_GB = getBodyConfiguration(s, body);
         return X_GB.T() + X_GB.R() * station_B;
     }
 
-    const Vector& getQ(const SBState&) const;
-    const Vector& getU(const SBState&) const;
-    const Vector& getAppliedJointForces(const SBState&) const;
-    const Vector_<SpatialVec>& getAppliedBodyForces(const SBState&) const;
+    const Vector& getQ(const State&) const;
+    const Vector& getU(const State&) const;
+    const Vector& getAppliedJointForces(const State&) const;
+    const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
-    void setQ(SBState&, const Vector& q) const;
-    void setU(SBState&, const Vector& u) const;
-    Vector& updQ(SBState&) const;
-    Vector& updU(SBState&) const;
+    void setQ(State&, const Vector& q) const;
+    void setU(State&, const Vector& u) const;
+    Vector& updQ(State&) const;
+    Vector& updU(State&) const;
 
-    const Vector& getQDot   (const SBState&) const;
-    const Vector& getUDot   (const SBState&) const;
-    const Vector& getQDotDot(const SBState&) const;
+    const Vector& getQDot   (const State&) const;
+    const Vector& getUDot   (const State&) const;
+    const Vector& getQDotDot(const State&) const;
 
 private:
     RigidBodyTree* rep;

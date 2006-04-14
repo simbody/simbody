@@ -1,3 +1,3 @@
-SUBDIRS (SBPendulum1)
+SUBDIRS (SBPendulum1 IntegratorTest)
 
 

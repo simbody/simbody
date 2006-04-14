@@ -36,7 +36,7 @@ public:
         SimTK_ASSERT(k >= 0., "LinearSpring()");
     }
 
-    void realizeConstruction(SBState& s) {
+    void realizeConstruction(State& s) {
         if (parametrized)
             stateIndex = s.allocateDiscreteVariable
                         (Stage::Parametrized,new Value<Parameters>(defaultState));
@@ -44,17 +44,17 @@ public:
                      (Stage::Configured, new Value<Results>());
     }
 
-    void realizeModeling(SBState& s) const { }
+    void realizeModeling(State& s) const { }
 
-    void realizeParameters(const SBState& s) const {
+    void realizeParameters(const State& s) const {
         // TODO: if (parametrized)
         // TODO:   check parameter validity
         // TODO:   throw exception if bad
     }
 
-    void realizeTime         (const SBState&) const { }
+    void realizeTime         (const State&) const { }
 
-    void realizeConfiguration(const SBState& s, const SimbodyTree& t) const {
+    void realizeConfiguration(const State& s, const SimbodyTree& t) const {
         Results&          c = updCacheEntries(s);
         const Parameters& v = parametrized ? getStateVariables(s) : defaultState;
 
@@ -64,37 +64,37 @@ public:
         c.fromS1toS2 = UnitVec3(from1to2/c.distance, true);
         // TODO: check for zero distance and barf
     }
-    void realizeMotion       (const SBState&) const { }
-    void realizeDynamics     (const SBState&) const { }
-    void realizeReaction     (const SBState&) const { }
+    void realizeMotion       (const State&) const { }
+    void realizeDynamics     (const State&) const { }
+    void realizeReaction     (const State&) const { }
 
 private:
-    const Parameters& getStateVariables(const SBState& s) const {
+    const Parameters& getStateVariables(const State& s) const {
         // TODO: assert(parametrized), valid stateIndex
         // TODO: stage must be >= Modeled
         return Value<Parameters>::downcast(s.getDiscreteVariable(stateIndex));
     }
 
-    const Results& getCacheEntries(const SBState& s) const {
+    const Results& getCacheEntries(const State& s) const {
         // TODO: assert valid cacheIndex
         // TODO: stage >= Configured
         return Value<Results>::downcast(s.getCacheEntry(cacheIndex));
     }
 
-    Parameters& updStateVariables(SBState& s) const {
+    Parameters& updStateVariables(State& s) const {
         // TODO: assert(parametrized), valid stateIndex
         // TODO: stage must be >= Modeled
         return Value<Parameters>::downcast(s.updDiscreteVariable(stateIndex));
     }
 
-    Results& updCacheEntries(const SBState& s) const {
+    Results& updCacheEntries(const State& s) const {
         // TODO: assert valid cacheIndex
         // TODO: stage >= Time (i.e., config in progress)
         return Value<Results>::downcast(s.updCacheEntry(cacheIndex));
     }
 
 private:
-    // If parametrized, we'll store one of these in the SBState
+    // If parametrized, we'll store one of these in the State
     class Parameters {
     public:
         Parameters(const Vec3& s1, const Vec3& s2,

@@ -69,39 +69,36 @@ int SimbodyTree::addWeldConstraint
 }
 
 // Note the lack of a State argument when completing construction.
-void SimbodyTree::realizeConstruction() {
-    rep->realizeConstruction();
-}
-void SimbodyTree::realizeModeling     (const SBState& s) const {rep->realizeModeling(s.getRep());}
-void SimbodyTree::realizeParameters   (const SBState& s) const {rep->realizeParameters(s.getRep());}
-void SimbodyTree::realizeTime         (const SBState& s) const {rep->realizeTime(s.getRep());}
-void SimbodyTree::realizeConfiguration(const SBState& s) const {rep->realizeConfiguration(s.getRep());}
-void SimbodyTree::realizeMotion       (const SBState& s) const {rep->realizeMotion(s.getRep());}
-void SimbodyTree::realizeDynamics     (const SBState& s) const {rep->realizeDynamics(s.getRep());}
-void SimbodyTree::realizeReaction     (const SBState& s) const {rep->realizeReaction(s.getRep());}
-void SimbodyTree::realize(const SBState& s, Stage g) const {
-    rep->realize(s.getRep(), g);
-}
+void SimbodyTree::realizeConstruction (State& s)             {rep->realizeConstruction(s);}
+void SimbodyTree::realizeModeling     (State& s)       const {rep->realizeModeling(s);}
 
-void SimbodyTree::calcInternalGradientFromSpatial(const SBState& s,
+void SimbodyTree::realizeParameters   (const State& s) const {rep->realizeParameters(s);}
+void SimbodyTree::realizeTime         (const State& s) const {rep->realizeTime(s);}
+void SimbodyTree::realizeConfiguration(const State& s) const {rep->realizeConfiguration(s);}
+void SimbodyTree::realizeMotion       (const State& s) const {rep->realizeMotion(s);}
+void SimbodyTree::realizeDynamics     (const State& s) const {rep->realizeDynamics(s);}
+void SimbodyTree::realizeReaction     (const State& s) const {rep->realizeReaction(s);}
+
+
+void SimbodyTree::calcInternalGradientFromSpatial(const State& s,
     const Vector_<SpatialVec>& dEdR,
     Vector&                    dEdQ) const
 {
-    rep->calcInternalGradientFromSpatial(s.getRep(),dEdR,dEdQ);
+    rep->calcInternalGradientFromSpatial(s,dEdR,dEdQ);
 }
 
-void SimbodyTree::calcTreeEquivalentJointForces(const SBState& s, 
+void SimbodyTree::calcTreeEquivalentJointForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    jointForces) const
 {
-    rep->calcTreeEquivalentJointForces(s.getRep(),bodyForces,jointForces);
+    rep->calcTreeEquivalentJointForces(s,bodyForces,jointForces);
 }
 
-Real SimbodyTree::calcKineticEnergy(const SBState& s) const {
-    return rep->calcKineticEnergy(s.getRep());
+Real SimbodyTree::calcKineticEnergy(const State& s) const {
+    return rep->calcKineticEnergy(s);
 }
 
-void SimbodyTree::calcTreeUDot(const SBState& s,
+void SimbodyTree::calcTreeUDot(const State& s,
     const Vector&              jointForces,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    udot) const
@@ -109,22 +106,22 @@ void SimbodyTree::calcTreeUDot(const SBState& s,
     Vector              netHingeForces; // unwanted side effects
     Vector_<SpatialVec> A_GB;
 
-    rep->calcTreeAccelerations(s.getRep(),jointForces,bodyForces,
+    rep->calcTreeAccelerations(s,jointForces,bodyForces,
         netHingeForces, A_GB, udot);
 }
 
-void SimbodyTree::calcQDot(const SBState& s,
+void SimbodyTree::calcQDot(const State& s,
     const Vector& u,
     Vector&       qdot) const
 {
-    rep->calcQDot(s.getRep(), u, qdot);
+    rep->calcQDot(s, u, qdot);
 }
 
-void SimbodyTree::calcQDotDot(const SBState& s,
+void SimbodyTree::calcQDotDot(const State& s,
     const Vector& udot,
     Vector&       qdotdot) const
 {
-    rep->calcQDotDot(s.getRep(), udot, qdotdot);
+    rep->calcQDotDot(s, udot, qdotdot);
 }
 
 // Topological info. Note the lack of a State argument.
@@ -142,76 +139,74 @@ int SimbodyTree::getDOF   (int body) const {return rep->getDOF(body);}
 int SimbodyTree::getMultIndex(int constraint) const {return rep->getMultIndex(constraint);}
 int SimbodyTree::getMaxNMult (int constraint) const {return rep->getMaxNMult(constraint);}
 
-const SBState& SimbodyTree::getInitialState() const {return rep->getInitialState();}
-
 // Modeling info.
-void SimbodyTree::setUseEulerAngles(SBState& s, bool useAngles) const
-  { rep->setUseEulerAngles(s.updRep(),useAngles); }
-void SimbodyTree::setJointIsPrescribed(SBState& s, int joint, bool prescribed) const
-  { rep->setJointIsPrescribed(s.updRep(),joint,prescribed); }
-void SimbodyTree::setConstraintIsEnabled(SBState& s, int constraint, bool enabled) const
-  { rep->setConstraintIsEnabled(s.updRep(),constraint,enabled); }
-bool SimbodyTree::getUseEulerAngles(const SBState& s) const
-  { return rep->getUseEulerAngles(s.getRep()); }
-bool SimbodyTree::isJointPrescribed(const SBState& s, int joint) const
-  { return rep->isJointPrescribed(s.getRep(),joint); }
-bool SimbodyTree::isConstraintEnabled(const SBState& s, int constraint) const
-  { return rep->isConstraintEnabled(s.getRep(),constraint); }
+void SimbodyTree::setUseEulerAngles(State& s, bool useAngles) const
+  { rep->setUseEulerAngles(s,useAngles); }
+void SimbodyTree::setJointIsPrescribed(State& s, int joint, bool prescribed) const
+  { rep->setJointIsPrescribed(s,joint,prescribed); }
+void SimbodyTree::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
+  { rep->setConstraintIsEnabled(s,constraint,enabled); }
+bool SimbodyTree::getUseEulerAngles(const State& s) const
+  { return rep->getUseEulerAngles(s); }
+bool SimbodyTree::isJointPrescribed(const State& s, int joint) const
+  { return rep->isJointPrescribed(s,joint); }
+bool SimbodyTree::isConstraintEnabled(const State& s, int constraint) const
+  { return rep->isConstraintEnabled(s,constraint); }
 
 
-const Vector& SimbodyTree::getQ(const SBState& s) const {return rep->getQ(s.getRep());}
-const Vector& SimbodyTree::getU(const SBState& s) const {return rep->getU(s.getRep());}
+const Vector& SimbodyTree::getQ(const State& s) const {return rep->getQ(s);}
+const Vector& SimbodyTree::getU(const State& s) const {return rep->getU(s);}
 
 const Vector&
-SimbodyTree::getAppliedJointForces(const SBState& s) const {
-    return rep->getAppliedJointForces(s.getRep());
+SimbodyTree::getAppliedJointForces(const State& s) const {
+    return rep->getAppliedJointForces(s);
 }
 const Vector_<SpatialVec>&
-SimbodyTree::getAppliedBodyForces(const SBState& s) const {
-    return rep->getAppliedBodyForces(s.getRep());
+SimbodyTree::getAppliedBodyForces(const State& s) const {
+    return rep->getAppliedBodyForces(s);
 }
 
-void SimbodyTree::setQ(SBState& s, const Vector& q) const {rep->setQ(s.updRep(),q);}
-void SimbodyTree::setU(SBState& s, const Vector& u) const {rep->setU(s.updRep(),u);}
-Vector& SimbodyTree::updQ(SBState& s) const {return rep->updQ(s.updRep());}
-Vector& SimbodyTree::updU(SBState& s) const {return rep->updU(s.updRep());}
+void SimbodyTree::setQ(State& s, const Vector& q) const {rep->setQ(s,q);}
+void SimbodyTree::setU(State& s, const Vector& u) const {rep->setU(s,u);}
+Vector& SimbodyTree::updQ(State& s) const {return rep->updQ(s);}
+Vector& SimbodyTree::updU(State& s) const {return rep->updU(s);}
 
-void SimbodyTree::setJointQ(SBState& s, int body, int axis, const Real& r) const
-  { return rep->setJointQ(s.updRep(),body,axis,r); }
-void SimbodyTree::setJointU(SBState& s, int body, int axis, const Real& r) const
-  { return rep->setJointU(s.updRep(),body,axis,r); }
+void SimbodyTree::setJointQ(State& s, int body, int axis, const Real& r) const
+  { return rep->setJointQ(s,body,axis,r); }
+void SimbodyTree::setJointU(State& s, int body, int axis, const Real& r) const
+  { return rep->setJointU(s,body,axis,r); }
 
-void SimbodyTree::setPrescribedUdot(SBState& s, int body, int axis, const Real& r) const
-  { return rep->setPrescribedUdot(s.updRep(),body,axis,r); }
+void SimbodyTree::setPrescribedUdot(State& s, int body, int axis, const Real& r) const
+  { return rep->setPrescribedUdot(s,body,axis,r); }
 
-void SimbodyTree::clearAppliedForces(SBState& s) const {rep->clearAppliedForces(s.updRep());}
-void SimbodyTree::applyGravity(SBState& s, const Vec3& g) const {rep->applyGravity(s.updRep(),g);}
-void SimbodyTree::applyPointForce(SBState& s, int body, const Vec3& stationInB, 
+void SimbodyTree::clearAppliedForces(State& s) const {rep->clearAppliedForces(s);}
+void SimbodyTree::applyGravity(State& s, const Vec3& g) const {rep->applyGravity(s,g);}
+void SimbodyTree::applyPointForce(State& s, int body, const Vec3& stationInB, 
                                                         const Vec3& forceInG) const 
-  { rep->applyPointForce(s.updRep(),body,stationInB,forceInG); }
+  { rep->applyPointForce(s,body,stationInB,forceInG); }
 
-void SimbodyTree::applyBodyTorque(SBState& s, int body, const Vec3& torqueInG) const 
-  { rep->applyBodyTorque(s.updRep(),body,torqueInG); }
-void SimbodyTree::applyJointForce(SBState& s, int body, int axis, const Real& d) const
-  { rep->applyJointForce(s.updRep(),body,axis,d); }
+void SimbodyTree::applyBodyTorque(State& s, int body, const Vec3& torqueInG) const 
+  { rep->applyBodyTorque(s,body,torqueInG); }
+void SimbodyTree::applyJointForce(State& s, int body, int axis, const Real& d) const
+  { rep->applyJointForce(s,body,axis,d); }
 
-void SimbodyTree::enforceConfigurationConstraints(SBState& s) const
-  { rep->enforceConfigurationConstraints(s.updRep()); }
-void SimbodyTree::enforceMotionConstraints(SBState& s) const
-  { rep->enforceMotionConstraints(s.updRep()); }
+void SimbodyTree::enforceConfigurationConstraints(State& s) const
+  { rep->enforceConfigurationConstraints(s); }
+void SimbodyTree::enforceMotionConstraints(State& s) const
+  { rep->enforceMotionConstraints(s); }
 
 const TransformMat&
-SimbodyTree::getBodyConfiguration(const SBState& s, int body) const
-  { return rep->getRigidBodyNode(body).getX_GB(s.getRep()); }
+SimbodyTree::getBodyConfiguration(const State& s, int body) const
+  { return rep->getRigidBodyNode(body).getX_GB(s); }
 
 const SpatialVec&
-SimbodyTree::getBodyVelocity(const SBState& s, int body) const
-  { return rep->getRigidBodyNode(body).getV_GB(s.getRep()); }
+SimbodyTree::getBodyVelocity(const State& s, int body) const
+  { return rep->getRigidBodyNode(body).getV_GB(s); }
 
 const SpatialVec&
-SimbodyTree::getBodyAcceleration(const SBState& s, int body) const
-  { return rep->getRigidBodyNode(body).getA_GB(s.getRep()); }
+SimbodyTree::getBodyAcceleration(const State& s, int body) const
+  { return rep->getRigidBodyNode(body).getA_GB(s); }
 
-const Vector& SimbodyTree::getQDot   (const SBState& s) const {return rep->getQDot(s.getRep());}
-const Vector& SimbodyTree::getUDot   (const SBState& s) const {return rep->getUDot(s.getRep());}
-const Vector& SimbodyTree::getQDotDot(const SBState& s) const {return rep->getQDotDot(s.getRep());}
+const Vector& SimbodyTree::getQDot   (const State& s) const {return rep->getQDot(s);}
+const Vector& SimbodyTree::getUDot   (const State& s) const {return rep->getUDot(s);}
+const Vector& SimbodyTree::getQDotDot(const State& s) const {return rep->getQDotDot(s);}
