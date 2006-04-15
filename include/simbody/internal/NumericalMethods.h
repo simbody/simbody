@@ -173,13 +173,17 @@ public:
         assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
         userAccuracy = accuracy;
     }
-    void setTolerances(const Real& relTol, const Real& absTol, 
-                       const Real& consTol) {
+    void setRelativeTolerance(const Real& relTol) {
         assert(relTol  == -1. || (0. < relTol  && relTol  <= 1.));
+        userRelTol=relTol;
+    }
+    void setAbsoluteTolerance(const Real& absTol) {
         assert(absTol  == -1. || (0. < absTol  && absTol  <= 1.));
+        userAbsTol=absTol;
+    }
+    void setConstraintTolerance(const Real& consTol) {
         assert(consTol == -1. || (0. < consTol && consTol <= 1.));
-
-        userRelTol=relTol; userAbsTol=absTol; userConsTol=consTol;
+        userConsTol=consTol;
     }
     void setVelocityConstraintRescale(const Real& rescale) {
         assert(rescale == -1 || (0. <= rescale));
@@ -218,6 +222,7 @@ public:
     const Vector& getY() const {return y;}
 
     Real getConstraintTolerance() const {
+        assert(initialized);
         return consTol;
     }
 
@@ -353,45 +358,74 @@ private:
     bool initialized;
 };
 
-/*
 class RungeKuttaMerson : public MechanicalDAEIntegrator {
 public:
-    minStep
-    oneStepOnly
-    nextStepSize
-    OKtoPassTout
-    relTol (scalar)
-    absTol (n-vector)
+    RungeKuttaMerson(MechanicalDAESystem& s) : MechanicalDAEIntegrator(s) {
+        construct();
+    }
 
-    bool step(const Real& tStop) {
-        // We expect to be realized at (t,y) already.
-        bool success = false;
+    MechanicalDAEIntegrator* clone() const {return new RungeKuttaMerson(*this);}
 
-        assert(tStop >= t);
-        maxStep = (tStop - t);
+    const Real&   getT() const {return t;}
+    const Vector& getY() const {return y;}
 
-        if (maxStep < minStep) {
-            ode.setT(tStop); ode.setY(y);
-            if (!ode.realizeAndProject()) return false;
-            if (ode.stateWasChanged())
-                y = ode.getY();
-            t = tStop;
+    Real getConstraintTolerance() const {
+        assert(initialized);
+        return consTol;
+    }
+    Real getPredictedNextStep() const {
+        assert(initialized);
+        return predictedNextStep;
+    }
+
+    bool setInitialConditions(const Real& t0, const Vector& y0) {
+        initializeIntegrationParameters();
+        mech.setAccuracy(absTol, consTol);
+
+        mech.setState(t0,y0);
+        bool stateWasChanged;
+        if (!mech.realizeAndProject(stateWasChanged)) 
+            return false;
+        
+        t = t0; y = mech.getY(); // pick up projection if any
+        initialized = true;
+        return true;
+    }
+
+    bool step(const Real& tOut) {
+        assert(initialized && tOut >= t);
+        const Real tMax = std::min(tOut, stopTime);
+
+        // Duck out now if there isn't enough time left to take a step.
+        if (tMax-t < minStepSize) {
+            mech.setState(tMax,y);
+            bool stateWasChanged;
+            if (!mech.realizeAndProject(stateWasChanged)) return false;
+            if (stateWasChanged)
+                y = mech.getY();
+            t = tMax;
             return true;
         }
 
-        acceptableError = y*relTol + absTol;
+        bool wasLastStep;
+        long stepsTaken = 0;
+        Real hNext = std::min(predictedNextStep, maxStepSize);
+        do {
+            if (maxNumSteps && stepsTaken >= maxNumSteps)
+                return false; // too much work
 
-        Real hNext = predictedStepSize;
-        while (t < tStop) {
             bool hWasShrunk    = false;
+
+            wasLastStep = false;
 
             // Near tStop we'll shrink or stretch as appropriate. If we shrink
             // substantially we'll make note of that and not attempt to 
             // grow the step size if we succeed with this tiny thing.
-            if (t + 1.1*hNext > tStop) {
-                const Real hAdj = tStop - t;
+            if (t + 1.1*hNext > tMax) {
+                const Real hAdj = tMax - t;
                 hWasShrunk = hAdj < 0.9*hNext;
                 hNext = hAdj;
+                wasLastStep = true;
             }
 
 
@@ -400,58 +434,56 @@ public:
             // take (up to hNext). We'll keep shrinking trialH until something
             // works or we die.
             for (;;) {
-                takeAnRK4MStep(t, y, ode.getYDot(), trialH,
+                weights = mech.getWeights();
+                takeAnRK4MStep(t, y, mech.getYDot(), trialH,
                               ytmp[0], ytmp[1], ytmp[2], 
                               ynew, errEst);
 
-                // We'll use infinity norm just to be conservative (all entries
+                // We'll use infinity norm to be conservative (all entries
                 // are >= 0).
-                scalarError = errEst.elementwiseDivide(acceptableError).max();
+                Real scalarError = 0.;
+                for (int i=0; i<mech.size(); ++i)
+                    scalarError = std::max(scalarError, errEst[i]*weights[i]);
 
                 if (scalarError <= 1) {
                     // Passed error test; see if we can evaluate at ynew.
-                    ode.setT(t+hTrial); ode.setY(ynew);
-                    if (ode.realizeAndProject()) {
+                    mech.setState(t+trialH, ynew);
+                    bool stateWasChanged;
+                    if (mech.realizeAndProject(stateWasChanged)) {
                         // Accept this step (we'll pick up projection changes here).
-                        t = ode.getT(); y = ode.getY();
+                        t = mech.getT(); y = mech.getY();
                         // Can we double the step? TODO: should be more subtle
                         hNext = trialH;
                         if (!hWasShrunk) {
-                            predictedNextH = trialH;
+                            predictedNextStep = trialH;
                             if (scalarError*64. <= 1.) 
-                                predictedNextH *= 2.;
+                                predictedNextStep *= 2.;
+                            hNext = predictedNextStep;
                         }
                         break; // done with this step
                     }
                 }
 
                 // Step did not succeed.
-                if (trialH <= minStep ) {
-                    // TODO: is it just a discontinuity?
+                if (trialH <= minStepSize )
                     return false;
-                }
-                else 
-                    trialH = std::max(trialH/2, minStep);
+
+                trialH = std::max(trialH/2, minStepSize);
+                wasLastStep = false;
             }
             // Completed a step at h=trialH, hNext is set properly
-        }
+            ++stepsTaken;
+        } while (!wasLastStep);
 
-
-
-        if (success) {
-            t = ode.getT(); y = ode.getY();
-            return 0;
-        }
-
-        actualDt = 0.;
-        return 1;
+        return true;
     }
+
 private:
     bool f(const Real& t, const Vector& y, Vector& yd) const {
-        ode.setState(t,y);
-        if (!ode.realize()) 
+        mech.setState(t,y);
+        if (!mech.realize()) 
             return false;
-        yd = ode.getYDot();
+        yd = mech.getYDot();
         return true;
     }
 
@@ -474,30 +506,99 @@ private:
 
         // final
         y = y0 + (h/6)*(yd0 + 4.*yd2 + yd1);
-        errEst = 0.2*(y-ytmp).abs();
+
+        for (int i=0; i<y.size(); ++i)
+            errEst[i] = 0.2*std::fabs(y[i]-ytmp[i]);
+
+        return true;
     }
 
-private:
-    Real   t;   // current solution
+private:    
+    void initializeIntegrationParameters() {
+        initializeStepSizes();
+        predictedNextStep = initStepSize;
+        initializeTolerances();
+        if (userStopTime != -1.) stopTime = userStopTime;
+        else stopTime = CNT<Real>::getInfinity();
+        if (userMaxNumSteps != -1) 
+            maxNumSteps = userMaxNumSteps; // 0 means infinity
+        else maxNumSteps = 0;
+    }
+
+    void initializeTolerances() {
+        accuracy     = (userAccuracy     != -1. ? userAccuracy     : 1e-3);
+        relTol       = (userRelTol       != -1. ? userRelTol       : accuracy); 
+        absTol       = (userAbsTol       != -1. ? userAbsTol       : accuracy); 
+        consTol      = (userConsTol      != -1. ? userConsTol      : accuracy); 
+        vconsRescale = (userVConsRescale != -1. ? userVConsRescale : 1.); 
+    }
+
+    void initializeStepSizes() {
+        if (userMaxStepSize != -1.) { // got max
+            maxStepSize = userMaxStepSize;
+            if (userInitStepSize != -1.) { // got max & init
+                initStepSize = userInitStepSize;
+                if (userMinStepSize != -1.)
+                    minStepSize = userMinStepSize; // got min,max,init
+                else minStepSize = std::min(1e-12, initStepSize);
+            } else { // got max, not init
+                if (userMinStepSize != -1.) {
+                    minStepSize = userMinStepSize; // max & min, not init
+                    initStepSize = std::max(minStepSize, mech.getTimescale());
+                } else {
+                    // got max only
+                    initStepSize = std::min(mech.getTimescale(), maxStepSize);
+                    minStepSize  = std::min(1e-12, initStepSize);
+                }
+            }
+        } else { // didn't get max
+            maxStepSize = CNT<Real>::getInfinity();
+            if (userInitStepSize != -1.) { // got init, not max
+                initStepSize = userInitStepSize;
+                if (userMinStepSize != -1.) minStepSize = userMinStepSize;
+                else minStepSize = std::min(1e-12, initStepSize);
+            } else { // didn't get init or max
+                if (userMinStepSize != -1.) { // got only min
+                    minStepSize = userMinStepSize;
+                    initStepSize = std::max(mech.getTimescale(), minStepSize);
+                } else { // didn't get anything
+                    initStepSize = mech.getTimescale();
+                    minStepSize  = std::min(1e-12, initStepSize);
+                }
+            }
+        }
+    }
+
+    static const NTemps = 4;
+
+    void construct() {
+        initStepSize=minStepSize=maxStepSize
+            =accuracy=relTol=absTol=consTol=vconsRescale
+            =stopTime=t=predictedNextStep=CNT<Real>::getNaN();
+        maxNumSteps = -1;
+        y.resize(mech.size());
+        ydot0.resize(mech.size());
+        weights.resize(mech.size());
+        errEst.resize(mech.size());
+        ynew.resize(mech.size());
+        for (int i=0; i<NTemps; ++i)
+            ytmp[i].resize(mech.size());
+        initialized = false;
+    }
+
+    Real   initStepSize, minStepSize, maxStepSize;
+    Real   accuracy, relTol, absTol, consTol, vconsRescale;
+    Real   stopTime;
+    long   maxNumSteps;
+    Real   t;
     Vector y;
+    Vector ydot0, weights, errEst, ynew;
+    Vector ytmp[NTemps];
+    Real predictedNextStep;
 
-    Vector ytmp[4];
+    bool initialized;
 };
 
-
-class MultibodyTimeStepper {
-public:
-    MultibodyTimeStepper(const MultibodySystem&, State& asModeled);
-
-    void setInitialConditions(const State&);
-
-    void step(const Real& dt, const Real& 
-
-
-private:
-    class MultibodyTimeStepperRep* rep;
-};
-*/
 
 } // namespace SimTK
 

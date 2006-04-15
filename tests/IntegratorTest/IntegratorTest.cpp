@@ -140,7 +140,11 @@ public:
         pUnits.resize(NConstraints); vUnits.resize(NConstraints); aUnits.resize(NConstraints);
         t = CNT<Real>::getNaN();
         solnAcc = consAcc =  1e-3;
-        timeScale = 0.01;
+
+        // Make the time scale 1/10 of a period.
+        const Real pi = acos(-1.);
+        const Real period = 2*pi*sqrt(fabs(length/gravity));
+        timeScale = 0.1*period;
         pUnits = 1; vUnits = 1*timeScale; aUnits = 1*timeScale*timeScale/2;
         yUnits[0] = yUnits[1] = 1;
         yUnits[2] = yUnits[3] = 1*timeScale; 
@@ -191,6 +195,14 @@ public:
     const Real& getPositionErrorNorm() const {assert(ydValid);return perrNorm;}
     const Real& getVelocityErrorNorm() const {assert(ydValid);return verrNorm;}
     const Real& getAccelerationErrorNorm() const {assert(ydValid);return aerrNorm;}
+
+    const Real calcEnergy() {
+        assert(ydValid);
+        Real pe = (-y[1])*m*g;
+        Real ke = m*(y[2]*y[2]+y[3]*y[3])/2.;
+        return pe+ke;
+    }
+
 private:
     void calcYDot() const {
         yd[0]=y[2]; yd[1]=y[3]; // qdot=u
@@ -222,7 +234,7 @@ private:
         // = [x] 1/(x^2+y^2)
         //   [y] 
 
-        printf("POSITION REPAIR ... ERR=%10.5g", perrNorm/tol);
+        //printf("POSITION REPAIR ... ERR=%10.5g", perrNorm/tol);
         int iterationsLeft = 5;
         Real oldPerrNorm;
         do {
@@ -231,11 +243,11 @@ private:
             y[0] -= (y[0]/r2)*perr[0];
             y[1] -= (y[1]/r2)*perr[0];
             calcPerr();
-            printf(" --> %10.5g", perrNorm/tol);
+            //printf(" --> %10.5g", perrNorm/tol);
             --iterationsLeft;
         } while (iterationsLeft && perrNorm > 0.1*tol && perrNorm < oldPerrNorm);
 
-        printf("\n");
+        //printf("\n");
 
         return perrNorm <= tol;
     }
@@ -252,13 +264,13 @@ private:
         // Use pseudo inverse as above except no need to
         // iterate since verr is linear in xd, yd.
 
-        printf("velocity repair ... ERR=%10.5g", verrNorm/tol);
+        //printf("velocity repair ... ERR=%10.5g", verrNorm/tol);
 
         const Real r2 = y[0]*y[0] + y[1]*y[1]; // A*~A
         y[2] -= (y[0]/r2)*verr[0];
         y[3] -= (y[1]/r2)*verr[0];
         calcVerr();
-        printf(" --> %g\n", verrNorm/tol);
+       // printf(" --> %g\n", verrNorm/tol);
 
         return verrNorm <= tol;
     }
@@ -313,15 +325,17 @@ int main() {
         const Real halfPeriod = pi*sqrt(fabs(length/gravity));
         printf("Period should be %gs\n", 2*halfPeriod);
         PointMass2dPendulum p(mass,length,gravity);
-        ExplicitEuler eep(p);
-        eep.setInitialStepSize(0.01);
-        const Real acc = 1e-4;
+        //ExplicitEuler eep(p);
+        RungeKuttaMerson eep(p);
+        //eep.setInitialStepSize(0.00001);
+        eep.setStopTime(100.);
+        const Real acc = 1e-8;
         eep.setAccuracy(acc);
-        eep.setTolerances(-1.,-1., 1.);
+        eep.setConstraintTolerance(1e-7);
 
         Vector yp(4); 
-        //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
-        yp[0] = length*cos(-0.9*(pi/2)); yp[1]=length*sin(-0.9*(pi/2)); // 9 degrees from bottom
+        yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
+        //yp[0] = length*cos(-0.9*(pi/2)); yp[1]=length*sin(-0.9*(pi/2)); // 9 degrees from bottom
         //yp[0]=0; yp[1]=-10;                  // -90 degrees (straight down)
         yp[2]=yp[3]=0;
 
@@ -339,12 +353,13 @@ int main() {
             std::cout << "   perr=" << p.getPositionErrorNorm()/eep.getConstraintTolerance()
                 << "  verr=" << p.getVelocityErrorNorm()/eep.getConstraintTolerance()
                 << "  aerr=" << p.getAccelerationErrorNorm()/eep.getConstraintTolerance()
-                << std::endl;
+                << " E=" << p.calcEnergy();
+            std::cout << " hnext=" << eep.getPredictedNextStep() << std::endl;
 
-            if (eep.getT() >= 10.)
+            if (eep.getT() >= 100.)
                 break;
 
-            Real h = 0.1;
+            Real h = 1.;
             //if (fabs(eep.getT()-floor(eep.getT()/halfPeriod+0.5)*halfPeriod) < 0.2)
              //   h = 0.001;
             if (!eep.step(eep.getT() + h)) {
