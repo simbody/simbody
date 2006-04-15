@@ -123,7 +123,7 @@ private:
  * where L (the Lagrange multiplier) is proportional to
  * the rod tension. You can solve this to get
  *     L   = (m/r^2)*(y*g + v^2)
- *     x'' = -x*L/m
+ *     x'' =   - x*L/m
  *     y'' = g - y*L/m
  *               
  */  
@@ -136,16 +136,14 @@ public:
     {
         y.resize(NStates); yd.resize(NStates);
         perr.resize(NConstraints); verr.resize(NConstraints); aerr.resize(NConstraints);
-        weights.resize(NStates); 
-        yUnits.resize(NStates);
-        cUnits.resize(NConstraints);
+        weights.resize(NStates); yUnits.resize(NStates); 
+        pUnits.resize(NConstraints); vUnits.resize(NConstraints); aUnits.resize(NConstraints);
         t = CNT<Real>::getNaN();
-        solnAcc = consAcc = timeScale = 1e-3;
-        yUnits = 1; 
-        cUnits = 1;
+        solnAcc = consAcc =  1e-3;
+        timeScale = 0.01;
+        pUnits = 1; vUnits = 1*timeScale; aUnits = 1*timeScale*timeScale/2;
         yUnits[0] = yUnits[1] = 1;
         yUnits[2] = yUnits[3] = 1*timeScale; 
-        cUnits[0] = 1.;
         relativeOK[0] = relativeOK[1] = false;
         relativeOK[2] = relativeOK[3] = true;
         ydValid = false;
@@ -162,21 +160,25 @@ public:
         calcWeights(solnAcc);
     }
     bool realize() const {
-        calcPerr(); calcVerr();
-        yd[0]=y[2]; yd[1]=y[3]; // qdot=u
-        const Real r2 = y[0]*y[0] + y[1]*y[1]; // x^2+y^2
-        const Real v2 = y[2]*y[2] + y[3]*y[3]; // x'^2 + y'^2
-        const Real lambda = (m/r2)*(y[1]*g + v2);
-        yd[2] =   - y[0]*lambda/m;
-        yd[3] = g - y[1]*lambda/m;
-        ydValid=true; 
+        calcPerr(); 
+        calcVerr();
+        calcYDot();
         calcAerr();
-        return true;
+        return aerrNorm <= consAcc;
     }
     bool realizeAndProject(bool& chg) { 
-        realize(); 
-        chg=false;  // TODO: not yet
-        return true;
+        chg=false;
+        if (calcPerr() > consAcc) {
+            if (!projectPositions(consAcc)) return false;
+            chg=true;
+        } 
+        // recalculate at new positions
+        if (calcVerr() > consAcc) {
+            if (!projectVelocities(consAcc)) return false;
+            chg=true;
+        }
+        calcYDot();
+        return calcAerr() <= consAcc;
     }
     const Real& getTimescale() const {return timeScale;}
     const Real& getT() const {return t;}
@@ -186,22 +188,86 @@ public:
     const Vector& getPositionError() const {assert(ydValid);return perr;}
     const Vector& getVelocityError() const {assert(ydValid);return verr;}
     const Vector& getAccelerationError() const {assert(ydValid);return aerr;}
-
+    const Real& getPositionErrorNorm() const {assert(ydValid);return perrNorm;}
+    const Real& getVelocityErrorNorm() const {assert(ydValid);return verrNorm;}
+    const Real& getAccelerationErrorNorm() const {assert(ydValid);return aerrNorm;}
 private:
+    void calcYDot() const {
+        yd[0]=y[2]; yd[1]=y[3]; // qdot=u
+        const Real r2 = y[0]*y[0] + y[1]*y[1]; // x^2+y^2
+        const Real v2 = y[2]*y[2] + y[3]*y[3]; // x'^2 + y'^2
+        const Real lambda = (m/r2)*(y[1]*g + v2);
+        yd[2] =   - y[0]*lambda/m;
+        yd[3] = g - y[1]*lambda/m;
+        ydValid=true; 
+    }
+
     // (r^2 - d^2)/2 = 0    (perr)
     //     xx' + yy' = 0    (verr)
     //   xx'' + yy'' = -v^2 (aerr)
-    void calcPerr() const {
+    Real calcPerr() const {
         const Real r2 = y[0]*y[0] + y[1]*y[1];
         perr[0] = (r2 - d*d) / 2;
+        return perrNorm = fabs(perr[0]/pUnits[0]);
     }
-    void calcVerr() const {
+    // Solve perr(q)=0
+    bool projectPositions(const Real& tol) {
+        // Want to solve [x y][dx] = -perr(x,y)
+        //                    [dy]
+        // for least squares change [dx dy].
+        // Use pseudo inverse:
+        //   ~[dx dy] = -pinv(A) * perr(x,y)
+        // A=[x y], pseudoInv(A)= ~A * inv(A*~A)
+        //
+        // = [x] 1/(x^2+y^2)
+        //   [y] 
+
+        printf("POSITION REPAIR ... ERR=%10.5g", perrNorm/tol);
+        int iterationsLeft = 5;
+        Real oldPerrNorm;
+        do {
+            oldPerrNorm = perrNorm;
+            const Real r2 = y[0]*y[0] + y[1]*y[1]; // A*~A
+            y[0] -= (y[0]/r2)*perr[0];
+            y[1] -= (y[1]/r2)*perr[0];
+            calcPerr();
+            printf(" --> %10.5g", perrNorm/tol);
+            --iterationsLeft;
+        } while (iterationsLeft && perrNorm > 0.1*tol && perrNorm < oldPerrNorm);
+
+        printf("\n");
+
+        return perrNorm <= tol;
+    }
+    Real calcVerr() const {
         verr[0] = y[0]*y[2] + y[1]*y[3];
+        return verrNorm = fabs(verr[0])/vUnits[0];
     }
-    void calcAerr() const {
+    // Solve verr(q,u)=0
+    bool projectVelocities(const Real& tol) {
+
+        // Want to solve [x y][dxd] = -verr(x,y,xd,yd)
+        //                    [dyd]
+        // for least squares velocity change [dxd dyd].
+        // Use pseudo inverse as above except no need to
+        // iterate since verr is linear in xd, yd.
+
+        printf("velocity repair ... ERR=%10.5g", verrNorm/tol);
+
+        const Real r2 = y[0]*y[0] + y[1]*y[1]; // A*~A
+        y[2] -= (y[0]/r2)*verr[0];
+        y[3] -= (y[1]/r2)*verr[0];
+        calcVerr();
+        printf(" --> %g\n", verrNorm/tol);
+
+        return verrNorm <= tol;
+    }
+
+    Real calcAerr() const {
         assert(ydValid);
         const Real v2 = y[2]*y[2] + y[3]*y[3];
         aerr[0] = y[0]*yd[2] + y[1]*yd[3] + v2;
+        return aerrNorm = fabs(aerr[0])/aUnits[0];
     }
 
     void calcWeights(Real& acc) {
@@ -212,12 +278,12 @@ private:
         }
     }
     Real m, d, g;
-    Vector yUnits;
-    Vector cUnits;
+    Vector yUnits, pUnits, vUnits, aUnits;
     bool relativeOK[NStates];
     mutable bool ydValid;
     mutable Vector yd;
     mutable Vector perr, verr, aerr;
+    mutable Real perrNorm, verrNorm, aerrNorm;
     Real t; Vector y;
     Vector weights;
     Real solnAcc, consAcc, timeScale;
@@ -248,12 +314,21 @@ int main() {
         printf("Period should be %gs\n", 2*halfPeriod);
         PointMass2dPendulum p(mass,length,gravity);
         ExplicitEuler eep(p);
-        eep.setInitialStepSize(0.0001);
+        eep.setInitialStepSize(0.01);
+        const Real acc = 1e-4;
+        eep.setAccuracy(acc);
+        eep.setTolerances(-1.,-1., 1.);
+
         Vector yp(4); 
-        yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
+        //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
+        yp[0] = length*cos(-0.9*(pi/2)); yp[1]=length*sin(-0.9*(pi/2)); // 9 degrees from bottom
         //yp[0]=0; yp[1]=-10;                  // -90 degrees (straight down)
         yp[2]=yp[3]=0;
-        eep.setInitialConditions(0., yp);
+
+        if (!eep.setInitialConditions(0., yp)) {
+            printf("**** CAN'T SET ICS\n");
+            exit(1);
+        }
 
         while (true) {
 
@@ -261,18 +336,21 @@ int main() {
                 << " yp=" << eep.getY();
             p.setState(eep.getT(), eep.getY());
             p.realize();
-            std::cout << "   perr=" << p.getPositionError()
-                << "  verr=" << p.getVelocityError()
-                << "  aerr=" << p.getAccelerationError() 
+            std::cout << "   perr=" << p.getPositionErrorNorm()/eep.getConstraintTolerance()
+                << "  verr=" << p.getVelocityErrorNorm()/eep.getConstraintTolerance()
+                << "  aerr=" << p.getAccelerationErrorNorm()/eep.getConstraintTolerance()
                 << std::endl;
 
             if (eep.getT() >= 10.)
                 break;
 
             Real h = 0.1;
-            if (eep.getT()-floor(eep.getT()/halfPeriod)*halfPeriod < 0.2)
-                h = 0.001;
-            eep.step(eep.getT() + h);
+            //if (fabs(eep.getT()-floor(eep.getT()/halfPeriod+0.5)*halfPeriod) < 0.2)
+             //   h = 0.001;
+            if (!eep.step(eep.getT() + h)) {
+                printf("**** STEP FAILED t=%g -> %g\n", eep.getT(), eep.getT()+h);
+                exit(1);
+            }
         }
 
 

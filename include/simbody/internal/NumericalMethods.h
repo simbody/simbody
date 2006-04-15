@@ -131,7 +131,9 @@ public:
  */
 class MechanicalDAEIntegrator {
 public:
-    explicit MechanicalDAEIntegrator(MechanicalDAESystem& s) : mech(s) { }
+    explicit MechanicalDAEIntegrator(MechanicalDAESystem& s) : mech(s) {
+        initializeUserStuff();
+    }
     virtual ~MechanicalDAEIntegrator() { }
 
     virtual MechanicalDAEIntegrator* clone()       const = 0;
@@ -139,50 +141,75 @@ public:
     virtual const Vector&  getY() const = 0;
 
     virtual bool setInitialConditions(const Real& t0, const Vector& y0) = 0;
+
     virtual bool step(const Real& tout) = 0;
 
-    virtual void setInitialStepSize(const Real& z) { }
-    virtual void setMinimumStepSize(const Real& minz) { }
-    virtual void setMaximumStepSize(const Real& maxz) { }
-    virtual void setAccuracy(const Real& solution, const Real& constraint) {
-        mech.setAccuracy(solution,constraint);
+    virtual Real getConstraintTolerance() const = 0;
+
+    void setStopTime(const Real& tstop) {
+        assert(tstop == -1. || (0. <= tstop));
+        userStopTime = tstop;
+    }
+
+    void setInitialStepSize(const Real& z) {
+        assert(z == -1. || z > 0.);
+        assert(userMinStepSize==-1. || z >= userMinStepSize);
+        assert(userMaxStepSize==-1. || z <= userMaxStepSize);
+        userInitStepSize = z;
+    }
+    void setMinimumStepSize(const Real& z) { 
+        assert(z == -1. || z > 0.);
+        assert(userInitStepSize==-1. || z <= userInitStepSize);
+        assert(userMaxStepSize ==-1. || z <= userMaxStepSize);
+        userMinStepSize = z;
+    }
+    void setMaximumStepSize(const Real& z) {
+        assert(z == -1. || z > 0.);
+        assert(userInitStepSize==-1. || z >= userInitStepSize);
+        assert(userMinStepSize ==-1. || z >= userMinStepSize);
+        userMinStepSize = z;
+    }
+    void setAccuracy(const Real& accuracy) {
+        assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
+        userAccuracy = accuracy;
+    }
+    void setTolerances(const Real& relTol, const Real& absTol, 
+                       const Real& consTol) {
+        assert(relTol  == -1. || (0. < relTol  && relTol  <= 1.));
+        assert(absTol  == -1. || (0. < absTol  && absTol  <= 1.));
+        assert(consTol == -1. || (0. < consTol && consTol <= 1.));
+
+        userRelTol=relTol; userAbsTol=absTol; userConsTol=consTol;
+    }
+    void setVelocityConstraintRescale(const Real& rescale) {
+        assert(rescale == -1 || (0. <= rescale));
+        userVConsRescale = rescale;
     }
 
 protected:
     MechanicalDAESystem& mech;
+
+    // collect user requests
+    Real userInitStepSize, userMinStepSize, userMaxStepSize;
+    Real userAccuracy; // use for relTol, absTol, constraintTol
+    Real userRelTol, userAbsTol, userConsTol, userVConsRescale; // for fussy people
+    Real userStopTime; // never go past this
+    long userMaxNumSteps; // that is, in a single call to step(); 0=no limit
+
+    // Mark all user-supplied options "not supplied by user".
+    void initializeUserStuff() {
+        userInitStepSize = userMinStepSize = userMaxStepSize = -1.;
+        userAccuracy = userRelTol = userAbsTol = userConsTol = userVConsRescale = -1.;
+        userStopTime = -1.;
+        userMaxNumSteps = -1;
+    }
+
 };
 
 class ExplicitEuler : public MechanicalDAEIntegrator {
 public:
-    ExplicitEuler(MechanicalDAESystem& s) : MechanicalDAEIntegrator(s)
-    {
-        setDefaults();
-        setAccuracy(1e-2, 1e-2); // only affects constraint projection
-    }
-
-    void setInitialStepSize(const Real& h) {
-        assert(h > 0.);
-        initialStepSize = h;
-        maxStepSize = maxDefault ? h : std::max(maxStepSize, h);
-        minStepSize = minDefault ? std::min(maxStepSize/3, h) 
-                                 : std::min(minStepSize, h);
-        initDefault = false;
-    }
-
-    void setMaximumStepSize(const Real& h) {
-        assert(h > 0.);
-        maxStepSize = h;
-        initialStepSize = initDefault ? h   : std::min(initialStepSize, h);
-        minStepSize     = minDefault  ? h/3 : std::min(minStepSize,     h);
-        maxDefault = false;
-    }
-
-    void setMinimumStepSize(const Real& h) {
-        assert(h > 0.);
-        minStepSize = h;
-        initialStepSize = std::max(initialStepSize, h);
-        maxStepSize     = std::max(maxStepSize,     h);
-        minDefault = false;
+    ExplicitEuler(MechanicalDAESystem& s) : MechanicalDAEIntegrator(s) {
+        construct();
     }
 
     MechanicalDAEIntegrator* clone() const {return new ExplicitEuler(*this);}
@@ -190,31 +217,44 @@ public:
     const Real&   getT() const {return t;}
     const Vector& getY() const {return y;}
 
+    Real getConstraintTolerance() const {
+        return consTol;
+    }
+
     bool setInitialConditions(const Real& t0, const Vector& y0) {
+        initializeIntegrationParameters();
+        mech.setAccuracy(absTol, consTol);
+
         mech.setState(t0,y0);
         bool stateWasChanged;
-        if (mech.realizeAndProject(stateWasChanged)) {
-            t = t0; y = mech.getY(); // pick up projection if any
-            return true;
-        }
-        return false;
+        if (!mech.realizeAndProject(stateWasChanged)) 
+            return false;
+        
+        t = t0; y = mech.getY(); // pick up projection if any
+        initialized = true;
+        return true;
     }
 
     bool step(const Real& tOut) {
-        assert(tOut >= t);
+        assert(initialized && tOut >= t);
+        const Real tMax = std::min(tOut, stopTime);
 
         bool wasLastStep;
+        long stepsTaken = 0;
         do {
+            if (maxNumSteps && stepsTaken >= maxNumSteps)
+                return false; // too much work
+
             // We expect to be realized at (t,y) already.
             ydot0 = mech.getYDot(); // save so we can restart
 
             // Take the biggest step we can get up to maxStep
-            Real hTry = std::min(maxStepSize, tOut-t);
+            Real hTry = std::min(maxStepSize, tMax-t);
             for (;;) {
                 wasLastStep = false;
                 Real nextT = t+hTry;
-                if (tOut-nextT < minStepSize)
-                    nextT = tOut, hTry = tOut-t, wasLastStep=true;
+                if (tMax-nextT < minStepSize)
+                    nextT = tMax, hTry = tMax-t, wasLastStep=true;
                 mech.setState(nextT, y + hTry*ydot0);
                 bool stateWasChanged;
                 if (mech.realizeAndProject(stateWasChanged)) {
@@ -233,26 +273,84 @@ public:
             }
 
             // Took a successful step of size hTry.
+            ++stepsTaken;
         } while (!wasLastStep);
 
-        // We reached tStop successfully.
+        // We reached tMax successfully.
         return true;
     }
 private:
-    void setDefaults() {
-        t = CNT<Real>::getNaN();
+
+    
+    void initializeIntegrationParameters() {
+        initializeStepSizes();
+        initializeTolerances();
+        if (userStopTime != -1.) stopTime = userStopTime;
+        else stopTime = CNT<Real>::getInfinity();
+        if (userMaxNumSteps != -1) 
+            maxNumSteps = userMaxNumSteps; // 0 means infinity
+        else maxNumSteps = 0;
+    }
+
+    void initializeTolerances() {
+        accuracy     = (userAccuracy     != -1. ? userAccuracy     : 1e-3);
+        relTol       = (userRelTol       != -1. ? userRelTol       : accuracy); 
+        absTol       = (userAbsTol       != -1. ? userAbsTol       : accuracy); 
+        consTol      = (userConsTol      != -1. ? userConsTol      : accuracy); 
+        vconsRescale = (userVConsRescale != -1. ? userVConsRescale : 1.); 
+    }
+
+    void initializeStepSizes() {
+        if (userMaxStepSize != -1.) { // got max
+            maxStepSize = userMaxStepSize;
+            if (userInitStepSize != -1.) { // got max & init
+                initStepSize = userInitStepSize;
+                if (userMinStepSize != -1.)
+                    minStepSize = userMinStepSize; // got min,max,init
+                else minStepSize = std::min(maxStepSize/3, initStepSize);
+            } else { // got max, not init
+                initStepSize = maxStepSize;
+                if (userMinStepSize != -1.)
+                    minStepSize = userMinStepSize; // max & min, not init
+                else minStepSize = maxStepSize/3;
+            }
+        } else { // didn't get max
+            if (userInitStepSize != -1.) { // got init, not max
+                initStepSize = userInitStepSize;
+                maxStepSize = initStepSize;
+                minStepSize = (userMinStepSize != -1. ? userMinStepSize : maxStepSize/3);
+            } else { // didn't get init or max
+                if (userMinStepSize != -1.) { // got only min
+                    minStepSize = userMinStepSize;
+                    maxStepSize = std::max(mech.getTimescale()/10., minStepSize);
+                    initStepSize = maxStepSize;
+                } else { // didn't get anything
+                    maxStepSize = initStepSize = mech.getTimescale()/10.;
+                    minStepSize = maxStepSize/3;
+                }
+            }
+        }
+    }
+
+    void construct() {
+        initStepSize=minStepSize=maxStepSize
+            =accuracy=relTol=absTol=consTol=vconsRescale
+            =stopTime=t=CNT<Real>::getNaN();
+        maxNumSteps = -1;
         y.resize(mech.size());
         ydot0.resize(mech.size());
-        initialStepSize = mech.getTimescale();
-        maxStepSize = initialStepSize;
-        minStepSize = maxStepSize/3;
-        initDefault = maxDefault = minDefault = true;
+        initialized = false;
     }
-    bool initDefault, maxDefault, minDefault;
-    Real   initialStepSize, minStepSize, maxStepSize;
+
+    Real   initStepSize, minStepSize, maxStepSize;
+    Real   accuracy, relTol, absTol, consTol, vconsRescale;
+    Real   stopTime;
+    long   maxNumSteps;
     Real   t;
     Vector y;
     Vector ydot0;
+
+    bool initialized;
 };
 
 /*
