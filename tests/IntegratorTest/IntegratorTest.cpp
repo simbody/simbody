@@ -328,14 +328,14 @@ int main() {
         //ExplicitEuler eep(p);
         RungeKuttaMerson eep(p);
         //eep.setInitialStepSize(0.00001);
-        eep.setStopTime(100.);
+        eep.setStopTime(10.);
         const Real acc = 1e-8;
         eep.setAccuracy(acc);
-        eep.setConstraintTolerance(1e-7);
+        //eep.setConstraintTolerance(1e-7);
 
         Vector yp(4); 
-        yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
-        //yp[0] = length*cos(-0.9*(pi/2)); yp[1]=length*sin(-0.9*(pi/2)); // 9 degrees from bottom
+        //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
+        yp[0] = length*cos(-0.9*(pi/2)); yp[1]=length*sin(-0.9*(pi/2)); // 9 degrees from bottom
         //yp[0]=0; yp[1]=-10;                  // -90 degrees (straight down)
         yp[2]=yp[3]=0;
 
@@ -356,10 +356,10 @@ int main() {
                 << " E=" << p.calcEnergy();
             std::cout << " hnext=" << eep.getPredictedNextStep() << std::endl;
 
-            if (eep.getT() >= 100.)
+            if (eep.getT() >= 10.)
                 break;
 
-            Real h = 1.;
+            Real h = 0.01;
             //if (fabs(eep.getT()-floor(eep.getT()/halfPeriod+0.5)*halfPeriod) < 0.2)
              //   h = 0.001;
             if (!eep.step(eep.getT() + h)) {

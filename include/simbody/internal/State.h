@@ -1,5 +1,5 @@
-#ifndef _SimTK_STATE_H_
-#define _SimTK_STATE_H_
+#ifndef SimTK_STATE_H_
+#define SimTK_STATE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -145,4 +145,4 @@ operator<<(std::ostream& o, const State& s) {
 
 } // namespace SimTK
 
-#endif //_SimTK_STATE_H_
+#endif // SimTK_STATE_H_

@@ -118,16 +118,23 @@ public:
 };
 
 /**
- * Abstract ODEIntegrator. We expect this to be able to
+ * Abstract Index3 DAE Integrator using the Coordinate Projection
+ * method. We expect this to be able to
  * take a single, error-controlled step advancing the solution
- * y(t) to an ODE initial value problem of the form
+ * y(t) to a DAE initial value problem of the form
  *           y' = f(t,y)
- *        y(t0) = y0
+ *           0  = c(t,y)  constraints (position & velocity)
+ *
+ *        y(t0) = y0      initial conditions
+ *     c(t0,y0) = 0
+ *
+ * We expect to be given a DAE System to integrate which can
+ * calculate the derivatives from the state and perform the 
+ * necessary projections to solve p(t,y)=0 and v(t,y)=0.
+ *
  * In general an integrator will maintain a complex internal
  * state which must be allocated when the problem size is
  * known.
- *
- * The function
  */
 class MechanicalDAEIntegrator {
 public:
@@ -433,7 +440,9 @@ public:
             // Now we're going to attempt to take as big a step as we can
             // take (up to hNext). We'll keep shrinking trialH until something
             // works or we die.
+            Real scalarError;
             for (;;) {
+                scalarError = 0.;
                 weights = mech.getWeights();
                 takeAnRK4MStep(t, y, mech.getYDot(), trialH,
                               ytmp[0], ytmp[1], ytmp[2], 
@@ -441,7 +450,7 @@ public:
 
                 // We'll use infinity norm to be conservative (all entries
                 // are >= 0).
-                Real scalarError = 0.;
+
                 for (int i=0; i<mech.size(); ++i)
                     scalarError = std::max(scalarError, errEst[i]*weights[i]);
 
@@ -452,14 +461,31 @@ public:
                     if (mech.realizeAndProject(stateWasChanged)) {
                         // Accept this step (we'll pick up projection changes here).
                         t = mech.getT(); y = mech.getY();
-                        // Can we double the step? TODO: should be more subtle
-                        hNext = trialH;
-                        if (!hWasShrunk) {
-                            predictedNextStep = trialH;
-                            if (scalarError*64. <= 1.) 
-                                predictedNextStep *= 2.;
-                            hNext = predictedNextStep;
-                        }
+
+                        // Adjust step size. Restrict growth to 5x shrinking to 1/10.
+                        // We won't grow at all if the step we just executed was
+                        // artificially shrunk due, e.g., to us being near tMax.
+                        // We'll still allow shrinkage in that case, although that
+                        // is unlikely to be indicated.
+                        // This is a 4th order method so 1/4 is the correct exponent.
+                        // Note the 0.9 safety factor applied here -- we always
+                        // underpredict the step size by 10% to avoid thrashing.
+
+                        Real optimalStepScale = 
+                            scalarError > 0 ? 0.9/pow(scalarError, 0.25) : 5.;
+                        optimalStepScale = 
+                            std::min(std::max(optimalStepScale, 0.1), 5.);
+                        if (hWasShrunk)
+                            optimalStepScale = std::min(optimalStepScale, 1.);
+
+                        // Inject a little stability here -- don't grow the step
+                        // by less than 20% or shrink by less than 10%.
+                        if (0.9 < optimalStepScale && optimalStepScale < 1.2)
+                            optimalStepScale = 1.;
+
+                        hNext = optimalStepScale * trialH;
+                        hNext = std::min(std::max(hNext, minStepSize), maxStepSize);
+                        predictedNextStep = hNext;
                         break; // done with this step
                     }
                 }
@@ -468,7 +494,14 @@ public:
                 if (trialH <= minStepSize )
                     return false;
 
-                trialH = std::max(trialH/2, minStepSize);
+                Real optimalStepScale = 
+                    scalarError > 1. ? 0.9/pow(scalarError, 0.25) : 1.;
+                optimalStepScale = 
+                    std::max(optimalStepScale, 0.1);
+
+                trialH *= optimalStepScale;
+                trialH = std::min(std::max(trialH, minStepSize), maxStepSize);
+
                 wasLastStep = false;
             }
             // Completed a step at h=trialH, hNext is set properly
@@ -544,10 +577,10 @@ private:
             } else { // got max, not init
                 if (userMinStepSize != -1.) {
                     minStepSize = userMinStepSize; // max & min, not init
-                    initStepSize = std::max(minStepSize, mech.getTimescale());
+                    initStepSize = std::max(minStepSize, mech.getTimescale()/10.);
                 } else {
                     // got max only
-                    initStepSize = std::min(mech.getTimescale(), maxStepSize);
+                    initStepSize = std::min(mech.getTimescale()/10., maxStepSize);
                     minStepSize  = std::min(1e-12, initStepSize);
                 }
             }
@@ -560,9 +593,9 @@ private:
             } else { // didn't get init or max
                 if (userMinStepSize != -1.) { // got only min
                     minStepSize = userMinStepSize;
-                    initStepSize = std::max(mech.getTimescale(), minStepSize);
+                    initStepSize = std::max(mech.getTimescale()/10., minStepSize);
                 } else { // didn't get anything
-                    initStepSize = mech.getTimescale();
+                    initStepSize = mech.getTimescale()/10.;
                     minStepSize  = std::min(1e-12, initStepSize);
                 }
             }

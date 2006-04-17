@@ -178,7 +178,7 @@ public:
     /// but to have the common parent System generate the reactions.
     void realizeReaction     (const State&/*, const ForceSubsystem&*/) const;
 
-    void realize(const SBState&, Stage) const;
+    void realize(const State&, Stage) const;
 
     // Operators
 
