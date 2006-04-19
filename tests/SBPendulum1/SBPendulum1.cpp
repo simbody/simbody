@@ -63,23 +63,84 @@ using std::endl;
 
 using namespace SimTK;
 
+class Reporter {
+};
 class System {
 };
 
 class Study {
 };
 
-class MechanicalSubsystem;
-class ForceSubsystem;
+class MechanicalSubsystem {
+public:
+    void realizeConstruction(State&);
+    void realizeModeling(State&);
+    void realize(const State&, const ForceSubsystem&, Stage);
+private:
+};
+
+class ForceSubsystem {
+public:
+    void realizeConstruction(State&);
+    void realizeModeling(State&);
+    void realize(const State&, const MechanicalSubsystem&, Stage);
+private:
+};
 
 class MultibodySystem : public System {
-    MultibodySystem();
-    const State& getInitialState() const;
+    MultibodySystem()
+    {
+    }
 
-    void realize(const State&, Stage) const;
+    const MechanicalSubsystem& getMechanicalSubsystem() const;
+    const ForceSubsystem&      getForceSubsystem() const;
+
+    void realizeConstruction(State& s) const {
+        mech.realizeConstruction(s);
+        forces.realizeConstruction(s);
+    }
+    void realizeModeling(State& s) const {
+        mech.realizeModeling(s, forces);
+        forces.realizeModeling(s, mech);
+    }
+
+    void realize(const State& s, Stage g) const {
+        while (s.getStage() < g) {
+            switch (s.getStage()) {
+            case Stage::Modeled:    realizeTime(s);          break;
+            case Stage::Timed:      realizeConfiguration(s); break;
+            case Stage::Configured: realizeMotion(s);        break;
+            case Stage::Motion:     realizeDynamics(s);      break;
+            case Stage::Dynamics:   realizeReaction(s);      break;
+            default: assert(!"MultibodySystem::realize(): bad stage");
+            }
+        }
+    }
+
 private:
-    SimbodyTree    tree;
-//    ForceSubsystem forces;
+    void realizeTime(const State& s) const {
+        mech.realize(s, forces, Stage::Timed);
+        forces.realize(s, mech, Stage::Timed);
+    }
+    void realizeConfiguration(const State& s) const {
+        mech.realize(s, forces, Stage::Configured);
+        forces.realize(s, mech, Stage::Configured);
+    }
+    void realizeMotion(const State& s) const {
+        mech.realize(s, forces, Stage::Moving);
+        forces.realize(s, mech, Stage::Moving);
+    }
+    void realizeDynamics(const State& s) const {
+        forces.realize(s, mech, Stage::Dynamics); // note order
+        mech.realize(s, forces, Stage::Dynamics);
+    }
+    void realizeReaction(const State& s) const {
+        forces.realize(s, mech, Stage::Reacting);
+        mech.realize(s, forces, Stage::Reacting);
+    }
+
+    MechanicalSubsystem mech;
+    ForceSubsystem      forces;
 };
 
 class MultibodyDynamicsStudy : public Study {
@@ -97,16 +158,35 @@ private:
     State currentState;
 };
 
-class Integrator {
+class MyReporter : public Reporter {
 public:
-    Integrator(/*options*/);
+    MyReporter(std::ostream& o) : out(o) { }
 
-    void step(const System&, State&, const Real& dt);
+    void report(const MechanicalSystem& sys,
+                const State& state,
+                StepKind step);
 
+private:
+    std::ostream& out;
 };
 
+
 void nothingYet() {
-    SimbodyTree tree;
+    SimbodyTree tree; // a mechanical system
+    // add the bodies
+    // complete construction
+    BasicForceElements sd(tree); // a force system
+    int mySpring = sd.addSpringDamper(0, Vec3(1,2,3), 1, Vec3(2,3,4),
+                                      stiffness, zeroLength, damping);
+    sd.setGravity(Vec3(0,-9.8,0));
+
+    MultibodySystem sys(tree, sd);
+    MultibodyStudy study(sys);
+    State& s=study.updState();
+    tree.setJointQ(s, 3, 0, 10.*Constants<Real>::degreesToRadians);
+    sd.setSpringStiffness(s, mySpring, 27.);
+
+    study.forwardDynamics(10., MyReporter(std::cout));
 
 }
 
@@ -176,21 +256,21 @@ try {
 
     Real L = 5.; 
     Real m = 3.;
-    TransformMat groundFrame;
-    TransformMat baseFrame;
+    Transform groundFrame;
+    Transform baseFrame;
 
     //int baseBody =
      //   pend.addRigidBody(0, groundFrame, 
      //                     JointSpecification(JointSpecification::Pin, false),
-      //                    TransformMat(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
-    TransformMat jointFrame(Vec3(-L/2,0,0));
+      //                    Transform(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
+    Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
     Vec3 gravity(0.,-9.8,0.);
     int theBody = 
-      pend.addRigidBody(0, TransformMat(), 
+      pend.addRigidBody(0, Transform(), 
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         //JointSpecification(JointSpecification::Pin, false),
@@ -200,7 +280,7 @@ try {
 
 /*
     int secondBody = 
-      pend.addRigidBody(theBody, TransformMat(Vec3(L/2,0,0)), 
+      pend.addRigidBody(theBody, Transform(Vec3(L/2,0,0)), 
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         JointSpecification(JointSpecification::Pin, false),
@@ -214,14 +294,14 @@ try {
     //                                       L/2+std::sqrt(2.));
  
     int ballConstraint =
-        pend.addCoincidentStationsConstraint(0, TransformMat().T(),
+        pend.addCoincidentStationsConstraint(0, Transform().T(),
                                             theBody, jointFrame.T()); 
 /*
-    TransformMat harderOne;
+    Transform harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
     harderOne.updT() = jointFrame.T()+Vec3(.1,.2,.3);
     int weldConstraint =
-        pend.addWeldConstraint(0, TransformMat(),
+        pend.addWeldConstraint(0, Transform(),
                               theBody, harderOne);    
 */
     pend.realizeConstruction();
@@ -239,7 +319,7 @@ try {
 
     pend.realize(s, Stage::Configured);
 
-    TransformMat bodyConfig = pend.getBodyConfiguration(s, theBody);
+    Transform bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "body frame: " << bodyConfig;
 
     pend.enforceConfigurationConstraints(s);
@@ -310,8 +390,8 @@ try {
         pend.clearAppliedForces(s);
         pend.applyGravity(s,gravity);
 
-        TransformMat x = pend.getBodyConfiguration(s,theBody);
-        SpatialVec   v = pend.getBodyVelocity(s,theBody);
+        Transform  x = pend.getBodyConfiguration(s,theBody);
+        SpatialVec v = pend.getBodyVelocity(s,theBody);
 
         //Vec3 err = x.T()-Vec3(2.5,0.,0.);
         //Real d = err.norm();

@@ -23,9 +23,9 @@ SimbodyTree::~SimbodyTree() {
 
 int SimbodyTree::addRigidBody(
     int                       parent,
-    const TransformMat&       parentJointFrameInP,  // X_PJb
+    const Transform&       parentJointFrameInP,  // X_PJb
     const JointSpecification& joint,
-    const TransformMat&       bodyJointFrameInB,    // X_BJ
+    const Transform&       bodyJointFrameInB,    // X_BJ
     const MassProperties&     mp)
 {
     const int save = rep->nextUSlot;
@@ -60,8 +60,8 @@ int SimbodyTree::addCoincidentStationsConstraint
 }
 
 int SimbodyTree::addWeldConstraint
-    (int parent, const TransformMat& frameInP,
-     int child,  const TransformMat& frameInC)
+    (int parent, const Transform& frameInP,
+     int child,  const Transform& frameInC)
 {
     return rep->addWeldConstraint(
        rep->getRigidBodyNode(parent), frameInP,
@@ -195,7 +195,7 @@ void SimbodyTree::enforceConfigurationConstraints(State& s) const
 void SimbodyTree::enforceMotionConstraints(State& s) const
   { rep->enforceMotionConstraints(s); }
 
-const TransformMat&
+const Transform&
 SimbodyTree::getBodyConfiguration(const State& s, int body) const
   { return rep->getRigidBodyNode(body).getX_GB(s); }
 

@@ -143,10 +143,10 @@ public:
                     //       all else is garbage.
     Matrix_<Vec3> storageForHt; // 2 x ndof
 
-    Array<TransformMat> bodyJointInParentJointFrame;  // nb (X_JbJ)
+    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_JbJ)
 
-    Array<TransformMat> bodyConfigInParent;           // nb (X_PB)
-    Array<TransformMat> bodyConfigInGround;           // nb (X_GB)
+    Array<Transform>    bodyConfigInParent;           // nb (X_PB)
+    Array<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array<PhiMatrix>    bodyToParentShift;            // nb (phi)
     Array<InertiaMat>   bodyInertiaInGround;          // nb (I_OB_G)
     Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)

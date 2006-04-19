@@ -58,8 +58,8 @@ RigidBodyTree::~RigidBodyTree() {
 int RigidBodyTree::addRigidBodyNode
     (RigidBodyNode&          parent,
      const MassProperties&   m,            // mass properties in body frame
-     const TransformMat&     X_PJb,        // parent's frame for attaching this joint
-     const TransformMat&     X_BJ,         // inboard joint frame J in body frame
+     const Transform&     X_PJb,        // parent's frame for attaching this joint
+     const Transform&     X_BJ,         // inboard joint frame J in body frame
      JointSpecification::JointType        
                              type,
      bool                    isReversed,   // child-to-parent orientation?
@@ -95,7 +95,7 @@ void RigidBodyTree::addGroundNode() {
     assert(rbNodeLevels.size() == 0);
 
     RigidBodyNode* n = 
-        RigidBodyNode::create(MassProperties(), TransformMat(), TransformMat(), 
+        RigidBodyNode::create(MassProperties(), Transform(), Transform(), 
                               JointSpecification::ThisIsGround,
                               false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
@@ -126,8 +126,8 @@ int RigidBodyTree::addCoincidentStationsConstraint(
 
 
 int RigidBodyTree::addWeldConstraint(
-    const RigidBodyNode& parent, const TransformMat& frameInP,
-    const RigidBodyNode& child,  const TransformMat& frameInC)
+    const RigidBodyNode& parent, const Transform& frameInP,
+    const RigidBodyNode& child,  const Transform& frameInC)
 {
     ConstraintNode* cn = new WeldConstraintNode(parent,frameInP,child,frameInC);
     return addConstraintNode(cn);

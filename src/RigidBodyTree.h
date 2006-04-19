@@ -57,8 +57,8 @@ public:
     int addRigidBodyNode
         (RigidBodyNode&          parent,
          const MassProperties&   m,            // mass properties in body frame
-         const TransformMat&     X_PJb,        // parent's frame for attaching this joint
-         const TransformMat&     X_BJ,         // inboard joint frame J in body frame
+         const Transform&        X_PJb,        // parent's frame for attaching this joint
+         const Transform&        X_BJ,         // inboard joint frame J in body frame
          JointSpecification::JointType        
                                  type,
          bool                    isReversed,   // child-to-parent orientation?
@@ -85,8 +85,8 @@ public:
     // Constrain frames fixed to each of two distinct bodies to remain
     // superimposed. Parent and child here mean nothing! This adds six
     // constraint equations.
-    int addWeldConstraint(const RigidBodyNode& parent, const TransformMat& frameInP,
-                          const RigidBodyNode& child,  const TransformMat& frameInC);
+    int addWeldConstraint(const RigidBodyNode& parent, const Transform& frameInP,
+                          const RigidBodyNode& child,  const Transform& frameInC);
 
     // Call this after all bodies & constraints have been added.
     void realizeConstruction (State&); // will set built==true

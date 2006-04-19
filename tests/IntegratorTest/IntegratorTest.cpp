@@ -58,7 +58,7 @@ public:
         calcWeights(solnAcc);
     }
     bool realize() const {yd[0]=w*y[1]; yd[1]=-w*y[0]; ydValid=true; return true;}
-    bool realizeAndProject(bool& chg) { realize(); chg=false; return true;}
+    bool realizeAndProject(bool& chg, bool) { realize(); chg=false; return true;}
     const Real& getTimescale() const {return timeScale;}
     const Real& getT() const {return t;}
     const Vector& getY() const {return y;}
@@ -170,14 +170,16 @@ public:
         calcAerr();
         return aerrNorm <= consAcc;
     }
-    bool realizeAndProject(bool& chg) { 
+    bool realizeAndProject(bool& chg, bool force) { 
         chg=false;
-        if (calcPerr() > consAcc) {
+        calcPerr();
+        if (force || perrNorm > consAcc) {
             if (!projectPositions(consAcc)) return false;
             chg=true;
         } 
         // recalculate at new positions
-        if (calcVerr() > consAcc) {
+        calcVerr();
+        if (force || verrNorm > consAcc) {
             if (!projectVelocities(consAcc)) return false;
             chg=true;
         }
@@ -328,10 +330,11 @@ int main() {
         //ExplicitEuler eep(p);
         RungeKuttaMerson eep(p);
         //eep.setInitialStepSize(0.00001);
-        eep.setStopTime(10.);
+        eep.setStopTime(100.);
         const Real acc = 1e-8;
         eep.setAccuracy(acc);
-        //eep.setConstraintTolerance(1e-7);
+        //eep.setConstraintTolerance(1.);
+      //  eep.setProjectEveryStep(true);
 
         Vector yp(4); 
         //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
@@ -356,10 +359,10 @@ int main() {
                 << " E=" << p.calcEnergy();
             std::cout << " hnext=" << eep.getPredictedNextStep() << std::endl;
 
-            if (eep.getT() >= 10.)
+            if (eep.getT() >= 100.)
                 break;
 
-            Real h = 0.01;
+            Real h = 10.;
             //if (fabs(eep.getT()-floor(eep.getT()/halfPeriod+0.5)*halfPeriod) < 0.2)
              //   h = 0.001;
             if (!eep.step(eep.getT() + h)) {
@@ -367,6 +370,11 @@ int main() {
                 exit(1);
             }
         }
+
+        printf("steps attempted=%ld, taken=%ld, size changes=%ld\n",
+            eep.getStepsAttempted(), eep.getStepsTaken(), eep.getStepSizeChanges());
+        printf("  error test failures=%ld, realize failures=%ld (with projection %ld)\n",
+            eep.getErrorTestFailures(), eep.getRealizeFailures(), eep.getProjectionFailures());
 
 
     }

@@ -12,7 +12,7 @@ class RigidBodyTree;
 
 namespace SimTK {
 
-class TransformMat;
+class Transform;
 class JointSpecification;
 class InertiaMat;
 class SimbodyTreeRep;
@@ -109,17 +109,17 @@ public:
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
     int addRigidBody(int                       parent,
-                     const TransformMat&       parentJointFrameInP,
+                     const Transform&          parentJointFrameInP,
                      const JointSpecification& joint,
-                     const TransformMat&       bodyJointFrameInB,
+                     const Transform&          bodyJointFrameInB,
                      const MassProperties&);
 
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
     int addMasslessBody(int                       parent,
-                        const TransformMat&       parentJointFrameInP,
+                        const Transform&          parentJointFrameInP,
                         const JointSpecification& joint,
-                        const TransformMat&       bodyJointFrameInB);
+                        const Transform&          bodyJointFrameInB);
 
     /// Special case for convenience: attach a general rigid body to
     /// a body (ground by default) using a free joint and only the
@@ -150,8 +150,8 @@ public:
     /// Constrain frames fixed to each of two distinct bodies to
     /// remain superimposed. Parent and child here mean nothing!
     /// This adds six constraint equations.
-    int addWeldConstraint(int parent, const TransformMat& frameInP,
-                          int child,  const TransformMat& frameInC);
+    int addWeldConstraint(int parent, const Transform& frameInP,
+                          int child,  const Transform& frameInC);
 
     /// Topology and default values are frozen after this call, and all
     /// Modeling variables have been allocated slots in the State and
@@ -291,12 +291,12 @@ public:
     void applyJointForce(State&, int body, int axis, const Real&) const;
 
 
-    const TransformMat& getBodyConfiguration(const State&, int body) const;
-    const SpatialVec&   getBodyVelocity     (const State&, int body) const;
-    const SpatialVec&   getBodyAcceleration (const State&, int body) const;
+    const Transform&  getBodyConfiguration(const State&, int body) const;
+    const SpatialVec& getBodyVelocity     (const State&, int body) const;
+    const SpatialVec& getBodyAcceleration (const State&, int body) const;
 
     const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
-        const TransformMat& X_GB = getBodyConfiguration(s, body);
+        const Transform& X_GB = getBodyConfiguration(s, body);
         return X_GB.T() + X_GB.R() * station_B;
     }
 

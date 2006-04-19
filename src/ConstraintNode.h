@@ -145,8 +145,8 @@ private:
 class WeldConstraintNode : public ConstraintNode {
 public:
     WeldConstraintNode(
-            const RigidBodyNode& parent, const TransformMat& frameInP,
-            const RigidBodyNode& child,  const TransformMat& frameInC)
+            const RigidBodyNode& parent, const Transform& frameInP,
+            const RigidBodyNode& child,  const Transform& frameInC)
       : body1(parent), body2(child), frame1(frameInP), frame2(frameInC),
         firstDistanceConstraintIndex(-1)
     {
@@ -198,7 +198,7 @@ public:
 private:
     const RigidBodyNode& body1;
     const RigidBodyNode& body2;  
-    const TransformMat frame1, frame2;
+    const Transform frame1, frame2;
 
     int firstDistanceConstraintIndex;
 };

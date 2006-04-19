@@ -139,7 +139,7 @@ std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),TransformMat(),TransformMat()) {}
+      : RigidBodyNode(MassProperties(),Transform(),Transform()) {}
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
@@ -210,8 +210,8 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const TransformMat&   X_PJb,
-                      const TransformMat&   X_BJ,
+                      const Transform&   X_PJb,
+                      const Transform&   X_BJ,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
@@ -250,16 +250,16 @@ public:
     /// This mandatory routine calculates the across-joint transform X_JbJ generated
     /// by the current q values. This may depend on sines & cosines or normalized
     /// quaternions already being available in the State cache.
-    virtual void calcAcrossJointTransform(const State&, TransformMat& X_JbJ) const=0;
+    virtual void calcAcrossJointTransform(const State&, Transform& X_JbJ) const=0;
 
     /// This routine is NOT joint specific, but cannot be called until the across-joint
     /// transform X_JbJ has been calculated and is available in the State cache.
-    void calcBodyTransforms(const State& s, TransformMat& X_PB, TransformMat& X_GB) const 
+    void calcBodyTransforms(const State& s, Transform& X_PB, Transform& X_GB) const 
     {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_JbJ = getX_JbJ(s); // just calculated
-        const TransformMat& X_GP  = getX_GP(s);  // already calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_JbJ = getX_JbJ(s); // just calculated
+        const Transform& X_GP  = getX_GP(s);  // already calculated
 
         X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB
         X_GB = X_GP * X_PB;
@@ -569,8 +569,8 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
-                    const TransformMat&   X_PJb,
-                    const TransformMat&   X_BJ,
+                    const Transform&   X_PJb,
+                    const Transform&   X_BJ,
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
@@ -585,18 +585,18 @@ public:
         (const State&, Vector& sine, Vector& cosine, Vector& qnorm) const { }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         // Translation vector q is expressed in Jb (and J since they have same orientation).
         // A Cartesian joint can't change orientation. 
-        X_JbJ = TransformMat(RotationMat(), getQ(s));
+        X_JbJ = Transform(RotationMat(), getQ(s));
     }
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
+        const Transform& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
-        const TransformMat& X_GP    = getX_GP(s); // parent orientation in ground
+        const Transform& X_GP    = getX_GP(s); // parent orientation in ground
 
         // Note that H is spatial. The current spatial directions for our qs are
         // the axes of the Jb frame expressed in Ground.
@@ -619,8 +619,8 @@ public:
     virtual const char* type() { return "slider"; }
 
     RBNodeSlider(const MassProperties& mProps_B,
-                 const TransformMat&   X_PJb,
-                 const TransformMat&   X_BJ,
+                 const Transform&   X_PJb,
+                 const Transform&   X_BJ,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
@@ -634,18 +634,18 @@ public:
         (const State&, Vector& sine, Vector& cosine, Vector& qnorm) const { }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         // Translation vector q is expressed in Jb (and J since they have same orientation).
         // A sliding joint can't change orientation, and only translates along z. 
-        X_JbJ = TransformMat(RotationMat(), Vec3(0.,0.,get1Q(s)));
+        X_JbJ = Transform(RotationMat(), Vec3(0.,0.,get1Q(s)));
     }
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
+        const Transform& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
-        const TransformMat& X_GP    = getX_GP(s); // parent configuration in ground
+        const Transform& X_GP    = getX_GP(s); // parent configuration in ground
 
         // Note that H is spatial. The current spatial directions for our q is
         // the z axis of the Jb frame expressed in Ground.
@@ -665,8 +665,8 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const TransformMat&   X_PJb,
-                  const TransformMat&   X_BJ,
+                  const Transform&   X_PJb,
+                  const Transform&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -685,7 +685,7 @@ public:
     }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         const Real& q  = get1Q(s);    // angular coordinate
 
         // We're only updating the orientation here because a torsion joint
@@ -696,10 +696,10 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
-        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_GP  = getX_GP(s);  // calculated earlier
+        const Transform& X_GB  = getX_GB(s);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
@@ -721,8 +721,8 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const TransformMat&   X_PJb,
-                  const TransformMat&   X_BJ,
+                  const Transform&   X_PJb,
+                  const Transform&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -741,7 +741,7 @@ public:
     }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         const Vec2& q  = getQ(s); // angular coordinates
 
         // We're only updating the orientation here because a U-joint
@@ -752,10 +752,10 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
-        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_GP  = getX_GP(s);  // calculated earlier
+        const Transform& X_GB  = getX_GB(s);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
@@ -782,8 +782,8 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const TransformMat&   X_PJb,
-                           const TransformMat&   X_BJ,
+                           const Transform&   X_PJb,
+                           const Transform&   X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
@@ -802,7 +802,7 @@ public:
     }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         const Vec<5>& q = getQ(s);     // joint coordinates
 
         X_JbJ.updR().setToSpaceFixed12(q.getSubVec<2>(0));
@@ -811,10 +811,10 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
-        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_GP  = getX_GP(s);  // calculated earlier
+        const Transform& X_GB  = getX_GB(s);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
@@ -841,8 +841,8 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  const TransformMat&   X_PJb,
-                  const TransformMat&   X_BJ,
+                  const Transform&   X_PJb,
+                  const Transform&   X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -867,7 +867,7 @@ public:
     }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         X_JbJ.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(s))
             X_JbJ.updR().setToBodyFixed123(getQ(s));
@@ -877,10 +877,10 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
-        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_GP  = getX_GP(s);  // calculated earlier
+        const Transform& X_GB  = getX_GB(s);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
@@ -972,8 +972,8 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const TransformMat&   X_PJb,
-                           const TransformMat&   X_BJ,
+                           const Transform&   X_PJb,
+                           const Transform&   X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
@@ -998,7 +998,7 @@ public:
     }
 
     // Calculate X_JbJ.
-    void calcAcrossJointTransform(const State& s, TransformMat& X_JbJ) const {
+    void calcAcrossJointTransform(const State& s, Transform& X_JbJ) const {
         if (getUseEulerAngles(s)) {
             X_JbJ.updR().setToBodyFixed123(getQVec3(s,0));
             X_JbJ.updT() = getQVec3(s,3);
@@ -1010,10 +1010,10 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const TransformMat& X_BJ  = getX_BJ(s);  // fixed
-        const TransformMat& X_PJb = getX_PJb(s); // fixed
-        const TransformMat& X_GP  = getX_GP(s);  // calculated earlier
-        const TransformMat& X_GB  = getX_GB(s);  // just calculated
+        const Transform& X_BJ  = getX_BJ(s);  // fixed
+        const Transform& X_PJb = getX_PJb(s); // fixed
+        const Transform& X_GP  = getX_GP(s);  // calculated earlier
+        const Transform& X_GB  = getX_GB(s);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
@@ -1133,8 +1133,8 @@ public:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
-    const TransformMat&   X_PJb,        // parent's attachment frame for this joint
-    const TransformMat&   X_BJ,         // inboard joint frame J in body frame
+    const Transform&   X_PJb,        // parent's attachment frame for this joint
+    const Transform&   X_BJ,         // inboard joint frame J in body frame
     JointSpecification::JointType      
                           type,
     bool                  isReversed,   // child-to-parent orientation?

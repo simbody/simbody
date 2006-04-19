@@ -103,7 +103,7 @@ public:
 
     virtual void setState(const Real& t, const Vector& y) = 0;
     virtual bool realize()                          const = 0; // ODE only
-    virtual bool realizeAndProject(bool& anyChange) = 0; // DAE using coordinate projection
+    virtual bool realizeAndProject(bool& anyChange, bool force=false) = 0; // DAE using coordinate projection
 
     virtual const Real&   getTimescale() const = 0;
 
@@ -140,6 +140,7 @@ class MechanicalDAEIntegrator {
 public:
     explicit MechanicalDAEIntegrator(MechanicalDAESystem& s) : mech(s) {
         initializeUserStuff();
+        zeroStats();
     }
     virtual ~MechanicalDAEIntegrator() { }
 
@@ -196,6 +197,16 @@ public:
         assert(rescale == -1 || (0. <= rescale));
         userVConsRescale = rescale;
     }
+    void setProjectEveryStep(bool forceProject) {
+        userProjectEveryStep = forceProject ? 1 : 0;
+    }
+
+    long getStepsAttempted()     const {return statsStepsAttempted;}
+    long getStepsTaken()         const {return statsStepsTaken;}
+    long getErrorTestFailures()  const {return statsErrorTestFailures;}
+    long getRealizeFailures()    const {return statsRealizationFailures;}
+    long getProjectionFailures() const {return statsProjectionFailures;}
+    long getStepSizeChanges()    const {return statsStepSizeChanges;}
 
 protected:
     MechanicalDAESystem& mech;
@@ -206,6 +217,7 @@ protected:
     Real userRelTol, userAbsTol, userConsTol, userVConsRescale; // for fussy people
     Real userStopTime; // never go past this
     long userMaxNumSteps; // that is, in a single call to step(); 0=no limit
+    int  userProjectEveryStep; // -1 (not supplied), 0(false), 1(true)
 
     // Mark all user-supplied options "not supplied by user".
     void initializeUserStuff() {
@@ -213,6 +225,20 @@ protected:
         userAccuracy = userRelTol = userAbsTol = userConsTol = userVConsRescale = -1.;
         userStopTime = -1.;
         userMaxNumSteps = -1;
+        userProjectEveryStep= -1;
+    }
+
+    // Statistics
+    long statsStepsAttempted;
+    long statsStepsTaken;
+    long statsErrorTestFailures;
+    long statsRealizationFailures;
+    long statsProjectionFailures;
+    long statsStepSizeChanges;
+
+    void zeroStats() {
+        statsStepsAttempted = statsStepsTaken = statsErrorTestFailures
+            = statsRealizationFailures = statsProjectionFailures = statsStepSizeChanges = 0;
     }
 
 };
@@ -239,8 +265,11 @@ public:
 
         mech.setState(t0,y0);
         bool stateWasChanged;
-        if (!mech.realizeAndProject(stateWasChanged)) 
+        if (!mech.realizeAndProject(stateWasChanged, true)) {
+            ++statsRealizationFailures;
+            ++statsProjectionFailures;
             return false;
+        }
         
         t = t0; y = mech.getY(); // pick up projection if any
         initialized = true;
@@ -263,13 +292,14 @@ public:
             // Take the biggest step we can get up to maxStep
             Real hTry = std::min(maxStepSize, tMax-t);
             for (;;) {
+                ++statsStepsAttempted;
                 wasLastStep = false;
                 Real nextT = t+hTry;
                 if (tMax-nextT < minStepSize)
                     nextT = tMax, hTry = tMax-t, wasLastStep=true;
                 mech.setState(nextT, y + hTry*ydot0);
                 bool stateWasChanged;
-                if (mech.realizeAndProject(stateWasChanged)) {
+                if (mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
                     // Took a step of size hTry. Update solution 
                     // and try another step. Note that we are picking up
                     // any projection changes by extracting y.
@@ -277,6 +307,8 @@ public:
                     break;
                 }
                 // Failed
+                ++statsRealizationFailures;
+                ++statsProjectionFailures;
 
                 if (hTry <= minStepSize)
                     return false; // can't proceed
@@ -286,6 +318,7 @@ public:
 
             // Took a successful step of size hTry.
             ++stepsTaken;
+            ++statsStepsTaken;
         } while (!wasLastStep);
 
         // We reached tMax successfully.
@@ -302,6 +335,8 @@ private:
         if (userMaxNumSteps != -1) 
             maxNumSteps = userMaxNumSteps; // 0 means infinity
         else maxNumSteps = 0;
+        if (userProjectEveryStep != -1)
+            projectEveryStep = (userProjectEveryStep==1);
     }
 
     void initializeTolerances() {
@@ -349,6 +384,7 @@ private:
             =accuracy=relTol=absTol=consTol=vconsRescale
             =stopTime=t=CNT<Real>::getNaN();
         maxNumSteps = -1;
+        projectEveryStep = false;
         y.resize(mech.size());
         ydot0.resize(mech.size());
         initialized = false;
@@ -358,6 +394,7 @@ private:
     Real   accuracy, relTol, absTol, consTol, vconsRescale;
     Real   stopTime;
     long   maxNumSteps;
+    bool   projectEveryStep;
     Real   t;
     Vector y;
     Vector ydot0;
@@ -391,8 +428,11 @@ public:
 
         mech.setState(t0,y0);
         bool stateWasChanged;
-        if (!mech.realizeAndProject(stateWasChanged)) 
+        if (!mech.realizeAndProject(stateWasChanged, true)) {
+            ++statsRealizationFailures;
+            ++statsProjectionFailures;
             return false;
+        }
         
         t = t0; y = mech.getY(); // pick up projection if any
         initialized = true;
@@ -405,12 +445,18 @@ public:
 
         // Duck out now if there isn't enough time left to take a step.
         if (tMax-t < minStepSize) {
+            ++statsStepsAttempted;
             mech.setState(tMax,y);
             bool stateWasChanged;
-            if (!mech.realizeAndProject(stateWasChanged)) return false;
+            if (!mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
+                ++statsRealizationFailures;
+                ++statsProjectionFailures;
+                return false;
+            }
             if (stateWasChanged)
                 y = mech.getY();
             t = tMax;
+            ++statsStepsTaken;
             return true;
         }
 
@@ -435,77 +481,99 @@ public:
                 wasLastStep = true;
             }
 
+            // We expect to be realized at (t,y) already.
+            ydot0 = mech.getYDot(); // save so we can restart
+
 
             Real trialH = hNext;
             // Now we're going to attempt to take as big a step as we can
             // take (up to hNext). We'll keep shrinking trialH until something
             // works or we die.
             Real scalarError;
+            bool RKstepOK;
             for (;;) {
-                scalarError = 0.;
+                ++statsStepsAttempted;
                 weights = mech.getWeights();
-                takeAnRK4MStep(t, y, mech.getYDot(), trialH,
-                              ytmp[0], ytmp[1], ytmp[2], 
-                              ynew, errEst);
 
-                // We'll use infinity norm to be conservative (all entries
-                // are >= 0).
+                RKstepOK = 
+                    takeAnRK4MStep(t, y, ydot0, trialH,
+                                   ytmp[0], ytmp[1], ytmp[2], 
+                                   ynew, errEst);
 
-                for (int i=0; i<mech.size(); ++i)
-                    scalarError = std::max(scalarError, errEst[i]*weights[i]);
+                if (!RKstepOK) ++statsRealizationFailures;
 
-                if (scalarError <= 1) {
-                    // Passed error test; see if we can evaluate at ynew.
-                    mech.setState(t+trialH, ynew);
-                    bool stateWasChanged;
-                    if (mech.realizeAndProject(stateWasChanged)) {
-                        // Accept this step (we'll pick up projection changes here).
-                        t = mech.getT(); y = mech.getY();
+                if (RKstepOK) {
+                    // We'll use infinity norm to be conservative (all entries
+                    // are >= 0).
+                    scalarError = 0.;
+                    for (int i=0; i<mech.size(); ++i)
+                        scalarError = std::max(scalarError, errEst[i]*weights[i]);
 
-                        // Adjust step size. Restrict growth to 5x shrinking to 1/10.
-                        // We won't grow at all if the step we just executed was
-                        // artificially shrunk due, e.g., to us being near tMax.
-                        // We'll still allow shrinkage in that case, although that
-                        // is unlikely to be indicated.
-                        // This is a 4th order method so 1/4 is the correct exponent.
-                        // Note the 0.9 safety factor applied here -- we always
-                        // underpredict the step size by 10% to avoid thrashing.
+                    if (scalarError <= 1) {
+                        // Passed error test; see if we can evaluate at ynew.
+                        mech.setState(t+trialH, ynew);
+                        bool stateWasChanged;
+                        if (mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
+                            // Accept this step (we'll pick up projection changes here).
+                            t = mech.getT(); y = mech.getY();
 
-                        Real optimalStepScale = 
-                            scalarError > 0 ? 0.9/pow(scalarError, 0.25) : 5.;
-                        optimalStepScale = 
-                            std::min(std::max(optimalStepScale, 0.1), 5.);
-                        if (hWasShrunk)
-                            optimalStepScale = std::min(optimalStepScale, 1.);
+                            // Adjust step size. Restrict growth to 5x shrinking to 1/10.
+                            // We won't grow at all if the step we just executed was
+                            // artificially shrunk due, e.g., to us being near tMax.
+                            // We'll still allow shrinkage in that case, although that
+                            // is unlikely to be indicated.
+                            // This is a 4th order method so 1/4 is the correct exponent.
+                            // Note the 0.9 safety factor applied here -- we always
+                            // underpredict the step size by 10% to avoid thrashing.
 
-                        // Inject a little stability here -- don't grow the step
-                        // by less than 20% or shrink by less than 10%.
-                        if (0.9 < optimalStepScale && optimalStepScale < 1.2)
-                            optimalStepScale = 1.;
+                            Real optimalStepScale = 
+                                scalarError > 0 ? 0.9/pow(scalarError, 0.25) : 5.;
+                            optimalStepScale = 
+                                std::min(std::max(optimalStepScale, 0.1), 5.);
+                            if (hWasShrunk)
+                                optimalStepScale = std::min(optimalStepScale, 1.);
 
-                        hNext = optimalStepScale * trialH;
-                        hNext = std::min(std::max(hNext, minStepSize), maxStepSize);
-                        predictedNextStep = hNext;
-                        break; // done with this step
-                    }
+                            // Inject a little stability here -- don't grow the step
+                            // by less than 20% or shrink by less than 10%.
+                            if (0.9 < optimalStepScale && optimalStepScale < 1.2)
+                                optimalStepScale = 1.;
+
+                            hNext = optimalStepScale * trialH;
+                            hNext = std::min(std::max(hNext, minStepSize), maxStepSize);
+                            if (hNext != trialH)
+                                ++statsStepSizeChanges;
+                            predictedNextStep = hNext;
+                            break; // done with this step
+                        }
+                        ++statsRealizationFailures;
+                        ++statsProjectionFailures;
+                    } else 
+                        ++statsErrorTestFailures;
                 }
 
                 // Step did not succeed.
                 if (trialH <= minStepSize )
                     return false;
 
-                Real optimalStepScale = 
-                    scalarError > 1. ? 0.9/pow(scalarError, 0.25) : 1.;
-                optimalStepScale = 
-                    std::max(optimalStepScale, 0.1);
+                const Real oldTrialH = trialH;
+                Real optimalStepScale;
+                if (RKstepOK) { 
+                    optimalStepScale = scalarError > 1. ? 0.9/pow(scalarError, 0.25) : 1.;
+                    optimalStepScale = 
+                        std::max(optimalStepScale, 0.1);
+                } else
+                    optimalStepScale = 0.5;
 
                 trialH *= optimalStepScale;
                 trialH = std::min(std::max(trialH, minStepSize), maxStepSize);
+                if (trialH != oldTrialH)
+                    ++statsStepSizeChanges;
 
                 wasLastStep = false;
             }
             // Completed a step at h=trialH, hNext is set properly
             ++stepsTaken;
+            ++statsStepsTaken;
         } while (!wasLastStep);
 
         return true;
@@ -556,6 +624,8 @@ private:
         if (userMaxNumSteps != -1) 
             maxNumSteps = userMaxNumSteps; // 0 means infinity
         else maxNumSteps = 0;
+        if (userProjectEveryStep != -1)
+            projectEveryStep = (userProjectEveryStep==1);
     }
 
     void initializeTolerances() {
@@ -609,6 +679,7 @@ private:
             =accuracy=relTol=absTol=consTol=vconsRescale
             =stopTime=t=predictedNextStep=CNT<Real>::getNaN();
         maxNumSteps = -1;
+        projectEveryStep = false;
         y.resize(mech.size());
         ydot0.resize(mech.size());
         weights.resize(mech.size());
@@ -623,6 +694,7 @@ private:
     Real   accuracy, relTol, absTol, consTol, vconsRescale;
     Real   stopTime;
     long   maxNumSteps;
+    bool   projectEveryStep;
     Real   t;
     Vector y;
     Vector ydot0, weights, errEst, ynew;
