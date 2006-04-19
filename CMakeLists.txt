@@ -206,6 +206,7 @@ ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(SBPendulum1              ${TEST_PATH}/SBPendulum1)
 ADD_TEST(SBPendulum1Static        ${TEST_PATH}/SBPendulum1Static)
+## add more
 
 #
 # Installation

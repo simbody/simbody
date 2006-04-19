@@ -1,3 +1,3 @@
-SUBDIRS (SBPendulum1 IntegratorTest)
+SUBDIRS (SBPendulum1 IntegratorTest PendulumExample)
 
 
