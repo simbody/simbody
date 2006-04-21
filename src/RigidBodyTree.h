@@ -99,7 +99,7 @@ public:
     // Call this after all bodies & constraints have been added.
     void endConstruction(); // will set built==true
 
-    void realizeConstruction (State&);
+    void realizeConstruction (State&) const;
     void realizeModeling     (State&) const;
     void realizeParameters   (const State&) const;
     void realizeTime         (const State&) const;
@@ -154,7 +154,7 @@ public:
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    void setDefaultModelingValues     (const State&, SBModelingVars&)      const;
+    void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&)      const;
     void setDefaultParameterValues    (const State&, SBParameterVars&)     const;
     void setDefaultTimeValues         (const State&, SBTimeVars&)          const;
     void setDefaultConfigurationValues(const State&, Vector& q)            const;
@@ -427,35 +427,35 @@ public:
         updU(s) = u;
     }
 
-    const Vector& getQ(const State& s) const {
+    VectorView getQ(const State& s) const {
         return s.getQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
-    Vector& updQ(State& s) const {
+    VectorView updQ(State& s) const {
         return s.updQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
-    const Vector& getQDot(const State& s) const {
+    VectorView getQDot(const State& s) const {
         return s.getQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
-    Vector& updQDot(const State& s) const { // mutable
+    VectorView updQDot(const State& s) const { // mutable
         return s.updQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
-    const Vector& getQDotDot(const State& s) const {
+    VectorView getQDotDot(const State& s) const {
         return s.getQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
-    Vector& updQDotDot(const State& s) const { // mutable
+    VectorView updQDotDot(const State& s) const { // mutable
         return s.updQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
     }
 
-    const Vector& getU(const State& s) const {
+    VectorView getU(const State& s) const {
         return s.getU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
     }
-    Vector& updU(State& s) const {
+    VectorView updU(State& s) const {
         return s.updU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
     }
-    const Vector& getUDot(const State& s) const {
+    VectorView getUDot(const State& s) const {
         return s.getUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
     }
-    Vector& updUDot(const State& s) const { // mutable
+    VectorView updUDot(const State& s) const { // mutable
         return s.updUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
     }
 

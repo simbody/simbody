@@ -122,10 +122,19 @@ public:
 
 class SBModelingCache {
 public:
-    // none yet
     // TODO: Modeling
     //   counts of various things resulting from modeling choices,
     //   constraint enabling, prescribed motion
+
+    SBModelingCache() {
+        parameterVarsIndex = parameterCacheIndex
+        = timeVarsIndex = timeCacheIndex
+        = qIndex = qVarsIndex = qCacheIndex
+        = uIndex = uVarsIndex = uCacheIndex
+        = dynamicsVarsIndex = dynamicsCacheIndex
+        = reactionVarsIndex = reactionCacheIndex
+        = -1;
+    }
 
     int parameterVarsIndex, parameterCacheIndex;
     int timeVarsIndex, timeCacheIndex;

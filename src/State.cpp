@@ -52,13 +52,15 @@ public:
     DiscreteVariableRep(Stage g, AbstractValue* vp) 
       : stage(g), value(vp), myHandle(0)
     {
-        assert(Stage::isInRuntimeRange(g));
+        assert(g == Stage::Built || Stage::isInRuntimeRange(g));
         assert(vp);
     }
 
     DiscreteVariableRep* clone() const {return new DiscreteVariableRep(*this);}
 
-    bool isValid() const {return Stage::isInRuntimeRange(stage) && value && myHandle; }
+    bool isValid() const {
+        return (stage==Stage::Built || Stage::isInRuntimeRange(stage)) && value && myHandle; 
+    }
 
     Stage getStage() const {return stage;}
 
@@ -107,13 +109,6 @@ public:
     // Copies everything but the handle pointer.
     StateRep* clone() const {return new StateRep(*this);}
 
-    // Done with construction -- all modeling variables in place. Note that
-    // many other variables may have been allocated also if their allocation
-    // doesn't depend on the settings of modeling variables.
-    void finishConstruction() {
-        currentStage = Stage::Built;
-    }
-
     // Done realizing the model. All state variable and cache allocations
     // are now done.
     void finishModeling() {
@@ -125,7 +120,6 @@ public:
         qdotdot.resize(q.size()); //qdotdot.setLockRows(true);
         udot.resize(u.size());    //udot.setLockRows(true);
         zdot.resize(z.size());    //zdot.setLockRows(true);
-        currentStage = Stage::Modeled;
     }
 
 
@@ -144,7 +138,7 @@ private:
     Vector          z; // Stage::Dynamics continuous variables
 
     // Each of these discrete entries has its own Stage.
-    std::vector<DiscreteVariable> discrete;
+    StableArray<DiscreteVariable> discrete;
 
         // Cache //
 
@@ -156,7 +150,7 @@ private:
     mutable Vector  zdot;       // Stage::Reacting
 
     // Each of these discrete entries has its own Stage.
-    mutable std::vector<CacheEntry> cache;
+    mutable StableArray<CacheEntry> cache;
 
 private:
     State* myHandle;
@@ -276,9 +270,7 @@ void State::advanceToStage(Stage g) const {
         "State::advanceToStage(%s) called but current stage is %s",
         g.name().c_str(), getStage().name().c_str());
 
-    if (g == Stage::Built)
-        rep->finishConstruction();
-    else if (g == Stage::Modeled)
+    if (g == Stage::Modeled)
         rep->finishModeling();
 
     rep->currentStage = g;
@@ -312,13 +304,13 @@ int State::allocateZ(const Vector& zInit) {
     return nxt;
 }
 
-// Modeling stage State variables can only be added during construction; that is,
+// Construction- and Modeling-stage State variables can only be added during construction; that is,
 // while stage <= Built. Other entries can be added while stage < Modeled.
 int State::allocateDiscreteVariable(Stage g, AbstractValue* vp) {
-    SimTK_STAGECHECK_RANGE_ALWAYS(Stage::LowestRuntime, g, Stage::HighestRuntime, 
+    SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateDiscreteVariable()");
 
-    const Stage maxAcceptable = (g == Stage::Modeled ? Stage::Allocated : Stage::Built);
+    const Stage maxAcceptable = (g <= Stage::Modeled ? Stage::Allocated : Stage::Built);
     SimTK_STAGECHECK_LT_ALWAYS(getStage(), maxAcceptable.next(), "State::allocateDiscreteVariable()");
 
     const int nxt = rep->discrete.size();
@@ -327,13 +319,13 @@ int State::allocateDiscreteVariable(Stage g, AbstractValue* vp) {
 }
 
 // Cache entries can be allocated while stage < Modeled, even if they are Modeled-stage entries.
-int State::allocateCacheEntry(Stage s, AbstractValue* vp) {
-    SimTK_STAGECHECK_RANGE_ALWAYS(Stage::LowestRuntime, s, Stage::HighestRuntime, 
+int State::allocateCacheEntry(Stage g, AbstractValue* vp) {
+    SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateCacheEntry()");
     SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateCacheEntry()");
 
     const int nxt = rep->cache.size();
-    rep->cache.push_back(CacheEntry(s,vp));
+    rep->cache.push_back(CacheEntry(g,vp));
     return nxt;
 }
 

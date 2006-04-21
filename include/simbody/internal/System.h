@@ -38,31 +38,20 @@ public:
 
     virtual System* cloneSystem() const = 0;
 
-    virtual void realizeConstruction (State& s)             = 0;
+    virtual void realizeConstruction (State& s)       const = 0;
     virtual void realizeModeling     (State& s)       const = 0;
-
-    virtual void realizeParameters(const State& s) const {
-        s.advanceToStage(Stage::Parametrized);
-    }
-    virtual void realizeTime(const State& s) const {
-        s.advanceToStage(Stage::Timed);
-    }
-    virtual void realizeConfiguration(const State& s) const {
-        s.advanceToStage(Stage::Configured);
-    }
-    virtual void realizeMotion(const State& s) const {
-        s.advanceToStage(Stage::Moving);
-    }
-    virtual void realizeDynamics(const State& s) const {
-        s.advanceToStage(Stage::Dynamics);
-    }
-    virtual void realizeReaction(const State& s) const {
-        s.advanceToStage(Stage::Reacting);
-    }
+    virtual void realizeParameters   (const State& s) const { }
+    virtual void realizeTime         (const State& s) const { }
+    virtual void realizeConfiguration(const State& s) const { }
+    virtual void realizeMotion       (const State& s) const { }
+    virtual void realizeDynamics     (const State& s) const { }
+    virtual void realizeReaction     (const State& s) const { }
 
     void realize(const State& s, Stage g) const {
         while (s.getStage() < g) {
             switch (s.getStage()) {
+            case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+            case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
             case Stage::Modeled:      realizeParameters(s);    break;
             case Stage::Parametrized: realizeTime(s);          break;
             case Stage::Timed:        realizeConfiguration(s); break;
@@ -71,6 +60,7 @@ public:
             case Stage::Dynamics:     realizeReaction(s);      break;
             default: assert(!"System::realize(): bad stage");
             }
+            s.advanceToStage(s.getStage().next());
         }
     }
 
@@ -106,7 +96,7 @@ public:
 
     virtual Subsystem* cloneSubsystem() const = 0;
     virtual void endConstruction() { }
-    virtual void realizeConstruction(State&) = 0;
+    virtual void realizeConstruction(State&) const = 0;
     virtual void realizeModeling(State&) const = 0;
 
 private:
@@ -181,7 +171,7 @@ public:
 
     System* cloneSystem() const {return new MultibodySystem(*this);}
 
-    void realizeConstruction(State& s) {
+    void realizeConstruction(State& s) const {
         mech->realizeConstruction(s);
         forces->realizeConstruction(s);
     }

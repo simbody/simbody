@@ -93,7 +93,7 @@ void stateTest() {
 }
 
 int main() {
-    stateTest();
+    //stateTest();
 
     int major,minor,build;
     char out[100];
@@ -183,12 +183,12 @@ try {
     pend.endConstruction();
 
     State s;
-    pend.realizeConstruction(s);
+    pend.realize(s, Stage::Built);
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
-    pend.realizeModeling(s);
+    pend.realize(s, Stage::Modeled);
 
     //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);

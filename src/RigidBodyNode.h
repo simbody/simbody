@@ -264,7 +264,7 @@ public:
     // in case there are any node-specific default values. At the Configuration
     // stage, for example, the default ball joint q's will be set to 1,0,0,0.
     // Most of these will use the default implementations here, i.e. do nothing.
-    virtual void setDefaultModelingValues     (const State&, SBModelingVars&)      const {}
+    virtual void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&)      const {}
     virtual void setDefaultParameterValues    (const State&, SBParameterVars&)     const {}
     virtual void setDefaultTimeValues         (const State&, SBTimeVars&)          const {}
     virtual void setDefaultConfigurationValues(const State&, Vector& q)            const {}

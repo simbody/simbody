@@ -166,40 +166,44 @@ void RigidBodyTree::endConstruction() {
     built = true;
 }
 
-void RigidBodyTree::realizeConstruction(State& s) {
+void RigidBodyTree::realizeConstruction(State& s) const {
     // This is a long-winded way of saying that the Stage must be exactly Allocated.
     SimTK_STAGECHECK_GE_ALWAYS(s.getStage(), Stage(Stage::Built).prev(), 
         "RigidBodyTree::realizeConstruction()");
     SimTK_STAGECHECK_LT_ALWAYS(s.getStage(), Stage(Stage::Built), 
         "RigidBodyTree::realizeConstruction()");
 
-    // Allocate a cache entry for the constructionCache.
-    constructionCacheIndex = 
-        s.allocateCacheEntry(Stage::Built, new Value<SBConstructionCache>());
+    // Some of our 'const' values must be treated as mutable *just for this call*.
+    // Afterwards they are truly const so we don't declare them mutable, but cheat
+    // here instead.
+    RigidBodyTree* mutableThis = const_cast<RigidBodyTree*>(this);
 
     // Fill in the local copy of the constructionCache from the information
     // calculated in endConstruction(). Also ask the State for some room to
     // put Modeling variables & cache and remember the indices in our construction
     // cache.
 
-    constructionCache.nBodies      = nodeNum2NodeMap.size();
-    constructionCache.nConstraints = constraintNodes.size();
-    constructionCache.nDOFs     = DOFTotal;
-    constructionCache.maxNQs    = maxNQTotal;
-    constructionCache.sumSqDOFs = SqDOFTotal;
-    constructionCache.nDistanceConstraints = distanceConstraints.size();
-    constructionCache.modelingVarsIndex  = 
-        s.allocateDiscreteVariable(Stage::Modeled, new Value<SBModelingVars>());
-    constructionCache.modelingCacheIndex = 
+    mutableThis->constructionCache.nBodies      = nodeNum2NodeMap.size();
+    mutableThis->constructionCache.nConstraints = constraintNodes.size();
+    mutableThis->constructionCache.nDOFs        = DOFTotal;
+    mutableThis->constructionCache.maxNQs       = maxNQTotal;
+    mutableThis->constructionCache.sumSqDOFs    = SqDOFTotal;
+    mutableThis->constructionCache.nDistanceConstraints = distanceConstraints.size();
+
+    SBModelingVars mvars;
+    mvars.allocate(constructionCache);
+    setDefaultModelingValues(constructionCache, mvars);
+    mutableThis->constructionCache.modelingVarsIndex  = 
+        s.allocateDiscreteVariable(Stage::Modeled, new Value<SBModelingVars>(mvars));
+
+    mutableThis->constructionCache.modelingCacheIndex = 
         s.allocateCacheEntry(Stage::Modeled, new Value<SBModelingCache>());
 
-    constructionCache.valid = true;
+    mutableThis->constructionCache.valid = true;
 
-    Value<SBConstructionCache>::downcast(
-        s.updCacheEntry(constructionCacheIndex)).upd() = constructionCache; // save a copy
-
-    setDefaultModelingValues(s, Value<SBModelingVars>::downcast(
-        s.updDiscreteVariable(constructionCache.modelingVarsIndex)));
+    // Allocate a cache entry for the constructionCache, and save a copy there.
+    mutableThis->constructionCacheIndex = 
+        s.allocateCacheEntry(Stage::Built, new Value<SBConstructionCache>(constructionCache));
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
@@ -209,6 +213,8 @@ void RigidBodyTree::realizeModeling(State& s) const {
         "RigidBodyTree::realizeModeling()");
 
     // Get the Modeling-stage cache and make sure it has been allocated and initialized if needed.
+    // It is OK to hold a reference here because the discrete variables (and cache entries) in
+    // the State are stable, that is, they don't change even if more variables are added.
     SBModelingCache& mCache = updModelingCache(s);
     mCache.allocate(constructionCache);
 
@@ -221,7 +227,8 @@ void RigidBodyTree::realizeModeling(State& s) const {
     // the next stage, the parameters. Everything else gets some kind of meaningless initial
     // values but those could change as we realize the higher stages.
     SBParameterVars pvars;
-    pvars.initialize();
+    pvars.allocate(constructionCache);
+    setDefaultParameterValues(s, pvars);
 
     mCache.parameterVarsIndex = 
         s.allocateDiscreteVariable(Stage::Parametrized, 
@@ -236,6 +243,8 @@ void RigidBodyTree::realizeModeling(State& s) const {
     // Position variables are just q's, which the State knows how to deal with. We don't know
     // what values are reasonable for q's so we'll set them to NaN here.
     Vector q(maxNQTotal); q.setToNaN();
+    setDefaultConfigurationValues(s, q);
+
     mCache.qIndex = s.allocateQ(q);
     mCache.qVarsIndex = -1; // no config vars other than q
     mCache.qCacheIndex = s.allocateCacheEntry(Stage::Configured, 
@@ -244,6 +253,8 @@ void RigidBodyTree::realizeModeling(State& s) const {
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
     Vector u(DOFTotal); u.setToZero();
+    setDefaultMotionValues(s, u);
+
     mCache.uIndex = s.allocateU(u);
     mCache.uVarsIndex = -1; // no velocity vars other than u
     mCache.uCacheIndex = s.allocateCacheEntry(Stage::Moving, 
@@ -257,13 +268,16 @@ void RigidBodyTree::realizeModeling(State& s) const {
 
     // Reaction variables are forces and prescribed accelerations
     SBReactionVars rvars;
-    rvars.initialize();
+    rvars.allocate(constructionCache);
+    setDefaultReactionValues(s, rvars);
 
     mCache.reactionVarsIndex = 
         s.allocateDiscreteVariable(Stage::Reacting, new Value<SBReactionVars>(rvars));
     mCache.reactionCacheIndex = 
         s.allocateCacheEntry(Stage::Reacting, new Value<SBReactionCache>());
-    // Note that qdotdots, udots, zdots are automatically allocated in the Reacting stage cache.
+
+    // Note that qdots, qdotdots, udots, zdots are automatically allocated by
+    // the State when we advance the stage past modeling.
 }
 
 // Here we lock in parameterization of the model, such as body masses.
@@ -373,11 +387,12 @@ int RigidBodyTree::getUIndex(int body) const
 int RigidBodyTree::getDOF   (int body) const
   { assert(built);return getRigidBodyNode(body).getDOF();}
 
-void RigidBodyTree::setDefaultModelingValues(const State& s, 
+// We are in the process of realizingConstruction() when we need to make this call.
+// We pass in the partially-completed Construction-stage cache, which must have all
+// the dimensions properly filled in at this point.
+void RigidBodyTree::setDefaultModelingValues(const SBConstructionCache& constructionCache, 
                                              SBModelingVars& modelVars) const 
 {
-    assert(s.getStage() >= Stage::Built);
-
     // Tree-level defaults
     modelVars.useEulerAngles = false;
     //modelVars.prescribed.assign(getNBodies(), false);
@@ -389,7 +404,7 @@ void RigidBodyTree::setDefaultModelingValues(const State& s,
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultModelingValues(s, modelVars);
+            rbNodeLevels[i][j]->setDefaultModelingValues(constructionCache, modelVars);
 
     // TODO: constraint defaults
 }
@@ -397,8 +412,6 @@ void RigidBodyTree::setDefaultModelingValues(const State& s,
 void RigidBodyTree::setDefaultParameterValues(const State& s, 
                                               SBParameterVars& paramVars) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults
     paramVars.gravity = 0.;
 
@@ -413,8 +426,6 @@ void RigidBodyTree::setDefaultParameterValues(const State& s,
 void RigidBodyTree::setDefaultTimeValues(const State& s, 
                                          SBTimeVars& timeVars) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults (none)
 
     // Node/joint-level defaults
@@ -427,8 +438,6 @@ void RigidBodyTree::setDefaultTimeValues(const State& s,
 
 void RigidBodyTree::setDefaultConfigurationValues(const State& s, Vector& q) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults (none)
 
     // Node/joint-level defaults
@@ -441,8 +450,6 @@ void RigidBodyTree::setDefaultConfigurationValues(const State& s, Vector& q) con
 
 void RigidBodyTree::setDefaultMotionValues(const State& s, Vector& u) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults (none)
 
     // Node/joint-level defaults
@@ -456,8 +463,6 @@ void RigidBodyTree::setDefaultMotionValues(const State& s, Vector& u) const
 void RigidBodyTree::setDefaultDynamicsValues(const State& s, 
                                              SBDynamicsVars& dynamicsVars) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults (none)
 
     // Node/joint-level defaults
@@ -471,8 +476,6 @@ void RigidBodyTree::setDefaultDynamicsValues(const State& s,
 void RigidBodyTree::setDefaultReactionValues(const State& s, 
                                              SBReactionVars& reactionVars) const 
 {
-    assert(s.getStage() >= Stage::Modeled);
-
     // Tree-level defaults
     reactionVars.appliedJointForces.setToZero();
     reactionVars.appliedBodyForces.setToZero();

@@ -167,7 +167,7 @@ public:
     /// Note that this modifies the current subsystem to record where
     /// in the State to find the modeling variables. (In turn the
     /// modeling cache will tell us where to find everything else.)
-    void realizeConstruction(State&);
+    void realizeConstruction(State&) const;
 
     /// All Modeling choices are frozen after this call, and all remaining
     /// State variables have been allocated and given appropriate initial
@@ -191,6 +191,8 @@ public:
     void realize(const State& s, Stage g) const {
         while (s.getStage() < g) {
             switch (s.getStage()) {
+            case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+            case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
             case Stage::Modeled:      realizeParameters(s);    break;
             case Stage::Parametrized: realizeTime(s);          break;
             case Stage::Timed:        realizeConfiguration(s); break;
@@ -199,6 +201,7 @@ public:
             case Stage::Dynamics:     realizeReaction(s);      break;
             default: assert(!"SimbodySubsystem::realize(): bad stage");
             }
+            s.advanceToStage(s.getStage().next());
         }
     }
 

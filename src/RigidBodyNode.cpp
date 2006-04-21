@@ -193,7 +193,7 @@ public:
         allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
-    /*virtual*/void setDefaultModelingValues(const State& s, 
+    /*virtual*/void setDefaultModelingValues(const SBConstructionCache&, 
                                              SBModelingVars& v) const
     {
         v.prescribed[0] = true; // ground's motion is prescribed to zero
@@ -334,7 +334,7 @@ public:
     // These routines give each node a chance to set appropriate defaults in a piece
     // of the state corresponding to a particular stage. Default implementations here
     // assume non-ball joint; override if necessary.
-    virtual void setDefaultModelingValues (const State&, SBModelingVars&)  const {}
+    virtual void setDefaultModelingValues (const SBConstructionCache&, SBModelingVars&)  const {}
     virtual void setDefaultParameterValues(const State&, SBParameterVars&) const {}
     virtual void setDefaultTimeValues     (const State&, SBTimeVars&)      const {}
 

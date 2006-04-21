@@ -22,7 +22,7 @@ public:
         return new BasicMechanicalForceElements(*this);
     }
 
-    void realizeConstruction(State&) { }
+    void realizeConstruction(State&) const { }
     void realizeModeling(State&) const { }
 
     void setGravity(const Vec3& g) { defaultGravity=g; }

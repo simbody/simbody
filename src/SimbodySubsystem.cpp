@@ -85,7 +85,7 @@ int SimbodySubsystem::addWeldConstraint
 // Note the lack of a State argument when completing construction.
 void SimbodySubsystem::endConstruction()                          {rep->endConstruction();}
 
-void SimbodySubsystem::realizeConstruction(State& s)              {rep->realizeConstruction(s);}
+void SimbodySubsystem::realizeConstruction(State& s)        const {rep->realizeConstruction(s);}
 void SimbodySubsystem::realizeModeling    (State& s)        const {rep->realizeModeling(s);}
 
 void SimbodySubsystem::realizeParameters   (const State& s) const {rep->realizeParameters(s);}
