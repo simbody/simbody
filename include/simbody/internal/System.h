@@ -1,7 +1,7 @@
-#ifndef SimTK_STATE_H_
-#define SimTK_STATE_H_
+#ifndef SimTK_SIMBODY_SYSTEM_H_
+#define SimTK_SIMBODY_SYSTEM_H_
 
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Copyright (c) 2006 Stanford University and Michael Sherman.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -25,124 +25,222 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/State.h"
 
 namespace SimTK {
 
-class SimTK_SIMBODY_API DiscreteVariable {
+// Stubs.
+
+class SimTK_SIMBODY_API System {
 public:
-    DiscreteVariable() : rep(0) { }
-    DiscreteVariable(const DiscreteVariable&);
-    DiscreteVariable& operator=(const DiscreteVariable&);
-    ~DiscreteVariable();
+    System() { }
+    virtual ~System() { }
 
-    // This takes ownership of the AbstractValue pointer.
-    DiscreteVariable(Stage, AbstractValue* vp);
+    virtual System* cloneSystem() const = 0;
 
-    Stage getStage() const;
-    const AbstractValue& getValue() const;
-    AbstractValue&       updValue();
+    virtual void realizeConstruction (State& s)             = 0;
+    virtual void realizeModeling     (State& s)       const = 0;
+
+    virtual void realizeParameters(const State& s) const {
+        s.advanceToStage(Stage::Parametrized);
+    }
+    virtual void realizeTime(const State& s) const {
+        s.advanceToStage(Stage::Timed);
+    }
+    virtual void realizeConfiguration(const State& s) const {
+        s.advanceToStage(Stage::Configured);
+    }
+    virtual void realizeMotion(const State& s) const {
+        s.advanceToStage(Stage::Moving);
+    }
+    virtual void realizeDynamics(const State& s) const {
+        s.advanceToStage(Stage::Dynamics);
+    }
+    virtual void realizeReaction(const State& s) const {
+        s.advanceToStage(Stage::Reacting);
+    }
+
+    void realize(const State& s, Stage g) const {
+        while (s.getStage() < g) {
+            switch (s.getStage()) {
+            case Stage::Modeled:      realizeParameters(s);    break;
+            case Stage::Parametrized: realizeTime(s);          break;
+            case Stage::Timed:        realizeConfiguration(s); break;
+            case Stage::Configured:   realizeMotion(s);        break;
+            case Stage::Moving:       realizeDynamics(s);      break;
+            case Stage::Dynamics:     realizeReaction(s);      break;
+            default: assert(!"System::realize(): bad stage");
+            }
+        }
+    }
 
 private:
-    class DiscreteVariableRep* rep;
+
 };
 
-class SimTK_SIMBODY_API CacheEntry : public DiscreteVariable {
+class SimTK_SIMBODY_API Study {
 public:
-    CacheEntry() : DiscreteVariable() { }
-
-    // This takes ownership of the AbstractValue pointer.
-    CacheEntry(Stage g, AbstractValue* vp)
-        : DiscreteVariable(g,vp) { }
-
-    CacheEntry(const CacheEntry& ce) : DiscreteVariable(ce) { }
-    CacheEntry& operator=(const CacheEntry& ce) {
-        DiscreteVariable::operator=(ce);
-        return *this;
+    Study(const System& sys)
+      : system(sys.cloneSystem())
+    {
+        system->realizeConstruction(state);
     }
+
+    ~Study() {
+        delete system;
+    }
+
+    const System& getSystem() const {return *system;}
+    const State&  getState()  const {return state;}
+    State&        updState()        {return state;}
+private:
+    System* system;
+    State   state;
+};
+
+
+
+class SimTK_SIMBODY_API Subsystem {
+public:
+    virtual ~Subsystem() { }
+
+    virtual Subsystem* cloneSubsystem() const = 0;
+    virtual void endConstruction() { }
+    virtual void realizeConstruction(State&) = 0;
+    virtual void realizeModeling(State&) const = 0;
+
+private:
+};
+
+class MechanicalForcesSubsystem;
+class SimTK_SIMBODY_API MechanicalSubsystem : public Subsystem {
+public:
+    MechanicalSubsystem() { }
+    virtual ~MechanicalSubsystem() { }
+
+    Subsystem* cloneSubsystem() const {return cloneMechanicalSubsystem();}
+
+    virtual MechanicalSubsystem* cloneMechanicalSubsystem() const = 0;
+
+    virtual void realizeParameters   (const State&) const { }
+    virtual void realizeTime         (const State&) const { }
+    virtual void realizeConfiguration(const State&) const { }
+    virtual void realizeMotion       (const State&) const { }
+    virtual void realizeDynamics     (const State&, const MechanicalForcesSubsystem&) const { }
+    virtual void realizeReaction     (const State&, const MechanicalForcesSubsystem&) const { }
+
+    virtual const Real& getJointQ(const State&, int body, int axis) const = 0;
+    virtual const Real& getJointU(const State&, int body, int axis) const = 0;
+
+    virtual void setJointQ(State&, int body, int axis, const Real&) const = 0;
+    virtual void setJointU(State&, int body, int axis, const Real&) const = 0;
+
+    SimTK_DOWNCAST(MechanicalSubsystem, Subsystem);
+private:
+};
+
+class SimTK_SIMBODY_API MechanicalForcesSubsystem : public Subsystem {
+public:
+    MechanicalForcesSubsystem(const MechanicalSubsystem& m) 
+        : mech(m) 
+    {
+    }
+
+    Subsystem* cloneSubsystem() const {return cloneMechanicalForcesSubsystem();}
+
+    virtual MechanicalForcesSubsystem* cloneMechanicalForcesSubsystem() const = 0;
+
+    virtual void realizeParameters   (const State&, const MechanicalSubsystem&) const { }
+    virtual void realizeTime         (const State&, const MechanicalSubsystem&) const { }
+    virtual void realizeConfiguration(const State&, const MechanicalSubsystem&) const { }
+    virtual void realizeMotion       (const State&, const MechanicalSubsystem&) const { }
+    virtual void realizeDynamics     (const State&, const MechanicalSubsystem&) const { }
+    virtual void realizeReaction     (const State&, const MechanicalSubsystem&) const { }
+
+    SimTK_DOWNCAST(MechanicalForcesSubsystem, Subsystem);
+private:
+    const MechanicalSubsystem& mech;
 };
 
 /**
- * This is the handle class for the hidden State implementation.
- * The default constructor creates a State containing no state variables
- * and with its realization cache stage set to Stage::Allocated.
- * During Subsystem construction, variables and cache entries for any
- * stage can be allocated, however *all* Modeled stage variables
- * must be allocated during this time. At the end of construction,
- * call advanceToStage(Built) which will put the State at Stage::Built.
- * Then the Subsystems realize their Modeled stages, during which 
- * variables at any stage > Modeled, and cache entries at any stage
- * >= Modeled can be allocated. After that call advanceToStage(Modeled) which
- * sets the stage to Stage::Modeled and disallows further allocation.
+ * The job of the MultibodySystem class is to coordinate the activities of a
+ * MechanicalSubsystem and a MechanicalForcesSubsystem.
  */
-class SimTK_SIMBODY_API State {
+class SimTK_SIMBODY_API MultibodySystem : public System {
 public:
-    State();
-    ~State();
-    State(const State&);
-    State& operator=(const State&);
+    MultibodySystem(const MechanicalSubsystem& m, const MechanicalForcesSubsystem& f)
+        : mech(m.cloneMechanicalSubsystem()), forces(f.cloneMechanicalForcesSubsystem())
+    {
+        mech->endConstruction();     // in case user forgot ...
+        forces->endConstruction();
+    }
+    ~MultibodySystem() {
+        delete mech; mech=0;
+        delete forces; forces=0;
+    }
 
-    Stage getStage() const;
+    System* cloneSystem() const {return new MultibodySystem(*this);}
 
-    // If stage is currently at or higher than the passed-in one,
-    // back up to the stage just prior. Otherwise do nothing.
-    void invalidateStage(Stage) const;  // cache is mutable
+    void realizeConstruction(State& s) {
+        mech->realizeConstruction(s);
+        forces->realizeConstruction(s);
+    }
+    void realizeModeling(State& s) const {
+        mech->realizeModeling(s);
+        forces->realizeModeling(s);
+    }
+    void realizeParameters(const State& s) const {
+        mech->realizeParameters(s);
+        forces->realizeParameters(s, *mech);
+    }
+    void realizeTime(const State& s) const {
+        mech->realizeTime(s);
+        forces->realizeTime(s, *mech);
+    }
+    void realizeConfiguration(const State& s) const {
+        mech->realizeConfiguration(s);
+        forces->realizeConfiguration(s, *mech);
+    }
+    void realizeMotion(const State& s) const {
+        mech->realizeMotion(s);
+        forces->realizeMotion(s, *mech);
+    }
+    void realizeDynamics(const State& s) const {
+        forces->realizeDynamics(s, *mech); // note order
+        mech->realizeDynamics(s, *forces);
+    }
+    void realizeReaction(const State& s) const {
+        forces->realizeReaction(s, *mech);
+        mech->realizeReaction(s, *forces);
+    }
 
-    // Advance the current stage by one to the indicated stage.
-    // The stage is passed in just to give us a chance to verify
-    // that all is as expected. You can only advance one stage at
-    // a time. Advancing to "Built" and "Modeled" stages affect
-    // what you can do later.
-    void advanceToStage(Stage) const;
+    const MechanicalSubsystem&       getMechanicalSubsystem()       const {return *mech;}
+    const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const {return *forces;}
 
-    long allocateQRange(long nq); // qdot, qdotdot also allocated in cache
-    long allocateURange(long nu); // udot                    "
-    long allocateZRange(long nz); // zdot                    "
-    long allocateDiscreteVariable(Stage, AbstractValue* v);
-    long allocateCacheEntry(Stage, AbstractValue* v);
-
-    // You can call these as long as stage >= Modeled.
-    const Real&   getTime() const;
-    const Vector& getQ() const;
-    const Vector& getU() const;
-    const Vector& getZ() const;
-
-    // You can call these as long as stage >= Modeled, but the
-    // stage will be backed up if necessary to the indicated stage.
-    Real&   updTime();  // Stage::Timed-1
-    Vector& updQ();     // Stage::Configured-1
-    Vector& updU();     // Stage::Moving-1
-    Vector& updZ();     // Stage::Dynamics-1
-
-    // OK if dv.stage==Modeled or stage >= Modeled
-    const AbstractValue& getDiscreteVariable(int index) const;
-
-    // OK if dv.stage==Modeled or stage >= Modeled; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(int index);
-
-    // Stage >= ce.stage
-    const AbstractValue& getCacheEntry(int index) const;
-
-    // Stage >= ce.stage-1; does not change stage
-    AbstractValue&       updCacheEntry(int index) const; // mutable
-
-    String toString() const;
-    String cacheToString() const;
-
-// ignore everything below here, please.
-    class StateRep* rep;
-    const StateRep& getRep() const {assert(rep); return *rep;}
-    StateRep&       updRep()       {assert(rep); return *rep;}
+    SimTK_DOWNCAST(MultibodySystem, System);
+private:
+    MechanicalSubsystem*       mech;
+    MechanicalForcesSubsystem* forces;
 };
 
-inline std::ostream& 
-operator<<(std::ostream& o, const State& s) {
-    o << "STATE:" << std::endl;
-    o << s.toString() << std::endl;
-    o << "CACHE:" << std::endl;
-    return o << s.cacheToString() << std::endl;
-}
+class SimTK_SIMBODY_API MultibodyDynamicsStudy : public Study {
+public:
+    MultibodyDynamicsStudy(const MultibodySystem& sys)
+        : Study(sys)
+    {
+    }
+
+    const MultibodySystem& getMultibodySystem() const {
+        return MultibodySystem::downcast(getSystem());
+    }
+
+    void advanceTimeBy(const Real& h) { 
+        printf("advanceTimeBy(%g) ... TODO!\n", h);
+    }
+private:
+};
 
 
 } // namespace SimTK
 
-#endif // SimTK_STATE_H_
+#endif // SimTK_SIMBODY_SYSTEM_H_

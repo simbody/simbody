@@ -2,7 +2,8 @@
 #define RIGID_BODY_TREE_H_
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/SimbodyTree.h"
+#include "simbody/internal/SimbodySubsystem.h"
+#include "SimbodyTreeState.h"
 using namespace SimTK;
 
 class RigidBodyNode;
@@ -18,6 +19,13 @@ class SBConfigurationVars;
 class SBMotionVars;
 class SBDynamicsVars;
 class SBReactionVars;
+class SBModelingCache;
+class SBParameterCache;
+class SBTimeCache;
+class SBConfigurationCache;
+class SBMotionCache;
+class SBDynamicsCache;
+class SBReactionCache;
 }
 
 #include <cassert>
@@ -45,7 +53,7 @@ class RigidBodyTree {
 public:
     RigidBodyTree() 
       : nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
-        built(false), modelingVarsIndex(-1), modelingCacheIndex(-1), lConstraints(0) 
+        built(false), constructionCacheIndex(-1), lConstraints(0) 
       { addGroundNode(); }
 
     RigidBodyTree(const RigidBodyTree&);
@@ -89,7 +97,9 @@ public:
                           const RigidBodyNode& child,  const Transform& frameInC);
 
     // Call this after all bodies & constraints have been added.
-    void realizeConstruction (State&); // will set built==true
+    void endConstruction(); // will set built==true
+
+    void realizeConstruction (State&);
     void realizeModeling     (State&) const;
     void realizeParameters   (const State&) const;
     void realizeTime         (const State&) const;
@@ -147,8 +157,8 @@ public:
     void setDefaultModelingValues     (const State&, SBModelingVars&)      const;
     void setDefaultParameterValues    (const State&, SBParameterVars&)     const;
     void setDefaultTimeValues         (const State&, SBTimeVars&)          const;
-    void setDefaultConfigurationValues(const State&, SBConfigurationVars&) const;
-    void setDefaultMotionValues       (const State&, SBMotionVars&)        const;
+    void setDefaultConfigurationValues(const State&, Vector& q)            const;
+    void setDefaultMotionValues       (const State&, Vector& u)            const;
     void setDefaultDynamicsValues     (const State&, SBDynamicsVars&)      const;
     void setDefaultReactionValues     (const State&, SBReactionVars&)      const;
 
@@ -189,25 +199,27 @@ public:
 
         // CALLABLE AFTER realizeModeling()
 
-    void setQ(State&, const Vector& q) const;
-    void setU(State&, const Vector& u) const;
+    const Real& getJointQ(const State& s, int body, int axis) const;
+    const Real& getJointU(const State& s, int body, int axis) const;
 
     void setJointQ(State& s, int body, int axis, const Real& r) const;
     void setJointU(State& s, int body, int axis, const Real& r) const;
     void setPrescribedUdot(State& s, int body, int axis, const Real& r) const;
 
-    const Vector& getQ(const State&) const;
-    Vector&       updQ(State&)       const;
-
-    const Vector& getU(const State&) const;
-    Vector&       updU(State&)       const;
 
     const Vector& getAppliedJointForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
-    const Vector& getQDot(const State&) const;
-    const Vector& getUDot(const State&) const;
-    const Vector& getQDotDot(const State&) const;
+    // Call after realizeConfiguration()
+    const Transform& getBodyConfiguration(const State& s, int body) const;
+
+    // Call after realizeMotion()
+    const SpatialVec& getBodyVelocity(const State& s, int body) const;
+
+
+    // Call after realizeReactions()
+    const SpatialVec& getBodyAcceleration(const State& s, int body) const;
+
 
 
     // Dynamics -- calculate accelerations and internal forces from 
@@ -258,54 +270,196 @@ public:
         const RBStation& s1, const RBStation& s2, const Real& d,
         int multIndex);
 
-private:
-    struct RigidBodyNodeIndex {
-        RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
-        int level, offset;
-    };
+    //
+    //    STATE ARCHEOLOGY
+    //    These routines know where the bodies are buried (no pun intended).
+    //
 
-    // Initialize to 0 at beginning of construction. These are for doling
-    // out Q & U state variables to the nodes.
-    int nextUSlot;
-    int nextUSqSlot;
-    int nextQSlot;
-
-    // set by realizeConstruction
-    int DOFTotal;   // summed over all nodes
-    int SqDOFTotal; // sum of squares of ndofs per node
-    int maxNQTotal; // sum of dofs with room for quaternions
-
-    bool built;
-
-    // These are the slots we were given in the State to hold our Modeled-stage
-    // variables and cache.
-    int modelingVarsIndex;
-    int modelingCacheIndex;
+    // The ConstructionCache in the State should be a copy of the one
+    // we keep locally here. We always use our local copy rather than
+    // this one except for checking that the State looks reasonable.
+    const SBConstructionCache& getConstructionCache(const State& s) const {
+        assert(built && constructionCacheIndex >= 0);
+        return Value<SBConstructionCache>::downcast
+            (s.getCacheEntry(constructionCacheIndex)).get();
+    }
+    SBConstructionCache& updConstructionCache(const State& s) const { //mutable
+        assert(built && constructionCacheIndex >= 0);
+        return Value<SBConstructionCache>::downcast
+            (s.updCacheEntry(constructionCacheIndex)).upd();
+    }
 
     const SBModelingCache& getModelingCache(const State& s) const {
         return Value<SBModelingCache>::downcast
-            (s.getCacheEntry(modelingCacheIndex)).get();
+            (s.getCacheEntry(constructionCache.modelingCacheIndex)).get();
     }
-    SBModelingCache&       updModelingCache(const State& s) const { //mutable
+    SBModelingCache& updModelingCache(const State& s) const { //mutable
         return Value<SBModelingCache>::downcast
-            (s.updCacheEntry(modelingCacheIndex)).upd();
+            (s.updCacheEntry(constructionCache.modelingCacheIndex)).upd();
+    }
+
+    const SBParameterCache& getParameterCache(const State& s) const {
+        return Value<SBParameterCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).parameterCacheIndex)).get();
+    }
+    SBParameterCache& updParameterCache(const State& s) const { //mutable
+        return Value<SBParameterCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).parameterCacheIndex)).upd();
+    }
+
+    const SBTimeCache& getTimeCache(const State& s) const {
+        return Value<SBTimeCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).timeCacheIndex)).get();
+    }
+    SBTimeCache& updTimeCache(const State& s) const { //mutable
+        return Value<SBTimeCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).timeCacheIndex)).upd();
+    }
+
+    const SBConfigurationCache& getConfigurationCache(const State& s) const {
+        return Value<SBConfigurationCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).qCacheIndex)).get();
+    }
+    SBConfigurationCache& updConfigurationCache(const State& s) const { //mutable
+        return Value<SBConfigurationCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).qCacheIndex)).upd();
+    }
+
+    const SBMotionCache& getMotionCache(const State& s) const {
+        return Value<SBMotionCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).uCacheIndex)).get();
+    }
+    SBMotionCache& updMotionCache(const State& s) const { //mutable
+        return Value<SBMotionCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).uCacheIndex)).upd();
+    }
+
+    const SBDynamicsCache& getDynamicsCache(const State& s) const {
+        return Value<SBDynamicsCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).dynamicsCacheIndex)).get();
+    }
+    SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
+        return Value<SBDynamicsCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).dynamicsCacheIndex)).upd();
+    }
+
+    const SBReactionCache& getReactionCache(const State& s) const {
+        return Value<SBReactionCache>::downcast
+            (s.getCacheEntry(getModelingCache(s).reactionCacheIndex)).get();
+    }
+    SBReactionCache& updReactionCache(const State& s) const { //mutable
+        return Value<SBReactionCache>::downcast
+            (s.updCacheEntry(getModelingCache(s).reactionCacheIndex)).upd();
     }
 
 
-    // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
-    Array<RBNodePtrList>      rbNodeLevels;
-    // Map nodeNum to (level,offset).
-    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
+    const SBModelingVars& getModelingVars(const State& s) const {
+        return Value<SBModelingVars>::downcast
+            (s.getDiscreteVariable(constructionCache.modelingVarsIndex)).get();
+    }
+    SBModelingVars& updModelingVars(State& s) const {
+        return Value<SBModelingVars>::downcast
+            (s.updDiscreteVariable(constructionCache.modelingVarsIndex)).upd();
+    }
 
-    // This holds pointers to the abstract constraint nodes which correspond
-    // the the user's idea of constraints in a manner analogous to the
-    // linked bodies represented by RigidBodyNodes. Each of these may generate
-    // several constraint equations.
-    Array<ConstraintNode*>       constraintNodes;
-    Array<RBDistanceConstraint*> distanceConstraints;
+    const SBParameterVars& getParameterVars(const State& s) const {
+        return Value<SBParameterVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).parameterVarsIndex)).get();
+    }
+    SBParameterVars& updParameterVars(State& s) const {
+        return Value<SBParameterVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).parameterVarsIndex)).upd();
+    }
+
+    const SBTimeVars& getTimeVars(const State& s) const {
+        return Value<SBTimeVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).timeVarsIndex)).get();
+    }
+    SBTimeVars& updTimeVars(State& s) const {
+        return Value<SBTimeVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).timeVarsIndex)).upd();
+    }
+
+    const SBConfigurationVars& getConfigurationVars(const State& s) const {
+        return Value<SBConfigurationVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).qVarsIndex)).get();
+    }
+    SBConfigurationVars& updConfigurationVars(State& s) const {
+        return Value<SBConfigurationVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).qVarsIndex)).upd();
+    }
+
+    const SBMotionVars& getMotionVars(const State& s) const {
+        return Value<SBMotionVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).uVarsIndex)).get();
+    }
+    SBMotionVars& updMotionVars(State& s) const {
+        return Value<SBMotionVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).uVarsIndex)).upd();
+    }
+
+    const SBDynamicsVars& getDynamicsVars(const State& s) const {
+        return Value<SBDynamicsVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).dynamicsVarsIndex)).get();
+    }
+    SBDynamicsVars& updDynamicsVars(State& s) const {
+        return Value<SBDynamicsVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).dynamicsVarsIndex)).upd();
+    }
+
+    const SBReactionVars& getReactionVars(const State& s) const {
+        return Value<SBReactionVars>::downcast
+            (s.getDiscreteVariable(getModelingCache(s).reactionVarsIndex)).get();
+    }
+    SBReactionVars& updReactionVars(State& s) const {
+        return Value<SBReactionVars>::downcast
+            (s.updDiscreteVariable(getModelingCache(s).reactionVarsIndex)).upd();
+    }
+
     
-    LengthConstraints* lConstraints;
+    // Access to our portion of State arrays.
+    void setQ(State& s, const Vector& q) const {
+        assert(q.size() == constructionCache.maxNQs);
+        updQ(s) = q;
+    }
+    void setU(State& s, const Vector& u) const {
+        assert(u.size() == constructionCache.nDOFs);
+        updU(s) = u;
+    }
 
+    const Vector& getQ(const State& s) const {
+        return s.getQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+    Vector& updQ(State& s) const {
+        return s.updQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+    const Vector& getQDot(const State& s) const {
+        return s.getQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+    Vector& updQDot(const State& s) const { // mutable
+        return s.updQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+    const Vector& getQDotDot(const State& s) const {
+        return s.getQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+    Vector& updQDotDot(const State& s) const { // mutable
+        return s.updQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
+    }
+
+    const Vector& getU(const State& s) const {
+        return s.getU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
+    }
+    Vector& updU(State& s) const {
+        return s.updU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
+    }
+    const Vector& getUDot(const State& s) const {
+        return s.getUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
+    }
+    Vector& updUDot(const State& s) const { // mutable
+        return s.updUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
+    }
+
+private:
     void addGroundNode();
     int addConstraintNode(ConstraintNode*&);
 
@@ -324,7 +478,44 @@ private:
     void calcLoopForwardDynamics(const State&) const;
 
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
-    friend class SimbodyTree;
+    friend class SimbodySubsystem;
+
+    struct RigidBodyNodeIndex {
+        RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
+        int level, offset;
+    };
+
+private:
+    // Initialize to 0 at beginning of construction. These are for doling
+    // out Q & U state variables to the nodes.
+    int nextUSlot;
+    int nextUSqSlot;
+    int nextQSlot;
+
+    // set by endConstruction
+    int DOFTotal;   // summed over all nodes
+    int SqDOFTotal; // sum of squares of ndofs per node
+    int maxNQTotal; // sum of dofs with room for quaternions
+    bool built;
+
+    // set by realizeConstruction
+    SBConstructionCache constructionCache;
+    int constructionCacheIndex; // constructionCache is copied here in the State
+
+    // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
+    Array<RBNodePtrList>      rbNodeLevels;
+    // Map nodeNum to (level,offset).
+    std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
+
+    // This holds pointers to the abstract constraint nodes which correspond
+    // the the user's idea of constraints in a manner analogous to the
+    // linked bodies represented by RigidBodyNodes. Each of these may generate
+    // several constraint equations.
+    Array<ConstraintNode*>       constraintNodes;
+    Array<RBDistanceConstraint*> distanceConstraints;
+    
+    LengthConstraints* lConstraints;
+
 };
 
 std::ostream& operator<<(std::ostream&, const RigidBodyTree&);

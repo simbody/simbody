@@ -63,140 +63,15 @@ using std::endl;
 
 using namespace SimTK;
 
-class Reporter {
-};
-class System {
-};
-
-class Study {
-};
-
-class MechanicalSubsystem {
-public:
-    void realizeConstruction(State&);
-    void realizeModeling(State&);
-    void realize(const State&, const ForceSubsystem&, Stage);
-private:
-};
-
-class ForceSubsystem {
-public:
-    void realizeConstruction(State&);
-    void realizeModeling(State&);
-    void realize(const State&, const MechanicalSubsystem&, Stage);
-private:
-};
-
-class MultibodySystem : public System {
-    MultibodySystem()
-    {
-    }
-
-    const MechanicalSubsystem& getMechanicalSubsystem() const;
-    const ForceSubsystem&      getForceSubsystem() const;
-
-    void realizeConstruction(State& s) const {
-        mech.realizeConstruction(s);
-        forces.realizeConstruction(s);
-    }
-    void realizeModeling(State& s) const {
-        mech.realizeModeling(s, forces);
-        forces.realizeModeling(s, mech);
-    }
-
-    void realize(const State& s, Stage g) const {
-        while (s.getStage() < g) {
-            switch (s.getStage()) {
-            case Stage::Modeled:    realizeTime(s);          break;
-            case Stage::Timed:      realizeConfiguration(s); break;
-            case Stage::Configured: realizeMotion(s);        break;
-            case Stage::Motion:     realizeDynamics(s);      break;
-            case Stage::Dynamics:   realizeReaction(s);      break;
-            default: assert(!"MultibodySystem::realize(): bad stage");
-            }
-        }
-    }
-
-private:
-    void realizeTime(const State& s) const {
-        mech.realize(s, forces, Stage::Timed);
-        forces.realize(s, mech, Stage::Timed);
-    }
-    void realizeConfiguration(const State& s) const {
-        mech.realize(s, forces, Stage::Configured);
-        forces.realize(s, mech, Stage::Configured);
-    }
-    void realizeMotion(const State& s) const {
-        mech.realize(s, forces, Stage::Moving);
-        forces.realize(s, mech, Stage::Moving);
-    }
-    void realizeDynamics(const State& s) const {
-        forces.realize(s, mech, Stage::Dynamics); // note order
-        mech.realize(s, forces, Stage::Dynamics);
-    }
-    void realizeReaction(const State& s) const {
-        forces.realize(s, mech, Stage::Reacting);
-        mech.realize(s, forces, Stage::Reacting);
-    }
-
-    MechanicalSubsystem mech;
-    ForceSubsystem      forces;
-};
-
-class MultibodyDynamicsStudy : public Study {
-public:
-    MultibodyDynamicsStudy(const MultibodySystem& mbs);
-
-    void setCurrentState(const State& s) {currentState=s;}
-    const State& getCurrentState() const {return currentState;}
-    State& updCurrentState() {return currentState;}
-
-
-
-private:
-    const MultibodySystem& multibody;
-    State currentState;
-};
-
-class MyReporter : public Reporter {
-public:
-    MyReporter(std::ostream& o) : out(o) { }
-
-    void report(const MechanicalSystem& sys,
-                const State& state,
-                StepKind step);
-
-private:
-    std::ostream& out;
-};
-
-
-void nothingYet() {
-    SimbodyTree tree; // a mechanical system
-    // add the bodies
-    // complete construction
-    BasicForceElements sd(tree); // a force system
-    int mySpring = sd.addSpringDamper(0, Vec3(1,2,3), 1, Vec3(2,3,4),
-                                      stiffness, zeroLength, damping);
-    sd.setGravity(Vec3(0,-9.8,0));
-
-    MultibodySystem sys(tree, sd);
-    MultibodyStudy study(sys);
-    State& s=study.updState();
-    tree.setJointQ(s, 3, 0, 10.*Constants<Real>::degreesToRadians);
-    sd.setSpringStiffness(s, mySpring, 27.);
-
-    study.forwardDynamics(10., MyReporter(std::cout));
-
-}
 
 void stateTest() {
   try {
     State s;
     s.advanceToStage(Stage::Built);
 
-    long q1 = s.allocateQRange(3);
-    long q2 = s.allocateQRange(2);
+    Vector v3(3), v2(2);
+    long q1 = s.allocateQ(v3);
+    long q2 = s.allocateQ(v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
@@ -252,7 +127,7 @@ int main() {
 
 
 try {
-    SimbodyTree pend;
+    SimbodySubsystem pend;
 
     Real L = 5.; 
     Real m = 3.;
@@ -270,23 +145,23 @@ try {
 
     Vec3 gravity(0.,-9.8,0.);
     int theBody = 
-      pend.addRigidBody(0, Transform(), 
+      pend.addRigidBody(mprops, jointFrame,
+                        0, Transform(), 
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         //JointSpecification(JointSpecification::Pin, false),
                         //JointSpecification(JointSpecification::Ball, false),
-                        JointSpecification(JointSpecification::Free, false),
-                        jointFrame, mprops);
+                        JointSpecification(JointSpecification::Free, false));
 
 /*
     int secondBody = 
-      pend.addRigidBody(theBody, Transform(Vec3(L/2,0,0)), 
+      pend.addRigidBody(mprops, jointFrame,
+                        theBody, Transform(Vec3(L/2,0,0)), 
                         //JointSpecification(JointSpecification::Cartesian, false),
                         //JointSpecification(JointSpecification::Sliding, false),
                         JointSpecification(JointSpecification::Pin, false),
                         //JointSpecification(JointSpecification::Ball, false),
-                        //JointSpecification(JointSpecification::Free, false),
-                        jointFrame, mprops);
+                        //JointSpecification(JointSpecification::Free, false));
 */
     //int theConstraint =
     //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
@@ -304,13 +179,16 @@ try {
         pend.addWeldConstraint(0, Transform(),
                               theBody, harderOne);    
 */
-    pend.realizeConstruction();
-    SBState s = pend.getInitialState();
+
+    pend.endConstruction();
+
+    State s;
+    pend.realizeConstruction(s);
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
-    pend.realize(s, Stage::Modeled);
+    pend.realizeModeling(s);
 
     //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);

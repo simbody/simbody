@@ -20,7 +20,7 @@ public:
     { }
 
     template<class CalcB,class CalcZ,class VecType>
-    void calc(VecType& x, CalcB calcB, CalcZ calcZ) 
+    void calc(VecType& x, CalcB calcB, CalcZ calcZ) const 
     {
         if ( verbose )
             errStream << "NewtonRaphson: start.\n";

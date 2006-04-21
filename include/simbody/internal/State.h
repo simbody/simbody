@@ -94,11 +94,11 @@ public:
     // what you can do later.
     void advanceToStage(Stage) const;
 
-    long allocateQRange(long nq); // qdot, qdotdot also allocated in cache
-    long allocateURange(long nu); // udot                    "
-    long allocateZRange(long nz); // zdot                    "
-    long allocateDiscreteVariable(Stage, AbstractValue* v);
-    long allocateCacheEntry(Stage, AbstractValue* v);
+    int allocateQ(const Vector& qInit); // qdot, qdotdot also allocated in cache
+    int allocateU(const Vector& uInit); // udot                    "
+    int allocateZ(const Vector& zInit); // zdot                    "
+    int allocateDiscreteVariable(Stage, AbstractValue* v);
+    int allocateCacheEntry(Stage, AbstractValue* v);
 
     // You can call these as long as stage >= Modeled.
     const Real&   getTime() const;
@@ -112,6 +112,17 @@ public:
     Vector& updQ();     // Stage::Configured-1
     Vector& updU();     // Stage::Moving-1
     Vector& updZ();     // Stage::Dynamics-1
+
+    const Vector& getQDot() const; // Stage::Moving
+    const Vector& getZDot() const; // Stage::Dynamics
+    const Vector& getUDot() const; // Stage::Reacting
+    const Vector& getQDotDot() const; // Stage::Reacting
+
+    // These are mutable
+    Vector& updQDot() const;    // Stage::Moving-1
+    Vector& updZDot() const;    // Stage::Dynamics-1
+    Vector& updUDot() const;    // Stage::Reacting-1
+    Vector& updQDotDot() const; // Stage::Reacting-1
 
     // OK if dv.stage==Modeled or stage >= Modeled
     const AbstractValue& getDiscreteVariable(int index) const;

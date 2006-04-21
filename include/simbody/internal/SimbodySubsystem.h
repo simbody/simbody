@@ -1,7 +1,10 @@
-#ifndef SimTK_SIMBODY_TREE_H_
-#define SimTK_SIMBODY_TREE_H_
+#ifndef SimTK_SIMBODY_SUBSYSTEM_H_
+#define SimTK_SIMBODY_SUBSYSTEM_H_
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/State.h"
+#include "simbody/internal/System.h"
+
 #include "simbody/internal/SimbodyState.h"
 
 #include <cassert>
@@ -98,21 +101,25 @@ private:
  * mult: mult = pinv(AM~A)(A inv(M)f - b). Then the real udot is
  * udot = udot0 - udotC, with udotC = inv(M)(~A mult).
  */
-class SimTK_SIMBODY_API SimbodyTree {
+class SimTK_SIMBODY_API SimbodySubsystem : public MechanicalSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
-    SimbodyTree();
-    ~SimbodyTree();
-    SimbodyTree(const SimbodyTree&);
-    SimbodyTree& operator=(const SimbodyTree&);
+    SimbodySubsystem();
+    ~SimbodySubsystem();
+    SimbodySubsystem(const SimbodySubsystem&);
+    SimbodySubsystem& operator=(const SimbodySubsystem&);
+
+    MechanicalSubsystem* cloneMechanicalSubsystem() const {
+        return new SimbodySubsystem(*this);
+    }
 
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addRigidBody(int                       parent,
-                     const Transform&          parentJointFrameInP,
-                     const JointSpecification& joint,
+    int addRigidBody(const MassProperties&,
                      const Transform&          bodyJointFrameInB,
-                     const MassProperties&);
+                     int                       parent,
+                     const Transform&          parentJointFrameInP,
+                     const JointSpecification& joint);
 
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
@@ -153,10 +160,13 @@ public:
     int addWeldConstraint(int parent, const Transform& frameInP,
                           int child,  const Transform& frameInC);
 
-    /// Topology and default values are frozen after this call, and all
-    /// Modeling variables have been allocated slots in the State and
-    /// given appropriate default values. The State's stage cannot be
-    /// any higher than Allocated.
+    /// Topology and default values are frozen after this call.
+    void endConstruction();
+
+    /// Allocate slots for modeling variables in the supplied State.
+    /// Note that this modifies the current subsystem to record where
+    /// in the State to find the modeling variables. (In turn the
+    /// modeling cache will tell us where to find everything else.)
     void realizeConstruction(State&);
 
     /// All Modeling choices are frozen after this call, and all remaining
@@ -178,7 +188,19 @@ public:
     /// but to have the common parent System generate the reactions.
     void realizeReaction     (const State&/*, const ForceSubsystem&*/) const;
 
-    void realize(const State&, Stage) const;
+    void realize(const State& s, Stage g) const {
+        while (s.getStage() < g) {
+            switch (s.getStage()) {
+            case Stage::Modeled:      realizeParameters(s);    break;
+            case Stage::Parametrized: realizeTime(s);          break;
+            case Stage::Timed:        realizeConfiguration(s); break;
+            case Stage::Configured:   realizeMotion(s);        break;
+            case Stage::Moving:       realizeDynamics(s);      break;
+            case Stage::Dynamics:     realizeReaction(s);      break;
+            default: assert(!"SimbodySubsystem::realize(): bad stage");
+            }
+        }
+    }
 
     // Operators
 
@@ -295,6 +317,12 @@ public:
     const SpatialVec& getBodyVelocity     (const State&, int body) const;
     const SpatialVec& getBodyAcceleration (const State&, int body) const;
 
+    const Real& getJointQ(const State&, int body, int axis) const;
+    const Real& getJointU(const State&, int body, int axis) const;
+    const Real& getJointQDot(const State&, int body, int axis) const;
+    const Real& getJointUDot(const State&, int body, int axis) const;
+    const Real& getJointQDotDot(const State&, int body, int axis) const;
+
     const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
         const Transform& X_GB = getBodyConfiguration(s, body);
         return X_GB.T() + X_GB.R() * station_B;
@@ -319,8 +347,8 @@ private:
 };
 
 SimTK_SIMBODY_API std::ostream& 
-operator<<(std::ostream&, const SimbodyTree&);
+operator<<(std::ostream&, const SimbodySubsystem&);
 
 };
 
-#endif // SimTK_SIMBODY_TREE_H_
+#endif // SimTK_SIMBODY_SUBSYSTEM_H_

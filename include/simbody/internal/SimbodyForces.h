@@ -2,11 +2,35 @@
 #define SimTK_SIMBODY_FORCES_H_
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/State.h"
+#include "simbody/internal/System.h"
+
 #include "simbody/internal/SimbodyState.h"
 
 #include <cassert>
 
 namespace SimTK {
+
+class BasicMechanicalForceElements : public MechanicalForcesSubsystem {
+public:
+    BasicMechanicalForceElements(const MechanicalSubsystem& mech) 
+        : MechanicalForcesSubsystem(mech), defaultGravity(0)
+    {
+    }
+
+    MechanicalForcesSubsystem* cloneMechanicalForcesSubsystem() const {
+        return new BasicMechanicalForceElements(*this);
+    }
+
+    void realizeConstruction(State&) { }
+    void realizeModeling(State&) const { }
+
+    void setGravity(const Vec3& g) { defaultGravity=g; }
+
+    SimTK_DOWNCAST2(BasicMechanicalForceElements, MechanicalForcesSubsystem, Subsystem);
+private:
+    Vec3 defaultGravity;
+};
 
 
 // Construction invariants are:
@@ -54,7 +78,7 @@ public:
 
     void realizeTime         (const State&) const { }
 
-    void realizeConfiguration(const State& s, const SimbodyTree& t) const {
+    void realizeConfiguration(const State& s, const SimbodySubsystem& t) const {
         Results&          c = updCacheEntries(s);
         const Parameters& v = parametrized ? getStateVariables(s) : defaultState;
 

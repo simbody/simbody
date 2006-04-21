@@ -293,15 +293,17 @@ public:
         toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
-    void realizeModeling(const SimTK::State&) const {
+    void realizeModeling(const State&) const {
     }
 
-    void realizeParameters(const SimTK::State&) const {
+    void realizeParameters(const State&) const {
     }
 
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
-    void realizeConfiguration(const State& s, SBConfigurationCache& configCache) const {
+    void realizeConfiguration(const State& s) const {
+        SBConfigurationCache& configCache = tree->updConfigurationCache(s);
+
         calcJointSinCosQNorm     (s, configCache.sq,
                                      configCache.cq,
                                      configCache.qnorm);
@@ -309,16 +311,15 @@ public:
         calcBodyTransforms       (s, updX_PB(s), updX_GB(s));
         calcJointTransitionMatrix(s, updH(s));
 
-        calcJointIndependentKinematicsPos(s, configCache);
+        calcJointIndependentKinematicsPos(s);
     }
 
     // Set new velocities for the current configuration, and calculate
     // all the velocity-dependent terms. Must call base-to-tip.
-    void realizeMotion(const State& s, const Vector& u, 
-                       Vector& qdot, SBMotionCache& motionCache) const {
-        calcQDot(s, u, qdot);
-        calcJointKinematicsVel(s, motionCache);
-        calcJointIndependentKinematicsVel(s, motionCache);
+    void realizeMotion(const State& s) const {
+        calcQDot(s, tree->getU(s), tree->updQDot(s));
+        calcJointKinematicsVel(s);
+        calcJointIndependentKinematicsVel(s);
     }
 
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
@@ -415,33 +416,35 @@ public:
     // that you can't use these for quaternions since they extract "dof" items.
 
     // State variables (read only).
-    const Vec<dof>&   getQ             (const State& s) const {return fromQ(s.configVars.q);}
-    const Vec<dof>&   getU             (const State& s) const {return fromU(s.motionVars.u);}
-    const Vec<dof>&   getAppliedJointForce(const State& s) const {return fromU(s.reactionVars.appliedJointForces);}
-    const Vec<dof>&   getPrescribedUdot   (const State& s) const {return fromU(s.reactionVars.prescribedUdot);}
+    const Vec<dof>&   getQ             (const State& s) const {return fromQ(tree->getQ(s));}
+    const Vec<dof>&   getU             (const State& s) const {return fromU(tree->getU(s));}
+    const Vec<dof>&   getAppliedJointForce(const State& s) const 
+        {return fromU(tree->getReactionVars(s).appliedJointForces);}
+    const Vec<dof>&   getPrescribedUdot   (const State& s) const 
+        {return fromU(tree->getReactionVars(s).prescribedUdot);}
 
     // Special case state access for 1-dof joints
-    const Real& get1Q             (const State& s) const {return from1Q(s.configVars.q);}
-    const Real& get1U             (const State& s) const {return from1U(s.motionVars.u);}
-    const Real& get1AppliedJointForce(const State& s) const {return from1U(s.reactionVars.appliedJointForces);}
-    const Real& get1PrescribedUdot   (const State& s) const {return from1U(s.reactionVars.prescribedUdot);}
+    const Real& get1Q             (const State& s) const {return from1Q(tree->getQ(s));}
+    const Real& get1U             (const State& s) const {return from1U(tree->getU(s));}
+    const Real& get1AppliedJointForce(const State& s) const {return from1U(tree->getReactionVars(s).appliedJointForces);}
+    const Real& get1PrescribedUdot   (const State& s) const {return from1U(tree->getReactionVars(s).prescribedUdot);}
 
     // Special case for quaternions and Vec3 at offset.
-    const Vec4& getQuat (const State& s)           const {return fromQuat(s.configVars.q);}
-    const Vec3& getQVec3(const State& s, int offs) const {return fromQVec3(s.configVars.q, offs);}
-    const Vec3& getUVec3(const State& s, int offs) const {return fromUVec3(s.motionVars.u, offs);}
+    const Vec4& getQuat (const State& s)           const {return fromQuat(tree->getQ(s));}
+    const Vec3& getQVec3(const State& s, int offs) const {return fromQVec3(tree->getQ(s), offs);}
+    const Vec3& getUVec3(const State& s, int offs) const {return fromUVec3(tree->getU(s), offs);}
 
     // State variables for updating; be careful. This is only appropriate for "solvers", such as
     // a method which modifies state variables to satisfy constraints.
-    Vec<dof>& updQ (State& s) const {return toQ(s.configVars.q);}
-    Vec<dof>& updU (State& s) const {return toU(s.motionVars.u);} 
-    Real&     upd1Q(State& s) const {return to1Q(s.configVars.q);}
-    Real&     upd1U(State& s) const {return to1U(s.motionVars.u);} 
+    Vec<dof>& updQ (State& s) const {return toQ(tree->updQ(s));}
+    Vec<dof>& updU (State& s) const {return toU(tree->updU(s));} 
+    Real&     upd1Q(State& s) const {return to1Q(tree->updQ(s));}
+    Real&     upd1U(State& s) const {return to1U(tree->updU(s));} 
 
     // Special case for quaternions and Vec3 at offset.
-    Vec4& updQuat (State& s)           const {return toQuat(s.configVars.q);}
-    Vec3& updQVec3(State& s, int offs) const {return toQVec3(s.configVars.q, offs);}
-    Vec3& updUVec3(State& s, int offs) const {return toUVec3(s.motionVars.u, offs);}
+    Vec4& updQuat (State& s)           const {return toQuat(tree->updQ(s));}
+    Vec3& updQVec3(State& s, int offs) const {return toQVec3(tree->updQ(s), offs);}
+    Vec3& updUVec3(State& s, int offs) const {return toUVec3(tree->updU(s), offs);}
 
     // Cache entries (cache is mutable in a const State)
 
@@ -449,70 +452,70 @@ public:
 
     // TODO: should store as H or else always reference Ht
     const Mat<dof,2,Row3,1,2>& getH(const State& s) const
-      { return ~Mat<2,dof,Vec3>::getAs(&s.configCache.storageForHt(0,uIndex)); }
+      { return ~Mat<2,dof,Vec3>::getAs(&tree->getConfigurationCache(s).storageForHt(0,uIndex)); }
     Mat<dof,2,Row3,1,2>&       updH(const State& s) const
-      { return ~Mat<2,dof,Vec3>::updAs(&s.configCache.storageForHt(0,uIndex)); }
+      { return ~Mat<2,dof,Vec3>::updAs(&tree->updConfigurationCache(s).storageForHt(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
-    const Vec<dof>&   getSinQ   (const State& s) const {return fromQ (s.configCache.sq);}
-    Vec<dof>&         updSinQ   (const State& s) const {return toQ   (s.configCache.sq);}
-    const Real&       get1SinQ  (const State& s) const {return from1Q(s.configCache.sq);}
-    Real&             upd1SinQ  (const State& s) const {return to1Q  (s.configCache.sq);}
+    const Vec<dof>&   getSinQ   (const State& s) const {return fromQ (tree->getConfigurationCache(s).sq);}
+    Vec<dof>&         updSinQ   (const State& s) const {return toQ   (tree->updConfigurationCache(s).sq);}
+    const Real&       get1SinQ  (const State& s) const {return from1Q(tree->getConfigurationCache(s).sq);}
+    Real&             upd1SinQ  (const State& s) const {return to1Q  (tree->updConfigurationCache(s).sq);}
 
-    const Vec<dof>&   getCosQ   (const State& s) const {return fromQ (s.configCache.cq);}
-    Vec<dof>&         updCosQ   (const State& s) const {return toQ   (s.configCache.cq);}
-    const Real&       get1CosQ  (const State& s) const {return from1Q(s.configCache.cq);}
-    Real&             upd1CosQ  (const State& s) const {return to1Q  (s.configCache.cq);}
+    const Vec<dof>&   getCosQ   (const State& s) const {return fromQ (tree->getConfigurationCache(s).cq);}
+    Vec<dof>&         updCosQ   (const State& s) const {return toQ   (tree->updConfigurationCache(s).cq);}
+    const Real&       get1CosQ  (const State& s) const {return from1Q(tree->getConfigurationCache(s).cq);}
+    Real&             upd1CosQ  (const State& s) const {return to1Q  (tree->updConfigurationCache(s).cq);}
 
     // These are normalized quaternions in slots for balls. Everything else is garbage.
-    const Vec4&       getQNorm  (const State& s) const {return fromQuat(s.configCache.qnorm);}
-    Vec4&             updQNorm  (const State& s) const {return toQuat  (s.configCache.qnorm);}
+    const Vec4&       getQNorm  (const State& s) const {return fromQuat(tree->getConfigurationCache(s).qnorm);}
+    Vec4&             updQNorm  (const State& s) const {return toQuat  (tree->updConfigurationCache(s).qnorm);}
 
         // Motion
 
-    const Vec<dof>&   getQDot   (const State& s) const {return fromQ (s.motionCache.qdot);}
-    Vec<dof>&         updQDot   (const State& s) const {return toQ   (s.motionCache.qdot);}
-    const Real&       get1QDot  (const State& s) const {return from1Q(s.motionCache.qdot);}
-    Real&             upd1QDot  (const State& s) const {return to1Q  (s.motionCache.qdot);}
+    const Vec<dof>&   getQDot   (const State& s) const {return fromQ (tree->getMotionCache(s).qdot);}
+    Vec<dof>&         updQDot   (const State& s) const {return toQ   (tree->updMotionCache(s).qdot);}
+    const Real&       get1QDot  (const State& s) const {return from1Q(tree->getMotionCache(s).qdot);}
+    Real&             upd1QDot  (const State& s) const {return to1Q  (tree->updMotionCache(s).qdot);}
 
         // Dynamics
-    const Mat<dof,dof>& getD(const State& s) const {return fromUSq(s.dynamicsCache.storageForD);}
-    Mat<dof,dof>&       updD(const State& s) const {return toUSq  (s.dynamicsCache.storageForD);}
+    const Mat<dof,dof>& getD(const State& s) const {return fromUSq(tree->getDynamicsCache(s).storageForD);}
+    Mat<dof,dof>&       updD(const State& s) const {return toUSq  (tree->updDynamicsCache(s).storageForD);}
 
-    const Mat<dof,dof>& getDI(const State& s) const {return fromUSq(s.dynamicsCache.storageForDI);}
-    Mat<dof,dof>&       updDI(const State& s) const {return toUSq  (s.dynamicsCache.storageForDI);}
+    const Mat<dof,dof>& getDI(const State& s) const {return fromUSq(tree->getDynamicsCache(s).storageForDI);}
+    Mat<dof,dof>&       updDI(const State& s) const {return toUSq  (tree->updDynamicsCache(s).storageForDI);}
 
     const Mat<2,dof,Vec3>& getG(const State& s) const
-      { return Mat<2,dof,Vec3>::getAs(&s.dynamicsCache.storageForG(0,uIndex)); }
+      { return Mat<2,dof,Vec3>::getAs(&tree->getDynamicsCache(s).storageForG(0,uIndex)); }
     Mat<2,dof,Vec3>&       updG(const State& s) const
-      { return Mat<2,dof,Vec3>::updAs(&s.dynamicsCache.storageForG(0,uIndex)); }
+      { return Mat<2,dof,Vec3>::updAs(&tree->updDynamicsCache(s).storageForG(0,uIndex)); }
 
         // Reaction
-    const Vec<dof>&   getUDot   (const State& s) const {return fromU (s.reactionCache.udot);}
-    Vec<dof>&         updUDot   (const State& s) const {return toU   (s.reactionCache.udot);}
-    const Real&       get1UDot  (const State& s) const {return from1U(s.reactionCache.udot);}
-    Real&             upd1UDot  (const State& s) const {return to1U  (s.reactionCache.udot);}
+    const Vec<dof>&   getUDot   (const State& s) const {return fromU (tree->getUDot(s));}
+    Vec<dof>&         updUDot   (const State& s) const {return toU   (tree->updUDot(s));}
+    const Real&       get1UDot  (const State& s) const {return from1U(tree->getUDot(s));}
+    Real&             upd1UDot  (const State& s) const {return to1U  (tree->updUDot(s));}
 
-    const Vec<dof>&   getQDotDot (const State& s) const {return fromQ (&s.reactionCache.qdotdot);}
-    Vec<dof>&         updQDotDot (const State& s) const {return toQ   (&s.reactionCache.qdotdot);}
-    const Real&       get1QDotDot(const State& s) const {return from1Q(s.reactionCache.qdotdot);}
-    Real&             upd1QDotDot(const State& s) const {return to1Q  (s.reactionCache.qdotdot);}
+    const Vec<dof>&   getQDotDot (const State& s) const {return fromQ (tree->getQDotDot(s));}
+    Vec<dof>&         updQDotDot (const State& s) const {return toQ   (tree->updQDotDot(s));}
+    const Real&       get1QDotDot(const State& s) const {return from1Q(tree->getQDotDot(s));}
+    Real&             upd1QDotDot(const State& s) const {return to1Q  (tree->updQDotDot(s));}
 
-    const Vec<dof>&   getNetHingeForce (const State& s) const {return fromU (s.reactionCache.netHingeForces);}
-    Vec<dof>&         updNetHingeForce (const State& s) const {return toU   (s.reactionCache.netHingeForces);}
-    const Real&       get1NetHingeForce (const State& s) const {return from1U(s.reactionCache.netHingeForces);}
-    Real&             upd1NetHingeForce(const State& s) const {return to1U  (s.reactionCache.netHingeForces);}
+    const Vec<dof>&   getNetHingeForce (const State& s) const {return fromU (tree->getReactionCache(s).netHingeForces);}
+    Vec<dof>&         updNetHingeForce (const State& s) const {return toU   (tree->updReactionCache(s).netHingeForces);}
+    const Real&       get1NetHingeForce (const State& s) const {return from1U(tree->getReactionCache(s).netHingeForces);}
+    Real&             upd1NetHingeForce(const State& s) const {return to1U  (tree->updReactionCache(s).netHingeForces);}
 
 
-    const Vec<dof>&   getNu (const State& s) const {return fromU (s.reactionCache.nu);}
-    Vec<dof>&         updNu (const State& s) const {return toU   (s.reactionCache.nu);}
-    const Real&       get1Nu(const State& s) const {return from1U(s.reactionCache.nu);}
-    Real&             upd1Nu(const State& s) const {return to1U  (s.reactionCache.nu);}
+    const Vec<dof>&   getNu (const State& s) const {return fromU (tree->getReactionCache(s).nu);}
+    Vec<dof>&         updNu (const State& s) const {return toU   (tree->updReactionCache(s).nu);}
+    const Real&       get1Nu(const State& s) const {return from1U(tree->getReactionCache(s).nu);}
+    Real&             upd1Nu(const State& s) const {return to1U  (tree->updReactionCache(s).nu);}
 
-    const Vec<dof>&   getEpsilon (const State& s) const {return fromU (s.reactionCache.epsilon);}
-    Vec<dof>&         updEpsilon (const State& s) const {return toU   (s.reactionCache.epsilon);}
-    const Real&       get1Epsilon(const State& s) const {return from1U(s.reactionCache.epsilon);}
-    Real&             upd1Epsilon(const State& s) const {return to1U  (s.reactionCache.epsilon);}
+    const Vec<dof>&   getEpsilon (const State& s) const {return fromU (tree->getReactionCache(s).epsilon);}
+    Vec<dof>&         updEpsilon (const State& s) const {return toU   (tree->updReactionCache(s).epsilon);}
+    const Real&       get1Epsilon(const State& s) const {return from1U(tree->getReactionCache(s).epsilon);}
+    Real&             upd1Epsilon(const State& s) const {return to1U  (tree->updReactionCache(s).epsilon);}
 
     void calcZ(const State& s, const SpatialVec& spatialForce) const;
 
@@ -926,11 +929,10 @@ public:
     int getMaxNQ()              const {return 4;}
     int getNQ(const State& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
 
-    void setDefaultConfigurationValues(const State& s, 
-                                       SBConfigurationVars& v) const 
+    void setDefaultConfigurationValues(const State& s, Vector& q) const 
     {
-        if (getUseEulerAngles(s)) toQ(v.q) = 0.;
-        else toQuat(v.q) = Vec4(1.,0.,0.,0.);
+        if (getUseEulerAngles(s)) toQ(q) = 0.;
+        else toQuat(q) = Vec4(1.,0.,0.,0.);
     }
 
     bool enforceQuaternionConstraints(State& s) const {
@@ -1084,14 +1086,13 @@ public:
     int getMaxNQ()              const {return 7;}
     int getNQ(const State& s) const {return getUseEulerAngles(s) ? 6 : 7;} 
 
-    void setDefaultConfigurationValues(const State& s, 
-                                       SBConfigurationVars& v) const 
+    void setDefaultConfigurationValues(const State& s, Vector& q) const 
     {
         if (getUseEulerAngles(s)) 
-            toQ(v.q) = 0.;
+            toQ(q) = 0.;
         else {
-            toQuat(v.q) = Vec4(1.,0.,0.,0.);
-            toQVec3(v.q,4) = 0.;
+            toQuat(q) = Vec4(1.,0.,0.,0.);
+            toQVec3(q,4) = 0.;
         }
     }
 
@@ -1282,7 +1283,7 @@ RigidBodyNodeSpec<dof>::calcAccel(const State& s) const {
     udot       = getNu(s) - (~getG(s)*alphap);
     updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
 
-    calcQDotDot(s, s.reactionCache.udot, s.reactionCache.qdotdot);   
+    calcQDotDot(s, tree->getUDot(s), tree->updQDotDot(s));   
 }
 
  

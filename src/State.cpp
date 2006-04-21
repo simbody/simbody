@@ -287,52 +287,52 @@ void State::advanceToStage(Stage g) const {
 // We don't expect State entry allocations to be performance critical so
 // we'll keep error checking on even in Release mode.
 
-long State::allocateQRange(long nq) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateQRange()");
-    SimTK_NONNEGCHECK_ALWAYS(nq, "State::allocateQRange()");
+int State::allocateQ(const Vector& qInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateQ()");
 
-    const long nxt = rep->q.size();
-    rep->q.resize(nxt+nq);
+    const int nxt = rep->q.size();
+    rep->q.resize(nxt+qInit.size());
+    rep->q(nxt, qInit.size()) = qInit;
     return nxt;
 }
-long State::allocateURange(long nu) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateURange()");
-    SimTK_NONNEGCHECK_ALWAYS(nu, "State::allocateURange()");
+int State::allocateU(const Vector& uInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateU()");
 
-    const long nxt = rep->u.size();
-    rep->u.resize(nxt+nu);
+    const int nxt = rep->u.size();
+    rep->u.resize(nxt+uInit.size());
+    rep->u(nxt, uInit.size()) = uInit;
     return nxt;
 }
-long State::allocateZRange(long nz) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateZRange()");
-    SimTK_NONNEGCHECK_ALWAYS(nz, "State::allocateZRange()");
+int State::allocateZ(const Vector& zInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateZ()");
 
-    const long nxt = rep->z.size();
-    rep->z.resize(nxt+nz);
+    const int nxt = rep->z.size();
+    rep->z.resize(nxt+zInit.size());
+    rep->z(nxt, zInit.size()) = zInit;
     return nxt;
 }
 
 // Modeling stage State variables can only be added during construction; that is,
 // while stage <= Built. Other entries can be added while stage < Modeled.
-long State::allocateDiscreteVariable(Stage g, AbstractValue* vp) {
+int State::allocateDiscreteVariable(Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage::LowestRuntime, g, Stage::HighestRuntime, 
         "State::allocateDiscreteVariable()");
 
     const Stage maxAcceptable = (g == Stage::Modeled ? Stage::Allocated : Stage::Built);
     SimTK_STAGECHECK_LT_ALWAYS(getStage(), maxAcceptable.next(), "State::allocateDiscreteVariable()");
 
-    const long nxt = rep->discrete.size();
+    const int nxt = rep->discrete.size();
     rep->discrete.push_back(DiscreteVariable(g,vp));
     return nxt;
 }
 
 // Cache entries can be allocated while stage < Modeled, even if they are Modeled-stage entries.
-long State::allocateCacheEntry(Stage s, AbstractValue* vp) {
+int State::allocateCacheEntry(Stage s, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage::LowestRuntime, s, Stage::HighestRuntime, 
         "State::allocateCacheEntry()");
     SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateCacheEntry()");
 
-    const long nxt = rep->cache.size();
+    const int nxt = rep->cache.size();
     rep->cache.push_back(CacheEntry(s,vp));
     return nxt;
 }
@@ -394,6 +394,53 @@ State::updZ() {     // Stage::Dynamics-1
 }
 
 
+const Vector&
+State::getQDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage::Moving, "State::getQDot()");
+    return rep->qdot;
+}
+
+const Vector&
+State::getZDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage::Dynamics, "State::getZDot()");
+    return rep->zdot;
+}
+
+const Vector&
+State::getUDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage::Reacting, "State::getUDot()");
+    return rep->udot;
+}
+
+const Vector&
+State::getQDotDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage::Reacting, "State::getQDotDot()");
+    return rep->qdotdot;
+}
+
+Vector&
+State::updQDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage(Stage::Moving).prev(), "State::updQDot()");
+    return rep->qdot;
+}
+
+Vector&
+State::updZDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage(Stage::Dynamics).prev(), "State::updZDot()");
+    return rep->zdot;
+}
+
+Vector&
+State::updUDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage(Stage::Reacting).prev(), "State::updUDot()");
+    return rep->udot;
+}
+
+Vector&
+State::updQDotDot() const {
+    SimTK_STAGECHECK_GE(getStage(), Stage(Stage::Reacting).prev(), "State::updQDotDot()");
+    return rep->qdotdot;
+}
 
 // You can access a Modeling variable any time, but don't access others
 // until you have realized the Modeled stage.

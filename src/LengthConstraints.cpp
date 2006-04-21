@@ -42,87 +42,6 @@ static int compareLevel(const LoopWNodes& l1,    //forward declarations
 
 class BadNodeDef {};  //exception
 
-/**
- * Collect up useful information about a loop. 
- * This includes the two connected stations, ordered by level, and the
- * paths from each of the associated nodes back to the common ancestor.
- * We also identify the molecule base node for the molecule which
- * contains both ends of the loop.
- * We will throw an exception if the loop ends are both on the same
- * node or if they are on different molecules.
- */
-class LoopWNodes {
-public:
-    LoopWNodes() : tree(0), rbDistCons(0), flipStations(false), base(0), moleculeNode(0) {}
-    LoopWNodes(const RigidBodyTree&, const RBDistanceConstraint&);
-
-    void calcPosInfo(const SBStateRep& s) const { rbDistCons->calcPosInfo(s); }
-    void calcVelInfo(const SBStateRep& s) const { rbDistCons->calcVelInfo(s); }
-    void calcAccInfo(const SBStateRep& s) const { rbDistCons->calcAccInfo(s); }
-
-    // TODO: State isn't currently in use but will be necessary when the distances
-    // are parameters.
-    const Real& getDistance(const SBStateRep&) const { return rbDistCons->getDistance(); }
-
-    // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
-    const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
-    const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
- 
-    const Vec3& tipPos(const SBStateRep& s, int i) const {
-        assert(1 <= i && i <= 2);
-        const int dc = rbDistCons->getDistanceConstraintNum();
-        return s.getConfigurationCache(*tree).pos_G[ix(i)-1][dc];
-    }
-    const Vec3& tipVel(const SBStateRep& s, int i) const {
-        assert(1 <= i && i <= 2);
-        const int dc = rbDistCons->getDistanceConstraintNum();
-        return s.getMotionCache(*tree).vel_G[ix(i)-1][dc];
-    }
-    const Vec3& tipAcc(const SBStateRep& s, int i) const {
-        assert(1 <= i && i <= 2);
-        const int dc = rbDistCons->getDistanceConstraintNum();
-        return s.getReactionCache(*tree,true).acc_G[ix(i)-1][dc];
-    }
-    const Vec3& tipForce(const SBStateRep& s, int i) const {
-        assert(1 <= i && i <= 2);
-        const int dc = rbDistCons->getDistanceConstraintNum();
-        return s.getReactionCache(*tree,true).force_G[ix(i)-1][dc];
-    }
-
-    // Use this for both forces and impulses.
-    void setTipForce(const SBStateRep& s, int i, const Vec3& f) const {
-        assert(1 <= i && i <= 2);
-
-        const int dc = rbDistCons->getDistanceConstraintNum();
-        s.updReactionCache(*tree).force_G[ix(i)-1][dc] = f;
-    }
-
-private:
-    int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
-    //const RBStationRuntime& getTipRuntime(int i) const
-   //   { return rt->stationRuntimes[ix(i)-1]; }
-   // RBStationRuntime& updTipRuntime(int i) const
-    //  { return rt->stationRuntimes[ix(i)-1]; }
-
-    const RigidBodyTree*         tree;        // a reference to the tree we're part of
-    const RBDistanceConstraint*  rbDistCons;  // reference to the constraint
-
-    // calculated construction-time (topological) info about the constraint
-    bool                              flipStations; // make sure station(1).level
-                                                    //   <= station(2).level
-    std::vector<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
-                                                    //   incl. tip nodes but not base
-    const RigidBodyNode*              base;         // highest-level common ancestor of tips
-    const RigidBodyNode*              moleculeNode;
-
-    friend class LengthSet;
-    friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend void LengthConstraints::construct(const Array<RBDistanceConstraint*>&);
-    friend int compareLevel(const LoopWNodes& l1,
-                            const LoopWNodes& l2);
-    friend bool sameBranch(const RigidBodyNode* tip,
-                           const LoopWNodes& l );
-};
 
 LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
   : tree(&t), rbDistCons(&dc), flipStations(false), base(0), moleculeNode(0)
@@ -191,82 +110,6 @@ LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
     */
 }
 
-typedef std::vector<LoopWNodes> LoopList;
-
-class LengthSet {
-    static void construct(const LoopList& loops);
-    const LengthConstraints*          lConstraints;
-    LoopList                          loops;    
-    int                               ndofThisSet;
-    std::vector<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
-public:
-    LengthSet() : lConstraints(0), ndofThisSet(0) { }
-    LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
-        : lConstraints(lConstraints), ndofThisSet(0)
-    {
-        addConstraint(loop);
-    }
-
-    const RigidBodyTree& getRBTree()  const {return lConstraints->rbTree;}
-    int                  getVerbose() const {return lConstraints->verbose;}
-
-    void addConstraint(const LoopWNodes& loop) {
-        loops.push_back( LoopWNodes(loop) );
-        for (int b=0 ; b<2 ; b++)
-            for (int i=0; i<(int)loop.nodes[b].size(); i++)
-                if (std::find(nodeMap.begin(),nodeMap.end(),loop.nodes[b][i])
-                    ==nodeMap.end())
-                {
-                    // not found
-                    ndofThisSet += loop.nodes[b][i]->getDOF();
-                    nodeMap.push_back( loop.nodes[b][i] );
-                }
-    }
-
-    bool contains(const RigidBodyNode* node) {
-        bool found=false;
-        for (size_t i=0 ; i<loops.size() ; i++) {
-            const std::vector<const RigidBodyNode*>& n0 = loops[i].nodes[0];
-            const std::vector<const RigidBodyNode*>& n1 = loops[i].nodes[1];
-            if (   (std::find(n0.begin(),n0.end(),node) != n0.end())
-                || (std::find(n1.begin(),n1.end(),node) != n1.end()))
-            {
-                found=true;
-                break;
-            }
-        }
-        return found;
-    }
-
-    void  setPos(SBStateRep&, const Vector& pos) const;
-    void  setVel(SBStateRep&, const Vector& vel) const;
-    Vector getPos();
-    Vector calcPosB(SBStateRep&, const Vector& pos) const;
-    Vector calcVelB(SBStateRep&, const Vector& pos, const Vector& vel) const;
-    Vector calcPosZ(const SBStateRep&, const Vector& b) const;
-    Matrix calcGrad(const SBStateRep&) const;
-    Matrix calcGInverse(const SBStateRep&) const;
-    Matrix calcGInverseFD(const SBStateRep&) const;
-
-    void  calcConstraintForces(const SBStateRep&) const; // updates runtime only
-    void  addInCorrectionForces(const SBStateRep&, SpatialVecList& spatialForces) const; // spatialForces+=correction
-
-    void   fixVel0(SBStateRep&, Vector&);
-    void   fixInternalForce(const SBStateRep&, Vector&);
-    Vector multiForce(const Vector&, const Matrix& mat);
-    void   subtractVecFromForces(Vector& frc, const Vector& vec);
-
-    void testAccel(const SBStateRep&) const;
-    void testInternalForce(const SBStateRep&, const Vector&) const;
-    friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend class CalcPosB;
-    friend class CalcVelB;
-    friend class CalcPosZ;
-    friend class CalcVelZ;
-
-    void fdgradf(SBStateRep&, const Vector& pos, Matrix& grad) const;
-    void testGrad(SBStateRep&, const Vector& pos, const Matrix& grad) const;
-};
 
 ostream& 
 operator<<(ostream& os, const LengthSet& s) 
@@ -274,37 +117,21 @@ operator<<(ostream& os, const LengthSet& s)
     for (size_t i=0 ; i<s.loops.size() ; i++)
         os << setw(4) << s.loops[i].tips(1) << "<->" 
            << setw(4) << s.loops[i].tips(2)  << ": " 
-           << s.loops[i].getDistance(SBStateRep()) << "  ";
+           << s.loops[i].getDistance(State()) << "  ";
     return os;
 }
-
-class LengthConstraintsPrivates {
-public:
-    LengthConstraintsPrivates() : posMin(cout), velMin(cout) {}
-
-public:
-    std::vector<LengthSet> constraints;     // used for pos, vel
-    std::vector<LengthSet> accConstraints;  // used for acc
-    NewtonRaphson          posMin, velMin;
-};
 
 LengthConstraints::LengthConstraints
     (const RigidBodyTree& rbt, const Real& ctol, int vbose)
   : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), 
-    rbTree(rbt), verbose(vbose), priv(0)
+    rbTree(rbt), verbose(vbose), posMin(cout), velMin(cout)
 {
-    priv = new LengthConstraintsPrivates;
-    priv->posMin.maxIters = maxIters;
-    priv->posMin.maxMin   = maxMin;
-    priv->posMin.tol      = ctol;
-    priv->velMin.maxIters = maxIters;
-    priv->velMin.maxMin   = maxMin;
-    priv->velMin.tol      = ctol*10;
-}
-
-LengthConstraints::~LengthConstraints()
-{
-    delete priv;
+    posMin.maxIters = maxIters;
+    posMin.maxMin   = maxMin;
+    posMin.tol      = ctol;
+    velMin.maxIters = maxIters;
+    velMin.maxMin   = maxMin;
+    velMin.tol      = ctol*10;
 }
 
 //
@@ -336,8 +163,8 @@ void
 LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
 {
     //clean up
-    priv->constraints.resize(0);
-    priv->accConstraints.resize(0);
+    pvConstraints.resize(0);
+    accConstraints.resize(0);
 
     // if ( !useLengthConstraint )  FIX:!!!
     //   //issue error message?
@@ -363,16 +190,16 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
     // it doesn't include that it can't include any further up the branch either).
     // This makes good sense to me.
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        priv->constraints.push_back(LengthSet(this, loops[i]));
+        pvConstraints.push_back(LengthSet(this, loops[i]));
         for (int j=i+1 ; j<(int)loops.size() ; j++)
-            for (int k=0 ; k<(int)priv->constraints.size() ; k++)
+            for (int k=0 ; k<(int)pvConstraints.size() ; k++)
                 if (   (loops[j].nodes[0].size()
-                        && priv->constraints[k].contains(loops[j].nodes[0][0]))
+                        && pvConstraints[k].contains(loops[j].nodes[0][0]))
                     || (loops[j].nodes[1].size()
-                        && priv->constraints[k].contains(loops[j].nodes[1][0])))
+                        && pvConstraints[k].contains(loops[j].nodes[1][0])))
                 {
                     //add length constraint to loop i
-                    priv->constraints[i].addConstraint(loops[j]);
+                    pvConstraints[i].addConstraint(loops[j]);
                     loops.erase(loops.begin() + j); // STL for &loops[j]
                     j--;
                     break;
@@ -386,11 +213,11 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
     // would have to think about it. He thought maybe he had cut some corners here
     // and over-coupled the loops but he wasn't sure.
     for (int i=0 ; i<(int)accLoops.size() ; i++) {
-        priv->accConstraints.push_back(LengthSet(this, accLoops[i]));
+        accConstraints.push_back(LengthSet(this, accLoops[i]));
         for (int j=i+1 ; j<(int)accLoops.size() ; j++)
             if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
                 //if (!accLoops[i].moleculeNode->isGroundNode()) { // sherm 060228
-                    priv->accConstraints[i].addConstraint(accLoops[j]);
+                    accConstraints[i].addConstraint(accLoops[j]);
                     accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
                     j--;
                 //}
@@ -405,42 +232,70 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
         //     }
     }
 
-    if (priv->constraints.size()>0 && verbose&InternalDynamics::printLoopInfo) {
+    if (pvConstraints.size()>0 && verbose&InternalDynamics::printLoopInfo) {
         cout << "LengthConstraints::construct: pos/vel length constraints found:\n";
-        for (int i=0 ; i<(int)priv->constraints.size() ; i++)
-            cout << "\t" << priv->constraints[i] << "\n";
+        for (int i=0 ; i<(int)pvConstraints.size() ; i++)
+            cout << "\t" << pvConstraints[i] << "\n";
         cout << "LengthConstraints::construct: accel length constraints found:\n";
-        for (int i=0 ; i<(int)priv->accConstraints.size() ; i++)
-            cout << "\t" << priv->accConstraints[i] << "\n";
+        for (int i=0 ; i<(int)accConstraints.size() ; i++)
+            cout << "\t" << accConstraints[i] << "\n";
     }
 }
 
+void LengthSet::addConstraint(const LoopWNodes& loop) {
+    loops.push_back( LoopWNodes(loop) );
+    for (int b=0 ; b<2 ; b++)
+        for (int i=0; i<(int)loop.nodes[b].size(); i++)
+            if (std::find(nodeMap.begin(),nodeMap.end(),loop.nodes[b][i])
+                ==nodeMap.end())
+            {
+                // not found
+                ndofThisSet += loop.nodes[b][i]->getDOF();
+                nodeMap.push_back( loop.nodes[b][i] );
+            }
+}
+
+bool LengthSet::contains(const RigidBodyNode* node) {
+    bool found=false;
+    for (size_t i=0 ; i<loops.size() ; i++) {
+        const std::vector<const RigidBodyNode*>& n0 = loops[i].nodes[0];
+        const std::vector<const RigidBodyNode*>& n1 = loops[i].nodes[1];
+        if (   (std::find(n0.begin(),n0.end(),node) != n0.end())
+            || (std::find(n1.begin(),n1.end(),node) != n1.end()))
+        {
+            found=true;
+            break;
+        }
+    }
+    return found;
+}
+
 class CalcPosB {
-    SBStateRep&   s;
+    State&   s;
     const LengthSet* lengthSet;
 public:
-    CalcPosB(SBStateRep& ss, const LengthSet* lset)
+    CalcPosB(State& ss, const LengthSet* lset)
         : s(ss), lengthSet(lset) {}
     Vector operator()(const Vector& pos) const
         { return lengthSet->calcPosB(s,pos); }
 };
 
 class CalcPosZ {
-    const SBStateRep&   s;
+    const State&   s;
     const LengthSet* lengthSet;
 public:
-    CalcPosZ(const SBStateRep& ss, const LengthSet* constraint) 
+    CalcPosZ(const State& ss, const LengthSet* constraint) 
         : s(ss), lengthSet(constraint) {}
     Vector operator()(const Vector& b) const 
         { return lengthSet->calcPosZ(s, b); }
 };
 
 class CalcVelB {
-    SBStateRep&         s;
+    State&         s;
     const Vector&    pos;
     const LengthSet* lengthSet;
 public:
-    CalcVelB(SBStateRep& ss, const Vector& q, const LengthSet* constraint)
+    CalcVelB(State& ss, const Vector& q, const LengthSet* constraint)
         : s(ss), pos(q), lengthSet(constraint) {}
     Vector operator()(const Vector& vel) 
         { return lengthSet->calcVelB(s,pos,vel); }
@@ -450,7 +305,7 @@ public:
 // Calculate the position constraint violation (zero when constraint met).
 //
 Vector
-LengthSet::calcPosB(SBStateRep& s, const Vector& pos) const
+LengthSet::calcPosB(State& s, const Vector& pos) const
 {
     setPos(s, pos);
 
@@ -465,7 +320,7 @@ LengthSet::calcPosB(SBStateRep& s, const Vector& pos) const
 // Calculate the velocity constraint violation (zero when constraint met).
 //
 Vector
-LengthSet::calcVelB(SBStateRep& s, const Vector& pos, const Vector& vel) const 
+LengthSet::calcVelB(State& s, const Vector& pos, const Vector& vel) const 
 {
     setPos(s, pos); // TODO (sherm: this is probably redundant)
     setVel(s, vel);
@@ -507,7 +362,7 @@ LengthSet::calcVelB(SBStateRep& s, const Vector& pos, const Vector& vel) const
 // the calcGInverse() routine does return a pseudoinverse, more or less.
 //
 Vector
-LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
+LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
     const Vector x = calcGInverse(s) * b;
 
@@ -539,11 +394,11 @@ LengthSet::calcPosZ(const SBStateRep& s, const Vector& b) const
 // the same one in both places).
 //
 class CalcVelZ {
-    const SBStateRep&   s;
+    const State&   s;
     const LengthSet* lengthSet;
     const Matrix     gInverse;
 public:
-    CalcVelZ(const SBStateRep& ss, const LengthSet* lset)
+    CalcVelZ(const State& ss, const LengthSet* lset)
       : s(ss), lengthSet(lset), gInverse(lengthSet->calcGInverse(s)) {}
 
     Vector operator()(const Vector& b) {
@@ -566,19 +421,19 @@ public:
 
 // Project out the position constraint errors from the given state. 
 bool
-LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
+LengthConstraints::enforceConfigurationConstraints(State& s) const
 {
-    assert(s.getStage(rbTree) >= Stage::Configured-1);
+    assert(s.getStage() >= Stage::Configured-1);
     Vector& pos = rbTree.updQ(s);
 
     bool anyChanges = false;
 
     try { 
-        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
+        for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            priv->posMin.calc(pos,
-                              CalcPosB(s, &priv->constraints[i]),
-                              CalcPosZ(s, &priv->constraints[i]));
+            posMin.calc(pos,
+                        CalcPosB(s, &pvConstraints[i]),
+                        CalcPosZ(s, &pvConstraints[i]));
         }
     }
     catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
@@ -591,20 +446,20 @@ LengthConstraints::enforceConfigurationConstraints(SBStateRep& s) const
 
 // Project out the velocity constraint errors from the given state. 
 bool
-LengthConstraints::enforceMotionConstraints(SBStateRep& s) const
+LengthConstraints::enforceMotionConstraints(State& s) const
 {
-    assert(s.getStage(rbTree) >= Stage(Stage::Moving).prev());
+    assert(s.getStage() >= Stage(Stage::Moving).prev());
     const Vector& pos = rbTree.getQ(s);
     Vector&       vel = rbTree.updU(s);
 
     bool anyChanges = false;
 
     try { 
-        for (int i=0 ; i<(int)priv->constraints.size() ; i++) {
+        for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            priv->velMin.calc(vel,
-                              CalcVelB(s, pos, &priv->constraints[i]),
-                              CalcVelZ(s, &priv->constraints[i]));
+            velMin.calc(vel,
+                              CalcVelB(s, pos, &pvConstraints[i]),
+                              CalcVelZ(s, &pvConstraints[i]));
         }
     }
     catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
@@ -629,14 +484,13 @@ LengthConstraints::enforceMotionConstraints(SBStateRep& s) const
 //
 
 
-void LengthSet::setPos(SBStateRep& s, const Vector& pos) const
+void LengthSet::setPos(State& s, const Vector& pos) const
 {
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setQ(s, pos);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.getStage(getRBTree()) >= Stage::Configured)
-        s.setStage(getRBTree(), Stage::Timed); // back up if needed
+    s.invalidateStage(Stage::Configured);
 
     // sherm TODO: this now computes kinematics for the whole system,
     // but it should only have to update the loop we are interested in.
@@ -653,14 +507,13 @@ void LengthSet::setPos(SBStateRep& s, const Vector& pos) const
 }
 
 // Must have called LengthSet::setPos() already.
-void LengthSet::setVel(SBStateRep& s, const Vector& vel) const
+void LengthSet::setVel(State& s, const Vector& vel) const
 {
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setU(s, vel);
 
     // TODO: sherm this is the wrong place for the stage update!
-    if (s.getStage(getRBTree()) >= Stage::Moving)
-        s.setStage(getRBTree(), Stage::Configured); // back up if needed
+    s.invalidateStage(Stage::Moving);
 
     getRBTree().realizeMotion(s);
 
@@ -679,7 +532,7 @@ void LengthSet::setVel(SBStateRep& s, const Vector& vel) const
 // version. Presumes that calcEnergy has been called previously with current 
 // value of ipos.
 void 
-LengthSet::fdgradf(SBStateRep& s,
+LengthSet::fdgradf(State& s,
                    const Vector&  pos,
                    Matrix&        grad) const 
 {
@@ -704,7 +557,7 @@ LengthSet::fdgradf(SBStateRep& s,
 }
 
 void 
-LengthSet::testGrad(SBStateRep& s, const Vector& pos, const Matrix& grad) const
+LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 {
     double tol = 1e-4;
 
@@ -754,7 +607,7 @@ LengthSet::testGrad(SBStateRep& s, const Vector& pos, const Matrix& grad) const
 // Euler angles for q's.
 //
 Matrix
-LengthSet::calcGrad(const SBStateRep& s) const
+LengthSet::calcGrad(const State& s) const
 {
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once
@@ -841,7 +694,7 @@ LengthSet::calcGrad(const SBStateRep& s) const
 // b has dimension nc. So if we set A=~G we have the underdetermined system
 // depicted above and want to return A+ = ~A*inv(A*~A) = G*inv(~G*G). Ergo ...
 Matrix
-LengthSet::calcGInverse(const SBStateRep& s) const
+LengthSet::calcGInverse(const State& s) const
 {
     const Matrix A = ~calcGrad(s); // now A is dg/dtheta
     const int m = A.nrow(); // see picture above
@@ -861,10 +714,10 @@ LengthSet::calcGInverse(const SBStateRep& s) const
 }
 
 Matrix
-LengthSet::calcGInverseFD(const SBStateRep& s) const
+LengthSet::calcGInverseFD(const State& s) const
 {
     Matrix grad(ndofThisSet,loops.size()); // <-- transpose of the actual dg/dtheta
-    SBStateRep sTmp = s;
+    State sTmp = s;
     Vector pos = getRBTree().getQ(s);
     fdgradf(sTmp,pos,grad);
 
@@ -893,34 +746,34 @@ LengthSet::calcGInverseFD(const SBStateRep& s) const
 //     Do this step from tip to base.
 //
 
-bool LengthConstraints::calcConstraintForces(const SBStateRep& s) const {
-    if ( priv->accConstraints.size() == 0 )
+bool LengthConstraints::calcConstraintForces(const State& s) const {
+    if ( accConstraints.size() == 0 )
         return false;
 
     rbTree.calcY(s);
 
-    for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
-        priv->accConstraints[i].calcConstraintForces(s);
+    for (int i=accConstraints.size()-1 ; i>=0 ; i--)
+        accConstraints[i].calcConstraintForces(s);
 
     return true;
 }
 
-void LengthConstraints::addInCorrectionForces(const SBStateRep& s, SpatialVecList& spatialForces) const {
-    for (int i=priv->accConstraints.size()-1 ; i>=0 ; i--)
-        priv->accConstraints[i].addInCorrectionForces(s, spatialForces);
+void LengthConstraints::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
+    for (int i=accConstraints.size()-1 ; i>=0 ; i--)
+        accConstraints[i].addInCorrectionForces(s, spatialForces);
 }
 
 void 
-LengthConstraints::fixGradient(const SBStateRep& s, Vector& forceInternal)
+LengthConstraints::fixGradient(const State& s, Vector& forceInternal)
 {
-    if ( priv->constraints.size() == 0 )
+    if ( pvConstraints.size() == 0 )
         return;
 
-    for (int i=priv->constraints.size()-1 ; i>=0 ; i--)
-        priv->constraints[i].fixInternalForce(s, forceInternal);
+    for (int i=pvConstraints.size()-1 ; i>=0 ; i--)
+        pvConstraints[i].fixInternalForce(s, forceInternal);
 
-    for (int i=priv->constraints.size()-1 ; i>=0 ; i--) 
-        priv->constraints[i].testInternalForce(s, forceInternal);
+    for (int i=pvConstraints.size()-1 ; i>=0 ; i--) 
+        pvConstraints[i].testInternalForce(s, forceInternal);
 }
 
 //
@@ -942,7 +795,7 @@ LengthConstraints::fixGradient(const SBStateRep& s, Vector& forceInternal)
 // the nodes associated with stations s1 & s2.
 //
 static double
-computeA(const SBStateRep& s,
+computeA(const State& s,
          const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
          const LoopWNodes& loop2, int s2,
@@ -998,7 +851,7 @@ computeA(const SBStateRep& s,
 // are to that paper. (sherm)
 //
 void
-LengthSet::calcConstraintForces(const SBStateRep& s) const
+LengthSet::calcConstraintForces(const State& s) const
 {
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -1063,7 +916,7 @@ LengthSet::calcConstraintForces(const SBStateRep& s) const
     }
 }
 
-void LengthSet::addInCorrectionForces(const SBStateRep& s, SpatialVecList& spatialForces) const {
+void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
@@ -1074,7 +927,7 @@ void LengthSet::addInCorrectionForces(const SBStateRep& s, SpatialVecList& spati
     }
 }
 
-void LengthSet::testAccel(const SBStateRep& s) const
+void LengthSet::testAccel(const State& s) const
 {
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {
@@ -1093,11 +946,11 @@ void LengthSet::testAccel(const SBStateRep& s) const
 // Fix internal force such that it obeys the constraint conditions.
 //
 void
-LengthSet::fixInternalForce(const SBStateRep& s, Vector& forceInternal)
+LengthSet::fixInternalForce(const State& s, Vector& forceInternal)
 {
     Matrix  grad = calcGrad(s);
     if ( getVerbose() & InternalDynamics::printLoopDebug ) {
-        SBStateRep sTmp = s;
+        State sTmp = s;
         Vector pos = getRBTree().getQ(s);
         testGrad(sTmp,pos,grad);
     }
@@ -1156,7 +1009,7 @@ LengthSet::subtractVecFromForces(Vector& forceInternal,
 }
 
 void
-LengthSet::testInternalForce(const SBStateRep& s, 
+LengthSet::testInternalForce(const State& s, 
                              const Vector& forceInternal) const
 {
     // sherm 060222:
@@ -1186,11 +1039,11 @@ LengthSet::testInternalForce(const SBStateRep& s,
 }
 
 void
-LengthConstraints::fixVel0(SBStateRep& s, Vector& iVel)
+LengthConstraints::fixVel0(State& s, Vector& iVel)
 {
     // use molecule grouping
-    for (int i=0 ; i<(int)priv->accConstraints.size() ; i++)
-        priv->accConstraints[i].fixVel0(s, iVel);
+    for (int i=0 ; i<(int)accConstraints.size() ; i++)
+        accConstraints[i].fixVel0(s, iVel);
 }
 
 //
@@ -1199,7 +1052,7 @@ LengthConstraints::fixVel0(SBStateRep& s, Vector& iVel)
 // small as possible.
 //
 void
-LengthSet::fixVel0(SBStateRep& s, Vector& iVel)
+LengthSet::fixVel0(State& s, Vector& iVel)
 {
     assert(iVel.size() == getRBTree().getTotalDOF());
 
@@ -1279,19 +1132,19 @@ LengthSet::fixVel0(SBStateRep& s, Vector& iVel)
 
     // RBDistanceConstraint methods
 
-void RBDistanceConstraint::calcStationPosInfo(const SBStateRep& s, int i) const {
+void RBDistanceConstraint::calcStationPosInfo(const State& s, int i) const {
     updStation_G(s,i) = getNode(i).getX_GB(s).R() * getPoint(i);
     updPos_G(s,i)     = getNode(i).getX_GB(s).T() + getStation_G(s,i);
 }
 
-void RBDistanceConstraint::calcStationVelInfo(const SBStateRep& s, int i) const {
+void RBDistanceConstraint::calcStationVelInfo(const State& s, int i) const {
     const Vec3& w_G = getNode(i).getSpatialAngVel(s);
     const Vec3& v_G = getNode(i).getSpatialLinVel(s);
     updStationVel_G(s,i) = cross(w_G, getStation_G(s,i));
     updVel_G(s,i)        = v_G + getStationVel_G(s,i);
 }
 
-void RBDistanceConstraint::calcStationAccInfo(const SBStateRep& s, int i) const {
+void RBDistanceConstraint::calcStationAccInfo(const State& s, int i) const {
     const Vec3& w_G  = getNode(i).getSpatialAngVel(s);
     const Vec3& v_G  = getNode(i).getSpatialLinVel(s);
     const Vec3& aa_G = getNode(i).getSpatialAngAcc(s);
@@ -1305,7 +1158,7 @@ std::ostream& operator<<(std::ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(const SBStateRep& s) const
+void RBDistanceConstraint::calcPosInfo(const State& s) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationPosInfo(s, i);
@@ -1316,7 +1169,7 @@ void RBDistanceConstraint::calcPosInfo(const SBStateRep& s) const
     updPosErr(s) = distance - separation;
 }
 
-void RBDistanceConstraint::calcVelInfo(const SBStateRep& s) const
+void RBDistanceConstraint::calcVelInfo(const State& s) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationVelInfo(s, i);
@@ -1325,7 +1178,7 @@ void RBDistanceConstraint::calcVelInfo(const SBStateRep& s) const
     updVelErr(s)   = ~getUnitDirection_G(s) * getRelVel_G(s);
 }
 
-void RBDistanceConstraint::calcAccInfo(const SBStateRep& s) const
+void RBDistanceConstraint::calcAccInfo(const State& s) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationAccInfo(s, i);

@@ -21,7 +21,7 @@ public:
 
     ConstraintNode& operator=(const ConstraintNode&);
 
-    virtual const char* type()     const=0;
+    virtual const char* type()      const=0;
     virtual ConstraintNode* clone() const=0;
 
 

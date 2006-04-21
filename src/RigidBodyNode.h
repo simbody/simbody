@@ -70,12 +70,13 @@ public:
 
     /// Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);
-    void setParent(RigidBodyNode* p) { parent=p; }
+    void setTreeAndParent(RigidBodyTree* t, RigidBodyNode* p) {tree=t; parent=p;}
     void setNodeNum(int n) {nodeNum=n;}
     void setLevel(int i)   {level=i;}
 
         // TOPOLOGICAL INFO: no State needed
 
+    RigidBodyTree*   getTree() const {return tree;}
     RigidBodyNode*   getParent() const {return parent;}
     int              getNChildren()  const {return (int)children.size();}
     RigidBodyNode*   getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
@@ -119,8 +120,8 @@ public:
     Vec3&         toB(Vector_<Vec3>&             v) const {return v[nodeNum];}
 
         // MODELING INFO
-    const bool getUseEulerAngles(const State& s) const {return s.modelVars.useEulerAngles;}
-    const bool isPrescribed     (const State& s) const {return s.modelVars.prescribed[nodeNum];}
+    const bool getUseEulerAngles(const State& s) const {return tree->getModelingVars(s).useEulerAngles;}
+    const bool isPrescribed     (const State& s) const {return tree->getModelingVars(s).prescribed[nodeNum];}
 
         // PARAMETRIZATION INFO
 
@@ -144,42 +145,42 @@ public:
     /// joint frame Jb attached to the parent. This transformation is defined to be zero (that is, Jb=J)
     /// in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
     /// This is NOT a spatial transformation.
-    const Transform& getX_JbJ(const State& s) const {return fromB(s.configCache.bodyJointInParentJointFrame);}
-    Transform&       updX_JbJ(const State& s) const {return toB  (s.configCache.bodyJointInParentJointFrame);}
+    const Transform& getX_JbJ(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyJointInParentJointFrame);}
+    Transform&       updX_JbJ(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyJointInParentJointFrame);}
 
     /// Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     /// of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
     /// a spatial transformation.
-    const Transform& getX_PB(const State& s) const {return fromB(s.configCache.bodyConfigInParent);}
-    Transform&       updX_PB(const State& s) const {return toB  (s.configCache.bodyConfigInParent);}
+    const Transform& getX_PB(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyConfigInParent);}
+    Transform&       updX_PB(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyConfigInParent);}
 
     /// Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     /// body's frame B measured from and expressed in ground. This consists of a rotation matrix
     /// R_GB, and a ground-frame vector OB_G from ground's origin to the origin point of frame B.
-    const Transform& getX_GB(const State& s) const {return fromB(s.configCache.bodyConfigInGround);}
-    Transform&       updX_GB(const State& s) const {return toB  (s.configCache.bodyConfigInGround);}
+    const Transform& getX_GB(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyConfigInGround);}
+    Transform&       updX_GB(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyConfigInGround);}
 
     /// Extract from the cache the body-to-parent shift matrix "phi". 
-    const PhiMatrix& getPhi(const State& s) const {return fromB(s.configCache.bodyToParentShift);}
-    PhiMatrix&       updPhi(const State& s) const {return toB  (s.configCache.bodyToParentShift);}
+    const PhiMatrix& getPhi(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyToParentShift);}
+    PhiMatrix&       updPhi(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyToParentShift);}
 
     /// Extract this body's spatial inertia matrix from the cache. This contains the mass properties
     /// measured from (and about) the body frame origin, but expressed in the *ground* frame.
-    const SpatialMat& getMk(const State& s) const {return fromB(s.configCache.bodySpatialInertia);}
-    SpatialMat&       updMk(const State& s) const {return toB  (s.configCache.bodySpatialInertia);}
+    const SpatialMat& getMk(const State& s) const {return fromB(tree->getConfigurationCache(s).bodySpatialInertia);}
+    SpatialMat&       updMk(const State& s) const {return toB  (tree->updConfigurationCache(s).bodySpatialInertia);}
 
     /// Extract from the cache the location of the body's center of mass, measured from the ground
     /// origin and expressed in ground.
-    const Vec3& getCOM_G(const State& s) const {return fromB(s.configCache.bodyCOMInGround);}
-    Vec3&       updCOM_G(const State& s) const {return toB  (s.configCache.bodyCOMInGround);}
+    const Vec3& getCOM_G(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyCOMInGround);}
+    Vec3&       updCOM_G(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyCOMInGround);}
 
     /// Extract from the cache the vector from body B's origin to its center of mass, reexpressed in Ground.
-    const Vec3& getCB_G(const State& s) const {return fromB(s.configCache.bodyCOMStationInGround);}
-    Vec3&       updCB_G(const State& s) const {return toB  (s.configCache.bodyCOMStationInGround);}
+    const Vec3& getCB_G(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyCOMStationInGround);}
+    Vec3&       updCB_G(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyCOMStationInGround);}
 
     /// Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const InertiaMat& getInertia_OB_G(const State& s) const {return fromB(s.configCache.bodyInertiaInGround);}
-    InertiaMat&       updInertia_OB_G(const State& s) const {return toB  (s.configCache.bodyInertiaInGround);}
+    const InertiaMat& getInertia_OB_G(const State& s) const {return fromB(tree->getConfigurationCache(s).bodyInertiaInGround);}
+    InertiaMat&       updInertia_OB_G(const State& s) const {return toB  (tree->updConfigurationCache(s).bodyInertiaInGround);}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -192,15 +193,15 @@ public:
     /// Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     /// expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     /// of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getV_GB   (const State& s) const {return fromB(s.motionCache.bodyVelocityInGround);}
-    SpatialVec&       updV_GB   (const State& s) const {return toB  (s.motionCache.bodyVelocityInGround);}
+    const SpatialVec& getV_GB   (const State& s) const {return fromB(tree->getMotionCache(s).bodyVelocityInGround);}
+    SpatialVec&       updV_GB   (const State& s) const {return toB  (tree->updMotionCache(s).bodyVelocityInGround);}
 
     /// Extract from the cache V_PB_G, the *spatial* velocity of this body's frame B, that is the
     /// cross-joint velocity measured with respect to the parent frame, but then expressed in the
     /// *ground* frame. This contains the angular velocity of B in P, and the linear velocity
     /// of B's origin point OB in P, with both vectors expressed in *G*.
-    const SpatialVec& getV_PB_G (const State& s) const {return fromB(s.motionCache.bodyVelocityInParent);}
-    SpatialVec&       updV_PB_G (const State& s) const {return toB  (s.motionCache.bodyVelocityInParent);}
+    const SpatialVec& getV_PB_G (const State& s) const {return fromB(tree->getMotionCache(s).bodyVelocityInParent);}
+    SpatialVec&       updV_PB_G (const State& s) const {return toB  (tree->updMotionCache(s).bodyVelocityInParent);}
 
     const SpatialVec& getSpatialVel   (const State& s) const {return getV_GB(s);}
     const Vec3&       getSpatialAngVel(const State& s) const {return getV_GB(s)[0];}
@@ -208,44 +209,44 @@ public:
 
         // DYNAMICS INFO
 
-    const SpatialVec& getBodyForce(const State& s) const {return fromB(s.reactionVars.appliedBodyForces);}
+    const SpatialVec& getBodyForce(const State& s) const {return fromB(tree->getReactionVars(s).appliedBodyForces);}
 
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
     /// linear acceleration of B's origin point OB in G, with both vectors expressed in G.
-    const SpatialVec& getA_GB (const State& s) const {return fromB(s.reactionCache.bodyAccelerationInGround);}
-    SpatialVec&       updA_GB (const State& s) const {return toB  (s.reactionCache.bodyAccelerationInGround);}
+    const SpatialVec& getA_GB (const State& s) const {return fromB(tree->getReactionCache(s).bodyAccelerationInGround);}
+    SpatialVec&       updA_GB (const State& s) const {return toB  (tree->updReactionCache(s).bodyAccelerationInGround);}
 
     const SpatialVec& getSpatialAcc   (const State& s) const {return getA_GB(s);}
     const Vec3&       getSpatialAngAcc(const State& s) const {return getA_GB(s)[0];}
     const Vec3&       getSpatialLinAcc(const State& s) const {return getA_GB(s)[1];}
 
-    const SpatialMat& getP    (const State& s) const {return fromB(s.dynamicsCache.articulatedBodyInertia);}
-    SpatialMat&       updP    (const State& s) const {return toB  (s.dynamicsCache.articulatedBodyInertia);}
+    const SpatialMat& getP    (const State& s) const {return fromB(tree->getDynamicsCache(s).articulatedBodyInertia);}
+    SpatialMat&       updP    (const State& s) const {return toB  (tree->updDynamicsCache(s).articulatedBodyInertia);}
  
-    const SpatialVec& getCoriolisAcceleration(const State& s) const {return fromB(s.dynamicsCache.coriolisAcceleration);}
-    SpatialVec&       updCoriolisAcceleration(const State& s) const {return toB  (s.dynamicsCache.coriolisAcceleration);}
+    const SpatialVec& getCoriolisAcceleration(const State& s) const {return fromB(tree->getDynamicsCache(s).coriolisAcceleration);}
+    SpatialVec&       updCoriolisAcceleration(const State& s) const {return toB  (tree->updDynamicsCache(s).coriolisAcceleration);}
  
-    const SpatialVec& getGyroscopicForce(const State& s) const {return fromB(s.dynamicsCache.gyroscopicForces);}
-    SpatialVec&       updGyroscopicForce(const State& s) const {return toB  (s.dynamicsCache.gyroscopicForces);}
+    const SpatialVec& getGyroscopicForce(const State& s) const {return fromB(tree->getDynamicsCache(s).gyroscopicForces);}
+    SpatialVec&       updGyroscopicForce(const State& s) const {return toB  (tree->updDynamicsCache(s).gyroscopicForces);}
  
-    const SpatialVec& getCentrifugalForces(const State& s) const {return fromB(s.dynamicsCache.centrifugalForces);}
-    SpatialVec&       updCentrifugalForces(const State& s) const {return toB  (s.dynamicsCache.centrifugalForces);}
+    const SpatialVec& getCentrifugalForces(const State& s) const {return fromB(tree->getDynamicsCache(s).centrifugalForces);}
+    SpatialVec&       updCentrifugalForces(const State& s) const {return toB  (tree->updDynamicsCache(s).centrifugalForces);}
 
-    const SpatialVec& getZ(const State& s) const {return fromB(s.reactionCache.z);}
-    SpatialVec&       updZ(const State& s) const {return toB  (s.reactionCache.z);}
+    const SpatialVec& getZ(const State& s) const {return fromB(tree->getReactionCache(s).z);}
+    SpatialVec&       updZ(const State& s) const {return toB  (tree->updReactionCache(s).z);}
 
-    const SpatialVec& getGepsilon(const State& s) const {return fromB(s.reactionCache.Gepsilon);}
-    SpatialVec&       updGepsilon(const State& s) const {return toB  (s.reactionCache.Gepsilon);}
+    const SpatialVec& getGepsilon(const State& s) const {return fromB(tree->getReactionCache(s).Gepsilon);}
+    SpatialVec&       updGepsilon(const State& s) const {return toB  (tree->updReactionCache(s).Gepsilon);}
 
-    const SpatialMat& getPsi(const State& s) const {return fromB(s.dynamicsCache.psi);}
-    SpatialMat&       updPsi(const State& s) const {return toB  (s.dynamicsCache.psi);}
+    const SpatialMat& getPsi(const State& s) const {return fromB(tree->getDynamicsCache(s).psi);}
+    SpatialMat&       updPsi(const State& s) const {return toB  (tree->updDynamicsCache(s).psi);}
 
-    const SpatialMat& getTauBar(const State& s) const {return fromB(s.dynamicsCache.tauBar);}
-    SpatialMat&       updTauBar(const State& s) const {return toB  (s.dynamicsCache.tauBar);}
+    const SpatialMat& getTauBar(const State& s) const {return fromB(tree->getDynamicsCache(s).tauBar);}
+    SpatialMat&       updTauBar(const State& s) const {return toB  (tree->updDynamicsCache(s).tauBar);}
 
-    const SpatialMat& getY(const State& s) const {return fromB(s.dynamicsCache.Y);}
-    SpatialMat&       updY(const State& s) const {return toB  (s.dynamicsCache.Y);}
+    const SpatialMat& getY(const State& s) const {return fromB(tree->getDynamicsCache(s).Y);}
+    SpatialMat&       updY(const State& s) const {return toB  (tree->updDynamicsCache(s).Y);}
 
     virtual void realizeModeling  (const State&) const=0;
     virtual void realizeParameters(const State&) const=0;
@@ -266,8 +267,8 @@ public:
     virtual void setDefaultModelingValues     (const State&, SBModelingVars&)      const {}
     virtual void setDefaultParameterValues    (const State&, SBParameterVars&)     const {}
     virtual void setDefaultTimeValues         (const State&, SBTimeVars&)          const {}
-    virtual void setDefaultConfigurationValues(const State&, SBConfigurationVars&) const {}
-    virtual void setDefaultMotionValues       (const State&, SBMotionVars&)        const {}
+    virtual void setDefaultConfigurationValues(const State&, Vector& q)            const {}
+    virtual void setDefaultMotionValues       (const State&, Vector& u)            const {}
     virtual void setDefaultDynamicsValues     (const State&, SBDynamicsVars&)      const {}
     virtual void setDefaultReactionValues     (const State&, SBReactionVars&)      const {}
 
@@ -353,7 +354,7 @@ protected:
     RigidBodyNode(const MassProperties& mProps_B,
                   const Transform&   xform_PJb,
                   const Transform&   xform_BJ)
-      : uIndex(-1), qIndex(-1), uSqIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
+      : uIndex(-1), qIndex(-1), uSqIndex(-1), tree(0), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ), X_JB(~xform_BJ)
     {
@@ -365,6 +366,7 @@ protected:
     int               qIndex;   // index into internal coord pos array
     int               uSqIndex; // index into array of DOF^2 objects
 
+    RigidBodyTree*    tree;
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
     int               level;        //how far from base 

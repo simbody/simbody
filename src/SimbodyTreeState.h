@@ -24,12 +24,12 @@
  */
 
 /**@file
- * This file contains the classes which define the SimbodyTree State, that is, everything
- * that can be changed in a SimbodyTree after construction.
+ * This file contains the classes which define the SimbodySubsystem State, that is, everything
+ * that can be changed in a SimbodySubsystem after construction.
  *
  * State variables and computation results are organized into stages:
  *    Stage::Allocated
- *    Stage::Built             Stored in the SimbodyTree object (construction)
+ *    Stage::Built             Stored in the SimbodySubsystem object (construction)
  *   ---------------------------------------------------------
  *    Stage::Modeled           Stored in the State object
  *    Stage::Parametrized
@@ -41,11 +41,11 @@
  *
  * Construction proceeds until all the bodies and constraints have been specified. After
  * that, realizeConstruction() is called. Construction-related 
- * calculations are performed leading to values which are stored in the SimbodyTree 
+ * calculations are performed leading to values which are stored in the SimbodySubsystem 
  * object, NOT in the State (e.g., total number of bodies). At the same time, an
  * initial state is built, with space allocated for the state variables that will
  * be needed by the next stage (Stage::Modeled),and these are assigned default values. 
- * Then the stage in the SimbodyTree and in the initial state is set to "Built".
+ * Then the stage in the SimbodySubsystem and in the initial state is set to "Built".
  *
  * After that, Modeling values can be set in the State. When that's done we call
  * realizeModeling(), which evaluates the Modeling states putting the values into
@@ -72,6 +72,7 @@ namespace SimTK {
 
  // defined below
 
+
 class SBModelingVars;
 class SBParameterVars;
 class SBTimeVars;
@@ -80,6 +81,7 @@ class SBMotionVars;
 class SBDynamicsVars;
 class SBReactionVars;
 
+class SBConstructionCache;
 class SBModelingCache;
 class SBParameterCache;
 class SBTimeCache;
@@ -88,10 +90,35 @@ class SBMotionCache;
 class SBDynamicsCache;
 class SBReactionCache;
 
-class SBStateRep;
+class State;
 
-    // TODO: constraint runtimes
+// An object of this type is stored in the SimbodySubsystem after construction,
+// then copied into a slot in the State on realizeConstruction(). It should contain
+// enough information to size the other stages, and can also contain whatever
+// arbitrary data you would like to have in a State to verify that it is a match
+// for the Subsystem.
+class SBConstructionCache {
+public:
+    SBConstructionCache() {
+        nBodies = nConstraints = nDOFs = maxNQs = sumSqDOFs =
+            nDistanceConstraints = modelingVarsIndex = modelingCacheIndex = -1;
+        valid = false;
+    }
 
+    int nBodies;
+    int nConstraints;
+
+    int nDOFs;
+    int maxNQs;
+    int sumSqDOFs;
+
+    int nDistanceConstraints;
+
+    int modelingVarsIndex;
+    int modelingCacheIndex;
+
+    bool valid;
+};
 
 class SBModelingCache {
 public:
@@ -100,14 +127,17 @@ public:
     //   counts of various things resulting from modeling choices,
     //   constraint enabling, prescribed motion
 
-    long parametersIndex, parameterCacheIndex;
-    long qIndex, qCacheIndex;
-    long uIndex, uCacheIndex;
-    long dynamicsCacheIndex;
-    long reactionIndex, reactionCacheIndex;
+    int parameterVarsIndex, parameterCacheIndex;
+    int timeVarsIndex, timeCacheIndex;
+    int qIndex; // maxNQs of these 
+    int qVarsIndex, qCacheIndex;
+    int uIndex; // nDOFs of these 
+    int uVarsIndex, uCacheIndex;
+    int dynamicsVarsIndex, dynamicsCacheIndex;
+    int reactionVarsIndex, reactionCacheIndex;
 
 public:
-    void allocate(const RigidBodyTree&) {
+    void allocate(const SBConstructionCache&) {
     }
 };
 
@@ -121,7 +151,7 @@ public:
     //   distance constraint distances & station positions
 
 public:
-    void allocate(const RigidBodyTree&, const SBStateRep&) {
+    void allocate(const SBConstructionCache&) {
         applyGravity = false;
     }
 };
@@ -131,7 +161,7 @@ public:
 
     // none
 public:
-    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+    void allocate(const SBConstructionCache& tree) {
 
     }
 };
@@ -165,13 +195,13 @@ public:
 
 
 public:
-    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+    void allocate(const SBConstructionCache& tree) {
         // Pull out construction-stage information from the tree.
-        const int nBodies = tree.getNBodies();
-        const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
-        const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int npc     = tree.getNDistanceConstraints(); // position constraints
-        const int ndc     = tree.getNDistanceConstraints();
+        const int nBodies = tree.nBodies;
+        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int npc     = tree.nDistanceConstraints; // position constraints
+        const int ndc     = tree.nDistanceConstraints;
 
         // These contain uninitialized junk. Body-indexed entries get their
         // ground elements set appropriately now and forever.
@@ -213,10 +243,9 @@ public:
 
 class SBMotionCache {
 public:
+    // qdot is supplied directly by the State
     Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;     // nb (sVel)
-
-    Vector qdot;                                  // nq
 
     Vector velocityConstraintErrors;              // nvc
 
@@ -227,21 +256,19 @@ public:
     Vector_<Vec3> relVel_G;        // spatial relative velocity tip2.velG-tip1.velG
 
 public:
-    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+    void allocate(const SBConstructionCache& tree) {
         // Pull out construction-stage information from the tree.
-        const int nBodies = tree.getNBodies();
-        const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
-        const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int nvc     = tree.getNDistanceConstraints(); // velocity constraints
-        const int ndc     = tree.getNDistanceConstraints();
+        const int nBodies = tree.nBodies;
+        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nvc     = tree.nDistanceConstraints; // velocity constraints
+        const int ndc     = tree.nDistanceConstraints;
 
         bodyVelocityInParent.resize(nBodies);       
         bodyVelocityInParent[0] = SpatialVec(Vec3(0),Vec3(0));
 
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        qdot.resize(maxNQs);
 
         velocityConstraintErrors.resize(nvc);
         stationVel_G[0].resize(ndc); stationVel_G[1].resize(ndc);
@@ -268,13 +295,13 @@ public:
     Matrix_<Vec3>       storageForG;              // 2 X ndof
 
 public:
-    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+    void allocate(const SBConstructionCache& tree) {
         // Pull out construction-stage information from the tree.
-        const int nBodies = tree.getNBodies();
-        const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
-        const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
-        const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int nac     = tree.getNDistanceConstraints(); // acceleration constraints        
+        const int nBodies = tree.nBodies;
+        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
+        const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nac     = tree.nDistanceConstraints; // acceleration constraints        
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
 
@@ -302,11 +329,10 @@ public:
 
 class SBReactionCache {
 public:
+    // udot, qdotdot are provided directly by the State
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
-    Vector udot;                                  // nu
-    Vector lambda;                                // nac
-    Vector netHingeForces;                        // nu (T-(~Am+R(F+C))
-    Vector qdotdot;                               // nq
+    Vector              lambda;                   // nac
+    Vector              netHingeForces;           // nu (T-(~Am+R(F+C))
 
     Vector              nu;
     Vector              epsilon;
@@ -321,22 +347,20 @@ public:
     Vector_<Vec3> force_G[2]; // the constraint forces applied to each point
 
 public:
-    void allocate(const RigidBodyTree& tree, const SBStateRep& s) {
+    void allocate(const SBConstructionCache& tree) {
         // Pull out construction-stage information from the tree.
-        const int nBodies = tree.getNBodies();
-        const int nDofs   = tree.getTotalDOF();     // this is the number of u's (nu)
-        const int nSqDofs = tree.getTotalSqDOF();   // sum(ndof^2) for each joint
-        const int maxNQs  = tree.getTotalQAlloc();  // allocate the max # q's we'll ever need
-        const int nac     = tree.getNDistanceConstraints(); // acceleration constraints 
-        const int ndc     = tree.getNDistanceConstraints();
+        const int nBodies = tree.nBodies;
+        const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
+        const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
+        const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
+        const int nac     = tree.nDistanceConstraints; // acceleration constraints 
+        const int ndc     = tree.nDistanceConstraints;
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
 
-        udot.resize(nDofs);
         lambda.resize(nac);
         netHingeForces.resize(nDofs);
-        qdotdot.resize(maxNQs);
 
         nu.resize(nDofs);
         epsilon.resize(nDofs);
@@ -376,13 +400,11 @@ public:
     // We have to allocate these without looking at any other
     // state variable or cache entries. We can only depend on the tree
     // itself for information.
-    void allocate(const RigidBodyTree& tree) const {
-        assert(tree.isBuilt());
-
+    void allocate(const SBConstructionCache& tree) const {
         SBModelingVars& mutvars = *const_cast<SBModelingVars*>(this);
         mutvars.useEulerAngles = false;
-        mutvars.prescribed.resize(tree.getNBodies()); 
-        mutvars.enabled.resize(tree.getNConstraints());
+        mutvars.prescribed.resize(tree.nBodies); 
+        mutvars.enabled.resize(tree.nConstraints);
     }
 
 };
@@ -395,41 +417,40 @@ public:
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
-    void allocate(const RigidBodyTree&, const SBStateRep&) const {
+    void allocate(const SBConstructionCache&) const {
         SBParameterVars& mutvars = *const_cast<SBParameterVars*>(this);
         mutvars.gravity.setToNaN();
     }
+
+    // Call this from Modeling stage to put some reasonable
+    // defaults here.
+    void initialize() {
+        gravity = Vec3(0);
+    }
+
 };
 
 class SBTimeVars {
 public:
     // none
 public:
-    void allocate(const RigidBodyTree&, const SBStateRep&) const {
+    void allocate(const SBConstructionCache&) const {
     }
 };
 
 class SBConfigurationVars {
 public:
-    Vector q; // [nq]
+    // none -- q is supplied directly by the State
 public:
-    // We can access the tree or state variable & cache up to Stage::Modeled.
-    void allocate(const RigidBodyTree& tree, const SBStateRep&) const {
-        SBConfigurationVars& mutvars = *const_cast<SBConfigurationVars*>(this);
-        mutvars.q.resize(tree.getTotalQAlloc()); 
-        mutvars.q.setToNaN();
+    void allocate(const SBConstructionCache& tree) const {
     }
 };
 
 class SBMotionVars  {
 public:
-    Vector u; // [ndof]  (== nu)
+    // none -- u is supplied directly by the State
 public:
-    // We can access the tree or state variable & cache up to Stage::Modeled.
-    void allocate(const RigidBodyTree& tree, const SBStateRep&) const {
-        SBMotionVars& mutvars = *const_cast<SBMotionVars*>(this);
-        mutvars.u.resize(tree.getTotalDOF()); 
-        mutvars.u.setToNaN();
+    void allocate(const SBConstructionCache& tree) const {
     }
 };
 
@@ -437,7 +458,7 @@ class SBDynamicsVars {
 public:
     // none
 public:
-    void allocate(const RigidBodyTree&, const SBStateRep&) const {
+    void allocate(const SBConstructionCache&) const {
     }
 };
 
@@ -449,282 +470,61 @@ public:
 public:
 
     // We can access the tree or state variable & cache up to Stage::Modeled.
-    void allocate(const RigidBodyTree& tree, const SBStateRep&) const {    
+    void allocate(const SBConstructionCache& tree) const {    
         SBReactionVars& mutvars = *const_cast<SBReactionVars*>(this);
 
-        mutvars.appliedBodyForces.resize(tree.getNBodies());  
+        mutvars.appliedBodyForces.resize(tree.nBodies);  
         mutvars.appliedBodyForces.setToNaN();
 
-        mutvars.appliedJointForces.resize(tree.getTotalDOF());   
+        mutvars.appliedJointForces.resize(tree.nDOFs);   
         mutvars.appliedJointForces.setToNaN();
 
-        mutvars.prescribedUdot.resize(tree.getTotalDOF());       
+        mutvars.prescribedUdot.resize(tree.nDOFs);       
         mutvars.prescribedUdot.setToNaN();
+    }
+
+    // Call this from Modeling stage to set some initial
+    // defaults (all zero).
+    void initialize() {
+        appliedBodyForces = SpatialVec(Vec3(0),Vec3(0));
+        appliedJointForces = 0.;
+        prescribedUdot = 0.;
     }
 }; 
 
-class SBStateRep {
-public:
-    SBStateRep() : stage(Stage::Allocated), handle(0) { }
-    ~SBStateRep() {
-        // in case we want to catch this in the debugger
-     }
+// These are here just so the AbstractValue's ValueHelper<> template
+// will compile.
+inline std::ostream& operator<<(std::ostream& o, const SBConstructionCache& c)
+  { return o << "TODO: SBConstructionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBModelingCache& c)
+  { return o << "TODO: SBModelingCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBParameterCache& c)
+  { return o << "TODO: SBParameterCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBTimeCache& c)
+  { return o << "TODO: SBTimeCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBConfigurationCache& c)
+  { return o << "TODO: SBConfigurationCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBMotionCache& c)
+  { return o << "TODO: SBMotionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBDynamicsCache& c)
+  { return o << "TODO: SBDynamicsCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBReactionCache& c)
+  { return o << "TODO: SBReactionCache"; }
 
-    // Default copy and assignment -- watch out for handle; the pointer
-    // is copied by default and should be changed afterwards.
-
-    void setMyHandle(SBState& s) {
-        handle = &s;
-    }
-
-    Stage getStage(const RigidBodyTree& tree) const {
-        return tree.isBuilt() ? stage : Stage::Allocated;
-    }
-
-    void setStage(const RigidBodyTree& tree, Stage g) const {
-        if (!tree.isBuilt() && g == Stage::Allocated) {
-            stage = Stage::Allocated; // this is OK
-            return;
-        }
-        assert(tree.isBuilt());
-        assert(g >= Stage::Built);    // can't use this to return to uninitialized
-        assert(stage >= g-1);       // can only advance one stage
-        stage = g;                  // backing up any amount is OK
-    }
-
-    void initializeModelingVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Built);
-        if (getStage(tree) > Stage::Built)
-            stage = Stage::Built; // back up if necessary
-
-        SBStateRep& mutableState = *const_cast<SBStateRep*>(this);
-        modelVars.allocate(tree); 
-        tree.setDefaultModelingValues(*this, mutableState.modelVars); 
-    }
-
-    // Initialize the rest of the variables.
-    void initializeAllVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) > Stage::Modeled)
-            stage = Stage::Modeled; // back up if necessary
-
-        SBStateRep& mutableState = *const_cast<SBStateRep*>(this);
-
-        // Don't initialize modeling vars!
-        paramVars.allocate(tree, *this);  
-        tree.setDefaultParameterValues(*this, mutableState.paramVars); 
-        timeVars.allocate(tree, *this);   
-        tree.setDefaultTimeValues(*this, mutableState.timeVars); 
-        configVars.allocate(tree, *this);   
-        tree.setDefaultConfigurationValues(*this, mutableState.configVars); 
-        motionVars.allocate (tree, *this);   
-        tree.setDefaultMotionValues(*this, mutableState.motionVars); 
-        dynamicsVars.allocate(tree, *this);   
-        tree.setDefaultDynamicsValues(*this, mutableState.dynamicsVars); 
-        reactionVars.allocate(tree, *this);   
-        tree.setDefaultReactionValues(*this, mutableState.reactionVars); 
-    }
-
-    // We're about to realize stage g and we want to make sure the cache entries we'll
-    // need have been allocated and initialized properly. If the current stage is
-    // g or greater then there is nothing to do since the cache must have been
-    // allocated earlier. We expect to be able to access stage g-1 to figure out
-    // the appropriate sizes and defaults here, so the stage must already be there.
-
-    void allocateCacheIfNeeded(const RigidBodyTree& tree, Stage g) const {
-        assert(g > Stage::Built); // "built" vars & cache are in the RigidBodyTree, not the state
-        assert(getStage(tree) >= g-1);
-        if (getStage(tree) >= g)
-            return;
-
-        // These are uninitialized, i.e. garbage (NaN during Debug).
-        switch (g) {
-        case Stage::Modeled:      modelCache.allocate   (tree); break;
-        case Stage::Parametrized: paramCache.allocate   (tree, *this); break;
-        case Stage::Timed:        timeCache.allocate    (tree, *this); break;
-        case Stage::Configured:   configCache.allocate  (tree, *this); break;
-        case Stage::Moving:       motionCache.allocate  (tree, *this); break;
-        case Stage::Dynamics:     dynamicsCache.allocate(tree, *this); break;
-        case Stage::Reacting:     reactionCache.allocate(tree, *this); break;
-        default: assert(false);
-        }
-    }
-
-        // STAGE-CHECKED VARIABLE ACCESS
-
-    // You can look at state variables as soon as they have been allocated.
-
-    const SBModelingVars& getModelingVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Built);
-        return modelVars;
-    }
-    SBModelingVars& updModelingVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Built);
-        stage = Stage::Built; // backup if necessary
-        return modelVars;
-    }
-    const SBParameterVars& getParameterVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return paramVars;
-    }
-    SBParameterVars& updParameterVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Parametrized)
-            stage = Stage(Stage::Parametrized).prev(); // backup if necessary
-        return paramVars;
-    }
-    const SBTimeVars& getTimeVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return timeVars;
-    }
-    SBTimeVars& updTimeVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Timed)
-            stage = Stage(Stage::Timed).prev(); // backup if necessary
-        return timeVars;
-    }
-    const SBConfigurationVars& getConfigurationVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return configVars;
-    }
-    SBConfigurationVars& updConfigurationVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Configured)
-            stage = Stage(Stage::Configured).prev(); // backup if necessary
-        return configVars;
-    }
-    const SBMotionVars& getMotionVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return motionVars;
-    }
-    SBMotionVars& updMotionVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Moving)
-            stage = Stage(Stage::Moving).prev(); // backup if necessary
-        return motionVars;
-    }
-    const SBDynamicsVars& getDynamicsVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return dynamicsVars;
-    }
-    SBDynamicsVars& updDynamicsVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Dynamics)
-            stage = Stage(Stage::Dynamics).prev(); // backup if necessary
-        return dynamicsVars;
-    }
-    const SBReactionVars& getReactionVars(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled);
-        return reactionVars;
-    }
-    SBReactionVars& updReactionVars(const RigidBodyTree& tree) {
-        assert(getStage(tree) >= Stage::Modeled);
-        if (getStage(tree) >= Stage::Reacting)
-            stage = Stage(Stage::Reacting).prev(); // backup if necessary
-        return reactionVars;
-    }
-        // STAGE-CHECKED CACHE ACCESS
-
-    // If the "inProgress" flag is set it means that we are still calculating the
-    // relevant stage and we'll trust that the caller knows that the cache entry
-    // in question has already been calculated, meaning we'll only check that the
-    // *previous* stage is finished.
-
-    const SBModelingCache& getModelingCache(const RigidBodyTree& tree, 
-                                            bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Modeled-1 : Stage::Modeled));
-        return modelCache;
-    }
-    SBModelingCache& updModelingCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Modeled-1);
-        return modelCache;
-    }
-    const SBParameterCache& getParameterCache(const RigidBodyTree& tree, 
-                                              bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Parametrized-1 : Stage::Parametrized));
-        return paramCache;
-    }
-    SBParameterCache& updParameterCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Parametrized-1);
-        return paramCache;
-    }
-    const SBTimeCache& getTimeCache(const RigidBodyTree& tree, 
-                                    bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Timed-1 : Stage::Timed));
-        return timeCache;
-    }
-    SBTimeCache& updTimeCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Timed-1);
-        return timeCache;
-    }
-    const SBConfigurationCache& getConfigurationCache(const RigidBodyTree& tree, 
-                                                      bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Configured-1 : Stage::Configured));
-        return configCache;
-    }
-    SBConfigurationCache& updConfigurationCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Configured-1);
-        return configCache;
-    }
-    const SBMotionCache& getMotionCache(const RigidBodyTree& tree, 
-                                        bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Moving-1 : Stage::Moving));
-        return motionCache;
-    }
-    SBMotionCache& updMotionCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Moving-1);
-        return motionCache;
-    }
-    const SBDynamicsCache& getDynamicsCache(const RigidBodyTree& tree, 
-                                            bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Dynamics-1 : Stage::Dynamics));
-        return dynamicsCache;
-    }
-    SBDynamicsCache& updDynamicsCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Dynamics-1);
-        return dynamicsCache;
-    }
-    const SBReactionCache& getReactionCache(const RigidBodyTree& tree, 
-                                            bool inProgress=false) const 
-    {
-        assert(getStage(tree) >= (inProgress ? Stage::Reacting-1 : Stage::Reacting));
-        return reactionCache;
-    }
-    SBReactionCache& updReactionCache(const RigidBodyTree& tree) const {
-        assert(getStage(tree) >= Stage::Reacting-1);
-        return reactionCache;
-    }
-private:
-    SBModelingVars      modelVars; // allocation sizes & default values only are mutable
-    SBParameterVars     paramVars;
-    SBTimeVars          timeVars;
-    SBConfigurationVars configVars;
-    SBMotionVars        motionVars;
-    SBDynamicsVars      dynamicsVars;
-    SBReactionVars      reactionVars;
-    
-    mutable Stage              stage; // last stage completed
-
-    mutable SBModelingCache      modelCache;
-    mutable SBParameterCache     paramCache;
-    mutable SBTimeCache          timeCache;
-    mutable SBConfigurationCache configCache;
-    mutable SBMotionCache        motionCache;
-    mutable SBDynamicsCache      dynamicsCache;
-    mutable SBReactionCache      reactionCache;
-
-    SBState* handle;
-    friend class RigidBodyTree;
-    friend class RigidBodyNode;
-    friend class RBDistanceConstraint;
-    template <int dof> friend class RigidBodyNodeSpec;
-};
+inline std::ostream& operator<<(std::ostream& o, const SBModelingVars& c)
+  { return o << "TODO: SBModelingVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBParameterVars& c)
+  { return o << "TODO: SBParameterVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBTimeVars& c)
+  { return o << "TODO: SBTimeVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBConfigurationVars& c)
+  { return o << "TODO: SBConfigurationVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBMotionVars& c)
+  { return o << "TODO: SBMotionVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBDynamicsVars& c)
+  { return o << "TODO: SBDynamicsVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBReactionVars& c)
+  { return o << "TODO: SBReactionVars"; }
 
 }; // namespace SimTK
 
