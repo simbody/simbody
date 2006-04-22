@@ -209,7 +209,10 @@ void RigidBodyTree::realizeConstruction(State& s) const {
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
 void RigidBodyTree::realizeModeling(State& s) const {
+    // This is a long-winded way of saying that the Stage must be exactly Built.
     SimTK_STAGECHECK_GE_ALWAYS(s.getStage(), Stage(Stage::Modeled).prev(), 
+        "RigidBodyTree::realizeModeling()");
+    SimTK_STAGECHECK_LT_ALWAYS(s.getStage(), Stage(Stage::Modeled), 
         "RigidBodyTree::realizeModeling()");
 
     // Get the Modeling-stage cache and make sure it has been allocated and initialized if needed.

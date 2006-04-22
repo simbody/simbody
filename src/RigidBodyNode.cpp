@@ -28,32 +28,33 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 //      phi, inertia
 // Should be calc'd from base to tip.
 // We depend on transforms X_PB and X_GB being available.
-void RigidBodyNode::calcJointIndependentKinematicsPos(const State& s) const
+void RigidBodyNode::calcJointIndependentKinematicsPos(
+    SBConfigurationCache&   cc) const
 {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
-    const Vec3 T_PB_G = getX_GP(s).R() * getX_PB(s).T();
+    const Vec3 T_PB_G = getX_GP(cc).R() * getX_PB(cc).T();
 
     // The Phi matrix conveniently performs child-to-parent shifting
     // on spatial quantities (forces); its transpose does parent-to-child
     // shifting for velocities.
-    updPhi(s) = PhiMatrix(T_PB_G);
+    updPhi(cc) = PhiMatrix(T_PB_G);
 
     // Calculate spatial mass properties. That means we need to transform
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    updInertia_OB_G(s) = getInertia_OB_B(s).changeAxes(~getX_GB(s).R());
-    updCB_G(s)         = getX_GB(s).R()*getCOM_B(s);
+    updInertia_OB_G(cc) = getInertia_OB_B().changeAxes(~getX_GB(cc).R());
+    updCB_G(cc)         = getX_GB(cc).R()*getCOM_B();
 
-    updCOM_G(s) = getX_GB(s).T() + getCB_G(s);
+    updCOM_G(cc) = getX_GB(cc).T() + getCB_G(cc);
 
     // Calc Mk: the spatial inertia matrix about the body origin.
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
     // Note: we need to calculate this now so that we'll be able to calculate
     // kinetic energy without going past the Motion stage.
-    const Mat33 offDiag = getMass(s)*crossMat(getCB_G(s));
-    updMk(s) = SpatialMat( getInertia_OB_G(s).toMat33() ,     offDiag ,
+    const Mat33 offDiag = getMass()*crossMat(getCB_G(cc));
+    updMk(cc) = SpatialMat( getInertia_OB_G(cc).toMat33() ,     offDiag ,
                                    -offDiag             , getMass(s)*Mat33(1) );
 }
 
@@ -61,13 +62,18 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(const State& s) const
 // called base to tip: depends on parent's spatial velocity, and
 // the just-calculated cross-joint spatial velocity V_PB_G.
 void 
-RigidBodyNode::calcJointIndependentKinematicsVel(const State& s) const
+RigidBodyNode::calcJointIndependentKinematicsVel(
+    const SBConfigurationCache& cc,
+    SBMotionCache&              mc) const
 {
-    updV_GB(s) = ~getPhi(s)*parent->getV_GB(s) + getV_PB_G(s);
+    updV_GB(mc) = ~getPhi(cc)*parent->getV_GB(mc) + getV_PB_G(mc);
 }
 
-Real RigidBodyNode::calcKineticEnergy(const State& s) const {
-    const Real ret = dot(getV_GB(s) , getMk(s)*getV_GB(s));
+Real RigidBodyNode::calcKineticEnergy(
+    const SBConfigurationCache& cc
+    const SBMotionCache&        mc) const 
+{
+    const Real ret = dot(getV_GB(mc) , getMk(cc)*getV_GB(mc));
     return 0.5*ret;
 }
 
@@ -76,25 +82,28 @@ Real RigidBodyNode::calcKineticEnergy(const State& s) const {
 // This routine expects that all spatial velocities & spatial inertias are
 // already available, but does not have to be called in any particular order.
 void 
-RigidBodyNode::calcJointIndependentDynamicsVel(const State& s) const
+RigidBodyNode::calcJointIndependentDynamicsVel(
+    const SBConfigurationCache& cc,
+    const SBMotionCache&        mc,
+    SBDynamicsCache&            dc) const
 {
     if (nodeNum == 0) { // ground, just in case
-        updGyroscopicForce(s)      = SpatialVec(Vec3(0), Vec3(0));
-        updCoriolisAcceleration(s) = SpatialVec(Vec3(0), Vec3(0));
-        updCentrifugalForces(s)    = SpatialVec(Vec3(0), Vec3(0));
+        updGyroscopicForce(dc)      = SpatialVec(Vec3(0), Vec3(0));
+        updCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
+        updCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
 
-    const Vec3& omega = getV_GB(s)[0];  // spatial angular velocity
-    const Vec3& vel   = getV_GB(s)[1];  // spatial linear velocity
+    const Vec3& omega = getV_GB(mc)[0];  // spatial angular velocity
+    const Vec3& vel   = getV_GB(mc)[1];  // spatial linear velocity
 
-    updGyroscopicForce(s) = 
-        SpatialVec(    omega % (getInertia_OB_G(s)*omega),    // gyroscopic moment
-                   getMass(s)*(omega % (omega % getCB_G(s)))); // gyroscopic force
+    updGyroscopicForce(dc) = 
+        SpatialVec(    omega % (getInertia_OB_G(cc)*omega),     // gyroscopic moment
+                    getMass()*(omega % (omega % getCB_G(cc)))); // gyroscopic force
 
     // Parent velocity.
-    const Vec3& pOmega = parent->getV_GB(s)[0];
-    const Vec3& pVel   = parent->getV_GB(s)[1];
+    const Vec3& pOmega = parent->getV_GB(mc)[0];
+    const Vec3& pVel   = parent->getV_GB(mc)[1];
 
     // Calc a: coriolis acceleration.
     // Sherm TODO: See Schwieters & Clore Eq. [16], which uses *this*
@@ -107,13 +116,13 @@ RigidBodyNode::calcJointIndependentDynamicsVel(const State& s) const
     // Is that also true in the first term? I.e., can we use pOmega, omega,
     // or both below and get the same answers? Anyway the code below is
     // consistent with JV&R but not obviously consistent with S&C.
-    updCoriolisAcceleration(s) = 
+    updCoriolisAcceleration(dc) = 
         SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
          // + crossMat(pOmega) * getV_PB_G(s); <-- IVM original
-        + crossMat(omega)  * getV_PB_G(s); // JV&R paper
+        + crossMat(omega)  * getV_PB_G(mc); // JV&R paper
 
-    updCentrifugalForces(s) =
-        getP(s) * getCoriolisAcceleration(s) + getGyroscopicForce(s);
+    updCentrifugalForces(dc) =
+        getP(dc) * getCoriolisAcceleration(dc) + getGyroscopicForce(dc);
 }
 
 void RigidBodyNode::nodeDump(std::ostream& o) const {
@@ -161,11 +170,15 @@ public:
     
     /*virtual*/void calcArticulatedBodyInertiasInward(const State&) const {}
 
-    /*virtual*/ void calcInternalGradientFromSpatial
-        (const State&, Vector_<SpatialVec>&,
-            const Vector_<SpatialVec>&, Vector&) const { }
+    /*virtual*/ void calcInternalGradientFromSpatial(
+        const SBConfigurationCache& cc, 
+        Vector_<SpatialVec>&        zTmp,
+        const Vector_<SpatialVec>&  X, 
+        Vector&                     JX) const { }
 
-    /*virtual*/ void calcEquivalentJointForces(const State& s,
+    /*virtual*/ void calcEquivalentJointForces(
+        const SBConfigurationCache&,
+        const SBDynamicsCache&,
         const Vector_<SpatialVec>& bodyForces,
         Vector_<SpatialVec>&       allZ,
         Vector_<SpatialVec>&       allGepsilon,
@@ -175,7 +188,9 @@ public:
         allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
-    /*virtual*/void calcUDotPass1Inward(const State& s,
+    /*virtual*/void calcUDotPass1Inward(
+        const SBConfigurationCache&,
+        const SBDynamicsCache&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector_<SpatialVec>&       allZ,
@@ -185,7 +200,9 @@ public:
         allZ[0] = -bodyForces[0]; // TODO sign is weird
         allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     } 
-    /*virtual*/void calcUDotPass2Outward(const State& s,
+    /*virtual*/void calcUDotPass2Outward(
+        const SBConfigurationCache&,
+        const SBDynamicsCache&,
         const Vector&                   epsilonTmp,
         Vector_<SpatialVec>&            allA_GB,
         Vector&                         allUDot) const
@@ -199,8 +216,6 @@ public:
         v.prescribed[0] = true; // ground's motion is prescribed to zero
     }
 
-    /*virtual*/void getAccel(const State&, Vector&) const {}
-
     // /*virtual*/ const SpatialRow& getHRow(int i) const;
 
     void print(const State&, int) {}
@@ -210,8 +225,8 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const Transform&   X_PJb,
-                      const Transform&   X_BJ,
+                      const Transform&      X_PJb,
+                      const Transform&      X_BJ,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
@@ -244,22 +259,32 @@ public:
     /// which are using quaternions. Other joints can provide a null routine.
     /// Each of the passed-in Vectors is a "q-like" object, that is, allocated
     /// to the bodies in a manner parallel to the q state variable.
-    virtual void calcJointSinCosQNorm
-        (const State&, Vector& sine, Vector& cosine, Vector& qnorm) const=0;
+    virtual void calcJointSinCosQNorm(
+        const SBModelingVars&   mv, 
+        const Vector&           q, 
+        Vector&                 sine, 
+        Vector&                 cosine, 
+        Vector&                 qnorm) const=0;
 
     /// This mandatory routine calculates the across-joint transform X_JbJ generated
     /// by the current q values. This may depend on sines & cosines or normalized
     /// quaternions already being available in the State cache.
-    virtual void calcAcrossJointTransform(const State&, Transform& X_JbJ) const=0;
+    virtual void calcAcrossJointTransform(
+        const SBModelingVars&   mv,
+        const Vector&           q,
+        Transform&              X_JbJ) const=0;
 
     /// This routine is NOT joint specific, but cannot be called until the across-joint
     /// transform X_JbJ has been calculated and is available in the State cache.
-    void calcBodyTransforms(const State& s, Transform& X_PB, Transform& X_GB) const 
+    void calcBodyTransforms(
+        const SBConfigurationCache& cc, 
+        Transform&                  X_PB, 
+        Transform&                  X_GB) const 
     {
-        const Transform& X_BJ  = getX_BJ(s);  // fixed
-        const Transform& X_PJb = getX_PJb(s); // fixed
-        const Transform& X_JbJ = getX_JbJ(s); // just calculated
-        const Transform& X_GP  = getX_GP(s);  // already calculated
+        const Transform& X_BJ  = getX_BJ();  // fixed
+        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_JbJ = getX_JbJ(cc); // just calculated
+        const Transform& X_GP  = getX_GP(cc);  // already calculated
 
         X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB
         X_GB = X_GP * X_PB;
@@ -268,7 +293,9 @@ public:
     /// This mandatory routine calcluates the joint transition matrix H, giving the
     /// change of *spatial* velocity induced by the generalized speeds u for this
     /// joint. It may depend on X_PB and X_GB having been calculated already.
-    virtual void calcJointTransitionMatrix(const State&, HType& H) const=0;
+    virtual void calcJointTransitionMatrix(
+        const SBConfigurationCache& cc, 
+        HType&                      H) const=0;
 
     /// Calculate joint-specific kinematic quantities dependent on
     /// on velocities. This routine may assume that *all* position 
@@ -278,8 +305,12 @@ public:
     /// quanitites that must be computed are:
     ///   V_PB_G  relative velocity of B in P, expr. in G
     /// The code is the same for all joints, although parametrized by dof.
-    void calcJointKinematicsVel(const State& s) const {
-        updV_PB_G(s) = ~getH(s) * getU(s);
+    void calcJointKinematicsVel(
+        const SBConfigurationCache& cc,
+        const Vector&               u,
+        SBMotionCache&              mc) const 
+    {
+        updV_PB_G(mc) = ~getH(cc) * fromU(u);
     }
 
     // These next two routines are options, but if you supply one you
@@ -301,17 +332,17 @@ public:
 
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
-    void realizeConfiguration(const State& s) const {
-        SBConfigurationCache& configCache = tree->updConfigurationCache(s);
+    void realizeConfiguration(
+        const SBModelingVars& mv,
+        const Vector&         q,
+        SBConfigurationCache& cc) const 
+    {
+        calcJointSinCosQNorm(mv, q, cc.sq, cc.cq, cc.qnorm);
+        calcAcrossJointTransform (mv, q, updX_JbJ(cc));
+        calcBodyTransforms       (cc, updX_PB(cc), updX_GB(cc));
+        calcJointTransitionMatrix(s, updH(cc));
 
-        calcJointSinCosQNorm     (s, configCache.sq,
-                                     configCache.cq,
-                                     configCache.qnorm);
-        calcAcrossJointTransform (s, updX_JbJ(s));
-        calcBodyTransforms       (s, updX_PB(s), updX_GB(s));
-        calcJointTransitionMatrix(s, updH(s));
-
-        calcJointIndependentKinematicsPos(s);
+        calcJointIndependentKinematicsPos(cc);
     }
 
     // Set new velocities for the current configuration, and calculate
@@ -373,11 +404,16 @@ public:
 
     virtual void print(const State&, int) const;
 
-    virtual void setVelFromSVel(State& s, const SpatialVec&) const;
-    virtual bool enforceQuaternionConstraints(State&) const {return false;}
+    virtual void setVelFromSVel
+        (const SBConfigurationCache&, const SBMotionCache&,
+         const SpatialVec&, Vector& u) const;
 
-    const SpatialRow& getHRow(const State& s, int i) const {
-        return getH(s)[i];
+    virtual bool enforceQuaternionConstraints(Vector& q) const {
+        return false;
+    }
+
+    const SpatialRow& getHRow(const SBConfigurationCache& cc, int i) const {
+        return getH(cc)[i];
     }
 
     // Access to body-oriented state and cache entries is the same for all nodes,
@@ -572,8 +608,8 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
-                    const Transform&   X_PJb,
-                    const Transform&   X_BJ,
+                    const Transform&      X_PJb,
+                    const Transform&      X_BJ,
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
@@ -595,11 +631,14 @@ public:
     }
 
     // Calculate H.
-    void calcJointTransitionMatrix(const State& s, HType& H) const {
-        const Transform& X_PJb   = getX_PJb(s);      // fixed config of Jb in P
+    void calcJointTransitionMatrix(
+        const SBConfigurationCache& cc, 
+        HType&                      H) const 
+    {
+        const Transform& X_PJb   = getX_PJb();      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
-        const Transform& X_GP    = getX_GP(s); // parent orientation in ground
+        const Transform& X_GP    = getX_GP(cc); // parent orientation in ground
 
         // Note that H is spatial. The current spatial directions for our qs are
         // the axes of the Jb frame expressed in Ground.
@@ -622,8 +661,8 @@ public:
     virtual const char* type() { return "slider"; }
 
     RBNodeSlider(const MassProperties& mProps_B,
-                 const Transform&   X_PJb,
-                 const Transform&   X_BJ,
+                 const Transform&      X_PJb,
+                 const Transform&      X_BJ,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
@@ -668,8 +707,8 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const Transform&   X_PJb,
-                  const Transform&   X_BJ,
+                  const Transform&      X_PJb,
+                  const Transform&      X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -724,8 +763,8 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const Transform&   X_PJb,
-                  const Transform&   X_BJ,
+                  const Transform&      X_PJb,
+                  const Transform&      X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -785,8 +824,8 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const Transform&   X_PJb,
-                           const Transform&   X_BJ,
+                           const Transform&      X_PJb,
+                           const Transform&      X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
@@ -844,8 +883,8 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  const Transform&   X_PJb,
-                  const Transform&   X_BJ,
+                  const Transform&      X_PJb,
+                  const Transform&      X_BJ,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
@@ -896,54 +935,78 @@ public:
         H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
     }
 
-    void calcQDot(const State& s, const Vector& u, Vector& qdot) const {
+    void calcQDot(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u, 
+        Vector&                     qdot) const 
+    {
         const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
-        if (getUseEulerAngles(s)) {
-            const RotationMat& R_JbJ = getX_JbJ(s).R();
-            toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(getQ(s),
+        if (getUseEulerAngles(mv)) {
+            const RotationMat& R_JbJ = getX_JbJ(cc).R();
+            toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(fromQ(q),
                                         ~R_JbJ*w_JbJ); // need w in *body*, not parent
         } else
-            toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(getQuat(s),w_JbJ);
+            toQuat(qdot) = RotationMat::convertAngVelToQuaternionDot(fromQuat(q),w_JbJ);
     }
  
-    void calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
-        const Vec3& w_JbJ     = getU(s); // angular velocity of J in Jb, expr in Jb
+    void calcQDotDot(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u, 
+        const Vector&               udot, 
+        Vector&                     qdotdot) const 
+    {
+        const Vec3& w_JbJ     = fromU(u); // angular velocity of J in Jb, expr in Jb
         const Vec3& w_JbJ_dot = fromU(udot);
 
-        if (getUseEulerAngles(s)) {
-            const RotationMat& R_JbJ = getX_JbJ(s).R();
+        if (getUseEulerAngles(mv)) {
+            const RotationMat& R_JbJ = getX_JbJ(cc).R();
             toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed123DotDot
-                                  (getQ(s), ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
+                                  (fromQ(q), ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
         } else
             toQuat(qdotdot) = RotationMat::convertAngVelDotToQuaternionDotDot
-                                  (getQuat(s),w_JbJ,w_JbJ_dot);
+                                  (fromQuat(q),w_JbJ,w_JbJ_dot);
     }
 
-    void setQ(State& s, const Vector& q) const {
-        if (getUseEulerAngles(s))
-            updQ(s) = fromQ(q);
+    void setQ(
+        const SBModelingVars&   mv, 
+        const Vector&           qIn, 
+        Vector&                 q) const 
+    {
+        if (getUseEulerAngles(mv))
+            toQ(q) = fromQ(qIn);
         else
-            updQuat(s) = fromQuat(q);
+            toQuat(q) = fromQuat(qIn);
     }
 
     int getMaxNQ()              const {return 4;}
-    int getNQ(const State& s) const {return getUseEulerAngles(s) ? 3 : 4;} 
+    int getNQ(const SBModelingVars& mv) const {
+        return getUseEulerAngles(mv) ? 3 : 4;
+    } 
 
-    void setDefaultConfigurationValues(const State& s, Vector& q) const 
+    void setDefaultConfigurationValues(
+        const SBModelingVars&   mv,
+        Vector&                 q) const 
     {
-        if (getUseEulerAngles(s)) toQ(q) = 0.;
+        if (getUseEulerAngles(mv)) toQ(q) = 0.;
         else toQuat(q) = Vec4(1.,0.,0.,0.);
     }
 
-    bool enforceQuaternionConstraints(State& s) const {
-        if (getUseEulerAngles(s)) 
+    bool enforceQuaternionConstraints(
+        const SBModelingVars&   mv,
+        Vector&                 q) const 
+    {
+        if (getUseEulerAngles(mv)) 
             return false;   // no change
-        Vec4& quat = updQuat(s);
+        Vec4& quat = toQuat(q);
         quat = quat / quat.norm();
         return true;
     }
 
-    void getInternalForce(const State& s) const {
+    void getInternalForce(const SBReactionCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
@@ -974,8 +1037,8 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const Transform&   X_PJb,
-                           const Transform&   X_BJ,
+                           const Transform&      X_PJb,
+                           const Transform&      X_BJ,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
@@ -1053,42 +1116,49 @@ public:
         }
     }
  
-    void calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
-        const Vec3& w_JbJ     = getUVec3(s,0); // angular velocity of J in Jb
-        const Vec3& v_JbJ     = getUVec3(s,3); // linear velocity
+    void calcQDotDot(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u, 
+        const Vector&               udot, 
+        Vector&                     qdotdot) const 
+    {
+        const Vec3& w_JbJ     = fromUVec3(u,0); // angular velocity of J in Jb
+        const Vec3& v_JbJ     = fromUVec3(u,3); // linear velocity
         const Vec3& w_JbJ_dot = fromUVec3(udot,0);
         const Vec3& v_JbJ_dot = fromUVec3(udot,3);
-        if (getUseEulerAngles(s)) {
-            const RotationMat& R_JbJ = getX_JbJ(s).R();
-            const Vec3& theta  = getQVec3(s,0); // Euler angles
+        if (getUseEulerAngles(mv)) {
+            const RotationMat& R_JbJ = getX_JbJ(cc).R();
+            const Vec3& theta  = fromQVec3(q,0); // Euler angles
             toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed123DotDot
                                                 (theta, ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
             toQVec3(qdotdot,3) = v_JbJ_dot;
             //cout << "   w_JbJ_dot=" << w_JbJ_dot << "  v_JbJ_dot=" << v_JbJ_dot << endl;
             //cout << "   qdotdot=" << fromQVec3(qdotdot,0) << endl;
         } else {
-            const Vec4& quat  = getQuat(s);
+            const Vec4& quat  = fromQuat(q);
             toQuat(qdotdot)   = RotationMat::convertAngVelDotToQuaternionDotDot
                                                 (quat,w_JbJ,w_JbJ_dot);
             toQVec3(qdotdot,4) = v_JbJ_dot;
         }
     }
 
-    void setQ(State& s, const Vector& q) const {
-        if (getUseEulerAngles(s))
-            updQ(s) = fromQ(q);
+    void setQ(Vector& q, const SBModelingVars& mv, const Vector& qIn) const {
+        if (getUseEulerAngles(mv))
+            toQ(q) = fromQ(qIn);
         else {
-            updQuat(s)    = fromQuat(q);
-            updQVec3(s,4) = fromQVec3(q,4);
+            toQuat(q)    = fromQuat(qIn);
+            toQVec3(q,4) = fromQVec3(qIn,4);
         }
     }
 
     int getMaxNQ()              const {return 7;}
-    int getNQ(const State& s) const {return getUseEulerAngles(s) ? 6 : 7;} 
+    int getNQ(const SBModelingVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
 
-    void setDefaultConfigurationValues(const State& s, Vector& q) const 
+    void setDefaultConfigurationValues(const SBModelingVars& mv, Vector& q) const 
     {
-        if (getUseEulerAngles(s)) 
+        if (getUseEulerAngles(mv)) 
             toQ(q) = 0.;
         else {
             toQuat(q) = Vec4(1.,0.,0.,0.);
@@ -1096,15 +1166,15 @@ public:
         }
     }
 
-    bool enforceQuaternionConstraints(State& s) const {
-        if (getUseEulerAngles(s)) 
+    bool enforceQuaternionConstraints(const SBModelingVars& mv, Vector& q) const {
+        if (getUseEulerAngles(mv)) 
             return false; // no change
-        Vec4& quat = updQuat(s);
+        Vec4& quat = fromQuat(q);
         quat = quat / quat.norm();
         return true;
     }
 
-    void getInternalForce(const State& s) const {
+    void getInternalForce(const SBReactionCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
@@ -1134,8 +1204,8 @@ public:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties& m,            // mass properties in body frame
-    const Transform&   X_PJb,        // parent's attachment frame for this joint
-    const Transform&   X_BJ,         // inboard joint frame J in body frame
+    const Transform&      X_PJb,        // parent's attachment frame for this joint
+    const Transform&      X_BJ,         // inboard joint frame J in body frame
     JointSpecification::JointType      
                           type,
     bool                  isReversed,   // child-to-parent orientation?
@@ -1183,10 +1253,13 @@ RigidBodyNode::create(
 // to be called from base to tip.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::setVelFromSVel(State& s, 
-                                       const SpatialVec& sVel) const 
+RigidBodyNodeSpec<dof>::setVelFromSVel(
+    const SBConfigurationCache& cc, 
+    const SBMotionCache&        mc,
+    const SpatialVec&           sVel, 
+    Vector&                     u) const 
 {
-    updU(s) = getH(s) * (sVel - (~getPhi(s) * parent->getV_GB(s)));
+    toU(u) = getH(cc) * (sVel - (~getPhi(cc) * parent->getV_GB(mc)));
 }
 
 //
@@ -1206,67 +1279,75 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(State& s,
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
-    const State&    s) const 
+    const SBConfigurationCache& cc,
+    SBDynamicsCache&            dc) const 
 {
-    updP(s) = getMk(s);
+    updP(dc) = getMk(cc);
     for (int i=0 ; i<(int)children.size() ; i++) {
-        const SpatialMat& tauBarChild = children[i]->getTauBar(s);
-        const SpatialMat& PChild      = children[i]->getP(s);
-        const PhiMatrix&  phiChild    = children[i]->getPhi(s);
+        const SpatialMat& tauBarChild = children[i]->getTauBar(dc);
+        const SpatialMat& PChild      = children[i]->getP(dc);
+        const PhiMatrix&  phiChild    = children[i]->getPhi(cc);
 
         // TODO: this is around 450 flops but could be cut in half by
         // exploiting symmetry.
-        updP(s) += phiChild * (tauBarChild * PChild) * ~phiChild;
+        updP(dc) += phiChild * (tauBarChild * PChild) * ~phiChild;
     }
 
-    const Mat<2,dof,Vec3> PHt = getP(s) * ~getH(s);
-    updD(s)  = getH(s) * PHt;
+    const Mat<2,dof,Vec3> PHt = getP(dc) * ~getH(cc);
+    updD(dc)  = getH(cc) * PHt;
     // this will throw an exception if the matrix is ill conditioned
-    updDI(s) = getD(s).invert();
-    updG(s)  = PHt * getDI(s);
+    updDI(dc) = getD(dc).invert();
+    updG(dc)  = PHt * getDI(dc);
 
     // TODO: change sign on tau to make it GH-I instead, which only requires
     // subtractions on the diagonal rather than negating all the off-diag stuff.
     // That would save 30 flops here (I know, not much).
-    updTauBar(s)  = 1.; // identity matrix
-    updTauBar(s) -= getG(s) * getH(s);
-    updPsi(s)     = getPhi(s) * getTauBar(s);
+    updTauBar(dc)  = 1.; // identity matrix
+    updTauBar(dc) -= getG(dc) * getH(cc);
+    updPsi(dc)     = getPhi(cc) * getTauBar(dc);
 }
 
 
 
 // To be called base to tip.
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcYOutward(const State& s) const {
+RigidBodyNodeSpec<dof>::calcYOutward(
+    const SBConfigurationCache& cc,
+    SBDynamicsCache&            dc) const 
+{
     // TODO: this is very expensive (~1000 flops?) Could cut be at least half
     // by exploiting symmetry. Also, does Psi have special structure?
     // And does this need to be computed for every body or only those
     // which are loop "base" bodies or some such?
-    updY(s) = (~getH(s) * getDI(s) * getH(s)) 
-                + (~getPsi(s) * parent->getY(s) * getPsi(s));
+    updY(dc) = (~getH(cc) * getDI(dc) * getH(cc)) 
+                + (~getPsi(dc) * parent->getY(dc) * getPsi(dc));
 }
 
 //
 // To be called from tip to base.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcZ(const State& s, 
-                              const SpatialVec& spatialForce) const 
+RigidBodyNodeSpec<dof>::calcZ(
+    const SBConfigurationCache& cc,
+    const SBDynamicsCache&      dc,
+    const SBReactionVars&       rv,
+    const SpatialVec&           spatialForce.
+    SBReactionCache&            rc) const 
 {
-    SpatialVec& z = updZ(s);
-    z = getCentrifugalForces(s) - spatialForce;
+    SpatialVec& z = updZ(rc);
+    z = getCentrifugalForces(dc) - spatialForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
-        const SpatialVec& zChild    = children[i]->getZ(s);
-        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
-        const SpatialVec& GepsChild = children[i]->getGepsilon(s);
+        const SpatialVec& zChild    = children[i]->getZ(rc);
+        const PhiMatrix&  phiChild  = children[i]->getPhi(cc);
+        const SpatialVec& GepsChild = children[i]->getGepsilon(rc);
 
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(s)  = getAppliedJointForce(s) - getH(s)*z; // TODO: pass in hinge forces
-    updNu(s)       = getDI(s) * getEpsilon(s);
-    updGepsilon(s) = getG(s)  * getEpsilon(s);
+    updEpsilon(rc)  = getAppliedJointForce(rv) - getH(cc)*z; // TODO: pass in hinge forces
+    updNu(rc)       = getDI(dc) * getEpsilon(rc);
+    updGepsilon(rc) = getG(dc)  * getEpsilon(rc);
 }
 
 //
@@ -1275,15 +1356,23 @@ RigidBodyNodeSpec<dof>::calcZ(const State& s,
 // (Base to tip)
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcAccel(const State& s) const {
-    Vec<dof>&        udot   = updUDot(s);
-    const SpatialVec alphap = ~getPhi(s) * parent->getA_GB(s); // ground A_GB is 0
+RigidBodyNodeSpec<dof>::calcAccel(
+    const Vector&               allQ,
+    const Vector&               allU,
+    const SBConfigurationCache& cc,
+    const SBDynamicsCache&      dc,
+    SBReactionCache&            rc,
+    Vector&                     allUdot,
+    Vector&                     allQdotdot) const 
+{
+    Vec<dof>&        udot   = toU(allUdot);
+    const SpatialVec alphap = ~getPhi(cc) * parent->getA_GB(rc); // ground A_GB is 0
 
 
-    udot       = getNu(s) - (~getG(s)*alphap);
-    updA_GB(s) = alphap + ~getH(s)*udot + getCoriolisAcceleration(s);  
+    udot       = getNu(rc) - (~getG(dc)*alphap);
+    updA_GB(s) = alphap + ~getH(cc)*udot + getCoriolisAcceleration(dc);  
 
-    calcQDotDot(s, tree->getUDot(s), tree->updQDotDot(s));   
+    calcQDotDot(allQ, allU, allUdot, allQdotdot);  
 }
 
  
@@ -1292,12 +1381,14 @@ RigidBodyNodeSpec<dof>::calcAccel(const State& s) const {
 // Temps do not need to be initialized.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcUDotPass1Inward(const State& s,
-    const Vector&              jointForces,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector_<SpatialVec>&       allZ,
-    Vector_<SpatialVec>&       allGepsilon,
-    Vector&                    allEpsilon) const 
+RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
+    const SBConfigurationCache& cc,
+    const SBDynamicsCache&      dc,
+    const Vector&               jointForces,
+    const Vector_<SpatialVec>&  bodyForces,
+    Vector_<SpatialVec>&        allZ,
+    Vector_<SpatialVec>&        allGepsilon,
+    Vector&                     allEpsilon) const 
 {
     const Vec<dof>&   myJointForce = fromU(jointForces);
     const SpatialVec& myBodyForce  = fromB(bodyForces);
@@ -1305,18 +1396,18 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(const State& s,
     SpatialVec&       Geps         = toB(allGepsilon);
     Vec<dof>&         eps          = toU(allEpsilon);
 
-    z = getCentrifugalForces(s) - myBodyForce;
+    z = getCentrifugalForces(dc) - myBodyForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
-        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
+        const PhiMatrix&  phiChild  = children[i]->getPhi(cc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
 
         z += phiChild * (zChild + GepsChild);
     }
 
-    eps  = myJointForce - getH(s)*z;
-    Geps = getG(s)  * eps;
+    eps  = myJointForce - getH(cc)*z;
+    Geps = getG(dc)  * eps;
 }
 
 //
@@ -1326,7 +1417,9 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(const State& s,
 // beginning the iteration.
 //
 template<int dof> void 
-RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const State& s,
+RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
+    const SBConfigurationCache&     cc,
+    const SBDynamicsCache&          dc,
     const Vector&                   allEpsilon,
     Vector_<SpatialVec>&            allA_GB,
     Vector&                         allUDot) const
@@ -1338,10 +1431,10 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const State& s,
     // Shift parent's A_GB outward. (Ground A_GB is zero.)
     const SpatialVec A_GP = parent->getNodeNum()== 0 
         ? SpatialVec(Vec3(0), Vec3(0))
-        : ~getPhi(s) * allA_GB[parent->getNodeNum()];
+        : ~getPhi(cc) * allA_GB[parent->getNodeNum()];
 
-    udot = getDI(s) * eps - (~getG(s)*A_GP);
-    A_GB = A_GP + ~getH(s)*udot + getCoriolisAcceleration(s);  
+    udot = getDI(dc) * eps - (~getG(dc)*A_GP);
+    A_GB = A_GP + ~getH(cc)*udot + getCoriolisAcceleration(dc);  
 }
 
 //
@@ -1352,9 +1445,11 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(const State& s,
 // applied hinge gradients if there are any; just add those in at the end if you want them.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
-    (const State& s, Vector_<SpatialVec>& zTmp,
-     const Vector_<SpatialVec>& X, Vector& JX) const
+RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
+    const SBConfigurationCache& cc,
+    Vector_<SpatialVec>&        zTmp,
+    const Vector_<SpatialVec>&  X, 
+    Vector&                     JX) const
 {
     const SpatialVec& in  = X[getNodeNum()];
     Vec<dof>&         out = Vec<dof>::updAs(&JX[getUIndex()]);
@@ -1364,12 +1459,12 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const SpatialVec& zChild   = zTmp[children[i]->getNodeNum()];
-        const PhiMatrix&  phiChild = children[i]->getPhi(s);
+        const PhiMatrix&  phiChild = children[i]->getPhi(cc);
 
         z += phiChild * zChild;
     }
 
-    out = getH(s) * z; 
+    out = getH(cc) * z; 
 }
 
 //
@@ -1377,11 +1472,13 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial
 // Temps do not need to be initialized.
 //
 template<int dof> void
-RigidBodyNodeSpec<dof>::calcEquivalentJointForces(const State& s,
-    const Vector_<SpatialVec>& bodyForces,
-    Vector_<SpatialVec>&       allZ,
-    Vector_<SpatialVec>&       allGepsilon,
-    Vector&                    jointForces) const 
+RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
+    const SBConfigurationCache&     cc,
+    const SBDynamicsCache&          dc,
+    const Vector_<SpatialVec>&      bodyForces,
+    Vector_<SpatialVec>&            allZ,
+    Vector_<SpatialVec>&            allGepsilon,
+    Vector&                         jointForces) const 
 {
     const SpatialVec& myBodyForce  = fromB(bodyForces);
     SpatialVec&       z            = toB(allZ);
@@ -1391,15 +1488,15 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(const State& s,
     z = myBodyForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
-        const PhiMatrix&  phiChild  = children[i]->getPhi(s);
+        const PhiMatrix&  phiChild  = children[i]->getPhi(cc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
         const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
 
         z += phiChild * (zChild + GepsChild);
     }
 
-    eps  = getH(s) * z;
-    Geps = getG(s) * eps;
+    eps  = getH(cc) * z;
+    Geps = getG(dc) * eps;
 }
 
 
