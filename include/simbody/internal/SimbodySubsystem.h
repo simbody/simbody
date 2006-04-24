@@ -5,8 +5,6 @@
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
 
-#include "simbody/internal/SimbodyState.h"
-
 #include <cassert>
 #include <vector>
 #include <iostream>

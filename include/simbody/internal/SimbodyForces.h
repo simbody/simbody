@@ -5,8 +5,6 @@
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
 
-#include "simbody/internal/SimbodyState.h"
-
 #include <cassert>
 
 namespace SimTK {
@@ -32,7 +30,7 @@ private:
     Vec3 defaultGravity;
 };
 
-
+/*
 // Construction invariants are:
 //    body 1, body 2
 //    default values for stations, naturalLength, stiffness
@@ -175,6 +173,7 @@ inline std::ostream&
 operator<<(std::ostream& o, const LinearSpring::Parameters& s) {return o<<s.toString();}
 inline std::ostream& 
 operator<<(std::ostream& o, const LinearSpring::Results& c) {return o<<c.toString();}
+*/
 
 } // namespace SimTK
 
