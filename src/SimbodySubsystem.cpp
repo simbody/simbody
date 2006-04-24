@@ -95,6 +95,22 @@ void SimbodySubsystem::realizeMotion       (const State& s) const {rep->realizeM
 void SimbodySubsystem::realizeDynamics     (const State& s) const {rep->realizeDynamics(s);}
 void SimbodySubsystem::realizeReaction     (const State& s) const {rep->realizeReaction(s);}
 
+void SimbodySubsystem::realize(const State& s, Stage g) const {
+    while (s.getStage() < g) {
+        switch (s.getStage()) {
+        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+        case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
+        case Stage::Modeled:      realizeParameters(s);    break;
+        case Stage::Parametrized: realizeTime(s);          break;
+        case Stage::Timed:        realizeConfiguration(s); break;
+        case Stage::Configured:   realizeMotion(s);        break;
+        case Stage::Moving:       realizeDynamics(s);      break;
+        case Stage::Dynamics:     realizeReaction(s);      break;
+        default: assert(!"SimbodySubsystem::realize(): bad stage");
+        }
+        s.advanceToStage(s.getStage().next());
+    }
+}
 
 void SimbodySubsystem::calcInternalGradientFromSpatial(const State& s,
     const Vector_<SpatialVec>& dEdR,

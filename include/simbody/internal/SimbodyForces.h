@@ -30,6 +30,63 @@ private:
     Vec3 defaultGravity;
 };
 
+
+/*
+ * This class holds a full set of applied forces, including body
+ * forces (by which we mean forces and torques), and joint forces..
+ *
+ * Body forces are expressed in the ground frame. Joints constitute
+ * their own frames, and joint forces are applied as per-joint-DOF
+ * scalars whose meanings depend on the quirks of the individual
+ * joints.
+ *
+ * Note that this is a low-level container class; it does not know
+ * the joint types or current configuration of the bodies. It just
+ * knows how many items of each type there are. It must be given to a
+ * SimbodyTree, along with the current state, in order to be
+ * interpreted correctly.
+ *
+class SimbodyForceSet {
+public:
+    SimbodyForceSet() { }
+    SimbodyForceSet(int nBody, int nDOFs) : bodyForces(nBody), jointForces(nDOFs) { }
+    // default copy, assignment, destructor
+
+    void resize(int nBody, int nDOFs) 
+       {bodyForces.resize(nBody); jointForces.resize(nDOFs);}
+
+    /// Set all forces to zero.
+    void clear() {clearBodyForces(); clearJointForces();}
+
+    /// Clear only the body forces, leaving joint forces alone.
+    void clearBodyForces()  {bodyForces.setToZero();}
+
+    /// Clear only the joint forces, leaving the body forces alone.
+    void clearJointForces() {jointForces.setToZero();}
+
+    const Vector_<SpatialVec>& getBodyForces() const {return bodyForces;}
+    Vector_<SpatialVec>&       updBodyForces()       {return bodyForces;}
+
+    const Vector& getJointForces() const {return jointForces;}
+    Vector&       updJointForces()       {return jointForces;}
+
+    // Named assignment operators; prefer the actual operators in C++
+    SimbodyForceSet& assign  (const SimbodyForceSet& f) {return (*this = f);}
+    SimbodyForceSet& add     (const SimbodyForceSet& f) 
+       {bodyForces+=f.bodyForces; jointForces+=f.jointForces; return *this;}
+    SimbodyForceSet& subtract(const SimbodyForceSet& f) 
+       {bodyForces-=f.bodyForces; jointForces-=f.jointForces; return *this;}
+    SimbodyForceSet& scale   (const Real& s) {bodyForces*=s; jointForces*=s; return *this;}
+
+    SimbodyForceSet& operator+=(const SimbodyForceSet& f) {return add(f);}
+    SimbodyForceSet& operator-=(const SimbodyForceSet& f) {return subtract(f);}
+    SimbodyForceSet& operator*=(const Real& s)            {return scale(s);}
+private:
+    Vector_<SpatialVec> bodyForces;
+    Vector_<Vec3>       particleForces;
+    Vector_<Real>       jointForces;
+};
+*/
 /*
 // Construction invariants are:
 //    body 1, body 2

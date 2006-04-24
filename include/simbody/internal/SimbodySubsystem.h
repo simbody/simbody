@@ -21,62 +21,6 @@ class MassProperties;
 
 
 /**
- * This class holds a full set of applied forces, including body
- * forces (by which we mean forces and torques), and joint forces..
- *
- * Body forces are expressed in the ground frame. Joints constitute
- * their own frames, and joint forces are applied as per-joint-DOF
- * scalars whose meanings depend on the quirks of the individual
- * joints.
- *
- * Note that this is a low-level container class; it does not know
- * the joint types or current configuration of the bodies. It just
- * knows how many items of each type there are. It must be given to a
- * SimbodyTree, along with the current state, in order to be
- * interpreted correctly.
- */
-class SimbodyForceSet {
-public:
-    SimbodyForceSet() { }
-    SimbodyForceSet(int nBody, int nDOFs) : bodyForces(nBody), jointForces(nDOFs) { }
-    // default copy, assignment, destructor
-
-    void resize(int nBody, int nDOFs) 
-       {bodyForces.resize(nBody); jointForces.resize(nDOFs);}
-
-    /// Set all forces to zero.
-    void clear() {clearBodyForces(); clearJointForces();}
-
-    /// Clear only the body forces, leaving joint forces alone.
-    void clearBodyForces()  {bodyForces.setToZero();}
-
-    /// Clear only the joint forces, leaving the body forces alone.
-    void clearJointForces() {jointForces.setToZero();}
-
-    const Vector_<SpatialVec>& getBodyForces() const {return bodyForces;}
-    Vector_<SpatialVec>&       updBodyForces()       {return bodyForces;}
-
-    const Vector& getJointForces() const {return jointForces;}
-    Vector&       updJointForces()       {return jointForces;}
-
-    // Named assignment operators; prefer the actual operators in C++
-    SimbodyForceSet& assign  (const SimbodyForceSet& f) {return (*this = f);}
-    SimbodyForceSet& add     (const SimbodyForceSet& f) 
-       {bodyForces+=f.bodyForces; jointForces+=f.jointForces; return *this;}
-    SimbodyForceSet& subtract(const SimbodyForceSet& f) 
-       {bodyForces-=f.bodyForces; jointForces-=f.jointForces; return *this;}
-    SimbodyForceSet& scale   (const Real& s) {bodyForces*=s; jointForces*=s; return *this;}
-
-    SimbodyForceSet& operator+=(const SimbodyForceSet& f) {return add(f);}
-    SimbodyForceSet& operator-=(const SimbodyForceSet& f) {return subtract(f);}
-    SimbodyForceSet& operator*=(const Real& s)            {return scale(s);}
-private:
-    Vector_<SpatialVec> bodyForces;
-    Vector_<Vec3>       particleForces;
-    Vector_<Real>       jointForces;
-};
-
-/**
  * The Simbody low-level multibody tree interface.
  * Equations represented:
  *
@@ -95,9 +39,11 @@ private:
  *
  * We calculate the constraint multipliers like this:
  *           AM~A mult = A udot0-b, udot0=inv(M)f
- * using the pseudo inverse to give a least squares solution for
+ * using the pseudo inverse of AM~A to give a least squares solution for
  * mult: mult = pinv(AM~A)(A inv(M)f - b). Then the real udot is
  * udot = udot0 - udotC, with udotC = inv(M)(~A mult).
+ *
+ * NOTE: none of the above matrices are actually formed or factored!
  */
 class SimTK_SIMBODY_API SimbodySubsystem : public MechanicalSubsystem {
 public:
@@ -113,7 +59,7 @@ public:
 
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addRigidBody(const MassProperties&,
+    int addRigidBody(const MassProperties&     massProps,
                      const Transform&          bodyJointFrameInB,
                      int                       parent,
                      const Transform&          parentJointFrameInP,
@@ -158,7 +104,8 @@ public:
     int addWeldConstraint(int parent, const Transform& frameInP,
                           int child,  const Transform& frameInC);
 
-    /// Topology and default values are frozen after this call.
+    /// Topology and default values are frozen after this call. If you don't
+    /// call it then it will be called automatically by realizeConstruction().
     void endConstruction();
 
     /// Allocate slots for modeling variables in the supplied State.
@@ -186,22 +133,7 @@ public:
     /// but to have the common parent System generate the reactions.
     void realizeReaction     (const State&/*, const ForceSubsystem&*/) const;
 
-    void realize(const State& s, Stage g) const {
-        while (s.getStage() < g) {
-            switch (s.getStage()) {
-            case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
-            case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
-            case Stage::Modeled:      realizeParameters(s);    break;
-            case Stage::Parametrized: realizeTime(s);          break;
-            case Stage::Timed:        realizeConfiguration(s); break;
-            case Stage::Configured:   realizeMotion(s);        break;
-            case Stage::Moving:       realizeDynamics(s);      break;
-            case Stage::Dynamics:     realizeReaction(s);      break;
-            default: assert(!"SimbodySubsystem::realize(): bad stage");
-            }
-            s.advanceToStage(s.getStage().next());
-        }
-    }
+    void realize(const State& s, Stage g) const;
 
     // Operators
 
@@ -286,7 +218,7 @@ public:
     void setJointIsPrescribed(State&, int joint, bool) const;
     void setConstraintIsEnabled(State&, int constraint, bool) const;
 
-    // Return modeling information from the SBState.
+    // Return modeling information from the State.
     bool getUseEulerAngles  (const State&) const;
     bool isJointPrescribed  (const State&, int joint)      const;
     bool isConstraintEnabled(const State&, int constraint) const;

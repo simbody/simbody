@@ -183,7 +183,7 @@ try {
                               theBody, harderOne);    
 */
 
-    pend.endConstruction();
+    //pend.endConstruction();
 
     State s;
     pend.realize(s, Stage::Built);

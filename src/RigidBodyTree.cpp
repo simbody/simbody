@@ -178,6 +178,8 @@ void RigidBodyTree::realizeConstruction(State& s) const {
     // here instead.
     RigidBodyTree* mutableThis = const_cast<RigidBodyTree*>(this);
 
+    if (!built) mutableThis->endConstruction(); // no more bodies after this!
+
     // Fill in the local copy of the constructionCache from the information
     // calculated in endConstruction(). Also ask the State for some room to
     // put Modeling variables & cache and remember the indices in our construction

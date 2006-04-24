@@ -2,7 +2,6 @@
 #define SimTK_SIMBODY_NUMERICAL_METHODS_H_
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/SimbodyState.h"
 
 #include <cassert>
 
@@ -130,7 +129,7 @@ public:
  *
  * We expect to be given a DAE System to integrate which can
  * calculate the derivatives from the state and perform the 
- * necessary projections to solve p(t,y)=0 and v(t,y)=0.
+ * necessary projections to solve c(t,y)=0.
  *
  * In general an integrator will maintain a complex internal
  * state which must be allocated when the problem size is
