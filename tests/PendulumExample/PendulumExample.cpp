@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
         MySimbodyPendulum myPend;
         myPend.setPendulumAngle(start);
 
-        // And a study using the Runge Kutte Merson integrator
+        // And a study using the Runge Kutta Merson integrator
         RungeKuttaMerson myStudy(myPend);
         myStudy.setAccuracy(1e-3);
 

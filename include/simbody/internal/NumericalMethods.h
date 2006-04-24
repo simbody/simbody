@@ -669,7 +669,7 @@ private:
         }
     }
 
-    static const NTemps = 4;
+    static const int NTemps = 4;
 
     void construct() {
         initStepSize=minStepSize=maxStepSize

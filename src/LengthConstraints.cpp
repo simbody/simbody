@@ -141,9 +141,9 @@ static int
 compareLevel(const LoopWNodes& l1,
              const LoopWNodes& l2) 
 { 
-    if ( l1.base->getLevel() > l2.base->getLevel() ) 
+    if ( l1.getBasePtr()->getLevel() > l2.getBasePtr()->getLevel() ) 
         return 1;
-    else if ( l1.base->getLevel() < l2.base->getLevel() )
+    else if ( l1.getBasePtr()->getLevel() < l2.getBasePtr()->getLevel() )
         return -1;
     else 
         return 0;

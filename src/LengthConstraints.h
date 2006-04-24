@@ -271,6 +271,8 @@ public:
         rc.force_G[ix(i)-1][dc] = f;
     }
 
+    const RigidBodyNode* getBasePtr() const {return base;}
+
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
 
@@ -288,10 +290,6 @@ private:
     friend class LengthSet;
     friend class LengthConstraints;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
-    friend int compareLevel(const LoopWNodes& l1,
-                            const LoopWNodes& l2);
-    friend bool sameBranch(const RigidBodyNode* tip,
-                           const LoopWNodes& l );
 };
 
 typedef std::vector<LoopWNodes> LoopList;
@@ -385,3 +383,5 @@ LengthSet::getVerbose() const {return lConstraints->verbose;}
 
 
 #endif // SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
+
+
