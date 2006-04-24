@@ -155,12 +155,12 @@ public:
         Vector&       qdotdot) const;
 
     void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&)      const;
-    void setDefaultParameterValues    (const State&, SBParameterVars&)     const;
-    void setDefaultTimeValues         (const State&, SBTimeVars&)          const;
-    void setDefaultConfigurationValues(const State&, Vector& q)            const;
-    void setDefaultMotionValues       (const State&, Vector& u)            const;
-    void setDefaultDynamicsValues     (const State&, SBDynamicsVars&)      const;
-    void setDefaultReactionValues     (const State&, SBReactionVars&)      const;
+    void setDefaultParameterValues    (const SBModelingVars&, SBParameterVars&)     const;
+    void setDefaultTimeValues         (const SBModelingVars&, SBTimeVars&)          const;
+    void setDefaultConfigurationValues(const SBModelingVars&, Vector& q)            const;
+    void setDefaultMotionValues       (const SBModelingVars&, Vector& u)            const;
+    void setDefaultDynamicsValues     (const SBModelingVars&, SBDynamicsVars&)      const;
+    void setDefaultReactionValues     (const SBModelingVars&, SBReactionVars&)      const;
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.

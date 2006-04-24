@@ -75,13 +75,12 @@ public:
 
     /// Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);
-    void setTreeAndParent(RigidBodyTree* t, RigidBodyNode* p) {tree=t; parent=p;}
+    void setParent(RigidBodyNode* p) {parent=p;}
     void setNodeNum(int n) {nodeNum=n;}
     void setLevel(int i)   {level=i;}
 
         // TOPOLOGICAL INFO: no State needed
 
-    RigidBodyTree*   getTree() const {return tree;}
     RigidBodyNode*   getParent() const {return parent;}
     int              getNChildren()  const {return (int)children.size();}
     RigidBodyNode*   getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
@@ -253,17 +252,32 @@ public:
     const SpatialMat& getY(const SBDynamicsCache& dc) const {return fromB(dc.Y);}
     SpatialMat&       updY(SBDynamicsCache&       dc) const {return toB  (dc.Y);}
 
-    virtual void realizeModeling  (const State&) const=0;
-    virtual void realizeParameters(const State&) const=0;
+    virtual void realizeModeling(
+        const SBModelingVars& mv,
+        SBModelingCache&      mc) const=0;
+
+    virtual void realizeParameters(
+        const SBModelingVars&  mv,
+        const SBParameterVars& pv,
+        SBParameterCache&      pc) const=0;
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
-    virtual void realizeConfiguration(const State&) const=0;
+    virtual void realizeConfiguration(
+        const SBModelingVars& mv,
+        const Vector&         q,
+        SBConfigurationCache& cc) const=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes realizeConfiguration()
     /// has already been called.
-    virtual void realizeMotion(const State&) const=0;
+    virtual void realizeMotion(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u,
+        SBMotionCache&              mc,
+        Vector&                     qdot) const=0;
 
     // These are called just after new state variables are allocated,
     // in case there are any node-specific default values. At the Configuration
@@ -279,7 +293,7 @@ public:
 
     /// Calculate kinetic energy (from spatial quantities only).
     Real calcKineticEnergy(
-        const SBConfigurationCache& cc
+        const SBConfigurationCache& cc,
         const SBMotionCache&        mc) const;   
   
     /// Calculate all spatial configuration quantities, assuming availability of
@@ -305,26 +319,37 @@ public:
     virtual int         getMaxNQ() const=0; //dofs plus quaternion constraints
     virtual int         getNQ(const SBModelingVars&) const=0; //actual number of q's
 
-    virtual bool enforceQuaternionConstraints(Vector&) const=0;
+    virtual bool enforceQuaternionConstraints(
+        const SBModelingVars& mv,
+        Vector&               q) const=0;
 
     virtual void calcArticulatedBodyInertiasInward(
         const SBConfigurationCache& cc,
         SBDynamicsCache&            dc) const =0;
 
     virtual void calcZ(
-        const SBConfigurationCache&,
-        const SBDynamicsCache&,
-        const SBReactionVars&,
-        const SpatialVec& spatialForce,
-        SBReactionCache&               ) const 
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const SBReactionVars&       rv,
+        const SpatialVec&           spatialForce,
+        SBReactionCache&            rc) const 
       { throw VirtualBaseMethod(); }
 
     virtual void calcYOutward(
         const SBConfigurationCache& cc,
         SBDynamicsCache&            dc) const                     
-      {  throw VirtualBaseMethod(); }
+      { throw VirtualBaseMethod(); }
 
-    virtual void calcAccel(const State&) const                       {throw VirtualBaseMethod();}
+    virtual void calcAccel(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u,
+        const SBDynamicsCache&      dc,
+        SBReactionCache&            rc,
+        Vector&                     udot,
+        Vector&                     qdotdot) const 
+      { throw VirtualBaseMethod(); }
 
     virtual void calcInternalGradientFromSpatial(
         const SBConfigurationCache& cc, 
@@ -334,54 +359,70 @@ public:
       { throw VirtualBaseMethod(); }
 
     virtual void calcEquivalentJointForces(
-        const SBConfigurationCache&,
-        const SBDynamicsCache&,
-        const Vector_<SpatialVec>& bodyForces,
-        Vector_<SpatialVec>&       allZ,
-        Vector_<SpatialVec>&       allGepsilon,
-        Vector&                    jointForces) const
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector_<SpatialVec>&  bodyForces,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     jointForces) const
       { throw VirtualBaseMethod(); }
 
     virtual void calcUDotPass1Inward(
-        const SBConfigurationCache&,
-        const SBDynamicsCache&,
-        const Vector&              jointForces,
-        const Vector_<SpatialVec>& bodyForces,
-        Vector_<SpatialVec>&       allZ,
-        Vector_<SpatialVec>&       allGepsilon,
-        Vector&                    allEpsilon) const
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               jointForces,
+        const Vector_<SpatialVec>&  bodyForces,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     allEpsilon) const
       { throw VirtualBaseMethod(); } 
 
     virtual void calcUDotPass2Outward(
-        const SBConfigurationCache&,
-        const SBDynamicsCache&,
-        const Vector&                   epsilonTmp,
-        Vector_<SpatialVec>&            allA_GB,
-        Vector&                         allUDot) const
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               epsilonTmp,
+        Vector_<SpatialVec>&        allA_GB,
+        Vector&                     allUDot) const
       { throw VirtualBaseMethod(); }
 
-    virtual void calcQDot(const Vector& q,
-        const Vector& u,
-        Vector&       qdot) const
-    { throw VirtualBaseMethod(); }
+    virtual void calcQDot(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u,
+        Vector&                     qdot) const
+      { throw VirtualBaseMethod(); }
 
-    virtual void calcQDotDot(const Vector& q, const Vector& u,
-        const Vector& udot,
-        Vector&       qdotdot) const
-    { throw VirtualBaseMethod(); }
+    virtual void calcQDotDot(
+        const SBModelingVars&       mv,
+        const Vector&               q,
+        const SBConfigurationCache& cc,
+        const Vector&               u, 
+        const Vector&               udot, 
+        Vector&                     qdotdot) const
+      { throw VirtualBaseMethod(); }
 
     virtual void setVelFromSVel(const SBConfigurationCache&, const SBMotionCache&,
                                 const SpatialVec&, Vector& u) const {throw VirtualBaseMethod();}
 
-    virtual void setQ(Vector& q, const Vector& qIn) const {throw VirtualBaseMethod();}
-    virtual void setU(Vector& u, const Vector& uIn) const {throw VirtualBaseMethod();}
+    virtual void setQ(
+        const SBModelingVars&   mv, 
+        const Vector&           qIn, 
+        Vector&                 q) const
+      { throw VirtualBaseMethod(); }
 
-    virtual void getInternalForce(const SBReactionCache&, Vector&) const {throw VirtualBaseMethod();}
+    virtual void setU(
+        const SBModelingVars&   mv, 
+        const Vector&           uIn, 
+        Vector&                 u) const
+      { throw VirtualBaseMethod(); }
+
+    virtual void getInternalForce(
+        const SBReactionCache& rc, 
+        Vector&                tau) const {throw VirtualBaseMethod();}
 
     // Note that this requires rows of H to be packed like SpatialRow.
     virtual const SpatialRow& getHRow(const SBConfigurationCache&, int i) const {throw VirtualBaseMethod();}
-
-    virtual void print(int) const { throw VirtualBaseMethod(); }
 
     void nodeDump(std::ostream&) const;
     virtual void nodeSpecDump(std::ostream& o) const { o<<"NODE SPEC type="<<type()<<std::endl; }
@@ -392,7 +433,7 @@ protected:
     RigidBodyNode(const MassProperties& mProps_B,
                   const Transform&   xform_PJb,
                   const Transform&   xform_BJ)
-      : uIndex(-1), qIndex(-1), uSqIndex(-1), tree(0), parent(0), children(), level(-1), nodeNum(-1),
+      : uIndex(-1), qIndex(-1), uSqIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
         X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ), X_JB(~xform_BJ)
     {
@@ -404,7 +445,6 @@ protected:
     int               qIndex;   // index into internal coord pos array
     int               uSqIndex; // index into array of DOF^2 objects
 
-    RigidBodyTree*    tree;
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
     int               level;        //how far from base 

@@ -331,19 +331,19 @@ public:
         return X_GB.T() + X_GB.R() * station_B;
     }
 
-    const Vector& getQ(const State&) const;
-    const Vector& getU(const State&) const;
+    const VectorView getQ(const State&) const;
+    const VectorView getU(const State&) const;
     const Vector& getAppliedJointForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
     void setQ(State&, const Vector& q) const;
     void setU(State&, const Vector& u) const;
-    Vector& updQ(State&) const;
-    Vector& updU(State&) const;
+    VectorView updQ(State&) const;
+    VectorView updU(State&) const;
 
-    const Vector& getQDot   (const State&) const;
-    const Vector& getUDot   (const State&) const;
-    const Vector& getQDotDot(const State&) const;
+    const VectorView getQDot   (const State&) const;
+    const VectorView getUDot   (const State&) const;
+    const VectorView getQDotDot(const State&) const;
 
 private:
     RigidBodyTree* rep;

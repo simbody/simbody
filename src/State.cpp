@@ -441,8 +441,9 @@ State::getDiscreteVariable(int index) const {
     SimTK_INDEXCHECK(0,index,(int)rep->discrete.size(),"State::getDiscreteVariable()");
     const DiscreteVariable& dv = rep->discrete[index];
 
-    if (dv.getStage() > Stage::Modeled) 
+    if (dv.getStage() > Stage::Modeled) {
         SimTK_STAGECHECK_GE(getStage(), Stage::Modeled, "State::getDiscreteVariable()");
+    }
 
     return dv.getValue();
 }

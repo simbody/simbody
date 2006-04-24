@@ -117,7 +117,7 @@ operator<<(ostream& os, const LengthSet& s)
     for (size_t i=0 ; i<s.loops.size() ; i++)
         os << setw(4) << s.loops[i].tips(1) << "<->" 
            << setw(4) << s.loops[i].tips(2)  << ": " 
-           << s.loops[i].getDistance(State()) << "  ";
+           << s.loops[i].getDistance() << "  ";
     return os;
 }
 
@@ -309,27 +309,40 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 {
     setPos(s, pos);
 
+    // Although we're not changing the ConfigurationCache here, we access
+    // it with "upd" because setPos() will have modified the q's and
+    // thus invalidated stage Configured, so a "get" would fail.
+    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+
     Vector b( loops.size() );
     for (int i=0 ; i<(int)loops.size() ; i++) 
-        b(i) = loops[i].getDistance(s) - 
-                (loops[i].tipPos(s,1) - loops[i].tipPos(s,2)).norm();
+        b(i) = loops[i].getDistance() - 
+                (loops[i].tipPos(cc,1) - loops[i].tipPos(cc,2)).norm();
     return b;
 }
 
 //
 // Calculate the velocity constraint violation (zero when constraint met).
-//
+// TODO: get rid of "pos"
 Vector
 LengthSet::calcVelB(State& s, const Vector& pos, const Vector& vel) const 
 {
-    setPos(s, pos); // TODO (sherm: this is probably redundant)
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+
     setVel(s, vel);
+
+    // Although we're not changing the MotionCache here, 
+    // we access them with "upd" because setVel will have
+    // modified u's and thus invalidated stage Moving,
+    // so a "get" would fail.
+
+    const SBMotionCache&        mc = getRBTree().updMotionCache(s);
 
     Vector b( loops.size() );
     for (int i=0 ; i<(int)loops.size() ; i++) {
         // TODO why the minus sign here? (doesn't work right without it) sherm
-        b(i) = -dot(unitVec(loops[i].tipPos(s,2) - loops[i].tipPos(s,1)),
-                    loops[i].tipVel(s,2) - loops[i].tipVel(s,1));
+        b(i) = -dot(unitVec(loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1)),
+                    loops[i].tipVel(mc,2) - loops[i].tipVel(mc,1));
     }
 
     return b;
@@ -366,8 +379,12 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
     const Vector x = calcGInverse(s) * b;
 
-    Vector       zu(getRBTree().getTotalDOF(),0.0);
-    Vector       zq(getRBTree().getTotalQAlloc(),0.0);
+    const SBModelingVars&       mv = getRBTree().getModelingVars(s);
+    const VectorView            q  = getRBTree().getQ(s);
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+
+    Vector       zu(getRBTree().getTotalDOF(),0.);
+    Vector       zq(getRBTree().getTotalQAlloc(),0.);
 
     // map the vector dir back to the appropriate elements of z
     int indx=0; // sherm 060222: I added this
@@ -378,7 +395,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
         indx += d;
 
         // Make qdot = Q*u.
-        nodeMap[i]->calcQDot(s,zu,zq);  // change u's to qdot's
+        nodeMap[i]->calcQDot(mv,q,cc,zu,zq);  // change u's to qdot's
     }
     assert(indx == ndofThisSet);
 
@@ -424,14 +441,14 @@ bool
 LengthConstraints::enforceConfigurationConstraints(State& s) const
 {
     assert(s.getStage() >= Stage::Configured-1);
-    Vector& pos = rbTree.updQ(s);
+    VectorView pos = rbTree.updQ(s);
 
     bool anyChanges = false;
 
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            posMin.calc(pos,
+            posMin.calc((Vector&)pos,
                         CalcPosB(s, &pvConstraints[i]),
                         CalcPosZ(s, &pvConstraints[i]));
         }
@@ -449,17 +466,17 @@ bool
 LengthConstraints::enforceMotionConstraints(State& s) const
 {
     assert(s.getStage() >= Stage(Stage::Moving).prev());
-    const Vector& pos = rbTree.getQ(s);
-    Vector&       vel = rbTree.updU(s);
+    const VectorView pos = rbTree.getQ(s);
+    VectorView       vel = rbTree.updU(s);
 
     bool anyChanges = false;
 
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            velMin.calc(vel,
-                              CalcVelB(s, pos, &pvConstraints[i]),
-                              CalcVelZ(s, &pvConstraints[i]));
+            velMin.calc((Vector&)vel,
+                        CalcVelB(s, pos, &pvConstraints[i]),
+                        CalcVelZ(s, &pvConstraints[i]));
         }
     }
     catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
@@ -486,8 +503,12 @@ LengthConstraints::enforceMotionConstraints(State& s) const
 
 void LengthSet::setPos(State& s, const Vector& pos) const
 {
+    const SBModelingVars& mv = getRBTree().getModelingVars(s);
+    VectorView            q  = getRBTree().updQ(s);
+    SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->setQ(s, pos);
+        nodeMap[i]->setQ(mv, pos, q);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateStage(Stage::Configured);
@@ -503,14 +524,19 @@ void LengthSet::setPos(State& s, const Vector& pos) const
     // it here because this is actually all that need be recalculated for
     // the loop closure iterations.
     for (int i=0; i<(int)loops.size(); ++i)
-        loops[i].calcPosInfo(s);
+        loops[i].calcPosInfo(cc);
 }
 
 // Must have called LengthSet::setPos() already.
 void LengthSet::setVel(State& s, const Vector& vel) const
 {
+    const SBModelingVars&       mv = getRBTree().getModelingVars(s);
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    VectorView                  u  = getRBTree().updU(s);
+    SBMotionCache&              mc = getRBTree().updMotionCache(s);
+
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->setU(s, vel);
+        nodeMap[i]->setU(mv, vel, u);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateStage(Stage::Moving);
@@ -519,7 +545,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
 
     // TODO: see comment above in setPos
     for (int i=0; i<(int)loops.size(); ++i)
-        loops[i].calcVelInfo(s);
+        loops[i].calcVelInfo(cc,mc);
 }
 
 //
@@ -536,6 +562,8 @@ LengthSet::fdgradf(State& s,
                    const Vector&  pos,
                    Matrix&        grad) const 
 {
+    const SBModelingVars& mv = getRBTree().getModelingVars(s);
+
     // Gradf gradf(tree);
     // gradf(x,grad); return;
     const double eps = 1e-8;
@@ -544,7 +572,7 @@ LengthSet::fdgradf(State& s,
     int grad_indx=0;
     for (int i=0 ; i<(int)nodeMap.size() ; i++) {
         int pos_indx=nodeMap[i]->getQIndex();
-        for (int j=0 ; j<nodeMap[i]->getNQ(s) ; j++,pos_indx++,grad_indx++) {
+        for (int j=0 ; j<nodeMap[i]->getNQ(mv) ; j++,pos_indx++,grad_indx++) {
             Vector posp = pos;
             posp(pos_indx) += eps;
             const Vector bp = calcB(posp);
@@ -609,6 +637,8 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 Matrix
 LengthSet::calcGrad(const State& s) const
 {
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once
 
@@ -621,18 +651,18 @@ LengthSet::calcGrad(const State& s) const
                 phiT[b][phiT[b].size()-1] = 1;  // identity
                 for (int j=l.nodes[b].size()-2 ; j>=0 ; j-- ) {
                     const RigidBodyNode* n = l.nodes[b][j+1];
-                    phiT[b][j] = phiT[b][j+1] * ~n->getPhi(s);
+                    phiT[b][j] = phiT[b][j+1] * ~n->getPhi(cc);
                 }
             }
         }
 
         // compute gradient
-        Vec3 uBond = unitVec(l.tipPos(s,2) - l.tipPos(s,1));
+        Vec3 uBond = unitVec(l.tipPos(cc,2) - l.tipPos(cc,1));
         Row<2,Mat33> J[2];
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
-            J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(s,b) -
-                                            l.tips(b).getNode().getX_GB(s).T()),   one);
+            J[b-1] = Row<2,Mat33>(-crossMat(l.tipPos(cc,b) -
+                                            l.tips(b).getNode().getX_GB(cc).T()),   one);
         int g_indx=0;
         for (int j=0 ; j<(int)nodeMap.size() ; j++) {
             Real elem=0.0;
@@ -650,7 +680,7 @@ LengthSet::calcGrad(const State& s) const
             const int l2_indx = (found1==n1.end() ? -1 : found1-n1.begin());
 
             for (int k=0 ; k < nodeMap[j]->getDOF() ; k++) {
-                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(s, k);
+                const SpatialVec& HtCol = ~nodeMap[j]->getHRow(cc, k);
                 if ( l1_indx >= 0 ) { 
                     elem = -dot(uBond , Vec3(J[0] * phiT[0][l1_indx]*HtCol));
                 } else if ( l2_indx >= 0 ) { 
@@ -718,7 +748,7 @@ LengthSet::calcGInverseFD(const State& s) const
 {
     Matrix grad(ndofThisSet,loops.size()); // <-- transpose of the actual dg/dtheta
     State sTmp = s;
-    Vector pos = getRBTree().getQ(s);
+    Vector pos = getRBTree().getQ(s); // a copy
     fdgradf(sTmp,pos,grad);
 
     const Matrix A = ~grad; // now A is dg/dtheta
@@ -795,7 +825,8 @@ LengthConstraints::fixGradient(const State& s, Vector& forceInternal)
 // the nodes associated with stations s1 & s2.
 //
 static double
-computeA(const State& s,
+computeA(const SBConfigurationCache& cc, 
+         const SBDynamicsCache&      dc,
          const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
          const LoopWNodes& loop2, int s2,
@@ -806,16 +837,16 @@ computeA(const State& s,
 
     const Mat33 one(1);
 
-    SpatialRow t1 = ~v1 * Row<2,Mat33>(crossMat(n1->getX_GB(s).T() - loop1.tipPos(s,s1)), one);
-    SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(s,s2) - n2->getX_GB(s).T()), one) * v2;
+    SpatialRow t1 = ~v1 * Row<2,Mat33>(crossMat(n1->getX_GB(cc).T() - loop1.tipPos(cc,s1)), one);
+    SpatialVec t2 = Vec<2,Mat33>(crossMat(loop2.tipPos(cc,s2) - n2->getX_GB(cc).T()), one) * v2;
 
     while ( n1->getLevel() > n2->getLevel() ) {
-        t1 = t1 * ~n1->getPsi(s);
+        t1 = t1 * ~n1->getPsi(dc);
         n1 = n1->getParent();
     }
 
     while ( n2->getLevel() > n1->getLevel() ) {
-        t2 = n2->getPsi(s) * t2;
+        t2 = n2->getPsi(dc) * t2;
         n2 = n2->getParent();
     }
 
@@ -827,15 +858,15 @@ computeA(const State& s,
                     << loop1.tips(s1) << " <-> " << loop2.tips(s2) << '\n';
             return 0.;
         }
-        t1 = t1 * ~n1->getPsi(s);
-        t2 = n2->getPsi(s) * t2;
+        t1 = t1 * ~n1->getPsi(dc);
+        t2 = n2->getPsi(dc) * t2;
         n1 = n1->getParent();
         n2 = n2->getParent();
     }
 
     // here n1==n2
 
-    double ret = t1 * n1->getY(s) * t2;
+    double ret = t1 * n1->getY(dc) * t2;
     return ret;
 }
 
@@ -852,16 +883,21 @@ computeA(const State& s,
 //
 void
 LengthSet::calcConstraintForces(const State& s) const
-{
+{ 
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
+    const SBDynamicsCache&      dc = getRBTree().getDynamicsCache(s);
+    SBReactionCache&            rc = getRBTree().updReactionCache(s);
+
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
     // contains one distance constraint.
     // See Eq. [53] and the last term of Eq. [66].
     Vector rhs(loops.size(),0.);
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        rhs(i) = (loops[i].tipVel(s,2) - loops[i].tipVel(s,1)).normSqr()
-                   + dot(loops[i].tipAcc(s,2) - loops[i].tipAcc(s,1) , 
-                         loops[i].tipPos(s,2) - loops[i].tipPos(s,1));
+        rhs(i) = (loops[i].tipVel(mc,2) - loops[i].tipVel(mc,1)).normSqr()
+                   + dot(loops[i].tipAcc(rc,2) - loops[i].tipAcc(rc,1) , 
+                         loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1));
     }
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
@@ -869,13 +905,13 @@ LengthSet::calcConstraintForces(const State& s) const
     // term of Eq. [66].
     Matrix A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 v1 = loops[i].tipPos(s,2) - loops[i].tipPos(s,1);
+        const Vec3 v1 = loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<(int)loops.size() ; j++) {
-                    const Vec3 v2 = loops[j].tipPos(s,2) - loops[j].tipPos(s,1);
-                    double contrib = computeA(s, v1, loops[i], bi,
+                    const Vec3 v2 = loops[j].tipPos(cc,2) - loops[j].tipPos(cc,1);
+                    double contrib = computeA(cc,dc, v1, loops[i], bi,
                                                      loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
 
@@ -910,18 +946,24 @@ LengthSet::calcConstraintForces(const State& s) const
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 frc = lambda(i) * (loops[i].tipPos(s,2) - loops[i].tipPos(s,1));
-        loops[i].setTipForce(s, 2, -frc);
-        loops[i].setTipForce(s, 1,  frc);
+        const Vec3 frc = lambda(i) * (loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1));
+        loops[i].setTipForce(rc, 2, -frc);
+        loops[i].setTipForce(rc, 1,  frc);
     }
 }
 
 void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+
+    // Access with "upd" here because "get" would require us already to
+    // be at stage Reacting.
+    const SBReactionCache&      rc = getRBTree().updReactionCache(s);
+
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
-            const Vec3 force = loops[i].tipForce(s,t);
-            const Vec3 moment = cross(loops[i].tipPos(s,t) - node.getX_GB(s).T(), force);
+            const Vec3 force = loops[i].tipForce(rc,t);
+            const Vec3 moment = cross(loops[i].tipPos(cc,t) - node.getX_GB(cc).T(), force);
             spatialForces[node.getNodeNum()] += SpatialVec(moment, force);
         }
     }
@@ -929,11 +971,15 @@ void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialFor
 
 void LengthSet::testAccel(const State& s) const
 {
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
+    const SBReactionCache&      rc = getRBTree().getReactionCache(s);
+
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        double test=   dot(loops[i].tipAcc(s,2) - loops[i].tipAcc(s,1),
-                           loops[i].tipPos(s,2) - loops[i].tipPos(s,1))
-                     + (loops[i].tipVel(s,2)-loops[i].tipVel(s,1)).normSqr();
+        double test=   dot(loops[i].tipAcc(rc,2) - loops[i].tipAcc(rc,1),
+                           loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1))
+                     + (loops[i].tipVel(mc,2)-loops[i].tipVel(mc,1)).normSqr();
         if ( fabs(test) > testTol )
             cout << "LengthSet::testAccel: constraint condition between atoms "
                  << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
@@ -951,7 +997,7 @@ LengthSet::fixInternalForce(const State& s, Vector& forceInternal)
     Matrix  grad = calcGrad(s);
     if ( getVerbose() & InternalDynamics::printLoopDebug ) {
         State sTmp = s;
-        Vector pos = getRBTree().getQ(s);
+        Vector pos = getRBTree().getQ(s); // a copy
         testGrad(sTmp,pos,grad);
     }
     const Vector rhs  = multiForce(forceInternal,grad); 
@@ -1056,14 +1102,23 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 {
     assert(iVel.size() == getRBTree().getTotalDOF());
 
+    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+
+    // Note that mc can be modified below as part of realizeMotion(s); const
+    // here just means *this* routine can't modify it. Cache entries are
+    // guaranteed to stay put in the State once allocated, so this reference
+    // will remain valid the whole time.
+    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
+    SBReactionCache&            rc = getRBTree().updReactionCache(s);
+
     // store internal velocities
     Vector iVel0 = iVel;
 
     // verr stores the current velocity errors, which we're assuming are valid.
     Vector verr(loops.size());
     for (int k=0 ; k<(int)loops.size() ; k++) 
-        verr[k] = dot(loops[k].tipPos(s,2) - loops[k].tipPos(s,1) ,
-                      loops[k].tipVel(s,2) - loops[k].tipVel(s,1));
+        verr[k] = dot(loops[k].tipPos(cc,2) - loops[k].tipPos(cc,1) ,
+                      loops[k].tipVel(mc,2) - loops[k].tipVel(mc,1));
 
     Matrix mat(loops.size(),loops.size());
     std::vector<Vector> deltaIVel(loops.size());
@@ -1079,9 +1134,9 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
         // That would explain the fact that there are no velocities here!
-        const Vec3 probeImpulse = loops[m].tipPos(s,2)-loops[m].tipPos(s,1);
-        loops[m].setTipForce(s, 2,  probeImpulse);
-        loops[m].setTipForce(s, 1, -probeImpulse);
+        const Vec3 probeImpulse = loops[m].tipPos(cc,2)-loops[m].tipPos(cc,1);
+        loops[m].setTipForce(rc, 2,  probeImpulse);
+        loops[m].setTipForce(rc, 1, -probeImpulse);
 
         // Convert the probe impulses at the stations to spatial impulses at
         // the body origin.
@@ -1089,8 +1144,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         spatialImpulse.setToZero();
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[m].tipNode(t);
-            const Vec3 force = loops[m].tipForce(s,t);
-            const Vec3 moment = cross(loops[m].tipPos(s,t) - node.getX_GB(s).T(), force);
+            const Vec3 force = loops[m].tipForce(rc,t);
+            const Vec3 moment = cross(loops[m].tipPos(cc,t) - node.getX_GB(cc).T(), force);
             spatialImpulse[node.getNodeNum()] += SpatialVec(moment, force);
         }
 
@@ -1110,10 +1165,11 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         getRBTree().realizeMotion(s);
 
         // Calculating partial(velocityError[n])/partial(deltav[m]). Any velocity
-        // we see here is due to the deltav, since we started out at zero.
+        // we see here is due to the deltav, since we started out at zero (mc
+        // was modified by realizeMotion(), but our reference is still valid).
         for (int n=0 ; n<(int)loops.size() ; n++)
-            mat(n,m) = dot(loops[n].tipPos(s,2) - loops[n].tipPos(s,1),
-                           loops[n].tipVel(s,2) - loops[n].tipVel(s,1));
+            mat(n,m) = dot(loops[n].tipPos(cc,2) - loops[n].tipPos(cc,1),
+                           loops[n].tipVel(mc,2) - loops[n].tipVel(mc,1));
 
         //store results of m-th constraint on deltaVa-n
     }
@@ -1132,25 +1188,34 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
     // RBDistanceConstraint methods
 
-void RBDistanceConstraint::calcStationPosInfo(const State& s, int i) const {
-    updStation_G(s,i) = getNode(i).getX_GB(s).R() * getPoint(i);
-    updPos_G(s,i)     = getNode(i).getX_GB(s).T() + getStation_G(s,i);
+void RBDistanceConstraint::calcStationPosInfo(int i, 
+        SBConfigurationCache&       cc) const
+{
+    updStation_G(cc,i) = getNode(i).getX_GB(cc).R() * getPoint(i);
+    updPos_G(cc,i)     = getNode(i).getX_GB(cc).T() + getStation_G(cc,i);
 }
 
-void RBDistanceConstraint::calcStationVelInfo(const State& s, int i) const {
-    const Vec3& w_G = getNode(i).getSpatialAngVel(s);
-    const Vec3& v_G = getNode(i).getSpatialLinVel(s);
-    updStationVel_G(s,i) = cross(w_G, getStation_G(s,i));
-    updVel_G(s,i)        = v_G + getStationVel_G(s,i);
+void RBDistanceConstraint::calcStationVelInfo(int i, 
+        const SBConfigurationCache& cc, 
+        SBMotionCache&              mc) const
+{
+    const Vec3& w_G = getNode(i).getSpatialAngVel(mc);
+    const Vec3& v_G = getNode(i).getSpatialLinVel(mc);
+    updStationVel_G(mc,i) = cross(w_G, getStation_G(cc,i));
+    updVel_G(mc,i)        = v_G + getStationVel_G(mc,i);
 }
 
-void RBDistanceConstraint::calcStationAccInfo(const State& s, int i) const {
-    const Vec3& w_G  = getNode(i).getSpatialAngVel(s);
-    const Vec3& v_G  = getNode(i).getSpatialLinVel(s);
-    const Vec3& aa_G = getNode(i).getSpatialAngAcc(s);
-    const Vec3& a_G  = getNode(i).getSpatialLinAcc(s);
-    updAcc_G(s,i) = a_G + cross(aa_G, getStation_G(s,i))
-                        + cross(w_G,  getStationVel_G(s,i)); // i.e., w X (wXr)
+void RBDistanceConstraint::calcStationAccInfo(int i, 
+        const SBConfigurationCache& cc, 
+        const SBMotionCache&        mc,
+        SBReactionCache&            rc) const
+{
+    const Vec3& w_G  = getNode(i).getSpatialAngVel(mc);
+    const Vec3& v_G  = getNode(i).getSpatialLinVel(mc);
+    const Vec3& aa_G = getNode(i).getSpatialAngAcc(rc);
+    const Vec3& a_G  = getNode(i).getSpatialLinAcc(rc);
+    updAcc_G(rc,i) = a_G + cross(aa_G, getStation_G(cc,i))
+                         + cross(w_G,  getStationVel_G(mc,i)); // i.e., w X (wXr)
 }
 
 std::ostream& operator<<(std::ostream& o, const RBStation& s) {
@@ -1158,33 +1223,38 @@ std::ostream& operator<<(std::ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(const State& s) const
+void RBDistanceConstraint::calcPosInfo(SBConfigurationCache& cc) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationPosInfo(s, i);
+    for (int i=1; i<=2; ++i) calcStationPosInfo(i,cc);
 
-    updFromTip1ToTip2_G(s)  = getPos_G(s,2) - getPos_G(s,1);
-    const double separation = getFromTip1ToTip2_G(s).norm();
-    updUnitDirection_G(s)   = getFromTip1ToTip2_G(s) / separation;
-    updPosErr(s) = distance - separation;
+    updFromTip1ToTip2_G(cc)  = getPos_G(cc,2) - getPos_G(cc,1);
+    const double separation  = getFromTip1ToTip2_G(cc).norm();
+    updUnitDirection_G(cc)   = getFromTip1ToTip2_G(cc) / separation;
+    updPosErr(cc) = distance - separation;
 }
 
-void RBDistanceConstraint::calcVelInfo(const State& s) const
+void RBDistanceConstraint::calcVelInfo(
+        const SBConfigurationCache& cc, 
+        SBMotionCache&              mc) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationVelInfo(s, i);
+    for (int i=1; i<=2; ++i) calcStationVelInfo(i,cc,mc);
 
-    updRelVel_G(s) = getVel_G(s,2) - getVel_G(s,1);
-    updVelErr(s)   = ~getUnitDirection_G(s) * getRelVel_G(s);
+    updRelVel_G(mc) = getVel_G(mc,2) - getVel_G(mc,1);
+    updVelErr(mc)   = ~getUnitDirection_G(cc) * getRelVel_G(mc);
 }
 
-void RBDistanceConstraint::calcAccInfo(const State& s) const
+void RBDistanceConstraint::calcAccInfo(
+        const SBConfigurationCache& cc, 
+        const SBMotionCache&        mc,
+        SBReactionCache&            rc) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationAccInfo(s, i);
+    for (int i=1; i<=2; ++i) calcStationAccInfo(i,cc,mc,rc);
 
 //XXX this doesn't look right
-    const Vec3 relAcc_G = getAcc_G(s,2) - getAcc_G(s,1);
-    updAccErr(s) = getRelVel_G(s).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(s));
+    const Vec3 relAcc_G = getAcc_G(rc,2) - getAcc_G(rc,1);
+    updAccErr(rc) = getRelVel_G(mc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(cc));
 }
 

@@ -1,5 +1,5 @@
-#ifndef LENGTH_CONSTRAINTS_H_
-#define LENGTH_CONSTRAINTS_H_
+#ifndef SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
+#define SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
 
 #include "simbody/internal/common.h"
 using namespace SimTK;
@@ -49,18 +49,23 @@ std::ostream& operator<<(std::ostream&, const RBStation&);
  */
 class RBDistanceConstraint {
 public:
-    RBDistanceConstraint() : tree(0), distance(-1.), distConstNum(-1), multIndex(-1) {}
-    RBDistanceConstraint(RigidBodyTree& t, const RBStation& s1, const RBStation& s2, const Real& d)
-      : tree(&t) 
+    RBDistanceConstraint() : distance(-1.), distConstNum(-1), multIndex(-1) {}
+    RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const Real& d)
     {
         assert(s1.isValid() && s2.isValid() && d >= 0.);
         stations[0] = s1; stations[1] = s2; distance = d;
         distConstNum = multIndex = -1;
     }
 
-    void calcPosInfo(const State&) const;
-    void calcVelInfo(const State&) const;
-    void calcAccInfo(const State&) const;
+    void calcPosInfo(
+        SBConfigurationCache&       cc) const;
+    void calcVelInfo(
+        const SBConfigurationCache& cc, 
+        SBMotionCache&              mc) const;
+    void calcAccInfo(
+        const SBConfigurationCache& cc, 
+        const SBMotionCache&        mc,
+        SBReactionCache&            rc) const;
 
     void setDistanceConstraintNum(int ix) {assert(ix>=0); distConstNum=ix;}
     int  getDistanceConstraintNum() const {assert(isValid()&&distConstNum>=0); return distConstNum;}
@@ -68,6 +73,7 @@ public:
     void setMultIndex(int ix) {assert(ix>=0); multIndex=ix;}
     int  getMultIndex() const {assert(isValid()&&multIndex>=0); return multIndex;}
 
+    // Currently these are not parameterizable so they have no state references.
     const Real&          getDistance()     const {return distance;}
     const RBStation&     getStation(int i) const {assert(isValid() && (i==1||i==2)); return stations[i-1];}
     const RigidBodyNode& getNode(int i)    const {return getStation(i).getNode();}
@@ -77,108 +83,106 @@ public:
     // State access routines
 
         // CONFIGURED STAGE
-    const Real& getPosErr(const State& s) const {
-        return tree->getConfigurationCache(s).positionConstraintErrors[multIndex];
+    const Real& getPosErr(const SBConfigurationCache& cc) const {
+        return cc.positionConstraintErrors[multIndex];
     }
-    Real& updPosErr(const State& s) const {
-        return tree->updConfigurationCache(s).positionConstraintErrors[multIndex];
-    }
-
-    const Vec3& getStation_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->getConfigurationCache(s).station_G[i-1][distConstNum];
-    }
-    Vec3& updStation_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->updConfigurationCache(s).station_G[i-1][distConstNum];
+    Real& updPosErr(SBConfigurationCache& cc) const {
+        return cc.positionConstraintErrors[multIndex];
     }
 
-    const Vec3& getPos_G(const State& s, int i) const {
+    const Vec3& getStation_G(const SBConfigurationCache& cc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->getConfigurationCache(s).pos_G[i-1][distConstNum];
+        return cc.station_G[i-1][distConstNum];
     }
-    Vec3& updPos_G(const State& s, int i) const {
+    Vec3& updStation_G(SBConfigurationCache& cc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->updConfigurationCache(s).pos_G[i-1][distConstNum];
+        return cc.station_G[i-1][distConstNum];
     }
 
-    const Vec3& getFromTip1ToTip2_G(const State& s) const {
-        return tree->getConfigurationCache(s).fromTip1ToTip2_G[distConstNum];
+    const Vec3& getPos_G(const SBConfigurationCache& cc, int i) const {
+        assert(1 <= i && i <= 2);
+        return cc.pos_G[i-1][distConstNum];
     }
-    Vec3& updFromTip1ToTip2_G(const State& s) const {
-        return tree->updConfigurationCache(s).fromTip1ToTip2_G[distConstNum];
+    Vec3& updPos_G(SBConfigurationCache& cc, int i) const {
+        assert(1 <= i && i <= 2);
+        return cc.pos_G[i-1][distConstNum];
     }
 
-    const Vec3& getUnitDirection_G(const State& s) const {
-        return tree->getConfigurationCache(s).unitDirection_G[distConstNum];
+    const Vec3& getFromTip1ToTip2_G(const SBConfigurationCache& cc) const {
+        return cc.fromTip1ToTip2_G[distConstNum];
     }
-    Vec3& updUnitDirection_G(const State& s) const {
-        return tree->updConfigurationCache(s).unitDirection_G[distConstNum];
+    Vec3& updFromTip1ToTip2_G(SBConfigurationCache& cc) const {
+        return cc.fromTip1ToTip2_G[distConstNum];
+    }
+
+    const Vec3& getUnitDirection_G(const SBConfigurationCache& cc) const {
+        return cc.unitDirection_G[distConstNum];
+    }
+    Vec3& updUnitDirection_G(SBConfigurationCache& cc) const {
+        return cc.unitDirection_G[distConstNum];
     }
 
         // MOVING STAGE
-    const Real& getVelErr(const State& s) const {
-        return tree->getMotionCache(s).velocityConstraintErrors[multIndex];
+    const Real& getVelErr(const SBMotionCache& mc) const {
+        return mc.velocityConstraintErrors[multIndex];
     }
-    Real& updVelErr(const State& s) const {
-        return tree->updMotionCache(s).velocityConstraintErrors[multIndex];
-    }
-
-    const Vec3& getStationVel_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->getMotionCache(s).stationVel_G[i-1][distConstNum];
-    }
-    Vec3& updStationVel_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->updMotionCache(s).stationVel_G[i-1][distConstNum];
+    Real& updVelErr(SBMotionCache& mc) const {
+        return mc.velocityConstraintErrors[multIndex];
     }
 
-    const Vec3& getVel_G(const State& s, int i) const {
+    const Vec3& getStationVel_G(const SBMotionCache& mc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->getMotionCache(s).vel_G[i-1][distConstNum];
+        return mc.stationVel_G[i-1][distConstNum];
     }
-    Vec3& updVel_G(const State& s, int i) const {
+    Vec3& updStationVel_G(SBMotionCache& mc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->updMotionCache(s).vel_G[i-1][distConstNum];
+        return mc.stationVel_G[i-1][distConstNum];
     }
 
-    const Vec3& getRelVel_G(const State& s) const {
-        return tree->getMotionCache(s).relVel_G[distConstNum];
+    const Vec3& getVel_G(const SBMotionCache& mc, int i) const {
+        assert(1 <= i && i <= 2);
+        return mc.vel_G[i-1][distConstNum];
     }
-    Vec3& updRelVel_G(const State& s) const {
-        return tree->updMotionCache(s).relVel_G[distConstNum];
+    Vec3& updVel_G(SBMotionCache& mc, int i) const {
+        assert(1 <= i && i <= 2);
+        return mc.vel_G[i-1][distConstNum];
+    }
+
+    const Vec3& getRelVel_G(const SBMotionCache& mc) const {
+        return mc.relVel_G[distConstNum];
+    }
+    Vec3& updRelVel_G(SBMotionCache& mc) const {
+        return mc.relVel_G[distConstNum];
     }
 
 
         // REACTING STAGE
-    const Real& getAccErr(const State& s) const {
-        return tree->getReactionCache(s).accelerationConstraintErrors[multIndex];
+    const Real& getAccErr(const SBReactionCache& rc) const {
+        return rc.accelerationConstraintErrors[multIndex];
     }
-    Real& updAccErr(const State& s) const {
-        return tree->updReactionCache(s).accelerationConstraintErrors[multIndex];
-    }
-
-    const Vec3& getAcc_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->getReactionCache(s).acc_G[i-1][distConstNum];
-    }
-    Vec3& updAcc_G(const State& s, int i) const {
-        assert(1 <= i && i <= 2);
-        return tree->updReactionCache(s).acc_G[i-1][distConstNum];
+    Real& updAccErr(SBReactionCache& rc) const {
+        return rc.accelerationConstraintErrors[multIndex];
     }
 
-    const Vec3& getForce_G(const State& s, int i) const {
+    const Vec3& getAcc_G(const SBReactionCache& rc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->getReactionCache(s).force_G[i-1][distConstNum];
+        return rc.acc_G[i-1][distConstNum];
     }
-    Vec3& updForce_G(const State& s, int i) const {
+    Vec3& updAcc_G(SBReactionCache& rc, int i) const {
         assert(1 <= i && i <= 2);
-        return tree->updReactionCache(s).force_G[i-1][distConstNum];
+        return rc.acc_G[i-1][distConstNum];
+    }
+
+    const Vec3& getForce_G(const SBReactionCache& rc, int i) const {
+        assert(1 <= i && i <= 2);
+        return rc.force_G[i-1][distConstNum];
+    }
+    Vec3& updForce_G(SBReactionCache& rc, int i) const {
+        assert(1 <= i && i <= 2);
+        return rc.force_G[i-1][distConstNum];
     }
 
 protected:
-    RigidBodyTree* tree; // a reference to the tree containing this constraint
-                         // because we need its help sorting out the state.
     Real       distance;
     RBStation  stations[2];
     int        distConstNum;
@@ -186,9 +190,15 @@ protected:
 
 private:
     // Per-station calculations
-    void calcStationPosInfo(const State& s, int i) const;
-    void calcStationVelInfo(const State& s, int i) const;
-    void calcStationAccInfo(const State& s, int i) const;
+    void calcStationPosInfo(int i, 
+        SBConfigurationCache&       cc) const;
+    void calcStationVelInfo(int i, 
+        const SBConfigurationCache& cc, 
+        SBMotionCache&              mc) const;
+    void calcStationAccInfo(int i, 
+        const SBConfigurationCache& cc, 
+        const SBMotionCache&        mc,
+        SBReactionCache&            rc) const;
 };
 
 
@@ -209,45 +219,56 @@ public:
     LoopWNodes() : tree(0), rbDistCons(0), flipStations(false), base(0), moleculeNode(0) {}
     LoopWNodes(const RigidBodyTree&, const RBDistanceConstraint&);
 
-    void calcPosInfo(const State& s) const { rbDistCons->calcPosInfo(s); }
-    void calcVelInfo(const State& s) const { rbDistCons->calcVelInfo(s); }
-    void calcAccInfo(const State& s) const { rbDistCons->calcAccInfo(s); }
+    void calcPosInfo(
+        SBConfigurationCache&       cc) const 
+      { rbDistCons->calcPosInfo(cc); }
+
+    void calcVelInfo(
+        const SBConfigurationCache& cc, 
+        SBMotionCache&              mc) const 
+      { rbDistCons->calcVelInfo(cc,mc); }
+
+    void calcAccInfo(
+        const SBConfigurationCache& cc, 
+        const SBMotionCache&        mc,
+        SBReactionCache&            rc) const 
+      { rbDistCons->calcAccInfo(cc,mc,rc); }
 
     // TODO: State isn't currently in use but will be necessary when the distances
     // are parameters.
-    const Real& getDistance(const State&) const { return rbDistCons->getDistance(); }
+    const Real& getDistance() const { return rbDistCons->getDistance(); }
 
     // Return one of the stations, ordered such that tips(1).level <= tips(2).level.
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
  
-    const Vec3& tipPos(const State& s, int i) const {
+    const Vec3& tipPos(const SBConfigurationCache& cc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return tree->getConfigurationCache(s).pos_G[ix(i)-1][dc];
+        return cc.pos_G[ix(i)-1][dc];
     }
-    const Vec3& tipVel(const State& s, int i) const {
+    const Vec3& tipVel(const SBMotionCache& mc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return tree->getMotionCache(s).vel_G[ix(i)-1][dc];
+        return mc.vel_G[ix(i)-1][dc];
     }
-    const Vec3& tipAcc(const State& s, int i) const {
+    const Vec3& tipAcc(const SBReactionCache& rc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return tree->getReactionCache(s).acc_G[ix(i)-1][dc];
+        return rc.acc_G[ix(i)-1][dc];
     }
-    const Vec3& tipForce(const State& s, int i) const {
+    const Vec3& tipForce(const SBReactionCache& rc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return tree->getReactionCache(s).force_G[ix(i)-1][dc];
+        return rc.force_G[ix(i)-1][dc];
     }
 
     // Use this for both forces and impulses.
-    void setTipForce(const State& s, int i, const Vec3& f) const {
+    void setTipForce(SBReactionCache& rc, int i, const Vec3& f) const {
         assert(1 <= i && i <= 2);
 
         const int dc = rbDistCons->getDistanceConstraintNum();
-        tree->updReactionCache(s).force_G[ix(i)-1][dc] = f;
+        rc.force_G[ix(i)-1][dc] = f;
     }
 
 private:
@@ -363,4 +384,4 @@ inline int
 LengthSet::getVerbose() const {return lConstraints->verbose;}
 
 
-#endif /* LENGTH_CONSTRAINTS_H_ */
+#endif // SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_

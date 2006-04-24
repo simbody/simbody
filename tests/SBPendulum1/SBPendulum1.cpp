@@ -131,6 +131,7 @@ try {
 
     Real L = 5.; 
     Real m = 3.;
+    Real g = 9.8;
     Transform groundFrame;
     Transform baseFrame;
 
@@ -143,15 +144,17 @@ try {
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
-    Vec3 gravity(0.,-9.8,0.);
+    Vec3 gravity(0.,-g,0.);
+    cout << "period should be " << 2*std::acos(-1.)*std::sqrt(L/g) << " seconds." << endl;
     int theBody = 
       pend.addRigidBody(mprops, jointFrame,
                         0, Transform(), 
-                        //JointSpecification(JointSpecification::Cartesian, false),
-                        //JointSpecification(JointSpecification::Sliding, false),
-                        //JointSpecification(JointSpecification::Pin, false),
-                        //JointSpecification(JointSpecification::Ball, false),
-                        JointSpecification(JointSpecification::Free, false));
+                        //JointSpecification(JointSpecification::Cartesian, false)
+                        //JointSpecification(JointSpecification::Sliding, false)
+                        //JointSpecification(JointSpecification::Pin, false)
+                        //JointSpecification(JointSpecification::Ball, false)
+                        JointSpecification(JointSpecification::Free, false)
+                        );
 
 /*
     int secondBody = 
@@ -170,7 +173,7 @@ try {
  
     int ballConstraint =
         pend.addCoincidentStationsConstraint(0, Transform().T(),
-                                            theBody, jointFrame.T()); 
+                                             theBody, jointFrame.T()); 
 /*
     Transform harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
@@ -208,7 +211,7 @@ try {
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
     for (int i=1; i < pend.getNBodies()-1; ++i)
-        dEdR[1] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
+        dEdR[i] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
     Vector dEdQ;
     pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
     cout << "dEdR=" << dEdR << endl;
