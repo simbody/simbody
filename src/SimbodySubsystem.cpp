@@ -49,7 +49,7 @@ int SimbodySubsystem::addRigidBody(
         mp, parentJointFrameInP, bodyJointFrameInB, joint.getJointType(), joint.isReversed(),
         rep->nextUSlot, rep->nextUSqSlot, rep->nextQSlot);
 
-    cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << rep->nextUSlot-1 << endl;
+    //cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << rep->nextUSlot-1 << endl;
     return rbIndex;
 }
 

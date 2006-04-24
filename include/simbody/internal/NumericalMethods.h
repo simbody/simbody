@@ -92,7 +92,7 @@ namespace SimTK {
  */
 class MechanicalDAESystem {
 public:
-    virtual long size()                const = 0;  // problem size (|y|)
+    virtual int size() const = 0;  // problem size (|y|)
 
     // The solver should communicate this information at the beginning and then
     // leave it. If you only have one number, e.g. 0.001, it is reasonable to 
@@ -104,16 +104,14 @@ public:
     virtual bool realize()                          const = 0; // ODE only
     virtual bool realizeAndProject(bool& anyChange, bool force=false) = 0; // DAE using coordinate projection
 
-    virtual const Real&   getTimescale() const = 0;
+    virtual Real          getTimescale() const = 0;
 
     virtual const Real&   getT()       const = 0;   // These are available after setState(),
     virtual const Vector& getY()       const = 0;   // though y is modified by realizeAndProject().
     virtual const Vector& getWeights() const = 0;
 
     virtual const Vector& getYDot()    const = 0;   // Available after either realize() call.
-    virtual const Vector& getPositionError() const=0;
-    virtual const Vector& getVelocityError() const=0;
-    virtual const Vector& getAccelerationError() const=0;
+
 };
 
 /**

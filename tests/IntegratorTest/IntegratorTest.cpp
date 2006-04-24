@@ -47,7 +47,7 @@ public:
         ydValid = false;
     }
 
-    long size() const {return 2;}
+    int size() const {return 2;}
     void setAccuracy(const Real& s, const Real& c) {
         solnAcc=s; consAcc=c; calcWeights(solnAcc);
     }
@@ -59,7 +59,7 @@ public:
     }
     bool realize() const {yd[0]=w*y[1]; yd[1]=-w*y[0]; ydValid=true; return true;}
     bool realizeAndProject(bool& chg, bool) { realize(); chg=false; return true;}
-    const Real& getTimescale() const {return timeScale;}
+    Real getTimescale() const {return timeScale;}
     const Real& getT() const {return t;}
     const Vector& getY() const {return y;}
     const Vector& getWeights() const {return weights;}
@@ -153,7 +153,7 @@ public:
         ydValid = false;
     }
 
-    long size() const {return 4;}
+    int size() const {return 4;}
     void setAccuracy(const Real& s, const Real& c) {
         solnAcc=s; consAcc=c; calcWeights(solnAcc);
     }
@@ -186,7 +186,7 @@ public:
         calcYDot();
         return calcAerr() <= consAcc;
     }
-    const Real& getTimescale() const {return timeScale;}
+    Real getTimescale() const {return timeScale;}
     const Real& getT() const {return t;}
     const Vector& getY() const {return y;}
     const Vector& getWeights() const {return weights;}
