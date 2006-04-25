@@ -41,6 +41,7 @@ public:
 	String() { }
     String(const String& s, size_t start, size_t len) : std::string(s,start,len) { }
 	explicit String(int i) { char buf[32]; sprintf(buf,"%d",i); (*this)=buf; }
+	explicit String(long i) { char buf[32]; sprintf(buf,"%ld",i); (*this)=buf; }
     explicit String(size_t s) { char buf[32]; sprintf(buf,"%u",s); (*this)=buf; }
 	explicit String(float r)	{ char buf[64]; sprintf(buf,"%.8g",r); (*this)=buf; }
 	explicit String(double r)	{ char buf[64]; sprintf(buf,"%.16g",r); (*this)=buf; }
