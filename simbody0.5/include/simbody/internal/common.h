@@ -38,16 +38,18 @@
 // for use in distinguishing builds from client use of a header. The following
 // is specific for the current 'simtk' library and doesn't affect other
 // libraries even if they use this one.
-#ifdef WIN32
-    #ifdef simbody_EXPORTS
-        #define SimTK_SIMBODY_API __declspec(dllexport)
-    #elif defined(SimTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
-        #define SimTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
+#ifndef SimTK_SIMBODY_API
+    #ifdef WIN32
+        #ifdef simbody_EXPORTS
+            #define SimTK_SIMBODY_API __declspec(dllexport)
+        #elif defined(SimTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
+            #define SimTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
+        #else
+            #define SimTK_SIMBODY_API // This works both for static & dynamic clients
+        #endif
     #else
-        #define SimTK_SIMBODY_API // This works both for static & dynamic clients
+        #define SimTK_SIMBODY_API // Linux, Mac
     #endif
-#else
-    #define SimTK_SIMBODY_API // Linux, Mac
 #endif
 
 // Every SimTK Core library must provide these two routines, with the library

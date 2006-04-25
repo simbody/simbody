@@ -46,6 +46,8 @@ SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
 EXEC_PROGRAM ( svnversion
                 ARGS  ${PROJECT_SOURCE_DIR}
                 OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
+SET(SimTKCOMMON_SVN_REVISION ${SIMBODY_SVN_REVISION})
+SET(SIMMATRIX_SVN_REVISION ${SIMBODY_SVN_REVISION})
 
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
@@ -72,6 +74,69 @@ ENDIF(UNIX)
 SET(SIMBODY_VERSION
     "${SIMBODY_MAJOR_VERSION}.${SIMBODY_MINOR_VERSION}.${SIMBODY_BUILD_VERSION}"
      CACHE STRING "This is the version of Simbody which will be built." FORCE)
+
+################
+
+SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
+SET(SimTKCOMMON_MAJOR_VERSION 0)
+SET(SimTKCOMMON_MINOR_VERSION 5)
+SET(SimTKCOMMON_BUILD_VERSION 1)
+
+SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-6")
+SET(SimTKCOMMON_AUTHORS         "Michael Sherman") # comma separated list of authors
+
+ADD_DEFINITIONS(-DSimTK_SimTKCOMMON_LIBRARY_NAME=${SimTKCOMMON_LIBRARY_NAME}
+                -DSimTK_SimTKCOMMON_MAJOR_VERSION=${SimTKCOMMON_MAJOR_VERSION}
+                -DSimTK_SimTKCOMMON_MINOR_VERSION=${SimTKCOMMON_MINOR_VERSION}
+		-DSimTK_SimTKCOMMON_BUILD_VERSION=${SimTKCOMMON_BUILD_VERSION})
+
+# CMake quotes automatically when building Visual Studio projects but we need
+# to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
+# in Visual Studio which end up in the binary.
+IF(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SimTKCOMMON_SVN_REVISION="${SimTKCOMMON_SVN_REVISION}"
+                   -DSimTK_SimTKCOMMON_COPYRIGHT_YEARS="${SimTKCOMMON_COPYRIGHT_YEARS}"
+                   -DSimTK_SimTKCOMMON_AUTHORS="${SimTKCOMMON_AUTHORS}")
+ELSE(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SimTKCOMMON_SVN_REVISION=${SimTKCOMMON_SVN_REVISION}
+                   -DSimTK_SimTKCOMMON_COPYRIGHT_YEARS=${SimTKCOMMON_COPYRIGHT_YEARS}
+                   -DSimTK_SimTKCOMMON_AUTHORS=${SimTKCOMMON_AUTHORS})
+ENDIF(UNIX)
+
+# -DSimTK_SimTKCOMMON_LIBRARY_TYPE has to be defined in the target subdirectories.
+# -DSimTKcommon_EXPORTS defined automatically when Windows DLL build is being done.
+
+###############
+
+SET(SIMMATRIX_LIBRARY_NAME simmatrix)
+SET(SIMMATRIX_MAJOR_VERSION 0)
+SET(SIMMATRIX_MINOR_VERSION 5)
+SET(SIMMATRIX_BUILD_VERSION 1)
+
+SET(SIMMATRIX_COPYRIGHT_YEARS "2005-6")
+SET(SIMMATRIX_AUTHORS         "Michael Sherman") # comma separated list of authors
+
+ADD_DEFINITIONS(-DSimTK_SIMMATRIX_LIBRARY_NAME=${SIMMATRIX_LIBRARY_NAME}
+                -DSimTK_SIMMATRIX_MAJOR_VERSION=${SIMMATRIX_MAJOR_VERSION}
+                -DSimTK_SIMMATRIX_MINOR_VERSION=${SIMMATRIX_MINOR_VERSION}
+		-DSimTK_SIMMATRIX_BUILD_VERSION=${SIMMATRIX_BUILD_VERSION})
+
+# CMake quotes automatically when building Visual Studio projects but we need
+# to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
+# in Visual Studio which end up in the binary.
+IF(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SIMMATRIX_SVN_REVISION="${SIMMATRIX_SVN_REVISION}"
+                   -DSimTK_SIMMATRIX_COPYRIGHT_YEARS="${SIMMATRIX_COPYRIGHT_YEARS}"
+                   -DSimTK_SIMMATRIX_AUTHORS="${SIMMATRIX_AUTHORS}")
+ELSE(UNIX)
+   ADD_DEFINITIONS(-DSimTK_SIMMATRIX_SVN_REVISION=${SIMMATRIX_SVN_REVISION}
+                   -DSimTK_SIMMATRIX_COPYRIGHT_YEARS=${SIMMATRIX_COPYRIGHT_YEARS}
+                   -DSimTK_SIMMATRIX_AUTHORS=${SIMMATRIX_AUTHORS})
+ENDIF(UNIX)
+
+# -DSimTK_SIMMATRIX_TYPE has to be defined in the target subdirectories.
+# -Dsimmatrix_EXPORTS defined automatically when Windows DLL build is being done.
+##########################
 
 
 SET(SHARED_TARGET ${SIMBODY_LIBRARY_NAME})
@@ -100,16 +165,6 @@ IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
     SET(SHARED_TARGET ${SHARED_TARGET}${CMAKE_DEBUG_POSTFIX})
     SET(STATIC_TARGET ${STATIC_TARGET}${CMAKE_DEBUG_POSTFIX})
 ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-
-## We want to be able to use the debug version of simmatrix & common when we're debugging simbody
-SET(SIMMATRIX_LIBRARY_NAME simmatrix)
-SET(SIMMATRIX_SHARED_LIBRARY ${SIMMATRIX_LIBRARY_NAME}${CMAKE_DEBUG_POSTFIX})
-SET(SIMMATRIX_STATIC_LIBRARY ${SIMMATRIX_LIBRARY_NAME}_static${CMAKE_DEBUG_POSTFIX})
-
-SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
-SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}${CMAKE_DEBUG_POSTFIX})
-SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static${CMAKE_DEBUG_POSTFIX})
-
 
 
 # Choose a LAPACK to link with.
@@ -159,6 +214,10 @@ FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
                          ${subdir}/include 
+                         ${subdir}/include/SimTKcommon 
+                         ${subdir}/include/SimTKcommon/internal
+                         ${subdir}/include/simmatrix 
+                         ${subdir}/include/simmatrix/internal
                          ${subdir}/include/simbody 
                          ${subdir}/include/simbody/internal)
 ENDFOREACH(subdir)
@@ -216,9 +275,31 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(SBPendulum1              ${TEST_PATH}/SBPendulum1)
-ADD_TEST(SBPendulum1Static        ${TEST_PATH}/SBPendulum1Static)
-## add more
+ADD_TEST(SBPendulum1                  ${TEST_PATH}/SBPendulum1)
+ADD_TEST(SBPendulum1Static            ${TEST_PATH}/SBPendulum1Static)
+ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
+ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
+ADD_TEST(PendulumExample              ${TEST_PATH}/PendulumExample)
+ADD_TEST(PendulumExampleStatic        ${TEST_PATH}/PendulumExampleStatic)
+
+######## SimTKcommon tests
+
+ADD_TEST(ListTest       ${TEST_PATH}/ListTest)
+ADD_TEST(ListTestStatic ${TEST_PATH}/ListTestStatic)
+
+
+####### Simmatrix tests
+ADD_TEST(BNTTest                  ${TEST_PATH}/BNTTest)
+ADD_TEST(BNTTestStatic            ${TEST_PATH}/BNTTestStatic)
+ADD_TEST(MatVecTest               ${TEST_PATH}/MatVecTest)
+ADD_TEST(MatVecTestStatic         ${TEST_PATH}/MatVecTestStatic)
+ADD_TEST(SpatialAlgebraTest       ${TEST_PATH}/SpatialAlgebraTest)
+ADD_TEST(SpatialAlgebraTestStatic ${TEST_PATH}/SpatialAlgebraTestStatic)
+ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
+ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
+ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
+ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
+########
 
 #
 # Installation
@@ -267,8 +348,16 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib)
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
+FILE(GLOB TOP_HEADERSC      include/SimTKcommon/*.h          */include/SimTKcommon/*.h)
+FILE(GLOB INTERNAL_HEADERSC include/SimTKcommon/internal/*.h */include/SimTKcommon/internal/*.h)
+FILE(GLOB TOP_HEADERSM      include/simmatrix/*.h          */include/simmatrix/*.h)
+FILE(GLOB INTERNAL_HEADERSM include/simmatrix/internal/*.h */include/simmatrix/internal/*.h)
 FILE(GLOB TOP_HEADERS      include/simbody/*.h          */include/simbody/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simbody/internal/*.h */include/simbody/internal/*.h)
 INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
+INSTALL_FILES(/core/include/SimTKcommon/         FILES ${TOP_HEADERSC})
+INSTALL_FILES(/core/include/SimTKcommon/internal FILES ${INTERNAL_HEADERSC})
+INSTALL_FILES(/core/include/simmatrix/         FILES ${TOP_HEADERSM})
+INSTALL_FILES(/core/include/simmatrix/internal FILES ${INTERNAL_HEADERSM})
 INSTALL_FILES(/core/include/simbody/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
