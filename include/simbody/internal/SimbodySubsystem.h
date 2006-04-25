@@ -157,19 +157,24 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot) const;
 
-    // Must be in Stage::Configured to calculate qdot = Q*u.
+    /// Must be in Stage::Configured to calculate qdot = Q*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    // Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
+    /// Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
 
     // Constraint projections.
 
+    /// Project position coordinates (q's) so that they satisfy their 
+    /// constraints.
     void enforceConfigurationConstraints(State&) const;
+
+    /// Project velocity coordinates (u's) so that they satisfy their
+    /// constraints.
     void enforceMotionConstraints(State&) const;
 
     // These are available after realizeConstruction().
@@ -224,7 +229,7 @@ public:
     bool isConstraintEnabled(const State&, int constraint) const;
 
 
-    // Parameter setting & getting
+    // Parameter setting & getting TODO
     void setGravity(State&, const Vec3& g) const; // any time after modeling
     const Vec3& getGravity(const State&) const;
 
@@ -235,18 +240,36 @@ public:
 
     // Configuration Stage. 
 
-    // OBSOLETE
+    // OBSOLETE: TODO
+
+    /// Apply gravity to the bodies. Be sure to call this only once
+    /// per evaluation! Must be realized to Configured stage prior to call.
     void applyGravity    (State&, const Vec3& g) const;
 
-
+    /// Apply a force to a point on a body (a station). Provide the
+    /// station in the body frame, force in the ground frame. Must
+    /// be realized to Configured stage prior to call.
     void applyPointForce (State&, int body, const Vec3& stationInB, 
                           const Vec3& forceInG) const;
+
+    /// Apply a torque to a body. Provide the torque vector in the
+    /// ground frame.
     void applyBodyTorque (State&, int body, 
                           const Vec3& torqueInG) const;
+
+    /// Apply a scalar joint force or torque to an axis of the
+    /// indicated body's inboard joint.
     void applyJointForce(State&, int body, int axis, const Real&) const;
 
-
+    /// Obtain the current orientation and position of the body frame of
+    /// the indicated body. Must be in Configured stage. The configuration
+    /// is provided as the Transform X_GB from the ground frame to the
+    /// body frame.
     const Transform&  getBodyConfiguration(const State&, int body) const;
+
+    /// Obtain the current spatial angular and linear velocity of the body frame of
+    /// the indicated body. Must be in Moving stage. This is the velocity 
+    /// V_GB of the body frame measured and expressed in the ground frame.
     const SpatialVec& getBodyVelocity     (const State&, int body) const;
     const SpatialVec& getBodyAcceleration (const State&, int body) const;
 
@@ -256,6 +279,11 @@ public:
     const Real& getJointUDot(const State&, int body, int axis) const;
     const Real& getJointQDotDot(const State&, int body, int axis) const;
 
+    /// Get the location in space of a station (point) fixed on a body. This
+    /// just makes use of the transform associated with the body's current
+    /// configuration. Naturally the station is provided in the body frame, and
+    /// the result is the vector from the ground origin to the station, expressed
+    /// in the ground frame.
     const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
         const Transform& X_GB = getBodyConfiguration(s, body);
         return X_GB.T() + X_GB.R() * station_B;
