@@ -1,5 +1,5 @@
 #---------------------------------------------------
-# Simbody 
+# Simbody 0.5 (release branch)
 #
 # Creates SimTK Core library, base name=simbody.
 # Default libraries are shared & optimized. Variants
@@ -36,7 +36,7 @@ SET(SIMBODY_SOURCE_SUBDIRS .)
 SET(SIMBODY_LIBRARY_NAME simbody)
 SET(SIMBODY_MAJOR_VERSION 0)
 SET(SIMBODY_MINOR_VERSION 5)
-SET(SIMBODY_BUILD_VERSION 2)
+SET(SIMBODY_BUILD_VERSION 3)
 
 SET(SIMBODY_COPYRIGHT_YEARS "2005-6")
 SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
