@@ -1,0 +1,6 @@
+FILE(GLOB SOURCE_FILES *.cpp)
+FILE(GLOB INCLUDE_FILES *.h)
+
+ADD_EXECUTABLE(IntegratorTest       ${SOURCE_FILES} ${INCLUDE_FILES})
+
+TARGET_LINK_LIBRARIES(IntegratorTest       simmatrix SimTKcommon ${MATH_LIBS_TO_USE})
