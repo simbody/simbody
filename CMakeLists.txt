@@ -36,6 +36,21 @@ ELSE (ARCH64)
     SET(LIB64) # nothing
 ENDIF (ARCH64)
 
+
+IF(UNIX AND NOT CMAKE_BUILD_TYPE)
+    SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release build" FORCE)
+ENDIF (UNIX AND NOT CMAKE_BUILD_TYPE)
+
+IF (NOT CMAKE_CXX_FLAGS_DEBUG)
+    SET(CMAKE_CXX_FLAGS_DEBUG "-g" CACHE STRING "To use when CMAKE_BUILD_TYPE=Debug" FORCE)
+ENDIF (NOT CMAKE_CXX_FLAGS_DEBUG)
+
+IF (NOT CMAKE_CXX_FLAGS_RELEASE)
+    SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING 
+          "To use when CMAKE_BUILD_TYPE=Release" FORCE)
+ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
+
+
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
 SET(SIMBODY_SOURCE_SUBDIRS .)
