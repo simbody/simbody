@@ -478,7 +478,7 @@ private:
     void calcLoopForwardDynamics(const State&) const;
 
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
-    friend class SimbodySubsystem;
+    friend class SimTK::SimbodySubsystem;
 
     struct RigidBodyNodeIndex {
         RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }

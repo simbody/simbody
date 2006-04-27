@@ -13,6 +13,7 @@ class RigidBodyNode;
 using std::cout;
 using std::endl;
 
+namespace SimTK  {
 
 SimbodySubsystem::SimbodySubsystem() : rep(0) {
     rep = new RigidBodyTree();
@@ -247,3 +248,4 @@ SimbodySubsystem::getBodyAcceleration(const State& s, int body) const
 const VectorView SimbodySubsystem::getQDot   (const State& s) const {return rep->getQDot(s);}
 const VectorView SimbodySubsystem::getUDot   (const State& s) const {return rep->getUDot(s);}
 const VectorView SimbodySubsystem::getQDotDot(const State& s) const {return rep->getQDotDot(s);}
+} // namespace SimTK
