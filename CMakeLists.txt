@@ -145,7 +145,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
         SET(MATH_LIBS_TO_USE libacml_dll)
         ADD_DEFINITIONS(-DSimTK_USE_ACML_LAPACK)
     ELSE (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE SimTKlapack)
+        SET(MATH_LIBS_TO_USE SimTKlapack pthread)
     ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
@@ -260,7 +260,7 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib)
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib64 ${SimTK_SDK}/core/lib)
 
 # libraries are installed from their subdirectories; headers here
 
