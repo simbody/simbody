@@ -240,9 +240,14 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(SBPendulum1              ${TEST_PATH}/SBPendulum1)
-ADD_TEST(SBPendulum1Static        ${TEST_PATH}/SBPendulum1Static)
-## add more
+
+ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
+ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
+ADD_TEST(PendulumExample              ${TEST_PATH}/PendulumExample)
+ADD_TEST(PendulumExampleStatic        ${TEST_PATH}/PendulumExampleStatic)
+ADD_TEST(SBPendulum1                  ${TEST_PATH}/SBPendulum1)
+ADD_TEST(SBPendulum1Static            ${TEST_PATH}/SBPendulum1Static)
+
 
 #
 # Installation
