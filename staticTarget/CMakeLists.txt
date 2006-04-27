@@ -8,4 +8,4 @@ TARGET_LINK_LIBRARIES(${STATIC_TARGET}
     ${MATH_LIBS_TO_USE})
 
 # install the library; on Windows both .lib and .dll go in the lib directory.
-INSTALL_TARGETS(/core/lib RUNTIME_DIRECTORY /core/lib ${STATIC_TARGET})
+INSTALL_TARGETS(/core/lib${LIB64} RUNTIME_DIRECTORY /core/lib${LIB64} ${STATIC_TARGET})

@@ -14,8 +14,8 @@
 #   libsimbody_static[_d].a
 #
 # All libraries are installed in 
-#   C:\Program Files\SimTK\core\lib  (Windows)
-#   /usr/local/SimTK/core/lib        (UNIX)
+#   C:\Program Files\SimTK\core\lib[64]  (Windows)
+#   /usr/local/SimTK/core/lib[64]        (UNIX)
 #
 # TODO: should we just install the default libraries
 # at the top level, and install the static & debug
@@ -25,6 +25,16 @@
 
 PROJECT (Simbody)
 SUBDIRS (staticTarget sharedTarget tests)
+
+# The build system will set ARCH64 for 64 bit builds, which require
+# use of the lib64/ library directories rather than lib/.
+SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
+MARK_AS_ADVANCED( ARCH64  )
+IF (ARCH64)
+    SET(LIB64 64)
+ELSE (ARCH64)
+    SET(LIB64) # nothing
+ENDIF (ARCH64)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
@@ -136,7 +146,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
         SET(MATH_LIBS_TO_USE SimTKlapack)
     ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
 
-    LINK_DIRECTORIES(/usr/local/lib /lib)
+    LINK_DIRECTORIES(/usr/local/lib${LIB64} /lib${LIB64})
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
@@ -260,7 +270,7 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib64 ${SimTK_SDK}/core/lib)
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # libraries are installed from their subdirectories; headers here
 
