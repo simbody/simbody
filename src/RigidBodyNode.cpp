@@ -1048,7 +1048,7 @@ public:
         if (getUseEulerAngles(mv))
             X_JbJ.updR().setToBodyFixed123(fromQ(q));
         else
-            X_JbJ.updR().setToQuaternion(fromQuat(q));
+            X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
     }
 
     // Calculate H.
@@ -1213,7 +1213,7 @@ public:
             X_JbJ.updR().setToBodyFixed123(fromQVec3(q,0));
             X_JbJ.updT() = fromQVec3(q,3);
         } else {
-            X_JbJ.updR().setToQuaternion(fromQuat(q));
+            X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
             X_JbJ.updT() = fromQVec3(q,4);
         }
     }
