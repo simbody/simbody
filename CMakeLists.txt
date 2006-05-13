@@ -26,6 +26,27 @@
 PROJECT (Simbody)
 SUBDIRS (staticTarget sharedTarget tests)
 
+SET(VTK_DIR "C:/Program Files/VTK/lib/vtk-5.0" CACHE STRING "VTK installation")
+
+FIND_PACKAGE(VTK)
+IF (VTK_FOUND)
+  INCLUDE(${VTK_USE_FILE})
+ELSE(VTK_FOUND)
+  MESSAGE(FATAL_ERROR
+     "Cannot build without VTK.  Please set VTK_DIR.")
+ENDIF (VTK_FOUND)
+
+LINK_LIBRARIES(
+  vtkHybrid
+  vtkFiltering
+  vtkGenericFiltering
+  vtkVolumeRendering 
+  vtkRendering
+  vtkIO
+  vtkGraphics
+  vtkCommon
+)
+
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")

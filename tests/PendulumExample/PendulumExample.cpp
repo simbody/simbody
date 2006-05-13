@@ -58,7 +58,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 GroundBodyNum,           // parent body
                 Transform(),             // jt frame on parent (origin in this case)              
-                JointSpecification(JointSpecification::Pin, false)); // joint type; pin always aligns z axes
+                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
 
         int pendBodyNum2 =
             pend.addRigidBody(
@@ -84,13 +84,13 @@ public:
     int theConstraint =
         pend.addConstantDistanceConstraint(0, Vec3(0.5,-0.2,0.1),
                                            pendBodyNum3, Vec3(0,-d/2,0),
-                                           0.7);
+                                           1.);
 
 
 
 
         pend.realize(s, Stage::Built);
-        pend.setUseEulerAngles(s, true);
+       // pend.setUseEulerAngles(s, true);
         pend.realize(s, Stage::Modeled);
         nq = s.getQ().size();
         nu = s.getU().size();
@@ -121,7 +121,8 @@ public:
     }
 
     void setPendulumAngle(Real angleInDegrees) {
-        pend.setJointQ(s,pendBodyNum,0,angleInDegrees*RadiansPerDegree);
+        for (int i=0; i<3; ++i)
+            pend.setJointQ(s,pendBodyNum,i,angleInDegrees*RadiansPerDegree);
         copyStateToY();
     }
 
@@ -148,7 +149,7 @@ public:
         // calculate and apply forces
         pend.clearAppliedForces(s);
         //pend.applyGravity(s, Vec3(0., -g, 0.));
-        pend.applyGravity(s, Vec3(-10., -g, -5));
+        pend.applyGravity(s, Vec3(0, -g, 0));
 
         // calculate Simbody derivatives
         pend.realize(s, Stage::Reacting);
@@ -545,7 +546,7 @@ private:
             actor->SetPosition(X_GA.T()[0], X_GA.T()[1], X_GA.T()[2]);
             const Vec4 av = X_GA.R().convertToAngleAxis();
             actor->SetOrientation(0,0,0);
-            actor->RotateWXYZ(av[0], av[1], av[2], av[3]);
+            actor->RotateWXYZ(av[0]/RadiansPerDegree, av[1], av[2], av[3]);
         }
 
     }
@@ -581,11 +582,12 @@ int main(int argc, char** argv) {
         // Run for 5 periods without output every dt seconds,
         // starting at theta=start degrees.
 
-        const Real dt = 0.001; // output intervals
+        const Real dt = 0.01; // output intervals
 
         printf("time  theta (deg)  (period should be %gs)\n", expectedPeriod);
 
         myStudy.setInitialConditions(myPend.getT(), myPend.getY());
+        display.report(myPend.getState());
         for (;;) {
             printf("%5g %10.3g\n", myStudy.getT(), myPend.getPendulumAngle());
             display.report(myPend.getState());
@@ -594,7 +596,7 @@ int main(int argc, char** argv) {
            // if (myStudy.getT() >= 10*expectedPeriod)
              //   break;
     
-            if (myStudy.getT() >= 3.)
+            if (myStudy.getT() >= 10.)
                 break;
 
             // TODO: should check for errors or have or teach RKM to throw. 

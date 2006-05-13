@@ -34,6 +34,12 @@
 #include <cassert>
 #include <vector>
 
+// TODO: move to SimTKcommon
+#define SimTK_PIMPL_DOWNCAST(Derived, Parent)           \
+    static bool           isInstanceOf(const Parent&);  \
+    static const Derived& downcast(const Parent&);      \
+    static Derived&       updDowncast(Parent&)
+
 // When building a shared library 'xyz', CMake defines a symbol 'xyz_EXPORTS'
 // for use in distinguishing builds from client use of a header. The following
 // is specific for the current 'simtk' library and doesn't affect other

@@ -29,6 +29,9 @@
 
 namespace SimTK {
 
+class AnalyticGeometry;
+class DecorativeGeometry;
+
 // Stubs.
 
 class SimTK_SIMBODY_API System {
@@ -112,6 +115,10 @@ public:
 
     virtual MechanicalSubsystem* cloneMechanicalSubsystem() const = 0;
 
+    virtual int getNBodies() const = 0;
+    virtual const Transform& getBodyConfiguration(const State&, int) const = 0;
+
+
     virtual void realizeParameters   (const State&) const { }
     virtual void realizeTime         (const State&) const { }
     virtual void realizeConfiguration(const State&) const { }
@@ -168,6 +175,12 @@ public:
         delete mech; mech=0;
         delete forces; forces=0;
     }
+
+    // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
+    // on two different bodies, marker at system COM)
+    void addAnalyticGeometry  (int bodyNum, const Transform&, const AnalyticGeometry&);
+    void addDecorativeGeometry(int bodyNum, const Transform&, Real scale, const DecorativeGeometry&);
+
 
     System* cloneSystem() const {return new MultibodySystem(*this);}
 
