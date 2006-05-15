@@ -1,3 +1,6 @@
+#ifndef SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
+#define SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
+
 /* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
@@ -35,8 +38,16 @@ class AnalyticGeometryRep {
 public:
     AnalyticGeometryRep() : myHandle(0) { }
 
-    virtual DecorativeGeometry generateDecorativeGeometry() const = 0;
+    DecorativeGeometry generateDecorativeGeometry() const {
+        DecorativeGeometry dg = generateDecorativeGeometryConcrete();
+        dg.setPlacement(placement);
+        return dg;
+    }
 
+    virtual DecorativeGeometry generateDecorativeGeometryConcrete() const = 0;
+
+    void setPlacement(const Transform& X_BG) {placement = X_BG;}
+    const Transform& getPlacement() const    {return placement;}
 
     virtual ~AnalyticGeometryRep() {clearMyHandle();}
 
@@ -52,6 +63,8 @@ public:
 private:
     friend class AnalyticGeometry;
     AnalyticGeometry* myHandle;     // the owner of this rep
+
+    Transform placement;    // default is identity
 };
 
 class AnalyticCurveRep : public AnalyticGeometryRep {
@@ -95,7 +108,7 @@ public:
     }
 
     // virtuals from AnalyticGeometryRep
-    DecorativeGeometry generateDecorativeGeometry() const {
+    DecorativeGeometry generateDecorativeGeometryConcrete() const {
         return DecorativeLine(length);
     }
 
@@ -125,7 +138,7 @@ public:
     const Real& getRadius() const {return r;}
 
     // virtuals from AnalyticGeometryRep
-    DecorativeGeometry generateDecorativeGeometry() const {
+    DecorativeGeometry generateDecorativeGeometryConcrete() const {
         return DecorativeCircle(r);
     }
     AnalyticGeometryRep* cloneAnalyticGeometryRep() const {
@@ -156,7 +169,7 @@ public:
     const Real& getRadius() const {return r;}
 
     // virtuals from AnalyticGeometryRep
-    DecorativeGeometry generateDecorativeGeometry() const {
+    DecorativeGeometry generateDecorativeGeometryConcrete() const {
         return DecorativeSphere(r);
     }
     AnalyticGeometryRep* cloneAnalyticGeometryRep() const {
@@ -180,4 +193,6 @@ private:
 
 
 } // namespace SimTK
+
+#endif // SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
 

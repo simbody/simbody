@@ -187,7 +187,7 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
     // find intersections -- this version keeps hierarchical loops distinct
     // sherm: the loops are considered coupled if a lower one includes the
     // first body up from the base along either branch of the upper one (if
-    // it doesn't include that it can't include any further up the branch either).
+    // it doesn't include that it can't include any further up the branch either). 
     // This makes good sense to me.
     for (int i=0 ; i<(int)loops.size() ; i++) {
         pvConstraints.push_back(LengthSet(this, loops[i]));

@@ -4,6 +4,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
+#include "simbody/internal/MultibodySystem.h"
 
 #include <cassert>
 
@@ -11,8 +12,8 @@ namespace SimTK {
 
 class BasicMechanicalForceElements : public MechanicalForcesSubsystem {
 public:
-    BasicMechanicalForceElements(const MechanicalSubsystem& mech) 
-        : MechanicalForcesSubsystem(mech), defaultGravity(0)
+    BasicMechanicalForceElements() 
+        : MechanicalForcesSubsystem(), defaultGravity(0)
     {
     }
 
@@ -25,7 +26,7 @@ public:
 
     void setGravity(const Vec3& g) { defaultGravity=g; }
 
-    SimTK_DOWNCAST2(BasicMechanicalForceElements, MechanicalForcesSubsystem, Subsystem);
+    SimTK_PIMPL_DOWNCAST(BasicMechanicalForceElements, MechanicalForcesSubsystem);
 private:
     Vec3 defaultGravity;
 };

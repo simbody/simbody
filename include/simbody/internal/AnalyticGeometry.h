@@ -31,9 +31,7 @@
  *
  * Each object has its own local coordinate system and is defined self-consistently
  * but independent of anything else. Clients can associate these with a Transform
- * to produce the effect of attaching AnalyticGeometry objects to bodies. The
- * classes here deal only with the local-frame definitions of the geometric
- * objects, not their use in various contexts.
+ * to produce the effect of attaching AnalyticGeometry objects to bodies.
  */
 
 #include "simbody/internal/common.h"
@@ -57,10 +55,21 @@ public:
     AnalyticGeometry(const AnalyticGeometry&);
     AnalyticGeometry& operator=(const AnalyticGeometry&);
 
-    /// Is this handle the owner of this rep?
-    bool isOwnerHandle() const;
+    void setPlacement(const Transform& X_BG);
+    const Transform& getPlacement() const;
 
     DecorativeGeometry generateDecorativeGeometry() const;
+
+    /// Is this handle the owner of this rep? This is true if the
+    /// handle is empty or if its rep points back here.
+    bool isOwnerHandle() const;
+    bool isEmptyHandle() const;
+
+    // Internal use only
+    explicit AnalyticGeometry(class AnalyticGeometryRep* r) : rep(r) { }
+    bool hasRep() const {return rep!=0;}
+    const AnalyticGeometryRep& getRep() const {assert(rep); return *rep;}
+    AnalyticGeometryRep&       updRep()       {assert(rep); return *rep;}
 protected:
     class AnalyticGeometryRep* rep;
 };

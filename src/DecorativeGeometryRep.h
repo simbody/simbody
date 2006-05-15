@@ -1,3 +1,6 @@
+#ifndef SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
+#define SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
+
 /* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
@@ -27,6 +30,8 @@
 
 #include <cmath>
 
+class vtkPolyData;
+
 namespace SimTK {
 
 static const Real Pi = std::acos(Real(-1));
@@ -34,17 +39,16 @@ static const Real Pi = std::acos(Real(-1));
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-      : myHandle(0), colorRGB(0), opacity(1), resolution(0) 
+      : myHandle(0), colorRGB(0), opacity(1), resolution(0), scale(1) 
     { 
     }
-
     virtual ~DecorativeGeometryRep() {clearMyHandle();}
 
-    DecorativeGeometryRep* clone() const {
-        DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
-        dup->clearMyHandle();
-        return dup;
-    }
+    virtual vtkPolyData* createVTKPolyData() const = 0;
+
+    void setPlacement(const Transform& X_BG) {placement = X_BG;}
+    const Transform& getPlacement() const    {return placement;}
+
 
     void setColor(const Vec3& rgb) {
         assert(0<=rgb[0]&&rgb[0]<=1); // TODO
@@ -52,27 +56,36 @@ public:
         assert(0<=rgb[2]&&rgb[2]<=1);
         colorRGB=rgb;
     }
+    const Vec3& getColor() const {return colorRGB;}
 
     void setOpacity(Real o) {
         assert(0<=o && o <= 1); // TODO
         opacity=o;
     }
+    Real getOpacity() const {return opacity;}
 
     void setResolution(int r) {
         assert(0<=r);
         resolution=r;   // 0 means use default
     }
+    int getResolution() const {return resolution;}
 
     void setScale(Real s) {
         assert(0<s); // TODO
         scale=s;
     }
+    Real getScale() const {return scale;}
 
+
+    DecorativeGeometryRep* clone() const {
+        DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
+        dup->clearMyHandle();
+        return dup;
+    }
     virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
 
     void setMyHandle(DecorativeGeometry& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
-
 private:
     friend class DecorativeGeometry;
     DecorativeGeometry* myHandle;     // the owner of this rep
@@ -81,6 +94,8 @@ private:
     Real opacity;    // default is 1
     int  resolution; // 0 means use default
     Real scale;      // default is 1
+
+    Transform placement;    // default is identity
 };
 
 
@@ -92,6 +107,7 @@ public:
     }
 
     // virtuals
+    vtkPolyData* createVTKPolyData() const;
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeLineRep(*this);
     }
@@ -111,6 +127,7 @@ public:
     const Real& getRadius() const {return r;}
 
     // virtuals
+    vtkPolyData* createVTKPolyData() const;
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeCircleRep(*this);
     }
@@ -123,13 +140,14 @@ private:
 class DecorativeSphereRep : public DecorativeGeometryRep {
 public:
     DecorativeSphereRep() : r(1) { }
-    DecorativeSphereRep(const Real& rad) : r(r) {
+    DecorativeSphereRep(const Real& rad) : r(rad) {
         assert(r > 0); // TODO
     }
 
     const Real& getRadius() const {return r;}
 
     // virtuals
+    vtkPolyData* createVTKPolyData() const;
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeSphereRep(*this);
     }
@@ -139,5 +157,47 @@ private:
     Real r;
 };
 
+
+class DecorativeBrickRep : public DecorativeGeometryRep {
+public:
+    DecorativeBrickRep() : lengths(1) { }
+    DecorativeBrickRep(const Vec3& xyzLengths) : lengths(xyzLengths) {
+        assert(lengths[0]>0&&lengths[1]>0&&lengths[2]>0); // TODO
+    }
+
+    const Vec3& getXYZLengths() const {return lengths;}
+
+    // virtuals
+    vtkPolyData* createVTKPolyData() const;
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+        return new DecorativeBrickRep(*this);
+    }
+
+    SimTK_DOWNCAST(DecorativeBrickRep, DecorativeGeometryRep);
+private:
+    Vec3 lengths;
+};
+
+class DecorativeFrameRep : public DecorativeGeometryRep {
+public:
+    DecorativeFrameRep() : axisLength(1) { }
+    DecorativeFrameRep(const Real& axisLen) : axisLength(axisLen) {
+        assert(axisLen > 0); // TODO
+    }
+
+    const Real& getAxisLength() const {return axisLength;}
+
+    // virtuals
+    vtkPolyData* createVTKPolyData() const;
+    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
+        return new DecorativeFrameRep(*this);
+    }
+
+    SimTK_DOWNCAST(DecorativeFrameRep, DecorativeGeometryRep);
+private:
+    Real axisLength;
+};
+
 } // namespace SimTK
 
+#endif // SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_

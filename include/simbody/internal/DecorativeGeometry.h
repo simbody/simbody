@@ -43,6 +43,8 @@
 
 #include <cassert>
 
+class vtkPolyData;
+
 namespace SimTK {
 
 class AnalyticGeometry;
@@ -60,13 +62,31 @@ public:
     /// Implicit conversion
     DecorativeGeometry(const AnalyticGeometry&);
 
+    vtkPolyData* createVTKPolyData() const;
+
+    void setPlacement(const Transform& X_BG);
+    const Transform& getPlacement() const;
+
     void setColor(const Vec3& rgb); // 0-1 for each color; default is 0,0,0 (black)
     void setOpacity(Real);          // 0-1; default is 1 (opaque)
     void setResolution(int);        // some kind of level of detail knob
     void setScale(Real);            // default is 1
- 
-    /// Is this handle the owner of this rep?
+
+    const Vec3& getColor()      const;
+    Real        getOpacity()    const;
+    int         getResolution() const;
+    Real        getScale()      const;
+
+    /// Is this handle the owner of this rep? This is true if the
+    /// handle is empty or if its rep points back here.
     bool isOwnerHandle() const;
+    bool isEmptyHandle() const;
+
+    // Internal use only
+    explicit DecorativeGeometry(class DecorativeGeometryRep* r) : rep(r) { }
+    bool hasRep() const {return rep!=0;}
+    const DecorativeGeometryRep& getRep() const {assert(rep); return *rep;}
+    DecorativeGeometryRep&       updRep()       {assert(rep); return *rep;}
 protected:
     class DecorativeGeometryRep* rep;
 };

@@ -4,6 +4,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
+#include "simbody/internal/MultibodySystem.h"
 
 #include <cassert>
 #include <vector>
@@ -304,6 +305,7 @@ public:
     const VectorView getUDot   (const State&) const;
     const VectorView getQDotDot(const State&) const;
 
+    SimTK_PIMPL_DOWNCAST(SimbodySubsystem, MechanicalSubsystem);
 private:
     RigidBodyTree* rep;
 };

@@ -33,7 +33,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
-#include "simbody/internal/System.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/DecorativeGeometry.h"
 
 #include <cassert>
@@ -42,46 +42,38 @@
 #include <exception>
 #include <vector>
 
-class vtkActor;
-class vtkRenderWindow;
-class vtkRenderer;
-class vtkPolyDataMapper;
-class vtkProp3D;
-
 
 namespace SimTK {
-    
-typedef std::pair<vtkProp3D*, Transform> BodyActor;
-typedef std::vector<BodyActor>           ActorList;
 
 class VTKDecoration;
 
 class VTKReporter {
 public:
-    void addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD);
-    void addActor(int bodyNum, vtkActor* a, Transform X_GA);
+    VTKReporter() : rep(0) { }
+    explicit VTKReporter(const MultibodySystem& m);
+    VTKReporter(const VTKReporter&);
     ~VTKReporter();
-    VTKReporter(const MultibodySystem& m);
+    VTKReporter& operator=(const VTKReporter&);
 
     void report(const State& s);
-private:
 
-    const MultibodySystem& mbs;
-    std::vector<ActorList> bodies;
-    vtkRenderWindow* renWin;
-    vtkRenderer*     renderer;
+    void addDecoration(int bodyNum, const Transform& X_GD, 
+                       const DecorativeGeometry&);
+    void setDefaultBodyColor(int bodyNum, const Vec3& rgb);
+    const Vec3& getDefaultBodyColor(int bodyNum) const;
+ 
+    /// Is this handle the owner of this rep? This is true if the
+    /// handle is empty or if its rep points back here.
+    bool isOwnerHandle() const;
+    bool isEmptyHandle() const;
 
-    vtkPolyDataMapper *sphereMapper;
-    vtkPolyDataMapper *cubeMapper;
-    vtkPolyDataMapper *lineMapper;
-    vtkPolyDataMapper *cylinderMapper;
-    vtkPolyDataMapper *axesMapper;
-
-    void zeroPointers();
-    void deletePointers();
-    void makeShapes();
-    void setConfiguration(int bodyNum, const Transform& X_GB);
-
+    // Internal use only
+    explicit VTKReporter(class VTKReporterRep* r) : rep(r) { }
+    bool                  hasRep() const {return rep!=0;}
+    const VTKReporterRep& getRep() const {assert(rep); return *rep;}
+    VTKReporterRep&       updRep() const {assert(rep); return *rep;}
+protected:
+    class VTKReporterRep* rep;
 };
 
 } // namespace SimTK

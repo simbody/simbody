@@ -90,7 +90,7 @@ public:
 
 
         pend.realize(s, Stage::Built);
-       // pend.setUseEulerAngles(s, true);
+        pend.setUseEulerAngles(s, true);
         pend.realize(s, Stage::Modeled);
         nq = s.getQ().size();
         nu = s.getU().size();
@@ -582,7 +582,7 @@ int main(int argc, char** argv) {
         // Run for 5 periods without output every dt seconds,
         // starting at theta=start degrees.
 
-        const Real dt = 0.01; // output intervals
+        const Real dt = 0.001; // output intervals
 
         printf("time  theta (deg)  (period should be %gs)\n", expectedPeriod);
 

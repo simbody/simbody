@@ -35,6 +35,15 @@ namespace SimTK {
     // AnalyticGeometry //
     //////////////////////
 
+
+// This is an owner handle if there is no rep or if the rep points back
+// to this handle.
+bool AnalyticGeometry::isOwnerHandle() const {
+    return rep==0 || rep->myHandle == this;
+}
+
+bool AnalyticGeometry::isEmptyHandle() const {return rep==0;}
+
 AnalyticGeometry::~AnalyticGeometry() {
     if (isOwnerHandle())
         delete rep;
@@ -42,22 +51,31 @@ AnalyticGeometry::~AnalyticGeometry() {
 }
 
 AnalyticGeometry::AnalyticGeometry(const AnalyticGeometry& src) : rep(0) {
-    if (src.rep)
+    if (src.rep) {
         rep = src.rep->clone();
+        rep->setMyHandle(*this);
+    }
 }
 
 AnalyticGeometry& AnalyticGeometry::operator=(const AnalyticGeometry& src) {
-    if (&src == this) return *this;
-    delete rep;
-    rep = src.rep ? src.rep->clone() : 0;
+    if (&src != this) {
+        if (isOwnerHandle()) delete rep;
+        rep = 0;
+        if (src.rep) {
+            rep = src.rep->clone();
+            rep->setMyHandle(*this);
+        }
+    }
     return *this;
 }
 
-// This is an owner handle if there is no rep or if the rep points back
-// to this handle.
-bool AnalyticGeometry::isOwnerHandle() const {
-    return rep==0 || rep->myHandle == this;
+void AnalyticGeometry::setPlacement(const Transform& X_BG) {
+    updRep().setPlacement(X_BG);
 }
+const Transform& AnalyticGeometry::getPlacement() const {
+    return getRep().getPlacement();
+}
+
 
 DecorativeGeometry 
 AnalyticGeometry::generateDecorativeGeometry() const {

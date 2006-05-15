@@ -60,6 +60,9 @@
 namespace SimTK {
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 static const int  GroundBodyNum = 0; // ground is always body 0
+static const Vec3 DefaultGroundBodyColor(0,1,0); // green
+static const Vec3 DefaultBaseBodyColor(1,0,0);   // red
+static const Vec3 DefaultBodyColor(0,0,0);       // black
     
 typedef std::pair<vtkProp3D*, Transform> BodyActor;
 typedef std::vector<BodyActor>           ActorList;
@@ -138,12 +141,142 @@ public:
     }
 };
 
-void VTKReporter::addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD) {
+
+class VTKReporterRep {
+public:
+    // no default constructor -- must have MultibodySystem always
+    VTKReporterRep(const MultibodySystem& m);
+
+    ~VTKReporterRep();
+
+    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
+        bodies[bodyNum].defaultColorRGB = rgb;
+    }
+
+    VTKReporterRep* clone() const {
+        VTKReporterRep* dup = new VTKReporterRep(*this);
+        dup->myHandle = 0;
+        return dup;
+    }
+
+    void report(const State& s);
+
+    void setMyHandle(VTKReporter& h) {myHandle = &h;}
+    void clearMyHandle() {myHandle=0;}
+
+private:
+    friend class VTKReporter;
+    VTKReporter* myHandle;     // the owner of this rep
+
+    const MultibodySystem& mbs;
+
+    typedef std::pair<vtkProp3D*, Transform> BodyActor;
+    typedef std::vector<BodyActor>           ActorList;
+
+    struct PerBodyInfo {
+        ActorList   aList;
+        Vec3        defaultColorRGB;
+    };
+    std::vector<PerBodyInfo> bodies;
+
+    vtkRenderWindow* renWin;
+    vtkRenderer*     renderer;
+
+    vtkPolyDataMapper *sphereMapper;
+    vtkPolyDataMapper *cubeMapper;
+    vtkPolyDataMapper *lineMapper;
+    vtkPolyDataMapper *cylinderMapper;
+    vtkPolyDataMapper *axesMapper;
+
+    void zeroPointers();
+    void deletePointers();
+    void makeShapes();
+    void setConfiguration(int bodyNum, const Transform& X_GB);
+
+    void addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD);
+    void addActor(int bodyNum, vtkActor* a, Transform X_GA);
+
+};
+
+    /////////////////
+    // VTKReporter //
+    /////////////////
+
+
+bool VTKReporter::isOwnerHandle() const {
+    return rep==0 || rep->myHandle==this;
+}
+bool VTKReporter::isEmptyHandle() const {return rep==0;}
+
+VTKReporter::VTKReporter(const MultibodySystem& m) : rep(0) {
+    rep = new VTKReporterRep(m);
+    rep->setMyHandle(*this);
+}
+
+VTKReporter::VTKReporter(const VTKReporter& src) : rep(0) {
+    if (src.rep) {
+        rep = src.rep->clone();
+        rep->setMyHandle(*this);
+    }
+}
+
+VTKReporter& VTKReporter::operator=(const VTKReporter& src) {
+    if (&src != this) {
+        delete rep; rep=0;
+        if (src.rep) {
+            rep = src.rep->clone();
+            rep->setMyHandle(*this);
+        }
+    }
+    return *this;
+}
+
+VTKReporter::~VTKReporter() {
+    delete rep; rep=0;
+}
+
+void VTKReporter::report(const State& s) {
+    assert(rep);
+    rep->report(s);
+}
+
+void VTKReporter::addDecoration(int body, const Transform& X_GD,
+                                const DecorativeGeometry& g) 
+{
+    assert(rep);
+    rep->addDecoration(body, X_GD, g);
+}
+
+
+    ////////////////////
+    // VTKReporterRep //
+    ////////////////////
+
+void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
+                                   const DecorativeGeometry& g)
+{
+    // we are the owner of the returned reference
+    vtkPolyData* poly = g.createVTKPolyData();
+
+    vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
+    mapper->SetInput(poly);
+    poly->Delete(); poly=0; // remove this now-unneeded polyData reference
+
+    vtkActor* actor = vtkActor::New();
+    actor->SetMapper(mapper);
+    mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
+
+    addActor(body, actor, X_GD);
+    actor->Delete(); // TODO -- avoid extra copy
+}
+
+void VTKReporterRep::addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD) {
     addActor(bodyNum, d.getActor(), X_GD);
 }
 
-void VTKReporter::addActor(int bodyNum, vtkActor* a, Transform X_GA) {
-    ActorList& actors = bodies[bodyNum];
+void VTKReporterRep::addActor(int bodyNum, vtkActor* a, Transform X_GA) {
+    ActorList& actors = bodies[bodyNum].aList;
     vtkActor* acopy = vtkActor::New();
     acopy->ShallowCopy(a);
     actors.push_back(BodyActor(acopy,X_GA));
@@ -151,10 +284,11 @@ void VTKReporter::addActor(int bodyNum, vtkActor* a, Transform X_GA) {
     if (bodyNum==0) setConfiguration(0, Transform()); // just do this once
 }
 
-VTKReporter::~VTKReporter() {deletePointers();}
+VTKReporterRep::~VTKReporterRep() {deletePointers();}
 
-VTKReporter::VTKReporter(const MultibodySystem& m) 
-    : mbs(m) {
+VTKReporterRep::VTKReporterRep(const MultibodySystem& m) 
+    : myHandle(0), mbs(m) 
+{
     zeroPointers();
     makeShapes();
 
@@ -181,6 +315,13 @@ VTKReporter::VTKReporter(const MultibodySystem& m)
     const MechanicalSubsystem& sbs = mbs.getMechanicalSubsystem();
     bodies.resize(sbs.getNBodies());
 
+    setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
+    for (int i=1; i<(int)bodies.size(); ++i) {
+        if (sbs.getParent(i) == GroundBodyNum)
+             setDefaultBodyColor(i, DefaultBaseBodyColor);
+        else setDefaultBodyColor(i, DefaultBodyColor);
+    }
+
     for (int i=0; i<(int)bodies.size(); ++i) {
         vtkActor *aAxes = vtkActor::New();
         aAxes->SetMapper(axesMapper);
@@ -206,7 +347,7 @@ VTKReporter::VTKReporter(const MultibodySystem& m)
     renWin->Render();
 }
 
-void VTKReporter::report(const State& s) {
+void VTKReporterRep::report(const State& s) {
     if (!renWin) return;
 
     const MechanicalSubsystem& mech = mbs.getMechanicalSubsystem();
@@ -233,13 +374,13 @@ void VTKReporter::report(const State& s) {
 
 }
 
-void VTKReporter::zeroPointers() {
+void VTKReporterRep::zeroPointers() {
     renWin=0; renderer=0; sphereMapper=0; cubeMapper=0;
     lineMapper=0; cylinderMapper=0; axesMapper=0;
 }
-void VTKReporter::deletePointers() {
+void VTKReporterRep::deletePointers() {
     for (int i=0; i<(int)bodies.size(); ++i) {
-        ActorList& actors = bodies[i];
+        ActorList& actors = bodies[i].aList;
         for (int a=0; a<(int)actors.size(); ++a)
             actors[a].first->Delete(), actors[a].first=0;
     }
@@ -252,7 +393,7 @@ void VTKReporter::deletePointers() {
     if(renWin)renWin->Delete();
     zeroPointers();
 }
-void VTKReporter::makeShapes() {
+void VTKReporterRep::makeShapes() {
     // sphere
     vtkSphereSource *sphere = vtkSphereSource::New();
     sphere->SetRadius(1.);
@@ -313,8 +454,8 @@ void VTKReporter::makeShapes() {
     app->Delete();
 }
 
-void VTKReporter::setConfiguration(int bodyNum, const Transform& X_GB) {
-    const ActorList& actors = bodies[bodyNum];
+void VTKReporterRep::setConfiguration(int bodyNum, const Transform& X_GB) {
+    const ActorList& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i].first;
         const Transform& X_BA  = actors[i].second;
@@ -324,7 +465,6 @@ void VTKReporter::setConfiguration(int bodyNum, const Transform& X_GB) {
         actor->SetOrientation(0,0,0);
         actor->RotateWXYZ(av[0]/RadiansPerDegree, av[1], av[2], av[3]);
     }
-
 }
 
 } // namespace SimTK
