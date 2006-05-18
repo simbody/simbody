@@ -161,8 +161,12 @@ public:
     /// Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     /// body's frame B measured from and expressed in ground. This consists of a rotation matrix
     /// R_GB, and a ground-frame vector OB_G from ground's origin to the origin point of frame B.
-    const Transform& getX_GB(const SBConfigurationCache& cc) const {return fromB(cc.bodyConfigInGround);}
-    Transform&       updX_GB(SBConfigurationCache&       cc) const {return toB  (cc.bodyConfigInGround);}
+    const Transform& getX_GB(const SBConfigurationCache& cc) const {
+        return fromB(cc.bodyConfigInGround);
+    }
+    Transform& updX_GB(SBConfigurationCache& cc) const {
+        return toB(cc.bodyConfigInGround);
+    }
 
     /// Extract from the cache the body-to-parent shift matrix "phi". 
     const PhiMatrix& getPhi(const SBConfigurationCache& cc) const {return fromB(cc.bodyToParentShift);}

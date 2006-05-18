@@ -51,9 +51,17 @@ class SimTK_SIMBODY_API SimbodySubsystem : public MechanicalSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodySubsystem();
-    ~SimbodySubsystem();
-    SimbodySubsystem(const SimbodySubsystem&);
-    SimbodySubsystem& operator=(const SimbodySubsystem&);
+
+    // These are the same as the compiler defaults but are handy to
+    // have around explicitly for debugging.
+    ~SimbodySubsystem() {
+    }
+    SimbodySubsystem(const SimbodySubsystem& ss) : MechanicalSubsystem(ss) {
+    }
+    SimbodySubsystem& operator=(const SimbodySubsystem& ss) {
+        MechanicalSubsystem::operator=(ss);
+        return *this;
+    }
 
     MechanicalSubsystem* cloneMechanicalSubsystem() const {
         return new SimbodySubsystem(*this);
@@ -307,7 +315,8 @@ public:
 
     SimTK_PIMPL_DOWNCAST(SimbodySubsystem, MechanicalSubsystem);
 private:
-    RigidBodyTree* rep;
+    const RigidBodyTree& getRep() const;
+    RigidBodyTree&       updRep();
 };
 
 SimTK_SIMBODY_API std::ostream& 

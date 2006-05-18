@@ -4,6 +4,8 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/SimbodySubsystem.h"
 #include "SimbodyTreeState.h"
+#include "MultibodySystemRep.h"
+
 using namespace SimTK;
 
 class RigidBodyNode;
@@ -49,12 +51,15 @@ class LengthConstraints;
  * RigidBodyTree is the owner of the RigidBodyNode objects (which are abstract), pointers to
  * which are stored in the tree.
  */
-class RigidBodyTree {
+class RigidBodyTree : public MechanicalSubsystemRep {
 public:
     RigidBodyTree() 
-      : nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
+      : MechanicalSubsystemRep(), 
+        nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), constructionCacheIndex(-1), lConstraints(0) 
-      { addGroundNode(); }
+    { 
+        addGroundNode(); 
+    }
 
     RigidBodyTree(const RigidBodyTree&);
     RigidBodyTree& operator=(const RigidBodyTree&);
@@ -99,6 +104,31 @@ public:
     // Call this after all bodies & constraints have been added.
     void endConstruction(); // will set built==true
 
+    // MechanicalSubsystemRep interface
+    MechanicalSubsystemRep* cloneMechanicalSubsystemRep() const {
+        return new RigidBodyTree(*this);
+    }
+
+    // These counts can be obtained even during construction, where they
+    // just return the current counts.
+    // includes ground
+    int getNBodies()      const {return nodeNum2NodeMap.size();}
+    int getNConstraints() const {return constraintNodes.size();}
+    int getParent(int bodyNum) const;
+    Array<int> getChildren(int bodyNum) const;
+
+    // Call after realizeParameters()
+    const Transform& getJointFrame        (const State&, int body) const;
+    const Transform& getJointFrameOnParent(const State&, int body) const;
+    const Vec3&      getBodyCenterOfMass  (const State&, int body) const;
+
+    // Call after realizeConfiguration()
+    const Transform& getBodyConfiguration(const State& s, int body) const;
+
+    // Call after realizeMotion()
+    const SpatialVec& getBodyVelocity(const State& s, int body) const;
+
+
     void realizeConstruction (State&) const;
     void realizeModeling     (State&) const;
     void realizeParameters   (const State&) const;
@@ -126,7 +156,7 @@ public:
     /// It has no effect on the cache.
     void calcInternalGradientFromSpatial(const State&, 
         const SpatialVecList& X, 
-        Vector&               JX);
+        Vector&               JX) const;
 
     // Given a set of body forces, return the equivalent set of joint torques 
     // IGNORING CONSTRAINTS.
@@ -135,7 +165,7 @@ public:
     // cache. It makes a single O(N) pass.
     void calcTreeEquivalentJointForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    jointForces);
+        Vector&                    jointForces) const;
 
     void calcTreeAccelerations(const State& s,
         const Vector&              jointForces,
@@ -154,7 +184,7 @@ public:
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&)      const;
+    void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&) const;
     void setDefaultParameterValues    (const SBModelingVars&, SBParameterVars&)     const;
     void setDefaultTimeValues         (const SBModelingVars&, SBTimeVars&)          const;
     void setDefaultConfigurationValues(const SBModelingVars&, Vector& q)            const;
@@ -162,11 +192,6 @@ public:
     void setDefaultDynamicsValues     (const SBModelingVars&, SBDynamicsVars&)      const;
     void setDefaultReactionValues     (const SBModelingVars&, SBReactionVars&)      const;
 
-    // These counts can be obtained even during construction, where they
-    // just return the current counts.
-    // includes ground
-    int getNBodies()      const {return nodeNum2NodeMap.size();}
-    int getNConstraints() const {return constraintNodes.size();}
 
     // A single constraint may generate multiple of these.
     int getNDistanceConstraints() const {return distanceConstraints.size();}
@@ -209,12 +234,6 @@ public:
 
     const Vector& getAppliedJointForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
-
-    // Call after realizeConfiguration()
-    const Transform& getBodyConfiguration(const State& s, int body) const;
-
-    // Call after realizeMotion()
-    const SpatialVec& getBodyVelocity(const State& s, int body) const;
 
 
     // Call after realizeReactions()
@@ -484,6 +503,8 @@ private:
         RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }
         int level, offset;
     };
+
+    SimTK_DOWNCAST(RigidBodyTree, MechanicalSubsystemRep);
 
 private:
     // Initialize to 0 at beginning of construction. These are for doling

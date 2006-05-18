@@ -63,11 +63,11 @@ public:
     virtual int getNBodies()      const = 0;    // includes ground, also # tree joints+1
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
-    virtual int               getParent  (int bodyNum)           const = 0;
-    virtual const Array<int>& getChildren(int bodyNum)           const = 0;
+    virtual int         getParent  (int bodyNum)           const = 0;
+    virtual Array<int>  getChildren(int bodyNum)           const = 0;
 
-    virtual const Transform&  getJointFrame(int bodyNum)         const = 0;
-    virtual const Transform&  getJointFrameOnParent(int bodyNum) const = 0;
+    virtual const Transform&  getJointFrame(const State&, int bodyNum) const = 0;
+    virtual const Transform&  getJointFrameOnParent(const State&, int bodyNum) const = 0;
 
     virtual const Vec3&       getBodyCenterOfMass (const State&, int bodyNum) const = 0;
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
@@ -112,6 +112,21 @@ private:
     const MechanicalSubsystem& mech;
 };
 
+class EmptyForcesSubsystemRep : public MechanicalForcesSubsystemRep {
+public:
+    EmptyForcesSubsystemRep()
+      : MechanicalForcesSubsystemRep(MechanicalSubsystem()) { }
+    EmptyForcesSubsystemRep(const MechanicalSubsystem& m) 
+      : MechanicalForcesSubsystemRep(m) { }
+    MechanicalForcesSubsystemRep* cloneMechanicalForcesSubsystemRep() const 
+      { return new EmptyForcesSubsystemRep(*this); }
+
+    void realizeConstruction(State&) const { }
+    void realizeModeling    (State&) const { }
+
+    SimTK_DOWNCAST(EmptyForcesSubsystemRep,MechanicalForcesSubsystemRep);
+};
+
 
 
 /**
@@ -121,16 +136,14 @@ private:
 class MultibodySystemRep : public SystemRep {
 public:
     MultibodySystemRep(const MechanicalSubsystem& m, const MechanicalForcesSubsystem& f)
-        : mech(new MechanicalSubsystem(m)), forces(new MechanicalForcesSubsystem(f))
+        : mech(m), forces(f)
     {
-        mech->endConstruction();     // in case user forgot ...
-        forces->endConstruction();
+        //mech.endConstruction();     // in case user forgot ...
+        //forces.endConstruction();
 
-        bodies.resize(mech->getNBodies());
+        bodies.resize(mech.getNBodies());
     }
     ~MultibodySystemRep() {
-        delete mech; mech=0;
-        delete forces; forces=0;
     }
 
     // pure virtual
@@ -141,52 +154,52 @@ public:
     // on two different bodies, marker at system COM)
     void addAnalyticGeometry  (int bodyNum, const Transform& X_BG, const AnalyticGeometry& g)
     {
-        assert(0 <= bodyNum < bodies.size());
+        assert(0 <= bodyNum && bodyNum < bodies.size());
         bodies[bodyNum].aGeom.push_back(g);
         bodies[bodyNum].aGeom.back().setPlacement(X_BG);
     }
     void addDecorativeGeometry(int bodyNum, const Transform& X_BG, const DecorativeGeometry& g)
     {
-        assert(0 <= bodyNum < bodies.size());
+        assert(0 <= bodyNum && bodyNum < bodies.size());
         bodies[bodyNum].dGeom.push_back(g);
         bodies[bodyNum].dGeom.back().setPlacement(X_BG);
     }
 
     void realizeConstruction(State& s) const {
-        mech->realizeConstruction(s);
-        forces->realizeConstruction(s);
+        mech.realizeConstruction(s);
+        forces.realizeConstruction(s);
     }
     void realizeModeling(State& s) const {
-        mech->realizeModeling(s);
-        forces->realizeModeling(s);
+        mech.realizeModeling(s);
+        forces.realizeModeling(s);
     }
     void realizeParameters(const State& s) const {
-        mech->realizeParameters(s);
-        forces->realizeParameters(s, *mech);
+        mech.realizeParameters(s);
+        forces.realizeParameters(s, mech);
     }
     void realizeTime(const State& s) const {
-        mech->realizeTime(s);
-        forces->realizeTime(s, *mech);
+        mech.realizeTime(s);
+        forces.realizeTime(s, mech);
     }
     void realizeConfiguration(const State& s) const {
-        mech->realizeConfiguration(s);
-        forces->realizeConfiguration(s, *mech);
+        mech.realizeConfiguration(s);
+        forces.realizeConfiguration(s, mech);
     }
     void realizeMotion(const State& s) const {
-        mech->realizeMotion(s);
-        forces->realizeMotion(s, *mech);
+        mech.realizeMotion(s);
+        forces.realizeMotion(s, mech);
     }
     void realizeDynamics(const State& s) const {
-        forces->realizeDynamics(s, *mech); // note order
-        mech->realizeDynamics(s, *forces);
+        forces.realizeDynamics(s, mech); // note order
+        mech.realizeDynamics(s, forces);
     }
     void realizeReaction(const State& s) const {
-        forces->realizeReaction(s, *mech);
-        mech->realizeReaction(s, *forces);
+        forces.realizeReaction(s, mech);
+        mech.realizeReaction(s, forces);
     }
 
-    const MechanicalSubsystem&       getMechanicalSubsystem()       const {return *mech;}
-    const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const {return *forces;}
+    const MechanicalSubsystem&       getMechanicalSubsystem()       const {return mech;}
+    const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const {return forces;}
     const Array<AnalyticGeometry>&   getBodyAnalyticGeometry(int bodyNum) const {
         return bodies[bodyNum].aGeom;
     }
@@ -196,8 +209,8 @@ public:
 
     SimTK_DOWNCAST(MultibodySystemRep, SystemRep);
 private:
-    MechanicalSubsystem*       mech;
-    MechanicalForcesSubsystem* forces;
+    const MechanicalSubsystem&       mech;
+    const MechanicalForcesSubsystem& forces;
 
     struct PerBodyInfo {
         Array<AnalyticGeometry>   aGeom;

@@ -48,7 +48,7 @@ namespace SimTK {
  * can use AnalyticGeometry to generate DecorativeGeometry although
  * not the reverse.
  */
-class AnalyticGeometry {
+class SimTK_SIMBODY_API AnalyticGeometry {
 public:
     AnalyticGeometry() : rep(0) { }
     ~AnalyticGeometry();
@@ -74,7 +74,7 @@ protected:
     class AnalyticGeometryRep* rep;
 };
 
-class AnalyticCurve : public AnalyticGeometry {
+class SimTK_SIMBODY_API AnalyticCurve : public AnalyticGeometry {
 public:
     AnalyticCurve() { }
     Real calcArcLength() const;
@@ -85,7 +85,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticCurve, AnalyticGeometry);
 };
 
-class AnalyticSurface : public AnalyticGeometry {
+class SimTK_SIMBODY_API AnalyticSurface : public AnalyticGeometry {
 public:
     AnalyticSurface() { }
 
@@ -96,7 +96,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticSurface, AnalyticGeometry);
 };
 
-class AnalyticVolume : public AnalyticGeometry {
+class SimTK_SIMBODY_API AnalyticVolume : public AnalyticGeometry {
 public:
     AnalyticVolume() { }
     Real calcVolume() const;
@@ -110,7 +110,7 @@ public:
 /// An analytic line has only a length. The line's origin is at its
 /// center, with the line running along the x axis. The arc length
 /// goes from -length/2 to length/2 along x.
-class AnalyticLine : public AnalyticCurve {
+class SimTK_SIMBODY_API AnalyticLine : public AnalyticCurve {
 public:
     AnalyticLine() { }
     AnalyticLine(Real length);
@@ -125,7 +125,7 @@ public:
 /// increases counterclockwise looking down the normal at the
 /// circle (right hand rule around y). z thus points at the 
 /// arc length 3*pi*r point at (0,0,r).
-class AnalyticCircle : public AnalyticCurve {
+class SimTK_SIMBODY_API AnalyticCircle : public AnalyticCurve {
 public:
     AnalyticCircle() { }
     AnalyticCircle(Real radius);
@@ -133,7 +133,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticCircle, AnalyticGeometry);
 };
 
-class AnalyticSphere : public AnalyticVolume {
+class SimTK_SIMBODY_API AnalyticSphere : public AnalyticVolume {
 public:
     AnalyticSphere() { }
     AnalyticSphere(Real radius);
@@ -145,7 +145,7 @@ public:
 /// for a circle; that is, x and z are radial and y points along
 /// the cylinder's axis. This supports a cylindrical coordinate
 /// system (h, theta), with height -halfLength <= h <= halfLength.
-class AnalyticCylinder : public AnalyticVolume {
+class SimTK_SIMBODY_API AnalyticCylinder : public AnalyticVolume {
 public:
     AnalyticCylinder() { }
     AnalyticCylinder(Real radius, Real halfLength);
@@ -156,7 +156,7 @@ public:
 /// This is a rectangular solid. It's local coordinate system
 /// origin is at its center. Its dimensions are specified by
 /// giving the half-length in x,y,z.
-class AnalyticBrick : public AnalyticVolume {
+class SimTK_SIMBODY_API AnalyticBrick : public AnalyticVolume {
 public:
     AnalyticBrick() { }
     AnalyticBrick(const Vec3& xyzHalfLengths);

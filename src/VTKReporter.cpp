@@ -149,7 +149,7 @@ public:
 
     ~VTKReporterRep();
 
-    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addDecoration(int bodyNum, const Transform& X_GD, DecorativeGeometry);
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
     }
@@ -254,14 +254,15 @@ void VTKReporter::addDecoration(int body, const Transform& X_GD,
     ////////////////////
 
 void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
-                                   const DecorativeGeometry& g)
+                                   DecorativeGeometry g)
 {
     // we are the owner of the returned reference
-    vtkPolyData* poly = g.createVTKPolyData();
+    vtkPolyData* poly = g.getVTKPolyData();
 
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
     mapper->SetInput(poly);
-    poly->Delete(); poly=0; // remove this now-unneeded polyData reference
+    //poly->Delete(); 
+    //poly=0; // remove this now-unneeded polyData reference
 
     vtkActor* actor = vtkActor::New();
     actor->SetMapper(mapper);
@@ -306,8 +307,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
-    renderer->GetActiveCamera()->SetFocalPoint(0,0,0);
-    renderer->GetActiveCamera()->SetPosition(0,1,5);
+    //renderer->GetActiveCamera()->SetFocalPoint(0,0,0);
+    renderer->GetActiveCamera()->SetPosition(0,1,10);
 
 
     renWin->AddRenderer(renderer);
@@ -349,6 +350,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
 void VTKReporterRep::report(const State& s) {
     if (!renWin) return;
+
+    mbs.realize(s, Stage::Configured); // just in case
 
     const MechanicalSubsystem& mech = mbs.getMechanicalSubsystem();
     for (int i=1; i<mech.getNBodies(); ++i) {

@@ -56,12 +56,18 @@
 #include "Simmatrix.h"
 #include "Simbody.h"
 
+#include "simbody/internal/VTKReporter.h"
+
 #include <string>
 #include <iostream>
+#include <exception>
+#include <cmath>
 using std::cout;
 using std::endl;
 
 using namespace SimTK;
+
+static const Real Pi = std::acos(-1.);
 
 
 void stateTest() {
@@ -185,13 +191,33 @@ try {
 
     //pend.endConstruction();
 
+    EmptyForcesSubsystem noForces;
+    MultibodySystem mbs(pend, noForces);
+    VTKReporter vtk(mbs);
+    DecorativeSphere sphere(0.25);
+    vtk.addDecoration(0, Transform(Vec3(1,2,3)), sphere);
+    sphere.setScale(0.5); sphere.setResolution(3);
+    vtk.addDecoration(1, Transform(Vec3(0.1,0.2,0.3)), 
+        sphere);
+    Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
+    vtk.addDecoration(1, Transform(RotationMat(qqq), Vec3(0,1,0)), 
+        DecorativeBrick(Vec3(.5,.1,.25)));
+    vtk.addDecoration(1, Transform(Vec3(-1,0,0)), DecorativeCylinder(.5,.5));
+
     State s;
     pend.realize(s, Stage::Built);
+
+    vtk.report(s);
+
+
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
     pend.realize(s, Stage::Modeled);
+
+
+    vtk.report(s);
 
     //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);
@@ -292,6 +318,8 @@ try {
             //cout << "err=" << err << " |err|=" << d << endl;
             //cout << "spring force=" << fk << endl;
             //cout << "damping joint forces=" << fc << endl;
+            
+            vtk.report(s);
         }
 
 
@@ -314,9 +342,8 @@ try {
     }
 
 }
-catch(const Exception::Base& e) {
-    std::cout << e.getMessage() << std::endl;
+catch (const std::exception& e) {
+    printf("EXCEPTION THROWN: %s\n", e.what());
 }
-
     return 0;
 }

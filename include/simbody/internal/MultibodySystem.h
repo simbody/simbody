@@ -48,11 +48,11 @@ public:
     int getNBodies()      const;    // includes ground, also # tree joints+1
     int getNConstraints() const;    // i.e., constraint elements (multiple equations)
 
-    int               getParent    (int bodyNum) const;
-    const Array<int>& getChildren  (int bodyNum) const;
+    int        getParent  (int bodyNum) const;
+    Array<int> getChildren(int bodyNum) const;
 
-    const Transform&  getJointFrame(int bodyNum)         const;
-    const Transform&  getJointFrameOnParent(int bodyNum) const;
+    const Transform&  getJointFrame(const State&, int bodyNum) const;
+    const Transform&  getJointFrameOnParent(const State&, int bodyNum) const;
 
     const Vec3&       getBodyCenterOfMass(const State&, int bodyNum) const;
 
@@ -74,6 +74,9 @@ public:
     void setJointU(State&, int body, int axis, const Real&) const;
 
     SimTK_PIMPL_DOWNCAST(MechanicalSubsystem, Subsystem);
+private:
+    class MechanicalSubsystemRep& updRep();
+    const MechanicalSubsystemRep& getRep() const;
 };
 
 class SimTK_SIMBODY_API MechanicalForcesSubsystem : public Subsystem {
@@ -88,6 +91,34 @@ public:
     void realizeReaction     (const State&, const MechanicalSubsystem&) const;
 
     SimTK_PIMPL_DOWNCAST(MechanicalForcesSubsystem, Subsystem);
+private:
+    class MechanicalForcesSubsystemRep& updRep();
+    const MechanicalForcesSubsystemRep& getRep() const;
+};
+
+/**
+ * This is a concrete subsystem which applies no forces.
+ */
+class SimTK_SIMBODY_API EmptyForcesSubsystem : public MechanicalForcesSubsystem {
+public:
+    EmptyForcesSubsystem();
+
+    // These are just the defaults but are nice to have explicitly for debugging.
+    ~EmptyForcesSubsystem() {
+    }
+    EmptyForcesSubsystem(const EmptyForcesSubsystem& e) 
+      : MechanicalForcesSubsystem(e) {
+    }
+    EmptyForcesSubsystem& operator=(const EmptyForcesSubsystem& e) {
+        MechanicalForcesSubsystem::operator=(e);
+        return *this;
+    }
+
+
+    SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, MechanicalForcesSubsystem);
+private:
+    class EmptyForcesSubsystemRep& updRep();
+    const EmptyForcesSubsystemRep& getRep() const;
 };
 
 /**

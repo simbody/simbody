@@ -42,8 +42,17 @@ namespace SimTK {
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
+const MechanicalSubsystemRep& 
+MechanicalSubsystem::getRep() const {
+    return dynamic_cast<const MechanicalSubsystemRep&>(*rep);
+}
+MechanicalSubsystemRep&       
+MechanicalSubsystem::updRep() {
+    return dynamic_cast<MechanicalSubsystemRep&>(*rep);
+}
+
 int MechanicalSubsystem::getNBodies() const {
-    return MechanicalSubsystemRep::downcast(*rep).getNBodies();
+    return getRep().getNBodies();
 }
 int MechanicalSubsystem::getNConstraints() const {
     return MechanicalSubsystemRep::downcast(*rep).getNConstraints();
@@ -51,17 +60,17 @@ int MechanicalSubsystem::getNConstraints() const {
 int MechanicalSubsystem::getParent(int bodyNum) const { 
     return MechanicalSubsystemRep::downcast(*rep).getParent(bodyNum); 
 }
-const Array<int>& 
+Array<int> 
 MechanicalSubsystem::getChildren(int bodyNum) const { 
     return MechanicalSubsystemRep::downcast(*rep).getChildren(bodyNum); 
 }
 const Transform&  
-MechanicalSubsystem::getJointFrame(int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointFrame(bodyNum); 
+MechanicalSubsystem::getJointFrame(const State& s, int bodyNum) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getJointFrame(s, bodyNum); 
 }
 const Transform& 
-MechanicalSubsystem::getJointFrameOnParent(int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointFrameOnParent(bodyNum); 
+MechanicalSubsystem::getJointFrameOnParent(const State& s, int bodyNum) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getJointFrameOnParent(s, bodyNum); 
 }
 const Vec3&  
 MechanicalSubsystem::getBodyCenterOfMass(const State& s, int bodyNum) const { 
@@ -80,10 +89,10 @@ void MechanicalSubsystem::realizeParameters(const State& s) const {
     MechanicalSubsystemRep::downcast(*rep).realizeParameters(s); 
 }
 void MechanicalSubsystem::realizeTime(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeParameters(s); 
+    MechanicalSubsystemRep::downcast(*rep).realizeTime(s); 
 }
 void MechanicalSubsystem::realizeConfiguration(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeTime(s); 
+    MechanicalSubsystemRep::downcast(*rep).realizeConfiguration(s); 
 }
 void MechanicalSubsystem::realizeMotion(const State& s) const { 
     MechanicalSubsystemRep::downcast(*rep).realizeMotion(s); 
@@ -135,6 +144,15 @@ void MechanicalForcesSubsystem::realizeDynamics(const State& s, const Mechanical
 }
 void MechanicalForcesSubsystem::realizeReaction(const State& s, const MechanicalSubsystem& m) const { 
     MechanicalForcesSubsystemRep::downcast(*rep).realizeReaction(s,m); 
+}
+
+    //////////////////////////
+    // EmptyForcesSubsystem //
+    //////////////////////////
+
+EmptyForcesSubsystem::EmptyForcesSubsystem() : MechanicalForcesSubsystem() {
+    rep = new EmptyForcesSubsystemRep();
+    rep->setMyHandle(*this);
 }
 
     /////////////////////

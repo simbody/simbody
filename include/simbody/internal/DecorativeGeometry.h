@@ -52,7 +52,7 @@ class AnalyticGeometry;
 /// This is a handle class using the PIMPL design pattern to hide the private
 /// implementation. This is effectively an abstract class although the virtual
 /// function table is hidden in the private part.
-class DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeGeometry {
 public:
     DecorativeGeometry() : rep(0) { }
     ~DecorativeGeometry();
@@ -62,20 +62,25 @@ public:
     /// Implicit conversion
     DecorativeGeometry(const AnalyticGeometry&);
 
-    vtkPolyData* createVTKPolyData() const;
+    vtkPolyData* getVTKPolyData();
 
     void setPlacement(const Transform& X_BG);
     const Transform& getPlacement() const;
 
     void setColor(const Vec3& rgb); // 0-1 for each color; default is 0,0,0 (black)
     void setOpacity(Real);          // 0-1; default is 1 (opaque)
-    void setResolution(int);        // some kind of level of detail knob
+    void setResolution(Real);       // some kind of level of detail knob
     void setScale(Real);            // default is 1
 
     const Vec3& getColor()      const;
     Real        getOpacity()    const;
-    int         getResolution() const;
+    Real        getResolution() const;
     Real        getScale()      const;
+
+    void setRepresentationToPoints();
+    void setRepresentationToWireframe();
+    void setRepresentationToSurface();
+    void setRepresentationToUseDefault();
 
     /// Is this handle the owner of this rep? This is true if the
     /// handle is empty or if its rep points back here.
@@ -91,7 +96,7 @@ protected:
     class DecorativeGeometryRep* rep;
 };
 
-class DecorativeLine : public DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeLine : public DecorativeGeometry {
 public:
     DecorativeLine() { }
     DecorativeLine(Real length);
@@ -99,7 +104,7 @@ public:
     SimTK_PIMPL_DOWNCAST(DecorativeLine, DecorativeGeometry);
 };
 
-class DecorativeCircle : public DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeCircle : public DecorativeGeometry {
 public:
     DecorativeCircle() { }
     DecorativeCircle(Real radius);
@@ -107,7 +112,7 @@ public:
     SimTK_PIMPL_DOWNCAST(DecorativeCircle, DecorativeGeometry);
 };
 
-class DecorativeSphere : public DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeSphere : public DecorativeGeometry {
 public:
     DecorativeSphere() { }
     DecorativeSphere(Real radius);
@@ -115,15 +120,23 @@ public:
     SimTK_PIMPL_DOWNCAST(DecorativeSphere, DecorativeGeometry);
 };
 
-class DecorativeBrick : public DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeBrick : public DecorativeGeometry {
 public:
     DecorativeBrick() { }
-    DecorativeBrick(const Vec3& xyzLengths);
+    DecorativeBrick(const Vec3& xyzHalfLengths);
 
     SimTK_PIMPL_DOWNCAST(DecorativeBrick, DecorativeGeometry);
 };
 
-class DecorativeFrame : public DecorativeGeometry {
+class SimTK_SIMBODY_API DecorativeCylinder : public DecorativeGeometry {
+public:
+    DecorativeCylinder() { }
+    DecorativeCylinder(Real radius, Real halfLength);
+
+    SimTK_PIMPL_DOWNCAST(DecorativeCylinder, DecorativeGeometry);
+};
+
+class SimTK_SIMBODY_API DecorativeFrame : public DecorativeGeometry {
 public:
     DecorativeFrame() { }
     DecorativeFrame(Real axisLength);

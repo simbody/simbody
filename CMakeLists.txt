@@ -90,7 +90,7 @@ SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
 
 # Get the Subversion revision number
 EXEC_PROGRAM ( svnversion
-                ARGS  ${PROJECT_SOURCE_DIR}
+                ARGS  "${PROJECT_SOURCE_DIR}"
                 OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
 
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}

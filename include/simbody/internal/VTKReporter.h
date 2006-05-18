@@ -47,7 +47,7 @@ namespace SimTK {
 
 class VTKDecoration;
 
-class VTKReporter {
+class SimTK_SIMBODY_API VTKReporter {
 public:
     VTKReporter() : rep(0) { }
     explicit VTKReporter(const MultibodySystem& m);
@@ -57,8 +57,7 @@ public:
 
     void report(const State& s);
 
-    void addDecoration(int bodyNum, const Transform& X_GD, 
-                       const DecorativeGeometry&);
+    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb);
     const Vec3& getDefaultBodyColor(int bodyNum) const;
  

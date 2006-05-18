@@ -166,6 +166,40 @@ void RigidBodyTree::endConstruction() {
     built = true;
 }
 
+
+int RigidBodyTree::getParent(int body) const { 
+    return getRigidBodyNode(body).getParent()->getNodeNum();
+}
+
+Array<int> RigidBodyTree::getChildren(int body) const {
+    const RigidBodyNode& node = getRigidBodyNode(body);
+    Array<int> children;
+    for (int i=0; i < node.getNChildren(); ++i)
+        children += node.getChild(i)->getNodeNum();
+    return children;
+}
+
+const Vec3&
+RigidBodyTree::getBodyCenterOfMass(const State&, int body) const
+  { return getRigidBodyNode(body).getCOM_B(); }
+
+
+const Transform&
+RigidBodyTree::getJointFrame(const State&, int body) const
+  { return getRigidBodyNode(body).getX_BJ(); }
+
+const Transform&
+RigidBodyTree::getJointFrameOnParent(const State&, int body) const
+  { return getRigidBodyNode(body).getX_PJb(); }
+
+const Transform&
+RigidBodyTree::getBodyConfiguration(const State& s, int body) const
+  { return getRigidBodyNode(body).getX_GB(getConfigurationCache(s)); }
+
+const SpatialVec&
+RigidBodyTree::getBodyVelocity(const State& s, int body) const
+  { return getRigidBodyNode(body).getV_GB(getMotionCache(s)); }
+
 void RigidBodyTree::realizeConstruction(State& s) const {
     // This is a long-winded way of saying that the Stage must be exactly Allocated.
     SimTK_STAGECHECK_GE_ALWAYS(s.getStage(), Stage(Stage::Built).prev(), 
@@ -616,13 +650,6 @@ RigidBodyTree::getAppliedBodyForces(const State& s) const {
     return rv.appliedBodyForces;
 }
 
-const Transform&
-RigidBodyTree::getBodyConfiguration(const State& s, int body) const
-  { return getRigidBodyNode(body).getX_GB(getConfigurationCache(s)); }
-
-const SpatialVec&
-RigidBodyTree::getBodyVelocity(const State& s, int body) const
-  { return getRigidBodyNode(body).getV_GB(getMotionCache(s)); }
 
 const SpatialVec&
 RigidBodyTree::getBodyAcceleration(const State& s, int body) const
@@ -887,7 +914,7 @@ void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdot
 // partial velocity with some vector.
 void RigidBodyTree::calcInternalGradientFromSpatial(const State& s, 
                                                     const Vector_<SpatialVec>& X,
-                                                    Vector& JX) 
+                                                    Vector& JX) const
 {
     assert(X.size() == getNBodies());
 
@@ -905,7 +932,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
 
 void RigidBodyTree::calcTreeEquivalentJointForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
-    Vector&                    jointForces)
+    Vector&                    jointForces) const
 {
     const SBConfigurationCache& cc = getConfigurationCache(s);
     const SBDynamicsCache&      dc = getDynamicsCache(s);
