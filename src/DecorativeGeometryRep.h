@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "vtkPolyData.h"
+#include "vtkPolyDataAlgorithm.h"
 #include "vtkTransform.h"
 #include "vtkProperty.h"
 #include "vtkObject.h"
@@ -44,7 +45,7 @@ class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
       : myHandle(0),  resolution(-1), scale(-1), placement(), 
-        colorRGB(-1,-1,-1), opacity(-1), representation(-1)
+        colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), representation(-1)
     { 
     }
     virtual ~DecorativeGeometryRep() {
@@ -54,18 +55,23 @@ public:
 
     void generateVTKPipeline() {
         deleteVTKGeometry();
-        rememberVTKObject(createVTKPolyData()); // push this on last
+        createVTKPolyData();
     }
 
-    vtkPolyData* getVTKPolyData() {
+    void updateVTKPipeline() {
+        // TODO
+        generateVTKPipeline(); // start from scratch (bad)
+    }
+
+    vtkPolyData* updVTKPolyData() {
         assert(vtkObjects.size());
-        return vtkPolyData::SafeDownCast(vtkObjects.back());
+        return vtkPolyDataAlgorithm::SafeDownCast(vtkObjects.back())->GetOutput();
     }
 
 
     // Caller must be sure to call VTK's Delete() methods on these objects
     // when done with them.
-    virtual vtkPolyData* createVTKPolyData() = 0;
+    virtual void createVTKPolyData() = 0;
 
     // Combine a SimTK Transform with a scale factor and return the equivalent
     // vtkTransform that will translate, rotate, and scale the same way.
@@ -76,13 +82,17 @@ public:
     vtkPolyData* transformVTKPolyData(const Transform&, const Real&, vtkPolyData*);
 
 
-    void setPlacement(const Transform& X_BG) {placement = X_BG;}
+    void setPlacement(const Transform& X_BG) {
+        placement = X_BG;
+        updateVTKPipeline();
+    }
     const Transform& getPlacement() const    {return placement;}
 
     // This sets resolution to some factor times the object-specific default.
     // Anything 0 or less becomes -1 and means "use default".
     void setResolution(Real r) {
         resolution = r > 0 ? r : -1.;
+        updateVTKPipeline();
     }
     Real getResolution() const {return resolution;}
 
@@ -91,6 +101,7 @@ public:
     // "use default".
     void setScale(Real s) {
         scale = s > 0 ? s : -1.;
+        updateVTKPipeline();
     }
     Real getScale() const {return scale;}
 
@@ -111,10 +122,17 @@ public:
     }
     Real getOpacity() const {return opacity;}
 
+    void setLineThickness(Real t) {
+        lineThickness = t > 0 ? t : -1.;
+    }
+    Real getLineThickness() const {return lineThickness;}
+
     void setRepresentationToPoints()     {representation=VTK_POINTS;}
     void setRepresentationToWireframe()  {representation=VTK_WIREFRAME;}
     void setRepresentationToSurface()    {representation=VTK_SURFACE;}
     void setRepresentationToUseDefault() {representation=-1;}
+
+    int getRepresentation() const {return representation;}
 
     DecorativeGeometryRep* clone() const {
         DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
@@ -139,8 +157,13 @@ private:
 
     void deleteVTKGeometry() {
         // Delete in reverse order of allocation
-        for (int i=(int)vtkObjects.size()-1; i >= 0; --i)
-            vtkObjects[i]->Delete(), vtkObjects[i]=0;
+        for (int i=(int)vtkObjects.size()-1; i >= 0; --i) {
+            vtkObject* obj = vtkObjects[i];
+            //std::cout << "ABOUT TO DELETE\n";
+            //obj->Print(std::cout);
+            obj->Delete();
+            vtkObjects[i]=0;
+        }
         vtkObjects.resize(0);
     }
 
@@ -152,6 +175,7 @@ private:
     // These must wait until we are associated with an actor.
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
+    Real lineThickness;     // -1 means "use default"
     int  representation;    // -1, VTK_POINTS, VTK_WIREFRAME, VTK_SURFACE
 
     // As we build the pipeline, we accumulate VTK objects which must
@@ -159,36 +183,58 @@ private:
     std::vector<vtkObject*> vtkObjects;
 };
 
+    ///////////////////////
+    // DecorativeLineRep //
+    ///////////////////////
 
 class DecorativeLineRep : public DecorativeGeometryRep {
 public:
-    DecorativeLineRep() : length(1) { }
-    DecorativeLineRep(const Real& l) : length(l) {
-        assert(l > 0); // TODO
+    // no default constructor
+    DecorativeLineRep(const Vec3& p1, const Vec3& p2) : point1(p1), point2(p2) {
+        generateVTKPipeline();
     }
 
+    void setPoint1(const Vec3& p) {point1=p; updateVTKPipeline();}
+    void setPoint2(const Vec3& p) {point2=p; updateVTKPipeline();}
+    void setEndpoints(const Vec3& p1, const Vec3& p2) {
+        point1=p1; point2=p2; updateVTKPipeline();
+    }
+
+    const Vec3& getPoint1() const {return point1;}
+    const Vec3& getPoint2() const {return point2;}
+
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeLineRep(*this);
     }
 
     SimTK_DOWNCAST(DecorativeLineRep, DecorativeGeometryRep);
 private:
-    Real length;
+    Vec3 point1, point2;
 };
+
+    /////////////////////////
+    // DecorativeCircleRep //
+    /////////////////////////
 
 class DecorativeCircleRep : public DecorativeGeometryRep {
 public:
-    DecorativeCircleRep() : r(1) { }
-    DecorativeCircleRep(const Real& rad) : r(rad) {
+    // no default constructor
+    explicit DecorativeCircleRep(const Real& rad) : r(rad) {
         assert(r > 0); // TODO
+        generateVTKPipeline();
     }
 
+    void setRadius(const Real& rad) {
+        assert(rad > 0); // TODO;
+        r = rad;
+        updateVTKPipeline();
+    }
     const Real& getRadius() const {return r;}
 
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeCircleRep(*this);
     }
@@ -198,18 +244,28 @@ private:
     Real r;
 };
 
+    /////////////////////////
+    // DecorativeSphereRep //
+    /////////////////////////
+
 class DecorativeSphereRep : public DecorativeGeometryRep {
     static const int DefaultResolution = 15;
 public:
-    DecorativeSphereRep() : r(1) { }
-    DecorativeSphereRep(const Real& rad) : r(rad) {
+    // no default constructor
+    explicit DecorativeSphereRep(const Real& rad) : r(rad) {
         assert(r > 0); // TODO
+        generateVTKPipeline();
     }
 
+    void setRadius(const Real& rad) {
+        assert(rad > 0); // TODO;
+        r = rad;
+        updateVTKPipeline();
+    }
     const Real& getRadius() const {return r;}
 
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeSphereRep(*this);
     }
@@ -219,18 +275,27 @@ private:
     Real r;
 };
 
+    ////////////////////////
+    // DecorativeBrickRep //
+    ////////////////////////
 
 class DecorativeBrickRep : public DecorativeGeometryRep {
 public:
-    DecorativeBrickRep() : halfLengths(0.5) { }
-    DecorativeBrickRep(const Vec3& xyzLengths) : halfLengths(xyzLengths) {
+    // no default constructor
+    explicit DecorativeBrickRep(const Vec3& xyzHalfLengths) : halfLengths(xyzHalfLengths) {
         assert(halfLengths[0]>0&&halfLengths[1]>0&&halfLengths[2]>0); // TODO
+        generateVTKPipeline();
     }
 
-    const Vec3& getXYZHalfLengths() const {return halfLengths;}
+    void setHalfLengths(const Vec3& hl) {
+        assert(hl[0]>0&&hl[1]>0&&hl[2]>0); // TODO;
+        halfLengths = hl;
+        updateVTKPipeline();
+    }
+    const Vec3& getHalfLengths() const {return halfLengths;}
 
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeBrickRep(*this);
     }
@@ -244,37 +309,54 @@ private:
 class DecorativeCylinderRep : public DecorativeGeometryRep {
     static const int DefaultResolution = 10;
 public:
-    DecorativeCylinderRep() : radius(0.5), halfLength(0.5) { }
-    DecorativeCylinderRep(Real r, Real h) 
-      : radius(r), halfLength(h) {
-        assert(radius>0&&halfLength>0); // TODO
+    // no default constructor
+    DecorativeCylinderRep(Real r, Real hh) 
+      : radius(r), halfHeight(hh) {
+        assert(radius>0&&halfHeight>0); // TODO
+        generateVTKPipeline();
     }
 
+    void setRadius(const Real& rad) {
+        assert(rad > 0); // TODO;
+        radius = rad;
+        updateVTKPipeline();
+    }
+    void setHalfHeight(const Real& hh) {
+        assert(hh > 0); // TODO;
+        halfHeight = hh;
+        updateVTKPipeline();
+    }
     Real getRadius()     const {return radius;}
-    Real getHalfLength() const {return halfLength;}
+    Real getHalfHeight() const {return halfHeight;}
 
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeCylinderRep(*this);
     }
 
     SimTK_DOWNCAST(DecorativeCylinderRep, DecorativeGeometryRep);
 private:
-    Real radius, halfLength;
+    Real radius, halfHeight;
 };
 
 class DecorativeFrameRep : public DecorativeGeometryRep {
 public:
-    DecorativeFrameRep() : axisLength(1) { }
-    DecorativeFrameRep(const Real& axisLen) : axisLength(axisLen) {
-        assert(axisLen > 0); // TODO
+    // no default constructor
+    DecorativeFrameRep(const Real& len) : axisLength(len) {
+        assert(len > 0); // TODO
+        generateVTKPipeline();
     }
 
+    void setAxisLength(const Real& len) {
+        assert(len > 0); // TODO;
+        axisLength = len;
+        updateVTKPipeline();
+    }
     const Real& getAxisLength() const {return axisLength;}
 
     // virtuals
-    vtkPolyData* createVTKPolyData();
+    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
         return new DecorativeFrameRep(*this);
     }

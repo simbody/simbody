@@ -27,12 +27,15 @@
 
 #include "DecorativeGeometryRep.h"
 
+#include "vtkLineSource.h"
 #include "vtkSphereSource.h"
 #include "vtkCubeSource.h"
 #include "vtkCylinderSource.h"
 #include "vtkPolyData.h"
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
+#include "vtkAppendPolyData.h"
+#include "vtkVectorText.h"
 
 #include <cmath>
 
@@ -58,14 +61,20 @@ DecorativeGeometry::~DecorativeGeometry() {
 }
 
 DecorativeGeometry::DecorativeGeometry(const DecorativeGeometry& src) : rep(0) {
-    if (src.rep)
+    if (src.rep) {
         rep = src.rep->clone();
+        rep->setMyHandle(*this);
+    }
 }
 
 DecorativeGeometry& DecorativeGeometry::operator=(const DecorativeGeometry& src) {
     if (&src != this) {
         if (isOwnerHandle()) delete rep;
-        rep = src.rep ? src.rep->clone() : 0;
+        rep = 0;
+        if (src.rep) {
+            rep = src.rep->clone();
+            rep->setMyHandle(*this);
+        }
     }
     return *this;
 }
@@ -74,63 +83,56 @@ DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
     *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
 }
 
-vtkPolyData* DecorativeGeometry::getVTKPolyData() {
-    return updRep().getVTKPolyData();
+vtkPolyData* DecorativeGeometry::updVTKPolyData() {
+    return updRep().updVTKPolyData();
 }
 
-void DecorativeGeometry::setPlacement(const Transform& X_BG) {
-    updRep().setPlacement(X_BG);
-}
-const Transform& DecorativeGeometry::getPlacement() const {
-    return getRep().getPlacement();
-}
+void DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);}
+Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
 
-void DecorativeGeometry::setColor(const Vec3& rgb) {
-    return updRep().setColor(rgb);
-}
-void DecorativeGeometry::setOpacity(Real o) {
-    return updRep().setOpacity(o);
-}
-void DecorativeGeometry::setResolution(Real r) {
-    return updRep().setResolution(r);
-}
-void DecorativeGeometry::setScale(Real s) {
-    return updRep().setScale(s);
-}
+void DecorativeGeometry::setPlacement(const Transform& X_BG) {updRep().setPlacement(X_BG);}
+const Transform& DecorativeGeometry::getPlacement() const    {return getRep().getPlacement();}
 
-const Vec3& DecorativeGeometry::getColor() const {
-    return getRep().getColor();
-}
-Real DecorativeGeometry::getOpacity()  const {
-    return getRep().getOpacity();
-}
-Real DecorativeGeometry::getResolution() const {
-    return getRep().getResolution();
-}
-Real DecorativeGeometry::getScale() const {
-    return getRep().getScale();
-}
+void DecorativeGeometry::setScale(Real s) {updRep().setScale(s);}
+Real DecorativeGeometry::getScale() const {return getRep().getScale();}
 
-void DecorativeGeometry::setRepresentationToPoints() {
-    return updRep().setRepresentationToPoints();
-}
-void DecorativeGeometry::setRepresentationToWireframe() {
-    return updRep().setRepresentationToWireframe();
-}
-void DecorativeGeometry::setRepresentationToSurface() {
-    return updRep().setRepresentationToSurface();
-}
-void DecorativeGeometry::setRepresentationToUseDefault() {
-    return updRep().setRepresentationToUseDefault();
-}
+void DecorativeGeometry::setColor(const Vec3& rgb) {updRep().setColor(rgb);}
+const Vec3& DecorativeGeometry::getColor() const   {return getRep().getColor();}
+
+void DecorativeGeometry::setOpacity(Real o)  {updRep().setOpacity(o);}
+Real DecorativeGeometry::getOpacity()  const {return getRep().getOpacity();}
+
+void DecorativeGeometry::setLineThickness(Real t) {updRep().setLineThickness(t);}
+Real DecorativeGeometry::getLineThickness() const {return getRep().getLineThickness();}
+
+void DecorativeGeometry::setRepresentationToPoints()     {updRep().setRepresentationToPoints();}
+void DecorativeGeometry::setRepresentationToWireframe()  {updRep().setRepresentationToWireframe();}
+void DecorativeGeometry::setRepresentationToSurface()    {updRep().setRepresentationToSurface();}
+void DecorativeGeometry::setRepresentationToUseDefault() {updRep().setRepresentationToUseDefault();}
+int  DecorativeGeometry::getRepresentation() const       {return getRep().getRepresentation();}
 
     ////////////////////
     // DecorativeLine //
     ////////////////////
 
-DecorativeLine::DecorativeLine(Real length) {
-    rep = new DecorativeLineRep(length);
+DecorativeLine::DecorativeLine(const Vec3& p1, const Vec3& p2) {
+    rep = new DecorativeLineRep(p1,p2);
     rep->setMyHandle(*this);
+}
+void DecorativeLine::setPoint1(const Vec3& p1) {
+    DecorativeLineRep::downcast(*rep).setPoint1(p1);
+}
+void DecorativeLine::setPoint2(const Vec3& p2) {
+    DecorativeLineRep::downcast(*rep).setPoint2(p2);
+}
+void DecorativeLine::setEndpoints(const Vec3& p1, const Vec3& p2) {
+    DecorativeLineRep::downcast(*rep).setEndpoints(p1,p2);
+}
+const Vec3& DecorativeLine::getPoint1() const {
+    return DecorativeLineRep::downcast(*rep).getPoint1();
+}
+const Vec3& DecorativeLine::getPoint2() const {
+    return DecorativeLineRep::downcast(*rep).getPoint2();
 }
 
     //////////////////////
@@ -140,6 +142,12 @@ DecorativeLine::DecorativeLine(Real length) {
 DecorativeCircle::DecorativeCircle(Real radius) {
     rep = new DecorativeCircleRep(radius);
     rep->setMyHandle(*this);
+}
+void DecorativeCircle::setRadius(Real r) {
+    DecorativeCircleRep::downcast(*rep).setRadius(r);
+}
+Real DecorativeCircle::getRadius() const {
+    return DecorativeCircleRep::downcast(*rep).getRadius();
 }
 
     //////////////////////
@@ -151,22 +159,50 @@ DecorativeSphere::DecorativeSphere(Real radius) {
     rep->setMyHandle(*this);
 }
 
+void DecorativeSphere::setRadius(Real r) {
+    DecorativeSphereRep::downcast(*rep).setRadius(r);
+}
+Real DecorativeSphere::getRadius() const {
+    return DecorativeSphereRep::downcast(*rep).getRadius();
+}
+
     /////////////////////
     // DecorativeBrick //
     /////////////////////
 
-DecorativeBrick::DecorativeBrick(const Vec3& xyzLengths) {
-    rep = new DecorativeBrickRep(xyzLengths);
+DecorativeBrick::DecorativeBrick(const Vec3& xyzHalfLengths) {
+    rep = new DecorativeBrickRep(xyzHalfLengths);
     rep->setMyHandle(*this);
+}
+
+void DecorativeBrick::setHalfLengths(const Vec3& xyzHalfLengths) {
+    DecorativeBrickRep::downcast(*rep).setHalfLengths(xyzHalfLengths);
+}
+const Vec3& DecorativeBrick::getHalfLengths() const {
+    return DecorativeBrickRep::downcast(*rep).getHalfLengths();
 }
 
     ////////////////////////
     // DecorativeCylinder //
     ////////////////////////
 
-DecorativeCylinder::DecorativeCylinder(Real radius, Real halfLength) {
-    rep = new DecorativeCylinderRep(radius,halfLength);
+DecorativeCylinder::DecorativeCylinder(Real radius, Real halfHeight) {
+    rep = new DecorativeCylinderRep(radius,halfHeight);
     rep->setMyHandle(*this);
+}
+
+void DecorativeCylinder::setRadius(Real r) {
+    DecorativeCylinderRep::downcast(*rep).setRadius(r);
+}
+void DecorativeCylinder::setHalfHeight(Real r) {
+    DecorativeCylinderRep::downcast(*rep).setHalfHeight(r);
+}
+
+Real DecorativeCylinder::getRadius() const {
+    return DecorativeCylinderRep::downcast(*rep).getRadius();
+}
+Real DecorativeCylinder::getHalfHeight() const {
+    return DecorativeCylinderRep::downcast(*rep).getHalfHeight();
 }
 
     /////////////////////
@@ -178,13 +214,20 @@ DecorativeFrame::DecorativeFrame(Real axisLength) {
     rep->setMyHandle(*this);
 }
 
+void DecorativeFrame::setAxisLength(Real l) {
+    DecorativeFrameRep::downcast(*rep).setAxisLength(l);
+}
+Real DecorativeFrame::getAxisLength() const {
+    return DecorativeFrameRep::downcast(*rep).getAxisLength();
+}
+
     /////////////////////////////
     // VTK PolyData generation //
     /////////////////////////////
 
 
 
-/*static*/ vtkTransform* 
+vtkTransform* 
 DecorativeGeometryRep::createVTKTransform(const Transform& X_BG, const Real& s) {
     static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 
@@ -197,31 +240,43 @@ DecorativeGeometryRep::createVTKTransform(const Transform& X_BG, const Real& s) 
     xform->Translate(t[0],t[1],t[2]);
     xform->RotateWXYZ(r[0]/RadiansPerDegree,r[1],r[2],r[3]);     // angle, axis
     xform->Scale(s,s,s);
-    return xform; // don't forget to Delete() this later!
+    return xform;
 }
 
-/*static*/ vtkPolyData*
+vtkPolyData*
 DecorativeGeometryRep::transformVTKPolyData(const Transform& X_BG, const Real& s, 
                                             vtkPolyData* in)
 {
+    // Careful -- the poly data filter has to be allocated last, so allocate
+    // the transform first.
+    vtkTransform* tr = createVTKTransform(X_BG, s);
+
     vtkTransformPolyDataFilter* trf = vtkTransformPolyDataFilter::New();
     rememberVTKObject(trf);
 
-    trf->SetTransform(createVTKTransform(X_BG, s)); 
+    trf->SetTransform(tr); 
     trf->SetInput(in);
     return trf->GetOutput();
 }
 
-vtkPolyData* DecorativeLineRep::createVTKPolyData() {
-    assert(!"DecorativeLineRep::createVTKPolyData() NOT IMPLEMENTED YET");
-    return 0;
+void DecorativeLineRep::createVTKPolyData() {
+    vtkLineSource* line = vtkLineSource::New(); 
+    rememberVTKObject(line);
+
+    const Vec3& p1 = getPoint1();
+    const Vec3& p2 = getPoint2();
+
+    line->SetPoint1(p1[0],p1[1],p1[2]); line->SetPoint2(p2[0],p2[1],p2[2]);
+
+    const Real scale = getScale() > 0. ? getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
+                                             line->GetOutput());
 }
-vtkPolyData* DecorativeCircleRep::createVTKPolyData() {
+void DecorativeCircleRep::createVTKPolyData() {
     assert(!"DecorativeCircleRep::createVTKPolyData() NOT IMPLEMENTED YET");
-    return 0;
 }
 
-vtkPolyData* DecorativeSphereRep::createVTKPolyData() {
+void DecorativeSphereRep::createVTKPolyData() {
     vtkSphereSource *sphere = vtkSphereSource::New();
     rememberVTKObject(sphere);
 
@@ -234,21 +289,19 @@ vtkPolyData* DecorativeSphereRep::createVTKPolyData() {
     sphere->SetPhiResolution(res);
 
     const Real scale = getScale() > 0. ? getScale() : 1.;
-
     vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
                                              sphere->GetOutput());
-    return data;
 }
 
-vtkPolyData* DecorativeBrickRep::createVTKPolyData() {
+void DecorativeBrickRep::createVTKPolyData() {
     vtkCubeSource* cube = vtkCubeSource::New();
     rememberVTKObject(cube);
 
-    const Vec3& h = getXYZHalfLengths();
+    const Vec3& h = getHalfLengths();
 
     cube->SetXLength(2*h[0]);
-    cube->SetXLength(2*h[0]);
-    cube->SetXLength(2*h[0]);
+    cube->SetYLength(2*h[1]);
+    cube->SetZLength(2*h[2]);
 
     // resolution is ignored -- our needs are few for rectangles!
 
@@ -256,15 +309,14 @@ vtkPolyData* DecorativeBrickRep::createVTKPolyData() {
 
     vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
                                              cube->GetOutput());
-    return data;
 }
 
-vtkPolyData* DecorativeCylinderRep::createVTKPolyData() {
+void DecorativeCylinderRep::createVTKPolyData() {
     vtkCylinderSource* cyl = vtkCylinderSource::New();
     rememberVTKObject(cyl);
 
     cyl->SetRadius(getRadius());
-    cyl->SetHeight(2*getHalfLength());
+    cyl->SetHeight(2*getHalfHeight());
 
     int res = DefaultResolution;
     if (getResolution() > 0.) 
@@ -272,15 +324,40 @@ vtkPolyData* DecorativeCylinderRep::createVTKPolyData() {
     cyl->SetResolution(res);
 
     const Real scale = getScale() > 0. ? getScale() : 1.;
-
     vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
                                              cyl->GetOutput());
-    return data;
 }
 
-vtkPolyData* DecorativeFrameRep::createVTKPolyData() {
-    assert(!"DecorativeFrameRep::createVTKPolyData() NOT IMPLEMENTED YET");
-    return 0;
+void DecorativeFrameRep::createVTKPolyData() {
+    vtkAppendPolyData* app = vtkAppendPolyData::New();
+    rememberVTKObject(app);
+
+    const Real& length = getAxisLength();
+
+    vtkLineSource* line = vtkLineSource::New(); 
+    rememberVTKObject(line);
+    line->SetPoint1(0,0,0); line->SetPoint2(length,0,0);
+    app->AddInput(line->GetOutput());
+
+    line = vtkLineSource::New(); 
+    rememberVTKObject(line);    
+    line->SetPoint1(0,0,0); line->SetPoint2(0,length,0);
+    app->AddInput(line->GetOutput());
+
+    line = vtkLineSource::New(); 
+    rememberVTKObject(line); 
+    line->SetPoint1(0,0,0); line->SetPoint2(0,0,length);
+    app->AddInput(line->GetOutput());
+
+    vtkVectorText* xtext = vtkVectorText::New();
+    rememberVTKObject(xtext);
+    xtext->SetText("x"); // default size is around 1
+    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05,0)), 0.2, 
+                                              xtext->GetOutput());
+    app->AddInput(label);
+    const Real scale = getScale() > 0. ? getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
+                                             app->GetOutput());
 }
 
 } // namespace SimTK

@@ -36,13 +36,6 @@
 #include "vtkTransform.h"
 #include "vtkTransformPolyDataFilter.h"
 
-#include "vtkLineSource.h"
-#include "vtkTextSource.h"
-#include "vtkVectorText.h"
-#include "vtkConeSource.h"
-#include "vtkSphereSource.h"
-#include "vtkCubeSource.h"
-#include "vtkPointSource.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkCaptionActor2D.h"
 #include "vtkAppendPolyData.h"
@@ -63,96 +56,23 @@ static const int  GroundBodyNum = 0; // ground is always body 0
 static const Vec3 DefaultGroundBodyColor(0,1,0); // green
 static const Vec3 DefaultBaseBodyColor(1,0,0);   // red
 static const Vec3 DefaultBodyColor(0,0,0);       // black
-    
-typedef std::pair<vtkProp3D*, Transform> BodyActor;
-typedef std::vector<BodyActor>           ActorList;
-
-class VTKDecoration {
-public:
-    VTKDecoration() : data(0), actor(0) { }
-    ~VTKDecoration() {clear();}
-    VTKDecoration(const VTKDecoration& d) : data(0), actor(0) {
-        copyFrom(d);
-    }
-
-    VTKDecoration& operator=(const VTKDecoration& d) {
-        if (&d != this)
-            copyFrom(d);
-        return *this;
-    }
-
-    vtkActor* getActor() {return actor;} // not a copy; use ShallowCopy if you need one
-    vtkPolyData* getPolyData() {return data;}
-
-    void setScale  (Real s)        {assert(actor);actor->SetScale(s);}
-    void setColor  (const Vec3& c) {assert(actor);actor->GetProperty()->SetColor(c[0],c[1],c[2]);}
-    void setOpacity(Real o)        {assert(actor);actor->GetProperty()->SetOpacity(o);}
-
-protected:
-    void setPolyData(vtkPolyData* output) {
-        data = vtkPolyData::New();
-        data->DeepCopy(output);
-        createActor();
-        setDefaultColor();
-    }
-
-private:
-    vtkPolyData* data;
-    vtkActor*    actor;
-
-    void clear() {
-        if (actor) actor->Delete(); actor=0; 
-        if (data)  data->Delete();  data=0;
-    }
-
-    void copyFrom(const VTKDecoration& d) {
-        clear();
-        if (d.data) {
-            setPolyData(d.data);
-            actor->SetProperty(d.actor->GetProperty());
-            actor->SetScale(d.actor->GetScale());
-        }
-    }
-
-    void setDefaultColor() {
-        setColor(Vec3(0,0,1)); // blue
-    }
-
-    void createActor() {
-        if (actor) actor->Delete();
-        actor = vtkActor::New();
-        vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
-        mapper->SetInput(data);
-        actor->SetMapper(mapper);
-        mapper->Delete();
-    }
-};
-
-class VTKSphere : public VTKDecoration {
-public:
-    VTKSphere(Real radius) {
-        vtkSphereSource *sphere = vtkSphereSource::New();
-        sphere->SetRadius(radius);
-        sphere->SetThetaResolution(18);
-        sphere->SetPhiResolution(18);
-        sphere->Update();
-        setPolyData(sphere->GetOutput());
-        sphere->Delete();
-    }
-};
-
 
 class VTKReporterRep {
 public:
     // no default constructor -- must have MultibodySystem always
     VTKReporterRep(const MultibodySystem& m);
 
-    ~VTKReporterRep();
+    ~VTKReporterRep() {
+        deletePointers();
+    }
 
-    void addDecoration(int bodyNum, const Transform& X_GD, DecorativeGeometry);
+    // This will make a copy of the supplied DecorativeGeometry.
+    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
     }
+    const Vec3& getDefaultBodyColor(int body) const {return bodies[body].defaultColorRGB;}
 
     VTKReporterRep* clone() const {
         VTKReporterRep* dup = new VTKReporterRep(*this);
@@ -171,11 +91,9 @@ private:
 
     const MultibodySystem& mbs;
 
-    typedef std::pair<vtkProp3D*, Transform> BodyActor;
-    typedef std::vector<BodyActor>           ActorList;
-
     struct PerBodyInfo {
-        ActorList   aList;
+        std::vector<vtkProp3D*>         aList;
+        std::vector<DecorativeGeometry> gList; // one per actor (TODO)
         Vec3        defaultColorRGB;
     };
     std::vector<PerBodyInfo> bodies;
@@ -183,20 +101,9 @@ private:
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
 
-    vtkPolyDataMapper *sphereMapper;
-    vtkPolyDataMapper *cubeMapper;
-    vtkPolyDataMapper *lineMapper;
-    vtkPolyDataMapper *cylinderMapper;
-    vtkPolyDataMapper *axesMapper;
-
     void zeroPointers();
     void deletePointers();
-    void makeShapes();
     void setConfiguration(int bodyNum, const Transform& X_GB);
-
-    void addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD);
-    void addActor(int bodyNum, vtkActor* a, Transform X_GA);
-
 };
 
     /////////////////
@@ -254,44 +161,46 @@ void VTKReporter::addDecoration(int body, const Transform& X_GD,
     ////////////////////
 
 void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
-                                   DecorativeGeometry g)
+                                   const DecorativeGeometry& g)
 {
-    // we are the owner of the returned reference
-    vtkPolyData* poly = g.getVTKPolyData();
+    // For now we create a unique actor for each piece of geometry
+    vtkActor* actor = vtkActor::New();
+    bodies[body].aList.push_back(actor);
+    DecorativeGeometry tmp = g;
+    tmp = g;
+    bodies[body].gList.push_back(g);
+    DecorativeGeometry& geom  = bodies[body].gList.back();
 
+    // Apply the transformation.
+    geom.setPlacement(X_GD*geom.getPlacement());
+    vtkPolyData* poly = geom.updVTKPolyData();
+
+    // Now apply the actor-level properties from the geometry.
+    const Vec3 color = (geom.getColor()[0] != -1 ? geom.getColor() : getDefaultBodyColor(body)); 
+    actor->GetProperty()->SetColor(color[0],color[1],color[2]);
+
+    const Real opacity = (geom.getOpacity() != -1 ? geom.getOpacity() : Real(1));
+    actor->GetProperty()->SetOpacity(opacity);
+
+    const Real lineWidth = (geom.getLineThickness() != -1 ? geom.getLineThickness() : Real(1));
+    actor->GetProperty()->SetLineWidth(lineWidth);
+
+    const int representation = (geom.getRepresentation() != -1 ? geom.getRepresentation() : VTK_SURFACE);
+    actor->GetProperty()->SetRepresentation(representation);
+
+    // Set up the mapper & register actor with renderer
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
     mapper->SetInput(poly);
-    //poly->Delete(); 
-    //poly=0; // remove this now-unneeded polyData reference
-
-    vtkActor* actor = vtkActor::New();
     actor->SetMapper(mapper);
     mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
+    renderer->AddActor(actor);
 
-    addActor(body, actor, X_GD);
-    actor->Delete(); // TODO -- avoid extra copy
 }
-
-void VTKReporterRep::addDecoration(int bodyNum, VTKDecoration& d, Transform X_GD) {
-    addActor(bodyNum, d.getActor(), X_GD);
-}
-
-void VTKReporterRep::addActor(int bodyNum, vtkActor* a, Transform X_GA) {
-    ActorList& actors = bodies[bodyNum].aList;
-    vtkActor* acopy = vtkActor::New();
-    acopy->ShallowCopy(a);
-    actors.push_back(BodyActor(acopy,X_GA));
-    renderer->AddActor(actors[actors.size()-1].first);
-    if (bodyNum==0) setConfiguration(0, Transform()); // just do this once
-}
-
-VTKReporterRep::~VTKReporterRep() {deletePointers();}
 
 VTKReporterRep::VTKReporterRep(const MultibodySystem& m) 
     : myHandle(0), mbs(m) 
 {
     zeroPointers();
-    makeShapes();
 
     renWin = vtkRenderWindow::New();
     renWin->SetSize(600,600);
@@ -303,7 +212,6 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
     iren->SetInteractorStyle(style);
     style->Delete();
     iren->Initialize(); // register interactor to pick up windows messages
-
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
@@ -324,26 +232,40 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
     }
 
     for (int i=0; i<(int)bodies.size(); ++i) {
-        vtkActor *aAxes = vtkActor::New();
-        aAxes->SetMapper(axesMapper);
-        aAxes->GetProperty()->SetColor(0,i==0?1:0,0); // green for ground, else black
-        aAxes->GetProperty()->SetLineWidth(3);
-        addActor(i, aAxes, Transform());
-        aAxes->Delete();
+        DecorativeFrame axes(1);
+        axes.setLineThickness(3);
+        addDecoration(i, Transform(), axes); // the body frame
 
-        vtkActor *aSphere = vtkActor::New();
-        //aSphere->SetMapper(sphereMapper);
-        aSphere->SetMapper(cubeMapper);
-        aSphere->GetProperty()->SetColor(0,0,1); // sphere color blue
-        //aSphere->GetProperty()->SetRepresentationToWireframe();
-        aSphere->GetProperty()->SetOpacity(0.3);
-        aSphere->SetScale(0.1);
+        // Display the inboard joint frame (at half size), unless it is the
+        // same as the body frame. Then find the corresponding frame on the
+        // parent and display that in this body's color.
+        if (i > 0) {
+            const Transform& jInb = sbs.getJointFrame(State(), i);
+            if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
+                addDecoration(i, jInb, DecorativeFrame(0.5));
+                if (jInb.T() != Vec3(0))
+                    addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
+            }
+            const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
+            DecorativeFrame frameOnParent(0.5);
+            frameOnParent.setColor(getDefaultBodyColor(i));
+            addDecoration(sbs.getParent(i), jParent, frameOnParent);
+            if (jParent.T() != Vec3(0))
+                addDecoration(sbs.getParent(i), Transform(), DecorativeLine(Vec3(0),jParent.T()));
+        }
 
-        addActor(i, aSphere, Transform()); // at the origin
+        // Put a little black wireframe sphere at the COM, and add a line from 
+        // body origin to the com.
 
-        aSphere->Delete();
+        DecorativeSphere com(.1);
+        com.setResolution(1./3); // chunky is fine
+        com.setColor(Vec3(0,0,0));
+        com.setRepresentationToWireframe();
+        const Vec3& comPos = sbs.getBodyCenterOfMass(State(), i);
+        addDecoration(i, Transform(comPos), com);
+        if (comPos != Vec3(0))
+            addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos));
     }
-
 
     renWin->Render();
 }
@@ -378,93 +300,28 @@ void VTKReporterRep::report(const State& s) {
 }
 
 void VTKReporterRep::zeroPointers() {
-    renWin=0; renderer=0; sphereMapper=0; cubeMapper=0;
-    lineMapper=0; cylinderMapper=0; axesMapper=0;
+    renWin=0; renderer=0;
 }
 void VTKReporterRep::deletePointers() {
+    // Delete all the actors. The geometry gets deleted automatically
+    // thanks to good design!
     for (int i=0; i<(int)bodies.size(); ++i) {
-        ActorList& actors = bodies[i].aList;
+        std::vector<vtkProp3D*>& actors = bodies[i].aList;
         for (int a=0; a<(int)actors.size(); ++a)
-            actors[a].first->Delete(), actors[a].first=0;
+            actors[a]->Delete(), actors[a]=0;
     }
-    if(axesMapper)axesMapper->Delete(); 
-    if(cylinderMapper)cylinderMapper->Delete(); 
-    if(lineMapper)lineMapper->Delete();
-    if(cubeMapper)cubeMapper->Delete(); 
-    if(sphereMapper)sphereMapper->Delete();
+
     if(renderer)renderer->Delete();
     if(renWin)renWin->Delete();
     zeroPointers();
 }
-void VTKReporterRep::makeShapes() {
-    // sphere
-    vtkSphereSource *sphere = vtkSphereSource::New();
-    sphere->SetRadius(1.);
-    sphere->SetThetaResolution(18);
-    sphere->SetPhiResolution(18);
-    sphereMapper = vtkPolyDataMapper::New();
-    sphereMapper->SetInput(sphere->GetOutput());
-    sphere->Delete();
-
-    // cube
-    vtkCubeSource *cube = vtkCubeSource::New();
-    cube->SetXLength(1.); cube->SetYLength(1.); cube->SetZLength(1.);
-    cubeMapper = vtkPolyDataMapper::New();
-    cubeMapper->SetInput(cube->GetOutput());
-    cube->Delete();    
-
-    // line
-    vtkLineSource *line = vtkLineSource::New();
-    line->SetPoint1(0,0,0);
-    line->SetPoint2(1,0,0);
-    lineMapper = vtkPolyDataMapper::New();
-    lineMapper->SetInput(line->GetOutput());
-    line->Delete();
-
-    // axes
-    vtkAppendPolyData* app = vtkAppendPolyData::New();
-    line = vtkLineSource::New(); line->SetPoint1(0,0,0); line->SetPoint2(1,0,0);
-    app->AddInput(line->GetOutput());
-    line->Delete();
-    //cube = vtkCubeSource::New(); 
-    //cube->SetXLength(1); cube->SetYLength(0.01); cube->SetZLength(0.01);
-    //cube->SetCenter(.5,0,0);
-    //app->AddInput(cube->GetOutput());
-    //cube->Delete();
-    line = vtkLineSource::New(); line->SetPoint1(0,0,0); line->SetPoint2(0,1,0);
-    app->AddInput(line->GetOutput());
-    line->Delete();
-    line = vtkLineSource::New(); line->SetPoint1(0,0,0); line->SetPoint2(0,0,1);
-    app->AddInput(line->GetOutput());
-    line->Delete();
-
-    vtkVectorText* xtext = vtkVectorText::New();
-    xtext->SetText("x"); // default size is around 1
-    vtkTransform* t = vtkTransform::New();
-    t->Translate(1,-0.025,0); t->Scale(.1,.1,1); 
-    vtkTransformPolyDataFilter* trf = vtkTransformPolyDataFilter::New();
-    trf->SetInput(xtext->GetOutput());
-    trf->SetTransform(t); 
-    t->Delete();
-    app->AddInput(trf->GetOutput());
-    trf->Delete();
-
-    xtext->Delete();
-
-
-    axesMapper = vtkPolyDataMapper::New();
-    axesMapper->SetInput(app->GetOutput());
-    app->Delete();
-}
 
 void VTKReporterRep::setConfiguration(int bodyNum, const Transform& X_GB) {
-    const ActorList& actors = bodies[bodyNum].aList;
+    const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
-        vtkProp3D*       actor = actors[i].first;
-        const Transform& X_BA  = actors[i].second;
-        const Transform  X_GA  = X_GB*X_BA;
-        actor->SetPosition(X_GA.T()[0], X_GA.T()[1], X_GA.T()[2]);
-        const Vec4 av = X_GA.R().convertToAngleAxis();
+        vtkProp3D*       actor = actors[i];
+        actor->SetPosition(X_GB.T()[0], X_GB.T()[1], X_GB.T()[2]);
+        const Vec4 av = X_GB.R().convertToAngleAxis();
         actor->SetOrientation(0,0,0);
         actor->RotateWXYZ(av[0]/RadiansPerDegree, av[1], av[2], av[3]);
     }

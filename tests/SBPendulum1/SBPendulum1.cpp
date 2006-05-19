@@ -135,7 +135,7 @@ int main() {
 try {
     SimbodySubsystem pend;
 
-    Real L = 5.; 
+    Real L = 1.; 
     Real m = 3.;
     Real g = 9.8;
     Transform groundFrame;
@@ -197,12 +197,10 @@ try {
     DecorativeSphere sphere(0.25);
     vtk.addDecoration(0, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(3);
-    vtk.addDecoration(1, Transform(Vec3(0.1,0.2,0.3)), 
-        sphere);
+    vtk.addDecoration(1, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
-    vtk.addDecoration(1, Transform(RotationMat(qqq), Vec3(0,1,0)), 
-        DecorativeBrick(Vec3(.5,.1,.25)));
-    vtk.addDecoration(1, Transform(Vec3(-1,0,0)), DecorativeCylinder(.5,.5));
+    vtk.addDecoration(1, Transform(RotationMat(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
+    //vtk.addDecoration(1, Transform(Vec3(-1,0,0)), DecorativeCylinder(.5,.5));
 
     State s;
     pend.realize(s, Stage::Built);

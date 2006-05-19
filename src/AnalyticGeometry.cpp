@@ -101,8 +101,8 @@ AnalyticGeometry::generateDecorativeGeometry() const {
     // AnalyticLine //
     //////////////////
 
-AnalyticLine::AnalyticLine(Real length) {
-    rep = new AnalyticLineRep(length);
+AnalyticLine::AnalyticLine(const Vec3& p1, const Vec3& p2) {
+    rep = new AnalyticLineRep(p1,p2);
     rep->setMyHandle(*this);
 }
 

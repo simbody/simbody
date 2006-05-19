@@ -102,14 +102,13 @@ public:
 
 class AnalyticLineRep : public AnalyticCurveRep {
 public:
-    AnalyticLineRep() : length(CNT<Real>::getNaN()) { }
-    AnalyticLineRep(const Real& l) : length(l) {
-        assert(l > 0); // TODO
+    AnalyticLineRep() : point1(CNT<Real>::getNaN()), point2(CNT<Real>::getNaN()) { }
+    AnalyticLineRep(const Vec3& p1, const Vec3& p2) : point1(p1), point2(p2) {
     }
 
     // virtuals from AnalyticGeometryRep
     DecorativeGeometry generateDecorativeGeometryConcrete() const {
-        return DecorativeLine(length);
+        return DecorativeLine(point1, point2);
     }
 
     AnalyticGeometryRep* cloneAnalyticGeometryRep() const {
@@ -117,15 +116,15 @@ public:
     }
 
     // virtuals from AnalyticCurveRep
-    Real calcArcLength() const {return length;}
+    Real calcArcLength() const {return (point2-point1).norm();}
     Vec3 calcStationFromArcLength(const Real& s) const {
-        assert(-length/2 <= s && s <= length/2); // TODO
-        return Vec3(s,0,0);
+        assert(0 <= s && s <= 1); // TODO
+        return point1 + s*(point2-point1);
     }
 
     SimTK_DOWNCAST(AnalyticLineRep, AnalyticCurveRep);
 private:
-    Real length;
+    Vec3 point1, point2;
 };
 
 class AnalyticCircleRep : public AnalyticCurveRep {

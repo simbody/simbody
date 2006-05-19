@@ -113,7 +113,7 @@ public:
 class SimTK_SIMBODY_API AnalyticLine : public AnalyticCurve {
 public:
     AnalyticLine() { }
-    AnalyticLine(Real length);
+    AnalyticLine(const Vec3& p1, const Vec3& p2);
 
     SimTK_PIMPL_DOWNCAST(AnalyticLine, AnalyticGeometry);
 };
