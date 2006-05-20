@@ -195,13 +195,28 @@ try {
     MultibodySystem mbs(pend, noForces);
     VTKReporter vtk(mbs);
     DecorativeSphere sphere(0.25);
+    sphere.setRepresentationToPoints();
+    sphere.setResolution(2);
     vtk.addDecoration(0, Transform(Vec3(1,2,3)), sphere);
-    sphere.setScale(0.5); sphere.setResolution(3);
+    sphere.setScale(0.5); sphere.setResolution(1);
     vtk.addDecoration(1, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
     vtk.addDecoration(1, Transform(RotationMat(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
-    //vtk.addDecoration(1, Transform(Vec3(-1,0,0)), DecorativeCylinder(.5,.5));
+    DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
+    vtk.addDecoration(1, Transform(Vec3(-1,0,0)), 
+        DecorativeCylinder(0.1).setOpacity(0.3));
 
+    vtk.addDecoration(1, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
+    vtk.addDecoration(1, Transform(Vec3(3, 0.5, 0)), DecorativeSphere().setColor(Gray));
+    vtk.addDecoration(1, Transform(Vec3(3, 1, 0)), DecorativeSphere().setColor(White));
+    vtk.addDecoration(1, Transform(Vec3(3, 1.5, 0)), DecorativeSphere().setColor(Red));
+    vtk.addDecoration(1, Transform(Vec3(3, 2, 0)), DecorativeSphere().setColor(Green));
+    vtk.addDecoration(1, Transform(Vec3(3, 2.5, 0)), DecorativeSphere().setColor(Blue));
+    vtk.addDecoration(1, Transform(Vec3(3, 3, 0)), DecorativeSphere().setColor(Yellow));
+    vtk.addDecoration(1, Transform(Vec3(3, 3.5, 0)), DecorativeSphere().setColor(Orange));
+    vtk.addDecoration(1, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
+    vtk.addDecoration(1, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
+    vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
     pend.realize(s, Stage::Built);
 

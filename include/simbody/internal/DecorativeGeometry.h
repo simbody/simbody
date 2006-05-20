@@ -51,6 +51,20 @@ namespace SimTK {
 
 class AnalyticGeometry;
 
+
+// Some common RGB values;
+static const Vec3 Black   = Vec3( 0, 0, 0);
+static const Vec3 Gray    = Vec3(.5,.5,.5);
+static const Vec3 Red     = Vec3( 1, 0, 0);
+static const Vec3 Green   = Vec3( 0, 1, 0);
+static const Vec3 Blue    = Vec3( 0, 0, 1);
+static const Vec3 Yellow  = Vec3( 1, 1, 0);
+static const Vec3 Orange  = Vec3( 1,.5, 0);
+static const Vec3 Magenta = Vec3( 1, 0, 1);
+static const Vec3 Purple  = Vec3(.5, 0,.5);
+static const Vec3 Cyan    = Vec3( 0, 1, 1);
+static const Vec3 White   = Vec3( 1, 1, 1);
+
 /**
  * This is an abstract handle class using the PIMPL design pattern to hide the private
  * implementation. This is effectively an abstract class although the virtual
@@ -81,14 +95,14 @@ public:
     /// The resolution parameter here scales that default up or down. A value less than
     /// or equal to zero here is interpreted as an instruction to "use the default".
     /// This value affects the generated polygonal data.
-    void setResolution(Real);
+    DecorativeGeometry& setResolution(Real);
 
     /// This transform shifts the generated polygons with respect to this object's
     /// local frame. Subsequent calls with other transforms simply replace the earlier
     /// one; they do not accumulate. The default transform is identity and you can 
     /// call setPlacement(Transform()) to put the transform back into its original state.
     /// This value affects the generated polygonal data.
-    void setPlacement(const Transform& X_BG);
+    DecorativeGeometry& setPlacement(const Transform& X_BG);
 
     /// Each concrete DecorativeGeometry object is expected to have a default size
     /// around "1", whatever that means for a particular object, and most objects also
@@ -97,7 +111,7 @@ public:
     /// a size. The default scaling is 1, and any value less than or equal to zero
     /// here is interpreted as a request to "use the default".
     /// This value affects the generated polygonal data.
-    void setScale(Real);
+    DecorativeGeometry& setScale(Real);
 
     /// Return the current setting of the "resolution" factor. A return value of -1
     /// means "use the default".
@@ -115,18 +129,18 @@ public:
     /// Request a specific color for this DecorativeGeometry object. This does NOT
     /// affect the generated geometry here. The default is that the color is
     /// determined elsewhere.
-    void setColor(const Vec3& rgb); // 0-1 for each color; default is 0,0,0 (black)
+    DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color; default is 0,0,0 (black)
 
     /// Request a level of transparency for this DecorativeGeometry. This does NOT
     /// affect the generated geometry here. The default is that opacity is 
     /// determined elsewhere.
-    void setOpacity(Real);          // 0-1; default is 1 (opaque)
+    DecorativeGeometry& setOpacity(Real);          // 0-1; default is 1 (opaque)
 
     /// Request an adjustment to the default rendering of lines and curves. This 
     /// does NOT affect geometry generated here; it is a request passed on to the
     /// renderer which will probably pass it on to the hardware. A value less
     /// than or equal to zero here is interpreted as "use the default".
-    void setLineThickness(Real);
+    DecorativeGeometry& setLineThickness(Real);
 
     const Vec3& getColor()      const;
     Real        getOpacity()    const;
@@ -134,19 +148,19 @@ public:
 
     /// Request a particular rendering of this DecorativeGeometry object as a 
     /// set of points. The default is that the rendering choice is made elsewhere.
-    void setRepresentationToPoints();
+    DecorativeGeometry& setRepresentationToPoints();
 
     /// Request a particular rendering of this DecorativeGeometry object in
     /// wireframe. The default is that the rendering choice is made elsewhere.
-    void setRepresentationToWireframe();
+    DecorativeGeometry& setRepresentationToWireframe();
 
     /// Request a particular rendering of this DecorativeGeometry object using
     /// shaded surfaces. The default is that the rendering choice is made elsewhere.
-    void setRepresentationToSurface();
+    DecorativeGeometry& setRepresentationToSurface();
 
     /// Specify that the representation for this DecorativeGeometry object should
     /// be chosen elsewhere. This is the default.
-    void setRepresentationToUseDefault();
+    DecorativeGeometry& setRepresentationToUseDefault();
 
     /// -1 means "use default"; otherwise we're not documenting the meaning here.
     int getRepresentation() const;
@@ -177,10 +191,7 @@ protected:
  */
 class SimTK_SIMBODY_API DecorativeLine : public DecorativeGeometry {
 public:
-    DecorativeLine() {
-        setEndpoints(Vec3(0,0,0), Vec3(1,1,1));
-    }
-    DecorativeLine(const Vec3& p1, const Vec3& p2); // line between p1 and p2
+    explicit DecorativeLine(const Vec3& p1=Vec3(0), const Vec3& p2=Vec3(1)); // line between p1 and p2
 
     void setPoint1(const Vec3& p1);
     void setPoint2(const Vec3& p2);
@@ -242,10 +253,7 @@ public:
  */
 class SimTK_SIMBODY_API DecorativeCylinder : public DecorativeGeometry {
 public:
-    DecorativeCylinder() {
-        setRadius(0.5); setHalfHeight(0.5);
-    }
-    DecorativeCylinder(Real radius, Real halfHeight);
+    explicit DecorativeCylinder(Real radius=0.5, Real halfHeight=0.5);
 
     void setRadius(Real);
     void setHalfHeight(Real);

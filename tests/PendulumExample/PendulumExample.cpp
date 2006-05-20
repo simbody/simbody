@@ -43,8 +43,8 @@ static const int  GroundBodyNum = 0; // ground is always body 0
 
 static const Real m = 5;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
-static const Real d = 2; // meters
-static const Real initialTheta   = 30;             // degrees
+static const Real d = 1.5; // meters
+static const Real initialTheta   = 20;             // degrees
 static const Real expectedPeriod = 2*Pi*sqrt(d/g); // s
 
 class MySimbodyPendulum : public MechanicalDAESystem {
@@ -54,7 +54,7 @@ public:
         pendBodyNum =
             pend.addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,0,0), 
+                               Vec3(0,-d/2,0), 
                                InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 GroundBodyNum,           // parent body
@@ -64,7 +64,7 @@ public:
         int pendBodyNum2 =
             pend.addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,0,0), 
+                               Vec3(0,-d/2,0), 
                                InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum,           // parent body
@@ -75,17 +75,19 @@ public:
         int pendBodyNum3 =
             pend.addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,0,0), 
+                               Vec3(0,-d/2,0), 
                                InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
                 JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
        
-    //int theConstraint =
-    //    pend.addConstantDistanceConstraint(0, Vec3(0.5,-0.2,0.1),
-   //                                        pendBodyNum3, Vec3(0,-d/2,0),
-    //                                       1.);
+    int theConstraint =
+        pend.addConstantDistanceConstraint(0, Vec3(2,-3,0),
+                                          pendBodyNum3, Vec3(0,-d/2,0),
+                                           2);
+        //pend.addCoincidentStationsConstraint(0, Vec3(2,0,0),
+         //                                  pendBodyNum3, Vec3(0,-d/2,0));
 
 
 
@@ -237,18 +239,22 @@ int main(int argc, char** argv) {
 
         // And a study using the Runge Kutta Merson integrator
         RungeKuttaMerson myStudy(myPend);
-        myStudy.setAccuracy(1e-4);
+        myStudy.setAccuracy(1e-3);
+        myStudy.setProjectEveryStep(true);
 
         MultibodySystem mbs(myPend.getSimbodySubsystem(), EmptyForcesSubsystem());
 
         VTKReporter display(mbs);
+        for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)
+            display.addDecoration(i, Transform(Vec3(0,-d/2,0)), DecorativeSphere(0.2).setOpacity(0.3));
+
         //display.addDecoration(0,VTKReporter::Sphere(0.01),
         //    Transform(Vec3(0.5,-0.2,0.1)));
 
         // Run for 5 periods without output every dt seconds,
         // starting at theta=start degrees.
 
-        const Real dt = 0.001; // output intervals
+        const Real dt = 0.01; // output intervals
 
         printf("time  theta (deg)  (period should be %gs)\n", expectedPeriod);
 

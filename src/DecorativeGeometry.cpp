@@ -47,6 +47,7 @@ namespace SimTK {
     ////////////////////////
 
 
+
 // This is an owner handle if there is no rep or if the rep points back
 // to this handle.
 bool DecorativeGeometry::isOwnerHandle() const {
@@ -87,28 +88,28 @@ vtkPolyData* DecorativeGeometry::updVTKPolyData() {
     return updRep().updVTKPolyData();
 }
 
-void DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);}
+DecorativeGeometry& DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);return *this;}
 Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
 
-void DecorativeGeometry::setPlacement(const Transform& X_BG) {updRep().setPlacement(X_BG);}
+DecorativeGeometry& DecorativeGeometry::setPlacement(const Transform& X_BG) {updRep().setPlacement(X_BG);return *this;}
 const Transform& DecorativeGeometry::getPlacement() const    {return getRep().getPlacement();}
 
-void DecorativeGeometry::setScale(Real s) {updRep().setScale(s);}
+DecorativeGeometry& DecorativeGeometry::setScale(Real s) {updRep().setScale(s);return *this;}
 Real DecorativeGeometry::getScale() const {return getRep().getScale();}
 
-void DecorativeGeometry::setColor(const Vec3& rgb) {updRep().setColor(rgb);}
+DecorativeGeometry& DecorativeGeometry::setColor(const Vec3& rgb) {updRep().setColor(rgb);return *this;}
 const Vec3& DecorativeGeometry::getColor() const   {return getRep().getColor();}
 
-void DecorativeGeometry::setOpacity(Real o)  {updRep().setOpacity(o);}
+DecorativeGeometry& DecorativeGeometry::setOpacity(Real o)  {updRep().setOpacity(o);return *this;}
 Real DecorativeGeometry::getOpacity()  const {return getRep().getOpacity();}
 
-void DecorativeGeometry::setLineThickness(Real t) {updRep().setLineThickness(t);}
+DecorativeGeometry& DecorativeGeometry::setLineThickness(Real t) {updRep().setLineThickness(t);return *this;}
 Real DecorativeGeometry::getLineThickness() const {return getRep().getLineThickness();}
 
-void DecorativeGeometry::setRepresentationToPoints()     {updRep().setRepresentationToPoints();}
-void DecorativeGeometry::setRepresentationToWireframe()  {updRep().setRepresentationToWireframe();}
-void DecorativeGeometry::setRepresentationToSurface()    {updRep().setRepresentationToSurface();}
-void DecorativeGeometry::setRepresentationToUseDefault() {updRep().setRepresentationToUseDefault();}
+DecorativeGeometry& DecorativeGeometry::setRepresentationToPoints()     {updRep().setRepresentationToPoints();return *this;}
+DecorativeGeometry& DecorativeGeometry::setRepresentationToWireframe()  {updRep().setRepresentationToWireframe();return *this;}
+DecorativeGeometry& DecorativeGeometry::setRepresentationToSurface()    {updRep().setRepresentationToSurface();return *this;}
+DecorativeGeometry& DecorativeGeometry::setRepresentationToUseDefault() {updRep().setRepresentationToUseDefault();return *this;}
 int  DecorativeGeometry::getRepresentation() const       {return getRep().getRepresentation();}
 
     ////////////////////
@@ -352,7 +353,7 @@ void DecorativeFrameRep::createVTKPolyData() {
     vtkVectorText* xtext = vtkVectorText::New();
     rememberVTKObject(xtext);
     xtext->SetText("x"); // default size is around 1
-    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05,0)), 0.2, 
+    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05*length,0)), length*0.2, 
                                               xtext->GetOutput());
     app->AddInput(label);
     const Real scale = getScale() > 0. ? getScale() : 1.;

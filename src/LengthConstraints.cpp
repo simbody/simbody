@@ -364,7 +364,7 @@ LengthSet::calcVelB(State& s, const Vector& pos, const Vector& vel) const
 //
 // Let P = d perr/dq, G = d verr/du, Q = d qdot/du.
 //
-// We want to find a change deltaq that will elimate the current error -b:
+// We want to find a change deltaq that will elimate the current error b:
 // P deltaq = b. Instead we solve G * x = b, where x = inv(Q) * deltaq,
 // and then solve deltaq = Q * x. Conveniently Q is our friendly invertible
 // relation between qdot's and u's: qdot = Q*u.
@@ -381,7 +381,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 
     const SBModelingVars&       mv = getRBTree().getModelingVars(s);
     const VectorView            q  = getRBTree().getQ(s);
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
 
     Vector       zu(getRBTree().getTotalDOF(),0.);
     Vector       zq(getRBTree().getTotalQAlloc(),0.);
@@ -637,7 +637,9 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 Matrix
 LengthSet::calcGrad(const State& s) const
 {
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    // We're not updating, but need to use upd here because Configured stage
+    // was invalidated by change to state.
+    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
 
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once

@@ -53,9 +53,9 @@
 namespace SimTK {
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 static const int  GroundBodyNum = 0; // ground is always body 0
-static const Vec3 DefaultGroundBodyColor(0,1,0); // green
-static const Vec3 DefaultBaseBodyColor(1,0,0);   // red
-static const Vec3 DefaultBodyColor(0,0,0);       // black
+static const Vec3 DefaultGroundBodyColor = Green;
+static const Vec3 DefaultBaseBodyColor   = Red;
+static const Vec3 DefaultBodyColor       = Gray;
 
 class VTKReporterRep {
 public:
@@ -68,6 +68,9 @@ public:
 
     // This will make a copy of the supplied DecorativeGeometry.
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+
+    // Make sure everything can be seen.
+    void setCameraDefault();
 
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
@@ -194,7 +197,7 @@ void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
     actor->SetMapper(mapper);
     mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
     renderer->AddActor(actor);
-
+    setCameraDefault();
 }
 
 VTKReporterRep::VTKReporterRep(const MultibodySystem& m) 
@@ -203,7 +206,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
     zeroPointers();
 
     renWin = vtkRenderWindow::New();
-    renWin->SetSize(600,600);
+    renWin->SetSize(1200,900);
     
     // an interactor
     vtkRenderWindowInteractor *iren = vtkRenderWindowInteractor::New();
@@ -215,8 +218,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
-    //renderer->GetActiveCamera()->SetFocalPoint(0,0,0);
-    renderer->GetActiveCamera()->SetPosition(0,1,10);
+
 
 
     renWin->AddRenderer(renderer);
@@ -232,8 +234,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
     }
 
     for (int i=0; i<(int)bodies.size(); ++i) {
-        DecorativeFrame axes(1);
-        axes.setLineThickness(3);
+        DecorativeFrame axes(0.5);
+        axes.setLineThickness(2);
         addDecoration(i, Transform(), axes); // the body frame
 
         // Display the inboard joint frame (at half size), unless it is the
@@ -242,12 +244,12 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         if (i > 0) {
             const Transform& jInb = sbs.getJointFrame(State(), i);
             if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
-                addDecoration(i, jInb, DecorativeFrame(0.5));
+                addDecoration(i, jInb, DecorativeFrame(0.25));
                 if (jInb.T() != Vec3(0))
                     addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
             }
             const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
-            DecorativeFrame frameOnParent(0.5);
+            DecorativeFrame frameOnParent(0.25);
             frameOnParent.setColor(getDefaultBodyColor(i));
             addDecoration(sbs.getParent(i), jParent, frameOnParent);
             if (jParent.T() != Vec3(0))
@@ -257,17 +259,26 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         // Put a little black wireframe sphere at the COM, and add a line from 
         // body origin to the com.
 
-        DecorativeSphere com(.1);
-        com.setResolution(1./3); // chunky is fine
+        DecorativeSphere com(.05);
         com.setColor(Vec3(0,0,0));
-        com.setRepresentationToWireframe();
+        com.setRepresentationToPoints();
         const Vec3& comPos = sbs.getBodyCenterOfMass(State(), i);
         addDecoration(i, Transform(comPos), com);
         if (comPos != Vec3(0))
             addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos));
     }
-
     renWin->Render();
+}
+
+void VTKReporterRep::setCameraDefault() {
+    renderer->ResetCamera();
+    Vec3 pos;
+    renderer->GetActiveCamera()->GetPosition(pos[0],pos[1],pos[2]);
+    pos *= 2;
+    renderer->GetActiveCamera()->SetPosition(pos[0],pos[1],pos[2]);
+    Real nearClip, farClip;
+    renderer->GetActiveCamera()->GetClippingRange(nearClip,farClip);
+    renderer->GetActiveCamera()->SetClippingRange(nearClip/10, farClip*10);
 }
 
 void VTKReporterRep::report(const State& s) {
