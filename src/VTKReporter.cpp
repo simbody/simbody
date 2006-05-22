@@ -169,8 +169,6 @@ void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
     // For now we create a unique actor for each piece of geometry
     vtkActor* actor = vtkActor::New();
     bodies[body].aList.push_back(actor);
-    DecorativeGeometry tmp = g;
-    tmp = g;
     bodies[body].gList.push_back(g);
     DecorativeGeometry& geom  = bodies[body].gList.back();
 
@@ -256,11 +254,11 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
                 addDecoration(sbs.getParent(i), Transform(), DecorativeLine(Vec3(0),jParent.T()));
         }
 
-        // Put a little black wireframe sphere at the COM, and add a line from 
+        // Put a little purple wireframe sphere at the COM, and add a line from 
         // body origin to the com.
 
         DecorativeSphere com(.05);
-        com.setColor(Vec3(0,0,0));
+        com.setColor(Purple);
         com.setRepresentationToPoints();
         const Vec3& comPos = sbs.getBodyCenterOfMass(State(), i);
         addDecoration(i, Transform(comPos), com);

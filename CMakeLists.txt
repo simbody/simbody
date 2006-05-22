@@ -101,15 +101,22 @@ ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
 # CMake quotes automatically when building Visual Studio projects but we need
 # to add them ourselves for Linux or Cygwin. Two cases to avoid duplicate quotes
 # in Visual Studio which end up in the binary.
-IF(UNIX)
+
+IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+   SET(NEED_QUOTES FALSE)
+ELSE (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+   SET(NEED_QUOTES TRUE)
+ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+
+IF(NEED_QUOTES)
    ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION="${SIMBODY_SVN_REVISION}"
                    -DSimTK_SIMBODY_COPYRIGHT_YEARS="${SIMBODY_COPYRIGHT_YEARS}"
                    -DSimTK_SIMBODY_AUTHORS="${SIMBODY_AUTHORS}")
-ELSE(UNIX)
+ELSE(NEED_QUOTES)
    ADD_DEFINITIONS(-DSimTK_SIMBODY_SVN_REVISION=${SIMBODY_SVN_REVISION}
                    -DSimTK_SIMBODY_COPYRIGHT_YEARS=${SIMBODY_COPYRIGHT_YEARS}
                    -DSimTK_SIMBODY_AUTHORS=${SIMBODY_AUTHORS})
-ENDIF(UNIX)
+ENDIF(NEED_QUOTES)
 
 # -DSimTK_SIMBODY_TYPE has to be defined in the target subdirectories.
 # -Dsimbody_EXPORTS defined automatically when Windows DLL build is being done.
@@ -143,20 +150,17 @@ SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
 
 # But on Unix or Cygwin we have to add the suffix manually
 IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
-    SET(SHARED_TARGET ${SHARED_TARGET}${CMAKE_DEBUG_POSTFIX})
-    SET(STATIC_TARGET ${STATIC_TARGET}${CMAKE_DEBUG_POSTFIX})
+    SET(SHARED_TARGET ${SHARED_TARGET}_d)
+    SET(STATIC_TARGET ${STATIC_TARGET}_d)
 ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
 
-## We want to be able to use the debug version of simmatrix & common when we're debugging simbody
 SET(SIMMATRIX_LIBRARY_NAME simmatrix)
-SET(SIMMATRIX_SHARED_LIBRARY ${SIMMATRIX_LIBRARY_NAME}${CMAKE_DEBUG_POSTFIX})
-SET(SIMMATRIX_STATIC_LIBRARY ${SIMMATRIX_LIBRARY_NAME}_static${CMAKE_DEBUG_POSTFIX})
+SET(SIMMATRIX_SHARED_LIBRARY ${SIMMATRIX_LIBRARY_NAME})
+SET(SIMMATRIX_STATIC_LIBRARY ${SIMMATRIX_LIBRARY_NAME}_static)
 
 SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
-SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}${CMAKE_DEBUG_POSTFIX})
-SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static${CMAKE_DEBUG_POSTFIX})
-
-
+SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
+SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
 
 # Choose a LAPACK to link with.
 SET(SimTK_LAPACK SimTK CACHE STRING "What LAPACK to link with (ACML or SimTK)")
@@ -311,6 +315,10 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+
+## Watch out -- this next line will cause CMake to find installed versions of
+## simmatrix libraries before the local one. Be sure to delete installed ones first.
+
 LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # libraries are installed from their subdirectories; headers here

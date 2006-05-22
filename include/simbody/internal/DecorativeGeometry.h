@@ -129,7 +129,7 @@ public:
     /// Request a specific color for this DecorativeGeometry object. This does NOT
     /// affect the generated geometry here. The default is that the color is
     /// determined elsewhere.
-    DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color; default is 0,0,0 (black)
+    DecorativeGeometry& setColor(const Vec3& rgb); // 0-1 for each color
 
     /// Request a level of transparency for this DecorativeGeometry. This does NOT
     /// affect the generated geometry here. The default is that opacity is 

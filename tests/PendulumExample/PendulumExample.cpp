@@ -245,8 +245,8 @@ int main(int argc, char** argv) {
         MultibodySystem mbs(myPend.getSimbodySubsystem(), EmptyForcesSubsystem());
 
         VTKReporter display(mbs);
-        for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)
-            display.addDecoration(i, Transform(Vec3(0,-d/2,0)), DecorativeSphere(0.2).setOpacity(0.3));
+        //for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)
+       //     display.addDecoration(i, Transform(Vec3(0,-d/2,0)), DecorativeSphere(0.2).setOpacity(0.3));
 
         //display.addDecoration(0,VTKReporter::Sphere(0.01),
         //    Transform(Vec3(0.5,-0.2,0.1)));
