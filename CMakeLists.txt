@@ -149,7 +149,9 @@ SET(${PROJECT_NAME}_LIBRARY_DIR    ${LIBRARY_OUTPUT_PATH}/${CMAKE_CFG_INTDIR})
 
 # Ensure that debug libraries have "_d" appended to their names.
 # CMake gets this right on Windows automatically with this definition.
-SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+IF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
+    SET(CMAKE_DEBUG_POSTFIX "_d" CACHE INTERNAL "" FORCE)
+ENDIF (${CMAKE_GENERATOR} MATCHES "Visual Studio")
 
 # But on Unix or Cygwin we have to add the suffix manually
 IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
