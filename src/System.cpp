@@ -66,6 +66,10 @@ System& System::operator=(const System& src) {
     return *this;
 }
 
+
+const String& System::getName()    const {return getRep().getName();}
+const String& System::getVersion() const {return getRep().getVersion();}
+
 void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }
@@ -77,7 +81,26 @@ void System::realize(const State& s, Stage g) const {
 void SystemRep::realize(const State& s, Stage g) const {
     while (s.getStage() < g) {
         switch (s.getStage()) {
-        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+
+        case Stage::Allocated: {
+            // The State has nothing in it. We expect the
+            // first few discrete variables to be numbered from
+            // index=0 so they match the subsystem index.
+            State& mutableState = const_cast<State&>(s);
+            for (int i=0; i < getNSubsystems(); ++i) {
+                int index = mutableState.allocateDiscreteVariable(Stage::Built,
+                    new Value<SubsystemDescriptor>(SubsystemDescriptor(i, 
+                                                    getSubsystem(i).getName(), 
+                                                    getSubsystem(i).getVersion())));
+
+                SimTK_ASSERT2_ALWAYS(index==i, 
+                    "SystemRep::realize(): expected discrete variable index %d but got %d",
+                    i, index);
+            }
+            realizeConstruction(mutableState); 
+            break;
+        }
+
         case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
         case Stage::Modeled:      realizeParameters(s);    break;
         case Stage::Parametrized: realizeTime(s);          break;
@@ -98,6 +121,7 @@ void SystemRep::realize(const State& s, Stage g) const {
 bool Subsystem::isEmptyHandle() const {return rep==0;}
 bool Subsystem::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
 
+
 Subsystem::~Subsystem() {
     if (isOwnerHandle()) delete rep; 
     rep=0;
@@ -105,7 +129,8 @@ Subsystem::~Subsystem() {
 
 Subsystem::Subsystem(const Subsystem& src) : rep(0) {
     if (src.rep) {
-        rep = src.rep->clone();
+		assert(!src.rep->isInSystem()); // TODO
+        rep = src.rep->clone();	// create a new object
         rep->setMyHandle(*this);
     }
 }
@@ -115,26 +140,55 @@ Subsystem& Subsystem::operator=(const Subsystem& src) {
         if (isOwnerHandle()) delete rep; 
         rep=0;
         if (src.rep) {
-            rep = src.rep->clone();
-            rep->setMyHandle(*this);
+			assert(!src.rep->isInSystem()); // TODO
+			rep = src.rep->clone();	// create a new object
+			rep->setMyHandle(*this);
         }
     }
     return *this;
 }
 
-void Subsystem::endConstruction() {
-    updRep().endConstruction();
-}
 
+
+const String& Subsystem::getName()    const {return getRep().getName();}
+const String& Subsystem::getVersion() const {return getRep().getVersion();}
+
+void Subsystem::endConstruction() {updRep().endConstruction();}
 void Subsystem::realizeConstruction(State& s) const {
     getRep().realizeConstruction(s);
 }
-
 void Subsystem::realizeModeling(State& s) const {
     getRep().realizeModeling(s);
 }
+bool Subsystem::isInSystem() const {return getRep().isInSystem();}
+bool Subsystem::isInSameSystem(const System& sys) const {
+	return getRep().isInSameSystem(sys);
+}
+const System& Subsystem::getSystem() const {return getRep().getSystem();}
+System&       Subsystem::updSystem()	   {return updRep().updSystem();}
+int Subsystem::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
 
 
+    //////////////////
+    // SubsystemRep //
+    //////////////////
+
+// nothing here yet
+
+    /////////////////////////
+    // SubsystemDescriptor //
+    /////////////////////////
+
+std::ostream& 
+operator<<(std::ostream& o, const SubsystemDescriptor& sd) {
+    o << "SubsystemDescriptor:\n"
+      << "  index="    << sd.subsystemIndex << "\n" 
+      << "  name='"    << sd.name << "'\n"
+      << "  version='" << sd.version << "'\n"
+      << "  constructionVarsIndex=" << sd.constructionVarsIndex << "\n"
+      << "  modelingVarsIndex="     << sd.modelingVarsIndex << "\n";
+    return o;
+}
 
 
 

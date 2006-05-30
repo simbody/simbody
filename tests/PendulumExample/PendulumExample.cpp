@@ -151,7 +151,6 @@ public:
 
         // calculate and apply forces
         pend.clearAppliedForces(s);
-        //pend.applyGravity(s, Vec3(0., -g, 0.));
         pend.applyGravity(s, Vec3(0, -g, 0));
 
         // calculate Simbody derivatives

@@ -146,14 +146,6 @@ void MechanicalForcesSubsystem::realizeReaction(const State& s, const Mechanical
     MechanicalForcesSubsystemRep::downcast(*rep).realizeReaction(s,m); 
 }
 
-    //////////////////////////
-    // EmptyForcesSubsystem //
-    //////////////////////////
-
-EmptyForcesSubsystem::EmptyForcesSubsystem() : MechanicalForcesSubsystem() {
-    rep = new EmptyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
 
     /////////////////////
     // MultibodySystem //

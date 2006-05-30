@@ -104,10 +104,12 @@ public:
     // Call this after all bodies & constraints have been added.
     void endConstruction(); // will set built==true
 
-    // MechanicalSubsystemRep interface
-    MechanicalSubsystemRep* cloneMechanicalSubsystemRep() const {
+    // SubsystemRep interface
+    RigidBodyTree* cloneSubsystemRep() const {
         return new RigidBodyTree(*this);
     }
+
+    // MechanicalSubsystemRep interface
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.

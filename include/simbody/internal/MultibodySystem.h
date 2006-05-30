@@ -46,6 +46,7 @@ public:
 
     // Topological information (no state)
     int getNBodies()      const;    // includes ground, also # tree joints+1
+    int getNMobilities()  const;
     int getNConstraints() const;    // i.e., constraint elements (multiple equations)
 
     int        getParent  (int bodyNum) const;
@@ -96,34 +97,16 @@ private:
     const MechanicalForcesSubsystemRep& getRep() const;
 };
 
-/**
- * This is a concrete subsystem which applies no forces.
- */
-class SimTK_SIMBODY_API EmptyForcesSubsystem : public MechanicalForcesSubsystem {
-public:
-    EmptyForcesSubsystem();
-
-    // These are just the defaults but are nice to have explicitly for debugging.
-    ~EmptyForcesSubsystem() {
-    }
-    EmptyForcesSubsystem(const EmptyForcesSubsystem& e) 
-      : MechanicalForcesSubsystem(e) {
-    }
-    EmptyForcesSubsystem& operator=(const EmptyForcesSubsystem& e) {
-        MechanicalForcesSubsystem::operator=(e);
-        return *this;
-    }
-
-
-    SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, MechanicalForcesSubsystem);
-private:
-    class EmptyForcesSubsystemRep& updRep();
-    const EmptyForcesSubsystemRep& getRep() const;
-};
 
 /**
- * The job of the MultibodySystem class is to coordinate the activities of a
- * MechanicalSubsystem and a MechanicalForcesSubsystem.
+ * The job of the MultibodySystem class is to coordinate the activities of various
+ * subsystems which can be part of a multibody system. We insist on having exactly one
+ * MechanicalSubsystem, and we would like also to have:
+ *    - a ForceSubsystem
+ *    - an AnalyticGeometrySubsystem
+ *    - a MassPropertiesSubsystem
+ *    - a VisualizationSubsystem
+ * There will also be a generic System-level "subsystem" for global variables.
  */
 class SimTK_SIMBODY_API MultibodySystem : public System {
 public:

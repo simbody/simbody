@@ -81,8 +81,14 @@ private:
 
 class StateRep {
 public:
-    StateRep() : t(CNT<Real>::getNaN()), myHandle(0) { 
-        currentStage = Stage::Allocated;
+    StateRep() : t(CNT<Real>::getNaN()), subsystems(1), myHandle(0) { 
+    }
+
+    const Stage& getCurrentStage(int subsystem) const {
+        return subsystems[subsystem].currentStage;
+    }
+    Stage& updCurrentStage(int subsystem) const {
+        return subsystems[subsystem].currentStage;
     }
 
     // We'll do the copy constructor and assignment explicitly here
@@ -90,18 +96,18 @@ public:
     // we don't copy the handle pointer.
     StateRep(const StateRep& src) : myHandle(0) {
         t = src.t; q = src.q; u = src.u; z = src.z;
-        discrete = src.discrete;
-        currentStage = src.currentStage;
-        cache = src.cache;
+        discrete   = src.discrete;
+        cache      = src.cache; // TODO: shouldn't copy cache(?)
+        subsystems = src.subsystems;
     }
 
     StateRep& operator=(const StateRep& src) {
         if (&src == this) return *this;
         t = src.t; q = src.q; u = src.u; z = src.z;
-        discrete = src.discrete;
-        currentStage = src.currentStage;
-        qdot = src.qdot; qdotdot = src.qdotdot; udot = src.udot; zdot = src.zdot;
-        cache = src.cache;
+        discrete   = src.discrete;
+        qdot       = src.qdot; qdotdot = src.qdotdot; udot = src.udot; zdot = src.zdot;
+        cache      = src.cache;
+        subsystems = src.subsystems;
         // don't mess with the handle pointer!
         return *this;
     }
@@ -142,8 +148,6 @@ private:
 
         // Cache //
 
-    mutable Stage   currentStage;
-
     mutable Vector  qdot;       // Stage::Moving
     mutable Vector  qdotdot;    // Stage::Reacting
     mutable Vector  udot;       // Stage::Reacting
@@ -151,6 +155,23 @@ private:
 
     // Each of these discrete entries has its own Stage.
     mutable StableArray<CacheEntry> cache;
+
+        // Subsystem support //
+
+    struct PerSubsystemInfo {
+        PerSubsystemInfo() : currentStage(Stage::Allocated) { }
+        PerSubsystemInfo(const String& n, const String& v) 
+            : name(n), version(v), currentStage(Stage::Allocated) { }
+        String name;
+        String version;
+        std::vector<int> qs, us, zs;    // indices into q,u,z and qdot, etc.
+        std::vector<int> discreteVars;
+        std::vector<int> cacheEntries;
+        mutable Stage    currentStage;
+    };
+
+    // Subsystem 0 (always present) is the System as a whole.
+    std::vector<PerSubsystemInfo> subsystems;
 
 private:
     State* myHandle;
@@ -218,6 +239,13 @@ State::State()
     rep->setMyHandle(*this);
 }
 
+State::State(const String& name, const String& version)
+  : rep(new StateRep()) {
+    rep->setMyHandle(*this);
+    rep->subsystems[0].name = name;
+    rep->subsystems[0].version = version;
+}
+
 State::~State() {
     delete rep; rep=0;
 }
@@ -246,87 +274,127 @@ State& State::operator=(const State& src) {
     return *this;
 }
 
-Stage State::getStage() const {
-    SimTK_ASSERT(rep, "State::getStage(): no rep"); // can't happen(?)
-    return rep->currentStage;
+int State::addSubsystem(const String& name, const String& version) {
+    rep->subsystems.push_back(
+        StateRep::PerSubsystemInfo(name,version));
+    return (int)rep->subsystems.size() - 1;
 }
 
-// Make sure the stage is no higher than g.
-void State::invalidateStage(Stage g) const {
+int State::getNSubsystems() const {return (int)rep->subsystems.size();}
+
+const String& State::getSubsystemName(int subsys) const {
+    return rep->subsystems[subsys].name;
+}
+const String& State::getSubsystemVersion(int subsys) const {
+    return rep->subsystems[subsys].version;
+}
+
+const Stage& State::getStage(int subsys) const {
+    SimTK_ASSERT(rep, "State::getStage(): no rep"); // can't happen(?)
+    return rep->getCurrentStage(subsys);
+}
+
+// Make sure the stage is no higher than g. Currently we have to reduce
+// the currentState for *all* subsystems to g, regardless of which one
+// is registering the change. TODO: this should be more selective.
+void State::invalidateStage(int /*subsys*/, Stage g) const {
     SimTK_ASSERT(rep, "State::invalidateStage(): no rep");
 
-    if (rep->currentStage >= g)
-        rep->currentStage = g.prev();
+    for (int i=0; i<(int)rep->subsystems.size(); ++i)
+        if (rep->getCurrentStage(i) >= g)
+            rep->updCurrentStage(i) = g.prev();    // mutable
 
     //TODO: special handling should be done when invalidating "Modeled" or "Built".
 }
 
-// Move stage from g-1 to g.
-void State::advanceToStage(Stage g) const {
+// Move the stage for a particular subsystem from g-1 to g. No other subsystems
+// are affected.
+void State::advanceToStage(int subsys, Stage g) const {
     SimTK_ASSERT(rep, "State::advanceToStage(): no rep");
 
     // TODO: need a real error here, not an assert
-    SimTK_ASSERT2(getStage() == g.prev(),
+    SimTK_ASSERT2(getStage(subsys) == g.prev(),
         "State::advanceToStage(%s) called but current stage is %s",
-        g.name().c_str(), getStage().name().c_str());
+        g.name().c_str(), getStage(subsys).name().c_str());
 
     if (g == Stage::Modeled)
         rep->finishModeling();
 
-    rep->currentStage = g;
+    rep->updCurrentStage(subsys) = g; // mutable
 }
 
 // We don't expect State entry allocations to be performance critical so
 // we'll keep error checking on even in Release mode.
 
-int State::allocateQ(const Vector& qInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateQ()");
+int State::allocateQ(int subsys, const Vector& qInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(subsys), Stage::Modeled, "State::allocateQ()");
 
+    // Allocate global Q
     const int nxt = rep->q.size();
     rep->q.resize(nxt+qInit.size());
     rep->q(nxt, qInit.size()) = qInit;
-    return nxt;
-}
-int State::allocateU(const Vector& uInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateU()");
 
+    // Map to local subsystem Q
+    rep->subsystems[subsys].qs.push_back(nxt);
+    return (int)rep->subsystems[subsys].qs.size() - 1;
+}
+
+int State::allocateU(int subsys, const Vector& uInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(subsys), Stage::Modeled, "State::allocateU()");
+
+    // Allocate global U
     const int nxt = rep->u.size();
     rep->u.resize(nxt+uInit.size());
     rep->u(nxt, uInit.size()) = uInit;
-    return nxt;
-}
-int State::allocateZ(const Vector& zInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateZ()");
 
+    // Map to local subsystem U
+    rep->subsystems[subsys].us.push_back(nxt);
+    return (int)rep->subsystems[subsys].us.size() - 1;
+}
+int State::allocateZ(int subsys, const Vector& zInit) {
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(subsys), Stage::Modeled, "State::allocateZ()");
+
+    // Allocate global Z
     const int nxt = rep->z.size();
     rep->z.resize(nxt+zInit.size());
     rep->z(nxt, zInit.size()) = zInit;
-    return nxt;
+
+    // Map to local subsystem Z
+    rep->subsystems[subsys].zs.push_back(nxt);
+    return (int)rep->subsystems[subsys].zs.size() - 1;
 }
 
 // Construction- and Modeling-stage State variables can only be added during construction; that is,
 // while stage <= Built. Other entries can be added while stage < Modeled.
-int State::allocateDiscreteVariable(Stage g, AbstractValue* vp) {
+int State::allocateDiscreteVariable(int subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateDiscreteVariable()");
 
     const Stage maxAcceptable = (g <= Stage::Modeled ? Stage::Allocated : Stage::Built);
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), maxAcceptable.next(), "State::allocateDiscreteVariable()");
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(subsys), maxAcceptable.next(), "State::allocateDiscreteVariable()");
 
+    // Allocate global DiscreteVariable
     const int nxt = rep->discrete.size();
     rep->discrete.push_back(DiscreteVariable(g,vp));
-    return nxt;
+
+    // Map to local subsystem DiscreteVariable
+    rep->subsystems[subsys].discreteVars.push_back(nxt);
+    return (int)rep->subsystems[subsys].discreteVars.size() - 1;
 }
 
 // Cache entries can be allocated while stage < Modeled, even if they are Modeled-stage entries.
-int State::allocateCacheEntry(Stage g, AbstractValue* vp) {
+int State::allocateCacheEntry(int subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateCacheEntry()");
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(), Stage::Modeled, "State::allocateCacheEntry()");
+    SimTK_STAGECHECK_LT_ALWAYS(getStage(subsys), Stage::Modeled, "State::allocateCacheEntry()");
 
+    // Allocate global CacheEntry
     const int nxt = rep->cache.size();
     rep->cache.push_back(CacheEntry(g,vp));
-    return nxt;
+
+    // Map to local subsystem CacheEntry
+    rep->subsystems[subsys].cacheEntries.push_back(nxt);
+    return (int)rep->subsystems[subsys].cacheEntries.size() - 1;
 }
 
 // You can call these as long as stage >= Modeled.
@@ -437,12 +505,14 @@ State::updQDotDot() const {
 // You can access a Modeling variable any time, but don't access others
 // until you have realized the Modeled stage.
 const AbstractValue& 
-State::getDiscreteVariable(int index) const {
-    SimTK_INDEXCHECK(0,index,(int)rep->discrete.size(),"State::getDiscreteVariable()");
-    const DiscreteVariable& dv = rep->discrete[index];
+State::getDiscreteVariable(int subsys, int index) const {
+    const StateRep::PerSubsystemInfo& info = rep->subsystems[subsys];
+
+    SimTK_INDEXCHECK(0,index,(int)info.discreteVars.size(),"State::getDiscreteVariable()");
+    const DiscreteVariable& dv = rep->discrete[info.discreteVars[index]];
 
     if (dv.getStage() > Stage::Modeled) {
-        SimTK_STAGECHECK_GE(getStage(), Stage::Modeled, "State::getDiscreteVariable()");
+        SimTK_STAGECHECK_GE(getStage(subsys), Stage::Modeled, "State::getDiscreteVariable()");
     }
 
     return dv.getValue();
@@ -452,60 +522,57 @@ State::getDiscreteVariable(int index) const {
 // must wait until you have realized the Modeled stage. This always backs the 
 // stage up to one earlier than the variable's stage.
 AbstractValue& 
-State::updDiscreteVariable(int index) {
-    SimTK_INDEXCHECK(0,index,(int)rep->discrete.size(),"State::updDiscreteVariable()");
-    DiscreteVariable& dv = rep->discrete[index];
+State::updDiscreteVariable(int subsys, int index) {
+    const StateRep::PerSubsystemInfo& info = rep->subsystems[subsys];
 
-    SimTK_STAGECHECK_GE(getStage(), std::min(dv.getStage().prev(), Stage(Stage::Modeled)), 
+    SimTK_INDEXCHECK(0,index,(int)info.discreteVars.size(),"State::updDiscreteVariable()");
+    DiscreteVariable& dv = rep->discrete[info.discreteVars[index]];
+
+    SimTK_STAGECHECK_GE(getStage(subsys), std::min(dv.getStage().prev(), Stage(Stage::Modeled)), 
         "State::updDiscreteVariable()");
 
-    invalidateStage(dv.getStage());
+    invalidateStage(subsys, dv.getStage());
 
     return dv.updValue();
 }
 
 // Stage >= ce.stage
 const AbstractValue& 
-State::getCacheEntry(int index) const {
-    SimTK_INDEXCHECK(0,index,(int)rep->cache.size(),"State::getCacheEntry()");
-    const CacheEntry& ce = rep->cache[index];
+State::getCacheEntry(int subsys, int index) const {
+    const StateRep::PerSubsystemInfo& info = rep->subsystems[subsys];
 
-    SimTK_STAGECHECK_GE(getStage(), ce.getStage(), "State::getCacheEntry()");
+    SimTK_INDEXCHECK(0,index,(int)info.cacheEntries.size(),"State::getCacheEntry()");
+    const CacheEntry& ce = rep->cache[info.cacheEntries[index]];
+
+    SimTK_STAGECHECK_GE(getStage(subsys), ce.getStage(), "State::getCacheEntry()");
 
     return ce.getValue();
 }
 
 // Stage >= ce.stage-1; does not change stage
 AbstractValue& 
-State::updCacheEntry(int index) const {
-    SimTK_INDEXCHECK(0,index,(int)rep->cache.size(),"State::updCacheEntry()");
-    CacheEntry& ce = rep->cache[index];
+State::updCacheEntry(int subsys, int index) const {
+    const StateRep::PerSubsystemInfo& info = rep->subsystems[subsys];
 
-    SimTK_STAGECHECK_GE(getStage(), ce.getStage().prev(), "State::updCacheEntry()");
+    SimTK_INDEXCHECK(0,index,(int)info.cacheEntries.size(),"State::updCacheEntry()");
+    CacheEntry& ce = rep->cache[info.cacheEntries[index]];
+
+    SimTK_STAGECHECK_GE(getStage(subsys), ce.getStage().prev(), "State::updCacheEntry()");
 
     return ce.updValue();
 }
-/*
-    Real            t; // Stage::Timed (time)
-    Vector          q; // Stage::Configured continuous variables
-    Vector          u; // Stage::Moving continuous variables
-    Vector          z; // Stage::Dynamics continuous variables
 
-    // Each of these discrete entries has its own Stage.
-    std::vector<DiscreteVariable> discrete;
+static String indexToString(const std::vector<int>& ix, const String& name) {
+    String out;
+    out += "  <Indices name=qs size=" + String(ix.size()) + ">";
+    if (ix.size()) out += "\n";
 
-        // Cache //
+    for (int i=0; i<(int)ix.size(); ++i)
+        out += "    " + String(ix[i]) + "\n";
+    out += "  </Indices>\n";
+    return out;
+}
 
-    mutable Stage   currentStage;
-
-    mutable Vector  qdot;       // Stage::Moving
-    mutable Vector  qdotdot;    // Stage::Reacting
-    mutable Vector  udot;       // Stage::Reacting
-    mutable Vector  zdot;       // Stage::Reacting
-
-    // Each of these discrete entries has its own Stage.
-    mutable std::vector<CacheEntry> cache;
-    */
 String State::toString() const {
     String out;
     out += "<State>\n";
@@ -532,6 +599,20 @@ String State::toString() const {
 
     out += "<DISCRETE TODO>\n";
 
+    for (int ss=0; ss < (int)rep->subsystems.size(); ++ss) {
+        const StateRep::PerSubsystemInfo& info = rep->subsystems[ss];
+        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+            + " version=" + info.version + ">\n";
+
+        out += indexToString(info.qs, "qs");
+        out += indexToString(info.us, "us");
+        out += indexToString(info.zs, "zs");
+        out += indexToString(info.discreteVars, "discreteVars");
+        out += indexToString(info.cacheEntries, "cacheEntries");
+
+        out += "</Subsystem>\n";
+    }
+
     out += "</State>\n";
     return out;
 }
@@ -540,8 +621,13 @@ String State::cacheToString() const {
     String out;
     out += "<Cache>\n";
 
-    out += "<Stage name=currentStage>" + rep->currentStage.name() 
-        + "</Stage>\n";
+    for (int ss=0; ss < (int)rep->subsystems.size(); ++ss) {
+        const StateRep::PerSubsystemInfo& info = rep->subsystems[ss];
+        out += "<Subsystem index=" + String(ss) + " name=" + info.name 
+            + " version=" + info.version + ">\n";
+        out += "  <Stage>" + info.currentStage.name() + "</Stage>\n";
+        out += "</Subsystem>\n";
+    }
 
     out += "<Vector name=qdot size=" + String(rep->qdot.size()) + ">";
     if (rep->qdot.size()) out += "\n";

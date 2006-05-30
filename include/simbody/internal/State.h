@@ -76,29 +76,58 @@ public:
  */
 class SimTK_SIMBODY_API State {
 public:
+    /// Create an empty State with one registered subsystem.
     State();
+    /// Create an empty State with the indicated name and version for
+    /// the 0th subsystem, which belongs to the System.
+    State(const String& name, const String& version);
     ~State();
     State(const State&);
     State& operator=(const State&);
 
-    Stage getStage() const;
+    /// Register a new subsystem as a client of this State. The
+    /// supplied strings are stored with the State but are not
+    /// interpreted by it. The intent is that they can be used to
+    /// perform "santity checks" on deserialized States to make
+    /// sure they match the currently instatiated System.
+    /// The subsystem index is returned. It will always be 
+    /// greater than zero since the 0th subsystem is reserved for
+    /// private State entries owned by the System itself.
+    int addSubsystem(const String& name, const String& version);
+
+    int getNSubsystems() const;
+    const String& getSubsystemName(int subsys) const;
+    const String& getSubsystemVersion(int subsys) const;
+
+    const Stage& getStage(int subsys) const;
+    const Stage& getStage() const {return getStage(0);}
 
     // If stage is currently at or higher than the passed-in one,
     // back up to the stage just prior. Otherwise do nothing.
-    void invalidateStage(Stage) const;  // cache is mutable
+    void invalidateStage(int subsys, Stage) const;  // cache is mutable
+    void invalidateStage(Stage g) const {invalidateStage(0,g);}
 
     // Advance the current stage by one to the indicated stage.
     // The stage is passed in just to give us a chance to verify
     // that all is as expected. You can only advance one stage at
     // a time. Advancing to "Built" and "Modeled" stages affect
     // what you can do later.
-    void advanceToStage(Stage) const;
+    void advanceToStage(int subsys, Stage) const;
+    void advanceToStage(Stage g) const {advanceToStage(0,g);}
 
-    int allocateQ(const Vector& qInit); // qdot, qdotdot also allocated in cache
-    int allocateU(const Vector& uInit); // udot                    "
-    int allocateZ(const Vector& zInit); // zdot                    "
-    int allocateDiscreteVariable(Stage, AbstractValue* v);
-    int allocateCacheEntry(Stage, AbstractValue* v);
+    int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
+    int allocateU(int subsys, const Vector& uInit); // udot                    "
+    int allocateZ(int subsys, const Vector& zInit); // zdot                    "
+    int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
+    int allocateCacheEntry(int subsys, Stage, AbstractValue* v);
+
+    int allocateQ(const Vector& qInit) {return allocateQ(0,qInit);}
+    int allocateU(const Vector& uInit) {return allocateU(0,uInit);}
+    int allocateZ(const Vector& zInit) {return allocateZ(0,zInit);}
+    int allocateDiscreteVariable(Stage g, AbstractValue* v) 
+      { return allocateDiscreteVariable(0,g,v); }
+    int allocateCacheEntry(Stage g, AbstractValue* v) 
+      { return allocateCacheEntry(0,g,v); }
 
     // You can call these as long as stage >= Modeled.
     const Real&   getTime() const;
@@ -125,16 +154,20 @@ public:
     Vector& updQDotDot() const; // Stage::Reacting-1
 
     // OK if dv.stage==Modeled or stage >= Modeled
-    const AbstractValue& getDiscreteVariable(int index) const;
+    const AbstractValue& getDiscreteVariable(int subsys, int index) const;
+    const AbstractValue& getDiscreteVariable(int index) const {return getDiscreteVariable(0,index);}
 
     // OK if dv.stage==Modeled or stage >= Modeled; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(int index);
+    AbstractValue&       updDiscreteVariable(int subsys, int index);
+    AbstractValue&       updDiscreteVariable(int index) {return updDiscreteVariable(0,index);}
 
     // Stage >= ce.stage
-    const AbstractValue& getCacheEntry(int index) const;
+    const AbstractValue& getCacheEntry(int subsys, int index) const;
+    const AbstractValue& getCacheEntry(int index) const {return getCacheEntry(0,index);}
 
     // Stage >= ce.stage-1; does not change stage
-    AbstractValue&       updCacheEntry(int index) const; // mutable
+    AbstractValue& updCacheEntry(int subsys, int index) const; // mutable
+    AbstractValue& updCacheEntry(int index) const {return updCacheEntry(0,index);}
 
     String toString() const;
     String cacheToString() const;

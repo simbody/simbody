@@ -270,7 +270,8 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-
+ADD_TEST(SystemTest                   ${TEST_PATH}/SystemTest)
+ADD_TEST(SystemTestStatic             ${TEST_PATH}/SystemTestStatic)
 ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
 ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
 ADD_TEST(PendulumExample              ${TEST_PATH}/PendulumExample)

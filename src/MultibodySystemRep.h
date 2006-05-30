@@ -52,13 +52,6 @@ public:
     MechanicalSubsystemRep() { }
     virtual ~MechanicalSubsystemRep() { }
 
-    // pure virtual
-    SubsystemRep* cloneSubsystemRep() const {
-        return cloneMechanicalSubsystemRep();
-    }
-
-    virtual MechanicalSubsystemRep* cloneMechanicalSubsystemRep() const = 0;
-
     // Topological information.
     virtual int getNBodies()      const = 0;    // includes ground, also # tree joints+1
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
@@ -91,14 +84,13 @@ public:
 
 class MechanicalForcesSubsystemRep : public SubsystemRep {
 public:
-    MechanicalForcesSubsystemRep(const MechanicalSubsystem& m) 
-        : mech(m) 
+    MechanicalForcesSubsystemRep(const String& name, const String& version,
+                                 const MechanicalSubsystem& m) 
+        : SubsystemRep(name,version), mech(m) 
     {
     }
 
-    SubsystemRep* cloneSubsystemRep() const {return cloneMechanicalForcesSubsystemRep();}
-
-    virtual MechanicalForcesSubsystemRep* cloneMechanicalForcesSubsystemRep() const = 0;
+    const MechanicalSubsystem& getMechanicalSubsystem() const {return mech;}
 
     virtual void realizeParameters   (const State&, const MechanicalSubsystem&) const { }
     virtual void realizeTime         (const State&, const MechanicalSubsystem&) const { }
@@ -112,31 +104,68 @@ private:
     const MechanicalSubsystem& mech;
 };
 
-class EmptyForcesSubsystemRep : public MechanicalForcesSubsystemRep {
+
+
+// Concrete for now.
+class Body {
 public:
-    EmptyForcesSubsystemRep()
-      : MechanicalForcesSubsystemRep(MechanicalSubsystem()) { }
-    EmptyForcesSubsystemRep(const MechanicalSubsystem& m) 
-      : MechanicalForcesSubsystemRep(m) { }
-    MechanicalForcesSubsystemRep* cloneMechanicalForcesSubsystemRep() const 
-      { return new EmptyForcesSubsystemRep(*this); }
-
-    void realizeConstruction(State&) const { }
-    void realizeModeling    (State&) const { }
-
-    SimTK_DOWNCAST(EmptyForcesSubsystemRep,MechanicalForcesSubsystemRep);
+    int getBodyNumber() const;
 };
 
+class VisualizationSubsystemRep : public SubsystemRep {
+public:
+    VisualizationSubsystemRep(const String& name, const String& version) 
+      : SubsystemRep(name, version)
+    {
+    }
 
+    void addDecorativeGeometry(const Body& b, const Transform& X_BG, const DecorativeGeometry& g)
+    {
+        const int bnum = b.getBodyNumber();
+        if (decorations.size() <= bnum)
+            decorations.resize(bnum+1);
+        decorations[bnum].push_back(g);
+        decorations[bnum].back().setPlacement(X_BG);
+    }
+
+    const Array<DecorativeGeometry>& getBodyDecorativeGeometry(const Body& b) const {
+        static const Array<DecorativeGeometry> empty;
+        const int bnum = b.getBodyNumber();
+        return bnum < decorations.size() ? decorations[bnum] : empty;
+    }
+
+    void realizeConstruction (State&)       const { }
+    void realizeModeling     (State&)       const { }
+    void realizeParameters   (const State&) const { }
+    void realizeTime         (const State&) const { }
+    void realizeConfiguration(const State&) const { }
+    void realizeMotion       (const State&) const { }
+    void realizeDynamics     (const State&) const { }
+    void realizeReaction     (const State&) const { }
+
+    SimTK_DOWNCAST(VisualizationSubsystemRep, SubsystemRep);
+
+private:
+    // per-body decoration lists
+    Array< Array<DecorativeGeometry> > decorations;
+};
 
 /**
  * The job of the MultibodySystem class is to coordinate the activities of a
  * MechanicalSubsystem and a MechanicalForcesSubsystem.
  */
 class MultibodySystemRep : public SystemRep {
+    enum {
+        SystemSubsystemIndex            = 0,
+        MechanicalSubsystemIndex        = 1,
+        MechanicalForcesSubsystemIndex  = 2,
+        AnalyticGeometrySubsystemIndex  = 3,
+        MassPropertiesSubsystemIndex    = 4,
+        VisualizationSubsystemIndex     = 5
+    };
 public:
     MultibodySystemRep(const MechanicalSubsystem& m, const MechanicalForcesSubsystem& f)
-        : mech(m), forces(f)
+        : SystemRep(6, "MultibodySystem", "0.0.1"), mech(m), forces(f)
     {
         //mech.endConstruction();     // in case user forgot ...
         //forces.endConstruction();
