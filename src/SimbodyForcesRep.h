@@ -88,13 +88,13 @@ class TwoPointSpringSubsystemRep : public MechanicalForcesSubsystemRep {
     mutable bool built;
 
     const Stage& getStage(const State& s) const {
-        return s.getStage(getMySubsystemIndex());
+        return s.getSubsystemStage(getMySubsystemIndex());
     }
     void invalidateStage(const State& s, Stage g) const {
-        s.invalidateStage(getMySubsystemIndex(),g);
+        s.invalidateAll(g);
     }
     void advanceToStage(const State& s, Stage g) const {
-        s.advanceToStage(getMySubsystemIndex(),g);
+        s.advanceSubsystemToStage(getMySubsystemIndex(),g);
     }
 
     const Parameters& getParameters(const State& s) const {

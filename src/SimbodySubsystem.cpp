@@ -114,8 +114,8 @@ void SimbodySubsystem::realizeDynamics     (const State& s) const {getRep().real
 void SimbodySubsystem::realizeReaction     (const State& s) const {getRep().realizeReaction(s);}
 
 void SimbodySubsystem::realize(const State& s, Stage g) const {
-    while (s.getStage() < g) {
-        switch (s.getStage()) {
+    while (s.getSubsystemStage(getMySubsystemIndex()) < g) {
+        switch (s.getSubsystemStage(getMySubsystemIndex())) {
         case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
         case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
         case Stage::Modeled:      realizeParameters(s);    break;
@@ -126,7 +126,8 @@ void SimbodySubsystem::realize(const State& s, Stage g) const {
         case Stage::Dynamics:     realizeReaction(s);      break;
         default: assert(!"SimbodySubsystem::realize(): bad stage");
         }
-        s.advanceToStage(s.getStage().next());
+        s.advanceSubsystemToStage(getMySubsystemIndex(),
+                                 s.getSubsystemStage(getMySubsystemIndex()).next());
     }
 }
 

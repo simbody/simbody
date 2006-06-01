@@ -73,6 +73,12 @@ public:
  * variables at any stage > Modeled, and cache entries at any stage
  * >= Modeled can be allocated. After that call advanceToStage(Modeled) which
  * sets the stage to Stage::Modeled and disallows further allocation.
+ *
+ * Note that there is a global Stage for the state as a whole, and individual
+ * Stages for each subsystem. The global stage can never be higher than
+ * the lowest subsystem stage. Global resources are allocated when the
+ * global Stage advances to "Modeled" and tossed out if that stage is
+ * invalidated.
  */
 class SimTK_SIMBODY_API State {
 public:
@@ -99,35 +105,27 @@ public:
     const String& getSubsystemName(int subsys) const;
     const String& getSubsystemVersion(int subsys) const;
 
-    const Stage& getStage(int subsys) const;
-    const Stage& getStage() const {return getStage(0);}
+    const Stage& getSubsystemStage(int subsys) const;
+    const Stage& getSystemStage() const;
 
-    // If stage is currently at or higher than the passed-in one,
-    // back up to the stage just prior. Otherwise do nothing.
-    void invalidateStage(int subsys, Stage) const;  // cache is mutable
-    void invalidateStage(Stage g) const {invalidateStage(0,g);}
+    // If any subsystem or the system stage is currently at or
+    // higher than the passed-in one, back up to the stage just prior.
+    // Otherwise do nothing.
+    void invalidateAll(Stage) const;  // cache is mutable
 
     // Advance the current stage by one to the indicated stage.
     // The stage is passed in just to give us a chance to verify
     // that all is as expected. You can only advance one stage at
     // a time. Advancing to "Built" and "Modeled" stages affect
     // what you can do later.
-    void advanceToStage(int subsys, Stage) const;
-    void advanceToStage(Stage g) const {advanceToStage(0,g);}
+    void advanceSubsystemToStage(int subsys, Stage) const;
+    void advanceSystemToStage(Stage g) const;
 
     int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
     int allocateU(int subsys, const Vector& uInit); // udot                    "
     int allocateZ(int subsys, const Vector& zInit); // zdot                    "
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
     int allocateCacheEntry(int subsys, Stage, AbstractValue* v);
-
-    int allocateQ(const Vector& qInit) {return allocateQ(0,qInit);}
-    int allocateU(const Vector& uInit) {return allocateU(0,uInit);}
-    int allocateZ(const Vector& zInit) {return allocateZ(0,zInit);}
-    int allocateDiscreteVariable(Stage g, AbstractValue* v) 
-      { return allocateDiscreteVariable(0,g,v); }
-    int allocateCacheEntry(Stage g, AbstractValue* v) 
-      { return allocateCacheEntry(0,g,v); }
 
     // You can call these as long as stage >= Modeled.
     const Real&   getTime() const;
@@ -155,19 +153,15 @@ public:
 
     // OK if dv.stage==Modeled or stage >= Modeled
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;
-    const AbstractValue& getDiscreteVariable(int index) const {return getDiscreteVariable(0,index);}
 
     // OK if dv.stage==Modeled or stage >= Modeled; set stage to dv.stage-1
     AbstractValue&       updDiscreteVariable(int subsys, int index);
-    AbstractValue&       updDiscreteVariable(int index) {return updDiscreteVariable(0,index);}
 
     // Stage >= ce.stage
     const AbstractValue& getCacheEntry(int subsys, int index) const;
-    const AbstractValue& getCacheEntry(int index) const {return getCacheEntry(0,index);}
 
     // Stage >= ce.stage-1; does not change stage
     AbstractValue& updCacheEntry(int subsys, int index) const; // mutable
-    AbstractValue& updCacheEntry(int index) const {return updCacheEntry(0,index);}
 
     String toString() const;
     String cacheToString() const;

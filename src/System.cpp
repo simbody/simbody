@@ -79,16 +79,17 @@ void System::realize(const State& s, Stage g) const {
     ///////////////
 
 void SystemRep::realize(const State& s, Stage g) const {
-    while (s.getStage() < g) {
-        switch (s.getStage()) {
+    while (s.getSystemStage() < g) {
+        switch (s.getSystemStage()) {
 
+            // TODO: get rid of this
         case Stage::Allocated: {
             // The State has nothing in it. We expect the
             // first few discrete variables to be numbered from
             // index=0 so they match the subsystem index.
             State& mutableState = const_cast<State&>(s);
             for (int i=0; i < getNSubsystems(); ++i) {
-                int index = mutableState.allocateDiscreteVariable(Stage::Built,
+                int index = mutableState.allocateDiscreteVariable(i, Stage::Built,
                     new Value<SubsystemDescriptor>(SubsystemDescriptor(i, 
                                                     getSubsystem(i).getName(), 
                                                     getSubsystem(i).getVersion())));
@@ -110,7 +111,7 @@ void SystemRep::realize(const State& s, Stage g) const {
         case Stage::Dynamics:     realizeReaction(s);      break;
         default: assert(!"System::realize(): bad stage");
         }
-        s.advanceToStage(s.getStage().next());
+        s.advanceSystemToStage(s.getSystemStage().next());
     }
 }
 

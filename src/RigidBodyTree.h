@@ -302,139 +302,139 @@ public:
     const SBConstructionCache& getConstructionCache(const State& s) const {
         assert(built && constructionCacheIndex >= 0);
         return Value<SBConstructionCache>::downcast
-            (s.getCacheEntry(constructionCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),constructionCacheIndex)).get();
     }
     SBConstructionCache& updConstructionCache(const State& s) const { //mutable
         assert(built && constructionCacheIndex >= 0);
         return Value<SBConstructionCache>::downcast
-            (s.updCacheEntry(constructionCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),constructionCacheIndex)).upd();
     }
 
     const SBModelingCache& getModelingCache(const State& s) const {
         return Value<SBModelingCache>::downcast
-            (s.getCacheEntry(constructionCache.modelingCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),constructionCache.modelingCacheIndex)).get();
     }
     SBModelingCache& updModelingCache(const State& s) const { //mutable
         return Value<SBModelingCache>::downcast
-            (s.updCacheEntry(constructionCache.modelingCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),constructionCache.modelingCacheIndex)).upd();
     }
 
     const SBParameterCache& getParameterCache(const State& s) const {
         return Value<SBParameterCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).parameterCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).parameterCacheIndex)).get();
     }
     SBParameterCache& updParameterCache(const State& s) const { //mutable
         return Value<SBParameterCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).parameterCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).parameterCacheIndex)).upd();
     }
 
     const SBTimeCache& getTimeCache(const State& s) const {
         return Value<SBTimeCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).timeCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).timeCacheIndex)).get();
     }
     SBTimeCache& updTimeCache(const State& s) const { //mutable
         return Value<SBTimeCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).timeCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).timeCacheIndex)).upd();
     }
 
     const SBConfigurationCache& getConfigurationCache(const State& s) const {
         return Value<SBConfigurationCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).qCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).qCacheIndex)).get();
     }
     SBConfigurationCache& updConfigurationCache(const State& s) const { //mutable
         return Value<SBConfigurationCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).qCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).qCacheIndex)).upd();
     }
 
     const SBMotionCache& getMotionCache(const State& s) const {
         return Value<SBMotionCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).uCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).uCacheIndex)).get();
     }
     SBMotionCache& updMotionCache(const State& s) const { //mutable
         return Value<SBMotionCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).uCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).uCacheIndex)).upd();
     }
 
     const SBDynamicsCache& getDynamicsCache(const State& s) const {
         return Value<SBDynamicsCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).dynamicsCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).dynamicsCacheIndex)).get();
     }
     SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
         return Value<SBDynamicsCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).dynamicsCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).dynamicsCacheIndex)).upd();
     }
 
     const SBReactionCache& getReactionCache(const State& s) const {
         return Value<SBReactionCache>::downcast
-            (s.getCacheEntry(getModelingCache(s).reactionCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).reactionCacheIndex)).get();
     }
     SBReactionCache& updReactionCache(const State& s) const { //mutable
         return Value<SBReactionCache>::downcast
-            (s.updCacheEntry(getModelingCache(s).reactionCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).reactionCacheIndex)).upd();
     }
 
 
     const SBModelingVars& getModelingVars(const State& s) const {
         return Value<SBModelingVars>::downcast
-            (s.getDiscreteVariable(constructionCache.modelingVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),constructionCache.modelingVarsIndex)).get();
     }
     SBModelingVars& updModelingVars(State& s) const {
         return Value<SBModelingVars>::downcast
-            (s.updDiscreteVariable(constructionCache.modelingVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),constructionCache.modelingVarsIndex)).upd();
     }
 
     const SBParameterVars& getParameterVars(const State& s) const {
         return Value<SBParameterVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).parameterVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).parameterVarsIndex)).get();
     }
     SBParameterVars& updParameterVars(State& s) const {
         return Value<SBParameterVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).parameterVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).parameterVarsIndex)).upd();
     }
 
     const SBTimeVars& getTimeVars(const State& s) const {
         return Value<SBTimeVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).timeVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).timeVarsIndex)).get();
     }
     SBTimeVars& updTimeVars(State& s) const {
         return Value<SBTimeVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).timeVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).timeVarsIndex)).upd();
     }
 
     const SBConfigurationVars& getConfigurationVars(const State& s) const {
         return Value<SBConfigurationVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).qVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).qVarsIndex)).get();
     }
     SBConfigurationVars& updConfigurationVars(State& s) const {
         return Value<SBConfigurationVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).qVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).qVarsIndex)).upd();
     }
 
     const SBMotionVars& getMotionVars(const State& s) const {
         return Value<SBMotionVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).uVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).uVarsIndex)).get();
     }
     SBMotionVars& updMotionVars(State& s) const {
         return Value<SBMotionVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).uVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).uVarsIndex)).upd();
     }
 
     const SBDynamicsVars& getDynamicsVars(const State& s) const {
         return Value<SBDynamicsVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).dynamicsVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).dynamicsVarsIndex)).get();
     }
     SBDynamicsVars& updDynamicsVars(State& s) const {
         return Value<SBDynamicsVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).dynamicsVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).dynamicsVarsIndex)).upd();
     }
 
     const SBReactionVars& getReactionVars(const State& s) const {
         return Value<SBReactionVars>::downcast
-            (s.getDiscreteVariable(getModelingCache(s).reactionVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).reactionVarsIndex)).get();
     }
     SBReactionVars& updReactionVars(State& s) const {
         return Value<SBReactionVars>::downcast
-            (s.updDiscreteVariable(getModelingCache(s).reactionVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).reactionVarsIndex)).upd();
     }
 
     

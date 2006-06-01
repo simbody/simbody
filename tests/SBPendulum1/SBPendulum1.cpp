@@ -73,23 +73,23 @@ static const Real Pi = std::acos(-1.);
 void stateTest() {
   try {
     State s;
-    s.advanceToStage(Stage::Built);
+    s.advanceSubsystemToStage(0, Stage::Built);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(v3);
-    long q2 = s.allocateQ(v2);
+    long q1 = s.allocateQ(0, v3);
+    long q2 = s.allocateQ(0, v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(Stage::Dynamics, new Value<int>(5));
+    long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
 
 
-    s.advanceToStage(Stage::Modeled);
-        long dv2 = s.allocateDiscreteVariable(Stage::Configured, new Value<int>(5));
+    s.advanceSubsystemToStage(0, Stage::Modeled);
+        long dv2 = s.allocateDiscreteVariable(0, Stage::Configured, new Value<int>(5));
 
-    Value<int>::downcast(s.updDiscreteVariable(dv)) = 71;
-    cout << s.getDiscreteVariable(dv) << endl;
+    Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
+    cout << s.getDiscreteVariable(0, dv) << endl;
 
   }
   catch(const std::exception& e) {
@@ -102,7 +102,8 @@ extern "C" void SimTK_version_SimTKlapack(int*,int*,int*);
 extern "C" void SimTK_about_SimTKlapack(const char*, int, char*);
 
 int main() {
-    //stateTest();
+    stateTest();
+    exit(0);
 
     int major,minor,build;
     char out[100];
@@ -247,6 +248,7 @@ try {
     pend.realize(s, Stage::Configured);
 
     Transform bodyConfig = pend.getBodyConfiguration(s, theBody);
+    cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
     pend.enforceConfigurationConstraints(s);

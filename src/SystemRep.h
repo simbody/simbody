@@ -91,6 +91,10 @@ public:
     const String& getName()    const {return subsystemName;}
     const String& getVersion() const {return subsystemVersion;}
 
+    Stage getStage(const State& s) const {
+        return s.getSubsystemStage(getMySubsystemIndex());
+    }
+
     SubsystemRep* clone() const {
 		assert(!isInSystem()); // TODO
         SubsystemRep* dup = cloneSubsystemRep();
