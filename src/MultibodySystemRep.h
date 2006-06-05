@@ -195,36 +195,36 @@ public:
     }
 
     void realizeConstruction(State& s) const {
-        mech.realizeConstruction(s);
-        forces.realizeConstruction(s);
+        mech.realize(s, Stage::Built);
+        forces.realize(s, Stage::Built);
     }
     void realizeModeling(State& s) const {
-        mech.realizeModeling(s);
-        forces.realizeModeling(s);
+        mech.realize(s, Stage::Modeled);
+        forces.realize(s, Stage::Modeled);
     }
     void realizeParameters(const State& s) const {
-        mech.realizeParameters(s);
-        forces.realizeParameters(s, mech);
+        mech.realize(s, Stage::Parametrized);
+        forces.realize(s, Stage::Parametrized);
     }
     void realizeTime(const State& s) const {
-        mech.realizeTime(s);
-        forces.realizeTime(s, mech);
+        mech.realize(s, Stage::Timed);
+        forces.realize(s, Stage::Timed);
     }
     void realizeConfiguration(const State& s) const {
-        mech.realizeConfiguration(s);
-        forces.realizeConfiguration(s, mech);
+        mech.realize(s, Stage::Configured);
+        forces.realize(s, Stage::Configured);
     }
     void realizeMotion(const State& s) const {
-        mech.realizeMotion(s);
-        forces.realizeMotion(s, mech);
+        mech.realize(s, Stage::Moving);
+        forces.realize(s, Stage::Moving);
     }
     void realizeDynamics(const State& s) const {
-        forces.realizeDynamics(s, mech); // note order
-        mech.realizeDynamics(s, forces);
+        forces.realize(s, Stage::Dynamics); // note order
+        mech.realize(s, Stage::Dynamics);
     }
     void realizeReaction(const State& s) const {
-        forces.realizeReaction(s, mech);
-        mech.realizeReaction(s, forces);
+        forces.realize(s, Stage::Reacting);
+        mech.realize(s, Stage::Reacting);
     }
 
     const MechanicalSubsystem&       getMechanicalSubsystem()       const {return mech;}

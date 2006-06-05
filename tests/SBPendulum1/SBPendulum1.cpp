@@ -74,22 +74,26 @@ void stateTest() {
   try {
     State s;
     s.advanceSubsystemToStage(0, Stage::Built);
+    s.advanceSystemToStage(Stage::Built);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(0, v3);
-    long q2 = s.allocateQ(0, v2);
+    long q1 = s.allocateQ(0, 3);
+    long q2 = s.allocateQ(0, 2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
 
     long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
 
-
     s.advanceSubsystemToStage(0, Stage::Modeled);
-        long dv2 = s.allocateDiscreteVariable(0, Stage::Configured, new Value<int>(5));
+        //long dv2 = s.allocateDiscreteVariable(0, Stage::Configured, new Value<int>(5));
 
     Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
     cout << s.getDiscreteVariable(0, dv) << endl;
+
+    s.advanceSystemToStage(Stage::Modeled);
+
+    cout << s;
 
   }
   catch(const std::exception& e) {
@@ -103,7 +107,7 @@ extern "C" void SimTK_about_SimTKlapack(const char*, int, char*);
 
 int main() {
     stateTest();
-    exit(0);
+    //exit(0);
 
     int major,minor,build;
     char out[100];
@@ -226,9 +230,12 @@ try {
     vtk.addDecoration(1, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
     vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
-    pend.realize(s, Stage::Built);
+    mbs.realize(s, Stage::Built);
 
     vtk.report(s);
+
+//**********
+    exit(0);
 
 
 

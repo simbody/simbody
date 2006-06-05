@@ -81,27 +81,7 @@ void System::realize(const State& s, Stage g) const {
 void SystemRep::realize(const State& s, Stage g) const {
     while (s.getSystemStage() < g) {
         switch (s.getSystemStage()) {
-
-            // TODO: get rid of this
-        case Stage::Allocated: {
-            // The State has nothing in it. We expect the
-            // first few discrete variables to be numbered from
-            // index=0 so they match the subsystem index.
-            State& mutableState = const_cast<State&>(s);
-            for (int i=0; i < getNSubsystems(); ++i) {
-                int index = mutableState.allocateDiscreteVariable(i, Stage::Built,
-                    new Value<SubsystemDescriptor>(SubsystemDescriptor(i, 
-                                                    getSubsystem(i).getName(), 
-                                                    getSubsystem(i).getVersion())));
-
-                SimTK_ASSERT2_ALWAYS(index==i, 
-                    "SystemRep::realize(): expected discrete variable index %d but got %d",
-                    i, index);
-            }
-            realizeConstruction(mutableState); 
-            break;
-        }
-
+        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
         case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
         case Stage::Modeled:      realizeParameters(s);    break;
         case Stage::Parametrized: realizeTime(s);          break;
@@ -154,13 +134,12 @@ Subsystem& Subsystem::operator=(const Subsystem& src) {
 const String& Subsystem::getName()    const {return getRep().getName();}
 const String& Subsystem::getVersion() const {return getRep().getVersion();}
 
+void Subsystem::realize(const State& s, Stage g) const {
+    getRep().realize(s,g);
+}
+
 void Subsystem::endConstruction() {updRep().endConstruction();}
-void Subsystem::realizeConstruction(State& s) const {
-    getRep().realizeConstruction(s);
-}
-void Subsystem::realizeModeling(State& s) const {
-    getRep().realizeModeling(s);
-}
+
 bool Subsystem::isInSystem() const {return getRep().isInSystem();}
 bool Subsystem::isInSameSystem(const System& sys) const {
 	return getRep().isInSameSystem(sys);
@@ -174,23 +153,22 @@ int Subsystem::getMySubsystemIndex() const {return getRep().getMySubsystemIndex(
     // SubsystemRep //
     //////////////////
 
-// nothing here yet
-
-    /////////////////////////
-    // SubsystemDescriptor //
-    /////////////////////////
-
-std::ostream& 
-operator<<(std::ostream& o, const SubsystemDescriptor& sd) {
-    o << "SubsystemDescriptor:\n"
-      << "  index="    << sd.subsystemIndex << "\n" 
-      << "  name='"    << sd.name << "'\n"
-      << "  version='" << sd.version << "'\n"
-      << "  constructionVarsIndex=" << sd.constructionVarsIndex << "\n"
-      << "  modelingVarsIndex="     << sd.modelingVarsIndex << "\n";
-    return o;
+void SubsystemRep::realize(const State& s, Stage g) const {
+    while (getStage(s) < g) {
+        switch (getStage(s)) {
+        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+        case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
+        case Stage::Modeled:      realizeParameters(s);    break;
+        case Stage::Parametrized: realizeTime(s);          break;
+        case Stage::Timed:        realizeConfiguration(s); break;
+        case Stage::Configured:   realizeMotion(s);        break;
+        case Stage::Moving:       realizeDynamics(s);      break;
+        case Stage::Dynamics:     realizeReaction(s);      break;
+        default: assert(!"System::realize(): bad stage");
+        }
+        advanceToStage(getSystemStage().next());
+    }
 }
-
 
 
 } // namespace SimTK

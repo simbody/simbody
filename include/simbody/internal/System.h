@@ -115,6 +115,9 @@ public:
     const String& getName()    const;
     const String& getVersion() const;
 
+    // Realize the Subsystem to the indicated Stage.
+    void realize(const State& s, Stage g) const;
+
 	bool isInSystem() const;
 	bool isInSameSystem(const System&) const;
 	const System& getSystem() const;
@@ -123,8 +126,6 @@ public:
 	int getMySubsystemIndex() const;
 
     void endConstruction();
-    void realizeConstruction(State&) const;
-    void realizeModeling(State&) const;
 
     /// Is this handle the owner of this rep? This is true if the
     /// handle is empty or if its rep points back here.

@@ -38,39 +38,6 @@ class System;
 class Subsystem;
 class Study;
 
-// An object of this class is stored as a construction-stage discrete variable
-// in a System's State, one for each Subsystem. The appropriate object can
-// then be found by each Subsystem, from which it can find the rest of
-// its private state entries. The 0th object is reserved for the System
-// itself.
-struct SubsystemDescriptor {
-    SubsystemDescriptor(int ix, const String& nm, const String& vers)
-      : subsystemIndex(ix), name(nm), version(vers),
-        constructionVarsIndex(-1), modelingVarsIndex(-1)
-    { 
-        SimTK_ASSERT1_ALWAYS(subsystemIndex >= 0,
-            "SubsystemDescriptor(int): index was negative (%d)",
-            subsystemIndex);
-    }
-
-    int     subsystemIndex;
-    String  name;
-    String  version;
-
-    // These are DiscreteVariable indices within the enclosing State.
-    // The first is expected to be Construction stage, the second is
-    // Modeling stage. The construction stage variable (if present)
-    // is typically there only for sanity checking the state.
-    // The modeling variable contains real information, plus the
-    // indices of all the remaining variables and cache entries
-    // belonging to this subsystem.
-    int     constructionVarsIndex;
-    int     modelingVarsIndex;
-};
-
-std::ostream& 
-operator<<(std::ostream& o, const SubsystemDescriptor&);
-
 class SubsystemRep {
 public:
 	SubsystemRep() 
@@ -91,9 +58,62 @@ public:
     const String& getName()    const {return subsystemName;}
     const String& getVersion() const {return subsystemVersion;}
 
+    void advanceToStage(const State& s, Stage g) const {
+        s.advanceSubsystemToStage(getMySubsystemIndex(), g);
+    }
+
+    // These pull out the State entries which belong exclusively to
+    // this Subsystem. These variables and cache entries are available
+    // as soon as this subsystem is at stage Modeled.
     Stage getStage(const State& s) const {
         return s.getSubsystemStage(getMySubsystemIndex());
     }
+    const AbstractValue& getDiscreteVariable(const State& s, int index) const {
+        return s.getDiscreteVariable(getMySubsystemIndex(), index);
+    }
+    // State is *not* mutable here -- must have write access to change state variables.
+    AbstractValue& updDiscreteVariable(State& s, int index) const {
+        return s.updDiscreteVariable(getMySubsystemIndex(), index);
+    }
+    const AbstractValue& getCacheEntry(const State& s, int index) const {
+        return s.getCacheEntry(getMySubsystemIndex(), index);
+    }
+    // State is mutable here.
+    AbstractValue& updCacheEntry(const State& s, int index) const {
+        return s.updCacheEntry(getMySubsystemIndex(), index);
+    }
+
+    // These return views on State shared global resources. The views
+    // are private to this subsystem, but the global resources themselves
+    // are not allocated until the *System* advances to stage Modeled.
+    // Note that there is no subsystem equivalent of the State's "Y"
+    // vector because in general a subsystem's state variables will
+    // not be contiguous. However, a subsystem's Q's, U's, and Z's
+    // will all be contiguous within those arrays.
+
+    const Vector& getQ(const State& s) const {return s.getQ(getMySubsystemIndex());}
+    const Vector& getU(const State& s) const {return s.getU(getMySubsystemIndex());}
+    const Vector& getZ(const State& s) const {return s.getZ(getMySubsystemIndex());}
+
+    // Not mutable: must have a writable state.
+    Vector& updQ(State& s) const {return s.updQ(getMySubsystemIndex());}
+    Vector& updU(State& s) const {return s.updU(getMySubsystemIndex());}
+    Vector& updZ(State& s) const {return s.updZ(getMySubsystemIndex());}
+
+    const Vector& getQDot   (const State& s) const {return s.getQDot(getMySubsystemIndex());}
+    const Vector& getUDot   (const State& s) const {return s.getUDot(getMySubsystemIndex());}
+    const Vector& getZDot   (const State& s) const {return s.getZDot(getMySubsystemIndex());}
+    const Vector& getQDotDot(const State& s) const {return s.getQDotDot(getMySubsystemIndex());}
+
+    // These are mutable
+    Vector& updQDot(const State& s) const {return s.updQDot(getMySubsystemIndex());}
+    Vector& updUDot(const State& s) const {return s.updUDot(getMySubsystemIndex());}
+    Vector& updZDot(const State& s) const {return s.updZDot(getMySubsystemIndex());}
+
+    // This is a separate shared cache entry, not part of YDot. If you
+    // have a direct 2nd order integrator you can integrate QDotDot
+    // (twice) to get Q.
+    Vector& updQDotDot() const; // Stage::Reacting-1
 
     SubsystemRep* clone() const {
 		assert(!isInSystem()); // TODO
@@ -104,8 +124,15 @@ public:
 
     virtual SubsystemRep* cloneSubsystemRep() const = 0;
     virtual void endConstruction() { }
-    virtual void realizeConstruction(State&) const = 0;
-    virtual void realizeModeling(State&) const = 0;
+
+    virtual void realizeConstruction (State& s)       const = 0;
+    virtual void realizeModeling     (State& s)       const = 0;
+    virtual void realizeParameters   (const State& s) const { }
+    virtual void realizeTime         (const State& s) const { }
+    virtual void realizeConfiguration(const State& s) const { }
+    virtual void realizeMotion       (const State& s) const { }
+    virtual void realizeDynamics     (const State& s) const { }
+    virtual void realizeReaction     (const State& s) const { }
 
 	bool isInSystem() const {return mySystem != 0;}
 	bool isInSameSystem(const System& sys) const {
@@ -171,19 +198,6 @@ public:
         dup->myHandle = 0;
         return dup;
     }
-
-	// Take over ownership from the Subsystem handle, and return the
-	// new handle. This is only allowed if the supplied Subsytem
-	// already has a rep, but is NOT part of some other System.
-	Subsystem& takeOverSubsystem(Subsystem& src) {
-		assert(src.hasRep() && !src.isInSystem()); // TODO
-		// Push an empty handle on the subsystem list
-		subsystems.resize(subsystems.size()+1);
-		Subsystem& s = subsystems.back();
-		s.setRep(src.updRep());			 // reference the passed-in rep
-		s.updRep().setMyHandle(s);	     // steal ownership
-		return s;
-	}
 
     virtual SystemRep* cloneSystemRep() const = 0;
 

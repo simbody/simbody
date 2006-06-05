@@ -68,17 +68,20 @@ public:
  * During Subsystem construction, variables and cache entries for any
  * stage can be allocated, however *all* Modeled stage variables
  * must be allocated during this time. At the end of construction,
- * call advanceToStage(Built) which will put the State at Stage::Built.
- * Then the Subsystems realize their Modeled stages, during which 
+ * call advanceSubsystemToStage(Built) which will put the Subsystem
+ * at Stage::Built. Then the Subsystems realize their Modeled stages, during which 
  * variables at any stage > Modeled, and cache entries at any stage
- * >= Modeled can be allocated. After that call advanceToStage(Modeled) which
- * sets the stage to Stage::Modeled and disallows further allocation.
+ * >= Modeled can be allocated. After that call advanceSubsystemToStage(Modeled)
+ * which sets the stage to Stage::Modeled and disallows further allocation.
  *
  * Note that there is a global Stage for the state as a whole, and individual
  * Stages for each subsystem. The global stage can never be higher than
  * the lowest subsystem stage. Global resources are allocated when the
  * global Stage advances to "Modeled" and tossed out if that stage is
- * invalidated.
+ * invalidated. Note that subsystems will "register" their use of the
+ * global variable pools during their own modeling stages, but that the
+ * actual global resources won't exist until the *system* has been
+ * advanced to Modeled stage.
  */
 class SimTK_SIMBODY_API State {
 public:
@@ -88,24 +91,39 @@ public:
     /// the 0th subsystem, which belongs to the System.
     State(const String& name, const String& version);
     ~State();
+
+    /// Make the current State a copy of the source state, copying only
+    /// state variables and not the cache. If the source state hasn't
+    /// been realized to Modeled stage, then we don't copy its state
+    /// variables either, except those associated with the Built stage.
     State(const State&);
+
+    /// Make the current State a copy of the source state, copying only
+    /// state variables and not the cache. If the source state hasn't
+    /// been realized to Modeled stage, then we don't copy its state
+    /// variables either, except those associated with the Built stage.
     State& operator=(const State&);
 
     /// Register a new subsystem as a client of this State. The
     /// supplied strings are stored with the State but are not
     /// interpreted by it. The intent is that they can be used to
     /// perform "santity checks" on deserialized States to make
-    /// sure they match the currently instatiated System.
+    /// sure they match the currently instantiated System.
     /// The subsystem index is returned. It will always be 
     /// greater than zero since the 0th subsystem is reserved for
     /// private State entries owned by the System itself.
     int addSubsystem(const String& name, const String& version);
 
     int getNSubsystems() const;
-    const String& getSubsystemName(int subsys) const;
+    const String& getSubsystemName   (int subsys) const;
     const String& getSubsystemVersion(int subsys) const;
+    const String& getSystemName()    const {return getSubsystemName(0);}
+    const String& getSystemVersion() const {return getSubsystemVersion(0);}
 
     const Stage& getSubsystemStage(int subsys) const;
+
+    /// This returns the *global* stage for this State; *not* the stage
+    /// of Subsystem 0.
     const Stage& getSystemStage() const;
 
     // If any subsystem or the system stage is currently at or
@@ -121,24 +139,58 @@ public:
     void advanceSubsystemToStage(int subsys, Stage) const;
     void advanceSystemToStage(Stage g) const;
 
-    int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
-    int allocateU(int subsys, const Vector& uInit); // udot                    "
-    int allocateZ(int subsys, const Vector& zInit); // zdot                    "
+    // These are shared among all the subsystems and are not allocated until
+    // the *System* is advanced to the Modeled stage. The returned index is
+    // local to each subsystem. After the System is Modeled, we guarantee that
+    // all the q's for a subsystem will be contiguous, and similarly for u's
+    // and z's. However, q,u,z will *not* be contiguous with each other.
+
+    int allocateQ(int subsys, int nq); // qdot, qdotdot also allocated in cache
+    int allocateU(int subsys, int nu); // udot                    "
+    int allocateZ(int subsys, int nz); // zdot                    "
+
+    // These are private to each subsystem and are allocated immediately.
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
     int allocateCacheEntry(int subsys, Stage, AbstractValue* v);
 
-    // You can call these as long as stage >= Modeled.
+    // Per-subsystem access to the global shared variables.
+    const Vector& getQ(int subsys) const;
+    const Vector& getU(int subsys) const;
+    const Vector& getZ(int subsys) const;
+
+    Vector& updQ(int subsys);
+    Vector& updU(int subsys);
+    Vector& updZ(int subsys);
+
+    // And to the shared cache entries.
+    const Vector& getQDot(int subsys) const;
+    const Vector& getUDot(int subsys) const;
+    const Vector& getZDot(int subsys) const;
+    const Vector& getQDotDot(int subsys) const;
+
+    Vector& updQDot(int subsys) const;    // these are mutable
+    Vector& updUDot(int subsys) const;
+    Vector& updZDot(int subsys) const;
+    Vector& updQDotDot(int subsys) const;
+
+    // You can call these as long as *system* stage >= Modeled.
     const Real&   getTime() const;
+    const Vector& getY() const; // {Q,U,Z} in that order
+
+    // These are just views into Y.
     const Vector& getQ() const;
     const Vector& getU() const;
     const Vector& getZ() const;
 
     // You can call these as long as stage >= Modeled, but the
     // stage will be backed up if necessary to the indicated stage.
-    Real&   updTime();  // Stage::Timed-1
-    Vector& updQ();     // Stage::Configured-1
-    Vector& updU();     // Stage::Moving-1
-    Vector& updZ();     // Stage::Dynamics-1
+    Real&   updTime();  // Back up to Stage::Timed-1
+    Vector& updY();     // Back up to Stage::Congfigured-1
+
+    // These are just views into Y.
+    Vector& updQ();     // Back up to Stage::Configured-1
+    Vector& updU();     // Back up to Stage::Moving-1
+    Vector& updZ();     // Back up to Stage::Dynamics-1
 
     const Vector& getQDot() const; // Stage::Moving
     const Vector& getZDot() const; // Stage::Dynamics
@@ -146,9 +198,16 @@ public:
     const Vector& getQDotDot() const; // Stage::Reacting
 
     // These are mutable
+    Vector& updYDot() const;    // Stage::Reacting-1
+
+    // These are just views into YDot.
     Vector& updQDot() const;    // Stage::Moving-1
     Vector& updZDot() const;    // Stage::Dynamics-1
     Vector& updUDot() const;    // Stage::Reacting-1
+
+    // This is a separate shared cache entry, not part of YDot. If you
+    // have a direct 2nd order integrator you can integrate QDotDot
+    // (twice) to get Q.
     Vector& updQDotDot() const; // Stage::Reacting-1
 
     // OK if dv.stage==Modeled or stage >= Modeled

@@ -281,22 +281,23 @@ void RigidBodyTree::realizeModeling(State& s) const {
     mc.timeVarsIndex = -1;
     mc.timeCacheIndex = -1;
 
-    // Position variables are just q's, which the State knows how to deal with. We don't know
-    // what values are reasonable for q's so we'll set them to NaN here.
-    Vector q(maxNQTotal); q.setToNaN();
-    setDefaultConfigurationValues(mv, q);
+    // Position variables are just q's, which the State knows how to deal with. 
 
-    mc.qIndex = s.allocateQ(getMySubsystemIndex(),q);
+    // TODO: where does this go now?
+    //setDefaultConfigurationValues(mv, q);
+
+    mc.qIndex = s.allocateQ(getMySubsystemIndex(), maxNQTotal);
     mc.qVarsIndex = -1; // no config vars other than q
     mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Configured, 
         new Value<SBConfigurationCache>());
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
-    Vector u(DOFTotal); u.setToZero();
-    setDefaultMotionValues(mv, u);
 
-    mc.uIndex = s.allocateU(getMySubsystemIndex(),u);
+    // TODO: where does this go now?
+    //setDefaultMotionValues(mv, u);
+
+    mc.uIndex = s.allocateU(getMySubsystemIndex(), DOFTotal);
     mc.uVarsIndex = -1; // no velocity vars other than u
     mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Moving, 
         new Value<SBMotionCache>());
