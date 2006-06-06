@@ -205,8 +205,8 @@ bool SimbodySubsystem::isConstraintEnabled(const State& s, int constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
 
 
-const VectorView SimbodySubsystem::getQ(const State& s) const {return getRep().getQ(s);}
-const VectorView SimbodySubsystem::getU(const State& s) const {return getRep().getU(s);}
+const Vector& SimbodySubsystem::getQ(const State& s) const {return getRep().getQ(s);}
+const Vector& SimbodySubsystem::getU(const State& s) const {return getRep().getU(s);}
 
 const Vector&
 SimbodySubsystem::getAppliedJointForces(const State& s) const {
@@ -219,8 +219,8 @@ SimbodySubsystem::getAppliedBodyForces(const State& s) const {
 
 void SimbodySubsystem::setQ(State& s, const Vector& q) const {getRep().setQ(s,q);}
 void SimbodySubsystem::setU(State& s, const Vector& u) const {getRep().setU(s,u);}
-VectorView SimbodySubsystem::updQ(State& s) const {return getRep().updQ(s);}
-VectorView SimbodySubsystem::updU(State& s) const {return getRep().updU(s);}
+Vector& SimbodySubsystem::updQ(State& s) const {return getRep().updQ(s);}
+Vector& SimbodySubsystem::updU(State& s) const {return getRep().updU(s);}
 
 void SimbodySubsystem::setJointQ(State& s, int body, int axis, const Real& r) const
   { return getRep().setJointQ(s,body,axis,r); }
@@ -263,9 +263,9 @@ const SpatialVec&
 SimbodySubsystem::getBodyAcceleration(const State& s, int body) const
   { return getRep().getBodyAcceleration(s,body); }
 
-const VectorView SimbodySubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
-const VectorView SimbodySubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
-const VectorView SimbodySubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
+const Vector& SimbodySubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
+const Vector& SimbodySubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
+const Vector& SimbodySubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
 
 } // namespace SimTK
 

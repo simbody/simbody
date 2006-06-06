@@ -448,37 +448,6 @@ public:
         updU(s) = u;
     }
 
-    const VectorView getQ(const State& s) const {
-        return s.getQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-    VectorView updQ(State& s) const {
-        return s.updQ()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-    const VectorView getQDot(const State& s) const {
-        return s.getQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-    VectorView updQDot(const State& s) const { // mutable
-        return s.updQDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-    const VectorView getQDotDot(const State& s) const {
-        return s.getQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-    VectorView updQDotDot(const State& s) const { // mutable
-        return s.updQDotDot()(getModelingCache(s).qIndex, constructionCache.maxNQs);
-    }
-
-    const VectorView getU(const State& s) const {
-        return s.getU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
-    }
-    VectorView updU(State& s) const {
-        return s.updU()(getModelingCache(s).uIndex, constructionCache.nDOFs);
-    }
-    const VectorView getUDot(const State& s) const {
-        return s.getUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
-    }
-    VectorView updUDot(const State& s) const { // mutable
-        return s.updUDot()(getModelingCache(s).uIndex, constructionCache.nDOFs);
-    }
 
 private:
     void addGroundNode();

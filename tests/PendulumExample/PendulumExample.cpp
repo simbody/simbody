@@ -115,6 +115,7 @@ public:
     }
 
     const SimbodySubsystem& getSimbodySubsystem() const {return pend;}
+    SimbodySubsystem&       updSimbodySubsystem()       {return pend;}
     const State& getState() const {return s;}
 
     void setTime(Real t) {s.updTime() = t;}
@@ -241,7 +242,8 @@ int main(int argc, char** argv) {
         myStudy.setAccuracy(1e-3);
         myStudy.setProjectEveryStep(true);
 
-        MultibodySystem mbs(myPend.getSimbodySubsystem(), EmptyForcesSubsystem());
+        //TODO: 'MySimbodyPendulum' should *be* a MultibodySystem.
+        MultibodySystem mbs(myPend.updSimbodySubsystem(), EmptyForcesSubsystem());
 
         VTKReporter display(mbs);
         //for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)

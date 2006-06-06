@@ -421,7 +421,6 @@ public:
                 nxtq += nq;
                 ss.u.viewAssign(u(nxtu, nu)); 
                 ss.u = ss.uInit;
-    XXX udot(0,0) should still be a vector with 1 col, zero rows
                 ss.udot.viewAssign(udot(nxtu, nu));
                 nxtu += nu;
                 ss.z.viewAssign(z(nxtz, nz));
