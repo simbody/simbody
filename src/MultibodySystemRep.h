@@ -164,13 +164,9 @@ class MultibodySystemRep : public SystemRep {
         VisualizationSubsystemIndex     = 5
     };
 public:
-    MultibodySystemRep(const MechanicalSubsystem& m, const MechanicalForcesSubsystem& f)
-        : SystemRep(6, "MultibodySystem", "0.0.1"), mech(m), forces(f)
+    MultibodySystemRep()
+      : SystemRep(3, "MultibodySystem", "0.0.1")  // TODO: should be 6
     {
-        //mech.endConstruction();     // in case user forgot ...
-        //forces.endConstruction();
-
-        bodies.resize(mech.getNBodies());
     }
     ~MultibodySystemRep() {
     }
@@ -195,40 +191,63 @@ public:
     }
 
     void realizeConstruction(State& s) const {
-        mech.realize(s, Stage::Built);
-        forces.realize(s, Stage::Built);
+        getMechanicalSubsystem().realize(s, Stage::Built);
+        getMechanicalForcesSubsystem().realize(s, Stage::Built);
     }
     void realizeModeling(State& s) const {
-        mech.realize(s, Stage::Modeled);
-        forces.realize(s, Stage::Modeled);
+        getMechanicalSubsystem().realize(s, Stage::Modeled);
+        getMechanicalForcesSubsystem().realize(s, Stage::Modeled);
     }
     void realizeParameters(const State& s) const {
-        mech.realize(s, Stage::Parametrized);
-        forces.realize(s, Stage::Parametrized);
+        getMechanicalSubsystem().realize(s, Stage::Parametrized);
+        getMechanicalForcesSubsystem().realize(s, Stage::Parametrized);
     }
     void realizeTime(const State& s) const {
-        mech.realize(s, Stage::Timed);
-        forces.realize(s, Stage::Timed);
+        getMechanicalSubsystem().realize(s, Stage::Timed);
+        getMechanicalForcesSubsystem().realize(s, Stage::Timed);
     }
     void realizeConfiguration(const State& s) const {
-        mech.realize(s, Stage::Configured);
-        forces.realize(s, Stage::Configured);
+        getMechanicalSubsystem().realize(s, Stage::Configured);
+        getMechanicalForcesSubsystem().realize(s, Stage::Configured);
     }
     void realizeMotion(const State& s) const {
-        mech.realize(s, Stage::Moving);
-        forces.realize(s, Stage::Moving);
+        getMechanicalSubsystem().realize(s, Stage::Moving);
+        getMechanicalForcesSubsystem().realize(s, Stage::Moving);
     }
     void realizeDynamics(const State& s) const {
-        forces.realize(s, Stage::Dynamics); // note order
-        mech.realize(s, Stage::Dynamics);
+        getMechanicalForcesSubsystem().realize(s, Stage::Dynamics); // note order
+        getMechanicalSubsystem().realize(s, Stage::Dynamics);
     }
     void realizeReaction(const State& s) const {
-        forces.realize(s, Stage::Reacting);
-        mech.realize(s, Stage::Reacting);
+        getMechanicalForcesSubsystem().realize(s, Stage::Reacting);
+        getMechanicalSubsystem().realize(s, Stage::Reacting);
     }
 
-    const MechanicalSubsystem&       getMechanicalSubsystem()       const {return mech;}
-    const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const {return forces;}
+    MechanicalSubsystem& setMechanicalSubsystem(MechanicalSubsystem& m) {
+        bodies.resize(m.getNBodies());
+        Subsystem& s = takeOverSubsystem(MechanicalSubsystemIndex, m);
+        return MechanicalSubsystem::updDowncast(s);
+    }
+    MechanicalForcesSubsystem& setMechanicalForcesSubsystem(MechanicalForcesSubsystem& f) {
+        Subsystem& s = takeOverSubsystem(MechanicalForcesSubsystemIndex, f);
+        return MechanicalForcesSubsystem::updDowncast(s);
+    }
+
+    const MechanicalSubsystem& getMechanicalSubsystem() const {
+        return MechanicalSubsystem::downcast(getSubsystem(MechanicalSubsystemIndex));
+    }
+    const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const {
+        return MechanicalForcesSubsystem::downcast(getSubsystem(MechanicalForcesSubsystemIndex));
+    }
+
+
+    MechanicalSubsystem& updMechanicalSubsystem() {
+        return MechanicalSubsystem::updDowncast(updSubsystem(MechanicalSubsystemIndex));
+    }
+    MechanicalForcesSubsystem& updMechanicalForcesSubsystem() {
+        return MechanicalForcesSubsystem::updDowncast(updSubsystem(MechanicalForcesSubsystemIndex));
+    }
+
     const Array<AnalyticGeometry>&   getBodyAnalyticGeometry(int bodyNum) const {
         return bodies[bodyNum].aGeom;
     }
@@ -238,9 +257,6 @@ public:
 
     SimTK_DOWNCAST(MultibodySystemRep, SystemRep);
 private:
-    const MechanicalSubsystem&       mech;
-    const MechanicalForcesSubsystem& forces;
-
     struct PerBodyInfo {
         Array<AnalyticGeometry>   aGeom;
         Array<DecorativeGeometry> dGeom;

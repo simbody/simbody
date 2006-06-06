@@ -77,8 +77,8 @@ void stateTest() {
     s.advanceSystemToStage(Stage::Built);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(0, 3);
-    long q2 = s.allocateQ(0, 2);
+    long q1 = s.allocateQ(0, v3);
+    long q2 = s.allocateQ(0, v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
@@ -204,7 +204,10 @@ try {
     //pend.endConstruction();
 
     EmptyForcesSubsystem noForces;
-    MultibodySystem mbs(pend, noForces);
+    MultibodySystem mbs;
+    mbs.takeOverSubsystem(1, pend);
+    mbs.takeOverSubsystem(2, noForces);
+
     VTKReporter vtk(mbs);
     DecorativeSphere sphere(0.25);
     sphere.setRepresentationToPoints();
@@ -231,6 +234,7 @@ try {
     vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
     mbs.realize(s, Stage::Built);
+    cout << "mbs State as built: " << s;
 
     vtk.report(s);
 

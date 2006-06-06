@@ -132,7 +132,12 @@ public:
 
     String name;
     String version;
-    int nq, nu, nz; 
+
+    // These accumulate default values for this subsystem's use of shared
+    // global state variables. After the System is advanced to Modeled
+    // stage, the state will allocate those globals and copy these initial
+    // values into them.
+    Vector qInit, uInit, zInit;
 
     // These are our own private views into partitions of the global
     // state and cache entries of the same names. These are valid
@@ -155,7 +160,6 @@ private:
     // This is for use in constructors. Everything that doesn't have
     // a reasonable default constructor gets set here.
     void initialize() {
-        nq = nu = nz = 0;
         nDiscreteWhenBuilt = -1;
         for (int i=0; i < Stage::NValid; ++i)
             cacheSize[i] = -1;
@@ -175,6 +179,7 @@ private:
         if (currentStage > Stage::Allocated) {
             clearReferencesToStateGlobals();
             discrete.clear(); cache.clear();
+            qInit.clear(); uInit.clear(); zInit.clear();
             initialize();
         }
     }
@@ -190,6 +195,7 @@ private:
         clearReferencesToStateGlobals();
         discrete.resize(nDiscreteWhenBuilt);
         restoreCacheToStage(Stage::Built);
+        qInit.clear(); uInit.clear(); zInit.clear();
         currentStage = Stage::Built;
     }
 
@@ -260,6 +266,9 @@ private:
 
         // This is the general case where Stage > Built.
         clearReferencesToStateGlobals();
+        qInit = src.qInit;
+        uInit = src.uInit;
+        zInit = src.zInit;
 
         // Copy *all* state variables since no more can be allocated
         // after Modeled stage.
@@ -379,9 +388,9 @@ public:
             // states and matching shared cache pools.
             int nq=0, nu=0, nz=0;
             for (int i=0; i<(int)subsystems.size(); ++i) {
-                nq += subsystems[i].nq;
-                nu += subsystems[i].nu;
-                nz += subsystems[i].nz;
+                nq += subsystems[i].qInit.size();
+                nu += subsystems[i].uInit.size();
+                nz += subsystems[i].zInit.size();
             }
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
@@ -402,13 +411,23 @@ public:
             int nxtq=0, nxtu=0, nxtz=0;
             for (int i=0; i<(int)subsystems.size(); ++i) {
                 PerSubsystemInfo& ss = subsystems[i];
-                ss.q.viewAssign(q(nxtq, ss.nq)); ss.qdot.viewAssign(qdot(nxtq, ss.nq));
-                ss.qdotdot.viewAssign(qdotdot(nxtq, ss.nq));
-                nxtq += ss.nq;
-                ss.u.viewAssign(u(nxtu, ss.nu)); ss.udot.viewAssign(udot(nxtu, ss.nu));
-                nxtu += ss.nu;
-                ss.z.viewAssign(z(nxtz, ss.nz)); ss.zdot.viewAssign(zdot(nxtz, ss.nz));
-                nxtz += ss.nz;
+                const int nq = ss.qInit.size();
+                const int nu = ss.uInit.size();
+                const int nz = ss.zInit.size();
+                ss.q.viewAssign(q(nxtq, nq)); 
+                ss.q = ss.qInit;
+                ss.qdot.viewAssign(qdot(nxtq, nq));
+                ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
+                nxtq += nq;
+                ss.u.viewAssign(u(nxtu, nu)); 
+                ss.u = ss.uInit;
+    XXX udot(0,0) should still be a vector with 1 col, zero rows
+                ss.udot.viewAssign(udot(nxtu, nu));
+                nxtu += nu;
+                ss.z.viewAssign(z(nxtz, nz));
+                ss.z = ss.zInit;
+                ss.zdot.viewAssign(zdot(nxtz, nz));
+                nxtz += nz;
             }
         }
 
@@ -560,6 +579,18 @@ State& State::operator=(const State& src) {
     return *this;
 }
 
+void State::setNSubsystems(int i) {
+    assert(i >= 1);
+    updRep().subsystems.clear();
+    updRep().subsystems.resize(i);
+}
+
+void State::initializeSubsystem(int i, const String& name, const String& version) {
+    updRep().updSubsystem(i).name = name;
+    updRep().updSubsystem(i).version = version;
+}
+
+
 int State::addSubsystem(const String& name, const String& version) {
     rep->subsystems.push_back(
         PerSubsystemInfo(name,version));
@@ -618,29 +649,32 @@ void State::advanceSystemToStage(Stage g) const {
 // We don't expect State entry allocations to be performance critical so
 // we'll keep error checking on even in Release mode.
 
-int State::allocateQ(int subsys, int nq) {
+int State::allocateQ(int subsys, const Vector& qInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateQ()");
 
     // Map to local subsystem Q; we'll total these up later.
-    const int nxt = rep->subsystems[subsys].nq;
-    rep->subsystems[subsys].nq += nq;
+    const int nxt = rep->subsystems[subsys].qInit.size();
+    rep->subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
+    rep->subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
     return nxt;
 }
 
-int State::allocateU(int subsys, int nu) {
+int State::allocateU(int subsys, const Vector& uInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateU()");
 
     // Map to local subsystem U; we'll total these up later.
-    const int nxt = rep->subsystems[subsys].nu;
-    rep->subsystems[subsys].nu += nu;
+    const int nxt = rep->subsystems[subsys].uInit.size();
+    rep->subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
+    rep->subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
     return nxt;
 }
-int State::allocateZ(int subsys, int nz) {
+int State::allocateZ(int subsys, const Vector& zInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateZ()");
 
     // Map to local subsystem Z; we'll total these up later.
-    const int nxt = rep->subsystems[subsys].nz;
-    rep->subsystems[subsys].nz += nz;
+    const int nxt = rep->subsystems[subsys].zInit.size();
+    rep->subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
+    rep->subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
     return nxt;
 }
 
@@ -981,9 +1015,9 @@ String State::toString() const {
 
         out += "  <DISCRETE VARS TODO>\n";
 
-        out += "  <Int name=nq>" + String(info.nq) + "</Int>\n";
-        out += "  <Int name=nu>" + String(info.nu) + "</Int>\n";
-        out += "  <Int name=nz>" + String(info.nz) + "</Int>\n";
+        out += "  <Vector name=qInit size=" + String(info.qInit.size()) + ">\n";
+        out += "  <Vector name=uInit size=" + String(info.uInit.size()) + ">\n";
+        out += "  <Vector name=zInit size=" + String(info.zInit.size()) + ">\n";
 
         out += "  <Vector name=q size=" + String(info.q.size()) + ">\n";
         out += "  <Vector name=u size=" + String(info.u.size()) + ">\n";

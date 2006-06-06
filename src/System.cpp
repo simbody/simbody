@@ -74,14 +74,25 @@ void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }
 
+Subsystem& System::takeOverSubsystem(int subsys, Subsystem& src) {
+    return updRep().takeOverSubsystem(subsys,src);
+}
+
     ///////////////
     // SystemRep //
     ///////////////
 
 void SystemRep::realize(const State& s, Stage g) const {
-    while (s.getSystemStage() < g) {
-        switch (s.getSystemStage()) {
-        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+    Stage stageNow;
+    while ((stageNow=s.getSystemStage()) < g) {
+        switch (stageNow) {
+        case Stage::Allocated: {
+            // Teach the State about the system & its subsystems.
+            State& mutableState = const_cast<State&>(s);
+            mutableState.setNSubsystems(getNSubsystems());
+            realizeConstruction(mutableState); 
+            break;
+        }
         case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
         case Stage::Modeled:      realizeParameters(s);    break;
         case Stage::Parametrized: realizeTime(s);          break;
@@ -91,7 +102,12 @@ void SystemRep::realize(const State& s, Stage g) const {
         case Stage::Dynamics:     realizeReaction(s);      break;
         default: assert(!"System::realize(): bad stage");
         }
-        s.advanceSystemToStage(s.getSystemStage().next());
+        // In case the concrete system didn't do anything with the
+        // System Subsystem (subsystem 0), we'll just bump its stage
+        // here.
+        if (s.getSubsystemStage(0) == stageNow)
+            s.advanceSubsystemToStage(0, stageNow.next());
+        s.advanceSystemToStage(stageNow.next());
     }
 }
 
@@ -156,7 +172,13 @@ int Subsystem::getMySubsystemIndex() const {return getRep().getMySubsystemIndex(
 void SubsystemRep::realize(const State& s, Stage g) const {
     while (getStage(s) < g) {
         switch (getStage(s)) {
-        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
+        case Stage::Allocated: {
+            State& mutableState = const_cast<State&>(s);
+            mutableState.initializeSubsystem(
+                getMySubsystemIndex(), getName(), getVersion());
+            realizeConstruction(mutableState); 
+            break;
+        }
         case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
         case Stage::Modeled:      realizeParameters(s);    break;
         case Stage::Parametrized: realizeTime(s);          break;
@@ -164,12 +186,50 @@ void SubsystemRep::realize(const State& s, Stage g) const {
         case Stage::Configured:   realizeMotion(s);        break;
         case Stage::Moving:       realizeDynamics(s);      break;
         case Stage::Dynamics:     realizeReaction(s);      break;
-        default: assert(!"System::realize(): bad stage");
+        default: assert(!"Subsystem::realize(): bad stage");
         }
-        advanceToStage(getSystemStage().next());
+        advanceToStage(s, getStage(s).next());
     }
 }
+    ////////////////////////////
+    // DefaultSystemSubsystem //
+    ////////////////////////////
 
+
+DefaultSystemSubsystem::DefaultSystemSubsystem() {
+    rep = new DefaultSystemSubsystemRep();
+    rep->setMyHandle(*this);
+}
+
+DefaultSystemSubsystem::DefaultSystemSubsystem(const String& sysName, const String& sysVersion) {
+    rep = new DefaultSystemSubsystemRep();
+    rep->setMyHandle(*this);
+}
+
+/*static*/ bool
+DefaultSystemSubsystem::isInstanceOf(const Subsystem& s) {
+    return DefaultSystemSubsystemRep::isA(s.getRep());
+}
+
+/*static*/ const DefaultSystemSubsystem&
+DefaultSystemSubsystem::downcast(const Subsystem& s) {
+    assert(DefaultSystemSubsystemRep::isA(s.getRep()));
+    return reinterpret_cast<const DefaultSystemSubsystem&>(s);
+}
+
+/*static*/ DefaultSystemSubsystem&
+DefaultSystemSubsystem::updDowncast(Subsystem& s) {
+    assert(DefaultSystemSubsystemRep::isA(s.getRep()));
+    return reinterpret_cast<DefaultSystemSubsystem&>(s);
+}
+
+DefaultSystemSubsystemRep& DefaultSystemSubsystem::updRep() {
+    return DefaultSystemSubsystemRep::downcast(*rep);
+}
+
+const DefaultSystemSubsystemRep& DefaultSystemSubsystem::getRep() const {
+    return DefaultSystemSubsystemRep::downcast(*rep);
+}
 
 } // namespace SimTK
 

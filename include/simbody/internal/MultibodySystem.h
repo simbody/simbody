@@ -110,11 +110,17 @@ private:
  */
 class SimTK_SIMBODY_API MultibodySystem : public System {
 public:
-    MultibodySystem() { }
-    MultibodySystem(const MechanicalSubsystem& m, const MechanicalForcesSubsystem& f);
+    MultibodySystem();
+    MultibodySystem(MechanicalSubsystem& m, MechanicalForcesSubsystem& f);
+
+    // Steals ownership of the source.
+    MechanicalSubsystem&       setMechanicalSubsystem(MechanicalSubsystem&);
+    MechanicalForcesSubsystem& setMechanicalForcesSubsystem(MechanicalForcesSubsystem&);
 
     const MechanicalSubsystem&       getMechanicalSubsystem()       const;
     const MechanicalForcesSubsystem& getMechanicalForcesSubsystem() const;
+    MechanicalSubsystem&             updMechanicalSubsystem();
+    MechanicalForcesSubsystem&       updMechanicalForcesSubsystem();
 
     // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
     // on two different bodies, marker at system COM)

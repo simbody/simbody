@@ -42,6 +42,21 @@ namespace SimTK {
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
+/*static*/ bool 
+MechanicalSubsystem::isInstanceOf(const Subsystem& s) {
+    return MechanicalSubsystemRep::isA(s.getRep());
+}
+/*static*/ const MechanicalSubsystem&
+MechanicalSubsystem::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MechanicalSubsystem&>(s);
+}
+/*static*/ MechanicalSubsystem&
+MechanicalSubsystem::updDowncast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MechanicalSubsystem&>(s);
+}
+
 const MechanicalSubsystemRep& 
 MechanicalSubsystem::getRep() const {
     return dynamic_cast<const MechanicalSubsystemRep&>(*rep);
@@ -127,6 +142,22 @@ void MechanicalSubsystem::setJointU(State& s, int body, int axis, const Real& u)
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
+
+/*static*/ bool 
+MechanicalForcesSubsystem::isInstanceOf(const Subsystem& s) {
+    return MechanicalForcesSubsystemRep::isA(s.getRep());
+}
+/*static*/ const MechanicalForcesSubsystem&
+MechanicalForcesSubsystem::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MechanicalForcesSubsystem&>(s);
+}
+/*static*/ MechanicalForcesSubsystem&
+MechanicalForcesSubsystem::updDowncast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MechanicalForcesSubsystem&>(s);
+}
+
 void MechanicalForcesSubsystem::realizeParameters(const State& s, const MechanicalSubsystem& m) const { 
     MechanicalForcesSubsystemRep::downcast(*rep).realizeParameters(s,m); 
 }
@@ -155,11 +186,28 @@ void MechanicalForcesSubsystem::realizeReaction(const State& s, const Mechanical
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
-MultibodySystem::MultibodySystem(const MechanicalSubsystem& m, 
-                                 const MechanicalForcesSubsystem& f)
-{
-    rep = new MultibodySystemRep(m,f);
+MultibodySystem::MultibodySystem() {
+    rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
+}
+
+MultibodySystem::MultibodySystem(MechanicalSubsystem& m, 
+                                 MechanicalForcesSubsystem& f)
+{
+    rep = new MultibodySystemRep();
+    rep->setMyHandle(*this);
+
+    setMechanicalSubsystem(m);
+    setMechanicalForcesSubsystem(f);
+}
+
+MechanicalSubsystem&       
+MultibodySystem::setMechanicalSubsystem(MechanicalSubsystem& m) {
+    return MultibodySystemRep::downcast(*rep).setMechanicalSubsystem(m);
+}
+MechanicalForcesSubsystem& 
+MultibodySystem::setMechanicalForcesSubsystem(MechanicalForcesSubsystem& f) {
+    return MultibodySystemRep::downcast(*rep).setMechanicalForcesSubsystem(f);
 }
 
 const MechanicalSubsystem&       
@@ -170,6 +218,16 @@ MultibodySystem::getMechanicalSubsystem() const {
 const MechanicalForcesSubsystem& 
 MultibodySystem::getMechanicalForcesSubsystem() const {
     return MultibodySystemRep::downcast(*rep).getMechanicalForcesSubsystem();
+}
+
+MechanicalSubsystem&       
+MultibodySystem::updMechanicalSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updMechanicalSubsystem();
+}
+
+MechanicalForcesSubsystem& 
+MultibodySystem::updMechanicalForcesSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updMechanicalForcesSubsystem();
 }
 
 // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations

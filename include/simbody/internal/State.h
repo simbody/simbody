@@ -92,6 +92,11 @@ public:
     State(const String& name, const String& version);
     ~State();
 
+    /// Must be at least 1 subsystem.
+    void setNSubsystems(int i);
+    void initializeSubsystem(int i, const String& name, const String& version);
+
+
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
     /// been realized to Modeled stage, then we don't copy its state
@@ -145,9 +150,9 @@ public:
     // all the q's for a subsystem will be contiguous, and similarly for u's
     // and z's. However, q,u,z will *not* be contiguous with each other.
 
-    int allocateQ(int subsys, int nq); // qdot, qdotdot also allocated in cache
-    int allocateU(int subsys, int nu); // udot                    "
-    int allocateZ(int subsys, int nz); // zdot                    "
+    int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
+    int allocateU(int subsys, const Vector& uInit); // udot                    "
+    int allocateZ(int subsys, const Vector& zInit); // zdot                    "
 
     // These are private to each subsystem and are allocated immediately.
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);

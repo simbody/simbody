@@ -76,6 +76,12 @@ public:
     /// Realize the entire System to the indicated Stage.
     void realize(const State& s, Stage g) const;
 
+    /// Take over ownership of the supplied subsystem and install it into 
+    /// the indicated subsystem slot, which must already exist and not
+    /// have anything in it. A reference to the new handle is returned,
+    /// exactly as though updSubsystem(subsys) had been called.
+    Subsystem& takeOverSubsystem(int subsys, Subsystem& src);
+
     /// How may Subsystems are in here?
     int getNSubsystems() const;
     /// Obtain read-only access to a particular subsystem by its index.
@@ -89,6 +95,7 @@ public:
     explicit System(class SystemRep* r) : rep(r) { }
     bool          hasRep() const {return rep!=0;}
     const SystemRep& getRep() const {assert(rep); return *rep;}
+    SystemRep&       updRep() const {assert(rep); return *rep;}
 protected:
     class SystemRep* rep;
 };
@@ -140,6 +147,21 @@ public:
 	void setRep(SubsystemRep& r) {assert(!rep); rep = &r;}
 protected:
     class SubsystemRep* rep;
+};
+
+/**
+ * This is a concrete Subsystem used by default as the 0th Subsystem of
+ * every System. Feel free to replace it with something useful!
+ */
+class SimTK_SIMBODY_API DefaultSystemSubsystem : public Subsystem {
+public:
+    DefaultSystemSubsystem();
+    DefaultSystemSubsystem(const String& sysName, const String& sysVersion);
+
+    SimTK_PIMPL_DOWNCAST(DefaultSystemSubsystem, Subsystem);
+private:
+    class DefaultSystemSubsystemRep& updRep();
+    const DefaultSystemSubsystemRep& getRep() const;
 };
 
 
