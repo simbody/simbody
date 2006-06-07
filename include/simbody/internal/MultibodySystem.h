@@ -67,6 +67,39 @@ public:
     void setJointQ(State&, int body, int axis, const Real&) const;
     void setJointU(State&, int body, int axis, const Real&) const;
 
+    /// This is available at Stage::Configured. These are *absolute* constraint
+    /// violations qerr=g(t,q), that is, they are unweighted.
+    const Vector& getQConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getQConstraintErrors(),
+    /// available whenever this subsystem has been realized to Stage::Configured.
+    /// This is the scalar quantity that we need to keep below "tol"
+    /// during integration.
+    const Real&   getQConstraintNorm(const State&) const;
+
+    /// This is available at Stage::Moving. These are *absolute* constraint
+    /// violations verr=v(t,q,u), that is, they are unweighted.
+    const Vector& getUConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getQConstraintErrors().
+    /// That is, this is the scalar quantity that we need to keep below "tol"
+    /// during integration.
+    const Real&   getUConstraintNorm(const State&) const;
+
+    /// This is a solver you can call after the State has been realized
+    /// to stage Timed (i.e., Configured-1). It will project the Q constraints
+    /// along the error norm so that getQConstraintNorm() <= tol, and will
+    /// project out the corresponding component of y_err so that y_err's Q norm
+    /// is reduced. Returns true if it does anything at all to State or y_err.
+    bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+
+    /// This is a solver you can call after the State has been realized
+    /// to stage Configured (i.e., Moving-1). It will project the U constraints
+    /// along the error norm so that getUConstraintNorm() <= tol, and will
+    /// project out the corresponding component of y_err so that y_err's U norm
+    /// is reduced.
+    bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+
     SimTK_PIMPL_DOWNCAST(MechanicalSubsystem, Subsystem);
 private:
     class MechanicalSubsystemRep& updRep();
@@ -98,6 +131,24 @@ class SimTK_SIMBODY_API MultibodySystem : public System {
 public:
     MultibodySystem();
     MultibodySystem(MechanicalSubsystem& m, MechanicalForcesSubsystem& f);
+
+    // We inherit realize() from System, and add constraint projection here.
+    // We are given a state whose continuous state variables y may violate
+    // a set of constraints at position (q) and velocity (u) levels. In addition
+    // we may be given a set of absolute error estimates y_err for y. This solver
+    // performs two operations:
+    //   (1) perform a least squares projection of y onto the constraint manifold,
+    //       using the error test norm to define the least-squares direction
+    //   (2) perform the same projection on y_err, returning a revised y_err which
+    //       has a smaller norm
+    // This routine returns true if any change was made to s or y_err, otherwise false.
+    // 
+
+    bool project(State& s, Vector& y_err, 
+                 const Real& tol,               // must achieve this tolerance or better
+                 const Real& dontProjectFac,    // skip projection if tol <= fac*tol
+                 const Real& targetTol          // when projecting, try for this (<= tol)
+                 ) const;
 
     // Steals ownership of the source.
     MechanicalSubsystem&       setMechanicalSubsystem(MechanicalSubsystem&);

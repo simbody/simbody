@@ -46,7 +46,6 @@ class AnalyticGeometry;
 class DecorativeGeometry;
 
 
-class MechanicalForcesSubsystemRep;
 class MechanicalSubsystemRep : public SubsystemRep {
 public:
     MechanicalSubsystemRep() { }
@@ -71,6 +70,29 @@ public:
 
     virtual void setJointQ(State&, int body, int axis, const Real&) const = 0;
     virtual void setJointU(State&, int body, int axis, const Real&) const = 0;
+
+    virtual const Vector& getQConstraintErrors(const State&) const {
+        static Vector dummy;
+        return dummy;
+    }
+    virtual const Real& getQConstraintNorm(const State&) const {
+        static Real dummy = 0;
+        return dummy;
+    }
+    virtual const Vector& getUConstraintErrors(const State&) const {
+        static Vector dummy;
+        return dummy;
+    }
+    virtual const Real& getUConstraintNorm(const State&) const {
+        static Real dummy = 0;
+        return dummy;
+    }
+    virtual bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const {
+        return false;
+    }
+    virtual bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const {
+        return false;
+    }
 
     SimTK_DOWNCAST(MechanicalSubsystemRep, SubsystemRep);
 };
@@ -146,6 +168,32 @@ public:
     {
     }
     ~MultibodySystemRep() {
+    }
+
+    
+    bool project(State& s, Vector& y_err,
+                 const Real& tol, const Real& dontProjectFac, 
+                 const Real& targetTol) const 
+    {
+        const MechanicalSubsystem& mech = getMechanicalSubsystem();
+        bool anyChange = false;
+
+        realize(s, Stage::Timed);
+        mech.realize(s, Stage::Configured);
+        const Real qerr = mech.getQConstraintNorm(s);
+        if (qerr > tol*dontProjectFac) {
+            if (mech.projectQConstraints(s, y_err, tol, targetTol))
+                anyChange = true;
+        }
+        realize(s, Stage::Configured);
+        mech.realize(s, Stage::Moving);
+        const Real uerr = mech.getUConstraintNorm(s);
+        if (uerr > tol*dontProjectFac) {
+            if (mech.projectUConstraints(s, y_err, tol, targetTol))
+                anyChange = true;
+        }
+
+        return anyChange;
     }
 
     // pure virtual

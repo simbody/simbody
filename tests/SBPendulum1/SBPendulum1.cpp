@@ -205,8 +205,8 @@ try {
 
     EmptyForcesSubsystem noForces;
     MultibodySystem mbs;
-    mbs.takeOverSubsystem(1, pend);
-    mbs.takeOverSubsystem(2, noForces);
+    mbs.setMechanicalSubsystem(pend);
+    mbs.setMechanicalForcesSubsystem(noForces);
 
     VTKReporter vtk(mbs);
     DecorativeSphere sphere(0.25);

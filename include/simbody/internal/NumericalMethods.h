@@ -77,7 +77,7 @@ namespace SimTK {
  * a translational constraint might be meters for large systems and nanometers
  * for molecules and in both cases one might consider 0.001 unit to be a
  * "small" violation (a millimeter or hundredth of an Angstrom). Velocity
- * constriants do not need separate units, but they require a notion of
+ * constraints do not need separate units, but they require a notion of
  * timescale. That is, what do you consider a significant amount of time?
  * Call that time ts; then a "unit" velocity constraint error is that velocity
  * which would result in a unit position error after a time ts.

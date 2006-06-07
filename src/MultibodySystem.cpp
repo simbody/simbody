@@ -116,6 +116,28 @@ void MechanicalSubsystem::setJointU(State& s, int body, int axis, const Real& u)
     MechanicalSubsystemRep::downcast(*rep).setJointU(s,body,axis,u); 
 }
 
+const Vector& MechanicalSubsystem::getQConstraintErrors(const State& s) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
+}
+const Real& MechanicalSubsystem::getQConstraintNorm(const State& s) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getQConstraintNorm(s); 
+}
+const Vector& MechanicalSubsystem::getUConstraintErrors(const State& s) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getUConstraintErrors(s); 
+}
+const Real& MechanicalSubsystem::getUConstraintNorm(const State& s) const { 
+    return MechanicalSubsystemRep::downcast(*rep).getUConstraintNorm(s); 
+}
+bool MechanicalSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
+    return MechanicalSubsystemRep::downcast(*rep).projectQConstraints(
+        s,y_err,tol,targetTol); 
+}
+bool MechanicalSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
+    return MechanicalSubsystemRep::downcast(*rep).projectUConstraints(
+        s,y_err,tol,targetTol); 
+}
+
+
     ///////////////////////////////
     // MechanicalForcesSubsystem //
     ///////////////////////////////
@@ -161,6 +183,16 @@ MultibodySystem::MultibodySystem(MechanicalSubsystem& m,
 
     setMechanicalSubsystem(m);
     setMechanicalForcesSubsystem(f);
+}
+
+bool MultibodySystem::project(State& s, Vector& y_err, 
+             const Real& tol,
+             const Real& dontProjectFac,
+             const Real& targetTol
+             ) const
+{
+    return MultibodySystemRep::downcast(*rep).project(
+                s,y_err,tol,dontProjectFac,targetTol);
 }
 
 MechanicalSubsystem&       
