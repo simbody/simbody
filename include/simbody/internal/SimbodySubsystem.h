@@ -118,33 +118,6 @@ public:
     /// call it then it will be called automatically by realizeConstruction().
     void endConstruction();
 
-    /// Allocate slots for modeling variables in the supplied State.
-    /// Note that this modifies the current subsystem to record where
-    /// in the State to find the modeling variables. (In turn the
-    /// modeling cache will tell us where to find everything else.)
-    void realizeConstruction(State&) const;
-
-    /// All Modeling choices are frozen after this call, and all remaining
-    /// State variables have been allocated and given appropriate initial
-    /// values. Modeling variables are NOT changed by this call. The
-    /// State's stage cannot be any higher than Built.
-    void realizeModeling    (State&) const;
-
-    void realizeParameters   (const State&) const;
-    void realizeTime         (const State&) const;
-    void realizeConfiguration(const State&) const;
-    void realizeMotion       (const State&) const;
-    void realizeDynamics     (const State&) const;
-
-    /// To generate a reaction (i.e., accelerations) from this State we
-    /// will need the help of a ForceSubsystem to extract its forces
-    /// from the State.
-    /// TODO: an alternative design would be not to allow this here
-    /// but to have the common parent System generate the reactions.
-    void realizeReaction     (const State&/*, const ForceSubsystem&*/) const;
-
-    void realize(const State& s, Stage g) const;
-
     // Operators
 
     /// Requires realization through Stage::Configured.

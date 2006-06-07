@@ -100,24 +100,6 @@ MechanicalSubsystem::getBodyVelocity(const State& s, int bodyNum) const {
     return MechanicalSubsystemRep::downcast(*rep).getBodyVelocity(s,bodyNum); 
 }
 
-void MechanicalSubsystem::realizeParameters(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeParameters(s); 
-}
-void MechanicalSubsystem::realizeTime(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeTime(s); 
-}
-void MechanicalSubsystem::realizeConfiguration(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeConfiguration(s); 
-}
-void MechanicalSubsystem::realizeMotion(const State& s) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeMotion(s); 
-}
-void MechanicalSubsystem::realizeDynamics(const State& s, const MechanicalForcesSubsystem& f) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeDynamics(s,f); 
-}
-void MechanicalSubsystem::realizeReaction(const State& s, const MechanicalForcesSubsystem& f) const { 
-    MechanicalSubsystemRep::downcast(*rep).realizeReaction(s,f); 
-}
 const Real&
 MechanicalSubsystem::getJointQ(const State& s, int body, int axis) const { 
     return MechanicalSubsystemRep::downcast(*rep).getJointQ(s,body,axis); 
@@ -157,26 +139,6 @@ MechanicalForcesSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<MechanicalForcesSubsystem&>(s);
 }
-
-void MechanicalForcesSubsystem::realizeParameters(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeParameters(s,m); 
-}
-void MechanicalForcesSubsystem::realizeTime(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeParameters(s,m); 
-}
-void MechanicalForcesSubsystem::realizeConfiguration(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeTime(s,m); 
-}
-void MechanicalForcesSubsystem::realizeMotion(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeMotion(s,m); 
-}
-void MechanicalForcesSubsystem::realizeDynamics(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeDynamics(s,m); 
-}
-void MechanicalForcesSubsystem::realizeReaction(const State& s, const MechanicalSubsystem& m) const { 
-    MechanicalForcesSubsystemRep::downcast(*rep).realizeReaction(s,m); 
-}
-
 
     /////////////////////
     // MultibodySystem //
@@ -249,15 +211,6 @@ const Array<DecorativeGeometry>&
 MultibodySystem::getBodyDecorativeGeometry(int body) {
     return MultibodySystemRep::downcast(*rep).getBodyDecorativeGeometry(body);
 }
-
-void MultibodySystem::realizeConstruction (State& s)       const {MultibodySystemRep::downcast(*rep).realizeConstruction(s); }
-void MultibodySystem::realizeModeling     (State& s)       const {MultibodySystemRep::downcast(*rep).realizeModeling(s);     }
-void MultibodySystem::realizeParameters   (const State& s) const {MultibodySystemRep::downcast(*rep).realizeParameters(s);   }
-void MultibodySystem::realizeTime         (const State& s) const {MultibodySystemRep::downcast(*rep).realizeTime(s);         }
-void MultibodySystem::realizeConfiguration(const State& s) const {MultibodySystemRep::downcast(*rep).realizeConfiguration(s);}
-void MultibodySystem::realizeMotion       (const State& s) const {MultibodySystemRep::downcast(*rep).realizeMotion(s);       }
-void MultibodySystem::realizeDynamics     (const State& s) const {MultibodySystemRep::downcast(*rep).realizeDynamics(s);     }
-void MultibodySystem::realizeReaction     (const State& s) const {MultibodySystemRep::downcast(*rep).realizeReaction(s);     }
 
 } // namespace SimTK
 

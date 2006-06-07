@@ -380,7 +380,7 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
     const Vector x = calcGInverse(s) * b;
 
     const SBModelingVars&       mv = getRBTree().getModelingVars(s);
-    const VectorView            q  = getRBTree().getQ(s);
+    const Vector&               q  = getRBTree().getQ(s);
     const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
 
     Vector       zu(getRBTree().getTotalDOF(),0.);
@@ -441,7 +441,7 @@ bool
 LengthConstraints::enforceConfigurationConstraints(State& s) const
 {
     assert(rbTree.getStage(s) >= Stage::Configured-1);
-    VectorView pos = rbTree.updQ(s);
+    Vector&    pos = rbTree.updQ(s);
 
     bool anyChanges = false;
 
@@ -466,8 +466,8 @@ bool
 LengthConstraints::enforceMotionConstraints(State& s) const
 {
     assert(rbTree.getStage(s) >= Stage(Stage::Moving).prev());
-    const VectorView pos = rbTree.getQ(s);
-    VectorView       vel = rbTree.updU(s);
+    const Vector&    pos = rbTree.getQ(s);
+    Vector&          vel = rbTree.updU(s);
 
     bool anyChanges = false;
 
@@ -504,7 +504,7 @@ LengthConstraints::enforceMotionConstraints(State& s) const
 void LengthSet::setPos(State& s, const Vector& pos) const
 {
     const SBModelingVars& mv = getRBTree().getModelingVars(s);
-    VectorView            q  = getRBTree().updQ(s);
+    Vector&               q  = getRBTree().updQ(s);
     SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
@@ -532,7 +532,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
 {
     const SBModelingVars&       mv = getRBTree().getModelingVars(s);
     const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-    VectorView                  u  = getRBTree().updU(s);
+    Vector&                     u  = getRBTree().updU(s);
     SBMotionCache&              mc = getRBTree().updMotionCache(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)

@@ -124,28 +124,20 @@ public:
     virtual void endConstruction() { }
 
     virtual void realizeConstruction(State& s) const { 
-        advanceToStage(s, Stage::Built);
     }
     virtual void realizeModeling(State& s) const { 
-        advanceToStage(s, Stage::Modeled);
     }
     virtual void realizeParameters(const State& s) const { 
-        advanceToStage(s, Stage::Parametrized);
     }
     virtual void realizeTime(const State& s) const { 
-        advanceToStage(s, Stage::Timed);
     }
     virtual void realizeConfiguration(const State& s) const { 
-        advanceToStage(s, Stage::Configured);
     }
     virtual void realizeMotion(const State& s) const { 
-        advanceToStage(s, Stage::Moving);
     }
     virtual void realizeDynamics(const State& s) const { 
-        advanceToStage(s, Stage::Dynamics);
     }
     virtual void realizeReaction(const State& s) const { 
-        advanceToStage(s, Stage::Reacting);
     }
 
 	bool isInSystem() const {return mySystem != 0;}

@@ -275,7 +275,8 @@ void RigidBodyTree::realizeModeling(State& s) const {
         s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Parametrized, 
                                    new Value<SBParameterVars>(pv));
     mc.parameterCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Parametrized, new Value<SBParameterCache>());
+        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Parametrized, 
+                             new Value<SBParameterCache>());
 
     // No time vars or cache
     mc.timeVarsIndex = -1;
@@ -355,7 +356,7 @@ void RigidBodyTree::realizeConfiguration(const State& s) const {
         "RigidBodyTree::realizeConfiguration()");
 
     const SBModelingVars& mv = getModelingVars(s);
-    const VectorView      q  = getQ(s);
+    const Vector&         q  = getQ(s);
 
     // Get the Configured-stage cache and make sure it has been allocated and initialized if needed.
     SBConfigurationCache& cc = updConfigurationCache(s);
@@ -376,14 +377,14 @@ void RigidBodyTree::realizeMotion(const State& s) const {
         "RigidBodyTree::realizeMotion()");
 
     const SBModelingVars&       mv = getModelingVars(s);
-    const VectorView            q  = getQ(s);
+    const Vector&               q  = getQ(s);
     const SBConfigurationCache& cc = getConfigurationCache(s);
-    const VectorView            u  = getU(s);
+    const Vector&               u  = getU(s);
 
     // Get the Motion-stage cache and make sure it has been allocated and initialized if needed.
     SBMotionCache&              mc   = updMotionCache(s);
     mc.allocate(constructionCache);
-    VectorView                  qdot = updQDot(s);
+    Vector&                     qdot = updQDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -419,8 +420,8 @@ void RigidBodyTree::realizeReaction(const State& s)  const {
         "RigidBodyTree::realizeReaction()");
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
-    VectorView          udot    = updUDot(s);
-    VectorView          qdotdot = updQDotDot(s);
+    Vector&             udot    = updUDot(s);
+    Vector&             qdotdot = updQDotDot(s);
     SBReactionCache&    rc      = updReactionCache(s);
     rc.allocate(constructionCache);
 
@@ -658,7 +659,7 @@ RigidBodyTree::getBodyAcceleration(const State& s, int body) const
 
 void RigidBodyTree::enforceConfigurationConstraints(State& s) const {
     const SBModelingVars& mv = getModelingVars(s);
-    VectorView            q  = updQ(s);
+    Vector&               q  = updQ(s);
 
     // Fix coordinates first.
     bool anyChange = false;
@@ -729,7 +730,7 @@ void RigidBodyTree::calcTreeForwardDynamics(
     Vector&              netHingeForces = rc.netHingeForces;
     Vector_<SpatialVec>& A_GB           = rc.bodyAccelerationInGround;
 
-    VectorView           udot           = updUDot(s);
+    Vector&              udot           = updUDot(s);
 
     calcTreeAccelerations(s, *jointForcesToUse, *bodyForcesToUse,
                           netHingeForces, A_GB, udot);
@@ -803,14 +804,14 @@ void RigidBodyTree::calcY(const State& s) const {
 // Calc acceleration: sweep from base to tip.
 void RigidBodyTree::calcTreeAccel(const State& s) const {
     const SBModelingVars&       mv      = getModelingVars(s);
-    const VectorView            q       = getQ(s);
+    const Vector&               q       = getQ(s);
     const SBConfigurationCache& cc      = getConfigurationCache(s);
-    const VectorView            u       = getU(s);
+    const Vector&               u       = getU(s);
     const SBDynamicsCache&      dc      = getDynamicsCache(s);
 
     SBReactionCache&            rc      = updReactionCache(s);
-    VectorView                  udot    = updUDot(s);
-    VectorView                  qdotdot = updQDotDot(s);
+    Vector&                     udot    = updUDot(s);
+    Vector&                     qdotdot = updQDotDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
@@ -878,7 +879,7 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
     const SBModelingVars&       mv = getModelingVars(s);
-    const VectorView            q  = getQ(s);
+    const Vector&               q  = getQ(s);
     const SBConfigurationCache& cc = getConfigurationCache(s);
 
     assert(u.size() == getTotalDOF());
@@ -893,9 +894,9 @@ void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) cons
 // Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
 void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
     const SBModelingVars&       mv = getModelingVars(s);
-    const VectorView            q  = getQ(s);
+    const Vector&               q  = getQ(s);
     const SBConfigurationCache& cc = getConfigurationCache(s);
-    const VectorView            u  = getU(s);
+    const Vector&               u  = getU(s);
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());

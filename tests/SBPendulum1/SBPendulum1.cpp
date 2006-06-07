@@ -238,15 +238,10 @@ try {
 
     vtk.report(s);
 
-//**********
-
-
-
-
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
-    pend.realize(s, Stage::Modeled);
+    mbs.realize(s, Stage::Modeled);
 
 
     vtk.report(s);
@@ -256,20 +251,23 @@ try {
    // pend.setJointQ(s,1,4,-2.2);
    // pend.setJointQ(s,1,5,-3.3);
 
-    pend.realize(s, Stage::Configured);
+    mbs.realize(s, Stage::Configured);
 
     Transform bodyConfig = pend.getBodyConfiguration(s, theBody);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
     pend.enforceConfigurationConstraints(s);
-    pend.realize(s, Stage::Configured);
+    mbs.realize(s, Stage::Configured);
+
+    cout << "-------> STATE after realize(Configured):" << s;
+    cout << "<------- STATE after realize(Configured)." << endl;
 
     cout << "after assembly body frame: " << pend.getBodyConfiguration(s,theBody); 
 
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
-    for (int i=1; i < pend.getNBodies()-1; ++i)
+    for (int i=1; i < pend.getNBodies(); ++i)
         dEdR[i] = SpatialVec(Vec3(0), Vec3(0.,2.,0.));
     Vector dEdQ;
     pend.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
@@ -282,7 +280,7 @@ try {
     pend.applyGravity(s, gravity);
     pend.applyJointForce(s, 1, 0, 147);
 
-    pend.realize(s, Stage::Moving);
+    mbs.realize(s, Stage::Moving);
     SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
     cout << "body vel: " << bodyVel << endl;
 
@@ -292,12 +290,12 @@ try {
     cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
     cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
 
-    pend.realize(s, Stage::Dynamics);
+    mbs.realize(s, Stage::Dynamics);
     Vector equivT;
     pend.calcTreeEquivalentJointForces(s, pend.getAppliedBodyForces(s), equivT);
     cout << "body forces -> equiv joint forces=" << equivT << endl;
 
-    pend.realize(s, Stage::Reacting);
+    mbs.realize(s, Stage::Reacting);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
     cout << "body acc: " << bodyAcc << endl;
@@ -321,10 +319,10 @@ try {
         if (t > tmax) break;
 
         pend.enforceConfigurationConstraints(s);
-        pend.realize(s,Stage::Configured);
+        mbs.realize(s,Stage::Configured);
 
         pend.enforceMotionConstraints(s);
-        pend.realize(s,Stage::Moving);
+        mbs.realize(s,Stage::Moving);
         const Vector qdot = pend.getQDot(s);
 
         pend.clearAppliedForces(s);
@@ -344,7 +342,7 @@ try {
 
         if (!(step % 100)) {
             cout << t << " " 
-                 << pend.getQ(s) << " " << pend.getU(s) 
+                 << s.getQ() << " " << s.getU() 
                  << endl;
             cout << "body config=" << x;
             cout << "body velocity=" << v << endl;
@@ -356,9 +354,9 @@ try {
         }
 
 
-        pend.realize(s, Stage::Reacting);
+        mbs.realize(s, Stage::Reacting);
 
-        const Vector udot = pend.getUDot(s);
+        const Vector udot = s.getUDot();
         Vector udot2;
         pend.calcTreeUDot(s, 
             pend.getAppliedJointForces(s),
@@ -370,8 +368,11 @@ try {
         }
 
         //cout << "qdot=" << qdot << "  udot=" << udot << endl;
-        pend.updQ(s) += h*qdot;
-        pend.updU(s) += h*udot;
+        //pend.updQ(s) += h*qdot;
+        //pend.updU(s) += h*udot;
+        mbs.realize(s, Stage::Reacting);
+        const Vector& ydot = s.getYDot();
+        s.updY() += h*ydot;
     }
 
 }

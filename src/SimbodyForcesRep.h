@@ -151,14 +151,12 @@ public:
         dynamicsCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Dynamics,
             new Value<DynamicsCache>());
         built = true;
-        advanceToStage(s, Stage::Built);
     }
 
     void realizeModeling(State& s) const {
         static const char* loc = "TwoPointSpring::realizeModeling()";
         SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Built, loc);
         // Sorry, no choices available at the moment.
-        advanceToStage(s, Stage::Modeled);
     }
 
     void realizeParameters(const State& s) const {
@@ -168,14 +166,12 @@ public:
         SimTK_VALUECHECK_NONNEG_ALWAYS(getNaturalLength(s), "naturalLength", loc);
 
         // Nothing to compute here.
-        advanceToStage(s, Stage::Parametrized);
     }
 
     void realizeTime(const State& s) const {
         static const char* loc = "TwoPointSpring::realizeTime()";
         SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Parametrized, loc);
         // Nothing to compute here.
-        advanceToStage(s, Stage::Timed);
     }
 
     void realizeConfiguration(const State& s) const {
@@ -196,15 +192,12 @@ public:
         const Real stretch  = cc.x - p.naturalLength;   // + -> tension, - -> compression
         cc.fmag             = p.stiffness * stretch;    // k(x-x0)
         cc.pe               = 0.5 * cc.fmag * stretch;
-
-        advanceToStage(s, Stage::Configured);
     }
 
     void realizeMotion(const State& s) const {
         static const char* loc = "TwoPointSpring::realizeMotion()";
         SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Configured, loc);
         // Nothing to compute here.
-        advanceToStage(s, Stage::Moving);
     }
 
     void realizeDynamics(const State& s) const {
@@ -215,15 +208,13 @@ public:
         DynamicsCache&            dc = updDynamicsCache(s);
 
         dc.f1_G = (cc.fmag/cc.x) * cc.v_G;  // NaNs if x (and hence v) is 0
-
-        advanceToStage(s, Stage::Dynamics);
     }
 
     void realizeReaction(const State& s) const {
         static const char* loc = "TwoPointSpring::realizeReaction()";
         SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Dynamics, loc);
+
         // Nothing to compute here.
-        advanceToStage(s, Stage::Reacting);
     }
 
     TwoPointSpringSubsystemRep* cloneSubsystemRep() const {return new TwoPointSpringSubsystemRep(*this);}
@@ -362,9 +353,6 @@ public:
 
     EmptyForcesSubsystemRep* cloneSubsystemRep() const 
       { return new EmptyForcesSubsystemRep(*this); }
-
-    void realizeConstruction(State&) const { }
-    void realizeModeling    (State&) const { }
 
     SimTK_DOWNCAST(EmptyForcesSubsystemRep,MechanicalForcesSubsystemRep);
 };

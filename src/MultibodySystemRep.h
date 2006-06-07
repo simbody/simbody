@@ -66,13 +66,6 @@ public:
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
     virtual const SpatialVec& getBodyVelocity     (const State&, int bodyNum) const = 0;
 
-    virtual void realizeParameters   (const State&) const { }
-    virtual void realizeTime         (const State&) const { }
-    virtual void realizeConfiguration(const State&) const { }
-    virtual void realizeMotion       (const State&) const { }
-    virtual void realizeDynamics     (const State&, const MechanicalForcesSubsystem&) const { }
-    virtual void realizeReaction     (const State&, const MechanicalForcesSubsystem&) const { }
-
     virtual const Real& getJointQ(const State&, int body, int axis) const = 0;
     virtual const Real& getJointU(const State&, int body, int axis) const = 0;
 
@@ -91,13 +84,6 @@ public:
     }
 
     const MechanicalSubsystem& getMechanicalSubsystem() const {return mech;}
-
-    virtual void realizeParameters   (const State&, const MechanicalSubsystem&) const { }
-    virtual void realizeTime         (const State&, const MechanicalSubsystem&) const { }
-    virtual void realizeConfiguration(const State&, const MechanicalSubsystem&) const { }
-    virtual void realizeMotion       (const State&, const MechanicalSubsystem&) const { }
-    virtual void realizeDynamics     (const State&, const MechanicalSubsystem&) const { }
-    virtual void realizeReaction     (const State&, const MechanicalSubsystem&) const { }
 
     SimTK_DOWNCAST(MechanicalForcesSubsystemRep, SubsystemRep);
 private:
@@ -133,15 +119,6 @@ public:
         const int bnum = b.getBodyNumber();
         return bnum < decorations.size() ? decorations[bnum] : empty;
     }
-
-    void realizeConstruction (State&)       const { }
-    void realizeModeling     (State&)       const { }
-    void realizeParameters   (const State&) const { }
-    void realizeTime         (const State&) const { }
-    void realizeConfiguration(const State&) const { }
-    void realizeMotion       (const State&) const { }
-    void realizeDynamics     (const State&) const { }
-    void realizeReaction     (const State&) const { }
 
     SimTK_DOWNCAST(VisualizationSubsystemRep, SubsystemRep);
 

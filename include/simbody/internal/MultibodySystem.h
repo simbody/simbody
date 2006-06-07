@@ -61,13 +61,6 @@ public:
     const Transform&  getBodyConfiguration(const State&, int bodyNum) const;
     const SpatialVec& getBodyVelocity(const State&, int bodyNum) const;
 
-    void realizeParameters   (const State&) const;
-    void realizeTime         (const State&) const;
-    void realizeConfiguration(const State&) const;
-    void realizeMotion       (const State&) const;
-    void realizeDynamics     (const State&, const MechanicalForcesSubsystem&) const;
-    void realizeReaction     (const State&, const MechanicalForcesSubsystem&) const;
-
     const Real& getJointQ(const State&, int body, int axis) const;
     const Real& getJointU(const State&, int body, int axis) const;
 
@@ -83,13 +76,6 @@ private:
 class SimTK_SIMBODY_API MechanicalForcesSubsystem : public Subsystem {
 public:
     MechanicalForcesSubsystem() { }
-
-    void realizeParameters   (const State&, const MechanicalSubsystem&) const;
-    void realizeTime         (const State&, const MechanicalSubsystem&) const;
-    void realizeConfiguration(const State&, const MechanicalSubsystem&) const;
-    void realizeMotion       (const State&, const MechanicalSubsystem&) const;
-    void realizeDynamics     (const State&, const MechanicalSubsystem&) const;
-    void realizeReaction     (const State&, const MechanicalSubsystem&) const;
 
     SimTK_PIMPL_DOWNCAST(MechanicalForcesSubsystem, Subsystem);
 private:
@@ -128,15 +114,6 @@ public:
     void addDecorativeGeometry(int body, const Transform& X_BG, const DecorativeGeometry&);
     const Array<AnalyticGeometry>&   getBodyAnalyticGeometry(int body);
     const Array<DecorativeGeometry>& getBodyDecorativeGeometry(int body);
-
-    void realizeConstruction(State& s) const;
-    void realizeModeling(State& s) const;
-    void realizeParameters(const State& s) const;
-    void realizeTime(const State& s) const;
-    void realizeConfiguration(const State& s) const;
-    void realizeMotion(const State& s) const;
-    void realizeDynamics(const State& s) const;
-    void realizeReaction(const State& s) const;
 
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);
 };

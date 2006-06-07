@@ -838,6 +838,14 @@ State::updTime() {  // Stage::Timed-1
 }
 
 Vector&
+State::updY() {    // Back to Stage::Configured-1
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updY()");
+    invalidateAll(Stage::Configured);
+    return rep->y;
+}
+
+Vector&
 State::updQ() {    // Stage::Configured-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updQ()");
@@ -859,6 +867,13 @@ State::updZ() {     // Stage::Dynamics-1
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updZ()");
     invalidateAll(Stage::Dynamics);
     return rep->z;
+}
+
+const Vector&
+State::getYDot() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Reacting, "State::getYDot()");
+    return rep->ydot;
 }
 
 

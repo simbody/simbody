@@ -101,35 +101,7 @@ int SimbodySubsystem::addWeldConstraint
 }
 
 // Note the lack of a State argument when completing construction.
-void SimbodySubsystem::endConstruction()                          {updRep().endConstruction();}
-
-void SimbodySubsystem::realizeConstruction(State& s)        const {getRep().realizeConstruction(s);}
-void SimbodySubsystem::realizeModeling    (State& s)        const {getRep().realizeModeling(s);}
-
-void SimbodySubsystem::realizeParameters   (const State& s) const {getRep().realizeParameters(s);}
-void SimbodySubsystem::realizeTime         (const State& s) const {getRep().realizeTime(s);}
-void SimbodySubsystem::realizeConfiguration(const State& s) const {getRep().realizeConfiguration(s);}
-void SimbodySubsystem::realizeMotion       (const State& s) const {getRep().realizeMotion(s);}
-void SimbodySubsystem::realizeDynamics     (const State& s) const {getRep().realizeDynamics(s);}
-void SimbodySubsystem::realizeReaction     (const State& s) const {getRep().realizeReaction(s);}
-
-void SimbodySubsystem::realize(const State& s, Stage g) const {
-    while (s.getSubsystemStage(getMySubsystemIndex()) < g) {
-        switch (s.getSubsystemStage(getMySubsystemIndex())) {
-        case Stage::Allocated:    realizeConstruction(const_cast<State&>(s)); break;
-        case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
-        case Stage::Modeled:      realizeParameters(s);    break;
-        case Stage::Parametrized: realizeTime(s);          break;
-        case Stage::Timed:        realizeConfiguration(s); break;
-        case Stage::Configured:   realizeMotion(s);        break;
-        case Stage::Moving:       realizeDynamics(s);      break;
-        case Stage::Dynamics:     realizeReaction(s);      break;
-        default: assert(!"SimbodySubsystem::realize(): bad stage");
-        }
-        s.advanceSubsystemToStage(getMySubsystemIndex(),
-                                 s.getSubsystemStage(getMySubsystemIndex()).next());
-    }
-}
+void SimbodySubsystem::endConstruction() {updRep().endConstruction();}
 
 void SimbodySubsystem::calcInternalGradientFromSpatial(const State& s,
     const Vector_<SpatialVec>& dEdR,

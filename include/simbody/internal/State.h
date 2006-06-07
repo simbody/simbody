@@ -197,6 +197,8 @@ public:
     Vector& updU();     // Back up to Stage::Moving-1
     Vector& updZ();     // Back up to Stage::Dynamics-1
 
+    const Vector& getYDot() const; // Stage::Reacting
+
     const Vector& getQDot() const; // Stage::Moving
     const Vector& getZDot() const; // Stage::Dynamics
     const Vector& getUDot() const; // Stage::Reacting

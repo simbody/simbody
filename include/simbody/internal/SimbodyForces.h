@@ -99,7 +99,6 @@ public:
         return *this;
     }
 
-
     SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, MechanicalForcesSubsystem);
 private:
     class EmptyForcesSubsystemRep& updRep();
