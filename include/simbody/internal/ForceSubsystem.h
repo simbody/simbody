@@ -1,4 +1,7 @@
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+#ifndef SimTK_SIMBODY_FORCE_SUBSYSTEM_H_
+#define SimTK_SIMBODY_FORCE_SUBSYSTEM_H_
+
+/* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -21,48 +24,22 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/**@file
- *
- * Implementation of SimbodyForcesSubsystem and SimbodyForcesSubsystemRep.
- */
-
-#include "Simbody.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "SimbodyForcesRep.h"
-
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/Subsystem.h"
 
 namespace SimTK {
 
+class SimTK_SIMBODY_API ForceSubsystem : public Subsystem {
+public:
+    ForceSubsystem() { }
 
-    //////////////////////////
-    // EmptyForcesSubsystem //
-    //////////////////////////
+    SimTK_PIMPL_DOWNCAST(ForceSubsystem, Subsystem);
+private:
+    class ForceSubsystemRep& updRep();
+    const ForceSubsystemRep& getRep() const;
+};
 
-EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
-    rep = new EmptyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
-
-    ////////////////////////////
-    // SimbodyForcesSubsystem //
-    ////////////////////////////
-/*
-SimbodyForcesSubsystem::SimbodyForcesSubsystem() : MechanicalForcesSubsystem() {
-    rep = new SimbodyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
-
-SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::updRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-const SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::getRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-
-const Real& SimbodyForcesSubsystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
-}
-*/
 } // namespace SimTK
 
+#endif // SimTK_SIMBODY_FORCE_SUBSYSTEM_H_

@@ -33,6 +33,10 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
+#include "simbody/internal/Subsystem.h"
+#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodySubsystem.h"
 #include "simbody/internal/SimbodyForces.h"
 

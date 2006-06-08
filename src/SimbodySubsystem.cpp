@@ -38,7 +38,7 @@ using std::endl;
 
 namespace SimTK {
 
-SimbodySubsystem::SimbodySubsystem() : MechanicalSubsystem() {
+SimbodySubsystem::SimbodySubsystem() : MatterSubsystem() {
     rep = new RigidBodyTree();
     rep->setMyHandle(*this);
 }

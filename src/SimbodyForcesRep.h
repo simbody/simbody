@@ -33,9 +33,10 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/SimbodyForces.h"
 
-#include "MultibodySystemRep.h"
+#include "ForceSubsystemRep.h"
 
 
 namespace SimTK {
@@ -57,7 +58,7 @@ namespace SimTK {
 //    f2 = d pe/d s2 = -k(x-x0)v/x.
 // Note that force is undefined when x=0; we'll return NaN vectors in that case.
 
-class TwoPointSpringSubsystemRep : public MechanicalForcesSubsystemRep {
+class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
 
     // state entries
     struct Parameters {
@@ -124,11 +125,11 @@ class TwoPointSpringSubsystemRep : public MechanicalForcesSubsystemRep {
 
 
 public:
-    TwoPointSpringSubsystemRep(const MechanicalSubsystem& m,
+    TwoPointSpringSubsystemRep(const MatterSubsystem& m,
                    int b1, const Vec3& s1,
                    int b2, const Vec3& s2,
                    const Real& k, const Real& x0)
-     : MechanicalForcesSubsystemRep("TwoPointSpringSubsystem", "0.0.1", m), 
+     : ForceSubsystemRep("TwoPointSpringSubsystem", "0.0.1", m), 
        body1(b1), body2(b2), station1(s1), station2(s2),
        defaultParameters(k,x0), built(false)
     {
@@ -181,8 +182,8 @@ public:
         const Parameters&   p  = getParameters(s);
         ConfigurationCache& cc = updConfigurationCache(s);
 
-        const Transform& X_GB1 = getMechanicalSubsystem().getBodyConfiguration(s, body1);
-        const Transform& X_GB2 = getMechanicalSubsystem().getBodyConfiguration(s, body2);
+        const Transform& X_GB1 = getMatterSubsystem().getBodyConfiguration(s, body1);
+        const Transform& X_GB2 = getMatterSubsystem().getBodyConfiguration(s, body2);
         const Vec3 p1_G = X_GB1*station1;
         const Vec3 p2_G = X_GB2*station2;
 
@@ -344,17 +345,17 @@ private:
 */
 
 
-class EmptyForcesSubsystemRep : public MechanicalForcesSubsystemRep {
+class EmptyForcesSubsystemRep : public ForceSubsystemRep {
 public:
     EmptyForcesSubsystemRep()
-      : MechanicalForcesSubsystemRep("EmptyForcesSubsystem", "0.0.1", MechanicalSubsystem()) { }
-    EmptyForcesSubsystemRep(const MechanicalSubsystem& m) 
-      : MechanicalForcesSubsystemRep("EmptyForcesSubsystem", "0.0.1", m) { }
+      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1", MatterSubsystem()) { }
+    EmptyForcesSubsystemRep(const MatterSubsystem& m) 
+      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1", m) { }
 
     EmptyForcesSubsystemRep* cloneSubsystemRep() const 
       { return new EmptyForcesSubsystemRep(*this); }
 
-    SimTK_DOWNCAST(EmptyForcesSubsystemRep,MechanicalForcesSubsystemRep);
+    SimTK_DOWNCAST(EmptyForcesSubsystemRep,ForceSubsystemRep);
 };
 
 } // namespace SimTK

@@ -3,8 +3,9 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/SimbodySubsystem.h"
+
 #include "SimbodyTreeState.h"
-#include "MultibodySystemRep.h"
+#include "MatterSubsystemRep.h"
 
 using namespace SimTK;
 
@@ -51,10 +52,10 @@ class LengthConstraints;
  * RigidBodyTree is the owner of the RigidBodyNode objects (which are abstract), pointers to
  * which are stored in the tree.
  */
-class RigidBodyTree : public MechanicalSubsystemRep {
+class RigidBodyTree : public SimTK::MatterSubsystemRep {
 public:
     RigidBodyTree() 
-      : MechanicalSubsystemRep(), 
+      : MatterSubsystemRep(), 
         nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), constructionCacheIndex(-1), lConstraints(0) 
     { 
@@ -487,7 +488,7 @@ private:
         int level, offset;
     };
 
-    SimTK_DOWNCAST(RigidBodyTree, MechanicalSubsystemRep);
+    SimTK_DOWNCAST(RigidBodyTree, MatterSubsystemRep);
 
 private:
     // Initialize to 0 at beginning of construction. These are for doling

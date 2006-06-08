@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SYSTEM_H_
-#define SimTK_SIMBODY_SYSTEM_H_
+#ifndef SimTK_SYSTEM_H_
+#define SimTK_SYSTEM_H_
 
 /* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
@@ -26,15 +26,11 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/State.h"
 
 namespace SimTK {
 
-class AnalyticGeometry;
-class DecorativeGeometry;
-class System;
+class State;
 class Subsystem;
-class Study;
 
 /**
  * The abstract parent of all Systems.
@@ -100,70 +96,6 @@ protected:
     class SystemRep* rep;
 };
 
-/**
- * The abstract parent of all Subsystems.
- * A Subsystem is expected to be part of a larger System and to have
- * interdependencies with other subsystems of that same system. It
- * must NOT have dependencies on objects which are outside the system.
- * Consequently construction of any concrete subsystem requires
- * specification of a system at that time.
- * Subsystems go through an extended construction phase in which
- * their contents and interdependencies are created. Thus all
- * of a system's subsystems generally need to be available simultaneously 
- * during construction, so that they can reference each other.
- */
-class SimTK_SIMBODY_API Subsystem {
-public:
-    Subsystem() : rep(0) { }
-    ~Subsystem();
-    Subsystem(const Subsystem&);
-    Subsystem& operator=(const Subsystem&);
-
-    const String& getName()    const;
-    const String& getVersion() const;
-
-    // Realize the Subsystem to the indicated Stage.
-    void realize(const State& s, Stage g) const;
-
-	bool isInSystem() const;
-	bool isInSameSystem(const System&) const;
-	const System& getSystem() const;
-	System&       updSystem();
-
-	int getMySubsystemIndex() const;
-
-    void endConstruction();
-
-    /// Is this handle the owner of this rep? This is true if the
-    /// handle is empty or if its rep points back here.
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-
-    // Internal use only
-    explicit Subsystem(class SubsystemRep* r) : rep(r) { }
-    bool                hasRep() const {return rep!=0;}
-    const SubsystemRep& getRep() const {assert(rep); return *rep;}
-    SubsystemRep&       updRep() const {assert(rep); return *rep;}
-	void setRep(SubsystemRep& r) {assert(!rep); rep = &r;}
-protected:
-    class SubsystemRep* rep;
-};
-
-/**
- * This is a concrete Subsystem used by default as the 0th Subsystem of
- * every System. Feel free to replace it with something useful!
- */
-class SimTK_SIMBODY_API DefaultSystemSubsystem : public Subsystem {
-public:
-    DefaultSystemSubsystem();
-    DefaultSystemSubsystem(const String& sysName, const String& sysVersion);
-
-    SimTK_PIMPL_DOWNCAST(DefaultSystemSubsystem, Subsystem);
-private:
-    class DefaultSystemSubsystemRep& updRep();
-    const DefaultSystemSubsystemRep& getRep() const;
-};
-
 
 /// The abstract parent of all Studies.
 class SimTK_SIMBODY_API Study {
@@ -194,4 +126,4 @@ protected:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_SYSTEM_H_
+#endif // SimTK_SYSTEM_H_

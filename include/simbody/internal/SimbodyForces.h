@@ -32,13 +32,13 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
-#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/ForceSubsystem.h"
 
 #include <cassert>
 
 namespace SimTK {
 
-class SimTK_SIMBODY_API SimbodyForcesSubsystem : public MechanicalForcesSubsystem {
+class SimTK_SIMBODY_API SimbodyForcesSubsystem : public ForceSubsystem {
 public:
     SimbodyForcesSubsystem();
 
@@ -46,10 +46,10 @@ public:
     ~SimbodyForcesSubsystem() {
     }
     SimbodyForcesSubsystem(SimbodyForcesSubsystem& e) 
-      : MechanicalForcesSubsystem(e) {
+      : ForceSubsystem(e) {
     }
     SimbodyForcesSubsystem& operator=(SimbodyForcesSubsystem& e) {
-        MechanicalForcesSubsystem::operator=(e);
+        ForceSubsystem::operator=(e);
         return *this;
     }
 
@@ -74,7 +74,7 @@ public:
                            const Real&    damping);
 
 
-    SimTK_PIMPL_DOWNCAST(SimbodyForcesSubsystem, MechanicalForcesSubsystem);
+    SimTK_PIMPL_DOWNCAST(SimbodyForcesSubsystem, ForceSubsystem);
 private:
     class SimbodyForcesSubsystemRep& updRep();
     const SimbodyForcesSubsystemRep& getRep() const;
@@ -84,7 +84,7 @@ private:
 /**
  * This is a concrete subsystem which applies no forces.
  */
-class SimTK_SIMBODY_API EmptyForcesSubsystem : public MechanicalForcesSubsystem {
+class SimTK_SIMBODY_API EmptyForcesSubsystem : public ForceSubsystem {
 public:
     EmptyForcesSubsystem();
 
@@ -92,14 +92,14 @@ public:
     ~EmptyForcesSubsystem() {
     }
     EmptyForcesSubsystem(EmptyForcesSubsystem& e) 
-      : MechanicalForcesSubsystem(e) {
+      : ForceSubsystem(e) {
     }
     EmptyForcesSubsystem& operator=(EmptyForcesSubsystem& e) {
-        MechanicalForcesSubsystem::operator=(e);
+        ForceSubsystem::operator=(e);
         return *this;
     }
 
-    SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, MechanicalForcesSubsystem);
+    SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, ForceSubsystem);
 private:
     class EmptyForcesSubsystemRep& updRep();
     const EmptyForcesSubsystemRep& getRep() const;

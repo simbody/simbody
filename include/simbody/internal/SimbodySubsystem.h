@@ -4,7 +4,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
-#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/MatterSubsystem.h"
 
 #include <cassert>
 #include <vector>
@@ -47,7 +47,7 @@ class MassProperties;
  *
  * NOTE: none of the above matrices are actually formed or factored!
  */
-class SimTK_SIMBODY_API SimbodySubsystem : public MechanicalSubsystem {
+class SimTK_SIMBODY_API SimbodySubsystem : public MatterSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodySubsystem();
@@ -56,14 +56,14 @@ public:
     // have around explicitly for debugging.
     ~SimbodySubsystem() {
     }
-    SimbodySubsystem(const SimbodySubsystem& ss) : MechanicalSubsystem(ss) {
+    SimbodySubsystem(const SimbodySubsystem& ss) : MatterSubsystem(ss) {
     }
     SimbodySubsystem& operator=(const SimbodySubsystem& ss) {
-        MechanicalSubsystem::operator=(ss);
+        MatterSubsystem::operator=(ss);
         return *this;
     }
 
-    MechanicalSubsystem* cloneMechanicalSubsystem() const {
+    MatterSubsystem* cloneMatterSubsystem() const {
         return new SimbodySubsystem(*this);
     }
 
@@ -286,7 +286,7 @@ public:
     const Vector& getUDot   (const State&) const;
     const Vector& getQDotDot(const State&) const;
 
-    SimTK_PIMPL_DOWNCAST(SimbodySubsystem, MechanicalSubsystem);
+    SimTK_PIMPL_DOWNCAST(SimbodySubsystem, MatterSubsystem);
 private:
     const RigidBodyTree& getRep() const;
     RigidBodyTree&       updRep();

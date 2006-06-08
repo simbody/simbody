@@ -56,6 +56,7 @@
 #include "Simmatrix.h"
 #include "Simbody.h"
 
+#include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
 #include <string>
@@ -205,8 +206,8 @@ try {
 
     EmptyForcesSubsystem noForces;
     MultibodySystem mbs;
-    mbs.setMechanicalSubsystem(pend);
-    mbs.setMechanicalForcesSubsystem(noForces);
+    mbs.setMatterSubsystem(pend);
+    mbs.setForceSubsystem(noForces);
 
     VTKReporter vtk(mbs);
     DecorativeSphere sphere(0.25);

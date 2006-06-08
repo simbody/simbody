@@ -22,6 +22,9 @@
  */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
 #include "vtkCommand.h"
@@ -221,7 +224,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renWin->AddRenderer(renderer);
 
-    const MechanicalSubsystem& sbs = mbs.getMechanicalSubsystem();
+    const MatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
 
     setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
@@ -284,7 +287,7 @@ void VTKReporterRep::report(const State& s) {
 
     mbs.realize(s, Stage::Configured); // just in case
 
-    const MechanicalSubsystem& mech = mbs.getMechanicalSubsystem();
+    const MatterSubsystem& mech = mbs.getMatterSubsystem();
     for (int i=1; i<mech.getNBodies(); ++i) {
         const Transform& config = mech.getBodyConfiguration(s, i);
         setConfiguration(i, config);

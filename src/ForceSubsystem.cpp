@@ -1,4 +1,4 @@
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -24,45 +24,39 @@
 
 /**@file
  *
- * Implementation of SimbodyForcesSubsystem and SimbodyForcesSubsystemRep.
+ * Implementation of ForceSubsystem, a still-abstract Subsystem.
  */
 
-#include "Simbody.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
-#include "SimbodyForcesRep.h"
 
+#include "ForceSubsystemRep.h"
 
 namespace SimTK {
 
+    ////////////////////
+    // ForceSubsystem //
+    ////////////////////
 
-    //////////////////////////
-    // EmptyForcesSubsystem //
-    //////////////////////////
+// Default constructor is inline and creates an empty handle.
+// Default copy & assignment just copy the parent class.
+// Default destructor destructs the parent class.
 
-EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
-    rep = new EmptyForcesSubsystemRep();
-    rep->setMyHandle(*this);
+
+/*static*/ bool 
+ForceSubsystem::isInstanceOf(const Subsystem& s) {
+    return ForceSubsystemRep::isA(s.getRep());
+}
+/*static*/ const ForceSubsystem&
+ForceSubsystem::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const ForceSubsystem&>(s);
+}
+/*static*/ ForceSubsystem&
+ForceSubsystem::updDowncast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<ForceSubsystem&>(s);
 }
 
-    ////////////////////////////
-    // SimbodyForcesSubsystem //
-    ////////////////////////////
-/*
-SimbodyForcesSubsystem::SimbodyForcesSubsystem() : MechanicalForcesSubsystem() {
-    rep = new SimbodyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
-
-SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::updRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-const SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::getRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-
-const Real& SimbodyForcesSubsystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
-}
-*/
 } // namespace SimTK
 

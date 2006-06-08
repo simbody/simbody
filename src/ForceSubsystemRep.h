@@ -1,4 +1,7 @@
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+#ifndef SimTK_SIMBODY_FORCE_SUBSYSTEM_REP_H_
+#define SimTK_SIMBODY_FORCE_SUBSYSTEM_REP_H_
+
+/* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -21,48 +24,34 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-/**@file
- *
- * Implementation of SimbodyForcesSubsystem and SimbodyForcesSubsystemRep.
+/** @file
+ * Define the private implementation of the ForceSubsystem.
  */
 
-#include "Simbody.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "SimbodyForcesRep.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 
+#include "SubsystemRep.h"
 
 namespace SimTK {
 
+class MatterSubsystem;
 
-    //////////////////////////
-    // EmptyForcesSubsystem //
-    //////////////////////////
+class ForceSubsystemRep : public SubsystemRep {
+public:
+    ForceSubsystemRep(const String& name, const String& version,
+                      const MatterSubsystem& m) 
+        : SubsystemRep(name,version), mech(m) 
+    {
+    }
 
-EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
-    rep = new EmptyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
+    const MatterSubsystem& getMatterSubsystem() const {return mech;}
 
-    ////////////////////////////
-    // SimbodyForcesSubsystem //
-    ////////////////////////////
-/*
-SimbodyForcesSubsystem::SimbodyForcesSubsystem() : MechanicalForcesSubsystem() {
-    rep = new SimbodyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
+    SimTK_DOWNCAST(ForceSubsystemRep, SubsystemRep);
+private:
+    const MatterSubsystem& mech;
+};
 
-SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::updRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-const SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::getRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-
-const Real& SimbodyForcesSubsystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
-}
-*/
 } // namespace SimTK
 
+#endif // SimTK_SIMBODY_FORCE_SUBSYSTEM_REP_H_

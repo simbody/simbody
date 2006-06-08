@@ -32,9 +32,6 @@
  */
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/State.h"
-#include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
 #include <cassert>
 #include <cmath>
@@ -45,6 +42,9 @@
 
 namespace SimTK {
 
+class State;
+class MultibodySystem;
+class DecorativeGeometry;
 class VTKDecoration;
 
 class SimTK_SIMBODY_API VTKReporter {

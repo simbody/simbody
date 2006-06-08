@@ -34,135 +34,6 @@
 
 namespace SimTK {
 
-    /////////////////////////
-    // MechanicalSubsystem //
-    /////////////////////////
-
-// Default constructor is inline and creates an empty handle.
-// Default copy & assignment just copy the parent class.
-// Default destructor destructs the parent class.
-
-/*static*/ bool 
-MechanicalSubsystem::isInstanceOf(const Subsystem& s) {
-    return MechanicalSubsystemRep::isA(s.getRep());
-}
-/*static*/ const MechanicalSubsystem&
-MechanicalSubsystem::downcast(const Subsystem& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const MechanicalSubsystem&>(s);
-}
-/*static*/ MechanicalSubsystem&
-MechanicalSubsystem::updDowncast(Subsystem& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<MechanicalSubsystem&>(s);
-}
-
-const MechanicalSubsystemRep& 
-MechanicalSubsystem::getRep() const {
-    return dynamic_cast<const MechanicalSubsystemRep&>(*rep);
-}
-MechanicalSubsystemRep&       
-MechanicalSubsystem::updRep() {
-    return dynamic_cast<MechanicalSubsystemRep&>(*rep);
-}
-
-int MechanicalSubsystem::getNBodies() const {
-    return getRep().getNBodies();
-}
-int MechanicalSubsystem::getNConstraints() const {
-    return MechanicalSubsystemRep::downcast(*rep).getNConstraints();
-}
-int MechanicalSubsystem::getParent(int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getParent(bodyNum); 
-}
-Array<int> 
-MechanicalSubsystem::getChildren(int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getChildren(bodyNum); 
-}
-const Transform&  
-MechanicalSubsystem::getJointFrame(const State& s, int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointFrame(s, bodyNum); 
-}
-const Transform& 
-MechanicalSubsystem::getJointFrameOnParent(const State& s, int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointFrameOnParent(s, bodyNum); 
-}
-const Vec3&  
-MechanicalSubsystem::getBodyCenterOfMass(const State& s, int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getBodyCenterOfMass(s,bodyNum); 
-}
-const Transform& 
-MechanicalSubsystem::getBodyConfiguration(const State& s, int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getBodyConfiguration(s,bodyNum); 
-}
-const SpatialVec& 
-MechanicalSubsystem::getBodyVelocity(const State& s, int bodyNum) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getBodyVelocity(s,bodyNum); 
-}
-
-const Real&
-MechanicalSubsystem::getJointQ(const State& s, int body, int axis) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointQ(s,body,axis); 
-}
-const Real&
-MechanicalSubsystem::getJointU(const State& s, int body, int axis) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getJointU(s,body,axis); 
-}
-
-void MechanicalSubsystem::setJointQ(State& s, int body, int axis, const Real& q) const { 
-    MechanicalSubsystemRep::downcast(*rep).setJointQ(s,body,axis,q); 
-}
-void MechanicalSubsystem::setJointU(State& s, int body, int axis, const Real& u) const { 
-    MechanicalSubsystemRep::downcast(*rep).setJointU(s,body,axis,u); 
-}
-
-
-const Vector& MechanicalSubsystem::getQConstraintErrors(const State& s) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
-}
-const Real& MechanicalSubsystem::getQConstraintNorm(const State& s) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getQConstraintNorm(s); 
-}
-const Vector& MechanicalSubsystem::getUConstraintErrors(const State& s) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getUConstraintErrors(s); 
-}
-const Real& MechanicalSubsystem::getUConstraintNorm(const State& s) const { 
-    return MechanicalSubsystemRep::downcast(*rep).getUConstraintNorm(s); 
-}
-bool MechanicalSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return MechanicalSubsystemRep::downcast(*rep).projectQConstraints(
-        s,y_err,tol,targetTol); 
-}
-bool MechanicalSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return MechanicalSubsystemRep::downcast(*rep).projectUConstraints(
-        s,y_err,tol,targetTol); 
-}
-
-
-    ///////////////////////////////
-    // MechanicalForcesSubsystem //
-    ///////////////////////////////
-
-// Default constructor is inline and creates an empty handle.
-// Default copy & assignment just copy the parent class.
-// Default destructor destructs the parent class.
-
-
-/*static*/ bool 
-MechanicalForcesSubsystem::isInstanceOf(const Subsystem& s) {
-    return MechanicalForcesSubsystemRep::isA(s.getRep());
-}
-/*static*/ const MechanicalForcesSubsystem&
-MechanicalForcesSubsystem::downcast(const Subsystem& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const MechanicalForcesSubsystem&>(s);
-}
-/*static*/ MechanicalForcesSubsystem&
-MechanicalForcesSubsystem::updDowncast(Subsystem& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<MechanicalForcesSubsystem&>(s);
-}
-
     /////////////////////
     // MultibodySystem //
     /////////////////////
@@ -176,14 +47,14 @@ MultibodySystem::MultibodySystem() {
     rep->setMyHandle(*this);
 }
 
-MultibodySystem::MultibodySystem(MechanicalSubsystem& m, 
-                                 MechanicalForcesSubsystem& f)
+MultibodySystem::MultibodySystem(MatterSubsystem& m, 
+                                 ForceSubsystem& f)
 {
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
 
-    setMechanicalSubsystem(m);
-    setMechanicalForcesSubsystem(f);
+    setMatterSubsystem(m);
+    setForceSubsystem(f);
 }
 
 bool MultibodySystem::project(State& s, Vector& y_err, 
@@ -200,33 +71,33 @@ Real MultibodySystem::calcYErrorNorm(const State& s, const Vector& y_err) const 
     return MultibodySystemRep::downcast(*rep).calcYErrorNorm(s,y_err);
 }
 
-MechanicalSubsystem&       
-MultibodySystem::setMechanicalSubsystem(MechanicalSubsystem& m) {
-    return MultibodySystemRep::downcast(*rep).setMechanicalSubsystem(m);
+MatterSubsystem&       
+MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {
+    return MultibodySystemRep::downcast(*rep).setMatterSubsystem(m);
 }
-MechanicalForcesSubsystem& 
-MultibodySystem::setMechanicalForcesSubsystem(MechanicalForcesSubsystem& f) {
-    return MultibodySystemRep::downcast(*rep).setMechanicalForcesSubsystem(f);
-}
-
-const MechanicalSubsystem&       
-MultibodySystem::getMechanicalSubsystem() const {
-    return MultibodySystemRep::downcast(*rep).getMechanicalSubsystem();
+ForceSubsystem& 
+MultibodySystem::setForceSubsystem(ForceSubsystem& f) {
+    return MultibodySystemRep::downcast(*rep).setForceSubsystem(f);
 }
 
-const MechanicalForcesSubsystem& 
-MultibodySystem::getMechanicalForcesSubsystem() const {
-    return MultibodySystemRep::downcast(*rep).getMechanicalForcesSubsystem();
+const MatterSubsystem&       
+MultibodySystem::getMatterSubsystem() const {
+    return MultibodySystemRep::downcast(*rep).getMatterSubsystem();
 }
 
-MechanicalSubsystem&       
-MultibodySystem::updMechanicalSubsystem() {
-    return MultibodySystemRep::downcast(*rep).updMechanicalSubsystem();
+const ForceSubsystem& 
+MultibodySystem::getForceSubsystem() const {
+    return MultibodySystemRep::downcast(*rep).getForceSubsystem();
 }
 
-MechanicalForcesSubsystem& 
-MultibodySystem::updMechanicalForcesSubsystem() {
-    return MultibodySystemRep::downcast(*rep).updMechanicalForcesSubsystem();
+MatterSubsystem&       
+MultibodySystem::updMatterSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updMatterSubsystem();
+}
+
+ForceSubsystem& 
+MultibodySystem::updForceSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updForceSubsystem();
 }
 
 // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
