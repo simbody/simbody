@@ -116,6 +116,7 @@ void MechanicalSubsystem::setJointU(State& s, int body, int axis, const Real& u)
     MechanicalSubsystemRep::downcast(*rep).setJointU(s,body,axis,u); 
 }
 
+
 const Vector& MechanicalSubsystem::getQConstraintErrors(const State& s) const { 
     return MechanicalSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
 }
@@ -193,6 +194,10 @@ bool MultibodySystem::project(State& s, Vector& y_err,
 {
     return MultibodySystemRep::downcast(*rep).project(
                 s,y_err,tol,dontProjectFac,targetTol);
+}
+
+Real MultibodySystem::calcYErrorNorm(const State& s, const Vector& y_err) const {
+    return MultibodySystemRep::downcast(*rep).calcYErrorNorm(s,y_err);
 }
 
 MechanicalSubsystem&       

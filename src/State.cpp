@@ -806,6 +806,13 @@ State::getTime() const {
 }
 
 const Vector&
+State::getY() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getY()");
+    return rep->y;
+}
+
+const Vector&
 State::getQ() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getQ()");

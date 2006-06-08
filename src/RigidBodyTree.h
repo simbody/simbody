@@ -257,6 +257,18 @@ public:
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
+    // virtuals
+    bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+        // TODO
+        enforceConfigurationConstraints(s);
+        return true;
+    }
+    bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+        // TODO
+        enforceMotionConstraints(s);
+        return true;
+    }
+
     void enforceConfigurationConstraints(State&) const;
     void enforceMotionConstraints(State&) const;
 
