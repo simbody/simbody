@@ -295,6 +295,9 @@ public:
     { 
     }
 
+    ~StateRep() {   // default destructor
+    }
+
     const Stage& getSystemStage() const {
         return systemStage;
     }
@@ -322,17 +325,33 @@ public:
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed, and to make sure
     // we don't copy the handle pointer.
-    StateRep(const StateRep& src) : myHandle(0) {
-        t = src.t; q = src.q; u = src.u; z = src.z;
-        systemStage = std::min<Stage>(src.systemStage, Stage::Modeled);
+    StateRep(const StateRep& src) : myHandle(0), systemStage(Stage::Allocated) {
         subsystems = src.subsystems;
+        if (src.systemStage >= Stage::Built) {
+            advanceSystemToStage(Stage::Built);
+            if (src.systemStage >= Stage::Modeled) {
+                advanceSystemToStage(Stage::Modeled);
+                t = src.t;
+                // careful -- don't allow reallocation
+                y = src.y;
+            }
+        }
     }
 
     StateRep& operator=(const StateRep& src) {
         if (&src == this) return *this;
-        t = src.t; q = src.q; u = src.u; z = src.z;
-        systemStage = std::min<Stage>(src.systemStage, Stage::Modeled);
+        invalidateJustSystemStage(Stage::Built);
+        for (int i=0; i<(int)subsystems.size(); ++i)
+            subsystems[i].invalidateStageJustThisSubsystem(Stage::Built);
         subsystems = src.subsystems;
+        if (src.systemStage >= Stage::Built) {
+            advanceSystemToStage(Stage::Built);
+            if (src.systemStage >= Stage::Modeled) {
+                advanceSystemToStage(Stage::Modeled);
+                t = src.t;
+                y = src.y;
+            }
+        }
         // don't mess with the handle pointer!
         return *this;
     }
@@ -368,6 +387,7 @@ public:
                 q.clear(); u.clear(); z.clear();
                 qdot.clear(); udot.clear(); zdot.clear();
                 // Nuke the actual data.
+                y.unlockShape(); ydot.unlockShape(); qdotdot.unlockShape();
                 y.clear(); ydot.clear(); qdotdot.clear();
             }
             systemStage = g.prev();
@@ -381,7 +401,7 @@ public:
     void advanceSystemToStage(Stage g) {
         assert(g > Stage::Allocated);
         assert(systemStage == g.prev());
-        assert(allSystemsAtLeastAtStage(g));
+        assert(allSubsystemsAtLeastAtStage(g));
 
         if (g == Stage::Modeled) {
             // We know the shared state pool sizes now. Allocate the
@@ -470,7 +490,7 @@ private:
     std::vector<PerSubsystemInfo> subsystems;
 
     // Return true only if all subsystems have been realized to at least Stage g.
-    bool allSystemsAtLeastAtStage(Stage g) const {
+    bool allSubsystemsAtLeastAtStage(Stage g) const {
         for (int i=0; i < (int)subsystems.size(); ++i)
             if (subsystems[i].currentStage < g)
                 return false;

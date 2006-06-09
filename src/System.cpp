@@ -79,6 +79,14 @@ void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }
 
+Real System::calcTimescale(const State& s) const {
+    return getRep().calcTimescale(s);
+}
+
+Real System::calcYErrorNorm(const State& s, const Vector& y_err) const {
+    return getRep().calcYErrorNorm(s,y_err);
+}
+
 Subsystem& System::takeOverSubsystem(int subsys, Subsystem& src) {
     return updRep().takeOverSubsystem(subsys,src);
 }

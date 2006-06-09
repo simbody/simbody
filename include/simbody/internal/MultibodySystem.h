@@ -74,15 +74,6 @@ public:
                  ) const;
 
 
-    /// This operator can be called at stage Configured to take a vector
-    /// of absolute state variable error estimates and return a weighted
-    /// norm. This method is intended for use by numerical integration methods
-    /// for step size control. This is a weighted norm, calculated so
-    /// that a return value of 1 would indicate a "unit" error, which would 
-    /// be huge. If your accuracy requirement is 0.1%, you would test that
-    /// the norm return here is <= .001.
-    Real calcYErrorNorm(const State&, const Vector& y_err) const;
-
     // Steals ownership of the source.
     MatterSubsystem& setMatterSubsystem(MatterSubsystem&);
     ForceSubsystem&  setForceSubsystem(ForceSubsystem&);

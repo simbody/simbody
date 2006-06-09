@@ -272,9 +272,17 @@ public:
                       int&                  nextQSlot)
       : RigidBodyNode(mProps_B, X_PJb, X_BJ)
     {
-        uIndex   = nextUSlot;   nextUSlot   += getDOF();
-        uSqIndex = nextUSqSlot; nextUSqSlot += getDOF()*getDOF();
-        qIndex   = nextQSlot;   nextQSlot   += getMaxNQ();
+        // don't call any virtual methods in here!
+        uIndex   = nextUSlot;
+        uSqIndex = nextUSqSlot;
+        qIndex   = nextQSlot;
+    }
+
+    void updateSlots(int& nextUSlot, int& nextUSqSlot, int& nextQSlot) {
+        // OK to call virtual method here.
+        nextUSlot   += getDOF();
+        nextUSqSlot += getDOF()*getDOF();
+        nextQSlot   += getMaxNQ();
     }
 
     virtual ~RigidBodyNodeSpec() {}
@@ -683,6 +691,7 @@ public:
                     int&                  nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
         // Implementations of virtual methods.
@@ -744,6 +753,7 @@ public:
                  int&                  nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
         // Implementations of virtual methods.
 
@@ -801,6 +811,7 @@ public:
                   int&                  nextQSlot)
       : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
     // Precalculate sines and cosines.
@@ -868,6 +879,7 @@ public:
                   int&                  nextQSlot)
       : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
     // Precalculate sines and cosines.
@@ -940,6 +952,7 @@ public:
                            int&                  nextQSlot)
       : RigidBodyNodeSpec<5>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
     // Precalculate sines and cosines.
@@ -1010,6 +1023,7 @@ public:
                   int&                  nextQSlot)
       : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
     // Precalculate sines and cosines.
@@ -1041,8 +1055,9 @@ public:
         X_JbJ.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
             X_JbJ.updR().setToBodyFixed123(fromQ(q));
-        else
+        else {
             X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+        }
     }
 
     // Calculate H.
@@ -1075,6 +1090,7 @@ public:
     {
         const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
         if (getUseEulerAngles(mv)) {
+            toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
             const RotationMat& R_JbJ = getX_JbJ(cc).R();
             toQ(qdot) = RotationMat::convertAngVelToBodyFixed123Dot(fromQ(q),
                                         ~R_JbJ*w_JbJ); // need w in *body*, not parent
@@ -1094,6 +1110,7 @@ public:
         const Vec3& w_JbJ_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
+            toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
             const RotationMat& R_JbJ = getX_JbJ(cc).R();
             toQ(qdotdot)    = RotationMat::convertAngVelDotToBodyFixed123DotDot
                                   (fromQ(q), ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
@@ -1122,7 +1139,11 @@ public:
         const SBModelingVars&   mv,
         Vector&                 q) const 
     {
-        if (getUseEulerAngles(mv)) toQ(q) = 0.;
+        if (getUseEulerAngles(mv)) {
+            //TODO: kludge
+            toQuat(q) = Vec4(0); // clear unused element
+            toQ(q) = 0.;
+        }
         else toQuat(q) = Vec4(1.,0.,0.,0.);
     }
 
@@ -1175,6 +1196,7 @@ public:
                            int&                  nextQSlot)
       : RigidBodyNodeSpec<6>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
     // Precalculate sines and cosines.
@@ -1250,6 +1272,7 @@ public:
             const Vec3& theta = fromQVec3(q,0); // Euler angles
             toQVec3(qdot,0) = RotationMat::convertAngVelToBodyFixed123Dot(theta,
                                             ~R_JbJ*w_JbJ); // need w in *body*, not parent
+            toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdot,3) = v_JbJ;
         } else {
             const Vec4& quat = fromQuat(q);
@@ -1275,6 +1298,7 @@ public:
             const Vec3& theta  = fromQVec3(q,0); // Euler angles
             toQVec3(qdotdot,0) = RotationMat::convertAngVelDotToBodyFixed123DotDot
                                                 (theta, ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
+            toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,3) = v_JbJ_dot;
             //cout << "   w_JbJ_dot=" << w_JbJ_dot << "  v_JbJ_dot=" << v_JbJ_dot << endl;
             //cout << "   qdotdot=" << fromQVec3(qdotdot,0) << endl;
@@ -1300,9 +1324,10 @@ public:
 
     void setDefaultConfigurationValues(const SBModelingVars& mv, Vector& q) const 
     {
-        if (getUseEulerAngles(mv)) 
+        if (getUseEulerAngles(mv)) {
+            toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
             toQ(q) = 0.;
-        else {
+        } else {
             toQuat(q) = Vec4(1.,0.,0.,0.);
             toQVec3(q,4) = 0.;
         }

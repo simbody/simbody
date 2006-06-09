@@ -122,6 +122,21 @@ public:
 
     void realize(const State& s, Stage g) const;
 
+    virtual Real calcTimescale(const State& s) const {
+        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Parametrized,
+            "System::calcTimescale()");
+        return 0.1; // TODO!!!
+    }
+
+    // Default treats all state variable identically. Should be asking the 
+    // subsystems. TODO
+    virtual Real calcYErrorNorm(const State& s, const Vector& y_err) const {
+        assert(y_err.size() == s.getY().size());
+        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Configured,
+            "System::calcYErrorNorm()");
+        return y_err.size()==0 ? 0 : std::sqrt( y_err.normSqr()/y_err.size() );
+    }
+
     void setMyHandle(System& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
 

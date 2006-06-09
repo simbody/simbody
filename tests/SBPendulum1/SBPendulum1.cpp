@@ -58,6 +58,7 @@
 
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/NumericalMethods.h"
 
 #include <string>
 #include <iostream>
@@ -171,8 +172,8 @@ try {
                         //JointSpecification(JointSpecification::Cartesian, false)
                         //JointSpecification(JointSpecification::Sliding, false)
                         //JointSpecification(JointSpecification::Pin, false)
-                        //JointSpecification(JointSpecification::Ball, false)
-                        JointSpecification(JointSpecification::Free, false)
+                        JointSpecification(JointSpecification::Ball, false)
+                        //JointSpecification(JointSpecification::Free, false)
                         );
 
 /*
@@ -190,9 +191,9 @@ try {
     //                                       theBody, Vec3(0,0,0),
     //                                       L/2+std::sqrt(2.));
  
-    int ballConstraint =
-        pend.addCoincidentStationsConstraint(0, Transform().T(),
-                                             theBody, jointFrame.T()); 
+   // int ballConstraint =
+     //   pend.addCoincidentStationsConstraint(0, Transform().T(),
+       //                                      theBody, jointFrame.T()); 
 /*
     Transform harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
@@ -243,20 +244,23 @@ try {
     vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
     mbs.realize(s, Stage::Built);
-
     cout << "mbs State as built: " << s;
+
+    //ExplicitEuler ee(mbs, s);
+    RungeKuttaMerson ee(mbs, s);
 
     vtk.report(s);
 
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
-    pend.setUseEulerAngles(s, true);
+    //pend.setUseEulerAngles(s, true);
     mbs.realize(s, Stage::Modeled);
 
+    cout << "mbs State as modeled: " << s;
+
     spring1.updGravity(s) = Vec3(0,-9.8,0);
+    spring1.updStiffness(s) = 0;
 
-
-    vtk.report(s);
 
     //pend.setJointQ(s,1,0,0);
    // pend.setJointQ(s,1,3,-1.1);
@@ -326,15 +330,18 @@ try {
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = 0.0001;
+    const Real h = .01;
     const Real tstart = 0.;
     const Real tmax = 10;
 
-    for (int step=0; ; ++step) { 
-        const Real t = tstart + step*h;
-        if (t > tmax) break;
+    ee.setAccuracy(1e-3);
 
-        mbs.project(s, Vector(), .001, 0., .001);
+    ee.initialize(); 
+    vtk.report(s);
+    s.updTime() = tstart;
+    int step = 0;
+    while (s.getTime() < tmax) {
+        ee.step(s.getTime() + h);
 
         const Vector qdot = pend.getQDot(s);
 
@@ -350,10 +357,10 @@ try {
         //pend.applyPointForce(s,theBody,Vec3(0,0,0),fk);
         //pend.applyJointForce(s,theBody,2,fc);
 
-        if (!(step % 100)) {
-            cout << t << " " 
+        if (!(step % 10)) {
+            cout << s.getTime() << " " 
                  << s.getQ() << " " << s.getU() 
-                 << endl;
+                 << " hNext=" << ee.getPredictedNextStep() << endl;
             cout << "body config=" << x;
             cout << "body velocity=" << v << endl;
             //cout << "err=" << err << " |err|=" << d << endl;
@@ -362,6 +369,7 @@ try {
             
             vtk.report(s);
         }
+        ++step;
 
 
         mbs.realize(s, Stage::Reacting);
@@ -376,13 +384,6 @@ try {
             cout << "udot = " << udot << endl;
             cout << "udot2= " << udot2 << endl;
         }
-
-        //cout << "qdot=" << qdot << "  udot=" << udot << endl;
-        //pend.updQ(s) += h*qdot;
-        //pend.updU(s) += h*udot;
-        mbs.realize(s, Stage::Reacting);
-        const Vector& ydot = s.getYDot();
-        s.updY() += h*ydot;
     }
 
 }

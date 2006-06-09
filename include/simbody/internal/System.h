@@ -72,6 +72,24 @@ public:
     /// Realize the entire System to the indicated Stage.
     void realize(const State& s, Stage g) const;
 
+    /// This operator can be called at Stage::Parametrized or higher and 
+    /// returns a rough estimate of a length of time we consider significant
+    /// for this system. For example, this could be the period of the highest-frequency
+    /// oscillation that we care about. This can be used as a hint by 
+    /// numerical integrators in choosing their initial step size, and 
+    /// suggests how velocity variables should be scaled relative to their
+    /// corresponding position variables.
+    Real calcTimescale(const State&) const;
+
+    /// This operator can be called at stage Configured to take a vector
+    /// of absolute state variable error estimates and return a weighted
+    /// norm. This method is intended for use by numerical integration methods
+    /// for step size control. This is a weighted norm, calculated so
+    /// that a return value of 1 would indicate a "unit" error, which would 
+    /// be huge. If your accuracy requirement is 0.1%, you would test that
+    /// the norm return here is <= .001.
+    Real calcYErrorNorm(const State&, const Vector& y_err) const;
+
     /// Take over ownership of the supplied subsystem and install it into 
     /// the indicated subsystem slot, which must already exist and not
     /// have anything in it. A reference to the new handle is returned,

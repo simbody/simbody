@@ -67,9 +67,6 @@ bool MultibodySystem::project(State& s, Vector& y_err,
                 s,y_err,tol,dontProjectFac,targetTol);
 }
 
-Real MultibodySystem::calcYErrorNorm(const State& s, const Vector& y_err) const {
-    return MultibodySystemRep::downcast(*rep).calcYErrorNorm(s,y_err);
-}
 
 MatterSubsystem&       
 MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {

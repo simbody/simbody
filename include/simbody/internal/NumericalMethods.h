@@ -135,18 +135,20 @@ public:
  */
 class MechanicalDAEIntegrator {
 public:
-    explicit MechanicalDAEIntegrator(MechanicalDAESystem& s) : mech(s) {
+    explicit MechanicalDAEIntegrator(const MultibodySystem& mb, State& s) 
+        : mbs(mb), state(s) {
         initializeUserStuff();
         zeroStats();
     }
     virtual ~MechanicalDAEIntegrator() { }
 
+    const MultibodySystem& getMultibodySystem() const {return mbs;}
+    const State&           getState()           const {return state;}
+    State&                 updState()                 {return state;}
+
     virtual MechanicalDAEIntegrator* clone()       const = 0;
-    virtual const Real&    getT() const = 0;
-    virtual const Vector&  getY() const = 0;
 
-    virtual bool setInitialConditions(const Real& t0, const Vector& y0) = 0;
-
+    virtual bool initialize() = 0;
     virtual bool step(const Real& tout) = 0;
 
     virtual Real getConstraintTolerance() const = 0;
@@ -206,7 +208,8 @@ public:
     long getStepSizeChanges()    const {return statsStepSizeChanges;}
 
 protected:
-    MechanicalDAESystem& mech;
+    const MultibodySystem& mbs;
+    State&                 state;
 
     // collect user requests
     Real userInitStepSize, userMinStepSize, userMaxStepSize;
@@ -242,39 +245,45 @@ protected:
 
 class ExplicitEuler : public MechanicalDAEIntegrator {
 public:
-    ExplicitEuler(MechanicalDAESystem& s) : MechanicalDAEIntegrator(s) {
-        construct();
+    ExplicitEuler(const MultibodySystem& mb, State& s) 
+      : MechanicalDAEIntegrator(mb,s) 
+    {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+            "ExplicitEuler::ExplicitEuler()");
+        reconstructForNewModel();
     }
 
-    MechanicalDAEIntegrator* clone() const {return new ExplicitEuler(*this);}
-
-    const Real&   getT() const {return t;}
-    const Vector& getY() const {return y;}
+    ExplicitEuler* clone() const {return new ExplicitEuler(*this);}
 
     Real getConstraintTolerance() const {
         assert(initialized);
         return consTol;
     }
 
-    bool setInitialConditions(const Real& t0, const Vector& y0) {
+    bool initialize() {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+            "ExplicitEuler::initialize()");
+        if (state.getSystemStage() < Stage::Modeled)
+            reconstructForNewModel();
         initializeIntegrationParameters();
-        mech.setAccuracy(absTol, consTol);
+        //mech.setAccuracy(absTol, consTol);
+        Vector dummy;
+        try { (void)mbs.project(state, dummy, consTol, 0., 0.1*consTol); }
+        catch (...) { ++statsProjectionFailures; return false; }
 
-        mech.setState(t0,y0);
-        bool stateWasChanged;
-        if (!mech.realizeAndProject(stateWasChanged, true)) {
-            ++statsRealizationFailures;
-            ++statsProjectionFailures;
-            return false;
-        }
-        
-        t = t0; y = mech.getY(); // pick up projection if any
+        try { mbs.realize(state, Stage::Reacting); }
+        catch (...) { ++statsRealizationFailures; return false; }
+
         initialized = true;
         return true;
     }
 
     bool step(const Real& tOut) {
-        assert(initialized && tOut >= t);
+        // Re-parametrizing or remodeling requires a new call to initialize().
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Parametrized,
+            "ExplicitEuler::step()");
+
+        assert(initialized && tOut >= state.getTime());
         const Real tMax = std::min(tOut, stopTime);
 
         bool wasLastStep;
@@ -283,29 +292,44 @@ public:
             if (maxNumSteps && stepsTaken >= maxNumSteps)
                 return false; // too much work
 
-            // We expect to be realized at (t,y) already.
-            ydot0 = mech.getYDot(); // save so we can restart
+            mbs.realize(state, Stage::Reacting);
+            t0    = state.getTime();
+            ydot0 = state.getYDot(); // save so we can restart
 
             // Take the biggest step we can get up to maxStep
-            Real hTry = std::min(maxStepSize, tMax-t);
+            Real hTry = std::min(maxStepSize, tMax-t0);
             for (;;) {
                 ++statsStepsAttempted;
                 wasLastStep = false;
-                Real nextT = t+hTry;
+                Real nextT = t0+hTry;
                 if (tMax-nextT < minStepSize)
-                    nextT = tMax, hTry = tMax-t, wasLastStep=true;
-                mech.setState(nextT, y + hTry*ydot0);
-                bool stateWasChanged;
-                if (mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
-                    // Took a step of size hTry. Update solution 
-                    // and try another step. Note that we are picking up
-                    // any projection changes by extracting y.
-                    t = nextT; y = mech.getY();
-                    break;
+                    nextT = tMax, hTry = tMax-t0, wasLastStep=true;
+
+                state.updTime() = nextT;
+                state.updY()    = state.getY() + hTry*ydot0;
+
+                bool projectOK = false, realizeOK = false;
+                try {
+                    projectOK = true;
+                    Vector dummy;
+                    (void)mbs.project(state, dummy, consTol,
+                                      projectEveryStep ? 0. : 0.9, 
+                                      0.1*consTol);
                 }
+                catch (...) { projectOK=false; }
+
+                if (projectOK) {
+                    try {
+                        realizeOK = true;
+                        mbs.realize(state, Stage::Reacting);
+                    } catch (...) { realizeOK = false; }
+                    if (!realizeOK)  ++statsRealizationFailures;
+                } else ++statsProjectionFailures;
+
+                if (projectOK && realizeOK)
+                    break; // took a step of size hTry.
+
                 // Failed
-                ++statsRealizationFailures;
-                ++statsProjectionFailures;
 
                 if (hTry <= minStepSize)
                     return false; // can't proceed
@@ -325,6 +349,8 @@ private:
 
     
     void initializeIntegrationParameters() {
+        mbs.realize(state, Stage::Parametrized);
+
         initializeStepSizes();
         initializeTolerances();
         if (userStopTime != -1.) stopTime = userStopTime;
@@ -366,24 +392,24 @@ private:
             } else { // didn't get init or max
                 if (userMinStepSize != -1.) { // got only min
                     minStepSize = userMinStepSize;
-                    maxStepSize = std::max(mech.getTimescale()/10., minStepSize);
+                    maxStepSize = std::max(mbs.calcTimescale(state)/10., minStepSize);
                     initStepSize = maxStepSize;
                 } else { // didn't get anything
-                    maxStepSize = initStepSize = mech.getTimescale()/10.;
+                    maxStepSize = initStepSize = mbs.calcTimescale(state)/10.;
                     minStepSize = maxStepSize/3;
                 }
             }
         }
     }
 
-    void construct() {
+    void reconstructForNewModel() {
+        mbs.realize(state, Stage::Modeled);
         initStepSize=minStepSize=maxStepSize
             =accuracy=relTol=absTol=consTol=vconsRescale
-            =stopTime=t=CNT<Real>::getNaN();
+            =stopTime=CNT<Real>::getNaN();
         maxNumSteps = -1;
         projectEveryStep = false;
-        y.resize(mech.size());
-        ydot0.resize(mech.size());
+        ydot0.resize(state.getY().size());
         initialized = false;
     }
 
@@ -392,23 +418,24 @@ private:
     Real   stopTime;
     long   maxNumSteps;
     bool   projectEveryStep;
-    Real   t;
-    Vector y;
+    Real   t0;
     Vector ydot0;
 
     bool initialized;
 };
 
+
 class RungeKuttaMerson : public MechanicalDAEIntegrator {
 public:
-    RungeKuttaMerson(MechanicalDAESystem& s) : MechanicalDAEIntegrator(s) {
-        construct();
+    RungeKuttaMerson(const MultibodySystem& mb, State& s) 
+      : MechanicalDAEIntegrator(mb,s) 
+    {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+            "RungeKuttaMerson::RungeKuttaMerson()");
+        reconstructForNewModel();
     }
 
-    MechanicalDAEIntegrator* clone() const {return new RungeKuttaMerson(*this);}
-
-    const Real&   getT() const {return t;}
-    const Vector& getY() const {return y;}
+    RungeKuttaMerson* clone() const {return new RungeKuttaMerson(*this);}
 
     Real getConstraintTolerance() const {
         assert(initialized);
@@ -419,40 +446,37 @@ public:
         return predictedNextStep;
     }
 
-    bool setInitialConditions(const Real& t0, const Vector& y0) {
-        initializeIntegrationParameters();
-        mech.setAccuracy(absTol, consTol);
+    bool initialize() {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+            "RungeKuttaMerson::initialize()");
+        if (state.getSystemStage() < Stage::Modeled)
+            reconstructForNewModel();
 
-        mech.setState(t0,y0);
-        bool stateWasChanged;
-        if (!mech.realizeAndProject(stateWasChanged, true)) {
-            ++statsRealizationFailures;
-            ++statsProjectionFailures;
+        initializeIntegrationParameters();
+
+        if (!evaluateAndProject())
             return false;
-        }
         
-        t = t0; y = mech.getY(); // pick up projection if any
         initialized = true;
         return true;
     }
 
     bool step(const Real& tOut) {
-        assert(initialized && tOut >= t);
+        // Re-parametrizing or remodeling requires a new call to initialize().
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Parametrized,
+            "ExplicitEuler::step()");
+
+        assert(initialized && tOut >= state.getTime());
         const Real tMax = std::min(tOut, stopTime);
 
         // Duck out now if there isn't enough time left to take a step.
-        if (tMax-t < minStepSize) {
+        if (tMax-state.getTime() < minStepSize) {
             ++statsStepsAttempted;
-            mech.setState(tMax,y);
-            bool stateWasChanged;
-            if (!mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
-                ++statsRealizationFailures;
-                ++statsProjectionFailures;
+            state.updTime() = tMax;
+
+            if (!evaluateAndProject())
                 return false;
-            }
-            if (stateWasChanged)
-                y = mech.getY();
-            t = tMax;
+
             ++statsStepsTaken;
             return true;
         }
@@ -468,19 +492,21 @@ public:
 
             wasLastStep = false;
 
+            t0 = state.getTime(); // save these so we can restart
+            y0 = state.getY();
+
             // Near tStop we'll shrink or stretch as appropriate. If we shrink
             // substantially we'll make note of that and not attempt to 
             // grow the step size if we succeed with this tiny thing.
-            if (t + 1.1*hNext > tMax) {
-                const Real hAdj = tMax - t;
+            if (t0 + 1.1*hNext > tMax) {
+                const Real hAdj = tMax - t0;
                 hWasShrunk = hAdj < 0.9*hNext;
                 hNext = hAdj;
                 wasLastStep = true;
             }
 
-            // We expect to be realized at (t,y) already.
-            ydot0 = mech.getYDot(); // save so we can restart
-
+            mbs.realize(state, Stage::Reacting);
+            ydot0 = state.getYDot();    // save for faster restart
 
             Real trialH = hNext;
             // Now we're going to attempt to take as big a step as we can
@@ -490,29 +516,25 @@ public:
             bool RKstepOK;
             for (;;) {
                 ++statsStepsAttempted;
-                weights = mech.getWeights();
 
                 RKstepOK = 
-                    takeAnRK4MStep(t, y, ydot0, trialH,
+                    takeAnRK4MStep(t0, y0, ydot0, trialH,
                                    ytmp[0], ytmp[1], ytmp[2], 
                                    ynew, errEst);
 
                 if (!RKstepOK) ++statsRealizationFailures;
 
                 if (RKstepOK) {
-                    // We'll use infinity norm to be conservative (all entries
-                    // are >= 0).
-                    scalarError = 0.;
-                    for (int i=0; i<mech.size(); ++i)
-                        scalarError = std::max(scalarError, errEst[i]*weights[i]);
+                    scalarError = mbs.calcYErrorNorm(state, errEst) / accuracy;
 
-                    if (scalarError <= 1) {
+                    if (scalarError <= 1.) {
                         // Passed error test; see if we can evaluate at ynew.
-                        mech.setState(t+trialH, ynew);
-                        bool stateWasChanged;
-                        if (mech.realizeAndProject(stateWasChanged, projectEveryStep)) {
+                        state.updTime() = t0+trialH;
+                        state.updY()    = ynew;
+
+                        if (evaluateAndProject()) {
                             // Accept this step (we'll pick up projection changes here).
-                            t = mech.getT(); y = mech.getY();
+                            t0 = state.getTime(); y0 = state.getY();
 
                             // Adjust step size. Restrict growth to 5x shrinking to 1/10.
                             // We won't grow at all if the step we just executed was
@@ -578,10 +600,12 @@ public:
 
 private:
     bool f(const Real& t, const Vector& y, Vector& yd) const {
-        mech.setState(t,y);
-        if (!mech.realize()) 
-            return false;
-        yd = mech.getYDot();
+        state.updY() = y;
+        state.updTime() = t;
+
+        try { mbs.realize(state, Stage::Reacting); }
+        catch(...) { return false; }
+        yd = state.getYDot();
         return true;
     }
 
@@ -611,8 +635,32 @@ private:
         return true;
     }
 
+    bool evaluateAndProject() {
+        bool projectOK = false, realizeOK = false;
+        try {
+            projectOK = true;
+            Vector dummy;
+            (void)mbs.project(state, dummy, consTol,
+                              projectEveryStep ? 0. : 0.9, 
+                              0.1*consTol);
+        }
+        catch (...) { projectOK=false; }
+
+        if (projectOK) {
+            try {
+                realizeOK = true;
+                mbs.realize(state, Stage::Reacting);
+            } catch (...) { realizeOK = false; }
+            if (!realizeOK)  ++statsRealizationFailures;
+        } else ++statsProjectionFailures;
+
+        return projectOK && realizeOK;
+    }
+
 private:    
     void initializeIntegrationParameters() {
+        mbs.realize(state, Stage::Parametrized);
+
         initializeStepSizes();
         predictedNextStep = initStepSize;
         initializeTolerances();
@@ -644,10 +692,10 @@ private:
             } else { // got max, not init
                 if (userMinStepSize != -1.) {
                     minStepSize = userMinStepSize; // max & min, not init
-                    initStepSize = std::max(minStepSize, mech.getTimescale()/10.);
+                    initStepSize = std::max(minStepSize, mbs.calcTimescale(state)/10.);
                 } else {
                     // got max only
-                    initStepSize = std::min(mech.getTimescale()/10., maxStepSize);
+                    initStepSize = std::min(mbs.calcTimescale(state)/10., maxStepSize);
                     minStepSize  = std::min(1e-12, initStepSize);
                 }
             }
@@ -660,9 +708,9 @@ private:
             } else { // didn't get init or max
                 if (userMinStepSize != -1.) { // got only min
                     minStepSize = userMinStepSize;
-                    initStepSize = std::max(mech.getTimescale()/10., minStepSize);
+                    initStepSize = std::max(mbs.calcTimescale(state)/10., minStepSize);
                 } else { // didn't get anything
-                    initStepSize = mech.getTimescale()/10.;
+                    initStepSize = mbs.calcTimescale(state)/10.;
                     minStepSize  = std::min(1e-12, initStepSize);
                 }
             }
@@ -671,19 +719,19 @@ private:
 
     static const int NTemps = 4;
 
-    void construct() {
+    void reconstructForNewModel() {
+        mbs.realize(state, Stage::Modeled);
         initStepSize=minStepSize=maxStepSize
             =accuracy=relTol=absTol=consTol=vconsRescale
-            =stopTime=t=predictedNextStep=CNT<Real>::getNaN();
+            =stopTime=predictedNextStep=CNT<Real>::getNaN();
         maxNumSteps = -1;
         projectEveryStep = false;
-        y.resize(mech.size());
-        ydot0.resize(mech.size());
-        weights.resize(mech.size());
-        errEst.resize(mech.size());
-        ynew.resize(mech.size());
+        y0.resize(state.getY().size());
+        ydot0.resize(state.getY().size());
+        errEst.resize(state.getY().size());
+        ynew.resize(state.getY().size());
         for (int i=0; i<NTemps; ++i)
-            ytmp[i].resize(mech.size());
+            ytmp[i].resize(state.getY().size());
         initialized = false;
     }
 
@@ -692,15 +740,13 @@ private:
     Real   stopTime;
     long   maxNumSteps;
     bool   projectEveryStep;
-    Real   t;
-    Vector y;
-    Vector ydot0, weights, errEst, ynew;
+    Real   t0;
+    Vector y0, ydot0, errEst, ynew;
     Vector ytmp[NTemps];
     Real predictedNextStep;
 
     bool initialized;
 };
-
 
 } // namespace SimTK
 
