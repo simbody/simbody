@@ -159,7 +159,6 @@ public:
     /*virtual*/void calcZ(
         const SBConfigurationCache&,
         const SBDynamicsCache&,
-        const SBReactionVars&,
         const SpatialVec& spatialForce,
         SBReactionCache&               ) const {} 
 
@@ -450,12 +449,7 @@ public:
     }
     virtual void setDefaultDynamicsValues(const SBModelingVars&, SBDynamicsVars&) const {}
     virtual void setDefaultReactionValues(const SBModelingVars&, 
-                                          SBReactionVars& v) const
-    {
-        toB(v.appliedBodyForces) = SpatialVec(Vec3(0), Vec3(0));
-        toU(v.appliedJointForces) = 0.;
-        toU(v.prescribedUdot) = 0.;
-    }
+                                          SBDynamicsVars& v) const {}
 
     // setQ and setU extract this node's values from the supplied
     // q-sized or u-sized array and put them in the corresponding
@@ -534,15 +528,16 @@ public:
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
 
-    // State variables (read only).
-    const Vec<dof>&   getAppliedJointForce(const SBReactionVars& rv) const 
-        {return fromU(rv.appliedJointForces);}
-    const Vec<dof>&   getPrescribedUdot   (const SBReactionVars& rv) const 
-        {return fromU(rv.prescribedUdot);}
+    // Applied forces from cache.
+    const Vec<dof>&   getAppliedJointForce(const SBDynamicsCache& dc) const 
+        {return fromU(dc.appliedMobilityForces);}
+    //TODO
+    const Vec<dof>&   getPrescribedUdot   (const SBDynamicsVars& dv) const 
+        {return fromU(dv.prescribedUdot);}
 
     // Special case state access for 1-dof joints
-    const Real& get1AppliedJointForce(const SBReactionVars& rv) const {return from1U(rv.appliedJointForces);}
-    const Real& get1PrescribedUdot   (const SBReactionVars& rv) const {return from1U(rv.prescribedUdot);}
+    const Real& get1AppliedJointForce(const SBDynamicsCache& dc) const {return from1U(dc.appliedMobilityForces);}
+    const Real& get1PrescribedUdot   (const SBDynamicsVars& dv) const {return from1U(dv.prescribedUdot);}
 
     // Cache entries (cache is mutable in a const State)
 
@@ -604,7 +599,6 @@ public:
     void calcZ(
         const SBConfigurationCache&,
         const SBDynamicsCache&,
-        const SBReactionVars&,
         const SpatialVec& spatialForce,
         SBReactionCache&               ) const;
 
@@ -1478,7 +1472,6 @@ template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(
     const SBConfigurationCache& cc,
     const SBDynamicsCache&      dc,
-    const SBReactionVars&       rv,
     const SpatialVec&           spatialForce,
     SBReactionCache&            rc) const 
 {
@@ -1493,7 +1486,7 @@ RigidBodyNodeSpec<dof>::calcZ(
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(rc)  = getAppliedJointForce(rv) - getH(cc)*z; // TODO: pass in hinge forces
+    updEpsilon(rc)  = getAppliedJointForce(dc) - getH(cc)*z; // TODO: pass in hinge forces
     updNu(rc)       = getDI(dc) * getEpsilon(rc);
     updGepsilon(rc) = getG(dc)  * getEpsilon(rc);
 }

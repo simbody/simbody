@@ -37,6 +37,9 @@ class SimTK_SIMBODY_API MatterSubsystem : public Subsystem {
 public:
     MatterSubsystem() { }
 
+    void setForceSubsystemIndex(int subsys);
+    int  getForceSubsystemIndex() const;
+
     // Topological information (no state)
     int getNBodies()      const;    // includes ground, also # tree joints+1
     int getNMobilities()  const;
@@ -49,6 +52,40 @@ public:
     const Transform&  getJointFrameOnParent(const State&, int bodyNum) const;
 
     const Vec3&       getBodyCenterOfMass(const State&, int bodyNum) const;
+
+
+    // This can be called at any time after construction. It sizes a set of
+    // force arrays (if necessary) and then sets them to zero. The "addIn"
+    // operators below can then be used to accumulate forces.
+    void resetForces(Vector_<SpatialVec>& bodyForces,
+                     Vector_<Vec3>&       particleForces,
+                     Vector&              mobilityForces) const 
+    {
+        bodyForces.resize(getNBodies()); bodyForces.setToZero();
+        particleForces.resize(0); // TODO
+        mobilityForces.resize(getNMobilities()); mobilityForces.setToZero();
+    }
+
+
+    /// Add in gravity to a body forces vector. Be sure to call this only once
+    /// per evaluation! Must be realized to Configured stage prior to call.
+    void addInGravity(const State&, const Vec3& g, Vector_<SpatialVec>& bodyForces) const;
+
+    /// Apply a force to a point on a body (a station). Provide the
+    /// station in the body frame, force in the ground frame. Must
+    /// be realized to Configured stage prior to call.
+    void addInPointForce(const State&, int body, const Vec3& stationInB, 
+                         const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const;
+
+    /// Apply a torque to a body. Provide the torque vector in the
+    /// ground frame.
+    void addInBodyTorque(const State&, int body, const Vec3& torqueInG, 
+                         Vector_<SpatialVec>& bodyForces) const;
+
+    /// Apply a scalar joint force or torque to an axis of the
+    /// indicated body's inboard joint.
+    void addInMobilityForce(const State&, int body, int axis, const Real& f,
+                            Vector& mobilityForces) const;
 
     // Kinematic information.
     const Transform&  getBodyConfiguration(const State&, int bodyNum) const;

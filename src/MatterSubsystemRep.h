@@ -25,12 +25,13 @@
  */
 
 /** @file
- * Define the private implementation of the MultibodySystem
- * class (a kind of System).
+ * Define the private implementation MatterSubsystemRep of a MatterSubsystem, 
+ * a still-abstract class derived from abstract base class SubsystemRep.
  */
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/AnalyticGeometry.h"
 #include "simbody/internal/DecorativeGeometry.h"
 
@@ -42,11 +43,29 @@ class State;
 
 class MatterSubsystemRep : public SubsystemRep {
 public:
-    MatterSubsystemRep() { }
+    MatterSubsystemRep(const String& name, const String& version)
+      : SubsystemRep(name,version), forceSubsys(-1)
+    {
+    }
     virtual ~MatterSubsystemRep() { }
+
+    void setForceSubsystemIndex(int subsys) {
+        assert(subsys >= 0);
+        assert(forceSubsys == -1);
+        forceSubsys = subsys;
+    }
+    int getForceSubsystemIndex() const {
+        assert(forceSubsys >= 0);
+        return forceSubsys;
+    }
+
+    const ForceSubsystem& getForceSubsystem() const {
+        return ForceSubsystem::downcast(getSystem().getSubsystem(forceSubsys));
+    }
 
     // Topological information.
     virtual int getNBodies()      const = 0;    // includes ground, also # tree joints+1
+    virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
     virtual int         getParent  (int bodyNum)           const = 0;
@@ -59,12 +78,21 @@ public:
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
     virtual const SpatialVec& getBodyVelocity     (const State&, int bodyNum) const = 0;
 
+    // These are simple operators for helping force subsystems put their forces in the 
+    // right slots.
+    virtual void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const = 0;
+    virtual void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+                                 Vector_<SpatialVec>& rigidBodyForces) const = 0;
+    virtual void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+                                 Vector_<SpatialVec>& rigidBodyForces) const = 0;
+    virtual void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
+                                    Vector& mobilityForces) const = 0;  
+    
     virtual const Real& getJointQ(const State&, int body, int axis) const = 0;
     virtual const Real& getJointU(const State&, int body, int axis) const = 0;
 
     virtual void setJointQ(State&, int body, int axis, const Real&) const = 0;
     virtual void setJointU(State&, int body, int axis, const Real&) const = 0;
-
 
     virtual const Vector& getQConstraintErrors(const State&) const {
 
@@ -91,6 +119,8 @@ public:
     }
 
     SimTK_DOWNCAST(MatterSubsystemRep, SubsystemRep);
+private:
+    int forceSubsys;
 };
 
 

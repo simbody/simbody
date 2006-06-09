@@ -55,7 +55,7 @@ class LengthConstraints;
 class RigidBodyTree : public SimTK::MatterSubsystemRep {
 public:
     RigidBodyTree() 
-      : MatterSubsystemRep(), 
+      : MatterSubsystemRep("RigidBodyTree", "0.5.3"), 
         nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), constructionCacheIndex(-1), lConstraints(0) 
     { 
@@ -116,6 +116,7 @@ public:
     // just return the current counts.
     // includes ground
     int getNBodies()      const {return nodeNum2NodeMap.size();}
+    int getNMobilities()  const {return getTotalDOF();}
     int getNConstraints() const {return constraintNodes.size();}
     int getParent(int bodyNum) const;
     Array<int> getChildren(int bodyNum) const;
@@ -232,29 +233,24 @@ public:
 
     void setJointQ(State& s, int body, int axis, const Real& r) const;
     void setJointU(State& s, int body, int axis, const Real& r) const;
-    void setPrescribedUdot(State& s, int body, int axis, const Real& r) const;
 
-
-    const Vector& getAppliedJointForces(const State&) const;
+    const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
-
 
     // Call after realizeReactions()
     const SpatialVec& getBodyAcceleration(const State& s, int body) const;
 
-
-
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
 
+    void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+                                 Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+                                 Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
+                                    Vector& mobilityForces) const;  
 
-    void clearAppliedForces(State& s) const;
-    void applyGravity(State& s, const Vec3& g) const;
-    void applyPointForce(State& s, int body, const Vec3& stationInB, 
-                         const Vec3& forceInG) const;
-    void applyBodyTorque(State& s, int body, const Vec3& torqueInG) const;
-    void applyJointForce(State& s, int body, int axis, const Real& r) const;
-    
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 

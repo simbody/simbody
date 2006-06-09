@@ -63,10 +63,6 @@ public:
         return *this;
     }
 
-    MatterSubsystem* cloneMatterSubsystem() const {
-        return new SimbodySubsystem(*this);
-    }
-
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
     int addRigidBody(const MassProperties&     massProps,
@@ -218,31 +214,9 @@ public:
 
     void setJointQ(State&, int body, int axis, const Real&) const;
     void setJointU(State&, int body, int axis, const Real&) const;
-    void setPrescribedUdot(State&, int body, int axis, const Real&) const;
-    void clearAppliedForces(State&) const;
 
     // Configuration Stage. 
 
-    // OBSOLETE: TODO
-
-    /// Apply gravity to the bodies. Be sure to call this only once
-    /// per evaluation! Must be realized to Configured stage prior to call.
-    void applyGravity    (State&, const Vec3& g) const;
-
-    /// Apply a force to a point on a body (a station). Provide the
-    /// station in the body frame, force in the ground frame. Must
-    /// be realized to Configured stage prior to call.
-    void applyPointForce (State&, int body, const Vec3& stationInB, 
-                          const Vec3& forceInG) const;
-
-    /// Apply a torque to a body. Provide the torque vector in the
-    /// ground frame.
-    void applyBodyTorque (State&, int body, 
-                          const Vec3& torqueInG) const;
-
-    /// Apply a scalar joint force or torque to an axis of the
-    /// indicated body's inboard joint.
-    void applyJointForce(State&, int body, int axis, const Real&) const;
 
     /// Obtain the current orientation and position of the body frame of
     /// the indicated body. Must be in Configured stage. The configuration
@@ -274,7 +248,7 @@ public:
 
     const Vector& getQ(const State&) const;
     const Vector& getU(const State&) const;
-    const Vector& getAppliedJointForces(const State&) const;
+    const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
     void setQ(State&, const Vector& q) const;

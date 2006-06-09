@@ -30,12 +30,28 @@
 
 namespace SimTK {
 
+class MatterSubsystem;
+
+/**
+ * This is logically an abstract class.
+ */
 class SimTK_SIMBODY_API ForceSubsystem : public Subsystem {
 public:
     ForceSubsystem() { }
 
+    /// This is a PIMPL virtual method. This is a Configured stage operator.
+    Real calcPotentialEnergy(const State&) const;  // =0
+
+    /// This is a PIMPL virtual method. This is a Dynamics stage operator.
+    void addInForces(const State&, const MatterSubsystem&,
+                     Vector_<SpatialVec>& rigidBodyForces,
+                     Vector_<Vec3>&       particleForces,
+                     Vector&              mobilityForces) const; // =0
+
+    void setMatterSubsystemIndex(int subsys);
+    int  getMatterSubsystemIndex() const;
+
     SimTK_PIMPL_DOWNCAST(ForceSubsystem, Subsystem);
-private:
     class ForceSubsystemRep& updRep();
     const ForceSubsystemRep& getRep() const;
 };

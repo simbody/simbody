@@ -181,8 +181,8 @@ const Vector& SimbodySubsystem::getQ(const State& s) const {return getRep().getQ
 const Vector& SimbodySubsystem::getU(const State& s) const {return getRep().getU(s);}
 
 const Vector&
-SimbodySubsystem::getAppliedJointForces(const State& s) const {
-    return getRep().getAppliedJointForces(s);
+SimbodySubsystem::getAppliedMobilityForces(const State& s) const {
+    return getRep().getAppliedMobilityForces(s);
 }
 const Vector_<SpatialVec>&
 SimbodySubsystem::getAppliedBodyForces(const State& s) const {
@@ -204,19 +204,6 @@ const Real& SimbodySubsystem::getJointQ(const State& s, int body, int axis) cons
 const Real& SimbodySubsystem::getJointU(const State& s, int body, int axis) const
   { return getRep().getJointU(s,body,axis); }
 
-void SimbodySubsystem::setPrescribedUdot(State& s, int body, int axis, const Real& r) const
-  { return getRep().setPrescribedUdot(s,body,axis,r); }
-
-void SimbodySubsystem::clearAppliedForces(State& s) const {getRep().clearAppliedForces(s);}
-void SimbodySubsystem::applyGravity(State& s, const Vec3& g) const {getRep().applyGravity(s,g);}
-void SimbodySubsystem::applyPointForce(State& s, int body, const Vec3& stationInB, 
-                                                        const Vec3& forceInG) const 
-  { getRep().applyPointForce(s,body,stationInB,forceInG); }
-
-void SimbodySubsystem::applyBodyTorque(State& s, int body, const Vec3& torqueInG) const 
-  { getRep().applyBodyTorque(s,body,torqueInG); }
-void SimbodySubsystem::applyJointForce(State& s, int body, int axis, const Real& d) const
-  { getRep().applyJointForce(s,body,axis,d); }
 
 void SimbodySubsystem::enforceConfigurationConstraints(State& s) const
   { getRep().enforceConfigurationConstraints(s); }

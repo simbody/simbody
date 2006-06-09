@@ -205,9 +205,17 @@ try {
     //pend.endConstruction();
 
     EmptyForcesSubsystem noForces;
+
+
     MultibodySystem mbs;
     mbs.setMatterSubsystem(pend);
-    mbs.setForceSubsystem(noForces);
+
+    TwoPointSpringSubsystem spring1(
+        0, Vec3(1.5,1,0), 
+        1, Vec3(L/2,0,0), 
+        20, 1);
+    mbs.setForceSubsystem(spring1);
+
 
     VTKReporter vtk(mbs);
     DecorativeSphere sphere(0.25);
@@ -235,6 +243,7 @@ try {
     vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
     mbs.realize(s, Stage::Built);
+
     cout << "mbs State as built: " << s;
 
     vtk.report(s);
@@ -243,6 +252,8 @@ try {
     pend.setUseEulerAngles(s, false); // this is the default
     pend.setUseEulerAngles(s, true);
     mbs.realize(s, Stage::Modeled);
+
+    spring1.updGravity(s) = Vec3(0,-9.8,0);
 
 
     vtk.report(s);
@@ -277,9 +288,13 @@ try {
 
     pend.setJointU(s, 1, 0, 10.);
 
-    pend.clearAppliedForces(s);
-    pend.applyGravity(s, gravity);
-    pend.applyJointForce(s, 1, 0, 147);
+    Vector_<SpatialVec> bodyForces;
+    Vector_<Vec3>       particleForces;
+    Vector              mobilityForces;
+
+    pend.resetForces(bodyForces, particleForces, mobilityForces);
+    pend.addInGravity(s, gravity, bodyForces);
+    pend.addInMobilityForce(s, 1, 0, 147, mobilityForces);
 
     mbs.realize(s, Stage::Moving);
     SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
@@ -288,12 +303,12 @@ try {
     cout << "wXwXr=" << bodyVel[0] % (bodyVel[0] % Vec3(2.5,0,0)) << endl;
 
 
-    cout << "after applying gravity, body forces=" << pend.getAppliedBodyForces(s) << endl;
-    cout << "   joint forces=" << pend.getAppliedJointForces(s) << endl;
+    cout << "after applying gravity, body forces=" << bodyForces << endl;
+    cout << "   joint forces=" << mobilityForces << endl;
 
     mbs.realize(s, Stage::Dynamics);
     Vector equivT;
-    pend.calcTreeEquivalentJointForces(s, pend.getAppliedBodyForces(s), equivT);
+    pend.calcTreeEquivalentJointForces(s, bodyForces, equivT);
     cout << "body forces -> equiv joint forces=" << equivT << endl;
 
     mbs.realize(s, Stage::Reacting);
@@ -319,15 +334,9 @@ try {
         const Real t = tstart + step*h;
         if (t > tmax) break;
 
-        pend.enforceConfigurationConstraints(s);
-        mbs.realize(s,Stage::Configured);
+        mbs.project(s, Vector(), .001, 0., .001);
 
-        pend.enforceMotionConstraints(s);
-        mbs.realize(s,Stage::Moving);
         const Vector qdot = pend.getQDot(s);
-
-        pend.clearAppliedForces(s);
-        pend.applyGravity(s,gravity);
 
         Transform  x = pend.getBodyConfiguration(s,theBody);
         SpatialVec v = pend.getBodyVelocity(s,theBody);
@@ -360,7 +369,7 @@ try {
         const Vector udot = s.getUDot();
         Vector udot2;
         pend.calcTreeUDot(s, 
-            pend.getAppliedJointForces(s),
+            pend.getAppliedMobilityForces(s),
             pend.getAppliedBodyForces(s),
             udot2);
         if (!(step % 100)) {

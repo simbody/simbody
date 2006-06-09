@@ -80,6 +80,45 @@ private:
     const SimbodyForcesSubsystemRep& getRep() const;
 };
 
+/**
+ * This is a concrete subsystem which applies a single linear, two-point spring.
+ */
+class SimTK_SIMBODY_API TwoPointSpringSubsystem : public ForceSubsystem {
+public:
+    TwoPointSpringSubsystem(int b1, const Vec3& s1,
+                            int b2, const Vec3& s2,
+                            const Real& k, const Real& x0);
+
+    // TODO: this doesn't belong here!
+    const Vec3& getGravity(const State& s) const;
+    Vec3&       updGravity(State& s)       const;
+
+    const Real& getStiffness(const State& s) const;
+    Real&       updStiffness(State& s)       const;
+
+    const Real& getNaturalLength(const State& s) const;
+    Real&       updNaturalLength(State& s)       const;
+
+    const Real& getPotentialEnergy(const State& s) const;
+    const Vec3& getForceOnStation1(const State& s) const;
+
+
+    // These are just the defaults but are nice to have explicitly for debugging.
+    ~TwoPointSpringSubsystem() {
+    }
+    TwoPointSpringSubsystem(const TwoPointSpringSubsystem& e) 
+      : ForceSubsystem(e) {
+    }
+    TwoPointSpringSubsystem& operator=(const TwoPointSpringSubsystem& e) {
+        ForceSubsystem::operator=(e);
+        return *this;
+    }
+
+    SimTK_PIMPL_DOWNCAST(TwoPointSpringSubsystem, ForceSubsystem);
+private:
+    class TwoPointSpringSubsystemRep& updRep();
+    const TwoPointSpringSubsystemRep& getRep() const;
+};
 
 /**
  * This is a concrete subsystem which applies no forces.
@@ -91,10 +130,10 @@ public:
     // These are just the defaults but are nice to have explicitly for debugging.
     ~EmptyForcesSubsystem() {
     }
-    EmptyForcesSubsystem(EmptyForcesSubsystem& e) 
+    EmptyForcesSubsystem(const EmptyForcesSubsystem& e) 
       : ForceSubsystem(e) {
     }
-    EmptyForcesSubsystem& operator=(EmptyForcesSubsystem& e) {
+    EmptyForcesSubsystem& operator=(const EmptyForcesSubsystem& e) {
         ForceSubsystem::operator=(e);
         return *this;
     }

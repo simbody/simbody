@@ -158,6 +158,7 @@ public:
 	}
 
     void setMyHandle(Subsystem& h) {myHandle = &h;}
+    const Subsystem& getMyHandle() const {assert(myHandle); return *myHandle;}
     void clearMyHandle() {myHandle=0;}
 
 protected:

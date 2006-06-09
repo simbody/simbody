@@ -43,6 +43,29 @@ namespace SimTK {
 // Default destructor destructs the parent class.
 
 
+// This is a PIMPL virtual method.
+Real ForceSubsystem::calcPotentialEnergy(const State& s) const {
+    return getRep().calcPotentialEnergy(s);
+}
+
+// This is a PIMPL virtual method.
+void ForceSubsystem::addInForces(
+    const State& s, const MatterSubsystem& matter,
+    Vector_<SpatialVec>& rigidBodyForces,
+    Vector_<Vec3>&       particleForces,
+    Vector&              mobilityForces) const 
+{
+    getRep().addInForces(s, matter, 
+                         rigidBodyForces, particleForces, mobilityForces);
+}
+
+void ForceSubsystem::setMatterSubsystemIndex(int subsys) {
+    updRep().setMatterSubsystemIndex(subsys);
+}
+int ForceSubsystem::getMatterSubsystemIndex() const {
+    return getRep().getMatterSubsystemIndex();
+}
+
 /*static*/ bool 
 ForceSubsystem::isInstanceOf(const Subsystem& s) {
     return ForceSubsystemRep::isA(s.getRep());
@@ -56,6 +79,16 @@ ForceSubsystem::downcast(const Subsystem& s) {
 ForceSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<ForceSubsystem&>(s);
+}
+
+
+const ForceSubsystemRep& 
+ForceSubsystem::getRep() const {
+    return dynamic_cast<const ForceSubsystemRep&>(*rep);
+}
+ForceSubsystemRep&       
+ForceSubsystem::updRep() {
+    return dynamic_cast<ForceSubsystemRep&>(*rep);
 }
 
 } // namespace SimTK

@@ -44,6 +44,72 @@ EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
     rep->setMyHandle(*this);
 }
 
+    /////////////////////////////
+    // TwoPointSpringSubsystem //
+    /////////////////////////////
+
+
+/*static*/ bool 
+TwoPointSpringSubsystem::isInstanceOf(const ForceSubsystem& s) {
+    return TwoPointSpringSubsystemRep::isA(s.getRep());
+}
+/*static*/ const TwoPointSpringSubsystem&
+TwoPointSpringSubsystem::downcast(const ForceSubsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const TwoPointSpringSubsystem&>(s);
+}
+/*static*/ TwoPointSpringSubsystem&
+TwoPointSpringSubsystem::updDowncast(ForceSubsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<TwoPointSpringSubsystem&>(s);
+}
+
+const TwoPointSpringSubsystemRep& 
+TwoPointSpringSubsystem::getRep() const {
+    return dynamic_cast<const TwoPointSpringSubsystemRep&>(*rep);
+}
+TwoPointSpringSubsystemRep&       
+TwoPointSpringSubsystem::updRep() {
+    return dynamic_cast<TwoPointSpringSubsystemRep&>(*rep);
+}
+
+TwoPointSpringSubsystem::TwoPointSpringSubsystem
+    (int b1, const Vec3& s1, int b2, const Vec3& s2,
+     const Real& k, const Real& x0) : ForceSubsystem() 
+{
+  rep = new TwoPointSpringSubsystemRep(b1,s1,b2,s2,k,x0);
+  rep->setMyHandle(*this);
+}
+
+
+const Vec3& TwoPointSpringSubsystem::getGravity(const State& s) const {
+    return getRep().getGravity(s);
+}
+Vec3& TwoPointSpringSubsystem::updGravity(State& s) const {
+    return getRep().updGravity(s);
+}
+
+const Real& TwoPointSpringSubsystem::getStiffness(const State& s) const {
+    return getRep().getStiffness(s);
+}
+Real& TwoPointSpringSubsystem::updStiffness(State& s) const {
+    return getRep().updStiffness(s);
+}
+
+const Real& TwoPointSpringSubsystem::getNaturalLength(const State& s) const {
+    return getRep().getNaturalLength(s);
+}
+Real& TwoPointSpringSubsystem::updNaturalLength(State& s) const {
+    return getRep().updNaturalLength(s);
+}
+
+const Real& TwoPointSpringSubsystem::getPotentialEnergy(const State& s) const {
+    return getRep().getPotentialEnergy(s);
+}
+const Vec3& TwoPointSpringSubsystem::getForceOnStation1(const State& s) const {
+    return getRep().getForceOnStation1(s);
+}
+
     ////////////////////////////
     // SimbodyForcesSubsystem //
     ////////////////////////////

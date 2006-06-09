@@ -30,26 +30,46 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/MatterSubsystem.h"
 
 #include "SubsystemRep.h"
 
 namespace SimTK {
 
-class MatterSubsystem;
-
 class ForceSubsystemRep : public SubsystemRep {
 public:
-    ForceSubsystemRep(const String& name, const String& version,
-                      const MatterSubsystem& m) 
-        : SubsystemRep(name,version), mech(m) 
+    ForceSubsystemRep(const String& name, const String& version) 
+      : SubsystemRep(name,version), matterSubsys(-1)
     {
     }
+    virtual ~ForceSubsystemRep() { }
 
-    const MatterSubsystem& getMatterSubsystem() const {return mech;}
+    void setMatterSubsystemIndex(int subsys) {
+        assert(subsys >= 0);
+        assert(matterSubsys == -1);
+        matterSubsys = subsys;
+    }
+    int getMatterSubsystemIndex() const {
+        assert(matterSubsys >= 0);
+        return matterSubsys;
+    }
+
+    const MatterSubsystem& getMatterSubsystem() const {
+        return MatterSubsystem::downcast(getSystem().getSubsystem(matterSubsys));
+    }
+
+    /// This is a Configured stage operator.
+    virtual Real calcPotentialEnergy(const State&) const = 0;
+
+    /// This is a Dynamics stage operator.
+    virtual void addInForces(const State&, const MatterSubsystem&,
+                             Vector_<SpatialVec>& rigidBodyForces,
+                             Vector_<Vec3>&       particleForces,
+                             Vector&              mobilityForces) const = 0;
 
     SimTK_DOWNCAST(ForceSubsystemRep, SubsystemRep);
 private:
-    const MatterSubsystem& mech;
+    int matterSubsys;
 };
 
 } // namespace SimTK

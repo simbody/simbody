@@ -217,7 +217,7 @@ public:
 
         // DYNAMICS INFO
 
-    const SpatialVec& getBodyForce(const SBReactionVars& rv) const {return fromB(rv.appliedBodyForces);}
+    const SpatialVec& getBodyForce(const SBDynamicsCache& dc) const {return fromB(dc.appliedRigidBodyForces);}
 
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
@@ -334,7 +334,6 @@ public:
     virtual void calcZ(
         const SBConfigurationCache& cc,
         const SBDynamicsCache&      dc,
-        const SBReactionVars&       rv,
         const SpatialVec&           spatialForce,
         SBReactionCache&            rc) const 
       { throw VirtualBaseMethod(); }

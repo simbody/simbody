@@ -75,6 +75,8 @@ public:
         assert(0 <= subsys && subsys < getNSubsystems());
         assert(!subsystems[subsys].hasRep());
 		assert(src.hasRep() && !src.isInSystem()); // TODO
+        assert(src.isOwnerHandle());
+
 		Subsystem& s = subsystems[subsys];
 		s.setRep(src.updRep());			 // reference the passed-in rep
 		s.updRep().setMyHandle(s);	     // steal ownership

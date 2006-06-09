@@ -71,6 +71,10 @@ System& System::operator=(const System& src) {
 const String& System::getName()    const {return getRep().getName();}
 const String& System::getVersion() const {return getRep().getVersion();}
 
+int System::getNSubsystems() const {return getRep().getNSubsystems();}
+const Subsystem& System::getSubsystem(int i) const {return getRep().getSubsystem(i);}
+Subsystem& System::updSubsystem(int i) {return updRep().updSubsystem(i);}
+
 void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }

@@ -62,14 +62,17 @@ class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
 
     // state entries
     struct Parameters {
-        Parameters(const Real& k, const Real& x0) : stiffness(k), naturalLength(x0) { }
+        Parameters(const Real& k, const Real& x0) 
+            : stiffness(k), naturalLength(x0), gravity(0) { }
         Real stiffness, naturalLength;
+        Vec3 gravity;
     };
 
     struct ConfigurationCache {
+        Vec3 station1_G, station2_G; // body station vectors re-expressed in G
         Vec3 v_G;
-        Real x;    // length of above vector
-        Real fmag; // k(x-x0)
+        Real x;       // length of above vector
+        Real fscalar; // k(x-x0)
         Real pe;
     };
     struct DynamicsCache {
@@ -88,52 +91,71 @@ class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
     mutable int dynamicsCacheIndex;
     mutable bool built;
 
-    const Stage& getStage(const State& s) const {
-        return s.getSubsystemStage(getMySubsystemIndex());
-    }
-    void invalidateStage(const State& s, Stage g) const {
-        s.invalidateAll(g);
-    }
-    void advanceToStage(const State& s, Stage g) const {
-        s.advanceSubsystemToStage(getMySubsystemIndex(),g);
-    }
-
     const Parameters& getParameters(const State& s) const {
         return Value<Parameters>::downcast(
-            s.getDiscreteVariable(getMySubsystemIndex(),parameterVarsIndex)).get();
+            getDiscreteVariable(s,parameterVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
         return Value<Parameters>::downcast(
-            s.updDiscreteVariable(getMySubsystemIndex(),parameterVarsIndex)).upd();
+            updDiscreteVariable(s,parameterVarsIndex)).upd();
     }
     const ConfigurationCache& getConfigurationCache(const State& s) const {
         return Value<ConfigurationCache>::downcast(
-            s.getCacheEntry(getMySubsystemIndex(),configurationCacheIndex)).get();
+            getCacheEntry(s,configurationCacheIndex)).get();
     }
     ConfigurationCache& updConfigurationCache(const State& s) const {
         return Value<ConfigurationCache>::downcast(
-            s.updCacheEntry(getMySubsystemIndex(),configurationCacheIndex)).upd();
+            updCacheEntry(s,configurationCacheIndex)).upd();
     }
     const DynamicsCache& getDynamicsCache(const State& s) const {
         return Value<DynamicsCache>::downcast(
-            s.getCacheEntry(getMySubsystemIndex(),dynamicsCacheIndex)).get();
+            getCacheEntry(s,dynamicsCacheIndex)).get();
     }
     DynamicsCache& updDynamicsCache(const State& s) const {
         return Value<DynamicsCache>::downcast(
-            s.updCacheEntry(getMySubsystemIndex(),dynamicsCacheIndex)).upd();
+            updCacheEntry(s,dynamicsCacheIndex)).upd();
     }
 
 
 public:
-    TwoPointSpringSubsystemRep(const MatterSubsystem& m,
-                   int b1, const Vec3& s1,
-                   int b2, const Vec3& s2,
-                   const Real& k, const Real& x0)
-     : ForceSubsystemRep("TwoPointSpringSubsystem", "0.0.1", m), 
+    TwoPointSpringSubsystemRep(int b1, const Vec3& s1,
+                               int b2, const Vec3& s2,
+                               const Real& k, const Real& x0)
+     : ForceSubsystemRep("TwoPointSpringSubsystem", "0.0.1"), 
        body1(b1), body2(b2), station1(s1), station2(s2),
        defaultParameters(k,x0), built(false)
     {
     }
+
+    // Pure virtuals
+    /// This is a Configured stage operator.
+    Real calcPotentialEnergy(const State& s) const {
+        SimTK_STAGECHECK_GE(getStage(s), Stage::Configured, 
+            "TwoPointSpringSubsystem::calcPotentialEnergy()");
+        return getConfigurationCache(s).pe;
+    }
+
+    /// This is a Dynamics stage operator.
+    void addInForces(const State& s, const MatterSubsystem& matter,
+                     Vector_<SpatialVec>& rigidBodyForces,
+                     Vector_<Vec3>&       particleForces,
+                     Vector&              mobilityForces) const 
+    {
+        assert(matter.getMySubsystemIndex() == getMatterSubsystemIndex());
+        SimTK_STAGECHECK_GE(getStage(s), Stage::Dynamics, 
+            "TwoPointSpringSubsystem::addInForces()");
+
+        const ConfigurationCache& cc = getConfigurationCache(s);
+        const DynamicsCache&      dc = getDynamicsCache(s);
+        rigidBodyForces[body1] += SpatialVec( cc.station1_G % dc.f1_G, dc.f1_G );
+        rigidBodyForces[body2] -= SpatialVec( cc.station2_G % dc.f1_G, dc.f1_G );
+
+        if (getGravity(s) != Vec3(0))
+            matter.addInGravity(s, getGravity(s), rigidBodyForces);
+    }
+
+    const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
+    Vec3&       updGravity(State& s)       const {return updParameters(s).gravity;}
 
     const Real& getStiffness(const State& s) const {return getParameters(s).stiffness;}
     Real&       updStiffness(State& s)       const {return updParameters(s).stiffness;}
@@ -184,15 +206,19 @@ public:
 
         const Transform& X_GB1 = getMatterSubsystem().getBodyConfiguration(s, body1);
         const Transform& X_GB2 = getMatterSubsystem().getBodyConfiguration(s, body2);
-        const Vec3 p1_G = X_GB1*station1;
-        const Vec3 p2_G = X_GB2*station2;
 
         // Fill in the configuration cache.
+        cc.station1_G = X_GB1.R() * station1;   // stations expressed in G will be needed later
+        cc.station2_G = X_GB2.R() * station2;
+
+        const Vec3 p1_G = X_GB1.T() + cc.station1_G;    // station point locations in ground
+        const Vec3 p2_G = X_GB2.T() + cc.station2_G;
+
         cc.v_G              = p2_G - p1_G;
         cc.x                = cc.v_G.norm();
         const Real stretch  = cc.x - p.naturalLength;   // + -> tension, - -> compression
-        cc.fmag             = p.stiffness * stretch;    // k(x-x0)
-        cc.pe               = 0.5 * cc.fmag * stretch;
+        cc.fscalar          = p.stiffness * stretch;    // k(x-x0)
+        cc.pe               = 0.5 * cc.fscalar * stretch;
     }
 
     void realizeMotion(const State& s) const {
@@ -208,7 +234,7 @@ public:
         const ConfigurationCache& cc = getConfigurationCache(s);
         DynamicsCache&            dc = updDynamicsCache(s);
 
-        dc.f1_G = (cc.fmag/cc.x) * cc.v_G;  // NaNs if x (and hence v) is 0
+        dc.f1_G = (cc.fscalar/cc.x) * cc.v_G;  // NaNs if x (and hence v) is 0
     }
 
     void realizeReaction(const State& s) const {
@@ -348,9 +374,32 @@ private:
 class EmptyForcesSubsystemRep : public ForceSubsystemRep {
 public:
     EmptyForcesSubsystemRep()
-      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1", MatterSubsystem()) { }
+      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1") { }
     EmptyForcesSubsystemRep(const MatterSubsystem& m) 
-      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1", m) { }
+      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1") { 
+        setMatterSubsystemIndex(m.getMySubsystemIndex());
+    }
+
+
+    // Pure virtuals
+    // This is a Configured stage operator.
+    Real calcPotentialEnergy(const State& s) const {
+        SimTK_STAGECHECK_GE(getStage(s), Stage::Configured, 
+            "EmptyForcesSubsystem::calcPotentialEnergy()");
+        return 0;
+    }
+
+    // This is a Dynamics stage operator.
+    void addInForces(const State& s, const MatterSubsystem& matter,
+                     Vector_<SpatialVec>& rigidBodyForces,
+                     Vector_<Vec3>&       particleForces,
+                     Vector&              mobilityForces) const 
+    {
+        assert(matter.getMySubsystemIndex() == getMatterSubsystemIndex());
+        SimTK_STAGECHECK_GE(getStage(s), Stage::Dynamics, 
+            "EmptyForcesSubsystem::addInForces()");
+        // nothing to add
+    }
 
     EmptyForcesSubsystemRep* cloneSubsystemRep() const 
       { return new EmptyForcesSubsystemRep(*this); }

@@ -295,6 +295,11 @@ public:
     Vector_<SpatialVec> gyroscopicForces;         // nb (b)
     Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
 
+    Vector_<SpatialVec> appliedRigidBodyForces; // nb
+    Vector_<Vec3>       appliedParticleForces;  // TODO
+    Vector              appliedMobilityForces;  // nu
+    Vector              prescribedUdot;     // nu
+
     Vector_<SpatialMat> psi;                      // nb
     Vector_<SpatialMat> tauBar;                   // nb
     Vector_<SpatialMat> Y;                        // nb
@@ -322,6 +327,12 @@ public:
 
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        appliedRigidBodyForces.resize(nBodies);
+        appliedRigidBodyForces[0] = SpatialVec(Vec3(0),Vec3(0));
+        appliedParticleForces.resize(0); // TODO
+        appliedMobilityForces.resize(nDofs);
+        prescribedUdot.resize(nDofs); // TODO
 
         psi.resize(nBodies); // TODO: ground initialization
         tauBar.resize(nBodies); // TODO: ground initialization
@@ -459,7 +470,7 @@ class SBMotionVars  {
 public:
     // none -- u is supplied directly by the State
 public:
-    void allocate(const SBConstructionCache& tree) const {
+    void allocate(const SBConstructionCache&) const {
     }
 };
 
@@ -467,39 +478,18 @@ class SBDynamicsVars {
 public:
     // none
 public:
-    void allocate(const SBConstructionCache&) const {
+    void allocate(const SBConstructionCache&) const {    
     }
-};
+}; 
+
 
 class SBReactionVars {
 public:
-    Vector_<SpatialVec> appliedBodyForces;  // nb
-    Vector              appliedJointForces; // nu
-    Vector              prescribedUdot;     // nu
+    // none
 public:
-
-    // We can access the tree or state variable & cache up to Stage::Modeled.
-    void allocate(const SBConstructionCache& tree) const {    
-        SBReactionVars& mutvars = *const_cast<SBReactionVars*>(this);
-
-        mutvars.appliedBodyForces.resize(tree.nBodies);  
-        mutvars.appliedBodyForces.setToNaN();
-
-        mutvars.appliedJointForces.resize(tree.nDOFs);   
-        mutvars.appliedJointForces.setToNaN();
-
-        mutvars.prescribedUdot.resize(tree.nDOFs);       
-        mutvars.prescribedUdot.setToNaN();
+    void allocate(const SBConstructionCache&) const {
     }
-
-    // Call this from Modeling stage to set some initial
-    // defaults (all zero).
-    void initialize() {
-        appliedBodyForces = SpatialVec(Vec3(0),Vec3(0));
-        appliedJointForces = 0.;
-        prescribedUdot = 0.;
-    }
-}; 
+};
 
 // These are here just so the AbstractValue's ValueHelper<> template
 // will compile.

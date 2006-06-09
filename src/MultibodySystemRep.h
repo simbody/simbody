@@ -126,6 +126,11 @@ public:
     }
 
     void realizeConstruction(State& s) const {
+        // Help the subsystems find each other.
+        MultibodySystemRep& mutableThis = *const_cast<MultibodySystemRep*>(this);
+        mutableThis.updMatterSubsystem().setForceSubsystemIndex( ForceSubsystemIndex );
+        mutableThis.updForceSubsystem().setMatterSubsystemIndex( MatterSubsystemIndex );
+
         getMatterSubsystem().realize(s, Stage::Built);
         getForceSubsystem().realize(s, Stage::Built);
     }

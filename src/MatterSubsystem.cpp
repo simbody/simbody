@@ -34,13 +34,20 @@
 
 namespace SimTK {
 
-    /////////////////////////
+    /////////////////////
     // MatterSubsystem //
-    /////////////////////////
+    /////////////////////
 
 // Default constructor is inline and creates an empty handle.
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
+
+void MatterSubsystem::setForceSubsystemIndex(int subsys) {
+    updRep().setForceSubsystemIndex(subsys);
+}
+int MatterSubsystem::getForceSubsystemIndex() const {
+    return getRep().getForceSubsystemIndex();
+}
 
 /*static*/ bool 
 MatterSubsystem::isInstanceOf(const Subsystem& s) {
@@ -68,6 +75,9 @@ MatterSubsystem::updRep() {
 
 int MatterSubsystem::getNBodies() const {
     return getRep().getNBodies();
+}
+int MatterSubsystem::getNMobilities() const {
+    return getRep().getNMobilities();
 }
 int MatterSubsystem::getNConstraints() const {
     return MatterSubsystemRep::downcast(*rep).getNConstraints();
@@ -98,6 +108,23 @@ MatterSubsystem::getBodyConfiguration(const State& s, int bodyNum) const {
 const SpatialVec& 
 MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const { 
     return MatterSubsystemRep::downcast(*rep).getBodyVelocity(s,bodyNum); 
+}
+
+void MatterSubsystem::addInGravity(const State& s, const Vec3& g, 
+                                   Vector_<SpatialVec>& bodyForces) const {
+    getRep().addInGravity(s,g,bodyForces);
+}
+void MatterSubsystem::addInPointForce(const State& s, int body, const Vec3& stationInB, 
+                                      const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const {
+    getRep().addInPointForce(s,body,stationInB,forceInG,bodyForces); 
+}
+void MatterSubsystem::addInBodyTorque(const State& s, int body, const Vec3& torqueInG,
+                                      Vector_<SpatialVec>& bodyForces) const {
+    getRep().addInBodyTorque(s,body,torqueInG,bodyForces); 
+}
+void MatterSubsystem::addInMobilityForce(const State& s, int body, int axis, const Real& d,
+                                         Vector& mobilityForces) const { 
+    getRep().addInMobilityForce(s,body,axis,d,mobilityForces); 
 }
 
 const Real&
