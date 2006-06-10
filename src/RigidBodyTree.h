@@ -234,6 +234,11 @@ public:
     void setJointQ(State& s, int body, int axis, const Real& r) const;
     void setJointU(State& s, int body, int axis, const Real& r) const;
 
+    const Transform& getMobilizerConfiguration(const State&, int body) const;
+    const SpatialVec& getMobilizerVelocity(const State&, int body) const;
+    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
+    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
+
     const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 

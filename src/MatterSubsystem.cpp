@@ -144,6 +144,20 @@ void MatterSubsystem::setJointU(State& s, int body, int axis, const Real& u) con
 }
 
 
+const Transform& MatterSubsystem::getMobilizerConfiguration(const State& s, int body) const { 
+    return MatterSubsystemRep::downcast(*rep).getMobilizerConfiguration(s,body); 
+}
+const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, int body) const { 
+    return MatterSubsystemRep::downcast(*rep).getMobilizerVelocity(s,body); 
+}
+void MatterSubsystem::setMobilizerConfiguration(State& s, int body, const Transform& X_JbJ) const { 
+    MatterSubsystemRep::downcast(*rep).setMobilizerConfiguration(s,body,X_JbJ); 
+}
+void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
+    MatterSubsystemRep::downcast(*rep).setMobilizerVelocity(s,body,V_JbJ); 
+}
+
+
 const Vector& MatterSubsystem::getQConstraintErrors(const State& s) const { 
     return MatterSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
 }

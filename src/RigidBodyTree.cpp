@@ -615,6 +615,30 @@ void RigidBodyTree::setJointU(State& s, int body, int axis, const Real& r) const
     updU(s)[n.getUIndex()+axis] = r;
 }
 
+
+const Transform& RigidBodyTree::getMobilizerConfiguration(const State& s, int body) const { 
+    const RigidBodyNode& n = getRigidBodyNode(body);
+    const SBConfigurationCache& cc = getConfigurationCache(s);
+    return n.getX_JbJ(cc);
+}
+const SpatialVec& RigidBodyTree::getMobilizerVelocity(const State& s, int body) const { 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBMotionCache& mc = getMotionCache(s);
+    return n.getV_JbJ(mc);
+}
+void RigidBodyTree::setMobilizerConfiguration(State& s, int body, const Transform& X_JbJ) const { 
+    const RigidBodyNode& n = getRigidBodyNode(body);
+    const SBModelingVars& mv = getModelingVars(s);
+    Vector& q = updQ(s);
+    n.setMobilizerConfiguration(mv, X_JbJ, q);
+}
+void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
+    const RigidBodyNode& n = getRigidBodyNode(body);
+    const SBModelingVars& mv = getModelingVars(s);
+    Vector& u = updU(s);
+    n.setMobilizerVelocity(mv, V_JbJ, u);
+}
+
 void RigidBodyTree::addInGravity(const State& s, const Vec3& g,
                                  Vector_<SpatialVec>& rigidBodyForces) const 
 {

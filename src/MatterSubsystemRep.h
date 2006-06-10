@@ -94,6 +94,11 @@ public:
     virtual void setJointQ(State&, int body, int axis, const Real&) const = 0;
     virtual void setJointU(State&, int body, int axis, const Real&) const = 0;
 
+    virtual const Transform& getMobilizerConfiguration(const State&, int body) const = 0;
+    virtual const SpatialVec& getMobilizerVelocity(const State&, int body) const = 0;
+    virtual void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const = 0;
+    virtual void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const = 0;
+
     virtual const Vector& getQConstraintErrors(const State&) const {
 
         static Vector dummy;

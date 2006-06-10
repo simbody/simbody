@@ -198,6 +198,10 @@ public:
 
             // VELOCITY INFO
 
+    const SpatialVec& getV_JbJ(const SBMotionCache& mc) const {return fromB(mc.mobilizerRelativeVelocity);}
+    SpatialVec&       updV_JbJ(SBMotionCache&       mc) const {return toB  (mc.mobilizerRelativeVelocity);}
+
+
     /// Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
     /// expressed in ground. This contains the angular velocity of B in G, and the linear velocity
     /// of B's origin point OB in G, with both vectors expressed in G.
@@ -294,6 +298,13 @@ public:
     virtual void setDefaultMotionValues       (const SBModelingVars&, Vector& u)            const {}
     virtual void setDefaultDynamicsValues     (const SBModelingVars&, SBDynamicsVars&)      const {}
     virtual void setDefaultReactionValues     (const SBModelingVars&, SBReactionVars&)      const {}
+
+    // These attempt to set the mobilizer's internal configuration or velocity
+    // to a specified value. The mobilizer is expected to do the best it can.
+    virtual void setMobilizerConfiguration(const SBModelingVars&, const Transform& X_JbJ,
+                                           Vector& q) const {}
+    virtual void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+                                      Vector& u) const {}
 
     /// Calculate kinetic energy (from spatial quantities only).
     Real calcKineticEnergy(

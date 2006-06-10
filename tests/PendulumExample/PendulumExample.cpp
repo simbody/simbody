@@ -44,7 +44,7 @@ static const int  GroundBodyNum = 0; // ground is always body 0
 static const Real m = 5;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
 static const Real d = 1.5; // meters
-static const Real initialTheta   = 20;             // degrees
+static const Real initialTheta   = 30;             // degrees
 static const Real expectedPeriod = 2*Pi*sqrt(d/g); // s
 
 class MySimbodyPendulum : public SimbodySubsystem {
@@ -92,12 +92,15 @@ public:
     }
 
     Real getPendulumAngle(const State& s) const {
-        return getJointQ(s,pendBodyNum,0)/RadiansPerDegree;
+        const Vec4 aa = getMobilizerConfiguration(s,pendBodyNum).R().convertToAngleAxis();
+        return aa[0]/RadiansPerDegree;
     }
 
+    // Assume rotation around z
     void setPendulumAngle(State& s, Real angleInDegrees) {
-        for (int i=0; i<3; ++i)
-            setJointQ(s,pendBodyNum,i,angleInDegrees*RadiansPerDegree);
+        const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
+        Quaternion q; q.setToAngleAxis(aa);
+        setMobilizerConfiguration(s,pendBodyNum,Transform(RotationMat(q)));
     }
 private:
     int pendBodyNum;
@@ -118,7 +121,7 @@ int main(int argc, char** argv) {
         State s;
         MultibodySystem mbs(myPend,forces);
         mbs.realize(s, Stage::Built);
-        myPend.setUseEulerAngles(s,true);
+        //myPend.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
         forces.updGravity(s) = Vec3(0, -g, 0);
         cout << "STATE AS MODELED: " << s;

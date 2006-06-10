@@ -696,6 +696,17 @@ public:
 
         // Implementations of virtual methods.
 
+    void setMobilizerConfiguration(const SBModelingVars&, const Transform& X_JbJ,
+                                   Vector& q) const 
+    {
+        toQ(q) = X_JbJ.T();
+    }
+    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+                              Vector& u) const
+    {
+        toU(u) = V_JbJ[1];
+    }
+
     // This is required but does nothing here since we there are no rotations for this joint.
     void calcJointSinCosQNorm(
         const SBModelingVars&   mv, 
@@ -1026,6 +1037,21 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
+    void setMobilizerConfiguration(const SBModelingVars& mv, const Transform& X_JbJ,
+                                   Vector& q) const 
+    {
+        if (getUseEulerAngles(mv)) {
+            //TODO
+        } else {
+            toQuat(q) = X_JbJ.R().convertToQuaternion().asVec4();
+        }
+    }
+    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+                              Vector& u) const
+    {
+            toU(u) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelingVars&   mv, 
@@ -1197,6 +1223,24 @@ public:
       : RigidBodyNodeSpec<6>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerConfiguration(const SBModelingVars& mv, const Transform& X_JbJ,
+                                   Vector& q) const 
+    {
+        if (getUseEulerAngles(mv)) {
+            //TODO orientation
+            toQVec3(q,3) = X_JbJ.T(); // translation
+        } else {
+            toQuat(q) = X_JbJ.R().convertToQuaternion().asVec4();
+            toQVec3(q,4) = X_JbJ.T();
+        }
+    }
+    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+                              Vector& u) const
+    {
+        toUVec3(u,0) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
+        toUVec3(u,3) = V_JbJ[1];
     }
 
     // Precalculate sines and cosines.

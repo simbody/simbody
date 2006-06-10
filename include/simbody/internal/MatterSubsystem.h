@@ -97,6 +97,37 @@ public:
     void setJointQ(State&, int body, int axis, const Real&) const;
     void setJointU(State&, int body, int axis, const Real&) const;
 
+    /// At stage Configured or higher, return the cross-mobilizer transform.
+    /// This is X_JbJ, the body's inboard mobilizer frame J measured and expressed in
+    /// the parent body's corresponding outboard frame Jb.
+    const Transform& getMobilizerConfiguration(const State&, int body) const;
+
+    /// At stage Moving or higher, return the cross-mobilizer velocity.
+    /// This is V_JbJ, the relative velocity of the body's inboard mobilizer
+    /// frame J in the parent body's corresponding outboard frame Jb, 
+    /// measured and expressed in Jb. This is NOT a spatial velocity!
+    const SpatialVec& getMobilizerVelocity(const State&, int body) const;
+
+    /// This is a solver which sets the body's mobilizer transform as close
+    /// as possible to the supplied Transform. The degree to which this is
+    /// possible depends of course on the mobility provided by this body's
+    /// mobilizer. However, no error will occur; on return the coordinates
+    /// for this mobilizer will be as close as we can get them. Note: this
+    /// has no effect on any coordinates except the q's for this mobilizer.
+    /// You can call this solver at Stage::Modeled or higher; it will
+    /// leave you no higher than Stage::Timed since it changes the configuration.
+    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
+
+    /// This is a solver which sets the body's cross-mobilizer velocity as close
+    /// as possible to the supplied angular and linear velocity. The degree to which this is
+    /// possible depends of course on the mobility provided by this body's
+    /// mobilizer. However, no error will occur; on return the velocity coordinates
+    /// (u's) for this mobilizer will be as close as we can get them. Note: this
+    /// has no effect on any coordinates except the u's for this mobilizer.
+    /// You can call this solver at Stage::Modeled or higher; it will
+    /// leave you no higher than Stage::Configured since it changes the velocities.
+    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
+
 
     /// This is available at Stage::Configured. These are *absolute* constraint
     /// violations qerr=g(t,q), that is, they are unweighted.

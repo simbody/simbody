@@ -25,8 +25,7 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
-//#include "Simbody.h"
+#include "Simbody.h"
 
 #include "simbody/internal/NumericalMethods.h"
 
@@ -37,7 +36,7 @@ using std::endl;
 
 using namespace SimTK;
 
-class SinCos : public MechanicalDAESystem {
+class SinCos : public MatterSubsystem {
 public:
     SinCos(const Real& omega) : w(omega), y(2), yd(2), weights(2), units(2), t(CNT<Real>::getNaN()), 
         solnAcc(1e-3), consAcc(1e-3), timeScale(1e-3) 
@@ -127,7 +126,7 @@ private:
  *     y'' = g - y*L/m
  *               
  */  
-class PointMass2dPendulum : public MechanicalDAESystem {
+class PointMass2dPendulum : public MatterSubsystem {
     static const int NStates = 4;
     static const int NConstraints = 1;
 public:
@@ -307,17 +306,25 @@ int main() {
 
 
     try {
-
+        State scState;
+        MultibodySystem scmbs;
         SinCos sc(1.);
-        ExplicitEuler ee(sc);
-        ee.setInitialStepSize(0.00001);
+        scmbs.setMatterSubsystem(sc); 
+        scmbs.setForceSubsystem(EmptyForcesSubsystem());
+        scmbs.realize(scState, Stage::Modeled);
+        scState.updTime() = 0;
         Vector y(2); y[0] = 0.; y[1] = 1.;
-        ee.setInitialConditions(0., y);
+        scState.updY() = y;
+
+        ExplicitEuler ee(scmbs, scState);
+        ee.setInitialStepSize(0.00001);
+
+        ee.initialize();
         //std::cout << "t=" << ee.getT() << " y=" << ee.getY() << std::endl;
 
-        while (false && ee.getT() < 10.) {
-            ee.step(ee.getT() + 0.1);
-            std::cout << "t=" << ee.getT() << " y=" << ee.getY() << std::endl;
+        while (false && scState.getTime() < 10.) {
+            ee.step(scState.getTime() + 0.1);
+            std::cout << "t=" << scState.getTime() << " y=" << scState.getY() << std::endl;
         }
 
         const Real mass = 5.;
@@ -326,15 +333,12 @@ int main() {
         const Real pi = acos(-1.);
         const Real halfPeriod = pi*sqrt(fabs(length/gravity));
         printf("Period should be %gs\n", 2*halfPeriod);
+        MultibodySystem pendmbs;
         PointMass2dPendulum p(mass,length,gravity);
-        //ExplicitEuler eep(p);
-        RungeKuttaMerson eep(p);
-        //eep.setInitialStepSize(0.00001);
-        eep.setStopTime(100.);
-        const Real acc = 1e-8;
-        eep.setAccuracy(acc);
-        //eep.setConstraintTolerance(1.);
-      //  eep.setProjectEveryStep(true);
+        pendmbs.setMatterSubsystem(p); 
+        pendmbs.setForceSubsystem(EmptyForcesSubsystem());
+        State pendState;
+        pendmbs.realize(pendState, Stage::Modeled);
 
         Vector yp(4); 
         //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
@@ -342,31 +346,44 @@ int main() {
         //yp[0]=0; yp[1]=-10;                  // -90 degrees (straight down)
         yp[2]=yp[3]=0;
 
-        if (!eep.setInitialConditions(0., yp)) {
+        pendState.updTime() = 0;
+        pendState.updY() = yp;
+
+        //ExplicitEuler eep(p);
+        RungeKuttaMerson eep(pendmbs, pendState);
+        //eep.setInitialStepSize(0.00001);
+        eep.setStopTime(100.);
+        const Real acc = 1e-8;
+        eep.setAccuracy(acc);
+        //eep.setConstraintTolerance(1.);
+      //  eep.setProjectEveryStep(true);
+
+
+        if (!eep.initialize()) {
             printf("**** CAN'T SET ICS\n");
             exit(1);
         }
 
         while (true) {
 
-            std::cout << "t=" << eep.getT() 
-                << " yp=" << eep.getY();
-            p.setState(eep.getT(), eep.getY());
-            p.realize();
+            std::cout << "t=" << pendState.getTime() 
+                << " yp=" << pendState.getY();
+
+            pendmbs.realize(pendState, Stage::Reacting);
             std::cout << "   perr=" << p.getPositionErrorNorm()/eep.getConstraintTolerance()
                 << "  verr=" << p.getVelocityErrorNorm()/eep.getConstraintTolerance()
                 << "  aerr=" << p.getAccelerationErrorNorm()/eep.getConstraintTolerance()
                 << " E=" << p.calcEnergy();
             std::cout << " hnext=" << eep.getPredictedNextStep() << std::endl;
 
-            if (eep.getT() >= 100.)
+            if (pendState.getTime()  >= 100.)
                 break;
 
             Real h = 10.;
             //if (fabs(eep.getT()-floor(eep.getT()/halfPeriod+0.5)*halfPeriod) < 0.2)
              //   h = 0.001;
-            if (!eep.step(eep.getT() + h)) {
-                printf("**** STEP FAILED t=%g -> %g\n", eep.getT(), eep.getT()+h);
+            if (!eep.step(pendState.getTime()  + h)) {
+                printf("**** STEP FAILED t=%g -> %g\n", pendState.getTime() , pendState.getTime() +h);
                 exit(1);
             }
         }

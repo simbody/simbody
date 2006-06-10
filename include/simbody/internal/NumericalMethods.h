@@ -90,29 +90,7 @@ namespace SimTK {
  * should be done so as to reduce the violations substantially.
  *
  */
-class MechanicalDAESystem {
-public:
-    virtual int size() const = 0;  // problem size (|y|)
 
-    // The solver should communicate this information at the beginning and then
-    // leave it. If you only have one number, e.g. 0.001, it is reasonable to 
-    // use it for both values here because they are intended to have roughly
-    // the same scale, at least qualitatively.
-    virtual void setAccuracy(const Real& solution, const Real& constraint) = 0;
-
-    virtual void setState(const Real& t, const Vector& y) = 0;
-    virtual bool realize()                          const = 0; // ODE only
-    virtual bool realizeAndProject(bool& anyChange, bool force=false) = 0; // DAE using coordinate projection
-
-    virtual Real          getTimescale() const = 0;
-
-    virtual const Real&   getT()       const = 0;   // These are available after setState(),
-    virtual const Vector& getY()       const = 0;   // though y is modified by realizeAndProject().
-    virtual const Vector& getWeights() const = 0;
-
-    virtual const Vector& getYDot()    const = 0;   // Available after either realize() call.
-
-};
 
 /**
  * Abstract Index3 DAE Integrator using the Coordinate Projection

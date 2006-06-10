@@ -253,8 +253,9 @@ public:
 class SBMotionCache {
 public:
     // qdot is supplied directly by the State
-    Vector_<SpatialVec> bodyVelocityInParent;     // nb (joint velocity)
-    Vector_<SpatialVec> bodyVelocityInGround;     // nb (sVel)
+    Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
+    Vector_<SpatialVec> bodyVelocityInGround;      // nb (sVel)
+    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_JbJ)
 
     Vector velocityConstraintErrors;              // nvc
 
@@ -278,6 +279,9 @@ public:
 
         bodyVelocityInGround.resize(nBodies);       
         bodyVelocityInGround[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        mobilizerRelativeVelocity.resize(nBodies);       
+        mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
 
         velocityConstraintErrors.resize(nvc);
         stationVel_G[0].resize(ndc); stationVel_G[1].resize(ndc);
