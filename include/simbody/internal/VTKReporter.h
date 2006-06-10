@@ -58,6 +58,10 @@ public:
     void report(const State& s);
 
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addRubberBandLine(int b1, const Vec3& station1, int b2, const Vec3& station2,
+                           const DecorativeLine&);
+
+
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb);
     const Vec3& getDefaultBodyColor(int bodyNum) const;
  

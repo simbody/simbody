@@ -71,6 +71,8 @@ public:
 
     // This will make a copy of the supplied DecorativeGeometry.
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addRubberBandLine(int b1, const Vec3& station1, int b2, const Vec3& station2,
+                           const DecorativeLine&);
 
     // Make sure everything can be seen.
     void setCameraDefault();
@@ -104,12 +106,22 @@ private:
     };
     std::vector<PerBodyInfo> bodies;
 
+    struct PerDynamicGeomInfo {
+        PerDynamicGeomInfo() : actor(0), body1(-1), body2(-1) { }
+        vtkActor*      actor;
+        DecorativeLine line;
+        int  body1, body2;
+        Vec3 station1, station2;
+    };
+    std::vector<PerDynamicGeomInfo> dynamicGeom;
+
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
 
     void zeroPointers();
     void deletePointers();
     void setConfiguration(int bodyNum, const Transform& X_GB);
+    void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
 };
 
     /////////////////
@@ -161,6 +173,20 @@ void VTKReporter::addDecoration(int body, const Transform& X_GD,
     rep->addDecoration(body, X_GD, g);
 }
 
+void VTKReporter::addRubberBandLine(int b1, const Vec3& station1,
+                                    int b2, const Vec3& station2,
+                                    const DecorativeLine& g)
+{
+    assert(rep);
+    rep->addRubberBandLine(b1,station1,b2,station2,g);
+}
+
+void VTKReporter::setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
+   assert(rep);
+   rep->setDefaultBodyColor(bodyNum,rgb);
+}
+
+
 
     ////////////////////
     // VTKReporterRep //
@@ -201,6 +227,40 @@ void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
     setCameraDefault();
 }
 
+void VTKReporterRep::addRubberBandLine(int b1, const Vec3& station1,
+                                       int b2, const Vec3& station2,
+                                       const DecorativeLine& g)
+{
+    // Create a unique actor for each piece of geometry.
+    int nxt = (int)dynamicGeom.size();
+    dynamicGeom.resize(nxt+1);
+    PerDynamicGeomInfo& info = dynamicGeom.back();
+
+    info.actor = vtkActor::New();
+    info.line  = g;
+    info.body1 = b1; info.body2 = b2;
+    info.station1 = station1; info.station2 = station2;
+
+    // Now apply the actor-level properties from the geometry.
+    const Vec3 color = (info.line.getColor()[0] != -1 ? info.line.getColor() : Black); 
+    info.actor->GetProperty()->SetColor(color[0],color[1],color[2]);
+
+    const Real opacity = (info.line.getOpacity() != -1 ? info.line.getOpacity() : Real(1));
+    info.actor->GetProperty()->SetOpacity(opacity);
+
+    const Real lineWidth = (info.line.getLineThickness() != -1 ? info.line.getLineThickness() : Real(1));
+    info.actor->GetProperty()->SetLineWidth(lineWidth);
+
+    const int representation = (info.line.getRepresentation() != -1 ? info.line.getRepresentation() : VTK_SURFACE);
+    info.actor->GetProperty()->SetRepresentation(representation);
+
+    // Set up the mapper & register actor with renderer, but don't set up mapper's input yet.
+    vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
+    info.actor->SetMapper(mapper);
+    mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
+    renderer->AddActor(info.actor);
+}
+
 VTKReporterRep::VTKReporterRep(const MultibodySystem& m) 
     : myHandle(0), mbs(m) 
 {
@@ -219,8 +279,6 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
-
-
 
     renWin->AddRenderer(renderer);
 
@@ -287,10 +345,18 @@ void VTKReporterRep::report(const State& s) {
 
     mbs.realize(s, Stage::Configured); // just in case
 
-    const MatterSubsystem& mech = mbs.getMatterSubsystem();
-    for (int i=1; i<mech.getNBodies(); ++i) {
-        const Transform& config = mech.getBodyConfiguration(s, i);
+    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    for (int i=1; i<matter.getNBodies(); ++i) {
+        const Transform& config = matter.getBodyConfiguration(s, i);
         setConfiguration(i, config);
+    }
+    for (int i=0; i<(int)dynamicGeom.size(); ++i) {
+        const PerDynamicGeomInfo& info = dynamicGeom[i];
+        const Transform& X_GB1 = 
+            matter.getBodyConfiguration(s, info.body1);
+        const Transform& X_GB2 = 
+            matter.getBodyConfiguration(s, info.body2);
+        setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 
     renWin->Render();
@@ -322,6 +388,10 @@ void VTKReporterRep::deletePointers() {
         for (int a=0; a<(int)actors.size(); ++a)
             actors[a]->Delete(), actors[a]=0;
     }
+    for (int i=0; i<(int)dynamicGeom.size(); ++i) {
+        dynamicGeom[i].actor->Delete();
+        dynamicGeom[i].actor = 0;
+    }
 
     if(renderer)renderer->Delete();
     if(renWin)renWin->Delete();
@@ -337,6 +407,14 @@ void VTKReporterRep::setConfiguration(int bodyNum, const Transform& X_GB) {
         actor->SetOrientation(0,0,0);
         actor->RotateWXYZ(av[0]/RadiansPerDegree, av[1], av[2], av[3]);
     }
+}
+
+// Provide two points in ground frame and generate the appropriate line between them.
+void VTKReporterRep::setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2) {
+    vtkActor*       actor = dynamicGeom[dgeom].actor;
+    DecorativeLine& line  = dynamicGeom[dgeom].line;
+    line.setEndpoints(p1, p2);
+    vtkPolyDataMapper::SafeDownCast(actor->GetMapper())->SetInput(line.updVTKPolyData());
 }
 
 } // namespace SimTK

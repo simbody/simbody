@@ -26,6 +26,7 @@
 
 #include "Simbody.h"
 #include "simbody/internal/NumericalMethods.h"
+#include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
 #include "windows.h"
@@ -134,6 +135,10 @@ int main(int argc, char** argv) {
         myStudy.setProjectEveryStep(true);
 
         VTKReporter display(mbs);
+        DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
+        display.addRubberBandLine(0, Vec3(2,-3,0), 3, Vec3(0,-d/2,0), rbProto);
+
+        //display.addDecoration(2, Transform(), DecorativeCircle(1).setColor(Yellow).setLineThickness(5));
         //for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)
        //     display.addDecoration(i, Transform(Vec3(0,-d/2,0)), DecorativeSphere(0.2).setOpacity(0.3));
 
