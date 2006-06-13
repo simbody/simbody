@@ -351,7 +351,7 @@ void VTKReporterRep::setCameraDefault() {
     renderer->ResetCamera();
     Vec3 pos;
     renderer->GetActiveCamera()->GetPosition(pos[0],pos[1],pos[2]);
-    pos *= 2;
+    pos *= 4;
     renderer->GetActiveCamera()->SetPosition(pos[0],pos[1],pos[2]);
     Real nearClip, farClip;
     renderer->GetActiveCamera()->GetClippingRange(nearClip,farClip);

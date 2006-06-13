@@ -147,7 +147,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 1;
+static int NSegments = 3;
 
 class MyRNAExample : public SimbodySubsystem {
     struct PerBodyInfo {
@@ -166,7 +166,7 @@ public:
 
         int theConstraint2 =
            addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
-                                         end2, Vec3(0, -HalfHeight,0), 20);
+                                         end2, Vec3(0, -HalfHeight,0), 10);
 
     }
 
@@ -222,14 +222,14 @@ private:
 
             int dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
                                 Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
-                                left2,
+                                rt2,
                                 Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                                 JointSpecification(JointSpecification::Ball, false));
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {
                 int theConstraint =
-                    addCoincidentStationsConstraint(rt2, Vec3(0, -ConnectorHalfHeight, 0),
+                    addCoincidentStationsConstraint(left2, Vec3(0, -ConnectorHalfHeight, 0),
                                                     dup, Vec3(DuplexRadius, HalfHeight, 0));
                 //int theConstraint =
                   //  addConstantDistanceConstraint(rt2, Vec3(0, -ConnectorHalfHeight, 0),
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
 
     try { // If anything goes wrong, an exception will be thrown.
         int nseg = NSegments;
-        int shouldFlop = 0;
+        int shouldFlop = 1;
         if (argc > 1) sscanf(argv[1], "%d", &nseg);
         if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
         //printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
@@ -315,22 +315,22 @@ int main(int argc, char** argv) {
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(100, -40, -50);
-        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),10.,1.);
+        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),0.,1.);
         State s;
         MultibodySystem mbs(myRNA,forces);
         mbs.realize(s, Stage::Built);
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
-        forces.updGravity(s) = Vec3(0, -.2, 0);
-        forces.updDamping(s) = 1000;
+        forces.updGravity(s) = Vec3(0, -g, 0);
+        forces.updDamping(s) = 10000;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);
 
         // And a study using the Runge Kutta Merson integrator
-        bool suppressProject = false;
+        bool suppressProject = true;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-6);
+        myStudy.setAccuracy(1e-2);
         myStudy.setProjectEveryStep(true);
 
         VTKReporter display(mbs);
@@ -345,8 +345,14 @@ int main(int argc, char** argv) {
 
         printf("time  nextStepSize\n");
 
-        myStudy.initialize();
         s.updTime() = 0;
+        for (int i=0; i<100; ++i)
+            saveEm.push_back(s);
+        display.report(s);
+
+        myStudy.initialize();
+        saveEm.push_back(s);
+
         display.report(s);
         for (;;) {
             printf("%5g hNext=%g\n", s.getTime(), myStudy.getPredictedNextStep());

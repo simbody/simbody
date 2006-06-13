@@ -207,9 +207,12 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
     }
 
     // find intersections - group all loops with tip->trunk relationship
-    // TODO sherm: I don't understand why these have to be more coupled than
-    // the pos/vel constraints. (This code couples all the loops on the same
-    // molecule). I asked Schwieters and he didn't know either but said he
+    //
+    // TODO sherm: These have to be more coupled than the pos/vel constraints,
+    // since calculating the multipliers involves mass matrix M as well as
+    // constraint matrix A. However, this code couples all the loops on the same
+    // molecule, which I *think* is unnecessarily strict.
+    // I asked Schwieters and he didn't know either but said he
     // would have to think about it. He thought maybe he had cut some corners here
     // and over-coupled the loops but he wasn't sure.
     for (int i=0 ; i<(int)accLoops.size() ; i++) {
@@ -291,14 +294,13 @@ public:
 };
 
 class CalcVelB {
-    State&         s;
-    const Vector&    pos;
+    State&           s;
     const LengthSet* lengthSet;
 public:
-    CalcVelB(State& ss, const Vector& q, const LengthSet* constraint)
-        : s(ss), pos(q), lengthSet(constraint) {}
+    CalcVelB(State& ss, const LengthSet* constraint)
+        : s(ss), lengthSet(constraint) {}
     Vector operator()(const Vector& vel) 
-        { return lengthSet->calcVelB(s,pos,vel); }
+        { return lengthSet->calcVelB(s,vel); }
 };
 
 //
@@ -323,9 +325,9 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 
 //
 // Calculate the velocity constraint violation (zero when constraint met).
-// TODO: get rid of "pos"
+//
 Vector
-LengthSet::calcVelB(State& s, const Vector& pos, const Vector& vel) const 
+LengthSet::calcVelB(State& s, const Vector& vel) const 
 {
     const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
 
@@ -466,16 +468,15 @@ bool
 LengthConstraints::enforceMotionConstraints(State& s) const
 {
     assert(rbTree.getStage(s) >= Stage(Stage::Moving).prev());
-    const Vector&    pos = rbTree.getQ(s);
-    Vector&          vel = rbTree.updU(s);
+    Vector& vel = rbTree.updU(s);
 
     bool anyChanges = false;
 
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            velMin.calc((Vector&)vel,
-                        CalcVelB(s, pos, &pvConstraints[i]),
+            velMin.calc(vel,
+                        CalcVelB(s, &pvConstraints[i]),
                         CalcVelZ(s, &pvConstraints[i]));
         }
     }
@@ -554,7 +555,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
 ////
 //
 
-// Calculate gradient by finite difference for testing the analytic
+// Calculate gradient by central difference for testing the analytic
 // version. Presumes that calcEnergy has been called previously with current 
 // value of ipos.
 void 
@@ -566,7 +567,7 @@ LengthSet::fdgradf(State& s,
 
     // Gradf gradf(tree);
     // gradf(x,grad); return;
-    const double eps = 1e-8;
+    const double eps = 1e-6;
     const CalcPosB calcB(s, this);
     const Vector b = calcB(pos);
     int grad_indx=0;
@@ -917,6 +918,7 @@ LengthSet::calcConstraintForces(const State& s) const
                                                      loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
 
+                    /* sherm 060613: what's this trying to do?? (a) is it safe, (b) why bother?
                     if ( fabs(contrib) > maxElem ) maxElem = fabs(contrib);
                     if ( maxElem>0. && fabs(contrib)/maxElem < lConstraints->bandCut ) {
                         if ( getVerbose()&InternalDynamics::printLoopDebug )
@@ -925,6 +927,7 @@ LengthSet::calcConstraintForces(const State& s) const
                                  << bi << "," << bj << "] = 0\n";
                         break;  //don't compute smaller elements
                     }
+                    */
                 }
             }
     }

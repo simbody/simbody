@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream&, const RBStation&);
  * This class requests that two stations, one on each of two rigid bodies,
  * be maintained at a certain separation distance at all times. This is 
  * an internal service provided by RigidBodyTrees and not something
- * built directly by users. User-requested constraints may allocate one
+ * built directly by users. User-requested Constraints may allocate one
  * or more distance constraints in the performance of their duties.
  *
  * Each distance constraint adds one constraint equation and is thus
@@ -318,7 +318,7 @@ public:
     void  setVel(State&, const Vector& vel) const;
     Vector getPos();
     Vector calcPosB(State&, const Vector& pos) const;
-    Vector calcVelB(State&, const Vector& pos, const Vector& vel) const;
+    Vector calcVelB(State&, const Vector& vel) const;
     Vector calcPosZ(const State&, const Vector& b) const;
     Matrix calcGrad(const State&) const;
     Matrix calcGInverse(const State&) const;

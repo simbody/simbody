@@ -12,7 +12,7 @@
 using namespace SimTK;
 
 /**
- * This class represents a "constraint", which is in general a set of related
+ * This class represents a "Constraint", which is in general a set of related
  * constraint equations. 
  */
 class ConstraintNode {
@@ -99,7 +99,9 @@ private:
  * This class represents three constraint equations, together conspiring to hold
  * a station on one body coincident with one on another (or on ground).
  * The current implementation uses three distance constraints between the
- * pair of bodies.
+ * pair of bodies. TODO: that doesn't work very well! (0,0,0) and (2/3,2/3,2/3)
+ * both satisfy the constraint equations generated below (each is exactly 1
+ * unit away from all points 100, 010, 001).
  */
 class CoincidentStationsConstraintNode : public ConstraintNode {
 public:

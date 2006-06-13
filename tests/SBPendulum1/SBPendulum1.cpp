@@ -69,7 +69,8 @@ using std::endl;
 
 using namespace SimTK;
 
-static const Real Pi = std::acos(-1.);
+static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const int  GroundBodyNum = 0; // ground is always body 0
 
 
 void stateTest() {
@@ -172,8 +173,8 @@ try {
                         //JointSpecification(JointSpecification::Cartesian, false)
                         //JointSpecification(JointSpecification::Sliding, false)
                         //JointSpecification(JointSpecification::Pin, false)
-                        JointSpecification(JointSpecification::Ball, false)
-                        //JointSpecification(JointSpecification::Free, false)
+                        //JointSpecification(JointSpecification::Ball, false)
+                        JointSpecification(JointSpecification::Free, false)
                         );
 
 /*
@@ -191,9 +192,9 @@ try {
     //                                       theBody, Vec3(0,0,0),
     //                                       L/2+std::sqrt(2.));
  
-   // int ballConstraint =
-     //   pend.addCoincidentStationsConstraint(0, Transform().T(),
-       //                                      theBody, jointFrame.T()); 
+    int ballConstraint =
+        pend.addCoincidentStationsConstraint(0, Transform().T(),
+                                             theBody, jointFrame.T()); 
 /*
     Transform harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
@@ -247,7 +248,9 @@ try {
     cout << "mbs State as built: " << s;
 
     //ExplicitEuler ee(mbs, s);
-    RungeKuttaMerson ee(mbs, s);
+    bool suppressProjection = false;
+    RungeKuttaMerson ee(mbs, s, suppressProjection);
+    ee.setProjectEveryStep(true);
 
     vtk.report(s);
 
@@ -327,14 +330,20 @@ try {
     //pend.setJointU(s, 1, 2, -10.);
    // pend.setJointU(s, 1, 2,   0.);
 
+    const Real angleInDegrees = 90;
+    const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
+    Quaternion q; q.setToAngleAxis(aa);
+    pend.setMobilizerConfiguration(s,1,Transform(RotationMat(q), Vec3(.1,.2,.3)));
+    vtk.report(s);
+
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = .01;
+    const Real h = .1;
     const Real tstart = 0.;
-    const Real tmax = 10;
+    const Real tmax = 100;
 
-    ee.setAccuracy(1e-3);
+    ee.setAccuracy(1e-2);
 
     ee.initialize(); 
     vtk.report(s);
