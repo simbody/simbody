@@ -89,6 +89,9 @@ const System& Subsystem::getSystem() const {return getRep().getSystem();}
 System&       Subsystem::updSystem()	   {return updRep().updSystem();}
 int Subsystem::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
 
+const Vector& Subsystem::getQ(const State& s) const {return getRep().getQ(s);}
+const Vector& Subsystem::getU(const State& s) const {return getRep().getU(s);}
+const Vector& Subsystem::getZ(const State& s) const {return getRep().getZ(s);}
 
     //////////////////
     // SubsystemRep //

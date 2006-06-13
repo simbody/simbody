@@ -80,14 +80,14 @@ public:
         realize(s, Stage::Timed);
         mech.realize(s, Stage::Configured);
         const Real qerr = mech.getQConstraintNorm(s);
-        if (qerr > tol*dontProjectFac) {
+        if (dontProjectFac==0 || qerr > tol*dontProjectFac) {
             if (mech.projectQConstraints(s, y_err, tol, targetTol))
                 anyChange = true;
         }
         realize(s, Stage::Configured);
         mech.realize(s, Stage::Moving);
         const Real uerr = mech.getUConstraintNorm(s);
-        if (uerr > tol*dontProjectFac) {
+        if (dontProjectFac==0 || uerr > tol*dontProjectFac) {
             if (mech.projectUConstraints(s, y_err, tol, targetTol))
                 anyChange = true;
         }

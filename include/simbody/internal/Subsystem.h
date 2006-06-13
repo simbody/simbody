@@ -66,6 +66,10 @@ public:
 
     void endConstruction();
 
+    const Vector& getQ(const State& s) const;
+    const Vector& getU(const State& s) const;
+    const Vector& getZ(const State& s) const;
+
     /// Is this handle the owner of this rep? This is true if the
     /// handle is empty or if its rep points back here.
     bool isOwnerHandle() const;

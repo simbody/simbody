@@ -88,7 +88,12 @@ const Vec3& TwoPointSpringSubsystem::getGravity(const State& s) const {
 Vec3& TwoPointSpringSubsystem::updGravity(State& s) const {
     return getRep().updGravity(s);
 }
-
+const Real& TwoPointSpringSubsystem::getDamping(const State& s) const {
+    return getRep().getDamping(s);
+}
+Real& TwoPointSpringSubsystem::updDamping(State& s) const {
+    return getRep().updDamping(s);
+}
 const Real& TwoPointSpringSubsystem::getStiffness(const State& s) const {
     return getRep().getStiffness(s);
 }

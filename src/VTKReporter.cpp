@@ -81,6 +81,10 @@ public:
         bodies[bodyNum].defaultColorRGB = rgb;
     }
     const Vec3& getDefaultBodyColor(int body) const {return bodies[body].defaultColorRGB;}
+    
+    void setBodyScale(int bodyNum, const Real& scale) {
+        bodies[bodyNum].scale = scale;
+    }
 
     VTKReporterRep* clone() const {
         VTKReporterRep* dup = new VTKReporterRep(*this);
@@ -100,9 +104,11 @@ private:
     const MultibodySystem& mbs;
 
     struct PerBodyInfo {
+        PerBodyInfo() : defaultColorRGB(Black), scale(1) { }
         std::vector<vtkProp3D*>         aList;
         std::vector<DecorativeGeometry> gList; // one per actor (TODO)
         Vec3        defaultColorRGB;
+        Real        scale;  // overall size of body, default 1
     };
     std::vector<PerBodyInfo> bodies;
 
@@ -287,13 +293,23 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
     for (int i=1; i<(int)bodies.size(); ++i) {
-        if (sbs.getParent(i) == GroundBodyNum)
+        const int parent = sbs.getParent(i);
+
+        if (parent == GroundBodyNum)
              setDefaultBodyColor(i, DefaultBaseBodyColor);
         else setDefaultBodyColor(i, DefaultBodyColor);
+
+        const Transform& jInb = sbs.getJointFrame(State(), i);
+        if (jInb.T().norm() > bodies[i].scale)
+            bodies[i].scale = jInb.T().norm();
+        const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
+        if (jParent.T().norm() > bodies[parent].scale)
+            bodies[parent].scale = jParent.T().norm();
     }
 
     for (int i=0; i<(int)bodies.size(); ++i) {
-        DecorativeFrame axes(0.5);
+        const Real scale = bodies[i].scale;
+        DecorativeFrame axes(scale*0.5);
         axes.setLineThickness(2);
         addDecoration(i, Transform(), axes); // the body frame
 
@@ -301,14 +317,16 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         // same as the body frame. Then find the corresponding frame on the
         // parent and display that in this body's color.
         if (i > 0) {
+            const int parent = sbs.getParent(i);
+            const Real pscale = bodies[parent].scale;
             const Transform& jInb = sbs.getJointFrame(State(), i);
             if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
-                addDecoration(i, jInb, DecorativeFrame(0.25));
+                addDecoration(i, jInb, DecorativeFrame(scale*0.25));
                 if (jInb.T() != Vec3(0))
                     addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
             }
             const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
-            DecorativeFrame frameOnParent(0.25);
+            DecorativeFrame frameOnParent(pscale*0.25);
             frameOnParent.setColor(getDefaultBodyColor(i));
             addDecoration(sbs.getParent(i), jParent, frameOnParent);
             if (jParent.T() != Vec3(0))
@@ -318,7 +336,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         // Put a little purple wireframe sphere at the COM, and add a line from 
         // body origin to the com.
 
-        DecorativeSphere com(.05);
+        DecorativeSphere com(scale*.05);
         com.setColor(Purple);
         com.setRepresentationToPoints();
         const Vec3& comPos = sbs.getBodyCenterOfMass(State(), i);

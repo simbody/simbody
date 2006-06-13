@@ -63,9 +63,10 @@ class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
     // state entries
     struct Parameters {
         Parameters(const Real& k, const Real& x0) 
-            : stiffness(k), naturalLength(x0), gravity(0) { }
+            : stiffness(k), naturalLength(x0), gravity(0), damping(0) { }
         Real stiffness, naturalLength;
         Vec3 gravity;
+        Real damping;
     };
 
     struct ConfigurationCache {
@@ -152,10 +153,16 @@ public:
 
         if (getGravity(s) != Vec3(0))
             matter.addInGravity(s, getGravity(s), rigidBodyForces);
+
+        if (getDamping(s) != 0)
+            mobilityForces += -getDamping(s)*matter.getU(s);
     }
 
     const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
     Vec3&       updGravity(State& s)       const {return updParameters(s).gravity;}
+
+    const Real& getDamping(const State& s) const {return getParameters(s).damping;}
+    Real&       updDamping(State& s)       const {return updParameters(s).damping;}
 
     const Real& getStiffness(const State& s) const {return getParameters(s).stiffness;}
     Real&       updStiffness(State& s)       const {return updParameters(s).stiffness;}

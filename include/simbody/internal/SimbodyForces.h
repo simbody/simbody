@@ -93,6 +93,9 @@ public:
     const Vec3& getGravity(const State& s) const;
     Vec3&       updGravity(State& s)       const;
 
+    const Real& getDamping(const State& s) const;
+    Real&       updDamping(State& s)       const;
+
     const Real& getStiffness(const State& s) const;
     Real&       updStiffness(State& s)       const;
 

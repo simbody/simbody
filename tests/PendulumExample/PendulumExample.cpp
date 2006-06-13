@@ -71,9 +71,7 @@ public:
                 pendBodyNum,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
                 JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
-
-
-        int pendBodyNum3 =
+        int pendBodyNum2a =
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
@@ -82,13 +80,42 @@ public:
                 pendBodyNum2,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
                 JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+        int pendBodyNum2b =
+            addRigidBody(
+                MassProperties(m,        // body mass, center of mass, inertia
+                               Vec3(0,-d/2,0), 
+                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
+                pendBodyNum2a,           // parent body
+                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
+                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+        int pendBodyNum2c =
+            addRigidBody(
+                MassProperties(m,        // body mass, center of mass, inertia
+                               Vec3(0,-d/2,0), 
+                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
+                pendBodyNum2b,           // parent body
+                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
+                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+
+        int pendBodyNum3 =
+            addRigidBody(
+                MassProperties(m,        // body mass, center of mass, inertia
+                               Vec3(0,-d/2,0), 
+                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
+                pendBodyNum2c,           // parent body
+                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
+                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
        
     int theConstraint =
+      addCoincidentStationsConstraint(1, Vec3(0.3,-d/2,0),
+                                           pendBodyNum3, Vec3(0,-d/2,0));
+
+    int theConstraint2 =
        addConstantDistanceConstraint(0, Vec3(2,-3,0),
-                                          pendBodyNum3, Vec3(0,-d/2,0),
-                                           1.5);
-       //pend.addCoincidentStationsConstraint(0, Vec3(2,0,0),
-         //                                  pendBodyNum3, Vec3(0,-d/2,0));
+                                          3, Vec3(0,-d/2,0),1.5);
 
     }
 
@@ -107,63 +134,229 @@ private:
     int pendBodyNum;
 };
 
+static const Real DuplexRadius = 3; // A
+static const Real HalfHeight = 10;  // A
+static const Real CylinderSlop = 1; // A
+
+static const int  NAtoms = 10;
+static const Real AtomMass = 12;    // Daltons
+static const Real AtomRadius = 1;   // A
+
+static const Real ConnectorRadius     = 1;  // A
+static const Real ConnectorHalfHeight = 3;  // A
+static const Real ConnectorEndSlop    = 0.2;// A
+static const Real ConnectorDensity    = 10;  // Dalton/A^3
+
+static int NSegments = 1;
+
+class MyRNAExample : public SimbodySubsystem {
+    struct PerBodyInfo {
+        PerBodyInfo(int b, bool d) : bnum(b), isDuplex(d) { }
+        int  bnum;
+        bool isDuplex;
+    };
+    std::vector<PerBodyInfo> bodyInfo;
+    int end1, end2;
+public:
+    MyRNAExample(int nsegs, bool shouldFlop) 
+    {
+        bodyInfo.push_back(PerBodyInfo(0, false)); // placeholder for ground
+        end1 = makeChain(GroundBodyNum, Vec3(0), nsegs, shouldFlop);
+        end2 = makeChain(GroundBodyNum, Vec3(20,0,0), nsegs, shouldFlop);
+
+        int theConstraint2 =
+           addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
+                                         end2, Vec3(0, -HalfHeight,0), 20);
+
+    }
+
+    void decorateBody(int bodyNum, VTKReporter& display) const {
+        assert(bodyInfo[bodyNum].bnum == bodyNum);
+        if (bodyInfo[bodyNum].isDuplex)
+            addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
+                                 NAtoms, AtomRadius, display);
+        else 
+            addConnectorDecorations(bodyNum, ConnectorRadius, ConnectorHalfHeight, 
+                                    ConnectorEndSlop, display);
+    }
+
+    void decorateGlobal(VTKReporter& display) const {
+        DecorativeLine rbProto; rbProto.setColor(Black).setLineThickness(2);
+        display.addRubberBandLine(end1, Vec3(0, -HalfHeight,0), end2, Vec3(0, -HalfHeight,0), rbProto);
+    }
+
+private:
+
+    int makeChain(int startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
+        int baseBody = startBody;
+        Vec3 origin = startOrigin;
+        int lastDup = -1;
+        for (int seg=0; seg < nSegs; ++seg) {
+            int left1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
+                             baseBody,
+                             Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
+                             JointSpecification(JointSpecification::Ball, false));
+            bodyInfo.push_back(PerBodyInfo(left1, false));
+
+            int left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
+                             left1,
+                             Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                             JointSpecification(JointSpecification::Ball, false));
+            bodyInfo.push_back(PerBodyInfo(left2, false));
+
+            int rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
+                             baseBody,
+                             Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
+                             JointSpecification(JointSpecification::Ball, false));
+            bodyInfo.push_back(PerBodyInfo(rt1, false));
+
+            int rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
+                             rt1,
+                             Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                             JointSpecification(JointSpecification::Ball, false));
+            bodyInfo.push_back(PerBodyInfo(rt2, false));
+
+            int dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
+                                Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
+                                left2,
+                                Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                                JointSpecification(JointSpecification::Ball, false));
+            bodyInfo.push_back(PerBodyInfo(dup, true));
+
+            if (!shouldFlop) {
+                int theConstraint =
+                    addCoincidentStationsConstraint(rt2, Vec3(0, -ConnectorHalfHeight, 0),
+                                                    dup, Vec3(DuplexRadius, HalfHeight, 0));
+                //int theConstraint =
+                  //  addConstantDistanceConstraint(rt2, Vec3(0, -ConnectorHalfHeight, 0),
+                  //                                dup, Vec3(DuplexRadius, HalfHeight, 0), .01);
+            }
+
+            baseBody = dup;
+            origin = Vec3(0);
+            lastDup = dup;
+        }
+        return lastDup;
+    }
+
+    MassProperties calcDuplexMassProps(
+        Real halfHeight, Real r, int nAtoms, Real atomMass)
+    {
+        const Real pitch = Pi/halfHeight;
+        const Real trans = (2*halfHeight)/(nAtoms-1);
+        const Real rot = pitch*trans;
+        InertiaMat iner(0);
+        Vec3 com(0);
+        Real mass = 0;
+        for (int i=0; i<nAtoms; ++i) {
+            const Real h = halfHeight - i*trans;
+            const Real th = i*rot;
+            const Vec3 p1(-r*cos(th),h,r*sin(th)), p2(r*cos(th),h,-r*sin(th));
+            mass += 2*atomMass;
+            iner += InertiaMat(p1, atomMass) + InertiaMat(p2, atomMass);
+            com += atomMass*p1 + atomMass*p2;
+        }
+        return MassProperties(mass,com/mass,iner);
+    }
+
+    MassProperties calcConnectorMassProps(Real r, Real halfHeight, Real density)
+    {
+        const Real volume = Pi*r*r*halfHeight;
+        const Real mass = volume*density;
+        const Vec3 com = Vec3(0);
+        const InertiaMat iner = mass*InertiaMat::cylinderAlongY(r, halfHeight);
+
+        return MassProperties(mass,com,iner);
+    }
+
+    void addDuplexDecorations(int bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
+                              Real atomRadius, VTKReporter& display) const
+    {
+        display.addDecoration(bodyNum, Transform(), 
+            DecorativeCylinder(r+atomRadius+slop, halfHeight).setColor(Cyan).setOpacity(0.4));
+
+        const Real pitch = Pi/halfHeight;
+        const Real trans = (2*halfHeight)/(nAtoms-1);
+        const Real rot = pitch*trans;
+        for (int i=0; i<nAtoms; ++i) {
+            const Real h = halfHeight - i*trans;
+            const Real th = i*rot;
+            const Vec3 p1(-r*cos(th),h,r*sin(th)), p2(r*cos(th),h,-r*sin(th));
+            display.addDecoration(bodyNum, Transform(Vec3(p1)), 
+                DecorativeSphere(atomRadius).setColor(Red).setResolution(0.5));
+            display.addDecoration(bodyNum, Transform(Vec3(p2)), 
+                DecorativeSphere(atomRadius).setColor(Green).setResolution(0.5));
+        }
+    }
+
+    void addConnectorDecorations(int bodyNum, Real r, Real halfHeight, Real endSlop,  
+                                 VTKReporter& display) const
+    {
+        display.addDecoration(bodyNum, Transform(), 
+            DecorativeCylinder(r, halfHeight-endSlop).setColor(Blue));
+    }
+};
+
 
 int main(int argc, char** argv) {
     std::vector<State> saveEm;
 
     try { // If anything goes wrong, an exception will be thrown.
-        Real start = initialTheta;
-        if (argc > 1) sscanf(argv[1], "%lg", &start);
-        printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
+        int nseg = NSegments;
+        int shouldFlop = 0;
+        if (argc > 1) sscanf(argv[1], "%d", &nseg);
+        if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
+        //printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
 
         // Create a multibody system using Simbody.
-        MySimbodyPendulum myPend;
-        TwoPointSpringSubsystem forces(0,Vec3(0),1,Vec3(0),0.,1.);
+        MyRNAExample myRNA(nseg, shouldFlop != 0);
+        const Vec3 attachPt(100, -40, -50);
+        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),10.,1.);
         State s;
-        MultibodySystem mbs(myPend,forces);
+        MultibodySystem mbs(myRNA,forces);
         mbs.realize(s, Stage::Built);
-        //myPend.setUseEulerAngles(s,true);
+        //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
-        forces.updGravity(s) = Vec3(0, -g, 0);
-        cout << "STATE AS MODELED: " << s;
+        forces.updGravity(s) = Vec3(0, -.2, 0);
+        forces.updDamping(s) = 1000;
+        //cout << "STATE AS MODELED: " << s;
        
-        myPend.setPendulumAngle(s, start);
+        //myPend.setPendulumAngle(s, start);
 
         // And a study using the Runge Kutta Merson integrator
-        RungeKuttaMerson myStudy(mbs, s);
-        myStudy.setAccuracy(1e-2);
+        bool suppressProject = false;
+        RungeKuttaMerson myStudy(mbs, s, suppressProject);
+        myStudy.setAccuracy(1e-6);
         myStudy.setProjectEveryStep(true);
 
         VTKReporter display(mbs);
+        for (int i=1; i<myRNA.getNBodies(); ++i)
+            myRNA.decorateBody(i, display);
+        myRNA.decorateGlobal(display);
+
         DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-        display.addRubberBandLine(0, Vec3(2,-3,0), 3, Vec3(0,-d/2,0), rbProto);
+        display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
-        //display.addDecoration(2, Transform(), DecorativeCircle(1).setColor(Yellow).setLineThickness(5));
-        //for (int i=1; i<myPend.getSimbodySubsystem().getNBodies(); ++i)
-       //     display.addDecoration(i, Transform(Vec3(0,-d/2,0)), DecorativeSphere(0.2).setOpacity(0.3));
+        const Real dt = 0.05; // output intervals
 
-        //display.addDecoration(0,VTKReporter::Sphere(0.01),
-        //    Transform(Vec3(0.5,-0.2,0.1)));
-
-        // Run for 5 periods without output every dt seconds,
-        // starting at theta=start degrees.
-
-        const Real dt = 0.025; // output intervals
-
-        printf("time  theta (deg)  (period should be %gs)\n", expectedPeriod);
+        printf("time  nextStepSize\n");
 
         myStudy.initialize();
         s.updTime() = 0;
         display.report(s);
         for (;;) {
-            printf("%5g %10.3g hNext=%g\n", s.getTime(), myPend.getPendulumAngle(s), myStudy.getPredictedNextStep());
+            printf("%5g hNext=%g\n", s.getTime(), myStudy.getPredictedNextStep());
             display.report(s);
             saveEm.push_back(s);
 
            // if (myStudy.getT() >= 10*expectedPeriod)
              //   break;
     
-            if (s.getTime() >= 10)
+            if (s.getTime() >= 20)
                 break;
 
             // TODO: should check for errors or have or teach RKM to throw. 

@@ -405,12 +405,13 @@ private:
 
 class RungeKuttaMerson : public MechanicalDAEIntegrator {
 public:
-    RungeKuttaMerson(const MultibodySystem& mb, State& s) 
+    RungeKuttaMerson(const MultibodySystem& mb, State& s, bool noProject=false) 
       : MechanicalDAEIntegrator(mb,s) 
     {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
             "RungeKuttaMerson::RungeKuttaMerson()");
         reconstructForNewModel();
+        if (noProject) suppressProject = true;
     }
 
     RungeKuttaMerson* clone() const {return new RungeKuttaMerson(*this);}
@@ -432,7 +433,7 @@ public:
 
         initializeIntegrationParameters();
 
-        if (!evaluateAndProject())
+        if (!evaluateAndProject(true))
             return false;
         
         initialized = true;
@@ -613,14 +614,15 @@ private:
         return true;
     }
 
-    bool evaluateAndProject() {
+    bool evaluateAndProject(bool forceProject=false) {
         bool projectOK = false, realizeOK = false;
         try {
             projectOK = true;
             Vector dummy;
-            (void)mbs.project(state, dummy, consTol,
-                              projectEveryStep ? 0. : 0.9, 
-                              0.1*consTol);
+            if (!suppressProject || forceProject) 
+                (void)mbs.project(state, dummy, consTol,
+                                  projectEveryStep ? 0. : 0.9, 
+                                  0.1*consTol);
         }
         catch (...) { projectOK=false; }
 
@@ -704,6 +706,7 @@ private:
             =stopTime=predictedNextStep=CNT<Real>::getNaN();
         maxNumSteps = -1;
         projectEveryStep = false;
+        suppressProject = false;
         y0.resize(state.getY().size());
         ydot0.resize(state.getY().size());
         errEst.resize(state.getY().size());
@@ -718,6 +721,7 @@ private:
     Real   stopTime;
     long   maxNumSteps;
     bool   projectEveryStep;
+    bool   suppressProject;
     Real   t0;
     Vector y0, ydot0, errEst, ynew;
     Vector ytmp[NTemps];
