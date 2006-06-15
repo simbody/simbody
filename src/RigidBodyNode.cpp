@@ -1408,45 +1408,44 @@ public:
     }
 };
 
-////////////////////////////////////////////////
-// RigidBodyNode factory based on joint type. //
-////////////////////////////////////////////////
+////////////////////////////////////////////////////
+// RigidBodyNode factory based on mobilizer type. //
+////////////////////////////////////////////////////
 
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
-    const MassProperties& m,            // mass properties in body frame
-    const Transform&      X_PJb,        // parent's attachment frame for this joint
-    const Transform&      X_BJ,         // inboard joint frame J in body frame
-    JointSpecification::JointType      
-                          type,
-    bool                  isReversed,   // child-to-parent orientation?
-    int&                  nxtUSlot,
-    int&                  nxtUSqSlot,
-    int&                  nxtQSlot)  
+    const MassProperties&    m,            // mass properties in body frame
+    const Transform&         X_PJb,        // parent's attachment frame for this joint
+    const Transform&         X_BJ,         // inboard joint frame J in body frame
+    Mobilizer::MobilizerType type,
+    bool                     isReversed,   // child-to-parent orientation?
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot)  
 {
     assert(!isReversed);
 
     switch(type) {
-    case JointSpecification::ThisIsGround:
+    case Mobilizer::ThisIsGround:
         return new RBGroundBody();
-    case JointSpecification::Torsion:
+    case Mobilizer::Torsion:
         return new RBNodeTorsion(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Universal:        
+    case Mobilizer::Universal:        
         return new RBNodeRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Orientation:
+    case Mobilizer::Orientation:
         return new RBNodeRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Cartesian:
+    case Mobilizer::Cartesian:
         return new RBNodeTranslate(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::FreeLine:
+    case Mobilizer::FreeLine:
         return new RBNodeTranslateRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Free:
+    case Mobilizer::Free:
         return new RBNodeTranslateRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Sliding:
+    case Mobilizer::Sliding:
         return new RBNodeSlider(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case JointSpecification::Cylinder:
-    case JointSpecification::Planar:
-    case JointSpecification::Gimbal:
-    case JointSpecification::Weld:
+    case Mobilizer::Cylinder:
+    case Mobilizer::Planar:
+    case Mobilizer::Gimbal:
+    case Mobilizer::Weld:
 
     default: 
         assert(false);

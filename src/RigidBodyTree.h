@@ -2,7 +2,7 @@
 #define RIGID_BODY_TREE_H_
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/SimbodySubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 #include "SimbodyTreeState.h"
 #include "MatterSubsystemRep.h"
@@ -69,16 +69,15 @@ public:
     // Create a new node, add it to the tree, and assign it
     // a node number, which is a regular labeling starting with node 0 which is ground.
     int addRigidBodyNode
-        (RigidBodyNode&          parent,
-         const MassProperties&   m,            // mass properties in body frame
-         const Transform&        X_PJb,        // parent's frame for attaching this joint
-         const Transform&        X_BJ,         // inboard joint frame J in body frame
-         JointSpecification::JointType        
-                                 type,
-         bool                    isReversed,   // child-to-parent orientation?
-         int&                    nxtU,
-         int&                    nxtUSq,
-         int&                    nxtQ); 
+        (RigidBodyNode&           parent,
+         const MassProperties&    m,            // mass properties in body frame
+         const Transform&         X_PJb,        // parent's frame for attaching this joint
+         const Transform&         X_BJ,         // inboard joint frame J in body frame
+         Mobilizer::MobilizerType type,
+         bool                     isReversed,   // child-to-parent orientation?
+         int&                     nxtU,
+         int&                     nxtUSq,
+         int&                     nxtQ); 
 
 
     // Constrain stations on each of two distinct bodies to remain a
@@ -482,7 +481,7 @@ private:
     void calcLoopForwardDynamics(const State&) const;
 
     friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
-    friend class SimTK::SimbodySubsystem;
+    friend class SimTK::SimbodyMatterSubsystem;
 
     struct RigidBodyNodeIndex {
         RigidBodyNodeIndex(int l, int o) : level(l), offset(o) { }

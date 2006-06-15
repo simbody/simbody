@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SUBSYSTEM_H_
-#define SimTK_SIMBODY_SUBSYSTEM_H_
+#ifndef SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
+#define SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
@@ -15,7 +15,7 @@ class RigidBodyTree;
 namespace SimTK {
 
 class Transform;
-class JointSpecification;
+class Mobilizer;
 class InertiaMat;
 class SimbodyTreeRep;
 class MassProperties;
@@ -47,18 +47,18 @@ class MassProperties;
  *
  * NOTE: none of the above matrices are actually formed or factored!
  */
-class SimTK_SIMBODY_API SimbodySubsystem : public MatterSubsystem {
+class SimTK_SIMBODY_API SimbodyMatterSubsystem : public MatterSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
-    SimbodySubsystem();
+    SimbodyMatterSubsystem();
 
     // These are the same as the compiler defaults but are handy to
     // have around explicitly for debugging.
-    ~SimbodySubsystem() {
+    ~SimbodyMatterSubsystem() {
     }
-    SimbodySubsystem(const SimbodySubsystem& ss) : MatterSubsystem(ss) {
+    SimbodyMatterSubsystem(const SimbodyMatterSubsystem& ss) : MatterSubsystem(ss) {
     }
-    SimbodySubsystem& operator=(const SimbodySubsystem& ss) {
+    SimbodyMatterSubsystem& operator=(const SimbodyMatterSubsystem& ss) {
         MatterSubsystem::operator=(ss);
         return *this;
     }
@@ -69,14 +69,14 @@ public:
                      const Transform&          bodyJointFrameInB,
                      int                       parent,
                      const Transform&          parentJointFrameInP,
-                     const JointSpecification& joint);
+                     const Mobilizer&          mobilizer);
 
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addMasslessBody(int                       parent,
+    int addMasslessBody(const Transform&          bodyJointFrameInB,
+                        int                       parent,
                         const Transform&          parentJointFrameInP,
-                        const JointSpecification& joint,
-                        const Transform&          bodyJointFrameInB);
+                        const Mobilizer&          mobilizer);
 
     /// Special case for convenience: attach a general rigid body to
     /// a body (ground by default) using a free joint and only the
@@ -260,15 +260,15 @@ public:
     const Vector& getUDot   (const State&) const;
     const Vector& getQDotDot(const State&) const;
 
-    SimTK_PIMPL_DOWNCAST(SimbodySubsystem, MatterSubsystem);
+    SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, MatterSubsystem);
 private:
     const RigidBodyTree& getRep() const;
     RigidBodyTree&       updRep();
 };
 
 SimTK_SIMBODY_API std::ostream& 
-operator<<(std::ostream&, const SimbodySubsystem&);
+operator<<(std::ostream&, const SimbodyMatterSubsystem&);
 
 };
 
-#endif // SimTK_SIMBODY_SUBSYSTEM_H_
+#endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_H_

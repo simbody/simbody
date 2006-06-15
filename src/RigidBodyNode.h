@@ -63,15 +63,14 @@ public:
 
     /// Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
-        const MassProperties&   m,            // mass properties in body frame
-        const Transform&        X_PJb,        // parent's attachment frame for this joint
-        const Transform&        X_BJ,         // inboard joint frame J in body frame
-        JointSpecification::JointType        
-                                type,
-        bool                    isReversed,   // child-to-parent orientation?
-        int&                    nxtU,
-        int&                    nxtUSq,
-        int&                    nxtQ); 
+        const MassProperties&    m,            // mass properties in body frame
+        const Transform&         X_PJb,        // parent's attachment frame for this joint
+        const Transform&         X_BJ,         // inboard joint frame J in body frame
+        Mobilizer::MobilizerType type,
+        bool                     isReversed,   // child-to-parent orientation?
+        int&                     nxtU,
+        int&                     nxtUSq,
+        int&                     nxtQ); 
 
     /// Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);

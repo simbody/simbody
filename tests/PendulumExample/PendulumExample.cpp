@@ -48,7 +48,7 @@ static const Real d = 1.5; // meters
 static const Real initialTheta   = 30;             // degrees
 static const Real expectedPeriod = 2*Pi*sqrt(d/g); // s
 
-class MySimbodyPendulum : public SimbodySubsystem {
+class MySimbodyPendulum : public SimbodyMatterSubsystem {
 public:
     MySimbodyPendulum() 
     {
@@ -60,7 +60,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 GroundBodyNum,           // parent body
                 Transform(Vec3(1,1,1)),             // jt frame on parent             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
 
         int pendBodyNum2 =
             addRigidBody(
@@ -70,7 +70,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
         int pendBodyNum2a =
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
@@ -79,7 +79,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
         int pendBodyNum2b =
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
@@ -88,7 +88,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2a,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
         int pendBodyNum2c =
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
@@ -97,7 +97,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2b,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
 
         int pendBodyNum3 =
             addRigidBody(
@@ -107,7 +107,7 @@ public:
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2c,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                JointSpecification(JointSpecification::Ball, false)); // joint type; pin always aligns z axes
+                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
        
     int theConstraint =
       addCoincidentStationsConstraint(1, Vec3(0.3,-d/2,0),
@@ -149,7 +149,7 @@ static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
 static int NSegments = 3;
 
-class MyRNAExample : public SimbodySubsystem {
+class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
         PerBodyInfo(int b, bool d) : bnum(b), isDuplex(d) { }
         int  bnum;
@@ -196,35 +196,35 @@ private:
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
-                             JointSpecification(JointSpecification::Ball, false));
+                             Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(left1, false));
 
             int left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              left1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             JointSpecification(JointSpecification::Ball, false));
+                             Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(left2, false));
 
             int rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
-                             JointSpecification(JointSpecification::Ball, false));
+                             Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
             int rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              rt1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             JointSpecification(JointSpecification::Ball, false));
+                             Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(rt2, false));
 
             int dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
                                 Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
                                 rt2,
                                 Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                                JointSpecification(JointSpecification::Ball, false));
+                                Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {
@@ -307,7 +307,7 @@ int main(int argc, char** argv) {
 
     try { // If anything goes wrong, an exception will be thrown.
         int nseg = NSegments;
-        int shouldFlop = 1;
+        int shouldFlop = 0;
         if (argc > 1) sscanf(argv[1], "%d", &nseg);
         if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
         //printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
@@ -328,7 +328,7 @@ int main(int argc, char** argv) {
         //myPend.setPendulumAngle(s, start);
 
         // And a study using the Runge Kutta Merson integrator
-        bool suppressProject = true;
+        bool suppressProject = false;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
         myStudy.setAccuracy(1e-2);
         myStudy.setProjectEveryStep(true);

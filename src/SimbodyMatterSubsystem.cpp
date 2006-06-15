@@ -24,7 +24,8 @@
 
 /**@file
  *
- * Implementation of SimbodySubsystem, a concrete MechanicalSubsystem.
+ * Implementation of SimbodyMatterSubsystem, a concrete 
+ * MatterSubsystem.
  */
 
 #include "Simbody.h"
@@ -38,40 +39,41 @@ using std::endl;
 
 namespace SimTK {
 
-SimbodySubsystem::SimbodySubsystem() : MatterSubsystem() {
+SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
     rep = new RigidBodyTree();
     rep->setMyHandle(*this);
 }
 
 
 const RigidBodyTree& 
-SimbodySubsystem::getRep() const {
+SimbodyMatterSubsystem::getRep() const {
     return dynamic_cast<const RigidBodyTree&>(*rep);
 }
 RigidBodyTree&       
-SimbodySubsystem::updRep() {
+SimbodyMatterSubsystem::updRep() {
     return dynamic_cast<RigidBodyTree&>(*rep);
 }
 
-int SimbodySubsystem::addRigidBody(
+int SimbodyMatterSubsystem::addRigidBody(
     const MassProperties&     mp,
     const Transform&          bodyJointFrameInB,    // X_BJ
     int                       parent,
     const Transform&          parentJointFrameInP,  // X_PJb
-    const JointSpecification& joint)
+    const Mobilizer&          mobilizer)
 {
     const int save = getRep().nextUSlot;
 
     RigidBodyNode& pn = updRep().updRigidBodyNode(parent);
     const int rbIndex = updRep().addRigidBodyNode(pn,
-        mp, parentJointFrameInP, bodyJointFrameInB, joint.getJointType(), joint.isReversed(),
+        mp, parentJointFrameInP, bodyJointFrameInB, 
+        mobilizer.getMobilizerType(), mobilizer.isReversed(),
         updRep().nextUSlot, updRep().nextUSqSlot, updRep().nextQSlot);
 
     //cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << getRep().nextUSlot-1 << endl;
     return rbIndex;
 }
 
-int SimbodySubsystem::addConstantDistanceConstraint
+int SimbodyMatterSubsystem::addConstantDistanceConstraint
     (int parent, const Vec3& stationInP,
      int child,  const Vec3& stationInC,
      const Real& distance)
@@ -82,7 +84,7 @@ int SimbodySubsystem::addConstantDistanceConstraint
        distance);
 }
 
-int SimbodySubsystem::addCoincidentStationsConstraint
+int SimbodyMatterSubsystem::addCoincidentStationsConstraint
     (int parent, const Vec3& stationInP,
      int child,  const Vec3& stationInC)
 {
@@ -91,7 +93,7 @@ int SimbodySubsystem::addCoincidentStationsConstraint
        getRep().getRigidBodyNode(child),  stationInC);
 }
 
-int SimbodySubsystem::addWeldConstraint
+int SimbodyMatterSubsystem::addWeldConstraint
     (int parent, const Transform& frameInP,
      int child,  const Transform& frameInC)
 {
@@ -101,27 +103,27 @@ int SimbodySubsystem::addWeldConstraint
 }
 
 // Note the lack of a State argument when completing construction.
-void SimbodySubsystem::endConstruction() {updRep().endConstruction();}
+void SimbodyMatterSubsystem::endConstruction() {updRep().endConstruction();}
 
-void SimbodySubsystem::calcInternalGradientFromSpatial(const State& s,
+void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,
     const Vector_<SpatialVec>& dEdR,
     Vector&                    dEdQ) const
 {
     getRep().calcInternalGradientFromSpatial(s,dEdR,dEdQ);
 }
 
-void SimbodySubsystem::calcTreeEquivalentJointForces(const State& s, 
+void SimbodyMatterSubsystem::calcTreeEquivalentJointForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    jointForces) const
 {
     getRep().calcTreeEquivalentJointForces(s,bodyForces,jointForces);
 }
 
-Real SimbodySubsystem::calcKineticEnergy(const State& s) const {
+Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const {
     return getRep().calcKineticEnergy(s);
 }
 
-void SimbodySubsystem::calcTreeUDot(const State& s,
+void SimbodyMatterSubsystem::calcTreeUDot(const State& s,
     const Vector&              jointForces,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    udot) const
@@ -133,14 +135,14 @@ void SimbodySubsystem::calcTreeUDot(const State& s,
         netHingeForces, A_GB, udot);
 }
 
-void SimbodySubsystem::calcQDot(const State& s,
+void SimbodyMatterSubsystem::calcQDot(const State& s,
     const Vector& u,
     Vector&       qdot) const
 {
     getRep().calcQDot(s, u, qdot);
 }
 
-void SimbodySubsystem::calcQDotDot(const State& s,
+void SimbodyMatterSubsystem::calcQDotDot(const State& s,
     const Vector& udot,
     Vector&       qdotdot) const
 {
@@ -148,83 +150,83 @@ void SimbodySubsystem::calcQDotDot(const State& s,
 }
 
 // Topological info. Note the lack of a State argument.
-int SimbodySubsystem::getNBodies()        const {return getRep().getNBodies();}
-int SimbodySubsystem::getTotalDOF()       const {return getRep().getTotalDOF();}
-int SimbodySubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
-int SimbodySubsystem::getNConstraints()   const {return getRep().getNConstraints();}
-int SimbodySubsystem::getTotalMultAlloc() const {return getRep().getTotalMultAlloc();}
+int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodies();}
+int SimbodyMatterSubsystem::getTotalDOF()       const {return getRep().getTotalDOF();}
+int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
+int SimbodyMatterSubsystem::getNConstraints()   const {return getRep().getNConstraints();}
+int SimbodyMatterSubsystem::getTotalMultAlloc() const {return getRep().getTotalMultAlloc();}
 
-int SimbodySubsystem::getQIndex(int body) const {return getRep().getQIndex(body);}
-int SimbodySubsystem::getQAlloc(int body) const {return getRep().getQAlloc(body);}
-int SimbodySubsystem::getUIndex(int body) const {return getRep().getUIndex(body);}
-int SimbodySubsystem::getDOF   (int body) const {return getRep().getDOF(body);}
+int SimbodyMatterSubsystem::getQIndex(int body) const {return getRep().getQIndex(body);}
+int SimbodyMatterSubsystem::getQAlloc(int body) const {return getRep().getQAlloc(body);}
+int SimbodyMatterSubsystem::getUIndex(int body) const {return getRep().getUIndex(body);}
+int SimbodyMatterSubsystem::getDOF   (int body) const {return getRep().getDOF(body);}
 
-int SimbodySubsystem::getMultIndex(int constraint) const {return getRep().getMultIndex(constraint);}
-int SimbodySubsystem::getMaxNMult (int constraint) const {return getRep().getMaxNMult(constraint);}
+int SimbodyMatterSubsystem::getMultIndex(int constraint) const {return getRep().getMultIndex(constraint);}
+int SimbodyMatterSubsystem::getMaxNMult (int constraint) const {return getRep().getMaxNMult(constraint);}
 
 // Modeling info.
-void SimbodySubsystem::setUseEulerAngles(State& s, bool useAngles) const
+void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
-void SimbodySubsystem::setJointIsPrescribed(State& s, int joint, bool prescribed) const
+void SimbodyMatterSubsystem::setJointIsPrescribed(State& s, int joint, bool prescribed) const
   { getRep().setJointIsPrescribed(s,joint,prescribed); }
-void SimbodySubsystem::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
+void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
   { getRep().setConstraintIsEnabled(s,constraint,enabled); }
-bool SimbodySubsystem::getUseEulerAngles(const State& s) const
+bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
-bool SimbodySubsystem::isJointPrescribed(const State& s, int joint) const
+bool SimbodyMatterSubsystem::isJointPrescribed(const State& s, int joint) const
   { return getRep().isJointPrescribed(s,joint); }
-bool SimbodySubsystem::isConstraintEnabled(const State& s, int constraint) const
+bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
 
 
-const Vector& SimbodySubsystem::getQ(const State& s) const {return getRep().getQ(s);}
-const Vector& SimbodySubsystem::getU(const State& s) const {return getRep().getU(s);}
+const Vector& SimbodyMatterSubsystem::getQ(const State& s) const {return getRep().getQ(s);}
+const Vector& SimbodyMatterSubsystem::getU(const State& s) const {return getRep().getU(s);}
 
 const Vector&
-SimbodySubsystem::getAppliedMobilityForces(const State& s) const {
+SimbodyMatterSubsystem::getAppliedMobilityForces(const State& s) const {
     return getRep().getAppliedMobilityForces(s);
 }
 const Vector_<SpatialVec>&
-SimbodySubsystem::getAppliedBodyForces(const State& s) const {
+SimbodyMatterSubsystem::getAppliedBodyForces(const State& s) const {
     return getRep().getAppliedBodyForces(s);
 }
 
-void SimbodySubsystem::setQ(State& s, const Vector& q) const {getRep().setQ(s,q);}
-void SimbodySubsystem::setU(State& s, const Vector& u) const {getRep().setU(s,u);}
-Vector& SimbodySubsystem::updQ(State& s) const {return getRep().updQ(s);}
-Vector& SimbodySubsystem::updU(State& s) const {return getRep().updU(s);}
+void SimbodyMatterSubsystem::setQ(State& s, const Vector& q) const {getRep().setQ(s,q);}
+void SimbodyMatterSubsystem::setU(State& s, const Vector& u) const {getRep().setU(s,u);}
+Vector& SimbodyMatterSubsystem::updQ(State& s) const {return getRep().updQ(s);}
+Vector& SimbodyMatterSubsystem::updU(State& s) const {return getRep().updU(s);}
 
-void SimbodySubsystem::setJointQ(State& s, int body, int axis, const Real& r) const
+void SimbodyMatterSubsystem::setJointQ(State& s, int body, int axis, const Real& r) const
   { return getRep().setJointQ(s,body,axis,r); }
-void SimbodySubsystem::setJointU(State& s, int body, int axis, const Real& r) const
+void SimbodyMatterSubsystem::setJointU(State& s, int body, int axis, const Real& r) const
   { return getRep().setJointU(s,body,axis,r); }
 
-const Real& SimbodySubsystem::getJointQ(const State& s, int body, int axis) const
+const Real& SimbodyMatterSubsystem::getJointQ(const State& s, int body, int axis) const
   { return getRep().getJointQ(s,body,axis); }
-const Real& SimbodySubsystem::getJointU(const State& s, int body, int axis) const
+const Real& SimbodyMatterSubsystem::getJointU(const State& s, int body, int axis) const
   { return getRep().getJointU(s,body,axis); }
 
 
-void SimbodySubsystem::enforceConfigurationConstraints(State& s) const
+void SimbodyMatterSubsystem::enforceConfigurationConstraints(State& s) const
   { getRep().enforceConfigurationConstraints(s); }
-void SimbodySubsystem::enforceMotionConstraints(State& s) const
+void SimbodyMatterSubsystem::enforceMotionConstraints(State& s) const
   { getRep().enforceMotionConstraints(s); }
 
 const Transform&
-SimbodySubsystem::getBodyConfiguration(const State& s, int body) const
+SimbodyMatterSubsystem::getBodyConfiguration(const State& s, int body) const
   { return getRep().getBodyConfiguration(s,body); }
 
 const SpatialVec&
-SimbodySubsystem::getBodyVelocity(const State& s, int body) const
+SimbodyMatterSubsystem::getBodyVelocity(const State& s, int body) const
   { return getRep().getBodyVelocity(s,body); }
 
 const SpatialVec&
-SimbodySubsystem::getBodyAcceleration(const State& s, int body) const
+SimbodyMatterSubsystem::getBodyAcceleration(const State& s, int body) const
   { return getRep().getBodyAcceleration(s,body); }
 
-const Vector& SimbodySubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
-const Vector& SimbodySubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
-const Vector& SimbodySubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
+const Vector& SimbodyMatterSubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
+const Vector& SimbodyMatterSubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
+const Vector& SimbodyMatterSubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
 
 } // namespace SimTK
 

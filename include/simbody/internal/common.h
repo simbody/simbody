@@ -65,34 +65,36 @@ extern "C" {
 
 namespace SimTK {
 
-class JointSpecification {
+// TODO: this should be upgraded to a class handle with a hidden implementation
+// to allow for fancier Mobilizers, including user-defined.
+class Mobilizer {
 public:
-    enum JointType {
-        UnknownJointType    = 0,
-        ThisIsGround        = 1, // Ground's "inboard joint"
-        Weld                = 2,
-        Torsion             = 3,
-        Sliding             = 4,
-        Universal           = 5,
-        Cylinder            = 6,
-        Planar              = 7,
-        Gimbal              = 8,
-        Orientation         = 9,
-        Cartesian           = 10,
-        FreeLine            = 11,
-        Free                = 12
+    enum MobilizerType {
+        UnknownMobilizerType  = 0,
+        ThisIsGround          = 1, // Ground's "inboard joint"
+        Weld                  = 2,
+        Torsion               = 3,
+        Sliding               = 4,
+        Universal             = 5,
+        Cylinder              = 6,
+        Planar                = 7,
+        Gimbal                = 8,
+        Orientation           = 9,
+        Cartesian             = 10,
+        FreeLine              = 11,
+        Free                  = 12
     };
     // synonyms
-    static const JointType Pin  = Torsion;
-    static const JointType Ball = Orientation;
+    static const MobilizerType Pin  = Torsion;
+    static const MobilizerType Ball = Orientation;
 
-    JointSpecification(const JointType t, bool rev)
+    Mobilizer(const MobilizerType t, bool rev)
         : type(t), reversed(rev) { }
-    JointType getJointType() const {return type;}
+    MobilizerType getMobilizerType() const {return type;}
     bool isReversed() const {return reversed;}
 private:
-    JointType type;
-    bool      reversed;
+    MobilizerType type;
+    bool          reversed;
 };
 
 namespace Exception {

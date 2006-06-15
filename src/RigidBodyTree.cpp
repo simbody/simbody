@@ -39,16 +39,15 @@ RigidBodyTree::~RigidBodyTree() {
 }
 
 int RigidBodyTree::addRigidBodyNode
-    (RigidBodyNode&          parent,
-     const MassProperties&   m,            // mass properties in body frame
-     const Transform&     X_PJb,        // parent's frame for attaching this joint
-     const Transform&     X_BJ,         // inboard joint frame J in body frame
-     JointSpecification::JointType        
-                             type,
-     bool                    isReversed,   // child-to-parent orientation?
-     int&                    nxtU,
-     int&                    nxtUSq,
-     int&                    nxtQ)
+    (RigidBodyNode&           parent,
+     const MassProperties&    m,            // mass properties in body frame
+     const Transform&         X_PJb,        // parent's frame for attaching this joint
+     const Transform&         X_BJ,         // inboard joint frame J in body frame
+     Mobilizer::MobilizerType type,
+     bool                     isReversed,   // child-to-parent orientation?
+     int&                     nxtU,
+     int&                     nxtUSq,
+     int&                     nxtQ)
 {
     RigidBodyNode* n = RigidBodyNode::create(m,X_PJb,X_BJ,type,isReversed,nxtU,nxtUSq,nxtQ);
     const int level = parent.getLevel() + 1;
@@ -79,7 +78,7 @@ void RigidBodyTree::addGroundNode() {
 
     RigidBodyNode* n = 
         RigidBodyNode::create(MassProperties(), Transform(), Transform(), 
-                              JointSpecification::ThisIsGround,
+                              Mobilizer::ThisIsGround,
                               false, nextUSlot, nextUSqSlot, nextQSlot);
     n->setLevel(0);
 

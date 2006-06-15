@@ -148,7 +148,7 @@ int main() {
 
 
 try {
-    SimbodySubsystem pend;
+    SimbodyMatterSubsystem pend;
 
     Real L = 1.; 
     Real m = 3.;
@@ -158,7 +158,7 @@ try {
 
     //int baseBody =
      //   pend.addRigidBody(0, groundFrame, 
-     //                     JointSpecification(JointSpecification::Pin, false),
+     //                     Mobilizer(Mobilizer::Pin, false),
       //                    Transform(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
@@ -170,22 +170,22 @@ try {
     int theBody = 
       pend.addRigidBody(mprops, jointFrame,
                         0, Transform(), 
-                        //JointSpecification(JointSpecification::Cartesian, false)
-                        //JointSpecification(JointSpecification::Sliding, false)
-                        //JointSpecification(JointSpecification::Pin, false)
-                        //JointSpecification(JointSpecification::Ball, false)
-                        JointSpecification(JointSpecification::Free, false)
+                        //Mobilizer(Mobilizer::Cartesian, false)
+                        //Mobilizer(Mobilizer::Sliding, false)
+                        //Mobilizer(Mobilizer::Pin, false)
+                        //Mobilizer(Mobilizer::Ball, false)
+                        Mobilizer(Mobilizer::Free, false)
                         );
 
 /*
     int secondBody = 
       pend.addRigidBody(mprops, jointFrame,
                         theBody, Transform(Vec3(L/2,0,0)), 
-                        //JointSpecification(JointSpecification::Cartesian, false),
-                        //JointSpecification(JointSpecification::Sliding, false),
-                        JointSpecification(JointSpecification::Pin, false),
-                        //JointSpecification(JointSpecification::Ball, false),
-                        //JointSpecification(JointSpecification::Free, false));
+                        //Mobilizer(Mobilizer::Cartesian, false),
+                        //Mobilizer(Mobilizer::Sliding, false),
+                        Mobilizer(Mobilizer::Pin, false),
+                        //Mobilizer(Mobilizer::Ball, false),
+                        //Mobilizer(Mobilizer::Free, false));
 */
     //int theConstraint =
     //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),

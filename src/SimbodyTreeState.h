@@ -24,12 +24,12 @@
  */
 
 /**@file
- * This file contains the classes which define the SimbodySubsystem State, that is, everything
- * that can be changed in a SimbodySubsystem after construction.
+ * This file contains the classes which define the SimbodyMatterSubsystem State, that is, everything
+ * that can be changed in a SimbodyMatterSubsystem after construction.
  *
  * State variables and computation results are organized into stages:
  *    Stage::Allocated
- *    Stage::Built             Stored in the SimbodySubsystem object (construction)
+ *    Stage::Built             Stored in the SimbodyMatterSubsystem object (construction)
  *   ---------------------------------------------------------
  *    Stage::Modeled           Stored in the State object
  *    Stage::Parametrized
@@ -41,11 +41,11 @@
  *
  * Construction proceeds until all the bodies and constraints have been specified. After
  * that, realizeConstruction() is called. Construction-related 
- * calculations are performed leading to values which are stored in the SimbodySubsystem 
+ * calculations are performed leading to values which are stored in the SimbodyMatterSubsystem 
  * object, NOT in the State (e.g., total number of bodies). At the same time, an
  * initial state is built, with space allocated for the state variables that will
  * be needed by the next stage (Stage::Modeled),and these are assigned default values. 
- * Then the stage in the SimbodySubsystem and in the initial state is set to "Built".
+ * Then the stage in the SimbodyMatterSubsystem and in the initial state is set to "Built".
  *
  * After that, Modeling values can be set in the State. When that's done we call
  * realizeModeling(), which evaluates the Modeling states putting the values into
@@ -92,7 +92,7 @@ class SBReactionCache;
 
 class State;
 
-// An object of this type is stored in the SimbodySubsystem after construction,
+// An object of this type is stored in the SimbodyMatterSubsystem after construction,
 // then copied into a slot in the State on realizeConstruction(). It should contain
 // enough information to size the other stages, and can also contain whatever
 // arbitrary data you would like to have in a State to verify that it is a match
