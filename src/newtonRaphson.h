@@ -1,5 +1,5 @@
-#ifndef NEWTON_RAPHSON_H_
-#define NEWTON_RAPHSON_H_
+#ifndef SimTK_NEWTON_RAPHSON_H_
+#define SimTK_NEWTON_RAPHSON_H_
 
 #include "simbody/internal/common.h"
 
@@ -10,28 +10,28 @@ public:
     int    maxMin;
     int    maxIters;
     bool   verbose;
-    double tol;
     double zTol;  // minimization will quit if gradient norm is smaller
     std::ostream& errStream;
+    String name;
 
-    NewtonRaphson(std::ostream& errStream=std::cerr)
-      : maxMin( 20 ) , maxIters( 20 ), verbose(0), tol(1e-8), 
-        zTol( 1e-8 ), errStream(errStream)
+    NewtonRaphson(const String& id, std::ostream& errStream=std::cerr)
+      : maxMin( 20 ) , maxIters( 20 ), verbose(false), 
+        zTol( 1e-8 ), errStream(errStream), name(id)
     { }
 
     template<class CalcB,class CalcZ,class VecType>
-    void calc(VecType& x, CalcB calcB, CalcZ calcZ) const 
+    void calc(const Real& tol, VecType& x, CalcB calcB, CalcZ calcZ) const 
     {
         if ( verbose )
-            errStream << "NewtonRaphson: start.\n";
+            errStream << "NewtonRaphson '" << name << "': start.\n";
         VecType b = calcB(x);
-        double norm = b.norm() / x.size();
+        double norm = std::sqrt(b.normSqr() / b.size());
         const double zTolz = zTol*x.size();
         const double zTol2 = zTolz*zTolz;
         double onorm=norm;
         int  iters=0;
         if ( verbose )
-            errStream << "NewtonRaphson: iter: " 
+            errStream << "NewtonRaphson '" << name << "': iter: " 
                       << iters << "  norm: " << norm << '\n';
         bool finished=(norm < tol);
         while (!finished) {
@@ -40,15 +40,15 @@ public:
             //std::cout << "NR: errs=" << b << std::endl;
             
             VecType z = calcZ(b);
-            x += z;
+            x -= z;
             
             iters++;
 
             b = calcB(x);
-            norm = b.norm() / x.size();
+            norm = std::sqrt(b.normSqr() / b.size());
 
             if ( norm > onorm && verbose)
-                errStream << "NewtonRaphson: newton-Raphson failed."
+                errStream << "NewtonRaphson '" << name << "': newton-Raphson failed."
                           << " Trying gradient search.\n";
 
             int mincnt = maxMin;
@@ -58,11 +58,11 @@ public:
                 z *= 0.5;
                 if ( z.normSqr() < zTol2 )
                     SimTK_THROW1(Exception::NewtonRaphsonFailure, "gradient too small");
-                x = ox + z;
+                x = ox - z;
                 b = calcB(x);
-                norm = b.norm() / x.size();
+                norm = std::sqrt(b.normSqr() / b.size());
                 if ( verbose )
-                    errStream << "NewtonRaphson: iter: " 
+                    errStream << "NewtonRaphson '" << name << "': iter: " 
                               << iters << "  norm: " << norm << '\n';
                 mincnt--;
             }
@@ -70,7 +70,7 @@ public:
             onorm = norm;
 
             if ( verbose )
-                errStream << "NewtonRaphson: iter: " 
+                errStream << "NewtonRaphson '" << name << "': iter: " 
                           << iters << "  norm: " << norm << '\n';
             
             if (norm < tol)
@@ -81,4 +81,4 @@ public:
     }
 };
 
-#endif // NEWTON_RAPHSON_H_
+#endif // SimTK_NEWTON_RAPHSON_H_

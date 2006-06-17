@@ -44,7 +44,7 @@ class BadNodeDef {};  //exception
 
 
 LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
-  : tree(&t), rbDistCons(&dc), flipStations(false), base(0), moleculeNode(0)
+  : tree(&t), rbDistCons(&dc), flipStations(false), outmostCommonBody(0)
 {
     const RigidBodyNode* dcNode1 = &dc.getStation(1).getNode();
     const RigidBodyNode* dcNode2 = &dc.getStation(2).getNode();
@@ -88,62 +88,83 @@ LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
         node2 = node2->getParent();
     }
 
-    base = node1;   // that's the common ancestor
+    outmostCommonBody = node1;   // that's the common ancestor; might be Ground
 
     // We want these in base-to-tip order.
     std::reverse(nodes[0].begin(), nodes[0].end());
     std::reverse(nodes[1].begin(), nodes[1].end());
 
-    // find molecule node (level==1 node)
-    for (moleculeNode=base; 
-         moleculeNode->getLevel()>1 ; 
-         moleculeNode=moleculeNode->getParent()) ;
-
-    /* TODO: sherm 060228: allow ground as base node
-    if ( moleculeNode->getLevel()<1 ) {
-        cerr << "LoopWNodes::LoopWNodes: could not find molecule node.\n\t"
-             << "loop between atoms " << tips(1) << " and " 
-             << tips(2) << "\n";
-        SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, 
-                     "could not find 'molecule' node");
+    // Make the list of ancestors, starting with the outmostCommonBody unless it
+    // is ground. Put in base-to-tip order.
+    const RigidBodyNode* next = outmostCommonBody;
+    while (next->getLevel() != 0) {
+        ancestors.push_back(next);
+        next = next->getParent();
     }
-    */
+    std::reverse(ancestors.begin(), ancestors.end());
 }
 
 
 ostream& 
-operator<<(ostream& os, const LengthSet& s) 
+operator<<(ostream& o, const LengthSet& s) 
 {
-    for (size_t i=0 ; i<s.loops.size() ; i++)
-        os << setw(4) << s.loops[i].tips(1) << "<->" 
-           << setw(4) << s.loops[i].tips(2)  << ": " 
-           << s.loops[i].getDistance() << "  ";
-    return os;
+    o << "LengthSet --------------->\n";
+    for (int i=0 ; i<(int)s.loops.size() ; i++) {
+        o << "Loop " << i << ":\n" << s.loops[i];
+    }
+    o << "\nNodemap: ";
+    for (int i=0; i<(int)s.nodeMap.size(); ++i)
+        o << " " << s.nodeMap[i]->getNodeNum()
+            << "[" << s.nodeMap[i]->getLevel() << "]";
+    o << "\n<-------- end of LengthSet\n";
+    return o;
+}
+
+
+ostream& 
+operator<<(ostream& o, const LoopWNodes& w) 
+{
+    o << "tip1=" << w.tips(1) << " tip2=" << w.tips(2) 
+      << " distance=" << w.getDistance() << endl;
+    o << "nodes[0]:";
+    for (int i=0; i<(int)w.nodes[0].size(); ++i)
+        o << " " << w.nodes[0][i]->getNodeNum() 
+                 << "[" << w.nodes[0][i]->getLevel() << "]";
+    o << "\nnodes[1]:";
+    for (int i=0; i<(int)w.nodes[1].size(); ++i)
+        o << " " << w.nodes[1][i]->getNodeNum() 
+                 << "[" << w.nodes[1][i]->getLevel() << "]";
+    o << "\nOutmost common body: " << w.getOutmostCommonBody()->getNodeNum()
+        << "[" << w.getOutmostCommonBody()->getLevel() << "]";
+    o << "\nAncestors: ";
+    for (int i=0; i<(int)w.ancestors.size(); ++i)
+        o << " " << w.ancestors[i]->getNodeNum()
+            << "[" << w.ancestors[i]->getLevel() << "]";
+    o << endl;
+    return o;
 }
 
 LengthConstraints::LengthConstraints
-    (const RigidBodyTree& rbt, const Real& ctol, int vbose)
-  : bandCut(1e-7), maxIters( 20 ), maxMin( 20 ), 
-    rbTree(rbt), verbose(vbose), posMin(cout), velMin(cout)
+    (const RigidBodyTree& rbt, int vbose)
+  : maxIters( 20 ), maxMin( 20 ), 
+    rbTree(rbt), verbose(vbose), posMin("posMin", cout), velMin("velMin", cout)
 {
     posMin.maxIters = maxIters;
     posMin.maxMin   = maxMin;
-    posMin.tol      = ctol;
     velMin.maxIters = maxIters;
     velMin.maxMin   = maxMin;
-    velMin.tol      = ctol*10;
 }
 
 //
-// compare LoopWNodes by base node level value
+// compare LoopWNodes by outmost common node level value
 //
 static int
 compareLevel(const LoopWNodes& l1,
              const LoopWNodes& l2) 
 { 
-    if ( l1.getBasePtr()->getLevel() > l2.getBasePtr()->getLevel() ) 
+    if ( l1.getOutmostCommonBody()->getLevel() > l2.getOutmostCommonBody()->getLevel() ) 
         return 1;
-    else if ( l1.getBasePtr()->getLevel() < l2.getBasePtr()->getLevel() )
+    else if ( l1.getOutmostCommonBody()->getLevel() < l2.getOutmostCommonBody()->getLevel() )
         return -1;
     else 
         return 0;
@@ -159,6 +180,44 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 //   b) sort by base node of each loop.
 //   c) find loops which intersect: combine loops and increment
 //    number of length constraints
+//
+// Sherm's constraint coupling hypothesis (060616):
+//
+// For a constraint i:
+//   Kinematic participants K[i] 
+//       = the set of bodies whose mobilities can affect verr[i]
+//   Dynamic participants D[i]
+//       = the set of bodies whose effective inertias can change 
+//         as a result of enforcement of constraint i
+// TODO: A thought on dynamic coupling -- is this the same as computing
+//       effective joint forces? Then only mobilities that can feel a
+//       test constraint force can be considered dynamic participants of
+//       that constraint.
+// 
+// Constraints i & j are directly kinematically coupled if 
+//   K[i] intersect K[j] <> { }
+// Constraints i & j are directly dynamically coupled if
+//   (a) they are directly kinematically coupled, or
+//   (b) D[i] intersect D[j] <> { }
+// TODO: I *think* dynamic coupling is one-way, from outboard to inboard.
+//       That means it defines an evaluation *order*, where modified 
+//       inertias from outboard loops become the articulated body
+//       inertias to use in the inboard loops, rather than requiring simultaneous
+//       solutions for the multipliers.
+//       Kinematic coupling, on the other hand, is symmetric and implies
+//       simultaneous solution.
+//
+// Compute transitive closure:
+//   Constraints i & j are kinematically coupled if
+//   (a) they are directly kinematically coupled, or
+//   (b) constraint i is kinematically coupled to any constraint
+//          k to which j is kinematically coupled
+// That is, build kinematic clusters with completely disjoint constraints.
+//
+// For now, do the same thing with acceleration constraints but this
+// is too strict. TODO
+// 
+//   
 void
 LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
 {
@@ -179,73 +238,77 @@ LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
         catch ( BadNodeDef ) {}
     }
 
-    // sort loops by base->level
+    //cout << "RAW LOOPS:\n";
+    //for (int i=0; i < (int)loops.size(); ++i)
+    //    cout << "Loop " << i << ":\n  " << loops[i] << endl;
+
+    // sort loops by outmostCommonBody->level
     std::sort(loops.begin(), loops.end()); // uses "<" operator by default; see above
-    //loops.sort(compareLevel);
     LoopList accLoops = loops;  //version for acceleration
 
-    // find intersections -- this version keeps hierarchical loops distinct
-    // sherm: the loops are considered coupled if a lower one includes the
-    // first body up from the base along either branch of the upper one (if
-    // it doesn't include that it can't include any further up the branch either). 
-    // This makes good sense to me.
+    // Sherm 060616: transitive closure calculation. Remember that 
+    // the constraints are sorted by the level of their outmost common body, 
+    // starting at ground, so that more-outboard constraints cannot cause
+    // us to need to revisit an earlier cluster. However, constraints at
+    // the same level can bring together earlier ones at that level.
+    // TODO: currently just restarting completely when we add a
+    // constraint to a cluster.
+
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        pvConstraints.push_back(LengthSet(this, loops[i]));
-        for (int j=i+1 ; j<(int)loops.size() ; j++)
-            for (int k=0 ; k<(int)pvConstraints.size() ; k++)
+        pvConstraints.push_back(LengthSet(this));
+        pvConstraints.back().addKinematicConstraint(loops[i]);
+        bool addedAConstraint;
+        do {
+            addedAConstraint = false;
+            for (int j=i+1 ; j<(int)loops.size() ; j++)
                 if (   (loops[j].nodes[0].size()
-                        && pvConstraints[k].contains(loops[j].nodes[0][0]))
+                        && pvConstraints[i].contains(loops[j].nodes[0][0]))
                     || (loops[j].nodes[1].size()
-                        && pvConstraints[k].contains(loops[j].nodes[1][0])))
+                        && pvConstraints[i].contains(loops[j].nodes[1][0])))
                 {
-                    //add length constraint to loop i
-                    pvConstraints[i].addConstraint(loops[j]);
+                    //add constraint equation j to cluster i
+                    pvConstraints[i].addKinematicConstraint(loops[j]);
                     loops.erase(loops.begin() + j); // STL for &loops[j]
-                    j--;
+                    addedAConstraint = true;
                     break;
                 }
+        } while (addedAConstraint);
     }
 
-    // find intersections - group all loops with tip->trunk relationship
-    //
-    // TODO sherm: These have to be more coupled than the pos/vel constraints,
-    // since calculating the multipliers involves mass matrix M as well as
-    // constraint matrix A. However, this code couples all the loops on the same
-    // molecule, which I *think* is unnecessarily strict.
-    // I asked Schwieters and he didn't know either but said he
-    // would have to think about it. He thought maybe he had cut some corners here
-    // and over-coupled the loops but he wasn't sure.
     for (int i=0 ; i<(int)accLoops.size() ; i++) {
-        accConstraints.push_back(LengthSet(this, accLoops[i]));
-        for (int j=i+1 ; j<(int)accLoops.size() ; j++)
-            if ( accLoops[i].moleculeNode == accLoops[j].moleculeNode ) {
-                //if (!accLoops[i].moleculeNode->isGroundNode()) { // sherm 060228
-                    accConstraints[i].addConstraint(accLoops[j]);
+        accConstraints.push_back(LengthSet(this));
+        accConstraints.back().addDynamicConstraint(accLoops[i]);
+        bool addedAConstraint;
+        do {
+            addedAConstraint = false;
+            for (int j=i+1 ; j<(int)accLoops.size() ; j++)
+                if (   (accLoops[j].nodes[0].size()
+                        && accConstraints[i].contains(accLoops[j].nodes[0][0]))
+                    || (accLoops[j].nodes[1].size()
+                        && accConstraints[i].contains(accLoops[j].nodes[1][0]))
+                    || (accLoops[j].ancestors.size()
+                        && accConstraints[i].contains(accLoops[j].ancestors[0])))
+                {
+                    //add constraint equation j to cluster i
+                    accConstraints[i].addDynamicConstraint(accLoops[j]);
                     accLoops.erase(accLoops.begin() + j); // STL for &accLoops[j]
-                    j--;
-                //}
-            }
-        //     for (int b=1 ; b<=2 ; b++) 
-        //     if ( sameBranch(accLoops[i].tips(b)->node,accLoops[j]) ||
-        //          sameBranch(accLoops[j].tips(b)->node,accLoops[i])   ) {
-        //       accConstraints[i]->addConstraint(accLoops[j]);
-        //       accLoops.remove(j);
-        //       j--;
-        //       break;
-        //     }
+                    addedAConstraint = true;
+                    break;
+                }
+        } while (addedAConstraint);
     }
 
-    if (pvConstraints.size()>0 && verbose&InternalDynamics::printLoopInfo) {
-        cout << "LengthConstraints::construct: pos/vel length constraints found:\n";
+    if (false && pvConstraints.size()>0) {
+        cout << "LengthConstraints::construct: pos/vel length sets found:\n";
         for (int i=0 ; i<(int)pvConstraints.size() ; i++)
-            cout << "\t" << pvConstraints[i] << "\n";
-        cout << "LengthConstraints::construct: accel length constraints found:\n";
+            cout << pvConstraints[i] << "\n";
+        cout << "LengthConstraints::construct: accel length sets found:\n";
         for (int i=0 ; i<(int)accConstraints.size() ; i++)
-            cout << "\t" << accConstraints[i] << "\n";
+            cout << accConstraints[i] << "\n";
     }
 }
 
-void LengthSet::addConstraint(const LoopWNodes& loop) {
+void LengthSet::addKinematicConstraint(const LoopWNodes& loop) {
     loops.push_back( LoopWNodes(loop) );
     for (int b=0 ; b<2 ; b++)
         for (int i=0; i<(int)loop.nodes[b].size(); i++)
@@ -258,19 +321,30 @@ void LengthSet::addConstraint(const LoopWNodes& loop) {
             }
 }
 
-bool LengthSet::contains(const RigidBodyNode* node) {
-    bool found=false;
-    for (size_t i=0 ; i<loops.size() ; i++) {
-        const std::vector<const RigidBodyNode*>& n0 = loops[i].nodes[0];
-        const std::vector<const RigidBodyNode*>& n1 = loops[i].nodes[1];
-        if (   (std::find(n0.begin(),n0.end(),node) != n0.end())
-            || (std::find(n1.begin(),n1.end(),node) != n1.end()))
+void LengthSet::addDynamicConstraint(const LoopWNodes& loop) {
+    loops.push_back( LoopWNodes(loop) );
+    for (int b=0 ; b<2 ; b++)
+        for (int i=0; i<(int)loop.nodes[b].size(); i++)
+            if (std::find(nodeMap.begin(),nodeMap.end(),loop.nodes[b][i])
+                ==nodeMap.end())
+            {
+                // not found
+                ndofThisSet += loop.nodes[b][i]->getDOF();
+                nodeMap.push_back( loop.nodes[b][i] );
+            }
+
+    for (int i=0; i<(int)loop.ancestors.size(); i++)
+        if (std::find(nodeMap.begin(),nodeMap.end(),loop.ancestors[i])
+            ==nodeMap.end())
         {
-            found=true;
-            break;
+            // not found
+            ndofThisSet += loop.ancestors[i]->getDOF();
+            nodeMap.push_back( loop.ancestors[i] );
         }
-    }
-    return found;
+}
+
+bool LengthSet::contains(const RigidBodyNode* node) {
+    return std::find(nodeMap.begin(),nodeMap.end(),node) != nodeMap.end();
 }
 
 class CalcPosB {
@@ -314,12 +388,11 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
     // Although we're not changing the ConfigurationCache here, we access
     // it with "upd" because setPos() will have modified the q's and
     // thus invalidated stage Configured, so a "get" would fail.
+    // TODO: this may be fixed now since subsystems have their own stage.
     const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
-
-    Vector b( loops.size() );
-    for (int i=0 ; i<(int)loops.size() ; i++) 
-        b(i) = loops[i].getDistance() - 
-                (loops[i].tipPos(cc,1) - loops[i].tipPos(cc,2)).norm();
+    Vector b((int)loops.size());
+    for (int i=0; i<(int)loops.size(); ++i)
+        b[i] = loops[i].rbDistCons->getPosErr(cc);
     return b;
 }
 
@@ -329,24 +402,18 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 Vector
 LengthSet::calcVelB(State& s, const Vector& vel) const 
 {
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-
     setVel(s, vel);
 
     // Although we're not changing the MotionCache here, 
     // we access them with "upd" because setVel will have
     // modified u's and thus invalidated stage Moving,
     // so a "get" would fail.
+    // TODO: this may be fixed now since subsystems have their own stage.
+    const SBMotionCache& mc = getRBTree().updMotionCache(s);
 
-    const SBMotionCache&        mc = getRBTree().updMotionCache(s);
-
-    Vector b( loops.size() );
-    for (int i=0 ; i<(int)loops.size() ; i++) {
-        // TODO why the minus sign here? (doesn't work right without it) sherm
-        b(i) = -dot(unitVec(loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1)),
-                    loops[i].tipVel(mc,2) - loops[i].tipVel(mc,1));
-    }
-
+    Vector b((int)loops.size());
+    for (int i=0; i<(int)loops.size(); ++i)
+        b[i] = loops[i].rbDistCons->getVelErr(mc);
     return b;
 }
 
@@ -440,17 +507,17 @@ public:
 
 // Project out the position constraint errors from the given state. 
 bool
-LengthConstraints::enforceConfigurationConstraints(State& s) const
+LengthConstraints::enforceConfigurationConstraints(State& s, const Real& tol) const
 {
     assert(rbTree.getStage(s) >= Stage::Configured-1);
-    Vector&    pos = rbTree.updQ(s);
+    Vector& pos = rbTree.updQ(s);
 
     bool anyChanges = false;
 
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            posMin.calc((Vector&)pos,
+            posMin.calc(tol, (Vector&)pos,
                         CalcPosB(s, &pvConstraints[i]),
                         CalcPosZ(s, &pvConstraints[i]));
         }
@@ -465,7 +532,7 @@ LengthConstraints::enforceConfigurationConstraints(State& s) const
 
 // Project out the velocity constraint errors from the given state. 
 bool
-LengthConstraints::enforceMotionConstraints(State& s) const
+LengthConstraints::enforceMotionConstraints(State& s, const Real& tol) const
 {
     assert(rbTree.getStage(s) >= Stage(Stage::Moving).prev());
     Vector& vel = rbTree.updU(s);
@@ -475,7 +542,7 @@ LengthConstraints::enforceMotionConstraints(State& s) const
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            velMin.calc(vel,
+            velMin.calc(tol, vel,
                         CalcVelB(s, &pvConstraints[i]),
                         CalcVelZ(s, &pvConstraints[i]));
         }
@@ -493,7 +560,7 @@ LengthConstraints::enforceMotionConstraints(State& s) const
 //// for each loop
 //// -first calc all usual properties
 //// -recursively compute phi_ni for each length constraint
-////   from tip to base of 
+////   from tip to outmost common body of 
 //// -compute gradient
 //// -update theta using quasi-Newton-Raphson
 //// -compute Cartesian coords
@@ -660,7 +727,8 @@ LengthSet::calcGrad(const State& s) const
         }
 
         // compute gradient
-        Vec3 uBond = unitVec(l.tipPos(cc,2) - l.tipPos(cc,1));
+        //Vec3 uBond = unitVec(l.tipPos(cc,2) - l.tipPos(cc,1));
+        const Vec3 uBond = l.tipPos(cc,2) - l.tipPos(cc,1); // p
         Row<2,Mat33> J[2];
         for (int b=1 ; b<=2 ; b++)
             // TODO: get rid of this b-1; make tips 0-based
@@ -773,7 +841,7 @@ LengthSet::calcGInverseFD(const State& s) const
 
 //acceleration:
 //  0) after initial acceleration calculation:
-//  1) calculate Y (block diagonal matrix) for all nodes (base to tip)
+//  1) calculate Y (block diagonal matrix) for all nodes (common body to tip)
 //  2) for each LengthSet, calculate Lagrange multiplier(s) and add in
 //     resulting force- update accelerations
 //     Do this step from tip to base.
@@ -827,7 +895,7 @@ LengthConstraints::fixGradient(const State& s, Vector& forceInternal)
 // Compute   v1 *(J M  J )_mn * v2   where the indices mn are given by 
 // the nodes associated with stations s1 & s2.
 //
-static double
+static Real
 computeA(const SBConfigurationCache& cc, 
          const SBDynamicsCache&      dc,
          const Vec3&    v1,
@@ -869,7 +937,7 @@ computeA(const SBConfigurationCache& cc,
 
     // here n1==n2
 
-    double ret = t1 * n1->getY(dc) * t2;
+    Real ret = t1 * n1->getY(dc) * t2;
     return ret;
 }
 
@@ -896,12 +964,9 @@ LengthSet::calcConstraintForces(const State& s) const
     // LengthSet. We get a single scalar error per loop, since each
     // contains one distance constraint.
     // See Eq. [53] and the last term of Eq. [66].
-    Vector rhs(loops.size(),0.);
-    for (int i=0 ; i<(int)loops.size() ; i++) {
-        rhs(i) = (loops[i].tipVel(mc,2) - loops[i].tipVel(mc,1)).normSqr()
-                   + dot(loops[i].tipAcc(rc,2) - loops[i].tipAcc(rc,1) , 
-                         loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1));
-    }
+    Vector rhs(loops.size());
+    for (int i=0; i<(int)loops.size(); ++i)
+        rhs[i] = loops[i].rbDistCons->getAccErr(rc);
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
     // the constrained points and Q is the constraint Jacobian. See first 
@@ -917,17 +982,6 @@ LengthSet::calcConstraintForces(const State& s) const
                     double contrib = computeA(cc,dc, v1, loops[i], bi,
                                                      loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
-
-                    /* sherm 060613: what's this trying to do?? (a) is it safe, (b) why bother?
-                    if ( fabs(contrib) > maxElem ) maxElem = fabs(contrib);
-                    if ( maxElem>0. && fabs(contrib)/maxElem < lConstraints->bandCut ) {
-                        if ( getVerbose()&InternalDynamics::printLoopDebug )
-                            cout << "LengthSet::calcConstraintForces: setting A("
-                                 << i << "," << j+1 << ".." << loops.size()-1 << ")["
-                                 << bi << "," << bj << "] = 0\n";
-                        break;  //don't compute smaller elements
-                    }
-                    */
                 }
             }
     }
@@ -982,13 +1036,11 @@ void LengthSet::testAccel(const State& s) const
 
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        double test=   dot(loops[i].tipAcc(rc,2) - loops[i].tipAcc(rc,1),
-                           loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1))
-                     + (loops[i].tipVel(mc,2)-loops[i].tipVel(mc,1)).normSqr();
-        if ( fabs(test) > testTol )
+        const Real aerr = fabs(loops[i].rbDistCons->getAccErr(rc));
+        if (aerr > testTol)
             cout << "LengthSet::testAccel: constraint condition between atoms "
                  << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
-                 << "\tnorm of violation: " << fabs(test) << '\n';
+                 << "\tnorm of violation: " << aerr << '\n';
     }
     cout.flush();
 }
@@ -1108,22 +1160,15 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     assert(iVel.size() == getRBTree().getTotalDOF());
 
     const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-
-    // Note that mc can be modified below as part of realizeMotion(s); const
-    // here just means *this* routine can't modify it. Cache entries are
-    // guaranteed to stay put in the State once allocated, so this reference
-    // will remain valid the whole time.
     const SBMotionCache&        mc = getRBTree().getMotionCache(s);
-    SBReactionCache&            rc = getRBTree().updReactionCache(s);
 
     // store internal velocities
     Vector iVel0 = iVel;
 
     // verr stores the current velocity errors, which we're assuming are valid.
-    Vector verr(loops.size());
-    for (int k=0 ; k<(int)loops.size() ; k++) 
-        verr[k] = dot(loops[k].tipPos(cc,2) - loops[k].tipPos(cc,1) ,
-                      loops[k].tipVel(mc,2) - loops[k].tipVel(mc,1));
+    Vector verr((int)loops.size());
+    for (int i=0; i<(int)loops.size(); ++i)
+        verr[i] = loops[i].rbDistCons->getVelErr(mc);
 
     Matrix mat(loops.size(),loops.size());
     std::vector<Vector> deltaIVel(loops.size());
@@ -1140,19 +1185,20 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // along the separation vector. 
         // That would explain the fact that there are no velocities here!
         const Vec3 probeImpulse = loops[m].tipPos(cc,2)-loops[m].tipPos(cc,1);
-        loops[m].setTipForce(rc, 2,  probeImpulse);
-        loops[m].setTipForce(rc, 1, -probeImpulse);
+        const Vec3 force1 = -probeImpulse;
+        const Vec3 force2 =  probeImpulse;
+
+        const RigidBodyNode& node1 = loops[m].tipNode(1);
+        const RigidBodyNode& node2 = loops[m].tipNode(2);
+        const Vec3 moment1 = cross(loops[m].tipPos(cc,1)-node1.getX_GB(cc).T(), force1);
+        const Vec3 moment2 = cross(loops[m].tipPos(cc,2)-node2.getX_GB(cc).T(), force2);
 
         // Convert the probe impulses at the stations to spatial impulses at
         // the body origin.
         SpatialVecList spatialImpulse(getRBTree().getNBodies());
         spatialImpulse.setToZero();
-        for (int t=1; t<=2; ++t) {
-            const RigidBodyNode& node = loops[m].tipNode(t);
-            const Vec3 force = loops[m].tipForce(rc,t);
-            const Vec3 moment = cross(loops[m].tipPos(cc,t) - node.getX_GB(cc).T(), force);
-            spatialImpulse[node.getNodeNum()] += SpatialVec(moment, force);
-        }
+        spatialImpulse[node1.getNodeNum()] += SpatialVec(moment1, force1);
+        spatialImpulse[node2.getNodeNum()] += SpatialVec(moment2, force2);
 
         // Apply probe impulse as though it were a force; the resulting "acceleration"
         // is actually the deltaV produced by this impulse, that is, a deltaV which
@@ -1172,9 +1218,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // Calculating partial(velocityError[n])/partial(deltav[m]). Any velocity
         // we see here is due to the deltav, since we started out at zero (mc
         // was modified by realizeMotion(), but our reference is still valid).
-        for (int n=0 ; n<(int)loops.size() ; n++)
-            mat(n,m) = dot(loops[n].tipPos(cc,2) - loops[n].tipPos(cc,1),
-                           loops[n].tipVel(mc,2) - loops[n].tipVel(mc,1));
+        for (int n=0; n<(int)loops.size(); ++n)
+            mat(n,m) = loops[n].rbDistCons->getVelErr(mc);
 
         //store results of m-th constraint on deltaVa-n
     }
@@ -1233,10 +1278,14 @@ void RBDistanceConstraint::calcPosInfo(SBConfigurationCache& cc) const
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationPosInfo(i,cc);
 
-    updFromTip1ToTip2_G(cc)  = getPos_G(cc,2) - getPos_G(cc,1);
-    const double separation  = getFromTip1ToTip2_G(cc).norm();
+    const Vec3 p = getPos_G(cc,2) - getPos_G(cc,1);
+    updFromTip1ToTip2_G(cc)  = p;
+    const Real separation  = getFromTip1ToTip2_G(cc).norm();
     updUnitDirection_G(cc)   = getFromTip1ToTip2_G(cc) / separation;
-    updPosErr(cc) = distance - separation;
+    //TODO:  |p|-d (should be 0.5(p^2-d^2)
+    //updPosErr(cc) = separation - distance; 
+    updPosErr(cc) = 0.5*(p.normSqr() - distance*distance);
+
 }
 
 void RBDistanceConstraint::calcVelInfo(
@@ -1247,7 +1296,9 @@ void RBDistanceConstraint::calcVelInfo(
     for (int i=1; i<=2; ++i) calcStationVelInfo(i,cc,mc);
 
     updRelVel_G(mc) = getVel_G(mc,2) - getVel_G(mc,1);
-    updVelErr(mc)   = ~getUnitDirection_G(cc) * getRelVel_G(mc);
+    //TODO: u.v, u=p/|p| (should be p.v)
+    //updVelErr(mc)   = ~getUnitDirection_G(cc) * getRelVel_G(mc);
+    updVelErr(mc) = ~getFromTip1ToTip2_G(cc) * getRelVel_G(mc);
 }
 
 void RBDistanceConstraint::calcAccInfo(
@@ -1258,7 +1309,8 @@ void RBDistanceConstraint::calcAccInfo(
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationAccInfo(i,cc,mc,rc);
 
-//XXX this doesn't look right
+    // TODO: v.v + a.p (good), but would have to be
+    // u.a + (v-(v.u).u).v/|p| to be compatible with above
     const Vec3 relAcc_G = getAcc_G(rc,2) - getAcc_G(rc,1);
     updAccErr(rc) = getRelVel_G(mc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(cc));
 }

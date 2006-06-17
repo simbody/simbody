@@ -137,16 +137,23 @@ public:
     /// available whenever this subsystem has been realized to Stage::Configured.
     /// This is the scalar quantity that we need to keep below "tol"
     /// during integration.
-    const Real&   getQConstraintNorm(const State&) const;
+    Real calcQConstraintNorm(const State&) const;
 
     /// This is available at Stage::Moving. These are *absolute* constraint
     /// violations verr=v(t,q,u), that is, they are unweighted.
     const Vector& getUConstraintErrors(const State&) const;
 
-    /// This is the weighted norm of the errors returned by getQConstraintErrors().
+    /// This is the weighted norm of the errors returned by getUConstraintErrors().
     /// That is, this is the scalar quantity that we need to keep below "tol"
     /// during integration.
-    const Real&   getUConstraintNorm(const State&) const;
+    Real calcUConstraintNorm(const State&) const;
+
+    /// This is available at Stage::Reacting. These are *absolute* constraint
+    /// violations aerr = A udot - b, that is, they are unweighted.
+    const Vector& getUDotConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getUDotConstraintErrors().
+    Real calcUDotConstraintNorm(const State&) const;
 
     /// This is a solver you can call after the State has been realized
     /// to stage Timed (i.e., Configured-1). It will project the Q constraints

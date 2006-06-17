@@ -216,7 +216,10 @@ class LengthConstraints;
  */
 class LoopWNodes {
 public:
-    LoopWNodes() : tree(0), rbDistCons(0), flipStations(false), base(0), moleculeNode(0) {}
+    LoopWNodes() 
+      : tree(0), rbDistCons(0), flipStations(false), outmostCommonBody(0) 
+    {
+    }
     LoopWNodes(const RigidBodyTree&, const RBDistanceConstraint&);
 
     void calcPosInfo(
@@ -271,7 +274,7 @@ public:
         rc.force_G[ix(i)-1][dc] = f;
     }
 
-    const RigidBodyNode* getBasePtr() const {return base;}
+    const RigidBodyNode* getOutmostCommonBody() const {return outmostCommonBody;}
 
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
@@ -284,12 +287,16 @@ private:
                                                     //   <= station(2).level
     std::vector<const RigidBodyNode*> nodes[2];     // the two paths: base..tip1, base..tip2,
                                                     //   incl. tip nodes but not base
-    const RigidBodyNode*              base;         // highest-level common ancestor of tips
-    const RigidBodyNode*              moleculeNode;
+    const RigidBodyNode*              outmostCommonBody; // highest-level common ancestor of tips
+    
+    // Ancestors includes everything from outmostCommonBody (inclusive) down to ground
+    // (exclusive).
+    std::vector<const RigidBodyNode*> ancestors;
 
     friend class LengthSet;
     friend class LengthConstraints;
-    friend ostream& operator<<(ostream& os, const LengthSet& s);
+    friend ostream& operator<<(ostream&, const LengthSet&);
+    friend ostream& operator<<(ostream&, const LoopWNodes&);
 };
 
 typedef std::vector<LoopWNodes> LoopList;
@@ -302,16 +309,16 @@ class LengthSet {
     std::vector<const RigidBodyNode*> nodeMap; //unique nodes (union of loops->nodes)
 public:
     LengthSet() : lConstraints(0), ndofThisSet(0) { }
-    LengthSet(const LengthConstraints* lConstraints, const LoopWNodes& loop)
-        : lConstraints(lConstraints), ndofThisSet(0)
+    LengthSet(const LengthConstraints* lConstraints)
+      : lConstraints(lConstraints), ndofThisSet(0)
     {
-        addConstraint(loop);
     }
 
     inline const RigidBodyTree& getRBTree()  const;
     inline int                  getVerbose() const;
 
-    void addConstraint(const LoopWNodes& loop);
+    void addKinematicConstraint(const LoopWNodes& loop);
+    void addDynamicConstraint(const LoopWNodes& loop);
     bool contains(const RigidBodyNode* node);
 
     void  setPos(State&, const Vector& pos) const;
@@ -346,13 +353,13 @@ public:
 
 class LengthConstraints {
 public:
-    LengthConstraints(const RigidBodyTree&, const double& ctol, int verbose);
+    LengthConstraints(const RigidBodyTree&, int verbose);
 
     void construct(const Array<RBDistanceConstraint*>&);
 
     // Returns true if any change was made in the state.
-    bool enforceConfigurationConstraints(State&) const;
-    bool enforceMotionConstraints(State&) const;
+    bool enforceConfigurationConstraints(State&, const Real& tol) const;
+    bool enforceMotionConstraints(State&, const Real& tol) const;
 
     bool calcConstraintForces(const State&) const;
     void addInCorrectionForces(const State&, SpatialVecList& spatialForces) const;
@@ -361,8 +368,6 @@ public:
     void fixGradient(const State&, Vector&);
 
 private:
-    //  double tol;
-    double bandCut;  //cutoff for calculation of constraint matrix
     int    maxIters;
     int    maxMin;
 

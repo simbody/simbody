@@ -109,7 +109,8 @@ public:
         return new RigidBodyTree(*this);
     }
 
-    // MechanicalSubsystemRep interface
+    // MatterSubsystemRep interface. These provide local implementation sfor
+    // virtual methods of MatterSubsystemRep.
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.
@@ -120,16 +121,73 @@ public:
     int getParent(int bodyNum) const;
     Array<int> getChildren(int bodyNum) const;
 
-    // Call after realizeParameters()
     const Transform& getJointFrame        (const State&, int body) const;
     const Transform& getJointFrameOnParent(const State&, int body) const;
     const Vec3&      getBodyCenterOfMass  (const State&, int body) const;
 
-    // Call after realizeConfiguration()
     const Transform& getBodyConfiguration(const State& s, int body) const;
 
-    // Call after realizeMotion()
     const SpatialVec& getBodyVelocity(const State& s, int body) const;
+
+    void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+                                 Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+                                 Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
+                                    Vector& mobilityForces) const;  
+
+    const Real& getJointQ(const State& s, int body, int axis) const;
+    const Real& getJointU(const State& s, int body, int axis) const;
+
+    void setJointQ(State& s, int body, int axis, const Real& r) const;
+    void setJointU(State& s, int body, int axis, const Real& r) const;
+
+    const Transform& getMobilizerConfiguration(const State&, int body) const;
+    const SpatialVec& getMobilizerVelocity(const State&, int body) const;
+    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
+    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
+
+    const Vector& getQConstraintErrors(const State& s) const {
+        const SBConfigurationCache& cc = getConfigurationCache(s);
+        return cc.positionConstraintErrors;
+    }
+    // TODO: this is unweighted RMS norm
+    Real calcQConstraintNorm(const State& s) const {
+        const Vector& qerr = getQConstraintErrors(s);
+        return qerr.size() ? std::sqrt(qerr.normSqr()/qerr.size()) : 0.;
+    }
+
+    const Vector& getUConstraintErrors(const State& s) const {
+        const SBMotionCache& mc = getMotionCache(s);
+        return mc.velocityConstraintErrors;
+    }
+    // TODO: this is unweighted, untimescaled RMS norm
+    Real calcUConstraintNorm(const State& s) const {
+        const Vector& uerr = getUConstraintErrors(s);
+        return uerr.size() ? std::sqrt(uerr.normSqr()/uerr.size()) : 0.;
+    }
+
+    const Vector& getUDotConstraintErrors(const State& s) const {
+        const SBReactionCache& rc = getReactionCache(s);
+        return rc.accelerationConstraintErrors;
+    }
+    // TODO: this is unweighted, untimescaled RMS norm
+    Real calcUDotConstraintNorm(const State& s) const {
+        const Vector& uderr = getUDotConstraintErrors(s);
+        return uderr.size() ? std::sqrt(uderr.normSqr()/uderr.size()) : 0.;
+    }
+
+    bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+        // TODO
+        enforceConfigurationConstraints(s, tol);
+        return true;
+    }
+    bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
+        // TODO
+        enforceMotionConstraints(s, tol);
+        return true;
+    }
 
 
     void realizeConstruction (State&) const;
@@ -227,16 +285,6 @@ public:
 
         // CALLABLE AFTER realizeModeling()
 
-    const Real& getJointQ(const State& s, int body, int axis) const;
-    const Real& getJointU(const State& s, int body, int axis) const;
-
-    void setJointQ(State& s, int body, int axis, const Real& r) const;
-    void setJointU(State& s, int body, int axis, const Real& r) const;
-
-    const Transform& getMobilizerConfiguration(const State&, int body) const;
-    const SpatialVec& getMobilizerVelocity(const State&, int body) const;
-    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
-    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
 
     const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
@@ -247,31 +295,13 @@ public:
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
 
-    void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
-                                 Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
-                                 Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
-                                    Vector& mobilityForces) const;  
 
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
-    // virtuals
-    bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
-        // TODO
-        enforceConfigurationConstraints(s);
-        return true;
-    }
-    bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
-        // TODO
-        enforceMotionConstraints(s);
-        return true;
-    }
 
-    void enforceConfigurationConstraints(State&) const;
-    void enforceMotionConstraints(State&) const;
+    void enforceConfigurationConstraints(State&, const Real& tol) const;
+    void enforceMotionConstraints(State&, const Real& tol) const;
 
     /// Unconstrained (tree) dynamics 
     void calcArticulatedBodyInertias(const State&) const;                        // articulated body inertias

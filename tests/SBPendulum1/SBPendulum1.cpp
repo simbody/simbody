@@ -250,7 +250,7 @@ try {
     //ExplicitEuler ee(mbs, s);
     bool suppressProjection = false;
     RungeKuttaMerson ee(mbs, s, suppressProjection);
-    ee.setProjectEveryStep(true);
+    ee.setProjectEveryStep(false);
 
     vtk.report(s);
 
@@ -276,7 +276,7 @@ try {
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-    pend.enforceConfigurationConstraints(s);
+    pend.enforceConfigurationConstraints(s, 1e-10);
     mbs.realize(s, Stage::Configured);
 
     cout << "-------> STATE after realize(Configured):" << s;
@@ -344,6 +344,7 @@ try {
     const Real tmax = 100;
 
     ee.setAccuracy(1e-2);
+    ee.setConstraintTolerance(1e-6);
 
     ee.initialize(); 
     vtk.report(s);
@@ -382,6 +383,14 @@ try {
 
 
         mbs.realize(s, Stage::Reacting);
+        cout << "CONSTRAINT ERRORS:\n";
+        cout << "quat:" << Vec4::getAs(&s.getQ()[0]).norm()-1 << endl;
+        cout << "   q:" << pend.getQConstraintErrors(s)
+             << "(" << pend.calcQConstraintNorm(s) << ")\n";
+        cout << "   u:" << pend.getUConstraintErrors(s)
+             << "(" << pend.calcUConstraintNorm(s) << ")\n";
+        cout << "udot: " << pend.getUDotConstraintErrors(s)
+             << "(" << pend.calcUDotConstraintNorm(s) << ")\n\n";
 
         const Vector udot = s.getUDot();
         Vector udot2;

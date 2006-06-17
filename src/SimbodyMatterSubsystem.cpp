@@ -207,10 +207,10 @@ const Real& SimbodyMatterSubsystem::getJointU(const State& s, int body, int axis
   { return getRep().getJointU(s,body,axis); }
 
 
-void SimbodyMatterSubsystem::enforceConfigurationConstraints(State& s) const
-  { getRep().enforceConfigurationConstraints(s); }
-void SimbodyMatterSubsystem::enforceMotionConstraints(State& s) const
-  { getRep().enforceMotionConstraints(s); }
+void SimbodyMatterSubsystem::enforceConfigurationConstraints(State& s, const Real& tol) const
+  { getRep().enforceConfigurationConstraints(s, tol); }
+void SimbodyMatterSubsystem::enforceMotionConstraints(State& s, const Real& tol) const
+  { getRep().enforceMotionConstraints(s, tol); }
 
 const Transform&
 SimbodyMatterSubsystem::getBodyConfiguration(const State& s, int body) const

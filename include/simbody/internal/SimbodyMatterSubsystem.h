@@ -149,12 +149,12 @@ public:
     // Constraint projections.
 
     /// Project position coordinates (q's) so that they satisfy their 
-    /// constraints.
-    void enforceConfigurationConstraints(State&) const;
+    /// constraints to at least tol.
+    void enforceConfigurationConstraints(State&, const Real& tol) const;
 
     /// Project velocity coordinates (u's) so that they satisfy their
-    /// constraints.
-    void enforceMotionConstraints(State&) const;
+    /// constraints to at least tol.
+    void enforceMotionConstraints(State&, const Real& tol) const;
 
     // These are available after realizeConstruction().
 

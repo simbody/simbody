@@ -104,17 +104,22 @@ public:
         static Vector dummy;
         return dummy;
     }
-    virtual const Real& getQConstraintNorm(const State&) const {
-        static Real dummy = 0;
-        return dummy;
+    virtual Real calcQConstraintNorm(const State&) const {
+        return 0;
     }
     virtual const Vector& getUConstraintErrors(const State&) const {
         static Vector dummy;
         return dummy;
     }
-    virtual const Real& getUConstraintNorm(const State&) const {
-        static Real dummy = 0;
+    virtual Real calcUConstraintNorm(const State&) const {
+        return 0;
+    }
+    virtual const Vector& getUDotConstraintErrors(const State&) const {
+        static Vector dummy;
         return dummy;
+    }
+    virtual Real calcUDotConstraintNorm(const State&) const {
+        return 0;
     }
     virtual bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const {
         return false;

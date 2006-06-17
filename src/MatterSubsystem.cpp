@@ -161,15 +161,22 @@ void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec&
 const Vector& MatterSubsystem::getQConstraintErrors(const State& s) const { 
     return MatterSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
 }
-const Real& MatterSubsystem::getQConstraintNorm(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).getQConstraintNorm(s); 
+Real MatterSubsystem::calcQConstraintNorm(const State& s) const { 
+    return MatterSubsystemRep::downcast(*rep).calcQConstraintNorm(s); 
 }
 const Vector& MatterSubsystem::getUConstraintErrors(const State& s) const { 
     return MatterSubsystemRep::downcast(*rep).getUConstraintErrors(s); 
 }
-const Real& MatterSubsystem::getUConstraintNorm(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).getUConstraintNorm(s); 
+Real MatterSubsystem::calcUConstraintNorm(const State& s) const { 
+    return MatterSubsystemRep::downcast(*rep).calcUConstraintNorm(s); 
 }
+const Vector& MatterSubsystem::getUDotConstraintErrors(const State& s) const { 
+    return MatterSubsystemRep::downcast(*rep).getUDotConstraintErrors(s); 
+}
+Real MatterSubsystem::calcUDotConstraintNorm(const State& s) const { 
+    return MatterSubsystemRep::downcast(*rep).calcUDotConstraintNorm(s); 
+}
+
 bool MatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
     return MatterSubsystemRep::downcast(*rep).projectQConstraints(
         s,y_err,tol,targetTol); 

@@ -164,9 +164,11 @@ public:
         end1 = makeChain(GroundBodyNum, Vec3(0), nsegs, shouldFlop);
         end2 = makeChain(GroundBodyNum, Vec3(20,0,0), nsegs, shouldFlop);
 
-        int theConstraint2 =
-           addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
-                                         end2, Vec3(0, -HalfHeight,0), 10);
+        if (true) {
+            int theConstraint2 =
+               addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
+                                             end2, Vec3(0, -HalfHeight,0), 10);
+        }
 
     }
 
@@ -315,14 +317,14 @@ int main(int argc, char** argv) {
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(100, -40, -50);
-        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),0.,1.);
+        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),1000.,1.);
         State s;
         MultibodySystem mbs(myRNA,forces);
         mbs.realize(s, Stage::Built);
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
         forces.updGravity(s) = Vec3(0, -g, 0);
-        forces.updDamping(s) = 10000;
+        forces.updDamping(s) = 1000;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);
@@ -331,7 +333,7 @@ int main(int argc, char** argv) {
         bool suppressProject = false;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
         myStudy.setAccuracy(1e-2);
-        myStudy.setProjectEveryStep(true);
+        myStudy.setProjectEveryStep(false);
 
         VTKReporter display(mbs);
         for (int i=1; i<myRNA.getNBodies(); ++i)
