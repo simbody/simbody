@@ -147,7 +147,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 3;
+static int NSegments = 1;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -317,7 +317,7 @@ int main(int argc, char** argv) {
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(100, -40, -50);
-        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),1000.,1.);
+        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),10.,1.);
         State s;
         MultibodySystem mbs(myRNA,forces);
         mbs.realize(s, Stage::Built);
@@ -332,7 +332,8 @@ int main(int argc, char** argv) {
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-2);
+        myStudy.setAccuracy(1e-1);
+        myStudy.setConstraintTolerance(1e-1);
         myStudy.setProjectEveryStep(false);
 
         VTKReporter display(mbs);
@@ -343,7 +344,7 @@ int main(int argc, char** argv) {
         DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
         display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
-        const Real dt = 0.05; // output intervals
+        const Real dt = 0.2; // output intervals
 
         printf("time  nextStepSize\n");
 
@@ -357,7 +358,9 @@ int main(int argc, char** argv) {
 
         display.report(s);
         for (;;) {
-            printf("%5g hNext=%g\n", s.getTime(), myStudy.getPredictedNextStep());
+            printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
+                myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
+                myStudy.getPredictedNextStep());
             display.report(s);
             saveEm.push_back(s);
 

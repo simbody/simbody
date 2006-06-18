@@ -38,48 +38,6 @@
 
 namespace SimTK {
 
-class SimTK_SIMBODY_API SimbodyForcesSubsystem : public ForceSubsystem {
-public:
-    SimbodyForcesSubsystem();
-
-    // These are just the defaults but are nice to have explicitly for debugging.
-    ~SimbodyForcesSubsystem() {
-    }
-    SimbodyForcesSubsystem(SimbodyForcesSubsystem& e) 
-      : ForceSubsystem(e) {
-    }
-    SimbodyForcesSubsystem& operator=(SimbodyForcesSubsystem& e) {
-        ForceSubsystem::operator=(e);
-        return *this;
-    }
-
-    // This response is available at Stage::Configured.
-    const Real& getPotentialEnergy(const State& s) const;
-
-    // These responses are available at Stage::Moving
-    const Vector& getMobilityForces(const State& s) const;
-    const Vector_<SpatialVec>& getSpatialForces(const State& s) const;
-
-    // Construction: add force elements.
-    void addGravity(const Vec3& g);
-    void addMobilitySpring(int body, int dof,
-                           const Real& stiffness,
-                           const Real& naturalLength);
-    void addTwoPointSpring(int body1, const Vec3& s1,
-                           int body2, const Vec3& s2,
-                           const Real&    stiffness,
-                           const Real&    naturalLength);
-    void addTwoPointDamper(int body1, const Vec3& s1,
-                           int body2, const Vec3& s2,
-                           const Real&    damping);
-
-
-    SimTK_PIMPL_DOWNCAST(SimbodyForcesSubsystem, ForceSubsystem);
-private:
-    class SimbodyForcesSubsystemRep& updRep();
-    const SimbodyForcesSubsystemRep& getRep() const;
-};
-
 /**
  * This is a concrete subsystem which applies a single linear, two-point spring.
  */

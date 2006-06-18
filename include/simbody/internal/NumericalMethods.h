@@ -462,12 +462,18 @@ public:
 
         bool wasLastStep;
         long stepsTaken = 0;
-        Real hNext = std::min(predictedNextStep, maxStepSize);
+
+        // hWanted tracks the step size we would like to have taken if the
+        // end of the step interval had not intervened.
+        Real hWanted = std::min(predictedNextStep, maxStepSize);
         do {
             if (maxNumSteps && stepsTaken >= maxNumSteps)
                 return false; // too much work
 
-            bool hWasShrunk    = false;
+            // Keep track of whether we had to use an excessible small step size
+            // in order to stop at tOut. In that case we don't want to use the
+            // shrunken step to predict the next one.
+            bool trialHWasLimitedByTOut = false;
 
             wasLastStep = false;
 
@@ -477,17 +483,17 @@ public:
             // Near tStop we'll shrink or stretch as appropriate. If we shrink
             // substantially we'll make note of that and not attempt to 
             // grow the step size if we succeed with this tiny thing.
-            if (t0 + 1.1*hNext > tMax) {
+            Real trialH = hWanted;
+            if (t0 + 1.05*trialH > tMax) {
                 const Real hAdj = tMax - t0;
-                hWasShrunk = hAdj < 0.9*hNext;
-                hNext = hAdj;
+                trialHWasLimitedByTOut = hAdj < 0.9*trialH;
+                trialH = hAdj;
                 wasLastStep = true;
             }
 
             mbs.realize(state, Stage::Reacting);
             ydot0 = state.getYDot();    // save for faster restart
 
-            Real trialH = hNext;
             // Now we're going to attempt to take as big a step as we can
             // take (up to hNext). We'll keep shrinking trialH until something
             // works or we die.
@@ -515,7 +521,7 @@ public:
                             // Accept this step (we'll pick up projection changes here).
                             t0 = state.getTime(); y0 = state.getY();
 
-                            // Adjust step size. Restrict growth to 5x shrinking to 1/10.
+                            // Adjust step size. Restrict growth to 5x, shrinking to 0.1x.
                             // We won't grow at all if the step we just executed was
                             // artificially shrunk due, e.g., to us being near tMax.
                             // We'll still allow shrinkage in that case, although that
@@ -528,19 +534,21 @@ public:
                                 scalarError > 0 ? 0.9/pow(scalarError, 0.25) : 5.;
                             optimalStepScale = 
                                 std::min(std::max(optimalStepScale, 0.1), 5.);
-                            if (hWasShrunk)
-                                optimalStepScale = std::min(optimalStepScale, 1.);
 
                             // Inject a little stability here -- don't grow the step
                             // by less than 20% or shrink by less than 10%.
                             if (0.9 < optimalStepScale && optimalStepScale < 1.2)
                                 optimalStepScale = 1.;
 
-                            hNext = optimalStepScale * trialH;
-                            hNext = std::min(std::max(hNext, minStepSize), maxStepSize);
-                            if (hNext != trialH)
-                                ++statsStepSizeChanges;
-                            predictedNextStep = hNext;
+                            // Change the value of hWanted unless we just succeeded with
+                            // an unnaturally small end-of-interval step.
+                            if (!(trialHWasLimitedByTOut && optimalStepScale >= 1)) {
+                                hWanted = optimalStepScale * trialH;
+                                hWanted = std::min(std::max(hWanted, minStepSize), maxStepSize);
+                                if (hWanted != trialH)
+                                    ++statsStepSizeChanges;
+                            }
+                            predictedNextStep = hWanted;
                             break; // done with this step
                         }
                         ++statsRealizationFailures;
@@ -553,7 +561,6 @@ public:
                 if (trialH <= minStepSize )
                     return false;
 
-                const Real oldTrialH = trialH;
                 Real optimalStepScale;
                 if (RKstepOK) { 
                     optimalStepScale = scalarError > 1. ? 0.9/pow(scalarError, 0.25) : 1.;
@@ -562,11 +569,13 @@ public:
                 } else
                     optimalStepScale = 0.5;
 
-                trialH *= optimalStepScale;
-                trialH = std::min(std::max(trialH, minStepSize), maxStepSize);
-                if (trialH != oldTrialH)
+                hWanted = optimalStepScale * trialH;
+                hWanted = std::min(std::max(hWanted, minStepSize), maxStepSize);
+                if (hWanted != trialH)
                     ++statsStepSizeChanges;
 
+                trialH = hWanted;
+                trialHWasLimitedByTOut = false;
                 wasLastStep = false;
             }
             // Completed a step at h=trialH, hNext is set properly
