@@ -10,7 +10,7 @@ public:
     int    maxMin;
     int    maxIters;
     bool   verbose;
-    double zTol;  // minimization will quit if gradient norm is smaller
+    Real zTol;  // minimization will quit if gradient norm is smaller
     std::ostream& errStream;
     String name;
 
@@ -19,21 +19,28 @@ public:
         zTol( 1e-8 ), errStream(errStream), name(id)
     { }
 
+    // This will attempt to modify x to drive error b to below desiredTol, but will be
+    // happy if it achieves only requiredTol (>= desiredTol). That is, as long as were
+    // having an easy time of it we'll continue down to desiredTol, but we won't do
+    // anything desperate once we're better than requiredTol.
     template<class CalcB,class CalcZ,class VecType>
-    void calc(const Real& tol, VecType& x, CalcB calcB, CalcZ calcZ) const 
+    void calc(const Real& requiredTol, const Real& desiredTol, 
+              VecType& x, CalcB calcB, CalcZ calcZ) const 
     {
+        assert(requiredTol >= desiredTol);
         if ( verbose )
-            errStream << "NewtonRaphson '" << name << "': start.\n";
+            errStream << "NewtonRaphson '" << name << "': start. Req="
+            << requiredTol << " desired=" << desiredTol << "\n";
         VecType b = calcB(x);
-        double norm = std::sqrt(b.normSqr() / b.size());
-        const double zTolz = zTol*x.size();
-        const double zTol2 = zTolz*zTolz;
-        double onorm=norm;
+        Real norm = std::sqrt(b.normSqr() / b.size());
+        const Real zTolz = zTol*x.size();
+        const Real zTol2 = zTolz*zTolz;
+        Real onorm=norm;
         int  iters=0;
         if ( verbose )
             errStream << "NewtonRaphson '" << name << "': iter: " 
                       << iters << "  norm: " << norm << '\n';
-        bool finished=(norm < tol);
+        bool finished=(norm < desiredTol);
         while (!finished) {
             VecType ox = x;
             //std::cout << "NR: vars=" << x << std::endl; 
@@ -47,25 +54,47 @@ public:
             b = calcB(x);
             norm = std::sqrt(b.normSqr() / b.size());
 
-            if ( norm > onorm && verbose)
-                errStream << "NewtonRaphson '" << name << "': newton-Raphson failed."
-                          << " Trying gradient search.\n";
+            // If that made the norm worse, we're going to need to back off and feel 
+            // our way around slowly here. But we won't bother if we've already met
+            // requiredTol.
+            if (norm > onorm) {
+                if (onorm <= requiredTol) {
+                    if (verbose) {
+                        errStream << "NewtonRaphson '" << name 
+                          << "': got required but not desired, giving up rather than gradient search\n";
+                    }
+                    x = ox; norm = onorm;   // back up to last good
+                    finished = true;
+                    continue;
+                }
 
-            int mincnt = maxMin;
-            while ( norm > onorm ) {
-                if ( mincnt < 1 ) 
-                    SimTK_THROW1(Exception::NewtonRaphsonFailure, "too many minimization steps taken");
-                z *= 0.5;
-                if ( z.normSqr() < zTol2 )
-                    SimTK_THROW1(Exception::NewtonRaphsonFailure, "gradient too small");
-                x = ox - z;
-                b = calcB(x);
-                norm = std::sqrt(b.normSqr() / b.size());
-                if ( verbose )
-                    errStream << "NewtonRaphson '" << name << "': iter: " 
-                              << iters << "  norm: " << norm << '\n';
-                mincnt--;
+                if (verbose)
+                    errStream << "NewtonRaphson '" << name << "': newton-Raphson failed."
+                              << " Trying gradient search.\n";
+
+                // Now we'll try a gradient search using up to maxMin iterations, halving
+                // the step along the gradient each time. We'll stop at the first norm
+                // which is an improvement over onorm.
+
+                int mincnt = maxMin;
+                do {
+                    if ( mincnt < 1 ) 
+                        SimTK_THROW1(Exception::NewtonRaphsonFailure, 
+                            "Too many gradient search steps taken");
+                    z *= 0.5;
+                    if ( z.normSqr() < zTol2 )  // TODO should be weighted norm of z
+                        SimTK_THROW1(Exception::NewtonRaphsonFailure, "step along gradient too small");
+                    x = ox - z;
+                    b = calcB(x);
+                    norm = std::sqrt(b.normSqr() / b.size());
+                    if ( verbose )
+                        errStream << "NewtonRaphson '" << name << "': gradient search in iter: " 
+                                  << iters << "  norm: " << norm << '\n';
+                    mincnt--;
+                } while (norm >= onorm);
             }
+
+            // At this point we know that norm is better than onorm.
 
             onorm = norm;
 
@@ -73,10 +102,18 @@ public:
                 errStream << "NewtonRaphson '" << name << "': iter: " 
                           << iters << "  norm: " << norm << '\n';
             
-            if (norm < tol)
-                finished=1;
-            if (iters > maxIters) 
-                SimTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
+            if (norm <= desiredTol)
+                finished = true;
+            else if (iters >= maxIters) {
+                if (norm > requiredTol)
+                    SimTK_THROW1(Exception::NewtonRaphsonFailure, "maxIters exceeded");
+                if (verbose) {
+                    errStream << "NewtonRaphson '" << name 
+                      << "': got required but not desired, giving up after iter "
+                      << iters << "\n";
+                }
+                finished = true;
+            }
         }
     }
 };

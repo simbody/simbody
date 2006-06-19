@@ -161,7 +161,7 @@ try {
      //                     Mobilizer(Mobilizer::Pin, false),
       //                    Transform(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
     Transform jointFrame(Vec3(-L/2,0,0));
-    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-3,1e-3,1e-3));
+    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
@@ -276,7 +276,7 @@ try {
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-    pend.enforceConfigurationConstraints(s, 1e-10);
+    pend.enforceConfigurationConstraints(s, 1e-3, 1e-10);
     mbs.realize(s, Stage::Configured);
 
     cout << "-------> STATE after realize(Configured):" << s;
@@ -330,7 +330,7 @@ try {
     //pend.setJointU(s, 1, 2, -10.);
    // pend.setJointU(s, 1, 2,   0.);
 
-    const Real angleInDegrees = 90;
+    const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
     pend.setMobilizerConfiguration(s,1,Transform(RotationMat(q), Vec3(.1,.2,.3)));
@@ -339,12 +339,12 @@ try {
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = 0.01;
+    const Real h = 1;
     const Real tstart = 0.;
     const Real tmax = 100;
 
     ee.setAccuracy(1e-1);
-    ee.setConstraintTolerance(1e-6);
+    ee.setConstraintTolerance(1e-9);
 
     ee.initialize(); 
     vtk.report(s);
@@ -384,7 +384,7 @@ try {
 
 
         mbs.realize(s, Stage::Reacting);
-        /*
+        
         cout << "CONSTRAINT ERRORS:\n";
         cout << "quat:" << Vec4::getAs(&s.getQ()[0]).norm()-1 << endl;
         cout << "   q:" << pend.getQConstraintErrors(s)
@@ -393,7 +393,7 @@ try {
              << "(" << pend.calcUConstraintNorm(s) << ")\n";
         cout << "udot: " << pend.getUDotConstraintErrors(s)
              << "(" << pend.calcUDotConstraintNorm(s) << ")\n\n";
-        */
+        
 
         const Vector udot = s.getUDot();
         Vector udot2;

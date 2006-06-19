@@ -358,8 +358,8 @@ public:
     void construct(const Array<RBDistanceConstraint*>&);
 
     // Returns true if any change was made in the state.
-    bool enforceConfigurationConstraints(State&, const Real& tol) const;
-    bool enforceMotionConstraints(State&, const Real& tol) const;
+    bool enforceConfigurationConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    bool enforceMotionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
     bool calcConstraintForces(const State&) const;
     void addInCorrectionForces(const State&, SpatialVecList& spatialForces) const;

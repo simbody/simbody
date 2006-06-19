@@ -691,7 +691,7 @@ const SpatialVec&
 RigidBodyTree::getBodyAcceleration(const State& s, int body) const
   { return getRigidBodyNode(body).getA_GB(getReactionCache(s)); }
 
-void RigidBodyTree::enforceConfigurationConstraints(State& s, const Real& tol) const {
+void RigidBodyTree::enforceConfigurationConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
     const SBModelingVars& mv = getModelingVars(s);
     Vector&               q  = updQ(s); //TODO: this invalidates q's already
 
@@ -705,20 +705,20 @@ void RigidBodyTree::enforceConfigurationConstraints(State& s, const Real& tol) c
     // the qnorms, which will be all 1 now
  
     // Now fix the position constraints produced by defined length constraints.
-    if (lConstraints->enforceConfigurationConstraints(s, tol))
+    if (lConstraints->enforceConfigurationConstraints(s, requiredTol, desiredTol))
         anyChange = true;
 
     if (anyChange)
         s.invalidateAll(Stage::Configured);
 }
 
-void RigidBodyTree::enforceMotionConstraints(State& s, const Real& tol) const {
+void RigidBodyTree::enforceMotionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
     assert(getStage(s) >= Stage::Moving-1);
 
     // Currently there are no coordinate constraints for velocity.
 
     // Fix the velocity constraints produced by defined length constraints.
-    const bool anyChange = lConstraints->enforceMotionConstraints(s, tol);
+    const bool anyChange = lConstraints->enforceMotionConstraints(s, requiredTol, desiredTol);
 
     if (anyChange)
         s.invalidateAll(Stage::Moving);

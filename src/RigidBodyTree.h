@@ -180,12 +180,12 @@ public:
 
     bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
         // TODO
-        enforceConfigurationConstraints(s, tol);
+        enforceConfigurationConstraints(s, tol, targetTol);
         return true;
     }
     bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
         // TODO
-        enforceMotionConstraints(s, tol);
+        enforceMotionConstraints(s, tol, targetTol);
         return true;
     }
 
@@ -300,8 +300,8 @@ public:
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
 
-    void enforceConfigurationConstraints(State&, const Real& tol) const;
-    void enforceMotionConstraints(State&, const Real& tol) const;
+    void enforceConfigurationConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforceMotionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
     /// Unconstrained (tree) dynamics 
     void calcArticulatedBodyInertias(const State&) const;                        // articulated body inertias

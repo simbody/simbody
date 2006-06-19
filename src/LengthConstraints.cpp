@@ -507,7 +507,7 @@ public:
 
 // Project out the position constraint errors from the given state. 
 bool
-LengthConstraints::enforceConfigurationConstraints(State& s, const Real& tol) const
+LengthConstraints::enforceConfigurationConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
     assert(rbTree.getStage(s) >= Stage::Configured-1);
     Vector& pos = rbTree.updQ(s);
@@ -517,7 +517,7 @@ LengthConstraints::enforceConfigurationConstraints(State& s, const Real& tol) co
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            posMin.calc(tol, (Vector&)pos,
+            posMin.calc(requiredTol, desiredTol, (Vector&)pos,
                         CalcPosB(s, &pvConstraints[i]),
                         CalcPosZ(s, &pvConstraints[i]));
         }
@@ -532,7 +532,7 @@ LengthConstraints::enforceConfigurationConstraints(State& s, const Real& tol) co
 
 // Project out the velocity constraint errors from the given state. 
 bool
-LengthConstraints::enforceMotionConstraints(State& s, const Real& tol) const
+LengthConstraints::enforceMotionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
     assert(rbTree.getStage(s) >= Stage(Stage::Moving).prev());
     Vector& vel = rbTree.updU(s);
@@ -542,7 +542,7 @@ LengthConstraints::enforceMotionConstraints(State& s, const Real& tol) const
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            velMin.calc(tol, vel,
+            velMin.calc(requiredTol, desiredTol, vel,
                         CalcVelB(s, &pvConstraints[i]),
                         CalcVelZ(s, &pvConstraints[i]));
         }
