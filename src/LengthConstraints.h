@@ -328,19 +328,19 @@ public:
     Vector calcVelB(State&, const Vector& vel) const;
     Vector calcPosZ(const State&, const Vector& b) const;
     Matrix calcGrad(const State&) const;
-    Matrix calcGInverse(const State&) const;
-    Matrix calcGInverseFD(const State&) const;
+    static Matrix calcPseudoInverseA(const Matrix& AT);
+    Matrix calcPseudoInverseAFD(const State&) const;
 
     void  calcConstraintForces(const State&) const; // updates runtime only
     void  addInCorrectionForces(const State&, SpatialVecList& spatialForces) const; // spatialForces+=correction
 
     void   fixVel0(State&, Vector&);
-    void   fixInternalForce(const State&, Vector&);
-    Vector multiForce(const Vector&, const Matrix& mat);
-    void   subtractVecFromForces(Vector& frc, const Vector& vec);
+    void   projectUVecOntoMotionConstraints(const State&, Vector&);
+    Vector packedMatTransposeTimesVec(const Matrix&, const Vector&);
+    void   subtractPackedVecFromVec(Vector& vec, const Vector& packedVec);
 
     void testAccel(const State&) const;
-    void testInternalForce(const State&, const Vector&) const;
+    void testProjectedVec(const State&, const Vector&) const;
     friend ostream& operator<<(ostream& os, const LengthSet& s);
     friend class CalcPosB;
     friend class CalcVelB;
@@ -365,7 +365,7 @@ public:
     void addInCorrectionForces(const State&, SpatialVecList& spatialForces) const;
 
     void fixVel0(State&, Vector&);
-    void fixGradient(const State&, Vector&);
+    void projectUVecOntoMotionConstraints(const State&, Vector&);
 
 private:
     int    maxIters;

@@ -431,22 +431,21 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 //       ------  = ---------- = ------ * -----
 //        d q      d qdot        d u     d qdot
 //
-// Let P = d perr/dq, G = d verr/du, Q = d qdot/du.
+// Let P = d perr/dq, A = d verr/du, Q = d qdot/du.
 //
 // We want to find a change deltaq that will elimate the current error b:
-// P deltaq = b. Instead we solve G * x = b, where x = inv(Q) * deltaq,
+// P deltaq = b. Instead we solve A * x = b, where x = inv(Q) * deltaq,
 // and then solve deltaq = Q * x. Conveniently Q is our friendly invertible
 // relation between qdot's and u's: qdot = Q*u.
 //
 // TODO: I have oversimplified the above since we are really looking for
 // a least squares solution to an underdetermined system. With the 
-// pseudoinverse G+ available we can write x = G+ b. This is hidden because
-// the calcGInverse() routine does return a pseudoinverse, more or less.
+// pseudoinverse A+ available we can write x = A+ * b.
 //
 Vector
 LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
-    const Vector x = calcGInverse(s) * b;
+    const Vector x = calcPseudoInverseA(calcGrad(s)) * b;
 
     const SBModelingVars&       mv = getRBTree().getModelingVars(s);
     const Vector&               q  = getRBTree().getQ(s);
@@ -476,8 +475,8 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 // a state update which would drive those violations to zero (if they
 // are linear and well conditioned).
 //
-// This is simpler than CalcVelP because we have the right gradient here (it's
-// the same one in both places).
+// This is simpler than CalcPosZ because we have the right gradient here (it's
+// the same one in both places). TODO: and shouldn't be recalculated!
 //
 class CalcVelZ {
     const State&   s;
@@ -485,7 +484,10 @@ class CalcVelZ {
     const Matrix     gInverse;
 public:
     CalcVelZ(const State& ss, const LengthSet* lset)
-      : s(ss), lengthSet(lset), gInverse(lengthSet->calcGInverse(s)) {}
+      : s(ss), lengthSet(lset), 
+        gInverse(LengthSet::calcPseudoInverseA(lset->calcGrad(s))) 
+    {
+    }
 
     Vector operator()(const Vector& b) {
         const Vector dir = gInverse * b;
@@ -794,10 +796,10 @@ LengthSet::calcGrad(const State& s) const
 // to get a least squares solution to ~G x = b where x has dimension nu and
 // b has dimension nc. So if we set A=~G we have the underdetermined system
 // depicted above and want to return A+ = ~A*inv(A*~A) = G*inv(~G*G). Ergo ...
-Matrix
-LengthSet::calcGInverse(const State& s) const
+/*static*/ Matrix
+LengthSet::calcPseudoInverseA(const Matrix& transposeOfA)
 {
-    const Matrix A = ~calcGrad(s); // now A is dg/dtheta
+    const Matrix A = ~transposeOfA; // now A is dg/dtheta
     const int m = A.nrow(); // see picture above
     const int n = A.ncol();
 
@@ -814,8 +816,38 @@ LengthSet::calcGInverse(const State& s) const
     return pinvA;
 }
 
+   
+//
+// Given a vector in mobility space, project it along the motion constraints
+// of this LengthSet, by removing its component normal to the constraint
+// manifold. Here we want to obtain a least squares solution x to
+//   A x = A v, A=[ncXnu] is the constraint Jacobian.
+// We solve with pseudo inverse (see calcPseudoInverseA):
+//   Least squares x = A+ * Av.
+// That is the component of v which is normal to the constraint manifold.
+// So we then set v = v - x and return.
+//
+// TODO: projections for integration errors should be done in the
+// error norm. I'm not sure whether that has to be done in this routine
+// or whether caller can scale on the way in and out.
+//
+void
+LengthSet::projectUVecOntoMotionConstraints(const State& s, Vector& v)
+{
+    const Matrix transposeOfA = calcGrad(s);
+    const Matrix pinvA = calcPseudoInverseA(transposeOfA); // TODO: this should already be available
+
+    const Vector rhs  = packedMatTransposeTimesVec(transposeOfA,v); // i.e., rhs = Av
+
+    //FIX: using inverse is inefficient
+    const Vector x = pinvA * rhs;
+
+    // subtract forces due to these constraints
+    subtractPackedVecFromVec(v, x); 
+}
+
 Matrix
-LengthSet::calcGInverseFD(const State& s) const
+LengthSet::calcPseudoInverseAFD(const State& s) const
 {
     Matrix grad(ndofThisSet,loops.size()); // <-- transpose of the actual dg/dtheta
     State sTmp = s;
@@ -865,16 +897,16 @@ void LengthConstraints::addInCorrectionForces(const State& s, SpatialVecList& sp
 }
 
 void 
-LengthConstraints::fixGradient(const State& s, Vector& forceInternal)
+LengthConstraints::projectUVecOntoMotionConstraints(const State& s, Vector& vec)
 {
     if ( pvConstraints.size() == 0 )
         return;
 
     for (int i=pvConstraints.size()-1 ; i>=0 ; i--)
-        pvConstraints[i].fixInternalForce(s, forceInternal);
+        pvConstraints[i].projectUVecOntoMotionConstraints(s, vec);
 
     for (int i=pvConstraints.size()-1 ; i>=0 ; i--) 
-        pvConstraints[i].testInternalForce(s, forceInternal);
+        pvConstraints[i].testProjectedVec(s, vec);
 }
 
 //
@@ -1044,67 +1076,46 @@ void LengthSet::testAccel(const State& s) const
     }
     cout.flush();
 }
-   
-//
-// Fix internal force such that it obeys the constraint conditions.
-//
-void
-LengthSet::fixInternalForce(const State& s, Vector& forceInternal)
-{
-    Matrix  grad = calcGrad(s);
-    if ( getVerbose() & InternalDynamics::printLoopDebug ) {
-        State sTmp = s;
-        Vector pos = getRBTree().getQ(s); // a copy
-        testGrad(sTmp,pos,grad);
-    }
-    const Vector rhs  = multiForce(forceInternal,grad); 
 
-    const Matrix A = ~grad * grad;
 
-    //FIX: using inverse is inefficient
-    const Vector lambda = A.invert() * rhs;
-
-    // subtract forces due to these constraints
-    subtractVecFromForces(forceInternal, grad * lambda); 
-}
-
-// This just computes ~M*f but first plucks out the relevant entries
-// in f to squash it down to the same size as M.
+// This just computes ~mat*v but first plucks out the relevant entries
+// in f to squash it down to the same size as mat.
 Vector 
-LengthSet::multiForce(const Vector& forceInternal, const Matrix& mat)
+LengthSet::packedMatTransposeTimesVec(const Matrix& packedMat, const Vector& vec)
 {
     // sherm 060222: 
-    assert(forceInternal.size() == getRBTree().getTotalDOF());
-    assert(mat.nrow() == ndofThisSet && mat.ncol() == ndofThisSet);
+    assert(vec.size() == getRBTree().getTotalDOF());
+    assert(packedMat.nrow() == ndofThisSet && packedMat.ncol() == ndofThisSet);
 
-    Vector vec(ndofThisSet);    //build vector same size as mat
+    Vector packedVec(ndofThisSet);    //build vector same size as mat
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
         const int d    = nodeMap[j]->getDOF();
         const int offs = nodeMap[j]->getUIndex();
-        vec(indx,d) = forceInternal(offs,d);
+        packedVec(indx,d) = vec(offs,d);
         indx += d;
     }
     // sherm 060222: 
     assert(indx == ndofThisSet);
 
-    const Vector ret = ~mat * vec; 
-    return ret;
+    return ~packedMat * packedVec; 
 }
 
+// v is a full vector in mobility space; packedVec consists of just
+// the mobilities used in this LengthSet.
 void
-LengthSet::subtractVecFromForces(Vector& forceInternal,
-                                 const Vector& vec)
+LengthSet::subtractPackedVecFromVec(Vector& vec,
+                                    const Vector& packedVec)
 {
     // sherm 060222:
-    assert(forceInternal.size() == getRBTree().getTotalDOF());
-    assert(vec.size() == ndofThisSet);
+    assert(vec.size() == getRBTree().getTotalDOF());
+    assert(packedVec.size() == ndofThisSet);
 
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
         const int d    = nodeMap[j]->getDOF();
         const int offs = nodeMap[j]->getUIndex();
-        forceInternal(offs,d) -= vec(indx,d);
+        vec(offs,d) -= packedVec(indx,d);
         indx += d;
     }
 
@@ -1112,24 +1123,24 @@ LengthSet::subtractVecFromForces(Vector& forceInternal,
 }
 
 void
-LengthSet::testInternalForce(const State& s, 
-                             const Vector& forceInternal) const
+LengthSet::testProjectedVec(const State& s, 
+                            const Vector& vec) const
 {
     // sherm 060222:
-    assert(forceInternal.size() == getRBTree().getTotalDOF());
+    assert(vec.size() == getRBTree().getTotalDOF());
 
-    Vector vec(ndofThisSet);
+    Vector packedVec(ndofThisSet);
     int indx=0;
     for (int j=0 ; j<(int)nodeMap.size() ; j++) {
         const int d    = nodeMap[j]->getDOF();
         const int offs = nodeMap[j]->getUIndex();
-        vec(indx,d) = forceInternal(offs,d);
+        packedVec(indx,d) = vec(offs,d);
         indx += d;
     }
     assert(indx == ndofThisSet);
 
     const Matrix grad = calcGrad(s);
-    const Vector test = ~grad * vec;
+    const Vector test = ~grad * packedVec;
 
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {

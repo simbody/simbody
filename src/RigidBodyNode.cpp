@@ -707,7 +707,7 @@ public:
         toU(u) = V_JbJ[1];
     }
 
-    // This is required but does nothing here since we there are no rotations for this joint.
+    // This is required but does nothing here since there are no rotations for this joint.
     void calcJointSinCosQNorm(
         const SBModelingVars&   mv, 
         const Vector&           q, 
@@ -1082,6 +1082,7 @@ public:
         if (getUseEulerAngles(mv))
             X_JbJ.updR().setToBodyFixed123(fromQ(q));
         else {
+            // TODO: should use qnorm pool
             X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
     }

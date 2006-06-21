@@ -695,18 +695,21 @@ void RigidBodyTree::enforceConfigurationConstraints(State& s, const Real& requir
     const SBModelingVars& mv = getModelingVars(s);
     Vector&               q  = updQ(s); //TODO: this invalidates q's already
 
-    // Fix coordinates first.
     bool anyChange = false;
+ 
+    // First, fix the position constraints produced by defined length constraints.
+    if (lConstraints->enforceConfigurationConstraints(s, requiredTol, desiredTol))
+        anyChange = true;
+
+    // By design, normalization of quaternions can't have any effect on the length
+    // constraints we just fixed (because we normalize internally for calculations).
+    // So now we can simply normalize the quaternions.
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
             if (rbNodeLevels[i][j]->enforceQuaternionConstraints(mv,q))
                 anyChange = true;
     //TODO: quaternion constraints shouldn't invalidate anything except
     // the qnorms, which will be all 1 now
- 
-    // Now fix the position constraints produced by defined length constraints.
-    if (lConstraints->enforceConfigurationConstraints(s, requiredTol, desiredTol))
-        anyChange = true;
 
     if (anyChange)
         s.invalidateAll(Stage::Configured);
@@ -990,7 +993,7 @@ void RigidBodyTree::calcTreeEquivalentJointForces(const State& s,
 
 // Pass in a set of internal forces in T; we'll modify them here.
 void RigidBodyTree::calcConstraintCorrectedInternalForces(const State& s, Vector& T) {
-    lConstraints->fixGradient(s, T);
+    lConstraints->projectUVecOntoMotionConstraints(s, T);
 }
 
 std::ostream& operator<<(std::ostream& o, const RigidBodyTree& tree) {

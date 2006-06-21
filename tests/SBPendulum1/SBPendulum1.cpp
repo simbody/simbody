@@ -339,11 +339,11 @@ try {
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = 1;
+    const Real h = .1;
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-1);
+    ee.setAccuracy(1e-6);
     ee.setConstraintTolerance(1e-9);
 
     ee.initialize(); 
