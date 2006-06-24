@@ -1,4 +1,5 @@
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -138,7 +139,7 @@ static const Real DuplexRadius = 3; // A
 static const Real HalfHeight = 10;  // A
 static const Real CylinderSlop = 1; // A
 
-static const int  NAtoms = 10;
+static const int  NAtoms = 20;
 static const Real AtomMass = 12;    // Daltons
 static const Real AtomRadius = 1;   // A
 
@@ -147,7 +148,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 3;
+static int NSegments = 4;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -248,7 +249,7 @@ private:
     MassProperties calcDuplexMassProps(
         Real halfHeight, Real r, int nAtoms, Real atomMass)
     {
-        const Real pitch = Pi/halfHeight;
+        const Real pitch = 2*Pi/halfHeight;
         const Real trans = (2*halfHeight)/(nAtoms-1);
         const Real rot = pitch*trans;
         InertiaMat iner(0);
@@ -281,7 +282,7 @@ private:
         display.addDecoration(bodyNum, Transform(), 
             DecorativeCylinder(r+atomRadius+slop, halfHeight).setColor(Cyan).setOpacity(0.4));
 
-        const Real pitch = Pi/halfHeight;
+        const Real pitch = 2*Pi/halfHeight;
         const Real trans = (2*halfHeight)/(nAtoms-1);
         const Real rot = pitch*trans;
         for (int i=0; i<nAtoms; ++i) {

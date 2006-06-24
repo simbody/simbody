@@ -1,6 +1,29 @@
 #ifndef SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
 #define SimTK_SIMBODY_LENGTH_CONSTRAINTS_H_
 
+/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+ * Contributors:
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including 
+ * without limitation the rights to use, copy, modify, merge, publish, 
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject
+ * to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included 
+ * in all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "simbody/internal/common.h"
 using namespace SimTK;
 
@@ -335,7 +358,10 @@ public:
     void  addInCorrectionForces(const State&, SpatialVecList& spatialForces) const; // spatialForces+=correction
 
     void   fixVel0(State&, Vector&);
-    void   projectUVecOntoMotionConstraints(const State&, Vector&);
+
+    void   projectQVecOntoConfigurationConstraints(const State&, Vector& q);
+    void   projectUVecOntoMotionConstraints(const State&, Vector& u);
+
     Vector packedMatTransposeTimesVec(const Matrix&, const Vector&);
     void   subtractPackedVecFromVec(Vector& vec, const Vector& packedVec);
 
@@ -361,11 +387,18 @@ public:
     bool enforceConfigurationConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
     bool enforceMotionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
+    // After constraints have been enforced, call these to project out the components
+    // of the passed-in q- and u-basis vectors which are normal to the constraint manifold.
+    // These project in the Euclidean norm; if you want to project in the error norm
+    // you have to scale q and u on the way in and out yourself.
+    void projectQVecOntoConfigurationConstraints(const State&, Vector& q);
+    void projectUVecOntoMotionConstraints(const State&, Vector& u);
+
     bool calcConstraintForces(const State&) const;
     void addInCorrectionForces(const State&, SpatialVecList& spatialForces) const;
 
     void fixVel0(State&, Vector&);
-    void projectUVecOntoMotionConstraints(const State&, Vector&);
+
 
 private:
     int    maxIters;

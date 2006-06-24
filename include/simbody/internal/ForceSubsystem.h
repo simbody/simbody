@@ -1,7 +1,7 @@
 #ifndef SimTK_FORCE_SUBSYSTEM_H_
 #define SimTK_FORCE_SUBSYSTEM_H_
 
-/* Copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining

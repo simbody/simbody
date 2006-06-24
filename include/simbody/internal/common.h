@@ -1,7 +1,8 @@
 #ifndef SimTK_SIMBODY_COMMON_H_
 #define SimTK_SIMBODY_COMMON_H_
 
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
