@@ -58,14 +58,14 @@ public:
         return MatterSubsystem::downcast(getSystem().getSubsystem(matterSubsys));
     }
 
-    /// This is a Configured stage operator.
-    virtual Real calcPotentialEnergy(const State&) const = 0;
+    /// This is a Configured stage operator. TODO: trash?
+    virtual Real calcPotentialEnergy(const State&) const { return 0.;}
 
-    /// This is a Dynamics stage operator.
+    /// This is a Dynamics stage operator. TODO: trash?
     virtual void addInForces(const State&, const MatterSubsystem&,
                              Vector_<SpatialVec>& rigidBodyForces,
                              Vector_<Vec3>&       particleForces,
-                             Vector&              mobilityForces) const = 0;
+                             Vector&              mobilityForces) const { };
 
     SimTK_DOWNCAST(ForceSubsystemRep, SubsystemRep);
 private:

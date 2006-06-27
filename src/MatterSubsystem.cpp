@@ -76,38 +76,51 @@ MatterSubsystem::updRep() {
 int MatterSubsystem::getNBodies() const {
     return getRep().getNBodies();
 }
+int MatterSubsystem::getNParticles() const {
+    return getRep().getNParticles();
+}
 int MatterSubsystem::getNMobilities() const {
     return getRep().getNMobilities();
 }
 int MatterSubsystem::getNConstraints() const {
-    return MatterSubsystemRep::downcast(*rep).getNConstraints();
+    return getRep().getNConstraints();
 }
 int MatterSubsystem::getParent(int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getParent(bodyNum); 
+    return getRep().getParent(bodyNum); 
 }
 Array<int> 
 MatterSubsystem::getChildren(int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getChildren(bodyNum); 
+    return getRep().getChildren(bodyNum); 
 }
 const Transform&  
 MatterSubsystem::getJointFrame(const State& s, int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getJointFrame(s, bodyNum); 
+    return getRep().getJointFrame(s, bodyNum); 
 }
 const Transform& 
 MatterSubsystem::getJointFrameOnParent(const State& s, int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getJointFrameOnParent(s, bodyNum); 
+    return getRep().getJointFrameOnParent(s, bodyNum); 
+}
+const Real&  
+MatterSubsystem::getBodyMass(const State& s, int bodyNum) const { 
+    return getRep().getBodyMass(s,bodyNum); 
 }
 const Vec3&  
 MatterSubsystem::getBodyCenterOfMass(const State& s, int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getBodyCenterOfMass(s,bodyNum); 
+    return getRep().getBodyCenterOfMass(s,bodyNum); 
 }
+
+const Vector& 
+MatterSubsystem::getParticleMasses(const State& s) const { 
+    return getRep().getParticleMasses(s); 
+}
+
 const Transform& 
 MatterSubsystem::getBodyConfiguration(const State& s, int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getBodyConfiguration(s,bodyNum); 
+    return getRep().getBodyConfiguration(s,bodyNum); 
 }
 const SpatialVec& 
 MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const { 
-    return MatterSubsystemRep::downcast(*rep).getBodyVelocity(s,bodyNum); 
+    return getRep().getBodyVelocity(s,bodyNum); 
 }
 
 void MatterSubsystem::addInGravity(const State& s, const Vec3& g, 
@@ -129,61 +142,59 @@ void MatterSubsystem::addInMobilityForce(const State& s, int body, int axis, con
 
 const Real&
 MatterSubsystem::getJointQ(const State& s, int body, int axis) const { 
-    return MatterSubsystemRep::downcast(*rep).getJointQ(s,body,axis); 
+    return getRep().getJointQ(s,body,axis); 
 }
 const Real&
 MatterSubsystem::getJointU(const State& s, int body, int axis) const { 
-    return MatterSubsystemRep::downcast(*rep).getJointU(s,body,axis); 
+    return getRep().getJointU(s,body,axis); 
 }
 
 void MatterSubsystem::setJointQ(State& s, int body, int axis, const Real& q) const { 
-    MatterSubsystemRep::downcast(*rep).setJointQ(s,body,axis,q); 
+    getRep().setJointQ(s,body,axis,q); 
 }
 void MatterSubsystem::setJointU(State& s, int body, int axis, const Real& u) const { 
-    MatterSubsystemRep::downcast(*rep).setJointU(s,body,axis,u); 
+    getRep().setJointU(s,body,axis,u); 
 }
 
 
 const Transform& MatterSubsystem::getMobilizerConfiguration(const State& s, int body) const { 
-    return MatterSubsystemRep::downcast(*rep).getMobilizerConfiguration(s,body); 
+    return getRep().getMobilizerConfiguration(s,body); 
 }
 const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, int body) const { 
-    return MatterSubsystemRep::downcast(*rep).getMobilizerVelocity(s,body); 
+    return getRep().getMobilizerVelocity(s,body); 
 }
 void MatterSubsystem::setMobilizerConfiguration(State& s, int body, const Transform& X_JbJ) const { 
-    MatterSubsystemRep::downcast(*rep).setMobilizerConfiguration(s,body,X_JbJ); 
+    getRep().setMobilizerConfiguration(s,body,X_JbJ); 
 }
 void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
-    MatterSubsystemRep::downcast(*rep).setMobilizerVelocity(s,body,V_JbJ); 
+    getRep().setMobilizerVelocity(s,body,V_JbJ); 
 }
 
 
 const Vector& MatterSubsystem::getQConstraintErrors(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).getQConstraintErrors(s); 
+    return getRep().getQConstraintErrors(s); 
 }
 Real MatterSubsystem::calcQConstraintNorm(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).calcQConstraintNorm(s); 
+    return getRep().calcQConstraintNorm(s); 
 }
 const Vector& MatterSubsystem::getUConstraintErrors(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).getUConstraintErrors(s); 
+    return getRep().getUConstraintErrors(s); 
 }
 Real MatterSubsystem::calcUConstraintNorm(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).calcUConstraintNorm(s); 
+    return getRep().calcUConstraintNorm(s); 
 }
 const Vector& MatterSubsystem::getUDotConstraintErrors(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).getUDotConstraintErrors(s); 
+    return getRep().getUDotConstraintErrors(s); 
 }
 Real MatterSubsystem::calcUDotConstraintNorm(const State& s) const { 
-    return MatterSubsystemRep::downcast(*rep).calcUDotConstraintNorm(s); 
+    return getRep().calcUDotConstraintNorm(s); 
 }
 
 bool MatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return MatterSubsystemRep::downcast(*rep).projectQConstraints(
-        s,y_err,tol,targetTol); 
+    return getRep().projectQConstraints(s,y_err,tol,targetTol); 
 }
 bool MatterSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
-    return MatterSubsystemRep::downcast(*rep).projectUConstraints(
-        s,y_err,tol,targetTol); 
+    return getRep().projectUConstraints(s,y_err,tol,targetTol); 
 }
 
 } // namespace SimTK

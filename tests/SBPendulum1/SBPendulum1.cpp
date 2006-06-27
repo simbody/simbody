@@ -211,16 +211,21 @@ try {
 
 
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(pend);
+    mbs.addMatterSubsystem(pend);
 
+    const Vec3 attachPt(1.5, 1, 0);
     TwoPointSpringSubsystem spring1(
-        0, Vec3(1.5,1,0), 
+        0, attachPt, 
         1, Vec3(L/2,0,0), 
         20, 1);
-    mbs.setForceSubsystem(spring1);
+    mbs.addForceSubsystem(spring1);
 
 
     VTKReporter vtk(mbs);
+
+    DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
+    vtk.addRubberBandLine(0, attachPt, 1,Vec3(L/2,0,0), rbProto);
+
     DecorativeSphere sphere(0.25);
     sphere.setRepresentationToPoints();
     sphere.setResolution(2);
@@ -251,7 +256,7 @@ try {
     //ExplicitEuler ee(mbs, s);
     bool suppressProjection = false;
     RungeKuttaMerson ee(mbs, s, suppressProjection);
-    ee.setProjectEveryStep(false);
+    ee.setProjectEveryStep(true);
 
     vtk.report(s);
 
@@ -263,7 +268,7 @@ try {
     cout << "mbs State as modeled: " << s;
 
     spring1.updGravity(s) = Vec3(0,-9.8,0);
-    spring1.updStiffness(s) = 0;
+    spring1.updStiffness(s) = 1000;
 
 
     //pend.setJointQ(s,1,0,0);
@@ -340,7 +345,7 @@ try {
     //pend.updQ(s)[2] = -.1;
     //pend.setJointQ(s, 1, 2, -0.999*std::acos(-1.)/2);
 
-    const Real h = .1;
+    const Real h = .01;
     const Real tstart = 0.;
     const Real tmax = 100;
 

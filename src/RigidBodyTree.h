@@ -139,18 +139,20 @@ public:
     // just return the current counts.
     // includes ground
     int getNBodies()      const {return nodeNum2NodeMap.size();}
+    int getNParticles()   const {return 0;} // TODO
     int getNMobilities()  const {return getTotalDOF();}
     int getNConstraints() const {return constraintNodes.size();}
     int getParent(int bodyNum) const;
     Array<int> getChildren(int bodyNum) const;
 
-    const Transform& getJointFrame        (const State&, int body) const;
-    const Transform& getJointFrameOnParent(const State&, int body) const;
-    const Vec3&      getBodyCenterOfMass  (const State&, int body) const;
+    const Transform&  getJointFrame        (const State&, int body) const;
+    const Transform&  getJointFrameOnParent(const State&, int body) const;
 
-    const Transform& getBodyConfiguration(const State& s, int body) const;
+    const Real&       getBodyMass          (const State&, int body) const;
+    const Vec3&       getBodyCenterOfMass  (const State&, int body) const;
 
-    const SpatialVec& getBodyVelocity(const State& s, int body) const;
+    const Transform&  getBodyConfiguration (const State& s, int body) const;
+    const SpatialVec& getBodyVelocity      (const State& s, int body) const;
 
     void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const;
     void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,

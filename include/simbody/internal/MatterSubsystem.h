@@ -41,7 +41,8 @@ public:
     int  getForceSubsystemIndex() const;
 
     // Topological information (no state)
-    int getNBodies()      const;    // includes ground, also # tree joints+1
+    int getNBodies()      const;    // includes ground, also # mobilizers+1
+    int getNParticles()   const;
     int getNMobilities()  const;
     int getNConstraints() const;    // i.e., constraint elements (multiple equations)
 
@@ -51,7 +52,10 @@ public:
     const Transform&  getJointFrame(const State&, int bodyNum) const;
     const Transform&  getJointFrameOnParent(const State&, int bodyNum) const;
 
-    const Vec3&       getBodyCenterOfMass(const State&, int bodyNum) const;
+    const Real& getBodyMass(const State&, int bodyNum) const;
+    const Vec3& getBodyCenterOfMass(const State&, int bodyNum) const;
+
+    const Vector& getParticleMasses(const State&) const;
 
 
     // This can be called at any time after construction. It sizes a set of

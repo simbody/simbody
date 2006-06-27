@@ -38,6 +38,31 @@ namespace SimTK {
     // MultibodySystem //
     /////////////////////
 
+
+/*static*/ bool 
+MultibodySystem::isInstanceOf(const System& s) {
+    return MultibodySystemRep::isA(s.getRep());
+}
+/*static*/ const MultibodySystem&
+MultibodySystem::downcast(const System& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MultibodySystem&>(s);
+}
+/*static*/ MultibodySystem&
+MultibodySystem::updDowncast(System& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MultibodySystem&>(s);
+}
+
+const MultibodySystemRep& 
+MultibodySystem::getRep() const {
+    return dynamic_cast<const MultibodySystemRep&>(*rep);
+}
+MultibodySystemRep&       
+MultibodySystem::updRep() {
+    return dynamic_cast<MultibodySystemRep&>(*rep);
+}
+
 // Default constructor is inline and creates an empty handle.
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
@@ -53,8 +78,8 @@ MultibodySystem::MultibodySystem(MatterSubsystem& m,
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
 
-    setMatterSubsystem(m);
-    setForceSubsystem(f);
+    addMatterSubsystem(m);
+    addForceSubsystem(f);
 }
 
 bool MultibodySystem::project(State& s, Vector& y_err, 
@@ -69,52 +94,88 @@ bool MultibodySystem::project(State& s, Vector& y_err,
 
 
 MatterSubsystem&       
-MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {
-    return MultibodySystemRep::downcast(*rep).setMatterSubsystem(m);
+MultibodySystem::addMatterSubsystem(MatterSubsystem& m) {
+    return MultibodySystemRep::downcast(*rep).addMatterSubsystem(m);
 }
 ForceSubsystem& 
-MultibodySystem::setForceSubsystem(ForceSubsystem& f) {
-    return MultibodySystemRep::downcast(*rep).setForceSubsystem(f);
+MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
+    return MultibodySystemRep::downcast(*rep).addForceSubsystem(f);
+}
+
+int MultibodySystem::getNMatterSubsystems() const {
+    return MultibodySystemRep::downcast(*rep).getNMatterSubsystems();
+}
+
+int MultibodySystem::getNForceSubsystems()  const {
+    return MultibodySystemRep::downcast(*rep).getNForceSubsystems();
 }
 
 const MatterSubsystem&       
-MultibodySystem::getMatterSubsystem() const {
-    return MultibodySystemRep::downcast(*rep).getMatterSubsystem();
+MultibodySystem::getMatterSubsystem(int i) const {
+    return MultibodySystemRep::downcast(*rep).getMatterSubsystem(i);
 }
 
 const ForceSubsystem& 
-MultibodySystem::getForceSubsystem() const {
-    return MultibodySystemRep::downcast(*rep).getForceSubsystem();
+MultibodySystem::getForceSubsystem(int i) const {
+    return MultibodySystemRep::downcast(*rep).getForceSubsystem(i);
 }
 
 MatterSubsystem&       
-MultibodySystem::updMatterSubsystem() {
-    return MultibodySystemRep::downcast(*rep).updMatterSubsystem();
+MultibodySystem::updMatterSubsystem(int i) {
+    return MultibodySystemRep::downcast(*rep).updMatterSubsystem(i);
 }
 
 ForceSubsystem& 
-MultibodySystem::updForceSubsystem() {
-    return MultibodySystemRep::downcast(*rep).updForceSubsystem();
+MultibodySystem::updForceSubsystem(int i) {
+    return MultibodySystemRep::downcast(*rep).updForceSubsystem(i);
 }
 
-// TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
-// on two different bodies, marker at system COM)
-void MultibodySystem::addAnalyticGeometry(int body, const Transform& X_BG, const AnalyticGeometry& g) {
-    MultibodySystemRep::downcast(*rep).addAnalyticGeometry(body,X_BG,g);
+const Vector_<SpatialVec>& 
+MultibodySystem::getRigidBodyForces(const State& s, int matterSubsysNum) const {
+    return getRep().getRigidBodyForces(s,matterSubsysNum);
+}
+const Vector_<Vec3>&       
+MultibodySystem::getParticleForces(const State& s, int matterSubsysNum) const {
+    return getRep().getParticleForces(s,matterSubsysNum);
+}
+const Vector&              
+MultibodySystem::getMobilityForces(const State& s, int matterSubsysNum) const {
+    return getRep().getMobilityForces(s,matterSubsysNum);
+}
+const Real&                
+MultibodySystem::getPotentialEnergy(const State& s) const {
+    return getRep().getPotentialEnergy(s);
 }
 
-void MultibodySystem::addDecorativeGeometry(int body, const Transform& X_BG, const DecorativeGeometry& g) {
-    MultibodySystemRep::downcast(*rep).addDecorativeGeometry(body,X_BG,g);
+
+
+    ////////////////////////////////////
+    // MultibodySystemGlobalSubsystem //
+    ////////////////////////////////////
+
+
+/*static*/ bool 
+MultibodySystemGlobalSubsystem::isInstanceOf(const Subsystem& s) {
+    return MultibodySystemGlobalSubsystemRep::isA(s.getRep());
+}
+/*static*/ const MultibodySystemGlobalSubsystem&
+MultibodySystemGlobalSubsystem::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MultibodySystemGlobalSubsystem&>(s);
+}
+/*static*/ MultibodySystemGlobalSubsystem&
+MultibodySystemGlobalSubsystem::updDowncast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MultibodySystemGlobalSubsystem&>(s);
 }
 
-const Array<AnalyticGeometry>&   
-MultibodySystem::getBodyAnalyticGeometry(int body) {
-    return MultibodySystemRep::downcast(*rep).getBodyAnalyticGeometry(body);
+const MultibodySystemGlobalSubsystemRep& 
+MultibodySystemGlobalSubsystem::getRep() const {
+    return dynamic_cast<const MultibodySystemGlobalSubsystemRep&>(*rep);
 }
-
-const Array<DecorativeGeometry>& 
-MultibodySystem::getBodyDecorativeGeometry(int body) {
-    return MultibodySystemRep::downcast(*rep).getBodyDecorativeGeometry(body);
+MultibodySystemGlobalSubsystemRep&       
+MultibodySystemGlobalSubsystem::updRep() {
+    return dynamic_cast<MultibodySystemGlobalSubsystemRep&>(*rep);
 }
 
 } // namespace SimTK

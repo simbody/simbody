@@ -65,6 +65,7 @@ public:
 
     // Topological information.
     virtual int getNBodies()      const = 0;    // includes ground, also # tree joints+1
+    virtual int getNParticles()   const {return 0;} // TODO
     virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
@@ -74,7 +75,13 @@ public:
     virtual const Transform&  getJointFrame(const State&, int bodyNum) const = 0;
     virtual const Transform&  getJointFrameOnParent(const State&, int bodyNum) const = 0;
 
+    virtual const Real&       getBodyMass         (const State&, int bodyNum) const = 0;
     virtual const Vec3&       getBodyCenterOfMass (const State&, int bodyNum) const = 0;
+    virtual const Vector&     getParticleMasses(const State&) const { // TODO
+        static Vector v;
+        assert(false);
+        return v;
+    }
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
     virtual const SpatialVec& getBodyVelocity     (const State&, int bodyNum) const = 0;
 

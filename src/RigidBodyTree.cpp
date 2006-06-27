@@ -204,6 +204,10 @@ Array<int> RigidBodyTree::getChildren(int body) const {
     return children;
 }
 
+const Real&
+RigidBodyTree::getBodyMass(const State&, int body) const
+  { return getRigidBodyNode(body).getMass(); }
+
 const Vec3&
 RigidBodyTree::getBodyCenterOfMass(const State&, int body) const
   { return getRigidBodyNode(body).getCOM_B(); }

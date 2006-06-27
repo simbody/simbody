@@ -288,7 +288,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renWin->AddRenderer(renderer);
 
-    const MatterSubsystem& sbs = mbs.getMatterSubsystem();
+    const MatterSubsystem& sbs = mbs.getMatterSubsystem(0);
     bodies.resize(sbs.getNBodies());
 
     setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
@@ -363,7 +363,7 @@ void VTKReporterRep::report(const State& s) {
 
     mbs.realize(s, Stage::Configured); // just in case
 
-    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const MatterSubsystem& matter = mbs.getMatterSubsystem(0);
     for (int i=1; i<matter.getNBodies(); ++i) {
         const Transform& config = matter.getBodyConfiguration(s, i);
         setConfiguration(i, config);

@@ -38,15 +38,15 @@ namespace SimTK {
 class SystemRep {
 public:
     SystemRep() 
-      : systemName("<NONAME>"), systemVersion("0.0.0"), subsystems(1), myHandle(0)
+      : systemName("<NONAME>"), systemVersion("0.0.0"), myHandle(0)
     {
-        takeOverSubsystem(0, DefaultSystemSubsystem());
+        //takeOverSubsystem(0, DefaultSystemSubsystem());
     }
     SystemRep(int nSubsystems, const String& name, const String& version) 
       : systemName(name), systemVersion(version), subsystems(nSubsystems), myHandle(0)
     {
-        assert(nSubsystems >= 1);
-        takeOverSubsystem(0, DefaultSystemSubsystem());
+        //assert(nSubsystems >= 1);
+        //takeOverSubsystem(0, DefaultSystemSubsystem());
     }
     virtual ~SystemRep() {
         clearMyHandle();

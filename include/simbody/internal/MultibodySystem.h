@@ -75,13 +75,23 @@ public:
 
 
     // Steals ownership of the source.
-    MatterSubsystem& setMatterSubsystem(MatterSubsystem&);
-    ForceSubsystem&  setForceSubsystem(ForceSubsystem&);
+    MatterSubsystem& addMatterSubsystem(MatterSubsystem&);
+    ForceSubsystem&  addForceSubsystem(ForceSubsystem&);
 
-    const MatterSubsystem&  getMatterSubsystem()       const;
-    const ForceSubsystem&   getForceSubsystem() const;
-    MatterSubsystem&        updMatterSubsystem();
-    ForceSubsystem&         updForceSubsystem();
+    int getNMatterSubsystems() const;
+    int getNForceSubsystems()  const;
+    const MatterSubsystem& getMatterSubsystem(int i) const;
+    const ForceSubsystem&  getForceSubsystem(int i)  const;
+    MatterSubsystem& updMatterSubsystem(int i);
+    ForceSubsystem&  updForceSubsystem(int i);
+
+    // Global state variables dealing with interaction between forces & matter
+
+    // Responses available when the global subsystem is advanced to Dynamics stage.
+    const Vector_<SpatialVec>& getRigidBodyForces(const State&,int matterSubsysNum) const;
+    const Vector_<Vec3>&       getParticleForces(const State&,int matterSubsysNum) const;
+    const Vector&              getMobilityForces(const State&,int matterSubsysNum) const;
+    const Real&                getPotentialEnergy(const State&) const;
 
     // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
     // on two different bodies, marker at system COM)
@@ -91,6 +101,8 @@ public:
     const Array<DecorativeGeometry>& getBodyDecorativeGeometry(int body);
 
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);
+    class MultibodySystemRep& updRep();
+    const MultibodySystemRep& getRep() const;
 };
 
 class SimTK_SIMBODY_API MultibodyDynamicsStudy : public Study {

@@ -43,7 +43,6 @@ EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
     rep = new EmptyForcesSubsystemRep();
     rep->setMyHandle(*this);
 }
-
     /////////////////////////////
     // TwoPointSpringSubsystem //
     /////////////////////////////
@@ -113,6 +112,67 @@ const Real& TwoPointSpringSubsystem::getPotentialEnergy(const State& s) const {
 }
 const Vec3& TwoPointSpringSubsystem::getForceOnStation1(const State& s) const {
     return getRep().getForceOnStation1(s);
+}
+
+    /////////////////////////////
+    // UniformGravitySubsystem //
+    /////////////////////////////
+
+
+/*static*/ bool 
+UniformGravitySubsystem::isInstanceOf(const ForceSubsystem& s) {
+    return UniformGravitySubsystemRep::isA(s.getRep());
+}
+/*static*/ const UniformGravitySubsystem&
+UniformGravitySubsystem::downcast(const ForceSubsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const UniformGravitySubsystem&>(s);
+}
+/*static*/ UniformGravitySubsystem&
+UniformGravitySubsystem::updDowncast(ForceSubsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<UniformGravitySubsystem&>(s);
+}
+
+const UniformGravitySubsystemRep& 
+UniformGravitySubsystem::getRep() const {
+    return dynamic_cast<const UniformGravitySubsystemRep&>(*rep);
+}
+UniformGravitySubsystemRep&       
+UniformGravitySubsystem::updRep() {
+    return dynamic_cast<UniformGravitySubsystemRep&>(*rep);
+}
+
+UniformGravitySubsystem::UniformGravitySubsystem()
+{
+  rep = new UniformGravitySubsystemRep();
+  rep->setMyHandle(*this);
+}
+
+UniformGravitySubsystem::UniformGravitySubsystem(const Vec3& g, const Real& zeroHeight)
+{
+  rep = new UniformGravitySubsystemRep(g,zeroHeight);
+  rep->setMyHandle(*this);
+}
+
+
+const Vec3& UniformGravitySubsystem::getGravity(const State& s) const {
+    return getRep().getGravity(s);
+}
+Vec3& UniformGravitySubsystem::updGravity(State& s) const {
+    return getRep().updGravity(s);
+}
+const Real& UniformGravitySubsystem::getZeroHeight(const State& s) const {
+    return getRep().getZeroHeight(s);
+}
+Real& UniformGravitySubsystem::updZeroHeight(State& s) const {
+    return getRep().updZeroHeight(s);
+}
+bool UniformGravitySubsystem::isEnabled(const State& s) const {
+    return getRep().isEnabled(s);
+}
+bool& UniformGravitySubsystem::updIsEnabled(State& s) const {
+    return getRep().updIsEnabled(s);
 }
 
     ////////////////////////////
