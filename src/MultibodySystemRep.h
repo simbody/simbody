@@ -39,6 +39,8 @@
 #include "simbody/internal/DecorativeGeometry.h"
 
 #include "SystemRep.h"
+#include "ForceSubsystemRep.h"
+#include "MatterSubsystemRep.h"
 
 #include <vector>
 
@@ -146,13 +148,9 @@ public:
         dc.potentialEnergy = 0;
         const MultibodySystem& mbs = getMultibodySystem();
         for (int i=0; i < mbs.getNMatterSubsystems(); ++i) {
-            const MatterSubsystem& matter = mbs.getMatterSubsystem(i);
-            dc.rigidBodyForces[i].resize(matter.getNBodies());
-            dc.particleForces[i].resize(matter.getNParticles());
-            dc.mobilityForces[i].resize(matter.getNMobilities());
-            dc.rigidBodyForces[i] = SpatialVec(Vec3(0), Vec3(0));
-            dc.particleForces[i] = Vec3(0);
-            dc.mobilityForces[i] = 0;
+            mbs.getMatterSubsystem(i).resetForces(dc.rigidBodyForces[i],
+                                                  dc.particleForces[i],
+                                                  dc.mobilityForces[i]);
         }
     }
 
@@ -202,11 +200,13 @@ public:
     
     MatterSubsystem& addMatterSubsystem(MatterSubsystem& m) {
         // TODO: allow more than one
+        m.updRep().setMyMatterSubsystemIndex(0);
         Subsystem& s = takeOverSubsystem(MatterSubsystemIndex, m);
         return MatterSubsystem::updDowncast(s);
     }
     ForceSubsystem& addForceSubsystem(ForceSubsystem& f) {
         // TODO: allow more than one
+        f.updRep().setMyForceSubsystemIndex(0);
         Subsystem& s = takeOverSubsystem(ForceSubsystemIndex, f);
         return ForceSubsystem::updDowncast(s);
     }
@@ -309,10 +309,6 @@ public:
         MultibodySystemRep& mutableThis = *const_cast<MultibodySystemRep*>(this);
         // Create the global subsystem
         (void)mutableThis.takeOverSubsystem(GlobalSubsystemIndex, MultibodySystemGlobalSubsystem());
-
-        // Help the subsystems find each other. TODO delete
-        mutableThis.updMatterSubsystem(0).setForceSubsystemIndex( ForceSubsystemIndex );
-        mutableThis.updForceSubsystem(0).setMatterSubsystemIndex( MatterSubsystemIndex );
 
         getGlobalSubsystem().realize(s, Stage::Built);
         for (int i=0; i < getNMatterSubsystems(); ++i)

@@ -42,13 +42,6 @@ namespace SimTK {
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
-void MatterSubsystem::setForceSubsystemIndex(int subsys) {
-    updRep().setForceSubsystemIndex(subsys);
-}
-int MatterSubsystem::getForceSubsystemIndex() const {
-    return getRep().getForceSubsystemIndex();
-}
-
 /*static*/ bool 
 MatterSubsystem::isInstanceOf(const Subsystem& s) {
     return MatterSubsystemRep::isA(s.getRep());

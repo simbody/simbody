@@ -31,6 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/AnalyticGeometry.h"
 #include "simbody/internal/DecorativeGeometry.h"
@@ -44,23 +45,27 @@ class State;
 class MatterSubsystemRep : public SubsystemRep {
 public:
     MatterSubsystemRep(const String& name, const String& version)
-      : SubsystemRep(name,version), forceSubsys(-1)
+      : SubsystemRep(name,version), myMatterSubsysIndex(-1)
     {
     }
     virtual ~MatterSubsystemRep() { }
 
-    void setForceSubsystemIndex(int subsys) {
-        assert(subsys >= 0);
-        assert(forceSubsys == -1);
-        forceSubsys = subsys;
+    // The containing MultibodySystem may contain more than one matter
+    // subsystem. It assigns a "matter subsystem index" to each one,
+    // for use in accessing per-matter-subsystem data.
+    void setMyMatterSubsystemIndex(int ix) {
+        assert(ix >= 0);
+        assert(myMatterSubsysIndex == -1);
+        myMatterSubsysIndex = ix;
     }
-    int getForceSubsystemIndex() const {
-        assert(forceSubsys >= 0);
-        return forceSubsys;
+    int getMyMatterSubsystemIndex() const {
+        assert(myMatterSubsysIndex >= 0);
+        return myMatterSubsysIndex;
     }
 
-    const ForceSubsystem& getForceSubsystem() const {
-        return ForceSubsystem::downcast(getSystem().getSubsystem(forceSubsys));
+    // Return the MultibodySystem which owns this MatterSubsystem.
+    const MultibodySystem& getMultibodySystem() const {
+        return MultibodySystem::downcast(getSystem());
     }
 
     // Topological information.
@@ -79,7 +84,6 @@ public:
     virtual const Vec3&       getBodyCenterOfMass (const State&, int bodyNum) const = 0;
     virtual const Vector&     getParticleMasses(const State&) const { // TODO
         static Vector v;
-        assert(false);
         return v;
     }
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
@@ -137,7 +141,7 @@ public:
 
     SimTK_DOWNCAST(MatterSubsystemRep, SubsystemRep);
 private:
-    int forceSubsys;
+    int myMatterSubsysIndex;
 };
 
 

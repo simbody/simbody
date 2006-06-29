@@ -37,9 +37,6 @@ class SimTK_SIMBODY_API MatterSubsystem : public Subsystem {
 public:
     MatterSubsystem() { }
 
-    void setForceSubsystemIndex(int subsys);
-    int  getForceSubsystemIndex() const;
-
     // Topological information (no state)
     int getNBodies()      const;    // includes ground, also # mobilizers+1
     int getNParticles()   const;
@@ -174,7 +171,6 @@ public:
     bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
 
     SimTK_PIMPL_DOWNCAST(MatterSubsystem, Subsystem);
-private:
     class MatterSubsystemRep& updRep();
     const MatterSubsystemRep& getRep() const;
 };

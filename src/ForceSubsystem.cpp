@@ -59,13 +59,6 @@ void ForceSubsystem::addInForces(
                          rigidBodyForces, particleForces, mobilityForces);
 }
 
-void ForceSubsystem::setMatterSubsystemIndex(int subsys) {
-    updRep().setMatterSubsystemIndex(subsys);
-}
-int ForceSubsystem::getMatterSubsystemIndex() const {
-    return getRep().getMatterSubsystemIndex();
-}
-
 /*static*/ bool 
 ForceSubsystem::isInstanceOf(const Subsystem& s) {
     return ForceSubsystemRep::isA(s.getRep());

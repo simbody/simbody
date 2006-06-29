@@ -55,9 +55,6 @@ public:
                      Vector_<Vec3>&       particleForces,
                      Vector&              mobilityForces) const; // =0
 
-    void setMatterSubsystemIndex(int subsys);
-    int  getMatterSubsystemIndex() const;
-
     SimTK_PIMPL_DOWNCAST(ForceSubsystem, Subsystem);
     class ForceSubsystemRep& updRep();
     const ForceSubsystemRep& getRep() const;

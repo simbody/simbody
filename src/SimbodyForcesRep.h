@@ -129,35 +129,7 @@ public:
     {
     }
 
-    // Pure virtuals
-    /// This is a Configured stage operator.
-    Real calcPotentialEnergy(const State& s) const {
-        SimTK_STAGECHECK_GE(getStage(s), Stage::Configured, 
-            "TwoPointSpringSubsystem::calcPotentialEnergy()");
-        return getConfigurationCache(s).pe;
-    }
-
-    /// This is a Dynamics stage operator.
-    void addInForces(const State& s, const MatterSubsystem& matter,
-                     Vector_<SpatialVec>& rigidBodyForces,
-                     Vector_<Vec3>&       particleForces,
-                     Vector&              mobilityForces) const 
-    {
-        assert(matter.getMySubsystemIndex() == getMatterSubsystemIndex());
-        SimTK_STAGECHECK_GE(getStage(s), Stage::Dynamics, 
-            "TwoPointSpringSubsystem::addInForces()");
-
-        const ConfigurationCache& cc = getConfigurationCache(s);
-        const DynamicsCache&      dc = getDynamicsCache(s);
-        rigidBodyForces[body1] += SpatialVec( cc.station1_G % dc.f1_G, dc.f1_G );
-        rigidBodyForces[body2] -= SpatialVec( cc.station2_G % dc.f1_G, dc.f1_G );
-
-        if (getGravity(s) != Vec3(0))
-            matter.addInGravity(s, getGravity(s), rigidBodyForces);
-
-        if (getDamping(s) != 0)
-            mobilityForces += -getDamping(s)*matter.getU(s);
-    }
+    // Pure virtuals: TODO??
 
     const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
     Vec3&       updGravity(State& s)       const {return updParameters(s).gravity;}
@@ -212,8 +184,11 @@ public:
         const Parameters&   p  = getParameters(s);
         ConfigurationCache& cc = updConfigurationCache(s);
 
-        const Transform& X_GB1 = getMatterSubsystem().getBodyConfiguration(s, body1);
-        const Transform& X_GB2 = getMatterSubsystem().getBodyConfiguration(s, body2);
+        const MultibodySystem& mbs = getMultibodySystem(); // my owner
+
+        // TODO: handle multiple matter subsystems
+        const Transform& X_GB1 = mbs.getMatterSubsystem(0).getBodyConfiguration(s, body1);
+        const Transform& X_GB2 = mbs.getMatterSubsystem(0).getBodyConfiguration(s, body2);
 
         // Fill in the configuration cache.
         cc.station1_G = X_GB1.R() * station1;   // stations expressed in G will be needed later
@@ -243,6 +218,30 @@ public:
         DynamicsCache&            dc = updDynamicsCache(s);
 
         dc.f1_G = (cc.fscalar/cc.x) * cc.v_G;  // NaNs if x (and hence v) is 0
+
+        const MultibodySystem& mbs = MultibodySystem::downcast(getSystem());
+        const MatterSubsystem& matter = mbs.getMatterSubsystem(0); // TODO: multiple matter subsys
+        const int nBodies     = matter.getNBodies();
+        const int nParticles  = matter.getNParticles();
+        const int nMobilities = matter.getNMobilities();
+
+        // TODO: multiple matter subsys (not "0"!)
+        Vector_<SpatialVec>& rigidBodyForces = mbs.getRep().updRigidBodyForces(s,0);
+        Vector_<Vec3>&       particleForces  = mbs.getRep().updParticleForces(s,0);
+        Vector&              mobilityForces  = mbs.getRep().updMobilityForces(s,0);
+        Real&                pe              = mbs.getRep().updPotentialEnergy(s);
+
+        assert(rigidBodyForces.size() == nBodies);
+        assert(particleForces.size()  == nParticles);
+        assert(mobilityForces.size()  == nMobilities);
+
+        // no particle stuff TODO
+        pe += cc.pe;
+        rigidBodyForces[body1] += SpatialVec( cc.station1_G % dc.f1_G, dc.f1_G );
+        rigidBodyForces[body2] -= SpatialVec( cc.station2_G % dc.f1_G, dc.f1_G );
+
+        if (getDamping(s) != 0)
+            mobilityForces -= getDamping(s)*matter.getU(s);
     }
 
     void realizeReaction(const State& s) const {
@@ -414,18 +413,21 @@ public:
             assert(rigidBodyForces.size() == nBodies);
             assert(particleForces.size() == nParticles);
 
-            const Real* m = &matter.getParticleMasses(s)[0];
-            for (int i=0; i < nParticles; ++i)
-                particleForces[i] = g * m[i];
+            if (nParticles) {
+                const Real* m = &matter.getParticleMasses(s)[0];
+                for (int i=0; i < nParticles; ++i)
+                    particleForces[i] += g * m[i];
+            }
 
             for (int i=0; i < nBodies; ++i) {
                 const Real&      m     = matter.getBodyMass(s,i);
                 const Vec3&      com_B = matter.getBodyCenterOfMass(s,i);
                 const Transform& X_GB  = matter.getBodyConfiguration(s,i);
-                const Vec3       com_G = X_GB*com_B;
+                const Vec3       com_B_G = X_GB.R()*com_B;
+                const Vec3       com_G = X_GB.T() + com_B_G;
 
                 pe += m*(~g*com_G - gh0);
-                rigidBodyForces[i] += m*g; 
+                rigidBodyForces[i] += SpatialVec(com_B_G % (m*g), m*g); 
             }
         }
     }
@@ -454,31 +456,6 @@ class EmptyForcesSubsystemRep : public ForceSubsystemRep {
 public:
     EmptyForcesSubsystemRep()
       : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1") { }
-    EmptyForcesSubsystemRep(const MatterSubsystem& m) 
-      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1") { 
-        setMatterSubsystemIndex(m.getMySubsystemIndex());
-    }
-
-
-    // Pure virtuals
-    // This is a Configured stage operator.
-    Real calcPotentialEnergy(const State& s) const {
-        SimTK_STAGECHECK_GE(getStage(s), Stage::Configured, 
-            "EmptyForcesSubsystem::calcPotentialEnergy()");
-        return 0;
-    }
-
-    // This is a Dynamics stage operator.
-    void addInForces(const State& s, const MatterSubsystem& matter,
-                     Vector_<SpatialVec>& rigidBodyForces,
-                     Vector_<Vec3>&       particleForces,
-                     Vector&              mobilityForces) const 
-    {
-        assert(matter.getMySubsystemIndex() == getMatterSubsystemIndex());
-        SimTK_STAGECHECK_GE(getStage(s), Stage::Dynamics, 
-            "EmptyForcesSubsystem::addInForces()");
-        // nothing to add
-    }
 
     EmptyForcesSubsystemRep* cloneSubsystemRep() const 
       { return new EmptyForcesSubsystemRep(*this); }

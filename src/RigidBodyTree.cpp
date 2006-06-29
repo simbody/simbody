@@ -457,14 +457,12 @@ void RigidBodyTree::realizeDynamics(const State& s)  const {
             rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(cc,mc,dc);
 
     // Now total up all the forces
-    dc.appliedMobilityForces.setToZero();
-    dc.appliedParticleForces.setToZero(); //TODO
-    dc.appliedRigidBodyForces.setToZero();
-
-    getForceSubsystem().addInForces(s, MatterSubsystem::downcast(getMyHandle()),
-                                    dc.appliedRigidBodyForces,
-                                    dc.appliedParticleForces,
-                                    dc.appliedMobilityForces);
+    // TODO: this shouldn't be copying!!
+    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
+    const int matterSubsys = getMyMatterSubsystemIndex();
+    dc.appliedMobilityForces  = mbs.getMobilityForces(s, matterSubsys);
+    dc.appliedParticleForces  = mbs.getParticleForces(s, matterSubsys);
+    dc.appliedRigidBodyForces = mbs.getRigidBodyForces(s, matterSubsys);
 }
 
 void RigidBodyTree::realizeReaction(const State& s)  const {

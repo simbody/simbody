@@ -148,7 +148,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 4;
+static int NSegments = 1;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -320,12 +320,17 @@ int main(int argc, char** argv) {
         const Vec3 attachPt(150, -40, -50);
         TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),10000.,1.);
         State s;
-        MultibodySystem mbs(myRNA,forces);
+        MultibodySystem mbs;
+        mbs.addMatterSubsystem(myRNA);
+        //mbs.addForceSubsystem(forces);
+        UniformGravitySubsystem ugs(Vec3(0, -g, 0));
+        mbs.addForceSubsystem(ugs);
+
         mbs.realize(s, Stage::Built);
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
-        forces.updGravity(s) = Vec3(0, -g, 0);
-        forces.updDamping(s) = 1000;
+        //forces.updGravity(s) = Vec3(0, -100*g, 0);
+        //forces.updDamping(s) = 1000;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);

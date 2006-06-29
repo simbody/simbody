@@ -87,7 +87,7 @@ private:
  * the ground frame. State variables (all Parameter stage):
  *    enabled    boolean, default true
  *    g          Vec3, the gravity vector, default 0
- *    zeroHeight Real, affects potential energy
+ *    zeroHeight Real, affects potential energy only
  */
 class SimTK_SIMBODY_API UniformGravitySubsystem : public ForceSubsystem {
 public:

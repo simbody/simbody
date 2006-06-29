@@ -30,6 +30,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MatterSubsystem.h"
 
 #include "SubsystemRep.h"
@@ -39,23 +40,27 @@ namespace SimTK {
 class ForceSubsystemRep : public SubsystemRep {
 public:
     ForceSubsystemRep(const String& name, const String& version) 
-      : SubsystemRep(name,version), matterSubsys(-1)
+      : SubsystemRep(name,version), myForceSubsysIndex(-1)
     {
     }
     virtual ~ForceSubsystemRep() { }
 
-    void setMatterSubsystemIndex(int subsys) {
-        assert(subsys >= 0);
-        assert(matterSubsys == -1);
-        matterSubsys = subsys;
+    // The containing MultibodySystem may contain more than one force
+    // subsystem. It assigns a "force subsystem index" to each one,
+    // for use in accessing per-force-subsystem data.
+    void setMyForceSubsystemIndex(int ix) {
+        assert(ix >= 0);
+        assert(myForceSubsysIndex == -1);
+        myForceSubsysIndex = ix;
     }
-    int getMatterSubsystemIndex() const {
-        assert(matterSubsys >= 0);
-        return matterSubsys;
+    int getMyForceSubsystemIndex() const {
+        assert(myForceSubsysIndex >= 0);
+        return myForceSubsysIndex;
     }
 
-    const MatterSubsystem& getMatterSubsystem() const {
-        return MatterSubsystem::downcast(getSystem().getSubsystem(matterSubsys));
+    // Return the MultibodySystem which owns this ForceSubsystem.
+    const MultibodySystem& getMultibodySystem() const {
+        return MultibodySystem::downcast(getSystem());
     }
 
     /// This is a Configured stage operator. TODO: trash?
@@ -69,7 +74,7 @@ public:
 
     SimTK_DOWNCAST(ForceSubsystemRep, SubsystemRep);
 private:
-    int matterSubsys;
+    int myForceSubsysIndex;
 };
 
 } // namespace SimTK
