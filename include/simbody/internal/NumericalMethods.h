@@ -463,6 +463,9 @@ public:
         return true;
     }
 
+    ////////
+    // TODO: this is not preserving the old state properly. Can't just save continuous states!
+    ////////
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Parametrized,

@@ -148,8 +148,8 @@ public:
     const Transform&  getJointFrame        (const State&, int body) const;
     const Transform&  getJointFrameOnParent(const State&, int body) const;
 
-    const Real&       getBodyMass          (const State&, int body) const;
-    const Vec3&       getBodyCenterOfMass  (const State&, int body) const;
+    const Real&       getBodyMass               (const State&, int body) const;
+    const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
 
     const Transform&  getBodyConfiguration (const State& s, int body) const;
     const SpatialVec& getBodyVelocity      (const State& s, int body) const;

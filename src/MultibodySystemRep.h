@@ -58,13 +58,15 @@ class DecorativeGeometry;
 struct DynamicsCache {
     explicit DynamicsCache(int n) // n is # matter subsystems
       : rigidBodyForces(n), particleForces(n), mobilityForces(n),
-        potentialEnergy(CNT<Real>::getNaN())
+        potentialEnergy(CNT<Real>::getNaN()), kineticEnergy(CNT<Real>::getNaN())
     { }
     std::vector< Vector_<SpatialVec> > rigidBodyForces;
     std::vector< Vector_<Vec3> >       particleForces;
     std::vector< Vector >              mobilityForces;
     Real                               potentialEnergy;
+    Real                               kineticEnergy;
 };
+
 // Useless, but required by Value<T>.
 inline std::ostream& operator<<(std::ostream& o, const DynamicsCache&) 
 {assert(false);return o;}
@@ -112,6 +114,9 @@ public:
     const Real& getPotentialEnergy(const State& s) const {
         return getDynamicsCache(s).potentialEnergy;
     }
+    const Real& getKineticEnergy(const State& s) const {
+        return getDynamicsCache(s).kineticEnergy;
+    }
     
     Vector_<SpatialVec>& updRigidBodyForces(const State& s, int i) const {
         return updDynamicsCache(s).rigidBodyForces[i];
@@ -124,6 +129,9 @@ public:
     }
     Real& updPotentialEnergy(const State& s) const {
         return updDynamicsCache(s).potentialEnergy;
+    }
+    Real& updKineticEnergy(const State& s) const {
+        return updDynamicsCache(s).kineticEnergy;
     }
 
     MultibodySystemGlobalSubsystemRep* cloneSubsystemRep() const {
@@ -145,7 +153,7 @@ public:
     // force subsystems to then fill these in as they are realized to this stage.
     void realizeDynamics(const State& s) const {
         DynamicsCache& dc = updDynamicsCache(s);
-        dc.potentialEnergy = 0;
+        dc.potentialEnergy = dc.kineticEnergy = 0;
         const MultibodySystem& mbs = getMultibodySystem();
         for (int i=0; i < mbs.getNMatterSubsystems(); ++i) {
             mbs.getMatterSubsystem(i).resetForces(dc.rigidBodyForces[i],
@@ -247,6 +255,9 @@ public:
     const Real& getPotentialEnergy(const State& s) const {
         return getGlobalSubsystem().getRep().getPotentialEnergy(s);
     }
+    const Real& getKineticEnergy(const State& s) const {
+        return getGlobalSubsystem().getRep().getKineticEnergy(s);
+    }
 
     // Dynamics stage cache entries of the global subsystem. Accessing these drops
     // the global stage to Dynamics-1, i.e. Moving.
@@ -261,6 +272,9 @@ public:
     }
     Real& updPotentialEnergy(const State& s) const {
         return getGlobalSubsystem().getRep().updPotentialEnergy(s);
+    }
+    Real& updKineticEnergy(const State& s) const {
+        return getGlobalSubsystem().getRep().updKineticEnergy(s);
     }
 
     // Each matter subsystem's constraints are independent of the other

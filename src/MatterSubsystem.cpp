@@ -98,13 +98,18 @@ MatterSubsystem::getBodyMass(const State& s, int bodyNum) const {
     return getRep().getBodyMass(s,bodyNum); 
 }
 const Vec3&  
-MatterSubsystem::getBodyCenterOfMass(const State& s, int bodyNum) const { 
-    return getRep().getBodyCenterOfMass(s,bodyNum); 
+MatterSubsystem::getBodyCenterOfMassStation(const State& s, int bodyNum) const { 
+    return getRep().getBodyCenterOfMassStation(s,bodyNum); 
 }
 
 const Vector& 
 MatterSubsystem::getParticleMasses(const State& s) const { 
     return getRep().getParticleMasses(s); 
+}
+
+const Vector_<Vec3>& 
+MatterSubsystem::getParticleLocations(const State& s) const { 
+    return getRep().getParticleLocations(s); 
 }
 
 const Transform& 

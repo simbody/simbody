@@ -146,6 +146,10 @@ const Real&
 MultibodySystem::getPotentialEnergy(const State& s) const {
     return getRep().getPotentialEnergy(s);
 }
+const Real&                
+MultibodySystem::getKineticEnergy(const State& s) const {
+    return getRep().getKineticEnergy(s);
+}
 
 
 

@@ -33,6 +33,7 @@
 #include "RigidBodyNode.h"
 #include "ConstraintNode.h"
 #include "LengthConstraints.h"
+#include "MultibodySystemRep.h"
 
 #include <string>
 
@@ -209,7 +210,7 @@ RigidBodyTree::getBodyMass(const State&, int body) const
   { return getRigidBodyNode(body).getMass(); }
 
 const Vec3&
-RigidBodyTree::getBodyCenterOfMass(const State&, int body) const
+RigidBodyTree::getBodyCenterOfMassStation(const State&, int body) const
   { return getRigidBodyNode(body).getCOM_B(); }
 
 
@@ -459,6 +460,8 @@ void RigidBodyTree::realizeDynamics(const State& s)  const {
     // Now total up all the forces
     // TODO: this shouldn't be copying!!
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
+    mbs.getRep().updKineticEnergy(s) += calcKineticEnergy(s);
+
     const int matterSubsys = getMyMatterSubsystemIndex();
     dc.appliedMobilityForces  = mbs.getMobilityForces(s, matterSubsys);
     dc.appliedParticleForces  = mbs.getParticleForces(s, matterSubsys);

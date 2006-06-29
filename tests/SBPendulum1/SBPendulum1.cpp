@@ -358,7 +358,10 @@ try {
     int step = 0;
     while (s.getTime() < tmax) {
         ee.step(s.getTime() + h);
-        cout << " hNext=" << ee.getPredictedNextStep() << endl;
+        cout << " E=" << mbs.getPotentialEnergy(s)+mbs.getKineticEnergy(s)
+             << " (pe=" << mbs.getPotentialEnergy(s)
+             << ", ke=" << mbs.getKineticEnergy(s)
+             << ") hNext=" << ee.getPredictedNextStep() << endl;
 
         const Vector qdot = pend.getQDot(s);
 
@@ -390,7 +393,7 @@ try {
 
 
         mbs.realize(s, Stage::Reacting);
-        
+        /*
         cout << "CONSTRAINT ERRORS:\n";
         cout << "quat:" << Vec4::getAs(&s.getQ()[0]).norm()-1 << endl;
         cout << "   q:" << pend.getQConstraintErrors(s)
@@ -399,7 +402,7 @@ try {
              << "(" << pend.calcUConstraintNorm(s) << ")\n";
         cout << "udot: " << pend.getUDotConstraintErrors(s)
              << "(" << pend.calcUDotConstraintNorm(s) << ")\n\n";
-        
+        */
 
         const Vector udot = s.getUDot();
         Vector udot2;

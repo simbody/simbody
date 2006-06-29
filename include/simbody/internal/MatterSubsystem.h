@@ -50,9 +50,10 @@ public:
     const Transform&  getJointFrameOnParent(const State&, int bodyNum) const;
 
     const Real& getBodyMass(const State&, int bodyNum) const;
-    const Vec3& getBodyCenterOfMass(const State&, int bodyNum) const;
+    const Vec3& getBodyCenterOfMassStation(const State&, int bodyNum) const;
 
-    const Vector& getParticleMasses(const State&) const;
+    const Vector&        getParticleMasses(const State&)      const;
+    const Vector_<Vec3>& getParticleLocations(const State& s) const; 
 
 
     // This can be called at any time after construction. It sizes a set of

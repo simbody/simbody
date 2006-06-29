@@ -92,6 +92,7 @@ public:
     const Vector_<Vec3>&       getParticleForces(const State&,int matterSubsysNum) const;
     const Vector&              getMobilityForces(const State&,int matterSubsysNum) const;
     const Real&                getPotentialEnergy(const State&) const;
+    const Real&                getKineticEnergy(const State&) const;
 
     // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
     // on two different bodies, marker at system COM)

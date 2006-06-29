@@ -80,10 +80,14 @@ public:
     virtual const Transform&  getJointFrame(const State&, int bodyNum) const = 0;
     virtual const Transform&  getJointFrameOnParent(const State&, int bodyNum) const = 0;
 
-    virtual const Real&       getBodyMass         (const State&, int bodyNum) const = 0;
-    virtual const Vec3&       getBodyCenterOfMass (const State&, int bodyNum) const = 0;
+    virtual const Real&       getBodyMass              (const State&, int bodyNum) const = 0;
+    virtual const Vec3&       getBodyCenterOfMassStation(const State&, int bodyNum) const = 0;
     virtual const Vector&     getParticleMasses(const State&) const { // TODO
         static Vector v;
+        return v;
+    }
+    virtual const Vector_<Vec3>& getParticleLocations(const State&) const { // TODO
+        static Vector_<Vec3> v;
         return v;
     }
     virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;

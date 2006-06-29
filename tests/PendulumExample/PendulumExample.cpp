@@ -148,7 +148,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 1;
+static int NSegments = 2;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -326,11 +326,14 @@ int main(int argc, char** argv) {
         UniformGravitySubsystem ugs(Vec3(0, -g, 0));
         mbs.addForceSubsystem(ugs);
 
+
         mbs.realize(s, Stage::Built);
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
-        //forces.updGravity(s) = Vec3(0, -100*g, 0);
+        //forces.updGravity(s) = Vec3(0, -g, 0);
         //forces.updDamping(s) = 1000;
+        //ugs.updGravity(s) = -1*ugs.getGravity(s);
+        ugs.updZeroHeight(s) = -0.8;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);
@@ -338,8 +341,8 @@ int main(int argc, char** argv) {
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-1);
-        myStudy.setConstraintTolerance(1e-2);
+        myStudy.setAccuracy(1e-4);
+        myStudy.setConstraintTolerance(1e-3);
         myStudy.setProjectEveryStep(false);
 
         VTKReporter display(mbs);
@@ -368,6 +371,10 @@ int main(int argc, char** argv) {
             printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
                 myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
                 myStudy.getPredictedNextStep());
+            printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
+                mbs.getPotentialEnergy(s)+mbs.getKineticEnergy(s),
+                mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+
             display.report(s);
             saveEm.push_back(s);
 

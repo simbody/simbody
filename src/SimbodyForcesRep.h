@@ -306,23 +306,26 @@ class UniformGravitySubsystemRep : public ForceSubsystemRep {
     // as const thereafter. These are garbage unless built=true.
     mutable int parameterVarsIndex;
     mutable int parameterCacheIndex;
-    mutable int configurationCacheIndex;
     mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
+        assert(built);
         return Value<Parameters>::downcast(
             getDiscreteVariable(s,parameterVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
+        assert(built);
         return Value<Parameters>::downcast(
             updDiscreteVariable(s,parameterVarsIndex)).upd();
     }
 
     const ParameterCache& getParameterCache(const State& s) const {
+        assert(built);
         return Value<ParameterCache>::downcast(
             getCacheEntry(s,parameterCacheIndex)).get();
     }
     ParameterCache& updParameterCache(const State& s) const {
+        assert(built);
         return Value<ParameterCache>::downcast(
             updCacheEntry(s,parameterCacheIndex)).upd();
     }
@@ -330,14 +333,11 @@ class UniformGravitySubsystemRep : public ForceSubsystemRep {
 public:
     UniformGravitySubsystemRep() 
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
-        built(false) { } 
+        parameterVarsIndex(-1), parameterCacheIndex(-1), built(false) { } 
     explicit UniformGravitySubsystemRep(const Vec3& g, const Real& z=0)
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
-        defaultParameters(g,z), built(false) { }
-
-    // Pure virtuals
-    // TODO ??
-
+        defaultParameters(g,z),
+        parameterVarsIndex(-1), parameterCacheIndex(-1), built(false) { } 
 
     const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
     Vec3&       updGravity(State& s)       const {return updParameters(s).gravity;}
@@ -379,16 +379,7 @@ public:
                                  true); // this means "trust me; already normalized"
     }
 
-    // realizeTime() not needed
-
-    void realizeConfiguration(const State& s) const {
-        static const char* loc = "UniformGravity::realizeConfiguration()";
-        SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Timed, loc);
-        // Nothing to compute here. 
-        // TODO: what about pe???
-    }
-
-    // realizeMotion() not needed
+    // realizeTime, Configuration, Motion not needed
 
     void realizeDynamics(const State& s) const {
         static const char* loc = "UniformGravity::realizeDynamics()";
@@ -414,20 +405,25 @@ public:
             assert(particleForces.size() == nParticles);
 
             if (nParticles) {
-                const Real* m = &matter.getParticleMasses(s)[0];
-                for (int i=0; i < nParticles; ++i)
+                const Vector& m = matter.getParticleMasses(s);
+                const Vector_<Vec3>& loc_G = matter.getParticleLocations(s);
+                for (int i=0; i < nParticles; ++i) {
+                    pe -= m[i]*(~g*loc_G[i] + gh0);
                     particleForces[i] += g * m[i];
+                }
             }
 
-            for (int i=0; i < nBodies; ++i) {
+            // no need to apply gravity to Ground!
+            for (int i=1; i < nBodies; ++i) {
                 const Real&      m     = matter.getBodyMass(s,i);
-                const Vec3&      com_B = matter.getBodyCenterOfMass(s,i);
+                const Vec3&      com_B = matter.getBodyCenterOfMassStation(s,i);
                 const Transform& X_GB  = matter.getBodyConfiguration(s,i);
                 const Vec3       com_B_G = X_GB.R()*com_B;
-                const Vec3       com_G = X_GB.T() + com_B_G;
+                const Vec3       com_G   = X_GB.T() + com_B_G;
+                const Vec3       frc_G   = m*g;
 
-                pe += m*(~g*com_G - gh0);
-                rigidBodyForces[i] += SpatialVec(com_B_G % (m*g), m*g); 
+                pe -= m*(~g*com_G + gh0);
+                rigidBodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
             }
         }
     }

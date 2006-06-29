@@ -339,10 +339,10 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         DecorativeSphere com(scale*.05);
         com.setColor(Purple);
         com.setRepresentationToPoints();
-        const Vec3& comPos = sbs.getBodyCenterOfMass(State(), i);
-        addDecoration(i, Transform(comPos), com);
-        if (comPos != Vec3(0))
-            addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos));
+        const Vec3& comPos_B = sbs.getBodyCenterOfMassStation(State(), i);
+        addDecoration(i, Transform(comPos_B), com);
+        if (comPos_B != Vec3(0))
+            addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
     }
     renWin->Render();
 }
