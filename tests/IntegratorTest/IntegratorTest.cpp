@@ -310,8 +310,8 @@ int main() {
         State scState;
         MultibodySystem scmbs;
         SinCos sc(1.);
-        scmbs.setMatterSubsystem(sc); 
-        scmbs.setForceSubsystem(EmptyForcesSubsystem());
+        scmbs.addMatterSubsystem(sc); 
+        scmbs.addForceSubsystem(EmptyForcesSubsystem());
         scmbs.realize(scState, Stage::Modeled);
         scState.updTime() = 0;
         Vector y(2); y[0] = 0.; y[1] = 1.;
@@ -336,8 +336,8 @@ int main() {
         printf("Period should be %gs\n", 2*halfPeriod);
         MultibodySystem pendmbs;
         PointMass2dPendulum p(mass,length,gravity);
-        pendmbs.setMatterSubsystem(p); 
-        pendmbs.setForceSubsystem(EmptyForcesSubsystem());
+        pendmbs.addMatterSubsystem(p); 
+        pendmbs.addForceSubsystem(EmptyForcesSubsystem());
         State pendState;
         pendmbs.realize(pendState, Stage::Modeled);
 

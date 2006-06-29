@@ -372,8 +372,7 @@ int main(int argc, char** argv) {
                 myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
                 myStudy.getPredictedNextStep());
             printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-                mbs.getPotentialEnergy(s)+mbs.getKineticEnergy(s),
-                mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+                mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
 
             display.report(s);
             saveEm.push_back(s);

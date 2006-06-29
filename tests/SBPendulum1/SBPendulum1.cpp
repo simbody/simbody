@@ -358,7 +358,7 @@ try {
     int step = 0;
     while (s.getTime() < tmax) {
         ee.step(s.getTime() + h);
-        cout << " E=" << mbs.getPotentialEnergy(s)+mbs.getKineticEnergy(s)
+        cout << " E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
              << ") hNext=" << ee.getPredictedNextStep() << endl;

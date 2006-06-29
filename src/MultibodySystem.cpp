@@ -130,6 +130,16 @@ MultibodySystem::updForceSubsystem(int i) {
     return MultibodySystemRep::downcast(*rep).updForceSubsystem(i);
 }
 
+
+const Real&                
+MultibodySystem::getPotentialEnergy(const State& s) const {
+    return getRep().getPotentialEnergy(s);
+}
+const Real&                
+MultibodySystem::getKineticEnergy(const State& s) const {
+    return getRep().getKineticEnergy(s);
+}
+
 const Vector_<SpatialVec>& 
 MultibodySystem::getRigidBodyForces(const State& s, int matterSubsysNum) const {
     return getRep().getRigidBodyForces(s,matterSubsysNum);
@@ -142,15 +152,28 @@ const Vector&
 MultibodySystem::getMobilityForces(const State& s, int matterSubsysNum) const {
     return getRep().getMobilityForces(s,matterSubsysNum);
 }
-const Real&                
-MultibodySystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
+
+Real&                
+MultibodySystem::updPotentialEnergy(const State& s) const {
+    return getRep().updPotentialEnergy(s);
 }
-const Real&                
-MultibodySystem::getKineticEnergy(const State& s) const {
-    return getRep().getKineticEnergy(s);
+Real&                
+MultibodySystem::updKineticEnergy(const State& s) const {
+    return getRep().updKineticEnergy(s);
 }
 
+Vector_<SpatialVec>& 
+MultibodySystem::updRigidBodyForces(const State& s, int matterSubsysNum) const {
+    return getRep().updRigidBodyForces(s,matterSubsysNum);
+}
+Vector_<Vec3>&       
+MultibodySystem::updParticleForces(const State& s, int matterSubsysNum) const {
+    return getRep().updParticleForces(s,matterSubsysNum);
+}
+Vector&              
+MultibodySystem::updMobilityForces(const State& s, int matterSubsysNum) const {
+    return getRep().updMobilityForces(s,matterSubsysNum);
+}
 
 
     ////////////////////////////////////

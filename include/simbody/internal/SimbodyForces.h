@@ -82,67 +82,6 @@ private:
 };
 
 /**
- * This is a concrete subsystem which applies a uniform gravity field
- * to all the matter in the system. The gravity vector is given in
- * the ground frame. State variables (all Parameter stage):
- *    enabled    boolean, default true
- *    g          Vec3, the gravity vector, default 0
- *    zeroHeight Real, affects potential energy only
- */
-class SimTK_SIMBODY_API UniformGravitySubsystem : public ForceSubsystem {
-public:
-    UniformGravitySubsystem();
-    explicit UniformGravitySubsystem(const Vec3& g, const Real& zeroHeight=0);
-
-    /// State variables can be accessed after Modeled stage.
-    const Vec3& getGravity(const State&) const;
-    const Real& getZeroHeight(const State&) const;
-    bool        isEnabled(const State&) const;
-
-    /// Solver for setting the gravity vector in the state. Callable
-    /// at Modeled stage or higher; backs stage up to Modeled.
-    Vec3& updGravity(State& s) const;
-    const UniformGravitySubsystem& setGravity(State& s, const Vec3& g) const {
-        updGravity(s)=g;
-        return *this;
-    }
-
-    Real& updZeroHeight(State& s) const;
-    const UniformGravitySubsystem& setZeroHeight(State&s, const Real& z) const {
-        updZeroHeight(s)=z;
-        return *this;
-    }
-
-    /// Solvers for enabling or disabling gravity in the state. Callable
-    /// at Modeled stage or higher; backs stage up to Modeled.
-    bool& updIsEnabled(State& s) const;
-    const UniformGravitySubsystem& enableGravity(State& s) const {
-        updIsEnabled(s) = true;
-        return *this;
-    }
-    const UniformGravitySubsystem& disableGravity(State& s) const{
-        updIsEnabled(s) = false;
-        return *this;
-    }
-
-    // These are just the defaults but are nice to have explicitly for debugging.
-    ~UniformGravitySubsystem() {
-    }
-    UniformGravitySubsystem(const UniformGravitySubsystem& e) 
-      : ForceSubsystem(e) {
-    }
-    UniformGravitySubsystem& operator=(const UniformGravitySubsystem& e) {
-        ForceSubsystem::operator=(e);
-        return *this;
-    }
-
-    SimTK_PIMPL_DOWNCAST(UniformGravitySubsystem, ForceSubsystem);
-private:
-    class UniformGravitySubsystemRep& updRep();
-    const UniformGravitySubsystemRep& getRep() const;
-};
-
-/**
  * This is a concrete subsystem which applies no forces.
  */
 class SimTK_SIMBODY_API EmptyForcesSubsystem : public ForceSubsystem {

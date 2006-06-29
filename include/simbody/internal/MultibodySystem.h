@@ -74,7 +74,7 @@ public:
                  ) const;
 
 
-    // Steals ownership of the source.
+    // Steals ownership of the source; returns a reference to the new owner handle.
     MatterSubsystem& addMatterSubsystem(MatterSubsystem&);
     ForceSubsystem&  addForceSubsystem(ForceSubsystem&);
 
@@ -85,22 +85,32 @@ public:
     MatterSubsystem& updMatterSubsystem(int i);
     ForceSubsystem&  updForceSubsystem(int i);
 
-    // Global state variables dealing with interaction between forces & matter
-
     // Responses available when the global subsystem is advanced to Dynamics stage.
-    const Vector_<SpatialVec>& getRigidBodyForces(const State&,int matterSubsysNum) const;
-    const Vector_<Vec3>&       getParticleForces(const State&,int matterSubsysNum) const;
-    const Vector&              getMobilityForces(const State&,int matterSubsysNum) const;
-    const Real&                getPotentialEnergy(const State&) const;
-    const Real&                getKineticEnergy(const State&) const;
+    const Real& getPotentialEnergy(const State&) const;
+    const Real& getKineticEnergy(const State&) const;
+    Real getEnergy(const State& s) const {return getPotentialEnergy(s)+getKineticEnergy(s);}
 
-    // TODO: camera facing, screen fixed, calculated geometry (e.g. line between stations
-    // on two different bodies, marker at system COM)
-    void addAnalyticGeometry  (int body, const Transform& X_BG, const AnalyticGeometry&);
-    void addDecorativeGeometry(int body, const Transform& X_BG, const DecorativeGeometry&);
-    const Array<AnalyticGeometry>&   getBodyAnalyticGeometry(int body);
-    const Array<DecorativeGeometry>& getBodyDecorativeGeometry(int body);
+    // These methods are for use by our constituent subsystems to communicate with
+    // each other and with the MultibodySystem as a whole.
 
+    // These Dynamics stage cache entries belong to the global subsystem, which zeroes them at the
+    // start of the Dynamics stage. They are filled in by the force subsystems when
+    // they are realized to dynamics stage. They may then be accessed by matter 
+    // subsystems in the Reacting stage.
+    const Vector_<SpatialVec>& getRigidBodyForces(const State&, int matterSubsysNum) const;
+    const Vector_<Vec3>&       getParticleForces (const State&, int matterSubsysNum) const;
+    const Vector&              getMobilityForces (const State&, int matterSubsysNum) const;
+
+    // These routines are for use by force subsystems during Dynamics stage.
+    Real&                updPotentialEnergy(const State&) const;
+    Vector_<SpatialVec>& updRigidBodyForces(const State&, int matterSubsysNum) const;
+    Vector_<Vec3>&       updParticleForces (const State&, int matterSubsysNum) const;
+    Vector&              updMobilityForces (const State&, int matterSubsysNum) const;
+
+    // This is for use by matter subsystems while realizing Dynamics stage.
+    Real& updKineticEnergy(const State&) const;
+
+    // Private implementation.
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);
     class MultibodySystemRep& updRep();
     const MultibodySystemRep& getRep() const;
