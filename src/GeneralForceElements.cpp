@@ -24,61 +24,53 @@
 
 /**@file
  *
- * Implementation of SimbodyForcesSubsystem and SimbodyForcesSubsystemRep.
+ * Implementation of GeneralForceElements and GeneralForceElementsRep.
  */
 
 #include "Simbody.h"
 #include "simbody/internal/ForceSubsystem.h"
-#include "SimbodyForcesRep.h"
+
+#include "GeneralForceElementsRep.h"
 
 
 namespace SimTK {
 
-
     //////////////////////////
-    // EmptyForcesSubsystem //
+    // GeneralForceElements //
     //////////////////////////
-
-EmptyForcesSubsystem::EmptyForcesSubsystem() : ForceSubsystem() {
-    rep = new EmptyForcesSubsystemRep();
-    rep->setMyHandle(*this);
-}
-    /////////////////////////////
-    // TwoPointSpringSubsystem //
-    /////////////////////////////
 
 
 /*static*/ bool 
-TwoPointSpringSubsystem::isInstanceOf(const ForceSubsystem& s) {
-    return TwoPointSpringSubsystemRep::isA(s.getRep());
+GeneralForceElements::isInstanceOf(const ForceSubsystem& s) {
+    return GeneralForceElementsRep::isA(s.getRep());
 }
-/*static*/ const TwoPointSpringSubsystem&
-TwoPointSpringSubsystem::downcast(const ForceSubsystem& s) {
+/*static*/ const GeneralForceElements&
+GeneralForceElements::downcast(const ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<const TwoPointSpringSubsystem&>(s);
+    return reinterpret_cast<const GeneralForceElements&>(s);
 }
-/*static*/ TwoPointSpringSubsystem&
-TwoPointSpringSubsystem::updDowncast(ForceSubsystem& s) {
+/*static*/ GeneralForceElements&
+GeneralForceElements::updDowncast(ForceSubsystem& s) {
     assert(isInstanceOf(s));
-    return reinterpret_cast<TwoPointSpringSubsystem&>(s);
+    return reinterpret_cast<GeneralForceElements&>(s);
 }
 
-const TwoPointSpringSubsystemRep& 
-TwoPointSpringSubsystem::getRep() const {
-    return dynamic_cast<const TwoPointSpringSubsystemRep&>(*rep);
+const GeneralForceElementsRep& 
+GeneralForceElements::getRep() const {
+    return dynamic_cast<const GeneralForceElementsRep&>(*rep);
 }
-TwoPointSpringSubsystemRep&       
-TwoPointSpringSubsystem::updRep() {
-    return dynamic_cast<TwoPointSpringSubsystemRep&>(*rep);
+GeneralForceElementsRep&       
+GeneralForceElements::updRep() {
+    return dynamic_cast<GeneralForceElementsRep&>(*rep);
 }
 
-TwoPointSpringSubsystem::TwoPointSpringSubsystem() {
-    rep = new TwoPointSpringSubsystemRep();
+GeneralForceElements::GeneralForceElements() {
+    rep = new GeneralForceElementsRep();
     rep->setMyHandle(*this);
 }
 
 
-int TwoPointSpringSubsystem::addLinearTwoPointSpring
+int GeneralForceElements::addLinearTwoPointSpring
    (int body1, const Vec3& s1,
     int body2, const Vec3& s2,
     const Real& stiffness,
@@ -87,7 +79,7 @@ int TwoPointSpringSubsystem::addLinearTwoPointSpring
     return updRep().addLinearTwoPointSpring(body1,s1,body2,s2,stiffness,naturalLength);
 }
 
-int TwoPointSpringSubsystem::addGlobalMobilityDamping (const Real& dampingFactor) {
+int GeneralForceElements::addGlobalMobilityDamping (const Real& dampingFactor) {
     return updRep().addGlobalMobilityDamping(dampingFactor);
 }
 

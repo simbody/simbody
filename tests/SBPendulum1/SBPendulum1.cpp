@@ -77,6 +77,7 @@ static const int  GroundBodyNum = 0; // ground is always body 0
 void stateTest() {
   try {
     State s;
+    s.setNSubsystems(1);
     s.advanceSubsystemToStage(0, Stage::Built);
     s.advanceSystemToStage(Stage::Built);
 
@@ -207,19 +208,20 @@ try {
 
     //pend.endConstruction();
 
-    EmptyForcesSubsystem noForces;
-
 
     MultibodySystem mbs;
-    mbs.addMatterSubsystem(pend);
+    mbs.setMatterSubsystem(pend);
 
     const Vec3 attachPt(1.5, 1, 0);
-    TwoPointSpringSubsystem spring1(
+    GeneralForceElements springs;
+    springs.addLinearTwoPointSpring(
         0, attachPt, 
         1, Vec3(L/2,0,0), 
-        20, 1);
-    mbs.addForceSubsystem(spring1);
+        100, 1);
+    mbs.addForceSubsystem(springs);
 
+    UniformGravitySubsystem gravityForces;
+    mbs.addForceSubsystem(gravityForces); // default is none
 
     VTKReporter vtk(mbs);
 
@@ -256,7 +258,7 @@ try {
     //ExplicitEuler ee(mbs, s);
     bool suppressProjection = false;
     RungeKuttaMerson ee(mbs, s, suppressProjection);
-    ee.setProjectEveryStep(true);
+    ee.setProjectEveryStep(false);
 
     vtk.report(s);
 
@@ -267,8 +269,7 @@ try {
 
     cout << "mbs State as modeled: " << s;
 
-    spring1.updGravity(s) = Vec3(0,-9.8,0);
-    spring1.updStiffness(s) = 1000;
+    gravityForces.updGravity(s) = gravity;
 
 
     //pend.setJointQ(s,1,0,0);
@@ -306,7 +307,6 @@ try {
     Vector              mobilityForces;
 
     pend.resetForces(bodyForces, particleForces, mobilityForces);
-    pend.addInGravity(s, gravity, bodyForces);
     pend.addInMobilityForce(s, 1, 0, 147, mobilityForces);
 
     mbs.realize(s, Stage::Moving);
@@ -349,8 +349,8 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-6);
-    ee.setConstraintTolerance(1e-9);
+    ee.setAccuracy(1e-2);
+    ee.setConstraintTolerance(1e-3);
 
     ee.initialize(); 
     vtk.report(s);

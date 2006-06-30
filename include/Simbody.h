@@ -40,6 +40,6 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/UniformGravitySubsystem.h"
-#include "simbody/internal/SimbodyForces.h"
+#include "simbody/internal/GeneralForceElements.h"
 
 #endif // SimTK_SIMBODY_H_

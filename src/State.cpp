@@ -564,13 +564,6 @@ State::State()
     rep->setMyHandle(*this);
 }
 
-State::State(const String& name, const String& version)
-  : rep(new StateRep()) {
-    rep->setMyHandle(*this);
-    rep->subsystems[0].name = name;
-    rep->subsystems[0].version = version;
-}
-
 State::~State() {
     delete rep; rep=0;
 }
@@ -600,7 +593,7 @@ State& State::operator=(const State& src) {
 }
 
 void State::setNSubsystems(int i) {
-    assert(i >= 1);
+    assert(i >= 0);
     updRep().subsystems.clear();
     updRep().subsystems.resize(i);
 }

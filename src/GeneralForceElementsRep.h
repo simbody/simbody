@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_FORCES_REP_H_
-#define SimTK_SIMBODY_FORCES_REP_H_
+#ifndef SimTK_GENERAL_FORCE_ELEMENTS_REP_H_
+#define SimTK_GENERAL_FORCE_ELEMENTS_REP_H_
 
 /* Copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
@@ -34,7 +34,6 @@
 #include "simbody/internal/State.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MatterSubsystem.h"
-#include "simbody/internal/SimbodyForces.h"
 
 #include "ForceSubsystemRep.h"
 
@@ -42,13 +41,13 @@
 namespace SimTK {
 
 // 
-// Define a linear spring between two stations s1 and s2 of a matter subsystem
+// Define linear springs between two stations s1 and s2 of a matter subsystem
 // (a station is a point fixed on a particular body). A spring has a stiffness k, 
 // and a natural length x0 at which it generates no force. Define the separation
 // vector v=s2-s1, with x=|v| the spring's current length.
 //
-// We will request parameters in the State for k and x0 but require fixed stations.
-// Defaults for k and x0 must be provided on construction.
+// We allocate parameters in the state to hold all the properties of the
+// force elements so that they can be changed and thus the subject of studies.
 //
 // Then the potential energy stored in the spring is 
 //    pe = k(x-x0)^2/2
@@ -58,7 +57,7 @@ namespace SimTK {
 //    f2 = d pe/d s2 = -k(x-x0)v/x.
 // Note that force is undefined when x=0; we'll return NaN vectors in that case.
 
-class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
+class GeneralForceElementsRep : public ForceSubsystemRep {
 
     // state entries
     struct TwoPointLinearSpringParameters {
@@ -121,8 +120,8 @@ class TwoPointSpringSubsystemRep : public ForceSubsystemRep {
     }
 
 public:
-    TwoPointSpringSubsystemRep()
-     : ForceSubsystemRep("TwoPointSpringSubsystem", "0.0.1"), 
+    GeneralForceElementsRep()
+     : ForceSubsystemRep("GeneralForceElements", "0.0.1"), 
        built(false)
     {
     }
@@ -224,28 +223,15 @@ public:
         // Nothing to compute here.
     }
 
-    TwoPointSpringSubsystemRep* cloneSubsystemRep() const {return new TwoPointSpringSubsystemRep(*this);}
+    GeneralForceElementsRep* cloneSubsystemRep() const {return new GeneralForceElementsRep(*this);}
     friend std::ostream& operator<<(std::ostream& o, 
-                         const TwoPointSpringSubsystemRep::Parameters&); 
+                         const GeneralForceElementsRep::Parameters&); 
 };
 // Useless, but required by Value<T>.
 std::ostream& operator<<(std::ostream& o, 
-                         const TwoPointSpringSubsystemRep::Parameters&) 
+                         const GeneralForceElementsRep::Parameters&) 
 {assert(false);return o;}
-
-// This is an empty placeholder force subsystem. It does nothing but exist; is that
-// really so different from the rest of us?
-class EmptyForcesSubsystemRep : public ForceSubsystemRep {
-public:
-    EmptyForcesSubsystemRep()
-      : ForceSubsystemRep("EmptyForcesSubsystem", "0.0.1") { }
-
-    EmptyForcesSubsystemRep* cloneSubsystemRep() const 
-      { return new EmptyForcesSubsystemRep(*this); }
-
-    SimTK_DOWNCAST(EmptyForcesSubsystemRep,ForceSubsystemRep);
-};
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_FORCES_REP_H_
+#endif // SimTK_GENERAL_FORCE_ELEMENTS_REP_H_

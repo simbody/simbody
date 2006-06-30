@@ -29,6 +29,12 @@
 
 namespace SimTK {
 
+// TODO: these need an option to have associated "update" variables in the cache,
+// analogous to the derivative variables qdot,udot,zdot that we create
+// for the continuous variables. Consider whether "discrete variable" should
+// be reserved for those that are updated in time, with something else like
+// "parameter variable" for those that just hold externally set data.
+
 class SimTK_SIMBODY_API DiscreteVariable {
 public:
     DiscreteVariable() : rep(0) { }
@@ -86,17 +92,18 @@ public:
  */
 class SimTK_SIMBODY_API State {
 public:
-    /// Create an empty State with one registered subsystem.
+    /// Create an empty State.
     State();
-    /// Create an empty State with the indicated name and version for
-    /// the 0th subsystem, which belongs to the System.
-    State(const String& name, const String& version);
     ~State();
 
-    /// Must be at least 1 subsystem.
+    /// Set the number of subsystems in this state. This is done during
+    /// initialization of the State by a System; it completely wipes out
+    /// anything that used to be in the state so use cautiously!
     void setNSubsystems(int i);
-    void initializeSubsystem(int i, const String& name, const String& version);
 
+    /// Set the name and version for a given subsystem, which must already
+    /// have a slot allocated.
+    void initializeSubsystem(int i, const String& name, const String& version);
 
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
@@ -115,21 +122,15 @@ public:
     /// interpreted by it. The intent is that they can be used to
     /// perform "santity checks" on deserialized States to make
     /// sure they match the currently instantiated System.
-    /// The subsystem index is returned. It will always be 
-    /// greater than zero since the 0th subsystem is reserved for
-    /// private State entries owned by the System itself.
+    /// The subsystem index (a small integer) is returned.
     int addSubsystem(const String& name, const String& version);
 
     int getNSubsystems() const;
     const String& getSubsystemName   (int subsys) const;
     const String& getSubsystemVersion(int subsys) const;
-    const String& getSystemName()    const {return getSubsystemName(0);}
-    const String& getSystemVersion() const {return getSubsystemVersion(0);}
+    const Stage&  getSubsystemStage  (int subsys) const;
 
-    const Stage& getSubsystemStage(int subsys) const;
-
-    /// This returns the *global* stage for this State; *not* the stage
-    /// of Subsystem 0.
+    /// This returns the *global* stage for this State.
     const Stage& getSystemStage() const;
 
     // If any subsystem or the system stage is currently at or
@@ -150,14 +151,17 @@ public:
     // local to each subsystem. After the System is Modeled, we guarantee that
     // all the q's for a subsystem will be contiguous, and similarly for u's
     // and z's. However, q,u,z will *not* be contiguous with each other.
+    // The *global* y is contiguous, and global q,u,z are contiguous within
+    // y, in that order.
 
     int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
     int allocateU(int subsys, const Vector& uInit); // udot                    "
     int allocateZ(int subsys, const Vector& zInit); // zdot                    "
 
     // These are private to each subsystem and are allocated immediately.
+    // TODO: true discrete variables need an "update" variable in the cache.
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
-    int allocateCacheEntry(int subsys, Stage, AbstractValue* v);
+    int allocateCacheEntry      (int subsys, Stage, AbstractValue* v);
 
     // Per-subsystem access to the global shared variables.
     const Vector& getQ(int subsys) const;
@@ -198,11 +202,14 @@ public:
     Vector& updU();     // Back up to Stage::Moving-1
     Vector& updZ();     // Back up to Stage::Dynamics-1
 
-    const Vector& getYDot() const; // Stage::Reacting
+    const Vector& getYDot()    const; // Stage::Reacting
 
-    const Vector& getQDot() const; // Stage::Moving
-    const Vector& getZDot() const; // Stage::Dynamics
-    const Vector& getUDot() const; // Stage::Reacting
+    // These are just views into YDot.
+    const Vector& getQDot()    const; // Stage::Moving
+    const Vector& getZDot()    const; // Stage::Dynamics
+    const Vector& getUDot()    const; // Stage::Reacting
+
+    // This has its own space, not a view.
     const Vector& getQDotDot() const; // Stage::Reacting
 
     // These are mutable

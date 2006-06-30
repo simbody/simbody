@@ -42,23 +42,6 @@ namespace SimTK {
 // Default copy & assignment just copy the parent class.
 // Default destructor destructs the parent class.
 
-
-// This is a PIMPL virtual method.
-Real ForceSubsystem::calcPotentialEnergy(const State& s) const {
-    return getRep().calcPotentialEnergy(s);
-}
-
-// This is a PIMPL virtual method.
-void ForceSubsystem::addInForces(
-    const State& s, const MatterSubsystem& matter,
-    Vector_<SpatialVec>& rigidBodyForces,
-    Vector_<Vec3>&       particleForces,
-    Vector&              mobilityForces) const 
-{
-    getRep().addInForces(s, matter, 
-                         rigidBodyForces, particleForces, mobilityForces);
-}
-
 /*static*/ bool 
 ForceSubsystem::isInstanceOf(const Subsystem& s) {
     return ForceSubsystemRep::isA(s.getRep());

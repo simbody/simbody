@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_FORCES_H_
-#define SimTK_SIMBODY_FORCES_H_
+#ifndef SimTK_GENERAL_FORCE_ELEMENTS_H_
+#define SimTK_GENERAL_FORCE_ELEMENTS_H_
 
 /* Portions copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
@@ -39,17 +39,25 @@
 namespace SimTK {
 
 /**
- * This is a concrete subsystem which applies a single linear, two-point spring.
+ * This is a concrete subsystem which can apply a variety of
+ * simple force elements to the MatterSubsystem within a MultibodySystem.
  */
-class SimTK_SIMBODY_API TwoPointSpringSubsystem : public ForceSubsystem {
+class SimTK_SIMBODY_API GeneralForceElements : public ForceSubsystem {
 public:
-    TwoPointSpringSubsystem();
+    GeneralForceElements();
 
     int addLinearTwoPointSpring(int body1, const Vec3& s1,
                                 int body2, const Vec3& s2,
                                 const Real& stiffness,
                                 const Real& naturalLength);
 
+    // Each generalized speed u_i feels a force -dampingFactor*u_i.
+    // This is not physically meaningful but can be useful in some
+    // circumstances just to drain energy out of the model when
+    // the specific energy-draining mechanism is not important.
+    // You can have more than one of these in which case the
+    // dampingFactors are added. No individual dampingFactor is
+    // allowed to be negative.
     int addGlobalMobilityDamping(const Real& dampingFactor);
 
     int addMobilitySpring(int body, int axis,
@@ -59,36 +67,12 @@ public:
     int addMobilityDamper(int body, int axis,
                           const Real& dampingFactor);
 
-    SimTK_PIMPL_DOWNCAST(TwoPointSpringSubsystem, ForceSubsystem);
+    SimTK_PIMPL_DOWNCAST(GeneralForceElements, ForceSubsystem);
 private:
-    class TwoPointSpringSubsystemRep& updRep();
-    const TwoPointSpringSubsystemRep& getRep() const;
-};
-
-/**
- * This is a concrete subsystem which applies no forces.
- */
-class SimTK_SIMBODY_API EmptyForcesSubsystem : public ForceSubsystem {
-public:
-    EmptyForcesSubsystem();
-
-    // These are just the defaults but are nice to have explicitly for debugging.
-    ~EmptyForcesSubsystem() {
-    }
-    EmptyForcesSubsystem(const EmptyForcesSubsystem& e) 
-      : ForceSubsystem(e) {
-    }
-    EmptyForcesSubsystem& operator=(const EmptyForcesSubsystem& e) {
-        ForceSubsystem::operator=(e);
-        return *this;
-    }
-
-    SimTK_PIMPL_DOWNCAST(EmptyForcesSubsystem, ForceSubsystem);
-private:
-    class EmptyForcesSubsystemRep& updRep();
-    const EmptyForcesSubsystemRep& getRep() const;
+    class GeneralForceElementsRep& updRep();
+    const GeneralForceElementsRep& getRep() const;
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_FORCES_H_
+#endif // SimTK_GENERAL_FORCE_ELEMENTS_H_

@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(150, -40, -50);
-        TwoPointSpringSubsystem forces;
+        GeneralForceElements forces;
         State s;
         MultibodySystem mbs;
         mbs.setMatterSubsystem(myRNA);
