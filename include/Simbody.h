@@ -41,5 +41,6 @@
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/UniformGravitySubsystem.h"
 #include "simbody/internal/GeneralForceElements.h"
+#include "simbody/internal/HuntCrossleyContact.h"
 
 #endif // SimTK_SIMBODY_H_

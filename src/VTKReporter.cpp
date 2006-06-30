@@ -34,6 +34,7 @@
 #include "vtkProperty.h"
 #include "vtkAssembly.h"
 #include "vtkCamera.h"
+#include "vtkLight.h"
 #include "vtkActor.h"
 #include "vtkFollower.h"
 #include "vtkTransform.h"
@@ -63,11 +64,13 @@ static const Vec3 DefaultBodyColor       = Gray;
 class VTKReporterRep {
 public:
     // no default constructor -- must have MultibodySystem always
-    VTKReporterRep(const MultibodySystem& m);
+    VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeometry=true);
 
     ~VTKReporterRep() {
         deletePointers();
     }
+
+    void disableDefaultGeometry() { defaultGeometryEnabled=false;}
 
     // This will make a copy of the supplied DecorativeGeometry.
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
@@ -100,6 +103,8 @@ public:
 private:
     friend class VTKReporter;
     VTKReporter* myHandle;     // the owner of this rep
+
+    bool defaultGeometryEnabled;
 
     const MultibodySystem& mbs;
 
@@ -140,8 +145,8 @@ bool VTKReporter::isOwnerHandle() const {
 }
 bool VTKReporter::isEmptyHandle() const {return rep==0;}
 
-VTKReporter::VTKReporter(const MultibodySystem& m) : rep(0) {
-    rep = new VTKReporterRep(m);
+VTKReporter::VTKReporter(const MultibodySystem& m, bool generateDefaultGeometry) : rep(0) {
+    rep = new VTKReporterRep(m, generateDefaultGeometry);
     rep->setMyHandle(*this);
 }
 
@@ -267,8 +272,8 @@ void VTKReporterRep::addRubberBandLine(int b1, const Vec3& station1,
     renderer->AddActor(info.actor);
 }
 
-VTKReporterRep::VTKReporterRep(const MultibodySystem& m) 
-    : myHandle(0), mbs(m) 
+VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeometry) 
+    : myHandle(0), defaultGeometryEnabled(generateDefaultGeometry), mbs(m) 
 {
     zeroPointers();
 
@@ -285,6 +290,30 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
+
+    vtkLight* light = vtkLight::New();
+    light->SetPosition(-1,0,0);
+    light->SetFocalPoint(0,0,0);
+    light->SetColor(1,1,1);
+    light->SetIntensity(.75);
+    renderer->AddLight(light);
+    light->Delete();
+
+    light = vtkLight::New();
+    light->SetPosition(1,0,0);
+    light->SetFocalPoint(0,0,0);
+    light->SetColor(1,1,1);
+    light->SetIntensity(.75);
+    renderer->AddLight(light);
+    light->Delete();
+
+    light = vtkLight::New();
+    light->SetPosition(0,1,1);
+    light->SetFocalPoint(0,0,0);
+    light->SetColor(1,1,1);
+    light->SetIntensity(.75);
+    renderer->AddLight(light);
+    light->Delete();
 
     renWin->AddRenderer(renderer);
 
@@ -306,6 +335,12 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m)
         if (jParent.T().norm() > bodies[parent].scale)
             bodies[parent].scale = jParent.T().norm();
     }
+
+    if (!defaultGeometryEnabled) {
+        renWin->Render();
+        return;
+    }
+
 
     for (int i=0; i<(int)bodies.size(); ++i) {
         const Real scale = bodies[i].scale;
@@ -351,11 +386,12 @@ void VTKReporterRep::setCameraDefault() {
     renderer->ResetCamera();
     Vec3 pos;
     renderer->GetActiveCamera()->GetPosition(pos[0],pos[1],pos[2]);
-    pos *= 4;
-    renderer->GetActiveCamera()->SetPosition(pos[0],pos[1],pos[2]);
+    pos *= 1.5;
+    renderer->GetActiveCamera()->SetPosition(/*pos[0],pos[1],*/0,0.1*pos[2],pos[2]);
     Real nearClip, farClip;
     renderer->GetActiveCamera()->GetClippingRange(nearClip,farClip);
     renderer->GetActiveCamera()->SetClippingRange(nearClip/10, farClip*10);
+
 }
 
 void VTKReporterRep::report(const State& s) {

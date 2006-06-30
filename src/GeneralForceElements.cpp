@@ -118,7 +118,7 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 public:
     GeneralForceElementsRep()
      : ForceSubsystemRep("GeneralForceElements", "0.0.1"), 
-       built(false)
+       parameterVarsIndex(-1), built(false)
     {
     }
 

@@ -50,12 +50,14 @@ class VTKDecoration;
 class SimTK_SIMBODY_API VTKReporter {
 public:
     VTKReporter() : rep(0) { }
-    explicit VTKReporter(const MultibodySystem& m);
+    explicit VTKReporter(const MultibodySystem& m, bool generateDefaultGeometry=true);
     VTKReporter(const VTKReporter&);
     ~VTKReporter();
     VTKReporter& operator=(const VTKReporter&);
 
     void report(const State& s);
+
+    void disableDefaultGeometry();
 
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
     void addRubberBandLine(int b1, const Vec3& station1, int b2, const Vec3& station2,
