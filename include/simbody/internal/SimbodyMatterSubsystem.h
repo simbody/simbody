@@ -230,11 +230,6 @@ public:
     bool isJointPrescribed  (const State&, int joint)      const;
     bool isConstraintEnabled(const State&, int constraint) const;
 
-
-    // Parameter setting & getting TODO
-    void setGravity(State&, const Vec3& g) const; // any time after modeling
-    const Vec3& getGravity(const State&) const;
-
     void setJointQ(State&, int body, int axis, const Real&) const;
     void setJointU(State&, int body, int axis, const Real&) const;
 

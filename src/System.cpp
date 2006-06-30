@@ -87,8 +87,8 @@ Real System::calcYErrorNorm(const State& s, const Vector& y_err) const {
     return getRep().calcYErrorNorm(s,y_err);
 }
 
-Subsystem& System::takeOverSubsystem(int subsys, Subsystem& src) {
-    return updRep().takeOverSubsystem(subsys,src);
+int System::takeOverSubsystem(Subsystem& src) {
+    return updRep().takeOverSubsystem(src);
 }
 
     ///////////////

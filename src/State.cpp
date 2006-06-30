@@ -292,7 +292,7 @@ class StateRep {
 public:
     StateRep() 
       : t(CNT<Real>::getNaN()), systemStage(Stage::Allocated), 
-        subsystems(1), myHandle(0) 
+        myHandle(0) 
     { 
     }
 

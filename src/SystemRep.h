@@ -40,13 +40,10 @@ public:
     SystemRep() 
       : systemName("<NONAME>"), systemVersion("0.0.0"), myHandle(0)
     {
-        //takeOverSubsystem(0, DefaultSystemSubsystem());
     }
-    SystemRep(int nSubsystems, const String& name, const String& version) 
-      : systemName(name), systemVersion(version), subsystems(nSubsystems), myHandle(0)
+    SystemRep(const String& name, const String& version) 
+      : systemName(name), systemVersion(version), myHandle(0)
     {
-        //assert(nSubsystems >= 1);
-        //takeOverSubsystem(0, DefaultSystemSubsystem());
     }
     virtual ~SystemRep() {
         clearMyHandle();
@@ -66,22 +63,22 @@ public:
         return dup;
     }
 
-	// Take over ownership from the Subsystem handle, install
-    // it into a particular subsystem slot, and return the
-	// new handle. This is only allowed if (a) the subsystem
-    // slot is empty, and (b) the supplied Subsytem
-	// already has a rep, but is NOT part of some other System.
-	Subsystem& takeOverSubsystem(int subsys, Subsystem& src) {
-        assert(0 <= subsys && subsys < getNSubsystems());
-        assert(!subsystems[subsys].hasRep());
+	// Take over ownership from the Subsystem handle, allocate a new
+    // subsystem slot for it, and return the slot number. This is only 
+    // allowed if the supplied Subsytem already has a rep, but is
+    // NOT part of some other System.
+	int takeOverSubsystem(Subsystem& src) {
 		assert(src.hasRep() && !src.isInSystem()); // TODO
         assert(src.isOwnerHandle());
 
-		Subsystem& s = subsystems[subsys];
+        const int id = subsystems.size();
+        subsystems.resize(id+1); // grow
+		Subsystem& s = subsystems.back(); // refer to the empty handle
+
 		s.setRep(src.updRep());			 // reference the passed-in rep
 		s.updRep().setMyHandle(s);	     // steal ownership
-        s.updRep().setSystem(*myHandle, subsys);
-		return s;
+        s.updRep().setSystem(*myHandle, id);
+		return id;
 	}
 
     virtual SystemRep* cloneSystemRep() const = 0;

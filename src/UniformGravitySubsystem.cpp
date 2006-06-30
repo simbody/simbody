@@ -230,39 +230,37 @@ void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
     const Real& gz  = getPEOffset(s); // amount to subtract from gh for pe
 
     const MultibodySystem& mbs = MultibodySystem::downcast(getSystem());
-    for (int msub=0; msub < mbs.getNMatterSubsystems(); ++msub) {
-        const MatterSubsystem& matter = mbs.getMatterSubsystem(msub);
-        const int nBodies    = matter.getNBodies();
-        const int nParticles = matter.getNParticles();
+    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const int nBodies    = matter.getNBodies();
+    const int nParticles = matter.getNParticles();
 
-        Vector_<SpatialVec>& rigidBodyForces = mbs.updRigidBodyForces(s,msub);
-        Vector_<Vec3>&       particleForces  = mbs.updParticleForces(s,msub);
-        Real&                pe              = mbs.updPotentialEnergy(s);
+    Vector_<SpatialVec>& rigidBodyForces = mbs.updRigidBodyForces(s);
+    Vector_<Vec3>&       particleForces  = mbs.updParticleForces(s);
+    Real&                pe              = mbs.updPotentialEnergy(s);
 
-        assert(rigidBodyForces.size() == nBodies);
-        assert(particleForces.size() == nParticles);
+    assert(rigidBodyForces.size() == nBodies);
+    assert(particleForces.size() == nParticles);
 
-        if (nParticles) {
-            const Vector& m = matter.getParticleMasses(s);
-            const Vector_<Vec3>& loc_G = matter.getParticleLocations(s);
-            for (int i=0; i < nParticles; ++i) {
-                pe -= m[i]*(~g*loc_G[i] + gz); // odd signs because height is in -g direction
-                particleForces[i] += g * m[i];
-            }
+    if (nParticles) {
+        const Vector& m = matter.getParticleMasses(s);
+        const Vector_<Vec3>& loc_G = matter.getParticleLocations(s);
+        for (int i=0; i < nParticles; ++i) {
+            pe -= m[i]*(~g*loc_G[i] + gz); // odd signs because height is in -g direction
+            particleForces[i] += g * m[i];
         }
+    }
 
-        // no need to apply gravity to Ground!
-        for (int i=1; i < nBodies; ++i) {
-            const Real&      m     = matter.getBodyMass(s,i);
-            const Vec3&      com_B = matter.getBodyCenterOfMassStation(s,i);
-            const Transform& X_GB  = matter.getBodyConfiguration(s,i);
-            const Vec3       com_B_G = X_GB.R()*com_B;
-            const Vec3       com_G   = X_GB.T() + com_B_G;
-            const Vec3       frc_G   = m*g;
+    // no need to apply gravity to Ground!
+    for (int i=1; i < nBodies; ++i) {
+        const Real&      m       = matter.getBodyMass(s,i);
+        const Vec3&      com_B   = matter.getBodyCenterOfMassStation(s,i);
+        const Transform& X_GB    = matter.getBodyConfiguration(s,i);
+        const Vec3       com_B_G = X_GB.R()*com_B;
+        const Vec3       com_G   = X_GB.T() + com_B_G;
+        const Vec3       frc_G   = m*g;
 
-            pe -= m*(~g*com_G + gz); // odd signs because height is in -g direction
-            rigidBodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
-        }
+        pe -= m*(~g*com_G + gz); // odd signs because height is in -g direction
+        rigidBodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
     }
 }
 

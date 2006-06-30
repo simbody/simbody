@@ -153,8 +153,6 @@ public:
 
 class SBParameterCache {
 public:
-    bool applyGravity;  // set after we see what value is in gravity parameter
-
     // TODO: Parameters
     //   body mass props; particle masses
     //   X_BJ, X_PJi transforms
@@ -162,7 +160,6 @@ public:
 
 public:
     void allocate(const SBConstructionCache&) {
-        applyGravity = false;
     }
 };
 
@@ -172,7 +169,6 @@ public:
     // none
 public:
     void allocate(const SBConstructionCache& tree) {
-
     }
 };
 
@@ -436,21 +432,17 @@ public:
 
 class SBParameterVars {
 public:
-    Vec3 gravity;
-
     // TODO: body masses, etc.
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
     void allocate(const SBConstructionCache&) const {
         SBParameterVars& mutvars = *const_cast<SBParameterVars*>(this);
-        mutvars.gravity.setToNaN();
     }
 
     // Call this from Modeling stage to put some reasonable
     // defaults here.
     void initialize() {
-        gravity = Vec3(0);
     }
 
 };

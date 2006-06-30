@@ -318,11 +318,24 @@ int main(int argc, char** argv) {
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(150, -40, -50);
-        TwoPointSpringSubsystem forces(0,attachPt,myRNA.getNBodies()-1,Vec3(0),10000.,1.);
+        TwoPointSpringSubsystem forces;
         State s;
         MultibodySystem mbs;
-        mbs.addMatterSubsystem(myRNA);
-        //mbs.addForceSubsystem(forces);
+        mbs.setMatterSubsystem(myRNA);
+
+        forces.addLinearTwoPointSpring(0, attachPt,
+                                       myRNA.getNBodies()-1, Vec3(0),
+                                       100.,  // stiffness
+                                       1.);    // natural length
+
+        forces.addLinearTwoPointSpring(0, -attachPt,
+                                       myRNA.getNBodies()-1, Vec3(0),
+                                       1000.,  // stiffness
+                                       1.);    // natural length
+
+        forces.addGlobalMobilityDamping(1000);
+
+        mbs.addForceSubsystem(forces);
         UniformGravitySubsystem ugs(Vec3(0, -g, 0));
         mbs.addForceSubsystem(ugs);
 
@@ -332,8 +345,8 @@ int main(int argc, char** argv) {
         mbs.realize(s, Stage::Modeled);
         //forces.updGravity(s) = Vec3(0, -g, 0);
         //forces.updDamping(s) = 1000;
-        //ugs.updGravity(s) = -1*ugs.getGravity(s);
-        ugs.updZeroHeight(s) = -0.8;
+        ugs.updGravity(s) = -1*ugs.getGravity(s);
+        //ugs.updZeroHeight(s) = -0.8;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);
@@ -352,6 +365,7 @@ int main(int argc, char** argv) {
 
         DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
         display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+        display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
         const Real dt = 0.05; // output intervals
 

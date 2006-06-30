@@ -28,6 +28,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
+#include "simbody/internal/MatterSubsystem.h"
 
 #include <vector>
 
@@ -44,7 +45,7 @@ class ForceSubsystem;
  * The job of the MultibodySystem class is to coordinate the activities of various
  * subsystems which can be part of a multibody system. We insist on having exactly one
  * MatterSubsystem, and we would like also to have:
- *    - a ForceSubsystem
+ *    - one or more ForceSubsystems
  *    - an AnalyticGeometrySubsystem
  *    - a MassPropertiesSubsystem
  *    - a VisualizationSubsystem
@@ -53,7 +54,7 @@ class ForceSubsystem;
 class SimTK_SIMBODY_API MultibodySystem : public System {
 public:
     MultibodySystem();
-    MultibodySystem(MatterSubsystem& m, ForceSubsystem& f);
+    MultibodySystem(MatterSubsystem& m);
 
     // We inherit realize() from System, and add constraint projection here.
     // We are given a state whose continuous state variables y may violate
@@ -74,16 +75,11 @@ public:
                  ) const;
 
 
-    // Steals ownership of the source; returns a reference to the new owner handle.
-    MatterSubsystem& addMatterSubsystem(MatterSubsystem&);
-    ForceSubsystem&  addForceSubsystem(ForceSubsystem&);
-
-    int getNMatterSubsystems() const;
-    int getNForceSubsystems()  const;
-    const MatterSubsystem& getMatterSubsystem(int i) const;
-    const ForceSubsystem&  getForceSubsystem(int i)  const;
-    MatterSubsystem& updMatterSubsystem(int i);
-    ForceSubsystem&  updForceSubsystem(int i);
+    // Steals ownership of the source; returns subsystem ID number.
+    int setMatterSubsystem(MatterSubsystem&);
+    int addForceSubsystem(ForceSubsystem&);
+    const MatterSubsystem& getMatterSubsystem() const;
+    MatterSubsystem&       updMatterSubsystem();
 
     // Responses available when the global subsystem is advanced to Dynamics stage.
     const Real& getPotentialEnergy(const State&) const;
@@ -95,19 +91,19 @@ public:
 
     // These Dynamics stage cache entries belong to the global subsystem, which zeroes them at the
     // start of the Dynamics stage. They are filled in by the force subsystems when
-    // they are realized to dynamics stage. They may then be accessed by matter 
-    // subsystems in the Reacting stage.
-    const Vector_<SpatialVec>& getRigidBodyForces(const State&, int matterSubsysNum) const;
-    const Vector_<Vec3>&       getParticleForces (const State&, int matterSubsysNum) const;
-    const Vector&              getMobilityForces (const State&, int matterSubsysNum) const;
+    // they are realized to dynamics stage. They may then be accessed by the matter 
+    // subsystem in the Reacting stage.
+    const Vector_<SpatialVec>& getRigidBodyForces(const State&) const;
+    const Vector_<Vec3>&       getParticleForces (const State&) const;
+    const Vector&              getMobilityForces (const State&) const;
 
     // These routines are for use by force subsystems during Dynamics stage.
     Real&                updPotentialEnergy(const State&) const;
-    Vector_<SpatialVec>& updRigidBodyForces(const State&, int matterSubsysNum) const;
-    Vector_<Vec3>&       updParticleForces (const State&, int matterSubsysNum) const;
-    Vector&              updMobilityForces (const State&, int matterSubsysNum) const;
+    Vector_<SpatialVec>& updRigidBodyForces(const State&) const;
+    Vector_<Vec3>&       updParticleForces (const State&) const;
+    Vector&              updMobilityForces (const State&) const;
 
-    // This is for use by matter subsystems while realizing Dynamics stage.
+    // This is for use by the matter subsystem while realizing Dynamics stage.
     Real& updKineticEnergy(const State&) const;
 
     // Private implementation.

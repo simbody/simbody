@@ -154,7 +154,6 @@ public:
     const Transform&  getBodyConfiguration (const State& s, int body) const;
     const SpatialVec& getBodyVelocity      (const State& s, int body) const;
 
-    void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const;
     void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
                                  Vector_<SpatialVec>& rigidBodyForces) const;
     void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 

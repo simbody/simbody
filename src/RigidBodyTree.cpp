@@ -376,9 +376,6 @@ void RigidBodyTree::realizeParameters(const State& s) const {
     SBParameterCache& pc = updParameterCache(s);
     pc.allocate(constructionCache);
 
-    // Calculate whether we should apply gravity.
-    pc.applyGravity = !(pv.gravity == Vec3(0.));
-
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeParameters(mv,pv,pc); 
@@ -462,10 +459,9 @@ void RigidBodyTree::realizeDynamics(const State& s)  const {
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
     mbs.getRep().updKineticEnergy(s) += calcKineticEnergy(s);
 
-    const int matterSubsys = getMyMatterSubsystemIndex();
-    dc.appliedMobilityForces  = mbs.getMobilityForces(s, matterSubsys);
-    dc.appliedParticleForces  = mbs.getParticleForces(s, matterSubsys);
-    dc.appliedRigidBodyForces = mbs.getRigidBodyForces(s, matterSubsys);
+    dc.appliedMobilityForces  = mbs.getMobilityForces(s);
+    dc.appliedParticleForces  = mbs.getParticleForces(s);
+    dc.appliedRigidBodyForces = mbs.getRigidBodyForces(s);
 }
 
 void RigidBodyTree::realizeReaction(const State& s)  const {
@@ -517,9 +513,6 @@ void RigidBodyTree::setDefaultModelingValues(const SBConstructionCache& construc
 void RigidBodyTree::setDefaultParameterValues(const SBModelingVars& mv, 
                                               SBParameterVars& paramVars) const 
 {
-    // Tree-level defaults
-    paramVars.gravity = 0.;
-
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
@@ -665,17 +658,6 @@ void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V
     const SBModelingVars& mv = getModelingVars(s);
     Vector& u = updU(s);
     n.setMobilizerVelocity(mv, V_JbJ, u);
-}
-
-void RigidBodyTree::addInGravity(const State& s, const Vec3& g,
-                                 Vector_<SpatialVec>& rigidBodyForces) const 
-{
-    assert(getStage(s) >= Stage::Configured);
-
-    for (int body=1; body<getNBodies(); ++body) {
-        const RigidBodyNode& n = getRigidBodyNode(body);
-        addInPointForce(s, body, n.getCOM_B(), n.getMass()*g, rigidBodyForces);
-    }
 }
 
 void RigidBodyTree::addInPointForce(const State& s, int body, 

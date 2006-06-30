@@ -63,15 +63,10 @@ public:
                      Vector_<Vec3>&       particleForces,
                      Vector&              mobilityForces) const 
     {
-        bodyForces.resize(getNBodies()); bodyForces.setToZero();
-        particleForces.resize(0); // TODO
+        bodyForces.resize(getNBodies());         bodyForces.setToZero();
+        particleForces.resize(getNParticles());  particleForces.setToZero();
         mobilityForces.resize(getNMobilities()); mobilityForces.setToZero();
     }
-
-
-    /// Add in gravity to a body forces vector. Be sure to call this only once
-    /// per evaluation! Must be realized to Configured stage prior to call.
-    void addInGravity(const State&, const Vec3& g, Vector_<SpatialVec>& bodyForces) const;
 
     /// Apply a force to a point on a body (a station). Provide the
     /// station in the body frame, force in the ground frame. Must

@@ -45,23 +45,10 @@ class State;
 class MatterSubsystemRep : public SubsystemRep {
 public:
     MatterSubsystemRep(const String& name, const String& version)
-      : SubsystemRep(name,version), myMatterSubsysIndex(-1)
+      : SubsystemRep(name,version)
     {
     }
     virtual ~MatterSubsystemRep() { }
-
-    // The containing MultibodySystem may contain more than one matter
-    // subsystem. It assigns a "matter subsystem index" to each one,
-    // for use in accessing per-matter-subsystem data.
-    void setMyMatterSubsystemIndex(int ix) {
-        assert(ix >= 0);
-        assert(myMatterSubsysIndex == -1);
-        myMatterSubsysIndex = ix;
-    }
-    int getMyMatterSubsystemIndex() const {
-        assert(myMatterSubsysIndex >= 0);
-        return myMatterSubsysIndex;
-    }
 
     // Return the MultibodySystem which owns this MatterSubsystem.
     const MultibodySystem& getMultibodySystem() const {
@@ -95,7 +82,6 @@ public:
 
     // These are simple operators for helping force subsystems put their forces in the 
     // right slots.
-    virtual void addInGravity(const State& s, const Vec3& g, Vector_<SpatialVec>& rigidBodyForces) const = 0;
     virtual void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
                                  Vector_<SpatialVec>& rigidBodyForces) const = 0;
     virtual void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
@@ -144,8 +130,6 @@ public:
     }
 
     SimTK_DOWNCAST(MatterSubsystemRep, SubsystemRep);
-private:
-    int myMatterSubsysIndex;
 };
 
 

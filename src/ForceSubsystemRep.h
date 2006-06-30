@@ -40,23 +40,10 @@ namespace SimTK {
 class ForceSubsystemRep : public SubsystemRep {
 public:
     ForceSubsystemRep(const String& name, const String& version) 
-      : SubsystemRep(name,version), myForceSubsysIndex(-1)
+      : SubsystemRep(name,version)
     {
     }
     virtual ~ForceSubsystemRep() { }
-
-    // The containing MultibodySystem may contain more than one force
-    // subsystem. It assigns a "force subsystem index" to each one,
-    // for use in accessing per-force-subsystem data.
-    void setMyForceSubsystemIndex(int ix) {
-        assert(ix >= 0);
-        assert(myForceSubsysIndex == -1);
-        myForceSubsysIndex = ix;
-    }
-    int getMyForceSubsystemIndex() const {
-        assert(myForceSubsysIndex >= 0);
-        return myForceSubsysIndex;
-    }
 
     // Return the MultibodySystem which owns this ForceSubsystem.
     const MultibodySystem& getMultibodySystem() const {
@@ -73,8 +60,6 @@ public:
                              Vector&              mobilityForces) const { };
 
     SimTK_DOWNCAST(ForceSubsystemRep, SubsystemRep);
-private:
-    int myForceSubsysIndex;
 };
 
 } // namespace SimTK

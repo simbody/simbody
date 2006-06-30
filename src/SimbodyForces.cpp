@@ -72,68 +72,24 @@ TwoPointSpringSubsystem::updRep() {
     return dynamic_cast<TwoPointSpringSubsystemRep&>(*rep);
 }
 
-TwoPointSpringSubsystem::TwoPointSpringSubsystem
-    (int b1, const Vec3& s1, int b2, const Vec3& s2,
-     const Real& k, const Real& x0) : ForceSubsystem() 
-{
-  rep = new TwoPointSpringSubsystemRep(b1,s1,b2,s2,k,x0);
-  rep->setMyHandle(*this);
-}
-
-
-const Vec3& TwoPointSpringSubsystem::getGravity(const State& s) const {
-    return getRep().getGravity(s);
-}
-Vec3& TwoPointSpringSubsystem::updGravity(State& s) const {
-    return getRep().updGravity(s);
-}
-const Real& TwoPointSpringSubsystem::getDamping(const State& s) const {
-    return getRep().getDamping(s);
-}
-Real& TwoPointSpringSubsystem::updDamping(State& s) const {
-    return getRep().updDamping(s);
-}
-const Real& TwoPointSpringSubsystem::getStiffness(const State& s) const {
-    return getRep().getStiffness(s);
-}
-Real& TwoPointSpringSubsystem::updStiffness(State& s) const {
-    return getRep().updStiffness(s);
-}
-
-const Real& TwoPointSpringSubsystem::getNaturalLength(const State& s) const {
-    return getRep().getNaturalLength(s);
-}
-Real& TwoPointSpringSubsystem::updNaturalLength(State& s) const {
-    return getRep().updNaturalLength(s);
-}
-
-const Real& TwoPointSpringSubsystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
-}
-const Vec3& TwoPointSpringSubsystem::getForceOnStation1(const State& s) const {
-    return getRep().getForceOnStation1(s);
-}
-
-
-    ////////////////////////////
-    // SimbodyForcesSubsystem //
-    ////////////////////////////
-/*
-SimbodyForcesSubsystem::SimbodyForcesSubsystem() : MechanicalForcesSubsystem() {
-    rep = new SimbodyForcesSubsystemRep();
+TwoPointSpringSubsystem::TwoPointSpringSubsystem() {
+    rep = new TwoPointSpringSubsystemRep();
     rep->setMyHandle(*this);
 }
 
-SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::updRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
-}
-const SimbodyForcesSubsystemRep& SimbodyForcesSubsystem::getRep() {
-    return SimbodyForcesSubsystemRep::downcast(*rep);
+
+int TwoPointSpringSubsystem::addLinearTwoPointSpring
+   (int body1, const Vec3& s1,
+    int body2, const Vec3& s2,
+    const Real& stiffness,
+    const Real& naturalLength) 
+{
+    return updRep().addLinearTwoPointSpring(body1,s1,body2,s2,stiffness,naturalLength);
 }
 
-const Real& SimbodyForcesSubsystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
+int TwoPointSpringSubsystem::addGlobalMobilityDamping (const Real& dampingFactor) {
+    return updRep().addGlobalMobilityDamping(dampingFactor);
 }
-*/
+
 } // namespace SimTK
 

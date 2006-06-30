@@ -91,10 +91,8 @@ public:
     Real calcYErrorNorm(const State&, const Vector& y_err) const;
 
     /// Take over ownership of the supplied subsystem and install it into 
-    /// the indicated subsystem slot, which must already exist and not
-    /// have anything in it. A reference to the new handle is returned,
-    /// exactly as though updSubsystem(subsys) had been called.
-    Subsystem& takeOverSubsystem(int subsys, Subsystem& src);
+    /// the next free subsystem slot. The new slot index is returned.
+    int takeOverSubsystem(Subsystem& src);
 
     /// How may Subsystems are in here?
     int getNSubsystems() const;

@@ -121,10 +121,6 @@ MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const {
     return getRep().getBodyVelocity(s,bodyNum); 
 }
 
-void MatterSubsystem::addInGravity(const State& s, const Vec3& g, 
-                                   Vector_<SpatialVec>& bodyForces) const {
-    getRep().addInGravity(s,g,bodyForces);
-}
 void MatterSubsystem::addInPointForce(const State& s, int body, const Vec3& stationInB, 
                                       const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const {
     getRep().addInPointForce(s,body,stationInB,forceInG,bodyForces); 

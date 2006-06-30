@@ -70,16 +70,15 @@ MultibodySystem::updRep() {
 MultibodySystem::MultibodySystem() {
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
+    updRep().setGlobalSubsystem();
 }
 
-MultibodySystem::MultibodySystem(MatterSubsystem& m, 
-                                 ForceSubsystem& f)
+MultibodySystem::MultibodySystem(MatterSubsystem& m)
 {
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
-
-    addMatterSubsystem(m);
-    addForceSubsystem(f);
+    updRep().setGlobalSubsystem();
+    setMatterSubsystem(m);
 }
 
 bool MultibodySystem::project(State& s, Vector& y_err, 
@@ -93,43 +92,22 @@ bool MultibodySystem::project(State& s, Vector& y_err,
 }
 
 
-MatterSubsystem&       
-MultibodySystem::addMatterSubsystem(MatterSubsystem& m) {
-    return MultibodySystemRep::downcast(*rep).addMatterSubsystem(m);
+int MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {
+    return MultibodySystemRep::downcast(*rep).setMatterSubsystem(m);
 }
-ForceSubsystem& 
-MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
+int MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
     return MultibodySystemRep::downcast(*rep).addForceSubsystem(f);
 }
 
-int MultibodySystem::getNMatterSubsystems() const {
-    return MultibodySystemRep::downcast(*rep).getNMatterSubsystems();
-}
-
-int MultibodySystem::getNForceSubsystems()  const {
-    return MultibodySystemRep::downcast(*rep).getNForceSubsystems();
-}
-
 const MatterSubsystem&       
-MultibodySystem::getMatterSubsystem(int i) const {
-    return MultibodySystemRep::downcast(*rep).getMatterSubsystem(i);
-}
-
-const ForceSubsystem& 
-MultibodySystem::getForceSubsystem(int i) const {
-    return MultibodySystemRep::downcast(*rep).getForceSubsystem(i);
+MultibodySystem::getMatterSubsystem() const {
+    return MultibodySystemRep::downcast(*rep).getMatterSubsystem();
 }
 
 MatterSubsystem&       
-MultibodySystem::updMatterSubsystem(int i) {
-    return MultibodySystemRep::downcast(*rep).updMatterSubsystem(i);
+MultibodySystem::updMatterSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updMatterSubsystem();
 }
-
-ForceSubsystem& 
-MultibodySystem::updForceSubsystem(int i) {
-    return MultibodySystemRep::downcast(*rep).updForceSubsystem(i);
-}
-
 
 const Real&                
 MultibodySystem::getPotentialEnergy(const State& s) const {
@@ -141,16 +119,16 @@ MultibodySystem::getKineticEnergy(const State& s) const {
 }
 
 const Vector_<SpatialVec>& 
-MultibodySystem::getRigidBodyForces(const State& s, int matterSubsysNum) const {
-    return getRep().getRigidBodyForces(s,matterSubsysNum);
+MultibodySystem::getRigidBodyForces(const State& s) const {
+    return getRep().getRigidBodyForces(s);
 }
 const Vector_<Vec3>&       
-MultibodySystem::getParticleForces(const State& s, int matterSubsysNum) const {
-    return getRep().getParticleForces(s,matterSubsysNum);
+MultibodySystem::getParticleForces(const State& s) const {
+    return getRep().getParticleForces(s);
 }
 const Vector&              
-MultibodySystem::getMobilityForces(const State& s, int matterSubsysNum) const {
-    return getRep().getMobilityForces(s,matterSubsysNum);
+MultibodySystem::getMobilityForces(const State& s) const {
+    return getRep().getMobilityForces(s);
 }
 
 Real&                
@@ -163,16 +141,16 @@ MultibodySystem::updKineticEnergy(const State& s) const {
 }
 
 Vector_<SpatialVec>& 
-MultibodySystem::updRigidBodyForces(const State& s, int matterSubsysNum) const {
-    return getRep().updRigidBodyForces(s,matterSubsysNum);
+MultibodySystem::updRigidBodyForces(const State& s) const {
+    return getRep().updRigidBodyForces(s);
 }
 Vector_<Vec3>&       
-MultibodySystem::updParticleForces(const State& s, int matterSubsysNum) const {
-    return getRep().updParticleForces(s,matterSubsysNum);
+MultibodySystem::updParticleForces(const State& s) const {
+    return getRep().updParticleForces(s);
 }
 Vector&              
-MultibodySystem::updMobilityForces(const State& s, int matterSubsysNum) const {
-    return getRep().updMobilityForces(s,matterSubsysNum);
+MultibodySystem::updMobilityForces(const State& s) const {
+    return getRep().updMobilityForces(s);
 }
 
 
