@@ -71,7 +71,7 @@ using std::endl;
 using namespace SimTK;
 
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
-static const int  GroundBodyNum = 0; // ground is always body 0
+static const int  Ground = 0; // ground is always body 0
 
 
 void stateTest() {
@@ -169,15 +169,28 @@ try {
 
     Vec3 gravity(0.,-g,0.);
     cout << "period should be " << 2*std::acos(-1.)*std::sqrt(L/g) << " seconds." << endl;
-    int theBody = 
+    int aPendulum = 
       pend.addRigidBody(mprops, jointFrame,
-                        0, Transform(), 
+                        Ground, Transform(), 
                         //Mobilizer(Mobilizer::Cartesian, false)
                         //Mobilizer(Mobilizer::Sliding, false)
                         //Mobilizer(Mobilizer::Pin, false)
                         //Mobilizer(Mobilizer::Ball, false)
                         Mobilizer(Mobilizer::Free, false)
                         );
+    const Real ballMass = 10;
+    const Real ballRadius = 2;
+    const MassProperties ballMProps(ballMass, Vec3(0), ballMass*InertiaMat::sphere(ballRadius));
+    const Vec3 ballPos = Vec3(-3,5,0);
+    int aBall = 
+        pend.addRigidBody(ballMProps, Transform(),
+                          Ground, Transform(ballPos),
+                          Mobilizer(Mobilizer::Cartesian, false));
+
+    int aBall2 = 
+        pend.addRigidBody(ballMProps, Transform(),
+                          Ground, Transform(ballPos+Vec3(0.1,10,0)),
+                          Mobilizer(Mobilizer::Cartesian, false));
 
 /*
     int secondBody = 
@@ -195,8 +208,8 @@ try {
     //                                       L/2+std::sqrt(2.));
  
     int ballConstraint =
-        pend.addCoincidentStationsConstraint(0, Transform().T(),
-                                             theBody, jointFrame.T()); 
+        pend.addCoincidentStationsConstraint(Ground, Transform().T(),
+                                             aPendulum, jointFrame.T()); 
 /*
     Transform harderOne;
     harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
@@ -215,42 +228,60 @@ try {
     const Vec3 attachPt(1.5, 1, 0);
     GeneralForceElements springs;
     springs.addLinearTwoPointSpring(
-        0, attachPt, 
-        1, Vec3(L/2,0,0), 
+        Ground, attachPt, 
+        aPendulum, Vec3(L/2,0,0), 
         100, 1);
     mbs.addForceSubsystem(springs);
 
     UniformGravitySubsystem gravityForces;
     mbs.addForceSubsystem(gravityForces); // default is none
 
+    HuntCrossleyContact contact;
+    const Real k = 1000, c = 0.0;
+    contact.addHalfSpace(Ground, UnitVec3(0,1,0), 0, k, c); // h,k,c
+    contact.addHalfSpace(Ground, UnitVec3(1,0,0), -10, k, c); // h,k,c
+    contact.addHalfSpace(Ground, UnitVec3(-1,0,0), -10, k, c); // h,k,c
+
+
+    contact.addSphere(aBall, Vec3(0), ballRadius, k, c); // r,k,c
+    contact.addSphere(aBall2, Vec3(0), ballRadius, k, c); // r,k,c
+    mbs.addForceSubsystem(contact);
+
     VTKReporter vtk(mbs);
+    vtk.addDecoration(Ground, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
+    vtk.addDecoration(Ground, Transform(Vec3(-10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+    vtk.addDecoration(Ground, Transform(Vec3(10,0,0)), DecorativeBrick(Vec3(.1,20,20)).setColor(Yellow).setOpacity(1));
+
+    DecorativeSphere bouncer(ballRadius);
+    vtk.addDecoration(aBall, Transform(), bouncer.setColor(Orange));
+    vtk.addDecoration(aBall2, Transform(), bouncer.setColor(Blue));
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    vtk.addRubberBandLine(0, attachPt, 1,Vec3(L/2,0,0), rbProto);
+    vtk.addRubberBandLine(Ground, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
 
     DecorativeSphere sphere(0.25);
     sphere.setRepresentationToPoints();
     sphere.setResolution(2);
-    vtk.addDecoration(0, Transform(Vec3(1,2,3)), sphere);
+    vtk.addDecoration(Ground, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(1);
-    vtk.addDecoration(1, Transform(Vec3(0.1,0.2,0.3)), sphere);
+    vtk.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
-    vtk.addDecoration(1, Transform(RotationMat(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
+    vtk.addDecoration(aPendulum, Transform(RotationMat(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
     DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
-    vtk.addDecoration(1, Transform(Vec3(-1,0,0)), 
+    vtk.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
         DecorativeCylinder(0.1).setOpacity(0.3));
 
-    vtk.addDecoration(1, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
-    vtk.addDecoration(1, Transform(Vec3(3, 0.5, 0)), DecorativeSphere().setColor(Gray));
-    vtk.addDecoration(1, Transform(Vec3(3, 1, 0)), DecorativeSphere().setColor(White));
-    vtk.addDecoration(1, Transform(Vec3(3, 1.5, 0)), DecorativeSphere().setColor(Red));
-    vtk.addDecoration(1, Transform(Vec3(3, 2, 0)), DecorativeSphere().setColor(Green));
-    vtk.addDecoration(1, Transform(Vec3(3, 2.5, 0)), DecorativeSphere().setColor(Blue));
-    vtk.addDecoration(1, Transform(Vec3(3, 3, 0)), DecorativeSphere().setColor(Yellow));
-    vtk.addDecoration(1, Transform(Vec3(3, 3.5, 0)), DecorativeSphere().setColor(Orange));
-    vtk.addDecoration(1, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
-    vtk.addDecoration(1, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
-    vtk.addDecoration(1, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 0, 0)), DecorativeSphere().setColor(Black));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 0.5, 0)), DecorativeSphere().setColor(Gray));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 1, 0)), DecorativeSphere().setColor(White));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 1.5, 0)), DecorativeSphere().setColor(Red));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 2, 0)), DecorativeSphere().setColor(Green));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 2.5, 0)), DecorativeSphere().setColor(Blue));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 3, 0)), DecorativeSphere().setColor(Yellow));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 3.5, 0)), DecorativeSphere().setColor(Orange));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
+    vtk.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
     mbs.realize(s, Stage::Built);
     cout << "mbs State as built: " << s;
@@ -279,7 +310,7 @@ try {
 
     mbs.realize(s, Stage::Configured);
 
-    Transform bodyConfig = pend.getBodyConfiguration(s, theBody);
+    Transform bodyConfig = pend.getBodyConfiguration(s, aPendulum);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
@@ -289,7 +320,7 @@ try {
     cout << "-------> STATE after realize(Configured):" << s;
     cout << "<------- STATE after realize(Configured)." << endl;
 
-    cout << "after assembly body frame: " << pend.getBodyConfiguration(s,theBody); 
+    cout << "after assembly body frame: " << pend.getBodyConfiguration(s,aPendulum); 
 
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
@@ -307,10 +338,10 @@ try {
     Vector              mobilityForces;
 
     pend.resetForces(bodyForces, particleForces, mobilityForces);
-    pend.addInMobilityForce(s, 1, 0, 147, mobilityForces);
+    pend.addInMobilityForce(s, aPendulum, 0, 147, mobilityForces);
 
     mbs.realize(s, Stage::Moving);
-    SpatialVec bodyVel = pend.getBodyVelocity(s, theBody);
+    SpatialVec bodyVel = pend.getBodyVelocity(s, aPendulum);
     cout << "body vel: " << bodyVel << endl;
 
     cout << "wXwXr=" << bodyVel[0] % (bodyVel[0] % Vec3(2.5,0,0)) << endl;
@@ -326,12 +357,12 @@ try {
 
     mbs.realize(s, Stage::Reacting);
 
-    SpatialVec bodyAcc = pend.getBodyAcceleration(s, theBody);
+    SpatialVec bodyAcc = pend.getBodyAcceleration(s, aPendulum);
     cout << "body acc: " << bodyAcc << endl;
 
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
-    pend.setJointU(s, 1, 0,   0.);
+    pend.setJointU(s, aPendulum, 0,   0.);
     //pend.setJointU(s, 1, 1,   0.);
     //pend.setJointU(s, 1, 2, -10.);
    // pend.setJointU(s, 1, 2,   0.);
@@ -339,7 +370,7 @@ try {
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
-    pend.setMobilizerConfiguration(s,1,Transform(RotationMat(q), Vec3(.1,.2,.3)));
+    pend.setMobilizerConfiguration(s,aPendulum,Transform(RotationMat(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
     //pend.updQ(s)[2] = -.1;
@@ -349,8 +380,8 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
-    ee.setConstraintTolerance(1e-3);
+    ee.setAccuracy(1e-4);
+    ee.setConstraintTolerance(1e-4);
 
     ee.initialize(); 
     vtk.report(s);
@@ -365,8 +396,8 @@ try {
 
         const Vector qdot = pend.getQDot(s);
 
-        Transform  x = pend.getBodyConfiguration(s,theBody);
-        SpatialVec v = pend.getBodyVelocity(s,theBody);
+        Transform  x = pend.getBodyConfiguration(s,aPendulum);
+        SpatialVec v = pend.getBodyVelocity(s,aPendulum);
 
         //Vec3 err = x.T()-Vec3(2.5,0.,0.);
         //Real d = err.norm();
@@ -374,8 +405,8 @@ try {
         // Real c = 10.; // damping
         //Vec3 fk = -k*err;
         //Real fc = -c*pend.getU(s)[2];
-        //pend.applyPointForce(s,theBody,Vec3(0,0,0),fk);
-        //pend.applyJointForce(s,theBody,2,fc);
+        //pend.applyPointForce(s,aPendulum,Vec3(0,0,0),fk);
+        //pend.applyJointForce(s,aPendulum,2,fc);
 
         if (!(step % 10)) {
             cout << s.getTime() << " " 
