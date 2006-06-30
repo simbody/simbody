@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
         MyRNAExample myRNA(nseg, shouldFlop != 0);
         const Vec3 attachPt(150, -40, -50);
         GeneralForceElements forces;
-        State s;
+
         MultibodySystem mbs;
         mbs.setMatterSubsystem(myRNA);
 
@@ -339,14 +339,15 @@ int main(int argc, char** argv) {
         UniformGravitySubsystem ugs(Vec3(0, -g, 0));
         mbs.addForceSubsystem(ugs);
 
-
+        State s;
         mbs.realize(s, Stage::Built);
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
-        //forces.updGravity(s) = Vec3(0, -g, 0);
-        //forces.updDamping(s) = 1000;
-        ugs.updGravity(s) = -1*ugs.getGravity(s);
-        //ugs.updZeroHeight(s) = -0.8;
+
+        ugs.updGravity(s) *= -10;
+        ugs.disableGravity(s);
+        ugs.enableGravity(s);
+        ugs.updZeroHeight(s) = -0.8;
         //cout << "STATE AS MODELED: " << s;
        
         //myPend.setPendulumAngle(s, start);
