@@ -95,20 +95,27 @@ try {
     SimbodyMatterSubsystem bouncers;
 
     // start with a 2body pendulum
-    Real linkLength = 10.; // m
+    Real linkLength = 20.; // m
     Real pendMass   = 10.; // kg
     Real pendBallRadius = 2;
+    Vec3 pendGroundPt1 = Vec3(-10,50,-10);
+    Vec3 pendGroundPt2 = Vec3(20,20,-10);
     InertiaMat pendBallInertia(pendMass*InertiaMat::sphere(pendBallRadius));
     const MassProperties pendMProps(pendMass, Vec3(0, -linkLength/2, 0), 
         pendBallInertia.shiftFromCOM(Vec3(0, -linkLength/2, 0), pendMass));
 
     int pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
-                          Ground, Transform(Vec3(0,40,-5)),
+                          Ground, Transform(pendGroundPt1),
                           Mobilizer(Mobilizer::Ball, false));
 
     int pend2 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
                           pend1, Transform(Vec3(0,-linkLength/2,0)),
                           Mobilizer(Mobilizer::Ball, false));
+
+    int theConstraint =
+       bouncers.addConstantDistanceConstraint(Ground, pendGroundPt2,
+                                     pend2, Vec3(0, -linkLength/2, 0),20);
+
 
 
     const Real hardBallMass = 10, rubberBallMass = 100;  // kg
@@ -127,7 +134,7 @@ try {
                               Ground, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
-    const int NHardBalls = 12;
+    const int NHardBalls = 10;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
@@ -147,8 +154,8 @@ try {
 
     
     const Real kwall = 100000, khard=200000, krubber=20000;
-    const Real cwall = 0.001, chard = 1e-6, crubber=0.1;
-    //const Real cwall = 0., chard = 0., crubber=0.;
+    //const Real cwall = 0.001, chard = 1e-5, crubber=0.05;
+    const Real cwall = 0., chard = 0., crubber=0.;
 
     VTKReporter vtk(mbs, false); // suppress default geometry
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
@@ -159,6 +166,9 @@ try {
     vtk.addDecoration(pend2, Transform(Vec3(0,-linkLength/2,0)), 
         DecorativeSphere(pendBallRadius).setColor(Gray).setOpacity(1));
     vtk.addDecoration(pend2, Transform(), DecorativeLine(Vec3(0,linkLength/2,0),Vec3(0,-linkLength/2,0)));
+ 
+    DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(1);
+    vtk.addRubberBandLine(Ground, pendGroundPt2,pend2,Vec3(0,-linkLength/2,0), rbProto);
 
     contact.addHalfSpace(Ground, UnitVec3(0,1,0), 0, kwall, cwall);
     contact.addHalfSpace(Ground, UnitVec3(1,0,0), -20, kwall, cwall); // left
@@ -203,8 +213,7 @@ try {
 
     // set Modeling stuff (s)
     //   none
-
-    vtk.report(s);
+    //bouncers.setUseEulerAngles(s,true);
 
     std::vector<State> saveEm;
 
@@ -216,6 +225,11 @@ try {
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
+    mbs.realize(s, Stage::Reacting);
+    for (int i=0; i<100; ++i)
+        saveEm.push_back(s);    // delay
+    vtk.report(s);
+
     ee.initialize();
     for (int i=0; i<100; ++i)
         saveEm.push_back(s);    // delay
@@ -227,7 +241,9 @@ try {
             cout << s.getTime() << ": E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
-             << ") hNext=" << ee.getPredictedNextStep() << endl;
+             << ") qerr=" << bouncers.calcQConstraintNorm(s)
+             << " uerr=" << bouncers.calcUConstraintNorm(s)
+             << " hNext=" << ee.getPredictedNextStep() << endl;
         }
         ++step;
 

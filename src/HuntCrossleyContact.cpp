@@ -221,8 +221,8 @@ public:
                 const Vec3 contactPt_G = center2_G + (d-squish2)*c2c1dir_G;
                 const Vec3 contactPt_B1_G = contactPt_G - X_GB1.T();   // meas from B1
                 const Vec3 contactPt_B2_G = contactPt_G - X_GB2.T();   // meas from B2
-                const Vec3 vContactB1_G = V_GB1[1] + contactPt_B1_G % V_GB1[0];
-                const Vec3 vContactB2_G = V_GB2[1] + contactPt_B2_G % V_GB2[0];
+                const Vec3 vContactB1_G = V_GB1[1] + V_GB1[0] % contactPt_B1_G ;
+                const Vec3 vContactB2_G = V_GB2[1] + V_GB2[0] % contactPt_B2_G;
                 const Real v = - ~(vContactB1_G-vContactB2_G)*c2c1dir_G; // dx/dt
 
                 const Real x32 = x*std::sqrt(x); // x^(3/2)
@@ -264,8 +264,8 @@ public:
                 const Vec3 contactPt_G = center1_G - (d-squish1)*normal_G;
                 const Vec3 contactPt_B1_G = contactPt_G - X_GB1.T();   // meas from B1
                 const Vec3 contactPt_B2_G = contactPt_G - X_GB2.T();   // meas from B2
-                const Vec3 vContactB1_G = V_GB1[1] + contactPt_B1_G % V_GB1[0];
-                const Vec3 vContactB2_G = V_GB2[1] + contactPt_B2_G % V_GB2[0];
+                const Vec3 vContactB1_G = V_GB1[1] + V_GB1[0] % contactPt_B1_G ;
+                const Vec3 vContactB2_G = V_GB2[1] + V_GB2[0] % contactPt_B2_G ;
                 const Real v = - ~(vContactB1_G-vContactB2_G)*normal_G; // dx/dt
 
                 const Real x32 = x*std::sqrt(x); // x^(3/2)
