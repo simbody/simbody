@@ -89,10 +89,27 @@ int main() {
 
 
 try {
-    SimbodyMatterSubsystem bouncers;
-
     Real g = 9.8;   // m/s^2
     Vec3 gravity(0.,-g,0.);
+
+    SimbodyMatterSubsystem bouncers;
+
+    // start with a 2body pendulum
+    Real linkLength = 10.; // m
+    Real pendMass   = 10.; // kg
+    Real pendBallRadius = 2;
+    InertiaMat pendBallInertia(pendMass*InertiaMat::sphere(pendBallRadius));
+    const MassProperties pendMProps(pendMass, Vec3(0, -linkLength/2, 0), 
+        pendBallInertia.shiftFromCOM(Vec3(0, -linkLength/2, 0), pendMass));
+
+    int pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
+                          Ground, Transform(Vec3(0,40,-5)),
+                          Mobilizer(Mobilizer::Ball, false));
+
+    int pend2 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
+                          pend1, Transform(Vec3(0,-linkLength/2,0)),
+                          Mobilizer(Mobilizer::Ball, false));
+
 
     const Real hardBallMass = 10, rubberBallMass = 100;  // kg
     const Real hardBallRadius = 1, rubberBallRadius = 1.5;  // m
@@ -110,7 +127,7 @@ try {
                               Ground, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
-    const int NHardBalls = 8;
+    const int NHardBalls = 12;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
@@ -128,11 +145,20 @@ try {
     HuntCrossleyContact contact;
     mbs.addForceSubsystem(contact);
 
-    VTKReporter vtk(mbs, false); // suppress default geometry
-
+    
     const Real kwall = 100000, khard=200000, krubber=20000;
     const Real cwall = 0.001, chard = 1e-6, crubber=0.1;
     //const Real cwall = 0., chard = 0., crubber=0.;
+
+    VTKReporter vtk(mbs, false); // suppress default geometry
+    contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
+    contact.addSphere(pend2, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
+    vtk.addDecoration(pend1, Transform(Vec3(0,-linkLength/2,0)), 
+        DecorativeSphere(pendBallRadius).setColor(Gray).setOpacity(1));
+    vtk.addDecoration(pend1, Transform(), DecorativeLine(Vec3(0,linkLength/2,0),Vec3(0,-linkLength/2,0)));
+    vtk.addDecoration(pend2, Transform(Vec3(0,-linkLength/2,0)), 
+        DecorativeSphere(pendBallRadius).setColor(Gray).setOpacity(1));
+    vtk.addDecoration(pend2, Transform(), DecorativeLine(Vec3(0,linkLength/2,0),Vec3(0,-linkLength/2,0)));
 
     contact.addHalfSpace(Ground, UnitVec3(0,1,0), 0, kwall, cwall);
     contact.addHalfSpace(Ground, UnitVec3(1,0,0), -20, kwall, cwall); // left
