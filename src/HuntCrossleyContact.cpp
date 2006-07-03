@@ -163,6 +163,13 @@ public:
         // Nothing to compute here.
     }
 
+    // Cost of contact processing here (in flops):
+    //      30*(ns*ns)/2 + 28*(ns*nh)   -- to determine whether there is contact
+    //    + 156 * (number of contacts)
+    // where ns==# spheres, nh==# half spaces. It doesn't take many objects before that
+    // first term is very expensive.
+    // TODO: contact test can be easily made O(n) by calculating neighborhoods, e.g.
+
     void realizeDynamics(const State& s) const {
         const Parameters& p = getParameters(s);
         if (!p.enabled) return;
@@ -174,107 +181,78 @@ public:
         Real&                  pe              = mbs.updPotentialEnergy(s);
         Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s);
 
-        // TODO: much of this should be precalculated
-
         for (int s1=0; s1 < (int)p.spheres.size(); ++s1) {
-            const int body1 = p.spheres[s1].body;
-            const Transform&  X_GB1 = matter.getBodyConfiguration(s,body1);
-            const SpatialVec& V_GB1 = matter.getBodyVelocity(s,body1); // in G
-
-            const Vec3& center1_B  = p.spheres[s1].center;
-            const Vec3  center1_BG = X_GB1.R()*center1_B; // station, expr. in G
-            const Vec3  center1_G  = X_GB1.T() +  center1_BG;
-
-            const Real r1 = p.spheres[s1].radius;
-            const Real k1 = p.spheres[s1].stiffness;
-            const Real c1 = p.spheres[s1].dissipation;
+            const SphereParameters& sphere1 = p.spheres[s1];
+            const Transform&  X_GB1     = matter.getBodyConfiguration(s,sphere1.body);
+            const SpatialVec& V_GB1     = matter.getBodyVelocity(s,sphere1.body); // in G
+            const Real        r1        = sphere1.radius;
+            const Vec3        center1_G = X_GB1*sphere1.center;
 
             for (int s2=s1+1; s2 < (int)p.spheres.size(); ++s2) {
-                const int body2 = p.spheres[s2].body;
-                if (body2 == body1) continue;
-                const Real           r2 = p.spheres[s2].radius;
-                const Transform&  X_GB2 = matter.getBodyConfiguration(s,body2);
-                const SpatialVec& V_GB2 = matter.getBodyVelocity(s,body2);
+                const SphereParameters& sphere2 = p.spheres[s2];
+                if (sphere2.body == sphere1.body) continue;
+                const Transform&  X_GB2     = matter.getBodyConfiguration(s,sphere2.body);
+                const SpatialVec& V_GB2     = matter.getBodyVelocity(s,sphere2.body);
+                const Real        r2        = sphere2.radius;
+                const Vec3        center2_G = X_GB2*sphere2.center; // 18 flops
 
-                const Vec3& center2_B  = p.spheres[s2].center;
-                const Vec3  center2_BG = X_GB2.R()*center2_B; // station, expr. in G
-                const Vec3  center2_G  = X_GB2.T() +  center2_BG;
-
-
-                const Vec3 c2c1_G = center1_G - center2_G; // points at sphere1
-                const Real dsq    = c2c1_G.normSqr();
-                if (dsq >= (r1+r2)*(r1+r2)) continue;
+                const Vec3 c2c1_G    = center1_G - center2_G;   // points at sphere1 (3 flops)
+                const Real dsq       = c2c1_G.normSqr();        // 5 flops
+                if (dsq >= (r1+r2)*(r1+r2)) continue;           // 4 flops
 
                 // There is a collision
+                const Real     d = std::sqrt(dsq);       // distance between the centers (~30 flops)
+                const UnitVec3 normal_G(c2c1_G/d, true); // direction from c2 center to c1 center (~12 flops)
 
-                const Real k2 = p.spheres[s2].stiffness;
-                const Real c2 = p.spheres[s2].dissipation;
-                const Real k=(k1*k2)/(k1+k2);
-                const Real c=(c1*k2 + c2*k1)/(k1+k2);
-
-                const Real     d = std::sqrt(dsq);        // distance between the centers
-                const UnitVec3 c2c1dir_G(c2c1_G/d, true); // direction from c2 center to c1 center
-
-                const Real x = (r1+r2) - d; // penetration distance (total "squish"), > 0
-                const Real squish1 = x*k2/(k1+k2);
-                const Real squish2 = x - squish1; // i.e., x*k1/(k1+k2)
-                const Vec3 contactPt_G = center2_G + (d-squish2)*c2c1dir_G;
-                const Vec3 contactPt_B1_G = contactPt_G - X_GB1.T();   // meas from B1
-                const Vec3 contactPt_B2_G = contactPt_G - X_GB2.T();   // meas from B2
-                const Vec3 vContactB1_G = V_GB1[1] + V_GB1[0] % contactPt_B1_G ;
-                const Vec3 vContactB2_G = V_GB2[1] + V_GB2[0] % contactPt_B2_G;
-                const Real v = - ~(vContactB1_G-vContactB2_G)*c2c1dir_G; // dx/dt
-
-                const Real x32 = x*std::sqrt(x); // x^(3/2)
-                const Real f = k*x32*(1 + 1.5*c*v);
-                const Vec3 fvec = f * c2c1dir_G; // points towards c1
-
-                pe += 0.4*k*x32*x; // i.e., 2/5 k x^(5/2)
-                rigidBodyForces[body1] += SpatialVec( contactPt_B1_G % fvec, fvec);
-                rigidBodyForces[body2] -= SpatialVec( contactPt_B2_G % fvec, fvec);
+                processContact(sphere1.stiffness, sphere1.dissipation, X_GB1, V_GB1,
+                               sphere2.stiffness, sphere2.dissipation, X_GB2, V_GB2,
+                               center1_G - r1 * normal_G, // undeformed contact point for sphere1 (6 flops)
+                               center2_G + r2 * normal_G, // undeformed contact point for sphere2 (6 flops)
+                               normal_G,
+                               pe, rigidBodyForces[sphere1.body], rigidBodyForces[sphere2.body]);
             }
 
             // half spaces
             for (int h=0; h < (int)p.halfSpaces.size(); ++h) {
-                const int body2 = p.halfSpaces[h].body;
-                if (body2 == body1) continue;
+                const HalfspaceParameters& halfSpace = p.halfSpaces[h];
+                if (halfSpace.body == sphere1.body) continue;
 
-                const Real        height = p.halfSpaces[h].height;
-                const Transform&  X_GB2  = matter.getBodyConfiguration(s,body2);
-                const SpatialVec& V_GB2  = matter.getBodyVelocity(s,body2);
+                // Quick escape in the common case where the half space is on ground (7 flops)
+                if (halfSpace.body==0) {
+                    const UnitVec3& normal_G = halfSpace.normal;
+                    const Real      hc1_G    = ~center1_G*normal_G; // ht of center over ground
+                    if  (hc1_G - halfSpace.height < r1) {
+                        // Collision of sphere1 with a half space on ground.
+                        processContact(sphere1.stiffness, sphere1.dissipation, X_GB1, V_GB1,
+                            halfSpace.stiffness, halfSpace.dissipation, Transform(), SpatialVec(Vec3(0)),
+                            center1_G - (r1*normal_G), // undeformed contact point for sphere (6 flops)
+                            halfSpace.height*normal_G, //            "             for halfSpace (3 flops)
+                            normal_G, pe, rigidBodyForces[sphere1.body], rigidBodyForces[halfSpace.body]);
+                    }
+                    continue;
+                }
 
-                const Vec3& normal_B  = p.halfSpaces[h].normal;
-                const Vec3  normal_G  = X_GB2.R()*normal_B;
+                // Half space is not on ground.
 
-                const Real h_G   = ~X_GB2.T()*normal_G + height; // height of half space over G
-                const Real hc1_G = ~center1_G*normal_G; // height of s1's center over G
-                const Real d = hc1_G - h_G; // height of center over half space
-                if (d >= r1) continue;
+                const Transform&  X_GB2    = matter.getBodyConfiguration(s,halfSpace.body);
+                const SpatialVec& V_GB2    = matter.getBodyVelocity(s,halfSpace.body);
+                const UnitVec3    normal_G = X_GB2.R()*halfSpace.normal;    // 15 flops
 
-                // There is a collision
-   
-                const Real k2 = p.halfSpaces[h].stiffness;
-                const Real c2 = p.halfSpaces[h].dissipation;
-                const Real k=(k1*k2)/(k1+k2);
-                const Real c=(c1*k2 + c2*k1)/(k1+k2);
+                // Find the heights of the half space surface and sphere center measured 
+                // along the contact normal from the ground origin. Then we can get the
+                // height of the sphere center over the half space surface.
+                const Real h_G   = ~X_GB2.T()*normal_G + halfSpace.height; // 6 flops
+                const Real hc1_G = ~center1_G*normal_G;                    // 5 flops
+                const Real d = hc1_G - h_G;                                // 1 flop
+                if (d >= r1) continue;                                     // 1 flop
 
-                const Real x = r1 - d; // penetration distance (total "squish"), > 0
-                const Real squish1 = x*k2/(k1+k2);  // squish of sphere
-                const Real squish2 = x - squish1;   // i.e., x*k1/(k1+k2) (squish of half space)
-                const Vec3 contactPt_G = center1_G - (d-squish1)*normal_G;
-                const Vec3 contactPt_B1_G = contactPt_G - X_GB1.T();   // meas from B1
-                const Vec3 contactPt_B2_G = contactPt_G - X_GB2.T();   // meas from B2
-                const Vec3 vContactB1_G = V_GB1[1] + V_GB1[0] % contactPt_B1_G ;
-                const Vec3 vContactB2_G = V_GB2[1] + V_GB2[0] % contactPt_B2_G ;
-                const Real v = - ~(vContactB1_G-vContactB2_G)*normal_G; // dx/dt
-
-                const Real x32 = x*std::sqrt(x); // x^(3/2)
-                const Real f = k*x32*(1 + 1.5*c*v);
-                const Vec3 fvec = f * normal_G; // points towards c1
-
-                pe += 0.4*k*x32*x; // i.e., 2/5 k x^(5/2)
-                rigidBodyForces[body1] += SpatialVec( contactPt_B1_G % fvec, fvec);
-                rigidBodyForces[body2] -= SpatialVec( contactPt_B2_G % fvec, fvec);
+               // There is a collision
+                processContact(sphere1.stiffness, sphere1.dissipation, X_GB1, V_GB1,
+                               halfSpace.stiffness, halfSpace.dissipation, X_GB2, V_GB2,
+                               center1_G - r1 * normal_G, // undeformed contact point for sphere (6 flops)
+                               center1_G -  d * normal_G, // undeformed contact point for halfSpace (6 flops)
+                               normal_G,
+                               pe, rigidBodyForces[sphere1.body], rigidBodyForces[halfSpace.body]);
             }
         }
     }
@@ -284,6 +262,54 @@ public:
     }
 
     HuntCrossleyContactRep* cloneSubsystemRep() const {return new HuntCrossleyContactRep(*this);}
+
+private:
+    // We have determined that contact is occurring. The *undeformed* contact points and the
+    // contact normal along which they lie have been determined. This method calculates and
+    // applies the force to each body at the *deformed* contact point, accounting for the
+    // different material properties. (cost ~144 flops)
+    void processContact(const Real& k1, const Real& c1, const Transform& X_GB1, const SpatialVec& V_GB1,
+                        const Real& k2, const Real& c2, const Transform& X_GB2, const SpatialVec& V_GB2, 
+                        const Vec3& undefContactPt1_G, const Vec3& undefContactPt2_G,
+                        const UnitVec3& contactNormal_G,    // points from body2 to body1
+                        Real& pe, SpatialVec& force1, SpatialVec& force2) const
+    {
+        const Real x = ~(undefContactPt2_G-undefContactPt1_G) * contactNormal_G; // 8 flops
+        // Body 1 must be "above" body 2, meaning its undeformed contact point must be "below"
+        // body 2's so that they are interpenetrating.
+        assert(x > 0); 
+
+        // Calculate the fraction of total squish x which will be undergone by body 1; body 2's
+        // squish fraction will be 1-squish1.
+        const Real squish1 = k2/(k1+k2);    // ~11 flops counting divide as 10
+        const Real squish2 = 1 - squish1;   // 1 flop
+
+        // Now we can find the real contact point, which is a little up the normal from pt1
+        const Vec3 contactPt_G = undefContactPt1_G + (squish1*x)*contactNormal_G; // 7 flops
+
+        // Find the body stations coincident with the contact point so that we can calculate
+        // their velocities.
+        const Vec3 contactPt1_G = contactPt_G - X_GB1.T();                  // 3 flops
+        const Vec3 contactPt2_G = contactPt_G - X_GB2.T();                  // 3 flops
+        const Vec3 vContactPt1_G = V_GB1[1] + V_GB1[0] % contactPt1_G;      // 12 flops
+        const Vec3 vContactPt2_G = V_GB2[1] + V_GB2[0] % contactPt2_G;      // 12 flops
+
+        const Real v = ~(vContactPt2_G-vContactPt1_G)*contactNormal_G; // dx/dt (8 flops)
+
+        const Real x32 = x*std::sqrt(x); // x^(3/2) (~31 flops)
+        const Real x52 = x*x32;          // x^(5/2) (1 flop)
+
+        const Real k=k1*squish1; // = k2*squish2   1 flop
+        const Real c=c1*squish1 + c2*squish2;   // 3 flops
+
+        const Real f = k*x32*(1 + 1.5*c*v);     // 5 flops
+        const Vec3 fvec = f * contactNormal_G; // points towards body1 (5 flops)
+
+        pe += 0.4*k*x52; // i.e., 2/5 k x^(5/2)    3 flops
+        force1 += SpatialVec( contactPt1_G % fvec, fvec);   // 15 flops
+        force2 -= SpatialVec( contactPt2_G % fvec, fvec);   // 15 flops
+    }
+
     friend std::ostream& operator<<(std::ostream& o, 
                          const HuntCrossleyContactRep::Parameters&); 
 };

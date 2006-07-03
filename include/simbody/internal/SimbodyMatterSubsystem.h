@@ -222,12 +222,12 @@ public:
     /// optimization). TODO: allow settable zero rotation for Euler sequence,
     /// with convenient way to say "this is zero".
     void setUseEulerAngles(State&, bool) const;
-    void setJointIsPrescribed(State&, int joint, bool) const;
+    void setMobilizerIsPrescribed(State&, int body, bool) const;
     void setConstraintIsEnabled(State&, int constraint, bool) const;
 
     // Return modeling information from the State.
     bool getUseEulerAngles  (const State&) const;
-    bool isJointPrescribed  (const State&, int joint)      const;
+    bool isMobilizerPrescribed  (const State&, int body)      const;
     bool isConstraintEnabled(const State&, int constraint) const;
 
     void setJointQ(State&, int body, int axis, const Real&) const;

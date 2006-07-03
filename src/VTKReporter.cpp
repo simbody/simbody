@@ -328,10 +328,10 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
              setDefaultBodyColor(i, DefaultBaseBodyColor);
         else setDefaultBodyColor(i, DefaultBodyColor);
 
-        const Transform& jInb = sbs.getJointFrame(State(), i);
+        const Transform& jInb = sbs.getMobilizerFrame(State(), i);
         if (jInb.T().norm() > bodies[i].scale)
             bodies[i].scale = jInb.T().norm();
-        const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
+        const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
         if (jParent.T().norm() > bodies[parent].scale)
             bodies[parent].scale = jParent.T().norm();
     }
@@ -354,13 +354,13 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
         if (i > 0) {
             const int parent = sbs.getParent(i);
             const Real pscale = bodies[parent].scale;
-            const Transform& jInb = sbs.getJointFrame(State(), i);
+            const Transform& jInb = sbs.getMobilizerFrame(State(), i);
             if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
                 addDecoration(i, jInb, DecorativeFrame(scale*0.25));
                 if (jInb.T() != Vec3(0))
                     addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
             }
-            const Transform& jParent = sbs.getJointFrameOnParent(State(), i);
+            const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
             DecorativeFrame frameOnParent(pscale*0.25);
             frameOnParent.setColor(getDefaultBodyColor(i));
             addDecoration(sbs.getParent(i), jParent, frameOnParent);

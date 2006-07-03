@@ -64,8 +64,8 @@ public:
     virtual int         getParent  (int bodyNum)           const = 0;
     virtual Array<int>  getChildren(int bodyNum)           const = 0;
 
-    virtual const Transform&  getJointFrame(const State&, int bodyNum) const = 0;
-    virtual const Transform&  getJointFrameOnParent(const State&, int bodyNum) const = 0;
+    virtual const Transform&  getMobilizerFrame(const State&, int bodyNum) const = 0;
+    virtual const Transform&  getMobilizerFrameOnParent(const State&, int bodyNum) const = 0;
 
     virtual const Real&       getBodyMass              (const State&, int bodyNum) const = 0;
     virtual const Vec3&       getBodyCenterOfMassStation(const State&, int bodyNum) const = 0;
@@ -82,8 +82,8 @@ public:
 
     // These are simple operators for helping force subsystems put their forces in the 
     // right slots.
-    virtual void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
-                                 Vector_<SpatialVec>& rigidBodyForces) const = 0;
+    virtual void addInStationForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+                                   Vector_<SpatialVec>& rigidBodyForces) const = 0;
     virtual void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
                                  Vector_<SpatialVec>& rigidBodyForces) const = 0;
     virtual void addInMobilityForce(const State& s, int body, int axis, const Real& r, 

@@ -215,11 +215,11 @@ RigidBodyTree::getBodyCenterOfMassStation(const State&, int body) const
 
 
 const Transform&
-RigidBodyTree::getJointFrame(const State&, int body) const
+RigidBodyTree::getMobilizerFrame(const State&, int body) const
   { return getRigidBodyNode(body).getX_BJ(); }
 
 const Transform&
-RigidBodyTree::getJointFrameOnParent(const State&, int body) const
+RigidBodyTree::getMobilizerFrameOnParent(const State&, int body) const
   { return getRigidBodyNode(body).getX_PJb(); }
 
 const Transform&
@@ -588,9 +588,9 @@ void RigidBodyTree::setUseEulerAngles(State& s, bool useAngles) const {
     SBModelingVars& modelVars = updModelingVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void RigidBodyTree::setJointIsPrescribed(State& s, int joint, bool prescribe) const {
+void RigidBodyTree::setMobilizerIsPrescribed(State& s, int body, bool prescribe) const {
     SBModelingVars& modelVars = updModelingVars(s); // check/adjust stage
-    modelVars.prescribed[joint] = prescribe;
+    modelVars.prescribed[body] = prescribe;
 }
 void RigidBodyTree::setConstraintIsEnabled(State& s, int constraint, bool enable) const {
     SBModelingVars& modelVars = updModelingVars(s); // check/adjust stage
@@ -601,9 +601,9 @@ bool RigidBodyTree::getUseEulerAngles(const State& s) const {
     const SBModelingVars& modelVars = getModelingVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool RigidBodyTree::isJointPrescribed(const State& s, int joint) const {
+bool RigidBodyTree::isMobilizerPrescribed(const State& s, int body) const {
     const SBModelingVars& modelVars = getModelingVars(s); // check stage
-    return modelVars.prescribed[joint];
+    return modelVars.prescribed[body];
 }
 bool RigidBodyTree::isConstraintEnabled(const State& s, int constraint) const {
     const SBModelingVars& modelVars = getModelingVars(s); // check stage
@@ -660,9 +660,9 @@ void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V
     n.setMobilizerVelocity(mv, V_JbJ, u);
 }
 
-void RigidBodyTree::addInPointForce(const State& s, int body, 
-                                    const Vec3& stationInB, const Vec3& forceInG, 
-                                    Vector_<SpatialVec>& rigidBodyForces) const
+void RigidBodyTree::addInStationForce(const State& s, int body, 
+                                      const Vec3& stationInB, const Vec3& forceInG, 
+                                      Vector_<SpatialVec>& rigidBodyForces) const
 {
     assert(rigidBodyForces.size() == getNBodies());
     const SBConfigurationCache& cc = getConfigurationCache(s);

@@ -119,7 +119,7 @@ try {
 
 
     const Real hardBallMass = 10, rubberBallMass = 100;  // kg
-    const Real hardBallRadius = 1, rubberBallRadius = 1.5;  // m
+    const Real hardBallRadius = 1.25, rubberBallRadius = 1.5;  // m
     const MassProperties hardBallMProps(hardBallMass, Vec3(0), 
         hardBallMass*InertiaMat::sphere(hardBallRadius));
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
@@ -127,19 +127,19 @@ try {
     const Vec3 firstHardBallPos = Vec3(-3,10,0), firstRubberBallPos = Vec3(3,10,0);
     std::vector<int> balls;
 
-    const int NRubberBalls = 3;
+    const int NRubberBalls = 5;
     for (int i=0; i<NRubberBalls; ++i)
         balls.push_back( 
             bouncers.addRigidBody(rubberBallMProps, Transform(),
                               Ground, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
-    const int NHardBalls = 10;
+    const int NHardBalls = 20;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
                               Ground, Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
-                                                + (i==NHardBalls-1)*Vec3(1e-15,0,1e-15)),
+                                                + (i==NHardBalls-1)*Vec3(1e-13,0,1e-15)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
 
@@ -153,9 +153,9 @@ try {
     mbs.addForceSubsystem(contact);
 
     
-    const Real kwall = 100000, khard=200000, krubber=20000;
-    //const Real cwall = 0.001, chard = 1e-5, crubber=0.05;
-    const Real cwall = 0., chard = 0., crubber=0.;
+    const Real kwall = 100000, khard=200000, krubber=50000;
+    const Real cwall = 0.001, chard = 1e-4, crubber=0.01;
+    //const Real cwall = 0., chard = 0., crubber=0.;
 
     VTKReporter vtk(mbs, false); // suppress default geometry
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
@@ -221,7 +221,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
+    ee.setAccuracy(1e-3);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
@@ -252,9 +252,13 @@ try {
         saveEm.push_back(s);
     }
 
-    while(true)
-    for (int i=0; i < (int)saveEm.size(); ++i)
-        vtk.report(saveEm[i]);
+    while(true) {
+        for (int i=0; i < (int)saveEm.size(); ++i) {
+            vtk.report(saveEm[i]);
+            //vtk.report(saveEm[i]); // half speed
+        }
+        getchar();
+    }
 }
 catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());

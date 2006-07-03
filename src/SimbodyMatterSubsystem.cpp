@@ -167,14 +167,14 @@ int SimbodyMatterSubsystem::getMaxNMult (int constraint) const {return getRep().
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
-void SimbodyMatterSubsystem::setJointIsPrescribed(State& s, int joint, bool prescribed) const
-  { getRep().setJointIsPrescribed(s,joint,prescribed); }
+void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, int body, bool prescribed) const
+  { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
 void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
   { getRep().setConstraintIsEnabled(s,constraint,enabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
-bool SimbodyMatterSubsystem::isJointPrescribed(const State& s, int joint) const
-  { return getRep().isJointPrescribed(s,joint); }
+bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, int body) const
+  { return getRep().isMobilizerPrescribed(s,body); }
 bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
 

@@ -145,8 +145,8 @@ public:
     int getParent(int bodyNum) const;
     Array<int> getChildren(int bodyNum) const;
 
-    const Transform&  getJointFrame        (const State&, int body) const;
-    const Transform&  getJointFrameOnParent(const State&, int body) const;
+    const Transform&  getMobilizerFrame        (const State&, int body) const;
+    const Transform&  getMobilizerFrameOnParent(const State&, int body) const;
 
     const Real&       getBodyMass               (const State&, int body) const;
     const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
@@ -154,8 +154,8 @@ public:
     const Transform&  getBodyConfiguration (const State& s, int body) const;
     const SpatialVec& getBodyVelocity      (const State& s, int body) const;
 
-    void addInPointForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
-                                 Vector_<SpatialVec>& rigidBodyForces) const;
+    void addInStationForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+                           Vector_<SpatialVec>& rigidBodyForces) const;
     void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
                                  Vector_<SpatialVec>& rigidBodyForces) const;
     void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
@@ -301,10 +301,10 @@ public:
     // Modeling info.
 
     void setUseEulerAngles(State& s, bool useAngles) const;
-    void setJointIsPrescribed(State& s, int joint, bool prescribe) const;
+    void setMobilizerIsPrescribed(State& s, int body, bool prescribe) const;
     void setConstraintIsEnabled(State& s, int constraint, bool enable) const;
     bool getUseEulerAngles(const State& s) const;
-    bool isJointPrescribed(const State& s, int joint) const;
+    bool isMobilizerPrescribed(const State& s, int body) const;
     bool isConstraintEnabled(const State& s, int constraint) const;
 
         // CALLABLE AFTER realizeModeling()

@@ -25,7 +25,7 @@
  */
 
 /** @file
- * Define the public interface to the HuntCrossleyContact, a subsystem which
+ * Define the public interface to HuntCrossleyContact, a subsystem which
  * provides some minimal contact behavior.
  */
 
@@ -44,7 +44,7 @@ namespace SimTK {
  * "Coefficient of Restitution Interpreted as Damping in Vibroimpact,"
  * ASME Journal of Applied Mechanics, pp. 440-445, June 1975. This is
  * a continuous model which correctly reproduces the empirically observed
- * dependence of coefficient of restitution, where e=(1-cv) for 
+ * dependence on velocity of coefficient of restitution, where e=(1-cv) for 
  * impact velocity v and a material property c with units 1/v. Note that
  * c can be measured right off the coefficient of restitution-vs.-velocity
  * curves: it is the absolute value of the slope at low velocities.

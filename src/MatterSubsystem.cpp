@@ -86,12 +86,12 @@ MatterSubsystem::getChildren(int bodyNum) const {
     return getRep().getChildren(bodyNum); 
 }
 const Transform&  
-MatterSubsystem::getJointFrame(const State& s, int bodyNum) const { 
-    return getRep().getJointFrame(s, bodyNum); 
+MatterSubsystem::getMobilizerFrame(const State& s, int bodyNum) const { 
+    return getRep().getMobilizerFrame(s, bodyNum); 
 }
 const Transform& 
-MatterSubsystem::getJointFrameOnParent(const State& s, int bodyNum) const { 
-    return getRep().getJointFrameOnParent(s, bodyNum); 
+MatterSubsystem::getMobilizerFrameOnParent(const State& s, int bodyNum) const { 
+    return getRep().getMobilizerFrameOnParent(s, bodyNum); 
 }
 const Real&  
 MatterSubsystem::getBodyMass(const State& s, int bodyNum) const { 
@@ -121,9 +121,9 @@ MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const {
     return getRep().getBodyVelocity(s,bodyNum); 
 }
 
-void MatterSubsystem::addInPointForce(const State& s, int body, const Vec3& stationInB, 
-                                      const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const {
-    getRep().addInPointForce(s,body,stationInB,forceInG,bodyForces); 
+void MatterSubsystem::addInStationForce(const State& s, int body, const Vec3& stationInB, 
+                                        const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const {
+    getRep().addInStationForce(s,body,stationInB,forceInG,bodyForces); 
 }
 void MatterSubsystem::addInBodyTorque(const State& s, int body, const Vec3& torqueInG,
                                       Vector_<SpatialVec>& bodyForces) const {
