@@ -196,8 +196,8 @@ try {
     // balls as big as these! In real MKS units, steel's stiffness should
     // be about 220 Gigapascals, i.e., 2.2e11 N/m^2; rubber 0.01GPa=1e7 N/m^2.
     const Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
-    const Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
-    //const Real cwall = 0., chard = 0., crubber=0.;
+    //const Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
+    const Real cwall = 0., chard = 0., crubber=0.;
 
     VTKReporter vtk(mbs, false); // suppress default geometry
     contact.addSphere(pend1, Vec3(0, -linkLength/2, 0), pendBallRadius, krubber, crubber);
@@ -263,7 +263,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-3);
+    ee.setAccuracy(1e-2);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;

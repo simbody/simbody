@@ -374,6 +374,11 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 //      a = sqrt(R*x)
 // That would take another square root as coded but could be avoided
 // by precalculating the combined material properties.
+//
+// Note that we don't apply the force or count potential energy if the
+// calculated value is negative, meaning the bodies would be "sticking".
+// That situation can only occur because an outside force is yanking
+// the bodies apart.y
 
 void HuntCrossleyContactRep::processContact
    (const Real& R,
@@ -410,11 +415,18 @@ void HuntCrossleyContactRep::processContact
 
     const Real fH = (4./3.) * k * x * std::sqrt(R*k*x); // ~35 flops
     const Real f  = fH * (1 + 1.5*c*v);                 // 4 flops
-    const Vec3 fvec = f * contactNormal_G; // points towards body1 (3 flops)
 
-    pe += (2./5.) * fH * x;                             // 3 flops
-    force1 += SpatialVec( contactPt1_G % fvec, fvec);   // 15 flops
-    force2 -= SpatialVec( contactPt2_G % fvec, fvec);   // 15 flops
+    // If the resulting force is negative, the multibody system is "yanking"
+    // the objects apart so fast that the material can't undeform fast enough
+    // to keep up. That means it can't apply any force and that the stored
+    // potential energy will now be wasted. (I suppose it would be dissipated
+    // internally as the body's surface oscillated around its undeformed shape.)
+    if (f > 0) {    // 1 flop
+        pe += (2./5.) * fH * x;                             // 3 flops
+        const Vec3 fvec = f * contactNormal_G; // points towards body1 (3 flops)
+        force1 += SpatialVec( contactPt1_G % fvec, fvec);   // 15 flops
+        force2 -= SpatialVec( contactPt2_G % fvec, fvec);   // 15 flops
+    }
 }
 
 } // namespace SimTK
