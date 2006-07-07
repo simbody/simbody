@@ -45,11 +45,47 @@ using namespace SimTK;
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 static const int  Ground = 0; // ground is always body 0
 
+// material properties
+// Steel
+static const Real steel_density = 8000.;  // kg/m^3
+static const Real steel_young   = 200e9;  // pascals (N/m)
+static const Real steel_poisson = 0.3;    // ratio
+static const Real steel_planestrain = 
+                    steel_young/(1.-steel_poisson*steel_poisson);
+static const Real steel_dissipation = 0.001;
+
+// Concrete
+static const Real concrete_density = 2300.;  // kg/m^3
+static const Real concrete_young   = 25e9;  // pascals (N/m)
+static const Real concrete_poisson = 0.15;    // ratio
+static const Real concrete_planestrain = 
+                    concrete_young/(1.-concrete_poisson*concrete_poisson);
+static const Real concrete_dissipation = 0.005;
+
+// Nylon
+static const Real nylon_density = 1100.;  // kg/m^3
+static const Real nylon_young   = 2.5e9;  // pascals (N/m)
+static const Real nylon_poisson = 0.4;    // ratio
+static const Real nylon_planestrain = 
+                    nylon_young/(1.-nylon_poisson*nylon_poisson);
+static const Real nylon_dissipation = 0.005;
+
+// Rubber
+static const Real rubber_density = 1100.;  // kg/m^3
+static const Real rubber_young   = 0.01e9; // pascals (N/m)
+static const Real rubber_poisson = 0.5;    // ratio
+static const Real rubber_planestrain = 
+                    rubber_young/(1.-rubber_poisson*rubber_poisson);
+static const Real rubber_dissipation = 0.005;
+
 extern "C" void SimTK_version_SimTKlapack(int*,int*,int*);
 extern "C" void SimTK_about_SimTKlapack(const char*, int, char*);
 
-static const int NColors =8;
-static Vec3 colors[NColors] = {Red,Green,Blue,Yellow,Orange,Magenta,Cyan,Purple};
+static const int NColors =16;
+static Vec3 colors[NColors] = {
+    Red,Green,Blue,Yellow,Orange,Magenta,Cyan,Purple,
+    Red/1.5,Green/1.5,Blue/1.5,Yellow/1.5,Orange/1.5,Magenta/1.5,Cyan/1.5,Purple/1.5
+};
 
 int main() {
 
@@ -94,10 +130,10 @@ try {
 
     SimbodyMatterSubsystem bouncers;
 
-    // start with a 2body pendulum
+    // start with a 2body pendulum with big rubber balls
     Real linkLength = 20.; // m
-    Real pendMass   = 10.; // kg
-    Real pendBallRadius = 2;
+    Real pendBallRadius = 3; // m
+    Real pendMass = rubber_density*(4./3.)*Pi*std::pow(pendBallRadius,3);
     Vec3 pendGroundPt1 = Vec3(-10,50,-10);
     Vec3 pendGroundPt2 = Vec3(20,20,-10);
     InertiaMat pendBallInertia(pendMass*InertiaMat::sphere(pendBallRadius));
@@ -117,14 +153,15 @@ try {
                                      pend2, Vec3(0, -linkLength/2, 0),20);
 
 
-
-    const Real hardBallMass = 10, rubberBallMass = 100;  // kg
     const Real hardBallRadius = 1.25, rubberBallRadius = 1.5;  // m
+    const Real hardBallMass = steel_density*(4./3.)*Pi*std::pow(hardBallRadius,3);
+    const Real rubberBallMass = rubber_density*(4./3.)*Pi*std::pow(rubberBallRadius,3);
+
     const MassProperties hardBallMProps(hardBallMass, Vec3(0), 
         hardBallMass*InertiaMat::sphere(hardBallRadius));
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
         rubberBallMass*InertiaMat::sphere(rubberBallRadius));
-    const Vec3 firstHardBallPos = Vec3(-3,10,0), firstRubberBallPos = Vec3(3,10,0);
+    const Vec3 firstHardBallPos = Vec3(-6,20,0), firstRubberBallPos = Vec3(18,20,-18);
     std::vector<int> balls;
 
     const int NRubberBalls = 5;
@@ -139,7 +176,7 @@ try {
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
                               Ground, Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
-                                                + (i==NHardBalls-1)*Vec3(1e-13,0,1e-15)),
+                                                + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
 
@@ -152,9 +189,14 @@ try {
     HuntCrossleyContact contact;
     mbs.addForceSubsystem(contact);
 
-    
-    const Real kwall = 100000, khard=200000, krubber=50000;
-    const Real cwall = 0.001, chard = 1e-4, crubber=0.01;
+    // The k's here are the plane-strain moduli, that is, Y/(1-p^2) where Y is
+    // Young's modulus and p is Poisson's ratio for the material. The c's are
+    // the dissipation coefficients in units of 1/velocity.
+    // TODO: our units are weird here because the masses are way too low for
+    // balls as big as these! In real MKS units, steel's stiffness should
+    // be about 220 Gigapascals, i.e., 2.2e11 N/m^2; rubber 0.01GPa=1e7 N/m^2.
+    const Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
+    const Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
     //const Real cwall = 0., chard = 0., crubber=0.;
 
     VTKReporter vtk(mbs, false); // suppress default geometry
@@ -179,13 +221,13 @@ try {
     vtk.addDecoration(Ground, Transform(), 
         DecorativeBrick(Vec3(20,.1,20)).setColor(Green).setOpacity(1));
     vtk.addDecoration(Ground, Transform(Vec3(-20,20,0)), 
-        DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.3));
+        DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
     vtk.addDecoration(Ground, Transform(Vec3(20,20,0)), 
-        DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.3));
+        DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
     vtk.addDecoration(Ground, Transform(Vec3(0,20,20)), 
         DecorativeBrick(Vec3(20,20,.1)).setColor(Gray).setOpacity(.05));
     vtk.addDecoration(Ground, Transform(Vec3(0,20,-20)), 
-        DecorativeBrick(Vec3(20,30,.1)).setColor(Cyan).setOpacity(.3));
+        DecorativeBrick(Vec3(20,30,.1)).setColor(Cyan).setOpacity(.2));
 
     DecorativeSphere rubberSphere(rubberBallRadius);
     for (int i=0; i<NRubberBalls; ++i) {
