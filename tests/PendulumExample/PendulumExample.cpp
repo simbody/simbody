@@ -344,7 +344,7 @@ int main(int argc, char** argv) {
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Modeled);
 
-        ugs.updGravity(s) *= -10;
+        ugs.updGravity(s) *= 10;
         ugs.disableGravity(s);
         ugs.enableGravity(s);
         ugs.updZeroHeight(s) = -0.8;
@@ -355,7 +355,7 @@ int main(int argc, char** argv) {
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
         RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-4);
+        myStudy.setAccuracy(1e-2);
         myStudy.setConstraintTolerance(1e-3);
         myStudy.setProjectEveryStep(false);
 

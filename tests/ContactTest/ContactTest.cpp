@@ -161,17 +161,17 @@ try {
         hardBallMass*InertiaMat::sphere(hardBallRadius));
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
         rubberBallMass*InertiaMat::sphere(rubberBallRadius));
-    const Vec3 firstHardBallPos = Vec3(-6,20,0), firstRubberBallPos = Vec3(18,20,-18);
+    const Vec3 firstHardBallPos = Vec3(-6,30,0), firstRubberBallPos = Vec3(18,30,-18);
     std::vector<int> balls;
 
-    const int NRubberBalls = 5;
+    const int NRubberBalls = 6;
     for (int i=0; i<NRubberBalls; ++i)
         balls.push_back( 
             bouncers.addRigidBody(rubberBallMProps, Transform(),
                               Ground, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
                               Mobilizer(Mobilizer::Cartesian, false)));
 
-    const int NHardBalls = 10;
+    const int NHardBalls = 12;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
@@ -192,9 +192,7 @@ try {
     // The k's here are the plane-strain moduli, that is, Y/(1-p^2) where Y is
     // Young's modulus and p is Poisson's ratio for the material. The c's are
     // the dissipation coefficients in units of 1/velocity.
-    // TODO: our units are weird here because the masses are way too low for
-    // balls as big as these! In real MKS units, steel's stiffness should
-    // be about 220 Gigapascals, i.e., 2.2e11 N/m^2; rubber 0.01GPa=1e7 N/m^2.
+
     const Real kwall=concrete_planestrain, khard=steel_planestrain, krubber=rubber_planestrain;
     const Real cwall=concrete_dissipation, chard=steel_dissipation, crubber=rubber_dissipation;
     //const Real cwall = 0., chard = 0., crubber=0.;
@@ -263,7 +261,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
+    ee.setAccuracy(1e-4);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;

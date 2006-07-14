@@ -50,7 +50,7 @@ class MassProperties;
  * Equations represented:
  *
  *                     qdot = Q u
- *   M udot + ~A mult + R*C = T + R*F
+ *         M udot + ~A mult = T + R*(F-C)
  *                   A udot = b(t,q,u)
  *
  *                 v(t,q,u) = 0
