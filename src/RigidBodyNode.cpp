@@ -104,7 +104,8 @@ Real RigidBodyNode::calcKineticEnergy(
 // Calculate velocity-related quantities that are needed for building
 // our dynamics operators, namely the gyroscopic force and coriolis acceleration.
 // This routine expects that all spatial velocities & spatial inertias are
-// already available, but does not have to be called in any particular order.
+// already available.
+// Must be called base to tip.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
     const SBConfigurationCache& cc,
@@ -114,7 +115,9 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     if (nodeNum == 0) { // ground, just in case
         updGyroscopicForce(dc)      = SpatialVec(Vec3(0), Vec3(0));
         updCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
+        updTotalCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
         updCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
+        updTotalCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
 
@@ -139,14 +142,55 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // (caution: JV&R number backwards so the parent is w_k+1 there).
     // Is that also true in the first term? I.e., can we use pOmega, omega,
     // or both below and get the same answers? Anyway the code below is
-    // consistent with JV&R but not obviously consistent with S&C.
-    updCoriolisAcceleration(dc) = 
-        SpatialVec(Vec3(0), pOmega % (vel-pVel)) 
-         // + crossMat(pOmega) * getV_PB_G(s); <-- IVM original
-        + crossMat(omega)  * getV_PB_G(mc); // JV&R paper
+    // consistent with JV&R (and works) but not obviously consistent with S&C
+    // (which doesn't).
+
+    // (sherm 060728) My guess is that I introduced the need for the cross-joint
+    // term here when I separated the body frame from the joint frame.
+    // Dan Rosenthal's description in abandoned patent app 10/053,348
+    // paragraph [0097] is easier to understand than S&C or JV&R, although
+    // it is also missing the cross-joint term.
+
+    // Note: (vel-pVel) is the total relative velocity; V_PB_G is that 
+    // portion due just to this joint's u's.
+
+    //const SpatialVec pSC  = SpatialVec(Vec3(0), pOmega % (vel-pVel));
+    const SpatialVec pJVR = SpatialVec(Vec3(0), pOmega % (vel-pVel));
+    //const SpatialVec pDan = SpatialVec(Vec3(0), 
+    //               pOmega % (pOmega % (getX_GB(cc).T() - getX_GP(cc).T())));
+
+    //cout << "pSC=pJVR=" << pSC << endl;
+   // cout << "pDan=" << pDan << endl;
+
+    //const SpatialVec SC  = pSC  + crossMat(pOmega) * getV_PB_G(mc); // <<-- BAD
+    const SpatialVec JVR = pJVR + crossMat(omega)  * getV_PB_G(mc); // <<-- GOOD
+
+    // Dan originally had 2*pOmega where I have (pOmega+omega) below. The former
+    // did not work and in fact was identical to SC above. This works fine and
+    // is identical to JVR. You can think of this as (2*pOmega + w_PB_G), that is,
+    // it is the same as Dan's except for the cross-joint coriolis addition.
+    // That is, these two are equivalent:
+    //  const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
+    //                                           (pOmega+omega) % getV_PB_G(mc)[1]);
+    //  const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
+    //                                           (2*pOmega+getV_PB_G(mc)[0]) % getV_PB_G(mc)[1]);
+
+   // cout << "SC=" << SC << endl;
+   // cout << "JVR=" << JVR << endl;
+   // cout << "Dan=" << Dan << endl;
+    
+    updCoriolisAcceleration(dc) = JVR;
+
+    updTotalCoriolisAcceleration(dc) =
+        ~getPhi(cc) * parent->getTotalCoriolisAcceleration(dc)
+        + getCoriolisAcceleration(dc); // just calculated above
 
     updCentrifugalForces(dc) =
         getP(dc) * getCoriolisAcceleration(dc) + getGyroscopicForce(dc);
+
+    updTotalCentrifugalForces(dc) = 
+        getP(dc) * getTotalCoriolisAcceleration(dc) + getGyroscopicForce(dc);
+
 }
 
 void RigidBodyNode::nodeDump(std::ostream& o) const {
@@ -247,11 +291,9 @@ public:
         const SBDynamicsCache&,
         const Vector_<SpatialVec>& bodyForces,
         Vector_<SpatialVec>&       allZ,
-        Vector_<SpatialVec>&       allGepsilon,
         Vector&                    jointForces) const 
     { 
         allZ[0] = bodyForces[0];
-        allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
     /*virtual*/void calcUDotPass1Inward(
@@ -267,6 +309,28 @@ public:
         allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     } 
     /*virtual*/void calcUDotPass2Outward(
+        const SBConfigurationCache&,
+        const SBDynamicsCache&,
+        const Vector&                   epsilonTmp,
+        Vector_<SpatialVec>&            allA_GB,
+        Vector&                         allUDot) const
+    {
+        allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
+    }
+
+    /*virtual*/void calcMInverseFPass1Inward(
+        const SBConfigurationCache&,
+        const SBDynamicsCache&,
+        const Vector&              f,
+        Vector_<SpatialVec>&       allZ,
+        Vector_<SpatialVec>&       allGepsilon,
+        Vector&                    allEpsilon) const
+    {
+        allZ[0] = SpatialVec(Vec3(0), Vec3(0));
+        allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
+    } 
+
+    /*virtual*/void calcMInverseFPass2Outward(
         const SBConfigurationCache&,
         const SBDynamicsCache&,
         const Vector&                   epsilonTmp,
@@ -655,7 +719,6 @@ public:
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
         Vector&                     jointForces) const;
 
     void calcUDotPass1Inward(
@@ -668,6 +731,21 @@ public:
         Vector&                     allEpsilon) const;
 
     void calcUDotPass2Outward(
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               epsilonTmp,
+        Vector_<SpatialVec>&        allA_GB,
+        Vector&                     allUDot) const;
+
+    void calcMInverseFPass1Inward(
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               f,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     allEpsilon) const;
+
+    void calcMInverseFPass2Outward(
         const SBConfigurationCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
@@ -1508,7 +1586,7 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(
 //      DI  (inverse of D)
 //      G   (P * ~H * DI)
 //   tauBar (I-G*H, a temporary not reused elsewhere)
-//      Psi (articulated body child-to-parent shift matrix)
+//      Psi (Phi*(I-G*H), articulated body child-to-parent shift matrix)
 // and put them in the state cache.
 // This must be called tip-to-base (inward).
 //
@@ -1545,6 +1623,11 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
 
 
 // To be called base to tip.
+// sherm 060723: As best I can tell this is calculating the inverse of
+// the "operational space inertia" at the body frame origin for each body.
+// See Equation 20 in Rodriguez,Jain, & Kreutz-Delgado: A spatial operator algebra 
+// for manipulator modeling and control. Intl. J. Robotics Research 
+// 10(4):371-381 (1991).
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcYOutward(
     const SBConfigurationCache& cc,
@@ -1671,12 +1754,83 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
     A_GB = A_GP + ~getH(cc)*udot + getCoriolisAcceleration(dc);  
 }
 
+ 
+//
+// To be called from tip to base.
+// Temps do not need to be initialized.
+//
+// This calculates udot = M^-1 f in two O(N) passes. Note that
+// we are ignoring velocities; if there are any velocity-dependent
+// forces they should already be in f.
+//
+// (sherm 060727) TODO: surely this can be tightened up?
+//
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
+    const SBConfigurationCache& cc,
+    const SBDynamicsCache&      dc,
+    const Vector&               f,
+    Vector_<SpatialVec>&        allZ,
+    Vector_<SpatialVec>&        allGepsilon,
+    Vector&                     allEpsilon) const 
+{
+    const Vec<dof>&   myJointForce = fromU(f);
+    SpatialVec&       z            = toB(allZ);
+    SpatialVec&       Geps         = toB(allGepsilon);
+    Vec<dof>&         eps          = toU(allEpsilon);
+
+    z = SpatialVec(Vec3(0), Vec3(0));
+
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const PhiMatrix&  phiChild  = children[i]->getPhi(cc);
+        const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
+        const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
+
+        z += phiChild * (zChild + GepsChild);
+    }
+
+    eps  = myJointForce - getH(cc)*z;
+    Geps = getG(dc)  * eps;
+}
+
+//
+// Calculate acceleration in internal coordinates, based on the last set
+// of forces that were reduced into epsilon (e.g., see above).
+// Base to tip: temp allA_GB does not need to be initialized before
+// beginning the iteration.
+//
+template<int dof> void 
+RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
+    const SBConfigurationCache&     cc,
+    const SBDynamicsCache&          dc,
+    const Vector&                   allEpsilon,
+    Vector_<SpatialVec>&            allA_GB,
+    Vector&                         allUDot) const
+{
+    const Vec<dof>& eps  = fromU(allEpsilon);
+    SpatialVec&     A_GB = toB(allA_GB);
+    Vec<dof>&       udot = toU(allUDot); // pull out this node's udot
+
+    // Shift parent's A_GB outward. (Ground A_GB is zero.)
+    const SpatialVec A_GP = parent->getNodeNum()== 0 
+        ? SpatialVec(Vec3(0), Vec3(0))
+        : ~getPhi(cc) * allA_GB[parent->getNodeNum()];
+
+    udot = getDI(dc) * eps - (~getG(dc)*A_GP);
+    A_GB = A_GP + ~getH(cc)*udot;  
+}
+
 //
 // Calculate product of partial velocities J and a gradient vector on each of the
-// outboard bodies. This is to be called tip to base. Requires that Phi and H are available, so this
+// outboard bodies. Requires that Phi and H are available, so this
 // should only be called in Stage::Configured or higher. This does not change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
 // applied hinge gradients if there are any; just add those in at the end if you want them.
+//
+// (sherm 060727) In spatial operators, this calculates H*Phi*F where F are the spatial forces
+// applied to each body. See Schwieters Eq. 41.
+//
+// Call tip to base.
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
@@ -1704,6 +1858,7 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
 //
 // To be called from tip to base.
 // Temps do not need to be initialized.
+// (sherm 060727) In spatial operators, this calculates H*Phi*(F-(Pa+b))
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
@@ -1711,25 +1866,23 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
     const SBDynamicsCache&          dc,
     const Vector_<SpatialVec>&      bodyForces,
     Vector_<SpatialVec>&            allZ,
-    Vector_<SpatialVec>&            allGepsilon,
     Vector&                         jointForces) const 
 {
     const SpatialVec& myBodyForce  = fromB(bodyForces);
     SpatialVec&       z            = toB(allZ);
-    SpatialVec&       Geps         = toB(allGepsilon);
     Vec<dof>&         eps          = toU(jointForces);
 
-    z = myBodyForce;
+    // Centrifugal forces are PA+b where P is articulated body inertia,
+    // A is total coriolis acceleration, and b is gyroscopic force.
+    z = myBodyForce - getTotalCentrifugalForces(dc);
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const PhiMatrix&  phiChild  = children[i]->getPhi(cc);
         const SpatialVec& zChild    = allZ[children[i]->getNodeNum()];
-        const SpatialVec& GepsChild = allGepsilon[children[i]->getNodeNum()];
 
-        z += phiChild * (zChild + GepsChild);
+        z += phiChild * zChild; 
     }
 
     eps  = getH(cc) * z;
-    Geps = getG(dc) * eps;
 }
 

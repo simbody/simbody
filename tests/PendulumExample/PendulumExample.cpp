@@ -325,13 +325,14 @@ int main(int argc, char** argv) {
 
         forces.addLinearTwoPointSpring(0, attachPt,
                                        myRNA.getNBodies()-1, Vec3(0),
-                                       100.,  // stiffness
+                                       1000.,  // stiffness
                                        1.);    // natural length
 
-        forces.addLinearTwoPointSpring(0, -attachPt,
+       /* forces.addLinearTwoPointSpring(0, -attachPt,
                                        myRNA.getNBodies()-1, Vec3(0),
                                        1000.,  // stiffness
                                        1.);    // natural length
+        */
 
         forces.addGlobalMobilityDamping(1000);
 
@@ -366,7 +367,7 @@ int main(int argc, char** argv) {
 
         DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
         display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
-        display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+        //display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
         const Real dt = 0.05; // output intervals
 

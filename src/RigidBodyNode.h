@@ -260,12 +260,18 @@ public:
  
     const SpatialVec& getCoriolisAcceleration(const SBDynamicsCache& dc) const {return fromB(dc.coriolisAcceleration);}
     SpatialVec&       updCoriolisAcceleration(SBDynamicsCache&       dc) const {return toB  (dc.coriolisAcceleration);}
- 
+
+    const SpatialVec& getTotalCoriolisAcceleration(const SBDynamicsCache& dc) const {return fromB(dc.totalCoriolisAcceleration);}
+    SpatialVec&       updTotalCoriolisAcceleration(SBDynamicsCache&       dc) const {return toB  (dc.totalCoriolisAcceleration);}
+
     const SpatialVec& getGyroscopicForce(const SBDynamicsCache& dc) const {return fromB(dc.gyroscopicForces);}
     SpatialVec&       updGyroscopicForce(SBDynamicsCache&       dc) const {return toB  (dc.gyroscopicForces);}
  
     const SpatialVec& getCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.centrifugalForces);}
     SpatialVec&       updCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.centrifugalForces);}
+
+    const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
+    SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
     const SpatialVec& getZ(const SBReactionCache& rc) const {return fromB(rc.z);}
     SpatialVec&       updZ(SBReactionCache&       rc) const {return toB  (rc.z);}
@@ -399,7 +405,6 @@ public:
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
-        Vector_<SpatialVec>&        allGepsilon,
         Vector&                     jointForces) const
       { throw VirtualBaseMethod(); }
 
@@ -414,6 +419,23 @@ public:
       { throw VirtualBaseMethod(); } 
 
     virtual void calcUDotPass2Outward(
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               epsilonTmp,
+        Vector_<SpatialVec>&        allA_GB,
+        Vector&                     allUDot) const
+      { throw VirtualBaseMethod(); }
+
+    virtual void calcMInverseFPass1Inward(
+        const SBConfigurationCache& cc,
+        const SBDynamicsCache&      dc,
+        const Vector&               f,
+        Vector_<SpatialVec>&        allZ,
+        Vector_<SpatialVec>&        allGepsilon,
+        Vector&                     allEpsilon) const
+      { throw VirtualBaseMethod(); } 
+
+    virtual void calcMInverseFPass2Outward(
         const SBConfigurationCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,

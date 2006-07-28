@@ -49,26 +49,56 @@ class MassProperties;
  * The Simbody low-level multibody tree interface.
  * Equations represented:
  *
- *                     qdot = Q u
- *         M udot + ~A mult = T + R*(F-C)
- *                   A udot = b(t,q,u)
+ *                               qdot = Q u
+ *                               n(q) = 0
  *
- *                 v(t,q,u) = 0
- *                   g(t,q) = 0
+ *                   M udot + ~G mult = f
+ *                  G udot + b(t,q,u) = 0
+ *
+ *   [A]    [ba]
+ * G=[V]  b=[bv]  f=T+R*(F-C)
+ *   [P]    [bp]
+ *
+ * a(t,q,u,udot) = A udot + ba(t,q,u) = 0
+ *          vdot = V udot + bv(t,q,u) = 0
+ *       pdotdot = P udot + bp(t,q,u) = 0
+ *           
+ *                           v(t,q,u) = 0
+ *                pdot = P u + c(t,q) = 0
+ *
+ *                             p(t,q) = 0
  * 
- * where M(q) is the mass matrix, A(q) the constraint matrix, C(q,u)
+ * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
  * the coriolis and gyroscopic forces, T is user-applied joint forces,
  * F is user-applied body forces and torques and gravity. 
- * R* is the operator that maps spatial forces to joint forces (partial
- * velocity matrix in Kane's terminology).
+ * R* is the operator that maps spatial forces to joint forces. p() are the
+ * holonomic (position) constraints, v() the non-holonomic (velocity) constraints,
+ * and a() the reaction (acceleration) constraints, which must be linear with A
+ * the coefficient matrix for a(). pdot, pdotdot are obtained
+ * by differentiation of p(), vdot by differentiation of v().
+ * P=partial(pdot)/partial(u), V=partial(v)/partial(u).
+ * n() is the set of quaternion normalization constraints.
  *
  * We calculate the constraint multipliers like this:
- *           AM~A mult = A udot0-b, udot0=inv(M)f
- * using the pseudo inverse of AM~A to give a least squares solution for
- * mult: mult = pinv(AM~A)(A inv(M)f - b). Then the real udot is
- * udot = udot0 - udotC, with udotC = inv(M)(~A mult).
+ *           G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
+ * using the pseudo inverse of G M^-1 ~G to give a least squares solution for
+ * mult: mult = pinv(G M^-1 ~G)(G M^-1 f - b). Then the real udot is
+ * udot = udot0 - udotC, with udotC = M^-1 ~G mult.
  *
- * NOTE: none of the above matrices are actually formed or factored!
+ * NOTE: only the constraint matrices have to be formed and factored:
+ *     G M^-1 ~G    to calculate multipliers (square, symmetric: LDL' if
+ *                  well conditioned, else pseudoinverse)
+ *
+ *     P            for projection onto position manifold (pseudoinverse)
+ *
+ *    [V]           for projection onto velocity manifold (pseudoinverse)
+ *    [P]
+ *
+ * In many cases these matrices consisted of decoupled blocks which can
+ * be solved independently; we try to take advantage of that whenever possible
+ * to solve a set of smaller systems rather than one large one. Also, in the
+ * majority of biosimulation applications we are likely to have only holonomic
+ * (position) constraints, so there is no V or A so P is the whole story.
  */
 class SimTK_SIMBODY_API SimbodyMatterSubsystem : public MatterSubsystem {
 public:
@@ -157,7 +187,14 @@ public:
     void calcTreeUDot(const State&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    udot) const;
+        Vector&                    udot,
+        Vector_<SpatialVec>&       A_GB) const;
+
+    /// Requires realization through DynamicsStage.
+    void calcMInverseF(const State&,
+        const Vector&        f,
+        Vector&              udot,
+        Vector_<SpatialVec>& A_GB) const;
 
     /// Must be in Stage::Configured to calculate qdot = Q*u.
     void calcQDot(const State& s,
@@ -247,6 +284,11 @@ public:
     /// V_GB of the body frame measured and expressed in the ground frame.
     const SpatialVec& getBodyVelocity     (const State&, int body) const;
     const SpatialVec& getBodyAcceleration (const State&, int body) const;
+
+    // Dynamics stage responses.
+    const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
+    const SpatialVec& getGyroscopicForce(const State&, int body) const;
+    const SpatialVec& getCentrifugalForces(const State&, int body) const;
 
     const Real& getJointQ(const State&, int body, int axis) const;
     const Real& getJointU(const State&, int body, int axis) const;

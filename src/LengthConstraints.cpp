@@ -1035,7 +1035,7 @@ LengthSet::calcConstraintForces(const State& s) const
                 double maxElem = 0.;
                 for (int j=i ; j<(int)loops.size() ; j++) {
                     const Vec3 v2 = loops[j].tipPos(cc,2) - loops[j].tipPos(cc,1);
-                    double contrib = computeA(cc,dc, v1, loops[i], bi,
+                    Real  contrib = computeA(cc, dc, v1, loops[i], bi,
                                                      loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
                 }

@@ -105,6 +105,8 @@ int SimbodyMatterSubsystem::addWeldConstraint
 // Note the lack of a State argument when completing construction.
 void SimbodyMatterSubsystem::endConstruction() {updRep().endConstruction();}
 
+// Convert spatial forces to internal equivalent, ignoring velocity and
+// constraints.
 void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,
     const Vector_<SpatialVec>& dEdR,
     Vector&                    dEdQ) const
@@ -112,6 +114,8 @@ void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,
     getRep().calcInternalGradientFromSpatial(s,dEdR,dEdQ);
 }
 
+// Convert spatial forces and centrifugal forces to an equivalent set
+// of joint forces, ignoring constraints.
 void SimbodyMatterSubsystem::calcTreeEquivalentJointForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    jointForces) const
@@ -126,13 +130,22 @@ Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const {
 void SimbodyMatterSubsystem::calcTreeUDot(const State& s,
     const Vector&              jointForces,
     const Vector_<SpatialVec>& bodyForces,
-    Vector&                    udot) const
+    Vector&                    udot,
+    Vector_<SpatialVec>&       A_GB) const
 {
-    Vector              netHingeForces; // unwanted side effects
-    Vector_<SpatialVec> A_GB;
+    Vector              netHingeForces; // unwanted side effect
 
     getRep().calcTreeAccelerations(s,jointForces,bodyForces,
         netHingeForces, A_GB, udot);
+}
+
+
+void SimbodyMatterSubsystem::calcMInverseF(const State& s,
+    const Vector&        f,
+    Vector&              udot,
+    Vector_<SpatialVec>& A_GB) const
+{
+    getRep().calcMInverseF(s,f, A_GB, udot);
 }
 
 void SimbodyMatterSubsystem::calcQDot(const State& s,
@@ -217,8 +230,22 @@ SimbodyMatterSubsystem::getBodyConfiguration(const State& s, int body) const
   { return getRep().getBodyConfiguration(s,body); }
 
 const SpatialVec&
-SimbodyMatterSubsystem::getBodyVelocity(const State& s, int body) const
-  { return getRep().getBodyVelocity(s,body); }
+SimbodyMatterSubsystem::getBodyVelocity(const State& s, int body) const {
+    return getRep().getBodyVelocity(s,body);
+}
+
+const SpatialVec&
+SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, int body) const {
+    return getRep().getCoriolisAcceleration(s,body);
+}
+const SpatialVec&
+SimbodyMatterSubsystem::getGyroscopicForce(const State& s, int body) const {
+    return getRep().getGyroscopicForce(s,body);
+}
+const SpatialVec&
+SimbodyMatterSubsystem::getCentrifugalForces(const State& s, int body) const {
+    return getRep().getCentrifugalForces(s,body);
+}
 
 const SpatialVec&
 SimbodyMatterSubsystem::getBodyAcceleration(const State& s, int body) const

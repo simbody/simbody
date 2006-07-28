@@ -293,8 +293,10 @@ public:
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
     Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
+    Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
     Vector_<SpatialVec> gyroscopicForces;         // nb (b)
     Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
+    Vector_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
 
     Vector_<SpatialVec> appliedRigidBodyForces; // nb
     Vector_<Vec3>       appliedParticleForces;  // TODO
@@ -323,11 +325,17 @@ public:
         coriolisAcceleration.resize(nBodies);       
         coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
 
+        totalCoriolisAcceleration.resize(nBodies);       
+        totalCoriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));
+
         gyroscopicForces.resize(nBodies);           
         gyroscopicForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         centrifugalForces.resize(nBodies);           
         centrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
+
+        totalCentrifugalForces.resize(nBodies);           
+        totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
 
         appliedRigidBodyForces.resize(nBodies);
         appliedRigidBodyForces[0] = SpatialVec(Vec3(0),Vec3(0));

@@ -1,3 +1,3 @@
-SUBDIRS (SBPendulum1 IntegratorTest PendulumExample ContactTest)
+SUBDIRS (SBPendulum1 IntegratorTest PendulumExample ContactTest JunkMain)
 
 

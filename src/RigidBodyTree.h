@@ -151,8 +151,14 @@ public:
     const Real&       getBodyMass               (const State&, int body) const;
     const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
 
-    const Transform&  getBodyConfiguration (const State& s, int body) const;
-    const SpatialVec& getBodyVelocity      (const State& s, int body) const;
+    const Transform&  getBodyConfiguration (const State&, int body) const;
+    const SpatialVec& getBodyVelocity      (const State&, int body) const;
+
+    // velocity dependent
+    const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
+    const SpatialVec& getGyroscopicForce(const State&, int body) const;
+    const SpatialVec& getCentrifugalForces(const State&, int body) const;
+
 
     void addInStationForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
                            Vector_<SpatialVec>& rigidBodyForces) const;
@@ -256,6 +262,11 @@ public:
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
+        Vector_<SpatialVec>&       A_GB,
+        Vector&                    udot) const; 
+
+    void calcMInverseF(const State& s,
+        const Vector&              f,
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot) const; 
 

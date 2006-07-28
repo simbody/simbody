@@ -227,8 +227,22 @@ RigidBodyTree::getBodyConfiguration(const State& s, int body) const
   { return getRigidBodyNode(body).getX_GB(getConfigurationCache(s)); }
 
 const SpatialVec&
-RigidBodyTree::getBodyVelocity(const State& s, int body) const
-  { return getRigidBodyNode(body).getV_GB(getMotionCache(s)); }
+RigidBodyTree::getBodyVelocity(const State& s, int body) const {
+  return getRigidBodyNode(body).getV_GB(getMotionCache(s));
+}
+
+const SpatialVec&
+RigidBodyTree::getCoriolisAcceleration(const State& s, int body) const {
+  return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
+}
+const SpatialVec&
+RigidBodyTree::getGyroscopicForce(const State& s, int body) const {
+  return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
+}
+const SpatialVec&
+RigidBodyTree::getCentrifugalForces(const State& s, int body) const {
+  return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
+}
 
 void RigidBodyTree::realizeConstruction(State& s) const {
     // This is a long-winded way of saying that the Stage must be exactly Allocated.
@@ -922,6 +936,43 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
         }
 }
 
+//
+// Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
+// each body as a side effect.
+//
+void RigidBodyTree::calcMInverseF(const State& s,
+    const Vector&              f,
+    Vector_<SpatialVec>&       A_GB,
+    Vector&                    udot) const 
+{
+    const SBConfigurationCache& cc = getConfigurationCache(s);
+    const SBDynamicsCache&      dc = getDynamicsCache(s);
+
+    assert(f.size() == getTotalDOF());
+
+    A_GB.resize(getNBodies());
+    udot.resize(getTotalDOF());
+
+    // Temporaries
+    Vector              allEpsilon(getTotalDOF());
+    Vector_<SpatialVec> allZ(getNBodies());
+    Vector_<SpatialVec> allGepsilon(getNBodies());
+
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcMInverseFPass1Inward(cc,dc,
+                f, allZ, allGepsilon,
+                allEpsilon);
+        }
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcMInverseFPass2Outward(cc,dc, allEpsilon, A_GB, udot);
+        }
+}
+
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
@@ -979,6 +1030,9 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
         }
 }
 
+// This routine does the same thing as the above but accounts for centrifugal
+// forces induced by velocities. The equivalent joint forces returned include
+// both the applied forces and the centrifugal ones. Constraints are ignored.
 void RigidBodyTree::calcTreeEquivalentJointForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    jointForces) const
@@ -990,14 +1044,13 @@ void RigidBodyTree::calcTreeEquivalentJointForces(const State& s,
     jointForces.resize(getTotalDOF());
 
     Vector_<SpatialVec> allZ(getNBodies());
-    Vector_<SpatialVec> allGepsilon(getNBodies());
 
     // Don't do ground's level since ground has no inboard joint.
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcEquivalentJointForces(cc,dc,
-                bodyForces, allZ, allGepsilon,
+                bodyForces, allZ,
                 jointForces);
         }
 }
