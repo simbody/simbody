@@ -331,7 +331,7 @@ try {
     cout << "dEdR=" << dEdR << endl;
     cout << "dEdQ=" << dEdQ << endl;
 
-    pend.setJointU(s, 1, 0, 10.);
+    pend.setMobilizerU(s, 1, 0, 10.);
 
     Vector_<SpatialVec> bodyForces;
     Vector_<Vec3>       particleForces;
@@ -352,7 +352,7 @@ try {
 
     mbs.realize(s, Stage::Dynamics);
     Vector equivT;
-    pend.calcTreeEquivalentJointForces(s, bodyForces, equivT);
+    pend.calcTreeEquivalentMobilityForces(s, bodyForces, equivT);
     cout << "body forces -> equiv joint forces=" << equivT << endl;
 
     mbs.realize(s, Stage::Reacting);
@@ -362,10 +362,10 @@ try {
 
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
     //pend.updQ(s)[0] = -1.5; // almost hanging straight down
-    pend.setJointU(s, aPendulum, 0,   0.);
-    //pend.setJointU(s, 1, 1,   0.);
-    //pend.setJointU(s, 1, 2, -10.);
-   // pend.setJointU(s, 1, 2,   0.);
+    pend.setMobilizerU(s, aPendulum, 0,   0.);
+    //pend.setMobilizerU(s, 1, 1,   0.);
+    //pend.setMobilizerU(s, 1, 2, -10.);
+   // pend.setMobilizerU(s, 1, 2,   0.);
 
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
@@ -437,10 +437,11 @@ try {
 
         const Vector udot = s.getUDot();
         Vector udot2;
+        Vector_<SpatialVec> acc2;
         pend.calcTreeUDot(s, 
             pend.getAppliedMobilityForces(s),
             pend.getAppliedBodyForces(s),
-            udot2);
+            udot2, acc2);
         if (!(step % 100)) {
             cout << "udot = " << udot << endl;
             cout << "udot2= " << udot2 << endl;

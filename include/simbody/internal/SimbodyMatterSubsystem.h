@@ -179,13 +179,13 @@ public:
 
     /// Requires realization through DynamicsStage although
     /// velocities are irrelevant.
-    void calcTreeEquivalentJointForces(const State&, 
+    void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    jointForces) const;
+        Vector&                    mobilityForces) const;
 
     /// Requires realization through DynamicsStage.
     void calcTreeUDot(const State&,
-        const Vector&              jointForces,
+        const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot,
         Vector_<SpatialVec>&       A_GB) const;
@@ -267,8 +267,8 @@ public:
     bool isMobilizerPrescribed  (const State&, int body)      const;
     bool isConstraintEnabled(const State&, int constraint) const;
 
-    void setJointQ(State&, int body, int axis, const Real&) const;
-    void setJointU(State&, int body, int axis, const Real&) const;
+    void setMobilizerQ(State&, int body, int axis, const Real&) const;
+    void setMobilizerU(State&, int body, int axis, const Real&) const;
 
     // Configuration Stage. 
 
@@ -290,11 +290,11 @@ public:
     const SpatialVec& getGyroscopicForce(const State&, int body) const;
     const SpatialVec& getCentrifugalForces(const State&, int body) const;
 
-    const Real& getJointQ(const State&, int body, int axis) const;
-    const Real& getJointU(const State&, int body, int axis) const;
-    const Real& getJointQDot(const State&, int body, int axis) const;
-    const Real& getJointUDot(const State&, int body, int axis) const;
-    const Real& getJointQDotDot(const State&, int body, int axis) const;
+    const Real& getMobilizerQ(const State&, int body, int axis) const;
+    const Real& getMobilizerU(const State&, int body, int axis) const;
+    const Real& getMobilizerQDot(const State&, int body, int axis) const;
+    const Real& getMobilizerUDot(const State&, int body, int axis) const;
+    const Real& getMobilizerQDotDot(const State&, int body, int axis) const;
 
     /// Get the location in space of a station (point) fixed on a body. This
     /// just makes use of the transform associated with the body's current

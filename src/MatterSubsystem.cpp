@@ -135,19 +135,19 @@ void MatterSubsystem::addInMobilityForce(const State& s, int body, int axis, con
 }
 
 const Real&
-MatterSubsystem::getJointQ(const State& s, int body, int axis) const { 
-    return getRep().getJointQ(s,body,axis); 
+MatterSubsystem::getMobilizerQ(const State& s, int body, int axis) const { 
+    return getRep().getMobilizerQ(s,body,axis); 
 }
 const Real&
-MatterSubsystem::getJointU(const State& s, int body, int axis) const { 
-    return getRep().getJointU(s,body,axis); 
+MatterSubsystem::getMobilizerU(const State& s, int body, int axis) const { 
+    return getRep().getMobilizerU(s,body,axis); 
 }
 
-void MatterSubsystem::setJointQ(State& s, int body, int axis, const Real& q) const { 
-    getRep().setJointQ(s,body,axis,q); 
+void MatterSubsystem::setMobilizerQ(State& s, int body, int axis, const Real& q) const { 
+    getRep().setMobilizerQ(s,body,axis,q); 
 }
-void MatterSubsystem::setJointU(State& s, int body, int axis, const Real& u) const { 
-    getRep().setJointU(s,body,axis,u); 
+void MatterSubsystem::setMobilizerU(State& s, int body, int axis, const Real& u) const { 
+    getRep().setMobilizerU(s,body,axis,u); 
 }
 
 

@@ -182,11 +182,11 @@ public:
         return ~getBodyRotation(s,bodyA) * v_AsB_G; // 15
     }
 
-    const Real& getJointQ(const State&, int body, int axis) const;
-    const Real& getJointU(const State&, int body, int axis) const;
+    const Real& getMobilizerQ(const State&, int body, int axis) const;
+    const Real& getMobilizerU(const State&, int body, int axis) const;
 
-    void setJointQ(State&, int body, int axis, const Real&) const;
-    void setJointU(State&, int body, int axis, const Real&) const;
+    void setMobilizerQ(State&, int body, int axis, const Real&) const;
+    void setMobilizerU(State&, int body, int axis, const Real&) const;
 
     /// At stage Configured or higher, return the cross-mobilizer transform.
     /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in

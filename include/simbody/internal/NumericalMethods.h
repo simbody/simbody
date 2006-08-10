@@ -496,7 +496,7 @@ public:
             if (maxNumSteps && stepsTaken >= maxNumSteps)
                 return false; // too much work
 
-            // Keep track of whether we had to use an excessible small step size
+            // Keep track of whether we had to use an excessively small step size
             // in order to stop at tOut. In that case we don't want to use the
             // shrunken step to predict the next one.
             bool trialHWasLimitedByTOut = false;

@@ -624,27 +624,27 @@ bool RigidBodyTree::isConstraintEnabled(const State& s, int constraint) const {
     return modelVars.enabled[constraint];
 }
 
-const Real& RigidBodyTree::getJointQ(const State& s, int body, int axis) const {
+const Real& RigidBodyTree::getMobilizerQ(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelingVars(s)));
     return getQ(s)[n.getQIndex()+axis];
 }
 
 
-const Real& RigidBodyTree::getJointU(const State& s, int body, int axis) const {
+const Real& RigidBodyTree::getMobilizerU(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     return getU(s)[n.getUIndex()+axis];
 }
 
-void RigidBodyTree::setJointQ(State& s, int body, int axis, const Real& r) const {
+void RigidBodyTree::setMobilizerQ(State& s, int body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelingVars(s)));
     updQ(s)[n.getQIndex()+axis] = r;
 }
 
 
-void RigidBodyTree::setJointU(State& s, int body, int axis, const Real& r) const {
+void RigidBodyTree::setMobilizerU(State& s, int body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     updU(s)[n.getUIndex()+axis] = r;
@@ -697,7 +697,7 @@ void RigidBodyTree::addInMobilityForce(const State& s, int body, int axis, const
     assert(mobilityForces.size() == getTotalDOF());
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
-    mobilityForces[n.getUIndex()+axis] = r;
+    mobilityForces[n.getUIndex()+axis] += r;
 }
 
 const Vector& 
@@ -760,26 +760,26 @@ void RigidBodyTree::enforceMotionConstraints(State& s, const Real& requiredTol, 
 // by constraints. 
 void RigidBodyTree::calcTreeForwardDynamics(
     const State&               s,
-    const Vector*              extraJointForces,
+    const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
 {
     const SBConfigurationCache& cc = getConfigurationCache(s);
     const SBMotionCache&        mc = getMotionCache(s);
     const SBDynamicsCache&      dc = getDynamicsCache(s);
 
-    Vector              totalJointForces;
+    Vector              totalMobilityForces;
     Vector_<SpatialVec> totalBodyForces;
 
     // inputs
-    const Vector&              jointForces = dc.appliedMobilityForces;
-    const Vector_<SpatialVec>& bodyForces  = dc.appliedRigidBodyForces;
+    const Vector&              mobForces  = dc.appliedMobilityForces;
+    const Vector_<SpatialVec>& bodyForces = dc.appliedRigidBodyForces;
 
-    const Vector*              jointForcesToUse = &jointForces;
+    const Vector*              mobForcesToUse  = &mobForces;
     const Vector_<SpatialVec>* bodyForcesToUse = &bodyForces;
 
-    if (extraJointForces) {
-        totalJointForces = jointForces + *extraJointForces;
-        jointForcesToUse = &totalJointForces;
+    if (extraMobilityForces) {
+        totalMobilityForces = mobForces + *extraMobilityForces;
+        mobForcesToUse      = &totalMobilityForces;
     }
 
     if (extraBodyForces) {
@@ -794,7 +794,7 @@ void RigidBodyTree::calcTreeForwardDynamics(
 
     Vector&              udot           = updUDot(s);
 
-    calcTreeAccelerations(s, *jointForcesToUse, *bodyForcesToUse,
+    calcTreeAccelerations(s, *mobForcesToUse, *bodyForcesToUse,
                           netHingeForces, A_GB, udot);
     
     // Calculate constraint acceleration errors.
@@ -1033,15 +1033,15 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
 // This routine does the same thing as the above but accounts for centrifugal
 // forces induced by velocities. The equivalent joint forces returned include
 // both the applied forces and the centrifugal ones. Constraints are ignored.
-void RigidBodyTree::calcTreeEquivalentJointForces(const State& s, 
+void RigidBodyTree::calcTreeEquivalentMobilityForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
-    Vector&                    jointForces) const
+    Vector&                    mobilityForces) const
 {
     const SBConfigurationCache& cc = getConfigurationCache(s);
     const SBDynamicsCache&      dc = getDynamicsCache(s);
 
     assert(bodyForces.size() == getNBodies());
-    jointForces.resize(getTotalDOF());
+    mobilityForces.resize(getTotalDOF());
 
     Vector_<SpatialVec> allZ(getNBodies());
 
@@ -1051,7 +1051,7 @@ void RigidBodyTree::calcTreeEquivalentJointForces(const State& s,
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcEquivalentJointForces(cc,dc,
                 bodyForces, allZ,
-                jointForces);
+                mobilityForces);
         }
 }
 

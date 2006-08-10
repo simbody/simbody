@@ -89,8 +89,10 @@ public:
     static const MobilizerType Pin  = Torsion;
     static const MobilizerType Ball = Orientation;
 
-    Mobilizer(const MobilizerType t, bool rev)
+    // This serves as an implicit conversion from MobilizerType to Mobilizer.
+    Mobilizer(const MobilizerType t, bool rev=false)
         : type(t), reversed(rev) { }
+
     MobilizerType getMobilizerType() const {return type;}
     bool isReversed() const {return reversed;}
 private:

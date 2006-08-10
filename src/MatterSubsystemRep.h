@@ -89,11 +89,11 @@ public:
     virtual void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
                                     Vector& mobilityForces) const = 0;  
     
-    virtual const Real& getJointQ(const State&, int body, int axis) const = 0;
-    virtual const Real& getJointU(const State&, int body, int axis) const = 0;
+    virtual const Real& getMobilizerQ(const State&, int body, int axis) const = 0;
+    virtual const Real& getMobilizerU(const State&, int body, int axis) const = 0;
 
-    virtual void setJointQ(State&, int body, int axis, const Real&) const = 0;
-    virtual void setJointU(State&, int body, int axis, const Real&) const = 0;
+    virtual void setMobilizerQ(State&, int body, int axis, const Real&) const = 0;
+    virtual void setMobilizerU(State&, int body, int axis, const Real&) const = 0;
 
     virtual const Transform& getMobilizerConfiguration(const State&, int body) const = 0;
     virtual const SpatialVec& getMobilizerVelocity(const State&, int body) const = 0;

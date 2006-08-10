@@ -167,11 +167,11 @@ public:
     void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
                                     Vector& mobilityForces) const;  
 
-    const Real& getJointQ(const State& s, int body, int axis) const;
-    const Real& getJointU(const State& s, int body, int axis) const;
+    const Real& getMobilizerQ(const State& s, int body, int axis) const;
+    const Real& getMobilizerU(const State& s, int body, int axis) const;
 
-    void setJointQ(State& s, int body, int axis, const Real& r) const;
-    void setJointU(State& s, int body, int axis, const Real& r) const;
+    void setMobilizerQ(State& s, int body, int axis, const Real& r) const;
+    void setMobilizerU(State& s, int body, int axis, const Real& r) const;
 
     const Transform& getMobilizerConfiguration(const State&, int body) const;
     const SpatialVec& getMobilizerVelocity(const State&, int body) const;
@@ -249,17 +249,17 @@ public:
         const SpatialVecList& X, 
         Vector&               JX) const;
 
-    // Given a set of body forces, return the equivalent set of joint torques 
+    // Given a set of body forces, return the equivalent set of mobilizer torques 
     // IGNORING CONSTRAINTS.
     // Must be in DynamicsStage so that articulated body inertias are available,
     // however, velocities are ignored. This operator has NO effect on the state
     // cache. It makes a single O(N) pass.
-    void calcTreeEquivalentJointForces(const State&, 
+    void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
-        Vector&                    jointForces) const;
+        Vector&                    mobilityForces) const;
 
     void calcTreeAccelerations(const State& s,
-        const Vector&              jointForces,
+        const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    netHingeForces,
         Vector_<SpatialVec>&       A_GB,
@@ -538,7 +538,7 @@ private:
     // that these will be used to deal with internal forces generated
     // by constraints. 
     void calcTreeForwardDynamics (const State& s,
-        const Vector*              extraJointForces,
+        const Vector*              extraMobilityForces,
         const Vector_<SpatialVec>* extraBodyForces) const;
 
     // Given a set of forces in the state, calculate acclerations resulting from

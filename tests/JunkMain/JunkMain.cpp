@@ -43,251 +43,226 @@ using std::endl;
 
 using namespace SimTK;
 
+
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
-static const int  Ground = 0; // ground is always body 0
+static const int  Ground = 0;       // ground is always body 0
+static const Transform BodyFrame;   // identity transform on any body
+
+class MySinusoid: public UserForce {
+public:
+    MySinusoid(int b, int d, const Real& amp, const Real& w, const Real& ph=0) 
+      : body(b), dof(d), amplitude(amp), period(w), phase(ph)
+    {
+    }
+
+    void calc(const MatterSubsystem& matter, const State& state,
+              Vector_<SpatialVec>& bodyForces,
+              Vector_<Vec3>&       particleForces,
+              Vector&              mobilityForces,
+              Real&                pe) const 
+    {
+        matter.addInMobilityForce(state,body,dof,
+            amplitude*std::sin(2*Pi*period*state.getTime() + phase),
+            mobilityForces);
+    }
+
+    UserForce* clone() const { return new MySinusoid(*this); }
+private:
+    int  body, dof;
+    Real amplitude, period, phase;
+};
 
 
-void stateTest() {
-  try {
-    State s;
-    s.setNSubsystems(1);
-    s.advanceSubsystemToStage(0, Stage::Built);
-    s.advanceSystemToStage(Stage::Built);
-
-    Vector v3(3), v2(2);
-    long q1 = s.allocateQ(0, v3);
-    long q2 = s.allocateQ(0, v2);
-
-    printf("q1,2=%d,%d\n", q1, q2);
-    cout << s;
-
-    long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
-
-    s.advanceSubsystemToStage(0, Stage::Modeled);
-        //long dv2 = s.allocateDiscreteVariable(0, Stage::Configured, new Value<int>(5));
-
-    Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
-    cout << s.getDiscreteVariable(0, dv) << endl;
-
-    s.advanceSystemToStage(Stage::Modeled);
-
-    cout << s;
-
-  }
-  catch(const std::exception& e) {
-      printf("*** STATE TEST EXCEPTION\n%s\n***\n", e.what());
-  }
-
-}
-
-extern "C" void SimTK_version_SimTKlapack(int*,int*,int*);
-extern "C" void SimTK_about_SimTKlapack(const char*, int, char*);
-
+static const Real g = 9.8;  // Earth gravity in m/s^2
+static const Real d = 0.5;  // length of pendulum (m)
+static const Real m = 1.;   // mass of pendulum (kg)
+#ifdef NOTDEF
+// How I want it to look:
 int main() {
-    //stateTest();
-    //exit(0);
-
-    int major,minor,build;
-    char out[100];
-    const char* keylist[] = { "version", "library", "type", "debug", "authors", "copyright", "svn_revision", 0 };
-
-    SimTK_version_SimTKlapack(&major,&minor,&build);
-    std::printf("==> SimTKlapack library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_SimTKlapack():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_SimTKlapack(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
-
-    SimTK_version_SimTKcommon(&major,&minor,&build);
-    std::printf("==> SimTKcommon library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_SimTKcommon():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_SimTKcommon(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
-    SimTK_version_simmatrix(&major,&minor,&build);
-    std::printf("==> simmatrix library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_simmatrix():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_simmatrix(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
-    SimTK_version_simbody(&major,&minor,&build);
-    std::printf("==> simbody library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_simbody():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_simbody(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
-
-
 try {
-    SimbodyMatterSubsystem test;
+    // Create the Subsystems and add them to the System.
+    SimbodyMatterSubsystem  pend;
+    UniformGravitySubsystem gravity(Vec3(0,-g,0));
+
+    MultibodySystem system;
+    mbs.setMatterSubsystem(pend);
+    mbs.addForceSubsystem(gravity);
+
+    // Build the multibody system.
+    const Real g = 9.8;  // Earth gravity in m/s^2
+    const Real d = 0.5;  // length of pendulum (m)
+    const Real m = 1.;   // mass of pendulum (kg)
+
+    const Transform mobilizerFrame(Vec3(0,d/2,0));
+    const Transform mobilizerFrameOnGround = BodyFrame;
+
+    const int pendBody =
+        pend.addRigidBody(massProps, mobilizerFrame,  // the body
+                          Ground, GroundFrame,        // its parent
+                          Mobilizer::Pin);            // aligns z axes
 
 
-    //
-    // G | *R |------ | A | ----- | B | ----- | C |
-    // Bodies A,B,C are connected by sliding joints aligned with the x axis.
-    // Body R is connected to ground origin by pin joint in z.
-    // Ref config has everyone piled up at the origin.
+    // Create visualization reporter.
+    VTKReporter display(system);
 
-    Real cubeSide = 1.; 
-    Real m = 3.;
+    // Create study and get writable access to its State.
+    MultibodyDynamicsStudy study(system);
+    State& state = study.updState();
 
-    // Sliders slide along the z axes of Mb and M, so we need a frame whose z axis
-    // points in the x direction. (This one is 00-1,010,100.)
-    RotationMat RzAlongX; 
-    RzAlongX.setToBodyFixed123(Vec3(0,Pi/2,0));
-    cout << "RzAlongX=" << RzAlongX;
+    // Study parameters.
+    const Real startAngle       = 30;   // degrees
+    const Real reportInterval   = .01;  // s
+    const Real simulationLength = 100;  // s
+    const Real tStart           = 0;
+    const Real tEnd             = tStart + simulationLength;
+    const Real accuracy         = 1e-4;
 
-    Transform jointFrame(RzAlongX,Vec3(0));
+    // Set study options.
+    study.setAccuracy(accuracy);
 
-    MassProperties cube(m, Vec3(0), m*InertiaMat::brick(cubeSide/2,cubeSide/2,cubeSide/2));
-    cout << "cube mprops about body frame: " << cube.getMass() << ", " 
-        << cube.getCOM() << ", " << cube.getInertia() << endl;
+    // Set initial state.
+    state.setTime(tStart);
+    pend.setMobilizerQ(state, pendBody, 0, startAngle*RadiansPerDegree);
 
-    const int bodyR =
-      test.addRigidBody(cube, Transform(),
-                        Ground, Transform(), 
-                        Mobilizer(Mobilizer::Pin, false)
-                        );
+    // Evaluate the system at the current state without performing
+    // any analysis.
+    study.realize();
+    display.report(state);    // Let's see what it looks like.
 
-    const int bodyA = 
-      test.addRigidBody(cube, jointFrame,
-                        bodyR, jointFrame, 
-                        Mobilizer(Mobilizer::Sliding, false)
-                        );
-    const int bodyB = 
-      test.addRigidBody(cube, jointFrame,
-                        bodyA, jointFrame, 
-                        Mobilizer(Mobilizer::Sliding, false)
-                        );
-    const int bodyC = 
-      test.addRigidBody(cube, jointFrame,
-                        bodyB, jointFrame, 
-                        Mobilizer(Mobilizer::Sliding, false)
-                        );
+    // Perform initial condition analyses if any. This will fail if it can't
+    // satisfy all constraints to tolerance.
+    study.initialize();
+    display.report(state);    // Let's see what it looks like.
 
+    // Step until we pass the end time.
+    while (state.getTime() < tEnd) {
+        study.step(std::min(state.getTime() + reportInterval, tEnd));
+        cout << " E=" << mbs.getEnergy(state)
+             << " (pe=" << mbs.getPotentialEnergy(state)
+             << ", ke=" << mbs.getKineticEnergy(state)
+             << ") hNext=" << study.getPredictedNextStep() << endl;
+            
+        display.report(state);
+    }
+}
+catch (const std::exception& e) {
+    printf("EXCEPTION THROWN: %s\n", e.what());
+}
+return 0;
+}
+#endif
 
+// How it actually looks now:
+int main() {
+try {
+    SimbodyMatterSubsystem  pend;
+    UniformGravitySubsystem gravity(Vec3(0,-g,0));
+    GeneralForceElements    forces;
+    
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(test);
-    GeneralForceElements springs;
-    mbs.addForceSubsystem(springs);
+    mbs.setMatterSubsystem(pend);
+    mbs.addForceSubsystem(gravity);
+    mbs.addForceSubsystem(forces);
+
+    const Transform pinFrameOnGround = BodyFrame; // connect directly to ground frame z
+    const Transform pinFrame(Vec3(0,d/2,0));      // joint frame in body frame (will use z)
+    const Vec3      massStation(0,-d/2,0);        // where we'll put the point mass in the body frame
+
+    // Collect mass, center of mass, and inertia 
+    MassProperties mprops(m, massStation, InertiaMat(massStation, m));
+    cout << "mprops about body frame: " << mprops.getMass() << ", " 
+        << mprops.getCOM() << ", " << mprops.getInertia() << endl;
+
+    const int pendBody =
+      pend.addRigidBody(mprops, pinFrame,
+                        Ground, pinFrameOnGround, 
+                        Mobilizer::Pin   // rotation around z
+                        );
+
+    const Vec3 attachPt(1,-.5,0);
+    const Real k = 10, theta0 = 90*RadiansPerDegree, c = 0.1;
+    //forces.addMobilityLinearSpring(pendBody, 0, k, theta0);
+    //forces.addMobilityLinearDamper(pendBody, 0, 10.);
+
+
+    forces.addUserForce(new MySinusoid(pendBody, 0, 10000, 100, 0));
+
+    forces.addTwoPointLinearSpring(Ground, attachPt, 
+                                   pendBody, massStation,
+                                   100000, 0);
+
+    //forces.addTwoPointLinearDamper(Ground, Vec3(20,-20,0), 
+    //                               pendBody, massStation,
+    //                               1000);
+
+
+    //forces.addTwoPointConstantForce(Ground, attachPt,
+    //                                pendBody, massStation,
+     //                               100000);
+
+    forces.addGlobalEnergyDrain(100);
+
+    // want -g*sin(theta)*d = k*(theta-theta0)
+    // so solve err(theta)=k*(theta-theta0)+g*d*sin(theta)=0
+    // d err/d theta is k+g*d*cos(theta)
+    Real guess = Pi/4;
+    Real err = k*(guess-theta0)+g*d*std::sin(guess);
+    while (std::abs(err) > 1e-10) {
+        cout << "err=" << err << endl;
+        Real deriv = k+g*d*std::cos(guess);
+        guess -= err/deriv;
+        err = k*(guess-theta0)+g*d*std::sin(guess);
+    }
+
+    cout << "Final angle should be: " << guess/RadiansPerDegree << " err=" << err << endl;
+
+    VTKReporter display(mbs);
+    DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
+    display.addRubberBandLine(Ground, attachPt, pendBody, massStation, ln);
 
     State s;
     mbs.realize(s, Stage::Built);
-    //cout << "mbs State as built: " << s;
 
-    mbs.realize(s, Stage::Modeled);
-    //cout << "mbs State as modeled: " << s;
+    RungeKuttaMerson study(mbs, s);
 
-    test.setJointQ(s,bodyR,0,0.);
-    test.setJointQ(s,bodyA,0,1.);
-    test.setJointQ(s,bodyB,0,1.);
-    test.setJointQ(s,bodyC,0,1.);
+    display.report(s);
 
-    mbs.realize(s, Stage::Configured);
+    const Real angleInDegrees = 30;
+    pend.setMobilizerQ(s, pendBody, 0, angleInDegrees*RadiansPerDegree);
 
-    const Real w = 1.; // rad/sec around z
-    test.setJointU(s,bodyR,0,w); 
-    mbs.realize(s, Stage::Moving);
+    display.report(s);
 
-    Transform bodyRConfig = test.getBodyConfiguration(s, bodyR);
-    Transform bodyAConfig = test.getBodyConfiguration(s, bodyA);
-    Transform bodyBConfig = test.getBodyConfiguration(s, bodyB);
-    Transform bodyCConfig = test.getBodyConfiguration(s, bodyC);
-    cout << "q=" << s.getQ() << endl;
-    cout << "body R frame=" << bodyAConfig;
-    cout << "body A frame=" << bodyAConfig;
-    cout << "body B frame=" << bodyBConfig;
-    cout << "body C frame=" << bodyCConfig;
+    const Real h = .0001;
+    const Real tstart = 0.;
+    const Real tmax = 100;
 
-    cout << "body velocities:\n";
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  V_GB[" << i << "]=" << test.getBodyVelocity(s, i) << endl;
+    study.setAccuracy(1e-4);
 
-    Vector_<SpatialVec> dEdR(test.getNBodies());
-    dEdR.setToZero();
-    dEdR[bodyC] = SpatialVec(Vec3(0), Vec3(-.5,0,0));
-    Vector dEdQ;
-    test.calcInternalGradientFromSpatial(s, dEdR, dEdQ);
-    cout << "dEdR=" << dEdR << endl;
-    cout << "dEdQ=" << dEdQ << endl;
+    study.initialize(); 
+    display.report(s);
+    s.updTime() = tstart;
+    int step = 0;
+    while (s.getTime() < tmax) {
+        study.step(s.getTime() + h);
+        printf("%6.2f %8.2f ", s.getTime(), 
+            pend.getMobilizerQ(s,pendBody,0)/RadiansPerDegree);
+        cout << " E=" << mbs.getEnergy(s)
+             << " (pe=" << mbs.getPotentialEnergy(s)
+             << ", ke=" << mbs.getKineticEnergy(s)
+             << ") hNext=" << study.getPredictedNextStep() << endl;
 
-    Vector_<SpatialVec> bodyForces;
-    Vector_<Vec3>       particleForces;
-    Vector              mobilityForces;
-
-    test.resetForces(bodyForces, particleForces, mobilityForces);
-    bodyForces[bodyC] = SpatialVec(Vec3(0), Vec3(-.5,0,0));
-
-    mbs.realize(s, Stage::Dynamics);
-
-    cout << "body centrifugal forces a,b,Ma+b:\n";
-    for (int i=0; i < test.getNBodies(); ++i) {
-        cout << "  body[" << i << "]=" << test.getCoriolisAcceleration(s,i) << ", "
-            << test.getGyroscopicForce(s,i) << ", "
-            << test.getCentrifugalForces(s, i) << endl;
+        if (!(step % 10)) {
+            display.report(s);
+        }
+        ++step;
     }
 
 
-    Vector equivT;
-    test.calcTreeEquivalentJointForces(s, bodyForces, equivT);
-    cout << "body forces: " << bodyForces << endl;
-    cout << "-> equiv joint forces: " << equivT << endl;
 
-
-    Vector_<SpatialVec> bodyAccs;
-    Vector udot;
-    test.calcTreeUDot(s,mobilityForces,bodyForces,udot,bodyAccs);
-    cout << "Udot from F=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-    test.resetForces(bodyForces, particleForces, mobilityForces);
-    test.calcTreeUDot(s,equivT,bodyForces,udot,bodyAccs);
-    cout << "Udot from equiv=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-
-    test.calcMInverseF(s,equivT,udot,bodyAccs);
-    cout << "M^-1 f from equiv=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-    const Real p[]={0,17.5,14.5,8.5};
-    Vector sdfastFrcMat(4, p);
-    cout << "sdfastFrcMat=" << sdfastFrcMat << endl;
-
-    test.calcMInverseF(s,sdfastFrcMat,udot,bodyAccs);
-    cout << "M^-1 f from sdfastFrcMat=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-    test.calcTreeUDot(s,dEdQ,bodyForces,udot,bodyAccs);
-    cout << "Udot from dEdQ=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-    test.calcMInverseF(s,dEdQ,udot,bodyAccs);
-    cout << "M^-1 f from dEdQ=" << udot << endl;
-    for (int i=0; i < test.getNBodies(); ++i)
-        cout << "  A_GB[" << i << "]=" << bodyAccs[i] << endl;
-
-    mbs.realize(s, Stage::Reacting);
-
-    SpatialVec bodyRAcc = test.getBodyAcceleration(s, bodyR);
-    SpatialVec bodyAAcc = test.getBodyAcceleration(s, bodyA);
-    SpatialVec bodyBAcc = test.getBodyAcceleration(s, bodyB);
-    SpatialVec bodyCAcc = test.getBodyAcceleration(s, bodyC);
-    cout << "body acc R,A,B,C: " << bodyRAcc << ", " 
-         << bodyAAcc << ", " << bodyBAcc << ", " << bodyCAcc<< endl;
 
 }
 catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
 }
-    return 0;
+return 0;
 }

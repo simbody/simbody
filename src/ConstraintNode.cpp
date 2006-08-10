@@ -38,4 +38,25 @@ using std::setprecision;
 // Implementation of ConstraintNode methods. //
 ///////////////////////////////////////////////
 
-
+/*
+ * How to specify a constraint equation:
+ *
+ * Required info:
+ *
+ *    Dependencies:
+ *      - constraint level: position, velocity, acceleration
+ *      - has time dependence?
+ *    A list of bodies
+ *      - this is just those bodies to which constraint
+ *        forces & torques are *directly* applied to 
+ *        enforce the constraint (can be spatial force
+ *        or mobility force)
+ *
+ * All constraints:
+ *    Acceleration error (given udot)
+ *    Constraint forces (given lambda)
+ * Position or velocity level:
+ *    Velocity error (given u)
+ * Position level only:
+ *    Position error (given q)
+ */

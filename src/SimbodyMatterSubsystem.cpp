@@ -115,12 +115,12 @@ void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,
 }
 
 // Convert spatial forces and centrifugal forces to an equivalent set
-// of joint forces, ignoring constraints.
-void SimbodyMatterSubsystem::calcTreeEquivalentJointForces(const State& s, 
+// of mobilizer forces, ignoring constraints.
+void SimbodyMatterSubsystem::calcTreeEquivalentMobilityForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
-    Vector&                    jointForces) const
+    Vector&                    mobForces) const
 {
-    getRep().calcTreeEquivalentJointForces(s,bodyForces,jointForces);
+    getRep().calcTreeEquivalentMobilityForces(s,bodyForces,mobForces);
 }
 
 Real SimbodyMatterSubsystem::calcKineticEnergy(const State& s) const {
@@ -209,15 +209,15 @@ void SimbodyMatterSubsystem::setU(State& s, const Vector& u) const {getRep().set
 Vector& SimbodyMatterSubsystem::updQ(State& s) const {return getRep().updQ(s);}
 Vector& SimbodyMatterSubsystem::updU(State& s) const {return getRep().updU(s);}
 
-void SimbodyMatterSubsystem::setJointQ(State& s, int body, int axis, const Real& r) const
-  { return getRep().setJointQ(s,body,axis,r); }
-void SimbodyMatterSubsystem::setJointU(State& s, int body, int axis, const Real& r) const
-  { return getRep().setJointU(s,body,axis,r); }
+void SimbodyMatterSubsystem::setMobilizerQ(State& s, int body, int axis, const Real& r) const
+  { return getRep().setMobilizerQ(s,body,axis,r); }
+void SimbodyMatterSubsystem::setMobilizerU(State& s, int body, int axis, const Real& r) const
+  { return getRep().setMobilizerU(s,body,axis,r); }
 
-const Real& SimbodyMatterSubsystem::getJointQ(const State& s, int body, int axis) const
-  { return getRep().getJointQ(s,body,axis); }
-const Real& SimbodyMatterSubsystem::getJointU(const State& s, int body, int axis) const
-  { return getRep().getJointU(s,body,axis); }
+const Real& SimbodyMatterSubsystem::getMobilizerQ(const State& s, int body, int axis) const
+  { return getRep().getMobilizerQ(s,body,axis); }
+const Real& SimbodyMatterSubsystem::getMobilizerU(const State& s, int body, int axis) const
+  { return getRep().getMobilizerU(s,body,axis); }
 
 
 void SimbodyMatterSubsystem::enforceConfigurationConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
