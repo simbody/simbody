@@ -227,7 +227,7 @@ try {
 
     const Vec3 attachPt(1.5, 1, 0);
     GeneralForceElements springs;
-    springs.addLinearTwoPointSpring(
+    springs.addTwoPointLinearSpring(
         Ground, attachPt, 
         aPendulum, Vec3(L/2,0,0), 
         100, 1);

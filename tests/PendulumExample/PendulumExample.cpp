@@ -323,18 +323,18 @@ int main(int argc, char** argv) {
         MultibodySystem mbs;
         mbs.setMatterSubsystem(myRNA);
 
-        forces.addLinearTwoPointSpring(0, attachPt,
+        forces.addTwoPointLinearSpring(0, attachPt,
                                        myRNA.getNBodies()-1, Vec3(0),
                                        1000.,  // stiffness
                                        1.);    // natural length
 
-       /* forces.addLinearTwoPointSpring(0, -attachPt,
+       /* forces.addTwoPointLinearSpring(0, -attachPt,
                                        myRNA.getNBodies()-1, Vec3(0),
                                        1000.,  // stiffness
                                        1.);    // natural length
         */
 
-        forces.addGlobalMobilityDamping(1000);
+        forces.addGlobalEnergyDrain(1000);
 
         mbs.addForceSubsystem(forces);
         UniformGravitySubsystem ugs(Vec3(0, -g, 0));
