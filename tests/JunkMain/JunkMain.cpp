@@ -48,25 +48,30 @@ static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 static const int  Ground = 0;       // ground is always body 0
 static const Transform BodyFrame;   // identity transform on any body
 
-class MySinusoid: public UserForce {
+class MySinusoid: public GeneralForceElements::UserForce {
 public:
     MySinusoid(int b, int d, const Real& amp, const Real& w, const Real& ph=0) 
       : body(b), dof(d), amplitude(amp), period(w), phase(ph)
     {
     }
 
-    void calc(const MatterSubsystem& matter, const State& state,
-              Vector_<SpatialVec>& bodyForces,
-              Vector_<Vec3>&       particleForces,
-              Vector&              mobilityForces,
-              Real&                pe) const 
+    // Implementation of pure virtual.
+    void calc(const MatterSubsystem& matter, 
+              const State&           state,
+              Vector_<SpatialVec>&   bodyForces,
+              Vector_<Vec3>&         particleForces,
+              Vector&                mobilityForces,
+              Real&                  pe) const 
     {
         matter.addInMobilityForce(state,body,dof,
             amplitude*std::sin(2*Pi*period*state.getTime() + phase),
             mobilityForces);
     }
 
-    UserForce* clone() const { return new MySinusoid(*this); }
+    // Implementation of pure virtual;
+    GeneralForceElements::UserForce* clone() const { 
+        return new MySinusoid(*this); 
+    }
 private:
     int  body, dof;
     Real amplitude, period, phase;

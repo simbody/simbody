@@ -38,59 +38,62 @@
 
 namespace SimTK {
 
-// This is tricky because no library-side code can depend on the ordering
-// of methods in the virtual function table of this abstract class. So
-// we call the virtual functions from private static methods here which
-// are generated on the client side and passed to us as though they were
-// C function addresses.
-class UserForce {
-public:
-    virtual ~UserForce() { }
-    virtual void calc(const MatterSubsystem& matter, const State& state,
-                      Vector_<SpatialVec>& bodyForces,
-                      Vector_<Vec3>&       particleForces,
-                      Vector&              mobilityForces,
-                      Real&                pe) const = 0;
 
-    virtual UserForce* clone() const = 0;
-
-private:
-    // These routines provide a C-compatible interface to the virtual methods.
-    static void staticCalc(const UserForce* u,
-        const MatterSubsystem& matter, const State& state,
-        Vector_<SpatialVec>& bodyForces,
-        Vector_<Vec3>&       particleForces,
-        Vector&              mobilityForces,
-        Real&                pe)
-    {
-        u->calc(matter,state,bodyForces,particleForces,mobilityForces,pe);
-    }
-    static UserForce* staticClone(const UserForce* u) {
-        return u->clone();
-    }
-    static void staticDestructor(UserForce* u) {
-        delete u;
-    }
-    friend class GeneralForceElements;
-};
-
-typedef void (*UserForceCalcMethod)
-   (const UserForce*        u,
-    const MatterSubsystem&  matter, 
-    const State&            state,
-    Vector_<SpatialVec>&    bodyForces,
-    Vector_<Vec3>&          particleForces,
-    Vector&                 mobilityForces,
-    Real&                   pe);
-
-typedef UserForce* (*UserForceCloneMethod)(const UserForce*);
-typedef void (*UserForceDestructor)(UserForce*);
 
 /**
  * This is a concrete subsystem which can apply a variety of
  * simple force elements to the MatterSubsystem within a MultibodySystem.
  */
 class SimTK_SIMBODY_API GeneralForceElements : public ForceSubsystem {
+public:
+
+    // This is tricky because no library-side code can depend on the ordering
+    // of methods in the virtual function table of this abstract class. So
+    // we call the virtual functions from private static methods here which
+    // are generated on the client side and passed to us as though they were
+    // C function addresses.
+    class UserForce {
+    public:
+        virtual ~UserForce() { }
+        virtual void calc(const MatterSubsystem& matter, const State& state,
+                          Vector_<SpatialVec>& bodyForces,
+                          Vector_<Vec3>&       particleForces,
+                          Vector&              mobilityForces,
+                          Real&                pe) const = 0;
+
+        virtual UserForce* clone() const = 0;
+
+    private:
+        // These routines provide a C-compatible interface to the virtual methods.
+        inline static void staticCalc(const UserForce* u,
+            const MatterSubsystem& matter, const State& state,
+            Vector_<SpatialVec>& bodyForces,
+            Vector_<Vec3>&       particleForces,
+            Vector&              mobilityForces,
+            Real&                pe)
+        {
+            u->calc(matter,state,bodyForces,particleForces,mobilityForces,pe);
+        }
+        inline static UserForce* staticClone(const UserForce* u) {
+            return u->clone();
+        }
+        inline static void staticDestructor(UserForce* u) {
+            delete u;
+        }
+        friend class GeneralForceElements;
+    };
+    typedef void (*UserForceCalcMethod)
+       (const UserForce*        u,
+        const MatterSubsystem&  matter, 
+        const State&            state,
+        Vector_<SpatialVec>&    bodyForces,
+        Vector_<Vec3>&          particleForces,
+        Vector&                 mobilityForces,
+        Real&                   pe);
+
+    typedef UserForce* (*UserForceCloneMethod)(const UserForce*);
+    typedef void (*UserForceDestructor)(UserForce*);
+
 public:
     GeneralForceElements();
 

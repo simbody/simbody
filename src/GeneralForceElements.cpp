@@ -200,10 +200,10 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 
     struct UserForceParameters {
         UserForceParameters() : uforce(0), calc(0), clone(0), nuke(0) { }
-        UserForceParameters(UserForce*              u, 
-                            UserForceCalcMethod     ucalc,
-                            UserForceCloneMethod    uclone,
-                            UserForceDestructor     unuke)
+        UserForceParameters(GeneralForceElements::UserForce*              u, 
+                            GeneralForceElements::UserForceCalcMethod     ucalc,
+                            GeneralForceElements::UserForceCloneMethod    uclone,
+                            GeneralForceElements::UserForceDestructor     unuke)
           : uforce(u), calc(ucalc), clone(uclone), nuke(unuke)
         {
         }
@@ -228,10 +228,10 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 
         // This is to separate construction from filling in the parameters.
         // It is only allowed if the parameters are empty currently.
-        void setUserForceParameters(UserForce*              u, 
-                                    UserForceCalcMethod     ucalc,
-                                    UserForceCloneMethod    uclone,
-                                    UserForceDestructor     unuke) 
+        void setUserForceParameters(GeneralForceElements::UserForce*              u, 
+                                    GeneralForceElements::UserForceCalcMethod     ucalc,
+                                    GeneralForceElements::UserForceCloneMethod    uclone,
+                                    GeneralForceElements::UserForceDestructor     unuke) 
         {
             assert(uforce==0);
             uforce=u; calc=ucalc; clone=uclone; nuke=unuke;
@@ -241,10 +241,10 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             nuke(uforce);
             uforce=0; calc=0; clone=0; nuke=0;
         }
-        UserForce*           uforce;  // we own this object
-        UserForceCalcMethod  calc;
-        UserForceCloneMethod clone;
-        UserForceDestructor  nuke;
+        GeneralForceElements::UserForce*           uforce;  // we own this object
+        GeneralForceElements::UserForceCalcMethod  calc;
+        GeneralForceElements::UserForceCloneMethod clone;
+        GeneralForceElements::UserForceDestructor  nuke;
     };
 
     struct Parameters {
@@ -367,8 +367,10 @@ public:
         return (int)defaultParameters.globalEnergyDrains.size() - 1;
     }
 
-    int addUserForce(UserForce* u, 
-        UserForceCalcMethod calc, UserForceCloneMethod clone, UserForceDestructor nuke) 
+    int addUserForce(GeneralForceElements::UserForce* u, 
+        GeneralForceElements::UserForceCalcMethod calc, 
+        GeneralForceElements::UserForceCloneMethod clone, 
+        GeneralForceElements::UserForceDestructor nuke) 
     {
         assert(u && calc && clone && nuke);
         defaultParameters.userForces.push_back(
