@@ -127,7 +127,7 @@ smStatus  smSetCostFunction(  smHandle handle,  void (*costFunction)(double*,dou
 
 }
 
-smStatus  smStartOptimizer(  smHandle handle ) {
+smStatus  smRunOptimizer(  smHandle handle, double *values ) {
 
     LBFGScontext opt;
     smStatus  status = SUCCESS;
@@ -135,6 +135,7 @@ smStatus  smStartOptimizer(  smHandle handle ) {
     logical *diagco, doublereal *diag, integer *iprint, doublereal *eps, 
     doublereal *xtol, doublereal *w, integer *iflag);
 
+    int i;
     int run_optimizer = 1;
     int iprint[2] = {1, 0}; // no output generated
     int iflag[1] = {0};
@@ -156,6 +157,12 @@ smStatus  smStartOptimizer(  smHandle handle ) {
          run_optimizer = 0;
          status = iflag[0];
        }
+    }
+    if( status == SUCCESS ) {
+         LBFGScontext lbfgs_opt = (LBFGScontext)((simmathObject)handle)->context;
+         for( i=0; i<lbfgs_opt->dimension; i++ ) {
+              *(values++) = lbfgs_opt->results[i];
+         }
     }
 
     return(status);

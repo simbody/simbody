@@ -3,12 +3,11 @@
 #undef F77FUNC
 
 #define FSM_MALLOCOPTIMIZER     F77NAME(FSMMALLOCOPTIMIZER,    fsmmallocoptimizer)
-#define FSM_FREEOPT             F77NAME(FSMFREEOPT,            fsmfreeopt)
-#define FSM_SETOPTPARMS         F77NAME(FSMSETOPTPARMS,        fsmsetoptparams)
-#define FSM_SETCOSTFUNC         F77NAME(FSMSETCOSTFUNC,        fsmsetcostfunc)
+#define FSM_FREEOPT             F77NAME(FSMFREEOPTIMIZER,            fsmfreeoptimizer)
+#define FSM_SETOPTPARMS         F77NAME(FSMSETOPTIMIZERPARAMETERS,        fsmsetoptimizerparameters)
+#define FSM_SETCOSTFUNC         F77NAME(FSMSETCOSTFUNCTION,        fsmsetcostfunction)
 #define FSM_DUMPOPTIMIZERSTATE  F77NAME(FSMDUMPOPTIMIZERSTATE, fsmdumpoptimizerstate)
-#define FSM_GETOPTIMIZERRESULT  F77NAME(FSMGETOPTIMIZERRESULT, fsmgetoptimizerresult)
-#define FSM_STARTOPT            F77NAME(FSMSTARTOPT,           fsmstartopt)
+#define FSM_RUNOPT              F77NAME(FSMRUNOPTIMIZER,           fsmrunoptimizer)
 
 #if defined(SIMTK_FORTRAN_UPPERCASE)
 
@@ -39,15 +38,9 @@ extern "C" void FSM_MALLOCOPTIMIZER( char*, int*, FORTRAN_HANDLE,  smStatus* );
 extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE, smStatus* );
 extern "C" void FSM_SETOPTPARMS( FORTRAN_HANDLE, char *, double*, smStatus* );
 extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(double *, double*, double*), smStatus*);
-extern "C" void FSM_GETOPTIMIZERRESULT( FORTRAN_HANDLE, double *, smStatus* );
-extern "C" void FSM_STARTOPT( FORTRAN_HANDLE handle, smStatus*);
+extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *, smStatus*);
 
 
-void  FSM_GETOPTIMIZERRESULT( FORTRAN_HANDLE handle, double *results, smStatus *status){
-
-    *status = smGetOptimizerResults( (void *)((long)*handle), results );
-    return;
-}
 
 void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(double *, double*, double*), smStatus *status){
 
@@ -75,9 +68,9 @@ void FSM_SETOPTPARMS( FORTRAN_HANDLE handle, char *parameter, double *values, sm
    *status =  smSetOptimizerParameters( (void *)((long)*handle), param, values );
    return;
 }
-void FSM_STARTOPT( FORTRAN_HANDLE handle, smStatus* status){
+void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results, smStatus* status){
 
-    *status = smStartOptimizer( (void *)((long)*handle) );
+    *status = smRunOptimizer( (void *)((long)*handle), results );
     return;
 }
 void FSM_MALLOCOPTIMIZER( char *type, int *n, FORTRAN_HANDLE handle, smStatus *status){

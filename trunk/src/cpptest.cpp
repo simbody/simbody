@@ -1,9 +1,9 @@
 #include "Simmath.h"
+#include "optimizer.h"
 
-#ifdef __cplusplus 
 #include <iostream>
-using std::printf;
-#endif
+using std::cout;
+using std::endl;
 
 
 #define PROBLEM_DIMENSION 2
@@ -12,6 +12,17 @@ using std::printf;
 /* adapted from itkLBFGSOptimizerTest.cxx */
 main() {
 
+    double params = 5.6;
+
+    cout << "cpptest " << endl;
+    SimTK::smOptimizer *opt = new SimTK::smOptimizer( PROBLEM_DIMENSION );
+
+    opt->setOptimizerParameters( 5, &params );
+    opt->setInitialPosition(  &params );
+    opt->optimize( &params );
+}
+
+/*
     smHandle optimizer;
     smStatus status;
     double results[PROBLEM_DIMENSION], initialValue[PROBLEM_DIMENSION];
@@ -92,3 +103,4 @@ void costFunc( double *position, double *f, double *g ) {
 
    return;
 }
+*/
