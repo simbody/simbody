@@ -12,7 +12,7 @@
       double precision result(2),initialvalue(2)
       
 
-      call fsmMallocOptimizer("L", 2, handle, status) 
+      call fsmMallocOptimizer( 2, handle, status) 
       if( status .NE. 0 ) write(*,*)"malloc failed status=",status
 
       val = 100
@@ -51,7 +51,7 @@
 
       write(*,*)"RESULTS=",result(1),result(2)
 
-      call fsmFreeOptimizer(handle, status );
+      call fsmFreeOptimizer(handle );
       end
 
       subroutine costfunction( pos, f, g)

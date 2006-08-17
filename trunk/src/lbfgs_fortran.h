@@ -33,8 +33,8 @@
 
 #endif
 
-extern "C" void FSM_FREEOPT(FORTRAN_HANDLE, smStatus*);
-extern "C" void FSM_MALLOCOPTIMIZER( char*, int*, FORTRAN_HANDLE,  smStatus* );
+extern "C" void FSM_FREEOPT(FORTRAN_HANDLE);
+extern "C" void FSM_MALLOCOPTIMIZER( int*, FORTRAN_HANDLE,  smStatus* );
 extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE, smStatus* );
 extern "C" void FSM_SETOPTPARMS( FORTRAN_HANDLE, char *, double*, smStatus* );
 extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(double *, double*, double*), smStatus*);
@@ -73,21 +73,17 @@ void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results, smStatus* status){
     *status = smRunOptimizer( (void *)((long)*handle), results );
     return;
 }
-void FSM_MALLOCOPTIMIZER( char *type, int *n, FORTRAN_HANDLE handle, smStatus *status){
+void FSM_MALLOCOPTIMIZER( int *n, FORTRAN_HANDLE handle, smStatus *status){
 
       int opt_type;
 
-      if( 0 == strncmp( "LBFGS", type, 1 )) {
-         opt_type = LBFGS;
-      }
-      
-      *handle = (long)smMallocOptimizer(opt_type, *n, status);
+      *handle = (long)smMallocOptimizer( *n, status);
       return;
 }
 
-void FSM_FREEOPT( FORTRAN_HANDLE handle, smStatus *status){
+void FSM_FREEOPT( FORTRAN_HANDLE handle){
 
-    *status = smFreeOptimizer( (void *)((long)*handle) );
+    smFreeOptimizer( (void *)((long)*handle) );
     return;
 }
 void FSM_DUMPOPTIMIZERSTATE(FORTRAN_HANDLE  handle, smStatus *status) {

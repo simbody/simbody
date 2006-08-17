@@ -20,13 +20,13 @@ class smObject {
 extern "C" {
 #endif
 
-extern smHandle smMallocOptimizer(int, int, smStatus*);
+extern smHandle smMallocOptimizer(int, smStatus*);
 extern smStatus smDumpOptimizerState( smHandle);
 extern smStatus smSetOptimizerParameters( smHandle, unsigned int, double*);
+extern smStatus smGetOptimizerParameters( smHandle, unsigned int, double*);
 extern smStatus smSetCostFunction( smHandle, void (*costFunction)(double*,double*,double*) );
 extern smStatus smRunOptimizer( smHandle, double * );
-extern smStatus smFreeOptimizer( smHandle );
-
+extern void     smFreeOptimizer( smHandle );
 
 #ifdef __cplusplus
 }  /* extern "C" */

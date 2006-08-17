@@ -19,7 +19,7 @@ main() {
     double params[10];
     void costFunc( double*, double*, double* );
 
-    optimizer = smMallocOptimizer(LBFGS, PROBLEM_DIMENSION, &status);
+    optimizer = smMallocOptimizer( PROBLEM_DIMENSION, &status);
 
     if( status != SUCCESS ){
        printf("malloc failed status = %d\n", status); 
@@ -70,8 +70,7 @@ main() {
        }
     }
 
-    status = smFreeOptimizer(optimizer);
-    if( status != SUCCESS) printf( "Free Optimizier failed status = %d\n", status);
+    smFreeOptimizer(optimizer);
 
 }
 

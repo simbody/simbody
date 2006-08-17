@@ -12,81 +12,52 @@ using std::endl;
 /* adapted from itkLBFGSOptimizerTest.cxx */
 main() {
 
-    double params = 5.6;
+    double params[10];
+    double results[10];
+    int status,i;
+    void costFunc( double*, double*, double* );
 
     cout << "cpptest " << endl;
     SimTK::smOptimizer *opt = new SimTK::smOptimizer( PROBLEM_DIMENSION );
 
-    opt->setOptimizerParameters( 5, &params );
-    opt->setInitialPosition(  &params );
-    opt->optimize( &params );
-}
-
-/*
-    smHandle optimizer;
-    smStatus status;
-    double results[PROBLEM_DIMENSION], initialValue[PROBLEM_DIMENSION];
-    int i;
-    double params[10];
-    void costFunc( double*, double*, double* );
-
-    optimizer = smMallocOptimizer(LBFGS, PROBLEM_DIMENSION, &status);
-
-    if( status != SUCCESS ){
-       printf("malloc failed status = %d\n", status); 
-       exit(0);
-    }
-
     params[0] = 0;
-    status = smSetOptimizerParameters( optimizer, TRACE, params );
-    if( status != SUCCESS ) printf("set TRACE failed status = %d\n", status);
+    status = opt->setOptimizerParameters( TRACE, params );
+    if( status != SUCCESS ) cout << "set  TRACE failed   status = "  <<  status << endl;
 
     params[0] = 100;
-    status = smSetOptimizerParameters( optimizer, MAX_FUNCTION_EVALUATIONS, params );
-    if( status != SUCCESS ) printf("set MAX_FUNCTION_EVALUATIONS failed status = %d\n", status);
+    status = opt->setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
+    if( status != SUCCESS ) cout << "set  MAX_FUNCTION_EVALUATIONS failed   status = "  <<  status << endl;
 
-    params[0] =  .0001;
-    status = smSetOptimizerParameters( optimizer, GRADIENT_CONVERGENCE_TOLERANCE, params );
-    if( status != SUCCESS ) printf("set GRADIENT_CONVERGENCE_TOLERANCE failed status = %d\n", status);
+    params[0] =  100;
+    params[1] = -100;
+    status = opt->setOptimizerParameters( INITIAL_VALUES,  params );
+    if( status != SUCCESS ) cout << "set INITIAL_VALUES failed status = "  <<  status << endl;
 
-    params[0] =  1.0;
-    status = smSetOptimizerParameters( optimizer, DEFAULT_STEP_LENGTH, params);
-    if( status != SUCCESS ) printf("set GRADIENT_CONVERGENCE_TOLERANCE failed status = %d\n", status);
+    params[0] = .0001;
+    status = opt->setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
+    if( status != SUCCESS ) cout << "set  GRADIENT_CONVERGENCE_TOLERANCE failed   status = "  <<  status << endl;
 
-    params[0] =  0.9;
-    status = smSetOptimizerParameters( optimizer, LINE_SEARCH_ACCURACY, params);
-    if( status != SUCCESS ) printf("set LINE_SEARCH_ACCURACY failed status = %d\n", status);
+    params[0] = 1.0;
+    status = opt->setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
+    if( status != SUCCESS ) cout << "set  DEFAULT_STEP_LENGTH failed   status = "  <<  status << endl;
 
-    status = smSetCostFunction( optimizer, costFunc );
-    if( status != SUCCESS ) printf("set cost function failed status = %d\n", status);
+    params[0] = 0.9;
+    status = opt->setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
+    if( status != SUCCESS ) cout << "set  LINE_SEARCH_ACCURACY failed   status = "  <<  status << endl;
 
-    // We start not so far from  | 2 -2 |
+    status = opt->setObjectiveFunction( costFunc );
+    if( status != SUCCESS ) cout << "set  cost Function failed   status = "  <<  status << endl;
 
-    initialValue[0] =  100;
-    initialValue[1] = -100;
-
-
-    status = smSetOptimizerParameters( optimizer, INITIAL_VALUES, initialValue );
-    if( status != SUCCESS ) printf("set INITIAL_VALUES failed status = %d\n", status);
-
-    status = smDumpOptimizerState(optimizer);
-    if( status != SUCCESS ) printf("Dump Optimizer state failed status = %d\n", status);
-
-    status = smRunOptimizer( optimizer, results );
+    status = opt->optimize( results );
     if( status != SUCCESS )  {
-       printf("Run Optimizer failed status = %d\n", status);
+        cout << "Run Optimizer failed status = "   <<  status << endl;
     }else {
        for( i=0; i<PROBLEM_DIMENSION; i++ ) {
           printf(" results[%d] = %f \n",i,results[i]); 
        }
     }
-
-    status = smFreeOptimizer(optimizer);
-    if( status != SUCCESS) printf( "Free Optimizier failed status = %d\n", status);
-
 }
 
-   
 void costFunc( double *position, double *f, double *g ) {
 
   int i;
@@ -103,4 +74,3 @@ void costFunc( double *position, double *f, double *g ) {
 
    return;
 }
-*/

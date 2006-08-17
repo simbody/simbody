@@ -32,6 +32,7 @@ typedef struct LBFGSstruct{
   int                  dimension;
   int                  numCorrections;
   unsigned int         Trace;
+  unsigned int         Algorithm;
   unsigned int         MaxNumFuncEvals;
   double               *work;
   double               *results;

@@ -41,34 +41,61 @@ namespace SimTK {
 
 // using namespace SimTK; TODO resolve this
 
-class smOptimizer : public smObject,  public smOptimizerInterface {
+class smOptimizer :  public smOptimizerInterface {
    public:
     smOptimizer( int );
 
-int  setOptimizerParameters(int param, double *values) {
+int  setOptimizerParameters(unsigned int param, double *values) {
 
          return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
       }
+/*
+int  setOptimizerParameters(unsigned int param, int *values) {
 
-int getOptimizerParameters(int param, double *values) {
+         return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
+      }
+*/
+int getOptimizerParameters(unsigned int param, double *values) {
 
          return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
      }
+/*
+int getOptimizerParameters(unsigned int param, int *values) {
 
-int setObjectiveFunction(int *func) {
+         return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
+     }
+*/
+int setObjectiveFunction(void (*func)(double*,double*,double*)) {
 
        return(((optimizerImplementation *)data)->setObjectiveFunction(func));
-}
-int setInitialPosition(double *pos) {
-
-       return(((optimizerImplementation *)data)->setInitialPosition(pos));
 }
 int optimize(double *results) {
 
        return( ((optimizerImplementation *)data)->optimize(results));
 }
 
+    private:
+     void *data;
+
 }; // Class smOptimizer
 } // namespace SimTK
+typedef struct OptimizerStruct{
+  int                  dimension;
+  int                  numCorrections;
+  unsigned int         Trace;
+  unsigned int         Algorithm;
+  unsigned int         MaxNumFuncEvals;
+  double               *work;
+  double               *results;
+  double               *f;
+  double               *g;
+  double               *diag;
+  double               GradientConvergenceTolerance;
+  double               LineSearchAccuracy;
+  double               DefaultStepLength;
+  void                 (*costFunction)(double*, double*, double*);
+
+}*OptimizerContext;
+
 #endif //_SimTK_OPTIMIZER_H
 
