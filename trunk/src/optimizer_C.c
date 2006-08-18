@@ -1,5 +1,4 @@
 #include "Simmath.h"
-#include "Simmath_Ctypes.h"
 #include "optimizer.h"
 #include "optimizerImplementation.h"
 

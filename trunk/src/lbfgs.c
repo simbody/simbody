@@ -46,22 +46,22 @@ static integer c__1 = 1;
 
 #define SIMTK_FORTRAN_UPPERCASE
 #define SIMTK_FORTRAN_ONE_UNDERSCORE
-#include "lbfgs_fortran.h"
+#include "optimizer_fortran.h"
 #undef SIMTK_FORTRAN_UPPERCASE
 #undef SIMTK_FORTRAN_ONE_UNDERSCORE
 
 #define SIMTK_FORTRAN_LOWERCASE
 #define SIMTK_FORTRAN_ONE_UNDERSCORE
-#include "lbfgs_fortran.h"
+#include "optimizer_fortran.h"
 #undef SIMTK_FORTRAN_LOWERCASE
 #undef SIMTK_FORTRAN_ONE_UNDERSCORE
 
 #define SIMTK_FORTRAN_LOWERCASE
-#include "lbfgs_fortran.h"
+#include "optimizer_fortran.h"
 #undef SIMTK_FORTRAN_LOWERCASE
 
 #define SIMTK_FORTRAN_UPPERCASE
-#include "lbfgs_fortran.h"
+#include "optimizer_fortran.h"
 #undef SIMTK_FORTRAN_UPPERCASE
 
 

@@ -41,6 +41,7 @@ extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(double *, dou
 extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *, smStatus*);
 
 
+typedef long* FORTRAN_HANDLE;
 
 void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(double *, double*, double*), smStatus *status){
 

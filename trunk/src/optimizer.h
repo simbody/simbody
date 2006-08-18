@@ -26,12 +26,6 @@
  */
 
 
-/* 
-???? separtate classes for each type of optimizer or one class that chooses the
-     appropriate algorithm ?
-
-*/
-
 // #include "objectiveFunction.h"
 
 #include "optimizerInterface.h"
@@ -39,7 +33,6 @@
 
 namespace SimTK {
 
-// using namespace SimTK; TODO resolve this
 
 class smOptimizer :  public smOptimizerInterface {
    public:
@@ -49,8 +42,8 @@ int  setOptimizerParameters(unsigned int param, double *values) {
 
          return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
       }
-/*
-int  setOptimizerParameters(unsigned int param, int *values) {
+/* TODO implement this
+int  setOptimizerParametersi(unsigned int param, int *values) {
 
          return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
       }
@@ -59,8 +52,8 @@ int getOptimizerParameters(unsigned int param, double *values) {
 
          return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
      }
-/*
-int getOptimizerParameters(unsigned int param, int *values) {
+/* TODO implement this
+int getOptimizerParametersi(unsigned int param, int *values) {
 
          return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
      }

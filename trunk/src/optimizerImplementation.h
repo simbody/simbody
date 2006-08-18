@@ -17,7 +17,7 @@ class optimizerImplementation : public smOptimizerInterface {
       optimizerImplementation( int );
       optimizerImplementation();
       ~optimizerImplementation(){
-          if(dimension < 0 ) {
+          if(dimension > 0 ) {
              delete [] work;
              delete [] g;
              delete [] diag;
