@@ -26,7 +26,6 @@
 #include <math.h>
 #include "Simmath.h"
 #include "Simmath_Ctypes.h"
-/*#include "lbfgs.h" */
 #include "itk_lbfgs.h"
 /* #include <cstdio> */
 #include "f2c.h"
