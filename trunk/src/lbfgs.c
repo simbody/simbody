@@ -25,7 +25,6 @@
 #include <malloc.h>
 #include <math.h>
 #include "Simmath.h"
-#include "Simmath_Ctypes.h"
 #include "itk_lbfgs.h"
 /* #include <cstdio> */
 #include "f2c.h"
@@ -42,6 +41,10 @@ struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
 static integer c__1 = 1;
 
 
+
+
+#include "optimizer.h"
+#include "optimizerImplementation.h"
 
 #define SIMTK_FORTRAN_UPPERCASE
 #define SIMTK_FORTRAN_ONE_UNDERSCORE

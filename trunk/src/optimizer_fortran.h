@@ -33,6 +33,8 @@
 
 #endif
 
+typedef long* FORTRAN_HANDLE;
+
 extern "C" void FSM_FREEOPT(FORTRAN_HANDLE);
 extern "C" void FSM_MALLOCOPTIMIZER( int*, FORTRAN_HANDLE,  smStatus* );
 extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE, smStatus* );
@@ -41,50 +43,37 @@ extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(double *, dou
 extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *, smStatus*);
 
 
-typedef long* FORTRAN_HANDLE;
 
 void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(double *, double*, double*), smStatus *status){
 
-    *status =  smSetCostFunction( (void *)((long)*handle), costFunction );
+    *status = ((SimTK::optimizerImplementation *)((long)*handle))->setObjectiveFunction(costFunction);
 }
 
 void FSM_SETOPTPARMS( FORTRAN_HANDLE handle, char *parameter, double *values, smStatus *status){
 
    unsigned int param;
 
-   if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
-     param = MAX_FUNCTION_EVALUATIONS;
-   } else if( 0 == strncmp( "STEP_LENGTH", parameter, 1)) {
-     param = DEFAULT_STEP_LENGTH;
-   } else if( 0 == strncmp( "INITIAL_VALUES", parameter, 1)) {
-     param = INITIAL_VALUES;
-   } else if( 0 == strncmp( "TOLERANCE", parameter, 1)) {
-     param = TRACE;
-   } else if( 0 == strncmp( "GRADIENT", parameter, 1)) {
-     param = GRADIENT_CONVERGENCE_TOLERANCE;
-   } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
-     param = LINE_SEARCH_ACCURACY;
-   }
+   param = ((SimTK::optimizerImplementation *)((long)*handle))->optParamStringToValue( parameter );
 
-   *status =  smSetOptimizerParameters( (void *)((long)*handle), param, values );
+   *status = ((SimTK::optimizerImplementation *)((long)*handle))->setOptimizerParameters(param,values);
    return;
 }
 void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results, smStatus* status){
 
-    *status = smRunOptimizer( (void *)((long)*handle), results );
+    *status = ((SimTK::optimizerImplementation *)((long)*handle))->optimize(results);
     return;
 }
 void FSM_MALLOCOPTIMIZER( int *n, FORTRAN_HANDLE handle, smStatus *status){
 
-      int opt_type;
-
-      *handle = (long)smMallocOptimizer( *n, status);
+      *status = SUCCESS; 
+      SimTK::optimizerImplementation *opt = new SimTK::optimizerImplementation(*n);
+      *handle = (long)opt;
       return;
 }
 
 void FSM_FREEOPT( FORTRAN_HANDLE handle){
 
-    smFreeOptimizer( (void *)((long)*handle) );
+    delete ((SimTK::optimizerImplementation *)((long)*handle));
     return;
 }
 void FSM_DUMPOPTIMIZERSTATE(FORTRAN_HANDLE  handle, smStatus *status) {

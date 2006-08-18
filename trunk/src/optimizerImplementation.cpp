@@ -26,6 +26,30 @@ namespace SimTK {
          dimension = 0;
       }
 
+      unsigned int optimizerImplementation::optParamStringToValue( char *parameter )  {
+
+         unsigned int param;
+
+         if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
+           param = MAX_FUNCTION_EVALUATIONS;
+         } else if( 0 == strncmp( "STEP_LENGTH", parameter, 1)) {
+           param = DEFAULT_STEP_LENGTH;
+         } else if( 0 == strncmp( "INITIAL_VALUES", parameter, 1)) {
+           param = INITIAL_VALUES;
+         } else if( 0 == strncmp( "TOLERANCE", parameter, 1)) {
+           param = TRACE;
+         } else if( 0 == strncmp( "GRADIENT", parameter, 1)) {
+           param = GRADIENT_CONVERGENCE_TOLERANCE;
+         } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
+           param = LINE_SEARCH_ACCURACY;
+         } else {
+           param = UNKNOWN_PARAMETER;
+         }
+
+         return( param );
+
+      }
+
 
 } // namespace SimTK
 

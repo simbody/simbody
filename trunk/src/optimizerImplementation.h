@@ -16,6 +16,7 @@ class optimizerImplementation : public smOptimizerInterface {
     public:
       optimizerImplementation( int );
       optimizerImplementation();
+      unsigned int optParamStringToValue( char *parameter );
       ~optimizerImplementation(){
           if(dimension > 0 ) {
              delete [] work;
@@ -148,6 +149,7 @@ class optimizerImplementation : public smOptimizerInterface {
       }
 
   private:
+
      int         dimension;  // dimension of the problem
      int         numCorrections;
      int         Trace;
