@@ -29,66 +29,26 @@
 // #include "objectiveFunction.h"
 
 #include "optimizerInterface.h"
-#include "optimizerImplementation.h"
 
 namespace SimTK {
 
 
 class smOptimizer :  public smOptimizerInterface {
+
    public:
     smOptimizer( int );
 
-int  setOptimizerParameters(unsigned int param, double *values) {
-
-         return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
-      }
-/* TODO implement this
-int  setOptimizerParametersi(unsigned int param, int *values) {
-
-         return(((optimizerImplementation *)data)->setOptimizerParameters(param, values));
-      }
-*/
-int getOptimizerParameters(unsigned int param, double *values) {
-
-         return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
-     }
-/* TODO implement this
-int getOptimizerParametersi(unsigned int param, int *values) {
-
-         return(((optimizerImplementation *)data)->getOptimizerParameters(param, values));
-     }
-*/
-int setObjectiveFunction(void (*func)(double*,double*,double*)) {
-
-       return(((optimizerImplementation *)data)->setObjectiveFunction(func));
-}
-int optimize(double *results) {
-
-       return( ((optimizerImplementation *)data)->optimize(results));
-}
+smStatus setOptimizerParameters(unsigned int param, double *values); 
+smStatus getOptimizerParameters(unsigned int param, double *values);
+smStatus setObjectiveFunction(void (*func)(double*,double*,double*)); 
+template < typename T > smStatus optimize(T);
+template < int N, typename T, int S > smStatus optimize(SimTK::Vec< N, T, S> ) ;
 
     private:
      void *data;
 
 }; // Class smOptimizer
 } // namespace SimTK
-typedef struct OptimizerStruct{
-  int                  dimension;
-  int                  numCorrections;
-  unsigned int         Trace;
-  unsigned int         Algorithm;
-  unsigned int         MaxNumFuncEvals;
-  double               *work;
-  double               *results;
-  double               *f;
-  double               *g;
-  double               *diag;
-  double               GradientConvergenceTolerance;
-  double               LineSearchAccuracy;
-  double               DefaultStepLength;
-  void                 (*costFunction)(double*, double*, double*);
-
-}*OptimizerContext;
 
 #endif //_SimTK_OPTIMIZER_H
 

@@ -9,7 +9,7 @@
       integer*8 handle
       integer   status
       double precision val
-      double precision result(2),initialvalue(2)
+      double precision result(2)
       
 
       call fsmMallocOptimizer( 2, handle, status) 
@@ -34,11 +34,8 @@
       call fsmSetOptimizerParameters(handle,"ACCURACY",val, status) 
       if( status .NE. 0 ) write(*,*)"accuracy failed status=",status
 
-      initialvalue(1) =  100 
-      initialvalue(2) = -100 
-      call fsmSetOptimizerParameters( handle, "INITAL VALUES", 
-     * initialvalue,status )
-      if( status .NE. 0 ) write(*,*)"initial values fail status=",status
+      result(1) =  100 
+      result(2) = -100 
 
       call fsmSetCostFunction( handle, costfunction, status )
       if( status .NE. 0 ) write(*,*)"cost func fail status=",status

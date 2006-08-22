@@ -1,5 +1,10 @@
 #include "Simmath.h"
+#include "SimTKcommon.h"
+#include "SimTKcommon/internal/common.h"
+#include "simmatrix/internal/SmallMatrix.h"
 #include "optimizer.h"
+
+
 
 #include <iostream>
 using std::cout;
@@ -13,7 +18,6 @@ using std::endl;
 main() {
 
     double params[10];
-    double results[10];
     int status,i;
     void costFunc( double*, double*, double* );
 
@@ -28,10 +32,6 @@ main() {
     status = opt->setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
     if( status != SUCCESS ) cout << "set  MAX_FUNCTION_EVALUATIONS failed   status = "  <<  status << endl;
 
-    params[0] =  100;
-    params[1] = -100;
-    status = opt->setOptimizerParameters( INITIAL_VALUES,  params );
-    if( status != SUCCESS ) cout << "set INITIAL_VALUES failed status = "  <<  status << endl;
 
     params[0] = .0001;
     status = opt->setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
@@ -47,7 +47,13 @@ main() {
 
     status = opt->setObjectiveFunction( costFunc );
     if( status != SUCCESS ) cout << "set  cost Function failed   status = "  <<  status << endl;
-
+/*
+    double results[10];
+*/
+    SimTK::Vec<2> results;
+    results[0] =  100;
+    results[1] = -100;
+    
     status = opt->optimize( results );
     if( status != SUCCESS )  {
         cout << "Run Optimizer failed status = "   <<  status << endl;

@@ -12,7 +12,7 @@ typedef const char *address;
 typedef short int shortint;
 typedef float real;
 typedef double doublereal;
-typedef struct { real r, i; } complex;
+/*typedef struct { real r, i; } complex; */
 typedef struct { doublereal r, i; } doublecomplex;
 typedef int logical; /* awf changed from long */
 typedef short int shortlogical;
@@ -128,7 +128,7 @@ union Multitype { /* for multiple entry points */
         integer i;
         real r;
         doublereal d;
-        complex c;
+//        complex c;
         doublecomplex z;
         };
 

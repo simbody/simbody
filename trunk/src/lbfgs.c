@@ -25,10 +25,12 @@
 #include <malloc.h>
 #include <math.h>
 #include "Simmath.h"
-#include "itk_lbfgs.h"
 /* #include <cstdio> */
-#include "f2c.h"
+#include "optimizer.h"
+#include "optimizerImplementation.h"
 
+#include "itk_lbfgs.h"
+#include "f2c.h" 
 #define NUMBER_OF_CORRECTIONS 5   
 
 using std::cout;
@@ -43,8 +45,6 @@ static integer c__1 = 1;
 
 
 
-#include "optimizer.h"
-#include "optimizerImplementation.h"
 
 #define SIMTK_FORTRAN_UPPERCASE
 #define SIMTK_FORTRAN_ONE_UNDERSCORE

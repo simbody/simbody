@@ -14,7 +14,7 @@ main() {
 
     smHandle optimizer;
     smStatus status;
-    double results[PROBLEM_DIMENSION], initialValue[PROBLEM_DIMENSION];
+    double results[PROBLEM_DIMENSION];
     int i;
     double params[10];
     void costFunc( double*, double*, double* );
@@ -51,12 +51,8 @@ main() {
 
     // We start not so far from  | 2 -2 |
 
-    initialValue[0] =  100;
-    initialValue[1] = -100;
-
-
-    status = smSetOptimizerParameters( optimizer, INITIAL_VALUES, initialValue );
-    if( status != SUCCESS ) printf("set INITIAL_VALUES failed status = %d\n", status);
+    results[0] =  100;
+    results[1] = -100;
 
     status = smDumpOptimizerState(optimizer);
     if( status != SUCCESS ) printf("Dump Optimizer state failed status = %d\n", status);
