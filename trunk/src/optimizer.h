@@ -29,6 +29,7 @@
 // #include "objectiveFunction.h"
 
 #include "optimizerInterface.h"
+#include "objectiveFunction.h"
 
 namespace SimTK {
 
@@ -38,11 +39,12 @@ class smOptimizer :  public smOptimizerInterface {
    public:
     smOptimizer( int );
 
-smStatus setOptimizerParameters(unsigned int param, double *values); 
-smStatus getOptimizerParameters(unsigned int param, double *values);
-smStatus setObjectiveFunction(void (*func)(double*,double*,double*)); 
-template < typename T > smStatus optimize(T);
-template < int N, typename T, int S > smStatus optimize(SimTK::Vec< N, T, S> ) ;
+    smStatus setOptimizerParameters(unsigned int param, double *values); 
+    smStatus getOptimizerParameters(unsigned int param, double *values);
+    smStatus setObjectiveFunction(SimTK::objectiveFunction *objFunc); 
+
+    // smStatus setObjectiveFunction(objectiveFunction*);  
+    smStatus optimize(SimTK::Vector_<Real>&) ;
 
     private:
      void *data;

@@ -4,6 +4,7 @@
 #include <iostream>
 #include "Simmath.h"
 #include "optimizerInterface.h"
+#include "objectiveFunction.h"
 
 namespace SimTK {
 
@@ -14,19 +15,17 @@ class optimizerImplementation : public smOptimizerInterface {
      unsigned int optParamStringToValue( char *parameter );
      smStatus setOptimizerParameters(unsigned  int parameter, double *values); 
      smStatus getOptimizerParameters(unsigned int parameter, double *values); 
-     smStatus setObjectiveFunction( void (*func)(double*,double*,double*)) ;
+     smStatus setObjectiveFunction( void (*func)(int,double*,double*,double*,void*)) ;
+     smStatus setObjectiveFunction( SimTK::objectiveFunction *objFunc);
 
-     template < typename T >
-     smStatus optimize( T results ); 
+     smStatus optimize( double *results ); 
 
-     template < int N, typename T, int S >
-     smStatus optimize(  SimTK::Vec< N, T, S> results ); 
+     smStatus optimize(  SimTK::Vector_<Real> &results ); 
 
 
       ~optimizerImplementation(){
           if(dimension > 0 ) {
              delete [] work;
-             delete [] g;
              delete [] diag;
          }
      }
@@ -36,17 +35,18 @@ class optimizerImplementation : public smOptimizerInterface {
      int         Trace;
      int         Algorithm;
      int         MaxNumFuncEvals;
-     double               *work;
-     double               f;
-     double               *g;
-     double               *diag;
-     double               GradientConvergenceTolerance;
-     double               LineSearchAccuracy;
-     double               DefaultStepLength;
-     void                 (*costFunction)(double*, double*, double*);
-     int iprint[2]; 
-     double xtol[1]; 
-     int diagco[1];
+     double     *work;
+     double     *diag;
+     double      GradientConvergenceTolerance;
+     double      LineSearchAccuracy;
+     double      DefaultStepLength;
+     void        (*costFunction)(int, double*, double*, double*, void*);
+     int         iprint[2]; 
+     double      xtol[1]; 
+     int         diagco[1];
+     void       *user_data;
+     SimTK::Vector_<Real> *gradient;
+     SimTK::objectiveFunction *objFunc;
 
 
 };

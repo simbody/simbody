@@ -13,7 +13,7 @@ smHandle smMallocOptimizer( int dimension, smStatus*status){
     return( (smHandle)opt);
 }
 
-smStatus  smSetCostFunction(  smHandle handle,  void (*costFunction)(double*,double*,double*) ) {
+smStatus  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
 
     return( ((SimTK::optimizerImplementation *)handle)->setObjectiveFunction(costFunction));
 }

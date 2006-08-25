@@ -39,12 +39,12 @@ extern "C" void FSM_FREEOPT(FORTRAN_HANDLE);
 extern "C" void FSM_MALLOCOPTIMIZER( int*, FORTRAN_HANDLE,  smStatus* );
 extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE, smStatus* );
 extern "C" void FSM_SETOPTPARMS( FORTRAN_HANDLE, char *, double*, smStatus* );
-extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(double *, double*, double*), smStatus*);
+extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(int, double *, double*, double*, void *), smStatus*);
 extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *, smStatus*);
 
 
 
-void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(double *, double*, double*), smStatus *status){
+void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(int, double *, double*, double*, void *), smStatus *status){
 
     *status = ((SimTK::optimizerImplementation *)((long)*handle))->setObjectiveFunction(costFunction);
 }

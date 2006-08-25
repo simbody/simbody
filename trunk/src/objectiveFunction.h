@@ -23,7 +23,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// using namespace SimTK;
+namespace SimTK {
 
 class objectiveFunction { 
 
@@ -31,23 +31,22 @@ public:
     virtual ~objectiveFunction() {};
 
   /* this method must be overloaded by derived class */
-   virtual unsigned int GetNumberOfParameters(void) const  = 0;
 
-// virtual MeasureType GetValue( const ParametersType & parameters ) const = 0;
+  virtual double getValue( SimTK::Vector_<Real>&  ) = 0;
 
-   virtual double GetValue( double *coefficients ) const = 0;
+  virtual void   getGradient( SimTK::Vector_<Real> &,   SimTK::Vector_<Real>&) = 0;
 
-// virtual void GetDerivative( const ParametersType & parameters, DerivativeType & derivative ) const = 0;
+  virtual double getValueAndGradient( SimTK::Vector_<Real> &coefficients, SimTK::Vector_<Real> &gradient) {
 
-  virtual void GetGradient( double *coefficients, double *gradient ) const = 0;
+     this->getGradient( coefficients, gradient );
+     return( this->getValue( coefficients ) );
 
-  virtual void GetValueAndGradient( double *coefficients, double *value, double *gradient,) const
-  {
-    *value = this->GetValue( coefficients );
-    this->GetGradient( coefficients, gradient );
-  };
+  }
 
-}; // end class objectiveFuncction
+}; // end class objectiveFunction
+}
 
 #endif //_SimTK_OBJECTIVE_FUNCTION_H
+
+
 

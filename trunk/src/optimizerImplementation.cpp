@@ -16,22 +16,27 @@ namespace SimTK {
       optimizerImplementation::optimizerImplementation( int n ) { // constructor
           smStatus status;
           int m;
+      /* internal flags for LBFGS */
          iprint[0] = 1; iprint[1] = 0; // no output generated
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
          diagco[0] = 0;      // do not supply diagonal of hessian
-
+         user_data = 0;
+         objFunc   = 0;
 
 // TODO THROW bad_alloc exception if n<1 || malloc fails
           dimension = n;
           numCorrections = m = NUMBER_OF_CORRECTIONS;
           Algorithm = LBFGS;
           work = new double[dimension*(2*m+1) + 2*m];
-          g =    new double[dimension];
           diag = new double[dimension];
+          gradient = new SimTK::Vector_<Real>(dimension);
+         
       }
 
-      optimizerImplementation::optimizerImplementation( ) { // constructor
+      optimizerImplementation::optimizerImplementation() { // constructor
          dimension = 0;
+         user_data = 0;
+         objFunc   = 0;
       }
 
       unsigned int optimizerImplementation::optParamStringToValue( char *parameter )  {
@@ -56,7 +61,7 @@ namespace SimTK {
 
       }
 
-
+// TODO set pointer to user_data
 
      smStatus optimizerImplementation::setOptimizerParameters(unsigned  int parameter, double *values) {
           unsigned int status = SUCCESS;
@@ -116,25 +121,60 @@ namespace SimTK {
           return(status); 
       }
 
-      smStatus optimizerImplementation::setObjectiveFunction( void (*func)(double*,double*,double*)) {
+      smStatus optimizerImplementation::setObjectiveFunction(SimTK::objectiveFunction *objectiveFunction ) {
+            objFunc = objectiveFunction;
+            return(SUCCESS);
+      }
+
+      smStatus optimizerImplementation::setObjectiveFunction( void (*func)(int, double*,double*,double*, void*)) {
 
           costFunction = func;
           return(SUCCESS);
       }
-     template < typename T >
-     smStatus optimizerImplementation::optimize( T results ) {
+     smStatus optimizerImplementation::optimize( double *results ) {
 
          smStatus  status = SUCCESS;
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
-
+         double f;
+         SimTK::Vector_<Real> &gradient_ref =  *gradient;
 
          while( run_optimizer ) {
 
-            (*costFunction)( results, &f, g );
+            (*costFunction)( dimension, results, &f, &gradient_ref[0], user_data );
 
-            lbfgs_( &dimension, &numCorrections, results, &f, g,
+            lbfgs_( &dimension, &numCorrections, &results[0], &f, &gradient_ref[0],
+            diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
+            work, iflag );
+
+
+            if( iflag[0] <= 0 ) {
+              run_optimizer = 0;
+              status = iflag[0];
+            }
+         }
+
+
+
+         return(status);
+
+      }
+
+
+     smStatus optimizerImplementation::optimize(  SimTK::Vector_<Real> &results ) {
+
+         smStatus  status = SUCCESS;
+         int i;
+         int run_optimizer = 1;
+         int iflag[1] = {0};
+         double f;
+         SimTK::Vector_<Real> &gradient_ref =  *gradient;
+
+         while( run_optimizer ) {
+
+            f = objFunc->getValueAndGradient( results, gradient_ref );
+            lbfgs_( &dimension, &numCorrections, &results[0], &f, &gradient_ref[0],
             diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
             work, iflag );
 
@@ -149,39 +189,6 @@ namespace SimTK {
 
       }
 
-
-    template < int N, typename T, int S >
-     smStatus optimizerImplementation::optimize(  SimTK::Vec< N, T, S> results ) {
-
-         smStatus  status = SUCCESS;
-         int i;
-         int run_optimizer = 1;
-         int iflag[1] = {0};
-
-
-         while( run_optimizer ) {
-
-            (*costFunction)( &results[0], &f, g );
-
-            lbfgs_( &dimension, &numCorrections, &results[0], &f, g,
-            diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
-            work, iflag );
-
-
-            if( iflag[0] <= 0 ) {
-              run_optimizer = 0;
-              status = iflag[0];
-            }
-         }
-
-         return(status);
-
-      }
-
-template smStatus optimizerImplementation::optimize(double *);
-
-template smStatus optimizerImplementation::optimize<2, double, 1>(Vec<2, double, 1>);
-template smStatus optimizerImplementation::optimize(Vec<3, double, 1>);
 
 } // namespace SimTK
 

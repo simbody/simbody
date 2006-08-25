@@ -25,7 +25,7 @@ extern smHandle smMallocOptimizer(int, smStatus*);
 extern smStatus smDumpOptimizerState( smHandle);
 extern smStatus smSetOptimizerParameters( smHandle, unsigned int, double*);
 extern smStatus smGetOptimizerParameters( smHandle, unsigned int, double*);
-extern smStatus smSetCostFunction( smHandle, void (*costFunction)(double*,double*,double*) );
+extern smStatus smSetCostFunction( smHandle, void (*costFunction)(int, double*,double*,double*, void*) );
 extern smStatus smRunOptimizer( smHandle, double * );
 extern void     smFreeOptimizer( smHandle );
 

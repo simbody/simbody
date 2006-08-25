@@ -51,8 +51,9 @@
       call fsmFreeOptimizer(handle );
       end
 
-      subroutine costfunction( pos, f, g)
-      double precision pos(2), f, g(2)
+      subroutine costfunction( n, pos, f, g, user_data )
+      integer n
+      double precision pos(2), f, g(2), user_data
 
       double precision x, y
 

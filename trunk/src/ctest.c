@@ -17,7 +17,7 @@ main() {
     double results[PROBLEM_DIMENSION];
     int i;
     double params[10];
-    void costFunc( double*, double*, double* );
+    void costFunc( int, double*, double*, double*, void* );
 
     optimizer = smMallocOptimizer( PROBLEM_DIMENSION, &status);
 
@@ -71,7 +71,7 @@ main() {
 }
 
    
-void costFunc( double *position, double *f, double *g ) {
+void costFunc( int n, double *position, double *f, double *g, void* user_data ) {
 
   int i;
 
