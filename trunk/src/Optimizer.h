@@ -1,5 +1,6 @@
-#ifndef _SimTK_SIMMATH_H_
-#define _SimTK_SIMMATH_H_
+
+#ifndef _SimTK_OPTIMIZER_H
+#define _SimTK_OPTIMIZER_H
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -23,38 +24,31 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-typedef void* smHandle; 
-typedef int  smStatus;
 
-enum { 	OPTIMIZER, ROOT_FINDER };
-enum { LBFGS, POWELL, GRADIENT_DESENT };
-enum { SUCCESS, MALLOC_FAILED, UNKNOWN_OPTIMIZER, UNKNOWN_PARAMETER, INVALID_VALUE };
-enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURACY, GRADIENT_CONVERGENCE_TOLERANCE };
 
-#ifdef __cplusplus
+
+#include "OptimizerInterface.h"
+#include "ObjectiveFunction.h"
+
 namespace SimTK {
-class smObject {
+
+
+class Optimizer :  public OptimizerInterface {
+
    public:
-    void *data;
-};
+    Optimizer( int );
 
-} //  namespace SimTK
+    smStatus setOptimizerParameters(unsigned int param, double *values); 
+    smStatus getOptimizerParameters(unsigned int param, double *values);
+    smStatus setObjectiveFunction(SimTK::ObjectiveFunction *objFunc); 
 
-extern "C" {
-#endif
+    smStatus optimize(SimTK::Vector&) ;
 
-extern smHandle smMallocOptimizer(int, smStatus*);
-extern smStatus smDumpOptimizerState( smHandle);
-extern smStatus smSetOptimizerParameters( smHandle, unsigned int, double*);
-extern smStatus smGetOptimizerParameters( smHandle, unsigned int, double*);
-extern smStatus smSetCostFunction( smHandle, void (*costFunction)(int, double*,double*,double*, void*) );
-extern smStatus smRunOptimizer( smHandle, double * );
-extern void     smFreeOptimizer( smHandle );
+    private:
+     void *data;
 
-#ifdef __cplusplus
-}  /* extern "C" */
+}; // Class Optimizer
+} // namespace SimTK
 
-#endif
+#endif //_SimTK_OPTIMIZER_H
 
-
-#endif //_SimTK_SIMMATH_H_

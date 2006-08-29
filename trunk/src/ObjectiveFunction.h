@@ -1,6 +1,5 @@
-
-#ifndef _SimTK_OPTIMIZER_H
-#define _SimTK_OPTIMIZER_H
+#ifndef _SimTK_OBJECTIVE_FUNCION_H
+#define _SimTK_OBJECTIVE_FUNCION_H
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -24,33 +23,30 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
-
-// #include "objectiveFunction.h"
-
-#include "optimizerInterface.h"
-#include "objectiveFunction.h"
-
 namespace SimTK {
 
+class ObjectiveFunction { 
 
-class smOptimizer :  public smOptimizerInterface {
+public:
+    virtual ~ObjectiveFunction() {};
 
-   public:
-    smOptimizer( int );
+  /* this method must be overloaded by derived class */
 
-    smStatus setOptimizerParameters(unsigned int param, double *values); 
-    smStatus getOptimizerParameters(unsigned int param, double *values);
-    smStatus setObjectiveFunction(SimTK::objectiveFunction *objFunc); 
+  virtual double getValue( SimTK::Vector&  ) = 0;
 
-    // smStatus setObjectiveFunction(objectiveFunction*);  
-    smStatus optimize(SimTK::Vector_<Real>&) ;
+  virtual void   getGradient( SimTK::Vector &,   SimTK::Vector&) = 0;
 
-    private:
-     void *data;
+  virtual double getValueAndGradient( SimTK::Vector &coefficients, SimTK::Vector &gradient) {
 
-}; // Class smOptimizer
-} // namespace SimTK
+     this->getGradient( coefficients, gradient );
+     return( this->getValue( coefficients ) );
 
-#endif //_SimTK_OPTIMIZER_H
+  }
+
+}; // end class ObjectiveFunction
+}
+
+#endif //_SimTK_OBJECTIVE_FUNCTION_H
+
+
 

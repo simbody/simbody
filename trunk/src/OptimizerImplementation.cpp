@@ -1,7 +1,30 @@
+
+/* Portions copyright (c) 2006 Stanford University and Jack Middleton.
+ * Contributors:
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject
+ * to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 #include <iostream>
 #include "Simmath.h"
-#include "optimizer.h"
-#include "optimizerImplementation.h"
+#include "Optimizer.h"
+#include "OptimizerImplementation.h"
 
 using std::cout;
 using std::endl;
@@ -13,7 +36,7 @@ const int NUMBER_OF_CORRECTIONS = 5;
 
 namespace SimTK {
 
-      optimizerImplementation::optimizerImplementation( int n ) { // constructor
+      OptimizerImplementation::OptimizerImplementation( int n ) { // constructor
           smStatus status;
           int m;
       /* internal flags for LBFGS */
@@ -29,17 +52,17 @@ namespace SimTK {
           Algorithm = LBFGS;
           work = new double[dimension*(2*m+1) + 2*m];
           diag = new double[dimension];
-          gradient = new SimTK::Vector_<Real>(dimension);
+          gradient = new SimTK::Vector(dimension);
          
       }
 
-      optimizerImplementation::optimizerImplementation() { // constructor
+      OptimizerImplementation::OptimizerImplementation() { // constructor
          dimension = 0;
          user_data = 0;
          objFunc   = 0;
       }
 
-      unsigned int optimizerImplementation::optParamStringToValue( char *parameter )  {
+      unsigned int OptimizerImplementation::optParamStringToValue( char *parameter )  {
 
          unsigned int param;
 
@@ -63,7 +86,7 @@ namespace SimTK {
 
 // TODO set pointer to user_data
 
-     smStatus optimizerImplementation::setOptimizerParameters(unsigned  int parameter, double *values) {
+     smStatus OptimizerImplementation::setOptimizerParameters(unsigned  int parameter, double *values) {
           unsigned int status = SUCCESS;
           int i;
 
@@ -92,7 +115,7 @@ namespace SimTK {
        return(status); 
 
       }
-      smStatus optimizerImplementation::getOptimizerParameters(unsigned int parameter, double *values) {
+      smStatus OptimizerImplementation::getOptimizerParameters(unsigned int parameter, double *values) {
           int status = SUCCESS;
           int i;
 
@@ -121,24 +144,24 @@ namespace SimTK {
           return(status); 
       }
 
-      smStatus optimizerImplementation::setObjectiveFunction(SimTK::objectiveFunction *objectiveFunction ) {
+      smStatus OptimizerImplementation::setObjectiveFunction(SimTK::ObjectiveFunction *objectiveFunction ) {
             objFunc = objectiveFunction;
             return(SUCCESS);
       }
 
-      smStatus optimizerImplementation::setObjectiveFunction( void (*func)(int, double*,double*,double*, void*)) {
+      smStatus OptimizerImplementation::setObjectiveFunction( void (*func)(int, double*,double*,double*, void*)) {
 
           costFunction = func;
           return(SUCCESS);
       }
-     smStatus optimizerImplementation::optimize( double *results ) {
+     smStatus OptimizerImplementation::optimize( double *results ) {
 
          smStatus  status = SUCCESS;
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
          double f;
-         SimTK::Vector_<Real> &gradient_ref =  *gradient;
+         SimTK::Vector &gradient_ref =  *gradient;
 
          while( run_optimizer ) {
 
@@ -162,14 +185,14 @@ namespace SimTK {
       }
 
 
-     smStatus optimizerImplementation::optimize(  SimTK::Vector_<Real> &results ) {
+     smStatus OptimizerImplementation::optimize(  SimTK::Vector &results ) {
 
          smStatus  status = SUCCESS;
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
          double f;
-         SimTK::Vector_<Real> &gradient_ref =  *gradient;
+         SimTK::Vector &gradient_ref =  *gradient;
 
          while( run_optimizer ) {
 

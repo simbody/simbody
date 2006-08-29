@@ -1,5 +1,3 @@
-#ifndef _SimTK_OBJECTIVE_FUNCION_H
-#define _SimTK_OBJECTIVE_FUNCION_H
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -23,30 +21,34 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#include "Simmath.h"
+#include "Optimizer.h"
+#include "OptimizerImplementation.h"
+
 namespace SimTK {
+   Optimizer::Optimizer(int dimension) {
+        OptimizerImplementation *optPtr =  new OptimizerImplementation(dimension);
+        optPtr->dimension = dimension;
+        data = (void *)optPtr;
+   }
 
-class objectiveFunction { 
+   smStatus  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
 
-public:
-    virtual ~objectiveFunction() {};
+         return(((OptimizerImplementation *)data)->setOptimizerParameters(param, values));
+   }
 
-  /* this method must be overloaded by derived class */
+   smStatus Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
-  virtual double getValue( SimTK::Vector_<Real>&  ) = 0;
+         return(((OptimizerImplementation *)data)->getOptimizerParameters(param, values));
+   }
 
-  virtual void   getGradient( SimTK::Vector_<Real> &,   SimTK::Vector_<Real>&) = 0;
+   smStatus Optimizer::setObjectiveFunction(SimTK::ObjectiveFunction *objFunc) {
 
-  virtual double getValueAndGradient( SimTK::Vector_<Real> &coefficients, SimTK::Vector_<Real> &gradient) {
+       return(((OptimizerImplementation *)data)->setObjectiveFunction(objFunc));
+   }
 
-     this->getGradient( coefficients, gradient );
-     return( this->getValue( coefficients ) );
+   smStatus Optimizer::optimize(SimTK::Vector   &results) {
+       return( ((OptimizerImplementation *)data)->optimize(results));
+   }
 
-  }
-
-}; // end class objectiveFunction
-}
-
-#endif //_SimTK_OBJECTIVE_FUNCTION_H
-
-
-
+} // namespace SimTK

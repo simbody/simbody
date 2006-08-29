@@ -67,15 +67,10 @@ main() {
     }
 
     smFreeOptimizer(optimizer);
-
 }
-
    
 void costFunc( int n, double *position, double *f, double *g, void* user_data ) {
-
-  int i;
-
-   double x, y;
+  double x, y;
 
    x = position[0]; 
    y = position[1];  
@@ -83,7 +78,6 @@ void costFunc( int n, double *position, double *f, double *g, void* user_data ) 
    f[0] = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
    g[0] = 3*x + 2*y -2;
    g[1] = 2*x + 6*y +8; 
-
 
    return;
 }
