@@ -13,57 +13,40 @@ using std::printf;
 main() {
 
     smHandle optimizer;
-    smStatus status;
     double results[PROBLEM_DIMENSION];
     int i;
     double params[10];
     void costFunc( int, double*, double*, double*, void* );
 
-    optimizer = smMallocOptimizer( PROBLEM_DIMENSION, &status);
-
-    if( status != SUCCESS ){
-       printf("malloc failed status = %d\n", status); 
-       exit(0);
-    }
+    optimizer = smMallocOptimizer( PROBLEM_DIMENSION);
 
     params[0] = 0;
-    status = smSetOptimizerParameters( optimizer, TRACE, params );
-    if( status != SUCCESS ) printf("set TRACE failed status = %d\n", status);
+    smSetOptimizerParameters( optimizer, TRACE, params );
 
     params[0] = 100;
-    status = smSetOptimizerParameters( optimizer, MAX_FUNCTION_EVALUATIONS, params );
-    if( status != SUCCESS ) printf("set MAX_FUNCTION_EVALUATIONS failed status = %d\n", status);
+    smSetOptimizerParameters( optimizer, MAX_FUNCTION_EVALUATIONS, params );
 
     params[0] =  .0001;
-    status = smSetOptimizerParameters( optimizer, GRADIENT_CONVERGENCE_TOLERANCE, params );
-    if( status != SUCCESS ) printf("set GRADIENT_CONVERGENCE_TOLERANCE failed status = %d\n", status);
+    smSetOptimizerParameters( optimizer, GRADIENT_CONVERGENCE_TOLERANCE, params );
 
     params[0] =  1.0;
-    status = smSetOptimizerParameters( optimizer, DEFAULT_STEP_LENGTH, params);
-    if( status != SUCCESS ) printf("set GRADIENT_CONVERGENCE_TOLERANCE failed status = %d\n", status);
+     smSetOptimizerParameters( optimizer, DEFAULT_STEP_LENGTH, params);
 
     params[0] =  0.9;
-    status = smSetOptimizerParameters( optimizer, LINE_SEARCH_ACCURACY, params);
-    if( status != SUCCESS ) printf("set LINE_SEARCH_ACCURACY failed status = %d\n", status);
+    smSetOptimizerParameters( optimizer, LINE_SEARCH_ACCURACY, params);
 
-    status = smSetCostFunction( optimizer, costFunc );
-    if( status != SUCCESS ) printf("set cost function failed status = %d\n", status);
+    smSetCostFunction( optimizer, costFunc );
 
     // We start not so far from  | 2 -2 |
 
     results[0] =  100;
     results[1] = -100;
 
-    status = smDumpOptimizerState(optimizer);
-    if( status != SUCCESS ) printf("Dump Optimizer state failed status = %d\n", status);
+    smDumpOptimizerState(optimizer);
 
-    status = smRunOptimizer( optimizer, results );
-    if( status != SUCCESS )  {
-       printf("Run Optimizer failed status = %d\n", status);
-    }else {
-       for( i=0; i<PROBLEM_DIMENSION; i++ ) {
-          printf(" results[%d] = %f \n",i,results[i]); 
-       }
+    smRunOptimizer( optimizer, results );
+    for( i=0; i<PROBLEM_DIMENSION; i++ ) {
+       printf(" results[%d] = %f \n",i,results[i]); 
     }
 
     smFreeOptimizer(optimizer);

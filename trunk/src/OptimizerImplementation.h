@@ -35,20 +35,21 @@ class OptimizerImplementation : public OptimizerInterface {
      OptimizerImplementation( int );
      OptimizerImplementation();
      unsigned int optParamStringToValue( char *parameter );
-     smStatus setOptimizerParameters(unsigned  int parameter, double *values); 
-     smStatus getOptimizerParameters(unsigned int parameter, double *values); 
-     smStatus setObjectiveFunction( void (*func)(int,double*,double*,double*,void*)) ;
-     smStatus setObjectiveFunction( SimTK::ObjectiveFunction *objFunc);
+     void setOptimizerParameters(unsigned  int parameter, double *values); 
+     void getOptimizerParameters(unsigned int parameter, double *values); 
+     void setObjectiveFunction( void (*func)(int,double*,double*,double*,void*)) ;
+     void setObjectiveFunction( SimTK::ObjectiveFunction *objFunc);
 
-     smStatus optimize( double *results ); 
+     void optimize( double *results ); 
 
-     smStatus optimize(  SimTK::Vector &results ); 
+     void optimize(  SimTK::Vector &results ); 
 
 
       ~OptimizerImplementation(){
           if(dimension > 0 ) {
              delete [] work;
              delete [] diag;
+             delete gradient;
          }
      }
 

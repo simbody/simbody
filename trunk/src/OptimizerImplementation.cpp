@@ -22,6 +22,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <iostream>
+#include <limits.h>
 #include "Simmath.h"
 #include "Optimizer.h"
 #include "OptimizerImplementation.h"
@@ -37,8 +38,9 @@ const int NUMBER_OF_CORRECTIONS = 5;
 namespace SimTK {
 
       OptimizerImplementation::OptimizerImplementation( int n ) { // constructor
-          smStatus status;
           int m;
+          char buf[1024];
+
       /* internal flags for LBFGS */
          iprint[0] = 1; iprint[1] = 0; // no output generated
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
@@ -46,7 +48,11 @@ namespace SimTK {
          user_data = 0;
          objFunc   = 0;
 
-// TODO THROW bad_alloc exception if n<1 || malloc fails
+         if( n < 1 ) {
+             char *where = "Optimizer Initialization";
+             char *szName= "dimension";
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  n, INT_MAX, where); }
+
           dimension = n;
           numCorrections = m = NUMBER_OF_CORRECTIONS;
           Algorithm = LBFGS;
@@ -65,6 +71,7 @@ namespace SimTK {
       unsigned int OptimizerImplementation::optParamStringToValue( char *parameter )  {
 
          unsigned int param;
+         char buf[1024];
 
          if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
            param = MAX_FUNCTION_EVALUATIONS;
@@ -77,7 +84,8 @@ namespace SimTK {
          } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
            param = LINE_SEARCH_ACCURACY;
          } else {
-           param = UNKNOWN_PARAMETER;
+             sprintf(buf," Parameter=%s",parameter);
+             SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
          }
 
          return( param );
@@ -86,9 +94,9 @@ namespace SimTK {
 
 // TODO set pointer to user_data
 
-     smStatus OptimizerImplementation::setOptimizerParameters(unsigned  int parameter, double *values) {
-          unsigned int status = SUCCESS;
+     void OptimizerImplementation::setOptimizerParameters(unsigned  int parameter, double *values) {
           int i;
+          char buf[1024];
 
           switch( parameter) {
              case TRACE:
@@ -107,17 +115,17 @@ namespace SimTK {
                    GradientConvergenceTolerance = values[0];
                    break;
              default:
-                   status = UNKNOWN_PARAMETER;
+                   sprintf(buf," Parameter=%d",parameter);
+                   SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
                    break;
           }
 
-  
-       return(status); 
+        return; 
 
       }
-      smStatus OptimizerImplementation::getOptimizerParameters(unsigned int parameter, double *values) {
-          int status = SUCCESS;
+      void OptimizerImplementation::getOptimizerParameters(unsigned int parameter, double *values) {
           int i;
+          char buf[1024];
 
             switch( parameter) {
                case TRACE:
@@ -133,30 +141,29 @@ namespace SimTK {
                      values[0] = LineSearchAccuracy;
                      break;
                case  GRADIENT_CONVERGENCE_TOLERANCE:
-                            values[0] = GradientConvergenceTolerance;
-                            break;
+                      values[0] = GradientConvergenceTolerance;
+                      break;
                default:
-                     status = UNKNOWN_PARAMETER;
-                     break;
+                      sprintf(buf," Parameter=%d",parameter);
+                      SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
+                      break;
             }
-
   
-          return(status); 
+          return; 
       }
 
-      smStatus OptimizerImplementation::setObjectiveFunction(SimTK::ObjectiveFunction *objectiveFunction ) {
+      void OptimizerImplementation::setObjectiveFunction(SimTK::ObjectiveFunction *objectiveFunction ) {
             objFunc = objectiveFunction;
-            return(SUCCESS);
+            return;
       }
 
-      smStatus OptimizerImplementation::setObjectiveFunction( void (*func)(int, double*,double*,double*, void*)) {
+      void OptimizerImplementation::setObjectiveFunction( void (*func)(int, double*,double*,double*, void*)) {
 
           costFunction = func;
-          return(SUCCESS);
+          return;
       }
-     smStatus OptimizerImplementation::optimize( double *results ) {
+     void OptimizerImplementation::optimize( double *results ) {
 
-         smStatus  status = SUCCESS;
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
@@ -171,23 +178,18 @@ namespace SimTK {
             diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
             work, iflag );
 
-
+/* TODO check iflag[0] for status errors */
             if( iflag[0] <= 0 ) {
               run_optimizer = 0;
-              status = iflag[0];
             }
          }
 
-
-
-         return(status);
+         return;
 
       }
 
+     void OptimizerImplementation::optimize(  SimTK::Vector &results ) {
 
-     smStatus OptimizerImplementation::optimize(  SimTK::Vector &results ) {
-
-         smStatus  status = SUCCESS;
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
@@ -202,14 +204,12 @@ namespace SimTK {
             work, iflag );
 
 
+/* TODO check iflag[0] for status errors */
             if( iflag[0] <= 0 ) {
               run_optimizer = 0;
-              status = iflag[0];
             }
          }
-
-         return(status);
-
+         return;
       }
 
 

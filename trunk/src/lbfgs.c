@@ -344,6 +344,8 @@ void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g
 /*     INITIALIZE */
 /*     ---------- */
 
+    char buf[256];
+
     if (*iflag == 0) {
         goto L10;
     }
@@ -355,13 +357,6 @@ L10:
     iter = 0;
     if (*n <= 0 || *m <= 0) {
         goto L196;
-    }
-    if (lb3_1.gtol <= 1e-4) {
-        if (lb3_1.lp > 0) {
-            lbptf_("  GTOL IS LESS THAN OR EQUAL TO 1.D-04\n");
-            lbptf_("  IT HAS BEEN RESET TO 9.D-01\n");
-        }
-        lb3_1.gtol = .9;
     }
     nfun = 1;
     point = 0;
@@ -560,25 +555,20 @@ L172:
 L190:
     *iflag = -1;
     if (lb3_1.lp > 0) {
-        lbptf_("IFLAG= -1. LINE SEARCH FAILED.\n");
-        lbptf_(" SEE DOCUMENTATION OF ROUTINE MCSRCH\n");
-        lbp1d_(" ERROR RETURN  OF LINE SEARCH: INFO=%d\n", &info);
-        lbptf_(" POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE \n");
-        lbptf_(" INCORRECT OR INCORRECT TOLERANCES\n");
-    }
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
+        "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES"); }
     return;
 L195:
     *iflag = -2;
     if (lb3_1.lp > 0) {
-        lbp1d_("IFLAG=-2, THE %d-TH DIAGONAL ELEMENT OF THE\n", &i);
-        lbptf_("INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE\n");
+        sprintf( buf, "THE %d-TH DIAGONAL ELEMENT OF THE INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE",&i);
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed ,SimTK::String(buf) );
     }
     return;
 L196:
     *iflag = -3;
     if (lb3_1.lp > 0) {
-        lbptf_("IFLAG= -3, IMPROPER INPUT PARAMETERS.\n");
-        lbptf_(" (N OR M ARE NOT POSITIVE)\n");
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "IMPROPER INPUT PARAMETERS N OR M ARE NOT POSITIVE");
     }
     return;
 } /* lbfgs_ */

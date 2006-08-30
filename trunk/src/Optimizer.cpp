@@ -32,23 +32,27 @@ namespace SimTK {
         data = (void *)optPtr;
    }
 
-   smStatus  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
+   void  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
 
-         return(((OptimizerImplementation *)data)->setOptimizerParameters(param, values));
+      ((OptimizerImplementation *)data)->setOptimizerParameters(param, values);
+      return;
    }
 
-   smStatus Optimizer::getOptimizerParameters(unsigned int param, double *values) {
+   void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
-         return(((OptimizerImplementation *)data)->getOptimizerParameters(param, values));
+      ((OptimizerImplementation *)data)->getOptimizerParameters(param, values);
+      return;
    }
 
-   smStatus Optimizer::setObjectiveFunction(SimTK::ObjectiveFunction *objFunc) {
+   void Optimizer::setObjectiveFunction(SimTK::ObjectiveFunction *objFunc) {
 
-       return(((OptimizerImplementation *)data)->setObjectiveFunction(objFunc));
+      ((OptimizerImplementation *)data)->setObjectiveFunction(objFunc);
+      return;
    }
 
-   smStatus Optimizer::optimize(SimTK::Vector   &results) {
-       return( ((OptimizerImplementation *)data)->optimize(results));
+   void Optimizer::optimize(SimTK::Vector   &results) {
+      ((OptimizerImplementation *)data)->optimize(results);
+       return;
    }
 
 } // namespace SimTK

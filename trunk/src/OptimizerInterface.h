@@ -40,15 +40,15 @@ public:
     /* by default class chooses algorithm based on size of problem. 
        The algorithm can be overridden by setting the Algo param. */
        /* should there be a set method for each parameter ? */
-    virtual smStatus setOptimizerParameters(unsigned int, double *) = 0;
-    virtual smStatus getOptimizerParameters(unsigned int, double *) = 0;
+    virtual void setOptimizerParameters(unsigned int, double *) = 0;
+    virtual void getOptimizerParameters(unsigned int, double *) = 0;
 /*
-    virtual smStatus getOptimizerParameters(unsigned int, int *) = 0;
-    virtual smStatus setOptimizerParameters(unsigned int, int *) = 0;
+    virtual void getOptimizerParameters(unsigned int, int *) = 0;
+    virtual void setOptimizerParameters(unsigned int, int *) = 0;
 */
-    virtual smStatus setObjectiveFunction( SimTK::ObjectiveFunction *objFunc) = 0;
+    virtual void setObjectiveFunction( SimTK::ObjectiveFunction *objFunc) = 0;
 
-    virtual smStatus optimize(SimTK::Vector &) = 0; // checks to see if space needs to be allocated
+    virtual void optimize(SimTK::Vector &) = 0; // checks to see if space needs to be allocated
 
        // constructor sets internal flag to require allocation
        // if dimension or algorithm changes the reallocate flag is

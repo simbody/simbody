@@ -7,46 +7,34 @@
       external  fsmFreeOptimizer
       external  costfunction
       integer*8 handle
-      integer   status
       double precision val
       double precision result(2)
       
 
-      call fsmMallocOptimizer( 2, handle, status) 
-      if( status .NE. 0 ) write(*,*)"malloc failed status=",status
+      call fsmMallocOptimizer( 2, handle) 
 
       val = 100
       call fsmSetOptimizerParameters(handle,"FUNCTION EVALUATIONS", val,
-     *  status) 
-      if( status .NE. 0 ) write(*,*)"number func eval failed status=",
-     * status
+     * ) 
 
       val = 1.0
 
-      call fsmSetOptimizerParameters(handle,"STEP LENGTH", val, status) 
-      if( status .NE. 0 ) write(*,*)"step length failed status=",status
+      call fsmSetOptimizerParameters(handle,"STEP LENGTH", val) 
 
       val = 0.0001; 
-      call fsmSetOptimizerParameters(handle,"GRADIENT", val, status) 
-      if( status .NE. 0 ) write(*,*)"gradient failed status=",status
+      call fsmSetOptimizerParameters(handle,"GRADIENT", val) 
 
       val =0.9; 
-      call fsmSetOptimizerParameters(handle,"ACCURACY",val, status) 
-      if( status .NE. 0 ) write(*,*)"accuracy failed status=",status
+      call fsmSetOptimizerParameters(handle,"ACCURACY",val) 
 
       result(1) =  100 
       result(2) = -100 
 
-      call fsmSetCostFunction( handle, costfunction, status )
-      if( status .NE. 0 ) write(*,*)"cost func fail status=",status
+      call fsmSetCostFunction( handle, costfunction )
 
-      call fsmDumpOptimizerState(handle, status) 
-      if( status .NE. 0 ) write(*,*)"dump state fail status=",status
+      call fsmDumpOptimizerState(handle) 
 
-      call fsmRunOptimizer(handle, result, status) 
-      if( status .NE. 0 ) write(*,*)"run opt failed status=",status
-
-      write(*,*)"RESULTS=",result(1),result(2)
+      call fsmRunOptimizer(handle, result) 
 
       call fsmFreeOptimizer(handle );
       end

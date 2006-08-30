@@ -26,25 +26,25 @@
 #include "OptimizerImplementation.h"
 
 
-smHandle smMallocOptimizer( int dimension, smStatus*status){
+smHandle smMallocOptimizer( int dimension){
 
     smHandle handle;
 
     SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(dimension);
-// TODO CATCH error from constructor
-    *status = SUCCESS;
     return( (smHandle)opt);
 }
 
-smStatus  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
+void  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
 
-    return( ((SimTK::OptimizerImplementation *)handle)->setObjectiveFunction(costFunction));
+    ((SimTK::OptimizerImplementation *)handle)->setObjectiveFunction(costFunction);
+    return;
 }
 
-smStatus  smRunOptimizer(  smHandle handle, double *results ) {
+void  smRunOptimizer(  smHandle handle, double *results ) {
 
 
-    return( ((SimTK::OptimizerImplementation *)handle)->optimize(results));
+    ((SimTK::OptimizerImplementation *)handle)->optimize(results);
+    return;
 }
     
 void smFreeOptimizer(smHandle handle){
@@ -54,19 +54,19 @@ void smFreeOptimizer(smHandle handle){
    return;
 
 }
-smStatus smGetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
+void smGetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-    return( ((SimTK::OptimizerImplementation *)handle)->getOptimizerParameters(parameter,values));
+    ((SimTK::OptimizerImplementation *)handle)->getOptimizerParameters(parameter,values);
+    return;
 }
 
-smStatus smSetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
+void smSetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-  return( ((SimTK::OptimizerImplementation *)handle)->setOptimizerParameters(parameter,values));
+  ((SimTK::OptimizerImplementation *)handle)->setOptimizerParameters(parameter,values);
+  return;
 }
 
-smStatus smDumpOptimizerState(smHandle handle) {
+void smDumpOptimizerState(smHandle handle) {
 
-     smStatus status = SUCCESS;
-
-   return(status); 
+   return; 
 }

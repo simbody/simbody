@@ -58,36 +58,35 @@
 typedef long* FORTRAN_HANDLE;
 
 extern "C" void FSM_FREEOPT(FORTRAN_HANDLE);
-extern "C" void FSM_MALLOCOPTIMIZER( int*, FORTRAN_HANDLE,  smStatus* );
-extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE, smStatus* );
-extern "C" void FSM_SETOPTPARMS( FORTRAN_HANDLE, char *, double*, smStatus* );
-extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(int, double *, double*, double*, void *), smStatus*);
-extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *, smStatus*);
+extern "C" void FSM_MALLOCOPTIMIZER( int*, FORTRAN_HANDLE );
+extern "C" void FSM_DUMPOPTIMIZERSTATE( FORTRAN_HANDLE );
+extern "C" void FSM_SETOPTPARMS( FORTRAN_HANDLE, char *, double* );
+extern "C" void FSM_SETCOSTFUNC(FORTRAN_HANDLE, void(costFunction)(int, double *, double*, double*, void *) );
+extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *);
 
 
 
-void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(int, double *, double*, double*, void *), smStatus *status){
+void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(int, double *, double*, double*, void *)){
 
-    *status = ((SimTK::OptimizerImplementation *)((long)*handle))->setObjectiveFunction(costFunction);
+    ((SimTK::OptimizerImplementation *)((long)*handle))->setObjectiveFunction(costFunction);
 }
 
-void FSM_SETOPTPARMS( FORTRAN_HANDLE handle, char *parameter, double *values, smStatus *status){
+void FSM_SETOPTPARMS( FORTRAN_HANDLE handle, char *parameter, double *values){
 
    unsigned int param;
 
    param = ((SimTK::OptimizerImplementation *)((long)*handle))->optParamStringToValue( parameter );
 
-   *status = ((SimTK::OptimizerImplementation *)((long)*handle))->setOptimizerParameters(param,values);
+   ((SimTK::OptimizerImplementation *)((long)*handle))->setOptimizerParameters(param,values);
    return;
 }
-void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results, smStatus* status){
+void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results){
 
-    *status = ((SimTK::OptimizerImplementation *)((long)*handle))->optimize(results);
+    ((SimTK::OptimizerImplementation *)((long)*handle))->optimize(results);
     return;
 }
-void FSM_MALLOCOPTIMIZER( int *n, FORTRAN_HANDLE handle, smStatus *status){
+void FSM_MALLOCOPTIMIZER( int *n, FORTRAN_HANDLE handle ){
 
-      *status = SUCCESS; 
       SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(*n);
       *handle = (long)opt;
       return;
@@ -98,9 +97,9 @@ void FSM_FREEOPT( FORTRAN_HANDLE handle){
     delete ((SimTK::OptimizerImplementation *)((long)*handle));
     return;
 }
-void FSM_DUMPOPTIMIZERSTATE(FORTRAN_HANDLE  handle, smStatus *status) {
+void FSM_DUMPOPTIMIZERSTATE(FORTRAN_HANDLE  handle) {
 
-    *status = smDumpOptimizerState( (void *)((long)*handle) );
+    smDumpOptimizerState( (void *)((long)*handle) );
     return;
 }
 
