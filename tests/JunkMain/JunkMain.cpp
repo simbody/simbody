@@ -205,7 +205,7 @@ try {
     //                                pendBody, massStation,
      //                               100000);
 
-    forces.addGlobalEnergyDrain(100);
+    //forces.addGlobalEnergyDrain(100);
 
     // want -g*sin(theta)*d = k*(theta-theta0)
     // so solve err(theta)=k*(theta-theta0)+g*d*sin(theta)=0
