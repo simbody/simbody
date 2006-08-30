@@ -820,7 +820,7 @@ static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, dou
 
     if (*n <= 0 || *stp <= 0. || *ftol < 0. || lb3_1.gtol < 0. || *xtol < 0. ||
         lb3_1.stpmin < 0. || lb3_1.stpmax < lb3_1.stpmin || *maxfev <= 0) {
-        return;
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to MCSRCH"); 
     }
 
 /*     COMPUTE THE INITIAL GRADIENT IN THE SEARCH DIRECTION */
@@ -831,8 +831,7 @@ static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, dou
         dginit += g[j] * s[j];
     }
     if (dginit >= 0.) {
-        lbptf_("THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION\n");
-        return;
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "THE SEARCH DIRECTION IS NOT A DESCENT DIRECTION");
     }
 
 /*     INITIALIZE LOCAL VARIABLES. */
@@ -1074,7 +1073,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
 
     if ( ( *brackt && ( *stp <= min(*stx,*sty) || *stp >= max(*stx,*sty) ) )
         || *dx * (*stp - *stx) >= 0. || *stpmax < *stpmin) {
-        return;
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_"); 
     }
 
 /*     DETERMINE IF THE DERIVATIVES HAVE OPPOSITE SIGN. */

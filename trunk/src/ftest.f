@@ -35,6 +35,7 @@
       call fsmDumpOptimizerState(handle) 
 
       call fsmRunOptimizer(handle, result) 
+      write(*,*)"RESULTS= ",result(1),result(2)
 
       call fsmFreeOptimizer(handle );
       end

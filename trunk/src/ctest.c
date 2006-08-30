@@ -62,5 +62,6 @@ void costFunc( int n, double *position, double *f, double *g, void* user_data ) 
    g[0] = 3*x + 2*y -2;
    g[1] = 2*x + 6*y +8; 
 
+
    return;
 }
