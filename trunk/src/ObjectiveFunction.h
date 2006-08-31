@@ -23,6 +23,11 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+#include "Simmath.h"
+#include "SimTKcommon.h"
+#include "SimTKcommon/internal/common.h"
+#include "simmatrix/internal/BigMatrix.h"
+
 namespace SimTK {
 
 class ObjectiveFunction { 

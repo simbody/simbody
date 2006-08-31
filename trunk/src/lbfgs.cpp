@@ -70,7 +70,7 @@ static integer c__1 = 1;
 // turn off C++ so correct LAPACK declarations are used 
 #undef  __cplusplus
 extern "C" {
-#include "SimTKlapack.h"
+#include "lapack/SimTKlapack.h"
 }
 
 

@@ -1,0 +1,13 @@
+ADD_EXECUTABLE(cpptest       cpptest.cpp)
+ADD_EXECUTABLE(cpptestStatic cpptest.cpp)
+ADD_EXECUTABLE(ftest         ftest.f)
+ADD_EXECUTABLE(ftestStatic   ftest.f)
+ADD_EXECUTABLE(ctest         ctest.c)
+ADD_EXECUTABLE(ctestStatic   ctest.c)
+
+TARGET_LINK_LIBRARIES(cpptest       ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(cpptestStatic ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(ftest         ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(ftestStatic   ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(ctest         ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(ctestStatic   ${STATIC_TARGET})
