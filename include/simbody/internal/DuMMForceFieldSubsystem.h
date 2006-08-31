@@ -81,6 +81,9 @@ public:
 
     int addAtom(int body, int type, const Vec3& station);
     int addBond(int atom1, int atom2);
+    int getNAtoms() const;
+
+    void dump() const; // to stdout
 
 
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, ForceSubsystem);

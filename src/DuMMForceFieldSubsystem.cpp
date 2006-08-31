@@ -37,6 +37,8 @@
 #include <vector>
 #include <cmath>
 #include <cassert>
+#include <set>
+#include <algorithm>
 
 namespace SimTK {
 
@@ -45,7 +47,7 @@ public:
     IntPair() {ints[0]=ints[1]=-1;}
     IntPair(int i1, int i2) {ints[0]=i1; ints[1]=i2;}
     int operator[](int i) const {assert(0<=i&&i<2); return ints[i];}
-    bool isValid() {return ints[0]>0 && ints[1]>0;}
+    bool isValid() const {return ints[0]>0 && ints[1]>0;}
 private:
     int ints[2];
 };
@@ -61,7 +63,7 @@ public:
     IntTriple() {ints[0]=ints[1]=ints[2]=-1;}
     IntTriple(int i1, int i2, int i3) {ints[0]= i1; ints[1]=i2; ints[2]=i3;}
     int operator[](int i) const {assert(0<=i&&i<3); return ints[i];}
-    bool isValid() {return ints[0]>0 && ints[1]>0 && ints[2]>0;}
+    bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0;}
 private:
     int ints[3];
 };
@@ -81,7 +83,7 @@ public:
         ints[0]= i1; ints[1]=i2; ints[2]=i3; ints[3]=i4;
     }
     int operator[](int i) const {assert(0<=i&&i<4); return ints[i];}
-    bool isValid() {return ints[0]>0 && ints[1]>0 && ints[2]>0 && ints[3]>0;}
+    bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0 && ints[3]>0;}
 private:
     int ints[4];
 };
@@ -115,10 +117,14 @@ inline bool operator<(const IntQuad& i1, const IntQuad& i2) {
 // defined so that if two atoms of type i are separated by
 // a distance dmin=2*ri, then the van der Waals energy is -ei.
 // For a pair of atoms of types i and j we define an effective
-// separation dmin_ij and well depth e_ij. Then the vdw energy at a
-// center separation d is
+// separation dmin_ij and well depth e_ij. Then if the vector
+// from atom i to atom j is v, and d=|v| we have
 //
 //    Evdw(d) = e_ij * ( (dmin_ij/d)^12 - 2*(dmin_ij/d)^6 )
+//
+//    Fvdw_j(d) = -grad_j(Evdw) 
+//              = 12 e_ij * ( (dmin_ij/d)^12 - (dmin_ij/d)^6 ) * v/d^2
+//    Fvdw_i(d) = -Fvdw_j(d)
 //
 // Some cautions: it is common among force fields to specify
 // the vdw size (1) either by radius or diameter, and (2) by
@@ -228,26 +234,26 @@ static inline void vdwCombineKong(
     e = er6 / r6;
 }
 
-
-class Element {
-    Element() : atomicNumber(-1), valence(-1), mass(-1) { }
-    Element(const char* nm, const char* sym, int aNum, int val, Real m)
-      : name(nm), symbol(sym), atomicNumber(aNum), valence(val), mass(m) { }
-
-    std::string name;
-    std::string symbol;
-    int         atomicNumber;
-    int         valence;
-    Real        mass;
-};
-
 class AtomType {
 public:
-    AtomType() : element(-1) { }
-    AtomType(int e, Real rad, Real well, Real chg)
-      : element(e), vdwRadius(rad), vdwWellDepth(well), partialCharge(chg) { }
+    AtomType() : mass(-1), vdwRadius(-1), vdwWellDepth(-1), partialCharge(-1) { }
+    AtomType(Real m, Real rad, Real well, Real chg)
+      : mass(m), vdwRadius(rad), vdwWellDepth(well), partialCharge(chg) { }
+    bool isValid() const {return mass >= 0;}
 
-    int element;
+    void dump() const {
+        printf("    mass=%g, vdwRad=%g, vdwDepth=%g, chg=%g\n",
+            mass, vdwRadius, vdwWellDepth, partialCharge);
+        printf("    vdwDij:");
+        for (int i=0; i< (int)vdwDij.size(); ++i)
+            printf(" %g", vdwDij[i]);
+        printf("\n    vdwEij:");
+        for (int i=0; i< (int)vdwEij.size(); ++i)
+            printf(" %g", vdwEij[i]);
+        printf("\n");
+    }
+
+    Real mass;
     Real vdwRadius;     // ri, length units
     Real vdwWellDepth;  // ei, energy units
     Real partialCharge; // qi, charge units
@@ -259,25 +265,36 @@ public:
     // type number of the present AtomType.
     // Note that different combining rules may be used but they
     // will always result in a pair of vdw parameters.
-    mutable std::vector<Real> vdwDij;
-    mutable std::vector<Real> vdwEij;
+    std::vector<Real> vdwDij;
+    std::vector<Real> vdwEij;
 };
 
 typedef std::vector<int> AtomList;
 class Atom {
 public:
-    Atom() : type(-1), bodyNum(-1), bodyAtomNum(-1) { 
+    Atom() : type(-1), bodyNum(-1), bodyAtomNum(-1), bondLists(1) {
     }
     Atom(int t, int body, int bodyAtom, const Vec3& st)
-      : type(t), bodyNum(body), bodyAtomNum(bodyAtom), station(st) {
+      : type(t), bodyNum(body), bodyAtomNum(bodyAtom), station(st), bondLists(1) {
     }
     bool isValid() const {return type>=0 && bodyNum>=0 && bodyAtomNum>=0;}
 
     bool isBondedTo(int anum) const {
-        if (!bonded.empty())
-            for (int i=0; i<(int)bonded[0].size(); ++i)
-                if (bonded[0][i] == anum) return true;
+        if (!bondLists.empty())
+            for (int i=0; i<(int)bondLists[0].size(); ++i)
+                if (bondLists[0][i] == anum) return true;
         return false;
+    }
+
+    void dump() const {
+        printf("    type=%d body=%d bodyAtomNum=%d station=%g %g %g\n",
+            type, bodyNum, bodyAtomNum, station[0], station[1], station[2]);
+        for (int i=0; i < (int)bondLists.size(); ++i) {
+            printf("      %d-%d bonds:", i+1, i+2);
+            for (int j=0; j< (int)bondLists[i].size(); ++j)
+                printf(" %d", bondLists[i][j]);
+            printf("\n");
+        }
     }
 
     int  type;
@@ -289,7 +306,7 @@ public:
     // molecules bond structure. The first
     // list are the directly bonded (1-2) atoms; the 2nd list has
     // the 1-3 bonded atoms, etc. 
-    std::vector< std::vector<int> > bonded;
+    std::vector<AtomList> bondLists;
 };
 
 
@@ -311,6 +328,13 @@ public:
         return (int)atoms.size()-1;
     }
 
+    void dump() const {
+        printf("    bodyNum=%d\n      atoms:", bodyNum);
+        for (int i=0; i < (int)atoms.size(); ++i)
+            printf(" %d", atoms[i]);
+        printf("\n");
+    }
+
     int      bodyNum;
     AtomList atoms;
 };
@@ -321,11 +345,13 @@ public:
 //    Avogadro's number N0=6.0221415e23 atoms/mole       
 //    length  A=Angstroms=1e-10 m=0.1nm
 //    mass    Da=g/mole
+//    time    ps
+//    That implies force = Da-A/ps^2
 //    atomic mass unit = 1/12 mass(C)=1.66053886e-24 g
 //      (specifically Carbon-12, unbound, in its rest state)
 //    mass of 1 mole of Carbon-12 = 12g (exact), thus mass
 //      of one Carbon-12 atom is 12 Da.
-//    energy kcal/mole
+//    energy kcal/mole = 418.4 Da-A^2/ps^2
 //    e0 in e^2/(A-kcal/mole)
 //      = 8.854187817e-12 C^2/(m-J)
 //          * (1/1.60217653e-19)^2 * 4184/6.0221415e23 * 1e-10
@@ -333,15 +359,18 @@ public:
 //    1/(4*pi*e0) = 332.063711
 //    speed of light c=2.99792458e8 m/s (exact)
 //    Joules(N-m)/Kcal = 4184 (exact)
+//
+// Note: we have to use consistent force units, meaning
+//   Da-A/ps^2
 
+static const Real ForceUnitsPerKcal = 418.4; // convert energy to consistent units (Da-A^2/ps^2)
 // This is 1/(4*pi*e0) in units which convert e^2/A to kcal/mole.
-static const Real coulombFac = 332.063711;
+static const Real CoulombFac = 332.063711 * ForceUnitsPerKcal;
 
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
 
     // Topological variables; set once.
     std::vector<Body>     bodies;
-    std::vector<Element>  elements;
     std::vector<AtomType> types;
     std::vector<Atom>     atoms;
     std::vector<Bond>     bonds;
@@ -373,30 +402,32 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
     void scaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const {
         for (int dist=0; dist < (int)bondedScaleFactorVdw.size(); ++dist) {
             const Real scale = bondedScaleFactorVdw[dist];
-            for (int i=0; i < (int)a.bonded[dist].size(); ++i)
+            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
                 vdwScale[i] = scale;
         }
         for (int dist=0; dist < (int)bondedScaleFactorCoulomb.size(); ++dist) {
             const Real scale = bondedScaleFactorCoulomb[dist];       
-            for (int i=0; i < (int)a.bonded[dist].size(); ++i)
+            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
                 coulombScale[i] = scale;
         }
     }
 
     void unscaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const {
         for (int dist=0; dist < (int)bondedScaleFactorVdw.size(); ++dist)
-            for (int i=0; i < (int)a.bonded[dist].size(); ++i)
+            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
                 vdwScale[i] = 1;
         for (int dist=0; dist < (int)bondedScaleFactorCoulomb.size(); ++dist)      
-            for (int i=0; i < (int)a.bonded[dist].size(); ++i)
+            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
                 coulombScale[i] = 1;
     }
 
-    void applyMixingRule(
-        Real ri, Real rj, Real ei, Real ej,
-        Real& r, Real& e) const
+    void applyMixingRule(Real ri, Real rj, Real ei, Real ej, Real& dmin, Real& emin) const
     {
-        vdwCombineWaldmanHagler(ri,rj,ei,ej,r,e); // TODO: choices
+        Real rmin;
+        vdwCombineWaldmanHagler(ri,rj,ei,ej,rmin,emin); // TODO: choices
+        // NO NO NO!! :
+        //vdwCombineLorentzBerthelot(ri,rj,ei,ej,rmin,emin);
+        dmin = 2*rmin;
     }
 
 public:
@@ -404,6 +435,16 @@ public:
      : ForceSubsystemRep("DuMMForceFieldSubsystem", "0.0.1"), 
        built(false)
     {
+    }
+
+    int getNAtoms() const {return (int)atoms.size();}
+
+    void addAtomType(int id, const AtomType& type) {
+        assert(id >= 0);
+        if (id >= (int)types.size())
+            types.resize(id+1);
+        assert(!types[id].isValid());
+        types[id] = type;
     }
 
     // bondDistance=1 means 1-2 bond, bondDistance=2 means 1-3 bond, etc.
@@ -453,8 +494,8 @@ public:
         }
 
         bonds.push_back(Bond(atom1,atom2));
-        a1.bonded[0].push_back(atom2);
-        a2.bonded[0].push_back(atom1);
+        a1.bondLists[0].push_back(atom2);
+        a2.bondLists[0].push_back(atom1);
         return (int)bonds.size() - 1;
     }
 
@@ -487,12 +528,14 @@ public:
         // Nothing to compute here.
     }
 
+    void dump() const;
+
     DuMMForceFieldSubsystemRep* cloneSubsystemRep() const {
         return new DuMMForceFieldSubsystemRep(*this);
     }
 
 private:
-    mutable bool built;
+    bool built;
 
 };
 
@@ -530,6 +573,12 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
     rep->setMyHandle(*this);
 }
 
+void DuMMForceFieldSubsystem::defineAtomType
+   (int id, Real mass, Real vdwRadius, Real vdwWellDepth, Real charge)
+{
+    updRep().addAtomType(id, AtomType(mass, vdwRadius, vdwWellDepth, charge));
+}
+
 int DuMMForceFieldSubsystem::addAtom(int body, int type, const Vec3& station)
 {
     return updRep().addAtom(body, type, station);
@@ -540,6 +589,14 @@ int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
     return updRep().addBond(atom1, atom2);
 }
 
+int DuMMForceFieldSubsystem::getNAtoms() const {
+    return getRep().getNAtoms();
+}
+
+void DuMMForceFieldSubsystem::dump() const {
+    return getRep().dump();
+}
+
 
 
     ////////////////////////////////
@@ -547,28 +604,73 @@ int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
     ////////////////////////////////
 
 void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
+    // We need to write once onto the 'cache' portion of the object once
+    // the topology is known.
+    DuMMForceFieldSubsystemRep* mutableThis = 
+        const_cast<DuMMForceFieldSubsystemRep*>(this);
+
     // Calculate effective van der Waals parameters for all 
     // pairs of atom types. We only fill in the diagonal
     // and upper triangle; that is, each type contains
     // parameters for like types and all types whose
     // (arbitrary) type number is higher.
     for (int i=0; i < (int)types.size(); ++i) {
-        const AtomType& itype = types[i];
-        itype.vdwDij.resize((int)types.size()-i); // mutable here
-        itype.vdwEij.resize((int)types.size()-i); 
+        if (!types[i].isValid()) continue;
+
+        AtomType& itype = mutableThis->types[i];
+        itype.vdwDij.resize((int)types.size()-i, CNT<Real>::getNaN());
+        itype.vdwEij.resize((int)types.size()-i, CNT<Real>::getNaN()); 
         for (int j=i; j < (int)types.size(); ++j) {
             const AtomType& jtype = types[j];
-            applyMixingRule(itype.vdwRadius, jtype.vdwRadius,
-                            itype.vdwWellDepth, jtype.vdwWellDepth,
-                            itype.vdwDij[j-i], itype.vdwEij[j-i]);
+            if (jtype.isValid())
+                applyMixingRule(itype.vdwRadius,    jtype.vdwRadius,
+                                itype.vdwWellDepth, jtype.vdwWellDepth,
+                                itype.vdwDij[j-i],  itype.vdwEij[j-i]);
 
         }
     }
     // need to chase bonds to fill in the bonded data
     // Be sure only to find the *shortest* path between two atoms
     for (int i=0; i < (int)atoms.size(); ++i) {
+        Atom& a = mutableThis->atoms[i];
+        std::set<int> allBondedSoFar;   // to avoid duplicate paths
+
+        // Set how far to go in the graph.
+        a.bondLists.resize(3); // 1-2, 1-3, 1-4
+        a.bondLists[1].clear();
+        a.bondLists[2].clear();
+
+        // Add this atom and its direct (1-2) bonds to the list of all bonded atoms.
+        allBondedSoFar.insert(i);
+        for (int j=0; j < (int)a.bondLists[0].size(); ++j)
+            allBondedSoFar.insert(a.bondLists[0][j]);
+
+        // Find longer bond paths by building each list in turn from
+        // the direct bonds of the atoms in the previous list.
+        for (int list=1; list < (int)a.bondLists.size(); ++list) {
+            AtomList&       currentList = a.bondLists[list];
+            const AtomList& prevList    = a.bondLists[list-1];
+            for (int p=0; p < (int)prevList.size(); ++p) {
+                const Atom& ba = atoms[ prevList[p] ];
+                const AtomList& bond12 = ba.bondLists[0];
+                for (int j=0; j < (int)bond12.size(); ++j) {
+                    const int newAtom = bond12[j];
+                    if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
+                        continue; // there was already a shorter path
+                    allBondedSoFar.insert(newAtom);
+                    currentList.push_back(newAtom);
+                }
+            }
+        }
+
+        // Sort atom a's lists by atom number to be tidy.
+        for (int list=0; list < (int)a.bondLists.size(); ++list) {
+            AtomList& l = a.bondLists[list];
+            std::sort(l.begin(), l.end());
+        }
     }
-    built = true;
+
+    mutableThis->built = true;
 }
 
 // Cost of processing here (in flops): XXX
@@ -607,7 +709,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             const AtomType& a1type = types[a1.type];
             const Vec3      a1Station_G = X_GB1.R()*a1.station;
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
-            const Real      q1Fac = coulombFac*a1type.partialCharge;
+            const Real      q1Fac = CoulombFac*a1type.partialCharge;
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (int b2=b1+1; b2 < (int)bodies.size(); ++b2) {
@@ -623,25 +725,66 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const Vec3  r = a2Pos_G - a1Pos_G; // from a1 to a2 (3 flops)
                     const Real  d2 = r.normSqr(); // 5 flops
 
-                    // Check for cutoffs on d2
+                    // Check for cutoffs on d2?
 
-                    const Real     ood2 = 1/d2; // approx 10 flops
-                    const Real     ood  = std::sqrt(ood2); // approx 30 flops
-                    const UnitVec3 u(r*ood, true);  // from a1 to a2 (3 flops)
+                    const Real  ood2 = 1/d2; // approx 10 flops
 
+                    // Coulomb. This unfortunately needs the separation distance which
+                    // is expensive. But if scale, q1, or q2 are zero we can skip that.
+
+                    Real eCoulomb = 0, fCoulomb = 0;
                     const Real qq = coulombScale[j]*q1Fac*a2type.partialCharge; // 2 flops
-                    pe += qq*ood;   // scale*(1/(4*pi*e0)) * q1*q2/r  (2 flops)
 
-                    const Real fScalar = qq*ood2; // scale*(1/(4*pi*e0)) * q1*q2/r^2 (1 flop)
-                    const Vec3 f = fScalar * u; // for atom1 (3 flops)
-                    rigidBodyForces[b1] += SpatialVec( a1Station_G % f, f);   // 15 flops
-                    rigidBodyForces[b2] -= SpatialVec( a2Station_G % f, f);   // 15 flops
+                    if (qq != 0.) {
+                        const Real ood  = std::sqrt(ood2); // approx 30 flops
+                        eCoulomb = qq * ood;        //  scale*(1/(4*pi*e0)) *  q1*q2/r       (1 flop)  
+                        fCoulomb = eCoulomb * ood2; // -scale*(1/(4*pi*e0)) * -q1*q2/r^2 / r (1 flop)
+                    }
 
-                    // XXX vdw
+                    // van der Waals.
+
+                    // Get precomputed mixed dmin and emin. Must ask the lower-numbered atom type.
+                    const Real dij = (a1.type <= a2.type ? a1type.vdwDij[a2.type-a1.type]
+                                                         : a2type.vdwDij[a1.type-a2.type]);
+                    const Real eij = (a1.type <= a2.type ? a1type.vdwEij[a2.type-a1.type]
+                                                         : a2type.vdwEij[a1.type-a2.type])
+                                     * ForceUnitsPerKcal;
+
+                    const Real ddij2  = dij*dij*ood2; // (dmin_ij/d)^2
+                    const Real ddij6  = ddij2*ddij2*ddij2;
+                    const Real ddij12 = ddij6*ddij6;
+
+                    const Real eVdw =      eij * (ddij12 - 2*ddij6);
+                    const Real fVdw = 12 * eij * (ddij12 - ddij6) * ood2;
+                    const Vec3 fj = (fCoulomb + fVdw) * r;   // to apply to atom j on b2
+
+                    pe += (eCoulomb + eVdw); // Da-A^2/ps^2
+                    rigidBodyForces[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
+                    rigidBodyForces[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
                 }
             }
             unscaleBondedAtoms(a1,vdwScale,coulombScale);
         }
+    }
+}
+
+void DuMMForceFieldSubsystemRep::dump() const 
+{
+    printf("Dump of DuMMForceFieldSubsystem:\n");
+    printf("  NBodies=%d NAtoms=%d NAtomTypes=%d NBonds=%d\n",
+        bodies.size(), atoms.size(), types.size(), bonds.size());
+    for (int i=0; i < (int)bodies.size(); ++i) {
+        printf("  Body %d:\n", i);
+        bodies[i].dump();
+    }
+    for (int i=0; i < (int)atoms.size(); ++i) {
+        printf("  Atom %d:\n", i);
+        atoms[i].dump();
+    }
+    for (int i=0; i < (int)types.size(); ++i) {
+        if (!types[i].isValid()) continue;
+        printf("  AtomType %d:\n", i);
+        types[i].dump();
     }
 }
 

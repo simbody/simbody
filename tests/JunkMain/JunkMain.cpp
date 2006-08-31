@@ -34,6 +34,8 @@
 #include "simbody/internal/VTKReporter.h"
 #include "simbody/internal/NumericalMethods.h"
 
+#include "simbody/internal/DuMMForceFieldSubsystem.h"
+
 #include <string>
 #include <iostream>
 #include <exception>
@@ -160,80 +162,53 @@ return 0;
 // How it actually looks now:
 int main() {
 try {
-    SimbodyMatterSubsystem  pend;
-    UniformGravitySubsystem gravity(Vec3(0,-g,0));
-    GeneralForceElements    forces;
+    SimbodyMatterSubsystem  molecule;
+    DuMMForceFieldSubsystem  mm;
+
+    mm.defineAtomType(10, 14., 2.0, 0.2, 1);
+    mm.defineAtomType(20, 12., 1.5, 0.3, -1);
+
     
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(pend);
-    mbs.addForceSubsystem(gravity);
-    mbs.addForceSubsystem(forces);
+    mbs.setMatterSubsystem(molecule);
+    mbs.addForceSubsystem(mm);
 
-    const Transform pinFrameOnGround = BodyFrame; // connect directly to ground frame z
-    const Transform pinFrame(Vec3(0,d/2,0));      // joint frame in body frame (will use z)
-    const Vec3      massStation(0,-d/2,0);        // where we'll put the point mass in the body frame
 
     // Collect mass, center of mass, and inertia 
-    MassProperties mprops(m, massStation, InertiaMat(massStation, m));
-    cout << "mprops about body frame: " << mprops.getMass() << ", " 
-        << mprops.getCOM() << ", " << mprops.getInertia() << endl;
+    const Real mass=1;
+    MassProperties mprops(mass, Vec3(0), InertiaMat(0));
 
-    const int pendBody =
-      pend.addRigidBody(mprops, pinFrame,
-                        Ground, pinFrameOnGround, 
-                        Mobilizer::Pin   // rotation around z
-                        );
-
-    const Vec3 attachPt(1,-.5,0);
-    const Real k = 10, theta0 = 90*RadiansPerDegree, c = 0.1;
-    //forces.addMobilityLinearSpring(pendBody, 0, k, theta0);
-    //forces.addMobilityLinearDamper(pendBody, 0, 10.);
-
-
-    forces.addUserForce(new MySinusoid(pendBody, 0, 10000, 100, 0));
-
-    forces.addTwoPointLinearSpring(Ground, attachPt, 
-                                   pendBody, massStation,
-                                   100000, 0);
-
-    //forces.addTwoPointLinearDamper(Ground, Vec3(20,-20,0), 
-    //                               pendBody, massStation,
-    //                               1000);
-
-
-    //forces.addTwoPointConstantForce(Ground, attachPt,
-    //                                pendBody, massStation,
-     //                               100000);
-
-    //forces.addGlobalEnergyDrain(100);
-
-    // want -g*sin(theta)*d = k*(theta-theta0)
-    // so solve err(theta)=k*(theta-theta0)+g*d*sin(theta)=0
-    // d err/d theta is k+g*d*cos(theta)
-    Real guess = Pi/4;
-    Real err = k*(guess-theta0)+g*d*std::sin(guess);
-    while (std::abs(err) > 1e-10) {
-        cout << "err=" << err << endl;
-        Real deriv = k+g*d*std::cos(guess);
-        guess -= err/deriv;
-        err = k*(guess-theta0)+g*d*std::sin(guess);
-    }
-
-    cout << "Final angle should be: " << guess/RadiansPerDegree << " err=" << err << endl;
+    // Create some point mass bodies
+    for (int i=0; i<2; ++i) 
+        molecule.addRigidBody(mprops, Transform(),
+                              Ground, Transform(),
+                              Mobilizer::Cartesian);
 
     VTKReporter display(mbs);
+
+    int a1 = mm.addAtom(1, 10, Vec3(0));
+    int a2 = mm.addAtom(2, 20, Vec3(0));
+    display.addDecoration(1,Transform(),DecorativeSphere(2).setOpacity(.5));
+    display.addDecoration(2,Transform(),DecorativeSphere(1.5).setOpacity(.5));
+
+    mm.addBond(a1,a2);
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
-    display.addRubberBandLine(Ground, attachPt, pendBody, massStation, ln);
+    display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
 
     State s;
     mbs.realize(s, Stage::Built);
+
+    mm.dump();
+
 
     RungeKuttaMerson study(mbs, s);
 
     display.report(s);
 
-    const Real angleInDegrees = 30;
-    pend.setMobilizerQ(s, pendBody, 0, angleInDegrees*RadiansPerDegree);
+    molecule.setMobilizerQ(s, 1, 0, -3);
+    molecule.setMobilizerQ(s, 2, 0, 3);
+    molecule.setMobilizerQ(s, 2, 1, 1);
+    //molecule.setMobilizerU(s, 2, 0, -100);
 
     display.report(s);
 
@@ -249,8 +224,7 @@ try {
     int step = 0;
     while (s.getTime() < tmax) {
         study.step(s.getTime() + h);
-        printf("%6.2f %8.2f ", s.getTime(), 
-            pend.getMobilizerQ(s,pendBody,0)/RadiansPerDegree);
+
         cout << " E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
