@@ -38,6 +38,7 @@
 #include <cmath>
 #include <cassert>
 #include <set>
+#include <map>
 #include <algorithm>
 
 namespace SimTK {
@@ -269,32 +270,77 @@ public:
     std::vector<Real> vdwEij;
 };
 
+// This represents bond-stretch information for a pair of atom types.
+// Use an IntPair as a key.
+class BondStretch {
+public:
+    BondStretch() : k(-1), d0(-1) { }
+    BondStretch(Real stiffness, Real length) : k(stiffness), d0(length) { 
+        assert(isValid());
+    }
+    bool isValid() const {return k >= 0 && d0 >= 0; }
+    Real k;
+    Real d0; // distance at which force is 0
+};
+
+class BondAngle {
+};
+
+class BondTorsion {
+};
+
 typedef std::vector<int> AtomList;
 class Atom {
 public:
-    Atom() : type(-1), bodyNum(-1), bodyAtomNum(-1), bondLists(1) {
+    Atom() : type(-1), bodyNum(-1), bodyAtomNum(-1) {
     }
     Atom(int t, int body, int bodyAtom, const Vec3& st)
-      : type(t), bodyNum(body), bodyAtomNum(bodyAtom), station(st), bondLists(1) {
+      : type(t), bodyNum(body), bodyAtomNum(bodyAtom), station(st) {
     }
     bool isValid() const {return type>=0 && bodyNum>=0 && bodyAtomNum>=0;}
 
     bool isBondedTo(int anum) const {
-        if (!bondLists.empty())
-            for (int i=0; i<(int)bondLists[0].size(); ++i)
-                if (bondLists[0][i] == anum) return true;
+        for (int i=0; i<(int)bond12.size(); ++i)
+            if (bond12[i] == anum) return true;
         return false;
     }
 
     void dump() const {
-        printf("    type=%d body=%d bodyAtomNum=%d station=%g %g %g\n",
+        printf(" type=%d body=%d bodyAtomNum=%d station=%g %g %g\n",
             type, bodyNum, bodyAtomNum, station[0], station[1], station[2]);
-        for (int i=0; i < (int)bondLists.size(); ++i) {
-            printf("      %d-%d bonds:", i+1, i+2);
-            for (int j=0; j< (int)bondLists[i].size(); ++j)
-                printf(" %d", bondLists[i][j]);
-            printf("\n");
-        }
+
+        printf("    bond 1-2:");
+        for (int i=0; i < (int)bond12.size(); ++i)
+            printf(" %d", bond12[i]);
+        printf("\n    bond 1-3:");
+        for (int i=0; i < (int)bond13.size(); ++i)
+            printf(" %d-%d", bond13[i][0], bond13[i][1]);
+        printf("\n    bond 1-4:");
+        for (int i=0; i < (int)bond14.size(); ++i)
+            printf(" %d-%d-%d", bond14[i][0], bond14[i][1], bond14[i][2]);
+        printf("\n    bond 1-5:");
+        for (int i=0; i < (int)bond15.size(); ++i)
+            printf(" %d-%d-%d-%d", bond15[i][0], bond15[i][1], bond15[i][2], bond15[i][3]);
+        printf("\n");
+
+        printf("    xbond 1-2:");
+        for (int i=0; i < (int)xbond12.size(); ++i)
+            printf(" %d", xbond12[i]);
+        printf("\n    xbond 1-3:");
+        for (int i=0; i < (int)xbond13.size(); ++i)
+            printf(" %d-%d", xbond13[i][0], xbond13[i][1]);
+        printf("\n    xbond 1-4:");
+        for (int i=0; i < (int)xbond14.size(); ++i)
+            printf(" %d-%d-%d", xbond14[i][0], xbond14[i][1], xbond14[i][2]);
+        printf("\n    xbond 1-5:");
+        for (int i=0; i < (int)xbond15.size(); ++i)
+            printf(" %d-%d-%d-%d", xbond15[i][0], xbond15[i][1], xbond15[i][2], xbond15[i][3]);
+        printf("\n");
+
+        printf("    1-2 stretch:");
+        for (int i=0; i < (int)stretch.size(); ++i)
+            printf(" (%g,%g)", stretch[i].k, stretch[i].d0);
+        printf("\n");
     }
 
     int  type;
@@ -303,10 +349,31 @@ public:
     Vec3 station;
 
     // This is a set of lists which identify atoms nearby in the
-    // molecules bond structure. The first
-    // list are the directly bonded (1-2) atoms; the 2nd list has
-    // the 1-3 bonded atoms, etc. 
-    std::vector<AtomList> bondLists;
+    // molecules bond structure. The first list are the directly
+    // bonded (1-2) atoms; the 2nd list has the 1-(2)-3 bonded atoms,
+    // etc. The current Atom is always "1" so it isn't stored.
+
+    std::vector<int>       bond12;
+    std::vector<IntPair>   bond13;
+    std::vector<IntTriple> bond14;
+    std::vector<IntQuad>   bond15;
+
+    // These are shorter versions of the bond lists in which only those
+    // bonds which include atoms from at least two bodies are included.
+    // Note that each bond will appear twice in the overall data structure,
+    // in the Atom entries for the atoms at either end. We avoid double
+    // processing by only processing the instance in which the first atoms's
+    // ID is the lower of the two. But we need to keep both copies because
+    // these are used for scaling nearby interaction during non-bonded 
+    // calculation.
+    std::vector<int>       xbond12;
+    std::vector<IntPair>   xbond13;
+    std::vector<IntTriple> xbond14;
+    std::vector<IntQuad>   xbond15;
+
+    std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
+    std::vector<BondAngle>   bend;    // same length as   " 1-3 list
+    std::vector<BondTorsion> torsion; // same length as   " 1-4 list
 };
 
 
@@ -371,19 +438,21 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
 
     // Topological variables; set once.
     std::vector<Body>     bodies;
-    std::vector<AtomType> types;
     std::vector<Atom>     atoms;
     std::vector<Bond>     bonds;
 
+    // Force field description
+    std::vector<AtomType>            types;
+    std::map<IntPair,   BondStretch> bondStretch;
+    std::map<IntTriple, BondAngle>   bondAngle;
+    std::map<IntQuad,   BondTorsion> bondTorsion;
+
     // Scale factors for nonbonded forces when applied to
-    // atoms which are near in the graph formed by the bonds. The 1st element
-    // is the scale factor for a 1-2 bond, 2nd is for 1-3, and
-    // so on up to however many entries the current force field
-    // likes to scale. These are always 1 except for temporary modifications
-    // during processing of a single atom (against all others), after which
-    // they all go back to 1 again prior to the next atom.
-    std::vector<Real>     bondedScaleFactorVdw;
-    std::vector<Real>     bondedScaleFactorCoulomb;
+    // atoms which are near in the graph formed by the bonds.
+    Real vdwScale12, coulombScale12;    // default 0,0
+    Real vdwScale13, coulombScale13;    // default 0,0
+    Real vdwScale14, coulombScale14;    // default 1,1
+    Real vdwScale15, coulombScale15;    // default 1,1
 
     void ensureBodyExists(int bnum) {
         assert(bnum >= 0);
@@ -399,32 +468,21 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
         return 0 <= atomNum && atomNum < (int)atoms.size() && atoms[atomNum].isValid();
     }
 
-    void scaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const {
-        for (int dist=0; dist < (int)bondedScaleFactorVdw.size(); ++dist) {
-            const Real scale = bondedScaleFactorVdw[dist];
-            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
-                vdwScale[i] = scale;
-        }
-        for (int dist=0; dist < (int)bondedScaleFactorCoulomb.size(); ++dist) {
-            const Real scale = bondedScaleFactorCoulomb[dist];       
-            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
-                coulombScale[i] = scale;
-        }
+    bool isValidAtomType(int typeNum) const {
+        return 0 <= typeNum && typeNum < (int)types.size() && types[typeNum].isValid();
     }
 
-    void unscaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const {
-        for (int dist=0; dist < (int)bondedScaleFactorVdw.size(); ++dist)
-            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
-                vdwScale[i] = 1;
-        for (int dist=0; dist < (int)bondedScaleFactorCoulomb.size(); ++dist)      
-            for (int i=0; i < (int)a.bondLists[dist].size(); ++i)
-                coulombScale[i] = 1;
-    }
+    // We scale short range interactions but only for bonds which cross bodies.
+    void scaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const;
+    void unscaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const;
 
     void applyMixingRule(Real ri, Real rj, Real ei, Real ej, Real& dmin, Real& emin) const
     {
         Real rmin;
         vdwCombineWaldmanHagler(ri,rj,ei,ej,rmin,emin); // TODO: choices
+        //vdwCombineJorgensen(ri,rj,ei,ej,rmin,emin);
+        //vdwCombineHalgrenHHG(ri,rj,ei,ej,rmin,emin);
+        //vdwCombineKong(ri,rj,ei,ej,rmin,emin);
         // NO NO NO!! :
         //vdwCombineLorentzBerthelot(ri,rj,ei,ej,rmin,emin);
         dmin = 2*rmin;
@@ -435,6 +493,8 @@ public:
      : ForceSubsystemRep("DuMMForceFieldSubsystem", "0.0.1"), 
        built(false)
     {
+        vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
+        vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
     }
 
     int getNAtoms() const {return (int)atoms.size();}
@@ -447,22 +507,31 @@ public:
         types[id] = type;
     }
 
-    // bondDistance=1 means 1-2 bond, bondDistance=2 means 1-3 bond, etc.
-    void setBondedScaleFactorVdw(int bondDistance, Real fac) {
-        assert(0 < bondDistance && bondDistance < 10); // sanity check
-        assert(0 <= fac && fac <= 1);
-        if ((int)bondedScaleFactorVdw.size() < bondDistance)
-            bondedScaleFactorVdw.resize(bondDistance, Real(1));
-        bondedScaleFactorVdw[bondDistance-1] = fac;
+    void addBondStretch(int type1, int type2, const BondStretch& bs) {
+        assert(isValidAtomType(type1) && isValidAtomType(type2));
+        // Canonicalize the pair to have lowest type # first
+        const IntPair key(std::min(type1,type2), std::max(type1,type2));
+        std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
+          bondStretch.insert(std::pair<IntPair,BondStretch>(key,bs));
+        assert(ret.second); // must not have been there already
     }
 
-    void setBondedScaleFactorCoulomb(int bondDistance, Real fac) {
-        assert(0 < bondDistance && bondDistance < 10); // sanity check
-        assert(0 <= fac && fac <= 1);
-        if ((int)bondedScaleFactorCoulomb.size() < bondDistance)
-            bondedScaleFactorCoulomb.resize(bondDistance, Real(1));
-        bondedScaleFactorCoulomb[bondDistance-1] = fac;
+    const BondStretch& getBondStretch(int type1, int type2) const {
+        const IntPair key(std::min(type1,type2), std::max(type1,type2));
+        std::map<IntPair,BondStretch>::const_iterator bs = bondStretch.find(key);
+        assert(bs != bondStretch.end());
+        return bs->second;
     }
+
+    void setVdw12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale12=fac;}
+    void setVdw13ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale13=fac;}
+    void setVdw14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale14=fac;}
+    void setVdw15ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale15=fac;}
+
+    void setCoulomb12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale12=fac;}
+    void setCoulomb13ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale13=fac;}
+    void setCoulomb14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale14=fac;}
+    void setCoulomb15ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale15=fac;}
 
     int addAtom(int body, int type, const Vec3& station)
     {
@@ -494,8 +563,8 @@ public:
         }
 
         bonds.push_back(Bond(atom1,atom2));
-        a1.bondLists[0].push_back(atom2);
-        a2.bondLists[0].push_back(atom1);
+        a1.bond12.push_back(atom2);
+        a2.bond12.push_back(atom1);
         return (int)bonds.size() - 1;
     }
 
@@ -579,6 +648,13 @@ void DuMMForceFieldSubsystem::defineAtomType
     updRep().addAtomType(id, AtomType(mass, vdwRadius, vdwWellDepth, charge));
 }
 
+void DuMMForceFieldSubsystem::defineBondStretch
+   (int type1, int type2, Real stiffness, Real nominalLength)
+{
+    updRep().addBondStretch(type1, type2, BondStretch(stiffness,nominalLength));
+}
+
+
 int DuMMForceFieldSubsystem::addAtom(int body, int type, const Vec3& station)
 {
     return updRep().addAtom(body, type, station);
@@ -635,39 +711,92 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         Atom& a = mutableThis->atoms[i];
         std::set<int> allBondedSoFar;   // to avoid duplicate paths
 
-        // Set how far to go in the graph.
-        a.bondLists.resize(3); // 1-2, 1-3, 1-4
-        a.bondLists[1].clear();
-        a.bondLists[2].clear();
+        // Only the bond12 list should be filled in at the moment. We'll sort
+        // all the lists when they're done for good hygiene.
+        std::sort(a.bond12.begin(), a.bond12.end());
 
         // Add this atom and its direct (1-2) bonds to the list of all bonded atoms.
         allBondedSoFar.insert(i);
-        for (int j=0; j < (int)a.bondLists[0].size(); ++j)
-            allBondedSoFar.insert(a.bondLists[0][j]);
+        for (int j=0; j < (int)a.bond12.size(); ++j)
+            allBondedSoFar.insert(a.bond12[j]);
 
         // Find longer bond paths by building each list in turn from
         // the direct bonds of the atoms in the previous list.
-        for (int list=1; list < (int)a.bondLists.size(); ++list) {
-            AtomList&       currentList = a.bondLists[list];
-            const AtomList& prevList    = a.bondLists[list-1];
-            for (int p=0; p < (int)prevList.size(); ++p) {
-                const Atom& ba = atoms[ prevList[p] ];
-                const AtomList& bond12 = ba.bondLists[0];
-                for (int j=0; j < (int)bond12.size(); ++j) {
-                    const int newAtom = bond12[j];
-                    if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
-                        continue; // there was already a shorter path
-                    allBondedSoFar.insert(newAtom);
-                    currentList.push_back(newAtom);
-                }
+
+        // build the bond13 list
+        a.bond13.clear();
+        for (int j=0; j < (int)a.bond12.size(); ++j) {
+            const Atom& a12 = atoms[a.bond12[j]];
+            const AtomList& a12_12 = a12.bond12;
+            for (int k=0; k < (int)a12_12.size(); ++k) {
+                const int newAtom = a12_12[k];
+                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
+                    continue; // there was already a shorter path
+                allBondedSoFar.insert(newAtom);
+                a.bond13.push_back(IntPair(a.bond12[j], newAtom));
             }
         }
+        std::sort(a.bond13.begin(), a.bond13.end());
 
-        // Sort atom a's lists by atom number to be tidy.
-        for (int list=0; list < (int)a.bondLists.size(); ++list) {
-            AtomList& l = a.bondLists[list];
-            std::sort(l.begin(), l.end());
+        // build the bond14 list
+        a.bond14.clear();
+        for (int j=0; j < (int)a.bond13.size(); ++j) {
+            const Atom& a13 = atoms[a.bond13[j][1]];
+            const AtomList& a13_12 = a13.bond12;
+            for (int k=0; k < (int)a13_12.size(); ++k) {
+                const int newAtom = a13_12[k];
+                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
+                    continue; // there was already a shorter path
+                allBondedSoFar.insert(newAtom);
+                a.bond14.push_back(IntTriple(a.bond13[j][0], a.bond13[j][1], newAtom));
+            }
         }
+        std::sort(a.bond14.begin(), a.bond14.end());
+
+        // build the bond15 list
+        a.bond15.clear();
+        for (int j=0; j < (int)a.bond14.size(); ++j) {
+            const Atom& a14 = atoms[a.bond14[j][1]];
+            const AtomList& a14_12 = a14.bond12;
+            for (int k=0; k < (int)a14_12.size(); ++k) {
+                const int newAtom = a14_12[k];
+                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
+                    continue; // there was already a shorter path
+                allBondedSoFar.insert(newAtom);
+                a.bond15.push_back(IntQuad(a.bond14[j][0], a.bond14[j][1], a.bond14[j][2], newAtom));
+            }
+        }
+        std::sort(a.bond15.begin(), a.bond15.end());
+
+        // Fill in the cross-body bond lists. We only keep atoms which
+        // are on a different body.
+        a.xbond12.clear(); a.xbond13.clear(); a.xbond14.clear(); a.xbond15.clear();
+        for (int j=0; j < (int)a.bond12.size(); ++j)
+            if (atoms[a.bond12[j]].bodyNum != a.bodyNum)
+                a.xbond12.push_back(a.bond12[j]);
+
+        for (int j=0; j < (int)a.bond13.size(); ++j)
+            if (   atoms[a.bond13[j][0]].bodyNum != a.bodyNum
+                || atoms[a.bond13[j][1]].bodyNum != a.bodyNum)
+                a.xbond13.push_back(a.bond13[j]);
+
+        for (int j=0; j < (int)a.bond14.size(); ++j)
+            if (   atoms[a.bond14[j][0]].bodyNum != a.bodyNum
+                || atoms[a.bond14[j][1]].bodyNum != a.bodyNum
+                || atoms[a.bond14[j][2]].bodyNum != a.bodyNum)
+                a.xbond14.push_back(a.bond14[j]);
+
+        for (int j=0; j < (int)a.bond15.size(); ++j)
+            if (   atoms[a.bond15[j][0]].bodyNum != a.bodyNum
+                || atoms[a.bond15[j][1]].bodyNum != a.bodyNum
+                || atoms[a.bond15[j][2]].bodyNum != a.bodyNum
+                || atoms[a.bond15[j][3]].bodyNum != a.bodyNum)
+                a.xbond15.push_back(a.bond15[j]);
+
+        // Save a BondStretch entry for each 1-2 bond
+        a.stretch.resize(a.xbond12.size());
+        for (int b12=0; b12 < (int)a.xbond12.size(); ++b12)
+            a.stretch[b12] = getBondStretch(a.type, atoms[a.xbond12[b12]].type);
     }
 
     mutableThis->built = true;
@@ -711,6 +840,35 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
             const Real      q1Fac = CoulombFac*a1type.partialCharge;
 
+            // Bonded. Note that each bond will appear twice so we only process
+            // it the time when its 1st atom has a lower ID than its last.
+            for (int b12=0; b12 < (int)a1.xbond12.size(); ++b12) {
+                const int a2num = a1.xbond12[b12];
+                assert(a2num != i);
+                if (a2num > i)
+                    continue; // don't process this bond this time
+
+                const Atom& a2 = atoms[a2num];
+                const int b2 = a2.bodyNum;
+                assert(b2 != b1);
+                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyNum);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       r = a2Pos_G - a1Pos_G;
+                const Real       d = r.norm();
+
+                const BondStretch& bs = a1.stretch[b12];
+                const Real         x  = d - bs.d0;
+
+                const Real k = bs.k*ForceUnitsPerKcal;
+                const Real eStretch = 0.5*k*x*x;
+                const Real fStretch = -k*x; // sign is as would be applied to a2
+                const Vec3 f2 = (fStretch/d) * r;
+                pe += eStretch;
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
+            }
+
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (int b2=b1+1; b2 < (int)bodies.size(); ++b2) {
                 const Transform&  X_GB2 = matter.getBodyConfiguration(s,b2);
@@ -737,8 +895,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                     if (qq != 0.) {
                         const Real ood  = std::sqrt(ood2); // approx 30 flops
-                        eCoulomb = qq * ood;        //  scale*(1/(4*pi*e0)) *  q1*q2/r       (1 flop)  
-                        fCoulomb = eCoulomb * ood2; // -scale*(1/(4*pi*e0)) * -q1*q2/r^2 / r (1 flop)
+                        eCoulomb = qq * ood; //  scale*(1/(4*pi*e0)) *  q1*q2/d       (1 flop)  
+                        fCoulomb = eCoulomb; // -scale*(1/(4*pi*e0)) * -q1*q2/d^2 * d (factor of 1/d^2 missing)
                     }
 
                     // van der Waals.
@@ -750,15 +908,15 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                                                          : a2type.vdwEij[a1.type-a2.type])
                                      * ForceUnitsPerKcal;
 
-                    const Real ddij2  = dij*dij*ood2; // (dmin_ij/d)^2
-                    const Real ddij6  = ddij2*ddij2*ddij2;
-                    const Real ddij12 = ddij6*ddij6;
+                    const Real ddij2  = dij*dij*ood2;        // (dmin_ij/d)^2 (2 flops)
+                    const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
+                    const Real ddij12 = ddij6*ddij6;         // 1 flop
 
-                    const Real eVdw =      eij * (ddij12 - 2*ddij6);
-                    const Real fVdw = 12 * eij * (ddij12 - ddij6) * ood2;
-                    const Vec3 fj = (fCoulomb + fVdw) * r;   // to apply to atom j on b2
+                    const Real eVdw =      eij * (ddij12 - 2*ddij6); // 3 flops
+                    const Real fVdw = 12 * eij * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
+                    const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
 
-                    pe += (eCoulomb + eVdw); // Da-A^2/ps^2
+                    pe += (eCoulomb + eVdw); // Da-A^2/ps^2  (2 flops)
                     rigidBodyForces[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
                     rigidBodyForces[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
                 }
@@ -766,6 +924,50 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             unscaleBondedAtoms(a1,vdwScale,coulombScale);
         }
     }
+}
+
+
+// We scale short range interactions but only for bonds which cross bodies.
+void DuMMForceFieldSubsystemRep::scaleBondedAtoms
+   (const Atom& a, Vector& vdwScale, Vector& coulombScale) const 
+{
+    for (int i=0; i < (int)a.xbond12.size(); ++i) {
+        const int ix = a.xbond12[i]; 
+        vdwScale[ix]=vdwScale12; coulombScale[ix]=coulombScale12;
+    }
+    for (int i=0; i < (int)a.xbond13.size(); ++i) {
+        const int ix = a.xbond13[i][1]; // the 2nd atom is the 1-3
+        vdwScale[ix]=vdwScale13; coulombScale[ix]=coulombScale13;
+    }
+    if (vdwScale14 != 1 || coulombScale14 != 1)
+        for (int i=0; i < (int)a.xbond14.size(); ++i) {
+            const int ix = a.xbond14[i][2]; // the 3rd atom is the 1-4
+            vdwScale[ix]=vdwScale14; coulombScale[ix]=coulombScale14;
+        }
+    if (vdwScale15 != 1 || coulombScale15 != 1)
+        for (int i=0; i < (int)a.xbond15.size(); ++i) {
+            const int ix = a.xbond15[i][3]; // the 4th atom is the 1-5
+            vdwScale[ix]=vdwScale15; coulombScale[ix]=coulombScale15;
+        }
+}
+
+void DuMMForceFieldSubsystemRep::unscaleBondedAtoms
+   (const Atom& a, Vector& vdwScale, Vector& coulombScale) const 
+{
+    for (int i=0; i < (int)a.xbond12.size(); ++i) {
+        const int ix = a.xbond12[i];    vdwScale[ix]=coulombScale[ix]=1;
+    }
+    for (int i=0; i < (int)a.xbond13.size(); ++i) {
+        const int ix = a.xbond13[i][1]; vdwScale[ix]=coulombScale[ix]=1;
+    }
+    if (vdwScale14 != 1 || coulombScale14 != 1)
+        for (int i=0; i < (int)a.xbond14.size(); ++i) {
+            const int ix = a.xbond14[i][2]; vdwScale[ix]=coulombScale[ix]=1;
+        }
+    if (vdwScale15 != 1 || coulombScale15 != 1)
+        for (int i=0; i < (int)a.xbond15.size(); ++i) {
+            const int ix = a.xbond15[i][3]; vdwScale[ix]=coulombScale[ix]=1;
+        }
 }
 
 void DuMMForceFieldSubsystemRep::dump() const 
@@ -778,7 +980,7 @@ void DuMMForceFieldSubsystemRep::dump() const
         bodies[i].dump();
     }
     for (int i=0; i < (int)atoms.size(); ++i) {
-        printf("  Atom %d:\n", i);
+        printf("  Atom %d: ", i);
         atoms[i].dump();
     }
     for (int i=0; i < (int)types.size(); ++i) {

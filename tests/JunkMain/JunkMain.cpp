@@ -162,16 +162,34 @@ return 0;
 // How it actually looks now:
 int main() {
 try {
-    SimbodyMatterSubsystem  molecule;
+    SimbodyMatterSubsystem   molecule;
     DuMMForceFieldSubsystem  mm;
+    GeneralForceElements     forces;
 
-    mm.defineAtomType(10, 14., 2.0, 0.2, 1);
-    mm.defineAtomType(20, 12., 1.5, 0.3, -1);
+    const Real vdwRad5  = 2.2;
+    const Real vdwRad10 = 2.0;
+    const Real vdwRad20 = 1.5;
+    const Real vdwFac = 1;
+    const Real stretchFac = 0;
+
+    mm.defineAtomType(5,  20., vdwRad5, vdwFac*0.2, 0);
+    mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1);
+    mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3, 1);
+
+    mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
+    mm.defineBondStretch(10,10, stretchFac*300.,2.0);
+    mm.defineBondStretch(20,20, stretchFac*300.,1.5);
+    mm.defineBondStretch(5,10,  stretchFac*300.,1.5);
+    mm.defineBondStretch(5,20,  stretchFac*300.,1.5);
+    mm.defineBondStretch(20,10, stretchFac*300.,5);
 
     
     MultibodySystem mbs;
     mbs.setMatterSubsystem(molecule);
     mbs.addForceSubsystem(mm);
+    mbs.addForceSubsystem(forces);
+
+    forces.addGlobalEnergyDrain(50);
 
 
     // Collect mass, center of mass, and inertia 
@@ -179,21 +197,42 @@ try {
     MassProperties mprops(mass, Vec3(0), InertiaMat(0));
 
     // Create some point mass bodies
-    for (int i=0; i<2; ++i) 
+    for (int i=0; i<5; ++i) 
         molecule.addRigidBody(mprops, Transform(),
                               Ground, Transform(),
                               Mobilizer::Cartesian);
 
     VTKReporter display(mbs);
+    display.setDefaultBodyColor(1, Red);
+    display.setDefaultBodyColor(3, Red);
+    display.setDefaultBodyColor(2, Green);
+    display.setDefaultBodyColor(4, Green);
+    display.setDefaultBodyColor(5, Yellow);
 
     int a1 = mm.addAtom(1, 10, Vec3(0));
     int a2 = mm.addAtom(2, 20, Vec3(0));
-    display.addDecoration(1,Transform(),DecorativeSphere(2).setOpacity(.5));
-    display.addDecoration(2,Transform(),DecorativeSphere(1.5).setOpacity(.5));
+    int a3 = mm.addAtom(3, 10, Vec3(0));
+    int a4 = mm.addAtom(4, 20, Vec3(0));
+    int a5 = mm.addAtom(5,  5, Vec3(0));
 
-    mm.addBond(a1,a2);
+    display.addDecoration(1,Transform(),
+        DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
+    display.addDecoration(2,Transform(),
+        DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
+    display.addDecoration(3,Transform(),
+        DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
+    display.addDecoration(4,Transform(),
+        DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
+    display.addDecoration(5,Transform(),
+        DecorativeSphere(vdwRad5).setOpacity(.9).setResolution(3));
+
+    mm.addBond(a1,a2); 
+    mm.addBond(a1,a3); 
+    mm.addBond(a2,a3);
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
     display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
+    display.addRubberBandLine(1, Vec3(0), 3, Vec3(0), ln);
+    display.addRubberBandLine(2, Vec3(0), 3, Vec3(0), ln);
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -205,39 +244,61 @@ try {
 
     display.report(s);
 
-    molecule.setMobilizerQ(s, 1, 0, -3);
-    molecule.setMobilizerQ(s, 2, 0, 3);
-    molecule.setMobilizerQ(s, 2, 1, 1);
+    const Real d = 0.6*(vdwRad10+vdwRad20);
+    molecule.setMobilizerQ(s, 1, 0,  2*d);
+    molecule.setMobilizerQ(s, 2, 0,  2*d);
+    molecule.setMobilizerQ(s, 2, 1, 2*d);
+    molecule.setMobilizerQ(s, 3, 0,  -2*d);
+    molecule.setMobilizerQ(s, 4, 0,  -2*d);
+    molecule.setMobilizerQ(s, 4, 1, -2*d);
+    molecule.setMobilizerQ(s, 4, 2, 0.5*d);
+    molecule.setMobilizerQ(s, 5, 0,  -d);
+    molecule.setMobilizerQ(s, 5, 1,  2*d);
+    molecule.setMobilizerQ(s, 5, 2,  -2*d);
+
     //molecule.setMobilizerU(s, 2, 0, -100);
 
     display.report(s);
 
-    const Real h = .0001;
+    const Real h = .001;
+    const int interval = 10;
     const Real tstart = 0.;
-    const Real tmax = 100;
+    const Real tmax = 5; //ps
 
-    study.setAccuracy(1e-4);
-
+    study.setAccuracy(1e-3);
     study.initialize(); 
+
+    std::vector<State> saveEm;
+    saveEm.push_back(s);
+    for (int i=0; i<100; ++i)
+        saveEm.push_back(s);    // delay
     display.report(s);
+
     s.updTime() = tstart;
     int step = 0;
     while (s.getTime() < tmax) {
         study.step(s.getTime() + h);
 
+        cout << s.getTime();
         cout << " E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
              << ") hNext=" << study.getPredictedNextStep() << endl;
 
-        if (!(step % 10)) {
+        if (!(step % interval)) {
             display.report(s);
+            saveEm.push_back(s);
         }
         ++step;
     }
 
-
-
+    while(true) {
+        for (int i=0; i < (int)saveEm.size(); ++i) {
+            display.report(saveEm[i]);
+            //display.report(saveEm[i]); // half speed
+        }
+        getchar();
+    }
 
 }
 catch (const std::exception& e) {
