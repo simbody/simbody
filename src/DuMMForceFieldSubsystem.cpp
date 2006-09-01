@@ -858,7 +858,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
         const std::vector<int>& alist1 = bodies[b1].atoms;
 
         for (int i=0; i < (int)alist1.size(); ++i) {
-            const Atom&     a1 = atoms[alist1[i]];
+            const int       a1num = alist1[i];
+            const Atom&     a1 = atoms[a1num];
             const AtomType& a1type = types[a1.type];
             const Vec3      a1Station_G = X_GB1.R()*a1.station;
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
@@ -868,8 +869,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             // it the time when its 1st atom has a lower ID than its last.
             for (int b12=0; b12 < (int)a1.xbond12.size(); ++b12) {
                 const int a2num = a1.xbond12[b12];
-                assert(a2num != i);
-                if (a2num > i)
+                assert(a2num != a1num);
+                if (a2num < a1num)
                     continue; // don't process this bond this time
 
                 const Atom& a2 = atoms[a2num];
@@ -900,6 +901,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                 for (int j=0; j < (int)alist2.size(); ++j) {
                     const int       a2num = alist2[j];
+                    assert(a2num != a1num);
                     const Atom&     a2 = atoms[a2num];
                     const AtomType& a2type = types[a2.type];
                     
