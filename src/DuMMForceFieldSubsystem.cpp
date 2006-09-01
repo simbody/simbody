@@ -407,7 +407,7 @@ public:
 };
 
 // Assume units:
-//    Ref: http://physics.nist.gov/constants
+//    Ref: http://physics.nist.gov/constants (2002 CODATA)
 //    charge  e=charge on proton=1.60217653e-19C
 //    Avogadro's number N0=6.0221415e23 atoms/mole       
 //    length  A=Angstroms=1e-10 m=0.1nm
@@ -429,10 +429,25 @@ public:
 //
 // Note: we have to use consistent force units, meaning
 //   Da-A/ps^2
+//
+// Jay Ponder's Tinker units, as of email 8/30/06:
+// In any case, I've just updated all TINKER units to the following:
+//       parameter (avogadro=6.0221415d+23)
+//       parameter (boltzmann=0.8314472d0)
+//       parameter (gasconst=1.9872065d-3)
+//       parameter (lightspd=2.99792458d-2)
+//       parameter (bohr=0.5291772108d0)
+//       parameter (joule=4.184d0)
+//       parameter (evolt=27.2113845d0)
+//       parameter (hartree=627.509472d0)
+//       parameter (electric=332.06371d0)
+//       parameter (debye=4.8033324d0)
+//       parameter (prescon=6.85695d+4)
+//       parameter (convert=4.184d+2)
 
 static const Real ForceUnitsPerKcal = 418.4; // convert energy to consistent units (Da-A^2/ps^2)
 // This is 1/(4*pi*e0) in units which convert e^2/A to kcal/mole.
-static const Real CoulombFac = 332.063711 * ForceUnitsPerKcal;
+static const Real CoulombFac = 332.06371 * ForceUnitsPerKcal;
 
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
 
@@ -654,6 +669,15 @@ void DuMMForceFieldSubsystem::defineBondStretch
     updRep().addBondStretch(type1, type2, BondStretch(stiffness,nominalLength));
 }
 
+void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {updRep().setVdw12ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setVdw13ScaleFactor(Real fac) {updRep().setVdw13ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setVdw14ScaleFactor(Real fac) {updRep().setVdw14ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setVdw15ScaleFactor(Real fac) {updRep().setVdw15ScaleFactor(fac);}
+
+void DuMMForceFieldSubsystem::setCoulomb12ScaleFactor(Real fac) {updRep().setCoulomb12ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setCoulomb13ScaleFactor(Real fac) {updRep().setCoulomb13ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setCoulomb14ScaleFactor(Real fac) {updRep().setCoulomb14ScaleFactor(fac);}
+void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {updRep().setCoulomb15ScaleFactor(fac);}
 
 int DuMMForceFieldSubsystem::addAtom(int body, int type, const Vec3& station)
 {
@@ -875,7 +899,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const AtomList& alist2 = bodies[b2].atoms;
 
                 for (int j=0; j < (int)alist2.size(); ++j) {
-                    const Atom&     a2 = atoms[alist2[j]];
+                    const int       a2num = alist2[j];
+                    const Atom&     a2 = atoms[a2num];
                     const AtomType& a2type = types[a2.type];
                     
                     const Vec3  a2Station_G = X_GB2.R()*a2.station; // 15 flops
@@ -885,19 +910,16 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                     // Check for cutoffs on d2?
 
-                    const Real  ood2 = 1/d2; // approx 10 flops
+                    const Real  ood = 1/std::sqrt(d2); // approx 40 flops
+                    const Real  ood2 = ood*ood;
 
                     // Coulomb. This unfortunately needs the separation distance which
                     // is expensive. But if scale, q1, or q2 are zero we can skip that.
 
                     Real eCoulomb = 0, fCoulomb = 0;
-                    const Real qq = coulombScale[j]*q1Fac*a2type.partialCharge; // 2 flops
-
-                    if (qq != 0.) {
-                        const Real ood  = std::sqrt(ood2); // approx 30 flops
-                        eCoulomb = qq * ood; //  scale*(1/(4*pi*e0)) *  q1*q2/d       (1 flop)  
-                        fCoulomb = eCoulomb; // -scale*(1/(4*pi*e0)) * -q1*q2/d^2 * d (factor of 1/d^2 missing)
-                    }
+                    const Real qq = coulombScale[a2num]*q1Fac*a2type.partialCharge; // 2 flops
+                    eCoulomb = qq * ood; //  scale*(1/(4*pi*e0)) *  q1*q2/d       (1 flop)  
+                    fCoulomb = eCoulomb; // -scale*(1/(4*pi*e0)) * -q1*q2/d^2 * d (factor of 1/d^2 missing)
 
                     // van der Waals.
 
@@ -912,8 +934,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
                     const Real ddij12 = ddij6*ddij6;         // 1 flop
 
-                    const Real eVdw =      eij * (ddij12 - 2*ddij6); // 3 flops
-                    const Real fVdw = 12 * eij * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
+                    const Real eijScale = vdwScale[a2num]*eij;            // 1 flop
+                    const Real eVdw =      eijScale * (ddij12 - 2*ddij6); // 3 flops
+                    const Real fVdw = 12 * eijScale * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
                     const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
 
                     pe += (eCoulomb + eVdw); // Da-A^2/ps^2  (2 flops)

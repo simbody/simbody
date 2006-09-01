@@ -170,11 +170,14 @@ try {
     const Real vdwRad10 = 2.0;
     const Real vdwRad20 = 1.5;
     const Real vdwFac = 1;
-    const Real stretchFac = 0;
+    const Real stretchFac = 1;
 
     mm.defineAtomType(5,  20., vdwRad5, vdwFac*0.2, 0);
     mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1);
     mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3, 1);
+
+    //mm.setVdw12ScaleFactor(1);
+    //mm.setCoulomb12ScaleFactor(1);
 
     mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
     mm.defineBondStretch(10,10, stretchFac*300.,2.0);

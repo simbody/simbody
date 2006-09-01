@@ -79,6 +79,16 @@ public:
         Real amp2, Real phase2, int period2,
         Real amp3, Real phase3, int period3);
 
+    void setVdw12ScaleFactor(Real); // default 0
+    void setVdw13ScaleFactor(Real); // default 0
+    void setVdw14ScaleFactor(Real); // default 1
+    void setVdw15ScaleFactor(Real); // default 1
+
+    void setCoulomb12ScaleFactor(Real); // default 0
+    void setCoulomb13ScaleFactor(Real); // default 0
+    void setCoulomb14ScaleFactor(Real); // default 1
+    void setCoulomb15ScaleFactor(Real); // default 1
+
     int addAtom(int body, int type, const Vec3& station);
     int addBond(int atom1, int atom2);
     int getNAtoms() const;
