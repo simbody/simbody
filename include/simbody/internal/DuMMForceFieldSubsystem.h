@@ -43,7 +43,13 @@ namespace SimTK {
  * functionality FOR DEMO AND PROOF OF CONCEPT only!!! It is not likely
  * to perform well on anything.
  *
- * UNITS: must be consistent!
+ * UNITS: must be as specified. TODO: allow different units.
+ * Note: these are not consistent units; they are converted
+ * internally so that correct energy and force units are applied
+ * to the multibody system. Basic units are mass in Da (g/mol),
+ * length in Angstroms, angles in radians, time in ps. Consistent
+ * energy is then Da-A^2/ps^2, force is Da-A/ps^2. But here we expect
+ * energy in Kcal/mol, force in (Kcal/mol)/A.
  *
  */
 class SimTK_SIMBODY_API DuMMForceFieldSubsystem : public ForceSubsystem {
@@ -51,23 +57,39 @@ public:
     DuMMForceFieldSubsystem();
 
     // This fails if the atom type already exists.
+    //   mass in Da (g/mol)
+    //   vdwRadius as Rmin, *not* Sigma, in Angstroms
+    //     (i.e. 2*vdwRadius is the center-center separation
+    //      at which the minimum energy occurs)
+    //     To convert for LJ: Rmin = 2^(1/6) * Sigma
+    //   vdwWellDepth potential minimum, in Kcal/mol
+    //   partialCharge in units of e (charge on a proton) 
     void defineAtomType(int type, Real mass,
                         Real vdwRadius, Real vdwWellDepth,
                         Real partialCharge);
 
     // Bond stretch parameters (between 2 atom types). This
     // fails if (type1,type2) or (type2,type1) has already been assigned.
+    //   stiffness (energy per length^2) in (Kcal/mol)/A^2
+    //     (note that energy is kx^2 using this definition,
+    //      while force is 2kx; note factor of 2 in force)
+    //   nominalLength in Angstroms
     void defineBondStretch(int type1, int type2,
                            Real stiffness, Real nominalLength);
 
     // Bending angle parameters (among 3 atom types). This fails
     // if (type1,type2,type3) or (type3,type2,type1) has already been seen.
-    void defineBondBending(int type1, int type2, int type3,
-                           Real stiffness, Real nominalAngle);
+    //   stiffness k (energy per degree^2) in (Kcal/mol)/Degree^2 (NOT Radians)
+    //     Let k'=k*(180/pi)^2 (i.e. k' is in energy per radian^2). 
+    //     Then energy is k' a^2 for angle a in radians,
+    //     while torque is 2k'a; note factor of 2 in torque.
+    //   nominalAngle in Degrees
+    void defineBondBend(int type1, int type2, int type3,
+                        Real stiffness, Real nominalAngle);
 
     // At least one amplitude must be non-zero. 1-2-3-4, 4-3-2-1 
     // are the same.
-    void defineTorsion(int type1, int type2, int type3, int type4,
+    void defineBondTorsion(int type1, int type2, int type3, int type4,
         Real amplitude, Real phase, int periodicity,
         Real amp2, Real phase2, int period2,
         Real amp3, Real phase3, int period3);

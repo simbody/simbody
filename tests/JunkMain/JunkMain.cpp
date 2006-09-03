@@ -192,7 +192,7 @@ try {
     mbs.addForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
-    forces.addGlobalEnergyDrain(50);
+    forces.addGlobalEnergyDrain(10);
 
 
     // Collect mass, center of mass, and inertia 
@@ -263,10 +263,10 @@ try {
 
     display.report(s);
 
-    const Real h = .001;
-    const int interval = 10;
+    const Real h = .01;
+    const int interval = 1;
     const Real tstart = 0.;
-    const Real tmax = 5; //ps
+    const Real tmax = 10; //ps
 
     study.setAccuracy(1e-3);
     study.initialize(); 

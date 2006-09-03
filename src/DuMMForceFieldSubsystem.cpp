@@ -43,12 +43,30 @@
 
 namespace SimTK {
 
+static const Real Pi = std::acos(Real(-1));
+static const Real RadiansPerDegree = Pi/180;
+
+// Convert energy from Kcal/mol to consistent units Da-A^2/ps^2.
+static const Real EnergyUnitsPerKcal = 418.4; // exact 
+
+// This is Coulomb's constant 1/(4*pi*e0) in units which convert
+// e^2/A to kcal/mol, followed by conversion to consistent energy units
+// This constant was calculated (by both me and Jay Ponder) from the
+// NIST physical constants at http://physics.nist.gov/constants
+// (2002 CODATA).
+static const Real CoulombFac = 332.06371 * EnergyUnitsPerKcal;
+
 class IntPair {
 public:
     IntPair() {ints[0]=ints[1]=-1;}
-    IntPair(int i1, int i2) {ints[0]=i1; ints[1]=i2;}
+    IntPair(int i1, int i2, bool canon=false) {
+        ints[0]=i1; ints[1]=i2;
+        if (canon) canonicalize();
+    }
     int operator[](int i) const {assert(0<=i&&i<2); return ints[i];}
     bool isValid() const {return ints[0]>0 && ints[1]>0;}
+    // canonical is low,high
+    void canonicalize() {if(ints[0]>ints[1]) std::swap(ints[0],ints[1]);}
 private:
     int ints[2];
 };
@@ -62,9 +80,14 @@ inline bool operator<(const IntPair& i1, const IntPair& i2) {
 class IntTriple {
 public:
     IntTriple() {ints[0]=ints[1]=ints[2]=-1;}
-    IntTriple(int i1, int i2, int i3) {ints[0]= i1; ints[1]=i2; ints[2]=i3;}
+    IntTriple(int i1, int i2, int i3, bool canon=false) {
+        ints[0]= i1; ints[1]=i2; ints[2]=i3;
+        if (canon) canonicalize();
+    }
     int operator[](int i) const {assert(0<=i&&i<3); return ints[i];}
     bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0;}
+    // canonical has 1st number <= last number; middle stays put
+    void canonicalize() {if(ints[0]>ints[2]) std::swap(ints[0],ints[2]);}
 private:
     int ints[3];
 };
@@ -80,11 +103,21 @@ inline bool operator<(const IntTriple& i1, const IntTriple& i2) {
 class IntQuad {
 public:
     IntQuad() {ints[0]=ints[1]=ints[2]=ints[3]=-1;}
-    IntQuad(int i1, int i2, int i3, int i4) {
+    IntQuad(int i1, int i2, int i3, int i4, bool canon=false) {
         ints[0]= i1; ints[1]=i2; ints[2]=i3; ints[3]=i4;
+        if (canon) canonicalize();
     }
     int operator[](int i) const {assert(0<=i&&i<4); return ints[i];}
     bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0 && ints[3]>0;}
+    // canonical has 1st number <= last number; middle two must swap
+    // if the outside ones do
+    void canonicalize() {
+        if(ints[0]>ints[3]) {
+            std::swap(ints[0],ints[3]); 
+            std::swap(ints[1],ints[2]);
+        }
+    }
+
 private:
     int ints[4];
 };
@@ -238,26 +271,28 @@ static inline void vdwCombineKong(
 class AtomType {
 public:
     AtomType() : mass(-1), vdwRadius(-1), vdwWellDepth(-1), partialCharge(-1) { }
-    AtomType(Real m, Real rad, Real well, Real chg)
-      : mass(m), vdwRadius(rad), vdwWellDepth(well), partialCharge(chg) { }
+    AtomType(Real m, Real rad, Real wellKcal, Real chg)
+      : mass(m), vdwRadius(rad), 
+        vdwWellDepth(wellKcal*EnergyUnitsPerKcal), 
+        partialCharge(chg) { }
     bool isValid() const {return mass >= 0;}
 
     void dump() const {
         printf("    mass=%g, vdwRad=%g, vdwDepth=%g, chg=%g\n",
-            mass, vdwRadius, vdwWellDepth, partialCharge);
+            mass, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal, partialCharge);
         printf("    vdwDij:");
         for (int i=0; i< (int)vdwDij.size(); ++i)
             printf(" %g", vdwDij[i]);
         printf("\n    vdwEij:");
         for (int i=0; i< (int)vdwEij.size(); ++i)
-            printf(" %g", vdwEij[i]);
+            printf(" %g", vdwEij[i]/EnergyUnitsPerKcal);
         printf("\n");
     }
 
-    Real mass;
-    Real vdwRadius;     // ri, length units
-    Real vdwWellDepth;  // ei, energy units
-    Real partialCharge; // qi, charge units
+    Real mass;          // in Daltons (Da, g/mol)
+    Real vdwRadius;     // ri, Angstroms
+    Real vdwWellDepth;  // ei, Da-A^2/ps^2
+    Real partialCharge; // qi, in e (charge on proton)
 
     // After all types have been defined, we can calculate vdw 
     // combining rules for dmin and well depth energy. We only fill
@@ -266,8 +301,8 @@ public:
     // type number of the present AtomType.
     // Note that different combining rules may be used but they
     // will always result in a pair of vdw parameters.
-    std::vector<Real> vdwDij;
-    std::vector<Real> vdwEij;
+    std::vector<Real> vdwDij;   // A
+    std::vector<Real> vdwEij;   // Da-A^2/ps^2
 };
 
 // This represents bond-stretch information for a pair of atom types.
@@ -275,15 +310,50 @@ public:
 class BondStretch {
 public:
     BondStretch() : k(-1), d0(-1) { }
-    BondStretch(Real stiffness, Real length) : k(stiffness), d0(length) { 
+    BondStretch(Real stiffnessKcalPerASq, Real length) 
+      : k(stiffnessKcalPerASq*EnergyUnitsPerKcal), d0(length) { 
         assert(isValid());
     }
     bool isValid() const {return k >= 0 && d0 >= 0; }
-    Real k;
-    Real d0; // distance at which force is 0
+    Real k;  // in energy units per A^2, i.e. Da/ps^2
+    Real d0; // distance at which force is 0 (in A)
 };
 
-class BondAngle {
+class BondBend {
+public:
+    BondBend() : k(-1), theta0(-1) { }
+    BondBend(Real stiffnessKcalPerRadSq, Real angleDeg) 
+      : k(stiffnessKcalPerRadSq*EnergyUnitsPerKcal), 
+        theta0(angleDeg*RadiansPerDegree) {
+        assert(isValid());
+    }
+    bool isValid() const {return k >= 0 && (0 <= theta0 && theta0 <= Pi);}
+
+    // Given a central atom location c bonded to atoms at r and s,
+    // calculate the angle between them, the potential energy,
+    // and forces on each of the three atoms.
+    void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG,
+                  Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf)
+    {
+        const Vec3 r = rG - cG; //               3 flops
+        const Vec3 s = sG - cG; //               3 flops
+        const Real rs = ~r * s; // r dot s      (5 flops)
+        const Vec3 rxs = r % s; // r cross s    (9 flops)
+
+        theta = std::atan2(rxs.norm(), rs); // ~80 flops (atan2+sqrt)
+        const Real bend = theta - theta0;   //   1 flop
+        pe = k*bend*bend; // NOTE: no factor of 1/2 (2 flops)
+
+        const Real rr = ~r*r, ss = ~s*s;    // |r|^2, |s|^2 ( 10 flops)
+        const Real ffac = -2*k*bend/std::sqrt(rr*ss-rs*rs);// (~45 flops)
+        rf = ffac*((rs/rr)*r - s);          // ~17 flops
+        sf = ffac*((rs/ss)*s - r);          // ~17 flops
+        cf = -(rf+sf); // makes the net force zero (6 flops)
+    }
+
+private:
+    Real k;      // energy units per rad^2, i.e. Da-A^2/(ps^2-rad^2)
+    Real theta0; // unstressed angle in radians
 };
 
 class BondTorsion {
@@ -372,7 +442,7 @@ public:
     std::vector<IntQuad>   xbond15;
 
     std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
-    std::vector<BondAngle>   bend;    // same length as   " 1-3 list
+    std::vector<BondBend>    bend;    // same length as   " 1-3 list
     std::vector<BondTorsion> torsion; // same length as   " 1-4 list
 };
 
@@ -423,7 +493,7 @@ public:
 //      = 8.854187817e-12 C^2/(m-J)
 //          * (1/1.60217653e-19)^2 * 4184/6.0221415e23 * 1e-10
 //      = 2.3964519142e-4
-//    1/(4*pi*e0) = 332.063711
+//    1/(4*pi*e0) = 332.06371
 //    speed of light c=2.99792458e8 m/s (exact)
 //    Joules(N-m)/Kcal = 4184 (exact)
 //
@@ -445,9 +515,6 @@ public:
 //       parameter (prescon=6.85695d+4)
 //       parameter (convert=4.184d+2)
 
-static const Real ForceUnitsPerKcal = 418.4; // convert energy to consistent units (Da-A^2/ps^2)
-// This is 1/(4*pi*e0) in units which convert e^2/A to kcal/mole.
-static const Real CoulombFac = 332.06371 * ForceUnitsPerKcal;
 
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
 
@@ -459,7 +526,7 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
     // Force field description
     std::vector<AtomType>            types;
     std::map<IntPair,   BondStretch> bondStretch;
-    std::map<IntTriple, BondAngle>   bondAngle;
+    std::map<IntTriple, BondBend>    bondBend;
     std::map<IntQuad,   BondTorsion> bondTorsion;
 
     // Scale factors for nonbonded forces when applied to
@@ -525,17 +592,34 @@ public:
     void addBondStretch(int type1, int type2, const BondStretch& bs) {
         assert(isValidAtomType(type1) && isValidAtomType(type2));
         // Canonicalize the pair to have lowest type # first
-        const IntPair key(std::min(type1,type2), std::max(type1,type2));
+        const IntPair key(type1,type2,true);
         std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
           bondStretch.insert(std::pair<IntPair,BondStretch>(key,bs));
         assert(ret.second); // must not have been there already
     }
 
     const BondStretch& getBondStretch(int type1, int type2) const {
-        const IntPair key(std::min(type1,type2), std::max(type1,type2));
+        const IntPair key(type1,type2,true);
         std::map<IntPair,BondStretch>::const_iterator bs = bondStretch.find(key);
         assert(bs != bondStretch.end());
         return bs->second;
+    }
+
+
+    void addBondBend(int type1, int type2, int type3, const BondBend& bb) {
+        assert(isValidAtomType(type1) && isValidAtomType(type2) && isValidAtomType(type3));
+        // Canonicalize the triple to have lowest type # first
+        const IntTriple key(type1, type2, type3, true);
+        std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
+          bondBend.insert(std::pair<IntTriple,BondBend>(key,bb));
+        assert(ret.second); // must not have been there already
+    }
+
+    const BondBend& getBondBend(int type1, int type2, int type3) const {
+        const IntTriple key(type1, type2, type3, true);
+        std::map<IntTriple,BondBend>::const_iterator bb = bondBend.find(key);
+        assert(bb != bondBend.end());
+        return bb->second;
     }
 
     void setVdw12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale12=fac;}
@@ -664,9 +748,15 @@ void DuMMForceFieldSubsystem::defineAtomType
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
-   (int type1, int type2, Real stiffness, Real nominalLength)
+   (int type1, int type2, Real stiffnessInKcalPerASq, Real nominalLengthInA)
 {
-    updRep().addBondStretch(type1, type2, BondStretch(stiffness,nominalLength));
+    updRep().addBondStretch(type1, type2, BondStretch(stiffnessInKcalPerASq,nominalLengthInA));
+}
+
+void DuMMForceFieldSubsystem::defineBondBend
+   (int type1, int type2, int type3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
+{
+    updRep().addBondBend(type1, type2, type3, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees));
 }
 
 void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {updRep().setVdw12ScaleFactor(fac);}
@@ -885,9 +975,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const BondStretch& bs = a1.stretch[b12];
                 const Real         x  = d - bs.d0;
 
-                const Real k = bs.k*ForceUnitsPerKcal;
-                const Real eStretch = 0.5*k*x*x;
-                const Real fStretch = -k*x; // sign is as would be applied to a2
+                const Real eStretch =  bs.k*x*x; // no factor of 1/2!
+                const Real fStretch = -2*bs.k*x; // sign is as would be applied to a2
                 const Vec3 f2 = (fStretch/d) * r;
                 pe += eStretch;
                 rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
@@ -929,8 +1018,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const Real dij = (a1.type <= a2.type ? a1type.vdwDij[a2.type-a1.type]
                                                          : a2type.vdwDij[a1.type-a2.type]);
                     const Real eij = (a1.type <= a2.type ? a1type.vdwEij[a2.type-a1.type]
-                                                         : a2type.vdwEij[a1.type-a2.type])
-                                     * ForceUnitsPerKcal;
+                                                         : a2type.vdwEij[a1.type-a2.type]);
 
                     const Real ddij2  = dij*dij*ood2;        // (dmin_ij/d)^2 (2 flops)
                     const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
