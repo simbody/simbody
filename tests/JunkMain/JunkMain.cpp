@@ -170,21 +170,28 @@ try {
     const Real vdwRad10 = 2.0;
     const Real vdwRad20 = 1.5;
     const Real vdwFac = 1;
+    const Real chgFac = 1;
     const Real stretchFac = 1;
+    const Real bendFac = 1;
 
-    mm.defineAtomType(5,  20., vdwRad5, vdwFac*0.2, 0);
-    mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1);
-    mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3, 1);
+
+    forces.addGlobalEnergyDrain(10);
+
+    mm.defineAtomType(5,  20., vdwRad5,  vdwFac*0.2,  0*chgFac);
+    mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1*chgFac);
+    mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3,  1*chgFac);
 
     //mm.setVdw12ScaleFactor(1);
     //mm.setCoulomb12ScaleFactor(1);
 
     mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
-    mm.defineBondStretch(10,10, stretchFac*300.,2.0);
+    mm.defineBondStretch(10,10, stretchFac*300.,4);
     mm.defineBondStretch(20,20, stretchFac*300.,1.5);
     mm.defineBondStretch(5,10,  stretchFac*300.,1.5);
     mm.defineBondStretch(5,20,  stretchFac*300.,1.5);
     mm.defineBondStretch(20,10, stretchFac*300.,5);
+
+    mm.defineBondBend(20,10,10, bendFac*50., 127);
 
     
     MultibodySystem mbs;
@@ -192,7 +199,6 @@ try {
     mbs.addForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
-    forces.addGlobalEnergyDrain(10);
 
 
     // Collect mass, center of mass, and inertia 
@@ -231,11 +237,11 @@ try {
 
     mm.addBond(a1,a2); 
     mm.addBond(a1,a3); 
-    mm.addBond(a2,a3);
+    //mm.addBond(a2,a3);
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
     display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
     display.addRubberBandLine(1, Vec3(0), 3, Vec3(0), ln);
-    display.addRubberBandLine(2, Vec3(0), 3, Vec3(0), ln);
+    //display.addRubberBandLine(2, Vec3(0), 3, Vec3(0), ln);
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -252,12 +258,14 @@ try {
     molecule.setMobilizerQ(s, 2, 0,  2*d);
     molecule.setMobilizerQ(s, 2, 1, 2*d);
     molecule.setMobilizerQ(s, 3, 0,  -2*d);
+    
     molecule.setMobilizerQ(s, 4, 0,  -2*d);
     molecule.setMobilizerQ(s, 4, 1, -2*d);
     molecule.setMobilizerQ(s, 4, 2, 0.5*d);
     molecule.setMobilizerQ(s, 5, 0,  -d);
-    molecule.setMobilizerQ(s, 5, 1,  2*d);
-    molecule.setMobilizerQ(s, 5, 2,  -2*d);
+    molecule.setMobilizerQ(s, 5, 1,  3*d);
+    molecule.setMobilizerQ(s, 5, 2,  -3*d);
+    
 
     //molecule.setMobilizerU(s, 2, 0, -100);
 
@@ -277,13 +285,15 @@ try {
         saveEm.push_back(s);    // delay
     display.report(s);
 
+    const Real Estart = mbs.getEnergy(s);
+
     s.updTime() = tstart;
     int step = 0;
     while (s.getTime() < tmax) {
         study.step(s.getTime() + h);
 
         cout << s.getTime();
-        cout << " E=" << mbs.getEnergy(s)
+        cout << " deltaE=" << (mbs.getEnergy(s)-Estart)/Estart
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
              << ") hNext=" << study.getPredictedNextStep() << endl;

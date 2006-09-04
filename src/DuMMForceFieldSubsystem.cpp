@@ -333,25 +333,34 @@ public:
     // calculate the angle between them, the potential energy,
     // and forces on each of the three atoms.
     void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG,
-                  Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf)
+                  Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf) const
     {
         const Vec3 r = rG - cG; //               3 flops
         const Vec3 s = sG - cG; //               3 flops
+        const Real rr = ~r*r, ss = ~s*s;    // |r|^2, |s|^2 ( 10 flops)
+
         const Real rs = ~r * s; // r dot s      (5 flops)
         const Vec3 rxs = r % s; // r cross s    (9 flops)
-
-        theta = std::atan2(rxs.norm(), rs); // ~80 flops (atan2+sqrt)
+        const Real rxslen = rxs.norm(); //      (~35 flops)
+        theta = std::atan2(rxslen, rs); //       ~50 flops
         const Real bend = theta - theta0;   //   1 flop
         pe = k*bend*bend; // NOTE: no factor of 1/2 (2 flops)
 
-        const Real rr = ~r*r, ss = ~s*s;    // |r|^2, |s|^2 ( 10 flops)
-        const Real ffac = -2*k*bend/std::sqrt(rr*ss-rs*rs);// (~45 flops)
-        rf = ffac*((rs/rr)*r - s);          // ~17 flops
-        sf = ffac*((rs/ss)*s - r);          // ~17 flops
+        // p is unit vector perpendicular to r and s
+
+        // TODO: come up with something for when rxslen is 0 (vectors r & s
+        // aligned or opposite); for relaxation
+        // just needs to push them apart; what to do for dynamics?
+        // Here we'll just make up a direction perpendicular to both
+        // vectors and use it.
+        const UnitVec3 p = (rxslen != 0 ? UnitVec3(rxs/rxslen,true)  // ~11 flops
+                                        : UnitVec3(r).perp()); 
+        const Real ffac = -2*k*bend; // 2 flops
+        rf = (ffac/rr)*(r % p);          // ~20 flops
+        sf = (ffac/ss)*(p % s);          // ~20 flops
         cf = -(rf+sf); // makes the net force zero (6 flops)
     }
 
-private:
     Real k;      // energy units per rad^2, i.e. Da-A^2/(ps^2-rad^2)
     Real theta0; // unstressed angle in radians
 };
@@ -410,6 +419,9 @@ public:
         printf("    1-2 stretch:");
         for (int i=0; i < (int)stretch.size(); ++i)
             printf(" (%g,%g)", stretch[i].k, stretch[i].d0);
+        printf("\n    1-3 bend:");
+        for (int i=0; i < (int)bend.size(); ++i)
+            printf(" (%g,%g)", bend[i].k, bend[i].theta0);
         printf("\n");
     }
 
@@ -911,6 +923,12 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         a.stretch.resize(a.xbond12.size());
         for (int b12=0; b12 < (int)a.xbond12.size(); ++b12)
             a.stretch[b12] = getBondStretch(a.type, atoms[a.xbond12[b12]].type);
+
+        // Save a BondBend entry for each 1-3 bond
+        a.bend.resize(a.xbond13.size());
+        for (int b13=0; b13 < (int)a.xbond13.size(); ++b13)
+            a.bend[b13] = getBondBend(a.type, atoms[a.xbond13[b13][0]].type, 
+                                              atoms[a.xbond13[b13][1]].type);
     }
 
     mutableThis->built = true;
@@ -957,6 +975,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
             // Bonded. Note that each bond will appear twice so we only process
             // it the time when its 1st atom has a lower ID than its last.
+
+            // Bond stretch (1-2)
             for (int b12=0; b12 < (int)a1.xbond12.size(); ++b12) {
                 const int a2num = a1.xbond12[b12];
                 assert(a2num != a1num);
@@ -972,6 +992,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const Vec3       r = a2Pos_G - a1Pos_G;
                 const Real       d = r.norm();
 
+                // TODO: come up with something for when d is 0; for relaxation
+                // just needs to push away from zero; what to do for dynamics?
+
                 const BondStretch& bs = a1.stretch[b12];
                 const Real         x  = d - bs.d0;
 
@@ -981,6 +1004,40 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 pe += eStretch;
                 rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                 rigidBodyForces[b1] -= SpatialVec( a1Station_G % f2, f2);   // 15 flops
+            }
+
+            // Bond bend (1-2-3)
+            for (int b13=0; b13 < (int)a1.xbond13.size(); ++b13) {
+                const int a2num = a1.xbond13[b13][0];
+                const int a3num = a1.xbond13[b13][1];
+                assert(a3num != a1num);
+                if (a3num < a1num)
+                    continue; // don't process this bond this time
+
+                const Atom& a2 = atoms[a2num];
+                const Atom& a3 = atoms[a3num];
+                const int b2 = a2.bodyNum;
+                const int b3 = a3.bodyNum;
+                assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
+
+                // TODO: These might be the same body but for now we don't care.
+                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyNum);
+                const Transform& X_GB3   = matter.getBodyConfiguration(s, a3.bodyNum);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station;
+                const Vec3       a3Station_G = X_GB3.R()*a3.station;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+
+                Real angle, energy;
+                Vec3 f1, f2, f3;
+                const BondBend& bb = a1.bend[b13];
+                // atom 2 is the central one
+                bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, angle, energy, f2, f1, f3);
+
+                pe += energy;
+                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
             }
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
