@@ -176,13 +176,13 @@ try {
     const Real torsFac = 1;
 
 
-    //forces.addGlobalEnergyDrain(5);
+    forces.addGlobalEnergyDrain(50);
 
     mm.defineAtomType(5,  20., vdwRad5,  vdwFac*0.2,  0*chgFac);
     mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1*chgFac);
     mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3,  1*chgFac);
 
-    //mm.setVdw12ScaleFactor(1);
+    //mm.setVdw14ScaleFactor(0);
     //mm.setCoulomb14ScaleFactor(0);
 
     mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
@@ -193,7 +193,7 @@ try {
     mm.defineBondStretch(20,10, stretchFac*300.,5);
 
     mm.defineBondBend(20,10,10, bendFac*50., 120);
-    mm.defineBondTorsion(20,10,10,20, 1, torsFac*1., 45);
+    mm.defineBondTorsion(20,10,10,20, 1, torsFac*10.,120);
 
     
     MultibodySystem mbs;
@@ -204,35 +204,56 @@ try {
 
 
     // Collect mass, center of mass, and inertia 
-    const Real mass=1;
-    MassProperties mprops(mass, Vec3(0), InertiaMat(0));
+    const Real mass1=14+12;
+    const Vec3 com1=(14*Vec3(0,0,0)+12*Vec3(0,3,-3))/mass1;
+    InertiaMat iner1 = InertiaMat(Vec3(0,0,0), 14)
+                      + InertiaMat(Vec3(0,3,-3), 12)
+                      + InertiaMat(0.1,0.1,0.1);
+    const Real mass2=14+12;
+    const Vec3 com2=(14*Vec3(0,0,0)+12*Vec3(0,3,3))/mass2;
+    InertiaMat iner2 = InertiaMat(Vec3(0,0,0), 14) 
+                      + InertiaMat(Vec3(0,3,3), 12)
+                      + InertiaMat(0.1,0.1,0.1);
+    MassProperties mprops1(mass1,com1,iner1);
+    MassProperties mprops2(mass2,com2,iner2);
 
     // Create some point mass bodies
-    for (int i=0; i<4; ++i) 
-        molecule.addRigidBody(mprops, Transform(),
-                              Ground, Transform(),
-                              Mobilizer::Cartesian);
+    //for (int i=0; i<4; ++i) 
+    //    molecule.addRigidBody(mprops, Transform(),
+    //                          Ground, Transform(),
+    //                          Mobilizer::Cartesian);
+    int b0=molecule.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
+                                 Ground, Transform(),
+                                 Mobilizer::Ball);
+    int b1=molecule.addRigidBody(mprops1, Transform(),
+                          b0, Transform(),
+                          Mobilizer::Cartesian);
+    int b2=molecule.addRigidBody(mprops2, Transform(),
+                          b1, Transform(Vec3(0,0,6)),
+                          Mobilizer::Pin); // aligns z axes
+
 
     VTKReporter display(mbs);
-    display.setDefaultBodyColor(1, Red);
-    display.setDefaultBodyColor(3, Red);
-    display.setDefaultBodyColor(2, Green);
-    display.setDefaultBodyColor(4, Green);
+    display.setDefaultBodyColor(b1, Red);
+    //display.setDefaultBodyColor(3, Red);
+    display.setDefaultBodyColor(b2, Green);
+    //display.setDefaultBodyColor(4, Green);
     //display.setDefaultBodyColor(5, Yellow);
 
-    int a1 = mm.addAtom(1, 10, Vec3(0));
-    int a2 = mm.addAtom(2, 20, Vec3(0));
-    int a3 = mm.addAtom(3, 10, Vec3(0));
-    int a4 = mm.addAtom(4, 20, Vec3(0));
+    int a1 = mm.addAtom(b1, 10, Vec3(0));
+    int a2 = mm.addAtom(b1, 20, Vec3(0,3,-3));
+
+    int a3 = mm.addAtom(b2, 10, Vec3(0));
+    int a4 = mm.addAtom(b2, 20, Vec3(0,3,3));
     //int a5 = mm.addAtom(5,  5, Vec3(0));
 
-    display.addDecoration(1,Transform(),
+    display.addDecoration(b1,Transform(),
         DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
-    display.addDecoration(2,Transform(),
+    display.addDecoration(b1,Transform(Vec3(0,3,-3)),
         DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
-    display.addDecoration(3,Transform(),
+    display.addDecoration(b2,Transform(),
         DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
-    display.addDecoration(4,Transform(),
+    display.addDecoration(b2,Transform(Vec3(0,3,3)),
         DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
    // display.addDecoration(5,Transform(),
     //    DecorativeSphere(vdwRad5).setOpacity(.9).setResolution(3));
@@ -242,9 +263,9 @@ try {
     mm.addBond(a3,a4);
     //mm.addBond(a2,a3);
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
-    display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
-    display.addRubberBandLine(1, Vec3(0), 3, Vec3(0), ln);
-    display.addRubberBandLine(3, Vec3(0), 4, Vec3(0), ln);
+    display.addRubberBandLine(b1, Vec3(0), b1, Vec3(0,3,-3), ln);
+    display.addRubberBandLine(b2, Vec3(0), b2, Vec3(0,3,3), ln);
+    display.addRubberBandLine(b1, Vec3(0), b2, Vec3(0), ln);
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -257,13 +278,15 @@ try {
     display.report(s);
 
     const Real d = 0.6*(vdwRad10+vdwRad20);
-    molecule.setMobilizerQ(s, 1, 0,  2);
-    molecule.setMobilizerQ(s, 2, 0,  2);
-    molecule.setMobilizerQ(s, 2, 1, 5);
-    molecule.setMobilizerQ(s, 3, 0,  -2);
+    molecule.setMobilizerQ(s, b2, 0, Pi/2);
+    molecule.setMobilizerU(s, b2, 0, 0);
+    //molecule.setMobilizerQ(s, 1, 0,  2);
+    //molecule.setMobilizerQ(s, 2, 0,  2);
+   // molecule.setMobilizerQ(s, 2, 1, 5);
+   // molecule.setMobilizerQ(s, 3, 0,  -2);
     
-    molecule.setMobilizerQ(s, 4, 0,  -2);
-    molecule.setMobilizerQ(s, 4, 1, -5);
+   // molecule.setMobilizerQ(s, 4, 0,  -2);
+   // molecule.setMobilizerQ(s, 4, 1, -5);
     //molecule.setMobilizerQ(s, 4, 2, 0.5*d);
     //molecule.setMobilizerQ(s, 5, 0,  -d);
     //molecule.setMobilizerQ(s, 5, 1,  3*d);

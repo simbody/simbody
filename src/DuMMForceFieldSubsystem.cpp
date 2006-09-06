@@ -393,7 +393,8 @@ public:
       : periodicity(n), amplitude(amp*EnergyUnitsPerKcal), theta0(th0*RadiansPerDegree) {
         assert(isValid());
     }
-    bool isValid() const {return periodicity > 0 && amplitude >= 0 && theta0 >= 0;}
+    bool isValid() const {return periodicity > 0 && amplitude >= 0 
+                                 && -Pi < theta0 && theta0 <= Pi;}
     Real energy(Real theta) const {
         return amplitude*(1 + std::cos(periodicity*theta-theta0));
     }
@@ -422,6 +423,9 @@ public:
     // Given atom locations r-x-y-s in the ground frame, calculate the
     // torsion angle, energy and a force on each atom so that the desired
     // pure torque is produced.
+    // This code is modeled in part after Tinker's torsion code in
+    // etors1.f because I couldn't figure out how to do it myself
+    // (sherm 060905). Thanks, Jay!
     void periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const Vec3& sG,
                   Real& theta, Real& pe, 
                   Vec3& rf, Vec3& xf, Vec3& yf, Vec3& sf) const
