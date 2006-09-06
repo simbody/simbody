@@ -365,7 +365,133 @@ public:
     Real theta0; // unstressed angle in radians
 };
 
+//
+// Torsion term for atoms bonded r-x-y-s. Rotation occurs about
+// the axis v=y-x, that is, a vector from x to y. We define a torsion
+// angle theta for this rotation, like this:
+//             r                         r      s
+//   theta=0    \             theta=180   \    / 
+//               x--y                      x--y
+//                   \
+//                    s
+// A positive angle is defined by considering r-x fixed in space. Then
+// using the right and rule around v (that is, thumb points from x to y)
+// a positive rotation rotates y->s in the direction of your fingers.
+//
+// We use a periodic energy function like this:
+//       E(theta) = sum E_n(1 + cos(n*theta - theta0_n))
+// where n is the periodicity, E_n is the amplitude (kcal/mol) for
+// term n, and theta0_n is the phase offset for term n. The torque
+// term (applied about the v axis) is then
+//       T(theta) = -[sum -n*E_n*sin(n*theta - theta0_n)]
+// We have to translate this into forces on the four atoms.
+// 
+class TorsionTerm {
+public:
+    TorsionTerm() : periodicity(-1), amplitude(-1), theta0(-1) { }
+    TorsionTerm(int n, Real amp, Real th0) 
+      : periodicity(n), amplitude(amp*EnergyUnitsPerKcal), theta0(th0*RadiansPerDegree) {
+        assert(isValid());
+    }
+    bool isValid() const {return periodicity > 0 && amplitude >= 0 && theta0 >= 0;}
+    Real energy(Real theta) const {
+        return amplitude*(1 + std::cos(periodicity*theta-theta0));
+    }
+    Real torque(Real theta) const {
+        return periodicity*amplitude*std::sin(periodicity*theta-theta0);
+    }
+
+    int  periodicity; // 1=360, 2=180, 3=120, etc.
+    Real amplitude; // energy units (Da-A^2/ps^2)
+    Real theta0;    // radians
+};
 class BondTorsion {
+public:
+    BondTorsion() { }
+    void addTerm(const TorsionTerm& tt) {
+        assert(!hasTerm(tt.periodicity));
+        terms.push_back(tt);
+    }
+    bool isValid() const {return !terms.empty();}
+    bool hasTerm(int n) const {
+        for (int i=0; i<(int)terms.size(); ++i)
+            if (terms[i].periodicity == n) return true;
+        return false;
+    }
+
+    // Given atom locations r-x-y-s in the ground frame, calculate the
+    // torsion angle, energy and a force on each atom so that the desired
+    // pure torque is produced.
+    void periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const Vec3& sG,
+                  Real& theta, Real& pe, 
+                  Vec3& rf, Vec3& xf, Vec3& yf, Vec3& sf) const
+    {
+        // All vectors point along the r->x->y->s direction
+        const Vec3 r  = xG - rG; //               3 flops
+        const Vec3 s  = sG - yG; //               3 flops
+        const Vec3 xy = yG - xG; //               3 flops
+
+        // Create a unit vector v along the axis, using increasingly
+        // desperate measures in case of overlapping atoms. If we
+        // don't have a real axis (i.e., atoms x and y overlap)
+        // we'll signal that with oov==0 (see below). We don't care
+        // much what happens in that case, but we hope to do something
+        // remotely plausible so a stuck minimization will have some
+        // hope of getting unstuck.
+
+        const Real vv = ~xy*xy;                     //   5 flops
+        const Real oov = (vv==0 ? Real(0) 
+                                : 1/std::sqrt(vv)); // ~40 flops
+        const UnitVec3 v = 
+            (oov != 0 ? UnitVec3(xy*oov,true)       //   4 flops
+                       : ((r%s).norm() != 0 ? UnitVec3(r % s)
+                                            : UnitVec3(r).perp()));
+
+        // Calculate plane normals. Axis vector v serves as the "x" 
+        // axis of both planes. Vectors r (r->x) and s (y->s) are in
+        // the plane in a vaguely "y axis" way, so t=rXv is the "z" axis
+        // (plane normal) for the first plane and u=vXs is the plane normal
+        // for the second. When those normals are aligned theta is 0.
+        const Vec3 t = r % v, u = v % s; // 18 flops
+
+        // If either r or s are aligned with the axis, we can't generate
+        // a torque so we're done.
+        const Real tt = ~t*t, uu = ~u*u; // 10 flops
+        if (tt == 0 || uu == 0) {
+            pe = 0; rf=xf=yf=sf=Vec3(0);
+            return;
+        }
+
+        const Vec3 txu = t % u;                 //   9 flops
+        const Real ootu = 1/std::sqrt(tt*uu);   // ~40 flops
+        const Real cth = (~t*u)*ootu;           //   6 flops
+        const Real sth = (~v*txu)*ootu;         //   6 flops
+        theta = std::atan2(sth,cth);            // ~50 flops
+
+        Real torque = 0;
+        pe = 0; 
+        for (int i=0; i < (int)terms.size(); ++i) {
+            pe += terms[i].energy(theta);
+            torque += terms[i].torque(theta);
+        }
+
+        const Vec3 ry = yG-rG;    // from r->y        3 flops
+        const Vec3 xs = sG-xG;    // from x->s        3 flops
+        const Vec3 dedt =  (torque/tt)*(t % v);  // ~20 flops
+        const Vec3 dedu = -(torque/uu)*(u % v);  // ~21 flops
+
+        rf = dedt % v; // 9 flops
+        sf = dedu % v; // 9 flops
+        if (oov==0) {
+            xf = -rf;   // No axis; this is just desperation.
+            yf = -sf;   // At least it keeps the forces summing to 0.
+        } else {
+            xf = ((ry % dedt) + (dedu % s))*oov;
+            yf = ((dedt % r) + (xs % dedu))*oov;
+        }
+    }
+
+    std::vector<TorsionTerm> terms;
 };
 
 typedef std::vector<int> AtomList;
@@ -422,6 +548,17 @@ public:
         printf("\n    1-3 bend:");
         for (int i=0; i < (int)bend.size(); ++i)
             printf(" (%g,%g)", bend[i].k, bend[i].theta0);
+        printf("\n    1-4 torsion:\n");
+        for (int i=0; i < (int)torsion.size(); ++i) {
+            const BondTorsion& bt = torsion[i];
+            printf("     ");
+            for (int j=0; j<(int)bt.terms.size(); ++j) {
+                const TorsionTerm& tt = bt.terms[j];
+                printf(" (%d:%g,%g)", tt.periodicity, 
+                                      tt.amplitude, tt.theta0);
+            }
+            printf("\n");
+        }
         printf("\n");
     }
 
@@ -634,6 +771,34 @@ public:
         return bb->second;
     }
 
+    void addBondTorsion(int type1, int type2, int type3, int type4, 
+                        const TorsionTerm& tt1, 
+                        const TorsionTerm& tt2=TorsionTerm(),
+                        const TorsionTerm& tt3=TorsionTerm()) 
+    {
+        assert(isValidAtomType(type1) && isValidAtomType(type2) 
+                && isValidAtomType(type3) && isValidAtomType(type4));
+        assert(tt1.isValid());
+
+        // Canonicalize the quad to have lowest type # first
+        const IntQuad key(type1, type2, type3, type4, true);
+        BondTorsion bt;
+        if (tt1.isValid()) bt.addTerm(tt1);
+        if (tt2.isValid()) bt.addTerm(tt2);
+        if (tt3.isValid()) bt.addTerm(tt3);
+
+        std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret = 
+          bondTorsion.insert(std::pair<IntQuad,BondTorsion>(key,bt));
+        assert(ret.second); // must not have been there already
+    }
+
+    const BondTorsion& getBondTorsion(int type1, int type2, int type3, int type4) const {
+        const IntQuad key(type1, type2, type3, type4, true);
+        std::map<IntQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
+        assert(bt != bondTorsion.end());
+        return bt->second;
+    }
+
     void setVdw12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale12=fac;}
     void setVdw13ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale13=fac;}
     void setVdw14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale14=fac;}
@@ -769,6 +934,34 @@ void DuMMForceFieldSubsystem::defineBondBend
    (int type1, int type2, int type3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
 {
     updRep().addBondBend(type1, type2, type3, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees));
+}
+
+void DuMMForceFieldSubsystem::defineBondTorsion
+   (int type1, int type2, int type3, int type4, 
+    int periodicity1, Real amp1InKcal, Real phase1InDegrees)
+{
+    updRep().addBondTorsion(type1, type2, type3, type4, 
+                            TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees));
+}
+void DuMMForceFieldSubsystem::defineBondTorsion
+   (int type1, int type2, int type3, int type4, 
+    int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+    int periodicity2, Real amp2InKcal, Real phase2InDegrees)
+{
+    updRep().addBondTorsion(type1, type2, type3, type4, 
+                            TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees),
+                            TorsionTerm(periodicity2,amp2InKcal,phase2InDegrees));
+}
+void DuMMForceFieldSubsystem::defineBondTorsion
+   (int type1, int type2, int type3, int type4, 
+    int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+    int periodicity2, Real amp2InKcal, Real phase2InDegrees,
+    int periodicity3, Real amp3InKcal, Real phase3InDegrees)
+{
+    updRep().addBondTorsion(type1, type2, type3, type4, 
+                            TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees),
+                            TorsionTerm(periodicity2,amp2InKcal,phase2InDegrees),
+                            TorsionTerm(periodicity3,amp3InKcal,phase3InDegrees));
 }
 
 void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {updRep().setVdw12ScaleFactor(fac);}
@@ -929,6 +1122,13 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         for (int b13=0; b13 < (int)a.xbond13.size(); ++b13)
             a.bend[b13] = getBondBend(a.type, atoms[a.xbond13[b13][0]].type, 
                                               atoms[a.xbond13[b13][1]].type);
+
+        // Save a BondTorsion entry for each 1-4 bond
+        a.torsion.resize(a.xbond14.size());
+        for (int b14=0; b14 < (int)a.xbond14.size(); ++b14)
+            a.torsion[b14] = getBondTorsion(a.type, atoms[a.xbond14[b14][0]].type, 
+                                                    atoms[a.xbond14[b14][1]].type,
+                                                    atoms[a.xbond14[b14][2]].type);
     }
 
     mutableThis->built = true;
@@ -1038,6 +1238,47 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
                 rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
                 rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+            }
+
+            // Bond torsion (1-2-3-4)
+            for (int b14=0; b14 < (int)a1.xbond14.size(); ++b14) {
+                const int a2num = a1.xbond14[b14][0];
+                const int a3num = a1.xbond14[b14][1];
+                const int a4num = a1.xbond14[b14][2];
+                assert(a4num != a1num);
+                if (a4num < a1num)
+                    continue; // don't process this bond this time
+
+                const Atom& a2 = atoms[a2num];
+                const Atom& a3 = atoms[a3num];
+                const Atom& a4 = atoms[a4num];
+                const int b2 = a2.bodyNum;
+                const int b3 = a3.bodyNum;
+                const int b4 = a4.bodyNum;
+                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+
+                // TODO: These might be the same body but for now we don't care.
+                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyNum);
+                const Transform& X_GB3   = matter.getBodyConfiguration(s, a3.bodyNum);
+                const Transform& X_GB4   = matter.getBodyConfiguration(s, a4.bodyNum);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station;
+                const Vec3       a3Station_G = X_GB3.R()*a3.station;
+                const Vec3       a4Station_G = X_GB4.R()*a4.station;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+
+                Real angle, energy;
+                Vec3 f1, f2, f3, f4;
+                const BondTorsion& bt = a1.torsion[b14];
+                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, 
+                            angle, energy, f1, f2, f3, f4);
+
+                pe += energy;
+                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
             }
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);

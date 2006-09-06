@@ -173,25 +173,27 @@ try {
     const Real chgFac = 1;
     const Real stretchFac = 1;
     const Real bendFac = 1;
+    const Real torsFac = 1;
 
 
-    forces.addGlobalEnergyDrain(10);
+    //forces.addGlobalEnergyDrain(5);
 
     mm.defineAtomType(5,  20., vdwRad5,  vdwFac*0.2,  0*chgFac);
     mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1*chgFac);
     mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3,  1*chgFac);
 
     //mm.setVdw12ScaleFactor(1);
-    //mm.setCoulomb12ScaleFactor(1);
+    //mm.setCoulomb14ScaleFactor(0);
 
     mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
-    mm.defineBondStretch(10,10, stretchFac*300.,4);
+    mm.defineBondStretch(10,10, stretchFac*300.,3);
     mm.defineBondStretch(20,20, stretchFac*300.,1.5);
     mm.defineBondStretch(5,10,  stretchFac*300.,1.5);
     mm.defineBondStretch(5,20,  stretchFac*300.,1.5);
     mm.defineBondStretch(20,10, stretchFac*300.,5);
 
-    mm.defineBondBend(20,10,10, bendFac*50., 127);
+    mm.defineBondBend(20,10,10, bendFac*50., 120);
+    mm.defineBondTorsion(20,10,10,20, 1, torsFac*1., 45);
 
     
     MultibodySystem mbs;
@@ -206,7 +208,7 @@ try {
     MassProperties mprops(mass, Vec3(0), InertiaMat(0));
 
     // Create some point mass bodies
-    for (int i=0; i<5; ++i) 
+    for (int i=0; i<4; ++i) 
         molecule.addRigidBody(mprops, Transform(),
                               Ground, Transform(),
                               Mobilizer::Cartesian);
@@ -216,13 +218,13 @@ try {
     display.setDefaultBodyColor(3, Red);
     display.setDefaultBodyColor(2, Green);
     display.setDefaultBodyColor(4, Green);
-    display.setDefaultBodyColor(5, Yellow);
+    //display.setDefaultBodyColor(5, Yellow);
 
     int a1 = mm.addAtom(1, 10, Vec3(0));
     int a2 = mm.addAtom(2, 20, Vec3(0));
     int a3 = mm.addAtom(3, 10, Vec3(0));
     int a4 = mm.addAtom(4, 20, Vec3(0));
-    int a5 = mm.addAtom(5,  5, Vec3(0));
+    //int a5 = mm.addAtom(5,  5, Vec3(0));
 
     display.addDecoration(1,Transform(),
         DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
@@ -232,16 +234,17 @@ try {
         DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
     display.addDecoration(4,Transform(),
         DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
-    display.addDecoration(5,Transform(),
-        DecorativeSphere(vdwRad5).setOpacity(.9).setResolution(3));
+   // display.addDecoration(5,Transform(),
+    //    DecorativeSphere(vdwRad5).setOpacity(.9).setResolution(3));
 
     mm.addBond(a1,a2); 
     mm.addBond(a1,a3); 
+    mm.addBond(a3,a4);
     //mm.addBond(a2,a3);
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
     display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
     display.addRubberBandLine(1, Vec3(0), 3, Vec3(0), ln);
-    //display.addRubberBandLine(2, Vec3(0), 3, Vec3(0), ln);
+    display.addRubberBandLine(3, Vec3(0), 4, Vec3(0), ln);
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -254,17 +257,17 @@ try {
     display.report(s);
 
     const Real d = 0.6*(vdwRad10+vdwRad20);
-    molecule.setMobilizerQ(s, 1, 0,  2*d);
-    molecule.setMobilizerQ(s, 2, 0,  2*d);
-    molecule.setMobilizerQ(s, 2, 1, 2*d);
-    molecule.setMobilizerQ(s, 3, 0,  -2*d);
+    molecule.setMobilizerQ(s, 1, 0,  2);
+    molecule.setMobilizerQ(s, 2, 0,  2);
+    molecule.setMobilizerQ(s, 2, 1, 5);
+    molecule.setMobilizerQ(s, 3, 0,  -2);
     
-    molecule.setMobilizerQ(s, 4, 0,  -2*d);
-    molecule.setMobilizerQ(s, 4, 1, -2*d);
-    molecule.setMobilizerQ(s, 4, 2, 0.5*d);
-    molecule.setMobilizerQ(s, 5, 0,  -d);
-    molecule.setMobilizerQ(s, 5, 1,  3*d);
-    molecule.setMobilizerQ(s, 5, 2,  -3*d);
+    molecule.setMobilizerQ(s, 4, 0,  -2);
+    molecule.setMobilizerQ(s, 4, 1, -5);
+    //molecule.setMobilizerQ(s, 4, 2, 0.5*d);
+    //molecule.setMobilizerQ(s, 5, 0,  -d);
+    //molecule.setMobilizerQ(s, 5, 1,  3*d);
+    //molecule.setMobilizerQ(s, 5, 2,  -3*d);
     
 
     //molecule.setMobilizerU(s, 2, 0, -100);
@@ -276,7 +279,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 10; //ps
 
-    study.setAccuracy(1e-3);
+    study.setAccuracy(1e-7);
     study.initialize(); 
 
     std::vector<State> saveEm;

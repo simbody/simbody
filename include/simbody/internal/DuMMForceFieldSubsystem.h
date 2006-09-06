@@ -87,12 +87,20 @@ public:
     void defineBondBend(int type1, int type2, int type3,
                         Real stiffness, Real nominalAngle);
 
-    // At least one amplitude must be non-zero. 1-2-3-4, 4-3-2-1 
-    // are the same.
-    void defineBondTorsion(int type1, int type2, int type3, int type4,
-        Real amplitude, Real phase, int periodicity,
-        Real amp2, Real phase2, int period2,
-        Real amp3, Real phase3, int period3);
+
+    // Only one term may have a given periodicity.
+    void defineBondTorsion
+       (int type1, int type2, int type3, int type4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees);
+    void defineBondTorsion
+       (int type1, int type2, int type3, int type4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees);
+    void defineBondTorsion
+       (int type1, int type2, int type3, int type4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees,
+        int periodicity3, Real amp3InKcal, Real phase3InDegrees);
 
     // The third atom is the central one to which the other
     // three are bonded; this is not the same in reverse order.
