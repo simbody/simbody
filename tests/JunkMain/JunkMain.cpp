@@ -178,9 +178,13 @@ try {
 
     forces.addGlobalEnergyDrain(50);
 
-    mm.defineAtomType(5,  20., vdwRad5,  vdwFac*0.2,  0*chgFac);
-    mm.defineAtomType(10, 14., vdwRad10, vdwFac*0.2, -1*chgFac);
-    mm.defineAtomType(20, 12., vdwRad20, vdwFac*0.3,  1*chgFac);
+    mm.defineAtomClass(5,  "class5",  10, 0, vdwRad5,  vdwFac*0.2);
+    mm.defineAtomClass(10, "class10",  7, 0, vdwRad10, vdwFac*0.2);
+    mm.defineAtomClass(20, "class20",  6, 0, vdwRad20, vdwFac*0.3);
+
+    mm.defineChargedAtomType(1, "type1",  5,  0*chgFac);
+    mm.defineChargedAtomType(2, "type2", 10, -1*chgFac);
+    mm.defineChargedAtomType(3, "type3", 20,  1*chgFac);
 
     //mm.setVdw14ScaleFactor(0);
     //mm.setCoulomb14ScaleFactor(0);
@@ -193,7 +197,7 @@ try {
     mm.defineBondStretch(20,10, stretchFac*300.,5);
 
     mm.defineBondBend(20,10,10, bendFac*50., 120);
-    mm.defineBondTorsion(20,10,10,20, 1, torsFac*10.,120);
+    mm.defineBondTorsion(20,10,10,20, 1, torsFac*1.,180);
 
     
     MultibodySystem mbs;
@@ -222,12 +226,18 @@ try {
     //    molecule.addRigidBody(mprops, Transform(),
     //                          Ground, Transform(),
     //                          Mobilizer::Cartesian);
+#ifndef NOTDEF
     int b0=molecule.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
-                                 Ground, Transform(),
+                                 Ground, Transform(RotationMat(UnitVec3(1,1,1)), Vec3(-3,-3,-3)),
                                  Mobilizer::Ball);
     int b1=molecule.addRigidBody(mprops1, Transform(),
-                          b0, Transform(),
+                          b0, Transform(RotationMat(UnitVec3(-1,1,-1)), Vec3(1,2,3)),
                           Mobilizer::Cartesian);
+#else
+    int b1=molecule.addRigidBody(mprops1, Transform(RotationMat(UnitVec3(-1,1,-1)), Vec3(1,2,3)),
+                          Ground, Transform(RotationMat(UnitVec3(1,1,1)), Vec3(-3,-3,-3)),
+                          Mobilizer::Free);
+#endif
     int b2=molecule.addRigidBody(mprops2, Transform(),
                           b1, Transform(Vec3(0,0,6)),
                           Mobilizer::Pin); // aligns z axes
@@ -240,11 +250,11 @@ try {
     //display.setDefaultBodyColor(4, Green);
     //display.setDefaultBodyColor(5, Yellow);
 
-    int a1 = mm.addAtom(b1, 10, Vec3(0));
-    int a2 = mm.addAtom(b1, 20, Vec3(0,3,-3));
+    int a1 = mm.addAtom(b1, 2, Vec3(0));
+    int a2 = mm.addAtom(b1, 3, Vec3(0,3,-3));
 
-    int a3 = mm.addAtom(b2, 10, Vec3(0));
-    int a4 = mm.addAtom(b2, 20, Vec3(0,3,3));
+    int a3 = mm.addAtom(b2, 2, Vec3(0));
+    int a4 = mm.addAtom(b2, 3, Vec3(0,3,3));
     //int a5 = mm.addAtom(5,  5, Vec3(0));
 
     display.addDecoration(b1,Transform(),
@@ -269,6 +279,7 @@ try {
 
     State s;
     mbs.realize(s, Stage::Built);
+    //molecule.setUseEulerAngles(s, true);
 
     mm.dump();
 

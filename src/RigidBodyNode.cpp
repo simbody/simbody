@@ -1377,7 +1377,7 @@ public:
             X_JbJ.updT() = fromQVec3(q,3);
         } else {
             X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_JbJ.updT() = fromQVec3(q,4);
+            X_JbJ.updT() = fromQVec3(q,4); // XXX
         }
     }
 
@@ -1393,14 +1393,16 @@ public:
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
 
+
         // The rotational speeds are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
         const RotationMat R_GJb = X_GP.R() * X_PJb.R();
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
+
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G)); // XXX shd be T_JB_G
         H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
         H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
-        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.x()); // XXX shd be R_GJb
         H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
         H[5] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
     }

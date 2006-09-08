@@ -268,18 +268,36 @@ static inline void vdwCombineKong(
     e = er6 / r6;
 }
 
-class AtomType {
+class Element {
 public:
-    AtomType() : mass(-1), vdwRadius(-1), vdwWellDepth(-1), partialCharge(-1) { }
-    AtomType(Real m, Real rad, Real wellKcal, Real chg)
-      : mass(m), vdwRadius(rad), 
-        vdwWellDepth(wellKcal*EnergyUnitsPerKcal), 
-        partialCharge(chg) { }
-    bool isValid() const {return mass >= 0;}
+    Element() : atomicNumber(-1), mass(-1) { }
+    Element(int anum, const char* sym, const char* nm, Real m)
+        : atomicNumber(anum), mass(m), symbol(sym), name(nm)
+    {
+        assert(isValid());
+    }
+    bool isValid() const {return atomicNumber > 0 && mass > 0;}
+
+    int atomicNumber;
+    Real mass;         // in Daltons (Da, g/mol)
+    std::string symbol;
+    std::string name;
+};
+
+class AtomClass {
+public:
+    AtomClass() : element(-1), valence(-1), vdwRadius(-1), vdwWellDepth(-1) { }
+    AtomClass(const char* nm, int e, int v, Real rad, Real wellKcal)
+      : name(nm), element(e), valence(v), vdwRadius(rad), 
+        vdwWellDepth(wellKcal*EnergyUnitsPerKcal)
+    { 
+        assert(isValid());
+    }
+    bool isValid() const {return element > 0 && valence >= 0 && vdwRadius >= 0 && vdwWellDepth >= 0;}
 
     void dump() const {
-        printf("    mass=%g, vdwRad=%g, vdwDepth=%g, chg=%g\n",
-            mass, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal, partialCharge);
+        printf("   %s: element=%d, valence=%d vdwRad=%g, vdwDepth(Kcal)=%g\n",
+            name, element, valence, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal);
         printf("    vdwDij:");
         for (int i=0; i< (int)vdwDij.size(); ++i)
             printf(" %g", vdwDij[i]);
@@ -289,20 +307,41 @@ public:
         printf("\n");
     }
 
-    Real mass;          // in Daltons (Da, g/mol)
+    int element;          // in Daltons (Da, g/mol)
+    int valence;
     Real vdwRadius;     // ri, Angstroms
     Real vdwWellDepth;  // ei, Da-A^2/ps^2
-    Real partialCharge; // qi, in e (charge on proton)
+    std::string name;
 
     // After all types have been defined, we can calculate vdw 
     // combining rules for dmin and well depth energy. We only fill
     // in entries for higher-numberd atom types, so to find the
     // entry for type t, index these arrays by t-t0 where t0 is the
-    // type number of the present AtomType.
+    // type number of the present AtomClass.
     // Note that different combining rules may be used but they
     // will always result in a pair of vdw parameters.
     std::vector<Real> vdwDij;   // A
     std::vector<Real> vdwEij;   // Da-A^2/ps^2
+};
+
+class ChargedAtomType {
+public:
+    ChargedAtomType() : atomClass(-1), partialCharge(CNT<Real>::getNaN()) { }
+    ChargedAtomType(const char* nm, int aclass, Real chg)
+      : name(nm), atomClass(aclass), partialCharge(chg) 
+    { 
+        assert(isValid());
+    }
+    bool isValid() const {return atomClass > 0;}
+
+    void dump() const {
+        printf("    %s: atomClass=%d, chg=%g\n", name, atomClass, partialCharge);
+    }
+
+    int  atomClass;
+    Real partialCharge; // qi, in e (charge on proton)
+
+    std::string name;
 };
 
 // This represents bond-stretch information for a pair of atom types.
@@ -672,12 +711,17 @@ public:
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
 
     // Topological variables; set once.
+    std::vector<Element>  elements;
     std::vector<Body>     bodies;
     std::vector<Atom>     atoms;
     std::vector<Bond>     bonds;
 
-    // Force field description
-    std::vector<AtomType>            types;
+    // Force field description. These are not necessarily fully populated;
+    // check the "isValid()" method to see if anything is there.
+    std::vector<AtomClass>           atomClasses;
+    std::vector<ChargedAtomType>     chargedAtomTypes;
+
+    // These relate atom classes, not charged atom types.
     std::map<IntPair,   BondStretch> bondStretch;
     std::map<IntTriple, BondBend>    bondBend;
     std::map<IntQuad,   BondTorsion> bondTorsion;
@@ -703,8 +747,25 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
         return 0 <= atomNum && atomNum < (int)atoms.size() && atoms[atomNum].isValid();
     }
 
-    bool isValidAtomType(int typeNum) const {
-        return 0 <= typeNum && typeNum < (int)types.size() && types[typeNum].isValid();
+    bool isValidChargedAtomType(int typeNum) const {
+        return 0 <= typeNum && typeNum < (int)chargedAtomTypes.size() 
+               && chargedAtomTypes[typeNum].isValid();
+    }
+
+    bool isValidAtomClass(int classNum) const {
+        return 0 <= classNum && classNum < (int)atomClasses.size() 
+               && atomClasses[classNum].isValid();
+    }
+
+    int getChargedAtomTypeNum(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        return atoms[atomNum].type;
+    }
+
+    int getAtomClassNum(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeNum(atomNum)];
+        return type.atomClass;
     }
 
     // We scale short range interactions but only for bonds which cross bodies.
@@ -730,62 +791,71 @@ public:
     {
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
+        loadElements();
     }
 
     int getNAtoms() const {return (int)atoms.size();}
 
-    void addAtomType(int id, const AtomType& type) {
+    void addAtomClass(int id, const AtomClass& atomClass) {
         assert(id >= 0);
-        if (id >= (int)types.size())
-            types.resize(id+1);
-        assert(!types[id].isValid());
-        types[id] = type;
+        if (id >= (int)atomClasses.size())
+            atomClasses.resize(id+1);
+        assert(!atomClasses[id].isValid());
+        atomClasses[id] = atomClass;
     }
 
-    void addBondStretch(int type1, int type2, const BondStretch& bs) {
-        assert(isValidAtomType(type1) && isValidAtomType(type2));
-        // Canonicalize the pair to have lowest type # first
-        const IntPair key(type1,type2,true);
+    void addChargedAtomType(int id, const ChargedAtomType& atomType) {
+        assert(id >= 0);
+        if (id >= (int)chargedAtomTypes.size())
+            chargedAtomTypes.resize(id+1);
+        assert(!chargedAtomTypes[id].isValid());
+        chargedAtomTypes[id] = atomType;
+    }
+
+    void addBondStretch(int class1, int class2, const BondStretch& bs) {
+        assert(isValidAtomClass(class1) && isValidAtomClass(class2));
+        // Canonicalize the pair to have lowest class # first
+        const IntPair key(class1,class2,true);
         std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
           bondStretch.insert(std::pair<IntPair,BondStretch>(key,bs));
         assert(ret.second); // must not have been there already
     }
 
-    const BondStretch& getBondStretch(int type1, int type2) const {
-        const IntPair key(type1,type2,true);
+    const BondStretch& getBondStretch(int class1, int class2) const {
+        const IntPair key(class1,class2,true);
         std::map<IntPair,BondStretch>::const_iterator bs = bondStretch.find(key);
         assert(bs != bondStretch.end());
         return bs->second;
     }
 
 
-    void addBondBend(int type1, int type2, int type3, const BondBend& bb) {
-        assert(isValidAtomType(type1) && isValidAtomType(type2) && isValidAtomType(type3));
+    void addBondBend(int class1, int class2, int class3, const BondBend& bb) {
+        assert(isValidAtomClass(class1) && isValidAtomClass(class2) && isValidAtomClass(class3));
         // Canonicalize the triple to have lowest type # first
-        const IntTriple key(type1, type2, type3, true);
+        const IntTriple key(class1, class2, class3, true);
         std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
           bondBend.insert(std::pair<IntTriple,BondBend>(key,bb));
         assert(ret.second); // must not have been there already
     }
 
-    const BondBend& getBondBend(int type1, int type2, int type3) const {
-        const IntTriple key(type1, type2, type3, true);
+    const BondBend& getBondBend(int class1, int class2, int class3) const {
+        const IntTriple key(class1, class2, class3, true);
         std::map<IntTriple,BondBend>::const_iterator bb = bondBend.find(key);
         assert(bb != bondBend.end());
         return bb->second;
     }
 
-    void addBondTorsion(int type1, int type2, int type3, int type4, 
+    void addBondTorsion(int class1, int class2, int class3, int class4, 
                         const TorsionTerm& tt1, 
                         const TorsionTerm& tt2=TorsionTerm(),
                         const TorsionTerm& tt3=TorsionTerm()) 
     {
-        assert(isValidAtomType(type1) && isValidAtomType(type2) 
-                && isValidAtomType(type3) && isValidAtomType(type4));
+        assert(isValidAtomClass(class1) && isValidAtomClass(class2) 
+                && isValidAtomClass(class3) && isValidAtomClass(class4));
         assert(tt1.isValid());
 
         // Canonicalize the quad to have lowest type # first
-        const IntQuad key(type1, type2, type3, type4, true);
+        const IntQuad key(class1, class2, class3, class4, true);
         BondTorsion bt;
         if (tt1.isValid()) bt.addTerm(tt1);
         if (tt2.isValid()) bt.addTerm(tt2);
@@ -796,8 +866,8 @@ public:
         assert(ret.second); // must not have been there already
     }
 
-    const BondTorsion& getBondTorsion(int type1, int type2, int type3, int type4) const {
-        const IntQuad key(type1, type2, type3, type4, true);
+    const BondTorsion& getBondTorsion(int class1, int class2, int class3, int class4) const {
+        const IntQuad key(class1, class2, class3, class4, true);
         std::map<IntQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
         assert(bt != bondTorsion.end());
         return bt->second;
@@ -813,12 +883,12 @@ public:
     void setCoulomb14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale14=fac;}
     void setCoulomb15ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale15=fac;}
 
-    int addAtom(int body, int type, const Vec3& station)
+    int addAtom(int body, int chargedAtomType, const Vec3& station)
     {
         ensureBodyExists(body); // create if necessary
         const int atomNum     = (int)atoms.size();
         const int bodyAtomNum = bodies[body].addAtom(atomNum);
-        atoms.push_back(Atom(type,body,bodyAtomNum,station));
+        atoms.push_back(Atom(chargedAtomType,body,bodyAtomNum,station));
         return atomNum;    
     }
 
@@ -886,6 +956,8 @@ public:
 private:
     bool built;
 
+    void loadElements();
+
 };
 
 
@@ -922,47 +994,55 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
     rep->setMyHandle(*this);
 }
 
-void DuMMForceFieldSubsystem::defineAtomType
-   (int id, Real mass, Real vdwRadius, Real vdwWellDepth, Real charge)
+void DuMMForceFieldSubsystem::defineAtomClass
+   (int id, const char* className, int element, int valence, 
+    Real vdwRadius, Real vdwWellDepth)
 {
-    updRep().addAtomType(id, AtomType(mass, vdwRadius, vdwWellDepth, charge));
+    updRep().addAtomClass(id, AtomClass(className, element, valence, 
+                          vdwRadius, vdwWellDepth));
+}
+
+void DuMMForceFieldSubsystem::defineChargedAtomType
+   (int id, const char* typeName, int atomClass, Real partialCharge)
+{
+    updRep().addChargedAtomType(id, ChargedAtomType(typeName, atomClass, partialCharge));
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
-   (int type1, int type2, Real stiffnessInKcalPerASq, Real nominalLengthInA)
+   (int class1, int class2, Real stiffnessInKcalPerASq, Real nominalLengthInA)
 {
-    updRep().addBondStretch(type1, type2, BondStretch(stiffnessInKcalPerASq,nominalLengthInA));
+    updRep().addBondStretch(class1, class2, BondStretch(stiffnessInKcalPerASq,nominalLengthInA));
 }
 
 void DuMMForceFieldSubsystem::defineBondBend
-   (int type1, int type2, int type3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
+   (int class1, int class2, int class3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
 {
-    updRep().addBondBend(type1, type2, type3, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees));
+    updRep().addBondBend(class1, class2, class3, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees));
 }
 
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (int type1, int type2, int type3, int type4, 
+   (int class1, int class2, int class3, int class4, 
     int periodicity1, Real amp1InKcal, Real phase1InDegrees)
 {
-    updRep().addBondTorsion(type1, type2, type3, type4, 
+    updRep().addBondTorsion(class1, class2, class3, class4, 
                             TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees));
 }
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (int type1, int type2, int type3, int type4, 
+   (int class1, int class2, int class3, int class4, 
     int periodicity1, Real amp1InKcal, Real phase1InDegrees,
     int periodicity2, Real amp2InKcal, Real phase2InDegrees)
 {
-    updRep().addBondTorsion(type1, type2, type3, type4, 
+    updRep().addBondTorsion(class1, class2, class3, class4, 
                             TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees),
                             TorsionTerm(periodicity2,amp2InKcal,phase2InDegrees));
 }
 void DuMMForceFieldSubsystem::defineBondTorsion
-   (int type1, int type2, int type3, int type4, 
+   (int class1, int class2, int class3, int class4, 
     int periodicity1, Real amp1InKcal, Real phase1InDegrees,
     int periodicity2, Real amp2InKcal, Real phase2InDegrees,
     int periodicity3, Real amp3InKcal, Real phase3InDegrees)
 {
-    updRep().addBondTorsion(type1, type2, type3, type4, 
+    updRep().addBondTorsion(class1, class2, class3, class4, 
                             TorsionTerm(periodicity1,amp1InKcal,phase1InDegrees),
                             TorsionTerm(periodicity2,amp2InKcal,phase2InDegrees),
                             TorsionTerm(periodicity3,amp3InKcal,phase3InDegrees));
@@ -978,9 +1058,9 @@ void DuMMForceFieldSubsystem::setCoulomb13ScaleFactor(Real fac) {updRep().setCou
 void DuMMForceFieldSubsystem::setCoulomb14ScaleFactor(Real fac) {updRep().setCoulomb14ScaleFactor(fac);}
 void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {updRep().setCoulomb15ScaleFactor(fac);}
 
-int DuMMForceFieldSubsystem::addAtom(int body, int type, const Vec3& station)
+int DuMMForceFieldSubsystem::addAtom(int body, int chargedAtomType, const Vec3& station)
 {
-    return updRep().addAtom(body, type, station);
+    return updRep().addAtom(body, chargedAtomType, station);
 }
 
 int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
@@ -1009,29 +1089,29 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         const_cast<DuMMForceFieldSubsystemRep*>(this);
 
     // Calculate effective van der Waals parameters for all 
-    // pairs of atom types. We only fill in the diagonal
-    // and upper triangle; that is, each type contains
-    // parameters for like types and all types whose
-    // (arbitrary) type number is higher.
-    for (int i=0; i < (int)types.size(); ++i) {
-        if (!types[i].isValid()) continue;
+    // pairs of atom classes. We only fill in the diagonal
+    // and upper triangle; that is, each class contains
+    // parameters for like classes and all classes whose
+    // (arbitrary) class number is higher.
+    for (int i=0; i < (int)atomClasses.size(); ++i) {
+        if (!atomClasses[i].isValid()) continue;
 
-        AtomType& itype = mutableThis->types[i];
-        itype.vdwDij.resize((int)types.size()-i, CNT<Real>::getNaN());
-        itype.vdwEij.resize((int)types.size()-i, CNT<Real>::getNaN()); 
-        for (int j=i; j < (int)types.size(); ++j) {
-            const AtomType& jtype = types[j];
-            if (jtype.isValid())
-                applyMixingRule(itype.vdwRadius,    jtype.vdwRadius,
-                                itype.vdwWellDepth, jtype.vdwWellDepth,
-                                itype.vdwDij[j-i],  itype.vdwEij[j-i]);
+        AtomClass& iclass = mutableThis->atomClasses[i];
+        iclass.vdwDij.resize((int)atomClasses.size()-i, CNT<Real>::getNaN());
+        iclass.vdwEij.resize((int)atomClasses.size()-i, CNT<Real>::getNaN()); 
+        for (int j=i; j < (int)atomClasses.size(); ++j) {
+            const AtomClass& jclass = atomClasses[j];
+            if (jclass.isValid())
+                applyMixingRule(iclass.vdwRadius,    jclass.vdwRadius,
+                                iclass.vdwWellDepth, jclass.vdwWellDepth,
+                                iclass.vdwDij[j-i],  iclass.vdwEij[j-i]);
 
         }
     }
     // need to chase bonds to fill in the bonded data
     // Be sure only to find the *shortest* path between two atoms
-    for (int i=0; i < (int)atoms.size(); ++i) {
-        Atom& a = mutableThis->atoms[i];
+    for (int anum=0; anum < (int)atoms.size(); ++anum) {
+        Atom& a = mutableThis->atoms[anum];
         std::set<int> allBondedSoFar;   // to avoid duplicate paths
 
         // Only the bond12 list should be filled in at the moment. We'll sort
@@ -1039,7 +1119,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         std::sort(a.bond12.begin(), a.bond12.end());
 
         // Add this atom and its direct (1-2) bonds to the list of all bonded atoms.
-        allBondedSoFar.insert(i);
+        allBondedSoFar.insert(anum);
         for (int j=0; j < (int)a.bond12.size(); ++j)
             allBondedSoFar.insert(a.bond12[j]);
 
@@ -1119,20 +1199,23 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
         // Save a BondStretch entry for each 1-2 bond
         a.stretch.resize(a.xbond12.size());
         for (int b12=0; b12 < (int)a.xbond12.size(); ++b12)
-            a.stretch[b12] = getBondStretch(a.type, atoms[a.xbond12[b12]].type);
+            a.stretch[b12] = getBondStretch(getAtomClassNum(anum), 
+                                            getAtomClassNum(a.xbond12[b12]));
 
         // Save a BondBend entry for each 1-3 bond
         a.bend.resize(a.xbond13.size());
         for (int b13=0; b13 < (int)a.xbond13.size(); ++b13)
-            a.bend[b13] = getBondBend(a.type, atoms[a.xbond13[b13][0]].type, 
-                                              atoms[a.xbond13[b13][1]].type);
+            a.bend[b13] = getBondBend(getAtomClassNum(anum), 
+                                      getAtomClassNum(a.xbond13[b13][0]), 
+                                      getAtomClassNum(a.xbond13[b13][1]));
 
         // Save a BondTorsion entry for each 1-4 bond
         a.torsion.resize(a.xbond14.size());
         for (int b14=0; b14 < (int)a.xbond14.size(); ++b14)
-            a.torsion[b14] = getBondTorsion(a.type, atoms[a.xbond14[b14][0]].type, 
-                                                    atoms[a.xbond14[b14][1]].type,
-                                                    atoms[a.xbond14[b14][2]].type);
+            a.torsion[b14] = getBondTorsion(getAtomClassNum(anum), 
+                                            getAtomClassNum(a.xbond14[b14][0]), 
+                                            getAtomClassNum(a.xbond14[b14][1]),
+                                            getAtomClassNum(a.xbond14[b14][2]));
     }
 
     mutableThis->built = true;
@@ -1172,7 +1255,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
         for (int i=0; i < (int)alist1.size(); ++i) {
             const int       a1num = alist1[i];
             const Atom&     a1 = atoms[a1num];
-            const AtomType& a1type = types[a1.type];
+            const ChargedAtomType& a1type  = chargedAtomTypes[a1.type];
+            int                    a1cnum = a1type.atomClass;
+            const AtomClass&       a1class = atomClasses[a1cnum];
             const Vec3      a1Station_G = X_GB1.R()*a1.station;
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
             const Real      q1Fac = CoulombFac*a1type.partialCharge;
@@ -1294,7 +1379,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const int       a2num = alist2[j];
                     assert(a2num != a1num);
                     const Atom&     a2 = atoms[a2num];
-                    const AtomType& a2type = types[a2.type];
+                    const ChargedAtomType& a2type  = chargedAtomTypes[a2.type];
+                    int                    a2cnum  = a2type.atomClass;
+                    const AtomClass&       a2class = atomClasses[a2cnum];
                     
                     const Vec3  a2Station_G = X_GB2.R()*a2.station; // 15 flops
                     const Vec3  a2Pos_G     = X_GB2.T() + a2Station_G;  // 3 flops
@@ -1316,11 +1403,11 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                     // van der Waals.
 
-                    // Get precomputed mixed dmin and emin. Must ask the lower-numbered atom type.
-                    const Real dij = (a1.type <= a2.type ? a1type.vdwDij[a2.type-a1.type]
-                                                         : a2type.vdwDij[a1.type-a2.type]);
-                    const Real eij = (a1.type <= a2.type ? a1type.vdwEij[a2.type-a1.type]
-                                                         : a2type.vdwEij[a1.type-a2.type]);
+                    // Get precomputed mixed dmin and emin. Must ask the lower-numbered atom class.
+                    const Real dij = (a1cnum <= a2cnum ? a1class.vdwDij[a2cnum-a1cnum]
+                                                       : a2class.vdwDij[a1cnum-a2cnum]);
+                    const Real eij = (a1cnum <= a2cnum ? a1class.vdwEij[a2cnum-a1cnum]
+                                                       : a2class.vdwEij[a1cnum-a2cnum]);
 
                     const Real ddij2  = dij*dij*ood2;        // (dmin_ij/d)^2 (2 flops)
                     const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
@@ -1385,11 +1472,41 @@ void DuMMForceFieldSubsystemRep::unscaleBondedAtoms
         }
 }
 
+void DuMMForceFieldSubsystemRep::loadElements() {
+    elements.resize(93); // Room for 1-92. I guess that's a little ambitious!
+    elements[1] =Element(1,  "H",  "Hydrogen",    1.008);
+    elements[2] =Element(2,  "He", "Helium",      4.003);
+    elements[3] =Element(3,  "Li", "Lithium",     6.941);
+    elements[6] =Element(6,  "C",  "Carbon",     12.011);
+    elements[7] =Element(7,  "N",  "Nitrogen",   14.007);
+    elements[8] =Element(8,  "O",  "Oxygen",     15.999);
+    elements[9] =Element(9,  "F",  "Fluorine",   18.998);
+    elements[10]=Element(10, "Ne", "Neon",       20.180);
+    elements[11]=Element(11, "Na", "Sodium",     22.990);
+    elements[12]=Element(12, "Mg", "Magnesium",  24.305);
+    elements[14]=Element(14, "Si", "Silicon",    28.086);
+    elements[15]=Element(15, "P",  "Phosphorus", 30.974);
+    elements[16]=Element(16, "S",  "Sulphur",    32.066);
+    elements[17]=Element(17, "Cl", "Chlorine",   35.453);
+    elements[18]=Element(18, "Ar", "Argon",      39.948);
+    elements[19]=Element(19, "K",  "Potassium",  39.098);
+    elements[20]=Element(20, "Ca", "Calcium",    40.078);
+    elements[26]=Element(26, "Fe", "Iron",       55.845);
+    elements[29]=Element(29, "Cu", "Copper",     63.546);
+    elements[30]=Element(30, "Zn", "Zinc",       65.390);
+    elements[36]=Element(36, "Kr", "Krypton",    83.800);
+    elements[47]=Element(47, "Ag", "Silver",    107.868);
+    elements[53]=Element(53, "I",  "Iodine",    126.904);
+    elements[54]=Element(54, "Xe", "Xenon",     131.290);
+    elements[79]=Element(79, "Au", "Gold",      196.967);
+    elements[92]=Element(92, "U",  "Uranium",   238.029);
+}
+
 void DuMMForceFieldSubsystemRep::dump() const 
 {
     printf("Dump of DuMMForceFieldSubsystem:\n");
-    printf("  NBodies=%d NAtoms=%d NAtomTypes=%d NBonds=%d\n",
-        bodies.size(), atoms.size(), types.size(), bonds.size());
+    printf("  NBodies=%d NAtoms=%d NAtomClasses=%d NChargedAtomTypes=%d NBonds=%d\n",
+        bodies.size(), atoms.size(), atomClasses.size(), chargedAtomTypes.size(), bonds.size());
     for (int i=0; i < (int)bodies.size(); ++i) {
         printf("  Body %d:\n", i);
         bodies[i].dump();
@@ -1398,10 +1515,15 @@ void DuMMForceFieldSubsystemRep::dump() const
         printf("  Atom %d: ", i);
         atoms[i].dump();
     }
-    for (int i=0; i < (int)types.size(); ++i) {
-        if (!types[i].isValid()) continue;
-        printf("  AtomType %d:\n", i);
-        types[i].dump();
+    for (int i=0; i < (int)atomClasses.size(); ++i) {
+        if (!atomClasses[i].isValid()) continue;
+        printf("  AtomClass %d:\n", i);
+        atomClasses[i].dump();
+    }
+    for (int i=0; i < (int)chargedAtomTypes.size(); ++i) {
+        if (!chargedAtomTypes[i].isValid()) continue;
+        printf("  ChargedAtomType %d:\n", i);
+        chargedAtomTypes[i].dump();
     }
 }
 

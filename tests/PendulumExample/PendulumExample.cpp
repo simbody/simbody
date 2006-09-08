@@ -148,7 +148,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 2;
+static int NSegments = 4;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -396,7 +396,7 @@ int main(int argc, char** argv) {
            // if (myStudy.getT() >= 10*expectedPeriod)
              //   break;
     
-            if (s.getTime() >= 20)
+            if (s.getTime() >= 10)
                 break;
 
             // TODO: should check for errors or have or teach RKM to throw. 
