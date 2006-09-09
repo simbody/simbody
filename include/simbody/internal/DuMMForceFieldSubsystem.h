@@ -136,6 +136,12 @@ public:
     int addBond(int atom1, int atom2);
     int getNAtoms() const;
 
+    Real getAtomMass(int atomNum) const;
+    Real getAtomRadius(int atomNum) const;
+    Vec3 getAtomStation(int atomNum) const;
+    int getAtomBody(int atomNum) const;
+    Vec3 getAtomDefaultColor(int atomNum) const;
+
     void dump() const; // to stdout
 
 

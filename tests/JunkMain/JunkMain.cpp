@@ -163,119 +163,141 @@ return 0;
 int main() {
 try {
     SimbodyMatterSubsystem   molecule;
+    SimbodyMatterSubsystem   ethane;
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
-    const Real vdwRad5  = 2.2;
-    const Real vdwRad10 = 2.0;
-    const Real vdwRad20 = 1.5;
+    bool useRigid = true;
     const Real vdwFac = 1;
     const Real chgFac = 1;
     const Real stretchFac = 1;
     const Real bendFac = 1;
     const Real torsFac = 1;
 
+    forces.addGlobalEnergyDrain(10);
 
-    forces.addGlobalEnergyDrain(50);
+    // AMBER 99
 
-    mm.defineAtomClass(5,  "class5",  10, 0, vdwRad5,  vdwFac*0.2);
-    mm.defineAtomClass(10, "class10",  7, 0, vdwRad10, vdwFac*0.2);
-    mm.defineAtomClass(20, "class20",  6, 0, vdwRad20, vdwFac*0.3);
-
-    mm.defineChargedAtomType(1, "type1",  5,  0*chgFac);
-    mm.defineChargedAtomType(2, "type2", 10, -1*chgFac);
-    mm.defineChargedAtomType(3, "type3", 20,  1*chgFac);
-
-    //mm.setVdw14ScaleFactor(0);
-    //mm.setCoulomb14ScaleFactor(0);
-
-    mm.defineBondStretch(5,5,   stretchFac*300.,2.5);
-    mm.defineBondStretch(10,10, stretchFac*300.,3);
-    mm.defineBondStretch(20,20, stretchFac*300.,1.5);
-    mm.defineBondStretch(5,10,  stretchFac*300.,1.5);
-    mm.defineBondStretch(5,20,  stretchFac*300.,1.5);
-    mm.defineBondStretch(20,10, stretchFac*300.,5);
-
-    mm.defineBondBend(20,10,10, bendFac*50., 120);
-    mm.defineBondTorsion(20,10,10,20, 1, torsFac*1.,180);
-
+    mm.setVdw14ScaleFactor(2.0);
+    mm.setCoulomb14ScaleFactor(1.2);
+    mm.defineAtomClass(1,  "Amber99 CT", 6, 4, 1.9080, vdwFac*0.1094);
+    mm.defineAtomClass(34, "Amber99 HC", 1, 1, 1.4870, vdwFac*0.0157); 
+    mm.defineChargedAtomType(13, "Amber99 Alanine CB", 1, -0.1825*chgFac);
+    mm.defineChargedAtomType(14, "Amber99 Alanine HB", 34, 0.0603*chgFac);
+    mm.defineBondStretch(1,1,  stretchFac*310., 1.5260);
+    mm.defineBondStretch(1,34, stretchFac*340., 1.09);
+    mm.defineBondBend(1,1,34, bendFac*50, 109.5);
+    mm.defineBondBend(34,1,34, bendFac*35, 109.5);
+    mm.defineBondTorsion(34,1,1,34, 3, torsFac*0.150, 0);
     
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(molecule);
+    mbs.setMatterSubsystem(useRigid ? ethane : molecule);
     mbs.addForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
+    // ethane:
+    // atom 0 is carbon1
+    // atoms 1,2,3 are attached to carbon1
+    // atom 4 is carbon2
+    // atoms 5,6,7 are attached to carbon2
 
+    const int nAtoms = 8;
+    const Real massH = 1.008, massC = 12.011;
+    // This is the description of the joint between the two bodies. We
+    // want to rotate about the X axes, shifted by the length of a C-C bond.
+    // Pin joints rotate around Z, so we need to rotate the joint frames
+    // by +90 degrees around Y.
+    const Vec3 ccBond(1.53688, 0, 0);
+    RotationMat ccJointFrame; ccJointFrame.setToBodyFixed123(Vec3(0,Pi/2,0));
 
-    // Collect mass, center of mass, and inertia 
-    const Real mass1=14+12;
-    const Vec3 com1=(14*Vec3(0,0,0)+12*Vec3(0,3,-3))/mass1;
-    InertiaMat iner1 = InertiaMat(Vec3(0,0,0), 14)
-                      + InertiaMat(Vec3(0,3,-3), 12)
-                      + InertiaMat(0.1,0.1,0.1);
-    const Real mass2=14+12;
-    const Vec3 com2=(14*Vec3(0,0,0)+12*Vec3(0,3,3))/mass2;
-    InertiaMat iner2 = InertiaMat(Vec3(0,0,0), 14) 
-                      + InertiaMat(Vec3(0,3,3), 12)
-                      + InertiaMat(0.1,0.1,0.1);
+    int  type[] = {13,14,14,14, 13,14,14,14};
+    int  body[] = {2,2,2,2, 3,3,3,3};
+    Real mass[] = {massH, massC, massC, massC,
+                   massH, massC, massC, massC};
+    Vec3 station[] = { Vec3(0), Vec3(-.3778,1.02422,0), Vec3(-.3778,-0.514034,-0.885898), Vec3(-.3778,-0.510199,0.888107),
+                       Vec3(0), Vec3(.3778,0.510199,0.888107), Vec3(.3778,0.514034,-0.885898),
+                                Vec3(.3778,-1.02422,0) };
+
+    // Collect mass, center of mass, and inertia
+    Real mass1=0, mass2=0;
+    Vec3 com1(0), com2(0);
+    InertiaMat iner1(0), iner2(0);
+    for (int i=0; i<4; ++i) {
+        mass1 += mass[i]; mass2 += mass[i+4];
+        com1 += mass[i]*station[i]; com2 += mass[i+4]*station[i+4];
+        iner1 += InertiaMat(station[i], mass[i]);
+        iner2 += InertiaMat(station[i+4], mass[i+4]);
+    }
+    com1 /= mass1; com2 /= mass2;
+
     MassProperties mprops1(mass1,com1,iner1);
     MassProperties mprops2(mass2,com2,iner2);
+    int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
+                                Ground, Transform(),
+                                Mobilizer::Ball);
+    int b1 = ethane.addRigidBody(mprops1, Transform(),
+                                b0, Transform(),
+                                Mobilizer::Cartesian);
+    int b2 = ethane.addRigidBody(mprops2, Transform(ccJointFrame),
+                                b1, Transform(ccJointFrame, ccBond),
+                                Mobilizer::Pin);
 
-    // Create some point mass bodies
-    //for (int i=0; i<4; ++i) 
-    //    molecule.addRigidBody(mprops, Transform(),
-    //                          Ground, Transform(),
-    //                          Mobilizer::Cartesian);
-#ifndef NOTDEF
-    int b0=molecule.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
-                                 Ground, Transform(RotationMat(UnitVec3(1,1,1)), Vec3(-3,-3,-3)),
-                                 Mobilizer::Ball);
-    int b1=molecule.addRigidBody(mprops1, Transform(),
-                          b0, Transform(RotationMat(UnitVec3(-1,1,-1)), Vec3(1,2,3)),
-                          Mobilizer::Cartesian);
-#else
-    int b1=molecule.addRigidBody(mprops1, Transform(RotationMat(UnitVec3(-1,1,-1)), Vec3(1,2,3)),
-                          Ground, Transform(RotationMat(UnitVec3(1,1,1)), Vec3(-3,-3,-3)),
-                          Mobilizer::Free);
-#endif
-    int b2=molecule.addRigidBody(mprops2, Transform(),
-                          b1, Transform(Vec3(0,0,6)),
-                          Mobilizer::Pin); // aligns z axes
-
+    MassProperties mH(massH, Vec3(0), InertiaMat(0));
+    MassProperties mC(massC, Vec3(0), InertiaMat(0));
+    for (int i=0; i<2; ++i) 
+        ethane.addRigidBody(mC, Transform(),
+                              Ground, Transform(),
+                              Mobilizer::Cartesian);
+    for (int i=0; i<6; ++i) 
+        ethane.addRigidBody(mH, Transform(),
+                              Ground, Transform(),
+                              Mobilizer::Cartesian);
 
     VTKReporter display(mbs);
-    display.setDefaultBodyColor(b1, Red);
-    //display.setDefaultBodyColor(3, Red);
-    display.setDefaultBodyColor(b2, Green);
-    //display.setDefaultBodyColor(4, Green);
-    //display.setDefaultBodyColor(5, Yellow);
 
-    int a1 = mm.addAtom(b1, 2, Vec3(0));
-    int a2 = mm.addAtom(b1, 3, Vec3(0,3,-3));
+// Rigid
+    int c1 = mm.addAtom(body[0], 13, station[0]);
+    int h11 = mm.addAtom(body[1], 14, station[1]);
+    int h12 = mm.addAtom(body[2], 14, station[2]);
+    int h13 = mm.addAtom(body[3], 14, station[3]);
 
-    int a3 = mm.addAtom(b2, 2, Vec3(0));
-    int a4 = mm.addAtom(b2, 3, Vec3(0,3,3));
-    //int a5 = mm.addAtom(5,  5, Vec3(0));
+    int c2 = mm.addAtom(body[4], 13, station[4]);
+    int h21 = mm.addAtom(body[5], 14, station[5]);
+    int h22 = mm.addAtom(body[6], 14, station[6]);
+    int h23 = mm.addAtom(body[7], 14, station[7]);
 
-    display.addDecoration(b1,Transform(),
-        DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
-    display.addDecoration(b1,Transform(Vec3(0,3,-3)),
-        DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
-    display.addDecoration(b2,Transform(),
-        DecorativeSphere(vdwRad10).setOpacity(0.3).setResolution(3));
-    display.addDecoration(b2,Transform(Vec3(0,3,3)),
-        DecorativeSphere(vdwRad20).setOpacity(1).setResolution(3));
-   // display.addDecoration(5,Transform(),
-    //    DecorativeSphere(vdwRad5).setOpacity(.9).setResolution(3));
+    mm.addBond(c1,c2);
+    mm.addBond(c1,h11); mm.addBond(c1,h12); mm.addBond(c1,h13);
+    mm.addBond(c2,h21); mm.addBond(c2,h22); mm.addBond(c2,h23);
 
-    mm.addBond(a1,a2); 
-    mm.addBond(a1,a3); 
-    mm.addBond(a3,a4);
-    //mm.addBond(a2,a3);
+// Cartesian
+    int cc1 = mm.addAtom(b2+1, 13, Vec3(0));
+    int cc2 = mm.addAtom(b2+2, 13, Vec3(0));
+    int ch11 = mm.addAtom(b2+3, 14, Vec3(0));
+    int ch12 = mm.addAtom(b2+4, 14, Vec3(0));
+    int ch13 = mm.addAtom(b2+5, 14, Vec3(0));
+    int ch21 = mm.addAtom(b2+6, 14, Vec3(0));
+    int ch22 = mm.addAtom(b2+7, 14, Vec3(0));
+    int ch23 = mm.addAtom(b2+8, 14, Vec3(0));
+
+
+    mm.addBond(cc1,cc2);
+    mm.addBond(cc1,ch11); mm.addBond(cc1,ch12); mm.addBond(cc1,ch13);
+    mm.addBond(cc2,ch21); mm.addBond(cc2,ch22); mm.addBond(cc2,ch23);
+
+/*
     DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
-    display.addRubberBandLine(b1, Vec3(0), b1, Vec3(0,3,-3), ln);
-    display.addRubberBandLine(b2, Vec3(0), b2, Vec3(0,3,3), ln);
-    display.addRubberBandLine(b1, Vec3(0), b2, Vec3(0), ln);
+    display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
+    for (int i=3; i<=5; ++i)
+        display.addRubberBandLine(1, Vec3(0), i, Vec3(0), ln);
+    for (int i=6; i<=8; ++i)
+        display.addRubberBandLine(2, Vec3(0), i, Vec3(0), ln);
+*/
+    for (int anum=0; anum < mm.getNAtoms(); ++anum) {
+        display.addDecoration(mm.getAtomBody(anum), Transform(mm.getAtomStation(anum)),
+            DecorativeSphere(0.25*mm.getAtomRadius(anum))
+                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(1).setResolution(3));
+    }
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -288,23 +310,43 @@ try {
 
     display.report(s);
 
-    const Real d = 0.6*(vdwRad10+vdwRad20);
-    molecule.setMobilizerQ(s, b2, 0, Pi/2);
-    molecule.setMobilizerU(s, b2, 0, 0);
-    //molecule.setMobilizerQ(s, 1, 0,  2);
-    //molecule.setMobilizerQ(s, 2, 0,  2);
-   // molecule.setMobilizerQ(s, 2, 1, 5);
-   // molecule.setMobilizerQ(s, 3, 0,  -2);
-    
-   // molecule.setMobilizerQ(s, 4, 0,  -2);
-   // molecule.setMobilizerQ(s, 4, 1, -5);
-    //molecule.setMobilizerQ(s, 4, 2, 0.5*d);
-    //molecule.setMobilizerQ(s, 5, 0,  -d);
-    //molecule.setMobilizerQ(s, 5, 1,  3*d);
-    //molecule.setMobilizerQ(s, 5, 2,  -3*d);
-    
+    ethane.setMobilizerU(s, b1, 1, 10);
 
-    //molecule.setMobilizerU(s, 2, 0, -100);
+    ethane.setMobilizerQ(s, b2, 0, Pi/3);
+    ethane.setMobilizerU(s, b2, 0, 100);
+
+    const Real yoffs = 4;
+
+    ethane.setMobilizerQ(s, b2+1, 1, yoffs); // shift 2nd molecule up yoffs in y
+    //ethane.setMobilizerU(s, b2+1, 1, -10);
+
+    ethane.setMobilizerQ(s, b2+2, 0, 1.53688+.05/*distort bond*/);
+    ethane.setMobilizerQ(s, b2+2, 1, yoffs);
+
+    ethane.setMobilizerQ(s, b2+3, 0, -.3778);
+    ethane.setMobilizerQ(s, b2+3, 1,  1.02422+yoffs);
+    ethane.setMobilizerQ(s, b2+3, 2,  0);
+
+    ethane.setMobilizerQ(s, b2+4, 0, -.3778);
+    ethane.setMobilizerQ(s, b2+4, 1, -0.514034+yoffs);
+    ethane.setMobilizerQ(s, b2+4, 2, -0.885898);
+
+    ethane.setMobilizerQ(s, b2+5, 0, -.3778);
+    ethane.setMobilizerQ(s, b2+5, 1, -0.510199+yoffs);
+    ethane.setMobilizerQ(s, b2+5, 2, 0.888107);
+
+
+    ethane.setMobilizerQ(s, b2+6, 0, .3778+1.53688);
+    ethane.setMobilizerQ(s, b2+6, 1,  0.510199+yoffs);
+    ethane.setMobilizerQ(s, b2+6, 2,  0.888107);
+
+    ethane.setMobilizerQ(s, b2+7, 0, .3778+1.53688);
+    ethane.setMobilizerQ(s, b2+7, 1, 0.514034+yoffs);
+    ethane.setMobilizerQ(s, b2+7, 2, -0.885898);
+
+    ethane.setMobilizerQ(s, b2+8, 0, .3778+1.53688);
+    ethane.setMobilizerQ(s, b2+8, 1, -1.02422+yoffs);
+    ethane.setMobilizerQ(s, b2+8, 2, 0);
 
     display.report(s);
 
@@ -313,7 +355,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 10; //ps
 
-    study.setAccuracy(1e-7);
+    study.setAccuracy(1e-2);
     study.initialize(); 
 
     std::vector<State> saveEm;
@@ -341,7 +383,18 @@ try {
         }
         ++step;
     }
+/*
+    const Transform& c1X = molecule.getBodyConfiguration(s, 1);
+    cout << "h11=" << ~c1X*molecule.getBodyConfiguration(s, 3) << endl;
+    cout << "h12=" << ~c1X*molecule.getBodyConfiguration(s, 4) << endl;
+    cout << "h13=" << ~c1X*molecule.getBodyConfiguration(s, 5) << endl;
 
+    const Transform& c2X = molecule.getBodyConfiguration(s, 2);
+    cout << "c2=" << ~c1X*c2X << endl;
+    cout << "h21=" << ~c2X*molecule.getBodyConfiguration(s, 6) << endl;
+    cout << "h22=" << ~c2X*molecule.getBodyConfiguration(s, 7) << endl;
+    cout << "h23=" << ~c2X*molecule.getBodyConfiguration(s, 8) << endl;
+*/
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
             display.report(saveEm[i]);

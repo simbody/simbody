@@ -31,6 +31,8 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 
+#include "simbody/internal/DecorativeGeometry.h"
+
 #include "ForceSubsystemRep.h"
 
 #include <string>
@@ -64,7 +66,7 @@ public:
         if (canon) canonicalize();
     }
     int operator[](int i) const {assert(0<=i&&i<2); return ints[i];}
-    bool isValid() const {return ints[0]>0 && ints[1]>0;}
+    bool isValid() const {return ints[0]>=0 && ints[1]>=0;}
     // canonical is low,high
     void canonicalize() {if(ints[0]>ints[1]) std::swap(ints[0],ints[1]);}
 private:
@@ -85,7 +87,7 @@ public:
         if (canon) canonicalize();
     }
     int operator[](int i) const {assert(0<=i&&i<3); return ints[i];}
-    bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0;}
+    bool isValid() const {return ints[0]>=0 && ints[1]>=0 && ints[2]>=0;}
     // canonical has 1st number <= last number; middle stays put
     void canonicalize() {if(ints[0]>ints[2]) std::swap(ints[0],ints[2]);}
 private:
@@ -108,7 +110,7 @@ public:
         if (canon) canonicalize();
     }
     int operator[](int i) const {assert(0<=i&&i<4); return ints[i];}
-    bool isValid() const {return ints[0]>0 && ints[1]>0 && ints[2]>0 && ints[3]>0;}
+    bool isValid() const {return ints[0]>=0 && ints[1]>=0 && ints[2]>=0 && ints[3]>=0;}
     // canonical has 1st number <= last number; middle two must swap
     // if the outside ones do
     void canonicalize() {
@@ -270,16 +272,22 @@ static inline void vdwCombineKong(
 
 class Element {
 public:
-    Element() : atomicNumber(-1), mass(-1) { }
+    Element() : atomicNumber(-1), mass(-1), defaultColor(Gray) { }
     Element(int anum, const char* sym, const char* nm, Real m)
-        : atomicNumber(anum), mass(m), symbol(sym), name(nm)
+        : atomicNumber(anum), mass(m), defaultColor(Gray), symbol(sym), name(nm)
     {
         assert(isValid());
     }
     bool isValid() const {return atomicNumber > 0 && mass > 0;}
 
+    Element& setDefaultColor(const Vec3& c) {
+        defaultColor = c;
+        return *this;
+    }
+
     int atomicNumber;
     Real mass;         // in Daltons (Da, g/mol)
+    Vec3 defaultColor;
     std::string symbol;
     std::string name;
 };
@@ -297,7 +305,7 @@ public:
 
     void dump() const {
         printf("   %s: element=%d, valence=%d vdwRad=%g, vdwDepth(Kcal)=%g\n",
-            name, element, valence, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal);
+            name.c_str(), element, valence, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal);
         printf("    vdwDij:");
         for (int i=0; i< (int)vdwDij.size(); ++i)
             printf(" %g", vdwDij[i]);
@@ -335,7 +343,7 @@ public:
     bool isValid() const {return atomClass > 0;}
 
     void dump() const {
-        printf("    %s: atomClass=%d, chg=%g\n", name, atomClass, partialCharge);
+        printf("    %s: atomClass=%d, chg=%g\n", name.c_str(), atomClass, partialCharge);
     }
 
     int  atomClass;
@@ -757,16 +765,6 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
                && atomClasses[classNum].isValid();
     }
 
-    int getChargedAtomTypeNum(int atomNum) const {
-        assert(isValidAtom(atomNum));
-        return atoms[atomNum].type;
-    }
-
-    int getAtomClassNum(int atomNum) const {
-        assert(isValidAtom(atomNum));
-        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeNum(atomNum)];
-        return type.atomClass;
-    }
 
     // We scale short range interactions but only for bonds which cross bodies.
     void scaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const;
@@ -795,6 +793,51 @@ public:
     }
 
     int getNAtoms() const {return (int)atoms.size();}
+
+    int getChargedAtomTypeNum(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        return atoms[atomNum].type;
+    }
+
+    int getAtomClassNum(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeNum(atomNum)];
+        return type.atomClass;
+    }
+
+    int getAtomElementNum(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const AtomClass& cl = atomClasses[getAtomClassNum(atomNum)];
+        return cl.element;
+    }
+
+    Real getAtomMass(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const Element& e = elements[getAtomElementNum(atomNum)];
+        return e.mass;
+    }
+
+    const Vec3& getAtomDefaultColor(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const Element& e = elements[getAtomElementNum(atomNum)];
+        return e.defaultColor;
+    }
+
+    Real getAtomRadius(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        const AtomClass& cl = atomClasses[getAtomClassNum(atomNum)];
+        return cl.vdwRadius;
+    }
+
+    const Vec3& getAtomStation(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        return atoms[atomNum].station;
+    }
+
+    int getAtomBody(int atomNum) const {
+        assert(isValidAtom(atomNum));
+        return atoms[atomNum].bodyNum;
+    }
 
     void addAtomClass(int id, const AtomClass& atomClass) {
         assert(id >= 0);
@@ -873,15 +916,15 @@ public:
         return bt->second;
     }
 
-    void setVdw12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale12=fac;}
-    void setVdw13ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale13=fac;}
-    void setVdw14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale14=fac;}
-    void setVdw15ScaleFactor(Real fac) {assert(0<=fac && fac<=1); vdwScale15=fac;}
+    void setVdw12ScaleFactor(Real fac) {assert(0<=fac); vdwScale12=fac;}
+    void setVdw13ScaleFactor(Real fac) {assert(0<=fac); vdwScale13=fac;}
+    void setVdw14ScaleFactor(Real fac) {assert(0<=fac); vdwScale14=fac;}
+    void setVdw15ScaleFactor(Real fac) {assert(0<=fac); vdwScale15=fac;}
 
-    void setCoulomb12ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale12=fac;}
-    void setCoulomb13ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale13=fac;}
-    void setCoulomb14ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale14=fac;}
-    void setCoulomb15ScaleFactor(Real fac) {assert(0<=fac && fac<=1); coulombScale15=fac;}
+    void setCoulomb12ScaleFactor(Real fac) {assert(0<=fac); coulombScale12=fac;}
+    void setCoulomb13ScaleFactor(Real fac) {assert(0<=fac); coulombScale13=fac;}
+    void setCoulomb14ScaleFactor(Real fac) {assert(0<=fac); coulombScale14=fac;}
+    void setCoulomb15ScaleFactor(Real fac) {assert(0<=fac); coulombScale15=fac;}
 
     int addAtom(int body, int chargedAtomType, const Vec3& station)
     {
@@ -1070,6 +1113,22 @@ int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
 
 int DuMMForceFieldSubsystem::getNAtoms() const {
     return getRep().getNAtoms();
+}
+
+Real DuMMForceFieldSubsystem::getAtomMass(int atomNum) const {
+    return getRep().getAtomMass(atomNum);
+}
+Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomNum) const {
+    return getRep().getAtomDefaultColor(atomNum);
+}
+Real DuMMForceFieldSubsystem::getAtomRadius(int atomNum) const {
+    return getRep().getAtomRadius(atomNum);
+}
+Vec3 DuMMForceFieldSubsystem::getAtomStation(int atomNum) const {
+    return getRep().getAtomStation(atomNum);
+}
+int DuMMForceFieldSubsystem::getAtomBody(int atomNum) const {
+    return getRep().getAtomBody(atomNum);
 }
 
 void DuMMForceFieldSubsystem::dump() const {
@@ -1474,19 +1533,19 @@ void DuMMForceFieldSubsystemRep::unscaleBondedAtoms
 
 void DuMMForceFieldSubsystemRep::loadElements() {
     elements.resize(93); // Room for 1-92. I guess that's a little ambitious!
-    elements[1] =Element(1,  "H",  "Hydrogen",    1.008);
+    elements[1] =Element(1,  "H",  "Hydrogen",    1.008).setDefaultColor(Green);
     elements[2] =Element(2,  "He", "Helium",      4.003);
     elements[3] =Element(3,  "Li", "Lithium",     6.941);
-    elements[6] =Element(6,  "C",  "Carbon",     12.011);
-    elements[7] =Element(7,  "N",  "Nitrogen",   14.007);
-    elements[8] =Element(8,  "O",  "Oxygen",     15.999);
+    elements[6] =Element(6,  "C",  "Carbon",     12.011).setDefaultColor(Gray);
+    elements[7] =Element(7,  "N",  "Nitrogen",   14.007).setDefaultColor(Blue);
+    elements[8] =Element(8,  "O",  "Oxygen",     15.999).setDefaultColor(Red);
     elements[9] =Element(9,  "F",  "Fluorine",   18.998);
     elements[10]=Element(10, "Ne", "Neon",       20.180);
     elements[11]=Element(11, "Na", "Sodium",     22.990);
     elements[12]=Element(12, "Mg", "Magnesium",  24.305);
     elements[14]=Element(14, "Si", "Silicon",    28.086);
-    elements[15]=Element(15, "P",  "Phosphorus", 30.974);
-    elements[16]=Element(16, "S",  "Sulphur",    32.066);
+    elements[15]=Element(15, "P",  "Phosphorus", 30.974).setDefaultColor(Magenta);
+    elements[16]=Element(16, "S",  "Sulphur",    32.066).setDefaultColor(Yellow);
     elements[17]=Element(17, "Cl", "Chlorine",   35.453);
     elements[18]=Element(18, "Ar", "Argon",      39.948);
     elements[19]=Element(19, "K",  "Potassium",  39.098);
@@ -1498,7 +1557,7 @@ void DuMMForceFieldSubsystemRep::loadElements() {
     elements[47]=Element(47, "Ag", "Silver",    107.868);
     elements[53]=Element(53, "I",  "Iodine",    126.904);
     elements[54]=Element(54, "Xe", "Xenon",     131.290);
-    elements[79]=Element(79, "Au", "Gold",      196.967);
+    elements[79]=Element(79, "Au", "Gold",      196.967).setDefaultColor(Yellow);
     elements[92]=Element(92, "U",  "Uranium",   238.029);
 }
 
