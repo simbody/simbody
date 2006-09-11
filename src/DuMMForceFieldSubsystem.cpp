@@ -415,12 +415,14 @@ public:
 //
 // Torsion term for atoms bonded r-x-y-s. Rotation occurs about
 // the axis v=y-x, that is, a vector from x to y. We define a torsion
-// angle theta for this rotation, like this:
+// angle theta using the "polymer convention" rather than the IUPAC
+// one which is 180 degrees different. Ours is like this:
 //             r                         r      s
 //   theta=0    \             theta=180   \    / 
 //               x--y                      x--y
 //                   \
 //                    s
+// The sign convention is the same for IUPAC and polymer:
 // A positive angle is defined by considering r-x fixed in space. Then
 // using the right and rule around v (that is, thumb points from x to y)
 // a positive rotation rotates y->s in the direction of your fingers.
@@ -650,7 +652,10 @@ public:
 class Bond {
 public:
     Bond() { }
-    Bond(int atom1, int atom2) : atoms(atom1,atom2) { }
+    Bond(int atom1, int atom2) : atoms(atom1,atom2) { 
+        assert(isValid());
+    }
+    bool isValid() const {return atoms.isValid();}
 
     IntPair atoms;
 };
@@ -755,6 +760,10 @@ class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
         return 0 <= atomNum && atomNum < (int)atoms.size() && atoms[atomNum].isValid();
     }
 
+    bool isValidBond(int bondNum) const {
+        return 0 <= bondNum && bondNum < (int)bonds.size() && bonds[bondNum].isValid();
+    }
+
     bool isValidChargedAtomType(int typeNum) const {
         return 0 <= typeNum && typeNum < (int)chargedAtomTypes.size() 
                && chargedAtomTypes[typeNum].isValid();
@@ -793,6 +802,7 @@ public:
     }
 
     int getNAtoms() const {return (int)atoms.size();}
+    int getNBonds() const {return (int)bonds.size();}
 
     int getChargedAtomTypeNum(int atomNum) const {
         assert(isValidAtom(atomNum));
@@ -837,6 +847,11 @@ public:
     int getAtomBody(int atomNum) const {
         assert(isValidAtom(atomNum));
         return atoms[atomNum].bodyNum;
+    }
+
+    int getBondAtom(int b, int which) const {
+        assert(isValidBond(b) && (which==0 || which==1));
+        return bonds[b].atoms[which];
     }
 
     void addAtomClass(int id, const AtomClass& atomClass) {
@@ -1113,6 +1128,12 @@ int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
 
 int DuMMForceFieldSubsystem::getNAtoms() const {
     return getRep().getNAtoms();
+}
+int DuMMForceFieldSubsystem::getNBonds() const {
+    return getRep().getNBonds();
+}
+int DuMMForceFieldSubsystem::getBondAtom(int bond, int which) const {
+    return getRep().getBondAtom(bond, which);
 }
 
 Real DuMMForceFieldSubsystem::getAtomMass(int atomNum) const {

@@ -113,10 +113,10 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     SBDynamicsCache&            dc) const
 {
     if (nodeNum == 0) { // ground, just in case
-        updGyroscopicForce(dc)      = SpatialVec(Vec3(0), Vec3(0));
-        updCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
+        updGyroscopicForce(dc)           = SpatialVec(Vec3(0), Vec3(0));
+        updCoriolisAcceleration(dc)      = SpatialVec(Vec3(0), Vec3(0));
         updTotalCoriolisAcceleration(dc) = SpatialVec(Vec3(0), Vec3(0));
-        updCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
+        updCentrifugalForces(dc)         = SpatialVec(Vec3(0), Vec3(0));
         updTotalCentrifugalForces(dc)    = SpatialVec(Vec3(0), Vec3(0));
         return;
     }
@@ -159,8 +159,8 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     //const SpatialVec pDan = SpatialVec(Vec3(0), 
     //               pOmega % (pOmega % (getX_GB(cc).T() - getX_GP(cc).T())));
 
-    //cout << "pSC=pJVR=" << pSC << endl;
-   // cout << "pDan=" << pDan << endl;
+    //cout << "pJVR=" << pJVR << endl;
+    //cout << "pDan=" << pDan << endl;
 
     //const SpatialVec SC  = pSC  + crossMat(pOmega) * getV_PB_G(mc); // <<-- BAD
     const SpatialVec JVR = pJVR + crossMat(omega)  * getV_PB_G(mc); // <<-- GOOD
@@ -172,12 +172,12 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // That is, these two are equivalent:
     //  const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
     //                                           (pOmega+omega) % getV_PB_G(mc)[1]);
-    //  const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
+    //const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
     //                                           (2*pOmega+getV_PB_G(mc)[0]) % getV_PB_G(mc)[1]);
 
    // cout << "SC=" << SC << endl;
-   // cout << "JVR=" << JVR << endl;
-   // cout << "Dan=" << Dan << endl;
+    //cout << "JVR=" << JVR << endl;
+    //cout << "Dan=" << Dan << endl;
     
     updCoriolisAcceleration(dc) = JVR;
 
@@ -850,7 +850,7 @@ public:
 
 
 /**
- * Sliding joint (1 dof translation). The translation is along the z
+ * Sliding joint (1 dof translation). The translation is along the x
  * axis of the parent body's Jb frame, with J=Jb when the coordinate
  * is zero and the orientation of J in Jb frozen at 0 forever.
  */
@@ -885,8 +885,8 @@ public:
         Transform&              X_JbJ) const
     {
         // Translation vector q is expressed in Jb (and J since they have same orientation).
-        // A sliding joint can't change orientation, and only translates along z. 
-        X_JbJ = Transform(RotationMat(), Vec3(0.,0.,from1Q(q)));
+        // A sliding joint can't change orientation, and only translates along x. 
+        X_JbJ = Transform(RotationMat(), Vec3(from1Q(q),0,0));
     }
 
     // Calculate H.
@@ -900,9 +900,9 @@ public:
         const Transform& X_GP    = getX_GP(cc); // parent configuration in ground
 
         // Note that H is spatial. The current spatial directions for our q is
-        // the z axis of the Jb frame expressed in Ground.
-        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
-        H[0] = SpatialRow( Row3(0), ~z_GJb );
+        // the x axis of the Jb frame expressed in Ground.
+        const Vec3 x_GJb = X_GP.R()*X_PJb.x();
+        H[0] = SpatialRow( Row3(0), ~x_GJb );
     }
 };
 
@@ -974,6 +974,158 @@ public:
         H[0] = SpatialRow( ~z_G, ~(z_G % T_JB_G) );
     }
 };
+
+/**
+ * This is a "cylinder" joint, meaning one degree of rotational freedom
+ * about a particular axis, and one degree of translational freedom
+ * along the same axis. For molecules you can think of this as a combination
+ * of torsion and bond stretch. The axis used is the z axis of the parent's
+ * Jb frame, which is aligned forever with the z axis of the body's J frame.
+ * In addition, the origin points of J and Jb are separated only along the
+ * z axis; i.e., they have the same x & y coords in the Jb frame. The two
+ * generalized coordinates are the rotation and the translation, in that order.
+ */
+class RBNodeCylinder : public RigidBodyNodeSpec<2> {
+public:
+    virtual const char* type() { return "cylinder"; }
+
+    RBNodeCylinder(const MassProperties& mProps_B,
+                   const Transform&      X_PJb,
+                   const Transform&      X_BJ,
+                   int&                  nextUSlot,
+                   int&                  nextUSqSlot,
+                   int&                  nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelingVars&   mv, 
+        const Vector&           q, 
+        Vector&                 sine, 
+        Vector&                 cosine, 
+        Vector&                 qnorm) const
+    {
+        const Real& angle = fromQ(q)[0];
+        toQ(sine)[0]    = std::sin(angle);
+        toQ(cosine)[0]  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(
+        const SBModelingVars&   mv,
+        const Vector&           q,
+        Transform&              X_JbJ) const
+    {
+        const Vec2& coords  = fromQ(q);
+
+        X_JbJ.updR().setToRotationAboutZ(coords[0]);
+        X_JbJ.updT() = Vec3(0,0,coords[1]);
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(
+        const SBConfigurationCache& cc, 
+        HType&                      H) const
+    {
+        const Transform& X_BJ  = getX_BJ();  // fixed
+        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_GP  = getX_GP(cc);  // calculated earlier
+        const Transform& X_GB  = getX_GB(cc);  // just calculated
+
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+
+        // Calc H matrix in space-fixed coords.
+        // This works because the joint z axis is the same in J & Jb
+        // since that's what we rotate around.
+        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
+        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JB_G) );
+        H[1] = SpatialRow( Row3(0), ~z_GJb );
+    }
+};
+
+
+/**
+ * This is a "bend-stretch" joint, meaning one degree of rotational freedom
+ * about a particular axis, and one degree of translational freedom
+ * along a perpendicular axis. The z axis of the parent's Jb frame is 
+ * used for rotation (and that is always aligned with the J frame z axis).
+ * The x axis of the *J* frame is used for translation; that is, first
+ * we rotate around z, which moves J's x with respect to Jb's x. Then
+ * we slide along the rotated x axis. The two
+ * generalized coordinates are the rotation and the translation, in that order.
+ */
+class RBNodeBendStretch : public RigidBodyNodeSpec<2> {
+public:
+    virtual const char* type() { return "bendstretch"; }
+
+    RBNodeBendStretch(const MassProperties& mProps_B,
+                      const Transform&      X_PJb,
+                      const Transform&      X_BJ,
+                      int&                  nextUSlot,
+                      int&                  nextUSqSlot,
+                      int&                  nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelingVars&   mv, 
+        const Vector&           q, 
+        Vector&                 sine, 
+        Vector&                 cosine, 
+        Vector&                 qnorm) const
+    {
+        const Real& angle = fromQ(q)[0];
+        toQ(sine)[0]    = std::sin(angle);
+        toQ(cosine)[0]  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_JbJ.
+    void calcAcrossJointTransform(
+        const SBModelingVars&   mv,
+        const Vector&           q,
+        Transform&              X_JbJ) const
+    {
+        const Vec2& coords  = fromQ(q);    // angular coordinate
+
+        X_JbJ.updR().setToRotationAboutZ(coords[0]);
+        X_JbJ.updT() = X_JbJ.R()*Vec3(coords[1],0,0); // because translation is in J frame
+    }
+
+    // Calculate H.
+    void calcJointTransitionMatrix(
+        const SBConfigurationCache& cc, 
+        HType&                      H) const
+    {
+        const Transform& X_BJ  = getX_BJ();  // fixed
+        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_GP  = getX_GP(cc);  // calculated earlier
+        const Transform& X_GB  = getX_GB(cc);  // just calculated
+
+        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Vec3 T_JbB_G = X_GB.T() - (X_GP.T() + X_GP.R()*X_PJb.T());
+        const Vec3 T_PB_G = X_GB.T() - X_GP.T();
+
+        // XXX THIS DOESN'T WORK XXX (TODO)
+
+        // Calc H matrix in space-fixed coords.
+        // This works because the joint z axis is the same in J & Jb
+        // since that's what we rotate around.
+        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
+        const Vec3 x_GJb = X_GP.R()*X_PJb.x();
+        const Vec3 x_GJ  = X_GB.R()*X_BJ.x();
+        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JB_G) );
+        H[1] = SpatialRow( Row3(0), ~x_GJ );
+    }
+};
+
 
 /**
  * U-joint like joint type which allows rotation about the two axes
@@ -1548,6 +1700,9 @@ RigidBodyNode::create(
     case Mobilizer::Sliding:
         return new RBNodeSlider(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Cylinder:
+        return new RBNodeCylinder(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    case Mobilizer::BendStretch:
+        return new RBNodeBendStretch(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Planar:
     case Mobilizer::Gimbal:
     case Mobilizer::Weld:

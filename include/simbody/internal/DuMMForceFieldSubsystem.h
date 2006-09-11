@@ -133,13 +133,16 @@ public:
     int addAtom(int body, int chargedAtomType, const Vec3& station);
 
     // Note that these are atom numbers, not atom classes or types.
-    int addBond(int atom1, int atom2);
-    int getNAtoms() const;
+    int  addBond(int atom1, int atom2);
+    int  getNBonds() const;
+    // 'which' must be 0 or 1.
+    int  getBondAtom(int bond, int which) const;
 
+    int  getNAtoms() const;
     Real getAtomMass(int atomNum) const;
     Real getAtomRadius(int atomNum) const;
     Vec3 getAtomStation(int atomNum) const;
-    int getAtomBody(int atomNum) const;
+    int  getAtomBody(int atomNum) const;
     Vec3 getAtomDefaultColor(int atomNum) const;
 
     void dump() const; // to stdout

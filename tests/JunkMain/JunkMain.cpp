@@ -47,6 +47,7 @@ using namespace SimTK;
 
 
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real EnergyUnitsPerKcal = 418.4; // exact 
 static const int  Ground = 0;       // ground is always body 0
 static const Transform BodyFrame;   // identity transform on any body
 
@@ -162,19 +163,22 @@ return 0;
 // How it actually looks now:
 int main() {
 try {
-    SimbodyMatterSubsystem   molecule;
     SimbodyMatterSubsystem   ethane;
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
-    bool useRigid = true;
+    bool useRigid = true, useCartesian = false;
     const Real vdwFac = 1;
     const Real chgFac = 1;
-    const Real stretchFac = 1;
+    const Real stretchFac =1;
     const Real bendFac = 1;
     const Real torsFac = 1;
 
-    forces.addGlobalEnergyDrain(10);
+    const Real torsControlGain = 0;
+    const Real desiredTorsAngle = Pi/3;
+
+    //forces.addGlobalEnergyDrain(100);
+
 
     // AMBER 99
 
@@ -191,7 +195,7 @@ try {
     mm.defineBondTorsion(34,1,1,34, 3, torsFac*0.150, 0);
     
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(useRigid ? ethane : molecule);
+    mbs.setMatterSubsystem(ethane);
     mbs.addForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
@@ -211,10 +215,13 @@ try {
     RotationMat ccJointFrame; ccJointFrame.setToBodyFixed123(Vec3(0,Pi/2,0));
 
     int  type[] = {13,14,14,14, 13,14,14,14};
-    int  body[] = {2,2,2,2, 3,3,3,3};
-    Real mass[] = {massH, massC, massC, massC,
-                   massH, massC, massC, massC};
-    Vec3 station[] = { Vec3(0), Vec3(-.3778,1.02422,0), Vec3(-.3778,-0.514034,-0.885898), Vec3(-.3778,-0.510199,0.888107),
+    //int  body[] = {2,2,2,2, 3,3,3,3};
+    int dummy=1;
+    int  body[] = {2,4+dummy,2,2, 3,3,3,3};
+
+    Real mass[] = {massC, massH, massH, massH,
+                   massC, massH, massH, massH};
+    Vec3 station[] = { Vec3(0), /*Vec3(-.3778,1.02422,0)*/Vec3(0), Vec3(-.3778,-0.514034,-0.885898), Vec3(-.3778,-0.510199,0.888107),
                        Vec3(0), Vec3(.3778,0.510199,0.888107), Vec3(.3778,0.514034,-0.885898),
                                 Vec3(.3778,-1.02422,0) };
 
@@ -232,71 +239,108 @@ try {
 
     MassProperties mprops1(mass1,com1,iner1);
     MassProperties mprops2(mass2,com2,iner2);
-    int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
-                                Ground, Transform(),
-                                Mobilizer::Ball);
-    int b1 = ethane.addRigidBody(mprops1, Transform(),
-                                b0, Transform(),
-                                Mobilizer::Cartesian);
-    int b2 = ethane.addRigidBody(mprops2, Transform(ccJointFrame),
-                                b1, Transform(ccJointFrame, ccBond),
-                                Mobilizer::Pin);
+    int b2 = 0;
+    int bh1 = 0;
+    if (useRigid) {
+        int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
+                                    Ground, Transform(),
+                                    Mobilizer::Ball);
+        int b1 = ethane.addRigidBody(mprops1, Transform(),
+                                    b0, Transform(),
+                                    Mobilizer::Cartesian);
+        b2 = ethane.addRigidBody(mprops2, Transform(ccJointFrame),
+                                    b1, Transform(ccJointFrame, ccBond),
+                                    /*Mobilizer::Pin*/Mobilizer::Cylinder);
 
-    MassProperties mH(massH, Vec3(0), InertiaMat(0));
-    MassProperties mC(massC, Vec3(0), InertiaMat(0));
-    for (int i=0; i<2; ++i) 
-        ethane.addRigidBody(mC, Transform(),
-                              Ground, Transform(),
-                              Mobilizer::Cartesian);
-    for (int i=0; i<6; ++i) 
-        ethane.addRigidBody(mH, Transform(),
-                              Ground, Transform(),
-                              Mobilizer::Cartesian);
+        RotationMat chJointFrame; 
+        chJointFrame.setToBodyFixed123(Vec3(0,0,Pi/2)); // x points up
+
+        if (dummy==0) {
+            // BendStretch joint is broken!
+           bh1 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                         Transform(Vec3(0,0,0)),
+                                         b1, Transform(chJointFrame),
+                                         Mobilizer::BendStretch);
+        } else {
+            int b3 = ethane.addRigidBody(MassProperties(0, Vec3(0), InertiaMat(0)), 
+                                         Transform(),
+                                         b1, Transform(chJointFrame),
+                                         Mobilizer::Pin);
+            bh1 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                         Transform(Vec3(0,0,0)),
+                                         b3, Transform(),
+                                         Mobilizer::Sliding);
+        }
+
+        forces.addMobilityLinearSpring(b2, 0, torsControlGain, desiredTorsAngle);
+
+    }
+
+    if (useCartesian) {
+        MassProperties mH(massH, Vec3(0), InertiaMat(0));
+        MassProperties mC(massC, Vec3(0), InertiaMat(0));
+        for (int i=0; i<2; ++i) 
+            ethane.addRigidBody(mC, Transform(),
+                                  Ground, Transform(),
+                                  Mobilizer::Cartesian);
+        for (int i=0; i<6; ++i) 
+            ethane.addRigidBody(mH, Transform(),
+                                  Ground, Transform(),
+                                  Mobilizer::Cartesian);
+    }
 
     VTKReporter display(mbs);
 
-// Rigid
-    int c1 = mm.addAtom(body[0], 13, station[0]);
-    int h11 = mm.addAtom(body[1], 14, station[1]);
-    int h12 = mm.addAtom(body[2], 14, station[2]);
-    int h13 = mm.addAtom(body[3], 14, station[3]);
+    // Rigid
+    if (useRigid) {
+        int c1 = mm.addAtom(body[0], 13, station[0]);
+        int h11 = mm.addAtom(body[1], 14, station[1]);
+        int h12 = mm.addAtom(body[2], 14, station[2]);
+        int h13 = mm.addAtom(body[3], 14, station[3]);
 
-    int c2 = mm.addAtom(body[4], 13, station[4]);
-    int h21 = mm.addAtom(body[5], 14, station[5]);
-    int h22 = mm.addAtom(body[6], 14, station[6]);
-    int h23 = mm.addAtom(body[7], 14, station[7]);
+        int c2 = mm.addAtom(body[4], 13, station[4]);
+        int h21 = mm.addAtom(body[5], 14, station[5]);
+        int h22 = mm.addAtom(body[6], 14, station[6]);
+        int h23 = mm.addAtom(body[7], 14, station[7]);
 
-    mm.addBond(c1,c2);
-    mm.addBond(c1,h11); mm.addBond(c1,h12); mm.addBond(c1,h13);
-    mm.addBond(c2,h21); mm.addBond(c2,h22); mm.addBond(c2,h23);
+        mm.addBond(c1,c2);
+        mm.addBond(c1,h11); mm.addBond(c1,h12); mm.addBond(c1,h13);
+        mm.addBond(c2,h21); mm.addBond(c2,h22); mm.addBond(c2,h23);
+    }
 
-// Cartesian
-    int cc1 = mm.addAtom(b2+1, 13, Vec3(0));
-    int cc2 = mm.addAtom(b2+2, 13, Vec3(0));
-    int ch11 = mm.addAtom(b2+3, 14, Vec3(0));
-    int ch12 = mm.addAtom(b2+4, 14, Vec3(0));
-    int ch13 = mm.addAtom(b2+5, 14, Vec3(0));
-    int ch21 = mm.addAtom(b2+6, 14, Vec3(0));
-    int ch22 = mm.addAtom(b2+7, 14, Vec3(0));
-    int ch23 = mm.addAtom(b2+8, 14, Vec3(0));
+    if (useCartesian) {
+        int cc1 = mm.addAtom(b2+1, 13, Vec3(0));
+        int cc2 = mm.addAtom(b2+2, 13, Vec3(0));
+        int ch11 = mm.addAtom(b2+3, 14, Vec3(0));
+        int ch12 = mm.addAtom(b2+4, 14, Vec3(0));
+        int ch13 = mm.addAtom(b2+5, 14, Vec3(0));
+        int ch21 = mm.addAtom(b2+6, 14, Vec3(0));
+        int ch22 = mm.addAtom(b2+7, 14, Vec3(0));
+        int ch23 = mm.addAtom(b2+8, 14, Vec3(0));
 
+        mm.addBond(cc1,cc2);
+        mm.addBond(cc1,ch11); mm.addBond(cc1,ch12); mm.addBond(cc1,ch13);
+        mm.addBond(cc2,ch21); mm.addBond(cc2,ch22); mm.addBond(cc2,ch23);
+    }
 
-    mm.addBond(cc1,cc2);
-    mm.addBond(cc1,ch11); mm.addBond(cc1,ch12); mm.addBond(cc1,ch13);
-    mm.addBond(cc2,ch21); mm.addBond(cc2,ch22); mm.addBond(cc2,ch23);
+    DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
 
-/*
-    DecorativeLine ln; ln.setColor(Magenta).setLineThickness(3);
-    display.addRubberBandLine(1, Vec3(0), 2, Vec3(0), ln);
-    for (int i=3; i<=5; ++i)
-        display.addRubberBandLine(1, Vec3(0), i, Vec3(0), ln);
-    for (int i=6; i<=8; ++i)
-        display.addRubberBandLine(2, Vec3(0), i, Vec3(0), ln);
-*/
+    for (int i=0; i<mm.getNBonds(); ++i) {
+        const int a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
+        const int b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
+        if (b1==b2)
+            display.addDecoration(b1, Transform(),
+                                  DecorativeLine(mm.getAtomStation(a1), mm.getAtomStation(a2))
+                                    .setColor(Gray).setLineThickness(3));
+        else
+            display.addRubberBandLine(b1, mm.getAtomStation(a1),
+                                      b2, mm.getAtomStation(a2), crossBodyBond);
+    }
+
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
         display.addDecoration(mm.getAtomBody(anum), Transform(mm.getAtomStation(anum)),
             DecorativeSphere(0.25*mm.getAtomRadius(anum))
-                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(1).setResolution(3));
+                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(0.25).setResolution(3));
     }
 
     State s;
@@ -310,52 +354,47 @@ try {
 
     display.report(s);
 
-    ethane.setMobilizerU(s, b1, 1, 10);
+    // Give the whole rigid body molecule an initial velocity.
+    //ethane.setMobilizerVelocity(s, b1, SpatialVec(Vec3(0), Vec3(0,10,0)));
 
-    ethane.setMobilizerQ(s, b2, 0, Pi/3);
-    ethane.setMobilizerU(s, b2, 0, 100);
+    // Apply position and velocity directly to the joint axis for the torsion
+    // between the two carbons.
+    if (useRigid) {
+        ethane.setMobilizerQ(s, b2, 0, Pi/3);
+        //ethane.setMobilizerU(s, b2, 0, 100);
 
-    const Real yoffs = 4;
+        if (dummy) 
+            ethane.setMobilizerQ(s, bh1, 0, 1.); // bond length
+        else
+            ethane.setMobilizerQ(s, bh1, 1, 1.); // 2nd axis is slider
+    }
 
-    ethane.setMobilizerQ(s, b2+1, 1, yoffs); // shift 2nd molecule up yoffs in y
-    //ethane.setMobilizerU(s, b2+1, 1, -10);
+    if (useCartesian) {
+        // shift 2nd molecule up yoffs in y
+        const Real yoffs = 4;
 
-    ethane.setMobilizerQ(s, b2+2, 0, 1.53688+.05/*distort bond*/);
-    ethane.setMobilizerQ(s, b2+2, 1, yoffs);
+        ethane.setMobilizerConfiguration(s, b2+1, Transform(Vec3(0,yoffs,0)));
+        //ethane.setMobilizerU(s, b2+1, 1, -10);
 
-    ethane.setMobilizerQ(s, b2+3, 0, -.3778);
-    ethane.setMobilizerQ(s, b2+3, 1,  1.02422+yoffs);
-    ethane.setMobilizerQ(s, b2+3, 2,  0);
+        ethane.setMobilizerConfiguration(s, b2+2, Transform(Vec3(1.53688+.05/*distort bond*/, yoffs, 0)));
 
-    ethane.setMobilizerQ(s, b2+4, 0, -.3778);
-    ethane.setMobilizerQ(s, b2+4, 1, -0.514034+yoffs);
-    ethane.setMobilizerQ(s, b2+4, 2, -0.885898);
+        ethane.setMobilizerConfiguration(s, b2+3, Transform(Vec3(-.3778, 1.02422 +yoffs, 0)));
+        ethane.setMobilizerConfiguration(s, b2+4, Transform(Vec3(-.3778,-0.514034+yoffs,-0.885898)));
+        ethane.setMobilizerConfiguration(s, b2+5, Transform(Vec3(-.3778,-0.510199+yoffs, 0.888107)));
 
-    ethane.setMobilizerQ(s, b2+5, 0, -.3778);
-    ethane.setMobilizerQ(s, b2+5, 1, -0.510199+yoffs);
-    ethane.setMobilizerQ(s, b2+5, 2, 0.888107);
-
-
-    ethane.setMobilizerQ(s, b2+6, 0, .3778+1.53688);
-    ethane.setMobilizerQ(s, b2+6, 1,  0.510199+yoffs);
-    ethane.setMobilizerQ(s, b2+6, 2,  0.888107);
-
-    ethane.setMobilizerQ(s, b2+7, 0, .3778+1.53688);
-    ethane.setMobilizerQ(s, b2+7, 1, 0.514034+yoffs);
-    ethane.setMobilizerQ(s, b2+7, 2, -0.885898);
-
-    ethane.setMobilizerQ(s, b2+8, 0, .3778+1.53688);
-    ethane.setMobilizerQ(s, b2+8, 1, -1.02422+yoffs);
-    ethane.setMobilizerQ(s, b2+8, 2, 0);
+        ethane.setMobilizerConfiguration(s, b2+6, Transform(Vec3( .3778+1.53688, 0.510199+yoffs, 0.888107)));
+        ethane.setMobilizerConfiguration(s, b2+7, Transform(Vec3( .3778+1.53688, 0.514034+yoffs,-0.885898)));
+        ethane.setMobilizerConfiguration(s, b2+8, Transform(Vec3( .3778+1.53688,-1.02422 +yoffs, 0)));
+    }
 
     display.report(s);
 
-    const Real h = .01;
+    const Real h = .001;
     const int interval = 1;
     const Real tstart = 0.;
-    const Real tmax = 10; //ps
+    const Real tmax = 30; //ps
 
-    study.setAccuracy(1e-2);
+    study.setAccuracy(1e-8);
     study.initialize(); 
 
     std::vector<State> saveEm;
@@ -373,9 +412,16 @@ try {
 
         cout << s.getTime();
         cout << " deltaE=" << (mbs.getEnergy(s)-Estart)/Estart
-             << " (pe=" << mbs.getPotentialEnergy(s)
-             << ", ke=" << mbs.getKineticEnergy(s)
-             << ") hNext=" << study.getPredictedNextStep() << endl;
+             << " (pe=" << mbs.getPotentialEnergy(s)/EnergyUnitsPerKcal
+             << ", ke=" << mbs.getKineticEnergy(s)/EnergyUnitsPerKcal
+             << ") hNext=" << study.getPredictedNextStep();
+        if (useRigid) {
+            cout << " cctors=" << ethane.getMobilizerQ(s, b2, 0)/RadiansPerDegree
+                 << " ccstretch=" << ethane.getMobilizerQ(s, b2, 1)
+                 << " h1bend=" << ethane.getMobilizerQ(s, bh1-1, 0)/RadiansPerDegree
+                 << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 0); // XXX
+        }
+        cout << endl;
 
         if (!(step % interval)) {
             display.report(s);

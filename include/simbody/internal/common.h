@@ -72,18 +72,19 @@ class Mobilizer {
 public:
     enum MobilizerType {
         UnknownMobilizerType  = 0,
-        ThisIsGround          = 1, // Ground's "inboard joint"
-        Weld                  = 2,
-        Torsion               = 3,
-        Sliding               = 4,
-        Universal             = 5,
-        Cylinder              = 6,
-        Planar                = 7,
-        Gimbal                = 8,
-        Orientation           = 9,
-        Cartesian             = 10,
-        FreeLine              = 11,
-        Free                  = 12
+        ThisIsGround          = 1,  // Ground's "inboard joint"
+        Weld                  = 2,  // 0 mobilities
+        Torsion               = 3,  // 1 mobility
+        Sliding               = 4,  // 1
+        Universal             = 5,  // 2 mobilities
+        Cylinder              = 6,  // 2
+        BendStretch           = 7,  // 2
+        Planar                = 8,  // 3 mobilities
+        Gimbal                = 9,  // 3
+        Orientation           = 10, // 3
+        Cartesian             = 11, // 3
+        FreeLine              = 12, // 5 mobilities
+        Free                  = 13  // 6 mobilities
     };
     // synonyms
     static const MobilizerType Pin  = Torsion;
