@@ -68,7 +68,7 @@ try {
     const Real torsControlGain = 0;
     const Real desiredTorsAngle = Pi/3;
 
-    //forces.addGlobalEnergyDrain(100);
+    forces.addGlobalEnergyDrain(100);
 
 
     // AMBER 99
