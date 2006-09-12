@@ -236,12 +236,21 @@ RigidBodyTree::getCoriolisAcceleration(const State& s, int body) const {
   return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
+RigidBodyTree::getTotalCoriolisAcceleration(const State& s, int body) const {
+  return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
+}
+const SpatialVec&
 RigidBodyTree::getGyroscopicForce(const State& s, int body) const {
   return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
 }
 const SpatialVec&
 RigidBodyTree::getCentrifugalForces(const State& s, int body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
+}
+
+const SpatialMat&
+RigidBodyTree::getArticulatedBodyInertia(const State& s, int body) const {
+  return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
 void RigidBodyTree::realizeConstruction(State& s) const {

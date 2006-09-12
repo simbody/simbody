@@ -273,6 +273,9 @@ public:
     const SpatialVec& getTotalCentrifugalForces(const SBDynamicsCache& dc) const {return fromB(dc.totalCentrifugalForces);}
     SpatialVec&       updTotalCentrifugalForces(SBDynamicsCache&       dc) const {return toB  (dc.totalCentrifugalForces);}
 
+    const SpatialMat& getArticulatedBodyInertia(const SBDynamicsCache& dc) const {return fromB(dc.articulatedBodyInertia);}
+    SpatialMat&       updArticulatedBodyInertia(SBDynamicsCache&       dc) const {return toB  (dc.articulatedBodyInertia);}
+
     const SpatialVec& getZ(const SBReactionCache& rc) const {return fromB(rc.z);}
     SpatialVec&       updZ(SBReactionCache&       rc) const {return toB  (rc.z);}
 

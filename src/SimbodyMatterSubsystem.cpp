@@ -239,12 +239,21 @@ SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, int body) const 
     return getRep().getCoriolisAcceleration(s,body);
 }
 const SpatialVec&
+SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, int body) const {
+    return getRep().getTotalCoriolisAcceleration(s,body);
+}
+const SpatialVec&
 SimbodyMatterSubsystem::getGyroscopicForce(const State& s, int body) const {
     return getRep().getGyroscopicForce(s,body);
 }
 const SpatialVec&
 SimbodyMatterSubsystem::getCentrifugalForces(const State& s, int body) const {
     return getRep().getCentrifugalForces(s,body);
+}
+
+const SpatialMat& 
+SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, int body) const {
+    return getRep().getArticulatedBodyInertia(s,body);
 }
 
 const SpatialVec&

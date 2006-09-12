@@ -153,11 +153,17 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
     // Note: (vel-pVel) is the total relative velocity; V_PB_G is that 
     // portion due just to this joint's u's.
+    const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
+    const Vec3 T_JbB_G = T_PB_G - getX_GP(cc).R()*getX_PJb().T();
+    const Vec3 w_PB_G = getV_PB_G(mc)[0];
+    const Vec3 v_PB_G = getV_PB_G(mc)[1]-(w_PB_G%T_JbB_G);
 
     //const SpatialVec pSC  = SpatialVec(Vec3(0), pOmega % (vel-pVel));
     const SpatialVec pJVR = SpatialVec(Vec3(0), pOmega % (vel-pVel));
-    //const SpatialVec pDan = SpatialVec(Vec3(0), 
-    //               pOmega % (pOmega % (getX_GB(cc).T() - getX_GP(cc).T())));
+    const SpatialVec pDan = SpatialVec(Vec3(0), 
+                  //pOmega % (pOmega % (getX_GB(cc).T() - getX_GP(cc).T())));
+                  //omega % ((2*pOmega-omega) % (getX_GB(cc).T() - getX_GP(cc).T())));
+                  pOmega % (pOmega % T_PB_G) + w_PB_G % (w_PB_G % T_JbB_G));
 
     //cout << "pJVR=" << pJVR << endl;
     //cout << "pDan=" << pDan << endl;
@@ -174,12 +180,15 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     //                                           (pOmega+omega) % getV_PB_G(mc)[1]);
     //const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
     //                                           (2*pOmega+getV_PB_G(mc)[0]) % getV_PB_G(mc)[1]);
+    const SpatialVec Dan = pDan + SpatialVec( pOmega % w_PB_G, 
+                                               2*pOmega % getV_PB_G(mc)[1] 
+                                                + 2*w_PB_G % v_PB_G);
 
    // cout << "SC=" << SC << endl;
     //cout << "JVR=" << JVR << endl;
     //cout << "Dan=" << Dan << endl;
     
-    updCoriolisAcceleration(dc) = JVR;
+    updCoriolisAcceleration(dc) = Dan;
 
     updTotalCoriolisAcceleration(dc) =
         ~getPhi(cc) * parent->getTotalCoriolisAcceleration(dc)
@@ -1114,6 +1123,7 @@ public:
         const Vec3 T_PB_G = X_GB.T() - X_GP.T();
 
         // XXX THIS DOESN'T WORK XXX (TODO)
+        const Transform X_JbB = getX_JbJ(cc) * ~X_BJ;
 
         // Calc H matrix in space-fixed coords.
         // This works because the joint z axis is the same in J & Jb
@@ -1121,8 +1131,8 @@ public:
         const Vec3 z_GJb = X_GP.R()*X_PJb.z();
         const Vec3 x_GJb = X_GP.R()*X_PJb.x();
         const Vec3 x_GJ  = X_GB.R()*X_BJ.x();
-        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JB_G) );
-        H[1] = SpatialRow( Row3(0), ~x_GJ );
+        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JbB_G) );
+        H[1] = SpatialRow( Row3(0), ~x_GJ);
     }
 };
 
@@ -1526,10 +1536,10 @@ public:
     {
         if (getUseEulerAngles(mv)) {
             X_JbJ.updR().setToBodyFixed123(fromQVec3(q,0));
-            X_JbJ.updT() = fromQVec3(q,3);
+            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,3);
         } else {
             X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_JbJ.updT() = fromQVec3(q,4); // XXX
+            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,4); // XXX
         }
     }
 
@@ -1544,19 +1554,20 @@ public:
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
         const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
-
+        const Vec3 T_JbB_G = X_GB.T() - (X_GP.T() + X_GP.R()*X_PJb.T());
 
         // The rotational speeds are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
         const RotationMat R_GJb = X_GP.R() * X_PJb.R();
+        const RotationMat R_GJ  = X_GB.R() * X_BJ.R();
 
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G)); // XXX shd be T_JB_G
-        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
-        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
-        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.x()); // XXX shd be R_GJb
-        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
-        H[5] = SpatialRow(  Row3(0) ,     ~R_GJb.z());
+        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JbB_G)); // XXX shd be T_JB_G
+        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JbB_G));
+        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JbB_G));
+        H[3] = SpatialRow(  Row3(0) ,     ~R_GJ.x()); // XXX shd be R_GJb
+        H[4] = SpatialRow(  Row3(0) ,     ~R_GJ.y());
+        H[5] = SpatialRow(  Row3(0) ,     ~R_GJ.z());
     }
 
     void calcQDot(

@@ -286,9 +286,16 @@ public:
     const SpatialVec& getBodyAcceleration (const State&, int body) const;
 
     // Dynamics stage responses.
+
+    // Cross joint
     const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
+
+    // Including parent
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, int body) const;
+
     const SpatialVec& getGyroscopicForce(const State&, int body) const;
     const SpatialVec& getCentrifugalForces(const State&, int body) const;
+    const SpatialMat& getArticulatedBodyInertia(const State& s, int body) const;
 
     const Real& getMobilizerQ(const State&, int body, int axis) const;
     const Real& getMobilizerU(const State&, int body, int axis) const;

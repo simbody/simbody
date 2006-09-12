@@ -94,47 +94,43 @@ try {
 
 
     // System modeled:
-    //                       --------------
-    //     <--             /              /|
-    //        \            --------------  /
-    //      *-/-------->* |              |/
-    //                     -------------- 
+    //                
+    //     <--          
+    //        \           
+    //      *-/-------->*
+    //                    
     //
     //      | y
     //      |
     //      |-----> x
     //     /
     //    z
-    // This is a rectangle block mounted on a "bend stretch" joint which
-    // permits rotation around mutual z axes of block & ground, followed
+    // This is a mass mounted to a rotating base with a "bend stretch" joint which
+    // permits rotation around mutual z axes of base & ground, followed
     // by a translation along the *block* x axis (which will have moved).
-    //
-    // Block body frame is at its center. Half dimensions are
-    // (hx,hy,hz)=3,1,2. Joint frame is at -hx,-hy,-hz
+    // Base body frame is attached to ground frame by pin about z.
     //
 
-    const Real hx=3, hy=1, hz=2;
+    const Real m = 1;
+    const Vec3 com = Vec3(0,0,0);
+    const InertiaMat iner(1,1,1);
 
-    const Real mass = 1;
-    const Vec3 com = Vec3(0);
-    const InertiaMat iner(1,1,1)/* = mass*InertiaMat::brick(hx,hy,hz)*/;
-
-    const MassProperties blockProps(mass,com,iner);
-    RotationMat jf; jf.setToBodyFixed123(Vec3(0,0,/*Pi/2*/0));
-    const Transform      jointFrame(jf,/*Vec3(-hx,-hy,-hz)*/Vec3(0));
-    const Transform      baseFrame(jf,Vec3(0,0,0));
+    const MassProperties mProps(m,com,iner);;
+    const Transform      jointFrame;
+    const Transform      baseFrame(Vec3(1,2,3));
     const Transform      groundFrame;
 
 
     int base = bendStretchBlock.addRigidBody(MassProperties(1,Vec3(0),InertiaMat::sphere(1)),
-                        baseFrame,
+                        BodyFrame,
                         Ground, groundFrame,
                         Mobilizer::Pin);
-   // forces.addMobilityLinearSpring(base, 0, 10., 0);
+    forces.addMobilityLinearSpring(base, 0, 10., 0);
+    //int base = Ground;
 
-    bool useDummy = true;
+    bool useDummy = false ;
 
-    int block;
+    int mass;
     int bendBody, bendCoord;
     int stretchBody, stretchCoord;
     if (useDummy) {
@@ -145,18 +141,18 @@ try {
 
         bendBody = dummy;
         bendCoord = 0;
-        block = bendStretchBlock.addRigidBody(blockProps, jointFrame,
+        mass = bendStretchBlock.addRigidBody(mProps, jointFrame,
                                 dummy, Transform(),
                                 Mobilizer::Sliding);
-        stretchBody = block;
+        stretchBody = mass;
         stretchCoord = 0;
     } else {
-        block = bendStretchBlock.addRigidBody(blockProps, jointFrame,
+        mass = bendStretchBlock.addRigidBody(mProps, jointFrame,
                                     base, baseFrame,
                                     Mobilizer::BendStretch);
-        bendBody = block;
+        bendBody = mass;
         bendCoord = 0;
-        stretchBody = block;
+        stretchBody = mass;
         stretchCoord = 1;
     }
 
@@ -164,13 +160,11 @@ try {
     forces.addMobilityLinearSpring(stretchBody, stretchCoord, 100., 1);
 
     VTKReporter display(mbs);
-    //display.addDecoration(block, Transform(),
-        //DecorativeBrick(Vec3(hx,hy,hz)).setOpacity(.25));
-    display.addDecoration(block, Transform(),
-        DecorativeSphere(.5).setOpacity(.25));
+    display.addDecoration(mass, Transform(),
+        DecorativeSphere(.25).setOpacity(.25));
 
     DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
-    display.addRubberBandLine(base, baseFrame.T(), block, jointFrame.T(), crossBodyBond);
+    display.addRubberBandLine(base, baseFrame.T(), mass, jointFrame.T(), crossBodyBond);
 
     State s;
     mbs.realize(s, Stage::Built);
@@ -179,11 +173,35 @@ try {
     RungeKuttaMerson study(mbs, s);
 
     bendStretchBlock.setMobilizerQ(s, base, 0, 0);
-    bendStretchBlock.setMobilizerU(s, base, 0, 10);
+    bendStretchBlock.setMobilizerU(s, base, 0, .1);
     bendStretchBlock.setMobilizerQ(s, bendBody, bendCoord, 0); // rotation
+    bendStretchBlock.setMobilizerU(s, bendBody, bendCoord, 3); // rotation
     bendStretchBlock.setMobilizerQ(s, stretchBody, stretchCoord, 1); // translation
+    bendStretchBlock.setMobilizerU(s, stretchBody, stretchCoord, 7);
+
+    mbs.realize(s, Stage::Reacting);
+    const Transform&  x = bendStretchBlock.getBodyConfiguration(s, mass);
+    cout << "Mass x=" << x.T() << " pe=" << mbs.getPotentialEnergy(s) << endl;
+    const SpatialVec& v = bendStretchBlock.getBodyVelocity(s, mass);
+    cout << "Mass v=" << v << " ke=" << mbs.getKineticEnergy(s) << endl;
+    const SpatialVec& acc = bendStretchBlock.getBodyAcceleration(s, mass);
+    cout << "Mass a=" << acc << endl;
+    const SpatialVec& a=bendStretchBlock.getCoriolisAcceleration(s,mass);
+    const SpatialVec& ta=bendStretchBlock.getCoriolisAcceleration(s,mass);
+    const SpatialVec& g=bendStretchBlock.getGyroscopicForce(s,mass);
+    const SpatialVec& c=bendStretchBlock.getCentrifugalForces(s,mass);
+    cout << "coriolis a=" << a << " incl parent=" << ta << endl;
+    cout << "gyro f=" << g << endl;
+    cout << "centrifugal f=" << c << endl;
+    cout << "ydot=" << s.getYDot() << endl;
+    const SpatialMat& bai=bendStretchBlock.getArticulatedBodyInertia(s, base);
+    cout << "base abi=" << bai;
+    const SpatialMat& mai=bendStretchBlock.getArticulatedBodyInertia(s, mass);
+    cout << "mass abi=" << mai;
+
 
     display.report(s);
+    //exit(0);
 
     const Real h = .01;
     const int interval = 1;
@@ -211,8 +229,8 @@ try {
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
              << ") hNext=" << study.getPredictedNextStep();
-        cout << " bend=" << bendStretchBlock.getMobilizerQ(s, block, 0)/RadiansPerDegree
-             << " stretch=" << bendStretchBlock.getMobilizerQ(s, block, 1);
+        cout << " bend=" << bendStretchBlock.getMobilizerQ(s, bendBody, bendCoord)/RadiansPerDegree
+             << " stretch=" << bendStretchBlock.getMobilizerQ(s, stretchBody, stretchCoord);
         cout << endl;
 
         if (!(step % interval)) {

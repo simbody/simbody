@@ -156,6 +156,7 @@ public:
 
     // velocity dependent
     const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, int body) const;
     const SpatialVec& getGyroscopicForce(const State&, int body) const;
     const SpatialVec& getCentrifugalForces(const State&, int body) const;
 
@@ -323,6 +324,9 @@ public:
 
     const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
+
+    // Call after realizeDynamics()
+    const SpatialMat& getArticulatedBodyInertia(const State& s, int body) const;
 
     // Call after realizeReactions()
     const SpatialVec& getBodyAcceleration(const State& s, int body) const;

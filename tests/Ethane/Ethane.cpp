@@ -68,7 +68,7 @@ try {
     const Real torsControlGain = 0;
     const Real desiredTorsAngle = Pi/3;
 
-    forces.addGlobalEnergyDrain(100);
+    //forces.addGlobalEnergyDrain(10);
 
 
     // AMBER 99
@@ -107,8 +107,9 @@ try {
 
     int  type[] = {13,14,14,14, 13,14,14,14};
     //int  body[] = {2,2,2,2, 3,3,3,3};
-    int dummy=1;
-    int  body[] = {2,4+dummy,2,2, 3,3,3,3};
+    int base=0;
+    int dummy=0;
+    int  body[] = {base+1,base+3+dummy,base+1,base+1, base+2,base+2,base+2,base+2};
 
     Real mass[] = {massC, massH, massH, massH,
                    massC, massH, massH, massH};
@@ -133,12 +134,18 @@ try {
     int b2 = 0;
     int bh1 = 0;
     if (useRigid) {
-        int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
+        int b1;
+        if (base) {
+            int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
                                     Ground, Transform(),
-                                    Mobilizer::Ball);
-        int b1 = ethane.addRigidBody(mprops1, Transform(),
-                                    b0, Transform(),
                                     Mobilizer::Cartesian);
+            b1 = ethane.addRigidBody(mprops1, Transform(),
+                                    b0, Transform(),
+                                    Mobilizer::Ball);
+        } else 
+            b1 = ethane.addRigidBody(mprops1, Transform(),
+                                    Ground, Transform(),
+                                    Mobilizer::Free);
         b2 = ethane.addRigidBody(mprops2, Transform(ccJointFrame),
                                     b1, Transform(ccJointFrame, ccBond),
                                     /*Mobilizer::Pin*/Mobilizer::Cylinder);
@@ -309,8 +316,8 @@ try {
         if (useRigid) {
             cout << " cctors=" << ethane.getMobilizerQ(s, b2, 0)/RadiansPerDegree
                  << " ccstretch=" << ethane.getMobilizerQ(s, b2, 1)
-                 << " h1bend=" << ethane.getMobilizerQ(s, bh1-1, 0)/RadiansPerDegree
-                 << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 0); // XXX
+                 << " h1bend=" << ethane.getMobilizerQ(s, bh1-dummy, 0)/RadiansPerDegree
+                 << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 1-dummy); // XXX
         }
         cout << endl;
 
