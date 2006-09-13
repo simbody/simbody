@@ -163,32 +163,16 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
     const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
     const Vec3 T_JbB_G = T_PB_G - getX_GP(cc).R()*getX_PJb().T();
+    //const Vec3 T_JB_G  = -getX_GB(cc).R()*getX_BJ().T();
     const Vec3 w_PB_G = getV_PB_G(mc)[0];
-    const Vec3 v_PB_G = getV_PB_G(mc)[1]-(w_PB_G % T_JbB_G);
+    const Vec3 v_PB_G = getV_PB_G(mc)[1]; // includes w_PB_G % T_JbB_G term
 
-    //const SpatialVec pSC  = SpatialVec(Vec3(0), pOmega % (vel-pVel));
-    //const SpatialVec pJVR = SpatialVec(Vec3(0), pOmega % (vel-pVel));
     const SpatialVec wwr = SpatialVec(Vec3(0), 
-                  pOmega % (pOmega % T_PB_G) + w_PB_G % (w_PB_G % T_JbB_G));
+                  pOmega % (pOmega % T_PB_G) - w_PB_G % (w_PB_G % T_JbB_G));
     const SpatialVec wv  = SpatialVec( pOmega % w_PB_G, 
-                                       2*pOmega % getV_PB_G(mc)[1] 
-                                        + 2*w_PB_G % v_PB_G);
+                                       2*(omega % v_PB_G)); 
     
     updCoriolisAcceleration(dc) = wwr + wv;
-
-    //const SpatialVec SC  = pSC  + crossMat(pOmega) * getV_PB_G(mc); // <<-- BAD
-    //const SpatialVec JVR = pJVR + crossMat(omega)  * getV_PB_G(mc); // <<-- GOOD
-
-    // Dan originally had 2*pOmega where I have (pOmega+omega) below. The former
-    // did not work and in fact was identical to SC above. This works fine and
-    // is identical to JVR. You can think of this as (2*pOmega + w_PB_G), that is,
-    // it is the same as Dan's except for the cross-joint coriolis addition.
-    // That is, these two are equivalent:
-    //  const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
-    //                                           (pOmega+omega) % getV_PB_G(mc)[1]);
-    //const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
-    //                                           (2*pOmega+getV_PB_G(mc)[0]) % getV_PB_G(mc)[1]);
-
 
     updTotalCoriolisAcceleration(dc) =
         ~getPhi(cc) * parent->getTotalCoriolisAcceleration(dc)
@@ -1122,6 +1106,7 @@ public:
         const Transform X_GJ  = X_GB * X_BJ;
 
         const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
+        //const Vec3 T_JB_G = -X_GB.R()*X_BJ.T();
 
         // Rotate around Jb's z axis, *then* translate along J's new x axis.
         H[0] = SpatialRow( ~X_GJb.z(), ~(X_GJb.z() % T_JbB_G) );

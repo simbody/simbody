@@ -65,10 +65,10 @@ try {
     const Real bendFac = 1;
     const Real torsFac = 1;
 
-    const Real torsControlGain = 0;
-    const Real desiredTorsAngle = Pi/3;
+    const Real torsControlGain = /*100000*/0;
+    const Real desiredTorsAngle = /*Pi/3*/0;
 
-    //forces.addGlobalEnergyDrain(10);
+    forces.addGlobalEnergyDrain(100);
 
 
     // AMBER 99
@@ -106,16 +106,16 @@ try {
     RotationMat ccJointFrame; ccJointFrame.setToBodyFixed123(Vec3(0,Pi/2,0));
 
     int  type[] = {13,14,14,14, 13,14,14,14};
-    //int  body[] = {2,2,2,2, 3,3,3,3};
-    int base=0;
-    int dummy=0;
-    int  body[] = {base+1,base+3+dummy,base+1,base+1, base+2,base+2,base+2,base+2};
+    int  body[] = {1,3,4,5, 2,6,7,8};
 
     Real mass[] = {massC, massH, massH, massH,
                    massC, massH, massH, massH};
-    Vec3 station[] = { Vec3(0), /*Vec3(-.3778,1.02422,0)*/Vec3(0), Vec3(-.3778,-0.514034,-0.885898), Vec3(-.3778,-0.510199,0.888107),
-                       Vec3(0), Vec3(.3778,0.510199,0.888107), Vec3(.3778,0.514034,-0.885898),
-                                Vec3(.3778,-1.02422,0) };
+    Vec3 station[] = { Vec3(0), /*Vec3(-.3778,1.02422,0)*/Vec3(0), 
+                                /*Vec3(-.3778,-0.514034,-0.885898)*/Vec3(0), 
+                                /*Vec3(-.3778,-0.510199,0.888107)*/Vec3(0),
+                       Vec3(0), /*Vec3(.3778,0.510199,0.888107)*/Vec3(0), 
+                                /*Vec3(.3778,0.514034,-0.885898)*/Vec3(0),
+                                /*Vec3(.3778,-1.02422,0)*/Vec3(0) };
 
     // Collect mass, center of mass, and inertia
     Real mass1=0, mass2=0;
@@ -132,44 +132,52 @@ try {
     MassProperties mprops1(mass1,com1,iner1);
     MassProperties mprops2(mass2,com2,iner2);
     int b2 = 0;
-    int bh1 = 0;
+    int bh1 = 0, bh2 = 0, bh3=0, bh4=0, bh5=0, bh6=0;
     if (useRigid) {
-        int b1;
-        if (base) {
-            int b0 = ethane.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)), Transform(),
-                                    Ground, Transform(),
-                                    Mobilizer::Cartesian);
-            b1 = ethane.addRigidBody(mprops1, Transform(),
-                                    b0, Transform(),
-                                    Mobilizer::Ball);
-        } else 
-            b1 = ethane.addRigidBody(mprops1, Transform(),
+        int b1 = ethane.addRigidBody(mprops1, Transform(),
                                     Ground, Transform(),
                                     Mobilizer::Free);
         b2 = ethane.addRigidBody(mprops2, Transform(ccJointFrame),
                                     b1, Transform(ccJointFrame, ccBond),
                                     /*Mobilizer::Pin*/Mobilizer::Cylinder);
 
-        RotationMat chJointFrame; 
-        chJointFrame.setToBodyFixed123(Vec3(0,0,Pi/2)); // x points up
+        RotationMat chJointFrame, ch2JointFrame, ch3JointFrame; 
+        chJointFrame.setToBodyFixed123(Vec3(0,0,0)); // x points up
+        ch2JointFrame.setToBodyFixed123(Vec3(-2*Pi/3,0,0));
+        ch3JointFrame.setToBodyFixed123(Vec3( 2*Pi/3,0,0));
 
-        if (dummy==0) {
-            // BendStretch joint is broken!
-           bh1 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
-                                         Transform(Vec3(0,0,0)),
-                                         b1, Transform(chJointFrame),
-                                         Mobilizer::BendStretch);
-        } else {
-            int b3 = ethane.addRigidBody(MassProperties(0, Vec3(0), InertiaMat(0)), 
-                                         Transform(),
-                                         b1, Transform(chJointFrame),
-                                         Mobilizer::Pin);
-            bh1 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
-                                         Transform(Vec3(0,0,0)),
-                                         b3, Transform(),
-                                         Mobilizer::Sliding);
-        }
+        bh1 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b1, Transform(chJointFrame),
+                                  Mobilizer::BendStretch);
 
+
+        bh2 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b1, Transform(ch2JointFrame),
+                                  Mobilizer::BendStretch);
+
+        bh3 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b1, Transform(ch3JointFrame),
+                                  Mobilizer::BendStretch);
+
+        chJointFrame.setToBodyFixed123(Vec3(-2*Pi/3,0,0));
+        ch2JointFrame.setToBodyFixed123(Vec3( 2*Pi/3,0,0));
+        ch3JointFrame.setToBodyFixed123(Vec3(0,0,0)); // x points up
+
+        bh4 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b2, Transform(chJointFrame),
+                                  Mobilizer::BendStretch);
+        bh5 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b2, Transform(ch2JointFrame),
+                                  Mobilizer::BendStretch);
+        bh6 = ethane.addRigidBody(MassProperties(massH, Vec3(0), InertiaMat(0)), 
+                                  Transform(Vec3(0,0,0)),
+                                  b2, Transform(ch3JointFrame),
+                                  Mobilizer::BendStretch);
         forces.addMobilityLinearSpring(b2, 0, torsControlGain, desiredTorsAngle);
 
     }
@@ -258,13 +266,21 @@ try {
     // Apply position and velocity directly to the joint axis for the torsion
     // between the two carbons.
     if (useRigid) {
-        ethane.setMobilizerQ(s, b2, 0, Pi/3);
-        //ethane.setMobilizerU(s, b2, 0, 100);
+        ethane.setMobilizerQ(s, b2, 0, Pi/3+1e-9);
+        //ethane.setMobilizerU(s, b2, 0, 10);
+        ethane.setMobilizerQ(s, bh1, 0, Pi/2); // 1st axis is bend
+        ethane.setMobilizerQ(s, bh2, 0, Pi/2);
+        ethane.setMobilizerQ(s, bh3, 0, Pi/2);
+        ethane.setMobilizerQ(s, bh1, 1, 1.); // 2nd axis is slider
+        ethane.setMobilizerQ(s, bh2, 1, 1.);
+        ethane.setMobilizerQ(s, bh3, 1, 1.);
 
-        if (dummy) 
-            ethane.setMobilizerQ(s, bh1, 0, 1.); // bond length
-        else
-            ethane.setMobilizerQ(s, bh1, 1, 1.); // 2nd axis is slider
+        ethane.setMobilizerQ(s, bh4, 0, -Pi/2); // 1st axis is bend
+        ethane.setMobilizerQ(s, bh5, 0, -Pi/2);
+        ethane.setMobilizerQ(s, bh6, 0, -Pi/2);
+        ethane.setMobilizerQ(s, bh4, 1, 1.); // 2nd axis is slider
+        ethane.setMobilizerQ(s, bh5, 1, 1.);
+        ethane.setMobilizerQ(s, bh6, 1, 1.);
     }
 
     if (useCartesian) {
@@ -316,8 +332,8 @@ try {
         if (useRigid) {
             cout << " cctors=" << ethane.getMobilizerQ(s, b2, 0)/RadiansPerDegree
                  << " ccstretch=" << ethane.getMobilizerQ(s, b2, 1)
-                 << " h1bend=" << ethane.getMobilizerQ(s, bh1-dummy, 0)/RadiansPerDegree
-                 << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 1-dummy); // XXX
+                 << " h1bend=" << ethane.getMobilizerQ(s, bh1, 0)/RadiansPerDegree
+                 << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 1); // XXX
         }
         cout << endl;
 
