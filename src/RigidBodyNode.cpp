@@ -153,23 +153,31 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
     // Note: (vel-pVel) is the total relative velocity; V_PB_G is that 
     // portion due just to this joint's u's.
+
+    // (sherm 060912) Caution: using T_JbB_G here is assuming that all the joints do their
+    // rotations in the Jb frame *followed* by translations in the J frame.
+    // I *think* you could switch the joint to work the other way and change to T_JB_G
+    // in the joints and here, but I haven't tried it. TODO: this should be written
+    // in terms of the H matrix somehow so that this computation and the joint definition
+    // do not have to be synchronized this way.
+
     const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
     const Vec3 T_JbB_G = T_PB_G - getX_GP(cc).R()*getX_PJb().T();
     const Vec3 w_PB_G = getV_PB_G(mc)[0];
-    const Vec3 v_PB_G = getV_PB_G(mc)[1]-(w_PB_G%T_JbB_G);
+    const Vec3 v_PB_G = getV_PB_G(mc)[1]-(w_PB_G % T_JbB_G);
 
     //const SpatialVec pSC  = SpatialVec(Vec3(0), pOmega % (vel-pVel));
-    const SpatialVec pJVR = SpatialVec(Vec3(0), pOmega % (vel-pVel));
-    const SpatialVec pDan = SpatialVec(Vec3(0), 
-                  //pOmega % (pOmega % (getX_GB(cc).T() - getX_GP(cc).T())));
-                  //omega % ((2*pOmega-omega) % (getX_GB(cc).T() - getX_GP(cc).T())));
+    //const SpatialVec pJVR = SpatialVec(Vec3(0), pOmega % (vel-pVel));
+    const SpatialVec wwr = SpatialVec(Vec3(0), 
                   pOmega % (pOmega % T_PB_G) + w_PB_G % (w_PB_G % T_JbB_G));
-
-    //cout << "pJVR=" << pJVR << endl;
-    //cout << "pDan=" << pDan << endl;
+    const SpatialVec wv  = SpatialVec( pOmega % w_PB_G, 
+                                       2*pOmega % getV_PB_G(mc)[1] 
+                                        + 2*w_PB_G % v_PB_G);
+    
+    updCoriolisAcceleration(dc) = wwr + wv;
 
     //const SpatialVec SC  = pSC  + crossMat(pOmega) * getV_PB_G(mc); // <<-- BAD
-    const SpatialVec JVR = pJVR + crossMat(omega)  * getV_PB_G(mc); // <<-- GOOD
+    //const SpatialVec JVR = pJVR + crossMat(omega)  * getV_PB_G(mc); // <<-- GOOD
 
     // Dan originally had 2*pOmega where I have (pOmega+omega) below. The former
     // did not work and in fact was identical to SC above. This works fine and
@@ -180,15 +188,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     //                                           (pOmega+omega) % getV_PB_G(mc)[1]);
     //const SpatialVec Dan = pDan + SpatialVec(    pOmega % getV_PB_G(mc)[0], 
     //                                           (2*pOmega+getV_PB_G(mc)[0]) % getV_PB_G(mc)[1]);
-    const SpatialVec Dan = pDan + SpatialVec( pOmega % w_PB_G, 
-                                               2*pOmega % getV_PB_G(mc)[1] 
-                                                + 2*w_PB_G % v_PB_G);
 
-   // cout << "SC=" << SC << endl;
-    //cout << "JVR=" << JVR << endl;
-    //cout << "Dan=" << Dan << endl;
-    
-    updCoriolisAcceleration(dc) = Dan;
 
     updTotalCoriolisAcceleration(dc) =
         ~getPhi(cc) * parent->getTotalCoriolisAcceleration(dc)
@@ -1118,21 +1118,14 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
-        const Vec3 T_JbB_G = X_GB.T() - (X_GP.T() + X_GP.R()*X_PJb.T());
-        const Vec3 T_PB_G = X_GB.T() - X_GP.T();
+        const Transform X_GJb = X_GP * X_PJb;
+        const Transform X_GJ  = X_GB * X_BJ;
 
-        // XXX THIS DOESN'T WORK XXX (TODO)
-        const Transform X_JbB = getX_JbJ(cc) * ~X_BJ;
+        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
 
-        // Calc H matrix in space-fixed coords.
-        // This works because the joint z axis is the same in J & Jb
-        // since that's what we rotate around.
-        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
-        const Vec3 x_GJb = X_GP.R()*X_PJb.x();
-        const Vec3 x_GJ  = X_GB.R()*X_BJ.x();
-        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JbB_G) );
-        H[1] = SpatialRow( Row3(0), ~x_GJ);
+        // Rotate around Jb's z axis, *then* translate along J's new x axis.
+        H[0] = SpatialRow( ~X_GJb.z(), ~(X_GJb.z() % T_JbB_G) );
+        H[1] = SpatialRow( Row3(0), ~X_GJ.x());
     }
 };
 
@@ -1253,7 +1246,7 @@ public:
         const Vec<5>& coords = fromQ(q);     // joint coordinates
 
         X_JbJ.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
-        X_JbJ.updT() = coords.getSubVec<3>(2);
+        X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
     }
 
     // Calculate H.
@@ -1266,17 +1259,21 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Transform X_GJb = X_GP * X_PJb;
+        const Transform X_GJ  = X_GB * X_BJ;
+
+        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
 
         // The rotational coordinates are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
-        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
-        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
-        H[2] = SpatialRow(  Row3(0) ,     ~R_GJb.x());
-        H[3] = SpatialRow(  Row3(0) ,     ~R_GJb.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~R_GJb.z());    
+        // *Then* we translate along the new J frame axes.
+
+        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
+        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
+        H[2] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.z());    
     }
 };
 
@@ -1539,7 +1536,7 @@ public:
             X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,3);
         } else {
             X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,4); // XXX
+            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,4);  // because translation is in J frame
         }
     }
 
@@ -1553,21 +1550,22 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
-        const Vec3 T_JbB_G = X_GB.T() - (X_GP.T() + X_GP.R()*X_PJb.T());
+        const Transform X_GJb = X_GP * X_PJb;
+        const Transform X_GJ  = X_GB * X_BJ;
+
+        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
 
         // The rotational speeds are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
-        const RotationMat R_GJb = X_GP.R() * X_PJb.R();
-        const RotationMat R_GJ  = X_GB.R() * X_BJ.R();
+        // *Then* we translate along the new J axes.
 
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JbB_G)); // XXX shd be T_JB_G
-        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JbB_G));
-        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JbB_G));
-        H[3] = SpatialRow(  Row3(0) ,     ~R_GJ.x()); // XXX shd be R_GJb
-        H[4] = SpatialRow(  Row3(0) ,     ~R_GJ.y());
-        H[5] = SpatialRow(  Row3(0) ,     ~R_GJ.z());
+        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
+        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
+        H[2] = SpatialRow(~X_GJb.z(), ~(X_GJb.z() % T_JbB_G));
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
+        H[5] = SpatialRow(  Row3(0) ,     ~X_GJ.z());
     }
 
     void calcQDot(
