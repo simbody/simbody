@@ -1,8 +1,5 @@
-FILE(GLOB SOURCE_FILES *.cpp)
-FILE(GLOB INCLUDE_FILES *.h)
-
-ADD_EXECUTABLE(IntegratorTest       ${SOURCE_FILES} ${INCLUDE_FILES})
-ADD_EXECUTABLE(IntegratorTestStatic ${SOURCE_FILES} ${INCLUDE_FILES})
+ADD_EXECUTABLE(IntegratorTest       IntegratorTest.cpp)
+ADD_EXECUTABLE(IntegratorTestStatic IntegratorTestStatic.cpp)
 
 TARGET_LINK_LIBRARIES(IntegratorTest       ${SHARED_TARGET})
 TARGET_LINK_LIBRARIES(IntegratorTestStatic ${STATIC_TARGET})

@@ -1,5 +1,3 @@
-FILE(GLOB SOURCE_FILES *.cpp)
-FILE(GLOB INCLUDE_FILES *.h)
 
 SET(VTK_DIR "C:/Program Files/VTK/lib/vtk-5.0" CACHE STRING "VTK installation")
 
@@ -22,8 +20,8 @@ LINK_LIBRARIES(
   vtkCommon
 )
 
-ADD_EXECUTABLE(PendulumExample       ${SOURCE_FILES} ${INCLUDE_FILES})
-ADD_EXECUTABLE(PendulumExampleStatic ${SOURCE_FILES} ${INCLUDE_FILES})
+ADD_EXECUTABLE(PendulumExample       PendulumExample.cpp)
+ADD_EXECUTABLE(PendulumExampleStatic PendulumExampleStatic.cpp)
 
 TARGET_LINK_LIBRARIES(PendulumExample       ${SHARED_TARGET})
 TARGET_LINK_LIBRARIES(PendulumExampleStatic ${STATIC_TARGET})

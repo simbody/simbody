@@ -82,16 +82,32 @@ SET(SIMBODY_SOURCE_SUBDIRS .)
 SET(SIMBODY_LIBRARY_NAME simbody)
 SET(SIMBODY_MAJOR_VERSION 0)
 SET(SIMBODY_MINOR_VERSION 5)
-SET(SIMBODY_BUILD_VERSION 3)
+SET(SIMBODY_BUILD_VERSION 4)
 
 SET(SIMBODY_COPYRIGHT_YEARS "2005-6")
 SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
 
 
-# Get the Subversion revision number
-EXEC_PROGRAM ( svnversion
-                ARGS  "${PROJECT_SOURCE_DIR}"
-                OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
+# Get the subversion revision number if we can
+# It's possible that WIN32 installs use svnversion through cygwin.
+FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
+IF (SVNVERSION_EXE-NOTFOUND)
+    FIND_PROGRAM (SVNVERSION svnversion) 
+    IF (SVNVERSION-NOTFOUND)
+        MESSAGE (STATUS 
+          "Could not find svnversion executable. Suggest you install a Subversion client with svnversion in path."
+        )
+        SET (SimTKCOMMON_SVN_REVISION unknown) 
+    ELSE (SVNVERSION-NOTFOUND)
+        EXEC_PROGRAM (${SVNVERSION}
+                      ARGS "${PROJECT_SOURCE_DIR}"
+                      OUTPUT_VARIABLE SIMBODY_SVN_REVISION)
+    ENDIF (SVNVERSION-NOTFOUND)
+ELSE (SVNVERSION_EXE-NOTFOUND) 
+    EXEC_PROGRAM (${SVNVERSION_EXE}
+                  ARGS  "${PROJECT_SOURCE_DIR}"
+                  OUTPUT_VARIABLE SIMBODY_SVN_REVISION)
+ENDIF (SVNVERSION_EXE-NOTFOUND) 
 
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}

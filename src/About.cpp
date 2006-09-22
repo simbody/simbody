@@ -57,8 +57,13 @@
 #define GET_LIBRARY_STRING \
     MAKE_STRING(SimTK_SIMBODY_LIBRARY_NAME)
 
-#define GET_TYPE_STRING \
-    MAKE_STRING(SimTK_SIMBODY_TYPE)
+#if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
+    #define GET_TYPE_STRING "shared"
+#elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY)
+    #define GET_TYPE_STRING "static"
+#else
+    #define GET_TYPE_STRING "<unknown library type?!>"
+#endif
 
 #ifndef NDEBUG
     #define GET_DEBUG_STRING "debug"

@@ -70,13 +70,38 @@ public:
     //      at which the minimum energy occurs)
     //     To convert for LJ: Rmin = 2^(1/6) * Sigma
     //   vdwWellDepth potential minimum, in Kcal/mol
-    //   partialCharge in units of e (charge on a proton) 
-    void defineAtomClass(int atomClass, const char* atomClassName,
+
+    void defineAtomClass(int atomClassId, const char* atomClassName,
                          int element, int valence,
                          Real vdwRadius, Real vdwWellDepth);
 
-    void defineChargedAtomType(int atomType, const char* atomTypeName,
-                               int atomClass, Real partialCharge);
+    //   partialCharge in units of e (charge on a proton) 
+    void defineChargedAtomType(int atomTypeId, const char* atomTypeName,
+                               int atomClassId, Real partialCharge);
+
+    // Create an empty rigid group. The rigid group Id number is returned; you don't get
+    // to pick your own. The name is just for display; you must use the Id to reference
+    // the group. Every rigid group has its own reference frame.
+    int createRigidGroup(const char* groupName);
+
+    // Add a new atom to the model. The atom Id number is returned; you don't get to
+    // pick your own.
+    int addAtom(int chargedAtomTypeId);
+
+    // Place an existing atom at a particular station in the local frame of a rigid group. It
+    // is fine for an atom to be in more than one group as long as only one of them ends up
+    // attached to a body.
+    void placeAtomInRigidGroup(int atomId, int rigidGroupId, const Vec3& station);
+
+    // Place a rigid group (the child) in another rigid group (the parent). The child's
+    // local frame is placed at a given transform with respect to the parent's frame.
+    void placeRigidGroupInRigidGroup(int childRigidGroupId, int parentRigidGroupId, 
+                                     const Transform& placement);
+
+    void attachRigidGroupToBody(int rigidGroupId, int body, const Transform& = Transform());
+    void attachAtomToBody(int atomId, int body, const Vec3& station);
+
+    MassProperties calcRigidGroupMassProperties(int rigidGroupId, const Transform& = Transform()) const;
 
     // Bond stretch parameters (between 2 atom classes). This
     // fails if (class1,class2) or (class2,class1) has already been assigned.
@@ -130,12 +155,11 @@ public:
     void setCoulomb14ScaleFactor(Real); // default 1
     void setCoulomb15ScaleFactor(Real); // default 1
 
-    int addAtom(int body, int chargedAtomType, const Vec3& station);
 
     // Note that these are atom numbers, not atom classes or types.
     int  addBond(int atom1, int atom2);
     int  getNBonds() const;
-    // 'which' must be 0 or 1.
+    // 'which' must be 0 or 1. 0 will return the lower-numbered atom.
     int  getBondAtom(int bond, int which) const;
 
     int  getNAtoms() const;

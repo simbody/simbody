@@ -41,17 +41,31 @@
     static const Derived& downcast(const Parent&);      \
     static Derived&       updDowncast(Parent&)
 
-// When building a shared library 'xyz', CMake defines a symbol 'xyz_EXPORTS'
-// for use in distinguishing builds from client use of a header. The following
-// is specific for the current 'simtk' library and doesn't affect other
-// libraries even if they use this one.
+// Shared libraries are messy in Visual Studio. We have to distinguish three
+// cases:
+//   (1) this header is being used to build the simbody shared library (dllexport)
+//   (2) this header is being used by a *client* of the simbody shared
+//       library (dllimport)
+//   (3) we are building the simbody static library, or the client is
+//       being compiled with the expectation of linking with the
+//       simbody static library (nothing special needed)
+// In the CMake script for building this library, we define one of the symbols
+//     SimTK_SIMBODY_BUILDING_{SHARED|STATIC}_LIBRARY
+// Client code normally has no special symbol defined, in which case we'll
+// assume it wants to use the shared library. However, if the client defines
+// the symbol SimTK_USE_STATIC_LIBRARIES we'll suppress the dllimport so
+// that the client code can be linked with static libraries. Note that
+// the client symbol is not library dependent, while the library symbols
+// affect only the simbody library, meaning that other libraries can
+// be clients of this one. However, we are assuming all-static or all-shared.
+
 #ifdef WIN32
-    #ifdef simbody_EXPORTS
+    #if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMBODY_API __declspec(dllexport)
-    #elif defined(SimTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY)
-        #define SimTK_SIMBODY_API __declspec(dllimport)   // can't link with static lib now
+    #elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
+        #define SimTK_SIMBODY_API
     #else
-        #define SimTK_SIMBODY_API // This works both for static & dynamic clients
+        #define SimTK_SIMBODY_API __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
     #define SimTK_SIMBODY_API // Linux, Mac
