@@ -38,6 +38,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cstdio>
 #include <cassert>
 #include <set>
 #include <map>
@@ -45,7 +46,7 @@
 
 namespace SimTK {
 
-static const Real Pi = std::acos(Real(-1));
+static const Real Pi = NTraits<Real>::Pi;
 static const Real RadiansPerDegree = Pi/180;
 
 // Convert energy from Kcal/mol to consistent units Da-A^2/ps^2.
@@ -227,7 +228,7 @@ static const Real oo13 = Real(1)/Real(13);
 // This doesn't seem to be used by anyone but it should be!
 // Ref: Waldman, M. & Hagler, A.T. New combining rules for
 // rare gas van der Waals parameters. 
-// J. Comput. Chem. 14(9):1077 (1973).
+// J. Comput. Chem. 14(9):1077 (1993).
 static inline void vdwCombineWaldmanHagler(
     Real ri, Real rj, Real ei, Real ej,
     Real& r, Real& e)
@@ -497,28 +498,28 @@ inline bool operator==(const AtomPlacement& a1, const AtomPlacement& a2) {
     return a1.atomId == a2.atomId;
 }
 
-class RigidGroupPlacement {
+class ClusterPlacement {
 public:
-    RigidGroupPlacement() : rigidGroupId(-1) { }
-    RigidGroupPlacement(int g, const Transform& t) : rigidGroupId(g), placement(t) {
+    ClusterPlacement() : clusterId(-1) { }
+    ClusterPlacement(int c, const Transform& t) : clusterId(c), placement(t) {
         assert(isValid());
     }
-    bool isValid() const {return rigidGroupId >= 0;}
+    bool isValid() const {return clusterId >= 0;}
 
-    int         rigidGroupId;
+    int         clusterId;
     Transform   placement;
 };
-inline bool operator<(const RigidGroupPlacement& r1, const RigidGroupPlacement& r2) {
-    return r1.rigidGroupId < r2.rigidGroupId;
+inline bool operator<(const ClusterPlacement& r1, const ClusterPlacement& r2) {
+    return r1.clusterId < r2.clusterId;
 }
-inline bool operator==(const RigidGroupPlacement& r1, const RigidGroupPlacement& r2) {
-    return r1.rigidGroupId == r2.rigidGroupId;
+inline bool operator==(const ClusterPlacement& r1, const ClusterPlacement& r2) {
+    return r1.clusterId == r2.clusterId;
 }
 
-typedef std::vector<int>                    AtomArray;
-typedef std::vector<AtomPlacement>          AtomPlacementArray;
-typedef std::set<AtomPlacement>             AtomPlacementSet;
-typedef std::set<RigidGroupPlacement>       RigidGroupPlacementSet;
+typedef std::vector<int>            AtomArray;
+typedef std::vector<AtomPlacement>  AtomPlacementArray;
+typedef std::set<AtomPlacement>     AtomPlacementSet;
+typedef std::set<ClusterPlacement>  ClusterPlacementSet;
 
 class Atom {
 public:
@@ -529,6 +530,12 @@ public:
         assert(isValid());
     }
     bool isValid() const {return atomId>=0 && chargedAtomTypeId>=0;}
+    bool isAttachedToBody() const {return bodyId >= 0;}
+    void attachToBody(int bnum, const Vec3& s) {
+        assert(!isAttachedToBody());
+        bodyId = bnum;
+        station_B = s;
+    }
 
     bool isBondedTo(int anum) const {
         for (int i=0; i<(int)bond12.size(); ++i)
@@ -537,7 +544,6 @@ public:
     }
 
     void dump() const;
-
 
     void invalidateTopologicalCache() {
         bodyId = -1; station_B.setToNaN();
@@ -554,14 +560,14 @@ public:
     int         chargedAtomTypeId;
     AtomArray   bond12;
 
+    // After the atom or a containing cluster has been attached to a
+    // body, we fill these in.
+    int  bodyId;
+    Vec3 station_B; // atom's station fixed in body bodyId's frame
+
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeConstruction() from topological
         //   state variables (from here or others in the DuMM class).
-
-    // After the atom or its containing group has been attached to a
-    // body, we can fill these in.
-    int  bodyId;
-    Vec3 station_B; // atom's station fixed in body bodyId's frame
 
     // This is a set of lists which identify atoms nearby in the
     // molecules bond structure. The bond12 list above contains the directly
@@ -578,7 +584,7 @@ public:
     // in the Atom entries for the atoms at either end. We avoid double
     // processing by only processing the instance in which the first atoms's
     // ID is the lower of the two. But we need to keep both copies because
-    // these are used for scaling nearby interaction during non-bonded 
+    // these are also used for scaling nearby interaction during non-bonded 
     // calculation.
     std::vector<int>       xbond12;
     std::vector<IntPair>   xbond13;
@@ -619,54 +625,64 @@ public:
 };
 
 
-class RigidGroup {
+class Cluster {
 public:
-    RigidGroup() : rigidGroupId(-1), topologicalCacheValid(false) { }
-    RigidGroup(const char* nm)
-      : rigidGroupId(-1), name(nm), topologicalCacheValid(false) {
-        assert(isValid());
+    Cluster() : clusterId(-1), topologicalCacheValid(false), bodyId(-1) { }
+    Cluster(const char* nm)
+      : clusterId(-1), name(nm), topologicalCacheValid(false), bodyId(-1) {
+        // not valid yet -- still need Id assigned
     }
 
-    bool isValid() const {return rigidGroupId >= 0;}
+    bool isValid() const {return clusterId >= 0;}
+    bool isAttachedToBody() const {return bodyId >= 0;}
+    bool isTopLevelCluster() const {return parentClusters.empty();}
 
     bool isTopologicalCacheValid() const   {return topologicalCacheValid;}
     void invalidateTopologicalCache()      {topologicalCacheValid=false;}
 
-    void placeAtom(int atomId, const Vec3& station) {
-        std::pair<AtomPlacementSet::iterator, bool> ret =
-            atomPlacements.insert(AtomPlacement(atomId,station));
-        assert(ret.second); // must not have been there already
+    const AtomPlacementSet& getDirectlyContainedAtoms() const {return directAtomPlacements;}
+    const AtomPlacementSet& getAllContainedAtoms()      const {return allAtomPlacements;}
+    AtomPlacementSet&       updAllContainedAtoms()            {return allAtomPlacements;}
+    const ClusterPlacementSet& getDirectlyContainedClusters() const {return directClusterPlacements;}
+
+    bool containsAtom(int atomId) const {
+        return allAtomPlacements.find(AtomPlacement(atomId,Vec3(0))) 
+                != allAtomPlacements.end();
     }
+    bool containsCluster(int cluster, const DuMMForceFieldSubsystemRep& mm) const;
 
-    void placeRigidGroup(int groupId, const Transform& placement) {
-        std::pair<RigidGroupPlacementSet::iterator, bool> ret =
-            rigidGroupPlacements.insert(RigidGroupPlacement(groupId,placement));
-        assert(ret.second); // must not have been there already
 
-        //TODO: check for loops
-    }
+    void attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
 
-    // True if the atom has been placed in this group, or if any group that has
-    // been placed here contains the atom, or a subgroup containing the atom
-    // recursively.
-    bool containsAtom      (int atomId,  const DuMMForceFieldSubsystemRep& mm) const;
-    bool containsRigidGroup(int groupId, const DuMMForceFieldSubsystemRep& mm) const;
+    // Place an atom in this cluster. To be valid, the atom must not
+    // already be
+    //   (a) in any of the trees of which this group is apart, or
+    //   (b) attached to a body.
+    // TODO: (c) at the moment we don't allow placing an atom in a group unless
+    //           that group is a top-level group (i.e., it has no parents).
+    // If this group is already attached to a body, then we will update
+    // the atom entry to note that it is now attached to the body also.
+    void placeAtom(int atomId, const Vec3& station, DuMMForceFieldSubsystemRep& mm);
 
-    // Transform all our atoms (including those in subgroups) by the indicated 
-    // transformation and append the result to the supplied AtomPlacement container.
-    // The results are not in any particular order. Note that for a subgroup we
-    // compose the provided transform with that of the subgroup before applying
-    // the results to the contained atoms and, recursively, to the contained sub-subgroups.
-    void calculateAllAtomArray(DuMMForceFieldSubsystemRep& mm);
+    // Place a child cluster in this parent cluster. To be valid, the child 
+    // must not 
+    //   (a) already be contained in the parent group or one of the parent's subgroups, or
+    //   (b) contain any atoms which are already present in the parent or any
+    //       of the parent's subgroups, or
+    //   (c) already be attached to a body.
+    // TODO: (d) at the moment we don't allow adding a child group unless
+    //           the parent (this) group is a top-level group (i.e., it has no parents).
+    // If the parent is already attached to a body, then we will update
+    // the child to note that it is now attached to the body also (and it
+    // will update its contained atoms).
+    void placeCluster(int childClusterId, const Transform& placement, DuMMForceFieldSubsystemRep& mm);
 
-    // Transform the atoms on my all atom array into the parent frame, and append
-    // them to the supplied placement array.
-    void xformAllAtomArray(const Transform& X_PC, AtomPlacementArray& xformedAtoms) {
-        assert(isTopologicalCacheValid());
-        for (int i=0; i < (int)allAtoms.size(); ++i) {
-            const AtomPlacement& ap = allAtoms[i];
-            xformedAtoms.push_back(AtomPlacement(ap.atomId, X_PC*ap.station));
-        }
+
+    // Calculate the composite mass properties for this cluster, transformed into
+    // the indicated frame.
+    MassProperties calcMassProperties(const Transform& tr) const {
+        // TODO
+        return MassProperties(1., Vec3(0), InertiaMat(1,1,1));
     }
 
     // Recursively calculate composite properties for this group and all the
@@ -676,48 +692,93 @@ public:
         if (topologicalCacheValid)
             return;
 
-        // Transform all attached atoms into this group's frame, then sort
-        // the resulting list to make it easy to check for duplicates.
-        allAtoms.clear();
-        calculateAllAtomArray(mm);
-        std::sort(allAtoms.begin(), allAtoms.end());
-        // TODO: check for duplicates
-        // TODO: mass properties
-        // TODO: charge properties
+        // TODO: charge & geometric properties
 
         topologicalCacheValid = true;
     }
 
 
     void dump() const {
-        printf("    rigidGroupId=%d(%s)\n", rigidGroupId, name);
-        printf("      atom placements: ");
-        AtomPlacementSet::const_iterator ap = atomPlacements.begin();
-        while (ap != atomPlacements.end())
+        printf("    clusterId=%d(%s)\n", clusterId, name.c_str());
+        printf("      direct atom placements: ");
+        AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
+        while (ap != directAtomPlacements.end()) {
             std::cout << " " << ap->atomId << ":" << ap->station;
-        printf("      group placements:\n");
-        RigidGroupPlacementSet::const_iterator gp = rigidGroupPlacements.begin();
-        while (gp != rigidGroupPlacements.end())
-            std::cout << "      " << gp->rigidGroupId << ":" << gp->placement;
-        std::cout << "      topological cache valid? " 
+            ++ap;
+        }
+        printf("\n      direct cluster placements:\n");
+        ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
+        while (cp != directClusterPlacements.end()) {
+            std::cout << "      " << cp->clusterId << ":" << cp->placement;
+            ++cp;
+        }
+        printf("\n      all atom placements: ");
+        AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
+        while (aap != allAtomPlacements.end()) {
+            std::cout << " " << aap->atomId << ":" << aap->station;
+            ++aap;
+        }
+        printf("\n      parent cluster placements:\n");
+        ClusterPlacementSet::const_iterator pp = parentClusters.begin();
+        while (pp != parentClusters.end()) {
+            std::cout << "      " << pp->clusterId << ":" << pp->placement;
+            ++pp;
+        }
+
+        std::cout     << "\n      topological cache valid? " 
                   << isTopologicalCacheValid() << std::endl;
+        if (bodyId >= 0) 
+            std::cout << "\n      attached to body " << bodyId << " at " << placement_B;
+        else
+            std::cout << "\n      NOT ATTACHED TO ANY BODY.";
+        std::cout << std::endl;
     }
 
     void clearAllCalculatedData() {
         topologicalCacheValid = false;
-        allAtoms.clear();
-        massProps      = MassProperties();
         chargeProps    = ChargeProperties();
         geometricProps = GeometricProperties();
+    }
+
+private:
+    void noteNewChildCluster(int childClusterId, const Transform& X_PC) {
+        std::pair<ClusterPlacementSet::iterator, bool> ret =
+            directClusterPlacements.insert(ClusterPlacement(childClusterId,X_PC));
+        assert(ret.second); // must not have been there already
+    }
+
+    void noteNewParentCluster(int parentClusterId, const Transform& X_PC) {
+        std::pair<ClusterPlacementSet::iterator, bool> ret =
+            parentClusters.insert(ClusterPlacement(parentClusterId,X_PC));
+        assert(ret.second); // must not have been there already
     }
 
 public:
         // TOPOLOGICAL STATE VARIABLES
         //   Filled in during construction.
-    int                     rigidGroupId;
-    std::string             name;
-    AtomPlacementSet        atomPlacements;
-    RigidGroupPlacementSet  rigidGroupPlacements;
+    int                 clusterId;
+    std::string         name;
+
+    // These are the *directly* attached atoms and clusters.
+    AtomPlacementSet    directAtomPlacements;
+    ClusterPlacementSet directClusterPlacements;
+
+    // This set is kept up to date as we add atoms and clusters and
+    // contains *all* the atoms in this group or its descendents,
+    // transformed into this cluster's frame.
+    AtomPlacementSet    allAtomPlacements;
+
+    // This is a list of all the immediate parents of this cluster, if any.
+    // This is updated whenever this cluster is placed in another one. The
+    // body is *not* considered a parent cluster; it is handled separately
+    // below. Note that whenever an atom or cluster is added to this cluster,
+    // the atom or atoms involved [SHOULD BE: TODO] added to each ancestor.
+    ClusterPlacementSet parentClusters;
+
+    // After this cluster or a containing cluster has been attached to a
+    // body, we can fill these in.
+    int       bodyId;
+    Transform placement_B; // cluster's placement fixed in body bodyId's frame
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeConstruction() from topological
@@ -725,25 +786,53 @@ public:
 
     bool topologicalCacheValid;
 
-    // This is an expansion of all the atom & group placements, with
-    // all stations transformed to this group's frame.
-    AtomPlacementArray  allAtoms; // sorted by atomId
-
     // These reflect composite properties built from the allAtoms list.
-    MassProperties      massProps;
     ChargeProperties    chargeProps;
     GeometricProperties geometricProps;
 };
 
-// This is just a RigidGroup with some additional runtime data structures.
-// In particular we want a complete list of all the atoms from all groups
-// attached to this body, with their placements as measured in the body frame.
-class Body : public RigidGroup {
+// A Body is a reference to a top-level Cluster, plus some information used
+// at runtime for fast body-by-body processing.
+class Body {
 public:
-    Body() : bodyNum(-1) { }
+    Body() : clusterId(-1) { }
+    explicit Body(int cId) : clusterId(cId) { 
+        assert(isValid());
+    }
 
-    int bodyNum; // this the body number as known to the matter subsystem
+    bool isValid() const {return clusterId >= 0;}
+
+    void invalidateTopologicalCache() {allAtoms.clear();}
+    void realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm);
+
+    int getClusterId() const {assert(isValid()); return clusterId;}
+
+    void dump() const {
+        printf("    clusterId=%d\n", clusterId);
+        printf("    shadowBodies=");
+        for (int i=0; i < (int)shadowBodies.size(); ++i)
+            printf(" %d", shadowBodies[i]);
+        printf("\n");
+        printf("    allAtoms=");
+        for (int i=0; i < (int)allAtoms.size(); ++i) 
+            printf(" %d(%g,%g,%g)", allAtoms[i].atomId,
+                allAtoms[i].station[0], allAtoms[i].station[1], allAtoms[i].station[2]);
+        printf("\n");
+    }
+
+    static std::string createClusterNameForBody(int bnum) {
+        char buf[100];
+        std::sprintf(buf, "Body %d", bnum);
+        return std::string(buf);
+    }
+
+    int clusterId;
     std::vector<int> shadowBodies; // if needed
+
+    // This is an expansion of all the atom & group placements, with
+    // all stations transformed to this body's frame, sorted in order
+    // of atomId, and built for speed!
+    AtomPlacementArray  allAtoms;
 };
 
 // Assume units:
@@ -796,7 +885,7 @@ public:
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         loadElements();
-        const int gid = addRigidGroup(RigidGroup("free atoms and groups"));
+        const int gid = addCluster(Cluster("free atoms and groups"));
         assert(gid==0);
     }
 
@@ -813,9 +902,9 @@ public:
         return 0 <= bondNum && bondNum < (int)bonds.size() && bonds[bondNum].isValid();
     }
 
-    bool isValidRigidGroup(int rigidGroupId) const {
-        return 0 <= rigidGroupId && rigidGroupId < (int)rigidGroups.size()
-                && rigidGroups[rigidGroupId].isValid();
+    bool isValidCluster(int clusterId) const {
+        return 0 <= clusterId && clusterId < (int)clusters.size()
+                && clusters[clusterId].isValid();
     }
 
     bool isValidBody(int bodyId) const {
@@ -849,33 +938,64 @@ public:
         dmin = 2*rmin;
     }
 
-    int addRigidGroup(const RigidGroup& group) {
-        const int rigidGroupId = (int)rigidGroups.size();
-        rigidGroups.push_back(group);
-        rigidGroups[rigidGroupId].rigidGroupId = rigidGroupId;
-        return rigidGroupId;
+    int addCluster(const Cluster& c) {
+        const int clusterId = (int)clusters.size();
+        clusters.push_back(c);
+        clusters[clusterId].clusterId = clusterId;
+        return clusterId;
     }
-    RigidGroup& updRigidGroup(int groupId) {
-        assert(isValidRigidGroup(groupId));
-        return rigidGroups[groupId];
+    Cluster& updCluster(int clusterId) {
+        assert(isValidCluster(clusterId));
+        return clusters[clusterId];
     }
-    const RigidGroup& getRigidGroup(int groupId) const {
-        assert(isValidRigidGroup(groupId));
-        return rigidGroups[groupId];
+    const Cluster& getCluster(int clusterId) const {
+        assert(isValidCluster(clusterId));
+        return clusters[clusterId];
+    }
+    Body& updBody(int bodyId) {
+        assert(isValidBody(bodyId));
+        return bodies[bodyId];
+    }
+    const Body& getBody(int bodyId) const {
+        assert(isValidBody(bodyId));
+        return bodies[bodyId];
     }
 
-    void placeAtomInRigidGroup(int atomId, int rigidGroupId, const Vec3& station) {
+    void placeAtomInCluster(int atomId, int clusterId, const Vec3& station) {
         assert(isValidAtom(atomId));
-        assert(!getRigidGroup(rigidGroupId).containsAtom(atomId, *this));
-        updRigidGroup(rigidGroupId).placeAtom(atomId, station);
+        assert(!getCluster(clusterId).containsAtom(atomId));
+        updCluster(clusterId).placeAtom(atomId, station, *this);
     }
 
-    void placeRigidGroupInRigidGroup
-       (int childGroupId, int parentGroupId, const Transform& placement) 
+    void placeClusterInCluster
+       (int childClusterId, int parentClusterId, const Transform& placement) 
     {
-        assert(isValidRigidGroup(childGroupId) && isValidRigidGroup(parentGroupId));
-        assert(!getRigidGroup(parentGroupId).containsRigidGroup(childGroupId, *this));
-        updRigidGroup(parentGroupId).placeRigidGroup(childGroupId, placement);
+        assert(isValidCluster(childClusterId) && isValidCluster(parentClusterId));
+        assert(!getCluster(parentClusterId).containsCluster(childClusterId, *this));
+        updCluster(parentClusterId).placeCluster(childClusterId, placement, *this);
+    }
+
+    void attachClusterToBody(int clusterId, int bodyNum, const Transform& tr) 
+    {
+        ensureBodyEntryExists(bodyNum);
+        assert(isValidCluster(clusterId) && isValidBody(bodyNum));
+        Cluster& bodyCluster = updCluster(getBody(bodyNum).getClusterId());
+        bodyCluster.placeCluster(clusterId, tr, *this);
+    }
+
+    void attachAtomToBody(int atomId, int bodyNum, const Vec3& station) 
+    {
+        ensureBodyEntryExists(bodyNum);
+        assert(isValidAtom(atomId) && isValidBody(bodyNum));
+        Cluster& bodyCluster = updCluster(getBody(bodyNum).getClusterId());
+        bodyCluster.placeAtom(atomId, station, *this);
+    }
+
+    MassProperties calcClusterMassProperties
+       (int clusterId, const Transform& tr) const
+    {
+        assert(isValidCluster(clusterId));
+        return getCluster(clusterId).calcMassProperties(tr);
     }
 
     int addAtom(int chargedAtomTypeId)
@@ -915,51 +1035,61 @@ public:
     int getNAtoms() const {return (int)atoms.size();}
     int getNBonds() const {return (int)bonds.size();}
 
-    int getChargedAtomTypeNum(int atomId) const {
+    const Atom& getAtom(int atomId) const {
         assert(isValidAtom(atomId));
-        return atoms[atomId].chargedAtomTypeId;
+        return atoms[atomId];
+    }
+    Atom& updAtom(int atomId) {
+        assert(isValidAtom(atomId));
+        return atoms[atomId];
+    }
+
+    int getChargedAtomTypeNum(int atomId) const {
+        return getAtom(atomId).chargedAtomTypeId;
     }
 
     int getAtomClassNum(int atomId) const {
-        assert(isValidAtom(atomId));
         const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeNum(atomId)];
         return type.atomClass;
     }
 
     int getAtomElementNum(int atomId) const {
-        assert(isValidAtom(atomId));
         const AtomClass& cl = atomClasses[getAtomClassNum(atomId)];
         return cl.element;
     }
 
     Real getAtomMass(int atomId) const {
-        assert(isValidAtom(atomId));
         const Element& e = elements[getAtomElementNum(atomId)];
         return e.mass;
     }
 
     const Vec3& getAtomDefaultColor(int atomId) const {
-        assert(isValidAtom(atomId));
         const Element& e = elements[getAtomElementNum(atomId)];
         return e.defaultColor;
     }
 
     Real getAtomRadius(int atomId) const {
-        assert(isValidAtom(atomId));
         const AtomClass& cl = atomClasses[getAtomClassNum(atomId)];
         return cl.vdwRadius;
     }
 
-    const Vec3& getAtomStation(int atomId) const {
-        assert(isValidAtom(atomId));
-        assert(topologicalCacheValid); // can't know station until after realizeConstruction()
-        return atoms[atomId].station_B;
+    const Vec3& getAtomStationOnBody(int atomId) const {
+        assert(getAtom(atomId).isAttachedToBody());
+        return getAtom(atomId).station_B;
+    }
+
+    const Vec3& getAtomStationInCluster(int atomId, int clusterId) const {
+        const Cluster& c = getCluster(clusterId);
+        const AtomPlacementSet& atoms = c.getAllContainedAtoms();
+        const AtomPlacementSet::const_iterator ap = 
+            atoms.find(AtomPlacement(atomId,Vec3(0)));
+        assert(ap != atoms.end());
+        return ap->station;
     }
 
     int getAtomBody(int atomId) const {
-        assert(isValidAtom(atomId));
-        assert(topologicalCacheValid); // can't know body until after realizeConstruction()
-        return atoms[atomId].bodyId;
+        assert(getAtom(atomId).isAttachedToBody());
+        return getAtom(atomId).bodyId;
     }
 
     int getBondAtom(int b, int which) const {
@@ -1031,6 +1161,17 @@ public:
 private:
     void loadElements();
 
+    void ensureBodyEntryExists(int bodyNum) {
+        if (bodyNum >= (int)bodies.size())
+            bodies.resize(bodyNum+1);
+        if (!bodies[bodyNum].isValid()) {
+            const int clusterId = 
+                addCluster(Cluster(Body::createClusterNameForBody(bodyNum).c_str()));
+            clusters[clusterId].attachToBody(bodyNum, Transform(), *this);
+            bodies[bodyNum] = Body(clusterId);
+        }
+    }
+
     void invalidateAllTopologicalCacheEntries() {
         topologicalCacheValid = false;
 
@@ -1040,8 +1181,8 @@ private:
         // molecule
         for (int i=0; i < (int)atoms.size(); ++i)
             atoms[i].invalidateTopologicalCache();
-        for (int i=0; i < (int)rigidGroups.size(); ++i)
-            rigidGroups[i].invalidateTopologicalCache();
+        for (int i=0; i < (int)clusters.size(); ++i)
+            clusters[i].invalidateTopologicalCache();
         for (int i=0; i < (int)bodies.size(); ++i)
             bodies[i].invalidateTopologicalCache();
 
@@ -1056,13 +1197,13 @@ private:
 
     // molecule
 
-    std::vector<Atom>       atoms;
-    std::vector<Bond>       bonds;
-    std::vector<RigidGroup> rigidGroups;
+    std::vector<Atom>    atoms;
+    std::vector<Bond>    bonds;
+    std::vector<Cluster> clusters;
     // This defines the partitioning of atoms onto the matter subsystem's bodies.
     // The indices here correspond to the body numbers. Only entries for bodies on
     // which our atoms have been attached will be valid.
-    std::vector<Body>       bodies;
+    std::vector<Body>    bodies;
 
     // force field
 
@@ -1188,10 +1329,44 @@ void DuMMForceFieldSubsystem::setCoulomb13ScaleFactor(Real fac) {updRep().setCou
 void DuMMForceFieldSubsystem::setCoulomb14ScaleFactor(Real fac) {updRep().setCoulomb14ScaleFactor(fac);}
 void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {updRep().setCoulomb15ScaleFactor(fac);}
 
+int DuMMForceFieldSubsystem::createCluster(const char* groupName)
+{
+    return updRep().addCluster(Cluster(groupName));
+}
+
 int DuMMForceFieldSubsystem::addAtom(int chargedAtomType)
 {
     return updRep().addAtom(chargedAtomType);
 }
+
+void DuMMForceFieldSubsystem::placeAtomInCluster
+   (int atomId, int clusterId, const Vec3& station)
+{
+    updRep().placeAtomInCluster(atomId, clusterId, station);
+}
+
+void DuMMForceFieldSubsystem::placeClusterInCluster
+   (int childClusterId, int parentClusterId, const Transform& placement)
+{
+    updRep().placeClusterInCluster(childClusterId, parentClusterId, placement);
+}
+
+void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyId, const Transform& tr) 
+{
+    updRep().attachClusterToBody(clusterId, bodyId, tr);
+}
+
+void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, int bodyId, const Vec3& station) 
+{
+    updRep().attachAtomToBody(atomId, bodyId, station);
+}
+
+MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
+   (int clusterId, const Transform& tr) const
+{
+    return getRep().calcClusterMassProperties(clusterId, tr);
+}
+
 
 int DuMMForceFieldSubsystem::addBond(int atom1, int atom2)
 {
@@ -1208,20 +1383,23 @@ int DuMMForceFieldSubsystem::getBondAtom(int bond, int which) const {
     return getRep().getBondAtom(bond, which);
 }
 
-Real DuMMForceFieldSubsystem::getAtomMass(int atomNum) const {
-    return getRep().getAtomMass(atomNum);
+Real DuMMForceFieldSubsystem::getAtomMass(int atomId) const {
+    return getRep().getAtomMass(atomId);
 }
-Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomNum) const {
-    return getRep().getAtomDefaultColor(atomNum);
+Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomId) const {
+    return getRep().getAtomDefaultColor(atomId);
 }
-Real DuMMForceFieldSubsystem::getAtomRadius(int atomNum) const {
-    return getRep().getAtomRadius(atomNum);
+Real DuMMForceFieldSubsystem::getAtomRadius(int atomId) const {
+    return getRep().getAtomRadius(atomId);
 }
-Vec3 DuMMForceFieldSubsystem::getAtomStation(int atomNum) const {
-    return getRep().getAtomStation(atomNum);
+Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(int atomId) const {
+    return getRep().getAtomStationOnBody(atomId);
 }
-int DuMMForceFieldSubsystem::getAtomBody(int atomNum) const {
-    return getRep().getAtomBody(atomNum);
+Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(int atomId, int clusterId) const {
+    return getRep().getAtomStationInCluster(atomId, clusterId);
+}
+int DuMMForceFieldSubsystem::getAtomBody(int atomId) const {
+    return getRep().getAtomBody(atomId);
 }
 
 void DuMMForceFieldSubsystem::dump() const {
@@ -1353,18 +1531,18 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
 
         // molecule
 
-    // Process groups & bodies (bodies are treated as top-level groups)
+    // Process clusters & bodies (bodies are treated as top-level clusters)
 
-    // We process groups recursively, so we need to allow the groups writable
+    // We process clusters recursively, so we need to allow the clusters writable
     // access to the main DuMM object (i.e., "this").
-    for (int gnum=0; gnum < (int)rigidGroups.size(); ++gnum) {
-        RigidGroup& g = mutableThis->rigidGroups[gnum];
-        assert(g.isValid()); // Shouldn't be any unused group numbers.
-        g.realizeTopologicalCache(*mutableThis);
+    for (int cnum=0; cnum < (int)clusters.size(); ++cnum) {
+        Cluster& c = mutableThis->clusters[cnum];
+        assert(c.isValid()); // Shouldn't be any unused cluster numbers.
+        c.realizeTopologicalCache(*mutableThis);
     }
 
-    // Bodies, on the other hand, are always top level groups and the
-    // calculation here assumes that all the groups have been processed.
+    // Bodies, on the other hand, are always top level clusters and the
+    // calculation here assumes that all the clusters have been processed.
     // Thus bodies need only read access to the main DuMM object, 
     // although we're passign the mutable one in so we can use the
     // same routine (TODO).
@@ -1410,8 +1588,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
 
         // Add this atom and its direct (1-2) bonds to the list of all bonded atoms.
         allBondedSoFar.insert(anum);
-        for (int j=0; j < (int)a.bond12.size(); ++j)
-            allBondedSoFar.insert(a.bond12[j]);
+        allBondedSoFar.insert(a.bond12.begin(), a.bond12.end());
 
         // Find longer bond paths by building each list in turn from
         // the direct bonds of the atoms in the previous list.
@@ -1795,11 +1972,16 @@ void DuMMForceFieldSubsystemRep::loadElements() {
 void DuMMForceFieldSubsystemRep::dump() const 
 {
     printf("Dump of DuMMForceFieldSubsystem:\n");
-    printf("  NBodies=%d NAtoms=%d NAtomClasses=%d NChargedAtomTypes=%d NBonds=%d\n",
-        bodies.size(), atoms.size(), atomClasses.size(), chargedAtomTypes.size(), bonds.size());
+    printf("  NBodies=%d NClusters=%d NAtoms=%d NAtomClasses=%d NChargedAtomTypes=%d NBonds=%d\n",
+        bodies.size(), clusters.size(), atoms.size(), 
+        atomClasses.size(), chargedAtomTypes.size(), bonds.size());
     for (int i=0; i < (int)bodies.size(); ++i) {
         printf("  Body %d:\n", i);
         bodies[i].dump();
+    }
+    for (int i=0; i < (int)clusters.size(); ++i) {
+        printf("  Cluster %d:\n", i);
+        clusters[i].dump();
     }
     for (int i=0; i < (int)atoms.size(); ++i) {
         printf("  Atom %d: ", i);
@@ -1988,54 +2170,127 @@ void Atom::dump() const {
     printf("\n");
 }
 
-    ////////////////
-    // RigidGroup //
-    ////////////////
+    /////////////
+    // Cluster //
+    /////////////
 
-// True if the atom has been placed in this group, or if any group that has
-// been placed here contains the atom, or a subgroup containing the atom
-// recursively.
-bool RigidGroup::containsAtom(int atomId, const DuMMForceFieldSubsystemRep& mm) const {
-    if (atomPlacements.find(AtomPlacement(atomId,Vec3(0))) != atomPlacements.end())
+
+void Cluster::attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm) {
+    assert(!isAttachedToBody());
+    bodyId = bnum;
+    placement_B = X_BR;
+
+    // Tell all the atoms directly contained in this cluster that they are
+    // now attached to the body also. This will fail if any of the atoms are
+    // alread attached -- no polygamy.
+    AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
+    while (ap != directAtomPlacements.end()) {
+        Atom& a = mm.updAtom(ap->atomId);
+        a.attachToBody(bnum, X_BR*ap->station);
+        ++ap;
+    }
+
+    // Now do the same for our contained groups, who will in turn notify their
+    // own atoms and subgroups.
+    ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
+    while (cp != directClusterPlacements.end()) {
+        Cluster& c = mm.updCluster(cp->clusterId);
+        c.attachToBody(bnum, X_BR*cp->placement, mm);
+        ++cp;
+    }
+}
+
+// Place an atom in this cluster. To be valid, the atom must not
+// already be
+//   (a) in any of the trees of which this group is apart, or
+//   (b) attached to a body.
+// TODO: (c) at the moment we don't allow placing an atom in a group unless
+//           that group is a top-level group (i.e., it has no parents).
+// If this group is already attached to a body, then we will update
+// the atom entry to note that it is now attached to the body also.
+void Cluster::placeAtom(int atomId, const Vec3& station, DuMMForceFieldSubsystemRep& mm) {
+    assert(isTopLevelCluster()); // TODO
+    assert(!mm.getAtom(atomId).isAttachedToBody());
+    assert(!containsAtom(atomId));
+
+    std::pair<AtomPlacementSet::iterator, bool> ret;
+    ret = directAtomPlacements.insert(AtomPlacement(atomId,station));
+    assert(ret.second); // must not have been there already
+
+    ret = allAtomPlacements.insert(AtomPlacement(atomId,station));
+    assert(ret.second); // must not have been there already
+
+    if (isAttachedToBody())
+        mm.updAtom(atomId).attachToBody(bodyId, placement_B*station);
+}
+
+// Place a child cluster in this parent cluster. To be valid, the child 
+// must not 
+//   (a) already be contained in the parent group or one of the parent's subgroups, or
+//   (b) contain any atoms which are already present in the parent or any
+//       of the parent's subgroups, or
+//   (c) already be attached to a body.
+// TODO: (d) at the moment we don't allow adding a child group unless
+//           the parent (this) group is a top-level group (i.e., it has no parents).
+// If the parent is already attached to a body, then we will update
+// the child to note that it is now attached to the body also (and it
+// will update its contained atoms).
+void Cluster::placeCluster(int childClusterId, const Transform& placement, DuMMForceFieldSubsystemRep& mm) {
+    assert(isTopLevelCluster()); // TODO
+
+    Cluster& child = mm.updCluster(childClusterId);
+    assert(!child.isAttachedToBody());
+    assert(!containsCluster(childClusterId, mm));
+
+    // Make sure the new child group doesn't contain any atoms which are already in
+    // any of the trees to which the parent group (this) is associated.
+    // TODO: for now we need only look at the parent since we know it is top level.
+    const AtomPlacementSet& childsAtoms  = child.getAllContainedAtoms();
+    AtomPlacementSet&       parentsAtoms = updAllContainedAtoms();
+
+    // Make sure none of the child's atoms are already in the parent.
+    AtomPlacementSet::const_iterator ap = childsAtoms.begin();
+    while (ap != childsAtoms.end()) {
+        std::pair<AtomPlacementSet::iterator, bool> ret =
+            parentsAtoms.insert(AtomPlacement(ap->atomId, placement*ap->station));
+        assert(ret.second); // mustn't have been there already
+        ++ap;
+    }
+
+    noteNewChildCluster(childClusterId, placement);
+    child.noteNewParentCluster(clusterId, placement);
+
+    if (isAttachedToBody())
+        child.attachToBody(bodyId, placement_B*placement, mm);
+
+    //TODO: check for loops
+}
+
+
+bool Cluster::containsCluster(int clusterId, const DuMMForceFieldSubsystemRep& mm) const {
+    if (directClusterPlacements.find(ClusterPlacement(clusterId,Transform())) != directClusterPlacements.end())
         return true;
-    RigidGroupPlacementSet::const_iterator gp = rigidGroupPlacements.begin();
-    while (gp != rigidGroupPlacements.end()) {
-        const RigidGroup& g = mm.getRigidGroup(gp->rigidGroupId);
-        if (g.containsAtom(atomId, mm))
+    ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
+    while (cp != directClusterPlacements.end()) {
+        const Cluster& c = mm.getCluster(cp->clusterId);
+        if (c.containsCluster(clusterId, mm))
             return true;
-        ++gp;
+        ++cp;
     }
     return false;
 }
 
-bool RigidGroup::containsRigidGroup(int groupId, const DuMMForceFieldSubsystemRep& mm) const {
-    if (rigidGroupPlacements.find(RigidGroupPlacement(groupId,Transform())) != rigidGroupPlacements.end())
-        return true;
-    RigidGroupPlacementSet::const_iterator gp = rigidGroupPlacements.begin();
-    while (gp != rigidGroupPlacements.end()) {
-        const RigidGroup& g = mm.getRigidGroup(gp->rigidGroupId);
-        if (g.containsRigidGroup(groupId, mm))
-            return true;
-        ++gp;
-    }
-    return false;
-}
+    //////////
+    // Body //
+    //////////
 
-// Append all our directly-placed atoms into the allAtoms array. Then transform
-// all of our subgroups' atoms by the appropriate transform and append them to
-// the allAtoms array. The results are not in any particular order.
-void RigidGroup::calculateAllAtomArray(DuMMForceFieldSubsystemRep& mm)
-{
-    AtomPlacementSet::const_iterator ap = atomPlacements.begin();
-    while(ap != atomPlacements.end())
+void Body::realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm) {
+    allAtoms.clear();
+    const Cluster& c = mm.getCluster(clusterId);
+    AtomPlacementSet::const_iterator ap = c.getAllContainedAtoms().begin();
+    while (ap != c.getAllContainedAtoms().end()) {
         allAtoms.push_back(*ap);
-
-    RigidGroupPlacementSet::iterator gp = rigidGroupPlacements.begin();
-    while (gp != rigidGroupPlacements.end()) {
-        RigidGroup& g = mm.updRigidGroup(gp->rigidGroupId);
-        g.realizeTopologicalCache(mm);  // might already be done
-        g.xformAllAtomArray(gp->placement, allAtoms);
-        ++gp;
+        ++ap;
     }
 }
 

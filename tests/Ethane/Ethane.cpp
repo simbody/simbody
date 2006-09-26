@@ -46,7 +46,7 @@ using std::endl;
 using namespace SimTK;
 
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real Pi = NTraits<Real>::Pi, RadiansPerDegree = Pi/180;
 static const Real EnergyUnitsPerKcal = 418.4; // exact 
 static const int  Ground = 0;       // ground is always body 0
 static const Transform BodyFrame;   // identity transform on any body
@@ -97,20 +97,20 @@ try {
     // atom 4 is carbon2
     // atoms 5,6,7 are attached to carbon2
 
-    // rigid groups:
+    // rigid clusters:
     //   group 1: the two carbons
     //   group 2: carbon 1 (atom 0) and hydrogens 1,2,3
     //   group 3: carbon 2 (atom 4) and hydrogens 5,6,7
     //   group 4: the entire molecule
-    // Any group or individual atom can be assigned to a body, provided
+    // Any cluster or individual atom can be assigned to a body, provided
     // the resulting set of assignments represents a partitioning of
     // the atoms across the bodies.
 
-    const int twoCarbons           = mm.createRigidGroup("two carbons");
-    const int methyl1              = mm.createRigidGroup("methyl 1");
-    const int methyl2              = mm.createRigidGroup("methyl 2");
-    const int wholeEthaneEclipsed  = mm.createRigidGroup("ethaneEclipsed");
-    const int wholeEthaneStaggered = mm.createRigidGroup("ethaneStaggered");
+    const int twoCarbons           = mm.createCluster("two carbons");
+    const int methyl1              = mm.createCluster("methyl 1");
+    const int methyl2              = mm.createCluster("methyl 2");
+    const int wholeEthaneEclipsed  = mm.createCluster("ethaneEclipsed");
+    const int wholeEthaneStaggered = mm.createCluster("ethaneStaggered");
 
     const Real ccNominalBondLength = 1.53688; // A
     const Real chNominalBondLength = 1.09;    // A
@@ -122,7 +122,7 @@ try {
     mm.addBond(C[0],C[1]);
     for (int i=0; i<3; ++i) {mm.addBond(H[i],C[0]); mm.addBond(H[i+3],C[1]);}
 
-    // Now build rigid groups. The "twoCarbons" group looks like this:        
+    // Now build clusters. The "twoCarbons" cluster looks like this:        
     //          y
     //          |
     //          C0 --> ---- C1
@@ -131,12 +131,12 @@ try {
     // That is, the 1st carbon is at the origin, the 2nd is out along the +x
     // axis by the nominal C-C bond length.
 
-    mm.placeAtomInRigidGroup(C[0], twoCarbons, Vec3(0));
-    mm.placeAtomInRigidGroup(C[1], twoCarbons, Vec3(ccNominalBondLength,0,0));
+    mm.placeAtomInCluster(C[0], twoCarbons, Vec3(0));
+    mm.placeAtomInCluster(C[1], twoCarbons, Vec3(ccNominalBondLength,0,0));
 
-    // Now build two identical methyl groups. We'll worry about getting them
-    // oriented properly when we place them into larger groups or onto bodies.
-    // Rigid methyl groups should look like this:
+    // Now build two identical methyl clusters. We'll worry about getting them
+    // oriented properly when we place them into larger clusters or onto bodies.
+    // The methyl clusters should look like this:
     //
     //          H0     
     //           \   y
@@ -152,15 +152,15 @@ try {
     // rotated +120 degrees about x (that is, out of the screen).
     // H2 is the H0 vector rotated 240 (=-120) degrees about x (into the
     // screen, not shown).
-    mm.placeAtomInRigidGroup(C[0], methyl1, Vec3(0));
-    mm.placeAtomInRigidGroup(C[1], methyl2, Vec3(0));
+    mm.placeAtomInCluster(C[0], methyl1, Vec3(0));
+    mm.placeAtomInCluster(C[1], methyl2, Vec3(0));
 
     const Vec3 H1pos = RotationMat::aboutZ(hccNominalBondBend)
-                          * Vec3(0,chNominalBondLength,0);
+                          * Vec3(chNominalBondLength,0,0);
     for (int i=0; i<3; ++i) {
         const Vec3 Hpos = RotationMat::aboutX(i*120*RadiansPerDegree) * H1pos;
-        mm.placeAtomInRigidGroup(H[i],   methyl1, Hpos);
-        mm.placeAtomInRigidGroup(H[3+i], methyl2, Hpos);
+        mm.placeAtomInCluster(H[i],   methyl1, Hpos);
+        mm.placeAtomInCluster(H[3+i], methyl2, Hpos);
     }
 
     // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
@@ -174,25 +174,62 @@ try {
     //          C0 --> -- <-- C1  
     //         /     x    x1
     //        z 
-    mm.placeRigidGroupInRigidGroup(methyl1, wholeEthaneEclipsed,  Transform());
-    mm.placeRigidGroupInRigidGroup(methyl1, wholeEthaneStaggered, Transform());
+    mm.placeClusterInCluster(methyl1, wholeEthaneEclipsed,  Transform());
+    mm.placeClusterInCluster(methyl1, wholeEthaneStaggered, Transform());
 
-    mm.placeRigidGroupInRigidGroup(methyl2, wholeEthaneEclipsed, 
+    mm.placeClusterInCluster(methyl2, wholeEthaneEclipsed, 
         Transform(RotationMat::aboutY(180*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
-    mm.placeRigidGroupInRigidGroup(methyl2, wholeEthaneStaggered, 
-        Transform(RotationMat::aboutX(60*RadiansPerDegree)
-                  * RotationMat::aboutY(180*RadiansPerDegree),
+    mm.placeClusterInCluster(methyl2, wholeEthaneStaggered, 
+        Transform(RotationMat::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
 
-    // Whole ethane as a rigid body, eclipsed. Align group reference frame with body's.
+    // Whole ethane as a rigid body, eclipsed. Align cluster reference frame with body's.
+    /*
     int b1 = ethane.addRigidBody(
-        mm.calcRigidGroupMassProperties(wholeEthaneEclipsed, Transform()), 
+        mm.calcClusterMassProperties(wholeEthaneStaggered, Transform()), 
         Transform(),            // inboard mobilizer frame
         Ground, Transform(),    // parent mobilizer frmae
         Mobilizer::Free);
+    mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform());
+    */
+    /*
+    int b1 = ethane.addRigidBody(
+                mm.calcClusterMassProperties(methyl1, Transform()),
+                Transform(),            // inboard mobilizer frame
+                Ground, Transform(),    // parent mobilizer frmae
+                Mobilizer::Free);
+    int b2 = ethane.addRigidBody(
+                mm.calcClusterMassProperties(methyl2, Transform()),      
+                Transform(RotationMat::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
+                b1, Transform(RotationMat::aboutY(90*RadiansPerDegree), // move z to +x
+                              Vec3(ccNominalBondLength,0,0)),
+                Mobilizer::Cylinder);
+    mm.attachClusterToBody(methyl1, b1, Transform());
+    mm.attachClusterToBody(methyl2, b2, Transform(RotationMat::aboutY(180*RadiansPerDegree)));
+    */
+    for (int i=0; i < mm.getNAtoms(); ++i) {
+        int b = ethane.addRigidBody(
+            MassProperties(mm.getAtomMass(i), Vec3(0), InertiaMat(0)), Transform(),
+            Ground, Transform(),
+            Mobilizer::Cartesian);
+        mm.attachAtomToBody(i, b, Vec3(0));
+    }
 
-    mm.attachRigidGroupToBody(wholeEthaneEclipsed, b1, Transform());
+
+    State s;
+    mbs.realize(s, Stage::Built);
+    mbs.realize(s, Stage::Modeled);
+
+    for (int i=0; i < mm.getNAtoms(); ++i) {
+        int b = mm.getAtomBody(i);
+        ethane.setMobilizerConfiguration(s, b, 
+            Transform(mm.getAtomStationInCluster(i, wholeEthaneEclipsed)));
+    }
+
+
+
+    mm.dump();
 
     //const Vec3 ccBond(1.53688, 0, 0);
     //Vec3 station[] = { Vec3(0), /*Vec3(-.3778,1.02422,0)*/Vec3(0), 
@@ -221,23 +258,19 @@ try {
         const int b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             display.addDecoration(b1, Transform(),
-                                  DecorativeLine(mm.getAtomStation(a1), mm.getAtomStation(a2))
+                                  DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
                                     .setColor(Gray).setLineThickness(3));
         else
-            display.addRubberBandLine(b1, mm.getAtomStation(a1),
-                                      b2, mm.getAtomStation(a2), crossBodyBond);
+            display.addRubberBandLine(b1, mm.getAtomStationOnBody(a1),
+                                      b2, mm.getAtomStationOnBody(a2), crossBodyBond);
     }
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        display.addDecoration(mm.getAtomBody(anum), Transform(mm.getAtomStation(anum)),
+        display.addDecoration(mm.getAtomBody(anum), Transform(mm.getAtomStationOnBody(anum)),
             DecorativeSphere(0.25*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(0.25).setResolution(3));
     }
 
-    State s;
-    mbs.realize(s, Stage::Built);
-
-    mm.dump();
 
 
     RungeKuttaMerson study(mbs, s);

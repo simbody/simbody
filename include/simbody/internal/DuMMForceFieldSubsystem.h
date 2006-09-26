@@ -26,7 +26,8 @@
 
 /** @file
  * Define the public interface to DuMMForceFieldSubsystem, a subsystem which
- * provides some minimal molecular mechanics-like capability.
+ * provides some minimal molecular mechanics-like capability in a multi-rigid body
+ * framework.
  */
 
 #include "simbody/internal/common.h"
@@ -79,29 +80,31 @@ public:
     void defineChargedAtomType(int atomTypeId, const char* atomTypeName,
                                int atomClassId, Real partialCharge);
 
-    // Create an empty rigid group. The rigid group Id number is returned; you don't get
-    // to pick your own. The name is just for display; you must use the Id to reference
-    // the group. Every rigid group has its own reference frame.
-    int createRigidGroup(const char* groupName);
+    // Create an empty cluster (rigid group of atoms). The cluster Id number is returned;
+    // you don't get to pick your own. The name is just for display; you must use the Id
+    // to reference the cluster. Every cluster has its own reference frame.
+    int createCluster(const char* clusterName);
 
     // Add a new atom to the model. The atom Id number is returned; you don't get to
     // pick your own.
     int addAtom(int chargedAtomTypeId);
 
-    // Place an existing atom at a particular station in the local frame of a rigid group. It
-    // is fine for an atom to be in more than one group as long as only one of them ends up
+    // Place an existing atom at a particular station in the local frame of a cluster. It
+    // is fine for an atom to be in more than one cluster as long as only one of them ends up
     // attached to a body.
-    void placeAtomInRigidGroup(int atomId, int rigidGroupId, const Vec3& station);
+    void placeAtomInCluster(int atomId, int clusterId, const Vec3& station);
 
-    // Place a rigid group (the child) in another rigid group (the parent). The child's
+    // Place a cluster (the child) in another cluster (the parent). The child's
     // local frame is placed at a given transform with respect to the parent's frame.
-    void placeRigidGroupInRigidGroup(int childRigidGroupId, int parentRigidGroupId, 
-                                     const Transform& placement);
+    void placeClusterInCluster(int childClusterId, int parentClusterId, 
+                               const Transform& placement);
 
-    void attachRigidGroupToBody(int rigidGroupId, int body, const Transform& = Transform());
-    void attachAtomToBody(int atomId, int body, const Vec3& station);
+    void attachClusterToBody(int clusterId, int body, const Transform& = Transform());
+    void attachAtomToBody   (int atomId,    int body, const Vec3& station = Vec3(0));
 
-    MassProperties calcRigidGroupMassProperties(int rigidGroupId, const Transform& = Transform()) const;
+    // Calcuate the composite mass properties of a cluster, either in its own reference
+    // frame or transformed to the indicated frame.
+    MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
 
     // Bond stretch parameters (between 2 atom classes). This
     // fails if (class1,class2) or (class2,class1) has already been assigned.
@@ -156,21 +159,22 @@ public:
     void setCoulomb15ScaleFactor(Real); // default 1
 
 
-    // Note that these are atom numbers, not atom classes or types.
-    int  addBond(int atom1, int atom2);
+    // Note that these are atom Id numbers, not atom classes or types.
+    int  addBond(int atomId1, int atomId2);
     int  getNBonds() const;
-    // 'which' must be 0 or 1. 0 will return the lower-numbered atom.
+
+    // 'which' must be 0 or 1. 0 will return the lower-numbered atomId.
     int  getBondAtom(int bond, int which) const;
 
     int  getNAtoms() const;
-    Real getAtomMass(int atomNum) const;
-    Real getAtomRadius(int atomNum) const;
-    Vec3 getAtomStation(int atomNum) const;
-    int  getAtomBody(int atomNum) const;
-    Vec3 getAtomDefaultColor(int atomNum) const;
+    Real getAtomMass(int atomId) const;
+    Real getAtomRadius(int atomId) const;
+    Vec3 getAtomStationOnBody(int atomId) const;
+    Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
+    int  getAtomBody(int atomId) const;
+    Vec3 getAtomDefaultColor(int atomId) const;
 
     void dump() const; // to stdout
-
 
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, ForceSubsystem);
 private:
