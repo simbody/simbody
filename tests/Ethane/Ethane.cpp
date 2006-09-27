@@ -85,7 +85,7 @@ try {
     mm.defineBondBend(1,1,34, bendFac*50, 109.5);
     mm.defineBondBend(34,1,34, bendFac*35, 109.5);
     mm.defineBondTorsion(34,1,1,34, 3, torsFac*0.150, 0);
-    
+
     MultibodySystem mbs;
     mbs.setMatterSubsystem(ethane);
     mbs.addForceSubsystem(mm);
@@ -322,12 +322,12 @@ try {
 
     display.report(s);
 
-    const Real h = .001;
+    const Real h = .0025;
     const int interval = 1;
     const Real tstart = 0.;
     const Real tmax = 5; //ps
 
-    study.setAccuracy(1e-6);
+    study.setAccuracy(1e-2);
     study.initialize(); 
 
     std::vector<State> saveEm;

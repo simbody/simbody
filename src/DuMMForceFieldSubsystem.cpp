@@ -46,6 +46,147 @@
 
 namespace SimTK {
 
+// OK for integers or Reals -- just cast int arg to Real.
+class ArgumentCheckValidNumeric : public Exception::Base {
+public:
+    ArgumentCheckValidNumeric
+       (const char* fn, int ln,  const char* className, const char* methodName,
+        const char* argDescription, const char* argstr, 
+        Real arg, const char* condDescription) : Base(fn,ln)
+    {
+        char buf[1024];
+        sprintf(buf, 
+            "%s::%s(%s): %s %g invalid: %s.", 
+            className, methodName, argstr, argDescription, arg, condDescription);
+        setMessage(String(buf));
+    }
+};
+
+#define SimTK_ARGCHECK_VALID_ALWAYS(  \
+            cond,condDescription,className,methodName,argDescription,arg)  \
+    do{if(!(cond))SimTK_THROW6(ArgumentCheckValidNumeric,  \
+    (className),(methodName),(argDescription),#arg,(Real)(arg),(condDescription));}while(false)
+
+#if defined(NDEBUG) && !defined(SimTK_KEEP_ARGCHECK)
+    #define SimTK_ARGCHECK_VALID(  \
+                cond,condDescription,className,methodName,argDescription,arg) 
+#else
+    #define SimTK_ARGCHECK_VALID(  \
+                cond,condDescription,className,methodName,argDescription,arg)  \
+        SimTK_ARGCHECK_VALID_ALWAYS(cond,condDescription,className,methodName,argDescription,arg)
+#endif
+
+
+
+// Someone is trying to define a new object uniquely identified by an int, but
+// that int is already in use for some other object.
+class ArgumentCheckAvailable : public Exception::Base {
+public:
+    ArgumentCheckAvailable
+       (const char* fn, int ln, const char* className, const char* methodName,
+        const char* argDescription, const char* argstr, int arg,
+        const char* prevUseDescription) : Base(fn,ln)
+    {
+        char buf[1024];
+        sprintf(buf, 
+            "%s::%s(%s): %s %d is already in use by \"%s\".", 
+            className, methodName, argstr, argDescription, arg, prevUseDescription);
+        setMessage(String(buf));
+    }
+};
+
+
+#define SimTK_ARGCHECK_AVAILABLE_ALWAYS(  \
+            cond,className,methodName,argDescription,arg,prevUseDescription)  \
+    do{if(!(cond))SimTK_THROW6(ArgumentCheckAvailable,  \
+    (className),(methodName),(argDescription),#arg,(arg),(prevUseDescription));}while(false)
+
+#if defined(NDEBUG) && !defined(SimTK_KEEP_ARGCHECK)
+    #define SimTK_ARGCHECK_AVAILABLE(  \
+                cond,className,methodName,argDescription,arg,prevUseDescription) 
+#else
+    #define SimTK_ARGCHECK_AVAILABLE(  \
+                cond,className,methodName,argDescription,arg,prevUseDescription)  \
+        SimTK_ARGCHECK_AVAILABLE_ALWAYS(cond,className,methodName,argDescription,arg,prevUseDescription)
+#endif
+
+
+class ArgumentCheckAtomNotInCluster : public Exception::Base {
+public:
+    ArgumentCheckAtomNotInCluster
+       (const char* fn, int ln, const char* className, const char* methodName,
+        int clusterId, const char* clusterName, int atomId) : Base(fn,ln)
+    {
+        char buf[1024];
+        sprintf(buf, 
+            "%s::%s(): cluster %d(\"%s\") already contains atom %d.", 
+            className, methodName, clusterId, clusterName, atomId);
+        setMessage(String(buf));
+    }
+};
+
+#define DuMM_ARGCHECK_ATOM_NOTIN_CLUSTER_ALWAYS(mm,methodName,atomId,clusterId) \
+    do{ if ((mm).getCluster(clusterId).containsAtom(atomId))                \
+            SimTK_THROW5(ArgumentCheckAtomNotInCluster,                     \
+                     (mm).ApiClassName,(methodName),(clusterId),            \
+                     (mm).getCluster(clusterId).name.c_str(),(atomId));     \
+    }while(false)
+
+class BondStretchRedefined : public Exception::Base {
+public:
+    BondStretchRedefined
+       (const char* fn, int ln, const char* className, const char* methodName,
+        int atomClassId1, int atomClassId2) : Base(fn,ln)
+    {
+        char buf[1024];
+        sprintf(buf, 
+            "%s::%s(): bond stretch term for atom class pair (%d,%d) was already defined.", 
+            className, methodName, atomClassId1, atomClassId2);
+        setMessage(String(buf));
+    }
+};
+
+#define DuMM_BONDSTRETCH_NEW_ALWAYS(cond, class1, class2, className, methodName)    \
+    do{ if (!(cond))                                        \
+            SimTK_THROW4(BondStretchRedefined,              \
+               (className),(methodName),(class1),(class2)); \
+    }while(false)
+
+class BondBendRedefined : public Exception::Base {
+public:
+    BondBendRedefined
+       (const char* fn, int ln, const char* className, const char* methodName,
+        int atomClassId1, int atomClassId2, int atomClassId3) : Base(fn,ln)
+    {
+        char buf[1024];
+        sprintf(buf, 
+            "%s::%s(): bond bend term for atom class triple (%d,%d,%d) was already defined.", 
+            className, methodName, atomClassId1, atomClassId2, atomClassId3);
+        setMessage(String(buf));
+    }
+};
+
+#define DuMM_BONDBEND_NEW_ALWAYS(cond, class1, class2, class3, className, methodName)    \
+    do{ if (!(cond))                                        \
+            SimTK_THROW5(BondBendRedefined,                 \
+               (className),(methodName),(class1),(class2),(class3)); \
+    }while(false)
+
+#if defined(NDEBUG) && !defined(SimTK_KEEP_ARGCHECK)
+    #define DuMM_ARGCHECK_ATOM_NOTIN_CLUSTER(mm,methodName,atomId,clusterId)
+    #define DuMM_BONDSTRETCH_NEW(cond, class1, class2, className, methodName) 
+    #define DuMM_BONDBEND_NEW(cond, class1, class2, class3, className, methodName) 
+#else
+    #define DuMM_ARGCHECK_ATOM_NOTIN_CLUSTER(mm,methodName,atomId,clusterId)    \
+        DuMM_ARGCHECK_ATOM_NOTIN_CLUSTER_ALWAYS(mm,methodName,atomId,clusterId)
+
+    #define DuMM_BONDSTRETCH_NEW(cond, class1, class2, className, methodName)   \
+        DuMM_BONDSTRETCH_NEW_ALWAYS(cond, class1, class2, className, methodName)
+
+    #define DuMM_BONDBEND_NEW(cond, class1, class2, class3, className, methodName)   \
+        DuMM_BONDBEND_NEW_ALWAYS(cond, class1, class2, class3, className, methodName)
+#endif
+
 static const Real Pi = NTraits<Real>::Pi;
 static const Real RadiansPerDegree = Pi/180;
 
@@ -876,6 +1017,8 @@ public:
 
 
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
+    friend class DuMMForceFieldSubsystem;
+    static const char* ApiClassName; // "DuMMForceFieldSubsystem"
 public:
     DuMMForceFieldSubsystemRep()
       : ForceSubsystemRep("DuMMForceFieldSubsystem", "0.0.1")
@@ -962,8 +1105,17 @@ public:
     }
 
     void placeAtomInCluster(int atomId, int clusterId, const Vec3& station) {
-        assert(isValidAtom(atomId));
-        assert(!getCluster(clusterId).containsAtom(atomId));
+        static const char* nm = "placeAtomInCluster";
+        SimTK_ARGCHECK_VALID_ALWAYS(isValidAtom(atomId), 
+            "must be a previously assigned atom id",
+            ApiClassName, nm, "atom id", atomId);
+        SimTK_ARGCHECK_VALID_ALWAYS(isValidCluster(clusterId), 
+            "must be a previously assigned cluster id",
+            ApiClassName, nm, "cluster id", clusterId);
+
+        DuMM_ARGCHECK_ATOM_NOTIN_CLUSTER_ALWAYS(*this, nm, atomId, clusterId);
+
+        //assert(!getCluster(clusterId).containsAtom(atomId));
         updCluster(clusterId).placeAtom(atomId, station, *this);
     }
 
@@ -1097,11 +1249,6 @@ public:
         return bonds[b].atoms[which];
     }
 
-
-    void addAtomClass(const AtomClass& atomClass);
-    void addChargedAtomType(const ChargedAtomType& atomType);
-    void addBondStretch(int class1, int class2, const BondStretch& bs);
-    void addBondBend(int class1, int class2, int class3, const BondBend& bb);
     void addBondTorsion(int class1, int class2, int class3, int class4, 
                         const TorsionTerm& tt1, 
                         const TorsionTerm& tt2=TorsionTerm(),
@@ -1266,29 +1413,113 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
 }
 
 void DuMMForceFieldSubsystem::defineAtomClass
-   (int id, const char* className, int element, int valence, 
+   (int atomClassId, const char* atomClassName, int element, int valence, 
     Real vdwRadius, Real vdwWellDepth)
 {
-    updRep().addAtomClass(AtomClass(id, className, element, valence, 
-                                    vdwRadius, vdwWellDepth));
+    static const char* methodName = "defineAtomClass";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_ARGCHECK_VALID_ALWAYS(atomClassId >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "atom class", atomClassId);
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidElement(element), 
+        "must be a valid atomic number and have an entry here",
+        mm.ApiClassName, methodName, "element", element);
+    SimTK_ARGCHECK_VALID_ALWAYS(valence >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "expected valence", valence);
+    SimTK_ARGCHECK_VALID_ALWAYS(vdwRadius >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "van der Waals radius", vdwRadius);
+    SimTK_ARGCHECK_VALID_ALWAYS(vdwWellDepth >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "van der Waals energy well depth", vdwWellDepth);
+
+    if (atomClassId >= (int)mm.atomClasses.size())
+        mm.atomClasses.resize(atomClassId+1);
+
+    SimTK_ARGCHECK_AVAILABLE_ALWAYS(!mm.atomClasses[atomClassId].isValid(),
+        mm.ApiClassName, methodName,
+        "atom class id", atomClassId, mm.atomClasses[atomClassId].name.c_str());
+
+    mm.atomClasses[atomClassId] = AtomClass(atomClassId, atomClassName, element, valence, 
+                                            vdwRadius, vdwWellDepth);
 }
 
 void DuMMForceFieldSubsystem::defineChargedAtomType
-   (int id, const char* typeName, int atomClass, Real partialCharge)
+   (int chargedAtomTypeId, const char* typeName, int atomClassId, Real partialCharge)
 {
-    updRep().addChargedAtomType(ChargedAtomType(id, typeName, atomClass, partialCharge));
+    static const char* methodName = "defineChargedAtomType";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_ARGCHECK_VALID_ALWAYS(chargedAtomTypeId >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "charged atom type", chargedAtomTypeId);
+    SimTK_ARGCHECK_VALID_ALWAYS(atomClassId >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "atom class", atomClassId);
+    // partialCharge is a signed quantity
+
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(atomClassId), 
+        "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", atomClassId);
+
+    if (chargedAtomTypeId >= (int)mm.chargedAtomTypes.size())
+        mm.chargedAtomTypes.resize(chargedAtomTypeId+1);
+
+    SimTK_ARGCHECK_AVAILABLE_ALWAYS(!mm.chargedAtomTypes[chargedAtomTypeId].isValid(),
+        mm.ApiClassName, methodName, "charged atom type id", chargedAtomTypeId, 
+        mm.chargedAtomTypes[chargedAtomTypeId].name.c_str());
+
+    mm.chargedAtomTypes[chargedAtomTypeId] = 
+        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, partialCharge);
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
    (int class1, int class2, Real stiffnessInKcalPerASq, Real nominalLengthInA)
 {
-    updRep().addBondStretch(class1, class2, BondStretch(stiffnessInKcalPerASq,nominalLengthInA));
+    static const char* methodName = "defineBondStretch";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(class1), "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", class1);
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(class2), "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", class2);
+    SimTK_ARGCHECK_VALID_ALWAYS(stiffnessInKcalPerASq >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "bond stretch stiffness", stiffnessInKcalPerASq);
+    SimTK_ARGCHECK_VALID_ALWAYS(nominalLengthInA >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "bond stretch nominal length", nominalLengthInA);
+
+    // Canonicalize the pair to have lowest class # first
+    const IntPair key(class1,class2,true);
+    std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
+      mm.bondStretch.insert(std::pair<IntPair,BondStretch>
+        (key, BondStretch(stiffnessInKcalPerASq,nominalLengthInA)));
+
+    // Throw an exception if this body stretch term was already defined.
+    DuMM_BONDSTRETCH_NEW_ALWAYS(ret.second, key[0], key[1], mm.ApiClassName, methodName);
 }
 
 void DuMMForceFieldSubsystem::defineBondBend
    (int class1, int class2, int class3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
 {
-    updRep().addBondBend(class1, class2, class3, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees));
+    static const char* methodName = "defineBondBend";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(class1), "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", class1);
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(class2), "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", class2);
+    SimTK_ARGCHECK_VALID_ALWAYS(mm.isValidAtomClass(class3), "must be an already-defined atom class id",
+        mm.ApiClassName, methodName, "atom class", class3);
+    SimTK_ARGCHECK_VALID_ALWAYS(stiffnessInKcalPerRadSq >= 0, "must be nonnegative",
+        mm.ApiClassName, methodName, "bond bend stiffness", stiffnessInKcalPerRadSq);
+    SimTK_ARGCHECK_VALID_ALWAYS(0 <= nominalAngleInDegrees && nominalAngleInDegrees <= 180, 
+        "must be between 0 and 180 degrees, inclusive",
+        mm.ApiClassName, methodName, "bond bend nominal angle", nominalAngleInDegrees);
+
+    // Canonicalize the triple to have lowest type # first
+    const IntTriple key(class1, class2, class3, true);
+    std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
+      mm.bondBend.insert(std::pair<IntTriple,BondBend>
+        (key, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees)));
+
+    // Throw an exception if this body stretch term was already defined.
+    DuMM_BONDBEND_NEW_ALWAYS(ret.second, key[0], key[1], key[2], mm.ApiClassName, methodName);
 }
 
 void DuMMForceFieldSubsystem::defineBondTorsion
@@ -1412,33 +1643,8 @@ void DuMMForceFieldSubsystem::dump() const {
     // DuMMForceFieldSubsystemRep //
     ////////////////////////////////
 
-
-void DuMMForceFieldSubsystemRep::addAtomClass(const AtomClass& atomClass) {
-    const int id = atomClass.atomClassId;
-    assert(id >= 0);
-    if (id >= (int)atomClasses.size())
-        atomClasses.resize(id+1);
-    assert(!atomClasses[id].isValid());
-    atomClasses[id] = atomClass;
-}
-
-void DuMMForceFieldSubsystemRep::addChargedAtomType(const ChargedAtomType& atomType) {
-    const int id = atomType.chargedAtomTypeId;
-    assert(id >= 0);
-    if (id >= (int)chargedAtomTypes.size())
-        chargedAtomTypes.resize(id+1);
-    assert(!chargedAtomTypes[id].isValid());
-    chargedAtomTypes[id] = atomType;
-}
-
-void DuMMForceFieldSubsystemRep::addBondStretch(int class1, int class2, const BondStretch& bs) {
-    assert(isValidAtomClass(class1) && isValidAtomClass(class2));
-    // Canonicalize the pair to have lowest class # first
-    const IntPair key(class1,class2,true);
-    std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
-      bondStretch.insert(std::pair<IntPair,BondStretch>(key,bs));
-    assert(ret.second); // must not have been there already
-}
+/*static*/ const char* DuMMForceFieldSubsystemRep::ApiClassName 
+    = "DuMMForceFieldSubsystem";
 
 const BondStretch& 
 DuMMForceFieldSubsystemRep::getBondStretch(int class1, int class2) const {
@@ -1446,15 +1652,6 @@ DuMMForceFieldSubsystemRep::getBondStretch(int class1, int class2) const {
     std::map<IntPair,BondStretch>::const_iterator bs = bondStretch.find(key);
     assert(bs != bondStretch.end());
     return bs->second;
-}
-
-void DuMMForceFieldSubsystemRep::addBondBend(int class1, int class2, int class3, const BondBend& bb) {
-    assert(isValidAtomClass(class1) && isValidAtomClass(class2) && isValidAtomClass(class3));
-    // Canonicalize the triple to have lowest type # first
-    const IntTriple key(class1, class2, class3, true);
-    std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
-      bondBend.insert(std::pair<IntTriple,BondBend>(key,bb));
-    assert(ret.second); // must not have been there already
 }
 
 const BondBend& 
