@@ -290,6 +290,15 @@ int main()
   } catch(const std::exception& e) {
       std::cout << "std::exception: " << e.what() << std::endl;
   }
+
+  try {
+      SimTK_APIARGCHECK3(!"must fail", "SomeClassName", "offendingMethod",
+          "test of APIARGCHECK name='%s', integer=%d, real=%g",
+          "Sherm", 49, 3.14159);
+  } catch (const std::exception& e) {
+      std::cout << "std::exception: " << e.what() << std::endl;
+  }
+
     return 0;
 }
 

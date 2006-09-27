@@ -90,6 +90,24 @@ public:
 private:
 };
 
+
+class APIArgcheckFailed : public Base {
+public:
+    APIArgcheckFailed(const char* fn, int ln, const char* className, const char* methodName,
+                      const char* fmt ...) : Base(fn,ln)
+    {
+        char buf[1024];
+        va_list args;
+        va_start(args, fmt);
+        vsprintf(buf, fmt, args);
+        setMessage("Bad call to SimTK API method " 
+                   + String(className) + "::" + String(methodName) + "(): "
+                   + String(buf) + ".");
+        va_end(args);
+    }
+private:
+};
+
 class IndexOutOfRange : public Base {
 public:
     IndexOutOfRange(const char* fn, int ln, const char* indexName,

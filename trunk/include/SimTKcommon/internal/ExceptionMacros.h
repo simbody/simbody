@@ -1,7 +1,7 @@
 #ifndef _SimTK_EXCEPTION_MACROS_H_
 #define _SimTK_EXCEPTION_MACROS_H_
 
-/* Copyright (c) 2005 Stanford University and Michael Sherman.
+/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -69,6 +69,7 @@
 // SimTK_KEEP_ASSERT
 // SimTK_KEEP_RANGECHECK
 // SimTK_KEEP_STAGECHECK
+// SimTK_KEEP_APIARGCHECK
 // ...
 
 #include "SimTKcommon/internal/common.h"
@@ -79,7 +80,7 @@
 #include <iostream>
 #include <exception>
 
-// TODO: SHAPECHECK, DOMAINCHECK, INVALIDARGUMENT
+// TODO: SHAPECHECK, DOMAINCHECK
 
     // RANGECHECKs: these exception are to be used for situations in which a
     // user of an API screws up by providing bad indices or dimensions. 
@@ -115,6 +116,40 @@
     do{if((val)<0)SimTK_THROW3(SimTK::Exception::ValueWasNegative,   \
                     (valName),(val),(where));}while(false)
 
+
+    // APIARGCHECKs: these should be used to catch all manner of problems with
+    // a user's call to a method that is part of a SimTK API. Note that these
+    // are intended for direct consumption by an application programmer using
+    // a SimTK API, so should be wordy and helpful. These macros accept
+    // printf-style format strings and arguments of whatever are the 
+    // appropriate types for those formats.
+
+#define SimTK_APIARGCHECK_ALWAYS(cond,className,methodName,msg)     \
+    do{if(!(cond))SimTK_THROW3(SimTK::Exception::APIArgcheckFailed, \
+                    (className),(methodName),msg);                  \
+    }while(false)
+#define SimTK_APIARGCHECK1_ALWAYS(cond,className,methodName,fmt,a1) \
+    do{if(!(cond))SimTK_THROW4(SimTK::Exception::APIArgcheckFailed, \
+                    (className),(methodName),fmt,a1);               \
+    }while(false)
+#define SimTK_APIARGCHECK2_ALWAYS(cond,className,methodName,fmt,a1,a2)      \
+    do{if(!(cond))SimTK_THROW5(SimTK::Exception::APIArgcheckFailed,         \
+                    (className),(methodName),fmt,a1,a2);                    \
+    }while(false)
+#define SimTK_APIARGCHECK3_ALWAYS(cond,className,methodName,fmt,a1,a2,a3)   \
+    do{if(!(cond))SimTK_THROW6(SimTK::Exception::APIArgcheckFailed,         \
+                    (className),(methodName),fmt,a1,a2,a3);                 \
+    }while(false)
+#define SimTK_APIARGCHECK4_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4)    \
+    do{if(!(cond))SimTK_THROW7(SimTK::Exception::APIArgcheckFailed,             \
+                    (className),(methodName),fmt,a1,a2,a3,a4);                  \
+    }while(false)
+#define SimTK_APIARGCHECK5_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4,a5) \
+    do{if(!(cond))SimTK_THROW8(SimTK::Exception::APIArgcheckFailed,             \
+                    (className),(methodName),fmt,a1,a2,a3,a4,a5);               \
+    }while(false)
+
+
 #if defined(NDEBUG) && !defined(SimTK_KEEP_RANGECHECK)
     #define SimTK_INDEXCHECK(lb,ix,ub,where)
     #define SimTK_SIZECHECK(sz,maxsz,where)
@@ -129,6 +164,27 @@
     #define SimTK_VALUECHECK_NONNEG(val,valName,where) SimTK_VALUECHECK_NONNEG_ALWAYS(val,valName,where)
 #endif
 
+#if defined(NDEBUG) && !defined(SimTK_KEEP_APIARGCHECK)
+    #define SimTK_APIARGCHECK(cond,className,methodName,msg)
+    #define SimTK_APIARGCHECK1(cond,className,methodName,fmt,a1)
+    #define SimTK_APIARGCHECK2(cond,className,methodName,fmt,a1,a2)
+    #define SimTK_APIARGCHECK3(cond,className,methodName,fmt,a1,a2,a3)
+    #define SimTK_APIARGCHECK4(cond,className,methodName,fmt,a1,a2,a3,a4)
+    #define SimTK_APIARGCHECK5(cond,className,methodName,fmt,a1,a2,a3,a4,a5)
+#else
+    #define SimTK_APIARGCHECK(cond,className,methodName,msg)                       \
+        SimTK_APIARGCHECK_ALWAYS(cond,className,methodName,msg)
+    #define SimTK_APIARGCHECK1(cond,className,methodName,fmt,a1)                   \
+        SimTK_APIARGCHECK1_ALWAYS(cond,className,methodName,fmt,a1)
+    #define SimTK_APIARGCHECK2(cond,className,methodName,fmt,a1,a2)                \
+        SimTK_APIARGCHECK2_ALWAYS(cond,className,methodName,fmt,a1,a2)
+    #define SimTK_APIARGCHECK3(cond,className,methodName,fmt,a1,a2,a3)             \
+        SimTK_APIARGCHECK3_ALWAYS(cond,className,methodName,fmt,a1,a2,a3)
+    #define SimTK_APIARGCHECK4(cond,className,methodName,fmt,a1,a2,a3,a4)          \
+        SimTK_APIARGCHECK4_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4)
+    #define SimTK_APIARGCHECK5(cond,className,methodName,fmt,a1,a2,a3,a4,a5)       \
+        SimTK_APIARGCHECK5_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4,a5)
+#endif
 
     // STAGECHECKs: these exception are to be used for situations in which a
     // user of an API screws up by attempting to access something in the 
