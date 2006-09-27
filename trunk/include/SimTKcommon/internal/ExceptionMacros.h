@@ -25,13 +25,13 @@
 
 /** @file
  * This file contains macros which are convenient to use for 
- * sprinkling error checking around liberally in SimTK program, a
+ * sprinkling error checking around liberally in SimTK programs, a
  * practice which is highly encouraged. You can think of this as
  * a generalization of the standard assert() macro. By default, 
  * these macros evaporate completely in a release build, but are
  * present in any debug build. Macros are also provided which are
  * always present in cases where the error checking is not a 
- * performance problem, and those shoudl be used in preference
+ * performance problem, and those should be used in preference
  * to the disappearing ones when appropriate. Also, you can force
  * the disappearing macros to remain present on a file-by-file basis,
  * primarily for use in debugging those annoying problems which only
@@ -50,8 +50,8 @@
  * to developers when appropriate.
  *
  * Note that these are *global* symbols, so we use the reserved
- * SimTK_ name prefix instead of the SimTK:: namespace to attempt to
- * avoid pollution of user programs.
+ * SimTK_ name prefix (since we can't use the SimTK:: namespace 
+ * for macros) to attempt to avoid pollution of user programs.
  *
  * We distinguish between macros which are used as internal 
  * "bugcatchers" and those which are used to report errors to
