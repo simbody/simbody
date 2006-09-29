@@ -160,7 +160,7 @@ public:
 
 
     // Note that these are atom Id numbers, not atom classes or types.
-    int  addBond(int atomId1, int atomId2);
+    int  addBond(int atom1Id, int atom2Id);
     int  getNBonds() const;
 
     // 'which' must be 0 or 1. 0 will return the lower-numbered atomId.
@@ -173,6 +173,10 @@ public:
     Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
     int  getAtomBody(int atomId) const;
     Vec3 getAtomDefaultColor(int atomId) const;
+
+    int       getClusterBody(int clusterId) const;
+    Transform getClusterPlacementOnBody(int clusterId) const;
+    Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
 
     void dump() const; // to stdout
 

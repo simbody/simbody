@@ -217,7 +217,6 @@ try {
         mm.attachAtomToBody(i, b, Vec3(0));
     }
 
-
     State s;
     mbs.realize(s, Stage::Built);
     mbs.realize(s, Stage::Modeled);
