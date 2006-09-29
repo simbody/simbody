@@ -549,7 +549,6 @@ public:
     void dump() const;
 
     void invalidateTopologicalCache() {
-        bodyId = -1; station_B.setToNaN();
         bond13.clear(); bond14.clear(); bond15.clear();
         xbond12.clear(); xbond13.clear(); xbond14.clear(); xbond15.clear();
         stretch.clear(); bend.clear(); torsion.clear();
@@ -572,10 +571,11 @@ public:
         //   These are calculated in realizeConstruction() from topological
         //   state variables (from here or others in the DuMM class).
 
-    // This is a set of lists which identify atoms nearby in the
-    // molecules bond structure. The bond12 list above contains the directly
-    // bonded (1-2) atoms; the 13 list below has the 1-(2)-3 bonded atoms,
-    // etc. The current Atom is always "1" so it isn't stored.
+    // This is a group of lists which identify atoms nearby in the
+    // molecule's bond structure. The bond12 list above contains the directly
+    // bonded (1-2) atoms; the 13 list below has the 1-(2)-3 bonded atoms (that
+    // is, it includes the path to the "3" atom), etc. The current Atom is
+    // always atom "1" so it isn't stored.
 
     std::vector<IntPair>   bond13;
     std::vector<IntTriple> bond14;
@@ -585,8 +585,8 @@ public:
     // bonds which include atoms from at least two bodies are included.
     // Note that each bond will appear twice in the overall data structure,
     // in the Atom entries for the atoms at either end. We avoid double
-    // processing by only processing the instance in which the first atoms's
-    // ID is the lower of the two. But we need to keep both copies because
+    // processing by only processing the instance in which the first atoms'
+    // Id is the lower of the two. But we need to keep both copies because
     // these are also used for scaling nearby interaction during non-bonded 
     // calculation.
     std::vector<int>       xbond12;
@@ -627,7 +627,13 @@ public:
     Vec3      boundingSphereCenter;
 };
 
-
+//
+// This class is a rigid grouping of atoms. It can contain atoms directly, and
+// subclusters which can contain atoms or sub-subclusters, etc. As we build
+// up a cluster, we keep a running "flat" view of all the atoms and all the clusters
+// contained anywhere deep within, already transformed to this cluster's reference
+// frame.
+//
 class Cluster {
 public:
     Cluster() : clusterId(-1), topologicalCacheValid(false), bodyId(-1) { }
@@ -663,9 +669,11 @@ public:
     }
 
     // See if a cluster contains any atoms which are already in
-    // any of the trees to which this cluster is associated.
+    // any of the cluster trees to which this cluster is associated.
     // TODO: can only handle top-level cluster so we don't have to run up the
     //       ancestor branches.
+    // If we find an atom common to both clusters we'll return it to permit
+    // nice error messages, otherwise we return false and -1 for the atomId.
     bool overlapsWithCluster(const Cluster& test, int& anAtomIdInBothClusters) const {
         assert(isTopLevelCluster());
 
@@ -694,7 +702,7 @@ public:
 
     // Place an atom in this cluster. To be valid, the atom must not
     // already be
-    //   (a) in any of the trees of which this group is apart, or
+    //   (a) in any of the trees of which this group is a part, or
     //   (b) attached to a body.
     // TODO: (c) at the moment we don't allow placing an atom in a group unless
     //           that group is a top-level group (i.e., it has no parents).
@@ -1194,6 +1202,7 @@ void DuMMForceFieldSubsystem::defineAtomClass
     static const char* MethodName = "defineAtomClass";
     DuMMForceFieldSubsystemRep& mm = updRep();
 
+        // Catch nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
         "atom class Id %d invalid: must be nonnegative", atomClassId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidElement(element), mm.ApiClassName, MethodName,
@@ -1205,13 +1214,16 @@ void DuMMForceFieldSubsystem::defineAtomClass
     SimTK_APIARGCHECK1_ALWAYS(vdwWellDepth >= 0, mm.ApiClassName, MethodName, 
         "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepth);
 
+        // Make sure there is a slot available for this atom class.
     if (atomClassId >= (int)mm.atomClasses.size())
         mm.atomClasses.resize(atomClassId+1);
 
+        // Make sure this atom class hasn't already been defined.
     SimTK_APIARGCHECK2_ALWAYS(!mm.atomClasses[atomClassId].isValid(), mm.ApiClassName, MethodName, 
         "atom class Id %d is already in use for '%s'", atomClassId, 
         mm.atomClasses[atomClassId].name.c_str());
 
+        // It's all good -- add the new atom class.
     mm.atomClasses[atomClassId] = AtomClass(atomClassId, atomClassName, element, valence, 
                                             vdwRadius, vdwWellDepth);
 }
@@ -1223,7 +1235,6 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
-
     SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeId >= 0, mm.ApiClassName, MethodName,
         "charged atom type Id %d invalid: must be nonnegative", chargedAtomTypeId);
     SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
@@ -1231,23 +1242,19 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
     // partialCharge is a signed quantity
 
         // Make sure the referenced atom class has already been defined.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(atomClassId), mm.ApiClassName, MethodName,
         "atom class %d is undefined", atomClassId);
 
         // Make sure there is a slot available for the new chargedAtomType.
-
     if (chargedAtomTypeId >= (int)mm.chargedAtomTypes.size())
         mm.chargedAtomTypes.resize(chargedAtomTypeId+1);
 
         // Check that this slot is not already in use.
-
     SimTK_APIARGCHECK2_ALWAYS(!mm.chargedAtomTypes[chargedAtomTypeId].isValid(), mm.ApiClassName, MethodName, 
         "charged atom type Id %d is already in use for '%s'", chargedAtomTypeId, 
         mm.chargedAtomTypes[chargedAtomTypeId].name.c_str());
 
         // Define the new charged atom type.
-
     mm.chargedAtomTypes[chargedAtomTypeId] = 
         ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, partialCharge);
 }
@@ -1259,7 +1266,6 @@ void DuMMForceFieldSubsystem::defineBondStretch
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
         "class1=%d which is not a valid atom class Id", class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
@@ -1271,7 +1277,6 @@ void DuMMForceFieldSubsystem::defineBondStretch
 
         // Attempt to insert the new bond stretch entry, canonicalizing first
         // so that the atom class pair has the lower class Id first.
-
     const IntPair key(class1,class2,true);
     std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
       mm.bondStretch.insert(std::pair<IntPair,BondStretch>
@@ -1279,7 +1284,6 @@ void DuMMForceFieldSubsystem::defineBondStretch
 
         // Throw an exception if this bond stretch term was already defined. (std::map 
         // indicates that with a bool in the return value.)
-
     SimTK_APIARGCHECK2_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
         "there was already a bond stretch term for atom class pair (%d,%d)", key[0], key[1]);
 }
@@ -1291,14 +1295,12 @@ void DuMMForceFieldSubsystem::defineBondBend
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
         "class1=%d which is not a valid atom class Id", class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
         "class2=%d which is not a valid atom class Id", class2);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
         "class3=%d which is not a valid atom class Id", class3);
-
     SimTK_APIARGCHECK1_ALWAYS(stiffnessInKcalPerRadSq >= 0, mm.ApiClassName, MethodName, 
         "stiffness %g is not valid: must be nonnegative", stiffnessInKcalPerRadSq);
     SimTK_APIARGCHECK1_ALWAYS(0 <= nominalAngleInDegrees && nominalAngleInDegrees <= 180, 
@@ -1309,7 +1311,6 @@ void DuMMForceFieldSubsystem::defineBondBend
         // Attempt to insert the new bond bend entry, canonicalizing first
         // by reversing the class Id triple if necessary so that the first 
         // classId is no larger than the third.
-
     const IntTriple key(class1, class2, class3, true);
     std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
       mm.bondBend.insert(std::pair<IntTriple,BondBend>
@@ -1317,7 +1318,6 @@ void DuMMForceFieldSubsystem::defineBondBend
 
         // Throw an exception if this bond bend term was already defined. (std::map 
         // indicates that with a bool in the return value.)
-
     SimTK_APIARGCHECK3_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
         "there was already a bond bend term for atom class triple (%d,%d,%d)", 
         key[0], key[1], key[2]);
@@ -1338,7 +1338,6 @@ void DuMMForceFieldSubsystem::defineBondTorsion
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
         "class1=%d which is not a valid atom class Id", class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
@@ -1352,11 +1351,9 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Canonicalize atom class quad by reversing order if necessary so that the
         // first class Id is numerically no larger than the fourth.
-
     const IntQuad key(class1, class2, class3, class4, true);
 
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
-
     BondTorsion bt;
     if (periodicity1 != -1) {
             // No nonsense.
@@ -1409,12 +1406,10 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Now try to insert the allegedly new BondTorsion specification into the bondTorsion map.
         // If it is already there the 2nd element in the returned pair will be 'false'.
-
     std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret = 
       mm.bondTorsion.insert(std::pair<IntQuad,BondTorsion>(key,bt));
 
         // Throw an exception if terms for this bond torsion were already defined.
-
     SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
         "bond torsion term(s) were already defined for atom class quad (%d,%d,%d,%d)", 
         key[0], key[1], key[2], key[3]);
@@ -1550,7 +1545,6 @@ void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, cons
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure that we've seen both the atomId and clusterId before.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
         "atom Id %d is not valid", atomId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
@@ -1560,12 +1554,10 @@ void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, cons
 
         // Make sure that this cluster doesn't already contain this atom, either directly
         // or recursively through its subclusters.
-
     SimTK_APIARGCHECK3_ALWAYS(!cluster.containsAtom(atomId), mm.ApiClassName, MethodName,
         "cluster %d('%s') already contains atom %d", clusterId, cluster.name.c_str(), atomId);
 
         // Add the atom to the cluster.
-
     cluster.placeAtom(atomId, station, mm);
 }
 
@@ -1576,7 +1568,6 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure that we've seen both of these clusters before.
-
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterId), mm.ApiClassName, MethodName,
         "child cluster Id %d is not valid", childClusterId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterId), mm.ApiClassName, MethodName,
@@ -1589,7 +1580,6 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
         // not have any parent clusters (although it can be attached to a body). This restriction
         // should be relaxed but it is tricky to get all the parents' and ancestors' content
         // lists updated correctly so I'm deferring that for now (sherm 060928).
-
     SimTK_APIARGCHECK2_ALWAYS(parent.isTopLevelCluster(), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') is not a top-level cluster so you cannot add a child cluster to it now",
         parentClusterId, parent.name.c_str());
@@ -1601,7 +1591,6 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
 
         // Make sure that parent cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
-
     SimTK_APIARGCHECK4_ALWAYS(!parent.containsCluster(childClusterId), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') already contains child cluster %d('%s')", 
         parentClusterId, parent.name.c_str(), childClusterId, child.name.c_str());
@@ -1609,7 +1598,6 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
         // Make sure the new child cluster doesn't contain any atoms which are already in
         // any of the trees to which the parent cluster is associated.
         // TODO: for now we need only look at the parent since we know it is top level.
-
     int atomId;
     SimTK_APIARGCHECK5_ALWAYS(!parent.overlapsWithCluster(child, atomId), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') and would-be child cluster %d('%s') both contain atom %d"
@@ -1647,13 +1635,11 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum, co
         clusterId, child.name.c_str(), atomId, bodyId);
 
         // Create an entry for the body if necessary, and its corresponding cluster.
-
     mm.ensureBodyEntryExists(bodyNum);
     Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterId());
 
         // Make sure that body cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
-
     SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached (directly or indirectly) to body %d", 
         clusterId, child.name.c_str(), bodyNum);

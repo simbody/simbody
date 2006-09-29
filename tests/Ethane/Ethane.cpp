@@ -68,7 +68,7 @@ try {
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(20);
+   // forces.addGlobalEnergyDrain(20);
 
 
     // AMBER 99
@@ -185,16 +185,17 @@ try {
         Transform(RotationMat::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
 
-    // Whole ethane as a rigid body, eclipsed. Align cluster reference frame with body's.
-    /*
+    /* Whole ethane as a rigid body, eclipsed. 
+    // Align cluster reference frame with body's.
     int b1 = ethane.addRigidBody(
         mm.calcClusterMassProperties(wholeEthaneStaggered, Transform()), 
         Transform(),            // inboard mobilizer frame
         Ground, Transform(),    // parent mobilizer frmae
         Mobilizer::Free);
     mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform());
-    */
-    /*
+    /**/
+
+    /* Methyls connected by a torsion/stretch (cylinder) mobilizer. */
     int b1 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl1, Transform()),
                 Transform(),            // inboard mobilizer frame
@@ -208,7 +209,9 @@ try {
                 Mobilizer::Cylinder);
     mm.attachClusterToBody(methyl1, b1, Transform());
     mm.attachClusterToBody(methyl2, b2, Transform(RotationMat::aboutY(180*RadiansPerDegree)));
-    */
+    /**/
+
+    /* Cartesian:
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), InertiaMat(0)), Transform(),
@@ -216,16 +219,19 @@ try {
             Mobilizer::Cartesian);
         mm.attachAtomToBody(i, b, Vec3(0));
     }
+    /**/
 
     State s;
     mbs.realize(s, Stage::Built);
     mbs.realize(s, Stage::Modeled);
 
+    /* Cartesian:
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
         ethane.setMobilizerConfiguration(s, b, 
             Transform(mm.getAtomStationInCluster(i, wholeEthaneEclipsed)));
     }
+    /**/
 
 
 
@@ -322,7 +328,7 @@ try {
 
     display.report(s);
 
-    const Real h = .0025;
+    const Real h = /*.0025*/0.01;
     const int interval = 1;
     const Real tstart = 0.;
     const Real tmax = 5; //ps
