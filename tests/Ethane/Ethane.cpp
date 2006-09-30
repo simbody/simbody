@@ -185,6 +185,15 @@ try {
         Transform(RotationMat::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
 
+    cout << "mass props twoCarbons =" << mm.calcClusterMassProperties(twoCarbons, Transform(Vec3(.76844,1,0)));
+    cout << "mass props methyl1    =" << mm.calcClusterMassProperties(methyl1);
+    cout << "mass props methyl2    =" << mm.calcClusterMassProperties(methyl2);
+    cout << "mass props methyl2(rot-45y) =" << mm.calcClusterMassProperties(methyl2,
+        Transform(RotationMat::aboutY(-45*RadiansPerDegree)));
+    cout << "mass props eclipsed   =" << mm.calcClusterMassProperties(wholeEthaneEclipsed);
+    cout << "mass props staggered  =" << mm.calcClusterMassProperties(wholeEthaneStaggered);
+
+
     /* Whole ethane as a rigid body, eclipsed. 
     // Align cluster reference frame with body's.
     int b1 = ethane.addRigidBody(

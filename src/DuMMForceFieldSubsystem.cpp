@@ -726,10 +726,9 @@ public:
 
     // Calculate the composite mass properties for this cluster, transformed into
     // the indicated frame.
-    MassProperties calcMassProperties(const Transform& tr) const {
-        // TODO
-        return MassProperties(1., Vec3(0), InertiaMat(1,1,1));
-    }
+    MassProperties calcMassProperties
+       (const Transform& tr, const DuMMForceFieldSubsystemRep& mm) const;
+
 
     // Recursively calculate composite properties for this group and all the
     // groups it contains. All groups were marked "invalid" at the beginning
@@ -1046,6 +1045,11 @@ public:
     int getAtomElementNum(int atomId) const {
         const AtomClass& cl = atomClasses[getAtomClassNum(atomId)];
         return cl.element;
+    }
+
+    const Element& getElement(int element) const {
+        assert(isValidElement(element));
+        return elements[element];
     }
 
 
@@ -1682,7 +1686,7 @@ MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster Id %d is not valid", clusterId);
 
-    return mm.getCluster(clusterId).calcMassProperties(tr);
+    return mm.getCluster(clusterId).calcMassProperties(tr, mm);
 }
 
 
@@ -2733,6 +2737,30 @@ void Cluster::placeCluster(int childClusterId, const Transform& placement, DuMMF
         child.attachToBody(bodyId, placement_B*placement, mm);
 
     //TODO: check for loops
+}
+
+
+
+// Calculate the composite mass properties for this cluster, transformed into
+// the indicated frame.
+MassProperties Cluster::calcMassProperties
+   (const Transform& tr, const DuMMForceFieldSubsystemRep& mm) const 
+{
+    Real       mass = 0;
+    Vec3       com(0);
+    InertiaMat inertia(0);
+
+    // Calculate the mass properties in the local frame and transform last.
+    AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
+    while (aap != allAtomPlacements.end()) {
+        const Real ma = mm.getElement(mm.getAtomElementNum(aap->atomId)).mass;
+        mass += ma;
+        com  += ma*aap->station;
+        inertia += InertiaMat(aap->station, ma);
+        ++aap;
+    }
+    com /= mass;
+    return MassProperties(mass,com,inertia).calcTransformedMassProps(tr);
 }
 
     //////////
