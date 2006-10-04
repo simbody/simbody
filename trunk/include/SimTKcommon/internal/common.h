@@ -36,50 +36,11 @@
 #include <cassert>
 #include <complex>
 
-// These are some common unitless numerical constants evaluated to 64 digits and
-// written here in maximal (long double) precision. (These values were generated using
-// the symbolic calculator Maple which is part of Matlab's Symbolic 
-// Toolbox.) These can be cast to lower precisions when needed, and can be used
-// in compile-time constant expressions like 2*SimTK_PI or 1/SimTK_SQRT2 for which the
-// compiler will properly calculate a long double result with no runtime cost.
-// 
-// These constants are also available as type-safe, 
-// already-rounded, precision-templatized values with static memory addresses
-// as part of our scalar system (see NTraits<T>). You should use the
-// templatized versions when possible. The templatized versions also contain
-// more elaborate constants such as NaN, Infinity, and "epsilon" (machine precision)
-// which can only be generated for specific types.
-//
-// Physical constants are handled similarly in the appropriate SimTK modules, although
-// you won't find them to 64 decimal places!
-
-#define SimTK_PI     3.141592653589793238462643383279502884197169399375105820974944592L
-#define SimTK_E      2.718281828459045235360287471352662497757247093699959574966967628L
-
-// log2(e), log10(e)
-#define SimTK_LOG2E  1.442695040888963407359924681001892137426645954152985934135449407L
-#define SimTK_LOG10E 0.4342944819032518276511289189166050822943970058036665661144537832L
-
-// sqrt(2), sqrt(3), cubeRoot(2), cubeRoot(3)
-#define SimTK_SQRT2  1.414213562373095048801688724209698078569671875376948073176679738L
-#define SimTK_SQRT3  1.732050807568877293527446341505872366942805253810380628055806979L
-#define SimTK_CBRT2  1.259921049894873164767210607278228350570251464701507980081975112L
-#define SimTK_CBRT3  1.442249570307408382321638310780109588391869253499350577546416195L
-
-// ln(2), ln(10)
-#define SimTK_LN2    0.6931471805599453094172321214581765680755001343602552541206800095L
-#define SimTK_LN10   2.302585092994045684017991454684364207601101488628772976033327901L
-
 
 // Set up a few compile-time options that affect all SimTK Core headers.
 #ifndef SimTK_DEFAULT_PRECISION
 #   define SimTK_DEFAULT_PRECISION double
 #endif
-
-// Unless this symbol is set at compile time, we will not use dllimport on
-// Windows. There *may* be a performance advantage to using it, although
-// you can't then link with a static library.
-// #define SimTK_OPTIMIZE_FOR_DYNAMIC_LIBRARY
 
 #ifndef NDEBUG
 #include <cstdio>

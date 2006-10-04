@@ -1,5 +1,5 @@
-#ifndef _SimTK_CONCRETIZE_H_
-#define _SimTK_CONCRETIZE_H_
+#ifndef SimTK_SimTKCOMMON_CONCRETIZE_H_
+#define SimTK_SimTKCOMMON_CONCRETIZE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -78,4 +78,4 @@ private:
 };	
 	
 } // namespace SimTK
-#endif // SimTK_CONCRETIZE_H_
+#endif // SimTK_SimTKCOMMON_CONCRETIZE_H_

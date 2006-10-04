@@ -1,5 +1,5 @@
-#ifndef _SimTK_EXCEPTION_H_
-#define _SimTK_EXCEPTION_H_
+#ifndef SimTK_SimTKCOMMON_EXCEPTION_H_
+#define SimTK_SimTKCOMMON_EXCEPTION_H_
 
 /* Copyright (c) 2005 Stanford University and Michael Sherman.
  * 
@@ -264,5 +264,5 @@ public:
 #define SimTK_THROW10(exc,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10) \
     throw exc(__FILE__, __LINE__,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10)
 
-#endif //_SimTK_EXCEPTION_H_
+#endif // SimTK_SimTKCOMMON_EXCEPTION_H_
 

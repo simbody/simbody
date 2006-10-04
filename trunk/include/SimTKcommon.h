@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTK_H_
-#define SimTK_SimTK_H_
+#ifndef SimTK_SimTKCOMMON_H_
+#define SimTK_SimTKCOMMON_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -29,6 +29,7 @@
  */
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/Exception.h"
 #include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/Concretize.h"
@@ -40,4 +41,4 @@
 #include "SimTKcommon/internal/Stage.h"
 
 
-#endif // SimTK_SimTK_H_
+#endif // SimTK_SimTKCOMMON_H_

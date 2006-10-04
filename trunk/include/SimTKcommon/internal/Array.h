@@ -1,5 +1,5 @@
-#ifndef SimTK_ARRAY_H_
-#define SimTK_ARRAY_H_
+#ifndef SimTK_SimTKCOMMON_ARRAY_H_
+#define SimTK_SimTKCOMMON_ARRAY_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -295,4 +295,4 @@ operator<<(std::ostream& s, const ArrayView<T>& a) {
 } // namespace SimTK
   
 
-#endif // SimTK_ARRAY_H_
+#endif // SimTK_SimTKCOMMON_ARRAY_H_

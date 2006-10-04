@@ -1,5 +1,5 @@
-#ifndef _SimTK_STAGE_H_
-#define _SimTK_STAGE_H_
+#ifndef SimTK_SimTKCOMMON_STAGE_H_
+#define SimTK_SimTKCOMMON_STAGE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -146,4 +146,4 @@ inline std::ostream& operator<<(std::ostream& o, Stage g) { o << g.name(); retur
 } // namespace SimTK
 
     
-#endif //_SimTK_STAGE_H_
+#endif // SimTK_SimTKCOMMON_STAGE_H_

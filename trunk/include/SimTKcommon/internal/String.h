@@ -1,5 +1,5 @@
-#ifndef SimTK_STRING_H_
-#define SimTK_STRING_H_
+#ifndef SimTK_SimTKCOMMON_STRING_H_
+#define SimTK_SimTKCOMMON_STRING_H_
 
 // Keeps MS VC++ 8 quiet about sprintf, strcpy, etc.
 #ifdef _MSC_VER
@@ -70,4 +70,4 @@ public:
 SimTK_LIST_SPECIALIZE(String);
 
 }
-#endif //SimTK_STRING_H_
+#endif // SimTK_SimTKCOMMON_STRING_H_

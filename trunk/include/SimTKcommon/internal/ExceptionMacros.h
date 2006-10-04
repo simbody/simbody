@@ -1,5 +1,5 @@
-#ifndef _SimTK_EXCEPTION_MACROS_H_
-#define _SimTK_EXCEPTION_MACROS_H_
+#ifndef SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
+#define SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -256,7 +256,7 @@
 #endif
 
 
-#endif //_SimTK_EXCEPTION_MACROS_H_
+#endif // SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
 
 
 

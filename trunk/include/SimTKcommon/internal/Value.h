@@ -1,5 +1,5 @@
-#ifndef _SimTK_VALUE_H_
-#define _SimTK_VALUE_H_
+#ifndef SimTK_SimTKCOMMON_VALUE_H_
+#define SimTK_SimTKCOMMON_VALUE_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -114,4 +114,4 @@ private:
 
 } // namespace SimTK
 
-#endif //_SimTK_VALUE_H_
+#endif // SimTK_SimTKCOMMON_VALUE_H_

@@ -1,5 +1,5 @@
-#ifndef SimTK_FORTRAN_H_
-#define SimTK_FORTRAN_H_
+#ifndef SimTK_SimTKCOMMON_FORTRAN_H_
+#define SimTK_SimTKCOMMON_FORTRAN_H_
 
 /* Copyright (c) 2006 Stanford University and Michael Sherman.
  * 
@@ -104,4 +104,4 @@
     #define SimTK_FORTRAN_INIT do {f_setsig(); f_init();} while(false)
 #endif
 
-#endif // SimTK_FORTRAN_H_
+#endif // SimTK_SimTKCOMMON_FORTRAN_H_

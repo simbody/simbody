@@ -1,5 +1,5 @@
-#ifndef _SimTKIMPL_ARRAYHELPERIMPL_H_
-#define _SimTKIMPL_ARRAYHELPERIMPL_H_
+#ifndef SimTKIMPL_ARRAYHELPERIMPL_H_
+#define SimTKIMPL_ARRAYHELPERIMPL_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -243,4 +243,4 @@ private:
 
 } //namespace SimTKimpl
 
-#endif //_SimTKIMPL_ARRAYHELPERIMPL_H_
+#endif // SimTKIMPL_ARRAYHELPERIMPL_H_

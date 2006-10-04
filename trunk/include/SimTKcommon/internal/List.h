@@ -1,5 +1,5 @@
-#ifndef SimTK_LIST_H_
-#define SimTK_LIST_H_
+#ifndef SimTK_SimTKCOMMON_LIST_H_
+#define SimTK_SimTKCOMMON_LIST_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
  * 
@@ -263,4 +263,4 @@ contains(const ListView<T>& lv, const T& test) {
 } // namespace SimTK
 
 
-#endif // SimTK_LIST_H_
+#endif // SimTK_SimTKCOMMON_LIST_H_
