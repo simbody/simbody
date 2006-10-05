@@ -68,7 +68,7 @@ try {
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-   // forces.addGlobalEnergyDrain(20);
+    forces.addGlobalEnergyDrain(20);
 
 
     // AMBER 99
@@ -201,7 +201,7 @@ try {
         Transform(),            // inboard mobilizer frame
         Ground, Transform(),    // parent mobilizer frmae
         Mobilizer::Free);
-    mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform());
+    mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
     /**/
 
     /* Methyls connected by a torsion/stretch (cylinder) mobilizer. */
@@ -215,12 +215,12 @@ try {
                 Transform(RotationMat::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
                 b1, Transform(RotationMat::aboutY(90*RadiansPerDegree), // move z to +x
                               Vec3(ccNominalBondLength,0,0)),
-                Mobilizer::Cylinder);
+                Mobilizer::Cylinder/*Pin*/);
     mm.attachClusterToBody(methyl1, b1, Transform());
     mm.attachClusterToBody(methyl2, b2, Transform(RotationMat::aboutY(180*RadiansPerDegree)));
     /**/
 
-    /* Cartesian:
+    /* Cartesian: 
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), InertiaMat(0)), Transform(),
@@ -234,7 +234,7 @@ try {
     mbs.realize(s, Stage::Built);
     mbs.realize(s, Stage::Modeled);
 
-    /* Cartesian:
+    /* Cartesian: 
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
         ethane.setMobilizerConfiguration(s, b, 
@@ -342,7 +342,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 5; //ps
 
-    study.setAccuracy(1e-2);
+    study.setAccuracy(1e-7);
     study.initialize(); 
 
     std::vector<State> saveEm;

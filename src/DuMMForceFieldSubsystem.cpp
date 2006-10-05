@@ -354,17 +354,17 @@ public:
 
 class ChargedAtomType {
 public:
-    ChargedAtomType() : chargedAtomTypeId(-1), atomClass(-1), partialCharge(CNT<Real>::getNaN()) { }
+    ChargedAtomType() : chargedAtomTypeId(-1), atomClassId(-1), partialCharge(CNT<Real>::getNaN()) { }
     ChargedAtomType(int id, const char* nm, int aclass, Real chg)
-      : chargedAtomTypeId(id), name(nm), atomClass(aclass), partialCharge(chg) 
+      : chargedAtomTypeId(id), name(nm), atomClassId(aclass), partialCharge(chg) 
     { 
         assert(isValid());
     }
-    bool isValid() const {return chargedAtomTypeId >= 0 && atomClass >= 0;}
+    bool isValid() const {return chargedAtomTypeId >= 0 && atomClassId >= 0;}
 
     void dump() const {
-        printf("    %d(%s): atomClass=%d, chg=%g\n", 
-               chargedAtomTypeId, name.c_str(), atomClass, partialCharge);
+        printf("    %d(%s): atomClassId=%d, chg=%g\n", 
+               chargedAtomTypeId, name.c_str(), atomClassId, partialCharge);
     }
 
     // These are all Topological state variables, filled in during construction.
@@ -372,7 +372,7 @@ public:
     int         chargedAtomTypeId;
     std::string name;
 
-    int         atomClass;
+    int         atomClassId;
     Real        partialCharge; // qi, in e (charge on proton)
 
 };
@@ -848,7 +848,7 @@ public:
     GeometricProperties geometricProps;
 };
 
-// A Body is a reference to a top-level Cluster, plus some information used
+// A Body has a reference to a top-level Cluster, plus some information used
 // at runtime for fast body-by-body processing.
 class Body {
 public:
@@ -1033,17 +1033,17 @@ public:
         return atoms[atomId];
     }
 
-    int getChargedAtomTypeNum(int atomId) const {
+    int getChargedAtomTypeId(int atomId) const {
         return getAtom(atomId).chargedAtomTypeId;
     }
 
-    int getAtomClassNum(int atomId) const {
-        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeNum(atomId)];
-        return type.atomClass;
+    int getAtomClassId(int atomId) const {
+        const ChargedAtomType& type = chargedAtomTypes[getChargedAtomTypeId(atomId)];
+        return type.atomClassId;
     }
 
     int getAtomElementNum(int atomId) const {
-        const AtomClass& cl = atomClasses[getAtomClassNum(atomId)];
+        const AtomClass& cl = atomClasses[getAtomClassId(atomId)];
         return cl.element;
     }
 
@@ -1776,7 +1776,7 @@ Real DuMMForceFieldSubsystem::getAtomRadius(int atomId) const {
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
         "atom %d is not valid", atomId);
 
-    const AtomClass& cl = mm.atomClasses[mm.getAtomClassNum(atomId)];
+    const AtomClass& cl = mm.atomClasses[mm.getAtomClassId(atomId)];
     return cl.vdwRadius;
 }
 
@@ -1911,28 +1911,28 @@ void DuMMForceFieldSubsystem::dump() const {
 
 const BondStretch& 
 DuMMForceFieldSubsystemRep::getBondStretch(int class1, int class2) const {
+    static const BondStretch dummy; // invalid
     const IntPair key(class1,class2,true);
     std::map<IntPair,BondStretch>::const_iterator bs = bondStretch.find(key);
-    assert(bs != bondStretch.end());
-    return bs->second;
+    return (bs != bondStretch.end()) ? bs->second : dummy;
 }
 
 const BondBend& 
 DuMMForceFieldSubsystemRep::getBondBend(int class1, int class2, int class3) const {
+    static const BondBend dummy; // invalid
     const IntTriple key(class1, class2, class3, true);
     std::map<IntTriple,BondBend>::const_iterator bb = bondBend.find(key);
-    assert(bb != bondBend.end());
-    return bb->second;
+    return (bb != bondBend.end()) ? bb->second : dummy;
 }
 
 const BondTorsion& 
 DuMMForceFieldSubsystemRep::getBondTorsion
    (int class1, int class2, int class3, int class4) const
 {
+    static const BondTorsion dummy; // invalid
     const IntQuad key(class1, class2, class3, class4, true);
     std::map<IntQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
-    assert(bt != bondTorsion.end());
-    return bt->second;
+    return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
 void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
@@ -2004,7 +2004,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
             continue;   // Unused body numbers are OK.
 
         for (int i=0; i < (int)b.allAtoms.size(); ++i) {
-            const AtomPlacement& ap = b.allAtoms[i];   assert(ap.isValid());
+            const AtomPlacement& ap = b.allAtoms[i]; assert(ap.isValid());
             Atom& a = mutableThis->atoms[ap.atomId]; assert(a.isValid());
             assert(a.bodyId == -1); // Can only be on one body!!
             a.bodyId    = bnum;
@@ -2103,26 +2103,46 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
                 || atoms[a.bond15[j][3]].bodyId != a.bodyId)
                 a.xbond15.push_back(a.bond15[j]);
 
-        // Save a BondStretch entry for each 1-2 bond
+        const int c1 = getAtomClassId(anum);
+
+        // Save a BondStretch entry for each cross-body 1-2 bond
         a.stretch.resize(a.xbond12.size());
-        for (int b12=0; b12 < (int)a.xbond12.size(); ++b12)
-            a.stretch[b12] = getBondStretch(getAtomClassNum(anum), 
-                                            getAtomClassNum(a.xbond12[b12]));
+        for (int b12=0; b12 < (int)a.xbond12.size(); ++b12) {
+            const int c2 = getAtomClassId(a.xbond12[b12]);
+            a.stretch[b12] = getBondStretch(c1, c2);
 
-        // Save a BondBend entry for each 1-3 bond
+            SimTK_REALIZECHECK2_ALWAYS(a.stretch[b12].isValid(),
+                Stage::Built, getMySubsystemIndex(), getName(),
+                "couldn't find bond stretch parameters for cross-body atom class pair (%d,%d)", 
+                c1,c2);
+        }
+
+        // Save a BondBend entry for each cross-body 1-3 bond
         a.bend.resize(a.xbond13.size());
-        for (int b13=0; b13 < (int)a.xbond13.size(); ++b13)
-            a.bend[b13] = getBondBend(getAtomClassNum(anum), 
-                                      getAtomClassNum(a.xbond13[b13][0]), 
-                                      getAtomClassNum(a.xbond13[b13][1]));
+        for (int b13=0; b13 < (int)a.xbond13.size(); ++b13) {
+            const int c2 = getAtomClassId(a.xbond13[b13][0]);
+            const int c3 = getAtomClassId(a.xbond13[b13][1]);
+            a.bend[b13] = getBondBend(c1, c2, c3);
 
-        // Save a BondTorsion entry for each 1-4 bond
+            SimTK_REALIZECHECK3_ALWAYS(a.bend[b13].isValid(),
+                Stage::Built, getMySubsystemIndex(), getName(),
+                "couldn't find bond bend parameters for cross-body atom class triple (%d,%d,%d)", 
+                c1,c2,c3);
+        }
+
+        // Save a BondTorsion entry for each cross-body 1-4 bond
         a.torsion.resize(a.xbond14.size());
-        for (int b14=0; b14 < (int)a.xbond14.size(); ++b14)
-            a.torsion[b14] = getBondTorsion(getAtomClassNum(anum), 
-                                            getAtomClassNum(a.xbond14[b14][0]), 
-                                            getAtomClassNum(a.xbond14[b14][1]),
-                                            getAtomClassNum(a.xbond14[b14][2]));
+        for (int b14=0; b14 < (int)a.xbond14.size(); ++b14) {
+            const int c2 = getAtomClassId(a.xbond14[b14][0]);
+            const int c3 = getAtomClassId(a.xbond14[b14][1]);
+            const int c4 = getAtomClassId(a.xbond14[b14][2]);
+            a.torsion[b14] = getBondTorsion(c1, c2, c3, c4); 
+
+            SimTK_REALIZECHECK4_ALWAYS(a.torsion[b14].isValid(),
+                Stage::Built, getMySubsystemIndex(), getName(),
+                "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
+                c1,c2,c3,c4);
+        }
     }
 
     mutableThis->topologicalCacheValid = true;
@@ -2163,7 +2183,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             const int       a1num = alist1[i].atomId;
             const Atom&     a1 = atoms[a1num];
             const ChargedAtomType& a1type  = chargedAtomTypes[a1.chargedAtomTypeId];
-            int                    a1cnum  = a1type.atomClass;
+            int                    a1cnum  = a1type.atomClassId;
             const AtomClass&       a1class = atomClasses[a1cnum];
             const Vec3      a1Station_G = X_GB1.R()*a1.station_B;
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
@@ -2287,7 +2307,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     assert(a2num != a1num);
                     const Atom&     a2 = atoms[a2num];
                     const ChargedAtomType& a2type  = chargedAtomTypes[a2.chargedAtomTypeId];
-                    int                    a2cnum  = a2type.atomClass;
+                    int                    a2cnum  = a2type.atomClassId;
                     const AtomClass&       a2class = atomClasses[a2cnum];
                     
                     const Vec3  a2Station_G = X_GB2.R()*a2.station_B; // 15 flops
@@ -2298,10 +2318,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     // Check for cutoffs on d2?
 
                     const Real  ood = 1/std::sqrt(d2); // approx 40 flops
-                    const Real  ood2 = ood*ood;
-
-                    // Coulomb. This unfortunately needs the separation distance which
-                    // is expensive. But if scale, q1, or q2 are zero we can skip that.
+                    const Real  ood2 = ood*ood;        // 1 flop
 
                     Real eCoulomb = 0, fCoulomb = 0;
                     const Real qq = coulombScale[a2num]*q1Fac*a2type.partialCharge; // 2 flops
