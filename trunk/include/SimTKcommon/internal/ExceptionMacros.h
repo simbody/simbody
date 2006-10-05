@@ -126,27 +126,27 @@
 
 #define SimTK_APIARGCHECK_ALWAYS(cond,className,methodName,msg)     \
     do{if(!(cond))SimTK_THROW3(SimTK::Exception::APIArgcheckFailed, \
-                    (className),(methodName),msg);                  \
+                    (className),(methodName),(msg));                \
     }while(false)
 #define SimTK_APIARGCHECK1_ALWAYS(cond,className,methodName,fmt,a1) \
     do{if(!(cond))SimTK_THROW4(SimTK::Exception::APIArgcheckFailed, \
-                    (className),(methodName),fmt,a1);               \
+                    (className),(methodName),(fmt),(a1));           \
     }while(false)
 #define SimTK_APIARGCHECK2_ALWAYS(cond,className,methodName,fmt,a1,a2)      \
     do{if(!(cond))SimTK_THROW5(SimTK::Exception::APIArgcheckFailed,         \
-                    (className),(methodName),fmt,a1,a2);                    \
+                    (className),(methodName),(fmt),(a1),(a2));              \
     }while(false)
 #define SimTK_APIARGCHECK3_ALWAYS(cond,className,methodName,fmt,a1,a2,a3)   \
     do{if(!(cond))SimTK_THROW6(SimTK::Exception::APIArgcheckFailed,         \
-                    (className),(methodName),fmt,a1,a2,a3);                 \
+                    (className),(methodName),(fmt),(a1),(a2),(a3));         \
     }while(false)
 #define SimTK_APIARGCHECK4_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4)    \
     do{if(!(cond))SimTK_THROW7(SimTK::Exception::APIArgcheckFailed,             \
-                    (className),(methodName),fmt,a1,a2,a3,a4);                  \
+                    (className),(methodName),(fmt),(a1),(a2),(a3),(a4));        \
     }while(false)
 #define SimTK_APIARGCHECK5_ALWAYS(cond,className,methodName,fmt,a1,a2,a3,a4,a5) \
     do{if(!(cond))SimTK_THROW8(SimTK::Exception::APIArgcheckFailed,             \
-                    (className),(methodName),fmt,a1,a2,a3,a4,a5);               \
+                    (className),(methodName),(fmt),(a1),(a2),(a3),(a4),(a5));   \
     }while(false)
 
 

@@ -108,6 +108,7 @@ public:
 private:
 };
 
+
 class IndexOutOfRange : public Base {
 public:
     IndexOutOfRange(const char* fn, int ln, const char* indexName,
