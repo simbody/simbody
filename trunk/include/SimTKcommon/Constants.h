@@ -52,20 +52,25 @@
 
 // Unit systems
 //
-//            SI (MKS)           MD                 KCAL-ANGSTROM
-// ---------  --------------  --------------------  ----------------------
-// length     meter           nanometer             angstrom
-// mass       kg              u, dalton             u, dalton
-// time       second          picosecond            picosecond
-// charge     coulomb         e, proton charge      e, proton charge
-// temp.      kelvin          kelvin                kelvin
-// substance  mole            mole                  mole
+//            SI (MKS)           MD                     KCAL-ANGSTROM
+// ---------  --------------  ------------------------  ------------------
+// length     meter           nanometer                 angstrom (Å)
+// mass       kg              amu, dalton               amu, dalton
+// time       second          picosecond                picosecond
+// charge     coulomb         e, proton charge          e, proton charge
+// temp.      kelvin          kelvin                    kelvin
+// substance  mole            mole                      mole
 //
-// energy     J (kg-m^2/s^2)  kJ/mol (u-nm^2/ps^2)  kcal/mol (418.4u-A^2/ps^2)
-// force      N (kg-m/s^2)    kN/mol (u-nm/ps^2)    kcal/mol-A (418.4u-A/ps^2)
+// velocity   m/s             km/s (nm/ps)              100m/s (Å/ps)
+//
+// energy     J (kg-m^2/s^2)  kJ/mol                    kcal/mol 
+//                              (Da-nm^2/ps^2)            (418.4u-Å^2/ps^2)
+// force      N (kg-m/s^2)    kJ/(mol-nm) = TN/mol      kcal/(mol-Å)
+//                              (Da-nm/ps^2) (T=10^12)    (418.4u-Å/ps^2)
 //
 // We always keep angles in radians internally, which are unitless. However,
-// most humans prefer degrees where 1 degree = Pi/180 radians.
+// most humans prefer degrees where 1 degree = Pi/180 radians so we provide
+// convenient conversions.
 //
 
     ////////////////////////////
@@ -132,13 +137,15 @@
 
 
 // Avogadro's number (NA) is defined as the number of atoms in 12g of pure Carbon-12 in
-// its unbound, rest state.
+// its unbound, rest state. The number is 1 mole (mol).
 #define SimTK_AVOGADROS_NUMBER              6.0221415e23L       // uncertainty: 10e16
 
-// The atomic mass unit u is defined as 1/12 of the mass of a Carbon-12 atom, unbound
-// and in its rest state. This definition matched to Avogadro's number's definition
-// ensures that 1 mole of particles of mass 1 u has total mass exactly 1g. This is
-// synonymous with the Dalton, with units of g/mole, so 1u = 1Dalton = 1g/mole.
+// The atomic mass unit u (or amu) is defined as 1/12 of the mass of a Carbon-12 atom,
+// unbound and in its rest state. This definition matched to Avogadro's number's definition
+// ensures that 1 mole of particles of mass 1u each has total mass exactly 1g. This is
+// synonymous with the dalton (Da), with units of g/mole, so 1u = 1Dalton = 1g/mole.
+// We will use Da for this mass unit, with kDa being a common mass measure for 
+// large biomolecules.
 
 #define SimTK_MASS_OF_ELECTRON_IN_MD        5.4857990945e-4L    // uncertainty: 24e-14
 #define SimTK_MASS_OF_PROTON_IN_MD          1.00727646688L      // uncertainty: 13e-11
@@ -230,7 +237,7 @@
 #define SimTK_KJOULE_TO_KCAL     2.390057361376673040152963671128107074569789674952198852772466539e-1L
 
 // Atomic mass unit (a.k.a. Dalton) to g. This is 1/NA (NA=avogadro's number); see below.
-#define SimTK_U_TO_GRAM          1.66053886e-24L    // uncertainty: 28e-32
+#define SimTK_DALTON_TO_GRAM     1.66053886e-24L    // uncertainty: 28e-32
 
 // Proton charge unit to Coulomb = electron volt to Joule
 #define SimTK_E_TO_COULOMB       SimTK_CHARGE_OF_PROTON_IN_SI
