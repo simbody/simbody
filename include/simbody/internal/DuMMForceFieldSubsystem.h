@@ -56,6 +56,15 @@ namespace SimTK {
 
 class SimTK_SIMBODY_API DuMMForceFieldSubsystem : public ForceSubsystem {
 public:
+    enum VdwMixingRule {
+        WaldmanHagler       = 1,    // Our default
+        HalgrenHHG          = 2,    // MMFF, AMOEBA
+        Jorgensen           = 3,    // OPLS
+        LorentzBerthelot    = 4,    // AMBER, CHARMM
+        Kong                = 5
+    };
+    const char* getVdwMixingRuleName(VdwMixingRule) const;
+
     DuMMForceFieldSubsystem();
 
     // Atom classes are used for sets of atoms which share some properties.
@@ -65,7 +74,6 @@ public:
     // level called ChargedAtomType.
     //
     // This fails if the atom class already exists.
-    //   mass in Da (g/mol)
     //   vdwRadius as Rmin, *not* Sigma, in Angstroms
     //     (i.e. 2*vdwRadius is the center-center separation
     //      at which the minimum energy occurs)
@@ -147,6 +155,9 @@ public:
         Real amplitude, Real phase, int periodicity,
         Real amp2, Real phase2, int period2,
         Real amp3, Real phase3, int period3);
+
+    void setVdwMixingRule(VdwMixingRule); // default WaldmanHagler
+    VdwMixingRule getVdwMixingRule() const;
 
     void setVdw12ScaleFactor(Real); // default 0
     void setVdw13ScaleFactor(Real); // default 0

@@ -86,6 +86,8 @@ try {
     mm.defineBondBend(34,1,34, bendFac*35, 109.5);
     mm.defineBondTorsion(34,1,1,34, 3, torsFac*0.150, 0);
 
+    mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
+
 
     MultibodySystem mbs;
     mbs.setMatterSubsystem(ethane);
@@ -204,7 +206,7 @@ try {
     mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
     /**/
 
-    /* Methyls connected by a torsion/stretch (cylinder) mobilizer. */
+    /* Methyls connected by a torsion/stretch (cylinder) mobilizer.
     int b1 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl1, Transform()),
                 Transform(),            // inboard mobilizer frame
@@ -215,12 +217,12 @@ try {
                 Transform(RotationMat::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
                 b1, Transform(RotationMat::aboutY(90*RadiansPerDegree), // move z to +x
                               Vec3(ccNominalBondLength,0,0)),
-                Mobilizer::Cylinder/*Pin*/);
+                Mobilizer::Cylinder);
     mm.attachClusterToBody(methyl1, b1, Transform());
     mm.attachClusterToBody(methyl2, b2, Transform(RotationMat::aboutY(180*RadiansPerDegree)));
     /**/
 
-    /* Cartesian: 
+    /* Cartesian:  */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), InertiaMat(0)), Transform(),
@@ -234,7 +236,7 @@ try {
     mbs.realize(s, Stage::Built);
     mbs.realize(s, Stage::Modeled);
 
-    /* Cartesian: 
+    /* Cartesian: */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
         ethane.setMobilizerConfiguration(s, b, 

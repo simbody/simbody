@@ -892,46 +892,6 @@ public:
     AtomPlacementArray  allAtoms;
 };
 
-// Assume units:
-//    Ref: http://physics.nist.gov/constants (2002 CODATA)
-//    charge  e=charge on proton=1.60217653e-19C
-//    Avogadro's number N0=6.0221415e23 atoms/mole       
-//    length  A=Angstroms=1e-10 m=0.1nm
-//    mass    Da=g/mole
-//    time    ps
-//    That implies force = Da-A/ps^2
-//    atomic mass unit = 1/12 mass(C)=1.66053886e-24 g
-//      (specifically Carbon-12, unbound, in its rest state)
-//    mass of 1 mole of Carbon-12 = 12g (exact), thus mass
-//      of one Carbon-12 atom is 12 Da.
-//    energy kcal/mole = 418.4 Da-A^2/ps^2
-//    e0 in e^2/(A-kcal/mole)
-//      = 8.854187817e-12 C^2/(m-J)
-//          * (1/1.60217653e-19)^2 * 4184/6.0221415e23 * 1e-10
-//      = 2.3964519142e-4
-//    1/(4*pi*e0) = 332.06371
-//    speed of light c=2.99792458e8 m/s (exact)
-//    Joules(N-m)/Kcal = 4184 (exact)
-//
-// Note: we have to use consistent force units, meaning
-//   Da-A/ps^2
-//
-// Jay Ponder's Tinker units, as of email 8/30/06:
-// In any case, I've just updated all TINKER units to the following:
-//       parameter (avogadro=6.0221415d+23)
-//       parameter (boltzmann=0.8314472d0)
-//       parameter (gasconst=1.9872065d-3)
-//       parameter (lightspd=2.99792458d-2)
-//       parameter (bohr=0.5291772108d0)
-//       parameter (joule=4.184d0)
-//       parameter (evolt=27.2113845d0)
-//       parameter (hartree=627.509472d0)
-//       parameter (electric=332.06371d0)
-//       parameter (debye=4.8033324d0)
-//       parameter (prescon=6.85695d+4)
-//       parameter (convert=4.184d+2)
-
-
 class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
     friend class DuMMForceFieldSubsystem;
     static const char* ApiClassName; // "DuMMForceFieldSubsystem"
@@ -941,6 +901,7 @@ public:
     {
         topologicalCacheValid = false;
 
+        vdwMixingRule = DuMMForceFieldSubsystem::WaldmanHagler;
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         loadElements();
@@ -988,12 +949,21 @@ public:
     void applyMixingRule(Real ri, Real rj, Real ei, Real ej, Real& dmin, Real& emin) const
     {
         Real rmin;
-        vdwCombineWaldmanHagler(ri,rj,ei,ej,rmin,emin); // TODO: choices
-        //vdwCombineJorgensen(ri,rj,ei,ej,rmin,emin);
-        //vdwCombineHalgrenHHG(ri,rj,ei,ej,rmin,emin);
-        //vdwCombineKong(ri,rj,ei,ej,rmin,emin);
-        // NO NO NO!! :
-        //vdwCombineLorentzBerthelot(ri,rj,ei,ej,rmin,emin);
+
+        switch(vdwMixingRule) {
+        case DuMMForceFieldSubsystem::WaldmanHagler:     
+            vdwCombineWaldmanHagler(ri,rj,ei,ej,rmin,emin);     break;
+        case DuMMForceFieldSubsystem::HalgrenHHG:         
+            vdwCombineHalgrenHHG(ri,rj,ei,ej,rmin,emin);        break;
+        case DuMMForceFieldSubsystem::Jorgensen:         
+            vdwCombineJorgensen(ri,rj,ei,ej,rmin,emin);         break;
+        case DuMMForceFieldSubsystem::LorentzBerthelot:  
+            vdwCombineLorentzBerthelot(ri,rj,ei,ej,rmin,emin);  break;
+        case DuMMForceFieldSubsystem::Kong:              
+            vdwCombineKong(ri,rj,ei,ej,rmin,emin);              break;
+        default: assert(!"unknown vdw mixing rule");
+        };
+
         dmin = 2*rmin;
     }
 
@@ -1151,6 +1121,10 @@ private:
     std::map<IntPair,   BondStretch> bondStretch;
     std::map<IntTriple, BondBend>    bondBend;
     std::map<IntQuad,   BondTorsion> bondTorsion;
+
+    // Which rule to use for combining van der Waals radii and energy well
+    // depth for dissimilar atom classes.
+    DuMMForceFieldSubsystem::VdwMixingRule  vdwMixingRule;
 
     // Scale factors for nonbonded forces when applied to
     // atoms which are near in the graph formed by the bonds.
@@ -1439,6 +1413,34 @@ void DuMMForceFieldSubsystem::defineBondTorsion
                       periodicity1,amp1InKcal,phase1InDegrees,
                       periodicity2,amp2InKcal,phase2InDegrees,
                       -1,0.,0.);
+}
+
+void DuMMForceFieldSubsystem::setVdwMixingRule(VdwMixingRule rule) {
+    static const char* MethodName = "setVdwMixingRule";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+    mm.vdwMixingRule = rule; 
+}
+
+DuMMForceFieldSubsystem::VdwMixingRule 
+DuMMForceFieldSubsystem::getVdwMixingRule() const {
+    static const char* MethodName = "getVdwMixingRule";
+    const DuMMForceFieldSubsystemRep& mm = getRep();
+    return mm.vdwMixingRule; 
+}
+
+const char*
+DuMMForceFieldSubsystem::getVdwMixingRuleName(VdwMixingRule rule) const {
+    static const char* MethodName = "getVdwMixingRuleName";
+    switch(rule) {
+    case WaldmanHagler:     return "Waldman-Hagler";
+    case HalgrenHHG:        return "Halgren-HHG";        
+    case Jorgensen:         return "Jorgensen";        
+    case LorentzBerthelot:  return "Lorentz-Berthelot"; 
+    case Kong:              return "Kong";          
+    default:
+        SimTK_APIARGCHECK1_ALWAYS(false, "DuMMForceFieldSubsystem", MethodName,
+        "Unknown van der Waals mixing rule %d", (int)rule);
+    };
 }
 
 void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {
