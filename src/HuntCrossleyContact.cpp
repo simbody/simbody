@@ -88,7 +88,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 public:
     HuntCrossleyContactRep()
      : ForceSubsystemRep("HuntCrossleyContact", "0.0.1"), 
-       parameterVarsIndex(-1), built(false)
+       instanceVarsIndex(-1), built(false)
     {
     }
     int addSphere(int body, const Vec3& center,
@@ -113,17 +113,17 @@ public:
         return (int)defaultParameters.halfSpaces.size() - 1;
     }
 
-    void realizeConstruction(State& s) const {
-        parameterVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Parametrized, 
+    void realizeTopology(State& s) const {
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
         built = true;
     }
 
-    void realizeModeling(State& s) const {
+    void realizeModel(State& s) const {
         // Sorry, no choices available at the moment.
     }
 
-    void realizeParameters(const State& s) const {
+    void realizeInstance(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -131,11 +131,11 @@ public:
         // Nothing to compute here.
     }
 
-    void realizeConfiguration(const State& s) const {
+    void realizePosition(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeMotion(const State& s) const {
+    void realizeVelocity(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -148,7 +148,7 @@ public:
 
     void realizeDynamics(const State& s) const;
 
-    void realizeReaction(const State& s) const {
+    void realizeAcceleration(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -158,20 +158,20 @@ private:
     // topological variables
     Parameters defaultParameters;
 
-    // These must be filled in during realizeConstruction and treated
+    // These must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
-    mutable int parameterVarsIndex;
+    mutable int instanceVarsIndex;
     mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            getDiscreteVariable(s,parameterVarsIndex)).get();
+            getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            updDiscreteVariable(s,parameterVarsIndex)).upd();
+            updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
 
     // We have determined that contact is occurring. The *undeformed* contact points and the
@@ -271,7 +271,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 
     for (int s1=0; s1 < (int)p.spheres.size(); ++s1) {
         const SphereParameters& sphere1 = p.spheres[s1];
-        const Transform&  X_GB1     = matter.getBodyConfiguration(s,sphere1.body);
+        const Transform&  X_GB1     = matter.getBodyPosition(s,sphere1.body);
         const SpatialVec& V_GB1     = matter.getBodyVelocity(s,sphere1.body); // in G
         const Real        r1        = sphere1.radius;
         const Vec3        center1_G = X_GB1*sphere1.center;
@@ -279,7 +279,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
         for (int s2=s1+1; s2 < (int)p.spheres.size(); ++s2) {
             const SphereParameters& sphere2 = p.spheres[s2];
             if (sphere2.body == sphere1.body) continue;
-            const Transform&  X_GB2     = matter.getBodyConfiguration(s,sphere2.body);
+            const Transform&  X_GB2     = matter.getBodyPosition(s,sphere2.body);
             const SpatialVec& V_GB2     = matter.getBodyVelocity(s,sphere2.body);
             const Real        r2        = sphere2.radius;
             const Vec3        center2_G = X_GB2*sphere2.center; // 18 flops
@@ -324,7 +324,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 
             // Half space is not on ground.
 
-            const Transform&  X_GB2    = matter.getBodyConfiguration(s,halfSpace.body);
+            const Transform&  X_GB2    = matter.getBodyPosition(s,halfSpace.body);
             const SpatialVec& V_GB2    = matter.getBodyVelocity(s,halfSpace.body);
             const UnitVec3    normal_G = X_GB2.R()*halfSpace.normal;    // 15 flops
 

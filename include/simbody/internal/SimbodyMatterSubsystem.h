@@ -164,12 +164,12 @@ public:
                           int child,  const Transform& frameInC);
 
     /// Topology and default values are frozen after this call. If you don't
-    /// call it then it will be called automatically by realizeConstruction().
+    /// call it then it will be called automatically by realizeTopology().
     void endConstruction();
 
     // Operators
 
-    /// Requires realization through Stage::Configured.
+    /// Requires realization through Stage::Position.
     void calcInternalGradientFromSpatial(const State&,
         const Vector_<SpatialVec>& dEdR,
         Vector&                    dEdQ) const; // really Qbar
@@ -196,12 +196,12 @@ public:
         Vector&              udot,
         Vector_<SpatialVec>& A_GB) const;
 
-    /// Must be in Stage::Configured to calculate qdot = Q*u.
+    /// Must be in Stage::Position to calculate qdot = Q*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    /// Must be in Stage::Moving to calculate qdotdot = Qdot*u + Q*udot.
+    /// Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
@@ -210,13 +210,13 @@ public:
 
     /// Project position coordinates (q's) so that they satisfy their 
     /// constraints to at least tol.
-    void enforceConfigurationConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
     /// Project velocity coordinates (u's) so that they satisfy their
     /// constraints to at least tol.
-    void enforceMotionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
-    // These are available after realizeConstruction().
+    // These are available after realizeTopology().
 
     /// The number of bodies includes all rigid bodies, particles, massless
     /// bodies and ground. Bodies and their inboard joints have the same 
@@ -274,10 +274,10 @@ public:
 
 
     /// Obtain the current orientation and position of the body frame of
-    /// the indicated body. Must be in Configured stage. The configuration
+    /// the indicated body. Must be in Position stage. The configuration
     /// is provided as the Transform X_GB from the ground frame to the
     /// body frame.
-    const Transform&  getBodyConfiguration(const State&, int body) const;
+    const Transform&  getBodyPosition(const State&, int body) const;
 
     /// Obtain the current spatial angular and linear velocity of the body frame of
     /// the indicated body. Must be in Moving stage. This is the velocity 
@@ -309,7 +309,7 @@ public:
     /// the result is the vector from the ground origin to the station, expressed
     /// in the ground frame.
     const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
-        const Transform& X_GB = getBodyConfiguration(s, body);
+        const Transform& X_GB = getBodyPosition(s, body);
         return X_GB.T() + X_GB.R() * station_B;
     }
 

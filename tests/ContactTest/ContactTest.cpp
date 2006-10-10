@@ -244,7 +244,7 @@ try {
 
 
     State s;
-    mbs.realize(s, Stage::Built);
+    mbs.realize(s, Stage::Topology);
     bool suppressProjection = false;
     RungeKuttaMerson ee(mbs, s, suppressProjection);
     ee.setProjectEveryStep(false);
@@ -265,7 +265,7 @@ try {
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
-    mbs.realize(s, Stage::Reacting);
+    mbs.realize(s, Stage::Acceleration);
     for (int i=0; i<100; ++i)
         saveEm.push_back(s);    // delay
     vtk.report(s);

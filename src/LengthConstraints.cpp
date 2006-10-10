@@ -411,9 +411,9 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 
     // Although we're not changing the ConfigurationCache here, we access
     // it with "upd" because setPos() will have modified the q's and
-    // thus invalidated stage Configured, so a "get" would fail.
+    // thus invalidated stage Position, so a "get" would fail.
     // TODO: this may be fixed now since subsystems have their own stage.
-    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+    const SBPositionCache& cc = getRBTree().updPositionCache(s);
     Vector b((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
         b[i] = loops[i].rbDistCons->getPosErr(cc);
@@ -433,7 +433,7 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
     // modified u's and thus invalidated stage Moving,
     // so a "get" would fail.
     // TODO: this may be fixed now since subsystems have their own stage.
-    const SBMotionCache& mc = getRBTree().updMotionCache(s);
+    const SBVelocityCache& mc = getRBTree().updMotionCache(s);
 
     Vector b((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
@@ -471,9 +471,9 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
     const Vector x = calcPseudoInverseA(calcGrad(s)) * b;
 
-    const SBModelingVars&       mv = getRBTree().getModelingVars(s);
+    const SBModelVars&       mv = getRBTree().getModelVars(s);
     const Vector&               q  = getRBTree().getQ(s);
-    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+    const SBPositionCache& cc = getRBTree().updPositionCache(s);
 
     Vector       zu(getRBTree().getTotalDOF(),0.);
     Vector       zq(getRBTree().getTotalQAlloc(),0.);
@@ -533,9 +533,9 @@ public:
 
 // Project out the position constraint errors from the given state. 
 bool
-LengthConstraints::enforceConfigurationConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
+LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
-    assert(rbTree.getStage(s) >= Stage::Configured-1);
+    assert(rbTree.getStage(s) >= Stage::Position-1);
     Vector& pos = rbTree.updQ(s);
 
     bool anyChanges = false;
@@ -549,7 +549,7 @@ LengthConstraints::enforceConfigurationConstraints(State& s, const Real& require
         }
     }
     catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
-        cout << "LengthConstraints::enforceConfigurationConstraints: exception: "
+        cout << "LengthConstraints::enforcePositionConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 
 
@@ -558,9 +558,9 @@ LengthConstraints::enforceConfigurationConstraints(State& s, const Real& require
 
 // Project out the velocity constraint errors from the given state. 
 bool
-LengthConstraints::enforceMotionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
+LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
 {
-    assert(rbTree.getStage(s) >= Stage(Stage::Moving).prev());
+    assert(rbTree.getStage(s) >= Stage(Stage::Velocity).prev());
     Vector& vel = rbTree.updU(s);
 
     bool anyChanges = false;
@@ -574,7 +574,7 @@ LengthConstraints::enforceMotionConstraints(State& s, const Real& requiredTol, c
         }
     }
     catch ( SimTK::Exception::NewtonRaphsonFailure cptn ) {
-        cout << "LengthConstraints::enforceMotionConstraints: exception: "
+        cout << "LengthConstraints::enforceVelocityConstraints: exception: "
              << cptn.getMessage() << '\n';
     } 
 
@@ -597,24 +597,24 @@ LengthConstraints::enforceMotionConstraints(State& s, const Real& requiredTol, c
 
 void LengthSet::setPos(State& s, const Vector& pos) const
 {
-    const SBModelingVars& mv = getRBTree().getModelingVars(s);
+    const SBModelVars& mv = getRBTree().getModelVars(s);
     Vector&               q  = getRBTree().updQ(s);
-    SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+    SBPositionCache& cc = getRBTree().updPositionCache(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setQ(mv, pos, q);
 
     // TODO: sherm this is the wrong place for the stage update!
-    s.invalidateAll(Stage::Configured);
+    s.invalidateAll(Stage::Position);
 
     // sherm TODO: this now computes kinematics for the whole system,
     // but it should only have to update the loop we are interested in.
     // Schwieters had this right before because his equivalent of 'setQ'
     // above also performed the kinematics, while ours just saves the
     // new state variable values and calculates here:
-    getRBTree().realizeConfiguration(s);
+    getRBTree().realizePosition(s);
 
-    // TODO: This is redundant after realizeConfiguration(), but I'm leaving
+    // TODO: This is redundant after realizePosition(), but I'm leaving
     // it here because this is actually all that need be recalculated for
     // the loop closure iterations.
     for (int i=0; i<(int)loops.size(); ++i)
@@ -624,18 +624,18 @@ void LengthSet::setPos(State& s, const Vector& pos) const
 // Must have called LengthSet::setPos() already.
 void LengthSet::setVel(State& s, const Vector& vel) const
 {
-    const SBModelingVars&       mv = getRBTree().getModelingVars(s);
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    const SBModelVars&       mv = getRBTree().getModelVars(s);
+    const SBPositionCache& cc = getRBTree().getPositionCache(s);
     Vector&                     u  = getRBTree().updU(s);
-    SBMotionCache&              mc = getRBTree().updMotionCache(s);
+    SBVelocityCache&              mc = getRBTree().updMotionCache(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setU(mv, vel, u);
 
     // TODO: sherm this is the wrong place for the stage update!
-    s.invalidateAll(Stage::Moving);
+    s.invalidateAll(Stage::Velocity);
 
-    getRBTree().realizeMotion(s);
+    getRBTree().realizeVelocity(s);
 
     // TODO: see comment above in setPos
     for (int i=0; i<(int)loops.size(); ++i)
@@ -656,7 +656,7 @@ LengthSet::fdgradf(State& s,
                    const Vector&  pos,
                    Matrix&        grad) const 
 {
-    const SBModelingVars& mv = getRBTree().getModelingVars(s);
+    const SBModelVars& mv = getRBTree().getModelVars(s);
 
     // Gradf gradf(tree);
     // gradf(x,grad); return;
@@ -731,9 +731,9 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 Matrix
 LengthSet::calcGrad(const State& s) const
 {
-    // We're not updating, but need to use upd here because Configured stage
+    // We're not updating, but need to use upd here because Position stage
     // was invalidated by change to state.
-    const SBConfigurationCache& cc = getRBTree().updConfigurationCache(s);
+    const SBPositionCache& cc = getRBTree().updPositionCache(s);
 
     Matrix grad(ndofThisSet,loops.size(),0.0);
     const Mat33 one(1);  //FIX: should be done once
@@ -952,7 +952,7 @@ LengthConstraints::projectUVecOntoMotionConstraints(const State& s, Vector& vec)
 // the nodes associated with stations s1 & s2.
 //
 static Real
-computeA(const SBConfigurationCache& cc, 
+computeA(const SBPositionCache& cc, 
          const SBDynamicsCache&      dc,
          const Vec3&    v1,
          const LoopWNodes& loop1, int s1,
@@ -1011,10 +1011,10 @@ computeA(const SBConfigurationCache& cc,
 void
 LengthSet::calcConstraintForces(const State& s) const
 { 
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
+    const SBPositionCache& cc = getRBTree().getPositionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
     const SBDynamicsCache&      dc = getRBTree().getDynamicsCache(s);
-    SBReactionCache&            rc = getRBTree().updReactionCache(s);
+    SBAccelerationCache&            rc = getRBTree().updAccelerationCache(s);
 
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -1068,11 +1068,11 @@ LengthSet::calcConstraintForces(const State& s) const
 }
 
 void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
+    const SBPositionCache& cc = getRBTree().getPositionCache(s);
 
     // Access with "upd" here because "get" would require us already to
     // be at stage Reacting.
-    const SBReactionCache&      rc = getRBTree().updReactionCache(s);
+    const SBAccelerationCache&      rc = getRBTree().updAccelerationCache(s);
 
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
@@ -1086,9 +1086,9 @@ void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialFor
 
 void LengthSet::testAccel(const State& s) const
 {
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
-    const SBReactionCache&      rc = getRBTree().getReactionCache(s);
+    const SBPositionCache& cc = getRBTree().getPositionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
+    const SBAccelerationCache&      rc = getRBTree().getAccelerationCache(s);
 
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {
@@ -1194,8 +1194,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 {
     assert(iVel.size() == getRBTree().getTotalDOF());
 
-    const SBConfigurationCache& cc = getRBTree().getConfigurationCache(s);
-    const SBMotionCache&        mc = getRBTree().getMotionCache(s);
+    const SBPositionCache& cc = getRBTree().getPositionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
 
     // store internal velocities
     Vector iVel0 = iVel;
@@ -1211,10 +1211,10 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         deltaIVel[m].resize(iVel.size());
 
         // Set all velocities to zero. TODO: this should just be an "ignore velocity"
-        // option to realizeMotion(); it shouldn't actually require putting zeroes everywhere.
+        // option to realizeVelocity(); it shouldn't actually require putting zeroes everywhere.
         iVel = 0.;
         getRBTree().setU(s, iVel );
-        getRBTree().realizeMotion(s);
+        getRBTree().realizeVelocity(s);
 
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
@@ -1248,11 +1248,11 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
         // Set the new velocities.
         getRBTree().setU(s, deltaIVel[m] );
-        getRBTree().realizeMotion(s);
+        getRBTree().realizeVelocity(s);
 
         // Calculating partial(velocityError[n])/partial(deltav[m]). Any velocity
         // we see here is due to the deltav, since we started out at zero (mc
-        // was modified by realizeMotion(), but our reference is still valid).
+        // was modified by realizeVelocity(), but our reference is still valid).
         for (int n=0; n<(int)loops.size(); ++n)
             mat(n,m) = loops[n].rbDistCons->getVelErr(mc);
 
@@ -1268,21 +1268,21 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     for (int m=0 ; m<(int)loops.size() ; m++)
         iVel -= lambda[m] * deltaIVel[m];
     getRBTree().setU(s, iVel);
-    getRBTree().realizeMotion(s);
+    getRBTree().realizeVelocity(s);
 }
 
     // RBDistanceConstraint methods
 
 void RBDistanceConstraint::calcStationPosInfo(int i, 
-        SBConfigurationCache&       cc) const
+        SBPositionCache&       cc) const
 {
     updStation_G(cc,i) = getNode(i).getX_GB(cc).R() * getPoint(i);
     updPos_G(cc,i)     = getNode(i).getX_GB(cc).T() + getStation_G(cc,i);
 }
 
 void RBDistanceConstraint::calcStationVelInfo(int i, 
-        const SBConfigurationCache& cc, 
-        SBMotionCache&              mc) const
+        const SBPositionCache& cc, 
+        SBVelocityCache&              mc) const
 {
     const Vec3& w_G = getNode(i).getSpatialAngVel(mc);
     const Vec3& v_G = getNode(i).getSpatialLinVel(mc);
@@ -1291,9 +1291,9 @@ void RBDistanceConstraint::calcStationVelInfo(int i,
 }
 
 void RBDistanceConstraint::calcStationAccInfo(int i, 
-        const SBConfigurationCache& cc, 
-        const SBMotionCache&        mc,
-        SBReactionCache&            rc) const
+        const SBPositionCache& cc, 
+        const SBVelocityCache&        mc,
+        SBAccelerationCache&            rc) const
 {
     const Vec3& w_G  = getNode(i).getSpatialAngVel(mc);
     const Vec3& v_G  = getNode(i).getSpatialLinVel(mc);
@@ -1308,7 +1308,7 @@ std::ostream& operator<<(std::ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(SBConfigurationCache& cc) const
+void RBDistanceConstraint::calcPosInfo(SBPositionCache& cc) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationPosInfo(i,cc);
@@ -1324,8 +1324,8 @@ void RBDistanceConstraint::calcPosInfo(SBConfigurationCache& cc) const
 }
 
 void RBDistanceConstraint::calcVelInfo(
-        const SBConfigurationCache& cc, 
-        SBMotionCache&              mc) const
+        const SBPositionCache& cc, 
+        SBVelocityCache&              mc) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationVelInfo(i,cc,mc);
@@ -1337,9 +1337,9 @@ void RBDistanceConstraint::calcVelInfo(
 }
 
 void RBDistanceConstraint::calcAccInfo(
-        const SBConfigurationCache& cc, 
-        const SBMotionCache&        mc,
-        SBReactionCache&            rc) const
+        const SBPositionCache& cc, 
+        const SBVelocityCache&        mc,
+        SBAccelerationCache&            rc) const
 {
     assert(isValid() && distConstNum >= 0);
     for (int i=1; i<=2; ++i) calcStationAccInfo(i,cc,mc,rc);

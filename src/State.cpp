@@ -53,14 +53,14 @@ public:
     DiscreteVariableRep(Stage g, AbstractValue* vp) 
       : stage(g), value(vp), myHandle(0)
     {
-        assert(g == Stage::Built || Stage::isInRuntimeRange(g));
+        assert(g == Stage::Topology || Stage::isInRuntimeRange(g));
         assert(vp);
     }
 
     DiscreteVariableRep* clone() const {return new DiscreteVariableRep(*this);}
 
     bool isValid() const {
-        return (stage==Stage::Built || Stage::isInRuntimeRange(stage)) && value && myHandle; 
+        return (stage==Stage::Topology || Stage::isInRuntimeRange(stage)) && value && myHandle; 
     }
 
     Stage getStage() const {return stage;}
@@ -97,12 +97,12 @@ public:
     // be nonsense.
     PerSubsystemInfo(const PerSubsystemInfo& src) {
         initialize();
-        copyFrom(src, Stage::Modeled);
+        copyFrom(src, Stage::Model);
     }
 
     PerSubsystemInfo& operator=(const PerSubsystemInfo& src) {
         if (&src != this) {
-            copyFrom(src, Stage::Modeled);
+            copyFrom(src, Stage::Model);
         }
         return *this;
     }
@@ -112,20 +112,20 @@ public:
     // over many stages here. Careful: invalidating the stage
     // for a subsystem must also invalidate the same stage for all
     // the other subsystems and the system as a whole but we don't
-    // take care of that here. Also, you can't invalidate Stage::Allocated.
+    // take care of that here. Also, you can't invalidate Stage::Empty.
     void invalidateStageJustThisSubsystem(Stage g) {
-        assert(g > Stage::Allocated);
+        assert(g > Stage::Empty);
         restoreToStage(g.prev());
     }
 
     // Advance from stage g-1 to stage g. This is called at the end
-    // of realize(g). You can't use this to "advance" to Stage::Allocated.
+    // of realize(g). You can't use this to "advance" to Stage::Empty.
     // It is a fatal error if the current stage isn't g-1.
     void advanceToStage(Stage g) {
-        assert(g > Stage::Allocated);
+        assert(g > Stage::Empty);
         assert(currentStage == g.prev());
         // Record data needed to back up to this stage later.
-        if (g == Stage::Built)
+        if (g == Stage::Topology)
             nDiscreteWhenBuilt = discrete.size();
         cacheSize[g] = cache.size();
         currentStage = g;
@@ -135,15 +135,15 @@ public:
     String version;
 
     // These accumulate default values for this subsystem's use of shared
-    // global state variables. After the System is advanced to Modeled
-    // stage, the state will allocate those globals and copy these initial
+    // global state variables. After the System is advanced to Stage::Model,
+    // the state will allocate those globals and copy these initial
     // values into them.
     Vector qInit, uInit, zInit;
 
     // These are our own private views into partitions of the global
     // state and cache entries of the same names. These are valid
-    // only after the *System* stage is raised to Modeled, and they
-    // are invalidated whenever the System's Modeled stage is invalidated.
+    // only after the *System* stage is raised to Model, and they
+    // are invalidated whenever the System's Model stage is invalidated.
     Vector q, u, z;
     mutable Vector qdot, udot, zdot;
     mutable Vector qdotdot;
@@ -164,8 +164,8 @@ private:
         nDiscreteWhenBuilt = -1;
         for (int i=0; i < Stage::NValid; ++i)
             cacheSize[i] = -1;
-        cacheSize[Stage::Allocated] = 0;
-        currentStage = Stage::Allocated;
+        cacheSize[Stage::Empty] = 0;
+        currentStage = Stage::Empty;
     }
 
     void clearReferencesToStateGlobals() {
@@ -175,9 +175,9 @@ private:
     }
 
     // Set all the allocation sizes to zero, leaving name and version alone.
-    // The stage is set back to "Allocated".
-    void restoreToAllocatedStage() {
-        if (currentStage > Stage::Allocated) {
+    // The stage is set back to "Empty".
+    void restoreToEmptyStage() {
+        if (currentStage > Stage::Empty) {
             clearReferencesToStateGlobals();
             discrete.clear(); cache.clear();
             qInit.clear(); uInit.clear(); zInit.clear();
@@ -185,29 +185,29 @@ private:
         }
     }
 
-    // Put this Subsystem back to the way it was just after realize(Built).
+    // Put this Subsystem back to the way it was just after realize(Topology).
     // That means: no shared global state vars, discrete vars and cache
-    // only as they were after realize(Built).
-    // The stage is set back to "Built". Nothing happens if the stage
-    // is already at Built or below.
-    void restoreToBuiltStage() {
-        if (currentStage <= Stage::Built)
+    // only as they were after realize(Topology).
+    // The stage is set back to "Topology". Nothing happens if the stage
+    // is already at Topology or below.
+    void restoreToTopologyStage() {
+        if (currentStage <= Stage::Topology)
             return;
         clearReferencesToStateGlobals();
         discrete.resize(nDiscreteWhenBuilt);
-        restoreCacheToStage(Stage::Built);
+        restoreCacheToStage(Stage::Topology);
         qInit.clear(); uInit.clear(); zInit.clear();
-        currentStage = Stage::Built;
+        currentStage = Stage::Topology;
     }
 
     // Restore this subsystem to the way it last was at realize(Stage).
     void restoreToStage(Stage g) {
-        if (g==Stage::Allocated) {restoreToAllocatedStage(); return;}
-        if (g==Stage::Built)     {restoreToBuiltStage();     return;}
+        if (g==Stage::Empty)    {restoreToEmptyStage();    return;}
+        if (g==Stage::Topology) {restoreToTopologyStage(); return;}
         if (currentStage <= g) return;
 
         // State variables remain unchanged since they are all allocated
-        // after realize(Modeled). Cache gets shrunk to the length it
+        // after realize(Model). Cache gets shrunk to the length it
         // had after realize(g) in case some entries were late additions.
         restoreCacheToStage(g);
         currentStage = g;
@@ -228,7 +228,7 @@ private:
 
 
     // Utility which makes "this" a copy of the source subsystem exactly as it
-    // was after being realized to stage maxStage. If maxStage >= Modeled then
+    // was after being realized to stage maxStage. If maxStage >= Model then
     // all the subsystem-private state variables will be copied, but only
     // cached computations up through maxStage come through. We clear
     // our references to global variables regardless -- those will have to
@@ -238,41 +238,41 @@ private:
         name     = src.name;
         version  = src.version;
 
-        if (targetStage < Stage::Built) {
-            restoreToAllocatedStage();  // don't copy anything
+        if (targetStage < Stage::Topology) {
+            restoreToEmptyStage();  // don't copy anything
             return;
         }
 
-        // At "Built" stage we need to copy all the private state
-        // variables that were present at realize(Built) (those will
+        // At "Topology" stage we need to copy all the private state
+        // variables that were present at realize(Topology) (those will
         // mostly be modeling variables). There can't
         // be any global ones since those aren't allocated until
-        // Modeled stage. We also need to copy any cache results
-        // that were available after realize(Built).
-        if (targetStage == Stage::Built) {
-            restoreToAllocatedStage();
+        // Model stage. We also need to copy any cache results
+        // that were available after realize(Topology).
+        if (targetStage == Stage::Topology) {
+            restoreToEmptyStage();
             discrete.resize(src.nDiscreteWhenBuilt);
             for (int i=0; i<src.nDiscreteWhenBuilt; ++i)
                 discrete[i] = src.discrete[i];
             nDiscreteWhenBuilt = discrete.size();
             // don't copy any global shared resources
 
-            cache.resize(src.cacheSize[Stage::Built]);
+            cache.resize(src.cacheSize[Stage::Topology]);
             for (int i=0; i<(int)cache.size(); ++i)
                 cache[i] = src.cache[i];
-            cacheSize[Stage::Built] = cache.size();
-            currentStage = Stage::Built;
+            cacheSize[Stage::Topology] = cache.size();
+            currentStage = Stage::Topology;
             return;
         }
 
-        // This is the general case where Stage > Built.
+        // This is the general case where Stage > Topology.
         clearReferencesToStateGlobals();
         qInit = src.qInit;
         uInit = src.uInit;
         zInit = src.zInit;
 
         // Copy *all* state variables since no more can be allocated
-        // after Modeled stage.
+        // after Model stage.
         discrete = src.discrete;
 
         // Copy only the cache as it was at the end of targetStage since
@@ -291,7 +291,7 @@ private:
 class StateRep {
 public:
     StateRep() 
-      : t(CNT<Real>::getNaN()), systemStage(Stage::Allocated), 
+      : t(CNT<Real>::getNaN()), systemStage(Stage::Empty), 
         myHandle(0) 
     { 
     }
@@ -326,12 +326,12 @@ public:
     // We'll do the copy constructor and assignment explicitly here
     // to get tight control over what's allowed, and to make sure
     // we don't copy the handle pointer.
-    StateRep(const StateRep& src) : myHandle(0), systemStage(Stage::Allocated) {
+    StateRep(const StateRep& src) : myHandle(0), systemStage(Stage::Empty) {
         subsystems = src.subsystems;
-        if (src.systemStage >= Stage::Built) {
-            advanceSystemToStage(Stage::Built);
-            if (src.systemStage >= Stage::Modeled) {
-                advanceSystemToStage(Stage::Modeled);
+        if (src.systemStage >= Stage::Topology) {
+            advanceSystemToStage(Stage::Topology);
+            if (src.systemStage >= Stage::Model) {
+                advanceSystemToStage(Stage::Model);
                 t = src.t;
                 // careful -- don't allow reallocation
                 y = src.y;
@@ -341,14 +341,14 @@ public:
 
     StateRep& operator=(const StateRep& src) {
         if (&src == this) return *this;
-        invalidateJustSystemStage(Stage::Built);
+        invalidateJustSystemStage(Stage::Topology);
         for (int i=0; i<(int)subsystems.size(); ++i)
-            subsystems[i].invalidateStageJustThisSubsystem(Stage::Built);
+            subsystems[i].invalidateStageJustThisSubsystem(Stage::Topology);
         subsystems = src.subsystems;
-        if (src.systemStage >= Stage::Built) {
-            advanceSystemToStage(Stage::Built);
-            if (src.systemStage >= Stage::Modeled) {
-                advanceSystemToStage(Stage::Modeled);
+        if (src.systemStage >= Stage::Topology) {
+            advanceSystemToStage(Stage::Topology);
+            if (src.systemStage >= Stage::Model) {
+                advanceSystemToStage(Stage::Model);
                 t = src.t;
                 y = src.y;
             }
@@ -365,12 +365,12 @@ public:
     // over many stages here. Careful: invalidating the stage
     // for the system must also invalidate the same stage for all
     // the subsystems (because we trash the shared resource pool
-    // here if we back up earlier than Modeled) but we don't
-    // take care of that here. Also, you can't invalidate Stage::Allocated.
+    // here if we back up earlier than Stage::Model) but we don't
+    // take care of that here. Also, you can't invalidate Stage::Empty.
     void invalidateJustSystemStage(Stage g) {
-        assert(g > Stage::Allocated);
+        assert(g > Stage::Empty);
         if (systemStage >= g) {
-            if (systemStage >= Stage::Modeled && g <= Stage::Modeled) {
+            if (systemStage >= Stage::Model && g <= Stage::Model) {
                 // We are "unmodeling" this State. Trash all the global
                 // shared states & corresponding cache entries.
 
@@ -396,15 +396,15 @@ public:
     }
 
     // Advance the System stage from g-1 to g. It is a fatal error if
-    // we're not already at g-1, and you can't advance to Stage::Allocated.
+    // we're not already at g-1, and you can't advance to Stage::Empty.
     // Also, you can't advance the system to g unless ALL subsystems have
     // already gotten there.
     void advanceSystemToStage(Stage g) {
-        assert(g > Stage::Allocated);
+        assert(g > Stage::Empty);
         assert(systemStage == g.prev());
         assert(allSubsystemsAtLeastAtStage(g));
 
-        if (g == Stage::Modeled) {
+        if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
             int nq=0, nu=0, nz=0;
@@ -462,12 +462,12 @@ private:
 
         // Shared global resource State variables //
 
-    Real            t; // Stage::Timed (time)
+    Real            t; // Stage::Time (time)
     Vector          y; // All the continuous state variables taken together {q,u,z}
 
         // These are views into y.
-    Vector          q; // Stage::Configured continuous variables
-    Vector          u; // Stage::Moving continuous variables
+    Vector          q; // Stage::Position continuous variables
+    Vector          u; // Stage::Velocity continuous variables
     Vector          z; // Stage::Dynamics continuous variables
 
 
@@ -477,12 +477,12 @@ private:
     mutable Vector  ydot; // All the state derivatives taken together (qdot,udot,zdot)
 
         // These are views into ydot.
-    mutable Vector  qdot;       // Stage::Moving
-    mutable Vector  udot;       // Stage::Reacting
-    mutable Vector  zdot;       // Stage::Reacting
+    mutable Vector  qdot;       // Stage::Velocity
+    mutable Vector  udot;       // Stage::Acceleration
+    mutable Vector  zdot;       // Stage::Acceleration
 
         // This is an independent cache entry.
-    mutable Vector  qdotdot;    // Stage::Reacting
+    mutable Vector  qdotdot;    // Stage::Acceleration
 
         // Subsystem support //
 
@@ -663,7 +663,7 @@ void State::advanceSystemToStage(Stage g) const {
 // we'll keep error checking on even in Release mode.
 
 int State::allocateQ(int subsys, const Vector& qInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateQ()");
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateQ()");
 
     // Map to local subsystem Q; we'll total these up later.
     const int nxt = rep->subsystems[subsys].qInit.size();
@@ -673,7 +673,7 @@ int State::allocateQ(int subsys, const Vector& qInit) {
 }
 
 int State::allocateU(int subsys, const Vector& uInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateU()");
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateU()");
 
     // Map to local subsystem U; we'll total these up later.
     const int nxt = rep->subsystems[subsys].uInit.size();
@@ -682,7 +682,7 @@ int State::allocateU(int subsys, const Vector& uInit) {
     return nxt;
 }
 int State::allocateZ(int subsys, const Vector& zInit) {
-    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Modeled, "State::allocateZ()");
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateZ()");
 
     // Map to local subsystem Z; we'll total these up later.
     const int nxt = rep->subsystems[subsys].zInit.size();
@@ -691,13 +691,13 @@ int State::allocateZ(int subsys, const Vector& zInit) {
     return nxt;
 }
 
-// Construction- and Modeling-stage State variables can only be added during construction; that is,
-// while stage <= Built. Other entries can be added while stage < Modeled.
+// Topology- and Model-stage State variables can only be added during construction; that is,
+// while stage <= Topology. Other entries can be added while stage < Model.
 int State::allocateDiscreteVariable(int subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateDiscreteVariable()");
 
-    const Stage maxAcceptable = (g <= Stage::Modeled ? Stage::Allocated : Stage::Built);
+    const Stage maxAcceptable = (g <= Stage::Model ? Stage::Empty : Stage::Topology);
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
         maxAcceptable.next(), "State::allocateDiscreteVariable()");
 
@@ -707,12 +707,12 @@ int State::allocateDiscreteVariable(int subsys, Stage g, AbstractValue* vp) {
     return nxt;
 }
 
-// Cache entries can be allocated while stage < Modeled, even if they are Modeled-stage entries.
+// Cache entries can be allocated while stage < Model, even if they are Model-stage entries.
 int State::allocateCacheEntry(int subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateCacheEntry()");
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
-        Stage::Modeled, "State::allocateCacheEntry()");
+        Stage::Model, "State::allocateCacheEntry()");
 
     PerSubsystemInfo& ss = rep->subsystems[subsys];
     const int nxt = ss.cache.size();
@@ -724,60 +724,60 @@ int State::allocateCacheEntry(int subsys, Stage g, AbstractValue* vp) {
 
 const Vector& State::getQ(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getQ(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQ(subsys)");
     return rep->getSubsystem(subsys).q;
 }
 const Vector& State::getU(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getU(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getU(subsys)");
     return rep->getSubsystem(subsys).u;
 }
 const Vector& State::getZ(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getZ(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZ(subsys)");
     return rep->getSubsystem(subsys).z;
 }
 
 const Vector& State::getQDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getQDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Moving, "State::getQDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "State::getQDot(subsys)");
     return rep->getSubsystem(subsys).qdot;
 }
 const Vector& State::getUDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getUDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Reacting, "State::getUDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getUDot(subsys)");
     return rep->getSubsystem(subsys).udot;
 }
 const Vector& State::getZDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getZDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Dynamics, "State::getZDot(subsys)");
     return rep->getSubsystem(subsys).zdot;
 }
 const Vector& State::getQDotDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getQDotDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Reacting, "State::getQDotDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQDotDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getQDotDot(subsys)");
     return rep->getSubsystem(subsys).qdotdot;
 }
 
 Vector& State::updQ(int subsys) {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updQ(subsys)");
-    invalidateAll(Stage::Configured);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQ(subsys)");
+    invalidateAll(Stage::Position);
     return rep->updSubsystem(subsys).q;
 }
 Vector& State::updU(int subsys) {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updU(subsys)");
-    invalidateAll(Stage::Moving);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updU(subsys)");
+    invalidateAll(Stage::Velocity);
     return rep->updSubsystem(subsys).u;
 }
 Vector& State::updZ(int subsys) {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updZ(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZ(subsys)");
     invalidateAll(Stage::Dynamics);
     return rep->updSubsystem(subsys).z;
 }
@@ -786,106 +786,106 @@ Vector& State::updZ(int subsys) {
 
 Vector& State::updQDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updQDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Moving).prev(), "State::updQDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "State::updQDot(subsys)");
     return rep->getSubsystem(subsys).qdot;
 }
 Vector& State::updUDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updUDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Reacting).prev(), "State::updUDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updUDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "State::updUDot(subsys)");
     return rep->getSubsystem(subsys).udot;
 }
 Vector& State::updZDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updZDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Dynamics).prev(), "State::updZDot(subsys)");
     return rep->getSubsystem(subsys).zdot;
 }
 Vector& State::updQDotDot(int subsys) const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updQDotDot(subsys)");
-    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Reacting).prev(), "State::updQDotDot(subsys)");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQDotDot(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "State::updQDotDot(subsys)");
     return rep->getSubsystem(subsys).qdotdot;
 }
 
     // Direct access to the global shared state and cache entries.
-    // These are allocated once the System Stage is Modeled.
+    // These are allocated once the System Stage is Stage::Model.
 
 const Real&
 State::getTime() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getTime()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getTime()");
     return rep->t;
 }
 
 const Vector&
 State::getY() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getY()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getY()");
     return rep->y;
 }
 
 const Vector&
 State::getQ() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getQ()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQ()");
     return rep->q;
 }
 
 const Vector&
 State::getU() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getU()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getU()");
     return rep->u;
 }
 
 const Vector&
 State::getZ() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::getZ()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZ()");
     return rep->z;
 }
 
 
-// You can call these as long as stage >= Modeled, but the
+// You can call these as long as stage >= Model, but the
 // stage will be backed up if necessary to the indicated stage.
 Real&
-State::updTime() {  // Stage::Timed-1
+State::updTime() {  // Stage::Time-1
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updTime()");
-    invalidateAll(Stage::Timed);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updTime()");
+    invalidateAll(Stage::Time);
     return rep->t;
 }
 
 Vector&
-State::updY() {    // Back to Stage::Configured-1
+State::updY() {    // Back to Stage::Position-1
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updY()");
-    invalidateAll(Stage::Configured);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updY()");
+    invalidateAll(Stage::Position);
     return rep->y;
 }
 
 Vector&
-State::updQ() {    // Stage::Configured-1
+State::updQ() {    // Stage::Position-1
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updQ()");
-    invalidateAll(Stage::Configured);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQ()");
+    invalidateAll(Stage::Position);
     return rep->q;
 }
 
 Vector&
-State::updU() {     // Stage::Moving-1
+State::updU() {     // Stage::Velocity-1
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updU()");
-    invalidateAll(Stage::Moving);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updU()");
+    invalidateAll(Stage::Velocity);
     return rep->u;
 }
 
 Vector&
 State::updZ() {     // Stage::Dynamics-1
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Modeled, "State::updZ()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZ()");
     invalidateAll(Stage::Dynamics);
     return rep->z;
 }
@@ -893,7 +893,7 @@ State::updZ() {     // Stage::Dynamics-1
 const Vector&
 State::getYDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Reacting, "State::getYDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getYDot()");
     return rep->ydot;
 }
 
@@ -901,7 +901,7 @@ State::getYDot() const {
 const Vector&
 State::getQDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Moving, "State::getQDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "State::getQDot()");
     return rep->qdot;
 }
 
@@ -915,28 +915,28 @@ State::getZDot() const {
 const Vector&
 State::getUDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Reacting, "State::getUDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getUDot()");
     return rep->udot;
 }
 
 const Vector&
 State::getQDotDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Reacting, "State::getQDotDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getQDotDot()");
     return rep->qdotdot;
 }
 
 Vector&
 State::updQDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Moving).prev(), "State::updQDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "State::updQDot()");
     return rep->qdot;
 }
 
 Vector&
 State::updUDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Reacting).prev(), "State::updUDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updUDot()");
     return rep->udot;
 }
 
@@ -950,12 +950,12 @@ State::updZDot() const {
 Vector&
 State::updQDotDot() const {
     assert(rep);
-    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Reacting).prev(), "State::updQDotDot()");
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updQDotDot()");
     return rep->qdotdot;
 }
 
-// You can access a Modeling variable any time, but don't access others
-// until you have realized the Modeled stage.
+// You can access a Model stage variable any time, but don't access others
+// until you have realized the Model stage.
 const AbstractValue& 
 State::getDiscreteVariable(int subsys, int index) const {
     const PerSubsystemInfo& ss = rep->subsystems[subsys];
@@ -963,16 +963,16 @@ State::getDiscreteVariable(int subsys, int index) const {
     SimTK_INDEXCHECK(0,index,(int)ss.discrete.size(),"State::getDiscreteVariable()");
     const DiscreteVariable& dv = ss.discrete[index];
 
-    if (dv.getStage() > Stage::Modeled) {
+    if (dv.getStage() > Stage::Model) {
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-            Stage::Modeled, "State::getDiscreteVariable()");
+            Stage::Model, "State::getDiscreteVariable()");
     }
 
     return dv.getValue();
 }
 
-// You can update a Modeling variable from Built stage, but higher variables 
-// must wait until you have realized the Modeled stage. This always backs the 
+// You can update a Model stage variable from Topology stage, but higher variables 
+// must wait until you have realized the Model stage. This always backs the 
 // stage up to one earlier than the variable's stage.
 AbstractValue& 
 State::updDiscreteVariable(int subsys, int index) {
@@ -982,7 +982,7 @@ State::updDiscreteVariable(int subsys, int index) {
     DiscreteVariable& dv = ss.discrete[index];
 
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), 
-        std::min(dv.getStage().prev(), Stage(Stage::Modeled)), 
+        std::min(dv.getStage().prev(), Stage(Stage::Model)), 
         "State::updDiscreteVariable()");
 
     invalidateAll(dv.getStage());

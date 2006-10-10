@@ -41,12 +41,12 @@ class UniformGravitySubsystemRep : public ForceSubsystemRep {
 public:
     UniformGravitySubsystemRep() 
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
-        parameterVarsIndex(-1), parameterCacheIndex(-1), built(false) { }
+        instanceVarsIndex(-1), instanceCacheIndex(-1), built(false) { }
 
     explicit UniformGravitySubsystemRep(const Vec3& g, const Real& z=0)
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
         defaultParameters(g,z),
-        parameterVarsIndex(-1), parameterCacheIndex(-1), built(false) { } 
+        instanceVarsIndex(-1), instanceCacheIndex(-1), built(false) { } 
 
     // Access to state variables (parameters).
     const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
@@ -60,18 +60,18 @@ public:
 
     // Responses (not available through the client-side handle class).
     const Real& getGravityMagnitude(const State& s) const {
-        return getParameterCache(s).gMagnitude;
+        return getInstanceCache(s).gMagnitude;
     }
     const Real& getPEOffset(const State& s) const {
-        return getParameterCache(s).gz;
+        return getInstanceCache(s).gz;
     }
 
-    void realizeConstruction(State& s) const;
-    //   realizeModeling() not needed
-    void realizeParameters(const State& s) const;
+    void realizeTopology(State& s) const;
+    //   realizeModel() not needed
+    void realizeInstance(const State& s) const;
     //   realizeTime, Configuration, Motion not needed
     void realizeDynamics(const State& s) const;
-    //   realizeReaction() not needed
+    //   realizeAcceleration() not needed
 
     UniformGravitySubsystemRep* cloneSubsystemRep() const {return new UniformGravitySubsystemRep(*this);}
 
@@ -97,32 +97,32 @@ private:
     // topological variables
     Parameters defaultParameters;
 
-    // These must be filled in during realizeConstruction and treated
+    // These must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
-    mutable int parameterVarsIndex;
-    mutable int parameterCacheIndex;
+    mutable int instanceVarsIndex;
+    mutable int instanceCacheIndex;
     mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            getDiscreteVariable(s,parameterVarsIndex)).get();
+            getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            updDiscreteVariable(s,parameterVarsIndex)).upd();
+            updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
 
-    const ParameterCache& getParameterCache(const State& s) const {
+    const ParameterCache& getInstanceCache(const State& s) const {
         assert(built);
         return Value<ParameterCache>::downcast(
-            getCacheEntry(s,parameterCacheIndex)).get();
+            getCacheEntry(s,instanceCacheIndex)).get();
     }
-    ParameterCache& updParameterCache(const State& s) const {
+    ParameterCache& updInstanceCache(const State& s) const {
         assert(built);
         return Value<ParameterCache>::downcast(
-            updCacheEntry(s,parameterCacheIndex)).upd();
+            updCacheEntry(s,instanceCacheIndex)).upd();
     }
 
     friend std::ostream& operator<<(std::ostream& o, 
@@ -203,19 +203,19 @@ bool& UniformGravitySubsystem::updIsEnabled(State& s) const {
     // UniformGravitySubsystemRep //
     ////////////////////////////////
 
-void UniformGravitySubsystemRep::realizeConstruction(State& s) const {
-    parameterVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Parametrized, 
+void UniformGravitySubsystemRep::realizeTopology(State& s) const {
+    instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
         new Value<Parameters>(defaultParameters));
-    parameterCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Parametrized,
+    instanceCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), Stage::Instance,
         new Value<ParameterCache>());
     built = true;
 }
 
-// realizeModeling() not needed
+// realizeModel() not needed
 
-void UniformGravitySubsystemRep::realizeParameters(const State& s) const {
+void UniformGravitySubsystemRep::realizeInstance(const State& s) const {
     // any values are acceptable
-    ParameterCache& pc = updParameterCache(s);
+    ParameterCache& pc = updInstanceCache(s);
     pc.gMagnitude = getGravity(s).norm();
     pc.gz = pc.gMagnitude * getZeroHeight(s);
 }
@@ -254,7 +254,7 @@ void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
     for (int i=1; i < nBodies; ++i) {
         const Real&      m       = matter.getBodyMass(s,i);
         const Vec3&      com_B   = matter.getBodyCenterOfMassStation(s,i);
-        const Transform& X_GB    = matter.getBodyConfiguration(s,i);
+        const Transform& X_GB    = matter.getBodyPosition(s,i);
         const Vec3       com_B_G = X_GB.R()*com_B;
         const Vec3       com_G   = X_GB.T() + com_B_G;
         const Vec3       frc_G   = m*g;

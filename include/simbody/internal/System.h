@@ -72,7 +72,7 @@ public:
     /// Realize the entire System to the indicated Stage.
     void realize(const State& s, Stage g) const;
 
-    /// This operator can be called at Stage::Parametrized or higher and 
+    /// This operator can be called at Stage::Instance or higher and 
     /// returns a rough estimate of a length of time we consider significant
     /// for this system. For example, this could be the period of the highest-frequency
     /// oscillation that we care about. This can be used as a hint by 
@@ -81,7 +81,7 @@ public:
     /// corresponding position variables.
     Real calcTimescale(const State&) const;
 
-    /// This operator can be called at stage Configured to take a vector
+    /// This operator can be called at Stage::Position to take a vector
     /// of absolute state variable error estimates and return a weighted
     /// norm. This method is intended for use by numerical integration methods
     /// for step size control. This is a weighted norm, calculated so

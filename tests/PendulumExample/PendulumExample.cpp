@@ -121,7 +121,7 @@ public:
     }
 
     Real getPendulumAngle(const State& s) const {
-        const Vec4 aa = getMobilizerConfiguration(s,pendBodyNum).R().convertToAngleAxis();
+        const Vec4 aa = getMobilizerPosition(s,pendBodyNum).R().convertToAngleAxis();
         return aa[0]/RadiansPerDegree;
     }
 
@@ -129,7 +129,7 @@ public:
     void setPendulumAngle(State& s, Real angleInDegrees) {
         const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
         Quaternion q; q.setToAngleAxis(aa);
-        setMobilizerConfiguration(s,pendBodyNum,Transform(RotationMat(q)));
+        setMobilizerPosition(s,pendBodyNum,Transform(RotationMat(q)));
     }
 private:
     int pendBodyNum;
@@ -341,9 +341,9 @@ int main(int argc, char** argv) {
         mbs.addForceSubsystem(ugs);
 
         State s;
-        mbs.realize(s, Stage::Built);
+        mbs.realize(s, Stage::Topology);
         //myRNA.setUseEulerAngles(s,true);
-        mbs.realize(s, Stage::Modeled);
+        mbs.realize(s, Stage::Model);
 
         ugs.updGravity(s) *= 10;
         ugs.disableGravity(s);

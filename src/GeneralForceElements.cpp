@@ -264,26 +264,26 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
     // topological variables
     Parameters defaultParameters;
 
-    // These must be filled in during realizeConstruction and treated
+    // These must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
-    mutable int parameterVarsIndex;
+    mutable int instanceVarsIndex;
     mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            getDiscreteVariable(s,parameterVarsIndex)).get();
+            getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
         assert(built);
         return Value<Parameters>::downcast(
-            updDiscreteVariable(s,parameterVarsIndex)).upd();
+            updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
 
 public:
     GeneralForceElementsRep()
      : ForceSubsystemRep("GeneralForceElements", "0.0.1"), 
-       parameterVarsIndex(-1), built(false)
+       instanceVarsIndex(-1), built(false)
     {
     }
 
@@ -378,17 +378,17 @@ public:
         return (int)defaultParameters.userForces.size() - 1;
     }
 
-    void realizeConstruction(State& s) const {
-        parameterVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Parametrized, 
+    void realizeTopology(State& s) const {
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
         built = true;
     }
 
-    void realizeModeling(State& s) const {
+    void realizeModel(State& s) const {
         // Sorry, no choices available at the moment.
     }
 
-    void realizeParameters(const State& s) const {
+    void realizeInstance(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -396,11 +396,11 @@ public:
         // Nothing to compute here.
     }
 
-    void realizeConfiguration(const State& s) const {
+    void realizePosition(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeMotion(const State& s) const {
+    void realizeVelocity(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -453,8 +453,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearSprings.size(); ++i) {
             const TwoPointLinearSpringParameters& spring =
                 p.twoPointLinearSprings[i];
-            const Transform& X_GB1 = matter.getBodyConfiguration(s, spring.body1);
-            const Transform& X_GB2 = matter.getBodyConfiguration(s, spring.body2);
+            const Transform& X_GB1 = matter.getBodyPosition(s, spring.body1);
+            const Transform& X_GB2 = matter.getBodyPosition(s, spring.body2);
 
             const Vec3 s1_G = X_GB1.R() * spring.station1;
             const Vec3 s2_G = X_GB2.R() * spring.station2;
@@ -478,8 +478,8 @@ public:
         for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
             const TwoPointConstantForceParameters& frc =
                 p.twoPointConstantForces[i];
-            const Transform& X_GB1 = matter.getBodyConfiguration(s, frc.body1);
-            const Transform& X_GB2 = matter.getBodyConfiguration(s, frc.body2);
+            const Transform& X_GB1 = matter.getBodyPosition(s, frc.body1);
+            const Transform& X_GB2 = matter.getBodyPosition(s, frc.body2);
 
             const Vec3 s1_G = X_GB1.R() * frc.station1;
             const Vec3 s2_G = X_GB2.R() * frc.station2;
@@ -502,8 +502,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearDampers.size(); ++i) {
             const TwoPointLinearDamperParameters& damper =
                 p.twoPointLinearDampers[i];
-            const Transform& X_GB1 = matter.getBodyConfiguration(s, damper.body1);
-            const Transform& X_GB2 = matter.getBodyConfiguration(s, damper.body2);
+            const Transform& X_GB1 = matter.getBodyPosition(s, damper.body1);
+            const Transform& X_GB2 = matter.getBodyPosition(s, damper.body2);
 
             const Vec3 s1_G = X_GB1.R() * damper.station1;
             const Vec3 s2_G = X_GB2.R() * damper.station2;
@@ -529,7 +529,7 @@ public:
             if (f.fmag == 0)
                 continue;
 
-            const Transform& X_GB = matter.getBodyConfiguration(s, f.body);
+            const Transform& X_GB = matter.getBodyPosition(s, f.body);
             const Vec3 station_G = X_GB.R() * f.station_B;
             const Vec3 point_G   = X_GB.T() + station_G;
 
@@ -547,7 +547,7 @@ public:
         }
     }
 
-    void realizeReaction(const State& s) const {
+    void realizeAcceleration(const State& s) const {
         // Nothing to compute here.
     }
 

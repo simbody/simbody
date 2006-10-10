@@ -53,7 +53,7 @@ void RigidBodyNode::addChild(RigidBodyNode* child) {
 // Should be calc'd from base to tip.
 // We depend on transforms X_PB and X_GB being available.
 void RigidBodyNode::calcJointIndependentKinematicsPos(
-    SBConfigurationCache&   cc) const
+    SBPositionCache&   cc) const
 {
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 T_PB_G = getX_GP(cc).R() * getX_PB(cc).T();
@@ -87,15 +87,15 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
 // the just-calculated cross-joint spatial velocity V_PB_G.
 void 
 RigidBodyNode::calcJointIndependentKinematicsVel(
-    const SBConfigurationCache& cc,
-    SBMotionCache&              mc) const
+    const SBPositionCache& cc,
+    SBVelocityCache&              mc) const
 {
     updV_GB(mc) = ~getPhi(cc)*parent->getV_GB(mc) + getV_PB_G(mc);
 }
 
 Real RigidBodyNode::calcKineticEnergy(
-    const SBConfigurationCache& cc,
-    const SBMotionCache&        mc) const 
+    const SBPositionCache& cc,
+    const SBVelocityCache&        mc) const 
 {
     const Real ret = dot(getV_GB(mc) , getMk(cc)*getV_GB(mc));
     return 0.5*ret;
@@ -108,8 +108,8 @@ Real RigidBodyNode::calcKineticEnergy(
 // Must be called base to tip.
 void 
 RigidBodyNode::calcJointIndependentDynamicsVel(
-    const SBConfigurationCache& cc,
-    const SBMotionCache&        mc,
+    const SBPositionCache& cc,
+    const SBVelocityCache&        mc,
     SBDynamicsCache&            dc) const
 {
     if (nodeNum == 0) { // ground, just in case
@@ -215,72 +215,72 @@ public:
     /*virtual*/const char* type() const { return "ground"; }
     /*virtual*/int getDOF() const { return 0; }
     /*virtual*/int getMaxNQ() const { return 0; }
-    /*virtual*/int getNQ(const SBModelingVars&) const { return 0; }
+    /*virtual*/int getNQ(const SBModelVars&) const { return 0; }
 
     /*virtual*/void calcZ(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const SpatialVec& spatialForce,
-        SBReactionCache&               ) const {} 
+        SBAccelerationCache&               ) const {} 
 
     /*virtual*/void calcYOutward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         SBDynamicsCache&            dc) const {}
 
     /*virtual*/void calcAccel(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
         const SBDynamicsCache&      dc,
-        SBReactionCache&            rc,
+        SBAccelerationCache&            rc,
         Vector&                     udot,
         Vector&                     qdotdot) const {}
 
-    /*virtual*/void realizeModeling(
-        const SBModelingVars& mv,
-        SBModelingCache&      mc) const {}
+    /*virtual*/void realizeModel(
+        const SBModelVars& mv,
+        SBModelCache&      mc) const {}
 
-    /*virtual*/void realizeParameters(
-        const SBModelingVars&  mv,
-        const SBParameterVars& pv,
-        SBParameterCache&      pc) const {}
+    /*virtual*/void realizeInstance(
+        const SBModelVars&  mv,
+        const SBInstanceVars& pv,
+        SBInstanceCache&      pc) const {}
 
-    /*virtual*/void realizeConfiguration(
-        const SBModelingVars& mv,
+    /*virtual*/void realizePosition(
+        const SBModelVars& mv,
         const Vector&         q,
-        SBConfigurationCache& cc) const {}
+        SBPositionCache& cc) const {}
 
-    /*virtual*/void realizeMotion(
-        const SBModelingVars&       mv,
+    /*virtual*/void realizeVelocity(
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
-        SBMotionCache&              mc,
+        SBVelocityCache&              mc,
         Vector&                     qdot) const {}
 
     /*virtual*/void setVelFromSVel(
-        const SBConfigurationCache& cc, 
-        const SBMotionCache&        mc,
+        const SBPositionCache& cc, 
+        const SBVelocityCache&        mc,
         const SpatialVec&           sVel, 
         Vector&                     u) const {}
 
     /*virtual*/bool enforceQuaternionConstraints(
-        const SBModelingVars& mv,
+        const SBModelVars& mv,
         Vector&               q) const {return false;}
     
     /*virtual*/void calcArticulatedBodyInertiasInward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         SBDynamicsCache&            dc) const {}
 
     /*virtual*/ void calcInternalGradientFromSpatial(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const { }
 
     /*virtual*/ void calcEquivalentJointForces(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector_<SpatialVec>& bodyForces,
         Vector_<SpatialVec>&       allZ,
@@ -290,7 +290,7 @@ public:
     }
 
     /*virtual*/void calcUDotPass1Inward(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&              jointForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -302,7 +302,7 @@ public:
         allGepsilon[0] = SpatialVec(Vec3(0), Vec3(0));
     } 
     /*virtual*/void calcUDotPass2Outward(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&                   epsilonTmp,
         Vector_<SpatialVec>&            allA_GB,
@@ -312,7 +312,7 @@ public:
     }
 
     /*virtual*/void calcMInverseFPass1Inward(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&              f,
         Vector_<SpatialVec>&       allZ,
@@ -324,7 +324,7 @@ public:
     } 
 
     /*virtual*/void calcMInverseFPass2Outward(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&                   epsilonTmp,
         Vector_<SpatialVec>&            allA_GB,
@@ -333,8 +333,8 @@ public:
         allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
-    /*virtual*/void setDefaultModelingValues(const SBConstructionCache&, 
-                                             SBModelingVars& v) const
+    /*virtual*/void setDefaultModelValues(const SBTopologyCache&, 
+                                             SBModelVars& v) const
     {
         v.prescribed[0] = true; // ground's motion is prescribed to zero
     }
@@ -389,7 +389,7 @@ public:
     /// Each of the passed-in Vectors is a "q-like" object, that is, allocated
     /// to the bodies in a manner parallel to the q state variable.
     virtual void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -399,14 +399,14 @@ public:
     /// by the current q values. This may depend on sines & cosines or normalized
     /// quaternions already being available in the State cache.
     virtual void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const=0;
 
     /// This routine is NOT joint specific, but cannot be called until the across-joint
     /// transform X_JbJ has been calculated and is available in the State cache.
     void calcBodyTransforms(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         Transform&                  X_PB, 
         Transform&                  X_GB) const 
     {
@@ -423,7 +423,7 @@ public:
     /// change of *spatial* velocity induced by the generalized speeds u for this
     /// joint. It may depend on X_PB and X_GB having been calculated already.
     virtual void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const=0;
 
     /// Calculate joint-specific kinematic quantities dependent on
@@ -435,9 +435,9 @@ public:
     ///   V_PB_G  relative velocity of B in P, expr. in G
     /// The code is the same for all joints, although parametrized by dof.
     void calcJointKinematicsVel(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
-        SBMotionCache&              mc) const 
+        SBVelocityCache&              mc) const 
     {
         updV_PB_G(mc) = ~getH(cc) * fromU(u);
     }
@@ -446,9 +446,9 @@ public:
     // must supply the other. (That is, ball-containing joints provide
     // both of these routines.)
     virtual void calcQDot(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
         Vector&                     qdot) const
     {
@@ -456,9 +456,9 @@ public:
     }
 
     virtual void calcQDotDot(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u, 
         const Vector&               udot, 
         Vector&                     qdotdot) const
@@ -466,25 +466,25 @@ public:
         toQ(qdotdot) = fromU(udot);  // default is qdotdot=udot
     }
 
-    void realizeModeling(
-        const SBModelingVars& mv,
-        SBModelingCache&      mc) const 
+    void realizeModel(
+        const SBModelVars& mv,
+        SBModelCache&      mc) const 
     {
     }
 
-    void realizeParameters(
-        const SBModelingVars&  mv,
-        const SBParameterVars& pv,
-        SBParameterCache&      pc) const
+    void realizeInstance(
+        const SBModelVars&  mv,
+        const SBInstanceVars& pv,
+        SBInstanceCache&      pc) const
     {
     }
 
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
-    void realizeConfiguration(
-        const SBModelingVars& mv,
+    void realizePosition(
+        const SBModelVars& mv,
         const Vector&         q,
-        SBConfigurationCache& cc) const 
+        SBPositionCache& cc) const 
     {
         calcJointSinCosQNorm(mv, q, cc.sq, cc.cq, cc.qnorm);
         calcAcrossJointTransform (mv, q, updX_JbJ(cc));
@@ -495,12 +495,12 @@ public:
 
     // Set new velocities for the current configuration, and calculate
     // all the velocity-dependent terms. Must call base-to-tip.
-    void realizeMotion(
-        const SBModelingVars&       mv,
+    void realizeVelocity(
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
-        SBMotionCache&              mc,
+        SBVelocityCache&              mc,
         Vector&                     qdot) const 
     {
         calcQDot(mv,q,cc,u,qdot);
@@ -510,7 +510,7 @@ public:
 
     // This is a dynamics-stage calculation and must be called tip-to-base (inward).
     void calcArticulatedBodyInertiasInward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         SBDynamicsCache&            dc) const;
 
     // calcJointIndependentDynamicsVel() must be called after ArticulatedBodyInertias.
@@ -518,26 +518,26 @@ public:
     // This dynamics-stage calculation is needed for handling constraints. It
     // must be called base-to-tip (outward);
     void calcYOutward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         SBDynamicsCache&            dc) const;
 
     // These routines give each node a chance to set appropriate defaults in a piece
     // of the state corresponding to a particular stage. Default implementations here
     // assume non-ball joint; override if necessary.
-    virtual void setDefaultModelingValues (const SBConstructionCache&, SBModelingVars&)  const {}
-    virtual void setDefaultParameterValues(const SBModelingVars&, SBParameterVars&) const {}
-    virtual void setDefaultTimeValues     (const SBModelingVars&, SBTimeVars&)      const {}
+    virtual void setDefaultModelValues (const SBTopologyCache&, SBModelVars&)  const {}
+    virtual void setDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const {}
+    virtual void setDefaultTimeValues     (const SBModelVars&, SBTimeVars&)      const {}
 
-    virtual void setDefaultConfigurationValues(const SBModelingVars& s, Vector& q) const 
+    virtual void setDefaultPositionValues(const SBModelVars& s, Vector& q) const 
     {
         toQ(q) = 0.;
     }
-    virtual void setDefaultMotionValues(const SBModelingVars&, Vector& u) const 
+    virtual void setDefaultVelocityValues(const SBModelVars&, Vector& u) const 
     {
         toU(u) = 0.;
     }
-    virtual void setDefaultDynamicsValues(const SBModelingVars&, SBDynamicsVars&) const {}
-    virtual void setDefaultReactionValues(const SBModelingVars&, 
+    virtual void setDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
+    virtual void setDefaultAccelerationValues(const SBModelVars&, 
                                           SBDynamicsVars& v) const {}
 
     // setQ and setU extract this node's values from the supplied
@@ -545,7 +545,7 @@ public:
     // locations in the output variable. Joints which need quaternions should
     // override setQ to copy the extra q.
     virtual void setQ(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           qIn, 
         Vector&                 q) const
     {
@@ -553,7 +553,7 @@ public:
     }
 
     virtual void setU(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           uIn, 
         Vector&                 u) const
     {
@@ -562,23 +562,23 @@ public:
 
     int          getDOF()            const { return dof; }
     virtual int  getMaxNQ()          const { return dof; } // maxNQ can be larger than dof
-    virtual int  getNQ(const SBModelingVars&) const { return dof; } // DOF <= NQ <= maxNQ
+    virtual int  getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
 
     virtual void setVelFromSVel(
-        const SBConfigurationCache& cc, 
-        const SBMotionCache&        mc,
+        const SBPositionCache& cc, 
+        const SBVelocityCache&        mc,
         const SpatialVec&           sVel, 
         Vector&                     u) const;
 
     // Return true if any change is made to the output variable.
     virtual bool enforceQuaternionConstraints(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         Vector&                 q) const 
     {
         return false;
     }
 
-    const SpatialRow& getHRow(const SBConfigurationCache& cc, int i) const {
+    const SpatialRow& getHRow(const SBPositionCache& cc, int i) const {
         return getH(cc)[i];
     }
 
@@ -633,25 +633,25 @@ public:
         // Configuration
 
     // TODO: should store as H or else always reference Ht
-    const Mat<dof,2,Row3,1,2>& getH(const SBConfigurationCache& cc) const
+    const Mat<dof,2,Row3,1,2>& getH(const SBPositionCache& cc) const
       { return ~Mat<2,dof,Vec3>::getAs(&cc.storageForHt(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH(SBConfigurationCache& cc) const
+    Mat<dof,2,Row3,1,2>&       updH(SBPositionCache& cc) const
       { return ~Mat<2,dof,Vec3>::updAs(&cc.storageForHt(0,uIndex)); }
 
     // These are sines and cosines of angular qs. The rest of the slots are garbage.
-    const Vec<dof>&   getSinQ (const SBConfigurationCache& cc) const {return fromQ (cc.sq);}
-    Vec<dof>&         updSinQ (SBConfigurationCache&       cc) const {return toQ   (cc.sq);}
-    const Real&       get1SinQ(const SBConfigurationCache& cc) const {return from1Q(cc.sq);}
-    Real&             upd1SinQ(SBConfigurationCache&       cc) const {return to1Q  (cc.sq);}
+    const Vec<dof>&   getSinQ (const SBPositionCache& cc) const {return fromQ (cc.sq);}
+    Vec<dof>&         updSinQ (SBPositionCache&       cc) const {return toQ   (cc.sq);}
+    const Real&       get1SinQ(const SBPositionCache& cc) const {return from1Q(cc.sq);}
+    Real&             upd1SinQ(SBPositionCache&       cc) const {return to1Q  (cc.sq);}
 
-    const Vec<dof>&   getCosQ (const SBConfigurationCache& cc) const {return fromQ (cc.cq);}
-    Vec<dof>&         updCosQ (SBConfigurationCache&       cc) const {return toQ   (cc.cq);}
-    const Real&       get1CosQ(const SBConfigurationCache& cc) const {return from1Q(cc.cq);}
-    Real&             upd1CosQ(SBConfigurationCache&       cc) const {return to1Q  (cc.cq);}
+    const Vec<dof>&   getCosQ (const SBPositionCache& cc) const {return fromQ (cc.cq);}
+    Vec<dof>&         updCosQ (SBPositionCache&       cc) const {return toQ   (cc.cq);}
+    const Real&       get1CosQ(const SBPositionCache& cc) const {return from1Q(cc.cq);}
+    Real&             upd1CosQ(SBPositionCache&       cc) const {return to1Q  (cc.cq);}
 
     // These are normalized quaternions in slots for balls. Everything else is garbage.
-    const Vec4&       getQNorm(const SBConfigurationCache& cc) const {return fromQuat(cc.qnorm);}
-    Vec4&             updQNorm(SBConfigurationCache&       cc) const {return toQuat  (cc.qnorm);}
+    const Vec4&       getQNorm(const SBPositionCache& cc) const {return fromQuat(cc.qnorm);}
+    Vec4&             updQNorm(SBPositionCache&       cc) const {return toQuat  (cc.qnorm);}
 
         // Motion
 
@@ -669,53 +669,53 @@ public:
 
         // Reaction
 
-    const Vec<dof>&   getNetHingeForce (const SBReactionCache& rc) const {return fromU (rc.netHingeForces);}
-    Vec<dof>&         updNetHingeForce (SBReactionCache&       rc) const {return toU   (rc.netHingeForces);}
-    const Real&       get1NetHingeForce(const SBReactionCache& rc) const {return from1U(rc.netHingeForces);}
-    Real&             upd1NetHingeForce(SBReactionCache&       rc) const {return to1U  (rc.netHingeForces);}
+    const Vec<dof>&   getNetHingeForce (const SBAccelerationCache& rc) const {return fromU (rc.netHingeForces);}
+    Vec<dof>&         updNetHingeForce (SBAccelerationCache&       rc) const {return toU   (rc.netHingeForces);}
+    const Real&       get1NetHingeForce(const SBAccelerationCache& rc) const {return from1U(rc.netHingeForces);}
+    Real&             upd1NetHingeForce(SBAccelerationCache&       rc) const {return to1U  (rc.netHingeForces);}
 
 
-    const Vec<dof>&   getNu (const SBReactionCache& rc) const {return fromU (rc.nu);}
-    Vec<dof>&         updNu (SBReactionCache&       rc) const {return toU   (rc.nu);}
-    const Real&       get1Nu(const SBReactionCache& rc) const {return from1U(rc.nu);}
-    Real&             upd1Nu(SBReactionCache&       rc) const {return to1U  (rc.nu);}
+    const Vec<dof>&   getNu (const SBAccelerationCache& rc) const {return fromU (rc.nu);}
+    Vec<dof>&         updNu (SBAccelerationCache&       rc) const {return toU   (rc.nu);}
+    const Real&       get1Nu(const SBAccelerationCache& rc) const {return from1U(rc.nu);}
+    Real&             upd1Nu(SBAccelerationCache&       rc) const {return to1U  (rc.nu);}
 
-    const Vec<dof>&   getEpsilon (const SBReactionCache& rc) const {return fromU (rc.epsilon);}
-    Vec<dof>&         updEpsilon (SBReactionCache&       rc) const {return toU   (rc.epsilon);}
-    const Real&       get1Epsilon(const SBReactionCache& rc) const {return from1U(rc.epsilon);}
-    Real&             upd1Epsilon(SBReactionCache&       rc) const {return to1U  (rc.epsilon);}
+    const Vec<dof>&   getEpsilon (const SBAccelerationCache& rc) const {return fromU (rc.epsilon);}
+    Vec<dof>&         updEpsilon (SBAccelerationCache&       rc) const {return toU   (rc.epsilon);}
+    const Real&       get1Epsilon(const SBAccelerationCache& rc) const {return from1U(rc.epsilon);}
+    Real&             upd1Epsilon(SBAccelerationCache&       rc) const {return to1U  (rc.epsilon);}
 
     void calcZ(
-        const SBConfigurationCache&,
+        const SBPositionCache&,
         const SBDynamicsCache&,
         const SpatialVec& spatialForce,
-        SBReactionCache&               ) const;
+        SBAccelerationCache&               ) const;
 
     void calcAccel(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
         const SBDynamicsCache&      dc,
-        SBReactionCache&            rc,
+        SBAccelerationCache&            rc,
         Vector&                     udot,
         Vector&                     qdotdot) const;
 
     void calcInternalGradientFromSpatial(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const;
 
     void calcEquivalentJointForces(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
         Vector&                     jointForces) const;
 
     void calcUDotPass1Inward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -724,14 +724,14 @@ public:
         Vector&                     allEpsilon) const;
 
     void calcUDotPass2Outward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const;
 
     void calcMInverseFPass1Inward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               f,
         Vector_<SpatialVec>&        allZ,
@@ -739,7 +739,7 @@ public:
         Vector&                     allEpsilon) const;
 
     void calcMInverseFPass2Outward(
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
@@ -791,12 +791,12 @@ public:
 
         // Implementations of virtual methods.
 
-    void setMobilizerConfiguration(const SBModelingVars&, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars&, const Transform& X_JbJ,
                                    Vector& q) const 
     {
         toQ(q) = X_JbJ.T();
     }
-    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
                               Vector& u) const
     {
         toU(u) = V_JbJ[1];
@@ -804,7 +804,7 @@ public:
 
     // This is required but does nothing here since there are no rotations for this joint.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -812,7 +812,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -823,7 +823,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const 
     {
         const Transform& X_PJb   = getX_PJb();      // fixed config of Jb in P
@@ -865,7 +865,7 @@ public:
 
     // This is required but does nothing here since we there are no rotations for this joint.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -873,7 +873,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -884,7 +884,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_PJb   = getX_PJb();      // fixed config of Jb in P
@@ -922,7 +922,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -936,7 +936,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -950,7 +950,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -995,7 +995,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1009,7 +1009,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -1021,7 +1021,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1068,7 +1068,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1082,7 +1082,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -1094,7 +1094,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1137,7 +1137,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1151,7 +1151,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -1165,7 +1165,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1210,7 +1210,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1224,7 +1224,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const 
     {
@@ -1236,7 +1236,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1283,7 +1283,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerConfiguration(const SBModelingVars& mv, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_JbJ,
                                    Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
@@ -1292,7 +1292,7 @@ public:
             toQuat(q) = X_JbJ.R().convertToQuaternion().asVec4();
         }
     }
-    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
                               Vector& u) const
     {
             toU(u) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
@@ -1300,7 +1300,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1320,7 +1320,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform&              X_JbJ) const
     {
@@ -1335,7 +1335,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1355,9 +1355,9 @@ public:
     }
 
     void calcQDot(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u, 
         Vector&                     qdot) const 
     {
@@ -1372,9 +1372,9 @@ public:
     }
  
     void calcQDotDot(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u, 
         const Vector&               udot, 
         Vector&                     qdotdot) const 
@@ -1393,7 +1393,7 @@ public:
     }
 
     void setQ(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           qIn, 
         Vector&                 q) const 
     {
@@ -1404,12 +1404,12 @@ public:
     }
 
     int getMaxNQ()              const {return 4;}
-    int getNQ(const SBModelingVars& mv) const {
+    int getNQ(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
 
-    void setDefaultConfigurationValues(
-        const SBModelingVars&   mv,
+    void setDefaultPositionValues(
+        const SBModelVars&   mv,
         Vector&                 q) const 
     {
         if (getUseEulerAngles(mv)) {
@@ -1421,7 +1421,7 @@ public:
     }
 
     bool enforceQuaternionConstraints(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         Vector&                 q) const 
     {
         if (getUseEulerAngles(mv)) 
@@ -1431,7 +1431,7 @@ public:
         return true;
     }
 
-    void getInternalForce(const SBReactionCache&, Vector&) const {
+    void getInternalForce(const SBAccelerationCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
@@ -1472,7 +1472,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerConfiguration(const SBModelingVars& mv, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_JbJ,
                                    Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
@@ -1483,7 +1483,7 @@ public:
             toQVec3(q,4) = X_JbJ.T();
         }
     }
-    void setMobilizerVelocity(const SBModelingVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
                               Vector& u) const
     {
         toUVec3(u,0) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
@@ -1492,7 +1492,7 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelingVars&   mv, 
+        const SBModelVars&   mv, 
         const Vector&           q, 
         Vector&                 sine, 
         Vector&                 cosine, 
@@ -1512,7 +1512,7 @@ public:
 
     // Calculate X_JbJ.
     void calcAcrossJointTransform(
-        const SBModelingVars&   mv,
+        const SBModelVars&   mv,
         const Vector&           q,
         Transform& X_JbJ) const 
     {
@@ -1527,7 +1527,7 @@ public:
 
     // Calculate H.
     void calcJointTransitionMatrix(
-        const SBConfigurationCache& cc, 
+        const SBPositionCache& cc, 
         HType&                      H) const
     {
         const Transform& X_BJ  = getX_BJ();  // fixed
@@ -1554,9 +1554,9 @@ public:
     }
 
     void calcQDot(
-        const SBModelingVars& mv,
+        const SBModelVars& mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u,
         Vector&                     qdot) const
     {
@@ -1577,9 +1577,9 @@ public:
     }
  
     void calcQDotDot(
-        const SBModelingVars&       mv,
+        const SBModelVars&       mv,
         const Vector&               q,
-        const SBConfigurationCache& cc,
+        const SBPositionCache& cc,
         const Vector&               u, 
         const Vector&               udot, 
         Vector&                     qdotdot) const 
@@ -1605,7 +1605,7 @@ public:
         }
     }
 
-    void setQ(Vector& q, const SBModelingVars& mv, const Vector& qIn) const {
+    void setQ(Vector& q, const SBModelVars& mv, const Vector& qIn) const {
         if (getUseEulerAngles(mv))
             toQ(q) = fromQ(qIn);
         else {
@@ -1615,9 +1615,9 @@ public:
     }
 
     int getMaxNQ()              const {return 7;}
-    int getNQ(const SBModelingVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    int getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
 
-    void setDefaultConfigurationValues(const SBModelingVars& mv, Vector& q) const 
+    void setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
             toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
@@ -1628,7 +1628,7 @@ public:
         }
     }
 
-    bool enforceQuaternionConstraints(const SBModelingVars& mv, Vector& q) const {
+    bool enforceQuaternionConstraints(const SBModelVars& mv, Vector& q) const {
         if (getUseEulerAngles(mv)) 
             return false; // no change
         Vec4& quat = toQuat(q);
@@ -1636,7 +1636,7 @@ public:
         return true;
     }
 
-    void getInternalForce(const SBReactionCache&, Vector&) const {
+    void getInternalForce(const SBAccelerationCache&, Vector&) const {
         assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
         /* OLD BALL CODE:
         Vector& f = s.cache->netHingeForces;
@@ -1718,8 +1718,8 @@ RigidBodyNode::create(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::setVelFromSVel(
-    const SBConfigurationCache& cc, 
-    const SBMotionCache&        mc,
+    const SBPositionCache& cc, 
+    const SBVelocityCache&        mc,
     const SpatialVec&           sVel, 
     Vector&                     u) const 
 {
@@ -1743,7 +1743,7 @@ RigidBodyNodeSpec<dof>::setVelFromSVel(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     SBDynamicsCache&            dc) const 
 {
     updP(dc) = getMk(cc);
@@ -1781,7 +1781,7 @@ RigidBodyNodeSpec<dof>::calcArticulatedBodyInertiasInward(
 // 10(4):371-381 (1991).
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcYOutward(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     SBDynamicsCache&            dc) const 
 {
     // TODO: this is very expensive (~1000 flops?) Could cut be at least half
@@ -1797,10 +1797,10 @@ RigidBodyNodeSpec<dof>::calcYOutward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     const SBDynamicsCache&      dc,
     const SpatialVec&           spatialForce,
-    SBReactionCache&            rc) const 
+    SBAccelerationCache&            rc) const 
 {
     SpatialVec& z = updZ(rc);
     z = getCentrifugalForces(dc) - spatialForce;
@@ -1825,12 +1825,12 @@ RigidBodyNodeSpec<dof>::calcZ(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcAccel(
-    const SBModelingVars&       mv,
+    const SBModelVars&       mv,
     const Vector&               allQ,
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     const Vector&               allU,
     const SBDynamicsCache&      dc,
-    SBReactionCache&            rc,
+    SBAccelerationCache&            rc,
     Vector&                     allUdot,
     Vector&                     allQdotdot) const 
 {
@@ -1850,7 +1850,7 @@ RigidBodyNodeSpec<dof>::calcAccel(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     const SBDynamicsCache&      dc,
     const Vector&               jointForces,
     const Vector_<SpatialVec>&  bodyForces,
@@ -1886,7 +1886,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
-    const SBConfigurationCache&     cc,
+    const SBPositionCache&     cc,
     const SBDynamicsCache&          dc,
     const Vector&                   allEpsilon,
     Vector_<SpatialVec>&            allA_GB,
@@ -1918,7 +1918,7 @@ RigidBodyNodeSpec<dof>::calcUDotPass2Outward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     const SBDynamicsCache&      dc,
     const Vector&               f,
     Vector_<SpatialVec>&        allZ,
@@ -1952,7 +1952,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass1Inward(
 //
 template<int dof> void 
 RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
-    const SBConfigurationCache&     cc,
+    const SBPositionCache&     cc,
     const SBDynamicsCache&          dc,
     const Vector&                   allEpsilon,
     Vector_<SpatialVec>&            allA_GB,
@@ -1974,7 +1974,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
 //
 // Calculate product of partial velocities J and a gradient vector on each of the
 // outboard bodies. Requires that Phi and H are available, so this
-// should only be called in Stage::Configured or higher. This does not change the cache at all.
+// should only be called in Stage::Position or higher. This does not change the cache at all.
 // NOTE (sherm 060214): I reworked this from the original. This one no longer incorporates
 // applied hinge gradients if there are any; just add those in at the end if you want them.
 //
@@ -1985,7 +1985,7 @@ RigidBodyNodeSpec<dof>::calcMInverseFPass2Outward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
-    const SBConfigurationCache& cc,
+    const SBPositionCache& cc,
     Vector_<SpatialVec>&        zTmp,
     const Vector_<SpatialVec>&  X, 
     Vector&                     JX) const
@@ -2013,7 +2013,7 @@ RigidBodyNodeSpec<dof>::calcInternalGradientFromSpatial(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
-    const SBConfigurationCache&     cc,
+    const SBPositionCache&     cc,
     const SBDynamicsCache&          dc,
     const Vector_<SpatialVec>&      bodyForces,
     Vector_<SpatialVec>&            allZ,

@@ -71,7 +71,7 @@ public:
 
     /// Apply a force to a point on a body (a station). Provide the
     /// station in the body frame, force in the ground frame. Must
-    /// be realized to Configured stage prior to call.
+    /// be realized to Position stage prior to call.
     void addInStationForce(const State&, int body, const Vec3& stationInB, 
                            const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const;
 
@@ -92,20 +92,20 @@ public:
     /// in the ground frame. That is, we return the location of the body frame's
     /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
     /// This response is available at Configuration stage.
-    const Transform& getBodyConfiguration(const State&, int body) const;
+    const Transform& getBodyPosition(const State&, int body) const;
 
     /// Extract from the state cache the already-calculated spatial orientation
     /// of body B's body frame x, y, and z axes expressed in the ground frame,
     /// as the rotation matrix R_GB. This response is available at Configuration stage.
     const RotationMat& getBodyRotation(const State& s, int body) const {
-        return getBodyConfiguration(s,body).R();
+        return getBodyPosition(s,body).R();
     }
     /// Extract from the state cache the already-calculated spatial location
     /// of body B's body frame origin, measured from the ground origin and
     /// expressed in the ground frame, as the translation vector T_GB.
     /// This response is available at Configuration stage.
     const Vec3& getBodyLocation(const State& s, int body) const {
-        return getBodyConfiguration(s,body).T();
+        return getBodyPosition(s,body).T();
     }
 
     /// Extract from the state cache the already-calculated spatial velocity of
@@ -132,13 +132,13 @@ public:
     /// we return locationInG = X_GB * stationB. Cost is 18 flops. This operator is
     /// available at Configuration stage.
     Vec3 calcStationLocation(const State& s, int bodyB, const Vec3& stationB) const {
-        return getBodyConfiguration(s,bodyB)*stationB;
+        return getBodyPosition(s,bodyB)*stationB;
     }
     /// Given a station on body B, return the station of body A which is at the same location
     /// in space. That is, we return stationInA = X_AG * (X_GB*stationB). Cost is 36 flops.
     /// This operator is available at Configuration stage.
     Vec3 calcStationLocationInBody(const State& s, int bodyB, const Vec3& stationB, int bodyA) {
-        return ~getBodyConfiguration(s,bodyA) 
+        return ~getBodyPosition(s,bodyA) 
                 * calcStationLocation(s,bodyB,stationB);
     }
     /// Re-express a vector expressed in the B frame into the same vector in G. That is,
@@ -188,10 +188,10 @@ public:
     void setMobilizerQ(State&, int body, int axis, const Real&) const;
     void setMobilizerU(State&, int body, int axis, const Real&) const;
 
-    /// At stage Configured or higher, return the cross-mobilizer transform.
+    /// At stage Position or higher, return the cross-mobilizer transform.
     /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
     /// the parent body's corresponding outboard frame Nb.
-    const Transform& getMobilizerConfiguration(const State&, int body) const;
+    const Transform& getMobilizerPosition(const State&, int body) const;
 
     /// At stage Moving or higher, return the cross-mobilizer velocity.
     /// This is V_MbM, the relative velocity of the body's inboard mobilizer
@@ -205,9 +205,9 @@ public:
     /// mobilizer. However, no error will occur; on return the coordinates
     /// for this mobilizer will be as close as we can get them. Note: this
     /// has no effect on any coordinates except the q's for this mobilizer.
-    /// You can call this solver at Stage::Modeled or higher; it will
-    /// leave you no higher than Stage::Timed since it changes the configuration.
-    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
+    /// You can call this solver at Stage::Model or higher; it will
+    /// leave you no higher than Stage::Time since it changes the configuration.
+    void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const;
 
     /// This is a solver which sets the body's cross-mobilizer velocity as close
     /// as possible to the supplied angular and linear velocity. The degree to which this is
@@ -215,22 +215,22 @@ public:
     /// mobilizer. However, no error will occur; on return the velocity coordinates
     /// (u's) for this mobilizer will be as close as we can get them. Note: this
     /// has no effect on any coordinates except the u's for this mobilizer.
-    /// You can call this solver at Stage::Modeled or higher; it will
-    /// leave you no higher than Stage::Configured since it changes the velocities.
+    /// You can call this solver at Stage::Model or higher; it will
+    /// leave you no higher than Stage::Position since it changes the velocities.
     void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
 
 
-    /// This is available at Stage::Configured. These are *absolute* constraint
+    /// This is available at Stage::Position. These are *absolute* constraint
     /// violations qerr=g(t,q), that is, they are unweighted.
     const Vector& getQConstraintErrors(const State&) const;
 
     /// This is the weighted norm of the errors returned by getQConstraintErrors(),
-    /// available whenever this subsystem has been realized to Stage::Configured.
+    /// available whenever this subsystem has been realized to Stage::Position.
     /// This is the scalar quantity that we need to keep below "tol"
     /// during integration.
     Real calcQConstraintNorm(const State&) const;
 
-    /// This is available at Stage::Moving. These are *absolute* constraint
+    /// This is available at Stage::Velocity. These are *absolute* constraint
     /// violations verr=v(t,q,u), that is, they are unweighted.
     const Vector& getUConstraintErrors(const State&) const;
 
@@ -239,7 +239,7 @@ public:
     /// during integration.
     Real calcUConstraintNorm(const State&) const;
 
-    /// This is available at Stage::Reacting. These are *absolute* constraint
+    /// This is available at Stage::Acceleration. These are *absolute* constraint
     /// violations aerr = A udot - b, that is, they are unweighted.
     const Vector& getUDotConstraintErrors(const State&) const;
 
@@ -247,14 +247,14 @@ public:
     Real calcUDotConstraintNorm(const State&) const;
 
     /// This is a solver you can call after the State has been realized
-    /// to stage Timed (i.e., Configured-1). It will project the Q constraints
+    /// to stage Time (i.e., Position-1). It will project the Q constraints
     /// along the error norm so that getQConstraintNorm() <= tol, and will
     /// project out the corresponding component of y_err so that y_err's Q norm
     /// is reduced. Returns true if it does anything at all to State or y_err.
     bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
 
     /// This is a solver you can call after the State has been realized
-    /// to stage Configured (i.e., Moving-1). It will project the U constraints
+    /// to stage Position (i.e., Velocity-1). It will project the U constraints
     /// along the error norm so that getUConstraintNorm() <= tol, and will
     /// project out the corresponding component of y_err so that y_err's U norm
     /// is reduced.

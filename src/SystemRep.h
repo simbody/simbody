@@ -84,43 +84,43 @@ public:
     virtual SystemRep* cloneSystemRep() const = 0;
 
 
-    virtual void realizeConstruction(State& s) const { 
+    virtual void realizeTopology(State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Built);
+            subsystems[i].realize(s, Stage::Topology);
     }
-    virtual void realizeModeling(State& s) const {
+    virtual void realizeModel(State& s) const {
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Modeled);
+            subsystems[i].realize(s, Stage::Model);
     }
-    virtual void realizeParameters(const State& s) const { 
+    virtual void realizeInstance(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Parametrized);
+            subsystems[i].realize(s, Stage::Instance);
     }
     virtual void realizeTime(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Timed);
+            subsystems[i].realize(s, Stage::Time);
     }
-    virtual void realizeConfiguration(const State& s) const { 
+    virtual void realizePosition(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Configured);
+            subsystems[i].realize(s, Stage::Position);
     }
-    virtual void realizeMotion(const State& s) const { 
+    virtual void realizeVelocity(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Moving);
+            subsystems[i].realize(s, Stage::Velocity);
     }
     virtual void realizeDynamics(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
             subsystems[i].realize(s, Stage::Dynamics);
     }
-    virtual void realizeReaction(const State& s) const { 
+    virtual void realizeAcceleration(const State& s) const { 
         for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].realize(s, Stage::Reacting);
+            subsystems[i].realize(s, Stage::Acceleration);
     }
 
     void realize(const State& s, Stage g) const;
 
     virtual Real calcTimescale(const State& s) const {
-        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Parametrized,
+        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
             "System::calcTimescale()");
         return 0.1; // TODO!!!
     }
@@ -129,7 +129,7 @@ public:
     // subsystems. TODO
     virtual Real calcYErrorNorm(const State& s, const Vector& y_err) const {
         assert(y_err.size() == s.getY().size());
-        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Configured,
+        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
             "System::calcYErrorNorm()");
         return y_err.size()==0 ? 0 : std::sqrt( y_err.normSqr()/y_err.size() );
     }
@@ -153,7 +153,7 @@ public:
     StudyRep(const System& sys)
       : myHandle(0), system(new System(sys))
     {
-        system->realize(state, Stage::Built);
+        system->realize(state, Stage::Topology);
     }
 
     virtual ~StudyRep() {

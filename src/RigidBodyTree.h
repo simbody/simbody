@@ -38,20 +38,20 @@ class RBDistanceConstraint;
 class RBStation;
 
 namespace SimTK {
-class SBModelingVars;
-class SBParameterVars;
+class SBModelVars;
+class SBInstanceVars;
 class SBTimeVars;
-class SBConfigurationVars;
-class SBMotionVars;
+class SBPositionVars;
+class SBVelocityVars;
 class SBDynamicsVars;
-class SBReactionVars;
-class SBModelingCache;
-class SBParameterCache;
+class SBAccelerationVars;
+class SBModelCache;
+class SBInstanceCache;
 class SBTimeCache;
-class SBConfigurationCache;
-class SBMotionCache;
+class SBPositionCache;
+class SBVelocityCache;
 class SBDynamicsCache;
-class SBReactionCache;
+class SBAccelerationCache;
 }
 
 #include <cassert>
@@ -80,7 +80,7 @@ public:
     RigidBodyTree() 
       : MatterSubsystemRep("RigidBodyTree", "0.5.3"), 
         nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
-        built(false), constructionCacheIndex(-1), lConstraints(0) 
+        built(false), topologyCacheIndex(-1), lConstraints(0) 
     { 
         addGroundNode(); 
     }
@@ -151,7 +151,7 @@ public:
     const Real&       getBodyMass               (const State&, int body) const;
     const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
 
-    const Transform&  getBodyConfiguration (const State&, int body) const;
+    const Transform&  getBodyPosition (const State&, int body) const;
     const SpatialVec& getBodyVelocity      (const State&, int body) const;
 
     // velocity dependent
@@ -174,13 +174,13 @@ public:
     void setMobilizerQ(State& s, int body, int axis, const Real& r) const;
     void setMobilizerU(State& s, int body, int axis, const Real& r) const;
 
-    const Transform& getMobilizerConfiguration(const State&, int body) const;
+    const Transform& getMobilizerPosition(const State&, int body) const;
     const SpatialVec& getMobilizerVelocity(const State&, int body) const;
-    void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const;
+    void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const;
     void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
 
     const Vector& getQConstraintErrors(const State& s) const {
-        const SBConfigurationCache& cc = getConfigurationCache(s);
+        const SBPositionCache& cc = getPositionCache(s);
         return cc.positionConstraintErrors;
     }
     // TODO: this is unweighted RMS norm
@@ -190,7 +190,7 @@ public:
     }
 
     const Vector& getUConstraintErrors(const State& s) const {
-        const SBMotionCache& mc = getMotionCache(s);
+        const SBVelocityCache& mc = getMotionCache(s);
         return mc.velocityConstraintErrors;
     }
     // TODO: this is unweighted, untimescaled RMS norm
@@ -200,7 +200,7 @@ public:
     }
 
     const Vector& getUDotConstraintErrors(const State& s) const {
-        const SBReactionCache& rc = getReactionCache(s);
+        const SBAccelerationCache& rc = getAccelerationCache(s);
         return rc.accelerationConstraintErrors;
     }
     // TODO: this is unweighted, untimescaled RMS norm
@@ -211,24 +211,24 @@ public:
 
     bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
         // TODO
-        enforceConfigurationConstraints(s, tol, targetTol);
+        enforcePositionConstraints(s, tol, targetTol);
         return true;
     }
     bool projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
         // TODO
-        enforceMotionConstraints(s, tol, targetTol);
+        enforceVelocityConstraints(s, tol, targetTol);
         return true;
     }
 
 
-    void realizeConstruction (State&) const;
-    void realizeModeling     (State&) const;
-    void realizeParameters   (const State&) const;
+    void realizeTopology (State&) const;
+    void realizeModel     (State&) const;
+    void realizeInstance   (const State&) const;
     void realizeTime         (const State&) const;
-    void realizeConfiguration(const State&) const;
-    void realizeMotion       (const State&) const;
+    void realizePosition(const State&) const;
+    void realizeVelocity       (const State&) const;
     void realizeDynamics     (const State&) const;
-    void realizeReaction     (const State&) const;
+    void realizeAcceleration     (const State&) const;
 
     Real calcKineticEnergy(const State&) const;
 
@@ -244,7 +244,7 @@ public:
     /// when doing minimizations. But note that the routine works in terms of u,
     /// not q, so it produces a meaningful result in all cases, just not one that
     /// can be mapped directly back to quaternion coordinates. This is an O(n)
-    /// operator which can be called after realizeConfiguration().
+    /// operator which can be called after realizePosition().
     /// It has no effect on the cache.
     void calcInternalGradientFromSpatial(const State&, 
         const SpatialVecList& X, 
@@ -271,7 +271,7 @@ public:
         Vector_<SpatialVec>&       A_GB,
         Vector&                    udot) const; 
 
-    // Must be in Stage::Configured to calculate qdot = Q*u.
+    // Must be in Stage::Position to calculate qdot = Q*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
@@ -281,19 +281,19 @@ public:
         const Vector& udot,
         Vector&       qdotdot) const;
 
-    void setDefaultModelingValues     (const SBConstructionCache&, SBModelingVars&) const;
-    void setDefaultParameterValues    (const SBModelingVars&, SBParameterVars&)     const;
-    void setDefaultTimeValues         (const SBModelingVars&, SBTimeVars&)          const;
-    void setDefaultConfigurationValues(const SBModelingVars&, Vector& q)            const;
-    void setDefaultMotionValues       (const SBModelingVars&, Vector& u)            const;
-    void setDefaultDynamicsValues     (const SBModelingVars&, SBDynamicsVars&)      const;
-    void setDefaultReactionValues     (const SBModelingVars&, SBReactionVars&)      const;
+    void setDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const;
+    void setDefaultInstanceValues    (const SBModelVars&,     SBInstanceVars&)     const;
+    void setDefaultTimeValues        (const SBModelVars&,     SBTimeVars&)         const;
+    void setDefaultPositionValues    (const SBModelVars&,     Vector& q)           const;
+    void setDefaultVelocityValues    (const SBModelVars&,     Vector& u)           const;
+    void setDefaultDynamicsValues    (const SBModelVars&,     SBDynamicsVars&)     const;
+    void setDefaultAccelerationValues(const SBModelVars&,     SBAccelerationVars&) const;
 
 
-    // A single constraint may generate multiple of these.
+    // A single Constraint may generate multiple of these constraint equations.
     int getNDistanceConstraints() const {return distanceConstraints.size();}
 
-        // CALLABLE AFTER realizeConstruction()
+        // CALLABLE AFTER realizeTopology()
 
     int getTotalDOF()    const {assert(built); return DOFTotal;}
     int getTotalSqDOF()  const {assert(built); return SqDOFTotal;}
@@ -319,7 +319,7 @@ public:
     bool isMobilizerPrescribed(const State& s, int body) const;
     bool isConstraintEnabled(const State& s, int constraint) const;
 
-        // CALLABLE AFTER realizeModeling()
+        // CALLABLE AFTER realizeModel()
 
 
     const Vector& getAppliedMobilityForces(const State&) const;
@@ -339,11 +339,11 @@ public:
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
 
-    void enforceConfigurationConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
-    void enforceMotionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
+    void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
     /// Unconstrained (tree) dynamics 
-    void calcArticulatedBodyInertias(const State&) const;                        // articulated body inertias
+    void calcArticulatedBodyInertias(const State&) const;                // articulated body inertias
     void calcZ(const State&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
     void calcTreeAccel(const State&) const;                // accels with forces from last calcZ
 
@@ -351,7 +351,6 @@ public:
 
     /// Part of constrained dynamics (TODO -- more to move here)
     void calcY(const State&) const;
-
 
     /// Pass in internal forces in T; they will be adjusted by this routine.
     void calcConstraintCorrectedInternalForces(const State&, Vector& T); 
@@ -381,152 +380,152 @@ public:
     // The ConstructionCache in the State should be a copy of the one
     // we keep locally here. We always use our local copy rather than
     // this one except for checking that the State looks reasonable.
-    const SBConstructionCache& getConstructionCache(const State& s) const {
-        assert(built && constructionCacheIndex >= 0);
-        return Value<SBConstructionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),constructionCacheIndex)).get();
+    const SBTopologyCache& getTopologyCache(const State& s) const {
+        assert(built && topologyCacheIndex >= 0);
+        return Value<SBTopologyCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCacheIndex)).get();
     }
-    SBConstructionCache& updConstructionCache(const State& s) const { //mutable
-        assert(built && constructionCacheIndex >= 0);
-        return Value<SBConstructionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),constructionCacheIndex)).upd();
-    }
-
-    const SBModelingCache& getModelingCache(const State& s) const {
-        return Value<SBModelingCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),constructionCache.modelingCacheIndex)).get();
-    }
-    SBModelingCache& updModelingCache(const State& s) const { //mutable
-        return Value<SBModelingCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),constructionCache.modelingCacheIndex)).upd();
+    SBTopologyCache& updTopologyCache(const State& s) const { //mutable
+        assert(built && topologyCacheIndex >= 0);
+        return Value<SBTopologyCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCacheIndex)).upd();
     }
 
-    const SBParameterCache& getParameterCache(const State& s) const {
-        return Value<SBParameterCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).parameterCacheIndex)).get();
+    const SBModelCache& getModelCache(const State& s) const {
+        return Value<SBModelCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),topologyCache.modelingCacheIndex)).get();
     }
-    SBParameterCache& updParameterCache(const State& s) const { //mutable
-        return Value<SBParameterCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).parameterCacheIndex)).upd();
+    SBModelCache& updModelCache(const State& s) const { //mutable
+        return Value<SBModelCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),topologyCache.modelingCacheIndex)).upd();
+    }
+
+    const SBInstanceCache& getInstanceCache(const State& s) const {
+        return Value<SBInstanceCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).instanceCacheIndex)).get();
+    }
+    SBInstanceCache& updInstanceCache(const State& s) const { //mutable
+        return Value<SBInstanceCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).instanceCacheIndex)).upd();
     }
 
     const SBTimeCache& getTimeCache(const State& s) const {
         return Value<SBTimeCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).timeCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).get();
     }
     SBTimeCache& updTimeCache(const State& s) const { //mutable
         return Value<SBTimeCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).timeCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).timeCacheIndex)).upd();
     }
 
-    const SBConfigurationCache& getConfigurationCache(const State& s) const {
-        return Value<SBConfigurationCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).qCacheIndex)).get();
+    const SBPositionCache& getPositionCache(const State& s) const {
+        return Value<SBPositionCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).get();
     }
-    SBConfigurationCache& updConfigurationCache(const State& s) const { //mutable
-        return Value<SBConfigurationCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).qCacheIndex)).upd();
+    SBPositionCache& updPositionCache(const State& s) const { //mutable
+        return Value<SBPositionCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).upd();
     }
 
-    const SBMotionCache& getMotionCache(const State& s) const {
-        return Value<SBMotionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).uCacheIndex)).get();
+    const SBVelocityCache& getMotionCache(const State& s) const {
+        return Value<SBVelocityCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).get();
     }
-    SBMotionCache& updMotionCache(const State& s) const { //mutable
-        return Value<SBMotionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).uCacheIndex)).upd();
+    SBVelocityCache& updMotionCache(const State& s) const { //mutable
+        return Value<SBVelocityCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).upd();
     }
 
     const SBDynamicsCache& getDynamicsCache(const State& s) const {
         return Value<SBDynamicsCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).dynamicsCacheIndex)).get();
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).get();
     }
     SBDynamicsCache& updDynamicsCache(const State& s) const { //mutable
         return Value<SBDynamicsCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).dynamicsCacheIndex)).upd();
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).dynamicsCacheIndex)).upd();
     }
 
-    const SBReactionCache& getReactionCache(const State& s) const {
-        return Value<SBReactionCache>::downcast
-            (s.getCacheEntry(getMySubsystemIndex(),getModelingCache(s).reactionCacheIndex)).get();
+    const SBAccelerationCache& getAccelerationCache(const State& s) const {
+        return Value<SBAccelerationCache>::downcast
+            (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)).get();
     }
-    SBReactionCache& updReactionCache(const State& s) const { //mutable
-        return Value<SBReactionCache>::downcast
-            (s.updCacheEntry(getMySubsystemIndex(),getModelingCache(s).reactionCacheIndex)).upd();
-    }
-
-
-    const SBModelingVars& getModelingVars(const State& s) const {
-        return Value<SBModelingVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),constructionCache.modelingVarsIndex)).get();
-    }
-    SBModelingVars& updModelingVars(State& s) const {
-        return Value<SBModelingVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),constructionCache.modelingVarsIndex)).upd();
+    SBAccelerationCache& updAccelerationCache(const State& s) const { //mutable
+        return Value<SBAccelerationCache>::downcast
+            (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).accelerationCacheIndex)).upd();
     }
 
-    const SBParameterVars& getParameterVars(const State& s) const {
-        return Value<SBParameterVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).parameterVarsIndex)).get();
+
+    const SBModelVars& getModelVars(const State& s) const {
+        return Value<SBModelVars>::downcast
+            (s.getDiscreteVariable(getMySubsystemIndex(),topologyCache.modelingVarsIndex)).get();
     }
-    SBParameterVars& updParameterVars(State& s) const {
-        return Value<SBParameterVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).parameterVarsIndex)).upd();
+    SBModelVars& updModelVars(State& s) const {
+        return Value<SBModelVars>::downcast
+            (s.updDiscreteVariable(getMySubsystemIndex(),topologyCache.modelingVarsIndex)).upd();
+    }
+
+    const SBInstanceVars& getInstanceVars(const State& s) const {
+        return Value<SBInstanceVars>::downcast
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).instanceVarsIndex)).get();
+    }
+    SBInstanceVars& updInstanceVars(State& s) const {
+        return Value<SBInstanceVars>::downcast
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).instanceVarsIndex)).upd();
     }
 
     const SBTimeVars& getTimeVars(const State& s) const {
         return Value<SBTimeVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).timeVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).timeVarsIndex)).get();
     }
     SBTimeVars& updTimeVars(State& s) const {
         return Value<SBTimeVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).timeVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).timeVarsIndex)).upd();
     }
 
-    const SBConfigurationVars& getConfigurationVars(const State& s) const {
-        return Value<SBConfigurationVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).qVarsIndex)).get();
+    const SBPositionVars& getPositionVars(const State& s) const {
+        return Value<SBPositionVars>::downcast
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).qVarsIndex)).get();
     }
-    SBConfigurationVars& updConfigurationVars(State& s) const {
-        return Value<SBConfigurationVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).qVarsIndex)).upd();
+    SBPositionVars& updPositionVars(State& s) const {
+        return Value<SBPositionVars>::downcast
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).qVarsIndex)).upd();
     }
 
-    const SBMotionVars& getMotionVars(const State& s) const {
-        return Value<SBMotionVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).uVarsIndex)).get();
+    const SBVelocityVars& getVelocityVars(const State& s) const {
+        return Value<SBVelocityVars>::downcast
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).uVarsIndex)).get();
     }
-    SBMotionVars& updMotionVars(State& s) const {
-        return Value<SBMotionVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).uVarsIndex)).upd();
+    SBVelocityVars& updVelocityVars(State& s) const {
+        return Value<SBVelocityVars>::downcast
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).uVarsIndex)).upd();
     }
 
     const SBDynamicsVars& getDynamicsVars(const State& s) const {
         return Value<SBDynamicsVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).dynamicsVarsIndex)).get();
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).dynamicsVarsIndex)).get();
     }
     SBDynamicsVars& updDynamicsVars(State& s) const {
         return Value<SBDynamicsVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).dynamicsVarsIndex)).upd();
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).dynamicsVarsIndex)).upd();
     }
 
-    const SBReactionVars& getReactionVars(const State& s) const {
-        return Value<SBReactionVars>::downcast
-            (s.getDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).reactionVarsIndex)).get();
+    const SBAccelerationVars& getAccelerationVars(const State& s) const {
+        return Value<SBAccelerationVars>::downcast
+            (s.getDiscreteVariable(getMySubsystemIndex(),getModelCache(s).accelerationVarsIndex)).get();
     }
-    SBReactionVars& updReactionVars(State& s) const {
-        return Value<SBReactionVars>::downcast
-            (s.updDiscreteVariable(getMySubsystemIndex(),getModelingCache(s).reactionVarsIndex)).upd();
+    SBAccelerationVars& updAccelerationVars(State& s) const {
+        return Value<SBAccelerationVars>::downcast
+            (s.updDiscreteVariable(getMySubsystemIndex(),getModelCache(s).accelerationVarsIndex)).upd();
     }
 
     
     // Access to our portion of State arrays.
     void setQ(State& s, const Vector& q) const {
-        assert(q.size() == constructionCache.maxNQs);
+        assert(q.size() == topologyCache.maxNQs);
         updQ(s) = q;
     }
     void setU(State& s, const Vector& u) const {
-        assert(u.size() == constructionCache.nDOFs);
+        assert(u.size() == topologyCache.nDOFs);
         updU(s) = u;
     }
 
@@ -572,9 +571,9 @@ private:
     int maxNQTotal; // sum of dofs with room for quaternions
     bool built;
 
-    // set by realizeConstruction
-    SBConstructionCache constructionCache;
-    int constructionCacheIndex; // constructionCache is copied here in the State
+    // set by realizeTopology
+    SBTopologyCache topologyCache;
+    int topologyCacheIndex; // topologyCache is copied here in the State
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array<RBNodePtrList>      rbNodeLevels;

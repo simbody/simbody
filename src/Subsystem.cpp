@@ -100,20 +100,20 @@ const Vector& Subsystem::getZ(const State& s) const {return getRep().getZ(s);}
 void SubsystemRep::realize(const State& s, Stage g) const {
     while (getStage(s) < g) {
         switch (getStage(s)) {
-        case Stage::Allocated: {
+        case Stage::Empty: {
             State& mutableState = const_cast<State&>(s);
             mutableState.initializeSubsystem(
                 getMySubsystemIndex(), getName(), getVersion());
-            realizeConstruction(mutableState); 
+            realizeTopology(mutableState); 
             break;
         }
-        case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
-        case Stage::Modeled:      realizeParameters(s);    break;
-        case Stage::Parametrized: realizeTime(s);          break;
-        case Stage::Timed:        realizeConfiguration(s); break;
-        case Stage::Configured:   realizeMotion(s);        break;
-        case Stage::Moving:       realizeDynamics(s);      break;
-        case Stage::Dynamics:     realizeReaction(s);      break;
+        case Stage::Topology: realizeModel    (const_cast<State&>(s)); break;
+        case Stage::Model:    realizeInstance(s);    break;
+        case Stage::Instance: realizeTime(s);          break;
+        case Stage::Time:     realizePosition(s); break;
+        case Stage::Position: realizeVelocity(s);        break;
+        case Stage::Velocity: realizeDynamics(s);      break;
+        case Stage::Dynamics: realizeAcceleration(s);      break;
         default: assert(!"Subsystem::realize(): bad stage");
         }
         advanceToStage(s, getStage(s).next());

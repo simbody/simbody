@@ -77,8 +77,8 @@ public:
         static Vector_<Vec3> v;
         return v;
     }
-    virtual const Transform&  getBodyConfiguration(const State&, int bodyNum) const = 0;
-    virtual const SpatialVec& getBodyVelocity     (const State&, int bodyNum) const = 0;
+    virtual const Transform&  getBodyPosition(const State&, int bodyNum) const = 0;
+    virtual const SpatialVec& getBodyVelocity(const State&, int bodyNum) const = 0;
 
     // These are simple operators for helping force subsystems put their forces in the 
     // right slots.
@@ -95,9 +95,9 @@ public:
     virtual void setMobilizerQ(State&, int body, int axis, const Real&) const = 0;
     virtual void setMobilizerU(State&, int body, int axis, const Real&) const = 0;
 
-    virtual const Transform& getMobilizerConfiguration(const State&, int body) const = 0;
+    virtual const Transform& getMobilizerPosition(const State&, int body) const = 0;
     virtual const SpatialVec& getMobilizerVelocity(const State&, int body) const = 0;
-    virtual void setMobilizerConfiguration(State&, int body, const Transform& X_JbJ) const = 0;
+    virtual void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const = 0;
     virtual void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const = 0;
 
     virtual const Vector& getQConstraintErrors(const State&) const {

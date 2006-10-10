@@ -57,7 +57,7 @@ class DecorativeGeometry;
  */
 struct DynamicsCache {
     DynamicsCache()
-      : potentialEnergy(CNT<Real>::getNaN()), kineticEnergy(CNT<Real>::getNaN())
+        : potentialEnergy(NTraits<Real>::NaN), kineticEnergy(NTraits<Real>::NaN)
     { }
     Vector_<SpatialVec> rigidBodyForces;
     Vector_<Vec3>       particleForces;
@@ -138,7 +138,7 @@ public:
     }
 
 
-    void realizeConstruction(State& s) const {
+    void realizeTopology(State& s) const {
         const MultibodySystem& mbs = getMultibodySystem();
         dynamicsCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(), 
             Stage::Dynamics, new Value<DynamicsCache>());
@@ -278,27 +278,27 @@ public:
     {
         bool anyChange = false;
 
-        realize(s, Stage::Timed);
+        realize(s, Stage::Time);
 
         const MatterSubsystem& mech = getMatterSubsystem();
 
-        mech.realize(s, Stage::Configured);
+        mech.realize(s, Stage::Position);
         const Real qerr = mech.calcQConstraintNorm(s);
         if (dontProjectFac==0 || qerr > tol*dontProjectFac) {
             if (mech.projectQConstraints(s, y_err, tol, targetTol))
                 anyChange = true;
         }
 
-        realize(s, Stage::Configured);  // realize the whole system now
+        realize(s, Stage::Position);  // realize the whole system now
 
-        mech.realize(s, Stage::Moving);
+        mech.realize(s, Stage::Velocity);
         const Real uerr = mech.calcUConstraintNorm(s);
         if (dontProjectFac==0 || uerr > tol*dontProjectFac) {
             if (mech.projectUConstraints(s, y_err, tol, targetTol))
                 anyChange = true;
         }
 
-        realize(s, Stage::Moving);  // realize the whole system now
+        realize(s, Stage::Velocity);  // realize the whole system now
 
         return anyChange;
     }
@@ -306,48 +306,48 @@ public:
     // pure virtual
     MultibodySystemRep* cloneSystemRep() const {return new MultibodySystemRep(*this);}
 
-    void realizeConstruction(State& s) const {
+    void realizeTopology(State& s) const {
         MultibodySystemRep& mutableThis = *const_cast<MultibodySystemRep*>(this);
 
         assert(globalSub != -1);
         assert(matterSub != -1);
 
-        getGlobalSubsystem().realize(s, Stage::Built);
-        getMatterSubsystem().realize(s, Stage::Built);
+        getGlobalSubsystem().realize(s, Stage::Topology);
+        getMatterSubsystem().realize(s, Stage::Topology);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Built);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Topology);
 
         mutableThis.built = true;
     }
-    void realizeModeling(State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Modeled);
-        getMatterSubsystem().realize(s, Stage::Modeled);
+    void realizeModel(State& s) const {
+        getGlobalSubsystem().realize(s, Stage::Model);
+        getMatterSubsystem().realize(s, Stage::Model);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Modeled);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Model);
     }
-    void realizeParameters(const State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Parametrized);
-        getMatterSubsystem().realize(s, Stage::Parametrized);
+    void realizeInstance(const State& s) const {
+        getGlobalSubsystem().realize(s, Stage::Instance);
+        getMatterSubsystem().realize(s, Stage::Instance);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Parametrized);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Instance);
     }
     void realizeTime(const State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Timed);
-        getMatterSubsystem().realize(s, Stage::Timed);
+        getGlobalSubsystem().realize(s, Stage::Time);
+        getMatterSubsystem().realize(s, Stage::Time);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Timed);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Time);
     }
-    void realizeConfiguration(const State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Configured);
-        getMatterSubsystem().realize(s, Stage::Configured);
+    void realizePosition(const State& s) const {
+        getGlobalSubsystem().realize(s, Stage::Position);
+        getMatterSubsystem().realize(s, Stage::Position);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Configured);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Position);
     }
-    void realizeMotion(const State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Moving);
-        getMatterSubsystem().realize(s, Stage::Moving);
+    void realizeVelocity(const State& s) const {
+        getGlobalSubsystem().realize(s, Stage::Velocity);
+        getMatterSubsystem().realize(s, Stage::Velocity);
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Moving);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Velocity);
     }
     void realizeDynamics(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Dynamics);
@@ -356,12 +356,12 @@ public:
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Dynamics);
         getMatterSubsystem().realize(s, Stage::Dynamics);
     }
-    void realizeReaction(const State& s) const {
-        getGlobalSubsystem().realize(s, Stage::Reacting);
+    void realizeAcceleration(const State& s) const {
+        getGlobalSubsystem().realize(s, Stage::Acceleration);
         // note order: forces first (TODO: does that matter?)
         for (int i=0; i < (int)forceSubs.size(); ++i)
-            getForceSubsystem(forceSubs[i]).realize(s, Stage::Reacting);
-        getMatterSubsystem().realize(s, Stage::Reacting);
+            getForceSubsystem(forceSubs[i]).realize(s, Stage::Acceleration);
+        getMatterSubsystem().realize(s, Stage::Acceleration);
     }
 
     SimTK_DOWNCAST(MultibodySystemRep, SystemRep);

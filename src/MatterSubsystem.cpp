@@ -113,8 +113,8 @@ MatterSubsystem::getParticleLocations(const State& s) const {
 }
 
 const Transform& 
-MatterSubsystem::getBodyConfiguration(const State& s, int bodyNum) const { 
-    return getRep().getBodyConfiguration(s,bodyNum); 
+MatterSubsystem::getBodyPosition(const State& s, int bodyNum) const { 
+    return getRep().getBodyPosition(s,bodyNum); 
 }
 const SpatialVec& 
 MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const { 
@@ -151,14 +151,14 @@ void MatterSubsystem::setMobilizerU(State& s, int body, int axis, const Real& u)
 }
 
 
-const Transform& MatterSubsystem::getMobilizerConfiguration(const State& s, int body) const { 
-    return getRep().getMobilizerConfiguration(s,body); 
+const Transform& MatterSubsystem::getMobilizerPosition(const State& s, int body) const { 
+    return getRep().getMobilizerPosition(s,body); 
 }
 const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, int body) const { 
     return getRep().getMobilizerVelocity(s,body); 
 }
-void MatterSubsystem::setMobilizerConfiguration(State& s, int body, const Transform& X_JbJ) const { 
-    getRep().setMobilizerConfiguration(s,body,X_JbJ); 
+void MatterSubsystem::setMobilizerPosition(State& s, int body, const Transform& X_JbJ) const { 
+    getRep().setMobilizerPosition(s,body,X_JbJ); 
 }
 void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
     getRep().setMobilizerVelocity(s,body,V_JbJ); 

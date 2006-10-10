@@ -337,7 +337,7 @@ public:
 
 
         // TOPOLOGICAL CACHE ENTRIES
-        //   These are calculated in realizeConstruction() from topological
+        //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
 
     // After all types have been defined, we can calculate vdw 
@@ -568,7 +568,7 @@ public:
     Vec3 station_B; // atom's station fixed in body bodyId's frame
 
         // TOPOLOGICAL CACHE ENTRIES
-        //   These are calculated in realizeConstruction() from topological
+        //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
 
     // This is a group of lists which identify atoms nearby in the
@@ -838,7 +838,7 @@ public:
     Transform placement_B; // cluster's placement fixed in body bodyId's frame
 
         // TOPOLOGICAL CACHE ENTRIES
-        //   These are calculated in realizeConstruction() from topological
+        //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
 
     bool topologicalCacheValid;
@@ -1027,13 +1027,13 @@ public:
     const BondBend&    getBondBend   (int class1, int class2, int class3) const;
     const BondTorsion& getBondTorsion(int class1, int class2, int class3, int class4) const;
 
-    void realizeConstruction(State& s) const;
+    void realizeTopology(State& s) const;
 
-    void realizeModeling(State& s) const {
+    void realizeModel(State& s) const {
         // Sorry, no choices available at the moment.
     }
 
-    void realizeParameters(const State& s) const {
+    void realizeInstance(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -1041,18 +1041,18 @@ public:
         // Nothing to compute here.
     }
 
-    void realizeConfiguration(const State& s) const {
+    void realizePosition(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeMotion(const State& s) const {
+    void realizeVelocity(const State& s) const {
         // Nothing to compute here.
     }
 
 
     void realizeDynamics(const State& s) const;
 
-    void realizeReaction(const State& s) const {
+    void realizeAcceleration(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -1134,7 +1134,7 @@ private:
     Real vdwScale15, coulombScale15;    // default 1,1
 
         // TOPOLOGICAL CACHE ENTRIES
-        //   These are calculated in realizeConstruction() from topological
+        //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
     bool topologicalCacheValid;
 };
@@ -1937,7 +1937,7 @@ DuMMForceFieldSubsystemRep::getBondTorsion
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
-void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
+void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
     if (topologicalCacheValid)
         return; // already got this far
 
@@ -2114,7 +2114,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
             a.stretch[b12] = getBondStretch(c1, c2);
 
             SimTK_REALIZECHECK2_ALWAYS(a.stretch[b12].isValid(),
-                Stage::Built, getMySubsystemIndex(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond stretch parameters for cross-body atom class pair (%d,%d)", 
                 c1,c2);
         }
@@ -2127,7 +2127,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
             a.bend[b13] = getBondBend(c1, c2, c3);
 
             SimTK_REALIZECHECK3_ALWAYS(a.bend[b13].isValid(),
-                Stage::Built, getMySubsystemIndex(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond bend parameters for cross-body atom class triple (%d,%d,%d)", 
                 c1,c2,c3);
         }
@@ -2141,7 +2141,7 @@ void DuMMForceFieldSubsystemRep::realizeConstruction(State& s) const {
             a.torsion[b14] = getBondTorsion(c1, c2, c3, c4); 
 
             SimTK_REALIZECHECK4_ALWAYS(a.torsion[b14].isValid(),
-                Stage::Built, getMySubsystemIndex(), getName(),
+                Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
                 c1,c2,c3,c4);
         }
@@ -2178,7 +2178,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
     Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s);
 
     for (int b1=0; b1 < (int)bodies.size(); ++b1) {
-        const Transform&          X_GB1  = matter.getBodyConfiguration(s,b1);
+        const Transform&          X_GB1  = matter.getBodyPosition(s,b1);
         const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
         for (int i=0; i < (int)alist1.size(); ++i) {
@@ -2204,7 +2204,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const Atom& a2 = atoms[a2num];
                 const int b2 = a2.bodyId;
                 assert(b2 != b1);
-                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyId);
+                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
                 const Vec3       r = a2Pos_G - a1Pos_G;
@@ -2239,8 +2239,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyConfiguration(s, a3.bodyId);
+                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
+                const Transform& X_GB3   = matter.getBodyPosition(s, a3.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
@@ -2276,9 +2276,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyConfiguration(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyConfiguration(s, a3.bodyId);
-                const Transform& X_GB4   = matter.getBodyConfiguration(s, a4.bodyId);
+                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
+                const Transform& X_GB3   = matter.getBodyPosition(s, a3.bodyId);
+                const Transform& X_GB4   = matter.getBodyPosition(s, a4.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -2301,7 +2301,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (int b2=b1+1; b2 < (int)bodies.size(); ++b2) {
-                const Transform&          X_GB2  = matter.getBodyConfiguration(s,b2);
+                const Transform&          X_GB2  = matter.getBodyPosition(s,b2);
                 const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
                 for (int j=0; j < (int)alist2.size(); ++j) {

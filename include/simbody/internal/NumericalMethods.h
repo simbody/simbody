@@ -249,7 +249,7 @@ public:
     ExplicitEuler(const MultibodySystem& mb, State& s) 
       : MechanicalDAEIntegrator(mb,s) 
     {
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "ExplicitEuler::ExplicitEuler()");
         reconstructForNewModel();
     }
@@ -262,9 +262,9 @@ public:
     }
 
     bool initialize() {
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "ExplicitEuler::initialize()");
-        if (state.getSystemStage() < Stage::Modeled)
+        if (state.getSystemStage() < Stage::Model)
             reconstructForNewModel();
         initializeIntegrationParameters();
         //mech.setAccuracy(absTol, consTol);
@@ -272,7 +272,7 @@ public:
         try { (void)mbs.project(state, dummy, consTol, 0., 0.1*consTol); }
         catch (...) { ++statsProjectionFailures; return false; }
 
-        try { mbs.realize(state, Stage::Reacting); }
+        try { mbs.realize(state, Stage::Acceleration); }
         catch (...) { ++statsRealizationFailures; return false; }
 
         initialized = true;
@@ -281,7 +281,7 @@ public:
 
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Parametrized,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
             "ExplicitEuler::step()");
 
         assert(initialized && tOut >= state.getTime());
@@ -293,7 +293,7 @@ public:
             if (maxNumSteps && stepsTaken >= maxNumSteps)
                 return false; // too much work
 
-            mbs.realize(state, Stage::Reacting);
+            mbs.realize(state, Stage::Acceleration);
             t0    = state.getTime();
             ydot0 = state.getYDot(); // save so we can restart
 
@@ -322,7 +322,7 @@ public:
                 if (projectOK) {
                     try {
                         realizeOK = true;
-                        mbs.realize(state, Stage::Reacting);
+                        mbs.realize(state, Stage::Acceleration);
                     } catch (...) { realizeOK = false; }
                     if (!realizeOK)  ++statsRealizationFailures;
                 } else ++statsProjectionFailures;
@@ -350,7 +350,7 @@ private:
 
     
     void initializeIntegrationParameters() {
-        mbs.realize(state, Stage::Parametrized);
+        mbs.realize(state, Stage::Instance);
 
         initializeStepSizes();
         initializeTolerances();
@@ -404,7 +404,7 @@ private:
     }
 
     void reconstructForNewModel() {
-        mbs.realize(state, Stage::Modeled);
+        mbs.realize(state, Stage::Model);
         initStepSize=minStepSize=maxStepSize
             =accuracy=relTol=absTol=consTol=vconsRescale
             =stopTime=CNT<Real>::getNaN();
@@ -431,7 +431,7 @@ public:
     RungeKuttaMerson(const MultibodySystem& mb, State& s, bool noProject=false) 
       : MechanicalDAEIntegrator(mb,s) 
     {
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "RungeKuttaMerson::RungeKuttaMerson()");
         reconstructForNewModel();
         if (noProject) suppressProject = true;
@@ -449,9 +449,9 @@ public:
     }
 
     bool initialize() {
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Built,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "RungeKuttaMerson::initialize()");
-        if (state.getSystemStage() < Stage::Modeled)
+        if (state.getSystemStage() < Stage::Model)
             reconstructForNewModel();
 
         initializeIntegrationParameters();
@@ -468,7 +468,7 @@ public:
     ////////
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
-        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Parametrized,
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
             "ExplicitEuler::step()");
 
         assert(initialized && tOut >= state.getTime());
@@ -517,7 +517,7 @@ public:
                 wasLastStep = true;
             }
 
-            mbs.realize(state, Stage::Reacting);
+            mbs.realize(state, Stage::Acceleration);
             ydot0 = state.getYDot();    // save for faster restart
 
             // Now we're going to attempt to take as big a step as we can
@@ -617,7 +617,7 @@ private:
         state.updY() = y;
         state.updTime() = t;
 
-        try { mbs.realize(state, Stage::Reacting); }
+        try { mbs.realize(state, Stage::Acceleration); }
         catch(...) { return false; }
         yd = state.getYDot();
         return true;
@@ -664,7 +664,7 @@ private:
         if (projectOK) {
             try {
                 realizeOK = true;
-                mbs.realize(state, Stage::Reacting);
+                mbs.realize(state, Stage::Acceleration);
             } catch (...) { realizeOK = false; }
             if (!realizeOK)  ++statsRealizationFailures;
         } else ++statsProjectionFailures;
@@ -674,7 +674,7 @@ private:
 
 private:    
     void initializeIntegrationParameters() {
-        mbs.realize(state, Stage::Parametrized);
+        mbs.realize(state, Stage::Instance);
 
         initializeStepSizes();
         predictedNextStep = initStepSize;
@@ -735,7 +735,7 @@ private:
     static const int NTemps = 4;
 
     void reconstructForNewModel() {
-        mbs.realize(state, Stage::Modeled);
+        mbs.realize(state, Stage::Model);
         initStepSize=minStepSize=maxStepSize
             =accuracy=relTol=absTol=consTol=vconsRescale
             =stopTime=predictedNextStep=CNT<Real>::getNaN();

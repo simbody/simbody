@@ -167,8 +167,8 @@ try {
     display.addRubberBandLine(base, baseFrame.T(), mass, jointFrame.T(), crossBodyBond);
 
     State s;
-    mbs.realize(s, Stage::Built);
-    mbs.realize(s, Stage::Modeled);
+    mbs.realize(s, Stage::Topology);
+    mbs.realize(s, Stage::Model);
 
     RungeKuttaMerson study(mbs, s);
 
@@ -179,8 +179,8 @@ try {
     bendStretchBlock.setMobilizerQ(s, stretchBody, stretchCoord, 1); // translation
     bendStretchBlock.setMobilizerU(s, stretchBody, stretchCoord, 7);
 
-    mbs.realize(s, Stage::Reacting);
-    const Transform&  x = bendStretchBlock.getBodyConfiguration(s, mass);
+    mbs.realize(s, Stage::Acceleration);
+    const Transform&  x = bendStretchBlock.getBodyPosition(s, mass);
     cout << "Mass x=" << x.T() << " pe=" << mbs.getPotentialEnergy(s) << endl;
     const SpatialVec& v = bendStretchBlock.getBodyVelocity(s, mass);
     cout << "Mass v=" << v << " ke=" << mbs.getKineticEnergy(s) << endl;

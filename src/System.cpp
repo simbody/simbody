@@ -99,20 +99,20 @@ void SystemRep::realize(const State& s, Stage g) const {
     Stage stageNow;
     while ((stageNow=s.getSystemStage()) < g) {
         switch (stageNow) {
-        case Stage::Allocated: {
+        case Stage::Empty: {
             // Teach the State about the system & its subsystems.
             State& mutableState = const_cast<State&>(s);
             mutableState.setNSubsystems(getNSubsystems());
-            realizeConstruction(mutableState); 
+            realizeTopology(mutableState); 
             break;
         }
-        case Stage::Built:        realizeModeling    (const_cast<State&>(s)); break;
-        case Stage::Modeled:      realizeParameters(s);    break;
-        case Stage::Parametrized: realizeTime(s);          break;
-        case Stage::Timed:        realizeConfiguration(s); break;
-        case Stage::Configured:   realizeMotion(s);        break;
-        case Stage::Moving:       realizeDynamics(s);      break;
-        case Stage::Dynamics:     realizeReaction(s);      break;
+        case Stage::Topology:        realizeModel    (const_cast<State&>(s)); break;
+        case Stage::Model:      realizeInstance(s);    break;
+        case Stage::Instance: realizeTime(s);          break;
+        case Stage::Time:        realizePosition(s); break;
+        case Stage::Position:   realizeVelocity(s);        break;
+        case Stage::Velocity:       realizeDynamics(s);      break;
+        case Stage::Dynamics:     realizeAcceleration(s);      break;
         default: assert(!"System::realize(): bad stage");
         }
         // In case the concrete system didn't do anything with the

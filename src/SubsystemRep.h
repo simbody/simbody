@@ -117,21 +117,21 @@ public:
     virtual SubsystemRep* cloneSubsystemRep() const = 0;
     virtual void endConstruction() { }
 
-    virtual void realizeConstruction(State& s) const { 
+    virtual void realizeTopology(State& s) const { 
     }
-    virtual void realizeModeling(State& s) const { 
+    virtual void realizeModel(State& s) const { 
     }
-    virtual void realizeParameters(const State& s) const { 
+    virtual void realizeInstance(const State& s) const { 
     }
     virtual void realizeTime(const State& s) const { 
     }
-    virtual void realizeConfiguration(const State& s) const { 
+    virtual void realizePosition(const State& s) const { 
     }
-    virtual void realizeMotion(const State& s) const { 
+    virtual void realizeVelocity(const State& s) const { 
     }
     virtual void realizeDynamics(const State& s) const { 
     }
-    virtual void realizeReaction(const State& s) const { 
+    virtual void realizeAcceleration(const State& s) const { 
     }
 
 	bool isInSystem() const {return mySystem != 0;}

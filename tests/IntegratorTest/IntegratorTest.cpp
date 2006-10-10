@@ -311,7 +311,7 @@ int main() {
         MultibodySystem scmbs;
         SinCos sc(1.);
         scmbs.setMatterSubsystem(sc); 
-        scmbs.realize(scState, Stage::Modeled);
+        scmbs.realize(scState, Stage::Model);
         scState.updTime() = 0;
         Vector y(2); y[0] = 0.; y[1] = 1.;
         scState.updY() = y;
@@ -337,7 +337,7 @@ int main() {
         PointMass2dPendulum p(mass,length,gravity);
         pendmbs.setMatterSubsystem(p); 
         State pendState;
-        pendmbs.realize(pendState, Stage::Modeled);
+        pendmbs.realize(pendState, Stage::Model);
 
         Vector yp(4); 
         //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees
@@ -368,7 +368,7 @@ int main() {
             std::cout << "t=" << pendState.getTime() 
                 << " yp=" << pendState.getY();
 
-            pendmbs.realize(pendState, Stage::Reacting);
+            pendmbs.realize(pendState, Stage::Acceleration);
             std::cout << "   perr=" << p.getPositionErrorNorm()/eep.getConstraintTolerance()
                 << "  verr=" << p.getVelocityErrorNorm()/eep.getConstraintTolerance()
                 << "  aerr=" << p.getAccelerationErrorNorm()/eep.getConstraintTolerance()

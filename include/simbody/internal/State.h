@@ -71,24 +71,24 @@ public:
 /**
  * This is the handle class for the hidden State implementation.
  * The default constructor creates a State containing no state variables
- * and with its realization cache stage set to Stage::Allocated.
+ * and with its realization cache stage set to Stage::Empty.
  * During Subsystem construction, variables and cache entries for any
- * stage can be allocated, however *all* Modeled stage variables
+ * stage can be allocated, however *all* Model stage variables
  * must be allocated during this time. At the end of construction,
- * call advanceSubsystemToStage(Built) which will put the Subsystem
- * at Stage::Built. Then the Subsystems realize their Modeled stages, during which 
- * variables at any stage > Modeled, and cache entries at any stage
- * >= Modeled can be allocated. After that call advanceSubsystemToStage(Modeled)
- * which sets the stage to Stage::Modeled and disallows further allocation.
+ * call advanceSubsystemToStage(Topology) which will put the Subsystem
+ * at Stage::Topology. Then the Subsystems realize their Model stages, during which 
+ * variables at any stage > Model, and cache entries at any stage
+ * >= Model can be allocated. After that call advanceSubsystemToStage(Model)
+ * which sets the stage to Stage::Model and disallows further allocation.
  *
  * Note that there is a global Stage for the state as a whole, and individual
  * Stages for each subsystem. The global stage can never be higher than
  * the lowest subsystem stage. Global resources are allocated when the
- * global Stage advances to "Modeled" and tossed out if that stage is
+ * global Stage advances to "Model" and tossed out if that stage is
  * invalidated. Note that subsystems will "register" their use of the
  * global variable pools during their own modeling stages, but that the
  * actual global resources won't exist until the *system* has been
- * advanced to Modeled stage.
+ * advanced to Model stage.
  */
 class SimTK_SIMBODY_API State {
 public:
@@ -120,7 +120,7 @@ public:
     /// Register a new subsystem as a client of this State. The
     /// supplied strings are stored with the State but are not
     /// interpreted by it. The intent is that they can be used to
-    /// perform "santity checks" on deserialized States to make
+    /// perform "sanity checks" on deserialized States to make
     /// sure they match the currently instantiated System.
     /// The subsystem index (a small integer) is returned.
     int addSubsystem(const String& name, const String& version);
@@ -141,14 +141,14 @@ public:
     // Advance the current stage by one to the indicated stage.
     // The stage is passed in just to give us a chance to verify
     // that all is as expected. You can only advance one stage at
-    // a time. Advancing to "Built" and "Modeled" stages affect
+    // a time. Advancing to "Topology" and "Model" stages affect
     // what you can do later.
     void advanceSubsystemToStage(int subsys, Stage) const;
     void advanceSystemToStage(Stage g) const;
 
     // These are shared among all the subsystems and are not allocated until
-    // the *System* is advanced to the Modeled stage. The returned index is
-    // local to each subsystem. After the System is Modeled, we guarantee that
+    // the *System* is advanced to Stage::Model. The returned index is
+    // local to each subsystem. After the System is modeled, we guarantee that
     // all the q's for a subsystem will be contiguous, and similarly for u's
     // and z's. However, q,u,z will *not* be contiguous with each other.
     // The *global* y is contiguous, and global q,u,z are contiguous within
@@ -194,36 +194,36 @@ public:
 
     // You can call these as long as stage >= Modeled, but the
     // stage will be backed up if necessary to the indicated stage.
-    Real&   updTime();  // Back up to Stage::Timed-1
+    Real&   updTime();  // Back up to Stage::Time-1
     Vector& updY();     // Back up to Stage::Congfigured-1
 
     // These are just views into Y.
-    Vector& updQ();     // Back up to Stage::Configured-1
-    Vector& updU();     // Back up to Stage::Moving-1
+    Vector& updQ();     // Back up to Stage::Position-1
+    Vector& updU();     // Back up to Stage::Velocity-1
     Vector& updZ();     // Back up to Stage::Dynamics-1
 
-    const Vector& getYDot()    const; // Stage::Reacting
+    const Vector& getYDot()    const; // Stage::Acceleration
 
     // These are just views into YDot.
-    const Vector& getQDot()    const; // Stage::Moving
+    const Vector& getQDot()    const; // Stage::Velocity
     const Vector& getZDot()    const; // Stage::Dynamics
-    const Vector& getUDot()    const; // Stage::Reacting
+    const Vector& getUDot()    const; // Stage::Acceleration
 
     // This has its own space, not a view.
-    const Vector& getQDotDot() const; // Stage::Reacting
+    const Vector& getQDotDot() const; // Stage::Acceleration
 
     // These are mutable
-    Vector& updYDot() const;    // Stage::Reacting-1
+    Vector& updYDot() const;    // Stage::Acceleration-1
 
     // These are just views into YDot.
-    Vector& updQDot() const;    // Stage::Moving-1
+    Vector& updQDot() const;    // Stage::Velocity-1
     Vector& updZDot() const;    // Stage::Dynamics-1
-    Vector& updUDot() const;    // Stage::Reacting-1
+    Vector& updUDot() const;    // Stage::Acceleration-1
 
     // This is a separate shared cache entry, not part of YDot. If you
     // have a direct 2nd order integrator you can integrate QDotDot
     // (twice) to get Q.
-    Vector& updQDotDot() const; // Stage::Reacting-1
+    Vector& updQDotDot() const; // Stage::Acceleration-1
 
     // OK if dv.stage==Modeled or stage >= Modeled
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;

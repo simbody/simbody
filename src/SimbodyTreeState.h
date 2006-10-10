@@ -29,35 +29,38 @@
  * that can be changed in a SimbodyMatterSubsystem after construction.
  *
  * State variables and computation results are organized into stages:
- *    Stage::Allocated
- *    Stage::Built             Stored in the SimbodyMatterSubsystem object (construction)
+ *    Stage::Empty         virginal state just allocated
+ *    Stage::Topology      Stored in the SimbodyMatterSubsystem object (construction)
  *   ---------------------------------------------------------
- *    Stage::Modeled           Stored in the State object
- *    Stage::Parametrized
- *    Stage::Timed
- *    Stage::Configured        (positions)
- *    Stage::Moving            (velocities)
- *    Stage::Dynamics          dynamic operators available
- *    Stage::Reacting          (response to forces in the state)
+ *    Stage::Model         Stored in the State object
+ *    Stage::Instance
+ *    Stage::Time
+ *    Stage::Position  
+ *    Stage::Velocity  
+ *    Stage::Dynamics      dynamic operators available
+ *    Stage::Acceleration  response to forces in the state
+ *   ---------------------------------------------------------
+ *    Stage::Report        only used when outputting something
  *
  * Construction proceeds until all the bodies and constraints have been specified. After
- * that, realizeConstruction() is called. Construction-related 
- * calculations are performed leading to values which are stored in the SimbodyMatterSubsystem 
+ * that, realizeTopology() is called. Construction-related calculations are
+ * performed leading to values which are stored in the SimbodyMatterSubsystem 
  * object, NOT in the State (e.g., total number of bodies). At the same time, an
  * initial state is built, with space allocated for the state variables that will
- * be needed by the next stage (Stage::Modeled),and these are assigned default values. 
- * Then the stage in the SimbodyMatterSubsystem and in the initial state is set to "Built".
+ * be needed by the next stage (Stage::Model),and these are assigned default values. 
+ * Then the stage in the SimbodyMatterSubsystem and in the initial state is set to "Topology".
  *
- * After that, Modeling values can be set in the State. When that's done we call
- * realizeModeling(), which evaluates the Modeling states putting the values into
- * state cache entries allocated for the purpose. Then all remaining state variables
- * are allocated, and set to their default values. All defaults must be computable
- * knowing only the Modeling values. Then the stage is advanced to Modeled.
+ * After that, values for Model stage variables can be set in the State.
+ * When that's done we call realizeModel(), which evaluates the Model states
+ * putting the values into state cache entries allocated for the purpose. Then
+ * all remaining state variables are allocated, and set to their default values.
+ * All defaults must be computable knowing only the Model stage values.
+ * Then the stage is advanced to Stage::Model.
  *
  * This continues through all the stages, with realizeWhatever() expecting to receive
  * a state evaluated to stage Whatever-1 equipped with values for stage Whatever so that
  * it can calculate results and put them in the cache (which is allocated if necessary),
- * and then advance to stage Whatevered. 
+ * and then advance to stage Whatever. 
  */
 
 #include "simbody/internal/common.h"
@@ -74,33 +77,33 @@ namespace SimTK {
  // defined below
 
 
-class SBModelingVars;
-class SBParameterVars;
+class SBModelVars;
+class SBInstanceVars;
 class SBTimeVars;
-class SBConfigurationVars;
-class SBMotionVars;
+class SBPositionVars;
+class SBVelocityVars;
 class SBDynamicsVars;
-class SBReactionVars;
+class SBAccelerationVars;
 
-class SBConstructionCache;
-class SBModelingCache;
-class SBParameterCache;
+class SBTopologyCache;
+class SBModelCache;
+class SBInstanceCache;
 class SBTimeCache;
-class SBConfigurationCache;
-class SBMotionCache;
+class SBPositionCache;
+class SBVelocityCache;
 class SBDynamicsCache;
-class SBReactionCache;
+class SBAccelerationCache;
 
 class State;
 
-// An object of this type is stored in the SimbodyMatterSubsystem after construction,
-// then copied into a slot in the State on realizeConstruction(). It should contain
-// enough information to size the other stages, and can also contain whatever
-// arbitrary data you would like to have in a State to verify that it is a match
-// for the Subsystem.
-class SBConstructionCache {
+// An object of this type is stored in the SimbodyMatterSubsystem after extended
+// construction in complete, then copied into a slot in the State on
+// realizeTopology(). It should contain enough information to size the other
+// stages, and can also contain whatever arbitrary data you would like to have
+// in a State to verify that it is a match for the Subsystem.
+class SBTopologyCache {
 public:
-    SBConstructionCache() {
+    SBTopologyCache() {
         nBodies = nConstraints = nDOFs = maxNQs = sumSqDOFs =
             nDistanceConstraints = modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
@@ -121,45 +124,45 @@ public:
     bool valid;
 };
 
-class SBModelingCache {
+class SBModelCache {
 public:
     // TODO: Modeling
     //   counts of various things resulting from modeling choices,
     //   constraint enabling, prescribed motion
 
-    SBModelingCache() {
-        parameterVarsIndex = parameterCacheIndex
+    SBModelCache() {
+        instanceVarsIndex = instanceCacheIndex
         = timeVarsIndex = timeCacheIndex
         = qIndex = qVarsIndex = qCacheIndex
         = uIndex = uVarsIndex = uCacheIndex
         = dynamicsVarsIndex = dynamicsCacheIndex
-        = reactionVarsIndex = reactionCacheIndex
+        = accelerationVarsIndex = accelerationCacheIndex
         = -1;
     }
 
-    int parameterVarsIndex, parameterCacheIndex;
+    int instanceVarsIndex, instanceCacheIndex;
     int timeVarsIndex, timeCacheIndex;
     int qIndex; // maxNQs of these 
     int qVarsIndex, qCacheIndex;
     int uIndex; // nDOFs of these 
     int uVarsIndex, uCacheIndex;
     int dynamicsVarsIndex, dynamicsCacheIndex;
-    int reactionVarsIndex, reactionCacheIndex;
+    int accelerationVarsIndex, accelerationCacheIndex;
 
 public:
-    void allocate(const SBConstructionCache&) {
+    void allocate(const SBTopologyCache&) {
     }
 };
 
-class SBParameterCache {
+class SBInstanceCache {
 public:
-    // TODO: Parameters
+    // TODO: Instance variables
     //   body mass props; particle masses
     //   X_BJ, X_PJi transforms
     //   distance constraint distances & station positions
 
 public:
-    void allocate(const SBConstructionCache&) {
+    void allocate(const SBTopologyCache&) {
     }
 };
 
@@ -168,11 +171,11 @@ public:
 
     // none
 public:
-    void allocate(const SBConstructionCache& tree) {
+    void allocate(const SBTopologyCache&) {
     }
 };
 
-class SBConfigurationCache {
+class SBPositionCache {
 public:
     Vector sq, cq;  // nq  Sin&cos of angle q's in appropriate slots; otherwise garbage
     Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
@@ -201,7 +204,7 @@ public:
 
 
 public:
-    void allocate(const SBConstructionCache& tree) {
+    void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
@@ -247,7 +250,7 @@ public:
     }
 };
 
-class SBMotionCache {
+class SBVelocityCache {
 public:
     // qdot is supplied directly by the State
     Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
@@ -263,7 +266,7 @@ public:
     Vector_<Vec3> relVel_G;        // spatial relative velocity tip2.velG-tip1.velG
 
 public:
-    void allocate(const SBConstructionCache& tree) {
+    void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
@@ -312,7 +315,7 @@ public:
     Matrix_<Vec3>       storageForG;              // 2 X ndof
 
 public:
-    void allocate(const SBConstructionCache& tree) {
+    void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
@@ -356,7 +359,7 @@ public:
 };
 
 
-class SBReactionCache {
+class SBAccelerationCache {
 public:
     // udot, qdotdot are provided directly by the State
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
@@ -376,7 +379,7 @@ public:
     Vector_<Vec3> force_G[2]; // the constraint forces applied to each point
 
 public:
-    void allocate(const SBConstructionCache& tree) {
+    void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
@@ -408,18 +411,18 @@ public:
  * Variables are divided into Stages, according to when their values
  * are needed during a calculation. The Stages that matter to the
  * MultibodyTree are:
- *       (Construction: not part of the state)
- *     Modeling:        choice of coordinates, knowns & unknowns, methods, etc.
- *     Parametrization: setting of physical parameters, e.g. mass
+ *       (Topology: not part of the state)
+ *     Model:         choice of coordinates, knowns & unknowns, methods, etc.
+ *     Instance:      setting of physical parameters, e.g. mass
  *       (Time: not relevant to MultibodyTree)
- *     Configuration:   position and orientation values (2nd order continuous)
- *     Motion:          rates
- *     Dynamics;        dynamic quantities & operators available
- *     Reaction:        response to forces & prescribed accelerations in State 
+ *     Position:      position and orientation values (2nd order continuous)
+ *     Velocity:      rates
+ *     Dynamics;      dynamic quantities & operators available
+ *     Acceleration:  response to forces & prescribed accelerations in State 
  *
  */
 
-class SBModelingVars {
+class SBModelVars {
 public:
     bool        useEulerAngles;
     Array<bool> prescribed;           // nb  (# bodies & joints, 0 always true)
@@ -429,8 +432,8 @@ public:
     // We have to allocate these without looking at any other
     // state variable or cache entries. We can only depend on the tree
     // itself for information.
-    void allocate(const SBConstructionCache& tree) const {
-        SBModelingVars& mutvars = *const_cast<SBModelingVars*>(this);
+    void allocate(const SBTopologyCache& tree) const {
+        SBModelVars& mutvars = *const_cast<SBModelVars*>(this);
         mutvars.useEulerAngles = false;
         mutvars.prescribed.resize(tree.nBodies); 
         mutvars.enabled.resize(tree.nConstraints);
@@ -438,14 +441,14 @@ public:
 
 };
 
-class SBParameterVars {
+class SBInstanceVars {
 public:
     // TODO: body masses, etc.
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
-    void allocate(const SBConstructionCache&) const {
-        SBParameterVars& mutvars = *const_cast<SBParameterVars*>(this);
+    void allocate(const SBTopologyCache&) const {
+        SBInstanceVars& mutvars = *const_cast<SBInstanceVars*>(this);
     }
 
     // Call this from Modeling stage to put some reasonable
@@ -459,23 +462,23 @@ class SBTimeVars {
 public:
     // none
 public:
-    void allocate(const SBConstructionCache&) const {
+    void allocate(const SBTopologyCache&) const {
     }
 };
 
-class SBConfigurationVars {
+class SBPositionVars {
 public:
     // none -- q is supplied directly by the State
 public:
-    void allocate(const SBConstructionCache& tree) const {
+    void allocate(const SBTopologyCache& tree) const {
     }
 };
 
-class SBMotionVars  {
+class SBVelocityVars  {
 public:
     // none -- u is supplied directly by the State
 public:
-    void allocate(const SBConstructionCache&) const {
+    void allocate(const SBTopologyCache&) const {
     }
 };
 
@@ -483,52 +486,52 @@ class SBDynamicsVars {
 public:
     // none
 public:
-    void allocate(const SBConstructionCache&) const {    
+    void allocate(const SBTopologyCache&) const {    
     }
 }; 
 
 
-class SBReactionVars {
+class SBAccelerationVars {
 public:
     // none
 public:
-    void allocate(const SBConstructionCache&) const {
+    void allocate(const SBTopologyCache&) const {
     }
 };
 
 // These are here just so the AbstractValue's ValueHelper<> template
 // will compile.
-inline std::ostream& operator<<(std::ostream& o, const SBConstructionCache& c)
-  { return o << "TODO: SBConstructionCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBModelingCache& c)
-  { return o << "TODO: SBModelingCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBParameterCache& c)
-  { return o << "TODO: SBParameterCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBTopologyCache& c)
+  { return o << "TODO: SBTopologyCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBModelCache& c)
+  { return o << "TODO: SBModelCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBInstanceCache& c)
+  { return o << "TODO: SBInstanceCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBTimeCache& c)
   { return o << "TODO: SBTimeCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBConfigurationCache& c)
-  { return o << "TODO: SBConfigurationCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBMotionCache& c)
-  { return o << "TODO: SBMotionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBPositionCache& c)
+  { return o << "TODO: SBPositionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBVelocityCache& c)
+  { return o << "TODO: SBVelocityCache"; }
 inline std::ostream& operator<<(std::ostream& o, const SBDynamicsCache& c)
   { return o << "TODO: SBDynamicsCache"; }
-inline std::ostream& operator<<(std::ostream& o, const SBReactionCache& c)
-  { return o << "TODO: SBReactionCache"; }
+inline std::ostream& operator<<(std::ostream& o, const SBAccelerationCache& c)
+  { return o << "TODO: SBAccelerationCache"; }
 
-inline std::ostream& operator<<(std::ostream& o, const SBModelingVars& c)
-  { return o << "TODO: SBModelingVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBParameterVars& c)
-  { return o << "TODO: SBParameterVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBModelVars& c)
+  { return o << "TODO: SBModelVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBInstanceVars& c)
+  { return o << "TODO: SBInstanceVars"; }
 inline std::ostream& operator<<(std::ostream& o, const SBTimeVars& c)
   { return o << "TODO: SBTimeVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBConfigurationVars& c)
-  { return o << "TODO: SBConfigurationVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBMotionVars& c)
-  { return o << "TODO: SBMotionVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBPositionVars& c)
+  { return o << "TODO: SBPositionVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBVelocityVars& c)
+  { return o << "TODO: SBVelocityVars"; }
 inline std::ostream& operator<<(std::ostream& o, const SBDynamicsVars& c)
   { return o << "TODO: SBDynamicsVars"; }
-inline std::ostream& operator<<(std::ostream& o, const SBReactionVars& c)
-  { return o << "TODO: SBReactionVars"; }
+inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
+  { return o << "TODO: SBAccelerationVars"; }
 
 }; // namespace SimTK
 

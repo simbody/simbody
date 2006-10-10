@@ -233,13 +233,13 @@ try {
     /**/
 
     State s;
-    mbs.realize(s, Stage::Built);
-    mbs.realize(s, Stage::Modeled);
+    mbs.realize(s, Stage::Topology);
+    mbs.realize(s, Stage::Model);
 
     /* Cartesian: */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
-        ethane.setMobilizerConfiguration(s, b, 
+        ethane.setMobilizerPosition(s, b, 
             Transform(mm.getAtomStationInCluster(i, wholeEthaneEclipsed)));
     }
     /**/
@@ -321,19 +321,19 @@ try {
         // shift 2nd molecule up yoffs in y
         const Real yoffs = 4;
 
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+0, Transform(Vec3(0,yoffs,0)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+0, Transform(Vec3(0,yoffs,0)));
         //ethane.setMobilizerU(s, firstCartesianBody+0, 1, -10);
 
         // distort bond a little
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+1, Transform(Vec3(1.53688+.05, yoffs, 0)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+1, Transform(Vec3(1.53688+.05, yoffs, 0)));
 
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+2, Transform(Vec3(-.3778, 1.02422 +yoffs, 0)));
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+3, Transform(Vec3(-.3778,-0.514034+yoffs,-0.885898)));
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+4, Transform(Vec3(-.3778,-0.510199+yoffs, 0.888107)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+2, Transform(Vec3(-.3778, 1.02422 +yoffs, 0)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+3, Transform(Vec3(-.3778,-0.514034+yoffs,-0.885898)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+4, Transform(Vec3(-.3778,-0.510199+yoffs, 0.888107)));
 
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+5, Transform(Vec3( .3778+1.53688, 0.510199+yoffs, 0.888107)));
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+6, Transform(Vec3( .3778+1.53688, 0.514034+yoffs,-0.885898)));
-        ethane.setMobilizerConfiguration(s, firstCartesianBody+7, Transform(Vec3( .3778+1.53688,-1.02422 +yoffs, 0)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+5, Transform(Vec3( .3778+1.53688, 0.510199+yoffs, 0.888107)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+6, Transform(Vec3( .3778+1.53688, 0.514034+yoffs,-0.885898)));
+        ethane.setMobilizerPosition(s, firstCartesianBody+7, Transform(Vec3( .3778+1.53688,-1.02422 +yoffs, 0)));
     }
     */
 
@@ -380,16 +380,16 @@ try {
         ++step;
     }
 /*
-    const Transform& c1X = molecule.getBodyConfiguration(s, 1);
-    cout << "h11=" << ~c1X*molecule.getBodyConfiguration(s, 3) << endl;
-    cout << "h12=" << ~c1X*molecule.getBodyConfiguration(s, 4) << endl;
-    cout << "h13=" << ~c1X*molecule.getBodyConfiguration(s, 5) << endl;
+    const Transform& c1X = molecule.getBodyPosition(s, 1);
+    cout << "h11=" << ~c1X*molecule.getBodyPosition(s, 3) << endl;
+    cout << "h12=" << ~c1X*molecule.getBodyPosition(s, 4) << endl;
+    cout << "h13=" << ~c1X*molecule.getBodyPosition(s, 5) << endl;
 
-    const Transform& c2X = molecule.getBodyConfiguration(s, 2);
+    const Transform& c2X = molecule.getBodyPosition(s, 2);
     cout << "c2=" << ~c1X*c2X << endl;
-    cout << "h21=" << ~c2X*molecule.getBodyConfiguration(s, 6) << endl;
-    cout << "h22=" << ~c2X*molecule.getBodyConfiguration(s, 7) << endl;
-    cout << "h23=" << ~c2X*molecule.getBodyConfiguration(s, 8) << endl;
+    cout << "h21=" << ~c2X*molecule.getBodyPosition(s, 6) << endl;
+    cout << "h22=" << ~c2X*molecule.getBodyPosition(s, 7) << endl;
+    cout << "h23=" << ~c2X*molecule.getBodyPosition(s, 8) << endl;
 */
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {

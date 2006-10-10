@@ -70,7 +70,7 @@ using std::endl;
 
 using namespace SimTK;
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real Pi = (Real)SimTK_PI, RadiansPerDegree = Pi/180;
 static const int  Ground = 0; // ground is always body 0
 
 
@@ -78,8 +78,8 @@ void stateTest() {
   try {
     State s;
     s.setNSubsystems(1);
-    s.advanceSubsystemToStage(0, Stage::Built);
-    s.advanceSystemToStage(Stage::Built);
+    s.advanceSubsystemToStage(0, Stage::Topology);
+    s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
     long q1 = s.allocateQ(0, v3);
@@ -90,13 +90,13 @@ void stateTest() {
 
     long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
 
-    s.advanceSubsystemToStage(0, Stage::Modeled);
-        //long dv2 = s.allocateDiscreteVariable(0, Stage::Configured, new Value<int>(5));
+    s.advanceSubsystemToStage(0, Stage::Model);
+        //long dv2 = s.allocateDiscreteVariable(0, Stage::Position, new Value<int>(5));
 
     Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
     cout << s.getDiscreteVariable(0, dv) << endl;
 
-    s.advanceSystemToStage(Stage::Modeled);
+    s.advanceSystemToStage(Stage::Model);
 
     cout << s;
 
@@ -283,7 +283,7 @@ try {
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
     State s;
-    mbs.realize(s, Stage::Built);
+    mbs.realize(s, Stage::Topology);
     cout << "mbs State as built: " << s;
 
     //ExplicitEuler ee(mbs, s);
@@ -296,7 +296,7 @@ try {
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     //pend.setUseEulerAngles(s, true);
-    mbs.realize(s, Stage::Modeled);
+    mbs.realize(s, Stage::Model);
 
     cout << "mbs State as modeled: " << s;
 
@@ -308,19 +308,19 @@ try {
    // pend.setJointQ(s,1,4,-2.2);
    // pend.setJointQ(s,1,5,-3.3);
 
-    mbs.realize(s, Stage::Configured);
+    mbs.realize(s, Stage::Position);
 
-    Transform bodyConfig = pend.getBodyConfiguration(s, aPendulum);
+    Transform bodyConfig = pend.getBodyPosition(s, aPendulum);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
-    pend.enforceConfigurationConstraints(s, 1e-3, 1e-10);
-    mbs.realize(s, Stage::Configured);
+    pend.enforcePositionConstraints(s, 1e-3, 1e-10);
+    mbs.realize(s, Stage::Position);
 
-    cout << "-------> STATE after realize(Configured):" << s;
-    cout << "<------- STATE after realize(Configured)." << endl;
+    cout << "-------> STATE after realize(Position):" << s;
+    cout << "<------- STATE after realize(Position)." << endl;
 
-    cout << "after assembly body frame: " << pend.getBodyConfiguration(s,aPendulum); 
+    cout << "after assembly body frame: " << pend.getBodyPosition(s,aPendulum); 
 
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
@@ -340,7 +340,7 @@ try {
     pend.resetForces(bodyForces, particleForces, mobilityForces);
     pend.addInMobilityForce(s, aPendulum, 0, 147, mobilityForces);
 
-    mbs.realize(s, Stage::Moving);
+    mbs.realize(s, Stage::Velocity);
     SpatialVec bodyVel = pend.getBodyVelocity(s, aPendulum);
     cout << "body vel: " << bodyVel << endl;
 
@@ -355,7 +355,7 @@ try {
     pend.calcTreeEquivalentMobilityForces(s, bodyForces, equivT);
     cout << "body forces -> equiv joint forces=" << equivT << endl;
 
-    mbs.realize(s, Stage::Reacting);
+    mbs.realize(s, Stage::Acceleration);
 
     SpatialVec bodyAcc = pend.getBodyAcceleration(s, aPendulum);
     cout << "body acc: " << bodyAcc << endl;
@@ -370,7 +370,7 @@ try {
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
-    pend.setMobilizerConfiguration(s,aPendulum,Transform(RotationMat(q), Vec3(.1,.2,.3)));
+    pend.setMobilizerPosition(s,aPendulum,Transform(RotationMat(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
     //pend.updQ(s)[2] = -.1;
@@ -396,7 +396,7 @@ try {
 
         const Vector qdot = pend.getQDot(s);
 
-        Transform  x = pend.getBodyConfiguration(s,aPendulum);
+        Transform  x = pend.getBodyPosition(s,aPendulum);
         SpatialVec v = pend.getBodyVelocity(s,aPendulum);
 
         //Vec3 err = x.T()-Vec3(2.5,0.,0.);
@@ -423,7 +423,7 @@ try {
         ++step;
 
 
-        mbs.realize(s, Stage::Reacting);
+        mbs.realize(s, Stage::Acceleration);
         /*
         cout << "CONSTRAINT ERRORS:\n";
         cout << "quat:" << Vec4::getAs(&s.getQ()[0]).norm()-1 << endl;

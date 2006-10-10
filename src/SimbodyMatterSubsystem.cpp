@@ -220,14 +220,14 @@ const Real& SimbodyMatterSubsystem::getMobilizerU(const State& s, int body, int 
   { return getRep().getMobilizerU(s,body,axis); }
 
 
-void SimbodyMatterSubsystem::enforceConfigurationConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
-  { getRep().enforceConfigurationConstraints(s, requiredTol, desiredTol); }
-void SimbodyMatterSubsystem::enforceMotionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
-  { getRep().enforceMotionConstraints(s, requiredTol, desiredTol); }
+void SimbodyMatterSubsystem::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
+  { getRep().enforcePositionConstraints(s, requiredTol, desiredTol); }
+void SimbodyMatterSubsystem::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
+  { getRep().enforceVelocityConstraints(s, requiredTol, desiredTol); }
 
 const Transform&
-SimbodyMatterSubsystem::getBodyConfiguration(const State& s, int body) const
-  { return getRep().getBodyConfiguration(s,body); }
+SimbodyMatterSubsystem::getBodyPosition(const State& s, int body) const
+  { return getRep().getBodyPosition(s,body); }
 
 const SpatialVec&
 SimbodyMatterSubsystem::getBodyVelocity(const State& s, int body) const {

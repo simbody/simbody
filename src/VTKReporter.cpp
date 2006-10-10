@@ -397,19 +397,19 @@ void VTKReporterRep::setCameraDefault() {
 void VTKReporterRep::report(const State& s) {
     if (!renWin) return;
 
-    mbs.realize(s, Stage::Configured); // just in case
+    mbs.realize(s, Stage::Position); // just in case
 
     const MatterSubsystem& matter = mbs.getMatterSubsystem();
     for (int i=1; i<matter.getNBodies(); ++i) {
-        const Transform& config = matter.getBodyConfiguration(s, i);
+        const Transform& config = matter.getBodyPosition(s, i);
         setConfiguration(i, config);
     }
     for (int i=0; i<(int)dynamicGeom.size(); ++i) {
         const PerDynamicGeomInfo& info = dynamicGeom[i];
         const Transform& X_GB1 = 
-            matter.getBodyConfiguration(s, info.body1);
+            matter.getBodyPosition(s, info.body1);
         const Transform& X_GB2 = 
-            matter.getBodyConfiguration(s, info.body2);
+            matter.getBodyPosition(s, info.body2);
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 
