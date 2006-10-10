@@ -20,8 +20,8 @@ LINK_LIBRARIES(
   vtkCommon
 )
 
-ADD_EXECUTABLE(PendulumExample       PendulumExample.cpp)
-ADD_EXECUTABLE(PendulumExampleStatic PendulumExampleStatic.cpp)
+ADD_EXECUTABLE(CoarseRNA       CoarseRNA.cpp)
+ADD_EXECUTABLE(CoarseRNAStatic CoarseRNAStatic.cpp)
 
-TARGET_LINK_LIBRARIES(PendulumExample       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(PendulumExampleStatic ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(CoarseRNA       ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(CoarseRNAStatic ${STATIC_TARGET})

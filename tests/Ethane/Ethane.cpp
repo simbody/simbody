@@ -233,8 +233,10 @@ try {
     /**/
 
     State s;
-    mbs.realize(s, Stage::Topology);
-    mbs.realize(s, Stage::Model);
+    //mbs.realize(s, Stage::Topology);
+    //mbs.realize(s, Stage::Model);
+
+    mbs.realize(s);
 
     /* Cartesian: */
     for (int i=0; i < mm.getNAtoms(); ++i) {
