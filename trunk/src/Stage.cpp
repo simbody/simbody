@@ -28,9 +28,8 @@ SimTK::String
 SimTK::Stage::name() const
 {
 	static String names[] = 
-    { "Allocated", "Built",
-      "Modeled", "Parametrized", "Timed",
-      "Configured", "Moving", "Dynamics", "Reacting" };
+    { "Empty", "Topology", "Model", "Instance", "Time",
+      "Position", "Velocity", "Dynamics", "Acceleration", "Report" };
 
     if (n == Stage::Invalid) return "Invalid";
 	if (isValid(n))

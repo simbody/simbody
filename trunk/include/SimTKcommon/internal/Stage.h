@@ -47,37 +47,40 @@ public:
     // sherm 060720
     // Noun version          Verb version
     //  Invalid                Invalid
-    //  Initialized            Allocate    Allocated
+    //  Empty                  Allocate    Allocated
     //  Topology               Build       Built
+    //
     //  Model                  Model       Modeled
-    //  Specifics              Specify     Specified
+    //  Instance               Specify     Specified
     //  Time                   Time        Timed
     //  Position               Position    Positioned
     //  Velocity               Move        Moving
     //  Dynamics               ?
     //  Acceleration           Accelerate  Accelerated
+    //
     //  Report                 Report      Reported
 
 	enum Num {
         Invalid        = -99,
-        Allocated      =  0, // TODO: Initialized, Unbuilt, Empty?
-        Built          =  1, // TODO: Constructed, Finalized?
-        Modeled        =  2, // TODO: Instantiated, Resourced, Provisioned, Specialized?
-        Parametrized   =  3,
-        Timed          =  4,
-        Configured     =  5, // TODO: Positioned?
-        Moving         =  6, // TODO: Velocity, Speed, Rate?
+        Empty          =  0, // TODO: Initialized, Unbuilt, Empty, Vacant?
+        Topology       =  1, // TODO: Constructed, Finalized?
+        Model          =  2, // TODO: Instantiated, Resourced, Provisioned, Specialized?
+        Instance       =  3, // TODO: Instanced, Specified?
+        Time           =  4,
+        Position       =  5, // TODO: Positioned?
+        Velocity       =  6, // TODO: Velocity, Speed, Rate?
         Dynamics       =  7, // dynamic properties & operators available
-        Reacting       =  8  // TODO: Accelerated?
+        Acceleration   =  8, // TODO: Accelerated?
+        Report         =  9  // TODO: Output?
 	};
 
-    static const Stage::Num LowestValid     = Allocated;
-    static const Stage::Num HighestValid    = Reacting;
+    static const Stage::Num LowestValid     = Empty;
+    static const Stage::Num HighestValid    = Report;
     static const int        NValid          = HighestValid-LowestValid+1;
 
     // LowestRuntime->HighestRuntime cover the post-construction stages only.
-	static const Stage::Num	LowestRuntime	= Modeled;
-	static const Stage::Num	HighestRuntime	= Reacting;
+	static const Stage::Num	LowestRuntime	= Model;
+	static const Stage::Num	HighestRuntime	= Acceleration;
 	static const int		NRuntime     	= HighestRuntime-LowestRuntime+1;
 		
 	Stage() : n(Stage::Invalid) { }
