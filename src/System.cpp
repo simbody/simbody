@@ -106,13 +106,14 @@ void SystemRep::realize(const State& s, Stage g) const {
             realizeTopology(mutableState); 
             break;
         }
-        case Stage::Topology:        realizeModel    (const_cast<State&>(s)); break;
-        case Stage::Model:      realizeInstance(s);    break;
-        case Stage::Instance: realizeTime(s);          break;
-        case Stage::Time:        realizePosition(s); break;
-        case Stage::Position:   realizeVelocity(s);        break;
-        case Stage::Velocity:       realizeDynamics(s);      break;
-        case Stage::Dynamics:     realizeAcceleration(s);      break;
+        case Stage::Topology:     realizeModel (const_cast<State&>(s)); break;
+        case Stage::Model:        realizeInstance(s);     break;
+        case Stage::Instance:     realizeTime(s);         break;
+        case Stage::Time:         realizePosition(s);     break;
+        case Stage::Position:     realizeVelocity(s);     break;
+        case Stage::Velocity:     realizeDynamics(s);     break;
+        case Stage::Dynamics:     realizeAcceleration(s); break;
+        case Stage::Acceleration: realizeReport(s);       break;
         default: assert(!"System::realize(): bad stage");
         }
         // In case the concrete system didn't do anything with the

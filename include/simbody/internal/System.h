@@ -70,7 +70,7 @@ public:
     const String& getVersion() const;
 
     /// Realize the entire System to the indicated Stage.
-    void realize(const State& s, Stage g) const;
+    void realize(const State& s, Stage g = Stage::HighestValid) const;
 
     /// This operator can be called at Stage::Instance or higher and 
     /// returns a rough estimate of a length of time we consider significant

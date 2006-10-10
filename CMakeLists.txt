@@ -294,7 +294,8 @@ ADD_TEST(PendulumExample              ${TEST_PATH}/PendulumExample)
 ADD_TEST(PendulumExampleStatic        ${TEST_PATH}/PendulumExampleStatic)
 ADD_TEST(SBPendulum1                  ${TEST_PATH}/SBPendulum1)
 ADD_TEST(SBPendulum1Static            ${TEST_PATH}/SBPendulum1Static)
-
+ADD_TEST(CoarseRNA                    ${TEST_PATH}/CoarseRNA)
+ADD_TEST(CoarseRNAStatic              ${TEST_PATH}/CoarseRNAStatic)
 
 #
 # Installation

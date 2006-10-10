@@ -116,6 +116,10 @@ public:
         for (int i=0; i<getNSubsystems(); ++i)
             subsystems[i].realize(s, Stage::Acceleration);
     }
+    virtual void realizeReport(const State& s) const { 
+        for (int i=0; i<getNSubsystems(); ++i)
+            subsystems[i].realize(s, Stage::Report);
+    }
 
     void realize(const State& s, Stage g) const;
 

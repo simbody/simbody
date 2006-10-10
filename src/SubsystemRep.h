@@ -133,6 +133,8 @@ public:
     }
     virtual void realizeAcceleration(const State& s) const { 
     }
+    virtual void realizeReport(const State& s) const { 
+    }
 
 	bool isInSystem() const {return mySystem != 0;}
 	bool isInSameSystem(const System& sys) const {
