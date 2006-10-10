@@ -689,7 +689,7 @@ void RigidBodyTree::addInStationForce(const State& s, int body,
 {
     assert(rigidBodyForces.size() == getNBodies());
     const SBPositionCache& cc = getPositionCache(s);
-    const RotationMat& R_GB = getRigidBodyNode(body).getX_GB(cc).R();
+    const Rotation& R_GB = getRigidBodyNode(body).getX_GB(cc).R();
     rigidBodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 

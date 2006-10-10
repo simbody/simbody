@@ -125,8 +125,8 @@ public:
     const Transform&    fromB(const Array<Transform>&          x) const {return x[nodeNum];}
     const PhiMatrix&    fromB(const std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
     const PhiMatrix&    fromB(const Array<PhiMatrix>&          p) const {return p[nodeNum];}
-    const InertiaMat&   fromB(const std::vector<InertiaMat>&   i) const {return i[nodeNum];}
-    const InertiaMat&   fromB(const Array<InertiaMat>&         i) const {return i[nodeNum];}
+    const Inertia&   fromB(const std::vector<Inertia>&   i) const {return i[nodeNum];}
+    const Inertia&   fromB(const Array<Inertia>&         i) const {return i[nodeNum];}
     int                 fromB(const std::vector<int>&          i) const {return i[nodeNum];}
     int                 fromB(const Array<int>&                i) const {return i[nodeNum];}
     const SpatialVec&   fromB(const Vector_<SpatialVec>&       v) const {return v[nodeNum];}
@@ -137,8 +137,8 @@ public:
     Transform&    toB(Array<Transform>&          x) const {return x[nodeNum];}
     PhiMatrix&    toB(std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
     PhiMatrix&    toB(Array<PhiMatrix>&          p) const {return p[nodeNum];}
-    InertiaMat&   toB(std::vector<InertiaMat>&   i) const {return i[nodeNum];}
-    InertiaMat&   toB(Array<InertiaMat>&         i) const {return i[nodeNum];}
+    Inertia&   toB(std::vector<Inertia>&   i) const {return i[nodeNum];}
+    Inertia&   toB(Array<Inertia>&         i) const {return i[nodeNum];}
     int&          toB(std::vector<int>&          i) const {return i[nodeNum];}
     int&          toB(Array<int>&                i) const {return i[nodeNum];}
     SpatialVec&   toB(Vector_<SpatialVec>&       v) const {return v[nodeNum];}
@@ -155,12 +155,12 @@ public:
     const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&           getMass          () const {return massProps_B.getMass();}
     const Vec3&           getCOM_B         () const {return massProps_B.getCOM();}
-    const InertiaMat&     getInertia_OB_B  () const {return massProps_B.getInertia();}
+    const Inertia&     getInertia_OB_B  () const {return massProps_B.getInertia();}
     const Transform&      getX_BJ          () const {return X_BJ;}
     const Transform&      getX_PJb         () const {return X_PJb;}
 
     // These are calculated on construction.
-    const InertiaMat&     getInertia_CB_B  () const {return inertia_CB_B;}
+    const Inertia&     getInertia_CB_B  () const {return inertia_CB_B;}
     const Transform&      getX_JB          () const {return X_JB;}
     const Transform&      getRefX_PB       () const {return refX_PB;}
 
@@ -209,8 +209,8 @@ public:
     Vec3&       updCB_G(SBPositionCache&       cc) const {return toB  (cc.bodyCOMStationInGround);}
 
     /// Extract from the cache the body's inertia about the body origin OB, but reexpressed in Ground.
-    const InertiaMat& getInertia_OB_G(const SBPositionCache& cc) const {return fromB(cc.bodyInertiaInGround);}
-    InertiaMat&       updInertia_OB_G(SBPositionCache&       cc) const {return toB  (cc.bodyInertiaInGround);}
+    const Inertia& getInertia_OB_G(const SBPositionCache& cc) const {return fromB(cc.bodyInertiaInGround);}
+    Inertia&       updInertia_OB_G(SBPositionCache&       cc) const {return toB  (cc.bodyInertiaInGround);}
 
     /// Return OB_G, the spatial location of the origin of the B frame, that is, 
     /// measured from the ground origin and expressed in ground.
@@ -521,7 +521,7 @@ protected:
 
     /// This is the supplied inertia, shifted to the center of mass. It is still
     /// a constant expressed in B, but is taken about the COM.
-    const InertiaMat     inertia_CB_B;
+    const Inertia     inertia_CB_B;
 
     /// Orientation and location of inboard joint frame J, measured
     /// and expressed in body frame B.

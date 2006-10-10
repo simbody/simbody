@@ -161,9 +161,9 @@ try {
     //int baseBody =
      //   pend.addRigidBody(0, groundFrame, 
      //                     Mobilizer(Mobilizer::Pin, false),
-      //                    Transform(), MassProperties(0.,Vec3(0.),InertiaMat(0.)));
+      //                    Transform(), MassProperties(0.,Vec3(0.),Inertia(0.)));
     Transform jointFrame(Vec3(-L/2,0,0));
-    MassProperties mprops(m, Vec3(L/2,0,0), InertiaMat(Vec3(L/2,0,0), m)+InertiaMat(1e-6,1e-6,1e-6));
+    MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
         << mprops.getCOM() << ", " << mprops.getInertia() << endl;
 
@@ -180,7 +180,7 @@ try {
                         );
     const Real ballMass = 10;
     const Real ballRadius = 2;
-    const MassProperties ballMProps(ballMass, Vec3(0), ballMass*InertiaMat::sphere(ballRadius));
+    const MassProperties ballMProps(ballMass, Vec3(0), ballMass*Inertia::sphere(ballRadius));
     const Vec3 ballPos = Vec3(-3,5,0);
     int aBall = 
         pend.addRigidBody(ballMProps, Transform(),
@@ -266,7 +266,7 @@ try {
     sphere.setScale(0.5); sphere.setResolution(1);
     vtk.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
     Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
-    vtk.addDecoration(aPendulum, Transform(RotationMat(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
+    vtk.addDecoration(aPendulum, Transform(Rotation(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
     DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
     vtk.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
         DecorativeCylinder(0.1).setOpacity(0.3));
@@ -370,7 +370,7 @@ try {
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
-    pend.setMobilizerPosition(s,aPendulum,Transform(RotationMat(q), Vec3(.1,.2,.3)));
+    pend.setMobilizerPosition(s,aPendulum,Transform(Rotation(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
     //pend.updQ(s)[2] = -.1;

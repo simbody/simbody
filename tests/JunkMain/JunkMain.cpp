@@ -113,7 +113,7 @@ try {
 
     const Real m = 1;
     const Vec3 com = Vec3(0,0,0);
-    const InertiaMat iner(1,1,1);
+    const Inertia iner(1,1,1);
 
     const MassProperties mProps(m,com,iner);;
     const Transform      jointFrame;
@@ -121,7 +121,7 @@ try {
     const Transform      groundFrame;
 
 
-    int base = bendStretchBlock.addRigidBody(MassProperties(1,Vec3(0),InertiaMat::sphere(1)),
+    int base = bendStretchBlock.addRigidBody(MassProperties(1,Vec3(0),Inertia::sphere(1)),
                         BodyFrame,
                         Ground, groundFrame,
                         Mobilizer::Pin);
@@ -134,7 +134,7 @@ try {
     int bendBody, bendCoord;
     int stretchBody, stretchCoord;
     if (useDummy) {
-        int dummy = bendStretchBlock.addRigidBody(MassProperties(0,Vec3(0),InertiaMat(0)),
+        int dummy = bendStretchBlock.addRigidBody(MassProperties(0,Vec3(0),Inertia(0)),
                                                   Transform(),
                                                   base, baseFrame,
                                                   Mobilizer::Pin);

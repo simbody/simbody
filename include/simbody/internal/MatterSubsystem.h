@@ -97,7 +97,7 @@ public:
     /// Extract from the state cache the already-calculated spatial orientation
     /// of body B's body frame x, y, and z axes expressed in the ground frame,
     /// as the rotation matrix R_GB. This response is available at Configuration stage.
-    const RotationMat& getBodyRotation(const State& s, int body) const {
+    const Rotation& getBodyRotation(const State& s, int body) const {
         return getBodyPosition(s,body).R();
     }
     /// Extract from the state cache the already-calculated spatial location

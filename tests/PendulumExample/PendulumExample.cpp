@@ -57,7 +57,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 GroundBodyNum,           // parent body
                 Transform(Vec3(1,1,1)),             // jt frame on parent             
@@ -67,7 +67,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
@@ -76,7 +76,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
@@ -85,7 +85,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2a,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
@@ -94,7 +94,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2b,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
@@ -104,7 +104,7 @@ public:
             addRigidBody(
                 MassProperties(m,        // body mass, center of mass, inertia
                                Vec3(0,-d/2,0), 
-                               InertiaMat(Vec3(0,-d/2,0), m)+InertiaMat(1e-3,1e-3,1e-3)),
+                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
                 Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
                 pendBodyNum2c,           // parent body
                 Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
@@ -129,7 +129,7 @@ public:
     void setPendulumAngle(State& s, Real angleInDegrees) {
         const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
         Quaternion q; q.setToAngleAxis(aa);
-        setMobilizerPosition(s,pendBodyNum,Transform(RotationMat(q)));
+        setMobilizerPosition(s,pendBodyNum,Transform(Rotation(q)));
     }
 private:
     int pendBodyNum;
@@ -252,7 +252,7 @@ private:
         const Real pitch = 2*Pi/halfHeight;
         const Real trans = (2*halfHeight)/(nAtoms-1);
         const Real rot = pitch*trans;
-        InertiaMat iner(0);
+        Inertia iner(0);
         Vec3 com(0);
         Real mass = 0;
         for (int i=0; i<nAtoms; ++i) {
@@ -260,7 +260,7 @@ private:
             const Real th = i*rot;
             const Vec3 p1(-r*cos(th),h,r*sin(th)), p2(r*cos(th),h,-r*sin(th));
             mass += 2*atomMass;
-            iner += InertiaMat(p1, atomMass) + InertiaMat(p2, atomMass);
+            iner += Inertia(p1, atomMass) + Inertia(p2, atomMass);
             com += atomMass*p1 + atomMass*p2;
         }
         return MassProperties(mass,com/mass,iner);
@@ -271,7 +271,7 @@ private:
         const Real volume = Pi*r*r*halfHeight;
         const Real mass = volume*density;
         const Vec3 com = Vec3(0);
-        const InertiaMat iner = mass*InertiaMat::cylinderAlongY(r, halfHeight);
+        const Inertia iner = mass*Inertia::cylinderAlongY(r, halfHeight);
 
         return MassProperties(mass,com,iner);
     }

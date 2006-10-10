@@ -158,10 +158,10 @@ try {
     mm.placeAtomInCluster(C[0], methyl1, Vec3(0));
     mm.placeAtomInCluster(C[1], methyl2, Vec3(0));
 
-    const Vec3 H1pos = RotationMat::aboutZ(hccNominalBondBend)
+    const Vec3 H1pos = Rotation::aboutZ(hccNominalBondBend)
                           * Vec3(chNominalBondLength,0,0);
     for (int i=0; i<3; ++i) {
-        const Vec3 Hpos = RotationMat::aboutX(i*120*RadiansPerDegree) * H1pos;
+        const Vec3 Hpos = Rotation::aboutX(i*120*RadiansPerDegree) * H1pos;
         mm.placeAtomInCluster(H[i],   methyl1, Hpos);
         mm.placeAtomInCluster(H[3+i], methyl2, Hpos);
     }
@@ -181,17 +181,17 @@ try {
     mm.placeClusterInCluster(methyl1, wholeEthaneStaggered, Transform());
 
     mm.placeClusterInCluster(methyl2, wholeEthaneEclipsed, 
-        Transform(RotationMat::aboutY(180*RadiansPerDegree),
+        Transform(Rotation::aboutY(180*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
     mm.placeClusterInCluster(methyl2, wholeEthaneStaggered, 
-        Transform(RotationMat::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
+        Transform(Rotation::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
                   Vec3(ccNominalBondLength,0,0)));
 
     cout << "mass props twoCarbons =" << mm.calcClusterMassProperties(twoCarbons, Transform(Vec3(.76844,1,0)));
     cout << "mass props methyl1    =" << mm.calcClusterMassProperties(methyl1);
     cout << "mass props methyl2    =" << mm.calcClusterMassProperties(methyl2);
     cout << "mass props methyl2(rot-45y) =" << mm.calcClusterMassProperties(methyl2,
-        Transform(RotationMat::aboutY(-45*RadiansPerDegree)));
+        Transform(Rotation::aboutY(-45*RadiansPerDegree)));
     cout << "mass props eclipsed   =" << mm.calcClusterMassProperties(wholeEthaneEclipsed);
     cout << "mass props staggered  =" << mm.calcClusterMassProperties(wholeEthaneStaggered);
 
@@ -214,18 +214,18 @@ try {
                 Mobilizer::Free);
     int b2 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl2, Transform()),      
-                Transform(RotationMat::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
-                b1, Transform(RotationMat::aboutY(90*RadiansPerDegree), // move z to +x
+                Transform(Rotation::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
+                b1, Transform(Rotation::aboutY(90*RadiansPerDegree), // move z to +x
                               Vec3(ccNominalBondLength,0,0)),
                 Mobilizer::Cylinder);
     mm.attachClusterToBody(methyl1, b1, Transform());
-    mm.attachClusterToBody(methyl2, b2, Transform(RotationMat::aboutY(180*RadiansPerDegree)));
+    mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*RadiansPerDegree)));
     /**/
 
     /* Cartesian:  */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
-            MassProperties(mm.getAtomMass(i), Vec3(0), InertiaMat(0)), Transform(),
+            MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
             Ground, Transform(),
             Mobilizer::Cartesian);
         mm.attachAtomToBody(i, b, Vec3(0));

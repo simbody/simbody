@@ -2767,7 +2767,7 @@ MassProperties Cluster::calcMassProperties
 {
     Real       mass = 0;
     Vec3       com(0);
-    InertiaMat inertia(0);
+    Inertia inertia(0);
 
     // Calculate the mass properties in the local frame and transform last.
     AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
@@ -2775,7 +2775,7 @@ MassProperties Cluster::calcMassProperties
         const Real ma = mm.getElement(mm.getAtomElementNum(aap->atomId)).mass;
         mass += ma;
         com  += ma*aap->station;
-        inertia += InertiaMat(aap->station, ma);
+        inertia += Inertia(aap->station, ma);
         ++aap;
     }
     com /= mass;

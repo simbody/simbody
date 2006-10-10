@@ -39,7 +39,7 @@ namespace SimTK {
 
 class Transform;
 class Mobilizer;
-class InertiaMat;
+class Inertia;
 class SimbodyTreeRep;
 class MassProperties;
 

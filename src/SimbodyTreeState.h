@@ -187,7 +187,7 @@ public:
     Array<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    Array<InertiaMat>   bodyInertiaInGround;          // nb (I_OB_G)
+    Array<Inertia>   bodyInertiaInGround;          // nb (I_OB_G)
     Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>       bodyCOMInGround;              // nb (COM_G)
     Vector_<Vec3>       bodyCOMStationInGround;       // nb (COMstation_G)
