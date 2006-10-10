@@ -46,8 +46,13 @@ using std::endl;
 using namespace SimTK;
 
 
-static const Real Pi = NTraits<Real>::Pi, RadiansPerDegree = Pi/180;
-static const Real EnergyUnitsPerKcal = 418.4; // exact 
+static const Real Pi      = (Real)SimTK_PI, 
+                  Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,   // multiply to convert
+                  Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
+
+// We're currently in DECAjoules rather than KILOjoules (TODO)
+static const Real EnergyUnitsPerKcal = (Real)(100*SimTK_KCAL_TO_KJOULE);
+
 static const int  Ground = 0;       // ground is always body 0
 static const Transform BodyFrame;   // identity transform on any body
 
@@ -117,7 +122,7 @@ try {
 
     const Real ccNominalBondLength = 1.53688; // A
     const Real chNominalBondLength = 1.09;    // A
-    const Real hccNominalBondBend  = 109.5*RadiansPerDegree;
+    const Real hccNominalBondBend  = 109.5*Deg2Rad;
 
     // Create the atoms and bonds. H[0..2] are attached to C[0], the others to C[1].
     int C[2]; for (int i=0; i<2; ++i) C[i] = mm.addAtom(13);
@@ -161,7 +166,7 @@ try {
     const Vec3 H1pos = Rotation::aboutZ(hccNominalBondBend)
                           * Vec3(chNominalBondLength,0,0);
     for (int i=0; i<3; ++i) {
-        const Vec3 Hpos = Rotation::aboutX(i*120*RadiansPerDegree) * H1pos;
+        const Vec3 Hpos = Rotation::aboutX(i*120*Deg2Rad) * H1pos;
         mm.placeAtomInCluster(H[i],   methyl1, Hpos);
         mm.placeAtomInCluster(H[3+i], methyl2, Hpos);
     }
@@ -181,17 +186,17 @@ try {
     mm.placeClusterInCluster(methyl1, wholeEthaneStaggered, Transform());
 
     mm.placeClusterInCluster(methyl2, wholeEthaneEclipsed, 
-        Transform(Rotation::aboutY(180*RadiansPerDegree),
+        Transform(Rotation::aboutY(180*Deg2Rad),
                   Vec3(ccNominalBondLength,0,0)));
     mm.placeClusterInCluster(methyl2, wholeEthaneStaggered, 
-        Transform(Rotation::aboutYThenOldX(180*RadiansPerDegree, 60*RadiansPerDegree),
+        Transform(Rotation::aboutYThenOldX(180*Deg2Rad, 60*Deg2Rad),
                   Vec3(ccNominalBondLength,0,0)));
 
-    cout << "mass props twoCarbons =" << mm.calcClusterMassProperties(twoCarbons, Transform(Vec3(.76844,1,0)));
+    cout << "mass props twoCarbons =" << mm.calcClusterMassProperties(twoCarbons, Vec3(.76844,1,0));
     cout << "mass props methyl1    =" << mm.calcClusterMassProperties(methyl1);
     cout << "mass props methyl2    =" << mm.calcClusterMassProperties(methyl2);
-    cout << "mass props methyl2(rot-45y) =" << mm.calcClusterMassProperties(methyl2,
-        Transform(Rotation::aboutY(-45*RadiansPerDegree)));
+    cout << "mass props methyl2(rot-45y) =" 
+         << mm.calcClusterMassProperties(methyl2, Rotation::aboutY(-45*Deg2Rad));
     cout << "mass props eclipsed   =" << mm.calcClusterMassProperties(wholeEthaneEclipsed);
     cout << "mass props staggered  =" << mm.calcClusterMassProperties(wholeEthaneStaggered);
 
@@ -285,7 +290,7 @@ try {
     }
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        display.addDecoration(mm.getAtomBody(anum), Transform(mm.getAtomStationOnBody(anum)),
+        display.addDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
             DecorativeSphere(0.25*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(0.25).setResolution(3));
     }

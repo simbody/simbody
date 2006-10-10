@@ -22,7 +22,7 @@
  */
 
 /**@file
- * The simple 2d pendulum example from the user's manual.
+ * A big, chunky fake RNA built of cylinders and ball joints.
  */
 
 #include "Simbody.h"
@@ -40,100 +40,10 @@
 using namespace std;
 using namespace SimTK;
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real Pi = (Real)SimTK_PI, Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN;
 static const int  GroundBodyNum = 0; // ground is always body 0
 
-static const Real m = 5;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
-static const Real d = 1.5; // meters
-static const Real initialTheta   = 30;             // degrees
-static const Real expectedPeriod = 2*Pi*sqrt(d/g); // s
-
-class MySimbodyPendulum : public SimbodyMatterSubsystem {
-public:
-    MySimbodyPendulum() 
-    {
-        pendBodyNum =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                GroundBodyNum,           // parent body
-                Transform(Vec3(1,1,1)),             // jt frame on parent             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-
-        int pendBodyNum2 =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                pendBodyNum,           // parent body
-                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-        int pendBodyNum2a =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                pendBodyNum2,           // parent body
-                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-        int pendBodyNum2b =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                pendBodyNum2a,           // parent body
-                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-        int pendBodyNum2c =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                pendBodyNum2b,           // parent body
-                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-
-        int pendBodyNum3 =
-            addRigidBody(
-                MassProperties(m,        // body mass, center of mass, inertia
-                               Vec3(0,-d/2,0), 
-                               Inertia(Vec3(0,-d/2,0), m)+Inertia(1e-3,1e-3,1e-3)),
-                Transform(Vec3(0,d/2,0)),// jt frame on body (aligned w/body frame)
-                pendBodyNum2c,           // parent body
-                Transform(Vec3(0,-d/2,0)),             // jt frame on parent (bottom)             
-                Mobilizer(Mobilizer::Ball, false)); // joint type; pin always aligns z axes
-       
-    int theConstraint =
-      addCoincidentStationsConstraint(1, Vec3(0.3,-d/2,0),
-                                           pendBodyNum3, Vec3(0,-d/2,0));
-
-    int theConstraint2 =
-       addConstantDistanceConstraint(0, Vec3(2,-3,0),
-                                          3, Vec3(0,-d/2,0),1.5);
-
-    }
-
-    Real getPendulumAngle(const State& s) const {
-        const Vec4 aa = getMobilizerPosition(s,pendBodyNum).R().convertToAngleAxis();
-        return aa[0]/RadiansPerDegree;
-    }
-
-    // Assume rotation around z
-    void setPendulumAngle(State& s, Real angleInDegrees) {
-        const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
-        Quaternion q; q.setToAngleAxis(aa);
-        setMobilizerPosition(s,pendBodyNum,Transform(Rotation(q)));
-    }
-private:
-    int pendBodyNum;
-};
 
 static const Real DuplexRadius = 3; // A
 static const Real HalfHeight = 10;  // A
@@ -148,7 +58,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 4;
+static int NSegments = 3;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -313,7 +223,6 @@ int main(int argc, char** argv) {
         int shouldFlop = 0;
         if (argc > 1) sscanf(argv[1], "%d", &nseg);
         if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
-        //printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
 
         // Create a multibody system using Simbody.
         MyRNAExample myRNA(nseg, shouldFlop != 0);
