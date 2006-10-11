@@ -50,117 +50,69 @@ static const Transform GroundFrame;
 static const Real m = 5;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
 static const Real d = 0.5; // meters
-static const Real initialTheta   = 20;             // degrees
-
 
 int main(int argc, char** argv) {
-    std::vector<State> saveEm;
+try { // If anything goes wrong, an exception will be thrown.
 
-    try { // If anything goes wrong, an exception will be thrown.
-        Real start = initialTheta;
-        if (argc > 1) sscanf(argv[1], "%g", &start);
-        printf("Pendulum starting at angle +%g degrees from vertical.\n", start);
+    MultibodySystem         mbs;
+    UniformGravitySubsystem gravity(Vec3(0, -g, 0));
+
+    SimbodyMatterSubsystem  pend;
+    const Vec3 weightLocation(0, -d/2, 0); // in local frame of swinging body
+
+    const int swinger = pend.addRigidBody(
+        MassProperties(m, weightLocation, m*Inertia::pointMassAt(weightLocation)),
+        Vec3(0, d/2, 0),    // inboard joint location
+        GroundBodyNum, GroundFrame,
+        Mobilizer::Pin); // rotates around common z axis
+
+    // Put the subsystems into the system.
+    mbs.setMatterSubsystem(pend);
+    mbs.addForceSubsystem(gravity);
+
+    State s;
+    mbs.realize(s); // define appropriate states for this System
 
 
-        // Create a multibody system using Simbody.
-        SimbodyMatterSubsystem pend;
+    // Create a study using the Runge Kutta Merson integrator
+    RungeKuttaMerson myStudy(mbs, s);
+    myStudy.setAccuracy(1e-2);
 
-        const Vec3 weightLocation(0, -d/2, 0); // in local frame of swinging body
+    // Visualize with VTK.
+    VTKReporter display(mbs);
 
-        const int swinger = pend.addRigidBody(
-            MassProperties(m, weightLocation, m*Inertia::pointMassAt(weightLocation)),
-            Vec3(0, d/2, 0),    // inboard joint location
-            GroundBodyNum, GroundFrame,
-            Mobilizer::Pin); // rotates around common z axis
+    // Add a blue sphere around the weight.
+    display.addDecoration(swinger, weightLocation, 
+          DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
 
-        GeneralForceElements forces;
-        //forces.addGlobalEnergyDrain(1000);
-       /* forces.addTwoPointLinearSpring(0, -attachPt,
-                                       myRNA.getNBodies()-1, Vec3(0),
-                                       1000.,  // stiffness
-                                       1.);    // natural length
-        */
+    const Real expectedPeriod = 2*Pi*std::sqrt(d/g);
+    printf("Expected period: %g seconds\n", expectedPeriod);
 
-        MultibodySystem mbs;
-        mbs.setMatterSubsystem(pend);
-        mbs.addForceSubsystem(forces);
+    const Real dt = 0.01; // output intervals
+    const Real finalTime = 1*expectedPeriod;
 
-        UniformGravitySubsystem ugs(Vec3(0, -g, 0));
-        mbs.addForceSubsystem(ugs);
-
-        State s;
-        mbs.realize(s, Stage::Topology);
-        //myRNA.setUseEulerAngles(s,true);
-        mbs.realize(s, Stage::Model);
-
-        //ugs.updGravity(s) *= 10;
-        ugs.disableGravity(s);
-        ugs.enableGravity(s);
-       // ugs.updZeroHeight(s) = -0.8; // to change how PE is calculated
-        //cout << "STATE AS MODELED: " << s;
-       
-        pend.setMobilizerQ(s, swinger, 0, start*Deg2Rad);
-
-        // And a study using the Runge Kutta Merson integrator
-        bool suppressProject = false;
-        RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-8);
-        //myStudy.setConstraintTolerance(1e-3);
-        //myStudy.setProjectEveryStep(false);
-
-        VTKReporter display(mbs);
-        display.setDefaultBodyColor(swinger, Cyan);
-       // display.addDecoration(swinger, Transform(weightLocation), 
-     //       DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
-
-        //DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-        //display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
-
-        const Real actualG = ugs.getGravity(s).norm() * ugs.isEnabled(s);
-        printf("d=%g, g=%g -> Expected period: %g seconds\n", 
-            d, actualG,
-            2*Pi*std::sqrt(d/actualG));
-
-        const Real dt = 0.01; // output intervals
-
-        printf("time  nextStepSize\n");
-
+    for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
+        printf("time  theta      energy           *************\n");
         s.updTime() = 0;
-        for (int i=0; i<100; ++i)
-            saveEm.push_back(s);    // delay
-        display.report(s);
-
+        pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
+        pend.setMobilizerU(s, swinger, 0, 0);
         myStudy.initialize();
-        saveEm.push_back(s);
-        for (int i=0; i<100; ++i)
-            saveEm.push_back(s);    // delay
-        display.report(s);
         for (;;) {
-            printf("%5g q=%10.4g u=%10.4g hNext=%g\n", s.getTime(), 
-                pend.getMobilizerQ(s,swinger,0)*Rad2Deg, pend.getMobilizerU(s,swinger,0)*Rad2Deg,
-                myStudy.getPredictedNextStep());
-            printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-                mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+            printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,
+                mbs.getEnergy(s));
 
             display.report(s);
-            saveEm.push_back(s);
-
-           // if (myStudy.getT() >= 10*expectedPeriod)
-             //   break;
-    
-            if (s.getTime() >= 10)
+            if (s.getTime() >= finalTime)
                 break;
 
             // TODO: should check for errors or have or teach RKM to throw. 
             myStudy.step(s.getTime() + dt);
         }
-
-        for (int i=0; i < (int)saveEm.size(); ++i)
-            display.report(saveEm[i]);
-    } 
-    catch (const exception& e) {
-        printf("EXCEPTION THROWN: %s\n", e.what());
-        exit(1);
     }
+} 
+catch (const exception& e) {
+    printf("EXCEPTION THROWN: %s\n", e.what());
+    exit(1);
+}
 }
 
