@@ -46,12 +46,15 @@ using std::endl;
 using namespace SimTK;
 
 
-static const Real Pi      = (Real)SimTK_PI, 
-                  Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,   // multiply to convert
-                  Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
+static const Real Pi      = (Real)SimTK_PI;
 
-// We're currently in DECAjoules rather than KILOjoules (TODO)
-static const Real EnergyUnitsPerKcal = (Real)(100*SimTK_KCAL_TO_KJOULE);
+ // multiply to convert
+static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
+static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
+static const Real& Ang2Nm  = DuMMForceFieldSubsystem::Ang2Nm;
+static const Real& Nm2Ang  = DuMMForceFieldSubsystem::Nm2Ang;
+static const Real& Kcal2KJ = DuMMForceFieldSubsystem::Kcal2KJ;
+static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
 
 static const int  Ground = 0;       // ground is always body 0
 static const Transform BodyFrame;   // identity transform on any body
@@ -73,7 +76,7 @@ try {
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(20);
+    forces.addGlobalEnergyDrain(.2);
 
 
     // AMBER 99
@@ -81,15 +84,15 @@ try {
     mm.setVdw14ScaleFactor(1/2.); // reduce energy by these factors
     mm.setCoulomb14ScaleFactor(1/1.2);
 
-    mm.defineAtomClass(1,  "Amber99 CT", 6, 4, 1.9080, vdwFac*0.1094);
-    mm.defineAtomClass(34, "Amber99 HC", 1, 1, 1.4870, vdwFac*0.0157); 
-    mm.defineChargedAtomType(13, "Amber99 Alanine CB", 1, -0.1825*chgFac);
-    mm.defineChargedAtomType(14, "Amber99 Alanine HB", 34, 0.0603*chgFac);
-    mm.defineBondStretch(1,1,  stretchFac*310., 1.5260);
-    mm.defineBondStretch(1,34, stretchFac*340., 1.09);
-    mm.defineBondBend(1,1,34, bendFac*50, 109.5);
-    mm.defineBondBend(34,1,34, bendFac*35, 109.5);
-    mm.defineBondTorsion(34,1,1,34, 3, torsFac*0.150, 0);
+    mm.defineAtomClass_KA(1,  "Amber99 CT", 6, 4, 1.9080, vdwFac*0.1094);
+    mm.defineAtomClass_KA(34, "Amber99 HC", 1, 1, 1.4870, vdwFac*0.0157); 
+    mm.defineChargedAtomType_KA(13, "Amber99 Alanine CB", 1, -0.1825*chgFac);
+    mm.defineChargedAtomType_KA(14, "Amber99 Alanine HB", 34, 0.0603*chgFac);
+    mm.defineBondStretch_KA(1,1,  stretchFac*310., 1.5260);
+    mm.defineBondStretch_KA(1,34, stretchFac*340., 1.09);
+    mm.defineBondBend_KA(1,1,34, bendFac*50, 109.5);
+    mm.defineBondBend_KA(34,1,34, bendFac*35, 109.5);
+    mm.defineBondTorsion_KA(34,1,1,34, 3, torsFac*0.150, 0);
 
     mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
 
@@ -120,9 +123,9 @@ try {
     const int wholeEthaneEclipsed  = mm.createCluster("ethaneEclipsed");
     const int wholeEthaneStaggered = mm.createCluster("ethaneStaggered");
 
-    const Real ccNominalBondLength = 1.53688; // A
-    const Real chNominalBondLength = 1.09;    // A
-    const Real hccNominalBondBend  = 109.5*Deg2Rad;
+    const Real ccNominalBondLength = 1.53688 * Ang2Nm;
+    const Real chNominalBondLength = 1.09    * Ang2Nm;
+    const Real hccNominalBondBend  = 109.5   * Deg2Rad;
 
     // Create the atoms and bonds. H[0..2] are attached to C[0], the others to C[1].
     int C[2]; for (int i=0; i<2; ++i) C[i] = mm.addAtom(13);
@@ -211,7 +214,7 @@ try {
     mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
     /**/
 
-    /* Methyls connected by a torsion/stretch (cylinder) mobilizer.
+    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. 
     int b1 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl1, Transform()),
                 Transform(),            // inboard mobilizer frame
@@ -219,12 +222,12 @@ try {
                 Mobilizer::Free);
     int b2 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl2, Transform()),      
-                Transform(Rotation::aboutY(90*RadiansPerDegree), Vec3(0)), // move z to +x
-                b1, Transform(Rotation::aboutY(90*RadiansPerDegree), // move z to +x
+                Transform(Rotation::aboutY(90*Deg2Rad), Vec3(0)), // move z to +x
+                b1, Transform(Rotation::aboutY(90*Deg2Rad), // move z to +x
                               Vec3(ccNominalBondLength,0,0)),
                 Mobilizer::Cylinder);
     mm.attachClusterToBody(methyl1, b1, Transform());
-    mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*RadiansPerDegree)));
+    mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*Deg2Rad)));
     /**/
 
     /* Cartesian:  */
@@ -242,6 +245,10 @@ try {
     //mbs.realize(s, Stage::Model);
 
     mbs.realize(s);
+
+    /* 2 Methyls */
+    //ethane.setMobilizerQ(s,b2,0,1e-4);
+    /**/
 
     /* Cartesian: */
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -351,7 +358,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 5; //ps
 
-    study.setAccuracy(1e-7);
+    study.setAccuracy(1e-3);
     study.initialize(); 
 
     std::vector<State> saveEm;
@@ -368,10 +375,11 @@ try {
         study.step(s.getTime() + h);
 
         cout << s.getTime();
-        cout << " deltaE=" << (mbs.getEnergy(s)-Estart)/Estart
-             << " (pe=" << mbs.getPotentialEnergy(s)/EnergyUnitsPerKcal
-             << ", ke=" << mbs.getKineticEnergy(s)/EnergyUnitsPerKcal
-             << ") hNext=" << study.getPredictedNextStep();
+        cout << " deltaE=" << 100*(mbs.getEnergy(s)-Estart)
+                                /(std::abs(Estart)+NTraits<Real>::Tiny) 
+             << "% pe(kcal)=" << mbs.getPotentialEnergy(s)*KJ2Kcal
+             << ", ke(kcal)=" << mbs.getKineticEnergy(s)*KJ2Kcal
+             << " hNext(fs)=" << 1000*study.getPredictedNextStep();
         //if (useRigid) {
         //    cout << " cctors=" << ethane.getMobilizerQ(s, b2, 0)/RadiansPerDegree
         //         << " ccstretch=" << ethane.getMobilizerQ(s, b2, 1)

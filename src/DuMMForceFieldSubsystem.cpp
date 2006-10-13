@@ -24,7 +24,9 @@
 
 /**@file
  *
- * Private implementation of DuMMForceFieldSubsystem.
+ * Private implementation of DuMMForceFieldSubsystem. Units here are uniformly
+ * MD units: nanometers, daltons, picoseconds, with energy in kilojoules/mole.
+ * We accept angles from users in degrees, but use only radians internally.
  */
 
 #include "Simbody.h"
@@ -46,18 +48,33 @@
 
 namespace SimTK {
 
-static const Real Pi = NTraits<Real>::Pi;
-static const Real RadiansPerDegree = Pi/180;
+// Conversion constants (multiply something in units on left to get
+// equivalent in units on right).
 
-// Convert energy from Kcal/mol to consistent units Da-A^2/ps^2.
-static const Real EnergyUnitsPerKcal = 418.4; // exact 
+/*static*/ const Real DuMMForceFieldSubsystem::Ang2Nm  = Real(0.1L);
+/*static*/ const Real DuMMForceFieldSubsystem::Nm2Ang  = Real(10);
+/*static*/ const Real DuMMForceFieldSubsystem::Kcal2KJ = (Real)SimTK_KCAL_TO_KJOULE;
+/*static*/ const Real DuMMForceFieldSubsystem::KJ2Kcal = (Real)SimTK_KJOULE_TO_KCAL;
+/*static*/ const Real DuMMForceFieldSubsystem::Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN;
+/*static*/ const Real DuMMForceFieldSubsystem::Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
+/*static*/ const Real DuMMForceFieldSubsystem::Sigma2Radius = 
+                        (Real)std::pow(2.L,  1.L/6.L); // sigma < radius
+/*static*/ const Real DuMMForceFieldSubsystem::Radius2Sigma = 
+                        (Real)std::pow(2.L, -1.L/6.L);
+
+// handy abbreviations
+static const Real Pi      = (Real)SimTK_PI;
+static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
+static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
+static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
+static const Real& Kcal2KJ = DuMMForceFieldSubsystem::Kcal2KJ;
 
 // This is Coulomb's constant 1/(4*pi*e0) in units which convert
-// e^2/A to kcal/mol, followed by conversion to consistent energy units
-// This constant was calculated (by both me and Jay Ponder) from the
-// NIST physical constants at http://physics.nist.gov/constants
-// (2002 CODATA).
-static const Real CoulombFac = 332.06371 * EnergyUnitsPerKcal;
+// e^2/nm to kJ/mol.
+
+static const Real CoulombFac = (Real)SimTK_COULOMB_CONSTANT_IN_MD;
+
+//static const Real CoulombFac = 332.06371 * EnergyUnitsPerKcal;
 
 class IntPair {
 public:
@@ -222,8 +239,8 @@ static inline void vdwCombineHalgrenHHG(
     e = hhgMean(ei,ej);
 }
 
-static const Real oo6  = Real(1)/Real(6);
-static const Real oo13 = Real(1)/Real(13);
+static const Real oo6  = Real(1/6.L);
+static const Real oo13 = Real(1/13.L);
 
 // This doesn't seem to be used by anyone but it should be!
 // Ref: Waldman, M. & Hagler, A.T. New combining rules for
@@ -289,7 +306,7 @@ public:
     // These are all Topological state variables, that is,
     // set during construction and constant thereafter.
     int atomicNumber;
-    Real mass;         // in Daltons (Da, g/mol)
+    Real mass;         // in daltons (Da, g/mol, amu, u)
     Vec3 defaultColor;
     std::string symbol;
     std::string name;
@@ -298,9 +315,9 @@ public:
 class AtomClass {
 public:
     AtomClass() : element(-1), valence(-1), vdwRadius(-1), vdwWellDepth(-1) { }
-    AtomClass(int id, const char* nm, int e, int v, Real rad, Real wellKcal)
-      : atomClassId(id), name(nm), element(e), valence(v), vdwRadius(rad), 
-        vdwWellDepth(wellKcal*EnergyUnitsPerKcal)
+    AtomClass(int id, const char* nm, int e, int v, Real radInNm, Real wellDepthInKJ)
+      : atomClassId(id), name(nm), element(e), valence(v), 
+        vdwRadius(radInNm), vdwWellDepth(wellDepthInKJ)
     { 
         assert(isValid());
     }
@@ -313,14 +330,15 @@ public:
     }
 
     void dump() const {
-        printf("   %d(%s): element=%d, valence=%d vdwRad=%g, vdwDepth(Kcal)=%g\n",
-            atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth/EnergyUnitsPerKcal);
-        printf("    vdwDij:");
+        printf("   %d(%s): element=%d, valence=%d vdwRad=%g nm, vdwDepth(kJ)=%g (%g kcal)\n",
+            atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
+            vdwWellDepth*KJ2Kcal);
+        printf("    vdwDij (nm):");
         for (int i=0; i< (int)vdwDij.size(); ++i)
             printf(" %g", vdwDij[i]);
-        printf("\n    vdwEij:");
+        printf("\n    vdwEij (kJ):");
         for (int i=0; i< (int)vdwEij.size(); ++i)
-            printf(" %g", vdwEij[i]/EnergyUnitsPerKcal);
+            printf(" %g", vdwEij[i]);
         printf("\n");
     }
 
@@ -332,8 +350,8 @@ public:
 
     int     element;
     int     valence;       // # of direct bonds expected
-    Real    vdwRadius;     // ri, Angstroms
-    Real    vdwWellDepth;  // ei, Da-A^2/ps^2
+    Real    vdwRadius;     // ri, nm
+    Real    vdwWellDepth;  // ei, kJ=Da-nm^2/ps^2
 
 
         // TOPOLOGICAL CACHE ENTRIES
@@ -348,13 +366,13 @@ public:
     // class Id of the present AtomClass.
     // Note that different combining rules may be used but they
     // will always result in a pair of vdw parameters.
-    std::vector<Real> vdwDij;   // A
-    std::vector<Real> vdwEij;   // Da-A^2/ps^2
+    std::vector<Real> vdwDij;   // nm
+    std::vector<Real> vdwEij;   // kJ=Da-A^2/ps^2
 };
 
 class ChargedAtomType {
 public:
-    ChargedAtomType() : chargedAtomTypeId(-1), atomClassId(-1), partialCharge(CNT<Real>::getNaN()) { }
+    ChargedAtomType() : chargedAtomTypeId(-1), atomClassId(-1), partialCharge(NTraits<Real>::NaN) { }
     ChargedAtomType(int id, const char* nm, int aclass, Real chg)
       : chargedAtomTypeId(id), name(nm), atomClassId(aclass), partialCharge(chg) 
     { 
@@ -363,7 +381,7 @@ public:
     bool isValid() const {return chargedAtomTypeId >= 0 && atomClassId >= 0;}
 
     void dump() const {
-        printf("    %d(%s): atomClassId=%d, chg=%g\n", 
+        printf("    %d(%s): atomClassId=%d, chg=%g e\n", 
                chargedAtomTypeId, name.c_str(), atomClassId, partialCharge);
     }
 
@@ -382,21 +400,20 @@ public:
 class BondStretch {
 public:
     BondStretch() : k(-1), d0(-1) { }
-    BondStretch(Real stiffnessKcalPerASq, Real length) 
-      : k(stiffnessKcalPerASq*EnergyUnitsPerKcal), d0(length) { 
+    BondStretch(Real stiffnessInKJperNmSq, Real lengthInNm) 
+      : k(stiffnessInKJperNmSq), d0(lengthInNm) { 
         assert(isValid());
     }
     bool isValid() const {return k >= 0 && d0 >= 0; }
-    Real k;  // in energy units per A^2, i.e. Da/ps^2
-    Real d0; // distance at which force is 0 (in A)
+    Real k;  // in energy units (kJ=Da-nm^2/ps^2) per nm^2, i.e. Da/ps^2
+    Real d0; // distance at which force is 0 (in nm)
 };
 
 class BondBend {
 public:
     BondBend() : k(-1), theta0(-1) { }
-    BondBend(Real stiffnessKcalPerRadSq, Real angleDeg) 
-      : k(stiffnessKcalPerRadSq*EnergyUnitsPerKcal), 
-        theta0(angleDeg*RadiansPerDegree) {
+    BondBend(Real stiffnessInKJPerRadSq, Real angleInDeg) 
+      : k(stiffnessInKJPerRadSq), theta0(angleInDeg*Deg2Rad) {
         assert(isValid());
     }
     bool isValid() const {return k >= 0 && (0 <= theta0 && theta0 <= Pi);}
@@ -407,7 +424,7 @@ public:
     void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG,
                   Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf) const;
 
-    Real k;      // energy units per rad^2, i.e. Da-A^2/(ps^2-rad^2)
+    Real k;      // energy units kJ per rad^2, i.e. Da-nm^2/(ps^2-rad^2)
     Real theta0; // unstressed angle in radians
 };
 
@@ -437,8 +454,8 @@ public:
 class TorsionTerm {
 public:
     TorsionTerm() : periodicity(-1), amplitude(-1), theta0(-1) { }
-    TorsionTerm(int n, Real amp, Real th0) 
-      : periodicity(n), amplitude(amp*EnergyUnitsPerKcal), theta0(th0*RadiansPerDegree) {
+    TorsionTerm(int n, Real ampInKJ, Real th0InDeg) 
+      : periodicity(n), amplitude(ampInKJ), theta0(th0InDeg*Deg2Rad) {
         assert(isValid());
     }
     bool isValid() const {return periodicity > 0 && amplitude >= 0 
@@ -451,7 +468,7 @@ public:
     }
 
     int  periodicity; // 1=360, 2=180, 3=120, etc.
-    Real amplitude; // energy units (Da-A^2/ps^2)
+    Real amplitude; // energy units (kJ)
     Real theta0;    // radians
 };
 
@@ -489,7 +506,7 @@ public:
     bool isValid() const {return atomId >= 0;}
 
     int  atomId;
-    Vec3 station;
+    Vec3 station;   // in nm
 };
 inline bool operator<(const AtomPlacement& a1, const AtomPlacement& a2) {
     return a1.atomId < a2.atomId;
@@ -507,7 +524,7 @@ public:
     bool isValid() const {return clusterId >= 0;}
 
     int         clusterId;
-    Transform   placement;
+    Transform   placement;  // translation in nm
 };
 inline bool operator<(const ClusterPlacement& r1, const ClusterPlacement& r2) {
     return r1.clusterId < r2.clusterId;
@@ -565,7 +582,7 @@ public:
     // After the atom or a containing cluster has been attached to a
     // body, we fill these in.
     int  bodyId;
-    Vec3 station_B; // atom's station fixed in body bodyId's frame
+    Vec3 station_B; // atom's station fixed in body bodyId's frame, in nm
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -613,18 +630,18 @@ public:
 
 class ChargeProperties {
 public:
-    Real     netCharge;
-    Vec3     centerOfCharge;
-    Vec3     dipoleMoment;
-    SymMat33 quadrupoleMoment;
+    Real     netCharge;         // in proton charge units e
+    Vec3     centerOfCharge;    // in nm
+    Vec3     dipoleMoment;      // units?? TODO
+    SymMat33 quadrupoleMoment;  // units?? TODO
 };
 
 class GeometricProperties {
 public:
     Transform obbFrame;
-    Vec3      obbHalfLengths;
-    Real      boundingSphereRadius;
-    Vec3      boundingSphereCenter;
+    Vec3      obbHalfLengths;       // nm
+    Real      boundingSphereRadius; // nm
+    Vec3      boundingSphereCenter; // nm
 };
 
 //
@@ -698,6 +715,7 @@ public:
     bool containsAnyAtomsAttachedToABody(int& atomId, int& bodyId, 
                                          const DuMMForceFieldSubsystemRep& mm) const;
 
+    // Translation is in nm.
     void attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
 
     // Place an atom in this cluster. To be valid, the atom must not
@@ -708,7 +726,7 @@ public:
     //           that group is a top-level group (i.e., it has no parents).
     // If this group is already attached to a body, then we will update
     // the atom entry to note that it is now attached to the body also.
-    void placeAtom(int atomId, const Vec3& station, DuMMForceFieldSubsystemRep& mm);
+    void placeAtom(int atomId, const Vec3& stationInNm, DuMMForceFieldSubsystemRep& mm);
 
     // Place a child cluster in this parent cluster. To be valid, the child 
     // must not 
@@ -721,11 +739,13 @@ public:
     // If the parent is already attached to a body, then we will update
     // the child to note that it is now attached to the body also (and it
     // will update its contained atoms).
+    // (translation is in nm)
     void placeCluster(int childClusterId, const Transform& placement, DuMMForceFieldSubsystemRep& mm);
 
 
     // Calculate the composite mass properties for this cluster, transformed into
-    // the indicated frame.
+    // the indicated frame. Translation part of the Transform is in nm, returned mass
+    // proprties are in daltons and nm.
     MassProperties calcMassProperties
        (const Transform& tr, const DuMMForceFieldSubsystemRep& mm) const;
 
@@ -745,31 +765,31 @@ public:
 
     void dump() const {
         printf("    clusterId=%d(%s)\n", clusterId, name.c_str());
-        printf("      direct atom placements: ");
+        printf("      direct atom placements (nm): ");
         AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
         while (ap != directAtomPlacements.end()) {
             std::cout << " " << ap->atomId << ":" << ap->station;
             ++ap;
         }
-        printf("\n      all atom placements: ");
+        printf("\n      all atom placements (nm): ");
         AtomPlacementSet::const_iterator aap = allAtomPlacements.begin();
         while (aap != allAtomPlacements.end()) {
             std::cout << " " << aap->atomId << ":" << aap->station;
             ++aap;
         }
-        printf("\n      direct cluster placements:\n");
+        printf("\n      direct cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator cp = directClusterPlacements.begin();
         while (cp != directClusterPlacements.end()) {
             std::cout << "      " << cp->clusterId << ":" << cp->placement;
             ++cp;
         }
-        printf("\n      all cluster placements:\n");
+        printf("\n      all cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator acp = allClusterPlacements.begin();
         while (acp != allClusterPlacements.end()) {
             std::cout << "      " << acp->clusterId << ":" << acp->placement;
             ++acp;
         }
-        printf("\n      parent cluster placements:\n");
+        printf("\n      parent cluster placements (nm):\n");
         ClusterPlacementSet::const_iterator pp = parentClusters.begin();
         while (pp != parentClusters.end()) {
             std::cout << "      " << pp->clusterId << ":" << pp->placement;
@@ -779,7 +799,7 @@ public:
         std::cout     << "\n      topological cache valid? " 
                   << isTopologicalCacheValid() << std::endl;
         if (bodyId >= 0) 
-            std::cout << "\n      attached to body " << bodyId << " at " << placement_B;
+            std::cout << "\n      attached to body " << bodyId << " at (nm) " << placement_B;
         else
             std::cout << "\n      NOT ATTACHED TO ANY BODY.";
         std::cout << std::endl;
@@ -792,6 +812,7 @@ public:
     }
 
 private:
+    // translation is in nm
     void noteNewChildCluster(int childClusterId, const Transform& X_PC) {
         std::pair<ClusterPlacementSet::iterator, bool> ret;
         ret = directClusterPlacements.insert(ClusterPlacement(childClusterId,X_PC));
@@ -801,6 +822,7 @@ private:
         assert(ret.second); // must not have been there already
     }
 
+    // translation is in nm
     void noteNewParentCluster(int parentClusterId, const Transform& X_PC) {
         std::pair<ClusterPlacementSet::iterator, bool> ret =
             parentClusters.insert(ClusterPlacement(parentClusterId,X_PC));
@@ -835,7 +857,7 @@ public:
     // After this cluster or a containing cluster has been attached to a
     // body, we can fill these in.
     int       bodyId;
-    Transform placement_B; // cluster's placement fixed in body bodyId's frame
+    Transform placement_B; // cluster's placement fixed in body bodyId's frame (nm)
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -872,7 +894,7 @@ public:
         printf("\n");
         printf("    allAtoms=");
         for (int i=0; i < (int)allAtoms.size(); ++i) 
-            printf(" %d(%g,%g,%g)", allAtoms[i].atomId,
+            printf(" %d(%g,%g,%g)(nm)", allAtoms[i].atomId,
                 allAtoms[i].station[0], allAtoms[i].station[1], allAtoms[i].station[2]);
         printf("\n");
     }
@@ -946,6 +968,7 @@ public:
     void scaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const;
     void unscaleBondedAtoms(const Atom& a, Vector& vdwScale, Vector& coulombScale) const;
 
+    // Radii and returned diameter are given in nm, energies in kJ/mol.
     void applyMixingRule(Real ri, Real rj, Real ei, Real ej, Real& dmin, Real& emin) const
     {
         Real rmin;
@@ -1144,6 +1167,8 @@ private:
     // DuMMForceFieldSubsystem //
     /////////////////////////////
 
+
+
 /*static*/ bool 
 DuMMForceFieldSubsystem::isInstanceOf(const ForceSubsystem& s) {
     return DuMMForceFieldSubsystemRep::isA(s.getRep());
@@ -1175,7 +1200,7 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
 
 void DuMMForceFieldSubsystem::defineAtomClass
    (int atomClassId, const char* atomClassName, int element, int valence, 
-    Real vdwRadius, Real vdwWellDepth)
+    Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol)
 {
     static const char* MethodName = "defineAtomClass";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1187,10 +1212,10 @@ void DuMMForceFieldSubsystem::defineAtomClass
         "element %d invalid: must be a valid atomic number and have an entry here",element);
     SimTK_APIARGCHECK1_ALWAYS(valence >= 0, mm.ApiClassName, MethodName, 
         "expected valence %d invalid: must be nonnegative", valence);
-    SimTK_APIARGCHECK1_ALWAYS(vdwRadius >= 0, mm.ApiClassName, MethodName, 
-        "van der Waals radius %g invalid: must be nonnegative", vdwRadius);
-    SimTK_APIARGCHECK1_ALWAYS(vdwWellDepth >= 0, mm.ApiClassName, MethodName, 
-        "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepth);
+    SimTK_APIARGCHECK1_ALWAYS(vdwRadiusInNm >= 0, mm.ApiClassName, MethodName, 
+        "van der Waals radius %g invalid: must be nonnegative", vdwRadiusInNm);
+    SimTK_APIARGCHECK1_ALWAYS(vdwWellDepthInKJPerMol >= 0, mm.ApiClassName, MethodName, 
+        "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepthInKJPerMol);
 
         // Make sure there is a slot available for this atom class.
     if (atomClassId >= (int)mm.atomClasses.size())
@@ -1203,11 +1228,11 @@ void DuMMForceFieldSubsystem::defineAtomClass
 
         // It's all good -- add the new atom class.
     mm.atomClasses[atomClassId] = AtomClass(atomClassId, atomClassName, element, valence, 
-                                            vdwRadius, vdwWellDepth);
+                                            vdwRadiusInNm, vdwWellDepthInKJPerMol);
 }
 
 void DuMMForceFieldSubsystem::defineChargedAtomType
-   (int chargedAtomTypeId, const char* typeName, int atomClassId, Real partialCharge)
+   (int chargedAtomTypeId, const char* typeName, int atomClassId, Real partialChargeInE)
 {
     static const char* MethodName = "defineChargedAtomType";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1234,11 +1259,11 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
 
         // Define the new charged atom type.
     mm.chargedAtomTypes[chargedAtomTypeId] = 
-        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, partialCharge);
+        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, partialChargeInE);
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
-   (int class1, int class2, Real stiffnessInKcalPerASq, Real nominalLengthInA)
+   (int class1, int class2, Real stiffnessInKJPerNmSq, Real nominalLengthInNm)
 {
     static const char* MethodName = "defineBondStretch";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1248,17 +1273,17 @@ void DuMMForceFieldSubsystem::defineBondStretch
         "class1=%d which is not a valid atom class Id", class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
         "class2=%d which is not a valid atom class Id", class2);
-    SimTK_APIARGCHECK1_ALWAYS(stiffnessInKcalPerASq >= 0, mm.ApiClassName, MethodName, 
-        "stiffness %g is not valid: must be nonnegative", stiffnessInKcalPerASq);
-    SimTK_APIARGCHECK1_ALWAYS(nominalLengthInA >= 0, mm.ApiClassName, MethodName, 
-        "nominal length %g is not valid: must be nonnegative", nominalLengthInA);
+    SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerNmSq >= 0, mm.ApiClassName, MethodName, 
+        "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerNmSq);
+    SimTK_APIARGCHECK1_ALWAYS(nominalLengthInNm >= 0, mm.ApiClassName, MethodName, 
+        "nominal length %g is not valid: must be nonnegative", nominalLengthInNm);
 
         // Attempt to insert the new bond stretch entry, canonicalizing first
         // so that the atom class pair has the lower class Id first.
     const IntPair key(class1,class2,true);
     std::pair<std::map<IntPair,BondStretch>::iterator, bool> ret = 
       mm.bondStretch.insert(std::pair<IntPair,BondStretch>
-        (key, BondStretch(stiffnessInKcalPerASq,nominalLengthInA)));
+        (key, BondStretch(stiffnessInKJPerNmSq,nominalLengthInNm)));
 
         // Throw an exception if this bond stretch term was already defined. (std::map 
         // indicates that with a bool in the return value.)
@@ -1267,7 +1292,7 @@ void DuMMForceFieldSubsystem::defineBondStretch
 }
 
 void DuMMForceFieldSubsystem::defineBondBend
-   (int class1, int class2, int class3, Real stiffnessInKcalPerRadSq, Real nominalAngleInDegrees)
+   (int class1, int class2, int class3, Real stiffnessInKJPerRadSq, Real nominalAngleInDeg)
 {
     static const char* MethodName = "defineBondBend";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1279,12 +1304,12 @@ void DuMMForceFieldSubsystem::defineBondBend
         "class2=%d which is not a valid atom class Id", class2);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
         "class3=%d which is not a valid atom class Id", class3);
-    SimTK_APIARGCHECK1_ALWAYS(stiffnessInKcalPerRadSq >= 0, mm.ApiClassName, MethodName, 
-        "stiffness %g is not valid: must be nonnegative", stiffnessInKcalPerRadSq);
-    SimTK_APIARGCHECK1_ALWAYS(0 <= nominalAngleInDegrees && nominalAngleInDegrees <= 180, 
+    SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerRadSq >= 0, mm.ApiClassName, MethodName, 
+        "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerRadSq);
+    SimTK_APIARGCHECK1_ALWAYS(0 <= nominalAngleInDeg && nominalAngleInDeg <= 180, 
         mm.ApiClassName, MethodName, 
         "nominal angle %g is not valid: must be between 0 and 180 degrees, inclusive", 
-        nominalAngleInDegrees);
+        nominalAngleInDeg);
 
         // Attempt to insert the new bond bend entry, canonicalizing first
         // by reversing the class Id triple if necessary so that the first 
@@ -1292,7 +1317,7 @@ void DuMMForceFieldSubsystem::defineBondBend
     const IntTriple key(class1, class2, class3, true);
     std::pair<std::map<IntTriple,BondBend>::iterator, bool> ret = 
       mm.bondBend.insert(std::pair<IntTriple,BondBend>
-        (key, BondBend(stiffnessInKcalPerRadSq,nominalAngleInDegrees)));
+        (key, BondBend(stiffnessInKJPerRadSq,nominalAngleInDeg)));
 
         // Throw an exception if this bond bend term was already defined. (std::map 
         // indicates that with a bool in the return value.)
@@ -1308,9 +1333,9 @@ void DuMMForceFieldSubsystem::defineBondBend
 //
 void DuMMForceFieldSubsystem::defineBondTorsion
    (int class1, int class2, int class3, int class4, 
-    int periodicity1, Real amp1InKcal, Real phase1InDegrees,
-    int periodicity2, Real amp2InKcal, Real phase2InDegrees,
-    int periodicity3, Real amp3InKcal, Real phase3InDegrees)
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+    int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+    int periodicity3, Real amp3InKJ, Real phase3InDegrees)
 {
     static const char* MethodName = "defineBondTorsion";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1337,8 +1362,8 @@ void DuMMForceFieldSubsystem::defineBondTorsion
             // No nonsense.
         SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity1 && periodicity1 <= 6, mm.ApiClassName, MethodName, 
             "periodicity1(%d) is invalid: we require 1 <= periodicity <= 6", periodicity1);
-        SimTK_APIARGCHECK1_ALWAYS(amp1InKcal >= 0, mm.ApiClassName, MethodName, 
-            "amplitude1(%g) is not valid: must be nonnegative", amp1InKcal);
+        SimTK_APIARGCHECK1_ALWAYS(amp1InKJ >= 0, mm.ApiClassName, MethodName, 
+            "amplitude1(%g) is not valid: must be nonnegative", amp1InKJ);
         SimTK_APIARGCHECK1_ALWAYS(0 <= phase1InDegrees && phase1InDegrees <= 180, mm.ApiClassName, MethodName, 
             "phaseAngle1(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase1InDegrees);
 
@@ -1349,14 +1374,14 @@ void DuMMForceFieldSubsystem::defineBondTorsion
             periodicity1);
 
             // Add the new term.
-        bt.addTerm(TorsionTerm(periodicity1, amp1InKcal, phase1InDegrees));
+        bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
     }
     if (periodicity2 != -1) {
             // No nonsense.
         SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity2 && periodicity2 <= 6, mm.ApiClassName, MethodName, 
             "periodicity2(%d) is invalid: we require 1 <= periodicity <= 6", periodicity2);
-        SimTK_APIARGCHECK1_ALWAYS(amp2InKcal >= 0, mm.ApiClassName, MethodName, 
-            "amplitude2(%g) is not valid: must be nonnegative", amp2InKcal);
+        SimTK_APIARGCHECK1_ALWAYS(amp2InKJ >= 0, mm.ApiClassName, MethodName, 
+            "amplitude2(%g) is not valid: must be nonnegative", amp2InKJ);
         SimTK_APIARGCHECK1_ALWAYS(0 <= phase2InDegrees && phase2InDegrees <= 180, mm.ApiClassName, MethodName, 
             "phaseAngle2(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase2InDegrees);
 
@@ -1366,20 +1391,20 @@ void DuMMForceFieldSubsystem::defineBondTorsion
             periodicity2);
 
             // Add the new term.
-        bt.addTerm(TorsionTerm(periodicity2, amp2InKcal, phase2InDegrees));
+        bt.addTerm(TorsionTerm(periodicity2, amp2InKJ, phase2InDegrees));
     }
     if (periodicity3 != -1) {
             // No nonsense.
         SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity3 && periodicity3 <= 6, mm.ApiClassName, MethodName, 
             "periodicity3(%d) is invalid: we require 1 <= periodicity <= 6", periodicity3);
-        SimTK_APIARGCHECK1_ALWAYS(amp3InKcal >= 0, mm.ApiClassName, MethodName, 
-            "amplitude3(%g) is not valid: must be nonnegative", amp3InKcal);
+        SimTK_APIARGCHECK1_ALWAYS(amp3InKJ >= 0, mm.ApiClassName, MethodName, 
+            "amplitude3(%g) is not valid: must be nonnegative", amp3InKJ);
         SimTK_APIARGCHECK1_ALWAYS(0 <= phase3InDegrees && phase3InDegrees <= 180, mm.ApiClassName, MethodName, 
             "phaseAngle3(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase3InDegrees);
             // (we've already checked for any possible repeats)
 
             // Add the new term.
-        bt.addTerm(TorsionTerm(periodicity3, amp3InKcal, phase3InDegrees));
+        bt.addTerm(TorsionTerm(periodicity3, amp3InKJ, phase3InDegrees));
     }
 
         // Now try to insert the allegedly new BondTorsion specification into the bondTorsion map.
@@ -1396,22 +1421,22 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 // Convenient signature for a bond torsion with only one term.
 void DuMMForceFieldSubsystem::defineBondTorsion
    (int class1, int class2, int class3, int class4, 
-    int periodicity1, Real amp1InKcal, Real phase1InDegrees)
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees)
 {
     defineBondTorsion(class1, class2, class3, class4, 
-                      periodicity1,amp1InKcal,phase1InDegrees,
+                      periodicity1,amp1InKJ,phase1InDegrees,
                       -1,0.,0., -1,0.,0.);
 }
 
 // Convenient signature for a bond torsion with two terms.
 void DuMMForceFieldSubsystem::defineBondTorsion
    (int class1, int class2, int class3, int class4, 
-    int periodicity1, Real amp1InKcal, Real phase1InDegrees,
-    int periodicity2, Real amp2InKcal, Real phase2InDegrees)
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+    int periodicity2, Real amp2InKJ, Real phase2InDegrees)
 {
     defineBondTorsion(class1, class2, class3, class4, 
-                      periodicity1,amp1InKcal,phase1InDegrees,
-                      periodicity2,amp2InKcal,phase2InDegrees,
+                      periodicity1,amp1InKJ,phase1InDegrees,
+                      periodicity2,amp2InKJ,phase2InDegrees,
                       -1,0.,0.);
 }
 
@@ -1545,7 +1570,7 @@ int DuMMForceFieldSubsystem::addAtom(int chargedAtomTypeId)
     return atomId;
 }
 
-void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, const Vec3& station)
+void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, const Vec3& stationInNm)
 {
     static const char* MethodName = "placeAtomInCluster";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1564,11 +1589,11 @@ void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, cons
         "cluster %d('%s') already contains atom %d", clusterId, cluster.name.c_str(), atomId);
 
         // Add the atom to the cluster.
-    cluster.placeAtom(atomId, station, mm);
+    cluster.placeAtom(atomId, stationInNm, mm);
 }
 
 void DuMMForceFieldSubsystem::placeClusterInCluster
-   (int childClusterId, int parentClusterId, const Transform& placement)
+   (int childClusterId, int parentClusterId, const Transform& placementInNm)
 {
     static const char* MethodName = "placeClusterInCluster";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1611,10 +1636,11 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
         parentClusterId, parent.name.c_str(), childClusterId, child.name.c_str(), atomId);
 
         // Add the child cluster to the parent.
-    parent.placeCluster(childClusterId, placement, mm);
+    parent.placeCluster(childClusterId, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum, const Transform& tr) 
+void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum, 
+                                                  const Transform& placementInNm) 
 {
     static const char* MethodName = "attachClusterToBody";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1651,10 +1677,10 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum, co
         clusterId, child.name.c_str(), bodyNum);
 
         // OK, attach the cluster to the body's cluster.
-    bodyCluster.placeCluster(clusterId, tr, mm);
+    bodyCluster.placeCluster(clusterId, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, int bodyNum, const Vec3& station) 
+void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, int bodyNum, const Vec3& stationInNm) 
 {
     static const char* MethodName = "attachAtomToBody";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1675,11 +1701,11 @@ void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, int bodyNum, const Ve
     Cluster& bodyCluster = mm.updCluster(mm.getBody(bodyNum).getClusterId());
 
         // Attach the atom to the body's cluster.
-    bodyCluster.placeAtom(atomId, station, mm);
+    bodyCluster.placeAtom(atomId, stationInNm, mm);
 }
 
 MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
-   (int clusterId, const Transform& tr) const
+   (int clusterId, const Transform& placementInNm) const
 {
     static const char* MethodName = "calcClusterMassProperties";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1688,7 +1714,7 @@ MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster Id %d is not valid", clusterId);
 
-    return mm.getCluster(clusterId).calcMassProperties(tr, mm);
+    return mm.getCluster(clusterId).calcMassProperties(placementInNm, mm);
 }
 
 
@@ -1746,6 +1772,7 @@ int DuMMForceFieldSubsystem::getBondAtom(int bondId, int which) const {
     return mm.bonds[bondId].atoms[which];
 }
 
+// Returned mass is in daltons (g/mol).
 Real DuMMForceFieldSubsystem::getAtomMass(int atomId) const {
     static const char* MethodName = "getAtomMass";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1770,6 +1797,7 @@ Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomId) const {
     return e.defaultColor;
 }
 
+// Returned radius is in nm.
 Real DuMMForceFieldSubsystem::getAtomRadius(int atomId) const {
     static const char* MethodName = "getAtomRadius";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1782,6 +1810,7 @@ Real DuMMForceFieldSubsystem::getAtomRadius(int atomId) const {
     return cl.vdwRadius;
 }
 
+// Returned station is in nm.
 Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(int atomId) const {
     static const char* MethodName = "getAtomStationOnBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1799,6 +1828,7 @@ Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(int atomId) const {
     return a.station_B;
 }
 
+// Returned placement is in nm.
 Transform DuMMForceFieldSubsystem::getClusterPlacementOnBody(int clusterId) const {
     static const char* MethodName = "getClusterPlacementOnBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1816,6 +1846,7 @@ Transform DuMMForceFieldSubsystem::getClusterPlacementOnBody(int clusterId) cons
     return c.placement_B;
 }
 
+// Returned station is in nm.
 Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(int atomId, int clusterId) const {
     static const char* MethodName = "getAtomStationInCluster";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -1838,6 +1869,7 @@ Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(int atomId, int clusterId)
     return ap->station;
 }
 
+// Returned placement is in nm.
 Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(int childClusterId, int parentClusterId) const {
     static const char* MethodName = "getClusterPlacementInCluster";
     const DuMMForceFieldSubsystemRep& mm = getRep();
@@ -2174,8 +2206,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
     Vector coulombScale((int)atoms.size(), Real(1));
 
     // Get access to system-global cache entries.
-    Real&                  pe              = mbs.updPotentialEnergy(s);
-    Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s);
+    Real&                  pe              = mbs.updPotentialEnergy(s); // kJ
+    Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s); // kJ (torque), kJ/nm (force)
 
     for (int b1=0; b1 < (int)bodies.size(); ++b1) {
         const Transform&          X_GB1  = matter.getBodyPosition(s,b1);
@@ -2344,7 +2376,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const Real fVdw = 12 * eijScale * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
                     const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
 
-                    pe += (eCoulomb + eVdw); // Da-A^2/ps^2  (2 flops)
+                    pe += (eCoulomb + eVdw); // kJ (Da-nm^2/ps^2) (2 flops)
                     rigidBodyForces[b2] += SpatialVec( a2Station_G % fj, fj);   // 15 flops
                     rigidBodyForces[b1] -= SpatialVec( a1Station_G % fj, fj);   // 15 flops
                 }
@@ -2398,6 +2430,7 @@ void DuMMForceFieldSubsystemRep::unscaleBondedAtoms
         }
 }
 
+// Element masses are given in daltons (==g/mol==amu==u).
 void DuMMForceFieldSubsystemRep::loadElements() {
     elements.resize(93); // Room for 1-92. I guess that's a little ambitious!
     elements[1] =Element(1,  "H",  "Hydrogen",    1.008).setDefaultColor(Green);

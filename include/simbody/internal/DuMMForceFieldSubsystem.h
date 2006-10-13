@@ -65,28 +65,17 @@ public:
     };
     const char* getVdwMixingRuleName(VdwMixingRule) const;
 
+    static const Real Ang2Nm;       // multiply Angstroms by this to get nanometers
+    static const Real Nm2Ang;       //   or multiply nanometers by this to get Angstroms
+    static const Real Kcal2KJ;      // multiply kilocalories by this to get kilojoules
+    static const Real KJ2Kcal;      //   or multiply kilojoules by this to get kilocalories
+    static const Real Deg2Rad;      // multiply degrees by this to convert to radians
+    static const Real Rad2Deg;      //   or multiply radians by this to get degrees
+    static const Real Sigma2Radius; // multiply vdw sigma by this to get vdw radius
+    static const Real Radius2Sigma; //   or multiply vdw radius by this to get vdw sigma
+
     DuMMForceFieldSubsystem();
 
-    // Atom classes are used for sets of atoms which share some properties.
-    // These are: the element (as atomic number), expected valence, 
-    // van der Waals parameters, and behavior in bonded situations.
-    // Charge is not included in atom class but in a second classification
-    // level called ChargedAtomType.
-    //
-    // This fails if the atom class already exists.
-    //   vdwRadius as Rmin, *not* Sigma, in Angstroms
-    //     (i.e. 2*vdwRadius is the center-center separation
-    //      at which the minimum energy occurs)
-    //     To convert for LJ: Rmin = 2^(1/6) * Sigma
-    //   vdwWellDepth potential minimum, in Kcal/mol
-
-    void defineAtomClass(int atomClassId, const char* atomClassName,
-                         int element, int valence,
-                         Real vdwRadius, Real vdwWellDepth);
-
-    //   partialCharge in units of e (charge on a proton) 
-    void defineChargedAtomType(int atomTypeId, const char* atomTypeName,
-                               int atomClassId, Real partialCharge);
 
     // Create an empty cluster (rigid group of atoms). The cluster Id number is returned;
     // you don't get to pick your own. The name is just for display; you must use the Id
@@ -114,6 +103,44 @@ public:
     // frame or transformed to the indicated frame.
     MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
 
+        // DEFINE FORCE FIELD PARAMETERS
+    
+    // Atom classes are used for sets of atoms which share some properties.
+    // These are: the element (as atomic number), expected valence, 
+    // van der Waals parameters, and behavior in bonded situations.
+    // Charge is not included in atom class but in a second classification
+    // level called ChargedAtomType.
+    //
+    // This fails if the atom class already exists.
+    //   vdwRadius as Rmin, *not* Sigma, in Angstroms
+    //     (i.e. 2*vdwRadius is the center-center separation
+    //      at which the minimum energy occurs)
+    //     To convert for LJ: Rmin = 2^(1/6) * Sigma
+    //   vdwWellDepth potential minimum, in Kcal/mol
+
+    void defineAtomClass(int atomClassId, const char* atomClassName,
+                         int elementNumber, int expectedValence,
+                         Real vdwRadiusInNm, Real vdwWellDepthInKJ);
+
+    // Same routine in Kcal/Angstrom (KA) unit system.
+    void defineAtomClass_KA(int atomClassId, const char* atomClassName,
+                            int element, int valence,
+                            Real vdwRadiusInAng, Real vdwWellDepthInKcal)
+    {
+        defineAtomClass(atomClassId, atomClassName, element, valence,
+                        vdwRadiusInAng*Ang2Nm, vdwWellDepthInKcal*Kcal2KJ);
+    }
+
+    // PartialCharge in units of e (charge on a proton); same in MD & KA
+    void defineChargedAtomType(int atomTypeId, const char* atomTypeName,
+                               int atomClassId, Real partialChargeInE);
+
+    void defineChargedAtomType_KA(int atomTypeId, const char* atomTypeName,
+                                  int atomClassId, Real partialChargeInE)
+    {
+        defineChargedAtomType(atomTypeId, atomTypeName, atomClassId, partialChargeInE); // easy!
+    }
+
     // Bond stretch parameters (between 2 atom classes). This
     // fails if (class1,class2) or (class2,class1) has already been assigned.
     //   stiffness (energy per length^2) in (Kcal/mol)/A^2
@@ -121,37 +148,83 @@ public:
     //      while force is 2kx; note factor of 2 in force)
     //   nominalLength in Angstroms
     void defineBondStretch(int class1, int class2,
-                           Real stiffness, Real nominalLength);
+                           Real stiffnessInKJperNmSq, Real nominalLengthInNm);
+
+    void defineBondStretch_KA(int class1, int class2,
+                              Real stiffnessInKcalPerAngSq, Real nominalLengthInAng)
+    {
+        defineBondStretch(class1, class2, 
+                          stiffnessInKcalPerAngSq * Kcal2KJ/(Ang2Nm*Ang2Nm),
+                          nominalLengthInAng      * Ang2Nm);
+    }
 
     // Bending angle parameters (among 3 atom types). This fails
     // if (type1,type2,type3) or (type3,type2,type1) has already been seen.
-    //   stiffness k (energy per degree^2) in (Kcal/mol)/Degree^2 (NOT Radians)
-    //     Let k'=k*(180/pi)^2 (i.e. k' is in energy per radian^2). 
-    //     Then energy is k' a^2 for angle a in radians,
-    //     while torque is 2k'a; note factor of 2 in torque.
+    //   stiffness k (energy per rad^2) in (KJ/mol)/rad^2
+    //   Then energy is k a^2 for angle a in radians,
+    //     while torque is 2ka; note factor of 2 in torque.
     //   nominalAngle in Degrees
     void defineBondBend(int class1, int class2, int class3,
-                        Real stiffness, Real nominalAngle);
+                        Real stiffnessInKJPerRadSq, Real nominalAngleInDeg);
 
+    void defineBondBend_KA(int class1, int class2, int class3,
+        Real stiffnessInKcalPerRadSq, Real nominalAngleInDeg) 
+    {
+        defineBondBend(class1,class2,class3,
+                       stiffnessInKcalPerRadSq * Kcal2KJ,
+                       nominalAngleInDeg);
+    }
 
     // Only one term may have a given periodicity.
     void defineBondTorsion
        (int class1, int class2, int class3, int class4, 
-        int periodicity1, Real amp1InKcal, Real phase1InDegrees);
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees);
     void defineBondTorsion
        (int class1, int class2, int class3, int class4,  
-        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
-        int periodicity2, Real amp2InKcal, Real phase2InDegrees);
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees);
     void defineBondTorsion
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+        int periodicity3, Real amp3InKJ, Real phase3InDegrees);
+
+    void defineBondTorsion_KA
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees)
+    { 
+        defineBondTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees);
+    }
+    void defineBondTorsion_KA
+       (int class1, int class2, int class3, int class4,  
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees)
+    {
+        defineBondTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees);
+    }
+    void defineBondTorsion_KA
        (int class1, int class2, int class3, int class4, 
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees,
-        int periodicity3, Real amp3InKcal, Real phase3InDegrees);
+        int periodicity3, Real amp3InKcal, Real phase3InDegrees)
+    {
+        defineBondTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees,
+                          periodicity3, amp3InKcal * Kcal2KJ, phase3InDegrees);
+    }
 
     // The third atom is the central one to which the other
     // three are bonded; this is not the same in reverse order.
     // TODO: not implemented
     void defineImproperTorsion(int class1, int class2, int class3, int class4,
+        Real amplitude, Real phase, int periodicity,
+        Real amp2, Real phase2, int period2,
+        Real amp3, Real phase3, int period3);
+    void defineImproperTorsion_KA(int class1, int class2, int class3, int class4,
         Real amplitude, Real phase, int periodicity,
         Real amp2, Real phase2, int period2,
         Real amp3, Real phase3, int period3);
