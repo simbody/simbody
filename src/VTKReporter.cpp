@@ -55,7 +55,7 @@
 #include <vector>
 
 namespace SimTK {
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real Pi = (Real)SimTK_PI, RadiansPerDegree = Pi/180;
 static const int  GroundBodyNum = 0; // ground is always body 0
 static const Vec3 DefaultGroundBodyColor = Green;
 static const Vec3 DefaultBaseBodyColor   = Red;
@@ -64,13 +64,13 @@ static const Vec3 DefaultBodyColor       = Gray;
 class VTKReporterRep {
 public:
     // no default constructor -- must have MultibodySystem always
-    VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeometry=true);
+    VTKReporterRep(const MultibodySystem& m, Real defaultScaleForAutoGeometry);
 
     ~VTKReporterRep() {
         deletePointers();
     }
 
-    void disableDefaultGeometry() { defaultGeometryEnabled=false;}
+    void disableDefaultGeometry() { defaultBodyScaleForAutoGeometry=0.;}
 
     // This will make a copy of the supplied DecorativeGeometry.
     void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
@@ -78,7 +78,7 @@ public:
                            const DecorativeLine&);
 
     // Make sure everything can be seen.
-    void setCameraDefault();
+    void resetCamera() {cameraNeedsToBeReset=true;}
 
     void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
@@ -104,7 +104,9 @@ private:
     friend class VTKReporter;
     VTKReporter* myHandle;     // the owner of this rep
 
-    bool defaultGeometryEnabled;
+    bool cameraNeedsToBeReset; // report() checks and clears this
+
+    Real defaultBodyScaleForAutoGeometry;
 
     const MultibodySystem& mbs;
 
@@ -145,8 +147,8 @@ bool VTKReporter::isOwnerHandle() const {
 }
 bool VTKReporter::isEmptyHandle() const {return rep==0;}
 
-VTKReporter::VTKReporter(const MultibodySystem& m, bool generateDefaultGeometry) : rep(0) {
-    rep = new VTKReporterRep(m, generateDefaultGeometry);
+VTKReporter::VTKReporter(const MultibodySystem& m, Real defaultScaleForAutoGeometry) : rep(0) {
+    rep = new VTKReporterRep(m, defaultScaleForAutoGeometry);
     rep->setMyHandle(*this);
 }
 
@@ -235,7 +237,8 @@ void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
     actor->SetMapper(mapper);
     mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
     renderer->AddActor(actor);
-    setCameraDefault();
+
+    cameraNeedsToBeReset = true;
 }
 
 void VTKReporterRep::addRubberBandLine(int b1, const Vec3& station1,
@@ -270,11 +273,17 @@ void VTKReporterRep::addRubberBandLine(int b1, const Vec3& station1,
     info.actor->SetMapper(mapper);
     mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
     renderer->AddActor(info.actor);
+
+    cameraNeedsToBeReset = true;
 }
 
-VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeometry) 
-    : myHandle(0), defaultGeometryEnabled(generateDefaultGeometry), mbs(m) 
+// set default length scale to 0 to disable automatically-generated geometry
+VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault) 
+    : myHandle(0), defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
+      cameraNeedsToBeReset(true)
 {
+    const Real cameraScale = defaultBodyScaleForAutoGeometry == 0. 
+                                ? 1. : defaultBodyScaleForAutoGeometry;
     zeroPointers();
 
     renWin = vtkRenderWindow::New();
@@ -290,6 +299,14 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
 
     renderer = vtkRenderer::New();
     renderer->SetBackground(1,1,1); // white
+
+    vtkCamera* camera = vtkCamera::New();
+    camera->SetPosition(0, .1*cameraScale, cameraScale);
+    camera->SetFocalPoint(0,0,0);
+    camera->ComputeViewPlaneNormal();
+    camera->SetViewUp(0,1,0);
+    renderer->SetActiveCamera(camera);
+    camera->Delete();
 
     vtkLight* light = vtkLight::New();
     light->SetPosition(-1,0,0);
@@ -315,10 +332,13 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
     renderer->AddLight(light);
     light->Delete();
 
+
     renWin->AddRenderer(renderer);
 
     const MatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
+    for (int i=0; i<(int)bodies.size(); ++i)
+        bodies[i].scale = defaultBodyScaleForAutoGeometry;
 
     setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
     for (int i=1; i<(int)bodies.size(); ++i) {
@@ -336,7 +356,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
             bodies[parent].scale = jParent.T().norm();
     }
 
-    if (!defaultGeometryEnabled) {
+    if (defaultBodyScaleForAutoGeometry==0) {
         renWin->Render();
         return;
     }
@@ -379,19 +399,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, bool generateDefaultGeo
         if (comPos_B != Vec3(0))
             addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
     }
-    renWin->Render();
-}
-
-void VTKReporterRep::setCameraDefault() {
     renderer->ResetCamera();
-    Vec3 pos;
-    renderer->GetActiveCamera()->GetPosition(pos[0],pos[1],pos[2]);
-    pos *= 1.5;
-    renderer->GetActiveCamera()->SetPosition(/*pos[0],pos[1],*/0,0.1*pos[2],pos[2]);
-    Real nearClip, farClip;
-    renderer->GetActiveCamera()->GetClippingRange(nearClip,farClip);
-    renderer->GetActiveCamera()->SetClippingRange(nearClip/10, farClip*10);
-
+    renWin->Render();
 }
 
 void VTKReporterRep::report(const State& s) {
@@ -411,6 +420,11 @@ void VTKReporterRep::report(const State& s) {
         const Transform& X_GB2 = 
             matter.getBodyPosition(s, info.body2);
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
+    }
+
+    if (cameraNeedsToBeReset) {
+        renderer->ResetCamera();
+        cameraNeedsToBeReset = false;
     }
 
     renWin->Render();

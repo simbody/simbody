@@ -44,13 +44,14 @@ namespace SimTK {
  * functionality FOR DEMO AND PROOF OF CONCEPT only!!! It is not likely
  * to perform well on anything.
  *
- * UNITS: must be as specified. TODO: allow different units.
- * Note: these are not consistent units; they are converted
- * internally so that correct energy and force units are applied
- * to the multibody system. Basic units are mass in Da (g/mol),
- * length in Angstroms, angles in radians, time in ps. Consistent
- * energy is then Da-A^2/ps^2, force is Da-A/ps^2. But here we expect
- * energy in Kcal/mol, force in (Kcal/mol)/A.
+ * UNITS: This subsystem requires that the system be modeled in "MD units"
+ * of nanometers, daltons (g/mol), and picoseconds, yielding consistent
+ * energy units of kJ/mol==(Da-nm^2/ps^2), and force in kJ/mol-nm. Charge
+ * is in proton charge units e, and angles are in radians.
+ * For convenience, we allow the force field to be defined in "KA" units,
+ * that is, angstroms instead of nanometers, and energy in kcal rather
+ * than kJ, and we also allow angles to be supplied in degrees. However,
+ * these are immediately converted to the MD units described above.
  *
  */
 
@@ -76,15 +77,35 @@ public:
 
     DuMMForceFieldSubsystem();
 
+        // MOLECULE
+
+    // Add a new atom to the model. The atom Id number is returned; you don't get to
+    // pick your own.
+    int addAtom(int chargedAtomTypeId);
+
+    // Note that these are atom Id numbers, not atom classes or types.
+    int  addBond(int atom1Id, int atom2Id);
+
+    int  getNAtoms() const;
+    Real getAtomMass(int atomId) const;
+    Real getAtomRadius(int atomId) const;
+    Vec3 getAtomStationOnBody(int atomId) const;
+    Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
+    int  getAtomBody(int atomId) const;
+    Vec3 getAtomDefaultColor(int atomId) const;
+
+    int  getNBonds() const;
+
+    // 'which' must be 0 or 1. 0 will return the lower-numbered atomId.
+    int  getBondAtom(int bond, int which) const;
+
+        // CLUSTERS
 
     // Create an empty cluster (rigid group of atoms). The cluster Id number is returned;
     // you don't get to pick your own. The name is just for display; you must use the Id
     // to reference the cluster. Every cluster has its own reference frame.
     int createCluster(const char* clusterName);
 
-    // Add a new atom to the model. The atom Id number is returned; you don't get to
-    // pick your own.
-    int addAtom(int chargedAtomTypeId);
 
     // Place an existing atom at a particular station in the local frame of a cluster. It
     // is fine for an atom to be in more than one cluster as long as only one of them ends up
@@ -96,33 +117,43 @@ public:
     void placeClusterInCluster(int childClusterId, int parentClusterId, 
                                const Transform& placement);
 
-    void attachClusterToBody(int clusterId, int body, const Transform& = Transform());
-    void attachAtomToBody   (int atomId,    int body, const Vec3& station = Vec3(0));
-
     // Calcuate the composite mass properties of a cluster, either in its own reference
     // frame or transformed to the indicated frame.
     MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
+
+    int       getClusterBody(int clusterId) const;
+    Transform getClusterPlacementOnBody(int clusterId) const;
+    Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
+
+        // BODIES
+
+    void attachClusterToBody(int clusterId, int body, const Transform& = Transform());
+    void attachAtomToBody   (int atomId,    int body, const Vec3& station = Vec3(0));
 
         // DEFINE FORCE FIELD PARAMETERS
     
     // Atom classes are used for sets of atoms which share some properties.
     // These are: the element (as atomic number), expected valence, 
     // van der Waals parameters, and behavior in bonded situations.
-    // Charge is not included in atom class but in a second classification
-    // level called ChargedAtomType.
+    // Charge is not included in atom class but in a second more detailed
+    // classification level called ChargedAtomType.
     //
     // This fails if the atom class already exists.
-    //   vdwRadius as Rmin, *not* Sigma, in Angstroms
-    //     (i.e. 2*vdwRadius is the center-center separation
-    //      at which the minimum energy occurs)
-    //     To convert for LJ: Rmin = 2^(1/6) * Sigma
-    //   vdwWellDepth potential minimum, in Kcal/mol
+    // VdwRadius is given as Rmin, the radius at which the energy
+    // well minimum is seen (actually it is 1/2 the distance between
+    // atom centers for a pair of atoms of this class). This is *not*
+    // Sigma, which is the radius (half distance) at which the 
+    // energy crosses zero, that is, a little closer to gether than
+    // when the energy well is at maximum depth.
+    // To convert for LJ: Rmin = 2^(1/6) * Sigma.
+    // The radius is in nm, the well depth in kJ/mol.
 
     void defineAtomClass(int atomClassId, const char* atomClassName,
                          int elementNumber, int expectedValence,
                          Real vdwRadiusInNm, Real vdwWellDepthInKJ);
 
-    // Same routine in Kcal/Angstrom (KA) unit system.
+    // Same routine in Kcal/Angstrom (KA) unit system, i.e., radius
+    // (still not sigma) is in nm, and well depth in kcal/mol.
     void defineAtomClass_KA(int atomClassId, const char* atomClassName,
                             int element, int valence,
                             Real vdwRadiusInAng, Real vdwWellDepthInKcal)
@@ -143,13 +174,13 @@ public:
 
     // Bond stretch parameters (between 2 atom classes). This
     // fails if (class1,class2) or (class2,class1) has already been assigned.
-    //   stiffness (energy per length^2) in (Kcal/mol)/A^2
-    //     (note that energy is kx^2 using this definition,
-    //      while force is 2kx; note factor of 2 in force)
-    //   nominalLength in Angstroms
+    // Stiffness (energy per length^2) in (kJ/mol)/nm^2
+    // (note that energy is kx^2 using this definition,
+    // while force is 2kx; note factor of 2 in force)
     void defineBondStretch(int class1, int class2,
                            Real stiffnessInKJperNmSq, Real nominalLengthInNm);
 
+    // Here stiffness is in (kcal/mol)/A^2, and nominal length is in A (angstroms).
     void defineBondStretch_KA(int class1, int class2,
                               Real stiffnessInKcalPerAngSq, Real nominalLengthInAng)
     {
@@ -160,13 +191,15 @@ public:
 
     // Bending angle parameters (among 3 atom types). This fails
     // if (type1,type2,type3) or (type3,type2,type1) has already been seen.
-    //   stiffness k (energy per rad^2) in (KJ/mol)/rad^2
-    //   Then energy is k a^2 for angle a in radians,
-    //     while torque is 2ka; note factor of 2 in torque.
-    //   nominalAngle in Degrees
+    // Stiffness k (energy per rad^2) in (kJ/mol)/rad^2
+    // Then energy is k*a^2 for angle a in radians,
+    // while torque is 2ka; note factor of 2 in torque.
+    // Note that the nominal angle is in degrees while the stiffness
+    // is in radians. Odd, I know, but that seems to be how it's done!
     void defineBondBend(int class1, int class2, int class3,
                         Real stiffnessInKJPerRadSq, Real nominalAngleInDeg);
 
+    // Here the stiffness is given in (kcal/mol)/rad^2.
     void defineBondBend_KA(int class1, int class2, int class3,
         Real stiffnessInKcalPerRadSq, Real nominalAngleInDeg) 
     {
@@ -175,7 +208,9 @@ public:
                        nominalAngleInDeg);
     }
 
-    // Only one term may have a given periodicity.
+    // Only one term may have a given periodicity. The amplitudes are
+    // in kJ/mol, with no factor of 1/2 expected (as is sometimes
+    // the convention). 
     void defineBondTorsion
        (int class1, int class2, int class3, int class4, 
         int periodicity1, Real amp1InKJ, Real phase1InDegrees);
@@ -189,6 +224,7 @@ public:
         int periodicity2, Real amp2InKJ, Real phase2InDegrees,
         int periodicity3, Real amp3InKJ, Real phase3InDegrees);
 
+    // Here the amplitudes are given in kcal/mol.
     void defineBondTorsion_KA
        (int class1, int class2, int class3, int class4, 
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
@@ -243,27 +279,7 @@ public:
     void setCoulomb15ScaleFactor(Real); // default 1
 
 
-    // Note that these are atom Id numbers, not atom classes or types.
-    int  addBond(int atom1Id, int atom2Id);
-    int  getNBonds() const;
-
-    // 'which' must be 0 or 1. 0 will return the lower-numbered atomId.
-    int  getBondAtom(int bond, int which) const;
-
-    int  getNAtoms() const;
-    Real getAtomMass(int atomId) const;
-    Real getAtomRadius(int atomId) const;
-    Vec3 getAtomStationOnBody(int atomId) const;
-    Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
-    int  getAtomBody(int atomId) const;
-    Vec3 getAtomDefaultColor(int atomId) const;
-
-    int       getClusterBody(int clusterId) const;
-    Transform getClusterPlacementOnBody(int clusterId) const;
-    Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
-
     void dump() const; // to stdout
-
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, ForceSubsystem);
 private:
     class DuMMForceFieldSubsystemRep& updRep();

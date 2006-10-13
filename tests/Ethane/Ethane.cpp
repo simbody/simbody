@@ -214,7 +214,7 @@ try {
     mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
     /**/
 
-    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. 
+    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. */
     int b1 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl1, Transform()),
                 Transform(),            // inboard mobilizer frame
@@ -230,7 +230,7 @@ try {
     mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*Deg2Rad)));
     /**/
 
-    /* Cartesian:  */
+    /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
@@ -250,7 +250,7 @@ try {
     //ethane.setMobilizerQ(s,b2,0,1e-4);
     /**/
 
-    /* Cartesian: */
+    /* Cartesian: 
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
         ethane.setMobilizerPosition(s, b, 
@@ -271,7 +271,7 @@ try {
     //                            Vec3(.3778,-1.02422,0)};
 
 
-    VTKReporter display(mbs);
+    VTKReporter display(mbs, 0.1);
 
     //if (useCartesian && useRigid && wantConstraint) {
     //    int theConstraint =
@@ -301,7 +301,6 @@ try {
             DecorativeSphere(0.25*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(0.25).setResolution(3));
     }
-
 
 
     RungeKuttaMerson study(mbs, s);

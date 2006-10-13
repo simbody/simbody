@@ -50,7 +50,11 @@ class VTKDecoration;
 class SimTK_SIMBODY_API VTKReporter {
 public:
     VTKReporter() : rep(0) { }
-    explicit VTKReporter(const MultibodySystem& m, bool generateDefaultGeometry=true);
+
+    // Set the scale to 0 to disable automatically-generated geometry. Otherwise set
+    // it to a typical length scale for a body.
+    explicit VTKReporter(const MultibodySystem& m, Real defaultScaleForAutoGeometry=1.);
+
     VTKReporter(const VTKReporter&);
     ~VTKReporter();
     VTKReporter& operator=(const VTKReporter&);
