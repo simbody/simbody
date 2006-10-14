@@ -67,16 +67,11 @@ try {
     GeneralForceElements     forces;
 
     bool useRigid = true, useCartesian = true, wantConstraint=false;
-    const Real vdwFac = 1;
-    const Real chgFac = 1;
-    const Real stretchFac =1;
-    const Real bendFac = 1;
-    const Real torsFac = 1;
 
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(.2);
+    forces.addGlobalEnergyDrain(20);
 
 
     // AMBER 99
@@ -84,17 +79,33 @@ try {
     mm.setVdw14ScaleFactor(1/2.); // reduce energy by these factors
     mm.setCoulomb14ScaleFactor(1/1.2);
 
-    mm.defineAtomClass_KA(1,  "Amber99 CT", 6, 4, 1.9080, vdwFac*0.1094);
-    mm.defineAtomClass_KA(34, "Amber99 HC", 1, 1, 1.4870, vdwFac*0.0157); 
-    mm.defineChargedAtomType_KA(13, "Amber99 Alanine CB", 1, -0.1825*chgFac);
-    mm.defineChargedAtomType_KA(14, "Amber99 Alanine HB", 34, 0.0603*chgFac);
-    mm.defineBondStretch_KA(1,1,  stretchFac*310., 1.5260);
-    mm.defineBondStretch_KA(1,34, stretchFac*340., 1.09);
-    mm.defineBondBend_KA(1,1,34, bendFac*50, 109.5);
-    mm.defineBondBend_KA(34,1,34, bendFac*35, 109.5);
-    mm.defineBondTorsion_KA(34,1,1,34, 3, torsFac*0.150, 0);
+    mm.defineAtomClass_KA(1,  "Amber99 CT", 6, 4, 1.9080, 0.1094);
+    mm.defineAtomClass_KA(2,  "Amber99 C",  6, 3, 1.9080, 0.0860);
+    mm.defineAtomClass_KA(3,  "Amber99 CA", 6, 3, 1.9080, 0.0860);
+    mm.defineAtomClass_KA(4,  "Amber99 CM", 6, 3, 1.9080, 0.0860);
+    mm.defineAtomClass_KA(24, "Amber99 O",  8, 1, 1.6612, 0.2100);
+    mm.defineAtomClass_KA(25, "Amber99 O2", 8, 1, 1.6612, 0.2100); 
+    mm.defineAtomClass_KA(34, "Amber99 HC", 1, 1, 1.4870, 0.0157); 
+
+    mm.defineChargedAtomType_KA(13, "Amber99 Alanine CB", 1, -0.1825);
+    mm.defineChargedAtomType_KA(14, "Amber99 Alanine HB", 34, 0.0603);
+
+    mm.defineBondStretch_KA(1,1,  310., 1.5260);
+    mm.defineBondStretch_KA(1,34, 340., 1.09);
+
+    mm.defineBondBend_KA(1, 1,34, 50, 109.5);
+    mm.defineBondBend_KA(34,1,34, 35, 109.5);
+
+    mm.defineBondTorsion_KA(34,1,1,34, 3, 0.150, 0);
 
     mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
+
+    // These are just for playing around with the force field terms.
+    mm.setVdwGlobalScaleFactor(1);
+    mm.setCoulombGlobalScaleFactor(1);
+    mm.setBondStretchGlobalScaleFactor(1);
+    mm.setBondBendGlobalScaleFactor(1);
+    mm.setBondTorsionGlobalScaleFactor(1);
 
 
     MultibodySystem mbs;
@@ -214,7 +225,7 @@ try {
     mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
     /**/
 
-    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. */
+    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. 
     int b1 = ethane.addRigidBody(
                 mm.calcClusterMassProperties(methyl1, Transform()),
                 Transform(),            // inboard mobilizer frame
@@ -230,7 +241,7 @@ try {
     mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*Deg2Rad)));
     /**/
 
-    /* Cartesian:  
+    /* Cartesian:  */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
@@ -250,7 +261,7 @@ try {
     //ethane.setMobilizerQ(s,b2,0,1e-4);
     /**/
 
-    /* Cartesian: 
+    /* Cartesian: */
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
         ethane.setMobilizerPosition(s, b, 

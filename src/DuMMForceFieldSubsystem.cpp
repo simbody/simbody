@@ -421,7 +421,7 @@ public:
     // Given a central atom location c bonded to atoms at r and s,
     // calculate the angle between them, the potential energy,
     // and forces on each of the three atoms.
-    void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG,
+    void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG, const Real& scale,
                   Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf) const;
 
     Real k;      // energy units kJ per rad^2, i.e. Da-nm^2/(ps^2-rad^2)
@@ -490,7 +490,7 @@ public:
     // torsion angle, energy and a force on each atom so that the desired
     // pure torque is produced.
     void periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const Vec3& sG,
-                  Real& theta, Real& pe, 
+                  const Real& scale, Real& theta, Real& pe, 
                   Vec3& rf, Vec3& xf, Vec3& yf, Vec3& sf) const;
     
     std::vector<TorsionTerm> terms;
@@ -924,6 +924,8 @@ public:
         topologicalCacheValid = false;
 
         vdwMixingRule = DuMMForceFieldSubsystem::WaldmanHagler;
+        vdwGlobalScaleFactor=coulombGlobalScaleFactor=bondStretchGlobalScaleFactor
+            =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor=1;
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         loadElements();
@@ -1155,6 +1157,12 @@ private:
     Real vdwScale13, coulombScale13;    // default 0,0
     Real vdwScale14, coulombScale14;    // default 1,1
     Real vdwScale15, coulombScale15;    // default 1,1
+
+    // Global scale factors for non-physical disabling or fiddling with
+    // individual force field terms.
+    Real vdwGlobalScaleFactor, coulombGlobalScaleFactor; 
+    Real bondStretchGlobalScaleFactor, bondBendGlobalScaleFactor, 
+         bondTorsionGlobalScaleFactor;
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -1549,6 +1557,58 @@ void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {
         fac);
 
     mm.coulombScale15=fac;
+}
+
+void DuMMForceFieldSubsystem::setVdwGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setVdwScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global van der Waals scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.vdwGlobalScaleFactor=fac;
+}
+
+void DuMMForceFieldSubsystem::setCoulombGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setCoulombScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global Coulomb scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.coulombGlobalScaleFactor=fac;
+}
+void DuMMForceFieldSubsystem::setBondStretchGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setBondStretchScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global bond stretch scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.bondStretchGlobalScaleFactor=fac;
+}
+void DuMMForceFieldSubsystem::setBondBendGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setBondBendScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global bond bend scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.bondBendGlobalScaleFactor=fac;
+}
+void DuMMForceFieldSubsystem::setBondTorsionGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setBondTorsionScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global bond torsion scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.bondTorsionGlobalScaleFactor=fac;
 }
 
 int DuMMForceFieldSubsystem::createCluster(const char* groupName)
@@ -2221,7 +2281,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             const AtomClass&       a1class = atomClasses[a1cnum];
             const Vec3      a1Station_G = X_GB1.R()*a1.station_B;
             const Vec3      a1Pos_G     = X_GB1.T() + a1Station_G;
-            const Real      q1Fac = CoulombFac*a1type.partialCharge;
+            const Real      q1Fac = coulombGlobalScaleFactor*CoulombFac*a1type.partialCharge;
 
             // Bonded. Note that each bond will appear twice so we only process
             // it the time when its 1st atom has a lower ID than its last.
@@ -2247,9 +2307,10 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                 const BondStretch& bs = a1.stretch[b12];
                 const Real         x  = d - bs.d0;
+                const Real         k  = bondStretchGlobalScaleFactor*bs.k;
 
-                const Real eStretch =  bs.k*x*x; // no factor of 1/2!
-                const Real fStretch = -2*bs.k*x; // sign is as would be applied to a2
+                const Real eStretch =  k*x*x; // no factor of 1/2!
+                const Real fStretch = -2*k*x; // sign is as would be applied to a2
                 const Vec3 f2 = (fStretch/d) * r;
                 pe += eStretch;
                 rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
@@ -2282,7 +2343,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 Vec3 f1, f2, f3;
                 const BondBend& bb = a1.bend[b13];
                 // atom 2 is the central one
-                bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, angle, energy, f2, f1, f3);
+                bb.harmonic(a2Pos_G, a1Pos_G, a3Pos_G, bondBendGlobalScaleFactor, angle, energy, f2, f1, f3);
 
                 pe += energy;
                 rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
@@ -2321,7 +2382,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 Real angle, energy;
                 Vec3 f1, f2, f3, f4;
                 const BondTorsion& bt = a1.torsion[b14];
-                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, 
+                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
                             angle, energy, f1, f2, f3, f4);
 
                 pe += energy;
@@ -2371,7 +2432,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     const Real ddij6  = ddij2*ddij2*ddij2;   // 2 flops
                     const Real ddij12 = ddij6*ddij6;         // 1 flop
 
-                    const Real eijScale = vdwScale[a2num]*eij;            // 1 flop
+                    const Real eijScale = vdwGlobalScaleFactor*vdwScale[a2num]*eij; // 2 flops
                     const Real eVdw =      eijScale * (ddij12 - 2*ddij6); // 3 flops
                     const Real fVdw = 12 * eijScale * (ddij12 - ddij6);   // factor of 1/d^2 missing (3 flops)
                     const Vec3 fj = ((fCoulomb+fVdw)*ood2) * r;      // to apply to atom j on b2 (5 flops)
@@ -2499,9 +2560,10 @@ void DuMMForceFieldSubsystemRep::dump() const
 // calculate the angle between them, the potential energy,
 // and forces on each of the three atoms.
 void BondBend::harmonic
-   (const Vec3& cG, const Vec3& rG, const Vec3& sG,
+   (const Vec3& cG, const Vec3& rG, const Vec3& sG, const Real& scale,
     Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf) const
 {
+    const Real ks = scale*k; //              1 flop
     const Vec3 r = rG - cG; //               3 flops
     const Vec3 s = sG - cG; //               3 flops
     const Real rr = ~r*r, ss = ~s*s;    // |r|^2, |s|^2 ( 10 flops)
@@ -2511,7 +2573,7 @@ void BondBend::harmonic
     const Real rxslen = rxs.norm(); //      (~35 flops)
     theta = std::atan2(rxslen, rs); //       ~50 flops
     const Real bend = theta - theta0;   //   1 flop
-    pe = k*bend*bend; // NOTE: no factor of 1/2 (2 flops)
+    pe = ks*bend*bend; // NOTE: no factor of 1/2 (2 flops)
 
     // p is unit vector perpendicular to r and s
 
@@ -2522,7 +2584,7 @@ void BondBend::harmonic
     // vectors and use it.
     const UnitVec3 p = (rxslen != 0 ? UnitVec3(rxs/rxslen,true)  // ~11 flops
                                     : UnitVec3(r).perp()); 
-    const Real ffac = -2*k*bend; // 2 flops
+    const Real ffac = -2*ks*bend; // 2 flops
     rf = (ffac/rr)*(r % p);          // ~20 flops
     sf = (ffac/ss)*(p % s);          // ~20 flops
     cf = -(rf+sf); // makes the net force zero (6 flops)
@@ -2539,7 +2601,7 @@ void BondBend::harmonic
 // etors1.f because I couldn't figure out how to do it myself
 // (sherm 060905). Thanks, Jay!
 void BondTorsion::periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const Vec3& sG,
-              Real& theta, Real& pe, 
+              const Real& scale, Real& theta, Real& pe, 
               Vec3& rf, Vec3& xf, Vec3& yf, Vec3& sf) const
 {
     // All vectors point along the r->x->y->s direction
@@ -2587,9 +2649,11 @@ void BondTorsion::periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const
     Real torque = 0;
     pe = 0; 
     for (int i=0; i < (int)terms.size(); ++i) {
-        pe += terms[i].energy(theta);
+        pe     += terms[i].energy(theta);
         torque += terms[i].torque(theta);
     }
+    pe     *= scale;
+    torque *= scale;
 
     const Vec3 ry = yG-rG;    // from r->y        3 flops
     const Vec3 xs = sG-xG;    // from x->s        3 flops

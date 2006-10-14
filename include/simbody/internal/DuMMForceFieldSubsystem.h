@@ -278,6 +278,14 @@ public:
     void setCoulomb14ScaleFactor(Real); // default 1
     void setCoulomb15ScaleFactor(Real); // default 1
 
+    // These can be used to weaken or disable (or magnify)
+    // individual force field terms.
+    // These are always 1 for correct implementation of any force field.
+    void setVdwGlobalScaleFactor(Real);
+    void setCoulombGlobalScaleFactor(Real);
+    void setBondStretchGlobalScaleFactor(Real);
+    void setBondBendGlobalScaleFactor(Real);
+    void setBondTorsionGlobalScaleFactor(Real);
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, ForceSubsystem);
