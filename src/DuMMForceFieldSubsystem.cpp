@@ -1845,6 +1845,18 @@ Real DuMMForceFieldSubsystem::getAtomMass(int atomId) const {
     return e.mass;
 }
 
+// Returns the atomic number (number of protons in nucleus).
+int DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
+    static const char* MethodName = "getAtomElement";
+    const DuMMForceFieldSubsystemRep& mm = getRep();
+
+        // Make sure we've seen this atom before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
+        "atom %d is not valid", atomId);
+
+    return mm.getAtomElementNum(atomId);
+}
+
 Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomId) const {
     static const char* MethodName = "getAtomDefaultColor";
     const DuMMForceFieldSubsystemRep& mm = getRep();

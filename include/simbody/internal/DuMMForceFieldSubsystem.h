@@ -88,6 +88,7 @@ public:
 
     int  getNAtoms() const;
     Real getAtomMass(int atomId) const;
+    int  getAtomElement(int atomId) const;
     Real getAtomRadius(int atomId) const;
     Vec3 getAtomStationOnBody(int atomId) const;
     Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
