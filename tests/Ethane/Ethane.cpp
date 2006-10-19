@@ -63,15 +63,23 @@ enum {
 
 class Molecule {
 public:
-    Molecule() { }
+    Molecule(int parentBodyNum, const Transform& parentMobilizerFrame,
+             const SimbodyMatterSubsystem& matter, const DuMMForceFieldSubsystem& dumm)
+        : parent(parentBodyNum), mobilizerFrameOnParent(parentMobilizerFrame), 
+          matterp(&matter), mmp(&dumm)
+    { }
 
     // Translate and rotation the molecule as a whole. Usually this just means move the base body,
     // but some molecules may not have a single base, so they can override this default.
-    virtual void setMoleculePosition
-       (const Transform& pos, const SimbodyMatterSubsystem& matter, State& s) const
+    virtual void setMoleculePosition(const Transform& pos, State& s) const
     {
-        matter.setMobilizerPosition(s, bodies[0], pos);
+        getMatter().setMobilizerPosition(s, bodies[0], pos);
     }
+
+    // This routine must set the internal mobilities to their nominal values, both
+    // for position and velocity states. This State must have already been realized
+    // to at least Model stage.
+    virtual void setDefaultInternalState(State& s) const = 0; 
 
     int getNAtoms()  const {return (int)atoms.size();}
     int getNBodies() const {return (int)bodies.size();}
@@ -81,12 +89,43 @@ public:
 
     // return bodyNum of ith body; 0 is molecule's base body
     int getBody(int i) const {return bodies[i];}
+
+    const SimbodyMatterSubsystem& getMatter() const {
+        assert(matterp);
+        return *matterp;
+    }
+    const DuMMForceFieldSubsystem& getDuMM() const {
+        assert(mmp);
+        return *mmp;
+    }
 protected:
     std::vector<int> atoms;
     std::vector<int> bodies;
+    int       parent;
+    Transform mobilizerFrameOnParent;
+    SimbodyMatterSubsystem const*  matterp;
+    DuMMForceFieldSubsystem const* mmp;
 };
 
-class OneDofEthane : public Molecule {
+// ethane:
+// atom 0 is carbon0
+// atoms 2,3,4 are attached to carbon0
+// atom 1 is carbon1
+// atoms 5,6,7 are attached to carbon1
+
+// pre-built rigid clusters:
+//   the two carbons
+//   methyl 1 (atom 0) and hydrogens 1,2,3
+//   methyl 2 (atom 4) and hydrogens 5,6,7
+// Any cluster or individual atom can be assigned to a body, provided
+// the resulting set of assignments represents a partitioning of
+// the atoms across the bodies.
+
+class EthaneMolecule : public Molecule {
+public:
+    EthaneMolecule(int parentBodyNum, const Transform& parentMobilizerFrame,
+                   SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
+
     // find the atoms
     int getC(int i) const {assert(i==0||i==1); return getAtom(i);}
     int getH(int whichCarbon, int whichHydrogen) const {
@@ -94,89 +133,84 @@ class OneDofEthane : public Molecule {
         assert(0<=whichHydrogen&&whichHydrogen<=2);
         return getAtom(2+whichCarbon*3+whichHydrogen);
     }
+
+    Real getNominalCCBondLength() const {
+        return 1.53688 * Ang2Nm;
+    }
+    Real getNominalCHBondLength() const {
+        return 1.09 * Ang2Nm;
+    }
+    Real getNominalHCCBondAngle() const {
+        return 109.5 * Deg2Rad;
+    }
+
+protected:
+    // Some pre-built atom clusters.
+    int twoCarbons;
+    int methyl[2];
+};
+
+class OneDofEthane : public EthaneMolecule {
 public:
-    OneDofEthane(bool allowStretch, int parent, DuMMForceFieldSubsystem& mm, SimbodyMatterSubsystem& matter)
-      : Molecule()
-    {
-        const Real ccNominalBondLength = 1.53688 * Ang2Nm;
-        const Real chNominalBondLength = 1.09    * Ang2Nm;
-        const Real hccNominalBondBend  = 109.5   * Deg2Rad;
+    OneDofEthane(bool allowStretch, int parent, 
+                 SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
 
-        // Create the atoms and bonds. Atom 0 is C0, atom 1 is C1, 2-4 are the
-        // hydrogens attached to C0, 5-7 are the hydrogens attached to C1.
-        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom(A99EthaneCarbon));
-        for (int i=0;i<6;++i) atoms.push_back(mm.addAtom(A99EthaneHydrogen));
-
-        mm.addBond(getC(0),getC(1));
-        for (int c=0; c<2; ++c)
-            for (int h=0; h<3; ++h)
-                mm.addBond(getC(c),getH(c,h));
-
-        // Define the two clusers.
-        int methyl[2];
-        methyl[0] =  mm.createCluster("methyl 0");
-        methyl[1] =  mm.createCluster("methyl 1");
-
-        // Now build two identical methyl clusters. We'll worry about getting them
-        // oriented properly when we place them onto bodies.
-        // The methyl clusters should look like this:
-        //
-        //          H0     
-        //           \   y
-        //            \  |
-        //             . C --> x
-        //      (H2) .  /      
-        //         *   z    
-        //       H1
-        //
-        //
-        // That is, H0 is in the (-x,+y) plane, tipped by the nominal
-        // H-C-C bend angle. Then H1 is the H0 vector 
-        // rotated +120 degrees about x (that is, out of the screen).
-        // H2 is the H0 vector rotated 240 (=-120) degrees about x (into the
-        // screen, not shown).
-
-        const Vec3 H1pos = Rotation::aboutZ(hccNominalBondBend)
-                              * Vec3(chNominalBondLength,0,0);
-
-        for (int c=0; c<2; ++c) {
-            mm.placeAtomInCluster(getC(c), methyl[c], Vec3(0));
-            for (int h=0; h<3; ++h) {
-                const Vec3 Hpos = Rotation::aboutX(h*120*Deg2Rad) * H1pos;
-                mm.placeAtomInCluster(getH(c,h), methyl[c], Hpos);
-            }
+    void setDefaultInternalState(State& s) const {
+        const int ndof = getMatter().getDOF(getBody(1));
+        for (int i=0; i<ndof; ++i) {
+            getMatter().setMobilizerQ(s, getBody(1), i, 0);
+            getMatter().setMobilizerU(s, getBody(1), i, 0);
         }
-
-        // Now mount the methyls onto bodies, methyl[0] first. Connect
-        // them by either a pin or cylinder depending on allowStretch.
- 
-        bodies.push_back(
-            matter.addRigidBody(
-                mm.calcClusterMassProperties(methyl[0], Transform()),
-                Transform(),            // inboard mobilizer frame
-                parent, Transform(),    // parent mobilizer frmae
-                Mobilizer::Free));
-
-        bodies.push_back(
-            matter.addRigidBody(
-                mm.calcClusterMassProperties(methyl[1], Transform()),      
-                Transform(Rotation::aboutY(90*Deg2Rad), Vec3(0)), // move z to +x
-                getBody(0), Transform(Rotation::aboutY(90*Deg2Rad), // move z to +x
-                                      Vec3(ccNominalBondLength,0,0)),
-                allowStretch ? Mobilizer::Cylinder : Mobilizer::Pin));
-
-        mm.attachClusterToBody(methyl[0], bodies[0], Transform());
-        mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
     }
 
     // Set stretch around the nominal length.
-    void setBondStretch(Real stretchInNm, const SimbodyMatterSubsystem& matter, State& s) const {
-        assert(getDOF(getBody(1)) == 2);    // must have been build with Cylinder mobilizer
-        matter.setMobilizerQ(s, getBody(1), 1, stretchInNm);
+    void setCCStretch(Real stretchInNm, State& s) const {
+        assert(getMatter().getDOF(getBody(1)) == 2);    // must have been build with Cylinder mobilizer
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
     }
 
-    void setTorsionAngleDeg(Real angleInDeg, const SimbodyMatterSubsystem& matter, State& s) const {
-        matter.setMobilizerQ(s, getBody(1), 0, angleInDeg*Deg2Rad);
+    void setTorsionAngleDeg(Real angleInDeg, State& s) const {
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
+    }
+
+    // Rate is rad/ps
+    void setTorsionRate(Real rateInRadPerPs, State& s) const {
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
+    }
+};
+
+class RigidEthane : public EthaneMolecule {
+public:
+    RigidEthane(Real torsionAngleInDeg, int parent, 
+                SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm);
+    void setDefaultInternalState(State& s) const { } // doesn't have any
+};
+
+class FloppyEthane : public EthaneMolecule {
+public:
+    FloppyEthane(int parent, 
+                 SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm);
+
+    void setDefaultInternalState(State& s) const;
+
+    // Set stretch around the nominal length.
+    void setCCStretch(Real stretchInNm, State& s) const {
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
+    }
+
+    void setTorsionAngleDeg(Real angleInDeg, State& s) const {
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
+    }
+
+    // Rate is rad/ps
+    void setTorsionRate(Real rateInRadPerPs, State& s) const {
+        const int CBody = getDuMM().getAtomBody(getC(1));
+        getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
     }
 };
 
@@ -191,12 +225,13 @@ try {
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
-    bool useRigid = true, useCartesian = true, wantConstraint=false;
+    Real accuracy = 1e-3;
+    Real outputInterval = .1;
 
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(0.2);
+    forces.addGlobalEnergyDrain(0.02);
 
 
     // AMBER 99
@@ -238,140 +273,20 @@ try {
     mbs.addForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
-    const bool allowStretch = false;
-    const OneDofEthane ethane1(allowStretch, Ground, mm, matter);
-    const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), mm, matter);
-    const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), mm, matter);
-    const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), mm, matter);
-
-    // ethane:
-    // atom 0 is carbon1
-    // atoms 1,2,3 are attached to carbon1
-    // atom 4 is carbon2
-    // atoms 5,6,7 are attached to carbon2
-
-    // rigid clusters:
-    //   group 1: the two carbons
-    //   group 2: carbon 1 (atom 0) and hydrogens 1,2,3
-    //   group 3: carbon 2 (atom 4) and hydrogens 5,6,7
-    //   group 4: the entire molecule
-    // Any cluster or individual atom can be assigned to a body, provided
-    // the resulting set of assignments represents a partitioning of
-    // the atoms across the bodies.
-
     /*
-    const int twoCarbons           = mm.createCluster("two carbons");
-    const int methyl1              = mm.createCluster("methyl 1");
-    const int methyl2              = mm.createCluster("methyl 2");
-    const int wholeEthaneEclipsed  = mm.createCluster("ethaneEclipsed");
-    const int wholeEthaneStaggered = mm.createCluster("ethaneStaggered");
 
-    const Real ccNominalBondLength = 1.53688 * Ang2Nm;
-    const Real chNominalBondLength = 1.09    * Ang2Nm;
-    const Real hccNominalBondBend  = 109.5   * Deg2Rad;
-
-    // Create the atoms and bonds. H[0..2] are attached to C[0], the others to C[1].
-    int C[2]; for (int i=0; i<2; ++i) C[i] = mm.addAtom(13);
-    int H[6]; for (int i=0; i<6; ++i) H[i] = mm.addAtom(14);
-    mm.addBond(C[0],C[1]);
-    for (int i=0; i<3; ++i) {mm.addBond(H[i],C[0]); mm.addBond(H[i+3],C[1]);}
-
-    // Now build clusters. The "twoCarbons" cluster looks like this:        
-    //          y
-    //          |
-    //          C0 --> ---- C1
-    //         /     x
-    //        z 
-    // That is, the 1st carbon is at the origin, the 2nd is out along the +x
-    // axis by the nominal C-C bond length.
-
-    mm.placeAtomInCluster(C[0], twoCarbons, Vec3(0));
-    mm.placeAtomInCluster(C[1], twoCarbons, Vec3(ccNominalBondLength,0,0));
-
-    // Now build two identical methyl clusters. We'll worry about getting them
-    // oriented properly when we place them into larger clusters or onto bodies.
-    // The methyl clusters should look like this:
-    //
-    //          H0     
-    //           \   y
-    //            \  |
-    //             . C --> x
-    //      (H2) .  /      
-    //         *   z    
-    //       H1
-    //
-    //
-    // That is, H0 is in the (-x,+y) plane, tipped by the nominal
-    // H-C-C bend angle. Then H1 is the H0 vector 
-    // rotated +120 degrees about x (that is, out of the screen).
-    // H2 is the H0 vector rotated 240 (=-120) degrees about x (into the
-    // screen, not shown).
-    mm.placeAtomInCluster(C[0], methyl1, Vec3(0));
-    mm.placeAtomInCluster(C[1], methyl2, Vec3(0));
-
-    const Vec3 H1pos = Rotation::aboutZ(hccNominalBondBend)
-                          * Vec3(chNominalBondLength,0,0);
-    for (int i=0; i<3; ++i) {
-        const Vec3 Hpos = Rotation::aboutX(i*120*Deg2Rad) * H1pos;
-        mm.placeAtomInCluster(H[i],   methyl1, Hpos);
-        mm.placeAtomInCluster(H[3+i], methyl2, Hpos);
-    }
-
-    // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
-    // the 1st methyl group's reference frame with the body frame, and transform the
-    // second by rotating it 180 degrees about y and shifting it by the nominal C-C
-    // bond length in the +x direction. We'll then rotate about x to produce
-    // a staggered conformation.    
-    //    H00                        H10
-    //      \   y            y1 z1   /
-    //       \  |             | /  /
-    //          C0 --> -- <-- C1  
-    //         /     x    x1
-    //        z 
-    mm.placeClusterInCluster(methyl1, wholeEthaneEclipsed,  Transform());
-    mm.placeClusterInCluster(methyl1, wholeEthaneStaggered, Transform());
-
-    mm.placeClusterInCluster(methyl2, wholeEthaneEclipsed, 
-        Transform(Rotation::aboutY(180*Deg2Rad),
-                  Vec3(ccNominalBondLength,0,0)));
-    mm.placeClusterInCluster(methyl2, wholeEthaneStaggered, 
-        Transform(Rotation::aboutYThenOldX(180*Deg2Rad, 60*Deg2Rad),
-                  Vec3(ccNominalBondLength,0,0)));
-
-    cout << "mass props twoCarbons =" << mm.calcClusterMassProperties(twoCarbons, Vec3(.76844*Ang2Nm,1,0));
-    cout << "mass props methyl1    =" << mm.calcClusterMassProperties(methyl1);
-    cout << "mass props methyl2    =" << mm.calcClusterMassProperties(methyl2);
-    cout << "mass props methyl2(rot-45y) =" 
-         << mm.calcClusterMassProperties(methyl2, Rotation::aboutY(-45*Deg2Rad));
-    cout << "mass props eclipsed   =" << mm.calcClusterMassProperties(wholeEthaneEclipsed);
-    cout << "mass props staggered  =" << mm.calcClusterMassProperties(wholeEthaneStaggered);
-*/
-
-    /* Whole ethane as a rigid body, eclipsed. 
-    // Align cluster reference frame with body's.
-    int b1 = ethane.addRigidBody(
-        mm.calcClusterMassProperties(wholeEthaneStaggered, Transform()), 
-        Transform(),            // inboard mobilizer frame
-        Ground, Transform(),    // parent mobilizer frmae
-        Mobilizer::Free);
-    mm.attachClusterToBody(wholeEthaneStaggered, b1, Transform()); 
-    /**/
-
-    /* 2 Methyls connected by a torsion/stretch (cylinder) mobilizer. 
-    int b1 = ethane.addRigidBody(
-                mm.calcClusterMassProperties(methyl1, Transform()),
-                Transform(),            // inboard mobilizer frame
-                Ground, Transform(),    // parent mobilizer frmae
-                Mobilizer::Free);
-    int b2 = ethane.addRigidBody(
-                mm.calcClusterMassProperties(methyl2, Transform()),      
-                Transform(Rotation::aboutY(90*Deg2Rad), Vec3(0)), // move z to +x
-                b1, Transform(Rotation::aboutY(90*Deg2Rad), // move z to +x
-                              Vec3(ccNominalBondLength,0,0)),
-                Mobilizer::Cylinder);
-    mm.attachClusterToBody(methyl1, b1, Transform());
-    mm.attachClusterToBody(methyl2, b2, Transform(Rotation::aboutY(180*Deg2Rad)));
-    /**/
+    const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
+    const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), matter, mm);
+    const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), matter, mm);
+    const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), matter, mm);
+    const RigidEthane  rethane1(0, Ground, matter, mm);
+    const RigidEthane  rethane2(60, Ground, matter, mm);
+    */
+    const bool allowStretch = false;
+    const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
+    const RigidEthane  rethane1(0, Ground, matter, mm);
+    const RigidEthane  rethane2(60, Ground, matter, mm);
+    const FloppyEthane floppy1(Ground, matter, mm);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -387,24 +302,33 @@ try {
     //mbs.realize(s, Stage::Topology);
     //mbs.realize(s, Stage::Model);
 
-    mbs.realize(s);
+    mbs.realize(s, Stage::Model);
 
-    //ethane1.setBondStretch(0.01, matter, s);
-    ethane1.setTorsionAngleDeg(5, matter, s);
+    floppy1.setDefaultInternalState(s);
+    //floppy1.setCCStretch(.1,s);
+    //floppy1.setTorsionAngleDeg(80,s);
+    //floppy1.setTorsionRate(10,s);
 
-    //ethane2.setBondStretch(0.03, matter, s);
-    ethane2.setMoleculePosition(Vec3(0,1,0),   matter, s);
+    ethane1.setMoleculePosition(Vec3(1,0,0), s);
+    rethane1.setMoleculePosition(Vec3(0,0,-1), s);
+    rethane2.setMoleculePosition(Vec3(-1,0,-1), s);
 
-    //ethane3.setBondStretch(-0.03, matter, s);
-    ethane3.setMoleculePosition(Transform(Rotation::aboutZ(Pi/2),Vec3(1,0,1)), matter, s);
+    /*
 
-    ethane4.setMoleculePosition(Vec3(-1,0,0), matter, s);
+    if (allowStretch) ethane1.setCCStretch(0.03, s);
+    ethane1.setTorsionAngleDeg(5, s);
 
-   // ethane1.setMoleculePosition(Vec3(3,0,0), matter, s);
+    if (allowStretch) ethane2.setCCStretch(0.03, s);
+    ethane2.setMoleculePosition(Vec3(0,1,0), s);
 
-    /* 2 Methyls */
-    //ethane.setMobilizerQ(s,b2,0,1e-4);
-    /**/
+    if (allowStretch) ethane3.setCCStretch(-0.03, s);
+    ethane3.setMoleculePosition(Transform(Rotation::aboutZ(Pi/2),Vec3(1,0,1)), s);
+
+    if (allowStretch) ethane4.setCCStretch(-0.03, s);
+    ethane4.setMoleculePosition(Vec3(-1,0,0), s);
+
+
+   */
 
     /* Cartesian: 
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -417,15 +341,6 @@ try {
 
 
     mm.dump();
-
-    //const Vec3 ccBond(1.53688, 0, 0);
-    //Vec3 station[] = { Vec3(0), /*Vec3(-.3778,1.02422,0)*/Vec3(0), 
-    //                            /*Vec3(-.3778,-0.514034,-0.885898)*/Vec3(0), 
-    //                            /*Vec3(-.3778,-0.510199,0.888107)*/Vec3(0),
-    //                   Vec3(0), Vec3(.3778,0.510199,0.888107), 
-    //                            Vec3(.3778,0.514034,-0.885898),
-    //                            Vec3(.3778,-1.02422,0)};
-
 
     VTKReporter display(mbs, 0.1);
 
@@ -453,7 +368,7 @@ try {
     }
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        const Real shrink = /*0.25*/1, opacity = mm.getAtomElement(anum)==1?0.25:1;
+        const Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
         display.addDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
             DecorativeSphere(shrink*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
@@ -464,57 +379,12 @@ try {
 
     display.report(s);
 
-    /*
-    // Give the whole rigid body molecule an initial velocity.
-    //ethane.setMobilizerVelocity(s, b1, SpatialVec(Vec3(0), Vec3(0,10,0)));
-    // Apply position and velocity directly to the joint axis for the torsion
-    // between the two carbons.
-    if (useRigid) {
-        ethane.setMobilizerQ(s, b2, 0,Pi/3);
-        //ethane.setMobilizerU(s, b2, 0, 10);
-        ethane.setMobilizerQ(s, bh1, 0, Pi/2); // 1st axis is bend
-        ethane.setMobilizerQ(s, bh2, 0, Pi/2);
-        ethane.setMobilizerQ(s, bh3, 0, Pi/2);
-        ethane.setMobilizerQ(s, bh1, 1, 1.); // 2nd axis is slider
-        ethane.setMobilizerQ(s, bh2, 1, 1.);
-        ethane.setMobilizerQ(s, bh3, 1, 1.);
-
-        ethane.setMobilizerQ(s, bh4, 0, -Pi/2); // 1st axis is bend
-        ethane.setMobilizerQ(s, bh5, 0, -Pi/2);
-        ethane.setMobilizerQ(s, bh6, 0, -Pi/2);
-        ethane.setMobilizerQ(s, bh4, 1, 1.); // 2nd axis is slider
-        ethane.setMobilizerQ(s, bh5, 1, 1.);
-        ethane.setMobilizerQ(s, bh6, 1, 1.);
-    }
-
-    if (useCartesian) {
-        // shift 2nd molecule up yoffs in y
-        const Real yoffs = 4;
-
-        ethane.setMobilizerPosition(s, firstCartesianBody+0, Transform(Vec3(0,yoffs,0)));
-        //ethane.setMobilizerU(s, firstCartesianBody+0, 1, -10);
-
-        // distort bond a little
-        ethane.setMobilizerPosition(s, firstCartesianBody+1, Transform(Vec3(1.53688+.05, yoffs, 0)));
-
-        ethane.setMobilizerPosition(s, firstCartesianBody+2, Transform(Vec3(-.3778, 1.02422 +yoffs, 0)));
-        ethane.setMobilizerPosition(s, firstCartesianBody+3, Transform(Vec3(-.3778,-0.514034+yoffs,-0.885898)));
-        ethane.setMobilizerPosition(s, firstCartesianBody+4, Transform(Vec3(-.3778,-0.510199+yoffs, 0.888107)));
-
-        ethane.setMobilizerPosition(s, firstCartesianBody+5, Transform(Vec3( .3778+1.53688, 0.510199+yoffs, 0.888107)));
-        ethane.setMobilizerPosition(s, firstCartesianBody+6, Transform(Vec3( .3778+1.53688, 0.514034+yoffs,-0.885898)));
-        ethane.setMobilizerPosition(s, firstCartesianBody+7, Transform(Vec3( .3778+1.53688,-1.02422 +yoffs, 0)));
-    }
-    */
-
-    display.report(s);
-
-    const Real h = /*.0025*/0.1;
+    const Real h = outputInterval;
     const int interval = 1;
     const Real tstart = 0.;
     const Real tmax = 30; //ps
 
-    study.setAccuracy(1e-2);
+    study.setAccuracy(accuracy);
     study.initialize(); 
 
     std::vector<State> saveEm;
@@ -536,12 +406,7 @@ try {
              << "% pe(kcal)=" << mbs.getPotentialEnergy(s)*KJ2Kcal
              << ", ke(kcal)=" << mbs.getKineticEnergy(s)*KJ2Kcal
              << " hNext(fs)=" << 1000*study.getPredictedNextStep();
-        //if (useRigid) {
-        //    cout << " cctors=" << ethane.getMobilizerQ(s, b2, 0)/RadiansPerDegree
-        //         << " ccstretch=" << ethane.getMobilizerQ(s, b2, 1)
-        //         << " h1bend=" << ethane.getMobilizerQ(s, bh1, 0)/RadiansPerDegree
-        //         << " h1stretch=" << ethane.getMobilizerQ(s, bh1, 1); // XXX
-        //}
+
         cout << endl;
 
         if (!(step % interval)) {
@@ -550,18 +415,7 @@ try {
         }
         ++step;
     }
-/*
-    const Transform& c1X = molecule.getBodyPosition(s, 1);
-    cout << "h11=" << ~c1X*molecule.getBodyPosition(s, 3) << endl;
-    cout << "h12=" << ~c1X*molecule.getBodyPosition(s, 4) << endl;
-    cout << "h13=" << ~c1X*molecule.getBodyPosition(s, 5) << endl;
 
-    const Transform& c2X = molecule.getBodyPosition(s, 2);
-    cout << "c2=" << ~c1X*c2X << endl;
-    cout << "h21=" << ~c2X*molecule.getBodyPosition(s, 6) << endl;
-    cout << "h22=" << ~c2X*molecule.getBodyPosition(s, 7) << endl;
-    cout << "h23=" << ~c2X*molecule.getBodyPosition(s, 8) << endl;
-*/
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
             display.report(saveEm[i]);
@@ -575,4 +429,215 @@ catch (const std::exception& e) {
     printf("EXCEPTION THROWN: %s\n", e.what());
 }
 return 0;
+}
+
+EthaneMolecule::EthaneMolecule(int parent, const Transform& parentTransform,
+                               SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+  : Molecule(parent,parentTransform,matter,mm)
+{
+   twoCarbons = methyl[0] = methyl[1] = -1;
+
+    // Create the atoms and bonds. Atom 0 is C0, atom 1 is C1, 2-4 are the
+    // hydrogens attached to C0, 5-7 are the hydrogens attached to C1.
+    for (int i=0;i<2;++i) atoms.push_back(mm.addAtom(A99EthaneCarbon));
+    for (int i=0;i<6;++i) atoms.push_back(mm.addAtom(A99EthaneHydrogen));
+
+    mm.addBond(getC(0),getC(1));
+    for (int c=0; c<2; ++c)
+        for (int h=0; h<3; ++h)
+            mm.addBond(getC(c),getH(c,h));
+
+    // Define the clusers.
+    twoCarbons = mm.createCluster("two carbons");
+    methyl[0] =  mm.createCluster("methyl 0");
+    methyl[1] =  mm.createCluster("methyl 1");
+    
+    // The "twoCarbons" cluster looks like this:        
+    //          y
+    //          |
+    //          C0 --> ---- C1
+    //         /     x
+    //        z 
+    // That is, the 1st carbon is at the origin, the 2nd is out along the +x
+    // axis by the nominal C-C bond length.
+
+    mm.placeAtomInCluster(getC(0), twoCarbons, Vec3(0));
+    mm.placeAtomInCluster(getC(1), twoCarbons, Vec3(getNominalCCBondLength(),0,0));
+
+    // Now build two identical methyl clusters. We'll worry about getting them
+    // oriented properly when we place them onto bodies.
+    // The methyl clusters should look like this:
+    //
+    //          H0     
+    //           \   y
+    //            \  |
+    //             . C --> x
+    //      (H2) .  /      
+    //         *   z    
+    //       H1
+    //
+    //
+    // That is, H0 is in the (-x,+y) plane, tipped by the nominal
+    // H-C-C bend angle. Then H1 is the H0 vector 
+    // rotated +120 degrees about x (that is, out of the screen).
+    // H2 is the H0 vector rotated 240 (=-120) degrees about x (into the
+    // screen, not shown).
+
+    const Vec3 H1pos = Rotation::aboutZ(getNominalHCCBondAngle())
+                          * Vec3(getNominalCHBondLength(),0,0);
+
+    for (int c=0; c<2; ++c) {
+        mm.placeAtomInCluster(getC(c), methyl[c], Vec3(0));
+        for (int h=0; h<3; ++h) {
+            const Vec3 Hpos = Rotation::aboutX(h*120*Deg2Rad) * H1pos;
+            mm.placeAtomInCluster(getH(c,h), methyl[c], Hpos);
+        }
+    }
+}
+
+OneDofEthane::OneDofEthane(bool allowStretch, int parent,
+                           SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+  : EthaneMolecule(parent,Transform(),matter,mm)
+{
+    const Rotation PinAboutX = Rotation::aboutY(90*Deg2Rad); // move z to +x
+
+    // Mount the methyls onto bodies, methyl[0] first. Connect
+    // them by either a pin or cylinder depending on allowStretch.
+
+    bodies.push_back(
+        matter.addRigidBody(
+            mm.calcClusterMassProperties(methyl[0], Transform()),
+            Transform(),            // inboard mobilizer frame
+            parent, Transform(),    // parent mobilizer frmae
+            Mobilizer::Free));
+
+    bodies.push_back(
+        matter.addRigidBody(
+            mm.calcClusterMassProperties(methyl[1], Transform()),      
+            Transform(PinAboutX, Vec3(0)), 
+            getBody(0), Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
+            allowStretch ? Mobilizer::Cylinder : Mobilizer::Pin));
+
+    mm.attachClusterToBody(methyl[0], bodies[0], Transform());
+    mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
+}
+
+RigidEthane::RigidEthane(Real torsionAngleInDeg, int parent, 
+                         SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+  : EthaneMolecule(parent,Transform(),matter,mm)
+{
+    const int wholeEthaneCluster = mm.createCluster("rigid ethane");
+
+    // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
+    // the 1st methyl group's reference frame with the body frame, and transform the
+    // second by rotating it 180 degrees about y and shifting it by the nominal C-C
+    // bond length in the +x direction. We'll then rotate about x to produce
+    // a desired conformation.    
+    //    H00                        H10
+    //      \   y            y1 z1   /
+    //       \  |             | /  /
+    //          C0 --> -- <-- C1  
+    //         /     x    x1
+    //        z 
+    mm.placeClusterInCluster(methyl[0], wholeEthaneCluster,  Transform());
+    mm.placeClusterInCluster(methyl[1], wholeEthaneCluster, 
+        Transform(Rotation::aboutYThenOldX(180*Deg2Rad, torsionAngleInDeg),
+                  Vec3(getNominalCCBondLength(),0,0)));
+
+    // Align cluster reference frame with body's.
+    bodies.push_back(
+        matter.addRigidBody(
+            mm.calcClusterMassProperties(wholeEthaneCluster, Transform()), 
+            Transform(),            // inboard mobilizer frame
+            parent, Transform(),    // parent mobilizer frmae
+            Mobilizer::Free));
+
+    mm.attachClusterToBody(wholeEthaneCluster, bodies[0], Transform()); 
+}
+
+// We will orient the carbon atom's body frames in opposite 
+// directions, rotating 180 degrees about Y.
+//    H00                        H10
+//      \   y0           y1 z1   /
+//       \  |             | /  /
+//          C0 --> -- <-- C1  
+//         /     x0   x1
+//        z0 
+// The cylinder joint between C0 & C1 will be defined along the +x0 direction (-x1).
+// The bend-stretch joints connecting the H's to their C's will bend around their C's
+// z axis, so that a bend of +109.5 yields the nominal H angle on either side. The
+// stretch coordinate then operates along the outboard (child) body's NEW x axis
+// direction.
+//
+// Warning: the reference configuration (all coordinates 0) has all the atoms
+// on top of one another; don't realize past the Model stage until you have called
+// setDefaultInternalState().
+//
+// The "molecule frame" is considered to be identical with C0's body frame.
+//
+FloppyEthane::FloppyEthane(int parent, 
+                           SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+  : EthaneMolecule(parent,Transform(),matter,mm)
+{
+    // For C-C cylinder joint; rotation and translation are about the
+    // Mobilizer frames' common Z axis.
+    const Transform C0CylMobFrame(Rotation::aboutY( 90*Deg2Rad)); // move z to x0 direction
+    const Transform C1CylMobFrame(Rotation::aboutY(-90*Deg2Rad)); // move z to -x1 direction
+    const Transform HMobFrame;  // same as body frame for all H's
+
+    // C0 is our base body, attached to parent by 6 dof joint
+    bodies.push_back(
+        matter.addRigidBody(
+            MassProperties(mm.getAtomMass(getC(0)), Vec3(0), Inertia(0)),
+            Transform(),            // use C0 body frame for Free mobilizer
+            parent, Transform(),    // use parent body frame as reference
+            Mobilizer::Free));
+    mm.attachAtomToBody(getC(0), bodies.back());
+
+    // C1 is body 1, connected to C0 by a cylinder joint
+    bodies.push_back(
+        matter.addRigidBody(
+            MassProperties(mm.getAtomMass(getC(1)), Vec3(0), Inertia(0)),
+            C1CylMobFrame,
+            bodies[0], C0CylMobFrame,
+            Mobilizer::Cylinder));
+    mm.attachAtomToBody(getC(1), bodies.back());
+           
+    // Now attach 3 Hs to each C.
+    for (int c=0; c<2; ++c) {
+        const int Cbody = mm.getAtomBody(getC(c));
+        for (int h=0; h<3; ++h) {
+            const Transform CBendStretchMob(Rotation::aboutX(h*120*Deg2Rad));
+            bodies.push_back(
+                matter.addRigidBody(
+                    MassProperties(mm.getAtomMass(getH(c,h)), Vec3(0), Inertia(0)),
+                    HMobFrame,
+                    Cbody, CBendStretchMob,
+                    Mobilizer::BendStretch));
+            mm.attachAtomToBody(getH(c,h), bodies.back());
+        }
+    }
+}
+
+void FloppyEthane::setDefaultInternalState(State& s) const {
+    // All the bodies (1 per atom) except the 0th are internal. We'll set all internal q's
+    // to the appropriate nominal values for generic EthaneMolecules, and
+    // set all the internal u's to zero
+
+    // C1
+    const int CBody = getDuMM().getAtomBody(getC(1));
+    getMatter().setMobilizerQ(s, CBody, 0, 0); // torsion;
+    getMatter().setMobilizerQ(s, CBody, 1, getNominalCCBondLength()); // stretch
+    getMatter().setMobilizerU(s, CBody, 0, 0); // torsion rate
+    getMatter().setMobilizerU(s, CBody, 1, 0); // stretch rate
+
+    // H (bend,stretch)
+    for (int c=0; c<2; ++c)
+        for (int h=0; h<3; ++h) {
+            const int HBody = getDuMM().getAtomBody(getH(c,h));
+            getMatter().setMobilizerQ(s, HBody, 0, getNominalHCCBondAngle());
+            getMatter().setMobilizerQ(s, HBody, 1, getNominalCHBondLength());
+            getMatter().setMobilizerU(s, HBody, 0, 0);
+            getMatter().setMobilizerU(s, HBody, 1, 0);
+        }
 }

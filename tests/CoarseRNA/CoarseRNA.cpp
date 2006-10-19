@@ -58,7 +58,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 3;
+static int NSegments = 5;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -283,13 +283,13 @@ int main(int argc, char** argv) {
         printf("time  nextStepSize\n");
 
         s.updTime() = 0;
-        for (int i=0; i<100; ++i)
+        for (int i=0; i<50; ++i)
             saveEm.push_back(s);    // delay
         display.report(s);
 
         myStudy.initialize();
         saveEm.push_back(s);
-        for (int i=0; i<100; ++i)
+        for (int i=0; i<50; ++i)
             saveEm.push_back(s);    // delay
         display.report(s);
         for (;;) {
@@ -311,9 +311,13 @@ int main(int argc, char** argv) {
             // TODO: should check for errors or have or teach RKM to throw. 
             myStudy.step(s.getTime() + dt);
         }
-
-        for (int i=0; i < (int)saveEm.size(); ++i)
-            display.report(saveEm[i]);
+        while(true) {
+            for (int i=0; i < (int)saveEm.size(); ++i) {
+                display.report(saveEm[i]);
+                //display.report(saveEm[i]); // half speed
+            }
+            getchar();
+        }
     } 
     catch (const exception& e) {
         printf("EXCEPTION THROWN: %s\n", e.what());
