@@ -1208,6 +1208,21 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
+        // Implementations of virtual methods.
+
+    // TODO: partial implementation; just translation
+    void setMobilizerPosition(const SBModelVars&, const Transform& X_JbJ,
+                              Vector& q) const 
+    {
+        toQ(q).updSubVec<3>(2) = X_JbJ.T();
+    }
+    // TODO: partial implementation; just translation
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+                              Vector& u) const
+    {
+        toU(u).updSubVec<3>(2) = V_JbJ[1];
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars& mv, 
@@ -1229,9 +1244,12 @@ public:
         Transform&         X_JbJ) const 
     {
         const Vec<5>& coords = fromQ(q);     // joint coordinates
+        const Vec<2>& angles = coords.getSubVec<2>(0);
 
-        X_JbJ.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
-        X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
+        //X_JbJ.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
+        X_JbJ.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
+        //X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
+        X_JbJ.updT() = coords.getSubVec<3>(2); // because translation is in Jb
     }
 
     // Calculate H.
@@ -1247,6 +1265,7 @@ public:
         const Transform X_GJb = X_GP * X_PJb;
         const Transform X_GJ  = X_GB * X_BJ;
 
+        const Vec3 T_JB_G  = X_GB.T() - X_GJ.T();
         const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
 
         // The rotational coordinates are defined in the space-fixed 
@@ -1254,11 +1273,13 @@ public:
         // the instantaneous spatial meaning of those coordinates. 
         // *Then* we translate along the new J frame axes.
 
-        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
-        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
-        H[2] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
-        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.z());    
+        //H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
+        //H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
+        H[0] = SpatialRow(~X_GJ.x(), ~(X_GJ.x() % T_JbB_G));
+        H[1] = SpatialRow(~X_GJ.y(), ~(X_GJ.y() % T_JbB_G));
+        H[2] = SpatialRow(  Row3(0) ,     ~X_GJb.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GJb.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GJb.z());    
     }
 };
 

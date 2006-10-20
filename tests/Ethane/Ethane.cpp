@@ -58,7 +58,8 @@ static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
 // mapping from atoms to Amber99 Charged Atom Types
 enum {
     A99EthaneCarbon   = 13,    // closest I could find in Amber99; not really right
-    A99EthaneHydrogen = 14
+    A99EthaneHydrogen = 14,
+    ShermDoubleBondedOxygen = 9999
 };
 
 class Molecule {
@@ -107,12 +108,97 @@ protected:
     DuMMForceFieldSubsystem const* mmp;
 };
 
+// An oxygen (O2) molecule has just two atoms, with a maximum
+// of 6 degrees of freedom. We provide the following models:
+//   CartesianO2 -- 3 dofs referred to the Ground origin
+//   InternalCartesianO2 -- the first oxygen is measured
+//        from ground origin, 2nd w.r.t. first
+//   InternalO2 -- same as Rigid, but adds a bond stretch
+//                 mobility between the atoms.
+//   RigidO2 -- a single body with both atoms attached
+//              at a nominal bond length. The body then
+//              has *5* dofs w.r.t. ground (can't rotate
+//              around the line between the atoms).
+// The first three models are equivalent; they just use
+// different parameterization for the 6 dofs. The RigidO2
+// model has one fewer degree of freedom. Specifically, the
+// very high frequency O=O stretch term has been eliminated.
+
+class OxygenMolecule : public Molecule {
+public:
+    OxygenMolecule(int parentBodyNum, const Transform& parentMobilizerFrame,
+                   SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm) 
+      : Molecule(parent, parentMobilizerFrame, matter, mm)
+    {
+        
+        // Create the atoms and bonds. Atom 0 is O0, atom 1 is O1. O0 will serve
+        // as the base frame for the molecule.
+        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom(ShermDoubleBondedOxygen));
+        mm.addBond(getO(0),getO(1));
+
+        // Define the clusers.
+        twoOxygens = mm.createCluster("two oxygens");
+
+        mm.placeAtomInCluster(getO(0), twoOxygens, Vec3(0));
+        mm.placeAtomInCluster(getO(1), twoOxygens, Vec3(0,0,getNominalOOBondLength()));
+    }
+
+    // Get the atom number for each oxygen.
+    int getO(int i) const {assert(i==0||i==1); return getAtom(i);}
+
+    Real getNominalOOBondLength() const {
+        return 1.21 * Ang2Nm;
+    }
+protected:
+    int twoOxygens; // cluster
+};
+
+class RigidO2 : public OxygenMolecule {
+public:
+    RigidO2(int parent, SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+      : OxygenMolecule(parent,Transform(),matter,mm)
+    {
+        // Align cluster reference frame with body's. (5 dofs!)
+        // FreeLine prevents rotation about Z, so make sure the body has its
+        // O=O axis arranged along Z (or rotate the frame here).
+        bodies.push_back(
+            matter.addRigidBody(
+                MassProperties(0,Vec3(0),Inertia(0)),
+                Transform(),            // inboard mobilizer frame
+                parent, Transform(),    // parent mobilizer frame
+                Mobilizer::Cartesian));
+        // y
+        bodies.push_back(
+            matter.addRigidBody(
+                MassProperties(0,Vec3(0),Inertia(0)),
+                Transform(Rotation::aboutX(-90*Deg2Rad)),            // inboard mobilizer frame
+                bodies.back(), Transform(Rotation::aboutX(-90*Deg2Rad)),    // parent mobilizer frame
+                Mobilizer::Pin));
+        // x
+        bodies.push_back(
+            matter.addRigidBody(
+                mm.calcClusterMassProperties(twoOxygens, Transform()),
+                Transform(Rotation::aboutY(90*Deg2Rad)),            // inboard mobilizer frame
+                bodies.back(), Transform(Rotation::aboutY(90*Deg2Rad)),    // parent mobilizer frame
+                Mobilizer::Pin));
+        //bodies.push_back(
+        //    matter.addRigidBody(
+        //        mm.calcClusterMassProperties(twoOxygens, Transform()), 
+         //       Transform(),            // inboard mobilizer frame
+         //       parent, Transform(),    // parent mobilizer frame
+         //       Mobilizer::FreeLine));
+        mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
+    }
+
+    void setDefaultInternalState(State& s) const { } // none
+};
+
 // ethane:
 // atom 0 is carbon0
 // atoms 2,3,4 are attached to carbon0
 // atom 1 is carbon1
 // atoms 5,6,7 are attached to carbon1
-
+//
 // pre-built rigid clusters:
 //   the two carbons
 //   methyl 1 (atom 0) and hydrogens 1,2,3
@@ -120,6 +206,14 @@ protected:
 // Any cluster or individual atom can be assigned to a body, provided
 // the resulting set of assignments represents a partitioning of
 // the atoms across the bodies.
+//
+// Ethane has 8 atoms, modeled as point masses. Consequently there
+// can be a maximum of 24 dofs. Choosing one atom as a "base", the
+// maximum number of internal coordinates is 21. If the base has
+// 6 dofs instead of three, then the maximal internal set is 18.
+// We provide a variety of models below as examples of what can
+// be done with Simbody, not necessarily because these are good
+// models!
 
 class EthaneMolecule : public Molecule {
 public:
@@ -189,6 +283,13 @@ public:
     void setDefaultInternalState(State& s) const { } // doesn't have any
 };
 
+//Here
+// is a model of ethane with 14 internal coordinates: stretch & torsion
+// between the carbons, and bend-stretch for the connection between the 
+// hydrogens and their carbons. That is, for each hydrogen, we are
+// modeling the CH stretch term, and the HCC bend term. However, we
+// are *not* permitting HCH bending, so the hydrogens will always be
+// found arranged exactly 120 degrees apart. 
 class FloppyEthane : public EthaneMolecule {
 public:
     FloppyEthane(int parent, 
@@ -225,13 +326,14 @@ try {
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
-    Real accuracy = 1e-3;
-    Real outputInterval = .1;
+    Real accuracy = 1e-6;
+    Real outputInterval = .05;
+    Real simulationLength = 30;
 
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(0.02);
+    //forces.addGlobalEnergyDrain(0.02);
 
 
     // AMBER 99
@@ -250,8 +352,13 @@ try {
     mm.defineChargedAtomType_KA(13, "Amber99 Alanine CB", 1, -0.1825);
     mm.defineChargedAtomType_KA(14, "Amber99 Alanine HB", 34, 0.0603);
 
+
     mm.defineBondStretch_KA(1,1,  310., 1.5260);
     mm.defineBondStretch_KA(1,34, 340., 1.09);
+
+    // I'm making this one up -- couldn't find O2 in Amber99
+    mm.defineChargedAtomType_KA(9999, "Sherm's O2", 25, 0); // must be neutral by symmetry
+    mm.defineBondStretch_KA(25,25, 570., 1.21); // bond length is right, stiffness is from C=O.
 
     mm.defineBondBend_KA(1, 1,34, 50, 109.5);
     mm.defineBondBend_KA(34,1,34, 35, 109.5);
@@ -283,10 +390,11 @@ try {
     const RigidEthane  rethane2(60, Ground, matter, mm);
     */
     const bool allowStretch = false;
-    const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
+    //const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
     const RigidEthane  rethane1(0, Ground, matter, mm);
-    const RigidEthane  rethane2(60, Ground, matter, mm);
-    const FloppyEthane floppy1(Ground, matter, mm);
+    //const RigidEthane  rethane2(60, Ground, matter, mm);
+    //const FloppyEthane floppy1(Ground, matter, mm);
+    const RigidO2      rigidO2(Ground, matter, mm);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -304,14 +412,15 @@ try {
 
     mbs.realize(s, Stage::Model);
 
-    floppy1.setDefaultInternalState(s);
+    //floppy1.setDefaultInternalState(s);
     //floppy1.setCCStretch(.1,s);
     //floppy1.setTorsionAngleDeg(80,s);
     //floppy1.setTorsionRate(10,s);
 
-    ethane1.setMoleculePosition(Vec3(1,0,0), s);
+    //ethane1.setMoleculePosition(Vec3(1,0,0), s);
     rethane1.setMoleculePosition(Vec3(0,0,-1), s);
-    rethane2.setMoleculePosition(Vec3(-1,0,-1), s);
+    //rethane2.setMoleculePosition(Vec3(-1,0,-1), s);
+    rigidO2.setMoleculePosition(Vec3(1,0,-1), s);
 
     /*
 
@@ -368,7 +477,7 @@ try {
     }
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        const Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
+        const Real shrink = 1, opacity = mm.getAtomElement(anum)==1?0.5:1;
         display.addDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
             DecorativeSphere(shrink*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
@@ -382,7 +491,7 @@ try {
     const Real h = outputInterval;
     const int interval = 1;
     const Real tstart = 0.;
-    const Real tmax = 30; //ps
+    const Real tmax = simulationLength; //ps
 
     study.setAccuracy(accuracy);
     study.initialize(); 
