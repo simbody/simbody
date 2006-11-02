@@ -68,7 +68,7 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMMATH_SOURCE_SUBDIRS . src)
+SET(SIMMATH_SOURCE_SUBDIRS  src src/ipopt)
 
 
 # Collect up information about the version of the simmath library we're building
@@ -230,10 +230,12 @@ SET(SOURCE_FILES) # empty
 SET(SOURCE_INCLUDE_FILES)
 
 FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
-    FILE(GLOB src_files  ${subdir}/src/*.cpp)
-    FILE(GLOB incl_files ${subdir}/src/*.h)
+    FILE(GLOB src_files  ${subdir}/*.cpp)
+    FILE(GLOB incl_files ${subdir}/*.h)
+    FILE(GLOB cpp_incl_files ${subdir}/*.hpp)
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+    SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${cpp_incl_files})
 
     INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
