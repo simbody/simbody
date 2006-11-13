@@ -46,7 +46,6 @@ public:
     virtual void getOptimizerParameters(unsigned int, int *) = 0;
     virtual void setOptimizerParameters(unsigned int, int *) = 0;
 */
-    virtual void setObjectiveFunction( SimTK::ObjectiveFunction *objFunc) = 0;
 
     virtual void optimize(SimTK::Vector &) = 0; // checks to see if space needs to be allocated
 

@@ -24,29 +24,51 @@
 #include "Simmath.h"
 #include "Optimizer.h"
 #include "OptimizerImplementation.h"
+#include "OptimizationProblem.h"
+#include "LBFGSOptimizer.h"
 
 namespace SimTK {
-   Optimizer::Optimizer(int dimension) {
-        OptimizerImplementation *optPtr =  new OptimizerImplementation(dimension);
-        optPtr->dimension = dimension;
+   Optimizer::Optimizer(OptimizationProblem& problem) {
+        OptimizerImplementation *optPtr =  OptimizerFactory(problem);
+        data = (void *)optPtr;
+   }
+   Optimizer::Optimizer(OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
+        OptimizerImplementation *optPtr =  OptimizerFactory(problem, algorithm);
         data = (void *)optPtr;
    }
 
    void  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
 
-      ((OptimizerImplementation *)data)->setOptimizerParameters(param, values);
+ //     ((OptimizerImplementation *)data)->setOptimizerParameters(param, values);
       return;
    }
+   OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
+ /*  
+     if( algrothim == LBFGS) {
+        return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
+     } else if( algrothim == LBFGSB) {
+        return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
+     } else {
+        return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
+     }
+*/
+  }
+  OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
+     return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
+/*   
+     if( problem.nconstraints > 0   {
+        return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
+     } else if( problem.nbounds > 0 ) {
+        return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
+     } else {
+        return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
+     }
+*/
+  }
 
    void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
-      ((OptimizerImplementation *)data)->getOptimizerParameters(param, values);
-      return;
-   }
-
-   void Optimizer::setObjectiveFunction(SimTK::ObjectiveFunction *objFunc) {
-
-      ((OptimizerImplementation *)data)->setObjectiveFunction(objFunc);
+  //    ((OptimizerImplementation *)data)->getOptimizerParameters(param, values);
       return;
    }
 

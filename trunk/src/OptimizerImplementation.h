@@ -26,52 +26,26 @@
 #include <iostream>
 #include "Simmath.h"
 #include "OptimizerInterface.h"
-#include "ObjectiveFunction.h"
+#include "OptimizationProblem.h"
 
 namespace SimTK {
 
 class OptimizerImplementation : public OptimizerInterface {
     public:
-     OptimizerImplementation( int );
-     OptimizerImplementation();
-     unsigned int optParamStringToValue( char *parameter );
-     void setOptimizerParameters(unsigned  int parameter, double *values); 
-     void getOptimizerParameters(unsigned int parameter, double *values); 
-     void setObjectiveFunction( void (*func)(int,double*,double*,double*,void*)) ;
-     void setObjectiveFunction( SimTK::ObjectiveFunction *objFunc);
+     OptimizerImplementation( OptimizationProblem& op){};
+     OptimizerImplementation(){};
+//     unsigned int optParamStringToValue( char *parameter );
+     virtual void setOptimizerParameters(unsigned int parameter, double *values ) = 0; 
+     virtual void getOptimizerParameters(unsigned int parameter, double *values ) = 0; 
 
-     void optimize( double *results ); 
-
-     void optimize(  SimTK::Vector &results ); 
+     virtual void optimize( double *results ) = 0; 
+     virtual void optimize(  SimTK::Vector &results ) = 0; 
 
 
       ~OptimizerImplementation(){
-          if(dimension > 0 ) {
-             delete [] work;
-             delete [] diag;
-             delete gradient;
-         }
      }
 
-     int         dimension;  // dimension of the problem
-     int         numCorrections;
-     int         Trace;
-     int         Algorithm;
-     int         MaxNumFuncEvals;
-     double     *work;
-     double     *diag;
-     double      GradientConvergenceTolerance;
-     double      LineSearchAccuracy;
-     double      DefaultStepLength;
-     void        (*costFunction)(int, double*, double*, double*, void*);
-     int         iprint[2]; 
-     double      xtol[1]; 
-     int         diagco[1];
-     void       *user_data;
-     SimTK::Vector *gradient;
-     SimTK::ObjectiveFunction *objFunc;
 
-
-};
-} // namespace SimTK
+  }; // end class OptimizerImplementation
+}   // namespace SimTK
 #endif //_SimTK_OPTIMIZER_IMPLEMENTATION_H_

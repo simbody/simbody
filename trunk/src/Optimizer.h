@@ -32,24 +32,36 @@
 #include "OptimizerImplementation.h"
 
 namespace SimTK {
-
+/*
+** Class for API interface to Simmath's optimizers.
+** The OptimizationProblem class describes the optimization by
+** specifying the objective function and constraints. OptimizerFactory()
+** instantiates the coorect optimizer based on the objective function 
+** and constraints specified in the OptimizationProblem object. 
+** If the user calls the Optimizer constructor and 
+** supplies the algorithm argument the OptimizerFactory() will ignore the 
+** will create instatiate the Optimizer asked for.
+**  
+*/
 
 class Optimizer :  public OptimizerInterface {
 
    public:
-    Optimizer( int );
+    Optimizer( OptimizationProblem& op);
+    Optimizer( OptimizationProblem& op, OptimizerAlgorithm opt_algo);
 
     ~Optimizer() {
        delete( (OptimizerImplementation *)data );
     }
     void setOptimizerParameters(unsigned int param, double *values); 
     void getOptimizerParameters(unsigned int param, double *values);
-    void setObjectiveFunction(SimTK::ObjectiveFunction *objFunc); 
 
     void optimize(SimTK::Vector&) ;
 
     private:
      void *data;
+     OptimizerImplementation *OptimizerFactory(OptimizationProblem& );
+     OptimizerImplementation *OptimizerFactory(OptimizationProblem&, OptimizerAlgorithm );
 
 }; // Class Optimizer
 } // namespace SimTK

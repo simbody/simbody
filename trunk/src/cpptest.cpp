@@ -3,7 +3,7 @@
 #include "SimTKcommon/internal/common.h"
 #include "simmatrix/internal/BigMatrix.h"
 #include "Optimizer.h"
-#include "ObjectiveFunction.h"
+#include "OptimizationProblem.h"
 
 #include <iostream>
 using std::cout;
@@ -12,9 +12,9 @@ using std::endl;
 
 #define PROBLEM_DIMENSION 2
 
-class objfunc : public SimTK::ObjectiveFunction {
+class ProblemStatement : public SimTK::OptimizationProblem {
 
-   double getValue(  SimTK::Vector &coefficients ) {
+   double objectiveFunction(  int n, SimTK::Vector &coefficients, void* user_data ) {
       double x, y;
 
       x = coefficients[0];
@@ -24,7 +24,7 @@ class objfunc : public SimTK::ObjectiveFunction {
 
    }
 
-   void getGradient(  SimTK::Vector &coefficients, SimTK::Vector &gradient ){
+   void objectiveGradient(int n,   SimTK::Vector &coefficients, SimTK::Vector &gradient, void *user_data ){
       double x, y;
 
       x = coefficients[0]; 
@@ -43,12 +43,15 @@ main() {
     double params[10];
     int i;
 
-    objfunc of;
     SimTK::Vector results(2);
+    ProblemStatement study;
+
+    study.dimension = PROBLEM_DIMENSION;
 
     cout << "cpptest " << endl;
+
     try {
-    SimTK::Optimizer opt( PROBLEM_DIMENSION ); 
+    SimTK::Optimizer opt( study ); 
 
     params[0] = 0;
     opt.setOptimizerParameters( TRACE, params );
@@ -65,7 +68,7 @@ main() {
     params[0] = 0.9;
     opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
 
-    opt.setObjectiveFunction( &of );
+//    opt.setObjectiveFunction( &of );
 
     results[0] =  100;
     results[1] = -100;
@@ -81,4 +84,5 @@ main() {
     for( i=0; i<PROBLEM_DIMENSION; i++ ) {
        printf(" results[%d] = %f \n",i,results[i]); 
     }
+
 }

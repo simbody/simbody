@@ -45,6 +45,7 @@ static integer c__1 = 1;
 
 
 
+/* TODO  add C and Fortran interfaces 
 
 #define SIMTK_FORTRAN_UPPERCASE
 #define SIMTK_FORTRAN_ONE_UNDERSCORE
@@ -66,6 +67,7 @@ static integer c__1 = 1;
 #include "optimizer_fortran.h"
 #undef SIMTK_FORTRAN_UPPERCASE
 
+*/
 
 // turn off C++ so correct LAPACK declarations are used 
 #undef  __cplusplus
