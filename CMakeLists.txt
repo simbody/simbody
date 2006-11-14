@@ -87,6 +87,7 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 ## Find VTK
 
 SET(VTK_DIR ${SimTK_SDK}/vtk/lib/vtk-5.0 CACHE STRING "VTK installation")
+##SET(VTK_DIR "c:/program files/vtk/lib/vtk-5.0" CACHE STRING "VTK installation")
 
 FIND_PACKAGE(VTK)
 IF (VTK_FOUND)

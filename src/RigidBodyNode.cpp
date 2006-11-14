@@ -630,7 +630,7 @@ public:
 
     // Cache entries (cache is mutable in a const State)
 
-        // Configuration
+        // Position
 
     // TODO: should store as H or else always reference Ht
     const Mat<dof,2,Row3,1,2>& getH(const SBPositionCache& cc) const
@@ -1248,8 +1248,8 @@ public:
 
         //X_JbJ.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
         X_JbJ.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
-        //X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
-        X_JbJ.updT() = coords.getSubVec<3>(2); // because translation is in Jb
+        X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
+        //X_JbJ.updT() = coords.getSubVec<3>(2); // because translation is in Jb
     }
 
     // Calculate H.
@@ -1277,9 +1277,9 @@ public:
         //H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
         H[0] = SpatialRow(~X_GJ.x(), ~(X_GJ.x() % T_JbB_G));
         H[1] = SpatialRow(~X_GJ.y(), ~(X_GJ.y() % T_JbB_G));
-        H[2] = SpatialRow(  Row3(0) ,     ~X_GJb.x());
-        H[3] = SpatialRow(  Row3(0) ,     ~X_GJb.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~X_GJb.z());    
+        H[2] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.z());    
     }
 };
 

@@ -107,13 +107,13 @@ public:
 
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
-    /// been realized to Modeled stage, then we don't copy its state
+    /// been realized to Model stage, then we don't copy its state
     /// variables either, except those associated with the Built stage.
     State(const State&);
 
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
-    /// been realized to Modeled stage, then we don't copy its state
+    /// been realized to Model stage, then we don't copy its state
     /// variables either, except those associated with the Built stage.
     State& operator=(const State&);
 
@@ -183,7 +183,7 @@ public:
     Vector& updZDot(int subsys) const;
     Vector& updQDotDot(int subsys) const;
 
-    // You can call these as long as *system* stage >= Modeled.
+    // You can call these as long as *system* stage >= Model.
     const Real&   getTime() const;
     const Vector& getY() const; // {Q,U,Z} in that order
 
@@ -192,7 +192,7 @@ public:
     const Vector& getU() const;
     const Vector& getZ() const;
 
-    // You can call these as long as stage >= Modeled, but the
+    // You can call these as long as stage >= Model, but the
     // stage will be backed up if necessary to the indicated stage.
     Real&   updTime();  // Back up to Stage::Time-1
     Vector& updY();     // Back up to Stage::Congfigured-1
@@ -225,10 +225,10 @@ public:
     // (twice) to get Q.
     Vector& updQDotDot() const; // Stage::Acceleration-1
 
-    // OK if dv.stage==Modeled or stage >= Modeled
+    // OK if dv.stage==Model or stage >= Model
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;
 
-    // OK if dv.stage==Modeled or stage >= Modeled; set stage to dv.stage-1
+    // OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
     AbstractValue&       updDiscreteVariable(int subsys, int index);
 
     // Stage >= ce.stage

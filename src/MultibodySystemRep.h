@@ -33,8 +33,10 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/MolecularMechanicsSystem.h"
 #include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/AnalyticGeometry.h"
 #include "simbody/internal/DecorativeGeometry.h"
 
@@ -180,7 +182,7 @@ public:
 
 /**
  * The job of the MultibodySystem class is to coordinate the activities of a
- * MatterSubsystem and a ForceSubsystem.
+ * MatterSubsystem and a set of ForceSubsystems.
  */
 class MultibodySystemRep : public SystemRep {
 public:
@@ -373,6 +375,38 @@ private:
 };
 
 
+/**
+ * This class is a kind of MultibodySystem which is required to have exactly
+ * one DuMMForceFieldSubsystem.
+ */
+class MolecularMechanicsSystemRep : public MultibodySystemRep {
+public:
+    MolecularMechanicsSystemRep() 
+      : MultibodySystemRep(), molecularMechanicsSub(-1)
+    {
+    }
+    ~MolecularMechanicsSystemRep() {
+    }
+
+    int setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem& mm) {
+        assert(molecularMechanicsSub == -1);
+        molecularMechanicsSub = addForceSubsystem(mm);
+        return molecularMechanicsSub;
+    }
+
+    const DuMMForceFieldSubsystem& getMolecularMechanicsForceSubsystem() const {
+        assert(molecularMechanicsSub >= 0);
+        return DuMMForceFieldSubsystem::downcast(getSubsystem(molecularMechanicsSub));
+    }
+    DuMMForceFieldSubsystem& updMolecularMechanicsForceSubsystem() {
+        assert(molecularMechanicsSub >= 0);
+        return DuMMForceFieldSubsystem::updDowncast(updSubsystem(molecularMechanicsSub));
+    }
+
+    SimTK_DOWNCAST(MolecularMechanicsSystemRep, SystemRep);
+private:
+    int molecularMechanicsSub;
+};
 
 } // namespace SimTK
 

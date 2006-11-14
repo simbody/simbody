@@ -69,7 +69,7 @@ public:
     void realizeTopology(State& s) const;
     //   realizeModel() not needed
     void realizeInstance(const State& s) const;
-    //   realizeTime, Configuration, Motion not needed
+    //   realizeTime, Position, Velocity not needed
     void realizeDynamics(const State& s) const;
     //   realizeAcceleration() not needed
 
@@ -220,7 +220,7 @@ void UniformGravitySubsystemRep::realizeInstance(const State& s) const {
     pc.gz = pc.gMagnitude * getZeroHeight(s);
 }
 
-// realizeTime, Configuration, Motion not needed
+// realizeTime, Position, Velocity not needed
 
 void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
     if (!isEnabled(s) || getGravityMagnitude(s)==0)

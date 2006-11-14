@@ -30,8 +30,6 @@
 
 namespace SimTK {
 
-class MatterSubsystem;
-
 /**
  * This is logically an abstract class, more specialized than "Subsystem"
  * but not yet concrete.

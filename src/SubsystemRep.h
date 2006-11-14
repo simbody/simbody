@@ -58,7 +58,7 @@ public:
 
     // These pull out the State entries which belong exclusively to
     // this Subsystem. These variables and cache entries are available
-    // as soon as this subsystem is at stage Modeled.
+    // as soon as this subsystem is at stage Model.
     Stage getStage(const State& s) const {
         return s.getSubsystemStage(getMySubsystemIndex());
     }
@@ -79,7 +79,7 @@ public:
 
     // These return views on State shared global resources. The views
     // are private to this subsystem, but the global resources themselves
-    // are not allocated until the *System* advances to stage Modeled.
+    // are not allocated until the *System* advances to stage Model.
     // Note that there is no subsystem equivalent of the State's "Y"
     // vector because in general a subsystem's state variables will
     // not be contiguous. However, a subsystem's Q's, U's, and Z's

@@ -430,7 +430,7 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 
     // Although we're not changing the MotionCache here, 
     // we access them with "upd" because setVel will have
-    // modified u's and thus invalidated stage Moving,
+    // modified u's and thus invalidated stage Velocity,
     // so a "get" would fail.
     // TODO: this may be fixed now since subsystems have their own stage.
     const SBVelocityCache& mc = getRBTree().updMotionCache(s);

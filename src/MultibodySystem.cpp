@@ -63,10 +63,7 @@ MultibodySystem::updRep() {
     return dynamic_cast<MultibodySystemRep&>(*rep);
 }
 
-// Default constructor is inline and creates an empty handle.
-// Default copy & assignment just copy the parent class.
-// Default destructor destructs the parent class.
-
+// Create generic multibody system by default.
 MultibodySystem::MultibodySystem() {
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
@@ -79,6 +76,14 @@ MultibodySystem::MultibodySystem(MatterSubsystem& m)
     rep->setMyHandle(*this);
     updRep().setGlobalSubsystem();
     setMatterSubsystem(m);
+}
+
+// This is a protected constructor for use by derived classes which
+// allocate a more specialized MultibodySystemRep.
+MultibodySystem::MultibodySystem(MultibodySystemRep* rp) {
+    rep = rp;
+    rep->setMyHandle(*this);
+    updRep().setGlobalSubsystem();
 }
 
 bool MultibodySystem::project(State& s, Vector& y_err, 
@@ -181,6 +186,63 @@ MultibodySystemGlobalSubsystem::getRep() const {
 MultibodySystemGlobalSubsystemRep&       
 MultibodySystemGlobalSubsystem::updRep() {
     return dynamic_cast<MultibodySystemGlobalSubsystemRep&>(*rep);
+}
+
+    //////////////////////////////
+    // MolecularMechanicsSystem //
+    //////////////////////////////
+
+class DuMMForceFieldSubsystem;
+
+/*static*/ bool 
+MolecularMechanicsSystem::isInstanceOf(const System& s) {
+    return MolecularMechanicsSystemRep::isA(s.getRep());
+}
+/*static*/ const MolecularMechanicsSystem&
+MolecularMechanicsSystem::downcast(const System& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const MolecularMechanicsSystem&>(s);
+}
+/*static*/ MolecularMechanicsSystem&
+MolecularMechanicsSystem::updDowncast(System& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<MolecularMechanicsSystem&>(s);
+}
+
+const MolecularMechanicsSystemRep& 
+MolecularMechanicsSystem::getRep() const {
+    return dynamic_cast<const MolecularMechanicsSystemRep&>(*rep);
+}
+MolecularMechanicsSystemRep&       
+MolecularMechanicsSystem::updRep() {
+    return dynamic_cast<MolecularMechanicsSystemRep&>(*rep);
+}
+
+MolecularMechanicsSystem::MolecularMechanicsSystem() 
+  : MultibodySystem(new MolecularMechanicsSystemRep())
+{
+}
+
+MolecularMechanicsSystem::MolecularMechanicsSystem
+   (MatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+  : MultibodySystem(new MolecularMechanicsSystemRep())
+{
+    setMatterSubsystem(matter);
+    setMolecularMechanicsForceSubsystem(mm);
+}
+
+int MolecularMechanicsSystem::setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem& mm) {
+    return MolecularMechanicsSystemRep::downcast(*rep).setMolecularMechanicsForceSubsystem(mm);
+}
+
+const DuMMForceFieldSubsystem&       
+MolecularMechanicsSystem::getMolecularMechanicsForceSubsystem() const {
+    return MolecularMechanicsSystemRep::downcast(*rep).getMolecularMechanicsForceSubsystem();
+}
+
+DuMMForceFieldSubsystem&       
+MolecularMechanicsSystem::updMolecularMechanicsForceSubsystem() {
+    return MolecularMechanicsSystemRep::downcast(*rep).updMolecularMechanicsForceSubsystem();
 }
 
 } // namespace SimTK

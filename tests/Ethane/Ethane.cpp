@@ -65,9 +65,9 @@ enum {
 class Molecule {
 public:
     Molecule(int parentBodyNum, const Transform& parentMobilizerFrame,
-             const SimbodyMatterSubsystem& matter, const DuMMForceFieldSubsystem& dumm)
+             const MolecularMechanicsSystem& mmSys)
         : parent(parentBodyNum), mobilizerFrameOnParent(parentMobilizerFrame), 
-          matterp(&matter), mmp(&dumm)
+          mmSystem(mmSys)
     { }
 
     // Translate and rotation the molecule as a whole. Usually this just means move the base body,
@@ -92,20 +92,17 @@ public:
     int getBody(int i) const {return bodies[i];}
 
     const SimbodyMatterSubsystem& getMatter() const {
-        assert(matterp);
-        return *matterp;
+        return SimbodyMatterSubsystem::downcast(mmSystem.getMatterSubsystem());
     }
     const DuMMForceFieldSubsystem& getDuMM() const {
-        assert(mmp);
-        return *mmp;
+        return mmSystem.getMolecularMechanicsForceSubsystem();
     }
 protected:
     std::vector<int> atoms;
     std::vector<int> bodies;
     int       parent;
     Transform mobilizerFrameOnParent;
-    SimbodyMatterSubsystem const*  matterp;
-    DuMMForceFieldSubsystem const* mmp;
+    const MolecularMechanicsSystem& mmSystem;
 };
 
 // An oxygen (O2) molecule has just two atoms, with a maximum
@@ -127,9 +124,10 @@ protected:
 class OxygenMolecule : public Molecule {
 public:
     OxygenMolecule(int parentBodyNum, const Transform& parentMobilizerFrame,
-                   SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm) 
-      : Molecule(parent, parentMobilizerFrame, matter, mm)
+                   MolecularMechanicsSystem& mmSys) 
+      : Molecule(parent, parentMobilizerFrame, mmSys)
     {
+        DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
         // Create the atoms and bonds. Atom 0 is O0, atom 1 is O1. O0 will serve
         // as the base frame for the molecule.
@@ -155,12 +153,17 @@ protected:
 
 class RigidO2 : public OxygenMolecule {
 public:
-    RigidO2(int parent, SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-      : OxygenMolecule(parent,Transform(),matter,mm)
+    RigidO2(int parent, MolecularMechanicsSystem& mmSys)
+      : OxygenMolecule(parent,Transform(),mmSys)
     {
+        SimbodyMatterSubsystem&  matter = 
+            SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+        DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
         // Align cluster reference frame with body's. (5 dofs!)
         // FreeLine prevents rotation about Z, so make sure the body has its
         // O=O axis arranged along Z (or rotate the frame here).
+        /* This doesn't work: */
         bodies.push_back(
             matter.addRigidBody(
                 MassProperties(0,Vec3(0),Inertia(0)),
@@ -175,18 +178,25 @@ public:
                 bodies.back(), Transform(Rotation::aboutX(-90*Deg2Rad)),    // parent mobilizer frame
                 Mobilizer::Pin));
         // x
+        MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
+        cout << "Inertia:" << mprops.getInertia();
+        cout << "inertia kludge:" << mprops.getInertia()+Inertia(0,0,.4);
+        MassProperties mpropsKludge(mprops.getMass(), mprops.getCOM(), mprops.getInertia() + Inertia(0,0,.4));
         bodies.push_back(
             matter.addRigidBody(
-                mm.calcClusterMassProperties(twoOxygens, Transform()),
+                mpropsKludge,
                 Transform(Rotation::aboutY(90*Deg2Rad)),            // inboard mobilizer frame
                 bodies.back(), Transform(Rotation::aboutY(90*Deg2Rad)),    // parent mobilizer frame
                 Mobilizer::Pin));
-        //bodies.push_back(
-        //    matter.addRigidBody(
-        //        mm.calcClusterMassProperties(twoOxygens, Transform()), 
-         //       Transform(),            // inboard mobilizer frame
-         //       parent, Transform(),    // parent mobilizer frame
-         //       Mobilizer::FreeLine));
+        
+        /*
+        bodies.push_back(
+            matter.addRigidBody(
+                mm.calcClusterMassProperties(twoOxygens, Transform()), 
+                Transform(),            // inboard mobilizer frame
+                parent, Transform(),    // parent mobilizer frame
+                Mobilizer::FreeLine));  // TODO: DOESN'T WORK!
+                */
         mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
     }
 
@@ -218,7 +228,7 @@ public:
 class EthaneMolecule : public Molecule {
 public:
     EthaneMolecule(int parentBodyNum, const Transform& parentMobilizerFrame,
-                   SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
+                   MolecularMechanicsSystem&);
 
     // find the atoms
     int getC(int i) const {assert(i==0||i==1); return getAtom(i);}
@@ -246,8 +256,7 @@ protected:
 
 class OneDofEthane : public EthaneMolecule {
 public:
-    OneDofEthane(bool allowStretch, int parent, 
-                 SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
+    OneDofEthane(bool allowStretch, int parent, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const {
         const int ndof = getMatter().getDOF(getBody(1));
@@ -278,13 +287,11 @@ public:
 
 class RigidEthane : public EthaneMolecule {
 public:
-    RigidEthane(Real torsionAngleInDeg, int parent, 
-                SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm);
+    RigidEthane(Real torsionAngleInDeg, int parent, MolecularMechanicsSystem&);
     void setDefaultInternalState(State& s) const { } // doesn't have any
 };
 
-//Here
-// is a model of ethane with 14 internal coordinates: stretch & torsion
+// Here is a model of ethane with 14 internal coordinates: stretch & torsion
 // between the carbons, and bend-stretch for the connection between the 
 // hydrogens and their carbons. That is, for each hydrogen, we are
 // modeling the CH stretch term, and the HCC bend term. However, we
@@ -292,8 +299,7 @@ public:
 // found arranged exactly 120 degrees apart. 
 class FloppyEthane : public EthaneMolecule {
 public:
-    FloppyEthane(int parent, 
-                 SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm);
+    FloppyEthane(int parent, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const;
 
@@ -326,7 +332,7 @@ try {
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
-    Real accuracy = 1e-6;
+    Real accuracy = 1e-2;
     Real outputInterval = .05;
     Real simulationLength = 30;
 
@@ -375,26 +381,26 @@ try {
     mm.setBondTorsionGlobalScaleFactor(1);
 
 
-    MultibodySystem mbs;
+    MolecularMechanicsSystem mbs;
     mbs.setMatterSubsystem(matter);
-    mbs.addForceSubsystem(mm);
+    mbs.setMolecularMechanicsForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
 
     /*
 
-    const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
-    const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), matter, mm);
-    const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), matter, mm);
-    const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), matter, mm);
-    const RigidEthane  rethane1(0, Ground, matter, mm);
-    const RigidEthane  rethane2(60, Ground, matter, mm);
+    const OneDofEthane ethane1(allowStretch, Ground, mbs);
+    const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), mbs);
+    const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), mbs);
+    const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), mbs);
+    const RigidEthane  rethane1(0, Ground, mbs);
+    const RigidEthane  rethane2(60, Ground, mbs);
     */
     const bool allowStretch = false;
-    //const OneDofEthane ethane1(allowStretch, Ground, matter, mm);
-    const RigidEthane  rethane1(0, Ground, matter, mm);
-    //const RigidEthane  rethane2(60, Ground, matter, mm);
-    //const FloppyEthane floppy1(Ground, matter, mm);
-    const RigidO2      rigidO2(Ground, matter, mm);
+    const OneDofEthane ethane1(allowStretch, Ground, mbs);
+    const RigidEthane  rethane1(0, Ground, mbs);
+    //const RigidEthane  rethane2(60, Ground, mbs);
+    const FloppyEthane floppy1(Ground, mbs);
+    const RigidO2      rigidO2(Ground, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -412,14 +418,21 @@ try {
 
     mbs.realize(s, Stage::Model);
 
-    //floppy1.setDefaultInternalState(s);
+    floppy1.setDefaultInternalState(s);
     //floppy1.setCCStretch(.1,s);
     //floppy1.setTorsionAngleDeg(80,s);
     //floppy1.setTorsionRate(10,s);
 
-    //ethane1.setMoleculePosition(Vec3(1,0,0), s);
+    ethane1.setDefaultInternalState(s);
+    ethane1.setMoleculePosition(Vec3(1,0,0), s);
+
+    rethane1.setDefaultInternalState(s);
     rethane1.setMoleculePosition(Vec3(0,0,-1), s);
+
+    //rethane2.setDefaultInternalState(s);
     //rethane2.setMoleculePosition(Vec3(-1,0,-1), s);
+
+    rigidO2.setDefaultInternalState(s);
     rigidO2.setMoleculePosition(Vec3(1,0,-1), s);
 
     /*
@@ -477,7 +490,7 @@ try {
     }
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        const Real shrink = 1, opacity = mm.getAtomElement(anum)==1?0.5:1;
+        const Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
         display.addDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
             DecorativeSphere(shrink*mm.getAtomRadius(anum))
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
@@ -541,9 +554,13 @@ return 0;
 }
 
 EthaneMolecule::EthaneMolecule(int parent, const Transform& parentTransform,
-                               SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-  : Molecule(parent,parentTransform,matter,mm)
+                               MolecularMechanicsSystem& mmSys)
+  : Molecule(parent,parentTransform,mmSys)
 {
+    SimbodyMatterSubsystem&  matter = 
+        SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+    DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
    twoCarbons = methyl[0] = methyl[1] = -1;
 
     // Create the atoms and bonds. Atom 0 is C0, atom 1 is C1, 2-4 are the
@@ -604,10 +621,13 @@ EthaneMolecule::EthaneMolecule(int parent, const Transform& parentTransform,
     }
 }
 
-OneDofEthane::OneDofEthane(bool allowStretch, int parent,
-                           SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-  : EthaneMolecule(parent,Transform(),matter,mm)
+OneDofEthane::OneDofEthane(bool allowStretch, int parent, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(parent,Transform(),mmSys)
 {
+    SimbodyMatterSubsystem&  matter = 
+        SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+    DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
     const Rotation PinAboutX = Rotation::aboutY(90*Deg2Rad); // move z to +x
 
     // Mount the methyls onto bodies, methyl[0] first. Connect
@@ -631,10 +651,13 @@ OneDofEthane::OneDofEthane(bool allowStretch, int parent,
     mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
 }
 
-RigidEthane::RigidEthane(Real torsionAngleInDeg, int parent, 
-                         SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-  : EthaneMolecule(parent,Transform(),matter,mm)
+RigidEthane::RigidEthane(Real torsionAngleInDeg, int parent, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(parent,Transform(),mmSys)
 {
+    SimbodyMatterSubsystem&  matter = 
+        SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+    DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
     const int wholeEthaneCluster = mm.createCluster("rigid ethane");
 
     // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
@@ -684,10 +707,13 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, int parent,
 //
 // The "molecule frame" is considered to be identical with C0's body frame.
 //
-FloppyEthane::FloppyEthane(int parent, 
-                           SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-  : EthaneMolecule(parent,Transform(),matter,mm)
+FloppyEthane::FloppyEthane(int parent, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(parent,Transform(),mmSys)
 {
+    SimbodyMatterSubsystem&  matter = 
+        SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+    DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
     // For C-C cylinder joint; rotation and translation are about the
     // Mobilizer frames' common Z axis.
     const Transform C0CylMobFrame(Rotation::aboutY( 90*Deg2Rad)); // move z to x0 direction

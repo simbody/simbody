@@ -1178,16 +1178,16 @@ private:
 
 
 /*static*/ bool 
-DuMMForceFieldSubsystem::isInstanceOf(const ForceSubsystem& s) {
+DuMMForceFieldSubsystem::isInstanceOf(const Subsystem& s) {
     return DuMMForceFieldSubsystemRep::isA(s.getRep());
 }
 /*static*/ const DuMMForceFieldSubsystem&
-DuMMForceFieldSubsystem::downcast(const ForceSubsystem& s) {
+DuMMForceFieldSubsystem::downcast(const Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<const DuMMForceFieldSubsystem&>(s);
 }
 /*static*/ DuMMForceFieldSubsystem&
-DuMMForceFieldSubsystem::updDowncast(ForceSubsystem& s) {
+DuMMForceFieldSubsystem::updDowncast(Subsystem& s) {
     assert(isInstanceOf(s));
     return reinterpret_cast<DuMMForceFieldSubsystem&>(s);
 }

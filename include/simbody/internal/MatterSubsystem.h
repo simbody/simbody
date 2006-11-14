@@ -91,19 +91,19 @@ public:
     /// body B's body frame, measured with respect to the ground frame and expressed
     /// in the ground frame. That is, we return the location of the body frame's
     /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
-    /// This response is available at Configuration stage.
+    /// This response is available at Position stage.
     const Transform& getBodyPosition(const State&, int body) const;
 
     /// Extract from the state cache the already-calculated spatial orientation
     /// of body B's body frame x, y, and z axes expressed in the ground frame,
-    /// as the rotation matrix R_GB. This response is available at Configuration stage.
+    /// as the rotation matrix R_GB. This response is available at Position stage.
     const Rotation& getBodyRotation(const State& s, int body) const {
         return getBodyPosition(s,body).R();
     }
     /// Extract from the state cache the already-calculated spatial location
     /// of body B's body frame origin, measured from the ground origin and
     /// expressed in the ground frame, as the translation vector T_GB.
-    /// This response is available at Configuration stage.
+    /// This response is available at Position stage.
     const Vec3& getBodyLocation(const State& s, int body) const {
         return getBodyPosition(s,body).T();
     }
@@ -112,51 +112,51 @@ public:
     /// body B's body frame, measured with respect to the ground frame and expressed
     /// in the ground frame. That is, we return the linear velocity v_GB of the body
     /// frame's origin, and the body's angular velocity w_GB as the spatial velocity
-    /// vector V_GB = {w_GB, v_GB}. This response is available at Moving stage.
+    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
     const SpatialVec& getBodyVelocity(const State&, int body) const;
 
     /// Extract from the state cache the already-calculated inertial angular
     /// velocity vector w_GB of body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Moving stage.
+    /// and expressed in the ground frame. This response is available at Velocity stage.
     const Vec3& getBodyAngularVelocity(const State& s, int body) const {
         return getBodyVelocity(s,body)[0]; 
     }
     /// Extract from the state cache the already-calculated inertial linear
     /// velocity vector v_GB of body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Moving stage.
+    /// and expressed in the ground frame. This response is available at Velocity stage.
     const Vec3& getBodyLinearVelocity(const State& s, int body) const {
         return getBodyVelocity(s,body)[1];
     }
 
     /// Return the Cartesian (ground) location of a station fixed to a body. That is
     /// we return locationInG = X_GB * stationB. Cost is 18 flops. This operator is
-    /// available at Configuration stage.
+    /// available at Position stage.
     Vec3 calcStationLocation(const State& s, int bodyB, const Vec3& stationB) const {
         return getBodyPosition(s,bodyB)*stationB;
     }
     /// Given a station on body B, return the station of body A which is at the same location
     /// in space. That is, we return stationInA = X_AG * (X_GB*stationB). Cost is 36 flops.
-    /// This operator is available at Configuration stage.
+    /// This operator is available at Position stage.
     Vec3 calcStationLocationInBody(const State& s, int bodyB, const Vec3& stationB, int bodyA) {
         return ~getBodyPosition(s,bodyA) 
                 * calcStationLocation(s,bodyB,stationB);
     }
     /// Re-express a vector expressed in the B frame into the same vector in G. That is,
     /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
-    /// This operator is available at Configuration stage.
+    /// This operator is available at Position stage.
     Vec3 calcVectorOrientation(const State& s, int bodyB, const Vec3& vectorB) const {
         return getBodyRotation(s,bodyB)*vectorB;
     }
     /// Re-express a vector expressed in the B frame into the same vector in some other
     /// body A. That is, we return vectorInA = R_AG * (R_GB * vectorInB). Cost is 30 flops.
-    /// This operator is available at Configuration stage.
+    /// This operator is available at Position stage.
     Vec3 calcVectorOrientationInBody(const State& s, int bodyB, const Vec3& vectorB, int bodyA) const {
         return ~getBodyRotation(s,bodyA) * calcVectorOrientation(s,bodyB,vectorB);
     }
 
     /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
     /// that is, its velocity relative to the ground frame, expressed in the
-    /// ground frame. Cost is 27 flops. This operator is available at Moving stage.
+    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
     Vec3 calcStationVelocity(const State& s, int bodyB, const Vec3& stationB) const {
         const SpatialVec& V_GB       = getBodyVelocity(s,bodyB);
         const Vec3        stationB_G = calcVectorOrientation(s,bodyB,stationB);
@@ -165,7 +165,7 @@ public:
 
     /// Given a station fixed on body B, return its velocity relative to the body frame of
     /// body A, and expressed in body A's body frame. Cost is 54 flops.
-    /// This operator is available at Moving stage.
+    /// This operator is available at Velocity stage.
     /// TODO: UNTESTED!!
     /// TODO: maybe these between-body routines should return results in ground so that they
     /// can be easily combined. Easy to re-express vector afterwards.
@@ -190,13 +190,14 @@ public:
 
     /// At stage Position or higher, return the cross-mobilizer transform.
     /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
-    /// the parent body's corresponding outboard frame Nb.
+    /// the parent body's corresponding outboard frame Mb.
     const Transform& getMobilizerPosition(const State&, int body) const;
 
-    /// At stage Moving or higher, return the cross-mobilizer velocity.
+    /// At stage Velocity or higher, return the cross-mobilizer velocity.
     /// This is V_MbM, the relative velocity of the body's inboard mobilizer
     /// frame M in the parent body's corresponding outboard frame Mb, 
-    /// measured and expressed in Mb. This is NOT a spatial velocity!
+    /// measured and expressed in Mb. Note that this isn't the usual 
+    /// spatial velocity since it isn't expressed in G.
     const SpatialVec& getMobilizerVelocity(const State&, int body) const;
 
     /// This is a solver which sets the body's mobilizer transform as close
@@ -207,7 +208,7 @@ public:
     /// has no effect on any coordinates except the q's for this mobilizer.
     /// You can call this solver at Stage::Model or higher; it will
     /// leave you no higher than Stage::Time since it changes the configuration.
-    void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const;
+    void setMobilizerPosition(State&, int body, const Transform& X_MbM) const;
 
     /// This is a solver which sets the body's cross-mobilizer velocity as close
     /// as possible to the supplied angular and linear velocity. The degree to which this is
@@ -217,7 +218,7 @@ public:
     /// has no effect on any coordinates except the u's for this mobilizer.
     /// You can call this solver at Stage::Model or higher; it will
     /// leave you no higher than Stage::Position since it changes the velocities.
-    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
+    void setMobilizerVelocity(State&, int body, const SpatialVec& V_MbM) const;
 
 
     /// This is available at Stage::Position. These are *absolute* constraint

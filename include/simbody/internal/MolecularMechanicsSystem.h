@@ -1,7 +1,7 @@
-#ifndef SimTK_SIMBODY_H_
-#define SimTK_SIMBODY_H_
+#ifndef SimTK_MOLECULAR_MECHANICS_SYSTEM_H_
+#define SimTK_MOLECULAR_MECHANICS_SYSTEM_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -24,25 +24,41 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-/** @file
- * This is the header file that user code should include to pick up all
- * Simbody capabilities.
- */
-
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
-#include "simbody/internal/Subsystem.h"
 #include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/MolecularMechanicsSystem.h"
-#include "simbody/internal/MatterSubsystem.h"
-#include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/UniformGravitySubsystem.h"
-#include "simbody/internal/GeneralForceElements.h"
-#include "simbody/internal/HuntCrossleyContact.h"
-#include "simbody/internal/DuMMForceFieldSubsystem.h"
 
-#endif // SimTK_SIMBODY_H_
+#include <vector>
+
+namespace SimTK {
+
+class MatterSubsystem;
+class DuMMForceFieldSubsystem;
+
+/**
+ * This is a particular kind of MultibodySystem, one intended for use in
+ * moleular mechanics (MM). The defining feature is that in addition to
+ * the mandatory MatterSubsystem common to all MultibodySystems, this one
+ * will also have a single MolecularMechanicsForceSubsystem.
+ */
+class SimTK_SIMBODY_API MolecularMechanicsSystem : public MultibodySystem {
+public:
+    MolecularMechanicsSystem();
+    MolecularMechanicsSystem(MatterSubsystem&, DuMMForceFieldSubsystem&);
+
+    // Steals ownership of the source; returns subsystem ID number.
+    int setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem&);
+    const DuMMForceFieldSubsystem& getMolecularMechanicsForceSubsystem() const;
+    DuMMForceFieldSubsystem&       updMolecularMechanicsForceSubsystem();
+
+    SimTK_PIMPL_DOWNCAST(MolecularMechanicsSystem, System);
+private:
+    class MolecularMechanicsSystemRep& updRep();
+    const MolecularMechanicsSystemRep& getRep() const;
+};
+
+} // namespace SimTK
+
+#endif // SimTK_MOLECULAR_MECHANICS_SYSTEM_H_

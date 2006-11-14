@@ -110,6 +110,8 @@ public:
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);
     class MultibodySystemRep& updRep();
     const MultibodySystemRep& getRep() const;
+protected:
+    explicit MultibodySystem(MultibodySystemRep*);
 };
 
 class SimTK_SIMBODY_API MultibodyDynamicsStudy : public Study {

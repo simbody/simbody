@@ -319,7 +319,7 @@ public:
         Vector&                     qdot) const=0;
 
     // These are called just after new state variables are allocated,
-    // in case there are any node-specific default values. At the Configuration
+    // in case there are any node-specific default values. At the Position
     // stage, for example, the default ball joint q's will be set to 1,0,0,0.
     // Most of these will use the default implementations here, i.e. do nothing.
     virtual void setDefaultModelValues     (const SBTopologyCache&, SBModelVars&) const {}
@@ -513,7 +513,7 @@ protected:
 
     // These are the default body properties, all supplied or calculated on
     // construction. TODO: they should be 
-    // (optionally?) overrideable by Parameter-level cache entries.
+    // (optionally?) overrideable by Instance-level cache entries.
 
     /// This is the mass, center of mass, and inertia as supplied at construction.
     /// Here the inertia is taken about the B origin OB.

@@ -355,7 +355,7 @@ void RigidBodyTree::realizeModel(State& s) const {
     mc.uVarsIndex = -1; // no velocity vars other than u
     mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Velocity, 
         new Value<SBVelocityCache>());
-    // Note that qdots are automatically allocated in the Moving stage cache.
+    // Note that qdots are automatically allocated in the Velocity stage cache.
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -395,7 +395,7 @@ void RigidBodyTree::realizeInstance(const State& s) const {
     const SBModelVars&  mv = getModelVars(s);
     const SBInstanceVars& pv = getInstanceVars(s);
 
-    // Get the Parameter-stage cache and make sure it has been allocated and initialized if needed.
+    // Get the Instance-stage cache and make sure it has been allocated and initialized if needed.
     SBInstanceCache& pc = updInstanceCache(s);
     pc.allocate(topologyCache);
 

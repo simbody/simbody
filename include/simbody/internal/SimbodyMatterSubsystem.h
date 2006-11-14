@@ -270,7 +270,7 @@ public:
     void setMobilizerQ(State&, int body, int axis, const Real&) const;
     void setMobilizerU(State&, int body, int axis, const Real&) const;
 
-    // Configuration Stage. 
+    // Position Stage. 
 
 
     /// Obtain the current orientation and position of the body frame of
@@ -280,7 +280,7 @@ public:
     const Transform&  getBodyPosition(const State&, int body) const;
 
     /// Obtain the current spatial angular and linear velocity of the body frame of
-    /// the indicated body. Must be in Moving stage. This is the velocity 
+    /// the indicated body. Must be in Velocity stage. This is the velocity 
     /// V_GB of the body frame measured and expressed in the ground frame.
     const SpatialVec& getBodyVelocity     (const State&, int body) const;
     const SpatialVec& getBodyAcceleration (const State&, int body) const;
@@ -327,7 +327,7 @@ public:
     const Vector& getUDot   (const State&) const;
     const Vector& getQDotDot(const State&) const;
 
-    SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, MatterSubsystem);
+    SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
 private:
     const RigidBodyTree& getRep() const;
     RigidBodyTree&       updRep();

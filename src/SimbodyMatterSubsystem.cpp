@@ -39,11 +39,21 @@ using std::endl;
 
 namespace SimTK {
 
-SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
-    rep = new RigidBodyTree();
-    rep->setMyHandle(*this);
-}
 
+/*static*/ bool 
+SimbodyMatterSubsystem::isInstanceOf(const Subsystem& s) {
+    return RigidBodyTree::isA(s.getRep());
+}
+/*static*/ const SimbodyMatterSubsystem&
+SimbodyMatterSubsystem::downcast(const Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const SimbodyMatterSubsystem&>(s);
+}
+/*static*/ SimbodyMatterSubsystem&
+SimbodyMatterSubsystem::updDowncast(Subsystem& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<SimbodyMatterSubsystem&>(s);
+}
 
 const RigidBodyTree& 
 SimbodyMatterSubsystem::getRep() const {
@@ -53,6 +63,12 @@ RigidBodyTree&
 SimbodyMatterSubsystem::updRep() {
     return dynamic_cast<RigidBodyTree&>(*rep);
 }
+
+SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
+    rep = new RigidBodyTree();
+    rep->setMyHandle(*this);
+}
+
 
 int SimbodyMatterSubsystem::addRigidBody(
     const MassProperties&     mp,

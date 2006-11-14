@@ -556,7 +556,7 @@ private:
         int level, offset;
     };
 
-    SimTK_DOWNCAST(RigidBodyTree, MatterSubsystemRep);
+    SimTK_DOWNCAST(RigidBodyTree, SubsystemRep);
 
 private:
     // Initialize to 0 at beginning of construction. These are for doling

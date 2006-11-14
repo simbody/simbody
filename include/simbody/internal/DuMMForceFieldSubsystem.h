@@ -144,7 +144,7 @@ public:
     // well minimum is seen (actually it is 1/2 the distance between
     // atom centers for a pair of atoms of this class). This is *not*
     // Sigma, which is the radius (half distance) at which the 
-    // energy crosses zero, that is, a little closer to gether than
+    // energy crosses zero, that is, a little closer together than
     // when the energy well is at maximum depth.
     // To convert for LJ: Rmin = 2^(1/6) * Sigma.
     // The radius is in nm, the well depth in kJ/mol.
@@ -289,7 +289,7 @@ public:
     void setBondTorsionGlobalScaleFactor(Real);
 
     void dump() const; // to stdout
-    SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, ForceSubsystem);
+    SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);
 private:
     class DuMMForceFieldSubsystemRep& updRep();
     const DuMMForceFieldSubsystemRep& getRep() const;
