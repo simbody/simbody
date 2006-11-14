@@ -26,7 +26,67 @@
 PROJECT (Simbody)
 SUBDIRS (staticTarget sharedTarget tests)
 
-SET(VTK_DIR "C:/Program Files/VTK/lib/vtk-5.0" CACHE STRING "VTK installation")
+# 
+# Make sure "sandbox" input & output directories are set. During
+# SimTK Core build, the build system will set them. Otherwise, we'll
+# set them to sensible local values.
+# If SimTK_INSTALL_PREFIX is set then
+# it is a sandbox installation area, otherwise we want to install
+# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
+# tells us where to find other SimTK Core modules on which this one
+# depends. If it is not set, we'll look in /usr/local/SimTK or
+# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+#
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    # unix or cygwin; cygwin requires some trickery
+    IF(CYGWIN)
+        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX})
+    ENDIF(CYGWIN)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "/usr/local/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+
+INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+
+
+# The build system will set ARCH64 for 64 bit builds, which require
+# use of the lib64/ library directories rather than lib/.
+SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
+MARK_AS_ADVANCED( ARCH64  )
+IF (ARCH64)
+    SET(LIB64 64)
+ELSE (ARCH64)
+    SET(LIB64) # nothing
+ENDIF (ARCH64)
+
+
+## Watch out -- this next line will cause CMake to find installed versions of
+## simmatrix libraries before the local one. Be sure to delete installed ones first.
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+
+## Find VTK
+
+SET(VTK_DIR ${SimTK_SDK}/vtk/lib/vtk-5.0 CACHE STRING "VTK installation")
 
 FIND_PACKAGE(VTK)
 IF (VTK_FOUND)
@@ -47,15 +107,6 @@ LINK_LIBRARIES(
   vtkCommon
 )
 
-# The build system will set ARCH64 for 64 bit builds, which require
-# use of the lib64/ library directories rather than lib/.
-SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
-MARK_AS_ADVANCED( ARCH64  )
-IF (ARCH64)
-    SET(LIB64 64)
-ELSE (ARCH64)
-    SET(LIB64) # nothing
-ENDIF (ARCH64)
 
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
@@ -301,48 +352,12 @@ ADD_TEST(CoarseRNAStatic              ${TEST_PATH}/CoarseRNAStatic)
 # Installation
 #
 # CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. If SimTK_INSTALL_PREFIX is set then
-# it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
-# tells us where to find other SimTK Core modules on which this one
-# depends. If it is not set, we'll look in /usr/local/SimTK or
-# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
+# instead which is passed in by the build system or set above.
 
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    # unix or cygwin; cygwin requires some trickery
-    IF(CYGWIN)
-        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX})
-    ENDIF(CYGWIN)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
-    ENDIF(NOT SimTK_SDK)
-
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_SDK)
-
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
-
-## Watch out -- this next line will cause CMake to find installed versions of
-## simmatrix libraries before the local one. Be sure to delete installed ones first.
-
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # libraries are installed from their subdirectories; headers here
 
