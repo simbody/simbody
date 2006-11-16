@@ -56,7 +56,7 @@ class Optimizer :  public OptimizerInterface {
     void setOptimizerParameters(unsigned int param, double *values); 
     void getOptimizerParameters(unsigned int param, double *values);
 
-    void optimize(SimTK::Vector&) ;
+    double optimize(SimTK::Vector&) ;
 
     private:
      void *data;

@@ -26,6 +26,7 @@
 #include "OptimizerImplementation.h"
 #include "OptimizationProblem.h"
 #include "LBFGSOptimizer.h"
+#include "LBFGSBOptimizer.h"
 
 namespace SimTK {
    Optimizer::Optimizer(OptimizationProblem& problem) {
@@ -54,16 +55,16 @@ namespace SimTK {
 */
   }
   OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
-     return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
 /*   
      if( problem.nconstraints > 0   {
         return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
-     } else if( problem.nbounds > 0 ) {
+*/
+     if( problem.numBounds > 0 ) {
         return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
      } else {
         return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
      }
-*/
+
   }
 
    void Optimizer::getOptimizerParameters(unsigned int param, double *values) {

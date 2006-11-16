@@ -41,6 +41,7 @@
  *
  *
  */
+#include <string.h>
 
 #ifdef __BORLANDC__
 /* A hack to overcome a typo in borlands math.h
@@ -54,7 +55,11 @@
 # include <math.h>
 #endif
 #include "f2c.h"
-#include "netlib.h"
+//#include "netlib.h"
+
+#include "lapack/SimTKlapack.h"
+
+#define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 
 /* Table of constant values */
 
@@ -361,6 +366,7 @@ doublereal *p, doublereal *c__, doublereal *wbp, doublereal *v, integer *nint,
 doublereal *sg, doublereal *yg, integer *iprint, doublereal *sbgnrm,
 integer *info, doublereal *epsmch)
 {
+
     /* Format strings */
 /*
     static char fmt_3010[] = "(/,\002---------------- CAUCHY entered--------\
@@ -641,7 +647,7 @@ oint \002,1p,2(1x,d11.4))";
         e_wsle();
 */
     }
-    dcopy_(n, &x[1], &c__1, &xcp[1], &c__1);
+    dcopy_(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
     return 0;
     }
     bnded = TRUE_;
@@ -693,7 +699,7 @@ oint \002,1p,2(1x,d11.4))";
             iwhere[i__] = 2;
         }
         } else {
-        if (abs(neggi) <= 0.) {
+        if (fabs(neggi) <= 0.) {
             iwhere[i__] = -3;
         }
         }
@@ -734,7 +740,7 @@ oint \002,1p,2(1x,d11.4))";
 /*                x(i) + d(i) is not bounded. */
         --nfree;
         iorder[nfree] = i__;
-        if (abs(neggi) > 0.) {
+        if (fabs(neggi) > 0.) {
             bnded = FALSE_;
         }
         }
@@ -746,10 +752,10 @@ oint \002,1p,2(1x,d11.4))";
 /*       The smallest of the nbreak breakpoints is in t(ibkmin)=bkmin. */
     if (*theta != 1.) {
 /*                   complete the initialization of p for theta not= one. */
-    dscal_(col, theta, &p[*col + 1], &c__1);
+    dscal_(*col, *theta, &p[*col + 1], (const int&)c__1);
     }
 /*     Initialize GCP xcp = x. */
-    dcopy_(n, &x[1], &c__1, &xcp[1], &c__1);
+    dcopy_(*n, &x[1], (const int&)c__1, &xcp[1], (const int&)c__1);
     if (nbreak == 0 && nfree == *n + 1) {
 /*                  is a zero vector, return with the initial xcp as GCP. */
     if (*iprint > 100) {
@@ -778,7 +784,7 @@ oint \002,1p,2(1x,d11.4))";
     if (*info != 0) {
         return 0;
     }
-    f2 -= ddot_(&col2, &v[1], &c__1, &p[1], &c__1);
+    f2 -= ddot_((const int&)col2, &v[1], (const int&)c__1, &p[1], (const int&)c__1);
     }
     dtm = -f1 / f2;
     tsum = 0.;
@@ -888,7 +894,7 @@ L777:
     f2 -= *theta * dibp2;
     if (*col > 0) {
 /*                          update c = c + dt*p. */
-    daxpy_(&col2, &dt, &p[1], &c__1, &c__[1], &c__1);
+    daxpy_((const int&)col2, (const double&)dt, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
 /*           choose wbp, */
 /*           the row of W corresponding to the breakpoint encountered. */
     pointr = *head;
@@ -904,19 +910,19 @@ L777:
     if (*info != 0) {
         return 0;
     }
-    wmc = ddot_(&col2, &c__[1], &c__1, &v[1], &c__1);
-    wmp = ddot_(&col2, &p[1], &c__1, &v[1], &c__1);
-    wmw = ddot_(&col2, &wbp[1], &c__1, &v[1], &c__1);
+    wmc = ddot_((const int&)col2, &c__[1], (const int&)c__1, &v[1], (const int&)c__1);
+    wmp = ddot_((const int&)col2, &p[1], (const int&)c__1, &v[1], (const int&)c__1);
+    wmw = ddot_((const int&)col2, &wbp[1], (const int&)c__1, &v[1], (const int&)c__1);
 /*           update p = p - dibp*wbp. */
     d__1 = -dibp;
-    daxpy_(&col2, &d__1, &wbp[1], &c__1, &p[1], &c__1);
+    daxpy_((const int&)col2, (const double&)d__1, &wbp[1], (const int&)c__1, &p[1], (const int&)c__1);
 /*           complete updating f1 and f2 while col > 0. */
     f1 += dibp * wmc;
     f2 = f2 + dibp * 2. * wmp - dibp2 * wmw;
     }
 /* Computing MAX */
     d__1 = *epsmch * f2_org__;
-    f2 = max(d__1,f2);
+    f2 = fmax(d__1,f2);
     if (nleft > 0) {
     dtm = -f1 / f2;
     goto L777;
@@ -953,12 +959,12 @@ L888:
     tsum += dtm;
 /*     Move free variables (i.e., the ones w/o breakpoints) and */
 /*       the variables whose breakpoints haven't been reached. */
-    daxpy_(n, &tsum, &d__[1], &c__1, &xcp[1], &c__1);
+    daxpy_(*n, (const double&)tsum, &d__[1], (const int&)c__1, &xcp[1], (const int&)c__1);
 L999:
 /*     Update c = c + dtm*p = W'(x^c - x) */
 /*       which will be used in computing r = Z'(B(x^c - x) + g). */
     if (*col > 0) {
-    daxpy_(&col2, &dtm, &p[1], &c__1, &c__[1], &c__1);
+    daxpy_((const int&)col2, (const double&)dtm, &p[1], (const int&)c__1, &c__[1], (const int&)c__1);
     }
     if (*iprint > 100) {
 /*
@@ -1117,28 +1123,27 @@ static int errclb_( integer *n, integer *m, doublereal *factr, doublereal *l,
 
     /* Function Body */
     if (*n <= 0) {
-    s_copy(task, "ERROR: N .LE. 0", (ftnlen)60, (ftnlen)15);
+    strcpy(task, "ERROR: N .LE. 0");
     }
     if (*m <= 0) {
-    s_copy(task, "ERROR: M .LE. 0", (ftnlen)60, (ftnlen)15);
+    strcpy(task, "ERROR: M .LE. 0");
     }
     if (*factr < 0.) {
-    s_copy(task, "ERROR: FACTR .LT. 0", (ftnlen)60, (ftnlen)19);
+    strcpy(task, "ERROR: FACTR .LT. 0");
     }
 /*     Check the validity of the arrays nbd(i), u(i), and l(i). */
     i__1 = *n;
     for (i__ = 1; i__ <= i__1; ++i__) {
     if (nbd[i__] < 0 || nbd[i__] > 3) {
 /*                                                   return */
-        s_copy(task, "ERROR: INVALID NBD", (ftnlen)60, (ftnlen)18);
+        strcpy(task, "ERROR: INVALID NBD");
         *info = -6;
         *k = i__;
     }
     if (nbd[i__] == 2) {
         if (l[i__] > u[i__]) {
 /*                                    return */
-        s_copy(task, "ERROR: NO FEASIBLE SOLUTION", (ftnlen)60, (
-            ftnlen)27);
+        strcpy(task, "ERROR: NO FEASIBLE SOLUTION" );
         *info = -7;
         *k = i__;
         }
@@ -1295,6 +1300,7 @@ static int formk_(
 /*                     [L_a+R_z   S'AA'S   ] */
 /*        where L_a is the strictly lower triangular part of S'AA'Y */
 /*              R_z is the upper triangular part of S'ZZ'Y. */
+
     /* Parameter adjustments */
     --indx2;
     --ind;
@@ -1322,14 +1328,14 @@ static int formk_(
         for (jy = 1; jy <= i__1; ++jy) {
         js = *m + jy;
         i__2 = *m - jy;
-        dcopy_(&i__2, &wn1[jy + 1 + (jy + 1) * wn1_dim1], &c__1, &wn1[
-            jy + jy * wn1_dim1], &c__1);
+        dcopy_((const int&)i__2, &wn1[jy + 1 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
+            jy + jy * wn1_dim1], (const int&)c__1);
         i__2 = *m - jy;
-        dcopy_(&i__2, &wn1[js + 1 + (js + 1) * wn1_dim1], &c__1, &wn1[
-            js + js * wn1_dim1], &c__1);
+        dcopy_((const int&)i__2, &wn1[js + 1 + (js + 1) * wn1_dim1], (const int&)c__1, &wn1[
+            js + js * wn1_dim1], (const int&)c__1);
         i__2 = *m - 1;
-        dcopy_(&i__2, &wn1[*m + 2 + (jy + 1) * wn1_dim1], &c__1, &wn1[
-            *m + 1 + jy * wn1_dim1], &c__1);
+        dcopy_((const int&)i__2, &wn1[*m + 2 + (jy + 1) * wn1_dim1], (const int&)c__1, &wn1[
+            *m + 1 + jy * wn1_dim1], (const int&)c__1);
 /* L10: */
         }
     }
@@ -1500,11 +1506,13 @@ static int formk_(
 /*                                    [(-L_a +R_z)L'^-1   S'AA'S*theta  ] */
 /*        first Cholesky factor (1,1) block of wn to get LL' */
 /*                          with L' stored in the upper triangle of wn. */
-    dpofa_(&wn[wn_offset], &m2, col, info);
+    dpotrf_((const char &)'U', *col, &wn[wn_offset], (const int &)m2, *info, 1);
+/*    dpofa_(&wn[wn_offset], &m2, col, info);     LINPACK
     if (*info != 0) {
     *info = -1;
     return 0;
-    }
+    } 
+*/
 /*        then form L^-1(-L_a'+R_z') in the (1,2) block. */
     col2 = *col << 1;
     i__1 = col2;
@@ -1518,18 +1526,20 @@ static int formk_(
     for (is = *col + 1; is <= i__1; ++is) {
     i__2 = col2;
     for (js = is; js <= i__2; ++js) {
-        wn[is + js * wn_dim1] += ddot_(col, &wn[is * wn_dim1 + 1], &c__1,
-            &wn[js * wn_dim1 + 1], &c__1);
+        wn[is + js * wn_dim1] += ddot_(*col, &wn[is * wn_dim1 + 1], (const int&)c__1,
+            &wn[js * wn_dim1 + 1], (const int&)c__1);
 /* L74: */
     }
 /* L72: */
     }
 /*     Cholesky factorization of (2,2) block of wn. */
-    dpofa_(&wn[*col + 1 + (*col + 1) * wn_dim1], &m2, col, info);
+    dpotrf_((const char&)'U', *col, &wn[*col + 1 + (*col + 1) * wn_dim1], (const int&)m2, *info, 1);
+/*    dpofa_(&wn[*col + 1 + (*col + 1) * wn_dim1], &m2, col, info);
     if (*info != 0) {
     *info = -2;
     return 0;
     }
+*/
     return 0;
 } /* formk_ */
 
@@ -1538,6 +1548,7 @@ static int formk_(
 static int formt_( integer *m, doublereal *wt, doublereal *sy, doublereal *ss,
 integer *col, doublereal *theta, integer *info)
 {
+
     /* System generated locals */
     integer wt_dim1, wt_offset, sy_dim1, sy_offset, ss_dim1, ss_offset, i__1,
         i__2, i__3;
@@ -1595,7 +1606,7 @@ integer *col, doublereal *theta, integer *info)
     for (i__ = 2; i__ <= i__1; ++i__) {
     i__2 = *col;
     for (j = i__; j <= i__2; ++j) {
-        k1 = min(i__,j) - 1;
+        k1 = imin(i__,j) - 1;
         ddum = 0.;
         i__3 = k1;
         for (k = 1; k <= i__3; ++k) {
@@ -1610,10 +1621,12 @@ integer *col, doublereal *theta, integer *info)
     }
 /*     Cholesky factorize T to J*J' with */
 /*        J' stored in the upper triangle of wt. */
-    dpofa_(&wt[wt_offset], m, col, info);
+    dpotrf_((const char&)'U', *col, &wt[wt_offset], *m, *info, 1);
+/*    dpofa_(&wt[wt_offset], m, col, info);         LINPACK
     if (*info != 0) {
     *info = -3;
     }
+*/
     return 0;
 } /* formt_ */
 
@@ -1886,6 +1899,7 @@ integer *iter, integer *ifun, integer *iback, integer *nfgv, integer *info,
 char *task, logical *boxed, logical *cnstnd, char *csave, integer *isave,
 doublereal *dsave, ftnlen task_len, ftnlen csave_len)
 {
+    const int& nr = *n;
     /* System generated locals */
     integer i__1;
     doublereal d__1;
@@ -1936,10 +1950,10 @@ doublereal *dsave, ftnlen task_len, ftnlen csave_len)
     --dsave;
 
     /* Function Body */
-    if (s_cmp(task, "FG_LN", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "FG_LN", 5) == 0) {
     goto L556;
     }
-    *dtd = ddot_(n, &d__[1], &c__1, &d__[1], &c__1);
+    *dtd = ddot_(nr, &d__[1], (const int&)c__1, &d__[1], (const int&)c__1);
     *dnorm = sqrt(*dtd);
 /*     Determine the maximum step length. */
     *stpmx = 1e10;
@@ -1974,18 +1988,18 @@ doublereal *dsave, ftnlen task_len, ftnlen csave_len)
     if (*iter == 0 && ! (*boxed)) {
 /* Computing MIN */
     d__1 = 1. / *dnorm;
-    *stp = min(d__1,*stpmx);
+    *stp = fmin(d__1,*stpmx);
     } else {
     *stp = 1.;
     }
-    dcopy_(n, &x[1], &c__1, &t[1], &c__1);
-    dcopy_(n, &g[1], &c__1, &r__[1], &c__1);
+    dcopy_(nr, &x[1], (const int&)c__1, &t[1], (const int&)c__1);
+    dcopy_(nr, &g[1], (const int&)c__1, &r__[1], (const int&)c__1);
     *fold = *f;
     *ifun = 0;
     *iback = 0;
-    s_copy(csave, "START", (ftnlen)60, (ftnlen)5);
+    strcpy(csave, "START");
 L556:
-    *gd = ddot_(n, &g[1], &c__1, &d__[1], &c__1);
+    *gd = ddot_(nr, &g[1], (const int&)c__1, &d__[1], (const int&)c__1);
     if (*ifun == 0) {
     *gdold = *gd;
     if (*gd >= 0.) {
@@ -1998,14 +2012,13 @@ L556:
     dcsrch_(f, gd, stp, &c_b275, &c_b276, &c_b277, &c_b9, stpmx, csave, &
         isave[1], &dsave[1], (ftnlen)60);
     *xstep = *stp * *dnorm;
-    if (s_cmp(csave, "CONV", (ftnlen)4, (ftnlen)4) != 0 && s_cmp(csave, "WARN"
-        , (ftnlen)4, (ftnlen)4) != 0) {
-    s_copy(task, "FG_LNSRCH", (ftnlen)60, (ftnlen)9);
+    if (strncmp(csave, "CONV", 4 ) != 0 && strncmp(csave, "WARN", 4) != 0) {
+    strcpy(task, "FG_LNSRCH");
     ++(*ifun);
     ++(*nfgv);
     *iback = *ifun - 1;
     if (*stp == 1.) {
-        dcopy_(n, &z__[1], &c__1, &x[1], &c__1);
+        dcopy_(nr, &z__[1], (const int&)c__1, &x[1], (const int&)c__1);
     } else {
         i__1 = *n;
         for (i__ = 1; i__ <= i__1; ++i__) {
@@ -2014,7 +2027,7 @@ L556:
         }
     }
     } else {
-    s_copy(task, "NEW_X", (ftnlen)60, (ftnlen)5);
+    strcpy(task, "NEW_X");
     }
     return 0;
 } /* lnsrlb_ */
@@ -2030,9 +2043,11 @@ doublereal *theta, doublereal *rr, doublereal *dr, doublereal *stp, doublereal *
     integer ws_dim1, ws_offset, wy_dim1, wy_offset, sy_dim1, sy_offset,
         ss_dim1, ss_offset, i__1, i__2;
 
+
     /* Local variables */
     static integer j;
     static integer pointr;
+    const int& jr = j;
 
 /*     ************ */
 
@@ -2083,8 +2098,8 @@ doublereal *theta, doublereal *rr, doublereal *dr, doublereal *stp, doublereal *
     *head = *head % *m + 1;
     }
 /*     Update matrices WS and WY. */
-    dcopy_(n, &d__[1], &c__1, &ws[*itail * ws_dim1 + 1], &c__1);
-    dcopy_(n, &r__[1], &c__1, &wy[*itail * wy_dim1 + 1], &c__1);
+    dcopy_(*n, &d__[1], (const int&)c__1, &ws[*itail * ws_dim1 + 1], (const int&)c__1);
+    dcopy_(*n, &r__[1], (const int&)c__1, &wy[*itail * wy_dim1 + 1], (const int&)c__1);
 /*     Set theta=yy/ys. */
     *theta = *rr / *dr;
 /*     Form the middle matrix in B. */
@@ -2094,11 +2109,11 @@ doublereal *theta, doublereal *rr, doublereal *dr, doublereal *stp, doublereal *
 /*                              move old information */
     i__1 = *col - 1;
     for (j = 1; j <= i__1; ++j) {
-        dcopy_(&j, &ss[(j + 1) * ss_dim1 + 2], &c__1, &ss[j * ss_dim1 + 1]
-            , &c__1);
+        dcopy_((const int &)j, &ss[(j + 1) * ss_dim1 + 2], (const int&)c__1, &ss[j * ss_dim1 + 1]
+            , (const int&)c__1);
         i__2 = *col - j;
-        dcopy_(&i__2, &sy[j + 1 + (j + 1) * sy_dim1], &c__1, &sy[j + j *
-            sy_dim1], &c__1);
+        dcopy_((const int&)i__2, &sy[j + 1 + (j + 1) * sy_dim1], (const int&)c__1, &sy[j + j *
+            sy_dim1], (const int&)c__1);
 /* L50: */
     }
     }
@@ -2107,10 +2122,10 @@ doublereal *theta, doublereal *rr, doublereal *dr, doublereal *stp, doublereal *
     pointr = *head;
     i__1 = *col - 1;
     for (j = 1; j <= i__1; ++j) {
-    sy[*col + j * sy_dim1] = ddot_(n, &d__[1], &c__1, &wy[pointr *
-        wy_dim1 + 1], &c__1);
-    ss[j + *col * ss_dim1] = ddot_(n, &ws[pointr * ws_dim1 + 1], &c__1, &
-        d__[1], &c__1);
+    sy[*col + j * sy_dim1] = ddot_(*n, &d__[1], (const int&)c__1, &wy[pointr *
+        wy_dim1 + 1], (const int&)c__1);
+    ss[j + *col * ss_dim1] = ddot_(*n, &ws[pointr * ws_dim1 + 1], (const int&)c__1, &
+        d__[1], (const int&)c__1);
     pointr = pointr % *m + 1;
 /* L51: */
     }
@@ -2543,7 +2558,7 @@ x,\002-\002,10x,\002-\002)";
     --x;
 
     /* Function Body */
-    if (s_cmp(task, "ERROR", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "ERROR", 5) == 0) {
     goto L999;
     }
     if (*iprint >= 0) {
@@ -2753,19 +2768,19 @@ doublereal *x, doublereal *g, doublereal *sbgnrm)
         if (nbd[i__] >= 2) {
 /* Computing MAX */
             d__1 = x[i__] - u[i__];
-            gi = max(d__1,gi);
+            gi = fmax(d__1,gi);
         }
         } else {
         if (nbd[i__] <= 2) {
 /* Computing MIN */
             d__1 = x[i__] - l[i__];
-            gi = min(d__1,gi);
+            gi = fmin(d__1,gi);
         }
         }
     }
 /* Computing MAX */
-    d__1 = *sbgnrm, d__2 = abs(gi);
-    *sbgnrm = max(d__1,d__2);
+    d__1 = *sbgnrm, d__2 = fabs(gi);
+    *sbgnrm = fmax(d__1,d__2);
 /* L15: */
     }
     return 0;
@@ -3282,34 +3297,34 @@ char *task, integer *isave, doublereal *dsave, ftnlen task_len)
     --isave;
 
     /* Function Body */
-    if (s_cmp(task, "START", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "START", 5) == 0) {
 /*        Check the input arguments for errors. */
     if (*stp < *stpmin) {
-        s_copy(task, "ERROR: STP .LT. STPMIN", task_len, (ftnlen)22);
+        strcpy(task, "ERROR: STP .LT. STPMIN");
     }
     if (*stp > *stpmax) {
-        s_copy(task, "ERROR: STP .GT. STPMAX", task_len, (ftnlen)22);
+        strcpy(task, "ERROR: STP .GT. STPMAX");
     }
     if (*g >= 0.) {
-        s_copy(task, "ERROR: INITIAL G .GE. ZERO", task_len, (ftnlen)26);
+        strcpy(task, "ERROR: INITIAL G .GE. ZERO");
     }
     if (*ftol < 0.) {
-        s_copy(task, "ERROR: FTOL .LT. ZERO", task_len, (ftnlen)21);
+        strcpy(task, "ERROR: FTOL .LT. ZERO");
     }
     if (*gtol < 0.) {
-        s_copy(task, "ERROR: GTOL .LT. ZERO", task_len, (ftnlen)21);
+        strcpy(task, "ERROR: GTOL .LT. ZERO");
     }
     if (*xtol < 0.) {
-        s_copy(task, "ERROR: XTOL .LT. ZERO", task_len, (ftnlen)21);
+        strcpy(task, "ERROR: XTOL .LT. ZERO");
     }
     if (*stpmin < 0.) {
-        s_copy(task, "ERROR: STPMIN .LT. ZERO", task_len, (ftnlen)23);
+        strcpy(task, "ERROR: STPMIN .LT. ZERO");
     }
     if (*stpmax < *stpmin) {
-        s_copy(task, "ERROR: STPMAX .LT. STPMIN", task_len, (ftnlen)25);
+        strcpy(task, "ERROR: STPMAX .LT. STPMIN");
     }
 /*        Exit if there are errors on input. */
-    if (s_cmp(task, "ERROR", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "ERROR", 5) == 0) {
         return 0;
     }
 /*        Initialize local variables. */
@@ -3334,7 +3349,7 @@ char *task, integer *isave, doublereal *dsave, ftnlen task_len)
     gy = ginit;
     stmin = 0.;
     stmax = *stp + *stp * 4.;
-    s_copy(task, "FG", task_len, (ftnlen)2);
+    strcpy(task, "FG");
     goto L1000;
     } else {
 /*        Restore local variables. */
@@ -3366,25 +3381,23 @@ char *task, integer *isave, doublereal *dsave, ftnlen task_len)
     }
 /*     Test for warnings. */
     if (brackt && (*stp <= stmin || *stp >= stmax)) {
-    s_copy(task, "WARNING: ROUNDING ERRORS PREVENT PROGRESS", task_len, (
-        ftnlen)41);
+    strcpy(task, "WARNING: ROUNDING ERRORS PREVENT PROGRESS" );
     }
     if (brackt && stmax - stmin <= *xtol * stmax) {
-    s_copy(task, "WARNING: XTOL TEST SATISFIED", task_len, (ftnlen)28);
+    strcpy(task, "WARNING: XTOL TEST SATISFIED");
     }
     if (*stp == *stpmax && *f <= ftest && *g <= gtest) {
-    s_copy(task, "WARNING: STP = STPMAX", task_len, (ftnlen)21);
+    strcpy(task, "WARNING: STP = STPMAX");
     }
     if (*stp == *stpmin && (*f > ftest || *g >= gtest)) {
-    s_copy(task, "WARNING: STP = STPMIN", task_len, (ftnlen)21);
+    strcpy(task, "WARNING: STP = STPMIN");
     }
 /*     Test for convergence. */
-    if (*f <= ftest && abs(*g) <= *gtol * (-ginit)) {
-    s_copy(task, "CONVERGENCE", task_len, (ftnlen)11);
+    if (*f <= ftest && fabs(*g) <= *gtol * (-ginit)) {
+    strcpy(task, "CONVERGENCE");
     }
 /*     Test for termination. */
-    if (s_cmp(task, "WARN", (ftnlen)4, (ftnlen)4) == 0 || s_cmp(task, "CONV",
-        (ftnlen)4, (ftnlen)4) == 0) {
+    if (strncmp(task, "WARN", 4) == 0 || strncmp(task, "CONV", 4) == 0) {
     goto L1000;
     }
 /*     A modified function is used to predict the step during the */
@@ -3413,23 +3426,23 @@ char *task, integer *isave, doublereal *dsave, ftnlen task_len)
     }
 /*     Decide if a bisection step is needed. */
     if (brackt) {
-    if ((d__1 = sty - stx, abs(d__1)) >= width1 * .66) {
+    if ((d__1 = sty - stx, fabs(d__1)) >= width1 * .66) {
         *stp = stx + (sty - stx) * .5;
     }
     width1 = width;
-    width = (d__1 = sty - stx, abs(d__1));
+    width = (d__1 = sty - stx, fabs(d__1));
     }
 /*     Set the minimum and maximum steps allowed for stp. */
     if (brackt) {
-    stmin = min(stx,sty);
-    stmax = max(stx,sty);
+    stmin = fmin(stx,sty);
+    stmax = fmax(stx,sty);
     } else {
     stmin = *stp + (*stp - stx) * 1.1;
     stmax = *stp + (*stp - stx) * 4.;
     }
 /*     Force the step to be within the bounds stpmax and stpmin. */
-    *stp = max(*stp,*stpmin);
-    *stp = min(*stp,*stpmax);
+    *stp = fmax(*stp,*stpmin);
+    *stp = fmin(*stp,*stpmax);
 /*     If further progress is not possible, let stp be the best */
 /*     point obtained during the search. */
     if (   ( brackt && (*stp <= stmin || *stp >= stmax) )
@@ -3437,7 +3450,7 @@ char *task, integer *isave, doublereal *dsave, ftnlen task_len)
     *stp = stx;
     }
 /*     Obtain another function and derivative. */
-    s_copy(task, "FG", task_len, (ftnlen)2);
+    strcpy(task, "FG");
 L1000:
 /*     Save local variables. */
     if (brackt) {
@@ -3568,7 +3581,7 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
 /*     Brett M. Averick and Jorge J. More'. */
 
 /*     ********** */
-    sgnd = *dp * (*dx / abs(*dx));
+    sgnd = *dp * (*dx / fabs(*dx));
 /*     First case: A higher function value. The minimum is bracketed. */
 /*     If the cubic step is closer to stx than the quadratic step, the */
 /*     cubic step is taken, otherwise the average of the cubic and */
@@ -3576,9 +3589,9 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     if (*fp > *fx) {
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = abs(theta), d__2 = abs(*dx), d__1 = max(d__1,d__2), d__2 = abs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
         *dp);
-    s = max(d__1,d__2);
+    s = fmax(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
     gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
@@ -3591,7 +3604,7 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     stpc = *stx + r__ * (*stp - *stx);
     stpq = *stx + *dx / ((*fx - *fp) / (*stp - *stx) + *dx) / 2. * (*stp
         - *stx);
-    if ((d__1 = stpc - *stx, abs(d__1)) < (d__2 = stpq - *stx, abs(d__2)))
+    if ((d__1 = stpc - *stx, fabs(d__1)) < (d__2 = stpq - *stx, fabs(d__2)))
          {
         stpf = stpc;
     } else {
@@ -3605,9 +3618,9 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     } else if (sgnd < 0.) {
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = abs(theta), d__2 = abs(*dx), d__1 = max(d__1,d__2), d__2 = abs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
         *dp);
-    s = max(d__1,d__2);
+    s = fmax(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
     gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
@@ -3619,7 +3632,7 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     r__ = p / q;
     stpc = *stp + r__ * (*stx - *stp);
     stpq = *stp + *dp / (*dp - *dx) * (*stx - *stp);
-    if ((d__1 = stpc - *stp, abs(d__1)) > (d__2 = stpq - *stp, abs(d__2)))
+    if ((d__1 = stpc - *stp, fabs(d__1)) > (d__2 = stpq - *stp, fabs(d__2)))
          {
         stpf = stpc;
     } else {
@@ -3628,23 +3641,23 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     *brackt = TRUE_;
 /*     Third case: A lower function value, derivatives of the same sign, */
 /*     and the magnitude of the derivative decreases. */
-    } else if (abs(*dp) < abs(*dx)) {
+    } else if (fabs(*dp) < fabs(*dx)) {
 /*        The cubic step is computed only if the cubic tends to infinity */
 /*        in the direction of the step or if the minimum of the cubic */
 /*        is beyond stp. Otherwise the cubic step is defined to be the */
 /*        secant step. */
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = abs(theta), d__2 = abs(*dx), d__1 = max(d__1,d__2), d__2 = abs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
         *dp);
-    s = max(d__1,d__2);
+    s = fmax(d__1,d__2);
 /*        The case gamma = 0 only arises if the cubic does not tend */
 /*        to infinity in the direction of the step. */
 /* Computing MAX */
 /* Computing 2nd power */
     d__3 = theta / s;
     d__1 = 0., d__2 = d__3 * d__3 - *dx / s * (*dp / s);
-    gamma = s * sqrt((max(d__1,d__2)));
+    gamma = s * sqrt((fmax(d__1,d__2)));
     if (*stp > *stx) {
         gamma = -gamma;
     }
@@ -3663,7 +3676,7 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
 /*           A minimizer has been bracketed. If the cubic step is */
 /*           closer to stp than the secant step, the cubic step is */
 /*           taken, otherwise the secant step is taken. */
-        if ((d__1 = stpc - *stp, abs(d__1)) < (d__2 = stpq - *stp, abs(
+        if ((d__1 = stpc - *stp, fabs(d__1)) < (d__2 = stpq - *stp, fabs(
             d__2))) {
         stpf = stpc;
         } else {
@@ -3672,24 +3685,24 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
         if (*stp > *stx) {
 /* Computing MIN */
         d__1 = *stp + (*sty - *stp) * .66;
-        stpf = min(d__1,stpf);
+        stpf = fmin(d__1,stpf);
         } else {
 /* Computing MAX */
         d__1 = *stp + (*sty - *stp) * .66;
-        stpf = max(d__1,stpf);
+        stpf = fmax(d__1,stpf);
         }
     } else {
 /*           A minimizer has not been bracketed. If the cubic step is */
 /*           farther from stp than the secant step, the cubic step is */
 /*           taken, otherwise the secant step is taken. */
-        if ((d__1 = stpc - *stp, abs(d__1)) > (d__2 = stpq - *stp, abs(
+        if ((d__1 = stpc - *stp, fabs(d__1)) > (d__2 = stpq - *stp, fabs(
             d__2))) {
         stpf = stpc;
         } else {
         stpf = stpq;
         }
-        stpf = min(*stpmax,stpf);
-        stpf = max(*stpmin,stpf);
+        stpf = fmin(*stpmax,stpf);
+        stpf = fmax(*stpmin,stpf);
     }
 /*     Fourth case: A lower function value, derivatives of the same sign, */
 /*     and the magnitude of the derivative does not decrease. If the */
@@ -3699,9 +3712,9 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     if (*brackt) {
         theta = (*fp - *fy) * 3. / (*sty - *stp) + *dy + *dp;
 /* Computing MAX */
-        d__1 = abs(theta), d__2 = abs(*dy), d__1 = max(d__1,d__2), d__2 =
-            abs(*dp);
-        s = max(d__1,d__2);
+        d__1 = fabs(theta), d__2 = fabs(*dy), d__1 = fmax(d__1,d__2), d__2 =
+            fabs(*dp);
+        s = fmax(d__1,d__2);
 /* Computing 2nd power */
         d__1 = theta / s;
         gamma = s * sqrt(d__1 * d__1 - *dy / s * (*dp / s));
@@ -3988,7 +4001,7 @@ L20:
     for (j = 2; j <= i__1; ++j) {
     temp = -b[j - 1];
     i__2 = *n - j + 1;
-    daxpy_(&i__2, &temp, &t[j + (j - 1) * t_dim1], &c__1, &b[j], &c__1);
+    daxpy_((const int&)i__2, (const double &)temp, &t[j + (j - 1) * t_dim1], (const int&)c__1, &b[j], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L30: */
     }
@@ -4006,7 +4019,7 @@ L50:
     for (jj = 2; jj <= i__1; ++jj) {
     j = *n - jj + 1;
     temp = -b[j + 1];
-    daxpy_(&j, &temp, &t[(j + 1) * t_dim1 + 1], &c__1, &b[1], &c__1);
+    daxpy_((const int&)j, (const double &)temp, &t[(j + 1) * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L60: */
     }
@@ -4024,7 +4037,7 @@ L80:
     for (jj = 2; jj <= i__1; ++jj) {
     j = *n - jj + 1;
     i__2 = jj - 1;
-    b[j] -= ddot_(&i__2, &t[j + 1 + j * t_dim1], &c__1, &b[j + 1], &c__1);
+    b[j] -= ddot_((const int&)i__2, &t[j + 1 + j * t_dim1], (const int&)c__1, &b[j + 1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L90: */
     }
@@ -4041,7 +4054,7 @@ L110:
     i__1 = *n;
     for (j = 2; j <= i__1; ++j) {
     i__2 = j - 1;
-    b[j] -= ddot_(&i__2, &t[j * t_dim1 + 1], &c__1, &b[1], &c__1);
+    b[j] -= ddot_((const int&)i__2, &t[j * t_dim1 + 1], (const int&)c__1, &b[1], (const int&)c__1);
     b[j] /= t[j + j * t_dim1];
 /* L120: */
     }
@@ -4371,7 +4384,7 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
     --dsave;
 
     /* Function Body */
-    if (s_cmp(task, "START", (ftnlen)60, (ftnlen)5) == 0) {
+    if (strncmp(task, "START", 5) == 0) {
 /*        Generate the current machine precision. */
     epsmch = dpmeps_();
 /*        Initialize counters and scalars when task='START'. */
@@ -4395,7 +4408,7 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
     sbtime = 0.;
     lnscht = 0.;
 /*           'word' records the status of subspace solutions. */
-    s_copy(word, "---", (ftnlen)3, (ftnlen)3);
+    strcpy(word, "---");
 /*           'info' records the termination information. */
     info = 0;
     if (*iprint >= 1) {
@@ -4417,7 +4430,7 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
 /*        Check the input arguments for errors. */
     errclb_(n, m, factr, &l[1], &u[1], &nbd[1], task, &info, &k, (ftnlen)
         60);
-    if (s_cmp(task, "ERROR", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "ERROR", 5 ) == 0) {
         prn3lb_(n, &x[1], f, task, iprint, &info, &itfile, &iter, &nfgv, &
             nintol, &nskip, &nact, &sbgnrm, &c_b9, &nint, word, &
             iback, &stp, &xstep, &k, &cachyt, &sbtime, &lnscht, (
@@ -4471,27 +4484,27 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
     dtd = dsave[16];
 /*        After returning from the driver go to the point where execution */
 /*        is to resume. */
-    if (s_cmp(task, "FG_LN", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "FG_LN", 5) == 0) {
         goto L666;
     }
-    if (s_cmp(task, "NEW_X", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "NEW_X", 5) == 0) {
         goto L777;
     }
-    if (s_cmp(task, "FG_ST", (ftnlen)5, (ftnlen)5) == 0) {
+    if (strncmp(task, "FG_ST", 5) == 0) {
         goto L111;
     }
-    if (s_cmp(task, "STOP", (ftnlen)4, (ftnlen)4) == 0) {
-        if (s_cmp(task + 6, "CPU", (ftnlen)3, (ftnlen)3) == 0) {
+    if (strncmp(task, "STOP", 4) == 0) {
+        if (strncmp(task + 6, "CPU", 3) == 0) {
 /*                                          restore the previous iterate. */
-        dcopy_(n, &t[1], &c__1, &x[1], &c__1);
-        dcopy_(n, &r__[1], &c__1, &g[1], &c__1);
+        dcopy_(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
+        dcopy_(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
         *f = fold;
         }
         goto L999;
     }
     }
 /*     Compute f0 and g0. */
-    s_copy(task, "FG_START", (ftnlen)60, (ftnlen)8);
+    strcpy(task, "FG_START");
 /*          return to the driver to calculate f and g; reenter at 111. */
     goto L1000;
 L111:
@@ -4516,8 +4529,7 @@ L111:
     }
     if (sbgnrm <= *pgtol) {
 /*                                terminate the algorithm. */
-    s_copy(task, "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL", (
-        ftnlen)60, (ftnlen)48);
+    strcpy(task, "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL");
     goto L999;
     }
 /* ----------------- the beginning of the loop -------------------------- */
@@ -4534,7 +4546,7 @@ L222:
 
     if (! cnstnd && col > 0) {
 /*                                            skip the search for GCP. */
-    dcopy_(n, &x[1], &c__1, &z__[1], &c__1);
+    dcopy_(*n, &x[1], (const int&)c__1, &z__[1], (const int&)c__1);
     wrk = updatd;
     nint = 0;
     goto L333;
@@ -4663,8 +4675,8 @@ L666:
         csave, &isave[22], &dsave[17], (ftnlen)60, (ftnlen)60);
     if (info != 0 || iback >= 20) {
 /*          restore the previous iterate. */
-    dcopy_(n, &t[1], &c__1, &x[1], &c__1);
-    dcopy_(n, &r__[1], &c__1, &g[1], &c__1);
+    dcopy_(*n, &t[1], (const int&)c__1, &x[1], (const int&)c__1);
+    dcopy_(*n, &r__[1], (const int&)c__1, &g[1], (const int&)c__1);
     *f = fold;
     if (col == 0) {
 /*             abnormal termination. */
@@ -4675,8 +4687,7 @@ L666:
         --ifun;
         --iback;
         }
-        s_copy(task, "ABNORMAL_TERMINATION_IN_LNSRCH", (ftnlen)60, (
-            ftnlen)30);
+        strcpy(task, "ABNORMAL_TERMINATION_IN_LNSRCH");
         ++iter;
         goto L999;
     } else {
@@ -4696,11 +4707,11 @@ L666:
         theta = 1.;
         iupdat = 0;
         updatd = FALSE_;
-        s_copy(task, "RESTART_FROM_LNSRCH", (ftnlen)60, (ftnlen)19);
+        strcpy(task, "RESTART_FROM_LNSRCH");
         lnscht = lnscht + cpu2 - cpu1;
         goto L222;
     }
-    } else if (s_cmp(task, "FG_LN", (ftnlen)5, (ftnlen)5) == 0) {
+    } else if (strncmp(task, "FG_LN", 5) == 0) {
 /*          return to the driver for calculating f and g; reenter at 666. */
     goto L1000;
     } else {
@@ -4718,17 +4729,15 @@ L777:
 /*     Test for termination. */
     if (sbgnrm <= *pgtol) {
 /*                                terminate the algorithm. */
-    s_copy(task, "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL", (
-        ftnlen)60, (ftnlen)48);
+    strcpy(task, "CONVERGENCE: NORM OF PROJECTED GRADIENT <= PGTOL" );
     goto L999;
     }
 /* Computing MAX */
-    d__1 = abs(fold), d__2 = abs(*f), d__1 = max(d__1,d__2);
-    ddum = max(d__1,1.);
+    d__1 = fabs(fold), d__2 = fabs(*f), d__1 = fmax(d__1,d__2);
+    ddum = fmax(d__1,1.);
     if (fold - *f <= tol * ddum) {
 /*                                        terminate the algorithm. */
-    s_copy(task, "CONVERGENCE: REL_REDUCTION_OF_F <= FACTR*EPSMCH", (
-        ftnlen)60, (ftnlen)47);
+    strcpy(task, "CONVERGENCE: REL_REDUCTION_OF_F <= FACTR*EPSMCH");
     if (iback >= 10) {
         info = -5;
     }
@@ -4741,13 +4750,13 @@ L777:
     r__[i__] = g[i__] - r__[i__];
 /* L42: */
     }
-    rr = ddot_(n, &r__[1], &c__1, &r__[1], &c__1);
+    rr = ddot_(*n, &r__[1], (const int&)c__1, &r__[1], (const int&)c__1);
     if (stp == 1.) {
     dr = gd - gdold;
     ddum = -gdold;
     } else {
     dr = (gd - gdold) * stp;
-    dscal_(n, &stp, &d__[1], &c__1);
+    dscal_(*n, (const double &)stp, &d__[1], (const int&)c__1);
     ddum = -gdold * stp;
     }
     if (dr <= epsmch * ddum) {
@@ -4856,7 +4865,7 @@ L1000:
 
 /* ================    L-BFGS-B (version 2.1)   ========================== */
 /* Subroutine */
-int setulb_(integer *n, integer *m, const doublereal *x, doublereal *l,
+int setulb_(integer *n, integer *m, doublereal *x, doublereal *l,
       doublereal *u, integer *nbd, doublereal *f, doublereal *g,
       doublereal *factr, doublereal *pgtol, doublereal *wa, integer *iwa,
       char *task, integer *iprint, char *csave, logical *lsave,
@@ -5063,7 +5072,7 @@ int setulb_(integer *n, integer *m, const doublereal *x, doublereal *l,
     --dsave;
 
     /* Function Body */
-    if (s_cmp(task, "START", (ftnlen)60, (ftnlen)5) == 0) {
+    if (strncmp(task, "START", 5) == 0) {
     isave[1] = *m * *n;
 /* Computing 2nd power */
     i__1 = *m;
@@ -5109,7 +5118,7 @@ int setulb_(integer *n, integer *m, const doublereal *x, doublereal *l,
     lsgo = isave[18];
     lyg = isave[19];
     lygo = isave[20];
-    mainlb_(n, m, (doublereal *)&x[1], &l[1], &u[1], &nbd[1], f, &g[1], factr, pgtol, &wa[
+    mainlb_(n, m, &x[1], &l[1], &u[1], &nbd[1], f, &g[1], factr, pgtol, &wa[
         lws], &wa[lwy], &wa[lsy], &wa[lss], &wa[lyy], &wa[lwt], &wa[lwn],
         &wa[lsnd], &wa[lz], &wa[lr], &wa[ld], &wa[lt], &wa[lwa], &wa[lsg],
          &wa[lsgo], &wa[lyg], &wa[lygo], &iwa[1], &iwa[*n + 1], &iwa[(*n

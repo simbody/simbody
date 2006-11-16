@@ -47,7 +47,7 @@ public:
     virtual void setOptimizerParameters(unsigned int, int *) = 0;
 */
 
-    virtual void optimize(SimTK::Vector &) = 0; // checks to see if space needs to be allocated
+    virtual double optimize(SimTK::Vector &) = 0; // checks to see if space needs to be allocated
 
        // constructor sets internal flag to require allocation
        // if dimension or algorithm changes the reallocate flag is

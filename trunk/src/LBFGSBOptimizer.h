@@ -1,5 +1,5 @@
-#ifndef _SimTK_OPTIMIZER_IMPLEMENTATION_H_
-#define _SimTK_OPTIMIZER_IMPLEMENTATION_H_
+#ifndef _SimTK_LBFGSB_OPTIMIZER_H_
+#define _SimTK_LBFGSB_OPTIMIZER_H_
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -23,29 +23,49 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <iostream>
+//#include <iostream>
 #include "Simmath.h"
-#include "OptimizerInterface.h"
+#include "OptimizerImplementation.h"
 #include "OptimizationProblem.h"
 
 namespace SimTK {
 
-class OptimizerImplementation : public OptimizerInterface {
-    public:
-     OptimizerImplementation( OptimizationProblem& op){};
-     OptimizerImplementation(){};
-//     unsigned int optParamStringToValue( char *parameter );
-     virtual void setOptimizerParameters(unsigned int parameter, double *values ) = 0; 
-     virtual void getOptimizerParameters(unsigned int parameter, double *values ) = 0; 
 
-     virtual double optimize( double *results ) = 0; 
-     virtual double optimize(  SimTK::Vector &results ) = 0; 
+class LBFGSBOptimizer: public OptimizerImplementation {
 
+     public:
 
-      ~OptimizerImplementation(){
+     ~LBFGSBOptimizer() {
+        printf("LBFGSBOptimizer destructor \n");
+
+        if( dimension > 0 ) {
+           delete [] nbd;
+        }
+
      }
+     LBFGSBOptimizer(OptimizationProblem& p); 
+     LBFGSBOptimizer(); 
+     unsigned int LBFGSBOptimizer::optParamStringToValue( char *parameter );
+     void setOptimizerParameters(unsigned int parameter, double *values );
+     void getOptimizerParameters(unsigned int parameter, double *values );
+     double optimize( double *results );
+     double optimize(  SimTK::Vector &results );
+     
+/* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
+     private:
+     OptimizationProblem *pop;
+     int         dimension;
+     int         numCorrections;
+     int         MaxNumFuncEvals;
+     double      GradientConvergenceTolerance;
+     double      LineSearchAccuracy;
+     double      DefaultStepLength;
+     SimTK::Vector *gradient;
+     int         iprint[2];
+     int         *nbd;
 
 
-  }; // end class OptimizerImplementation
-}   // namespace SimTK
-#endif //_SimTK_OPTIMIZER_IMPLEMENTATION_H_
+};
+} // namespace SimTK
+#endif //_SimTK_LBFGSB_OPTIMIZER_H_
+

@@ -51,17 +51,20 @@ public:
   /* this method must be overloaded by derived class */
 
   virtual double objectiveFunction( int n, 
+                                    bool new_coefficients,
                                     SimTK::Vector& coefficients, 
                                     void* user_data  ) = 0;
 
   virtual void objectiveGradient(int n,  
+                                 bool new_coefficients,
                                  SimTK::Vector &coefficients,   
                                  SimTK::Vector &gradient, 
                                  void* user_data) {};
 
   virtual void computeConstraints(int n,  
                                   int m,
-                                  SimTK::Vector & params,   
+                                  bool new_coefficients,
+                                  SimTK::Vector & coefficients,   
                                   SimTK::Vector & constraints, 
                                   void * user_data) {
            return;
@@ -69,23 +72,26 @@ public:
 
   virtual void computetConstraintJacobian(int n,  
                                           int m,
-                                          SimTK::Vector & params,   
+                                          bool new_coefficients,
+                                          SimTK::Vector & coefficients,   
                                           SimTK::Vector & jac, 
                                           void * user_data) {
           return;
   }
 
   virtual double objectiveAndGradient( int n,
+                                       bool new_coefficients,
                                        SimTK::Vector &coefficients, 
                                        SimTK::Vector &gradient,
                                        void *user_data) {
 
-     this->objectiveGradient( n, coefficients, gradient, user_data );
-     return( this->objectiveFunction(n, coefficients, user_data ) );
+     this->objectiveGradient( n, new_coefficients, coefficients, gradient, user_data );
+     return( this->objectiveFunction(n, false, coefficients, user_data ) );
 
   }
   virtual bool computeHessian( int n,
                                int m, 
+                               bool new_coefficients,
                                SimTK::Vector &coefficients, 
                                SimTK::Vector &gradient,
                                void *user_data) { 
@@ -98,6 +104,10 @@ public:
       int dimension;    // number of indepent varaibles
       int numConstraints;    // number of constraints
       int numEqualityConstraints;
+      int numBounds;
+      int *bounds_index;
+      double *lower_bounds;
+      double *upper_bounds;
       void *user_data;
 
 

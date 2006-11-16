@@ -50,8 +50,8 @@ class LBFGSOptimizer: public OptimizerImplementation {
      unsigned int LBFGSOptimizer::optParamStringToValue( char *parameter );
      void setOptimizerParameters(unsigned int parameter, double *values );
      void getOptimizerParameters(unsigned int parameter, double *values );
-     void optimize( double *results );
-     void optimize(  SimTK::Vector &results );
+     double optimize( double *results );
+     double optimize(  SimTK::Vector &results );
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
