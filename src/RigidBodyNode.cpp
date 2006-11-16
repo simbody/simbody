@@ -621,12 +621,12 @@ public:
     const Vec<dof>&   getAppliedJointForce(const SBDynamicsCache& dc) const 
         {return fromU(dc.appliedMobilityForces);}
     //TODO
-    const Vec<dof>&   getPrescribedUdot   (const SBDynamicsVars& dv) const 
-        {return fromU(dv.prescribedUdot);}
+    const Vec<dof>&   getPrescribedUdot   (const SBDynamicsCache& dc) const 
+        {return fromU(dc.prescribedUdot);}
 
     // Special case state access for 1-dof joints
     const Real& get1AppliedJointForce(const SBDynamicsCache& dc) const {return from1U(dc.appliedMobilityForces);}
-    const Real& get1PrescribedUdot   (const SBDynamicsVars& dv) const {return from1U(dv.prescribedUdot);}
+    const Real& get1PrescribedUdot   (const SBDynamicsCache& dc) const {return from1U(dc.prescribedUdot);}
 
     // Cache entries (cache is mutable in a const State)
 

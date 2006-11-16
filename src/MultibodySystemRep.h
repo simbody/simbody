@@ -197,7 +197,8 @@ public:
     int setGlobalSubsystem() {
         assert(globalSub == -1);
         built = false;
-        globalSub = takeOverSubsystem(MultibodySystemGlobalSubsystem());
+        MultibodySystemGlobalSubsystem glo;
+        globalSub = takeOverSubsystem(glo);
         return globalSub;
     }
     int setMatterSubsystem(MatterSubsystem& m) {
