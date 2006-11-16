@@ -218,11 +218,6 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
         SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
-    # unix or cygwin; cygwin requires some trickery
-    IF(CYGWIN)
-        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX})
-    ENDIF(CYGWIN)
-
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
