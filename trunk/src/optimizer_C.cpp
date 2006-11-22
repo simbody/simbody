@@ -30,20 +30,21 @@ smHandle smMallocOptimizer( int dimension){
 
     smHandle handle;
 
-    SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(dimension);
+    // SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(dimension);
+     SimTK::OptimizerImplementation *opt = NULL;
     return( (smHandle)opt);
 }
 
 void  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
 
-    ((SimTK::OptimizerImplementation *)handle)->setObjectiveFunction(costFunction);
+//    ((SimTK::OptimizerImplementation *)handle)->setObjectiveFunction(costFunction);
     return;
 }
 
 void  smRunOptimizer(  smHandle handle, double *results ) {
 
 
-    ((SimTK::OptimizerImplementation *)handle)->optimize(results);
+ //   ((SimTK::OptimizerImplementation *)handle)->optimize(results);
     return;
 }
     
@@ -56,13 +57,13 @@ void smFreeOptimizer(smHandle handle){
 }
 void smGetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-    ((SimTK::OptimizerImplementation *)handle)->getOptimizerParameters(parameter,values);
+  //  ((SimTK::OptimizerImplementation *)handle)->getOptimizerParameters(parameter,values);
     return;
 }
 
 void smSetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-  ((SimTK::OptimizerImplementation *)handle)->setOptimizerParameters(parameter,values);
+//  ((SimTK::OptimizerImplementation *)handle)->setOptimizerParameters(parameter,values);
   return;
 }
 

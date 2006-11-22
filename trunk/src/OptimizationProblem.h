@@ -70,11 +70,11 @@ public:
            return;
   }
 
-  virtual void computetConstraintJacobian(int n,  
+  virtual void computeConstraintJacobian(int n,  
                                           int m,
                                           bool new_coefficients,
-                                          SimTK::Vector & coefficients,   
-                                          SimTK::Vector & jac, 
+                                          Vector& coefficients,   
+                                          Vector& jac, 
                                           void * user_data) {
           return;
   }
@@ -105,7 +105,6 @@ public:
       int numConstraints;    // number of constraints
       int numEqualityConstraints;
       int numBounds;
-      int *bounds_index;
       double *lower_bounds;
       double *upper_bounds;
       void *user_data;

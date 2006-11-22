@@ -27,6 +27,7 @@
 #include "OptimizationProblem.h"
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"
+#include "InteriorPointOptimizer.h"
 
 namespace SimTK {
    Optimizer::Optimizer(OptimizationProblem& problem) {
@@ -55,11 +56,10 @@ namespace SimTK {
 */
   }
   OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
-/*   
-     if( problem.nconstraints > 0   {
+   
+     if( problem.numConstraints > 0)   {
         return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
-*/
-     if( problem.numBounds > 0 ) {
+     }else if( problem.numBounds > 0 ) {
         return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
      } else {
         return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
@@ -73,9 +73,9 @@ namespace SimTK {
       return;
    }
 
-   void Optimizer::optimize(SimTK::Vector   &results) {
+   double Optimizer::optimize(SimTK::Vector   &results) {
       ((OptimizerImplementation *)data)->optimize(results);
-       return;
+       return(0.0);
    }
 
 } // namespace SimTK
