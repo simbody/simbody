@@ -25,7 +25,7 @@
  */
 //#include <iostream>
 #include "Simmath.h"
-#include "OptimizerImplementation.h"
+#include "OptimizerInterface.h"
 #include "OptimizationProblem.h"
 #include "ipopt/IpStdCInterface.h"
 #include "ipopt/IpReturnCodes.h"
@@ -33,7 +33,7 @@
 namespace SimTK {
 
 
-class InteriorPointOptimizer: public OptimizerImplementation {
+class InteriorPointOptimizer: public OptimizerInterface {
 
      public:
 

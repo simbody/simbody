@@ -27,7 +27,6 @@
 #include "Simmath.h"
 /* #include <cstdio> */
 #include "Optimizer.h"
-#include "OptimizerImplementation.h"
 
 #include "itk_lbfgs.h"
 #include "f2c.h" 

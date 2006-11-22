@@ -23,58 +23,63 @@
  */
 #include "Simmath.h"
 #include "Optimizer.h"
-#include "OptimizerImplementation.h"
-#include "OptimizationProblem.h"
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"
 #include "InteriorPointOptimizer.h"
+#include "OptimizationProblem_C.h"
 
 namespace SimTK {
    Optimizer::Optimizer(OptimizationProblem& problem) {
-        OptimizerImplementation *optPtr =  OptimizerFactory(problem);
+        OptimizerInterface *optPtr =  OptimizerFactory(problem);
+        data = (void *)optPtr;
+   }
+   Optimizer::Optimizer(int dimension, int nConstraints, int nEqualConstraints, int nBounds) {
+        OptimizationProblem_C problem( dimension, nConstraints, nEqualConstraints, nBounds );
+        
+        OptimizerInterface *optPtr =  OptimizerFactory(problem);
         data = (void *)optPtr;
    }
    Optimizer::Optimizer(OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
-        OptimizerImplementation *optPtr =  OptimizerFactory(problem, algorithm);
+        OptimizerInterface *optPtr =  OptimizerFactory(problem, algorithm);
         data = (void *)optPtr;
    }
 
    void  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
 
- //     ((OptimizerImplementation *)data)->setOptimizerParameters(param, values);
+      ((OptimizerInterface *)data)->setOptimizerParameters(param, values);
       return;
    }
-   OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
- /*  
-     if( algrothim == LBFGS) {
-        return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
-     } else if( algrothim == LBFGSB) {
-        return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
+   OptimizerInterface *Optimizer::OptimizerFactory( OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
+   
+     if( algorithm == LBFGS) {
+        return (OptimizerInterface *) new LBFGSOptimizer( problem  );
+     } else if( algorithm == LBFGSB) {
+        return (OptimizerInterface *) new LBFGSBOptimizer( problem  );
      } else {
-        return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
+        return (OptimizerInterface *) new InteriorPointOptimizer( problem  );
      }
-*/
+
   }
-  OptimizerImplementation *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
+  OptimizerInterface *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
    
      if( problem.numConstraints > 0)   {
-        return (OptimizerImplementation *) new InteriorPointOptimizer( problem  );
+        return (OptimizerInterface *) new InteriorPointOptimizer( problem  );
      }else if( problem.numBounds > 0 ) {
-        return (OptimizerImplementation *) new LBFGSBOptimizer( problem  );
+        return (OptimizerInterface *) new LBFGSBOptimizer( problem  );
      } else {
-        return (OptimizerImplementation *) new LBFGSOptimizer( problem  );
+        return (OptimizerInterface *) new LBFGSOptimizer( problem  );
      }
 
   }
 
    void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
-  //    ((OptimizerImplementation *)data)->getOptimizerParameters(param, values);
+      ((OptimizerInterface *)data)->getOptimizerParameters(param, values);
       return;
    }
 
    double Optimizer::optimize(SimTK::Vector   &results) {
-      ((OptimizerImplementation *)data)->optimize(results);
+      ((OptimizerInterface *)data)->optimize(results);
        return(0.0);
    }
 

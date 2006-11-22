@@ -25,13 +25,13 @@
  */
 //#include <iostream>
 #include "Simmath.h"
-#include "OptimizerImplementation.h"
+#include "OptimizerInterface.h"
 #include "OptimizationProblem.h"
 
 namespace SimTK {
 
 
-class LBFGSBOptimizer: public OptimizerImplementation {
+class LBFGSBOptimizer: public OptimizerInterface {
 
      public:
 

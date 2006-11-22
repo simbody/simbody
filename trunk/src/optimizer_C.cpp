@@ -23,51 +23,53 @@
  */
 #include "Simmath.h"
 #include "Optimizer.h"
-#include "OptimizerImplementation.h"
 
+namespace SimTK {
 
-smHandle smMallocOptimizer( int dimension){
+smHandle smMallocOptimizer( int dimension, int nConstraints, int nEqualConstraints, int nBounds){
 
     smHandle handle;
 
-    // SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(dimension);
-     SimTK::OptimizerImplementation *opt = NULL;
+    Optimizer* opt = new Optimizer(dimension, nConstraints, nEqualConstraints, nBounds);
     return( (smHandle)opt);
 }
 
 void  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
 
-//    ((SimTK::OptimizerImplementation *)handle)->setObjectiveFunction(costFunction);
+    ((SimTK::OptimizerInterface *)handle)->setObjectiveFunction(costFunction);
     return;
 }
 
 void  smRunOptimizer(  smHandle handle, double *results ) {
 
 
- //   ((SimTK::OptimizerImplementation *)handle)->optimize(results);
+    ((SimTK::OptimizerInterface *)handle)->optimize(results);
     return;
 }
     
 void smFreeOptimizer(smHandle handle){
-  
-   delete ((SimTK::OptimizerImplementation *)handle);
+ 
+   // TODO need to call the destructor for the correct implementation 
+   delete ((SimTK::OptimizerInterface *)handle);
 
    return;
 
 }
 void smGetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-  //  ((SimTK::OptimizerImplementation *)handle)->getOptimizerParameters(parameter,values);
+    ((SimTK::OptimizerInterface *)handle)->getOptimizerParameters(parameter,values);
     return;
 }
 
 void smSetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
 
-//  ((SimTK::OptimizerImplementation *)handle)->setOptimizerParameters(parameter,values);
+  ((SimTK::OptimizerInterface *)handle)->setOptimizerParameters(parameter,values);
   return;
 }
 
 void smDumpOptimizerState(smHandle handle) {
 
    return; 
+}
+ 
 }

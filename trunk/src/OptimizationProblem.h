@@ -38,12 +38,21 @@ public:
        dimension = 1; 
        numConstraints = 0;
        numEqualityConstraints = 0;
+       numBounds = 0;
     }
     OptimizationProblem(int n) { 
        printf("OptimizationProblem constructor n=%d \n",n);
        dimension = n; 
        numConstraints = 0;
        numEqualityConstraints = 0;
+       numBounds = 0;
+    }
+    OptimizationProblem(int n, int nConstraints, int nEqualityConstraints, int nBounds) { 
+       printf("OptimizationProblem constructor n=%d num Constraints=%d   numEqualityConstraints=%d num bounds=%d \n",n,nConstraints,nEqualityConstraints,nBounds);
+       dimension = n; 
+       numConstraints = nConstraints;
+       numEqualityConstraints = nEqualityConstraints;
+       numBounds = nBounds;
     }
 
     virtual ~OptimizationProblem() {};

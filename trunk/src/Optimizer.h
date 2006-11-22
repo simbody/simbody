@@ -28,8 +28,8 @@
 
 
 #include "OptimizerInterface.h"
+#include "OptimizationProblem.h"
 #include "ObjectiveFunction.h"
-#include "OptimizerImplementation.h"
 
 namespace SimTK {
 /*
@@ -49,9 +49,10 @@ class Optimizer :  public OptimizerInterface {
    public:
     Optimizer( OptimizationProblem& op);
     Optimizer( OptimizationProblem& op, OptimizerAlgorithm opt_algo);
+    Optimizer( int n, int nConstraints, int nEqualConstraints, int nBounds);
 
     ~Optimizer() {
-       delete( (OptimizerImplementation *)data );
+       delete( (OptimizerInterface *)data );
     }
     void setOptimizerParameters(unsigned int param, double *values); 
     void getOptimizerParameters(unsigned int param, double *values);
@@ -60,8 +61,9 @@ class Optimizer :  public OptimizerInterface {
 
     private:
      void *data;
-     OptimizerImplementation *OptimizerFactory(OptimizationProblem& );
-     OptimizerImplementation *OptimizerFactory(OptimizationProblem&, OptimizerAlgorithm );
+     OptimizerInterface *OptimizerFactory(OptimizationProblem& );
+     OptimizerInterface *OptimizerFactory(OptimizationProblem&, OptimizerAlgorithm );
+     OptimizerInterface *OptimizerFactory(int n, int nConstraints, int nEqualConstraints, int nBounds);
 
 }; // Class Optimizer
 } // namespace SimTK

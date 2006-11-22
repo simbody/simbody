@@ -247,8 +247,10 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizationProblem& p ){
                    GradientConvergenceTolerance = values[0];
                    break;
              default:
+/*  TODO fix this 
                    sprintf(buf," Parameter=%d",parameter);
                    SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
+*/
                    break;
           }
 

@@ -160,8 +160,10 @@ namespace SimTK {
                    GradientConvergenceTolerance = values[0];
                    break;
              default:
+/* TODO Finish LBFGSB setOptimizerParameters
                    sprintf(buf," Parameter=%d",parameter);
                    SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
+*/
                    break;
           }
 

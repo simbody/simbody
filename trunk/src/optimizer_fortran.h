@@ -68,33 +68,33 @@ extern "C" void FSM_RUNOPT( FORTRAN_HANDLE handle, double *);
 
 void FSM_SETCOSTFUNC( FORTRAN_HANDLE handle, void(costFunction)(int, double *, double*, double*, void *)){
 
-    ((SimTK::OptimizerImplementation *)((long)*handle))->setObjectiveFunction(costFunction);
+    ((SimTK::OptimizerInterface *)((long)*handle))->setObjectiveFunction(costFunction);
 }
 
 void FSM_SETOPTPARMS( FORTRAN_HANDLE handle, char *parameter, double *values){
 
    unsigned int param;
 
-   param = ((SimTK::OptimizerImplementation *)((long)*handle))->optParamStringToValue( parameter );
+   param = ((SimTK::OptimizerInterface *)((long)*handle))->optParamStringToValue( parameter );
 
-   ((SimTK::OptimizerImplementation *)((long)*handle))->setOptimizerParameters(param,values);
+   ((SimTK::OptimizerInterface *)((long)*handle))->setOptimizerParameters(param,values);
    return;
 }
 void FSM_RUNOPT( FORTRAN_HANDLE handle, double *results){
 
-    ((SimTK::OptimizerImplementation *)((long)*handle))->optimize(results);
+    ((SimTK::OptimizerInterface *)((long)*handle))->optimize(results);
     return;
 }
 void FSM_MALLOCOPTIMIZER( int *n, FORTRAN_HANDLE handle ){
 
-      SimTK::OptimizerImplementation *opt = new SimTK::OptimizerImplementation(*n);
+      SimTK::OptimizerInterface *opt = new SimTK::OptimizerInterface(*n);
       *handle = (long)opt;
       return;
 }
 
 void FSM_FREEOPT( FORTRAN_HANDLE handle){
 
-    delete ((SimTK::OptimizerImplementation *)((long)*handle));
+    delete ((SimTK::OptimizerInterface *)((long)*handle));
     return;
 }
 void FSM_DUMPOPTIMIZERSTATE(FORTRAN_HANDLE  handle) {
