@@ -30,50 +30,73 @@
  * header as its <em>first</em> inclusion. Declarations and definitions that 
  * must be available and compiler-and machine-specific issues are dealt
  * with here.
+ *
+ * This file must be includable from either C++ or ANSI C. It uses
+ * the ANSI-C++ macro "__cplusplus" for any code that will compile
+ * only under C++.
  */
 
-#include <cstddef>
-#include <cassert>
-#include <complex>
+/*****************************/
+/* ANSI-C COMPATIBLE SECTION */
+/*****************************/
 
+/* Set up a few compile-time options that affect all SimTK Core headers. */
 
-// Set up a few compile-time options that affect all SimTK Core headers.
+/* 
+ * This compile-time constant determines the default precision used everywhere
+ * in SimTK Core code. Wherever a SimTK::Real, SimTK::Vector, SimTK::Matrix,
+ * etc. appears with no precision specified, it will have this underlying precision.
+ */
 #ifndef SimTK_DEFAULT_PRECISION
 #   define SimTK_DEFAULT_PRECISION double
 #endif
 
+/* This type is for use in C. In C++ use SimTK::Real instead. */
+typedef SimTK_DEFAULT_PRECISION SimTK_Real;
+
 #ifndef NDEBUG
-#include <cstdio>
-#define SimTK_DEBUG(s) printf("DBG: " s)
-#define SimTK_DEBUG1(s,a1) printf("DBG: " s,a1)	
-#define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)	
-#define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)	
-#define SimTK_DEBUG4(s,a1,a2,a3,a4) printf("DBG: " s,a1,a2,a3,a4)
+    #if defined(__cplusplus)
+        #include <cstdio>
+        #define SimTK_DEBUG(s) std::printf("DBG: " s)
+        #define SimTK_DEBUG1(s,a1) std::printf("DBG: " s,a1)	
+        #define SimTK_DEBUG2(s,a1,a2) std::printf("DBG: " s,a1,a2)	
+        #define SimTK_DEBUG3(s,a1,a2,a3) std::printf("DBG: " s,a1,a2,a3)	
+        #define SimTK_DEBUG4(s,a1,a2,a3,a4) std::printf("DBG: " s,a1,a2,a3,a4)
+    #else
+        #include <stdio.h>
+        #define SimTK_DEBUG(s) printf("DBG: " s)
+        #define SimTK_DEBUG1(s,a1) printf("DBG: " s,a1)	
+        #define SimTK_DEBUG2(s,a1,a2) printf("DBG: " s,a1,a2)	
+        #define SimTK_DEBUG3(s,a1,a2,a3) printf("DBG: " s,a1,a2,a3)	
+        #define SimTK_DEBUG4(s,a1,a2,a3,a4) printf("DBG: " s,a1,a2,a3,a4)
+    #endif
 #else
-#define SimTK_DEBUG(s)
-#define SimTK_DEBUG1(s,a1)
-#define SimTK_DEBUG2(s,a1,a2)	
-#define SimTK_DEBUG3(s,a1,a2,a3)	
-#define SimTK_DEBUG4(s,a1,a2,a3,a4)
+    #define SimTK_DEBUG(s)
+    #define SimTK_DEBUG1(s,a1)
+    #define SimTK_DEBUG2(s,a1,a2)
+    #define SimTK_DEBUG3(s,a1,a2,a3)	
+    #define SimTK_DEBUG4(s,a1,a2,a3,a4)
 #endif
 
-// Shared libraries are messy in Visual Studio. We have to distinguish three
-// cases:
-//   (1) this header is being used to build the SimTKcommon shared library (dllexport)
-//   (2) this header is being used by a *client* of the SimTKcommon shared
-//       library (dllimport)
-//   (3) we are building the SimTKcommon static library, or the client is
-//       being compiled with the expectation of linking with the
-//       SimTKcommon static library (nothing special needed)
-// In the CMake script for building this library, we define one of the symbols
-//     SimTK_SimTKCOMMON_BUILDING_{SHARED|STATIC}_LIBRARY
-// Client code normally has no special symbol defined, in which case we'll
-// assume it wants to use the shared library. However, if the client defines
-// the symbol SimTK_USE_STATIC_LIBRARIES we'll suppress the dllimport so
-// that the client code can be linked with static libraries. Note that
-// the client symbol is not library dependent, while the library symbols
-// affect only the SimTKcommon library, meaning that other libraries can
-// be clients of this one. However, we are assuming all-static or all-shared.
+/*
+ * Shared libraries are messy in Visual Studio. We have to distinguish three
+ * cases:
+ *   (1) this header is being used to build the SimTKcommon shared library (dllexport)
+ *   (2) this header is being used by a *client* of the SimTKcommon shared
+ *       library (dllimport)
+ *   (3) we are building the SimTKcommon static library, or the client is
+ *       being compiled with the expectation of linking with the
+ *       SimTKcommon static library (nothing special needed)
+ * In the CMake script for building this library, we define one of the symbols
+ *     SimTK_SimTKCOMMON_BUILDING_{SHARED|STATIC}_LIBRARY
+ * Client code normally has no special symbol defined, in which case we'll
+ * assume it wants to use the shared library. However, if the client defines
+ * the symbol SimTK_USE_STATIC_LIBRARIES we'll suppress the dllimport so
+ * that the client code can be linked with static libraries. Note that
+ * the client symbol is not library dependent, while the library symbols
+ * affect only the SimTKcommon library, meaning that other libraries can
+ * be clients of this one. However, we are assuming all-static or all-shared.
+ */
 
 #ifdef WIN32
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
@@ -87,13 +110,27 @@
     #define SimTK_SimTKCOMMON_API // Linux, Mac
 #endif
 
-// Every SimTK Core library must provide these two routines, with the library
-// name appearing after the "version_" and "about_".
+/* Every SimTK Core library must provide these two routines, with the library
+ * name appearing after the "version_" and "about_".
+ */
+#if defined(__cplusplus)
 extern "C" {
+#endif
     SimTK_SimTKCOMMON_API void SimTK_version_SimTKcommon(int* major, int* minor, int* build);
     SimTK_SimTKCOMMON_API void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value);
+#if defined(__cplusplus)
 }
+#endif
 
+/************************************/
+/* END OF ANSI-C COMPATIBLE SECTION */
+/************************************/
+
+#if defined(__cplusplus)
+
+#include <cstddef>
+#include <cassert>
+#include <complex>
 
 /**
  * Add public static method declaration in class derived from an abstract
@@ -340,4 +377,7 @@ MakeTypeManipulator<T>::manipT = TypeManipulatorT(
 				 					createArrayOfT, destructArrayOfT);
 } // namespace SimTKimpl
 
-#endif // SimTK_SimTKCOMMON_COMMON_H_
+
+#endif /* C++ stuff */
+
+#endif /* SimTK_SimTKCOMMON_COMMON_H_ */
