@@ -46,13 +46,23 @@
  * This compile-time constant determines the default precision used everywhere
  * in SimTK Core code. Wherever a SimTK::Real, SimTK::Vector, SimTK::Matrix,
  * etc. appears with no precision specified, it will have this underlying precision.
+ * We use 1==float, 2==double, 4==long double. Any other value will cause
+ * a compile time error. The default is 2.
  */
 #ifndef SimTK_DEFAULT_PRECISION
-#   define SimTK_DEFAULT_PRECISION double
+#   define SimTK_DEFAULT_PRECISION 2
 #endif
 
 /* This type is for use in C. In C++ use SimTK::Real instead. */
-typedef SimTK_DEFAULT_PRECISION SimTK_Real;
+#if   (SimTK_DEFAULT_PRECISION == 1)
+    typedef float SimTK_Real;
+#elif (SimTK_DEFAULT_PRECISION == 2)
+    typedef double SimTK_Real;
+#elif (SimTK_DEFAULT_PRECISION == 4)
+    typedef long double SimTK_Real;
+#else
+    ILLEGAL VALUE FOR DEFAULT PRECISION
+#endif
 
 #ifndef NDEBUG
     #if defined(__cplusplus)
@@ -170,7 +180,7 @@ typedef std::complex<float>         FComplex;
 typedef std::complex<double>        DComplex;
 typedef std::complex<long double>   LComplex;
 
-typedef SimTK_DEFAULT_PRECISION Real;
+typedef SimTK_Real              Real;
 typedef std::complex<Real>      Complex;
 
 struct Segment {
