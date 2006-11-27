@@ -678,8 +678,7 @@ private:
 
         initializeStepSizes();
         predictedNextStep = initStepSize;
-        initializeTolerances();
-        if (userStopTime != -1.) stopTime = userStopTime;
+        initializeTolerances();        if (userStopTime != -1.) stopTime = userStopTime;
         else stopTime = CNT<Real>::getInfinity();
         if (userMaxNumSteps != -1) 
             maxNumSteps = userMaxNumSteps; // 0 means infinity
@@ -697,13 +696,14 @@ private:
     }
 
     void initializeStepSizes() {
+        const Real MinStep = NTraits<Real>::Eps_34; // e.g., 1e-12 in double
         if (userMaxStepSize != -1.) { // got max
             maxStepSize = userMaxStepSize;
             if (userInitStepSize != -1.) { // got max & init
                 initStepSize = userInitStepSize;
                 if (userMinStepSize != -1.)
                     minStepSize = userMinStepSize; // got min,max,init
-                else minStepSize = std::min(1e-12, initStepSize);
+                else minStepSize = std::min(MinStep, initStepSize);
             } else { // got max, not init
                 if (userMinStepSize != -1.) {
                     minStepSize = userMinStepSize; // max & min, not init
@@ -711,7 +711,7 @@ private:
                 } else {
                     // got max only
                     initStepSize = std::min(mbs.calcTimescale(state)/10., maxStepSize);
-                    minStepSize  = std::min(1e-12, initStepSize);
+                    minStepSize  = std::min(MinStep, initStepSize);
                 }
             }
         } else { // didn't get max
@@ -719,14 +719,14 @@ private:
             if (userInitStepSize != -1.) { // got init, not max
                 initStepSize = userInitStepSize;
                 if (userMinStepSize != -1.) minStepSize = userMinStepSize;
-                else minStepSize = std::min(1e-12, initStepSize);
+                else minStepSize = std::min(MinStep, initStepSize);
             } else { // didn't get init or max
                 if (userMinStepSize != -1.) { // got only min
                     minStepSize = userMinStepSize;
                     initStepSize = std::max(mbs.calcTimescale(state)/10., minStepSize);
                 } else { // didn't get anything
                     initStepSize = mbs.calcTimescale(state)/10.;
-                    minStepSize  = std::min(1e-12, initStepSize);
+                    minStepSize  = std::min(MinStep, initStepSize);
                 }
             }
         }
