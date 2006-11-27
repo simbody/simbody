@@ -30,8 +30,6 @@
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
-#include "windows.h"
-
 #include <cmath>
 #include <cstdio>
 #include <exception>
