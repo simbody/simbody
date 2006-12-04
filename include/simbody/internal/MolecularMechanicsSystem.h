@@ -43,7 +43,7 @@ class DuMMForceFieldSubsystem;
  * the mandatory MatterSubsystem common to all MultibodySystems, this one
  * will also have a single MolecularMechanicsForceSubsystem.
  */
-class SimTK_SIMBODY_API MolecularMechanicsSystem : public MultibodySystem {
+class SimTK_SIMBODY_EXPORT MolecularMechanicsSystem : public MultibodySystem {
 public:
     MolecularMechanicsSystem();
     MolecularMechanicsSystem(MatterSubsystem&, DuMMForceFieldSubsystem&);

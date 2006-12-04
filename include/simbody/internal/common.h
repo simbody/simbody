@@ -61,21 +61,21 @@
 
 #ifdef WIN32
     #if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
-        #define SimTK_SIMBODY_API __declspec(dllexport)
+        #define SimTK_SIMBODY_EXPORT __declspec(dllexport)
     #elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
-        #define SimTK_SIMBODY_API
+        #define SimTK_SIMBODY_EXPORT
     #else
-        #define SimTK_SIMBODY_API __declspec(dllimport)   // i.e., a client of a shared library
+        #define SimTK_SIMBODY_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
-    #define SimTK_SIMBODY_API // Linux, Mac
+    #define SimTK_SIMBODY_EXPORT // Linux, Mac
 #endif
 
 // Every SimTK Core library must provide these two routines, with the library
 // name appearing after the "version_" and "about_".
 extern "C" {
-    SimTK_SIMBODY_API void SimTK_version_simbody(int* major, int* minor, int* build);
-    SimTK_SIMBODY_API void SimTK_about_simbody(const char* key, int maxlen, char* value);
+    SimTK_SIMBODY_EXPORT void SimTK_version_simbody(int* major, int* minor, int* build);
+    SimTK_SIMBODY_EXPORT void SimTK_about_simbody(const char* key, int maxlen, char* value);
 }
 
 namespace SimTK {

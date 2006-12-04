@@ -34,7 +34,7 @@ namespace SimTK {
  * This is logically an abstract class, more specialized than "Subsystem"
  * but not yet concrete.
  */
-class SimTK_SIMBODY_API ForceSubsystem : public Subsystem {
+class SimTK_SIMBODY_EXPORT ForceSubsystem : public Subsystem {
 public:
     ForceSubsystem() { }
 

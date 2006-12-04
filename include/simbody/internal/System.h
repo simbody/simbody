@@ -59,7 +59,7 @@ class Subsystem;
  * reaction stage, the force elements must be realized before the
  * mechanical accelerations can be calculated.
  */
-class SimTK_SIMBODY_API System {
+class SimTK_SIMBODY_EXPORT System {
 public:
     System() : rep(0) { }
     ~System();
@@ -114,7 +114,7 @@ protected:
 
 
 /// The abstract parent of all Studies.
-class SimTK_SIMBODY_API Study {
+class SimTK_SIMBODY_EXPORT Study {
 public:
     Study() : rep(0) { }
     ~Study();

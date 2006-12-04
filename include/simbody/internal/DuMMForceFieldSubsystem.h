@@ -55,7 +55,7 @@ namespace SimTK {
  *
  */
 
-class SimTK_SIMBODY_API DuMMForceFieldSubsystem : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT DuMMForceFieldSubsystem : public ForceSubsystem {
 public:
     enum VdwMixingRule {
         WaldmanHagler       = 1,    // Our default

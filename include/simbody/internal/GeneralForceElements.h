@@ -44,7 +44,7 @@ namespace SimTK {
  * This is a concrete subsystem which can apply a variety of
  * simple force elements to the MatterSubsystem within a MultibodySystem.
  */
-class SimTK_SIMBODY_API GeneralForceElements : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT GeneralForceElements : public ForceSubsystem {
 public:
 
     // This is tricky because no library-side code can depend on the ordering

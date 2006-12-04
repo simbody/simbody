@@ -70,7 +70,7 @@ static const Vec3 White   = Vec3( 1, 1, 1);
  * implementation. This is effectively an abstract class although the virtual
  * function table is hidden in the private part.
  */
-class SimTK_SIMBODY_API DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeGeometry {
 public:
     DecorativeGeometry() : rep(0) { }
     ~DecorativeGeometry();
@@ -189,7 +189,7 @@ protected:
  * forget to set it to something meaningful. Having a default constructor
  * allows us to have arrays of these objects.
  */
-class SimTK_SIMBODY_API DecorativeLine : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeLine : public DecorativeGeometry {
 public:
     explicit DecorativeLine(const Vec3& p1=Vec3(0), const Vec3& p2=Vec3(1)); // line between p1 and p2
 
@@ -207,7 +207,7 @@ public:
  * This defines a circle in the x-y plane, centered at the origin. The
  * default constructor creates a circle of diameter 1.
  */
-class SimTK_SIMBODY_API DecorativeCircle : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeCircle : public DecorativeGeometry {
 public:
     explicit DecorativeCircle(Real radius=0.5);
 
@@ -221,7 +221,7 @@ public:
  * This defines a sphere centered at the origin. The
  * default constructor creates a sphere of diameter 1.
  */
-class SimTK_SIMBODY_API DecorativeSphere : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeSphere : public DecorativeGeometry {
 public:
     explicit DecorativeSphere(Real radius=0.5);
 
@@ -236,7 +236,7 @@ public:
  * aligned with the local frame axes. The default constructor creates 
  * a cube of length 1 on each side.
  */
-class SimTK_SIMBODY_API DecorativeBrick : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeBrick : public DecorativeGeometry {
 public:
     explicit DecorativeBrick(const Vec3& halfLengths = Vec3(0.5));
 
@@ -251,7 +251,7 @@ public:
  * y direction. The default constructor gives it a height of 1 and
  * the base circle a diameter of 1.
  */
-class SimTK_SIMBODY_API DecorativeCylinder : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeCylinder : public DecorativeGeometry {
 public:
     explicit DecorativeCylinder(Real radius=0.5, Real halfHeight=0.5);
 
@@ -268,7 +268,7 @@ public:
  * constructor makes three perpendicular lines beginning at the 
  * origin and extending in the +x, +y, and +z directions by 1 unit.
  */
-class SimTK_SIMBODY_API DecorativeFrame : public DecorativeGeometry {
+class SimTK_SIMBODY_EXPORT DecorativeFrame : public DecorativeGeometry {
 public:
     explicit DecorativeFrame(Real axisLength=1);
 

@@ -47,7 +47,7 @@ class MultibodySystem;
 class DecorativeGeometry;
 class VTKDecoration;
 
-class SimTK_SIMBODY_API VTKReporter {
+class SimTK_SIMBODY_EXPORT VTKReporter {
 public:
     VTKReporter() : rep(0) { }
 

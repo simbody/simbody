@@ -62,7 +62,7 @@ class State;
  *    g          Vec3, the gravity vector, default 0
  *    zeroHeight Real, affects potential energy only, default 0
  */
-class SimTK_SIMBODY_API UniformGravitySubsystem : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT UniformGravitySubsystem : public ForceSubsystem {
 public:
     UniformGravitySubsystem();
     explicit UniformGravitySubsystem(const Vec3& g, const Real& zeroHeight=0);

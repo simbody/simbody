@@ -84,7 +84,7 @@ namespace SimTK {
  * E2,c2 only.
  *
  */
-class SimTK_SIMBODY_API HuntCrossleyContact : public ForceSubsystem {
+class SimTK_SIMBODY_EXPORT HuntCrossleyContact : public ForceSubsystem {
 public:
     HuntCrossleyContact();
 

@@ -35,7 +35,7 @@ namespace SimTK {
 // be reserved for those that are updated in time, with something else like
 // "parameter variable" for those that just hold externally set data.
 
-class SimTK_SIMBODY_API DiscreteVariable {
+class SimTK_SIMBODY_EXPORT DiscreteVariable {
 public:
     DiscreteVariable() : rep(0) { }
     DiscreteVariable(const DiscreteVariable&);
@@ -53,7 +53,7 @@ private:
     class DiscreteVariableRep* rep;
 };
 
-class SimTK_SIMBODY_API CacheEntry : public DiscreteVariable {
+class SimTK_SIMBODY_EXPORT CacheEntry : public DiscreteVariable {
 public:
     CacheEntry() : DiscreteVariable() { }
 
@@ -90,7 +90,7 @@ public:
  * actual global resources won't exist until the *system* has been
  * advanced to Model stage.
  */
-class SimTK_SIMBODY_API State {
+class SimTK_SIMBODY_EXPORT State {
 public:
     /// Create an empty State.
     State();

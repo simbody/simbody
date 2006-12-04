@@ -100,7 +100,7 @@ class MassProperties;
  * majority of biosimulation applications we are likely to have only holonomic
  * (position) constraints, so there is no V or A so P is the whole story.
  */
-class SimTK_SIMBODY_API SimbodyMatterSubsystem : public MatterSubsystem {
+class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem : public MatterSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyMatterSubsystem();
@@ -333,7 +333,7 @@ private:
     RigidBodyTree&       updRep();
 };
 
-SimTK_SIMBODY_API std::ostream& 
+SimTK_SIMBODY_EXPORT std::ostream& 
 operator<<(std::ostream&, const SimbodyMatterSubsystem&);
 
 };

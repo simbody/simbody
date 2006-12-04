@@ -51,7 +51,7 @@ class ForceSubsystem;
  *    - a VisualizationSubsystem
  * There will also be a generic System-level "subsystem" for global variables.
  */
-class SimTK_SIMBODY_API MultibodySystem : public System {
+class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
 public:
     MultibodySystem();
     MultibodySystem(MatterSubsystem& m);
@@ -114,7 +114,7 @@ protected:
     explicit MultibodySystem(MultibodySystemRep*);
 };
 
-class SimTK_SIMBODY_API MultibodyDynamicsStudy : public Study {
+class SimTK_SIMBODY_EXPORT MultibodyDynamicsStudy : public Study {
 public:
     MultibodyDynamicsStudy() { }
     MultibodyDynamicsStudy(const MultibodyDynamicsStudy&);

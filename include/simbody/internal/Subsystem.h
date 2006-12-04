@@ -44,7 +44,7 @@ class System;
  * of a system's subsystems generally need to be available simultaneously 
  * during construction, so that they can reference each other.
  */
-class SimTK_SIMBODY_API Subsystem {
+class SimTK_SIMBODY_EXPORT Subsystem {
 public:
     Subsystem() : rep(0) { }
     ~Subsystem();
@@ -89,7 +89,7 @@ protected:
  * This is a concrete Subsystem used by default as the 0th Subsystem of
  * every System. Feel free to replace it with something useful!
  */
-class SimTK_SIMBODY_API DefaultSystemSubsystem : public Subsystem {
+class SimTK_SIMBODY_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     DefaultSystemSubsystem();
     DefaultSystemSubsystem(const String& sysName, const String& sysVersion);
