@@ -38,7 +38,7 @@ class ArrayHelperImpl;
  * Non-templatized helper class for ArrayBase<T>.
  */
 
-class SimTK_SimTKCOMMON_API ArrayHelper {
+class SimTK_SimTKCOMMON_EXPORT ArrayHelper {
 public:		
 	// no default constructor
 	explicit ArrayHelper(const TypeManipulatorT&, ptrdiff_t n=0);

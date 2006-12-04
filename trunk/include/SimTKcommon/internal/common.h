@@ -110,14 +110,14 @@
 
 #ifdef WIN32
     #if defined(SimTK_SimTKCOMMON_BUILDING_SHARED_LIBRARY)
-        #define SimTK_SimTKCOMMON_API __declspec(dllexport)
+        #define SimTK_SimTKCOMMON_EXPORT __declspec(dllexport)
     #elif defined(SimTK_SimTKCOMMON_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
-        #define SimTK_SimTKCOMMON_API
+        #define SimTK_SimTKCOMMON_EXPORT
     #else
-        #define SimTK_SimTKCOMMON_API __declspec(dllimport)   // i.e., a client of a shared library
+        #define SimTK_SimTKCOMMON_EXPORT __declspec(dllimport)   // i.e., a client of a shared library
     #endif
 #else
-    #define SimTK_SimTKCOMMON_API // Linux, Mac
+    #define SimTK_SimTKCOMMON_EXPORT // Linux, Mac
 #endif
 
 /* Every SimTK Core library must provide these two routines, with the library
@@ -126,8 +126,8 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-    SimTK_SimTKCOMMON_API void SimTK_version_SimTKcommon(int* major, int* minor, int* build);
-    SimTK_SimTKCOMMON_API void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value);
+    SimTK_SimTKCOMMON_EXPORT void SimTK_version_SimTKcommon(int* major, int* minor, int* build);
+    SimTK_SimTKCOMMON_EXPORT void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value);
 #if defined(__cplusplus)
 }
 #endif

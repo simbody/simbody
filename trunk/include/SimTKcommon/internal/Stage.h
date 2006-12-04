@@ -95,7 +95,7 @@ public:
     Stage& operator++() { assert(n==Stage::Num(Stage::LowestRuntime-1) || isInRuntimeRange(n)); ++n; return *this; }
 	Stage& operator--() { assert(isInRuntimeRange(n)); --n; return *this; } 
 
-	SimTK_SimTKCOMMON_API String	name() const;
+	SimTK_SimTKCOMMON_EXPORT String	name() const;
 	Stage	next() const { return isValid(n+1) ? Stage::Num(n+1) : Stage::Invalid; }
     Stage	prev() const { return isValid(n-1) ? Stage::Num(n-1) : Stage::Invalid; }
 	
