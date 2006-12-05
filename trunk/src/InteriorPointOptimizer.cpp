@@ -28,120 +28,33 @@ using std::cout;
 using std::endl;
 
 
-//typedef Bool (*)(Index, Number*, Bool, Number*, void*) OBJ_FUNC;
 namespace SimTK {
 
-static OptimizationProblem *opt_problem;
 
-Bool f(Index n, Number* x, Bool new_x,
-            Number* obj_value, UserDataPtr user_data) {
-    Vector coeff( n, x, true);
-    Vector& coeff_ref = coeff;
+InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
+        : OptimizerRep( sys ) {
 
-    *obj_value = opt_problem->objectiveFunction(n, new_x, coeff_ref,  user_data );
-
-    return true;
-}
-Bool grad_f(Index n, Number* x, Bool new_x,
-            Number* grad_func, UserDataPtr user_data) {
-    
-    Vector coeff(n,x,true); 
-    Vector& coeff_ref = coeff;
-
-    Vector grad(n,grad_func,true); 
-    Vector& grad_ref = grad;
-
-    opt_problem->objectiveGradient(n, new_x, coeff_ref, grad_ref, user_data );
-
-    return true;
-}
-Bool g(Index n, Number* x, Bool new_x,
-       Index m, Number* g, UserDataPtr user_data) {
-
-    Vector coeff(n,x,true); 
-    Vector& coeff_ref = coeff;
-    Vector contraints(m,g,true); 
-    Vector& contraints_ref = contraints;
-
-    opt_problem->computeConstraints( n,m, new_x, coeff_ref, contraints_ref, user_data);
-
-    return true;
-}
-
-Bool jac_g(Index n, Number *x, Bool new_x,
-                Index m, Index nele_jac,
-                Index *iRow, Index *jCol, Number *values,
-                UserDataPtr user_data)
-{
-  int i,j,index;
-  double *jac,*nx;
-  if (values == NULL) {
-
-    /* this particular jacobian is dense */
-    index = 0;
-    for(j=0;j<m;j++) {
-      for(i=0;i<n;i++) {
-          iRow[index] = j;
-          jCol[index++] = i;
-//printf("IROW=%d JCol=%d \n",iRow[index-1],jCol[index-1]);
-       }
-    }
-  } else {
-    /* return the values of the jacobian of the constraints */
-    
-    int dim = n; 
-    int nConstraints = m;
-    Vector coeff(n,x,true); 
-    Vector& coeff_ref = coeff;
-    Vector jac(m*n,values,true); 
-    Vector& jac_ref = jac;
-
-    opt_problem->computeConstraintJacobian( dim, nConstraints, (bool)new_x, coeff_ref, jac, (void*)user_data );
-/* 
-    printf("computeConstraintJacobian = \n"); 
-    for(i=0;i<n*m;i++) {
-         printf("%f ",values[i]);
-    }
-    printf("\n");
-*/
-  }
-
-  return TRUE;
-}
-
-Bool eval_h(
-            Index n, Number *x,      Bool new_x,     Number obj_factor,
-            Index m, Number *lambda, Bool new_lambda,
-            Index nele_hess, Index *iRow, Index *jCol,
-            Number *values, UserDataPtr user_data) {
- return TRUE;
-}
-
-
-InteriorPointOptimizer::InteriorPointOptimizer( OptimizationProblem& p ){
         printf(" InteriorPointOptimizer constructor \n");         
-          int i;
+          int i,n;
           char buf[1024];
 
           /* C-style; start counting of rows and column indices at 0 */
           Index index_style = 0; 
 
-         opt_problem = pop = &p;
 
-
-         if( p.dimension < 1 ) {
-             char *where = "Optimizer Initialization";
+         if( sys.dimension < 1 ) {
+             char *where = " InteriorPointOptimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  p.dimension, INT_MAX, where); 
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where); 
          } else {
-            n = pop->dimension;
+            n = sys.dimension;
             /* set the bounds on the equality constraint functions */
-            m = pop->numConstraints;
+            m = sys.numConstraints;
             g_U = (double *)malloc(sizeof(double)*m); // TODO free these
             g_L = (double *)malloc(sizeof(double)*m);
-            double *x_U = pop->upper_bounds;
-            double *x_L = pop->lower_bounds;
-            for(i=0;i<pop->numEqualityConstraints;i++){
+            double *x_U = sys.upper_bounds;
+            double *x_L = sys.lower_bounds;
+            for(i=0;i<sys.numEqualConstraints;i++){
                 g_U[i] = g_L[i] = 0.0;
             }
 
@@ -149,7 +62,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizationProblem& p ){
             Index nele_jac = n*m; /* always assume dense
             
             /* set the bounds on the inequality constraint functions */
-            for(i=pop->numEqualityConstraints;i<m;i++){
+            for(i=sys.numEqualConstraints;i<m;i++){
                 g_U[i] = 2e19;
                 g_L[i] = 0.0;
             }
@@ -157,9 +70,9 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizationProblem& p ){
             mult_x_L = (Number*)malloc(sizeof(Number)*n);
             mult_x_U = (Number*)malloc(sizeof(Number)*n);
         
-            nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, 
-                   nele_jac, nele_hess,
-                   index_style, f, g, grad_f, jac_g, eval_h);
+            nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, 
+                  nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper, 
+                  gradientFuncWrapper, constraintJacobianWrapper, hessianWrapper);
 
             AddIpoptNumOption(nlp, "tol", 1e-3);
             AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
@@ -172,19 +85,9 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizationProblem& p ){
 
 
      } 
-     InteriorPointOptimizer::InteriorPointOptimizer(){ 
-        printf(" InteriorPointOptimizer default constructor \n"); 
-     }
 
 
-     double InteriorPointOptimizer::optimize( double *results ) {
-        printf("call C interface for InteriorPoint optimize \n");
-/* TODO C interface 
-*/
-         return(0.0);
-
-     }
-     double InteriorPointOptimizer::optimize(  SimTK::Vector &results ) {
+     double InteriorPointOptimizer::optimize(  Vector &results ) {
 
          int i;
          double obj;

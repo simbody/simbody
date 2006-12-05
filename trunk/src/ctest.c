@@ -1,9 +1,5 @@
 #include "Simmath.h"
-
-#ifdef __cplusplus 
-#include <iostream>
-using std::printf;
-#endif
+#include "stdio.h"
 
 
 #define PROBLEM_DIMENSION 2
@@ -16,9 +12,10 @@ main() {
     double results[PROBLEM_DIMENSION];
     int i;
     double params[10];
-    void costFunc( int, double*, double*, double*, void* );
+    double costFunc( int n, int new_pos, double *position,  void* user_data );
+    void gradFunc( int n, int new_pos, double *position,  double *g, void* user_data );
 
-    optimizer = smMallocOptimizer( PROBLEM_DIMENSION);
+    optimizer = smMallocOptimizer( PROBLEM_DIMENSION, 0, 0, 0);
 
     params[0] = 0;
     smSetOptimizerParameters( optimizer, TRACE, params );
@@ -35,7 +32,8 @@ main() {
     params[0] =  0.9;
     smSetOptimizerParameters( optimizer, LINE_SEARCH_ACCURACY, params);
 
-    smSetCostFunction( optimizer, costFunc );
+    smSetObjectiveFunction( optimizer, costFunc );
+    smSetGradientFunction( optimizer, gradFunc );
 
     // We start not so far from  | 2 -2 |
 
@@ -52,16 +50,22 @@ main() {
     smFreeOptimizer(optimizer);
 }
    
-void costFunc( int n, double *position, double *f, double *g, void* user_data ) {
+double costFunc( int n, int new_pos, double *position,  void* user_data ) {
   double x, y;
 
    x = position[0]; 
    y = position[1];  
 
-   f[0] = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
+   return (0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y) ; 
+ 
+}
+void gradFunc( int n, int new_pos, double *position,  double *g, void* user_data ) {
+  double x, y;
+   x = position[0]; 
+   y = position[1];  
+
    g[0] = 3*x + 2*y -2;
    g[1] = 2*x + 6*y +8; 
-
 
    return;
 }

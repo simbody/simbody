@@ -25,15 +25,14 @@
  */
 //#include <iostream>
 #include "Simmath.h"
-#include "OptimizerInterface.h"
-#include "OptimizationProblem.h"
+#include "OptimizerRep.h"
 #include "ipopt/IpStdCInterface.h"
 #include "ipopt/IpReturnCodes.h"
 
 namespace SimTK {
 
 
-class InteriorPointOptimizer: public OptimizerInterface {
+class InteriorPointOptimizer: public OptimizerRep {
 
      public:
 
@@ -42,39 +41,19 @@ class InteriorPointOptimizer: public OptimizerInterface {
 
 
      }
-     InteriorPointOptimizer(OptimizationProblem& p); 
+     InteriorPointOptimizer(OptimizerSystem& sys); 
+     InteriorPointOptimizer(int n, int nConstraints, int nEqualConstraints, int nBounds); 
      InteriorPointOptimizer(); 
      unsigned int InteriorPointOptimizer::optParamStringToValue( char *parameter );
      void setOptimizerParameters(unsigned int parameter, double *values );
      void getOptimizerParameters(unsigned int parameter, double *values );
-     double optimize( double *results );
-     double optimize(  SimTK::Vector &results );
-/*
-     Bool f(Index n, Number* x, Bool new_x,
-            Number* obj_value, UserDataPtr user_data);
+     double optimize(  Vector &results );
 
-     Bool grad_f(Index n, Number* x, Bool new_x,
-            Number* grad_func, UserDataPtr user_data);
-
-     Bool g(Index n, Number* x, Bool new_x,
-            Index m, Number* g, UserDataPtr user_data);
-
-     Bool jac_g(Index n, Number *x, Bool new_x,
-                Index m, Index nele_jac,
-                Index *iRow, Index *jCol, Number *values,
-                UserDataPtr user_data);
-
-     Bool eval_h(Index n, Number *x, Bool new_x, Number obj_factor,
-            Index m, Number *lambda, Bool new_lambda,
-            Index nele_hess, Index *iRow, Index *jCol,
-            Number *values, UserDataPtr user_data);
-*/
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     OptimizationProblem *pop;
-     int         n;
-     int         m;
+     int         n; // number of variables
+     int         m; // total number of constriants
      int         numCorrections;
      int         MaxNumFuncEvals;
      double      GradientConvergenceTolerance;

@@ -25,42 +25,41 @@
  */
 //#include <iostream>
 #include "Simmath.h"
-#include "OptimizerInterface.h"
-#include "OptimizationProblem.h"
+#include "OptimizerRep.h"
 
 namespace SimTK {
 
 
-class LBFGSBOptimizer: public OptimizerInterface {
+class LBFGSBOptimizer: public OptimizerRep {
 
      public:
 
      ~LBFGSBOptimizer() {
         printf("LBFGSBOptimizer destructor \n");
 
-        if( dimension > 0 ) {
+        if( n > 0 ) {
            delete [] nbd;
         }
 
      }
-     LBFGSBOptimizer(OptimizationProblem& p); 
-     LBFGSBOptimizer(); 
-     unsigned int LBFGSBOptimizer::optParamStringToValue( char *parameter );
+     LBFGSBOptimizer(OptimizerSystem& sys); 
+     unsigned int optParamStringToValue( char *parameter );
      void setOptimizerParameters(unsigned int parameter, double *values );
      void getOptimizerParameters(unsigned int parameter, double *values );
-     double optimize( double *results );
-     double optimize(  SimTK::Vector &results );
-     
+     double optimize(  Vector &results );
+
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     OptimizationProblem *pop;
-     int         dimension;
+     int         n;
+     int         numBounds;
      int         numCorrections;
      int         MaxNumFuncEvals;
+     double      *lower_bounds;
+     double      *upper_bounds;
      double      GradientConvergenceTolerance;
      double      LineSearchAccuracy;
      double      DefaultStepLength;
-     SimTK::Vector *gradient;
+     double      *gradient;
      int         iprint[2];
      int         *nbd;
 

@@ -25,47 +25,170 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
-
-#include "OptimizerInterface.h"
-#include "OptimizationProblem.h"
-#include "ObjectiveFunction.h"
+#include "simmatrix/internal/BigMatrix.h"
 
 namespace SimTK {
+
+class OptimizerSystem {
+public:
+    OptimizerSystem() :
+                  dimension(0),
+                  numConstraints(0),
+                  numBounds(0),
+                  numEqualConstraints(0)
+                  {};
+
+  /* this method must be supplied by concreate class */
+  virtual int objectiveFunc      (int n, Vector& coefficients, 
+                                 bool new_coefficients, Real *f ) const {
+                                 SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
+                                 return -1; }
+
+  virtual int gradientFunc       (int n, Vector &coefficients, 
+                                 bool new_coefficients, Vector &gradient ) const  {
+                                 SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "gradientFunc" );
+                                 return -1; }
+
+  virtual int constraintFunc     (int n, int m, Vector & coefficients, 
+                                 bool new_coefficients, Vector & constraints ) const {
+                                 SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintFunc" );
+                                 return -1; }
+
+  virtual int constraintJacobian (int n, int m, Vector& coefficients, 
+                                  bool new_coefficients, Vector& jac ) const {
+                                 SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
+                                 return -1; }
+
+  virtual int hessian            ( int n, int m, Vector &coefficients, 
+                                 bool new_coefficients, Vector &gradient) const {
+                                 SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
+                                 return -1; }
+   int dimension;
+   int numConstraints;
+   int numBounds;
+   int numEqualConstraints;
+   double *lower_bounds;
+   double *upper_bounds;
+
+
+private:
+    int notImplemented() const {
+        return std::numeric_limits<int>::min();
+    }
+
+}; // class OptimizerSystem
+
+// These static functions are private to the current (client-side) compilation
+// unit. They are used to navigate the client-side OptimizerSystem virtual function
+// table, which cannot be done on the library side. Note that these are defined
+// in the SimTK namespace so don't need "SimTK" in their names.
+static int objectiveFunc_static(const OptimizerSystem& sys,
+                                int n,  Vector& coefficients, 
+                                bool new_coefficients, Real *f ) {
+
+    return sys.objectiveFunc(n, coefficients, new_coefficients,  f);
+}
+static int gradientFunc_static(const OptimizerSystem& sys,
+                               int n, Vector &coefficients, 
+                               bool new_coefficients, Vector &gradient ) {
+    return sys.gradientFunc(n,  coefficients, new_coefficients, gradient);
+}
+static int constraintFunc_static(const OptimizerSystem& sys,
+                                 int n, int m, Vector &coefficients, 
+                                 bool new_coefficients, Vector& constraints ) {
+    return sys.constraintFunc(n,  m, coefficients, new_coefficients, constraints);
+}
+static int constraintJacobian_static(const OptimizerSystem& sys,
+                                  int n, int m, Vector &coefficients, 
+                                 bool new_coefficients, Vector& jac ) {
+    return sys.constraintJacobian(n,  m, coefficients, new_coefficients, jac);
+}
+static int hessian_static(const OptimizerSystem& sys,
+                                  int n, int m, Vector &coefficients,
+                                 bool new_coefficients, Vector& gradient ) {
+    return sys.hessian(n,  m, coefficients, new_coefficients, gradient);
+}
+
 /*
 ** Class for API interface to Simmath's optimizers.
-** The OptimizationProblem class describes the optimization by
+** The OptimizerSystem class describes the optimization by
 ** specifying the objective function and constraints. OptimizerFactory()
-** instantiates the coorect optimizer based on the objective function 
-** and constraints specified in the OptimizationProblem object. 
+** instantiates the correct optimizer based on the objective function 
+** and constraints specified in the OptimizerSystem object. 
 ** If the user calls the Optimizer constructor and 
 ** supplies the algorithm argument the OptimizerFactory() will ignore the 
 ** will create instatiate the Optimizer asked for.
 **  
 */
 
-class Optimizer :  public OptimizerInterface {
+class Optimizer  {
 
    public:
-    Optimizer( OptimizationProblem& op);
-    Optimizer( OptimizationProblem& op, OptimizerAlgorithm opt_algo);
-    Optimizer( int n, int nConstraints, int nEqualConstraints, int nBounds);
-
-    ~Optimizer() {
-       delete( (OptimizerInterface *)data );
+    Optimizer( OptimizerSystem& sys) {
+        // Perform construction of the CPodesRep on the library side.
+        librarySideOptimizerConstructor(sys);
+        // But fill in function pointers from the client side.
+        clientSideOptimizerConstructor();
     }
+
+    ~Optimizer();
+
     void setOptimizerParameters(unsigned int param, double *values); 
     void getOptimizerParameters(unsigned int param, double *values);
 
-    double optimize(SimTK::Vector&) ;
+    double optimize(Vector&);
+    
+private:
+  typedef int (*ObjectiveFunc)      ( const OptimizerSystem&,
+                                    int n, Vector& coefficients,  bool new_coefficients,
+                                    Real *f );
 
-    private:
-     void *data;
-     OptimizerInterface *OptimizerFactory(OptimizationProblem& );
-     OptimizerInterface *OptimizerFactory(OptimizationProblem&, OptimizerAlgorithm );
-     OptimizerInterface *OptimizerFactory(int n, int nConstraints, int nEqualConstraints, int nBounds);
+  typedef int (*GradientFunc)       ( const OptimizerSystem&,
+                                    int n, Vector &coefficients, bool new_coefficients,
+                                    Vector &gradient );
+
+  typedef int (*ConstraintFunc)     ( const OptimizerSystem&,
+                                    int n, int m, Vector & coefficients, bool new_coefficients,
+                                    Vector &constraints );
+
+  typedef int (*ConstraintJacobian) ( const OptimizerSystem&,
+                                    int n, int m, Vector& coefficients, bool new_coefficients,
+                                    Vector& jac );
+
+  typedef int (*Hessian)            ( const OptimizerSystem&,
+                                    int n, int m, Vector &coefficients, bool new_coefficients,
+                                    Vector &gradient);
+
+  void registerObjectiveFunc( ObjectiveFunc );
+  void registerGradientFunc( GradientFunc );
+  void registerConstraintFunc( ConstraintFunc );
+  void registerConstraintJacobian( ConstraintJacobian );
+  void registerHessian( Hessian );
+
+    // This is the library-side part of the CPodes constructor. This must
+    // be done prior to the client side construction.
+  void librarySideOptimizerConstructor(OptimizerSystem& sys);
+
+  void clientSideOptimizerConstructor() {
+       registerObjectiveFunc( objectiveFunc_static );
+       registerGradientFunc( gradientFunc_static );
+       registerConstraintFunc( constraintFunc_static );
+       registerConstraintJacobian( constraintJacobian_static );
+       registerHessian( hessian_static );
+  }
+
+    class OptimizerRep* rep;
+    friend class OptimizerRep;
+
+    const OptimizerRep& getRep() const {assert(rep); return *rep;}
+    OptimizerRep&       updRep()       {assert(rep); return *rep;}
+
+    // Suppress copy constructor and default assigment operator.
+    Optimizer(const Optimizer&);
+    Optimizer& operator=(const Optimizer&);
 
 }; // Class Optimizer
+ 
 } // namespace SimTK
 
 #endif //_SimTK_OPTIMIZER_H

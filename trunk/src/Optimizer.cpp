@@ -26,61 +26,118 @@
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"
 #include "InteriorPointOptimizer.h"
-#include "OptimizationProblem_C.h"
 
 namespace SimTK {
-   Optimizer::Optimizer(OptimizationProblem& problem) {
-        OptimizerInterface *optPtr =  OptimizerFactory(problem);
-        data = (void *)optPtr;
-   }
-   Optimizer::Optimizer(int dimension, int nConstraints, int nEqualConstraints, int nBounds) {
-        OptimizationProblem_C problem( dimension, nConstraints, nEqualConstraints, nBounds );
-        
-        OptimizerInterface *optPtr =  OptimizerFactory(problem);
-        data = (void *)optPtr;
-   }
-   Optimizer::Optimizer(OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
-        OptimizerInterface *optPtr =  OptimizerFactory(problem, algorithm);
-        data = (void *)optPtr;
-   }
 
-   void  Optimizer::setOptimizerParameters(unsigned int param, double *values) {
+   Optimizer::~Optimizer() {
+         delete( (OptimizerRep *)rep );
+      }
 
-      ((OptimizerInterface *)data)->setOptimizerParameters(param, values);
+void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys ) {
+
+
+      if( sys.numConstraints > 0)   {
+         rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
+      }else if( sys.numBounds > 0 ) {
+         rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
+      } else {
+         rep = (OptimizerRep *) new LBFGSOptimizer( sys  );
+      }
+      rep->setMyHandle(*this);
+      updRep().sysp = &sys;
+}
+
+void Optimizer::setOptimizerParameters(unsigned int param, double *values) {
+
+      ((OptimizerRep *)rep)->setOptimizerParameters(param, values);
       return;
-   }
-   OptimizerInterface *Optimizer::OptimizerFactory( OptimizationProblem& problem, OptimizerAlgorithm algorithm) {
-   
-     if( algorithm == LBFGS) {
-        return (OptimizerInterface *) new LBFGSOptimizer( problem  );
-     } else if( algorithm == LBFGSB) {
-        return (OptimizerInterface *) new LBFGSBOptimizer( problem  );
-     } else {
-        return (OptimizerInterface *) new InteriorPointOptimizer( problem  );
-     }
+}
 
-  }
-  OptimizerInterface *Optimizer::OptimizerFactory( OptimizationProblem& problem) {
-   
-     if( problem.numConstraints > 0)   {
-        return (OptimizerInterface *) new InteriorPointOptimizer( problem  );
-     }else if( problem.numBounds > 0 ) {
-        return (OptimizerInterface *) new LBFGSBOptimizer( problem  );
-     } else {
-        return (OptimizerInterface *) new LBFGSOptimizer( problem  );
-     }
+void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
-  }
-
-   void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
-
-      ((OptimizerInterface *)data)->getOptimizerParameters(param, values);
+      ((OptimizerRep *)rep)->getOptimizerParameters(param, values);
       return;
-   }
+}
+double Optimizer::optimize(SimTK::Vector   &results) {
+      return( ((OptimizerRep *)rep)->optimize(results) );
+}
+   
+int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) {
+      Vector coeff( n, x, true);
+      const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+      rep.objectiveFunc( rep.getOptimizerSystem(), n, coeff, new_x, f );
+      return( true );
+}
+int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_data) {
+      Vector coeff( n, x, true);
+      Vector grad_vec(n,gradient,true);
+      const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+      rep.gradientFunc( rep.getOptimizerSystem(), n, coeff, new_x, grad_vec );
+      return( true );
+}
+int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void* user_data) {
+      Vector coeff( n, x, true);
+      Vector constraints(n, g, true);
+      const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+      rep.constraintFunc( rep.getOptimizerSystem(), n, m, coeff, new_x, constraints );
+      return( true );
+}
+int constraintJacobianWrapper(Index n, Number *x, int new_x, Index m, Index nele_jac,
+                Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
+{
+  int i,j,index;
+  double *jac,*nx;
+  if (values == NULL) {
 
-   double Optimizer::optimize(SimTK::Vector   &results) {
-      ((OptimizerInterface *)data)->optimize(results);
-       return(0.0);
-   }
+    /* always assume  the jacobian is dense */
+    index = 0;
+    for(j=0;j<m;j++) {
+      for(i=0;i<n;i++) {
+          iRow[index] = j;
+          jCol[index++] = i;
+//printf("IROW=%d JCol=%d \n",iRow[index-1],jCol[index-1]);
+       }
+    }
+  } else {
+    /* return the values of the jacobian of the constraints */
+    
+    int dim = n; 
+    int nConstraints = m;
+    Vector coeff(n,x,true); 
+    Vector jac(m*n,values,true); 
+    const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+    rep.constraintJacobian( rep.getOptimizerSystem(), n, m, coeff, new_x, jac );
+  } 
+  return( true );
+}
+// TODO finish hessianWrapper
+int hessianWrapper(Index n, Number *x, int new_x, Number obj_factor,
+            Index m, Number *lambda, int new_lambda,
+            Index nele_hess, Index *iRow, Index *jCol,
+            Number *values, UserDataPtr user_data) {
+
+
+    Vector coeff(n,x,true); 
+    Vector hess(n*n,values,true); 
+    const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+    rep.hessian( rep.getOptimizerSystem(), n, m, coeff, new_x, hess );
+    return( true );
+}
+
+void Optimizer::registerObjectiveFunc(Optimizer::ObjectiveFunc f) {
+    updRep().objectiveFunc = f;
+}
+void Optimizer::registerGradientFunc(Optimizer::GradientFunc f) {
+    updRep().gradientFunc = f;
+}
+void Optimizer::registerConstraintFunc(Optimizer::ConstraintFunc f) {
+    updRep().constraintFunc = f;
+}
+void Optimizer::registerConstraintJacobian(Optimizer::ConstraintJacobian f) {
+    updRep().constraintJacobian = f;
+}
+void Optimizer::registerHessian(Optimizer::Hessian f) {
+    updRep().hessian = f;
+}
 
 } // namespace SimTK

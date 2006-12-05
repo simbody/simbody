@@ -61,7 +61,7 @@ class ProblemStatement : public SimTK::OptimizationProblem {
            return;
   }
 
-  void computeConstraintJacobian(int n, int m, bool new_coefficients, Vector& coefficients, Vector& jac, void * user_data) {
+  void computeConstraintsJacobian(int n, int m, bool new_coefficients, Vector& coefficients, Vector& jac, void * user_data) {
       double *x;
 
       x = &coefficients[0]; 

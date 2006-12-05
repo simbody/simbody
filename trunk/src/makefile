@@ -1,16 +1,26 @@
+lbfgs: lbfgs_test.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o lbfgs.o lbfgsb.o InteriorPointOptimizer.o
+	g++ -g -m32 lbfgs_test.o LBFGSOptimizer.o LBFGSBOptimizer.o lbfgsb.o lbfgs.o  InteriorPointOptimizer.o Optimizer.o -L/usr/local/SimTK/core/lib -I/usr/local/SimTK/core/include -L../sharedTarget -lSimTKlapack -lsimmatrix_d -lsimmath_d -o lbfgs
+
+ctest: ctest.o optimizer_C.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o InteriorPointOptimizer.o lbfgs.o lbfgsb.o
+	gcc -g -m32 ctest.o optimizer_C.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o InteriorPointOptimizer.o lbfgsb.o lbfgs.o -L/usr/local/SimTK/core/lib -L../sharedTarget -I/usr/local/SimTK/core/include -lSimTKlapack -lsimmath_d  -o ctest
+
 iptest: iptest.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o InteriorPointOptimizer.o lbfgs.o lbfgsb.o
 	g++ -g -m32 iptest.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o InteriorPointOptimizer.o lbfgsb.o lbfgs.o -L/usr/local/SimTK/core/lib -L../sharedTarget -I/usr/local/SimTK/core/include -lSimTKlapack -lsimmath_d  -o iptest
 
 lbfgsb_test: lbfgsb_test.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o lbfgs.o lbfgsb.o InteriorPointOptimizer.o
 	g++ -g -m32 lbfgsb_test.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o InteriorPointOptimizer.o lbfgsb.o lbfgs.o -L/usr/local/SimTK/core/lib -L../sharedTarget -I/usr/local/SimTK/core/include -lSimTKlapack -lsimmath_d  -o lbfgsb_test
 
-cpptest: cpptest.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o lbfgs.o lbfgsb.o
-	g++ -g -m32 cpptest.o Optimizer.o LBFGSOptimizer.o LBFGSBOptimizer.o lbfgsb.o lbfgs.o -L/usr/local/SimTK/core/lib -I/usr/local/SimTK/core/include -lSimTKlapack -lsimmatrix_d -o driver1
+lbfgs_test.o: lbfgs_test.cpp Simmath.h
+	g++ -g -m32  -I/usr/local/SimTK/core/include -c lbfgs_test.cpp
 
+ctest.o: ctest.c Simmath.h
+	gcc -g -m32  -I/usr/local/SimTK/core/include -c ctest.c
 iptest.o: iptest.cc
 	g++ -g -m32  -I/usr/local/SimTK/core/include -c iptest.cc
 lbfgsb_test.o: lbfgsb_test.cc
 	g++ -g -m32  -I/usr/local/SimTK/core/include -c lbfgsb_test.cc
+optimizer_C.o: optimizer_C.cpp
+	g++ -g -m32  -I/usr/local/SimTK/core/include -c optimizer_C.cpp
 InteriorPointOptimizer.o: InteriorPointOptimizer.cpp
 	g++ -g -m32  -I/usr/local/SimTK/core/include -c InteriorPointOptimizer.cpp
 Optimizer.o: Optimizer.cpp

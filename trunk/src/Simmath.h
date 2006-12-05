@@ -67,13 +67,18 @@ private:
 extern "C" {
 #endif
 
-extern smHandle smMallocOptimizer(int);
+extern smHandle smMallocOptimizer(int dimension, int nConstraints, int nEqualConstraints, int nBounds);
 extern void     smDumpOptimizerState( smHandle);
 extern void     smSetOptimizerParameters( smHandle, unsigned int, double*);
 extern void     smGetOptimizerParameters( smHandle, unsigned int, double*);
-extern void     smSetCostFunction( smHandle, void (*costFunction)(int, double*,double*,double*, void*) );
 extern void     smRunOptimizer( smHandle, double * );
 extern void     smFreeOptimizer( smHandle );
+
+extern void  smSetObjectiveFunction( smHandle handle,  double (*objectiveFunction)(int, int, double*,void*) );
+extern void  smSetGradientFunction( smHandle handle,  void (*gradientFunction)(int, int, double*,double*,void*) );
+extern void  smSetConstraintsFunction( smHandle handle,  void (*constraintsFunction)(int, int, int, double*,double*,void*) );
+extern void  smSetConstraintsJacobianFunction( smHandle handle,  void (*constraintsJacobianFunction)(int, int, int, double*,double*,void*) );
+ 
 
 #ifdef __cplusplus
 }  /* extern "C" */

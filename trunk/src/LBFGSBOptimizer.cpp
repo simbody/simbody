@@ -33,85 +33,73 @@ int setulb_(integer *n, integer *m, doublereal *x, doublereal *l,
       char *task, integer *iprint, char *csave, logical *lsave,
       integer *isave, doublereal *dsave, ftnlen task_len, ftnlen csave_len);
 
-const int NUMBER_OF_CORRECTIONS = 5;
 namespace SimTK {
 
+static const int NUMBER_OF_CORRECTIONS = 5;
+static double factr = 1.0e7;   // 
+static double pgtol = 1.0e-5;
 
-     LBFGSBOptimizer::LBFGSBOptimizer( OptimizationProblem& p ){
-        printf(" LBFSBOptimizer constructor \n");         
+
+     LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
+        : OptimizerRep( sys ) {
           int m,i;
           char buf[1024];
 
-         pop = &p;
 
-
-         if( p.dimension < 1 ) {
+         if( sys.dimension < 1 ) {
              char *where = "Optimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  p.dimension, INT_MAX, where); }
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where);
+         }
+
+         n = sys.dimension;
+         numBounds = sys.numBounds;
+
 
           /* assume all paramters have both upper and lower bounds */
-          nbd = (int *)malloc(p.numBounds*sizeof(int));
-          for(i=0;i<p.numBounds;i++) {
+          nbd = (int *)malloc(numBounds*sizeof(int));
+          for(i=0;i<numBounds;i++) {
                nbd[i] = 2;
           }
 
-
-          numCorrections = m = NUMBER_OF_CORRECTIONS;
-          dimension = p.dimension;
-          gradient = new SimTK::Vector(dimension);
+         numCorrections =  NUMBER_OF_CORRECTIONS;
+         gradient = new double[n];
 
      } 
-     LBFGSBOptimizer::LBFGSBOptimizer(){ 
-        printf(" LBFSBOptimizer default constructor \n"); 
-     }
 
-
-     double LBFGSBOptimizer::optimize( double *results ) {
-        printf("call C interface for LBFGSB optimize \n");
-/* TODO C interface 
-*/
-         return(0.0);
-
-     }
-     double LBFGSBOptimizer::optimize(  SimTK::Vector &results ) {
+     double LBFGSBOptimizer::optimize(  Vector &results ) {
 
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
          char task[61];
          double f;
-         double factr = 1.0e7;   // 
-         double pgtol = 1.0e-5;
          int iprint = 1;
          int *iwa;
-         int n = dimension;
          char csave[61];
          logical lsave[4];
          int isave[44];
          double dsave[29];
          double *wa;
-         SimTK::Vector &grad=  *gradient;
 
-        printf("call LBFGSB optimize \n");
 
          iwa = (int *)malloc(3*n*sizeof(int));
-         wa = (double *)malloc( ((2*n + 4)*n + 12*n*n + 12*pop->numBounds)*sizeof(double));
+         wa = (double *)malloc( ((2*n + 4)*n + 12*n*n + 12*numBounds)*sizeof(double));
 
-                strcpy( task, "START" );
+         strcpy( task, "START" );
          while( run_optimizer ) { 
-            setulb_(&dimension, &numCorrections, &results[0], pop->lower_bounds,
-                    pop->upper_bounds, nbd, &f, &grad[0],
+            setulb_(&n, &numCorrections, &results[0], lower_bounds,
+                    upper_bounds, nbd, &f, gradient,
                     &factr, &pgtol, wa, iwa,
                     task, &iprint, csave, lsave, isave, dsave, 60, 60);
              if( strncmp( task, "FG", 2) == 0 ) {
-                f = pop->objectiveAndGradient( dimension, true, results,  grad, pop->user_data );
+                objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
+                gradientFuncWrapper( n,  &results[0],  false, gradient, (void*)this );
 
              } else if( strncmp( task, "NEW_X", 5) != 0 ){
-               printf("LBFGSB terminated \n");
-                f = pop->objectiveAndGradient( dimension, true, results,  grad, pop->user_data );
-               run_optimizer = 0;
-            }
+                objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
+                run_optimizer = 0;
+             }
          }
 
          return(f);
@@ -145,7 +133,6 @@ namespace SimTK {
           int i;
           char buf[1024];
 
-          printf("call LBFGSB setOptimizerParameters \n");
           switch( parameter) {
              case MAX_FUNCTION_EVALUATIONS:
                    MaxNumFuncEvals = (unsigned int)values[0];
@@ -160,10 +147,9 @@ namespace SimTK {
                    GradientConvergenceTolerance = values[0];
                    break;
              default:
-/* TODO Finish LBFGSB setOptimizerParameters
                    sprintf(buf," Parameter=%d",parameter);
                    SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-*/
+
                    break;
           }
 
@@ -174,7 +160,6 @@ namespace SimTK {
           int i;
           char buf[1024];
 
-        printf("call LBFGSB getOptimizerParameters \n");
 
             switch( parameter) {
                case MAX_FUNCTION_EVALUATIONS:

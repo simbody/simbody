@@ -22,54 +22,74 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "Simmath.h"
+#include "OptimizerCommon.h"
 #include "Optimizer.h"
 
 namespace SimTK {
+extern "C" {
+void *SimTK_mallocOptimizer( int dimension, int nConstraints, int nEqualConstraints, int nBounds){
 
-smHandle smMallocOptimizer( int dimension, int nConstraints, int nEqualConstraints, int nBounds){
-
-    smHandle handle;
-
-    Optimizer* opt = new Optimizer(dimension, nConstraints, nEqualConstraints, nBounds);
-    return( (smHandle)opt);
+    return( (void *)new Optimizer(dimension, nConstraints, nEqualConstraints, nBounds));
 }
 
-void  smSetCostFunction(  smHandle handle,  void (*costFunction)(int, double*,double*,double*,void*) ) {
+void  SimTK_setObjectiveFunction(  void *optimizer,  double (*f)(int, int, double*,void*) ) {
 
-    ((SimTK::OptimizerInterface *)handle)->setObjectiveFunction(costFunction);
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setObjectiveFunction( f );
+
     return;
 }
 
-void  smRunOptimizer(  smHandle handle, double *results ) {
+void  SimTK_setGradientFunction(  void *optimizer,  void (*f)(int, int, double*,double*,void*) ) {
 
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setGradientFunction( f );
 
-    ((SimTK::OptimizerInterface *)handle)->optimize(results);
+    return;
+}
+void  SimTK_setConstraintsFunction(  void *optimizer,  void (*f)(int, int, int, double*,double*,void*) ) {
+
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setConstraintsFunction( f );
+
+    return;
+}
+void  SimTK_setConstraintsJacobian(  void *optimizer ,  void (*f)(int, int, int, double*,double*,void*) ) {
+
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setConstraintsJacobian( f );
+
+    return;
+}
+void SimTK_setObjectiveAndGradient( void *optimizer,  double (*f)(int, int, double*, double*, void*)){
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setObjectiveAndGradient( f );
+    return;
+} 
+
+void SimTK_setComputeHessian(  void *optimizer, void (*f)(int, int, int, double*, double*,void*) ){
+
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setComputeHessian( f );
+    return;
+} 
+
+void  SimtK_runOptimizer(  void *optimizer, double *results ) {
+
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->optimize( results );
     return;
 }
     
-void smFreeOptimizer(smHandle handle){
+void SimTK_freeOptimizer(void *optimizer){
  
-   // TODO need to call the destructor for the correct implementation 
-   delete ((SimTK::OptimizerInterface *)handle);
-
+   delete ((OptimizerCommon*)optimizer);
    return;
 
 }
-void smGetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
+void SimTK_setOptimizerParameters( void *optimizer, unsigned int parameter, double *values){
 
-    ((SimTK::OptimizerInterface *)handle)->getOptimizerParameters(parameter,values);
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->setOptimizerParameters(parameter,values);
+    return;
+}
+void SimTK_getOptimizerParameters( void *optimizer, unsigned int parameter, double *values){
+
+    (((OptimizerCommon *)((Optimizer *)optimizer)->data))->getOptimizerParameters(parameter,values);
     return;
 }
 
-void smSetOptimizerParameters( smHandle handle, unsigned int parameter, double *values){
-
-  ((SimTK::OptimizerInterface *)handle)->setOptimizerParameters(parameter,values);
-  return;
-}
-
-void smDumpOptimizerState(smHandle handle) {
-
-   return; 
-}
- 
-}
+} // extern "C" 
+} // namespace SimTK

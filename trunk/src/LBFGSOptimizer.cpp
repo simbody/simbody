@@ -30,75 +30,47 @@ extern void lbfgs_( int*n, int*m, double *x, double *f, double *g,
     int *diagco, double *diag, int *iprint, double *eps,
     double *xtol, double *w, int *iflag);
 
-const int NUMBER_OF_CORRECTIONS = 5;
 namespace SimTK {
+const int NUMBER_OF_CORRECTIONS = 5;
 
-
-     LBFGSOptimizer::LBFGSOptimizer( OptimizationProblem& p ){
-        printf(" LBFSOptimizer constructor \n");         
+     LBFGSOptimizer::LBFGSOptimizer( OptimizerSystem& sys )
+        : OptimizerRep( sys ) 
+{
           int m;
           char buf[1024];
 
-         pop = &p;
 
       /* internal flags for LBFGS */
          iprint[0] = 1; iprint[1] = 0; // no output generated
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
          diagco[0] = 0;      // do not supply diagonal of hessian
 
-         if( p.dimension < 1 ) {
+         if( sys.dimension < 1 ) {
              char *where = "Optimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  p.dimension, INT_MAX, where); }
-
-          numCorrections = m = NUMBER_OF_CORRECTIONS;
-          dimension = p.dimension;
-          work = new double[dimension*(2*m+1) + 2*m];
-          diag = new double[dimension];
-          gradient = new SimTK::Vector(dimension);
-     } 
-     LBFGSOptimizer::LBFGSOptimizer(){ 
-        printf(" LBFSOptimizer default constructor \n"); 
-     }
-
-
-     double LBFGSOptimizer::optimize( double *results ) {
-        printf("call C interface for LBFGS optimize \n");
-/* TODO C interface 
-         int i;
-         int run_optimizer = 1;
-         int iflag[1] = {0};
-         double f;
-         SimTK::Vector &gradient_ref =  *gradient;
-
-         while( run_optimizer ) {
-
-            f = op->objectiveAndGradient( dimension, results, &gradient_ref[0], op->user_data );
-
-            lbfgs_( &dimension, &numCorrections, &results[0], &f, &gradient_ref[0],
-            diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
-            work, iflag );
-
-            if( iflag[0] <= 0 ) {
-              run_optimizer = 0;
-            }
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where); 
          }
-*/
-         return(0.0);
+         n = sys.dimension;
+         numCorrections = m = NUMBER_OF_CORRECTIONS;
+         work = new double[n*(2*m+1) + 2*m];
+         diag = new double[n];
+         gradient = new double[n];
+     } 
 
-     }
-     double LBFGSOptimizer::optimize(  SimTK::Vector &results ) {
-        printf("call LBFGS optimize \n");
+
+     double LBFGSOptimizer::optimize(  Vector &results ) {
 
          int i;
          int run_optimizer = 1;
          int iflag[1] = {0};
          double f;
-         SimTK::Vector &gradient_ref =  *gradient;
 
-         while( run_optimizer ) { 
-            f = pop->objectiveAndGradient( dimension, true, results, gradient_ref, pop->user_data );
-            lbfgs_( &dimension, &numCorrections, &results[0], &f, &gradient_ref[0],
+         while( run_optimizer ) {  // TODO callbacks use ptr to functions  
+
+            objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
+            gradientFuncWrapper( n,  &results[0], false, gradient, (void*)this );
+
+            lbfgs_( &n, &numCorrections, &results[0], &f, gradient,
             diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
             work, iflag );
 
@@ -107,8 +79,8 @@ namespace SimTK {
               run_optimizer = 0;
             }
          }
-            f = pop->objectiveAndGradient( dimension, true, results, gradient_ref, pop->user_data );
-         return(f);
+         objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
+         return f;
       }
 
       unsigned int LBFGSOptimizer::optParamStringToValue( char *parameter )  {
@@ -139,7 +111,6 @@ namespace SimTK {
           int i;
           char buf[1024];
 
-        printf("call LBFGS setOptimizerParameters \n");
           switch( parameter) {
              case TRACE:
                    Trace = (unsigned int)values[0];
@@ -169,7 +140,6 @@ namespace SimTK {
           int i;
           char buf[1024];
 
-        printf("call LBFGS getOptimizerParameters \n");
 
             switch( parameter) {
                case TRACE:
