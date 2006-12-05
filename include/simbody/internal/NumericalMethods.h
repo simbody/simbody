@@ -271,6 +271,19 @@ public:
         return CPodes::Success;
     }
 
+    // Calculate yerr = c(t,y).
+    int constraint(Real t, const Vector& y, Vector& yerr) const {
+        mdae->updState().updY() = y;
+        mdae->updState().updTime() = t;
+
+        try { 
+            mdae->getMultibodySystem().realize(mdae->getState(), Stage::Velocity); 
+        }
+        catch(...) { return CPodes::RecoverableError; } // assume recoverable
+        yerr = mdae->getState().getYErr();
+        return CPodes::Success;
+    }
+
     // Given a state (t,y) not on the constraint manifold, return ycorr
     // such that (t,y+ycorr+eps) is on the manifold, with ||eps||_wrms <= epsProj. 
     // 'err' passed in as the integrator's current error estimate for state y;
@@ -294,7 +307,6 @@ public:
     }
 
     /*
-    virtual int constraint(Real t, const Vector& y, Vector& cerr) const;
     virtual int  quadrature(Real t, const Vector& y, 
                             Vector& qout) const;
     virtual int  root(Real t, const Vector& y, const Vector& yp,
@@ -333,10 +345,7 @@ public:
 
         initialized = true;
 
-        Vector ydot(state.getY().size());
-        if (sys->explicitODE(state.getTime(), state.getY(), ydot) 
-               != CPodes::Success)
-            return false;
+        mbs.realize(state, Stage::Velocity);
 
         Vector ycorr(state.getY().size());
         Vector err(ycorr.size(), Real(0));
@@ -345,10 +354,22 @@ public:
             return false;
         state.updY() = state.getY() + ycorr;
 
-        cpodes->init(*sys, state.getTime(), state.getY(), ydot,
-            CPodes::ScalarScalar, relTol, &absTol);
+        mbs.realize(state, Stage::Velocity);
+
+        Vector ydot(state.getY().size());
+        if (sys->explicitODE(state.getTime(), state.getY(), ydot) 
+               != CPodes::Success)
+            return false;
+
+        int retval;
+        if ((retval=cpodes->init(*sys, state.getTime(), state.getY(), ydot,
+            CPodes::ScalarScalar, relTol, &absTol)) != CPodes::Success) 
+        {
+            printf("init returned %d\n", retval);
+            return false;
+        }
         cpodes->lapackDense(state.getY().size());
-        cpodes->setNonlinConvCoef(0.0001); // TODO (default is 0.1)
+        cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
         cpodes->setMaxNumSteps(50000);
         cpodes->projDefine();
 
@@ -421,7 +442,7 @@ private:
         accuracy=relTol=absTol=consTol=vconsRescale
             = CNT<Real>::getNaN();
 
-        cpodes = new CPodes(CPodes::ExplicitODE, CPodes::BDF, CPodes::Functional);
+        cpodes = new CPodes(CPodes::ExplicitODE, CPodes::Adams, CPodes::Functional);
         sys = new CPodesMultibodySystem(this);
     }
 

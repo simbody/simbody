@@ -433,7 +433,7 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
     // modified u's and thus invalidated stage Velocity,
     // so a "get" would fail.
     // TODO: this may be fixed now since subsystems have their own stage.
-    const SBVelocityCache& mc = getRBTree().updMotionCache(s);
+    const SBVelocityCache& mc = getRBTree().updVelocityCache(s);
 
     Vector b((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
@@ -627,7 +627,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
     const SBModelVars&       mv = getRBTree().getModelVars(s);
     const SBPositionCache& cc = getRBTree().getPositionCache(s);
     Vector&                     u  = getRBTree().updU(s);
-    SBVelocityCache&              mc = getRBTree().updMotionCache(s);
+    SBVelocityCache&              mc = getRBTree().updVelocityCache(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setU(mv, vel, u);
@@ -1012,7 +1012,7 @@ void
 LengthSet::calcConstraintForces(const State& s) const
 { 
     const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
     const SBDynamicsCache&      dc = getRBTree().getDynamicsCache(s);
     SBAccelerationCache&            rc = getRBTree().updAccelerationCache(s);
 
@@ -1087,7 +1087,7 @@ void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialFor
 void LengthSet::testAccel(const State& s) const
 {
     const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
     const SBAccelerationCache&      rc = getRBTree().getAccelerationCache(s);
 
     double testTol=1e-8;
@@ -1195,7 +1195,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     assert(iVel.size() == getRBTree().getTotalDOF());
 
     const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getMotionCache(s);
+    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
 
     // store internal velocities
     Vector iVel0 = iVel;

@@ -498,13 +498,16 @@ try {
 
 
     RungeKuttaMerson study(mbs, s);
+    //CPodesIntegrator study(mbs,s);
 
-    display.report(s);
 
     const Real h = outputInterval;
     const int interval = 1;
     const Real tstart = 0.;
     const Real tmax = simulationLength; //ps
+
+    s.updTime() = tstart;
+    display.report(s);
 
     study.setAccuracy(accuracy);
     study.initialize(); 
@@ -517,10 +520,10 @@ try {
 
     const Real Estart = mbs.getEnergy(s);
 
-    s.updTime() = tstart;
     int step = 0;
     while (s.getTime() < tmax) {
         study.step(s.getTime() + h);
+        mbs.realize(s);
 
         cout << s.getTime();
         cout << " deltaE=" << 100*(mbs.getEnergy(s)-Estart)

@@ -137,7 +137,7 @@ public:
         = uIndex = uVarsIndex = uCacheIndex
         = dynamicsVarsIndex = dynamicsCacheIndex
         = accelerationVarsIndex = accelerationCacheIndex
-        = -1;
+        = nQuaternionConstraints = qErrIndex = uErrIndex = -1;
     }
 
     int instanceVarsIndex, instanceCacheIndex;
@@ -148,6 +148,9 @@ public:
     int uVarsIndex, uCacheIndex;
     int dynamicsVarsIndex, dynamicsCacheIndex;
     int accelerationVarsIndex, accelerationCacheIndex;
+
+    int nQuaternionConstraints;
+    int qErrIndex, uErrIndex;
 
 public:
     void allocate(const SBTopologyCache&) {
@@ -187,7 +190,7 @@ public:
     Array<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array<Transform>    bodyConfigInGround;           // nb (X_GB)
     Array<PhiMatrix>    bodyToParentShift;            // nb (phi)
-    Array<Inertia>   bodyInertiaInGround;          // nb (I_OB_G)
+    Array<Inertia>      bodyInertiaInGround;          // nb (I_OB_G)
     Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>       bodyCOMInGround;              // nb (COM_G)
     Vector_<Vec3>       bodyCOMStationInGround;       // nb (COMstation_G)

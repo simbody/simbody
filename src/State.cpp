@@ -131,22 +131,33 @@ public:
         currentStage = g;
     }
 
+
+    void clearReferencesToStateGlobals() {
+        q.clear(); u.clear(); z.clear();
+        qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
+        qerr.clear(); uerr.clear();
+    }
+
     String name;
     String version;
 
     // These accumulate default values for this subsystem's use of shared
     // global state variables. After the System is advanced to Stage::Model,
     // the state will allocate those globals and copy these initial
-    // values into them.
+    // values into them. The lengths of these Vectors define the 
+    // needs of this Subsystem.
     Vector qInit, uInit, zInit;
+
+    // For constraints we need just lengths.
+    int nqerr, nuerr;
 
     // These are our own private views into partitions of the global
     // state and cache entries of the same names. These are valid
     // only after the *System* stage is raised to Model, and they
     // are invalidated whenever the System's Model stage is invalidated.
     Vector q, u, z;
-    mutable Vector qdot, udot, zdot;
-    mutable Vector qdotdot;
+    mutable Vector qdot, udot, zdot, qdotdot;
+    mutable Vector qerr, uerr;
 
     // Each of these discrete variable & cache entries has its own Stage.
     StableArray<DiscreteVariable> discrete;
@@ -161,6 +172,7 @@ private:
     // This is for use in constructors. Everything that doesn't have
     // a reasonable default constructor gets set here.
     void initialize() {
+        nqerr = nuerr = 0;
         nDiscreteWhenBuilt = -1;
         for (int i=0; i < Stage::NValid; ++i)
             cacheSize[i] = -1;
@@ -168,11 +180,6 @@ private:
         currentStage = Stage::Empty;
     }
 
-    void clearReferencesToStateGlobals() {
-        q.clear(); u.clear(); z.clear();
-        qdot.clear(); udot.clear(); zdot.clear();
-        qdotdot.clear();
-    }
 
     // Set all the allocation sizes to zero, leaving name and version alone.
     // The stage is set back to "Empty".
@@ -197,6 +204,7 @@ private:
         discrete.resize(nDiscreteWhenBuilt);
         restoreCacheToStage(Stage::Topology);
         qInit.clear(); uInit.clear(); zInit.clear();
+        nqerr = nuerr = 0;
         currentStage = Stage::Topology;
     }
 
@@ -270,6 +278,8 @@ private:
         qInit = src.qInit;
         uInit = src.uInit;
         zInit = src.zInit;
+        nqerr = src.nqerr;
+        nuerr = src.nuerr;
 
         // Copy *all* state variables since no more can be allocated
         // after Model stage.
@@ -370,26 +380,25 @@ public:
     void invalidateJustSystemStage(Stage g) {
         assert(g > Stage::Empty);
         if (systemStage >= g) {
-            if (systemStage >= Stage::Model && g <= Stage::Model) {
+            if (systemStage >= Stage::Model && Stage::Model >= g) {
                 // We are "unmodeling" this State. Trash all the global
                 // shared states & corresponding cache entries.
 
                 // First make sure no subsystem is looking at the
                 // global shared state any more.
-                for (int i=0; i < (int)subsystems.size(); ++i) {
-                    PerSubsystemInfo& ss = subsystems[i];
-                    ss.q.clear(); ss.qdot.clear(); ss.qdotdot.clear();
-                    ss.u.clear(); ss.udot.clear();
-                    ss.z.clear(); ss.zdot.clear();
-                }
+                for (int i=0; i < (int)subsystems.size(); ++i)
+                    subsystems[i].clearReferencesToStateGlobals();
 
                 t = CNT<Real>::getNaN();
                 // Nuke all the global views.
                 q.clear(); u.clear(); z.clear();
                 qdot.clear(); udot.clear(); zdot.clear();
+                qerr.clear(); uerr.clear();
                 // Nuke the actual data.
-                y.unlockShape(); ydot.unlockShape(); qdotdot.unlockShape();
+                y.unlockShape(); ydot.unlockShape(); qdotdot.unlockShape(); 
                 y.clear(); ydot.clear(); qdotdot.clear();
+                yerr.unlockShape(); 
+                yerr.clear();
             }
             systemStage = g.prev();
         }
@@ -407,47 +416,52 @@ public:
         if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
-            int nq=0, nu=0, nz=0;
+            int nq=0, nu=0, nz=0, nqerr=0, nuerr=0;
             for (int i=0; i<(int)subsystems.size(); ++i) {
                 nq += subsystems[i].qInit.size();
                 nu += subsystems[i].uInit.size();
                 nz += subsystems[i].zInit.size();
+                nqerr += subsystems[i].nqerr;
+                nuerr += subsystems[i].nuerr;
             }
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
-            y.resize(nq+nu+nz);    y.lockShape();
-            ydot.resize(nq+nu+nz); ydot.lockShape();
-            qdotdot.resize(nq);    qdotdot.lockShape();
+            y.resize(nq+nu+nz);             y.lockShape();
+            ydot.resize(nq+nu+nz);          ydot.lockShape();
+            qdotdot.resize(nq);             qdotdot.lockShape();
+            yerr.resize(nqerr+nuerr);       yerr.lockShape();
 
             // Allocate subviews of the shared state & cache entries.
             q.viewAssign(y(0,nq));
             u.viewAssign(y(nq,nu));
             z.viewAssign(y(nq+nu,nz));
 
-            qdot.viewAssign(ydot(0,nq));
-            udot.viewAssign(ydot(nq,nu));
-            zdot.viewAssign(ydot(nq+nu,nz));
+            qdot.viewAssign(ydot(0,     nq));
+            udot.viewAssign(ydot(nq,    nu));
+            zdot.viewAssign(ydot(nq+nu, nz));
+
+            qerr.viewAssign(yerr(0,     nqerr));
+            uerr.viewAssign(yerr(nqerr, nuerr));
 
             // Now partition the global resources among the subsystems.
-            int nxtq=0, nxtu=0, nxtz=0;
+            int nxtq=0, nxtu=0, nxtz=0, nxtqerr=0, nxtuerr=0;
             for (int i=0; i<(int)subsystems.size(); ++i) {
                 PerSubsystemInfo& ss = subsystems[i];
-                const int nq = ss.qInit.size();
-                const int nu = ss.uInit.size();
-                const int nz = ss.zInit.size();
-                ss.q.viewAssign(q(nxtq, nq)); 
-                ss.q = ss.qInit;
+                const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
+
+                ss.q.viewAssign(q(nxtq, nq)); ss.q = ss.qInit;
                 ss.qdot.viewAssign(qdot(nxtq, nq));
                 ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
                 nxtq += nq;
-                ss.u.viewAssign(u(nxtu, nu)); 
-                ss.u = ss.uInit;
+                ss.u.viewAssign(u(nxtu, nu)); ss.u = ss.uInit;
                 ss.udot.viewAssign(udot(nxtu, nu));
                 nxtu += nu;
-                ss.z.viewAssign(z(nxtz, nz));
-                ss.z = ss.zInit;
+                ss.z.viewAssign(z(nxtz, nz)); ss.z = ss.zInit;
                 ss.zdot.viewAssign(zdot(nxtz, nz));
                 nxtz += nz;
+
+                ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr)); nxtqerr += ss.nqerr;
+                ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr)); nxtuerr += ss.nuerr;
             }
         }
 
@@ -474,6 +488,7 @@ private:
         // Shared global resource Cache entries //
     mutable Stage   systemStage;
 
+        // DIFFERENTIAL EQUATIONS
     mutable Vector  ydot; // All the state derivatives taken together (qdot,udot,zdot)
 
         // These are views into ydot.
@@ -483,6 +498,13 @@ private:
 
         // This is an independent cache entry.
     mutable Vector  qdotdot;    // Stage::Acceleration
+
+        // ALGEBRAIC EQUATIONS
+    mutable Vector  yerr;       // All constraint errors taken together (qerr,uerr)
+
+        // These are views into yerr.
+    mutable Vector  qerr;       // Stage::Position
+    mutable Vector  uerr;       // Stage::Velocity
 
         // Subsystem support //
 
@@ -559,8 +581,7 @@ DiscreteVariable::updValue() {
 
 
     // STATE
-State::State()
-  : rep(new StateRep()) {
+State::State() : rep(new StateRep()) {
     rep->setMyHandle(*this);
 }
 
@@ -664,8 +685,6 @@ void State::advanceSystemToStage(Stage g) const {
 
 int State::allocateQ(int subsys, const Vector& qInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateQ()");
-
-    // Map to local subsystem Q; we'll total these up later.
     const int nxt = rep->subsystems[subsys].qInit.size();
     rep->subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
     rep->subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
@@ -674,8 +693,6 @@ int State::allocateQ(int subsys, const Vector& qInit) {
 
 int State::allocateU(int subsys, const Vector& uInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateU()");
-
-    // Map to local subsystem U; we'll total these up later.
     const int nxt = rep->subsystems[subsys].uInit.size();
     rep->subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
     rep->subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
@@ -683,13 +700,25 @@ int State::allocateU(int subsys, const Vector& uInit) {
 }
 int State::allocateZ(int subsys, const Vector& zInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateZ()");
-
-    // Map to local subsystem Z; we'll total these up later.
     const int nxt = rep->subsystems[subsys].zInit.size();
     rep->subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
     rep->subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
     return nxt;
 }
+
+int State::allocateQErr(int subsys, int nqerr) {
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateQErr()");
+    const int nxt = rep->subsystems[subsys].nqerr;
+    rep->subsystems[subsys].nqerr += nqerr;
+    return nxt;
+}
+int State::allocateUErr(int subsys, int nuerr) {
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateUErr()");
+    const int nxt = rep->subsystems[subsys].nuerr;
+    rep->subsystems[subsys].nuerr += nuerr;
+    return nxt;
+}
+
 
 // Topology- and Model-stage State variables can only be added during construction; that is,
 // while stage <= Topology. Other entries can be added while stage < Model.
@@ -812,36 +841,31 @@ Vector& State::updQDotDot(int subsys) const {
     // Direct access to the global shared state and cache entries.
     // These are allocated once the System Stage is Stage::Model.
 
-const Real&
-State::getTime() const {
+const Real& State::getTime() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getTime()");
     return rep->t;
 }
 
-const Vector&
-State::getY() const {
+const Vector& State::getY() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getY()");
     return rep->y;
 }
 
-const Vector&
-State::getQ() const {
+const Vector& State::getQ() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQ()");
     return rep->q;
 }
 
-const Vector&
-State::getU() const {
+const Vector& State::getU() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getU()");
     return rep->u;
 }
 
-const Vector&
-State::getZ() const {
+const Vector& State::getZ() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZ()");
     return rep->z;
@@ -850,108 +874,134 @@ State::getZ() const {
 
 // You can call these as long as stage >= Model, but the
 // stage will be backed up if necessary to the indicated stage.
-Real&
-State::updTime() {  // Stage::Time-1
+Real& State::updTime() {  // Stage::Time-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updTime()");
     invalidateAll(Stage::Time);
     return rep->t;
 }
 
-Vector&
-State::updY() {    // Back to Stage::Position-1
+Vector& State::updY() {    // Back to Stage::Position-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updY()");
     invalidateAll(Stage::Position);
     return rep->y;
 }
 
-Vector&
-State::updQ() {    // Stage::Position-1
+Vector& State::updQ() {    // Stage::Position-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQ()");
     invalidateAll(Stage::Position);
     return rep->q;
 }
 
-Vector&
-State::updU() {     // Stage::Velocity-1
+Vector& State::updU() {     // Stage::Velocity-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updU()");
     invalidateAll(Stage::Velocity);
     return rep->u;
 }
 
-Vector&
-State::updZ() {     // Stage::Dynamics-1
+Vector& State::updZ() {     // Stage::Dynamics-1
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZ()");
     invalidateAll(Stage::Dynamics);
     return rep->z;
 }
 
-const Vector&
-State::getYDot() const {
+const Vector& State::getYDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getYDot()");
     return rep->ydot;
 }
 
-
-const Vector&
-State::getQDot() const {
+const Vector& State::getQDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "State::getQDot()");
     return rep->qdot;
 }
 
-const Vector&
-State::getZDot() const {
+const Vector& State::getZDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Dynamics, "State::getZDot()");
     return rep->zdot;
 }
 
-const Vector&
-State::getUDot() const {
+const Vector& State::getUDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getUDot()");
     return rep->udot;
 }
 
-const Vector&
-State::getQDotDot() const {
+const Vector& State::getQDotDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getQDotDot()");
     return rep->qdotdot;
 }
 
-Vector&
-State::updQDot() const {
+
+Vector& State::updYDot() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updYDot()");
+    return rep->ydot;
+}
+
+Vector& State::updQDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "State::updQDot()");
     return rep->qdot;
 }
 
-Vector&
-State::updUDot() const {
+Vector& State::updUDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updUDot()");
     return rep->udot;
 }
 
-Vector&
-State::updZDot() const {
+Vector& State::updZDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Dynamics).prev(), "State::updZDot()");
     return rep->zdot;
 }
 
-Vector&
-State::updQDotDot() const {
+Vector& State::updQDotDot() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updQDotDot()");
     return rep->qdotdot;
+}
+
+
+const Vector& State::getYErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Dynamics, "State::getYErr()");
+    return rep->yerr;
+}
+
+const Vector& State::getQErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Position, "State::getQErr()");
+    return rep->qerr;
+}
+const Vector& State::getUErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Velocity, "State::getUErr()");
+    return rep->uerr;
+}
+
+Vector& State::updYErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Dynamics).prev(), "State::updYErr()");
+    return rep->yerr;
+}
+Vector& State::updQErr() const{
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Position).prev(), "State::updQErr()");
+    return rep->qerr;
+}
+Vector& State::updUErr() const{
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "State::updUErr()");
+    return rep->uerr;
 }
 
 // You can access a Model stage variable any time, but don't access others
@@ -1083,6 +1133,9 @@ String State::cacheToString() const {
         out += "  <Vector name=zdot size=" + String(info.zdot.size()) + ">\n";
         out += "  <Vector name=qdotdot size=" + String(info.qdotdot.size()) + ">\n";
 
+        out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
+        out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
+
         out += "</Subsystem>\n";
     }
 
@@ -1110,6 +1163,17 @@ String State::cacheToString() const {
         out += String(rep->qdotdot[i]) + "\n";
     out += "</Vector>\n";
 
+    out += "<Vector name=qerr size=" + String(rep->qerr.size()) + ">";
+    if (rep->qerr.size()) out += "\n";
+    for (long i=0; i<rep->qerr.size(); ++i)
+        out += String(rep->qerr[i]) + "\n";
+    out += "</Vector>\n";
+
+    out += "<Vector name=uerr size=" + String(rep->uerr.size()) + ">";
+    if (rep->uerr.size()) out += "\n";
+    for (long i=0; i<rep->uerr.size(); ++i)
+        out += String(rep->uerr[i]) + "\n";
+    out += "</Vector>\n";
 
     out += "</Cache>\n";
     return out;

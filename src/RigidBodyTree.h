@@ -94,8 +94,8 @@ public:
     int addRigidBodyNode
         (RigidBodyNode&           parent,
          const MassProperties&    m,            // mass properties in body frame
-         const Transform&         X_PJb,        // parent's frame for attaching this joint
-         const Transform&         X_BJ,         // inboard joint frame J in body frame
+         const Transform&         X_PMb,        // parent's frame for attaching this mobilizer
+         const Transform&         X_BM,         // mobilizer frame M in body frame
          Mobilizer::MobilizerType type,
          bool                     isReversed,   // child-to-parent orientation?
          int&                     nxtU,
@@ -176,8 +176,8 @@ public:
 
     const Transform& getMobilizerPosition(const State&, int body) const;
     const SpatialVec& getMobilizerVelocity(const State&, int body) const;
-    void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const;
-    void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const;
+    void setMobilizerPosition(State&, int body, const Transform& X_MbM) const;
+    void setMobilizerVelocity(State&, int body, const SpatialVec& V_MbM) const;
 
     const Vector& getQConstraintErrors(const State& s) const {
         const SBPositionCache& cc = getPositionCache(s);
@@ -190,7 +190,7 @@ public:
     }
 
     const Vector& getUConstraintErrors(const State& s) const {
-        const SBVelocityCache& mc = getMotionCache(s);
+        const SBVelocityCache& mc = getVelocityCache(s);
         return mc.velocityConstraintErrors;
     }
     // TODO: this is unweighted, untimescaled RMS norm
@@ -221,14 +221,14 @@ public:
     }
 
 
-    void realizeTopology (State&) const;
-    void realizeModel     (State&) const;
-    void realizeInstance   (const State&) const;
-    void realizeTime         (const State&) const;
-    void realizePosition(const State&) const;
-    void realizeVelocity       (const State&) const;
-    void realizeDynamics     (const State&) const;
-    void realizeAcceleration     (const State&) const;
+    void realizeTopology    (State&) const;
+    void realizeModel       (State&) const;
+    void realizeInstance    (const State&) const;
+    void realizeTime        (const State&) const;
+    void realizePosition    (const State&) const;
+    void realizeVelocity    (const State&) const;
+    void realizeDynamics    (const State&) const;
+    void realizeAcceleration(const State&) const;
 
     Real calcKineticEnergy(const State&) const;
 
@@ -267,9 +267,9 @@ public:
         Vector&                    udot) const; 
 
     void calcMInverseF(const State& s,
-        const Vector&              f,
-        Vector_<SpatialVec>&       A_GB,
-        Vector&                    udot) const; 
+        const Vector&        f,
+        Vector_<SpatialVec>& A_GB,
+        Vector&              udot) const; 
 
     // Must be in Stage::Position to calculate qdot = Q*u.
     void calcQDot(const State& s,
@@ -427,11 +427,11 @@ public:
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).qCacheIndex)).upd();
     }
 
-    const SBVelocityCache& getMotionCache(const State& s) const {
+    const SBVelocityCache& getVelocityCache(const State& s) const {
         return Value<SBVelocityCache>::downcast
             (s.getCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).get();
     }
-    SBVelocityCache& updMotionCache(const State& s) const { //mutable
+    SBVelocityCache& updVelocityCache(const State& s) const { //mutable
         return Value<SBVelocityCache>::downcast
             (s.updCacheEntry(getMySubsystemIndex(),getModelCache(s).uCacheIndex)).upd();
     }

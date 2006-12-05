@@ -262,8 +262,8 @@ int main(int argc, char** argv) {
 
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
-        //RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        CPodesIntegrator myStudy(mbs, s);
+        RungeKuttaMerson myStudy(mbs, s, suppressProject);
+        //CPodesIntegrator myStudy(mbs, s);
         myStudy.setAccuracy(1e-3);
         myStudy.setConstraintTolerance(1e-3);
         myStudy.setProjectEveryStep(false);

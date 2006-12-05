@@ -154,7 +154,7 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // Note: (vel-pVel) is the total relative velocity; V_PB_G is that 
     // portion due just to this joint's u's.
 
-    // (sherm 060912) Caution: using T_JbB_G here is assuming that all the joints do their
+    // (sherm 060912) Caution: using T_MbB_G here is assuming that all the joints do their
     // rotations in the Jb frame *followed* by translations in the J frame.
     // I *think* you could switch the joint to work the other way and change to T_JB_G
     // in the joints and here, but I haven't tried it. TODO: this should be written
@@ -162,13 +162,13 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // do not have to be synchronized this way.
 
     const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
-    const Vec3 T_JbB_G = T_PB_G - getX_GP(cc).R()*getX_PJb().T();
-    //const Vec3 T_JB_G  = -getX_GB(cc).R()*getX_BJ().T();
+    const Vec3 T_MbB_G = T_PB_G - getX_GP(cc).R()*getX_PMb().T();
+    //const Vec3 T_JB_G  = -getX_GB(cc).R()*getX_BM().T();
     const Vec3 w_PB_G = getV_PB_G(mc)[0];
-    const Vec3 v_PB_G = getV_PB_G(mc)[1]; // includes w_PB_G % T_JbB_G term
+    const Vec3 v_PB_G = getV_PB_G(mc)[1]; // includes w_PB_G % T_MbB_G term
 
     const SpatialVec wwr = SpatialVec(Vec3(0), 
-                  pOmega % (pOmega % T_PB_G) - w_PB_G % (w_PB_G % T_JbB_G));
+                  pOmega % (pOmega % T_PB_G) - w_PB_G % (w_PB_G % T_MbB_G));
     const SpatialVec wv  = SpatialVec( pOmega % w_PB_G, 
                                        2*(omega % v_PB_G)); 
     
@@ -213,9 +213,11 @@ public:
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
-    /*virtual*/int getDOF() const { return 0; }
-    /*virtual*/int getMaxNQ() const { return 0; }
-    /*virtual*/int getNQ(const SBModelVars&) const { return 0; }
+    /*virtual*/int getDOF()   const {return 0;}
+    /*virtual*/int getMaxNQ() const {return 0;}
+    /*virtual*/int getNQ(const SBModelVars&) const {return 0;}
+    /*virtual*/int getNQuaternionConstraints(const SBModelVars&) const {return 0;}
+
 
     /*virtual*/void calcZ(
         const SBPositionCache&,
@@ -346,12 +348,12 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const Transform&      X_PJb,
-                      const Transform&      X_BJ,
+                      const Transform&      X_PMb,
+                      const Transform&      X_BM,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNode(mProps_B, X_PJb, X_BJ)
+      : RigidBodyNode(mProps_B, X_PMb, X_BM)
     {
         // don't call any virtual methods in here!
         uIndex   = nextUSlot;
@@ -395,27 +397,27 @@ public:
         Vector&            cosine, 
         Vector&            qnorm) const=0;
 
-    /// This mandatory routine calculates the across-joint transform X_JbJ generated
+    /// This mandatory routine calculates the across-joint transform X_MbM generated
     /// by the current q values. This may depend on sines & cosines or normalized
     /// quaternions already being available in the State cache.
     virtual void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const=0;
+        Transform&         X_MbM) const=0;
 
     /// This routine is NOT joint specific, but cannot be called until the across-joint
-    /// transform X_JbJ has been calculated and is available in the State cache.
+    /// transform X_MbM has been calculated and is available in the State cache.
     void calcBodyTransforms(
         const SBPositionCache& cc, 
         Transform&             X_PB, 
         Transform&             X_GB) const 
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
-        const Transform& X_JbJ = getX_JbJ(cc); // just calculated
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
+        const Transform& X_MbM = getX_MbM(cc); // just calculated
         const Transform& X_GP  = getX_GP(cc);  // already calculated
 
-        X_PB = X_PJb * X_JbJ * ~X_BJ; // TODO: precalculate X_JB
+        X_PB = X_PMb * X_MbM * ~X_BM; // TODO: precalculate X_JB
         X_GB = X_GP * X_PB;
     }
 
@@ -487,7 +489,7 @@ public:
         SBPositionCache&   cc) const 
     {
         calcJointSinCosQNorm(mv, q, cc.sq, cc.cq, cc.qnorm);
-        calcAcrossJointTransform (mv, q, updX_JbJ(cc));
+        calcAcrossJointTransform (mv, q, updX_MbM(cc));
         calcBodyTransforms       (cc, updX_PB(cc), updX_GB(cc));
         calcJointTransitionMatrix(cc, updH(cc));
         calcJointIndependentKinematicsPos(cc);
@@ -560,9 +562,10 @@ public:
         toU(u) = fromU(uIn);
     }
 
-    int          getDOF()            const { return dof; }
-    virtual int  getMaxNQ()          const { return dof; } // maxNQ can be larger than dof
-    virtual int  getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
+    int         getDOF()            const {return dof;}
+    virtual int getMaxNQ()          const {return dof;} // maxNQ can be larger than dof
+    virtual int getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
+    virtual int getNQuaternionConstraints(const SBModelVars&) const {return 0;}
 
     virtual void setVelFromSVel(
         const SBPositionCache& cc, 
@@ -779,27 +782,27 @@ public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
-                    const Transform&      X_PJb,
-                    const Transform&      X_BJ,
+                    const Transform&      X_PMb,
+                    const Transform&      X_BM,
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
         // Implementations of virtual methods.
 
-    void setMobilizerPosition(const SBModelVars&, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
                                    Vector& q) const 
     {
-        toQ(q) = X_JbJ.T();
+        toQ(q) = X_MbM.T();
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                               Vector& u) const
     {
-        toU(u) = V_JbJ[1];
+        toU(u) = V_MbM[1];
     }
 
     // This is required but does nothing here since there are no rotations for this joint.
@@ -810,15 +813,15 @@ public:
         Vector&            cosine, 
         Vector&            qnorm) const { }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         // Translation vector q is expressed in Jb (and J since they have same orientation).
         // A Cartesian joint can't change orientation. 
-        X_JbJ = Transform(Rotation(), fromQ(q));
+        X_MbM = Transform(Rotation(), fromQ(q));
     }
 
     // Calculate H.
@@ -826,14 +829,14 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const 
     {
-        const Transform& X_PJb   = getX_PJb();      // fixed config of Jb in P
+        const Transform& X_PMb   = getX_PMb();      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
         const Transform& X_GP    = getX_GP(cc); // parent orientation in ground
 
         // Note that H is spatial. The current spatial directions for our qs are
         // the axes of the Jb frame expressed in Ground.
-        const Rotation R_GJb = X_GP.R()*X_PJb.R();
+        const Rotation R_GJb = X_GP.R()*X_PMb.R();
         H[0] = SpatialRow( Row3(0), ~R_GJb.x() );
         H[1] = SpatialRow( Row3(0), ~R_GJb.y() );
         H[2] = SpatialRow( Row3(0), ~R_GJb.z() );
@@ -852,12 +855,12 @@ public:
     virtual const char* type() { return "slider"; }
 
     RBNodeSlider(const MassProperties& mProps_B,
-                 const Transform&      X_PJb,
-                 const Transform&      X_BJ,
+                 const Transform&      X_PMb,
+                 const Transform&      X_BM,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -871,15 +874,15 @@ public:
         Vector&            cosine, 
         Vector&            qnorm) const { }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         // Translation vector q is expressed in Jb (and J since they have same orientation).
         // A sliding joint can't change orientation, and only translates along x. 
-        X_JbJ = Transform(Rotation(), Vec3(from1Q(q),0,0));
+        X_MbM = Transform(Rotation(), Vec3(from1Q(q),0,0));
     }
 
     // Calculate H.
@@ -887,14 +890,14 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_PJb   = getX_PJb();      // fixed config of Jb in P
+        const Transform& X_PMb   = getX_PMb();      // fixed config of Jb in P
 
         // Calculated already since we're going base to tip.
         const Transform& X_GP    = getX_GP(cc); // parent configuration in ground
 
         // Note that H is spatial. The current spatial directions for our q is
         // the x axis of the Jb frame expressed in Ground.
-        const Vec3 x_GJb = X_GP.R()*X_PJb.x();
+        const Vec3 x_GJb = X_GP.R()*X_PMb.x();
         H[0] = SpatialRow( Row3(0), ~x_GJb );
     }
 };
@@ -910,12 +913,12 @@ public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const Transform&      X_PJb,
-                  const Transform&      X_BJ,
+                  const Transform&      X_PMb,
+                  const Transform&      X_BM,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -934,18 +937,18 @@ public:
         // no quaternions
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
         // We're only updating the orientation here because a torsion joint
         // can't translate (it is defined as a rotation about the z axis).
-        X_JbJ.updR().setToRotationAboutZ(theta);
-        X_JbJ.updT() = 0.;
+        X_MbM.updR().setToRotationAboutZ(theta);
+        X_MbM.updT() = 0.;
     }
 
     // Calculate H.
@@ -953,17 +956,17 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
 
         // Calc H matrix in space-fixed coords.
         // This works because the joint z axis is the same in J & Jb
         // since that's what we rotate around.
-        const Vec3 z_G = X_GP.R() * X_PJb.z();
+        const Vec3 z_G = X_GP.R() * X_PMb.z();
         H[0] = SpatialRow( ~z_G, ~(z_G % T_JB_G) );
     }
 };
@@ -983,12 +986,12 @@ public:
     virtual const char* type() { return "cylinder"; }
 
     RBNodeCylinder(const MassProperties& mProps_B,
-                   const Transform&      X_PJb,
-                   const Transform&      X_BJ,
+                   const Transform&      X_PMb,
+                   const Transform&      X_BM,
                    int&                  nextUSlot,
                    int&                  nextUSqSlot,
                    int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1007,16 +1010,16 @@ public:
         // no quaternions
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         const Vec2& coords  = fromQ(q);
 
-        X_JbJ.updR().setToRotationAboutZ(coords[0]);
-        X_JbJ.updT() = Vec3(0,0,coords[1]);
+        X_MbM.updR().setToRotationAboutZ(coords[0]);
+        X_MbM.updT() = Vec3(0,0,coords[1]);
     }
 
     // Calculate H.
@@ -1024,17 +1027,17 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
 
         // Calc H matrix in space-fixed coords.
         // This works because the joint z axis is the same in J & Jb
         // since that's what we rotate around.
-        const Vec3 z_GJb = X_GP.R()*X_PJb.z();
+        const Vec3 z_GJb = X_GP.R()*X_PMb.z();
         H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JB_G) );
         H[1] = SpatialRow( Row3(0), ~z_GJb );
     }
@@ -1056,12 +1059,12 @@ public:
     virtual const char* type() { return "bendstretch"; }
 
     RBNodeBendStretch(const MassProperties& mProps_B,
-                      const Transform&      X_PJb,
-                      const Transform&      X_BJ,
+                      const Transform&      X_PMb,
+                      const Transform&      X_BM,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1080,16 +1083,16 @@ public:
         // no quaternions
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
-        X_JbJ.updR().setToRotationAboutZ(coords[0]);
-        X_JbJ.updT() = X_JbJ.R()*Vec3(coords[1],0,0); // because translation is in J frame
+        X_MbM.updR().setToRotationAboutZ(coords[0]);
+        X_MbM.updT() = X_MbM.R()*Vec3(coords[1],0,0); // because translation is in J frame
     }
 
     // Calculate H.
@@ -1097,19 +1100,19 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Transform X_GJb = X_GP * X_PJb;
-        const Transform X_GJ  = X_GB * X_BJ;
+        const Transform X_GJb = X_GP * X_PMb;
+        const Transform X_GJ  = X_GB * X_BM;
 
-        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
-        //const Vec3 T_JB_G = -X_GB.R()*X_BJ.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
+        //const Vec3 T_JB_G = -X_GB.R()*X_BM.T();
 
         // Rotate around Jb's z axis, *then* translate along J's new x axis.
-        H[0] = SpatialRow( ~X_GJb.z(), ~(X_GJb.z() % T_JbB_G) );
+        H[0] = SpatialRow( ~X_GJb.z(), ~(X_GJb.z() % T_MbB_G) );
         H[1] = SpatialRow( Row3(0), ~X_GJ.x());
     }
 };
@@ -1125,12 +1128,12 @@ public:
     virtual const char* type() { return "rotate2"; }
 
     RBNodeRotate2(const MassProperties& mProps_B,
-                  const Transform&      X_PJb,
-                  const Transform&      X_BJ,
+                  const Transform&      X_PMb,
+                  const Transform&      X_BM,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1149,18 +1152,18 @@ public:
         // no quaternions
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
         const Vec2& angles  = fromQ(q); // angular coordinates
 
         // We're only updating the orientation here because a U-joint
         // can't translate.
-        X_JbJ.updR().setToSpaceFixed12(angles);
-        X_JbJ.updT() = 0.;
+        X_MbM.updR().setToSpaceFixed12(angles);
+        X_MbM.updT() = 0.;
     }
 
     // Calculate H.
@@ -1168,17 +1171,17 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
 
         // The coordinates are defined in the space-fixed (that is, Jb) frame, so
         // the orientation of Jb in ground gives the instantaneous spatial 
         // meaning of the coordinates.
-        const Rotation R_GJb = X_GP.R() * X_PJb.R();
+        const Rotation R_GJb = X_GP.R() * X_PMb.R();
         H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
         H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
     }
@@ -1198,12 +1201,12 @@ public:
     virtual const char* type() { return "diatom"; }
 
     RBNodeTranslateRotate2(const MassProperties& mProps_B,
-                           const Transform&      X_PJb,
-                           const Transform&      X_BJ,
+                           const Transform&      X_PMb,
+                           const Transform&      X_BM,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
@@ -1211,16 +1214,16 @@ public:
         // Implementations of virtual methods.
 
     // TODO: partial implementation; just translation
-    void setMobilizerPosition(const SBModelVars&, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
                               Vector& q) const 
     {
-        toQ(q).updSubVec<3>(2) = X_JbJ.T();
+        toQ(q).updSubVec<3>(2) = X_MbM.T();
     }
     // TODO: partial implementation; just translation
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                               Vector& u) const
     {
-        toU(u).updSubVec<3>(2) = V_JbJ[1];
+        toU(u).updSubVec<3>(2) = V_MbM[1];
     }
 
     // Precalculate sines and cosines.
@@ -1237,19 +1240,19 @@ public:
         // no quaternions
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const 
+        Transform&         X_MbM) const 
     {
         const Vec<5>& coords = fromQ(q);     // joint coordinates
         const Vec<2>& angles = coords.getSubVec<2>(0);
 
-        //X_JbJ.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
-        X_JbJ.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
-        X_JbJ.updT() = X_JbJ.R()*coords.getSubVec<3>(2); // because translation is in J
-        //X_JbJ.updT() = coords.getSubVec<3>(2); // because translation is in Jb
+        //X_MbM.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
+        X_MbM.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
+        X_MbM.updT() = X_MbM.R()*coords.getSubVec<3>(2); // because translation is in J
+        //X_MbM.updT() = coords.getSubVec<3>(2); // because translation is in Jb
     }
 
     // Calculate H.
@@ -1257,26 +1260,26 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Transform X_GJb = X_GP * X_PJb;
-        const Transform X_GJ  = X_GB * X_BJ;
+        const Transform X_GJb = X_GP * X_PMb;
+        const Transform X_GJ  = X_GB * X_BM;
 
         const Vec3 T_JB_G  = X_GB.T() - X_GJ.T();
-        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
 
         // The rotational coordinates are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
         // *Then* we translate along the new J frame axes.
 
-        //H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
-        //H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
-        H[0] = SpatialRow(~X_GJ.x(), ~(X_GJ.x() % T_JbB_G));
-        H[1] = SpatialRow(~X_GJ.y(), ~(X_GJ.y() % T_JbB_G));
+        //H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_MbB_G));
+        //H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_MbB_G));
+        H[0] = SpatialRow(~X_GJ.x(), ~(X_GJ.x() % T_MbB_G));
+        H[1] = SpatialRow(~X_GJ.y(), ~(X_GJ.y() % T_MbB_G));
         H[2] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
         H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
         H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.z());    
@@ -1294,29 +1297,29 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  const Transform&      X_PJb,
-                  const Transform&      X_BJ,
+                  const Transform&      X_PMb,
+                  const Transform&      X_BM,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
             //TODO
         } else {
-            toQuat(q) = X_JbJ.R().convertToQuaternion().asVec4();
+            toQuat(q) = X_MbM.R().convertToQuaternion().asVec4();
         }
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                               Vector& u) const
     {
-            toU(u) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
+            toU(u) = V_MbM[0]; // relative angular velocity always used as generalized speeds
     }
 
     // Precalculate sines and cosines.
@@ -1339,18 +1342,18 @@ public:
         }
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_JbJ) const
+        Transform&         X_MbM) const
     {
-        X_JbJ.updT() = 0.; // This joint can't translate.
+        X_MbM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_JbJ.updR().setToBodyFixed123(fromQ(q));
+            X_MbM.updR().setToBodyFixed123(fromQ(q));
         else {
             // TODO: should use qnorm pool
-            X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
     }
 
@@ -1359,17 +1362,17 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BJ.T(); // vec from OJ to OB, expr. in G
+        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
 
         // The rotational coordinates are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
-        const Rotation R_GJb = X_GP.R() * X_PJb.R();
+        const Rotation R_GJb = X_GP.R() * X_PMb.R();
         H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
         H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
         H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
@@ -1382,14 +1385,14 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const Vec3& w_JbJ = fromU(u); // angular velocity of J in Jb 
+        const Vec3& w_MbM = fromU(u); // angular velocity of J in Jb 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_JbJ = getX_JbJ(cc).R();
+            const Rotation& R_MbM = getX_MbM(cc).R();
             toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
-                                        ~R_JbJ*w_JbJ); // need w in *body*, not parent
+                                        ~R_MbM*w_MbM); // need w in *body*, not parent
         } else
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_JbJ);
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_MbM);
     }
  
     void calcQDotDot(
@@ -1400,17 +1403,17 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_JbJ     = fromU(u); // angular velocity of J in Jb, expr in Jb
-        const Vec3& w_JbJ_dot = fromU(udot);
+        const Vec3& w_MbM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const Vec3& w_MbM_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_JbJ = getX_JbJ(cc).R();
+            const Rotation& R_MbM = getX_MbM(cc).R();
             toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                  (fromQ(q), ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
+                                  (fromQ(q), ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),w_JbJ,w_JbJ_dot);
+                                  (fromQuat(q),w_MbM,w_MbM_dot);
     }
 
     void setQ(
@@ -1428,6 +1431,9 @@ public:
     int getNQ(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
+    int getNQuaternionConstraints(const SBModelVars& mv) const {
+        return getUseEulerAngles(mv) ? 0 : 1;
+    }
 
     void setDefaultPositionValues(
         const SBModelVars& mv,
@@ -1483,32 +1489,32 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const Transform&      X_PJb,
-                           const Transform&      X_BJ,
+                           const Transform&      X_PMb,
+                           const Transform&      X_BM,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<6>(mProps_B,X_PJb,X_BJ,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_JbJ,
+    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
             //TODO orientation
-            toQVec3(q,3) = X_JbJ.T(); // translation
+            toQVec3(q,3) = X_MbM.T(); // translation
         } else {
-            toQuat(q) = X_JbJ.R().convertToQuaternion().asVec4();
-            toQVec3(q,4) = X_JbJ.T();
+            toQuat(q) = X_MbM.R().convertToQuaternion().asVec4();
+            toQVec3(q,4) = X_MbM.T();
         }
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                               Vector& u) const
     {
-        toUVec3(u,0) = V_JbJ[0]; // relative angular velocity always used as generalized speeds
-        toUVec3(u,3) = V_JbJ[1];
+        toUVec3(u,0) = V_MbM[0]; // relative angular velocity always used as generalized speeds
+        toUVec3(u,3) = V_MbM[1];
     }
 
     // Precalculate sines and cosines.
@@ -1531,18 +1537,18 @@ public:
         }
     }
 
-    // Calculate X_JbJ.
+    // Calculate X_MbM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform& X_JbJ) const 
+        Transform& X_MbM) const 
     {
         if (getUseEulerAngles(mv)) {
-            X_JbJ.updR().setToBodyFixed123(fromQVec3(q,0));
-            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,3);
+            X_MbM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_MbM.updT() = X_MbM.R()*fromQVec3(q,3);
         } else {
-            X_JbJ.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_JbJ.updT() = X_JbJ.R()*fromQVec3(q,4);  // because translation is in J frame
+            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_MbM.updT() = X_MbM.R()*fromQVec3(q,4);  // because translation is in J frame
         }
     }
 
@@ -1551,24 +1557,24 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BJ  = getX_BJ();  // fixed
-        const Transform& X_PJb = getX_PJb(); // fixed
+        const Transform& X_BM  = getX_BM();  // fixed
+        const Transform& X_PMb = getX_PMb(); // fixed
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Transform X_GJb = X_GP * X_PJb;
-        const Transform X_GJ  = X_GB * X_BJ;
+        const Transform X_GJb = X_GP * X_PMb;
+        const Transform X_GJ  = X_GB * X_BM;
 
-        const Vec3 T_JbB_G = X_GB.T() - X_GJb.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
 
         // The rotational speeds are defined in the space-fixed 
         // (that is, Jb) frame, so the orientation of Jb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
         // *Then* we translate along the new J axes.
 
-        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_JbB_G));
-        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_JbB_G));
-        H[2] = SpatialRow(~X_GJb.z(), ~(X_GJb.z() % T_JbB_G));
+        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_MbB_G));
+        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_MbB_G));
+        H[2] = SpatialRow(~X_GJb.z(), ~(X_GJb.z() % T_MbB_G));
         H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
         H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
         H[5] = SpatialRow(  Row3(0) ,     ~X_GJ.z());
@@ -1581,19 +1587,19 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
-        const Vec3& w_JbJ = fromUVec3(u,0); // Angular velocity
-        const Vec3& v_JbJ = fromUVec3(u,3); // Linear velocity
+        const Vec3& w_MbM = fromUVec3(u,0); // Angular velocity
+        const Vec3& v_MbM = fromUVec3(u,3); // Linear velocity
         if (getUseEulerAngles(mv)) {
-            const Rotation& R_JbJ = getX_JbJ(cc).R();
+            const Rotation& R_MbM = getX_MbM(cc).R();
             const Vec3& theta = fromQVec3(q,0); // Euler angles
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
-                                            ~R_JbJ*w_JbJ); // need w in *body*, not parent
+                                            ~R_MbM*w_MbM); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdot,3) = v_JbJ;
+            toQVec3(qdot,3) = v_MbM;
         } else {
             const Vec4& quat = fromQuat(q);
-            toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,w_JbJ);
-            toQVec3(qdot,4) = v_JbJ;
+            toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,w_MbM);
+            toQVec3(qdot,4) = v_MbM;
         }
     }
  
@@ -1605,24 +1611,24 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_JbJ     = fromUVec3(u,0); // angular velocity of J in Jb
-        const Vec3& v_JbJ     = fromUVec3(u,3); // linear velocity
-        const Vec3& w_JbJ_dot = fromUVec3(udot,0);
-        const Vec3& v_JbJ_dot = fromUVec3(udot,3);
+        const Vec3& w_MbM     = fromUVec3(u,0); // angular velocity of J in Jb
+        const Vec3& v_MbM     = fromUVec3(u,3); // linear velocity
+        const Vec3& w_MbM_dot = fromUVec3(udot,0);
+        const Vec3& v_MbM_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(mv)) {
-            const Rotation& R_JbJ = getX_JbJ(cc).R();
+            const Rotation& R_MbM = getX_MbM(cc).R();
             const Vec3& theta  = fromQVec3(q,0); // Euler angles
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                             (theta, ~R_JbJ*w_JbJ, ~R_JbJ*w_JbJ_dot);
+                                             (theta, ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdotdot,3) = v_JbJ_dot;
-            //cout << "   w_JbJ_dot=" << w_JbJ_dot << "  v_JbJ_dot=" << v_JbJ_dot << endl;
+            toQVec3(qdotdot,3) = v_MbM_dot;
+            //cout << "   w_MbM_dot=" << w_MbM_dot << "  v_MbM_dot=" << v_MbM_dot << endl;
             //cout << "   qdotdot=" << fromQVec3(qdotdot,0) << endl;
         } else {
             const Vec4& quat  = fromQuat(q);
             toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
-                                             (quat,w_JbJ,w_JbJ_dot);
-            toQVec3(qdotdot,4) = v_JbJ_dot;
+                                             (quat,w_MbM,w_MbM_dot);
+            toQVec3(qdotdot,4) = v_MbM_dot;
         }
     }
 
@@ -1637,6 +1643,9 @@ public:
 
     int getMaxNQ()                   const {return 7;}
     int getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    int getNQuaternionConstraints(const SBModelVars& mv) const {
+        return getUseEulerAngles(mv) ? 0 : 1;
+    }
 
     void setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
     {
@@ -1687,8 +1696,8 @@ public:
 /*static*/ RigidBodyNode*
 RigidBodyNode::create(
     const MassProperties&    m,            // mass properties in body frame
-    const Transform&         X_PJb,        // parent's attachment frame for this joint
-    const Transform&         X_BJ,         // inboard joint frame J in body frame
+    const Transform&         X_PMb,        // parent's attachment frame for this joint
+    const Transform&         X_BM,         // inboard joint frame J in body frame
     Mobilizer::MobilizerType type,
     bool                     isReversed,   // child-to-parent orientation?
     int&                     nxtUSlot,
@@ -1701,23 +1710,23 @@ RigidBodyNode::create(
     case Mobilizer::ThisIsGround:
         return new RBGroundBody();
     case Mobilizer::Torsion:
-        return new RBNodeTorsion(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTorsion(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Universal:        
-        return new RBNodeRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeRotate2(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Orientation:
-        return new RBNodeRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Cartesian:
-        return new RBNodeTranslate(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTranslate(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::FreeLine:
-        return new RBNodeTranslateRotate2(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTranslateRotate2(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Free:
-        return new RBNodeTranslateRotate3(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeTranslateRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Sliding:
-        return new RBNodeSlider(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeSlider(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Cylinder:
-        return new RBNodeCylinder(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeCylinder(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::BendStretch:
-        return new RBNodeBendStretch(m,X_PJb,X_BJ,nxtUSlot,nxtUSqSlot,nxtQSlot);
+        return new RBNodeBendStretch(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
     case Mobilizer::Planar:
     case Mobilizer::Gimbal:
     case Mobilizer::Weld:

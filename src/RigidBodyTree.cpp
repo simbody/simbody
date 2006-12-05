@@ -66,15 +66,15 @@ RigidBodyTree::~RigidBodyTree() {
 int RigidBodyTree::addRigidBodyNode
     (RigidBodyNode&           parent,
      const MassProperties&    m,            // mass properties in body frame
-     const Transform&         X_PJb,        // parent's frame for attaching this joint
-     const Transform&         X_BJ,         // inboard joint frame J in body frame
+     const Transform&         X_PMb,        // parent's frame for attaching this joint
+     const Transform&         X_BM,         // inboard joint frame J in body frame
      Mobilizer::MobilizerType type,
      bool                     isReversed,   // child-to-parent orientation?
      int&                     nxtU,
      int&                     nxtUSq,
      int&                     nxtQ)
 {
-    RigidBodyNode* n = RigidBodyNode::create(m,X_PJb,X_BJ,type,isReversed,nxtU,nxtUSq,nxtQ);
+    RigidBodyNode* n = RigidBodyNode::create(m,X_PMb,X_BM,type,isReversed,nxtU,nxtUSq,nxtQ);
     const int level = parent.getLevel() + 1;
     n->setLevel(level);
 
@@ -163,6 +163,66 @@ int RigidBodyTree::addOneDistanceConstraintEquation(
     return distanceConstraints.size()-1;
 }
 
+int RigidBodyTree::getParent(int body) const { 
+    return getRigidBodyNode(body).getParent()->getNodeNum();
+}
+
+Array<int> RigidBodyTree::getChildren(int body) const {
+    const RigidBodyNode& node = getRigidBodyNode(body);
+    Array<int> children;
+    for (int i=0; i < node.getNChildren(); ++i)
+        children += node.getChild(i)->getNodeNum();
+    return children;
+}
+
+const Real&
+RigidBodyTree::getBodyMass(const State&, int body) const
+  { return getRigidBodyNode(body).getMass(); }
+
+const Vec3&
+RigidBodyTree::getBodyCenterOfMassStation(const State&, int body) const
+  { return getRigidBodyNode(body).getCOM_B(); }
+
+
+const Transform&
+RigidBodyTree::getMobilizerFrame(const State&, int body) const
+  { return getRigidBodyNode(body).getX_BM(); }
+
+const Transform&
+RigidBodyTree::getMobilizerFrameOnParent(const State&, int body) const
+  { return getRigidBodyNode(body).getX_PMb(); }
+
+const Transform&
+RigidBodyTree::getBodyPosition(const State& s, int body) const
+  { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
+
+const SpatialVec&
+RigidBodyTree::getBodyVelocity(const State& s, int body) const {
+  return getRigidBodyNode(body).getV_GB(getVelocityCache(s));
+}
+
+const SpatialVec&
+RigidBodyTree::getCoriolisAcceleration(const State& s, int body) const {
+  return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
+}
+const SpatialVec&
+RigidBodyTree::getTotalCoriolisAcceleration(const State& s, int body) const {
+  return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
+}
+const SpatialVec&
+RigidBodyTree::getGyroscopicForce(const State& s, int body) const {
+  return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
+}
+const SpatialVec&
+RigidBodyTree::getCentrifugalForces(const State& s, int body) const {
+  return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
+}
+
+const SpatialMat&
+RigidBodyTree::getArticulatedBodyInertia(const State& s, int body) const {
+  return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
+}
+
 // Here we lock in the topological structure of the multibody system,
 // and compute allocation sizes we're going to need later for state
 // variables and cache entries. We allocate and initialize all the
@@ -190,67 +250,6 @@ void RigidBodyTree::endConstruction() {
     lConstraints = new LengthConstraints(*this, 0);
     lConstraints->construct(distanceConstraints);
     built = true;
-}
-
-
-int RigidBodyTree::getParent(int body) const { 
-    return getRigidBodyNode(body).getParent()->getNodeNum();
-}
-
-Array<int> RigidBodyTree::getChildren(int body) const {
-    const RigidBodyNode& node = getRigidBodyNode(body);
-    Array<int> children;
-    for (int i=0; i < node.getNChildren(); ++i)
-        children += node.getChild(i)->getNodeNum();
-    return children;
-}
-
-const Real&
-RigidBodyTree::getBodyMass(const State&, int body) const
-  { return getRigidBodyNode(body).getMass(); }
-
-const Vec3&
-RigidBodyTree::getBodyCenterOfMassStation(const State&, int body) const
-  { return getRigidBodyNode(body).getCOM_B(); }
-
-
-const Transform&
-RigidBodyTree::getMobilizerFrame(const State&, int body) const
-  { return getRigidBodyNode(body).getX_BJ(); }
-
-const Transform&
-RigidBodyTree::getMobilizerFrameOnParent(const State&, int body) const
-  { return getRigidBodyNode(body).getX_PJb(); }
-
-const Transform&
-RigidBodyTree::getBodyPosition(const State& s, int body) const
-  { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
-
-const SpatialVec&
-RigidBodyTree::getBodyVelocity(const State& s, int body) const {
-  return getRigidBodyNode(body).getV_GB(getMotionCache(s));
-}
-
-const SpatialVec&
-RigidBodyTree::getCoriolisAcceleration(const State& s, int body) const {
-  return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
-}
-const SpatialVec&
-RigidBodyTree::getTotalCoriolisAcceleration(const State& s, int body) const {
-  return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
-}
-const SpatialVec&
-RigidBodyTree::getGyroscopicForce(const State& s, int body) const {
-  return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
-}
-const SpatialVec&
-RigidBodyTree::getCentrifugalForces(const State& s, int body) const {
-  return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
-}
-
-const SpatialMat&
-RigidBodyTree::getArticulatedBodyInertia(const State& s, int body) const {
-  return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
 void RigidBodyTree::realizeTopology(State& s) const {
@@ -304,12 +303,12 @@ void RigidBodyTree::realizeModel(State& s) const {
     SimTK_STAGECHECK_LT_ALWAYS(getStage(s), Stage(Stage::Model), 
         "RigidBodyTree::realizeModel()");
 
-    const SBModelVars&   mv = getModelVars(s);
+    const SBModelVars& mv = getModelVars(s);
 
     // Get the Modeling-stage cache and make sure it has been allocated and initialized if needed.
     // It is OK to hold a reference here because the discrete variables (and cache entries) in
     // the State are stable, that is, they don't change even if more variables are added.
-    SBModelCache&        mc = updModelCache(s);
+    SBModelCache& mc = updModelCache(s);
     mc.allocate(topologyCache);
 
     // Give the bodies a chance to put something in the cache if they need to.
@@ -317,16 +316,24 @@ void RigidBodyTree::realizeModel(State& s) const {
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeModel(mv,mc); 
 
+    // Count quaternion constraints (we can't know how many until this stage because
+    // there is a modeling variable which decides whether ball joints get quaternions
+    // or Euler angles).
+    mc.nQuaternionConstraints = 0;
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
+            mc.nQuaternionConstraints += rbNodeLevels[i][j]->getNQuaternionConstraints(mv); 
+
     // Now allocate all remaining variables and cache entries. We can properly initialize only
     // the next stage, the parameters. Everything else gets some kind of meaningless initial
     // values but those could change as we realize the higher stages.
-    SBInstanceVars pv;
-    pv.allocate(topologyCache);
-    setDefaultInstanceValues(mv, pv);
+    SBInstanceVars iv;
+    iv.allocate(topologyCache);
+    setDefaultInstanceValues(mv, iv);
 
     mc.instanceVarsIndex = 
         s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Instance, 
-                                   new Value<SBInstanceVars>(pv));
+                                   new Value<SBInstanceVars>(iv));
     mc.instanceCacheIndex = 
         s.allocateCacheEntry(getMySubsystemIndex(),Stage::Instance, 
                              new Value<SBInstanceCache>());
@@ -344,6 +351,8 @@ void RigidBodyTree::realizeModel(State& s) const {
     mc.qVarsIndex = -1; // no config vars other than q
     mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Position, 
         new Value<SBPositionCache>());
+    mc.qErrIndex = s.allocateQErr(getMySubsystemIndex(), 
+                                  mc.nQuaternionConstraints + topologyCache.nDistanceConstraints);
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
@@ -356,6 +365,7 @@ void RigidBodyTree::realizeModel(State& s) const {
     mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Velocity, 
         new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
+    mc.uErrIndex = s.allocateUErr(getMySubsystemIndex(), topologyCache.nDistanceConstraints);
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -392,16 +402,16 @@ void RigidBodyTree::realizeInstance(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "RigidBodyTree::realizeInstance()");
 
-    const SBModelVars&  mv = getModelVars(s);
-    const SBInstanceVars& pv = getInstanceVars(s);
+    const SBModelVars&    mv = getModelVars(s);
+    const SBInstanceVars& iv = getInstanceVars(s);
 
     // Get the Instance-stage cache and make sure it has been allocated and initialized if needed.
-    SBInstanceCache& pc = updInstanceCache(s);
-    pc.allocate(topologyCache);
+    SBInstanceCache& ic = updInstanceCache(s);
+    ic.allocate(topologyCache);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeInstance(mv,pv,pc); 
+            rbNodeLevels[i][j]->realizeInstance(mv,iv,ic); 
 }
 
 void RigidBodyTree::realizeTime(const State& s) const {
@@ -417,18 +427,18 @@ void RigidBodyTree::realizePosition(const State& s) const {
         "RigidBodyTree::realizePosition()");
 
     const SBModelVars& mv = getModelVars(s);
-    const Vector&         q  = getQ(s);
+    const Vector&      q  = getQ(s);
 
     // Get the Position-stage cache and make sure it has been allocated and initialized if needed.
-    SBPositionCache& cc = updPositionCache(s);
-    cc.allocate(topologyCache);
+    SBPositionCache& pc = updPositionCache(s);
+    pc.allocate(topologyCache);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizePosition(mv,q,cc); 
+            rbNodeLevels[i][j]->realizePosition(mv,q,pc); 
 
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcPosInfo(cc);
+        distanceConstraints[i]->calcPosInfo(pc);
 }
 
 // Set generalized speeds: sweep from base to tip.
@@ -437,22 +447,23 @@ void RigidBodyTree::realizeVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "RigidBodyTree::realizeVelocity()");
 
-    const SBModelVars&       mv = getModelVars(s);
-    const Vector&               q  = getQ(s);
-    const SBPositionCache& cc = getPositionCache(s);
-    const Vector&               u  = getU(s);
+    const SBModelVars&     mv = getModelVars(s);
+    const Vector&          q  = getQ(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const Vector&          u  = getU(s);
 
     // Get the Motion-stage cache and make sure it has been allocated and initialized if needed.
-    SBVelocityCache&              mc   = updMotionCache(s);
-    mc.allocate(topologyCache);
-    Vector&                     qdot = updQDot(s);
+    SBVelocityCache&       vc = updVelocityCache(s);
+    vc.allocate(topologyCache);
+
+    Vector& qdot = updQDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizeVelocity(mv,q,cc,u,mc,qdot); 
+            rbNodeLevels[i][j]->realizeVelocity(mv,q,pc,u,vc,qdot); 
 
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcVelInfo(cc,mc);
+        distanceConstraints[i]->calcVelInfo(pc,vc);
 }
 
 
@@ -465,8 +476,8 @@ void RigidBodyTree::realizeVelocity(const State& s) const {
 void RigidBodyTree::realizeDynamics(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "RigidBodyTree::realizeDynamics()");
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBVelocityCache&        mc = getMotionCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBVelocityCache& vc = getVelocityCache(s);
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
     SBDynamicsCache&            dc = updDynamicsCache(s);
@@ -475,7 +486,7 @@ void RigidBodyTree::realizeDynamics(const State& s)  const {
     calcArticulatedBodyInertias(s);
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(cc,mc,dc);
+            rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(pc,vc,dc);
 
     // Now total up all the forces
     // TODO: this shouldn't be copying!!
@@ -492,10 +503,10 @@ void RigidBodyTree::realizeAcceleration(const State& s)  const {
         "RigidBodyTree::realizeAcceleration()");
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
-    Vector&             udot    = updUDot(s);
-    Vector&             qdotdot = updQDotDot(s);
-    SBAccelerationCache&    rc      = updAccelerationCache(s);
-    rc.allocate(topologyCache);
+    Vector&              udot    = updUDot(s);
+    Vector&              qdotdot = updQDotDot(s);
+    SBAccelerationCache& ac      = updAccelerationCache(s);
+    ac.allocate(topologyCache);
 
     calcLoopForwardDynamics(s);
     calcQDotDot(s, udot, qdotdot);
@@ -515,7 +526,7 @@ int RigidBodyTree::getDOF   (int body) const
 // We pass in the partially-completed Construction-stage cache, which must have all
 // the dimensions properly filled in at this point.
 void RigidBodyTree::setDefaultModelValues(const SBTopologyCache& topologyCache, 
-                                             SBModelVars& modelVars) const 
+                                          SBModelVars& modelVars) const 
 {
     // Tree-level defaults
     modelVars.useEulerAngles = false;
@@ -534,7 +545,7 @@ void RigidBodyTree::setDefaultModelValues(const SBTopologyCache& topologyCache,
 }
 
 void RigidBodyTree::setDefaultInstanceValues(const SBModelVars& mv, 
-                                              SBInstanceVars& paramVars) const 
+                                             SBInstanceVars& paramVars) const 
 {
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
@@ -663,24 +674,24 @@ void RigidBodyTree::setMobilizerU(State& s, int body, int axis, const Real& r) c
 const Transform& RigidBodyTree::getMobilizerPosition(const State& s, int body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
-    return n.getX_JbJ(cc);
+    return n.getX_MbM(cc);
 }
 const SpatialVec& RigidBodyTree::getMobilizerVelocity(const State& s, int body) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBVelocityCache& mc = getMotionCache(s);
-    return n.getV_JbJ(mc);
+    const SBVelocityCache& mc = getVelocityCache(s);
+    return n.getV_MbM(mc);
 }
-void RigidBodyTree::setMobilizerPosition(State& s, int body, const Transform& X_JbJ) const { 
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    const SBModelVars& mv = getModelVars(s);
+void RigidBodyTree::setMobilizerPosition(State& s, int body, const Transform& X_MbM) const { 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
-    n.setMobilizerPosition(mv, X_JbJ, q);
+    n.setMobilizerPosition(mv, X_MbM, q);
 }
-void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    const SBModelVars& mv = getModelVars(s);
+void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V_MbM) const { 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
     Vector& u = updU(s);
-    n.setMobilizerVelocity(mv, V_JbJ, u);
+    n.setMobilizerVelocity(mv, V_MbM, u);
 }
 
 void RigidBodyTree::addInStationForce(const State& s, int body, 
@@ -727,7 +738,7 @@ RigidBodyTree::getBodyAcceleration(const State& s, int body) const
 
 void RigidBodyTree::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
     const SBModelVars& mv = getModelVars(s);
-    Vector&               q  = updQ(s); //TODO: this invalidates q's already
+    Vector&            q  = updQ(s); //TODO: this invalidates q's already
 
     bool anyChange = false;
  
@@ -773,8 +784,8 @@ void RigidBodyTree::calcTreeForwardDynamics(
     const Vector_<SpatialVec>* extraBodyForces) const
 {
     const SBPositionCache& cc = getPositionCache(s);
-    const SBVelocityCache&        mc = getMotionCache(s);
-    const SBDynamicsCache&      dc = getDynamicsCache(s);
+    const SBVelocityCache& mc = getVelocityCache(s);
+    const SBDynamicsCache& dc = getDynamicsCache(s);
 
     Vector              totalMobilityForces;
     Vector_<SpatialVec> totalBodyForces;
@@ -797,7 +808,7 @@ void RigidBodyTree::calcTreeForwardDynamics(
     }
 
     // outputs
-    SBAccelerationCache&     rc             = updAccelerationCache(s);
+    SBAccelerationCache& rc             = updAccelerationCache(s);
     Vector&              netHingeForces = rc.netHingeForces;
     Vector_<SpatialVec>& A_GB           = rc.bodyAccelerationInGround;
 
@@ -832,13 +843,13 @@ void RigidBodyTree::calcLoopForwardDynamics(const State& s) const
 //     traverse back to node which has more than one child hinge.
 //   }
 void RigidBodyTree::calcArticulatedBodyInertias(const State& s) const {
-    const SBPositionCache& cc = getPositionCache(s);
-    SBDynamicsCache&            dc = updDynamicsCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    SBDynamicsCache&       dc = updDynamicsCache(s);
 
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(cc,dc);
+            rbNodeLevels[i][j]->calcArticulatedBodyInertiasInward(pc,dc);
 }
 
 // should be:
@@ -848,44 +859,44 @@ void RigidBodyTree::calcArticulatedBodyInertias(const State& s) const {
 void RigidBodyTree::calcZ(const State& s, 
                           const SpatialVecList& spatialForces) const
 {
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBDynamicsCache&      dc = getDynamicsCache(s);
-    SBAccelerationCache&            rc = updAccelerationCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBDynamicsCache& dc = getDynamicsCache(s);
+    SBAccelerationCache&   ac = updAccelerationCache(s);
 
 
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(cc,dc,spatialForces[node.getNodeNum()], rc);
+            node.calcZ(pc,dc,spatialForces[node.getNodeNum()], ac);
         }
 }
 
 // Y is used for length constraints: sweep from base to tip.
 void RigidBodyTree::calcY(const State& s) const {
-    const SBPositionCache& cc = getPositionCache(s);
-    SBDynamicsCache&            dc = updDynamicsCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    SBDynamicsCache&       dc = updDynamicsCache(s);
 
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcYOutward(cc,dc);
+            rbNodeLevels[i][j]->calcYOutward(pc,dc);
 }
 
 // Calc acceleration: sweep from base to tip.
 void RigidBodyTree::calcTreeAccel(const State& s) const {
-    const SBModelVars&       mv      = getModelVars(s);
-    const Vector&               q       = getQ(s);
-    const SBPositionCache& cc      = getPositionCache(s);
-    const Vector&               u       = getU(s);
-    const SBDynamicsCache&      dc      = getDynamicsCache(s);
+    const SBModelVars&     mv      = getModelVars(s);
+    const Vector&          q       = getQ(s);
+    const SBPositionCache& pc      = getPositionCache(s);
+    const Vector&          u       = getU(s);
+    const SBDynamicsCache& dc      = getDynamicsCache(s);
 
-    SBAccelerationCache&            rc      = updAccelerationCache(s);
-    Vector&                     udot    = updUDot(s);
-    Vector&                     qdotdot = updQDotDot(s);
+    SBAccelerationCache&   ac      = updAccelerationCache(s);
+    Vector&                udot    = updUDot(s);
+    Vector&                qdotdot = updQDotDot(s);
 
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcAccel(mv,q,cc,u,dc,rc,udot,qdotdot);
+            rbNodeLevels[i][j]->calcAccel(mv,q,pc,u,dc,ac,udot,qdotdot);
 }
 
 void RigidBodyTree::fixVel0(State& s, Vector& vel) const {
@@ -893,15 +904,15 @@ void RigidBodyTree::fixVel0(State& s, Vector& vel) const {
 }
 
 Real RigidBodyTree::calcKineticEnergy(const State& s) const {
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBVelocityCache&        mc = getMotionCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBVelocityCache& vc = getVelocityCache(s);
 
     Real ke = 0.;
 
     // Skip ground level 0!
     for (int i=1 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            ke += rbNodeLevels[i][j]->calcKineticEnergy(cc,mc);
+            ke += rbNodeLevels[i][j]->calcKineticEnergy(pc,vc);
 
     return ke;
 }
@@ -916,8 +927,8 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBDynamicsCache&      dc = getDynamicsCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBDynamicsCache& dc = getDynamicsCache(s);
 
     assert(jointForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNBodies());
@@ -933,7 +944,7 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass1Inward(cc,dc,
+            node.calcUDotPass1Inward(pc,dc,
                 jointForces, bodyForces, allZ, allGepsilon,
                 netHingeForces);
         }
@@ -941,7 +952,7 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcUDotPass2Outward(cc,dc, netHingeForces, A_GB, udot);
+            node.calcUDotPass2Outward(pc,dc, netHingeForces, A_GB, udot);
         }
 }
 
@@ -954,8 +965,8 @@ void RigidBodyTree::calcMInverseF(const State& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBDynamicsCache&      dc = getDynamicsCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBDynamicsCache& dc = getDynamicsCache(s);
 
     assert(f.size() == getTotalDOF());
 
@@ -970,7 +981,7 @@ void RigidBodyTree::calcMInverseF(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass1Inward(cc,dc,
+            node.calcMInverseFPass1Inward(pc,dc,
                 f, allZ, allGepsilon,
                 allEpsilon);
         }
@@ -978,16 +989,16 @@ void RigidBodyTree::calcMInverseF(const State& s,
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcMInverseFPass2Outward(cc,dc, allEpsilon, A_GB, udot);
+            node.calcMInverseFPass2Outward(pc,dc, allEpsilon, A_GB, udot);
         }
 }
 
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
-    const SBModelVars&       mv = getModelVars(s);
-    const Vector&               q  = getQ(s);
-    const SBPositionCache& cc = getPositionCache(s);
+    const SBModelVars&     mv = getModelVars(s);
+    const Vector&          q  = getQ(s);
+    const SBPositionCache& pc = getPositionCache(s);
 
     assert(u.size() == getTotalDOF());
     qdot.resize(getTotalQAlloc());
@@ -995,15 +1006,15 @@ void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) cons
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDot(mv,q,cc, u, qdot);
+            rbNodeLevels[i][j]->calcQDot(mv,q,pc, u, qdot);
 }
 
 // Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
 void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
-    const SBModelVars&       mv = getModelVars(s);
-    const Vector&               q  = getQ(s);
-    const SBPositionCache& cc = getPositionCache(s);
-    const Vector&               u  = getU(s);
+    const SBModelVars&     mv = getModelVars(s);
+    const Vector&          q  = getQ(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const Vector&          u  = getU(s);
 
     assert(udot.size() == getTotalDOF());
     qdotdot.resize(getTotalQAlloc());
@@ -1011,7 +1022,7 @@ void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdot
     // Skip ground; it doesn't have qdots!
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->calcQDotDot(mv,q,cc,u, udot, qdotdot);
+            rbNodeLevels[i][j]->calcQDotDot(mv,q,pc,u, udot, qdotdot);
 }
 
 // If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
@@ -1027,7 +1038,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
 {
     assert(X.size() == getNBodies());
 
-    const SBPositionCache& cc = getPositionCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
 
     Vector_<SpatialVec> zTemp(getNBodies()); zTemp.setToZero();
     JX.resize(getTotalDOF());
@@ -1035,7 +1046,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcInternalGradientFromSpatial(cc, zTemp, X, JX);
+            node.calcInternalGradientFromSpatial(pc, zTemp, X, JX);
         }
 }
 
@@ -1046,8 +1057,8 @@ void RigidBodyTree::calcTreeEquivalentMobilityForces(const State& s,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    mobilityForces) const
 {
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBDynamicsCache&      dc = getDynamicsCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBDynamicsCache& dc = getDynamicsCache(s);
 
     assert(bodyForces.size() == getNBodies());
     mobilityForces.resize(getTotalDOF());
@@ -1058,7 +1069,7 @@ void RigidBodyTree::calcTreeEquivalentMobilityForces(const State& s,
     for (int i=rbNodeLevels.size()-1 ; i>0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcEquivalentJointForces(cc,dc,
+            node.calcEquivalentJointForces(pc,dc,
                 bodyForces, allZ,
                 mobilityForces);
         }

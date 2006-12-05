@@ -103,47 +103,47 @@ public:
 
         // TOPOLOGICAL INFO: no State needed
 
-    RigidBodyNode*   getParent() const {return parent;}
-    int              getNChildren()  const {return (int)children.size();}
-    RigidBodyNode*   getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
+    RigidBodyNode* getParent() const {return parent;}
+    int            getNChildren()  const {return (int)children.size();}
+    RigidBodyNode* getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
     /// Return this node's level, that is, how many ancestors separate it from
     /// the Ground node at level 0. Level 1 nodes (directly connected to the
     /// Ground node) are called 'base' nodes.
-    int              getLevel() const  {return level;}
+    int  getLevel() const  {return level;}
 
-    int              getNodeNum() const {return nodeNum;}
+    int  getNodeNum() const {return nodeNum;}
 
-    bool             isGroundNode() const { return level==0; }
-    bool             isBaseNode()   const { return level==1; }
+    bool isGroundNode() const { return level==0; }
+    bool isBaseNode()   const { return level==1; }
 
-    int              getUIndex() const {return uIndex;}
-    int              getQIndex() const {return qIndex;}
+    int  getUIndex() const {return uIndex;}
+    int  getQIndex() const {return qIndex;}
 
     // Access routines for plucking the right per-body data from the pool in the State.
-    const Transform&    fromB(const std::vector<Transform>&    x) const {return x[nodeNum];}
-    const Transform&    fromB(const Array<Transform>&          x) const {return x[nodeNum];}
-    const PhiMatrix&    fromB(const std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
-    const PhiMatrix&    fromB(const Array<PhiMatrix>&          p) const {return p[nodeNum];}
-    const Inertia&   fromB(const std::vector<Inertia>&   i) const {return i[nodeNum];}
-    const Inertia&   fromB(const Array<Inertia>&         i) const {return i[nodeNum];}
-    int                 fromB(const std::vector<int>&          i) const {return i[nodeNum];}
-    int                 fromB(const Array<int>&                i) const {return i[nodeNum];}
-    const SpatialVec&   fromB(const Vector_<SpatialVec>&       v) const {return v[nodeNum];}
-    const SpatialMat&   fromB(const Vector_<SpatialMat>&       m) const {return m[nodeNum];}
-    const Vec3&         fromB(const Vector_<Vec3>&             v) const {return v[nodeNum];}
+    const Transform&  fromB(const std::vector<Transform>& x) const {return x[nodeNum];}
+    const Transform&  fromB(const Array<Transform>&       x) const {return x[nodeNum];}
+    const PhiMatrix&  fromB(const std::vector<PhiMatrix>& p) const {return p[nodeNum];}
+    const PhiMatrix&  fromB(const Array<PhiMatrix>&       p) const {return p[nodeNum];}
+    const Inertia&    fromB(const std::vector<Inertia>&   i) const {return i[nodeNum];}
+    const Inertia&    fromB(const Array<Inertia>&         i) const {return i[nodeNum];}
+    int               fromB(const std::vector<int>&       i) const {return i[nodeNum];}
+    int               fromB(const Array<int>&             i) const {return i[nodeNum];}
+    const SpatialVec& fromB(const Vector_<SpatialVec>&    v) const {return v[nodeNum];}
+    const SpatialMat& fromB(const Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+    const Vec3&       fromB(const Vector_<Vec3>&          v) const {return v[nodeNum];}
 
-    Transform&    toB(std::vector<Transform>&    x) const {return x[nodeNum];}
-    Transform&    toB(Array<Transform>&          x) const {return x[nodeNum];}
-    PhiMatrix&    toB(std::vector<PhiMatrix>&    p) const {return p[nodeNum];}
-    PhiMatrix&    toB(Array<PhiMatrix>&          p) const {return p[nodeNum];}
-    Inertia&   toB(std::vector<Inertia>&   i) const {return i[nodeNum];}
-    Inertia&   toB(Array<Inertia>&         i) const {return i[nodeNum];}
-    int&          toB(std::vector<int>&          i) const {return i[nodeNum];}
-    int&          toB(Array<int>&                i) const {return i[nodeNum];}
-    SpatialVec&   toB(Vector_<SpatialVec>&       v) const {return v[nodeNum];}
-    SpatialMat&   toB(Vector_<SpatialMat>&       m) const {return m[nodeNum];}
-    Vec3&         toB(Vector_<Vec3>&             v) const {return v[nodeNum];}
+    Transform&  toB(std::vector<Transform>& x) const {return x[nodeNum];}
+    Transform&  toB(Array<Transform>&       x) const {return x[nodeNum];}
+    PhiMatrix&  toB(std::vector<PhiMatrix>& p) const {return p[nodeNum];}
+    PhiMatrix&  toB(Array<PhiMatrix>&       p) const {return p[nodeNum];}
+    Inertia&    toB(std::vector<Inertia>&   i) const {return i[nodeNum];}
+    Inertia&    toB(Array<Inertia>&         i) const {return i[nodeNum];}
+    int&        toB(std::vector<int>&       i) const {return i[nodeNum];}
+    int&        toB(Array<int>&             i) const {return i[nodeNum];}
+    SpatialVec& toB(Vector_<SpatialVec>&    v) const {return v[nodeNum];}
+    SpatialMat& toB(Vector_<SpatialMat>&    m) const {return m[nodeNum];}
+    Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
 
         // MODELING INFO
     const bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
@@ -155,28 +155,28 @@ public:
     const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&           getMass          () const {return massProps_B.getMass();}
     const Vec3&           getCOM_B         () const {return massProps_B.getCOM();}
-    const Inertia&     getInertia_OB_B  () const {return massProps_B.getInertia();}
-    const Transform&      getX_BJ          () const {return X_BJ;}
-    const Transform&      getX_PJb         () const {return X_PJb;}
+    const Inertia&        getInertia_OB_B  () const {return massProps_B.getInertia();}
+    const Transform&      getX_BM          () const {return X_BM;}
+    const Transform&      getX_PMb         () const {return X_PMb;}
 
     // These are calculated on construction.
-    const Inertia&     getInertia_CB_B  () const {return inertia_CB_B;}
-    const Transform&      getX_JB          () const {return X_JB;}
+    const Inertia&        getInertia_CB_B  () const {return inertia_CB_B;}
+    const Transform&      getX_MB          () const {return X_MB;}
     const Transform&      getRefX_PB       () const {return refX_PB;}
 
         // CONFIGURATION INFO
 
-    /// Extract from the cache  X_JbJ, the cross-joint transformation matrix giving the configuration
-    /// of this body's inboard joint frame J, measured from and expressed in the corresponding outboard
-    /// joint frame Jb attached to the parent. This transformation is defined to be zero (that is, Jb=J)
+    /// Extract from the cache  X_MbM, the cross-mobilizer transformation matrix giving the configuration
+    /// of this body's mobilizer frame M, measured from and expressed in the corresponding outboard
+    /// mobilizer frame Mb attached to the parent. This transformation is defined to be zero (that is, Mb=M)
     /// in the reference configuration where the joint coordinates are all 0 (or 1,0,0,0 for quaternions).
-    /// This is NOT a spatial transformation.
-    const Transform& getX_JbJ(const SBPositionCache& cc) const {return fromB(cc.bodyJointInParentJointFrame);}
-    Transform&       updX_JbJ(SBPositionCache&       cc) const {return toB  (cc.bodyJointInParentJointFrame);}
+    /// This is NOT a spatial (ground frame) transformation.
+    const Transform& getX_MbM(const SBPositionCache& cc) const {return fromB(cc.bodyJointInParentJointFrame);}
+    Transform&       updX_MbM(SBPositionCache&       cc) const {return toB  (cc.bodyJointInParentJointFrame);}
 
     /// Extract from the cache  X_PB, the cross-joint transformation matrix giving the configuration
     /// of this body's frame B measured from and expressed in its *parent* frame P. Thus this is NOT
-    /// a spatial transformation.
+    /// a spatial (ground frame) transformation.
     const Transform& getX_PB(const SBPositionCache& cc) const {return fromB(cc.bodyConfigInParent);}
     Transform&       updX_PB(SBPositionCache&       cc) const {return toB  (cc.bodyConfigInParent);}
 
@@ -220,8 +220,8 @@ public:
 
             // VELOCITY INFO
 
-    const SpatialVec& getV_JbJ(const SBVelocityCache& mc) const {return fromB(mc.mobilizerRelativeVelocity);}
-    SpatialVec&       updV_JbJ(SBVelocityCache&       mc) const {return toB  (mc.mobilizerRelativeVelocity);}
+    const SpatialVec& getV_MbM(const SBVelocityCache& mc) const {return fromB(mc.mobilizerRelativeVelocity);}
+    SpatialVec&       updV_MbM(SBVelocityCache&       mc) const {return toB  (mc.mobilizerRelativeVelocity);}
 
 
     /// Extract from the cache V_GB, the spatial velocity of this body's frame B measured in and
@@ -296,115 +296,116 @@ public:
         SBModelCache&      mc) const=0;
 
     virtual void realizeInstance(
-        const SBModelVars&  mv,
-        const SBInstanceVars& pv,
-        SBInstanceCache&      pc) const=0;
+        const SBModelVars&    mv,
+        const SBInstanceVars& iv,
+        SBInstanceCache&      ic) const=0;
 
     /// Introduce new values for generalized coordinates and calculate
     /// all the position-dependent kinematic terms.
     virtual void realizePosition(
         const SBModelVars& mv,
-        const Vector&         q,
-        SBPositionCache& cc) const=0;
+        const Vector&      q,
+        SBPositionCache&   pc) const=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes realizePosition()
     /// has already been called.
     virtual void realizeVelocity(
-        const SBModelVars&       mv,
-        const Vector&               q,
-        const SBPositionCache& cc,
-        const Vector&               u,
-        SBVelocityCache&              mc,
-        Vector&                     qdot) const=0;
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u,
+        SBVelocityCache&       vc,
+        Vector&                qdot) const=0;
 
     // These are called just after new state variables are allocated,
     // in case there are any node-specific default values. At the Position
     // stage, for example, the default ball joint q's will be set to 1,0,0,0.
     // Most of these will use the default implementations here, i.e. do nothing.
-    virtual void setDefaultModelValues     (const SBTopologyCache&, SBModelVars&) const {}
-    virtual void setDefaultInstanceValues    (const SBModelVars&, SBInstanceVars&)     const {}
-    virtual void setDefaultTimeValues         (const SBModelVars&, SBTimeVars&)          const {}
-    virtual void setDefaultPositionValues(const SBModelVars&, Vector& q)            const {}
-    virtual void setDefaultVelocityValues       (const SBModelVars&, Vector& u)            const {}
-    virtual void setDefaultDynamicsValues     (const SBModelVars&, SBDynamicsVars&)      const {}
-    virtual void setDefaultAccelerationValues     (const SBModelVars&, SBAccelerationVars&)      const {}
+    virtual void setDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const {}
+    virtual void setDefaultInstanceValues    (const SBModelVars&,     SBInstanceVars&)     const {}
+    virtual void setDefaultTimeValues        (const SBModelVars&,     SBTimeVars&)         const {}
+    virtual void setDefaultPositionValues    (const SBModelVars&,     Vector& q)           const {}
+    virtual void setDefaultVelocityValues    (const SBModelVars&,     Vector& u)           const {}
+    virtual void setDefaultDynamicsValues    (const SBModelVars&,     SBDynamicsVars&)     const {}
+    virtual void setDefaultAccelerationValues(const SBModelVars&,     SBAccelerationVars&) const {}
 
     // These attempt to set the mobilizer's internal configuration or velocity
     // to a specified value. The mobilizer is expected to do the best it can.
-    virtual void setMobilizerPosition(const SBModelVars&, const Transform& X_JbJ,
-                                           Vector& q) const {}
-    virtual void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_JbJ,
+    virtual void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
+                                      Vector& q) const {}
+    virtual void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                                       Vector& u) const {}
 
     /// Calculate kinetic energy (from spatial quantities only).
     Real calcKineticEnergy(
-        const SBPositionCache& cc,
-        const SBVelocityCache&        mc) const;   
+        const SBPositionCache& pc,
+        const SBVelocityCache& vc) const;   
   
     /// Calculate all spatial configuration quantities, assuming availability of
     /// joint-specific relative quantities.
     void calcJointIndependentKinematicsPos(
-        SBPositionCache&       cc) const;
+        SBPositionCache& pc) const;
 
     /// Calcluate all spatial velocity quantities, assuming availability of
     /// joint-specific relative quantities and all position kinematics.
     void calcJointIndependentKinematicsVel(
-        const SBPositionCache& cc,
-        SBVelocityCache&              mc) const;
+        const SBPositionCache& pc,
+        SBVelocityCache&       vc) const;
 
     /// Calculate velocity-dependent quantities which will be needed for
     // computing accelerations.
     void calcJointIndependentDynamicsVel(
-        const SBPositionCache& cc,
-        const SBVelocityCache&        mc,
-        SBDynamicsCache&            dc) const;
+        const SBPositionCache& pc,
+        const SBVelocityCache& vc,
+        SBDynamicsCache&       dc) const;
 
     virtual const char* type()     const {return "unknown";}
-    virtual int         getDOF()   const=0; //number of independent dofs
-    virtual int         getMaxNQ() const=0; //dofs plus quaternion constraints
-    virtual int         getNQ(const SBModelVars&) const=0; //actual number of q's
+    virtual int getDOF()   const=0; //number of independent dofs
+    virtual int getMaxNQ() const=0; //dofs plus quaternion constraints
+    virtual int getNQ(const SBModelVars&) const=0; //actual number of q's
+    virtual int getNQuaternionConstraints(const SBModelVars&) const=0; // 0 or 1
 
     virtual bool enforceQuaternionConstraints(
         const SBModelVars& mv,
-        Vector&               q) const=0;
+        Vector&            q) const=0;
 
     virtual void calcArticulatedBodyInertiasInward(
-        const SBPositionCache& cc,
-        SBDynamicsCache&            dc) const =0;
+        const SBPositionCache& pc,
+        SBDynamicsCache&       dc) const=0;
 
     virtual void calcZ(
-        const SBPositionCache& cc,
-        const SBDynamicsCache&      dc,
-        const SpatialVec&           spatialForce,
-        SBAccelerationCache&            rc) const 
+        const SBPositionCache& pc,
+        const SBDynamicsCache& dc,
+        const SpatialVec&      spatialForce,
+        SBAccelerationCache&   ac) const 
       { throw VirtualBaseMethod(); }
 
     virtual void calcYOutward(
-        const SBPositionCache& cc,
-        SBDynamicsCache&            dc) const                     
+        const SBPositionCache& pc,
+        SBDynamicsCache&       dc) const                     
       { throw VirtualBaseMethod(); }
 
     virtual void calcAccel(
-        const SBModelVars&       mv,
-        const Vector&               q,
-        const SBPositionCache& cc,
-        const Vector&               u,
-        const SBDynamicsCache&      dc,
-        SBAccelerationCache&            rc,
-        Vector&                     udot,
-        Vector&                     qdotdot) const 
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u,
+        const SBDynamicsCache& dc,
+        SBAccelerationCache&   ac,
+        Vector&                udot,
+        Vector&                qdotdot) const 
       { throw VirtualBaseMethod(); }
 
     virtual void calcInternalGradientFromSpatial(
-        const SBPositionCache& cc, 
+        const SBPositionCache&      pc, 
         Vector_<SpatialVec>&        zTmp,
         const Vector_<SpatialVec>&  X, 
         Vector&                     JX) const
       { throw VirtualBaseMethod(); }
 
     virtual void calcEquivalentJointForces(
-        const SBPositionCache& cc,
+        const SBPositionCache&      pc,
         const SBDynamicsCache&      dc,
         const Vector_<SpatialVec>&  bodyForces,
         Vector_<SpatialVec>&        allZ,
@@ -412,7 +413,7 @@ public:
       { throw VirtualBaseMethod(); }
 
     virtual void calcUDotPass1Inward(
-        const SBPositionCache& cc,
+        const SBPositionCache&      pc,
         const SBDynamicsCache&      dc,
         const Vector&               jointForces,
         const Vector_<SpatialVec>&  bodyForces,
@@ -422,7 +423,7 @@ public:
       { throw VirtualBaseMethod(); } 
 
     virtual void calcUDotPass2Outward(
-        const SBPositionCache& cc,
+        const SBPositionCache&      pc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
@@ -430,7 +431,7 @@ public:
       { throw VirtualBaseMethod(); }
 
     virtual void calcMInverseFPass1Inward(
-        const SBPositionCache& cc,
+        const SBPositionCache&      pc,
         const SBDynamicsCache&      dc,
         const Vector&               f,
         Vector_<SpatialVec>&        allZ,
@@ -439,7 +440,7 @@ public:
       { throw VirtualBaseMethod(); } 
 
     virtual void calcMInverseFPass2Outward(
-        const SBPositionCache& cc,
+        const SBPositionCache&      pc,
         const SBDynamicsCache&      dc,
         const Vector&               epsilonTmp,
         Vector_<SpatialVec>&        allA_GB,
@@ -447,40 +448,40 @@ public:
       { throw VirtualBaseMethod(); }
 
     virtual void calcQDot(
-        const SBModelVars&       mv,
-        const Vector&               q,
-        const SBPositionCache& cc,
-        const Vector&               u,
-        Vector&                     qdot) const
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u,
+        Vector&                qdot) const
       { throw VirtualBaseMethod(); }
 
     virtual void calcQDotDot(
-        const SBModelVars&       mv,
-        const Vector&               q,
-        const SBPositionCache& cc,
-        const Vector&               u, 
-        const Vector&               udot, 
-        Vector&                     qdotdot) const
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        const Vector&          udot, 
+        Vector&                qdotdot) const
       { throw VirtualBaseMethod(); }
 
     virtual void setVelFromSVel(const SBPositionCache&, const SBVelocityCache&,
                                 const SpatialVec&, Vector& u) const {throw VirtualBaseMethod();}
 
     virtual void setQ(
-        const SBModelVars&   mv, 
-        const Vector&           qIn, 
-        Vector&                 q) const
+        const SBModelVars& mv, 
+        const Vector&      qIn, 
+        Vector&            q) const
       { throw VirtualBaseMethod(); }
 
     virtual void setU(
-        const SBModelVars&   mv, 
-        const Vector&           uIn, 
-        Vector&                 u) const
+        const SBModelVars& mv, 
+        const Vector&      uIn, 
+        Vector&            u) const
       { throw VirtualBaseMethod(); }
 
     virtual void getInternalForce(
-        const SBAccelerationCache& rc, 
-        Vector&                tau) const {throw VirtualBaseMethod();}
+        const SBAccelerationCache& ac, 
+        Vector&                    tau) const {throw VirtualBaseMethod();}
 
     // Note that this requires rows of H to be packed like SpatialRow.
     virtual const SpatialRow& getHRow(const SBPositionCache&, int i) const {throw VirtualBaseMethod();}
@@ -492,19 +493,21 @@ protected:
     /// This is the constructor for the abstract base type for use by the derived
     /// concrete types in their constructors.
     RigidBodyNode(const MassProperties& mProps_B,
-                  const Transform&   xform_PJb,
-                  const Transform&   xform_BJ)
-      : uIndex(-1), qIndex(-1), uSqIndex(-1), parent(0), children(), level(-1), nodeNum(-1),
+                  const Transform&      xform_PMb,
+                  const Transform&      xform_BM)
+      : qIndex(-1), uIndex(-1), uSqIndex(-1), quaternionIndex(-1),
+        parent(0), children(), level(-1), nodeNum(-1),
         massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
-        X_BJ(xform_BJ), X_PJb(xform_PJb), refX_PB(xform_PJb*~xform_BJ), X_JB(~xform_BJ)
+        X_BM(xform_BM), X_PMb(xform_PMb), refX_PB(xform_PMb*~xform_BM), X_MB(~xform_BM)
     {
     }
 
-    typedef std::vector<RigidBodyNode*>   RigidBodyNodeList;
+    typedef std::vector<RigidBodyNode*> RigidBodyNodeList;
 
-    int               uIndex;   // index into internal coord vel,acc arrays
-    int               qIndex;   // index into internal coord pos array
-    int               uSqIndex; // index into array of DOF^2 objects
+    int qIndex;   // index into internal coord pos array
+    int uIndex;   // index into internal coord vel,acc arrays
+    int uSqIndex; // index into array of DOF^2 objects
+    int quaternionIndex; // if this mobilizer has a quaternion, this is our slot
 
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
@@ -521,26 +524,26 @@ protected:
 
     /// This is the supplied inertia, shifted to the center of mass. It is still
     /// a constant expressed in B, but is taken about the COM.
-    const Inertia     inertia_CB_B;
+    const Inertia   inertia_CB_B;
 
-    /// Orientation and location of inboard joint frame J, measured
+    /// Orientation and location of inboard mobilizer frame M, measured
     /// and expressed in body frame B.
-    const Transform   X_BJ; 
-    const Transform   X_JB; // inverse of X_BJ, calculated on construction
+    const Transform X_BM; 
+    const Transform X_MB; // inverse of X_BM, calculated on construction
 
     /// This is set when we attach this node to its parent in the tree. This is the
-    /// configuration of the parent's outboard joint attachment frame corresponding
-    /// to body B (Jb) measured from and expressed in the parent frame P. It is 
+    /// configuration of the parent's outboard mobilizer attachment frame corresponding
+    /// to body B (Mb) measured from and expressed in the parent frame P. It is 
     /// a constant in frame P. TODO: make it parameterizable.
-    const Transform   X_PJb;
+    const Transform X_PMb;
 
     /// Reference configuration. This is the body frame B as measured and expressed in
-    /// parent frame P *in the reference configuration*, that is, when B's inboard joint
-    /// coordinates are all zero, so that Jb=J (see previous members). This is a constant
-    /// after body B is attached to P in the tree: refX_PB = X_PJb * ~X_BJ. 
+    /// parent frame P *in the reference configuration*, that is, when B's mobilizer
+    /// coordinates are all zero, so that Mb=M (see previous members). This is a constant
+    /// after body B is attached to P in the tree: refX_PB = X_PMb * ~X_BM. 
     /// The body B frame can of course move relative to its parent, but that is not
-    /// the meaning of this reference configuration vector.
-    const Transform   refX_PB;
+    /// the meaning of this reference configuration transform.
+    const Transform refX_PB;
 
     virtual void velFromCartesian() {}
 

@@ -108,13 +108,13 @@ public:
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
     /// been realized to Model stage, then we don't copy its state
-    /// variables either, except those associated with the Built stage.
+    /// variables either, except those associated with the Topology stage.
     State(const State&);
 
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
     /// been realized to Model stage, then we don't copy its state
-    /// variables either, except those associated with the Built stage.
+    /// variables either, except those associated with the Topology stage.
     State& operator=(const State&);
 
     /// Register a new subsystem as a client of this State. The
@@ -144,7 +144,7 @@ public:
     // a time. Advancing to "Topology" and "Model" stages affect
     // what you can do later.
     void advanceSubsystemToStage(int subsys, Stage) const;
-    void advanceSystemToStage(Stage g) const;
+    void advanceSystemToStage(Stage) const;
 
     // These are shared among all the subsystems and are not allocated until
     // the *System* is advanced to Stage::Model. The returned index is
@@ -157,6 +157,14 @@ public:
     int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
     int allocateU(int subsys, const Vector& uInit); // udot                    "
     int allocateZ(int subsys, const Vector& zInit); // zdot                    "
+
+    // Slots for constraint errors are handled similarly, although these are
+    // just cache entries not state variables. Q errors and U errors
+    // will each be contiguous for a given subsystem, but *not* with each other.
+    // However, yerr={qerr,uerr} *is* a single contiguous vector.
+
+    int allocateQErr(int subsys, int nqerr); // these are cache entries
+    int allocateUErr(int subsys, int nuerr);
 
     // These are private to each subsystem and are allocated immediately.
     // TODO: true discrete variables need an "update" variable in the cache.
@@ -185,7 +193,7 @@ public:
 
     // You can call these as long as *system* stage >= Model.
     const Real&   getTime() const;
-    const Vector& getY() const; // {Q,U,Z} in that order
+    const Vector& getY() const; // {Q,U,Z} packed and in that order
 
     // These are just views into Y.
     const Vector& getQ() const;
@@ -214,16 +222,26 @@ public:
 
     // These are mutable
     Vector& updYDot() const;    // Stage::Acceleration-1
-
-    // These are just views into YDot.
-    Vector& updQDot() const;    // Stage::Velocity-1
-    Vector& updZDot() const;    // Stage::Dynamics-1
-    Vector& updUDot() const;    // Stage::Acceleration-1
+    Vector& updQDot() const;    // Stage::Velocity-1     (view into YDot)
+    Vector& updZDot() const;    // Stage::Dynamics-1            "
+    Vector& updUDot() const;    // Stage::Acceleration-1        "
 
     // This is a separate shared cache entry, not part of YDot. If you
     // have a direct 2nd order integrator you can integrate QDotDot
     // (twice) to get Q.
     Vector& updQDotDot() const; // Stage::Acceleration-1
+
+    // Return the current constraint errors for all constraints.
+    const Vector& getYErr() const; // {QErr,UErr} packed and in that order
+
+    // These are just views into YErr.
+    const Vector& getQErr() const;  // Stage::Position
+    const Vector& getUErr() const;  // Stage::Velocity
+
+    // These are mutable
+    Vector& updYErr() const; // Stage::Dynamics-1
+    Vector& updQErr() const; // Stage::Position-1 (view into YErr)
+    Vector& updUErr() const; // Stage::Velocity-1        "
 
     // OK if dv.stage==Model or stage >= Model
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;
