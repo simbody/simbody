@@ -24,11 +24,11 @@
 
 /**@file
  *
- * Implementation of RigidBodyTree.
+ * Implementation of SimbodyMatterSubsystemRep.
  * Note: there must be no mention of atoms anywhere in this code.
  */
 
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
 #include "ConstraintNode.h"
@@ -37,14 +37,14 @@
 
 #include <string>
 
-RigidBodyTree::RigidBodyTree(const RigidBodyTree& src)
-   : SimTK::MatterSubsystemRep("RigidBodyTree", "X.X.X")
+SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
+   : SimTK::MatterSubsystemRep("SimbodyMatterSubsystemRep", "X.X.X")
 {
-    assert(!"RigidBodyTree copy constructor ... TODO!");
+    assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
 
 
-RigidBodyTree::~RigidBodyTree() {
+SimbodyMatterSubsystemRep::~SimbodyMatterSubsystemRep() {
     delete lConstraints; lConstraints=0;
 
     for (int i=0; i<(int)constraintNodes.size(); ++i)
@@ -63,7 +63,7 @@ RigidBodyTree::~RigidBodyTree() {
     rbNodeLevels.resize(0);
 }
 
-int RigidBodyTree::addRigidBodyNode
+int SimbodyMatterSubsystemRep::addRigidBodyNode
     (RigidBodyNode&           parent,
      const MassProperties&    m,            // mass properties in body frame
      const Transform&         X_PMb,        // parent's frame for attaching this joint
@@ -96,7 +96,7 @@ int RigidBodyTree::addRigidBodyNode
 }
 
 // Add a new ground node. Must be first node added during construction.
-void RigidBodyTree::addGroundNode() {
+void SimbodyMatterSubsystemRep::addGroundNode() {
     // Make sure this is the first body
     assert(nodeNum2NodeMap.size() == 0);
     assert(rbNodeLevels.size() == 0);
@@ -114,7 +114,7 @@ void RigidBodyTree::addGroundNode() {
     n->setNodeNum(0);
 }
 
-int RigidBodyTree::addConstantDistanceConstraint(
+int SimbodyMatterSubsystemRep::addConstantDistanceConstraint(
     const RigidBodyNode& parent, const Vec3& stationInP,
     const RigidBodyNode& child,  const Vec3& stationInC,
     const Real& distance)
@@ -123,7 +123,7 @@ int RigidBodyTree::addConstantDistanceConstraint(
     return addConstraintNode(cn);
 }
 
-int RigidBodyTree::addCoincidentStationsConstraint(
+int SimbodyMatterSubsystemRep::addCoincidentStationsConstraint(
     const RigidBodyNode& parent, const Vec3& stationInP,
     const RigidBodyNode& child,  const Vec3& stationInC)
 {
@@ -132,7 +132,7 @@ int RigidBodyTree::addCoincidentStationsConstraint(
 }
 
 
-int RigidBodyTree::addWeldConstraint(
+int SimbodyMatterSubsystemRep::addWeldConstraint(
     const RigidBodyNode& parent, const Transform& frameInP,
     const RigidBodyNode& child,  const Transform& frameInC)
 {
@@ -141,9 +141,9 @@ int RigidBodyTree::addWeldConstraint(
 }
 
 // Store an already-allocated abstract constraint in the RigidBody tree, assigning
-// it a constraint number which is returned. The RigidBodyTree takes over ownership
+// it a constraint number which is returned. The SimbodyMatterSubsystemRep takes over ownership
 // of the ConstraintNode; don't use the pointer any more!
-int RigidBodyTree::addConstraintNode(ConstraintNode*& cn) {
+int SimbodyMatterSubsystemRep::addConstraintNode(ConstraintNode*& cn) {
     cn->setConstraintNum(constraintNodes.size());
     constraintNodes.push_back(cn);
     cn = 0; // it's all mine now!
@@ -152,7 +152,7 @@ int RigidBodyTree::addConstraintNode(ConstraintNode*& cn) {
 
 // Add a distance constraint and assign it to use a particular multiplier. 
 // Return the assigned distance constraint index for caller's use.
-int RigidBodyTree::addOneDistanceConstraintEquation(
+int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
     const RBStation& s1, const RBStation& s2, const Real& d,
     int multIndex)
 {
@@ -163,11 +163,11 @@ int RigidBodyTree::addOneDistanceConstraintEquation(
     return distanceConstraints.size()-1;
 }
 
-int RigidBodyTree::getParent(int body) const { 
+int SimbodyMatterSubsystemRep::getParent(int body) const { 
     return getRigidBodyNode(body).getParent()->getNodeNum();
 }
 
-Array<int> RigidBodyTree::getChildren(int body) const {
+Array<int> SimbodyMatterSubsystemRep::getChildren(int body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
     Array<int> children;
     for (int i=0; i < node.getNChildren(); ++i)
@@ -176,50 +176,50 @@ Array<int> RigidBodyTree::getChildren(int body) const {
 }
 
 const Real&
-RigidBodyTree::getBodyMass(const State&, int body) const
+SimbodyMatterSubsystemRep::getBodyMass(const State&, int body) const
   { return getRigidBodyNode(body).getMass(); }
 
 const Vec3&
-RigidBodyTree::getBodyCenterOfMassStation(const State&, int body) const
+SimbodyMatterSubsystemRep::getBodyCenterOfMassStation(const State&, int body) const
   { return getRigidBodyNode(body).getCOM_B(); }
 
 
 const Transform&
-RigidBodyTree::getMobilizerFrame(const State&, int body) const
+SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, int body) const
   { return getRigidBodyNode(body).getX_BM(); }
 
 const Transform&
-RigidBodyTree::getMobilizerFrameOnParent(const State&, int body) const
+SimbodyMatterSubsystemRep::getMobilizerFrameOnParent(const State&, int body) const
   { return getRigidBodyNode(body).getX_PMb(); }
 
 const Transform&
-RigidBodyTree::getBodyPosition(const State& s, int body) const
+SimbodyMatterSubsystemRep::getBodyPosition(const State& s, int body) const
   { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
 
 const SpatialVec&
-RigidBodyTree::getBodyVelocity(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, int body) const {
   return getRigidBodyNode(body).getV_GB(getVelocityCache(s));
 }
 
 const SpatialVec&
-RigidBodyTree::getCoriolisAcceleration(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, int body) const {
   return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-RigidBodyTree::getTotalCoriolisAcceleration(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, int body) const {
   return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-RigidBodyTree::getGyroscopicForce(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, int body) const {
   return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
 }
 const SpatialVec&
-RigidBodyTree::getCentrifugalForces(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, int body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
 
 const SpatialMat&
-RigidBodyTree::getArticulatedBodyInertia(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, int body) const {
   return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
@@ -227,7 +227,7 @@ RigidBodyTree::getArticulatedBodyInertia(const State& s, int body) const {
 // and compute allocation sizes we're going to need later for state
 // variables and cache entries. We allocate and initialize all the
 // Modeling variables here.
-void RigidBodyTree::endConstruction() {
+void SimbodyMatterSubsystemRep::endConstruction() {
     if (built) return; // already done
 
     // Not built yet. Let's count topological things.
@@ -252,17 +252,17 @@ void RigidBodyTree::endConstruction() {
     built = true;
 }
 
-void RigidBodyTree::realizeTopology(State& s) const {
+void SimbodyMatterSubsystemRep::realizeTopology(State& s) const {
     // This is a long-winded way of saying that the Stage must be exactly Empty.
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Topology).prev(), 
-        "RigidBodyTree::realizeTopology()");
+        "SimbodyMatterSubsystemRep::realizeTopology()");
     SimTK_STAGECHECK_LT_ALWAYS(getStage(s), Stage(Stage::Topology), 
-        "RigidBodyTree::realizeTopology()");
+        "SimbodyMatterSubsystemRep::realizeTopology()");
 
     // Some of our 'const' values must be treated as mutable *just for this call*.
     // Afterwards they are truly const so we don't declare them mutable, but cheat
     // here instead.
-    RigidBodyTree* mutableThis = const_cast<RigidBodyTree*>(this);
+    SimbodyMatterSubsystemRep* mutableThis = const_cast<SimbodyMatterSubsystemRep*>(this);
 
     if (!built) mutableThis->endConstruction(); // no more bodies after this!
 
@@ -296,12 +296,12 @@ void RigidBodyTree::realizeTopology(State& s) const {
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
-void RigidBodyTree::realizeModel(State& s) const {
+void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     // This is a long-winded way of saying that the Stage must be exactly Built.
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Model).prev(), 
-        "RigidBodyTree::realizeModel()");
+        "SimbodyMatterSubsystemRep::realizeModel()");
     SimTK_STAGECHECK_LT_ALWAYS(getStage(s), Stage(Stage::Model), 
-        "RigidBodyTree::realizeModel()");
+        "SimbodyMatterSubsystemRep::realizeModel()");
 
     const SBModelVars& mv = getModelVars(s);
 
@@ -398,9 +398,9 @@ void RigidBodyTree::realizeModel(State& s) const {
 }
 
 // Here we lock in parameterization of the model, such as body masses.
-void RigidBodyTree::realizeInstance(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeInstance(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
-        "RigidBodyTree::realizeInstance()");
+        "SimbodyMatterSubsystemRep::realizeInstance()");
 
     const SBModelVars&    mv = getModelVars(s);
     const SBInstanceVars& iv = getInstanceVars(s);
@@ -414,17 +414,17 @@ void RigidBodyTree::realizeInstance(const State& s) const {
             rbNodeLevels[i][j]->realizeInstance(mv,iv,ic); 
 }
 
-void RigidBodyTree::realizeTime(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeTime(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
-        "RigidBodyTree::realizeTime()");
+        "SimbodyMatterSubsystemRep::realizeTime()");
 
     // nothing yet
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void RigidBodyTree::realizePosition(const State& s) const {
+void SimbodyMatterSubsystemRep::realizePosition(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
-        "RigidBodyTree::realizePosition()");
+        "SimbodyMatterSubsystemRep::realizePosition()");
 
     const SBModelVars& mv = getModelVars(s);
     const Vector&      q  = getQ(s);
@@ -443,9 +443,9 @@ void RigidBodyTree::realizePosition(const State& s) const {
 
 // Set generalized speeds: sweep from base to tip.
 // realizePosition() must have been called already.
-void RigidBodyTree::realizeVelocity(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
-        "RigidBodyTree::realizeVelocity()");
+        "SimbodyMatterSubsystemRep::realizeVelocity()");
 
     const SBModelVars&     mv = getModelVars(s);
     const Vector&          q  = getQ(s);
@@ -473,9 +473,9 @@ void RigidBodyTree::realizeVelocity(const State& s) const {
 // Then go ask around to collect up all the applied forces from any
 // force subsystems.
 
-void RigidBodyTree::realizeDynamics(const State& s)  const {
+void SimbodyMatterSubsystemRep::realizeDynamics(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
-        "RigidBodyTree::realizeDynamics()");
+        "SimbodyMatterSubsystemRep::realizeDynamics()");
     const SBPositionCache& pc = getPositionCache(s);
     const SBVelocityCache& vc = getVelocityCache(s);
 
@@ -498,9 +498,9 @@ void RigidBodyTree::realizeDynamics(const State& s)  const {
     dc.appliedRigidBodyForces = mbs.getRigidBodyForces(s);
 }
 
-void RigidBodyTree::realizeAcceleration(const State& s)  const {
+void SimbodyMatterSubsystemRep::realizeAcceleration(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
-        "RigidBodyTree::realizeAcceleration()");
+        "SimbodyMatterSubsystemRep::realizeAcceleration()");
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
     Vector&              udot    = updUDot(s);
@@ -513,19 +513,19 @@ void RigidBodyTree::realizeAcceleration(const State& s)  const {
 }
 
 
-int RigidBodyTree::getQIndex(int body) const 
+int SimbodyMatterSubsystemRep::getQIndex(int body) const 
   { assert(built);return getRigidBodyNode(body).getQIndex();}
-int RigidBodyTree::getQAlloc(int body) const 
+int SimbodyMatterSubsystemRep::getQAlloc(int body) const 
   { assert(built);return getRigidBodyNode(body).getMaxNQ();}
-int RigidBodyTree::getUIndex(int body) const
+int SimbodyMatterSubsystemRep::getUIndex(int body) const
   { assert(built);return getRigidBodyNode(body).getUIndex();}
-int RigidBodyTree::getDOF   (int body) const
+int SimbodyMatterSubsystemRep::getDOF   (int body) const
   { assert(built);return getRigidBodyNode(body).getDOF();}
 
 // We are in the process of realizingConstruction() when we need to make this call.
 // We pass in the partially-completed Construction-stage cache, which must have all
 // the dimensions properly filled in at this point.
-void RigidBodyTree::setDefaultModelValues(const SBTopologyCache& topologyCache, 
+void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& topologyCache, 
                                           SBModelVars& modelVars) const 
 {
     // Tree-level defaults
@@ -544,7 +544,7 @@ void RigidBodyTree::setDefaultModelValues(const SBTopologyCache& topologyCache,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultInstanceValues(const SBModelVars& mv, 
+void SimbodyMatterSubsystemRep::setDefaultInstanceValues(const SBModelVars& mv, 
                                              SBInstanceVars& paramVars) const 
 {
     // Node/joint-level defaults
@@ -555,7 +555,7 @@ void RigidBodyTree::setDefaultInstanceValues(const SBModelVars& mv,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultTimeValues(const SBModelVars& mv, 
+void SimbodyMatterSubsystemRep::setDefaultTimeValues(const SBModelVars& mv, 
                                          SBTimeVars& timeVars) const 
 {
     // Tree-level defaults (none)
@@ -568,7 +568,7 @@ void RigidBodyTree::setDefaultTimeValues(const SBModelVars& mv,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+void SimbodyMatterSubsystemRep::setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
 {
     // Tree-level defaults (none)
 
@@ -580,7 +580,7 @@ void RigidBodyTree::setDefaultPositionValues(const SBModelVars& mv, Vector& q) c
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultVelocityValues(const SBModelVars& mv, Vector& u) const 
+void SimbodyMatterSubsystemRep::setDefaultVelocityValues(const SBModelVars& mv, Vector& u) const 
 {
     // Tree-level defaults (none)
 
@@ -592,7 +592,7 @@ void RigidBodyTree::setDefaultVelocityValues(const SBModelVars& mv, Vector& u) c
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultDynamicsValues(const SBModelVars& mv, 
+void SimbodyMatterSubsystemRep::setDefaultDynamicsValues(const SBModelVars& mv, 
                                              SBDynamicsVars& dynamicsVars) const 
 {
     // Tree-level defaults (none)
@@ -605,7 +605,7 @@ void RigidBodyTree::setDefaultDynamicsValues(const SBModelVars& mv,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setDefaultAccelerationValues(const SBModelVars& mv, 
+void SimbodyMatterSubsystemRep::setDefaultAccelerationValues(const SBModelVars& mv, 
                                              SBAccelerationVars& reactionVars) const 
 {
     // Tree-level defaults (none)
@@ -618,83 +618,83 @@ void RigidBodyTree::setDefaultAccelerationValues(const SBModelVars& mv,
     // TODO: constraint defaults
 }
 
-void RigidBodyTree::setUseEulerAngles(State& s, bool useAngles) const {
+void SimbodyMatterSubsystemRep::setUseEulerAngles(State& s, bool useAngles) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void RigidBodyTree::setMobilizerIsPrescribed(State& s, int body, bool prescribe) const {
+void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, int body, bool prescribe) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
-void RigidBodyTree::setConstraintIsEnabled(State& s, int constraint, bool enable) const {
+void SimbodyMatterSubsystemRep::setConstraintIsEnabled(State& s, int constraint, bool enable) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.enabled[constraint] = enable;   
 }
 
-bool RigidBodyTree::getUseEulerAngles(const State& s) const {
+bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool RigidBodyTree::isMobilizerPrescribed(const State& s, int body) const {
+bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, int body) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.prescribed[body];
 }
-bool RigidBodyTree::isConstraintEnabled(const State& s, int constraint) const {
+bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, int constraint) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.enabled[constraint];
 }
 
-const Real& RigidBodyTree::getMobilizerQ(const State& s, int body, int axis) const {
+const Real& SimbodyMatterSubsystemRep::getMobilizerQ(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
     return getQ(s)[n.getQIndex()+axis];
 }
 
 
-const Real& RigidBodyTree::getMobilizerU(const State& s, int body, int axis) const {
+const Real& SimbodyMatterSubsystemRep::getMobilizerU(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     return getU(s)[n.getUIndex()+axis];
 }
 
-void RigidBodyTree::setMobilizerQ(State& s, int body, int axis, const Real& r) const {
+void SimbodyMatterSubsystemRep::setMobilizerQ(State& s, int body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
     updQ(s)[n.getQIndex()+axis] = r;
 }
 
 
-void RigidBodyTree::setMobilizerU(State& s, int body, int axis, const Real& r) const {
+void SimbodyMatterSubsystemRep::setMobilizerU(State& s, int body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     updU(s)[n.getUIndex()+axis] = r;
 }
 
 
-const Transform& RigidBodyTree::getMobilizerPosition(const State& s, int body) const { 
+const Transform& SimbodyMatterSubsystemRep::getMobilizerPosition(const State& s, int body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
     return n.getX_MbM(cc);
 }
-const SpatialVec& RigidBodyTree::getMobilizerVelocity(const State& s, int body) const { 
+const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, int body) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBVelocityCache& mc = getVelocityCache(s);
     return n.getV_MbM(mc);
 }
-void RigidBodyTree::setMobilizerPosition(State& s, int body, const Transform& X_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerPosition(State& s, int body, const Transform& X_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
     n.setMobilizerPosition(mv, X_MbM, q);
 }
-void RigidBodyTree::setMobilizerVelocity(State& s, int body, const SpatialVec& V_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, int body, const SpatialVec& V_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& u = updU(s);
     n.setMobilizerVelocity(mv, V_MbM, u);
 }
 
-void RigidBodyTree::addInStationForce(const State& s, int body, 
+void SimbodyMatterSubsystemRep::addInStationForce(const State& s, int body, 
                                       const Vec3& stationInB, const Vec3& forceInG, 
                                       Vector_<SpatialVec>& rigidBodyForces) const
 {
@@ -704,14 +704,14 @@ void RigidBodyTree::addInStationForce(const State& s, int body,
     rigidBodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
-void RigidBodyTree::addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+void SimbodyMatterSubsystemRep::addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
                                     Vector_<SpatialVec>& rigidBodyForces) const 
 {
     assert(rigidBodyForces.size() == getNBodies());
     rigidBodyForces[body][0] += torqueInG; // no force
 }
 
-void RigidBodyTree::addInMobilityForce(const State& s, int body, int axis, const Real& r,
+void SimbodyMatterSubsystemRep::addInMobilityForce(const State& s, int body, int axis, const Real& r,
                                        Vector& mobilityForces) const 
 {
     assert(mobilityForces.size() == getTotalDOF());
@@ -721,22 +721,22 @@ void RigidBodyTree::addInMobilityForce(const State& s, int body, int axis, const
 }
 
 const Vector& 
-RigidBodyTree::getAppliedMobilityForces(const State& s) const {
+SimbodyMatterSubsystemRep::getAppliedMobilityForces(const State& s) const {
     const SBDynamicsCache& dc = getDynamicsCache(s);
     return dc.appliedMobilityForces;
 }
 const Vector_<SpatialVec>& 
-RigidBodyTree::getAppliedBodyForces(const State& s) const {
+SimbodyMatterSubsystemRep::getAppliedBodyForces(const State& s) const {
     const SBDynamicsCache& dc = getDynamicsCache(s);
     return dc.appliedRigidBodyForces;
 }
 
 
 const SpatialVec&
-RigidBodyTree::getBodyAcceleration(const State& s, int body) const
+SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, int body) const
   { return getRigidBodyNode(body).getA_GB(getAccelerationCache(s)); }
 
-void RigidBodyTree::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
+void SimbodyMatterSubsystemRep::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
     const SBModelVars& mv = getModelVars(s);
     Vector&            q  = updQ(s); //TODO: this invalidates q's already
 
@@ -760,7 +760,7 @@ void RigidBodyTree::enforcePositionConstraints(State& s, const Real& requiredTol
         s.invalidateAll(Stage::Position);
 }
 
-void RigidBodyTree::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
+void SimbodyMatterSubsystemRep::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
     assert(getStage(s) >= Stage::Velocity-1);
 
     // Currently there are no coordinate constraints for velocity.
@@ -778,7 +778,7 @@ void RigidBodyTree::enforceVelocityConstraints(State& s, const Real& requiredTol
 // We also allow some extra forces to be supplied, with the intent
 // that these will be used to deal with internal forces generated
 // by constraints. 
-void RigidBodyTree::calcTreeForwardDynamics(
+void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     const State&               s,
     const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
@@ -824,7 +824,7 @@ void RigidBodyTree::calcTreeForwardDynamics(
 
 // Given the set of forces in the state, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void RigidBodyTree::calcLoopForwardDynamics(const State& s) const 
+void SimbodyMatterSubsystemRep::calcLoopForwardDynamics(const State& s) const 
 {
     assert(getStage(s) >= Stage::Acceleration-1);
 
@@ -842,7 +842,7 @@ void RigidBodyTree::calcLoopForwardDynamics(const State& s) const
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcArticulatedBodyInertias(const State& s) const {
+void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) const {
     const SBPositionCache& pc = getPositionCache(s);
     SBDynamicsCache&       dc = updDynamicsCache(s);
 
@@ -856,7 +856,7 @@ void RigidBodyTree::calcArticulatedBodyInertias(const State& s) const {
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
-void RigidBodyTree::calcZ(const State& s, 
+void SimbodyMatterSubsystemRep::calcZ(const State& s, 
                           const SpatialVecList& spatialForces) const
 {
     const SBPositionCache& pc = getPositionCache(s);
@@ -873,7 +873,7 @@ void RigidBodyTree::calcZ(const State& s,
 }
 
 // Y is used for length constraints: sweep from base to tip.
-void RigidBodyTree::calcY(const State& s) const {
+void SimbodyMatterSubsystemRep::calcY(const State& s) const {
     const SBPositionCache& pc = getPositionCache(s);
     SBDynamicsCache&       dc = updDynamicsCache(s);
 
@@ -883,7 +883,7 @@ void RigidBodyTree::calcY(const State& s) const {
 }
 
 // Calc acceleration: sweep from base to tip.
-void RigidBodyTree::calcTreeAccel(const State& s) const {
+void SimbodyMatterSubsystemRep::calcTreeAccel(const State& s) const {
     const SBModelVars&     mv      = getModelVars(s);
     const Vector&          q       = getQ(s);
     const SBPositionCache& pc      = getPositionCache(s);
@@ -899,11 +899,11 @@ void RigidBodyTree::calcTreeAccel(const State& s) const {
             rbNodeLevels[i][j]->calcAccel(mv,q,pc,u,dc,ac,udot,qdotdot);
 }
 
-void RigidBodyTree::fixVel0(State& s, Vector& vel) const {
+void SimbodyMatterSubsystemRep::fixVel0(State& s, Vector& vel) const {
     lConstraints->fixVel0(s, vel);
 }
 
-Real RigidBodyTree::calcKineticEnergy(const State& s) const {
+Real SimbodyMatterSubsystemRep::calcKineticEnergy(const State& s) const {
     const SBPositionCache& pc = getPositionCache(s);
     const SBVelocityCache& vc = getVelocityCache(s);
 
@@ -920,7 +920,7 @@ Real RigidBodyTree::calcKineticEnergy(const State& s) const {
 //
 // Operator for open-loop dynamics.
 //
-void RigidBodyTree::calcTreeAccelerations(const State& s,
+void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     const Vector&              jointForces,
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    netHingeForces,
@@ -960,7 +960,7 @@ void RigidBodyTree::calcTreeAccelerations(const State& s,
 // Calculate udot = M^-1 f. We also get spatial accelerations A_GB for 
 // each body as a side effect.
 //
-void RigidBodyTree::calcMInverseF(const State& s,
+void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
     const Vector&              f,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
@@ -995,7 +995,7 @@ void RigidBodyTree::calcMInverseF(const State& s,
 
 
 // Must be in ConfigurationStage to calculate qdot = Q*u.
-void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
+void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
     const SBModelVars&     mv = getModelVars(s);
     const Vector&          q  = getQ(s);
     const SBPositionCache& pc = getPositionCache(s);
@@ -1010,7 +1010,7 @@ void RigidBodyTree::calcQDot(const State& s, const Vector& u, Vector& qdot) cons
 }
 
 // Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
-void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
+void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, Vector& qdotdot) const {
     const SBModelVars&     mv = getModelVars(s);
     const Vector&          q  = getQ(s);
     const SBPositionCache& pc = getPositionCache(s);
@@ -1032,7 +1032,7 @@ void RigidBodyTree::calcQDotDot(const State& s, const Vector& udot, Vector& qdot
 // quaternions, so be careful how you use this routine.
 // In Kane's terminology, we are calculating the product of a (generalized)
 // partial velocity with some vector.
-void RigidBodyTree::calcInternalGradientFromSpatial(const State& s, 
+void SimbodyMatterSubsystemRep::calcInternalGradientFromSpatial(const State& s, 
                                                     const Vector_<SpatialVec>& X,
                                                     Vector& JX) const
 {
@@ -1053,7 +1053,7 @@ void RigidBodyTree::calcInternalGradientFromSpatial(const State& s,
 // This routine does the same thing as the above but accounts for centrifugal
 // forces induced by velocities. The equivalent joint forces returned include
 // both the applied forces and the centrifugal ones. Constraints are ignored.
-void RigidBodyTree::calcTreeEquivalentMobilityForces(const State& s, 
+void SimbodyMatterSubsystemRep::calcTreeEquivalentMobilityForces(const State& s, 
     const Vector_<SpatialVec>& bodyForces,
     Vector&                    mobilityForces) const
 {
@@ -1076,12 +1076,12 @@ void RigidBodyTree::calcTreeEquivalentMobilityForces(const State& s,
 }
 
 // Pass in a set of internal forces in T; we'll modify them here.
-void RigidBodyTree::calcConstraintCorrectedInternalForces(const State& s, Vector& T) {
+void SimbodyMatterSubsystemRep::calcConstraintCorrectedInternalForces(const State& s, Vector& T) {
     lConstraints->projectUVecOntoMotionConstraints(s, T);
 }
 
-std::ostream& operator<<(std::ostream& o, const RigidBodyTree& tree) {
-    o << "RigidBodyTree has " << tree.getNBodies() << " bodies (incl. G) in "
+std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree) {
+    o << "SimbodyMatterSubsystemRep has " << tree.getNBodies() << " bodies (incl. G) in "
       << tree.rbNodeLevels.size() << " levels." << std::endl;
     o << "NodeNum->level,offset;stored nodeNum,level (stateOffset:dim)" << std::endl;
     for (int i=0; i < tree.getNBodies(); ++i) {

@@ -68,7 +68,7 @@
 #include <cassert>
 #include <vector>
 
-class RigidBodyTree;
+class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
 template <int dof> class RigidBodyNodeSpec;
 

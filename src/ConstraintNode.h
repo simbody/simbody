@@ -61,12 +61,12 @@ public:
 
     
     // This gives each constraint node a chance to grab resources from
-    // the RigidBodyTree. The node is responsible for remembering which
+    // the SimbodyMatterSubsystemRep. The node is responsible for remembering which
     // resources belong to it. Currently the only resource is a set
     // of distance constraints and the corresponding state entries.
     // We expect to know our allocated multipliers prior to this call so
     // we can dole out the slots to our subsidiary constraint equations.
-    virtual void finishConstruction(RigidBodyTree&) {assert(false);}
+    virtual void finishConstruction(SimbodyMatterSubsystemRep&) {assert(false);}
 
 
 protected:
@@ -75,7 +75,7 @@ protected:
     ConstraintNode() : multIndex(-1), constraintNum(-1) { }
 
     int               multIndex;      // index into lambda array
-    int               constraintNum;  // unique ID number in RigidBodyTree
+    int               constraintNum;  // unique ID number in SimbodyMatterSubsystemRep
 
     friend std::ostream& operator<<(std::ostream& s, const ConstraintNode&);
 };
@@ -96,7 +96,7 @@ public:
     }
     ~ConstantDistanceConstraintNode() { }
 
-    /*virtual*/ void finishConstruction(RigidBodyTree& tree) {
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
         const RBStation s1(body1, station1);
         const RBStation s2(body2, station2);
         distanceConstraintIndex = 
@@ -137,7 +137,7 @@ public:
     }
     ~CoincidentStationsConstraintNode() { }
 
-    /*virtual*/ void finishConstruction(RigidBodyTree& tree) {
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
         const RBStation s1x(body1, station1+Vec3(1,0,0));
         const RBStation s1y(body1, station1+Vec3(0,1,0));       
         const RBStation s1z(body1, station1+Vec3(0,0,1));
@@ -179,7 +179,7 @@ public:
     ~WeldConstraintNode() { }
 
 
-    /*virtual*/ void finishConstruction(RigidBodyTree& tree) {
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
         const Vec3& station1 = frame1.T();
         const Vec3& station2 = frame2.T();
 

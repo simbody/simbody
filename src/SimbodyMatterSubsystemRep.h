@@ -1,5 +1,5 @@
-#ifndef SimTK_RIGID_BODY_TREE_H_
-#define SimTK_RIGID_BODY_TREE_H_
+#ifndef SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
+#define SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
  * Contributors: Derived from IVM code written by Charles Schwieters.
@@ -65,29 +65,29 @@ class IVM;
 class LengthConstraints;
 
 /**
- * The RigidBodyTree class owns the tree of joint-connected rigid bodies, called
+ * The SimbodyMatterSubsystemRep class owns the tree of joint-connected rigid bodies, called
  * RigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
  * being bodies which are connected to ground (base bodies), level 2 connected to
  * level 1 and so on. Nodes at the same level are stored together in an array,
  * but the order does not reflect the logical tree structure; that is maintained
  * via parent & children pointers kept in the nodes.
  * 
- * RigidBodyTree is the owner of the RigidBodyNode objects (which are abstract), pointers to
+ * SimbodyMatterSubsystemRep is the owner of the RigidBodyNode objects (which are abstract), pointers to
  * which are stored in the tree.
  */
-class RigidBodyTree : public SimTK::MatterSubsystemRep {
+class SimbodyMatterSubsystemRep : public SimTK::MatterSubsystemRep {
 public:
-    RigidBodyTree() 
-      : MatterSubsystemRep("RigidBodyTree", "0.5.3"), 
+    SimbodyMatterSubsystemRep() 
+      : MatterSubsystemRep("SimbodyMatterSubsystemRep", "0.5.3"), 
         nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), topologyCacheIndex(-1), lConstraints(0) 
     { 
         addGroundNode(); 
     }
 
-    RigidBodyTree(const RigidBodyTree&);
-    RigidBodyTree& operator=(const RigidBodyTree&);
-    ~RigidBodyTree();
+    SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep&);
+    SimbodyMatterSubsystemRep& operator=(const SimbodyMatterSubsystemRep&);
+    ~SimbodyMatterSubsystemRep();
 
     // Create a new node, add it to the tree, and assign it
     // a node number, which is a regular labeling starting with node 0 which is ground.
@@ -128,8 +128,8 @@ public:
     void endConstruction(); // will set built==true
 
     // SubsystemRep interface
-    RigidBodyTree* cloneSubsystemRep() const {
-        return new RigidBodyTree(*this);
+    SimbodyMatterSubsystemRep* cloneSubsystemRep() const {
+        return new SimbodyMatterSubsystemRep(*this);
     }
 
     // MatterSubsystemRep interface. These provide local implementation sfor
@@ -548,7 +548,7 @@ private:
     // those forces and enforcement of acceleration constraints, and update the state.
     void calcLoopForwardDynamics(const State&) const;
 
-    friend std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
+    friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;
 
     struct RigidBodyNodeIndex {
@@ -556,7 +556,7 @@ private:
         int level, offset;
     };
 
-    SimTK_DOWNCAST(RigidBodyTree, SubsystemRep);
+    SimTK_DOWNCAST(SimbodyMatterSubsystemRep, SubsystemRep);
 
 private:
     // Initialize to 0 at beginning of construction. These are for doling
@@ -591,6 +591,6 @@ private:
 
 };
 
-std::ostream& operator<<(std::ostream&, const RigidBodyTree&);
+std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
 
-#endif // RIGID_BODY_TREE_H_
+#endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_

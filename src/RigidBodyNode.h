@@ -512,7 +512,7 @@ protected:
     RigidBodyNode*    parent; 
     RigidBodyNodeList children;
     int               level;        //how far from base 
-    int               nodeNum;      //unique ID number in RigidBodyTree
+    int               nodeNum;      //unique ID number in SimbodyMatterSubsystemRep
 
     // These are the default body properties, all supplied or calculated on
     // construction. TODO: they should be 

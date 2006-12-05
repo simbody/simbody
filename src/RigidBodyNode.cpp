@@ -30,7 +30,7 @@
  * tree -- either base to tip or tip to base.
  */
 
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 
 #include <iostream>

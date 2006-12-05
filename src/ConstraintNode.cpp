@@ -25,7 +25,7 @@
  * This file contains the code used to build the various constraint types.
  */
 
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 #include "ConstraintNode.h"
 
 #include <iostream>

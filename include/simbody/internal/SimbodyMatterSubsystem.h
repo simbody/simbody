@@ -33,7 +33,7 @@
 #include <vector>
 #include <iostream>
 
-class RigidBodyTree;
+class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
 
@@ -329,8 +329,8 @@ public:
 
     SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
 private:
-    const RigidBodyTree& getRep() const;
-    RigidBodyTree&       updRep();
+    const SimbodyMatterSubsystemRep& getRep() const;
+    SimbodyMatterSubsystemRep&       updRep();
 };
 
 SimTK_SIMBODY_EXPORT std::ostream& 

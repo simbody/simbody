@@ -29,7 +29,7 @@
  */
 
 #include "Simbody.h"
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 class RigidBodyNode;
 
 #include <string>
@@ -42,7 +42,7 @@ namespace SimTK {
 
 /*static*/ bool 
 SimbodyMatterSubsystem::isInstanceOf(const Subsystem& s) {
-    return RigidBodyTree::isA(s.getRep());
+    return SimbodyMatterSubsystemRep::isA(s.getRep());
 }
 /*static*/ const SimbodyMatterSubsystem&
 SimbodyMatterSubsystem::downcast(const Subsystem& s) {
@@ -55,17 +55,17 @@ SimbodyMatterSubsystem::updDowncast(Subsystem& s) {
     return reinterpret_cast<SimbodyMatterSubsystem&>(s);
 }
 
-const RigidBodyTree& 
+const SimbodyMatterSubsystemRep& 
 SimbodyMatterSubsystem::getRep() const {
-    return dynamic_cast<const RigidBodyTree&>(*rep);
+    return dynamic_cast<const SimbodyMatterSubsystemRep&>(*rep);
 }
-RigidBodyTree&       
+SimbodyMatterSubsystemRep&       
 SimbodyMatterSubsystem::updRep() {
-    return dynamic_cast<RigidBodyTree&>(*rep);
+    return dynamic_cast<SimbodyMatterSubsystemRep&>(*rep);
 }
 
 SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
-    rep = new RigidBodyTree();
+    rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
 }
 

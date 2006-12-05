@@ -27,7 +27,7 @@
 #include "simbody/internal/common.h"
 using namespace SimTK;
 
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
 
 #include "newtonRaphson.h"
@@ -225,7 +225,7 @@ private:
 };
 
 
-class RigidBodyTree;
+class SimbodyMatterSubsystemRep;
 class LengthConstraints;
 
 /*
@@ -243,7 +243,7 @@ public:
       : tree(0), rbDistCons(0), flipStations(false), outmostCommonBody(0) 
     {
     }
-    LoopWNodes(const RigidBodyTree&, const RBDistanceConstraint&);
+    LoopWNodes(const SimbodyMatterSubsystemRep&, const RBDistanceConstraint&);
 
     void calcPosInfo(
         SBPositionCache&       cc) const 
@@ -302,7 +302,7 @@ public:
 private:
     int ix(int i) const { assert(i==1||i==2); return flipStations ? 3-i : i; }
 
-    const RigidBodyTree*         tree;        // a reference to the tree we're part of
+    const SimbodyMatterSubsystemRep*         tree;        // a reference to the tree we're part of
     const RBDistanceConstraint*  rbDistCons;  // reference to the constraint
 
     // calculated construction-time (topological) info about the constraint
@@ -337,7 +337,7 @@ public:
     {
     }
 
-    inline const RigidBodyTree& getRBTree()  const;
+    inline const SimbodyMatterSubsystemRep& getRBTree()  const;
     inline int                  getVerbose() const;
 
     void addKinematicConstraint(const LoopWNodes& loop);
@@ -379,7 +379,7 @@ public:
 
 class LengthConstraints {
 public:
-    LengthConstraints(const RigidBodyTree&, int verbose);
+    LengthConstraints(const SimbodyMatterSubsystemRep&, int verbose);
 
     void construct(const Array<RBDistanceConstraint*>&);
 
@@ -404,7 +404,7 @@ private:
     int    maxIters;
     int    maxMin;
 
-    const RigidBodyTree&       rbTree;
+    const SimbodyMatterSubsystemRep&       rbTree;
     const int                  verbose;
 
     std::vector<LengthSet> pvConstraints;   // used for pos, vel
@@ -414,7 +414,7 @@ private:
     friend class LengthSet;
 };
 
-inline const RigidBodyTree& 
+inline const SimbodyMatterSubsystemRep& 
 LengthSet::getRBTree()  const {return lConstraints->rbTree;}
 inline int                  
 LengthSet::getVerbose() const {return lConstraints->verbose;}

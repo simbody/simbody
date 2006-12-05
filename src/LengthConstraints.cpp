@@ -43,7 +43,7 @@ using namespace SimTK;
 
 #include "LengthConstraints.h"
 #include "RigidBodyNode.h"
-#include "RigidBodyTree.h"
+#include "SimbodyMatterSubsystemRep.h"
 
 #include "newtonRaphson.h"
 
@@ -67,7 +67,7 @@ static int compareLevel(const LoopWNodes& l1,    //forward declarations
 class BadNodeDef {};  //exception
 
 
-LoopWNodes::LoopWNodes(const RigidBodyTree& t, const RBDistanceConstraint& dc)
+LoopWNodes::LoopWNodes(const SimbodyMatterSubsystemRep& t, const RBDistanceConstraint& dc)
   : tree(&t), rbDistCons(&dc), flipStations(false), outmostCommonBody(0)
 {
     const RigidBodyNode* dcNode1 = &dc.getStation(1).getNode();
@@ -169,7 +169,7 @@ operator<<(ostream& o, const LoopWNodes& w)
 }
 
 LengthConstraints::LengthConstraints
-    (const RigidBodyTree& rbt, int vbose)
+    (const SimbodyMatterSubsystemRep& rbt, int vbose)
   : maxIters( 20 ), maxMin( 20 ), 
     rbTree(rbt), verbose(vbose), posMin("posMin", cout), velMin("velMin", cout)
 {

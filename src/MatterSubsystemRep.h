@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
-#define SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
+#ifndef SimTK_MATTER_SUBSYSTEM_REP_H_
+#define SimTK_MATTER_SUBSYSTEM_REP_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
  * Contributors:
@@ -170,4 +170,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
+#endif // SimTK_MATTER_SUBSYSTEM_REP_H_
