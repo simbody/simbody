@@ -25,6 +25,7 @@
  */
 
 #include "simbody/internal/common.h"
+#include "SimTKcpodes.h"
 
 #include <cassert>
 
@@ -242,6 +243,192 @@ protected:
             = statsRealizationFailures = statsProjectionFailures = statsStepSizeChanges = 0;
     }
 
+};
+
+// This class implements the abstract CPodesSystem interface understood by
+// our C++ interface to CPodes.
+class CPodesMultibodySystem : public CPodesSystem {
+public:
+    CPodesMultibodySystem(MechanicalDAEIntegrator* p) : mdae(p) 
+    {
+    }
+
+    // Override default implementations of these virtual functions.
+    //   explicitODE()
+    //   project()
+
+
+    // Calculate ydot = f(t,y).
+    int explicitODE(Real t, const Vector& y, Vector& ydot) const {
+        mdae->updState().updY() = y;
+        mdae->updState().updTime() = t;
+
+        try { 
+            mdae->getMultibodySystem().realize(mdae->getState(), Stage::Acceleration); 
+        }
+        catch(...) { return CPodes::RecoverableError; } // assume recoverable
+        ydot = mdae->getState().getYDot();
+        return CPodes::Success;
+    }
+
+    // Given a state (t,y) not on the constraint manifold, return ycorr
+    // such that (t,y+ycorr+eps) is on the manifold, with ||eps||_wrms <= epsProj. 
+    // 'err' passed in as the integrator's current error estimate for state y;
+    // optionally project it to eliminate the portion normal to the manifold.
+    int project(Real t, const Vector& y, Vector& ycorr, Real epsProj, 
+                Vector& err) const 
+    {
+        State& s = mdae->updState();
+        s.updY() = y;
+        s.updTime() = t;
+
+        try {
+            const Real tol = mdae->getConstraintTolerance();
+            mdae->getMultibodySystem().project(s, err,
+                tol, 0., 0.1*tol);
+        }
+        catch (...) { return CPodes::RecoverableError; } // assume recoverable
+
+        ycorr = s.getY()-y;
+        return CPodes::Success;
+    }
+
+    /*
+    virtual int constraint(Real t, const Vector& y, Vector& cerr) const;
+    virtual int  quadrature(Real t, const Vector& y, 
+                            Vector& qout) const;
+    virtual int  root(Real t, const Vector& y, const Vector& yp,
+                      Vector& gout) const;
+    virtual int  weight(const Vector& y, Vector& weights) const;
+    virtual void errorHandler(int error_code, const char* module,
+                              const char* function, char* msg) const;
+    */
+    
+    MechanicalDAEIntegrator *mdae;
+};
+
+class CPodesIntegrator : public MechanicalDAEIntegrator {
+public:
+    CPodesIntegrator(const MultibodySystem& mb, State& s) 
+      : MechanicalDAEIntegrator(mb,s), cpodes(0), sys(0)
+    {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
+            "CPodesIntegrator::CPodesIntegrator()");
+        reconstructForNewModel();
+    }
+
+    // Virtual function implementations
+    ~CPodesIntegrator() {
+        delete cpodes;
+        delete sys;
+    }
+    CPodesIntegrator* clone() const {assert(false); return 0;}
+
+    bool initialize() {
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
+            "CPodesIntegrator::initialize()");
+        if (state.getSystemStage() < Stage::Model)
+            reconstructForNewModel();
+        initializeIntegrationParameters();
+
+        initialized = true;
+
+        Vector ydot(state.getY().size());
+        if (sys->explicitODE(state.getTime(), state.getY(), ydot) 
+               != CPodes::Success)
+            return false;
+
+        Vector ycorr(state.getY().size());
+        Vector err(ycorr.size(), Real(0));
+        if (sys->project(state.getTime(), state.getY(), ycorr, 0./*ignored*/, err)
+                != CPodes::Success)
+            return false;
+        state.updY() = state.getY() + ycorr;
+
+        cpodes->init(*sys, state.getTime(), state.getY(), ydot,
+            CPodes::ScalarScalar, relTol, &absTol);
+        cpodes->lapackDense(state.getY().size());
+        cpodes->setNonlinConvCoef(0.0001); // TODO (default is 0.1)
+        cpodes->setMaxNumSteps(50000);
+        cpodes->projDefine();
+
+        return true;
+    }
+
+    bool step(const Real& tout) {
+        // Re-parametrizing or remodeling requires a new call to initialize().
+        SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
+            "CPodesIntegrator::step()");
+        assert(initialized);
+
+        Real   tret; // ignored
+        Vector ypout(state.getY().size()); // ignored
+
+        // TODO: deal with stop time
+        int res = cpodes->step(tout, &tret, state.updY(), ypout, CPodes::Normal);
+        return res >= 0;
+    }
+
+    Real getConstraintTolerance() const {
+        assert(initialized);
+        return consTol;
+    }
+
+    Real getPredictedNextStep() const {
+        assert(initialized);
+        Real hnext;
+        (void)cpodes->getCurrentStep(&hnext);
+        return hnext;
+    }
+private:
+    void initializeIntegrationParameters() {
+        mbs.realize(state, Stage::Instance);
+
+        initializeStepSizes();
+        initializeTolerances();  
+
+        if (userStopTime != -1.) 
+            cpodes->setStopTime(userStopTime);
+        if (userMaxNumSteps != -1) 
+            cpodes->setMaxNumSteps(userMaxNumSteps);
+        if (userProjectEveryStep != -1)
+            if (userProjectEveryStep==1)
+                cpodes->setProjFrequency(1); // every step
+    }
+
+    void initializeStepSizes() {
+        if (userInitStepSize != -1)
+            cpodes->setInitStep(userInitStepSize);
+        if (userMinStepSize != -1)
+            cpodes->setMinStep(userMinStepSize);
+        if (userMaxStepSize != -1)
+            cpodes->setMaxStep(userMaxStepSize);
+    }
+
+    void initializeTolerances() {
+        accuracy     = (userAccuracy     != -1. ? userAccuracy     : 1e-3);
+        relTol       = (userRelTol       != -1. ? userRelTol       : accuracy); 
+        absTol       = (userAbsTol       != -1. ? userAbsTol       : accuracy); 
+        consTol      = (userConsTol      != -1. ? userConsTol      : accuracy); 
+        vconsRescale = (userVConsRescale != -1. ? userVConsRescale : 1.); 
+    }
+private:
+    void reconstructForNewModel() {
+        initialized = false;
+        delete cpodes;
+        delete sys;
+        mbs.realize(state, Stage::Model);
+        accuracy=relTol=absTol=consTol=vconsRescale
+            = CNT<Real>::getNaN();
+
+        cpodes = new CPodes(CPodes::ExplicitODE, CPodes::BDF, CPodes::Functional);
+        sys = new CPodesMultibodySystem(this);
+    }
+
+    CPodes*                cpodes;
+    CPodesMultibodySystem* sys;
+    Real accuracy, relTol, absTol, consTol, vconsRescale;
+    bool initialized;
 };
 
 class ExplicitEuler : public MechanicalDAEIntegrator {
@@ -678,7 +865,8 @@ private:
 
         initializeStepSizes();
         predictedNextStep = initStepSize;
-        initializeTolerances();        if (userStopTime != -1.) stopTime = userStopTime;
+        initializeTolerances();        
+        if (userStopTime != -1.) stopTime = userStopTime;
         else stopTime = CNT<Real>::getInfinity();
         if (userMaxNumSteps != -1) 
             maxNumSteps = userMaxNumSteps; // 0 means infinity

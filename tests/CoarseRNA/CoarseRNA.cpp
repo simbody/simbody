@@ -56,7 +56,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 5;
+static int NSegments = 2;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -262,8 +262,9 @@ int main(int argc, char** argv) {
 
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
-        RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        myStudy.setAccuracy(1e-2);
+        //RungeKuttaMerson myStudy(mbs, s, suppressProject);
+        CPodesIntegrator myStudy(mbs, s);
+        myStudy.setAccuracy(1e-3);
         myStudy.setConstraintTolerance(1e-3);
         myStudy.setProjectEveryStep(false);
 
@@ -291,6 +292,7 @@ int main(int argc, char** argv) {
             saveEm.push_back(s);    // delay
         display.report(s);
         for (;;) {
+            mbs.realize(s);
             printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
                 myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
                 myStudy.getPredictedNextStep());
