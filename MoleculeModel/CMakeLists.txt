@@ -34,7 +34,7 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 ################################################################################################
 
 
-INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../Chemistry/include)
+INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../Chemistry/include ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 FILE(GLOB INC1 ../Chemistry/include/*.h)
 FILE(GLOB INC2 include/*.h)
 SET(INCLUDES ${INC1} ${INC2})

@@ -11,7 +11,8 @@ using namespace SimTK;
 int main() 
 {
 	MoleculeModeler modeler;
-	modeler.addMolecule(OxygenMolecule());
+	OxygenMolecule oxygen;
+	modeler.addMolecule(oxygen);
 	MultibodySystem system = modeler.system();
 	
 	State state;

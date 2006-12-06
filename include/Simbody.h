@@ -44,5 +44,6 @@
 #include "simbody/internal/GeneralForceElements.h"
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
+#include "simbody/internal/NumericalMethods.h"
 
 #endif // SimTK_SIMBODY_H_
