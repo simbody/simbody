@@ -53,7 +53,12 @@ ADD_EXECUTABLE(TestProtein tests/TestProtein.cpp ${PROTEIN_SRCS})
 
 FILE(GLOB MODEL_SRCS ../MoleculeModel/src/*.cpp)
 SET(MOL_SIM_SRCS ${PROTEIN_SRCS} ${MODEL_SRCS} ../Chemistry/src/Ethane.cpp)
+ADD_EXECUTABLE(TestSimMol0 tests/TestSimMol0.cpp ${MOL_SIM_SRCS} ${INCLUDES})
 ADD_EXECUTABLE(TestSimMol1 tests/TestSimMol1.cpp ${MOL_SIM_SRCS} ${INCLUDES})
+
+TARGET_LINK_LIBRARIES(TestSimMol0 simtkcommon)
+TARGET_LINK_LIBRARIES(TestSimMol0 simmatrix)
+TARGET_LINK_LIBRARIES(TestSimMol0 simbody)
 
 TARGET_LINK_LIBRARIES(TestSimMol1 simtkcommon)
 TARGET_LINK_LIBRARIES(TestSimMol1 simmatrix)
