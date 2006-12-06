@@ -1,5 +1,5 @@
-#ifndef _SimTK_OBJECTIVE_FUNCION_H
-#define _SimTK_OBJECTIVE_FUNCION_H
+#ifndef _SimTK_SIMMATH_H_
+#define _SimTK_SIMMATH_H_
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -23,35 +23,44 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "Simmath.h"
+
+typedef void* smHandle; 
+
+enum { 	OPTIMIZER, ROOT_FINDER };
+typedef enum { LBFGS, LBFGSB,  InteriorPoint } OptimizerAlgorithm;
+enum { SUCCESS, MALLOC_FAILED, UNKNOWN_OPTIMIZER, UNKNOWN_PARAMETER, INVALID_VALUE };
+enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURACY, GRADIENT_CONVERGENCE_TOLERANCE };
+
+
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
-#include "simmatrix/internal/BigMatrix.h"
+#include "SimTKcommon/internal/String.h"
 
 namespace SimTK {
 
-class ObjectiveFunction { 
+namespace Exception {
 
+class OptimizerFailed : public Base {
 public:
-    virtual ~ObjectiveFunction() {};
+        OptimizerFailed( const char * fn, int ln, String msg) : Base(fn, ln)
+        {
+            setMessage("Optmizer failed: " + msg );
+        }
+private:
+};
 
-  /* this method must be overloaded by derived class */
+class UnrecognizedParameter : public Base {
+public:
+        UnrecognizedParameter( const char * fn, int ln, String msg) : Base(fn, ln)
+        {
+            setMessage("Unrecognized Parameter: " + msg );
+        }
+private:
+};
 
-  virtual double getValue( SimTK::Vector&  ) = 0;
+} // namespace Exception
 
-  virtual void   getGradient( SimTK::Vector &,   SimTK::Vector&) = 0;
-
-  virtual double getValueAndGradient( SimTK::Vector &coefficients, SimTK::Vector &gradient) {
-
-     this->getGradient( coefficients, gradient );
-     return( this->getValue( coefficients ) );
-
-  }
-
-}; // end class ObjectiveFunction
-}
-
-#endif //_SimTK_OBJECTIVE_FUNCTION_H
+} //  namespace SimTK
 
 
-
+#endif //_SimTK_SIMMATH_H_

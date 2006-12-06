@@ -14,7 +14,7 @@ using std::endl;
 
 class ProblemStatement : public SimTK::OptimizerSystem {
 
-   int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients,  double *f  )  const{
+   int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
       double *x;
       int i;
 
@@ -33,7 +33,7 @@ class ProblemStatement : public SimTK::OptimizerSystem {
       return( 0 ); 
    }
 
-   int gradientFunc(int n, SimTK::Vector &coefficients, bool new_coefficients,  SimTK::Vector &gradient ) const{
+   int gradientFunc(int n, SimTK::Vector &coefficients, bool new_coefficients,  SimTK::Vector &gradient ) const {
       double *x,t1,t2;
       int i;
 
