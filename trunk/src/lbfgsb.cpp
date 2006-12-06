@@ -54,7 +54,7 @@
 #else
 # include <math.h>
 #endif
-#include "f2c.h"
+#include "Simmath_f2c.h"
 //#include "netlib.h"
 
 #include "lapack/SimTKlapack.h"

@@ -206,8 +206,6 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     # append
     SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
                          ${subdir}/include 
-                         ${subdir}/include/simmath 
-                         ${subdir}/include/simmath/internal)
 ENDFOREACH(subdir)
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
@@ -232,10 +230,8 @@ SET(SOURCE_INCLUDE_FILES)
 FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     FILE(GLOB src_files  ${subdir}/*.cpp)
     FILE(GLOB incl_files ${subdir}/*.h)
-    FILE(GLOB cpp_incl_files ${subdir}/*.hpp)
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
-    SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${cpp_incl_files})
 
     INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
@@ -267,12 +263,21 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(cpptest                  ${TEST_PATH}/cpptest)
-ADD_TEST(cpptestStatic            ${TEST_PATH}/cpptestStatic)
-ADD_TEST(ftest                    ${TEST_PATH}/ftest)
-ADD_TEST(ftestStatic              ${TEST_PATH}/ftestStatic)
-ADD_TEST(ctest                    ${TEST_PATH}/ctest)
-ADD_TEST(ctestStatic              ${TEST_PATH}/ctestStatic)
+ADD_TEST(ipopt_test          ${TEST_PATH}/ipopt_test)
+ADD_TEST(ipopt_testStatic    ${TEST_PATH}/ipopt_test)
+ADD_TEST(lbfgs_test          ${TEST_PATH}/lbfgs_test)
+ADD_TEST(lbfgs_testStatic    ${TEST_PATH}/lbfgs_test)
+ADD_TEST(lbfgsb_test         ${TEST_PATH}/lbfgsb_test)
+ADD_TEST(lbfgsb_testStatic   ${TEST_PATH}/lbfgsb_test)
+
+TARGET_LINK_LIBRARIES(ipopt_test          ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(ipopt_testStatic    ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(lbfgs_test          ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(lbfgs_testStatic    ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(lbfgsb_test         ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(lbfgsb_testStatic   ${STATIC_TARGET})
+~
+
 
 
 #
@@ -331,5 +336,5 @@ FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 INSTALL_FILES("/core/include/"                   FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/simmath/"         FILES ${TOP_HEADERS})
-INSTALL_FILES("/core/include/simmath/internal" FILES ${INTERNAL_HEADERS})
+#INSTALL_FILES("/core/include/simmath/internal" FILES ${INTERNAL_HEADERS})
 

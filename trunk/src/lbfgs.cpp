@@ -29,7 +29,7 @@
 #include "Optimizer.h"
 
 #include "itk_lbfgs.h"
-#include "f2c.h" 
+#include "Simmath_f2c.h" 
 #define NUMBER_OF_CORRECTIONS 5   
 
 using std::cout;
