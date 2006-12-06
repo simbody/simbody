@@ -2,6 +2,7 @@
 #include "Simbody.h"
 #include "OxygenMolecule.h"
 #include "MoleculeModeler.h"
+// #include "simbody/internal/NumericalMethods.h"
 
 using namespace std;
 using namespace SimTK;
