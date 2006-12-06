@@ -79,7 +79,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
             AddIpoptStrOption(nlp, "output_file", "ipopt.out");
             AddIpoptStrOption(nlp, "linear_solver", "lapack");
             AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
-            AddIpoptIntOption(nlp, "print_level", 0); // default is 4
+            AddIpoptIntOption(nlp, "print_level", 4); // default is 4
 
           }
 
@@ -96,7 +96,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
 
         printf("call InteriorPoint optimize \n");
 
-         status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, NULL);
+         status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, (void *)this );
 
          if (status == Solve_Succeeded) {
              printf("Ipopt CONVERGED \n");

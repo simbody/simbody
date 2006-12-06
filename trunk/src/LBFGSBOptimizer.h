@@ -51,11 +51,8 @@ class LBFGSBOptimizer: public OptimizerRep {
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
      int         n;
-     int         numBounds;
      int         numCorrections;
      int         MaxNumFuncEvals;
-     double      *lower_bounds;
-     double      *upper_bounds;
      double      GradientConvergenceTolerance;
      double      LineSearchAccuracy;
      double      DefaultStepLength;

@@ -30,15 +30,15 @@
 
 
 namespace SimTK {
-extern int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data);
-extern int gradientFuncWrapper( int n,  Real *x, int new_x, Real *gradient, void* user_data);
-extern int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void* user_data);
+extern int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void*user_data);
+extern int gradientFuncWrapper( int n,  Real *x, int new_x, Real *gradient, void*user_data);
+extern int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data);
 extern int constraintJacobianWrapper( int n, Real *x, int new_x,int m, int nele_jac,
-                int *iRow, int *jCol, Real *values, void * user_data);
+                int *iRow, int *jCol, Real *values, void *user_data);
 extern int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
             int m, Real *lambda, int new_lambda,
             int nele_hess, int *iRow, int *jCol,
-            Real *values, void * user_data);
+            Real *values, void *user_data);
 
 class OptimizerRep {
 public:
@@ -53,7 +53,6 @@ public:
     virtual void setOptimizerParameters(unsigned int parameter, double *values ){};
     virtual void getOptimizerParameters(unsigned int parameter, double *values ){};
     virtual double optimize(  Vector &results ) =  0;
-
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}
 

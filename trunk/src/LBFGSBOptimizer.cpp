@@ -53,12 +53,11 @@ static double pgtol = 1.0e-5;
          }
 
          n = sys.dimension;
-         numBounds = sys.numBounds;
 
 
           /* assume all paramters have both upper and lower bounds */
-          nbd = (int *)malloc(numBounds*sizeof(int));
-          for(i=0;i<numBounds;i++) {
+          nbd = (int *)malloc(sys.numBounds*sizeof(int));
+          for(i=0;i<sys.numBounds;i++) {
                nbd[i] = 2;
           }
 
@@ -81,15 +80,16 @@ static double pgtol = 1.0e-5;
          int isave[44];
          double dsave[29];
          double *wa;
+         const OptimizerSystem& sys = getOptimizerSystem();
 
 
          iwa = (int *)malloc(3*n*sizeof(int));
-         wa = (double *)malloc( ((2*n + 4)*n + 12*n*n + 12*numBounds)*sizeof(double));
+         wa = (double *)malloc( ((2*n + 4)*n + 12*n*n + 12*sys.numBounds)*sizeof(double));
 
          strcpy( task, "START" );
          while( run_optimizer ) { 
-            setulb_(&n, &numCorrections, &results[0], lower_bounds,
-                    upper_bounds, nbd, &f, gradient,
+            setulb_(&n, &numCorrections, &results[0], sys.lower_bounds,
+                    sys.upper_bounds, nbd, &f, gradient,
                     &factr, &pgtol, wa, iwa,
                     task, &iprint, csave, lsave, isave, dsave, 60, 60);
              if( strncmp( task, "FG", 2) == 0 ) {

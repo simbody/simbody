@@ -75,15 +75,15 @@ int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_d
       rep.gradientFunc( rep.getOptimizerSystem(), n, coeff, new_x, grad_vec );
       return( true );
 }
-int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void* user_data) {
+int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data) {
       Vector coeff( n, x, true);
       Vector constraints(n, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
       rep.constraintFunc( rep.getOptimizerSystem(), n, m, coeff, new_x, constraints );
       return( true );
 }
-int constraintJacobianWrapper(Index n, Number *x, int new_x, Index m, Index nele_jac,
-                Index *iRow, Index *jCol, Number *values, UserDataPtr user_data)
+int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
+                int *iRow, int *jCol, Real *values, void *user_data)
 {
   int i,j,index;
   double *jac,*nx;
@@ -111,10 +111,10 @@ int constraintJacobianWrapper(Index n, Number *x, int new_x, Index m, Index nele
   return( true );
 }
 // TODO finish hessianWrapper
-int hessianWrapper(Index n, Number *x, int new_x, Number obj_factor,
-            Index m, Number *lambda, int new_lambda,
-            Index nele_hess, Index *iRow, Index *jCol,
-            Number *values, UserDataPtr user_data) {
+int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
+            int m, Number *lambda, int new_lambda,
+            int nele_hess, int *iRow, int *jCol,
+            Real *values, void *user_data) {
 
 
     Vector coeff(n,x,true); 
