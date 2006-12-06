@@ -38,20 +38,27 @@ private:
 		return !(*this != other);
 	}
 
+	int number() const {
+		return residueNumber;
+	}
+
 	const AminoAcidType * type;
 	const AminoAcid * myHandle;
+	int residueNumber;
 };
 
-AminoAcid::AminoAcid(const AminoAcidType & type)
+AminoAcid::AminoAcid(const AminoAcidType & type, int resNum)
 {
 	rep = new AminoAcidRep(type, *this);
 	rep->myHandle = this;
+	rep->residueNumber = resNum;
 }
 
-AminoAcid::AminoAcid(char oneLetterCode)
+AminoAcid::AminoAcid(char oneLetterCode, int resNum)
 {
 	rep = new AminoAcidRep(oneLetterCode, *this);
 	rep->myHandle = this;
+	rep->residueNumber = resNum;
 }
 
 AminoAcid::~AminoAcid()
@@ -75,4 +82,8 @@ bool AminoAcid::operator==(const AminoAcid & src) const {return (*(this->rep)) =
 bool AminoAcid::operator!=(const AminoAcid & src) const {return (*(this->rep)) != (*(src.rep));}
 
 char AminoAcid::oneLetterCode() const {return rep->oneLetterCode();}
+
+int AminoAcid::number() const{
+	return rep->number();
+}
 

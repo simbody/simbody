@@ -26,6 +26,8 @@
 #ifndef CHEMICALELEMENT_H_
 #define CHEMICALELEMENT_H_
 
+#include "SimTKcommon.h"
+
 // ChemicalElement is the client side public interface to the library implementation ChemicalElementRep
 // To minimize client/library API problems, avoid the following in the public interface:
 //  1) virtual functions (functions might still be actually virtual in the library implementation)
@@ -38,7 +40,7 @@
 class ChemicalElement
 {
 public:
-	ChemicalElement(int number, const char* symbol, const char* name, double defaultMass);
+	ChemicalElement(int number, const char* symbol, const char* name, SimTK::Real defaultMass);
 	~ChemicalElement();
 
 	ChemicalElement(const ChemicalElement & src);
@@ -60,7 +62,7 @@ public:
 	
 	// Atomic mass, might be overridden for isotopes
 	// In atomic mass units (Daltons) (Da, g/mol, amu, u)
-	double mass() const;
+	SimTK::Real getMass() const;
 
     static const ChemicalElement Hydrogen;
     static const ChemicalElement Deuterium;

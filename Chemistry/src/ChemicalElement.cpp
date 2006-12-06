@@ -33,8 +33,8 @@ class ChemicalElementRep
 {
 	friend class ChemicalElement;
 private:
-	ChemicalElementRep(int number, const char* symbol, const char* name, double mass)
-		: number(number), symbol(symbol), name(name), defaultMass(mass)
+	ChemicalElementRep(int number, const char* symbol, const char* name, double mass, const ChemicalElement & handle)
+		: number(number), symbol(symbol), name(name), defaultMass(mass), myHandle(& handle)
 	{}
 
 	int number;
@@ -42,13 +42,12 @@ private:
 	string name;
 	double defaultMass;
 	
-	ChemicalElement * myHandle;
+	const ChemicalElement * myHandle;
 };
 
 ChemicalElement::ChemicalElement(const int number, const char* symbol, const char* name, const double defaultMass)
 {
-	rep = new ChemicalElementRep(number, symbol, name, defaultMass);
-	rep->myHandle = this;
+	rep = new ChemicalElementRep(number, symbol, name, defaultMass, *this);
 }
 
 ChemicalElement::~ChemicalElement() {
@@ -73,7 +72,7 @@ const char * ChemicalElement::name() const {
 	return rep->name.c_str();
 }
 
-double ChemicalElement::mass() const {
+double ChemicalElement::getMass() const {
 	return rep->defaultMass;
 }
 

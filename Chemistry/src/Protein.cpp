@@ -27,6 +27,7 @@
 #include "AminoAcid.h"
 #include <string>
 #include <vector>
+#include <map>
 #include <iostream>
 
 using namespace std;
@@ -37,20 +38,30 @@ class ProteinRep
 	friend class Protein;
 private:
 	ProteinRep(const char * sequence) {
+		int residueNumber = 1;
 		for (const char * i = sequence; *i; i++) {
 			const char olc = *i;
-			residues.push_back(AminoAcid(olc));
+			addResidue(AminoAcid(olc, residueNumber));
+			residueNumber ++;
 		}
 	}
 
-	// Warning - the sequence will probably go out of scope when the protein does.
+	void addResidue(AminoAcid & aa) {
+		int index = residueVec.size();
+		residueVec.push_back(aa);
+
+		// Map residue number to index
+		resNumVecIndices[aa.number()] = index;
+	}
+
+	// TODO Warning - the sequence will probably go out of scope when the protein does.
 	const char * sequence() const {
 		// TODO - a static string applies to all Proteins.
 		static string answer;
 
 		answer.clear();
-		vector<AminoAcid>::const_iterator i = residues.begin();
-		while (i != residues.end()) {
+		vector<AminoAcid>::const_iterator i = residueVec.begin();
+		while (i != residueVec.end()) {
 			answer += (*i).oneLetterCode();
 			i++;
 		}
@@ -58,7 +69,14 @@ private:
 		return answer.c_str();
 	}
 	
-	vector<AminoAcid> residues;
+	const AminoAcid * residue(int resNum) const {
+		std::map<int, int>::const_iterator i = resNumVecIndices.find(resNum);
+		if (i == resNumVecIndices.end()) return NULL;
+		else return & residueVec[i->second];
+	}
+
+	vector<AminoAcid> residueVec;
+	std::map<int, int> resNumVecIndices;
 
 	Protein * myHandle;
 };
@@ -74,6 +92,10 @@ Protein::~Protein()
 {
 	if (rep && (this == rep->myHandle)) delete rep;
 	rep = NULL;
+}
+
+const AminoAcid * Protein::residue(int resNum) const {
+	return rep->residue(resNum);
 }
 
 const char * Protein::sequence() const {

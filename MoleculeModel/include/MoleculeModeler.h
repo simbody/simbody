@@ -4,13 +4,17 @@
 #include "Simbody.h"
 #include "Molecule.h"
 #include "AminoAcid.h"
-#include "simbody/internal/MultibodySystem.h"
 
 class MoleculeModeler {
 public:
+	MoleculeModeler();
+	~MoleculeModeler();
+
 	MoleculeModeler & addMolecule(const Molecule & molecule);
 	SimTK::MultibodySystem & system();
 	SimTK::Real getPsiTorsion(const SimTK::State & state, const AminoAcid & aminoAcid);
+private:
+	class MoleculeModelerRep * rep;
 };
 
 #endif /*MOLECULEMODELER_H_*/

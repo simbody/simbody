@@ -6,8 +6,8 @@
 class AminoAcid
 {
 public:
-	explicit AminoAcid(char oneLetterCode);
-	explicit AminoAcid(const AminoAcidType & type);
+	AminoAcid(char oneLetterCode, int num = -1);
+	AminoAcid(const AminoAcidType & type, int num = -1);
 	~AminoAcid();
 
 	AminoAcid(const AminoAcid & src);
@@ -16,6 +16,8 @@ public:
 	bool operator!=(const AminoAcid & src) const;
 	
 	char oneLetterCode() const;
+	int number() const;
+
 private:
 	class AminoAcidRep * rep;
 };

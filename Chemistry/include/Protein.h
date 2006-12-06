@@ -41,7 +41,7 @@ public:
 	bool operator!=(const Protein & src) const;
 
 	const char * sequence() const;
-	const AminoAcid & residue(int resNum) const;
+	const AminoAcid * residue(int resNum) const;
 	
 private:
 	class ProteinRep * rep;

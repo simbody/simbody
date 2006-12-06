@@ -33,7 +33,7 @@ int main()
 		
 		cout 
 			<< "Psi torsion of residue 1 = " 
-			<< modeler.getPsiTorsion(state, protein.residue(1)) 
+			<< modeler.getPsiTorsion(state, *(protein.residue(1))) 
 			<< endl;
 			
 		time += stepInterval;
