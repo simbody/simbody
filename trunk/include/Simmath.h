@@ -35,6 +35,7 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
+#include "simmath/Optimizer.h"
 
 namespace SimTK {
 
