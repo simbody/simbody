@@ -39,6 +39,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
    }
 
+
 };
 
 main() {
@@ -48,9 +49,11 @@ main() {
 
     ProblemSystem sys;
     SimTK::Vector results(2);
+    sys.dimension = PROBLEM_DIMENSION;
 
     try {
     SimTK::Optimizer opt( sys ); 
+
 
     params[0] = 0;
     opt.setOptimizerParameters( TRACE, params );
