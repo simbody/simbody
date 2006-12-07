@@ -23,7 +23,7 @@
 # or           .../simmath/lib ?
 #----------------------------------------------------
 
-PROJECT (add_fortran Fortran C CXX)
+PROJECT ( SimTKsimmath )
 SUBDIRS (staticTarget sharedTarget tests)
 
 # The build system will set ARCH64 for 64 bit builds, which require
@@ -68,7 +68,7 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMMATH_SOURCE_SUBDIRS  src src/ipopt)
+SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include/simmath include/simmath/internal)
 
 
 # Collect up information about the version of the simmath library we're building
@@ -177,36 +177,22 @@ STRING(TOLOWER ${SimTK_LAPACK} SimTK_LAPACK_DOWNSHIFT)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## A gcc build
-    IF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE acml)
-        ADD_DEFINITIONS(-DSimTK_USE_ACML_LAPACK)
-    ELSE (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE SimTKlapack pthread)
-    ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+   SET(MATH_LIBS_TO_USE SimTKlapack pthread)
 
  ##   LINK_DIRECTORIES(/usr/local/lib${LIB64} /lib${LIB64})
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## Assume Microsoft Visual Studio
-    IF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE libacml_dll)
-        ADD_DEFINITIONS(-DSimTK_USE_ACML_LAPACK)
-    ELSE (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
-        SET(MATH_LIBS_TO_USE SimTKlapack)
-    ENDIF (SimTK_LAPACK_DOWNSHIFT STREQUAL "acml")
+    SET(MATH_LIBS_TO_USE SimTKlapack)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 
 # These are all the places to search for header files which are
 # to be part of the API.
-SET(API_INCLUDE_DIRS) # start empty
-FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
-    # append
-    SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
-                         ${subdir}/include 
-ENDFOREACH(subdir)
+
+SET(API_INCLUDE_DIRS ${PROJECT_SRC_DIR}/include) 
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -233,10 +219,10 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
+    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir})
 ENDFOREACH(subdir)
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
 
 #
 # Allow automated build and dashboard.
@@ -269,14 +255,6 @@ ADD_TEST(lbfgs_test          ${TEST_PATH}/lbfgs_test)
 ADD_TEST(lbfgs_testStatic    ${TEST_PATH}/lbfgs_test)
 ADD_TEST(lbfgsb_test         ${TEST_PATH}/lbfgsb_test)
 ADD_TEST(lbfgsb_testStatic   ${TEST_PATH}/lbfgsb_test)
-
-TARGET_LINK_LIBRARIES(ipopt_test          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(ipopt_testStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(lbfgs_test          ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(lbfgs_testStatic    ${STATIC_TARGET})
-TARGET_LINK_LIBRARIES(lbfgsb_test         ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(lbfgsb_testStatic   ${STATIC_TARGET})
-~
 
 
 

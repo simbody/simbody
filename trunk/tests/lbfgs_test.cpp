@@ -12,7 +12,7 @@ using std::endl;
 
 #define PROBLEM_DIMENSION 2
 
-class OptSystem : public SimTK::OptimizerSystem {
+class ProblemSystem : public SimTK::OptimizerSystem {
 
    int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients, double *f ) const {
       double x, y;
@@ -46,11 +46,11 @@ main() {
     double params[10];
     int i;
 
-    OptSystem of;
+    ProblemSystem sys;
     SimTK::Vector results(2);
 
     try {
-    SimTK::Optimizer opt( PROBLEM_DIMENSION ); 
+    SimTK::Optimizer opt( sys ); 
 
     params[0] = 0;
     opt.setOptimizerParameters( TRACE, params );

@@ -12,7 +12,7 @@ using std::endl;
 #define PROBLEM_DIMENSION 25
 #define NUM_CORRECTIONS    5
 
-class ProblemStatement : public SimTK::OptimizerSystem {
+class ProblemSystem : public SimTK::OptimizerSystem {
 
    int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
       double *x;
@@ -67,13 +67,13 @@ main() {
     SimTK::Vector results(PROBLEM_DIMENSION);
     SimTK::Vector lower_bounds(PROBLEM_DIMENSION);
     SimTK::Vector upper_bounds(PROBLEM_DIMENSION);
-    ProblemStatement study;
+    ProblemSystem sys;
 
     cout << "LBFGSB driver1 test " << endl;
-    study.dimension = PROBLEM_DIMENSION;
-    study.numBounds = PROBLEM_DIMENSION;  // all coeffcients have bounds
-    study.lower_bounds = &lower_bounds[0];
-    study.upper_bounds = &upper_bounds[0];
+    sys.dimension = PROBLEM_DIMENSION;
+    sys.numBounds = PROBLEM_DIMENSION;  // all coeffcients have bounds
+    sys.lower_bounds = &lower_bounds[0];
+    sys.upper_bounds = &upper_bounds[0];
 
     /* set initial conditions */
     for(i=0;i<n;i++) {
@@ -94,7 +94,7 @@ main() {
 
 
     try {
-    SimTK::Optimizer opt( study ); 
+    SimTK::Optimizer opt( sys ); 
 
     params[0] = 100;
     opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );

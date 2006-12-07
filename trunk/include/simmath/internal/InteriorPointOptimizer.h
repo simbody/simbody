@@ -26,8 +26,8 @@
 //#include <iostream>
 #include "Simmath.h"
 #include "OptimizerRep.h"
-#include "ipopt/IpStdCInterface.h"
-#include "ipopt/IpReturnCodes.h"
+#include "IpStdCInterface.h"
+#include "IpReturnCodes.h"
 
 namespace SimTK {
 
