@@ -347,8 +347,11 @@ public:
 
         mbs.realize(state, Stage::Velocity);
 
-        Vector ycorr(state.getY().size());
-        Vector err(ycorr.size(), Real(0));
+        const int ny = state.getY().size();
+        const int nc = state.getYErr().size();
+
+        Vector ycorr(ny);
+        Vector err(ny, Real(0));
         if (sys->project(state.getTime(), state.getY(), ycorr, 0./*ignored*/, err)
                 != CPodes::Success)
             return false;
@@ -356,7 +359,7 @@ public:
 
         mbs.realize(state, Stage::Velocity);
 
-        Vector ydot(state.getY().size());
+        Vector ydot(ny);
         if (sys->explicitODE(state.getTime(), state.getY(), ydot) 
                != CPodes::Success)
             return false;
@@ -368,11 +371,24 @@ public:
             printf("init returned %d\n", retval);
             return false;
         }
-        cpodes->lapackDense(state.getY().size());
+        cpodes->lapackDense(ny);
         cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
         cpodes->setMaxNumSteps(50000);
-        cpodes->projDefine();
-
+        //cpodes->projDefine();
+        /**/
+        cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear,
+                Vector(nc, getConstraintTolerance()));
+        //cpodes->setProjUpdateErrEst(false);
+        //cpodes->setProjFrequency(long proj_freq);
+        //cpodes->setProjTestCnstr(true);
+        //cpodes->setProjLsetupFreq(long proj_lset_freq);
+        //cpodes->setProjNonlinConvCoef(.1);
+        cpodes->lapackDenseProj(nc, ny, 
+            //CPodes::ProjectWithSchurComplement
+            CPodes::ProjectWithQRPivot
+            //CPodes::ProjectWithLU
+            );
+        /**/
         return true;
     }
 
@@ -442,7 +458,7 @@ private:
         accuracy=relTol=absTol=consTol=vconsRescale
             = CNT<Real>::getNaN();
 
-        cpodes = new CPodes(CPodes::ExplicitODE, CPodes::Adams, CPodes::Functional);
+        cpodes = new CPodes(CPodes::ExplicitODE, CPodes::BDF, CPodes::Functional);
         sys = new CPodesMultibodySystem(this);
     }
 

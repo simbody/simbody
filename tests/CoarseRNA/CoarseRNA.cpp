@@ -252,6 +252,13 @@ int main(int argc, char** argv) {
         //myRNA.setUseEulerAngles(s,true);
         mbs.realize(s, Stage::Model);
 
+        printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
+        for (int i=0; i<myRNA.getNBodies(); ++i) {
+            printf("body %2d: using quat? %s; quat index=%d\n",
+                i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
+                myRNA.getQuaternionIndex(s,i));
+        }
+
         ugs.updGravity(s) *= 10;
         ugs.disableGravity(s);
         ugs.enableGravity(s);
@@ -262,8 +269,8 @@ int main(int argc, char** argv) {
 
         // And a study using the Runge Kutta Merson integrator
         bool suppressProject = false;
-        RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        //CPodesIntegrator myStudy(mbs, s);
+        //RungeKuttaMerson myStudy(mbs, s, suppressProject);
+        CPodesIntegrator myStudy(mbs, s);
         myStudy.setAccuracy(1e-3);
         myStudy.setConstraintTolerance(1e-3);
         myStudy.setProjectEveryStep(false);
@@ -298,6 +305,9 @@ int main(int argc, char** argv) {
                 myStudy.getPredictedNextStep());
             printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
                 mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+
+            cout << "QERR=" << s.getQErr() << endl;
+            cout << "UERR=" << s.getUErr() << endl;
 
             display.report(s);
             saveEm.push_back(s);

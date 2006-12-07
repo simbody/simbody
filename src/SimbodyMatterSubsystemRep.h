@@ -79,7 +79,9 @@ class SimbodyMatterSubsystemRep : public SimTK::MatterSubsystemRep {
 public:
     SimbodyMatterSubsystemRep() 
       : MatterSubsystemRep("SimbodyMatterSubsystemRep", "0.5.3"), 
-        nextUSlot(0), nextUSqSlot(0), nextQSlot(0), DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
+        nextUSlot(0), nextUSqSlot(0), nextQSlot(0), 
+        nextQErrSlot(0), nextUErrSlot(0), nextMultSlot(0),
+        DOFTotal(-1), SqDOFTotal(-1), maxNQTotal(-1), 
         built(false), topologyCacheIndex(-1), lConstraints(0) 
     { 
         addGroundNode(); 
@@ -151,8 +153,8 @@ public:
     const Real&       getBodyMass               (const State&, int body) const;
     const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
 
-    const Transform&  getBodyPosition (const State&, int body) const;
-    const SpatialVec& getBodyVelocity      (const State&, int body) const;
+    const Transform&  getBodyPosition(const State&, int body) const;
+    const SpatialVec& getBodyVelocity(const State&, int body) const;
 
     // velocity dependent
     const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
@@ -179,33 +181,21 @@ public:
     void setMobilizerPosition(State&, int body, const Transform& X_MbM) const;
     void setMobilizerVelocity(State&, int body, const SpatialVec& V_MbM) const;
 
-    const Vector& getQConstraintErrors(const State& s) const {
-        const SBPositionCache& cc = getPositionCache(s);
-        return cc.positionConstraintErrors;
-    }
     // TODO: this is unweighted RMS norm
     Real calcQConstraintNorm(const State& s) const {
-        const Vector& qerr = getQConstraintErrors(s);
+        const Vector& qerr = getQErr(s);
         return qerr.size() ? std::sqrt(qerr.normSqr()/qerr.size()) : 0.;
     }
 
-    const Vector& getUConstraintErrors(const State& s) const {
-        const SBVelocityCache& mc = getVelocityCache(s);
-        return mc.velocityConstraintErrors;
-    }
     // TODO: this is unweighted, untimescaled RMS norm
     Real calcUConstraintNorm(const State& s) const {
-        const Vector& uerr = getUConstraintErrors(s);
+        const Vector& uerr = getUErr(s);
         return uerr.size() ? std::sqrt(uerr.normSqr()/uerr.size()) : 0.;
     }
 
-    const Vector& getUDotConstraintErrors(const State& s) const {
-        const SBAccelerationCache& rc = getAccelerationCache(s);
-        return rc.accelerationConstraintErrors;
-    }
     // TODO: this is unweighted, untimescaled RMS norm
     Real calcUDotConstraintNorm(const State& s) const {
-        const Vector& uderr = getUDotConstraintErrors(s);
+        const Vector& uderr = getUDotErr(s);
         return uderr.size() ? std::sqrt(uderr.normSqr()/uderr.size()) : 0.;
     }
 
@@ -299,16 +289,14 @@ public:
     int getTotalSqDOF()  const {assert(built); return SqDOFTotal;}
     int getTotalQAlloc() const {assert(built); return maxNQTotal;}
 
-    int getTotalMultAlloc() const {assert(built); assert(false); return -1;} // TODO
+    int getNTopologicalPositionConstraintEquations()     const {assert(built); return nextQErrSlot;}
+    int getNTopologicalVelocityConstraintEquations()     const {assert(built); return nextUErrSlot;}
+    int getNTopologicalAccelerationConstraintEquations() const {assert(built); return nextMultSlot;}
 
     int getQIndex(int body) const;
     int getQAlloc(int body) const;
     int getUIndex(int body) const;
     int getDOF   (int body) const;
-
-    int getMultIndex(int constraint) const {assert(built);assert(false); return -1;} //TODO
-    int getMaxNMult (int constraint) const {assert(built);assert(false); return -1;} //TODO
-
 
     // Modeling info.
 
@@ -321,6 +309,9 @@ public:
 
         // CALLABLE AFTER realizeModel()
 
+    int  getNQuaternionsInUse(const State&) const;
+    bool isUsingQuaternion(const State&, int body) const;
+    int  getQuaternionIndex(const State&, int body) const; // -1 if none
 
     const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
@@ -366,11 +357,12 @@ public:
 
     bool isBuilt() const {return built;}
 
-    // Add a distance constraint equation and assign it a particular multiplier
-    // slot to use. Return the assigned distance constraint index for caller's use.
+    // Add a distance constraint equation and assign it a particular slot in
+    // the qErr, uErr, and multiplier arrays.
+    // Return the assigned distance constraint index for caller's use.
     int addOneDistanceConstraintEquation(
         const RBStation& s1, const RBStation& s2, const Real& d,
-        int multIndex);
+        int qerrIndex, int uerrIndex, int multIndex);
 
     //
     //    STATE ARCHEOLOGY
@@ -564,6 +556,15 @@ private:
     int nextUSlot;
     int nextUSqSlot;
     int nextQSlot;
+
+    // These are similarly for doling out slots for *topological* constraint
+    // equations for position errors, velocity errors, and multipliers.
+    // Note that quaternion normalization constraints are *not* topological
+    // so aren't counted here (although we begin assigning them slots at
+    // the end of the qErr's used up here).
+    int nextQErrSlot;
+    int nextUErrSlot;
+    int nextMultSlot;
 
     // set by endConstruction
     int DOFTotal;   // summed over all nodes

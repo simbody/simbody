@@ -183,15 +183,11 @@ int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodie
 int SimbodyMatterSubsystem::getTotalDOF()       const {return getRep().getTotalDOF();}
 int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
 int SimbodyMatterSubsystem::getNConstraints()   const {return getRep().getNConstraints();}
-int SimbodyMatterSubsystem::getTotalMultAlloc() const {return getRep().getTotalMultAlloc();}
 
 int SimbodyMatterSubsystem::getQIndex(int body) const {return getRep().getQIndex(body);}
 int SimbodyMatterSubsystem::getQAlloc(int body) const {return getRep().getQAlloc(body);}
 int SimbodyMatterSubsystem::getUIndex(int body) const {return getRep().getUIndex(body);}
 int SimbodyMatterSubsystem::getDOF   (int body) const {return getRep().getDOF(body);}
-
-int SimbodyMatterSubsystem::getMultIndex(int constraint) const {return getRep().getMultIndex(constraint);}
-int SimbodyMatterSubsystem::getMaxNMult (int constraint) const {return getRep().getMaxNMult(constraint);}
 
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
@@ -206,6 +202,16 @@ bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, int body) con
   { return getRep().isMobilizerPrescribed(s,body); }
 bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
+
+int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
+    return getRep().getNQuaternionsInUse(s);
+}
+bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, int body) const {
+    return getRep().isUsingQuaternion(s, body);
+}
+int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, int body) const {
+    return getRep().getQuaternionIndex(s, body);
+}
 
 
 const Vector& SimbodyMatterSubsystem::getQ(const State& s) const {return getRep().getQ(s);}

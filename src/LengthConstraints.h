@@ -59,7 +59,7 @@ std::ostream& operator<<(std::ostream&, const RBStation&);
 /**
  * This class requests that two stations, one on each of two rigid bodies,
  * be maintained at a certain separation distance at all times. This is 
- * an internal service provided by RigidBodyTrees and not something
+ * an internal service provided by SimbodyMatterSubsystems and not something
  * built directly by users. User-requested Constraints may allocate one
  * or more distance constraints in the performance of their duties.
  *
@@ -72,27 +72,35 @@ std::ostream& operator<<(std::ostream&, const RBStation&);
  */
 class RBDistanceConstraint {
 public:
-    RBDistanceConstraint() : distance(-1.), distConstNum(-1), multIndex(-1) {}
+    RBDistanceConstraint() : distance(-1.), distConstNum(-1), 
+                             qerrIndex(-1), uerrIndex(-1), multIndex(-1) {}
     RBDistanceConstraint(const RBStation& s1, const RBStation& s2, const Real& d)
     {
         assert(s1.isValid() && s2.isValid() && d >= 0.);
         stations[0] = s1; stations[1] = s2; distance = d;
-        distConstNum = multIndex = -1;
+        distConstNum = qerrIndex = uerrIndex = multIndex = -1;
     }
 
     void calcPosInfo(
-        SBPositionCache&       cc) const;
+        Vector&                qErr,
+        SBPositionCache&       pc) const;
     void calcVelInfo(
-        const SBPositionCache& cc, 
-        SBVelocityCache&              mc) const;
+        const SBPositionCache& pc, 
+        Vector&                uErr,
+        SBVelocityCache&       vc) const;
     void calcAccInfo(
-        const SBPositionCache& cc, 
-        const SBVelocityCache&        mc,
-        SBAccelerationCache&            rc) const;
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        Vector&                udotErr,
+        SBAccelerationCache&   ac) const;
 
     void setDistanceConstraintNum(int ix) {assert(ix>=0); distConstNum=ix;}
     int  getDistanceConstraintNum() const {assert(isValid()&&distConstNum>=0); return distConstNum;}
 
+    void setQErrIndex(int ix) {assert(ix>=0); qerrIndex=ix;}
+    int  getQErrIndex() const {assert(isValid()&&qerrIndex>=0); return qerrIndex;}
+    void setUErrIndex(int ix) {assert(ix>=0); uerrIndex=ix;}
+    int  getUErrIndex() const {assert(isValid()&&uerrIndex>=0); return uerrIndex;}
     void setMultIndex(int ix) {assert(ix>=0); multIndex=ix;}
     int  getMultIndex() const {assert(isValid()&&multIndex>=0); return multIndex;}
 
@@ -105,123 +113,125 @@ public:
 
     // State access routines
 
-        // CONFIGURED STAGE
-    const Real& getPosErr(const SBPositionCache& cc) const {
-        return cc.positionConstraintErrors[multIndex];
+        // POSITION STAGE
+    const Real& getPosErr(const Vector& qErr) const {
+        assert(qerrIndex >= 0);
+        return qErr[qerrIndex];
     }
-    Real& updPosErr(SBPositionCache& cc) const {
-        return cc.positionConstraintErrors[multIndex];
-    }
-
-    const Vec3& getStation_G(const SBPositionCache& cc, int i) const {
-        assert(1 <= i && i <= 2);
-        return cc.station_G[i-1][distConstNum];
-    }
-    Vec3& updStation_G(SBPositionCache& cc, int i) const {
-        assert(1 <= i && i <= 2);
-        return cc.station_G[i-1][distConstNum];
+    Real& updPosErr(Vector& qErr) const {
+        assert(qerrIndex >= 0);
+        return qErr[qerrIndex];
     }
 
-    const Vec3& getPos_G(const SBPositionCache& cc, int i) const {
+    const Vec3& getStation_G(const SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
-        return cc.pos_G[i-1][distConstNum];
+        return pc.station_G[i-1][distConstNum];
     }
-    Vec3& updPos_G(SBPositionCache& cc, int i) const {
+    Vec3& updStation_G(SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
-        return cc.pos_G[i-1][distConstNum];
+        return pc.station_G[i-1][distConstNum];
     }
 
-    const Vec3& getFromTip1ToTip2_G(const SBPositionCache& cc) const {
-        return cc.fromTip1ToTip2_G[distConstNum];
-    }
-    Vec3& updFromTip1ToTip2_G(SBPositionCache& cc) const {
-        return cc.fromTip1ToTip2_G[distConstNum];
-    }
-
-    const Vec3& getUnitDirection_G(const SBPositionCache& cc) const {
-        return cc.unitDirection_G[distConstNum];
-    }
-    Vec3& updUnitDirection_G(SBPositionCache& cc) const {
-        return cc.unitDirection_G[distConstNum];
-    }
-
-        // MOVING STAGE
-    const Real& getVelErr(const SBVelocityCache& mc) const {
-        return mc.velocityConstraintErrors[multIndex];
-    }
-    Real& updVelErr(SBVelocityCache& mc) const {
-        return mc.velocityConstraintErrors[multIndex];
-    }
-
-    const Vec3& getStationVel_G(const SBVelocityCache& mc, int i) const {
+    const Vec3& getPos_G(const SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
-        return mc.stationVel_G[i-1][distConstNum];
+        return pc.pos_G[i-1][distConstNum];
     }
-    Vec3& updStationVel_G(SBVelocityCache& mc, int i) const {
+    Vec3& updPos_G(SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
-        return mc.stationVel_G[i-1][distConstNum];
+        return pc.pos_G[i-1][distConstNum];
     }
 
-    const Vec3& getVel_G(const SBVelocityCache& mc, int i) const {
-        assert(1 <= i && i <= 2);
-        return mc.vel_G[i-1][distConstNum];
+    const Vec3& getFromTip1ToTip2_G(const SBPositionCache& pc) const {
+        return pc.fromTip1ToTip2_G[distConstNum];
     }
-    Vec3& updVel_G(SBVelocityCache& mc, int i) const {
-        assert(1 <= i && i <= 2);
-        return mc.vel_G[i-1][distConstNum];
+    Vec3& updFromTip1ToTip2_G(SBPositionCache& pc) const {
+        return pc.fromTip1ToTip2_G[distConstNum];
     }
 
-    const Vec3& getRelVel_G(const SBVelocityCache& mc) const {
-        return mc.relVel_G[distConstNum];
+    const Vec3& getUnitDirection_G(const SBPositionCache& pc) const {
+        return pc.unitDirection_G[distConstNum];
     }
-    Vec3& updRelVel_G(SBVelocityCache& mc) const {
-        return mc.relVel_G[distConstNum];
+    Vec3& updUnitDirection_G(SBPositionCache& pc) const {
+        return pc.unitDirection_G[distConstNum];
+    }
+
+        // VELOCITY STAGE
+    const Real& getVelErr(const Vector& uErr) const {
+        return uErr[uerrIndex];
+    }
+    Real& updVelErr(Vector& uErr) const {
+        return uErr[uerrIndex];
+    }
+
+    const Vec3& getStationVel_G(const SBVelocityCache& vc, int i) const {
+        assert(1 <= i && i <= 2);
+        return vc.stationVel_G[i-1][distConstNum];
+    }
+    Vec3& updStationVel_G(SBVelocityCache& vc, int i) const {
+        assert(1 <= i && i <= 2);
+        return vc.stationVel_G[i-1][distConstNum];
+    }
+
+    const Vec3& getVel_G(const SBVelocityCache& vc, int i) const {
+        assert(1 <= i && i <= 2);
+        return vc.vel_G[i-1][distConstNum];
+    }
+    Vec3& updVel_G(SBVelocityCache& vc, int i) const {
+        assert(1 <= i && i <= 2);
+        return vc.vel_G[i-1][distConstNum];
+    }
+
+    const Vec3& getRelVel_G(const SBVelocityCache& vc) const {
+        return vc.relVel_G[distConstNum];
+    }
+    Vec3& updRelVel_G(SBVelocityCache& vc) const {
+        return vc.relVel_G[distConstNum];
     }
 
 
-        // REACTING STAGE
-    const Real& getAccErr(const SBAccelerationCache& rc) const {
-        return rc.accelerationConstraintErrors[multIndex];
+        // ACCELERATION STAGE
+    const Real& getAccErr(const Vector& udotErr) const {
+        return udotErr[multIndex];
     }
-    Real& updAccErr(SBAccelerationCache& rc) const {
-        return rc.accelerationConstraintErrors[multIndex];
-    }
-
-    const Vec3& getAcc_G(const SBAccelerationCache& rc, int i) const {
-        assert(1 <= i && i <= 2);
-        return rc.acc_G[i-1][distConstNum];
-    }
-    Vec3& updAcc_G(SBAccelerationCache& rc, int i) const {
-        assert(1 <= i && i <= 2);
-        return rc.acc_G[i-1][distConstNum];
+    Real& updAccErr(Vector& udotErr) const {
+        return udotErr[multIndex];
     }
 
-    const Vec3& getForce_G(const SBAccelerationCache& rc, int i) const {
+    const Vec3& getAcc_G(const SBAccelerationCache& ac, int i) const {
         assert(1 <= i && i <= 2);
-        return rc.force_G[i-1][distConstNum];
+        return ac.acc_G[i-1][distConstNum];
     }
-    Vec3& updForce_G(SBAccelerationCache& rc, int i) const {
+    Vec3& updAcc_G(SBAccelerationCache& ac, int i) const {
         assert(1 <= i && i <= 2);
-        return rc.force_G[i-1][distConstNum];
+        return ac.acc_G[i-1][distConstNum];
+    }
+
+    const Vec3& getForce_G(const SBAccelerationCache& ac, int i) const {
+        assert(1 <= i && i <= 2);
+        return ac.force_G[i-1][distConstNum];
+    }
+    Vec3& updForce_G(SBAccelerationCache& ac, int i) const {
+        assert(1 <= i && i <= 2);
+        return ac.force_G[i-1][distConstNum];
     }
 
 protected:
     Real       distance;
     RBStation  stations[2];
     int        distConstNum;
-    int        multIndex;
+    int        qerrIndex, uerrIndex, multIndex;
 
 private:
     // Per-station calculations
     void calcStationPosInfo(int i, 
-        SBPositionCache&       cc) const;
+        SBPositionCache&        pc) const;
     void calcStationVelInfo(int i, 
-        const SBPositionCache& cc, 
-        SBVelocityCache&              mc) const;
+        const SBPositionCache&  pc, 
+        SBVelocityCache&        vc) const;
     void calcStationAccInfo(int i, 
-        const SBPositionCache& cc, 
-        const SBVelocityCache&        mc,
-        SBAccelerationCache&            rc) const;
+        const SBPositionCache&  pc, 
+        const SBVelocityCache&  vc,
+        SBAccelerationCache&    ac) const;
 };
 
 
@@ -246,19 +256,22 @@ public:
     LoopWNodes(const SimbodyMatterSubsystemRep&, const RBDistanceConstraint&);
 
     void calcPosInfo(
-        SBPositionCache&       cc) const 
-      { rbDistCons->calcPosInfo(cc); }
+        Vector&          qErr,
+        SBPositionCache& pc) const 
+      { rbDistCons->calcPosInfo(qErr,pc); }
 
     void calcVelInfo(
-        const SBPositionCache& cc, 
-        SBVelocityCache&              mc) const 
-      { rbDistCons->calcVelInfo(cc,mc); }
+        const SBPositionCache& pc, 
+        Vector&                uErr,
+        SBVelocityCache&       vc) const 
+      { rbDistCons->calcVelInfo(pc,uErr,vc); }
 
     void calcAccInfo(
-        const SBPositionCache& cc, 
-        const SBVelocityCache&        mc,
-        SBAccelerationCache&            rc) const 
-      { rbDistCons->calcAccInfo(cc,mc,rc); }
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        Vector&                udotErr,
+        SBAccelerationCache&   ac) const 
+      { rbDistCons->calcAccInfo(pc,vc,udotErr,ac); }
 
     // TODO: State isn't currently in use but will be necessary when the distances
     // are parameters.
@@ -268,33 +281,33 @@ public:
     const RBStation& tips(int i) const {return rbDistCons->getStation(ix(i));}
     const RigidBodyNode& tipNode(int i) const {return tips(i).getNode();}
  
-    const Vec3& tipPos(const SBPositionCache& cc, int i) const {
+    const Vec3& tipPos(const SBPositionCache& pc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return cc.pos_G[ix(i)-1][dc];
+        return pc.pos_G[ix(i)-1][dc];
     }
-    const Vec3& tipVel(const SBVelocityCache& mc, int i) const {
+    const Vec3& tipVel(const SBVelocityCache& vc, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return mc.vel_G[ix(i)-1][dc];
+        return vc.vel_G[ix(i)-1][dc];
     }
-    const Vec3& tipAcc(const SBAccelerationCache& rc, int i) const {
+    const Vec3& tipAcc(const SBAccelerationCache& ac, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return rc.acc_G[ix(i)-1][dc];
+        return ac.acc_G[ix(i)-1][dc];
     }
-    const Vec3& tipForce(const SBAccelerationCache& rc, int i) const {
+    const Vec3& tipForce(const SBAccelerationCache& ac, int i) const {
         assert(1 <= i && i <= 2);
         const int dc = rbDistCons->getDistanceConstraintNum();
-        return rc.force_G[ix(i)-1][dc];
+        return ac.force_G[ix(i)-1][dc];
     }
 
     // Use this for both forces and impulses.
-    void setTipForce(SBAccelerationCache& rc, int i, const Vec3& f) const {
+    void setTipForce(SBAccelerationCache& ac, int i, const Vec3& f) const {
         assert(1 <= i && i <= 2);
 
         const int dc = rbDistCons->getDistanceConstraintNum();
-        rc.force_G[ix(i)-1][dc] = f;
+        ac.force_G[ix(i)-1][dc] = f;
     }
 
     const RigidBodyNode* getOutmostCommonBody() const {return outmostCommonBody;}
@@ -404,8 +417,8 @@ private:
     int    maxIters;
     int    maxMin;
 
-    const SimbodyMatterSubsystemRep&       rbTree;
-    const int                  verbose;
+    const SimbodyMatterSubsystemRep& rbTree;
+    const int                        verbose;
 
     std::vector<LengthSet> pvConstraints;   // used for pos, vel
     std::vector<LengthSet> accConstraints;  // used for acc

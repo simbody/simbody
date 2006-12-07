@@ -137,7 +137,8 @@ public:
         = uIndex = uVarsIndex = uCacheIndex
         = dynamicsVarsIndex = dynamicsCacheIndex
         = accelerationVarsIndex = accelerationCacheIndex
-        = nQuaternionConstraints = qErrIndex = uErrIndex = -1;
+        = nQuaternionsInUse = firstQuaternionQErrSlot 
+        = qErrIndex = uErrIndex = udotErrIndex = -1;
     }
 
     int instanceVarsIndex, instanceCacheIndex;
@@ -149,11 +150,13 @@ public:
     int dynamicsVarsIndex, dynamicsCacheIndex;
     int accelerationVarsIndex, accelerationCacheIndex;
 
-    int nQuaternionConstraints;
-    int qErrIndex, uErrIndex;
+    int nQuaternionsInUse, firstQuaternionQErrSlot;
+    Array<int> quaternionIndex; // nb (-1 for bodies w/no quats)
+    int qErrIndex, uErrIndex, udotErrIndex;
 
 public:
-    void allocate(const SBTopologyCache&) {
+    void allocate(const SBTopologyCache& tc) {
+        quaternionIndex.resize(tc.nBodies, -1); // init to -1
     }
 };
 
@@ -194,8 +197,6 @@ public:
     Vector_<SpatialMat> bodySpatialInertia;           // nb (Mk)
     Vector_<Vec3>       bodyCOMInGround;              // nb (COM_G)
     Vector_<Vec3>       bodyCOMStationInGround;       // nb (COMstation_G)
-
-    Vector              positionConstraintErrors;     // npc
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -243,8 +244,6 @@ public:
         bodyCOMStationInGround.resize(nBodies);      
         bodyCOMStationInGround[0] = 0.;
 
-        positionConstraintErrors.resize(npc);
-
         station_G[0].resize(ndc); station_G[1].resize(ndc);
         pos_G[0].resize(ndc); pos_G[1].resize(ndc);
 
@@ -259,8 +258,6 @@ public:
     Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;      // nb (sVel)
     Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_JbJ)
-
-    Vector velocityConstraintErrors;              // nvc
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -286,7 +283,6 @@ public:
         mobilizerRelativeVelocity.resize(nBodies);       
         mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        velocityConstraintErrors.resize(nvc);
         stationVel_G[0].resize(ndc); stationVel_G[1].resize(ndc);
         vel_G[0].resize(ndc); vel_G[1].resize(ndc);
         relVel_G.resize(ndc);
@@ -374,8 +370,6 @@ public:
     Vector_<SpatialVec> z;                        // nb
     Vector_<SpatialVec> Gepsilon;                 // nb
 
-    Vector accelerationConstraintErrors;          // nac
-
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
     Vector_<Vec3> acc_G[2];   // acc of tip relative to ground, expr. in G
@@ -403,7 +397,6 @@ public:
 
         Gepsilon.resize(nBodies); // TODO: ground initialization
 
-        accelerationConstraintErrors.resize(nac);
         acc_G[0].resize(ndc); acc_G[1].resize(ndc);
         force_G[0].resize(ndc); force_G[1].resize(ndc);
     }

@@ -213,10 +213,10 @@ public:
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }
-    /*virtual*/int getDOF()   const {return 0;}
-    /*virtual*/int getMaxNQ() const {return 0;}
-    /*virtual*/int getNQ(const SBModelVars&) const {return 0;}
-    /*virtual*/int getNQuaternionConstraints(const SBModelVars&) const {return 0;}
+    /*virtual*/int  getDOF()   const {return 0;}
+    /*virtual*/int  getMaxNQ() const {return 0;}
+    /*virtual*/int  getNQ(const SBModelVars&) const {return 0;}
+    /*virtual*/bool isUsingQuaternion(const SBModelVars&) const {return false;}
 
 
     /*virtual*/void calcZ(
@@ -226,16 +226,16 @@ public:
         SBAccelerationCache&               ) const {} 
 
     /*virtual*/void calcYOutward(
-        const SBPositionCache& cc,
+        const SBPositionCache& pc,
         SBDynamicsCache&       dc) const {}
 
     /*virtual*/void calcAccel(
         const SBModelVars&     mv,
         const Vector&          q,
-        const SBPositionCache& cc,
+        const SBPositionCache& pc,
         const Vector&          u,
         const SBDynamicsCache& dc,
-        SBAccelerationCache&   rc,
+        SBAccelerationCache&   ac,
         Vector&                udot,
         Vector&                qdotdot) const {}
 
@@ -250,20 +250,22 @@ public:
 
     /*virtual*/void realizePosition(
         const SBModelVars&  mv,
+        const SBModelCache& mc,
         const Vector&       q,
-        SBPositionCache&    cc) const {}
+        Vector&             qErr,
+        SBPositionCache&    pc) const {}
 
     /*virtual*/void realizeVelocity(
         const SBModelVars&     mv,
         const Vector&          q,
-        const SBPositionCache& cc,
+        const SBPositionCache& pc,
         const Vector&          u,
-        SBVelocityCache&       mc,
+        SBVelocityCache&       vc,
         Vector&                qdot) const {}
 
     /*virtual*/void setVelFromSVel(
-        const SBPositionCache& cc, 
-        const SBVelocityCache& mc,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
         const SpatialVec&      sVel, 
         Vector&                u) const {}
 
@@ -386,16 +388,20 @@ public:
 
     /// This mandatory routine performs expensive floating point operations sin,cos,sqrt
     /// in one place so we don't end up repeating them. sin&cos are used only
-    /// for joints which have angular coordinates, and qnorm is only for joints
-    /// which are using quaternions. Other joints can provide a null routine.
+    /// for mobilizers which have angular coordinates, and qErr and qnorm are only for
+    /// mobilizers using quaternions. Other mobilizers can provide a null routine.
     /// Each of the passed-in Vectors is a "q-like" object, that is, allocated
-    /// to the bodies in a manner parallel to the q state variable.
+    /// to the bodies in a manner parallel to the q state variable, except that qErr
+    /// has just one slot per quaternion and must be accessed using the node's 
+    /// quaternionIndex which is in the Model cache.
     virtual void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const=0;
+        const SBModelVars&  mv, 
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const=0;
 
     /// This mandatory routine calculates the across-joint transform X_MbM generated
     /// by the current q values. This may depend on sines & cosines or normalized
@@ -484,15 +490,18 @@ public:
     // Set a new configuration and calculate the consequent kinematics.
     // Must call base-to-tip.
     void realizePosition(
-        const SBModelVars& mv,
-        const Vector&      q,
-        SBPositionCache&   cc) const 
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q,
+        Vector&             qErr,
+        SBPositionCache&    pc) const 
     {
-        calcJointSinCosQNorm(mv, q, cc.sq, cc.cq, cc.qnorm);
-        calcAcrossJointTransform (mv, q, updX_MbM(cc));
-        calcBodyTransforms       (cc, updX_PB(cc), updX_GB(cc));
-        calcJointTransitionMatrix(cc, updH(cc));
-        calcJointIndependentKinematicsPos(cc);
+        calcJointSinCosQNorm(mv, mc, q, pc.sq, pc.cq, qErr, pc.qnorm);
+
+        calcAcrossJointTransform (mv, q, updX_MbM(pc));
+        calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
+        calcJointTransitionMatrix(pc, updH(pc));
+        calcJointIndependentKinematicsPos(pc);
     }
 
     // Set new velocities for the current configuration, and calculate
@@ -562,10 +571,10 @@ public:
         toU(u) = fromU(uIn);
     }
 
-    int         getDOF()            const {return dof;}
-    virtual int getMaxNQ()          const {return dof;} // maxNQ can be larger than dof
-    virtual int getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
-    virtual int getNQuaternionConstraints(const SBModelVars&) const {return 0;}
+    int          getDOF()            const {return dof;}
+    virtual int  getMaxNQ()          const {return dof;} // maxNQ can be larger than dof
+    virtual int  getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
+    virtual bool isUsingQuaternion(const SBModelVars&) const {return false;}
 
     virtual void setVelFromSVel(
         const SBPositionCache& cc, 
@@ -807,11 +816,13 @@ public:
 
     // This is required but does nothing here since there are no rotations for this joint.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const { }
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const { }
 
     // Calculate X_MbM.
     void calcAcrossJointTransform(
@@ -868,11 +879,13 @@ public:
 
     // This is required but does nothing here since we there are no rotations for this joint.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const { }
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const { }
 
     // Calculate X_MbM.
     void calcAcrossJointTransform(
@@ -925,11 +938,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         const Real& angle = from1Q(q); // angular coordinate
         to1Q(sine)    = std::sin(angle);
@@ -998,11 +1013,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         const Real& angle = fromQ(q)[0];
         toQ(sine)[0]    = std::sin(angle);
@@ -1071,11 +1088,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         const Real& angle = fromQ(q)[0];
         toQ(sine)[0]    = std::sin(angle);
@@ -1140,11 +1159,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         const Vec2& a = fromQ(q); // angular coordinates
         toQ(sine)   = Vec2(std::sin(a[0]), std::sin(a[1]));
@@ -1228,11 +1249,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         const Vec2& a = fromQ(q).getSubVec<2>(0); // angular coordinates
         toQ(sine).updSubVec<2>(0)   = Vec2(std::sin(a[0]), std::sin(a[1]));
@@ -1324,11 +1347,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q); // angular coordinates
@@ -1338,7 +1363,10 @@ public:
         } else {
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
-            toQuat(qnorm) = quat / quat.norm();
+            const Real  quatLen = quat.norm();
+            assert(mc.quaternionIndex[nodeNum] >= 0);
+            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            toQuat(qnorm) = quat / quatLen;
         }
     }
 
@@ -1431,8 +1459,8 @@ public:
     int getNQ(const SBModelVars& mv) const {
         return getUseEulerAngles(mv) ? 3 : 4;
     } 
-    int getNQuaternionConstraints(const SBModelVars& mv) const {
-        return getUseEulerAngles(mv) ? 0 : 1;
+    bool isUsingQuaternion(const SBModelVars& mv) const {
+        return !getUseEulerAngles(mv);
     }
 
     void setDefaultPositionValues(
@@ -1519,11 +1547,13 @@ public:
 
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
-        const SBModelVars& mv, 
-        const Vector&      q, 
-        Vector&            sine, 
-        Vector&            cosine, 
-        Vector&            qnorm) const
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
     {
         if (getUseEulerAngles(mv)) {
             const Vec3& a = fromQ(q).getSubVec<3>(0); // angular coordinates
@@ -1533,7 +1563,10 @@ public:
         } else {
             // no angles
             const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
-            toQuat(qnorm) = quat / quat.norm();
+            const Real  quatLen = quat.norm();
+            assert(mc.quaternionIndex[nodeNum] >= 0);
+            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            toQuat(qnorm) = quat / quatLen;
         }
     }
 
@@ -1641,10 +1674,10 @@ public:
         }
     }
 
-    int getMaxNQ()                   const {return 7;}
-    int getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
-    int getNQuaternionConstraints(const SBModelVars& mv) const {
-        return getUseEulerAngles(mv) ? 0 : 1;
+    int  getMaxNQ()                   const {return 7;}
+    int  getNQ(const SBModelVars& mv) const {return getUseEulerAngles(mv) ? 6 : 7;} 
+    bool isUsingQuaternion(const SBModelVars& mv) const {
+        return !getUseEulerAngles(mv);
     }
 
     void setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 

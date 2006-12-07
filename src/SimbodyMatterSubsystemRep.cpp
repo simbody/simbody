@@ -150,13 +150,16 @@ int SimbodyMatterSubsystemRep::addConstraintNode(ConstraintNode*& cn) {
     return constraintNodes.size()-1;
 }
 
-// Add a distance constraint and assign it to use a particular multiplier. 
+// Add a distance constraint and assign it to use a particular slot in the
+// qErr, uErr, and multiplier arrays.
 // Return the assigned distance constraint index for caller's use.
 int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
     const RBStation& s1, const RBStation& s2, const Real& d,
-    int multIndex)
+    int qerrIndex, int uerrIndex, int multIndex)
 {
     RBDistanceConstraint* dc = new RBDistanceConstraint(s1,s2,d);
+    dc->setQErrIndex(qerrIndex);
+    dc->setUErrIndex(uerrIndex);
     dc->setMultIndex(multIndex);
     dc->setDistanceConstraintNum(distanceConstraints.size());
     distanceConstraints.push_back(dc);
@@ -182,7 +185,6 @@ SimbodyMatterSubsystemRep::getBodyMass(const State&, int body) const
 const Vec3&
 SimbodyMatterSubsystemRep::getBodyCenterOfMassStation(const State&, int body) const
   { return getRigidBodyNode(body).getCOM_B(); }
-
 
 const Transform&
 SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, int body) const
@@ -240,11 +242,26 @@ void SimbodyMatterSubsystemRep::endConstruction() {
             maxNQTotal += rbNodeLevels[i][j]->getMaxNQ();
         }
 
-    int nxtMultIndex = 0; // dole out the multipliers
+    // Dole out the multipliers and constraint error slots for topological
+    // constraints. TODO: currently our constraints are all holonomic, meaning
+    // position-level, so that they occupy one slot in the qErr array, then
+    // their time derivatives need one slot in uErr and their 2nd time 
+    // derivatives need one acceleration-level multiplier. Later we will
+    // have constraints which start at the velocity level (nonholonomic) so
+    // they won't use up a qErr slot.
+    // Also, quaternion normalization constraints exist only at the 
+    // position level, however they are not topological since modeling
+    // choices affect whether we use them. See realizeModel() below.
     for (int i=0; i<(int)constraintNodes.size(); ++i) {
-        constraintNodes[i]->setMultIndex(nxtMultIndex); // must assign mults first
-        nxtMultIndex += constraintNodes[i]->getNMult();
-        constraintNodes[i]->finishConstruction(*this);
+        ConstraintNode& cons = *constraintNodes[i];
+        cons.setQErrIndex(nextQErrSlot);
+        cons.setUErrIndex(nextUErrSlot);
+        cons.setMultIndex(nextMultSlot);
+        const int nConsEqns = cons.getNConstraintEquations();
+        nextQErrSlot += nConsEqns;
+        nextUErrSlot += nConsEqns;
+        nextMultSlot += nConsEqns;
+        cons.finishConstruction(*this);
     }
 
     lConstraints = new LengthConstraints(*this, 0);
@@ -311,18 +328,25 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     SBModelCache& mc = updModelCache(s);
     mc.allocate(topologyCache);
 
+    // Count quaternions, and assign a "quaternion index" to each body that
+    // needs one. We can't do this until Model stage because there is a modeling
+    // variable which decides whether ball joints get quaternions or Euler angles).
+    mc.nQuaternionsInUse = 0;
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            if (node.isUsingQuaternion(mv)) {
+                mc.quaternionIndex[node.getNodeNum()] = mc.nQuaternionsInUse;
+                mc.nQuaternionsInUse++;
+            }
+        }
+
+    mc.firstQuaternionQErrSlot = nextQErrSlot; // begins after last topological constraint qerr
+
     // Give the bodies a chance to put something in the cache if they need to.
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeModel(mv,mc); 
-
-    // Count quaternion constraints (we can't know how many until this stage because
-    // there is a modeling variable which decides whether ball joints get quaternions
-    // or Euler angles).
-    mc.nQuaternionConstraints = 0;
-    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
-        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            mc.nQuaternionConstraints += rbNodeLevels[i][j]->getNQuaternionConstraints(mv); 
 
     // Now allocate all remaining variables and cache entries. We can properly initialize only
     // the next stage, the parameters. Everything else gets some kind of meaningless initial
@@ -351,8 +375,11 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     mc.qVarsIndex = -1; // no config vars other than q
     mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Position, 
         new Value<SBPositionCache>());
+
+    // We'll store the the physical constraint errors (which consist solely of distance
+    // constraint equations at the moment), followed by the quaternion constraints.
     mc.qErrIndex = s.allocateQErr(getMySubsystemIndex(), 
-                                  mc.nQuaternionConstraints + topologyCache.nDistanceConstraints);
+                                  nextQErrSlot + mc.nQuaternionsInUse);
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
@@ -365,7 +392,11 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Velocity, 
         new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
-    mc.uErrIndex = s.allocateUErr(getMySubsystemIndex(), topologyCache.nDistanceConstraints);
+
+    // Only physical constraints exist at the velocity and acceleration levels; 
+    // the quaternion normalization constraints are gone.
+    mc.uErrIndex    = s.allocateUErr(getMySubsystemIndex(),    nextUErrSlot);
+    mc.udotErrIndex = s.allocateUDotErr(getMySubsystemIndex(), nextMultSlot);
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -426,19 +457,24 @@ void SimbodyMatterSubsystemRep::realizePosition(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
         "SimbodyMatterSubsystemRep::realizePosition()");
 
-    const SBModelVars& mv = getModelVars(s);
-    const Vector&      q  = getQ(s);
+    const SBModelVars&  mv   = getModelVars(s);
+    const SBModelCache& mc   = getModelCache(s);
+    const Vector&       q    = getQ(s);
+    Vector&             qErr = updQErr(s);
 
     // Get the Position-stage cache and make sure it has been allocated and initialized if needed.
     SBPositionCache& pc = updPositionCache(s);
     pc.allocate(topologyCache);
 
+    // Any body which is using quaternions should calculate the quaternion
+    // constraint here and put it in the appropriate slot of qErr.
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
-            rbNodeLevels[i][j]->realizePosition(mv,q,pc); 
+            rbNodeLevels[i][j]->realizePosition(mv,mc,q,qErr,pc); 
 
+    // Constraint errors go in qErr after the quaternion constraints.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcPosInfo(pc);
+        distanceConstraints[i]->calcPosInfo(qErr,pc); //TODO: qErr
 }
 
 // Set generalized speeds: sweep from base to tip.
@@ -447,10 +483,11 @@ void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "SimbodyMatterSubsystemRep::realizeVelocity()");
 
-    const SBModelVars&     mv = getModelVars(s);
-    const Vector&          q  = getQ(s);
-    const SBPositionCache& pc = getPositionCache(s);
-    const Vector&          u  = getU(s);
+    const SBModelVars&     mv   = getModelVars(s);
+    const Vector&          q    = getQ(s);
+    const SBPositionCache& pc   = getPositionCache(s);
+    const Vector&          u    = getU(s);
+    Vector&                uErr = updUErr(s);
 
     // Get the Motion-stage cache and make sure it has been allocated and initialized if needed.
     SBVelocityCache&       vc = updVelocityCache(s);
@@ -463,7 +500,7 @@ void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
             rbNodeLevels[i][j]->realizeVelocity(mv,q,pc,u,vc,qdot); 
 
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcVelInfo(pc,vc);
+        distanceConstraints[i]->calcVelInfo(pc,uErr,vc);
 }
 
 
@@ -644,12 +681,26 @@ bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, int constrai
     return modelVars.enabled[constraint];
 }
 
+bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, int body) const {
+    const RigidBodyNode& n = getRigidBodyNode(body);
+    return n.isUsingQuaternion(getModelVars(s));
+}
+
+int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
+    const SBModelCache& mc = getModelCache(s); // must be >=Model stage
+    return mc.nQuaternionsInUse;
+}
+
+int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, int body) const {
+    const SBModelCache& mc = getModelCache(s); // must be >=Model stage
+    return mc.quaternionIndex[body];
+}
+
 const Real& SimbodyMatterSubsystemRep::getMobilizerQ(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
     return getQ(s)[n.getQIndex()+axis];
 }
-
 
 const Real& SimbodyMatterSubsystemRep::getMobilizerU(const State& s, int body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
@@ -663,13 +714,11 @@ void SimbodyMatterSubsystemRep::setMobilizerQ(State& s, int body, int axis, cons
     updQ(s)[n.getQIndex()+axis] = r;
 }
 
-
 void SimbodyMatterSubsystemRep::setMobilizerU(State& s, int body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     updU(s)[n.getUIndex()+axis] = r;
 }
-
 
 const Transform& SimbodyMatterSubsystemRep::getMobilizerPosition(const State& s, int body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
@@ -808,6 +857,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     }
 
     // outputs
+    Vector&              udotErr        = updUDotErr(s);
     SBAccelerationCache& rc             = updAccelerationCache(s);
     Vector&              netHingeForces = rc.netHingeForces;
     Vector_<SpatialVec>& A_GB           = rc.bodyAccelerationInGround;
@@ -819,7 +869,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     
     // Calculate constraint acceleration errors.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcAccInfo(cc,mc,rc);
+        distanceConstraints[i]->calcAccInfo(cc,mc,udotErr,rc);
 }
 
 // Given the set of forces in the state, calculate acclerations resulting from

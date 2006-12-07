@@ -248,6 +248,7 @@ public:
     int getUIndex(int body) const;
     int getDOF   (int body) const; // always same as # u's
 
+
     // Per-constraint info;
     int getMultIndex(int constraint) const;
     int getMaxNMult (int constraint) const;  // wait for modeling to get actual NMult
@@ -264,7 +265,11 @@ public:
 
     // Return modeling information from the State.
     bool getUseEulerAngles  (const State&) const;
-    bool isMobilizerPrescribed  (const State&, int body)      const;
+    bool isMobilizerPrescribed  (const State&, int body) const;
+    int  getNQuaternionsInUse(const State&) const;
+    bool isUsingQuaternion(const State&, int body) const;
+    int  getQuaternionIndex(const State&, int body) const;
+
     bool isConstraintEnabled(const State&, int constraint) const;
 
     void setMobilizerQ(State&, int body, int axis, const Real&) const;

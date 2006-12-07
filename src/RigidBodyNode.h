@@ -59,17 +59,17 @@ using namespace SimTK;
  *     R_YZ = R_YX*R_XZ = (~R_XY)*(~R_ZX) = ~(R_ZX*R_XY).
  * Also note that these are orthogonal matrices so R_XY*R_YX=I.
  *
- * Every body has a body frame B, and an inboard joint frame J. For convenience, we
+ * Every body has a body frame B, and an inboard mobilizer frame M. For convenience, we
  * refer to the body frame of a body's unique parent as the 'P' frame. There is
- * a frame Jb on P which is where B's inboard joint attaches. When all the joint
- * coordinates are 0, J==Jb. The transform X_JbJ tracks the across-joint change
+ * a frame Mb on P which is where B's inboard joint attaches. When all the mobilizer
+ * coordinates are 0, M==Mb. The transform X_MbM tracks the across-mobilizer change
  * in configuration induced by the generalized coordinates q.
  *
- * The inboard joint frame J is fixed with respect to B, and Jb is fixed with
- * respect to P. In some cases J and B or Jb and P will be the same, but not always.
- * The constant transforms X_BJ and X_PJb provides the configuration of the joint
+ * The mobilizer frame M is fixed with respect to B, and Mb is fixed with
+ * respect to P. In some cases M and B or Mb and P will be the same, but not always.
+ * The constant transforms X_BM and X_PMb provides the configuration of the mobilizer
  * frames with respect to their body frames. With these definitions we can
- * easily calculate X_PB as X_PB = X_PJb*X_JbJ*X_JB.
+ * easily calculate X_PB as X_PB = X_PMb*X_MbM*X_MB.
  *
  * RigidBodyNodes know how to extract and deposit their own information from and
  * to the Simbody State variables and cache entries, but they don't know anything
@@ -120,6 +120,7 @@ public:
     int  getUIndex() const {return uIndex;}
     int  getQIndex() const {return qIndex;}
 
+
     // Access routines for plucking the right per-body data from the pool in the State.
     const Transform&  fromB(const std::vector<Transform>& x) const {return x[nodeNum];}
     const Transform&  fromB(const Array<Transform>&       x) const {return x[nodeNum];}
@@ -146,10 +147,14 @@ public:
     Vec3&       toB(Vector_<Vec3>&          v) const {return v[nodeNum];}
 
         // MODELING INFO
-    const bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
-    const bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
+    bool getUseEulerAngles(const SBModelVars& mv) const {return mv.useEulerAngles;}
+    bool isPrescribed     (const SBModelVars& mv) const {return mv.prescribed[nodeNum];}
 
-        // PARAMETRIZATION INFO
+    int  getQuaternionIndex(const SBModelCache& mc) const {
+        return mc.quaternionIndex[nodeNum];
+    }
+
+        // INSTANCE INFO
 
     // TODO: These ignore State currently since they aren't parametrizable.
     const MassProperties& getMassProperties() const {return massProps_B;}
@@ -164,7 +169,7 @@ public:
     const Transform&      getX_MB          () const {return X_MB;}
     const Transform&      getRefX_PB       () const {return refX_PB;}
 
-        // CONFIGURATION INFO
+        // POSITION INFO
 
     /// Extract from the cache  X_MbM, the cross-mobilizer transformation matrix giving the configuration
     /// of this body's mobilizer frame M, measured from and expressed in the corresponding outboard
@@ -301,11 +306,14 @@ public:
         SBInstanceCache&      ic) const=0;
 
     /// Introduce new values for generalized coordinates and calculate
-    /// all the position-dependent kinematic terms.
+    /// all the position-dependent kinematic terms, including position
+    /// constraint errors.
     virtual void realizePosition(
-        const SBModelVars& mv,
-        const Vector&      q,
-        SBPositionCache&   pc) const=0;
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q,
+        Vector&             qErr,
+        SBPositionCache&    pc) const=0;
 
     /// Introduce new values for generalized speeds and calculate
     /// all the velocity-dependent kinematic terms. Assumes realizePosition()
@@ -361,11 +369,15 @@ public:
         SBDynamicsCache&       dc) const;
 
     virtual const char* type()     const {return "unknown";}
-    virtual int getDOF()   const=0; //number of independent dofs
-    virtual int getMaxNQ() const=0; //dofs plus quaternion constraints
-    virtual int getNQ(const SBModelVars&) const=0; //actual number of q's
-    virtual int getNQuaternionConstraints(const SBModelVars&) const=0; // 0 or 1
+    virtual int  getDOF()   const=0; //number of independent dofs
+    virtual int  getMaxNQ() const=0; //dofs plus quaternion constraints
+    virtual int  getNQ(const SBModelVars&) const=0; //actual number of q's
 
+    // This depends on the mobilizer type and modeling options. If it returns
+    // true then this node will be assigned a unique quaternion index.
+    virtual bool isUsingQuaternion(const SBModelVars&) const=0;
+
+    // This will do nothing unless the mobilizer is using a quaternion.
     virtual bool enforceQuaternionConstraints(
         const SBModelVars& mv,
         Vector&            q) const=0;

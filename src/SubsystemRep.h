@@ -105,6 +105,16 @@ public:
     Vector& updZDot   (const State& s) const {return s.updZDot(getMySubsystemIndex());}
     Vector& updQDotDot(const State& s) const {return s.updQDotDot(getMySubsystemIndex());}
 
+    const Vector& getQErr(const State& s) const {return s.getQErr(getMySubsystemIndex());}
+    const Vector& getUErr(const State& s) const {return s.getUErr(getMySubsystemIndex());}
+    const Vector& getUDotErr(const State& s) const {return s.getUDotErr(getMySubsystemIndex());}
+
+    // These are mutable
+    Vector& updQErr(const State& s) const {return s.updQErr(getMySubsystemIndex());}
+    Vector& updUErr(const State& s) const {return s.updUErr(getMySubsystemIndex());}
+    Vector& updUDotErr(const State& s) const {return s.updUDotErr(getMySubsystemIndex());}
+
+
     SubsystemRep* clone() const {
 		assert(!isInSystem()); // TODO
         SubsystemRep* dup = cloneSubsystemRep();

@@ -100,24 +100,11 @@ public:
     virtual void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const = 0;
     virtual void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const = 0;
 
-    virtual const Vector& getQConstraintErrors(const State&) const {
-
-        static Vector dummy;
-        return dummy;
-    }
     virtual Real calcQConstraintNorm(const State&) const {
         return 0;
     }
-    virtual const Vector& getUConstraintErrors(const State&) const {
-        static Vector dummy;
-        return dummy;
-    }
     virtual Real calcUConstraintNorm(const State&) const {
         return 0;
-    }
-    virtual const Vector& getUDotConstraintErrors(const State&) const {
-        static Vector dummy;
-        return dummy;
     }
     virtual Real calcUDotConstraintNorm(const State&) const {
         return 0;

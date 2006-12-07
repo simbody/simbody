@@ -162,9 +162,12 @@ public:
     // just cache entries not state variables. Q errors and U errors
     // will each be contiguous for a given subsystem, but *not* with each other.
     // However, yerr={qerr,uerr} *is* a single contiguous vector.
+    // UDotErr is a separate quantity, not part of yerr. Again the UDotErr's for
+    // each subsystem will be contiguous within the larger UDotErr Vector.
 
-    int allocateQErr(int subsys, int nqerr); // these are cache entries
-    int allocateUErr(int subsys, int nuerr);
+    int allocateQErr   (int subsys, int nqerr);    // these are cache entries
+    int allocateUErr   (int subsys, int nuerr);
+    int allocateUDotErr(int subsys, int nudoterr);
 
     // These are private to each subsystem and are allocated immediately.
     // TODO: true discrete variables need an "update" variable in the cache.
@@ -190,6 +193,13 @@ public:
     Vector& updUDot(int subsys) const;
     Vector& updZDot(int subsys) const;
     Vector& updQDotDot(int subsys) const;
+
+    const Vector& getQErr(int subsys) const;
+    const Vector& getUErr(int subsys) const;
+    const Vector& getUDotErr(int subsys) const;
+    Vector& updQErr(int subsys) const;    // these are mutable
+    Vector& updUErr(int subsys) const;
+    Vector& updUDotErr(int subsys) const;
 
     // You can call these as long as *system* stage >= Model.
     const Real&   getTime() const;
@@ -235,13 +245,18 @@ public:
     const Vector& getYErr() const; // {QErr,UErr} packed and in that order
 
     // These are just views into YErr.
-    const Vector& getQErr() const;  // Stage::Position
-    const Vector& getUErr() const;  // Stage::Velocity
+    const Vector& getQErr() const;  // Stage::Position (index 3 constraints)
+    const Vector& getUErr() const;  // Stage::Velocity (index 2 constraints)
+
+    // This has its own space, it is not a view.
+    const Vector& getUDotErr() const; // Stage::Acceleration (index 1 constriants)
 
     // These are mutable
     Vector& updYErr() const; // Stage::Dynamics-1
     Vector& updQErr() const; // Stage::Position-1 (view into YErr)
     Vector& updUErr() const; // Stage::Velocity-1        "
+
+    Vector& updUDotErr() const; // Stage::Acceleration-1 (not a view)
 
     // OK if dv.stage==Model or stage >= Model
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;

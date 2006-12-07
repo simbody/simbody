@@ -164,21 +164,11 @@ void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec&
     getRep().setMobilizerVelocity(s,body,V_JbJ); 
 }
 
-
-const Vector& MatterSubsystem::getQConstraintErrors(const State& s) const { 
-    return getRep().getQConstraintErrors(s); 
-}
 Real MatterSubsystem::calcQConstraintNorm(const State& s) const { 
     return getRep().calcQConstraintNorm(s); 
 }
-const Vector& MatterSubsystem::getUConstraintErrors(const State& s) const { 
-    return getRep().getUConstraintErrors(s); 
-}
 Real MatterSubsystem::calcUConstraintNorm(const State& s) const { 
     return getRep().calcUConstraintNorm(s); 
-}
-const Vector& MatterSubsystem::getUDotConstraintErrors(const State& s) const { 
-    return getRep().getUDotConstraintErrors(s); 
 }
 Real MatterSubsystem::calcUDotConstraintNorm(const State& s) const { 
     return getRep().calcUDotConstraintNorm(s); 

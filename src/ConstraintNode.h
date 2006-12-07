@@ -53,11 +53,17 @@ public:
     int  getConstraintNum() const {return constraintNum;}
     void setConstraintNum(int n)  {constraintNum=n;}
 
+    int  getQErrIndex() const {assert(qerrIndex>=0); return qerrIndex;}
+    void setQErrIndex(int ix) {qerrIndex=ix;}
+
+    int  getUErrIndex() const {assert(uerrIndex>=0); return uerrIndex;}
+    void setUErrIndex(int ix) {uerrIndex=ix;}
+
     int  getMultIndex() const {assert(multIndex>=0); return multIndex;}
     void setMultIndex(int ix) {multIndex=ix;}
 
     // TODO: should this be variable based on modeling stage info?
-    virtual int getNMult() const=0; // # lambda slots
+    virtual int getNConstraintEquations() const=0; // # lambda slots
 
     
     // This gives each constraint node a chance to grab resources from
@@ -72,10 +78,10 @@ public:
 protected:
     // This is the constructor for the abstract base type for use by the derived
     // concrete types in their constructors.
-    ConstraintNode() : multIndex(-1), constraintNum(-1) { }
+    ConstraintNode() : qerrIndex(-1), uerrIndex(-1), multIndex(-1), constraintNum(-1) { }
 
-    int               multIndex;      // index into lambda array
-    int               constraintNum;  // unique ID number in SimbodyMatterSubsystemRep
+    int qerrIndex, uerrIndex, multIndex;
+    int constraintNum;  // unique ID number in SimbodyMatterSubsystemRep
 
     friend std::ostream& operator<<(std::ostream& s, const ConstraintNode&);
 };
@@ -100,11 +106,12 @@ public:
         const RBStation s1(body1, station1);
         const RBStation s2(body2, station2);
         distanceConstraintIndex = 
-            tree.addOneDistanceConstraintEquation(s1,s2,separation,getMultIndex());
+            tree.addOneDistanceConstraintEquation(s1,s2,separation,
+                    getQErrIndex(), getUErrIndex(), getMultIndex());
     }
 
     /*virtual*/ const char* type()     const {return "separation";}
-    /*virtual*/ int         getNMult() const {return 1;}
+    /*virtual*/ int         getNConstraintEquations() const {return 1;}
     /*virtual*/ ConstraintNode* clone() const {
         return new ConstantDistanceConstraintNode(*this);
     }
@@ -142,15 +149,17 @@ public:
         const RBStation s1y(body1, station1+Vec3(0,1,0));       
         const RBStation s1z(body1, station1+Vec3(0,0,1));
         const RBStation s2(body2, station2);
-        const int ix = getMultIndex();
+        const int qx = getQErrIndex();
+        const int ux = getUErrIndex();
+        const int mx = getMultIndex();
         firstDistanceConstraintIndex = 
-              tree.addOneDistanceConstraintEquation(s1x,s2,1.,ix+0);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,ix+1);
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,ix+2);
+              tree.addOneDistanceConstraintEquation(s1x,s2,1.,qx+0,ux+0,mx+0);
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,qx+1,ux+1,mx+1);
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,qx+2,ux+2,mx+2);
     }
 
     /*virtual*/ const char* type()     const {return "separation";}
-    /*virtual*/ int         getNMult() const {return 3;}
+    /*virtual*/ int         getNConstraintEquations() const {return 3;}
     /*virtual*/ ConstraintNode* clone() const {
         return new CoincidentStationsConstraintNode(*this);
     }
@@ -193,14 +202,16 @@ public:
         const RBStation s2y(body2, station2+frame2.y());       
         const RBStation s2z(body2, station2+frame2.z());
 
-        const int ix = getMultIndex();
+        const int qx = getQErrIndex();
+        const int ux = getUErrIndex();
+        const int mx = getMultIndex();
 
         // This is a "coincident station" constraint holding the frame
         // origins together (see above).
         firstDistanceConstraintIndex = 
-              tree.addOneDistanceConstraintEquation(s1x,s2,1.,ix+0);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,ix+1);
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,ix+2);
+              tree.addOneDistanceConstraintEquation(s1x,s2,1.,qx+0,ux+0,mx+0);
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2,1.,qx+1,ux+1,mx+1);
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2,1.,qx+2,ux+2,mx+2);
 
         // This is an "align axes" constraint. This has an unfortunate
         // symmetry when rotating 180 degrees about any axis.
@@ -209,13 +220,13 @@ public:
         // eliminate the rotational symmetries when assembling from
         // far away.
         const Real d = std::sqrt(2.);
-        (void)tree.addOneDistanceConstraintEquation(s1y,s2z,d,ix+3); // restrain x rot
-        (void)tree.addOneDistanceConstraintEquation(s1z,s2x,d,ix+4); // restrain y rot
-        (void)tree.addOneDistanceConstraintEquation(s1x,s2y,d,ix+5); // restrain z rot    
+        (void)tree.addOneDistanceConstraintEquation(s1y,s2z,d,qx+3,ux+3,mx+3); // restrain x rot
+        (void)tree.addOneDistanceConstraintEquation(s1z,s2x,d,qx+4,ux+4,mx+4); // restrain y rot
+        (void)tree.addOneDistanceConstraintEquation(s1x,s2y,d,qx+5,ux+5,mx+5); // restrain z rot    
     }
 
     /*virtual*/ const char* type()     const {return "separation";}
-    /*virtual*/ int         getNMult() const {return 6;}
+    /*virtual*/ int         getNConstraintEquations() const {return 6;}
     /*virtual*/ ConstraintNode* clone() const {
         return new WeldConstraintNode(*this);
     }

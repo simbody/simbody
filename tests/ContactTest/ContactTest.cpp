@@ -248,7 +248,7 @@ try {
     bool suppressProjection = false;
     //RungeKuttaMerson ee(mbs, s, suppressProjection);
     CPodesIntegrator ee(mbs, s);
-    ee.setProjectEveryStep(true);
+    //ee.setProjectEveryStep(true);
 
     vtk.report(s);
 
@@ -262,7 +262,7 @@ try {
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
+    ee.setAccuracy(1e-3);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
@@ -279,6 +279,7 @@ try {
     int step = 0;
     while (s.getTime() <= tmax) {
         if (!(step % 10)) {
+            mbs.realize(s);
             cout << s.getTime() << ": E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)

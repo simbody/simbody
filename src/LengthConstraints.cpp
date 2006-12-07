@@ -409,14 +409,13 @@ LengthSet::calcPosB(State& s, const Vector& pos) const
 {
     setPos(s, pos);
 
-    // Although we're not changing the ConfigurationCache here, we access
+    // Although we're not changing the qErr cache entry here, we access
     // it with "upd" because setPos() will have modified the q's and
     // thus invalidated stage Position, so a "get" would fail.
-    // TODO: this may be fixed now since subsystems have their own stage.
-    const SBPositionCache& cc = getRBTree().updPositionCache(s);
+    const Vector& qErr = getRBTree().updQErr(s);
     Vector b((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
-        b[i] = loops[i].rbDistCons->getPosErr(cc);
+        b[i] = loops[i].rbDistCons->getPosErr(qErr);
     return b;
 }
 
@@ -428,16 +427,14 @@ LengthSet::calcVelB(State& s, const Vector& vel) const
 {
     setVel(s, vel);
 
-    // Although we're not changing the MotionCache here, 
-    // we access them with "upd" because setVel will have
-    // modified u's and thus invalidated stage Velocity,
-    // so a "get" would fail.
-    // TODO: this may be fixed now since subsystems have their own stage.
-    const SBVelocityCache& mc = getRBTree().updVelocityCache(s);
+    // Although we're not changing the uErr cache entry here, we access
+    // it with "upd" because setVel() will have modified the u's and
+    // thus invalidated stage Velocity, so a "get" would fail.
+    const Vector& uErr = getRBTree().updUErr(s);
 
     Vector b((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
-        b[i] = loops[i].rbDistCons->getVelErr(mc);
+        b[i] = loops[i].rbDistCons->getVelErr(uErr);
     return b;
 }
 
@@ -598,8 +595,9 @@ LengthConstraints::enforceVelocityConstraints(State& s, const Real& requiredTol,
 void LengthSet::setPos(State& s, const Vector& pos) const
 {
     const SBModelVars& mv = getRBTree().getModelVars(s);
-    Vector&               q  = getRBTree().updQ(s);
-    SBPositionCache& cc = getRBTree().updPositionCache(s);
+    Vector&            q  = getRBTree().updQ(s);
+    SBPositionCache&   pc = getRBTree().updPositionCache(s);
+    Vector&            qErr = getRBTree().updQErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setQ(mv, pos, q);
@@ -618,16 +616,17 @@ void LengthSet::setPos(State& s, const Vector& pos) const
     // it here because this is actually all that need be recalculated for
     // the loop closure iterations.
     for (int i=0; i<(int)loops.size(); ++i)
-        loops[i].calcPosInfo(cc);
+        loops[i].calcPosInfo(qErr,pc);
 }
 
 // Must have called LengthSet::setPos() already.
 void LengthSet::setVel(State& s, const Vector& vel) const
 {
-    const SBModelVars&       mv = getRBTree().getModelVars(s);
-    const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    Vector&                     u  = getRBTree().updU(s);
-    SBVelocityCache&              mc = getRBTree().updVelocityCache(s);
+    const SBModelVars&     mv = getRBTree().getModelVars(s);
+    const SBPositionCache& pc = getRBTree().getPositionCache(s);
+    Vector&                u  = getRBTree().updU(s);
+    SBVelocityCache&       vc = getRBTree().updVelocityCache(s);
+    Vector&                uErr = getRBTree().updUErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
         nodeMap[i]->setU(mv, vel, u);
@@ -639,7 +638,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
 
     // TODO: see comment above in setPos
     for (int i=0; i<(int)loops.size(); ++i)
-        loops[i].calcVelInfo(cc,mc);
+        loops[i].calcVelInfo(pc,uErr,vc);
 }
 
 //
@@ -1011,10 +1010,11 @@ computeA(const SBPositionCache& cc,
 void
 LengthSet::calcConstraintForces(const State& s) const
 { 
-    const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
-    const SBDynamicsCache&      dc = getRBTree().getDynamicsCache(s);
-    SBAccelerationCache&            rc = getRBTree().updAccelerationCache(s);
+    const SBPositionCache& pc      = getRBTree().getPositionCache(s);
+    const SBVelocityCache& vc      = getRBTree().getVelocityCache(s);
+    const SBDynamicsCache& dc      = getRBTree().getDynamicsCache(s);
+    const Vector&          udotErr = getRBTree().updUDotErr(s); // upd since Accel stage is invalid
+    SBAccelerationCache&   ac      = getRBTree().updAccelerationCache(s);
 
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -1022,20 +1022,20 @@ LengthSet::calcConstraintForces(const State& s) const
     // See Eq. [53] and the last term of Eq. [66].
     Vector rhs(loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
-        rhs[i] = loops[i].rbDistCons->getAccErr(rc);
+        rhs[i] = loops[i].rbDistCons->getAccErr(udotErr);
 
     // Here A = Q*(J inv(M) J')*Q' where J is the kinematic Jacobian for
     // the constrained points and Q is the constraint Jacobian. See first 
     // term of Eq. [66].
     Matrix A(loops.size(),loops.size(),0.);
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 v1 = loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1);
+        const Vec3 v1 = loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
                 double maxElem = 0.;
                 for (int j=i ; j<(int)loops.size() ; j++) {
-                    const Vec3 v2 = loops[j].tipPos(cc,2) - loops[j].tipPos(cc,1);
-                    Real  contrib = computeA(cc, dc, v1, loops[i], bi,
+                    const Vec3 v2 = loops[j].tipPos(pc,2) - loops[j].tipPos(pc,1);
+                    Real  contrib = computeA(pc, dc, v1, loops[i], bi,
                                                      loops[j], bj, v2);
                     A(i,j) += contrib * (bi==bj ? 1 : -1);
                 }
@@ -1061,9 +1061,9 @@ LengthSet::calcConstraintForces(const State& s) const
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 frc = lambda(i) * (loops[i].tipPos(cc,2) - loops[i].tipPos(cc,1));
-        loops[i].setTipForce(rc, 2, -frc);
-        loops[i].setTipForce(rc, 1,  frc);
+        const Vec3 frc = lambda(i) * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
+        loops[i].setTipForce(ac, 2, -frc);
+        loops[i].setTipForce(ac, 1,  frc);
     }
 }
 
@@ -1086,13 +1086,11 @@ void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialFor
 
 void LengthSet::testAccel(const State& s) const
 {
-    const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
-    const SBAccelerationCache&      rc = getRBTree().getAccelerationCache(s);
+    const Vector&              udotErr = getRBTree().getUDotErr(s);
 
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Real aerr = fabs(loops[i].rbDistCons->getAccErr(rc));
+        const Real aerr = fabs(loops[i].rbDistCons->getAccErr(udotErr));
         if (aerr > testTol)
             cout << "LengthSet::testAccel: constraint condition between atoms "
                  << loops[i].tips(1) << " and " << loops[i].tips(2) << " violated.\n"
@@ -1194,8 +1192,8 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 {
     assert(iVel.size() == getRBTree().getTotalDOF());
 
-    const SBPositionCache& cc = getRBTree().getPositionCache(s);
-    const SBVelocityCache&        mc = getRBTree().getVelocityCache(s);
+    const SBPositionCache& pc = getRBTree().getPositionCache(s);
+    const Vector&          uErr = getRBTree().getUErr(s);
 
     // store internal velocities
     Vector iVel0 = iVel;
@@ -1203,7 +1201,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     // verr stores the current velocity errors, which we're assuming are valid.
     Vector verr((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
-        verr[i] = loops[i].rbDistCons->getVelErr(mc);
+        verr[i] = loops[i].rbDistCons->getVelErr(uErr);
 
     Matrix mat(loops.size(),loops.size());
     std::vector<Vector> deltaIVel(loops.size());
@@ -1219,14 +1217,14 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
         // That would explain the fact that there are no velocities here!
-        const Vec3 probeImpulse = loops[m].tipPos(cc,2)-loops[m].tipPos(cc,1);
+        const Vec3 probeImpulse = loops[m].tipPos(pc,2)-loops[m].tipPos(pc,1);
         const Vec3 force1 = -probeImpulse;
         const Vec3 force2 =  probeImpulse;
 
         const RigidBodyNode& node1 = loops[m].tipNode(1);
         const RigidBodyNode& node2 = loops[m].tipNode(2);
-        const Vec3 moment1 = cross(loops[m].tipPos(cc,1)-node1.getX_GB(cc).T(), force1);
-        const Vec3 moment2 = cross(loops[m].tipPos(cc,2)-node2.getX_GB(cc).T(), force2);
+        const Vec3 moment1 = cross(loops[m].tipPos(pc,1)-node1.getX_GB(pc).T(), force1);
+        const Vec3 moment2 = cross(loops[m].tipPos(pc,2)-node2.getX_GB(pc).T(), force2);
 
         // Convert the probe impulses at the stations to spatial impulses at
         // the body origin.
@@ -1251,10 +1249,10 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         getRBTree().realizeVelocity(s);
 
         // Calculating partial(velocityError[n])/partial(deltav[m]). Any velocity
-        // we see here is due to the deltav, since we started out at zero (mc
+        // we see here is due to the deltav, since we started out at zero (uErr
         // was modified by realizeVelocity(), but our reference is still valid).
         for (int n=0; n<(int)loops.size(); ++n)
-            mat(n,m) = loops[n].rbDistCons->getVelErr(mc);
+            mat(n,m) = loops[n].rbDistCons->getVelErr(uErr);
 
         //store results of m-th constraint on deltaVa-n
     }
@@ -1274,33 +1272,33 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     // RBDistanceConstraint methods
 
 void RBDistanceConstraint::calcStationPosInfo(int i, 
-        SBPositionCache&       cc) const
+        SBPositionCache& pc) const
 {
-    updStation_G(cc,i) = getNode(i).getX_GB(cc).R() * getPoint(i);
-    updPos_G(cc,i)     = getNode(i).getX_GB(cc).T() + getStation_G(cc,i);
+    updStation_G(pc,i) = getNode(i).getX_GB(pc).R() * getPoint(i);
+    updPos_G(pc,i)     = getNode(i).getX_GB(pc).T() + getStation_G(pc,i);
 }
 
 void RBDistanceConstraint::calcStationVelInfo(int i, 
-        const SBPositionCache& cc, 
-        SBVelocityCache&              mc) const
+        const SBPositionCache& pc, 
+        SBVelocityCache&       vc) const
 {
-    const Vec3& w_G = getNode(i).getSpatialAngVel(mc);
-    const Vec3& v_G = getNode(i).getSpatialLinVel(mc);
-    updStationVel_G(mc,i) = cross(w_G, getStation_G(cc,i));
-    updVel_G(mc,i)        = v_G + getStationVel_G(mc,i);
+    const Vec3& w_G = getNode(i).getSpatialAngVel(vc);
+    const Vec3& v_G = getNode(i).getSpatialLinVel(vc);
+    updStationVel_G(vc,i) = cross(w_G, getStation_G(pc,i));
+    updVel_G(vc,i)        = v_G + getStationVel_G(vc,i);
 }
 
 void RBDistanceConstraint::calcStationAccInfo(int i, 
-        const SBPositionCache& cc, 
-        const SBVelocityCache&        mc,
-        SBAccelerationCache&            rc) const
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        SBAccelerationCache&   ac) const
 {
-    const Vec3& w_G  = getNode(i).getSpatialAngVel(mc);
-    const Vec3& v_G  = getNode(i).getSpatialLinVel(mc);
-    const Vec3& aa_G = getNode(i).getSpatialAngAcc(rc);
-    const Vec3& a_G  = getNode(i).getSpatialLinAcc(rc);
-    updAcc_G(rc,i) = a_G + cross(aa_G, getStation_G(cc,i))
-                         + cross(w_G,  getStationVel_G(mc,i)); // i.e., w X (wXr)
+    const Vec3& w_G  = getNode(i).getSpatialAngVel(vc);
+    const Vec3& v_G  = getNode(i).getSpatialLinVel(vc);
+    const Vec3& aa_G = getNode(i).getSpatialAngAcc(ac);
+    const Vec3& a_G  = getNode(i).getSpatialLinAcc(ac);
+    updAcc_G(ac,i) = a_G + cross(aa_G, getStation_G(pc,i))
+                         + cross(w_G,  getStationVel_G(vc,i)); // i.e., w X (wXr)
 }
 
 std::ostream& operator<<(std::ostream& o, const RBStation& s) {
@@ -1308,45 +1306,47 @@ std::ostream& operator<<(std::ostream& o, const RBStation& s) {
     return o;
 }
 
-void RBDistanceConstraint::calcPosInfo(SBPositionCache& cc) const
+void RBDistanceConstraint::calcPosInfo(Vector& qErr, SBPositionCache& pc) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationPosInfo(i,cc);
+    for (int i=1; i<=2; ++i) calcStationPosInfo(i,pc);
 
-    const Vec3 p = getPos_G(cc,2) - getPos_G(cc,1);
-    updFromTip1ToTip2_G(cc)  = p;
-    const Real separation  = getFromTip1ToTip2_G(cc).norm();
-    updUnitDirection_G(cc)   = getFromTip1ToTip2_G(cc) / separation;
+    const Vec3 p = getPos_G(pc,2) - getPos_G(pc,1);
+    updFromTip1ToTip2_G(pc)  = p;
+    const Real separation  = getFromTip1ToTip2_G(pc).norm();
+    updUnitDirection_G(pc)   = getFromTip1ToTip2_G(pc) / separation;
     //TODO:  |p|-d (should be 0.5(p^2-d^2)
     //updPosErr(cc) = separation - distance; 
-    updPosErr(cc) = 0.5*(p.normSqr() - distance*distance);
+    updPosErr(qErr) = 0.5*(p.normSqr() - distance*distance);
 
 }
 
 void RBDistanceConstraint::calcVelInfo(
-        const SBPositionCache& cc, 
-        SBVelocityCache&              mc) const
+        const SBPositionCache& pc, 
+        Vector&                uErr,
+        SBVelocityCache&       vc) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationVelInfo(i,cc,mc);
+    for (int i=1; i<=2; ++i) calcStationVelInfo(i,pc,vc);
 
-    updRelVel_G(mc) = getVel_G(mc,2) - getVel_G(mc,1);
+    updRelVel_G(vc) = getVel_G(vc,2) - getVel_G(vc,1);
     //TODO: u.v, u=p/|p| (should be p.v)
-    //updVelErr(mc)   = ~getUnitDirection_G(cc) * getRelVel_G(mc);
-    updVelErr(mc) = ~getFromTip1ToTip2_G(cc) * getRelVel_G(mc);
+    //updVelErr(mc)   = ~getUnitDirection_G(pc) * getRelVel_G(vc);
+    updVelErr(uErr) = ~getFromTip1ToTip2_G(pc) * getRelVel_G(vc);
 }
 
 void RBDistanceConstraint::calcAccInfo(
-        const SBPositionCache& cc, 
-        const SBVelocityCache&        mc,
-        SBAccelerationCache&            rc) const
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        Vector&                udotErr,
+        SBAccelerationCache&   ac) const
 {
     assert(isValid() && distConstNum >= 0);
-    for (int i=1; i<=2; ++i) calcStationAccInfo(i,cc,mc,rc);
+    for (int i=1; i<=2; ++i) calcStationAccInfo(i,pc,vc,ac);
 
     // TODO: v.v + a.p (good), but would have to be
     // u.a + (v-(v.u).u).v/|p| to be compatible with above
-    const Vec3 relAcc_G = getAcc_G(rc,2) - getAcc_G(rc,1);
-    updAccErr(rc) = getRelVel_G(mc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(cc));
+    const Vec3 relAcc_G = getAcc_G(ac,2) - getAcc_G(ac,1);
+    updAccErr(udotErr) = getRelVel_G(vc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(pc));
 }
 
