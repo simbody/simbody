@@ -40,6 +40,8 @@ FILE(GLOB INC1 ../Chemistry/include/*.h)
 FILE(GLOB INC2 include/*.h)
 SET(INCLUDES ${INC1} ${INC2})
 
+FILE(GLOB CHEM_SRCS ../Chemistry/src/*.cpp)
+
 SET(ATOM_SRCS ../Chemistry/src/Atom.cpp ../Chemistry/src/ChemicalElement.cpp)
 ADD_EXECUTABLE(TestAtom tests/TestAtom.cpp ${ATOM_SRCS} ${INCLUDES})
 
@@ -54,8 +56,8 @@ ADD_EXECUTABLE(TestProtein tests/TestProtein.cpp ${PROTEIN_SRCS})
 
 FILE(GLOB MODEL_SRCS ../MoleculeModel/src/*.cpp)
 SET(MOL_SIM_SRCS ${PROTEIN_SRCS} ${MODEL_SRCS} ../Chemistry/src/Ethane.cpp)
-ADD_EXECUTABLE(TestSimMol0 tests/TestSimMol0.cpp ${MOL_SIM_SRCS} ${INCLUDES})
-ADD_EXECUTABLE(TestSimMol1 tests/TestSimMol1.cpp ${MOL_SIM_SRCS} ${INCLUDES})
+ADD_EXECUTABLE(TestSimMol0 tests/TestSimMol0.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
+ADD_EXECUTABLE(TestSimMol1 tests/TestSimMol1.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
 
 TARGET_LINK_LIBRARIES(TestSimMol0 simtkcommon)
 TARGET_LINK_LIBRARIES(TestSimMol0 simmatrix)

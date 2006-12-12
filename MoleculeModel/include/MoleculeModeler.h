@@ -11,8 +11,8 @@ public:
 	~MoleculeModeler();
 
 	MoleculeModeler & addMolecule(const Molecule & molecule);
-	SimTK::MultibodySystem & system();
-	SimTK::Real getPsiTorsion(const SimTK::State & state, const AminoAcid & aminoAcid);
+	SimTK::MultibodySystem & getSystem();
+	// SimTK::Real getPsiTorsion(const SimTK::State & state, const AminoAcid & aminoAcid);
 private:
 	class MoleculeModelerRep * rep;
 };

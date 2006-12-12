@@ -4,11 +4,31 @@
 using namespace SimTK;
 using namespace std;
 
+class BondRep {
+public:
+	BondRep(int a1, int a2, const BondType & t) 
+		: atomIndex1(a1), atomIndex2(a2), type(&t) 
+	{}
+	BondRep(const BondRep & src) 
+		: atomIndex1(src.atomIndex1), atomIndex2(src.atomIndex2), type(src.type)
+	{}
+	BondRep & operator=(const BondRep & src) {
+		atomIndex1 = src.atomIndex1;
+		atomIndex2 = src.atomIndex2;
+		type = src.type;
+		return *this;
+	}
+
+	int atomIndex1;
+	int atomIndex2;
+	const BondType * type;
+};
+
 class MoleculeRep {
 friend class Molecule;
 private:
 	MoleculeRep(const Molecule & handle) :
-	   myHandle(&handle), cachedCenterOfMass(0,0,0), centerOfMassIsDirty(true)
+	   myHandle(&handle), cachedCenterOfMass(0,0,0), centerOfMassIsDirty(true), chainId('?')
 	{}
 
 	MoleculeRep & setPosition(Real x, Real y, Real z) {
@@ -62,6 +82,8 @@ private:
 	mutable bool centerOfMassIsDirty;
 
 	vector<Atom> atomVec;
+	vector<BondRep> bondVec;
+	char chainId; // as defined in PDB file
 };
 
 Molecule::Molecule() {
@@ -76,4 +98,19 @@ Molecule::~Molecule() {
 Molecule & Molecule::setPosition(Real x, Real y, Real z) {
 	rep->setPosition(x,y,z);
 	return *this;
+}
+
+char Molecule::getPdbChainId() const {
+	return rep->chainId;
+}
+
+Molecule & Molecule::addBond(int atom1, int atom2, const BondType & bondType) {
+	rep->bondVec.push_back(BondRep(atom1, atom2, bondType));
+	return *this;
+}
+
+int Molecule::addAtom(const Atom & atom) {
+	int index = rep->atomVec.size();
+	rep->atomVec.push_back(atom);
+	return index;
 }

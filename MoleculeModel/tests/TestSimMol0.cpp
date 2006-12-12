@@ -14,7 +14,7 @@ int main()
 	MoleculeModeler modeler;
 	OxygenMolecule oxygen;
 	modeler.addMolecule(oxygen);
-	MultibodySystem system = modeler.system();
+	MultibodySystem & system = modeler.getSystem();
 	
 	State state;
 	RungeKuttaMerson study(system, state);
