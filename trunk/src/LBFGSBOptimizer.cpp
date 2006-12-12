@@ -42,22 +42,22 @@ static double pgtol = 1.0e-5;
 
      LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) {
-          int m,i;
+          int n,i;
           char buf[1024];
 
+         n = sys.getNumParameters();
 
-         if( sys.dimension < 1 ) {
+         if( n < 1 ) {
              char *where = "Optimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where);
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  n, INT_MAX, where);
          }
 
-         n = sys.dimension;
 
 
-          /* assume all paramters have both upper and lower bounds */
-          nbd = (int *)malloc(sys.numBounds*sizeof(int));
-          for(i=0;i<sys.numBounds;i++) {
+          /* assume all paramters have both upper and lower limits */
+          nbd = (int *)malloc(n*sizeof(int));
+          for(i=0;i<n;i++) {
                nbd[i] = 2;
           }
 
@@ -70,7 +70,6 @@ static double pgtol = 1.0e-5;
 
          int i;
          int run_optimizer = 1;
-         int iflag[1] = {0};
          char task[61];
          double f;
          int iprint = 1;
@@ -80,25 +79,36 @@ static double pgtol = 1.0e-5;
          int isave[44];
          double dsave[29];
          double *wa;
+         double *lowerLimits, *upperLimits;
          const OptimizerSystem& sys = getOptimizerSystem();
+         int n = sys.getNumParameters();
+         int m = numCorrections;
 
 
+         sys.getParameterLimits( &lowerLimits, &upperLimits );
          iwa = (int *)malloc(3*n*sizeof(int));
-         wa = (double *)malloc( ((2*n + 4)*n + 12*n*n + 12*sys.numBounds)*sizeof(double));
+         wa = (double *)malloc( ((2*m + 4)*n + 12*m*m + 12*m)*sizeof(double));
 
          strcpy( task, "START" );
+
+
          while( run_optimizer ) { 
-            setulb_(&n, &numCorrections, &results[0], sys.lower_bounds,
-                    sys.upper_bounds, nbd, &f, gradient,
+
+            setulb_(&n, &numCorrections, &results[0], lowerLimits,
+                    upperLimits, nbd, &f, gradient,
                     &factr, &pgtol, wa, iwa,
                     task, &iprint, csave, lsave, isave, dsave, 60, 60);
+
              if( strncmp( task, "FG", 2) == 0 ) {
                 objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
                 gradientFuncWrapper( n,  &results[0],  false, gradient, (void*)this );
-
-             } else if( strncmp( task, "NEW_X", 5) != 0 ){
+             } else if( strncmp( task, "NEW_X", 5) == 0 ){
                 objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
+             } else {
                 run_optimizer = 0;
+                if( strncmp( task, "CONV", 4) != 0 ){
+                    SimTK_THROW1(SimTK::Exception::OptimizerFailed , SimTK::String(task) ); 
+                }
              }
          }
 

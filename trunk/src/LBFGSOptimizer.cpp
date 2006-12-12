@@ -36,7 +36,7 @@ const int NUMBER_OF_CORRECTIONS = 5;
      LBFGSOptimizer::LBFGSOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) 
 {
-          int m;
+          int n,m;
           char buf[1024];
 
 
@@ -45,12 +45,12 @@ const int NUMBER_OF_CORRECTIONS = 5;
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
          diagco[0] = 0;      // do not supply diagonal of hessian
 
-         if( sys.dimension < 1 ) {
+         if( sys.getNumParameters() < 1 ) {
              char *where = "Optimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where); 
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          }
-         n = sys.dimension;
+         n = sys.getNumParameters();
          numCorrections = m = NUMBER_OF_CORRECTIONS;
          work = new double[n*(2*m+1) + 2*m];
          diag = new double[n];
@@ -64,6 +64,8 @@ const int NUMBER_OF_CORRECTIONS = 5;
          int run_optimizer = 1;
          int iflag[1] = {0};
          double f;
+         const OptimizerSystem& sys = getOptimizerSystem();
+         int n = sys.getNumParameters();
 
          while( run_optimizer ) {  // TODO callbacks use ptr to functions  
 

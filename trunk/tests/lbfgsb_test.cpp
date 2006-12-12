@@ -9,10 +9,13 @@ using std::cout;
 using std::endl;
 
 
-#define PROBLEM_DIMENSION 25
-#define NUM_CORRECTIONS    5
+const static int NUMBER_OF_PARAMETERS = 25;
 
 class ProblemSystem : public SimTK::OptimizerSystem {
+
+   public:
+
+   ProblemSystem( const int numParameters ) : SimTK::OptimizerSystem( numParameters ) {}
 
    int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
       double *x;
@@ -51,7 +54,6 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
     return(0);
 
-
    }
 
 };
@@ -60,20 +62,16 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 main() {
 
     double params[10],f;
-    int bounds[PROBLEM_DIMENSION];
     int i;
-    int n = PROBLEM_DIMENSION;
+    int n = NUMBER_OF_PARAMETERS;
 
-    SimTK::Vector results(PROBLEM_DIMENSION);
-    SimTK::Vector lower_bounds(PROBLEM_DIMENSION);
-    SimTK::Vector upper_bounds(PROBLEM_DIMENSION);
-    ProblemSystem sys;
+    SimTK::Vector results(NUMBER_OF_PARAMETERS);
+    SimTK::Vector lower_bounds(NUMBER_OF_PARAMETERS);
+    SimTK::Vector upper_bounds(NUMBER_OF_PARAMETERS);
+
+    ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
     cout << "LBFGSB driver1 test " << endl;
-    sys.dimension = PROBLEM_DIMENSION;
-    sys.numBounds = PROBLEM_DIMENSION;  // all coeffcients have bounds
-    sys.lower_bounds = &lower_bounds[0];
-    sys.upper_bounds = &upper_bounds[0];
 
     /* set initial conditions */
     for(i=0;i<n;i++) {
@@ -84,14 +82,13 @@ main() {
     for(i=0;i<n;i=i+2) {   // even numbered 
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 100.0;
-       bounds[i] = i;
     }
     for(i=1;i<n;i=i+2) { // odd numbered
        lower_bounds[i] = -100.0;
        upper_bounds[i] = 100.0;
-       bounds[i] = i;
     }
 
+    sys.setParameterLimits( lower_bounds, upper_bounds );
 
     try {
     SimTK::Optimizer opt( sys ); 
@@ -118,7 +115,7 @@ main() {
     }
 
     printf("f = %f params = ",f);
-    for( i=0; i<PROBLEM_DIMENSION; i++ ) {
+    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
     printf("\n");

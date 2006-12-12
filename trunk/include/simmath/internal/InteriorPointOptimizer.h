@@ -37,13 +37,15 @@ class InteriorPointOptimizer: public OptimizerRep {
      public:
 
      ~InteriorPointOptimizer() {
+        if( freeLimits ) {
+           delete [] x_U;
+           delete [] x_L;
+        }
         printf("InteriorPointOptimizer destructor \n");
 
 
      }
      InteriorPointOptimizer(OptimizerSystem& sys); 
-     InteriorPointOptimizer(int n, int nConstraints, int nEqualConstraints, int nBounds); 
-     InteriorPointOptimizer(); 
      unsigned int InteriorPointOptimizer::optParamStringToValue( char *parameter );
      void setOptimizerParameters(unsigned int parameter, double *values );
      void getOptimizerParameters(unsigned int parameter, double *values );
@@ -52,8 +54,6 @@ class InteriorPointOptimizer: public OptimizerRep {
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     int         n; // number of variables
-     int         m; // total number of constriants
      int         numCorrections;
      int         MaxNumFuncEvals;
      double      GradientConvergenceTolerance;
@@ -63,8 +63,11 @@ class InteriorPointOptimizer: public OptimizerRep {
      Number      *mult_x_U;
      Number      *g_L;
      Number      *g_U;
+     double      *x_L;
+     double      *x_U;
      IpoptProblem nlp;
      SimTK::Vector *gradient;
+     bool freeLimits;
 
 
 };

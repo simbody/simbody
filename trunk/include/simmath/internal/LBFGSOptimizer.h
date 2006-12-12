@@ -37,11 +37,9 @@ class LBFGSOptimizer: public OptimizerRep {
      ~LBFGSOptimizer() {
         printf("LBFGSOptimizer destructor \n");
 
-        if( n > 0 ) {
-           delete [] work;
-           delete [] diag;
-           delete [] gradient;
-        }
+        delete [] work;
+        delete [] diag;
+        delete [] gradient;
 
      }
 
@@ -54,7 +52,6 @@ class LBFGSOptimizer: public OptimizerRep {
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     int         n;
      int         numCorrections;
      int         Trace;
      int         MaxNumFuncEvals;

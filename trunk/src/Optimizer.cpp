@@ -36,9 +36,9 @@ namespace SimTK {
 void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys ) {
 
 
-      if( sys.numConstraints > 0)   {
+      if( sys.getNumConstraints() > 0)   {
          rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
-      }else if( sys.numBounds > 0 ) {
+      }else if( sys.getHasLimits() ) {
          rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
       } else {
          rep = (OptimizerRep *) new LBFGSOptimizer( sys  );

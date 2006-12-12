@@ -25,24 +25,56 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <limits.h>
+#include "Simmath.h"
 #include "simmatrix/internal/BigMatrix.h"
 
 namespace SimTK {
 
 class OptimizerSystem {
 public:
-    OptimizerSystem() :
-                  dimension(0),
-                  numConstraints(0),
-                  numBounds(0),
-                  numEqualConstraints(0)
-                  {};
+    OptimizerSystem(int nParameters ) : numConstraints(0),
+                                      numEqualityConstraints(0),  
+                                      lowerLimits(0),
+                                      upperLimits(0),
+                                      useLimits( false ) { 
+       if(   nParameters < 1 ) {
+           char *where = " OptimizerSystem  Constructor";
+           char *szName= "number of parameters";
+           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
+       }else {
+            numParameters = nParameters;
+       }
+    }
+
+    OptimizerSystem(int nParameters, int nConstraints) : numEqualityConstraints(0),
+                                                         upperLimits(0),
+                                                         lowerLimits(0),
+                                                         useLimits( false ) { 
+
+       if(   nParameters < 1 ) {
+           char *where = " OptimizerSystem  Constructor";
+           char *szName= "number of parameters";
+           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
+       }else {
+            numParameters = nParameters;
+       }
+
+       if(   nConstraints < 0 ) {
+           char *where = " OptimizerSystem  Constructor";
+           char *szName= "number of constraints";
+           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  INT_MAX, nConstraints, where);
+       }else {
+            numConstraints = nConstraints;
+       }
+    }
 
   /* this method must be supplied by concreate class */
   virtual int objectiveFunc      (int n, Vector& coefficients, 
                                  bool new_coefficients, Real *f ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
                                  return -1; }
+
 
   virtual int gradientFunc       (int n, Vector &coefficients, 
                                  bool new_coefficients, Vector &gradient ) const  {
@@ -63,18 +95,62 @@ public:
                                  bool new_coefficients, Vector &gradient) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
-   int dimension;
+
+   void setNumEqualityConstraints( int n ) {
+ 
+        if( n < 0 || n > numConstraints ) {
+           char *where = " OptimizerSystem  setNumberOfEqualityConstraints";
+           char *szName= "Number of Constraints";
+           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  n, numConstraints, where);
+        } else {
+           numEqualityConstraints = n;
+        }
+
+        return;
+   }
+   void setParameterLimits( const Vector& lower, const Vector& upper  ) {
+ 
+        if(   upper.size() != numParameters  && upper.size() != 0) {
+           char *where = " OptimizerSystem  setParamtersLimits";
+           char *szName= "upper limits length";
+           SimTK_THROW5(Exception::IncorrectArrayLength, szName, upper.size(), "numParameters", numParameters, where);
+        }
+        if(   lower.size() != numParameters  && lower.size() != 0 ) {
+           char *where = " OptimizerSystem  setParamtersLimits";
+           char *szName= "lower limits length";
+           SimTK_THROW5(Exception::IncorrectArrayLength, szName, lower.size(), "numParameters", numParameters, where);
+        } 
+       // set the upper and lower limits
+       if( lowerLimits ) delete lowerLimits;
+       if( upperLimits ) delete upperLimits;
+
+       if( upper.size() == 0 ) {
+          useLimits = false;
+       } else {
+          lowerLimits = new Vector( lower );
+          upperLimits = new Vector( upper );
+          useLimits = true;
+       }
+
+       return;
+   }
+   int getNumParameters() const {return numParameters;};
+   int getNumConstraints() const {return numConstraints;};
+   int getNumEqualityConstraints() const {return numEqualityConstraints;};
+   bool getHasLimits() const { return useLimits; }
+   void getParameterLimits( double **lower, double **upper ) const {
+        *lower = &(*lowerLimits)[0];
+        *upper = &(*upperLimits)[0];
+   }
+
+
+   private:
+   int numParameters;
    int numConstraints;
-   int numBounds;
-   int numEqualConstraints;
-   double *lower_bounds;
-   double *upper_bounds;
-
-
-private:
-    int notImplemented() const {
-        return std::numeric_limits<int>::min();
-    }
+   int numEqualityConstraints;
+   bool useLimits;
+   Vector* lowerLimits;
+   Vector* upperLimits;
 
 }; // class OptimizerSystem
 

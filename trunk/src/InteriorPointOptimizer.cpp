@@ -35,26 +35,39 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) {
 
         printf(" InteriorPointOptimizer constructor \n");         
-          int i,n;
+          int i,n,m;
           char buf[1024];
 
           /* C-style; start counting of rows and column indices at 0 */
           Index index_style = 0; 
 
 
-         if( sys.dimension < 1 ) {
+         if( sys.getNumParameters() < 1 ) {
              char *where = " InteriorPointOptimizer Initialization";
              char *szName= "dimension";
-             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.dimension, INT_MAX, where); 
+             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          } else {
-            n = sys.dimension;
+            n = sys.getNumParameters();
             /* set the bounds on the equality constraint functions */
-            m = sys.numConstraints;
+            m = sys.getNumConstraints();
             g_U = (double *)malloc(sizeof(double)*m); // TODO free these
             g_L = (double *)malloc(sizeof(double)*m);
-            double *x_U = sys.upper_bounds;
-            double *x_L = sys.lower_bounds;
-            for(i=0;i<sys.numEqualConstraints;i++){
+
+            if( sys.getHasLimits() ) {
+               
+               sys.getParameterLimits( &x_L, &x_U);
+printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
+               freeLimits = false;
+            } else {
+               x_U = new Real[n];
+               x_L = new Real[n];
+               for(i=0;i<n;i++) {
+                  x_U[i] = POSITIVE_INF;
+                  x_L[i] = NEGATIVE_INF;
+               }
+               freeLimits = true;
+            }
+            for(i=0;i<sys.getNumEqualityConstraints();i++){
                 g_U[i] = g_L[i] = 0.0;
             }
 
@@ -62,17 +75,22 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
             Index nele_jac = n*m; /* always assume dense
             
             /* set the bounds on the inequality constraint functions */
-            for(i=sys.numEqualConstraints;i<m;i++){
-                g_U[i] = 2e19;
+            for(i=sys.getNumEqualityConstraints();i<m;i++){
+                g_U[i] = POSITIVE_INF;
                 g_L[i] = 0.0;
             }
 
             mult_x_L = (Number*)malloc(sizeof(Number)*n);
             mult_x_U = (Number*)malloc(sizeof(Number)*n);
         
+     printf("x_L=%f %f %f %f %f \n x_U=%f %f %f %f %f \n",
+                  x_L[0],x_L[1],x_L[2],x_L[3],x_L[4],
+                  x_U[0],x_U[1],x_U[2],x_U[3],x_U[4]);
+
             nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, 
                   nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper, 
                   gradientFuncWrapper, constraintJacobianWrapper, hessianWrapper);
+
 
             AddIpoptNumOption(nlp, "tol", 1e-3);
             AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
@@ -82,8 +100,6 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
             AddIpoptIntOption(nlp, "print_level", 4); // default is 4
 
           }
-
-
      } 
 
 

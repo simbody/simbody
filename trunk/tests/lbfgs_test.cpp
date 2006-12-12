@@ -10,9 +10,12 @@ using std::endl;
 
 /* adapted from itkLBFGSOptimizerTest.cxx */
 
-#define PROBLEM_DIMENSION 2
+const static int  NUMBER_OF_PARAMETERS = 2;
 
 class ProblemSystem : public SimTK::OptimizerSystem {
+   public:
+
+   ProblemSystem( int numParameters) : SimTK::OptimizerSystem( numParameters){}
 
    int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients, double *f ) const {
       double x, y;
@@ -38,8 +41,6 @@ class ProblemSystem : public SimTK::OptimizerSystem {
       return(0);
 
    }
-
-
 };
 
 main() {
@@ -47,11 +48,10 @@ main() {
     double params[10];
     int i;
 
-    ProblemSystem sys;
-    SimTK::Vector results(2);
-    sys.dimension = PROBLEM_DIMENSION;
+    ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
-    try {
+    SimTK::Vector results(NUMBER_OF_PARAMETERS);
+
     SimTK::Optimizer opt( sys ); 
 
 
@@ -75,13 +75,8 @@ main() {
     
     opt.optimize( results );
 
-    }
 
-    catch (SimTK::Exception::Base exp) {
-        cout << "Caught exception :" << exp.getMessage() << endl;
-    }
-
-    for( i=0; i<PROBLEM_DIMENSION; i++ ) {
+    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" results[%d] = %f \n",i,results[i]); 
     }
 }

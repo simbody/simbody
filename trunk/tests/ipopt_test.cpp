@@ -8,6 +8,10 @@
 using std::cout;
 using std::endl;
 
+
+static int  NUMBER_OF_PARAMETERS = 4; 
+static int  NUMBER_OF_CONSTRAINTS = 2; 
+
 namespace SimTK {
 /*
  * Problem hs071 looks like this
@@ -24,11 +28,12 @@ namespace SimTK {
  *        x = (1.00000000, 4.74299963, 3.82114998, 1.37940829)
  *
  */
-#define PROBLEM_DIMENSION 4 
 
-class ProblemStatement : public SimTK::OptimizerSystem {
+class ProblemSystem : public SimTK::OptimizerSystem {
+public:
 
-   int objectiveFunc(  int n, Vector &coefficients, bool new_coefficients, double* f ) const {
+
+   int objectiveFunc(  int n, Vector &coefficients, bool new_coefficients, Real* f ) const {
       double *x;
       int i;
 
@@ -78,26 +83,31 @@ class ProblemStatement : public SimTK::OptimizerSystem {
       return(0);
   }
 
+/*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
+
+   ProblemSystem( int numParams, int numConstraints) :
+
+         SimTK::OptimizerSystem( numParams, numConstraints ) {
+   }
+
 };
-}
+
+} // namespace SimTK
 
 main() {
 
     double params[10],f;
     int i;
-    int n = PROBLEM_DIMENSION;
 
-    SimTK::Vector results(PROBLEM_DIMENSION);
-    SimTK::Vector lower_bounds(PROBLEM_DIMENSION);
-    SimTK::Vector upper_bounds(PROBLEM_DIMENSION);
-    SimTK::ProblemStatement study;
+    /* create the system to be optimized */
+    SimTK::ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS );
 
-    study.dimension = PROBLEM_DIMENSION;
-    study.numBounds = PROBLEM_DIMENSION;  // all coeffcients have bounds
-    study.lower_bounds = &lower_bounds[0];
-    study.upper_bounds = &upper_bounds[0];
-    study.numConstraints = 2;
-    study.numEqualConstraints = 1;
+    SimTK::Vector results(NUMBER_OF_PARAMETERS);
+    SimTK::Vector lower_bounds(NUMBER_OF_PARAMETERS);
+    SimTK::Vector upper_bounds(NUMBER_OF_PARAMETERS);
+
+
+    sys.setNumEqualityConstraints( 1 );
 
     /* set initial conditions */
     results[0] = 1.0;
@@ -106,14 +116,14 @@ main() {
     results[3] = 1.0;
 
     /* set bounds */
-    for(i=0;i<n;i++) {   
+    for(i=0;i<NUMBER_OF_PARAMETERS;i++) {   
        lower_bounds[i] = 1.0;
        upper_bounds[i] = 5.0;
     }
 
+    sys.setParameterLimits( lower_bounds, upper_bounds );
 
-//    try {
-    SimTK::Optimizer opt( study ); 
+    SimTK::Optimizer opt( sys ); 
 
 
     params[0] = 100;
@@ -128,19 +138,14 @@ main() {
     params[0] = 0.9;
     opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
 
-
+    /* compute  optimization */ 
     f = opt.optimize( results );
 
- //   }
-
- //  catch (SimTK::Exception::Base exp) {
- //     cout << "Caught exception :" << exp.getMessage() << endl;
- //   }
-
     printf("f = %f params = ",f);
-    for( i=0; i<PROBLEM_DIMENSION; i++ ) {
+    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
     printf("\n");
+
 
 }

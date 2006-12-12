@@ -35,7 +35,10 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
-#include "simmath/Optimizer.h"
+
+
+const static double POSITIVE_INF =  2e19;
+const static double NEGATIVE_INF = -2e19;
 
 namespace SimTK {
 
@@ -59,6 +62,20 @@ public:
 private:
 };
 
+class IncorrectArrayLength : public Base {
+public:
+        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
+                              const char *paramName, int paramValue, const char *where) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "Incorrect array length in %s : %s is %d and must equal %s which is %d",
+            where, valueName, length, paramName, paramValue );
+        setMessage(String(buf));
+
+        }
+private:
+};
 } // namespace Exception
 
 } //  namespace SimTK

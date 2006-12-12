@@ -44,35 +44,13 @@ static integer c__1 = 1;
 
 
 
-/* TODO  add C and Fortran interfaces 
-
-#define SIMTK_FORTRAN_UPPERCASE
-#define SIMTK_FORTRAN_ONE_UNDERSCORE
-#include "optimizer_fortran.h"
-#undef SIMTK_FORTRAN_UPPERCASE
-#undef SIMTK_FORTRAN_ONE_UNDERSCORE
-
-#define SIMTK_FORTRAN_LOWERCASE
-#define SIMTK_FORTRAN_ONE_UNDERSCORE
-#include "optimizer_fortran.h"
-#undef SIMTK_FORTRAN_LOWERCASE
-#undef SIMTK_FORTRAN_ONE_UNDERSCORE
-
-#define SIMTK_FORTRAN_LOWERCASE
-#include "optimizer_fortran.h"
-#undef SIMTK_FORTRAN_LOWERCASE
-
-#define SIMTK_FORTRAN_UPPERCASE
-#include "optimizer_fortran.h"
-#undef SIMTK_FORTRAN_UPPERCASE
-
-*/
 
 // turn off C++ so correct LAPACK declarations are used 
 #undef  __cplusplus
 extern "C" {
 #include "lapack/SimTKlapack.h"
 }
+#define __cplusplus
 
 
 extern double sqrt(double); 
