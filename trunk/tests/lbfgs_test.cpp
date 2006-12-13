@@ -17,7 +17,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
    ProblemSystem( int numParameters) : SimTK::OptimizerSystem( numParameters){}
 
-   int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients, double *f ) const {
+   int objectiveFunc(  SimTK::Vector &coefficients, bool new_coefficients, double *f ) const {
       double x, y;
 
       x = coefficients[0];
@@ -29,7 +29,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
    }
 
-   int gradientFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients, SimTK::Vector &gradient )const {
+   int gradientFunc(  SimTK::Vector &coefficients, bool new_coefficients, SimTK::Vector &gradient )const {
       double x, y;
 
       x = coefficients[0]; 

@@ -33,7 +33,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 public:
 
 
-   int objectiveFunc(  int n, Vector &coefficients, bool new_coefficients, Real* f ) const {
+   int objectiveFunc(  Vector &coefficients, bool new_coefficients, Real* f ) const {
       double *x;
       int i;
 
@@ -43,7 +43,7 @@ public:
       return( 0 ); 
    }
 
-   int gradientFunc(int n,   Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
+   int gradientFunc( Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
       double *x;
 
       x = &coefficients[0]; 
@@ -56,7 +56,7 @@ public:
      return(0);
 
   }
-  int constraintFunc(int n, int m, Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
+  int constraintFunc( Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
       double *x;
 
       x = &coefficients[0]; 
@@ -66,7 +66,7 @@ public:
       return(0);
   }
 
-  int constraintJacobian(int n, int m, Vector& coefficients, bool new_coefficients, Vector& jac)  const{
+  int constraintJacobian( Vector& coefficients, bool new_coefficients, Vector& jac)  const{
       double *x;
 
       x = &coefficients[0]; 

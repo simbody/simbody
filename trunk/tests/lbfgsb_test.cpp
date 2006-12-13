@@ -17,7 +17,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
    ProblemSystem( const int numParameters ) : SimTK::OptimizerSystem( numParameters ) {}
 
-   int objectiveFunc(  int n, SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
+   int objectiveFunc(   SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
       double *x;
       int i;
 
@@ -26,7 +26,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 //printf("objectiveFunction x = ",x[0],x[1],x[2]);
       *f = .25 *(x[0]-1.0)*(x[0]-1.0);
 //   printf(" %f",x[0]);
-      for(i=1;i<n;i++) {
+      for(i=1;i<numParameters;i++) {
          *f = *f + pow(x[i]-x[i-1]*x[i-1], 2.0);
 //   printf(" %f",x[i]);
       }
@@ -36,7 +36,7 @@ class ProblemSystem : public SimTK::OptimizerSystem {
       return( 0 ); 
    }
 
-   int gradientFunc(int n, SimTK::Vector &coefficients, bool new_coefficients,  SimTK::Vector &gradient ) const {
+   int gradientFunc( SimTK::Vector &coefficients, bool new_coefficients,  SimTK::Vector &gradient ) const {
       double *x,t1,t2;
       int i;
 
@@ -44,12 +44,12 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
       t1 = x[1]-(x[0]*x[0]);
       gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
-      for(i=1;i<n-1;i++) {
+      for(i=1;i<numParameters-1;i++) {
          t2=t1;
          t1=x[i+1]-(x[i]*x[i]);
          gradient[i]=8.0*t2-16.0*x[i]*t1;
       }
-      gradient[n-1]=8.0*t1;
+      gradient[numParameters-1]=8.0*t1;
 // printf("objectiveGradient x = %f %f %f  g = %f \n",x[0],x[1],x[2],gradient[0]);
 
     return(0);

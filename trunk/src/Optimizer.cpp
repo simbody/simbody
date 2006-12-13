@@ -65,21 +65,21 @@ double Optimizer::optimize(SimTK::Vector   &results) {
 int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) {
       Vector coeff( n, x, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.objectiveFunc( rep.getOptimizerSystem(), n, coeff, new_x, f );
+      rep.objectiveFunc( rep.getOptimizerSystem(), coeff, new_x, f );
       return( true );
 }
 int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_data) {
       Vector coeff( n, x, true);
       Vector grad_vec(n,gradient,true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.gradientFunc( rep.getOptimizerSystem(), n, coeff, new_x, grad_vec );
+      rep.gradientFunc( rep.getOptimizerSystem(), coeff, new_x, grad_vec );
       return( true );
 }
 int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data) {
       Vector coeff( n, x, true);
       Vector constraints(n, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.constraintFunc( rep.getOptimizerSystem(), n, m, coeff, new_x, constraints );
+      rep.constraintFunc( rep.getOptimizerSystem(), coeff, new_x, constraints );
       return( true );
 }
 int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
@@ -106,7 +106,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
     Vector coeff(n,x,true); 
     Vector jac(m*n,values,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-    rep.constraintJacobian( rep.getOptimizerSystem(), n, m, coeff, new_x, jac );
+    rep.constraintJacobian( rep.getOptimizerSystem(), coeff, new_x, jac );
   } 
   return( true );
 }
@@ -120,7 +120,7 @@ int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
     Vector coeff(n,x,true); 
     Vector hess(n*n,values,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-    rep.hessian( rep.getOptimizerSystem(), n, m, coeff, new_x, hess );
+    rep.hessian( rep.getOptimizerSystem(), coeff, new_x, hess );
     return( true );
 }
 
