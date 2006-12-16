@@ -70,33 +70,33 @@ public:
     }
 
   /* this method must be supplied by concreate class */
-  virtual int objectiveFunc      ( Vector& coefficients, 
-                                 bool new_coefficients, Real *f ) const {
+  virtual int objectiveFunc      ( const Vector& parameters, 
+                                 const bool new_parameters, Real& f ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "objectiveFunc" );
                                  return -1; }
 
 
-  virtual int gradientFunc       ( Vector &coefficients, 
-                                 bool new_coefficients, Vector &gradient ) const  {
+  virtual int gradientFunc       ( const Vector &parameters, 
+                                 const bool new_parameters, Vector &gradient ) const  {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "gradientFunc" );
                                  return -1; }
 
-  virtual int constraintFunc     ( Vector & coefficients, 
-                                 bool new_coefficients, Vector & constraints ) const {
+  virtual int constraintFunc     ( const Vector & parameters, 
+                                 const bool new_parameters, Vector & constraints ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintFunc" );
                                  return -1; }
 
-  virtual int constraintJacobian ( Vector& coefficients, 
-                                  bool new_coefficients, Vector& jac ) const {
+  virtual int constraintJacobian ( const Vector& parameters, 
+                                  const bool new_parameters, Vector& jac ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
                                  return -1; }
 
-  virtual int hessian            (  Vector &coefficients, 
-                                 bool new_coefficients, Vector &gradient) const {
+  virtual int hessian            (  const Vector &parameters, 
+                                 const bool new_parameters, Vector &gradient) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
 
-   void setNumEqualityConstraints( int n ) {
+   void setNumEqualityConstraints( const int n ) {
  
         if( n < 0 || n > numConstraints ) {
            char *where = " OptimizerSystem  setNumberOfEqualityConstraints";
@@ -144,7 +144,6 @@ public:
    }
 
 
-   protected:
    int numParameters;
    int numConstraints;
    int numEqualityConstraints;
@@ -159,30 +158,30 @@ public:
 // table, which cannot be done on the library side. Note that these are defined
 // in the SimTK namespace so don't need "SimTK" in their names.
 static int objectiveFunc_static(const OptimizerSystem& sys,
-                                 Vector& coefficients, 
-                                bool new_coefficients, Real *f ) {
+                                 const Vector& parameters, 
+                                const bool new_parameters, Real& f ) {
 
-    return sys.objectiveFunc(coefficients, new_coefficients,  f);
+    return sys.objectiveFunc(parameters, new_parameters,  f);
 }
 static int gradientFunc_static(const OptimizerSystem& sys,
-                                Vector &coefficients, 
-                               bool new_coefficients, Vector &gradient ) {
-    return sys.gradientFunc( coefficients, new_coefficients, gradient);
+                                const Vector &parameters, 
+                               const bool new_parameters, Vector &gradient ) {
+    return sys.gradientFunc( parameters, new_parameters, gradient);
 }
 static int constraintFunc_static(const OptimizerSystem& sys,
-                                 Vector &coefficients, 
-                                 bool new_coefficients, Vector& constraints ) {
-    return sys.constraintFunc( coefficients, new_coefficients, constraints);
+                                 const Vector &parameters, 
+                                 const bool new_parameters, Vector& constraints ) {
+    return sys.constraintFunc( parameters, new_parameters, constraints);
 }
 static int constraintJacobian_static(const OptimizerSystem& sys,
-                                 Vector &coefficients, 
-                                 bool new_coefficients, Vector& jac ) {
-    return sys.constraintJacobian( coefficients, new_coefficients, jac);
+                                 const Vector &parameters, 
+                                 const bool new_parameters, Vector& jac ) {
+    return sys.constraintJacobian( parameters, new_parameters, jac);
 }
 static int hessian_static(const OptimizerSystem& sys,
-                                 Vector &coefficients,
-                                 bool new_coefficients, Vector& gradient ) {
-    return sys.hessian( coefficients, new_coefficients, gradient);
+                                 const Vector &parameters,
+                                 const bool new_parameters, Vector& gradient ) {
+    return sys.hessian( parameters, new_parameters, gradient);
 }
 
 /*
@@ -216,23 +215,23 @@ class Optimizer  {
     
 private:
   typedef int (*ObjectiveFunc)      ( const OptimizerSystem&,
-                                    Vector& coefficients,  bool new_coefficients,
-                                    Real *f );
+                                    const Vector& parameters,  const bool new_parameters,
+                                    Real& f );
 
   typedef int (*GradientFunc)       ( const OptimizerSystem&,
-                                    Vector &coefficients, bool new_coefficients,
+                                    const Vector &parameters, const bool new_parameters,
                                     Vector &gradient );
 
   typedef int (*ConstraintFunc)     ( const OptimizerSystem&,
-                                    Vector & coefficients, bool new_coefficients,
+                                    const Vector & parameters, const bool new_parameters,
                                     Vector &constraints );
 
   typedef int (*ConstraintJacobian) ( const OptimizerSystem&,
-                                    Vector& coefficients, bool new_coefficients,
+                                    const Vector& parameters, const bool new_parameters,
                                     Vector& jac );
 
   typedef int (*Hessian)            ( const OptimizerSystem&,
-                                    Vector &coefficients, bool new_coefficients,
+                                    const Vector &parameters, const bool new_parameters,
                                     Vector &gradient);
 
   void registerObjectiveFunc( ObjectiveFunc );

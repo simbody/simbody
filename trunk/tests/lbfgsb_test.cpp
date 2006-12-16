@@ -7,37 +7,41 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using SimTK::Vector;
+using SimTK::Real;
+using SimTK::Optimizer;
+using SimTK::OptimizerSystem;
 
 
 const static int NUMBER_OF_PARAMETERS = 25;
 
-class ProblemSystem : public SimTK::OptimizerSystem {
+class ProblemSystem : public OptimizerSystem {
 
    public:
 
-   ProblemSystem( const int numParameters ) : SimTK::OptimizerSystem( numParameters ) {}
+   ProblemSystem( const int numParameters ) : OptimizerSystem( numParameters ) {}
 
-   int objectiveFunc(   SimTK::Vector &coefficients, bool new_coefficients,  double *f  ) const  {
-      double *x;
+   int objectiveFunc(   const Vector &coefficients, const bool new_coefficients,  Real& f  ) const  {
       int i;
 
-      x = &coefficients[0];
+      const Real *x = &coefficients[0];
 
 //printf("objectiveFunction x = ",x[0],x[1],x[2]);
-      *f = .25 *(x[0]-1.0)*(x[0]-1.0);
+      f = .25 *(x[0]-1.0)*(x[0]-1.0);
 //   printf(" %f",x[0]);
       for(i=1;i<numParameters;i++) {
-         *f = *f + pow(x[i]-x[i-1]*x[i-1], 2.0);
+         f = f + pow(x[i]-x[i-1]*x[i-1], 2.0);
 //   printf(" %f",x[i]);
       }
 
 //   printf(" \n");
-      *f = 4.0* *f;
+      f = 4.0* f;
       return( 0 ); 
    }
 
-   int gradientFunc( SimTK::Vector &coefficients, bool new_coefficients,  SimTK::Vector &gradient ) const {
-      double *x,t1,t2;
+   int gradientFunc( const Vector &coefficients, const bool new_coefficients,  Vector &gradient ) const {
+      const Real *x;
+      Real t1,t2;
       int i;
 
       x = &coefficients[0]; 
@@ -61,13 +65,13 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 main() {
 
-    double params[10],f;
+    Real params[10],f;
     int i;
     int n = NUMBER_OF_PARAMETERS;
 
-    SimTK::Vector results(NUMBER_OF_PARAMETERS);
-    SimTK::Vector lower_bounds(NUMBER_OF_PARAMETERS);
-    SimTK::Vector upper_bounds(NUMBER_OF_PARAMETERS);
+    Vector results(NUMBER_OF_PARAMETERS);
+    Vector lower_bounds(NUMBER_OF_PARAMETERS);
+    Vector upper_bounds(NUMBER_OF_PARAMETERS);
 
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
@@ -91,7 +95,7 @@ main() {
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
     try {
-    SimTK::Optimizer opt( sys ); 
+    Optimizer opt( sys ); 
 
     params[0] = 100;
     opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );

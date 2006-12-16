@@ -88,6 +88,7 @@ static double pgtol = 1.0e-5;
          sys.getParameterLimits( &lowerLimits, &upperLimits );
          iwa = (int *)malloc(3*n*sizeof(int));
          wa = (double *)malloc( ((2*m + 4)*n + 12*m*m + 12*m)*sizeof(double));
+         /* setup Numerical gradients  */
 
          strcpy( task, "START" );
 

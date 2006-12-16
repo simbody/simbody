@@ -27,6 +27,7 @@
 #include "SimTKcommon/internal/common.h"
 #include "simmatrix/internal/BigMatrix.h"
 #include "Optimizer.h"
+#include "Differentiator.h"
 
 
 namespace SimTK {
@@ -40,10 +41,39 @@ extern int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
             int nele_hess, int *iRow, int *jCol,
             Real *values, void *user_data);
 
+    /*  class for Diff jacobian */
+    class SysObjectiveFunc  : public Differentiator::GradientFunction {
+public:
+    SysObjectiveFunc(int ny, const OptimizerSystem* sysPtr )
+        : Differentiator::GradientFunction(ny) { sysp = sysPtr; }
+
+    // Must provide this pure virtual function.
+    int f(const Vector& y, Real& fy) const  {
+         sysp->objectiveFunc(y, true, fy);   // class user's objectiveFunc
+    }
+    const OptimizerSystem* sysp;
+};
+
+
+    /*  class for Diff gradient */
+    class SysConstraintFunc : public Differentiator::JacobianFunction {
+       public:
+    SysConstraintFunc(int nf, int ny, const OptimizerSystem* sysPtr)
+        : Differentiator::JacobianFunction(nf,ny) { sysp = sysPtr; }
+
+    // Must provide this pure virtual function.
+    int f(const Vector& y, Vector& fy) const  {
+       sysp->constraintFunc(y, true, fy);  // calls user's contraintFunc
+    }
+    const OptimizerSystem* sysp;
+};
+
+
 class OptimizerRep {
 public:
     OptimizerRep(OptimizerSystem& sys) 
-       : sysp(0), myHandle(0)
+       : sysp(0), myHandle(0), numericalGradient(false), numericalJacobian(false)
+
     {
        zeroFunctionPointers();
     }
@@ -71,10 +101,32 @@ public:
         hessian            = 0;
     }
 
+    Differentiator *gradDiff;  // TODO call destrutor 
+    Differentiator *jacDiff;   // TODO call destrutor
+
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
-    void  clearMyHandle() {myHandle=0;} private:
-    const OptimizerSystem* sysp;
+    void  clearMyHandle() {myHandle=0;} 
+    void useNumericalGradient( const bool flag ); 
+    void useNumericalJacobian( const bool flag );  
+    bool getNumericalGradient() const { return( numericalGradient ); }
+    bool getNumericalJacobian() const { return( numericalJacobian ); }
+    static int numericalGradient_static( const OptimizerSystem&, const Vector & parameters,  const bool new_parameters,  Vector &gradient );
+    static int numericalJacobian_static(const OptimizerSystem&,
+                                   const Vector& parameters, const bool new_parameters, Matrix& jacobian );
+
+    protected:
+
+    private:
+    OptimizerSystem* sysp;
+    bool numericalGradient; // true if optimizer will compute an numerical gradient
+    bool numericalJacobian; // true if optimizer will compute an numerical gradient
+    SysObjectiveFunc  *of;   // TODO call destrutor
+    SysConstraintFunc *cf;   // TODO call destrutor
+    void initNumericalJac();
+    void disableNumericalJac();
+    void initNumericalGrad();
+    void disableNumericalGrad();
 
     friend class Optimizer;
     Optimizer* myHandle;   // The owner handle of this Rep.

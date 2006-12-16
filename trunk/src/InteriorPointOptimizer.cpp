@@ -111,6 +111,7 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
          int status;
 
         printf("call InteriorPoint optimize \n");
+ 
 
          status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, (void *)this );
 

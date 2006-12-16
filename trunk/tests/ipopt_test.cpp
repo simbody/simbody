@@ -7,12 +7,15 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using SimTK::Vector;
+using SimTK::Real;
+using SimTK::Optimizer;
+using SimTK::OptimizerSystem;
 
 
 static int  NUMBER_OF_PARAMETERS = 4; 
 static int  NUMBER_OF_CONSTRAINTS = 2; 
 
-namespace SimTK {
 /*
  * Problem hs071 looks like this
  *
@@ -29,22 +32,22 @@ namespace SimTK {
  *
  */
 
-class ProblemSystem : public SimTK::OptimizerSystem {
+class ProblemSystem : public OptimizerSystem {
 public:
 
 
-   int objectiveFunc(  Vector &coefficients, bool new_coefficients, Real* f ) const {
-      double *x;
+   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
+      const Real *x;
       int i;
 
       x = &coefficients[0];
 
-      *f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+      f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
       return( 0 ); 
    }
 
-   int gradientFunc( Vector &coefficients, bool new_coefficients, Vector &gradient ) const{
-      double *x;
+   int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const{
+      const Real *x;
 
       x = &coefficients[0]; 
 
@@ -56,8 +59,8 @@ public:
      return(0);
 
   }
-  int constraintFunc( Vector &coefficients, bool new_coefficients, Vector &constraints)  const{
-      double *x;
+  int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const{
+      const Real *x;
 
       x = &coefficients[0]; 
       constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
@@ -66,8 +69,8 @@ public:
       return(0);
   }
 
-  int constraintJacobian( Vector& coefficients, bool new_coefficients, Vector& jac)  const{
-      double *x;
+  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
+      const Real *x;
 
       x = &coefficients[0]; 
 
@@ -85,26 +88,25 @@ public:
 
 /*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
 
-   ProblemSystem( int numParams, int numConstraints) :
+   ProblemSystem( const int numParams, const int numConstraints) :
 
-         SimTK::OptimizerSystem( numParams, numConstraints ) {
+         OptimizerSystem( numParams, numConstraints ) {
    }
 
 };
 
-} // namespace SimTK
 
 main() {
 
-    double params[10],f;
+    Real params[10],f;
     int i;
 
     /* create the system to be optimized */
-    SimTK::ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS );
+    ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS );
 
-    SimTK::Vector results(NUMBER_OF_PARAMETERS);
-    SimTK::Vector lower_bounds(NUMBER_OF_PARAMETERS);
-    SimTK::Vector upper_bounds(NUMBER_OF_PARAMETERS);
+    Vector results(NUMBER_OF_PARAMETERS);
+    Vector lower_bounds(NUMBER_OF_PARAMETERS);
+    Vector upper_bounds(NUMBER_OF_PARAMETERS);
 
 
     sys.setNumEqualityConstraints( 1 );
@@ -123,7 +125,7 @@ main() {
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
-    SimTK::Optimizer opt( sys ); 
+    Optimizer opt( sys ); 
 
 
     params[0] = 100;

@@ -7,33 +7,35 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using SimTK::Vector;
+using SimTK::Real;
+using SimTK::Optimizer;
+using SimTK::OptimizerSystem;
 
 /* adapted from itkLBFGSOptimizerTest.cxx */
 
 const static int  NUMBER_OF_PARAMETERS = 2;
 
-class ProblemSystem : public SimTK::OptimizerSystem {
+class ProblemSystem : public OptimizerSystem {
    public:
 
-   ProblemSystem( int numParameters) : SimTK::OptimizerSystem( numParameters){}
+   ProblemSystem( int numParameters) : OptimizerSystem( numParameters){}
 
-   int objectiveFunc(  SimTK::Vector &coefficients, bool new_coefficients, double *f ) const {
-      double x, y;
+   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
 
-      x = coefficients[0];
-      y = coefficients[1];
+      const Real x = coefficients[0];
+      const Real y = coefficients[1];
 
-      *f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
+      f = 0.5*(3*x*x+4*x*y+6*y*y) - 2*x + 8*y; 
     
       return(0);
 
    }
 
-   int gradientFunc(  SimTK::Vector &coefficients, bool new_coefficients, SimTK::Vector &gradient )const {
-      double x, y;
+   int gradientFunc(  const Vector &coefficients, const bool new_coefficients, Vector &gradient )const {
 
-      x = coefficients[0]; 
-      y = coefficients[1];  
+      const Real x = coefficients[0]; 
+      const Real y = coefficients[1];  
 
       gradient[0] = 3*x + 2*y -2;
       gradient[1] = 2*x + 6*y +8; 
@@ -45,14 +47,14 @@ class ProblemSystem : public SimTK::OptimizerSystem {
 
 main() {
 
-    double params[10];
+    Real params[10];
     int i;
 
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
-    SimTK::Vector results(NUMBER_OF_PARAMETERS);
+    Vector results(NUMBER_OF_PARAMETERS);
 
-    SimTK::Optimizer opt( sys ); 
+    Optimizer opt( sys ); 
 
 
     params[0] = 0;

@@ -63,23 +63,34 @@ double Optimizer::optimize(SimTK::Vector   &results) {
 }
    
 int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) {
-      Vector coeff( n, x, true);
+      Vector parameters( n, x, true);
+      Real& frep = *f;
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.objectiveFunc( rep.getOptimizerSystem(), coeff, new_x, f );
+      rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep );
       return( true );
 }
 int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_data) {
-      Vector coeff( n, x, true);
+
+      Real fy0;
+      Real& sfy0 = fy0;
+      Vector params( n, x, true);
       Vector grad_vec(n,gradient,true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.gradientFunc( rep.getOptimizerSystem(), coeff, new_x, grad_vec );
+
+      if( rep.getNumericalGradient() ) {
+          rep.getOptimizerSystem().objectiveFunc( params, true, sfy0 );
+          rep.gradDiff->calcGradient( params, sfy0, grad_vec);
+      } else {
+          rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec );
+      }
+
       return( true );
 }
 int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data) {
-      Vector coeff( n, x, true);
-      Vector constraints(n, g, true);
+      Vector parameters( n, x, true);
+      Vector constraints(m, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.constraintFunc( rep.getOptimizerSystem(), coeff, new_x, constraints );
+      rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints );
       return( true );
 }
 int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
@@ -99,14 +110,21 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
        }
     }
   } else {
-    /* return the values of the jacobian of the constraints */
+    /* jacobian of the constraints */
     
-    int dim = n; 
-    int nConstraints = m;
-    Vector coeff(n,x,true); 
-    Vector jac(m*n,values,true); 
+    Vector params(n,x,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-    rep.constraintJacobian( rep.getOptimizerSystem(), coeff, new_x, jac );
+
+    if( rep.getNumericalJacobian() ) {
+          Matrix jac(m,n,m,x);       // TODO check for transposed n/m
+          Vector sfy0(m);            
+          rep.getOptimizerSystem().constraintFunc( params, true, sfy0 );
+          rep.jacDiff->calcJacobian( params, sfy0, jac);
+    } else {
+        Vector jac(m*n,values,true); 
+        rep.constraintJacobian( rep.getOptimizerSystem(), params, new_x, jac );
+    }
+
   } 
   return( true );
 }
@@ -123,6 +141,7 @@ int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
     rep.hessian( rep.getOptimizerSystem(), coeff, new_x, hess );
     return( true );
 }
+
 
 void Optimizer::registerObjectiveFunc(Optimizer::ObjectiveFunc f) {
     updRep().objectiveFunc = f;
