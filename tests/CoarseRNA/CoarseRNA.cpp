@@ -216,122 +216,123 @@ private:
 int main(int argc, char** argv) {
     std::vector<State> saveEm;
 
-    try { // If anything goes wrong, an exception will be thrown.
-        int nseg = NSegments;
-        int shouldFlop = 0;
-        if (argc > 1) sscanf(argv[1], "%d", &nseg);
-        if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
+try // If anything goes wrong, an exception will be thrown.
+  { int nseg = NSegments;
+    int shouldFlop = 0;
+    if (argc > 1) sscanf(argv[1], "%d", &nseg);
+    if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
 
-        // Create a multibody system using Simbody.
-        MyRNAExample myRNA(nseg, shouldFlop != 0);
-        const Vec3 attachPt(150, -40, -50);
-        GeneralForceElements forces;
+    // Create a multibody system using Simbody.
+    MyRNAExample myRNA(nseg, shouldFlop != 0);
+    const Vec3 attachPt(150, -40, -50);
+    GeneralForceElements forces;
 
-        MultibodySystem mbs;
-        mbs.setMatterSubsystem(myRNA);
+    MultibodySystem mbs;
+    mbs.setMatterSubsystem(myRNA);
 
-        forces.addTwoPointLinearSpring(0, attachPt,
-                                       myRNA.getNBodies()-1, Vec3(0),
-                                       1000.,  // stiffness
-                                       1.);    // natural length
+    forces.addTwoPointLinearSpring(0, attachPt,
+                                   myRNA.getNBodies()-1, Vec3(0),
+                                   1000.,  // stiffness
+                                   1.);    // natural length
 
-       /* forces.addTwoPointLinearSpring(0, -attachPt,
-                                       myRNA.getNBodies()-1, Vec3(0),
-                                       1000.,  // stiffness
-                                       1.);    // natural length
-        */
+    /* forces.addTwoPointLinearSpring(0, -attachPt,
+                                   myRNA.getNBodies()-1, Vec3(0),
+                                   1000.,  // stiffness
+                                   1.);    // natural length
+    */
 
-        forces.addGlobalEnergyDrain(1000);
+    forces.addGlobalEnergyDrain(1000);
 
-        mbs.addForceSubsystem(forces);
-        UniformGravitySubsystem ugs(Vec3(0, -g, 0));
-        mbs.addForceSubsystem(ugs);
+    mbs.addForceSubsystem(forces);
+    UniformGravitySubsystem ugs(Vec3(0, -g, 0));
+    mbs.addForceSubsystem(ugs);
 
-        State s;
-        mbs.realize(s, Stage::Topology);
-        //myRNA.setUseEulerAngles(s,true);
-        mbs.realize(s, Stage::Model);
+    State s;
+    mbs.realize(s, Stage::Topology);
+    //myRNA.setUseEulerAngles(s,true);
+    mbs.realize(s, Stage::Model);
 
-        printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
-        for (int i=0; i<myRNA.getNBodies(); ++i) {
-            printf("body %2d: using quat? %s; quat index=%d\n",
-                i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
-                myRNA.getQuaternionIndex(s,i));
-        }
-
-        ugs.updGravity(s) *= 10;
-        ugs.disableGravity(s);
-        ugs.enableGravity(s);
-        ugs.updZeroHeight(s) = -0.8;
-        //cout << "STATE AS MODELED: " << s;
-       
-        //myPend.setPendulumAngle(s, start);
-
-        // And a study using the Runge Kutta Merson integrator
-        bool suppressProject = false;
-        //RungeKuttaMerson myStudy(mbs, s, suppressProject);
-        CPodesIntegrator myStudy(mbs, s);
-        myStudy.setAccuracy(1e-3);
-        myStudy.setConstraintTolerance(1e-3);
-        myStudy.setProjectEveryStep(false);
-
-        VTKReporter display(mbs);
-        for (int i=1; i<myRNA.getNBodies(); ++i)
-            myRNA.decorateBody(i, display);
-        myRNA.decorateGlobal(display);
-
-        DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-        display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
-        //display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
-
-        const Real dt = 0.05; // output intervals
-
-        printf("time  nextStepSize\n");
-
-        s.updTime() = 0;
-        for (int i=0; i<50; ++i)
-            saveEm.push_back(s);    // delay
-        display.report(s);
-
-        myStudy.initialize();
-        saveEm.push_back(s);
-        for (int i=0; i<50; ++i)
-            saveEm.push_back(s);    // delay
-        display.report(s);
-        for (;;) {
-            mbs.realize(s);
-            printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
-                myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
-                myStudy.getPredictedNextStep());
-            printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-                mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
-
-            cout << "QERR=" << s.getQErr() << endl;
-            cout << "UERR=" << s.getUErr() << endl;
-
-            display.report(s);
-            saveEm.push_back(s);
-
-           // if (myStudy.getT() >= 10*expectedPeriod)
-             //   break;
-    
-            if (s.getTime() >= 10)
-                break;
-
-            // TODO: should check for errors or have or teach RKM to throw. 
-            myStudy.step(s.getTime() + dt);
-        }
-        while(true) {
-            for (int i=0; i < (int)saveEm.size(); ++i) {
-                display.report(saveEm[i]);
-                //display.report(saveEm[i]); // half speed
-            }
-            getchar();
-        }
-    } 
-    catch (const exception& e) {
-        printf("EXCEPTION THROWN: %s\n", e.what());
-        exit(1);
+    printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
+    for (int i=0; i<myRNA.getNBodies(); ++i) {
+        printf("body %2d: using quat? %s; quat index=%d\n",
+            i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
+            myRNA.getQuaternionIndex(s,i));
     }
+
+    ugs.updGravity(s) *= 10;
+    ugs.disableGravity(s);
+    ugs.enableGravity(s);
+    ugs.updZeroHeight(s) = -0.8;
+    //cout << "STATE AS MODELED: " << s;
+   
+    //myPend.setPendulumAngle(s, start);
+
+    // And a study using the Runge Kutta Merson integrator
+    bool suppressProject = false;
+    RungeKuttaMerson myStudy(mbs, s, suppressProject);
+    //CPodesIntegrator myStudy(mbs, s);
+    myStudy.setAccuracy(1e-3);
+    myStudy.setConstraintTolerance(1e-3);
+    myStudy.setProjectEveryStep(false);
+
+    VTKReporter display(mbs);
+    for (int i=1; i<myRNA.getNBodies(); ++i)
+        myRNA.decorateBody(i, display);
+    myRNA.decorateGlobal(display);
+
+    DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
+    display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+    //display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+
+    const Real dt = 0.05; // output intervals
+
+    printf("time  nextStepSize\n");
+
+    s.updTime() = 0;
+    for (int i=0; i<50; ++i)
+        saveEm.push_back(s);    // delay
+    display.report(s);
+
+    myStudy.initialize();
+    saveEm.push_back(s);
+    for (int i=0; i<50; ++i)
+        saveEm.push_back(s);    // delay
+    display.report(s);
+    for (;;) {
+        mbs.realize(s);
+        printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
+            myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
+            myStudy.getPredictedNextStep());
+        printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
+            mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+
+        cout << "QERR=" << s.getQErr() << endl;
+        cout << "UERR=" << s.getUErr() << endl;
+
+        display.report(s);
+        saveEm.push_back(s);
+
+       // if (myStudy.getT() >= 10*expectedPeriod)
+         //   break;
+
+        if (s.getTime() >= 10)
+            break;
+
+        // TODO: should check for errors or have or teach RKM to throw. 
+        myStudy.step(s.getTime() + dt);
+    }
+    while(true) {
+        for (int i=0; i < (int)saveEm.size(); ++i) {
+            display.report(saveEm[i]);
+            //display.report(saveEm[i]); // half speed
+        }
+        getchar();
+    }
+  } 
+catch (const exception& e)
+  {
+    printf("EXCEPTION THROWN: %s\n", e.what());
+    exit(1);
+  }
 }
 

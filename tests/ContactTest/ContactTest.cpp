@@ -124,8 +124,8 @@ int main() {
     }
 
 
-try {
-    Real g = 9.8;   // m/s^2
+try
+  { Real g = 9.8;   // m/s^2
     Vec3 gravity(0.,-g,0.);
 
     SimbodyMatterSubsystem bouncers;
@@ -246,8 +246,8 @@ try {
     State s;
     mbs.realize(s, Stage::Topology);
     bool suppressProjection = false;
-    //RungeKuttaMerson ee(mbs, s, suppressProjection);
-    CPodesIntegrator ee(mbs, s);
+    RungeKuttaMerson ee(mbs, s, suppressProjection);
+    //CPodesIntegrator ee(mbs, s);
     //ee.setProjectEveryStep(true);
 
     vtk.report(s);
@@ -301,9 +301,11 @@ try {
         }
         getchar();
     }
-}
-catch (const std::exception& e) {
+  }
+catch (const std::exception& e) 
+  {
     printf("EXCEPTION THROWN: %s\n", e.what());
-}
+  }
+
     return 0;
 }

@@ -468,8 +468,8 @@ LengthSet::calcPosZ(const State& s, const Vector& b) const
 {
     const Vector x = calcPseudoInverseA(calcGrad(s)) * b;
 
-    const SBModelVars&       mv = getRBTree().getModelVars(s);
-    const Vector&               q  = getRBTree().getQ(s);
+    const SBModelVars&     mv = getRBTree().getModelVars(s);
+    const Vector&          q  = getRBTree().getQ(s);
     const SBPositionCache& cc = getRBTree().updPositionCache(s);
 
     Vector       zu(getRBTree().getTotalDOF(),0.);

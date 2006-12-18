@@ -327,8 +327,8 @@ static const Transform BodyFrame;   // identity transform on any body
 
 // How it actually looks now:
 int main() {
-try {
-    SimbodyMatterSubsystem   matter;
+try
+  { SimbodyMatterSubsystem   matter;
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
 
@@ -549,11 +549,12 @@ try {
         getchar();
     }
 
-}
-catch (const std::exception& e) {
+  }
+catch (const std::exception& e)
+  {
     printf("EXCEPTION THROWN: %s\n", e.what());
-}
-return 0;
+  }
+    return 0;
 }
 
 EthaneMolecule::EthaneMolecule(int parent, const Transform& parentTransform,
