@@ -52,6 +52,17 @@ void Optimizer::setOptimizerParameters(unsigned int param, double *values) {
       ((OptimizerRep *)rep)->setOptimizerParameters(param, values);
       return;
 }
+void Optimizer::useNumericalGradient( const bool flag ) {
+
+      ((OptimizerRep *)rep)->useNumericalGradient(flag);
+      return;
+}
+void Optimizer::useNumericalJacobian( const bool flag )  {
+
+      ((OptimizerRep *)rep)->useNumericalJacobian(flag);
+      return;
+}
+
 
 void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
 
@@ -83,6 +94,7 @@ int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_d
       } else {
           rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec );
       }
+//printf("gradf = ");for(int i=0;i<n;i++){printf("%f ",gradient[i]);} printf("\n");
 
       return( true );
 }
@@ -115,16 +127,43 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
     Vector params(n,x,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
 
+// printf("\n jac= \n");
+
     if( rep.getNumericalJacobian() ) {
-          Matrix jac(m,n,m,x);       // TODO check for transposed n/m
+          Matrix jac(m,n,m,values);       // TODO check for transposed n/m
           Vector sfy0(m);            
           rep.getOptimizerSystem().constraintFunc( params, true, sfy0 );
           rep.jacDiff->calcJacobian( params, sfy0, jac);
+/*
+          for(j=0;j<m;j++) {
+             for(i=0;i<n;i++) {
+                  printf("%f ",jac(j,i));
+             }
+             printf("\n");
+          }
+        Real *ptr = values;
+        for(j=0;j<m;j++) {
+           for(i=0;i<n;i++) {
+              printf("%f ",*ptr);
+              ptr++;
+           }
+           printf("\n");
+        }
+*/
     } else {
         Vector jac(m*n,values,true); 
         rep.constraintJacobian( rep.getOptimizerSystem(), params, new_x, jac );
+/*
+        Real *ptr = values;
+        for(j=0;j<m;j++) {
+           for(i=0;i<n;i++) {
+              printf("%f ",*ptr);
+              ptr++;
+           }
+           printf("\n");
+        }
+*/
     }
-
   } 
   return( true );
 }

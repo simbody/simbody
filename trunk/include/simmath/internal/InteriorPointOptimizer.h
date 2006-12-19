@@ -41,6 +41,10 @@ class InteriorPointOptimizer: public OptimizerRep {
            delete [] x_U;
            delete [] x_L;
         }
+        delete [] g_U;
+        delete [] g_L;
+        delete [] mult_x_L;
+        delete [] mult_x_U;
         printf("InteriorPointOptimizer destructor \n");
 
 
@@ -66,7 +70,6 @@ class InteriorPointOptimizer: public OptimizerRep {
      double      *x_L;
      double      *x_U;
      IpoptProblem nlp;
-     SimTK::Vector *gradient;
      bool freeLimits;
 
 

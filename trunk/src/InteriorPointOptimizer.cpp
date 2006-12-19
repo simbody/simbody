@@ -50,13 +50,12 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
             n = sys.getNumParameters();
             /* set the bounds on the equality constraint functions */
             m = sys.getNumConstraints();
-            g_U = (double *)malloc(sizeof(double)*m); // TODO free these
+            g_U = (double *)malloc(sizeof(double)*m); 
             g_L = (double *)malloc(sizeof(double)*m);
 
             if( sys.getHasLimits() ) {
                
                sys.getParameterLimits( &x_L, &x_U);
-printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
                freeLimits = false;
             } else {
                x_U = new Real[n];
@@ -83,9 +82,6 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
             mult_x_L = (Number*)malloc(sizeof(Number)*n);
             mult_x_U = (Number*)malloc(sizeof(Number)*n);
         
-     printf("x_L=%f %f %f %f %f \n x_U=%f %f %f %f %f \n",
-                  x_L[0],x_L[1],x_L[2],x_L[3],x_L[4],
-                  x_U[0],x_U[1],x_U[2],x_U[3],x_U[4]);
 
             nlp = CreateIpoptProblem(n, x_L, x_U, m, g_L, g_U, nele_jac, 
                   nele_hess, index_style, objectiveFuncWrapper, constraintFuncWrapper, 
@@ -110,8 +106,6 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
          double *x = &results[0];
          int status;
 
-        printf("call InteriorPoint optimize \n");
- 
 
          status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, (void *)this );
 
@@ -152,7 +146,6 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
           int i;
           char buf[1024];
 
-          printf("call InteriorPoint setOptimizerParameters \n");
           switch( parameter) {
              case MAX_FUNCTION_EVALUATIONS:
                    MaxNumFuncEvals = (unsigned int)values[0];
@@ -167,10 +160,8 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
                    GradientConvergenceTolerance = values[0];
                    break;
              default:
-/*  TODO fix this 
                    sprintf(buf," Parameter=%d",parameter);
                    SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-*/
                    break;
           }
 
@@ -180,8 +171,6 @@ printf("InteriorPoint constructor hasLimits x_U=%x x_L=%x \n",x_U,x_L);
      void InteriorPointOptimizer::getOptimizerParameters(unsigned int parameter, double *values ) {
           int i;
           char buf[1024];
-
-        printf("call InteriorPoint getOptimizerParameters \n");
 
             switch( parameter) {
                case MAX_FUNCTION_EVALUATIONS:

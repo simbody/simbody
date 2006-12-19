@@ -25,48 +25,38 @@
 #include "OptimizerRep.h"
 
 namespace SimTK {
+    OptimizerRep::~OptimizerRep() {
+
+        if( jacDiff ) delete jacDiff;
+        if( gradDiff ) delete gradDiff;
+        if( cf ) delete cf;
+        if( of ) delete of;
+
+     }
     void OptimizerRep::useNumericalGradient( const bool flag ) {
 
        if( flag ) {     // turn on numerical gradients
-           if( !numericalGradient ) { // 
-              initNumericalGrad();       
-              numericalGradient = true;
-           }
+           if( !numericalGradient ) initNumericalGrad();       
+           numericalGradient = true;
        } else {        // turn off numerical graidents
-           if( numericalGradient ) {  
-              disableNumericalGrad();       
-              numericalGradient = false;
-           }
+           numericalGradient = false;
        }
        return;
     }
     void OptimizerRep::useNumericalJacobian( const bool flag ) {
 
-       if( flag ) {     // turn on numerical gradients
-           if( !numericalJacobian ) { // 
-              initNumericalJac();       
-              numericalJacobian = true;
-           }
+       if( flag ) {     // turn on numerical jacbobian
+           if( !numericalJacobian )  initNumericalJac();       
+           numericalJacobian = true;
        } else {
-           if( numericalJacobian ) { // 
-              disableNumericalJac();       
-              numericalJacobian = false;
-           }
+           numericalJacobian = false;
        }
        return;
     }
 
-    void OptimizerRep::disableNumericalGrad() {  // instaniates a gradient Differentiator
-       // TODO finish this 
-       return;
-    }
-    void OptimizerRep::disableNumericalJac() {  // instaniates a jacobian Differentiator
-       // TODO finish this 
-       return;
-    }
     void OptimizerRep::initNumericalJac() {  // instaniates a jacobian Differentiator
 
-        cf      = new SysConstraintFunc(sysp->numParameters, sysp->numConstraints, sysp );
+        cf      = new SysConstraintFunc(sysp->numConstraints, sysp->numParameters, sysp );
         jacDiff = new Differentiator(*cf);  // construct Differentiator
 
     }

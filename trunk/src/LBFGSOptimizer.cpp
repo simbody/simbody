@@ -67,7 +67,7 @@ const int NUMBER_OF_CORRECTIONS = 5;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
 
-         while( run_optimizer ) {  // TODO callbacks use ptr to functions  
+         while( run_optimizer ) {   
 
             objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
             gradientFuncWrapper( n,  &results[0], false, gradient, (void*)this );

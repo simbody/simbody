@@ -109,6 +109,8 @@ main() {
     params[0] = 0.9;
     opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
 
+    opt.useNumericalGradient( true );
+
     f = opt.optimize( results );
 
     }

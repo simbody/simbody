@@ -257,6 +257,13 @@ ADD_TEST(lbfgsb_test         ${TEST_PATH}/lbfgsb_test)
 ADD_TEST(lbfgsb_testStatic   ${TEST_PATH}/lbfgsb_test)
 
 
+ADD_TEST(ipopt_diff_test          ${TEST_PATH}/ipopt_diff_test)
+ADD_TEST(ipopt_diff_testStatic    ${TEST_PATH}/ipopt_diff_test)
+ADD_TEST(lbfgs_diff_test          ${TEST_PATH}/lbfgs_diff_test)
+ADD_TEST(lbfgs_diff_testStatic    ${TEST_PATH}/lbfgs_diff_test)
+ADD_TEST(lbfgsb_diff_test         ${TEST_PATH}/lbfgsb_diff_test)
+ADD_TEST(lbfgsb_diff_testStatic   ${TEST_PATH}/lbfgsb_diff_test)
+
 
 #
 # Installation

@@ -71,14 +71,20 @@ public:
 
 class OptimizerRep {
 public:
+    ~OptimizerRep();
     OptimizerRep(OptimizerSystem& sys) 
-       : sysp(0), myHandle(0), numericalGradient(false), numericalJacobian(false)
+       : sysp(0), 
+         myHandle(0), 
+         cf(0),
+         of(0),
+         jacDiff(0),
+         gradDiff(0),
+         numericalGradient(false), 
+         numericalJacobian(false)
 
     {
        zeroFunctionPointers();
     }
-
-//    virtual ~OptimizerRep(){};
 
     virtual void setOptimizerParameters(unsigned int parameter, double *values ){};
     virtual void getOptimizerParameters(unsigned int parameter, double *values ){};
@@ -101,8 +107,8 @@ public:
         hessian            = 0;
     }
 
-    Differentiator *gradDiff;  // TODO call destrutor 
-    Differentiator *jacDiff;   // TODO call destrutor
+    Differentiator *gradDiff;   
+    Differentiator *jacDiff;   
 
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
@@ -121,8 +127,8 @@ public:
     OptimizerSystem* sysp;
     bool numericalGradient; // true if optimizer will compute an numerical gradient
     bool numericalJacobian; // true if optimizer will compute an numerical gradient
-    SysObjectiveFunc  *of;   // TODO call destrutor
-    SysConstraintFunc *cf;   // TODO call destrutor
+    SysObjectiveFunc  *of;   
+    SysConstraintFunc *cf; 
     void initNumericalJac();
     void disableNumericalJac();
     void initNumericalGrad();

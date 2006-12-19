@@ -210,6 +210,8 @@ class Optimizer  {
 
     void setOptimizerParameters(unsigned int param, double *values); 
     void getOptimizerParameters(unsigned int param, double *values);
+    void useNumericalGradient( const bool flag );
+    void useNumericalJacobian( const bool flag );
 
     double optimize(Vector&);
     
