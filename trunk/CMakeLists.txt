@@ -24,7 +24,7 @@
 #----------------------------------------------------
 
 PROJECT ( SimTKsimmath )
-SUBDIRS (staticTarget sharedTarget tests)
+SUBDIRS (staticTarget sharedTarget tests examples)
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
@@ -318,8 +318,8 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                    */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
-FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
+FILE(GLOB INTERNAL_HEADERS include/simmath/internal/common.h)
 INSTALL_FILES("/core/include/"                   FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/simmath/"         FILES ${TOP_HEADERS})
-#INSTALL_FILES("/core/include/simmath/internal" FILES ${INTERNAL_HEADERS})
+INSTALL_FILES("/core/include/simmath/internal" FILES ${INTERNAL_HEADERS})
 

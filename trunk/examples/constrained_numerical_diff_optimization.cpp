@@ -40,7 +40,7 @@ static int  NUMBER_OF_PARAMETERS = 4;
 static int  NUMBER_OF_CONSTRAINTS = 2; 
 
 /*
- * Adapted from Ipopt's hs071 example 
+ * Problem hs071 looks like this
  *
  *     min   x1*x4*(x1 + x2 + x3)  +  x3
  *     s.t.  x1*x2*x3*x4                   >=  25

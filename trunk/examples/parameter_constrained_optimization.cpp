@@ -36,120 +36,89 @@ using SimTK::Optimizer;
 using SimTK::OptimizerSystem;
 
 
-static int  NUMBER_OF_PARAMETERS = 4; 
-static int  NUMBER_OF_CONSTRAINTS = 2; 
-
-/*
- * Adapted from Ipopt's hs071 example 
- *
- *     min   x1*x4*(x1 + x2 + x3)  +  x3
- *     s.t.  x1*x2*x3*x4                   >=  25
- *           x1**2 + x2**2 + x3**2 + x4**2  =  40
- *           1 <=  x1,x2,x3,x4  <= 5
- *
- *     Starting point:
- *        x = (1, 5, 5, 1)
- *
- *     Optimal solution:
- *        x = (1.00000000, 4.74299963, 3.82114998, 1.37940829)
- *
- */
+const static int NUMBER_OF_PARAMETERS = 25;
 
 class ProblemSystem : public OptimizerSystem {
-public:
 
+   public:
 
-   int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
-      const Real *x;
+   ProblemSystem( const int numParameters ) : OptimizerSystem( numParameters ) {}
+
+   int objectiveFunc(   const Vector &coefficients, const bool new_coefficients,  Real& f  ) const  {
       int i;
 
-      x = &coefficients[0];
+      const Real *x = &coefficients[0];
 
-      f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
+//printf("objectiveFunction x = ",x[0],x[1],x[2]);
+      f = .25 *(x[0]-1.0)*(x[0]-1.0);
+//   printf(" %f",x[0]);
+      for(i=1;i<numParameters;i++) {
+         f = f + pow(x[i]-x[i-1]*x[i-1], 2.0);
+//   printf(" %f",x[i]);
+      }
+
+//   printf(" \n");
+      f = 4.0* f;
       return( 0 ); 
    }
 
-   int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const{
+   int gradientFunc( const Vector &coefficients, const bool new_coefficients,  Vector &gradient ) const {
       const Real *x;
+      Real t1,t2;
+      int i;
 
       x = &coefficients[0]; 
 
-     gradient[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
-     gradient[1] = x[0] * x[3];
-     gradient[2] = x[0] * x[3] + 1;
-     gradient[3] = x[0] * (x[0] + x[1] + x[2]);
+      t1 = x[1]-(x[0]*x[0]);
+      gradient[0] = 2.0*(x[0]-1.0)-16.0*x[0]*t1;
+      for(i=1;i<numParameters-1;i++) {
+         t2=t1;
+         t1=x[i+1]-(x[i]*x[i]);
+         gradient[i]=8.0*t2-16.0*x[i]*t1;
+      }
+      gradient[numParameters-1]=8.0*t1;
+// printf("objectiveGradient x = %f %f %f  g = %f \n",x[0],x[1],x[2],gradient[0]);
 
-     return(0);
+    return(0);
 
-  }
-  int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const{
-      const Real *x;
-
-      x = &coefficients[0]; 
-      constraints[0] = x[0]*x[0] + x[1]*x[1] + x[2]*x[2] + x[3]*x[3] - 40.0;
-      constraints[1] = x[0] * x[1] * x[2] * x[3] - 25.0;
-
-      return(0);
-  }
-
-  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
-      const Real *x;
-
-      x = &coefficients[0]; 
-
-      jac[0] = 2*x[0]; // 1,0
-      jac[1] = 2*x[1]; // 1,1
-      jac[2] = 2*x[2]; // 1,2
-      jac[3] = 2*x[3]; // 1,3
-      jac[4] = x[1]*x[2]*x[3]; // 0,0
-      jac[5] = x[0]*x[2]*x[3]; // 0,1
-      jac[6] = x[0]*x[1]*x[3]; // 0,2
-      jac[7] = x[0]*x[1]*x[2]; // 0,3
-
-      return(0);
-  }
-
-/*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
-
-   ProblemSystem( const int numParams, const int numConstraints) :
-
-         OptimizerSystem( numParams, numConstraints ) {
    }
 
 };
 
-
+/* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 main() {
 
     Real params[10],f;
     int i;
-
-    /* create the system to be optimized */
-    ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS );
+    int n = NUMBER_OF_PARAMETERS;
 
     Vector results(NUMBER_OF_PARAMETERS);
     Vector lower_bounds(NUMBER_OF_PARAMETERS);
     Vector upper_bounds(NUMBER_OF_PARAMETERS);
 
+    ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
-    sys.setNumEqualityConstraints( 1 );
+    cout << "LBFGSB driver1 test " << endl;
 
     /* set initial conditions */
-    results[0] = 1.0;
-    results[1] = 5.0;
-    results[2] = 5.0;
-    results[3] = 1.0;
+    for(i=0;i<n;i++) {
+       results[i] = 3.0;
+    }
 
     /* set bounds */
-    for(i=0;i<NUMBER_OF_PARAMETERS;i++) {   
+    for(i=0;i<n;i=i+2) {   // even numbered 
        lower_bounds[i] = 1.0;
-       upper_bounds[i] = 5.0;
+       upper_bounds[i] = 100.0;
+    }
+    for(i=1;i<n;i=i+2) { // odd numbered
+       lower_bounds[i] = -100.0;
+       upper_bounds[i] = 100.0;
     }
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
+    try {
     Optimizer opt( sys ); 
-
 
     params[0] = 100;
     opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
@@ -163,17 +132,18 @@ main() {
     params[0] = 0.9;
     opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
 
-    opt.useNumericalGradient( true );
-    opt.useNumericalJacobian( true );
-
-    /* compute  optimization */ 
     f = opt.optimize( results );
+
+    }
+
+    catch (SimTK::Exception::Base exp) {
+        cout << "Caught exception :" << exp.getMessage() << endl;
+    }
 
     printf("f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
     printf("\n");
-
 
 }

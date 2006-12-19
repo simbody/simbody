@@ -40,8 +40,9 @@ static int  NUMBER_OF_PARAMETERS = 4;
 static int  NUMBER_OF_CONSTRAINTS = 2; 
 
 /*
- * Adapted from Ipopt's hs071 example 
+ * This example was adapted from IPOPT's hs071 example 
  *
+ *   Problem statement:
  *     min   x1*x4*(x1 + x2 + x3)  +  x3
  *     s.t.  x1*x2*x3*x4                   >=  25
  *           x1**2 + x2**2 + x3**2 + x4**2  =  40
@@ -97,14 +98,14 @@ public:
 
       x = &coefficients[0]; 
 
-      jac[0] = 2*x[0]; // 1,0
-      jac[1] = 2*x[1]; // 1,1
-      jac[2] = 2*x[2]; // 1,2
-      jac[3] = 2*x[3]; // 1,3
-      jac[4] = x[1]*x[2]*x[3]; // 0,0
-      jac[5] = x[0]*x[2]*x[3]; // 0,1
-      jac[6] = x[0]*x[1]*x[3]; // 0,2
-      jac[7] = x[0]*x[1]*x[2]; // 0,3
+      jac[0] = 2*x[0]; 
+      jac[1] = 2*x[1]; 
+      jac[2] = 2*x[2]; 
+      jac[3] = 2*x[3]; 
+      jac[4] = x[1]*x[2]*x[3];
+      jac[5] = x[0]*x[2]*x[3]; 
+      jac[6] = x[0]*x[1]*x[3]; 
+      jac[7] = x[0]*x[1]*x[2]; 
 
       return(0);
   }
@@ -162,9 +163,6 @@ main() {
 
     params[0] = 0.9;
     opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
-
-    opt.useNumericalGradient( true );
-    opt.useNumericalJacobian( true );
 
     /* compute  optimization */ 
     f = opt.optimize( results );
