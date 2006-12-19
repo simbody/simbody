@@ -28,10 +28,11 @@
 #include <limits.h>
 #include "Simmath.h"
 #include "simmatrix/internal/BigMatrix.h"
+#include "common.h"
 
 namespace SimTK {
 
-class OptimizerSystem {
+class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
     OptimizerSystem(int nParameters ) : numConstraints(0),
                                       numEqualityConstraints(0),  
@@ -196,7 +197,7 @@ static int hessian_static(const OptimizerSystem& sys,
 **  
 */
 
-class Optimizer  {
+class SimTK_SIMMATH_EXPORT Optimizer  {
 
    public:
     Optimizer( OptimizerSystem& sys) {

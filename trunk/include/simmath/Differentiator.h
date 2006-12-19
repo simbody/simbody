@@ -31,40 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
-
-/* Shared libraries are messy in Visual Studio. We have to distinguish three
- * cases:
- *   (1) this header is being used to build the SimTKcpodes shared library (dllexport)
- *   (2) this header is being used by a *client* of the SimTKcpodes shared
- *       library (dllimport)
- *   (3) we are building the SimTKcpodes static library, or the client is
- *       being compiled with the expectation of linking with the
- *       SimTKcpodes static library (nothing special needed)
- * In the CMake script for building this library, we define one of the symbols
- *     SimTK_CPODES_BUILDING_{SHARED|STATIC}_LIBRARY
- * Client code normally has no special symbol defined, in which case we'll
- * assume it wants to use the shared library. However, if the client defines
- * the symbol SimTK_USE_STATIC_LIBRARIES we'll suppress the dllimport so
- * that the client code can be linked with static libraries. Note that
- * the client symbol is not library dependent, while the library symbols
- * affect only the SimTKcpodes library, meaning that other libraries can
- * be clients of this one. However, we are assuming all-static or all-shared.
-*/
-
-// TODO: should be SIMMATH export
-#ifdef WIN32
-    #if defined(SimTK_CPODES_BUILDING_SHARED_LIBRARY)
-        #define SimTK_CPODES_EXPORT __declspec(dllexport)
-    #elif defined(SimTK_CPODES_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
-        #define SimTK_CPODES_EXPORT
-    #else
-        /* i.e., a client of a shared library */
-        #define SimTK_CPODES_EXPORT __declspec(dllimport)
-    #endif
-#else
-    /* Linux, Mac */
-    #define SimTK_CPODES_EXPORT
-#endif
+#include "common.h"
 
 namespace SimTK {
 
@@ -79,7 +46,7 @@ namespace SimTK {
  * analytic gradient automatically from the source code
  * for f using complex step derivatives, ADIFOR, etc.)
  */
-class SimTK_CPODES_EXPORT Differentiator {
+class SimTK_SIMMATH_EXPORT Differentiator {
 public:
     // This are local classes within Differentiator; defined below.
     class ScalarFunction;   // ordinary scalar function of a scalar
@@ -153,7 +120,7 @@ private:
  * approximation, or from numerical integration),  we will need to know that in
  * order to have a reasonable crack at calculating df.
  */
-class SimTK_CPODES_EXPORT Differentiator::Function {
+class SimTK_SIMMATH_EXPORT Differentiator::Function {
 public:
     Function& setNFunctions(int);
     Function& setNParameters(int);
@@ -188,7 +155,7 @@ private:
  * Derive a concrete class from this one if you have a scalar function
  * of a single scalar variable that you want to differentiate.
  */
-class SimTK_CPODES_EXPORT Differentiator::ScalarFunction : public Differentiator::Function {
+class SimTK_SIMMATH_EXPORT Differentiator::ScalarFunction : public Differentiator::Function {
 public:
     virtual int f(Real x, Real& fx) const=0;
     typedef int (*FuncWrapper)(const ScalarFunction&, Real, Real&);
@@ -212,7 +179,7 @@ private:
  * of multiple variables that you want to differentiate. This is the typical
  * form for an optimization objective function, for example.
  */
-class SimTK_CPODES_EXPORT Differentiator::GradientFunction : public Differentiator::Function {
+class SimTK_SIMMATH_EXPORT Differentiator::GradientFunction : public Differentiator::Function {
 public:
     virtual int f(const Vector& y, Real& fy) const=0;
     typedef int (*FuncWrapper)(const GradientFunction&, const Vector&, Real&);
@@ -236,7 +203,7 @@ private:
  * (i.e., a vector-valued function) of multiple variables that you want
  * to differentiate. This is the typical form for a multibody system, for example.
  */
-class SimTK_CPODES_EXPORT Differentiator::JacobianFunction : public Differentiator::Function {
+class SimTK_SIMMATH_EXPORT Differentiator::JacobianFunction : public Differentiator::Function {
 public:
     virtual int f(const Vector& y, Vector& fy) const=0;
     typedef int (*FuncWrapper)(const JacobianFunction&, const Vector&, Vector&);
