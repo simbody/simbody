@@ -101,7 +101,19 @@ main() {
     opt.optimize( results );
 
 
+    static const Real TOL = 1e-4;
+    Real expected[] = { 2.0, -2.0 };
+    bool fail = false;
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" results[%d] = %f \n",i,results[i]); 
+       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
+           printf(" lbfgs_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
+           fail = true;
+       }
     }
+
+    if( fail ) 
+       exit(1);
+    else
+       exit(0);
+  
 }

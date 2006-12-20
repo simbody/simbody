@@ -143,4 +143,23 @@ main() {
     }
     printf("\n");
 
+    static const Real TOL = 1e-4;
+    Real expected[] = { 1.000000, 0.999998, 1.000000, 1.000001, 1.000003, 
+                        1.000006, 1.000007, 1.000012, 1.000022, 1.000040, 
+                        1.000081, 1.000161, 1.000325, 1.000650, 1.001302, 
+                        1.002603, 1.005214, 1.010450, 1.021013, 1.042466, 
+                        1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
+    bool fail = false;
+    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
+       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
+           printf(" lbfgsb_diff_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
+           fail = true;
+       }
+    }
+
+    if( fail )
+       exit(1);
+    else
+       exit(0);
+
 }

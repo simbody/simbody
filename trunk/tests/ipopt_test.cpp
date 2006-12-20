@@ -172,5 +172,19 @@ main() {
     }
     printf("\n");
 
+    static const Real TOL = 1e-4;
+    Real expected[] = { 1.00000000, 4.74299963, 3.82114998, 1.37940829 };
+    bool fail = false;
+    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
+       if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
+           printf(" ipopt_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
+           fail = true;
+       }
+    }
+
+    if( fail )
+       exit(1);
+    else
+       exit(0);
 
 }
