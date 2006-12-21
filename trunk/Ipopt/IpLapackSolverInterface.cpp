@@ -106,7 +106,7 @@ double *afact;
              return retval;
          }
 //         nlvl = int(log2(n)/(smlsiz+1)) + 1;
-         nlvl = int(log(n)/(log(2.0)*(smlsiz+1)) ) + 1;
+         nlvl = int((log10((double)n)/log10(2.))/(smlsiz+1)) + 1;
          iwork = new int[3*n*nlvl + 11*n];
          lwork = 12*n + 2*n*smlsiz + 8*n*nlvl + n*nrhs + (smlsiz+1)*(smlsiz+1);
          work = new double[lwork];
