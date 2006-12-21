@@ -88,7 +88,7 @@ public:
                                  return -1; }
 
   virtual int constraintJacobian ( const Vector& parameters, 
-                                  const bool new_parameters, Vector& jac ) const {
+                                  const bool new_parameters, Matrix& jac ) const {
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "constraintJacobian" );
                                  return -1; }
 
@@ -176,7 +176,7 @@ static int constraintFunc_static(const OptimizerSystem& sys,
 }
 static int constraintJacobian_static(const OptimizerSystem& sys,
                                  const Vector &parameters, 
-                                 const bool new_parameters, Vector& jac ) {
+                                 const bool new_parameters, Matrix& jac ) {
     return sys.constraintJacobian( parameters, new_parameters, jac);
 }
 static int hessian_static(const OptimizerSystem& sys,
@@ -231,7 +231,7 @@ private:
 
   typedef int (*ConstraintJacobian) ( const OptimizerSystem&,
                                     const Vector& parameters, const bool new_parameters,
-                                    Vector& jac );
+                                    Matrix& jac );
 
   typedef int (*Hessian)            ( const OptimizerSystem&,
                                     const Vector &parameters, const bool new_parameters,

@@ -69,19 +69,6 @@ public:
       return( 0 ); 
    }
 
-   int gradientFunc( const Vector &coefficients, const bool new_coefficients, Vector &gradient ) const{
-      const Real *x;
-
-      x = &coefficients[0]; 
-
-     gradient[0] = x[0] * x[3] + x[3] * (x[0] + x[1] + x[2]);
-     gradient[1] = x[0] * x[3];
-     gradient[2] = x[0] * x[3] + 1;
-     gradient[3] = x[0] * (x[0] + x[1] + x[2]);
-
-     return(0);
-
-  }
   int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
@@ -92,26 +79,8 @@ public:
       return(0);
   }
 
-  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
-      const Real *x;
 
-      x = &coefficients[0]; 
-
-      jac[0] = 2*x[0]; // 1,0
-      jac[1] = 2*x[1]; // 1,1
-      jac[2] = 2*x[2]; // 1,2
-      jac[3] = 2*x[3]; // 1,3
-      jac[4] = x[1]*x[2]*x[3]; // 0,0
-      jac[5] = x[0]*x[2]*x[3]; // 0,1
-      jac[6] = x[0]*x[1]*x[3]; // 0,2
-      jac[7] = x[0]*x[1]*x[2]; // 0,3
-
-      return(0);
-  }
-
-/*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
-
-   ProblemSystem( const int numParams, const int numConstraints) :
+ ProblemSystem( const int numParams, const int numConstraints) :
 
          OptimizerSystem( numParams, numConstraints ) {
    }

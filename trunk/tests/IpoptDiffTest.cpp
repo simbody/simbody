@@ -24,6 +24,7 @@
 #include "Simmath.h"
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
+#include "Simmatrix.h"
 #include "simmatrix/internal/BigMatrix.h"
 #include "Optimizer.h"
 
@@ -31,6 +32,7 @@
 using std::cout;
 using std::endl;
 using SimTK::Vector;
+using SimTK::Matrix;
 using SimTK::Real;
 using SimTK::Optimizer;
 using SimTK::OptimizerSystem;
@@ -92,11 +94,11 @@ public:
       return(0);
   }
 
-  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
+  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
       x = &coefficients[0]; 
-
+/*
       jac[0] = 2*x[0]; // 1,0
       jac[1] = 2*x[1]; // 1,1
       jac[2] = 2*x[2]; // 1,2
@@ -105,6 +107,16 @@ public:
       jac[5] = x[0]*x[2]*x[3]; // 0,1
       jac[6] = x[0]*x[1]*x[3]; // 0,2
       jac[7] = x[0]*x[1]*x[2]; // 0,3
+*/
+      jac[0][0] = 2*x[0];
+      jac[0][1] = 2*x[1];
+      jac[0][2] = 2*x[2];
+      jac[0][3] = 2*x[3];
+      jac[1][0] = x[1]*x[2]*x[3];
+      jac[1][1] = x[0]*x[2]*x[3];
+      jac[1][2] = x[0]*x[1]*x[3];
+      jac[1][3] = x[0]*x[1]*x[2];
+
 
       return(0);
   }
@@ -119,7 +131,7 @@ public:
 };
 
 
-main() {
+int main() {
 
     Real params[10],f;
     int i;
@@ -148,6 +160,9 @@ main() {
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
+    int returnValue = 0; // assume success
+  try {
+
     Optimizer opt( sys ); 
 
 
@@ -168,6 +183,12 @@ main() {
 
     /* compute  optimization */ 
     f = opt.optimize( results );
+  }
+  catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    returnValue = 1; // failure
+  }
+
 
     printf("f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
@@ -177,17 +198,14 @@ main() {
 
     static const Real TOL = 0.5;
     Real expected[] = { 1.00000000, 4.74299963, 3.82114998, 1.37940829 };
-    bool fail = false;
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
            printf(" ipopt_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
-           fail = true;
+           returnValue = 1;
        }
     }
 
-    if( fail )
-       exit(1);
-    else
-       exit(0);
+    return( returnValue );
+
 
 }

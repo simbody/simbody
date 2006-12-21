@@ -54,18 +54,6 @@ class ProblemSystem : public OptimizerSystem {
       return(0);
 
    }
-
-   int gradientFunc(  const Vector &coefficients, const bool new_coefficients, Vector &gradient )const {
-
-      const Real x = coefficients[0]; 
-      const Real y = coefficients[1];  
-
-      gradient[0] = 3*x + 2*y -2;
-      gradient[1] = 2*x + 6*y +8; 
-
-      return(0);
-
-   }
 };
 
 main() {

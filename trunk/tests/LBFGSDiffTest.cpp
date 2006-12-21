@@ -68,7 +68,7 @@ class ProblemSystem : public OptimizerSystem {
    }
 };
 
-main() {
+int main() {
 
     Real params[10];
     int i;
@@ -77,8 +77,11 @@ main() {
 
     Vector results(NUMBER_OF_PARAMETERS);
 
-    Optimizer opt( sys ); 
+  int returnValue = 0;  // assume pass
 
+  try {
+
+    Optimizer opt( sys ); 
 
     params[0] = 0;
     opt.setOptimizerParameters( TRACE, params );
@@ -101,6 +104,11 @@ main() {
     results[1] = -100;
     
     opt.optimize( results );
+  }
+  catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    returnValue = 1; // failure
+  }
 
 
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
@@ -109,17 +117,14 @@ main() {
 
     static const Real TOL = 1e-4;
     Real expected[] = { 2.0, -2.0 };
-    bool fail = false;
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
            printf(" lbfgs_diff_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
-           fail = true;
+           returnValue = 1;
        }
     }
 
-    if( fail ) 
-       exit(1);
-    else
-       exit(0);
+    return( returnValue );
+
 
 }

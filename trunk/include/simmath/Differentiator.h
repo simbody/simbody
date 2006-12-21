@@ -31,7 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "Simmatrix.h"
-#include "common.h"
+#include "internal/common.h"
 
 namespace SimTK {
 

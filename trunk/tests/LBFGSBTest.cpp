@@ -81,7 +81,7 @@ class ProblemSystem : public OptimizerSystem {
 };
 
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
-main() {
+int main() {
 
     Real params[10],f;
     int i;
@@ -112,7 +112,9 @@ main() {
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
-    try {
+  int returnValue = 0; // assume success
+
+  try {
     Optimizer opt( sys ); 
 
     params[0] = 100;
@@ -129,11 +131,13 @@ main() {
 
     f = opt.optimize( results );
 
-    }
+  }
+  catch (const std::exception& e) {
+    std::cout << e.what() << std::endl;
+    returnValue = 1; // failure
+  }
 
-    catch (SimTK::Exception::Base exp) {
-        cout << "Caught exception :" << exp.getMessage() << endl;
-    }
+
 
     printf("f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
@@ -147,17 +151,14 @@ main() {
                         1.000081, 1.000161, 1.000325, 1.000650, 1.001302, 
                         1.002603, 1.005214, 1.010450, 1.021013, 1.042466, 
                         1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
-    bool fail = false;
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
            printf(" lbfgsb_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
-           fail = true;
+           returnValue = 1;
        }
     }
 
-    if( fail )
-       exit(1);
-    else
-       exit(0);
+    return( returnValue );
+
 
 }

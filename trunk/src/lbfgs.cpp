@@ -31,6 +31,7 @@
 #define NUMBER_OF_CORRECTIONS 5   
 
 
+
 struct lb3_1_ {
 /*
 C    GTOL is a DOUBLE PRECISION variable with default value 0.9, which
@@ -66,17 +67,7 @@ struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
 /* Table of constant values */
 static integer c__1 = 1;
 
-
-
-
-
-// turn off C++ so correct LAPACK declarations are used 
-#undef  __cplusplus
-extern "C" {
 #include "lapack/SimTKlapack.h"
-}
-#define __cplusplus
-
 
 extern double sqrt(double); 
 
@@ -397,7 +388,7 @@ L10:
     for (i = 0; i < *n; ++i) {
         w[ispt + i] = -g[i] * diag[i];
     }
-    gnorm = sqrt(ddot_(n, g, &c__1, g, &c__1));
+    gnorm = sqrt(ddot_(*n, g, c__1, g, c__1));
     stp1 = 1. / gnorm;
 
 /*     PARAMETERS FOR LINE SEARCH ROUTINE */
@@ -424,9 +415,9 @@ L80:
         bound = *m;
     }
 
-    ys = ddot_(n, &w[iypt + npt], &c__1, &w[ispt + npt], &c__1);
+    ys = ddot_(*n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
     if (! (*diagco)) {
-        yy = ddot_(n, &w[iypt + npt], &c__1, &w[iypt + npt], &c__1);
+        yy = ddot_(*n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
         for (i = 0; i < *n; ++i) {
             diag[i] = ys / yy;
         }
@@ -462,12 +453,12 @@ L100:
         if (cp == -1) {
             cp = *m - 1;
         }
-        sq = ddot_(n, &w[ispt + cp * *n], &c__1, w, &c__1);
+        sq = ddot_(*n, &w[ispt + cp * *n], c__1, w, c__1);
         inmc = *n + *m + cp;
         iycn = iypt + cp * *n;
         w[inmc] = w[*n + cp] * sq;
         d__1 = -w[inmc];
-        daxpy_(n, &d__1, &w[iycn], &c__1, w, &c__1);
+        daxpy_(*n, d__1, &w[iycn], c__1, w, c__1);
     }
 
     for (i = 0; i < *n; ++i) {
@@ -475,12 +466,12 @@ L100:
     }
 
     for (i = 0; i < bound; ++i) {
-        yr = ddot_(n, &w[iypt + cp * *n], &c__1, w, &c__1);
+        yr = ddot_(*n, &w[iypt + cp * *n], c__1, w, c__1);
         beta = w[*n + cp] * yr;
         inmc = *n + *m + cp;
         beta = w[inmc] - beta;
         iscn = ispt + cp * *n;
-        daxpy_(n, &beta, &w[iscn], &c__1, w, &c__1);
+        daxpy_(*n, beta, &w[iscn], c__1, w, c__1);
         ++cp;
         if (cp == *m) {
             cp = 0;
@@ -536,9 +527,9 @@ L172:
 /*     TERMINATION TEST */
 /*     ---------------- */
 
-    gnorm = sqrt(ddot_(n, g, &c__1, g, &c__1));
-    xnorm = sqrt(ddot_(n, x, &c__1, x, &c__1));
-    xnorm = max(1.,xnorm);
+    gnorm = sqrt(ddot_(*n, g, c__1, g, c__1));
+    xnorm = sqrt(ddot_(*n, x, c__1, x, c__1));
+    xnorm = std::max(1.,xnorm);
     if (gnorm / xnorm <= *eps) {
         finish = TRUE_;
     }
@@ -874,8 +865,8 @@ L30:
 /*        TO THE PRESENT INTERVAL OF UNCERTAINTY. */
 
     if (brackt) {
-        stmin = min(stx,sty);
-        stmax = max(stx,sty);
+        stmin = std::min(stx,sty);
+        stmax = std::max(stx,sty);
     } else {
         stmin = stx;
         stmax = *stp + xtrapf * (*stp - stx);
@@ -883,8 +874,8 @@ L30:
 
 /*        FORCE THE STEP TO BE WITHIN THE BOUNDS STPMAX AND STPMIN. */
 
-    *stp = max(*stp,lb3_1.stpmin);
-    *stp = min(*stp,lb3_1.stpmax);
+    *stp = std::max(*stp,lb3_1.stpmin);
+    *stp = std::min(*stp,lb3_1.stpmax);
 
 /*        IF AN UNUSUAL TERMINATION IS TO OCCUR THEN LET */
 /*        STP BE THE LOWEST POINT OBTAINED SO FAR. */
@@ -930,7 +921,7 @@ L45:
     if (brackt && stmax - stmin <= *xtol * stmax) {
         *info = 2;
     }
-    if (*f <= ftest1 && abs(dg) <= lb3_1.gtol * (-dginit)) {
+    if (*f <= ftest1 && fabs(dg) <= lb3_1.gtol * (-dginit)) {
         *info = 1;
     }
 
@@ -943,7 +934,7 @@ L45:
 /*        IN THE FIRST STAGE WE SEEK A STEP FOR WHICH THE MODIFIED */
 /*        FUNCTION HAS A NONPOSITIVE VALUE AND NONNEGATIVE DERIVATIVE. */
 
-    if (stage1 && *f <= ftest1 && dg >= min(*ftol,lb3_1.gtol) * dginit) {
+    if (stage1 && *f <= ftest1 && dg >= std::min(*ftol,lb3_1.gtol) * dginit) {
         stage1 = FALSE_;
     }
 
@@ -987,11 +978,11 @@ L45:
 /*        INTERVAL OF UNCERTAINTY. */
 
     if (brackt) {
-        if (abs(sty - stx) >= .66 * width1) {
+        if (std::abs(sty - stx) >= .66 * width1) {
             *stp = stx + .5 * (sty - stx);
         }
         width1 = width;
-        width = abs(sty - stx);
+        width = std::abs(sty - stx);
     }
 
 /*        END OF ITERATION. */
@@ -1075,14 +1066,14 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
 
 /*     CHECK THE INPUT PARAMETERS FOR ERRORS. */
 
-    if ( ( *brackt && ( *stp <= min(*stx,*sty) || *stp >= max(*stx,*sty) ) )
+    if ( ( *brackt && ( *stp <= std::min(*stx,*sty) || *stp >= std::max(*stx,*sty) ) )
         || *dx * (*stp - *stx) >= 0. || *stpmax < *stpmin) {
         SimTK_THROW1(SimTK::Exception::OptimizerFailed , "Error in input parameters to mcstep_"); 
     }
 
 /*     DETERMINE IF THE DERIVATIVES HAVE OPPOSITE SIGN. */
 
-    sgnd = *dp * (*dx / abs(*dx));
+    sgnd = *dp * (*dx / std::abs(*dx));
 
 /*     FIRST CASE. A HIGHER FUNCTION VALUE. */
 /*     THE MINIMUM IS BRACKETED. IF THE CUBIC STEP IS CLOSER */
@@ -1093,7 +1084,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         *info = 1;
         bound = TRUE_;
         theta = (*fx - *fp) * 3 / (*stp - *stx) + *dx + *dp;
-        s = max(max(abs(theta),abs(*dx)),abs(*dp));
+        s = std::max(std::max(std::abs(theta),std::abs(*dx)),std::abs(*dp));
         d__1 = theta / s;
         gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
         if (*stp < *stx) {
@@ -1104,7 +1095,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         r = p / q;
         stpc = *stx + r * (*stp - *stx);
         stpq = *stx + *dx / ((*fx - *fp) / (*stp - *stx) + *dx) / 2 * (*stp - *stx);
-        if (abs(stpc - *stx) < abs(stpq - *stx)) {
+        if (std::abs(stpc - *stx) < std::abs(stpq - *stx)) {
             stpf = stpc;
         } else {
             stpf = stpc + (stpq - stpc) / 2;
@@ -1120,7 +1111,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         *info = 2;
         bound = FALSE_;
         theta = (*fx - *fp) * 3 / (*stp - *stx) + *dx + *dp;
-        s = max(max(abs(theta),abs(*dx)),abs(*dp));
+        s = std::max(std::max(std::abs(theta),std::abs(*dx)),std::abs(*dp));
         d__1 = theta / s;
         gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
         if (*stp > *stx) {
@@ -1131,7 +1122,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         r = p / q;
         stpc = *stp + r * (*stx - *stp);
         stpq = *stp + *dp / (*dp - *dx) * (*stx - *stp);
-        if (abs(stpc - *stp) > abs(stpq - *stp)) {
+        if (std::abs(stpc - *stp) > std::abs(stpq - *stp)) {
             stpf = stpc;
         } else {
             stpf = stpq;
@@ -1147,18 +1138,18 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
 /*     COMPUTED AND IF THE MINIMUM IS BRACKETED THEN THE THE STEP */
 /*     CLOSEST TO STX IS TAKEN, ELSE THE STEP FARTHEST AWAY IS TAKEN. */
 
-    } else if (abs(*dp) < abs(*dx)) {
+    } else if (std::abs(*dp) < std::abs(*dx)) {
         *info = 3;
         bound = TRUE_;
         theta = (*fx - *fp) * 3 / (*stp - *stx) + *dx + *dp;
-        s = max(max(abs(theta),abs(*dx)),abs(*dp));
+        s = std::max(std::max(std::abs(theta),std::abs(*dx)),std::abs(*dp));
 
 /*        THE CASE GAMMA = 0 ONLY ARISES IF THE CUBIC DOES NOT TEND */
 /*        TO INFINITY IN THE DIRECTION OF THE STEP. */
 
         d__1 = theta / s;
         d__1 = d__1 * d__1 - *dx / s * (*dp / s);
-        gamma = s * sqrt((max(0.,d__1)));
+        gamma = s * sqrt((std::max(0.,d__1)));
         if (*stp > *stx) {
             gamma = -gamma;
         }
@@ -1174,13 +1165,13 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         }
         stpq = *stp + *dp / (*dp - *dx) * (*stx - *stp);
         if (*brackt) {
-            if (abs(*stp - stpc) < abs(*stp - stpq)) {
+            if (std::abs(*stp - stpc) < std::abs(*stp - stpq)) {
                 stpf = stpc;
             } else {
                 stpf = stpq;
             }
         } else {
-            if (abs(*stp - stpc) > abs(*stp - stpq)) {
+            if (std::abs(*stp - stpc) > std::abs(*stp - stpq)) {
                 stpf = stpc;
             } else {
                 stpf = stpq;
@@ -1197,7 +1188,7 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
         bound = FALSE_;
         if (*brackt) {
             theta = (*fp - *fy) * 3 / (*sty - *stp) + *dy + *dp;
-            s = max(max(abs(theta),abs(*dy)),abs(*dp));
+            s = std::max(std::max(std::abs(theta),std::abs(*dy)),std::abs(*dp));
             d__1 = theta / s;
             gamma = s * sqrt(d__1 * d__1 - *dy / s * (*dp / s));
             if (*stp > *sty) {
@@ -1235,16 +1226,16 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
 
 /*     COMPUTE THE NEW STEP AND SAFEGUARD IT. */
 
-    stpf = min(*stpmax,stpf);
-    stpf = max(*stpmin,stpf);
+    stpf = std::min(*stpmax,stpf);
+    stpf = std::max(*stpmin,stpf);
     *stp = stpf;
     if (*brackt && bound) {
         if (*sty > *stx) {
             d__1 = *stx + (*sty - *stx) * .66f;
-            *stp = min(d__1,*stp);
+            *stp = std::min(d__1,*stp);
         } else {
             d__1 = *stx + (*sty - *stx) * .66f;
-            *stp = max(d__1,*stp);
+            *stp = std::max(d__1,*stp);
         }
     }
 } /* mcstep_ */

@@ -129,18 +129,29 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
 
 // printf("\n jac= \n");
 
+//    Matrix jac(m,n,m,values);      
+    Matrix jac(m,n);      
+
     if( rep.getNumericalJacobian() ) {
-          Matrix jac(m,n,m,values);       // TODO check for transposed n/m
           Vector sfy0(m);            
           rep.getOptimizerSystem().constraintFunc( params, true, sfy0 );
           rep.jacDiff->calcJacobian( params, sfy0, jac);
-/*
           for(j=0;j<m;j++) {
              for(i=0;i<n;i++) {
                   printf("%f ",jac(j,i));
              }
              printf("\n");
           }
+        Real *ptr = values;
+          for(j=0;j<m;j++) {
+             for(i=0;i<n;i++) {
+                  printf("%f ",jac(j,i));
+                  *ptr = jac(j,i);
+                  ptr++;
+             }
+             printf("\n");
+          }
+/*
         Real *ptr = values;
         for(j=0;j<m;j++) {
            for(i=0;i<n;i++) {
@@ -151,12 +162,25 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
         }
 */
     } else {
-        Vector jac(m*n,values,true); 
+        printf("Jac params=");
+        for(i=0;i<n;i++) printf("%f ",params(i)); printf("\n");
+
         rep.constraintJacobian( rep.getOptimizerSystem(), params, new_x, jac );
+
+        Real *ptr = values;
+          for(j=0;j<m;j++) {
+             for(i=0;i<n;i++) {
+                  printf("%f ",jac(j,i));
+                  *ptr = jac(j,i);
+                  ptr++;
+             }
+             printf("\n");
+          }
 /*
         Real *ptr = values;
         for(j=0;j<m;j++) {
            for(i=0;i<n;i++) {
+              jac(j,i)
               printf("%f ",*ptr);
               ptr++;
            }
