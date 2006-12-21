@@ -693,7 +693,7 @@ public:
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
-            "ExplicitEuler::step()");
+            "RungeKuttaMerson::step()");
 
         assert(initialized && tOut >= state.getTime());
         const Real tMax = std::min(tOut, stopTime);

@@ -66,12 +66,89 @@ public:
 
     void endConstruction();
 
-    const Vector& getQ(const State& s) const;
-    const Vector& getU(const State& s) const;
-    const Vector& getZ(const State& s) const;
+    /// @name
+    /// Get state variables and constraint errors.
+    //@{
+    /// Return a reference to the position-level continuous state
+    /// variables belonging to this subsystem
+    /// @pre State must be realized to >= Stage::Model (this subsystem).
+    const Vector& getQ(const State&) const;
 
-    /// Is this handle the owner of this rep? This is true if the
-    /// handle is empty or if its rep points back here.
+    /// Return a reference to the velocity-level continuous state
+    /// variables belonging to this subsystem
+    /// @pre State must be realized to >= Stage::Model (this subsystem).
+    const Vector& getU(const State&) const;
+
+    /// Return a reference to the auxiliary continuous state
+    /// variables belonging to this subsystem.
+    /// @pre State must be realized to >= Stage::Model (this subsystem).
+    const Vector& getZ(const State&) const;
+
+    /// Return a reference to the position-level constraint errors
+    /// for this subsystem from the state cache.
+    /// @pre State must be realized to >= Stage::Position (this subsystem).
+    const Vector& getQErr(const State&) const;
+
+    /// Return a reference to the velocity-level constraint errors
+    /// for this subsystem from the state cache.
+    /// @pre State must be realized to >= Stage::Velocity (this subsystem)
+    const Vector& getUErr(const State&) const;
+
+    /// Return a reference to the acceleration-level constraint errors
+    /// for this subsystem from the state cache.
+    /// @pre State must be realized to >= Stage::Acceleration (this subsystem)
+    /// @remark Simbody solves the acceleration-level constraint equations
+    ///         simultaneously with the accelerations, so these should always
+    ///         be statisfied to machine precision after realizing the
+    ///         subsystem to the Acceleration stage.
+    const Vector& getUDotErr(const State&) const;
+    //@}
+
+    /// @name
+    /// Calculate weights and tolerances.
+    //@{
+    /// Given the current values of our own position variables,
+    /// calculate a "unit weighting" for changes to these position
+    /// variables. 
+    /// @param[out] weights must be resizable or already the right size
+    /// @pre State must be realized to >= Stage::Position (this subsystem).
+    void calcQUnitWeights(const State&, Vector& weights) const;
+
+    /// Given the current values of our own position variables,
+    /// calculate a "unit weighting" for changes to our velocity
+    /// variables.
+    /// @param[out] weights must be resizable or already the right size
+    /// @pre State must be realized to >= Stage::Position (this subsystem).
+    void calcUUnitWeights(const State&, Vector& weights) const;
+
+    /// Given the current values of our own position variables,
+    /// calculate a "unit weighting" for changes to our auxiliary
+    /// variables.
+    /// @param[out] weights must be resizable or already the right size
+    /// @pre State must be realized to >= Stage::Position (this subsystem).
+    void calcZUnitWeights(const State&, Vector& weights) const;
+
+    /// Calculate a "unit tolerance" for errors in each of this subsystem's
+    /// position-level constraints.
+    /// @param[out] tolerances must be resizable or already the right size
+    /// @pre State must be realized to >= Stage::Model (this subsystem).
+    /// @remark Tolerances are expected to be constant during a study; typically
+    ///         they just reflect the units in which the contraint equations
+    ///         are calculated, e.g. angles or lengths.
+    void calcQErrUnitTolerances(const State&, Vector& tolerances) const;
+
+    /// Calculate a "unit tolerance" for errors in each of this subsystem's
+    /// velocity-level constraints.
+    /// @param[out] tolerances must be resizable or already the right size
+    /// @pre State must be realized to >= Stage::Model (this subsystem).
+    /// @remark Tolerances are expected to be constant during a study; typically
+    ///         they just reflect the units in which the contraint equations
+    ///         are calculated, e.g. angles/time or lengths/time.
+    void calcUErrUnitTolerances(const State&, Vector& tolerances) const;
+    //@}
+
+    // Is this handle the owner of this rep? This is true if the
+    // handle is empty or if its rep points back here.
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
 

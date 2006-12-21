@@ -123,6 +123,32 @@ public:
 
     void realize(const State& s, Stage g) const;
 
+    void calcYUnitWeights(const State& s, Vector& weights) const {
+        weights.resize(s.getNY());
+        VectorView qwts = weights(s.getQStart(), s.getNQ());   // writable views
+        VectorView uwts = weights(s.getUStart(), s.getNU());
+        VectorView zwts = weights(s.getZStart(), s.getNZ());
+
+        for (int i=0; i<getNSubsystems(); ++i) {
+            const Subsystem& sub = subsystems[i];
+            sub.calcQUnitWeights(s, qwts(s.getQStart(i), s.getNQ(i)));
+            sub.calcUUnitWeights(s, uwts(s.getUStart(i), s.getNU(i)));
+            sub.calcZUnitWeights(s, zwts(s.getZStart(i), s.getNZ(i)));
+        }
+    }
+
+    void calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
+        tolerances.resize(s.getNYErr());
+        VectorView qtols = tolerances(s.getQErrStart(), s.getNQErr()); // writable views
+        VectorView utols = tolerances(s.getUErrStart(), s.getNUErr());
+
+        for (int i=0; i<getNSubsystems(); ++i) {
+            const Subsystem& sub = subsystems[i];
+            sub.calcQErrUnitTolerances(s, qtols(s.getQErrStart(i), s.getNQErr(i)));
+            sub.calcUErrUnitTolerances(s, utols(s.getUErrStart(i), s.getNUErr(i)));
+        }
+    }
+
     virtual Real calcTimescale(const State& s) const {
         SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
             "System::calcTimescale()");

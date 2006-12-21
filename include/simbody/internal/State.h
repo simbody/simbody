@@ -173,6 +173,28 @@ public:
     // TODO: true discrete variables need an "update" variable in the cache.
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
     int allocateCacheEntry      (int subsys, Stage, AbstractValue* v);
+    
+    // Dimensions. These are valid at Stage::Model while access to the various
+    // arrays may have stricter requirements. Hence it is better to use these
+    // routines than to get a reference to a Vector and ask for its size().
+
+    int getNY() const; // = nq+nu+nz
+    int getQStart() const; int getNQ() const;
+    int getUStart() const; int getNU() const;
+    int getZStart() const; int getNZ() const;
+
+    int getNYErr() const; // = nqerr+nuerr
+    int getQErrStart() const; int getNQErr() const;
+    int getUErrStart() const; int getNUErr() const;
+
+    int getNUDotErr() const;
+
+    int getQStart(int subsys)       const; int getNQ(int subsys)       const;
+    int getUStart(int subsys)       const; int getNU(int subsys)       const;
+    int getZStart(int subsys)       const; int getNZ(int subsys)       const;
+    int getQErrStart(int subsys)    const; int getNQErr(int subsys)    const;
+    int getUErrStart(int subsys)    const; int getNUErr(int subsys)    const;
+    int getUDotErrStart(int subsys) const; int getNUDotErr(int subsys) const;
 
     // Per-subsystem access to the global shared variables.
     const Vector& getQ(int subsys) const;

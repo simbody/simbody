@@ -133,6 +133,7 @@ public:
 
 
     void clearReferencesToStateGlobals() {
+        qstart=ustart=zstart=qerrstart=uerrstart=udoterrstart = -1;
         q.clear(); u.clear(); z.clear();
         qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
         qerr.clear(); uerr.clear(); udoterr.clear();
@@ -155,6 +156,10 @@ public:
     // state and cache entries of the same names. These are valid
     // only after the *System* stage is raised to Model, and they
     // are invalidated whenever the System's Model stage is invalidated.
+
+    // The State will assign contiguous blocks to this subsystem. The
+    // starting indices are filled in here at the time the views are built.
+    int qstart, ustart, zstart, qerrstart, uerrstart, udoterrstart;
     Vector q, u, z;
     mutable Vector qdot, udot, zdot, qdotdot;
     mutable Vector qerr, uerr, udoterr;
@@ -173,6 +178,7 @@ private:
     // a reasonable default constructor gets set here.
     void initialize() {
         nqerr = nuerr = nudoterr= 0;
+        qstart=ustart=zstart=qerrstart=uerrstart=udoterrstart = -1;
         nDiscreteWhenBuilt = -1;
         for (int i=0; i < Stage::NValid; ++i)
             cacheSize[i] = -1;
@@ -453,20 +459,26 @@ public:
                 PerSubsystemInfo& ss = subsystems[i];
                 const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
 
+                // Assign the starting indices.
+                ss.qstart=nxtq; ss.ustart=nxtu; ss.zstart=nxtz;
+                ss.qerrstart=nxtqerr; ss.uerrstart=nxtuerr; ss.udoterrstart=nxtudoterr;
+
+                // Build the views.
                 ss.q.viewAssign(q(nxtq, nq)); ss.q = ss.qInit;
                 ss.qdot.viewAssign(qdot(nxtq, nq));
                 ss.qdotdot.viewAssign(qdotdot(nxtq, nq));
-                nxtq += nq;
                 ss.u.viewAssign(u(nxtu, nu)); ss.u = ss.uInit;
                 ss.udot.viewAssign(udot(nxtu, nu));
-                nxtu += nu;
                 ss.z.viewAssign(z(nxtz, nz)); ss.z = ss.zInit;
                 ss.zdot.viewAssign(zdot(nxtz, nz));
-                nxtz += nz;
 
-                ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr)); nxtqerr += ss.nqerr;
-                ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr)); nxtuerr += ss.nuerr;
-                ss.udoterr.viewAssign(udoterr(nxtudoterr, ss.nudoterr)); nxtudoterr += ss.nudoterr;
+                ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr));
+                ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr));
+                ss.udoterr.viewAssign(udoterr(nxtudoterr, ss.nudoterr));
+
+                // Consume the slots.
+                nxtq += nq; nxtu += nu; nxtz += nz;
+                nxtqerr += ss.nqerr; nxtuerr += ss.nuerr; nxtudoterr += ss.nudoterr;
             }
         }
 
@@ -759,6 +771,150 @@ int State::allocateCacheEntry(int subsys, Stage g, AbstractValue* vp) {
     const int nxt = ss.cache.size();
     ss.cache.push_back(CacheEntry(g,vp));
     return nxt;
+}
+
+    // State dimensions for shared continuous variables.
+
+int State::getNY() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNY()");
+    return rep->y.size();
+}
+
+int State::getQStart() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQStart()");
+    return 0; // q's come first
+}
+int State::getNQ() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQ()");
+    return rep->q.size();
+}
+
+int State::getUStart() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUStart()");
+    return rep->q.size(); // u's come right after q's
+}
+int State::getNU() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNU()");
+    return rep->u.size();
+}
+
+int State::getZStart() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZStart()");
+    return rep->q.size() + rep->u.size(); // q,u, then z
+}
+int State::getNZ() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNZ()");
+    return rep->z.size();
+}
+
+int State::getNYErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNYErr()");
+    return rep->yerr.size();
+}
+
+int State::getQErrStart() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQErrStart()");
+    return 0; // qerr's come first
+}
+int State::getNQErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQErr()");
+    return rep->qerr.size();
+}
+
+int State::getUErrStart() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUErrStart()");
+    return rep->qerr.size(); // uerr's follow qerrs
+}
+int State::getNUErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUErr()");
+    return rep->uerr.size();
+}
+
+// UDot errors are independent of qerr & uerr.
+int State::getNUDotErr() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUDotErr()");
+    return rep->udoterr.size();
+}
+
+    // Subsystem dimensions.
+
+int State::getQStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQStart(subsys)");
+    return rep->getSubsystem(subsys).qstart;
+}
+int State::getNQ(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQ(subsys)");
+    return rep->getSubsystem(subsys).q.size();
+}
+
+int State::getUStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUStart(subsys)");
+    return rep->getSubsystem(subsys).ustart;
+}
+int State::getNU(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNU(subsys)");
+    return rep->getSubsystem(subsys).u.size();
+}
+
+int State::getZStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZStart(subsys)");
+    return rep->getSubsystem(subsys).zstart;
+}
+int State::getNZ(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNZ(subsys)");
+    return rep->getSubsystem(subsys).z.size();
+}
+
+int State::getQErrStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQErrStart(subsys)");
+    return rep->getSubsystem(subsys).qerrstart;
+}
+int State::getNQErr(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQErr(subsys)");
+    return rep->getSubsystem(subsys).qerr.size();
+}
+
+int State::getUErrStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUErrStart(subsys)");
+    return rep->getSubsystem(subsys).uerrstart;
+}
+int State::getNUErr(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUErr(subsys)");
+    return rep->getSubsystem(subsys).uerr.size();
+}
+
+int State::getUDotErrStart(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUDotErrStart(subsys)");
+    return rep->getSubsystem(subsys).udoterrstart;
+}
+int State::getNUDotErr(int subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUDotErr(subsys)");
+    return rep->getSubsystem(subsys).udoterr.size();
 }
 
     // Per-subsystem access to the global shared variables.

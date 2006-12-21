@@ -300,6 +300,24 @@ try {
 
     cout << "mbs State as modeled: " << s;
 
+    printf("GLOBAL ny=%d q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
+        s.getNY(), s.getQStart(), s.getNQ(), 
+        s.getUStart(), s.getNU(), s.getZStart(), s.getNZ());
+    printf("  nyerr=%d qerr:yerr(%d,%d) uerr:yerr(%d,%d)\n",
+        s.getNYErr(), s.getQErrStart(), s.getNQErr(),
+        s.getUErrStart(), s.getNUErr());
+    printf("  nudoterr=%d\n", s.getNUDotErr());
+    for (int i=0; i<s.getNSubsystems(); ++i) {
+        printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
+            i,s.getQStart()+s.getQStart(i),s.getNQ(i),
+              s.getUStart()+s.getUStart(i),s.getNU(i),
+              s.getZStart()+s.getZStart(i),s.getNZ(i));
+        printf("  qerr:yerr(%d,%d) uerr:yerr(%d,%d) uderr(%d,%d)\n",
+            s.getQErrStart()+s.getQErrStart(i),s.getNQErr(i),
+            s.getUErrStart()+s.getUErrStart(i),s.getNUErr(i),
+            s.getUDotErrStart(i),s.getNUDotErr(i));
+    }
+
     gravityForces.updGravity(s) = gravity;
 
 
@@ -309,6 +327,10 @@ try {
    // pend.setJointQ(s,1,5,-3.3);
 
     mbs.realize(s, Stage::Position);
+    Vector wts; mbs.calcYUnitWeights(s,wts);
+    cout << "Y WEIGHTS: " << wts << endl;
+    Vector tols; mbs.calcYErrUnitTolerances(s,tols);
+    cout << "YERR TOLERANCES: " << tols << endl;
 
     Transform bodyConfig = pend.getBodyPosition(s, aPendulum);
     cout << "q=" << s.getQ() << endl;

@@ -83,6 +83,14 @@ Real System::calcTimescale(const State& s) const {
     return getRep().calcTimescale(s);
 }
 
+void System::calcYUnitWeights(const State& s, Vector& weights) const {
+    return getRep().calcYUnitWeights(s,weights);
+}
+
+void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
+    return getRep().calcYErrUnitTolerances(s,tolerances);
+}
+
 Real System::calcYErrorNorm(const State& s, const Vector& y_err) const {
     return getRep().calcYErrorNorm(s,y_err);
 }

@@ -114,6 +114,27 @@ public:
     Vector& updUErr(const State& s) const {return s.updUErr(getMySubsystemIndex());}
     Vector& updUDotErr(const State& s) const {return s.updUDotErr(getMySubsystemIndex());}
 
+    // Dimensions. These are valid at Stage::Model while access to the various
+    // arrays may have stricter requirements. Hence it is better to use these
+    // routines than to get a reference to a Vector and ask for its size().
+
+    int getQStart(const State& s) const {return s.getQStart(getMySubsystemIndex());}
+    int getNQ(const State& s)     const {return s.getNQ(getMySubsystemIndex());}
+
+    int getUStart(const State& s) const {return s.getUStart(getMySubsystemIndex());}
+    int getNU(const State& s)     const {return s.getNU(getMySubsystemIndex());}
+
+    int getZStart(const State& s) const {return s.getZStart(getMySubsystemIndex());}
+    int getNZ(const State& s)     const {return s.getNZ(getMySubsystemIndex());}
+
+    int getQErrStart(const State& s) const {return s.getQErrStart(getMySubsystemIndex());}
+    int getNQErr(const State& s)     const {return s.getNQErr(getMySubsystemIndex());}
+
+    int getUErrStart(const State& s) const {return s.getUErrStart(getMySubsystemIndex());}
+    int getNUErr(const State& s)     const {return s.getNUErr(getMySubsystemIndex());}
+
+    int getUDotErrStart(const State& s) const {return s.getUDotErrStart(getMySubsystemIndex());}
+    int getNUDotErr(const State& s)     const {return s.getNUDotErr(getMySubsystemIndex());}
 
     SubsystemRep* clone() const {
 		assert(!isInSystem()); // TODO
@@ -144,6 +165,27 @@ public:
     virtual void realizeAcceleration(const State& s) const { 
     }
     virtual void realizeReport(const State& s) const { 
+    }
+
+    virtual void calcQUnitWeights(const State& s, Vector& weights) const {
+        weights.resize(getNQ(s));
+        weights = 1; // default says everyone's opinion is just as valid
+    }
+    virtual void calcUUnitWeights(const State& s, Vector& weights) const {
+        weights.resize(getNU(s));
+        weights = 1;
+    }
+    virtual void calcZUnitWeights(const State& s, Vector& weights) const {
+        weights.resize(getNZ(s));
+        weights = 1;
+    }
+    virtual void calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
+        tolerances.resize(getNQErr(s));
+        tolerances = 1;
+    }
+    virtual void calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
+        tolerances.resize(getNUErr(s));
+        tolerances = 1;
     }
 
 	bool isInSystem() const {return mySystem != 0;}

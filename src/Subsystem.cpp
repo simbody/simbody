@@ -93,6 +93,26 @@ const Vector& Subsystem::getQ(const State& s) const {return getRep().getQ(s);}
 const Vector& Subsystem::getU(const State& s) const {return getRep().getU(s);}
 const Vector& Subsystem::getZ(const State& s) const {return getRep().getZ(s);}
 
+const Vector& Subsystem::getQErr(const State& s)    const {return getRep().getQErr(s);}
+const Vector& Subsystem::getUErr(const State& s)    const {return getRep().getUErr(s);}
+const Vector& Subsystem::getUDotErr(const State& s) const {return getRep().getUDotErr(s);}
+
+void Subsystem::calcQUnitWeights(const State& s, Vector& weights) const {
+    getRep().calcQUnitWeights(s,weights);
+}
+void Subsystem::calcUUnitWeights(const State& s, Vector& weights) const {
+    getRep().calcUUnitWeights(s,weights);
+}
+void Subsystem::calcZUnitWeights(const State& s, Vector& weights) const {
+    getRep().calcZUnitWeights(s,weights);
+}
+void Subsystem::calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
+    getRep().calcQErrUnitTolerances(s,tolerances);
+}
+void Subsystem::calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
+    getRep().calcUErrUnitTolerances(s,tolerances);
+}
+
     //////////////////
     // SubsystemRep //
     //////////////////

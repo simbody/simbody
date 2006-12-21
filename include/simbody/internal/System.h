@@ -81,6 +81,55 @@ public:
     /// corresponding position variables.
     Real calcTimescale(const State&) const;
 
+    /// This operator can be called at Stage::Position to calculate a weighting
+    /// vector w, with one entry for each state variable y={q,u,z}, ordered
+    /// the same as Y in the State and calculated specifically for the current
+    /// values of Y in the State. Weight wi is proportional to the "importance"
+    /// of state variable yi with respect to some criteria determined by
+    /// the System, such that wi*dyi=1 indicates that a change dyi in state
+    /// yi produces approximately a unit change in the weighting criteria. This
+    /// is intended for use by numerical integration methods for step size control.
+    /// The idea is to allow creation of a weighted RMS norm which returns 1 just when
+    /// all the state variable changes have a unit effect. The norm is RMS(W*dy) where
+    /// W=diag(w). A value of 1 for this norm would typically be a huge error. 
+    /// For example, if your accuracy requirement is 0.1%, you would test that
+    /// the weighted RMS norm is <= .001.
+    /// We expect this operation to be fairly expensive and thus the integrator
+    /// is expected to invoke it only occasionally.
+    void calcYUnitWeights(const State&, Vector& weights) const;
+
+    /// This provides scaling information for each of the position and velocity
+    /// constraints (YErr) in the State. The tolerance is the absolute error in the
+    /// constraint which is considered a "unit violation" of that state. Then
+    /// if T=diag(tol) and c the vector of constraint errors, we can use a
+    /// weighted RMS norm condition like RMS(T*c) <= accuracy to define
+    /// when constraints have been adequately met.
+    /// This is expected to be a cheap operation but not to change during
+    /// a study. State must be realized to Stage::Model.
+    void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+
+    static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
+        assert(weights.size() == values.size());
+        if (values.size()==0) return 0;
+        Real sumsq = 0;
+        for (int i=0; i<values.size(); ++i) {
+            const Real wv = weights[i]*values[i];
+            sumsq += wv*wv;
+        }
+        return std::sqrt(sumsq/weights.size());
+    }
+
+    static Real calcWeightedInfinityNorm(const Vector& values, const Vector& weights) {
+        assert(weights.size() == values.size());
+        if (values.size()==0) return 0;
+        Real maxval = 0;
+        for (int i=0; i<values.size(); ++i) {
+            const Real wv = std::abs(weights[i]*values[i]);
+            if (wv > maxval) maxval=wv;
+        }
+        return maxval;
+    }
+
     /// This operator can be called at Stage::Position to take a vector
     /// of absolute state variable error estimates and return a weighted
     /// norm. This method is intended for use by numerical integration methods
@@ -88,6 +137,7 @@ public:
     /// that a return value of 1 would indicate a "unit" error, which would 
     /// be huge. If your accuracy requirement is 0.1%, you would test that
     /// the norm return here is <= .001.
+    /// XXX OBSOLETE? TODO
     Real calcYErrorNorm(const State&, const Vector& y_err) const;
 
     /// Take over ownership of the supplied subsystem and install it into 
