@@ -117,9 +117,9 @@ public:                                                             \
 SimTK_LIST_SPECIALIZE(bool);            SimTK_LIST_SPECIALIZE(signed char); 
 SimTK_LIST_SPECIALIZE(char);            SimTK_LIST_SPECIALIZE(unsigned char);
 SimTK_LIST_SPECIALIZE(short);           SimTK_LIST_SPECIALIZE(int); 
-SimTK_LIST_SPECIALIZE(long);            SimTK_LIST_SPECIALIZE(long long); 
+SimTK_LIST_SPECIALIZE(long); 
 SimTK_LIST_SPECIALIZE(unsigned short);  SimTK_LIST_SPECIALIZE(unsigned int); 
-SimTK_LIST_SPECIALIZE(unsigned long);   SimTK_LIST_SPECIALIZE(unsigned long long); 
+SimTK_LIST_SPECIALIZE(unsigned long);
 SimTK_LIST_SPECIALIZE(float);           SimTK_LIST_SPECIALIZE(double); 
 SimTK_LIST_SPECIALIZE(long double);
 SimTK_LIST_SPECIALIZE(std::complex<float>);

@@ -61,7 +61,7 @@
 #elif (SimTK_DEFAULT_PRECISION == 4)
     typedef long double SimTK_Real;
 #else
-    ILLEGAL VALUE FOR DEFAULT PRECISION
+    #error ILLEGAL VALUE FOR DEFAULT PRECISION
 #endif
 
 #ifndef NDEBUG
@@ -141,6 +141,7 @@ extern "C" {
 #include <cstddef>
 #include <cassert>
 #include <complex>
+#include <limits>
 
 /**
  * Add public static method declaration in class derived from an abstract
@@ -183,6 +184,45 @@ typedef std::complex<long double>   LComplex;
 typedef SimTK_Real              Real;
 typedef std::complex<Real>      Complex;
 
+// This is a prototype for classes which behave like integers but
+// are only compatible with their own types. This permits one to
+// use integers for Ids like AtomId and BondId but preventing the
+// inadvertent use of a BondId where an AtomId was required.
+
+class TestId {
+public:
+    TestId() {
+    #ifndef NDEBUG
+        value = std::numeric_limits<int>::min();
+    #endif
+    }    
+
+    // No implicit conversion to or from int. But do allow 
+    // explicit conversion and explicit assignment.
+    explicit TestId(int v) : value(v) { }
+    TestId& operator= (int i)     {value= i; return *this;}
+
+    int  getInt() const {return value;}
+    int& updInt()       {return value;}
+
+    TestId& operator+=(int i)     {value+=i; return *this;}
+    TestId& operator-=(int i)     {value-=i; return *this;}
+    TestId  operator++()          {return TestId(++value);}
+    TestId  operator++(int)       {return TestId(value++);}
+    TestId  operator--()          {return TestId(--value);}
+    TestId  operator--(int)       {return TestId(value--);}
+
+    // Difference between two Ids is an int.
+    int operator-(TestId b) const {return value-b.value;}
+
+    TestId operator-(int b) const {return TestId(value-b);}
+    TestId operator+(int b) const {return TestId(value+b);}
+
+
+private:
+    int value;
+};
+
 struct Segment {
     Segment() : length(0), offset(0) { }
     explicit Segment(size_t l, size_t ofs=0) : length(l), offset(ofs) { }
@@ -205,9 +245,9 @@ public:                                         \
 SimTK_TYPEINFO_SPECIALIZE(bool);            SimTK_TYPEINFO_SPECIALIZE(signed char); 
 SimTK_TYPEINFO_SPECIALIZE(char);            SimTK_TYPEINFO_SPECIALIZE(unsigned char);
 SimTK_TYPEINFO_SPECIALIZE(short);           SimTK_TYPEINFO_SPECIALIZE(int); 
-SimTK_TYPEINFO_SPECIALIZE(long);            SimTK_TYPEINFO_SPECIALIZE(long long); 
+SimTK_TYPEINFO_SPECIALIZE(long);
 SimTK_TYPEINFO_SPECIALIZE(unsigned short);  SimTK_TYPEINFO_SPECIALIZE(unsigned int); 
-SimTK_TYPEINFO_SPECIALIZE(unsigned long);   SimTK_TYPEINFO_SPECIALIZE(unsigned long long); 
+SimTK_TYPEINFO_SPECIALIZE(unsigned long);
 SimTK_TYPEINFO_SPECIALIZE(float);           SimTK_TYPEINFO_SPECIALIZE(double); 
 SimTK_TYPEINFO_SPECIALIZE(long double);
 SimTK_TYPEINFO_SPECIALIZE(std::complex<float>);
