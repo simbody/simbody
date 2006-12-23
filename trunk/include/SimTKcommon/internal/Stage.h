@@ -98,6 +98,13 @@ public:
 	SimTK_SimTKCOMMON_EXPORT String	name() const;
 	Stage	next() const { return isValid(n+1) ? Stage::Num(n+1) : Stage::Invalid; }
     Stage	prev() const { return isValid(n-1) ? Stage::Num(n-1) : Stage::Invalid; }
+
+    // Set stage=min(stage, tooHigh-1).
+    void invalidate(Stage::Num tooHigh) {
+        assert(tooHigh > Stage::Empty); // don't allow this to make stage Invalid
+        if (n >= tooHigh)
+            n=tooHigh-1;
+    }
 	
 	// Use this for arrays of NRuntime elements indexed from 0.
 	int index() const { assert(isInRuntimeRange(n)); return n-Stage::LowestRuntime; }
