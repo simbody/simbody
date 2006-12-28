@@ -290,6 +290,8 @@ ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
 ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
 ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
 ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
+ADD_TEST(StateTest                ${TEST_PATH}/StateTest)
+ADD_TEST(StateTestStatic          ${TEST_PATH}/StateTestStatic)
 
 #
 # Installation
