@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_H_
-#define SimTK_SIMBODY_H_
+#ifndef SimTK_SimTKSIMBODY_H_
+#define SimTK_SimTKSIMBODY_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
  * Contributors:
@@ -44,5 +44,7 @@
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/NumericalMethods.h"
+#include "simbody/internal/DecorativeGeometry.h"
+#include "simbody/internal/VTKReporter.h"
 
-#endif // SimTK_SIMBODY_H_
+#endif // SimTK_SimTKSIMBODY_H_

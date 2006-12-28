@@ -1,17 +1,17 @@
 #---------------------------------------------------
 # Simbody 
 #
-# Creates SimTK Core library, base name=simbody.
+# Creates SimTK Core library, base name=SimTKsimbody.
 # Default libraries are shared & optimized. Variants
 # are created for static (_static) and debug (_d).
 #
 # Windows:
-#   simbody[_d].dll
-#   simbody[_d].lib
-#   simbody_static[_d].lib
+#   SimTKsimbody[_d].dll
+#   SimTKsimbody[_d].lib
+#   SimTKsimbody_static[_d].lib
 # Unix:
-#   libsimbody[_d].so
-#   libsimbody_static[_d].a
+#   libSimTKsimbody[_d].so
+#   libSimTKsimbody_static[_d].a
 #
 # All libraries are installed in 
 #   C:\Program Files\SimTK\core\lib[64]  (Windows)
@@ -125,7 +125,7 @@ SET(SIMBODY_SOURCE_SUBDIRS .)
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMBODY_LIBRARY_NAME simbody)
+SET(SIMBODY_LIBRARY_NAME SimTKsimbody)
 SET(SIMBODY_MAJOR_VERSION 0)
 SET(SIMBODY_MINOR_VERSION 5)
 SET(SIMBODY_BUILD_VERSION 4)
@@ -230,6 +230,8 @@ SET(SimTKCPODES_LIBRARY_NAME SimTKcpodes)
 SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
 SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
 
+## TODO: will need SimTKsimmath when it's ready.
+
 
 # Determine which math libraries to use for this platform.
 #
@@ -285,7 +287,9 @@ FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
+    ## Make sure we find these locally before looking in SimTK/core/include if
+    ## Simbody was previously installed there.
+    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 #

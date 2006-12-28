@@ -53,12 +53,7 @@
  * involve twisting the pendulum around somewhat.
  */
 
-#include "SimTKcommon.h"
-#include "Simbody.h"
-
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/VTKReporter.h"
-#include "simbody/internal/NumericalMethods.h"
+#include "SimTKsimbody.h"
 
 #include <string>
 #include <iostream>

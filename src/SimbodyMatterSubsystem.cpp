@@ -28,7 +28,7 @@
  * MatterSubsystem.
  */
 
-#include "Simbody.h"
+#include "SimTKsimbody.h"
 #include "SimbodyMatterSubsystemRep.h"
 class RigidBodyNode;
 

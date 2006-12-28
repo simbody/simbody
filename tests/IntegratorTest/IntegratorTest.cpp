@@ -25,10 +25,7 @@
  * Tests of Simbody integration methods.
  */
 
-#include "SimTKcommon.h"
-#include "Simbody.h"
-
-#include "simbody/internal/NumericalMethods.h"
+#include "SimTKsimbody.h"
 
 #include <string>
 #include <iostream>

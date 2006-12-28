@@ -27,7 +27,7 @@
  * Private implementation of GeneralForceElements.
  */
 
-#include "Simbody.h"
+#include "SimTKsimbody.h"
 #include "simbody/internal/ForceSubsystem.h"
 
 #include "ForceSubsystemRep.h"

@@ -25,10 +25,7 @@
  * A big, chunky fake RNA built of cylinders and ball joints.
  */
 
-#include "Simbody.h"
-#include "simbody/internal/NumericalMethods.h"
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/VTKReporter.h"
+#include "SimTKsimbody.h"
 
 #include <cmath>
 #include <cstdio>

@@ -26,14 +26,7 @@
  * Simbody. Don't include this in the nightly test suite.
  */
 
-#include "SimTKcommon.h"
-#include "Simbody.h"
-
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/VTKReporter.h"
-#include "simbody/internal/NumericalMethods.h"
-
-#include "simbody/internal/DuMMForceFieldSubsystem.h"
+#include "SimTKsimbody.h"
 
 #include <string>
 #include <iostream>

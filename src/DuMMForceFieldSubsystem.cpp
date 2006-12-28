@@ -29,7 +29,7 @@
  * We accept angles from users in degrees, but use only radians internally.
  */
 
-#include "Simbody.h"
+#include "SimTKsimbody.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 

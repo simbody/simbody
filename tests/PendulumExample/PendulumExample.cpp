@@ -25,10 +25,7 @@
  * The simple 2d pendulum example from the user's manual.
  */
 
-#include "Simbody.h"
-#include "simbody/internal/NumericalMethods.h"
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/VTKReporter.h"
+#include "SimTKsimbody.h"
 
 #include <cmath>
 #include <cstdio>
