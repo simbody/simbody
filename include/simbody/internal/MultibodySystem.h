@@ -26,7 +26,6 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/State.h"
 #include "simbody/internal/System.h"
 #include "simbody/internal/MatterSubsystem.h"
 
