@@ -27,7 +27,7 @@
 
 #include <limits.h>
 #include "Simmath.h"
-#include "simmatrix/internal/BigMatrix.h"
+#include "SimTKcommon/internal/BigMatrix.h"
 #include "common.h"
 
 namespace SimTK {

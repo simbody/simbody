@@ -30,7 +30,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 
 /* Shared libraries are messy in Visual Studio. We have to distinguish three
  * cases:

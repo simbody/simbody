@@ -30,8 +30,8 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 #include "internal/common.h"
+#include "SimTKcommon/internal/BigMatrix.h"
 
 namespace SimTK {
 

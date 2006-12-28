@@ -27,7 +27,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 #include "Differentiator.h"
 
 #include <exception>

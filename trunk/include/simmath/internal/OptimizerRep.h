@@ -25,7 +25,7 @@
  */
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
-#include "simmatrix/internal/BigMatrix.h"
+#include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 #include "Differentiator.h"
 
