@@ -109,7 +109,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
 {
   int i,j,index;
-  double *jac,*nx;
+  double *nx;
   if (values == NULL) {
 
     /* always assume  the jacobian is dense */
@@ -127,67 +127,28 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
     Vector params(n,x,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
 
-// printf("\n jac= \n");
 
-//    Matrix jac(m,n,m,values);      
+
     Matrix jac(m,n);      
 
     if( rep.getNumericalJacobian() ) {
-          Vector sfy0(m);            
-          rep.getOptimizerSystem().constraintFunc( params, true, sfy0 );
-          rep.jacDiff->calcJacobian( params, sfy0, jac);
-          for(j=0;j<m;j++) {
-             for(i=0;i<n;i++) {
-                  printf("%f ",jac(j,i));
-             }
-             printf("\n");
-          }
-        Real *ptr = values;
-          for(j=0;j<m;j++) {
-             for(i=0;i<n;i++) {
-                  printf("%f ",jac(j,i));
-                  *ptr = jac(j,i);
-                  ptr++;
-             }
-             printf("\n");
-          }
-/*
-        Real *ptr = values;
-        for(j=0;j<m;j++) {
-           for(i=0;i<n;i++) {
-              printf("%f ",*ptr);
-              ptr++;
-           }
-           printf("\n");
-        }
-*/
+        Vector sfy0(m);            
+        rep.getOptimizerSystem().constraintFunc( params, true, sfy0 );
+        rep.jacDiff->calcJacobian( params, sfy0, jac);
+
     } else {
-        printf("Jac params=");
-        for(i=0;i<n;i++) printf("%f ",params(i)); printf("\n");
 
         rep.constraintJacobian( rep.getOptimizerSystem(), params, new_x, jac );
 
-        Real *ptr = values;
-          for(j=0;j<m;j++) {
-             for(i=0;i<n;i++) {
-                  printf("%f ",jac(j,i));
-                  *ptr = jac(j,i);
-                  ptr++;
-             }
-             printf("\n");
-          }
-/*
-        Real *ptr = values;
-        for(j=0;j<m;j++) {
-           for(i=0;i<n;i++) {
-              jac(j,i)
-              printf("%f ",*ptr);
-              ptr++;
-           }
-           printf("\n");
-        }
-*/
     }
+    /* transpose the jacobian because Ipopt indexes in Row major format */
+    Real *ptr = values;
+    for(j=0;j<m;j++) {
+        for(i=0;i<n;i++,ptr++) {
+            *ptr = jac(j,i);
+        }
+    }
+
   } 
   return( true );
 }

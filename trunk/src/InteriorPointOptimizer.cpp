@@ -38,8 +38,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
           int i,n,m;
           char buf[1024];
 
-          /* C-style; start counting of rows and column indices at 0 */
-          Index index_style = 0; 
+          Index index_style = 0; /* C-style; start counting of rows and column indices at 0 */
 
 
          if( sys.getNumParameters() < 1 ) {
@@ -93,7 +92,7 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
             AddIpoptStrOption(nlp, "output_file", "ipopt.out");
             AddIpoptStrOption(nlp, "linear_solver", "lapack");
             AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
-            AddIpoptIntOption(nlp, "print_level", 4); // default is 4
+            AddIpoptIntOption(nlp, "print_level", 0); // default is 4
 
           }
      } 

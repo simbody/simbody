@@ -96,18 +96,10 @@ public:
   int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const{
 //  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
       const Real *x;
+      Real *ptr;
 
       x = &coefficients[0]; 
-/*
-      jac[0] = 2*x[0]; 
-      jac[1] = 2*x[1];
-      jac[2] = 2*x[2]; 
-      jac[3] = 2*x[3]; 
-      jac[4] = x[1]*x[2]*x[3]; 
-      jac[5] = x[0]*x[2]*x[3];
-      jac[6] = x[0]*x[1]*x[3]; 
-      jac[7] = x[0]*x[1]*x[2]; 
-*/
+
       jac(0,0) = 2*x[0]; 
       jac(0,1) = 2*x[1];
       jac(0,2) = 2*x[2]; 

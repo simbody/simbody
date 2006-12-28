@@ -98,16 +98,7 @@ public:
       const Real *x;
 
       x = &coefficients[0]; 
-/*
-      jac[0] = 2*x[0]; // 1,0
-      jac[1] = 2*x[1]; // 1,1
-      jac[2] = 2*x[2]; // 1,2
-      jac[3] = 2*x[3]; // 1,3
-      jac[4] = x[1]*x[2]*x[3]; // 0,0
-      jac[5] = x[0]*x[2]*x[3]; // 0,1
-      jac[6] = x[0]*x[1]*x[3]; // 0,2
-      jac[7] = x[0]*x[1]*x[2]; // 0,3
-*/
+
       jac[0][0] = 2*x[0];
       jac[0][1] = 2*x[1];
       jac[0][2] = 2*x[2];
@@ -196,7 +187,7 @@ int main() {
     }
     printf("\n");
 
-    static const Real TOL = 0.5;
+    static const Real TOL = 1e-4;
     Real expected[] = { 1.00000000, 4.74299963, 3.82114998, 1.37940829 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
