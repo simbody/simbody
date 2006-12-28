@@ -131,7 +131,7 @@ SET(SHARED_TARGET ${SimTKCOMMON_LIBRARY_NAME})
 SET(STATIC_TARGET ${SimTKCOMMON_LIBRARY_NAME}_static)
 
 ## If no one says otherwise, change the executable path to drop into the same binary
-## location as the DLLs so that the test cases will use the just-build DLLs.
+## location as the DLLs so that the test cases will use the just-built DLLs.
 IF(NOT EXECUTABLE_OUTPUT_PATH)
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR} 
       CACHE INTERNAL "Single output directory for building all executables.")
