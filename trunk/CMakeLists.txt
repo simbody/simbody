@@ -26,6 +26,46 @@
 PROJECT (SimTKcommon)
 SUBDIRS (staticTarget sharedTarget tests)
 
+
+# 
+# Make sure "sandbox" input & output directories are set. During
+# SimTK Core build, the build system will set them. Otherwise, we'll
+# set them to sensible local values.
+# If SimTK_INSTALL_PREFIX is set then
+# it is a sandbox installation area, otherwise we want to install
+# in /usr/local/SimTK or c:\program files\SimTK. Similarly, SimTK_SDK
+# tells us where to find other SimTK Core modules on which this one
+# depends. If it is not set, we'll look in /usr/local/SimTK or
+# c:\program files\SimTK *regardless* of SimTK_INSTALL_PREFIX.
+#
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "/usr/local/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+    IF(NOT SimTK_INSTALL_PREFIX)
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_INSTALL_PREFIX)
+
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+
+INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+
+
+
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
@@ -204,7 +244,9 @@ FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
     SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
     SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
 
-    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
+    ## Make sure we find these locally before looking in SimTK/core/include if
+    ## Simbody was previously installed there.
+    INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
 
@@ -251,39 +293,14 @@ ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
 # Installation
 #
 # CMake installs go into CMAKE_INSTALL_PREFIX, which is always
-# set to something incorrect by CMake. If SimTK_INSTALL_PREFIX is set then
-# it is a sandbox installation area, otherwise we want to install
-# in /usr/local/SimTK or c:\Program Files\SimTK.
-
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
-    ENDIF(NOT SimTK_SDK)
-
-ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
-
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_SDK)
-
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+# set to something incorrect by CMake. We'll use SimTK_INSTALL_PREFIX
+# instead which is passed in by the build system or set above.
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
 ## Watch out -- this next line will cause CMake to find installed versions of
 ## SimTKcommon library before the local one. Be sure to delete installed one first.
-
 LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # libraries are installed from their subdirectories; headers here
