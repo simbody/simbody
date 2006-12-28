@@ -103,6 +103,14 @@ int main() {
         std::printf("      about(%s)='%s'\n", *p, out);
     }
 
+    SimTK_version_SimTKcpodes(&major,&minor,&build);
+    std::printf("==> SimTKcpodes library version: %d.%d.%d\n", major, minor, build);
+    std::printf("    SimTK_about_SimTKcpodes():\n");
+    for (const char** p = keylist; *p; ++p) {
+        SimTK_about_SimTKcpodes(*p, 100, out);
+        std::printf("      about(%s)='%s'\n", *p, out);
+    }
+
     SimTK_version_simbody(&major,&minor,&build);
     std::printf("==> simbody library version: %d.%d.%d\n", major, minor, build);
     std::printf("    SimTK_about_simbody():\n");

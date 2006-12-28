@@ -131,7 +131,9 @@ SET(SIMBODY_MINOR_VERSION 5)
 SET(SIMBODY_BUILD_VERSION 4)
 
 SET(SIMBODY_COPYRIGHT_YEARS "2005-6")
-SET(SIMBODY_AUTHORS         "Michael Sherman") # comma separated list of authors
+
+# underbar separated list of dotted authors, no spaces or commas
+SET(SIMBODY_AUTHORS "Michael.Sherman")
 
 
 # Get the subversion revision number if we can
