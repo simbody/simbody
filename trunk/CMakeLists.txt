@@ -64,7 +64,7 @@ SET(SimTKCOMMON_MINOR_VERSION 6)
 SET(SimTKCOMMON_BUILD_VERSION 2)
 
 SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-6")
-SET(SimTKCOMMON_AUTHORS         "Michael Sherman") # comma separated list of authors
+SET(SimTKCOMMON_AUTHORS         "Michael_Sherman") # comma separated list of authors, no spaces
 
 # Get the subversion revision number if we can
 # It's possible that WIN32 installs use svnversion through cygwin.
