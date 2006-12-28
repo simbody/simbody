@@ -172,14 +172,6 @@ namespace SimTK {
     
 namespace Options { }
 namespace Exception { }
-      
-typedef float       FReal;
-typedef double      DReal;
-typedef long double LReal;
-
-typedef std::complex<float>         FComplex;
-typedef std::complex<double>        DComplex;
-typedef std::complex<long double>   LComplex;
 
 typedef SimTK_Real              Real;
 typedef std::complex<Real>      Complex;
@@ -225,15 +217,17 @@ private:
 
 struct Segment {
     Segment() : length(0), offset(0) { }
-    explicit Segment(size_t l, size_t ofs=0) : length(l), offset(ofs) { }
+    explicit Segment(int l, int ofs=0) : length(l), offset(ofs) { 
+        assert(l>=0 && ofs>=0);
+    }
     // default copy, assignment, destructor
-    size_t length;
-    size_t offset;
+    int length;
+    int offset;
 };  
 
 template <class T> class TypeInfo {
 public:
-    static const char* name() { return typeid(T).name(); }
+    static const char* name() {return typeid(T).name();}
 };
 
 #define SimTK_TYPEINFO_SPECIALIZE(T)            \
@@ -260,18 +254,18 @@ namespace SimTKimpl {
 
 ///\{
 /// Template-free signatures of TypeDescriptor methods	
-typedef void*		(*IndexT)(void* tp, size_t n);
-typedef const void*	(*IndexConstT)(const void* tp, size_t n);
+typedef void*		(*IndexT)(void* tp, int n);
+typedef const void*	(*IndexConstT)(const void* tp, int n);
 typedef void*		(*CreateOneT)(const void* iptr);
 typedef void		(*DestructOneT)(void*& tvptr);	
-typedef void		(*AssignArrayOfT)(void* dest, const void* src, size_t n);
-typedef void		(*SetT)(void* dest, const void* valuep, size_t n);
-typedef void*		(*CreateArrayOfT)(size_t n, const void* iptr);
+typedef void		(*AssignArrayOfT)(void* dest, const void* src, int n);
+typedef void		(*SetT)(void* dest, const void* valuep, int n);
+typedef void*		(*CreateArrayOfT)(int n, const void* iptr);
 typedef void		(*DestructArrayOfT)(void*& tvptr);
 ///\}
 
 struct TypeManipulatorT {
-	TypeManipulatorT(size_t z, IndexT it, IndexConstT ict,
+	TypeManipulatorT(int z, IndexT it, IndexConstT ict,
 					 CreateOneT c1t, DestructOneT d1t, AssignArrayOfT aat, SetT st,
 					 CreateArrayOfT cat, DestructArrayOfT dat)
 		: sizeOfT(z), indexT(it), indexConstT(ict), 
@@ -283,7 +277,7 @@ struct TypeManipulatorT {
       { return sizeOfT==t.sizeOfT && indexT==t.indexT; }
 
     // THESE MUST NEVER CHANGE ORDER! This is effectively a compiler-independent
-    // virtual function table. The first entry is a size_t and the rest have
+    // virtual function table. The first entry is a size in bytes and the rest have
     // type "pointer to function" so all the data should have a very predictable
     // and stable layout in memory.
     //
@@ -291,15 +285,15 @@ struct TypeManipulatorT {
     // side and library side must agree on the physical layout of the class. 
     // It is safe to add new entries to the end of this list, but inserting earlier,
     // deleting or reordering anything already here will break binary compatibility.
-	const size_t			sizeOfT;
-	const IndexT			indexT;
-	const IndexConstT		indexConstT;
-	const CreateOneT		createOneT;
-	const DestructOneT		destructOneT;
-	const AssignArrayOfT	assignArrayOfT;
-	const SetT				setT;
-	const CreateArrayOfT	createArrayOfT;
-	const DestructArrayOfT	destructArrayOfT;
+	const int               sizeOfT;
+	const IndexT            indexT;
+	const IndexConstT       indexConstT;
+	const CreateOneT        createOneT;
+	const DestructOneT      destructOneT;
+	const AssignArrayOfT    assignArrayOfT;
+	const SetT              setT;
+	const CreateArrayOfT    createArrayOfT;
+	const DestructArrayOfT  destructArrayOfT;
 };
 
 /** 
@@ -333,15 +327,15 @@ private:
 	/// the next in an ordinary C++ array T[]. It does not matter if
 	/// the object contains pointers to more memory in the heap; we
 	/// expect the object to handle that itself.
-	static size_t sizeT() { return sizeof(T); }
+	static int sizeT() { return (int)sizeof(T); }
 	
 	///\{
 	/// These two routines perform an offset calculation on a void*
 	/// pointer to an array of T to find the n'th following T and
 	/// then return a pointer to it as a void*.
-	static void* indexT(void* tp, size_t n)
+	static void* indexT(void* tp, int n)
 		{ return (void*)(reinterpret_cast<T*>(tp) + n); }
-	static const void* indexConstT(const void* tp, size_t n)
+	static const void* indexConstT(const void* tp, int n)
 		{ return (const void*)(reinterpret_cast<const T*>(tp) + n); }
 	///\}
 
@@ -369,38 +363,38 @@ private:
 	/// although there is no way to check. 
 	/// The n elements of source and destination must not overlap and
 	/// both array pointers must be non-null, unless n is 0.		
-	static void assignArrayOfT(void* dest, const void* src, size_t n)
-	{
+	static void assignArrayOfT(void* dest, const void* src, int n)
+	{   assert(n>=0);
 		if (n==0) return;
 		assert(dest && src);
 		assert(indexT(dest,n) < src || indexConstT(src,n) < dest);		
 		T*		 d = reinterpret_cast<T*>(dest);
 		const T* s = reinterpret_cast<const T*>(src);
-		for (size_t i=0; i < n; ++i) *d++ = *s++;
+		for (int i=0; i < n; ++i) *d++ = *s++;
 	}
 		
 	/// Assign a single value repeatedly to each element of an array of T's.
 	/// we assume that the destination T's have already been constructed.
 	/// It is an error to call this with null destination or value unless
 	/// the number of elements is 0. 
-	static void setT(void* dest, const void* valuep, size_t n=1)
-	{
+	static void setT(void* dest, const void* valuep, int n=1)
+	{   assert(n>=0);
 		if (n==0) return;
 		assert(dest && valuep);
 		T*		 d = reinterpret_cast<T*>(dest);
 		const T& v = *reinterpret_cast<const T*>(valuep);
-		for (size_t i=0; i < n; ++i) *d++ = v; 
+		for (int i=0; i < n; ++i) *d++ = v; 
 	}
 	
 	/// Allocate and default-construct an array of n T's, with 
 	/// optional initialization.
-	static void* createArrayOfT(size_t n, const void* iptr=0)
-	{
+	static void* createArrayOfT(int n, const void* iptr=0)
+	{   assert(n>=0);
 		if (n == 0) return 0;
 		T* tptr = new T[n];
 		if (iptr) {
 			const T& init = *reinterpret_cast<const T*>(iptr);
-			for (size_t i=0; i < n; ++i) tptr[i] = init;
+			for (int i=0; i < n; ++i) tptr[i] = init;
 		}		
 		return tptr;
 	}
@@ -422,7 +416,7 @@ private:
 
 /*static*/ template <class T> const TypeManipulatorT
 MakeTypeManipulator<T>::manipT = TypeManipulatorT(
-									sizeof(T),indexT,indexConstT,
+									(int)sizeof(T),indexT,indexConstT,
 				 					createOneT, destructOneT, assignArrayOfT, setT, 
 				 					createArrayOfT, destructArrayOfT);
 } // namespace SimTKimpl

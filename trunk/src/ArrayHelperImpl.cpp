@@ -1,4 +1,5 @@
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -29,10 +30,9 @@
 #include <algorithm>
 
 // Pre-allocating constructor without initialization.
-SimTKimpl::ArrayData::ArrayData
-    (const SimTKimpl::TypeManipulatorT& tmt, size_t n)
-    : tmanip(tmt), nElts(n), nAlloc(n), data(0) 
-{
+SimTKimpl::ArrayData::ArrayData(const SimTKimpl::TypeManipulatorT& tmt, int n)
+  : tmanip(tmt), nElts(n), nAlloc(n), data(0) 
+{   assert(n>=0);
     data = tmanip.createArrayOfT(nAlloc,0);
 }
 
@@ -41,9 +41,9 @@ SimTKimpl::ArrayData::ArrayData
 // if it is just one element. Pass init=0 to leave elements default constructed in
 // which case repeat is ignored.
 SimTKimpl::ArrayData::ArrayData
-	(const SimTKimpl::TypeManipulatorT& tmt, size_t n, const void* init, bool repeat)
-	: tmanip(tmt), nElts(n), nAlloc(n), data(0) 
-{
+   (const SimTKimpl::TypeManipulatorT& tmt, int n, const void* init, bool repeat)
+  : tmanip(tmt), nElts(n), nAlloc(n), data(0) 
+{   assert(n>=0);
     data = tmanip.createArrayOfT(nAlloc,0);
     if (!init) return;
     if (repeat) tmanip.setT(data, init, nElts);
@@ -52,7 +52,7 @@ SimTKimpl::ArrayData::ArrayData
 
 // Copy constructor
 SimTKimpl::ArrayData::ArrayData(const ArrayData& ahi)
-	: tmanip(ahi.tmanip), nElts(ahi.nElts), nAlloc(ahi.nElts), data(0)
+  : tmanip(ahi.tmanip), nElts(ahi.nElts), nAlloc(ahi.nElts), data(0)
 {
 	data = tmanip.createArrayOfT(nElts,0);
 	tmanip.assignArrayOfT(data, ahi.data, nElts);
@@ -77,16 +77,16 @@ SimTKimpl::ArrayData::copyInThroughMasks
     assert(myMask.size() == srcMask.size());
     assert(isSameType(src));
     // XXX Should optimize for the case when views are contiguous elements.
-    for (size_t i=0; i < myMask.size(); ++i)
+    for (int i=0; i < myMask.size(); ++i)
         tmanip.setT(blobAddr(myMask[i]), src.blobAddr(srcMask[i]), 1);     
 }
 
 void
 SimTKimpl::ArrayData::reverseThroughMask(const ArrayMask& myMask) {
     void* temp = tmanip.createOneT(0);
-    for (size_t i=0; i < myMask.size()/2; ++i) {
-        const size_t i1 = myMask[i];
-        const size_t i2 = myMask[myMask.size()-i-1];
+    for (int i=0; i < myMask.size()/2; ++i) {
+        const int i1 = myMask[i];
+        const int i2 = myMask[myMask.size()-i-1];
         tmanip.setT(temp, blobAddr(i1), 1);
         tmanip.setT(blobAddr(i1), blobAddr(i2), 1);
         tmanip.setT(blobAddr(i2), temp, 1);
@@ -106,8 +106,8 @@ SimTKimpl::ArrayData::push_back(const void* blob)
 }
 
 void
-SimTKimpl::ArrayData::reserve(size_t n)
-{
+SimTKimpl::ArrayData::reserve(int n)
+{   assert(n>=0);
 	if (nAlloc < n) {
 		void* newData = tmanip.createArrayOfT(n,0); // construct, but don't initialize
 		tmanip.assignArrayOfT(newData, data, nElts);	// copy the old stuff
@@ -118,8 +118,8 @@ SimTKimpl::ArrayData::reserve(size_t n)
 }
 
 void 
-SimTKimpl::ArrayData::resize(size_t n, const void* initBlob)
-{
+SimTKimpl::ArrayData::resize(int n, const void* initBlob)
+{   assert(n>=0);
 	reserve(n);
 	if (n > nElts && initBlob)
 		tmanip.setT(blobAddr(nElts), initBlob, n-nElts); // init new stuff
@@ -127,8 +127,7 @@ SimTKimpl::ArrayData::resize(size_t n, const void* initBlob)
 }
 
 void
-SimTKimpl::ArrayData::clear()
-{
+SimTKimpl::ArrayData::clear() {
     resize(0);
 }
 

@@ -2,6 +2,7 @@
 #define SimTKIMPL_ARRAYHELPERIMPL_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -42,15 +43,20 @@ namespace SimTKimpl {
 class ArrayMask {
 public:
     ArrayMask() : offset(0), length(0), readOnly(false) { }
-    ArrayMask(size_t off, size_t len, bool ro=false) 
-        : offset(off), length(len), readOnly(ro) { }
-    explicit ArrayMask(size_t len, bool ro=false) 
-        : offset(0), length(len), readOnly(ro) { }
+    ArrayMask(int off, int len, bool ro=false) 
+      : offset(off), length(len), readOnly(ro) {
+        assert(off >= 0 && len >= 0);
+    }
+    explicit ArrayMask(int len, bool ro=false) 
+      : offset(0), length(len), readOnly(ro) {
+        assert(len >= 0);
+    }
     
     // Create a subview of an exiting view. Readonly flag is set to more
     // restrictive of view.readOnly and ro.
-    ArrayMask(const ArrayMask& mask, size_t off, size_t len, bool ro=false)
-    {   assert(off+len <= mask.length);  // note "=" is OK with length 0
+    ArrayMask(const ArrayMask& mask, int off, int len, bool ro=false)
+    {   assert(off >= 0 && len >= 0);
+        assert(off+len <= mask.length);  // note "=" is OK with length 0
         offset = mask.offset+off; length = len;
         readOnly = (mask.readOnly || ro);
     }
@@ -58,29 +64,29 @@ public:
     // default copy, assignment, constructor
     
     bool isReadOnly() const { return readOnly; }   
-    size_t size() const { return length; }  
+    int  size() const { return length; }  
       
     // Allow an index one past the end.
-    size_t operator[](size_t ix) const { assert(ix <= length); return offset+ix; }  
+    int operator[](int ix) const { assert(ix <= length); return offset+ix; }  
 
 private:
-    size_t  offset;
-    size_t  length;
-    bool    readOnly;
+    int  offset;
+    int  length;
+    bool readOnly;
 };
 
-/**
+/*
  * This implements something like std:vector<blob> for a particular size blob.
  * We don't know the types of the blobs so we can only return their addresses. 
  */	
 class ArrayData {
 public:
-	static const size_t ChunkSize = 10;
+	static const int ChunkSize = 10;
 	
 	explicit ArrayData(const TypeManipulatorT& tmt)
 		: tmanip(tmt), nElts(0), nAlloc(0), data(0) { }
-    ArrayData(const TypeManipulatorT& tmt, size_t n);        
-	ArrayData(const TypeManipulatorT& dt, size_t n, const void* init, bool repeat);
+    ArrayData(const TypeManipulatorT& tmt, int n);        
+	ArrayData(const TypeManipulatorT& dt, int n, const void* init, bool repeat);
 
     // Copy constructors for whole object or just a subset of its elements.
 	ArrayData(const ArrayData&);
@@ -97,9 +103,9 @@ public:
 
     void reverseThroughMask(const ArrayMask& myMask);
 
-	size_t capacity() const { return nAlloc; }
-	size_t size() const { return nElts; }
-	bool   empty() const { return nElts==0; }
+	int  capacity() const { return nAlloc;   }
+	int  size()     const { return nElts;    }
+	bool empty()    const { return nElts==0; }
 	
 	void push_back(const void* blob);
 	
@@ -109,25 +115,25 @@ public:
 		--nElts;
 	}	
 
-	void reserve(size_t n);
-	void resize(size_t n, const void* initBlob = 0);
+	void reserve(int n);
+	void resize(int n, const void* initBlob = 0);
     void clear();
 
-	const void* operator[](size_t i) const 
+	const void* operator[](int i) const 
 		{ assert(i<nElts); return blobAddr(i); }
-	void* operator[](size_t i) 
+	void* operator[](int i) 
 		{ assert(i<nElts); return blobAddr(i); }
 		
 private:
 	const TypeManipulatorT	tmanip;	// about the elements
-	size_t					nElts;
-	size_t					nAlloc;
-	void*					data;
+	int                     nElts;
+	int                     nAlloc;
+	void*                   data;
 
 // helpers
 private:
-	void* blobAddr(size_t i) { return tmanip.indexT(data,i); }
-	const void* blobAddr(size_t i) const { return tmanip.indexConstT(data,i); }
+	void* blobAddr(int i) { return tmanip.indexT(data,i); }
+	const void* blobAddr(int i) const { return tmanip.indexConstT(data,i); }
 	
 // not allowed
 private:
@@ -136,7 +142,7 @@ private:
 };
 
 
-/**
+/*
  * This is the class to which a SimTKimpl::ArrayBase<T> holds a handle. It is some kind
  * of restricted mask applied to an ArrayData object. An ArrayHelperImpl object may
  * own the underlying ArrayData, or may be sharing it. We're not reference
@@ -145,28 +151,32 @@ private:
  */ 
 class ArrayHelperImpl {
 public:
-    static const size_t ChunkSize = 10;
+    static const int ChunkSize = 10;
     
-    explicit ArrayHelperImpl(const TypeManipulatorT& tmt, size_t n=0)
+    explicit ArrayHelperImpl(const TypeManipulatorT& tmt, int n=0)
         : owner(true), arrayData(new ArrayData(tmt,n)), mask(n) { }
 
-    ArrayHelperImpl(const TypeManipulatorT& tmt, size_t n, const void* init, bool repeat)
+    ArrayHelperImpl(const TypeManipulatorT& tmt, int n, const void* init, bool repeat)
         : owner(true), arrayData(new ArrayData(tmt,n,init,repeat)), mask(n) { }
         
     // Slice constructor creates a non-owner, read only and writable versions.
     // Note that the writable one will still produce a read only view if the
     // original was read only.
-    ArrayHelperImpl(const ArrayHelperImpl& ahi, size_t offset, size_t length)
-        : owner(false), arrayData(const_cast<ArrayData*>(&ahi.getArrayData())), 
-          mask(ahi.getMask(),offset,length,true) { }
-    ArrayHelperImpl(ArrayHelperImpl& ahi, size_t offset, size_t length)
-        : owner(false), arrayData(&ahi.updArrayData()), 
-          mask(ahi.getMask(),offset,length,false) { }
+    ArrayHelperImpl(const ArrayHelperImpl& ahi, int offset, int length)
+      : owner(false), arrayData(const_cast<ArrayData*>(&ahi.getArrayData())), 
+        mask(ahi.getMask(),offset,length,true) { 
+        assert(offset>=0 && length>=0);
+    }
+    ArrayHelperImpl(ArrayHelperImpl& ahi, int offset, int length)
+      : owner(false), arrayData(&ahi.updArrayData()), 
+        mask(ahi.getMask(),offset,length,false) {
+        assert(offset>=0 && length>=0);
+    }
           
     // Copy constructor creates an owner even if the source was not.
     ArrayHelperImpl(const ArrayHelperImpl& ahi)
-        : owner(true), arrayData(new ArrayData(ahi.getArrayData(), ahi.getMask())), 
-          mask(ahi.size()) { }
+      : owner(true), arrayData(new ArrayData(ahi.getArrayData(), ahi.getMask())), 
+        mask(ahi.size()) { }
 
     // If this is an owner, assignment behaves like the copy constructor although
     // we insist on matching underlying types.
@@ -188,9 +198,9 @@ public:
             
     ~ArrayHelperImpl() { if (owner) delete arrayData; }
 
-    size_t size() const { return mask.size(); }
-    size_t capacity() const { return size(); }
-    bool   empty() const { return size()==0; }
+    int  size()     const {return mask.size();}
+    int  capacity() const {return size();     }
+    bool empty()    const {return size()==0;  }
     
     void push_back(const void* blob)
     {   if (!owner) SimTK_THROW1(Exception::OperationNotAllowedOnView,"push_back"); 
@@ -200,29 +210,34 @@ public:
     {   if (!owner) SimTK_THROW1(Exception::OperationNotAllowedOnView,"pop_back"); 
         updArrayData().pop_back(); resizeOwnerMask(); }
 
-    void reserve(size_t n)    
-    {   if (n==size()) return;  // we'll allow this even on a view
+    void reserve(int n)    
+    {   assert(n>=0);
+        if (n==size()) return;  // we'll allow this even on a view
         if (!owner) SimTK_THROW1(Exception::OperationNotAllowedOnView,"reserve"); 
-        updArrayData().reserve(n); }
+        updArrayData().reserve(n);
+    }
          
-    void resize(size_t n, const void* initBlob = 0)
-    {   if (n==size()) return;  // we'll allow this even on a view
+    void resize(int n, const void* initBlob = 0)
+    {   assert(n>=0);
+        if (n==size()) return;  // we'll allow this even on a view
         if (!owner) SimTK_THROW1(Exception::OperationNotAllowedOnView,"resize"); 
-        updArrayData().resize(n,initBlob); resizeOwnerMask(); }
+        updArrayData().resize(n,initBlob); resizeOwnerMask();
+    }
         
     void clear() 
     {   if (0==size()) return;  // we'll allow this even on a view
         if (!owner) SimTK_THROW1(Exception::OperationNotAllowedOnView,"clear"); 
-        updArrayData().clear(); resizeOwnerMask(); }
+        updArrayData().clear(); resizeOwnerMask();
+    }
 
     void reverse() {
         updArrayData().reverseThroughMask(getMask());
     }
 
-    const void* operator[](size_t i) const 
-      { assert(i<size()); return (*arrayData)[mask[i]]; }
-    void* operator[](size_t i) 
-    {   assert(i<size());
+    const void* operator[](int i) const 
+      { assert(0<=i && i<size()); return (*arrayData)[mask[i]]; }
+    void* operator[](int i) 
+    {   assert(0<=i && i<size());
         if (mask.isReadOnly())
             SimTK_THROW1(Exception::OperationNotAllowedOnNonconstReadOnlyView,"operator[]"); 
         return (*arrayData)[mask[i]]; }
@@ -235,10 +250,10 @@ private:
     // offset==0 and length=arrayData.size().
     ArrayMask   mask;
     
-    ArrayData&       updArrayData()       { assert(arrayData); return *arrayData; }
-    const ArrayData& getArrayData() const { assert(arrayData); return *arrayData; }
-    const ArrayMask& getMask() const { return mask; }
-    void resizeOwnerMask() { assert(owner); mask=ArrayMask(getArrayData().size()); }
+    ArrayData&       updArrayData()       {assert(arrayData); return *arrayData;}
+    const ArrayData& getArrayData() const {assert(arrayData); return *arrayData;}
+    const ArrayMask& getMask()      const {return mask;}
+    void resizeOwnerMask() {assert(owner); mask=ArrayMask(getArrayData().size());}
 };
 
 } //namespace SimTKimpl

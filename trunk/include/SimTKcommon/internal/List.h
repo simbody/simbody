@@ -28,6 +28,7 @@
 #include "SimTKcommon/internal/Concretize.h"
 
 #include <complex>
+#include <cassert>
 
 namespace SimTK {
      
@@ -39,39 +40,41 @@ template <class T> class ListBase : public ArrayBase< Concretize<T> > {
     typedef ArrayBase<Element> Base;
 public:
     ListBase() { }
-    ListBase(size_t n) : Base(n) { }
+    ListBase(int n) : Base(n) {assert(n>=0);}
 
     // default copy, assignment, destructor made explicit here for convenient debugging
     ListBase(const ListBase& lb) : Base(lb) { }
     ~ListBase() { }
-    ListBase& operator=(const ListBase& lb) { Base::operator=(lb); return *this; }
+    ListBase& operator=(const ListBase& lb) {Base::operator=(lb); return *this;}
     
     // These make copies of the supplied objects    
-    ListBase(size_t n, const T& initVal) : Base(n,Element(&initVal)) { }
-    ListBase(size_t n, const T* initVal) : Base(n,Element(initVal))  { }
-    ListBase(size_t n, const T* const* initVals) : Base(n) 
-        { for (size_t i=0; i<n; ++i) Base::operator[](i) = *initVals[i]; }
+    ListBase(int n, const T& initVal) : Base(n,Element(&initVal)) { }
+    ListBase(int n, const T* initVal) : Base(n,Element(initVal))  { }
+    ListBase(int n, const T* const* initVals) : Base(n) {
+        for (int i=0; i<n; ++i) Base::operator[](i) = *initVals[i];
+    }
 
     // This steals all the space and zeroes out the passed-in array of pointers.        
-    ListBase(size_t n, T** pp) : Base(n) 
-        { for (size_t i=0;i<n;++i) Base::operator[](i).replace(&pp[i]); }
+    ListBase(int n, T** pp) : Base(n) {
+        for (int i=0;i<n;++i) Base::operator[](i).replace(&pp[i]);
+    }
     
     // Sub-ListBase constructors, read only and writable.
     // These share space with the original ListBase.
-    ListBase(const ListBase& l, size_t offset, size_t length) : Base(l,offset,length) { }
-    ListBase(ListBase&       l, size_t offset, size_t length) : Base(l,offset,length) { }
+    ListBase(const ListBase& l, int offset, int length) : Base(l,offset,length) { }
+    ListBase(ListBase&       l, int offset, int length) : Base(l,offset,length) { }
     
-    Element& operator[](size_t i)       { return Base::operator[](i); }
-    const T& operator[](size_t i) const { return Base::operator[](i).getRef(); }    
+    Element& operator[](int i)       {return Base::operator[](i);}
+    const T& operator[](int i) const {return Base::operator[](i).getRef();}    
         
-    void push_back(const T& x)   { Base::push_back(Element(&x)); } // copies x
-    void push_back(T* p)         { Base::push_back(Element(p));  } // steals p
-    void push_back(T*& pr)       { Base::push_back(Element(pr));  } // steals p and clears it
-    ListBase& operator+=(const T& x) { push_back(x); }
-    ListBase& operator+=(T*  p)      { push_back(p); }
-    ListBase& operator+=(T*& pr)     { push_back(pr); }    
+    void push_back(const T& x)   {Base::push_back(Element(&x));} // copies x
+    void push_back(T* p)         {Base::push_back(Element(p)); } // steals p
+    void push_back(T*& pr)       {Base::push_back(Element(pr));} // steals p and clears it
+    ListBase& operator+=(const T& x) {push_back(x); }
+    ListBase& operator+=(T*  p)      {push_back(p); }
+    ListBase& operator+=(T*& pr)     {push_back(pr);}    
         
-    bool isEmpty(size_t i) const { return Base::operator[](i).isEmpty(); }
+    bool isEmpty(int i) const {return Base::operator[](i).isEmpty();}
 };
 
 // Partial specialization for pointers -- these are just Arrays of pointers
@@ -80,11 +83,11 @@ template <class T> class ListBase<T*>: public ArrayBase<T*> {
     typedef ArrayBase<Element> Base;
 public:
     ListBase() { }
-    ListBase(size_t n) : Base(n) { }
-    ListBase(size_t n, Element initVal) : Base(n,initVal) { }     
-    ListBase(size_t n, const Element* initVals) : Base(n,initVals) { }
-    ListBase(const ListBase& l, size_t offset, size_t length) : Base(l,offset,length) { }
-    ListBase(ListBase&       l, size_t offset, size_t length) : Base(l,offset,length) { }
+    ListBase(int n) : Base(n) { }
+    ListBase(int n, Element initVal) : Base(n,initVal) { }     
+    ListBase(int n, const Element* initVals) : Base(n,initVals) { }
+    ListBase(const ListBase& l, int offset, int length) : Base(l,offset,length) { }
+    ListBase(ListBase&       l, int offset, int length) : Base(l,offset,length) { }
     
     // default copy, assignment, destructor made explicit here for convenient debugging
     ListBase(const ListBase& lb) : Base(lb) { }
@@ -94,7 +97,7 @@ public:
     // inherit most operators and methods from Base   
     
     ListBase& operator+=(Element x) { Base::operator+=(x); return *this; }
-    bool isEmpty(size_t) const { return false; }
+    bool isEmpty(int) const { return false; }
 };
 
 // ListBase template specializations for known concrete objects
@@ -103,14 +106,14 @@ template <> class ListBase< T > : public ArrayBase< T > {           \
     typedef ArrayBase< T > Base;                                    \
 public:                                                             \
     ListBase() { }                                                  \
-    ListBase(size_t n) : Base(n) { }                                \
-    ListBase(size_t n, const T& initVal) : Base(n,initVal) { }      \
-    ListBase(size_t n, const T* initVals): Base(n,initVals) { }     \
-    ListBase(const ListBase& l, size_t offset, size_t length) : Base(l,offset,length) { }   \
-    ListBase(ListBase&       l, size_t offset, size_t length) : Base(l,offset,length) { }   \
+    ListBase(int n) : Base(n) { }                                \
+    ListBase(int n, const T& initVal) : Base(n,initVal) { }      \
+    ListBase(int n, const T* initVals): Base(n,initVals) { }     \
+    ListBase(const ListBase& l, int offset, int length) : Base(l,offset,length) { }   \
+    ListBase(ListBase&       l, int offset, int length) : Base(l,offset,length) { }   \
     /* default copy, assignment, destructor; inherit most operators & methods */            \
     ListBase& operator+=(const T& x) { Base::operator+=(x); return *this; } \
-    bool isEmpty(size_t) const { return false; }                            \
+    bool isEmpty(int) const { return false; }                            \
 };
 
 // Built-in types
@@ -147,18 +150,18 @@ public:
     ~ListView() { } // convenient for debugging
        
     // Sub-array constructors, read only and writable, and their operator equivalents
-    ListView(const Base& a, size_t offset, size_t length) : Base(a,offset,length) { }
-    ListView(Base&       a, size_t offset, size_t length) : Base(a,offset,length) { }
-    ListView operator()(size_t offset, size_t length) const { return ListView(*this, offset, length); }
-    ListView operator()(size_t offset, size_t length)       { return ListView(*this, offset, length); } 
+    ListView(const Base& a, int offset, int length) : Base(a,offset,length) { }
+    ListView(Base&       a, int offset, int length) : Base(a,offset,length) { }
+    ListView operator()(int offset, int length) const {return ListView(*this, offset, length);}
+    ListView operator()(int offset, int length)       {return ListView(*this, offset, length);} 
         
     // Shallow assignment only (ListBase understands)
-    ListView& operator=(const ListView& v) { Base::operator=(v); return *this; }
-    ListView& operator=(const Base& b) { Base::operator=(b); return *this; }
+    ListView& operator=(const ListView& v) {Base::operator=(v); return *this;}
+    ListView& operator=(const Base&     b) {Base::operator=(b); return *this;}
     
     // Conversions
-    operator const List<T>&() const { return *reinterpret_cast<const List<T>*>(this); }
-    operator List<T>&()             { return *reinterpret_cast<List<T>*>(this); }
+    operator const List<T>&() const {return *reinterpret_cast<const List<T>*>(this);}
+    operator List<T>&()             {return *reinterpret_cast<List<T>*>(this);}
 private:
     // NO DATA MEMBERS ALLOWED
     ListView() { assert(false); } // default construction not allowed
@@ -177,28 +180,28 @@ template <class T> class List : public ListBase<T> {
     typedef ListBase<T> Base;
 public:
 	List() : Base() { }
-	explicit List(size_t n) : Base(n) { }
+	explicit List(int n) : Base(n) { }
     ~List() { } // convenient for debugging
     
     // default copy, assignment, destructor (these will be "deep" copies)
     
     // These allocate new space and fill it with copies of the supplied objects    
-	List(size_t n, const T& initVal) : Base(n,initVal) { }
-    List(size_t n, const T* initVal) : Base(n,initVal)  { }
-    List(size_t n, const T* const* initVals) : Base(n,initVals) { }
+	List(int n, const T& initVal) : Base(n,initVal) { }
+    List(int n, const T* initVal) : Base(n,initVal)  { }
+    List(int n, const T* const* initVals) : Base(n,initVals) { }
 
     // This allocates a new List but steals the initializing objects rather
     // than copying them. For safety it zeroes out the passed-in array of pointers.        
-    List(size_t n, T** pp) : Base(n,pp) { }
+    List(int n, T** pp) : Base(n,pp) { }
     
     // Sub-list constructors, read only and writable, and their operator equivalents.
     // These share space with the original List.
-    List(const List& l, size_t offset, size_t length) : Base(l,offset,length) { }
-    List(List&       l, size_t offset, size_t length) : Base(l,offset,length) { }
+    List(const List& l, int offset, int length) : Base(l,offset,length) { }
+    List(List&       l, int offset, int length) : Base(l,offset,length) { }
     
-    const ListView<T> operator()(size_t offset, size_t length) const 
+    const ListView<T> operator()(int offset, int length) const 
         { return ListView<T>(*this, offset, length); }
-    ListView<T>       operator()(size_t offset, size_t length)       
+    ListView<T>       operator()(int offset, int length)       
         { return ListView<T>(*this, offset, length); }    
         
     List& operator+=(const T& x) { Base::operator+=(x); return *this; }
@@ -217,14 +220,14 @@ private:
 /// If the type T supports an "==" operator, you can instantiate
 /// this method to find the first element of an List<T> which matches the
 /// supplied test element. The index is returned if found, otherwise -1.
-template <class T> inline ptrdiff_t
+template <class T> inline int
 findFirstOf(const List<T>& l, const T& test) {
-    for (ptrdiff_t i=0; i<l.size(); ++i)
+    for (int i=0; i<l.size(); ++i)
         if (l[i] == test) return i;
     return -1;
 } 
 
-template <class T> inline ptrdiff_t
+template <class T> inline int
 findFirstOf(const ListView<T>& lv, const T& test) {
     return findFirstOf((const List<T>&)lv, test);
 }
@@ -234,15 +237,15 @@ findFirstOf(const ListView<T>& lv, const T& test) {
 /// the elements match the supplied test element. The returned index
 /// list will have length 0 if there are no matches.
 
-template <class T> inline Array<ptrdiff_t>
+template <class T> inline Array<int>
 findAllOf(const List<T>& l, const T& test) {
-    Array<ptrdiff_t> matches;
-    for (ptrdiff_t i=0; i<l.size(); ++i)
+    Array<int> matches;
+    for (int i=0; i<l.size(); ++i)
         if (l[i] == test) matches.push_back(i);
     return matches;
 } 
 
-template <class T> inline Array<ptrdiff_t>
+template <class T> inline Array<int>
 findAllOf(const ListView<T>& lv, const T& test) {
     return findAllOf((const List<T>&)lv, test);
 }

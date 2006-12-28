@@ -25,25 +25,13 @@
 
 /**@file
  * Includes internal headers providing declarations for the basic SimTK
- * Core classes. This file can be included from ANSI C code as well as
- * C++, although only a small subset of the definitions will be done
- * in a C program. These include default precision and simple macros
- * such as those used for physical constants.
+ * Core classes, including Simmatrix.
  */
 
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/Constants.h"
+#include "SimTKcommon/basics.h"
 
 #if defined(__cplusplus)
-#include "SimTKcommon/internal/Exception.h"
-#include "SimTKcommon/internal/ExceptionMacros.h"
-#include "SimTKcommon/internal/Concretize.h"
-#include "SimTKcommon/internal/Fortran.h"
-#include "SimTKcommon/internal/String.h"
-#include "SimTKcommon/internal/Array.h"
-#include "SimTKcommon/internal/List.h"
-#include "SimTKcommon/internal/Value.h"
-#include "SimTKcommon/internal/Stage.h"
+#include "SimTKcommon/Simmatrix.h"
 #endif
 
 

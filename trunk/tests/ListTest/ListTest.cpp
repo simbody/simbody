@@ -70,8 +70,9 @@ operator<<(std::ostream& o, const MyAbstractType& v)
     { o << v.myName(); return o; }
     
 template <class T> std::ostream&
-operator<<(std::ostream& o, const std::vector<T>& v)
-{ for (size_t i=0; i<v.size(); ++i) {o<<v[i]<<" ";} return o;}
+operator<<(std::ostream& o, const std::vector<T>& v) {
+    for (int i=0; i<(int)v.size(); ++i) {o<<v[i]<<" ";} return o;
+}
 
 void ff(SimTK::TestId ti) {
     cout << "ff got: " << ti.getInt() << endl;

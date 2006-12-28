@@ -102,7 +102,7 @@ void SimTK_about_SimTKcommon(const char* key, int maxlen, char* value) {
 
     // downshift the key
     std::string skey(key);
-    for (size_t i=0; i<skey.size(); ++i)
+    for (int i=0; i<(int)skey.size(); ++i)
         skey[i] = std::tolower(skey[i]);
 
     char* v = 0;

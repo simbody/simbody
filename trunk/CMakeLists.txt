@@ -50,6 +50,10 @@ IF (NOT CMAKE_CXX_FLAGS_RELEASE)
           "To use when CMAKE_BUILD_TYPE=Release" FORCE)
 ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
+# The source is organized into subdirectories, but we handle them all from
+# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
+SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix BigMatrix Mechanics)
+
 
 # Collect up information about the version of the SimTKcommon library we're building
 # and make it available to the code so it can be built into the binaries.
@@ -57,7 +61,7 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
 SET(SimTKCOMMON_MAJOR_VERSION 0)
 SET(SimTKCOMMON_MINOR_VERSION 6)
-SET(SimTKCOMMON_BUILD_VERSION 1)
+SET(SimTKCOMMON_BUILD_VERSION 2)
 
 SET(SimTKCOMMON_COPYRIGHT_YEARS "2005-6")
 SET(SimTKCOMMON_AUTHORS         "Michael Sherman") # comma separated list of authors
@@ -151,9 +155,26 @@ IF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
     SET(STATIC_TARGET ${STATIC_TARGET}_d)
 ENDIF (UNIX AND CMAKE_BUILD_TYPE MATCHES Debug)
 
+# Determine which math libraries to use for this platform.
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+    SET(MATH_LIBS_TO_USE SimTKlapack pthread)
+ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
+    ## Assume Microsoft Visual Studio
+    SET(MATH_LIBS_TO_USE SimTKlapack)
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+
 # These are all the places to search for header files which are
 # to be part of the API.
-SET(API_INCLUDE_DIRS include include/SimTKcommon include/SimTKcommon/internal)
+SET(API_INCLUDE_DIRS) # start empty
+FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
+    # append
+    SET(API_INCLUDE_DIRS ${API_INCLUDE_DIRS}
+                         ${subdir}/include 
+                         ${subdir}/include/SimTKcommon 
+                         ${subdir}/include/SimTKcommon/internal)
+ENDFOREACH(subdir)
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -171,10 +192,20 @@ FOREACH(dir ${API_INCLUDE_DIRS})
 ENDFOREACH(dir)
 
 
-FILE(GLOB SOURCE_FILES src/*.cpp )
-FILE(GLOB SOURCE_INCLUDE_FILES src/*.h)
+# collect up source files
+SET(SOURCE_FILES) # empty
+SET(SOURCE_INCLUDE_FILES)
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
+FOREACH(subdir ${SimTKCOMMON_SOURCE_SUBDIRS})
+    FILE(GLOB src_files  ${subdir}/src/*.cpp)
+    FILE(GLOB incl_files ${subdir}/src/*.h)
+    SET(SOURCE_FILES         ${SOURCE_FILES}         ${src_files})   #append
+    SET(SOURCE_INCLUDE_FILES ${SOURCE_INCLUDE_FILES} ${incl_files})
+
+    INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir}/include)
+ENDFOREACH(subdir)
+
+
 
 #
 # Allow automated build and dashboard.
@@ -201,8 +232,18 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(ListTest       ${TEST_PATH}/ListTest)
-ADD_TEST(ListTestStatic ${TEST_PATH}/ListTestStatic)
+ADD_TEST(ListTest                 ${TEST_PATH}/ListTest)
+ADD_TEST(ListTestStatic           ${TEST_PATH}/ListTestStatic)
+ADD_TEST(BNTTest                  ${TEST_PATH}/BNTTest)
+ADD_TEST(BNTTestStatic            ${TEST_PATH}/BNTTestStatic)
+ADD_TEST(MatVecTest               ${TEST_PATH}/MatVecTest)
+ADD_TEST(MatVecTestStatic         ${TEST_PATH}/MatVecTestStatic)
+ADD_TEST(SpatialAlgebraTest       ${TEST_PATH}/SpatialAlgebraTest)
+ADD_TEST(SpatialAlgebraTestStatic ${TEST_PATH}/SpatialAlgebraTestStatic)
+ADD_TEST(OrientationTest          ${TEST_PATH}/OrientationTest)
+ADD_TEST(OrientationTestStatic    ${TEST_PATH}/OrientationTestStatic)
+ADD_TEST(BigMatrixTest            ${TEST_PATH}/BigMatrixTest)
+ADD_TEST(BigMatrixTestStatic      ${TEST_PATH}/BigMatrixTestStatic)
 
 #
 # Installation
@@ -218,22 +259,37 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
         SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "/usr/local/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
         SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
+    IF(NOT SimTK_SDK)
+        SET(SimTK_SDK "C:/Program Files/SimTK")
+    ENDIF(NOT SimTK_SDK)
+
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
+INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+
+## Watch out -- this next line will cause CMake to find installed versions of
+## SimTKcommon library before the local one. Be sure to delete installed one first.
+
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
+
 # libraries are installed from their subdirectories; headers here
 
 # install headers
-FILE(GLOB CORE_HEADERS     include/*.h)
-FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h)
-FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h)
+FILE(GLOB CORE_HEADERS     include/*.h                      */include/*.h)
+FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h          */include/SimTKcommon*.h)
+FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommon/internal/*.h)
 INSTALL_FILES("/core/include"                      FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon"          FILES ${TOP_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon/internal" FILES ${INTERNAL_HEADERS})

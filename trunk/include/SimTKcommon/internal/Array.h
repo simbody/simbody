@@ -2,6 +2,7 @@
 #define SimTK_SimTKCOMMON_ARRAY_H_
 
 /* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -41,31 +42,31 @@ class ArrayHelperImpl;
 class SimTK_SimTKCOMMON_EXPORT ArrayHelper {
 public:		
 	// no default constructor
-	explicit ArrayHelper(const TypeManipulatorT&, ptrdiff_t n=0);
-	ArrayHelper(const TypeManipulatorT&, ptrdiff_t n, const void* ival, bool repeat);
+	explicit ArrayHelper(const TypeManipulatorT&, int n=0);
+	ArrayHelper(const TypeManipulatorT&, int n, const void* ival, bool repeat);
 	ArrayHelper(const ArrayHelper&);
 
     // Sub-array constructors, read only and writable
-    ArrayHelper(const ArrayHelper&, ptrdiff_t offset, ptrdiff_t length);
-    ArrayHelper(ArrayHelper&,       ptrdiff_t offset, ptrdiff_t length);    
+    ArrayHelper(const ArrayHelper&, int offset, int length);
+    ArrayHelper(ArrayHelper&,       int offset, int length);    
     
 	~ArrayHelper();
 	ArrayHelper& operator=(const ArrayHelper&);
 
-    void      reverse();                 // reverse the order of all elements
+    void reverse(); // reverse the order of all elements
 	
     // use signed integers to avoid signed/unsigned mismatch misery
-	ptrdiff_t capacity() const;
-	ptrdiff_t size() const;	
+	int capacity() const;
+	int size() const;	
 		
-	const void* operator[](ptrdiff_t i) const; 
-	void* operator[](ptrdiff_t i);
+	const void* operator[](int i) const; 
+	void* operator[](int i);
 	
 	void push_back(const void*);
 	void pop_back();
 	void clear();
-	void resize(ptrdiff_t n, const void* x=0);
-    void reserve(ptrdiff_t n);
+	void resize(int n, const void* x=0);
+    void reserve(int n);
 	
 private:
 	ArrayHelperImpl* impl;
@@ -83,13 +84,13 @@ template <class T> class ArrayView;
 template <class T> class ArrayBase {
 public:
     ArrayBase() : ah(type()) { }
-    explicit ArrayBase(ptrdiff_t n) : ah(type(),n) { }
-    ArrayBase(ptrdiff_t n, const T& ival)  : ah(type(),n,&ival,true) { }
-    ArrayBase(ptrdiff_t n, const T* ivals) : ah(type(),n,ivals,false) { }
+    explicit ArrayBase(int n) : ah(type(),n) { }
+    ArrayBase(int n, const T& ival)  : ah(type(),n,&ival,true) { }
+    ArrayBase(int n, const T* ivals) : ah(type(),n,ivals,false) { }
         
     // Sub-array constructors, read only and writable, and their operator equivalents
-    ArrayBase(const ArrayBase& a, ptrdiff_t offset, ptrdiff_t length) : ah(a.ah,offset,length) { }
-    ArrayBase(ArrayBase&       a, ptrdiff_t offset, ptrdiff_t length) : ah(a.ah,offset,length) { }
+    ArrayBase(const ArrayBase& a, int offset, int length) : ah(a.ah,offset,length) { }
+    ArrayBase(ArrayBase&       a, int offset, int length) : ah(a.ah,offset,length) { }
 
     // Default copy, assignment, destructor made explicit here for convenient debugging.
     // These are "deep" copies.
@@ -103,7 +104,7 @@ public:
 
     // Assign the same value to every element.
     ArrayBase& operator=(const T& x) {
-        for (ptrdiff_t i=0; i < size(); ++i)
+        for (int i=0; i < size(); ++i)
             (*this)[i] = x;
         return *this;
     }
@@ -125,32 +126,33 @@ public:
 
     void reverse() {ah.reverse();}
 
-    ptrdiff_t capacity() const { return ah.capacity(); }
-    ptrdiff_t size()     const { return ah.size(); }
+    int capacity() const { return ah.capacity(); }
+    int size()     const { return ah.size(); }
 
-    const T& operator[](ptrdiff_t i) const { return getAs(ah[i]); }
-    T&       operator[](ptrdiff_t i)       { return updAs(ah[i]); }
+    const T& operator[](int i) const {return getAs(ah[i]);}
+    T&       operator[](int i)       {return updAs(ah[i]);}
     
     // Append to end of array.
     ArrayBase& operator+=(const T& x) { push_back(x); return *this; }
         
-    void push_back(const T& x)           { ah.push_back(&x); }
-    void pop_back()                      { ah.pop_back(); }
-    void clear()                         { ah.clear(); }
-    void resize(ptrdiff_t n)             { ah.resize(n); }
-    void resize(ptrdiff_t n, const T& x) { ah.resize(n,&x); }
-    void reserve(ptrdiff_t n)            { ah.reserve(n); }
+    void push_back(const T& x)           {ah.push_back(&x);}
+    void pop_back()                      {ah.pop_back();}
+    void clear()                         {ah.clear();}
+    void resize(int n)                   {ah.resize(n);}
+    void resize(int n, const T& x)       {ah.resize(n,&x);}
+    void reserve(int n)                  {ah.reserve(n);}
     
 private:
     SimTKimpl::ArrayHelper  ah;
     
-    static const SimTKimpl::TypeManipulatorT& type()  
-        { return SimTKimpl::MakeTypeManipulator<T>::getTypeManipulatorT(); }
-    static const T& getAs(const void* p) { return SimTKimpl::MakeTypeManipulator<T>::getAs(p); }
-    static T&       updAs(void* p)       { return SimTKimpl::MakeTypeManipulator<T>::updAs(p); }    
+    static const SimTKimpl::TypeManipulatorT& type() {
+        return SimTKimpl::MakeTypeManipulator<T>::getTypeManipulatorT();
+    }
+    static const T& getAs(const void* p) {return SimTKimpl::MakeTypeManipulator<T>::getAs(p);}
+    static T&       updAs(void* p)       {return SimTKimpl::MakeTypeManipulator<T>::updAs(p);}    
 };  
 
-/*
+/**
  * This class is a duplicate of Array and can be cast to an Array with no
  * harm. However, this provides an alternate type of temporary object
  * so that we can force copy construction when appropriate. Assume a is
@@ -175,10 +177,10 @@ public:
     ~ArrayView() { } // convenient for debugging
        
     // Sub-array constructors, read only and writable, and their operator equivalents
-    ArrayView(const ArrayView& a, ptrdiff_t offset, ptrdiff_t length) : Base(a,offset,length) { }
-    ArrayView(ArrayView&       a, ptrdiff_t offset, ptrdiff_t length) : Base(a,offset,length) { }
-    ArrayView operator()(ptrdiff_t offset, ptrdiff_t length) const { return ArrayView(*this, offset, length); }
-    ArrayView operator()(ptrdiff_t offset, ptrdiff_t length)       { return ArrayView(*this, offset, length); } 
+    ArrayView(const ArrayView& a, int offset, int length) : Base(a,offset,length) { }
+    ArrayView(ArrayView&       a, int offset, int length) : Base(a,offset,length) { }
+    ArrayView operator()(int offset, int length) const { return ArrayView(*this, offset, length); }
+    ArrayView operator()(int offset, int length)       { return ArrayView(*this, offset, length); } 
     
     // Shallow assignment only (ArrayBase understands)
     ArrayView& operator=(const ArrayView& v) { Base::operator=(v); return *this; }
@@ -198,43 +200,43 @@ private:
  * an opaque implementation suitable for passing across a binary interface.
  *
  * Like std::vector<T>, Array<T> stores items in consecutive memory locations
- * (subject to packing rules).
+ * (subject to ordinary C++ packing rules).
  */
 template <class T> class Array : public ArrayBase<T> {
     typedef ArrayBase<T> Base;
 public:
 	Array() : Base() { }
-	explicit Array(ptrdiff_t n) : Base(n) { }
+	explicit Array(int n) : Base(n) { }
       
     // Default copy, assignment, destructor made explicit here for convenient debugging.
     // These are "deep" copies.
     Array(const Array& src) : Base(src) { }
     ~Array() { }
-    Array& operator=(const Array& src) { Base::operator=(src); return *this; }
+    Array& operator=(const Array& src) {Base::operator=(src); return *this;}
     // Assign to every element.
-    Array& operator=(const T& x)       { Base::operator=(x); return *this; }
+    Array& operator=(const T& x)       {Base::operator=(x); return *this;}
 
     // These allocate new space and fill it with copies of the supplied object(s)
-    Array(ptrdiff_t n, const T& ival)  : Base(n,ival) { }
-    Array(ptrdiff_t n, const T* ivals) : Base(n,ivals) { }
+    Array(int n, const T& ival)  : Base(n,ival) { }
+    Array(int n, const T* ivals) : Base(n,ivals) { }
         
     // Sub-array constructors, read only and writable, and their operator equivalents
-    Array(const Array& a, ptrdiff_t offset, ptrdiff_t length) : Base(a,offset,length) { }
-    Array(Array&       a, ptrdiff_t offset, ptrdiff_t length) : Base(a,offset,length) { }
+    Array(const Array& a, int offset, int length) : Base(a,offset,length) { }
+    Array(Array&       a, int offset, int length) : Base(a,offset,length) { }
     
-    const ArrayView<T> operator()(ptrdiff_t offset, ptrdiff_t length) const 
-        { return ArrayView<T>(*this, offset, length); }
-    ArrayView<T>       operator()(ptrdiff_t offset, ptrdiff_t length)       
-        { return ArrayView<T>(*this, offset, length); }	
+    const ArrayView<T> operator()(int offset, int length) const 
+      { return ArrayView<T>(*this, offset, length); }
+    ArrayView<T>       operator()(int offset, int length)       
+      { return ArrayView<T>(*this, offset, length); }	
     
     // Append an element to the end of the Array. TODO: is this confusing?
     Array& operator+=(const T& x) { Base::operator+=(x); return *this; }
         
     // Conversions
     operator const ArrayView<T>&() const 
-        { return *reinterpret_cast<const ArrayView<T>*>(this); }
+      { return *reinterpret_cast<const ArrayView<T>*>(this); }
     operator ArrayView<T>&()             
-        { return *reinterpret_cast<ArrayView<T>*>(this); }
+      { return *reinterpret_cast<ArrayView<T>*>(this); }
 private:
     // NO DATA MEMBERS ALLOWED   
 };	
@@ -242,13 +244,13 @@ private:
 /// If the type T supports an "==" operator, you can instantiate
 /// this method to find the first element of an Array<T> which matches the
 /// supplied test element. The index is returned if found, otherwise -1.
-template <class T> inline ptrdiff_t
+template <class T> inline int
 findFirstOf(const Array<T>& a, const T& test) {
-    for (ptrdiff_t i=0; i<a.size(); ++i)
+    for (int i=0; i<a.size(); ++i)
         if (a[i] == test) return i;
     return -1;
 } 
-template <class T> inline ptrdiff_t
+template <class T> inline int
 findFirstOf(const ArrayView<T>& a, const T& test) 
   { return findFirstOf((const Array<T>&)a,test); }
 
@@ -257,15 +259,15 @@ findFirstOf(const ArrayView<T>& a, const T& test)
 /// the elements match the supplied test element. The returned index
 /// list will have length 0 if there are no matches.
 
-template <class T> inline Array<ptrdiff_t>
+template <class T> inline Array<int>
 findAllOf(const Array<T>& a, const T& test) {
-    Array<ptrdiff_t> matches;
-    for (ptrdiff_t i=0; i<a.size(); ++i)
+    Array<int> matches;
+    for (int i=0; i<a.size(); ++i)
         if (a[i] == test) matches.push_back(i);
     return matches;
 } 
 
-template <class T> inline Array<ptrdiff_t>
+template <class T> inline Array<int>
 findAllOf(const ArrayView<T>& a, const T& test) { 
     return findAllOf((const Array<T>&)a,test); 
 }
@@ -284,7 +286,7 @@ contains(const ArrayView<T>& a, const T& test) {
 
 template <class T> inline std::ostream&
 operator<<(std::ostream& s, const Array<T>& a) {
-    for (ptrdiff_t i=0; i<a.size(); ++i)
+    for (int i=0; i<a.size(); ++i)
         s << a[i] << std::endl;
     return s;
 } 
@@ -292,7 +294,7 @@ template <class T> inline std::ostream&
 operator<<(std::ostream& s, const ArrayView<T>& a) {
     return s << (const Array<T>&)a;
 }
+
 } // namespace SimTK
   
-
 #endif // SimTK_SimTKCOMMON_ARRAY_H_

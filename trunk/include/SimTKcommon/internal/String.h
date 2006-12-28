@@ -44,7 +44,7 @@ namespace SimTK {
 class String : public std::string {
 public:
 	String() { }
-    String(const String& s, size_t start, size_t len) : std::string(s,start,len) { }
+    String(const String& s, int start, int len) : std::string(s,start,len) { }
 	explicit String(int i) { char buf[32]; sprintf(buf,"%d",i); (*this)=buf; }
 	explicit String(long i) { char buf[32]; sprintf(buf,"%ld",i); (*this)=buf; }
     explicit String(unsigned int s)  { char buf[32]; sprintf(buf,"%u",s); (*this)=buf; }

@@ -25,12 +25,12 @@
 
 #include "ArrayHelperImpl.h"
 
-SimTKimpl::ArrayHelper::ArrayHelper(const SimTKimpl::TypeManipulatorT& tmt, ptrdiff_t n)
+SimTKimpl::ArrayHelper::ArrayHelper(const SimTKimpl::TypeManipulatorT& tmt, int n)
 	: impl(new ArrayHelperImpl(tmt,n))
 {
 }
 
-SimTKimpl::ArrayHelper::ArrayHelper(const SimTKimpl::TypeManipulatorT& tmt, ptrdiff_t n, const void* init, bool repeat)
+SimTKimpl::ArrayHelper::ArrayHelper(const SimTKimpl::TypeManipulatorT& tmt, int n, const void* init, bool repeat)
 	: impl(new ArrayHelperImpl(tmt, n, init, repeat))
 {
 }
@@ -41,12 +41,12 @@ SimTKimpl::ArrayHelper::~ArrayHelper()
 }
 
 // Slicing, non-owner constructors
-SimTKimpl::ArrayHelper::ArrayHelper(const ArrayHelper& ah, ptrdiff_t offset, ptrdiff_t length)
+SimTKimpl::ArrayHelper::ArrayHelper(const ArrayHelper& ah, int offset, int length)
 {
     impl = new ArrayHelperImpl(ah.getImpl(), offset, length);
 }
 
-SimTKimpl::ArrayHelper::ArrayHelper(ArrayHelper& ah, ptrdiff_t offset, ptrdiff_t length)
+SimTKimpl::ArrayHelper::ArrayHelper(ArrayHelper& ah, int offset, int length)
 {
     assert(ah.impl);
     impl = new ArrayHelperImpl(ah.updImpl(), offset, length);
@@ -72,24 +72,24 @@ SimTKimpl::ArrayHelper::reverse() {
 }
 
 const void* 
-SimTKimpl::ArrayHelper::operator[](ptrdiff_t i) const
+SimTKimpl::ArrayHelper::operator[](int i) const
 {
 	return getImpl()[i];
 }
 
 void* 
-SimTKimpl::ArrayHelper::operator[](ptrdiff_t i)
+SimTKimpl::ArrayHelper::operator[](int i)
 {
 	return updImpl()[i];
 }
 
-ptrdiff_t
+int
 SimTKimpl::ArrayHelper::capacity() const
 {
 	return impl ? getImpl().capacity() : 0;
 }
 
-ptrdiff_t
+int
 SimTKimpl::ArrayHelper::size() const
 {
 	return impl ? getImpl().size() : 0;
@@ -108,13 +108,13 @@ SimTKimpl::ArrayHelper::push_back(const void* x)
 }
 
 void
-SimTKimpl::ArrayHelper::resize(ptrdiff_t n, const void* x)
+SimTKimpl::ArrayHelper::resize(int n, const void* x)
 {
 	updImpl().resize(n,x);
 }
 
 void
-SimTKimpl::ArrayHelper::reserve(ptrdiff_t n)
+SimTKimpl::ArrayHelper::reserve(int n)
 {
     updImpl().reserve(n);
 }

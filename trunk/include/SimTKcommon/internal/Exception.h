@@ -39,7 +39,7 @@ namespace Exception {
 class Base : public std::exception {
 public:
 	explicit Base(const char* fn="<UNKNOWN>", int ln=0) 
-		: fileName(fn), lineNo(ln) { } 
+      : fileName(fn), lineNo(ln) { } 
 	virtual ~Base() throw() { }
 	const String& getMessage()     const { return msg; }
     const String& getMessageText() const { return text; }
