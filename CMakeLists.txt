@@ -75,10 +75,6 @@ ELSE (ARCH64)
 ENDIF (ARCH64)
 
 
-## Watch out -- this next line will cause CMake to find installed versions of
-## simmatrix libraries before the local one. Be sure to delete installed ones first.
-LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
-
 ## Find VTK
 
 SET(VTK_DIR ${SimTK_SDK}/vtk/lib/vtk-5.0 CACHE PATH "VTK installation")
@@ -340,6 +336,9 @@ ADD_TEST(CoarseRNAStatic              ${TEST_PATH}/CoarseRNAStatic)
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 
+## Watch out -- this next line will cause CMake to find installed versions of
+## simmatrix libraries before the local one. Be sure to delete installed ones first.
+LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # libraries are installed from their subdirectories; headers here
 
