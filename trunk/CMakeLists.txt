@@ -26,6 +26,10 @@
 PROJECT (SimTKcommon)
 SUBDIRS (staticTarget sharedTarget tests)
 
+# The source is organized into subdirectories, but we handle them all from
+# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
+SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix Mechanics BigMatrix State)
+
 
 # 
 # Make sure "sandbox" input & output directories are set. During
@@ -90,9 +94,7 @@ IF (NOT CMAKE_CXX_FLAGS_RELEASE)
           "To use when CMAKE_BUILD_TYPE=Release" FORCE)
 ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
-# The source is organized into subdirectories, but we handle them all from
-# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix BigMatrix Mechanics)
+
 
 
 # Collect up information about the version of the SimTKcommon library we're building
