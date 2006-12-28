@@ -30,7 +30,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 
 #include <cassert>
 #include <vector>

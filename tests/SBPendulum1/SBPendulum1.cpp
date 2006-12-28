@@ -54,7 +54,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 #include "Simbody.h"
 
 #include "simbody/internal/DecorativeGeometry.h"
@@ -133,13 +132,7 @@ int main() {
         SimTK_about_SimTKcommon(*p, 100, out);
         std::printf("      about(%s)='%s'\n", *p, out);
     }
-    SimTK_version_simmatrix(&major,&minor,&build);
-    std::printf("==> simmatrix library version: %d.%d.%d\n", major, minor, build);
-    std::printf("    SimTK_about_simmatrix():\n");
-    for (const char** p = keylist; *p; ++p) {
-        SimTK_about_simmatrix(*p, 100, out);
-        std::printf("      about(%s)='%s'\n", *p, out);
-    }
+
     SimTK_version_simbody(&major,&minor,&build);
     std::printf("==> simbody library version: %d.%d.%d\n", major, minor, build);
     std::printf("    SimTK_about_simbody():\n");

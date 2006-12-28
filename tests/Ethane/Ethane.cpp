@@ -27,7 +27,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
 #include "Simbody.h"
 
 #include "simbody/internal/DecorativeGeometry.h"
