@@ -21,9 +21,11 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "SimTKcommon.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/State.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/State.h"
+
+#include <cassert>
 
 namespace SimTK {
 

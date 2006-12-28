@@ -1,5 +1,5 @@
-#ifndef SimTK_STATE_H_
-#define SimTK_STATE_H_
+#ifndef SimTK_SimTKCOMMON_STATE_H_
+#define SimTK_SimTKCOMMON_STATE_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
  * Contributors:
@@ -24,8 +24,8 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "SimTKcommon.h"
-#include "simbody/internal/common.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
 
 namespace SimTK {
 
@@ -35,7 +35,7 @@ namespace SimTK {
 // be reserved for those that are updated in time, with something else like
 // "parameter variable" for those that just hold externally set data.
 
-class SimTK_SIMBODY_EXPORT DiscreteVariable {
+class SimTK_SimTKCOMMON_EXPORT DiscreteVariable {
 public:
     DiscreteVariable() : rep(0) { }
     DiscreteVariable(const DiscreteVariable&);
@@ -53,7 +53,7 @@ private:
     class DiscreteVariableRep* rep;
 };
 
-class SimTK_SIMBODY_EXPORT CacheEntry : public DiscreteVariable {
+class SimTK_SimTKCOMMON_EXPORT CacheEntry : public DiscreteVariable {
 public:
     CacheEntry() : DiscreteVariable() { }
 
@@ -90,7 +90,7 @@ public:
  * actual global resources won't exist until the *system* has been
  * advanced to Model stage.
  */
-class SimTK_SIMBODY_EXPORT State {
+class SimTK_SimTKCOMMON_EXPORT State {
 public:
     /// Create an empty State.
     State();
@@ -312,4 +312,4 @@ operator<<(std::ostream& o, const State& s) {
 
 } // namespace SimTK
 
-#endif // SimTK_STATE_H_
+#endif // SimTK_SimTKCOMMON_STATE_H_

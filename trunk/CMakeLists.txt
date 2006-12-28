@@ -309,7 +309,7 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 # install headers
 FILE(GLOB CORE_HEADERS     include/*.h                      */include/*.h)
-FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h          */include/SimTKcommon*.h)
+FILE(GLOB TOP_HEADERS      include/SimTKcommon/*.h          */include/SimTKcommon/*.h)
 FILE(GLOB INTERNAL_HEADERS include/SimTKcommon/internal/*.h */include/SimTKcommon/internal/*.h)
 INSTALL_FILES("/core/include"                      FILES ${CORE_HEADERS})
 INSTALL_FILES("/core/include/SimTKcommon"          FILES ${TOP_HEADERS})

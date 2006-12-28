@@ -32,6 +32,7 @@
 
 #if defined(__cplusplus)
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/State.h"
 #endif
 
 
