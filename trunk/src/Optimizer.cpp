@@ -47,11 +47,6 @@ void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys ) {
       updRep().sysp = &sys;
 }
 
-void Optimizer::setOptimizerParameters(unsigned int param, double *values) {
-
-      ((OptimizerRep *)rep)->setOptimizerParameters(param, values);
-      return;
-}
 void Optimizer::useNumericalGradient( const bool flag ) {
 
       ((OptimizerRep *)rep)->useNumericalGradient(flag);
@@ -63,12 +58,23 @@ void Optimizer::useNumericalJacobian( const bool flag )  {
       return;
 }
 
+void Optimizer::setConvergenceTolerance( const Real tolerance ){
 
-void Optimizer::getOptimizerParameters(unsigned int param, double *values) {
-
-      ((OptimizerRep *)rep)->getOptimizerParameters(param, values);
+      ((OptimizerRep *)rep)->setConvergenceTolerance(tolerance);
       return;
 }
+
+void Optimizer::setDiagnosticsLevel( const int  level ){
+
+      ((OptimizerRep *)rep)->setDiagnosticsLevel(level);
+      return;
+}
+
+int Optimizer::setAdvancedOptions( const char *option, const Real *values ){
+
+      return( ((OptimizerRep *)rep)->setAdvancedOptions( option, values) );
+}
+
 double Optimizer::optimize(SimTK::Vector   &results) {
       return( ((OptimizerRep *)rep)->optimize(results) );
 }

@@ -87,12 +87,12 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
                   gradientFuncWrapper, constraintJacobianWrapper, hessianWrapper);
 
 
-            AddIpoptNumOption(nlp, "tol", 1e-3);
+            AddIpoptNumOption(nlp, "tol", convergenceTolerance);
             AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
             AddIpoptStrOption(nlp, "output_file", "ipopt.out");
             AddIpoptStrOption(nlp, "linear_solver", "lapack");
             AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
-            AddIpoptIntOption(nlp, "print_level", 0); // default is 4
+            AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
 
           }
      } 
@@ -104,92 +104,18 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
          double obj;
          double *x = &results[0];
          int status;
+         char buf[1024];
 
 
          status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, (void *)this );
 
-         if (status == Solve_Succeeded) {
-             printf("Ipopt CONVERGED \n");
-         } else {
-             printf("Ipopt Solve failed  \n");
+         if (status != Solve_Succeeded) {
+            sprintf(buf, "Ipopt failed with status = %d",status );
+            SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
          }
 
          return(obj);
       }
 
-      unsigned int InteriorPointOptimizer::optParamStringToValue( char *parameter )  {
 
-         unsigned int param;
-         char buf[1024];
-
-         if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
-           param = MAX_FUNCTION_EVALUATIONS;
-         } else if( 0 == strncmp( "STEP_LENGTH", parameter, 1)) {
-           param = DEFAULT_STEP_LENGTH;
-         } else if( 0 == strncmp( "TOLERANCE", parameter, 1)) {
-           param = TRACE;
-         } else if( 0 == strncmp( "GRADIENT", parameter, 1)) {
-           param = GRADIENT_CONVERGENCE_TOLERANCE;
-         } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
-           param = LINE_SEARCH_ACCURACY;
-         } else {
-             sprintf(buf," Parameter=%s",parameter);
-             SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-         }
-
-         return( param );
-
-      }
-
-     void InteriorPointOptimizer::setOptimizerParameters(unsigned int parameter, double *values ) { 
-          int i;
-          char buf[1024];
-
-          switch( parameter) {
-             case MAX_FUNCTION_EVALUATIONS:
-                   MaxNumFuncEvals = (unsigned int)values[0];
-                   break;
-             case DEFAULT_STEP_LENGTH:
-                   DefaultStepLength = (unsigned int)values[0];
-                   break;
-             case LINE_SEARCH_ACCURACY:
-                   LineSearchAccuracy = values[0];
-                   break;
-             case  GRADIENT_CONVERGENCE_TOLERANCE:
-                   GradientConvergenceTolerance = values[0];
-                   break;
-             default:
-                   sprintf(buf," Parameter=%d",parameter);
-                   SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-                   break;
-          }
-
-        return; 
-
-      }
-     void InteriorPointOptimizer::getOptimizerParameters(unsigned int parameter, double *values ) {
-          int i;
-          char buf[1024];
-
-            switch( parameter) {
-               case MAX_FUNCTION_EVALUATIONS:
-                     values[0] = (double )MaxNumFuncEvals;
-                     break;
-               case DEFAULT_STEP_LENGTH:
-                     values[0] = DefaultStepLength;
-                     break;
-               case LINE_SEARCH_ACCURACY:
-                     values[0] = LineSearchAccuracy;
-                     break;
-               case  GRADIENT_CONVERGENCE_TOLERANCE:
-                      values[0] = GradientConvergenceTolerance;
-                      break;
-               default:
-                      sprintf(buf," Parameter=%d",parameter);
-                      SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-                      break;
-            }
-  
-          return; 
-   }
 } // namespace SimTK

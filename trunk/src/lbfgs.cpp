@@ -62,10 +62,10 @@ using std::cout;
 using std::endl;
 
 /* Initialized data */
-struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
+const struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
 
 /* Table of constant values */
-static integer c__1 = 1;
+static const integer c__1 = 1;
 
 #include "lapack/SimTKlapack.h"
 
@@ -94,7 +94,7 @@ void lbp1d_(char* msg, int* i);
 /* Subroutine */ 
 void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g, 
     logical *diagco, doublereal *diag, integer *iprint, doublereal *eps, 
-    doublereal *xtol, doublereal *w, integer *iflag)
+    doublereal *xtol, doublereal *w, integer *iflag, integer *info)
 {
 
     /* System generated locals */
@@ -103,7 +103,7 @@ void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g
     /* Local variables */
     static doublereal beta;
     static integer inmc;
-    static integer info, iscn, nfev, iycn, iter;
+    static integer iscn, nfev, iycn, iter;
     static doublereal ftol;
     static integer nfun, ispt, iypt;
     static integer i, bound;
@@ -406,7 +406,7 @@ L10:
 
 L80:
     ++iter;
-    info = 0;
+    *info = 0;
     bound = iter - 1;
     if (iter == 1) {
         goto L165;
@@ -499,14 +499,14 @@ L165:
         w[i] = g[i];
     }
 L172:
-    mcsrch_(n, x, f, g, &w[ispt + point * *n], &stp, &ftol, xtol, &maxfev, &info, &nfev, diag);
-    if (info == -1) {
+    mcsrch_(n, x, f, g, &w[ispt + point * *n], &stp, &ftol, xtol, &maxfev, info, &nfev, diag);
+    if (*info == -1) {
         *iflag = 1;
 /*       Return, in order to get another sample of F and G. */
 /*       Next call comes right back here. */
         return;
     }
-    if (info != 1) {
+    if (*info != 1) {
         goto L190;
     }
     nfun += nfev;
@@ -690,10 +690,10 @@ static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, dou
 {
     /* Initialized data */
 
-    static doublereal xtrapf = 4.;
+    const doublereal xtrapf = 4.;
 
     /* Local variables */
-    static doublereal dgxm, dgym;
+    doublereal dgxm, dgym;
     static integer j, infoc;
     static doublereal finit, width, stmin, stmax;
     static logical stage1;

@@ -33,6 +33,23 @@ namespace SimTK {
         if( of ) delete of;
 
      }
+    void OptimizerRep::setConvergenceTolerance( const Real tolerance ){
+
+       convergenceTolerance = tolerance;
+       return;
+    }
+
+    void OptimizerRep::setDiagnosticsLevel( const int  level ){
+
+       diagnosticsLevel = level;
+       return;
+    }
+
+    int OptimizerRep::setAdvancedOptions( const char *option, const Real *values ){
+
+       return(SUCCESS);
+    }
+
     void OptimizerRep::useNumericalGradient( const bool flag ) {
 
        if( flag ) {     // turn on numerical gradients

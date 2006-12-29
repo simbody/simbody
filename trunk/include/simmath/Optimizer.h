@@ -208,9 +208,11 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     }
 
     ~Optimizer();
+    void setConvergenceTolerance( const Real tolerance );
+    void setDiagnosticsLevel( const int level ); 
+    int setAdvancedOptions( const char *option, const Real *values );
 
-    void setOptimizerParameters(unsigned int param, double *values); 
-    void getOptimizerParameters(unsigned int param, double *values);
+ // TODO set differentiator options 
     void useNumericalGradient( const bool flag );
     void useNumericalJacobian( const bool flag );
 

@@ -35,9 +35,10 @@ int setulb_(integer *n, integer *m, doublereal *x, doublereal *l,
 
 namespace SimTK {
 
+
+// TODO make these options
 static const int NUMBER_OF_CORRECTIONS = 5;
 static double factr = 1.0e7;   // 
-static double pgtol = 1.0e-5;
 
 
      LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
@@ -61,7 +62,6 @@ static double pgtol = 1.0e-5;
                nbd[i] = 2;
           }
 
-         numCorrections =  NUMBER_OF_CORRECTIONS;
          gradient = new double[n];
 
      } 
@@ -82,7 +82,7 @@ static double pgtol = 1.0e-5;
          double *lowerLimits, *upperLimits;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
-         int m = numCorrections;
+         int m = NUMBER_OF_CORRECTIONS;
 
 
          sys.getParameterLimits( &lowerLimits, &upperLimits );
@@ -95,9 +95,9 @@ static double pgtol = 1.0e-5;
 
          while( run_optimizer ) { 
 
-            setulb_(&n, &numCorrections, &results[0], lowerLimits,
+            setulb_(&n, &m, &results[0], lowerLimits,
                     upperLimits, nbd, &f, gradient,
-                    &factr, &pgtol, wa, iwa,
+                    &factr, &convergenceTolerance, wa, iwa,
                     task, &iprint, csave, lsave, isave, dsave, 60, 60);
 
              if( strncmp( task, "FG", 2) == 0 ) {
@@ -116,81 +116,5 @@ static double pgtol = 1.0e-5;
          return(f);
       }
 
-      unsigned int LBFGSBOptimizer::optParamStringToValue( char *parameter )  {
 
-         unsigned int param;
-         char buf[1024];
-
-         if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
-           param = MAX_FUNCTION_EVALUATIONS;
-         } else if( 0 == strncmp( "STEP_LENGTH", parameter, 1)) {
-           param = DEFAULT_STEP_LENGTH;
-         } else if( 0 == strncmp( "TOLERANCE", parameter, 1)) {
-           param = TRACE;
-         } else if( 0 == strncmp( "GRADIENT", parameter, 1)) {
-           param = GRADIENT_CONVERGENCE_TOLERANCE;
-         } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
-           param = LINE_SEARCH_ACCURACY;
-         } else {
-             sprintf(buf," Parameter=%s",parameter);
-             SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-         }
-
-         return( param );
-
-      }
-
-     void LBFGSBOptimizer::setOptimizerParameters(unsigned int parameter, double *values ) { 
-          int i;
-          char buf[1024];
-
-          switch( parameter) {
-             case MAX_FUNCTION_EVALUATIONS:
-                   MaxNumFuncEvals = (unsigned int)values[0];
-                   break;
-             case DEFAULT_STEP_LENGTH:
-                   DefaultStepLength = (unsigned int)values[0];
-                   break;
-             case LINE_SEARCH_ACCURACY:
-                   LineSearchAccuracy = values[0];
-                   break;
-             case  GRADIENT_CONVERGENCE_TOLERANCE:
-                   GradientConvergenceTolerance = values[0];
-                   break;
-             default:
-                   sprintf(buf," Parameter=%d",parameter);
-                   SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-
-                   break;
-          }
-
-        return; 
-
-      }
-     void LBFGSBOptimizer::getOptimizerParameters(unsigned int parameter, double *values ) {
-          int i;
-          char buf[1024];
-
-
-            switch( parameter) {
-               case MAX_FUNCTION_EVALUATIONS:
-                     values[0] = (double )MaxNumFuncEvals;
-                     break;
-               case DEFAULT_STEP_LENGTH:
-                     values[0] = DefaultStepLength;
-                     break;
-               case LINE_SEARCH_ACCURACY:
-                     values[0] = LineSearchAccuracy;
-                     break;
-               case  GRADIENT_CONVERGENCE_TOLERANCE:
-                      values[0] = GradientConvergenceTolerance;
-                      break;
-               default:
-                      sprintf(buf," Parameter=%d",parameter);
-                      SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-                      break;
-            }
-  
-          return; 
-   }
 } // namespace SimTK

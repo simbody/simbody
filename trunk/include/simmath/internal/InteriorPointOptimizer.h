@@ -58,11 +58,6 @@ class InteriorPointOptimizer: public OptimizerRep {
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     int         numCorrections;
-     int         MaxNumFuncEvals;
-     double      GradientConvergenceTolerance;
-     double      LineSearchAccuracy;
-     double      DefaultStepLength;
      Number      *mult_x_L;
      Number      *mult_x_U;
      Number      *g_L;

@@ -52,14 +52,9 @@ class LBFGSOptimizer: public OptimizerRep {
      
 /* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     int         numCorrections;
      int         Trace;
-     int         MaxNumFuncEvals;
      double     *work;
      double     *diag;
-     double      GradientConvergenceTolerance;
-     double      LineSearchAccuracy;
-     double      DefaultStepLength;
      double      *gradient;
      int         iprint[2];
      double      xtol[1];

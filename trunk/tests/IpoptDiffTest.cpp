@@ -123,7 +123,7 @@ public:
 
 int main() {
 
-    Real params[10],f;
+    Real f;
     int i;
 
     /* create the system to be optimized */
@@ -155,18 +155,7 @@ int main() {
 
     Optimizer opt( sys ); 
 
-
-    params[0] = 100;
-    opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
-
-    params[0] = .0001;
-    opt.setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
-
-    params[0] = 1.0;
-    opt.setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
-
-    params[0] = 0.9;
-    opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
+    opt.setConvergenceTolerance( .0001 );
 
     opt.useNumericalGradient( true );
     opt.useNumericalJacobian( true );
@@ -178,7 +167,6 @@ int main() {
     std::cout << e.what() << std::endl;
     returnValue = 1; // failure
   }
-
 
     printf("f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {

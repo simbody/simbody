@@ -28,7 +28,7 @@ using std::cout;
 using std::endl;
 extern void lbfgs_( int*n, int*m, double *x, double *f, double *g,
     int *diagco, double *diag, int *iprint, double *eps,
-    double *xtol, double *w, int *iflag);
+    double *xtol, double *w, int *iflag, int *info);
 
 namespace SimTK {
 const int NUMBER_OF_CORRECTIONS = 5;
@@ -45,13 +45,15 @@ const int NUMBER_OF_CORRECTIONS = 5;
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
          diagco[0] = 0;      // do not supply diagonal of hessian
 
+// TODO option for xtol  ??
+
          if( sys.getNumParameters() < 1 ) {
              char *where = "Optimizer Initialization";
              char *szName= "dimension";
              SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          }
          n = sys.getNumParameters();
-         numCorrections = m = NUMBER_OF_CORRECTIONS;
+         m = NUMBER_OF_CORRECTIONS;
          work = new double[n*(2*m+1) + 2*m];
          diag = new double[n];
          gradient = new double[n];
@@ -60,111 +62,66 @@ const int NUMBER_OF_CORRECTIONS = 5;
 
      double LBFGSOptimizer::optimize(  Vector &results ) {
 
-         int i;
-         int run_optimizer = 1;
+         int i,info;
          int iflag[1] = {0};
          double f;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
+         int m = NUMBER_OF_CORRECTIONS;
+         char buf[256];
 
-         while( run_optimizer ) {   
+         iprint[1] = diagnosticsLevel;
+
+
+         do {   
 
             objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
             gradientFuncWrapper( n,  &results[0], false, gradient, (void*)this );
 
-            lbfgs_( &n, &numCorrections, &results[0], &f, gradient,
-            diagco, diag, iprint, &GradientConvergenceTolerance,  xtol,
-            work, iflag );
+            lbfgs_( &n, &m, &results[0], &f, gradient,
+            diagco, diag, iprint, &convergenceTolerance,  xtol,
+            work, iflag, &info );
 
-            /* TODO check iflag[0] for status errors */
-            if( iflag[0] <= 0 ) {
-              run_optimizer = 0;
-            }
-         }
-         objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
-         return f;
-      }
+         } while( iflag[0] > 0 );
 
-      unsigned int LBFGSOptimizer::optParamStringToValue( char *parameter )  {
-
-         unsigned int param;
-         char buf[1024];
-
-         if( 0 == strncmp( "FUNCION_EVALUATIONS", parameter, 1) ) {
-           param = MAX_FUNCTION_EVALUATIONS;
-         } else if( 0 == strncmp( "STEP_LENGTH", parameter, 1)) {
-           param = DEFAULT_STEP_LENGTH;
-         } else if( 0 == strncmp( "TOLERANCE", parameter, 1)) {
-           param = TRACE;
-         } else if( 0 == strncmp( "GRADIENT", parameter, 1)) {
-           param = GRADIENT_CONVERGENCE_TOLERANCE;
-         } else if( 0 == strncmp( "ACCURACY", parameter, 1)) {
-           param = LINE_SEARCH_ACCURACY;
+         if( iflag[0] == 0 ) {
+            objectiveFuncWrapper( n, &results[0], true, &f, (void*)this );
+            return f;
          } else {
-             sprintf(buf," Parameter=%s",parameter);
-             SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-         }
-
-         return( param );
-
-      }
-
-     void LBFGSOptimizer::setOptimizerParameters(unsigned int parameter, double *values ) { 
-          int i;
-          char buf[1024];
-
-          switch( parameter) {
-             case TRACE:
-                   Trace = (unsigned int)values[0];
-                   break;
-             case MAX_FUNCTION_EVALUATIONS:
-                   MaxNumFuncEvals = (unsigned int)values[0];
-                   break;
-             case DEFAULT_STEP_LENGTH:
-                   DefaultStepLength = (unsigned int)values[0];
-                   break;
-             case LINE_SEARCH_ACCURACY:
-                   LineSearchAccuracy = values[0];
-                   break;
-             case  GRADIENT_CONVERGENCE_TOLERANCE:
-                   GradientConvergenceTolerance = values[0];
-                   break;
-             default:
-                   sprintf(buf," Parameter=%d",parameter);
-                   SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-                   break;
-          }
-
-        return; 
-
-      }
-     void LBFGSOptimizer::getOptimizerParameters(unsigned int parameter, double *values ) {
-          int i;
-          char buf[1024];
-
-
-            switch( parameter) {
-               case TRACE:
-                     values[0] = (double )Trace;
-                     break;
-               case MAX_FUNCTION_EVALUATIONS:
-                     values[0] = (double )MaxNumFuncEvals;
-                     break;
-               case DEFAULT_STEP_LENGTH:
-                     values[0] = DefaultStepLength;
-                     break;
-               case LINE_SEARCH_ACCURACY:
-                     values[0] = LineSearchAccuracy;
-                     break;
-               case  GRADIENT_CONVERGENCE_TOLERANCE:
-                      values[0] = GradientConvergenceTolerance;
-                      break;
-               default:
-                      sprintf(buf," Parameter=%d",parameter);
-                      SimTK_THROW1(SimTK::Exception::UnrecognizedParameter, SimTK::String(buf) ); 
-                      break;
+            if( iflag[0] == -1 ) {
+               if( info == 0) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: IMPROPER INPUT PARAMETERS");
+               } else if( info == 2) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: RELATIVE WIDTH OF THE INTERVAL OF UNCERTAINTY IS AT MOST XTOL");
+               } else if( info == 3) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: MORE THAN 20 FUNCTION EVALUATIONS WERE REQUIRED AT THE PRESENT ITERATION");
+               } else if( info == 4) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: THE STEP IS TOO SMALL");
+               } else if( info == 5) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: THE STEP IS TOO LARGE");
+               } else if( info == 6){
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: ROUNDING ERRORS PREVENT FURTHER PROGRESS.\n THERE MAY NOT BE A STEP WHICH SATISFIES THE SUFFICIENT DECREASE AND CURVATURE\n CONDITIONS. TOLERANCES MAY BE TOO SMALL.");
+               } else {
+                  sprintf(buf, "LBFGS ERROR: info = %d \n",info );
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf) );
+               }
+            } else if ( iflag[0] == -2 ) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: The i-th diagonal element of the diagonal inverse Hessian approximation, \n given in DIAG, is not positive.");
+            } else if ( iflag[0] == -3 ) {
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, 
+                  "LBFGS ERROR: Improper input parameters for LBFGS (N or M are ot positive). \n" );
+            } else {
+                  sprintf(buf, "LBFGS ERROR: iflag = %d \n",iflag[0] );
+                  SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf) );
             }
-  
-          return; 
+      }
+
    }
 } // namespace SimTK

@@ -83,7 +83,7 @@ class ProblemSystem : public OptimizerSystem {
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 int main() {
 
-    Real params[10],f;
+    Real f;
     int i;
     int n = NUMBER_OF_PARAMETERS;
 
@@ -117,18 +117,7 @@ int main() {
   try {
     Optimizer opt( sys ); 
 
-    params[0] = 100;
-    opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
-
-    params[0] = .0001;
-    opt.setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
-
-    params[0] = 1.0;
-    opt.setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
-
-    params[0] = 0.9;
-    opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
-
+    opt.setConvergenceTolerance( .0001 );
     f = opt.optimize( results );
 
   }

@@ -79,6 +79,8 @@ public:
          of(0),
          jacDiff(0),
          gradDiff(0),
+         convergenceTolerance(1e-4),
+         diagnosticsLevel(0),
          numericalGradient(false), 
          numericalJacobian(false)
 
@@ -86,8 +88,6 @@ public:
        zeroFunctionPointers();
     }
 
-    virtual void setOptimizerParameters(unsigned int parameter, double *values ){};
-    virtual void getOptimizerParameters(unsigned int parameter, double *values ){};
     virtual double optimize(  Vector &results ) =  0;
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}
@@ -109,7 +109,9 @@ public:
 
     Differentiator *gradDiff;   
     Differentiator *jacDiff;   
-
+    void setDiagnosticsLevel( const int  level );
+    void setConvergenceTolerance( const Real tolerance );
+    int setAdvancedOptions( const char *option, const Real *values );
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
     void  clearMyHandle() {myHandle=0;} 
@@ -122,11 +124,14 @@ public:
                                    const Vector& parameters, const bool new_parameters, Matrix& jacobian );
 
     protected:
+    int diagnosticsLevel;
+    Real convergenceTolerance;
 
     private:
     OptimizerSystem* sysp;
     bool numericalGradient; // true if optimizer will compute an numerical gradient
     bool numericalJacobian; // true if optimizer will compute an numerical gradient
+
     SysObjectiveFunc  *of;   
     SysConstraintFunc *cf; 
     void initNumericalJac();
