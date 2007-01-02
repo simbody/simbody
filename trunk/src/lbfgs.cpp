@@ -28,6 +28,7 @@
 /* #include <cstdio> */
 #include "Optimizer.h"
 #include "Simmath_f2c.h" 
+#include "LBFGSOptimizer.h"
 #define NUMBER_OF_CORRECTIONS 5   
 
 
@@ -71,13 +72,11 @@ static const integer c__1 = 1;
 
 extern double sqrt(double); 
 
-static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, doublereal *s, doublereal *stp,
-                    doublereal *ftol, doublereal *xtol, integer *maxfev, integer *info, integer *nfev, doublereal *wa);
 static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal *sty, doublereal *fy, doublereal *dy,
                     doublereal *stp, doublereal *fp, doublereal *dp, logical *brackt,
                     doublereal *stpmin, doublereal *stpmax, integer *info);
 void lb1_(int *iprint, int *iter, int *nfun, double *gnorm, int *n, int *m,
-          double *x, double *f, double *g, double *stp, int *finish);
+          double *x, double *f, double *g, double *stp, bool *finish);
 void lbptf_(char* msg);
 void lbp1d_(char* msg, int* i);
 
@@ -91,36 +90,29 @@ void lbp1d_(char* msg, int* i);
 
 
 
-/* Subroutine */ 
-void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g, 
-    logical *diagco, doublereal *diag, integer *iprint, doublereal *eps, 
-    doublereal *xtol, doublereal *w, integer *iflag, integer *info)
+void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f, int *iprint, 
+             SimTK::Real *eps, SimTK::Real *xtol )
 {
 
     /* System generated locals */
     doublereal d__1;
 
     /* Local variables */
-    static doublereal beta;
-    static integer inmc;
-    static integer iscn, nfev, iycn, iter;
-    static doublereal ftol;
-    static integer nfun, ispt, iypt;
-    static integer i, bound;
-    static doublereal gnorm;
-    static integer point;
-    static doublereal xnorm;
-    static integer cp;
-    static doublereal sq, yr, ys;
-    static logical finish;
-    static doublereal yy;
-    static integer maxfev;
-    static integer npt;
-    static doublereal stp, stp1;
-/*
-    printf("lbfgs_: xtol = %f\n",*xtol);
-    printf("lbfgs_: eps = %f\n",*eps);
-*/
+    doublereal beta;
+    integer inmc;
+    integer iscn, nfev, iycn, iter;
+    doublereal ftol;
+    integer nfun, ispt, iypt;
+    integer i, bound;
+    doublereal gnorm;
+    integer point;
+    doublereal xnorm;
+    integer cp;
+    doublereal sq, yr, ys;
+    doublereal yy;
+    integer maxfev;
+    integer npt;
+    doublereal stp, stp1;
 
 /*        LIMITED MEMORY BFGS METHOD FOR LARGE SCALE OPTIMIZATION */
 /*                          JORGE NOCEDAL */
@@ -178,25 +170,6 @@ void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g
 /*             a re-entry with IFLAG=1, it must be set by the user to */
 /*             contain the value of the function F at the point X. */
 
-/*     G       is a DOUBLE PRECISION array of length N. Before initial */
-/*             entry and on a re-entry with IFLAG=1, it must be set by */
-/*             the user to contain the components of the gradient G at */
-/*             the point X. */
-
-/*     DIAGCO  is a LOGICAL variable that must be set to .TRUE. if the */
-/*             user  wishes to provide the diagonal matrix Hk0 at each */
-/*             iteration. Otherwise it should be set to .FALSE., in which */
-/*             case  LBFGS will use a default value described below. If */
-/*             DIAGCO is set to .TRUE. the routine will return at each */
-/*             iteration of the algorithm with IFLAG=2, and the diagonal */
-/*              matrix Hk0  must be provided in the array DIAG. */
-
-/*     DIAG    is a DOUBLE PRECISION array of length N. If DIAGCO=.TRUE., */
-/*             then on initial entry or on re-entry with IFLAG=2, DIAG */
-/*             it must be set by the user to contain the values of the */
-/*             diagonal matrix Hk0.  Restriction: all elements of DIAG */
-/*             must be positive. */
-
 /*     IPRINT  is an INTEGER array of length two which must be set by the */
 /*             user. */
 
@@ -230,48 +203,6 @@ void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g
 /*            10**(-16) on a SUN station 3/60). The line search routine will*/
 /*            terminate if the relative width of the interval of uncertainty*/
 /*            is less than XTOL. */
-
-/*     W       is a DOUBLE PRECISION array of length N(2M+1)+2M used as */
-/*             workspace for LBFGS. This array must not be altered by the */
-/*             user. */
-
-/*    IFLAG   is an INTEGER variable that must be set to 0 on initial entry*/
-/*            to the subroutine. A return with IFLAG<0 indicates an error, */
-/*            and IFLAG=0 indicates that the routine has terminated without*/
-/*            detecting errors. On a return with IFLAG=1, the user must */
-/*            evaluate the function F and gradient G. On a return with */
-/*            IFLAG=2, the user must provide the diagonal matrix Hk0. */
-
-/*            The following negative values of IFLAG, detecting an error, */
-/*            are possible: */
-
-/*              IFLAG=-1  The line search routine MCSRCH failed. The */
-/*                        parameter INFO provides more detailed information */
-/*                        (see also the documentation of MCSRCH): */
-
-/*                       INFO = 0  IMPROPER INPUT PARAMETERS. */
-
-/*                       INFO = 2  RELATIVE WIDTH OF THE INTERVAL OF */
-/*                                 UNCERTAINTY IS AT MOST XTOL. */
-
-/*                       INFO = 3  MORE THAN 20 FUNCTION EVALUATIONS WERE */
-/*                                 REQUIRED AT THE PRESENT ITERATION. */
-
-/*                       INFO = 4  THE STEP IS TOO SMALL. */
-
-/*                       INFO = 5  THE STEP IS TOO LARGE. */
-
-/*                       INFO = 6  ROUNDING ERRORS PREVENT FURTHER PROGRESS.*/
-/*                                 THERE MAY NOT BE A STEP WHICH SATISFIES */
-/*                                 THE SUFFICIENT DECREASE AND CURVATURE */
-/*                                 CONDITIONS. TOLERANCES MAY BE TOO SMALL.  */
-
-/*             IFLAG=-2  The i-th diagonal element of the diagonal inverse */
-/*                       Hessian approximation, given in DIAG, is not */
-/*                       positive. */
-
-/*             IFLAG=-3  Improper input parameters for LBFGS (N or M are */
-/*                       not positive). */
 
 
 /*    ON THE DRIVER: */
@@ -330,42 +261,36 @@ void lbfgs_( integer *n, integer *m, doublereal *x, doublereal *f, doublereal *g
 
 /*    - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-/*   ---------------------------------------------------------- */
-/*     DATA */
-/*   ---------------------------------------------------------- */
-
 /*      BLOCK DATA LB3 */
 
 /*     INITIALIZE */
 /*     ---------- */
-
+    SimTK::Real w[n*(2*m+1) + 2*m];
+    doublereal diag[n];
+    doublereal gradient[n];
+    int info;
     char buf[256];
+    bool converged = false;
+    ispt = n + (m << 1);
+    iypt = ispt + n * m;
+    ftol = 1e-4;
+    maxfev = 20;
 
-    if (*iflag == 0) {
-        goto L10;
-    }
-    switch ((int)*iflag) {
-        case 1:  goto L172;
-        case 2:  goto L100;
-    }
-L10:
     iter = 0;
-    if (*n <= 0 || *m <= 0) {
-        goto L196;
+    if (n <= 0 || m <= 0) {
+       SimTK_THROW1(SimTK::Exception::OptimizerFailed , "IMPROPER INPUT PARAMETERS N OR M ARE NOT POSITIVE");
     }
     nfun = 1;
     point = 0;
-    finish = FALSE_;
-    if (*diagco) {
-        for (i = 0; i < *n; ++i) {
-            if (diag[i] <= 0.) {
-                goto L195;
-            }
-        }
-    } else {
-        for (i = 0; i < *n; ++i) {
-            diag[i] = 1.;
-        }
+
+    /* compute initial function and gradient values */
+    objectiveFuncWrapper( n, x, true, f, (void*)this );
+    gradientFuncWrapper( n,  x, false, gradient, (void*)this );
+    gnorm = sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+    stp1 = 1. / gnorm;
+
+    for (i = 0; i < n; ++i) {
+        diag[i] = 1.;
     }
 
 /*     THE WORK VECTOR W IS DIVIDED AS FOLLOWS: */
@@ -383,193 +308,172 @@ L10:
 /*     THE SEARCH STEPS AND GRADIENT DIFFERENCES ARE STORED IN A */
 /*     CIRCULAR ORDER CONTROLLED BY THE PARAMETER POINT. */
 
-    ispt = *n + (*m << 1);
-    iypt = ispt + *n * *m;
-    for (i = 0; i < *n; ++i) {
-        w[ispt + i] = -g[i] * diag[i];
+    for (i = 0; i < n; ++i) {
+        w[ispt + i] = -gradient[i] * diag[i];
     }
-    gnorm = sqrt(ddot_(*n, g, c__1, g, c__1));
-    stp1 = 1. / gnorm;
 
 /*     PARAMETERS FOR LINE SEARCH ROUTINE */
 
-    ftol = 1e-4;
-    maxfev = 20;
 
     if (iprint[0] >= 0) {
-        lb1_(iprint, &iter, &nfun, &gnorm, n, m, x, f, g, &stp, &finish);
+        lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, x, f, gradient, &stp, &converged);
     }
 
 /*    -------------------- */
 /*     MAIN ITERATION LOOP */
 /*    -------------------- */
 
-L80:
-    ++iter;
-    *info = 0;
-    bound = iter - 1;
-    if (iter == 1) {
-        goto L165;
-    }
-    if (iter > *m) {
-        bound = *m;
-    }
+    while( !converged ) {
+       ++iter;
+       info = 0;
+       bound = iter - 1;
+       if (iter != 1) {
+          if (iter > m) {
+              bound = m;
+          }
 
-    ys = ddot_(*n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
-    if (! (*diagco)) {
-        yy = ddot_(*n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
-        for (i = 0; i < *n; ++i) {
-            diag[i] = ys / yy;
-        }
-    } else {
-        *iflag = 2;
-        return;
-    }
+          ys = ddot_(n, &w[iypt + npt], c__1, &w[ispt + npt], c__1);
+          yy = ddot_(n, &w[iypt + npt], c__1, &w[iypt + npt], c__1);
+          for (i = 0; i < n; ++i) {
+               diag[i] = ys / yy;
+          }
 L100:
-    if (*diagco) {
-        for (i = 0; i < *n; ++i) {
-            if (diag[i] <= 0.) {
-                goto L195;
-            }
-        }
-    }
 
 /*     COMPUTE -H*G USING THE FORMULA GIVEN IN: Nocedal, J. 1980, */
 /*     "Updating quasi-Newton matrices with limited storage", */
 /*     Mathematics of Computation, Vol.24, No.151, pp. 773-782. */
 /*     --------------------------------------------------------- */
 
-    cp = point;
-    if (point == 0) {
-        cp = *m;
-    }
-    w[*n + cp-1] = 1. / ys;
-    for (i = 0; i < *n; ++i) {
-        w[i] = -g[i];
-    }
-    cp = point;
-    for (i = 0; i < bound; ++i) {
-        --cp;
-        if (cp == -1) {
-            cp = *m - 1;
-        }
-        sq = ddot_(*n, &w[ispt + cp * *n], c__1, w, c__1);
-        inmc = *n + *m + cp;
-        iycn = iypt + cp * *n;
-        w[inmc] = w[*n + cp] * sq;
-        d__1 = -w[inmc];
-        daxpy_(*n, d__1, &w[iycn], c__1, w, c__1);
-    }
+          cp = point;
+          if (point == 0) {
+           cp = m;
+          }
+          w[n + cp-1] = 1. / ys;
+          for (i = 0; i < n; ++i) {
+              w[i] = -gradient[i];
+          }
+          cp = point;
+          for (i = 0; i < bound; ++i) {
+              --cp;
+              if (cp == -1) {
+                  cp = m - 1;
+              }
+              sq = ddot_(n, &w[ispt + cp * n], c__1, w, c__1);
+              inmc = n + m + cp;
+              iycn = iypt + cp * n;
+              w[inmc] = w[n + cp] * sq;
+              d__1 = -w[inmc];
+              daxpy_(n, d__1, &w[iycn], c__1, w, c__1);
+          }
 
-    for (i = 0; i < *n; ++i) {
-        w[i] *= diag[i];
-    }
+          for (i = 0; i < n; ++i) {
+              w[i] *= diag[i];
+          }
 
-    for (i = 0; i < bound; ++i) {
-        yr = ddot_(*n, &w[iypt + cp * *n], c__1, w, c__1);
-        beta = w[*n + cp] * yr;
-        inmc = *n + *m + cp;
-        beta = w[inmc] - beta;
-        iscn = ispt + cp * *n;
-        daxpy_(*n, beta, &w[iscn], c__1, w, c__1);
-        ++cp;
-        if (cp == *m) {
-            cp = 0;
-        }
-    }
+          for (i = 0; i < bound; ++i) {
+              yr = ddot_(n, &w[iypt + cp * n], c__1, w, c__1);
+              beta = w[n + cp] * yr;
+              inmc = n + m + cp;
+              beta = w[inmc] - beta;
+              iscn = ispt + cp * n;
+              daxpy_(n, beta, &w[iscn], c__1, w, c__1);
+              ++cp;
+              if (cp == m) {
+                  cp = 0;
+              }
+          }
 
-/*     STORE THE NEW SEARCH DIRECTION */
-/*     ------------------------------ */
+/*        STORE THE NEW SEARCH DIRECTION */
+/*        ------------------------------ */
 
-    for (i = 0; i < *n; ++i) {
-        w[ispt + point * *n + i] = w[i];
-    }
+          for (i = 0; i < n; ++i) {
+             w[ispt + point * n + i] = w[i];
+          }
 
-/*     OBTAIN THE ONE-DIMENSIONAL MINIMIZER OF THE FUNCTION */
-/*     BY USING THE LINE SEARCH ROUTINE MCSRCH */
-/*     ---------------------------------------------------- */
-L165:
-    nfev = 0;
+/*        OBTAIN THE ONE-DIMENSIONAL MINIMIZER OF THE FUNCTION */
+/*        BY USING THE LINE SEARCH ROUTINE MCSRCH */
+/*        ---------------------------------------------------- */
+      }
+       nfev = 0;
 /* awf changed initial step from ONE to be parametrized. */
-    stp = lb3_1.stpawf;
-    if (iter == 1) {
-        stp = stp1;
-    }
-    for (i = 0; i < *n; ++i) {
-        w[i] = g[i];
-    }
-L172:
-    mcsrch_(n, x, f, g, &w[ispt + point * *n], &stp, &ftol, xtol, &maxfev, info, &nfev, diag);
-    if (*info == -1) {
-        *iflag = 1;
-/*       Return, in order to get another sample of F and G. */
-/*       Next call comes right back here. */
-        return;
-    }
-    if (*info != 1) {
-        goto L190;
-    }
-    nfun += nfev;
+       stp = lb3_1.stpawf;
+       if (iter == 1) {
+           stp = stp1;
+       }
+       for (i = 0; i < n; ++i) {
+           w[i] = gradient[i];
+       }
+
+       do {
+          SimTK::LBFGSOptimizer::mcsrch_(&n, x, f, gradient, &w[ispt + point * n], &stp, &ftol, xtol, &maxfev, &info, &nfev, diag);
+          if (info == -1) {
+             objectiveFuncWrapper( n, x, true, f, (void*)this );
+             gradientFuncWrapper( n,  x, false, gradient, (void*)this );
+          } else if (info != 1) {
+              if (lb3_1.lp > 0) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
+                 "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES");  
+              } else if( info == 0) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: IMPROPER INPUT PARAMETERS");
+             } else if( info == 2) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: RELATIVE WIDTH OF THE INTERVAL OF UNCERTAINTY IS AT MOST XTOL");
+             } else if( info == 3) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: MORE THAN 20 FUNCTION EVALUATIONS WERE REQUIRED AT THE PRESENT ITERATION");
+             } else if( info == 4) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: THE STEP IS TOO SMALL");
+             } else if( info == 5) {
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: THE STEP IS TOO LARGE");
+             } else if( info == 6){
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed,
+                 "LBFGS ERROR: ROUNDING ERRORS PREVENT FURTHER PROGRESS.\n THERE MAY NOT BE A STEP WHICH SATISFIES THE SUFFICIENT DECREASE AND CURVATURE\n CONDITIONS. TOLERANCES MAY BE TOO SMALL.");
+             } else {
+                 sprintf(buf, "LBFGS ERROR: info = %d \n",info );
+                 SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf) );
+             }
+          }
+       } while( info == -1 );
+
+       nfun += nfev;
 
 /*     COMPUTE THE NEW STEP AND GRADIENT CHANGE */
 /*     ----------------------------------------- */
 
-    npt = point * *n;
-    for (i = 0; i < *n; ++i) {
-        w[ispt + npt + i] *= stp;
-        w[iypt + npt + i] = g[i] - w[i];
-    }
-    ++point;
-    if (point == *m) {
-        point = 0;
-    }
+       npt = point * n;
+       for (i = 0; i < n; ++i) {
+           w[ispt + npt + i] *= stp;
+           w[iypt + npt + i] = gradient[i] - w[i];
+       }
+       ++point;
+       if (point == m) {
+           point = 0;
+       }
 
 /*     TERMINATION TEST */
 /*     ---------------- */
 
-    gnorm = sqrt(ddot_(*n, g, c__1, g, c__1));
-    xnorm = sqrt(ddot_(*n, x, c__1, x, c__1));
-    xnorm = std::max(1.,xnorm);
-    if (gnorm / xnorm <= *eps) {
-        finish = TRUE_;
-    }
+       gnorm = sqrt(ddot_(n, gradient, c__1, gradient, c__1));
+       xnorm = sqrt(ddot_(n, x, c__1, x, c__1));
+       xnorm = std::max(1.,xnorm);
+       if (gnorm / xnorm <= *eps) {
+           converged = true;
+       }
 
-    if (iprint[0] >= 0) {
-        lb1_(iprint, &iter, &nfun, &gnorm, n, m, x, f, g, &stp, &finish);
-    }
-    if (finish) {
-        *iflag = 0;
-        return;
-    }
-    goto L80;
+       if (iprint[0] >= 0) {
+        lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, x, f, gradient, &stp, &converged);
+       }
+
+    }  // end while loop
 
 /*     ------------------------------------------------------------ */
-/*     END OF MAIN ITERATION LOOP. ERROR EXITS. */
+/*     END OF MAIN ITERATION LOOP.  */
 /*     ------------------------------------------------------------ */
 
-L190:
-    *iflag = -1;
-    if (lb3_1.lp > 0) {
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed , 
-        "LBFGS LINE SEARCH FAILED POSSIBLE CAUSES: FUNCTION OR GRADIENT ARE INCORRECT OR INCORRECT TOLERANCES"); }
-    return;
-L195:
-    *iflag = -2;
-    if (lb3_1.lp > 0) {
-        sprintf( buf, "THE %d-TH DIAGONAL ELEMENT OF THE INVERSE HESSIAN APPROXIMATION IS NOT POSITIVE",&i);
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed ,SimTK::String(buf) );
-    }
-    return;
-L196:
-    *iflag = -3;
-    if (lb3_1.lp > 0) {
-        SimTK_THROW1(SimTK::Exception::OptimizerFailed , "IMPROPER INPUT PARAMETERS N OR M ARE NOT POSITIVE");
-    }
-    return;
-} /* lbfgs_ */
-
-
-/*     LAST LINE OF SUBROUTINE LBFGS */
+} /*  LAST LINE OF SUBROUTINE lbfgs_ */
 
 
 /*      SUBROUTINE LB1(IPRINT,ITER,NFUN,GNORM,N,M,X,F,G,STP,FINISH) */
@@ -685,7 +589,7 @@ L196:
 /*     ************************** */
 
 /* Subroutine */
-static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, doublereal *s, doublereal *stp,
+void SimTK::LBFGSOptimizer::mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, doublereal *s, doublereal *stp,
                     doublereal *ftol, doublereal *xtol, integer *maxfev, integer *info, integer *nfev, doublereal *wa)
 {
     /* Initialized data */
@@ -694,13 +598,13 @@ static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, dou
 
     /* Local variables */
     doublereal dgxm, dgym;
-    static integer j, infoc;
-    static doublereal finit, width, stmin, stmax;
-    static logical stage1;
-    static doublereal width1, ftest1, dg, fm, fx, fy;
-    static logical brackt;
-    static doublereal dginit, dgtest;
-    static doublereal dgm, dgx, dgy, fxm, fym, stx, sty;
+    integer j, infoc;
+    doublereal finit, width, stmin, stmax;
+    logical stage1;
+    doublereal width1, ftest1, dg, fm, fx, fy;
+    logical brackt;
+    doublereal dginit, dgtest;
+    doublereal dgm, dgx, dgy, fxm, fym, stx, sty;
 
 
 /*                     SUBROUTINE MCSRCH */
@@ -804,11 +708,6 @@ static void mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, dou
 /*     ARGONNE NATIONAL LABORATORY. MINPACK PROJECT. JUNE 1983 */
 /*     JORGE J. MORE', DAVID J. THUENTE */
 
-/*     ********** */
-
-    if (*info == -1) {
-        goto L45;
-    }
     infoc = 1;
 
 /*     CHECK THE INPUT PARAMETERS FOR ERRORS. */
@@ -887,15 +786,14 @@ L30:
 
 /*        EVALUATE THE FUNCTION AND GRADIENT AT STP */
 /*        AND COMPUTE THE DIRECTIONAL DERIVATIVE. */
-/*        We return to main program to obtain F and G. */
 
     for (j = 0; j < *n; ++j) {
         x[j] = wa[j] + *stp * s[j];
     }
-    *info = -1;
-    return;
+    
+    objectiveFuncWrapper( *n, x, true, f, (void*)this );
+    gradientFuncWrapper( *n,  x, false, g, (void*)this );
 
-L45:
     *info = 0;
     ++(*nfev);
     dg = 0.;
@@ -1002,8 +900,8 @@ static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal 
     doublereal d__1;
 
     /* Local variables */
-    static doublereal sgnd, stpc, stpf, stpq, p, q, gamma, r, s, theta;
-    static logical bound;
+    doublereal sgnd, stpc, stpf, stpq, p, q, gamma, r, s, theta;
+    logical bound;
 
 
 /*     SUBROUTINE MCSTEP */
@@ -1286,7 +1184,7 @@ static void write50(double* v, int n)
 //C     -------------------------------------------------------------
 */
 void lb1_( int *iprint, int *iter, int *nfun, double *gnorm, int *n, 
-           int *m, double *x, double *f, double *g, double *stp, int *finish) /* logical*/
+           int *m, double *x, double *f, double *g, double *stp, bool *finish) /* logical*/
 {
   (void)m;
   --iprint;

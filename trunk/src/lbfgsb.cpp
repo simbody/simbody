@@ -63,20 +63,20 @@
 
 /* Table of constant values */
 
-static doublereal c_b9 = 0.;
-static integer c__1 = 1;
+const static doublereal c_b9 = 0.;
+const static integer c__1 = 1;
 /* static integer c__9 = 9; */
-static integer c__11 = 11;
+const static integer c__11 = 11;
 /* static integer c__3 = 3; */
-static doublereal c_b275 = .001;
-static doublereal c_b276 = .9;
-static doublereal c_b277 = .1;
+const static doublereal c_b275 = .001;
+const static doublereal c_b276 = .9;
+const static doublereal c_b277 = .1;
 /* static integer c__5 = 5; */
 //Reordering function calls could prevent the need for defining these statics before use.
-static int dtrsl_( doublereal *t, integer *ldt, integer *n, doublereal *b, integer *job, integer *info);
+static int dtrsl_( doublereal *t, integer *ldt, integer *n, doublereal *b, const integer *job, integer *info);
 static int hpsolb_( integer *n, doublereal *t, integer *iorder, integer *iheap);
-static int dcsrch_( doublereal *f, doublereal *g, doublereal *stp, doublereal *ftol,
-    doublereal *gtol, doublereal *xtol, doublereal *stpmin, doublereal *stpmax,
+static int dcsrch_( doublereal *f, doublereal *g, doublereal *stp, const doublereal *ftol,
+    const doublereal *gtol, const doublereal *xtol, const doublereal *stpmin, doublereal *stpmax,
     char *task, integer *isave, doublereal *dsave, ftnlen task_len);
 static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     doublereal *sty, doublereal *fy, doublereal *dy, doublereal *stp, doublereal *fp, doublereal *dp,
@@ -97,7 +97,7 @@ y at the bounds\002)";
     integer i__1;
 
     /* Local variables */
-    static integer nbdd, i__;
+    integer nbdd, i__;
 
     /* Fortran I/O blocks */
 /*
@@ -224,9 +224,9 @@ integer *col, doublereal *v, doublereal *p, integer *info)
     integer sy_dim1, sy_offset, wt_dim1, wt_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, k;
-    static integer i2;
-    static doublereal sum;
+    integer i__, k;
+    integer i2;
+    doublereal sum;
 
 /*     ************ */
 
@@ -390,25 +390,25 @@ oint \002,1p,2(1x,d11.4))";
     doublereal d__1;
 
     /* Local variables */
-    static doublereal dibp;
-    static integer iter;
-    static doublereal zibp, tsum, dibp2;
-    static integer i__, j;
-    static logical bnded;
-    static doublereal neggi;
-    static integer nfree;
-    static doublereal bkmin;
-    static integer nleft;
-    static doublereal f1, f2, f2_org__, dt, tj, tl;
-    static integer nbreak, ibkmin;
-    static doublereal tu;
-    static integer pointr;
-    static doublereal tj0;
-    static logical xlower, xupper;
-    static integer ibp;
-    static doublereal dtm;
-    static doublereal wmc, wmp, wmw;
-    static integer col2;
+    doublereal dibp;
+    integer iter;
+    doublereal zibp, tsum, dibp2;
+    integer i__, j;
+    logical bnded;
+    doublereal neggi;
+    integer nfree;
+    doublereal bkmin;
+    integer nleft;
+    doublereal f1, f2, f2_org__, dt, tj, tl;
+    integer nbreak, ibkmin;
+    doublereal tu;
+    integer pointr;
+    doublereal tj0;
+    logical xlower, xupper;
+    integer ibp;
+    doublereal dtm;
+    doublereal wmc, wmp, wmw;
+    integer col2;
 
     /* Fortran I/O blocks */
 /*
@@ -998,9 +998,9 @@ static int cmprlb_( integer *n, integer *m, doublereal *x, doublereal *g,
         wt_dim1, wt_offset, i__1, i__2;
 
     /* Local variables */
-    static integer i__, j, k;
-    static doublereal a1, a2;
-    static integer pointr;
+    integer i__, j, k;
+    doublereal a1, a2;
+    integer pointr;
 
 /*     ************ */
 
@@ -1094,7 +1094,7 @@ static int errclb_( integer *n, integer *m, doublereal *factr, doublereal *l,
     integer i__1;
 
     /* Local variables */
-    static integer i__;
+    integer i__;
     (void)task_len;
 
 /*     ************ */
@@ -1166,11 +1166,11 @@ static int formk_(
         wy_dim1, wy_offset, sy_dim1, sy_offset, i__1, i__2, i__3;
 
     /* Local variables */
-    static integer dend, pend;
-    static integer upcl;
-    static doublereal temp1, temp2, temp3, temp4;
-    static integer i__, k;
-    static integer ipntr, jpntr, k1, m2, dbegin, is, js, iy, jy, pbegin, is1,
+    integer dend, pend;
+    integer upcl;
+    doublereal temp1, temp2, temp3, temp4;
+    integer i__, k;
+    integer ipntr, jpntr, k1, m2, dbegin, is, js, iy, jy, pbegin, is1,
         js1, col2;
 
 /*     ************ */
@@ -1554,9 +1554,9 @@ integer *col, doublereal *theta, integer *info)
         i__2, i__3;
 
     /* Local variables */
-    static doublereal ddum;
-    static integer i__, j, k;
-    static integer k1;
+    doublereal ddum;
+    integer i__, j, k;
+    integer k1;
 
 /*     ************ */
 
@@ -1640,7 +1640,7 @@ logical *wrk, logical *updatd, logical *cnstnd, integer *iprint, integer *iter)
     integer i__1;
 
     /* Local variables */
-    static integer iact, i__, k;
+    integer iact, i__, k;
 
     /* Fortran I/O blocks */
 /*
@@ -1784,9 +1784,9 @@ static int hpsolb_( integer *n, doublereal *t, integer *iorder, integer *iheap)
     integer i__1;
 
     /* Local variables */
-    static doublereal ddum;
-    static integer i__, j, k, indxin, indxou;
-    static doublereal out;
+    doublereal ddum;
+    integer i__, j, k, indxin, indxou;
+    doublereal out;
 
 /*     ************ */
 
@@ -1905,8 +1905,8 @@ doublereal *dsave, ftnlen task_len, ftnlen csave_len)
     doublereal d__1;
 
     /* Local variables */
-    static integer i__;
-    static doublereal a1, a2;
+    integer i__;
+    doublereal a1, a2;
     (void)task_len;
     (void)csave_len;
 
@@ -2045,8 +2045,8 @@ doublereal *theta, doublereal *rr, doublereal *dr, doublereal *stp, doublereal *
 
 
     /* Local variables */
-    static integer j;
-    static integer pointr;
+    integer j;
+    integer pointr;
     const int& jr = j;
 
 /*     ************ */
@@ -2424,7 +2424,7 @@ p,2(1x,d10.3))";
 /* Subroutine */
 static int prn3lb_( integer *n, doublereal *x, doublereal *f, char *task,
 integer *iprint, integer *info, integer *itfile, integer *iter, integer *nfgv, integer *nintol, integer *nskip, integer *nact,
-doublereal *sbgnrm, doublereal *time, integer *nint, char *word, integer *iback,
+doublereal *sbgnrm, const doublereal *time, integer *nint, char *word, integer *iback,
 doublereal *stp, doublereal *xstep, integer *k,
 doublereal *cachyt, doublereal *sbtime, doublereal *lnscht, ftnlen task_len,
 ftnlen word_len)
@@ -2729,8 +2729,8 @@ doublereal *x, doublereal *g, doublereal *sbgnrm)
     doublereal d__1, d__2;
 
     /* Local variables */
-    static integer i__;
-    static doublereal gi;
+    integer i__;
+    doublereal gi;
 
 /*     ************ */
 
@@ -2811,12 +2811,12 @@ OX\002)";
         i__2;
 
     /* Local variables */
-    static doublereal temp1, temp2;
-    static integer i__, j, k;
-    static doublereal alpha;
-    static integer m2;
-    static doublereal dk;
-    static integer js, jy, pointr, ibd, col2;
+    doublereal temp1, temp2;
+    integer i__, j, k;
+    doublereal alpha;
+    integer m2;
+    doublereal dk;
+    integer js, jy, pointr, ibd, col2;
 
     /* Fortran I/O blocks */
 /*
@@ -3146,18 +3146,18 @@ OX\002)";
 /* ====================== The end of subsm =============================== */
 /* Subroutine */
 static int dcsrch_(
-doublereal *f, doublereal *g, doublereal *stp, doublereal *ftol, doublereal *gtol, doublereal *xtol, doublereal *stpmin, doublereal *stpmax,
+doublereal *f, doublereal *g, doublereal *stp, const doublereal *ftol, const doublereal *gtol, const doublereal *xtol, const doublereal *stpmin, doublereal *stpmax,
 char *task, integer *isave, doublereal *dsave, ftnlen task_len)
 {
     /* System generated locals */
     doublereal d__1;
 
     /* Local variables */
-    static integer stage;
-    static doublereal finit, ginit, width, ftest, gtest, stmin, stmax, width1,
+    integer stage;
+    doublereal finit, ginit, width, ftest, gtest, stmin, stmax, width1,
          fm, gm, fx, fy, gx, gy;
-    static logical brackt;
-    static doublereal fxm, fym, gxm, gym, stx, sty;
+    logical brackt;
+    doublereal fxm, fym, gxm, gym, stx, sty;
 
 /*     ********** */
 
@@ -3487,7 +3487,7 @@ static int dcstep_( doublereal *stx, doublereal *fx, doublereal *dx,
     doublereal d__1, d__2, d__3;
 
     /* Local variables */
-    static doublereal sgnd, stpc, stpf, stpq, p, q, gamma, r__, s, theta;
+    doublereal sgnd, stpc, stpf, stpq, p, q, gamma, r__, s, theta;
 
 /*     ********** */
 
@@ -3761,24 +3761,24 @@ static doublereal dpmeps_(void)
 {
     /* Initialized data */
 
-    static doublereal zero = 0.;
-    static doublereal one = 1.;
-    static doublereal two = 2.;
+    doublereal zero = 0.;
+    doublereal one = 1.;
+    doublereal two = 2.;
 
     /* System generated locals */
     integer i__1;
     doublereal ret_val;
 
     /* Local variables */
-    static doublereal beta;
-    static integer irnd;
-    static doublereal temp, temp1, a, b;
-    static integer i__;
-    static doublereal betah;
-    static integer ibeta, negep;
-    static doublereal tempa;
-    static integer itemp, it;
-    static doublereal betain;
+    doublereal beta;
+    integer irnd;
+    doublereal temp, temp1, a, b;
+    integer i__;
+    doublereal betah;
+    integer ibeta, negep;
+    doublereal tempa;
+    integer itemp, it;
+    doublereal betain;
 
 /*     ********** */
 
@@ -3884,16 +3884,16 @@ L70:
 
 /* Subroutine */
 static int dtrsl_( doublereal *t, integer *ldt, integer *n,
-doublereal *b, integer *job, integer *info)
+doublereal *b, const integer *job, integer *info)
 {
     /* System generated locals */
     integer t_dim1, t_offset, i__1, i__2;
 
     /* Local variables */
-    static integer case__;
-    static doublereal temp;
-    static integer j;
-    static integer jj;
+    integer case__;
+    doublereal temp;
+    integer j;
+    integer jj;
 
 
 
@@ -4107,42 +4107,42 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
  /*   integer f_open(), s_wsfe(), do_fio(), e_wsfe(); */
 
     /* Local variables */
-    static integer head;
-    static doublereal fold;
-    static integer nact;
-    static doublereal ddum;
-    static integer info;
-    static doublereal time;
-    static integer nfgv, ifun, iter, nint;
-    static char word[3];
-    static doublereal time1, time2;
-    static integer i__, iback, k;
-    static doublereal gdold;
-    static integer nfree;
-    static logical boxed;
-    static integer itail;
-    static doublereal theta;
-    static doublereal dnorm;
-    static integer nskip, iword;
-    static doublereal xstep, stpmx;
-    static doublereal gd, dr, rr;
-    static integer ileave;
-    static integer itfile;
-    static doublereal cachyt, epsmch;
-    static logical updatd;
-    static doublereal sbtime;
-    static logical prjctd;
-    static integer iupdat;
-    static logical cnstnd;
-    static doublereal sbgnrm;
-    static integer nenter;
-    static doublereal lnscht;
-    static integer nintol;
-    static doublereal dtd;
-    static integer col;
-    static doublereal tol;
-    static logical wrk;
-    static doublereal stp, cpu1, cpu2;
+    integer head;
+    doublereal fold;
+    integer nact;
+    doublereal ddum;
+    integer info;
+    doublereal time;
+    integer nfgv, ifun, iter, nint;
+    char word[3];
+    doublereal time1, time2;
+    integer i__, iback, k;
+    doublereal gdold;
+    integer nfree;
+    logical boxed;
+    integer itail;
+    doublereal theta;
+    doublereal dnorm;
+    integer nskip, iword;
+    doublereal xstep, stpmx;
+    doublereal gd, dr, rr;
+    integer ileave;
+    integer itfile;
+    doublereal cachyt, epsmch;
+    logical updatd;
+    doublereal sbtime;
+    logical prjctd;
+    integer iupdat;
+    logical cnstnd;
+    doublereal sbgnrm;
+    integer nenter;
+    doublereal lnscht;
+    integer nintol;
+    doublereal dtd;
+    integer col;
+    doublereal tol;
+    logical wrk;
+    doublereal stp, cpu1, cpu2;
 
     /* Fortran I/O blocks */
 /*
@@ -4875,8 +4875,8 @@ int setulb_(integer *n, integer *m, doublereal *x, doublereal *l,
     integer i__1;
 
     /* Local variables */
-    static integer lsnd, lsgo, lygo, /* l1,  l2, l3, */ ld, lr, lt;
-    static integer lz, lwa, lsg, lyg, lwn, lss, lws, lwt, lsy, lwy, lyy;
+    integer lsnd, lsgo, lygo, /* l1,  l2, l3, */ ld, lr, lt;
+    integer lz, lwa, lsg, lyg, lwn, lss, lws, lwt, lsy, lwy, lyy;
     (void)task_len;
     (void)csave_len;
 
