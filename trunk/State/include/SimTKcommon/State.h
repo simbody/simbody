@@ -27,6 +27,8 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 
+#include <ostream>
+
 namespace SimTK {
 
 // TODO: these need an option to have associated "update" variables in the cache,
@@ -133,50 +135,50 @@ public:
     /// This returns the *global* stage for this State.
     const Stage& getSystemStage() const;
 
-    // If any subsystem or the system stage is currently at or
-    // higher than the passed-in one, back up to the stage just prior.
-    // Otherwise do nothing.
+    /// If any subsystem or the system stage is currently at or
+    /// higher than the passed-in one, back up to the stage just prior.
+    /// Otherwise do nothing.
     void invalidateAll(Stage) const;  // cache is mutable
 
-    // Advance the current stage by one to the indicated stage.
-    // The stage is passed in just to give us a chance to verify
-    // that all is as expected. You can only advance one stage at
-    // a time. Advancing to "Topology" and "Model" stages affect
-    // what you can do later.
+    /// Advance the current stage by one to the indicated stage.
+    /// The stage is passed in just to give us a chance to verify
+    /// that all is as expected. You can only advance one stage at
+    /// a time. Advancing to "Topology" and "Model" stages affect
+    /// what you can do later.
     void advanceSubsystemToStage(int subsys, Stage) const;
     void advanceSystemToStage(Stage) const;
 
-    // These are shared among all the subsystems and are not allocated until
-    // the *System* is advanced to Stage::Model. The returned index is
-    // local to each subsystem. After the System is modeled, we guarantee that
-    // all the q's for a subsystem will be contiguous, and similarly for u's
-    // and z's. However, q,u,z will *not* be contiguous with each other.
-    // The *global* y is contiguous, and global q,u,z are contiguous within
-    // y, in that order.
+    /// These are shared among all the subsystems and are not allocated until
+    /// the *System* is advanced to Stage::Model. The returned index is
+    /// local to each subsystem. After the System is modeled, we guarantee that
+    /// all the q's for a subsystem will be contiguous, and similarly for u's
+    /// and z's. However, q,u,z will *not* be contiguous with each other.
+    /// The *global* y is contiguous, and global q,u,z are contiguous within
+    /// y, in that order.
 
     int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
     int allocateU(int subsys, const Vector& uInit); // udot                    "
     int allocateZ(int subsys, const Vector& zInit); // zdot                    "
 
-    // Slots for constraint errors are handled similarly, although these are
-    // just cache entries not state variables. Q errors and U errors
-    // will each be contiguous for a given subsystem, but *not* with each other.
-    // However, yerr={qerr,uerr} *is* a single contiguous vector.
-    // UDotErr is a separate quantity, not part of yerr. Again the UDotErr's for
-    // each subsystem will be contiguous within the larger UDotErr Vector.
+    /// Slots for constraint errors are handled similarly, although these are
+    /// just cache entries not state variables. Q errors and U errors
+    /// will each be contiguous for a given subsystem, but *not* with each other.
+    /// However, yerr={qerr,uerr} *is* a single contiguous vector.
+    /// UDotErr is a separate quantity, not part of yerr. Again the UDotErr's for
+    /// each subsystem will be contiguous within the larger UDotErr Vector.
 
     int allocateQErr   (int subsys, int nqerr);    // these are cache entries
     int allocateUErr   (int subsys, int nuerr);
     int allocateUDotErr(int subsys, int nudoterr);
 
-    // These are private to each subsystem and are allocated immediately.
-    // TODO: true discrete variables need an "update" variable in the cache.
+    /// These are private to each subsystem and are allocated immediately.
+    /// TODO: true discrete variables need an "update" variable in the cache.
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
     int allocateCacheEntry      (int subsys, Stage, AbstractValue* v);
     
-    // Dimensions. These are valid at Stage::Model while access to the various
-    // arrays may have stricter requirements. Hence it is better to use these
-    // routines than to get a reference to a Vector and ask for its size().
+    /// Dimensions. These are valid at Stage::Model while access to the various
+    /// arrays may have stricter requirements. Hence it is better to use these
+    /// routines than to get a reference to a Vector and ask for its size().
 
     int getNY() const; // = nq+nu+nz
     int getQStart() const; int getNQ() const;
@@ -196,7 +198,7 @@ public:
     int getUErrStart(int subsys)    const; int getNUErr(int subsys)    const;
     int getUDotErrStart(int subsys) const; int getNUDotErr(int subsys) const;
 
-    // Per-subsystem access to the global shared variables.
+    /// Per-subsystem access to the global shared variables.
     const Vector& getQ(int subsys) const;
     const Vector& getU(int subsys) const;
     const Vector& getZ(int subsys) const;
@@ -205,7 +207,7 @@ public:
     Vector& updU(int subsys);
     Vector& updZ(int subsys);
 
-    // And to the shared cache entries.
+    /// Per-subsystem access to the shared cache entries.
     const Vector& getQDot(int subsys) const;
     const Vector& getUDot(int subsys) const;
     const Vector& getZDot(int subsys) const;
@@ -223,92 +225,86 @@ public:
     Vector& updUErr(int subsys) const;
     Vector& updUDotErr(int subsys) const;
 
-    // You can call these as long as *system* stage >= Model.
+    /// You can call these as long as *system* stage >= Model.
     const Real&   getTime() const;
     const Vector& getY() const; // {Q,U,Z} packed and in that order
 
-    // These are just views into Y.
+    /// These are just views into Y.
     const Vector& getQ() const;
     const Vector& getU() const;
     const Vector& getZ() const;
 
-    // You can call these as long as stage >= Model, but the
-    // stage will be backed up if necessary to the indicated stage.
+    /// You can call these as long as stage >= Model, but the
+    /// stage will be backed up if necessary to the indicated stage.
     Real&   updTime();  // Back up to Stage::Time-1
     Vector& updY();     // Back up to Stage::Congfigured-1
 
-    // These are just views into Y.
+    /// These are just views into Y.
     Vector& updQ();     // Back up to Stage::Position-1
     Vector& updU();     // Back up to Stage::Velocity-1
     Vector& updZ();     // Back up to Stage::Dynamics-1
 
     const Vector& getYDot()    const; // Stage::Acceleration
 
-    // These are just views into YDot.
+    /// These are just views into YDot.
     const Vector& getQDot()    const; // Stage::Velocity
     const Vector& getZDot()    const; // Stage::Dynamics
     const Vector& getUDot()    const; // Stage::Acceleration
 
-    // This has its own space, not a view.
+    /// This has its own space, not a view.
     const Vector& getQDotDot() const; // Stage::Acceleration
 
-    // These are mutable
+    /// These are mutable
     Vector& updYDot() const;    // Stage::Acceleration-1
     Vector& updQDot() const;    // Stage::Velocity-1     (view into YDot)
     Vector& updZDot() const;    // Stage::Dynamics-1            "
     Vector& updUDot() const;    // Stage::Acceleration-1        "
 
-    // This is a separate shared cache entry, not part of YDot. If you
-    // have a direct 2nd order integrator you can integrate QDotDot
-    // (twice) to get Q.
+    /// This is a separate shared cache entry, not part of YDot. If you
+    /// have a direct 2nd order integrator you can integrate QDotDot
+    /// (twice) to get Q.
     Vector& updQDotDot() const; // Stage::Acceleration-1
 
-    // Return the current constraint errors for all constraints.
+    /// Return the current constraint errors for all constraints.
     const Vector& getYErr() const; // {QErr,UErr} packed and in that order
 
-    // These are just views into YErr.
+    /// These are just views into YErr.
     const Vector& getQErr() const;  // Stage::Position (index 3 constraints)
     const Vector& getUErr() const;  // Stage::Velocity (index 2 constraints)
 
-    // This has its own space, it is not a view.
+    /// This has its own space, it is not a view.
     const Vector& getUDotErr() const; // Stage::Acceleration (index 1 constriants)
 
-    // These are mutable
+    /// These are mutable
     Vector& updYErr() const; // Stage::Dynamics-1
     Vector& updQErr() const; // Stage::Position-1 (view into YErr)
     Vector& updUErr() const; // Stage::Velocity-1        "
 
     Vector& updUDotErr() const; // Stage::Acceleration-1 (not a view)
 
-    // OK if dv.stage==Model or stage >= Model
+    /// OK if dv.stage==Model or stage >= Model
     const AbstractValue& getDiscreteVariable(int subsys, int index) const;
 
-    // OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
+    /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
     AbstractValue&       updDiscreteVariable(int subsys, int index);
 
-    // Stage >= ce.stage
+    /// Stage >= ce.stage
     const AbstractValue& getCacheEntry(int subsys, int index) const;
 
-    // Stage >= ce.stage-1; does not change stage
+    /// Stage >= ce.stage-1; does not change stage
     AbstractValue& updCacheEntry(int subsys, int index) const; // mutable
 
     String toString() const;
     String cacheToString() const;
 
-// ignore everything below here, please.
+    // ignore everything below here, please.
     class StateRep* rep;
     const StateRep& getRep() const {assert(rep); return *rep;}
     StateRep&       updRep()       {assert(rep); return *rep;}
 };
 
-inline std::ostream& 
-operator<<(std::ostream& o, const State& s) {
-    o << "STATE:" << std::endl;
-    o << s.toString() << std::endl;
-    o << "CACHE:" << std::endl;
-    return o << s.cacheToString() << std::endl;
-}
-
+SimTK_SimTKCOMMON_EXPORT std::ostream& 
+operator<<(std::ostream& o, const State& s);
 
 } // namespace SimTK
 

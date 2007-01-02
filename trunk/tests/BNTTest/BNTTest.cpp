@@ -118,6 +118,13 @@ int main()
     cout << "square(x)=" << square(x) << " x*x=" << x*x << " diff=" << square(x)-x*x <<endl;
     cout << "cube(x)=" << cube(x) << " x*x*x=" << x*x*x << " diff=" << cube(x)-x*x*x <<endl;
 
+    Real pp=27, nn=-14, zzz=0;
+    cout << "Real: sign(27)=" << sign(pp) << " sign(-14)=" << sign(nn) << " sign(0)=" << sign(zzz) << endl;
+    cout << "negator<Real>: sign(27)=" 
+         <<  sign(negator<Real>::recast(pp)) << " sign(-14)=" << sign(negator<Real>::recast(nn)) 
+         << " sign(0)=" << sign(negator<Real>::recast(zzz)) << endl;
+
+
     // Check mixed-mode complex & conjugate operators
     complex<float> cff;
     complex<double> dff;

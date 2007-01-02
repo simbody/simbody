@@ -26,6 +26,7 @@
 #include "SimTKcommon/State.h"
 
 #include <cassert>
+#include <ostream>
 
 namespace SimTK {
 
@@ -1404,6 +1405,15 @@ String State::cacheToString() const {
 
     out += "</Cache>\n";
     return out;
+}
+
+
+std::ostream& 
+operator<<(std::ostream& o, const State& s) {
+    o << "STATE:" << std::endl;
+    o << s.toString() << std::endl;
+    o << "CACHE:" << std::endl;
+    return o << s.cacheToString() << std::endl;
 }
 
 } // namespace SimTK
