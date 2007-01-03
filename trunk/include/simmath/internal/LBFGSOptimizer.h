@@ -34,32 +34,18 @@ class LBFGSOptimizer: public OptimizerRep {
 
      public:
 
-     ~LBFGSOptimizer() {
-        printf("LBFGSOptimizer destructor \n");
-
-        delete [] work;
-        delete [] diag;
-        delete [] gradient;
-
-     }
+     ~LBFGSOptimizer() { }
 
      LBFGSOptimizer(OptimizerSystem& sys); 
 
-     unsigned int optParamStringToValue( char *parameter );
-     void setOptimizerParameters(unsigned int parameter, double *values );
-     void getOptimizerParameters(unsigned int parameter, double *values );
-     double optimize(  SimTK::Vector &results );
+     Real optimize(  SimTK::Vector &results );
      
-/* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     int         Trace;
-     double     *work;
-     double     *diag;
-     double      *gradient;
-     int         iprint[2];
-     double      xtol[1];
-     int         diagco[1];
-
+     int         iprint[3];
+     Real        xtol[1];
+     void lbfgs_( int n, int m, Real *x, Real *f, int *iprint,  Real *eps, Real *xtol );
+     void mcsrch_(int *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
+                    Real *ftol, Real *xtol, int *maxfev, int *info, int *nfev, Real *wa);
 
 };
 } // namespace SimTK

@@ -93,8 +93,6 @@ int main() {
 
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
-    cout << "LBFGSB driver1 test " << endl;
-
     /* set initial conditions */
     for(i=0;i<n;i++) {
        results[i] = 3.0;
@@ -128,7 +126,7 @@ int main() {
 
 
 
-    printf("f = %f params = ",f);
+    printf("LBFGSBTests.cpp: f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
@@ -142,7 +140,7 @@ int main() {
                         1.086736, 1.180997, 1.394759, 1.945352, 3.784388 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
-           printf(" lbfgsb_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
+           printf(" LBFGSBTests.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
            returnValue = 1;
        }
     }

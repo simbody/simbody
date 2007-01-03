@@ -34,7 +34,6 @@ namespace SimTK {
 InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) {
 
-        printf(" InteriorPointOptimizer constructor \n");         
           int i,n,m;
           char buf[1024];
 

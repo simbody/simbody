@@ -167,10 +167,10 @@ int main() {
   catch (const std::exception& e) {
     std::cout << e.what() << std::endl;
     returnValue = 1; // failure
-    printf("Caught exception \n");
+    printf("IpoptTest.cpp: Caught exception \n");
   }
 
-    printf("f = %f params = ",f);
+    printf("IpoptTest.cpp: f = %f params = ",f);
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        printf(" %f",results[i]); 
     }
@@ -180,7 +180,7 @@ int main() {
     Real expected[] = { 1.00000000, 4.74299963, 3.82114998, 1.37940829 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
-           printf(" ipopt_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
+           printf(" IpoptTest.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]);
            returnValue = 1;
        }
     }

@@ -21,7 +21,8 @@ namespace Ipopt
 
   static void print_message(const Journalist& jnlst)
   {
-    jnlst.Printf(J_INSUPPRESSIBLE, J_MAIN,
+//    jnlst.Printf(J_INSUPPRESSIBLE, J_MAIN,
+    jnlst.Printf(J_DETAILED, J_MAIN,
                  "\n******************************************************************************\n"
                  "This program contains Ipopt, a library for large-scale nonlinear optimization.\n"
                  " Ipopt is released as open source code under the Common Public License (CPL).\n"

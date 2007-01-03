@@ -88,7 +88,7 @@ public:
        zeroFunctionPointers();
     }
 
-    virtual double optimize(  Vector &results ) =  0;
+    virtual Real optimize(  Vector &results ) =  0;
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}
 

@@ -45,27 +45,21 @@ class InteriorPointOptimizer: public OptimizerRep {
         delete [] g_L;
         delete [] mult_x_L;
         delete [] mult_x_U;
-        printf("InteriorPointOptimizer destructor \n");
 
 
      }
      InteriorPointOptimizer(OptimizerSystem& sys); 
-     unsigned int InteriorPointOptimizer::optParamStringToValue( char *parameter );
-     void setOptimizerParameters(unsigned int parameter, double *values );
-     void getOptimizerParameters(unsigned int parameter, double *values );
-     double optimize(  Vector &results );
+     Real optimize(  Vector &results );
 
-     
-/* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
      private:
-     Number      *mult_x_L;
-     Number      *mult_x_U;
-     Number      *g_L;
-     Number      *g_U;
-     double      *x_L;
-     double      *x_U;
-     IpoptProblem nlp;
-     bool freeLimits;
+     Real         *mult_x_L;
+     Real         *mult_x_U;
+     Real         *g_L;
+     Real         *g_U;
+     Real         *x_L;
+     Real         *x_U;
+     IpoptProblem  nlp;
+     bool          freeLimits;
 
 
 };

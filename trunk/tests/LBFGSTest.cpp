@@ -100,7 +100,7 @@ int main() {
     Real expected[] = { 2.0, -2.0 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
-           printf(" lbfgs_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
+           printf(" LBFGSTest.cpp:  error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
            returnValue = 1;
        }
     }

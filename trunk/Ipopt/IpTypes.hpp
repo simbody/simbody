@@ -9,10 +9,12 @@
 #ifndef __IPTYPES_HPP__
 #define __IPTYPES_HPP__
 
+#include "SimTKcommon/internal/common.h"
+
 namespace Ipopt
 {
   /** Type of all numbers */
-  typedef double Number;
+  typedef SimTK::Real Number;
   /** Type of all indices of vectors, matrices etc */
   typedef int Index;
   /** Type of default integer */

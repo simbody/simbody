@@ -40,15 +40,16 @@ class LBFGSBOptimizer: public OptimizerRep {
 
      }
      LBFGSBOptimizer(OptimizerSystem& sys); 
-     unsigned int optParamStringToValue( char *parameter );
-     void setOptimizerParameters(unsigned int parameter, double *values );
-     void getOptimizerParameters(unsigned int parameter, double *values );
-     double optimize(  Vector &results );
+     Real optimize(  Vector &results );
+     int setulb_(int *n, int *m, Real *x, Real *l,
+          Real *u, int *nbd, Real *f, Real *g,
+          Real *factr, Real *pgtol, Real *wa, int *iwa,
+          char *task, int *iprint, char *csave, bool *lsave,
+          int *isave, Real *dsave, long task_len, long csave_len);
 
-/* must implement get and set paramaeters and optimize() functions ?? optParamStringToValue ??*/
+
      private:
-     double      *gradient;
-     int         iprint[2];
+     int         iprint[3];
      int         *nbd;
 
 

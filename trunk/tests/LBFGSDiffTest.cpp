@@ -96,15 +96,17 @@ int main() {
     returnValue = 1; // failure
   }
 
+    printf(" LBFGSDiffTest.cpp: results="); 
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" results[%d] = %f \n",i,results[i]); 
+       printf(" %f",i,results[i]); 
     }
+    printf("\n");
 
     static const Real TOL = 1e-4;
     Real expected[] = { 2.0, -2.0 };
     for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
        if( results[i] > expected[i]+TOL || results[i] < expected[i]-TOL) {
-           printf(" lbfgs_diff_test error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
+           printf(" LBFGSDiffTest.cpp: error results[%d] = %f  expected=%f \n",i,results[i], expected[i]); 
            returnValue = 1;
        }
     }
