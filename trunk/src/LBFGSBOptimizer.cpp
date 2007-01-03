@@ -24,21 +24,16 @@
  */
 #include "Simmath_f2c.h"
 #include "LBFGSBOptimizer.h"
+#include "SimTKcommon/internal/common.h"
 
 using std::cout;
 using std::endl;
-int setulb_(integer *n, integer *m, doublereal *x, doublereal *l,
-      doublereal *u, integer *nbd, doublereal *f, doublereal *g,
-      doublereal *factr, doublereal *pgtol, doublereal *wa, integer *iwa,
-      char *task, integer *iprint, char *csave, logical *lsave,
-      integer *isave, doublereal *dsave, ftnlen task_len, ftnlen csave_len);
-
 namespace SimTK {
 
 
 // TODO make these options
 static const int NUMBER_OF_CORRECTIONS = 5;
-static double factr = 1.0e7;   // 
+static Real factr = 1.0e7;   // 
 
 
      LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
@@ -62,33 +57,32 @@ static double factr = 1.0e7;   //
                nbd[i] = 2;
           }
 
-         gradient = new double[n];
 
      } 
 
-     double LBFGSBOptimizer::optimize(  Vector &results ) {
+     Real LBFGSBOptimizer::optimize(  Vector &results ) {
 
          int i;
          int run_optimizer = 1;
          char task[61];
-         double f;
-         int iprint = 1;
+         Real f;
          int *iwa;
          char csave[61];
-         logical lsave[4];
+         bool lsave[4];
          int isave[44];
-         double dsave[29];
-         double *wa;
-         double *lowerLimits, *upperLimits;
+         Real dsave[29];
+         Real *wa;
+         Real *lowerLimits, *upperLimits;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
+         Real gradient[n];
 
 
+         iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel;
          sys.getParameterLimits( &lowerLimits, &upperLimits );
          iwa = (int *)malloc(3*n*sizeof(int));
-         wa = (double *)malloc( ((2*m + 4)*n + 12*m*m + 12*m)*sizeof(double));
-         /* setup Numerical gradients  */
+         wa = (Real *)malloc( ((2*m + 4)*n + 12*m*m + 12*m)*sizeof(Real));
 
          strcpy( task, "START" );
 
@@ -98,7 +92,7 @@ static double factr = 1.0e7;   //
             setulb_(&n, &m, &results[0], lowerLimits,
                     upperLimits, nbd, &f, gradient,
                     &factr, &convergenceTolerance, wa, iwa,
-                    task, &iprint, csave, lsave, isave, dsave, 60, 60);
+                    task, iprint, csave, lsave, isave, dsave, 60, 60);
 
              if( strncmp( task, "FG", 2) == 0 ) {
                 objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );

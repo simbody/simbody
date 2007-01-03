@@ -75,7 +75,7 @@ int Optimizer::setAdvancedOptions( const char *option, const Real *values ){
       return( ((OptimizerRep *)rep)->setAdvancedOptions( option, values) );
 }
 
-double Optimizer::optimize(SimTK::Vector   &results) {
+Real Optimizer::optimize(SimTK::Vector   &results) {
       return( ((OptimizerRep *)rep)->optimize(results) );
 }
    
@@ -115,7 +115,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
 {
   int i,j,index;
-  double *nx;
+  Real *nx;
   if (values == NULL) {
 
     /* always assume  the jacobian is dense */

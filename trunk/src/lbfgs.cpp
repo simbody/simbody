@@ -29,9 +29,10 @@
 #include "Optimizer.h"
 #include "Simmath_f2c.h" 
 #include "LBFGSOptimizer.h"
+#include "SimTKcommon/internal/common.h"
 #define NUMBER_OF_CORRECTIONS 5   
 
-
+using SimTK::Real;
 
 struct lb3_1_ {
 /*
@@ -51,8 +52,8 @@ C        for the machine being used, or unless the problem is extremely
 C        badly scaled (in which case the exponents should be increased).
 */
   int mp, lp; /* Fortran i/o stuff.  Unused here. */
-  double gtol, stpmin, stpmax;
-  double stpawf; /* line search default step length, added by awf */
+  Real gtol, stpmin, stpmax;
+  Real stpawf; /* line search default step length, added by awf */
 };
 
 /*#define lb3_1 (*(struct lb3_1_ *) &lb3_)*/
@@ -70,13 +71,13 @@ static const integer c__1 = 1;
 
 #include "lapack/SimTKlapack.h"
 
-extern double sqrt(double); 
+extern Real sqrt(Real); 
 
-static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal *sty, doublereal *fy, doublereal *dy,
-                    doublereal *stp, doublereal *fp, doublereal *dp, logical *brackt,
-                    doublereal *stpmin, doublereal *stpmax, integer *info);
-void lb1_(int *iprint, int *iter, int *nfun, double *gnorm, int *n, int *m,
-          double *x, double *f, double *g, double *stp, bool *finish);
+static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy,
+                    Real *stp, Real *fp, Real *dp, bool *brackt,
+                    Real *stpmin, Real *stpmax, integer *info);
+void lb1_(int *iprint, int *iter, int *nfun, Real *gnorm, int *n, int *m,
+          Real *x, Real *f, Real *g, Real *stp, bool *finish);
 void lbptf_(char* msg);
 void lbp1d_(char* msg, int* i);
 
@@ -95,24 +96,24 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 {
 
     /* System generated locals */
-    doublereal d__1;
+    Real d__1;
 
     /* Local variables */
-    doublereal beta;
+    Real beta;
     integer inmc;
     integer iscn, nfev, iycn, iter;
-    doublereal ftol;
+    Real ftol;
     integer nfun, ispt, iypt;
     integer i, bound;
-    doublereal gnorm;
+    Real gnorm;
     integer point;
-    doublereal xnorm;
+    Real xnorm;
     integer cp;
-    doublereal sq, yr, ys;
-    doublereal yy;
+    Real sq, yr, ys;
+    Real yy;
     integer maxfev;
     integer npt;
-    doublereal stp, stp1;
+    Real stp, stp1;
 
 /*        LIMITED MEMORY BFGS METHOD FOR LARGE SCALE OPTIMIZATION */
 /*                          JORGE NOCEDAL */
@@ -266,8 +267,8 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     INITIALIZE */
 /*     ---------- */
     SimTK::Real w[n*(2*m+1) + 2*m];
-    doublereal diag[n];
-    doublereal gradient[n];
+    Real diag[n];
+    Real gradient[n];
     int info;
     char buf[256];
     bool converged = false;
@@ -315,7 +316,7 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 /*     PARAMETERS FOR LINE SEARCH ROUTINE */
 
 
-    if (iprint[0] >= 0) {
+    if (iprint[0] > 0) {
         lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, x, f, gradient, &stp, &converged);
     }
 
@@ -463,7 +464,7 @@ L100:
            converged = true;
        }
 
-       if (iprint[0] >= 0) {
+       if (iprint[0] > 0) {
         lb1_(iprint, &iter, &nfun, &gnorm, &n, &m, x, f, gradient, &stp, &converged);
        }
 
@@ -489,7 +490,7 @@ L100:
 /* awf c     uses unrolled loops for increments equal to one. */
 /* awf c     jack dongarra, linpack, 3/11/78. */
 /* awf c */
-/* awf       double precision dx(1),dy(1),da */
+/* awf       Real precision dx(1),dy(1),da */
 /* awf       integer i,incx,incy,ix,iy,m,mp1,n */
 /* awf c */
 /* awf       if(n.le.0)return */
@@ -534,13 +535,13 @@ L100:
 /* awf C */
 /* awf C   ---------------------------------------------------------- */
 /* awf C */
-/* awf       double precision function ddot(n,dx,incx,dy,incy) */
+/* awf       Real precision function ddot(n,dx,incx,dy,incy) */
 /* awf c */
 /* awf c     forms the dot product of two vectors. */
 /* awf c     uses unrolled loops for increments equal to one. */
 /* awf c     jack dongarra, linpack, 3/11/78. */
 /* awf c */
-/* awf       double precision dx(1),dy(1),dtemp */
+/* awf       Real precision dx(1),dy(1),dtemp */
 /* awf       integer i,incx,incy,ix,iy,m,mp1,n */
 /* awf c */
 /* awf       ddot = 0.0d0 */
@@ -589,22 +590,22 @@ L100:
 /*     ************************** */
 
 /* Subroutine */
-void SimTK::LBFGSOptimizer::mcsrch_(integer *n, doublereal *x, doublereal *f, doublereal *g, doublereal *s, doublereal *stp,
-                    doublereal *ftol, doublereal *xtol, integer *maxfev, integer *info, integer *nfev, doublereal *wa)
+void SimTK::LBFGSOptimizer::mcsrch_(integer *n, Real *x, Real *f, Real *g, Real *s, Real *stp,
+                    Real *ftol, Real *xtol, integer *maxfev, integer *info, integer *nfev, Real *wa)
 {
     /* Initialized data */
 
-    const doublereal xtrapf = 4.;
+    const Real xtrapf = 4.;
 
     /* Local variables */
-    doublereal dgxm, dgym;
+    Real dgxm, dgym;
     integer j, infoc;
-    doublereal finit, width, stmin, stmax;
-    logical stage1;
-    doublereal width1, ftest1, dg, fm, fx, fy;
-    logical brackt;
-    doublereal dginit, dgtest;
-    doublereal dgm, dgx, dgy, fxm, fym, stx, sty;
+    Real finit, width, stmin, stmax;
+    bool stage1;
+    Real width1, ftest1, dg, fm, fx, fy;
+    bool brackt;
+    Real dginit, dgtest;
+    Real dgm, dgx, dgy, fxm, fym, stx, sty;
 
 
 /*                     SUBROUTINE MCSRCH */
@@ -892,16 +893,16 @@ L30:
 } /* mcsrch_ */
 
 /* Subroutine */
-static void mcstep_(doublereal *stx, doublereal *fx, doublereal *dx, doublereal *sty, doublereal *fy, doublereal *dy,
-                    doublereal *stp, doublereal *fp, doublereal *dp, logical *brackt,
-                    doublereal *stpmin, doublereal *stpmax, integer *info)
+static void mcstep_(Real *stx, Real *fx, Real *dx, Real *sty, Real *fy, Real *dy,
+                    Real *stp, Real *fp, Real *dp, bool *brackt,
+                    Real *stpmin, Real *stpmax, integer *info)
 {
     /* System generated locals */
-    doublereal d__1;
+    Real d__1;
 
     /* Local variables */
-    doublereal sgnd, stpc, stpf, stpq, p, q, gamma, r, s, theta;
-    logical bound;
+    Real sgnd, stpc, stpf, stpq, p, q, gamma, r, s, theta;
+    bool bound;
 
 
 /*     SUBROUTINE MCSTEP */
@@ -1150,17 +1151,17 @@ void lbp1d_(char* msg, int* i)
   printf(msg, *i);
 }
 
-void lbp1f_(char* msg, double* i)
+void lbp1f_(char* msg, Real* i)
 {
   printf(msg, *i);
 }
 
-static void write50(double* v, int n)
+static void write50(Real* v, int n)
 {
   int cols = 15;
-  double vmax = 0;
+  Real vmax = 0;
   int i;
-  double vmaxscale;
+  Real vmaxscale;
   for (i = 0; i < n; ++i)
     if (fabs(v[i]) > vmax)
       vmax = v[i];
@@ -1183,8 +1184,8 @@ static void write50(double* v, int n)
 //C     AMOUNT OF OUTPUT ARE CONTROLLED BY IPRINT.
 //C     -------------------------------------------------------------
 */
-void lb1_( int *iprint, int *iter, int *nfun, double *gnorm, int *n, 
-           int *m, double *x, double *f, double *g, double *stp, bool *finish) /* logical*/
+void lb1_( int *iprint, int *iter, int *nfun, Real *gnorm, int *n, 
+           int *m, Real *x, Real *f, Real *g, Real *stp, bool *finish) /* bool*/
 {
   (void)m;
   --iprint;

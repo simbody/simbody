@@ -38,7 +38,7 @@ const int NUMBER_OF_CORRECTIONS = 5;
 
 
       /* internal flags for LBFGS */
-         iprint[0] = 1; iprint[1] = 0; // no output generated
+         iprint[0] = iprint[1] = 0; // no output generated
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
 
 // TODO option for xtol  ??
@@ -53,16 +53,16 @@ const int NUMBER_OF_CORRECTIONS = 5;
      } 
 
 
-     double LBFGSOptimizer::optimize(  Vector &results ) {
+     Real LBFGSOptimizer::optimize(  Vector &results ) {
 
          int i,info;
          int iflag[1] = {0};
-         double f;
+         Real f;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
 
-         iprint[1] = diagnosticsLevel;
+         iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel; 
 
           lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  xtol );
 
