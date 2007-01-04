@@ -21,20 +21,11 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <iostream>
 #include "Simmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 
-#include <iostream>
-using std::cout;
-using std::endl;
-using SimTK::Vector;
-using SimTK::Real;
-using SimTK::Optimizer;
-using SimTK::OptimizerSystem;
-
+using namespace SimTK;
 
 static int  NUMBER_OF_PARAMETERS = 4; 
 static int  NUMBER_OF_CONSTRAINTS = 2; 
@@ -90,7 +81,7 @@ public:
 
 main() {
 
-    Real params[10],f;
+    Real f;
     int i;
 
     /* create the system to be optimized */
@@ -117,32 +108,21 @@ main() {
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
-    Optimizer opt( sys ); 
+    try {
+       Optimizer opt( sys ); 
 
+       opt.setConvergenceTolerance( .0001 );
+       opt.useNumericalGradient( true );
+       opt.useNumericalJacobian( true );
 
-    params[0] = 100;
-    opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
-
-    params[0] = .0001;
-    opt.setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
-
-    params[0] = 1.0;
-    opt.setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
-
-    params[0] = 0.9;
-    opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
-
-    opt.useNumericalGradient( true );
-    opt.useNumericalJacobian( true );
-
-    /* compute  optimization */ 
-    f = opt.optimize( results );
-
-    printf("f = %f params = ",f);
-    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",results[i]); 
+       /* compute  optimization */ 
+       f = opt.optimize( results );
     }
-    printf("\n");
+    catch (const std::exception& e) {
+       std::cout << "ConstrainedNumericalDiffOptimization.cpp: Caught exception" << std::endl;
+       std::cout << e.what() << std::endl;
+    }
 
+    printf("Optimal Solution: f = %f   parameters = %f %f %f %f \n",f, results[0],results[1],results[2],results[3]);
 
 }

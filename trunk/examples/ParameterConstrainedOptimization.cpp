@@ -21,20 +21,11 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <iostream>
 #include "Simmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 
-#include <iostream>
-using std::cout;
-using std::endl;
-using SimTK::Vector;
-using SimTK::Real;
-using SimTK::Optimizer;
-using SimTK::OptimizerSystem;
-
+using namespace SimTK;
 
 const static int NUMBER_OF_PARAMETERS = 25;
 
@@ -49,15 +40,11 @@ class ProblemSystem : public OptimizerSystem {
 
       const Real *x = &coefficients[0];
 
-//printf("objectiveFunction x = ",x[0],x[1],x[2]);
       f = .25 *(x[0]-1.0)*(x[0]-1.0);
-//   printf(" %f",x[0]);
       for(i=1;i<numParameters;i++) {
          f = f + pow(x[i]-x[i-1]*x[i-1], 2.0);
-//   printf(" %f",x[i]);
       }
 
-//   printf(" \n");
       f = 4.0* f;
       return( 0 ); 
    }
@@ -77,7 +64,6 @@ class ProblemSystem : public OptimizerSystem {
          gradient[i]=8.0*t2-16.0*x[i]*t1;
       }
       gradient[numParameters-1]=8.0*t1;
-// printf("objectiveGradient x = %f %f %f  g = %f \n",x[0],x[1],x[2],gradient[0]);
 
     return(0);
 
@@ -88,7 +74,7 @@ class ProblemSystem : public OptimizerSystem {
 /* adapted from driver1.f of Lbfgsb.2.1.tar.gz  */
 main() {
 
-    Real params[10],f;
+    Real f;
     int i;
     int n = NUMBER_OF_PARAMETERS;
 
@@ -98,7 +84,6 @@ main() {
 
     ProblemSystem sys(NUMBER_OF_PARAMETERS);
 
-    cout << "LBFGSB driver1 test " << endl;
 
     /* set initial conditions */
     for(i=0;i<n;i++) {
@@ -118,26 +103,17 @@ main() {
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
     try {
-    Optimizer opt( sys ); 
+       Optimizer opt( sys ); 
 
-    params[0] = 100;
-    opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
+       opt.setConvergenceTolerance( .0001 );
 
-    params[0] = .0001;
-    opt.setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
-
-    params[0] = 1.0;
-    opt.setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
-
-    params[0] = 0.9;
-    opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
-
-    f = opt.optimize( results );
+       f = opt.optimize( results );
 
     }
 
-    catch (SimTK::Exception::Base exp) {
-        cout << "Caught exception :" << exp.getMessage() << endl;
+    catch (SimTK::Exception::Base e) {
+        std::cout << "ParameterConstrainedOptimization.cpp Caught exception :" <<  std::endl;
+        std::cout << e.what() << std::endl;
     }
 
     printf("f = %f params = ",f);

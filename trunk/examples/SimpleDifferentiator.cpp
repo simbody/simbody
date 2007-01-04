@@ -36,13 +36,7 @@
 #include <cstdio>
 #include <iostream>
 
-using SimTK::Real;
-using SimTK::Vector;
-using SimTK::Matrix;
-using SimTK::Differentiator;
-using std::printf;
-using std::cout;
-using std::endl;
+using namespace SimTK;
 
 // This is a system of functions of a particular set of parameters (state).
 // The underlying function wants time also, so we provide that as data in

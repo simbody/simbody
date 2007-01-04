@@ -36,13 +36,7 @@
 #include <cstdio>
 #include <iostream>
 
-using SimTK::Real;
-using SimTK::Vector;
-using SimTK::Matrix;
-using SimTK::Differentiator;
-using std::printf;
-using std::cout;
-using std::endl;
+using namespace SimTK;
 
 // This is a system of functions of a particular set of parameters (state).
 // The underlying function wants time also, so we provide that as data in
@@ -268,9 +262,9 @@ int main() {
     printf("df default method: %s\n", Differentiator::getMethodName(df.getDefaultMethod()));
 
     const Real ang = SimTK_PI/8;
-    cout << "sin(x)=" << mysin(ang) << endl;
-    cout << "d sin(x)/dx=" << dsin.calcDerivative(ang) << endl;
-    cout << "cos(x)=" << mycos(ang) << endl;
+    std::cout << "sin(x)=" << mysin(ang) << std::endl;
+    std::cout << "d sin(x)/dx=" << dsin.calcDerivative(ang) << std::endl;
+    std::cout << "cos(x)=" << mycos(ang) << std::endl;
 
     const Real rp[] = {.01,.02,.03,-.14};
     Vector delta_y(4,rp);
@@ -292,37 +286,37 @@ int main() {
 
     Vector grad2;
     gradf.calcGradient(y0, sfy0, grad2, Differentiator::CentralDifference);
-    cout << "sf(y0)=" << sfy0 << endl;
-    cout << "order 1 grad(sf)=" << grad1 << endl;
-    cout << "order 2 grad(sf)=" << grad2 << endl;
+    std::cout << "sf(y0)=" << sfy0 << std::endl;
+    std::cout << "order 1 grad(sf)=" << grad1 << std::endl;
+    std::cout << "order 2 grad(sf)=" << grad2 << std::endl;
 
     sf.f(y0+delta_y, sfyd);
-    cout << "sf(y0+dy)=" << sfyd << endl;
-    cout << "sf(y0)+~grad1*dy=" << sfy0 + ~grad1*delta_y << endl;
-    cout << "err @order1=" << std::abs(sfyd-(sfy0 + ~grad1*delta_y)) << endl;
-    cout << "err @order2=" << std::abs(sfyd-(sfy0 + ~grad2*delta_y)) << endl;
+    std::cout << "sf(y0+dy)=" << sfyd << std::endl;
+    std::cout << "sf(y0)+~grad1*dy=" << sfy0 + ~grad1*delta_y << std::endl;
+    std::cout << "err @order1=" << std::abs(sfyd-(sfy0 + ~grad1*delta_y)) << std::endl;
+    std::cout << "err @order2=" << std::abs(sfyd-(sfy0 + ~grad2*delta_y)) << std::endl;
 
     vf.f(y0, yp);
     Matrix dfdy;
     df.calcJacobian(y0,yp,dfdy);
     const Matrix dfdy2 = df.calcJacobian(y0, Differentiator::CentralDifference);
 
-    cout << "vf(" << y0 << ")=" << yp << endl;
-    cout << "order " << df.getDefaultMethod()
+    std::cout << "vf(" << y0 << ")=" << yp << std::endl;
+    std::cout << "order " << df.getDefaultMethod()
          << " df/dy=" << dfdy;
-    cout << "2nd order dfdy: " << dfdy2;
+    std::cout << "2nd order dfdy: " << dfdy2;
     Vector yp2(4);
     vf.f(y0+2*delta_y, yp2);
-    cout << "f(y0+dy)=" << yp2 << endl;
-    cout << "1 f(y0)+(df/dy)dy=" << yp+dfdy*2*delta_y << endl; 
-    cout << "2 f(y0)+(f/dy)dy=" << yp+dfdy2*2*delta_y << endl;
-    cout << std::setprecision(16);
-    cout << "1 err=" << (yp2-(yp+dfdy*2*delta_y)).norm() << endl;
-    cout << "2 err=" << (yp2-(yp+dfdy2*2*delta_y)).norm() << endl;
+    std::cout << "f(y0+dy)=" << yp2 << std::endl;
+    std::cout << "1 f(y0)+(df/dy)dy=" << yp+dfdy*2*delta_y << std::endl; 
+    std::cout << "2 f(y0)+(f/dy)dy=" << yp+dfdy2*2*delta_y << std::endl;
+    std::cout << std::setprecision(16);
+    std::cout << "1 err=" << (yp2-(yp+dfdy*2*delta_y)).norm() << std::endl;
+    std::cout << "2 err=" << (yp2-(yp+dfdy2*2*delta_y)).norm() << std::endl;
   }
   catch (const std::exception& e) {
+    std::cout << "Differentiator.cpp  caught exception:";
     std::cout << e.what() << std::endl;
-    returnValue = 1; // failure
   }
 
     printf("dsin stats: ndiffs=%ld nfail=%ld nfcalls=%ld\n",
@@ -346,7 +340,7 @@ int main() {
     printf("vf after reset: nCalls=%ld, nFailures=%ld\n",
         vf.getNCalls(), vf.getNFailures());
 
-    return returnValue;
+    return 0;
 }
 
 // Here is our system of equations, representing a pendulum. We'll

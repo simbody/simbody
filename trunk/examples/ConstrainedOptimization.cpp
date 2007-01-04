@@ -1,3 +1,4 @@
+
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
  *
@@ -21,20 +22,12 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <iostream>
+
 #include "Simmath.h"
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 
-#include <iostream>
-using std::cout;
-using std::endl;
-using SimTK::Vector;
-using SimTK::Real;
-using SimTK::Optimizer;
-using SimTK::OptimizerSystem;
-
+using namespace SimTK;
 
 static int  NUMBER_OF_PARAMETERS = 4; 
 static int  NUMBER_OF_CONSTRAINTS = 2; 
@@ -43,13 +36,16 @@ static int  NUMBER_OF_CONSTRAINTS = 2;
  * This example was adapted from IPOPT's hs071 example 
  *
  *   Problem statement:
- *     min   x1*x4*(x1 + x2 + x3)  +  x3
- *     s.t.  x1*x2*x3*x4                   >=  25
- *           x1**2 + x2**2 + x3**2 + x4**2  =  40
- *           1 <=  x1,x2,x3,x4  <= 5
+ *
+ *     minimize:   x1*x4*(x1 + x2 + x3)  +  x3
+ *
+ *     s.t.  x1*x2*x3*x4                   >=  25    inequality constraint 
+ *           x1**2 + x2**2 + x3**2 + x4**2 - 40.0 = 0.0  equality constraint
+ *
+ *           1 <=  x1,x2,x3,x4  <= 5    each parameter has a lower limit of 1.0 and an upper limit of 5.0
  *
  *     Starting point:
- *        x = (1, 5, 5, 1)
+ *        x = (1, 5, 5, 1)   will be used for the initial conditions
  *
  *     Optimal solution:
  *        x = (1.00000000, 4.74299963, 3.82114998, 1.37940829)
@@ -83,6 +79,11 @@ public:
      return(0);
 
   }
+
+  /* 
+  ** Method to compute the value of the constraints.
+  ** Equality constraints are first followed by the any inequality constraints
+  */ 
   int constraintFunc( const Vector &coefficients, const bool new_coefficients, Vector &constraints)  const{
       const Real *x;
 
@@ -93,36 +94,39 @@ public:
       return(0);
   }
 
-  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
+
+  /*
+  ** Method to compute the jacobian of the constraints.
+  **
+  */
+  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const{
       const Real *x;
 
       x = &coefficients[0]; 
+      jac(0,0) = 2*x[0];
+      jac(0,1) = 2*x[1];
+      jac(0,2) = 2*x[2];
+      jac(0,3) = 2*x[3];
+      jac(1,0) = x[1]*x[2]*x[3];
+      jac(1,1) = x[0]*x[2]*x[3];
+      jac(1,2) = x[0]*x[1]*x[3];
+      jac(1,3) = x[0]*x[1]*x[2];
 
-      jac[0] = 2*x[0]; 
-      jac[1] = 2*x[1]; 
-      jac[2] = 2*x[2]; 
-      jac[3] = 2*x[3]; 
-      jac[4] = x[1]*x[2]*x[3];
-      jac[5] = x[0]*x[2]*x[3]; 
-      jac[6] = x[0]*x[1]*x[3]; 
-      jac[7] = x[0]*x[1]*x[2]; 
 
       return(0);
   }
 
-/*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
 
    ProblemSystem( const int numParams, const int numConstraints) :
 
-         OptimizerSystem( numParams, numConstraints ) {
-   }
+         OptimizerSystem( numParams, numConstraints ) {}
 
 };
 
 
 main() {
 
-    Real params[10],f;
+    Real f;
     int i;
 
     /* create the system to be optimized */
@@ -149,29 +153,22 @@ main() {
 
     sys.setParameterLimits( lower_bounds, upper_bounds );
 
-    Optimizer opt( sys ); 
+   try {
+
+      Optimizer opt( sys ); 
+
+      opt.setConvergenceTolerance( .0001 );
+
+      /* compute  optimization */ 
+      f = opt.optimize( results );
+   }
+   catch (const std::exception& e) {
+      std::cout << "ConstrainedOptimization.cpp Caught exception:" << std::endl;
+      std::cout << e.what() << std::endl;
+   }
 
 
-    params[0] = 100;
-    opt.setOptimizerParameters( MAX_FUNCTION_EVALUATIONS, params );
-
-    params[0] = .0001;
-    opt.setOptimizerParameters( GRADIENT_CONVERGENCE_TOLERANCE, params );
-
-    params[0] = 1.0;
-    opt.setOptimizerParameters( DEFAULT_STEP_LENGTH, params );
-
-    params[0] = 0.9;
-    opt.setOptimizerParameters( LINE_SEARCH_ACCURACY, params );
-
-    /* compute  optimization */ 
-    f = opt.optimize( results );
-
-    printf("f = %f params = ",f);
-    for( i=0; i<NUMBER_OF_PARAMETERS; i++ ) {
-       printf(" %f",results[i]); 
-    }
-    printf("\n");
+    printf("Optimal Solution: f = %f   parameters = %f %f %f %f \n",f,results[0],results[1],results[2],results[3]);
 
 
 }
