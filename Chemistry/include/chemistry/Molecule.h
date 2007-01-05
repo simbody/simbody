@@ -1,7 +1,7 @@
 #ifndef MOLECULE_H_
 #define MOLECULE_H_
 
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 #include "Atom.h"
 #include "BondType.h"
 

@@ -1,6 +1,5 @@
 #include "SimTKcommon.h"
-#include "Simmatrix.h"
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 
 #include "MoleculeModeler.h"
 #include "AtomModel.h"

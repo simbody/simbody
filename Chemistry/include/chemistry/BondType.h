@@ -1,7 +1,7 @@
 #ifndef BONDTYPE_H_
 #define BONDTYPE_H_
 
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 
 // Generic bond types found in proteins
 class BondType {

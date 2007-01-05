@@ -59,12 +59,13 @@ ADD_EXECUTABLE(TestSimMol0 tests/TestSimMol0.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${IN
 ADD_EXECUTABLE(TestSimMol1 tests/TestSimMol1.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
 
 ADD_EXECUTABLE(TestArgonModel tests/TestArgonModel.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
-TARGET_LINK_LIBRARIES(TestArgonModel simtkcommon simmatrix simbody_d)
+TARGET_LINK_LIBRARIES(TestArgonModel SimTKcommon SimTKsimbody_d)
 
-TARGET_LINK_LIBRARIES(TestSimMol0 simtkcommon)
-TARGET_LINK_LIBRARIES(TestSimMol0 simmatrix)
-TARGET_LINK_LIBRARIES(TestSimMol0 simbody)
+ADD_EXECUTABLE(TestOxygenModel tests/TestOxygenModel.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
+TARGET_LINK_LIBRARIES(TestOxygenModel SimTKcommon SimTKsimbody_d)
 
-TARGET_LINK_LIBRARIES(TestSimMol1 simtkcommon)
-TARGET_LINK_LIBRARIES(TestSimMol1 simmatrix)
-TARGET_LINK_LIBRARIES(TestSimMol1 simbody)
+TARGET_LINK_LIBRARIES(TestSimMol0 SimTKcommon)
+TARGET_LINK_LIBRARIES(TestSimMol0 SimTKsimbody)
+
+TARGET_LINK_LIBRARIES(TestSimMol1 SimTKcommon)
+TARGET_LINK_LIBRARIES(TestSimMol1 SimTKsimbody)

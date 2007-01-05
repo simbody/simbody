@@ -1,7 +1,7 @@
 #ifndef ATOMMODEL_H_
 #define ATOMMODEL_H_
 
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 #include "chemistry/Atom.h"
 #include "MoleculeModeler.h"
 

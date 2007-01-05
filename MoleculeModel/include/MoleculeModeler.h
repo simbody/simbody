@@ -1,7 +1,7 @@
 #ifndef MOLECULEMODELER_H_
 #define MOLECULEMODELER_H_
 
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 #include "chemistry/Atom.h"
 #include "chemistry/Molecule.h"
 #include "chemistry/AminoAcid.h"

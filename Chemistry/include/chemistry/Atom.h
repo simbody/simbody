@@ -2,7 +2,7 @@
 #define ATOM_H_
 
 #include "ChemicalElement.h"
-#include "Simmatrix.h"
+#include "SimTKSimbody.h"
 
 class Atom {
 public:
