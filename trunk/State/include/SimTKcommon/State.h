@@ -70,6 +70,91 @@ public:
     }
 };
 
+class EventStatus {
+public:
+    EventStatus() { initialize(); }
+    // default destructor, copy constructor, copy assignment
+
+    // Event trigger (which zero crossings cause triggering). Can be
+    // OR'ed together to make a mask.
+    enum EventTrigger {
+        NoEventTrigger          =0x0000,    // must be 0
+
+        ZeroToPositive          =0x0001,    //  1
+        ZeroToNegative          =0x0002,    //  2
+        PositiveToZero          =0x0004,    //  4
+        NegativeToZero          =0x0008,    //  8
+        PositiveToNegative      =0x0010,    // 16
+        NegativeToPositive      =0x0020,    // 32
+
+        ZeroToNonzero           =(ZeroToPositive|ZeroToNegative),        // 3
+        NonzeroToZero           =(NegativeToZero|PositiveToZero),        // 12
+        PositiveToNonpositive   =(PositiveToZero|PositiveToNegative),    // 20 
+        Falling                 =(PositiveToNonpositive|ZeroToNegative), // 22
+        NegativeToNonnegative   =(NegativeToZero|NegativeToPositive),    // 40
+        Rising                  =(NegativeToNonnegative|ZeroToPositive), // 41
+        AnySignChange           =(ZeroToNonzero|NegativeToNonnegative    // 63
+                                  |PositiveToNonpositive)
+    };
+
+    bool isEventPending() const {return transitionSeen != NoEventTrigger;}
+    EventTrigger getEventTrigger() const {return transitionSeen;}
+    Real getLastTriggerTime() const {return lastTriggerTime;}
+    Real getLastTriggerTimeBestGuess() const {return lastTriggerTimeBestGuess;}
+    Real getBeforeValue() const {return beforeValue;}
+    Real getAfterValue() const {return afterValue;}
+    Real getLocalizationWindow() const {return localizationWindow;}
+
+    void setEventTriggered(EventTrigger transition, Real triggerTime,
+                           Real actualTimeEst, Real window,
+                           Real before, Real after)
+    {
+        assert(transition != NoEventTrigger);
+        assert(triggerTime >= 0 && actualTimeEst >= 0 
+               && triggerTime >= actualTimeEst);
+
+        transitionSeen = transition;
+        lastTriggerTime = triggerTime;
+        lastTriggerTimeBestGuess = actualTimeEst;
+        localizationWindow = window;
+        beforeValue = before;
+        afterValue  = after;
+    }
+
+    void clearEventTrigger() {
+        transitionSeen = NoEventTrigger;
+    }
+
+    // Classify a before/after sign transition.
+    static EventTrigger classifyTransition(int before, int after) {
+        if (before==after) return NoEventTrigger;
+        if (before==0)
+            return after==1 ? ZeroToPositive : ZeroToNegative;
+        if (before==1)
+            return after==0 ? PositiveToZero : PositiveToNegative;
+        // before==-1
+        return after==0 ? NegativeToZero : NegativeToPositive;
+    }
+
+    static EventTrigger maskTransition(EventTrigger transition, EventTrigger mask) {
+        return EventTrigger(transition & mask); // we're depending on NoEventTrigger==0
+    }
+
+    SimTK_SimTKCOMMON_EXPORT static String eventTriggerString(EventTrigger e);
+private:
+    void initialize() {
+        transitionSeen = NoEventTrigger;
+        lastTriggerTime = lastTriggerTimeBestGuess = localizationWindow
+            = beforeValue = afterValue = NTraits<Real>::NaN;
+    }
+
+    EventTrigger transitionSeen;
+    Real         lastTriggerTime; // digital
+    Real         lastTriggerTimeBestGuess; // analog, <=lastTriggerTime
+    Real         localizationWindow;
+    Real         beforeValue, afterValue;
+};
+
 /**
  * This is the handle class for the hidden State implementation.
  * The default constructor creates a State containing no state variables
@@ -171,8 +256,14 @@ public:
     int allocateUErr   (int subsys, int nuerr);
     int allocateUDotErr(int subsys, int nudoterr);
 
+    /// Slots for event witness values are similar to constraint errors.
+    /// However, this also allocates a discrete state variable to hold
+    /// the "triggered" indication. The Stage here is the stage at which
+    /// the event witness function can first be examined.
+    int allocateEvent(int subsys, Stage, int nevent);
+
     /// These are private to each subsystem and are allocated immediately.
-    /// TODO: true discrete variables need an "update" variable in the cache.
+    /// TODO: do discrete variables need an "update" variable in the cache?
     int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
     int allocateCacheEntry      (int subsys, Stage, AbstractValue* v);
     
@@ -194,9 +285,33 @@ public:
     int getQStart(int subsys)       const; int getNQ(int subsys)       const;
     int getUStart(int subsys)       const; int getNU(int subsys)       const;
     int getZStart(int subsys)       const; int getNZ(int subsys)       const;
+
     int getQErrStart(int subsys)    const; int getNQErr(int subsys)    const;
     int getUErrStart(int subsys)    const; int getNUErr(int subsys)    const;
     int getUDotErrStart(int subsys) const; int getNUDotErr(int subsys) const;
+
+        // Event handling
+    int getNEvents() const; // total
+    int getEventStartByStage(Stage) const; // per-stage
+    int getNEventsByStage(Stage) const;
+    int getEventStartByStage(int subsys, Stage) const;
+    int getNEventsByStage(int subsys, Stage) const;
+
+    const Vector& getEvents() const;
+    const Vector& getEventsByStage(Stage) const;
+    const Vector& getEventsByStage(int subsys, Stage) const;
+
+    Vector& updEvents() const; // mutable
+    Vector& updEventsByStage(Stage) const;
+    Vector& updEventsByStage(int subsys, Stage) const;
+
+    const EventStatus& getEventStatus(int index) const;
+    EventStatus&       updEventStatus(int index);
+
+    const EventStatus& getEventStatus(int subsys, int index) const;
+    EventStatus&       updEventStatus(int subsys, int index);
+
+
 
     /// Per-subsystem access to the global shared variables.
     const Vector& getQ(int subsys) const;

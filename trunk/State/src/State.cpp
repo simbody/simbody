@@ -82,6 +82,47 @@ private:
     DiscreteVariable* myHandle;
 };
 
+
+/*static*/ String 
+EventStatus::eventTriggerString(EventTrigger e) {
+    // Catch special combos first
+    if (e==NoEventTrigger)        return "NoEventTrigger";
+    if (e==ZeroToNonzero)         return "ZeroToNonzero";
+    if (e==NonzeroToZero)         return "NonzeroToZero";
+    if (e==PositiveToNonpositive) return "PositiveToNonpositive";
+    if (e==Falling)               return "Falling";
+    if (e==NegativeToNonnegative) return "NegativeToNonnegative";
+    if (e==Rising)                return "Rising";
+    if (e==AnySignChange)         return "AnySignChange";
+
+    // Not a special combo; unmask one at a time.
+    const EventTrigger triggers[] =
+     { ZeroToPositive,ZeroToNegative,PositiveToZero,
+       NegativeToZero,PositiveToNegative,NegativeToPositive,
+       NoEventTrigger };
+    const char *triggerNames[] =
+     { "ZeroToPositive","ZeroToNegative","PositiveToZero",
+       "NegativeToZero","PositiveToNegative","NegativeToPositive" };
+
+    String s;
+    for (int i=0; triggers[i] != NoEventTrigger; ++i)
+        if (e & triggers[i]) {
+            if (s.size()) s += "|";
+            s += triggerNames[i];
+            e = EventTrigger((unsigned)e & ~((unsigned)triggers[i])); 
+        }
+
+    // should have accounted for everything by now
+    if (e != NoEventTrigger) {
+        char buf[128];
+        std::sprintf(buf, "0x%x", (unsigned)e);
+        if (s.size()) s += " + ";
+        s += "UNRECOGNIZED EVENT TRIGGER GARBAGE ";
+        s += buf;
+    }
+    return s;
+}
+
 // This internal utility class is used to capture all the information needed for
 // a single subsystem within the StateRep.
 class PerSubsystemInfo {
