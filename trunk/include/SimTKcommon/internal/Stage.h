@@ -70,10 +70,11 @@ public:
         Time           =  4,
         Position       =  5, // TODO: Positioned?
         Velocity       =  6, // TODO: Velocity, Speed, Rate?
-        Dynamics       =  7, // dynamic properties & operators available
+        Dynamics       =  7, // forces, dynamic properties & operators available
         Acceleration   =  8, // TODO: Accelerated?
         Report         =  9  // TODO: Output?
 	};
+    static const Stage::Num Kinematics      = Velocity; // i.e., Position+Velocity
 
     static const Stage::Num LowestValid     = Empty;
     static const Stage::Num HighestValid    = Report;
