@@ -1,6 +1,6 @@
 /* AminoAcidType.cpp */
 
-#include "AminoAcidType.h"
+#include "chemistry/AminoAcidType.h"
 #include <string>
 #include <map>
 

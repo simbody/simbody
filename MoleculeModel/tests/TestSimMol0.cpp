@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Simbody.h"
-#include "OxygenMolecule.h"
+#include "chemistry/OxygenMolecule.h"
 #include "MoleculeModeler.h"
 // #include "simbody/internal/NumericalMethods.h"
 

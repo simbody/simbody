@@ -23,7 +23,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "ChemicalElement.h"
+#include "chemistry/ChemicalElement.h"
 #include <string>
 
 using namespace std;
@@ -33,8 +33,8 @@ class ChemicalElementRep
 {
 	friend class ChemicalElement;
 private:
-	ChemicalElementRep(int number, const char* symbol, const char* name, double mass, const ChemicalElement & handle)
-		: number(number), symbol(symbol), name(name), defaultMass(mass), myHandle(& handle)
+	ChemicalElementRep(int number, const char* symbol, const char* name, double mass, const ChemicalElement * handle)
+		: number(number), symbol(symbol), name(name), defaultMass(mass), myHandle(handle)
 	{}
 
 	int number;
@@ -45,9 +45,10 @@ private:
 	const ChemicalElement * myHandle;
 };
 
+// "rep" mechanism requires cooperation of constructor, copy constructor, destructor, and assignment operator
 ChemicalElement::ChemicalElement(const int number, const char* symbol, const char* name, const double defaultMass)
 {
-	rep = new ChemicalElementRep(number, symbol, name, defaultMass, *this);
+	rep = new ChemicalElementRep(number, symbol, name, defaultMass, this);
 }
 
 ChemicalElement::~ChemicalElement() {
@@ -74,6 +75,16 @@ const char * ChemicalElement::name() const {
 
 double ChemicalElement::getMass() const {
 	return rep->defaultMass;
+}
+
+bool ChemicalElement::operator==(const ChemicalElement & other) const {
+	return !( *this != other );
+}
+
+bool ChemicalElement::operator!=(const ChemicalElement & other) const {
+	if (this->number() != other.number()) return true;
+	if (this->getMass() != other.getMass()) return true;
+	return false;
 }
 
 const ChemicalElement ChemicalElement::Hydrogen    (1,  "H",  "hydrogen", 1.007947);

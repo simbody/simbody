@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Atom.h"
+#include "chemistry/Atom.h"
 
 using namespace std;
 

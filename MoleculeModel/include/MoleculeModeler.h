@@ -2,17 +2,22 @@
 #define MOLECULEMODELER_H_
 
 #include "Simbody.h"
-#include "Molecule.h"
-#include "AminoAcid.h"
+#include "chemistry/Atom.h"
+#include "chemistry/Molecule.h"
+#include "chemistry/AminoAcid.h"
+
+class AtomModel;
 
 class MoleculeModeler {
 public:
 	MoleculeModeler();
 	~MoleculeModeler();
 
-	MoleculeModeler & addMolecule(const Molecule & molecule);
-	SimTK::MultibodySystem & getSystem();
-	// SimTK::Real getPsiTorsion(const SimTK::State & state, const AminoAcid & aminoAcid);
+	AtomModel addAtomLike( const Atom & atom );
+	AtomModel addAtomLike( const Atom & atom, const SimTK::Vec3 & position );
+
+	SimTK::MolecularMechanicsSystem & realizeSystem(SimTK::State & state);
+	const SimTK::SimbodyMatterSubsystem & MoleculeModeler::getMatter() const;
 private:
 	class MoleculeModelerRep * rep;
 };

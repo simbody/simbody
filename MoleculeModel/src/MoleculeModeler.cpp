@@ -2,8 +2,10 @@
 #include "Simmatrix.h"
 #include "Simbody.h"
 
-#include "chemistry/OxygenMolecule.h"
 #include "MoleculeModeler.h"
+#include "AtomModel.h"
+
+#include <map>
 
 using namespace SimTK;
 using namespace std;
@@ -11,104 +13,112 @@ using namespace std;
 class MoleculeModelerRep {
 friend class MoleculeModeler;
 private:
+	int nextUnusedAtomClassId;
+	int nextUnusedAtomTypeId;
+	bool systemIsRealized;
+	// int argonTypeId;
+
 	MoleculeModelerRep(const MoleculeModeler & handle) 
-		: myHandle(&handle) 
+		: myHandle(&handle), nextUnusedAtomClassId(1), nextUnusedAtomTypeId(1), systemIsRealized(false)
 	{
 		mbs.setMatterSubsystem(matter);
 		mbs.setMolecularMechanicsForceSubsystem(dumm);
 		mbs.addForceSubsystem(forces);
 
-		dumm.defineAtomClass_KA(25, "Amber99 O2", 8, 1, 1.6612, 0.2100); 
-		dumm.defineChargedAtomType_KA(9999, "Sherm's O2", 25, 0); // must be neutral by symmetry
-		dumm.defineBondStretch_KA(25,25, 570.0, 1.21); // bond length is right, stiffness is from C=O.
-
+		loadArgonParameters();
 	}
 
 	void loadArgonParameters() {
+		std::string atomName = "Argon";
+
+		// If atom is already defined, skip data entry
+		if (atomStringIdMap.find(atomName) != atomStringIdMap.end())
+			return;
+
+		int classId = nextUnusedAtomClassId;
+		int typeId = nextUnusedAtomTypeId;
+		nextUnusedAtomClassId ++;
+		nextUnusedAtomTypeId ++;
+
 		dumm.defineAtomClass_KA(
-			25, // class ID
-			"Argon", // class name
+			classId, // class ID
+			atomName.c_str(), // class name
 			ChemicalElement::Argon.number(), 
 			0, // "valence", i.e. bond count
 			3.82198, // radius 
 			0.23725 // well depth
 			); 
 		dumm.defineChargedAtomType_KA(
-			25, // type ID
-			"Argon", // type name
-			25, // atom class ID
+			typeId, // type ID
+			atomName.c_str(), // type name
+			classId, // atom class ID
 			0.0 // charge
 			); // must be neutral by symmetry
+
+		atomStringIdMap[atomName] = typeId;
 	}
 	
+	int getAtomTypeId(const Atom & atom) {
+		if (atom.getElement() == ChemicalElement::Argon) {
+			return getAtomTypeId("Argon");
+		} else {
+			throw new exception("Unknown atom type");
+		}
+	}
 
-	AtomModel & addAtomLike(const Atom & atom, const SimTK::Vec3 & position);
+	int getAtomTypeId(std::string atomName) {
+		if (atomName == "Argon")
+			loadArgonParameters();
 
-	//MoleculeModelerRep & addMolecule(const Molecule & molecule) {
-	//	const OxygenMolecule * oxy = dynamic_cast<const OxygenMolecule *>(&molecule);
-	//	if (oxy != null) { // Is an oxygen molecule
+		return atomStringIdMap[atomName];
+	}
 
-	//		int atomTypeId = 9999;
+	AtomModel addAtomLike(const Atom & atom, const SimTK::Vec3 & position) {
+		if (systemIsRealized) throw new exception("Cannot add atom after system is realized");
 
-	//		int dummO1Id = dumm.addAtom(atomTypeId);
-	//		int dummO2Id = dumm.addAtom(atomTypeId);
-	//		dumm.addBond(dummO1Id, dummO2Id);
-	//		
-	//		int cluster = dumm.createCluster("two oxygens");
-	//		SimTK::Real oOBondLength = 1.21 * DuMMForceFieldSubsystem::Ang2Nm;
-	//		dumm.placeAtomInCluster(dummO1Id, cluster, Vec3(0, 0, -oOBondLength * 0.5));
-	//		dumm.placeAtomInCluster(dummO2Id, cluster, Vec3(0, 0,  oOBondLength * 0.5));
+		AtomModel a(*myHandle, atom);
+		a.setDefaultPosition(position);
 
-	//		bodies.push_back(
-	//			matter.addRigidBody(
-	//				MassProperties(0,Vec3(0),Inertia(0)),
-	//				Transform(),            // inboard mobilizer frame
-	//				parent, Transform(),    // parent mobilizer frame
-	//				Mobilizer::Cartesian));
-	//		// y
-	//		bodies.push_back(
-	//			matter.addRigidBody(
-	//				MassProperties(0,Vec3(0),Inertia(0)),
-	//				Transform(Rotation::aboutX(-90*Deg2Rad)),            // inboard mobilizer frame
-	//				bodies.back(), Transform(Rotation::aboutX(-90*Deg2Rad)),    // parent mobilizer frame
-	//				Mobilizer::Pin));
-	//		// x
-	//		MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
-	//		cout << "Inertia:" << mprops.getInertia();
-	//		cout << "inertia kludge:" << mprops.getInertia()+Inertia(0,0,.4);
-	//		MassProperties mpropsKludge(mprops.getMass(), mprops.getCOM(), mprops.getInertia() + Inertia(0,0,.4));
-	//		bodies.push_back(
-	//			matter.addRigidBody(
-	//				mpropsKludge,
-	//				Transform(Rotation::aboutY(90*Deg2Rad)),            // inboard mobilizer frame
-	//				bodies.back(), Transform(Rotation::aboutY(90*Deg2Rad)),    // parent mobilizer frame
-	//				Mobilizer::Pin));
-	//        
-	//		/*
-	//		bodies.push_back(
-	//			matter.addRigidBody(
-	//				mm.calcClusterMassProperties(twoOxygens, Transform()), 
-	//				Transform(),            // inboard mobilizer frame
-	//				parent, Transform(),    // parent mobilizer frame
-	//				Mobilizer::FreeLine));  // TODO: DOESN'T WORK!
-	//				*/
-	//		mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
+		a.setMmAtomId( dumm.addAtom(getAtomTypeId(a)) ); // TODO - don't hard code on Argon
+		a.setMmClusterId(dumm.createCluster(""));
+		dumm.placeAtomInCluster(a.getMmAtomId(), a.getMmClusterId(), Vec3(0));
 
-	//		// TODO
-	//	}
-	//	else {
-	//		throw std::exception("unknown molecule type");
-	//	}
-	//}
+		int groundMmId = 0;
+		a.setMmBodyId(
+			matter.addRigidBody(
+				MassProperties(atom.getMass(),Vec3(0),Inertia(0)),
+				Transform(),            // inboard mobilizer frame
+				groundMmId, Transform(),    // parent mobilizer frame
+				Mobilizer::Cartesian
+			)
+		);
+		dumm.attachClusterToBody(a.getMmClusterId(), a.getMmBodyId(), Transform());
 
-	MolecularMechanicsSystem & system() {return mbs;}
-	// Real getPsiTorsion(const State & state, const AminoAcid & aminoAcid);
+		atomModels.push_back(a);
+
+		return a;
+	}
+
+	MolecularMechanicsSystem & realizeSystem(State & state) {
+		mbs.realize(state, Stage::Model);
+
+		// Set positions
+		vector<AtomModel>::iterator a = atomModels.begin();
+		while (a != atomModels.end()) {
+			matter.setMobilizerPosition(state, a->getMmBodyId(), a->getDefaultPosition());
+			++a;
+		}
+
+		return mbs;
+	}
 
 	SimbodyMatterSubsystem   matter;
     DuMMForceFieldSubsystem  dumm;
     GeneralForceElements     forces;
-
 	MolecularMechanicsSystem mbs;
+
+	std::map<std::string, int> atomStringIdMap;
+	std::vector<AtomModel> atomModels;
 
 	const MoleculeModeler * myHandle;
 };
@@ -122,23 +132,16 @@ MoleculeModeler::~MoleculeModeler() {
 	rep = NULL;
 }
 
-//MoleculeModeler & MoleculeModeler::addMolecule(const Molecule & molecule) {
-//	rep->addMolecule(molecule);
-//	return *this;
-//}
-
-MultibodySystem & MoleculeModeler::getSystem() {
-	return rep->system();
+MolecularMechanicsSystem & MoleculeModeler::realizeSystem(State & state) {
+	return rep->realizeSystem(state);
 }
 	
-AtomModel & MoleculeModeler::addAtomLike(const Atom & atom) {
+AtomModel MoleculeModeler::addAtomLike(const Atom & atom) {
 	return rep->addAtomLike(atom, atom.getDefaultPosition());
 }
 
-AtomModel & MoleculeModeler::addAtomLike(const Atom & atom, const SimTK::Vec3 & position) {
+AtomModel MoleculeModeler::addAtomLike(const Atom & atom, const SimTK::Vec3 & position) {
 	return rep->addAtomLike(atom, position);
 }
 
-// Real MoleculeModeler::getPsiTorsion(const State & state, const AminoAcid & aminoAcid) {
-// 	return rep->getPsiTorsion(state, aminoAcid);
-// }
+const SimbodyMatterSubsystem & MoleculeModeler::getMatter() const {return rep->matter;}

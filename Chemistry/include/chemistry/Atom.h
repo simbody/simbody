@@ -7,14 +7,19 @@
 class Atom {
 public:
 	Atom(const ChemicalElement & element, const SimTK::String & atomName = "unknown atom name");
+	Atom(const Atom & src);
+	Atom & operator=(const Atom & src);
+	~Atom();
 
-	const SimTK::Vec3 & getPosition() const;
-	Atom & setPosition(SimTK::Vec3 pos);
+	const SimTK::Vec3 & getDefaultPosition() const;
+	Atom & setDefaultPosition(SimTK::Vec3 pos);
 
 	const SimTK::String & getName() const;
 	Atom & setName(const SimTK::String & name);
 
 	SimTK::Real getMass() const;
+
+	const ChemicalElement & getElement() const;
 private:
 	class AtomRep * rep;
 };

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "AminoAcidType.h"
+#include "chemistry/AminoAcidType.h"
 
 using namespace std;
 

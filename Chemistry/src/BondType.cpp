@@ -1,4 +1,4 @@
-#include "BondType.h"
+#include "chemistry/BondType.h"
 
 const BondType BondType::SingleBond(1.0);
 const BondType BondType::SingleBondWithDoubleBondCharacter(1.0);

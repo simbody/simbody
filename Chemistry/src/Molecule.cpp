@@ -1,5 +1,5 @@
-#include "Molecule.h"
-#include "Atom.h"
+#include "chemistry/Molecule.h"
+#include "chemistry/Atom.h"
 
 using namespace SimTK;
 using namespace std;
@@ -31,7 +31,7 @@ private:
 	   myHandle(&handle), cachedCenterOfMass(0,0,0), centerOfMassIsDirty(true), chainId('?')
 	{}
 
-	MoleculeRep & setPosition(Real x, Real y, Real z) {
+	MoleculeRep & setDefaultPosition(Real x, Real y, Real z) {
 		updateCenterOfMass();
 		Vec3 newCenter(x,y,z);
 
@@ -44,7 +44,7 @@ private:
 			i != atomVec.end();
 			++i) 
 		{
-			i->setPosition(i->getPosition() + translation);
+			i->setDefaultPosition(i->getDefaultPosition() + translation);
 		}
 
 		cachedCenterOfMass = newCenter;
@@ -66,7 +66,7 @@ private:
 				++i) 
 			{
 				totalMass += i->getMass();
-				weightedCenter += i->getPosition() * i->getMass();
+				weightedCenter += i->getDefaultPosition() * i->getMass();
 			}
 			if (totalMass > 0.0)
 				cachedCenterOfMass = weightedCenter * 1.0/totalMass;
@@ -95,8 +95,8 @@ Molecule::~Molecule() {
 	rep = NULL;
 }
 
-Molecule & Molecule::setPosition(Real x, Real y, Real z) {
-	rep->setPosition(x,y,z);
+Molecule & Molecule::setDefaultPosition(Real x, Real y, Real z) {
+	rep->setDefaultPosition(x,y,z);
 	return *this;
 }
 

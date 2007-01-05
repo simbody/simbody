@@ -23,8 +23,8 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
  
-#include "Protein.h"
-#include "AminoAcid.h"
+#include "chemistry/Protein.h"
+#include "chemistry/AminoAcid.h"
 #include <string>
 #include <vector>
 #include <map>

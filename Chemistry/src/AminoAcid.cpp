@@ -1,18 +1,20 @@
-#include "AminoAcid.h"
+#include "chemistry/AminoAcid.h"
 #include <iostream> // NULL
 
 class AminoAcidRep {
 	friend class AminoAcid;
 private:
-	explicit AminoAcidRep(const AminoAcidType & aaType, const AminoAcid & handle) {
+	explicit AminoAcidRep(const AminoAcidType & aaType, const AminoAcid * handle) 
+		: myHandle(handle)
+	{
 		initialize(&aaType);
-		myHandle = &handle;
 	}
 
-	explicit AminoAcidRep(char oneLetterCode, const AminoAcid & handle) {
+	explicit AminoAcidRep(char oneLetterCode, const AminoAcid * handle) 
+		: myHandle(handle)
+	{
 		const AminoAcidType * t = AminoAcidType::typeFor(oneLetterCode);
 		initialize(t);
-		myHandle = &handle;
 	}
 
 	void initialize(const AminoAcidType * aaType) {
@@ -49,15 +51,13 @@ private:
 
 AminoAcid::AminoAcid(const AminoAcidType & type, int resNum)
 {
-	rep = new AminoAcidRep(type, *this);
-	rep->myHandle = this;
+	rep = new AminoAcidRep(type, this);
 	rep->residueNumber = resNum;
 }
 
 AminoAcid::AminoAcid(char oneLetterCode, int resNum)
 {
-	rep = new AminoAcidRep(oneLetterCode, *this);
-	rep->myHandle = this;
+	rep = new AminoAcidRep(oneLetterCode, this);
 	rep->residueNumber = resNum;
 }
 
@@ -66,7 +66,6 @@ AminoAcid::~AminoAcid()
 	if (rep && (this == rep->myHandle)) delete rep;
 	rep = NULL;
 }
-
 // Copy constructor
 AminoAcid::AminoAcid(const AminoAcid & src) {
 	if (this == &src) return;

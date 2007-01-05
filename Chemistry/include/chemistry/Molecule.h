@@ -11,7 +11,7 @@ public:
 	Molecule();
 	~Molecule();
 
-	Molecule & setPosition(SimTK::Real x, SimTK::Real y, SimTK::Real z);
+	Molecule & setDefaultPosition(SimTK::Real x, SimTK::Real y, SimTK::Real z);
 	char getPdbChainId() const;
 
 	int addAtom(const Atom & atom);

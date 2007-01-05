@@ -16,6 +16,7 @@ int main()
 {
 	Protein protein("ADA");
 	Ethane ethane;
+	
 	MoleculeModeler modeler;
 	modeler.addMolecule(protein).addMolecule(ethane.setPosition(1,2,3));
 	MultibodySystem system = modeler.system();
@@ -33,7 +34,7 @@ int main()
 		
 		cout 
 			<< "Psi torsion of residue 1 = " 
-			<< modeler.getPsiTorsion(state, *(protein.residue(1))) 
+			<< protein.getResidue(1).getPsiTorsion(state);
 			<< endl;
 			
 		time += stepInterval;

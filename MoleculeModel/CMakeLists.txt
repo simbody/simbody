@@ -35,8 +35,7 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 
 
 INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../Chemistry/include ${CMAKE_CURRENT_SOURCE_DIR}/../include)
-# INCLUDE_DIRECTORIES(BEFORE ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/../Chemistry/include)
-FILE(GLOB INC1 ../Chemistry/include/*.h)
+FILE(GLOB INC1 ../Chemistry/include/chemistry/*.h)
 FILE(GLOB INC2 include/*.h)
 SET(INCLUDES ${INC1} ${INC2})
 
@@ -58,6 +57,9 @@ FILE(GLOB MODEL_SRCS ../MoleculeModel/src/*.cpp)
 SET(MOL_SIM_SRCS ${PROTEIN_SRCS} ${MODEL_SRCS} ../Chemistry/src/Ethane.cpp)
 ADD_EXECUTABLE(TestSimMol0 tests/TestSimMol0.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
 ADD_EXECUTABLE(TestSimMol1 tests/TestSimMol1.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
+
+ADD_EXECUTABLE(TestArgonModel tests/TestArgonModel.cpp ${MODEL_SRCS} ${CHEM_SRCS} ${INCLUDES})
+TARGET_LINK_LIBRARIES(TestArgonModel simtkcommon simmatrix simbody_d)
 
 TARGET_LINK_LIBRARIES(TestSimMol0 simtkcommon)
 TARGET_LINK_LIBRARIES(TestSimMol0 simmatrix)

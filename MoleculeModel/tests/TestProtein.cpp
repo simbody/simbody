@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Protein.h"
+#include "chemistry/Protein.h"
 
 using namespace std;
 
