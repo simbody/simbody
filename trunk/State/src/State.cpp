@@ -180,6 +180,11 @@ public:
         q.clear(); u.clear(); z.clear();
         qdot.clear(); udot.clear(); zdot.clear(); qdotdot.clear();
         qerr.clear(); uerr.clear(); udoterr.clear();
+
+        for (int j=0; j<Stage::NValid; ++j) {
+            eventstart[j] = -1;
+            events[j].clear();
+        }
     }
 
     String name;
@@ -195,6 +200,9 @@ public:
     // For constraints we need just lengths.
     int nqerr, nuerr, nudoterr;
 
+    // For events we need just lengths, for each stage.
+    int nevents[Stage::NValid];
+
     // These are our own private views into partitions of the global
     // state and cache entries of the same names. These are valid
     // only after the *System* stage is raised to Model, and they
@@ -203,9 +211,11 @@ public:
     // The State will assign contiguous blocks to this subsystem. The
     // starting indices are filled in here at the time the views are built.
     int qstart, ustart, zstart, qerrstart, uerrstart, udoterrstart;
+    int eventstart[Stage::NValid];
     Vector q, u, z;
     mutable Vector qdot, udot, zdot, qdotdot;
     mutable Vector qerr, uerr, udoterr;
+    mutable Vector events[Stage::NValid];
 
     // Each of these discrete variable & cache entries has its own Stage.
     StableArray<DiscreteVariable> discrete;
@@ -222,9 +232,13 @@ private:
     void initialize() {
         nqerr = nuerr = nudoterr= 0;
         qstart=ustart=zstart=qerrstart=uerrstart=udoterrstart = -1;
+        for (int j=0; j<Stage::NValid; ++j) {
+            nevents[j] = 0;
+            eventstart[j] = -1;
+        }
         nDiscreteWhenBuilt = -1;
-        for (int i=0; i < Stage::NValid; ++i)
-            cacheSize[i] = -1;
+        for (int j=0; j<Stage::NValid; ++j)
+            cacheSize[j] = -1;
         cacheSize[Stage::Empty] = 0;
         currentStage = Stage::Empty;
     }
@@ -254,6 +268,8 @@ private:
         restoreCacheToStage(Stage::Topology);
         qInit.clear(); uInit.clear(); zInit.clear();
         nqerr = nuerr = nudoterr = 0;
+        for (int j=0; j<Stage::NValid; ++j)
+            nevents[j] = 0;
         currentStage = Stage::Topology;
     }
 
@@ -330,6 +346,8 @@ private:
         nqerr = src.nqerr;
         nuerr = src.nuerr;
         nudoterr = src.nudoterr;
+        for (int j=0; j<Stage::NValid; ++j)
+            nevents[j] = src.nevents[j];
 
         // Copy *all* state variables since no more can be allocated
         // after Model stage.
@@ -444,12 +462,16 @@ public:
                 q.clear(); u.clear(); z.clear();
                 qdot.clear(); udot.clear(); zdot.clear();
                 qerr.clear(); uerr.clear();
+                for (int j=0; j<Stage::NValid; ++j)
+                    events[j].clear();
+
                 // Nuke the actual data.
                 y.unlockShape();       y.clear(); 
                 ydot.unlockShape();    ydot.clear(); 
                 qdotdot.unlockShape(); qdotdot.clear();
                 yerr.unlockShape();    yerr.clear();
                 udoterr.unlockShape(); udoterr.clear();
+                allEvents.unlockShape(); allEvents.clear();
             }
             systemStage = g.prev();
         }
@@ -467,7 +489,12 @@ public:
         if (g == Stage::Model) {
             // We know the shared state pool sizes now. Allocate the
             // states and matching shared cache pools.
-            int nq=0, nu=0, nz=0, nqerr=0, nuerr=0, nudoterr=0;
+            int nq=0, nu=0, nz=0, nqerr=0, nuerr=0, nudoterr=0, nAllEvents=0;
+            int nevents[Stage::NValid];
+            for (int j=0; j<Stage::NValid; ++j)
+                nevents[j] = 0;
+
+            // Count up all 
             for (int i=0; i<(int)subsystems.size(); ++i) {
                 nq += subsystems[i].qInit.size();
                 nu += subsystems[i].uInit.size();
@@ -475,7 +502,13 @@ public:
                 nqerr    += subsystems[i].nqerr;
                 nuerr    += subsystems[i].nuerr;
                 nudoterr += subsystems[i].nudoterr;
+
+                for (int j=0; j<Stage::NValid; ++j)
+                    nevents[j] += subsystems[i].nevents[j];
             }
+            for (int j=0; j<Stage::NValid; ++j)
+                nAllEvents += nevents[j];
+
             // Allocate the actual shared state variables & cache 
             // entries and make sure no one can accidentally change the size.
             y.resize(nq+nu+nz);             y.lockShape();
@@ -483,6 +516,7 @@ public:
             qdotdot.resize(nq);             qdotdot.lockShape();
             yerr.resize(nqerr+nuerr);       yerr.lockShape();
             udoterr.resize(nudoterr);       udoterr.lockShape();
+            allEvents.resize(nAllEvents);   allEvents.lockShape();
 
             // Allocate subviews of the shared state & cache entries.
             q.viewAssign(y(0,nq));
@@ -496,8 +530,18 @@ public:
             qerr.viewAssign(yerr(0,     nqerr));
             uerr.viewAssign(yerr(nqerr, nuerr));
 
+            int stageStart=0;
+            for (int j=0; j<Stage::NValid; ++j) {
+                events[j].viewAssign(allEvents(stageStart, nevents[j]));
+                stageStart += nevents[j];
+            }
+
             // Now partition the global resources among the subsystems.
             int nxtq=0, nxtu=0, nxtz=0, nxtqerr=0, nxtuerr=0, nxtudoterr=0;
+            int nxtevent[Stage::NValid];
+            for (int j=0; j<Stage::NValid; ++j)
+                nxtevent[j] = 0;
+
             for (int i=0; i<(int)subsystems.size(); ++i) {
                 PerSubsystemInfo& ss = subsystems[i];
                 const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
@@ -522,6 +566,14 @@ public:
                 // Consume the slots.
                 nxtq += nq; nxtu += nu; nxtz += nz;
                 nxtqerr += ss.nqerr; nxtuerr += ss.nuerr; nxtudoterr += ss.nudoterr;
+
+                // Same thing for event slots, but by stage.
+                for (int j=0; j<Stage::NValid; ++j) {
+                    ss.eventstart[j] = nxtevent[j];
+                    ss.events[j].viewAssign(events[j](nxtevent[j], ss.nevents[j]));
+                    nxtevent[j] += ss.nevents[j];
+                }
+
             }
         }
 
@@ -549,23 +601,35 @@ private:
     mutable Stage   systemStage;
 
         // DIFFERENTIAL EQUATIONS
-    mutable Vector  ydot; // All the state derivatives taken together (qdot,udot,zdot)
 
-        // These are views into ydot.
+    // All the state derivatives taken together (qdot,udot,zdot)
+    mutable Vector  ydot; 
+
+    // These are views into ydot.
     mutable Vector  qdot;       // Stage::Velocity
     mutable Vector  udot;       // Stage::Acceleration
     mutable Vector  zdot;       // Stage::Acceleration
 
-        // This is an independent cache entry.
+    // This is an independent cache entry.
     mutable Vector  qdotdot;    // Stage::Acceleration
 
         // ALGEBRAIC EQUATIONS
+
     mutable Vector  yerr;       // All constraint errors taken together (qerr,uerr)
     mutable Vector  udoterr;    // Stage::Acceleration (Index 1 constraints)
 
-        // These are views into yerr.
+    // These are views into yerr.
     mutable Vector  qerr;       // Stage::Position (Index 3 constraints)
     mutable Vector  uerr;       // Stage::Velocity (Index 2 constraints)
+
+        // DISCRETE EQUATIONS
+
+    // All the events together, ordered by stage.
+    mutable Vector  allEvents;
+
+    // These are views into allEvents.
+    mutable Vector  events[Stage::NValid];
+    
 
         // Subsystem support //
 
@@ -1398,6 +1462,12 @@ String State::cacheToString() const {
         out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
         out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
         out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
+
+        for (int j=0; j<Stage::NValid; ++j) {
+            out += "  <Vector name=events[";
+            out += Stage(Stage::Num(j)).name();
+            out += "] size=" + String(info.events[j].size()) + ">\n";
+        }
 
         out += "</Subsystem>\n";
     }
