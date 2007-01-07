@@ -57,10 +57,15 @@ int main() {
     s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(0, v3);
-    long q2 = s.allocateQ(0, v2);
+    int q1 = s.allocateQ(0, v3);
+    int q2 = s.allocateQ(0, v2);
+
+    int e1 = s.allocateEvent(0, Stage::Position, 3);
+    int e2 = s.allocateEvent(0, Stage::Instance, 2);
 
     printf("q1,2=%d,%d\n", q1, q2);
+    printf("e1,2=%d,%d\n", e1, e2);
+
     cout << s;
 
     long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
@@ -73,6 +78,17 @@ int main() {
 
     s.advanceSystemToStage(Stage::Model);
 
+    printf("nevents=%d, by stage:\n", s.getNEvents());
+    for (int j=0; j<Stage::NValid; ++j) {
+        Stage g = Stage::Num(j);
+        cout << g.name() << ": " << s.getNEventsByStage(g) << endl;
+    }
+
+    printf("subsys 0 by stage:\n");
+    for (int j=0; j<Stage::NValid; ++j) {
+        Stage g = Stage::Num(j);
+        cout << g.name() << ": " << s.getNEventsByStage(0,g) << endl;
+    }
     cout << s;
 
   }
