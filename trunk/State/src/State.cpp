@@ -849,7 +849,12 @@ int State::allocateUDotErr(int subsys, int nudoterr) {
     rep->subsystems[subsys].nudoterr += nudoterr;
     return nxt;
 }
-
+int State::allocateEvent(int subsys, Stage g, int ne) {
+    SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateEvent()");
+    const int nxt = rep->subsystems[subsys].nevents[g];
+    rep->subsystems[subsys].nevents[g] += ne;
+    return nxt;
+}
 
 // Topology- and Model-stage State variables can only be added during construction; that is,
 // while stage <= Topology. Other entries can be added while stage < Model.
@@ -956,6 +961,27 @@ int State::getNUDotErr() const {
     return rep->udoterr.size();
 }
 
+int State::getNEvents() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNEvents()");
+    return rep->allEvents.size();
+}
+
+int State::getEventStartByStage(Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getEventStartByStage()");
+    int nxt = 0;
+    for (int j=0; j<g; ++j)
+        nxt += rep->events[j].size();
+    return nxt; // g starts where g-1 leaves off
+}
+
+int State::getNEventsByStage(Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNEventsByStage()");
+    return rep->events[g].size();
+}
+
     // Subsystem dimensions.
 
 int State::getQStart(int subsys) const {
@@ -1022,6 +1048,18 @@ int State::getNUDotErr(int subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUDotErr(subsys)");
     return rep->getSubsystem(subsys).udoterr.size();
+}
+
+int State::getEventStartByStage(int subsys, Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getEventStartByStage(subsys)");
+    return rep->getSubsystem(subsys).eventstart[g];
+}
+
+int State::getNEventsByStage(int subsys, Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNEventsByStage(subsys)");
+    return rep->getSubsystem(subsys).events[g].size();
 }
 
     // Per-subsystem access to the global shared variables.
@@ -1133,6 +1171,13 @@ const Vector& State::getUDotErr(int subsys) const {
     return rep->getSubsystem(subsys).udoterr;
 }
 
+const Vector& State::getEventsByStage(int subsys, Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getEventsByStage(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, "State::getEventsByStage(subsys)");
+    return rep->getSubsystem(subsys).events[g];
+}
+
 Vector& State::updQErr(int subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQErr(subsys)");
@@ -1151,6 +1196,12 @@ Vector& State::updUDotErr(int subsys) const {
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                         "State::updUDotErr(subsys)");
     return rep->getSubsystem(subsys).udoterr;
+}
+Vector& State::updEventsByStage(int subsys, Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updEventsByStage(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g.prev(), "State::updEventsByStage(subsys)");
+    return rep->getSubsystem(subsys).events[g];
 }
 
     // Direct access to the global shared state and cache entries.
@@ -1328,6 +1379,29 @@ Vector& State::updUDotErr() const{
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
                         "State::updUDotErr()");
     return rep->udoterr;
+}
+
+const Vector& State::getEvents() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getEvents()");
+    return rep->allEvents;
+}
+const Vector& State::getEventsByStage(Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), g, "State::getEventsByStage()");
+    return rep->events[g];
+}
+
+// These are mutable; hence 'const'.
+Vector& State::updEvents() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "State::updEvents()");
+    return rep->allEvents;
+}
+Vector& State::updEventsByStage(Stage g) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), g.prev(), "State::updEventsByStage()");
+    return rep->events[g];
 }
 
 // You can access a Model stage variable any time, but don't access others
