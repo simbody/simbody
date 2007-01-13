@@ -37,8 +37,9 @@ namespace Ipopt
     // wrap the arguments and pass to VPrintf
     va_list ap;
     va_start(ap, pformat);
-
     VPrintf(level, category, pformat, ap);
+// TODO uncomment when done testing
+//   vfprintf( stdout, pformat, ap );
 
     va_end(ap);
   }
@@ -114,6 +115,8 @@ namespace Ipopt
     va_start(ap, pformat);
 
     VPrintfIndented(level, category, indent_level, pformat, ap);
+// TODO uncomment when done testing
+//   vfprintf( stdout, pformat, ap );
 
     va_end(ap);
   }
@@ -162,7 +165,7 @@ namespace Ipopt
     for (Index i=0; i<(Index)journals_.size(); i++) {
       if (journals_[i]->IsAccepted(category, level)) {
         // print the message
-#ifdef HAVE_VA_COPY
+#ifdef va_copy
         va_list apcopy;
         va_copy(apcopy, ap);
         journals_[i]->Printf(pformat, apcopy);

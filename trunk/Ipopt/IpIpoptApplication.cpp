@@ -568,8 +568,17 @@ namespace Ipopt
         // Print out the options (including the number of times they were used
         std::string liststr;
         options_->PrintList(liststr);
+// TODO UNCOMMENT WHEN DONE TESTING
+/*
+       vatest( stdout, "\nList of user-set options:\n\n%s", liststr.c_str());
+       void vatest( FILE *, const char *, ...  );
+
+printf("strlen user-set options= %d\n",strlen(liststr.c_str()) );
+    printf("\nList of user-set options:\n\n%s", liststr.c_str());
+*/
         jnlst_->Printf(J_DETAILED, J_MAIN, "\nList of options:\n\n%s", liststr.c_str());
       }
+
 
       // Run the algorithm
       SolverReturn status = p2alg->Optimize();
@@ -751,6 +760,12 @@ namespace Ipopt
 
     return retValue;
   }
+static void vatest( FILE *fp, const char *format, ... ) {
+   va_list ap;
+   va_start( ap, format );
+   vfprintf( fp, format, ap );
+   va_end(ap);
+}
 
   bool IpoptApplication::OpenOutputFile(std::string file_name,
                                         EJournalLevel print_level)

@@ -155,9 +155,10 @@ int main() {
 
     Optimizer opt( sys ); 
 
-    opt.setConvergenceTolerance( .0001 );
+//    opt.setConvergenceTolerance( .0001 );
+    opt.setConvergenceTolerance( 1e-3 );
 
-    opt.useNumericalGradient( true );
+//    opt.useNumericalGradient( true );
     opt.useNumericalJacobian( true );
 
     /* compute  optimization */ 

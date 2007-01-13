@@ -99,8 +99,10 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 /* #define HAVE_UNISTD_H */
 
+// TODO temporary defined HAVE_VA_COPY FOR TESTING
 /* Define to 1 if va_copy is avaliable */
-/* #undef HAVE_VA_COPY */
+// #undef HAVE_VA_COPY 
+#define HAVE_VA_COPY 1
 
 /* The size of a `double', as computed by sizeof. */
 #define SIZEOF_DOUBLE 8
@@ -109,10 +111,14 @@
 #define SIZEOF_INT 4
 
 /* The size of a `int *', as computed by sizeof. */
-#define SIZEOF_INT_P 4
+//#define SIZEOF_INT_P 4
+// TODO do not hard code this, set in configuration
+#define SIZEOF_INT_P 8
 
 /* The size of a `long', as computed by sizeof. */
-#define SIZEOF_LONG 4
+// TODO do not hard code this, set in configuration
+//#define SIZEOF_LONG 4
+#define SIZEOF_LONG 8
 
 /* Define to 1 if you have the ANSI C header files. */
 #define STDC_HEADERS 1

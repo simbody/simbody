@@ -86,13 +86,6 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
                   gradientFuncWrapper, constraintJacobianWrapper, hessianWrapper);
 
 
-            AddIpoptNumOption(nlp, "tol", convergenceTolerance);
-            AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
-            AddIpoptStrOption(nlp, "output_file", "ipopt.out");
-            AddIpoptStrOption(nlp, "linear_solver", "lapack");
-            AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
-            AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
-
           }
      } 
 
@@ -104,7 +97,17 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
          double *x = &results[0];
          int status;
          char buf[1024];
+         double bound_relax_factor = 1e-7;
 
+         AddIpoptNumOption(nlp, "bound_relax_factor", bound_relax_factor);
+    //     AddIpoptNumOption(nlp, "obj_scaling_factor", 0.3);
+
+         AddIpoptNumOption(nlp, "tol", convergenceTolerance);
+         AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
+         AddIpoptStrOption(nlp, "output_file", "ipopt.out");
+         AddIpoptStrOption(nlp, "linear_solver", "lapack");
+         AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory");
+         AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
 
          status = IpoptSolve(nlp, x, NULL, &obj, NULL, mult_x_L, mult_x_U, (void *)this );
 

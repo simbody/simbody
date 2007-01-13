@@ -154,6 +154,8 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
             *ptr = jac(j,i);
         }
     }
+//   std::cout << std::setprecision(20);
+//   std::cout << jac << std::endl << std::endl;
 
   } 
   return( true );

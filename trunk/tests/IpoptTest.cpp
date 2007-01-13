@@ -159,7 +159,8 @@ int main() {
     Optimizer opt( sys ); 
 
 
-    opt.setConvergenceTolerance( .0001 );
+//    opt.setConvergenceTolerance( .0001 );
+    opt.setConvergenceTolerance( 1e-3 );
 
     /* compute  optimization */ 
     f = opt.optimize( results );

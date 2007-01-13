@@ -78,7 +78,8 @@ static Real factr = 1.0e7;   //
          int m = NUMBER_OF_CORRECTIONS;
          Real gradient[n];
 
-
+//printf("\n ***** LBFGSBOptimizer ***** \n\n");
+ 
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel;
          sys.getParameterLimits( &lowerLimits, &upperLimits );
          iwa = (int *)malloc(3*n*sizeof(int));

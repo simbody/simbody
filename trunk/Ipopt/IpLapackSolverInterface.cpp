@@ -79,8 +79,8 @@ double *afact;
       if (retval == SYMSOLVER_SUCCESS)  {
          isFactored = 1;
       } else {
-        DBG_PRINT((1, "FACTORIZATION FAILED!\n"));
-         printf( "MultiSolve initial FACTORIZATION FAILED! retval = %d\n",retval);
+//        DBG_PRINT((1, "FACTORIZATION FAILED!\n"));
+//         printf( "MultiSolve initial FACTORIZATION FAILED! retval = %d\n",retval);
          isFactored = 0;
       }
 
@@ -117,9 +117,9 @@ double *afact;
          delete [] s;
          delete [] iwork;
          if( info > 0 ) {
-            printf( "dgelsd %d elements failed to converge to zero \n",info );
+//            printf( "dgelsd %d elements failed to converge to zero \n",info );
          } else if( info < 0 ) {
-            printf( "dgelsd illegal arg #%d \n",info );
+//            printf( "dgelsd illegal arg #%d \n",info );
          } else {
             retval = SYMSOLVER_SUCCESS;
          }
@@ -205,7 +205,7 @@ double *afact;
     dsyev_(jobz, uplo, ndim, atmp, ndim, w, work, rlwork, rinfo,  1, 1);
 //    delete [] atmp;
     if( rinfo != 0 ) {
-         printf("dsyev failed info = %d\n",rinfo  );
+//         printf("dsyev failed info = %d\n",rinfo  );
          return(SYMSOLVER_FATAL_ERROR);
     }
     for(i=0;i<ndim;i++){
@@ -215,7 +215,7 @@ double *afact;
     delete [] w;
     delete [] work;
     if (check_NegEVals && (numberOfNegEVals!=negevals_)) {
-printf("Factorization SYMSOLVER_WRONG_INERTIA numberOfNegEVals=%d negevals_=%d\n",numberOfNegEVals, negevals_);
+//printf("Factorization SYMSOLVER_WRONG_INERTIA numberOfNegEVals=%d negevals_=%d\n",numberOfNegEVals, negevals_);
        return SYMSOLVER_WRONG_INERTIA;
     }
 
@@ -243,7 +243,7 @@ printf("\n\nLapackSolverInterface::Factorization factored a=\n");
 */
        if( info > 0  ) {
          retval = SYMSOLVER_SINGULAR;
-         printf(" LapackSolverInterface::Factorization dgetrf failed info=%d\n",info);
+//         printf(" LapackSolverInterface::Factorization dgetrf failed info=%d\n",info);
        }
 
     return retval;
@@ -336,10 +336,10 @@ printf("\n\nLapackSolverInterface::Solve solve rhs =\n");
        if( rinfo != 0 ) {
           if( rinfo > 0 && rinfo <= n  ) {
              retval = SYMSOLVER_SINGULAR;
-             printf(" LapackSolverInterface::Solve dgetrs_ singular info = %d \n,rinfo");
+//             printf(" LapackSolverInterface::Solve dgetrs_ singular info = %d \n,rinfo");
            } else {
               retval = SYMSOLVER_FATAL_ERROR;
-              printf(" LapackSolverInterface::Solve dgetrs_ failed info = %d \n,rinfo");
+//              printf(" LapackSolverInterface::Solve dgetrs_ failed info = %d \n,rinfo");
            }
        } else {
           retval = SYMSOLVER_SUCCESS;
@@ -351,7 +351,7 @@ printf("\n\nLapackSolverInterface::Solve solve rhs =\n");
 
   Index LapackSolverInterface::NumberOfNegEVals() const
   {
-    DBG_START_METH("LapackSolverInterface::NumberOfNegEVals", dbg_verbosity);
+//    DBG_START_METH("LapackSolverInterface::NumberOfNegEVals", dbg_verbosity);
 //printf("LapackSolverInterface::NumberOfNegEVals = %d\n",negevals_);
     DBG_ASSERT(negevals >= 0);
     return negevals_;

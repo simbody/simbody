@@ -62,6 +62,8 @@ const int NUMBER_OF_CORRECTIONS = 5;
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
 
+//printf("\n ***** LBFGSOptimizer ***** \n\n");
+
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel; 
 
           lbfgs_( n, m, &results[0], &f, iprint, &convergenceTolerance,  xtol );

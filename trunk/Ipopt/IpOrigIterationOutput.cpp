@@ -114,7 +114,9 @@ namespace Ipopt
         Jnlst().Printf(J_ITERSUMMARY, J_MAIN, " %s", info_string.c_str());
       }
       else {
+// TODO UNCOMMENT WHEN DONE TESTING
         Jnlst().Printf(J_DETAILED, J_MAIN, " %s", info_string.c_str());
+//printf(" %s",info_string.c_str());
       }
       Jnlst().Printf(J_ITERSUMMARY, J_MAIN, "\n");
     }
