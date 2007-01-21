@@ -80,7 +80,9 @@ SET(SIMMATH_MINOR_VERSION 0)
 SET(SIMMATH_BUILD_VERSION 1)
 
 SET(SIMMATH_COPYRIGHT_YEARS "2005-6")
-SET(SIMMATH_AUTHORS         "Jack Middleton") # comma separated list of authors
+
+# underbar separated list of dotted authors, no spaces or commas
+SET(SIMMATH_AUTHORS         "Jack.Middleton")
 
 # Get the Subversion revision number
 EXEC_PROGRAM ( svnversion
