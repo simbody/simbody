@@ -1,16 +1,19 @@
 #include "AtomModel.h"
+#include "internal/AtomRep.h"
 
 using namespace SimTK;
 
-class AtomModelRep {
+class AtomModelRep : public AtomRep {
 friend class AtomModel;
 private:
-	AtomModelRep(const AtomModel * handle) 
-		: myHandle(handle) {}
+	AtomModelRep(const AtomModel * handle, const Atom & atom) 
+		: AtomRep(atom.getElement(), atom.getName(), handle)
+	{
+		defaultPosition = atom.getDefaultPosition();
+	}
 
-	AtomModelRep* clone(AtomModel * newHandle) const {
+	AtomModelRep* clone() const {
 		AtomModelRep* dup = new AtomModelRep(*this);
-		dup->myHandle = newHandle;
 		return dup;
 	}
 
@@ -18,7 +21,6 @@ private:
 		return modeler->getMatter().getMobilizerPosition(state, mmBodyId).T();
 	}
 
-	const AtomModel * myHandle;
 	int mmAtomId;
 	int mmClusterId;
 	int mmBodyId;
@@ -29,19 +31,20 @@ private:
 AtomModel::AtomModel(const MoleculeModeler & m, const Atom & atom) 
 	: Atom(atom)
 {
-	rep = new AtomModelRep(this);
-	rep->modeler = & m;
+	rep = new AtomModelRep(this, atom);
+	((AtomModelRep*)rep)->modeler = & m;
 }
 AtomModel::AtomModel(const AtomModel & src) 
 	: Atom(src)
 {
 	if (this == &src) return;
-	rep = NULL;
-	*this = src;
+	rep = src.rep->clone();
+	rep->myHandle = this;
 }
 AtomModel & AtomModel::operator=(const AtomModel & src) {
 	if (rep && (this == rep->myHandle)) delete rep;
-	rep = src.rep->clone(this);
+	rep = src.rep->clone();
+	rep->myHandle = this;
 	return *this;
 }
 AtomModel::~AtomModel() {
@@ -51,22 +54,22 @@ AtomModel::~AtomModel() {
 
 
 AtomModel & AtomModel::setMmAtomId(int id) {
-	rep->mmAtomId = id;
+	((AtomModelRep*)rep)->mmAtomId = id;
 	return * this;
 }
 AtomModel & AtomModel::setMmClusterId(int id) {
-	rep->mmClusterId = id;
+	((AtomModelRep*)rep)->mmClusterId = id;
 	return * this;
 }
 AtomModel & AtomModel::setMmBodyId(int id) {
-	rep->mmBodyId = id;
+	((AtomModelRep*)rep)->mmBodyId = id;
 	return * this;
 }
 
-int AtomModel::getMmAtomId() const {return rep->mmAtomId;}
-int AtomModel::getMmClusterId() const {return rep->mmClusterId;}
-int AtomModel::getMmBodyId() const {return rep->mmBodyId;}
+int AtomModel::getMmAtomId() const {return ((AtomModelRep*)rep)->mmAtomId;}
+int AtomModel::getMmClusterId() const {return ((AtomModelRep*)rep)->mmClusterId;}
+int AtomModel::getMmBodyId() const {return ((AtomModelRep*)rep)->mmBodyId;}
 
 Vec3 AtomModel::getPosition(const State & state) const {
-	return rep->getPosition(state);
+	return ((AtomModelRep*)rep)->getPosition(state);
 }

@@ -102,7 +102,7 @@ private:
 		mbs.realize(state, Stage::Model);
 
 		// Set positions
-		vector<AtomModel>::iterator a = atomModels.begin();
+		vector<AtomModel>::const_iterator a = atomModels.begin();
 		while (a != atomModels.end()) {
 			matter.setMobilizerPosition(state, a->getMmBodyId(), a->getDefaultPosition());
 			++a;

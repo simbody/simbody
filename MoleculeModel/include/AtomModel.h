@@ -26,7 +26,7 @@ public:
 	int getMmBodyId() const;
 
 private:
-	class AtomModelRep * rep;
+	// class AtomModelRep * rep; // Don't do this
 };
 
 #endif /*ATOMMODEL_H_*/

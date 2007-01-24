@@ -13,16 +13,29 @@ using namespace SimTK;
 // modeling layer that has yet to be constructed.
 int main()
 {
+	Vec3 v1(-0.5, 0.1, 0);
+	cout << v1 << endl;
+
 	MoleculeModeler modeler;
 	
 	Atom argonAtom(ChemicalElement::Argon);
-	AtomModel argonModel1 = modeler.addAtomLike(argonAtom, Vec3(-0.5, 0.1, 0));
-	AtomModel argonModel2 = modeler.addAtomLike(argonAtom, Vec3( 0.5, 0, 0));
-	modeler.addAtomLike(argonAtom, Vec3( 0.0, -0.5, 0.1));
-	modeler.addAtomLike(argonAtom, Vec3( 0.0, -0.1, 0.7));
-	
+	cout << argonAtom.getDefaultPosition() << endl;
+	argonAtom.setDefaultPosition(Vec3(9,9,8));
+	cout << argonAtom.getDefaultPosition() << endl;
+
+	const AtomModel argonModel1 = modeler.addAtomLike(argonAtom, Vec3(-0.5, 0.1, 0));
+	const AtomModel argonModel2 = modeler.addAtomLike(argonAtom, Vec3( 0.5, 0, 0));
+	const AtomModel argonModel3 = modeler.addAtomLike(argonAtom, Vec3( 0.0, -0.5, 0.1));
+	const AtomModel argonModel4 = modeler.addAtomLike(argonAtom, Vec3( 0.0, -0.1, 0.7));
+
+	SimTK::Vec3 vec1 = argonModel1.getDefaultPosition();
+	cout << "  Position 1 = " << vec1 << endl;
+	cout << "  Position 2 = " << argonModel2.getDefaultPosition() << endl;
+	cout << "  Position 3 = " << argonModel3.getDefaultPosition() << endl;
+	cout << "  Position 4 = " << argonModel4.getDefaultPosition() << endl;	
+
 	State state;
-	MultibodySystem & system = modeler.realizeSystem(state);
+	const MultibodySystem & system = modeler.realizeSystem(state);
 
 	VTKReporter vtk(system);
 

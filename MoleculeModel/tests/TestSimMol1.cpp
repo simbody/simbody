@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Simbody.h"
+#include "SimTKSimbody.h"
 #include "Protein.h"
 #include "Ethane.h"
 #include "MoleculeModeler.h"
