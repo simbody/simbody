@@ -20,7 +20,7 @@ public:
 	SimTK::Real getMass() const;
 
 	const ChemicalElement & getElement() const;
-private:
+protected:
 	class AtomRep * rep;
 };
 

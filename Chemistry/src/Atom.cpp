@@ -1,36 +1,21 @@
-#include "chemistry/Atom.h"
+#include "internal/AtomRep.h"
 
 using namespace SimTK;
 
-class AtomRep {
-friend class Atom;
-private:
-	AtomRep(const ChemicalElement & e, const SimTK::String & atomName, const Atom * handle) 
-		: element(e), name(atomName), myHandle(handle) {}
-	
-	AtomRep* clone(Atom * newHandle) const {
-		AtomRep* dup = new AtomRep(*this);
-		dup->myHandle = newHandle;
-		return dup;
-	}
-
-	const Atom * myHandle;
-	const ChemicalElement & element;
-	Vec3 defaultPosition;
-	SimTK::String name;
-};
 
 Atom::Atom(const ChemicalElement & element, const SimTK::String & atomName) {
 	rep = new AtomRep(element, atomName, this);
 }
 Atom::Atom(const Atom & src) {
-	if (this == &src) return;
-	rep = NULL;
-	*this = src;
+	if (this == &src) return; // short circuit for self assignment
+	rep = src.rep->clone(); // create new secret self
+	rep->myHandle = this;
 }
+
 Atom & Atom::operator=(const Atom & src) {
-	if (rep && (this == rep->myHandle)) delete rep;
-	rep = src.rep->clone(this);
+	if (rep && (this == rep->myHandle)) delete rep; // destroy old secret self
+	rep = src.rep->clone(); // create new secret self
+	rep->myHandle = this;
 	return *this;
 }
 Atom::~Atom() {
@@ -51,3 +36,9 @@ Atom & Atom::setDefaultPosition(SimTK::Vec3 pos) {
 }
 
 const ChemicalElement & Atom::getElement() const {return rep->element;}
+	
+const SimTK::String & Atom::getName() const {return rep->name;}
+Atom & Atom::setName(const SimTK::String & name) {
+	rep->name = name;
+	return *this;
+}

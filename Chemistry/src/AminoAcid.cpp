@@ -26,9 +26,8 @@ private:
 		return type->oneLetterCode();
 	}
 	
-	AminoAcidRep* clone(AminoAcid & newHandle) const {
+	AminoAcidRep* clone() const {
 		AminoAcidRep* dup = new AminoAcidRep(*this);
-		dup->myHandle = & newHandle;
 		return dup;
 	}
 
@@ -69,12 +68,13 @@ AminoAcid::~AminoAcid()
 // Copy constructor
 AminoAcid::AminoAcid(const AminoAcid & src) {
 	if (this == &src) return;
-	rep = NULL;
-	*this = src;
+	rep = src.rep->clone();
+	rep->myHandle = this;
 }
 AminoAcid & AminoAcid::operator=(const AminoAcid & src) {
 	if (rep && (this == rep->myHandle)) delete rep;
-	rep = src.rep->clone(*this);
+	rep = src.rep->clone();
+	rep->myHandle = this;
 	return *this;
 }
 bool AminoAcid::operator==(const AminoAcid & src) const {return (*(this->rep)) == (*(src.rep));}
