@@ -2,7 +2,7 @@
 // All Rights Reserved.
 // This code is published under the Common Public License.
 //
-// $Id: IpLimMemQuasiNewtonUpdater.cpp 759 2006-07-07 03:07:08Z andreasw $
+// $Id: IpLimMemQuasiNewtonUpdater.cpp 795 2006-10-11 19:01:37Z andreasw $
 //
 // Authors:  Andreas Waechter                 IBM    2005-12-26
 
@@ -271,8 +271,10 @@ namespace Ipopt
                                   1., *y_full_new);
     }
     else {
-      y_full_new->AddTwoVectors(1., *IpCq().curr_grad_lag_x(),
+      y_full_new->AddTwoVectors(1., *IpCq().curr_grad_f(),
                                 -1, *last_grad_f_, 0.);
+      y_full_new->AddTwoVectors(1., *IpCq().curr_jac_cT_times_curr_y_c(),
+                                1., *IpCq().curr_jac_dT_times_curr_y_d(), 1.);
     }
     last_jac_c_->TransMultVector(-1., *IpData().curr()->y_c(),
                                  1., *y_full_new);

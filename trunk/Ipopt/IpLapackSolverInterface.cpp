@@ -65,7 +65,6 @@ double *afact;
     const char& ruplo = uplo;
     double *x,*berr,*ferr,*work,rcond;
     int *iwork,lwork;
-    int &rlwork = lwork;
     const int &ndim = n;
     const int &rnrhs = nrhs;
     int info;
@@ -95,8 +94,7 @@ double *afact;
          int ispec = 1;
          int info;
          int &rinfo = info;
-         int *iwork,rank,nlvl,smlsiz,lwork;
-         int &rlwork = lwork;
+         int *iwork,rank,nlvl,smlsiz,lwork,liwork,nosmlsiz;
          const char *name = "DGELSD";
          const char *opts = "";
          s = new double[n];
@@ -105,13 +103,19 @@ double *afact;
              printf("ilaenv arg# %d illegal value \n",smlsiz );
              return retval;
          }
-//         nlvl = int(log2(n)/(smlsiz+1)) + 1;
-         nlvl = int((log10((double)n)/log10(2.))/(smlsiz+1)) + 1;
-         iwork = new int[3*n*nlvl + 11*n];
+         nosmlsiz = n/(smlsiz+1);
+/* 
+**      increased size of nlvl by adding 1 due  to 64bit failures
+*/
+         nlvl = int(log10((double)nosmlsiz)/log10(2.)) + 2;
+         if( nlvl < 0 ) nlvl = 0;
+         liwork = 3*n*nlvl + 11*n;
+         iwork = new int[liwork];
+//printf(" n=%d smlsiz=%d nlvl=%d liwork=%d \n",n,smlsiz, nlvl,liwork );
          lwork = 12*n + 2*n*smlsiz + 8*n*nlvl + n*nrhs + (smlsiz+1)*(smlsiz+1);
          work = new double[lwork];
          dgelsd_( ndim, ndim, rnrhs, atmp, ndim, rhs_vals, ndim, s, &rcond, &rank, work, 
-                  rlwork, iwork, rinfo );
+                  lwork, iwork, rinfo );
          
          delete [] work;
          delete [] s;
@@ -172,7 +176,6 @@ double *afact;
     ESymSolverStatus retval = SYMSOLVER_SUCCESS;
     int info,lwork;
     int &rinfo = info;
-    int &rlwork = lwork;
     double *w, *work,*atmp;
     const int &ndim = n;
     char jobzc = 'N';
@@ -202,7 +205,7 @@ double *afact;
 /* create a tempory copy  of the A matrix becuase dsyev over writes it */
     atmp = new double[n*n];
     for(i=0;i<n*n;i++) atmp[i] = a[i];
-    dsyev_(jobz, uplo, ndim, atmp, ndim, w, work, rlwork, rinfo,  1, 1);
+    dsyev_(jobz, uplo, ndim, atmp, ndim, w, work, lwork, rinfo,  1, 1);
 //    delete [] atmp;
     if( rinfo != 0 ) {
 //         printf("dsyev failed info = %d\n",rinfo  );
@@ -263,7 +266,6 @@ printf("\n\nLapackSolverInterface::Factorization factored a=\n");
     const char& ruplo = uplo;
     const int &ndim = n;
     const int &rnrhs = nrhs;
-    const int &rlwork = lwork;
     double *ferr,*work;
     double *berr;
     int i,j;
