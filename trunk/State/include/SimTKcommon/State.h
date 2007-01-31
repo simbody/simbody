@@ -354,10 +354,19 @@ public:
     Real&   updTime();  // Back up to Stage::Time-1
     Vector& updY();     // Back up to Stage::Congfigured-1
 
+    /// An alternate syntax equivalent to updTime() and updY().
+    void setTime(Real t)       {updTime()=t;}
+    void setY(const Vector& y) {updY()=y;}
+
     /// These are just views into Y.
     Vector& updQ();     // Back up to Stage::Position-1
     Vector& updU();     // Back up to Stage::Velocity-1
     Vector& updZ();     // Back up to Stage::Dynamics-1
+
+    /// Alternate interface.
+    void setQ(const Vector& q) {updQ()=q;}
+    void setU(const Vector& u) {updU()=u;}
+    void setZ(const Vector& z) {updZ()=z;}
 
     const Vector& getYDot()    const; // Stage::Acceleration
 
@@ -402,6 +411,11 @@ public:
 
     /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
     AbstractValue&       updDiscreteVariable(int subsys, int index);
+
+    /// Alternate interface to updDiscreteVariable.
+    void setDiscreteVariable(int subsys, int index, const AbstractValue& v) {
+        updDiscreteVariable(subsys,index) = v;
+    }
 
     /// Stage >= ce.stage
     const AbstractValue& getCacheEntry(int subsys, int index) const;

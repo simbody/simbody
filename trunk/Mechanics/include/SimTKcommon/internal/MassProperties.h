@@ -58,7 +58,7 @@ typedef Mat<2,2, Mat33> SpatialMat;
  * the "central inertia" of that body. To write down the inertia, we
  * need to calculate the six scalars of the inertia tensor, which
  * is a symmetric 3x3 matrix. These scalars must be expressed in 
- * an arbitrary but specified coordinate system. So a Inertia
+ * an arbitrary but specified coordinate system. So an Inertia
  * is meaningful only in conjunction with a particular set of axes, fixed
  * to the body, whose origin is the point about which the inertia is being
  * measured, and in whose coordinate system this measurement is being
@@ -103,7 +103,7 @@ typedef Mat<2,2, Mat33> SpatialMat;
 class Inertia {
 public:
     /// Default is a NaN-ed out mess to avoid accidents.
-    Inertia() : I_OF_F(NTraits<Real>::getNaN()) {}
+    Inertia() : I_OF_F(NTraits<Real>::NaN) {}
 
     /// Create a principal inertia matrix with identical diagonal elements.
     /// Most commonly we create Inertia(0) for initialization of an inertia
@@ -126,7 +126,7 @@ public:
     /// This is a general inertia matrix. Note the order of these
     /// arguments: moments of inertia first, then products of inertia.
     Inertia(const Real& xx, const Real& yy, const Real& zz,
-               const Real& xy, const Real& xz, const Real& yz) {
+            const Real& xy, const Real& xz, const Real& yz) {
         setInertia(xx,yy,zz,xy,xz,yz); 
     }
 
@@ -151,7 +151,7 @@ public:
         t(1,2) = t(2,1) = -my*z;
     }
 
-    /// We only look at the lower triangles, but fill in the whole matrix.
+    /// We only look at the lower triangle, but fill in the whole matrix.
     Inertia(const Inertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
@@ -161,6 +161,9 @@ public:
         t(1,2) = (t(2,1) = s(2,1));
     }
 
+    /// Construct an Inertia from a 3x3 matrix. The matrix must be symmetric
+    /// or very close to symmetric. TODO: there are other tests that should
+    /// be performed here to check validity, such as the triangle inequality test.
     explicit Inertia(const Mat33& s) {
         assert(close(s(0,1),s(1,0),s.diag().norm()) 
             && close(s(0,2),s(2,0),s.diag().norm())
@@ -169,6 +172,7 @@ public:
             0.5*(s(1,0)+s(0,1)),0.5*(s(2,0)+s(0,2)),0.5*(s(2,1)+s(1,2)));
     }
 
+    /// Copy assignment: only look at the lower triangle, but fill in the whole matrix.
     Inertia& operator=(const Inertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
@@ -179,6 +183,8 @@ public:
         return *this;
     }
 
+    /// Add in another inertia. Frames and reference point must be the same but
+    /// we can't check. Only look at the lower triangle, but fill in the whole matrix.
     Inertia& operator+=(const Inertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
@@ -189,6 +195,8 @@ public:
         return *this;
     }
 
+    /// Subtract off another inertia. Frames and reference point must be the same but
+    /// we can't check. Only look at the lower triangle, but fill in the whole matrix.
     Inertia& operator-=(const Inertia& src) {
         Mat33&       t = I_OF_F;
         const Mat33& s = src.I_OF_F;
@@ -199,33 +207,45 @@ public:
         return *this;
     }
 
+    /// Scale an Inertia.
     Inertia& operator*=(const Real& r) {
         I_OF_F *= r;
         return *this;
     }
+    /// Scale an Inertia.
     Inertia& operator/=(const Real& r) {
         I_OF_F /= r;
         return *this;
     }
-    void setInertia(const Real& xx, const Real& yy, const Real& zz) {
+    /// Set an inertia to have only principal moments (that is, it will
+    /// be diagonal). TODO: should check validity.
+    Inertia& setInertia(const Real& xx, const Real& yy, const Real& zz) {
         I_OF_F = 0.; I_OF_F(0,0) = xx; I_OF_F(1,1) = yy;  I_OF_F(2,2) = zz;
+        return *this;
     }
 
-    void setInertia(const Vec3& moments, const Vec3& products=Vec3(0)) {
+    /// Set principal moments and optionally off-diagonal terms. Behaves
+    /// like an assignment statement. TODO: should check validity.
+    Inertia& setInertia(const Vec3& moments, const Vec3& products=Vec3(0)) {
         Mat33& t = I_OF_F;
         t.diag() = moments;
         t(0,1) = t(1,0) = products[0];
         t(0,2) = t(2,0) = products[1];
         t(1,2) = t(2,1) = products[2];
+        return *this;
     }
 
-    void setInertia(const Real& xx, const Real& yy, const Real& zz,
+    /// Set this Inertia to a general inertia matrix. Note the order of these
+    /// arguments: moments of inertia first, then products of inertia.
+    /// Behaves like an assignment statement. TODO: should check validity.
+    Inertia& setInertia(const Real& xx, const Real& yy, const Real& zz,
                     const Real& xy, const Real& xz, const Real& yz) {
         Mat33& t = I_OF_F;
         t(0,0) = xx; t(1,1) = yy;  t(2,2) = zz;
         t(0,1) = t(1,0) = xy;
         t(0,2) = t(2,0) = xz;
         t(1,2) = t(2,1) = yz;
+        return *this;
     }
 
     /// Assume that the current inertia is about the F frame's origin OF, and
@@ -371,8 +391,8 @@ operator<<(std::ostream& o, const Inertia&);
 
 
 /**
- * This class contains the mass, centroid, and inertia of a rigid body B.
- * The centroid is a vector from B's origin, expressed in the B frame.
+ * This class contains the mass, center of mass, and inertia of a rigid body B.
+ * The center of mass is a vector from B's origin, expressed in the B frame.
  * The inertia is taken about the B origin, and expressed in B.
  */
 class MassProperties {
@@ -381,18 +401,20 @@ public:
     MassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
       { setMassProperties(m,com,inertia); }
 
-    void setMassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
-      { mass=m; comInB=com; inertia_OB_B=inertia; }
+    /// Set mass, center of mass, and inertia. Behaves like an assignment in that
+    /// a reference to the modified MassProperties object is returned.
+    MassProperties& setMassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
+      { mass=m; comInB=com; inertia_OB_B=inertia; return *this; }
 
-    const Real&       getMass()    const { return mass; }
-    const Vec3&       getCOM()     const { return comInB; }
+    const Real&    getMass()    const { return mass; }
+    const Vec3&    getCOM()     const { return comInB; }
     const Inertia& getInertia() const { return inertia_OB_B; }
 
-    Inertia calcCentroidalInertia() const {
+    Inertia calcCentralInertia() const {
         return inertia_OB_B - Inertia(comInB, mass);
     }
     Inertia calcShiftedInertia(const Vec3& newOriginB) const {
-        return calcCentroidalInertia() + Inertia(newOriginB-comInB, mass);
+        return calcCentralInertia() + Inertia(newOriginB-comInB, mass);
     }
     Inertia calcTransformedInertia(const Transform& X_BC) const {
         return calcShiftedInertia(X_BC.T()).changeAxes(X_BC.R());
@@ -412,14 +434,14 @@ public:
         return mass <= tol; 
     }
 
-    bool isExactlyCentroidal() const { return comInB==Vec3(0); }
-    bool isNearlyCentroidal(const Real& tol=NTraits<Real>::Eps_78) const {
+    bool isExactlyCentral() const { return comInB==Vec3(0); }
+    bool isNearlyCentral(const Real& tol=NTraits<Real>::Eps_78) const {
         return comInB.normSqr() <= tol*tol;
     }
 
 private:
-    Real        mass;
-    Vec3        comInB;         // meas. from B origin, expr. in B
+    Real     mass;
+    Vec3     comInB;         // meas. from B origin, expr. in B
     Inertia  inertia_OB_B;   // about B origin, expr. in B
 };
 
