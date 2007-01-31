@@ -53,7 +53,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 2;
+static int NSegments = 3;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {

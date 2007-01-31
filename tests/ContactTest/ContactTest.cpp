@@ -258,7 +258,7 @@ try
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-3);
+    ee.setAccuracy(1e-2);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;

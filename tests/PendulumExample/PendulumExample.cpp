@@ -71,8 +71,9 @@ try { // If anything goes wrong, an exception will be thrown.
 
     // Create a study using the Runge Kutta Merson integrator
     RungeKuttaMerson myStudy(mbs, s);
-    //CPodesIntegrator myStudy(mbs, s);
     myStudy.setAccuracy(1e-2);
+    //CPodesIntegrator myStudy(mbs, s);
+    //myStudy.setAccuracy(1e-4);
 
     // Visualize with VTK.
     VTKReporter display(mbs);

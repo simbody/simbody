@@ -1,248 +1,111 @@
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
- * Contributors:
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+// File:  NewtonsAppleForPlotting.cpp
+//--------------------------------------------------
+#include "SimTKSimbody.h"
 
-/**@file
- * This is just a disposable outer block for tests during development of
- * Simbody. Don't include this in the nightly test suite.
- */
-
-#include "SimTKsimbody.h"
-
-#include <string>
-#include <iostream>
-#include <exception>
 #include <cmath>
-using std::cout;
-using std::endl;
-
+#include <cstdio>
+#include <exception>
+#include <vector>
+using namespace std;
 using namespace SimTK;
 
+// There is a ground body in all simulations whose number is 0
+static const int  GroundBodyNum = 0;
+static const Transform GroundFrame;
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
-static const Real EnergyUnitsPerKcal = 418.4; // exact 
-static const int  Ground = 0;       // ground is always body 0
-static const Transform BodyFrame;   // identity transform on any body
+int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments ) 
+{
+	// Declare a multibody system (contains sub-systems) 
+    MultibodySystem  mbs;
 
-class MySinusoid: public GeneralForceElements::UserForce {
-public:
-    MySinusoid(int b, int d, const Real& amp, const Real& w, const Real& ph=0) 
-      : body(b), dof(d), amplitude(amp), period(w), phase(ph)
-    {
-    }
+	// Create a gravity vector that is straight down
+    // Create a uniform gravity sub-system
+	// Add the gravity sub-system to the multibody system
+	Vec3 gravityVector( 0,-9.8, 0 );
+    UniformGravitySubsystem gravity( gravityVector );
+    mbs.addForceSubsystem( gravity );
 
-    // Implementation of pure virtual.
-    void calc(const MatterSubsystem& matter, 
-              const State&           state,
-              Vector_<SpatialVec>&   bodyForces,
-              Vector_<Vec3>&         particleForces,
-              Vector&                mobilityForces,
-              Real&                  pe) const 
-    {
-        matter.addInMobilityForce(state,body,dof,
-            amplitude*std::sin(2*Pi*period*state.getTime() + phase),
-            mobilityForces);
-    }
+	// Create a matter sub-system (the apple)
+    SimbodyMatterSubsystem  apple;
 
-    // Implementation of pure virtual;
-    GeneralForceElements::UserForce* clone() const { 
-        return new MySinusoid(*this); 
-    }
-private:
-    int  body, dof;
-    Real amplitude, period, phase;
-};
+	// Create the mass properties of this matter sub-system (mass properties of the apple).
+	// The MassProperties class holds the mass, center of mass, and inertia properties of a rigid body B.
+	// The location of the center of mass is a vector from B's origin expressed in the B frame.  
+	// The inertia matrix is of the body B about B's origin for the unit vectors fixed in B's frame.
+	const Real  massOfApple = 2;
+    const Vec3  appleCenterOfMassLocation(0, 0, 0);  // center of the apple
+	const Inertia  appleInertiaMatrix( 1, 1, 1, 0, 0, 0 );
+    MassProperties  appleMassProperties( massOfApple, appleCenterOfMassLocation, appleInertiaMatrix ); 
 
+	// Define the apple and how it is connected to the ground (it is free to move relative to ground)
+	const Vec3  inboardJointLocation(0,0,0);
+    const int appleBodyNumber = apple.addRigidBody( appleMassProperties, Transform(inboardJointLocation), GroundBodyNum, GroundFrame, Mobilizer::Free );
 
-int main() {
-try {
-    SimbodyMatterSubsystem   bendStretchBlock;
-    GeneralForceElements     forces;
+    // Add the matter (apple) sub-system to the system.
+    mbs.setMatterSubsystem( apple );
 
-    MultibodySystem mbs;
-    mbs.setMatterSubsystem(bendStretchBlock);
-    mbs.addForceSubsystem(forces);
-
-    //forces.addGlobalEnergyDrain(100);
-
-
-    // System modeled:
-    //                
-    //     <--          
-    //        \           
-    //      *-/-------->*
-    //                    
-    //
-    //      | y
-    //      |
-    //      |-----> x
-    //     /
-    //    z
-    // This is a mass mounted to a rotating base with a "bend stretch" joint which
-    // permits rotation around mutual z axes of base & ground, followed
-    // by a translation along the *block* x axis (which will have moved).
-    // Base body frame is attached to ground frame by pin about z.
-    //
-
-    const Real m = 1;
-    const Vec3 com = Vec3(0,0,0);
-    const Inertia iner(1,1,1);
-
-    const MassProperties mProps(m,com,iner);;
-    const Transform      jointFrame;
-    const Transform      baseFrame(Vec3(1,2,3));
-    const Transform      groundFrame;
-
-
-    int base = bendStretchBlock.addRigidBody(MassProperties(1,Vec3(0),Inertia::sphere(1)),
-                        BodyFrame,
-                        Ground, groundFrame,
-                        Mobilizer::Pin);
-    forces.addMobilityLinearSpring(base, 0, 10., 0);
-    //int base = Ground;
-
-    bool useDummy = false ;
-
-    int mass;
-    int bendBody, bendCoord;
-    int stretchBody, stretchCoord;
-    if (useDummy) {
-        int dummy = bendStretchBlock.addRigidBody(MassProperties(0,Vec3(0),Inertia(0)),
-                                                  Transform(),
-                                                  base, baseFrame,
-                                                  Mobilizer::Pin);
-
-        bendBody = dummy;
-        bendCoord = 0;
-        mass = bendStretchBlock.addRigidBody(mProps, jointFrame,
-                                dummy, Transform(),
-                                Mobilizer::Sliding);
-        stretchBody = mass;
-        stretchCoord = 0;
-    } else {
-        mass = bendStretchBlock.addRigidBody(mProps, jointFrame,
-                                    base, baseFrame,
-                                    Mobilizer::BendStretch);
-        bendBody = mass;
-        bendCoord = 0;
-        stretchBody = mass;
-        stretchCoord = 1;
-    }
-
-    forces.addMobilityLinearSpring(bendBody, bendCoord, 1000., 0);
-    forces.addMobilityLinearSpring(stretchBody, stretchCoord, 100., 1);
-
-    VTKReporter display(mbs);
-    display.addDecoration(mass, Transform(),
-        DecorativeSphere(.25).setOpacity(.25));
-
-    DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
-    display.addRubberBandLine(base, baseFrame.T(), mass, jointFrame.T(), crossBodyBond);
-
+	// Create a state for this system
     State s;
-    mbs.realize(s, Stage::Topology);
-    mbs.realize(s, Stage::Model);
+    mbs.realize(s); // define appropriate states for this System
 
-    RungeKuttaMerson study(mbs, s);
+    // Create a study using the Runge Kutta Merson integrator
+    RungeKuttaMerson myStudy(mbs, s);
+    //CPodesIntegrator myStudy(mbs, s);
 
-    bendStretchBlock.setMobilizerQ(s, base, 0, 0);
-    bendStretchBlock.setMobilizerU(s, base, 0, .1);
-    bendStretchBlock.setMobilizerQ(s, bendBody, bendCoord, 0); // rotation
-    bendStretchBlock.setMobilizerU(s, bendBody, bendCoord, 3); // rotation
-    bendStretchBlock.setMobilizerQ(s, stretchBody, stretchCoord, 1); // translation
-    bendStretchBlock.setMobilizerU(s, stretchBody, stretchCoord, 7);
+	// Set the numerical accuracy for the integrator
+	myStudy.setAccuracy( 1.0E-7 );
 
-    mbs.realize(s, Stage::Acceleration);
-    const Transform&  x = bendStretchBlock.getBodyPosition(s, mass);
-    cout << "Mass x=" << x.T() << " pe=" << mbs.getPotentialEnergy(s) << endl;
-    const SpatialVec& v = bendStretchBlock.getBodyVelocity(s, mass);
-    cout << "Mass v=" << v << " ke=" << mbs.getKineticEnergy(s) << endl;
-    const SpatialVec& acc = bendStretchBlock.getBodyAcceleration(s, mass);
-    cout << "Mass a=" << acc << endl;
-    const SpatialVec& a=bendStretchBlock.getCoriolisAcceleration(s,mass);
-    const SpatialVec& ta=bendStretchBlock.getCoriolisAcceleration(s,mass);
-    const SpatialVec& g=bendStretchBlock.getGyroscopicForce(s,mass);
-    const SpatialVec& c=bendStretchBlock.getCentrifugalForces(s,mass);
-    cout << "coriolis a=" << a << " incl parent=" << ta << endl;
-    cout << "gyro f=" << g << endl;
-    cout << "centrifugal f=" << c << endl;
-    cout << "ydot=" << s.getYDot() << endl;
-    const SpatialMat& bai=bendStretchBlock.getArticulatedBodyInertia(s, base);
-    cout << "base abi=" << bai;
-    const SpatialMat& mai=bendStretchBlock.getArticulatedBodyInertia(s, mass);
-    cout << "mass abi=" << mai;
+	// Set the initial numerical integration step and the time for the simulation to run 
+    const Real dt = 0.01; 
+    const Real finalTime = 4.0;
 
+	// Open a file to record the simulation results (they are also displayed on screen)
+	FILE *outputFile = fopen( "NewtonsAppleForPlottingResults.txt", "w" );
+    fprintf( outputFile, "time      yPosition      mechanicalEnergy\n" );
+	fprintf( stdout,     "time      yPosition      mechanicalEnergy\n" );
 
-    display.report(s);
-    //exit(0);
+	// I am not sure what the next two lines do
+    Transform initialApplePosition(Rotation(), Vec3(0,10,0));
+    apple.setMobilizerPosition(s, appleBodyNumber, initialApplePosition);
+    //apple.setMobilizerQ(s, appleBodyNumber, 5, 10.);
+    s.updTime() = 0;
 
-    const Real h = .01;
-    const int interval = 1;
-    const Real tstart = 0.;
-    const Real tmax = 30; //ps
+    myStudy.initialize();
 
-    study.setAccuracy(1e-8);
-    study.initialize(); 
+    Matrix m(9,3); m=1;
+    Matrix n(9,3); n=1;
+    cout << "m+n=" << m+n << " norm(m+n)=" << (m+n).norm() << endl;
 
-    std::vector<State> saveEm;
-    saveEm.push_back(s);
-    for (int i=0; i<100; ++i)
-        saveEm.push_back(s);    // delay
-    display.report(s);
+    Vec3 v(1), w(2);
+    cout << "v.dot(w))=" << ~v*w << endl;
 
-    const Real Estart = mbs.getEnergy(s);
+	// Run the simulation and print the results
+    while( 1 )
+	{
+       // Query Simbody for results to be printed
+       Real time = s.getTime();
+	   Real kineticEnergy = mbs.getKineticEnergy(s); 
+	   Real uniformGravitationalPotentialEnergy = mbs.getPotentialEnergy(s);
+	   Real mechanicalEnergy = kineticEnergy + uniformGravitationalPotentialEnergy;
 
-    s.updTime() = tstart;
-    int step = 0;
-    while (s.getTime() < tmax) {
-        study.step(s.getTime() + h);
+       // Transform nearly always has position vector from ground to point of interest
+	   // Also contains a rotation matrix from ground to frame of interest
+       const Transform& bodyTransform = apple.getBodyPosition( s, appleBodyNumber );
 
-        cout << s.getTime();
-        cout << " deltaE=" << (mbs.getEnergy(s)-Estart)/Estart
-             << " (pe=" << mbs.getPotentialEnergy(s)
-             << ", ke=" << mbs.getKineticEnergy(s)
-             << ") hNext=" << study.getPredictedNextStep();
-        cout << " bend=" << bendStretchBlock.getMobilizerQ(s, bendBody, bendCoord)/RadiansPerDegree
-             << " stretch=" << bendStretchBlock.getMobilizerQ(s, stretchBody, stretchCoord);
-        cout << endl;
+	   // .T returns translation and .R returns 3x3 rotation matrix
+	   const Vec3& bodyPosition = bodyTransform.T();
 
-        if (!(step % interval)) {
-            display.report(s);
-            saveEm.push_back(s);
-        }
-        ++step;
+	   // Gets the y position 0,
+	   Real yPosition = bodyPosition[1];
+
+	   // Print results to screen and file
+	   fprintf( stdout,     "%7.3E     %10.4E     %10.8g\n", time, yPosition, mechanicalEnergy );
+	   fprintf( outputFile, "%7.3E     %10.4E     %10.8g\n", time, yPosition, mechanicalEnergy );
+
+       // Check if integration has completed
+       if( time >= finalTime ) break;
+
+	   // Increment time step
+       myStudy.step( time + dt);
     }
-
-    while(true) {
-        for (int i=0; i < (int)saveEm.size(); ++i) {
-            display.report(saveEm[i]);
-            //display.report(saveEm[i]); // half speed
-        }
-        getchar();
-    }
-
-}
-catch (const std::exception& e) {
-    printf("EXCEPTION THROWN: %s\n", e.what());
-}
-return 0;
-}
+} 

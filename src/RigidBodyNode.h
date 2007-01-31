@@ -509,7 +509,7 @@ protected:
                   const Transform&      xform_BM)
       : qIndex(-1), uIndex(-1), uSqIndex(-1), quaternionIndex(-1),
         parent(0), children(), level(-1), nodeNum(-1),
-        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentroidalInertia()),
+        massProps_B(mProps_B), inertia_CB_B(mProps_B.calcCentralInertia()),
         X_BM(xform_BM), X_PMb(xform_PMb), refX_PB(xform_PMb*~xform_BM), X_MB(~xform_BM)
     {
     }

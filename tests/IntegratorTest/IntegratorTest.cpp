@@ -349,7 +349,7 @@ int main() {
         RungeKuttaMerson eep(pendmbs, pendState);
         //eep.setInitialStepSize(0.00001);
         eep.setStopTime(100.);
-        const Real acc = 1e-8;
+        const Real acc = 1e-3;
         eep.setAccuracy(acc);
         //eep.setConstraintTolerance(1.);
       //  eep.setProjectEveryStep(true);
