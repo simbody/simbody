@@ -1,6 +1,6 @@
 
 #include "IpLapackSolverInterface.hpp"
-#include "SimTKlapack.h"
+#include "lapack/SimTKlapack.h"
 
 
 namespace Ipopt

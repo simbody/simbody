@@ -222,6 +222,10 @@ ENDFOREACH(subdir)
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
 
+IF( APPLE )
+  INCLUDE_DIRECTORIES( "/usr/include/malloc")
+ENDIF( APPLE )
+
 #
 # Allow automated build and dashboard.
 #
