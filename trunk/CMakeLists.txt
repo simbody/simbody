@@ -82,12 +82,35 @@ SET(SIMMATH_BUILD_VERSION 1)
 SET(SIMMATH_COPYRIGHT_YEARS "2005-6")
 
 # underbar separated list of dotted authors, no spaces or commas
-SET(SIMMATH_AUTHORS         "Jack.Middleton")
+SET(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 
-# Get the Subversion revision number
-EXEC_PROGRAM ( svnversion
-                ARGS  "${PROJECT_SOURCE_DIR}"
-                OUTPUT_VARIABLE SIMMATH_SVN_REVISION )
+# Get the subversion revision number if we can
+# It's possible that WIN32 installs use svnversion through cygwin
+# so we'll try for both svnversion.exe and svnversion. Note that
+# this will result in warnings if all you have is Tortoise without
+# Cygwin, and your "about" string will say "unknown" rather than
+# providing the SVN version of the source.
+
+FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
+IF (SVNVERSION_EXE)
+    EXEC_PROGRAM (${SVNVERSION_EXE}
+                  ARGS  "${PROJECT_SOURCE_DIR}"
+                  OUTPUT_VARIABLE SIMMATH_SVN_REVISION )
+ELSE (SVNVERSION_EXE) 
+    FIND_PROGRAM (SVNVERSION svnversion) 
+    IF (SVNVERSION)
+        EXEC_PROGRAM (${SVNVERSION}
+                      ARGS "${PROJECT_SOURCE_DIR}"
+                      OUTPUT_VARIABLE SIMMATH_SVN_REVISION)
+    ELSE (SVNVERSION)
+        MESSAGE (STATUS 
+          "Could not find 'svnversion' executable; 'about' will be wrong. (Cygwin provides one on Windows.)"
+        )
+        SET (SIMMATH_SVN_REVISION unknown) 
+    ENDIF (SVNVERSION)
+ENDIF (SVNVERSION_EXE)
+# Remove colon from build version, for easier placement in directory names
+STRING(REPLACE ":" "_" SIMMATH_SVN_REVISION ${SIMMATH_SVN_REVISION})
 
 ADD_DEFINITIONS(-DSimTK_SIMMATH_LIBRARY_NAME=${SIMMATH_LIBRARY_NAME}
                 -DSimTK_SIMMATH_MAJOR_VERSION=${SIMMATH_MAJOR_VERSION}
