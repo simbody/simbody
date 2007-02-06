@@ -131,27 +131,33 @@ SET(SIMBODY_COPYRIGHT_YEARS "2005-6")
 # underbar separated list of dotted authors, no spaces or commas
 SET(SIMBODY_AUTHORS "Michael.Sherman")
 
-
 # Get the subversion revision number if we can
-# It's possible that WIN32 installs use svnversion through cygwin.
+# It's possible that WIN32 installs use svnversion through cygwin
+# so we'll try for both svnversion.exe and svnversion. Note that
+# this will result in warnings if all you have is Tortoise without
+# Cygwin, and your "about" string will say "unknown" rather than
+# providing the SVN version of the source.
+
 FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
-IF (SVNVERSION_EXE-NOTFOUND)
+IF (SVNVERSION_EXE)
+    EXEC_PROGRAM (${SVNVERSION_EXE}
+                  ARGS  "${PROJECT_SOURCE_DIR}"
+                  OUTPUT_VARIABLE SIMBODY_SVN_REVISION )
+ELSE (SVNVERSION_EXE) 
     FIND_PROGRAM (SVNVERSION svnversion) 
-    IF (SVNVERSION-NOTFOUND)
-        MESSAGE (STATUS 
-          "Could not find svnversion executable. Suggest you install a Subversion client with svnversion in path."
-        )
-        SET (SimTKCOMMON_SVN_REVISION unknown) 
-    ELSE (SVNVERSION-NOTFOUND)
+    IF (SVNVERSION)
         EXEC_PROGRAM (${SVNVERSION}
                       ARGS "${PROJECT_SOURCE_DIR}"
                       OUTPUT_VARIABLE SIMBODY_SVN_REVISION)
-    ENDIF (SVNVERSION-NOTFOUND)
-ELSE (SVNVERSION_EXE-NOTFOUND) 
-    EXEC_PROGRAM (${SVNVERSION_EXE}
-                  ARGS  "${PROJECT_SOURCE_DIR}"
-                  OUTPUT_VARIABLE SIMBODY_SVN_REVISION)
-ENDIF (SVNVERSION_EXE-NOTFOUND) 
+    ELSE (SVNVERSION)
+        MESSAGE (STATUS 
+          "Could not find 'svnversion' executable; 'about' will be wrong. (Cygwin provides one on Windows.)"
+        )
+        SET (SIMBODY_SVN_REVISION unknown) 
+    ENDIF (SVNVERSION)
+ENDIF (SVNVERSION_EXE)
+# Remove colon from build version, for easier placement in directory names
+STRING(REPLACE ":" "_" SIMBODY_SVN_REVISION ${SIMBODY_SVN_REVISION})
 
 ADD_DEFINITIONS(-DSimTK_SIMBODY_LIBRARY_NAME=${SIMBODY_LIBRARY_NAME}
                 -DSimTK_SIMBODY_MAJOR_VERSION=${SIMBODY_MAJOR_VERSION}
