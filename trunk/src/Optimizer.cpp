@@ -83,8 +83,7 @@ int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) 
       Vector parameters( n, x, true);
       Real& frep = *f;
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep );
-      return( true );
+      return( rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep ));
 }
 int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_data) {
 
@@ -97,25 +96,22 @@ int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_d
       if( rep.getNumericalGradient() ) {
           rep.getOptimizerSystem().objectiveFunc( params, true, sfy0 );
           rep.gradDiff->calcGradient( params, sfy0, grad_vec);
+          return(0);
       } else {
-          rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec );
+          return( rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec ));
       }
-//printf("gradf = ");for(int i=0;i<n;i++){printf("%f ",gradient[i]);} printf("\n");
 
-      return( true );
 }
 int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user_data) {
       Vector parameters( n, x, true);
       Vector constraints(m, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints );
-      return( true );
+      return( rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints ));
 }
 int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
 {
   int i,j,index;
-  Real *nx;
   if (values == NULL) {
 
     /* always assume  the jacobian is dense */
@@ -158,7 +154,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
 //   std::cout << jac << std::endl << std::endl;
 
   } 
-  return( true );
+  return( 0 );
 }
 // TODO finish hessianWrapper
 int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
