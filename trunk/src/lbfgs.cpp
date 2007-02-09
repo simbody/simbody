@@ -69,7 +69,7 @@ const struct lb3_1_ lb3_1 = { 6, 6, .9, 1e-20, 1e20, 1. };
 /* Table of constant values */
 static const integer c__1 = 1;
 
-#include "lapack/SimTKlapack.h"
+#include "SimTKlapack.h"
 
 extern Real sqrt(Real); 
 

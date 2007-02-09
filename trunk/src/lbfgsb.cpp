@@ -60,7 +60,7 @@
 #include "Simmath_f2c.h"
 //#include "netlib.h"
 
-#include "lapack/SimTKlapack.h"
+#include "SimTKlapack.h"
 
 #define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 

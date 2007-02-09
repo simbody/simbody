@@ -39,7 +39,6 @@ static Real factr = 1.0e7;   //
      LBFGSBOptimizer::LBFGSBOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) {
           int n,i;
-          char buf[1024];
 
          n = sys.getNumParameters();
 
@@ -77,6 +76,7 @@ static Real factr = 1.0e7;   //
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
          Real gradient[n];
+
 
 //printf("\n ***** LBFGSBOptimizer ***** \n\n");
  

@@ -1,6 +1,6 @@
 
 #include "IpLapackSolverInterface.hpp"
-#include "lapack/SimTKlapack.h"
+#include "SimTKlapack.h"
 
 
 namespace Ipopt
@@ -63,8 +63,6 @@ double *afact;
     char uplo = 'L';
     const char& rfact = fact;
     const char& ruplo = uplo;
-    double *x,*berr,*ferr,*work,rcond;
-    int *iwork,lwork;
     const int &ndim = n;
     const int &rnrhs = nrhs;
     int info;
@@ -183,7 +181,7 @@ double *afact;
     const char &jobz = jobzc;
     const char &uplo = uploc;
     int *tmp_ipiv; 
-    int i,j;
+    int i;
 
     
     ipiv = new int[n];
@@ -256,7 +254,7 @@ printf("\n\nLapackSolverInterface::Factorization factored a=\n");
   {
     DBG_START_METH("LapackSolverInterface::Solve", dbg_verbosity);
     ESymSolverStatus retval = SYMSOLVER_SUCCESS;
-    int info,cond,lwork,*iwork;
+    int info;
     int &rinfo = info;
     char transpose = 'N';
     char fact = 'F';
@@ -266,10 +264,8 @@ printf("\n\nLapackSolverInterface::Factorization factored a=\n");
     const char& ruplo = uplo;
     const int &ndim = n;
     const int &rnrhs = nrhs;
-    double *ferr,*work;
-    double *berr;
-    int i,j;
-    double *x,rcond,*tmp_b;
+    int i;
+    double *tmp_b;
 /*
 //printf("\n\nLapackSolverInterface::Solve nrhs =%d dim=%d trans=%c\n",nrhs,ndim,trans);
 printf("input rhs =");

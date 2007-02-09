@@ -30,13 +30,17 @@ SUBDIRS (staticTarget sharedTarget tests examples)
 # use of the lib64/ library directories rather than lib/.
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
 MARK_AS_ADVANCED( ARCH64  )
-IF (ARCH64)
-    SET( M32 -m64 )
-    SET(LIB64 64)
-ELSE (ARCH64)
-    SET( M32 -m32 )
-    SET(LIB64) # nothing
-ENDIF (ARCH64)
+
+IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+   IF (ARCH64)
+       SET( M32 -m64 )
+       SET(LIB64 64)
+   ELSE (ARCH64)
+       SET( M32 -m32 )
+       SET(LIB64) # nothing
+   ENDIF (ARCH64)
+ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
 
 IF( WIN32 )
    SET( CMAKE_CXX_FLAGS ${M32} )
@@ -305,29 +309,32 @@ ADD_TEST(SimpleDifferentiatorTestStatic ${TEST_PATH}/SimpleDifferentiatorTest)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" CACHE PATH "Install Directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     # unix or cygwin; cygwin requires some trickery
     IF(CYGWIN)
-        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX})
+        SET(SimTK_INSTALL_PREFIX C:/cygwin${SimTK_INSTALL_PREFIX} CACHE PATH "Install Directory")
     ENDIF(CYGWIN)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
+        SET(SimTK_SDK "/usr/local/SimTK" CACHE PATH "SimTK Dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Install Directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
+        SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "SimTK Dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+
+MARK_AS_ADVANCED( SimTK_SDK )
+MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX )
 
 SET(CMAKE_INSTALL_PREFIX ${SimTK_INSTALL_PREFIX} CACHE STRING "Install path prefix." FORCE)
 

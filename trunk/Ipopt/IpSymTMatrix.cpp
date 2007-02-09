@@ -10,6 +10,13 @@
 #include "IpDenseVector.hpp"
 #include "IpBlas.hpp"
 
+// Keeps MS VC++ 8 quiet about sprintf, strcpy, etc.
+#ifdef _MSC_VER
+#pragma warning(disable:4996)
+#endif
+
+
+
 namespace Ipopt
 {
 
