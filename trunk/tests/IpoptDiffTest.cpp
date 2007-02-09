@@ -62,7 +62,6 @@ public:
 
    int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
       const Real *x;
-      int i;
 
       x = &coefficients[0];
 

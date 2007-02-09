@@ -62,7 +62,6 @@ public:
 
    int objectiveFunc(  const Vector &coefficients, const bool new_coefficients, Real& f ) const {
       const Real *x;
-      int i;
 
       x = &coefficients[0];
 
@@ -96,7 +95,6 @@ public:
   int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Matrix& jac)  const{
 //  int constraintJacobian( const Vector& coefficients, const bool new_coefficients, Vector& jac)  const{
       const Real *x;
-      Real *ptr;
 
       x = &coefficients[0]; 
 

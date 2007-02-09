@@ -34,7 +34,6 @@ const int NUMBER_OF_CORRECTIONS = 5;
         : OptimizerRep( sys ) 
 {
           int n,m;
-          char buf[1024];
 
 
       /* internal flags for LBFGS */
@@ -55,7 +54,6 @@ const int NUMBER_OF_CORRECTIONS = 5;
 
      Real LBFGSOptimizer::optimize(  Vector &results ) {
 
-         int i,info;
          int iflag[1] = {0};
          Real f;
          const OptimizerSystem& sys = getOptimizerSystem();

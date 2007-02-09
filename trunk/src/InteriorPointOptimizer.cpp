@@ -35,7 +35,6 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) {
 
           int i,n,m;
-          char buf[1024];
 
           Index index_style = 0; /* C-style; start counting of rows and column indices at 0 */
 
@@ -92,7 +91,6 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
 
      double InteriorPointOptimizer::optimize(  Vector &results ) {
 
-         int i;
          double obj;
          double *x = &results[0];
          int status;
