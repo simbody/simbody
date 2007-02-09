@@ -268,7 +268,8 @@ int main()
    int fail64bit[] = { 76, 99, 103, 136, 164, 184 };
 
 
-   for( j=0;j<279;j++) {
+//   for( j=0;j<279;j++) {
+   for( j=83;j<86;j++) {
 //   for( l=0;l<26;l++) {
 //      j = failures[l]-1;
    

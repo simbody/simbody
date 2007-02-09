@@ -103,13 +103,13 @@ double *afact;
          }
          nosmlsiz = n/(smlsiz+1);
 /* 
-**      increased size of nlvl by adding 1 due  to 64bit failures
+**      increased size of nlvl by adding 1 due to 64bit failures
 */
-         nlvl = int(log10((double)nosmlsiz)/log10(2.)) + 2;
+         nlvl = (int)(log10((double)nosmlsiz)/log10(2.)) + 2;
          if( nlvl < 0 ) nlvl = 0;
          liwork = 3*n*nlvl + 11*n;
          iwork = new int[liwork];
-//printf(" n=%d smlsiz=%d nlvl=%d liwork=%d \n",n,smlsiz, nlvl,liwork );
+printf(" n=%d smlsiz=%d nlvl=%d liwork=%d \n",n,smlsiz, nlvl,liwork );
          lwork = 12*n + 2*n*smlsiz + 8*n*nlvl + n*nrhs + (smlsiz+1)*(smlsiz+1);
          work = new double[lwork];
          dgelsd_( ndim, ndim, rnrhs, atmp, ndim, rhs_vals, ndim, s, &rcond, &rank, work, 

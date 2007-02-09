@@ -61,6 +61,7 @@
 //#include "netlib.h"
 
 #include "SimTKlapack.h"
+#include <ctime>
 
 #define  imin(X, Y)  ((X) < (Y) ? (X) : (Y))
 
@@ -86,6 +87,10 @@ static int dcsrch_( Real *f, Real *g, Real *stp, const Real *ftol,
 static int dcstep_( Real *stx, Real *fx, Real *dx,
     Real *sty, Real *fy, Real *dy, Real *stp, Real *fp, Real *dp,
     bool *brackt, Real *stpmin, Real *stpmax);
+
+static Real timer() {
+    return( (double)(std::clock())/CLOCKS_PER_SEC );
+}
 
 /* Subroutine */
 static int active_( int *n, Real *l, Real *u, int *nbd,
@@ -4580,9 +4585,11 @@ L222:
     theta = 1.;
     iupdat = 0;
     updatd = FALSE_;
+    cpu2 = timer();
     cachyt = cachyt + cpu2 - cpu1;
     goto L222;
     }
+    cpu2 = timer();
     cachyt = cachyt + cpu2 - cpu1;
     nintol += nint;
 /*     Count the entering and leaving variables for iter > 0; */
@@ -4626,6 +4633,7 @@ L333:
     theta = 1.;
     iupdat = 0;
     updatd = FALSE_;
+    cpu2 = timer();
     sbtime = sbtime + cpu2 - cpu1;
     goto L222;
     }
@@ -4657,9 +4665,11 @@ L444:
     theta = 1.;
     iupdat = 0;
     updatd = FALSE_;
+    cpu2 = timer();
     sbtime = sbtime + cpu2 - cpu1;
     goto L222;
     }
+    cpu2 = timer();
     sbtime = sbtime + cpu2 - cpu1;
 L555:
 /* ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc */
@@ -4713,6 +4723,7 @@ L666:
         iupdat = 0;
         updatd = FALSE_;
         strcpy(task, "RESTART_FROM_LNSRCH");
+        cpu2 = timer();
         lnscht = lnscht + cpu2 - cpu1;
         goto L222;
     }
@@ -4721,8 +4732,9 @@ L666:
     goto L1000;
     } else {
 /*          calculate and print out the quantities related to the new X. */
-    lnscht = lnscht + cpu2 - cpu1;
-    ++iter;
+       cpu2 = timer();
+       lnscht = lnscht + cpu2 - cpu1;
+       ++iter;
 /*        Compute the infinity norm of the projected (-)gradient. */
     projgr_(n, &l[1], &u[1], &nbd[1], &x[1], &g[1], &sbgnrm);
 /*        Print iteration information. */
@@ -4819,6 +4831,7 @@ L888:
 /* -------------------- the end of the loop ----------------------------- */
     goto L222;
 L999:
+    time2 = timer();
     time = time2 - time1;
     prn3lb_(n, &x[1], f, task, iprint, &info, &itfile, &iter, &nfgv, &nintol,
         &nskip, &nact, &sbgnrm, &time, &nint, word, &iback, &stp, &xstep,
