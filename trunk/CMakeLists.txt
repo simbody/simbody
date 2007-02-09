@@ -46,25 +46,28 @@ SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix Mechanics BigMatrix State)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK")
+        SET(SimTK_INSTALL_PREFIX "/usr/local/SimTK" CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "/usr/local/SimTK")
+        SET(SimTK_SDK "/usr/local/SimTK" CACHE PATH "SimTK dependency path" )
     ENDIF(NOT SimTK_SDK)
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Install directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
+        SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "SimTK dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+
+MARK_AS_ADVANCED( SimTK_SDK  )
+MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
@@ -74,6 +77,7 @@ INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 # use of the lib64/ library directories rather than lib/.
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
 MARK_AS_ADVANCED( ARCH64  )
+
 IF (ARCH64)
     SET(LIB64 64)
 ELSE (ARCH64)
