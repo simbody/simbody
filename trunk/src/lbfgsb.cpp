@@ -927,7 +927,7 @@ L777:
     }
 /* Computing MAX */
     d__1 = *epsmch * f2_org__;
-    f2 = fmax(d__1,f2);
+    f2 = std::max(d__1,f2);
     if (nleft > 0) {
     dtm = -f1 / f2;
     goto L777;
@@ -1993,7 +1993,7 @@ Real *dsave, ftnlen task_len, ftnlen csave_len)
     if (*iter == 0 && ! (*boxed)) {
 /* Computing MIN */
     d__1 = 1. / *dnorm;
-    *stp = fmin(d__1,*stpmx);
+    *stp = std::min(d__1,*stpmx);
     } else {
     *stp = 1.;
     }
@@ -2773,19 +2773,19 @@ Real *x, Real *g, Real *sbgnrm)
         if (nbd[i__] >= 2) {
 /* Computing MAX */
             d__1 = x[i__] - u[i__];
-            gi = fmax(d__1,gi);
+            gi = std::max(d__1,gi);
         }
         } else {
         if (nbd[i__] <= 2) {
 /* Computing MIN */
             d__1 = x[i__] - l[i__];
-            gi = fmin(d__1,gi);
+            gi = std::min(d__1,gi);
         }
         }
     }
 /* Computing MAX */
     d__1 = *sbgnrm, d__2 = fabs(gi);
-    *sbgnrm = fmax(d__1,d__2);
+    *sbgnrm = std::max(d__1,d__2);
 /* L15: */
     }
     return 0;
@@ -3439,15 +3439,15 @@ char *task, int *isave, Real *dsave, ftnlen task_len)
     }
 /*     Set the minimum and maximum steps allowed for stp. */
     if (brackt) {
-    stmin = fmin(stx,sty);
-    stmax = fmax(stx,sty);
+    stmin = std::min(stx,sty);
+    stmax = std::max(stx,sty);
     } else {
     stmin = *stp + (*stp - stx) * 1.1;
     stmax = *stp + (*stp - stx) * 4.;
     }
 /*     Force the step to be within the bounds stpmax and stpmin. */
-    *stp = fmax(*stp,*stpmin);
-    *stp = fmin(*stp,*stpmax);
+    *stp = std::max(*stp,*stpmin);
+    *stp = std::min(*stp,*stpmax);
 /*     If further progress is not possible, let stp be the best */
 /*     point obtained during the search. */
     if (   ( brackt && (*stp <= stmin || *stp >= stmax) )
@@ -3594,9 +3594,9 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     if (*fp > *fx) {
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
-    s = fmax(d__1,d__2);
+    s = std::max(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
     gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
@@ -3623,9 +3623,9 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     } else if (sgnd < 0.) {
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
-    s = fmax(d__1,d__2);
+    s = std::max(d__1,d__2);
 /* Computing 2nd power */
     d__1 = theta / s;
     gamma = s * sqrt(d__1 * d__1 - *dx / s * (*dp / s));
@@ -3653,16 +3653,16 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
 /*        secant step. */
     theta = (*fx - *fp) * 3. / (*stp - *stx) + *dx + *dp;
 /* Computing MAX */
-    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = fmax(d__1,d__2), d__2 = fabs(
+    d__1 = fabs(theta), d__2 = fabs(*dx), d__1 = std::max(d__1,d__2), d__2 = fabs(
         *dp);
-    s = fmax(d__1,d__2);
+    s = std::max(d__1,d__2);
 /*        The case gamma = 0 only arises if the cubic does not tend */
 /*        to infinity in the direction of the step. */
 /* Computing MAX */
 /* Computing 2nd power */
     d__3 = theta / s;
     d__1 = 0., d__2 = d__3 * d__3 - *dx / s * (*dp / s);
-    gamma = s * sqrt((fmax(d__1,d__2)));
+    gamma = s * sqrt((std::max(d__1,d__2)));
     if (*stp > *stx) {
         gamma = -gamma;
     }
@@ -3690,11 +3690,11 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
         if (*stp > *stx) {
 /* Computing MIN */
         d__1 = *stp + (*sty - *stp) * .66;
-        stpf = fmin(d__1,stpf);
+        stpf = std::min(d__1,stpf);
         } else {
 /* Computing MAX */
         d__1 = *stp + (*sty - *stp) * .66;
-        stpf = fmax(d__1,stpf);
+        stpf = std::max(d__1,stpf);
         }
     } else {
 /*           A minimizer has not been bracketed. If the cubic step is */
@@ -3706,8 +3706,8 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
         } else {
         stpf = stpq;
         }
-        stpf = fmin(*stpmax,stpf);
-        stpf = fmax(*stpmin,stpf);
+        stpf = std::min(*stpmax,stpf);
+        stpf = std::max(*stpmin,stpf);
     }
 /*     Fourth case: A lower function value, derivatives of the same sign, */
 /*     and the magnitude of the derivative does not decrease. If the */
@@ -3717,9 +3717,9 @@ static int dcstep_( Real *stx, Real *fx, Real *dx,
     if (*brackt) {
         theta = (*fp - *fy) * 3. / (*sty - *stp) + *dy + *dp;
 /* Computing MAX */
-        d__1 = fabs(theta), d__2 = fabs(*dy), d__1 = fmax(d__1,d__2), d__2 =
+        d__1 = fabs(theta), d__2 = fabs(*dy), d__1 = std::max(d__1,d__2), d__2 =
             fabs(*dp);
-        s = fmax(d__1,d__2);
+        s = std::max(d__1,d__2);
 /* Computing 2nd power */
         d__1 = theta / s;
         gamma = s * sqrt(d__1 * d__1 - *dy / s * (*dp / s));
@@ -4738,8 +4738,8 @@ L777:
     goto L999;
     }
 /* Computing MAX */
-    d__1 = fabs(fold), d__2 = fabs(*f), d__1 = fmax(d__1,d__2);
-    ddum = fmax(d__1,1.);
+    d__1 = fabs(fold), d__2 = fabs(*f), d__1 = std::max(d__1,d__2);
+    ddum = std::max(d__1,1.);
     if (fold - *f <= tol * ddum) {
 /*                                        terminate the algorithm. */
     strcpy(task, "CONVERGENCE: REL_REDUCTION_OF_F <= FACTR*EPSMCH");

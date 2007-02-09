@@ -32,7 +32,7 @@
 #include "simmath/Differentiator.h"
 
 // Just so we can get the version number:
-#include "lapack/SimTKlapack.h"
+#include "SimTKlapack.h"
 
 #include <cstdio>
 #include <iostream>

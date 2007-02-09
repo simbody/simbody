@@ -196,7 +196,7 @@ namespace Ipopt
         }
 
         // print the message
-#ifdef HAVE_VA_COPY
+#ifdef va_copy
         va_list apcopy;
         va_copy(apcopy, ap);
         journals_[i]->Printf(pformat, apcopy);

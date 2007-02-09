@@ -61,7 +61,6 @@ static Real factr = 1.0e7;   //
 
      Real LBFGSBOptimizer::optimize(  Vector &results ) {
 
-         int i;
          int run_optimizer = 1;
          char task[61];
          Real f;
@@ -75,7 +74,8 @@ static Real factr = 1.0e7;   //
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
-         Real gradient[n];
+         Real *gradient;
+	     gradient = new Real[n];
 
 
 //printf("\n ***** LBFGSBOptimizer ***** \n\n");
@@ -107,7 +107,7 @@ static Real factr = 1.0e7;   //
                 }
              }
          }
-
+         delete [] gradient;
          return(f);
       }
 

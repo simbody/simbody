@@ -49,7 +49,7 @@ public:
 
     // Must provide this pure virtual function.
     int f(const Vector& y, Real& fy) const  {
-         sysp->objectiveFunc(y, true, fy);   // class user's objectiveFunc
+         return(sysp->objectiveFunc(y, true, fy));   // class user's objectiveFunc
     }
     const OptimizerSystem* sysp;
 };
@@ -63,7 +63,7 @@ public:
 
     // Must provide this pure virtual function.
     int f(const Vector& y, Vector& fy) const  {
-       sysp->constraintFunc(y, true, fy);  // calls user's contraintFunc
+       return(sysp->constraintFunc(y, true, fy));  // calls user's contraintFunc
     }
     const OptimizerSystem* sysp;
 };

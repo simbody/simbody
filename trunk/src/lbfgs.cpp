@@ -266,12 +266,14 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
 
 /*     INITIALIZE */
 /*     ---------- */
-    SimTK::Real w[n*(2*m+1) + 2*m];
-    Real diag[n];
-    Real gradient[n];
+
+	char buf[256];
+	Real *diag, *gradient, *w;
     int info;
-    char buf[256];
     bool converged = false;
+	diag =     new Real[n];
+	w =        new Real[n*(2*m+1) + 2*m];
+    gradient = new Real[n];
     ispt = n + (m << 1);
     iypt = ispt + n * m;
     ftol = 1e-4;
@@ -338,7 +340,6 @@ void SimTK::LBFGSOptimizer::lbfgs_( int n, int m, SimTK::Real *x, SimTK::Real *f
           for (i = 0; i < n; ++i) {
                diag[i] = ys / yy;
           }
-L100:
 
 /*     COMPUTE -H*G USING THE FORMULA GIVEN IN: Nocedal, J. 1980, */
 /*     "Updating quasi-Newton matrices with limited storage", */
@@ -469,6 +470,9 @@ L100:
        }
 
     }  // end while loop
+	delete [] diag;
+	delete [] gradient;
+	delete [] w;
 
 /*     ------------------------------------------------------------ */
 /*     END OF MAIN ITERATION LOOP.  */
