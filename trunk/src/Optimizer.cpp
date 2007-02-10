@@ -83,7 +83,11 @@ int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) 
       Vector parameters( n, x, true);
       Real& frep = *f;
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      return( rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep ));
+      if( 0 == rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep )) {
+          return(1);
+      } else {
+          return(0);
+      }
 }
 int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_data) {
 
@@ -96,9 +100,13 @@ int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_d
       if( rep.getNumericalGradient() ) {
           rep.getOptimizerSystem().objectiveFunc( params, true, sfy0 );
           rep.gradDiff->calcGradient( params, sfy0, grad_vec);
-          return(0);
+          return(1);
       } else {
-          return( rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec ));
+          if( 0 == rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec )) {
+            return(1);
+          } else {
+            return(0);
+          }
       }
 
 }
@@ -106,7 +114,11 @@ int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user
       Vector parameters( n, x, true);
       Vector constraints(m, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      return( rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints ));
+      if( 0 == rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints )) {
+         return 1;
+      } else { 
+         return 0;
+      }
 }
 int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
@@ -154,7 +166,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
 //   std::cout << jac << std::endl << std::endl;
 
   } 
-  return( 0 );
+  return( 1 );
 }
 // TODO finish hessianWrapper
 int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
@@ -166,8 +178,7 @@ int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
     Vector coeff(n,x,true); 
     Vector hess(n*n,values,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-    rep.hessian( rep.getOptimizerSystem(), coeff, new_x, hess );
-    return( true );
+    return( rep.hessian( rep.getOptimizerSystem(), coeff, new_x, hess ));
 }
 
 

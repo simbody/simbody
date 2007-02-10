@@ -157,8 +157,9 @@ int main() {
 //    opt.setConvergenceTolerance( .0001 );
     opt.setConvergenceTolerance( 1e-3 );
 
-//    opt.useNumericalGradient( true );
+    opt.useNumericalGradient( true );
     opt.useNumericalJacobian( true );
+    opt.setDiagnosticsLevel( 7 );
 
     /* compute  optimization */ 
     f = opt.optimize( results );

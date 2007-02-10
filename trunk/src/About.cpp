@@ -56,13 +56,18 @@
 #define GET_LIBRARY_STRING \
     MAKE_STRING(SimTK_SIMMATH_LIBRARY_NAME)
 
-#define GET_TYPE_STRING \
-    MAKE_STRING(SimTK_SIMMATH_TYPE)
-
 #ifndef NDEBUG
     #define GET_DEBUG_STRING "debug"
 #else
     #define GET_DEBUG_STRING "release"
+#endif
+
+#if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
+    #define GET_TYPE_STRING "shared"
+#elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY)
+    #define GET_TYPE_STRING "static"
+#else
+    #define GET_TYPE_STRING "<unknown library type?!>"
 #endif
 
 extern "C" {
