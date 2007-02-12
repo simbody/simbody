@@ -82,8 +82,13 @@ Real Optimizer::optimize(SimTK::Vector   &results) {
 int objectiveFuncWrapper( int n, Real *x, int new_x,  Real *f, void* user_data) {
       Vector parameters( n, x, true);
       Real& frep = *f;
+      bool new_param;
+      if( new_x == 1 )
+          new_param = true;
+      else
+          new_param = false;
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      if( 0 == rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_x, frep )) {
+      if( 0 == rep.objectiveFunc( rep.getOptimizerSystem(), parameters, new_param, frep )) {
           return(1);
       } else {
           return(0);
@@ -96,13 +101,18 @@ int gradientFuncWrapper( int n, Real *x, int new_x, Real *gradient, void* user_d
       Vector params( n, x, true);
       Vector grad_vec(n,gradient,true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
+      bool new_param;
+      if( new_x == 1 )
+          new_param = true;
+      else
+          new_param = false;
 
       if( rep.getNumericalGradient() ) {
           rep.getOptimizerSystem().objectiveFunc( params, true, sfy0 );
           rep.gradDiff->calcGradient( params, sfy0, grad_vec);
           return(1);
       } else {
-          if( 0 == rep.gradientFunc( rep.getOptimizerSystem(), params, new_x, grad_vec )) {
+          if( 0 == rep.gradientFunc( rep.getOptimizerSystem(), params, new_param, grad_vec )) {
             return(1);
           } else {
             return(0);
@@ -114,7 +124,13 @@ int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user
       Vector parameters( n, x, true);
       Vector constraints(m, g, true);
       const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-      if( 0 == rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_x, constraints )) {
+      bool new_param;
+
+      if( new_x == 1 )
+          new_param = true;
+      else
+          new_param = false;
+      if( 0 == rep.constraintFunc( rep.getOptimizerSystem(), parameters, new_param, constraints )) {
          return 1;
       } else { 
          return 0;
@@ -124,6 +140,12 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
 {
   int i,j,index;
+  bool new_param;
+  if( new_x == 1 )
+      new_param = true;
+  else
+      new_param = false;
+
   if (values == NULL) {
 
     /* always assume  the jacobian is dense */
@@ -152,7 +174,7 @@ int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
 
     } else {
 
-        rep.constraintJacobian( rep.getOptimizerSystem(), params, new_x, jac );
+        rep.constraintJacobian( rep.getOptimizerSystem(), params, new_param, jac );
 
     }
     /* transpose the jacobian because Ipopt indexes in Row major format */
@@ -178,7 +200,13 @@ int hessianWrapper(int n, Real *x, int new_x, Real obj_factor,
     Vector coeff(n,x,true); 
     Vector hess(n*n,values,true); 
     const OptimizerRep& rep = *reinterpret_cast<const OptimizerRep*>(user_data);
-    return( rep.hessian( rep.getOptimizerSystem(), coeff, new_x, hess ));
+    bool new_param;
+    if( new_x == 1 )
+       new_param = true;
+    else
+       new_param = false;
+
+    return( rep.hessian( rep.getOptimizerSystem(), coeff, new_param, hess ));
 }
 
 
