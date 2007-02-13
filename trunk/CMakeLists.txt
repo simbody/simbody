@@ -96,17 +96,20 @@ SET(SIMMATH_AUTHORS         "Jack.Middleton_Michael.Sherman")
 # Cygwin, and your "about" string will say "unknown" rather than
 # providing the SVN version of the source.
 
+
 FIND_PROGRAM (SVNVERSION_EXE svnversion.exe)
 IF (SVNVERSION_EXE)
     EXEC_PROGRAM (${SVNVERSION_EXE}
-                  ARGS  "${PROJECT_SOURCE_DIR}"
+                  ARGS  \"${PROJECT_SOURCE_DIR}\"
                   OUTPUT_VARIABLE SIMMATH_SVN_REVISION )
-ELSE (SVNVERSION_EXE) 
+      MESSAGE( STATUS "svnversion.exe SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION} )
+ ELSE (SVNVERSION_EXE) 
     FIND_PROGRAM (SVNVERSION svnversion) 
     IF (SVNVERSION)
         EXEC_PROGRAM (${SVNVERSION}
-                      ARGS "${PROJECT_SOURCE_DIR}"
+                      ARGS ${PROJECT_SOURCE_DIR}
                       OUTPUT_VARIABLE SIMMATH_SVN_REVISION)
+      MESSAGE( STATUS "svnversion SIMMATH_SVN_REVISION="${SIMMATH_SVN_REVISION} )
     ELSE (SVNVERSION)
         MESSAGE (STATUS 
           "Could not find 'svnversion' executable; 'about' will be wrong. (Cygwin provides one on Windows.)"
