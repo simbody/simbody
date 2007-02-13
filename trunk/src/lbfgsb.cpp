@@ -4124,7 +4124,7 @@ actorization in formt;\002,/,\002   refresh the lbfgs memory and restart the\
     int info;
     Real time;
     int nfgv, ifun, iter, nint;
-    char word[3];
+    char word[5];
     Real time1, time2;
     int i__, iback, k;
     Real gdold;
