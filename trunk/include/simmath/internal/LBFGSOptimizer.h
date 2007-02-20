@@ -24,7 +24,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <iostream>
-#include "Simmath.h"
+#include "SimTKsimmath.h"
 #include "OptimizerRep.h" 
 
 namespace SimTK {

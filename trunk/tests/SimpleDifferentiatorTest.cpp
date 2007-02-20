@@ -27,7 +27,7 @@
 
 //#define SimTK_USE_STATIC_LIBRARIES
 
-#include "Simmath.h"
+#include "SimTKsimmath.h"
 #include "Differentiator.h"
 
 // Just so we can get the version number:

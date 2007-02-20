@@ -24,7 +24,7 @@
 #include <iostream> 
 #include <malloc.h>
 #include <math.h>
-#include "Simmath.h"
+#include "SimTKsimmath.h"
 /* #include <cstdio> */
 #include "Optimizer.h"
 #include "Simmath_f2c.h" 
