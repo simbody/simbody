@@ -60,7 +60,7 @@ private:
     static String shortenFileName(const String& fn) 
     {   String::size_type pos = fn.find_last_of("/\\");
         if (pos+1>=fn.size()) pos=0;
-        return String(fn,pos+1,fn.size()-(pos+1));
+        return String(fn,(int)(pos+1),(int)(fn.size()-(pos+1)));
     }
 	
 	String where() const {
