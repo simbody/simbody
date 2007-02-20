@@ -26,7 +26,7 @@
  */
 
 #include <limits.h>
-#include "SimTKsimmath.h"
+#include "SimTKmath.h"
 #include "SimTKcommon/internal/BigMatrix.h"
 #include "common.h"
 

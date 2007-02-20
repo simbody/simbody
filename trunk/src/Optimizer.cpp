@@ -21,7 +21,7 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "SimTKsimmath.h"
+#include "SimTKmath.h"
 #include "Optimizer.h"
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"

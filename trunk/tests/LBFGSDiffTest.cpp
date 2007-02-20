@@ -21,7 +21,7 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "Simmath.h"
+#include "SimTKmath.h"
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/BigMatrix.h"

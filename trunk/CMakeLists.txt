@@ -79,7 +79,7 @@ SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include/simmath include/simmath/internal)
 # Collect up information about the version of the simmath library we're building
 # and make it available to the code so it can be built into the binaries.
 
-SET(SIMMATH_LIBRARY_NAME SimTKsimmath)
+SET(SIMMATH_LIBRARY_NAME SimTKmath)
 SET(SIMMATH_MAJOR_VERSION 0)
 SET(SIMMATH_MINOR_VERSION 0)
 SET(SIMMATH_BUILD_VERSION 1)

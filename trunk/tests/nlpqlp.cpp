@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <limits>
-#include "SimTKsimmath.h"
+#include "SimTKmath.h"
 #include "SimTKcommon.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/BigMatrix.h"
