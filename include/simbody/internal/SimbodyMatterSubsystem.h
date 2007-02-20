@@ -133,12 +133,14 @@ public:
     /// Special case for convenience: attach a general rigid body to
     /// a body (ground by default) using a free joint and only the
     /// body frames.
+    /// NOTE: it is *NOT* allowed to add bodies outboard to this one.
     int addFreeRigidBody(const MassProperties&, int parent=0);
 
     /// Special case: add a free particle (point mass) to the tree
     /// by connecting it to a body (ground by default) using a
     /// Cartesian joint (3d translation) with fixed frame the parent's
     /// body frame and the point location as the moving "frame".
+    /// NOTE: it is *NOT* allowed to add bodies outboard to this one.
     int addFreeParticle (const Real& mass,      int parent=0);
 
     /// Constrain stations on each of two distinct bodies to remain
