@@ -89,6 +89,20 @@ int SimbodyMatterSubsystem::addRigidBody(
     return rbIndex;
 }
 
+
+// "Functional" implementation for Paul's use.
+// TODO: these should be special cased for efficiency.
+// NOTE: users should not be allowed to specify the returned body number as an
+// inboard body, but this implementation doesn't enforce that.
+int SimbodyMatterSubsystem::addFreeRigidBody(const MassProperties& mp, int parent) {
+    return addRigidBody(mp, Transform(), parent, Transform(), Mobilizer::Free);
+}
+
+// See previous routine's comments.
+int SimbodyMatterSubsystem::addFreeParticle (const Real& mass, int parent) {
+    return addRigidBody(MassProperties(mass,Vec3(0),Inertia()), Transform(), parent, Transform(), Mobilizer::Cartesian);
+}
+
 int SimbodyMatterSubsystem::addConstantDistanceConstraint
     (int parent, const Vec3& stationInP,
      int child,  const Vec3& stationInC,
