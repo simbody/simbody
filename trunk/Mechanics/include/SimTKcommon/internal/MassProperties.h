@@ -406,9 +406,9 @@ public:
     MassProperties& setMassProperties(const Real& m, const Vec3& com, const Inertia& inertia)
       { mass=m; comInB=com; inertia_OB_B=inertia; return *this; }
 
-    const Real&    getMass()    const { return mass; }
-    const Vec3&    getCOM()     const { return comInB; }
-    const Inertia& getInertia() const { return inertia_OB_B; }
+    const Real&    getMass()       const { return mass; }
+    const Vec3&    getMassCenter() const { return comInB; }
+    const Inertia& getInertia()    const { return inertia_OB_B; }
 
     Inertia calcCentralInertia() const {
         return inertia_OB_B - Inertia(comInB, mass);

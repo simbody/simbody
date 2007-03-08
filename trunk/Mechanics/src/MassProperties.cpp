@@ -38,7 +38,7 @@ std::ostream& operator<<(std::ostream& o, const Inertia& i) {
 
 std::ostream& operator<<(std::ostream& o, const MassProperties& mp) {
     return o << "{ mass=" << mp.getMass() 
-             << "\n  com=" << mp.getCOM()
+             << "\n  com=" << mp.getMassCenter()
              << "\n  Ixx,yy,zz=" << mp.getInertia().getMoments()
              << "\n  Ixy,xz,yz=" << mp.getInertia().getProducts()
              << "\n}\n";
