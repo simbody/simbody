@@ -139,6 +139,8 @@ int constraintFuncWrapper( int n, Real *x, int new_x, int m, Real *g,  void*user
 int constraintJacobianWrapper(int n, Real *x, int new_x, int m, Index nele_jac,
                 int *iRow, int *jCol, Real *values, void *user_data)
 {
+  if(m==0) return 1; // m==0 case occurs if you run IPOPT with no constraints
+
   int i,j,index;
   bool new_param;
   if( new_x == 1 )

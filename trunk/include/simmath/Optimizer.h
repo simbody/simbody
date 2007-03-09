@@ -28,46 +28,34 @@
 #include <limits.h>
 #include "SimTKmath.h"
 #include "SimTKcommon/internal/BigMatrix.h"
-#include "common.h"
+#include "internal/common.h"
 
 namespace SimTK {
 
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
+    OptimizerSystem() : numParameters(0),
+                        numConstraints(0),
+                        numEqualityConstraints(0),  
+                        lowerLimits(0),
+                        upperLimits(0),
+                        useLimits( false ) { 
+    }
+
     OptimizerSystem(int nParameters ) : numConstraints(0),
                                       numEqualityConstraints(0),  
                                       lowerLimits(0),
                                       upperLimits(0),
                                       useLimits( false ) { 
-       if(   nParameters < 1 ) {
-           char *where = " OptimizerSystem  Constructor";
-           char *szName= "number of parameters";
-           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
-       }else {
-            numParameters = nParameters;
-       }
+        setNumParameters(nParameters);
     }
 
     OptimizerSystem(int nParameters, int nConstraints) : numEqualityConstraints(0),
                                                          upperLimits(0),
                                                          lowerLimits(0),
                                                          useLimits( false ) { 
-
-       if(   nParameters < 1 ) {
-           char *where = " OptimizerSystem  Constructor";
-           char *szName= "number of parameters";
-           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
-       }else {
-            numParameters = nParameters;
-       }
-
-       if(   nConstraints < 0 ) {
-           char *where = " OptimizerSystem  Constructor";
-           char *szName= "number of constraints";
-           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  INT_MAX, nConstraints, where);
-       }else {
-            numConstraints = nConstraints;
-       }
+        setNumParameters(nParameters);
+        setNumConstraints(nConstraints);
     }
 
   /* this method must be supplied by concreate class */
@@ -97,6 +85,26 @@ public:
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
 
+   void setNumParameters( const int nParameters ) {
+
+       if(   nParameters < 1 ) {
+           char *where = " OptimizerSystem  Constructor";
+           char *szName= "number of parameters";
+           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
+       }else {
+            numParameters = nParameters;
+       }
+   }
+   void setNumConstraints( const int nConstraints ) {
+
+       if(   nConstraints < 0 ) {
+           char *where = " OptimizerSystem  setNumConstraints";
+           char *szName= "number of constraints";
+           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  INT_MAX, nConstraints, where);
+       }else {
+            numConstraints = nConstraints;
+       }
+   }
    void setNumEqualityConstraints( const int n ) {
  
         if( n < 0 || n > numConstraints ) {

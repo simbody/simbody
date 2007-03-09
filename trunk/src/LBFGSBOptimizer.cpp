@@ -75,15 +75,15 @@ static Real factr = 1.0e7;   //
          int n = sys.getNumParameters();
          int m = NUMBER_OF_CORRECTIONS;
          Real *gradient;
-	     gradient = new Real[n];
+         gradient = new Real[n];
 
 
 //printf("\n ***** LBFGSBOptimizer ***** \n\n");
  
          iprint[0] = iprint[1] = iprint[2] = diagnosticsLevel;
          sys.getParameterLimits( &lowerLimits, &upperLimits );
-         iwa = (int *)malloc(3*n*sizeof(int));
-         wa = (Real *)malloc( ((2*m + 4)*n + 12*m*m + 12*m)*sizeof(Real));
+         iwa = new int[3*n];
+         wa = new Real[((2*m + 4)*n + 12*m*m + 12*m)];
 
          strcpy( task, "START" );
 
@@ -99,7 +99,7 @@ static Real factr = 1.0e7;   //
                 objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
                 gradientFuncWrapper( n,  &results[0],  false, gradient, (void*)this );
              } else if( strncmp( task, "NEW_X", 5) == 0 ){
-                objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
+                //objectiveFuncWrapper( n, &results[0],  true, &f, (void*)this );
              } else {
                 run_optimizer = 0;
                 if( strncmp( task, "CONV", 4) != 0 ){
@@ -107,7 +107,9 @@ static Real factr = 1.0e7;   //
                 }
              }
          }
-         delete [] gradient;
+         delete[] gradient;
+         delete[] iwa;
+         delete[] wa;
          return(f);
       }
 
