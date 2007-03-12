@@ -153,7 +153,7 @@ try {
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
-        << mprops.getCOM() << ", " << mprops.getInertia() << endl;
+        << mprops.getMassCenter() << ", " << mprops.getInertia() << endl;
 
     Vec3 gravity(0.,-g,0.);
     cout << "period should be " << 2*std::acos(-1.)*std::sqrt(L/g) << " seconds." << endl;

@@ -173,7 +173,7 @@ public:
         MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
         cout << "Inertia:" << mprops.getInertia();
         cout << "inertia kludge:" << mprops.getInertia()+Inertia(0,0,.4);
-        MassProperties mpropsKludge(mprops.getMass(), mprops.getCOM(), mprops.getInertia() + Inertia(0,0,.4));
+        MassProperties mpropsKludge(mprops.getMass(), mprops.getMassCenter(), mprops.getInertia() + Inertia(0,0,.4));
         bodies.push_back(
             matter.addRigidBody(
                 mpropsKludge,

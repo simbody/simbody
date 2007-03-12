@@ -159,7 +159,7 @@ public:
     // TODO: These ignore State currently since they aren't parametrizable.
     const MassProperties& getMassProperties() const {return massProps_B;}
     const Real&           getMass          () const {return massProps_B.getMass();}
-    const Vec3&           getCOM_B         () const {return massProps_B.getCOM();}
+    const Vec3&           getCOM_B         () const {return massProps_B.getMassCenter();}
     const Inertia&        getInertia_OB_B  () const {return massProps_B.getInertia();}
     const Transform&      getX_BM          () const {return X_BM;}
     const Transform&      getX_PMb         () const {return X_PMb;}
