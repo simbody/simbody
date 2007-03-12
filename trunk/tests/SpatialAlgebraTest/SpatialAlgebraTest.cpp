@@ -138,6 +138,12 @@ int main()
         //cout << "r2*v1=" << r1*v1 << endl; 
         //cout << "v1*r1=" << v1*r1 << endl;;
 
+
+        MassProperties mprops(23, Vec3(1,2,3), Inertia::brick(.1,.2,.3));
+        cout << "MassProperties: " << mprops;
+        cout << "MassProperties.toSpatialMat: " << mprops.toSpatialMat();
+        cout << "MassProperties.toMat66: " << mprops.toMat66();
+
     }
     catch(const Exception::Base& b)
     {

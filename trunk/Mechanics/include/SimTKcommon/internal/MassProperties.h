@@ -38,6 +38,7 @@
 #include <iostream>
 
 namespace SimTK {
+typedef Mat<2,2, Mat33> SpatialMat;
 
 // Spatial vectors are used for (orientation,translation) quantities.
 // These include
@@ -437,6 +438,26 @@ public:
     bool isExactlyCentral() const { return comInB==Vec3(0); }
     bool isNearlyCentral(const Real& tol=NTraits<Real>::Eps_78) const {
         return comInB.normSqr() <= tol*tol;
+    }
+
+    SpatialMat toSpatialMat() const {
+        SpatialMat M;
+        M(0,0) = inertia_OB_B.toMat33();
+        M(0,1) = crossMat(comInB);
+        M(1,0) = ~M(0,1);
+        M(1,1) = mass; // a diagonal matrix
+        return M;
+    }
+
+    /// Caution: this does not have the same layout in memory as
+    /// a SpatialMat, although it has the same logical layout.
+    Mat66 toMat66() const {
+        Mat66 M;
+        M.updSubMat<3,3>(0,0) = inertia_OB_B.toMat33();
+        M.updSubMat<3,3>(0,3) = crossMat(comInB);
+        M.updSubMat<3,3>(3,0) = ~M.getSubMat<3,3>(0,3);
+        M.updSubMat<3,3>(3,3) = mass; // a diagonal matrix
+        return M;
     }
 
 private:

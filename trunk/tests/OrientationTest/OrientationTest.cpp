@@ -153,6 +153,11 @@ try {
     cout << "Transform ~X=" << ~X;
     cout << "   (~X).R=" << (~X).R() << "  (~X).T=" << (~X).T() << "  (~X).TInv=" << (~X).TInv() << endl;
     cout << "   (~X).x=" << (~X).x() << "  y=" << (~X).y() << "  z=" << (~X).z() << endl;    
+    cout << "Transform X asMat34():" << X.asMat34();
+    cout << "Transform X toMat34():" << X.toMat34();
+    cout << "Transform X toMat44():" << X.toMat44();
+    cout << "Transform ~X toMat34():" << (~X).toMat34();
+    cout << "Transform ~X toMat44():" << (~X).toMat44();
     cout << "should be identity: X*~X=" << X*~X;
     cout << "should be identity: ~X*X=" << ~X*X;
 
@@ -173,6 +178,14 @@ try {
     Rotation rxyz = rz*ry*rx; // space fixed
     // reverse order to use body fixed like space fixed
     Rotation r123; r123.setToBodyFixed321(Vec3(.31,.17,.1));
+
+    cout << "Rotation r123:" << r123;
+    cout << "Rotation r123.asMat33():" << r123.asMat33();
+    cout << "Rotation r123.toMat33():" << r123.toMat33();
+
+    cout << "InvRotation ~r123:" << (~r123);
+    cout << "InvRotation ~r123.asMat33():" << (~r123).asMat33();
+    cout << "InvRotation ~r123.toMat33():" << (~r123).toMat33();
 
     cout << "ry(.17)*rx(.1)=" << ry*rx;
     cout << "rxoldy(.1,.17)=" << rxoldy;

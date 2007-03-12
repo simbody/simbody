@@ -746,6 +746,12 @@ public:
         return *static_cast<const BaseMat*>(this);
     }
 
+    /// Less efficient version of asMat33() since it copies, but you don't
+    /// have to know the internal layout.
+    BaseMat toMat33() const {
+        return asMat33();
+    }
+
     static Rotation trustMe(const Mat33& m) {return Rotation(m);}
 
 private:
@@ -814,6 +820,12 @@ public:
 
     const BaseMat& asMat33() const {
         return *static_cast<const BaseMat*>(this);
+    }
+
+    /// Less efficient version of asMat33() since it copies, but you don't
+    /// have to know the internal layout.
+    BaseMat toMat33() const {
+        return asMat33();
     }
 };
 
@@ -1087,6 +1099,19 @@ public:
     const Mat34& asMat34() const {
         return Mat34::getAs(reinterpret_cast<const Real*>(this));
     }
+
+    /// Less efficient version of asMat34(); copies into return variable.
+    Mat34 toMat34() const {
+        return asMat34();
+    }
+
+    /// Return the equivalent 4x4 transformation matrix.
+    Mat44 toMat44() const {
+        Mat44 tmp;
+        tmp.updSubMat<3,4>(0,0) = asMat34();
+        tmp[3]                  = Row4(0,0,0,1);
+        return tmp;
+    }
 private:
     //TODO: these might not pack correctly; should use an array of 12 Reals.
     Rotation R_BF;   // rotation matrix that expresses F's axes in R
@@ -1219,6 +1244,17 @@ public:
     // Inverse translation is free.
     const Vec3& TInv() const           {return T_FB;}
     void        setTInv(const Vec3& T) {T_FB=T;}
+
+    /// For compatibility with Transform, but we don't provide an "as"
+    /// method here since the internal storage layout is somewhat odd.
+    Mat34 toMat34() const {
+        return Transform(*this).asMat34();
+    }
+
+    /// Return the equivalent 4x4 transformation matrix.
+    Mat44 toMat44() const {
+        return Transform(*this).toMat44();
+    }
 
 private:
     // DATA LAYOUT MUST BE IDENTICAL TO Transform !!
