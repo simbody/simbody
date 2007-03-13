@@ -36,11 +36,230 @@ class SimTK_SIMBODY_EXPORT MatterSubsystem : public Subsystem {
 public:
     MatterSubsystem() { }
 
+    // Paul's interface
+
+        // MASS PROPERTIES //
+
+    /// Return the mass properties of body A, reexpressed in body B's frame.
+    /// That is, return the mass, mass center location T_OA_CA expressed in B, and
+    /// the inertia about the body origin OA, expressed in B. If body B is the
+    /// same body as body A, then we can obtain the mass properties without 
+    /// having realized positions in the State, otherwise positions must be
+    /// valid.
+    /// If inBodyB==GroundId, this is the Spatial Inertia matrix as used in the
+    /// Spatial Operator Algebra formulation (that is, the local body mass
+    /// properties but expresed in Ground). You can pull out the
+    /// individual elements of MassProperties m with m.getMass(), 
+    /// m.getMassCenter() and m.getInertia(). You can see this as
+    /// a Spatial Inertia Matrix with m.toSpatialMat() or as a 6x6
+    /// matrix with m.toMat66().
+    MassProperties calcBodyMassProperties(const State&, 
+                                          BodyId objectBodyA);
+
+    SpatialMat calcBodySpatialInertiaMatrixInGround(const State&,
+                                                    BodyId objectBodyA);
+
+    Vec3 calcBodyMassCenterLocation(const State&, 
+                                    BodyId objectBodyA);
+
+    Vec3 calcBodyMassCenterLocationInBody(const State&, 
+                                          BodyId      objectBodyA,
+                                          BodyId      inBodyB, 
+                                          const Vec3& fromLocationOnBodyB);
+
+    /// Return the central inertia for body A, that is, the inertia taken about
+    /// body A's mass center CA, but reexpressed in body B's frame.
+    Inertia calcBodyCentralInertia(const State&, 
+                                   BodyId objectBodyA);
+
+    /// Return the central inertia for body A, that is, the inertia taken about
+    /// body A's mass center CA, but reexpressed in body B's frame.
+    Inertia calcBodyInertiaAboutBodyPoint(const State&, 
+                                          BodyId      objectBodyA, 
+                                          BodyId      inBodyB, 
+                                          const Vec3& aboutLocationOnBodyB);
+
+
+    /// Return total system mass, mass center location measured from the Ground origin,
+    /// and system inertia taken about the Ground origin, expressed in Ground.
+    MassProperties calcSystemMassPropertiesInGround(const State&);
+
+    /// Return the system inertia matrix taken about the system center of mass,
+    /// expressed in Ground.
+    Inertia calcSystemCentralInertiaInGround(const State&);
+
+    /// Return the location T_OG_C of the system mass center C, measured from the ground
+    /// origin OG, and expressed in Ground. 
+    Vec3 calcSystemMassCenterLocationInGround(const State&);
+
+    /// Return the velocity V_G_C = d/dt T_OG_C of the system mass center C in the Ground frame G,
+    /// expressed in G.
+    Vec3 calcSystemMassCenterVelocityInGround(const State&);
+
+    /// Return the acceleration A_G_C = d^2/dt^2 T_OG_C of the system mass center C in
+    /// the Ground frame G, expressed in G.
+    Vec3 calcSystemMassCenterAccelerationInGround(const State&);
+
+
+
+        // POSITION //
+
+    /// Return X_BA, the spatial transform to body A's frame from body B's frame.
+    Transform calcBodyTransformInBody(const State&, 
+                                      BodyId objectBodyA, 
+                                      BodyId inBodyB);
+
+    /// Return R_BA, the rotation matrix to body A's x,y,z axes from body B's x,y,z axes.
+    Rotation calcBodyRotationInBody(const State&, 
+                                    BodyId objectBodyA, 
+                                    BodyId inBodyB);
+
+    /// Return T_OB_OA, the location of body A's origin OA, measured from body B's origin, expressed in body B.
+    Vec3 calcBodyOriginLocationInBody(const State&,
+                                      BodyId objectBodyA, 
+                                      BodyId inBodyB);
+
+    /// Given a vector T_OA_P from body A's origin to a point P on body A, expressed in body A, return the vector
+    /// T_OB_P from body B's origin to point P, expressed in body B.
+    Vec3 calcBodyPointLocationInBody(const State&,
+                                     BodyId      onBodyA,
+                                     const Vec3& locationOnBodyA, 
+                                     BodyId      inBodyB);
+
+    /// Given a vector expressed in body A, return that same vector expressed in body B.
+    Vec3 calcBodyVectorInBody(const State&, 
+                              BodyId      onBodyA, 
+                              const Vec3& vectorOnBodyA, 
+                              BodyId      inBodyB);
+
+
+        // VELOCITY //
+
+    /// Return the angular and linear velocity of body A's frame in body B's frame, expressed in body B,
+    /// and arranged as a SpatialVec.
+    SpatialVec calcBodySpatialVelocityInBody(const State&, 
+                                             BodyId objectBodyA, 
+                                             BodyId inBodyB);
+
+    /// Return the angular velocity w_BA of body A's frame in body B's frame, expressed in body B.
+    Vec3 calcBodyAngularVelocityInBody(const State&, 
+                                       BodyId objectBodyA, 
+                                       BodyId inBodyB);
+
+    /// Return the velocity of body A's origin point in body B's frame, expressed in body B.
+    Vec3 calcBodyOriginVelocityInBody(const State&,
+                                      BodyId objectBodyA,
+                                      BodyId inBodyB);
+
+    /// Return the velocity of a point P fixed on body A, in body B's frame, expressed in body B.
+    Vec3 calcBodyFixedPointVelocityInBody(const State&, 
+                                          BodyId      objectBodyA, 
+                                          const Vec3& locationOnBodyA, 
+                                          BodyId      inBodyB);
+
+    /// Return the velocity of a point P moving on body A, in body B's frame, expressed in body B.
+    Vec3 calcBodyFixedPointVelocityInBody(const State&,
+                                          BodyId      objectBodyA, 
+                                          const Vec3& locationOnBodyA, 
+                                          const Vec3& velocityOnBodyA,
+                                          BodyId      inBodyB);
+
+        // ACCELERATION //
+
+    /// Return the angular and linear acceleration of body A's frame in body B's frame, expressed in body B,
+    /// and arranged as a SpatialVec.
+    SpatialVec calcBodySpatialAccelerationInBody(const State&, 
+                                                 BodyId objectBodyA, 
+                                                 BodyId inBodyB);
+
+    /// Return the angular acceleration of body A's frame in body B's frame, expressed in body B.
+    Vec3 calcBodyAngularAccelerationInBody(const State&, 
+                                           BodyId objectBodyA, 
+                                           BodyId inBodyB);
+
+    /// Return the acceleration of body A's origin point in body B's frame, expressed in body B.
+    Vec3 calcBodyOriginAccelerationInBody(const State&, 
+                                          BodyId objectBodyA, 
+                                          BodyId inBodyB);
+
+    /// Return the acceleration of a point P fixed on body A, in body B's frame, expressed in body B.
+    Vec3 calcBodyFixedPointAccelerationInBody(const State&, 
+                                              BodyId      objectBodyA, 
+                                              const Vec3& locationOnBodyA, 
+                                              BodyId      inBodyB);
+
+    /// Return the velocity of a point P moving on body A, in body B's frame, expressed in body B.
+    Vec3 calcBodyMovingPointAccelerationInBody(const State&, 
+                                               BodyId       objectBodyA, 
+                                               const Vec3&  locationOnBodyA, 
+                                               const Vec3&  velocityOnBodyA, 
+                                               const Vec3&  accelerationOnBodyA,
+                                               BodyId       inBodyB);
+
+        // SCALAR DISTANCE //
+
+    /// Calculate the distance to a point PA on body A from a point PB on body B.
+    /// We are given the location vectors T_OA_PA and T_OB_PB, expressed in their
+    /// respective frames. We return |T_OB_OA|.
+    Real calcPointToPointDistance(const State&,
+                                  BodyId      bodyA,
+                                  const Vec3& locationOnBodyA,
+                                  BodyId      bodyB,
+                                  const Vec3& locationOnBodyB);
+
+    /// Calculate the time rate of change of distance from a fixed point PA on body A to a fixed point
+    /// PB on body B. We are given the location vectors T_OA_PA and T_OB_PB, expressed in their
+    /// respective frames. We return d/dt |T_OB_OA|, under the assumption that the time derivatives
+    /// of the two given vectors in their own frames is zero.
+    Real calcFixedPointToPointDistanceTimeDerivative(const State&,
+                                                     BodyId      bodyA,
+                                                     const Vec3& locationOnBodyA,
+                                                     BodyId      bodyB,
+                                                     const Vec3& locationOnBodyB);
+
+
+    /// Calculate the time rate of change of distance from a moving point PA on body A to a moving point
+    /// PB on body B. We are given the location vectors T_OA_PA and T_OB_PB, and the velocities of
+    /// PA in A and PB in B, all expressed in their respective frames. We return d/dt |T_OB_OA|,
+    /// taking into account the time derivatives of the locations in their local frames, as well
+    /// as the relative velocities of the bodies.
+    Real calcMovingPointToPointDistanceTimeDerivative(const State&,
+                                                      BodyId      bodyA,
+                                                      const Vec3& locationOnBodyA,
+                                                      const Vec3& velocityOnBodyA,
+                                                      BodyId      bodyB,
+                                                      const Vec3& locationOnBodyB,
+                                                      const Vec3& velocityOnBodyB);
+
+    /// Calculate the second time derivative of distance from a fixed point PA on body A to a fixed point
+    /// PB on body B. We are given the location vectors T_OA_PA and T_OB_PB, expressed in their
+    /// respective frames. We return d^2/dt^2 |T_OB_OA|, under the assumption that the time derivatives
+    /// of the two given vectors in their own frames is zero.
+    Real calcFixedPointToPointDistance2ndTimeDerivative(const State&,
+                                                        BodyId      bodyA,
+                                                        const Vec3& locationOnBodyA,
+                                                        BodyId      bodyB,
+                                                        const Vec3& locationOnBodyB);
+
+    /// Calculate the second time derivative of distance from a moving point PA on body A to a moving point
+    /// PB on body B. We are given the location vectors T_OA_PA and T_OB_PB, and the velocities of
+    /// PA in A and PB in B, all expressed in their respective frames. We return d^2/dt^2 |T_OB_OA|,
+    /// taking into account the time derivatives of the locations in their local frames, as well
+    /// as the relative velocities and accelerations of the bodies.
+    Real calcMovingPointToPointDistance2ndTimeDerivative(const State&,
+                                                         BodyId      bodyA,
+                                                         const Vec3& locationOnBodyA,
+                                                         const Vec3& velocityOnBodyA,
+                                                         const Vec3& accelerationOnBodyA,
+                                                         BodyId      bodyB,
+                                                         const Vec3& locationOnBodyB,
+                                                         const Vec3& velocityOnBodyB,
+                                                         const Vec3& accelerationOnBodyB);
+
     // Topological information (no state)
     int getNBodies()      const;    // includes ground, also # mobilizers+1
     int getNParticles()   const;
     int getNMobilities()  const;
-
     int getNConstraints() const;    // i.e., Constraint definitions (each is multiple equations)
 
     BodyId        getParent  (BodyId bodyNum) const;
