@@ -79,6 +79,28 @@ extern "C" {
 
 namespace SimTK {
 
+/**
+ * This is just a type-safe non-negative int, with "-1" used as a "NaN".
+ * For most uses it will behave like an int, and it has an implicit
+ * conversion *to* int. Importantly though, it has no implicit conversion
+ * *from* int so you can't pass some other kind of number as 
+ * a BodyId.
+ */
+class BodyId {
+    int id;
+public:
+    BodyId() : id(-1) { }
+    explicit BodyId(int i) : id(i) {
+        assert(i>=0 || i==-1);
+    }
+    operator int() const {return id;}
+    const BodyId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
+    BodyId operator++(int)     {assert(id>=0); ++id; return BodyId(id-1);}  // postfix
+    const BodyId& operator--() {assert(id>=1); --id;return *this;}          // prefix
+    BodyId operator--(int)     {assert(id>=1); --id; return BodyId(id+1);}  // postfix
+};
+static const BodyId GroundId(0);
+
 // TODO: this should be upgraded to a class handle with a hidden implementation
 // to allow for fancier Mobilizers, including user-defined.
 class Mobilizer {

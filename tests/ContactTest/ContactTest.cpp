@@ -37,7 +37,6 @@ using std::endl;
 using namespace SimTK;
 
 static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
-static const int  Ground = 0; // ground is always body 0
 
 // material properties
 // Steel
@@ -136,16 +135,16 @@ try
     const MassProperties pendMProps(pendMass, Vec3(0, -linkLength/2, 0), 
         pendBallInertia.shiftFromCOM(Vec3(0, -linkLength/2, 0), pendMass));
 
-    int pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
-                          Ground, Transform(pendGroundPt1),
+    BodyId pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
+                          GroundId, Transform(pendGroundPt1),
                           Mobilizer(Mobilizer::Ball, false));
 
-    int pend2 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
+    BodyId pend2 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
                           pend1, Transform(Vec3(0,-linkLength/2,0)),
                           Mobilizer(Mobilizer::Ball, false));
 
     int theConstraint =
-       bouncers.addConstantDistanceConstraint(Ground, pendGroundPt2,
+       bouncers.addConstantDistanceConstraint(GroundId, pendGroundPt2,
                                      pend2, Vec3(0, -linkLength/2, 0),20);
 
 
@@ -158,22 +157,22 @@ try
     const MassProperties rubberBallMProps(rubberBallMass, Vec3(0), 
         rubberBallMass*Inertia::sphere(rubberBallRadius));
     const Vec3 firstHardBallPos = Vec3(-6,30,0), firstRubberBallPos = Vec3(18,30,-18);
-    std::vector<int> balls;
+    std::vector<BodyId> balls;
 
     const int NRubberBalls = 6;
     for (int i=0; i<NRubberBalls; ++i)
         balls.push_back( 
             bouncers.addRigidBody(rubberBallMProps, Transform(),
-                              Ground, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
-                              Mobilizer(Mobilizer::Cartesian, false)));
+                                  GroundId, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
+                                  Mobilizer(Mobilizer::Cartesian, false)));
 
     const int NHardBalls = 12;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
             bouncers.addRigidBody(hardBallMProps, Transform(),
-                              Ground, Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
+                                  GroundId, Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
                                                 + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
-                              Mobilizer(Mobilizer::Cartesian, false)));
+                                  Mobilizer(Mobilizer::Cartesian, false)));
 
 
     MultibodySystem mbs;
@@ -204,23 +203,23 @@ try
     vtk.addDecoration(pend2, Transform(), DecorativeLine(Vec3(0,linkLength/2,0),Vec3(0,-linkLength/2,0)));
  
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(1);
-    vtk.addRubberBandLine(Ground, pendGroundPt2,pend2,Vec3(0,-linkLength/2,0), rbProto);
+    vtk.addRubberBandLine(GroundId, pendGroundPt2,pend2,Vec3(0,-linkLength/2,0), rbProto);
 
-    contact.addHalfSpace(Ground, UnitVec3(0,1,0), 0, kwall, cwall);
-    contact.addHalfSpace(Ground, UnitVec3(1,0,0), -20, kwall, cwall); // left
-    contact.addHalfSpace(Ground, UnitVec3(-1,0,0), -20, kwall, cwall); // right
-    contact.addHalfSpace(Ground, UnitVec3(0,0,-1), -20, kwall, cwall); // front
-    contact.addHalfSpace(Ground, UnitVec3(0,0,1), -20, kwall, cwall); // back
+    contact.addHalfSpace(GroundId, UnitVec3(0,1,0), 0, kwall, cwall);
+    contact.addHalfSpace(GroundId, UnitVec3(1,0,0), -20, kwall, cwall); // left
+    contact.addHalfSpace(GroundId, UnitVec3(-1,0,0), -20, kwall, cwall); // right
+    contact.addHalfSpace(GroundId, UnitVec3(0,0,-1), -20, kwall, cwall); // front
+    contact.addHalfSpace(GroundId, UnitVec3(0,0,1), -20, kwall, cwall); // back
 
-    vtk.addDecoration(Ground, Transform(), 
+    vtk.addDecoration(GroundId, Transform(), 
         DecorativeBrick(Vec3(20,.1,20)).setColor(Green).setOpacity(1));
-    vtk.addDecoration(Ground, Transform(Vec3(-20,20,0)), 
+    vtk.addDecoration(GroundId, Transform(Vec3(-20,20,0)), 
         DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
-    vtk.addDecoration(Ground, Transform(Vec3(20,20,0)), 
+    vtk.addDecoration(GroundId, Transform(Vec3(20,20,0)), 
         DecorativeBrick(Vec3(.1,30,20)).setColor(Yellow).setOpacity(.2));
-    vtk.addDecoration(Ground, Transform(Vec3(0,20,20)), 
+    vtk.addDecoration(GroundId, Transform(Vec3(0,20,20)), 
         DecorativeBrick(Vec3(20,20,.1)).setColor(Gray).setOpacity(.05));
-    vtk.addDecoration(Ground, Transform(Vec3(0,20,-20)), 
+    vtk.addDecoration(GroundId, Transform(Vec3(0,20,-20)), 
         DecorativeBrick(Vec3(20,30,.1)).setColor(Cyan).setOpacity(.2));
 
     DecorativeSphere rubberSphere(rubberBallRadius);

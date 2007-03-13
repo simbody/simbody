@@ -166,62 +166,62 @@ int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
     return distanceConstraints.size()-1;
 }
 
-int SimbodyMatterSubsystemRep::getParent(int body) const { 
-    return getRigidBodyNode(body).getParent()->getNodeNum();
+BodyId SimbodyMatterSubsystemRep::getParent(BodyId body) const { 
+    return BodyId(getRigidBodyNode(body).getParent()->getNodeNum());
 }
 
-Array<int> SimbodyMatterSubsystemRep::getChildren(int body) const {
+Array<BodyId> SimbodyMatterSubsystemRep::getChildren(BodyId body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
-    Array<int> children;
-    for (int i=0; i < node.getNChildren(); ++i)
-        children += node.getChild(i)->getNodeNum();
+    Array<BodyId> children;
+    for (BodyId i(0); i < node.getNChildren(); ++i)
+        children += BodyId(node.getChild(i)->getNodeNum());
     return children;
 }
 
 const Real&
-SimbodyMatterSubsystemRep::getBodyMass(const State&, int body) const
+SimbodyMatterSubsystemRep::getBodyMass(const State&, BodyId body) const
   { return getRigidBodyNode(body).getMass(); }
 
 const Vec3&
-SimbodyMatterSubsystemRep::getBodyCenterOfMassStation(const State&, int body) const
+SimbodyMatterSubsystemRep::getBodyCenterOfMassStation(const State&, BodyId body) const
   { return getRigidBodyNode(body).getCOM_B(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, int body) const
+SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, BodyId body) const
   { return getRigidBodyNode(body).getX_BM(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getMobilizerFrameOnParent(const State&, int body) const
+SimbodyMatterSubsystemRep::getMobilizerFrameOnParent(const State&, BodyId body) const
   { return getRigidBodyNode(body).getX_PMb(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getBodyPosition(const State& s, int body) const
+SimbodyMatterSubsystemRep::getBodyPosition(const State& s, BodyId body) const
   { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getV_GB(getVelocityCache(s));
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
 
 const SpatialMat&
-SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, int body) const {
+SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, BodyId body) const {
   return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
@@ -550,13 +550,13 @@ void SimbodyMatterSubsystemRep::realizeAcceleration(const State& s)  const {
 }
 
 
-int SimbodyMatterSubsystemRep::getQIndex(int body) const 
+int SimbodyMatterSubsystemRep::getQIndex(BodyId body) const 
   { assert(built);return getRigidBodyNode(body).getQIndex();}
-int SimbodyMatterSubsystemRep::getQAlloc(int body) const 
+int SimbodyMatterSubsystemRep::getQAlloc(BodyId body) const 
   { assert(built);return getRigidBodyNode(body).getMaxNQ();}
-int SimbodyMatterSubsystemRep::getUIndex(int body) const
+int SimbodyMatterSubsystemRep::getUIndex(BodyId body) const
   { assert(built);return getRigidBodyNode(body).getUIndex();}
-int SimbodyMatterSubsystemRep::getDOF   (int body) const
+int SimbodyMatterSubsystemRep::getDOF   (BodyId body) const
   { assert(built);return getRigidBodyNode(body).getDOF();}
 
 // We are in the process of realizingConstruction() when we need to make this call.
@@ -659,7 +659,7 @@ void SimbodyMatterSubsystemRep::setUseEulerAngles(State& s, bool useAngles) cons
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, int body, bool prescribe) const {
+void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, BodyId body, bool prescribe) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
@@ -672,7 +672,7 @@ bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, int body) const {
+bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, BodyId body) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.prescribed[body];
 }
@@ -681,7 +681,7 @@ bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, int constrai
     return modelVars.enabled[constraint];
 }
 
-bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, int body) const {
+bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, BodyId body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     return n.isUsingQuaternion(getModelVars(s));
 }
@@ -691,76 +691,76 @@ int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
     return mc.nQuaternionsInUse;
 }
 
-int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, int body) const {
+int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, BodyId body) const {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.quaternionIndex[body];
 }
 
-const Real& SimbodyMatterSubsystemRep::getMobilizerQ(const State& s, int body, int axis) const {
+const Real& SimbodyMatterSubsystemRep::getMobilizerQ(const State& s, BodyId body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
     return getQ(s)[n.getQIndex()+axis];
 }
 
-const Real& SimbodyMatterSubsystemRep::getMobilizerU(const State& s, int body, int axis) const {
+const Real& SimbodyMatterSubsystemRep::getMobilizerU(const State& s, BodyId body, int axis) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     return getU(s)[n.getUIndex()+axis];
 }
 
-void SimbodyMatterSubsystemRep::setMobilizerQ(State& s, int body, int axis, const Real& r) const {
+void SimbodyMatterSubsystemRep::setMobilizerQ(State& s, BodyId body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
     updQ(s)[n.getQIndex()+axis] = r;
 }
 
-void SimbodyMatterSubsystemRep::setMobilizerU(State& s, int body, int axis, const Real& r) const {
+void SimbodyMatterSubsystemRep::setMobilizerU(State& s, BodyId body, int axis, const Real& r) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     assert(0 <= axis && axis < n.getDOF());
     updU(s)[n.getUIndex()+axis] = r;
 }
 
-const Transform& SimbodyMatterSubsystemRep::getMobilizerPosition(const State& s, int body) const { 
+const Transform& SimbodyMatterSubsystemRep::getMobilizerPosition(const State& s, BodyId body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
     return n.getX_MbM(cc);
 }
-const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, int body) const { 
+const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, BodyId body) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBVelocityCache& mc = getVelocityCache(s);
     return n.getV_MbM(mc);
 }
-void SimbodyMatterSubsystemRep::setMobilizerPosition(State& s, int body, const Transform& X_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerPosition(State& s, BodyId body, const Transform& X_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
     n.setMobilizerPosition(mv, X_MbM, q);
 }
-void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, int body, const SpatialVec& V_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& u = updU(s);
     n.setMobilizerVelocity(mv, V_MbM, u);
 }
 
-void SimbodyMatterSubsystemRep::addInStationForce(const State& s, int body, 
+void SimbodyMatterSubsystemRep::addInStationForce(const State& s, BodyId bodyB, 
                                       const Vec3& stationInB, const Vec3& forceInG, 
                                       Vector_<SpatialVec>& rigidBodyForces) const
 {
     assert(rigidBodyForces.size() == getNBodies());
     const SBPositionCache& cc = getPositionCache(s);
-    const Rotation& R_GB = getRigidBodyNode(body).getX_GB(cc).R();
-    rigidBodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
+    const Rotation& R_GB = getRigidBodyNode(bodyB).getX_GB(cc).R();
+    rigidBodyForces[bodyB] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
 
-void SimbodyMatterSubsystemRep::addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+void SimbodyMatterSubsystemRep::addInBodyTorque(const State& s, BodyId body, const Vec3& torqueInG, 
                                     Vector_<SpatialVec>& rigidBodyForces) const 
 {
     assert(rigidBodyForces.size() == getNBodies());
     rigidBodyForces[body][0] += torqueInG; // no force
 }
 
-void SimbodyMatterSubsystemRep::addInMobilityForce(const State& s, int body, int axis, const Real& r,
+void SimbodyMatterSubsystemRep::addInMobilityForce(const State& s, BodyId body, int axis, const Real& r,
                                        Vector& mobilityForces) const 
 {
     assert(mobilityForces.size() == getTotalDOF());
@@ -782,7 +782,7 @@ SimbodyMatterSubsystemRep::getAppliedBodyForces(const State& s) const {
 
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, int body) const
+SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, BodyId body) const
   { return getRigidBodyNode(body).getA_GB(getAccelerationCache(s)); }
 
 void SimbodyMatterSubsystemRep::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {

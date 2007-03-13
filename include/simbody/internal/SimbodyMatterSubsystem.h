@@ -117,16 +117,16 @@ public:
 
     /// Add a general rigid body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addRigidBody(const MassProperties&     massProps,
+    BodyId addRigidBody(const MassProperties&  massProps,
                      const Transform&          bodyJointFrameInB,
-                     int                       parent,
+                     BodyId                    parent,
                      const Transform&          parentJointFrameInP,
                      const Mobilizer&          mobilizer);
 
     /// Add a massless body to the growing tree by connecting it
     /// to one of the bodies already in the tree.
-    int addMasslessBody(const Transform&          bodyJointFrameInB,
-                        int                       parent,
+    BodyId addMasslessBody(const Transform&       bodyJointFrameInB,
+                        BodyId                    parent,
                         const Transform&          parentJointFrameInP,
                         const Mobilizer&          mobilizer);
 
@@ -134,35 +134,35 @@ public:
     /// a body (ground by default) using a free joint and only the
     /// body frames.
     /// NOTE: it is *NOT* allowed to add bodies outboard to this one.
-    int addFreeRigidBody(const MassProperties&, int parent=0);
+    BodyId addFreeRigidBody(const MassProperties&, BodyId parent=GroundId);
 
     /// Special case: add a free particle (point mass) to the tree
     /// by connecting it to a body (ground by default) using a
     /// Cartesian joint (3d translation) with fixed frame the parent's
     /// body frame and the point location as the moving "frame".
     /// NOTE: it is *NOT* allowed to add bodies outboard to this one.
-    int addFreeParticle (const Real& mass,      int parent=0);
+    BodyId addFreeParticle (const Real& mass,      BodyId parent=GroundId);
 
     /// Constrain stations on each of two distinct bodies to remain
     /// a particular distance apart at all times. Distance must be
     /// significantly greater than 0 so that this can be implemented
     /// as a single constraint force acting along the instantaneous
     /// line between the stations.
-    int addConstantDistanceConstraint(int parent, const Vec3& stationInP,
-                                      int child,  const Vec3& stationInC,
+    int addConstantDistanceConstraint(BodyId parent, const Vec3& stationInP,
+                                      BodyId child,  const Vec3& stationInC,
                                       const Real& distance);
 
     /// Constrain stations on each of two distinct bodies to remain
     /// superimposed. This restricts all translation but no rotation
     /// so adds three constraint equations.
-    int addCoincidentStationsConstraint(int parent, const Vec3& stationInP,
-                                        int child,  const Vec3& stationInC);
+    int addCoincidentStationsConstraint(BodyId parent, const Vec3& stationInP,
+                                        BodyId child,  const Vec3& stationInC);
 
     /// Constrain frames fixed to each of two distinct bodies to
     /// remain superimposed. Parent and child here mean nothing!
     /// This adds six constraint equations.
-    int addWeldConstraint(int parent, const Transform& frameInP,
-                          int child,  const Transform& frameInC);
+    int addWeldConstraint(BodyId parent, const Transform& frameInP,
+                          BodyId child,  const Transform& frameInC);
 
     /// Topology and default values are frozen after this call. If you don't
     /// call it then it will be called automatically by realizeTopology().
@@ -244,10 +244,10 @@ public:
     int getTotalMultAlloc() const;
 
     // Per-body info.
-    int getQIndex(int body) const;
-    int getQAlloc(int body) const; // must wait for modeling for actual NQ
-    int getUIndex(int body) const;
-    int getDOF   (int body) const; // always same as # u's
+    int getQIndex(BodyId) const;
+    int getQAlloc(BodyId) const; // must wait for modeling for actual NQ
+    int getUIndex(BodyId) const;
+    int getDOF   (BodyId) const; // always same as # u's
 
 
     // Per-constraint info;
@@ -261,20 +261,20 @@ public:
     /// optimization). TODO: allow settable zero rotation for Euler sequence,
     /// with convenient way to say "this is zero".
     void setUseEulerAngles(State&, bool) const;
-    void setMobilizerIsPrescribed(State&, int body, bool) const;
+    void setMobilizerIsPrescribed(State&, BodyId, bool) const;
     void setConstraintIsEnabled(State&, int constraint, bool) const;
 
     // Return modeling information from the State.
     bool getUseEulerAngles  (const State&) const;
-    bool isMobilizerPrescribed  (const State&, int body) const;
+    bool isMobilizerPrescribed  (const State&, BodyId) const;
     int  getNQuaternionsInUse(const State&) const;
-    bool isUsingQuaternion(const State&, int body) const;
-    int  getQuaternionIndex(const State&, int body) const;
+    bool isUsingQuaternion(const State&, BodyId) const;
+    int  getQuaternionIndex(const State&, BodyId) const;
 
     bool isConstraintEnabled(const State&, int constraint) const;
 
-    void setMobilizerQ(State&, int body, int axis, const Real&) const;
-    void setMobilizerU(State&, int body, int axis, const Real&) const;
+    void setMobilizerQ(State&, BodyId, int axis, const Real&) const;
+    void setMobilizerU(State&, BodyId, int axis, const Real&) const;
 
     // Position Stage. 
 
@@ -283,38 +283,38 @@ public:
     /// the indicated body. Must be in Position stage. The configuration
     /// is provided as the Transform X_GB from the ground frame to the
     /// body frame.
-    const Transform&  getBodyPosition(const State&, int body) const;
+    const Transform&  getBodyPosition(const State&, BodyId) const;
 
     /// Obtain the current spatial angular and linear velocity of the body frame of
     /// the indicated body. Must be in Velocity stage. This is the velocity 
     /// V_GB of the body frame measured and expressed in the ground frame.
-    const SpatialVec& getBodyVelocity     (const State&, int body) const;
-    const SpatialVec& getBodyAcceleration (const State&, int body) const;
+    const SpatialVec& getBodyVelocity     (const State&, BodyId) const;
+    const SpatialVec& getBodyAcceleration (const State&, BodyId) const;
 
     // Dynamics stage responses.
 
     // Cross joint
-    const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
+    const SpatialVec& getCoriolisAcceleration(const State&, BodyId) const;
 
     // Including parent
-    const SpatialVec& getTotalCoriolisAcceleration(const State&, int body) const;
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, BodyId) const;
 
-    const SpatialVec& getGyroscopicForce(const State&, int body) const;
-    const SpatialVec& getCentrifugalForces(const State&, int body) const;
-    const SpatialMat& getArticulatedBodyInertia(const State& s, int body) const;
+    const SpatialVec& getGyroscopicForce(const State&, BodyId) const;
+    const SpatialVec& getCentrifugalForces(const State&, BodyId) const;
+    const SpatialMat& getArticulatedBodyInertia(const State& s, BodyId) const;
 
-    const Real& getMobilizerQ(const State&, int body, int axis) const;
-    const Real& getMobilizerU(const State&, int body, int axis) const;
-    const Real& getMobilizerQDot(const State&, int body, int axis) const;
-    const Real& getMobilizerUDot(const State&, int body, int axis) const;
-    const Real& getMobilizerQDotDot(const State&, int body, int axis) const;
+    const Real& getMobilizerQ(const State&, BodyId, int axis) const;
+    const Real& getMobilizerU(const State&, BodyId, int axis) const;
+    const Real& getMobilizerQDot(const State&, BodyId, int axis) const;
+    const Real& getMobilizerUDot(const State&, BodyId, int axis) const;
+    const Real& getMobilizerQDotDot(const State&, BodyId, int axis) const;
 
     /// Get the location in space of a station (point) fixed on a body. This
     /// just makes use of the transform associated with the body's current
     /// configuration. Naturally the station is provided in the body frame, and
     /// the result is the vector from the ground origin to the station, expressed
     /// in the ground frame.
-    const Vec3 getStationLocation(const State& s, int body, const Vec3& station_B) const {
+    const Vec3 getStationLocation(const State& s, BodyId body, const Vec3& station_B) const {
         const Transform& X_GB = getBodyPosition(s, body);
         return X_GB.T() + X_GB.R() * station_B;
     }

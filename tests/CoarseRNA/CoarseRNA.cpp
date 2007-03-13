@@ -62,13 +62,13 @@ class MyRNAExample : public SimbodyMatterSubsystem {
         bool isDuplex;
     };
     std::vector<PerBodyInfo> bodyInfo;
-    int end1, end2;
+    BodyId end1, end2;
 public:
     MyRNAExample(int nsegs, bool shouldFlop) 
     {
         bodyInfo.push_back(PerBodyInfo(0, false)); // placeholder for ground
-        end1 = makeChain(GroundBodyNum, Vec3(0), nsegs, shouldFlop);
-        end2 = makeChain(GroundBodyNum, Vec3(20,0,0), nsegs, shouldFlop);
+        end1 = makeChain(GroundId, Vec3(0), nsegs, shouldFlop);
+        end2 = makeChain(GroundId, Vec3(20,0,0), nsegs, shouldFlop);
 
         if (true) {
             int theConstraint2 =
@@ -78,7 +78,7 @@ public:
 
     }
 
-    void decorateBody(int bodyNum, VTKReporter& display) const {
+    void decorateBody(BodyId bodyNum, VTKReporter& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
             addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
@@ -95,40 +95,40 @@ public:
 
 private:
 
-    int makeChain(int startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
-        int baseBody = startBody;
+    BodyId makeChain(BodyId startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
+        BodyId baseBody = startBody;
         Vec3 origin = startOrigin;
-        int lastDup = -1;
+        BodyId lastDup(-1);
         for (int seg=0; seg < nSegs; ++seg) {
-            int left1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+            BodyId left1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
                              Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(left1, false));
 
-            int left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+            BodyId left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              left1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                              Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(left2, false));
 
-            int rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+            BodyId rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
                              Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
-            int rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
+            BodyId rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              rt1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                              Mobilizer(Mobilizer::Ball, false));
             bodyInfo.push_back(PerBodyInfo(rt2, false));
 
-            int dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
+            BodyId dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
                                 Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
                                 rt2,
                                 Transform(Vec3(0, -ConnectorHalfHeight, 0)),
@@ -181,7 +181,7 @@ private:
         return MassProperties(mass,com,iner);
     }
 
-    void addDuplexDecorations(int bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
+    void addDuplexDecorations(BodyId bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
                               Real atomRadius, VTKReporter& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -201,7 +201,7 @@ private:
         }
     }
 
-    void addConnectorDecorations(int bodyNum, Real r, Real halfHeight, Real endSlop,  
+    void addConnectorDecorations(BodyId bodyNum, Real r, Real halfHeight, Real endSlop,  
                                  VTKReporter& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -250,7 +250,7 @@ try // If anything goes wrong, an exception will be thrown.
     mbs.realize(s, Stage::Model);
 
     printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
-    for (int i=0; i<myRNA.getNBodies(); ++i) {
+    for (BodyId i(0); i<myRNA.getNBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
             myRNA.getQuaternionIndex(s,i));
@@ -273,13 +273,13 @@ try // If anything goes wrong, an exception will be thrown.
     myStudy.setProjectEveryStep(false);
 
     VTKReporter display(mbs);
-    for (int i=1; i<myRNA.getNBodies(); ++i)
+    for (BodyId i(1); i<myRNA.getNBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    display.addRubberBandLine(0, attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
-    //display.addRubberBandLine(0, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
+    display.addRubberBandLine(GroundId, attachPt,BodyId(myRNA.getNBodies()-1),Vec3(0), rbProto);
+    //display.addRubberBandLine(GroundId, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
     const Real dt = 0.05; // output intervals
 

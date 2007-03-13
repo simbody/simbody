@@ -39,7 +39,6 @@ static const Real Pi      = (Real)SimTK_PI,
                   Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
                   Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
 
-static const int  GroundBodyNum = 0; // ground is always body 0
 static const Transform GroundFrame;
 
 static const Real m = 5;   // kg
@@ -55,10 +54,10 @@ try { // If anything goes wrong, an exception will be thrown.
     SimbodyMatterSubsystem  pend;
     const Vec3 weightLocation(0, -d/2, 0); // in local frame of swinging body
 
-    const int swinger = pend.addRigidBody(
+    const BodyId swinger = pend.addRigidBody(
         MassProperties(m, weightLocation, m*Inertia::pointMassAt(weightLocation)),
         Vec3(0, d/2, 0),    // inboard joint location
-        GroundBodyNum, GroundFrame,
+        GroundId, GroundFrame,
         Mobilizer::Pin); // rotates around common z axis
 
     // Put the subsystems into the system.

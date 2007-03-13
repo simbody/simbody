@@ -9,8 +9,6 @@
 using namespace std;
 using namespace SimTK;
 
-// There is a ground body in all simulations whose number is 0
-static const int  GroundBodyNum = 0;
 static const Transform GroundFrame;
 
 int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments ) 
@@ -39,7 +37,7 @@ int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments )
 
 	// Define the apple and how it is connected to the ground (it is free to move relative to ground)
 	const Vec3  inboardJointLocation(0,0,0);
-    const int appleBodyNumber = apple.addRigidBody( appleMassProperties, Transform(inboardJointLocation), GroundBodyNum, GroundFrame, Mobilizer::Free );
+    const BodyId appleBodyNumber = apple.addRigidBody( appleMassProperties, Transform(inboardJointLocation), GroundId, GroundFrame, Mobilizer::Free );
 
     // Add the matter (apple) sub-system to the system.
     mbs.setMatterSubsystem( apple );

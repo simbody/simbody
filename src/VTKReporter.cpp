@@ -73,19 +73,19 @@ public:
     void disableDefaultGeometry() { defaultBodyScaleForAutoGeometry=0.;}
 
     // This will make a copy of the supplied DecorativeGeometry.
-    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
-    void addRubberBandLine(int b1, const Vec3& station1, int b2, const Vec3& station2,
+    void addDecoration(BodyId bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addRubberBandLine(BodyId b1, const Vec3& station1, BodyId b2, const Vec3& station2,
                            const DecorativeLine&);
 
     // Make sure everything can be seen.
     void resetCamera() {cameraNeedsToBeReset=true;}
 
-    void setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
+    void setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb) {
         bodies[bodyNum].defaultColorRGB = rgb;
     }
-    const Vec3& getDefaultBodyColor(int body) const {return bodies[body].defaultColorRGB;}
+    const Vec3& getDefaultBodyColor(BodyId body) const {return bodies[body].defaultColorRGB;}
     
-    void setBodyScale(int bodyNum, const Real& scale) {
+    void setBodyScale(BodyId bodyNum, const Real& scale) {
         bodies[bodyNum].scale = scale;
     }
 
@@ -123,7 +123,7 @@ private:
         PerDynamicGeomInfo() : actor(0), body1(-1), body2(-1) { }
         vtkActor*      actor;
         DecorativeLine line;
-        int  body1, body2;
+        BodyId  body1, body2;
         Vec3 station1, station2;
     };
     std::vector<PerDynamicGeomInfo> dynamicGeom;
@@ -133,7 +133,7 @@ private:
 
     void zeroPointers();
     void deletePointers();
-    void setConfiguration(int bodyNum, const Transform& X_GB);
+    void setConfiguration(BodyId bodyNum, const Transform& X_GB);
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
 };
 
@@ -179,22 +179,22 @@ void VTKReporter::report(const State& s) {
     rep->report(s);
 }
 
-void VTKReporter::addDecoration(int body, const Transform& X_GD,
+void VTKReporter::addDecoration(BodyId body, const Transform& X_GD,
                                 const DecorativeGeometry& g) 
 {
     assert(rep);
     rep->addDecoration(body, X_GD, g);
 }
 
-void VTKReporter::addRubberBandLine(int b1, const Vec3& station1,
-                                    int b2, const Vec3& station2,
+void VTKReporter::addRubberBandLine(BodyId b1, const Vec3& station1,
+                                    BodyId b2, const Vec3& station2,
                                     const DecorativeLine& g)
 {
     assert(rep);
     rep->addRubberBandLine(b1,station1,b2,station2,g);
 }
 
-void VTKReporter::setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
+void VTKReporter::setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb) {
    assert(rep);
    rep->setDefaultBodyColor(bodyNum,rgb);
 }
@@ -205,7 +205,7 @@ void VTKReporter::setDefaultBodyColor(int bodyNum, const Vec3& rgb) {
     // VTKReporterRep //
     ////////////////////
 
-void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
+void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
 {
     // For now we create a unique actor for each piece of geometry
@@ -241,8 +241,8 @@ void VTKReporterRep::addDecoration(int body, const Transform& X_GD,
     cameraNeedsToBeReset = true;
 }
 
-void VTKReporterRep::addRubberBandLine(int b1, const Vec3& station1,
-                                       int b2, const Vec3& station2,
+void VTKReporterRep::addRubberBandLine(BodyId b1, const Vec3& station1,
+                                       BodyId b2, const Vec3& station2,
                                        const DecorativeLine& g)
 {
     // Create a unique actor for each piece of geometry.
@@ -340,8 +340,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault)
     for (int i=0; i<(int)bodies.size(); ++i)
         bodies[i].scale = defaultBodyScaleForAutoGeometry;
 
-    setDefaultBodyColor(GroundBodyNum, DefaultGroundBodyColor);
-    for (int i=1; i<(int)bodies.size(); ++i) {
+    setDefaultBodyColor(GroundId, DefaultGroundBodyColor);
+    for (BodyId i(1); i<(int)bodies.size(); ++i) {
         const int parent = sbs.getParent(i);
 
         if (parent == GroundBodyNum)
@@ -362,7 +362,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault)
     }
 
 
-    for (int i=0; i<(int)bodies.size(); ++i) {
+    for (BodyId i(0); i<(int)bodies.size(); ++i) {
         const Real scale = bodies[i].scale;
         DecorativeFrame axes(scale*0.5);
         axes.setLineThickness(2);
@@ -409,7 +409,7 @@ void VTKReporterRep::report(const State& s) {
     mbs.realize(s, Stage::Position); // just in case
 
     const MatterSubsystem& matter = mbs.getMatterSubsystem();
-    for (int i=1; i<matter.getNBodies(); ++i) {
+    for (BodyId i(1); i<matter.getNBodies(); ++i) {
         const Transform& config = matter.getBodyPosition(s, i);
         setConfiguration(i, config);
     }
@@ -466,7 +466,7 @@ void VTKReporterRep::deletePointers() {
     zeroPointers();
 }
 
-void VTKReporterRep::setConfiguration(int bodyNum, const Transform& X_GB) {
+void VTKReporterRep::setConfiguration(BodyId bodyNum, const Transform& X_GB) {
     const std::vector<vtkProp3D*>& actors = bodies[bodyNum].aList;
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];

@@ -251,7 +251,7 @@ void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
     }
 
     // no need to apply gravity to Ground!
-    for (int i=1; i < nBodies; ++i) {
+    for (BodyId i(1); i < nBodies; ++i) {
         const Real&      m       = matter.getBodyMass(s,i);
         const Vec3&      com_B   = matter.getBodyCenterOfMassStation(s,i);
         const Transform& X_GB    = matter.getBodyPosition(s,i);

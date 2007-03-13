@@ -63,13 +63,13 @@ public:
 
     void disableDefaultGeometry();
 
-    void addDecoration(int bodyNum, const Transform& X_GD, const DecorativeGeometry&);
-    void addRubberBandLine(int b1, const Vec3& station1, int b2, const Vec3& station2,
+    void addDecoration(BodyId bodyNum, const Transform& X_GD, const DecorativeGeometry&);
+    void addRubberBandLine(BodyId b1, const Vec3& station1, BodyId b2, const Vec3& station2,
                            const DecorativeLine&);
 
 
-    void setDefaultBodyColor(int bodyNum, const Vec3& rgb);
-    const Vec3& getDefaultBodyColor(int bodyNum) const;
+    void setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb);
+    const Vec3& getDefaultBodyColor(BodyId bodyNum) const;
  
     /// Is this handle the owner of this rep? This is true if the
     /// handle is empty or if its rep points back here.

@@ -73,9 +73,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(stiffness >= 0 && naturalLength >= 0);
         }
 
-        int  body1, body2;
-        Vec3 station1, station2;    // in body frames
-        Real stiffness, naturalLength;
+        BodyId body1, body2;
+        Vec3   station1, station2;    // in body frames
+        Real   stiffness, naturalLength;
     };
 
     struct TwoPointConstantForceParameters {
@@ -95,9 +95,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(zeroEnergyDistance >= 0);
         }
 
-        int  body1, body2;
-        Vec3 station1, station2;    // in body frames
-        Real force, zeroEnergyDistance;
+        BodyId body1, body2;
+        Vec3   station1, station2;    // in body frames
+        Real   force, zeroEnergyDistance;
     };
 
     struct TwoPointLinearDamperParameters {
@@ -117,9 +117,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(damping >= 0);
         }
 
-        int  body1, body2;
-        Vec3 station1, station2;    // in body frames
-        Real damping;
+        BodyId body1, body2;
+        Vec3   station1, station2;    // in body frames
+        Real   damping;
     };
 
     struct ConstantForceParameters {
@@ -136,14 +136,14 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(b >= 0);
         }
 
-        int  body;
-        Vec3 station_B;   // in body frame
-        Vec3 force_G;   // in ground
-        Real zeroEnergyHeight;
+        BodyId body;
+        Vec3   station_B;   // in body frame
+        Vec3   force_G;   // in ground
+        Real   zeroEnergyHeight;
 
         // Pre-calculated
-        Real fmag;       // force magnitude
-        Real zeroEnergy; // fmag*zeroEnergyHeight (subtract this from PE)
+        Real   fmag;       // force magnitude
+        Real   zeroEnergy; // fmag*zeroEnergyHeight (subtract this from PE)
     };
 
     struct MobilityLinearSpringParameters {
@@ -156,8 +156,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(b >= 0 && a >= 0 && stiffness >= 0. && naturalLength >= 0.);
         }
 
-        int body, axis;
-        Real stiffness, naturalLength;
+        BodyId body;
+        int    axis;
+        Real   stiffness, naturalLength;
     };
 
     struct MobilityLinearDamperParameters {
@@ -170,8 +171,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(b >= 0 && a >= 0 && damping >= 0.);
         }
 
-        int body, axis;
-        Real damping;
+        BodyId body;
+        int    axis;
+        Real   damping;
     };
 
     struct MobilityConstantForceParameters {
@@ -184,8 +186,9 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
             assert(b >= 0 && a >= 0);
         }
 
-        int body, axis;
-        Real force, zeroEnergyQ;
+        BodyId body; 
+        int    axis;
+        Real   force, zeroEnergyQ;
     };
 
     struct GlobalEnergyDrainParameters {

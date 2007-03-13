@@ -549,9 +549,9 @@ public:
     bool isValid() const {return atomId>=0 && chargedAtomTypeId>=0;}
     bool isAttachedToBody() const {return bodyId >= 0;}
 
-    int getBodyId() const {assert(isAttachedToBody()); return bodyId;}
+    BodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
 
-    void attachToBody(int bnum, const Vec3& s) {
+    void attachToBody(BodyId bnum, const Vec3& s) {
         assert(!isAttachedToBody());
         bodyId = bnum;
         station_B = s;
@@ -581,8 +581,8 @@ public:
 
     // After the atom or a containing cluster has been attached to a
     // body, we fill these in.
-    int  bodyId;
-    Vec3 station_B; // atom's station fixed in body bodyId's frame, in nm
+    BodyId bodyId;
+    Vec3   station_B; // atom's station fixed in body bodyId's frame, in nm
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -666,7 +666,7 @@ public:
     bool isTopologicalCacheValid() const   {return topologicalCacheValid;}
     void invalidateTopologicalCache()      {topologicalCacheValid=false;}
 
-    int getBodyId() const {assert(isAttachedToBody()); return bodyId;}
+    BodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
 
     const AtomPlacementSet& getDirectlyContainedAtoms() const {return directAtomPlacements;}
     const AtomPlacementSet& getAllContainedAtoms()      const {return allAtomPlacements;}
@@ -712,11 +712,11 @@ public:
     // Return true if this cluster contains (directly or indirectly) any atom which has already
     // been attached to a body. If so return one of the attached atoms and its body, which can
     // be helpful in error messages.
-    bool containsAnyAtomsAttachedToABody(int& atomId, int& bodyId, 
+    bool containsAnyAtomsAttachedToABody(int& atomId, BodyId& bodyId, 
                                          const DuMMForceFieldSubsystemRep& mm) const;
 
     // Translation is in nm.
-    void attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
+    void attachToBody(BodyId bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm);
 
     // Place an atom in this cluster. To be valid, the atom must not
     // already be
@@ -856,7 +856,7 @@ public:
 
     // After this cluster or a containing cluster has been attached to a
     // body, we can fill these in.
-    int       bodyId;
+    BodyId    bodyId;
     Transform placement_B; // cluster's placement fixed in body bodyId's frame (nm)
 
         // TOPOLOGICAL CACHE ENTRIES
@@ -1090,7 +1090,7 @@ public:
 private:
     void loadElements();
 
-    void ensureBodyEntryExists(int bodyNum) {
+    void ensureBodyEntryExists(BodyId bodyNum) {
         if (bodyNum >= (int)bodies.size())
             bodies.resize(bodyNum+1);
         if (!bodies[bodyNum].isValid()) {
@@ -1699,7 +1699,7 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
     parent.placeCluster(childClusterId, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum, 
+void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, BodyId bodyNum, 
                                                   const Transform& placementInNm) 
 {
     static const char* MethodName = "attachClusterToBody";
@@ -1719,7 +1719,8 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum,
         clusterId, child.name.c_str(), child.getBodyId());
 
         // None of the atoms in the child can be attached to any body.
-    int atomId, bodyId;
+    int    atomId;
+    BodyId bodyId;
     SimTK_APIARGCHECK4_ALWAYS(!child.containsAnyAtomsAttachedToABody(atomId,bodyId,mm), 
         mm.ApiClassName, MethodName,
         "cluster %d('%s') contains atom %d which is already attached to body %d"
@@ -1740,7 +1741,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, int bodyNum,
     bodyCluster.placeCluster(clusterId, placementInNm, mm);
 }
 
-void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, int bodyNum, const Vec3& stationInNm) 
+void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, BodyId bodyNum, const Vec3& stationInNm) 
 {
     static const char* MethodName = "attachAtomToBody";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1967,7 +1968,7 @@ Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(int childCluster
     return cp->placement;
 }
 
-int DuMMForceFieldSubsystem::getAtomBody(int atomId) const {
+BodyId DuMMForceFieldSubsystem::getAtomBody(int atomId) const {
     static const char* MethodName = "getAtomBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
@@ -1985,7 +1986,7 @@ int DuMMForceFieldSubsystem::getAtomBody(int atomId) const {
 }
 
 
-int DuMMForceFieldSubsystem::getClusterBody(int clusterId) const {
+BodyId DuMMForceFieldSubsystem::getClusterBody(int clusterId) const {
     static const char* MethodName = "getClusterBody";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
@@ -2092,7 +2093,7 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
     // Thus bodies need only read access to the main DuMM object, 
     // although we're passign the mutable one in so we can use the
     // same routine (TODO).
-    for (int bnum=0; bnum < (int)bodies.size(); ++bnum) {
+    for (BodyId bnum(0); bnum < (int)bodies.size(); ++bnum) {
         Body& b = mutableThis->bodies[bnum];
         if (!b.isValid())
             continue; // OK for these to be unused.
@@ -2102,9 +2103,9 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
     // Assign body & station to every atom that has been assigned to a body.
     for (int anum=0; anum < (int)atoms.size(); ++anum) {
         Atom& a = mutableThis->atoms[anum];
-        a.bodyId = -1;
+        a.bodyId = BodyId(-1);
     }
-    for (int bnum=0; bnum < (int)bodies.size(); ++bnum) {
+    for (BodyId bnum(0); bnum < (int)bodies.size(); ++bnum) {
         const Body& b = bodies[bnum];
         if (!b.isValid())
             continue;   // Unused body numbers are OK.
@@ -2281,7 +2282,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
     Real&                  pe              = mbs.updPotentialEnergy(s); // kJ
     Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s); // kJ (torque), kJ/nm (force)
 
-    for (int b1=0; b1 < (int)bodies.size(); ++b1) {
+    for (BodyId b1(0); b1 < (int)bodies.size(); ++b1) {
         const Transform&          X_GB1  = matter.getBodyPosition(s,b1);
         const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
@@ -2306,7 +2307,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                     continue; // don't process this bond this time
 
                 const Atom& a2 = atoms[a2num];
-                const int b2 = a2.bodyId;
+                const BodyId b2 = a2.bodyId;
                 assert(b2 != b1);
                 const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
@@ -2339,8 +2340,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
                 const Atom& a2 = atoms[a2num];
                 const Atom& a3 = atoms[a3num];
-                const int b2 = a2.bodyId;
-                const int b3 = a3.bodyId;
+                const BodyId b2 = a2.bodyId;
+                const BodyId b3 = a3.bodyId;
                 assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
@@ -2405,7 +2406,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
             }
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
-            for (int b2=b1+1; b2 < (int)bodies.size(); ++b2) {
+            for (BodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
                 const Transform&          X_GB2  = matter.getBodyPosition(s,b2);
                 const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
@@ -2743,7 +2744,7 @@ void Atom::dump() const {
     /////////////
 
 
-void Cluster::attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm) {
+void Cluster::attachToBody(BodyId bnum, const Transform& X_BR, DuMMForceFieldSubsystemRep& mm) {
     assert(!isAttachedToBody());
     bodyId = bnum;
     placement_B = X_BR;
@@ -2771,7 +2772,7 @@ void Cluster::attachToBody(int bnum, const Transform& X_BR, DuMMForceFieldSubsys
 // Return true if this cluster contains (directly or indirectly) any atom which has already
 // been attached to a body. If so return one of the attached atoms and its body, which can
 // be helpful in error messages.
-bool Cluster::containsAnyAtomsAttachedToABody(int& atomId, int& bodyId, 
+bool Cluster::containsAnyAtomsAttachedToABody(int& atomId, BodyId& bodyId, 
                                               const DuMMForceFieldSubsystemRep& mm) const 
 {
     const AtomPlacementSet& myAtoms   = getAllContainedAtoms();
@@ -2785,7 +2786,8 @@ bool Cluster::containsAnyAtomsAttachedToABody(int& atomId, int& bodyId,
         }
         ++ap;
     }
-    atomId = bodyId = -1;
+    atomId = -1;
+    bodyId = BodyId(-1);
     return false;
 }
 

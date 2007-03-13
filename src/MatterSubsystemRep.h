@@ -61,14 +61,14 @@ public:
     virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
-    virtual int         getParent  (int bodyNum)           const = 0;
-    virtual Array<int>  getChildren(int bodyNum)           const = 0;
+    virtual BodyId         getParent  (BodyId bodyNum)           const = 0;
+    virtual Array<BodyId>  getChildren(BodyId bodyNum)           const = 0;
 
-    virtual const Transform&  getMobilizerFrame(const State&, int bodyNum) const = 0;
-    virtual const Transform&  getMobilizerFrameOnParent(const State&, int bodyNum) const = 0;
+    virtual const Transform&  getMobilizerFrame(const State&, BodyId) const = 0;
+    virtual const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const = 0;
 
-    virtual const Real&       getBodyMass              (const State&, int bodyNum) const = 0;
-    virtual const Vec3&       getBodyCenterOfMassStation(const State&, int bodyNum) const = 0;
+    virtual const Real&       getBodyMass              (const State&, BodyId) const = 0;
+    virtual const Vec3&       getBodyCenterOfMassStation(const State&, BodyId) const = 0;
     virtual const Vector&     getParticleMasses(const State&) const { // TODO
         static Vector v;
         return v;
@@ -77,28 +77,28 @@ public:
         static Vector_<Vec3> v;
         return v;
     }
-    virtual const Transform&  getBodyPosition(const State&, int bodyNum) const = 0;
-    virtual const SpatialVec& getBodyVelocity(const State&, int bodyNum) const = 0;
+    virtual const Transform&  getBodyPosition(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
 
     // These are simple operators for helping force subsystems put their forces in the 
     // right slots.
-    virtual void addInStationForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+    virtual void addInStationForce(const State& s, BodyId bodyB, const Vec3& stationInB, const Vec3& forceInG,
                                    Vector_<SpatialVec>& rigidBodyForces) const = 0;
-    virtual void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+    virtual void addInBodyTorque(const State& s, BodyId, const Vec3& torqueInG, 
                                  Vector_<SpatialVec>& rigidBodyForces) const = 0;
-    virtual void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
+    virtual void addInMobilityForce(const State& s, BodyId, int axis, const Real& r, 
                                     Vector& mobilityForces) const = 0;  
     
-    virtual const Real& getMobilizerQ(const State&, int body, int axis) const = 0;
-    virtual const Real& getMobilizerU(const State&, int body, int axis) const = 0;
+    virtual const Real& getMobilizerQ(const State&, BodyId, int axis) const = 0;
+    virtual const Real& getMobilizerU(const State&, BodyId, int axis) const = 0;
 
-    virtual void setMobilizerQ(State&, int body, int axis, const Real&) const = 0;
-    virtual void setMobilizerU(State&, int body, int axis, const Real&) const = 0;
+    virtual void setMobilizerQ(State&, BodyId, int axis, const Real&) const = 0;
+    virtual void setMobilizerU(State&, BodyId, int axis, const Real&) const = 0;
 
-    virtual const Transform& getMobilizerPosition(const State&, int body) const = 0;
-    virtual const SpatialVec& getMobilizerVelocity(const State&, int body) const = 0;
-    virtual void setMobilizerPosition(State&, int body, const Transform& X_JbJ) const = 0;
-    virtual void setMobilizerVelocity(State&, int body, const SpatialVec& V_JbJ) const = 0;
+    virtual const Transform& getMobilizerPosition(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
+    virtual void setMobilizerPosition(State&, BodyId, const Transform& X_JbJ) const = 0;
+    virtual void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_JbJ) const = 0;
 
     virtual Real calcQConstraintNorm(const State&) const {
         return 0;

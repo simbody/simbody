@@ -78,27 +78,27 @@ int MatterSubsystem::getNMobilities() const {
 int MatterSubsystem::getNConstraints() const {
     return getRep().getNConstraints();
 }
-int MatterSubsystem::getParent(int bodyNum) const { 
+BodyId MatterSubsystem::getParent(BodyId bodyNum) const { 
     return getRep().getParent(bodyNum); 
 }
-Array<int> 
-MatterSubsystem::getChildren(int bodyNum) const { 
+Array<BodyId> 
+MatterSubsystem::getChildren(BodyId bodyNum) const { 
     return getRep().getChildren(bodyNum); 
 }
 const Transform&  
-MatterSubsystem::getMobilizerFrame(const State& s, int bodyNum) const { 
+MatterSubsystem::getMobilizerFrame(const State& s, BodyId bodyNum) const { 
     return getRep().getMobilizerFrame(s, bodyNum); 
 }
 const Transform& 
-MatterSubsystem::getMobilizerFrameOnParent(const State& s, int bodyNum) const { 
+MatterSubsystem::getMobilizerFrameOnParent(const State& s, BodyId bodyNum) const { 
     return getRep().getMobilizerFrameOnParent(s, bodyNum); 
 }
 const Real&  
-MatterSubsystem::getBodyMass(const State& s, int bodyNum) const { 
+MatterSubsystem::getBodyMass(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyMass(s,bodyNum); 
 }
 const Vec3&  
-MatterSubsystem::getBodyCenterOfMassStation(const State& s, int bodyNum) const { 
+MatterSubsystem::getBodyCenterOfMassStation(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyCenterOfMassStation(s,bodyNum); 
 }
 
@@ -113,54 +113,54 @@ MatterSubsystem::getParticleLocations(const State& s) const {
 }
 
 const Transform& 
-MatterSubsystem::getBodyPosition(const State& s, int bodyNum) const { 
+MatterSubsystem::getBodyPosition(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyPosition(s,bodyNum); 
 }
 const SpatialVec& 
-MatterSubsystem::getBodyVelocity(const State& s, int bodyNum) const { 
+MatterSubsystem::getBodyVelocity(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyVelocity(s,bodyNum); 
 }
 
-void MatterSubsystem::addInStationForce(const State& s, int body, const Vec3& stationInB, 
+void MatterSubsystem::addInStationForce(const State& s, BodyId body, const Vec3& stationInB, 
                                         const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const {
     getRep().addInStationForce(s,body,stationInB,forceInG,bodyForces); 
 }
-void MatterSubsystem::addInBodyTorque(const State& s, int body, const Vec3& torqueInG,
+void MatterSubsystem::addInBodyTorque(const State& s, BodyId body, const Vec3& torqueInG,
                                       Vector_<SpatialVec>& bodyForces) const {
     getRep().addInBodyTorque(s,body,torqueInG,bodyForces); 
 }
-void MatterSubsystem::addInMobilityForce(const State& s, int body, int axis, const Real& d,
+void MatterSubsystem::addInMobilityForce(const State& s, BodyId body, int axis, const Real& d,
                                          Vector& mobilityForces) const { 
     getRep().addInMobilityForce(s,body,axis,d,mobilityForces); 
 }
 
 const Real&
-MatterSubsystem::getMobilizerQ(const State& s, int body, int axis) const { 
+MatterSubsystem::getMobilizerQ(const State& s, BodyId body, int axis) const { 
     return getRep().getMobilizerQ(s,body,axis); 
 }
 const Real&
-MatterSubsystem::getMobilizerU(const State& s, int body, int axis) const { 
+MatterSubsystem::getMobilizerU(const State& s, BodyId body, int axis) const { 
     return getRep().getMobilizerU(s,body,axis); 
 }
 
-void MatterSubsystem::setMobilizerQ(State& s, int body, int axis, const Real& q) const { 
+void MatterSubsystem::setMobilizerQ(State& s, BodyId body, int axis, const Real& q) const { 
     getRep().setMobilizerQ(s,body,axis,q); 
 }
-void MatterSubsystem::setMobilizerU(State& s, int body, int axis, const Real& u) const { 
+void MatterSubsystem::setMobilizerU(State& s, BodyId body, int axis, const Real& u) const { 
     getRep().setMobilizerU(s,body,axis,u); 
 }
 
 
-const Transform& MatterSubsystem::getMobilizerPosition(const State& s, int body) const { 
+const Transform& MatterSubsystem::getMobilizerPosition(const State& s, BodyId body) const { 
     return getRep().getMobilizerPosition(s,body); 
 }
-const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, int body) const { 
+const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, BodyId body) const { 
     return getRep().getMobilizerVelocity(s,body); 
 }
-void MatterSubsystem::setMobilizerPosition(State& s, int body, const Transform& X_JbJ) const { 
+void MatterSubsystem::setMobilizerPosition(State& s, BodyId body, const Transform& X_JbJ) const { 
     getRep().setMobilizerPosition(s,body,X_JbJ); 
 }
-void MatterSubsystem::setMobilizerVelocity(State& s, int body, const SpatialVec& V_JbJ) const { 
+void MatterSubsystem::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_JbJ) const { 
     getRep().setMobilizerVelocity(s,body,V_JbJ); 
 }
 

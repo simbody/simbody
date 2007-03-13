@@ -55,7 +55,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
             assert(radius > 0 && stiffness >= 0 && dissipation >= 0);
         }
 
-        int  body;
+        BodyId body;
         Vec3 center;    // in body frame
         Real radius, stiffness, dissipation;    // r,k,c from H&C
     };
@@ -72,7 +72,7 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
             assert(stiffness >= 0 && dissipation >= 0);
         }
 
-        int  body;
+        BodyId body;
         UnitVec3 normal;    // in body frame
         Real height, stiffness, dissipation;
     };

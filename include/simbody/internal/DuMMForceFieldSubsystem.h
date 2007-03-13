@@ -85,14 +85,14 @@ public:
     // Note that these are atom Id numbers, not atom classes or types.
     int  addBond(int atom1Id, int atom2Id);
 
-    int  getNAtoms() const;
-    Real getAtomMass(int atomId) const;
-    int  getAtomElement(int atomId) const;
-    Real getAtomRadius(int atomId) const;
-    Vec3 getAtomStationOnBody(int atomId) const;
-    Vec3 getAtomStationInCluster(int atomId, int clusterId) const;
-    int  getAtomBody(int atomId) const;
-    Vec3 getAtomDefaultColor(int atomId) const;
+    int    getNAtoms() const;
+    Real   getAtomMass(int atomId) const;
+    int    getAtomElement(int atomId) const;
+    Real   getAtomRadius(int atomId) const;
+    Vec3   getAtomStationOnBody(int atomId) const;
+    Vec3   getAtomStationInCluster(int atomId, int clusterId) const;
+    BodyId getAtomBody(int atomId) const;
+    Vec3   getAtomDefaultColor(int atomId) const;
 
     int  getNBonds() const;
 
@@ -121,14 +121,14 @@ public:
     // frame or transformed to the indicated frame.
     MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
 
-    int       getClusterBody(int clusterId) const;
+    BodyId    getClusterBody(int clusterId) const;
     Transform getClusterPlacementOnBody(int clusterId) const;
     Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
 
         // BODIES
 
-    void attachClusterToBody(int clusterId, int body, const Transform& = Transform());
-    void attachAtomToBody   (int atomId,    int body, const Vec3& station = Vec3(0));
+    void attachClusterToBody(int clusterId, BodyId body, const Transform& = Transform());
+    void attachAtomToBody   (int atomId,    BodyId body, const Vec3& station = Vec3(0));
 
         // DEFINE FORCE FIELD PARAMETERS
     

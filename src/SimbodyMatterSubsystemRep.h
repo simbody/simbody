@@ -144,42 +144,42 @@ public:
     int getNParticles()   const {return 0;} // TODO
     int getNMobilities()  const {return getTotalDOF();}
     int getNConstraints() const {return constraintNodes.size();}
-    int getParent(int bodyNum) const;
-    Array<int> getChildren(int bodyNum) const;
+    BodyId getParent(BodyId) const;
+    Array<BodyId> getChildren(BodyId) const;
 
-    const Transform&  getMobilizerFrame        (const State&, int body) const;
-    const Transform&  getMobilizerFrameOnParent(const State&, int body) const;
+    const Transform&  getMobilizerFrame        (const State&, BodyId) const;
+    const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const;
 
-    const Real&       getBodyMass               (const State&, int body) const;
-    const Vec3&       getBodyCenterOfMassStation(const State&, int body) const;
+    const Real&       getBodyMass               (const State&, BodyId) const;
+    const Vec3&       getBodyCenterOfMassStation(const State&, BodyId) const;
 
-    const Transform&  getBodyPosition(const State&, int body) const;
-    const SpatialVec& getBodyVelocity(const State&, int body) const;
+    const Transform&  getBodyPosition(const State&, BodyId) const;
+    const SpatialVec& getBodyVelocity(const State&, BodyId) const;
 
     // velocity dependent
-    const SpatialVec& getCoriolisAcceleration(const State&, int body) const;
-    const SpatialVec& getTotalCoriolisAcceleration(const State&, int body) const;
-    const SpatialVec& getGyroscopicForce(const State&, int body) const;
-    const SpatialVec& getCentrifugalForces(const State&, int body) const;
+    const SpatialVec& getCoriolisAcceleration(const State&, BodyId) const;
+    const SpatialVec& getTotalCoriolisAcceleration(const State&, BodyId) const;
+    const SpatialVec& getGyroscopicForce(const State&, BodyId) const;
+    const SpatialVec& getCentrifugalForces(const State&, BodyId) const;
 
 
-    void addInStationForce(const State& s, int body, const Vec3& stationInB, const Vec3& forceInG,
+    void addInStationForce(const State& s, BodyId bodyB, const Vec3& stationInB, const Vec3& forceInG,
                            Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInBodyTorque(const State& s, int body, const Vec3& torqueInG, 
+    void addInBodyTorque(const State& s, BodyId, const Vec3& torqueInG, 
                                  Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInMobilityForce(const State& s, int body, int axis, const Real& r, 
+    void addInMobilityForce(const State& s, BodyId, int axis, const Real& r, 
                                     Vector& mobilityForces) const;  
 
-    const Real& getMobilizerQ(const State& s, int body, int axis) const;
-    const Real& getMobilizerU(const State& s, int body, int axis) const;
+    const Real& getMobilizerQ(const State& s, BodyId, int axis) const;
+    const Real& getMobilizerU(const State& s, BodyId, int axis) const;
 
-    void setMobilizerQ(State& s, int body, int axis, const Real& r) const;
-    void setMobilizerU(State& s, int body, int axis, const Real& r) const;
+    void setMobilizerQ(State& s, BodyId, int axis, const Real& r) const;
+    void setMobilizerU(State& s, BodyId, int axis, const Real& r) const;
 
-    const Transform& getMobilizerPosition(const State&, int body) const;
-    const SpatialVec& getMobilizerVelocity(const State&, int body) const;
-    void setMobilizerPosition(State&, int body, const Transform& X_MbM) const;
-    void setMobilizerVelocity(State&, int body, const SpatialVec& V_MbM) const;
+    const Transform& getMobilizerPosition(const State&, BodyId) const;
+    const SpatialVec& getMobilizerVelocity(const State&, BodyId) const;
+    void setMobilizerPosition(State&, BodyId, const Transform& X_MbM) const;
+    void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_MbM) const;
 
     // TODO: this is unweighted RMS norm
     Real calcQConstraintNorm(const State& s) const {
@@ -293,34 +293,34 @@ public:
     int getNTopologicalVelocityConstraintEquations()     const {assert(built); return nextUErrSlot;}
     int getNTopologicalAccelerationConstraintEquations() const {assert(built); return nextMultSlot;}
 
-    int getQIndex(int body) const;
-    int getQAlloc(int body) const;
-    int getUIndex(int body) const;
-    int getDOF   (int body) const;
+    int getQIndex(BodyId) const;
+    int getQAlloc(BodyId) const;
+    int getUIndex(BodyId) const;
+    int getDOF   (BodyId) const;
 
     // Modeling info.
 
     void setUseEulerAngles(State& s, bool useAngles) const;
-    void setMobilizerIsPrescribed(State& s, int body, bool prescribe) const;
+    void setMobilizerIsPrescribed(State& s, BodyId, bool prescribe) const;
     void setConstraintIsEnabled(State& s, int constraint, bool enable) const;
     bool getUseEulerAngles(const State& s) const;
-    bool isMobilizerPrescribed(const State& s, int body) const;
+    bool isMobilizerPrescribed(const State& s, BodyId) const;
     bool isConstraintEnabled(const State& s, int constraint) const;
 
         // CALLABLE AFTER realizeModel()
 
     int  getNQuaternionsInUse(const State&) const;
-    bool isUsingQuaternion(const State&, int body) const;
-    int  getQuaternionIndex(const State&, int body) const; // -1 if none
+    bool isUsingQuaternion(const State&, BodyId) const;
+    int  getQuaternionIndex(const State&, BodyId) const; // -1 if none
 
     const Vector& getAppliedMobilityForces(const State&) const;
     const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
     // Call after realizeDynamics()
-    const SpatialMat& getArticulatedBodyInertia(const State& s, int body) const;
+    const SpatialMat& getArticulatedBodyInertia(const State& s, BodyId) const;
 
     // Call after realizeReactions()
-    const SpatialVec& getBodyAcceleration(const State& s, int body) const;
+    const SpatialVec& getBodyAcceleration(const State& s, BodyId) const;
 
     // Dynamics -- calculate accelerations and internal forces from 
     // forces and prescribed accelerations supplied in the State.
