@@ -103,7 +103,7 @@ BodyId SimbodyMatterSubsystem::addFreeParticle (const Real& mass, BodyId parent)
     return addRigidBody(MassProperties(mass,Vec3(0),Inertia()), Transform(), parent, Transform(), Mobilizer::Cartesian);
 }
 
-int SimbodyMatterSubsystem::addConstantDistanceConstraint
+ConstraintId SimbodyMatterSubsystem::addConstantDistanceConstraint
     (BodyId parent, const Vec3& stationInP,
      BodyId child,  const Vec3& stationInC,
      const Real& distance)
@@ -114,7 +114,7 @@ int SimbodyMatterSubsystem::addConstantDistanceConstraint
        distance);
 }
 
-int SimbodyMatterSubsystem::addCoincidentStationsConstraint
+ConstraintId SimbodyMatterSubsystem::addCoincidentStationsConstraint
     (BodyId parent, const Vec3& stationInP,
      BodyId child,  const Vec3& stationInC)
 {
@@ -123,7 +123,7 @@ int SimbodyMatterSubsystem::addCoincidentStationsConstraint
        getRep().getRigidBodyNode(child),  stationInC);
 }
 
-int SimbodyMatterSubsystem::addWeldConstraint
+ConstraintId SimbodyMatterSubsystem::addWeldConstraint
     (BodyId parent, const Transform& frameInP,
      BodyId child,  const Transform& frameInC)
 {

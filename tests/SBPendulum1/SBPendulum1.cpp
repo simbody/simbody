@@ -188,12 +188,12 @@ try {
                         //Mobilizer(Mobilizer::Ball, false),
                         //Mobilizer(Mobilizer::Free, false));
 */
-    //int theConstraint =
+    //ConstraintId theConstraint =
     //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
     //                                       theBody, Vec3(0,0,0),
     //                                       L/2+std::sqrt(2.));
  
-    int ballConstraint =
+    ConstraintId ballConstraint =
         pend.addCoincidentStationsConstraint(GroundId, Transform().T(),
                                              aPendulum, jointFrame.T()); 
 /*

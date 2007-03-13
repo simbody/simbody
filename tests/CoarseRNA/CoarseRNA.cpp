@@ -71,7 +71,7 @@ public:
         end2 = makeChain(GroundId, Vec3(20,0,0), nsegs, shouldFlop);
 
         if (true) {
-            int theConstraint2 =
+            ConstraintId theConstraint2 =
                addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
                                              end2, Vec3(0, -HalfHeight,0), 10);
         }
@@ -98,7 +98,7 @@ private:
     BodyId makeChain(BodyId startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
         BodyId baseBody = startBody;
         Vec3 origin = startOrigin;
-        BodyId lastDup(-1);
+        BodyId lastDup;
         for (int seg=0; seg < nSegs; ++seg) {
             BodyId left1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
@@ -136,7 +136,7 @@ private:
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {
-                int theConstraint =
+                ConstraintId theConstraint =
                     addCoincidentStationsConstraint(left2, Vec3(0, -ConnectorHalfHeight, 0),
                                                     dup, Vec3(DuplexRadius, HalfHeight, 0));
                 //int theConstraint =

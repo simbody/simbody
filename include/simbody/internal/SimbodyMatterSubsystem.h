@@ -148,21 +148,21 @@ public:
     /// significantly greater than 0 so that this can be implemented
     /// as a single constraint force acting along the instantaneous
     /// line between the stations.
-    int addConstantDistanceConstraint(BodyId parent, const Vec3& stationInP,
-                                      BodyId child,  const Vec3& stationInC,
-                                      const Real& distance);
+    ConstraintId addConstantDistanceConstraint(BodyId parent, const Vec3& stationInP,
+                                               BodyId child,  const Vec3& stationInC,
+                                               const Real& distance);
 
     /// Constrain stations on each of two distinct bodies to remain
     /// superimposed. This restricts all translation but no rotation
     /// so adds three constraint equations.
-    int addCoincidentStationsConstraint(BodyId parent, const Vec3& stationInP,
-                                        BodyId child,  const Vec3& stationInC);
+    ConstraintId addCoincidentStationsConstraint(BodyId parent, const Vec3& stationInP,
+                                                 BodyId child,  const Vec3& stationInC);
 
     /// Constrain frames fixed to each of two distinct bodies to
     /// remain superimposed. Parent and child here mean nothing!
     /// This adds six constraint equations.
-    int addWeldConstraint(BodyId parent, const Transform& frameInP,
-                          BodyId child,  const Transform& frameInC);
+    ConstraintId addWeldConstraint(BodyId parent, const Transform& frameInP,
+                                   BodyId child,  const Transform& frameInC);
 
     /// Topology and default values are frozen after this call. If you don't
     /// call it then it will be called automatically by realizeTopology().

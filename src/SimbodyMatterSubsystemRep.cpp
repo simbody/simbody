@@ -114,7 +114,7 @@ void SimbodyMatterSubsystemRep::addGroundNode() {
     n->setNodeNum(0);
 }
 
-int SimbodyMatterSubsystemRep::addConstantDistanceConstraint(
+ConstraintId SimbodyMatterSubsystemRep::addConstantDistanceConstraint(
     const RigidBodyNode& parent, const Vec3& stationInP,
     const RigidBodyNode& child,  const Vec3& stationInC,
     const Real& distance)
@@ -123,7 +123,7 @@ int SimbodyMatterSubsystemRep::addConstantDistanceConstraint(
     return addConstraintNode(cn);
 }
 
-int SimbodyMatterSubsystemRep::addCoincidentStationsConstraint(
+ConstraintId SimbodyMatterSubsystemRep::addCoincidentStationsConstraint(
     const RigidBodyNode& parent, const Vec3& stationInP,
     const RigidBodyNode& child,  const Vec3& stationInC)
 {
@@ -132,7 +132,7 @@ int SimbodyMatterSubsystemRep::addCoincidentStationsConstraint(
 }
 
 
-int SimbodyMatterSubsystemRep::addWeldConstraint(
+ConstraintId SimbodyMatterSubsystemRep::addWeldConstraint(
     const RigidBodyNode& parent, const Transform& frameInP,
     const RigidBodyNode& child,  const Transform& frameInC)
 {
@@ -143,11 +143,11 @@ int SimbodyMatterSubsystemRep::addWeldConstraint(
 // Store an already-allocated abstract constraint in the RigidBody tree, assigning
 // it a constraint number which is returned. The SimbodyMatterSubsystemRep takes over ownership
 // of the ConstraintNode; don't use the pointer any more!
-int SimbodyMatterSubsystemRep::addConstraintNode(ConstraintNode*& cn) {
+ConstraintId SimbodyMatterSubsystemRep::addConstraintNode(ConstraintNode*& cn) {
     cn->setConstraintNum(constraintNodes.size());
     constraintNodes.push_back(cn);
     cn = 0; // it's all mine now!
-    return constraintNodes.size()-1;
+    return ConstraintId(constraintNodes.size()-1);
 }
 
 // Add a distance constraint and assign it to use a particular slot in the

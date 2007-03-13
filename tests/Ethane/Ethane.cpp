@@ -378,17 +378,17 @@ try
 
     /*
 
-    const OneDofEthane ethane1(allowStretch, Ground, mbs);
+    const OneDofEthane ethane1(allowStretch, GroundId, mbs);
     const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), mbs);
     const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), mbs);
     const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), mbs);
-    const RigidEthane  rethane1(0, Ground, mbs);
-    const RigidEthane  rethane2(60, Ground, mbs);
+    const RigidEthane  rethane1(0, GroundId, mbs);
+    const RigidEthane  rethane2(60, GroundId, mbs);
     */
     const bool allowStretch = false;
     const OneDofEthane ethane1(allowStretch, GroundId, mbs);
     const RigidEthane  rethane1(0, GroundId, mbs);
-    //const RigidEthane  rethane2(60, Ground, mbs);
+    //const RigidEthane  rethane2(60, GroundId, mbs);
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
 

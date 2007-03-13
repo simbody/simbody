@@ -33,6 +33,7 @@
 
 #include <cassert>
 #include <vector>
+#include <limits>
 
 // TODO: move to SimTKcommon
 #define SimTK_PIMPL_DOWNCAST(Derived, Parent)           \
@@ -80,26 +81,55 @@ extern "C" {
 namespace SimTK {
 
 /**
- * This is just a type-safe non-negative int, with "-1" used as a "NaN".
- * For most uses it will behave like an int, and it has an implicit
- * conversion *to* int. Importantly though, it has no implicit conversion
- * *from* int so you can't pass some other kind of number as 
- * a BodyId.
+ * This is just a type-safe non-negative int, augmented with a "NaN" 
+ * value called InvalidBodyId. For most uses it will behave like an int,
+ * and it has an implicit conversion *to* int. Importantly though,
+ * it has no implicit conversion *from* int so you can't pass some
+ * other kind of number as  a BodyId.
+ *
+ * BodyId 0 is Ground, and we define a constant GroundId set to BodyId(0).
  */
 class BodyId {
     int id;
 public:
-    BodyId() : id(-1) { }
-    explicit BodyId(int i) : id(i) {
-        assert(i>=0 || i==-1);
-    }
+    inline BodyId();
+    inline explicit BodyId(int i);
     operator int() const {return id;}
     const BodyId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
     BodyId operator++(int)     {assert(id>=0); ++id; return BodyId(id-1);}  // postfix
     const BodyId& operator--() {assert(id>=1); --id;return *this;}          // prefix
     BodyId operator--(int)     {assert(id>=1); --id; return BodyId(id+1);}  // postfix
 };
+static const BodyId InvalidBodyId(-1111111111);
 static const BodyId GroundId(0);
+inline BodyId::BodyId() : id(InvalidBodyId) { }
+inline BodyId::BodyId(int i) : id(i) {
+    assert(i>=0 || i==InvalidBodyId);
+}
+
+/**
+ * This is just a type-safe non-negative int, augmented with a "NaN" 
+ * value called InvalidConstraintId. For most uses it will behave like an int,
+ * and it has an implicit conversion *to* int. Importantly though,
+ * it has no implicit conversion *from* int so you can't pass some
+ * other kind of number as  a ConstraintId.
+ */
+class ConstraintId {
+    int id;
+public:
+    inline ConstraintId();
+    inline explicit ConstraintId(int i);
+    operator int() const {return id;}
+    const ConstraintId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
+    ConstraintId operator++(int)     {assert(id>=0); ++id; return ConstraintId(id-1);}  // postfix
+    const ConstraintId& operator--() {assert(id>=1); --id;return *this;}          // prefix
+    ConstraintId operator--(int)     {assert(id>=1); --id; return ConstraintId(id+1);}  // postfix
+};
+static const ConstraintId InvalidConstraintId(-1111111111);
+inline ConstraintId::ConstraintId() : id(InvalidConstraintId) { }
+inline ConstraintId::ConstraintId(int i) : id(i) {
+    assert(i>=0 || i==InvalidConstraintId);
+}
 
 // TODO: this should be upgraded to a class handle with a hidden implementation
 // to allow for fancier Mobilizers, including user-defined.

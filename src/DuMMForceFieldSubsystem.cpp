@@ -541,9 +541,9 @@ typedef std::set<ClusterPlacement>  ClusterPlacementSet;
 class Atom {
 public:
     Atom() 
-      : atomId(-1), chargedAtomTypeId(-1), bodyId(-1) {
+      : atomId(-1), chargedAtomTypeId(-1) {
     }
-    Atom(int t, int aId) : atomId(aId), chargedAtomTypeId(t), bodyId(-1) {
+    Atom(int t, int aId) : atomId(aId), chargedAtomTypeId(t) {
         assert(isValid());
     }
     bool isValid() const {return atomId>=0 && chargedAtomTypeId>=0;}
@@ -653,9 +653,9 @@ public:
 //
 class Cluster {
 public:
-    Cluster() : clusterId(-1), topologicalCacheValid(false), bodyId(-1) { }
+    Cluster() : clusterId(-1), topologicalCacheValid(false) { }
     Cluster(const char* nm)
-      : clusterId(-1), name(nm), topologicalCacheValid(false), bodyId(-1) {
+      : clusterId(-1), name(nm), topologicalCacheValid(false) {
         // not valid yet -- still need Id assigned
     }
 
@@ -2103,7 +2103,7 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
     // Assign body & station to every atom that has been assigned to a body.
     for (int anum=0; anum < (int)atoms.size(); ++anum) {
         Atom& a = mutableThis->atoms[anum];
-        a.bodyId = BodyId(-1);
+        a.bodyId = InvalidBodyId;
     }
     for (BodyId bnum(0); bnum < (int)bodies.size(); ++bnum) {
         const Body& b = bodies[bnum];
@@ -2113,7 +2113,7 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
         for (int i=0; i < (int)b.allAtoms.size(); ++i) {
             const AtomPlacement& ap = b.allAtoms[i]; assert(ap.isValid());
             Atom& a = mutableThis->atoms[ap.atomId]; assert(a.isValid());
-            assert(a.bodyId == -1); // Can only be on one body!!
+            assert(a.bodyId == InvalidBodyId); // Can only be on one body!!
             a.bodyId    = bnum;
             a.station_B = ap.station;
         }
@@ -2787,7 +2787,7 @@ bool Cluster::containsAnyAtomsAttachedToABody(int& atomId, BodyId& bodyId,
         ++ap;
     }
     atomId = -1;
-    bodyId = BodyId(-1);
+    bodyId = InvalidBodyId;
     return false;
 }
 

@@ -110,21 +110,21 @@ public:
     // significantly greater than 0 so that this can be implemented as a
     // single constraint force acting along the instantaneous line between
     // the stations. Parent and child distinction here is meaningless.
-    int addConstantDistanceConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
-                                      const RigidBodyNode& child,  const Vec3& stationInC,
-                                      const Real& distance);
+    ConstraintId addConstantDistanceConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
+                                               const RigidBodyNode& child,  const Vec3& stationInC,
+                                               const Real& distance);
 
     // Constrain stations on each of two distinct bodies to remain superimposed.
     // This restricts all translation but no rotation so adds three constraint
     // equations. Parent and child distinction here is meaningless.
-    int addCoincidentStationsConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
-                                        const RigidBodyNode& child,  const Vec3& stationInC);
+    ConstraintId addCoincidentStationsConstraint(const RigidBodyNode& parent, const Vec3& stationInP,
+                                                 const RigidBodyNode& child,  const Vec3& stationInC);
 
     // Constrain frames fixed to each of two distinct bodies to remain
     // superimposed. Parent and child here mean nothing! This adds six
     // constraint equations.
-    int addWeldConstraint(const RigidBodyNode& parent, const Transform& frameInP,
-                          const RigidBodyNode& child,  const Transform& frameInC);
+    ConstraintId addWeldConstraint(const RigidBodyNode& parent, const Transform& frameInP,
+                                   const RigidBodyNode& child,  const Transform& frameInC);
 
     // Call this after all bodies & constraints have been added.
     void endConstruction(); // will set built==true
@@ -524,7 +524,7 @@ public:
 
 private:
     void addGroundNode();
-    int addConstraintNode(ConstraintNode*&);
+    ConstraintId addConstraintNode(ConstraintNode*&);
 
     // Given a forces in the state, calculate accelerations ignoring
     // constraints, and leave the results in the state. 

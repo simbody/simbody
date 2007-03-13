@@ -120,7 +120,7 @@ private:
     std::vector<PerBodyInfo> bodies;
 
     struct PerDynamicGeomInfo {
-        PerDynamicGeomInfo() : actor(0), body1(-1), body2(-1) { }
+        PerDynamicGeomInfo() : actor(0) { }
         vtkActor*      actor;
         DecorativeLine line;
         BodyId  body1, body2;
