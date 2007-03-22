@@ -276,6 +276,18 @@ try {
         << (mp.calcTransformedInertia(X_01).toMat33()-I123.toMat33()).norm()/scale
         << endl;
 
+
+    Rotation R_AB; R_AB.setToBodyFixed321(Vec3(.31,.17,.1));
+    Rotation R_BC; R_BC.setToBodyFixed321(Vec3(-123.3, 41.1, 14));
+
+    Rotation Rtmp;
+    cout << "R_AB*R_BC=" << R_AB*R_BC;
+    Rtmp = R_AB;
+    cout << "R_AB*=R_BC=" << (Rtmp*=R_BC);
+    cout << "R_AB*~R_BC=" << R_AB*~R_BC;
+    cout << "R_AB/R_BC=" << R_AB/R_BC;
+    Rtmp=R_AB;
+    cout << "R_AB/=R_BC=" << (Rtmp/=R_BC);
     return 0;
 }
 catch(const Exception::Base& e) {

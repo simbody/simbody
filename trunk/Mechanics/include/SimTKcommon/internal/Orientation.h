@@ -402,6 +402,12 @@ public:
     typedef UnitRow<BaseMat::ColSpacing> RowType;
 
     Rotation() : BaseMat(1.) { }    // default is identity
+    // default copy constructor, copy assignment and destructor
+
+    // Like copy constructor and copy assign but for inverse rotation;
+    // constructor is also implicit conversion from InverseRotation to Rotation.
+    inline Rotation(const InverseRotation&);
+    inline Rotation& operator=(const InverseRotation&);
 
     // These static methods are like constructors with friendlier names.
 
@@ -736,6 +742,11 @@ public:
     const ColType& y() const {return col(1);}
     const ColType& z() const {return col(2);}
 
+    inline Rotation& operator*=(const Rotation& R);
+    inline Rotation& operator/=(const Rotation& R);
+    inline Rotation& operator*=(const InverseRotation&);
+    inline Rotation& operator/=(const InverseRotation&);
+
     const InverseRotation& operator~() const {return invert();}
     InverseRotation&       operator~()       {return updInvert();}
 
@@ -770,8 +781,6 @@ private:
       : BaseMat(xx,xy,xz, yx,yy,yz, zx,zy,zz)
     {
     }
-
-    friend Rotation operator*(const Rotation&,const Rotation&);
 };
 
 class InverseRotation : public Mat33::TransposeType {
@@ -787,11 +796,6 @@ public:
     InverseRotation(const InverseRotation& R) : BaseMat(R) { }
     InverseRotation& operator=(const InverseRotation& R) {
         BaseMat::operator=(R.asMat33()); return *this;
-    }
-
-    // Implicit conversion to Rotation.
-    operator Rotation() const {
-        return Rotation::trustMe(asMat33());
     }
 
     const Rotation& invert() const {
@@ -851,25 +855,39 @@ operator*(const UnitRow<S>& r, const InverseRotation& R) {
     return UnitRow<1>(r.asRow3(), R.asMat33(), true);
 }
 
-inline Rotation
-operator*(const Rotation& R1, const Rotation& R2) {
-    return Rotation::trustMe(R1.asMat33()*R2.asMat33());
+inline Rotation::Rotation(const InverseRotation& R)
+  : Mat33(R.asMat33()) { 
+}
+inline Rotation& Rotation::operator=(const InverseRotation& R) {
+    static_cast<BaseMat&>(*this) = R.asMat33();
 }
 
-inline Rotation
-operator*(const Rotation& R1, const InverseRotation& R2) {
-    return Rotation::trustMe(R1.asMat33()*R2.asMat33());
+inline Rotation& Rotation::operator*=(const Rotation& R) {
+    static_cast<BaseMat&>(*this) *= R.asMat33();
+    return *this;
+}
+inline Rotation& Rotation::operator/=(const Rotation& R) {
+    static_cast<BaseMat&>(*this) *= (~R).asMat33();
+    return *this;
+}
+inline Rotation& Rotation::operator*=(const InverseRotation& R) {
+    static_cast<BaseMat&>(*this) *= R.asMat33();
+    return *this;
+}
+inline Rotation& Rotation::operator/=(const InverseRotation& R) {
+    static_cast<BaseMat&>(*this) *= (~R).asMat33();
+    return *this;
 }
 
-inline Rotation
-operator*(const InverseRotation& R1, const Rotation& R2) {
-    return Rotation::trustMe(R1.asMat33()*R2.asMat33());
-}
+inline Rotation operator*(const Rotation&        R1, const Rotation&        R2) {return Rotation(R1)*=R2;}
+inline Rotation operator*(const Rotation&        R1, const InverseRotation& R2) {return Rotation(R1)*=R2;}
+inline Rotation operator*(const InverseRotation& R1, const Rotation&        R2) {return Rotation(R1)*=R2;}
+inline Rotation operator*(const InverseRotation& R1, const InverseRotation& R2) {return Rotation(R1)*=R2;}
 
-inline Rotation
-operator*(const InverseRotation& R1, const InverseRotation& R2) {
-    return Rotation::trustMe(R1.asMat33()*R2.asMat33());
-}
+inline Rotation operator/(const Rotation&        R1, const Rotation&        R2) {return Rotation(R1)/=R2;}
+inline Rotation operator/(const Rotation&        R1, const InverseRotation& R2) {return Rotation(R1)/=R2;}
+inline Rotation operator/(const InverseRotation& R1, const Rotation&        R2) {return Rotation(R1)/=R2;}
+inline Rotation operator/(const InverseRotation& R1, const InverseRotation& R2) {return Rotation(R1)/=R2;}
 
 /**
  * This class represents the rotate-and-shift transform which gives the 
