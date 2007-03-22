@@ -256,14 +256,14 @@ public:
     /// aligned with F but has origin CF (an inertia like that is called a "central
     /// inertia". I' = I - Icom where Icom is the inertia of a fictitious
     /// point mass of mass mtot located at CF (measured in F) about OF.
-    inline Inertia shiftToCOM(const Vec3& CF, const Real& mtot) const;
+    inline Inertia shiftToMassCenter(const Vec3& CF, const Real& mtot) const;
 
     /// Assuming that the current inertia I is a central inertia (that is, it is
     /// inertia about the body center of mass CF), shift it to some other point p
     /// measured from the center of mass. This produces a new inertia I' about
     /// the point p given by I' = I + Ip where Ip is the inertia of a fictitious
     /// point mass of mass mtot (the total body mass) located at p, about CF.
-    inline Inertia shiftFromCOM(const Vec3& p, const Real& mtot) const;
+    inline Inertia shiftFromMassCenter(const Vec3& p, const Real& mtot) const;
 
     /// Re-express this inertia from frame F to frame B, given the orientation
     /// of B in F. This is a similarity transform since rotation matrices are
@@ -290,7 +290,7 @@ public:
     // by the actual mass to scale these properly.
     static Inertia pointMass() {return Inertia(0.);}
 
-    // This is an exception -- the COM will be at p.
+    // This is an exception -- the mass center will be at p.
     static Inertia pointMassAt(const Vec3& p) {
         const Real& x = p[0]; const Real xx=x*x;
         const Real& y = p[1]; const Real yy=y*y;
@@ -375,10 +375,10 @@ inline Vec3 operator*(const Inertia& i, const Vec3& w) {
 inline Inertia operator/(const Inertia& i, const Real& r) {
     return Inertia(i) /= r;
 }
-inline Inertia Inertia::shiftToCOM(const Vec3& CF, const Real& mtot) const {
+inline Inertia Inertia::shiftToMassCenter(const Vec3& CF, const Real& mtot) const {
     return *this - Inertia(CF, mtot);
 }
-inline Inertia Inertia::shiftFromCOM(const Vec3& p, const Real& mtot) const {
+inline Inertia Inertia::shiftFromMassCenter(const Vec3& p, const Real& mtot) const {
     return *this + Inertia(p, mtot);
 }
 
