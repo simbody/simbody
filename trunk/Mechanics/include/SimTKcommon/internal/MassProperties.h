@@ -268,7 +268,7 @@ public:
     /// Re-express this inertia from frame F to frame B, given the orientation
     /// of B in F. This is a similarity transform since rotation matrices are
     /// orthogonal.
-    Inertia changeAxes(const Rotation& R_FB) const {
+    Inertia reexpress(const Rotation& R_FB) const {
         return Inertia(~R_FB * I_OF_F * R_FB); // TODO can do better due to symmetry
     }
 
@@ -418,7 +418,7 @@ public:
         return calcCentralInertia() + Inertia(newOriginB-comInB, mass);
     }
     Inertia calcTransformedInertia(const Transform& X_BC) const {
-        return calcShiftedInertia(X_BC.T()).changeAxes(X_BC.R());
+        return calcShiftedInertia(X_BC.T()).reexpress(X_BC.R());
     }
     MassProperties calcShiftedMassProps(const Vec3& newOriginB) const {
         return MassProperties(mass, comInB-newOriginB,
@@ -428,6 +428,13 @@ public:
     // to a new frame C.
     MassProperties calcTransformedMassProps(const Transform& X_BC) const {
         return MassProperties(mass, ~X_BC*comInB, calcTransformedInertia(X_BC));
+    }
+
+    // Re-express these mass properties in frame C. Currently the mass properties
+    // are expressed in the (implicit) frame B, so we need the Rotation matrix
+    // that takes us from B to C.
+    MassProperties reexpress(const Rotation& R_BC) const {
+        return MassProperties(mass, ~R_BC*comInB, inertia_OB_B.reexpress(R_BC));
     }
 
     bool isExactlyMassless()   const { return mass==0.; }
