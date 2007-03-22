@@ -273,23 +273,7 @@ public:
 
     bool isConstraintEnabled(const State&, int constraint) const;
 
-    void setMobilizerQ(State&, BodyId, int axis, const Real&) const;
-    void setMobilizerU(State&, BodyId, int axis, const Real&) const;
-
     // Position Stage. 
-
-
-    /// Obtain the current orientation and position of the body frame of
-    /// the indicated body. Must be in Position stage. The configuration
-    /// is provided as the Transform X_GB from the ground frame to the
-    /// body frame.
-    const Transform&  getBodyPosition(const State&, BodyId) const;
-
-    /// Obtain the current spatial angular and linear velocity of the body frame of
-    /// the indicated body. Must be in Velocity stage. This is the velocity 
-    /// V_GB of the body frame measured and expressed in the ground frame.
-    const SpatialVec& getBodyVelocity     (const State&, BodyId) const;
-    const SpatialVec& getBodyAcceleration (const State&, BodyId) const;
 
     // Dynamics stage responses.
 
@@ -303,21 +287,9 @@ public:
     const SpatialVec& getCentrifugalForces(const State&, BodyId) const;
     const SpatialMat& getArticulatedBodyInertia(const State& s, BodyId) const;
 
-    const Real& getMobilizerQ(const State&, BodyId, int axis) const;
-    const Real& getMobilizerU(const State&, BodyId, int axis) const;
     const Real& getMobilizerQDot(const State&, BodyId, int axis) const;
     const Real& getMobilizerUDot(const State&, BodyId, int axis) const;
     const Real& getMobilizerQDotDot(const State&, BodyId, int axis) const;
-
-    /// Get the location in space of a station (point) fixed on a body. This
-    /// just makes use of the transform associated with the body's current
-    /// configuration. Naturally the station is provided in the body frame, and
-    /// the result is the vector from the ground origin to the station, expressed
-    /// in the ground frame.
-    const Vec3 getStationLocation(const State& s, BodyId body, const Vec3& station_B) const {
-        const Transform& X_GB = getBodyPosition(s, body);
-        return X_GB.T() + X_GB.R() * station_B;
-    }
 
     const Vector& getQ(const State&) const;
     const Vector& getU(const State&) const;

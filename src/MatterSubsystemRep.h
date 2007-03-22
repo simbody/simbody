@@ -64,21 +64,26 @@ public:
     virtual BodyId         getParent  (BodyId bodyNum)           const = 0;
     virtual Array<BodyId>  getChildren(BodyId bodyNum)           const = 0;
 
-    virtual const Transform&  getMobilizerFrame(const State&, BodyId) const = 0;
-    virtual const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const = 0;
+    virtual const MassProperties& getBodyMassProperties(const State& s, BodyId body) const = 0;
 
-    virtual const Real&       getBodyMass              (const State&, BodyId) const = 0;
-    virtual const Vec3&       getBodyCenterOfMassStation(const State&, BodyId) const = 0;
     virtual const Vector&     getParticleMasses(const State&) const { // TODO
         static Vector v;
         return v;
     }
+
+    virtual const Transform&  getMobilizerFrame(const State&, BodyId) const = 0;
+    virtual const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const = 0;
+
+
+    virtual const Transform&  getBodyPosition(const State&, BodyId) const = 0;
     virtual const Vector_<Vec3>& getParticleLocations(const State&) const { // TODO
         static Vector_<Vec3> v;
         return v;
     }
-    virtual const Transform&  getBodyPosition(const State&, BodyId) const = 0;
+
+
     virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getBodyAcceleration(const State&, BodyId) const = 0;
 
     // These are simple operators for helping force subsystems put their forces in the 
     // right slots.

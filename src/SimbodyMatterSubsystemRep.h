@@ -150,8 +150,7 @@ public:
     const Transform&  getMobilizerFrame        (const State&, BodyId) const;
     const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const;
 
-    const Real&       getBodyMass               (const State&, BodyId) const;
-    const Vec3&       getBodyCenterOfMassStation(const State&, BodyId) const;
+    const MassProperties& getBodyMassProperties(const State&, BodyId) const;
 
     const Transform&  getBodyPosition(const State&, BodyId) const;
     const SpatialVec& getBodyVelocity(const State&, BodyId) const;

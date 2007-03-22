@@ -85,6 +85,16 @@ Array<BodyId>
 MatterSubsystem::getChildren(BodyId bodyNum) const { 
     return getRep().getChildren(bodyNum); 
 }
+
+const MassProperties& MatterSubsystem::getBodyMassProperties(const State& s, BodyId body) const {
+    return getRep().getBodyMassProperties(s,body);
+}
+
+const Vector& 
+MatterSubsystem::getParticleMasses(const State& s) const { 
+    return getRep().getParticleMasses(s); 
+}
+
 const Transform&  
 MatterSubsystem::getMobilizerFrame(const State& s, BodyId bodyNum) const { 
     return getRep().getMobilizerFrame(s, bodyNum); 
@@ -93,32 +103,24 @@ const Transform&
 MatterSubsystem::getMobilizerFrameOnParent(const State& s, BodyId bodyNum) const { 
     return getRep().getMobilizerFrameOnParent(s, bodyNum); 
 }
-const Real&  
-MatterSubsystem::getBodyMass(const State& s, BodyId bodyNum) const { 
-    return getRep().getBodyMass(s,bodyNum); 
-}
-const Vec3&  
-MatterSubsystem::getBodyCenterOfMassStation(const State& s, BodyId bodyNum) const { 
-    return getRep().getBodyCenterOfMassStation(s,bodyNum); 
-}
 
-const Vector& 
-MatterSubsystem::getParticleMasses(const State& s) const { 
-    return getRep().getParticleMasses(s); 
-}
-
-const Vector_<Vec3>& 
-MatterSubsystem::getParticleLocations(const State& s) const { 
-    return getRep().getParticleLocations(s); 
-}
 
 const Transform& 
 MatterSubsystem::getBodyPosition(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyPosition(s,bodyNum); 
 }
+const Vector_<Vec3>& 
+MatterSubsystem::getParticleLocations(const State& s) const { 
+    return getRep().getParticleLocations(s); 
+}
+
 const SpatialVec& 
 MatterSubsystem::getBodyVelocity(const State& s, BodyId bodyNum) const { 
     return getRep().getBodyVelocity(s,bodyNum); 
+}
+const SpatialVec& 
+MatterSubsystem::getBodyAcceleration(const State& s, BodyId bodyNum) const { 
+    return getRep().getBodyAcceleration(s,bodyNum); 
 }
 
 void MatterSubsystem::addInStationForce(const State& s, BodyId body, const Vec3& stationInB, 

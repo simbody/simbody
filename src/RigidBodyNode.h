@@ -157,7 +157,7 @@ public:
         // INSTANCE INFO
 
     // TODO: These ignore State currently since they aren't parametrizable.
-    const MassProperties& getMassProperties() const {return massProps_B;}
+    const MassProperties& getMassProperties_OB_B() const {return massProps_B;}
     const Real&           getMass          () const {return massProps_B.getMass();}
     const Vec3&           getCOM_B         () const {return massProps_B.getMassCenter();}
     const Inertia&        getInertia_OB_B  () const {return massProps_B.getInertia();}

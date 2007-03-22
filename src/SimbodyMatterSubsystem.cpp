@@ -245,30 +245,10 @@ void SimbodyMatterSubsystem::setU(State& s, const Vector& u) const {getRep().set
 Vector& SimbodyMatterSubsystem::updQ(State& s) const {return getRep().updQ(s);}
 Vector& SimbodyMatterSubsystem::updU(State& s) const {return getRep().updU(s);}
 
-void SimbodyMatterSubsystem::setMobilizerQ(State& s, BodyId body, int axis, const Real& r) const
-  { return getRep().setMobilizerQ(s,body,axis,r); }
-void SimbodyMatterSubsystem::setMobilizerU(State& s, BodyId body, int axis, const Real& r) const
-  { return getRep().setMobilizerU(s,body,axis,r); }
-
-const Real& SimbodyMatterSubsystem::getMobilizerQ(const State& s, BodyId body, int axis) const
-  { return getRep().getMobilizerQ(s,body,axis); }
-const Real& SimbodyMatterSubsystem::getMobilizerU(const State& s, BodyId body, int axis) const
-  { return getRep().getMobilizerU(s,body,axis); }
-
-
 void SimbodyMatterSubsystem::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
   { getRep().enforcePositionConstraints(s, requiredTol, desiredTol); }
 void SimbodyMatterSubsystem::enforceVelocityConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
   { getRep().enforceVelocityConstraints(s, requiredTol, desiredTol); }
-
-const Transform&
-SimbodyMatterSubsystem::getBodyPosition(const State& s, BodyId body) const
-  { return getRep().getBodyPosition(s,body); }
-
-const SpatialVec&
-SimbodyMatterSubsystem::getBodyVelocity(const State& s, BodyId body) const {
-    return getRep().getBodyVelocity(s,body);
-}
 
 const SpatialVec&
 SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, BodyId body) const {
@@ -292,9 +272,6 @@ SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, BodyId body) c
     return getRep().getArticulatedBodyInertia(s,body);
 }
 
-const SpatialVec&
-SimbodyMatterSubsystem::getBodyAcceleration(const State& s, BodyId body) const
-  { return getRep().getBodyAcceleration(s,body); }
 
 const Vector& SimbodyMatterSubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
 const Vector& SimbodyMatterSubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}

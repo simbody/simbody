@@ -67,7 +67,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // the local mass moments into the Ground frame and reconstruct the
     // spatial inertia matrix Mk.
 
-    updInertia_OB_G(cc) = getInertia_OB_B().changeAxes(~getX_GB(cc).R());
+    updInertia_OB_G(cc) = getInertia_OB_B().reexpress(~getX_GB(cc).R());
     updCB_G(cc)         = getX_GB(cc).R()*getCOM_B();
 
     updCOM_G(cc) = getX_GB(cc).T() + getCB_G(cc);

@@ -178,13 +178,9 @@ Array<BodyId> SimbodyMatterSubsystemRep::getChildren(BodyId body) const {
     return children;
 }
 
-const Real&
-SimbodyMatterSubsystemRep::getBodyMass(const State&, BodyId body) const
-  { return getRigidBodyNode(body).getMass(); }
-
-const Vec3&
-SimbodyMatterSubsystemRep::getBodyCenterOfMassStation(const State&, BodyId body) const
-  { return getRigidBodyNode(body).getCOM_B(); }
+const MassProperties&
+SimbodyMatterSubsystemRep::getBodyMassProperties(const State&, BodyId body) const
+  { return getRigidBodyNode(body).getMassProperties_OB_B(); }
 
 const Transform&
 SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, BodyId body) const
