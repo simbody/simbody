@@ -93,6 +93,11 @@ try { // If anything goes wrong, an exception will be thrown.
         pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
         pend.setMobilizerU(s, swinger, 0, 0);
         myStudy.initialize();
+
+        cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);
+        cout << "MassProperties in G=" << pend.calcBodyMassPropertiesInBody(s,swinger,GroundId);
+        cout << "Spatial Inertia    =" << pend.calcBodySpatialInertiaMatrixInGround(s,swinger);
+
         for (;;) {
             printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,
                 mbs.getEnergy(s));

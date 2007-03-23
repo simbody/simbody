@@ -133,7 +133,7 @@ try
     Vec3 pendGroundPt2 = Vec3(20,20,-10);
     Inertia pendBallInertia(pendMass*Inertia::sphere(pendBallRadius));
     const MassProperties pendMProps(pendMass, Vec3(0, -linkLength/2, 0), 
-        pendBallInertia.shiftFromCOM(Vec3(0, -linkLength/2, 0), pendMass));
+        pendBallInertia.shiftFromMassCenter(Vec3(0, -linkLength/2, 0), pendMass));
 
     BodyId pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
                           GroundId, Transform(pendGroundPt1),
