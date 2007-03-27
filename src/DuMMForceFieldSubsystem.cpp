@@ -2283,7 +2283,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
     Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s); // kJ (torque), kJ/nm (force)
 
     for (BodyId b1(0); b1 < (int)bodies.size(); ++b1) {
-        const Transform&          X_GB1  = matter.getBodyPosition(s,b1);
+        const Transform&          X_GB1  = matter.getBodyTransform(s,b1);
         const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
         for (int i=0; i < (int)alist1.size(); ++i) {
@@ -2309,7 +2309,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const Atom& a2 = atoms[a2num];
                 const BodyId b2 = a2.bodyId;
                 assert(b2 != b1);
-                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
+                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
                 const Vec3       r = a2Pos_G - a1Pos_G;
@@ -2345,8 +2345,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyPosition(s, a3.bodyId);
+                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
+                const Transform& X_GB3   = matter.getBodyTransform(s, a3.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
@@ -2382,9 +2382,9 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyPosition(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyPosition(s, a3.bodyId);
-                const Transform& X_GB4   = matter.getBodyPosition(s, a4.bodyId);
+                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
+                const Transform& X_GB3   = matter.getBodyTransform(s, a3.bodyId);
+                const Transform& X_GB4   = matter.getBodyTransform(s, a4.bodyId);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -2407,7 +2407,7 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (BodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
-                const Transform&          X_GB2  = matter.getBodyPosition(s,b2);
+                const Transform&          X_GB2  = matter.getBodyTransform(s,b2);
                 const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
                 for (int j=0; j < (int)alist2.size(); ++j) {

@@ -255,7 +255,7 @@ void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
         const MassProperties& mprops = matter.getBodyMassProperties(s,i);
         const Real&      m       = mprops.getMass();
         const Vec3&      com_B   = mprops.getMassCenter();
-        const Transform& X_GB    = matter.getBodyPosition(s,i);
+        const Transform& X_GB    = matter.getBodyTransform(s,i);
         const Vec3       com_B_G = X_GB.R()*com_B;
         const Vec3       com_G   = X_GB.T() + com_B_G;
         const Vec3       frc_G   = m*g;

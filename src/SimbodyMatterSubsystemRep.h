@@ -152,7 +152,7 @@ public:
 
     const MassProperties& getBodyMassProperties(const State&, BodyId) const;
 
-    const Transform&  getBodyPosition(const State&, BodyId) const;
+    const Transform&  getBodyTransform(const State&, BodyId) const;
     const SpatialVec& getBodyVelocity(const State&, BodyId) const;
 
     // velocity dependent
@@ -175,9 +175,9 @@ public:
     void setMobilizerQ(State& s, BodyId, int axis, const Real& r) const;
     void setMobilizerU(State& s, BodyId, int axis, const Real& r) const;
 
-    const Transform& getMobilizerPosition(const State&, BodyId) const;
+    const Transform& getMobilizerTransform(const State&, BodyId) const;
     const SpatialVec& getMobilizerVelocity(const State&, BodyId) const;
-    void setMobilizerPosition(State&, BodyId, const Transform& X_MbM) const;
+    void setMobilizerTransform(State&, BodyId, const Transform& X_MbM) const;
     void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_MbM) const;
 
     // TODO: this is unweighted RMS norm

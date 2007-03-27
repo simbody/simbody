@@ -66,7 +66,7 @@ public:
     // but some molecules may not have a single base, so they can override this default.
     virtual void setMoleculePosition(const Transform& pos, State& s) const
     {
-        getMatter().setMobilizerPosition(s, bodies[0], pos);
+        getMatter().setMobilizerTransform(s, bodies[0], pos);
     }
 
     // This routine must set the internal mobilities to their nominal values, both
@@ -445,7 +445,7 @@ try
     /* Cartesian: 
     for (int i=0; i < mm.getNAtoms(); ++i) {
         int b = mm.getAtomBody(i);
-        ethane.setMobilizerPosition(s, b, 
+        ethane.setMobilizerTransform(s, b, 
             Transform(mm.getAtomStationInCluster(i, wholeEthaneEclipsed)));
     }
     /**/

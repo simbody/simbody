@@ -64,7 +64,7 @@ int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments )
 
 	// I am not sure what the next two lines do
     Transform initialApplePosition(Rotation(), Vec3(0,10,0));
-    apple.setMobilizerPosition(s, appleBodyNumber, initialApplePosition);
+    apple.setMobilizerTransform(s, appleBodyNumber, initialApplePosition);
     //apple.setMobilizerQ(s, appleBodyNumber, 5, 10.);
     s.updTime() = 0;
 
@@ -88,7 +88,7 @@ int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments )
 
        // Transform nearly always has position vector from ground to point of interest
 	   // Also contains a rotation matrix from ground to frame of interest
-       const Transform& bodyTransform = apple.getBodyPosition( s, appleBodyNumber );
+       const Transform& bodyTransform = apple.getBodyTransform( s, appleBodyNumber );
 
 	   // .T returns translation and .R returns 3x3 rotation matrix
 	   const Vec3& bodyPosition = bodyTransform.T();

@@ -410,15 +410,15 @@ void VTKReporterRep::report(const State& s) {
 
     const MatterSubsystem& matter = mbs.getMatterSubsystem();
     for (BodyId i(1); i<matter.getNBodies(); ++i) {
-        const Transform& config = matter.getBodyPosition(s, i);
+        const Transform& config = matter.getBodyTransform(s, i);
         setConfiguration(i, config);
     }
     for (int i=0; i<(int)dynamicGeom.size(); ++i) {
         const PerDynamicGeomInfo& info = dynamicGeom[i];
         const Transform& X_GB1 = 
-            matter.getBodyPosition(s, info.body1);
+            matter.getBodyTransform(s, info.body1);
         const Transform& X_GB2 = 
-            matter.getBodyPosition(s, info.body2);
+            matter.getBodyTransform(s, info.body2);
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 

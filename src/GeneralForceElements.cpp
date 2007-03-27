@@ -456,8 +456,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearSprings.size(); ++i) {
             const TwoPointLinearSpringParameters& spring =
                 p.twoPointLinearSprings[i];
-            const Transform& X_GB1 = matter.getBodyPosition(s, spring.body1);
-            const Transform& X_GB2 = matter.getBodyPosition(s, spring.body2);
+            const Transform& X_GB1 = matter.getBodyTransform(s, spring.body1);
+            const Transform& X_GB2 = matter.getBodyTransform(s, spring.body2);
 
             const Vec3 s1_G = X_GB1.R() * spring.station1;
             const Vec3 s2_G = X_GB2.R() * spring.station2;
@@ -481,8 +481,8 @@ public:
         for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
             const TwoPointConstantForceParameters& frc =
                 p.twoPointConstantForces[i];
-            const Transform& X_GB1 = matter.getBodyPosition(s, frc.body1);
-            const Transform& X_GB2 = matter.getBodyPosition(s, frc.body2);
+            const Transform& X_GB1 = matter.getBodyTransform(s, frc.body1);
+            const Transform& X_GB2 = matter.getBodyTransform(s, frc.body2);
 
             const Vec3 s1_G = X_GB1.R() * frc.station1;
             const Vec3 s2_G = X_GB2.R() * frc.station2;
@@ -505,8 +505,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearDampers.size(); ++i) {
             const TwoPointLinearDamperParameters& damper =
                 p.twoPointLinearDampers[i];
-            const Transform& X_GB1 = matter.getBodyPosition(s, damper.body1);
-            const Transform& X_GB2 = matter.getBodyPosition(s, damper.body2);
+            const Transform& X_GB1 = matter.getBodyTransform(s, damper.body1);
+            const Transform& X_GB2 = matter.getBodyTransform(s, damper.body2);
 
             const Vec3 s1_G = X_GB1.R() * damper.station1;
             const Vec3 s2_G = X_GB2.R() * damper.station2;
@@ -532,7 +532,7 @@ public:
             if (f.fmag == 0)
                 continue;
 
-            const Transform& X_GB = matter.getBodyPosition(s, f.body);
+            const Transform& X_GB = matter.getBodyTransform(s, f.body);
             const Vec3 station_G = X_GB.R() * f.station_B;
             const Vec3 point_G   = X_GB.T() + station_G;
 

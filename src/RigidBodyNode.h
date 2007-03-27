@@ -340,7 +340,7 @@ public:
 
     // These attempt to set the mobilizer's internal configuration or velocity
     // to a specified value. The mobilizer is expected to do the best it can.
-    virtual void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
+    virtual void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
                                       Vector& q) const {}
     virtual void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                                       Vector& u) const {}

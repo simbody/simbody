@@ -271,7 +271,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 
     for (int s1=0; s1 < (int)p.spheres.size(); ++s1) {
         const SphereParameters& sphere1 = p.spheres[s1];
-        const Transform&  X_GB1     = matter.getBodyPosition(s,sphere1.body);
+        const Transform&  X_GB1     = matter.getBodyTransform(s,sphere1.body);
         const SpatialVec& V_GB1     = matter.getBodyVelocity(s,sphere1.body); // in G
         const Real        r1        = sphere1.radius;
         const Vec3        center1_G = X_GB1*sphere1.center;
@@ -279,7 +279,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
         for (int s2=s1+1; s2 < (int)p.spheres.size(); ++s2) {
             const SphereParameters& sphere2 = p.spheres[s2];
             if (sphere2.body == sphere1.body) continue;
-            const Transform&  X_GB2     = matter.getBodyPosition(s,sphere2.body);
+            const Transform&  X_GB2     = matter.getBodyTransform(s,sphere2.body);
             const SpatialVec& V_GB2     = matter.getBodyVelocity(s,sphere2.body);
             const Real        r2        = sphere2.radius;
             const Vec3        center2_G = X_GB2*sphere2.center; // 18 flops
@@ -324,7 +324,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 
             // Half space is not on ground.
 
-            const Transform&  X_GB2    = matter.getBodyPosition(s,halfSpace.body);
+            const Transform&  X_GB2    = matter.getBodyTransform(s,halfSpace.body);
             const SpatialVec& V_GB2    = matter.getBodyVelocity(s,halfSpace.body);
             const UnitVec3    normal_G = X_GB2.R()*halfSpace.normal;    // 15 flops
 

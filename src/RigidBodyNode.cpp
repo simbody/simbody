@@ -803,7 +803,7 @@ public:
 
         // Implementations of virtual methods.
 
-    void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
+    void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
                                    Vector& q) const 
     {
         toQ(q) = X_MbM.T();
@@ -1235,7 +1235,7 @@ public:
         // Implementations of virtual methods.
 
     // TODO: partial implementation; just translation
-    void setMobilizerPosition(const SBModelVars&, const Transform& X_MbM,
+    void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
                               Vector& q) const 
     {
         toQ(q).updSubVec<3>(2) = X_MbM.T();
@@ -1330,7 +1330,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_MbM,
+    void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
@@ -1527,7 +1527,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerPosition(const SBModelVars& mv, const Transform& X_MbM,
+    void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {

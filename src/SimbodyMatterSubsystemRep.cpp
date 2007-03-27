@@ -191,7 +191,7 @@ SimbodyMatterSubsystemRep::getMobilizerFrameOnParent(const State&, BodyId body) 
   { return getRigidBodyNode(body).getX_PMb(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getBodyPosition(const State& s, BodyId body) const
+SimbodyMatterSubsystemRep::getBodyTransform(const State& s, BodyId body) const
   { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
 
 const SpatialVec&
@@ -716,7 +716,7 @@ void SimbodyMatterSubsystemRep::setMobilizerU(State& s, BodyId body, int axis, c
     updU(s)[n.getUIndex()+axis] = r;
 }
 
-const Transform& SimbodyMatterSubsystemRep::getMobilizerPosition(const State& s, BodyId body) const { 
+const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, BodyId body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
     return n.getX_MbM(cc);
@@ -726,11 +726,11 @@ const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s
     const SBVelocityCache& mc = getVelocityCache(s);
     return n.getV_MbM(mc);
 }
-void SimbodyMatterSubsystemRep::setMobilizerPosition(State& s, BodyId body, const Transform& X_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, BodyId body, const Transform& X_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
-    n.setMobilizerPosition(mv, X_MbM, q);
+    n.setMobilizerTransform(mv, X_MbM, q);
 }
 void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);

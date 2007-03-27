@@ -318,7 +318,7 @@ try {
     Vector tols; mbs.calcYErrUnitTolerances(s,tols);
     cout << "YERR TOLERANCES: " << tols << endl;
 
-    Transform bodyConfig = pend.getBodyPosition(s, aPendulum);
+    Transform bodyConfig = pend.getBodyTransform(s, aPendulum);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
@@ -328,7 +328,7 @@ try {
     cout << "-------> STATE after realize(Position):" << s;
     cout << "<------- STATE after realize(Position)." << endl;
 
-    cout << "after assembly body frame: " << pend.getBodyPosition(s,aPendulum); 
+    cout << "after assembly body frame: " << pend.getBodyTransform(s,aPendulum); 
 
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
@@ -378,7 +378,7 @@ try {
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
-    pend.setMobilizerPosition(s,aPendulum,Transform(Rotation(q), Vec3(.1,.2,.3)));
+    pend.setMobilizerTransform(s,aPendulum,Transform(Rotation(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
     //pend.updQ(s)[2] = -.1;
@@ -404,7 +404,7 @@ try {
 
         const Vector qdot = pend.getQDot(s);
 
-        Transform  x = pend.getBodyPosition(s,aPendulum);
+        Transform  x = pend.getBodyTransform(s,aPendulum);
         SpatialVec v = pend.getBodyVelocity(s,aPendulum);
 
         //Vec3 err = x.T()-Vec3(2.5,0.,0.);

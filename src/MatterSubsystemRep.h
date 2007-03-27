@@ -75,7 +75,7 @@ public:
     virtual const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const = 0;
 
 
-    virtual const Transform&  getBodyPosition(const State&, BodyId) const = 0;
+    virtual const Transform&  getBodyTransform(const State&, BodyId) const = 0;
     virtual const Vector_<Vec3>& getParticleLocations(const State&) const { // TODO
         static Vector_<Vec3> v;
         return v;
@@ -100,9 +100,9 @@ public:
     virtual void setMobilizerQ(State&, BodyId, int axis, const Real&) const = 0;
     virtual void setMobilizerU(State&, BodyId, int axis, const Real&) const = 0;
 
-    virtual const Transform& getMobilizerPosition(const State&, BodyId) const = 0;
+    virtual const Transform& getMobilizerTransform(const State&, BodyId) const = 0;
     virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
-    virtual void setMobilizerPosition(State&, BodyId, const Transform& X_JbJ) const = 0;
+    virtual void setMobilizerTransform(State&, BodyId, const Transform& X_JbJ) const = 0;
     virtual void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_JbJ) const = 0;
 
     virtual Real calcQConstraintNorm(const State&) const {
