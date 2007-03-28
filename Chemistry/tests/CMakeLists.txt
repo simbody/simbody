@@ -1,5 +1,0 @@
-FILE(GLOB INCS1 "../include/*.h")
-FILE(GLOB INCS2 "../src/*.h")
-FILE(GLOB INCS3 "*.h")
-SET(SRCS ../src/ChemicalElement.cpp ../src/AminoAcid.cpp ../src/AminoAcidType.cpp ../src/Protein.cpp)
-ADD_EXECUTABLE(test2 test2.cpp ${SRCS} ${INCS1} ${INCS2} ${INCS3})
