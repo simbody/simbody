@@ -51,25 +51,26 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT MatterSubsystem : public Subsystem {
 public:
-    MatterSubsystem() { }
-
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //
     ///////////////////////////////
 
-    // In the API below, we consistently use "body B" as the "object" or "main"
-    // body with which we are concerned. Often there will be an additional body mentioned
-    // in the argument list as a target for some conversion. That "auxiliary" body will
-    // be called "body A". The Ground body (BodyId(0), predefined as GroundId) is
-    // abbreviated "G".
-    //
-    // We use OF to mean "the origin of frame F", CB is "the mass center of body B".
-    // R_AF is the rotation matrix giving frame F's
-    // orientation in frame A, such that a vector v expressed in F is reexpressed in
-    // A by v_A = R_AF * v_F. X_AF is the spatial transform giving frame F's origin
-    // location and orientation in frame A, such that a point P whose location is
-    // measured from F's origin OF and expressed in F by vector r_OF_P is remeasured from
-    // frame A's origin and reexpressed in A via r_OA_P = X_AF * r_OF_P. 
+    /// @name High level interface
+    /// In the API below, we consistently use "body B" as the "object" or "main"
+    /// body with which we are concerned. Often there will be an additional body mentioned
+    /// in the argument list as a target for some conversion. That "auxiliary" body will
+    /// be called "body A". The Ground body (BodyId(0), predefined as GroundId) is
+    /// abbreviated "G".
+    ///
+    /// We use OF to mean "the origin of frame F", CB is "the mass center of body B".
+    /// R_AF is the rotation matrix giving frame F's
+    /// orientation in frame A, such that a vector v expressed in F is reexpressed in
+    /// A by v_A = R_AF * v_F. X_AF is the spatial transform giving frame F's origin
+    /// location and orientation in frame A, such that a point P whose location is
+    /// measured from F's origin OF and expressed in F by vector r_OF_P is remeasured from
+    /// frame A's origin and reexpressed in A via r_OA_P = X_AF * r_OF_P. 
+
+    //@{
 
         // MASS PROPERTIES //
 
@@ -88,6 +89,10 @@ public:
     /// m.getMassCenter() and m.getInertia(). You can get them as
     /// a Spatial Inertia Matrix (2x2 x Mat33) with m.toSpatialMat()
     /// or as a 6x6 matrix with m.toMat66().
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance, if \a inBodyA ==\a objectBodyB
+    /// \n\c Stage::Position otherwise.
     MassProperties calcBodyMassPropertiesInBody(const State& s, 
                                                 BodyId objectBodyB,
                                                 BodyId inBodyA) const
@@ -103,16 +108,20 @@ public:
         return mp.reexpress(R_BA); // i.e., reexpress from B to A
     }
 
-    /// Return the mass properties of body B, measured from and about
-    /// the B frame origin, but expressed in Ground and then returned
-    /// as a Spatial Inertia Matrix, with the mass properties arranged
-    /// like this:
-    /// @verbatim
-    ///   M=[      I_OB      crossMat(m*CB) ]
-    ///     [ ~crossMat(m*CB) diag(m)       ]
-    /// @endverbatim
-    /// where I_OB is the inertia taken about the B frame origin OB,
-    /// and CB is the vector r_OB_CB from B's origin to its mass center.
+    /**
+     * Return the mass properties of body B, measured from and about
+     * the B frame origin, but expressed in Ground and then returned
+     * as a Spatial Inertia Matrix. The mass properties are arranged
+     * in the SpatialMat like this:                  @verbatim
+         M=[      I_OB      crossMat(m*CB) ]
+           [ ~crossMat(m*CB)   diag(m)     ]         @endverbatim
+     *  where I_OB is the inertia taken about the B frame origin OB,
+     *  and CB is the vector r_OB_CB from B's origin to its mass center.
+     * 
+     *  @par Required stage
+     *    \c Stage::Topology, if \a objectBodyB == \c GroundId
+     *  \n\c Stage::Position otherwise.
+     */
     SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s,
                                                     BodyId objectBodyB) const
     {
@@ -122,44 +131,55 @@ public:
         return mp.reexpress(~R_GB).toSpatialMat();
     }
 
-    /// Calculate the location of body B's mass center, measured from the ground origin
-    /// and expressed in ground.
-    /// @see calcBodyMassCenterLocationInBody()
-    Vec3 calcBodyMassCenterLocationInGround(const State& s, 
-                                            BodyId objectBodyB) const
-    {
-        return locateBodyPointOnGround(s, objectBodyB, 
-                                       getBodyMassCenterStation(s,objectBodyB));
-    }
-
     /// Calculate the location of body B's mass center, measured from the origin 
-    /// of body A, and expressed in the A frame. If you know A is Ground you can use
-    /// the more specialized method calcBodyMassCenterLocationInGround() which is
-    /// more efficient in that case.
-    /// @see calcBodyMassCenterLocationInGround()
+    /// of body A, and expressed in the A frame.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance, if \a inBodyA == \a objectBodyB
+    /// \n\c Stage::Position otherwise.
     Vec3 calcBodyMassCenterLocationInBody(const State& s, 
                                           BodyId      objectBodyB,
                                           BodyId      inBodyA) const
     {
-        const Vec3       r_OG_CB = calcBodyMassCenterLocationInGround(s,objectBodyB);
-        const Transform& X_GA    = getBodyTransform(s,inBodyA);
-        return ~X_GA * r_OG_CB; // measured from OA, expressed in A
+        const Vec3& r_OB_CB = getBodyMassCenterStation(s,objectBodyB);
+        if (inBodyA==GroundId) return locateBodyPointOnGround(s, objectBodyB, r_OB_CB);
+        return locateBodyPointOnBody(s, objectBodyB, r_OB_CB, inBodyA);
     }
 
     /// Return the central inertia for body B, that is, the inertia taken about
     /// body B's mass center CB, and expressed in B.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance
     Inertia calcBodyCentralInertia(const State& s, 
                                    BodyId objectBodyB) const
     {
         return getBodyMassProperties(s, objectBodyB).calcCentralInertia();
     }
 
-    /// Return the central inertia for body B, that is, the inertia taken about
-    /// body B's mass center CB, but reexpressed in body A's frame.
+    /// Return the inertia of body B, taken about an arbitrary point PA of body A,
+    /// and expressed in body A.
+    /// TODO: this needs testing!
     Inertia calcBodyInertiaAboutBodyPoint(const State& s, 
                                           BodyId      objectBodyB, 
                                           BodyId      inBodyA, 
-                                          const Vec3& aboutLocationOnBodyA) const;
+                                          const Vec3& aboutLocationOnBodyA) const
+    {
+        // get B's mass props MB, measured about OB, exp. in B
+        const MassProperties& MB_OB_B = getBodyMassProperties(s,objectBodyB);
+
+        // Calculate the vector from the body B origin (current "about" point) to the new "about" point PA,
+        // expressed in B.
+        const Vec3 r_OB_PA = calcBodyPointLocationInBody(s, inBodyA, aboutLocationOnBodyA, objectBodyB);
+
+        // Now shift the "about" point for body B's inertia IB to PA, but still expressed in B.
+        const Inertia IB_PA_B = MB_OB_B.calcShiftedInertia(r_OB_PA);
+        
+        // Finally reexpress the inertia in the A frame.
+        const Rotation R_BA    = calcBodyRotationFromBody(s, inBodyA, objectBodyB);
+        const Inertia  IB_PA_A = IB_PA_B.reexpress(R_BA);
+        return IB_PA_A;
+    }
 
 
     /// Return total system mass, mass center location measured from the Ground origin,
@@ -182,8 +202,6 @@ public:
     /// the Ground frame G, expressed in G.
     Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const;
 
-
-
         // POSITION //
 
     /// Return X_AB, the spatial transform to body B's frame from body A's frame.
@@ -202,10 +220,12 @@ public:
                                       BodyId objectBodyB, 
                                       BodyId fromBodyA) const
     {
-        const Rotation& R_GB = getBodyRotation(s,objectBodyB);
-        if (fromBodyA == GroundId)  return R_GB;
-        const Rotation& R_GA = getBodyRotation(s,fromBodyA);
-        return ~R_GA*R_GB;
+        if (fromBodyA==objectBodyB) return Rotation();  // Identity rotation; no access to State
+
+        if      (fromBodyA==GroundId)   return  getBodyRotation(s,objectBodyB); // R_GB
+        else if (objectBodyB==GroundId) return ~getBodyRotation(s,fromBodyA);   // R_AG (=~R_GA)
+        else                            return ~getBodyRotation(s,fromBodyA)    // R_AB=R_AG*R_GB
+                                              * getBodyRotation(s,objectBodyB);
     }
 
     /// Return r_OA_OB, the location of body B's origin OB, measured from body A's
@@ -214,10 +234,11 @@ public:
                                       BodyId objectBodyB, 
                                       BodyId inBodyA) const
     {
+        if (inBodyA==objectBodyB) return Vec3(0);
+
         const Vec3& r_OG_OB = getBodyOriginLocation(s, objectBodyB); // from G origin, exp. in G
         if (inBodyA == GroundId) return r_OG_OB;
-        const Transform& X_GA = getBodyTransform(s,inBodyA);
-        return ~X_GA * r_OG_OB; // shift to OA and reexpress in A
+        else                     return locateGroundPointOnBody(s, r_OG_OB, inBodyA);
     }
 
     /// Given a vector r_OB_P measured from body B's origin to a point P on body B, expressed in body B,
@@ -227,7 +248,10 @@ public:
                                      const Vec3&  locationOnBodyB, 
                                      BodyId       inBodyA) const
     {
-        return locateBodyPointOnBody(s, onBodyB, locationOnBodyB, inBodyA);
+        if      (onBodyB==inBodyA)  return locationOnBodyB;
+        else if (inBodyA==GroundId) return locateBodyPointOnGround(s,onBodyB,locationOnBodyB);
+        else if (onBodyB==GroundId) return locateGroundPointOnBody(s,locationOnBodyB,inBodyA);
+        else                        return locateBodyPointOnBody(s, onBodyB, locationOnBodyB, inBodyA);
     }
 
     /// Given a vector v_B expressed in body B, return v_A, that same vector reexpressed in body A.
@@ -236,7 +260,10 @@ public:
                               const Vec3&  vectorOnBodyB, 
                               BodyId       inBodyA) const
     {
-        return expressBodyVectorInBody(s, onBodyB, vectorOnBodyB, inBodyA);
+        if      (onBodyB==inBodyA)  return vectorOnBodyB;
+        else if (inBodyA==GroundId) return expressBodyVectorInGround(s,onBodyB,vectorOnBodyB);
+        else if (onBodyB==GroundId) return expressGroundVectorInBody(s,vectorOnBodyB,inBodyA);
+        else                        return expressBodyVectorInBody(s, onBodyB, vectorOnBodyB, inBodyA);
     }
 
         // VELOCITY //
@@ -399,14 +426,177 @@ public:
                                                          const Vec3&  velocityOnBodyA,
                                                          const Vec3&  accelerationOnBodyA) const;
 
+    // End of high-level interface.
+    //@}
+
+    ///////////////////////////////
+    // MATTER SUBSYSTEM SERVICES //
+    ///////////////////////////////
+
+    /// @name Low level interface
+    ///
+    /// This group of methods extends the functionality of the underlying concrete
+    /// MatterSubsystem implementation for convenience, but through inline implementations
+    /// which introduce no performance cost.
+
+    //@{
+
+    /// Return the mass of a given body. Callable at Instance Stage or higher.
+    Real getBodyMass(const State& s, BodyId bodyB) const {
+        return getBodyMassProperties(s,bodyB).getMass();
+    }
+
+    /// Return a body's center of mass station (i.e., the vector fixed in the body,
+    /// going from body origin to body mass center, expressed in the body frame.)
+    /// Callable at Instance Stage or higher.
+    const Vec3& getBodyMassCenterStation(const State& s, BodyId bodyB) const {
+        return getBodyMassProperties(s,bodyB).getMassCenter();
+    }
+
+    /// Return a body's inertia matrix, taken about the body origin and 
+    /// expressed in the body frame.
+    /// Callable at Instance Stage or higher.
+    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s, BodyId bodyB) const {
+        return getBodyMassProperties(s,bodyB).getInertia();
+    }
+
+    /// Extract from the state cache the already-calculated spatial orientation
+    /// of body B's body frame x, y, and z axes expressed in the ground frame,
+    /// as the rotation matrix R_GB. This response is available at Position stage.
+    const Rotation& getBodyRotation(const State& s, BodyId bodyB) const {
+        return getBodyTransform(s,bodyB).R();
+    }
+    /// Extract from the state cache the already-calculated spatial location
+    /// of body B's body frame origin OB, measured from the ground origin and
+    /// expressed in the ground frame, as the translation vector r_OG_OB.
+    /// This response is available at Position stage.
+    const Vec3& getBodyOriginLocation(const State& s, BodyId bodyB) const {
+        return getBodyTransform(s,bodyB).T();
+    }
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// velocity vector w_GB of body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Velocity stage.
+    const Vec3& getBodyAngularVelocity(const State& s, BodyId bodyB) const {
+        return getBodyVelocity(s,bodyB)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// velocity vector v_GB of body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Velocity stage.
+    const Vec3& getBodyLinearVelocity(const State& s, BodyId bodyB) const {
+        return getBodyVelocity(s,bodyB)[1];
+    }
+
+    /// Return the Cartesian (ground) location of a station fixed on body B. That is
+    /// we return locationOnG = X_GB * locationOnB which means the result is measured from
+    /// the ground origin and expressed in ground. Cost is 18 flops. This operator is
+    /// available at Position stage.
+    Vec3 locateBodyPointOnGround(const State& s, BodyId onBodyB, const Vec3& locationOnB) const {
+        return getBodyTransform(s,onBodyB) * locationOnB;
+    }
+
+    /// Return the station fixed on body B that is coincident with the given Ground location.
+    /// That is we return locationOnB = X_BG * locationOnG, which means the result is measured
+    /// from the body origin OB and expressed in the body frame. Cost is 18 flops. This operator
+    /// is available at Position stage or higher.
+    Vec3 locateGroundPointOnBody(const State& s, const Vec3& locationOnG, BodyId toBodyB) const {
+        return ~getBodyTransform(s, toBodyB) * locationOnG;
+    }
+
+    /// Given a location on body B, return the location on body A which is at the same location
+    /// in space. That is, we return locationOnA = X_AB * locationOnB, which means the result
+    /// is measured from the body A origin and expressed in body A. Cost is 36 flops.
+    /// This operator is available at Position stage or higher.
+    /// Note: if you know that one of the bodies is Ground, use one of the routines above
+    /// which is specialized for Ground to avoid half the work.
+    Vec3 locateBodyPointOnBody(const State& s, BodyId onBodyB, const Vec3& locationOnB, 
+                               BodyId toBodyA) const
+    {
+        return locateGroundPointOnBody(s, locateBodyPointOnGround(s,onBodyB,locationOnB),
+                                       toBodyA);
+    }
+
+    /// Re-express a vector expressed in body B's frame into the same vector in G. That is,
+    /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressBodyVectorInGround(const State& s, BodyId bodyB, const Vec3& vectorInB) const {
+        return getBodyRotation(s,bodyB)*vectorInB;
+    }
+
+    /// Re-express a vector expressed in Ground into the same vector expressed in body A. That is,
+    /// we return vectorInA = R_AG * vectorInG. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressGroundVectorInBody(const State& s, const Vec3& vectorInG, BodyId inBodyA) const {
+        return ~getBodyRotation(s,inBodyA)*vectorInG;
+    }
+
+    /// Re-express a vector expressed in body B into the same vector expressed in body A.
+    /// That is, we return vectorInA = R_AB * vectorInB. Cost is 30 flops.
+    /// This operator is available at Position stage.
+    /// Note: if you know one of the bodies is Ground, call one of the specialized methods
+    /// above to save 15 flops.
+    Vec3 expressBodyVectorInBody(const State& s, BodyId objectBodyB, const Vec3& vectorInB,
+                                 BodyId inBodyA) const
+    {
+        return expressGroundVectorInBody(s, expressBodyVectorInGround(s,objectBodyB,vectorInB),
+                                         inBodyA);
+    }
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
+    /// that is, its velocity relative to the ground frame, expressed in the
+    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
+    Vec3 calcStationVelocity(const State& s, BodyId bodyB, const Vec3& stationOnB) const {
+        const SpatialVec& V_GB         = getBodyVelocity(s,bodyB);
+        const Vec3        stationOnB_G = expressBodyVectorInGround(s,bodyB,stationOnB);
+        return V_GB[1] + V_GB[0] % stationOnB_G; // v + w X r
+    }
+
+    /// Given a station fixed on body B, return its velocity relative to the body frame of
+    /// body A, and expressed in body A's body frame. Cost is 54 flops.
+    /// This operator is available at Velocity stage.
+    /// TODO: UNTESTED!!
+    /// TODO: maybe these between-body routines should return results in ground so that they
+    /// can be easily combined. Easy to re-express vector afterwards.
+    Vec3 calcStationVelocityInBody(const State& s, BodyId bodyB, const Vec3& stationOnB, BodyId bodyA) const {
+        // If body B's origin were coincident with body A's, then Vdiff_AB would be the relative angular
+        // and linear velocity of body B in body A, expressed in G. To get the point we're interested in,
+        // we need the vector from body A's origin to stationB to account for the extra linear velocity
+        // that will be created by moving away from the origin, due to the bodies' relative angular
+        // velocity.
+        const SpatialVec Vdiff_AB = getBodyVelocity(s,bodyB) - getBodyVelocity(s,bodyA); // 6
+
+        // This is a vector from body A's origin to the point of interest, expressed in G.
+        const Vec3 stationA_G = locateBodyPointOnGround(s,bodyB,stationOnB) - getBodyOriginLocation(s,bodyA); // 21
+        const Vec3 v_AsB_G = Vdiff_AB[1] + Vdiff_AB[0] % stationA_G; // 12
+        return ~getBodyRotation(s,bodyA) * v_AsB_G; // 15
+    }
+
+    /// This can be called at any time after construction. It sizes a set of
+    /// force arrays (if necessary) and then sets them to zero. The concrete
+    /// implementations of the "addIn" operators (see above) can then be used by
+    /// the force subsystems to accumulate forces.
+    void resetForces(Vector_<SpatialVec>& bodyForces,
+                     Vector_<Vec3>&       particleForces,
+                     Vector&              mobilityForces) const 
+    {
+        bodyForces.resize(getNBodies());         bodyForces.setToZero();
+        particleForces.resize(getNParticles());  particleForces.setToZero();
+        mobilityForces.resize(getNMobilities()); mobilityForces.setToZero();
+    }
+
+    // End of low level interface.
+    //@}
+
     //////////////////////////////
     // CONCRETE CLASS INTERFACE //
     //////////////////////////////
 
-    // The MatterSubsystemRep (an abstract class) provides implementations underlying the MatterSubsystem
-    // wrapper methods below, typically as virtual methods to be implemented by derived concrete classes 
-    // (e.g. SimbodyMatterSubsystemRep). The wrappers defined below are in turn used
-    // to implement the friendlier API defined above.
+    /// @name Interface to concrete implementation
+    ///
+    /// The MatterSubsystemRep (an abstract class) provides implementations underlying the MatterSubsystem
+    /// wrapper methods below, typically as virtual methods to be implemented by derived concrete classes 
+    /// (e.g. SimbodyMatterSubsystemRep). The wrappers defined below are in turn used
+    /// to implement the friendlier APIs defined above.
 
         // TOPOLOGY STAGE (no state) //
 
@@ -604,162 +794,25 @@ public:
     /// This is the weighted norm of the errors returned by getUDotConstraintErrors().
     Real calcUDotConstraintNorm(const State&) const;
 
+    // End of concrete class interface.
+    //@}
 
-    ///////////////////////////////
-    // MATTER SUBSYSTEM SERVICES //
-    ///////////////////////////////
-
-    // Methods below here are services provided by the MatterSubsystem for use
-    // by other internal objects, such as Systems, ForceSubsystems, or concrete
-    // MatterSubsystem implementations.
-
-    /// Return the mass of a given body. Callable at Instance Stage or higher.
-    Real getBodyMass(const State& s, BodyId bodyB) const {
-        return getBodyMassProperties(s,bodyB).getMass();
-    }
-
-    /// Return a body's center of mass station (i.e., the vector fixed in the body,
-    /// going from body origin to body mass center, expressed in the body frame.)
-    /// Callable at Instance Stage or higher.
-    const Vec3& getBodyMassCenterStation(const State& s, BodyId bodyB) const {
-        return getBodyMassProperties(s,bodyB).getMassCenter();
-    }
-
-    /// Return a body's inertia matrix, taken about the body origin and 
-    /// expressed in the body frame.
-    /// Callable at Instance Stage or higher.
-    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s, BodyId bodyB) const {
-        return getBodyMassProperties(s,bodyB).getInertia();
-    }
-
-    /// Extract from the state cache the already-calculated spatial orientation
-    /// of body B's body frame x, y, and z axes expressed in the ground frame,
-    /// as the rotation matrix R_GB. This response is available at Position stage.
-    const Rotation& getBodyRotation(const State& s, BodyId bodyB) const {
-        return getBodyTransform(s,bodyB).R();
-    }
-    /// Extract from the state cache the already-calculated spatial location
-    /// of body B's body frame origin OB, measured from the ground origin and
-    /// expressed in the ground frame, as the translation vector r_OG_OB.
-    /// This response is available at Position stage.
-    const Vec3& getBodyOriginLocation(const State& s, BodyId bodyB) const {
-        return getBodyTransform(s,bodyB).T();
-    }
-
-    /// Extract from the state cache the already-calculated inertial angular
-    /// velocity vector w_GB of body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Velocity stage.
-    const Vec3& getBodyAngularVelocity(const State& s, BodyId bodyB) const {
-        return getBodyVelocity(s,bodyB)[0]; 
-    }
-    /// Extract from the state cache the already-calculated inertial linear
-    /// velocity vector v_GB of body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Velocity stage.
-    const Vec3& getBodyLinearVelocity(const State& s, BodyId bodyB) const {
-        return getBodyVelocity(s,bodyB)[1];
-    }
-
-    /// Return the Cartesian (ground) location of a station fixed on body B. That is
-    /// we return locationOnG = X_GB * locationOnB which means the result is measured from
-    /// the ground origin and expressed in ground. Cost is 18 flops. This operator is
-    /// available at Position stage.
-    Vec3 locateBodyPointOnGround(const State& s, BodyId onBodyB, const Vec3& locationOnB) const {
-        return getBodyTransform(s,onBodyB) * locationOnB;
-    }
-
-    /// Return the station fixed on body B that is coincident with the given Ground location.
-    /// That is we return locationOnB = X_BG * locationOnG, which means the result is measured
-    /// from the body origin OB and expressed in the body frame. Cost is 18 flops. This operator
-    /// is available at Position stage or higher.
-    Vec3 locateGroundPointOnBody(const State& s, const Vec3& locationOnG, BodyId toBodyB) const {
-        return ~getBodyTransform(s, toBodyB) * locationOnG;
-    }
-
-    /// Given a location on body B, return the location on body A which is at the same location
-    /// in space. That is, we return locationOnA = X_AB * locationOnB, which means the result
-    /// is measured from the body A origin and expressed in body A. Cost is 36 flops.
-    /// This operator is available at Position stage or higher.
-    /// Note: if you know that one of the bodies is Ground, use one of the routines above
-    /// which is specialized for Ground to avoid half the work.
-    Vec3 locateBodyPointOnBody(const State& s, BodyId onBodyB, const Vec3& locationOnB, 
-                               BodyId toBodyA) const
-    {
-        return locateGroundPointOnBody(s, locateBodyPointOnGround(s,onBodyB,locationOnB),
-                                       toBodyA);
-    }
-
-    /// Re-express a vector expressed in body B's frame into the same vector in G. That is,
-    /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
-    /// This operator is available at Position stage.
-    Vec3 expressBodyVectorInGround(const State& s, BodyId bodyB, const Vec3& vectorInB) const {
-        return getBodyRotation(s,bodyB)*vectorInB;
-    }
-
-    /// Re-express a vector expressed in Ground into the same vector expressed in body A. That is,
-    /// we return vectorInA = R_AG * vectorInG. Cost is 15 flops. 
-    /// This operator is available at Position stage.
-    Vec3 expressGroundVectorInBody(const State& s, const Vec3& vectorInG, BodyId inBodyA) const {
-        return ~getBodyRotation(s,inBodyA)*vectorInG;
-    }
-
-    /// Re-express a vector expressed in body B into the same vector expressed in body A.
-    /// That is, we return vectorInA = R_AB * vectorInB. Cost is 30 flops.
-    /// This operator is available at Position stage.
-    /// Note: if you know one of the bodies is Ground, call one of the specialized methods
-    /// above to save 15 flops.
-    Vec3 expressBodyVectorInBody(const State& s, BodyId objectBodyB, const Vec3& vectorInB,
-                                 BodyId inBodyA) const
-    {
-        return expressGroundVectorInBody(s, expressBodyVectorInGround(s,objectBodyB,vectorInB),
-                                         inBodyA);
-    }
-
-    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
-    /// that is, its velocity relative to the ground frame, expressed in the
-    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
-    Vec3 calcStationVelocity(const State& s, BodyId bodyB, const Vec3& stationOnB) const {
-        const SpatialVec& V_GB         = getBodyVelocity(s,bodyB);
-        const Vec3        stationOnB_G = expressBodyVectorInGround(s,bodyB,stationOnB);
-        return V_GB[1] + V_GB[0] % stationOnB_G; // v + w X r
-    }
-
-    /// Given a station fixed on body B, return its velocity relative to the body frame of
-    /// body A, and expressed in body A's body frame. Cost is 54 flops.
-    /// This operator is available at Velocity stage.
-    /// TODO: UNTESTED!!
-    /// TODO: maybe these between-body routines should return results in ground so that they
-    /// can be easily combined. Easy to re-express vector afterwards.
-    Vec3 calcStationVelocityInBody(const State& s, BodyId bodyB, const Vec3& stationOnB, BodyId bodyA) const {
-        // If body B's origin were coincident with body A's, then Vdiff_AB would be the relative angular
-        // and linear velocity of body B in body A, expressed in G. To get the point we're interested in,
-        // we need the vector from body A's origin to stationB to account for the extra linear velocity
-        // that will be created by moving away from the origin, due to the bodies' relative angular
-        // velocity.
-        const SpatialVec Vdiff_AB = getBodyVelocity(s,bodyB) - getBodyVelocity(s,bodyA); // 6
-
-        // This is a vector from body A's origin to the point of interest, expressed in G.
-        const Vec3 stationA_G = locateBodyPointOnGround(s,bodyB,stationOnB) - getBodyOriginLocation(s,bodyA); // 21
-        const Vec3 v_AsB_G = Vdiff_AB[1] + Vdiff_AB[0] % stationA_G; // 12
-        return ~getBodyRotation(s,bodyA) * v_AsB_G; // 15
-    }
-
-    /// This can be called at any time after construction. It sizes a set of
-    /// force arrays (if necessary) and then sets them to zero. The concrete
-    /// implementations of the "addIn" operators (see above) can then be used by
-    /// the force subsystems to accumulate forces.
-    void resetForces(Vector_<SpatialVec>& bodyForces,
-                     Vector_<Vec3>&       particleForces,
-                     Vector&              mobilityForces) const 
-    {
-        bodyForces.resize(getNBodies());         bodyForces.setToZero();
-        particleForces.resize(getNParticles());  particleForces.setToZero();
-        mobilityForces.resize(getNMobilities()); mobilityForces.setToZero();
-    }
 
         // BOOKKEEPING //
-    SimTK_PIMPL_DOWNCAST(MatterSubsystem, Subsystem);
+
+    /// @name Bookkeeping
+    /// For internal use only.
+    //@{
+    /// Default constructor does nothing; parent class Subsystem's default
+    /// constructor will have been called though and may do something.
+    MatterSubsystem() { }
+    /// Return a writable reference to the SubsystemRep, downcast to a MatterSubsystemRep.
     class MatterSubsystemRep& updRep();
+    /// Return a read-only reference to the SubsystemRep, downcast to a MatterSubsystemRep.
     const MatterSubsystemRep& getRep() const;
+    /// Generate the standard set of routines for a SimTK PIMPL handle class.
+    SimTK_PIMPL_DOWNCAST(MatterSubsystem, Subsystem);
+    //@}
 };
 
 } // namespace SimTK
