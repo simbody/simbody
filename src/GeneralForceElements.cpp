@@ -514,8 +514,8 @@ public:
             const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
             const Vec3 p2_G = X_GB2.T() + s2_G;
 
-            const Vec3 v1_G = matter.calcStationVelocity(s, damper.body1, damper.station1);
-            const Vec3 v2_G = matter.calcStationVelocity(s, damper.body2, damper.station2);
+            const Vec3 v1_G = matter.calcBodyFixedPointVelocityInGround(s, damper.body1, damper.station1);
+            const Vec3 v2_G = matter.calcBodyFixedPointVelocityInGround(s, damper.body2, damper.station2);
             const Vec3 vRel = v2_G - v1_G; // relative velocity
 
             const UnitVec3 d(p2_G - p1_G); // direction from point1 to point2

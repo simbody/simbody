@@ -115,16 +115,22 @@ public:
      * in the SpatialMat like this:                  @verbatim
          M=[      I_OB      crossMat(m*CB) ]
            [ ~crossMat(m*CB)   diag(m)     ]         @endverbatim
-     *  where I_OB is the inertia taken about the B frame origin OB,
-     *  and CB is the vector r_OB_CB from B's origin to its mass center.
+     * where I_OB is the inertia taken about the B frame origin OB,
+     * and CB is the vector r_OB_CB from B's origin to its mass center.
+     *
+     * The Spatial Inertia Matrix for Ground has infinite mass and
+     * inertia, with the cross terms set to zero. That is, it looks
+     * like a 6x6 diagonal matrix with Infinity on the diagonals.
      * 
-     *  @par Required stage
-     *    \c Stage::Topology, if \a objectBodyB == \c GroundId
-     *  \n\c Stage::Position otherwise.
+     * @par Required stage
+     *   \c Stage::Position, unless \a objectBodyB == \c GroundId
      */
     SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s,
                                                     BodyId objectBodyB) const
     {
+        if (objectBodyB==GroundId)
+            return SpatialMat(Mat33(NTraits<Real>::Infinity)); // sets diagonals to Inf
+
         const MassProperties& mp   = getBodyMassProperties(s, objectBodyB);
         const Rotation&       R_GB = getBodyRotation(s,objectBodyB);
          // re-express in Ground without shifting, convert to spatial mat.
@@ -307,8 +313,7 @@ public:
         const Vec3        w_AB_G = V_GB[0]-V_GA[0]; // angular velocity of B in A, exp in G
 
         // Now reexpress in A.
-        const Rotation& R_GA = getBodyRotation(s,inBodyA);
-        return ~R_GA*w_AB_G;
+        return expressGroundVectorInBody(s, w_AB_G, inBodyA);
     }
 
     /// Return the velocity of body B's origin point in body A's frame, expressed in body A.
@@ -368,30 +373,53 @@ public:
 
         // SCALAR DISTANCE //
 
-    /// Calculate the distance to a point PB on body B from a point PA on body A.
+    /// Calculate the distance from a point PB on body B to a point PA on body A.
     /// We are given the location vectors (stations) r_OB_PB and r_OA_PA, expressed in
-    /// their respective frames. We return |r_OA_OB|.
+    /// their respective frames. We return |r_OB_OA|.
     Real calcPointToPointDistance(const State& s,
                                   BodyId       bodyB,
                                   const Vec3&  locationOnBodyB,
                                   BodyId       bodyA,
-                                  const Vec3&  locationOnBodyA) const;
+                                  const Vec3&  locationOnBodyA) const
+    {
+        if (bodyA == bodyB)
+            return (locationOnBodyA-locationOnBodyB).norm();
+
+        const Vec3 r_OG_PB = locateBodyPointOnGround(s,bodyB,locationOnBodyB);
+        const Vec3 r_OG_PA = locateBodyPointOnGround(s,bodyA,locationOnBodyA);
+        return (r_OG_PA - r_OG_PB).norm();
+    }
 
     /// Calculate the time rate of change of distance from a fixed point PB on body B to a fixed point
     /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, expressed in their
-    /// respective frames. We return d/dt |r_OA_OB|, under the assumption that the time derivatives
+    /// respective frames. We return d/dt |r_OB_OA|, under the assumption that the time derivatives
     /// of the two given vectors in their own frames is zero.
     Real calcFixedPointToPointDistanceTimeDerivative(const State& s,
                                                      BodyId       bodyB,
                                                      const Vec3&  locationOnBodyB,
                                                      BodyId       bodyA,
-                                                     const Vec3&  locationOnBodyA) const;
+                                                     const Vec3&  locationOnBodyA) const
+    {
+        if (bodyA == bodyB)
+            return 0;
+
+        Vec3 rB, rA, vB, vA;
+        calcBodyFixedPointLocationAndVelocityInGround(s,bodyB,locationOnBodyB,rB,vB);
+        calcBodyFixedPointLocationAndVelocityInGround(s,bodyA,locationOnBodyA,rA,vA);
+        const Vec3 r = rA-rB, v = vA-vB;
+        const Real d = r.norm();
+
+        // When the points are coincident, the rate of change of distance is just their relative speed.
+        // Otherwise, it is the speed along the direction of separation. 
+        if (d==0) return v.norm();
+        else return dot(v, r/d);
+    }
 
 
     /// Calculate the time rate of change of distance from a moving point PB on body B to a moving point
     /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities of
-    /// PB in B and PA in A, all expressed in their respective frames. We return d/dt |r_OA_OB|,
-    /// taking into account the time derivatives of the locations in their local frames, as well
+    /// PB in B and PA in A, all expressed in their respective frames. We return d/dt |r_OB_OA|,
+    /// taking into account the (given) time derivatives of the locations in their local frames, as well
     /// as the relative velocities of the bodies.
     Real calcMovingPointToPointDistanceTimeDerivative(const State& s,
                                                       BodyId       bodyB,
@@ -403,13 +431,43 @@ public:
 
     /// Calculate the second time derivative of distance from a fixed point PB on body B to a fixed point
     /// PA on body A. We are given the location vectors (stations) r_OB_PB and r_OA_PA, expressed in their
-    /// respective frames. We return d^2/dt^2 |r_OA_OB|, under the assumption that the time derivatives
+    /// respective frames. We return d^2/dt^2 |r_OB_OA|, under the assumption that the time derivatives
     /// of the two given vectors in their own frames is zero.
     Real calcFixedPointToPointDistance2ndTimeDerivative(const State& s,
                                                         BodyId       bodyB,
                                                         const Vec3&  locationOnBodyB,
                                                         BodyId       bodyA,
-                                                        const Vec3&  locationOnBodyA) const;
+                                                        const Vec3&  locationOnBodyA) const
+    {
+        if (bodyA == bodyB)
+            return 0;
+
+        Vec3 rB, rA, vB, vA, aB, aA;
+        calcBodyFixedPointLocationVelocityAndAccelerationInGround(s,bodyB,locationOnBodyB,rB,vB,aB);
+        calcBodyFixedPointLocationVelocityAndAccelerationInGround(s,bodyA,locationOnBodyA,rA,vA,aA);
+
+        const Vec3 r = rA-rB, v = vA-vB, a = aA-aB;
+        const Real d = r.norm();
+        
+        // This method is the time derivative of calcFixedPointToPointDistanceTimeDerivative(), so it
+        // must follow the same two cases. That is, when the points are coincident the change in 
+        // separation rate is the time derivative of the speed |v|, otherwise it is the time
+        // derivative of the speed along the separation vector.
+
+        if (d==0) {
+            // Return d/dt |v|. This has two cases: if |v| is zero, the rate of change of speed is
+            // just the points' relative acceleration magnitude. Otherwise, it is the acceleration
+            // in the direction of the current relative velocity vector.
+            const Real s = v.norm(); // speed
+            if (s==0) return a.norm();
+            else return dot(a, v/s); // TODO: check with Paul
+        }
+
+        // Points are separated.
+        const Vec3 u = r/d;             // u is the separation direction (a unit vector from B to A) 
+        const Vec3 vp = v - dot(v,u)*u; // velocity perpendicular to separation direction
+        return dot(a,u) + dot(vp,v)/d;
+    }
 
     /// Calculate the second time derivative of distance from a moving point PB on body B to a moving point
     /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities and
@@ -481,10 +539,25 @@ public:
         return getBodyVelocity(s,bodyB)[0]; 
     }
     /// Extract from the state cache the already-calculated inertial linear
-    /// velocity vector v_GB of body B, measured with respect to the ground frame
-    /// and expressed in the ground frame. This response is available at Velocity stage.
-    const Vec3& getBodyLinearVelocity(const State& s, BodyId bodyB) const {
+    /// velocity vector v_G_OB of body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Velocity stage.
+    const Vec3& getBodyOriginVelocity(const State& s, BodyId bodyB) const {
         return getBodyVelocity(s,bodyB)[1];
+    }
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// acceleration vector aa_GB of body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Acceleration stage.
+    const Vec3& getBodyAngularAcceleration(const State& s, BodyId bodyB) const {
+        return getBodyAcceleration(s,bodyB)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// acceleration vector a_G_OB of body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Acceleration stage.
+    const Vec3& getBodyOriginAcceleration(const State& s, BodyId bodyB) const {
+        return getBodyAcceleration(s,bodyB)[1];
     }
 
     /// Return the Cartesian (ground) location of a station fixed on body B. That is
@@ -545,10 +618,62 @@ public:
     /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
     /// that is, its velocity relative to the ground frame, expressed in the
     /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
-    Vec3 calcStationVelocity(const State& s, BodyId bodyB, const Vec3& stationOnB) const {
-        const SpatialVec& V_GB         = getBodyVelocity(s,bodyB);
-        const Vec3        stationOnB_G = expressBodyVectorInGround(s,bodyB,stationOnB);
-        return V_GB[1] + V_GB[0] % stationOnB_G; // v + w X r
+    Vec3 calcBodyFixedPointVelocityInGround(const State& s, BodyId bodyB, const Vec3& stationOnB) const {
+        const Vec3& w = getBodyAngularVelocity(s,bodyB); // in G
+        const Vec3& v = getBodyOriginVelocity(s,bodyB);  // in G
+        const Vec3  r = expressBodyVectorInGround(s,bodyB,stationOnB); // 15 flops
+        return v + w % r;                                              // 12 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location and velocity together
+    /// than to do them separately. Here we can return them both in 30 flops, vs. 45 to
+    /// do them in two calls.
+    void calcBodyFixedPointLocationAndVelocityInGround(const State& s, BodyId bodyB, const Vec3& locationOnB,
+                                                       Vec3& locationOnGround, Vec3& velocityInGround) const
+    {
+        const Vec3& r_G_OB = getBodyOriginLocation(s,bodyB);
+        const Vec3  r      = expressBodyVectorInGround(s,bodyB,locationOnB); // 15 flops
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w = getBodyAngularVelocity(s,bodyB); // in G
+        const Vec3& v = getBodyOriginVelocity(s,bodyB);  // in G
+        velocityInGround = v + w % r; // 12 flops
+    }
+
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) acceleration,
+    /// that is, its acceleration relative to the ground frame, expressed in the
+    /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
+    Vec3 calcBodyFixedPointAccelerationInGround(const State& s, BodyId bodyB, const Vec3& stationOnB) const {
+        const Vec3& w  = getBodyAngularVelocity(s,bodyB);     // in G
+        const Vec3& aa = getBodyAngularAcceleration(s,bodyB); // in G
+        const Vec3& a  = getBodyOriginAcceleration(s,bodyB);  // in G
+
+        const Vec3  r = expressBodyVectorInGround(s,bodyB,stationOnB); // 15 flops
+        return a + aa % r + w % (w % r);                               // 33 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
+    /// than to do them separately. Here we can return them all in 54 flops, vs. 93 to
+    /// do them in three calls. This operator is available at Acceleration stage.
+    void calcBodyFixedPointLocationVelocityAndAccelerationInGround
+       (const State& s, BodyId bodyB, const Vec3& locationOnB,
+        Vec3& locationOnGround, Vec3& velocityInGround, Vec3& accelerationInGround) const
+    {
+        const Rotation&  R_GB   = getBodyRotation(s,bodyB);
+        const Vec3&      r_G_OB = getBodyOriginLocation(s,bodyB);
+
+        const Vec3 r = R_GB*locationOnB; // re-express station vector in G (15 flops)
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w  = getBodyAngularVelocity(s,bodyB); // in G
+        const Vec3& v  = getBodyOriginVelocity(s,bodyB);  // in G
+        const Vec3& aa = getBodyAngularAcceleration(s,bodyB); // in G
+        const Vec3& a  = getBodyOriginAcceleration(s,bodyB);  // in G
+
+        const Vec3 wXr = w % r; // "whipping" velocity w X r due to angular velocity (9 flops)
+        velocityInGround     = v + wXr;              // v + w X r (3 flops)
+        accelerationInGround = a + aa % r + w % wXr; // 24 flops
     }
 
     /// Given a station fixed on body B, return its velocity relative to the body frame of
