@@ -175,23 +175,23 @@ public:
         const Vector_<SpatialVec>& dEdR,
         Vector&                    dEdQ) const; // really Qbar
 
-    /// Requires realization through MovingStage.
+    /// Requires realization through Stage::Velocity.
     Real calcKineticEnergy(const State&) const;
 
-    /// Requires realization through DynamicsStage although
+    /// Requires realization through Stage::Dynamics although
     /// velocities are irrelevant.
     void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    mobilityForces) const;
 
-    /// Requires realization through DynamicsStage.
+    /// Requires realization through Stage::Dynamics.
     void calcTreeUDot(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    udot,
         Vector_<SpatialVec>&       A_GB) const;
 
-    /// Requires realization through DynamicsStage.
+    /// Requires realization through Stage::Dynamics.
     void calcMInverseF(const State&,
         const Vector&        f,
         Vector&              udot,

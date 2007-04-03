@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors: Derived from IVM code written by Charles Schwieters.
+ * Contributors: Derived from NIH IVM code written by Charles Schwieters.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -65,7 +65,7 @@ class IVM;
 class LengthConstraints;
 
 /**
- * The SimbodyMatterSubsystemRep class owns the tree of joint-connected rigid bodies, called
+ * The SimbodyMatterSubsystemRep class owns the tree of mobilizer-connected rigid bodies, called
  * RigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
  * being bodies which are connected to ground (base bodies), level 2 connected to
  * level 1 and so on. Nodes at the same level are stored together in an array,
@@ -265,7 +265,7 @@ public:
         const Vector& u,
         Vector&       qdot) const;
 
-    // Must be in MovingStage to calculate qdotdot = Qdot*u + Q*udot.
+    // Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
@@ -318,16 +318,11 @@ public:
     // Call after realizeDynamics()
     const SpatialMat& getArticulatedBodyInertia(const State& s, BodyId) const;
 
-    // Call after realizeReactions()
+    // Call after realizeAcceleration()
     const SpatialVec& getBodyAcceleration(const State& s, BodyId) const;
-
-    // Dynamics -- calculate accelerations and internal forces from 
-    // forces and prescribed accelerations supplied in the State.
-
 
     /// This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
-
 
     void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
     void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
@@ -368,7 +363,7 @@ public:
     //    These routines know where the bodies are buried (no pun intended).
     //
 
-    // The ConstructionCache in the State should be a copy of the one
+    // The TopologyCache in the State should be a copy of the one
     // we keep locally here. We always use our local copy rather than
     // this one except for checking that the State looks reasonable.
     const SBTopologyCache& getTopologyCache(const State& s) const {

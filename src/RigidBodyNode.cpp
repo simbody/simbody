@@ -76,7 +76,7 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // Note that this is symmetric; offDiag is *skew* symmetric so
     // that transpose(offDiag) = -offDiag.
     // Note: we need to calculate this now so that we'll be able to calculate
-    // kinetic energy without going past the Motion stage.
+    // kinetic energy without going past the Velocity stage.
     const Mat33 offDiag = getMass()*crossMat(getCB_G(cc));
     updMk(cc) = SpatialMat( getInertia_OB_G(cc).toMat33() ,     offDiag ,
                                    -offDiag             , getMass()*Mat33(1) );

@@ -2,7 +2,7 @@
 #define SimTK_RIGID_BODY_NODE_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors: Derived from IVM code written by Charles Schwieters.
+ * Contributors: Derived from NIH IVM code written by Charles Schwieters.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -35,9 +35,9 @@
 using namespace SimTK;
 
 /**
- * This is an abstract class representing a body and its (generic) inboard joint, that is,
+ * This is an abstract class representing a body and its (generic) mobilizer, that is,
  * the joint connecting it to its parent. Concrete classes are derived from this one to
- * represent each specific type of joint.
+ * represent each specific type of mobilizer.
  *
  * RigidBodyNodes are linked into a tree structure, organized into levels as described 
  * in Schwieters' JMR paper. The root is a special 'Ground' node defined to be at 
@@ -62,14 +62,15 @@ using namespace SimTK;
  * Every body has a body frame B, and an inboard mobilizer frame M. For convenience, we
  * refer to the body frame of a body's unique parent as the 'P' frame. There is
  * a frame Mb on P which is where B's inboard joint attaches. When all the mobilizer
- * coordinates are 0, M==Mb. The transform X_MbM tracks the across-mobilizer change
- * in configuration induced by the generalized coordinates q.
+ * coordinates are 0 (=1000 for quaternions), M==Mb. The transform X_MbM tracks the
+ * across-mobilizer change in configuration induced by the generalized coordinates q.
  *
  * The mobilizer frame M is fixed with respect to B, and Mb is fixed with
  * respect to P. In some cases M and B or Mb and P will be the same, but not always.
- * The constant transforms X_BM and X_PMb provides the configuration of the mobilizer
+ * The constant transforms X_BM and X_PMb provide the configuration of the mobilizer
  * frames with respect to their body frames. With these definitions we can
- * easily calculate X_PB as X_PB = X_PMb*X_MbM*X_MB.
+ * easily calculate X_PB as X_PB = X_PMb*X_MbM*X_MB, where X_MbM is the q-dependent
+ * cross-mobilizer transform calculated at Position stage.
  *
  * RigidBodyNodes know how to extract and deposit their own information from and
  * to the Simbody State variables and cache entries, but they don't know anything
@@ -187,7 +188,7 @@ public:
 
     /// Extract from the cache X_GB, the transformation matrix giving the spatial configuration of this
     /// body's frame B measured from and expressed in ground. This consists of a rotation matrix
-    /// R_GB, and a ground-frame vector OB_G from ground's origin to the origin point of frame B.
+    /// R_GB, and a ground-frame vector r_OG_OB from ground's origin to the origin point of frame B.
     const Transform& getX_GB(const SBPositionCache& cc) const {
         return fromB(cc.bodyConfigInGround);
     }
@@ -217,10 +218,8 @@ public:
     const Inertia& getInertia_OB_G(const SBPositionCache& cc) const {return fromB(cc.bodyInertiaInGround);}
     Inertia&       updInertia_OB_G(SBPositionCache&       cc) const {return toB  (cc.bodyInertiaInGround);}
 
-    /// Return OB_G, the spatial location of the origin of the B frame, that is, 
-    /// measured from the ground origin and expressed in ground.
-    //const Vec3&        getOB_G(const SBState& s) const {return getX_GB(s).T(); }
-
+    /// Extract from the cache the spatial (ground-relative) location and orientation of this body's
+    /// *parent's* body frame P.
     const Transform& getX_GP(const SBPositionCache& cc) const {assert(parent); return parent->getX_GB(cc);}
 
             // VELOCITY INFO

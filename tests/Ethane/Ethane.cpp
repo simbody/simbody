@@ -522,6 +522,10 @@ try
              << ", ke(kcal)=" << mbs.getKineticEnergy(s)*KJ2Kcal
              << " hNext(fs)=" << 1000*study.getPredictedNextStep();
 
+        cout << "\n  System COM loc=" << matter.calcSystemMassCenterLocationInGround(s);
+        cout << "\n  System COM vel=" << matter.calcSystemMassCenterVelocityInGround(s);
+        cout << "\n  System COM acc=" << matter.calcSystemMassCenterAccelerationInGround(s);
+
         cout << endl;
 
         if (!(step % interval)) {
