@@ -892,19 +892,129 @@ public:
 
     BodyId        getParent  (BodyId) const;
     Array<BodyId> getChildren(BodyId) const;
+    Mobilizer     getMobilizer(BodyId) const;
 
         // MODEL STAGE responses //
 
+    /// Return the number of generalized coordinates (q) currently being used to model
+    /// a body's Mobilizer. Typically this will be the same as the mobility (number
+    /// of degrees of freedom) provided by the Mobilizer, but orientations are
+    /// sometimes modeled with 4 coordinates (quaternions) for stability, even though they 
+    /// require only 3 degrees of freedom.
+    int getNMobilizerCoords(const State&, BodyId) const;
+
+    /// Return the number of generalized speeds (u) being used to model a body's 
+    /// mobility. This is always the same as the number of degrees of freedom
+    /// provided by its mobilizer.
+    int getNMobilizerSpeeds(const State&, BodyId) const;
+
+    /// Obtain as a Vector the current values for all the mobilizer generalized coordinates (q) for
+    /// a particular body. If you know the number of mobilities, it is more efficient
+    /// use one of the fixed-sized methods, but here you don't need to know the
+    /// number of coordinates in advance.
+    /// @see getMobilizerCoord()
+    /// @see getMobilizerCoordsAsVec2(), etc.
+    Vector getMobilizerCoords(const State&, BodyId) const;
+
+    /// Obtain the current values for all the mobilizer generalized speeds (u) for
+    /// a particular body. If you know the number of mobilities, it is more efficient
+    /// use one of the fixed-sized methods, but here you don't need to know the
+    /// number of speeds in advance.
+    /// @see getMobilizerSpeed()
+    /// @see getMobilizerSpeedsAsVec2(), etc.
+    Vector getMobilizerSpeeds(const State&, BodyId) const;
+
     const Real& getMobilizerQ(const State&, BodyId, int mobilityIndex) const;
     const Real& getMobilizerU(const State&, BodyId, int mobilityIndex) const;
+
+    /// Obtain the current value of the mobilizer generalized coordinate (q) for a body whose
+    /// mobilizer has only a single coordinate (e.g., a torsion or sliding joint). This is a
+    /// state variable and may be obtained at Stage::Model or above. This routine will throw
+    /// an exception if the body's mobilizer does not have exactly one coordinate.
+    Real getMobilizerCoord(const State&, BodyId) const;
+    const Vec2& getMobilizerCoordsAsVec2(const State&, BodyId) const;
+    const Vec3& getMobilizerCoordsAsVec3(const State&, BodyId) const;
+    const Vec4& getMobilizerCoordsAsVec4(const State&, BodyId) const;
+    const Vec5& getMobilizerCoordsAsVec5(const State&, BodyId) const;
+    const Vec6& getMobilizerCoordsAsVec6(const State&, BodyId) const;
+    const Vec7& getMobilizerCoordsAsVec7(const State&, BodyId) const;
+
+    /// Obtain the current value of the mobilizer generalized speed (u) for a body whose
+    /// mobilizer has only a single generalized speed. This is a state variable and may
+    /// be obtained at Stage::Model or above. This routine will throw an exception
+    /// if the body's mobilizer does not have exactly one generalized speed.
+    Real getMobilizerSpeed(const State&, BodyId) const;
+    const Vec2& getMobilizerSpeedsAsVec2(const State&, BodyId) const;
+    const Vec3& getMobilizerSpeedsAsVec3(const State&, BodyId) const;
+    const Vec4& getMobilizerSpeedsAsVec4(const State&, BodyId) const;
+    const Vec5& getMobilizerSpeedsAsVec5(const State&, BodyId) const;
+    const Vec6& getMobilizerSpeedsAsVec6(const State&, BodyId) const;
 
         // MODEL STAGE operators //
     // none
 
         // MODEL STAGE solvers //
 
+    // Routines beginning with "set" must always succeed. They will throw an exception
+    // if the mobilizer is not capable of representing the indicated value.
+
     void setMobilizerQ(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
     void setMobilizerU(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
+    void setMobilizerCoords(State&, BodyId, const Vector& q) const;
+    void setMobilizerSpeeds(State&, BodyId, const Vector& u) const;
+
+    void setMobilizerCoord(State&, BodyId, Real q) const;
+    void setMobilizerCoordsAsVec2(State&, BodyId, const Vec2&) const;
+    void setMobilizerCoordsAsVec3(State&, BodyId, const Vec3&) const;
+    void setMobilizerCoordsAsVec4(State&, BodyId, const Vec4&) const;
+    void setMobilizerCoordsAsVec5(State&, BodyId, const Vec5&) const;
+    void setMobilizerCoordsAsVec6(State&, BodyId, const Vec6&) const;
+    void setMobilizerCoordsAsVec7(State&, BodyId, const Vec7&) const;
+
+    void setMobilizerSpeed(State&, BodyId, Real u) const;
+    void setMobilizerSpeedsAsVec2(State&, BodyId, const Vec2&) const;
+    void setMobilizerSpeedsAsVec3(State&, BodyId, const Vec3&) const;
+    void setMobilizerSpeedsAsVec4(State&, BodyId, const Vec4&) const;
+    void setMobilizerSpeedsAsVec5(State&, BodyId, const Vec5&) const;
+    void setMobilizerSpeedsAsVec6(State&, BodyId, const Vec6&) const;
+
+    void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const;
+    void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const;
+    void setMobilizerTranslation(State&, BodyId, const Vec3&      r_MbM) const;
+
+    void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const;
+    void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const;
+    void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM) const;
+
+    /// This is a solver which sets the body's cross-mobilizer transform "as close
+    /// as possible" to the supplied Transform, making
+    /// the smallest possible change (in a least squares sense) to the current
+    /// values of the mobilizer coordinates. This may involve a tradeoff between
+    /// orientation ("pointing error") and translation error. In that case we
+    /// first ensure that the pointing error is within a reasonable limit, 
+    /// then work on the translation, allowing some tradeoff between the two.
+    /// Note: this has no effect on any coordinates except the q's for this
+    /// mobilizer, and constraints are ignored.
+    void fitMobilizerCoordsToTransform(State&, BodyId, const Transform& X_MbM) const;
+
+    /// This solver sets the cross-mobilizer rotation to match as closely as
+    /// possible the supplied Rotation. Any purely-translational mobilities will
+    /// be left unchanged by this solver, since these cannot contribute to the
+    /// cross-mobilizer rotation. This routine minimizes pointing error |a| where a
+    /// is the angle in the (angle,axis) form of the residual rotation error.
+    void fitMobilizerCoordsToRotation(State&, BodyId, const Rotation&  R_MbM) const;
+
+    /// This solver sets the cross-mobilizer translation to match as closely as
+    /// possible the supplied translation vector. (This is the vector 
+    /// from the parent body's Mb frame origin to the body's M frame origin.) 
+    /// Purely rotational degrees of freedom will be exercised if necessary to minimize
+    /// the residual translation error, unless preserveRotation==true.
+    void fitMobilizerCoordsToTranslation(State&, BodyId, const Vec3& r_MbM,
+                                         bool preserveRotation=false) const;
+
+    void fitMobilizerSpeedsToVelocity       (State&, BodyId, const SpatialVec& V_MbM) const;
+    void fitMobilizerSpeedsToAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const;
+    void fitMobilizerSpeedsToLinearVelocity (State&, BodyId, const Vec3&       v_MbM) const;
 
         // INSTANCE STAGE responses //
 
@@ -941,16 +1051,6 @@ public:
 
         // TIME STAGE solvers
 
-    /// This is a solver which sets the body's mobilizer transform as close
-    /// as possible to the supplied Transform. The degree to which this is
-    /// possible depends of course on the mobility provided by this body's
-    /// mobilizer. However, no error will occur; on return the coordinates
-    /// for this mobilizer will be as close as we can get them. Note: this
-    /// has no effect on any coordinates except the q's for this mobilizer.
-    /// You can call this solver at Stage::Time or higher (because there can
-    /// be time-dependent constraints on position); it will
-    /// leave you no higher than Stage::Time since it changes the configuration.
-    void setMobilizerTransform(State&, BodyId, const Transform& X_MbM) const;
 
         // POSITION STAGE responses //
 
@@ -999,16 +1099,6 @@ public:
                             Vector& mobilityForces) const;
 
         // POSITION STAGE solvers //
-
-    /// This is a solver which sets the body's cross-mobilizer velocity as close
-    /// as possible to the supplied angular and linear velocity. The degree to which this is
-    /// possible depends of course on the mobility provided by this body's
-    /// mobilizer, in its current configuration. However, no error will occur; on return
-    /// the velocity coordinates (u's) for this mobilizer will be as close as we can get them.
-    /// Note: this has no effect on any coordinates except the u's for this mobilizer.
-    /// You can call this solver at Stage::Position or higher; it will
-    /// leave you no higher than Stage::Position since it changes the velocities.
-    void setMobilizerVelocity(State&, BodyId bodyB, const SpatialVec& V_MbM) const;
 
     /// This is a solver you can call after the State has been realized
     /// to stage Position. It will project the Q constraints

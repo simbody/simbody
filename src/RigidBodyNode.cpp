@@ -58,9 +58,9 @@ void RigidBodyNode::calcJointIndependentKinematicsPos(
     // Re-express parent-to-child shift vector (OB-OP) into the ground frame.
     const Vec3 T_PB_G = getX_GP(cc).R() * getX_PB(cc).T();
 
-    // The Phi matrix conveniently performs child-to-parent shifting
+    // The Phi matrix conveniently performs child-to-parent (inward) shifting
     // on spatial quantities (forces); its transpose does parent-to-child
-    // shifting for velocities.
+    // (outward) shifting for velocities.
     updPhi(cc) = PhiMatrix(T_PB_G);
 
     // Calculate spatial mass properties. That means we need to transform
@@ -154,12 +154,14 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // Note: (vel-pVel) is the total relative velocity; V_PB_G is that 
     // portion due just to this joint's u's.
 
-    // (sherm 060912) Caution: using T_MbB_G here is assuming that all the joints do their
-    // rotations in the Jb frame *followed* by translations in the J frame.
-    // I *think* you could switch the joint to work the other way and change to T_JB_G
-    // in the joints and here, but I haven't tried it. TODO: this should be written
+    // (sherm 060912) Caution: using T_MbB_G here is assuming that all the mobilizers do their
+    // rotations in the Mb frame *followed* by translations in the M frame.
+    // I *think* you could switch the mobilizer to work the other way and change to T_MB_G
+    // in the mobilizers and here, but I haven't tried it. TODO: this should be written
     // in terms of the H matrix somehow so that this computation and the joint definition
     // do not have to be synchronized this way.
+
+    // TODO: this is all very fishy and needs to be rederived rigorously.
 
     const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
     const Vec3 T_MbB_G = T_PB_G - getX_GP(cc).R()*getX_PMb().T();
@@ -423,7 +425,7 @@ public:
         const Transform& X_MbM = getX_MbM(cc); // just calculated
         const Transform& X_GP  = getX_GP(cc);  // already calculated
 
-        X_PB = X_PMb * X_MbM * ~X_BM; // TODO: precalculate X_JB
+        X_PB = X_PMb * X_MbM * ~X_BM; // TODO: precalculate X_MB
         X_GB = X_GP * X_PB;
     }
 
@@ -665,7 +667,7 @@ public:
     const Vec4&       getQNorm(const SBPositionCache& cc) const {return fromQuat(cc.qnorm);}
     Vec4&             updQNorm(SBPositionCache&       cc) const {return toQuat  (cc.qnorm);}
 
-        // Motion
+        // Velocity
 
         // Dynamics
     const Mat<dof,dof>& getD(const SBDynamicsCache& dc) const {return fromUSq(dc.storageForD);}
@@ -679,7 +681,7 @@ public:
     Mat<2,dof,Vec3>&       updG(SBDynamicsCache&       dc) const
       { return Mat<2,dof,Vec3>::updAs(&dc.storageForG(0,uIndex)); }
 
-        // Reaction
+        // Acceleration
 
     const Vec<dof>&   getNetHingeForce (const SBAccelerationCache& rc) const {return fromU (rc.netHingeForces);}
     Vec<dof>&         updNetHingeForce (SBAccelerationCache&       rc) const {return toU   (rc.netHingeForces);}
@@ -783,8 +785,8 @@ public:
  * Translate (Cartesian) joint. This provides three degrees of
  * translational freedom which is suitable (e.g.) for connecting a
  * free atom to ground. The Cartesian directions are the axes of
- * the parent body's Jb frame, with J=Jb when all 3 coords are 0,
- * and the orientation of J in Jb is 0 forever.
+ * the parent body's Mb frame, with M=Mb when all 3 coords are 0,
+ * and the orientation of M in Mb is 0 (identity) forever.
  */
 class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
@@ -830,7 +832,7 @@ public:
         const Vector&      q,
         Transform&         X_MbM) const
     {
-        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // Translation vector q is expressed in Mb (and M since they have same orientation).
         // A Cartesian joint can't change orientation. 
         X_MbM = Transform(Rotation(), fromQ(q));
     }
@@ -840,17 +842,17 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const 
     {
-        const Transform& X_PMb   = getX_PMb();      // fixed config of Jb in P
+        const Transform& X_PMb = getX_PMb();      // fixed config of Mb in P
 
         // Calculated already since we're going base to tip.
-        const Transform& X_GP    = getX_GP(cc); // parent orientation in ground
+        const Transform& X_GP = getX_GP(cc); // parent orientation in ground
 
         // Note that H is spatial. The current spatial directions for our qs are
-        // the axes of the Jb frame expressed in Ground.
-        const Rotation R_GJb = X_GP.R()*X_PMb.R();
-        H[0] = SpatialRow( Row3(0), ~R_GJb.x() );
-        H[1] = SpatialRow( Row3(0), ~R_GJb.y() );
-        H[2] = SpatialRow( Row3(0), ~R_GJb.z() );
+        // the axes of the Mb frame expressed in Ground.
+        const Rotation R_GMb = X_GP.R()*X_PMb.R();
+        H[0] = SpatialRow( Row3(0), ~R_GMb.x() );
+        H[1] = SpatialRow( Row3(0), ~R_GMb.y() );
+        H[2] = SpatialRow( Row3(0), ~R_GMb.z() );
     }
 };
 
@@ -893,7 +895,7 @@ public:
         const Vector&      q,
         Transform&         X_MbM) const
     {
-        // Translation vector q is expressed in Jb (and J since they have same orientation).
+        // Translation vector q is expressed in Mb (and M since they have same orientation).
         // A sliding joint can't change orientation, and only translates along x. 
         X_MbM = Transform(Rotation(), Vec3(from1Q(q),0,0));
     }
@@ -903,15 +905,15 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_PMb   = getX_PMb();      // fixed config of Jb in P
+        const Transform& X_PMb   = getX_PMb();      // fixed config of Mb in P
 
         // Calculated already since we're going base to tip.
         const Transform& X_GP    = getX_GP(cc); // parent configuration in ground
 
         // Note that H is spatial. The current spatial directions for our q is
-        // the x axis of the Jb frame expressed in Ground.
-        const Vec3 x_GJb = X_GP.R()*X_PMb.x();
-        H[0] = SpatialRow( Row3(0), ~x_GJb );
+        // the x axis of the Mb frame expressed in Ground.
+        const Vec3 x_GMb = X_GP.R()*X_PMb.x();
+        H[0] = SpatialRow( Row3(0), ~x_GMb );
     }
 };
 
@@ -976,13 +978,15 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
+        // Vec from OM to OB, expr. in G (note minus sign). This is the
+        // amount by which the B origin is off the Mz axis.
+        const Vec3 T_MB_G = -X_GB.R()*X_BM.T(); 
 
         // Calc H matrix in space-fixed coords.
-        // This works because the joint z axis is the same in J & Jb
+        // This works because the joint z axis is the same in M & Mb
         // since that's what we rotate around.
         const Vec3 z_G = X_GP.R() * X_PMb.z();
-        H[0] = SpatialRow( ~z_G, ~(z_G % T_JB_G) );
+        H[0] = SpatialRow( ~z_G, ~(z_G % T_MB_G) );
     }
 };
 
@@ -991,9 +995,9 @@ public:
  * about a particular axis, and one degree of translational freedom
  * along the same axis. For molecules you can think of this as a combination
  * of torsion and bond stretch. The axis used is the z axis of the parent's
- * Jb frame, which is aligned forever with the z axis of the body's J frame.
- * In addition, the origin points of J and Jb are separated only along the
- * z axis; i.e., they have the same x & y coords in the Jb frame. The two
+ * Mb frame, which is aligned forever with the z axis of the body's M frame.
+ * In addition, the origin points of M and Mb are separated only along the
+ * z axis; i.e., they have the same x & y coords in the Mb frame. The two
  * generalized coordinates are the rotation and the translation, in that order.
  */
 class RBNodeCylinder : public RigidBodyNodeSpec<2> {
@@ -1049,14 +1053,16 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
+        // Vec from OM to OB, expr. in G (note minus sign). This is the
+        // amount by which the B origin is off the Mz axis.
+        const Vec3 T_MB_G = -X_GB.R()*X_BM.T();
 
         // Calc H matrix in space-fixed coords.
-        // This works because the joint z axis is the same in J & Jb
+        // This works because the joint z axis is the same in M & Mb
         // since that's what we rotate around.
-        const Vec3 z_GJb = X_GP.R()*X_PMb.z();
-        H[0] = SpatialRow( ~z_GJb, ~(z_GJb % T_JB_G) );
-        H[1] = SpatialRow( Row3(0), ~z_GJb );
+        const Vec3 z_GMb = X_GP.R()*X_PMb.z();
+        H[0] = SpatialRow( ~z_GMb, ~(z_GMb % T_MB_G) );
+        H[1] = SpatialRow( Row3(0), ~z_GMb );
     }
 };
 
@@ -1064,10 +1070,10 @@ public:
 /**
  * This is a "bend-stretch" joint, meaning one degree of rotational freedom
  * about a particular axis, and one degree of translational freedom
- * along a perpendicular axis. The z axis of the parent's Jb frame is 
- * used for rotation (and that is always aligned with the J frame z axis).
- * The x axis of the *J* frame is used for translation; that is, first
- * we rotate around z, which moves J's x with respect to Jb's x. Then
+ * along a perpendicular axis. The z axis of the parent's Mb frame is 
+ * used for rotation (and that is always aligned with the M frame z axis).
+ * The x axis of the *M* frame is used for translation; that is, first
+ * we rotate around z, which moves M's x with respect to Mb's x. Then
  * we slide along the rotated x axis. The two
  * generalized coordinates are the rotation and the translation, in that order.
  */
@@ -1111,7 +1117,7 @@ public:
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
         X_MbM.updR().setToRotationAboutZ(coords[0]);
-        X_MbM.updT() = X_MbM.R()*Vec3(coords[1],0,0); // because translation is in J frame
+        X_MbM.updT() = X_MbM.R()*Vec3(coords[1],0,0); // because translation is in M frame
     }
 
     // Calculate H.
@@ -1124,15 +1130,15 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Transform X_GJb = X_GP * X_PMb;
-        const Transform X_GJ  = X_GB * X_BM;
+        const Transform X_GMb = X_GP * X_PMb;
+        const Transform X_GM  = X_GB * X_BM;
 
-        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
-        //const Vec3 T_JB_G = -X_GB.R()*X_BM.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GMb.T();
+        //const Vec3 T_MB_G = -X_GB.R()*X_BM.T();
 
-        // Rotate around Jb's z axis, *then* translate along J's new x axis.
-        H[0] = SpatialRow( ~X_GJb.z(), ~(X_GJb.z() % T_MbB_G) );
-        H[1] = SpatialRow( Row3(0), ~X_GJ.x());
+        // Rotate around Mb's z axis, *then* translate along M's new x axis.
+        H[0] = SpatialRow( ~X_GMb.z(), ~(X_GMb.z() % T_MbB_G) );
+        H[1] = SpatialRow( Row3(0), ~X_GM.x());
     }
 };
 
@@ -1197,14 +1203,17 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
+        // Vec from OM (and OMb) to OB, expr. in G (note minus sign). Cross
+        // this with a rotation axis to get the linear velocity induced by
+        // the off-axis positioning of OB.
+        const Vec3 T_MB_G = -X_GB.R()*X_BM.T();
 
-        // The coordinates are defined in the space-fixed (that is, Jb) frame, so
-        // the orientation of Jb in ground gives the instantaneous spatial 
+        // The coordinates are defined in the space-fixed (that is, Mb) frame, so
+        // the orientation of Mb in ground gives the instantaneous spatial 
         // meaning of the coordinates.
-        const Rotation R_GJb = X_GP.R() * X_PMb.R();
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
-        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
+        const Rotation R_GMb = X_GP.R() * X_PMb.R();
+        H[0] = SpatialRow(~R_GMb.x(), ~(R_GMb.x() % T_MB_G));
+        H[1] = SpatialRow(~R_GMb.y(), ~(R_GMb.y() % T_MB_G));
     }
 };
 
@@ -1216,6 +1225,9 @@ public:
  * The coordinate definitions are a combination of a rotate2 joint and a
  * Cartesian joint. The first 2 are rotational, the next 3 are translations.
  * However, the rotations don't affect the translations.
+ *
+ * TODO: (sherm 070409) see NEW THEORY below.
+ *        TEST USING 2dof joint (no translation)
  */
 class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
@@ -1272,10 +1284,12 @@ public:
         const Vec<5>& coords = fromQ(q);     // joint coordinates
         const Vec<2>& angles = coords.getSubVec<2>(0);
 
+        // TODO: (sherm 070409) see NEW THEORY below.
+
         //X_MbM.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
         X_MbM.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
-        X_MbM.updT() = X_MbM.R()*coords.getSubVec<3>(2); // because translation is in J
-        //X_MbM.updT() = coords.getSubVec<3>(2); // because translation is in Jb
+        X_MbM.updT() = X_MbM.R()*coords.getSubVec<3>(2); // because translation is in M
+        //X_MbM.updT() = coords.getSubVec<3>(2); // because translation is in Mb
     }
 
     // Calculate H.
@@ -1288,24 +1302,30 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Transform X_GJb = X_GP * X_PMb;
-        const Transform X_GJ  = X_GB * X_BM;
+        const Transform X_GMb = X_GP * X_PMb;
+        const Transform X_GM  = X_GB * X_BM;
 
-        const Vec3 T_JB_G  = X_GB.T() - X_GJ.T();
-        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
+        const Vec3 T_MB_G  = X_GB.T() - X_GM.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GMb.T();
 
         // The rotational coordinates are defined in the space-fixed 
-        // (that is, Jb) frame, so the orientation of Jb in ground gives
+        // (that is, Mb) frame, so the orientation of Mb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
-        // *Then* we translate along the new J frame axes.
+        // *Then* we translate along the new M frame axes.
 
-        //H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_MbB_G));
-        //H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_MbB_G));
-        H[0] = SpatialRow(~X_GJ.x(), ~(X_GJ.x() % T_MbB_G));
-        H[1] = SpatialRow(~X_GJ.y(), ~(X_GJ.y() % T_MbB_G));
-        H[2] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
-        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.z());    
+        // TODO: (sherm 070409) NEW THEORY -- to avoid singularities, the
+        // rotational coordinates must be space-fixed rotations FROM THE
+        // BODY FRAME to the parent!! That is, the role of body & parent
+        // must be reversed. So the angles will generate X_MMb above from
+        // aboutXThenOldY(); the generalized speeds will be -w_MMb, etc.
+
+        //H[0] = SpatialRow(~X_GMb.x(), ~(X_GMb.x() % T_MbB_G));
+        //H[1] = SpatialRow(~X_GMb.y(), ~(X_GMb.y() % T_MbB_G));
+        H[0] = SpatialRow(~X_GM.x(), ~(X_GM.x() % T_MbB_G));
+        H[1] = SpatialRow(~X_GM.y(), ~(X_GM.y() % T_MbB_G));
+        H[2] = SpatialRow(  Row3(0) ,     ~X_GM.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GM.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GM.z());    
     }
 };
 
@@ -1395,15 +1415,18 @@ public:
         const Transform& X_GP  = getX_GP(cc);  // calculated earlier
         const Transform& X_GB  = getX_GB(cc);  // just calculated
 
-        const Vec3 T_JB_G = -X_GB.R()*X_BM.T(); // vec from OJ to OB, expr. in G
+        // Vec from OM (and OMb) to OB, expr. in G (note minus sign). Cross
+        // this with a rotation axis to get the linear velocity induced by
+        // the off-axis positioning of OB.
+        const Vec3 T_MB_G = -X_GB.R()*X_BM.T();
 
-        // The rotational coordinates are defined in the space-fixed 
-        // (that is, Jb) frame, so the orientation of Jb in ground gives
+        // The generalized speeds are defined in the space-fixed 
+        // (that is, Mb) frame, so the orientation of Mb in ground gives
         // the instantaneous spatial meaning of those coordinates. 
-        const Rotation R_GJb = X_GP.R() * X_PMb.R();
-        H[0] = SpatialRow(~R_GJb.x(), ~(R_GJb.x() % T_JB_G));
-        H[1] = SpatialRow(~R_GJb.y(), ~(R_GJb.y() % T_JB_G));
-        H[2] = SpatialRow(~R_GJb.z(), ~(R_GJb.z() % T_JB_G));
+        const Rotation R_GMb = X_GP.R() * X_PMb.R();
+        H[0] = SpatialRow(~R_GMb.x(), ~(R_GMb.x() % T_MB_G));
+        H[1] = SpatialRow(~R_GMb.y(), ~(R_GMb.y() % T_MB_G));
+        H[2] = SpatialRow(~R_GMb.z(), ~(R_GMb.z() % T_MB_G));
     }
 
     void calcQDot(
@@ -1413,7 +1436,7 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const Vec3& w_MbM = fromU(u); // angular velocity of J in Jb 
+        const Vec3& w_MbM = fromU(u); // angular velocity of M in Mb 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
             const Rotation& R_MbM = getX_MbM(cc).R();
@@ -1581,7 +1604,7 @@ public:
             X_MbM.updT() = X_MbM.R()*fromQVec3(q,3);
         } else {
             X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_MbM.updT() = X_MbM.R()*fromQVec3(q,4);  // because translation is in J frame
+            X_MbM.updT() = X_MbM.R()*fromQVec3(q,4);  // because translation is in M frame
         }
     }
 
@@ -1590,27 +1613,28 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BM  = getX_BM();  // fixed
-        const Transform& X_PMb = getX_PMb(); // fixed
-        const Transform& X_GP  = getX_GP(cc);  // calculated earlier
-        const Transform& X_GB  = getX_GB(cc);  // just calculated
+        const Transform& X_BM  = getX_BM();   // fixed
+        const Transform& X_PMb = getX_PMb();  // fixed
+        const Transform& X_GP  = getX_GP(cc); // calculated earlier
+        const Transform& X_GB  = getX_GB(cc); // just calculated
 
-        const Transform X_GJb = X_GP * X_PMb;
-        const Transform X_GJ  = X_GB * X_BM;
+        const Transform X_GMb = X_GP * X_PMb;
+        const Transform X_GM  = X_GB * X_BM;
 
-        const Vec3 T_MbB_G = X_GB.T() - X_GJb.T();
+        const Vec3 T_MbB_G = X_GB.T() - X_GMb.T();
 
-        // The rotational speeds are defined in the space-fixed 
-        // (that is, Jb) frame, so the orientation of Jb in ground gives
-        // the instantaneous spatial meaning of those coordinates. 
-        // *Then* we translate along the new J axes.
+        // The rotational speeds (angular velocity of M in Mb)
+        // are defined in the space-fixed (that is, Mb) frame,
+        // so the orientation of Mb in ground gives
+        // the instantaneous spatial meaning of those speeds. 
+        // *Then* we translate along the new M axes.
 
-        H[0] = SpatialRow(~X_GJb.x(), ~(X_GJb.x() % T_MbB_G));
-        H[1] = SpatialRow(~X_GJb.y(), ~(X_GJb.y() % T_MbB_G));
-        H[2] = SpatialRow(~X_GJb.z(), ~(X_GJb.z() % T_MbB_G));
-        H[3] = SpatialRow(  Row3(0) ,     ~X_GJ.x());
-        H[4] = SpatialRow(  Row3(0) ,     ~X_GJ.y());
-        H[5] = SpatialRow(  Row3(0) ,     ~X_GJ.z());
+        H[0] = SpatialRow(~X_GMb.x(), ~(X_GMb.x() % T_MbB_G));
+        H[1] = SpatialRow(~X_GMb.y(), ~(X_GMb.y() % T_MbB_G));
+        H[2] = SpatialRow(~X_GMb.z(), ~(X_GMb.z() % T_MbB_G));
+        H[3] = SpatialRow(  Row3(0) ,     ~X_GM.x());
+        H[4] = SpatialRow(  Row3(0) ,     ~X_GM.y());
+        H[5] = SpatialRow(  Row3(0) ,     ~X_GM.z());
     }
 
     void calcQDot(
@@ -1644,7 +1668,7 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_MbM     = fromUVec3(u,0); // angular velocity of J in Jb
+        const Vec3& w_MbM     = fromUVec3(u,0); // angular velocity of M in Mb
         const Vec3& v_MbM     = fromUVec3(u,3); // linear velocity
         const Vec3& w_MbM_dot = fromUVec3(udot,0);
         const Vec3& v_MbM_dot = fromUVec3(udot,3);

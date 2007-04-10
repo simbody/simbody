@@ -85,18 +85,18 @@ public:
 
     RigidBodyNode& operator=(const RigidBodyNode&);
 
-    /// Factory for producing concrete RigidBodyNodes based on joint type.
+    // Factory for producing concrete RigidBodyNodes based on joint type.
     static RigidBodyNode* create(
         const MassProperties&    m,            // mass properties in body frame
-        const Transform&         X_PJb,        // parent's attachment frame for this joint
-        const Transform&         X_BJ,         // inboard joint frame J in body frame
+        const Transform&         X_PMb,        // parent's attachment frame for this mobilizer
+        const Transform&         X_BM,         // inboard mobilizer frame M in body frame
         Mobilizer::MobilizerType type,
         bool                     isReversed,   // child-to-parent orientation?
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ); 
 
-    /// Register the passed-in node as a child of this one.
+    // Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);
     void setParent(RigidBodyNode* p) {parent=p;}
     void setNodeNum(int n) {nodeNum=n;}
@@ -108,11 +108,13 @@ public:
     int            getNChildren()  const {return (int)children.size();}
     RigidBodyNode* getChild(int i) const {return (i<(int)children.size()?children[i]:0);}
 
-    /// Return this node's level, that is, how many ancestors separate it from
-    /// the Ground node at level 0. Level 1 nodes (directly connected to the
-    /// Ground node) are called 'base' nodes.
+    // Return this node's level, that is, how many ancestors separate it from
+    // the Ground node at level 0. Level 1 nodes (directly connected to the
+    // Ground node) are called 'base' nodes.
     int  getLevel() const  {return level;}
 
+    // This is the unique "body Id" for this (body,mobilizer) node. It is used to index
+    // arrays of body quantities.
     int  getNodeNum() const {return nodeNum;}
 
     bool isGroundNode() const { return level==0; }
@@ -166,6 +168,7 @@ public:
     const Transform&      getX_PMb         () const {return X_PMb;}
 
     // These are calculated on construction.
+    // TODO: principal axes
     const Inertia&        getInertia_CB_B  () const {return inertia_CB_B;}
     const Transform&      getX_MB          () const {return X_MB;}
     const Transform&      getRefX_PB       () const {return refX_PB;}
@@ -340,7 +343,7 @@ public:
     // These attempt to set the mobilizer's internal configuration or velocity
     // to a specified value. The mobilizer is expected to do the best it can.
     virtual void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
-                                      Vector& q) const {}
+                                       Vector& q) const {}
     virtual void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
                                       Vector& u) const {}
 

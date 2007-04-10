@@ -55,8 +55,8 @@ public:
         return MultibodySystem::downcast(getSystem());
     }
 
-    // Topological information.
-    virtual int getNBodies()      const = 0;    // includes ground, also # tree joints+1
+        // TOPOLOGY STAGE //
+    virtual int getNBodies()      const = 0;    // includes ground, also # mobilizers (tree joints) +1
     virtual int getNParticles()   const {return 0;} // TODO
     virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
@@ -64,46 +64,43 @@ public:
     virtual BodyId         getParent  (BodyId bodyNum)           const = 0;
     virtual Array<BodyId>  getChildren(BodyId bodyNum)           const = 0;
 
+        // MODEL STAGE //
+
+    // These report the start index and number of generalized coordinates q or generalized
+    // speeds u associated with a body's mobilizer. These are indices into this subsystem's
+    // Q or U allocation in the state, and can also be used other arrays which have the
+    // same dimensions. For example, mobilizer force arrays have the same dimension as
+    // the Us (that is, their length is the total mobility of the system).
+    virtual void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const = 0;
+    virtual void findMobilizerUs(const State& s, BodyId body, int& uStart, int& nu) const = 0;
+
+    virtual void setMobilizerTransform(State&, BodyId, const Transform& X_MbM) const = 0;
+    virtual void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_MbM) const = 0;
+
+
+        // INSTANCE STAGE //
+
     virtual const MassProperties& getBodyMassProperties(const State& s, BodyId body) const = 0;
+    virtual const Transform&      getMobilizerFrame(const State&, BodyId) const = 0;
+    virtual const Transform&      getMobilizerFrameOnParent(const State&, BodyId) const = 0;
 
     virtual const Vector&     getParticleMasses(const State&) const { // TODO
         static Vector v;
         return v;
     }
 
-    virtual const Transform&  getMobilizerFrame(const State&, BodyId) const = 0;
-    virtual const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const = 0;
-
-
+        // POSITION, VELOCITY, ACCELERATION STAGES //
     virtual const Transform&  getBodyTransform(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getBodyAcceleration(const State&, BodyId) const = 0; 
+
+    virtual const Transform& getMobilizerTransform(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
+
     virtual const Vector_<Vec3>& getParticleLocations(const State&) const { // TODO
         static Vector_<Vec3> v;
         return v;
     }
-
-
-    virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getBodyAcceleration(const State&, BodyId) const = 0;
-
-    // These are simple operators for helping force subsystems put their forces in the 
-    // right slots.
-    virtual void addInStationForce(const State& s, BodyId bodyB, const Vec3& stationInB, const Vec3& forceInG,
-                                   Vector_<SpatialVec>& rigidBodyForces) const = 0;
-    virtual void addInBodyTorque(const State& s, BodyId, const Vec3& torqueInG, 
-                                 Vector_<SpatialVec>& rigidBodyForces) const = 0;
-    virtual void addInMobilityForce(const State& s, BodyId, int axis, const Real& r, 
-                                    Vector& mobilityForces) const = 0;  
-    
-    virtual const Real& getMobilizerQ(const State&, BodyId, int axis) const = 0;
-    virtual const Real& getMobilizerU(const State&, BodyId, int axis) const = 0;
-
-    virtual void setMobilizerQ(State&, BodyId, int axis, const Real&) const = 0;
-    virtual void setMobilizerU(State&, BodyId, int axis, const Real&) const = 0;
-
-    virtual const Transform& getMobilizerTransform(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
-    virtual void setMobilizerTransform(State&, BodyId, const Transform& X_JbJ) const = 0;
-    virtual void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_JbJ) const = 0;
 
     virtual Real calcQConstraintNorm(const State&) const {
         return 0;

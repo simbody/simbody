@@ -29,6 +29,7 @@
 
 #include "SimbodyTreeState.h"
 #include "MatterSubsystemRep.h"
+#include "RigidBodyNode.h"
 
 using namespace SimTK;
 
@@ -147,10 +148,21 @@ public:
     BodyId getParent(BodyId) const;
     Array<BodyId> getChildren(BodyId) const;
 
-    const Transform&  getMobilizerFrame        (const State&, BodyId) const;
-    const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const;
+    void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const {
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        qStart = n.getQIndex();
+        nq     = n.getNQ(getModelVars(s));
+    }
+
+    void findMobilizerUs(const State& s, BodyId body, int& uStart, int& nu) const {
+        const RigidBodyNode& n = getRigidBodyNode(body);
+        uStart = n.getUIndex();
+        nu     = n.getDOF();
+    }
 
     const MassProperties& getBodyMassProperties(const State&, BodyId) const;
+    const Transform&  getMobilizerFrame        (const State&, BodyId) const;
+    const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const;
 
     const Transform&  getBodyTransform(const State&, BodyId) const;
     const SpatialVec& getBodyVelocity(const State&, BodyId) const;
@@ -160,20 +172,6 @@ public:
     const SpatialVec& getTotalCoriolisAcceleration(const State&, BodyId) const;
     const SpatialVec& getGyroscopicForce(const State&, BodyId) const;
     const SpatialVec& getCentrifugalForces(const State&, BodyId) const;
-
-
-    void addInStationForce(const State& s, BodyId bodyB, const Vec3& stationInB, const Vec3& forceInG,
-                           Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInBodyTorque(const State& s, BodyId, const Vec3& torqueInG, 
-                                 Vector_<SpatialVec>& rigidBodyForces) const;
-    void addInMobilityForce(const State& s, BodyId, int axis, const Real& r, 
-                                    Vector& mobilityForces) const;  
-
-    const Real& getMobilizerQ(const State& s, BodyId, int axis) const;
-    const Real& getMobilizerU(const State& s, BodyId, int axis) const;
-
-    void setMobilizerQ(State& s, BodyId, int axis, const Real& r) const;
-    void setMobilizerU(State& s, BodyId, int axis, const Real& r) const;
 
     const Transform& getMobilizerTransform(const State&, BodyId) const;
     const SpatialVec& getMobilizerVelocity(const State&, BodyId) const;

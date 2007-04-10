@@ -692,30 +692,6 @@ int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, BodyId body) c
     return mc.quaternionIndex[body];
 }
 
-const Real& SimbodyMatterSubsystemRep::getMobilizerQ(const State& s, BodyId body, int axis) const {
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
-    return getQ(s)[n.getQIndex()+axis];
-}
-
-const Real& SimbodyMatterSubsystemRep::getMobilizerU(const State& s, BodyId body, int axis) const {
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    assert(0 <= axis && axis < n.getDOF());
-    return getU(s)[n.getUIndex()+axis];
-}
-
-void SimbodyMatterSubsystemRep::setMobilizerQ(State& s, BodyId body, int axis, const Real& r) const {
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    assert(0 <= axis && axis < n.getNQ(getModelVars(s)));
-    updQ(s)[n.getQIndex()+axis] = r;
-}
-
-void SimbodyMatterSubsystemRep::setMobilizerU(State& s, BodyId body, int axis, const Real& r) const {
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    assert(0 <= axis && axis < n.getDOF());
-    updU(s)[n.getUIndex()+axis] = r;
-}
-
 const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, BodyId body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
@@ -737,32 +713,6 @@ void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, BodyId body, cons
     const SBModelVars&   mv = getModelVars(s);
     Vector& u = updU(s);
     n.setMobilizerVelocity(mv, V_MbM, u);
-}
-
-void SimbodyMatterSubsystemRep::addInStationForce(const State& s, BodyId bodyB, 
-                                      const Vec3& stationInB, const Vec3& forceInG, 
-                                      Vector_<SpatialVec>& rigidBodyForces) const
-{
-    assert(rigidBodyForces.size() == getNBodies());
-    const SBPositionCache& cc = getPositionCache(s);
-    const Rotation& R_GB = getRigidBodyNode(bodyB).getX_GB(cc).R();
-    rigidBodyForces[bodyB] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
-}
-
-void SimbodyMatterSubsystemRep::addInBodyTorque(const State& s, BodyId body, const Vec3& torqueInG, 
-                                    Vector_<SpatialVec>& rigidBodyForces) const 
-{
-    assert(rigidBodyForces.size() == getNBodies());
-    rigidBodyForces[body][0] += torqueInG; // no force
-}
-
-void SimbodyMatterSubsystemRep::addInMobilityForce(const State& s, BodyId body, int axis, const Real& r,
-                                       Vector& mobilityForces) const 
-{
-    assert(mobilityForces.size() == getTotalDOF());
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    assert(0 <= axis && axis < n.getDOF());
-    mobilityForces[n.getUIndex()+axis] += r;
 }
 
 const Vector& 

@@ -169,7 +169,7 @@ void VTKDecorativeCylinder::createVTKPolyData(Real r, Real halfHeight) {
     rememberVTKObject(cyl);
 
     cyl->SetRadius(r);
-    cyl->SetHeight(halfHeight);
+    cyl->SetHeight(2*halfHeight);
 
     int res = DefaultResolution;
     if (myHandle->getResolution() > 0.) 
