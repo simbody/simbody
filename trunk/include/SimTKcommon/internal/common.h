@@ -248,6 +248,13 @@ SimTK_TYPEINFO_SPECIALIZE(std::complex<float>);
 SimTK_TYPEINFO_SPECIALIZE(std::complex<double>); 
 SimTK_TYPEINFO_SPECIALIZE(std::complex<long double>); 
 
+        enum Representation3D {
+        SIMTK_POINTS     =  0, // only draw  points at polygon vertices
+        SIMTK_WIREFRAME  =  1, // only draw lines along polygon edges 
+        SIMTK_SURFACE    =  2  // draw shaded polygons 
+        };
+
+
 } // namespace SimTK
 
 namespace SimTKimpl {
