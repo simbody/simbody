@@ -45,7 +45,6 @@
 
 #include <cassert>
 
-class vtkPolyData;
 
 namespace SimTK {
 
@@ -79,16 +78,6 @@ public:
 
     /// Implicit conversion
     DecorativeGeometry(const AnalyticGeometry&);
-
-    /// This returns a VTK pipeline suitable for generating the polygons
-    /// needed for display. Although this is returned non-const for use with VTK,
-    /// ownership is retained by the DecorativeGeometry object, which will
-    /// call VTK's Delete() method on destruction. So the caller should not attempt
-    /// to Delete() the PolyData. Also note that any changes to the generating
-    /// parameters INVALIDATES the pipeline (TODO: should just update it).
-    /// Generating parameters include resolution, transform, scale here, and any
-    /// specific source parameters like radius for a sphere.
-    vtkPolyData* updVTKPolyData();
 
     /// Each concrete DecorativeGeometry object is expected to have a default resolution
     /// that gets the point across but is cheap to draw and hence probably somewhat "chunky".
@@ -168,6 +157,7 @@ public:
     // Bookkeeping below here -- internal use only. Don't look below or you will
     // turn into a pillar of salt.
 
+   
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
     explicit DecorativeGeometry(class DecorativeGeometryRep* r) : rep(r) { }
@@ -199,6 +189,7 @@ public:
 
     const Vec3& getPoint1() const;
     const Vec3& getPoint2() const;
+
 
     SimTK_PIMPL_DOWNCAST(DecorativeLine, DecorativeGeometry);
 };

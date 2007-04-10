@@ -80,6 +80,7 @@ extern "C" {
 
 namespace SimTK {
 
+static const int invalidId = -1111111111;
 /**
  * This is just a type-safe non-negative int, augmented with a "NaN" 
  * value called InvalidBodyId. For most uses it will behave like an int,
@@ -100,11 +101,12 @@ public:
     const BodyId& operator--() {assert(id>=1); --id;return *this;}          // prefix
     BodyId operator--(int)     {assert(id>=1); --id; return BodyId(id+1);}  // postfix
 };
-static const BodyId InvalidBodyId(-1111111111);
 static const BodyId GroundId(0);
+static const BodyId InvalidBodyId(invalidId);
 inline BodyId::BodyId() : id(InvalidBodyId) { }
 inline BodyId::BodyId(int i) : id(i) {
-    assert(i>=0 || i==InvalidBodyId);
+//    assert(i>=0 || i==InvalidBodyId);
+    assert(i>=0 || i==invalidId);
 }
 
 /**
@@ -125,11 +127,12 @@ public:
     const ConstraintId& operator--() {assert(id>=1); --id;return *this;}          // prefix
     ConstraintId operator--(int)     {assert(id>=1); --id; return ConstraintId(id+1);}  // postfix
 };
-static const ConstraintId InvalidConstraintId(-1111111111);
+static const ConstraintId InvalidConstraintId(invalidId);
 inline ConstraintId::ConstraintId() : id(InvalidConstraintId) { }
 inline ConstraintId::ConstraintId(int i) : id(i) {
-    assert(i>=0 || i==InvalidConstraintId);
+    assert(i>=0 || i==invalidId);
 }
+//    assert(i>=0 || i==InvalidConstraintId);
 
 // TODO: this should be upgraded to a class handle with a hidden implementation
 // to allow for fancier Mobilizers, including user-defined.

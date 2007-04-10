@@ -1709,14 +1709,14 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, BodyId bodyNum,
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster Id %d is not valid", clusterId);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
-        "body number %d is not valid: must be nonnegative", bodyNum);
+        "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
     const Cluster& child  = mm.getCluster(clusterId);
 
         // Child must not already be attached to a body.
     SimTK_APIARGCHECK3_ALWAYS(!child.isAttachedToBody(), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached to body %d so cannot now be attached to a body",
-        clusterId, child.name.c_str(), child.getBodyId());
+        clusterId, child.name.c_str(),  (int)child.getBodyId());
 
         // None of the atoms in the child can be attached to any body.
     int    atomId;
@@ -1725,7 +1725,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, BodyId bodyNum,
         mm.ApiClassName, MethodName,
         "cluster %d('%s') contains atom %d which is already attached to body %d"
         " so the cluster cannot now be attached to another body",
-        clusterId, child.name.c_str(), atomId, bodyId);
+        clusterId, child.name.c_str(), atomId, (int)bodyId);
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
@@ -1735,7 +1735,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, BodyId bodyNum,
         // or recursively through its subclusters.
     SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached (directly or indirectly) to body %d", 
-        clusterId, child.name.c_str(), bodyNum);
+        clusterId, child.name.c_str(), (int)bodyNum);
 
         // OK, attach the cluster to the body's cluster.
     bodyCluster.placeCluster(clusterId, placementInNm, mm);
@@ -1750,12 +1750,12 @@ void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, BodyId bodyNum, const
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
         "atom Id %d is not valid", atomId);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
-        "body number %d is not valid: must be nonnegative", bodyNum);
+        "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
         // The atom must not already be attached to a body, even this one.
     SimTK_APIARGCHECK2_ALWAYS(!mm.getAtom(atomId).isAttachedToBody(), mm.ApiClassName, MethodName,
         "atom %d is already attached to body %d so cannot now be attached to a body",
-        atomId, mm.getAtom(atomId).getBodyId());
+        atomId, (int)mm.getAtom(atomId).getBodyId());
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
@@ -2689,7 +2689,7 @@ void BondTorsion::periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const
 
 void Atom::dump() const {
     printf(" chargedAtomType=%d body=%d station=%g %g %g\n",
-        chargedAtomTypeId, bodyId, station_B[0], station_B[1], station_B[2]);
+        chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
 
     printf("    bond 1-2:");
     for (int i=0; i < (int)bond12.size(); ++i)

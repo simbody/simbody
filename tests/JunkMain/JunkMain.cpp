@@ -1,6 +1,6 @@
 // File:  NewtonsAppleForPlotting.cpp
 //--------------------------------------------------
-#include "SimTKSimbody.h"
+#include "SimTKsimbody.h"
 
 #include <cmath>
 #include <cstdio>

@@ -24,7 +24,15 @@
 #----------------------------------------------------
 
 PROJECT (Simbody)
-SUBDIRS (staticTarget sharedTarget tests)
+
+SET( BUILD_AUX ON CACHE BOOL "OFF does not build Simbody aux library ")
+MARK_AS_ADVANCED( BUILD_AUX  )
+
+IF( BUILD_AUX )
+  SUBDIRS (staticTarget sharedTarget auxiliary tests )
+ELSE ( BUILD_AUX )
+  SUBDIRS (staticTarget sharedTarget tests)
+ENDIF( BUILD_AUX )
 
 # 
 # Make sure "sandbox" input & output directories are set. During
@@ -66,38 +74,19 @@ INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
-SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
-MARK_AS_ADVANCED( ARCH64  )
-IF (ARCH64)
-    SET(LIB64 64)
-ELSE (ARCH64)
-    SET(LIB64) # nothing
-ENDIF (ARCH64)
+#SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
+#MARK_AS_ADVANCED( ARCH64  )
+#IF (ARCH64)
+#    SET(LIB64 64)
+#ELSE (ARCH64)
+#    SET(LIB64) # nothing
+#ENDIF (ARCH64)
 
-
-## Find VTK
-
-SET(VTK_DIR ${SimTK_SDK}/vtk/lib/vtk-5.0 CACHE PATH "VTK installation")
-
-FIND_PACKAGE(VTK)
-IF (VTK_FOUND)
-  INCLUDE(${VTK_USE_FILE})
-ELSE(VTK_FOUND)
-  MESSAGE(FATAL_ERROR
-     "Cannot build without VTK.  Please set VTK_DIR.")
-ENDIF (VTK_FOUND)
-
-LINK_LIBRARIES(
-  vtkHybrid
-  vtkFiltering
-  vtkGenericFiltering
-  vtkVolumeRendering 
-  vtkRendering
-  vtkIO
-  vtkGraphics
-  vtkCommon
-)
-
+IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+  SET( LIB64 64 )
+ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+  SET( LIB64  )
+ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
 
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
@@ -296,6 +285,8 @@ FOREACH(subdir ${SIMBODY_SOURCE_SUBDIRS})
     INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/${subdir}/include)
 ENDFOREACH(subdir)
 
+INCLUDE_DIRECTORIES(BEFORE ${PROJECT_SOURCE_DIR}/src)
+
 #
 # Allow automated build and dashboard.
 #
@@ -321,16 +312,9 @@ ELSE (EXECUTABLE_OUTPUT_PATH)
   SET (TEST_PATH .)
 ENDIF (EXECUTABLE_OUTPUT_PATH)
 
-ADD_TEST(ContactTest                  ${TEST_PATH}/ContactTest)
-ADD_TEST(ContactTestStatic            ${TEST_PATH}/ContactTestStatic)
 ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
 ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
-ADD_TEST(PendulumExample              ${TEST_PATH}/PendulumExample)
-ADD_TEST(PendulumExampleStatic        ${TEST_PATH}/PendulumExampleStatic)
-ADD_TEST(SBPendulum1                  ${TEST_PATH}/SBPendulum1)
-ADD_TEST(SBPendulum1Static            ${TEST_PATH}/SBPendulum1Static)
-ADD_TEST(CoarseRNA                    ${TEST_PATH}/CoarseRNA)
-ADD_TEST(CoarseRNAStatic              ${TEST_PATH}/CoarseRNAStatic)
+
 
 #
 # Installation

@@ -27,16 +27,6 @@
 
 #include "DecorativeGeometryRep.h"
 
-#include "vtkLineSource.h"
-#include "vtkSphereSource.h"
-#include "vtkCubeSource.h"
-#include "vtkCylinderSource.h"
-#include "vtkPolyData.h"
-#include "vtkTransform.h"
-#include "vtkTransformPolyDataFilter.h"
-#include "vtkAppendPolyData.h"
-#include "vtkVectorText.h"
-
 #include <cmath>
 
 namespace SimTK {
@@ -84,9 +74,6 @@ DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
     *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
 }
 
-vtkPolyData* DecorativeGeometry::updVTKPolyData() {
-    return updRep().updVTKPolyData();
-}
 
 DecorativeGeometry& DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);return *this;}
 Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
@@ -112,6 +99,8 @@ DecorativeGeometry& DecorativeGeometry::setRepresentationToSurface()    {updRep(
 DecorativeGeometry& DecorativeGeometry::setRepresentationToUseDefault() {updRep().setRepresentationToUseDefault();return *this;}
 int  DecorativeGeometry::getRepresentation() const       {return getRep().getRepresentation();}
 
+
+
     ////////////////////
     // DecorativeLine //
     ////////////////////
@@ -136,6 +125,7 @@ const Vec3& DecorativeLine::getPoint2() const {
     return DecorativeLineRep::downcast(*rep).getPoint2();
 }
 
+
     //////////////////////
     // DecorativeCircle //
     //////////////////////
@@ -150,6 +140,7 @@ void DecorativeCircle::setRadius(Real r) {
 Real DecorativeCircle::getRadius() const {
     return DecorativeCircleRep::downcast(*rep).getRadius();
 }
+
 
     //////////////////////
     // DecorativeSphere //
@@ -220,145 +211,6 @@ void DecorativeFrame::setAxisLength(Real l) {
 }
 Real DecorativeFrame::getAxisLength() const {
     return DecorativeFrameRep::downcast(*rep).getAxisLength();
-}
-
-    /////////////////////////////
-    // VTK PolyData generation //
-    /////////////////////////////
-
-
-
-vtkTransform* 
-DecorativeGeometryRep::createVTKTransform(const Transform& X_BG, const Real& s) {
-    static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
-
-    const Vec3 t = X_BG.T();
-    const Vec4 r = X_BG.R().convertToAngleAxis();
-
-    vtkTransform* xform = vtkTransform::New();  // starts out as identity
-    rememberVTKObject(xform);
-
-    xform->Translate(t[0],t[1],t[2]);
-    xform->RotateWXYZ(r[0]/RadiansPerDegree,r[1],r[2],r[3]);     // angle, axis
-    xform->Scale(s,s,s);
-    return xform;
-}
-
-vtkPolyData*
-DecorativeGeometryRep::transformVTKPolyData(const Transform& X_BG, const Real& s, 
-                                            vtkPolyData* in)
-{
-    // Careful -- the poly data filter has to be allocated last, so allocate
-    // the transform first.
-    vtkTransform* tr = createVTKTransform(X_BG, s);
-
-    vtkTransformPolyDataFilter* trf = vtkTransformPolyDataFilter::New();
-    rememberVTKObject(trf);
-
-    trf->SetTransform(tr); 
-    trf->SetInput(in);
-    return trf->GetOutput();
-}
-
-void DecorativeLineRep::createVTKPolyData() {
-    vtkLineSource* line = vtkLineSource::New(); 
-    rememberVTKObject(line);
-
-    const Vec3& p1 = getPoint1();
-    const Vec3& p2 = getPoint2();
-
-    line->SetPoint1(p1[0],p1[1],p1[2]); line->SetPoint2(p2[0],p2[1],p2[2]);
-
-    const Real scale = getScale() > 0. ? getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
-                                             line->GetOutput());
-}
-void DecorativeCircleRep::createVTKPolyData() {
-    assert(!"DecorativeCircleRep::createVTKPolyData() NOT IMPLEMENTED YET");
-}
-
-void DecorativeSphereRep::createVTKPolyData() {
-    vtkSphereSource *sphere = vtkSphereSource::New();
-    rememberVTKObject(sphere);
-
-    sphere->SetRadius(getRadius());
-
-    int res = DefaultResolution;
-    if (getResolution() > 0.) 
-        res = (int)(res*getResolution()+0.5);
-    sphere->SetThetaResolution(res);
-    sphere->SetPhiResolution(res);
-
-    const Real scale = getScale() > 0. ? getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
-                                             sphere->GetOutput());
-}
-
-void DecorativeBrickRep::createVTKPolyData() {
-    vtkCubeSource* cube = vtkCubeSource::New();
-    rememberVTKObject(cube);
-
-    const Vec3& h = getHalfLengths();
-
-    cube->SetXLength(2*h[0]);
-    cube->SetYLength(2*h[1]);
-    cube->SetZLength(2*h[2]);
-
-    // resolution is ignored -- our needs are few for rectangles!
-
-    const Real scale = getScale() > 0. ? getScale() : 1.;
-
-    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
-                                             cube->GetOutput());
-}
-
-void DecorativeCylinderRep::createVTKPolyData() {
-    vtkCylinderSource* cyl = vtkCylinderSource::New();
-    rememberVTKObject(cyl);
-
-    cyl->SetRadius(getRadius());
-    cyl->SetHeight(2*getHalfHeight());
-
-    int res = DefaultResolution;
-    if (getResolution() > 0.) 
-        res = (int)(res*getResolution()+0.5);
-    cyl->SetResolution(res);
-
-    const Real scale = getScale() > 0. ? getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
-                                             cyl->GetOutput());
-}
-
-void DecorativeFrameRep::createVTKPolyData() {
-    vtkAppendPolyData* app = vtkAppendPolyData::New();
-    rememberVTKObject(app);
-
-    const Real& length = getAxisLength();
-
-    vtkLineSource* line = vtkLineSource::New(); 
-    rememberVTKObject(line);
-    line->SetPoint1(0,0,0); line->SetPoint2(length,0,0);
-    app->AddInput(line->GetOutput());
-
-    line = vtkLineSource::New(); 
-    rememberVTKObject(line);    
-    line->SetPoint1(0,0,0); line->SetPoint2(0,length,0);
-    app->AddInput(line->GetOutput());
-
-    line = vtkLineSource::New(); 
-    rememberVTKObject(line); 
-    line->SetPoint1(0,0,0); line->SetPoint2(0,0,length);
-    app->AddInput(line->GetOutput());
-
-    vtkVectorText* xtext = vtkVectorText::New();
-    rememberVTKObject(xtext);
-    xtext->SetText("x"); // default size is around 1
-    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05*length,0)), length*0.2, 
-                                              xtext->GetOutput());
-    app->AddInput(label);
-    const Real scale = getScale() > 0. ? getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(getPlacement(), scale, 
-                                             app->GetOutput());
 }
 
 } // namespace SimTK

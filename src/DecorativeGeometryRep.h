@@ -27,15 +27,11 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/AnalyticGeometry.h"
+#include "SimTKcommon/internal/common.h"
+#include "Reporter3D.h"
 
 #include <cmath>
 #include <vector>
-
-#include "vtkPolyData.h"
-#include "vtkPolyDataAlgorithm.h"
-#include "vtkTransform.h"
-#include "vtkProperty.h"
-#include "vtkObject.h"
 
 namespace SimTK {
 
@@ -44,47 +40,24 @@ static const Real Pi = std::acos(Real(-1));
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-      : myHandle(0),  resolution(-1), scale(-1), placement(), 
+      : myHandle(0),  reporterGeometry(0), resolution(-1), scale(-1), placement(), 
         colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), representation(-1)
     { 
     }
-    virtual ~DecorativeGeometryRep() {
-        deleteVTKGeometry();
+
+    ~DecorativeGeometryRep() {
+        if( reporterGeometry ) delete reporterGeometry;
+        reporterGeometry = 0;
         clearMyHandle();
     }
 
-    void generateVTKPipeline() {
-        deleteVTKGeometry();
-        createVTKPolyData();
+    void deleteReporterGeometry() {
+        if( reporterGeometry ) delete reporterGeometry;
+        reporterGeometry = 0;
     }
-
-    void updateVTKPipeline() {
-        // TODO
-        generateVTKPipeline(); // start from scratch (bad)
-    }
-
-    vtkPolyData* updVTKPolyData() {
-        assert(vtkObjects.size());
-        return vtkPolyDataAlgorithm::SafeDownCast(vtkObjects.back())->GetOutput();
-    }
-
-
-    // Caller must be sure to call VTK's Delete() methods on these objects
-    // when done with them.
-    virtual void createVTKPolyData() = 0;
-
-    // Combine a SimTK Transform with a scale factor and return the equivalent
-    // vtkTransform that will translate, rotate, and scale the same way.
-    vtkTransform* createVTKTransform(const Transform&, const Real&);
-
-    // Take some polygon data as input, copy it and transform it, returning the
-    // transformed polygon data.
-    vtkPolyData* transformVTKPolyData(const Transform&, const Real&, vtkPolyData*);
-
 
     void setPlacement(const Transform& X_BG) {
         placement = X_BG;
-        updateVTKPipeline();
     }
     const Transform& getPlacement() const    {return placement;}
 
@@ -92,8 +65,8 @@ public:
     // Anything 0 or less becomes -1 and means "use default".
     void setResolution(Real r) {
         resolution = r > 0 ? r : -1.;
-        updateVTKPipeline();
     }
+
     Real getResolution() const {return resolution;}
 
     // This sets the scale to some factor times the default size of the object,
@@ -101,7 +74,6 @@ public:
     // "use default".
     void setScale(Real s) {
         scale = s > 0 ? s : -1.;
-        updateVTKPipeline();
     }
     Real getScale() const {return scale;}
 
@@ -127,9 +99,9 @@ public:
     }
     Real getLineThickness() const {return lineThickness;}
 
-    void setRepresentationToPoints()     {representation=VTK_POINTS;}
-    void setRepresentationToWireframe()  {representation=VTK_WIREFRAME;}
-    void setRepresentationToSurface()    {representation=VTK_SURFACE;}
+    void setRepresentationToPoints()     {representation=SIMTK_POINTS;}
+    void setRepresentationToWireframe()  {representation=SIMTK_WIREFRAME;}
+    void setRepresentationToSurface()    {representation=SIMTK_SURFACE;}
     void setRepresentationToUseDefault() {representation=-1;}
 
     int getRepresentation() const {return representation;}
@@ -137,35 +109,25 @@ public:
     DecorativeGeometryRep* clone() const {
         DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
         dup->clearMyHandle();
-        dup->vtkObjects.resize(0);  // remove pointers to source geometry
-        dup->generateVTKPipeline(); // make private VTK objects
+        dup->reporterGeometry = 0;
         return dup;
     }
+    void  setReporterGeometry( Reporter3DGeom* geometry) { reporterGeometry = geometry; return; }
+    Reporter3DGeom* getReporterGeometry() const { return( reporterGeometry ); }
     virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
 
-    void setMyHandle(DecorativeGeometry& h) {myHandle = &h;}
-    void clearMyHandle() {myHandle=0;}
+    virtual void* generateReporterGeometry(Reporter3D*) = 0;
 
-protected:
-    void rememberVTKObject(vtkObject* o) {
-        vtkObjects.push_back(o);
+    void setMyHandle(DecorativeGeometry& h) {
+          
+          myHandle = &h;
+    }
+    void clearMyHandle() {
+          myHandle=0;
     }
 
 private:
     friend class DecorativeGeometry;
-    DecorativeGeometry* myHandle;     // the owner of this rep
-
-    void deleteVTKGeometry() {
-        // Delete in reverse order of allocation
-        for (int i=(int)vtkObjects.size()-1; i >= 0; --i) {
-            vtkObject* obj = vtkObjects[i];
-            //std::cout << "ABOUT TO DELETE\n";
-            //obj->Print(std::cout);
-            obj->Delete();
-            vtkObjects[i]=0;
-        }
-        vtkObjects.resize(0);
-    }
 
     // These will be handled as we generate the PolyData.
     Real      resolution;   // -1 means use default
@@ -176,11 +138,12 @@ private:
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
-    int  representation;    // -1, VTK_POINTS, VTK_WIREFRAME, VTK_SURFACE
+    int  representation;    // -1, SIMTK_POINTS, SIMTK_WIREFRAME, SIMTK_SURFACE
 
-    // As we build the pipeline, we accumulate VTK objects which must
-    // have their Delete() methods called in the desctructor.
-    std::vector<vtkObject*> vtkObjects;
+protected:
+    DecorativeGeometry* myHandle;     // the owner of this rep
+    Reporter3DGeom* reporterGeometry; // handle to data the Reporter3D uses to
+                                      // represent this DecorativeGeometry object
 };
 
     ///////////////////////
@@ -190,28 +153,32 @@ private:
 class DecorativeLineRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    DecorativeLineRep(const Vec3& p1, const Vec3& p2) : point1(p1), point2(p2) {
-        generateVTKPipeline();
+    DecorativeLineRep( const Vec3& p1, const Vec3& p2) : point1(p1), point2(p2) {
     }
 
-    void setPoint1(const Vec3& p) {point1=p; updateVTKPipeline();}
-    void setPoint2(const Vec3& p) {point2=p; updateVTKPipeline();}
-    void setEndpoints(const Vec3& p1, const Vec3& p2) {
-        point1=p1; point2=p2; updateVTKPipeline();
-    }
+    void setPoint1(const Vec3& p) {point1=p; }
+    void setPoint2(const Vec3& p) {point2=p; }
+    void setEndpoints(const Vec3& p1, const Vec3& p2) { point1=p1; point2=p2; }
 
     const Vec3& getPoint1() const {return point1;}
     const Vec3& getPoint2() const {return point2;}
 
     // virtuals
-    void createVTKPolyData();
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeLineRep(*this);
+    DecorativeLineRep* cloneDecorativeGeometryRep() const {
+        DecorativeLineRep* DGRep = new DecorativeLineRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateLineGeometry(myHandle, point1, point2);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeLineRep, DecorativeGeometryRep);
 private:
     Vec3 point1, point2;
+
 };
 
     /////////////////////////
@@ -221,27 +188,32 @@ private:
 class DecorativeCircleRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeCircleRep(const Real& rad) : r(rad) {
+    explicit DecorativeCircleRep( const Real& rad) : r(rad) {
         assert(r > 0); // TODO
-        generateVTKPipeline();
     }
 
     void setRadius(const Real& rad) {
         assert(rad > 0); // TODO;
         r = rad;
-        updateVTKPipeline();
     }
     const Real& getRadius() const {return r;}
 
     // virtuals
-    void createVTKPolyData();
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeCircleRep(*this);
+    DecorativeCircleRep* cloneDecorativeGeometryRep() const {
+        DecorativeCircleRep* DGRep = new DecorativeCircleRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateCircleGeometry(myHandle, r);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeCircleRep, DecorativeGeometryRep);
 private:
     Real r;
+
 };
 
     /////////////////////////
@@ -252,27 +224,32 @@ class DecorativeSphereRep : public DecorativeGeometryRep {
     static const int DefaultResolution = 15;
 public:
     // no default constructor
-    explicit DecorativeSphereRep(const Real& rad) : r(rad) {
+    explicit DecorativeSphereRep( const Real& rad) : r(rad) {
         assert(r > 0); // TODO
-        generateVTKPipeline();
     }
 
     void setRadius(const Real& rad) {
         assert(rad > 0); // TODO;
         r = rad;
-        updateVTKPipeline();
     }
     const Real& getRadius() const {return r;}
 
     // virtuals
-    void createVTKPolyData();
     DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeSphereRep(*this);
+        DecorativeSphereRep* DGRep = new DecorativeSphereRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateSphereGeometry(myHandle, r);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeSphereRep, DecorativeGeometryRep);
 private:
     Real r;
+
 };
 
     ////////////////////////
@@ -282,27 +259,32 @@ private:
 class DecorativeBrickRep : public DecorativeGeometryRep {
 public:
     // no default constructor
-    explicit DecorativeBrickRep(const Vec3& xyzHalfLengths) : halfLengths(xyzHalfLengths) {
+    explicit DecorativeBrickRep( const Vec3& xyzHalfLengths) : halfLengths(xyzHalfLengths) {
         assert(halfLengths[0]>0&&halfLengths[1]>0&&halfLengths[2]>0); // TODO
-        generateVTKPipeline();
     }
 
     void setHalfLengths(const Vec3& hl) {
         assert(hl[0]>0&&hl[1]>0&&hl[2]>0); // TODO;
         halfLengths = hl;
-        updateVTKPipeline();
     }
     const Vec3& getHalfLengths() const {return halfLengths;}
 
     // virtuals
-    void createVTKPolyData();
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeBrickRep(*this);
+    DecorativeBrickRep* cloneDecorativeGeometryRep() const {
+        DecorativeBrickRep* DGRep = new DecorativeBrickRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateBrickGeometry(myHandle, halfLengths);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeBrickRep, DecorativeGeometryRep);
 private:
     Vec3 halfLengths;
+
 };
 
 
@@ -310,34 +292,38 @@ class DecorativeCylinderRep : public DecorativeGeometryRep {
     static const int DefaultResolution = 10;
 public:
     // no default constructor
-    DecorativeCylinderRep(Real r, Real hh) 
+    DecorativeCylinderRep( Real r, Real hh) 
       : radius(r), halfHeight(hh) {
         assert(radius>0&&halfHeight>0); // TODO
-        generateVTKPipeline();
     }
 
     void setRadius(const Real& rad) {
         assert(rad > 0); // TODO;
         radius = rad;
-        updateVTKPipeline();
     }
     void setHalfHeight(const Real& hh) {
         assert(hh > 0); // TODO;
         halfHeight = hh;
-        updateVTKPipeline();
     }
     Real getRadius()     const {return radius;}
     Real getHalfHeight() const {return halfHeight;}
 
     // virtuals
-    void createVTKPolyData();
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeCylinderRep(*this);
+    DecorativeCylinderRep* cloneDecorativeGeometryRep() const {
+        DecorativeCylinderRep* DGRep = new DecorativeCylinderRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateCylinderGeometry(myHandle, radius, halfHeight);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeCylinderRep, DecorativeGeometryRep);
 private:
     Real radius, halfHeight;
+
 };
 
 class DecorativeFrameRep : public DecorativeGeometryRep {
@@ -345,25 +331,30 @@ public:
     // no default constructor
     DecorativeFrameRep(const Real& len) : axisLength(len) {
         assert(len > 0); // TODO
-        generateVTKPipeline();
     }
 
     void setAxisLength(const Real& len) {
         assert(len > 0); // TODO;
         axisLength = len;
-        updateVTKPipeline();
     }
     const Real& getAxisLength() const {return axisLength;}
 
     // virtuals
-    void createVTKPolyData();
-    DecorativeGeometryRep* cloneDecorativeGeometryRep() const {
-        return new DecorativeFrameRep(*this);
+    DecorativeFrameRep* cloneDecorativeGeometryRep() const {
+        DecorativeFrameRep* DGRep = new DecorativeFrameRep(*this);
+        return( DGRep ); 
+    }
+
+    void* generateReporterGeometry(Reporter3D* reporter) {
+        deleteReporterGeometry();
+        reporterGeometry = reporter->generateFrameGeometry(myHandle, axisLength);
+        return((void*)reporterGeometry->getReporterPolyData());
     }
 
     SimTK_DOWNCAST(DecorativeFrameRep, DecorativeGeometryRep);
 private:
     Real axisLength;
+
 };
 
 } // namespace SimTK

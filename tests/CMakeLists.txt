@@ -1,4 +1,3 @@
-SUBDIRS (SBPendulum1 IntegratorTest PendulumExample 
-         ContactTest Ethane CoarseRNA JunkMain)
+SUBDIRS (IntegratorTest JunkMain)
 
 
