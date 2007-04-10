@@ -46,9 +46,8 @@ class State;
 class MultibodySystem;
 class DecorativeGeometry;
 class VTKDecoration;
-class Reporter3D;
 
-class SimTK_SIMBODY_EXPORT VTKReporter : public Reporter3D {
+class SimTK_SIMBODY_EXPORT VTKReporter  {
 public:
     VTKReporter() : rep(0) { }
 
@@ -76,13 +75,6 @@ public:
     /// handle is empty or if its rep points back here.
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
-
-    virtual Reporter3DGeom* generateLineGeometry(     DecorativeGeometry*, const Vec3&, const Vec3& );
-    virtual Reporter3DGeom* generateBrickGeometry(    DecorativeGeometry*, const Vec3& );
-    virtual Reporter3DGeom* generateCylinderGeometry( DecorativeGeometry*, Real, Real );
-    virtual Reporter3DGeom* generateCircleGeometry(   DecorativeGeometry*, Real ); 
-    virtual Reporter3DGeom* generateSphereGeometry(   DecorativeGeometry*, Real );
-    virtual Reporter3DGeom* generateFrameGeometry(    DecorativeGeometry*, Real );
 
     // Internal use only
     explicit VTKReporter(class VTKReporterRep* r) : rep(r) { }
