@@ -1,6 +1,0 @@
-
-ADD_EXECUTABLE(SBPendulum1       SBPendulum1.cpp)
-ADD_EXECUTABLE(SBPendulum1Static SBPendulum1Static.cpp)
-
-TARGET_LINK_LIBRARIES(SBPendulum1       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(SBPendulum1Static ${STATIC_TARGET})
