@@ -44,9 +44,9 @@
 namespace SimTK {
 
 enum {                            
-    drawPoints     =  0, // only draw  points at polygon vertices
-    drawWireFrame  =  1, // only draw lines along polygon edges
-    drawSurface    =  2  // draw shaded polygons
+    DrawPoints     =  0, // only draw  points at polygon vertices
+    DrawWireFrame  =  1, // only draw lines along polygon edges
+    DrawSurface    =  2  // draw shaded polygons
 };
 
 

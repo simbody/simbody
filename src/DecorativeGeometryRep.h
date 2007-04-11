@@ -99,9 +99,9 @@ public:
     }
     Real getLineThickness() const {return lineThickness;}
 
-    void setRepresentationToPoints()     {representation=drawPoints;}
-    void setRepresentationToWireframe()  {representation=drawWireFrame;}
-    void setRepresentationToSurface()    {representation=drawSurface;}
+    void setRepresentationToPoints()     {representation=DrawPoints;}
+    void setRepresentationToWireframe()  {representation=DrawWireFrame;}
+    void setRepresentationToSurface()    {representation=DrawSurface;}
     void setRepresentationToUseDefault() {representation=-1;}
 
     int getRepresentation() const {return representation;}
@@ -139,7 +139,7 @@ private:
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
-    int  representation;    // -1 drawPoints, drawWireFrame, drawSurface 
+    int  representation;    // -1 DrawPoints, DrawWireFrame, DrawSurface 
 
 protected:
     DecorativeGeometry* myHandle;         // the owner of this rep

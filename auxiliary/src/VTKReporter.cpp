@@ -151,9 +151,9 @@ private:
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
     int convertToVTKRepesentation(int rep ){
 
-        if ( rep == drawPoints ){
+        if ( rep == DrawPoints ){
            return( VTK_POINTS );
-        } else if( rep == drawWireFrame ) {
+        } else if( rep == DrawWireFrame ) {
            return( VTK_WIREFRAME );
         } else {
            return( VTK_SURFACE );
