@@ -43,6 +43,13 @@
 
 namespace SimTK {
 
+enum {                            
+    drawPoints     =  0, // only draw  points at polygon vertices
+    drawWireFrame  =  1, // only draw lines along polygon edges
+    drawSurface    =  2  // draw shaded polygons
+};
+
+
 class DecorativeGeometry;
 
 
@@ -56,13 +63,12 @@ class SimTK_SIMBODY_EXPORT Reporter3DGeom {
 
 class SimTK_SIMBODY_EXPORT Reporter3D {
 public:
-
-    virtual Reporter3DGeom* generateLineGeometry(     DecorativeGeometry*, const Vec3&, const Vec3& ) = 0;
-    virtual Reporter3DGeom* generateBrickGeometry(    DecorativeGeometry*, const Vec3& ) = 0;
-    virtual Reporter3DGeom* generateCylinderGeometry( DecorativeGeometry*, Real, Real) = 0;
-    virtual Reporter3DGeom* generateCircleGeometry(   DecorativeGeometry*, Real) = 0; 
-    virtual Reporter3DGeom* generateSphereGeometry(   DecorativeGeometry*, Real) = 0;
-    virtual Reporter3DGeom* generateFrameGeometry(    DecorativeGeometry*, Real) = 0;
+    virtual Reporter3DGeom* generateLineGeometry(     const DecorativeGeometry&, const Vec3&, const Vec3& ) = 0;
+    virtual Reporter3DGeom* generateBrickGeometry(    const DecorativeGeometry&, const Vec3& )              = 0;
+    virtual Reporter3DGeom* generateCylinderGeometry( const DecorativeGeometry&, Real, Real)                = 0;
+    virtual Reporter3DGeom* generateCircleGeometry(   const DecorativeGeometry&, Real)                      = 0; 
+    virtual Reporter3DGeom* generateSphereGeometry(   const DecorativeGeometry&, Real)                      = 0;
+    virtual Reporter3DGeom* generateFrameGeometry(    const DecorativeGeometry&, Real)                      = 0;
 
 };
 

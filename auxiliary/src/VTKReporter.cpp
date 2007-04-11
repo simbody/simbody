@@ -106,12 +106,12 @@ public:
     void setMyHandle(VTKReporter& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
 
-    virtual Reporter3DGeom* generateLineGeometry(     DecorativeGeometry*, const Vec3&, const Vec3& );
-    virtual Reporter3DGeom* generateBrickGeometry(    DecorativeGeometry*, const Vec3& );
-    virtual Reporter3DGeom* generateCylinderGeometry( DecorativeGeometry*, Real, Real );
-    virtual Reporter3DGeom* generateCircleGeometry(   DecorativeGeometry*, Real );
-    virtual Reporter3DGeom* generateSphereGeometry(   DecorativeGeometry*, Real );
-    virtual Reporter3DGeom* generateFrameGeometry(    DecorativeGeometry*, Real );
+    virtual Reporter3DGeom* generateLineGeometry(     const DecorativeGeometry&, const Vec3&, const Vec3& );
+    virtual Reporter3DGeom* generateBrickGeometry(    const DecorativeGeometry&, const Vec3& );
+    virtual Reporter3DGeom* generateCylinderGeometry( const DecorativeGeometry&, Real, Real );
+    virtual Reporter3DGeom* generateCircleGeometry(   const DecorativeGeometry&, Real );
+    virtual Reporter3DGeom* generateSphereGeometry(   const DecorativeGeometry&, Real );
+    virtual Reporter3DGeom* generateFrameGeometry(    const DecorativeGeometry&, Real );
 
 
 private:
@@ -151,9 +151,9 @@ private:
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
     int convertToVTKRepesentation(int rep ){
 
-        if ( rep == SIMTK_POINTS ){
+        if ( rep == drawPoints ){
            return( VTK_POINTS );
-        } else if( rep == SIMTK_WIREFRAME ) {
+        } else if( rep == drawWireFrame ) {
            return( VTK_WIREFRAME );
         } else {
            return( VTK_SURFACE );
@@ -228,23 +228,23 @@ void VTKReporter::setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb) {
     ////////////////////
 
 
-Reporter3DGeom* VTKReporterRep::generateLineGeometry( DecorativeGeometry* geom, const Vec3& p1, const Vec3& p2) {
-        return( new VTKDecorativeLine( geom, p1, p2));
+Reporter3DGeom* VTKReporterRep::generateLineGeometry( const DecorativeGeometry& geom, const Vec3& p1, const Vec3& p2) {
+    return( new VTKDecorativeLine( geom, p1, p2));
 }
-Reporter3DGeom* VTKReporterRep::generateBrickGeometry( DecorativeGeometry* geom, const Vec3& halfLengths) {
-        return( new VTKDecorativeBrick( geom, halfLengths ));
+Reporter3DGeom* VTKReporterRep::generateBrickGeometry( const DecorativeGeometry& geom, const Vec3& halfLengths) {
+    return( new VTKDecorativeBrick( geom, halfLengths ));
 }
-Reporter3DGeom* VTKReporterRep::generateCylinderGeometry( DecorativeGeometry* geom, Real r, Real halfHeight) {
-        return( new VTKDecorativeCylinder( geom, r, halfHeight ));
+Reporter3DGeom* VTKReporterRep::generateCylinderGeometry( const DecorativeGeometry& geom, Real r, Real halfHeight) {
+    return( new VTKDecorativeCylinder( geom, r, halfHeight ));
 }
-Reporter3DGeom* VTKReporterRep::generateCircleGeometry( DecorativeGeometry* geom, Real r) {
-        return( new VTKDecorativeCircle( geom, r ));
+Reporter3DGeom* VTKReporterRep::generateCircleGeometry( const DecorativeGeometry& geom, Real r) {
+    return( new VTKDecorativeCircle( geom, r ));
 }
-Reporter3DGeom* VTKReporterRep::generateSphereGeometry( DecorativeGeometry* geom, Real r) {
-        return( new VTKDecorativeSphere( geom, r ));
+Reporter3DGeom* VTKReporterRep::generateSphereGeometry( const DecorativeGeometry& geom, Real r) {
+    return( new VTKDecorativeSphere( geom, r ));
 }
-Reporter3DGeom* VTKReporterRep::generateFrameGeometry( DecorativeGeometry* geom, Real halfLength) {
-        return( new VTKDecorativeFrame( geom, halfLength ));
+Reporter3DGeom* VTKReporterRep::generateFrameGeometry( const DecorativeGeometry& geom, Real halfLength) {
+    return( new VTKDecorativeFrame( geom, halfLength ));
 }
 void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
@@ -260,9 +260,9 @@ void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
     geom.setPlacement(X_GD*geom.getPlacement());
 
   
-//    Create the VTK geometry for this DecorativeGometry object  calls VTKReporter's 
-//    generateLine/Sphere..Geometry .. routine to generate the 
-//    polygons/lines/points for the   DecorativeGeometry object 
+//  Create the VTK geometry for this DecorativeGometry object  calls VTKReporter's 
+//  generateLine/Sphere..Geometry .. routine to generate the 
+//  polygons/lines/points for the   DecorativeGeometry object 
 
     vtkPolyData* poly = (vtkPolyData*)geom.updRep().generateReporterGeometry( this );
 

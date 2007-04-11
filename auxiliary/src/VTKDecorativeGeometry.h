@@ -65,7 +65,7 @@ public:
     void* getReporterPolyData(){ return (void *)getVTKPolyData(); }
       
 
-    void setMyHandle(DecorativeGeometry& h) {myHandle = &h;}
+    void setMyHandle(const DecorativeGeometry& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
 
 protected:
@@ -73,7 +73,7 @@ protected:
         vtkObjects.push_back(o);
     }
 
-    DecorativeGeometry* myHandle;     // DecorativeGeomety object for this VTKDecorativeGeometry
+    DecorativeGeometry const *myHandle;     // DecorativeGeomety object for this VTKDecorativeGeometry
 
     void deleteVTKGeometry() { // Delete in reverse order of allocation
 //      std::cout << "deleteVTKGeometry() \n";
@@ -100,8 +100,8 @@ protected:
 class VTKDecorativeLine : public VTKDecorativeGeometry{
 public:
     // no default constructor
-    VTKDecorativeLine(DecorativeGeometry* geom, const Vec3& p1, const Vec3& p2)  {
-       setMyHandle(  *geom );
+    VTKDecorativeLine(const DecorativeGeometry& geom, const Vec3& p1, const Vec3& p2)  {
+       setMyHandle(  geom );
        createVTKPolyData(p1,p2);
     }
     ~VTKDecorativeLine() {
@@ -120,8 +120,8 @@ public:
 class VTKDecorativeCircle : public VTKDecorativeGeometry {
 public:
     // no default constructor
-    VTKDecorativeCircle(DecorativeGeometry* geom, Real r) {
-       setMyHandle(  *geom );
+    VTKDecorativeCircle(const DecorativeGeometry& geom, Real r) {
+       setMyHandle(  geom );
        createVTKPolyData(r);
     }
     ~VTKDecorativeCircle() {
@@ -142,8 +142,8 @@ class VTKDecorativeSphere : public VTKDecorativeGeometry {
     static const int DefaultResolution = 15;
 public:
     // no default constructor
-    VTKDecorativeSphere(DecorativeGeometry* geom, Real r)  {
-       setMyHandle( *geom );
+    VTKDecorativeSphere(const DecorativeGeometry& geom, Real r)  {
+       setMyHandle( geom );
        createVTKPolyData(r);
     }
     ~VTKDecorativeSphere() {
@@ -162,8 +162,8 @@ public:
 class VTKDecorativeBrick : public VTKDecorativeGeometry {
 public:
     // no default constructor
-    VTKDecorativeBrick(DecorativeGeometry* geom, const Vec3& halfHeights) {
-       setMyHandle(  *geom );
+    VTKDecorativeBrick(const DecorativeGeometry& geom, const Vec3& halfHeights) {
+       setMyHandle(  geom );
        createVTKPolyData( halfHeights );
     }
     ~VTKDecorativeBrick() {
@@ -181,8 +181,8 @@ class VTKDecorativeCylinder : public VTKDecorativeGeometry {
     static const int DefaultResolution = 10;
 public:
     // no default constructor
-    VTKDecorativeCylinder(DecorativeGeometry* geom, Real r, Real halfHeight)  {
-       setMyHandle( *geom );
+    VTKDecorativeCylinder(const DecorativeGeometry& geom, Real r, Real halfHeight)  {
+       setMyHandle( geom );
        createVTKPolyData(r, halfHeight);
     }
     ~VTKDecorativeCylinder() {
@@ -199,8 +199,8 @@ public:
 class VTKDecorativeFrame : public VTKDecorativeGeometry{
 public:
     // no default constructor
-    VTKDecorativeFrame(DecorativeGeometry* geom, Real halfLength)  {
-       setMyHandle(  *geom );
+    VTKDecorativeFrame(const DecorativeGeometry& geom, Real halfLength)  {
+       setMyHandle(  geom );
        createVTKPolyData(halfLength);
     }
     ~VTKDecorativeFrame() {

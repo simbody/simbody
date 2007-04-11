@@ -66,23 +66,6 @@ namespace SimTK {
     // VTKDecorativeGeometry //
     ///////////////////////////
 
-
-/*  TODO JACKM  DO we need clone?
-VTKDecorativeGeometry::VTKDecorativeGeometry(const VTKDecorativeGeometry& src)  {
-             src.clone();
-}
-
-VTKDecorativeGeometry& VTKDecorativeGeometry::operator=(const VTKDecorativeGeometry& src) {
-    if (&src != this) {
-             src.clone();
-    }
-    return *this;
-}
-*/
-
-
-
-
 vtkTransform* 
 VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Real& s) {
 

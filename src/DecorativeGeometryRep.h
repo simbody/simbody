@@ -99,9 +99,9 @@ public:
     }
     Real getLineThickness() const {return lineThickness;}
 
-    void setRepresentationToPoints()     {representation=SIMTK_POINTS;}
-    void setRepresentationToWireframe()  {representation=SIMTK_WIREFRAME;}
-    void setRepresentationToSurface()    {representation=SIMTK_SURFACE;}
+    void setRepresentationToPoints()     {representation=drawPoints;}
+    void setRepresentationToWireframe()  {representation=drawWireFrame;}
+    void setRepresentationToSurface()    {representation=drawSurface;}
     void setRepresentationToUseDefault() {representation=-1;}
 
     int getRepresentation() const {return representation;}
@@ -113,17 +113,18 @@ public:
         return dup;
     }
     void  setReporterGeometry( Reporter3DGeom* geometry) { reporterGeometry = geometry; return; }
+
     Reporter3DGeom* getReporterGeometry() const { return( reporterGeometry ); }
+
     virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
 
     virtual void* generateReporterGeometry(Reporter3D*) = 0;
 
     void setMyHandle(DecorativeGeometry& h) {
-          
-          myHandle = &h;
+        myHandle = &h;
     }
     void clearMyHandle() {
-          myHandle=0;
+        myHandle=0;
     }
 
 private:
@@ -138,12 +139,12 @@ private:
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
-    int  representation;    // -1, SIMTK_POINTS, SIMTK_WIREFRAME, SIMTK_SURFACE
+    int  representation;    // -1 drawPoints, drawWireFrame, drawSurface 
 
 protected:
-    DecorativeGeometry* myHandle;     // the owner of this rep
-    Reporter3DGeom* reporterGeometry; // handle to data the Reporter3D uses to
-                                      // represent this DecorativeGeometry object
+    DecorativeGeometry* myHandle;         // the owner of this rep
+    Reporter3DGeom*     reporterGeometry; // handle to data the Reporter3D uses to
+                                          // represent this DecorativeGeometry object
 };
 
     ///////////////////////
@@ -171,7 +172,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateLineGeometry(myHandle, point1, point2);
+        reporterGeometry = reporter->generateLineGeometry(*myHandle, point1, point2);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
@@ -206,7 +207,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateCircleGeometry(myHandle, r);
+        reporterGeometry = reporter->generateCircleGeometry(*myHandle, r);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
@@ -242,7 +243,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateSphereGeometry(myHandle, r);
+        reporterGeometry = reporter->generateSphereGeometry(*myHandle, r);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
@@ -277,7 +278,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateBrickGeometry(myHandle, halfLengths);
+        reporterGeometry = reporter->generateBrickGeometry(*myHandle, halfLengths);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
@@ -316,7 +317,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateCylinderGeometry(myHandle, radius, halfHeight);
+        reporterGeometry = reporter->generateCylinderGeometry(*myHandle, radius, halfHeight);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
@@ -347,7 +348,7 @@ public:
 
     void* generateReporterGeometry(Reporter3D* reporter) {
         deleteReporterGeometry();
-        reporterGeometry = reporter->generateFrameGeometry(myHandle, axisLength);
+        reporterGeometry = reporter->generateFrameGeometry(*myHandle, axisLength);
         return((void*)reporterGeometry->getReporterPolyData());
     }
 
