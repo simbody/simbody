@@ -180,6 +180,30 @@ Vec4 Rotation::convertToAngleAxis() const {
     return convertToQuaternion().convertToAngleAxis();
 }
 
+// Call the current Rotation R_GB. We are passed R_GX and want to
+// know if these are the same rotation, to within a specified "pointing error"
+// in radians. We'll interpret that to mean that R_BX, when converted to
+// angle-axis format, should have a rotation angle of no more than the given
+// acceptable pointing error.
+// We require 0 < pointingError < pi. 0 would require perfect accuracy; 180 would
+// answer true for all possible rotation matrices.
+bool Rotation::isSameRotationToWithinAngle(const Rotation& R_GX, Real okPointingError) const {
+    assert(0 < okPointingError && okPointingError < NTraits<Real>::Pi);
+    const Rotation R_BX = ~(*this)*R_GX;
+    const Real pointingError = std::abs(R_BX.convertToAngleAxis()[0]);
+    return pointingError <= okPointingError;
+}
+
+// Call the current Rotation R_GB. We are passed R_GX and want to
+// know if these are the same rotation, to within machine precision.
+// We'll interpret that to mean that R_BX, when converted to
+// angle-axis format, should have a rotation angle of no more than
+// machine epsilon^(7/8), i.e. around 1e-14 radians in double precision.
+bool Rotation::isSameRotationToMachinePrecision(const Rotation& R_GX) const {
+    return isSameRotationToWithinAngle(R_GX, NTraits<Real>::Eps_78);
+}
+
+
 Quaternion::Quaternion(const Rotation& r) 
   : BaseVec(r.convertToQuaternion())
 { 
@@ -194,7 +218,10 @@ Vec4 Quaternion::convertToAngleAxis() const {
     const Real& ca2  = (*this)[0];      // cos(a/2)
     const Vec3& sa2v = getSubVec<3>(1); // sin(a/2)*v
     Real        sa2  = sa2v.norm();     // always >= 0
-    if (sa2 < std::numeric_limits<Real>::epsilon())
+
+    // TODO: what is the right value to use here?? Norms can be
+    // much less than eps and still OK -- this is 1e-32 in double.
+    if (sa2 < square(std::numeric_limits<Real>::epsilon()))
         return Vec4(0,1,0,0); // no rotation, x axis
 
     Vec4 av;

@@ -32,7 +32,7 @@ namespace SimTK {
  * it behave like a concrete class (sometimes called a "ClonePtr").
  * 
  * The abstract base class must cooperate by containing a clone() method
- * which returns a pointer to a copy of the <em>concrete<\em> object.
+ * which returns a pointer to a copy of the <em>concrete</em> object.
  *
  * The Concretize object normally makes a copy of the object passed to its 
  * constructor. However, if you pass it a non-const pointer  Concretize will 

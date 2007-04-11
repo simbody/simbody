@@ -288,6 +288,21 @@ try {
     cout << "R_AB/R_BC=" << R_AB/R_BC;
     Rtmp=R_AB;
     cout << "R_AB/=R_BC=" << (Rtmp/=R_BC);
+
+    cout << "COMPARE ROTATIONS" << endl;
+    Rotation R_GB, R_GX; Real backOut;
+    R_GB = Rotation::aboutAxis(0.17, Vec3(1,2,3));
+    backOut = R_GB.convertToAngleAxis()[0];
+    cout << " in=0.17 radians, out=" << backOut << " err=" << std::abs(backOut-0.17) << endl;
+
+    R_GB = Rotation::aboutAxis(0.17+1e-13, Vec3(1,2,3));
+    R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
+    cout << " 0.17+1e-13:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
+         << " isSameToAngle(1e-12)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-12) << endl;
+    R_GB = Rotation::aboutAxis(0.17+1e-15, Vec3(1,2,3));
+    R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
+    cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
+         << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
     return 0;
 }
 catch(const Exception::Base& e) {

@@ -133,7 +133,7 @@
  * the last two digits are as shown +/- the uncertainty.
  *
  * How to combine uncertainties (extracted from
- * http: *physics.nist.gov/cuu/Uncertainty/combination.html):
+ * http://physics.nist.gov/cuu/Uncertainty/combination.html):
  * Assume measured quantities are x1, y1 with u1=uncertainty(x1), u2=uncertainty(x2).
  * We want to combine them into a new quantity y and calculate u=uncertainty(y).
  * Addition rule: y    = a1*x1 + a2*x2 for factors a1,a2.

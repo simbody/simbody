@@ -536,18 +536,29 @@ public:
     /// representation: (a vx vy vz), with v a unit vector, a in radians.
     SimTK_SimTKCOMMON_EXPORT Vec4 convertToAngleAxis()  const;
 
+    /// Return true if the passed-in Rotation is identical to the current one
+    /// to within a cone whose half-angle is supplied (in radians). That half-angle
+    /// is called the "pointing error", and we require 0 < pointing error < pi since
+    /// 0 would require perfect precision and pi (180 degrees) would return 
+    SimTK_SimTKCOMMON_EXPORT bool isSameRotationToWithinAngle(const Rotation&, Real okPointingError) const;
+
+    /// Return true if the passed-in Rotation is identical to the current one
+    /// to within what can be expected at the precision being used.
+    SimTK_SimTKCOMMON_EXPORT bool isSameRotationToMachinePrecision(const Rotation&) const;
+
+
     Rotation(const Rotation& R) : BaseMat(R) { }
     Rotation& operator=(const Rotation& R) {
         BaseMat::operator=(R.asMat33()); return *this;
     }
 
     /// By zero we mean "zero rotation", i.e., an identity matrix.
-    void setToZero() {
-        BaseMat::operator=(Real(1));
+    Rotation& setToZero() {
+        BaseMat::operator=(Real(1)); return *this;
     }
 
-    void setToNaN() {
-        BaseMat::setToNaN();
+    Rotation& setToNaN() {
+        BaseMat::setToNaN(); return *this;
     }
 
     /// Set this Rotation to represent a rotation of +q radians
