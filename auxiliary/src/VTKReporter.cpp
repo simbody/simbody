@@ -276,7 +276,7 @@ void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
     const Real lineWidth = (geom.getLineThickness() != -1 ? geom.getLineThickness() : Real(1));
     actor->GetProperty()->SetLineWidth(lineWidth);
 
-    const int representation = (geom.getRepresentation() != -1 ? geom.getRepresentation() : SIMTK_SURFACE);
+    const int representation = (geom.getRepresentation() != -1 ? geom.getRepresentation() : DrawSurface);
     actor->GetProperty()->SetRepresentation( convertToVTKRepesentation( representation) );
 
     // Set up the mapper & register actor with renderer
