@@ -68,6 +68,15 @@ Rotation::Rotation(const Quaternion& q) {
     setToQuaternion(q);
 }
 
+// Orthogonalize the supplied matrix to make it a legitimate rotation.
+// We do this by conversion to quaternions and back, although that may
+// not produce the closest rotation.
+Rotation::Rotation(const Mat33& m) {
+    const Rotation bad(m, true);
+    const Quaternion good(bad);
+    this->setToQuaternion(good);
+}
+
 /*static*/Rotation Rotation::aboutAxis
    (const Real& angInRad, const UnitVec3& axis)
 {
@@ -172,6 +181,73 @@ Quaternion Rotation::convertToQuaternion() const {
     Real scale = q.norm(); 
     if (q[0] < 0) scale = -scale; // canonicalize
     return Quaternion(q/scale, true); // prevent re-normalization
+}
+
+// Here is a rotation matrix made from a body012 (that is, 123) Euler 
+// angle sequence (q0,q1,q2):
+//
+//         cq1*cq2        ,       -cq1*sq2       ,  sq1    ,
+//    sq0*sq1*cq2+cq0*sq2 , -sq0*sq1*sq2+cq0*cq2 , -sq0*cq1,
+//   -cq0*sq1*cq2+sq0*sq2 ,  cq0*sq1*sq2+sq0*cq2 ,  cq0*cq1
+//
+// We'll return Euler angles in the range -pi <= q0,q2 <= pi,
+// and -pi/2 <= q1 <= pi/2.
+//
+// This computation is singular when the middle angle, q1, is +/-90 degrees.
+// In that configuration the 1st & 3rd axes are aligned so we
+// can arbitarily choose how to split that rotation between them.
+// We'll choose q2=0 so that we'll have (q0, +/- pi/2,0).
+//
+// TODO: this routine will produce a pointing error of around
+// sqrt(eps) radians for q1 within about 1e-8 of pi/2, that is,
+// when sin(q1)==1. I think a more complicated algorithm, 
+// perhaps iterative, could reduce the pointing error to machine
+// precision. I tried making use of the fact that cos(q1) is well
+// behaved there, using the 00,01 and 12,22 pairs to get q0 and q2
+// (look at the matrix above). But since cos(q1) is close to zero
+// when q1 is near pi/2, those terms are indistinguishable
+// from noise so the computation was too sensitive to junk there.
+// (sherm 070413)
+Vec3 Rotation::convertToBodyFixed123() const {
+    const Rotation& R = *this;
+    Real q0, q1, q2;
+
+    const Real sq1 = R[0][2];
+
+    // Any angle q1=pi/2 +/- sqrt(eps) will give sin(q1)==1, because
+    // sin() is flat there. (Careful: sq1 might be a little greater
+    // then 1 due to noise.) Numerically, we can get very close to 1
+    // before we have to treat this as singular, because our calculation
+    // of cos(q1) below will be well behaved.
+    if (1-std::abs(sq1) <= 4*NTraits<Real>::Eps)
+    {
+        // sq1==1, so we'll assume cq1==0 and we're going to set the last
+        // angle to zero making sq2=0 and cq2=1, vastly simplifying the
+        // middle column above.
+        q0 = std::atan2(R[2][1],R[1][1]);
+        q1 = sq1 > 0 ? NTraits<Real>::Pi/2 : -NTraits<Real>::Pi/2;
+        q2 = 0;
+    } else {
+        // cq1 isn't zero; in fact it isn't much smaller than sqrt(eps)
+        const Vec2 v0(R[2][2], -R[1][2]); // used for getting q0
+        q0 = std::atan2(v0[1],v0[0]);
+
+        const Vec2 v2(R[0][0], -R[0][1]); // used for getting q2
+        q2 = std::atan2(v2[1],v2[0]);
+
+        // Rather than using asin(sq1), we'll try to get a decent estimate of cq1
+        // and then use the better behaved atan2(sq1,cq1). There are four terms
+        // from which we can get cq1 in the rotation matrix (see above), two 
+        // dependent on q0 and two dependent on q2. In either case squaring and
+        // adding the two terms leaves us with just cq1^2, and since for
+        // q1 in range -pi/2:pi/2, cos(q1) >= 0 we can just take the square root.
+        // (Otherwise we'd lose a sign here.) To reduce noise sensitivity we'll
+        // do it both ways and average the results.
+        const Real cq1a = v0.norm(), cq1b = v2.norm();
+        q1 = std::atan2(sq1, 0.5*(cq1a+cq1b));
+    }
+
+    return Vec3(q0,q1,q2);
 }
 
 // The lazy but correct way. I have not seen a roundoff-safe method

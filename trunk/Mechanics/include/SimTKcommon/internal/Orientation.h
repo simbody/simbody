@@ -409,6 +409,10 @@ public:
     inline Rotation(const InverseRotation&);
     inline Rotation& operator=(const InverseRotation&);
 
+    // This constructor takes a Mat33 and orthogonalizes it into a (hopefully
+    // nearby) rotation matrix.
+    SimTK_SimTKCOMMON_EXPORT explicit Rotation(const Mat33&);
+
     // These static methods are like constructors with friendlier names.
 
     static Rotation zero() {return Rotation();}
@@ -524,13 +528,15 @@ public:
     SimTK_SimTKCOMMON_EXPORT void setToBodyFixed123(const Vec3&);
 
     /// Set this Rotation to represent the same rotation as
-    /// the passed-in quaternion. The 0th element is the quaternion
-    /// scalar. The quaternion is normalized before use to ensure
-    /// a non-distorting rotation matrix.
+    /// the passed-in quaternion.
     SimTK_SimTKCOMMON_EXPORT void setToQuaternion(const Quaternion&);
 
     /// Convert this Rotation matrix to the equivalent quaternion.
     SimTK_SimTKCOMMON_EXPORT Quaternion convertToQuaternion() const;
+
+    /// Convert this Rotation matrix to the equivalent 1-2-3 body fixed
+    /// Euler angle sequence.
+    SimTK_SimTKCOMMON_EXPORT Vec3 convertToBodyFixed123() const;
 
     /// Convert this Rotation matrix to an equivalent (angle,axis)
     /// representation: (a vx vy vz), with v a unit vector, a in radians.
@@ -539,7 +545,8 @@ public:
     /// Return true if the passed-in Rotation is identical to the current one
     /// to within a cone whose half-angle is supplied (in radians). That half-angle
     /// is called the "pointing error", and we require 0 < pointing error < pi since
-    /// 0 would require perfect precision and pi (180 degrees) would return 
+    /// 0 would require perfect precision and pi (180 degrees) would return true
+    /// for any pair of Rotations.
     SimTK_SimTKCOMMON_EXPORT bool isSameRotationToWithinAngle(const Rotation&, Real okPointingError) const;
 
     /// Return true if the passed-in Rotation is identical to the current one
@@ -774,13 +781,11 @@ public:
         return asMat33();
     }
 
-    static Rotation trustMe(const Mat33& m) {return Rotation(m);}
+    static Rotation trustMe(const Mat33& m) {return Rotation(m, true);}
 
 private:
     // We're trusting that m is a rotation.
-    explicit Rotation(const BaseMat& m) : BaseMat(m) { }
-    template <int CS, int RS>
-    explicit Rotation(const Mat<3,3,Real,CS,RS>& m) : BaseMat(m) { }
+    explicit Rotation(const Mat33& m, bool) : Mat33(m) { }
 
     // This is only for the most trustworthy of callers, that is, methods
     // of the Rotation class. There are a lot of ways for this NOT to

@@ -103,6 +103,13 @@ void quatTest() {
 
 }
 
+void orthoTest(String msg, const Rotation& R) {
+    cout << msg << endl;
+    cout << "cols=" << R(0).norm()-1 << ", " << R(1).norm()-1 << ", " << R(2).norm()-1 << endl;
+    cout << "rows=" << R[0].norm()-1 << ", " << R[1].norm()-1 << ", " << R[2].norm()-1 << endl;
+    cout << "perp=" << dot(R(0),R(1)) << ", " << dot(R(1),R(2)) << ", " << dot(R(0),R(2)) << endl;
+}
+
 int main() {
     quatTest();
 
@@ -303,6 +310,31 @@ try {
     R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
     cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
          << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
+
+    const Real pi2 = NTraits<Real>::Pi/2;
+    const Real pi2x = -pi2 + 10e-8;
+    cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
+    const Vec3 vin(-3, pi2x, 0.1);
+    Rotation b123; b123.setToBodyFixed123(vin);
+    Mat33 m123=b123; m123[0][0] += 1e-14; m123[1][2] += 1e-14;
+    //b123 = Rotation::trustMe(m123);
+    //cout << "bad  b123*~b123 angle=" << (b123*~b123).convertToAngleAxis()[0] << endl;
+    //b123 = Rotation(m123);
+    //cout << "good b123*~b123.norm()=" << (b123*~b123).convertToAngleAxis()[0] << endl;
+    b123 *= R_GX;
+    b123 *= ~R_GX;
+    cout << "b123=" << b123;
+    Rotation cleanb123(b123.asMat33());
+   // b123=cleanb123;
+
+    cout << "cos(pi2x)=" << cos(pi2x) << "cos(pi2)=" << cos(pi2) << endl;
+    cout << "atan2(02/00)-pi2=" << atan2(b123[0][2],b123[0][0])-pi2 << endl;
+    Vec3 v123 = b123.convertToBodyFixed123();
+    Vec4 aax = b123.convertToAngleAxis();
+    cout << "vin=" << vin << "\nvout=" << v123 << endl;
+    Rotation b123x; b123x.setToBodyFixed123(v123);
+    Vec4 aax2 = (~b123*b123x).convertToAngleAxis();
+    cout << " aax2=" << aax2 << endl;
     return 0;
 }
 catch(const Exception::Base& e) {
