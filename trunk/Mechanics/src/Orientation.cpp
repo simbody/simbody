@@ -205,9 +205,17 @@ Quaternion Rotation::convertToQuaternion() const {
 // precision. I tried making use of the fact that cos(q1) is well
 // behaved there, using the 00,01 and 12,22 pairs to get q0 and q2
 // (look at the matrix above). But since cos(q1) is close to zero
-// when q1 is near pi/2, those terms are indistinguishable
-// from noise so the computation was too sensitive to junk there.
-// (sherm 070413)
+// when q1 is near pi/2, those terms can be indistinguishable
+// from noise when sin(q1) is exactly 1, so the computation was
+// too sensitive to junk there. Those terms are useful as soon
+// as sin(q1) is anything but 1, because cos(q1) is already sqrt(eps)
+// by then (see below). I also tried an iterative algorithm with
+// a numerical Jacobian but it appears that an analytic (or complex
+// step?) one is required due to the extreme sensitivity near pi/2.
+// For now we'll just live with the occasional 1e-8 radian pointing
+// error in conversion to singular Euler sequence, which really 
+// isn't that bad! 
+// (sherm 070415)
 Vec3 Rotation::convertToBodyFixed123() const {
     const Rotation& R = *this;
     Real q0, q1, q2;

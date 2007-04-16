@@ -312,7 +312,7 @@ try {
          << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
 
     const Real pi2 = NTraits<Real>::Pi/2;
-    const Real pi2x = -pi2 + 10e-8;
+    const Real pi2x = -pi2 + 1e-8;
     cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
     const Vec3 vin(-3, pi2x, 0.1);
     Rotation b123; b123.setToBodyFixed123(vin);
@@ -335,6 +335,7 @@ try {
     Rotation b123x; b123x.setToBodyFixed123(v123);
     Vec4 aax2 = (~b123*b123x).convertToAngleAxis();
     cout << " aax2=" << aax2 << endl;
+
     return 0;
 }
 catch(const Exception::Base& e) {
