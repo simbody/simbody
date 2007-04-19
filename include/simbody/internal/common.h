@@ -141,18 +141,27 @@ public:
     enum MobilizerType {
         UnknownMobilizerType  = 0,
         ThisIsGround          = 1,  // Ground's "inboard joint"
-        Weld                  = 2,  // 0 mobilities
-        Torsion               = 3,  // 1 mobility
-        Sliding               = 4,  // 1
-        Universal             = 5,  // 2 mobilities
-        Cylinder              = 6,  // 2
-        BendStretch           = 7,  // 2
-        Planar                = 8,  // 3 mobilities
-        Gimbal                = 9,  // 3
-        Orientation           = 10, // 3
-        Cartesian             = 11, // 3
-        FreeLine              = 12, // 5 mobilities
+        Weld                  = 2,  // 0 mobilities  TODO
+        Torsion               = 3,  // 1 mobility (around z)
+        Sliding               = 4,  // 1          (along x)
+        Universal             = 5,  // 2 mobilities  TODO: untested
+        Cylinder              = 6,  // 2 (around and along z)
+
+        BendStretch           = 7,  // 2 The z axis of the parent's Mb frame is 
+                                    //   used for rotation (and that is always aligned with the M frame z axis).
+                                    //   The x axis of the *M* frame is used for translation; that is, first
+                                    //   we rotate around z, which moves M's x with respect to Mb's x. Then
+                                    //   we slide along the rotated x axis. The two
+                                    //   generalized coordinates are the rotation and the translation, in that order.
+
+        Planar                = 8,  // 3 mobilities  TODO
+        Gimbal                = 9,  // 3             TODO
+        Orientation           = 10, // 3 (defaults to quaternions; optional body123 Euler angles)
+        Cartesian             = 11, // 3 (along x,y,z)
+        FreeLine              = 12, // 5 mobilities  TODO: doesn't work
         Free                  = 13  // 6 mobilities
+                                    // (rotation same as Orientation; BUT translation & velocity
+                                    //  is x,y,z of the OUTBOARD (M) frame. (TODO: sorry!)
     };
     // synonyms
     static const MobilizerType Pin  = Torsion;
@@ -181,6 +190,27 @@ public:
 };
 
 
+// This just reports rep-level bad things up to the API level with a helpful string.
+class RepLevelException : public Base {
+public:
+    RepLevelException(const char* fn, int ln, String message) : Base(fn,ln)
+    {
+        setMessage(message);
+    }
+};
+
+class MobilizerCantExactlyRepresentRequestedQuantity : public Base {
+public:
+    MobilizerCantExactlyRepresentRequestedQuantity(const char* fn, int ln, 
+       String method, BodyId body, String quantity) : Base(fn,ln)
+    {
+        setMessage(method + "(): the mobilizer for body " + String((int)body)
+            + " can't represent the given " + quantity + " to machine precision");
+    }
+private:
+};
+
+/*
 class FeatureAPIMethodFailed : public Base {
 public:
     FeatureAPIMethodFailed(const char* fn, int ln, String fullFeatureName,
@@ -209,15 +239,6 @@ public:
             + "'s Placement. Features must be realized before their values can be obtained.");
     }
 private:
-};
-
-// This just reports rep-level bad things up to the API level with a helpful string.
-class RepLevelException : public Base {
-public:
-    RepLevelException(const char* fn, int ln, String message) : Base(fn,ln)
-    {
-        setMessage(message);
-    }
 };
 
 class EmptySubsystemPathname : public Base {
@@ -459,6 +480,7 @@ public:
     }
 private:
 };
+*/
 
 class NewtonRaphsonFailure : public Base {
 public:
