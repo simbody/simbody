@@ -538,6 +538,16 @@ public:
     /// Euler angle sequence.
     SimTK_SimTKCOMMON_EXPORT Vec3 convertToBodyFixed123() const;
 
+    /// Convert this Rotation matrix to the equivalent 1-2 body fixed
+    /// Euler angle sequence. The result is only meaningful if the
+    /// Rotation matrix is one that can be produced by such a sequence.
+    SimTK_SimTKCOMMON_EXPORT Vec2 convertToBodyFixed12() const;
+
+    /// Convert this Rotation matrix to the equivalent 1-2 space fixed
+    /// Euler angle sequence. The result is only meaningful if the
+    /// Rotation matrix is one that can be produced by such a sequence.
+    SimTK_SimTKCOMMON_EXPORT Vec2 convertToSpaceFixed12() const;
+
     /// Convert this Rotation matrix to an equivalent (angle,axis)
     /// representation: (a vx vy vz), with v a unit vector, a in radians.
     SimTK_SimTKCOMMON_EXPORT Vec4 convertToAngleAxis()  const;
@@ -749,6 +759,10 @@ public:
         return *reinterpret_cast<InverseRotation*>(this);
     }
 
+    // Override the Mat33 versions of transpose.
+    const InverseRotation& transpose() const {return invert();}
+    InverseRotation&       updTranspose() {return updInvert();}
+
     // Note that this does not have unit stride.
     const RowType& row(int i) const {
         return reinterpret_cast<const RowType&>(asMat33()[i]);
@@ -820,6 +834,10 @@ public:
     Rotation& updInvert() {
         return *reinterpret_cast<Rotation*>(this);
     }
+
+    // Override the Mat33 versions of transpose.
+    const Rotation& transpose() const {return invert();}
+    Rotation&       updTranspose() {return updInvert();}
 
     // Note that this does not have unit stride.
     const RowType& row(int i) const {

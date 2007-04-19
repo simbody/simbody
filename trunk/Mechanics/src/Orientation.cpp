@@ -258,6 +258,58 @@ Vec3 Rotation::convertToBodyFixed123() const {
     return Vec3(q0,q1,q2);
 }
 
+// Here is a rotation matrix made from a body01 (that is, 12 or xy) Euler 
+// angle sequence (q0,q1):
+//
+//        cy   ,    0   ,   sy   ,
+//       sy*sx ,   cx   , -cy*sx ,
+//      -sy*cx ,   sx   ,  cy*cx 
+//
+// The results can also be interpreted as a space10 (21, yx) sequence,
+// meaning rotate by q1 about y, the q0 about the old x.
+//
+// This routine assumes that the current Rotation has the above structure,
+// that is, that it is a rotation that could have resulted from the desired
+// two-angle sequence. If not, the results will not be very meaningful.
+//
+// We'll return Euler angles in the range -pi <= q0,q1 <= pi. There are
+// no singular configurations.
+//
+Vec2 Rotation::convertToBodyFixed12() const {
+    const Rotation& R = *this;
+
+    const Real q0 = std::atan2(R[2][1], R[1][1]);
+    const Real q1 = std::atan2(R[0][2], R[0][0]);
+
+    return Vec2(q0,q1);
+}
+
+// Here is a rotation matrix made from a space01 (that is, 12 or xy) Euler 
+// angle sequence (q0,q1):
+//
+//        cy   ,  sy*sx ,  sy*cx ,
+//         0   ,   cx   ,  -sx   ,
+//       -sy   ,  cy*sx ,  cy*cx 
+//
+// The results can also be interpreted as a body10 (21, yx) sequence,
+// meaning rotate by q1 about y, the q0 about the new x.
+//
+// This routine assumes that the current Rotation has the above structure,
+// that is, that it is a rotation that could have resulted from the desired
+// two-angle sequence. If not, the results will not be very meaningful.
+//
+// We'll return Euler angles in the range -pi <= q0,q1 <= pi. There are
+// no singular configurations.
+//
+Vec2 Rotation::convertToSpaceFixed12() const {
+    const Rotation& R = *this;
+
+    const Real q0 = std::atan2(-R[1][2], R[1][1]);
+    const Real q1 = std::atan2(-R[2][0], R[0][0]);
+
+    return Vec2(q0,q1);
+}
+
 // The lazy but correct way. I have not seen a roundoff-safe method
 // for direct conversion.
 Vec4 Rotation::convertToAngleAxis() const {
