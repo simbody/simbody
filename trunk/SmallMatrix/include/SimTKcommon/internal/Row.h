@@ -502,7 +502,7 @@ private:
 template <int N, class E1, int S1, class E2, int S2> inline
 typename Row<N,E1,S1>::template Result< Row<N,E2,S2> >::Add
 operator+(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
-    Row<N,E1,S1>::template Result< Row<N,E2,S2> >
+    return Row<N,E1,S1>::template Result< Row<N,E2,S2> >
         ::AddOp::perform(l,r);
 }
 
@@ -510,7 +510,7 @@ operator+(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) {
 template <int N, class E1, int S1, class E2, int S2> inline
 typename Row<N,E1,S1>::template Result< Row<N,E2,S2> >::Sub
 operator-(const Row<N,E1,S1>& l, const Row<N,E2,S2>& r) { 
-    Row<N,E1,S1>::template Result< Row<N,E2,S2> >
+    return Row<N,E1,S1>::template Result< Row<N,E2,S2> >
         ::SubOp::perform(l,r);
 }
 
