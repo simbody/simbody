@@ -955,8 +955,60 @@ public:
 
         // MODEL STAGE solvers //
 
-    // Routines beginning with "set" must always succeed. They will throw an exception
-    // if the mobilizer is not capable of representing the indicated value.
+    // These routines set the generalized coordinates or speeds (state
+    // variables) for a single mobilizer (ignoring all other mobilizers
+    // and constraints), without requiring knowledge
+    // of the meanings of the individual state variables. The idea here
+    // is to provide a physically-meaningful quantity relating the 
+    // mobilizer's inboard and outboard frames, and then ask the mobilizer
+    // to set its state variables to reproduce that quantity to the
+    // extent it can.
+    //
+    // These routines can be called in Stage::Model, however the routines
+    // may consult the current values of the state variables in some cases,
+    // so you must make sure they have been set to reasonable, or at least
+    // innocuous values (zero will work). In no circumstance will any of
+    // these routines look at any state variables which belong to another
+    // mobilizer; they are limited to working locally with one mobilizer.
+    //
+    // Routines which specify only translation (linear velocity) may use
+    // rotational coordinates to help satisfy the translation requirement.
+    // An alternate "Only" method is available to forbid modification of 
+    // purely rotational coordinates in that case. When a mobilizer uses
+    // state variable which have combined rotational and translational
+    // character (e.g. a screw joint) consult the documentation for the
+    // mobilizer to find out how it responds to these routines.
+    //
+    // There is no guarantee that the desired physical quantity will be
+    // achieved by these routines; you can check on return if you're
+    // worried. Individual mobilizers make specific promises about what
+    // they will do; consult the documentation. These routines do not
+    // throw exceptions even for absurd requests like specifying a
+    // rotation for a sliding mobilizer. Requests where the BodyId is
+    // ground are ignored; an illegal BodyId will cause an exception though.
+
+    void setMobilizerTransform      (State&, BodyId, const Transform& X_MbM) const;
+    void setMobilizerRotation       (State&, BodyId, const Rotation&  R_MbM) const;
+    void setMobilizerTranslation    (State&, BodyId, const Vec3&      r_MbM) const;
+    void setMobilizerTranslationOnly(State&, BodyId, const Vec3&      r_MbM) const;
+
+    // Routines which affect generalized speeds depend on the generalized
+    // coordinates already having been set; they never change coordinates.
+    void setMobilizerVelocity          (State&, BodyId, const SpatialVec& V_MbM) const;
+    void setMobilizerAngularVelocity   (State&, BodyId, const Vec3&       w_MbM) const;
+    void setMobilizerLinearVelocity    (State&, BodyId, const Vec3&       v_MbM) const;
+    void setMobilizerLinearVelocityOnly(State&, BodyId, const Vec3&       v_MbM) const;
+
+    // Routines for directly setting the generalized coordinates and speeds
+    // are "null" solvers in that they modify the state but don't do any
+    // computation. These will always succeed if the mobilizer has the 
+    // right number of coordinates or speeds for the method being called.
+    // An exception will be thrown if there is a mismatch. 
+    // 
+    // You can call these routines in Stage::Model or above; they set state
+    // variables without looking at any coordinates or speeds. Setting a generalized 
+    // coordinate (q) will invalidate Stage::Position and above; setting
+    // a generalized speed (u) will invalidate Stage::Velocity and above.
 
     void setMobilizerQ(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
     void setMobilizerU(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
@@ -978,13 +1030,6 @@ public:
     void setMobilizerSpeedsAsVec5(State&, BodyId, const Vec5&) const;
     void setMobilizerSpeedsAsVec6(State&, BodyId, const Vec6&) const;
 
-    void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const;
-    void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const;
-    void setMobilizerTranslation(State&, BodyId, const Vec3&      r_MbM) const;
-
-    void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const;
-    void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const;
-    void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM) const;
 
     /// This is a solver which sets the body's cross-mobilizer transform "as close
     /// as possible" to the supplied Transform, making

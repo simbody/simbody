@@ -90,8 +90,10 @@ try { // If anything goes wrong, an exception will be thrown.
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
         printf("time  theta      energy           *************\n");
         s.updTime() = 0;
-        pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
-        pend.setMobilizerU(s, swinger, 0, 0);
+        pend.setMobilizerRotation(s, swinger, Rotation::aboutZ(startAngle*Deg2Rad));
+        pend.setMobilizerVelocity(s, swinger, SpatialVec(Vec3(0),Vec3(0)));
+        //pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
+        //pend.setMobilizerU(s, swinger, 0, 0);
         myStudy.initialize();
 
         cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);

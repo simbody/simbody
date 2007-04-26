@@ -175,8 +175,16 @@ public:
 
     const Transform& getMobilizerTransform(const State&, BodyId) const;
     const SpatialVec& getMobilizerVelocity(const State&, BodyId) const;
-    void setMobilizerTransform(State&, BodyId, const Transform& X_MbM) const;
-    void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_MbM) const;
+
+    void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const;
+    void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const;
+    void setMobilizerTranslation(State&, BodyId, const Vec3&      T_MbM,
+                                 bool dontChangeOrientation) const;
+
+    void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const;
+    void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const;
+    void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM,
+                                     bool dontChangeAngularVelocity) const;
 
     // TODO: this is unweighted RMS norm
     Real calcQConstraintNorm(const State& s) const {

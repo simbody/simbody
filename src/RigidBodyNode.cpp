@@ -1,5 +1,6 @@
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors: Derived from IVM code written by Charles Schwieters.
+ * Contributors: Derived from public domain IVM code written by
+ *               Charles Schwieters at NIH.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -24,7 +25,7 @@
 
 /**@file
  * This file contains all the multibody mechanics code that involves a single body and
- * its inboard joint, that is, one node in the multibody tree.
+ * its mobilizer (inboard joint), that is, one node in the multibody tree.
  *
  * Most methods here expect to be called in a particular order during traversal of the
  * tree -- either base to tip or tip to base.
@@ -138,7 +139,8 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // (w_k-1). Compare with Jain, Vaidehi, & Rodriguez 1991, Eq. 4.4,
     // esp. the following paragraph saying that the cross product
     // will be the same whether we use omega or pOmega in the 2nd term,
-    // because they can only differ along H which is constant between P & B.
+    // because they can only differ along H *which is constant* between P & B
+    // (I don't think that is always true for us.)
     // (caution: JV&R number backwards so the parent is w_k+1 there).
     // Is that also true in the first term? I.e., can we use pOmega, omega,
     // or both below and get the same answers? Anyway the code below is
@@ -162,10 +164,14 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
     // do not have to be synchronized this way.
 
     // TODO: this is all very fishy and needs to be rederived rigorously.
+    // (sherm 070425) My current wild theory is that this code is trying
+    // to compute the Hdot*u term of the coriolis acceleration "a"
+    // that arises from differentiation of
+    // the velocity term H*u, but is leaving out a term of the derivative
+    // that arises when H is not constant in the parent (Mb) frame.
 
     const Vec3 T_PB_G = getX_GB(cc).T() - getX_GP(cc).T();
     const Vec3 T_MbB_G = T_PB_G - getX_GP(cc).R()*getX_PMb().T();
-    //const Vec3 T_JB_G  = -getX_GB(cc).R()*getX_BM().T();
     const Vec3 w_PB_G = getV_PB_G(mc)[0];
     const Vec3 v_PB_G = getV_PB_G(mc)[1]; // includes w_PB_G % T_MbB_G term
 
@@ -264,6 +270,23 @@ public:
         const Vector&          u,
         SBVelocityCache&       vc,
         Vector&                qdot) const {}
+
+    /*virtual*/ void setMobilizerTransform
+       (const SBModelVars&, const Transform& X_MbM, Vector& q) const {}
+    /*virtual*/ void setMobilizerRotation
+       (const SBModelVars&, const Rotation& R_MbM, Vector& q) const {}
+    /*virtual*/ void setMobilizerTranslation
+       (const SBModelVars&, const Vec3& T_MbM, Vector& q,
+        bool dontChangeOrientation) const {}
+
+    /*virtual*/ void setMobilizerVelocity
+       (const SBModelVars&, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {}
+    /*virtual*/ void setMobilizerAngularVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {}
+    /*virtual*/ void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u,
+        bool dontChangeAngularVelocity) const {}
+
 
     /*virtual*/void setVelFromSVel(
         const SBPositionCache& pc, 
@@ -377,6 +400,24 @@ public:
     // This is the type of the joint transition matrix H.
     typedef Mat<dof,2,Row3,1,2> HType;
 
+
+    // Provide default implementations for setMobilizerTransform() and setMobilizerVelocity() 
+    // which are implemented using the rotational and translational quantity routines. These assume
+    // that the rotational and translational coordinates are independent, with rotation handled
+    // first and then left alone. If a mobilizer type needs to deal with rotation and
+    // translation simultaneously, it should provide a specific implementation for these two routines.
+    // *Each* mobilizer must implement setMobilizer{Rotation,Translation,AngularVelocity,LinearVelocity};
+    // there are no defaults.
+
+    virtual void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM, Vector& q) const {
+        setMobilizerRotation   (mv,X_MbM.R(),q);
+        setMobilizerTranslation(mv,X_MbM.T(),q,true); // don't fiddle with the rotation
+    }
+
+    virtual void setMobilizerVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {
+        setMobilizerAngularVelocity(mv,q,V_MbM[0],u);
+        setMobilizerLinearVelocity (mv,q,V_MbM[1],u,true); // don't fiddle with the angular velocity
+    }
 
     // The following routines calculate joint-specific position kinematic
     // quantities. They may assume that *all* position kinematics (not just
@@ -553,11 +594,11 @@ public:
     virtual void setDefaultAccelerationValues(const SBModelVars&, 
                                           SBDynamicsVars& v) const {}
 
-    // setQ and setU extract this node's values from the supplied
+    // copyQ and copyU extract this node's values from the supplied
     // q-sized or u-sized array and put them in the corresponding
     // locations in the output variable. Joints which need quaternions should
-    // override setQ to copy the extra q.
-    virtual void setQ(
+    // override copyQ to copy the extra q.
+    virtual void copyQ(
         const SBModelVars& mv, 
         const Vector&      qIn, 
         Vector&            q) const
@@ -565,7 +606,7 @@ public:
         toQ(q) = fromQ(qIn);
     }
 
-    virtual void setU(
+    virtual void copyU(
         const SBModelVars& mv, 
         const Vector&      uIn, 
         Vector&            u) const
@@ -805,15 +846,22 @@ public:
 
         // Implementations of virtual methods.
 
-    void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
-                                   Vector& q) const 
-    {
-        toQ(q) = X_MbM.T();
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // the only rotation this mobilizer can represent is identity
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
-                              Vector& u) const
+    void setMobilizerTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+        // here's what this joint is really good at!
+        toQ(q) = T_MbM;
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // The only angular velocity this can represent is zero.
+    }
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
-        toU(u) = V_MbM[1];
+        // linear velocity is in a Cartesian joint's sweet spot
+        toU(u) = v_MbM;
     }
 
     // This is required but does nothing here since there are no rotations for this joint.
@@ -860,8 +908,8 @@ public:
 
 /**
  * Sliding joint (1 dof translation). The translation is along the x
- * axis of the parent body's Jb frame, with J=Jb when the coordinate
- * is zero and the orientation of J in Jb frozen at 0 forever.
+ * axis of the parent body's Mb frame, with M=Mb when the coordinate
+ * is zero and the orientation of M in Mb frozen at 0 forever.
  */
 class RBNodeSlider : public RigidBodyNodeSpec<1> {
 public:
@@ -878,6 +926,26 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
         // Implementations of virtual methods.
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation a slider can represent is identity.
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // We can only represent the x coordinate with this joint.
+        to1Q(q) = T_MbM[0];
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // The only angular velocity a slider can represent is zero.
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // We can only represent a velocity along x with this joint.
+        to1U(u) = v_MbM[0];
+    }
 
     // This is required but does nothing here since we there are no rotations for this joint.
     void calcJointSinCosQNorm(
@@ -919,9 +987,9 @@ public:
 
 /**
  * This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
- * about a particular axis, the z axis of the parent's Jb frame, which is 
- * aligned forever with the z axis of the body's J frame. In addition, the
- * origin points of J and Jb are identical forever.
+ * about a particular axis, the z axis of the parent's Mb frame, which is 
+ * aligned forever with the z axis of the body's M frame. In addition, the
+ * origin points of M and Mb are identical forever.
  */
 class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
@@ -936,6 +1004,35 @@ public:
       : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our pin joint can handle is about z.
+        // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
+        // in that case 1 and 3 are aligned and the conversion routine allocates all the
+        // rotation to whichever comes first.
+        // TODO: isn't there a better way to come up with "the rotation around z that
+        // best approximates a rotation R"?
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        to1Q(q) = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a translation by rotating. So the only translation we can represent is 0.
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a linear velocity by rotating. So the only linear velocity
+        // we can represent is 0.
     }
 
     // Precalculate sines and cosines.
@@ -1015,6 +1112,35 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our cylinder joint can handle is about z.
+        // TODO: this code is bad -- see comments for Torsion joint above.
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        toQ(q)[0] = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // Because the M and Mb origins must lie along their shared z axis, there is no way to
+        // create a translation by rotating around z. So the only translation we can represent
+        // is that component which is along z.
+        toQ(q)[1] = T_MbM[2];
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        toU(u)[0] = w_MbM[2];
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // Because the M and Mb origins must lie along their shared z axis, there is no way to
+        // create a linear velocity by rotating around z. So the only linear velocity we can represent
+        // is that component which is along z.
+        toU(u)[1] = v_MbM[2];
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1092,6 +1218,73 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our bend-stretch joint can handle is about z.
+        // TODO: this code is bad -- see comments for Torsion joint above.
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        toQ(q)[0] = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // We can represent any translation that puts the M origin in the x-y plane of Mb,
+        // by a suitable rotation around z followed by translation along x.
+        const Vec2 r = T_MbM.getSubVec<2>(0); // (rx, ry)
+
+        // If we're not allowed to change rotation then we can only move along Mx.
+        if (only) {
+            const Real angle = fromQ(q)[0];
+            const Vec2 Mx(std::cos(angle), std::sin(angle)); // a unit vector
+            toQ(q)[1] = dot(r,Mx);
+            return;
+        }
+
+        const Real d = r.norm();
+
+        // If there is no translation worth mentioning, we'll leave the rotational
+        // coordinate alone, otherwise rotate so M's x axis is aligned with r.
+        if (d >= 4*NTraits<Real>::Eps) {
+            const Real angle = std::atan2(r[1],r[0]);
+            toQ(q)[0] = angle;
+            toQ(q)[1] = d;
+        } else
+            toQ(q)[1] = 0;
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        toU(u)[0] = w_MbM[2];
+    }
+
+    // If the translational coordinate is zero, we can only represent a linear velocity 
+    // of OM in Mb which is along M's current x axis direction. Otherwise, we can 
+    // represent any velocity in the x-y plane by introducing angular velocity about z.
+    // We can never represent a linear velocity along z.
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // Decompose the requested v into "along Mx" and "along My" components.
+        const Rotation R_MbM = Rotation::aboutZ(fromQ(q)[0]); // =[ Mx My Mz ] in Mb
+        const Vec3 v_MbM_M = ~R_MbM*v_MbM; // re-express in M frame
+
+        toU(u)[1] = v_MbM_M[0]; // velocity along Mx we can represent directly
+
+        if (only) {
+            // We can't do anything about My velocity if we're not allowed to change
+            // angular velocity, so we're done.
+            return;
+        }
+
+        const Real x = fromQ(q)[1]; // translation along Mx (signed)
+        if (std::abs(x) < NTraits<Real>::Eps_78) {
+            // No translation worth mentioning; we can only do x velocity, which we just set above.
+            return;
+        }
+
+        // significant translation
+        toU(u)[0] = v_MbM_M[1] / x; // set angular velocity about z to produce vy
+    }
+
     // Precalculate sines and cosines.
     void calcJointSinCosQNorm(
         const SBModelVars&  mv,
@@ -1144,9 +1337,17 @@ public:
 
 
 /**
- * U-joint like joint type which allows rotation about the two axes
- * perpendicular to zDir. This is appropriate for diatoms and for allowing 
- * torsion+bond angle bending.
+ * Somewhat odd U-joint-like mobilizer which allows rotation about the two axes
+ * perpendicular to the outboard body's Mz axis (that is, about Mx and My), but
+ * never allows rotation about Mz. This is appropriate for diatoms and for allowing 
+ * torsion+bond angle bending. The generalized coordinates are a 1-2
+ * *space* (Mb) fixed Euler angle sequence (same as 1-2-3 with the 3rd rotation zero).
+ * The generalized speeds are the x and y coordinates of w_MbM_M, that is, 
+ * the angular velocity of M in Mb, expressed in M (the Mz component of 
+ * the angular velocity is always zero).
+ * The qdots are just u's because (apparently!) the angular velocity x and y
+ * components in M are also the derivatives of the Mb-fixed rotation angles.
+ * TODO: WHY DOES THIS WORK???
  */
 class RBNodeRotate2 : public RigidBodyNodeSpec<2> {
 public:
@@ -1161,6 +1362,36 @@ public:
       : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotations this joint can handle are about Mx and My.
+        // TODO: isn't there a better way to come up with "the rotation around x&y that
+        // best approximates a rotation R"? Here we're just hoping that the supplied
+        // rotation matrix can be decomposed into (x,y) rotations.
+        const Vec2 angles12 = R_MbM.convertToSpaceFixed12();
+        toQ(q) = angles12;
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a translation by rotating. So the only translation we can represent is 0.
+    }
+
+    // We can only express angular velocity that can be produced with our generalized
+    // speeds which are Mx and My rotations rates.
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+        const Rotation R_MbM = Rotation::aboutXThenOldY(fromQ(q)[0], fromQ(q)[1]); // space fixed 1-2 sequence
+        const Vec3     w_MbM_M = ~R_MbM*w_MbM;
+        toU(u) = w_MbM.getSubVec<2>(0); // project angular velocity onto xy axes
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a linear velocity by rotating. So the only linear velocity
+        // we can represent is 0.
     }
 
     // Precalculate sines and cosines.
@@ -1185,11 +1416,8 @@ public:
         const Vector&      q,
         Transform&         X_MbM) const
     {
-        const Vec2& angles  = fromQ(q); // angular coordinates
-
-        // We're only updating the orientation here because a U-joint
-        // can't translate.
-        X_MbM.updR().setToSpaceFixed12(angles);
+        // We're only updating the orientation here because a U-joint can't translate.
+        X_MbM.updR() = Rotation::aboutXThenOldY(fromQ(q)[0], fromQ(q)[1]); // space fixed 1-2 sequence
         X_MbM.updT() = 0.;
     }
 
@@ -1198,22 +1426,30 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BM  = getX_BM();  // fixed
-        const Transform& X_PMb = getX_PMb(); // fixed
-        const Transform& X_GP  = getX_GP(cc);  // calculated earlier
-        const Transform& X_GB  = getX_GB(cc);  // just calculated
+        const Rotation&  R_BM  = getX_BM().R();     // fixed
+        const Vec3       T_BM  = getX_BM().T();     //   "
+        const Transform& X_PMb = getX_PMb();        // fixed
+        const Transform& X_GP  = getX_GP(cc);       // calculated earlier
+        const Transform& X_GB  = getX_GB(cc);       // just calculated
+        const Rotation&  R_GB  = X_GB.R();
+
+        const Rotation   R_GM  = R_GB * R_BM;
 
         // Vec from OM (and OMb) to OB, expr. in G (note minus sign). Cross
         // this with a rotation axis to get the linear velocity induced by
         // the off-axis positioning of OB.
-        const Vec3 T_MB_G = -X_GB.R()*X_BM.T();
+        const Vec3 r_MB_G = -(R_GB*T_BM);
+        const Vec3 r_MP_G = -X_GP.R()*X_PMb.T();
 
-        // The coordinates are defined in the space-fixed (that is, Mb) frame, so
-        // the orientation of Mb in ground gives the instantaneous spatial 
-        // meaning of the coordinates.
-        const Rotation R_GMb = X_GP.R() * X_PMb.R();
-        H[0] = SpatialRow(~R_GMb.x(), ~(R_GMb.x() % T_MB_G));
-        H[1] = SpatialRow(~R_GMb.y(), ~(R_GMb.y() % T_MB_G));
+        // The rotational speeds ux,uy are the Euler angle derivatives for
+        // the space-fixed 1-2 sequence represented by qx,qy. These are also
+        // (apparently!) the x,y measure numbers of w_MbM_M so the generalized speeds
+        // translate directly into velocities.
+
+        //TODO: this doesn't work when M != B, although it works fine when
+        //Mb != P.
+        H[0] = SpatialRow(~R_GM.x(), ~(R_GM.x() % r_MB_G)); // == r_MbB_G
+        H[1] = SpatialRow(~R_GM.y(), ~(R_GM.y() % r_MB_G));
     }
 };
 
@@ -1221,13 +1457,20 @@ public:
  * The "diatom" joint is the equivalent of a free joint for a body with no inertia in
  * one direction, such as one composed of just two atoms. It allows unrestricted
  * translation but rotation only about directions perpendicular to the body's
- * inertialess axis.
- * The coordinate definitions are a combination of a rotate2 joint and a
- * Cartesian joint. The first 2 are rotational, the next 3 are translations.
- * However, the rotations don't affect the translations.
+ * inertialess axis, which we define to be the M frame's z axis Mz.
  *
- * TODO: (sherm 070409) see NEW THEORY below.
- *        TEST USING 2dof joint (no translation)
+ * So rotation is allowed about the two axes
+ * perpendicular to the outboard body's Mz axis (that is, about Mx and My), but
+ * never allows rotation about Mz. Thus the generalized coordinates are:
+ *   - a 1-2 body fixed Euler angle sequence (same as 1-2-3 with the 3rd rotation zero)
+ *   - then 3 translations, comprising the vector r_OMb_OM, but expressed in M.
+ * The generalized speeds are:
+ *   - the 1-2 body fixed Euler angle derivatives
+ *   - then the 3 vector velocity of OM in Mb, expressed in M
+ * This means that all the qdots are just u's, but that the rotational u's are
+ * not angular velocity components. The translational qdot's are just the
+ * translational u's (but remember that these are in the M frame).
+ *
  */
 class RBNodeTranslateRotate2 : public RigidBodyNodeSpec<5> {
 public:
@@ -1246,17 +1489,50 @@ public:
 
         // Implementations of virtual methods.
 
-    // TODO: partial implementation; just translation
-    void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
-                              Vector& q) const 
-    {
-        toQ(q).updSubVec<3>(2) = X_MbM.T();
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotations this joint can handle are about Mx and My.
+        // TODO: isn't there a better way to come up with "the rotation around x&y that
+        // best approximates a rotation R"?
+        //const Vec2 angles12 = R_MbM.convertToBodyFixed12();
+        const Vec2 angles12 = R_MbM.convertToSpaceFixed12();
+        toQ(q).updSubVec<2>(0) = angles12;
     }
-    // TODO: partial implementation; just translation
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
-                              Vector& u) const
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // This joint allows general translation, so we never have to modify any rotations here.
+        // However, the translational generalized coordinates are in the M frame here, while the
+        // user gives us the translation in the Mb frame, so we have to reexpress.
+        //const Rotation R_MbM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body 1-2
+        const Rotation R_MbM = Rotation::aboutXThenOldY(fromQ(q)[0], fromQ(q)[1]); // space 1-2
+        toQVec3(q,2) = ~R_MbM*T_MbM; // skip the 2 Euler angles
+    }
+
+    // We can only express angular velocity with no component along Mz. The user provides the
+    // angular velocity in the Mb frame, so we have to reexpress in M and then project on the
+    // (Mx,My) plane. TODO
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+        //const Rotation R_MbM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        const Rotation R_MbM = Rotation::aboutXThenOldY(fromQ(q)[0], fromQ(q)[1]); // space fixed 1-2 sequence
+        const Vec3     w_MbM_M = ~R_MbM*w_MbM;
+        toU(u).updSubVec<2>(0) = w_MbM.getSubVec<2>(0); // project angular velocity onto xy plane
+    }
+
+    // TODO -- angular velocity must be calculated from Euler angle derivatives
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
     {
-        toU(u).updSubVec<3>(2) = V_MbM[1];
+        //const Rotation R_MbM   = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        const Rotation R_MbM   = Rotation::aboutXThenOldY(fromQ(q)[0], fromQ(q)[1]); // space fixed 1-2 sequence
+        Vec3           r_MbM_M = fromQVec3(q,2); // skip 2 euler angles to get to translation
+        Vec3           v_MbM_M = ~R_MbM*v_MbM;
+
+        // Now we have the cross-joint transform, except the translation is expressed in M.
+
+        const Vec3 w_MbM_M(fromU(u)[0], fromU(u)[1], 0);
+        const Vec3 v_wXr_MbM_M = w_MbM_M % r_MbM_M; // linear velocity of OM induced by angular velocity, exp in M
+
+        // Calculate the residual velocity we have to add, then express in outboard frame
+        toUVec3(u,3) = v_MbM_M - v_wXr_MbM_M;
     }
 
     // Precalculate sines and cosines.
@@ -1281,15 +1557,13 @@ public:
         const Vector&      q,
         Transform&         X_MbM) const 
     {
-        const Vec<5>& coords = fromQ(q);     // joint coordinates
-        const Vec<2>& angles = coords.getSubVec<2>(0);
+        const Vec<2>& angles  = fromQ(q).getSubVec<2>(0);
+        const Vec<3>& r_MbM_M = fromQ(q).getSubVec<3>(2); // skip 2 euler angles to get to translation
 
-        // TODO: (sherm 070409) see NEW THEORY below.
-
-        //X_MbM.updR().setToSpaceFixed12(coords.getSubVec<2>(0));
-        X_MbM.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]);
-        X_MbM.updT() = X_MbM.R()*coords.getSubVec<3>(2); // because translation is in M
-        //X_MbM.updT() = coords.getSubVec<3>(2); // because translation is in Mb
+        //X_MbM.updR() = Rotation::aboutXThenNewY(angles[0], angles[1]); // body fixed 1-2
+        X_MbM.updR() = Rotation::aboutXThenOldY(angles[0], angles[1]); // space fixed 1-2
+        //X_MbM.updT() = X_MbM.R()*r_MbM_M; // because translation is in M
+        X_MbM.updT() = r_MbM_M; // because translation is in Mb
     }
 
     // Calculate H.
@@ -1297,44 +1571,54 @@ public:
         const SBPositionCache& cc, 
         HType&                 H) const
     {
-        const Transform& X_BM  = getX_BM();  // fixed
-        const Transform& X_PMb = getX_PMb(); // fixed
-        const Transform& X_GP  = getX_GP(cc);  // calculated earlier
-        const Transform& X_GB  = getX_GB(cc);  // just calculated
+        const Transform& X_BM  = getX_BM();   // fixed
+        const Transform& X_PMb = getX_PMb();  // fixed
+        const Transform& X_GP  = getX_GP(cc); // calculated earlier
+        const Transform& X_GB  = getX_GB(cc); // just calculated
+        const Transform& X_MbM = getX_MbM(cc);
 
         const Transform X_GMb = X_GP * X_PMb;
         const Transform X_GM  = X_GB * X_BM;
+        const Rotation& R_GM  = X_GM.R();
+        const Rotation& R_GMb = X_GMb.R();
+        const Rotation& R_MbM = X_MbM.R();
 
-        const Vec3 T_MB_G  = X_GB.T() - X_GM.T();
-        const Vec3 T_MbB_G = X_GB.T() - X_GMb.T();
+        const Vec3 r_MbB_G = X_GB.T() - X_GMb.T();
+        const Vec3 r_MB_G  = -(X_GB.R()*X_BM.T());
 
-        // The rotational coordinates are defined in the space-fixed 
-        // (that is, Mb) frame, so the orientation of Mb in ground gives
-        // the instantaneous spatial meaning of those coordinates. 
-        // *Then* we translate along the new M frame axes.
+        // The rotational speeds ux,uy are the Euler angle derivatives for
+        // the body-fixed 1-2 sequence represented by qx,qy. The angular
+        // velocity w=w_MbM_M induced by these speeds is
+        //  [ wx ]   [ cqy 0 ]   [ ux ]
+        //  [ wy ] = [  0  1 ] * [ uy ]
+        //  [ wz ]   [ sqy 0 ]
+        // The first column cqy,0,sqy is the first row of R_MbM.
+        //
+        // Translation occurs about the new M frame axes.
+        const Vec3 x_M = /*~(R_MbM[0])*/Vec3(1,0,0);
+        const Vec3 y_M = Vec3(0,1,0);
+        const Vec3 x = R_GM*x_M; // axes in ground
+        const Vec3 y = R_GM*y_M;
 
-        // TODO: (sherm 070409) NEW THEORY -- to avoid singularities, the
-        // rotational coordinates must be space-fixed rotations FROM THE
-        // BODY FRAME to the parent!! That is, the role of body & parent
-        // must be reversed. So the angles will generate X_MMb above from
-        // aboutXThenOldY(); the generalized speeds will be -w_MMb, etc.
-
-        //H[0] = SpatialRow(~X_GMb.x(), ~(X_GMb.x() % T_MbB_G));
-        //H[1] = SpatialRow(~X_GMb.y(), ~(X_GMb.y() % T_MbB_G));
-        H[0] = SpatialRow(~X_GM.x(), ~(X_GM.x() % T_MbB_G));
-        H[1] = SpatialRow(~X_GM.y(), ~(X_GM.y() % T_MbB_G));
-        H[2] = SpatialRow(  Row3(0) ,     ~X_GM.x());
-        H[3] = SpatialRow(  Row3(0) ,     ~X_GM.y());
-        H[4] = SpatialRow(  Row3(0) ,     ~X_GM.z());    
+        H[0] = SpatialRow(~R_GM.x(), ~(R_GM.x() % r_MbB_G));
+        H[1] = SpatialRow(~R_GM.y(), ~(R_GM.y() % r_MbB_G));
+        //H[0] = SpatialRow(~x, ~(x % r_MbB_G));
+        //H[1] = SpatialRow(~y, ~(y % r_MbB_G));
+        H[2] = SpatialRow(  Row3(0) ,     ~R_GM.x());
+        H[3] = SpatialRow(  Row3(0) ,     ~R_GM.y());
+        H[4] = SpatialRow(  Row3(0) ,     ~R_GM.z());    
     }
+
 };
 
-/// Ball joint. This provides three degrees of rotational freedom, i.e.,
-/// unrestricted orientation of the body's J frame in the parent's Jb frame.
-/// The 3 u's are the cross-joint angular velocity vector of J in Jb, and
-/// udot's are the angular velocity time derivative. The q's, however, are
-/// either 3 Euler angles in a 3-2-1 body-fixed sequence, or 4 quaternions.
-/// In that case we calculate either 3 or 4 qdots from the u's.
+/// Ball joint. This provides three degrees of rotational freedom,  i.e.,
+/// unrestricted orientation of the body's M frame in the parent's Mb frame.
+/// The generalized coordinates are:
+///   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
+/// and generalized speeds are:
+///   * angular velocity w_MbM as a vector expressed in the Mb frame.
+/// Thus rotational qdots have to be derived from the generalized speeds to
+/// be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "rotate3"; }
@@ -1350,19 +1634,32 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM,
+    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
-        if (getUseEulerAngles(mv)) {
-            //TODO
-        } else {
-            toQuat(q) = X_MbM.R().convertToQuaternion().asVec4();
-        }
+        if (getUseEulerAngles(mv))
+            toQ(q)    = R_MbM.convertToBodyFixed123();
+        else
+            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
-                              Vector& u) const
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a translation by rotating. So the only translation we can represent is 0.
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM,
+                                     Vector& u) const
     {
-            toU(u) = V_MbM[0]; // relative angular velocity always used as generalized speeds
+            toU(u) = w_MbM[0]; // relative angular velocity always used as generalized speeds
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // way to create a linear velocity by rotating. So the only linear velocity
+        // we can represent is 0.
     }
 
     // Precalculate sines and cosines.
@@ -1467,7 +1764,7 @@ public:
                                   (fromQuat(q),w_MbM,w_MbM_dot);
     }
 
-    void setQ(
+    void copyQ(
         const SBModelVars& mv, 
         const Vector&      qIn, 
         Vector&            q) const 
@@ -1535,6 +1832,17 @@ public:
 /// Free joint. This provides six degrees of freedom, three rotational and
 /// three translational. The rotation is like the ball joint above; the
 /// translation is like the Cartesian joint above.
+/// TODO: to get this to work I had to make the translations be in the outboard
+/// frame (M, not Mb). So currently the generalized coordinates are:
+///   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
+///   * translation from OMb to OM as a 3-vector in the outboard body mobilizer (M) frame
+/// and generalized speeds are:
+///   * angular velocity w_MbM as a vector expressed in the Mb frame
+///   * linear velocity of the M origin in Mb (v_MbM), expressed in M
+/// Thus translational qdots are just generalized speeds, but rotational
+/// qdots have to be derived from the generalized speeds to be turned into
+/// either 4 quaternion derivatives or 3 Euler angle derivatives.
+///   
 class RBNodeTranslateRotate3 : public RigidBodyNodeSpec<6> {
 public:
     virtual const char* type() { return "full"; }
@@ -1550,22 +1858,66 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM,
+    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
+        if (getUseEulerAngles(mv))
+            toQVec3(q,0) = R_MbM.convertToBodyFixed123();
+        else
+            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+    }
+
+    // The user gives us the translation vector from OMb to OM as a vector expressed in Mb,
+    // but the generalized coordinates here constitute a vector in M. So we have to re-express
+    // the translation using the current orientation. However, with a free joint 
+    // we never have to *change* orientation coordinates in order to achieve a translation.
+    // Note: a quaternion from a state is not necessarily normalized so can't be used
+    // direction as though it were a set of Euler parameters; it must be normalized first.
+    void setMobilizerTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+        Rotation R_MbM;
         if (getUseEulerAngles(mv)) {
-            //TODO orientation
-            toQVec3(q,3) = X_MbM.T(); // translation
+            R_MbM.setToBodyFixed123(fromQVec3(q,0));
+            toQVec3(q,3) = ~R_MbM*T_MbM; // skip the 3 Euler angles
         } else {
-            toQuat(q) = X_MbM.R().convertToQuaternion().asVec4();
-            toQVec3(q,4) = X_MbM.T();
+            R_MbM.setToQuaternion(Quaternion(fromQuat(q))); // must normalize q before use!
+            toQVec3(q,4) = ~R_MbM*T_MbM; // skip the 4 quaternions
         }
     }
-    void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
-                              Vector& u) const
+
+    // Our 3 rotational generalized speeds are just the angular velocity vector of M in Mb,
+    // expressed in Mb, which is exactly what the user provides here.
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
+                                     Vector& u) const
     {
-        toUVec3(u,0) = V_MbM[0]; // relative angular velocity always used as generalized speeds
-        toUVec3(u,3) = V_MbM[1];
+            toUVec3(u,0) = w_MbM; // relative angular velocity always used as generalized speeds
+    }
+
+    // Our 3 translational generalized speeds are the linear velocity of M's origin in Mb,
+    // but expressed in M. The user gives us that same vector, but expressed in Mb so we
+    // have to reexpress it using the orientation currently contained in the passed-in qs.
+    // Then we have to subtract off the linear velocity that is already present because
+    // of the w X r term from the current angular velocity of M in Mb and the offset from
+    // the Mb origin to M's origin.
+    void setMobilizerLinearVelocity
+       (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        Rotation R_MbM;
+        Vec3     r_MbM; // translation vector from OMb to OM, in Mb
+        if (getUseEulerAngles(mv)) {
+            R_MbM.setToBodyFixed123(fromQVec3(q,0));
+            r_MbM = R_MbM*fromQVec3(q,3); // skip 3 euler angles to get to translation
+        } else {
+            R_MbM.setToQuaternion(Quaternion(fromQuat(q))); // normalizing
+            r_MbM = R_MbM*fromQVec3(q,4); // skip 4 quaternions to get to translation
+        }
+
+        // Now we have the cross-joint transform X_MbM=(R_MbM,r_MbM)
+
+        const Vec3 w_MbM = fromUVec3(u,0);
+        const Vec3 v_wXr_MbM = w_MbM % r_MbM; // linear velocity of OM induced by angular velocity
+
+        // Calculate the residual velocity we have to add, then express in outboard frame
+        toUVec3(u,3) = ~R_MbM * (v_MbM - v_wXr_MbM);
     }
 
     // Precalculate sines and cosines.
@@ -1689,7 +2041,7 @@ public:
         }
     }
 
-    void setQ(Vector& q, const SBModelVars& mv, const Vector& qIn) const {
+    void copyQ(Vector& q, const SBModelVars& mv, const Vector& qIn) const {
         if (getUseEulerAngles(mv))
             toQ(q) = fromQ(qIn);
         else {

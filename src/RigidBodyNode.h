@@ -341,11 +341,33 @@ public:
     virtual void setDefaultAccelerationValues(const SBModelVars&,     SBAccelerationVars&) const {}
 
     // These attempt to set the mobilizer's internal configuration or velocity
-    // to a specified value. The mobilizer is expected to do the best it can.
-    virtual void setMobilizerTransform(const SBModelVars&, const Transform& X_MbM,
-                                       Vector& q) const {}
-    virtual void setMobilizerVelocity(const SBModelVars&, const SpatialVec& V_MbM,
-                                      Vector& u) const {}
+    // to a specified value. This is intended to be a fast, local calculation that produces
+    // an answer to machine precision *if* the mobilizer can represent the given
+    // quantity exactly. The answer is returned in the appropriate slots of a caller-provided
+    // "q-like" or "u-like" Vector; the implementation must not look at or change any
+    // other slots.
+    // It is OK for the implementation to use the current values of the coordinates or speeds,
+    // and it is required to preserve any of these that are not needed to satisfy the 
+    // request.
+    // If the mobilizer can't satisfy the request to machine precision it should just
+    // do nothing or the best it can, with the only general rule being that it shouldn't
+    // make things worse. In particular, it does not need to work hard on an approximate solution.
+
+    virtual void setMobilizerTransform
+       (const SBModelVars&, const Transform& X_MbM, Vector& q) const = 0;
+    virtual void setMobilizerRotation
+       (const SBModelVars&, const Rotation& R_MbM, Vector& q) const = 0;
+    virtual void setMobilizerTranslation
+       (const SBModelVars&, const Vec3& T_MbM, Vector& q,
+        bool dontChangeOrientation)                           const = 0;
+
+    virtual void setMobilizerVelocity
+       (const SBModelVars&, const Vector& q, const SpatialVec& V_MbM, Vector& u) const = 0;
+    virtual void setMobilizerAngularVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u)       const = 0;
+    virtual void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u,
+        bool dontChangeAngularVelocity)                                          const = 0;
 
     /// Calculate kinetic energy (from spatial quantities only).
     Real calcKineticEnergy(
@@ -481,13 +503,19 @@ public:
     virtual void setVelFromSVel(const SBPositionCache&, const SBVelocityCache&,
                                 const SpatialVec&, Vector& u) const {throw VirtualBaseMethod();}
 
-    virtual void setQ(
+    // Copy the right q's from qIn to the corresponding slots in q. The number copied
+    // may depend on modeling choices as supplied in the first argument.
+    virtual void copyQ(
         const SBModelVars& mv, 
         const Vector&      qIn, 
         Vector&            q) const
       { throw VirtualBaseMethod(); }
 
-    virtual void setU(
+    // Copy the right u's from uIn to the corresponding slots in u. Modeling choices
+    // shouldn't affect the number copied since the number of u's should be identical
+    // to the number of mobilities. TODO: then why the first argument? and why does this
+    // need to be virtual?
+    virtual void copyU(
         const SBModelVars& mv, 
         const Vector&      uIn, 
         Vector&            u) const

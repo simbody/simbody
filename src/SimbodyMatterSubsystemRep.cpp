@@ -708,11 +708,43 @@ void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, BodyId body, con
     Vector& q = updQ(s);
     n.setMobilizerTransform(mv, X_MbM, q);
 }
+void SimbodyMatterSubsystemRep::setMobilizerRotation(State& s, BodyId body, const Rotation& R_MbM) const { 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
+    Vector& q = updQ(s);
+    n.setMobilizerRotation(mv, R_MbM, q);
+}
+void SimbodyMatterSubsystemRep::setMobilizerTranslation(State& s, BodyId body, const Vec3& T_MbM,
+                                                        bool dontChangeOrientation) const 
+{ 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
+    Vector& q = updQ(s);
+    n.setMobilizerTranslation(mv, T_MbM, q, dontChangeOrientation);
+}
+
 void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
+    const Vector&        q  = getQ(s);
     Vector& u = updU(s);
-    n.setMobilizerVelocity(mv, V_MbM, u);
+    n.setMobilizerVelocity(mv, q, V_MbM, u);
+}
+void SimbodyMatterSubsystemRep::setMobilizerAngularVelocity(State& s, BodyId body, const Vec3& w_MbM) const { 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
+    const Vector&        q  = getQ(s);
+    Vector& u = updU(s);
+    n.setMobilizerAngularVelocity(mv, q, w_MbM, u);
+}
+void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, BodyId body, const Vec3& v_MbM,
+                                                           bool dontChangeAngularVelocity) const 
+{ 
+    const RigidBodyNode& n  = getRigidBodyNode(body);
+    const SBModelVars&   mv = getModelVars(s);
+    const Vector&        q  = getQ(s);
+    Vector& u = updU(s);
+    n.setMobilizerLinearVelocity(mv, q, v_MbM, u, dontChangeAngularVelocity);
 }
 
 const Vector& 

@@ -74,8 +74,15 @@ public:
     virtual void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const = 0;
     virtual void findMobilizerUs(const State& s, BodyId body, int& uStart, int& nu) const = 0;
 
-    virtual void setMobilizerTransform(State&, BodyId, const Transform& X_MbM) const = 0;
-    virtual void setMobilizerVelocity(State&, BodyId, const SpatialVec& V_MbM) const = 0;
+    virtual void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const = 0;
+    virtual void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const = 0;
+    virtual void setMobilizerTranslation(State&, BodyId, const Vec3&      T_MbM, 
+                                         bool dontChangeOrientation)             const = 0;
+
+    virtual void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const = 0;
+    virtual void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const = 0;
+    virtual void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM,
+                                             bool dontChangeAngularVelocity)          const = 0;
 
 
         // INSTANCE STAGE //

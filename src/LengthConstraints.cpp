@@ -600,7 +600,7 @@ void LengthSet::setPos(State& s, const Vector& pos) const
     Vector&            qErr = getRBTree().updQErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->setQ(mv, pos, q);
+        nodeMap[i]->copyQ(mv, pos, q);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateAll(Stage::Position);
@@ -629,7 +629,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
     Vector&                uErr = getRBTree().updUErr(s);
 
     for (int i=0 ; i<(int)nodeMap.size() ; i++)
-        nodeMap[i]->setU(mv, vel, u);
+        nodeMap[i]->copyU(mv, vel, u);
 
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateAll(Stage::Velocity);
