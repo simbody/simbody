@@ -59,6 +59,8 @@ public:
     enum {
         NRows               = M,
         NCols               = N,
+        MinDim              = N < M ? N : M,
+        MaxDim              = N > M ? N : M,
         RowSpacing          = RS,
         ColSpacing          = CS,
         NPackedElements     = M * N,
@@ -102,7 +104,7 @@ public:
 
     typedef THerm                       TransposeType; // TODO
 
-    typedef Vec<M,E,RS+CS>              TDiag;
+    typedef Vec<MinDim,E,RS+CS>              TDiag;
 
     int size() const { return M*N; }
     int nrow() const { return M; }

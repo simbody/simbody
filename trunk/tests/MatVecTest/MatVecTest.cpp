@@ -388,6 +388,14 @@ int main()
 
     cout << "negid43[2].getSubRow<2>(1)=" << negid43[2].getSubRow<2>(1) << endl;
 
+    cout << "CHECK DIAGONAL LENGTH FOR RECTANGULAR MATRICES" << endl;
+    Mat<3,2, Row3, 1, 2> H;
+    cout << "H[" << H.nrow() << "," << H.ncol() << "]" << endl;
+    cout << "H.diag()[" << H.diag().nrow() << "," << H.diag().ncol() << "]" << endl;
+    Mat<3,2, Row3, 1, 2>::TransposeType Ht;
+    cout << "Ht[" << Ht.nrow() << "," << Ht.ncol() << "]" << endl;
+    cout << "Ht.diag()[" << Ht.diag().nrow() << "," << Ht.diag().ncol() << "]" << endl;
+
     }
     catch(const Exception::Base& b)
     {
