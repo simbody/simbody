@@ -237,6 +237,7 @@ private:
 
 class SimbodyMatterSubsystemRep;
 class LengthConstraints;
+class LengthSet;
 
 /*
  * Collect up useful information about a loop. 
