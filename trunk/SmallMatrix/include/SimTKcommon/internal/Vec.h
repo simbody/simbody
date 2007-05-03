@@ -429,7 +429,7 @@ public:
     // Return a vector one smaller than this one by dropping the element
     // at the indicated position p. The result is packed but has same
     // element type as this one.
-    Vec<M-1,ELT,1> drop1(int p) {
+    Vec<M-1,ELT,1> drop1(int p) const {
         assert(0 <= p && p < M);
         Vec<M-1,ELT,1> out;
         int nxt=0;
@@ -443,7 +443,7 @@ public:
     // Return a vector one larger than this one by adding an element
     // to the end. The result is packed but has same element type as
     // this one. Works for any assignment compatible element.
-    template <class EE> Vec<M+1,ELT,1> append1(const EE& v) {
+    template <class EE> Vec<M+1,ELT,1> append1(const EE& v) const {
         Vec<M+1,ELT,1> out;
         Vec<M,ELT,1>::updAs(&out[0]) = (*this);
         out[M] = v;
@@ -456,7 +456,7 @@ public:
     // this one. Works for any assignment compatible element. The index
     // can be one greater than normally allowed in which case the element
     // is appended.
-    template <class EE> Vec<M+1,ELT,1> insert1(int p, const EE& v) {
+    template <class EE> Vec<M+1,ELT,1> insert1(int p, const EE& v) const {
         assert(0 <= p && p <= M);
         if (p==M) return append1(v);
         Vec<M+1,ELT,1> out;

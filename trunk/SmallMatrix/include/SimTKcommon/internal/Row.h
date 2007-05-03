@@ -433,7 +433,7 @@ public:
     // Return a row one smaller than this one by dropping the element
     // at the indicated position p. The result is packed but has same
     // element type as this one.
-    Row<N-1,ELT,1> drop1(int p) {
+    Row<N-1,ELT,1> drop1(int p) const {
         assert(0 <= p && p < N);
         Row<N-1,ELT,1> out;
         int nxt=0;
@@ -447,7 +447,7 @@ public:
     // Return a vector one larger than this one by adding an element
     // to the end. The result is packed but has same element type as
     // this one. Works for any assignment compatible element.
-    template <class EE> Row<N+1,ELT,1> append1(const EE& v) {
+    template <class EE> Row<N+1,ELT,1> append1(const EE& v) const {
         Row<N+1,ELT,1> out;
         Row<N,ELT,1>::updAs(&out[0]) = (*this);
         out[N] = v;
@@ -460,7 +460,7 @@ public:
     // this one. Works for any assignment compatible element. The index
     // can be one greater than normally allowed in which case the element
     // is appended.
-    template <class EE> Row<N+1,ELT,1> insert1(int p, const EE& v) {
+    template <class EE> Row<N+1,ELT,1> insert1(int p, const EE& v) const {
         assert(0 <= p && p <= N);
         if (p==N) return append1(v);
         Row<N+1,ELT,1> out;
