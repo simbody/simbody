@@ -509,17 +509,23 @@ void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
 void SimbodyMatterSubsystemRep::realizeDynamics(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "SimbodyMatterSubsystemRep::realizeDynamics()");
+
+    const SBModelVars&     mv = getModelVars(s);
     const SBPositionCache& pc = getPositionCache(s);
     const SBVelocityCache& vc = getVelocityCache(s);
+    const Vector&          u  = getU(s);
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
     SBDynamicsCache&            dc = updDynamicsCache(s);
     dc.allocate(topologyCache);
 
+    // tip-to-base calculation
     calcArticulatedBodyInertias(s);
+
+    // base-to-tip
     for (int i=0; i < (int)rbNodeLevels.size(); i++)
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
-            rbNodeLevels[i][j]->calcJointIndependentDynamicsVel(pc,vc,dc);
+            rbNodeLevels[i][j]->realizeDynamics(mv,pc,u,vc,dc);
 
     // Now total up all the forces
     // TODO: this shouldn't be copying!!

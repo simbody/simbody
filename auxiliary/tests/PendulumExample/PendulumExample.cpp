@@ -50,27 +50,50 @@ try { // If anything goes wrong, an exception will be thrown.
 
     MultibodySystem         mbs;
     UniformGravitySubsystem gravity(Vec3(0, -g, 0));
-
+    GeneralForceElements    forces;
     SimbodyMatterSubsystem  pend;
-    const Vec3 weightLocation(0, -d/2, 0); // in local frame of swinging body
+
+    BodyId connector = 
+        pend.addRigidBody(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
+                     Transform(1*Vec3(0, .5, 0)),
+                     GroundId,
+                     Transform(1*Vec3(0, 0, 0)),
+                     Mobilizer::Ball);
+
+    const Real m1 = 5;
+    const Real m2 = 1;
+    const Real radiusRatio = std::pow(m2/m1, 1./3.);
+    const Vec3 weight1Location(0, 0, -d/2); // in local frame of swinging body
+    const Vec3 weight2Location(0, 0,  d/2); // in local frame of swinging body
+    const Vec3 COM = (m1*weight1Location+m2*weight2Location)/(m1+m2);
 
     const BodyId swinger = pend.addRigidBody(
-        MassProperties(m, weightLocation, m*Inertia::pointMassAt(weightLocation)),
-        Vec3(0, d/2, 0),    // inboard joint location
-        GroundId, GroundFrame,
-        Mobilizer::Pin); // rotates around common z axis
+        MassProperties(m1+m2, COM, 
+                       1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
+        Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
+                  COM+1*Vec3(0,0,3)),    // inboard joint location
+        connector,
+        Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
+                  1*Vec3(0,-.5,0)),
+        Mobilizer::Ball);
 
     // Put the subsystems into the system.
     mbs.setMatterSubsystem(pend);
     mbs.addForceSubsystem(gravity);
+    mbs.addForceSubsystem(forces);
+
+    forces.addMobilityConstantForce(swinger, 0, 0*100);
+    forces.addMobilityConstantForce(swinger, 1, 0*100);
+    //forces.addMobilityConstantForce(swinger, 2, 0*1);
 
     State s;
     mbs.realize(s); // define appropriate states for this System
+    pend.setUseEulerAngles(s,true);
 
 
     // Create a study using the Runge Kutta Merson integrator
     RungeKuttaMerson myStudy(mbs, s);
-    myStudy.setAccuracy(1e-2);
+    myStudy.setAccuracy(1e-6);
     //CPodesIntegrator myStudy(mbs, s);
     //myStudy.setAccuracy(1e-4);
 
@@ -78,8 +101,10 @@ try { // If anything goes wrong, an exception will be thrown.
     VTKReporter display(mbs);
 
     // Add a blue sphere around the weight.
-    display.addDecoration(swinger, weightLocation, 
+    display.addDecoration(swinger, weight1Location, 
           DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
+    display.addDecoration(swinger, weight2Location, 
+          DecorativeSphere(radiusRatio*d/8).setColor(Green).setOpacity(.2));
 
     const Real expectedPeriod = 2*Pi*std::sqrt(d/g);
     printf("Expected period: %g seconds\n", expectedPeriod);
@@ -90,8 +115,11 @@ try { // If anything goes wrong, an exception will be thrown.
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
         printf("time  theta      energy           *************\n");
         s.updTime() = 0;
-        pend.setMobilizerRotation(s, swinger, Rotation::aboutZ(startAngle*Deg2Rad));
-        pend.setMobilizerVelocity(s, swinger, SpatialVec(Vec3(0),Vec3(0)));
+        pend.setMobilizerTransform(s, connector, Transform());
+        pend.setMobilizerVelocity(s, connector, SpatialVec(0*Vec3(1,2,3), Vec3(0)));
+        //pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutZ(startAngle*Deg2Rad),Vec3(0)));
+        pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2)));
+        pend.setMobilizerVelocity(s, swinger, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0)));
         //pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
         //pend.setMobilizerU(s, swinger, 0, 0);
         myStudy.initialize();
@@ -99,10 +127,20 @@ try { // If anything goes wrong, an exception will be thrown.
         cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);
         cout << "MassProperties in G=" << pend.calcBodyMassPropertiesInBody(s,swinger,GroundId);
         cout << "Spatial Inertia    =" << pend.calcBodySpatialInertiaMatrixInGround(s,swinger);
+        cout << "V=" << pend.getMobilizerVelocity(s, swinger) << endl;
 
         for (;;) {
             printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,
                 mbs.getEnergy(s));
+            cout << "q =" << pend.getQ(s) << endl;
+            cout << "u =" << pend.getU(s) << endl;
+            cout << "ud=" << pend.getUDot(s) << endl;
+
+            const Rotation& R_MbM = pend.getMobilizerTransform(s, swinger).R();
+            Vec4 aaMb = R_MbM.convertToAngleAxis();
+            cout << "angle=" << aaMb[0] << endl;
+            cout << "axisMb=" << aaMb.drop1(0) << endl;
+            cout << "axisMb=" << ~R_MbM*aaMb.drop1(0) << endl;
 
             display.report(s);
             if (s.getTime() >= finalTime)

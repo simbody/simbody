@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMBODY_TREE_STATE_H_
 #define SimTK_SIMBODY_TREE_STATE_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -186,9 +186,11 @@ public:
     Vector sq, cq;  // nq  Sin&cos of angle q's in appropriate slots; otherwise garbage
     Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
                     //       all else is garbage.
-    Matrix_<Vec3> storageForHt; // 2 x ndof
 
-    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_JbJ)
+    Matrix_<Vec3> storageForHtMbM; // 2 x ndof (~H_MbM)
+    Matrix_<Vec3> storageForHt;    // 2 x ndof (~H_PB_G)
+
+    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_MbM)
 
     Array<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array<Transform>    bodyConfigInGround;           // nb (X_GB)
@@ -221,6 +223,8 @@ public:
         sq.resize(maxNQs);
         cq.resize(maxNQs);
         qnorm.resize(maxNQs);
+
+        storageForHtMbM.resize(2,nDofs);
         storageForHt.resize(2,nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
@@ -257,7 +261,7 @@ public:
     // qdot is supplied directly by the State
     Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;      // nb (sVel)
-    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_JbJ)
+    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_MbM)
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -294,6 +298,12 @@ public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
+    Matrix_<Vec3> storageForHtMbMDot; // 2 x ndof (~H_MbM_Dot)
+    Matrix_<Vec3> storageForHtDot;    // 2 x ndof (~H_PB_G_Dot)
+
+    Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=~H_PB_G_Dot*u
+
+
     Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
     Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
     Vector_<SpatialVec> gyroscopicForces;         // nb (b)
@@ -323,6 +333,11 @@ public:
         const int nac     = tree.nDistanceConstraints; // acceleration constraints        
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
+        storageForHtMbMDot.resize(2,nDofs);
+        storageForHtDot.resize(2,nDofs);
+
+        bodyVelocityInParentDerivRemainder.resize(nBodies);       
+        bodyVelocityInParentDerivRemainder[0] = SpatialVec(Vec3(0),Vec3(0));
 
         coriolisAcceleration.resize(nBodies);       
         coriolisAcceleration[0] = SpatialVec(Vec3(0),Vec3(0));

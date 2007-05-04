@@ -1,5 +1,4 @@
-// File:  NewtonsAppleForPlotting.cpp
-//--------------------------------------------------
+
 #include "SimTKsimbody.h"
 
 #include <cmath>
@@ -37,7 +36,9 @@ int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments )
 
 	// Define the apple and how it is connected to the ground (it is free to move relative to ground)
 	const Vec3  inboardJointLocation(0,0,0);
-    const BodyId appleBodyNumber = apple.addRigidBody( appleMassProperties, Transform(inboardJointLocation), GroundId, GroundFrame, Mobilizer::Free );
+    const BodyId appleBodyNumber = apple.addRigidBody( 
+        appleMassProperties, Transform(Rotation::aboutX(NTraits<Real>::Pi/4), inboardJointLocation), 
+        GroundId, Transform(Rotation::aboutX(NTraits<Real>::Pi/4)), Mobilizer::/*Free*/Cartesian );
 
     // Add the matter (apple) sub-system to the system.
     mbs.setMatterSubsystem( apple );

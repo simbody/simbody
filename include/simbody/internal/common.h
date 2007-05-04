@@ -144,7 +144,7 @@ public:
         Weld                  = 2,  // 0 mobilities  TODO
         Torsion               = 3,  // 1 mobility (around z)
         Sliding               = 4,  // 1          (along x)
-        Universal             = 5,  // 2 mobilities  TODO: untested
+        Universal             = 5,  // 2 mobilities
         Cylinder              = 6,  // 2 (around and along z)
 
         BendStretch           = 7,  // 2 The z axis of the parent's Mb frame is 
@@ -157,15 +157,34 @@ public:
         Planar                = 8,  // 3 mobilities  TODO
         Gimbal                = 9,  // 3             TODO
         Orientation           = 10, // 3 (defaults to quaternions; optional body123 Euler angles)
-        Cartesian             = 11, // 3 (along x,y,z)
-        FreeLine              = 12, // 5 mobilities  TODO: doesn't work
-        Free                  = 13  // 6 mobilities
+        Translation           = 11, // 3 (along x,y,z)
+        Free                  = 12, // 6 mobilities
                                     // (rotation same as Orientation; BUT translation & velocity
                                     //  is x,y,z of the OUTBOARD (M) frame. (TODO: sorry!)
+
+        // These are special "ball" and "free" joints designed to allow arbitrary orientations
+        // for "linear" bodies, such as a CO2 molecule consisting only of point masses arranged
+        // along a straight line. Such bodies have no inertia about the line and cause singularities
+        // in the equations of motion if attached to Orientation or Free mobilizers. Instead, use the
+        // LineOrientation and LineFree moblizers, making sure that the inertialess direction is
+        // along the outboard body's z axis (that is, Mz). These mobilizers introduce only two
+        // mobilities (generalized speeds u), being incapable of representing non-zero angular
+        // velocity of M in Mb about Mz. The generalized speeds are in fact the wx and wy 
+        // components of w_MbM_M, that is, the x and y components of the angular velocity of M
+        // in Mb *expressed in M*. However, at least three generalized coordinates (q's)
+        // are required to represent the orientation. By default we use four quaternions for
+        // unconditional stability. Alternatively, you can request a 1-2-3 body fixed 
+        // Euler angle sequence (that is, about x, then new y, then new z) which will
+        // suffer a singularity when the y rotation is 90 degrees since that aligns the
+        // first rotation axis (x) with the last (z) which is the inertialess direction.
+
+        LineOrientation       = 13, // 2 mobilities, 3 or 4 generalized coordinates
+        FreeLine              = 14  // 5 mobilities, 6 or 7 generalized coordinates
     };
     // synonyms
-    static const MobilizerType Pin  = Torsion;
-    static const MobilizerType Ball = Orientation;
+    static const MobilizerType Pin       = Torsion;
+    static const MobilizerType Ball      = Orientation;
+    static const MobilizerType Cartesian = Translation;
 
     // This serves as an implicit conversion from MobilizerType to Mobilizer.
     Mobilizer(const MobilizerType t, bool rev=false)

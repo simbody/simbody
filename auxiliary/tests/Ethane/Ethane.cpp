@@ -193,10 +193,10 @@ public:
 
         bodies.push_back(
             matter.addRigidBody(
-                mpropsKludge,
-                Transform(0*Vec3(.1,.2,.3)),            // inboard mobilizer frame
+                mprops,
+                Transform(0*Vec3(0,0,.3)),            // inboard mobilizer frame
                 parent, Transform(0*Vec3(.1,.7,.19)),    // parent mobilizer frame
-                Mobilizer::/*FreeLine*/Free)); // TODO: FreeLine doesn't work yet
+                Mobilizer::FreeLine));
 
         mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
     }
@@ -423,6 +423,7 @@ try
    // gravity.setZeroHeight(s, -100);
 
     floppy1.setDefaultInternalState(s);
+    //floppy1.setMoleculeTransform(s,Vec3(-3,0,0));
     //floppy1.setCCStretch(.1,s);
     //floppy1.setTorsionAngleDeg(80,s);
     //floppy1.setTorsionRate(10,s);
@@ -438,10 +439,10 @@ try
 
     rigidO2.setDefaultInternalState(s);
 
-    const Transform o2pos( Rotation::aboutXThenOldY(0, Pi/2),
+    const Transform o2pos( Rotation::aboutXThenNewY(0.5*Pi/2, 0.5*Pi/2),
                            Vec3(1,0,-1));
     rigidO2.setMoleculeTransform(s,o2pos);
-    rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(0)));
+    rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
 
     /*
 
