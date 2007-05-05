@@ -38,7 +38,7 @@ int main( int numberOfCommandLineArguments, char** arrayOfCommandLineArguments )
 	const Vec3  inboardJointLocation(0,0,0);
     const BodyId appleBodyNumber = apple.addRigidBody( 
         appleMassProperties, Transform(Rotation::aboutX(NTraits<Real>::Pi/4), inboardJointLocation), 
-        GroundId, Transform(Rotation::aboutX(NTraits<Real>::Pi/4)), Mobilizer::/*Free*/Cartesian );
+        GroundId, Transform(Rotation::aboutX(NTraits<Real>::Pi/4)), Mobilizer::/*Free*/Cartesian() );
 
     // Add the matter (apple) sub-system to the system.
     mbs.setMatterSubsystem( apple );

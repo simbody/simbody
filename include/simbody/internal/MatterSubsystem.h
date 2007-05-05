@@ -27,6 +27,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Subsystem.h"
+#include "simbody/internal/Mobilizer.h"
 
 namespace SimTK {
 
@@ -892,7 +893,7 @@ public:
 
     BodyId        getParent  (BodyId) const;
     Array<BodyId> getChildren(BodyId) const;
-    Mobilizer     getMobilizer(BodyId) const;
+    Mobilizer    getMobilizer(BodyId) const;
 
         // MODEL STAGE responses //
 

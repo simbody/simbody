@@ -146,7 +146,7 @@ try {
 
     //int baseBody =
      //   pend.addRigidBody(0, groundFrame, 
-     //                     Mobilizer(Mobilizer::Pin, false),
+     //                     Mobilizer::Pin(),
       //                    Transform(), MassProperties(0.,Vec3(0.),Inertia(0.)));
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
@@ -158,11 +158,11 @@ try {
     BodyId aPendulum = 
       pend.addRigidBody(mprops, jointFrame,
                         GroundId, Transform(), 
-                        //Mobilizer(Mobilizer::Cartesian, false)
-                        //Mobilizer(Mobilizer::Sliding, false)
-                        //Mobilizer(Mobilizer::Pin, false)
-                        //Mobilizer(Mobilizer::Ball, false)
-                        Mobilizer(Mobilizer::Free, false)
+                        //Mobilizer::Cartesian()
+                        //Mobilizer::Sliding()
+                        //Mobilizer::Pin()
+                        //Mobilizer::Ball()
+                        Mobilizer::Free()
                         );
     const Real ballMass = 10;
     const Real ballRadius = 2;
@@ -171,22 +171,22 @@ try {
     BodyId aBall = 
         pend.addRigidBody(ballMProps, Transform(),
                           GroundId, Transform(ballPos),
-                          Mobilizer(Mobilizer::Cartesian, false));
+                          Mobilizer::Cartesian());
 
     BodyId aBall2 = 
         pend.addRigidBody(ballMProps, Transform(),
                           GroundId, Transform(ballPos+Vec3(0.1,10,0)),
-                          Mobilizer(Mobilizer::Cartesian, false));
+                          Mobilizer::Cartesian());
 
 /*
     int secondBody = 
       pend.addRigidBody(mprops, jointFrame,
                         theBody, Transform(Vec3(L/2,0,0)), 
-                        //Mobilizer(Mobilizer::Cartesian, false),
-                        //Mobilizer(Mobilizer::Sliding, false),
-                        Mobilizer(Mobilizer::Pin, false),
-                        //Mobilizer(Mobilizer::Ball, false),
-                        //Mobilizer(Mobilizer::Free, false));
+                        //Mobilizer::Cartesian(),
+                        //Mobilizer::Sliding(),
+                        Mobilizer::Pin(),
+                        //Mobilizer::Ball(),
+                        //Mobilizer::Free());
 */
     //ConstraintId theConstraint =
     //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),

@@ -26,6 +26,7 @@
  */
 
 #include "SimTKsimbody.h"
+#include "simbody/internal/Mobilizer.h"
 
 #include <cmath>
 #include <cstdio>
@@ -58,7 +59,7 @@ try { // If anything goes wrong, an exception will be thrown.
                      Transform(1*Vec3(0, .5, 0)),
                      GroundId,
                      Transform(1*Vec3(0, 0, 0)),
-                     Mobilizer::Ball);
+                     Mobilizer::Ball());
 
     const Real m1 = 5;
     const Real m2 = 1;
@@ -75,7 +76,7 @@ try { // If anything goes wrong, an exception will be thrown.
         connector,
         Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
                   1*Vec3(0,-.5,0)),
-        Mobilizer::Ball);
+        Mobilizer::Ball());
 
     // Put the subsystems into the system.
     mbs.setMatterSubsystem(pend);

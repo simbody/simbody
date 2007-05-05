@@ -15,7 +15,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HERS BE LIABLE FOR ANY
  * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -104,35 +104,35 @@ private:
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
-                             Mobilizer(Mobilizer::Ball, false));
+                             Mobilizer::Ball());
             bodyInfo.push_back(PerBodyInfo(left1, false));
 
             BodyId left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              left1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             Mobilizer(Mobilizer::Ball, false));
+                             Mobilizer::Ball());
             bodyInfo.push_back(PerBodyInfo(left2, false));
 
             BodyId rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              baseBody,
                              Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
-                             Mobilizer(Mobilizer::Ball, false));
+                             Mobilizer::Ball());
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
             BodyId rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
                              Transform(Vec3(0, ConnectorHalfHeight, 0)),
                              rt1,
                              Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             Mobilizer(Mobilizer::Ball, false));
+                             Mobilizer::Ball());
             bodyInfo.push_back(PerBodyInfo(rt2, false));
 
             BodyId dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
                                 Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
                                 rt2,
                                 Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                                Mobilizer(Mobilizer::Ball, false));
+                                Mobilizer::Ball());
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {

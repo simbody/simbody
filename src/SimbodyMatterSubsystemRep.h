@@ -99,12 +99,10 @@ public:
          const MassProperties&    m,            // mass properties in body frame
          const Transform&         X_PMb,        // parent's frame for attaching this mobilizer
          const Transform&         X_BM,         // mobilizer frame M in body frame
-         Mobilizer::MobilizerType type,
-         bool                     isReversed,   // child-to-parent orientation?
+         const Mobilizer&        mobilizer,
          int&                     nxtU,
          int&                     nxtUSq,
          int&                     nxtQ); 
-
 
     // Constrain stations on each of two distinct bodies to remain a
     // particular distance apart at all times. Distance must be

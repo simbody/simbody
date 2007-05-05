@@ -69,38 +69,36 @@ SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
     rep->setMyHandle(*this);
 }
 
-
 BodyId SimbodyMatterSubsystem::addRigidBody(
     const MassProperties&     mp,
     const Transform&          bodyJointFrameInB,    // X_BJ
     BodyId                    parent,
     const Transform&          parentJointFrameInP,  // X_PJb
-    const Mobilizer&          mobilizer)
+    const Mobilizer&         mobilizer)
 {
     const int save = getRep().nextUSlot;
 
     RigidBodyNode& pn = updRep().updRigidBodyNode(parent);
     const int rbIndex = updRep().addRigidBodyNode(pn,
-        mp, parentJointFrameInP, bodyJointFrameInB, 
-        mobilizer.getMobilizerType(), mobilizer.isReversed(),
+        mp, parentJointFrameInP, bodyJointFrameInB, mobilizer, 
         updRep().nextUSlot, updRep().nextUSqSlot, updRep().nextQSlot);
 
     //cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << getRep().nextUSlot-1 << endl;
     return BodyId(rbIndex);
 }
 
-
 // "Functional" implementation for Paul's use.
 // TODO: these should be special cased for efficiency.
 // NOTE: users should not be allowed to specify the returned body number as an
 // inboard body, but this implementation doesn't enforce that.
 BodyId SimbodyMatterSubsystem::addFreeRigidBody(const MassProperties& mp, BodyId parent) {
-    return addRigidBody(mp, Transform(), parent, Transform(), Mobilizer::Free);
+    return addRigidBody(mp, Transform(), parent, Transform(), Mobilizer::Free());
 }
 
 // See previous routine's comments.
 BodyId SimbodyMatterSubsystem::addFreeParticle (const Real& mass, BodyId parent) {
-    return addRigidBody(MassProperties(mass,Vec3(0),Inertia()), Transform(), parent, Transform(), Mobilizer::Cartesian);
+    return addRigidBody(MassProperties(mass,Vec3(0),Inertia()), Transform(), parent, Transform(),
+                        Mobilizer::Translation());
 }
 
 ConstraintId SimbodyMatterSubsystem::addConstantDistanceConstraint

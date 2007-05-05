@@ -33,6 +33,7 @@
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
+#include "MobilizerRep.h"
 
 #include <iostream>
 #include <iomanip>
@@ -2552,60 +2553,6 @@ public:
 };
 
 
-////////////////////////////////////////////////////
-// RigidBodyNode factory based on mobilizer type. //
-////////////////////////////////////////////////////
-
-/*static*/ RigidBodyNode*
-RigidBodyNode::create(
-    const MassProperties&    m,            // mass properties in body frame
-    const Transform&         X_PMb,        // parent's attachment frame for this joint
-    const Transform&         X_BM,         // inboard joint frame J in body frame
-    Mobilizer::MobilizerType type,
-    bool                     isReversed,   // child-to-parent orientation?
-    int&                     nxtUSlot,
-    int&                     nxtUSqSlot,
-    int&                     nxtQSlot)  
-{
-    assert(!isReversed);
-
-    switch(type) {
-    case Mobilizer::ThisIsGround:
-        return new RBGroundBody();
-
-    case Mobilizer::Torsion:
-        return new RBNodeTorsion(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Sliding:
-        return new RBNodeSlider(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Universal:        
-        return new RBNodeUJoint(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Cylinder:
-        return new RBNodeCylinder(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::BendStretch:
-        return new RBNodeBendStretch(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Orientation:
-        return new RBNodeRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Translation:
-        return new RBNodeTranslate(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::Free:
-        return new RBNodeTranslateRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-
-    case Mobilizer::LineOrientation:        
-        return new RBNodeLineOrientation(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-    case Mobilizer::FreeLine:
-        return new RBNodeFreeLine(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
-
-    case Mobilizer::Planar:
-    case Mobilizer::Gimbal:
-    case Mobilizer::Weld:
-
-    default: 
-        assert(false);
-    };
-
-    return 0;
-}
-
 /////////////////////////////////////////////////////////////
 // Implementation of RigidBodyNodeSpec base class methods. //
 /////////////////////////////////////////////////////////////
@@ -3011,3 +2958,186 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
     eps  = getH(pc) * z;
 }
 
+
+    //////////////////////////////////////////////////////////////////
+    // Implementation of MobilizerRep createRigidBodyNode() methods //
+    //////////////////////////////////////////////////////////////////
+
+// The Ground node is special because it doesn't need a mobilizer.
+/*static*/ RigidBodyNode*
+RigidBodyNode::createGroundNode() {
+    return new RBGroundBody();
+}
+
+RigidBodyNode* Mobilizer::Pin::PinRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeTorsion(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Slider::SliderRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeSlider(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Universal::UniversalRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeUJoint(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Cylinder::CylinderRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeCylinder(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::BendStretch::BendStretchRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeBendStretch(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Planar::PlanarRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"PlanarMobilizer not implemented yet"); return 0;
+   // return new RBNodePlanar(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Gimbal::GimbalRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"GimbalMobilizer not implemented yet"); return 0;
+   // return new RBNodeGimbal(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Orientation::OrientationRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Translation::TranslationRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeTranslate(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Free::FreeRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeTranslateRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::LineOrientation::LineOrientationRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeLineOrientation(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::FreeLine::FreeLineRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeFreeLine(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+
+RigidBodyNode* Mobilizer::Screw::ScrewRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"ScrewMobilizer not implemented yet"); return 0;
+   // return new RBNodeScrew(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot,
+    //                       pitch);
+}
+
+RigidBodyNode* Mobilizer::Weld::WeldRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"WeldMobilizer not implemented yet"); return 0;
+   // return new RBNodeWeld(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::User::UserRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"UserMobilizer not implemented yet"); return 0;
+   // return new RBNodeScrew(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot,
+    //                       pitch);
+}

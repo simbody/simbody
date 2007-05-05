@@ -34,6 +34,7 @@
 #include "ConstraintNode.h"
 #include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
+#include "MobilizerRep.h"
 
 #include <string>
 
@@ -68,15 +69,16 @@ int SimbodyMatterSubsystemRep::addRigidBodyNode
      const MassProperties&    m,            // mass properties in body frame
      const Transform&         X_PMb,        // parent's frame for attaching this joint
      const Transform&         X_BM,         // inboard joint frame J in body frame
-     Mobilizer::MobilizerType type,
-     bool                     isReversed,   // child-to-parent orientation?
+     const Mobilizer&        mobilizer,
      int&                     nxtU,
      int&                     nxtUSq,
      int&                     nxtQ)
 {
-    RigidBodyNode* n = RigidBodyNode::create(m,X_PMb,X_BM,type,isReversed,nxtU,nxtUSq,nxtQ);
+    RigidBodyNode* n = mobilizer.getRep().createRigidBodyNode(m,X_PMb,X_BM,nxtU,nxtUSq,nxtQ);
     const int level = parent.getLevel() + 1;
     n->setLevel(level);
+
+    //TODO: put a copy of the mobilizer in the RigidBodyNode
 
     // Put node in tree at the right level
     if ((int)rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
@@ -101,10 +103,7 @@ void SimbodyMatterSubsystemRep::addGroundNode() {
     assert(nodeNum2NodeMap.size() == 0);
     assert(rbNodeLevels.size() == 0);
 
-    RigidBodyNode* n = 
-        RigidBodyNode::create(MassProperties(), Transform(), Transform(), 
-                              Mobilizer::ThisIsGround,
-                              false, nextUSlot, nextUSqSlot, nextQSlot);
+    RigidBodyNode* n = RigidBodyNode::createGroundNode();
     n->setLevel(0);
 
     // Put ground node in tree at level 0

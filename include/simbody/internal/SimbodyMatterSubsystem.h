@@ -37,10 +37,10 @@ class SimbodyMatterSubsystemRep;
 namespace SimTK {
 
 class Transform;
-class Mobilizer;
 class Inertia;
 class SimbodyTreeRep;
 class MassProperties;
+class Mobilizer;
 
 
 
@@ -128,7 +128,7 @@ public:
     BodyId addMasslessBody(const Transform&       bodyJointFrameInB,
                         BodyId                    parent,
                         const Transform&          parentJointFrameInP,
-                        const Mobilizer&          mobilizer);
+                        const Mobilizer&         mobilizer);
 
     /// Special case for convenience: attach a general rigid body to
     /// a body (ground by default) using a free joint and only the

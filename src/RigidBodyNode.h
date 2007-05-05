@@ -85,16 +85,7 @@ public:
 
     RigidBodyNode& operator=(const RigidBodyNode&);
 
-    // Factory for producing concrete RigidBodyNodes based on joint type.
-    static RigidBodyNode* create(
-        const MassProperties&    m,            // mass properties in body frame
-        const Transform&         X_PMb,        // parent's attachment frame for this mobilizer
-        const Transform&         X_BM,         // inboard mobilizer frame M in body frame
-        Mobilizer::MobilizerType type,
-        bool                     isReversed,   // child-to-parent orientation?
-        int&                     nxtU,
-        int&                     nxtUSq,
-        int&                     nxtQ); 
+    static RigidBodyNode* createGroundNode();
 
     // Register the passed-in node as a child of this one.
     void addChild(RigidBodyNode* child);

@@ -137,11 +137,11 @@ try
 
     BodyId pend1 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
                           GroundId, Transform(pendGroundPt1),
-                          Mobilizer(Mobilizer::Ball, false));
+                          Mobilizer::Ball());
 
     BodyId pend2 = bouncers.addRigidBody(pendMProps, Transform(Vec3(0, linkLength/2, 0)),
                           pend1, Transform(Vec3(0,-linkLength/2,0)),
-                          Mobilizer(Mobilizer::Ball, false));
+                          Mobilizer::Ball());
 
     int theConstraint =
        bouncers.addConstantDistanceConstraint(GroundId, pendGroundPt2,
@@ -164,7 +164,7 @@ try
         balls.push_back( 
             bouncers.addRigidBody(rubberBallMProps, Transform(),
                                   GroundId, Transform(firstRubberBallPos+i*Vec3(0,2*rubberBallRadius+1,0)),
-                                  Mobilizer(Mobilizer::Cartesian, false)));
+                                  Mobilizer::Cartesian()));
 
     const int NHardBalls = 12;
     for (int i=0; i < NHardBalls; ++i)
@@ -172,7 +172,7 @@ try
             bouncers.addRigidBody(hardBallMProps, Transform(),
                                   GroundId, Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
                                                 + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
-                                  Mobilizer(Mobilizer::Cartesian, false)));
+                                  Mobilizer::Cartesian()));
 
 
     MultibodySystem mbs;

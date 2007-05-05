@@ -166,14 +166,14 @@ public:
                 MassProperties(0,Vec3(0),Inertia(0)),
                 Transform(),            // inboard mobilizer frame
                 parent, Transform(),    // parent mobilizer frame
-                Mobilizer::Cartesian));
+                Mobilizer::Cartesian()));
         // y
         bodies.push_back(
             matter.addRigidBody(
                 MassProperties(0,Vec3(0),Inertia(0)),
                 Transform(Rotation::aboutX(-90*Deg2Rad)),            // inboard mobilizer frame
                 bodies.back(), Transform(Rotation::aboutX(-90*Deg2Rad)),    // parent mobilizer frame
-                Mobilizer::Pin));
+                Mobilizer::Pin()));
         // x
         MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
         cout << "Inertia:" << mprops.getInertia();
@@ -184,7 +184,7 @@ public:
                 mpropsKludge,
                 Transform(Rotation::aboutY(90*Deg2Rad)),            // inboard mobilizer frame
                 bodies.back(), Transform(Rotation::aboutY(90*Deg2Rad)),    // parent mobilizer frame
-                Mobilizer::Pin));
+                Mobilizer::Pin()));
         
         */
         MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
@@ -196,7 +196,7 @@ public:
                 mprops,
                 Transform(0*Vec3(0,0,.3)),            // inboard mobilizer frame
                 parent, Transform(0*Vec3(.1,.7,.19)),    // parent mobilizer frame
-                Mobilizer::FreeLine));
+                Mobilizer::FreeLine()));
 
         mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
     }
@@ -411,7 +411,7 @@ try
         BodyId b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
             GroundId, Transform(),
-            Mobilizer::Cartesian);
+            Mobilizer::Cartesian());
         mm.attachAtomToBody(i, b, Vec3(0));
     }
     /**/
@@ -662,14 +662,15 @@ OneDofEthane::OneDofEthane(bool allowStretch, BodyId parent, MolecularMechanicsS
             mm.calcClusterMassProperties(methyl[0], Transform()),
             Transform(),            // inboard mobilizer frame
             parent, Transform(),    // parent mobilizer frmae
-            Mobilizer::Free));
+            Mobilizer::Free()));
 
     bodies.push_back(
         matter.addRigidBody(
             mm.calcClusterMassProperties(methyl[1], Transform()),      
             Transform(PinAboutX, Vec3(0)), 
             getBody(0), Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
-            allowStretch ? Mobilizer::Cylinder : Mobilizer::Pin));
+            allowStretch ? (Mobilizer)Mobilizer::Cylinder() 
+                         : (Mobilizer)Mobilizer::Pin()));
 
     mm.attachClusterToBody(methyl[0], bodies[0], Transform());
     mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
@@ -706,7 +707,7 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, BodyId parent, MolecularMechani
             mm.calcClusterMassProperties(wholeEthaneCluster, Transform()), 
             Transform(),            // inboard mobilizer frame
             parent, Transform(),    // parent mobilizer frmae
-            Mobilizer::Free));
+            Mobilizer::Free()));
 
     mm.attachClusterToBody(wholeEthaneCluster, bodies[0], Transform()); 
 }
@@ -750,7 +751,7 @@ FloppyEthane::FloppyEthane(BodyId parent, MolecularMechanicsSystem& mmSys)
             MassProperties(mm.getAtomMass(getC(0)), Vec3(0), Inertia(0)),
             Transform(),            // use C0 body frame for Free mobilizer
             parent, Transform(),    // use parent body frame as reference
-            Mobilizer::Free));
+            Mobilizer::Free()));
     mm.attachAtomToBody(getC(0), bodies.back());
 
     // C1 is body 1, connected to C0 by a cylinder joint
@@ -759,7 +760,7 @@ FloppyEthane::FloppyEthane(BodyId parent, MolecularMechanicsSystem& mmSys)
             MassProperties(mm.getAtomMass(getC(1)), Vec3(0), Inertia(0)),
             C1CylMobFrame,
             bodies[0], C0CylMobFrame,
-            Mobilizer::Cylinder));
+            Mobilizer::Cylinder()));
     mm.attachAtomToBody(getC(1), bodies.back());
            
     // Now attach 3 Hs to each C.
@@ -772,7 +773,7 @@ FloppyEthane::FloppyEthane(BodyId parent, MolecularMechanicsSystem& mmSys)
                     MassProperties(mm.getAtomMass(getH(c,h)), Vec3(0), Inertia(0)),
                     HMobFrame,
                     Cbody, CBendStretchMob,
-                    Mobilizer::BendStretch));
+                    Mobilizer::BendStretch()));
             mm.attachAtomToBody(getH(c,h), bodies.back());
         }
     }

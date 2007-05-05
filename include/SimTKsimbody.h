@@ -35,6 +35,7 @@
 #include "simbody/internal/Subsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
+#include "simbody/internal/Mobilizer.h"
 #include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
