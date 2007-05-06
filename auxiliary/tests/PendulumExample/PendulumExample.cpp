@@ -70,21 +70,21 @@ try { // If anything goes wrong, an exception will be thrown.
 
     const BodyId swinger = pend.addRigidBody(
         MassProperties(m1+m2, COM, 
-                       1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
+                       0*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
         Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
-                  COM+1*Vec3(0,0,3)),    // inboard joint location
+                  COM+0*Vec3(0,0,3)),    // inboard joint location
         connector,
         Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
                   1*Vec3(0,-.5,0)),
-        Mobilizer::Ball());
+        Mobilizer::Screw(9));
 
     // Put the subsystems into the system.
     mbs.setMatterSubsystem(pend);
     mbs.addForceSubsystem(gravity);
     mbs.addForceSubsystem(forces);
 
-    forces.addMobilityConstantForce(swinger, 0, 0*100);
-    forces.addMobilityConstantForce(swinger, 1, 0*100);
+    forces.addMobilityConstantForce(swinger, 0, 1*1000);
+    //forces.addMobilityConstantForce(swinger, 1, 0*100);
     //forces.addMobilityConstantForce(swinger, 2, 0*1);
 
     State s;

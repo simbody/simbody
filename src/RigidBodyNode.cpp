@@ -1181,6 +1181,112 @@ public:
 
 };
 
+
+    // SCREW //
+
+// This is a one-dof "screw" joint, meaning one degree of rotational freedom
+// about a particular axis, coupled to translation along that same axis.
+// Here we use the common z axis of the Mb and M frames, which remains
+// aligned forever. 
+// For the generalized coordinate q, we use the rotation angle. For the
+// generalized speed u we use the rotation rate, which is also the
+// angular velocity of M in Mb (about the z axis). We compute the
+// translational position as pitch*q, and the translation rate as pitch*u.
+class RBNodeScrew : public RigidBodyNodeSpec<1> {
+    Real pitch;
+public:
+    virtual const char* type() { return "screw"; }
+
+    RBNodeScrew(const MassProperties& mProps_B,
+                const Transform&      X_PMb,
+                const Transform&      X_BM,
+                Real                  p,  // the pitch
+                int&                  nextUSlot,
+                int&                  nextUSqSlot,
+                int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+        pitch(p)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our screw joint can handle is about z.
+        // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
+        // in that case 1 and 3 are aligned and the conversion routine allocates all the
+        // rotation to whichever comes first.
+        // TODO: isn't there a better way to come up with "the rotation around z that
+        // best approximates a rotation R"?
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        to1Q(q) = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        to1Q(q) = T_MbM[2]/pitch;
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        to1U(u) = v_MbM[2]/pitch;
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const Real& angle = from1Q(q); // angular coordinate
+        to1Q(sine)    = std::sin(angle);
+        to1Q(cosine)  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_MbM.
+    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_MbM) const
+    {
+        const Real& theta  = from1Q(q);    // angular coordinate
+
+        X_MbM.updR().setToRotationAboutZ(theta);
+        X_MbM.updT() = Vec3(0,0,theta*pitch);
+    }
+
+
+    // The generalized speed is the angular velocity of M in the Mb frame,
+    // about Mb's z axis, expressed in Mb. (This axis is also constant in M.)
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_MbM) const
+    {
+        H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(0,0,pitch) );
+    }
+
+    // Since the Jacobian above is constant in Mb, its time derivative in Mb is zero.
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_MbM_Dot) const
+    {
+        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+    }
+
+};
+
     // CYLINDER //
 
 // This is a "cylinder" joint, meaning one degree of rotational freedom
@@ -3112,9 +3218,7 @@ RigidBodyNode* Mobilizer::Screw::ScrewRep::createRigidBodyNode(
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"ScrewMobilizer not implemented yet"); return 0;
-   // return new RBNodeScrew(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot,
-    //                       pitch);
+    return new RBNodeScrew(m,X_PMb,X_BM,pitch,nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
 RigidBodyNode* Mobilizer::Weld::WeldRep::createRigidBodyNode(
