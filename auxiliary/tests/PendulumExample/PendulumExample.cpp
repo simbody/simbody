@@ -70,26 +70,28 @@ try { // If anything goes wrong, an exception will be thrown.
 
     const BodyId swinger = pend.addRigidBody(
         MassProperties(m1+m2, COM, 
-                       0*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
+                       1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
         Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
                   COM+0*Vec3(0,0,3)),    // inboard joint location
         connector,
         Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
                   1*Vec3(0,-.5,0)),
-        Mobilizer::Screw(9));
+        Mobilizer::Planar());
 
     // Put the subsystems into the system.
     mbs.setMatterSubsystem(pend);
     mbs.addForceSubsystem(gravity);
     mbs.addForceSubsystem(forces);
 
-    forces.addMobilityConstantForce(swinger, 0, 1*1000);
-    //forces.addMobilityConstantForce(swinger, 1, 0*100);
-    //forces.addMobilityConstantForce(swinger, 2, 0*1);
+    //forces.addMobilityConstantForce(swinger, 0, 10);
+    forces.addConstantTorque(swinger, Vec3(0,0,10));
+    forces.addConstantForce(swinger, Vec3(0,0,0), Vec3(10,10,0)); // z should do nothing
+    //forces.addMobilityConstantForce(swinger, 1, 10);
+   // forces.addMobilityConstantForce(swinger, 2, 60-1.2);
 
     State s;
     mbs.realize(s); // define appropriate states for this System
-    pend.setUseEulerAngles(s,true);
+    //pend.setUseEulerAngles(s,true);
 
 
     // Create a study using the Runge Kutta Merson integrator
@@ -119,7 +121,8 @@ try { // If anything goes wrong, an exception will be thrown.
         pend.setMobilizerTransform(s, connector, Transform());
         pend.setMobilizerVelocity(s, connector, SpatialVec(0*Vec3(1,2,3), Vec3(0)));
         //pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutZ(startAngle*Deg2Rad),Vec3(0)));
-        pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2)));
+        pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2),
+                                                         Vec3(0,1,0)));
         pend.setMobilizerVelocity(s, swinger, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0)));
         //pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
         //pend.setMobilizerU(s, swinger, 0, 0);

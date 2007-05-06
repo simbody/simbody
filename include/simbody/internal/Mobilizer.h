@@ -174,7 +174,6 @@ private:
 /// coordinates are rotation about the shared z axis of the Mb and M
 /// frame, translation along the Mb frame's x axis, and translation along
 /// its y axis, in that order.
-/// TODO: not implemented yet.
 class SimTK_SIMBODY_EXPORT Mobilizer::Planar : public Mobilizer {
 public:
     Planar();

@@ -136,20 +136,22 @@ public:
                                 const Real& damping);
 
     /// Apply a constant force to a body station. The force is a
-    /// vector fixed forever in the Ground frame. This force contributes
-    /// to the potential energy, with pe = |f|*(height-zeroHeight) where
-    /// height=(s_G * -f/|f|) and zeroHeight is arbitrary.
-    int addConstantForce(int body, const Vec3& s_B, const Vec3& f_G,
-                         const Real& zeroEnergyHeight=0);
+    /// vector fixed forever in the Ground frame. This force does not
+    /// contribute to potential energy.
+    int addConstantForce(int body, const Vec3& s_B, const Vec3& f_G);
 
-    /// Apply a constant (scalar) force f to a mobility. This force contributes
-    /// to the potential energy, with pe = -f*(q-zeroEnergyValue) where
-    /// q is the mobility coordinate and zeroEnergyValue is arbitrary. 
-    /// Not meaningful unless the mobility coordinate is such that qdot=u 
-    /// for that coordinate, in particular don't use this on a coordinate
-    /// which is part of a quaternion.
-    int addMobilityConstantForce(int body, int axis, const Real& f,
-                                 const Real& zeroEnergyValue=0);
+    /// Apply a constant torque to a body. The torque is a
+    /// vector fixed forever in the Ground frame. This torque does not
+    /// contribute to potential energy.
+    int addConstantTorque(int body, const Vec3& t_G);
+
+    /// Apply a constant (scalar) "force" f to a mobility. This does not
+    /// contribute to the potential energy. The axis here selects a
+    /// generalized speed (u), not a generalized coordinate (q), and the
+    /// meaning depends on the definition of the generalized speed. If that
+    /// speed is a translation then this is a force; if a rotation then
+    /// this is a torque.
+    int addMobilityConstantForce(int body, int axis, const Real& f);
 
     /// Add a linear spring along or around a mobility coordinate. The
     /// stiffness k is provided, along with an arbitrary "zero" 

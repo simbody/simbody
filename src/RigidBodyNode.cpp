@@ -1688,6 +1688,113 @@ public:
 
 };
 
+
+
+    // PLANAR //
+
+// This provides free motion (translation and rotation) in a plane. We use
+// the 2d coordinate system formed by the x,y axes of Mb as the translations,
+// and the common z axis of Mb and M as the rotational axis. The generalized
+// coordinates are theta,x,y interpreted as rotation around z and translation
+// along the (space fixed) Mbx and Mby axes.
+class RBNodePlanar : public RigidBodyNodeSpec<3> {
+public:
+    virtual const char* type() { return "planar"; }
+
+    RBNodePlanar(const MassProperties& mProps_B,
+                 const Transform&      X_PMb,
+                 const Transform&      X_BM,
+                 int&                  nextUSlot,
+                 int&                  nextUSqSlot,
+                 int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+        // Implementations of virtual methods.
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our planar joint can handle is about z.
+        // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
+        // in that case 1 and 3 are aligned and the conversion routine allocates all the
+        // rotation to whichever comes first.
+        // TODO: isn't there a better way to come up with "the rotation around z that
+        // best approximates a rotation R"?
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        toQ(q)[0] = angles123[2];
+    }
+    void setMobilizerTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+        // Ignore translation in the z direction.
+        toQ(q)[1] = T_MbM[0]; // x
+        toQ(q)[2] = T_MbM[1]; // y
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can represent the z angular velocity exactly, but nothing else.
+        toU(u)[0] = w_MbM[2];
+    }
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // Ignore translational velocity in the z direction.
+        toU(u)[1] = v_MbM[0]; // x
+        toU(u)[2] = v_MbM[1]; // y
+    }
+
+    // This is required but does nothing here since there are no rotations for this joint.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const Real& angle = fromQ(q)[0]; // angular coordinate
+        to1Q(sine)    = std::sin(angle);
+        to1Q(cosine)  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_MbM.
+    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_MbM) const
+    {
+        // Rotational q is about common z axis, translational q's along Mbx and Mby.
+        X_MbM = Transform(Rotation::aboutZ(fromQ(q)[0]), 
+                          Vec3(fromQ(q)[1], fromQ(q)[2], 0));
+    }
+
+    // The rotational generalized speed is about the common z axis; translations
+    // are along Mbx and Mby so all axes are constant in Mb.
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_MbM) const
+    {
+        H_MbM[0] = SpatialRow( Row3(0,0,1),   Row3(0) );
+        H_MbM[1] = SpatialRow(   Row3(0),   Row3(1,0,0) );
+        H_MbM[2] = SpatialRow(   Row3(0),   Row3(0,1,0) );
+    }
+
+    // Since the Jacobian above is constant in Mb, its time derivative is zero.
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_MbM_Dot) const
+    {
+        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+    }
+
+};
+
     // ORIENTATION (BALL) //
 
 // Ball joint. This provides three degrees of rotational freedom,  i.e.,
@@ -3138,8 +3245,7 @@ RigidBodyNode* Mobilizer::Planar::PlanarRep::createRigidBodyNode(
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"PlanarMobilizer not implemented yet"); return 0;
-   // return new RBNodePlanar(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodePlanar(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
 RigidBodyNode* Mobilizer::Gimbal::GimbalRep::createRigidBodyNode(

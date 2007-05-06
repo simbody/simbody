@@ -125,13 +125,13 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
     struct ConstantForceParameters {
         ConstantForceParameters() : body(-1) { 
             station_B.setToNaN(); force_G.setToNaN();
-            zeroEnergyHeight = fmag = zeroEnergy = CNT<Real>::getNaN();
+            fmag = CNT<Real>::getNaN();
         }
 
         ConstantForceParameters(
-            int b, const Vec3& s_B, const Vec3& f_G, const Real& z)
-          : body(b), station_B(s_B), force_G(f_G), zeroEnergyHeight(z),
-            fmag(f_G.norm()), zeroEnergy(fmag*zeroEnergyHeight)
+            int b, const Vec3& s_B, const Vec3& f_G)
+          : body(b), station_B(s_B), force_G(f_G),
+            fmag(f_G.norm())
         { 
             assert(b >= 0);
         }
@@ -139,11 +139,29 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         BodyId body;
         Vec3   station_B;   // in body frame
         Vec3   force_G;   // in ground
-        Real   zeroEnergyHeight;
 
         // Pre-calculated
         Real   fmag;       // force magnitude
-        Real   zeroEnergy; // fmag*zeroEnergyHeight (subtract this from PE)
+    };
+
+    struct ConstantTorqueParameters {
+        ConstantTorqueParameters() : body(-1) { 
+            torque_G.setToNaN();
+            tmag = CNT<Real>::getNaN();
+        }
+
+        ConstantTorqueParameters(
+            int b, const Vec3& t_G)
+          : body(b), torque_G(t_G), tmag(t_G.norm())
+        { 
+            assert(b >= 0);
+        }
+
+        BodyId body;
+        Vec3   torque_G;   // in ground
+
+        // Pre-calculated
+        Real   tmag;       // torque magnitude
     };
 
     struct MobilityLinearSpringParameters {
@@ -176,19 +194,20 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         Real   damping;
     };
 
+    // means force or torque, depending on the meaning of the generalized speed
     struct MobilityConstantForceParameters {
         MobilityConstantForceParameters() : body(-1), axis(-1) { 
             force = CNT<Real>::getNaN();
         }
-        MobilityConstantForceParameters(int b, int a, const Real& f, const Real& z)
-          : body(b), axis(a), force(f), zeroEnergyQ(z)
+        MobilityConstantForceParameters(int b, int a, const Real& f)
+          : body(b), axis(a), force(f)
         { 
             assert(b >= 0 && a >= 0);
         }
 
         BodyId body; 
         int    axis;
-        Real   force, zeroEnergyQ;
+        Real   force;
     };
 
     struct GlobalEnergyDrainParameters {
@@ -257,6 +276,7 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         std::vector<TwoPointLinearDamperParameters>  twoPointLinearDampers;
         std::vector<TwoPointConstantForceParameters> twoPointConstantForces;
         std::vector<ConstantForceParameters>         constantForces;
+        std::vector<ConstantTorqueParameters>        constantTorques;
         std::vector<MobilityLinearSpringParameters>  mobilityLinearSprings;
         std::vector<MobilityLinearDamperParameters>  mobilityLinearDampers;
         std::vector<MobilityConstantForceParameters> mobilityConstantForces;
@@ -326,12 +346,18 @@ public:
     }
 
 
-    int addConstantForce(int body, const Vec3& station_B, const Vec3& force_G,
-                         const Real& zeroEnergyHeight)
+    int addConstantForce(int body, const Vec3& station_B, const Vec3& force_G)
     {
         defaultParameters.constantForces.push_back(
-            ConstantForceParameters(body,station_B,force_G,zeroEnergyHeight));
+            ConstantForceParameters(body,station_B,force_G));
         return (int)defaultParameters.constantForces.size() - 1;
+    }
+
+    int addConstantTorque(int body, const Vec3& torque_G)
+    {
+        defaultParameters.constantTorques.push_back(
+            ConstantTorqueParameters(body,torque_G));
+        return (int)defaultParameters.constantTorques.size() - 1;
     }
 
     int addMobilityLinearSpring(int body, int axis,
@@ -356,10 +382,10 @@ public:
 
 
     int addMobilityConstantForce(int body, int axis,
-                                 const Real& force, const Real& zeroEnergyValue)
+                                 const Real& force)
     {
         defaultParameters.mobilityConstantForces.push_back(
-            MobilityConstantForceParameters(body,axis,force,zeroEnergyValue));
+            MobilityConstantForceParameters(body,axis,force));
         return (int)defaultParameters.mobilityConstantForces.size() - 1;
     }
 
@@ -442,7 +468,7 @@ public:
         for (int i=0; i < (int)p.mobilityConstantForces.size(); ++i) {
             const MobilityConstantForceParameters& f = p.mobilityConstantForces[i];
             const Real q = matter.getMobilizerQ(s,f.body,f.axis);
-            pe -= f.force*(q-f.zeroEnergyQ);
+            // no PE contribution
             matter.addInMobilityForce(s,f.body,f.axis,f.force,mobilityForces);
         }
 
@@ -477,7 +503,7 @@ public:
             rigidBodyForces[spring.body2] -=  SpatialVec(s2_G % f1_G, f1_G);
         }
 
-        // Two-point constant force
+        // Two-point constant force (no PE contribution)
         for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
             const TwoPointConstantForceParameters& frc =
                 p.twoPointConstantForces[i];
@@ -493,8 +519,6 @@ public:
             const Vec3 r_G = p2_G - p1_G; // vector from point1 to point2
             const Real x   = r_G.norm();  // distance between the points
             const UnitVec3 d(r_G/x, true);
-
-            pe -= frc.force * (x - frc.zeroEnergyDistance);
 
             const Vec3 f2_G = frc.force * d;
             rigidBodyForces[frc.body1] -=  SpatialVec(s1_G % f2_G, f2_G);
@@ -526,7 +550,7 @@ public:
             rigidBodyForces[damper.body2] -=  SpatialVec(s2_G % f1_G, f1_G);
         }
 
-        // Constant forces
+        // Constant forces (no PE contribution)
         for (int i=0; i < (int)p.constantForces.size(); ++i) {
             const ConstantForceParameters& f = p.constantForces[i];
             if (f.fmag == 0)
@@ -534,12 +558,18 @@ public:
 
             const Transform& X_GB = matter.getBodyTransform(s, f.body);
             const Vec3 station_G = X_GB.R() * f.station_B;
-            const Vec3 point_G   = X_GB.T() + station_G;
-
-            const Real rawPE = -dot(point_G, f.force_G);
-            pe += rawPE-f.zeroEnergy;
 
             rigidBodyForces[f.body] += SpatialVec(station_G % f.force_G, f.force_G);
+        }
+
+        // Constant torques (no PE contribution)
+        for (int i=0; i < (int)p.constantTorques.size(); ++i) {
+            const ConstantTorqueParameters& t = p.constantTorques[i];
+            if (t.tmag == 0)
+                continue;
+
+            // update only the angular component of the spatial force on this body
+            rigidBodyForces[t.body][0] += t.torque_G;
         }
 
         // User forces
@@ -624,14 +654,20 @@ int GeneralForceElements::addTwoPointLinearDamper
 }
 
 int GeneralForceElements::addConstantForce
-   (int body, const Vec3& s_B, const Vec3& f_G, const Real& zeroEnergyHeight) 
+   (int body, const Vec3& s_B, const Vec3& f_G) 
 {
-    return updRep().addConstantForce(body, s_B, f_G, zeroEnergyHeight);
+    return updRep().addConstantForce(body, s_B, f_G);
+}
+
+int GeneralForceElements::addConstantTorque
+   (int body, const Vec3& t_G) 
+{
+    return updRep().addConstantTorque(body, t_G);
 }
 
 int GeneralForceElements::addMobilityConstantForce
-   (int body, int axis, const Real& f, const Real& zeroEnergyValue) {
-    return updRep().addMobilityConstantForce(body, axis, f, zeroEnergyValue);
+   (int body, int axis, const Real& f) {
+    return updRep().addMobilityConstantForce(body, axis, f);
 }
 
 int GeneralForceElements::addMobilityLinearSpring
