@@ -491,6 +491,7 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
+        const SBDynamicsCache& dc, 
         HType& H_PB_G_Dot) const;
 
 
@@ -610,7 +611,7 @@ public:
     {
         // Mobilizer-specific.
         calcAcrossJointVelocityJacobianDot          (mv,pc,vc, updH_MbM_Dot(dc));
-        calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, updHDot(dc));
+        calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
 
         calcJointDynamics(pc,u,vc,dc);
 
@@ -2778,8 +2779,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const SBPositionCache& pc, 
     HType& H_PB_G) const
 {
-    HType H_MbM, H_MB;
-    calcAcrossJointVelocityJacobian(mv,pc,H_MbM);
+    const HType& H_MbM = getH_MbM(pc);
 
     // want r_MB_Mb, that is, the vector from OM to OB, expressed in Mb
     const Vec3&     r_MB    = getX_MB().T();    // fixed
@@ -2787,6 +2787,7 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const Vec3      r_MB_Mb = R_MbM*r_MB;
 
     // Reminder: round brackets () applied to a matrix select columns.
+    HType H_MB;
     H_MB(0) = Row3(0); // fills column with zero
     H_MB(1) = H_MbM(0) * crossMat(r_MB_Mb);
 
@@ -2808,11 +2809,13 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBModelVars&     mv,
     const SBPositionCache& pc, 
     const SBVelocityCache& vc, 
+    const SBDynamicsCache& dc,
     HType& H_PB_G_Dot) const
 {
-    HType H_MbM, H_MbM_Dot, H_MB, H_MB_Dot, H_PB_G;
-    calcAcrossJointVelocityJacobian(mv,pc,H_MbM);
-    calcAcrossJointVelocityJacobianDot(mv,pc,vc,H_MbM_Dot);
+    const HType& H_MbM = getH_MbM(pc);
+    const HType& H_MbM_Dot = getH_MbM_Dot(dc);
+
+    HType H_MB, H_MB_Dot;
 
     // want r_MB_Mb, that is, the vector from OM to OB, expressed in Mb
     const Vec3&     r_MB    = getX_MB().T();    // fixed
@@ -2826,7 +2829,8 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     H_MB(1) = H_MbM(0) * crossMat(r_MB_Mb);
 
     H_MB_Dot(0) = Row3(0);
-    H_MB_Dot(1) = H_MbM_Dot(0) * crossMat(r_MB_Mb) + H_MbM(0) * crossMat(w_MbM % r_MB_Mb);
+    H_MB_Dot(1) =   H_MbM_Dot(0) * crossMat(r_MB_Mb) 
+                  + H_MbM(0)     * crossMat(w_MbM % r_MB_Mb);
 
     // Now we want R_GMb so we can reexpress the cross-joint velocity V_MbB (==V_PB)
     // in the ground frame, to get V_PB_G.
@@ -2842,7 +2846,8 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     // Note: time derivative of R_GMb is crossMat(w_GMb)*R_GMb, so derivative
     // of ~R_GMb is ~(crossMat(w_GMb)*R_GMb) = - ~R_GMb*crossMat(w_GMb) since
     // crossMat's are skew-symmetric.
-    H_PB_G = (H_MbM + H_MB) * ~R_GMb;
+    //      H_PB_G = (H_MbM + H_MB) * ~R_GMb (see above method)
+    const HType& H_PB_G = getH(pc);
     H_PB_G_Dot =  (H_MbM_Dot + H_MB_Dot) * ~R_GMb
                  - H_PB_G * crossMat(w_GMb);
 }
