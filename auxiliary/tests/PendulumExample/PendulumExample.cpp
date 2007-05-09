@@ -76,7 +76,7 @@ try { // If anything goes wrong, an exception will be thrown.
         connector,
         Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
                   1*Vec3(0,-.5,0)),
-        Mobilizer::Planar());
+        Mobilizer::Screw(.3));
 
     // Put the subsystems into the system.
     mbs.setMatterSubsystem(pend);
@@ -85,7 +85,8 @@ try { // If anything goes wrong, an exception will be thrown.
 
     //forces.addMobilityConstantForce(swinger, 0, 10);
     forces.addConstantTorque(swinger, Vec3(0,0,10));
-    forces.addConstantForce(swinger, Vec3(0,0,0), Vec3(10,10,0)); // z should do nothing
+    //forces.addConstantForce(swinger, Vec3(0), Vec3(0,10,0));
+    //forces.addConstantForce(swinger, Vec3(0,0,0), Vec3(10,10,0)); // z should do nothing
     //forces.addMobilityConstantForce(swinger, 1, 10);
    // forces.addMobilityConstantForce(swinger, 2, 60-1.2);
 

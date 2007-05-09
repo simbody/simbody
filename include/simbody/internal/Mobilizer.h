@@ -312,8 +312,15 @@ private:
 /// TODO: not implemented yet.
 class SimTK_SIMBODY_EXPORT Mobilizer::User : public Mobilizer {
 public:
-    User();
+    User(int nMobilities, int nCoordinates);
     class UserRep; // local subclass
+
+    virtual void calcTransform(const State& s, const Vector& q, 
+                               Transform& X_MbM) const = 0;
+    virtual void calcTransitionMatrix(const State& s, 
+                               Vector_<SpatialRow>& H_MbM) const = 0;
+    virtual void calcTransitionMatrixTimeDerivative(const State& s,  
+                               Vector_<SpatialRow>& H_MbM_Dot) const = 0;
 
     SimTK_PIMPL_DOWNCAST(User, Mobilizer);
 private:
@@ -325,3 +332,6 @@ private:
 } // namespace SimTK
 
 #endif // SimTK_SIMBODY_MOBILIZER_H_
+
+
+

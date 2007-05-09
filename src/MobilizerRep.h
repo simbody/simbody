@@ -280,6 +280,7 @@ private:
 
 class Mobilizer::User::UserRep : public Mobilizer::MobilizerRep {
 public:
+    UserRep(int nMobilities, int nCoordinates) : nu(nMobilities), nq(nCoordinates) { }
     UserRep* clone() const { return new UserRep(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -291,6 +292,9 @@ public:
         int&                     nxtQ) const;
 
     SimTK_DOWNCAST(UserRep, MobilizerRep);
+private:
+    int nu;
+    int nq;
 };
 
 } // namespace SimTK

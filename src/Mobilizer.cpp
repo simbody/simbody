@@ -419,8 +419,8 @@ Mobilizer::Screw::ScrewRep& Mobilizer::Screw::updRep() {
     // MOBILIZER::USER //
     /////////////////////
 
-Mobilizer::User::User() {
-    rep = new UserRep(); rep->setMyHandle(*this);
+Mobilizer::User::User(int nMobilities, int nCoordinates) {
+    rep = new UserRep(nMobilities, nCoordinates); rep->setMyHandle(*this);
 }
 bool Mobilizer::User::isInstanceOf(const Mobilizer& s) {
     return UserRep::isA(s.getRep());
