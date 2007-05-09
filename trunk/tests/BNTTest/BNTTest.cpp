@@ -73,10 +73,25 @@ int main()
     const conjugate<Real> crn = (conjugate<Real>)negconj34;
     cout << "Conj(negconj34)=" << crn << endl;
 
-    const negator<conjugate<Real> >& negreconj34 =
+    typedef negator<conjugate<Real> > NCR;
+    typedef NCR::TWithoutNegator NCRWN;
+    cout << "NCR is a " << typeid(NCR).name() << endl;
+    cout << "NCRWN is a " << typeid(NCRWN).name() << endl;
+
+    const NCR& negreconj34 =
         reinterpret_cast<const negator<conjugate<Real> >&>(reconj34);
     cout << "negreconj34=" << negreconj34 << endl;
-    
+    cout << " ... is a " << typeid(negreconj34).name() << endl;
+    cout << "negreconj34.normalize()=" << negreconj34.normalize() << endl;
+    cout << " ... is a " << typeid(negreconj34.normalize()).name() << endl;
+    cout << "(noneg)negreconj34=" 
+         << CNT<NCR>::castAwayNegatorIfAny(negreconj34) << endl;
+    cout << " ... is a "
+         << typeid(CNT<NCR>::castAwayNegatorIfAny(negreconj34)).name() << endl;
+    const NCRWN& nnn = CNT<NCR>::castAwayNegatorIfAny(negreconj34);
+     cout << "(noneg)negreconj34.normalize()=" 
+         << CNT<NCRWN>::normalize(nnn) << endl;
+   
     const negator<conjugate<Real> >& nc_threeFour 
         = reinterpret_cast<const negator<conjugate<Real> >&>(threeFour);
     cout << "nc_threeFour=" << nc_threeFour << " conj(.)=" 

@@ -85,19 +85,23 @@ class SimTK_SimTKCOMMON_EXPORT negator {
 public:
     typedef negator<N>                                          T;
     typedef NUMBER                                              TNeg;   // negator evaporates
-    typedef typename NTraits<N>::TAbs                           TAbs;
-    typedef typename NTraits<N>::TStandard                      TStandard;
+    typedef NUMBER                                              TWithoutNegator; // "
     typedef typename CNT<NReal>::TNeg                           TReal;
     typedef typename CNT<NImag>::TNeg                           TImag;
     typedef typename CNT<NComplex>::TNeg                        TComplex;
     typedef typename CNT<NHerm>::TNeg                           THerm;
-    typedef typename NTraits<N>::TInvert                        TInvert;
     typedef negator<N>                                          TPosTrans;
     typedef typename NTraits<N>::TSqHermT                       TSqHermT;
     typedef typename NTraits<N>::TSqTHerm                       TSqTHerm;
     typedef negator<N>                                          TElement;
     typedef negator<N>                                          TRow;
     typedef negator<N>                                          TCol;
+
+    typedef typename NTraits<N>::TAbs                           TAbs;
+    typedef typename NTraits<N>::TStandard                      TStandard;
+    typedef typename NTraits<N>::TInvert                        TInvert;
+    typedef typename NTraits<N>::TStandard                      TNormalize; // neg<conj> -> complex
+
 
     typedef negator<N>                                          Scalar;
     typedef NUMBER                                              Number;
@@ -147,7 +151,8 @@ public:
         IsScalar            = 1,
         IsNumber            = 0,
         IsStdNumber         = 0,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = -1 // if you cast away the negator, don't forget this!
     };
     static negator<N> getNaN()      {return recast(NTraits<N>::getNaN());}
 	static negator<N> getInfinity() {return recast(NTraits<N>::getInfinity());}
@@ -160,9 +165,10 @@ public:
     const TImag& imag() const {return reinterpret_cast<const TImag&>(NTraits<N>::imag(v));}
     TImag&       imag()       {return reinterpret_cast<      TImag&>(NTraits<N>::imag(v));}
 
-    ScalarSq  scalarNormSqr() const {return NTraits<N>::scalarNormSqr(v);}
-    TAbs      abs()           const {return NTraits<N>::abs(v);}
-    TStandard standardize()   const {return -NTraits<N>::standardize(v);}
+    ScalarSq   scalarNormSqr() const {return NTraits<N>::scalarNormSqr(v);}
+    TAbs       abs()           const {return NTraits<N>::abs(v);}
+    TStandard  standardize()   const {return -NTraits<N>::standardize(v);}
+    TNormalize normalize()     const {return -NTraits<N>::normalize(v);}
 
     negator() {
     #ifndef NDEBUG

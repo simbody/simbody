@@ -60,6 +60,26 @@ int main()
         v=1;r=1;m=1;
         cout << "v=1:" << v << " r=1:" << r << " m=1:" << m;
 
+        SpatialVec sv( Vec3(1,2,-3), Vec3(.1,-.2,.3) );
+        Vec6& sv6 = Vec6::updAs(&sv[0][0]);
+        cout << "sv (" << &sv << ")=" << sv << endl;
+        cout << "sv6(" << &sv6 << ")=" << sv6 << endl;
+        cout << "sv.normalize() =" << sv.normalize() << endl;
+        cout << "sv6.normalize()=" << sv6.normalize() << endl;
+
+        SpatialVec::TNeg& nsv = sv.updNegate();
+        Vec6::TNeg& nsv6 = Vec6::TNeg::updAs(&nsv[0][0]);
+        cout << "nsv (" << &nsv << ")=" << nsv << endl;
+        cout << "nsv6(" << &nsv6 << ")=" << nsv6 << endl;
+        cout << "nsv.normalize() =" << nsv.normalize() << endl;
+        cout << "nsv6.normalize()=" << nsv6.normalize() << endl;
+
+        sv = sv.normalize();
+        cout << "after sv=sv.normalize(), sv=" << sv << endl;
+        cout << "now nsv+1=" << nsv+1 << ", (nsv+1).normalize()=" << (nsv+1).normalize() << endl;
+        nsv = (nsv+1).normalize();
+        cout << "after nsv=(nsv+1).normalize(), nsv=" << nsv << endl;
+
         CNT<Vec3>::Result<double>::Mul xxx;
 
         cout << endl << "TEST: v+v=" << v+v;

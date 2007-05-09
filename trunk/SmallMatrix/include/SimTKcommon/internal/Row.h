@@ -36,24 +36,27 @@ namespace SimTK {
 
 /// Generic Row
 template <int N, class ELT, int STRIDE> class Row {
-    typedef ELT                         E;
-    typedef typename CNT<E>::TNeg       ENeg;
-    typedef typename CNT<E>::TAbs       EAbs;
-    typedef typename CNT<E>::TStandard  EStandard;
-    typedef typename CNT<E>::TReal      EReal;
-    typedef typename CNT<E>::TImag      EImag;
-    typedef typename CNT<E>::TComplex   EComplex;
-    typedef typename CNT<E>::THerm      EHerm;
-    typedef typename CNT<E>::TInvert    EInvert;
-    typedef typename CNT<E>::TPosTrans  EPosTrans;
-    typedef typename CNT<E>::TSqHermT   ESqHermT;
-    typedef typename CNT<E>::TSqTHerm   ESqTHerm;
+    typedef ELT                                 E;
+    typedef typename CNT<E>::TNeg               ENeg;
+    typedef typename CNT<E>::TWithoutNegator    EWithoutNegator;
+    typedef typename CNT<E>::TReal              EReal;
+    typedef typename CNT<E>::TImag              EImag;
+    typedef typename CNT<E>::TComplex           EComplex;
+    typedef typename CNT<E>::THerm              EHerm;
+    typedef typename CNT<E>::TPosTrans          EPosTrans;
+    typedef typename CNT<E>::TSqHermT           ESqHermT;
+    typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
-    typedef typename CNT<E>::Scalar     EScalar;
-    typedef typename CNT<E>::Number     ENumber;
-    typedef typename CNT<E>::StdNumber  EStdNumber;
-    typedef typename CNT<E>::Precision  EPrecision;
-    typedef typename CNT<E>::ScalarSq   EScalarSq;
+    typedef typename CNT<E>::TAbs               EAbs;
+    typedef typename CNT<E>::TStandard          EStandard;
+    typedef typename CNT<E>::TInvert            EInvert;
+    typedef typename CNT<E>::TNormalize         ENormalize;
+
+    typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::Number             ENumber;
+    typedef typename CNT<E>::StdNumber          EStdNumber;
+    typedef typename CNT<E>::Precision          EPrecision;
+    typedef typename CNT<E>::ScalarSq           EScalarSq;
 
 public:
 
@@ -74,32 +77,42 @@ public:
         IsScalar            = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = CNT<E>::SignInterpretation
     };
 
-    typedef Row<N,E,STRIDE>             T;
-    typedef Row<N,ENeg,STRIDE>          TNeg;
-    typedef Row<N,EAbs,1>               TAbs;       // Note stride
-    typedef Row<N,EStandard,1>          TStandard;
-    typedef Row<N,EReal,STRIDE*CNT<E>::RealStrideFactor>         
-                                        TReal;
-    typedef Row<N,EImag,STRIDE*CNT<E>::RealStrideFactor>         
-                                        TImag;
-    typedef Row<N,EComplex,STRIDE>      TComplex;
-    typedef Vec<N,EHerm,STRIDE>         THerm;
-    typedef Vec<N,EInvert,1>            TInvert;    // packed
-    typedef Vec<N,E,STRIDE>             TPosTrans;
-    typedef SymMat<N,ESqHermT>          TSqHermT;   // result of self outer product
-    typedef EScalarSq                   TSqTHerm;   // result of self dot product
-    typedef E                           TElement;
-    typedef Row                         TRow;
-    typedef E                           TCol;
+    typedef Row<N,E,STRIDE>                 T;
+    typedef Row<N,ENeg,STRIDE>              TNeg;
+    typedef Row<N,EWithoutNegator,STRIDE>   TWithoutNegator;
 
-    typedef EScalar                     Scalar;
-    typedef ENumber                     Number;
-    typedef EStdNumber                  StdNumber;
-    typedef EPrecision                  Precision;
-    typedef EScalarSq                   ScalarSq;
+    typedef Row<N,EReal,STRIDE*CNT<E>::RealStrideFactor>         
+                                            TReal;
+    typedef Row<N,EImag,STRIDE*CNT<E>::RealStrideFactor>         
+                                            TImag;
+    typedef Row<N,EComplex,STRIDE>          TComplex;
+    typedef Vec<N,EHerm,STRIDE>             THerm;
+    typedef Vec<N,E,STRIDE>                 TPosTrans;
+    typedef E                               TElement;
+    typedef Row                             TRow;
+    typedef E                               TCol;
+
+    // These are the results of calculations, so are returned in new, packed
+    // memory. Be sure to refer to element types here which are also packed.
+    typedef Row<N,EAbs,1>                   TAbs;       // Note stride
+    typedef Row<N,EStandard,1>              TStandard;
+    typedef Vec<N,EInvert,1>                TInvert;    // packed
+    typedef Row<N,ENormalize,1>             TNormalize;
+
+    typedef SymMat<N,ESqHermT>              TSqHermT;   // result of self outer product
+    typedef EScalarSq                       TSqTHerm;   // result of self dot product
+
+    // These recurse right down to the underlying scalar type no matter how
+    // deep the elements are.
+    typedef EScalar                         Scalar;
+    typedef ENumber                         Number;
+    typedef EStdNumber                      StdNumber;
+    typedef EPrecision                      Precision;
+    typedef EScalarSq                       ScalarSq;
 
     int size()   const  { return N; }
     int nrow()   const  { return 1; }
@@ -298,6 +311,28 @@ public:
     ScalarSq normSqr() const { return scalarNormSqr(); }
     ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
 
+    // If the elements of this Row are scalars, the result is what you get by
+    // dividing each element by the norm() calculated above. If the elements are
+    // *not* scalars, then the elements are *separately* normalized. That means
+    // you will get a different answer from Row<2,Row3>::normalize() than you
+    // would from a Row<6>::normalize() containing the same scalars.
+    //
+    // Normalize returns a row of the same dimension but in new, packed storage
+    // and with a return type that does not include negator<> even if the original
+    // Row<> does, because we can eliminate the negation here almost for free.
+    // But we can't standardize (change conjugate to complex) for free, so we'll retain
+    // conjugates if there are any.
+    TNormalize normalize() const {
+        if (CNT<E>::IsScalar) {
+            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+        } else {
+            TNormalize elementwiseNormalized;
+            for (int j=0; j<N; ++j) 
+                elementwiseNormalized[j] = CNT<E>::normalize((*this)[j]);
+            return elementwiseNormalized;
+        }
+    }
+
     TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
     const Row&   operator+() const { return *this; }
@@ -331,6 +366,10 @@ public:
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
     }
+
+    const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
+    TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
+
 
     // These are elementwise binary operators, (this op ee) by default but (ee op this) if
     // 'FromLeft' appears in the name. The result is a packed Row<N> but the element type

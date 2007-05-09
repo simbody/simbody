@@ -196,19 +196,24 @@ template <class K> class CNT : private K {
 public:
     typedef K                        T;
     typedef typename K::TNeg         TNeg;
-    typedef typename K::TAbs         TAbs;
-    typedef typename K::TStandard    TStandard;     // packed, StdNumbers
+    typedef typename K::TWithoutNegator TWithoutNegator;
     typedef typename K::TReal        TReal;
     typedef typename K::TImag        TImag;
     typedef typename K::TComplex     TComplex;
     typedef typename K::THerm        THerm;
-    typedef typename K::TInvert      TInvert;
     typedef typename K::TPosTrans    TPosTrans;
     typedef typename K::TSqHermT     TSqHermT;
     typedef typename K::TSqTHerm     TSqTHerm;
     typedef typename K::TElement     TElement;
     typedef typename K::TRow         TRow;          // type of a row or column
     typedef typename K::TCol         TCol;
+
+    // These are the results of calculations and should be packed regardless
+    // of the spacing of this CNT.
+    typedef typename K::TAbs         TAbs;
+    typedef typename K::TStandard    TStandard;     // packed, StdNumbers
+    typedef typename K::TInvert      TInvert;
+    typedef typename K::TNormalize   TNormalize;
 
     typedef typename K::Scalar       Scalar;        // <number> or negator<number>
     typedef typename K::Number       Number;        // <real>, <complex> or <conjugate>
@@ -244,7 +249,8 @@ public:
         IsScalar            = K::IsScalar,          // real, complex, conjugate, negator
         IsNumber            = K::IsNumber,          // real, complex, conjugate
         IsStdNumber         = K::IsStdNumber,       // real, complex
-        IsPrecision         = K::IsPrecision        // real (float, double, long double)
+        IsPrecision         = K::IsPrecision,       // real (float, double, long double)
+        SignInterpretation  = K::SignInterpretation // 1 normally, -1 if elements are negated
     };
 
     static const Scalar* getData(const T& t) { return t.getData(); }
@@ -276,9 +282,21 @@ public:
     static       TPosTrans& positionalTranspose(K& t)
       { return reinterpret_cast<TPosTrans&>(t); }
 
+    // If the underlying scalars of this CNT are negator<N> for some numeric type N,
+    // this method removes the negator<>, effectively negating the entire CNT. You
+    // can still deal with the sign correctly by using the above enum SignInterpretation
+    // which will be -1 in that case, 1 if there was no negator<> to remove. Note:
+    // I'm not talking about TWithoutNegator::SignInterpretation -- that one is guaranteed
+    // to be 1! T::SignInterpretation is the one you want.
+    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)
+        {return reinterpret_cast<const TWithoutNegator&>(t);}
+    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)
+        {return reinterpret_cast<TWithoutNegator&>(t);}
+
     static ScalarSq  scalarNormSqr(const K& t) {return t.scalarNormSqr();}
     static TAbs      abs(const K& t)           {return t.abs();}
     static TStandard standardize(const K& t)   {return t.standardize();}
+    static TNormalize normalize(const K& t)    {return t.normalize();}
 };
 
 } // namespace SimTK

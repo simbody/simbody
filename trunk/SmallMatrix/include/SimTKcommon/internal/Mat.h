@@ -35,24 +35,27 @@ namespace SimTK {
 /// CS is total spacing between columns in memory (default M)
 /// RS is total spacing between rows in memory (default 1) 
 template <int M, int N, class ELT, int CS, int RS> class Mat {
-    typedef ELT                         E;
-    typedef typename CNT<E>::TNeg       ENeg;
-    typedef typename CNT<E>::TAbs       EAbs;
-    typedef typename CNT<E>::TStandard  EStandard;
-    typedef typename CNT<E>::TReal      EReal;
-    typedef typename CNT<E>::TImag      EImag;
-    typedef typename CNT<E>::TComplex   EComplex;
-    typedef typename CNT<E>::THerm      EHerm;
-    typedef typename CNT<E>::TInvert    EInvert;
-    typedef typename CNT<E>::TPosTrans  EPosTrans;
-    typedef typename CNT<E>::TSqHermT   ESqHermT;
-    typedef typename CNT<E>::TSqTHerm   ESqTHerm;
+    typedef ELT                                 E;
+    typedef typename CNT<E>::TNeg               ENeg;
+    typedef typename CNT<E>::TWithoutNegator    EWithoutNegator;
+    typedef typename CNT<E>::TReal              EReal;
+    typedef typename CNT<E>::TImag              EImag;
+    typedef typename CNT<E>::TComplex           EComplex;
+    typedef typename CNT<E>::THerm              EHerm;
+    typedef typename CNT<E>::TPosTrans          EPosTrans;
 
-    typedef typename CNT<E>::Scalar     EScalar;
-    typedef typename CNT<E>::Number     ENumber;
-    typedef typename CNT<E>::StdNumber  EStdNumber;
-    typedef typename CNT<E>::Precision  EPrecision;
-    typedef typename CNT<E>::ScalarSq   EScalarSq;
+    typedef typename CNT<E>::TAbs               EAbs;
+    typedef typename CNT<E>::TStandard          EStandard;
+    typedef typename CNT<E>::TInvert            EInvert;
+    typedef typename CNT<E>::TNormalize         ENormalize;
+    typedef typename CNT<E>::TSqHermT           ESqHermT;
+    typedef typename CNT<E>::TSqTHerm           ESqTHerm;
+
+    typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::Number             ENumber;
+    typedef typename CNT<E>::StdNumber          EStdNumber;
+    typedef typename CNT<E>::Precision          EPrecision;
+    typedef typename CNT<E>::ScalarSq           EScalarSq;
 
 public:
 
@@ -75,36 +78,42 @@ public:
         IsScalar            = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = CNT<E>::SignInterpretation
     };
 
-    typedef Mat<M,N,E,CS,RS>            T;
-    typedef Mat<M,N,ENeg,CS,RS>         TNeg;
-    typedef Mat<M,N,EAbs,M,1>           TAbs;       // Note strides are packed
-    typedef Mat<M,N,EStandard,M,1>      TStandard;
+    typedef Mat<M,N,E,CS,RS>                T;
+    typedef Mat<M,N,ENeg,CS,RS>             TNeg;
+    typedef Mat<M,N,EWithoutNegator,CS,RS>  TWithoutNegator;
+
     typedef Mat<M,N,EReal,CS*CNT<E>::RealStrideFactor,RS*CNT<E>::RealStrideFactor>
-                                        TReal;
+                                            TReal;
     typedef Mat<M,N,EImag,CS*CNT<E>::RealStrideFactor,RS*CNT<E>::RealStrideFactor>
-                                        TImag;
-    typedef Mat<M,N,EComplex,CS,RS>     TComplex;
-    typedef Mat<N,M,EHerm,RS,CS>        THerm;
-    typedef Mat<N,M,EInvert,N,1>        TInvert;    // like THerm but packed
-    typedef Mat<N,M,E,RS,CS>            TPosTrans;
-    typedef SymMat<N,ESqHermT>          TSqHermT;   // ~Mat*Mat
-    typedef SymMat<M,ESqTHerm>          TSqTHerm;   // Mat*~Mat
-    typedef E                           TElement;
-    typedef Row<N,E,CS>                 TRow;    
-    typedef Vec<M,E,RS>                 TCol;
+                                            TImag;
+    typedef Mat<M,N,EComplex,CS,RS>         TComplex;
+    typedef Mat<N,M,EHerm,RS,CS>            THerm;
+    typedef Mat<N,M,E,RS,CS>                TPosTrans;
+    typedef E                               TElement;
+    typedef Row<N,E,CS>                     TRow;    
+    typedef Vec<M,E,RS>                     TCol;
+    typedef Vec<MinDim,E,RS+CS>             TDiag;
 
-    typedef EScalar                     Scalar;
-    typedef ENumber                     Number;
-    typedef EStdNumber                  StdNumber;
-    typedef EPrecision                  Precision;
-    typedef EScalarSq                   ScalarSq;
+    // These are the results of calculations, so are returned in new, packed
+    // memory. Be sure to refer to element types here which are also packed.
+    typedef Mat<M,N,EAbs,M,1>               TAbs;       // Note strides are packed
+    typedef Mat<M,N,EStandard,M,1>          TStandard;
+    typedef Mat<N,M,EInvert,N,1>            TInvert;    // like THerm but packed
+    typedef Mat<M,N,ENormalize,M,1>         TNormalize;
+    typedef SymMat<N,ESqHermT>              TSqHermT;   // ~Mat*Mat
+    typedef SymMat<M,ESqTHerm>              TSqTHerm;   // Mat*~Mat
 
-    typedef THerm                       TransposeType; // TODO
+    typedef EScalar                         Scalar;
+    typedef ENumber                         Number;
+    typedef EStdNumber                      StdNumber;
+    typedef EPrecision                      Precision;
+    typedef EScalarSq                       ScalarSq;
 
-    typedef Vec<MinDim,E,RS+CS>              TDiag;
+    typedef THerm                           TransposeType; // TODO
 
     int size() const { return M*N; }
     int nrow() const { return M; }
@@ -515,6 +524,31 @@ public:
     ScalarSq normSqr() const { return scalarNormSqr(); }
     ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
 
+    // There is no conventional meaning for normalize() applied to a matrix. We
+    // choose to define it as follows:
+    // If the elements of this Mat are scalars, the result is what you get by
+    // dividing each element by the Frobenius norm() calculated above. If the elements are
+    // *not* scalars, then the elements are *separately* normalized. That means
+    // you will get a different answer from Mat<2,2,Mat33>::normalize() than you
+    // would from a Mat<6,6>::normalize() containing the same scalars.
+    //
+    // Normalize returns a matrix of the same dimension but in new, packed storage
+    // and with a return type that does not include negator<> even if the original
+    // Mat<> does, because we can eliminate the negation here almost for free.
+    // But we can't standardize (change conjugate to complex) for free, so we'll retain
+    // conjugates if there are any.
+    TNormalize normalize() const {
+        if (CNT<E>::IsScalar) {
+            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+        } else {
+            TNormalize elementwiseNormalized;
+            // punt to the column Vec to deal with the elements
+            for (int j=0; j<N; ++j) 
+                elementwiseNormalized(j) = (*this)(j).normalize();
+            return elementwiseNormalized;
+        }
+    }
+
     // Default inversion. Assume full rank if square, otherwise return
     // pseudoinverse. (Mostly TODO)
     TInvert invert() const;
@@ -550,6 +584,9 @@ public:
         EImag* p = reinterpret_cast<EImag*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
     }
+
+    const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
+    TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
 
     const TRow& row(int i) const 
       { assert(0<=i&&i<M); return *reinterpret_cast<const TRow*>(&d[i*RS]); }
@@ -602,24 +639,26 @@ public:
         return result;
     }
 
+    // Additive operators for scalars operate only on the diagonal.
     template <class EE> Mat<M,N, typename CNT<E>::template Result<EE>::Add>
     scalarAdd(const EE& e) const {
-        Mat<M,N, typename CNT<E>::template Result<EE>::Add> result;
-        for (int j=0; j<N; ++j) result(j) = (*this)(j).scalarAdd(e);
+        Mat<M,N, typename CNT<E>::template Result<EE>::Add> result(*this);
+        result.diag() += e;
         return result;
     }
     // Add is commutative, so no 'FromLeft'.
 
     template <class EE> Mat<M,N, typename CNT<E>::template Result<EE>::Sub>
     scalarSubtract(const EE& e) const {
-        Mat<M,N, typename CNT<E>::template Result<EE>::Sub> result;
-        for (int j=0; j<N; ++j) result(j) = (*this)(j).scalarSubtract(e);
+        Mat<M,N, typename CNT<E>::template Result<EE>::Sub> result(*this);
+        result.diag() -= e;
         return result;
     }
+    // Should probably do something clever with negation here (s - m)
     template <class EE> Mat<M,N, typename CNT<EE>::template Result<E>::Sub>
     scalarSubtractFromLeft(const EE& e) const {
-        Mat<M,N, typename CNT<EE>::template Result<E>::Sub> result;
-        for (int j=0; j<N; ++j) result(j) = (*this)(j).scalarSubtractFromLeft(e);
+        Mat<M,N, typename CNT<EE>::template Result<E>::Sub> result(-(*this));
+        result.diag() += e; // yes, add
         return result;
     }
 
@@ -635,15 +674,18 @@ public:
     // Generalized scalar assignment & computed assignment methods. These will work
     // for any assignment-compatible element, not just scalars.
     template <class EE> Mat& scalarEq(const EE& ee)
-      { for(int j=0; j<N; ++j) (*this)(j).scalarEq(EE(0)); diag().scalarEq(ee); return *this; }
+      { for(int j=0; j<N; ++j) (*this)(j).scalarEq(EE(0)); 
+        diag().scalarEq(ee); 
+        return *this; }
 
     template <class EE> Mat& scalarPlusEq(const EE& ee)
-      { for(int j=0; j<N; ++j) diag().scalarPlusEq(ee); return *this; }
+      { diag().scalarPlusEq(ee); return *this; }
 
     template <class EE> Mat& scalarMinusEq(const EE& ee)
-      { for(int j=0; j<N; ++j) diag().scalarMinusEq(ee); return *this; }
+      { diag().scalarMinusEq(ee); return *this; }
+    // m = s - m; negate m, then add s
     template <class EE> Mat& scalarMinusEqFromLeft(const EE& ee)
-      { for(int j=0; j<N; ++j) diag().scalarMinusEqFromLeft(ee); return *this; }
+      { scalarTimesEq(E(-1)); diag().scalarAdd(ee); return *this; }
 
     template <class EE> Mat& scalarTimesEq(const EE& ee)
       { for(int j=0; j<N; ++j) (*this)(j).scalarTimesEq(ee); return *this; }

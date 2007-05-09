@@ -75,6 +75,10 @@ int main()
     Row<3,Complex> rdot(mdc), sdot(&mdc[3]);
     cout << "v=" << vdot << " w=" << wdot << endl;
     cout << "r=" << rdot << " s=" << sdot << endl;
+    cout << "v.normalize()=" << vdot.normalize() << endl;
+    cout << "r.normalize()=" << rdot.normalize() << endl;
+
+
     cout << "--- dot() global function:dot(v,w), rw, vs, rs should be the same" << endl;
     cout << "vw=" << dot(vdot,wdot) << " rw" << dot(rdot,wdot) 
          << " vs" << dot(vdot,sdot) << " rs" << dot(rdot,sdot) << endl;
@@ -103,14 +107,37 @@ int main()
     cout << "--- crossMat should be same whether made from row or vec" << endl;
     cout << "crossMat(v)=" << vcross << "crossMat(r)=" << rcross;
     cout << "crossMat(v)*w=" << crossMat(vdot)*wdot << " vcross*w=" << vcross*wdot << endl;
-
+    cout << "*********\n";
     Mat<2,5,float> m25f( 1, 2, 3, 4, 5,
                          6, 7, 8, 9, 10 );
     cout << "Mat<2,5,float>=" << m25f;
+    cout << "Mat<2,5,float>.normalize()=" << m25f.normalize();
+    const Mat<1,5,Vec<2,float> >& m15v2f = 
+        *reinterpret_cast<const Mat<1,5,Vec<2,float> >*>(&m25f);
+    cout << "  m25f@" << &m25f << " m15v2f@" << &m15v2f << endl;
+    cout << "Mat<1,5,Vec<2,float> >=" << m15v2f;;
+    cout << "Mat<1,5,Vec<2,float> >.normalize()=" << m15v2f.normalize();
 
     const Real twoXthree[] = { 1, 2, 3,
                                4, 5, 6 };
     const Real threeXone[] = { .1, .001, .00001 };
+    const Real sym33[] = { 1,
+                           2, 3,
+                           4, -5, 6 };
+    SymMat<3> sm3(sym33);
+    cout << "SymMat<3> sm3=" << sm3;
+    Mat<3,3> m33sm3;
+    for (int i=0; i<3; ++i) 
+        for (int j=0; j<=i; ++j)
+            m33sm3(i,j) = m33sm3(j,i) = sm3(i,j);
+    cout << "Mat33(sm3)=" << m33sm3;
+    cout << "sm3*3=" << sm3*3;
+    cout << "sm3+100=" << sm3+100;
+    cout << "m33sm3+100=" << m33sm3+100;
+    cout << "sm3.normalize()=" << sm3.normalize();
+    cout << "m33sm3.normalize()=" << m33sm3.normalize();
+    cout << "sm3+=100:" << (sm3+=100.);
+    cout << "m33sm3+=100:" << (m33sm3+=100.);
 
     Mat<3,3,Complex> whole(mdc);
     SymMat<3,Complex,9> sym(whole);

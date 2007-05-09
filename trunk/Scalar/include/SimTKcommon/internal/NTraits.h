@@ -135,20 +135,24 @@ template <class R> class NTraits< complex<R> > {
     typedef complex<R>  C;
 public:
     typedef C                T;
-    typedef negator<C>       TNeg;
-    typedef R                TAbs;
-    typedef C                TStandard; // complex is a standard type
+    typedef negator<C>       TNeg;            // type of this after *cast* to its negative
+    typedef C                TWithoutNegator; // type of this ignoring negator (there isn't one!)
+
     typedef R                TReal;
     typedef R                TImag;
     typedef C                TComplex;    
     typedef conjugate<R>     THerm;     // this is a recast
-    typedef C                TInvert;   // this is a calculation, so use standard number
     typedef C                TPosTrans;
     typedef R                TSqHermT;  // ~C*C
     typedef R                TSqTHerm;  // C*~C (same)
     typedef C                TElement;
     typedef C                TRow;
     typedef C                TCol;
+
+    typedef R                TAbs;
+    typedef C                TStandard; // complex is a standard type
+    typedef C                TInvert;   // this is a calculation, so use standard number
+    typedef C                TNormalize;
 
     typedef C                Scalar;
     typedef C                Number;
@@ -188,7 +192,8 @@ public:
         IsScalar            = 1,
         IsNumber            = 1,
         IsStdNumber         = 1,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = 1       // after cast to Number, what is the sign?
     }; 
     static const T* getData(const T& t) { return &t; } 
     static T*       updData(T& t)       { return &t; }
@@ -208,11 +213,17 @@ public:
     static       TPosTrans& positionalTranspose(T& t)
         {return reinterpret_cast<TPosTrans&>(t);} 
 
+    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)
+        {return reinterpret_cast<const TWithoutNegator&>(t);}
+    static       TWithoutNegator& updCastAwayNegatorIfAny(const T& t)
+        {return reinterpret_cast<TWithoutNegator&>(t);}
+
     static ScalarSq scalarNormSqr(const T& t)
         { return t.real()*t.real() + t.imag()*t.imag(); }
     static TAbs     abs(const T& t)
         { return std::abs(t); } // no, not just sqrt of scalarNormSqr()!
     static const TStandard& standardize(const T& t) {return t;} // already standard
+    static TNormalize normalize(const T& t) {return t/abs(t);}
 
     static T getNaN()      { return T(CNT<R>::getNaN(),     CNT<R>::getNaN()); }
     static T getInfinity() { return T(CNT<R>::getInfinity(),CNT<R>::getInfinity()); }
@@ -245,20 +256,23 @@ template <class R> class NTraits< conjugate<R> > {
     typedef complex<R>          C;
 public:
     typedef conjugate<R>        T;
-    typedef negator<T>          TNeg;
-    typedef R                   TAbs;
-    typedef C                   TStandard;
+    typedef negator<T>          TNeg;            // type of this after *cast* to its negative
+    typedef T                   TWithoutNegator; // type of this ignoring negator (there isn't one!)
     typedef R                   TReal;
     typedef negator<R>          TImag;
     typedef conjugate<R>        TComplex;     
     typedef complex<R>          THerm;      // conjugate evaporates
-    typedef complex<R>          TInvert;
     typedef conjugate<R>        TPosTrans;  // Positional transpose of scalar does nothing
     typedef R                   TSqHermT;   // C*C~
     typedef R                   TSqTHerm;   // ~C*C (same)
     typedef conjugate<R>        TElement;
     typedef conjugate<R>        TRow;
     typedef conjugate<R>        TCol;
+
+    typedef R                   TAbs;
+    typedef C                   TStandard;
+    typedef complex<R>          TInvert;
+    typedef T                   TNormalize;
 
     typedef conjugate<R>        Scalar;
     typedef conjugate<R>        Number;
@@ -297,7 +311,8 @@ public:
         IsScalar            = 1,
         IsNumber            = 1,
         IsStdNumber         = 0,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = 1       // after cast to Number, what is the sign?
     }; 
 
     static const T*     getData(const T& t) { return &t; } 
@@ -318,12 +333,18 @@ public:
     static       TPosTrans& positionalTranspose(T& t)
         {return reinterpret_cast<TPosTrans&>(t);} 
 
+    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)
+        {return reinterpret_cast<const TWithoutNegator&>(t);}
+    static       TWithoutNegator& updCastAwayNegatorIfAny(const T& t)
+        {return reinterpret_cast<TWithoutNegator&>(t);}
+
     static ScalarSq scalarNormSqr(const T& t)
         { return t.real()*t.real() + t.negImag()*t.negImag(); }
     static TAbs     abs(const T& t)
         { return std::abs(t.conj()); }  // no, not just sqrt of scalarNormSqr()!
     static TStandard standardize(const T& t)
         { return TStandard(t); }        // i.e., convert to complex
+    static TNormalize normalize(const T& t) {return TNormalize(t/abs(t));}
 
     static conjugate<R> getNaN()      { return conjugate<R>(CNT<C>::getNaN()); }
     static conjugate<R> getInfinity() { 
@@ -382,19 +403,21 @@ template <> class NTraits<R> {                  \
 public:                                         \
     typedef R                T;                 \
     typedef negator<T>       TNeg;              \
-    typedef T                TAbs;              \
-    typedef T                TStandard;         \
+    typedef T                TWithoutNegator;   \
     typedef T                TReal;             \
     typedef T                TImag;             \
     typedef complex<T>       TComplex;          \
     typedef T                THerm;             \
-    typedef T                TInvert;           \
     typedef T                TPosTrans;         \
     typedef T                TSqHermT;          \
     typedef T                TSqTHerm;          \
     typedef T                TElement;          \
     typedef T                TRow;              \
     typedef T                TCol;              \
+    typedef T                TAbs;              \
+    typedef T                TStandard;         \
+    typedef T                TInvert;           \
+    typedef T                TNormalize;        \
     typedef T                Scalar;            \
     typedef T                Number;            \
     typedef T                StdNumber;         \
@@ -423,7 +446,8 @@ public:                                         \
         IsScalar            = 1,                \
         IsNumber            = 1,                \
         IsStdNumber         = 1,                \
-        IsPrecision         = 1                 \
+        IsPrecision         = 1,                \
+        SignInterpretation  = 1                 \
     };                                          \
     static const T* getData(const T& t) { return &t; }  \
     static T*       updData(T& t)       { return &t; }  \
@@ -439,9 +463,14 @@ public:                                         \
         {return reinterpret_cast<const TPosTrans&>(t);}                     \
     static       TPosTrans& positionalTranspose(T& t)                       \
         {return reinterpret_cast<TPosTrans&>(t);}                           \
+    static const TWithoutNegator& castAwayNegatorIfAny(const T& t)          \
+        {return reinterpret_cast<const TWithoutNegator&>(t);}               \
+    static       TWithoutNegator& updCastAwayNegatorIfAny(T& t)             \
+        {return reinterpret_cast<TWithoutNegator&>(t);}                     \
     static ScalarSq   scalarNormSqr(const T& t) {return t*t;}               \
     static TAbs       abs(const T& t) {return std::abs(t);}                 \
     static const TStandard& standardize(const T& t) {return t;}             \
+    static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
     static T getNaN()      { return std::numeric_limits<T>::quiet_NaN(); }  \
     static T getInfinity() { return std::numeric_limits<T>::infinity();  }  \
     \

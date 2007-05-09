@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMMATRIX_SMALLMATRIX_SYMMAT_H_
 #define SimTK_SIMMATRIX_SMALLMATRIX_SYMMAT_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -69,24 +69,27 @@ namespace SimTK {
 
 /// RS is total spacing between rows in memory (default 1) 
 template <int M, class ELT, int RS> class SymMat {
-    typedef ELT                         E;
-    typedef typename CNT<E>::TNeg       ENeg;
-    typedef typename CNT<E>::TAbs       EAbs;
-    typedef typename CNT<E>::TStandard  EStandard;
-    typedef typename CNT<E>::TReal      EReal;
-    typedef typename CNT<E>::TImag      EImag;
-    typedef typename CNT<E>::TComplex   EComplex;
-    typedef typename CNT<E>::THerm      EHerm;
-    typedef typename CNT<E>::TInvert    EInvert;
-    typedef typename CNT<E>::TPosTrans  EPosTrans;
-    typedef typename CNT<E>::TSqHermT   ESqHermT;
-    typedef typename CNT<E>::TSqTHerm   ESqTHerm;
+    typedef ELT                                 E;
+    typedef typename CNT<E>::TNeg               ENeg;
+    typedef typename CNT<E>::TWithoutNegator    EWithoutNegator;
+    typedef typename CNT<E>::TReal              EReal;
+    typedef typename CNT<E>::TImag              EImag;
+    typedef typename CNT<E>::TComplex           EComplex;
+    typedef typename CNT<E>::THerm              EHerm;
+    typedef typename CNT<E>::TPosTrans          EPosTrans;
+    typedef typename CNT<E>::TSqHermT           ESqHermT;
+    typedef typename CNT<E>::TSqTHerm           ESqTHerm;
 
-    typedef typename CNT<E>::Scalar     EScalar;
-    typedef typename CNT<E>::Number     ENumber;
-    typedef typename CNT<E>::StdNumber  EStdNumber;
-    typedef typename CNT<E>::Precision  EPrecision;
-    typedef typename CNT<E>::ScalarSq   EScalarSq;
+    typedef typename CNT<E>::TAbs               EAbs;
+    typedef typename CNT<E>::TStandard          EStandard;
+    typedef typename CNT<E>::TInvert            EInvert;
+    typedef typename CNT<E>::TNormalize         ENormalize;
+
+    typedef typename CNT<E>::Scalar             EScalar;
+    typedef typename CNT<E>::Number             ENumber;
+    typedef typename CNT<E>::StdNumber          EStdNumber;
+    typedef typename CNT<E>::Precision          EPrecision;
+    typedef typename CNT<E>::ScalarSq           EScalarSq;
 
 public:
 
@@ -107,26 +110,38 @@ public:
         IsScalar            = 0,
         IsNumber            = 0,
         IsStdNumber         = 0,
-        IsPrecision         = 0
+        IsPrecision         = 0,
+        SignInterpretation  = CNT<E>::SignInterpretation
     };
 
-    typedef SymMat<M,E,RS>              T;
-    typedef SymMat<M,ENeg,RS>           TNeg;
-    typedef SymMat<M,EAbs,1>            TAbs;       // Note stride is packed
-    typedef SymMat<M,EStandard,1>       TStandard;
+    typedef SymMat<M,E,RS>                  T;
+    typedef SymMat<M,ENeg,RS>               TNeg;
+    typedef SymMat<M,EWithoutNegator,RS>    TWithoutNegator;
+
     typedef SymMat<M,EReal,RS*CNT<E>::RealStrideFactor>          
-                                        TReal;
+                                            TReal;
     typedef SymMat<M,EImag,RS*CNT<E>::RealStrideFactor>          
-                                        TImag;
-    typedef SymMat<M,EComplex,RS>       TComplex;
-    typedef T                           THerm;      // This is opposite of what you might expect
-    typedef SymMat<M,EInvert,1>         TInvert;
-    typedef SymMat<M,EHerm,RS>          TPosTrans;
-    typedef SymMat<M,ESqHermT,1>        TSqHermT;   // ~Mat*Mat
-    typedef SymMat<M,ESqTHerm,1>        TSqTHerm;   // Mat*~Mat
-    typedef E                           TElement;
+                                            TImag;
+    typedef SymMat<M,EComplex,RS>           TComplex;
+    typedef T                               THerm;   // These two are opposite of what you might expect
+    typedef SymMat<M,EHerm,RS>              TPosTrans;
+    typedef E                               TElement;
+    typedef Vec<M,E,RS>                     TDiag;   // storage type for the diagonal elements
+    typedef Vec<(M*(M-1))/2,E,RS>           TLower;  // storage type for the below-diag elements
+    typedef Vec<(M*(M-1))/2,EHerm,RS>       TUpper;  // cast TLower to this for upper elements
+    typedef Vec<(M*(M+1))/2,E,RS>           TAsVec;  // the whole SymMat as a single Vec
+
+    // These are the results of calculations, so are returned in new, packed
+    // memory. Be sure to refer to element types here which are also packed.
     typedef Row<M,E,1>                  TRow; // packed since we have to copy
     typedef Vec<M,E,1>                  TCol;
+    typedef SymMat<M,EAbs,1>            TAbs;
+    typedef SymMat<M,EStandard,1>       TStandard;
+    typedef SymMat<M,EInvert,1>         TInvert;
+    typedef SymMat<M,ENormalize,1>      TNormalize;
+    typedef SymMat<M,ESqHermT,1>        TSqHermT; // ~Mat*Mat
+    typedef SymMat<M,ESqTHerm,1>        TSqTHerm; // Mat*~Mat
+    typedef SymMat<M,E,1>               TPacked;  // no extra row spacing for new data
     
     typedef EScalar                     Scalar;
     typedef ENumber                     Number;
@@ -134,16 +149,9 @@ public:
     typedef EPrecision                  Precision;
     typedef EScalarSq                   ScalarSq;
 
-    typedef Vec<M,E,RS>                 TDiag;   // storage type for the diagonal elements
-    typedef Vec<(M*(M-1))/2,E,RS>       TLower;  // storage type for the below-diag elements
-    typedef Vec<(M*(M-1))/2,EHerm,RS>   TUpper;  // cast TLower to this for upper elements
-    typedef Vec<(M*(M+1))/2,E,RS>       TAsVec;  // the whole SymMat as a single Vec
-    typedef SymMat<M,E,1>               TPacked; // no extra row spacing for new data
-
     int size() const { return (M*(M+1))/2; }
     int nrow() const { return M; }
     int ncol() const { return M; }
-
 
     // Scalar norm square is sum( squares of all scalars ). The off-diagonals
     // come up twice.
@@ -304,7 +312,7 @@ public:
     }
 
 
-    // Assignment ops
+    // Conforming assignment ops
     template <class EE, int RSS> SymMat& 
     operator+=(const SymMat<M,EE,RSS>& mm) {
         updAsVec() += mm.getAsVec();
@@ -350,7 +358,7 @@ public:
     typename Result<SymMat<M,E2,RS2> >::Sub
     conformingSubtract(const SymMat<M,E2,RS2>& r) const {
         return typename Result<SymMat<M,E2,RS2> >::Sub
-            (getAsVec().conformingSub(r.getAsVec()));
+            (getAsVec().conformingSubtract(r.getAsVec()));
     }
 
     // TODO: need the rest of the SymMat operators
@@ -364,6 +372,28 @@ public:
     // This is the scalar Frobenius norm.
     ScalarSq normSqr() const { return scalarNormSqr(); }
     ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); }
+
+    // There is no conventional meaning for normalize() applied to a matrix. We
+    // choose to define it as follows:
+    // If the elements of this SymMat are scalars, the result is what you get by
+    // dividing each element by the Frobenius norm() calculated above. If the elements are
+    // *not* scalars, then the elements are *separately* normalized.
+    //
+    // Normalize returns a matrix of the same dimension but in new, packed storage
+    // and with a return type that does not include negator<> even if the original
+    // SymMat<> does, because we can eliminate the negation here almost for free.
+    // But we can't standardize (change conjugate to complex) for free, so we'll retain
+    // conjugates if there are any.
+    TNormalize normalize() const {
+        if (CNT<E>::IsScalar) {
+            return castAwayNegatorIfAny() / (SignInterpretation*norm());
+        } else {
+            TNormalize elementwiseNormalized;
+            // punt to the equivalent Vec to get the elements normalized
+            elementwiseNormalized.updAsVec() = getAsVec().normalize();
+            return elementwiseNormalized;
+        }
+    }
 
     TInvert invert() const {assert(false); return TInvert();} // TODO default inversion
 
@@ -399,6 +429,68 @@ public:
         return *reinterpret_cast<TImag*>(p+offs);
     }
 
+    const TWithoutNegator& castAwayNegatorIfAny() const {return *reinterpret_cast<const TWithoutNegator*>(this);}
+    TWithoutNegator&       updCastAwayNegatorIfAny()    {return *reinterpret_cast<TWithoutNegator*>(this);}
+
+    // These are elementwise binary operators, (this op ee) by default but (ee op this) if
+    // 'FromLeft' appears in the name. The result is a packed SymMat<M> but the element type
+    // may change. These are mostly used to implement global operators.
+    // We call these "scalar" operators but actually the "scalar" can be a composite type.
+
+    //TODO: consider converting 'e' to Standard Numbers as precalculation and changing
+    // return type appropriately.
+    template <class EE> SymMat<M, typename CNT<E>::template Result<EE>::Mul>
+    scalarMultiply(const EE& e) const {
+        SymMat<M, typename CNT<E>::template Result<EE>::Mul> result;
+        result.updAsVec() = getAsVec().scalarMultiply(e);
+        return result;
+    }
+    template <class EE> SymMat<M, typename CNT<EE>::template Result<E>::Mul>
+    scalarMultiplyFromLeft(const EE& e) const {
+        SymMat<M, typename CNT<EE>::template Result<E>::Mul> result;
+        result.updAsVec() = getAsVec().scalarMultiplyFromLeft(e);
+        return result;
+    }
+
+    // TODO: should precalculate and store 1/e, while converting to Standard Numbers. Note
+    // that return type should change appropriately.
+    template <class EE> SymMat<M, typename CNT<E>::template Result<EE>::Dvd>
+    scalarDivide(const EE& e) const {
+        SymMat<M, typename CNT<E>::template Result<EE>::Dvd> result;
+        result.updAsVec() = getAsVec().scalarDivide(e);
+        return result;
+    }
+    template <class EE> SymMat<M, typename CNT<EE>::template Result<E>::Dvd>
+    scalarDivideFromLeft(const EE& e) const {
+        SymMat<M, typename CNT<EE>::template Result<E>::Dvd> result;
+        result.updAsVec() = getAsVec().scalarDivideFromLeft(e);
+        return result;
+    }
+
+    // Additive ops involving a scalar update only the diagonal
+    template <class EE> SymMat<M, typename CNT<E>::template Result<EE>::Add>
+    scalarAdd(const EE& e) const {
+        SymMat<M, typename CNT<E>::template Result<EE>::Add> result(*this);
+        result.updDiag() += e;
+        return result;
+    }
+    // Add is commutative, so no 'FromLeft'.
+
+    template <class EE> SymMat<M, typename CNT<E>::template Result<EE>::Sub>
+    scalarSubtract(const EE& e) const {
+        SymMat<M, typename CNT<E>::template Result<EE>::Sub> result(*this);
+        result.diag() -= e;
+        return result;
+    }
+    // This is s-m; negate m and add s to diagonal
+    // TODO: Should do something clever with negation here.
+    template <class EE> SymMat<M, typename CNT<EE>::template Result<E>::Sub>
+    scalarSubtractFromLeft(const EE& e) const {
+        SymMat<M, typename CNT<EE>::template Result<E>::Sub> result(-(*this));
+        result.diag() += e;
+        return result;
+    }
+
     // Generic assignments for any element type not listed explicitly, including scalars.
     // These are done repeatedly for each element and only work if the operation can
     // be performed leaving the original element type.
@@ -416,14 +508,19 @@ public:
       { updDiag() += ee; return *this; }
     template <class EE> SymMat& scalarMinusEq(const EE& ee)
       { updDiag() -= ee; return *this; }
-    template <class EE> SymMat& scalarInverseMinusEq(const EE& ee)
-      { updDiag().scalarInverseMinusEq(ee); return *this; }
+
+    // this is m = s-m; negate off diagonal, do d=s-d for each diagonal element d
+    template <class EE> SymMat& scalarMinusEqFromLeft(const EE& ee)
+      { updLower() *= E(-1); updDiag().scalarMinusEqFromLeft(ee); return *this; }
+
     template <class EE> SymMat& scalarTimesEq(const EE& ee)
       { updAsVec() *= ee; return *this; }
+    template <class EE> SymMat& scalarTimesEqFromLeft(const EE& ee)
+      { updAsVec().scalarTimesEqFromLeft(ee); return *this; }
     template <class EE> SymMat& scalarDivideEq(const EE& ee)
       { updAsVec() /= ee; return *this; }
-    template <class EE> SymMat& scalarInverseDivideEq(const EE& ee)
-      { updAsVec().scalarInverseDivideEq(ee); return *this; } 
+    template <class EE> SymMat& scalarDivideEqFromLeft(const EE& ee)
+      { updAsVec().scalarDivideEqFromLeft(ee); return *this; } 
 
     void setToNaN() { updAsVec().setToNaN(); }
 
@@ -439,6 +536,10 @@ public:
 
     const TDiag&  getDiag()  const {return TDiag::getAs(d);}
     TDiag&        updDiag()        {return TDiag::updAs(d);}
+
+    // Conventional synonym
+    const TDiag& diag() const {return getDiag();}
+    TDiag&       diag()       {return updDiag();}
 
     const TLower& getLower() const {return TLower::getAs(&d[M*RS]);}
     TLower&       updLower()       {return TLower::updAs(&d[M*RS]);}
