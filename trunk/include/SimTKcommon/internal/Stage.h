@@ -38,7 +38,7 @@ namespace SimTK {
 /**
  * This class is basically a glorified enumerated type, type-safe and range
  * checked but permitting convenient (if limited) arithmetic.
- * Constants look like Stage::Configure, and loops can be written like
+ * Constants look like Stage::Position, and loops can be written like
  * 		for(Stage s=Stage::Lowest; s <= Stage::Highest; ++s) ...
  * Stage constants (of type Stage::Num) are implicitly converted to type
  * Stage when necessary.
@@ -82,7 +82,7 @@ public:
 
     // LowestRuntime->HighestRuntime cover the post-construction stages only.
 	static const Stage::Num	LowestRuntime	= Model;
-	static const Stage::Num	HighestRuntime	= Acceleration;
+	static const Stage::Num	HighestRuntime	= Report;
 	static const int		NRuntime     	= HighestRuntime-LowestRuntime+1;
 		
 	Stage() : n(Stage::Invalid) { }
