@@ -36,6 +36,7 @@
 #include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
+#include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/AnalyticGeometry.h"
 #include "simbody/internal/DecorativeGeometry.h"
 
@@ -187,7 +188,7 @@ class MultibodySystemRep : public SystemRep {
 public:
     MultibodySystemRep() 
       : SystemRep("MultibodySystem", "0.0.1"), 
-        built(false), globalSub(-1), matterSub(-1)
+        built(false), globalSub(-1), matterSub(-1), decorationSub(-1)
     {
     }
     ~MultibodySystemRep() {
@@ -211,6 +212,12 @@ public:
         forceSubs.push_back(takeOverSubsystem(f));
         return forceSubs.back();
     }
+    int setDecorationSubsystem(DecorationSubsystem& d) {
+        assert(decorationSub == -1);
+        built = false;
+        decorationSub = takeOverSubsystem(d);
+        return decorationSub;
+    }
 
     const MatterSubsystem& getMatterSubsystem() const {
         assert(matterSub >= 0);
@@ -224,6 +231,11 @@ public:
         assert(globalSub >= 0);
         return MultibodySystemGlobalSubsystem::downcast(getSubsystem(globalSub));
     }
+    bool hasDecorationSubsystem() const {return decorationSub >= 0;}
+    const DecorationSubsystem& getDecorationSubsystem() const {
+        assert(decorationSub >= 0);
+        return DecorationSubsystem::downcast(getSubsystem(decorationSub));
+    }
 
     MatterSubsystem& updMatterSubsystem() {
         assert(matterSub >= 0);
@@ -236,6 +248,10 @@ public:
     MultibodySystemGlobalSubsystem& updGlobalSubsystem() {
         assert(globalSub >= 0);
         return MultibodySystemGlobalSubsystem::updDowncast(updSubsystem(globalSub));
+    }
+    DecorationSubsystem& updDecorationSubsystem() {
+        assert(decorationSub >= 0);
+        return DecorationSubsystem::updDowncast(updSubsystem(decorationSub));
     }
     // Global state variables dealing with interaction between forces & matter
 
@@ -319,6 +335,9 @@ public:
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Topology);
 
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Topology);
+
         mutableThis.built = true;
     }
     void realizeModel(State& s) const {
@@ -326,37 +345,55 @@ public:
         getMatterSubsystem().realize(s, Stage::Model);
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Model);
-    }
+ 
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Model);
+   }
     void realizeInstance(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Instance);
         getMatterSubsystem().realize(s, Stage::Instance);
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Instance);
-    }
+ 
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Instance);
+   }
     void realizeTime(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Time);
         getMatterSubsystem().realize(s, Stage::Time);
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Time);
+
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Time);
     }
     void realizePosition(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Position);
         getMatterSubsystem().realize(s, Stage::Position);
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Position);
+
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Position);
     }
     void realizeVelocity(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Velocity);
         getMatterSubsystem().realize(s, Stage::Velocity);
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Velocity);
-    }
+ 
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Velocity);
+   }
     void realizeDynamics(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Dynamics);
         // note order: forces first (TODO: does that matter?)
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Dynamics);
         getMatterSubsystem().realize(s, Stage::Dynamics);
+
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Dynamics);
     }
     void realizeAcceleration(const State& s) const {
         getGlobalSubsystem().realize(s, Stage::Acceleration);
@@ -364,6 +401,9 @@ public:
         for (int i=0; i < (int)forceSubs.size(); ++i)
             getForceSubsystem(forceSubs[i]).realize(s, Stage::Acceleration);
         getMatterSubsystem().realize(s, Stage::Acceleration);
+
+        if (hasDecorationSubsystem())
+            getDecorationSubsystem().realize(s, Stage::Acceleration);
     }
 
     SimTK_DOWNCAST(MultibodySystemRep, SystemRep);
@@ -372,6 +412,7 @@ private:
     int  globalSub;             // index of global subsystem
     int  matterSub;             // index of matter subsystems
     std::vector<int> forceSubs; // indices of force subsystems
+    int  decorationSub;         // index of DecorationSubsystem if any, else -1
 };
 
 

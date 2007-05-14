@@ -368,7 +368,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 //         = 4/3 k x sqrt(R*k*x)
 // Then the complete Hunt & Crossley force f is
 //      fH(1 + 3/2 c v)  where v = xdot.
-// We also what potential energy
+// We also want potential energy
 //      pe = 2/5 * (4/3 sqrt(R) E)*x^(5/2) = 2/5 fH x
 // TODO: If we want the patch radius a also (not currently needed) it is
 //      a = sqrt(R*x)
@@ -378,7 +378,7 @@ void HuntCrossleyContactRep::realizeDynamics(const State& s) const
 // Note that we don't apply the force or count potential energy if the
 // calculated value is negative, meaning the bodies would be "sticking".
 // That situation can only occur because an outside force is yanking
-// the bodies apart.y
+// the bodies apart.
 
 void HuntCrossleyContactRep::processContact
    (const Real& R,

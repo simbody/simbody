@@ -1,5 +1,5 @@
-/* Portions copyright (c) 2006 Stanford University and Jack Middleton.
- * Contributors:
+/* Portions copyright (c) 2007 Stanford University and Jack Middleton.
+ * Contributors: Michael Sherman
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -15,15 +15,20 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/** @file
+ * Implementation of the VTKDeorativeGeometry class.
  */
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/AnalyticGeometry.h"
 #include "simbody/internal/DecorativeGeometry.h"
+
+#include "VTKDecorativeGeometry.h"
 
 #include "vtkCommand.h"
 #include "vtkRenderer.h"
@@ -54,17 +59,23 @@
 #include "vtkVectorText.h"
 
 #include "vtkObject.h"
-#include "VTKDecorativeGeometry.h"
 
 #include <cmath>
 
-namespace SimTK {
-    static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+using namespace SimTK;
+
+static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
 
 
     ///////////////////////////
     // VTKDecorativeGeometry //
     ///////////////////////////
+
+vtkPolyData* 
+VTKDecorativeGeometry::getVTKPolyData() {
+    assert(vtkObjects.size());
+    return vtkPolyDataAlgorithm::SafeDownCast(vtkObjects.back())->GetOutput();
+}
 
 vtkTransform* 
 VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Real& s) {
@@ -97,74 +108,102 @@ VTKDecorativeGeometry::transformVTKPolyData(const Transform& X_BG, const Real& s
     return trf->GetOutput();
 }
 
-void VTKDecorativeLine::createVTKPolyData(const Vec3& p1, const Vec3& p2) {
-    vtkLineSource* line = vtkLineSource::New(); 
-    rememberVTKObject(line);
 
-
-    line->SetPoint1(p1[0],p1[1],p1[2]); line->SetPoint2(p2[0],p2[1],p2[2]);
-
-    const Real scale = myHandle->getScale() > 0. ? myHandle->getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(myHandle->getPlacement(), scale, 
-                                             line->GetOutput());
-}
-void VTKDecorativeCircle::createVTKPolyData(Real r) {
-    assert(!"DecorativeCircle::createVTKPolyData() NOT IMPLEMENTED YET");
+void VTKDecorativeGeometry::deleteVTKGeometry() { // Delete in reverse order of allocation
+    for (int i=(int)vtkObjects.size()-1; i >= 0; --i) {
+        vtkObject* obj = vtkObjects[i];
+        obj->Delete();
+        vtkObjects[i]=0;
+    }
+    vtkObjects.resize(0);
 }
 
-void VTKDecorativeSphere::createVTKPolyData(Real r) {
-    vtkSphereSource *sphere = vtkSphereSource::New();
-    rememberVTKObject(sphere);
+    // Implementations of pure virtuals for building specific geometric objects. //
 
-    sphere->SetRadius(r);
+void VTKDecorativeGeometry::implementLineGeometry(const DecorativeLine& dline) {
+    const Vec3& p1 = dline.getPoint1();
+    const Vec3& p2 = dline.getPoint2();
+    vtkLineSource* vline = vtkLineSource::New(); 
+    rememberVTKObject(vline);
+
+    vline->SetPoint1(p1[0],p1[1],p1[2]); vline->SetPoint2(p2[0],p2[1],p2[2]);
+
+    const Real scale = dline.getScale() > 0. ? dline.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dline.getTransform(), scale, 
+                                             vline->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
+}
+
+void VTKDecorativeGeometry::implementCircleGeometry(const DecorativeCircle& dcircle) {
+    assert(!"VTKDecorativeGeometry::implementCircleGeometry() NOT IMPLEMENTED YET");
+}
+
+void VTKDecorativeGeometry::implementSphereGeometry(const DecorativeSphere& dsphere) {
+    static const int DefaultResolution = 15;
+
+    const Real r = dsphere.getRadius();
+    vtkSphereSource *vsphere = vtkSphereSource::New();
+    rememberVTKObject(vsphere);
+
+    vsphere->SetRadius(r);
 
     int res = DefaultResolution;
-    if (myHandle->getResolution() > 0.) 
-        res = (int)(res*myHandle->getResolution()+0.5);
-    sphere->SetThetaResolution(res);
-    sphere->SetPhiResolution(res);
+    if (dsphere.getResolution() > 0.) 
+        res = (int)(res*dsphere.getResolution()+0.5);
+    vsphere->SetThetaResolution(res);
+    vsphere->SetPhiResolution(res);
 
-    const Real scale = myHandle->getScale() > 0. ? myHandle->getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(myHandle->getPlacement(), scale, 
-                                             sphere->GetOutput());
+    const Real scale = dsphere.getScale() > 0. ? dsphere.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dsphere.getTransform(), scale, 
+                                             vsphere->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
 
-void VTKDecorativeBrick::createVTKPolyData(const Vec3& h) {
-    vtkCubeSource* cube = vtkCubeSource::New();
-    rememberVTKObject(cube);
+void VTKDecorativeGeometry::implementBrickGeometry(const DecorativeBrick& dbrick) {
+    const Vec3& h = dbrick.getHalfLengths();
+    vtkCubeSource* vcube = vtkCubeSource::New();
+    rememberVTKObject(vcube);
 
-
-    cube->SetXLength(2*h[0]);
-    cube->SetYLength(2*h[1]);
-    cube->SetZLength(2*h[2]);
+    vcube->SetXLength(2*h[0]);
+    vcube->SetYLength(2*h[1]);
+    vcube->SetZLength(2*h[2]);
 
     // resolution is ignored -- our needs are few for rectangles!
 
-    const Real scale = myHandle->getScale() > 0. ? myHandle->getScale() : 1.;
+    const Real scale = dbrick.getScale() > 0. ? dbrick.getScale() : 1.;
 
-    vtkPolyData* data = transformVTKPolyData(myHandle->getPlacement(), scale, 
-                                             cube->GetOutput());
+    vtkPolyData* data = transformVTKPolyData(dbrick.getTransform(), scale, 
+                                             vcube->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
-void VTKDecorativeCylinder::createVTKPolyData(Real r, Real halfHeight) {
-    vtkCylinderSource* cyl = vtkCylinderSource::New();
-    rememberVTKObject(cyl);
+void VTKDecorativeGeometry::implementCylinderGeometry(const DecorativeCylinder& dcyl) {
+    static const int DefaultResolution = 10;
 
-    cyl->SetRadius(r);
-    cyl->SetHeight(2*halfHeight);
+    const Real r          = dcyl.getRadius();
+    const Real halfHeight = dcyl.getHalfHeight();
+
+    vtkCylinderSource* vcyl = vtkCylinderSource::New();
+    rememberVTKObject(vcyl);
+
+    vcyl->SetRadius(r);
+    vcyl->SetHeight(2*halfHeight);
 
     int res = DefaultResolution;
-    if (myHandle->getResolution() > 0.) 
-        res = (int)(res*myHandle->getResolution()+0.5);
-    cyl->SetResolution(res);
+    if (dcyl.getResolution() > 0.) 
+        res = (int)(res*dcyl.getResolution()+0.5);
+    vcyl->SetResolution(res);
 
-    const Real scale = myHandle->getScale() > 0. ? myHandle->getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(myHandle->getPlacement(), scale, 
-                                             cyl->GetOutput());
+    const Real scale = dcyl.getScale() > 0. ? dcyl.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dcyl.getTransform(), scale, 
+                                             vcyl->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
-void VTKDecorativeFrame::createVTKPolyData(Real length) {
+void VTKDecorativeGeometry::implementFrameGeometry(const DecorativeFrame& dframe) {
+    const Real length = dframe.getAxisLength();
+
     vtkAppendPolyData* app = vtkAppendPolyData::New();
     rememberVTKObject(app);
 
@@ -189,10 +228,10 @@ void VTKDecorativeFrame::createVTKPolyData(Real length) {
     vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05*length,0)), length*0.2, 
                                               xtext->GetOutput());
     app->AddInput(label);
-    const Real scale = myHandle->getScale() > 0. ? myHandle->getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(myHandle->getPlacement(), scale, 
+    const Real scale = dframe.getScale() > 0. ? dframe.getScale() : 1.;
+    vtkPolyData* data = transformVTKPolyData(dframe.getTransform(), scale, 
                                              app->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
-} // namespace SimTK
 

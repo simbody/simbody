@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors:
+ * Contributors: Jack Middleton
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -18,48 +18,45 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/AnalyticGeometry.h"
 #include "SimTKcommon/internal/common.h"
-#include "Reporter3D.h"
 
 #include <cmath>
 #include <vector>
 
 namespace SimTK {
 
-static const Real Pi = std::acos(Real(-1));
+static const Real Pi = (Real)SimTK_PI;
 
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 
-      : myHandle(0),  reporterGeometry(0), resolution(-1), scale(-1), placement(), 
-        colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), representation(-1)
+      : myHandle(0), body(0), placement(), resolution(-1), scale(-1),
+      colorRGB(-1,-1,-1), opacity(-1), lineThickness(-1), representation(DecorativeGeometry::DrawDefault)
     { 
     }
 
     ~DecorativeGeometryRep() {
-        if( reporterGeometry ) delete reporterGeometry;
-        reporterGeometry = 0;
         clearMyHandle();
     }
 
-    void deleteReporterGeometry() {
-        if( reporterGeometry ) delete reporterGeometry;
-        reporterGeometry = 0;
+    void setBodyId(BodyId b) {
+        body = b;
     }
+    BodyId getBodyId() const {return body;}
 
-    void setPlacement(const Transform& X_BG) {
-        placement = X_BG;
+    void setTransform(const Transform& X_BD) {
+        placement = X_BD;
     }
-    const Transform& getPlacement() const    {return placement;}
+    const Transform& getTransform() const    {return placement;}
 
     // This sets resolution to some factor times the object-specific default.
     // Anything 0 or less becomes -1 and means "use default".
@@ -99,26 +96,18 @@ public:
     }
     Real getLineThickness() const {return lineThickness;}
 
-    void setRepresentationToPoints()     {representation=DrawPoints;}
-    void setRepresentationToWireframe()  {representation=DrawWireFrame;}
-    void setRepresentationToSurface()    {representation=DrawSurface;}
-    void setRepresentationToUseDefault() {representation=-1;}
-
-    int getRepresentation() const {return representation;}
+    void setRepresentation(const DecorativeGeometry::Representation& r) {representation=r;}
+    DecorativeGeometry::Representation getRepresentation() const {return representation;}
 
     DecorativeGeometryRep* clone() const {
         DecorativeGeometryRep* dup = cloneDecorativeGeometryRep();
         dup->clearMyHandle();
-        dup->reporterGeometry = 0;
         return dup;
     }
-    void  setReporterGeometry( Reporter3DGeom* geometry) { reporterGeometry = geometry; return; }
-
-    Reporter3DGeom* getReporterGeometry() const { return( reporterGeometry ); }
 
     virtual DecorativeGeometryRep* cloneDecorativeGeometryRep() const = 0;
 
-    virtual void* generateReporterGeometry(Reporter3D*) = 0;
+    virtual void implementGeometry(DecorativeGeometryImplementation&) const = 0;
 
     void setMyHandle(DecorativeGeometry& h) {
         myHandle = &h;
@@ -131,20 +120,19 @@ private:
     friend class DecorativeGeometry;
 
     // These will be handled as we generate the PolyData.
+    BodyId    body;
+    Transform placement;    // default is identity
     Real      resolution;   // -1 means use default
     Real      scale;        // -1 means use default
-    Transform placement;    // default is identity
 
     // These must wait until we are associated with an actor.
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
-    int  representation;    // -1 DrawPoints, DrawWireFrame, DrawSurface 
+    DecorativeGeometry::Representation  representation; // e.g. points, wireframe, surface
 
 protected:
     DecorativeGeometry* myHandle;         // the owner of this rep
-    Reporter3DGeom*     reporterGeometry; // handle to data the Reporter3D uses to
-                                          // represent this DecorativeGeometry object
 };
 
     ///////////////////////
@@ -170,16 +158,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateLineGeometry(*myHandle, point1, point2);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementLineGeometry(getMyLineHandle());
     }
 
     SimTK_DOWNCAST(DecorativeLineRep, DecorativeGeometryRep);
 private:
     Vec3 point1, point2;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeLine& getMyLineHandle() const {
+        return *reinterpret_cast<const DecorativeLine*>(myHandle);
+    }
 };
 
     /////////////////////////
@@ -205,16 +195,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateCircleGeometry(*myHandle, r);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementCircleGeometry(getMyCircleHandle());
     }
 
     SimTK_DOWNCAST(DecorativeCircleRep, DecorativeGeometryRep);
 private:
     Real r;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeCircle& getMyCircleHandle() const {
+        return *reinterpret_cast<const DecorativeCircle*>(myHandle);
+    }
 };
 
     /////////////////////////
@@ -241,16 +233,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateSphereGeometry(*myHandle, r);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementSphereGeometry(getMySphereHandle());
     }
 
     SimTK_DOWNCAST(DecorativeSphereRep, DecorativeGeometryRep);
 private:
     Real r;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeSphere& getMySphereHandle() const {
+        return *reinterpret_cast<const DecorativeSphere*>(myHandle);
+    }
 };
 
     ////////////////////////
@@ -276,16 +270,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateBrickGeometry(*myHandle, halfLengths);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementBrickGeometry(getMyBrickHandle());
     }
 
     SimTK_DOWNCAST(DecorativeBrickRep, DecorativeGeometryRep);
 private:
     Vec3 halfLengths;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeBrick& getMyBrickHandle() const {
+        return *reinterpret_cast<const DecorativeBrick*>(myHandle);
+    }
 };
 
 
@@ -315,16 +311,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateCylinderGeometry(*myHandle, radius, halfHeight);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementCylinderGeometry(getMyCylinderHandle());
     }
 
     SimTK_DOWNCAST(DecorativeCylinderRep, DecorativeGeometryRep);
 private:
     Real radius, halfHeight;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeCylinder& getMyCylinderHandle() const {
+        return *reinterpret_cast<const DecorativeCylinder*>(myHandle);
+    }
 };
 
 class DecorativeFrameRep : public DecorativeGeometryRep {
@@ -346,16 +344,18 @@ public:
         return( DGRep ); 
     }
 
-    void* generateReporterGeometry(Reporter3D* reporter) {
-        deleteReporterGeometry();
-        reporterGeometry = reporter->generateFrameGeometry(*myHandle, axisLength);
-        return((void*)reporterGeometry->getReporterPolyData());
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementFrameGeometry(getMyFrameHandle());
     }
 
     SimTK_DOWNCAST(DecorativeFrameRep, DecorativeGeometryRep);
 private:
     Real axisLength;
 
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeFrame& getMyFrameHandle() const {
+        return *reinterpret_cast<const DecorativeFrame*>(myHandle);
+    }
 };
 
 } // namespace SimTK

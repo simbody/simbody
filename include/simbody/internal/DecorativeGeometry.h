@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMBODY_DECORATIVE_GEOMETRY_H_
 #define SimTK_SIMBODY_DECORATIVE_GEOMETRY_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,19 +18,31 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** @file
- * This is the client-side interface to decorative geometry suitable for
+ * This is the client-side interface to an implementation-independent
+ * representation of "decorative" geometry suitable for
  * visualization. DO NOT confuse this with AnalyticGeometry which can represent
  * physically meaningful objects. However, any AnalyticGeometry object can
  * generate some decorative geometry for visualization.
  *
- * Each object has its own local coordinate system and is defined self-consistently
+ * Why is there a DecorativeGeometry facility at the System level at all, so far away from
+ * any application program? That's because for crude visualization and debugging
+ * purposes, the Subsystems themselves are best able to produce some illustrative
+ * geometry. Otherwise, you need a special purpose visualization tool which understands
+ * what's going on inside each subsystem. If you don't mind taking what you get, just
+ * ask each subsystem to generate what it thinks would be helpful visualization. To do
+ * that, the subysystems need a way to talk about geometry without knowing anything
+ * about how that geometry will eventually get onto someone's screen. And that's why
+ * we're here!
+ *
+ * Each DecorativeGeometry object has its own local coordinate system
+ * and is defined self-consistently
  * but independent of anything else. Clients can associate these with a reference
  * frame (e.g. a body), and place the local frame of the geometry objects on the 
  * reference frame, or at a fixed transform from the reference frame. That places
@@ -64,6 +76,10 @@ static const Vec3 Purple  = Vec3(.5, 0,.5);
 static const Vec3 Cyan    = Vec3( 0, 1, 1);
 static const Vec3 White   = Vec3( 1, 1, 1);
 
+// Drawing representations
+
+class DecorativeGeometryImplementation;
+
 /**
  * This is an abstract handle class using the PIMPL design pattern to hide the private
  * implementation. This is effectively an abstract class although the virtual
@@ -76,8 +92,29 @@ public:
     DecorativeGeometry(const DecorativeGeometry&);
     DecorativeGeometry& operator=(const DecorativeGeometry&);
 
+    // Drawing modes.
+    enum Representation {
+        DrawPoints    =  1,
+        DrawWireframe =  2,
+        DrawSurface   =  3,
+
+        DrawDefault   = -1
+    };
+
     /// Implicit conversion
     DecorativeGeometry(const AnalyticGeometry&);
+
+    /// By default the geometry will be placed on ground. If you want it attached to
+    /// another body, say so here. This geometry will be rendered with respect to the
+    /// body frame of the specified body.
+    DecorativeGeometry& setBodyId(BodyId);
+
+    /// This transform shifts the generated polygons with respect to this object's
+    /// local frame. Subsequent calls with other transforms simply replace the earlier
+    /// one; they do not accumulate. The default transform is identity and you can 
+    /// call setTransform(Transform()) to put the transform back into its original state.
+    /// This value affects the generated polygonal data.
+    DecorativeGeometry& setTransform(const Transform& X_BG);
 
     /// Each concrete DecorativeGeometry object is expected to have a default resolution
     /// that gets the point across but is cheap to draw and hence probably somewhat "chunky".
@@ -85,13 +122,6 @@ public:
     /// or equal to zero here is interpreted as an instruction to "use the default".
     /// This value affects the generated polygonal data.
     DecorativeGeometry& setResolution(Real);
-
-    /// This transform shifts the generated polygons with respect to this object's
-    /// local frame. Subsequent calls with other transforms simply replace the earlier
-    /// one; they do not accumulate. The default transform is identity and you can 
-    /// call setPlacement(Transform()) to put the transform back into its original state.
-    /// This value affects the generated polygonal data.
-    DecorativeGeometry& setPlacement(const Transform& X_BG);
 
     /// Each concrete DecorativeGeometry object is expected to have a default size
     /// around "1", whatever that means for a particular object, and most objects also
@@ -102,6 +132,10 @@ public:
     /// This value affects the generated polygonal data.
     DecorativeGeometry& setScale(Real);
 
+    /// Return the body to which this geometry is attached. The geometry's placement is
+    /// interpreted relative to the body's frame.
+    BodyId getBodyId() const;
+
     /// Return the current setting of the "resolution" factor. A return value of -1
     /// means "use the default".
     Real getResolution() const;
@@ -109,7 +143,7 @@ public:
     /// Return the current value of the object's transform. If none has been set this
     /// will be the identity transform. Note that this transform specifies how the
     /// polygons are placed with respect to the object's local frame.
-    const Transform& getPlacement() const;
+    const Transform& getTransform() const;
 
     /// Return the current setting of the "scale" factor. A return value of -1 
     /// means "use the default" (which is typically 1).
@@ -135,29 +169,17 @@ public:
     Real        getOpacity()    const;
     Real        getLineThickness() const;
 
-    /// Request a particular rendering of this DecorativeGeometry object as a 
-    /// set of points. The default is that the rendering choice is made elsewhere.
-    DecorativeGeometry& setRepresentationToPoints();
+    /// Request a particular rendering representation of this DecorativeGeometry
+    /// object. The default is that the rendering representation choice is made elsewhere.
+    DecorativeGeometry& setRepresentation(const Representation&);
 
-    /// Request a particular rendering of this DecorativeGeometry object in
-    /// wireframe. The default is that the rendering choice is made elsewhere.
-    DecorativeGeometry& setRepresentationToWireframe();
+    /// returns drawing mode: -1 means "use default"; see above for others
+    Representation getRepresentation() const;
 
-    /// Request a particular rendering of this DecorativeGeometry object using
-    /// shaded surfaces. The default is that the rendering choice is made elsewhere.
-    DecorativeGeometry& setRepresentationToSurface();
-
-    /// Specify that the representation for this DecorativeGeometry object should
-    /// be chosen elsewhere. This is the default.
-    DecorativeGeometry& setRepresentationToUseDefault();
-
-    /// -1 means "use default"; otherwise we're not documenting the meaning here.
-    int getRepresentation() const;
+    void implementGeometry(DecorativeGeometryImplementation&) const;
 
     // Bookkeeping below here -- internal use only. Don't look below or you will
     // turn into a pillar of salt.
-
-   
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
     explicit DecorativeGeometry(class DecorativeGeometryRep* r) : rep(r) { }
@@ -183,15 +205,30 @@ class SimTK_SIMBODY_EXPORT DecorativeLine : public DecorativeGeometry {
 public:
     explicit DecorativeLine(const Vec3& p1=Vec3(0), const Vec3& p2=Vec3(1)); // line between p1 and p2
 
-    void setPoint1(const Vec3& p1);
-    void setPoint2(const Vec3& p2);
-    void setEndpoints(const Vec3& p1, const Vec3& p2);
+    // Retain the derived type when setting generic geometry options.
+    DecorativeLine& setBodyId(BodyId b)       {DecorativeGeometry::setBodyId(b);        return *this;}
+    DecorativeLine& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
+    DecorativeLine& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
+    DecorativeLine& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}
+    DecorativeLine& setColor(const Vec3& rgb) {DecorativeGeometry::setColor(rgb);       return *this;}
+    DecorativeLine& setOpacity(Real o)        {DecorativeGeometry::setOpacity(o);       return *this;}
+    DecorativeLine& setLineThickness(Real t)  {DecorativeGeometry::setLineThickness(t); return *this;}
+    DecorativeLine& setRepresentation(const Representation& r) {
+        DecorativeGeometry::setRepresentation(r); return *this;
+    }
+
+    // These are specific to lines.
+    DecorativeLine& setPoint1(const Vec3& p1);
+    DecorativeLine& setPoint2(const Vec3& p2);
+    DecorativeLine& setEndpoints(const Vec3& p1, const Vec3& p2);
 
     const Vec3& getPoint1() const;
     const Vec3& getPoint2() const;
 
-
     SimTK_PIMPL_DOWNCAST(DecorativeLine, DecorativeGeometry);
+private:
+    class DecorativeLineRep& updRep();
+    const DecorativeLineRep& getRep() const;
 };
 
 /**
@@ -206,6 +243,9 @@ public:
     Real getRadius() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeCircle, DecorativeGeometry);
+private:
+    class DecorativeCircleRep& updRep();
+    const DecorativeCircleRep& getRep() const;
 };
 
 /**
@@ -220,6 +260,9 @@ public:
     Real getRadius() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeSphere, DecorativeGeometry);
+private:
+    class DecorativeSphereRep& updRep();
+    const DecorativeSphereRep& getRep() const;
 };
 
 /**
@@ -235,6 +278,9 @@ public:
     const Vec3& getHalfLengths() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeBrick, DecorativeGeometry);
+private:
+    class DecorativeBrickRep& updRep();
+    const DecorativeBrickRep& getRep() const;
 };
 
 /**
@@ -252,6 +298,9 @@ public:
     Real getHalfHeight() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeCylinder, DecorativeGeometry);
+private:
+    class DecorativeCylinderRep& updRep();
+    const DecorativeCylinderRep& getRep() const;
 };
 
 /**
@@ -267,7 +316,30 @@ public:
     Real getAxisLength() const;
 
     SimTK_PIMPL_DOWNCAST(DecorativeFrame, DecorativeGeometry);
+private:
+    class DecorativeFrameRep& updRep();
+    const DecorativeFrameRep& getRep() const;
 };
+
+
+/**
+ * Use this abstract class to connect your implementation of decorative geometry
+ * to the implementation-independent classes above.
+ */
+class SimTK_SIMBODY_EXPORT DecorativeGeometryImplementation {
+public:
+    virtual ~DecorativeGeometryImplementation() { }
+    virtual void implementLineGeometry(     const DecorativeLine&)     = 0;
+    virtual void implementBrickGeometry(    const DecorativeBrick&)    = 0;
+    virtual void implementCylinderGeometry( const DecorativeCylinder&) = 0;
+    virtual void implementCircleGeometry(   const DecorativeCircle&)   = 0; 
+    virtual void implementSphereGeometry(   const DecorativeSphere&)   = 0;
+    virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
+
+    // TODO: wrappers for binary compatibility
+};
+
+
 
 } // namespace SimTK
 

@@ -67,6 +67,8 @@ public:
     void addRubberBandLine(BodyId b1, const Vec3& station1, BodyId b2, const Vec3& station2,
                            const DecorativeLine&);
 
+    void addEphemeralDecoration(const DecorativeGeometry&);
+
 
     void setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb);
     const Vec3& getDefaultBodyColor(BodyId bodyNum) const;

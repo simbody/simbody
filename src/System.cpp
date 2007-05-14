@@ -79,6 +79,10 @@ void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }
 
+void System::calcDecorativeGeometryAndAppend(const State& s, Stage g, Array<DecorativeGeometry>& dg) const {
+    getRep().calcDecorativeGeometryAndAppend(s,g,dg);
+}
+
 Real System::calcTimescale(const State& s) const {
     return getRep().calcTimescale(s);
 }
@@ -132,6 +136,13 @@ void SystemRep::realize(const State& s, Stage g) const {
         s.advanceSystemToStage(stageNow.next());
     }
 }
+
+void SystemRep::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
+    assert(stage==Stage::Topology || s.getSystemStage() >= stage);
+    for (int i=0; i<getNSubsystems(); ++i)
+        subsystems[i].calcDecorativeGeometryAndAppend(s, stage, geom);
+}
+
 
 } // namespace SimTK
 

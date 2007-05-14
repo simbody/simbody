@@ -26,6 +26,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/DecorativeGeometry.h"
 
 namespace SimTK {
 
@@ -56,6 +57,13 @@ public:
 
     // Realize the Subsystem to the indicated Stage.
     void realize(const State& s, Stage g) const;
+
+    // Generate decorative geometry computable at a specific stage. This will
+    // throw an exception if this subsystem's state hasn't already been realized
+    // to that stage. Note that the list is not inclusive -- you have to
+    // request geometry from each stage to get all of it.
+    // The generated geometry will be *appended* to the supplied output Array.
+    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
 
 	bool isInSystem() const;
 	bool isInSameSystem(const System&) const;

@@ -55,8 +55,8 @@ public:
     AnalyticGeometry(const AnalyticGeometry&);
     AnalyticGeometry& operator=(const AnalyticGeometry&);
 
-    void setPlacement(const Transform& X_BG);
-    const Transform& getPlacement() const;
+    void setTransform(const Transform& X_BG);
+    const Transform& getTransform() const;
 
     DecorativeGeometry generateDecorativeGeometry() const;
 

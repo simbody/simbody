@@ -306,6 +306,9 @@ try // If anything goes wrong, an exception will be thrown.
         cout << "QERR=" << s.getQErr() << endl;
         cout << "UERR=" << s.getUErr() << endl;
 
+        if (s.getTime() - std::floor(s.getTime()) < 0.2)
+            display.addEphemeralDecoration( DecorativeSphere(10).setColor(Green) );
+
         display.report(s);
         saveEm.push_back(s);
 

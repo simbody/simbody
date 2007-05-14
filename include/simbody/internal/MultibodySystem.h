@@ -38,6 +38,7 @@ class DecorativeGeometry;
 
 class MatterSubsystem;
 class ForceSubsystem;
+class DecorationSubsystem;
 
 
 /**
@@ -77,8 +78,11 @@ public:
     // Steals ownership of the source; returns subsystem ID number.
     int setMatterSubsystem(MatterSubsystem&);
     int addForceSubsystem(ForceSubsystem&);
+    int setDecorationSubsystem(DecorationSubsystem&);
     const MatterSubsystem& getMatterSubsystem() const;
     MatterSubsystem&       updMatterSubsystem();
+    const DecorationSubsystem& getDecorationSubsystem() const;
+    DecorationSubsystem&       updDecorationSubsystem();
 
     // Responses available when the global subsystem is advanced to Dynamics stage.
     const Real& getPotentialEnergy(const State&) const;

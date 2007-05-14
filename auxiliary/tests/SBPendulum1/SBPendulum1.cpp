@@ -246,7 +246,7 @@ try {
     vtk.addRubberBandLine(GroundId, attachPt, aPendulum, Vec3(L/2,0,0), rbProto);
 
     DecorativeSphere sphere(0.25);
-    sphere.setRepresentationToPoints();
+    sphere.setRepresentation(DecorativeGeometry::DrawPoints);
     sphere.setResolution(2);
     vtk.addDecoration(GroundId, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(1);

@@ -74,12 +74,14 @@ DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
     *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
 }
 
+DecorativeGeometry& DecorativeGeometry::setBodyId(BodyId b) {updRep().setBodyId(b);return *this;}
+BodyId DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
+
+DecorativeGeometry& DecorativeGeometry::setTransform(const Transform& X_BD) {updRep().setTransform(X_BD);return *this;}
+const Transform& DecorativeGeometry::getTransform() const    {return getRep().getTransform();}
 
 DecorativeGeometry& DecorativeGeometry::setResolution(Real r) {updRep().setResolution(r);return *this;}
 Real DecorativeGeometry::getResolution() const {return getRep().getResolution();}
-
-DecorativeGeometry& DecorativeGeometry::setPlacement(const Transform& X_BG) {updRep().setPlacement(X_BG);return *this;}
-const Transform& DecorativeGeometry::getPlacement() const    {return getRep().getPlacement();}
 
 DecorativeGeometry& DecorativeGeometry::setScale(Real s) {updRep().setScale(s);return *this;}
 Real DecorativeGeometry::getScale() const {return getRep().getScale();}
@@ -93,30 +95,59 @@ Real DecorativeGeometry::getOpacity()  const {return getRep().getOpacity();}
 DecorativeGeometry& DecorativeGeometry::setLineThickness(Real t) {updRep().setLineThickness(t);return *this;}
 Real DecorativeGeometry::getLineThickness() const {return getRep().getLineThickness();}
 
-DecorativeGeometry& DecorativeGeometry::setRepresentationToPoints()     {updRep().setRepresentationToPoints();return *this;}
-DecorativeGeometry& DecorativeGeometry::setRepresentationToWireframe()  {updRep().setRepresentationToWireframe();return *this;}
-DecorativeGeometry& DecorativeGeometry::setRepresentationToSurface()    {updRep().setRepresentationToSurface();return *this;}
-DecorativeGeometry& DecorativeGeometry::setRepresentationToUseDefault() {updRep().setRepresentationToUseDefault();return *this;}
-int  DecorativeGeometry::getRepresentation() const       {return getRep().getRepresentation();}
+DecorativeGeometry& DecorativeGeometry::setRepresentation(const DecorativeGeometry::Representation& r) {
+    updRep().setRepresentation(r);return *this;
+}
 
+DecorativeGeometry::Representation
+DecorativeGeometry::getRepresentation() const {return getRep().getRepresentation();}
+
+void DecorativeGeometry::implementGeometry(DecorativeGeometryImplementation& geometry) const
+{
+    getRep().implementGeometry(geometry);
+}
 
 
     ////////////////////
     // DecorativeLine //
     ////////////////////
 
+/*static*/ bool 
+DecorativeLine::isInstanceOf(const DecorativeGeometry& s) {
+    return DecorativeLineRep::isA(s.getRep());
+}
+/*static*/ const DecorativeLine&
+DecorativeLine::downcast(const DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const DecorativeLine&>(s);
+}
+/*static*/ DecorativeLine&
+DecorativeLine::updDowncast(DecorativeGeometry& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<DecorativeLine&>(s);
+}
+
+const DecorativeLineRep& 
+DecorativeLine::getRep() const {
+    return dynamic_cast<const DecorativeLineRep&>(*rep);
+}
+DecorativeLineRep&       
+DecorativeLine::updRep() {
+    return dynamic_cast<DecorativeLineRep&>(*rep);
+}
+
 DecorativeLine::DecorativeLine(const Vec3& p1, const Vec3& p2) {
     rep = new DecorativeLineRep(p1,p2);
     rep->setMyHandle(*this);
 }
-void DecorativeLine::setPoint1(const Vec3& p1) {
-    DecorativeLineRep::downcast(*rep).setPoint1(p1);
+DecorativeLine& DecorativeLine::setPoint1(const Vec3& p1) {
+    DecorativeLineRep::downcast(*rep).setPoint1(p1); return *this;
 }
-void DecorativeLine::setPoint2(const Vec3& p2) {
-    DecorativeLineRep::downcast(*rep).setPoint2(p2);
+DecorativeLine& DecorativeLine::setPoint2(const Vec3& p2) {
+    DecorativeLineRep::downcast(*rep).setPoint2(p2); return *this;
 }
-void DecorativeLine::setEndpoints(const Vec3& p1, const Vec3& p2) {
-    DecorativeLineRep::downcast(*rep).setEndpoints(p1,p2);
+DecorativeLine& DecorativeLine::setEndpoints(const Vec3& p1, const Vec3& p2) {
+    DecorativeLineRep::downcast(*rep).setEndpoints(p1,p2); return *this;
 }
 const Vec3& DecorativeLine::getPoint1() const {
     return DecorativeLineRep::downcast(*rep).getPoint1();

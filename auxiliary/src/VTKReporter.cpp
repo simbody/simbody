@@ -26,8 +26,8 @@
 #include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
-#include "Reporter3D.h"
-#include "DecorativeGeometryRep.h"
+
+#include "VTKDecorativeGeometry.h"
 
 #include "vtkCommand.h"
 #include "vtkRenderer.h"
@@ -48,8 +48,6 @@
 #include "vtkInteractorObserver.h"
 #include "vtkInteractorStyleTrackballCamera.h"
 
-#include "VTKDecorativeGeometry.h"
-
 #ifdef _WIN32
 #include "windows.h" // kludge
 #endif
@@ -60,14 +58,15 @@
 #include <exception>
 #include <vector>
 
-namespace SimTK  {
-static const int  GroundBodyNum = 0; // ground is always body 0
-static const Real RadiansPerDegree = Pi/180;
+using namespace SimTK;
+
+static const Real RadiansToDegrees = (Real)SimTK_RADIAN_TO_DEGREE;
+
 static const Vec3 DefaultGroundBodyColor = Green;
 static const Vec3 DefaultBaseBodyColor   = Red;
 static const Vec3 DefaultBodyColor       = Gray;
 
-class VTKReporterRep : public Reporter3D {
+class SimTK::VTKReporterRep {
 public:
     // no default constructor -- must have MultibodySystem always
     VTKReporterRep(const MultibodySystem& m, Real defaultScaleForAutoGeometry, VTKReporter *reporter);
@@ -79,9 +78,14 @@ public:
     void disableDefaultGeometry() { defaultBodyScaleForAutoGeometry=0.;}
 
     // This will make a copy of the supplied DecorativeGeometry.
+    // These are topology-stage decorations which we can precalculate (at least in part)
+    // since they will be present in every rendered frame.
     void addDecoration(BodyId bodyNum, const Transform& X_GD, const DecorativeGeometry&);
     void addRubberBandLine(BodyId b1, const Vec3& station1, BodyId b2, const Vec3& station2,
                            const DecorativeLine&);
+
+    // This geometry survives only until the next frame is rendered, then evaporates.
+    void addEphemeralDecoration(const DecorativeGeometry&);
 
     // Make sure everything can be seen.
     void resetCamera() {cameraNeedsToBeReset=true;}
@@ -105,14 +109,6 @@ public:
 
     void setMyHandle(VTKReporter& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}
-
-    virtual Reporter3DGeom* generateLineGeometry(     const DecorativeGeometry&, const Vec3&, const Vec3& );
-    virtual Reporter3DGeom* generateBrickGeometry(    const DecorativeGeometry&, const Vec3& );
-    virtual Reporter3DGeom* generateCylinderGeometry( const DecorativeGeometry&, Real, Real );
-    virtual Reporter3DGeom* generateCircleGeometry(   const DecorativeGeometry&, Real );
-    virtual Reporter3DGeom* generateSphereGeometry(   const DecorativeGeometry&, Real );
-    virtual Reporter3DGeom* generateFrameGeometry(    const DecorativeGeometry&, Real );
-
 
 private:
     friend class VTKReporter;
@@ -142,6 +138,12 @@ private:
     };
     std::vector<PerDynamicGeomInfo> dynamicGeom;
 
+    // This geometry gets displayed at the next frame render and then 
+    // destroyed. We have to remember the actors we generate to do that so 
+    // we can remove them from the renderer when we're done with the frame.
+    Array<DecorativeGeometry> ephemeralGeometry;
+    std::vector<vtkActor*>    ephemeralActors;
+
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
 
@@ -149,15 +151,19 @@ private:
     void deletePointers();
     void setConfiguration(BodyId bodyNum, const Transform& X_GB);
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
-    int convertToVTKRepesentation(int rep ){
 
-        if ( rep == DrawPoints ){
-           return( VTK_POINTS );
-        } else if( rep == DrawWireFrame ) {
-           return( VTK_WIREFRAME );
-        } else {
-           return( VTK_SURFACE );
+    void displayEphemeralGeometry(const State& s);
+    void removeEphemeralGeometry();
+
+    int convertToVTKRepresentation(DecorativeGeometry::Representation drawMode) {
+        int vtkDrawMode = -1;
+        switch(drawMode) {
+            case DecorativeGeometry::DrawPoints:    vtkDrawMode=VTK_POINTS;    break;
+            case DecorativeGeometry::DrawWireframe: vtkDrawMode=VTK_WIREFRAME; break; 
+            case DecorativeGeometry::DrawSurface:   vtkDrawMode=VTK_SURFACE;   break; 
+            default: assert(!"unrecognized drawing mode");
         }
+        return vtkDrawMode;
     }
 
 };
@@ -218,6 +224,12 @@ void VTKReporter::addRubberBandLine(BodyId b1, const Vec3& station1,
     rep->addRubberBandLine(b1,station1,b2,station2,g);
 }
 
+void VTKReporter::addEphemeralDecoration(const DecorativeGeometry& g) 
+{
+    assert(rep);
+    rep->addEphemeralDecoration(g);
+}
+
 void VTKReporter::setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb) {
    assert(rep);
    rep->setDefaultBodyColor(bodyNum,rgb);
@@ -227,25 +239,6 @@ void VTKReporter::setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb) {
     // VTKReporterRep //
     ////////////////////
 
-
-Reporter3DGeom* VTKReporterRep::generateLineGeometry( const DecorativeGeometry& geom, const Vec3& p1, const Vec3& p2) {
-    return( new VTKDecorativeLine( geom, p1, p2));
-}
-Reporter3DGeom* VTKReporterRep::generateBrickGeometry( const DecorativeGeometry& geom, const Vec3& halfLengths) {
-    return( new VTKDecorativeBrick( geom, halfLengths ));
-}
-Reporter3DGeom* VTKReporterRep::generateCylinderGeometry( const DecorativeGeometry& geom, Real r, Real halfHeight) {
-    return( new VTKDecorativeCylinder( geom, r, halfHeight ));
-}
-Reporter3DGeom* VTKReporterRep::generateCircleGeometry( const DecorativeGeometry& geom, Real r) {
-    return( new VTKDecorativeCircle( geom, r ));
-}
-Reporter3DGeom* VTKReporterRep::generateSphereGeometry( const DecorativeGeometry& geom, Real r) {
-    return( new VTKDecorativeSphere( geom, r ));
-}
-Reporter3DGeom* VTKReporterRep::generateFrameGeometry( const DecorativeGeometry& geom, Real halfLength) {
-    return( new VTKDecorativeFrame( geom, halfLength ));
-}
 void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
 {
@@ -254,30 +247,33 @@ void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
     vtkActor* actor = vtkActor::New();
     bodies[body].aList.push_back(actor);
     bodies[body].gList.push_back(g);
-    DecorativeGeometry& geom  = bodies[body].gList.back();
+    DecorativeGeometry& dgeom  = bodies[body].gList.back();
 
     // Apply the transformation.
-    geom.setPlacement(X_GD*geom.getPlacement());
+    dgeom.setTransform(X_GD*dgeom.getTransform());
 
-  
-//  Create the VTK geometry for this DecorativeGometry object  calls VTKReporter's 
-//  generateLine/Sphere..Geometry .. routine to generate the 
-//  polygons/lines/points for the   DecorativeGeometry object 
+    // Create the VTK geometry for this DecorativeGometry object. Calls VTKDecorativeGeometry's 
+    // implementLine/Sphere/Brick/...Geometry routine as appropriate to generate the 
+    // polygons/lines/points for the DecorativeGeometry object. 
 
-    vtkPolyData* poly = (vtkPolyData*)geom.updRep().generateReporterGeometry( this );
+    VTKDecorativeGeometry vgeom;
+    dgeom.implementGeometry(vgeom);
+    vtkPolyData* poly = vgeom.getVTKPolyData(); // retrieve the results
 
     // Now apply the actor-level properties from the geometry.
-    const Vec3 color = (geom.getColor()[0] != -1 ? geom.getColor() : getDefaultBodyColor(body)); 
+    const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : getDefaultBodyColor(body)); 
     actor->GetProperty()->SetColor(color[0],color[1],color[2]);
 
-    const Real opacity = (geom.getOpacity() != -1 ? geom.getOpacity() : Real(1));
+    const Real opacity = (dgeom.getOpacity() != -1 ? dgeom.getOpacity() : Real(1));
     actor->GetProperty()->SetOpacity(opacity);
 
-    const Real lineWidth = (geom.getLineThickness() != -1 ? geom.getLineThickness() : Real(1));
+    const Real lineWidth = (dgeom.getLineThickness() != -1 ? dgeom.getLineThickness() : Real(1));
     actor->GetProperty()->SetLineWidth(lineWidth);
 
-    const int representation = (geom.getRepresentation() != -1 ? geom.getRepresentation() : DrawSurface);
-    actor->GetProperty()->SetRepresentation( convertToVTKRepesentation( representation) );
+    const DecorativeGeometry::Representation representation = 
+       (dgeom.getRepresentation() != -1 ? dgeom.getRepresentation() 
+                                        : DecorativeGeometry::DrawSurface);
+    actor->GetProperty()->SetRepresentation( convertToVTKRepresentation( representation) );
 
     // Set up the mapper & register actor with renderer
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
@@ -323,6 +319,70 @@ void VTKReporterRep::addRubberBandLine(BodyId b1, const Vec3& station1,
     renderer->AddActor(info.actor);
 
     cameraNeedsToBeReset = true;
+}
+
+void VTKReporterRep::addEphemeralDecoration(const DecorativeGeometry& g)
+{
+    ephemeralGeometry.push_back(g);
+}
+
+void VTKReporterRep::displayEphemeralGeometry(const State& s)
+{
+    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+    // Create a unique actor for each piece of geometry.
+    // TODO: could probably do this with a single actor.
+    ephemeralActors.resize(ephemeralGeometry.size());
+    for (int i=0; i<ephemeralGeometry.size(); ++i) {
+        DecorativeGeometry& dgeom = ephemeralGeometry[i];
+        ephemeralActors[i] = vtkActor::New();
+
+        const BodyId body = dgeom.getBodyId();
+        const Transform& X_GB = matter.getBodyTransform(s, body);
+
+        // Apply the transformation.
+        dgeom.setTransform(X_GB*dgeom.getTransform());
+
+        // Now apply the actor-level properties from the geometry.
+        const Vec3 color = (dgeom.getColor()[0] != -1 ? dgeom.getColor() : getDefaultBodyColor(body)); 
+        ephemeralActors[i]->GetProperty()->SetColor(color[0],color[1],color[2]);
+
+        const Real opacity = (dgeom.getOpacity() != -1 ? dgeom.getOpacity() : Real(1));
+        ephemeralActors[i]->GetProperty()->SetOpacity(opacity);
+
+        const Real lineWidth = (dgeom.getLineThickness() != -1 ? dgeom.getLineThickness() : Real(1));
+        ephemeralActors[i]->GetProperty()->SetLineWidth(lineWidth);
+
+        const int representation = (dgeom.getRepresentation() != -1 ? dgeom.getRepresentation() : VTK_SURFACE);
+        ephemeralActors[i]->GetProperty()->SetRepresentation(representation);
+
+        // Set up the mapper and render the geometry into it.
+        vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
+
+        VTKDecorativeGeometry vgeom;
+        dgeom.implementGeometry(vgeom);
+        vtkPolyData* poly = vgeom.getVTKPolyData(); // retrieve the results
+
+        mapper->SetInput(poly);
+
+        // Associate the mapper with the actor, and add the actor to the renderer.
+        ephemeralActors[i]->SetMapper(mapper);
+        mapper->Delete(); mapper=0; // remove now-unneeded mapper reference
+        renderer->AddActor(ephemeralActors[i]);
+    }
+
+    //if (ephemeralGeometry.size())
+    //    cameraNeedsToBeReset = true; // TODO: is this really a good idea?
+
+    ephemeralGeometry.clear();
+}
+
+void VTKReporterRep::removeEphemeralGeometry() {
+    for (int i=0; i < (int)ephemeralActors.size(); ++i) {
+        renderer->RemoveActor(ephemeralActors[i]);
+        ephemeralActors[i]->Delete();
+    }
+    ephemeralActors.clear();
 }
 
 // set default length scale to 0 to disable automatically-generated geometry
@@ -391,9 +451,9 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
     setDefaultBodyColor(GroundId, DefaultGroundBodyColor);
     for (BodyId i(1); i<(int)bodies.size(); ++i) {
-        const int parent = sbs.getParent(i);
+        const BodyId parent = sbs.getParent(i);
 
-        if (parent == GroundBodyNum)
+        if (parent == GroundId)
              setDefaultBodyColor(i, DefaultBaseBodyColor);
         else setDefaultBodyColor(i, DefaultBodyColor);
 
@@ -441,13 +501,19 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
         // body origin to the com.
 
         DecorativeSphere com(scale*.05);
-        com.setColor(Purple);
-        com.setRepresentationToPoints();
+        com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
         const Vec3& comPos_B = sbs.getBodyMassProperties(State(), i).getMassCenter();
         addDecoration(i, Transform(comPos_B), com);
         if (comPos_B != Vec3(0))
             addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
     }
+
+    //TODO
+    Array<DecorativeGeometry> sysGeom;
+    mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
+    for (int i=0; i<sysGeom.size(); ++i)
+        addDecoration(sysGeom[i].getBodyId(), Transform(), sysGeom[i]);
+
     renderer->ResetCamera();
     renWin->Render();
 }
@@ -471,12 +537,19 @@ void VTKReporterRep::report(const State& s) {
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 
+    for (Stage stage=Stage::Model; stage <= s.getSystemStage(); ++stage)
+        mbs.calcDecorativeGeometryAndAppend(s, stage, ephemeralGeometry);
+
+    displayEphemeralGeometry(s);
+
     if (cameraNeedsToBeReset) {
         renderer->ResetCamera();
         cameraNeedsToBeReset = false;
     }
 
     renWin->Render();
+
+    removeEphemeralGeometry();
 
     // Process any window messages since last time
 #ifdef _WIN32
@@ -523,20 +596,20 @@ void VTKReporterRep::setConfiguration(BodyId bodyNum, const Transform& X_GB) {
         actor->SetPosition(X_GB.T()[0], X_GB.T()[1], X_GB.T()[2]);
         const Vec4 av = X_GB.R().convertToAngleAxis();
         actor->SetOrientation(0,0,0);
-        actor->RotateWXYZ(av[0]/RadiansPerDegree, av[1], av[2], av[3]);
+        actor->RotateWXYZ(av[0]*RadiansToDegrees, av[1], av[2], av[3]);
     }
 }
 
 // Provide two points in ground frame and generate the appropriate line between them.
 void VTKReporterRep::setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2) {
-    class DecorativeGeometryRep;
     vtkActor*       actor = dynamicGeom[dgeom].actor;
     DecorativeLine& line  = dynamicGeom[dgeom].line;
     line.setEndpoints(p1, p2);
 
-    vtkPolyDataMapper::SafeDownCast(actor->GetMapper())->SetInput((vtkPolyData*)line.updRep().generateReporterGeometry( this ));
+    VTKDecorativeGeometry vgeom;
+    line.implementGeometry(vgeom);
+    vtkPolyData* poly = vgeom.getVTKPolyData();
 
+    vtkPolyDataMapper::SafeDownCast(actor->GetMapper())->SetInput(poly);
 }
-
-} // namespace SimTK
 

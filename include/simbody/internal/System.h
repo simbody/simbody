@@ -26,6 +26,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/DecorativeGeometry.h"
 
 namespace SimTK {
 
@@ -71,6 +72,16 @@ public:
 
     /// Realize the entire System to the indicated Stage.
     void realize(const State& s, Stage g = Stage::HighestValid) const;
+
+    // Generate all decorative geometry computable at a specific stage. This will
+    // throw an exception if the state hasn't already been realized
+    // to that stage. Note that the list is not inclusive -- you have to
+    // request geometry from each stage to get all of it.
+    // This routine asks each subsystem in succession to generate its decorative geometry
+    // and append it to the end of the Array.
+    // If the stage is Stage::Topology, the State is ignored.
+    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
+
 
     /// This operator can be called at Stage::Instance or higher and 
     /// returns a rough estimate of a length of time we consider significant

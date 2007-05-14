@@ -330,6 +330,7 @@ try
   { SimbodyMatterSubsystem   matter;
     DuMMForceFieldSubsystem  mm;
     GeneralForceElements     forces;
+    DecorationSubsystem      artwork;
 
     Real accuracy = 1e-2;
     Real outputInterval = .05;
@@ -386,6 +387,7 @@ try
     mbs.setMatterSubsystem(matter);
     mbs.setMolecularMechanicsForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
+    mbs.setDecorationSubsystem(artwork);
     UniformGravitySubsystem gravity(Vec3(0,.01,0));
 
     //mbs.addForceSubsystem(gravity);
@@ -415,6 +417,37 @@ try
         mm.attachAtomToBody(i, b, Vec3(0));
     }
     /**/
+
+    //if (useCartesian && useRigid && wantConstraint) {
+    //    int theConstraint =
+    //           ethane.addConstantDistanceConstraint(firstCartesianBody-1, Vec3(0),
+    //                                                firstCartesianBody, Vec3(0), 1.5);
+    //    DecorativeLine purpleLine; purpleLine.setColor(Purple).setLineThickness(3);
+    //    artwork.addRubberBandLine(firstCartesianBody-1, Vec3(0),
+    //                              firstCartesianBody, Vec3(0), purpleLine);
+    //}
+
+    DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
+
+    for (int i=0; i<mm.getNBonds(); ++i) {
+        const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
+        const BodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
+        if (b1==b2)
+            artwork.addBodyFixedDecoration(b1, Transform(),
+                                           DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
+                                             .setColor(Gray).setLineThickness(3));
+        else
+            artwork.addRubberBandLine(b1, mm.getAtomStationOnBody(a1),
+                                      b2, mm.getAtomStationOnBody(a2), crossBodyBond);
+    }
+
+    for (int anum=0; anum < mm.getNAtoms(); ++anum) {
+        Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
+        //opacity=0.5;//XXX
+        artwork.addBodyFixedDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
+            DecorativeSphere(shrink*mm.getAtomRadius(anum))
+                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
+    }
 
     State s;
     mbs.realize(s, Stage::Topology);
@@ -470,42 +503,9 @@ try
     /**/
 
 
-
     mm.dump();
 
     VTKReporter display(mbs, 0.1);
-
-    //if (useCartesian && useRigid && wantConstraint) {
-    //    int theConstraint =
-    //           ethane.addConstantDistanceConstraint(firstCartesianBody-1, Vec3(0),
-    //                                                firstCartesianBody, Vec3(0), 1.5);
-    //    DecorativeLine purpleLine; purpleLine.setColor(Purple).setLineThickness(3);
-    //    display.addRubberBandLine(firstCartesianBody-1, Vec3(0),
-    //                              firstCartesianBody, Vec3(0), purpleLine);
-    //}
-
-    DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
-
-    for (int i=0; i<mm.getNBonds(); ++i) {
-        const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
-        const BodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
-        if (b1==b2)
-            display.addDecoration(b1, Transform(),
-                                  DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
-                                    .setColor(Gray).setLineThickness(3));
-        else
-            display.addRubberBandLine(b1, mm.getAtomStationOnBody(a1),
-                                      b2, mm.getAtomStationOnBody(a2), crossBodyBond);
-    }
-
-    for (int anum=0; anum < mm.getNAtoms(); ++anum) {
-        Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
-        //opacity=0.5;//XXX
-        display.addDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
-            DecorativeSphere(shrink*mm.getAtomRadius(anum))
-                .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
-    }
-
 
     RungeKuttaMerson study(mbs, s);
     //CPodesIntegrator study(mbs,s);

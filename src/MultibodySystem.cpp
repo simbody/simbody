@@ -103,15 +103,26 @@ int MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {
 int MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
     return MultibodySystemRep::downcast(*rep).addForceSubsystem(f);
 }
+int MultibodySystem::setDecorationSubsystem(DecorationSubsystem& m) {
+    return MultibodySystemRep::downcast(*rep).setDecorationSubsystem(m);
+}
 
 const MatterSubsystem&       
 MultibodySystem::getMatterSubsystem() const {
     return MultibodySystemRep::downcast(*rep).getMatterSubsystem();
 }
-
 MatterSubsystem&       
 MultibodySystem::updMatterSubsystem() {
     return MultibodySystemRep::downcast(*rep).updMatterSubsystem();
+}
+
+const DecorationSubsystem&       
+MultibodySystem::getDecorationSubsystem() const {
+    return MultibodySystemRep::downcast(*rep).getDecorationSubsystem();
+}
+DecorationSubsystem&       
+MultibodySystem::updDecorationSubsystem() {
+    return MultibodySystemRep::downcast(*rep).updDecorationSubsystem();
 }
 
 const Real&                

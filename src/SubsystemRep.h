@@ -144,6 +144,15 @@ public:
 
     void realize(const State&, Stage) const;
 
+    // Default implementation does nothing but blow up if the State hasn't been realized to at
+    // least the requested stage.
+    virtual void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+    {
+        assert(stage==Stage::Topology || getStage(s) >= stage);
+    }
+        
+
     virtual SubsystemRep* cloneSubsystemRep() const = 0;
     virtual void endConstruction() { }
 

@@ -45,6 +45,7 @@
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/NumericalMethods.h"
 #include "simbody/internal/DecorativeGeometry.h"
+#include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/VTKReporter.h"
 
 #endif // SimTK_SimTKSIMBODY_H_

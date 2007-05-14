@@ -40,14 +40,14 @@ public:
 
     DecorativeGeometry generateDecorativeGeometry() const {
         DecorativeGeometry dg = generateDecorativeGeometryConcrete();
-        dg.setPlacement(placement);
+        dg.setTransform(placement);
         return dg;
     }
 
     virtual DecorativeGeometry generateDecorativeGeometryConcrete() const = 0;
 
-    void setPlacement(const Transform& X_BG) {placement = X_BG;}
-    const Transform& getPlacement() const    {return placement;}
+    void setTransform(const Transform& X_BG) {placement = X_BG;}
+    const Transform& getTransform() const    {return placement;}
 
     virtual ~AnalyticGeometryRep() {clearMyHandle();}
 

@@ -53,6 +53,7 @@ try { // If anything goes wrong, an exception will be thrown.
     UniformGravitySubsystem gravity(Vec3(0, -g, 0));
     GeneralForceElements    forces;
     SimbodyMatterSubsystem  pend;
+    DecorationSubsystem     viz;
 
     BodyId connector = 
         pend.addRigidBody(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
@@ -82,6 +83,17 @@ try { // If anything goes wrong, an exception will be thrown.
     mbs.setMatterSubsystem(pend);
     mbs.addForceSubsystem(gravity);
     mbs.addForceSubsystem(forces);
+    mbs.setDecorationSubsystem(viz);
+
+    // Add a blue sphere around the weight.
+    viz.addBodyFixedDecoration(swinger, weight1Location, 
+          DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
+    viz.addBodyFixedDecoration(swinger, weight2Location, 
+          DecorativeSphere(radiusRatio*d/8).setColor(Green).setOpacity(.2));
+    viz.addRubberBandLine(GroundId, Vec3(0),
+                          swinger, Vec3(0),
+                          DecorativeLine().setColor(Blue).setLineThickness(10)
+                                          .setRepresentation(DecorativeGeometry::DrawPoints));
 
     //forces.addMobilityConstantForce(swinger, 0, 10);
     forces.addConstantTorque(swinger, Vec3(0,0,10));
@@ -101,14 +113,11 @@ try { // If anything goes wrong, an exception will be thrown.
     //CPodesIntegrator myStudy(mbs, s);
     //myStudy.setAccuracy(1e-4);
 
-    // Visualize with VTK.
+    // Visualize with VTK. This will pick up decorative geometry from
+    // each subsystem that generates any, including of course the 
+    // VisualizationSubsystem, but not limited to it.
     VTKReporter display(mbs);
 
-    // Add a blue sphere around the weight.
-    display.addDecoration(swinger, weight1Location, 
-          DecorativeSphere(d/8).setColor(Blue).setOpacity(.2));
-    display.addDecoration(swinger, weight2Location, 
-          DecorativeSphere(radiusRatio*d/8).setColor(Green).setOpacity(.2));
 
     const Real expectedPeriod = 2*Pi*std::sqrt(d/g);
     printf("Expected period: %g seconds\n", expectedPeriod);

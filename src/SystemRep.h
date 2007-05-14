@@ -122,6 +122,8 @@ public:
 
     void realize(const State& s, Stage g) const;
 
+    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
+
     void calcYUnitWeights(const State& s, Vector& weights) const {
         weights.resize(s.getNY());
         VectorView qwts = weights(s.getQStart(), s.getNQ());   // writable views

@@ -69,11 +69,11 @@ AnalyticGeometry& AnalyticGeometry::operator=(const AnalyticGeometry& src) {
     return *this;
 }
 
-void AnalyticGeometry::setPlacement(const Transform& X_BG) {
-    updRep().setPlacement(X_BG);
+void AnalyticGeometry::setTransform(const Transform& X_BG) {
+    updRep().setTransform(X_BG);
 }
-const Transform& AnalyticGeometry::getPlacement() const {
-    return getRep().getPlacement();
+const Transform& AnalyticGeometry::getTransform() const {
+    return getRep().getTransform();
 }
 
 

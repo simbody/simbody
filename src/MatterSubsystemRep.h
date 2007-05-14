@@ -135,35 +135,6 @@ public:
     int getBodyNumber() const;
 };
 
-class VisualizationSubsystemRep : public SubsystemRep {
-public:
-    VisualizationSubsystemRep(const String& name, const String& version) 
-      : SubsystemRep(name, version)
-    {
-    }
-
-    void addDecorativeGeometry(const Body& b, const Transform& X_BG, const DecorativeGeometry& g)
-    {
-        const int bnum = b.getBodyNumber();
-        if (decorations.size() <= bnum)
-            decorations.resize(bnum+1);
-        decorations[bnum].push_back(g);
-        decorations[bnum].back().setPlacement(X_BG);
-    }
-
-    const Array<DecorativeGeometry>& getBodyDecorativeGeometry(const Body& b) const {
-        static const Array<DecorativeGeometry> empty;
-        const int bnum = b.getBodyNumber();
-        return bnum < decorations.size() ? decorations[bnum] : empty;
-    }
-
-    SimTK_DOWNCAST(VisualizationSubsystemRep, SubsystemRep);
-
-private:
-    // per-body decoration lists
-    Array< Array<DecorativeGeometry> > decorations;
-};
-
 } // namespace SimTK
 
 #endif // SimTK_MATTER_SUBSYSTEM_REP_H_

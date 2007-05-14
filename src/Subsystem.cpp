@@ -79,6 +79,10 @@ void Subsystem::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
 }
 
+void Subsystem::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
+    getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
+}
+
 void Subsystem::endConstruction() {updRep().endConstruction();}
 
 bool Subsystem::isInSystem() const {return getRep().isInSystem();}
@@ -140,6 +144,7 @@ void SubsystemRep::realize(const State& s, Stage g) const {
         advanceToStage(s, getStage(s).next());
     }
 }
+
     ////////////////////////////
     // DefaultSystemSubsystem //
     ////////////////////////////
