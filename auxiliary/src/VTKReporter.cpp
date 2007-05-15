@@ -153,7 +153,6 @@ private:
     void setRubberBandLine(int dgeom, const Vec3& p1, const Vec3& p2);
 
     void displayEphemeralGeometry(const State& s);
-    void removeEphemeralGeometry();
 
     int convertToVTKRepresentation(DecorativeGeometry::Representation drawMode) {
         int vtkDrawMode = -1;
@@ -207,6 +206,45 @@ VTKReporter::~VTKReporter() {
 void VTKReporter::report(const State& s) {
     assert(rep);
     rep->report(s);
+}
+
+
+void VTKReporter::setCameraLocation(const Vec3& p) {
+    if (!rep || !rep->renderer) return;
+    vtkCamera* camera = rep->renderer->GetActiveCamera();
+    camera->SetPosition(p[0], p[1], p[2]);
+    camera->ComputeViewPlaneNormal();
+}
+
+void VTKReporter::setCameraFocalPoint(const Vec3& p) {
+    if (!rep || !rep->renderer) return;
+    vtkCamera* camera = rep->renderer->GetActiveCamera();
+    camera->SetFocalPoint(p[0], p[1], p[2]);
+    camera->ComputeViewPlaneNormal();
+}
+
+void VTKReporter::setCameraUpDirection(const Vec3& d) {
+    if (!rep || !rep->renderer) return;
+    vtkCamera* camera = rep->renderer->GetActiveCamera();
+    camera->SetViewUp(d[0], d[1], d[2]);
+    camera->OrthogonalizeViewUp();
+}
+
+void VTKReporter::setCameraClippingRange(Real nearPlane, Real farPlane) {
+    if (!rep || !rep->renderer) return;
+    vtkCamera* camera = rep->renderer->GetActiveCamera();
+    camera->SetClippingRange(nearPlane, farPlane);
+}
+
+void VTKReporter::zoomCameraToIncludeAllGeometry() {
+    if (!rep || !rep->renderer) return;
+    rep->renderer->ResetCamera();
+}
+
+void VTKReporter::zoomCamera(Real z) {
+    if (!rep || !rep->renderer) return;
+    vtkCamera* camera = rep->renderer->GetActiveCamera();
+    camera->Zoom(z);
 }
 
 void VTKReporter::addDecoration(BodyId body, const Transform& X_GD,
@@ -273,7 +311,7 @@ void VTKReporterRep::addDecoration(BodyId body, const Transform& X_GD,
     const DecorativeGeometry::Representation representation = 
        (dgeom.getRepresentation() != -1 ? dgeom.getRepresentation() 
                                         : DecorativeGeometry::DrawSurface);
-    actor->GetProperty()->SetRepresentation( convertToVTKRepresentation( representation) );
+    actor->GetProperty()->SetRepresentation( convertToVTKRepresentation(representation) );
 
     // Set up the mapper & register actor with renderer
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
@@ -309,8 +347,10 @@ void VTKReporterRep::addRubberBandLine(BodyId b1, const Vec3& station1,
     const Real lineWidth = (info.line.getLineThickness() != -1 ? info.line.getLineThickness() : Real(1));
     info.actor->GetProperty()->SetLineWidth(lineWidth);
 
-    const int representation = (info.line.getRepresentation() != -1 ? info.line.getRepresentation() : VTK_SURFACE);
-    info.actor->GetProperty()->SetRepresentation(representation);
+    const DecorativeGeometry::Representation representation =
+       (info.line.getRepresentation() != -1 ? info.line.getRepresentation() 
+                                            : DecorativeGeometry::DrawSurface);
+    info.actor->GetProperty()->SetRepresentation(convertToVTKRepresentation(representation));
 
     // Set up the mapper & register actor with renderer, but don't set up mapper's input yet.
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
@@ -330,6 +370,13 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
 {
     const MatterSubsystem& matter = mbs.getMatterSubsystem();
 
+    // Out with the old ...
+    for (int i=0; i < (int)ephemeralActors.size(); ++i) {
+        renderer->RemoveActor(ephemeralActors[i]);
+        ephemeralActors[i]->Delete();
+    }
+
+    // And in with the new ...
     // Create a unique actor for each piece of geometry.
     // TODO: could probably do this with a single actor.
     ephemeralActors.resize(ephemeralGeometry.size());
@@ -353,8 +400,10 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
         const Real lineWidth = (dgeom.getLineThickness() != -1 ? dgeom.getLineThickness() : Real(1));
         ephemeralActors[i]->GetProperty()->SetLineWidth(lineWidth);
 
-        const int representation = (dgeom.getRepresentation() != -1 ? dgeom.getRepresentation() : VTK_SURFACE);
-        ephemeralActors[i]->GetProperty()->SetRepresentation(representation);
+        const DecorativeGeometry::Representation representation = 
+           (dgeom.getRepresentation() != -1 ? dgeom.getRepresentation() 
+                                            : DecorativeGeometry::DrawSurface);
+        ephemeralActors[i]->GetProperty()->SetRepresentation(convertToVTKRepresentation(representation));
 
         // Set up the mapper and render the geometry into it.
         vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
@@ -375,14 +424,6 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
     //    cameraNeedsToBeReset = true; // TODO: is this really a good idea?
 
     ephemeralGeometry.clear();
-}
-
-void VTKReporterRep::removeEphemeralGeometry() {
-    for (int i=0; i < (int)ephemeralActors.size(); ++i) {
-        renderer->RemoveActor(ephemeralActors[i]);
-        ephemeralActors[i]->Delete();
-    }
-    ephemeralActors.clear();
 }
 
 // set default length scale to 0 to disable automatically-generated geometry
@@ -549,7 +590,7 @@ void VTKReporterRep::report(const State& s) {
 
     renWin->Render();
 
-    removeEphemeralGeometry();
+   // removeEphemeralGeometry();
 
     // Process any window messages since last time
 #ifdef _WIN32
@@ -582,6 +623,11 @@ void VTKReporterRep::deletePointers() {
     for (int i=0; i<(int)dynamicGeom.size(); ++i) {
         dynamicGeom[i].actor->Delete();
         dynamicGeom[i].actor = 0;
+    }
+    for (int i=0; i < (int)ephemeralActors.size(); ++i) {
+        renderer->RemoveActor(ephemeralActors[i]);
+        ephemeralActors[i]->Delete();
+        ephemeralActors[i] = 0;
     }
 
     if(renderer)renderer->Delete();

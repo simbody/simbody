@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMBODY_VTK_REPORTER_H_
 #define SimTK_SIMBODY_VTK_REPORTER_H_
 
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -27,7 +27,7 @@
 
 /** @file
  * This is the user-visible handle class for the VTK Reporter which
- * provides a 3d animation window for viewing Mechanical System
+ * provides a 3d animation window for viewing MultibodySystem
  * simulations.
  */
 
@@ -45,7 +45,6 @@ namespace SimTK {
 class State;
 class MultibodySystem;
 class DecorativeGeometry;
-class VTKDecoration;
 
 class SimTK_SIMBODY_EXPORT VTKReporter  {
 public:
@@ -59,17 +58,35 @@ public:
     ~VTKReporter();
     VTKReporter& operator=(const VTKReporter&);
 
+    /// This method calculates a new visualization frame using the MultibodySystem
+    /// and the supplied state, and updates the screen.
     void report(const State& s);
 
-    void disableDefaultGeometry();
+    /// Change the camera location. This is a point in the Ground frame.
+    void setCameraLocation(const Vec3&);
+    /// Change the point towards which the camera is pointing. This point is
+    /// in the Ground frame.
+    void setCameraFocalPoint(const Vec3&);
+    /// Change the camera's "up" direction. This is a vector in the ground frame;
+    /// only its direction is meaningful.
+    void setCameraUpDirection(const Vec3&);
+    /// Set the location of the clipping planes. These planes are perpendicular to the
+    /// view plane normal, which is a vector in the direction from the camera location
+    /// to the camera focal point. Their locations are given by distances along the
+    /// the view plane normal, measured from the camera position.
+    void setCameraClippingRange(Real nearPlane, Real farPlane);
+    /// Zoom the camera so that all geometry is visible.
+    void zoomCameraToIncludeAllGeometry();
+    /// Zoom by an amount relative to the current zoom.
+    void zoomCamera(Real);
 
     void addDecoration(BodyId bodyNum, const Transform& X_GD, const DecorativeGeometry&);
     void addRubberBandLine(BodyId b1, const Vec3& station1, BodyId b2, const Vec3& station2,
                            const DecorativeLine&);
-
     void addEphemeralDecoration(const DecorativeGeometry&);
 
 
+    void disableDefaultGeometry();
     void setDefaultBodyColor(BodyId bodyNum, const Vec3& rgb);
     const Vec3& getDefaultBodyColor(BodyId bodyNum) const;
  

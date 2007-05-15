@@ -52,6 +52,46 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT MatterSubsystem : public Subsystem {
 public:
+    //////////////////
+    // CONSTRUCTION //
+    //////////////////
+
+    // Primarily, this abstract MatterSubsystem expects construction to have been
+    // done on the concrete MatterSubsystem (e.g., SimbodyMatterSubsystem) which implements
+    // this one. That's because we're assuming that different implementations will have
+    // different ways to set up the bodies, their mobilizers, and constraints.
+    // For less-significant objects in a MatterSubsystem, such as visualization geometry,
+    // labels and so on, we provide methods here. These can be used either by the 
+    // user or by the underlying implementation.
+
+    /// Enable or suppress the generation of a default visualization skeleton by the
+    /// MatterSubsystem. This is on by default and includes body and mobilizer frames,
+    /// body center of mass markers, and lines connecting the frames on each body.
+    /// TODO: should include ellipsoids oriented along principal moments of inertia,
+    /// and maybe some labels.
+    void setSuppressDefaultGeometry(bool);
+
+    /// Add a decoration which is always present, and is at a fixed location on a particular
+    /// body. The passed-in DecorativeGeometry is used as a prototype for the desired decoration,
+    /// with the supplied transform composed with whatever transform is already there, and the
+    /// supplied bodyId overriding whatever bodyId might already be in the prototype.
+    void addBodyFixedDecoration(BodyId bodyNum, 
+                                const Transform& X_GD, 
+                                const DecorativeGeometry&);
+
+    /// Add a line which is always present, but straddles stations on two different bodies.
+    /// The passed-in line is used as a prototype, although its endpoints are ignored.
+    void addRubberBandLine(BodyId b1, const Vec3& station1, 
+                           BodyId b2, const Vec3& station2,
+                           const DecorativeLine&);
+
+    /// Show a supplied piece of geometry at the location of the system center of mass.
+    /// Any transform stored with the supplied geometry is applied; any bodyId is
+    /// ignored. This is an example of fixed geometry (i.e. its 3d representation doesn't
+    /// change) but whose location varies on its body (in this case Ground).
+    /// TODO: it should be oriented along the system's principal moments of inertia.
+    void setSystemCenterOfMassMarker(const DecorativeGeometry&);
+
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //
     ///////////////////////////////
@@ -891,9 +931,9 @@ public:
     int getNMobilities()  const;
     int getNConstraints() const;    // i.e., Constraint definitions (each is multiple equations)
 
-    BodyId        getParent  (BodyId) const;
-    Array<BodyId> getChildren(BodyId) const;
-    Mobilizer    getMobilizer(BodyId) const;
+    BodyId        getParent   (BodyId) const;
+    Array<BodyId> getChildren (BodyId) const;
+    Mobilizer     getMobilizer(BodyId) const;
 
         // MODEL STAGE responses //
 
@@ -1030,37 +1070,6 @@ public:
     void setMobilizerSpeedsAsVec4(State&, BodyId, const Vec4&) const;
     void setMobilizerSpeedsAsVec5(State&, BodyId, const Vec5&) const;
     void setMobilizerSpeedsAsVec6(State&, BodyId, const Vec6&) const;
-
-
-    /// This is a solver which sets the body's cross-mobilizer transform "as close
-    /// as possible" to the supplied Transform, making
-    /// the smallest possible change (in a least squares sense) to the current
-    /// values of the mobilizer coordinates. This may involve a tradeoff between
-    /// orientation ("pointing error") and translation error. In that case we
-    /// first ensure that the pointing error is within a reasonable limit, 
-    /// then work on the translation, allowing some tradeoff between the two.
-    /// Note: this has no effect on any coordinates except the q's for this
-    /// mobilizer, and constraints are ignored.
-    void fitMobilizerCoordsToTransform(State&, BodyId, const Transform& X_MbM) const;
-
-    /// This solver sets the cross-mobilizer rotation to match as closely as
-    /// possible the supplied Rotation. Any purely-translational mobilities will
-    /// be left unchanged by this solver, since these cannot contribute to the
-    /// cross-mobilizer rotation. This routine minimizes pointing error |a| where a
-    /// is the angle in the (angle,axis) form of the residual rotation error.
-    void fitMobilizerCoordsToRotation(State&, BodyId, const Rotation&  R_MbM) const;
-
-    /// This solver sets the cross-mobilizer translation to match as closely as
-    /// possible the supplied translation vector. (This is the vector 
-    /// from the parent body's Mb frame origin to the body's M frame origin.) 
-    /// Purely rotational degrees of freedom will be exercised if necessary to minimize
-    /// the residual translation error, unless preserveRotation==true.
-    void fitMobilizerCoordsToTranslation(State&, BodyId, const Vec3& r_MbM,
-                                         bool preserveRotation=false) const;
-
-    void fitMobilizerSpeedsToVelocity       (State&, BodyId, const SpatialVec& V_MbM) const;
-    void fitMobilizerSpeedsToAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const;
-    void fitMobilizerSpeedsToLinearVelocity (State&, BodyId, const Vec3&       v_MbM) const;
 
         // INSTANCE STAGE responses //
 
