@@ -62,7 +62,7 @@ public:
     void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
         switch(stage) {
         case Stage::Topology: {
-            assert(built);
+            //assert(built);
             //TODO: generate sketch of multibody system
             break;
         }
