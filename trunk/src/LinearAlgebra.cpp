@@ -34,6 +34,7 @@
 #include "SimTKcommon.h"
 #include "LapackInterface.h"
 #include "simmath/internal/LinearAlgebra.h"
+#include "simmath/internal/common.h"
 
 
 namespace SimTK {
@@ -128,7 +129,7 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
 }
 
 // instantiate for only float and double 
-template bool calcEigenValuesRightEigenVectors( Matrix_<float>&, Vector_< std::complex<float> >&, Matrix_< std::complex<float> >&);
-template bool calcEigenValuesRightEigenVectors( Matrix_<double>&, Vector_< std::complex<double> >&, Matrix_< std::complex<double> >&);
+template SimTK_SIMMATH_EXPORT bool calcEigenValuesRightEigenVectors( Matrix_<float>&, Vector_< std::complex<float> >&, Matrix_< std::complex<float> >&);
+template SimTK_SIMMATH_EXPORT bool calcEigenValuesRightEigenVectors( Matrix_<double>&, Vector_< std::complex<double> >&, Matrix_< std::complex<double> >&);
 
 } // end namespace SimTK
