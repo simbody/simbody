@@ -104,10 +104,12 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
     // copy computed eigen values and eigen vectors into caller's arguements 
     if( info == 0 ) {
         for (j=0;j<inputMatrixNumberOfRowsOrCols;j++) {
-            eigenValues(j).real() = realPartOfEigenValues[j];
-            eigenValues(j).imag() = imagPartOfEigenValues[j];
+            eigenValues(j) = std::complex<P>(realPartOfEigenValues[j], imagPartOfEigenValues[j]);
+//            eigenValues(j).real = realPartOfEigenValues[j];
+//            eigenValues(j).imag = imagPartOfEigenValues[j];
             for (i=0;i<inputMatrixNumberOfRowsOrCols;i++) {
-               eigenVectors(i,j).real() = arrayForRightEigenVectors[j*inputMatrixNumberOfRowsOrCols+i];
+//               eigenVectors(i,j).real = arrayForRightEigenVectors[j*inputMatrixNumberOfRowsOrCols+i];
+               eigenVectors(i,j) = std::complex<P>(arrayForRightEigenVectors[j*inputMatrixNumberOfRowsOrCols+i], 0.0 );
             }
         }
     }
