@@ -34,12 +34,17 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/NTraits.h"
+#include "simmath/internal/LinearAlgebra.h"
+
 
 
 const static double POSITIVE_INF =  2e19;
 const static double NEGATIVE_INF = -2e19;
 
 namespace SimTK {
+template <class P>
+bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors ); 
+
 
 namespace Exception {
 

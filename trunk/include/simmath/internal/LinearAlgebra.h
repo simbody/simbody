@@ -1,5 +1,5 @@
-#ifndef SIMMATH_COMMON_H_
-#define SIMMATH_COMMON_H_ 
+#ifndef SimTK_LINEAR_ALGEBRA_H_
+#define SimTK_LINEAR_ALGEBRA_H_
 
 /* Portions copyright (c) 2006 Stanford University and Jack Middleton.
  * Contributors:
@@ -50,26 +50,10 @@
  * be clients of this one. However, we are assuming all-static or all-shared.
 */
 
-#ifdef WIN32
-    #if defined(SimTK_SIMMATH_BUILDING_SHARED_LIBRARY)
-        #define SimTK_SIMMATH_EXPORT __declspec(dllexport)
-    #elif defined(SimTK_SIMMATH_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
-        #define SimTK_SIMMATH_EXPORT
-    #else
-        /* i.e., a client of a shared library */
-        #define SimTK_SIMMATH_EXPORT __declspec(dllimport)
-    #endif
-#else
-    /* Linux, Mac */
-    #define SimTK_SIMMATH_EXPORT
-#endif
 
+namespace SimTK {
+template <class P>
+bool eigenValuesRightVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors );
 
-// Every SimTK Core library must provide these two routines, with the library
-// name appearing after the "version_" and "about_".
-extern "C" {
-    SimTK_SIMMATH_EXPORT void SimTK_version_simmath(int* major, int* minor, int* build);
-    SimTK_SIMMATH_EXPORT void SimTK_about_simmath(const char* key, int maxlen, char* value);
-}
-
-#endif // SIMMATH_COMMON_H_
+} // namespace SimTK 
+#endif //SimTK_LINEAR_ALGEBRA_H_
