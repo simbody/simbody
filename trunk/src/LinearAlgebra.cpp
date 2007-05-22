@@ -22,6 +22,12 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+/**@file
+ *
+ * Implementation numerical linear algebra operations.
+ */
+
+
 #include <iostream> 
 #include <malloc.h>
 #include <math.h>
@@ -32,17 +38,25 @@
 
 namespace SimTK {
 
+/**
+ *  Preliminary implementation!
+ *  Wrapper for LAPACK to compute the eigen values and right eigen vectors of a 
+ *  symmetric matrix.
+ *  Current implemenation only returns the real values of the right eigen vectors. 
+ *  Returns true if successful. Returns false if computation failed.
+ */
+
 template <class P>
 bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors ) {
 
     int i,j;
     int info;
     int inputMatrixNumberOfRowsOrCols = m.ncol();     // dimension of matrix
-    int inputMatrixLeadingDimension = m.ncol();
-    int leadingDimensionOfLeftEigenvectorsArray = m.ncol();
+    int inputMatrixLeadingDimension = m.ncol();       // maxtrix has contiguous data
+    int leadingDimensionOfLeftEigenvectorsArray = m.ncol(); 
     int leadingDimensionOfRightEigenvectorsArray = m.ncol();
-    char calcLeftEigenVectors  = 'N';
-    char calcRightEigenVectors = 'V';
+    char calcLeftEigenVectors  = 'N';     // tell LAPACK not to compute left eigen vectors
+    char calcRightEigenVectors = 'V';     // tell LAPACK to compute right eigen vectors
     P size[1];              // dimension of opitimal workspace computed in 1st call to geev 
     P *inputMatrix = new P[inputMatrixNumberOfRowsOrCols*inputMatrixNumberOfRowsOrCols];  // alloc temporary matrix
     P *realPartOfEigenValues = new P[inputMatrixNumberOfRowsOrCols];     // alloc real portion of results
@@ -74,7 +88,7 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
     dimensionOfWorkSpace = (int)size[0];
     P *workSpace = new P[dimensionOfWorkSpace]; // allocate workspace
    
-    /* compute eigen values and right eigen vectors */
+    // compute eigen values and right eigen vectors 
     LapackInterface::geev<P>( calcLeftEigenVectors,      calcRightEigenVectors,
                               inputMatrixNumberOfRowsOrCols, inputMatrix, inputMatrixLeadingDimension,
                               realPartOfEigenValues,     imagPartOfEigenValues,
@@ -83,11 +97,11 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
                               workSpace,                 dimensionOfWorkSpace, 
                               info);
 
-    /* resize output vector and matrix  if necessary */
+    // resize output vector and matrix  if necessary 
     eigenValues.resize( inputMatrixNumberOfRowsOrCols );
     eigenVectors.resize( inputMatrixNumberOfRowsOrCols, inputMatrixNumberOfRowsOrCols );
 
-    /* copy computed eigen values and eigen vectors into caller's arguements */
+    // copy computed eigen values and eigen vectors into caller's arguements 
     if( info == 0 ) {
         for (j=0;j<inputMatrixNumberOfRowsOrCols;j++) {
             eigenValues(j).real() = realPartOfEigenValues[j];
@@ -97,12 +111,11 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
             }
         }
     }
-    /* free all temporary memory we alloc'ed */
+    // free all temporary memory we alloc'ed 
     delete [] inputMatrix;
     delete [] workSpace;
     delete [] imagPartOfEigenValues;
     delete [] realPartOfEigenValues;
-    delete [] arrayForLeftEigenVectors;
     delete [] arrayForRightEigenVectors;
  
     if( info == 0 )   {
@@ -112,7 +125,8 @@ bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> >
     }
 }
 
+// instantiate for only float and double 
 template bool calcEigenValuesRightEigenVectors( Matrix_<float>&, Vector_< std::complex<float> >&, Matrix_< std::complex<float> >&);
 template bool calcEigenValuesRightEigenVectors( Matrix_<double>&, Vector_< std::complex<double> >&, Matrix_< std::complex<double> >&);
 
-} // namespace SimTK
+} // end namespace SimTK
