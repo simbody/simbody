@@ -326,13 +326,13 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     IF(NOT SimTK_INSTALL_PREFIX)
-#        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Install Directory")
-        SET(SimTK_INSTALL_PREFIX "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "Install Directory")
+        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Install Directory")
+#        SET(SimTK_INSTALL_PREFIX "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "Install Directory")
     ENDIF(NOT SimTK_INSTALL_PREFIX)
 
     IF(NOT SimTK_SDK)
-#        SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "SimTK Dependency path")
-        SET(SimTK_SDK "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "SimTK Dependency path")
+        SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "SimTK Dependency path")
+#        SET(SimTK_SDK "C:/Documents and Settings/jacklm/SimTK" CACHE PATH "SimTK Dependency path")
     ENDIF(NOT SimTK_SDK)
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
