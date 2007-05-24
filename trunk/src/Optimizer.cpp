@@ -33,16 +33,24 @@ namespace SimTK {
          delete( (OptimizerRep *)rep );
       }
 
-void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys ) {
-
-
-      if( sys.getNumConstraints() > 0)   {
-         rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
-      }else if( sys.getHasLimits() ) {
-         rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
-      } else {
-         rep = (OptimizerRep *) new LBFGSOptimizer( sys  );
-      }
+void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
+  
+   // if constructor specifies which algorithm, use it else select base on problem paramters 
+   if ( algorithm == InteriorPoint ) {
+           rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
+   } else if( algorithm == LBFGSB ) {
+           rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
+   } else if( algorithm == LBFGS ) {
+           rep = (OptimizerRep *) new LBFGSOptimizer( sys  );
+   } else {  
+       if( sys.getNumConstraints() > 0)   {
+           rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
+       } else if( sys.getHasLimits() ) {
+           rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
+       } else {
+           rep = (OptimizerRep *) new LBFGSOptimizer( sys  );
+       }
+   } 
       rep->setMyHandle(*this);
       updRep().sysp = &sys;
 }

@@ -22,7 +22,7 @@
  */
 
 #include <iostream>
-#include "Simmath.h"
+#include "SimTKmath.h"
 #include "Optimizer.h"
 
 using namespace SimTK;

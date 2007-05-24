@@ -1,10 +1,12 @@
-all: UserGuideLimits UserGuide ConstrainedNumericalDiffOptimization ConstrainedOptimization ParameterConstrainedOptimization SimpleDifferentiator UnconstrainedNumericalDiffOptimization UnconstrainedOptimization
+all: UserGuideLimits UserGuide ConstrainedNumericalDiffOptimization ConstrainedOptimization ParameterConstrainedOptimization SimpleDifferentiator UnconstrainedNumericalDiffOptimization UnconstrainedOptimization IPOPTParameterConstrainedOptimization
 
 inc_path = -I../include -I/usr/local/SimTK/core/include -I../include/simmath -I../include/simmath/internal 
 lib_path = -L/usr/local/SimTK/core/lib64
-libs     = -lsimmath_d -lSimTKlapack 
+libs     = -lSimTKmath_d -lSimTKlapack 
 
 
+IPOPTParameterConstrainedOptimization : IPOPTParameterConstrainedOptimization.cpp
+	g++ $(inc_path) $(lib_path)  $(libs) IPOPTParameterConstrainedOptimization.cpp -o IPOPTParameterConstrainedOptimization
 UserGuideLimits : UserGuideLimits.cpp
 	g++ $(inc_path) $(lib_path)  $(libs) UserGuideLimits.cpp -o UserGuideLimits
 

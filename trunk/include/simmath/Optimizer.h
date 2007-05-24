@@ -32,6 +32,13 @@
 
 namespace SimTK {
 
+enum OptimizerAlgorithm {
+     BestAvailiable = 0, // Simmath will select best Optimizer based on problem type
+     InteriorPoint  = 1, // IPOPT interior point optimizer
+     LBFGS          = 2, // LBFGS optimizer
+     LBFGSB         = 3  // LBFGS optimizer with simple bounds
+};
+
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
     OptimizerSystem() : numParameters(0),
@@ -208,9 +215,16 @@ static int hessian_static(const OptimizerSystem& sys,
 class SimTK_SIMMATH_EXPORT Optimizer  {
 
    public:
+
     Optimizer( OptimizerSystem& sys) {
-        // Perform construction of the CPodesRep on the library side.
-        librarySideOptimizerConstructor(sys);
+        // Perform construction of the OptimizerRep on the library side.
+        librarySideOptimizerConstructor(sys, BestAvailiable );
+        // But fill in function pointers from the client side.
+        clientSideOptimizerConstructor();
+    }
+    Optimizer( OptimizerSystem& sys, OptimizerAlgorithm algorithm) {
+        // Perform construction of the OptimizerRep on the library side.
+        librarySideOptimizerConstructor(sys, algorithm);
         // But fill in function pointers from the client side.
         clientSideOptimizerConstructor();
     }
@@ -255,7 +269,7 @@ private:
 
     // This is the library-side part of the CPodes constructor. This must
     // be done prior to the client side construction.
-  void librarySideOptimizerConstructor(OptimizerSystem& sys);
+  void librarySideOptimizerConstructor(OptimizerSystem& sys, OptimizerAlgorithm algorithm);
 
   void clientSideOptimizerConstructor() {
        registerObjectiveFunc( objectiveFunc_static );
