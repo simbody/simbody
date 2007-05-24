@@ -144,9 +144,6 @@ printf(" n=%d smlsiz=%d nlvl=%d liwork=%d \n",n,smlsiz, nlvl,liwork );
   {
     ESymSolverStatus retval = SYMSOLVER_SUCCESS;
     DBG_START_METH("LapackSolverInterface::InitializeStructure", dbg_verbosity);
-    if (a) {
-      delete [] a;
-    }
     n = dim;
     nz = nonzeros;
     delete [] a;
