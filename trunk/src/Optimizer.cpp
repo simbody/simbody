@@ -26,6 +26,7 @@
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"
 #include "InteriorPointOptimizer.h"
+#include <string>
 
 namespace SimTK {
 
@@ -72,15 +73,42 @@ void Optimizer::setConvergenceTolerance( const Real tolerance ){
       return;
 }
 
+void Optimizer::setMaxIterations( const int iter ){
+
+      ((OptimizerRep *)rep)->setMaxIterations(iter);
+      return;
+}
+
+void Optimizer::setLimitedMemoryHistory( const int history ){
+
+      ((OptimizerRep *)rep)->setLimitedMemoryHistory(history);
+      return;
+}
+
 void Optimizer::setDiagnosticsLevel( const int  level ){
 
       ((OptimizerRep *)rep)->setDiagnosticsLevel(level);
       return;
 }
 
-int Optimizer::setAdvancedOptions( const char *option, const Real *values ){
+bool Optimizer::setAdvancedStrOption( const char *option, const char *value ){
 
-      return( ((OptimizerRep *)rep)->setAdvancedOptions( option, values) );
+      return( ((OptimizerRep *)rep)->setAdvancedStrOption( option, value) );
+}
+
+bool Optimizer::setAdvancedRealOption( const char *option, const Real value ){
+
+      return( ((OptimizerRep *)rep)->setAdvancedRealOption( option, value) );
+}
+
+bool Optimizer::setAdvancedIntOption( const char *option, const int value ){
+
+      return( ((OptimizerRep *)rep)->setAdvancedIntOption( option, value) );
+}
+
+bool Optimizer::setAdvancedBoolOption( const char *option, const bool value ){
+
+      return( ((OptimizerRep *)rep)->setAdvancedBoolOption( option, value) );
 }
 
 Real Optimizer::optimize(SimTK::Vector   &results) {

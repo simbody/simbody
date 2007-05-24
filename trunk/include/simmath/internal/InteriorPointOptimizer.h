@@ -37,30 +37,23 @@ class InteriorPointOptimizer: public OptimizerRep {
      public:
 
      ~InteriorPointOptimizer() {
-        if( freeLimits ) {
-           delete [] x_U;
-           delete [] x_L;
-        }
         delete [] g_U;
         delete [] g_L;
         delete [] mult_x_L;
         delete [] mult_x_U;
-
-
+        delete [] mult_g;
      }
+
      InteriorPointOptimizer(OptimizerSystem& sys); 
      Real optimize(  Vector &results );
 
      private:
      Real         *mult_x_L;
      Real         *mult_x_U;
+     Real         *mult_g;
      Real         *g_L;
      Real         *g_U;
-     Real         *x_L;
-     Real         *x_U;
-     IpoptProblem  nlp;
-     bool          freeLimits;
-
+     bool          firstOptimization; 
 
 };
 } // namespace SimTK

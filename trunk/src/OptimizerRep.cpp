@@ -38,6 +38,16 @@ namespace SimTK {
        convergenceTolerance = tolerance;
        return;
     }
+    void OptimizerRep::setMaxIterations( const int iter ){
+
+       maxIterations = iter;
+       return;
+    }
+    void OptimizerRep::setLimitedMemoryHistory( const int history ){
+
+       limitedMemoryHistory = history;
+       return;
+    }
 
     void OptimizerRep::setDiagnosticsLevel( const int  level ){
 
@@ -45,10 +55,45 @@ namespace SimTK {
        return;
     }
 
-    int OptimizerRep::setAdvancedOptions( const char *option, const Real *values ){
-
-       return(SUCCESS);
+    template<class T> bool setAdvancedOptionHelper(std::map<std::string,T> &optionMap, const std::string &option, const T &value){
+        optionMap[option] = value;
+        return true;
     }
+
+    bool OptimizerRep::setAdvancedStrOption( const std::string &option, const std::string &value ){
+        return setAdvancedOptionHelper(advancedStrOptions, option, value);
+    }
+    bool OptimizerRep::setAdvancedRealOption( const std::string &option, const Real value ){
+        return setAdvancedOptionHelper(advancedRealOptions, option, value);
+    }
+    bool OptimizerRep::setAdvancedIntOption( const std::string &option, const int value ){
+        return setAdvancedOptionHelper(advancedIntOptions, option, value);
+    }
+    bool OptimizerRep::setAdvancedBoolOption( const std::string &option, const bool value ){
+        return setAdvancedOptionHelper(advancedBoolOptions, option, value);
+    }
+
+    template<class T> bool getAdvancedOptionHelper(const std::map<std::string,T> &optionMap, const std::string &option, T &value){
+        std::map<std::string,T>::const_iterator iter = optionMap.find(option);
+        if(iter != optionMap.end()) {
+            value = iter->second;
+            return true;
+        } else return false;
+    }
+
+    bool OptimizerRep::getAdvancedStrOption( const std::string &option, std::string &value ) const{
+        return getAdvancedOptionHelper(advancedStrOptions, option, value);
+    }
+    bool OptimizerRep::getAdvancedRealOption( const std::string &option, Real &value ) const{
+        return getAdvancedOptionHelper(advancedRealOptions, option, value);
+    }
+    bool OptimizerRep::getAdvancedIntOption( const std::string &option, int &value ) const{
+        return getAdvancedOptionHelper(advancedIntOptions, option, value);
+    }
+    bool OptimizerRep::getAdvancedBoolOption( const std::string &option, bool &value ) const{
+        return getAdvancedOptionHelper(advancedBoolOptions, option, value);
+    }
+
 
     void OptimizerRep::useNumericalGradient( const bool flag ) {
 

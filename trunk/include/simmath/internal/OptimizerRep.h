@@ -28,6 +28,7 @@
 #include "SimTKcommon/internal/BigMatrix.h"
 #include "Optimizer.h"
 #include "Differentiator.h"
+#include <map>
 
 
 namespace SimTK {
@@ -80,6 +81,8 @@ public:
          jacDiff(0),
          gradDiff(0),
          convergenceTolerance(1e-4),
+         maxIterations(100),
+         limitedMemoryHistory(5),
          diagnosticsLevel(0),
          numericalGradient(false), 
          numericalJacobian(false)
@@ -111,7 +114,19 @@ public:
     Differentiator *jacDiff;   
     void setDiagnosticsLevel( const int  level );
     void setConvergenceTolerance( const Real tolerance );
-    int setAdvancedOptions( const char *option, const Real *values );
+    void setMaxIterations( const int iter );
+    void setLimitedMemoryHistory( const int history );
+
+    bool setAdvancedStrOption( const std::string &option, const std::string &value );
+    bool setAdvancedRealOption( const std::string &option, const Real value );
+    bool setAdvancedIntOption( const std::string &option, const int value );
+    bool setAdvancedBoolOption( const std::string &option, const bool value );
+
+    bool getAdvancedStrOption( const std::string &option, std::string &value ) const;
+    bool getAdvancedRealOption( const std::string &option, Real &value ) const;
+    bool getAdvancedIntOption( const std::string &option, int &value ) const;
+    bool getAdvancedBoolOption( const std::string &option, bool &value ) const;
+
     void  setMyHandle(Optimizer& cp) {myHandle = &cp;}
     const Optimizer& getMyHandle() const {assert(myHandle); return *myHandle;}
     void  clearMyHandle() {myHandle=0;} 
@@ -126,6 +141,8 @@ public:
     protected:
     int diagnosticsLevel;
     Real convergenceTolerance;
+    int maxIterations;
+    int limitedMemoryHistory;
 
     private:
     OptimizerSystem* sysp;
@@ -138,6 +155,11 @@ public:
     void disableNumericalJac();
     void initNumericalGrad();
     void disableNumericalGrad();
+
+    std::map<std::string, std::string> advancedStrOptions;
+    std::map<std::string, Real> advancedRealOptions;
+    std::map<std::string, int> advancedIntOptions;
+    std::map<std::string, bool> advancedBoolOptions;
 
     friend class Optimizer;
     Optimizer* myHandle;   // The owner handle of this Rep.

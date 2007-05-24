@@ -28,14 +28,10 @@ using std::cout;
 using std::endl;
 
 namespace SimTK {
-const int NUMBER_OF_CORRECTIONS = 5;
 
      LBFGSOptimizer::LBFGSOptimizer( OptimizerSystem& sys )
         : OptimizerRep( sys ) 
 {
-          int n,m;
-
-
       /* internal flags for LBFGS */
          iprint[0] = iprint[1] = 0; // no output generated
          xtol[0] = 1e-16; // from itk/core/vnl/algo/vnl_lbfgs.cxx
@@ -47,8 +43,6 @@ const int NUMBER_OF_CORRECTIONS = 5;
              char *szName= "dimension";
              SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          }
-         n = sys.getNumParameters();
-         m = NUMBER_OF_CORRECTIONS;
      } 
 
 
@@ -58,7 +52,7 @@ const int NUMBER_OF_CORRECTIONS = 5;
          Real f;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
-         int m = NUMBER_OF_CORRECTIONS;
+         int m = limitedMemoryHistory;
 
 //printf("\n ***** LBFGSOptimizer ***** \n\n");
 

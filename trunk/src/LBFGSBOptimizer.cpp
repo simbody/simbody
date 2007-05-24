@@ -32,7 +32,6 @@ namespace SimTK {
 
 
 // TODO make these options
-static const int NUMBER_OF_CORRECTIONS = 5;
 static Real factr = 1.0e7;   // 
 
 
@@ -55,8 +54,6 @@ static Real factr = 1.0e7;   //
           for(i=0;i<n;i++) {
                nbd[i] = 2;
           }
-
-
      } 
 
      Real LBFGSBOptimizer::optimize(  Vector &results ) {
@@ -73,7 +70,7 @@ static Real factr = 1.0e7;   //
          Real *lowerLimits, *upperLimits;
          const OptimizerSystem& sys = getOptimizerSystem();
          int n = sys.getNumParameters();
-         int m = NUMBER_OF_CORRECTIONS;
+         int m = limitedMemoryHistory;
          Real *gradient;
          gradient = new Real[n];
 

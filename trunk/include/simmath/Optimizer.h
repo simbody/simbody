@@ -231,8 +231,14 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
 
     ~Optimizer();
     void setConvergenceTolerance( const Real tolerance );
+    void setMaxIterations( const int iter );
+    void setLimitedMemoryHistory( const int history );
     void setDiagnosticsLevel( const int level ); 
-    int setAdvancedOptions( const char *option, const Real *values );
+
+    bool setAdvancedStrOption( const char *option, const char *value );
+    bool setAdvancedRealOption( const char *option, const Real value );
+    bool setAdvancedIntOption( const char *option, const int value );
+    bool setAdvancedBoolOption( const char *option, const bool value );
 
  // TODO set differentiator options 
     void useNumericalGradient( const bool flag );
