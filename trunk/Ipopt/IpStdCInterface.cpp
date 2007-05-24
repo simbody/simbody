@@ -161,6 +161,24 @@ enum ApplicationReturnStatus IpoptSolve(
     start_x[i] = x[i];
   }
 
+  // Copy values of multipliers to support warm starts - Eran, 05/07
+  ::Number* start_mult_g = NULL;
+  ::Number* start_mult_x_L = NULL;
+  ::Number* start_mult_x_U = NULL;
+  if(mult_g) {
+      start_mult_g = new ::Number[ipopt_problem->m];
+      for (::Index i=0; i<ipopt_problem->m; i++) start_mult_g[i] = mult_g[i];
+  }
+  if(mult_x_L) {
+      start_mult_x_L = new ::Number[ipopt_problem->n];
+      for (::Index i=0; i<ipopt_problem->n; i++) start_mult_x_L[i] = mult_x_L[i];
+  }
+  if(mult_x_U) {
+      start_mult_x_U = new ::Number[ipopt_problem->n];
+      for (::Index i=0; i<ipopt_problem->n; i++) start_mult_x_U[i] = mult_x_U[i];
+  }
+
+
   // Create the original nlp
   SmartPtr<TNLP> tnlp;
 
@@ -172,7 +190,7 @@ enum ApplicationReturnStatus IpoptSolve(
                                 ipopt_problem->nele_jac,
                                 ipopt_problem->nele_hess,
                                 ipopt_problem->index_style,
-                                start_x, NULL, NULL, NULL,
+                                start_x, start_mult_g, start_mult_x_L, start_mult_x_U,
                                 ipopt_problem->eval_f, ipopt_problem->eval_g,
                                 ipopt_problem->eval_grad_f,
                                 ipopt_problem->eval_jac_g,
@@ -194,6 +212,9 @@ enum ApplicationReturnStatus IpoptSolve(
   }
 
   delete [] start_x;
+  delete [] start_mult_g;
+  delete [] start_mult_x_L;
+  delete [] start_mult_x_U;
 
   return (::ApplicationReturnStatus) status;
 }
