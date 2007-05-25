@@ -74,7 +74,7 @@ namespace SimTK {
     }
 
     template<class T> bool getAdvancedOptionHelper(const std::map<std::string,T> &optionMap, const std::string &option, T &value){
-        std::map<std::string,T>::const_iterator iter = optionMap.find(option);
+        typename std::map<std::string,T>::const_iterator iter = optionMap.find(option);
         if(iter != optionMap.end()) {
             value = iter->second;
             return true;
