@@ -212,8 +212,14 @@ optimize(Vector &results)
 	}
 
     if(diagnosticsLevel > 0) PrintInform(_inform,std::cout);
+    
+    if (_inform != 0 && _inform != 3 && _inform != 4 && _inform != 8) {
+        char buf[1024];
+        sprintf(buf, "CFSQP failed with status = %d",_inform);
+        SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
+    }
 
-	return(_inform);
+    return *_p;
 }
 
 //=============================================================================
