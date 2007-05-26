@@ -91,6 +91,8 @@ public:
        zeroFunctionPointers();
     }
 
+    static bool isAvailable() { return true; }
+
     virtual Real optimize(  Vector &results ) =  0;
 
     const OptimizerSystem& getOptimizerSystem() const {return *sysp;}

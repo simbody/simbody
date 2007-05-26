@@ -38,7 +38,8 @@ using SimTK::OptimizerSystem;
 
 
 static int  NUMBER_OF_PARAMETERS = 4; 
-static int  NUMBER_OF_CONSTRAINTS = 2; 
+static int  NUMBER_OF_EQUALITY_CONSTRAINTS = 1; 
+static int  NUMBER_OF_INEQUALITY_CONSTRAINTS = 1; 
 
 /*
  * Adapted from Ipopt's hs071 example problem
@@ -112,10 +113,12 @@ public:
 
 /*   ProblemSystem() : OptimizerSystem( NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS ) {} */
 
-   ProblemSystem( const int numParams, const int numConstraints) :
-
-         OptimizerSystem( numParams, numConstraints ) {
-   }
+    ProblemSystem( const int numParams, const int numEqualityConstraints, const int numInequalityConstraints ) :
+        OptimizerSystem( numParams ) 
+    {
+        setNumEqualityConstraints( numEqualityConstraints );
+        setNumInequalityConstraints( numInequalityConstraints );
+    }
 
 };
 
@@ -126,14 +129,11 @@ int main() {
     int i;
 
     /* create the system to be optimized */
-    ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_CONSTRAINTS );
+    ProblemSystem sys(NUMBER_OF_PARAMETERS, NUMBER_OF_EQUALITY_CONSTRAINTS, NUMBER_OF_INEQUALITY_CONSTRAINTS);
 
     Vector results(NUMBER_OF_PARAMETERS);
     Vector lower_bounds(NUMBER_OF_PARAMETERS);
     Vector upper_bounds(NUMBER_OF_PARAMETERS);
-
-
-    sys.setNumEqualityConstraints( 1 );
 
     /* set initial conditions */
     results[0] = 1.0;

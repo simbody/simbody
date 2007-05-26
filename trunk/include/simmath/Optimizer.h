@@ -36,33 +36,30 @@ enum OptimizerAlgorithm {
      BestAvailiable = 0, // Simmath will select best Optimizer based on problem type
      InteriorPoint  = 1, // IPOPT interior point optimizer
      LBFGS          = 2, // LBFGS optimizer
-     LBFGSB         = 3  // LBFGS optimizer with simple bounds
+     LBFGSB         = 3, // LBFGS optimizer with simple bounds
+     CFSQP          = 4  // CFSQP sequential quadratic programming optimizer (requires external library)
 };
 
 class SimTK_SIMMATH_EXPORT OptimizerSystem {
 public:
     OptimizerSystem() : numParameters(0),
-                        numConstraints(0),
-                        numEqualityConstraints(0),  
+                        numEqualityConstraints(0),
+                        numInequalityConstraints(0),
+                        numLinearEqualityConstraints(0),
+                        numLinearInequalityConstraints(0),
                         lowerLimits(0),
                         upperLimits(0),
                         useLimits( false ) { 
     }
 
-    OptimizerSystem(int nParameters ) : numConstraints(0),
-                                      numEqualityConstraints(0),  
+    OptimizerSystem(int nParameters ) : numEqualityConstraints(0),
+                                      numInequalityConstraints(0),
+                                      numLinearEqualityConstraints(0),
+                                      numLinearInequalityConstraints(0),
                                       lowerLimits(0),
                                       upperLimits(0),
                                       useLimits( false ) { 
         setNumParameters(nParameters);
-    }
-
-    OptimizerSystem(int nParameters, int nConstraints) : numEqualityConstraints(0),
-                                                         upperLimits(0),
-                                                         lowerLimits(0),
-                                                         useLimits( false ) { 
-        setNumParameters(nParameters);
-        setNumConstraints(nConstraints);
     }
 
   /* this method must be supplied by concreate class */
@@ -92,37 +89,55 @@ public:
                                  SimTK_THROW2(SimTK::Exception::UnimplementedVirtualMethod , "OptimizerSystem", "hessian" );
                                  return -1; }
 
-   void setNumParameters( const int nParameters ) {
+   virtual void setNumParameters( const int nParameters ) {
 
        if(   nParameters < 1 ) {
            char *where = " OptimizerSystem  Constructor";
            char *szName= "number of parameters";
-           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  INT_MAX, nParameters, where);
+           SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1, nParameters, INT_MAX, where);
        }else {
             numParameters = nParameters;
        }
    }
-   void setNumConstraints( const int nConstraints ) {
-
-       if(   nConstraints < 0 ) {
-           char *where = " OptimizerSystem  setNumConstraints";
-           char *szName= "number of constraints";
-           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  INT_MAX, nConstraints, where);
-       }else {
-            numConstraints = nConstraints;
-       }
-   }
    void setNumEqualityConstraints( const int n ) {
  
-        if( n < 0 || n > numConstraints ) {
-           char *where = " OptimizerSystem  setNumberOfEqualityConstraints";
-           char *szName= "Number of Constraints";
-           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName,  n, numConstraints, where);
+        if( n < 0 ) {
+           char *where = " OptimizerSystem  setNumEqualityConstraints";
+           char *szName= "number of equality constraints";
+           SimTK_THROW3(SimTK::Exception::SizeWasNegative, szName, n, where);
         } else {
            numEqualityConstraints = n;
         }
+   }
+   void setNumInequalityConstraints( const int n ) {
 
-        return;
+       if( n < 0 ) {
+           char *where = " OptimizerSystem  setNumInequalityConstraints";
+           char *szName= "number of inequality constraints";
+           SimTK_THROW3(SimTK::Exception::SizeWasNegative, szName, n, where);
+       }else {
+            numInequalityConstraints = n;
+       }
+   }
+   void setNumLinearEqualityConstraints( const int n ) {
+ 
+        if( n < 0 || n > numEqualityConstraints ) {
+           char *where = " OptimizerSystem  setNumLinearEqualityConstraints";
+           char *szName= "number of linear equality constraints";
+           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName, n, numEqualityConstraints, where);
+        } else {
+           numLinearEqualityConstraints = n;
+        }
+   }
+   void setNumLinearInequalityConstraints( const int n ) {
+
+       if( n < 0 || n > numInequalityConstraints ) {
+           char *where = " OptimizerSystem  setNumLinearInequalityConstraints";
+           char *szName= "number of linear inequality constraints";
+           SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName, n, numInequalityConstraints, where);
+       }else {
+            numLinearInequalityConstraints = n;
+       }
    }
    void setParameterLimits( const Vector& lower, const Vector& upper  ) {
  
@@ -150,9 +165,16 @@ public:
 
        return;
    }
-   int getNumParameters() const {return numParameters;};
-   int getNumConstraints() const {return numConstraints;};
-   int getNumEqualityConstraints() const {return numEqualityConstraints;};
+   int getNumParameters() const {return numParameters;}
+
+   int getNumConstraints() const {return numEqualityConstraints+numInequalityConstraints;}
+   int getNumEqualityConstraints() const {return numEqualityConstraints;}
+   int getNumInequalityConstraints() const {return numInequalityConstraints;}
+   int getNumLinearEqualityConstraints() const {return numLinearEqualityConstraints;}
+   int getNumNonlinearEqualityConstraints() const {return numEqualityConstraints-numLinearEqualityConstraints;}
+   int getNumLinearInequalityConstraints() const {return numLinearInequalityConstraints;}
+   int getNumNonlinearInequalityConstraints() const {return numInequalityConstraints-numLinearInequalityConstraints;}
+
    bool getHasLimits() const { return useLimits; }
    void getParameterLimits( double **lower, double **upper ) const {
         *lower = &(*lowerLimits)[0];
@@ -161,8 +183,10 @@ public:
 
 
    int numParameters;
-   int numConstraints;
    int numEqualityConstraints;
+   int numInequalityConstraints;
+   int numLinearEqualityConstraints;
+   int numLinearInequalityConstraints;
    bool useLimits;
    Vector* lowerLimits;
    Vector* upperLimits;
@@ -230,6 +254,9 @@ class SimTK_SIMMATH_EXPORT Optimizer  {
     }
 
     ~Optimizer();
+
+    static bool isAlgorithmAvailable(OptimizerAlgorithm algorithm);
+
     void setConvergenceTolerance( const Real tolerance );
     void setMaxIterations( const int iter );
     void setLimitedMemoryHistory( const int history );

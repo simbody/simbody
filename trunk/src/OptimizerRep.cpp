@@ -118,7 +118,7 @@ namespace SimTK {
 
     void OptimizerRep::initNumericalJac() {  // instaniates a jacobian Differentiator
 
-        cf      = new SysConstraintFunc(sysp->numConstraints, sysp->numParameters, sysp );
+        cf      = new SysConstraintFunc(sysp->getNumConstraints(), sysp->numParameters, sysp );
         jacDiff = new Differentiator(*cf);  // construct Differentiator
 
     }

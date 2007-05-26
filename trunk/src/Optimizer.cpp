@@ -26,6 +26,7 @@
 #include "LBFGSOptimizer.h"
 #include "LBFGSBOptimizer.h"
 #include "InteriorPointOptimizer.h"
+#include "CFSQPOptimizer.h"
 #include <string>
 
 namespace SimTK {
@@ -34,8 +35,20 @@ namespace SimTK {
          delete( (OptimizerRep *)rep );
       }
 
+    bool Optimizer::isAlgorithmAvailable(OptimizerAlgorithm algorithm) {
+        switch(algorithm) {
+           case InteriorPoint: return InteriorPointOptimizer::isAvailable();
+           case LBFGS: return LBFGSOptimizer::isAvailable();
+           case LBFGSB: return LBFGSBOptimizer::isAvailable();
+           case CFSQP: return CFSQPOptimizer::isAvailable();
+           default: return false;
+        }
+    }
+
 void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys, OptimizerAlgorithm algorithm ) {
-  
+ 
+   rep = 0;
+
    // if constructor specifies which algorithm, use it else select base on problem paramters 
    if ( algorithm == InteriorPoint ) {
            rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
@@ -43,7 +56,17 @@ void Optimizer::librarySideOptimizerConstructor( OptimizerSystem& sys, Optimizer
            rep = (OptimizerRep *) new LBFGSBOptimizer( sys  );
    } else if( algorithm == LBFGS ) {
            rep = (OptimizerRep *) new LBFGSOptimizer( sys  );
-   } else {  
+   } else if( algorithm == CFSQP ) {
+       try {
+           rep = (OptimizerRep *) new CFSQPOptimizer( sys  );
+       } catch (const SimTK::Exception::Base &ex) {
+           std::cout << ex.getMessage() << std::endl;
+           std::cout << "Failed to load CFSQP library.  Will fall back to default optimizer choice." << std::endl;
+           rep = 0;
+        }
+   }
+
+   if(!rep) { 
        if( sys.getNumConstraints() > 0)   {
            rep = (OptimizerRep *) new InteriorPointOptimizer( sys  );
        } else if( sys.getHasLimits() ) {
