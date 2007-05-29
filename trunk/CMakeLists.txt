@@ -204,7 +204,7 @@ STRING(TOLOWER ${SimTK_LAPACK} SimTK_LAPACK_DOWNSHIFT)
 IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
     ## A gcc build
-   SET(MATH_LIBS_TO_USE SimTKlapack pthread)
+   SET(MATH_LIBS_TO_USE SimTKlapack pthread dl)
 
  ##   LINK_DIRECTORIES(/usr/local/lib${LIB64} /lib${LIB64})
 
