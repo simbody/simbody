@@ -506,50 +506,50 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
             bodies[parent].scale = jParent.T().norm();
     }
 
-    if (defaultBodyScaleForAutoGeometry==0) {
-        renWin->Render();
-        return;
-    }
+    // Generate default geometry unless suppressed.
+    // TODO: this and the scaling code above 
+    // should be moved to the matter subsystem; VTKReporter shouldn't
+    // need to know about this sort of system detail.
+    if (defaultBodyScaleForAutoGeometry!=0)
+        for (BodyId i(0); i<(int)bodies.size(); ++i) {
+            const Real scale = bodies[i].scale;
+            DecorativeFrame axes(scale*0.5);
+            axes.setLineThickness(2);
+            addDecoration(i, Transform(), axes); // the body frame
 
-
-    for (BodyId i(0); i<(int)bodies.size(); ++i) {
-        const Real scale = bodies[i].scale;
-        DecorativeFrame axes(scale*0.5);
-        axes.setLineThickness(2);
-        addDecoration(i, Transform(), axes); // the body frame
-
-        // Display the inboard joint frame (at half size), unless it is the
-        // same as the body frame. Then find the corresponding frame on the
-        // parent and display that in this body's color.
-        if (i > 0) {
-            const int parent = sbs.getParent(i);
-            const Real pscale = bodies[parent].scale;
-            const Transform& jInb = sbs.getMobilizerFrame(State(), i);
-            if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
-                addDecoration(i, jInb, DecorativeFrame(scale*0.25));
-                if (jInb.T() != Vec3(0))
-                    addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
+            // Display the inboard joint frame (at half size), unless it is the
+            // same as the body frame. Then find the corresponding frame on the
+            // parent and display that in this body's color.
+            if (i > 0) {
+                const int parent = sbs.getParent(i);
+                const Real pscale = bodies[parent].scale;
+                const Transform& jInb = sbs.getMobilizerFrame(State(), i);
+                if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
+                    addDecoration(i, jInb, DecorativeFrame(scale*0.25));
+                    if (jInb.T() != Vec3(0))
+                        addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
+                }
+                const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
+                DecorativeFrame frameOnParent(pscale*0.25);
+                frameOnParent.setColor(getDefaultBodyColor(i));
+                addDecoration(sbs.getParent(i), jParent, frameOnParent);
+                if (jParent.T() != Vec3(0))
+                    addDecoration(sbs.getParent(i), Transform(), DecorativeLine(Vec3(0),jParent.T()));
             }
-            const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
-            DecorativeFrame frameOnParent(pscale*0.25);
-            frameOnParent.setColor(getDefaultBodyColor(i));
-            addDecoration(sbs.getParent(i), jParent, frameOnParent);
-            if (jParent.T() != Vec3(0))
-                addDecoration(sbs.getParent(i), Transform(), DecorativeLine(Vec3(0),jParent.T()));
+
+            // Put a little purple wireframe sphere at the COM, and add a line from 
+            // body origin to the com.
+
+            DecorativeSphere com(scale*.05);
+            com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
+            const Vec3& comPos_B = sbs.getBodyMassProperties(State(), i).getMassCenter();
+            addDecoration(i, Transform(comPos_B), com);
+            if (comPos_B != Vec3(0))
+                addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
         }
 
-        // Put a little purple wireframe sphere at the COM, and add a line from 
-        // body origin to the com.
-
-        DecorativeSphere com(scale*.05);
-        com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
-        const Vec3& comPos_B = sbs.getBodyMassProperties(State(), i).getMassCenter();
-        addDecoration(i, Transform(comPos_B), com);
-        if (comPos_B != Vec3(0))
-            addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
-    }
-
-    //TODO
+    // Mine the system for any geometry it wants us to show.
+    // TODO: there is currently no way to turn this off.
     Array<DecorativeGeometry> sysGeom;
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
     for (int i=0; i<sysGeom.size(); ++i)
