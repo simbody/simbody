@@ -221,28 +221,30 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
     };
 
     struct UserForceParameters {
-        UserForceParameters() : uforce(0), calc(0), clone(0), nuke(0) { }
-        UserForceParameters(GeneralForceElements::UserForce*              u, 
+        UserForceParameters() : uforce(0), calc(0), clone(0), destruct(0) { }
+
+        // Note that we will make a private copy of the user's force element.
+        UserForceParameters(const GeneralForceElements::UserForce&        u, 
                             GeneralForceElements::UserForceCalcMethod     ucalc,
                             GeneralForceElements::UserForceCloneMethod    uclone,
-                            GeneralForceElements::UserForceDestructor     unuke)
-          : uforce(u), calc(ucalc), clone(uclone), nuke(unuke)
+                            GeneralForceElements::UserForceDestructor     udestruct)
+          : uforce(uclone(u)), calc(ucalc), clone(uclone), destruct(udestruct)
         {
         }
         UserForceParameters(const UserForceParameters& src) {
-            uforce = src.clone(src.uforce);
-            calc   = src.calc;
-            clone  = src.clone;
-            nuke   = src.nuke;
+            uforce   = src.clone(*src.uforce);
+            calc     = src.calc;
+            clone    = src.clone;
+            destruct = src.destruct;
         }
         UserForceParameters& operator=(const UserForceParameters& src) {
             if (&src == this) return *this;
-            if (uforce) {nuke(uforce);} // out with the old
+            if (uforce) {destruct(uforce);} // out with the old
             if (src.uforce) {
-                uforce = src.clone(uforce);
-                calc = src.calc; clone = src.clone; nuke = src.nuke;
+                uforce = src.clone(*src.uforce);
+                calc = src.calc; clone = src.clone; destruct = src.destruct;
             } else {
-                uforce=0; calc=0; clone=0; nuke=0;
+                uforce=0; calc=0; clone=0; destruct=0;
             }
             return *this;
         }
@@ -250,23 +252,24 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 
         // This is to separate construction from filling in the parameters.
         // It is only allowed if the parameters are empty currently.
-        void setUserForceParameters(GeneralForceElements::UserForce*              u, 
+        // Note that we make a private copy of the user force element.
+        void setUserForceParameters(const GeneralForceElements::UserForce&        u, 
                                     GeneralForceElements::UserForceCalcMethod     ucalc,
                                     GeneralForceElements::UserForceCloneMethod    uclone,
-                                    GeneralForceElements::UserForceDestructor     unuke) 
+                                    GeneralForceElements::UserForceDestructor     udestruct) 
         {
             assert(uforce==0);
-            uforce=u; calc=ucalc; clone=uclone; nuke=unuke;
+            uforce=uclone(u); calc=ucalc; clone=uclone; destruct=udestruct;
         }
 
         ~UserForceParameters() {
-            nuke(uforce);
-            uforce=0; calc=0; clone=0; nuke=0;
+            destruct(uforce); // toss out our copy
+            uforce=0; calc=0; clone=0; destruct=0;
         }
         GeneralForceElements::UserForce*           uforce;  // we own this object
         GeneralForceElements::UserForceCalcMethod  calc;
         GeneralForceElements::UserForceCloneMethod clone;
-        GeneralForceElements::UserForceDestructor  nuke;
+        GeneralForceElements::UserForceDestructor  destruct;
     };
 
     struct Parameters {
@@ -396,14 +399,14 @@ public:
         return (int)defaultParameters.globalEnergyDrains.size() - 1;
     }
 
-    int addUserForce(GeneralForceElements::UserForce* u, 
-        GeneralForceElements::UserForceCalcMethod calc, 
-        GeneralForceElements::UserForceCloneMethod clone, 
-        GeneralForceElements::UserForceDestructor nuke) 
+    int addUserForce(const GeneralForceElements::UserForce& u, 
+        GeneralForceElements::UserForceCalcMethod           calc, 
+        GeneralForceElements::UserForceCloneMethod          clone, 
+        GeneralForceElements::UserForceDestructor           destruct) 
     {
-        assert(u && calc && clone && nuke);
+        assert(calc && clone && destruct);
         defaultParameters.userForces.push_back(
-            UserForceParameters(u,calc,clone,nuke));
+            UserForceParameters(u,calc,clone,destruct));
         return (int)defaultParameters.userForces.size() - 1;
     }
 
@@ -575,7 +578,7 @@ public:
         // User forces
         for (int i=0; i < (int)p.userForces.size(); ++i) {
             const UserForceParameters& u = p.userForces[i];
-            u.calc(u.uforce, matter, s, 
+            u.calc(*u.uforce, matter, s, 
                    rigidBodyForces, particleForces, mobilityForces, pe);
         }
     }
@@ -686,11 +689,11 @@ int GeneralForceElements::addGlobalEnergyDrain(const Real& dampingFactor) {
     return updRep().addGlobalEnergyDrain(dampingFactor);
 }
 
-int GeneralForceElements::addUserForceMethods(UserForce* u, 
+int GeneralForceElements::addUserForceMethods(const UserForce& u, 
     UserForceCalcMethod calc, UserForceCloneMethod clone, 
-    UserForceDestructor nuke)
+    UserForceDestructor destruct)
 {
-    return updRep().addUserForce(u,calc,clone,nuke);
+    return updRep().addUserForce(u,calc,clone,destruct);
 }
 
 } // namespace SimTK

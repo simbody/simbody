@@ -46,73 +46,10 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT GeneralForceElements : public ForceSubsystem {
 public:
 
-    // This is tricky because no library-side code can depend on the ordering
-    // of methods in the virtual function table of this abstract class. So
-    // we call the virtual functions from private static methods here which
-    // are generated on the client side and passed to us as though they were
-    // C function addresses.
-    class UserForce {
-    public:
-        virtual ~UserForce() { }
+    // See below for declaration of abstract class GeneralForceElements::UserForce
+    // which can be used to write your own force elements.
+    class UserForce;
 
-        // The force arrays and potential energy are accumulated as we go,
-        // so this routine must *add in* its own contributions, not replace
-        // what is already there. 'bodyForces' is indexed by BodyId, so the
-        // first entry corresponds to Ground -- you can apply forces there
-        // if you want but they won't do anything. Body torques and forces
-        // are supplied in the Ground frame. 'mobilityForces' are
-        // indexed by generalized speed number and take on the meaning
-        // appropriate for that mobility. Note that mobility forces act
-        // like a motor placed on that mobility -- they apply equal
-        // and opposite forces or torques on the body and its parent body. 
-        // Body (and particle) forces on the other hand act like the Hand
-        // of God and apply just the single force or torque without regard
-        // to how it would have to be implemented physically.
-        // TODO: particleForces will be indexed by particle number; forces
-        // will be expressed in the Ground frame.
-        // If this is a potential (conservative) force, that is, a force
-        // which depends only on configuration, then you should calculate
-        // its current contribution to the system potential energy and add
-        // it in to the indicated argument. Otherwise, just leave 'pe' alone;
-        // don't set it zero!
-        virtual void calc(const MatterSubsystem& matter, const State& state,
-                          Vector_<SpatialVec>& bodyForces,
-                          Vector_<Vec3>&       particleForces,
-                          Vector&              mobilityForces,
-                          Real&                pe) const = 0;
-
-        virtual UserForce* clone() const = 0;
-
-    private:
-        // These routines provide a C-compatible interface to the virtual methods.
-        inline static void staticCalc(const UserForce* u,
-            const MatterSubsystem& matter, const State& state,
-            Vector_<SpatialVec>& bodyForces,
-            Vector_<Vec3>&       particleForces,
-            Vector&              mobilityForces,
-            Real&                pe)
-        {
-            u->calc(matter,state,bodyForces,particleForces,mobilityForces,pe);
-        }
-        inline static UserForce* staticClone(const UserForce* u) {
-            return u->clone();
-        }
-        inline static void staticDestructor(UserForce* u) {
-            delete u;
-        }
-        friend class GeneralForceElements;
-    };
-    typedef void (*UserForceCalcMethod)
-       (const UserForce*        u,
-        const MatterSubsystem&  matter, 
-        const State&            state,
-        Vector_<SpatialVec>&    bodyForces,
-        Vector_<Vec3>&          particleForces,
-        Vector&                 mobilityForces,
-        Real&                   pe);
-
-    typedef UserForce* (*UserForceCloneMethod)(const UserForce*);
-    typedef void (*UserForceDestructor)(UserForce*);
 
 public:
     GeneralForceElements();
@@ -209,21 +146,122 @@ public:
     /// hence does not contribute to potential energy.
     int addGlobalEnergyDrain(const Real& dampingFactor);
 
-    // This routine execute on the client side.
-    int addUserForce(UserForce* u) {
-        return addUserForceMethods(u, UserForce::staticCalc, UserForce::staticClone,
-            UserForce::staticDestructor);
-    }
+    /// Add a UserForce to the system. Note that a private copy of the UserForce
+    /// is kept internally; the original is only used as a prototype and subsequent
+    /// changes to it will have no effect.
+
+    // (This routine must execute on the client side; it's implementation
+    // is provided later in this header file when we have seen all the
+    // needed declarations.) 
+    inline int addUserForce(const UserForce& u);
+
+    // No user-serviceable parts below here.
+
+    // See the UserForce class declaration below for more information.
+    typedef void (*UserForceCalcMethod)
+       (const UserForce&        u,
+        const MatterSubsystem&  matter, 
+        const State&            state,
+        Vector_<SpatialVec>&    bodyForces,
+        Vector_<Vec3>&          particleForces,
+        Vector&                 mobilityForces,
+        Real&                   pe);
+    typedef UserForce* (*UserForceCloneMethod)(const UserForce&);
+    typedef void (*UserForceDestructor)(UserForce*);
 
     SimTK_PIMPL_DOWNCAST(GeneralForceElements, ForceSubsystem);
 private:
-    int addUserForceMethods(UserForce* u, 
-        UserForceCalcMethod calc, UserForceCloneMethod clone, 
-        UserForceDestructor nuke);
+    // This library-side routine is how user forces are actually
+    // conveyed, ensuring binary compatibility when the client and
+    // library are not at the same version.
+    int addUserForceMethods(const UserForce& u, 
+        UserForceCalcMethod, UserForceCloneMethod, UserForceDestructor);
 
     class GeneralForceElementsRep& updRep();
     const GeneralForceElementsRep& getRep() const;
 };
+
+
+/**
+ * This is an abstract class from which you can derive a concrete force element.
+ * You must provide two methods:
+ *    calc()  -- evaluates forces at a particular state
+ *    clone() -- makes a copy of your UserForce object
+ * If your class uses any heap-allocated private data, be sure to implement a
+ * destructor also. In that case for your own sanity you *should* implement a
+ * copy constructor and default assignment operator as well, although those
+ * are not required for a UserForce to be used correctly by the GeneralForceElements
+ * subsystem.
+ *
+ * A critical requirement on your UserForce, which no one but you can enforce,
+ * is that it be *stateless*. That is, past history MUST NOT affect the results
+ * of a call to your calc() routine with a given State. If you violate this
+ * rule you may still get plausible-looking numbers and movies out of your
+ * simulation, but you're not doing physics any more.
+ *
+ * TODO: the current implementation does not allow a UserForce to allocate
+ * any space in the State. It should be given such a chance in which case
+ * it would no longer need to be stateless.
+ */
+class SimTK_SIMBODY_EXPORT GeneralForceElements::UserForce {
+public:
+    virtual ~UserForce() { }
+
+    // The force arrays and potential energy are accumulated as we go,
+    // so this routine must *add in* its own contributions, not replace
+    // what is already there. 'bodyForces' is indexed by BodyId, so the
+    // first entry corresponds to Ground -- you can apply forces there
+    // if you want but they won't do anything. Body torques and forces
+    // are supplied in the Ground frame. 'mobilityForces' are
+    // indexed by generalized speed number and take on the meaning
+    // appropriate for that mobility. Note that mobility forces act
+    // like a motor placed on that mobility -- they apply equal
+    // and opposite forces or torques on the body and its parent body. 
+    // Body (and particle) forces on the other hand act like the Hand
+    // of God and apply just the single force or torque without regard
+    // to how it would have to be implemented physically.
+    // TODO: particleForces will be indexed by particle number; forces
+    // will be expressed in the Ground frame.
+    // If this is a potential (conservative) force, that is, a force
+    // which depends only on configuration, then you should calculate
+    // its current contribution to the system potential energy and add
+    // it in to the indicated argument. Otherwise, just leave 'pe' alone;
+    // don't set it zero!
+    virtual void calc(const MatterSubsystem& matter, const State& state,
+                      Vector_<SpatialVec>& bodyForces,
+                      Vector_<Vec3>&       particleForces,
+                      Vector&              mobilityForces,
+                      Real&                pe) const = 0;
+
+    virtual UserForce* clone() const = 0;
+
+private:
+    // This is tricky because no library-side code can depend on the ordering
+    // of methods in the virtual function table of this abstract class. So
+    // we call the virtual functions from private static methods here which
+    // are generated on the client side and passed to us as though they were
+    // C function addresses.
+    inline static void staticCalc(const UserForce& u,
+        const MatterSubsystem& matter, const State& state,
+        Vector_<SpatialVec>& bodyForces,
+        Vector_<Vec3>&       particleForces,
+        Vector&              mobilityForces,
+        Real&                pe)
+    {
+        u.calc(matter,state,bodyForces,particleForces,mobilityForces,pe);
+    }
+    inline static UserForce* staticClone(const UserForce& u) {return u.clone();}
+    inline static void staticDestructor(UserForce* u) {delete u;}
+    friend class GeneralForceElements;
+};
+
+
+// This routine must execute on the client side, so that the library side
+// doesn't depend on the ordering of virtual function table entries.
+inline int GeneralForceElements::addUserForce(const UserForce& u) {
+    return addUserForceMethods(u, UserForce::staticCalc, UserForce::staticClone,
+                                  UserForce::staticDestructor);
+}
 
 } // namespace SimTK
 

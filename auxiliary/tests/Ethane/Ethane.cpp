@@ -102,6 +102,203 @@ protected:
     const MolecularMechanicsSystem& mmSystem;
 };
 
+
+//
+// Ribose sugar ring for showing "pucker" modes.
+//
+//             H5T--O5T   H51
+//                    \  / 
+//                H52--C5  
+//                     |             
+//                     |      O4
+//                     |    /    \   O1--HO1
+//                     |  /        \ |
+//                 H4--C4            C1--H1
+//                       \          /
+//                    H3--C3------C2--H2
+//                        |       |
+//                   H3T--O3T     O2--HO2
+//
+//  Atom  Class  ChargedAtomType
+//
+// 0 O5T    22     1232 -0.6223
+// 1 H5T    31     1233  0.4295
+// 2 C5     1      1002  0.0558
+// 3 H51    35     1003  0.0679
+// 4 H52    35     1004  0.0679
+//                      -------
+//                      -0.0012
+//
+// 5 O4     23     1096 -0.3548
+// 6 C4     1      1094  0.1065
+// 7 H4     35     1095  0.1174
+//                      -------
+//                      -0.1309
+//
+// 8 O3T    22     1237 -0.6541
+// 9 H3T    31     1238  0.4376
+//10 C3     1      1010  0.2022
+//11 H3     35     1011  0.0615
+//                      -------
+//                       0.0473
+//
+//12 O2     22     1237 -0.6541
+//13 HO2    31     1238  0.4376
+//14 C2     1      1010  0.2022
+//15 H2     35     1011  0.0615
+//                      -------
+//                       0.0473
+//
+//16 O1     22     1237 -0.6541
+//17 HO1    31     1238  0.4376
+//18 C1     1      1010  0.2022
+//19 H1     35     1011  0.0615
+//                      -------
+//                       0.0473
+//
+//                   ----------
+//                       0.0098
+//
+// Charged atom type assignments are cobbled together from Amber99.
+//
+class Ribose : public Molecule {
+public:
+    Ribose(BodyId parentBodyNum, const Transform& parentMobilizerFrame,
+           MolecularMechanicsSystem& mmSys) 
+      : Molecule(parentBodyNum, parentMobilizerFrame, mmSys)
+    {
+        DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
+        
+        atoms.push_back(mm.addAtom(1232)); // 0
+        atoms.push_back(mm.addAtom(1233)); // 1
+        atoms.push_back(mm.addAtom(1002)); // 2
+        atoms.push_back(mm.addAtom(1003)); // 3
+        atoms.push_back(mm.addAtom(1004)); // 4
+
+        mm.addBond(atoms[0],atoms[1]); mm.addBond(atoms[2],atoms[3]);
+        mm.addBond(atoms[2],atoms[4]); mm.addBond(atoms[0],atoms[2]);
+
+        atoms.push_back(mm.addAtom(1096)); // 5
+        atoms.push_back(mm.addAtom(1094)); // 6
+        atoms.push_back(mm.addAtom(1095)); // 7
+
+        mm.addBond(atoms[5],atoms[6]); mm.addBond(atoms[6],atoms[7]);
+        mm.addBond(atoms[2],atoms[6]);
+
+        atoms.push_back(mm.addAtom(1237)); // 8
+        atoms.push_back(mm.addAtom(1238)); // 9
+        atoms.push_back(mm.addAtom(1010)); //10
+        atoms.push_back(mm.addAtom(1011)); //11
+        mm.addBond(atoms[8],atoms[9]); mm.addBond(atoms[10],atoms[11]);
+        mm.addBond(atoms[8],atoms[10]); 
+        mm.addBond(atoms[6],atoms[10]);
+
+        atoms.push_back(mm.addAtom(1237)); //12
+        atoms.push_back(mm.addAtom(1238)); //13
+        atoms.push_back(mm.addAtom(1010)); //14
+        atoms.push_back(mm.addAtom(1011)); //15
+        mm.addBond(atoms[12],atoms[13]); mm.addBond(atoms[14],atoms[15]);
+        mm.addBond(atoms[12],atoms[14]);
+        mm.addBond(atoms[10],atoms[14]);
+
+        atoms.push_back(mm.addAtom(1237)); //16
+        atoms.push_back(mm.addAtom(1238)); //17
+        atoms.push_back(mm.addAtom(1010)); //18
+        atoms.push_back(mm.addAtom(1011)); //19
+        mm.addBond(atoms[16],atoms[17]); mm.addBond(atoms[18],atoms[19]);
+        mm.addBond(atoms[16],atoms[18]);
+        mm.addBond(atoms[14],atoms[18]);
+        mm.addBond(atoms[5],atoms[18]); // O4-C1
+
+        // Define the clusers.
+        //twoOxygens = mm.createCluster("two oxygens");
+        //mm.placeAtomInCluster(getO(0), twoOxygens, Vec3(0));
+        //mm.placeAtomInCluster(getO(1), twoOxygens, Vec3(0,0,getNominalOOBondLength()));
+    }
+
+    // Use body zero's frame as the "molecule frame" (call it "F" here). We'll move
+    // that one to F' and record the relative motion. Then we move all the others
+    // by the same relative transform.
+    void setMoleculeTransform(State& s, const Transform& X_GFprime) const
+    {
+        getMatter().realize(s,Stage::Position);
+        const Transform X_GF = getMatter().getBodyTransform(s,bodies[0]); // current
+        const Transform X_FFprime = ~X_GF * X_GFprime; // relative transform
+
+        for (int i=0; i < (int)bodies.size(); ++i) {
+            getMatter().realize(s,Stage::Position);
+            const Transform& X_GB = getMatter().getBodyTransform(s,bodies[i]);
+            const Transform  X_FprimeBprime = ~X_GF * X_GB; // we want this to be the same as X_FB
+            const Transform  X_FBprime = X_FFprime * X_FprimeBprime;
+            const Transform  X_GBprime = X_GF*X_FBprime;
+            // This only works since the mobilizers are all ground-attached Cartesian.
+            // The Stage is reduced due to the change to the q's below.
+            getMatter().setMobilizerTransform(s, bodies[i], X_GBprime);
+        }
+    }
+
+protected:
+    //int twoOxygens; // cluster
+};
+
+class CartesianRibose : public Ribose {
+public:
+    CartesianRibose(BodyId parent, MolecularMechanicsSystem& mmSys)
+      : Ribose(parent,Transform(),mmSys)
+    {
+        SimbodyMatterSubsystem&  matter = 
+            SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
+        DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
+
+        //bodies.push_back(GroundId);
+        //mm.attachAtomToBody(0,GroundId,Vec3(0));
+        for (int i=0; i<20; ++i) {
+            bodies.push_back(
+                matter.addRigidBody(
+                    MassProperties(mm.getAtomMass(atoms[i]),Vec3(0),Inertia(0)),
+                    Transform(),            // inboard mobilizer frame
+                    parent, Transform(),    // parent mobilizer frame
+                    Mobilizer::Cartesian()));
+            mm.attachAtomToBody(atoms[i],bodies.back(),Vec3(0));
+        }
+    }
+
+    void setDefaultInternalState(State& s) const {
+        //TODO: these are not right -- some of the pieces have the wrong chirality.
+        Real q[]={
+            0,0,0,
+            0.0159955,0.0930929,0.0179526,
+            0.0862463,-0.0788493,0.0804993,
+            0.188797,-0.0643956,0.0460469,
+            0.0793338,-0.048313,0.185042,
+            -0.0734023,-0.252303,0.137272,
+            0.0493894,-0.227588,0.0688814,
+            0.0372042,-0.251271,-0.0368623,
+            0.276019,-0.266582,0.172778-.1,
+            0.32527,-0.335729,0.218463-.1,
+            0.154191,-0.324668,0.12799-.1, //XXX
+            0.175325,-0.401742,0.0536479-.1,
+            0.121915,-0.521913,0.270613,
+            0.0560667,-0.560277,0.329768,
+            0.0800273,-0.388735,0.245242,
+            0.0915603,-0.326613,0.334268,
+            -0.156899,-0.38217,0.30165,
+            -0.220948,-0.313277,0.281256,
+            -0.0642466,-0.379147,0.196642,
+            -0.0852995,-0.45703,0.122944};
+        for (int i=0; i<20; ++i)
+            getMatter().setMobilizerCoordsAsVec3(s,bodies[i],Vec3::getAs(q+3*i));
+
+        //for (int i=0; i<20; ++i) {
+         //   if (bodies[i] != GroundId)
+         //       getMatter().setMobilizerCoordsAsVec3(s,bodies[i],Vec3(i/10., i%5/10., i%2/2.));
+       // }
+    }
+
+
+private:
+};
+
 // An oxygen (O2) molecule has just two atoms, with a maximum
 // of 6 degrees of freedom. We provide the following models:
 //   CartesianO2 -- 3 dofs referred to the Ground origin
@@ -335,13 +532,13 @@ try
     Real accuracy = 1e-2;
     Real outputInterval = .05;
     Real simulationLength = 30;
-    //Real outputInterval = .000000001;
-    //Real simulationLength = .0000001;
+    //Real outputInterval = .1;
+    //Real simulationLength = 10;
 
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    //forces.addGlobalEnergyDrain(0.02);
+    forces.addGlobalEnergyDrain(1);
 
 
     // AMBER 99
@@ -353,25 +550,101 @@ try
     mm.defineAtomClass_KA(2,  "Amber99 C",  6, 3, 1.9080, 0.0860);
     mm.defineAtomClass_KA(3,  "Amber99 CA", 6, 3, 1.9080, 0.0860);
     mm.defineAtomClass_KA(4,  "Amber99 CM", 6, 3, 1.9080, 0.0860);
+
+    mm.defineAtomClass_KA(9,  "Amber99 CB", 6, 3, 1.9080, 0.0860);
+    mm.defineAtomClass_KA(22, "Amber99 OH", 8, 2, 1.7210, 0.2104);
+    mm.defineAtomClass_KA(23, "Amber99 OS", 8, 2, 1.6837, 0.1700);
+
     mm.defineAtomClass_KA(24, "Amber99 O",  8, 1, 1.6612, 0.2100);
     mm.defineAtomClass_KA(25, "Amber99 O2", 8, 1, 1.6612, 0.2100); 
+
+    mm.defineAtomClass_KA(31, "Amber99 HO", 1, 1, 0.0001, 0.0000);
+    //mm.defineAtomClass_KA(31, "Amber99 HO", 1, 1, 1., 0.1);//KLUDGE
+
     mm.defineAtomClass_KA(34, "Amber99 HC", 1, 1, 1.4870, 0.0157); 
+    mm.defineAtomClass_KA(35, "Amber99 H1", 1, 1, 1.3870, 0.0157);
 
     mm.defineChargedAtomType_KA(13, "Amber99 Alanine CB", 1, -0.1825);
     mm.defineChargedAtomType_KA(14, "Amber99 Alanine HB", 34, 0.0603);
 
+    mm.defineChargedAtomType_KA(1002, "Amber99 R-Adenosine C5'",   1,  0.0558);
+    mm.defineChargedAtomType_KA(1003, "Amber99 R-Adenosine H5'1", 35,  0.0679);
+    mm.defineChargedAtomType_KA(1004, "Amber99 R-Adenosine H5'2", 35,  0.0679);
+    mm.defineChargedAtomType_KA(1006, "Amber99 R-Adenosine H4'",  35,  0.1174);
+    mm.defineChargedAtomType_KA(1007, "Amber99 R-Adenosine O4'",  23, -0.3548);
 
-    mm.defineBondStretch_KA(1,1,  310., 1.5260);
-    mm.defineBondStretch_KA(1,34, 340., 1.09);
+    mm.defineChargedAtomType_KA(1010, "Amber99 R-Adenosine C3'",   1,  0.2022);
+    mm.defineChargedAtomType_KA(1011, "Amber99 R-Adenosine H3'",  35,  0.0615);
+
+    mm.defineChargedAtomType_KA(1094, "Amber99 R-Uracil C4'",   1,  0.1065);
+    mm.defineChargedAtomType_KA(1095, "Amber99 R-Uracil H4'",  35,  0.1174);
+    mm.defineChargedAtomType_KA(1096, "Amber99 R-Uracil O4'",  23, -0.3548);
+
+    mm.defineChargedAtomType_KA(1101, "Amber99 R-Uracil C2'",   1,   0.0670);
+    mm.defineChargedAtomType_KA(1102, "Amber99 R-Uracil H2'1",  35,  0.0972);
+    mm.defineChargedAtomType_KA(1103, "Amber99 R-Uracil O2'",   22, -0.6139);
+    mm.defineChargedAtomType_KA(1104, "Amber99 R-Uracil HO'2",  31,  0.4186);
+
+    mm.defineChargedAtomType_KA(1232, "Amber99 R-5'-Hydroxyl O5'",  22, -0.6223);
+    mm.defineChargedAtomType_KA(1233, "Amber99 R-5'-Hydroxyl H5T",  31,  0.4295);
+    mm.defineChargedAtomType_KA(1237, "Amber99 R-5'-Hydroxyl O3'",  22, -0.6541);
+    mm.defineChargedAtomType_KA(1238, "Amber99 R-5'-Hydroxyl H3T",  31,  0.4376);
+
+    mm.defineBondStretch_KA( 1, 1, 310., 1.5260);
+    mm.defineBondStretch_KA( 1,22, 320., 1.4100);
+    mm.defineBondStretch_KA( 1,23, 320., 1.4100);
+    mm.defineBondStretch_KA( 1,34, 340., 1.09);
+    mm.defineBondStretch_KA( 1,35, 340., 1.09);
+    mm.defineBondStretch_KA(22,31, 553., 0.9600);
 
     // I'm making this one up -- couldn't find O2 in Amber99
     mm.defineChargedAtomType_KA(9999, "Sherm's O2", 25, 0); // must be neutral by symmetry
     mm.defineBondStretch_KA(25,25, 570., 1.21); // bond length is right, stiffness is from C=O.
 
-    mm.defineBondBend_KA(1, 1,34, 50, 109.5);
-    mm.defineBondBend_KA(34,1,34, 35, 109.5);
+    mm.defineBondBend_KA( 1, 1, 1, 40., 109.5);
+    mm.defineBondBend_KA( 1, 1,22, 50., 109.5);
+    mm.defineBondBend_KA( 1, 1,23, 50., 109.5);
+    mm.defineBondBend_KA( 1, 1,34, 50., 109.5);
+    mm.defineBondBend_KA( 1, 1,35, 50., 109.5);
+    mm.defineBondBend_KA( 1,22,31, 55., 108.5);
+    mm.defineBondBend_KA( 1,23, 1, 60., 109.5);
+    mm.defineBondBend_KA(22, 1,23, 50., 109.5); // made up (sherm)
+    mm.defineBondBend_KA(22, 1,35, 50., 109.5);
+    mm.defineBondBend_KA(22,31, 1, 50., 109.5);
+    mm.defineBondBend_KA(23, 1,35, 50., 109.5);
+    mm.defineBondBend_KA(34, 1,34, 35., 109.5);
+    mm.defineBondBend_KA(35, 1,35, 35., 109.5);
 
-    mm.defineBondTorsion_KA(34,1,1,34, 3, 0.150, 0);
+    mm.defineBondTorsion_KA( 1, 1, 1, 1, 1, 0.2,  180.,
+                                         2, 0.25, 180.,
+                                         3, 0.18,   0.);
+    mm.defineBondTorsion_KA( 1, 1, 1,22, 3, 0.156,  0.);
+    mm.defineBondTorsion_KA( 1, 1, 1,23, 3, 0.156,  0.);
+    mm.defineBondTorsion_KA( 1, 1, 1,34, 3, 0.160,  0.);
+    mm.defineBondTorsion_KA( 1, 1, 1,35, 3, 0.156,  0.);
+    mm.defineBondTorsion_KA( 1, 1,22,31, 1, 0.025,  0.,
+                                         3, 0.160,  0.);
+    mm.defineBondTorsion_KA( 1, 1,23, 1, 2, 0.100,180.,
+                                         3, 0.383,  0.);
+    mm.defineBondTorsion_KA( 1,23, 1, 1, 2, 0.850,180.,
+                                         3, 0.100,  0.);
+    mm.defineBondTorsion_KA( 1,23, 1,22, 1, 1.350,180.,
+                                         2, 0.850,180.,
+                                         3, 0.100,  0.);
+    mm.defineBondTorsion_KA( 1,23, 1,23, 2, 0.850,180.,
+                                         3, 0.100,  0.);
+    mm.defineBondTorsion_KA( 1,23, 1,35, 3, 0.383,  0.);
+    mm.defineBondTorsion_KA(22, 1, 1,23, 2, 1.175,  0.,
+                                         3, 0.144,  0.);
+    mm.defineBondTorsion_KA(22, 1, 1,22, 2, 1.175,  0.,
+                                         3, 0.144,  0.);
+    mm.defineBondTorsion_KA(22, 1, 1,35, 3, 0.156,  0.);
+    mm.defineBondTorsion_KA(23, 1, 1,35, 3, 0.156,  0.);
+    mm.defineBondTorsion_KA(23, 1,22,31, 3, 0.156,  0.); // made up
+    mm.defineBondTorsion_KA(31,22, 1,35, 3, 0.167,  0.);
+
+    mm.defineBondTorsion_KA(34, 1, 1,34, 3, 0.150,  0.);
+    mm.defineBondTorsion_KA(35, 1, 1,35, 3, 0.156,  0.);
 
     mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
 
@@ -388,7 +661,8 @@ try
     mbs.setMolecularMechanicsForceSubsystem(mm);
     mbs.addForceSubsystem(forces);
     mbs.setDecorationSubsystem(artwork);
-    UniformGravitySubsystem gravity(Vec3(0,.01,0));
+    UniformGravitySubsystem gravity(Vec3(0,0,0));
+    mbs.addForceSubsystem(gravity);
 
     //mbs.addForceSubsystem(gravity);
 
@@ -403,10 +677,12 @@ try
     */
     const bool allowStretch = false;
     const OneDofEthane ethane1(allowStretch, GroundId, mbs);
-    const RigidEthane  rethane1(0, GroundId, mbs);
-    //const RigidEthane  rethane2(60, GroundId, mbs);
+    //const RigidEthane  rethane1(0, GroundId, mbs);
+    const RigidEthane  rethane2(60, GroundId, mbs);
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
+
+    const CartesianRibose cribose(GroundId, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -443,9 +719,11 @@ try
 
     for (int anum=0; anum < mm.getNAtoms(); ++anum) {
         Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
+        Real r = mm.getAtomRadius(anum);
+        if (r<.001) r=0.1; //nm
         //opacity=0.5;//XXX
         artwork.addBodyFixedDecoration(mm.getAtomBody(anum), mm.getAtomStationOnBody(anum),
-            DecorativeSphere(shrink*mm.getAtomRadius(anum))
+            DecorativeSphere(shrink*r)
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
     }
 
@@ -455,8 +733,11 @@ try
     mbs.realize(s, Stage::Model);
    // gravity.setZeroHeight(s, -100);
 
+    cribose.setDefaultInternalState(s);
+    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+
     floppy1.setDefaultInternalState(s);
-    //floppy1.setMoleculeTransform(s,Vec3(-3,0,0));
+    floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
     //floppy1.setCCStretch(.1,s);
     //floppy1.setTorsionAngleDeg(80,s);
     //floppy1.setTorsionRate(10,s);
@@ -464,18 +745,18 @@ try
     ethane1.setDefaultInternalState(s);
     ethane1.setMoleculeTransform(s,Vec3(1,0,0));
 
-    rethane1.setDefaultInternalState(s);
-    rethane1.setMoleculeTransform(s,Vec3(0,0,-1));
+    //rethane1.setDefaultInternalState(s);
+   // rethane1.setMoleculeTransform(s,Vec3(0,0,-1));
 
-    //rethane2.setDefaultInternalState(s);
-    //rethane2.setMoleculeTransform(s,Vec3(-1,0,-1));
+    rethane2.setDefaultInternalState(s);
+    rethane2.setMoleculeTransform(s,Vec3(-1,0,-1));
 
     rigidO2.setDefaultInternalState(s);
 
     const Transform o2pos( Rotation::aboutXThenNewY(0.5*Pi/2, 0.5*Pi/2),
                            Vec3(1,0,-1));
-    rigidO2.setMoleculeTransform(s,o2pos);
-    rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
+   // rigidO2.setMoleculeTransform(s,o2pos);
+   // rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
 
     /*
 
@@ -510,7 +791,6 @@ try
     RungeKuttaMerson study(mbs, s);
     //CPodesIntegrator study(mbs,s);
 
-
     const Real h = outputInterval;
     const int interval = 1;
     const Real tstart = 0.;
@@ -530,8 +810,9 @@ try
 
     const Real Estart = mbs.getEnergy(s);
 
-    int step = 0;
+    int step = 0; bool flag=false;
     while (s.getTime() <= tmax) {
+
         mbs.realize(s);
 
         cout << s.getTime();

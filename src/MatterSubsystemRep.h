@@ -69,10 +69,10 @@ public:
         case Stage::Position: {
             assert(getStage(s) >= Stage::Position);
             //TODO: just to check control flow, put a ball at system COM
-            const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
-            geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
-                            .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
-                            .setResolution(1));
+            //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
+            //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
+            //                .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
+             //               .setResolution(1));
         }
         default: 
             assert(getStage(s) >= stage);

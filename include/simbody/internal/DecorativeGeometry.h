@@ -26,10 +26,13 @@
 
 /** @file
  * This is the client-side interface to an implementation-independent
- * representation of "decorative" geometry suitable for
- * visualization. DO NOT confuse this with AnalyticGeometry which can represent
- * physically meaningful objects. However, any AnalyticGeometry object can
- * generate some decorative geometry for visualization.
+ * representation of "Decorations" suitable for visualization, annotation,
+ * logging, or debugging but which cannot have any effect on the behavior of
+ * a System or the evolution of a Study. 
+ * DO NOT confuse this with AnalyticGeometry which can represent
+ * physically meaningful objects that may interact and change the behavior
+ * of a System. However, an AnalyticGeometry object is likely to generate a
+ * corresponding Decoration for visualization.
  *
  * Why is there a DecorativeGeometry facility at the System level at all, so far away from
  * any application program? That's because for crude visualization and debugging
@@ -51,6 +54,38 @@
  * objects like titles which are attached to the display rather than the actors.
  * The classes here deal only with the local-frame definitions of the geometric
  * objects, not their placement in the scene.
+ */
+
+/* TODO: NEW TEXT -- NOT IMPLEMENTED YET (just thinking out loud)
+ *
+ * Each kind of Decoration defines a parameterized object, whose appearance
+ * is specified once its parameters are known. Parameters will be scalars,
+ * points, direction vectors, and transforms. These involve dependencies on
+ * a fixed set of reference frames: the ground body frame, the moving body frames,
+ * and the screen or viewing frame. The body frames are defined by the System;
+ * while the viewing frame is defined by whatever application is communicating
+ * to a user. The World frame of the viewer and the Ground frame of the System
+ * are the same. At run time a System can always report the configuration of its
+ * moving bodies with respect to Ground, and hence these can be placed in the
+ * scene with respect to the World frame. A text label, for example, could be tethered
+ * to a point on a moving body while defined to remain parallel to the viewing plane.
+ *
+ * In addition to their geometric representations, Decorations defined here can 
+ * state preferences, if any, for a variety of viewing options such as color,
+ * drawing style, and transparency. If left unspecified, the viewer will have to
+ * determine how to set these options; if specified the viewer may want to use
+ * the specified options but can override them if it has good reason to do so.
+ * Many different implementations of Decorations are possible. The generic 
+ * implementation is defined below as an abstract class; each viewer will use
+ * a particular implementation that defines a concrete implementation for each of the virtual
+ * methods of the abstraction.
+ *
+ * There are two Stages associated with a Decoration. When is the Decoration
+ * known to exist (including its parameterization), and when are values for its 
+ * parameters calculatable. For example, a permanent body-fixed sphere is known
+ * to exist a the Topological stage (i.e., as soon as the body exists). Its 
+ * configuration in the World frame, however, cannot be computed until we
+ * know the body's configuration, that is, Stage::Position.
  */
 
 #include "simbody/internal/common.h"

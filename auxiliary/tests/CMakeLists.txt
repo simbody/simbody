@@ -1,1 +1,1 @@
-Subdirs( CoarseRNA  ContactTest  Ethane  PendulumExample  SBPendulum1 )
+SUBDIRS( CoarseRNA  ContactTest  Ethane  PendulumExample  TwoPendulums SBPendulum1 )
