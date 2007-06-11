@@ -357,7 +357,9 @@ FILE(GLOB CORE_HEADERS     include/*.h                    */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
 FILE(GLOB INTERNAL_HEADERS include/simmath/internal/common.h
                            include/simmath/internal/LinearAlgebra.h)
-INSTALL_FILES("/core/include/"                   FILES ${CORE_HEADERS})
-INSTALL_FILES("/core/include/simmath/"         FILES ${TOP_HEADERS})
-INSTALL_FILES("/core/include/simmath/internal" FILES ${INTERNAL_HEADERS})
+
+INSTALL( FILES ${CORE_HEADERS}     DESTINATION core/include     )
+INSTALL( FILES ${TOP_HEADERS}      DESTINATION core/include/simmath)
+INSTALL( FILES ${INTERNAL_HEADERS} DESTINATION core/include/simmath/internal )
+INSTALL( PROGRAMS ${CMAKE_BINARY_DIR}/LBFGSBTest       DESTINATION core/bin )
 
