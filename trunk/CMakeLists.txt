@@ -361,5 +361,4 @@ FILE(GLOB INTERNAL_HEADERS include/simmath/internal/common.h
 INSTALL( FILES ${CORE_HEADERS}     DESTINATION core/include     )
 INSTALL( FILES ${TOP_HEADERS}      DESTINATION core/include/simmath)
 INSTALL( FILES ${INTERNAL_HEADERS} DESTINATION core/include/simmath/internal )
-INSTALL( PROGRAMS ${CMAKE_BINARY_DIR}/LBFGSBTest       DESTINATION core/bin )
 

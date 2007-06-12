@@ -31,3 +31,5 @@ TARGET_LINK_LIBRARIES(DifferentiatorTest         ${SHARED_TARGET})
 TARGET_LINK_LIBRARIES(DifferentiatorTestStatic   ${STATIC_TARGET})
 TARGET_LINK_LIBRARIES(SimpleDifferentiatorTest         ${SHARED_TARGET})
 TARGET_LINK_LIBRARIES(SimpleDifferentiatorTestStatic   ${STATIC_TARGET})
+
+INSTALL( TARGETS LBFGSBTest DESTINATION core/bin )
