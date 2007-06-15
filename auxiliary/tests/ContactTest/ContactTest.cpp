@@ -123,7 +123,10 @@ try
   { Real g = 9.8;   // m/s^2
     Vec3 gravity(0.,-g,0.);
 
-    SimbodyMatterSubsystem bouncers;
+    MultibodySystem mbs;
+    SimbodyMatterSubsystem  bouncers(mbs);
+    HuntCrossleyContact     contact(mbs);
+    UniformGravitySubsystem gravityForces(mbs, gravity);
 
     // start with a 2body pendulum with big rubber balls
     Real linkLength = 20.; // m
@@ -174,15 +177,6 @@ try
                                                 + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
                                   Mobilizer::Cartesian()));
 
-
-    MultibodySystem mbs;
-    mbs.setMatterSubsystem(bouncers);
-
-    UniformGravitySubsystem gravityForces(gravity);
-    mbs.addForceSubsystem(gravityForces);
-
-    HuntCrossleyContact contact;
-    mbs.addForceSubsystem(contact);
 
     // The k's here are the plane-strain moduli, that is, Y/(1-p^2) where Y is
     // Young's modulus and p is Poisson's ratio for the material. The c's are
@@ -240,6 +234,8 @@ try
 
     State s;
     mbs.realize(s, Stage::Topology);
+    //bouncers.setUseEulerAngles(s, true);
+    mbs.realize(s, Stage::Model);
     bool suppressProjection = false;
     RungeKuttaMerson ee(mbs, s, suppressProjection);
     //CPodesIntegrator ee(mbs, s);

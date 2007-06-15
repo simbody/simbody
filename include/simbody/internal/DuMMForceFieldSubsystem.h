@@ -38,6 +38,8 @@
 
 namespace SimTK {
 
+class MolecularMechanicsSystem;
+
 /**
  * This is a concrete subsystem that provides basic molecular mechanics 
  * functionality FOR DEMO AND PROOF OF CONCEPT only!!! It is not likely
@@ -75,6 +77,7 @@ public:
     static const Real Radius2Sigma; //   or multiply vdw radius by this to get vdw sigma
 
     DuMMForceFieldSubsystem();
+    explicit DuMMForceFieldSubsystem(MolecularMechanicsSystem&);
 
         // MOLECULE
 

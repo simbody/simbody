@@ -69,7 +69,7 @@ int SimbodyMatterSubsystemRep::addRigidBodyNode
      const MassProperties&    m,            // mass properties in body frame
      const Transform&         X_PMb,        // parent's frame for attaching this joint
      const Transform&         X_BM,         // inboard joint frame J in body frame
-     const Mobilizer&        mobilizer,
+     const Mobilizer&         mobilizer,
      int&                     nxtU,
      int&                     nxtUSq,
      int&                     nxtQ)
@@ -178,15 +178,15 @@ Array<BodyId> SimbodyMatterSubsystemRep::getChildren(BodyId body) const {
 }
 
 const MassProperties&
-SimbodyMatterSubsystemRep::getBodyMassProperties(const State&, BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultBodyMassProperties(BodyId body) const
   { return getRigidBodyNode(body).getMassProperties_OB_B(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getMobilizerFrame(const State&, BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(BodyId body) const
   { return getRigidBodyNode(body).getX_BM(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getMobilizerFrameOnParent(const State&, BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(BodyId body) const
   { return getRigidBodyNode(body).getX_PMb(); }
 
 const Transform&
@@ -284,6 +284,7 @@ void SimbodyMatterSubsystemRep::realizeTopology(State& s) const {
     // cache.
 
     mutableThis->topologyCache.nBodies      = nodeNum2NodeMap.size();
+    mutableThis->topologyCache.nParticles   = 0; // TODO
     mutableThis->topologyCache.nConstraints = constraintNodes.size();
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
@@ -438,6 +439,10 @@ void SimbodyMatterSubsystemRep::realizeInstance(const State& s) const {
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizeInstance(mv,iv,ic); 
+
+    ic.totalMass = iv.particleMasses.sum();
+    for (int i=0; i<getNBodies(); ++i)
+        ic.totalMass += iv.bodyMassProperties[i].getMass();
 }
 
 void SimbodyMatterSubsystemRep::realizeTime(const State& s) const {
@@ -526,21 +531,25 @@ void SimbodyMatterSubsystemRep::realizeDynamics(const State& s)  const {
         for (int j=0; j < (int)rbNodeLevels[i].size(); j++)
             rbNodeLevels[i][j]->realizeDynamics(mv,pc,u,vc,dc);
 
-    // Now total up all the forces
-    // TODO: this shouldn't be copying!!
+    // Update system kinetic energy
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
     mbs.getRep().updKineticEnergy(s) += calcKineticEnergy(s);
-
-    dc.appliedMobilityForces  = mbs.getMobilityForces(s);
-    dc.appliedParticleForces  = mbs.getParticleForces(s);
-    dc.appliedRigidBodyForces = mbs.getRigidBodyForces(s);
 }
 
 void SimbodyMatterSubsystemRep::realizeAcceleration(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "SimbodyMatterSubsystemRep::realizeAcceleration()");
 
-    // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
+    //TODO: kludge set state variables from mbs
+    // this needs to be re-engineered so that the forces go right into 
+    // the matter subsystem's state variables
+    SBAccelerationVars& av = const_cast<SBAccelerationVars&>(getAccelerationVars(s));
+    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
+    av.appliedMobilityForces  = mbs.getMobilityForces(s);
+    av.appliedParticleForces  = mbs.getParticleForces(s);
+    av.appliedRigidBodyForces = mbs.getRigidBodyForces(s);
+
+    // Get the Acceleration-stage cache and make sure it has been allocated and initialized if needed.
     Vector&              udot    = updUDot(s);
     Vector&              qdotdot = updQDotDot(s);
     SBAccelerationCache& ac      = updAccelerationCache(s);
@@ -577,18 +586,18 @@ void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& top
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultModelValues(topologyCache, modelVars);
+            rbNodeLevels[i][j]->setNodeDefaultModelValues(topologyCache, modelVars);
 
     // TODO: constraint defaults
 }
 
 void SimbodyMatterSubsystemRep::setDefaultInstanceValues(const SBModelVars& mv, 
-                                             SBInstanceVars& paramVars) const 
+                                                         SBInstanceVars& instanceVars) const 
 {
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultInstanceValues(mv, paramVars);
+            rbNodeLevels[i][j]->setNodeDefaultInstanceValues(mv, instanceVars);
 
     // TODO: constraint defaults
 }
@@ -601,7 +610,7 @@ void SimbodyMatterSubsystemRep::setDefaultTimeValues(const SBModelVars& mv,
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultTimeValues(mv, timeVars);
+            rbNodeLevels[i][j]->setNodeDefaultTimeValues(mv, timeVars);
 
     // TODO: constraint defaults
 }
@@ -613,7 +622,7 @@ void SimbodyMatterSubsystemRep::setDefaultPositionValues(const SBModelVars& mv, 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultPositionValues(mv, q);
+            rbNodeLevels[i][j]->setNodeDefaultPositionValues(mv, q);
 
     // TODO: constraint defaults
 }
@@ -625,7 +634,7 @@ void SimbodyMatterSubsystemRep::setDefaultVelocityValues(const SBModelVars& mv, 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultVelocityValues(mv, u);
+            rbNodeLevels[i][j]->setNodeDefaultVelocityValues(mv, u);
 
     // TODO: constraint defaults
 }
@@ -638,7 +647,7 @@ void SimbodyMatterSubsystemRep::setDefaultDynamicsValues(const SBModelVars& mv,
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultDynamicsValues(mv, dynamicsVars);
+            rbNodeLevels[i][j]->setNodeDefaultDynamicsValues(mv, dynamicsVars);
 
     // TODO: constraint defaults
 }
@@ -651,7 +660,7 @@ void SimbodyMatterSubsystemRep::setDefaultAccelerationValues(const SBModelVars& 
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
-            rbNodeLevels[i][j]->setDefaultAccelerationValues(mv, reactionVars);
+            rbNodeLevels[i][j]->setNodeDefaultAccelerationValues(mv, reactionVars);
 
     // TODO: constraint defaults
 }
@@ -752,18 +761,6 @@ void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, BodyId body
     n.setMobilizerLinearVelocity(mv, q, v_MbM, u, dontChangeAngularVelocity);
 }
 
-const Vector& 
-SimbodyMatterSubsystemRep::getAppliedMobilityForces(const State& s) const {
-    const SBDynamicsCache& dc = getDynamicsCache(s);
-    return dc.appliedMobilityForces;
-}
-const Vector_<SpatialVec>& 
-SimbodyMatterSubsystemRep::getAppliedBodyForces(const State& s) const {
-    const SBDynamicsCache& dc = getDynamicsCache(s);
-    return dc.appliedRigidBodyForces;
-}
-
-
 const SpatialVec&
 SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, BodyId body) const
   { return getRigidBodyNode(body).getA_GB(getAccelerationCache(s)); }
@@ -815,6 +812,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
 {
+    const SBAccelerationVars& av = getAccelerationVars(s);
+
     const SBPositionCache& cc = getPositionCache(s);
     const SBVelocityCache& mc = getVelocityCache(s);
     const SBDynamicsCache& dc = getDynamicsCache(s);
@@ -823,8 +822,9 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     Vector_<SpatialVec> totalBodyForces;
 
     // inputs
-    const Vector&              mobForces  = dc.appliedMobilityForces;
-    const Vector_<SpatialVec>& bodyForces = dc.appliedRigidBodyForces;
+    const Vector&              mobForces      = av.appliedMobilityForces;
+    const Vector_<Vec3>&       particleForces = av.appliedParticleForces; // TODO
+    const Vector_<SpatialVec>& bodyForces     = av.appliedRigidBodyForces;
 
     const Vector*              mobForcesToUse  = &mobForces;
     const Vector_<SpatialVec>* bodyForcesToUse = &bodyForces;
@@ -841,9 +841,9 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
 
     // outputs
     Vector&              udotErr        = updUDotErr(s);
-    SBAccelerationCache& rc             = updAccelerationCache(s);
-    Vector&              netHingeForces = rc.netHingeForces;
-    Vector_<SpatialVec>& A_GB           = rc.bodyAccelerationInGround;
+    SBAccelerationCache& ac             = updAccelerationCache(s);
+    Vector&              netHingeForces = ac.netHingeForces;
+    Vector_<SpatialVec>& A_GB           = ac.bodyAccelerationInGround;
 
     Vector&              udot           = updUDot(s);
 
@@ -852,7 +852,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     
     // Calculate constraint acceleration errors.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcAccInfo(cc,mc,udotErr,rc);
+        distanceConstraints[i]->calcAccInfo(cc,mc,udotErr,ac);
 }
 
 // Given the set of forces in the state, calculate acclerations resulting from
@@ -892,16 +892,17 @@ void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) cons
 void SimbodyMatterSubsystemRep::calcZ(const State& s, 
                           const SpatialVecList& spatialForces) const
 {
-    const SBPositionCache& pc = getPositionCache(s);
-    const SBDynamicsCache& dc = getDynamicsCache(s);
-    SBAccelerationCache&   ac = updAccelerationCache(s);
+    const SBPositionCache&    pc = getPositionCache(s);
+    const SBDynamicsCache&    dc = getDynamicsCache(s);
+    const SBAccelerationVars& av = getAccelerationVars(s);
+    SBAccelerationCache&      ac = updAccelerationCache(s);
 
 
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(pc,dc,spatialForces[node.getNodeNum()], ac);
+            node.calcZ(pc,dc,spatialForces[node.getNodeNum()],av, ac);
         }
 }
 

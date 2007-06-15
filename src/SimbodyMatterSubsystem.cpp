@@ -64,9 +64,21 @@ SimbodyMatterSubsystem::updRep() {
     return dynamic_cast<SimbodyMatterSubsystemRep&>(*rep);
 }
 
-SimbodyMatterSubsystem::SimbodyMatterSubsystem() : MatterSubsystem() {
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
+SimbodyMatterSubsystem::SimbodyMatterSubsystem() 
+  : MatterSubsystem()
+{
     rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
+}
+
+SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs) 
+  : MatterSubsystem()
+{
+    rep = new SimbodyMatterSubsystemRep();
+    rep->setMyHandle(*this);
+    mbs.setMatterSubsystem(*this);
 }
 
 BodyId SimbodyMatterSubsystem::addRigidBody(
@@ -228,15 +240,6 @@ int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, BodyId body) cons
 
 const Vector& SimbodyMatterSubsystem::getQ(const State& s) const {return getRep().getQ(s);}
 const Vector& SimbodyMatterSubsystem::getU(const State& s) const {return getRep().getU(s);}
-
-const Vector&
-SimbodyMatterSubsystem::getAppliedMobilityForces(const State& s) const {
-    return getRep().getAppliedMobilityForces(s);
-}
-const Vector_<SpatialVec>&
-SimbodyMatterSubsystem::getAppliedBodyForces(const State& s) const {
-    return getRep().getAppliedBodyForces(s);
-}
 
 void SimbodyMatterSubsystem::setQ(State& s, const Vector& q) const {getRep().setQ(s,q);}
 void SimbodyMatterSubsystem::setU(State& s, const Vector& u) const {getRep().setU(s,u);}

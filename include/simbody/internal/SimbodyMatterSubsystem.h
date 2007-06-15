@@ -41,6 +41,7 @@ class Inertia;
 class SimbodyTreeRep;
 class MassProperties;
 class Mobilizer;
+class MultibodySystem;
 
 
 
@@ -103,6 +104,7 @@ class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem : public MatterSubsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyMatterSubsystem();
+    explicit SimbodyMatterSubsystem(MultibodySystem&);
 
     // These are the same as the compiler defaults but are handy to
     // have around explicitly for debugging.
@@ -293,8 +295,6 @@ public:
 
     const Vector& getQ(const State&) const;
     const Vector& getU(const State&) const;
-    const Vector& getAppliedMobilityForces(const State&) const;
-    const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
     void setQ(State&, const Vector& q) const;
     void setU(State&, const Vector& u) const;

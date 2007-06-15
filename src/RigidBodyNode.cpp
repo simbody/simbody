@@ -337,7 +337,7 @@ public:
         allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
-    /*virtual*/void setDefaultModelValues(const SBTopologyCache&, 
+    /*virtual*/void setMobilizerDefaultModelValues(const SBTopologyCache&, 
                                           SBModelVars& v) const
     {
         v.prescribed[0] = true; // ground's motion is prescribed to zero
@@ -635,20 +635,20 @@ public:
     // These routines give each node a chance to set appropriate defaults in a piece
     // of the state corresponding to a particular stage. Default implementations here
     // assume non-ball joint; override if necessary.
-    virtual void setDefaultModelValues (const SBTopologyCache&, SBModelVars&)  const {}
-    virtual void setDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const {}
-    virtual void setDefaultTimeValues     (const SBModelVars&, SBTimeVars&)      const {}
+    virtual void setMobilizerDefaultModelValues   (const SBTopologyCache&, SBModelVars&)  const {}
+    virtual void setMobilizerDefaultInstanceValues(const SBModelVars&, SBInstanceVars&) const {}
+    virtual void setMobilizerDefaultTimeValues    (const SBModelVars&, SBTimeVars&)    const {}
 
-    virtual void setDefaultPositionValues(const SBModelVars& s, Vector& q) const 
+    virtual void setMobilizerDefaultPositionValues(const SBModelVars& s, Vector& q) const 
     {
         toQ(q) = 0.;
     }
-    virtual void setDefaultVelocityValues(const SBModelVars&, Vector& u) const 
+    virtual void setMobilizerDefaultVelocityValues(const SBModelVars&, Vector& u) const 
     {
         toU(u) = 0.;
     }
-    virtual void setDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
-    virtual void setDefaultAccelerationValues(const SBModelVars&, 
+    virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
+    virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 
                                               SBDynamicsVars& v) const {}
 
     // copyQ and copyU extract this node's values from the supplied
@@ -733,16 +733,16 @@ public:
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
 
-    // Applied forces from cache.
-    const Vec<dof>&   getAppliedJointForce(const SBDynamicsCache& dc) const 
-        {return fromU(dc.appliedMobilityForces);}
+    // Applied forces from acceleration variables.
+    const Vec<dof>&   getAppliedJointForce(const SBAccelerationVars& av) const 
+        {return fromU(av.appliedMobilityForces);}
     //TODO
-    const Vec<dof>&   getPrescribedUdot   (const SBDynamicsCache& dc) const 
-        {return fromU(dc.prescribedUdot);}
+    const Vec<dof>&   getPrescribedUdot   (const SBAccelerationVars& av) const 
+        {return fromU(av.prescribedUdot);}
 
     // Special case state access for 1-dof joints
-    const Real& get1AppliedJointForce(const SBDynamicsCache& dc) const {return from1U(dc.appliedMobilityForces);}
-    const Real& get1PrescribedUdot   (const SBDynamicsCache& dc) const {return from1U(dc.prescribedUdot);}
+    const Real& get1AppliedJointForce(const SBAccelerationVars& av) const {return from1U(av.appliedMobilityForces);}
+    const Real& get1PrescribedUdot   (const SBAccelerationVars& av) const {return from1U(av.prescribedUdot);}
 
     // Cache entries (cache is mutable in a const State)
 
@@ -825,6 +825,7 @@ public:
         const SBPositionCache&,
         const SBDynamicsCache&,
         const SpatialVec& spatialForce,
+        const SBAccelerationVars&,
         SBAccelerationCache&               ) const;
 
     void calcAccel(
@@ -1969,7 +1970,7 @@ public:
         return !getUseEulerAngles(mv);
     }
 
-    void setDefaultPositionValues(
+    void setMobilizerDefaultPositionValues(
         const SBModelVars& mv,
         Vector&            q) const 
     {
@@ -2221,7 +2222,7 @@ public:
         return !getUseEulerAngles(mv);
     }
 
-    void setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+    void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
             toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
@@ -2476,7 +2477,7 @@ public:
         return !getUseEulerAngles(mv);
     }
 
-    void setDefaultPositionValues(
+    void setMobilizerDefaultPositionValues(
         const SBModelVars& mv,
         Vector&            q) const 
     {
@@ -2746,7 +2747,7 @@ public:
         return !getUseEulerAngles(mv);
     }
 
-    void setDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
+    void setMobilizerDefaultPositionValues(const SBModelVars& mv, Vector& q) const 
     {
         if (getUseEulerAngles(mv)) {
             toQVec3(q,4) = Vec3(0); // TODO: kludge, clear unused element
@@ -2936,25 +2937,26 @@ RigidBodyNodeSpec<dof>::calcYOutward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(
-    const SBPositionCache& pc,
-    const SBDynamicsCache& dc,
-    const SpatialVec&      spatialForce,
-    SBAccelerationCache&   rc) const 
+    const SBPositionCache&    pc,
+    const SBDynamicsCache&    dc,
+    const SpatialVec&         spatialForce,
+    const SBAccelerationVars& av,
+    SBAccelerationCache&      ac) const 
 {
-    SpatialVec& z = updZ(rc);
+    SpatialVec& z = updZ(ac);
     z = getCentrifugalForces(dc) - spatialForce;
 
     for (int i=0 ; i<(int)children.size() ; i++) {
-        const SpatialVec& zChild    = children[i]->getZ(rc);
+        const SpatialVec& zChild    = children[i]->getZ(ac);
         const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
-        const SpatialVec& GepsChild = children[i]->getGepsilon(rc);
+        const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
 
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(rc)  = getAppliedJointForce(dc) - getH(pc)*z; // TODO: pass in hinge forces
-    updNu(rc)       = getDI(dc) * getEpsilon(rc);
-    updGepsilon(rc) = getG(dc)  * getEpsilon(rc);
+    updEpsilon(ac)  = getAppliedJointForce(av) - getH(pc)*z; // TODO: pass in hinge forces
+    updNu(ac)       = getDI(dc) * getEpsilon(ac);
+    updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
 }
 
 //
@@ -2969,15 +2971,15 @@ RigidBodyNodeSpec<dof>::calcAccel(
     const SBPositionCache& pc,
     const Vector&          allU,
     const SBDynamicsCache& dc,
-    SBAccelerationCache&   rc,
+    SBAccelerationCache&   ac,
     Vector&                allUdot,
     Vector&                allQdotdot) const 
 {
     Vec<dof>&        udot   = toU(allUdot);
-    const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(rc); // ground A_GB is 0
+    const SpatialVec alphap = ~getPhi(pc) * parent->getA_GB(ac); // ground A_GB is 0
 
-    udot        = getNu(rc) - (~getG(dc)*alphap);
-    updA_GB(rc) = alphap + ~getH(pc)*udot + getCoriolisAcceleration(dc);  
+    udot        = getNu(ac) - (~getG(dc)*alphap);
+    updA_GB(ac) = alphap + ~getH(pc)*udot + getCoriolisAcceleration(dc);  
 
     calcQDotDot(mv, allQ, pc, allU, allUdot, allQdotdot);  
 }
@@ -3353,8 +3355,7 @@ RigidBodyNode* Mobilizer::User::UserRep::createRigidBodyNode(
     int&                     nxtQSlot) const
 {
     assert(!"UserMobilizer not implemented yet"); return 0;
-   // return new RBNodeScrew(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot,
-    //                       pitch);
+   // return new RBNodeUser(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
 

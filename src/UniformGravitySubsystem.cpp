@@ -1,4 +1,4 @@
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -168,16 +168,29 @@ UniformGravitySubsystem::updRep() {
     return dynamic_cast<UniformGravitySubsystemRep&>(*rep);
 }
 
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
 UniformGravitySubsystem::UniformGravitySubsystem()
+  : ForceSubsystem()
 {
-  rep = new UniformGravitySubsystemRep();
-  rep->setMyHandle(*this);
+    rep = new UniformGravitySubsystemRep();
+    rep->setMyHandle(*this);
 }
 
-UniformGravitySubsystem::UniformGravitySubsystem(const Vec3& g, const Real& zeroHeight)
+UniformGravitySubsystem::UniformGravitySubsystem(MultibodySystem& mbs)
+  : ForceSubsystem() 
 {
-  rep = new UniformGravitySubsystemRep(g,zeroHeight);
-  rep->setMyHandle(*this);
+    rep = new UniformGravitySubsystemRep();
+    rep->setMyHandle(*this);
+    mbs.addForceSubsystem(*this); // steal ownership
+}
+
+UniformGravitySubsystem::UniformGravitySubsystem(MultibodySystem& mbs, const Vec3& g, const Real& zeroHeight)
+  : ForceSubsystem()
+{
+    rep = new UniformGravitySubsystemRep(g,zeroHeight);
+    rep->setMyHandle(*this);
+    mbs.addForceSubsystem(*this); // steal ownership
 }
 
 const Vec3& UniformGravitySubsystem::getGravity(const State& s) const {
@@ -242,8 +255,8 @@ void UniformGravitySubsystemRep::realizeDynamics(const State& s) const {
     assert(particleForces.size() == nParticles);
 
     if (nParticles) {
-        const Vector& m = matter.getParticleMasses(s);
-        const Vector_<Vec3>& loc_G = matter.getParticleLocations(s);
+        const Vector& m = matter.getAllParticleMasses(s);
+        const Vector_<Vec3>& loc_G = matter.getAllParticleLocations(s);
         for (int i=0; i < nParticles; ++i) {
             pe -= m[i]*(~g*loc_G[i] + gz); // odd signs because height is in -g direction
             particleForces[i] += g * m[i];

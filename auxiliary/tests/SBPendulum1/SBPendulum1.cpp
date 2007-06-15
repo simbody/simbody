@@ -446,13 +446,13 @@ try {
         const Vector udot = s.getUDot();
         Vector udot2;
         Vector_<SpatialVec> acc2;
-        pend.calcTreeUDot(s, 
-            pend.getAppliedMobilityForces(s),
-            pend.getAppliedBodyForces(s),
-            udot2, acc2);
+        //pend.calcTreeUDot(s, 
+        //    pend.getAppliedMobilityForces(s),
+        //    pend.getAppliedBodyForces(s),
+        //    udot2, acc2);
         if (!(step % 100)) {
             cout << "udot = " << udot << endl;
-            cout << "udot2= " << udot2 << endl;
+            //cout << "udot2= " << udot2 << endl;
         }
     }
 

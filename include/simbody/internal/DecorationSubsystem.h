@@ -39,6 +39,8 @@
 
 namespace SimTK {
 
+class MultibodySystem;
+
 /**
  * This is the client-side handle class encapsulating the hidden implementation
  * of the DecorationSubsystem. Any Subsystem can generate decorative 
@@ -50,6 +52,7 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT DecorationSubsystem : public Subsystem {
 public:
     DecorationSubsystem();
+    explicit DecorationSubsystem(MultibodySystem&);
 
     void addBodyFixedDecoration(BodyId bodyNum, 
                                 const Transform& X_GD, 

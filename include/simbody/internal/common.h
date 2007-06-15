@@ -105,7 +105,30 @@ static const BodyId GroundId(0);
 static const BodyId InvalidBodyId(invalidId);
 inline BodyId::BodyId() : id(InvalidBodyId) { }
 inline BodyId::BodyId(int i) : id(i) {
-//    assert(i>=0 || i==InvalidBodyId);
+    assert(i>=0 || i==invalidId);
+}
+
+/**
+ * This is just a type-safe non-negative int, augmented with a "NaN" 
+ * value called InvalidParticleId. For most uses it will behave like an int,
+ * and it has an implicit conversion *to* int. Importantly though,
+ * it has no implicit conversion *from* int so you can't pass some
+ * other kind of number as  a ParticleId.
+ */
+class ParticleId {
+    int id;
+public:
+    inline ParticleId();
+    inline explicit ParticleId(int i);
+    operator int() const {return id;}
+    const ParticleId& operator++() {assert(id>=0); ++id;return *this;}             // prefix
+    ParticleId operator++(int)     {assert(id>=0); ++id; return ParticleId(id-1);} // postfix
+    const ParticleId& operator--() {assert(id>=1); --id;return *this;}             // prefix
+    ParticleId operator--(int)     {assert(id>=1); --id; return ParticleId(id+1);} // postfix
+};
+static const ParticleId InvalidParticleId(invalidId);
+inline ParticleId::ParticleId() : id(InvalidParticleId) { }
+inline ParticleId::ParticleId(int i) : id(i) {
     assert(i>=0 || i==invalidId);
 }
 
@@ -132,7 +155,6 @@ inline ConstraintId::ConstraintId() : id(InvalidConstraintId) { }
 inline ConstraintId::ConstraintId(int i) : id(i) {
     assert(i>=0 || i==invalidId);
 }
-//    assert(i>=0 || i==InvalidConstraintId);
 
 
 namespace Exception {

@@ -76,7 +76,6 @@ namespace SimTK {
 
  // defined below
 
-
 class SBModelVars;
 class SBInstanceVars;
 class SBTimeVars;
@@ -104,12 +103,13 @@ class State;
 class SBTopologyCache {
 public:
     SBTopologyCache() {
-        nBodies = nConstraints = nDOFs = maxNQs = sumSqDOFs =
+        nBodies = nParticles = nConstraints = nDOFs = maxNQs = sumSqDOFs =
             nDistanceConstraints = modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
     }
 
     int nBodies;
+    int nParticles;
     int nConstraints;
 
     int nDOFs;
@@ -162,13 +162,29 @@ public:
 
 class SBInstanceCache {
 public:
-    // TODO: Instance variables
+    // Instance variables are:
     //   body mass props; particle masses
-    //   X_BJ, X_PJi transforms
+    //   X_BM, X_PMb transforms
     //   distance constraint distances & station positions
+    // Calculations stored here derive from those states:
+    //   total mass
+    //   central inertia of each rigid body
+    //   principal axes and corresponding principal moments of inertia of each rigid body
+    //   reference configuration (X_PB when M==Mb), for each rigid body
+
+    Real             totalMass; // sum of all rigid body and particles masses
+    Array<Inertia>   centralInertias;           // nb
+    Vector_<Vec3>    principalMoments;          // nb
+    Array<Rotation>  principalAxes;             // nb
+    Array<Transform> referenceConfiguration;    // nb
 
 public:
-    void allocate(const SBTopologyCache&) {
+    void allocate(const SBTopologyCache& topology) {
+        totalMass = NTraits<Real>::NaN;
+        centralInertias.resize(topology.nBodies);           // I_CB
+        principalMoments.resize(topology.nBodies);          // (Ixx,Iyy,Izz)
+        principalAxes.resize(topology.nBodies);             // [axx ayy azz]
+        referenceConfiguration.resize(topology.nBodies);    // X0_PB
     }
 };
 
@@ -303,17 +319,11 @@ public:
 
     Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=~H_PB_G_Dot*u
 
-
     Vector_<SpatialVec> coriolisAcceleration;     // nb (a)
     Vector_<SpatialVec> totalCoriolisAcceleration;// nb (A)
     Vector_<SpatialVec> gyroscopicForces;         // nb (b)
     Vector_<SpatialVec> centrifugalForces;        // nb (P*a+b)
     Vector_<SpatialVec> totalCentrifugalForces;   // nb (P*A+b)
-
-    Vector_<SpatialVec> appliedRigidBodyForces; // nb
-    Vector_<Vec3>       appliedParticleForces;  // TODO
-    Vector              appliedMobilityForces;  // nu
-    Vector              prescribedUdot;     // nu
 
     Vector_<SpatialMat> psi;                      // nb
     Vector_<SpatialMat> tauBar;                   // nb
@@ -353,12 +363,6 @@ public:
 
         totalCentrifugalForces.resize(nBodies);           
         totalCentrifugalForces[0] = SpatialVec(Vec3(0),Vec3(0));
-
-        appliedRigidBodyForces.resize(nBodies);
-        appliedRigidBodyForces[0] = SpatialVec(Vec3(0),Vec3(0));
-        appliedParticleForces.resize(0); // TODO
-        appliedMobilityForces.resize(nDofs);
-        prescribedUdot.resize(nDofs); // TODO
 
         psi.resize(nBodies); // TODO: ground initialization
         tauBar.resize(nBodies); // TODO: ground initialization
@@ -418,31 +422,33 @@ public:
 };
 
 /** 
- * Generalized state variable collection for a SimbodyTree. 
+ * Generalized state variable collection for a SimbodyMatterSubsystem. 
  * Variables are divided into Stages, according to when their values
- * are needed during a calculation. The Stages that matter to the
- * MultibodyTree are:
- *       (Topology: not part of the state)
+ * are needed during a calculation. The Stages are:
+ *       (Topology: not part of the state. These are the bodies, mobilizers,
+ *        and topological constraints.)
  *     Model:         choice of coordinates, knowns & unknowns, methods, etc.
  *     Instance:      setting of physical parameters, e.g. mass
- *       (Time: not relevant to MultibodyTree)
- *     Position:      position and orientation values (2nd order continuous)
- *     Velocity:      rates
- *     Dynamics;      dynamic quantities & operators available
- *     Acceleration:  response to forces & prescribed accelerations in State 
+ *       (Time: currently there are no time-dependent states or computations)
+ *     Position:      position and orientation values q (2nd order continuous)
+ *     Velocity:      generalized speeds u
+ *     Dynamics:      dynamic quantities & operators available
+ *     Acceleration:  applied forces and prescribed accelerations
+ *     Report:        used by study for end-user reporting only; no effect on 
+ *                      results
  *
  */
 
 class SBModelVars {
 public:
     bool        useEulerAngles;
-    Array<bool> prescribed;           // nb  (# bodies & joints, 0 always true)
+    Array<bool> prescribed;           // nb  (# bodies & mobilizers, [0] always true)
     Array<bool> enabled;              // nac (# acceleration constraints)
 public:
 
     // We have to allocate these without looking at any other
-    // state variable or cache entries. We can only depend on the tree
-    // itself for information.
+    // state variable or cache entries. We can only depend on topological
+    // information.
     void allocate(const SBTopologyCache& tree) const {
         SBModelVars& mutvars = *const_cast<SBModelVars*>(this);
         mutvars.useEulerAngles = false;
@@ -454,19 +460,27 @@ public:
 
 class SBInstanceVars {
 public:
-    // TODO: body masses, etc.
+    Array<MassProperties> bodyMassProperties;
+    Array<Transform>      outboardMobilizerFrames;
+    Array<Transform>      inboardMobilizerFrames;
+    Vector                particleMasses;
+
 public:
 
     // We can access the tree or state variable & cache up to Modeling stage.
-    void allocate(const SBTopologyCache&) const {
+    void allocate(const SBTopologyCache& topology) const {
         SBInstanceVars& mutvars = *const_cast<SBInstanceVars*>(this);
-    }
+        mutvars.bodyMassProperties.resize(topology.nBodies);
+        mutvars.outboardMobilizerFrames.resize(topology.nBodies);
+        mutvars.inboardMobilizerFrames.resize (topology.nBodies);
+        mutvars.particleMasses.resize(topology.nParticles);
 
-    // Call this from Modeling stage to put some reasonable
-    // defaults here.
-    void initialize() {
+        // Set default values
+        mutvars.bodyMassProperties      = MassProperties(1,Vec3(0),Inertia(1));
+        mutvars.outboardMobilizerFrames = Transform(); // i.e., B frame
+        mutvars.inboardMobilizerFrames  = Transform(); // i.e., P frame
+        mutvars.particleMasses          = Real(1);
     }
-
 };
 
 class SBTimeVars {
@@ -479,7 +493,7 @@ public:
 
 class SBPositionVars {
 public:
-    // none -- q is supplied directly by the State
+    // none here -- q is supplied directly by the State
 public:
     void allocate(const SBTopologyCache& tree) const {
     }
@@ -487,7 +501,7 @@ public:
 
 class SBVelocityVars  {
 public:
-    // none -- u is supplied directly by the State
+    // none here -- u is supplied directly by the State
 public:
     void allocate(const SBTopologyCache&) const {
     }
@@ -495,7 +509,8 @@ public:
 
 class SBDynamicsVars {
 public:
-    // none
+    // none here -- z is supplied directly by the State, but not
+    //              used by the SimbodyMatterSubsystem anyway
 public:
     void allocate(const SBTopologyCache&) const {    
     }
@@ -504,9 +519,19 @@ public:
 
 class SBAccelerationVars {
 public:
-    // none
+    Vector_<SpatialVec> appliedRigidBodyForces; // nb
+    Vector_<Vec3>       appliedParticleForces;  // TODO
+    Vector              appliedMobilityForces;  // nu
+    Vector              prescribedUdot;         // nu
 public:
-    void allocate(const SBTopologyCache&) const {
+    void allocate(const SBTopologyCache& topology) const {
+        SBAccelerationVars& mutvars = *const_cast<SBAccelerationVars*>(this);
+
+        mutvars.appliedRigidBodyForces.resize(topology.nBodies);
+        mutvars.appliedRigidBodyForces[0] = SpatialVec(Vec3(0),Vec3(0)); // ground
+        mutvars.appliedParticleForces.resize(topology.nParticles);
+        mutvars.appliedMobilityForces.resize(topology.nDOFs);
+        mutvars.prescribedUdot.resize(topology.nDOFs);
     }
 };
 

@@ -524,10 +524,14 @@ static const Transform BodyFrame;   // identity transform on any body
 // How it actually looks now:
 int main() {
 try
-  { SimbodyMatterSubsystem   matter;
-    DuMMForceFieldSubsystem  mm;
-    GeneralForceElements     forces;
-    DecorationSubsystem      artwork;
+  {
+    MolecularMechanicsSystem mbs;
+
+    SimbodyMatterSubsystem   matter(mbs);
+    DuMMForceFieldSubsystem  mm(mbs);
+    GeneralForceElements     forces(mbs);
+    DecorationSubsystem      artwork(mbs);
+    UniformGravitySubsystem  gravity(mbs, Vec3(0,0,0));
 
     Real accuracy = 1e-2;
     Real outputInterval = .05;
@@ -655,14 +659,6 @@ try
     mm.setBondBendGlobalScaleFactor(1);
     mm.setBondTorsionGlobalScaleFactor(1);
 
-
-    MolecularMechanicsSystem mbs;
-    mbs.setMatterSubsystem(matter);
-    mbs.setMolecularMechanicsForceSubsystem(mm);
-    mbs.addForceSubsystem(forces);
-    mbs.setDecorationSubsystem(artwork);
-    UniformGravitySubsystem gravity(Vec3(0,0,0));
-    mbs.addForceSubsystem(gravity);
 
     //mbs.addForceSubsystem(gravity);
 

@@ -498,10 +498,12 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
              setDefaultBodyColor(i, DefaultBaseBodyColor);
         else setDefaultBodyColor(i, DefaultBodyColor);
 
-        const Transform& jInb = sbs.getMobilizerFrame(State(), i);
+        // TODO: should use actual Mobilizer frames rather than default (but that
+        // requires access to the State)
+        const Transform& jInb = sbs.getDefaultMobilizerFrame(i);
         if (jInb.T().norm() > bodies[i].scale)
             bodies[i].scale = jInb.T().norm();
-        const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
+        const Transform& jParent = sbs.getDefaultMobilizerFrameOnParent(i);
         if (jParent.T().norm() > bodies[parent].scale)
             bodies[parent].scale = jParent.T().norm();
     }
@@ -523,13 +525,13 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
             if (i > 0) {
                 const int parent = sbs.getParent(i);
                 const Real pscale = bodies[parent].scale;
-                const Transform& jInb = sbs.getMobilizerFrame(State(), i);
+                const Transform& jInb = sbs.getDefaultMobilizerFrame(i); // TODO: get from state
                 if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
                     addDecoration(i, jInb, DecorativeFrame(scale*0.25));
                     if (jInb.T() != Vec3(0))
                         addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
                 }
-                const Transform& jParent = sbs.getMobilizerFrameOnParent(State(), i);
+                const Transform& jParent = sbs.getDefaultMobilizerFrameOnParent(i); // TODO: from state
                 DecorativeFrame frameOnParent(pscale*0.25);
                 frameOnParent.setColor(getDefaultBodyColor(i));
                 addDecoration(sbs.getParent(i), jParent, frameOnParent);
@@ -542,7 +544,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
             DecorativeSphere com(scale*.05);
             com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
-            const Vec3& comPos_B = sbs.getBodyMassProperties(State(), i).getMassCenter();
+            const Vec3& comPos_B = sbs.getDefaultBodyMassProperties(i).getMassCenter(); // TODO: from state
             addDecoration(i, Transform(comPos_B), com);
             if (comPos_B != Vec3(0))
                 addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));

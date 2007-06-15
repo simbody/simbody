@@ -30,6 +30,7 @@
 #include "SimTKsimbody.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
+#include "simbody/internal/MultibodySystem.h"
 
 #include "ForceSubsystemRep.h"
 
@@ -223,9 +224,21 @@ HuntCrossleyContact::updRep() {
     return dynamic_cast<HuntCrossleyContactRep&>(*rep);
 }
 
-HuntCrossleyContact::HuntCrossleyContact() {
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
+HuntCrossleyContact::HuntCrossleyContact()
+  : ForceSubsystem()
+{
     rep = new HuntCrossleyContactRep();
     rep->setMyHandle(*this);
+}
+
+HuntCrossleyContact::HuntCrossleyContact(MultibodySystem& mbs)
+  : ForceSubsystem()
+{
+    rep = new HuntCrossleyContactRep();
+    rep->setMyHandle(*this);
+    mbs.addForceSubsystem(*this); // steal ownership
 }
 
 int HuntCrossleyContact::addSphere(int body, const Vec3& center,

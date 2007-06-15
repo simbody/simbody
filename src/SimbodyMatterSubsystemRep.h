@@ -99,7 +99,7 @@ public:
          const MassProperties&    m,            // mass properties in body frame
          const Transform&         X_PMb,        // parent's frame for attaching this mobilizer
          const Transform&         X_BM,         // mobilizer frame M in body frame
-         const Mobilizer&        mobilizer,
+         const Mobilizer&         mobilizer,
          int&                     nxtU,
          int&                     nxtUSq,
          int&                     nxtQ); 
@@ -146,6 +146,10 @@ public:
     BodyId getParent(BodyId) const;
     Array<BodyId> getChildren(BodyId) const;
 
+    const MassProperties& getDefaultBodyMassProperties    (BodyId b) const;
+    const Transform&      getDefaultMobilizerFrame        (BodyId b) const;
+    const Transform&      getDefaultMobilizerFrameOnParent(BodyId b) const;
+
     void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const {
         const RigidBodyNode& n = getRigidBodyNode(body);
         qStart = n.getQIndex();
@@ -158,21 +162,88 @@ public:
         nu     = n.getDOF();
     }
 
-    const MassProperties& getBodyMassProperties(const State&, BodyId) const;
-    const Transform&  getMobilizerFrame        (const State&, BodyId) const;
-    const Transform&  getMobilizerFrameOnParent(const State&, BodyId) const;
+    // Access to Instance variables. //
+
+    const MassProperties& getBodyMassProperties(const State& s, BodyId b) const {
+        return getInstanceVars(s).bodyMassProperties[b];
+    }
+    const Transform& getMobilizerFrame(const State& s, BodyId b) const {
+        return getInstanceVars(s).outboardMobilizerFrames[b];
+    }
+    const Transform& getMobilizerFrameOnParent(const State& s, BodyId b) const {
+        return getInstanceVars(s).inboardMobilizerFrames[b];
+    }
+
+    MassProperties& updBodyMassProperties(State& s, BodyId b) const {
+        return updInstanceVars(s).bodyMassProperties[b];
+    }
+    Transform& updMobilizerFrame(State& s, BodyId b) const {
+        return updInstanceVars(s).outboardMobilizerFrames[b];
+    }
+    Transform& updMobilizerFrameOnParent(State& s, BodyId b) const {
+        return updInstanceVars(s).inboardMobilizerFrames[b];
+    }
+
+    const Vector& getAllParticleMasses(const State& s) const {
+        return getInstanceVars(s).particleMasses;
+    }
+    Vector& updAllParticleMasses(State& s) const {
+        return updInstanceVars(s).particleMasses;
+    }
+
+    const Vector& getAllMobilizerCoords(const State& s) const {
+        return getQ(s); // TODO: return only the non-particle subset
+    }
+    Vector& updAllMobilizerCoords(State& s) const {
+        return updQ(s); // TODO: return only the non-particle subset
+    } 
+
+    const Vector& getAllMobilizerSpeeds(const State& s) const {
+        return getU(s); // TODO: return only the non-particle subset
+    }
+
+    Vector& updAllMobilizerSpeeds(State& s) const {
+        return updU(s); // TODO: return only the non-particle subset
+    } 
+
+    // Access to Acceleration variables. //
+
+    const Vector& getAllMobilizerAppliedForces(const State& s) const {
+        return getAccelerationVars(s).appliedMobilityForces;
+    }
+    const Vector_<Vec3>& getAllParticleAppliedForces(const State& s) const {
+        return getAccelerationVars(s).appliedParticleForces;
+    }
+    const Vector_<SpatialVec>& getAllBodyAppliedForces(const State& s) const {
+        return getAccelerationVars(s).appliedRigidBodyForces;
+    }
+
+    // These update routines invalidate Stage::Acceleration.
+    Vector& updAllMobilizerAppliedForces(State& s) const {
+        return updAccelerationVars(s).appliedMobilityForces;
+    }
+    Vector_<Vec3>& updAllParticleAppliedForces(State& s) const{
+        return updAccelerationVars(s).appliedParticleForces;
+    }
+    Vector_<SpatialVec>& updAllBodyAppliedForces(State& s) const {
+        return updAccelerationVars(s).appliedRigidBodyForces;
+    }
+
+    Real getTotalMass(const State& s) const {
+        return getInstanceCache(s).totalMass;
+    }
 
     const Transform&  getBodyTransform(const State&, BodyId) const;
-    const SpatialVec& getBodyVelocity(const State&, BodyId) const;
+    const SpatialVec& getBodyVelocity (const State&, BodyId) const;
 
     // velocity dependent
-    const SpatialVec& getCoriolisAcceleration(const State&, BodyId) const;
+    const SpatialVec& getCoriolisAcceleration     (const State&, BodyId) const;
     const SpatialVec& getTotalCoriolisAcceleration(const State&, BodyId) const;
-    const SpatialVec& getGyroscopicForce(const State&, BodyId) const;
-    const SpatialVec& getCentrifugalForces(const State&, BodyId) const;
+    const SpatialVec& getGyroscopicForce          (const State&, BodyId) const;
+    const SpatialVec& getCentrifugalForces        (const State&, BodyId) const;
 
-    const Transform& getMobilizerTransform(const State&, BodyId) const;
-    const SpatialVec& getMobilizerVelocity(const State&, BodyId) const;
+    const Transform&  getMobilizerTransform(const State&, BodyId) const;
+    const SpatialVec& getMobilizerVelocity (const State&, BodyId) const;
 
     void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const;
     void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const;
@@ -315,9 +386,6 @@ public:
     int  getNQuaternionsInUse(const State&) const;
     bool isUsingQuaternion(const State&, BodyId) const;
     int  getQuaternionIndex(const State&, BodyId) const; // -1 if none
-
-    const Vector& getAppliedMobilityForces(const State&) const;
-    const Vector_<SpatialVec>& getAppliedBodyForces(const State&) const;
 
     // Call after realizeDynamics()
     const SpatialMat& getArticulatedBodyInertia(const State& s, BodyId) const;

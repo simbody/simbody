@@ -51,18 +51,12 @@ static const Real d = 0.5; // meters
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
-        // CREATE SUBSYSTEMS
-    SimbodyMatterSubsystem  twoPends;
-    UniformGravitySubsystem gravity(Vec3(0, -g, 0));
-    GeneralForceElements    forces;
-    DecorationSubsystem     viz;
-
-        // CREATE MULTIBODY SYSTEM; ADD SUBSYSTEMS
+        // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
     MultibodySystem         mbs;
-    mbs.setMatterSubsystem(twoPends);
-    mbs.addForceSubsystem(gravity);
-    mbs.addForceSubsystem(forces);
-    mbs.setDecorationSubsystem(viz);
+    SimbodyMatterSubsystem  twoPends(mbs);
+    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
+    GeneralForceElements    forces(mbs);
+    DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS
     BodyId leftPendulum = 

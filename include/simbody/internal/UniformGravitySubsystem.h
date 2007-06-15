@@ -53,6 +53,7 @@
 namespace SimTK {
 
 class State;
+class MultibodySystem;
 
 /**
  * This is a concrete subsystem which applies a uniform gravity field
@@ -65,7 +66,8 @@ class State;
 class SimTK_SIMBODY_EXPORT UniformGravitySubsystem : public ForceSubsystem {
 public:
     UniformGravitySubsystem();
-    explicit UniformGravitySubsystem(const Vec3& g, const Real& zeroHeight=0);
+    explicit UniformGravitySubsystem(MultibodySystem&);
+    UniformGravitySubsystem(MultibodySystem&, const Vec3& g, const Real& zeroHeight=0);
 
     /// State variables can be accessed after Model stage.
     const Vec3& getGravity(const State&) const;

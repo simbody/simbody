@@ -1,7 +1,7 @@
 #ifndef SimTK_MATTER_SUBSYSTEM_H_
 #define SimTK_MATTER_SUBSYSTEM_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors: Paul Mitiguy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "SimTKcommon.h"
@@ -931,9 +931,13 @@ public:
     int getNMobilities()  const;
     int getNConstraints() const;    // i.e., Constraint definitions (each is multiple equations)
 
-    BodyId        getParent   (BodyId) const;
-    Array<BodyId> getChildren (BodyId) const;
-    Mobilizer     getMobilizer(BodyId) const;
+    BodyId           getParent   (BodyId) const;
+    Array<BodyId>    getChildren (BodyId) const;
+    //const Mobilizer& getMobilizer(BodyId) const;
+
+    const Transform& getDefaultMobilizerFrame(BodyId) const;
+    const Transform& getDefaultMobilizerFrameOnParent(BodyId) const;
+    const MassProperties& getDefaultBodyMassProperties(BodyId) const;
 
         // MODEL STAGE responses //
 
@@ -942,12 +946,13 @@ public:
     /// of degrees of freedom) provided by the Mobilizer, but orientations are
     /// sometimes modeled with 4 coordinates (quaternions) for stability, even though they 
     /// require only 3 degrees of freedom.
-    int getNMobilizerCoords(const State&, BodyId) const;
+    int getNMobilizerCoords(const State&, BodyId) const; // 0-7
 
     /// Return the number of generalized speeds (u) being used to model a body's 
     /// mobility. This is always the same as the number of degrees of freedom
-    /// provided by its mobilizer.
-    int getNMobilizerSpeeds(const State&, BodyId) const;
+    /// provided by its mobilizer. This is also the number of generalized forces
+    /// that can be applied directly to the mobilizer.
+    int getNMobilizerSpeeds(const State&, BodyId) const; // 0-6
 
     /// Obtain as a Vector the current values for all the mobilizer generalized coordinates (q) for
     /// a particular body. If you know the number of mobilities, it is more efficient
@@ -965,38 +970,118 @@ public:
     /// @see getMobilizerSpeedsAsVec2(), etc.
     Vector getMobilizerSpeeds(const State&, BodyId) const;
 
-    const Real& getMobilizerQ(const State&, BodyId, int mobilityIndex) const;
-    const Real& getMobilizerU(const State&, BodyId, int mobilityIndex) const;
+    /// Obtain the current values for all the mobilizer generalized active forces.
+    Vector getMobilizerAppliedForces(const State&, BodyId) const;
+
+    // OBSOLETE
+    Real getMobilizerQ(const State&, BodyId, int coordIndex) const; ///< OBSOLETE
+    Real getMobilizerU(const State&, BodyId, int speedIndex) const; ///< OBSOLETE
+
+    Real getOneMobilizerCoord       (const State&, BodyId, int coordIndex) const;
+    Real getOneMobilizerSpeed       (const State&, BodyId, int speedIndex) const;
+    Real getOneMobilizerAppliedForce(const State&, BodyId, int speedIndex) const;
 
     /// Obtain the current value of the mobilizer generalized coordinate (q) for a body whose
-    /// mobilizer has only a single coordinate (e.g., a torsion or sliding joint). This is a
+    /// mobilizer has exactly one generalized coordinate (e.g., a torsion or sliding joint). This is a
     /// state variable and may be obtained at Stage::Model or above. This routine will throw
     /// an exception if the body's mobilizer does not have exactly one coordinate.
     Real getMobilizerCoord(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly two generalized coordinates.
     const Vec2& getMobilizerCoordsAsVec2(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly three generalized coordinates.
     const Vec3& getMobilizerCoordsAsVec3(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly four generalized coordinates.
     const Vec4& getMobilizerCoordsAsVec4(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly five generalized coordinates.
     const Vec5& getMobilizerCoordsAsVec5(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly six generalized coordinates.
     const Vec6& getMobilizerCoordsAsVec6(const State&, BodyId) const;
+    /// Obtain mobilizer generalized coordinates for a mobilizer with exactly seven generalized coordinates.
     const Vec7& getMobilizerCoordsAsVec7(const State&, BodyId) const;
 
+    const Vector& getAllMobilizerCoords(const State&) const;
+
     /// Obtain the current value of the mobilizer generalized speed (u) for a body whose
-    /// mobilizer has only a single generalized speed. This is a state variable and may
+    /// mobilizer has exactly one generalized speed. This is a state variable and may
     /// be obtained at Stage::Model or above. This routine will throw an exception
     /// if the body's mobilizer does not have exactly one generalized speed.
     Real getMobilizerSpeed(const State&, BodyId) const;
+    /// Obtain mobilizer generalized speeds for a mobilizer with exactly two generalized speeds.
     const Vec2& getMobilizerSpeedsAsVec2(const State&, BodyId) const;
+    /// Obtain mobilizer generalized speeds for a mobilizer with exactly three generalized speeds.
     const Vec3& getMobilizerSpeedsAsVec3(const State&, BodyId) const;
+    /// Obtain mobilizer generalized speeds for a mobilizer with exactly four generalized speeds.
     const Vec4& getMobilizerSpeedsAsVec4(const State&, BodyId) const;
+    /// Obtain mobilizer generalized speeds for a mobilizer with exactly five generalized speeds.
     const Vec5& getMobilizerSpeedsAsVec5(const State&, BodyId) const;
+    /// Obtain mobilizer generalized speeds for a mobilizer with exactly six generalized speeds.
     const Vec6& getMobilizerSpeedsAsVec6(const State&, BodyId) const;
+
+    const Vector& getAllMobilizerSpeeds(const State&) const;
+
+    /// Obtain the current value of the mobilizer generalized applied forces f
+    /// for a body whose mobilizer has exactly one generalized speed. This is a
+    /// (discrete) state variable and may be obtained at Stage::Model or above.
+    /// This routine will throw an exception if the body's mobilizer does not have
+    /// exactly one generalized speed.
+    Real getMobilizerAppliedForce(const State&, BodyId) const;
+    /// Obtain mobilizer applied forces for a mobilizer with exactly two generalized speeds.
+    const Vec2& getMobilizerAppliedForceAsVec2(const State&, BodyId) const;
+    /// Obtain mobilizer applied forces for a mobilizer with exactly three generalized speeds.
+    const Vec3& getMobilizerAppliedForceAsVec3(const State&, BodyId) const;
+    /// Obtain mobilizer applied forces for a mobilizer with exactly four generalized speeds.
+    const Vec4& getMobilizerAppliedForceAsVec4(const State&, BodyId) const;
+    /// Obtain mobilizer applied forces for a mobilizer with exactly five generalized speeds.
+    const Vec5& getMobilizerAppliedForceAsVec5(const State&, BodyId) const;
+    /// Obtain mobilizer applied forces for a mobilizer with exactly six generalized speeds.
+    const Vec6& getMobilizerAppliedForceAsVec6(const State&, BodyId) const;
+
+    const Vector& getAllMobilizerAppliedForces(const State&) const;
+
+    // Bodies
+
+    // Applied body forces are SpatialVecs, giving the resultant torque to be applied
+    // to the body and the resultant force to be applied at the body frame origin. Each of
+    // these is a vector measured in the Ground frame, and they are collected into
+    // the SpatialVec in the order (torque,force).
+    // Note that applied forces are (discrete) state varaibles which affect the 
+    // responses at the Accleration stage.
+
+    const Vector_<SpatialVec>& getAllBodyAppliedForces(const State&) const;
+
+    const SpatialVec& getBodyAppliedForce(const State& s, BodyId b) const {
+        return getAllBodyAppliedForces(s)[b];
+    }
+
+
+    // Particles
+
+    // The generalized coordinates for a particle are always the three measure numbers
+    // (x,y,z) of the particle's Ground-relative Cartesian location vector. The generalized
+    // speeds are always the three corresponding measure numbers of the particle's
+    // Ground-relative Cartesian velocity. The generalized applied forces are
+    // always the three measure numbers of a Ground-relative force vector.
+    const Vector_<Vec3>& getAllParticleLocations    (const State&) const;
+    const Vector_<Vec3>& getAllParticleVelocities   (const State&) const;
+    const Vector_<Vec3>& getAllParticleAppliedForces(const State&) const;
+
+    const Vec3& getParticleLocation(const State& s, ParticleId p) const {
+        return getAllParticleLocations(s)[p];
+    }
+    const Vec3& getParticleVelocity(const State& s, ParticleId p) const {
+        return getAllParticleVelocities(s)[p];
+    }
+
+    const Vec3& getParticleAppliedForce(const State& s, ParticleId p) const {
+        return getAllParticleAppliedForces(s)[p];
+    }
 
         // MODEL STAGE operators //
     // none
 
         // MODEL STAGE solvers //
 
-    // These routines set the generalized coordinates or speeds (state
+    // These routines set the generalized coordinates, or speeds (state
     // variables) for a single mobilizer (ignoring all other mobilizers
     // and constraints), without requiring knowledge
     // of the meanings of the individual state variables. The idea here
@@ -1040,8 +1125,8 @@ public:
     void setMobilizerLinearVelocity    (State&, BodyId, const Vec3&       v_MbM) const;
     void setMobilizerLinearVelocityOnly(State&, BodyId, const Vec3&       v_MbM) const;
 
-    // Routines for directly setting the generalized coordinates and speeds
-    // are "null" solvers in that they modify the state but don't do any
+    // Routines for directly setting the generalized coordinates, speeds, and
+    // applied forces are "null" solvers in that they modify the state but don't do any
     // computation. These will always succeed if the mobilizer has the 
     // right number of coordinates or speeds for the method being called.
     // An exception will be thrown if there is a mismatch. 
@@ -1049,27 +1134,154 @@ public:
     // You can call these routines in Stage::Model or above; they set state
     // variables without looking at any coordinates or speeds. Setting a generalized 
     // coordinate (q) will invalidate Stage::Position and above; setting
-    // a generalized speed (u) will invalidate Stage::Velocity and above.
+    // a generalized speed (u) will invalidate Stage::Velocity and above, 
+    // setting a generalized applied force (f) will invalidate Stage::Acceleration
+    // and above.
 
-    void setMobilizerQ(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
-    void setMobilizerU(State&, BodyId, int mobilityIndex, const Real& mobilityValue) const;
-    void setMobilizerCoords(State&, BodyId, const Vector& q) const;
-    void setMobilizerSpeeds(State&, BodyId, const Vector& u) const;
+    // The concrete MatterSubsystem must provide these routines.
+    Vector& updAllMobilizerCoords       (State&) const;
+    Vector& updAllMobilizerSpeeds       (State&) const;
+    Vector& updAllMobilizerAppliedForces(State&) const;
 
-    void setMobilizerCoord(State&, BodyId, Real q) const;
-    void setMobilizerCoordsAsVec2(State&, BodyId, const Vec2&) const;
-    void setMobilizerCoordsAsVec3(State&, BodyId, const Vec3&) const;
-    void setMobilizerCoordsAsVec4(State&, BodyId, const Vec4&) const;
-    void setMobilizerCoordsAsVec5(State&, BodyId, const Vec5&) const;
-    void setMobilizerCoordsAsVec6(State&, BodyId, const Vec6&) const;
-    void setMobilizerCoordsAsVec7(State&, BodyId, const Vec7&) const;
 
-    void setMobilizerSpeed(State&, BodyId, Real u) const;
-    void setMobilizerSpeedsAsVec2(State&, BodyId, const Vec2&) const;
-    void setMobilizerSpeedsAsVec3(State&, BodyId, const Vec3&) const;
-    void setMobilizerSpeedsAsVec4(State&, BodyId, const Vec4&) const;
-    void setMobilizerSpeedsAsVec5(State&, BodyId, const Vec5&) const;
-    void setMobilizerSpeedsAsVec6(State&, BodyId, const Vec6&) const;
+    void setMobilizerQ(State&, BodyId, int coordIndex, Real qValue) const; ///< OBSOLETE
+    void setMobilizerU(State&, BodyId, int speedIndex, Real uValue) const; ///< OBSOLETE
+
+    void setOneMobilizerCoord       (State&, BodyId, int coordIndex, Real q) const;
+    void setOneMobilizerSpeed       (State&, BodyId, int speedIndex, Real u) const;
+    void setOneMobilizerAppliedForce(State&, BodyId, int speedIndex, Real f) const;
+
+    void setMobilizerCoords       (State&, BodyId, const Vector& q) const;
+    void setMobilizerSpeeds       (State&, BodyId, const Vector& u) const;
+    void setMobilizerAppliedForces(State&, BodyId, const Vector& f) const;
+
+    void setMobilizerCoord       (State&, BodyId, Real        q) const;
+    void setMobilizerCoordsAsVec2(State&, BodyId, const Vec2& q) const;
+    void setMobilizerCoordsAsVec3(State&, BodyId, const Vec3& q) const;
+    void setMobilizerCoordsAsVec4(State&, BodyId, const Vec4& q) const;
+    void setMobilizerCoordsAsVec5(State&, BodyId, const Vec5& q) const;
+    void setMobilizerCoordsAsVec6(State&, BodyId, const Vec6& q) const;
+    void setMobilizerCoordsAsVec7(State&, BodyId, const Vec7& q) const;
+
+    void setAllMobilizerCoords(State&, const Vector& q) const;
+
+    void setMobilizerSpeed       (State&, BodyId, Real        u) const;
+    void setMobilizerSpeedsAsVec2(State&, BodyId, const Vec2& u) const;
+    void setMobilizerSpeedsAsVec3(State&, BodyId, const Vec3& u) const;
+    void setMobilizerSpeedsAsVec4(State&, BodyId, const Vec4& u) const;
+    void setMobilizerSpeedsAsVec5(State&, BodyId, const Vec5& u) const;
+    void setMobilizerSpeedsAsVec6(State&, BodyId, const Vec6& u) const;
+
+    void setAllMobilizerSpeeds(State&, const Vector& u) const;
+
+    void setMobilizerAppliedForce       (State&, BodyId, Real        f) const;
+    void setMobilizerAppliedForcesAsVec2(State&, BodyId, const Vec2& f) const;
+    void setMobilizerAppliedForcesAsVec3(State&, BodyId, const Vec3& f) const;
+    void setMobilizerAppliedForcezAsVec4(State&, BodyId, const Vec4& f) const;
+    void setMobilizerAppliedForcesAsVec5(State&, BodyId, const Vec5& f) const;
+    void setMobilizerAppliedForcesAsVec6(State&, BodyId, const Vec6& f) const;
+
+    // Mobilizers in bulk
+    void setAllMobilizerAppliedForces  (State&, const Vector& f) const;
+    void addToAllMobilizerAppliedForces(State&, const Vector& f) const;
+
+        // BODIES
+
+    MassProperties& updBodyMassProperties(State& s, BodyId b) const;
+    Transform&      updMobilizerFrame(State& s, BodyId b) const;
+    Transform&      updMobilizerFrameOnParent(State& s, BodyId b) const;
+    Vector&         updAllParticleMasses(State& s) const;
+
+    void setBodyMassProperties(State& s, BodyId b, const MassProperties& m) const {
+        updBodyMassProperties(s,b) = m;
+    }
+
+    void setMobilizerFrame(State& s, BodyId b, const Transform& f) const {
+        updMobilizerFrame(s,b) = f;
+    }
+
+    void setMobilizerFrameOnParent(State& s, BodyId b, const Transform& f) const {
+        updMobilizerFrameOnParent(s,b) = f;
+    }
+
+    void setAllParticleMasses(State& s, const Vector& masses) const {
+        updAllParticleMasses(s) = masses;
+    }
+
+    // This routine must be provided by the concrete MatterSubsystem.
+    Vector_<SpatialVec>& updAllBodyAppliedForces(State&) const;
+
+    // The rest of these inline routines are provided by the generic MatterSubsystem
+    // for convenience.
+
+    // Apply forces to a single body.
+    SpatialVec& updBodyAppliedForce(State& s, BodyId b) const {
+        return updAllBodyAppliedForces(s)[b];
+    }
+    void setBodyAppliedForce(State& s, BodyId b, const SpatialVec& f) const {
+        updAllBodyAppliedForces(s)[b] = f;
+    }
+    void addToBodyAppliedForce(State& s, BodyId b, const SpatialVec& f) const {
+        updAllBodyAppliedForces(s)[b] += f;
+    }
+
+    // Apply forces to all the bodies.
+    void setAllBodyAppliedForces(State& s, const Vector_<SpatialVec>& f) const {
+        updAllBodyAppliedForces(s) = f;
+    }
+    void addToAllBodyAppliedForces(State& s, const Vector_<SpatialVec>& f) const {
+        updAllBodyAppliedForces(s) += f;
+    }
+
+        // PARTICLES
+
+    // Note that particle generalized coordinates, speeds, and applied forces
+    // are defined to be the particle Cartesian locations, velocities, and
+    // applied force vectors, so can be set directly at Stage::Model or higher.
+
+    // These are the only routines that must be provided by the concrete MatterSubsystem.
+    Vector_<Vec3>& updAllParticleLocations(State&)     const;
+    Vector_<Vec3>& updAllParticleVelocities(State&)    const;
+    Vector_<Vec3>& updAllParticleAppliedForces(State&) const;
+
+    // The following inline routines are provided by the generic MatterSubsystem class
+    // for convenience.
+
+    Vec3& updParticleLocation(State& s, ParticleId p) const {
+        return updAllParticleLocations(s)[p];
+    }
+    Vec3& updParticleVelocity(State& s, ParticleId p) const {
+        return updAllParticleVelocities(s)[p];
+    }
+    Vec3& updParticleAppliedForce(State& s, ParticleId p) const {
+        return updAllParticleAppliedForces(s)[p];
+    }
+
+    void setParticleLocation(State& s, ParticleId p, const Vec3& r) const {
+        updAllParticleLocations(s)[p] = r;
+    }
+    void setParticleVelocity(State& s, ParticleId p, const Vec3& v) const {
+        updAllParticleVelocities(s)[p] = v;
+    }
+    void setParticleAppliedForce(State& s, ParticleId p, const Vec3& f) const {
+        updAllParticleAppliedForces(s)[p] = f;
+    }
+    void addToParticleAppliedForce(State& s, ParticleId p, const Vec3& f) const {
+        updAllParticleAppliedForces(s)[p] += f;
+    }
+
+    void setAllParticleLocations(State& s, const Vector_<Vec3>& r) const {
+        updAllParticleLocations(s) = r;
+    }
+    void setAllParticleVelocities(State& s, const Vector_<Vec3>& v) const {
+        updAllParticleVelocities(s) = v;
+    }
+    void setAllParticleAppliedForces(State& s, const Vector_<Vec3>& f) const {
+        updAllParticleAppliedForces(s) = f;
+    }
+    void addToAllParticleAppliedForces(State& s, const Vector_<Vec3>& f) const {
+        updAllParticleAppliedForces(s) += f;
+    }
 
         // INSTANCE STAGE responses //
 
@@ -1080,7 +1292,7 @@ public:
     const MassProperties& getBodyMassProperties(const State&, BodyId) const;
 
     /// TODO: not implemented yet; particles must be treated as rigid bodies for now.
-    const Vector& getParticleMasses(const State&) const;
+    const Vector& getAllParticleMasses(const State&) const;
 
     /// Return the body-fixed frame M associated with the body's unique mobilizer.
     const Transform&  getMobilizerFrame(const State&, BodyId) const;
@@ -1108,9 +1320,6 @@ public:
 
 
         // POSITION STAGE responses //
-
-    /// TODO: not implemented yet. For now particles must be treated as rigid bodies.
-    const Vector_<Vec3>& getParticleLocations(const State& s) const; 
 
     /// Extract from the state cache the already-calculated spatial configuration of
     /// body B's body frame, measured with respect to the ground frame and expressed
@@ -1150,7 +1359,7 @@ public:
 
     /// Apply a scalar joint force or torque to an axis of the
     /// indicated body's mobilizer.
-    void addInMobilityForce(const State&, BodyId, int axis, const Real& f,
+    void addInMobilityForce(const State&, BodyId, int axis, Real f,
                             Vector& mobilityForces) const;
 
         // POSITION STAGE solvers //
@@ -1217,6 +1426,11 @@ public:
     /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
     const SpatialVec& getBodyAcceleration(const State&, BodyId bodyB) const;
 
+    const Vector_<Vec3>& getAllParticleAccelerations(const State&) const;
+
+    const Vec3& getParticleAcceleration(const State& s, ParticleId p) const {
+        return getAllParticleAccelerations(s)[p];
+    }
     /// This is available at Stage::Acceleration. These are *absolute* constraint
     /// violations aerr = A udot - b, that is, they are unweighted.
     const Vector& getUDotConstraintErrors(const State&) const;

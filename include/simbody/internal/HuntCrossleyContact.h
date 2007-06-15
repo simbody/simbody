@@ -37,6 +37,8 @@
 
 namespace SimTK {
 
+class MultibodySystem;
+
 /**
  * This is a concrete subsystem that handles simple, frictionless contact situations
  * with a model due to Hunt & Crossley: K. H. Hunt and F. R. E. Crossley, 
@@ -86,6 +88,7 @@ namespace SimTK {
 class SimTK_SIMBODY_EXPORT HuntCrossleyContact : public ForceSubsystem {
 public:
     HuntCrossleyContact();
+    explicit HuntCrossleyContact(MultibodySystem&);
 
     int addSphere(int body, const Vec3& center,
                   const Real& radius,

@@ -30,14 +30,14 @@
  */
 
 #include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
 #include "simbody/internal/ForceSubsystem.h"
 
 #include <cassert>
 
 namespace SimTK {
 
-
+class MultibodySystem;
+class MatterSubsystem;
 
 /**
  * This is a concrete subsystem which can apply a variety of
@@ -53,6 +53,7 @@ public:
 
 public:
     GeneralForceElements();
+    explicit GeneralForceElements(MultibodySystem&);
 
     /// Add a linear spring between two points, specified as a station on
     /// each of two bodies. The stiffness k and 

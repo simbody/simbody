@@ -85,10 +85,35 @@ public:
     virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
-    virtual BodyId         getParent  (BodyId bodyNum)           const = 0;
-    virtual Array<BodyId>  getChildren(BodyId bodyNum)           const = 0;
+    virtual BodyId           getParent   (BodyId) const = 0;
+    virtual Array<BodyId>    getChildren (BodyId) const = 0;
+    //virtual const Mobilizer& getMobilizer(BodyId) const = 0;
+
+    virtual const Transform& getDefaultMobilizerFrame(BodyId) const = 0;
+    virtual const Transform& getDefaultMobilizerFrameOnParent(BodyId) const = 0;
+    virtual const MassProperties& getDefaultBodyMassProperties(BodyId) const = 0;
 
         // MODEL STAGE //
+
+    // Access to Instance variables. In general Mobilizers and Constraints will define more
+    // of these; here we just deal with variables that are always present.
+
+    virtual const MassProperties& getBodyMassProperties    (const State&, BodyId) const = 0;
+    virtual const Transform&      getMobilizerFrame        (const State&, BodyId) const = 0;
+    virtual const Transform&      getMobilizerFrameOnParent(const State&, BodyId) const = 0;
+
+    virtual const Vector& getAllParticleMasses     (const State&) const {
+        static const Vector v;
+        return v;
+    }
+
+    // These update routines invalidate Stage::Instance.
+    virtual MassProperties& updBodyMassProperties    (State&, BodyId) const = 0;
+    virtual Transform&      updMobilizerFrame        (State&, BodyId) const = 0;
+    virtual Transform&      updMobilizerFrameOnParent(State&, BodyId) const = 0;
+    virtual Vector&         updAllParticleMasses     (State&) const = 0;
+
+    // Access to Position and Velocity variables. //
 
     // These report the start index and number of generalized coordinates q or generalized
     // speeds u associated with a body's mobilizer. These are indices into this subsystem's
@@ -98,40 +123,77 @@ public:
     virtual void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const = 0;
     virtual void findMobilizerUs(const State& s, BodyId body, int& uStart, int& nu) const = 0;
 
+    // A subset of the Q's, not including particle coordinates.
+    virtual const Vector& getAllMobilizerCoords(const State&) const = 0;
+    virtual const Vector& getAllMobilizerSpeeds(const State&) const = 0;
+
+    // Invalidates Stage::Position.
+    virtual Vector& updAllMobilizerCoords(State&) const = 0;
+    // Invalidates Stage::Velocity.
+    virtual Vector& updAllMobilizerSpeeds(State&) const = 0;
+
+    virtual const Vector_<Vec3>&  getAllParticleLocations (const State&) const {
+        static const Vector_<Vec3> v;
+        return v;
+    }
+    virtual const Vector_<Vec3>&  getAllParticleVelocities(const State&) const {
+        static const Vector_<Vec3> v;
+        return v;
+    }
+
+
+    // Invalidate Stage::Position.
+    virtual Vector_<Vec3>&  updAllParticleLocations (State&) const {
+        static Vector_<Vec3> v;
+        return v;
+    }
+    // Invalidate Stage::Velocity.
+    virtual Vector_<Vec3>&  updAllParticleVelocities(State&) const {
+        static Vector_<Vec3> v;
+        return v;
+    }
+
+
+    // Invalidate Stage::Position.
     virtual void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const = 0;
     virtual void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const = 0;
     virtual void setMobilizerTranslation(State&, BodyId, const Vec3&      T_MbM, 
                                          bool dontChangeOrientation)             const = 0;
 
+    // Invalidate Stage::Velocity.
     virtual void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const = 0;
     virtual void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const = 0;
     virtual void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM,
                                              bool dontChangeAngularVelocity)          const = 0;
 
+    // Access to Acceleration variables. //
+
+    virtual const Vector&              getAllMobilizerAppliedForces(const State&) const = 0;
+    virtual const Vector_<Vec3>&       getAllParticleAppliedForces (const State&) const = 0;
+    virtual const Vector_<SpatialVec>& getAllBodyAppliedForces     (const State&) const = 0;
+
+    // These update routines invalidate Stage::Acceleration.
+    virtual Vector&              updAllMobilizerAppliedForces(State&) const = 0;
+    virtual Vector_<Vec3>&       updAllParticleAppliedForces (State&) const = 0;
+    virtual Vector_<SpatialVec>& updAllBodyAppliedForces     (State&) const = 0;
+
 
         // INSTANCE STAGE //
-
-    virtual const MassProperties& getBodyMassProperties(const State& s, BodyId body) const = 0;
-    virtual const Transform&      getMobilizerFrame(const State&, BodyId) const = 0;
-    virtual const Transform&      getMobilizerFrameOnParent(const State&, BodyId) const = 0;
-
-    virtual const Vector&     getParticleMasses(const State&) const { // TODO
-        static Vector v;
-        return v;
-    }
+    virtual Real getTotalMass(const State&) const = 0;
 
         // POSITION, VELOCITY, ACCELERATION STAGES //
     virtual const Transform&  getBodyTransform(const State&, BodyId) const = 0;
     virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
     virtual const SpatialVec& getBodyAcceleration(const State&, BodyId) const = 0; 
 
-    virtual const Transform& getMobilizerTransform(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
-
-    virtual const Vector_<Vec3>& getParticleLocations(const State&) const { // TODO
-        static Vector_<Vec3> v;
+    virtual const Vector_<Vec3>&  getAllParticleAccelerations(const State&) const {
+        static const Vector_<Vec3> v;
         return v;
     }
+
+    virtual const Transform&  getMobilizerTransform(const State&, BodyId) const = 0;
+    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
+
 
     virtual Real calcQConstraintNorm(const State&) const {
         return 0;

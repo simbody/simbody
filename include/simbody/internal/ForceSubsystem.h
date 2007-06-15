@@ -36,7 +36,7 @@ namespace SimTK {
  */
 class SimTK_SIMBODY_EXPORT ForceSubsystem : public Subsystem {
 public:
-    ForceSubsystem() { }
+    ForceSubsystem() : Subsystem() { }
 
     SimTK_PIMPL_DOWNCAST(ForceSubsystem, Subsystem);
     class ForceSubsystemRep& updRep();

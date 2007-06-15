@@ -64,7 +64,7 @@ class MyRNAExample : public SimbodyMatterSubsystem {
     std::vector<PerBodyInfo> bodyInfo;
     BodyId end1, end2;
 public:
-    MyRNAExample(int nsegs, bool shouldFlop) 
+    MyRNAExample(MultibodySystem& mbs, int nsegs, bool shouldFlop) : SimbodyMatterSubsystem(mbs)
     {
         bodyInfo.push_back(PerBodyInfo(0, false)); // placeholder for ground
         end1 = makeChain(GroundId, Vec3(0), nsegs, shouldFlop);
@@ -220,12 +220,12 @@ try // If anything goes wrong, an exception will be thrown.
     if (argc > 2) sscanf(argv[2], "%d", &shouldFlop);
 
     // Create a multibody system using Simbody.
-    MyRNAExample myRNA(nseg, shouldFlop != 0);
-    const Vec3 attachPt(150, -40, -50);
-    GeneralForceElements forces;
-
     MultibodySystem mbs;
-    mbs.setMatterSubsystem(myRNA);
+    MyRNAExample myRNA(mbs, nseg, shouldFlop != 0);
+    GeneralForceElements forces(mbs);
+    UniformGravitySubsystem ugs(mbs, Vec3(0, -g, 0));
+
+    const Vec3 attachPt(150, -40, -50);
 
     forces.addTwoPointLinearSpring(0, attachPt,
                                    myRNA.getNBodies()-1, Vec3(0),
@@ -240,9 +240,6 @@ try // If anything goes wrong, an exception will be thrown.
 
     forces.addGlobalEnergyDrain(1000);
 
-    mbs.addForceSubsystem(forces);
-    UniformGravitySubsystem ugs(Vec3(0, -g, 0));
-    mbs.addForceSubsystem(ugs);
 
     State s;
     mbs.realize(s, Stage::Topology);

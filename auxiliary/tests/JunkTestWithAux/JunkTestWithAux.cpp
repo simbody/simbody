@@ -1,4 +1,4 @@
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006 Stanford University, Randy Radmer, and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -126,7 +126,7 @@ public:
         atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_HW));
         mm.addBond(getAtom(0),getAtom(1));
         mm.addBond(getAtom(0),getAtom(2));
-        mm.addBond(getAtom(1),getAtom(2));
+        //mm.addBond(getAtom(1),getAtom(2));
 
         // Define the clusers.
         tip3p_water = mm.createCluster("tip3p_water");
@@ -180,7 +180,7 @@ public:
         for(int i=0; i<6; i++) {
             mm.addBond(i,(i+1)%6);
             mm.addBond(i,i+6);
-            mm.addBond(i,(i+2)%6);  // False bonds -- hack for improper torsions
+            //mm.addBond(i,(i+2)%6);  // False bonds -- hack for improper torsions
         }
 
         // Define the clusers.
@@ -247,10 +247,11 @@ static const Transform BodyFrame;   // identity transform on any body
 // How it actually looks now:
 int main() {
 try
-  { SimbodyMatterSubsystem   matter;
-    DuMMForceFieldSubsystem  mm;
-    GeneralForceElements     forces;
-    DecorationSubsystem      artwork;
+  { MolecularMechanicsSystem mbs;
+    SimbodyMatterSubsystem   matter(mbs);
+    DuMMForceFieldSubsystem  mm(mbs);
+    GeneralForceElements     forces(mbs);
+    DecorationSubsystem      artwork(mbs);
 
     Real accuracy = 1e-2;
     Real outputInterval = .10;
@@ -336,11 +337,6 @@ try
 
     mm.setVdwMixingRule( DuMMForceFieldSubsystem::LorentzBerthelot );
 
-    MolecularMechanicsSystem mbs;
-    mbs.setMatterSubsystem(matter);
-    mbs.setMolecularMechanicsForceSubsystem(mm);
-    mbs.addForceSubsystem(forces);
-    mbs.setDecorationSubsystem(artwork);
 
     const RigidBenzene rBenzene(GroundId, mbs);
 

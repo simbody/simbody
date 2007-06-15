@@ -50,10 +50,10 @@ int main(int argc, char** argv) {
 try { // If anything goes wrong, an exception will be thrown.
 
     MultibodySystem         mbs;
-    UniformGravitySubsystem gravity(Vec3(0, -g, 0));
-    GeneralForceElements    forces;
-    SimbodyMatterSubsystem  pend;
-    DecorationSubsystem     viz;
+    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
+    GeneralForceElements    forces(mbs);
+    SimbodyMatterSubsystem  pend(mbs);
+    DecorationSubsystem     viz(mbs);
 
     BodyId connector = 
         pend.addRigidBody(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
@@ -80,10 +80,10 @@ try { // If anything goes wrong, an exception will be thrown.
         Mobilizer::Screw(.3));
 
     // Put the subsystems into the system.
-    mbs.setMatterSubsystem(pend);
-    mbs.addForceSubsystem(gravity);
-    mbs.addForceSubsystem(forces);
-    mbs.setDecorationSubsystem(viz);
+    //mbs.setMatterSubsystem(pend);
+    //mbs.addForceSubsystem(gravity);
+    //mbs.addForceSubsystem(forces);
+    //mbs.setDecorationSubsystem(viz);
 
     // Add a blue sphere around the weight.
     viz.addBodyFixedDecoration(swinger, weight1Location, 

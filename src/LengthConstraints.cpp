@@ -1068,17 +1068,17 @@ LengthSet::calcConstraintForces(const State& s) const
 }
 
 void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
-    const SBPositionCache& cc = getRBTree().getPositionCache(s);
+    const SBPositionCache& pc = getRBTree().getPositionCache(s);
 
     // Access with "upd" here because "get" would require us already to
-    // be at stage Reacting.
-    const SBAccelerationCache&      rc = getRBTree().updAccelerationCache(s);
+    // be at stage Acceleration.
+    const SBAccelerationCache& ac = getRBTree().updAccelerationCache(s);
 
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
             const RigidBodyNode& node = loops[i].tipNode(t);
-            const Vec3 force = loops[i].tipForce(rc,t);
-            const Vec3 moment = cross(loops[i].tipPos(cc,t) - node.getX_GB(cc).T(), force);
+            const Vec3 force = loops[i].tipForce(ac,t);
+            const Vec3 moment = cross(loops[i].tipPos(pc,t) - node.getX_GB(pc).T(), force);
             spatialForces[node.getNodeNum()] += SpatialVec(moment, force);
         }
     }

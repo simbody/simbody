@@ -43,7 +43,6 @@ namespace SimTK {
 bool Subsystem::isEmptyHandle() const {return rep==0;}
 bool Subsystem::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
 
-
 Subsystem::~Subsystem() {
     if (isOwnerHandle()) delete rep; 
     rep=0;

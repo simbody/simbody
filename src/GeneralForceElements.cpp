@@ -27,8 +27,12 @@
  * Private implementation of GeneralForceElements.
  */
 
-#include "SimTKsimbody.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/GeneralForceElements.h"
+#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/MultibodySystem.h"
 
 #include "ForceSubsystemRep.h"
 
@@ -625,9 +629,21 @@ GeneralForceElements::updRep() {
     return dynamic_cast<GeneralForceElementsRep&>(*rep);
 }
 
-GeneralForceElements::GeneralForceElements() {
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
+GeneralForceElements::GeneralForceElements()
+  : ForceSubsystem() 
+{
     rep = new GeneralForceElementsRep();
     rep->setMyHandle(*this);
+}
+
+GeneralForceElements::GeneralForceElements(MultibodySystem& mbs)
+  : ForceSubsystem() 
+{
+    rep = new GeneralForceElementsRep();
+    rep->setMyHandle(*this);
+    mbs.addForceSubsystem(*this); // steal ownership
 }
 
 int GeneralForceElements::addTwoPointLinearSpring

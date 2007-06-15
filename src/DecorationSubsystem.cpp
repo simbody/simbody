@@ -192,9 +192,21 @@ DecorationSubsystem::updRep() {
     return dynamic_cast<DecorationSubsystemRep&>(*rep);
 }
 
-DecorationSubsystem::DecorationSubsystem() {
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
+DecorationSubsystem::DecorationSubsystem()
+  : Subsystem()
+{
     rep = new DecorationSubsystemRep();
     rep->setMyHandle(*this);
+}
+
+DecorationSubsystem::DecorationSubsystem(MultibodySystem& mbs)
+  : Subsystem() 
+{
+    rep = new DecorationSubsystemRep();
+    rep->setMyHandle(*this);
+    mbs.setDecorationSubsystem(*this);
 }
 
 void DecorationSubsystem::addBodyFixedDecoration

@@ -55,9 +55,9 @@ class Subsystem;
  * cannot initiate computation in other subsystems. The System must
  * know the proper order with which to realize the subsystems at each
  * stage, and that ordering is likely to vary with stage. For example,
- * at configuration stage the mechanical positions must be realized
+ * at Position stage the mechanical positions must be realized
  * before the configuration-dependent force elements. However, at
- * reaction stage, the force elements must be realized before the
+ * Acceleration stage, the force elements must be realized before the
  * mechanical accelerations can be calculated.
  */
 class SimTK_SIMBODY_EXPORT System {
