@@ -32,7 +32,7 @@
 #include "SimTKsimbody.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
-
+#include "simbody/internal/MolecularMechanicsSystem.h"
 #include "simbody/internal/DecorativeGeometry.h"
 
 #include "ForceSubsystemRep.h"
@@ -1201,9 +1201,21 @@ DuMMForceFieldSubsystem::updRep() {
     return dynamic_cast<DuMMForceFieldSubsystemRep&>(*rep);
 }
 
-DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
+// Create Subsystem but don't associate it with any System. This isn't much use except
+// for making std::vector's, which require a default constructor to be available.
+DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() 
+  : ForceSubsystem()
+{
     rep = new DuMMForceFieldSubsystemRep();
     rep->setMyHandle(*this);
+}
+
+DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms) 
+  : ForceSubsystem()
+{
+    rep = new DuMMForceFieldSubsystemRep();
+    rep->setMyHandle(*this);
+    mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
 }
 
 void DuMMForceFieldSubsystem::defineAtomClass
