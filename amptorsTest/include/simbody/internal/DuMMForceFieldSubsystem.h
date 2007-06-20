@@ -91,7 +91,7 @@ public:
 
     int    getNAtoms() const;
     Real   getAtomMass(int atomId) const;
-    Real   getAtomElement(int atomId) const;
+    int    getAtomElement(int atomId) const;
     Real   getAtomPartialCharge(int atomId) const;
     Real   getAtomRadius(int atomId) const;
     Real   getAtomWellDepth(int atomId) const;

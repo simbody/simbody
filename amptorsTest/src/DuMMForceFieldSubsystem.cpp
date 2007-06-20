@@ -1460,6 +1460,8 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 //<RJR>
 // 
 // Based on the "defineBondTorsion method
+// This routine repeats much of defineBondTorsion code
+// "shouldn't someone put the common code into one subroutine?"
 //
 void DuMMForceFieldSubsystem::defineImproperTorsion
    (int class1, int class2, int class3, int class4, 
@@ -1921,7 +1923,7 @@ Real DuMMForceFieldSubsystem::getAtomMass(int atomId) const {
 }
 
 // Returns the atomic number (number of protons in nucleus).
-Real DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
+int DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
     static const char* MethodName = "getAtomElement";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
