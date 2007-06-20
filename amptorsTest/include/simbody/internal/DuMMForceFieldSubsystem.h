@@ -75,6 +75,7 @@ public:
     static const Real Rad2Deg;      //   or multiply radians by this to get degrees
     static const Real Sigma2Radius; // multiply vdw sigma by this to get vdw radius
     static const Real Radius2Sigma; //   or multiply vdw radius by this to get vdw sigma
+    static const Real GasConst;     // universal gas constant in kJ
 
     DuMMForceFieldSubsystem();
     explicit DuMMForceFieldSubsystem(MolecularMechanicsSystem&);
@@ -90,8 +91,10 @@ public:
 
     int    getNAtoms() const;
     Real   getAtomMass(int atomId) const;
-    int    getAtomElement(int atomId) const;
+    Real   getAtomElement(int atomId) const;
+    Real   getAtomPartialCharge(int atomId) const;
     Real   getAtomRadius(int atomId) const;
+    Real   getAtomWellDepth(int atomId) const;
     Vec3   getAtomStationOnBody(int atomId) const;
     Vec3   getAtomStationInCluster(int atomId, int clusterId) const;
     BodyId getAtomBody(int atomId) const;
@@ -259,14 +262,29 @@ public:
     // The third atom is the central one to which the other
     // three are bonded; this is not the same in reverse order.
     // TODO: not implemented
+//<RJR>
+//    void defineImproperTorsion(int class1, int class2, int class3, int class4,
+//        Real amplitude, Real phase, int periodicity,
+//        Real amp2, Real phase2, int period2,
+//        Real amp3, Real phase3, int period3);
+//    void defineImproperTorsion_KA(int class1, int class2, int class3, int class4,
+//        Real amplitude, Real phase, int periodicity,
+//        Real amp2, Real phase2, int period2,
+//        Real amp3, Real phase3, int period3);
+//</RJR>
+//<RJR>
+
     void defineImproperTorsion(int class1, int class2, int class3, int class4,
-        Real amplitude, Real phase, int periodicity,
-        Real amp2, Real phase2, int period2,
-        Real amp3, Real phase3, int period3);
+         int periodicity, Real ampInKJ, Real phaseInDegrees);
+
     void defineImproperTorsion_KA(int class1, int class2, int class3, int class4,
-        Real amplitude, Real phase, int periodicity,
-        Real amp2, Real phase2, int period2,
-        Real amp3, Real phase3, int period3);
+         int periodicity, Real ampInKcal, Real phaseInDegrees)
+    {
+        defineImproperTorsion(class1, class2, class3, class4,
+                              periodicity, ampInKcal * Kcal2KJ, phaseInDegrees);
+    }
+//</RJR>
+
 
     void setVdwMixingRule(VdwMixingRule); // default WaldmanHagler
     VdwMixingRule getVdwMixingRule() const;
@@ -289,6 +307,7 @@ public:
     void setBondStretchGlobalScaleFactor(Real);
     void setBondBendGlobalScaleFactor(Real);
     void setBondTorsionGlobalScaleFactor(Real);
+    void setImproperTorsionGlobalScaleFactor(Real);
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);
