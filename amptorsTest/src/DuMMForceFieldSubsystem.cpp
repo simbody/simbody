@@ -32,7 +32,7 @@
 #include "SimTKsimbody.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
-#include "simbody/internal/MolecularMechanicsSystem.h"
+
 #include "simbody/internal/DecorativeGeometry.h"
 
 #include "ForceSubsystemRep.h"
@@ -61,6 +61,7 @@ namespace SimTK {
                         (Real)std::pow(2.L,  1.L/6.L); // sigma < radius
 /*static*/ const Real DuMMForceFieldSubsystem::Radius2Sigma = 
                         (Real)std::pow(2.L, -1.L/6.L);
+/*static*/ const Real DuMMForceFieldSubsystem::GasConst = 0.008314472;
 
 // handy abbreviations
 static const Real Pi      = (Real)SimTK_PI;
@@ -68,6 +69,7 @@ static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
 static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
 static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
 static const Real& Kcal2KJ = DuMMForceFieldSubsystem::Kcal2KJ;
+static const Real& GasConst = DuMMForceFieldSubsystem::GasConst;
 
 // This is Coulomb's constant 1/(4*pi*e0) in units which convert
 // e^2/nm to kJ/mol.
@@ -496,7 +498,6 @@ public:
     std::vector<TorsionTerm> terms;
 };
 
-
 class AtomPlacement {
 public:
     AtomPlacement() : atomId(-1) { }
@@ -566,9 +567,10 @@ public:
     void dump() const;
 
     void invalidateTopologicalCache() {
-        bond13.clear(); bond14.clear(); bond15.clear();
+        bond13.clear(); bond14.clear(); bond15.clear(); bondCenterOf4.clear();
         xbond12.clear(); xbond13.clear(); xbond14.clear(); xbond15.clear();
-        stretch.clear(); bend.clear(); torsion.clear();
+        xbondCenterOf4.clear(); tbondCenterOf4.clear();
+        stretch.clear(); bend.clear(); torsion.clear(); improperTorsion.clear();
     }
 
 public:
@@ -597,6 +599,7 @@ public:
     std::vector<IntPair>   bond13;
     std::vector<IntTriple> bond14;
     std::vector<IntQuad>   bond15;
+    std::vector<IntTriple> bondCenterOf4;
 
     // These are shorter versions of the bond lists in which only those
     // bonds which include atoms from at least two bodies are included.
@@ -610,10 +613,13 @@ public:
     std::vector<IntPair>   xbond13;
     std::vector<IntTriple> xbond14;
     std::vector<IntQuad>   xbond15;
+    std::vector<IntTriple> xbondCenterOf4;
+    std::vector<IntTriple> tbondCenterOf4;
 
     std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
     std::vector<BondBend>    bend;    // same length as   " 1-3 list
     std::vector<BondTorsion> torsion; // same length as   " 1-4 list
+    std::vector<BondTorsion> improperTorsion; // same length as center of 4 list
 };
 
 
@@ -925,7 +931,8 @@ public:
 
         vdwMixingRule = DuMMForceFieldSubsystem::WaldmanHagler;
         vdwGlobalScaleFactor=coulombGlobalScaleFactor=bondStretchGlobalScaleFactor
-            =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor=1;
+            =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor
+            =improperTorsionGlobalScaleFactor=1;
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         loadElements();
@@ -1051,6 +1058,7 @@ public:
     const BondStretch& getBondStretch(int class1, int class2) const;
     const BondBend&    getBondBend   (int class1, int class2, int class3) const;
     const BondTorsion& getBondTorsion(int class1, int class2, int class3, int class4) const;
+    const BondTorsion& getImproperTorsion(int class1, int class2, int class3, int class4) const;
 
     void realizeTopology(State& s) const;
 
@@ -1146,6 +1154,7 @@ private:
     std::map<IntPair,   BondStretch> bondStretch;
     std::map<IntTriple, BondBend>    bondBend;
     std::map<IntQuad,   BondTorsion> bondTorsion;
+    std::map<IntQuad,   BondTorsion> improperTorsion;
 
     // Which rule to use for combining van der Waals radii and energy well
     // depth for dissimilar atom classes.
@@ -1162,7 +1171,7 @@ private:
     // individual force field terms.
     Real vdwGlobalScaleFactor, coulombGlobalScaleFactor; 
     Real bondStretchGlobalScaleFactor, bondBendGlobalScaleFactor, 
-         bondTorsionGlobalScaleFactor;
+         bondTorsionGlobalScaleFactor, improperTorsionGlobalScaleFactor;
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -1201,21 +1210,9 @@ DuMMForceFieldSubsystem::updRep() {
     return dynamic_cast<DuMMForceFieldSubsystemRep&>(*rep);
 }
 
-// Create Subsystem but don't associate it with any System. This isn't much use except
-// for making std::vector's, which require a default constructor to be available.
-DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() 
-  : ForceSubsystem()
-{
+DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() {
     rep = new DuMMForceFieldSubsystemRep();
     rep->setMyHandle(*this);
-}
-
-DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms) 
-  : ForceSubsystem()
-{
-    rep = new DuMMForceFieldSubsystemRep();
-    rep->setMyHandle(*this);
-    mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
 }
 
 void DuMMForceFieldSubsystem::defineAtomClass
@@ -1460,6 +1457,60 @@ void DuMMForceFieldSubsystem::defineBondTorsion
                       -1,0.,0.);
 }
 
+//<RJR>
+// 
+// Based on the "defineBondTorsion method
+//
+void DuMMForceFieldSubsystem::defineImproperTorsion
+   (int class1, int class2, int class3, int class4, 
+    int periodicity, Real ampInKJ, Real phaseInDegrees)
+{
+    static const char* MethodName = "defineImproperTorsion";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+        // Watch for nonsense arguments.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
+        "class1=%d which is not a valid atom class Id", class1);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
+        "class2=%d which is not a valid atom class Id", class2);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
+        "class3=%d which is not a valid atom class Id", class3);
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class4), mm.ApiClassName, MethodName, 
+        "class4=%d which is not a valid atom class Id", class4);
+    SimTK_APIARGCHECK_ALWAYS(periodicity>0,
+        mm.ApiClassName, MethodName, "must have periodicity greater than zero");
+
+        // Canonicalize atom class quad by reversing order if necessary so that the
+        // first class Id is numerically no larger than the fourth.
+    //const IntQuad key(class1, class2, class3, class4, true);
+    const IntQuad key(class1, class2, class3, class4);
+
+        // Now allocate an empty BondTorsion object and add terms to it as they are found.
+    BondTorsion it;
+        // No nonsense.
+    SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity && periodicity <= 6, mm.ApiClassName, MethodName, 
+        "periodicity(%d) is invalid: we require 1 <= periodicity <= 6", periodicity);
+    SimTK_APIARGCHECK1_ALWAYS(ampInKJ >= 0, mm.ApiClassName, MethodName, 
+        "amplitude1(%g) is not valid: must be nonnegative", ampInKJ);
+    SimTK_APIARGCHECK1_ALWAYS(0 <= phaseInDegrees && phaseInDegrees <= 180, mm.ApiClassName, MethodName, 
+        "phaseAngle1(%g) is not valid: must be between 0 and 180 degrees, inclusive", phaseInDegrees);
+
+        // Add the new term.
+    it.addTerm(TorsionTerm(periodicity, ampInKJ, phaseInDegrees));
+
+
+        // Now try to insert the allegedly new ImproperTorsion specification into the improperTorsion map.
+        // If it is already there the 2nd element in the returned pair will be 'false'.
+    std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret = 
+      mm.improperTorsion.insert(std::pair<IntQuad,BondTorsion>(key,it));
+
+        // Throw an exception if terms for this improper torsion were already defined.
+    SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
+        "improper torsion term(s) were already defined for atom class quad (%d,%d,%d,%d)", 
+        key[0], key[1], key[2], key[3]);
+}
+//</RJR>
+
 void DuMMForceFieldSubsystem::setVdwMixingRule(VdwMixingRule rule) {
     static const char* MethodName = "setVdwMixingRule";
     DuMMForceFieldSubsystemRep& mm = updRep();
@@ -1621,6 +1672,17 @@ void DuMMForceFieldSubsystem::setBondTorsionGlobalScaleFactor(Real fac) {
         fac);
 
     mm.bondTorsionGlobalScaleFactor=fac;
+}
+
+void DuMMForceFieldSubsystem::setImproperTorsionGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setImproperTorsionScaleFactor";
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global improper torsion scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.improperTorsionGlobalScaleFactor=fac;
 }
 
 int DuMMForceFieldSubsystem::createCluster(const char* groupName)
@@ -1859,7 +1921,7 @@ Real DuMMForceFieldSubsystem::getAtomMass(int atomId) const {
 }
 
 // Returns the atomic number (number of protons in nucleus).
-int DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
+Real DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
     static const char* MethodName = "getAtomElement";
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
@@ -1869,6 +1931,20 @@ int DuMMForceFieldSubsystem::getAtomElement(int atomId) const {
 
     return mm.getAtomElementNum(atomId);
 }
+
+//<RJR>
+// Returns the atomic partial charge).
+Real DuMMForceFieldSubsystem::getAtomPartialCharge(int atomId) const {
+    static const char* MethodName = "getAtomPartialCharge";
+    const DuMMForceFieldSubsystemRep& mm = getRep();
+
+        // Make sure we've seen this atom before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
+        "atom %d is not valid", atomId);
+
+    return (mm.chargedAtomTypes[mm.getChargedAtomTypeId(atomId)]).partialCharge;
+}
+//</RJR>
 
 Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(int atomId) const {
     static const char* MethodName = "getAtomDefaultColor";
@@ -1894,6 +1970,21 @@ Real DuMMForceFieldSubsystem::getAtomRadius(int atomId) const {
     const AtomClass& cl = mm.atomClasses[mm.getAtomClassId(atomId)];
     return cl.vdwRadius;
 }
+
+//<RJR>
+// Returned well depth is in kJ.
+Real DuMMForceFieldSubsystem::getAtomWellDepth(int atomId) const {
+    static const char* MethodName = "getAtomWellDepth";
+    const DuMMForceFieldSubsystemRep& mm = getRep();
+
+        // Make sure we've seen this atom before.
+    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
+        "atom %d is not valid", atomId);
+
+    const AtomClass& cl = mm.atomClasses[mm.getAtomClassId(atomId)];
+    return cl.vdwWellDepth;
+}
+//</RJR>
 
 // Returned station is in nm.
 Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(int atomId) const {
@@ -2054,6 +2145,16 @@ DuMMForceFieldSubsystemRep::getBondTorsion
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
+const BondTorsion& 
+DuMMForceFieldSubsystemRep::getImproperTorsion
+   (int class1, int class2, int class3, int class4) const
+{
+    static const BondTorsion dummy; // invalid
+    const IntQuad key(class1, class2, class3, class4);
+    std::map<IntQuad,BondTorsion>::const_iterator it = improperTorsion.find(key);
+    return (it != improperTorsion.end()) ? it->second : dummy;
+}
+
 void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
     if (topologicalCacheValid)
         return; // already got this far
@@ -2149,6 +2250,15 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
         allBondedSoFar.insert(anum);
         allBondedSoFar.insert(a.bond12.begin(), a.bond12.end());
 
+        //<RJR>
+        // First find all atom that are connected to three (and only three) other atoms
+        // Then add all orderings of ths to the improper torsion list
+        a.bondCenterOf4.clear();
+        if (3 == (int)a.bond12.size()) {
+            a.bondCenterOf4.push_back(IntTriple(a.bond12[0], a.bond12[1], a.bond12[2]));
+        }
+        //</RJR>
+
         // Find longer bond paths by building each list in turn from
         // the direct bonds of the atoms in the previous list.
 
@@ -2159,6 +2269,7 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
             const AtomArray& a12_12 = a12.bond12;
             for (int k=0; k < (int)a12_12.size(); ++k) {
                 const int newAtom = a12_12[k];
+                if (anum==newAtom) continue;
                 if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
                     continue; // there was already a shorter path
                 allBondedSoFar.insert(newAtom);
@@ -2174,6 +2285,7 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
             const AtomArray& a13_12 = a13.bond12;
             for (int k=0; k < (int)a13_12.size(); ++k) {
                 const int newAtom = a13_12[k];
+                if (anum==newAtom) continue;
                 if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
                     continue; // there was already a shorter path
                 allBondedSoFar.insert(newAtom);
@@ -2200,6 +2312,13 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
         // Fill in the cross-body bond lists. We only keep atoms which
         // are on a different body.
         a.xbond12.clear(); a.xbond13.clear(); a.xbond14.clear(); a.xbond15.clear();
+        a.xbondCenterOf4.clear();
+        for (int j=0; j < (int)a.bondCenterOf4.size(); ++j)
+            if (   atoms[a.bondCenterOf4[j][0]].bodyId != a.bodyId
+                || atoms[a.bondCenterOf4[j][1]].bodyId != a.bodyId
+                || atoms[a.bondCenterOf4[j][2]].bodyId != a.bodyId)
+                a.xbondCenterOf4.push_back(a.bondCenterOf4[j]);
+
         for (int j=0; j < (int)a.bond12.size(); ++j)
             if (atoms[a.bond12[j]].bodyId != a.bodyId)
                 a.xbond12.push_back(a.bond12[j]);
@@ -2261,6 +2380,33 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
                 Stage::Topology, getMySubsystemIndex(), getName(),
                 "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
                 c1,c2,c3,c4);
+        }
+
+        // Save a ImproperTorsion entry for each cross-body Center of 4 atoms
+        a.tbondCenterOf4.clear();
+        a.improperTorsion.clear();
+        for (int bCenter4=0; bCenter4 < (int)a.xbondCenterOf4.size(); ++bCenter4) {
+            int aNums[3];
+            aNums[0] = a.xbondCenterOf4[bCenter4][0];
+            aNums[1] = a.xbondCenterOf4[bCenter4][1];
+            aNums[2] = a.xbondCenterOf4[bCenter4][2];
+
+            for (int i2=0; i2<3; i2++) {
+                for (int i3=0; i3<3; i3++) {
+                    if (i3==i2) continue;
+                    for (int i4=0; i4<3; i4++) {
+                        if (i4==i2 || i4==i3) continue;
+                        const BondTorsion& it=getImproperTorsion(getAtomClassId(aNums[i2]),
+                                                           getAtomClassId(aNums[i3]),
+                                                           c1,
+                                                           getAtomClassId(aNums[i4])); 
+                        if (it.isValid()) {
+                            a.tbondCenterOf4.push_back(IntTriple(aNums[i2], aNums[i3], aNums[i4]));
+                            a.improperTorsion.push_back(it);
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -2416,6 +2562,50 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                 rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
             }
+
+            //<RJR>
+            // Improper torsion (Center of 4 atoms)
+            for (int cOf4=0; cOf4 < (int)a1.tbondCenterOf4.size(); ++cOf4) {
+                const int a2num = a1.tbondCenterOf4[cOf4][0];
+                const int a3num = a1.tbondCenterOf4[cOf4][1];
+                const int a4num = a1.tbondCenterOf4[cOf4][2];
+                assert(a4num != a1num);
+//                if (a4num < a1num)
+//                    continue; // don't process this bond this time
+
+                const Atom& a2 = atoms[a2num];
+                const Atom& a3 = atoms[a3num];
+                const Atom& a4 = atoms[a4num];
+                const int b2 = a2.bodyId;
+                const int b3 = a3.bodyId;
+                const int b4 = a4.bodyId;
+                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+
+                // TODO: These might be the same body but for now we don't care.
+                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
+                const Transform& X_GB3   = matter.getBodyTransform(s, a3.bodyId);
+                const Transform& X_GB4   = matter.getBodyTransform(s, a4.bodyId);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+
+                Real angle, energy;
+                Vec3 f1, f2, f3, f4;
+                const BondTorsion& it = a1.improperTorsion[cOf4];
+                it.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, improperTorsionGlobalScaleFactor,
+                            angle, energy, f1, f2, f3, f4);
+
+                pe += energy;
+                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+            }
+            //</RJR> 
+
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (BodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
@@ -2828,6 +3018,17 @@ void Atom::dump() const {
         printf("     ");
         for (int j=0; j<(int)bt.terms.size(); ++j) {
             const TorsionTerm& tt = bt.terms[j];
+            printf(" (%d:%g,%g)", tt.periodicity, 
+                                  tt.amplitude, tt.theta0);
+        }
+        printf("\n");
+    }
+    printf("\n    improper torsion:\n");
+    for (int i=0; i < (int)improperTorsion.size(); ++i) {
+        const BondTorsion& it = improperTorsion[i];
+        printf("     ");
+        for (int j=0; j<(int)it.terms.size(); ++j) {
+            const TorsionTerm& tt = it.terms[j];
             printf(" (%d:%g,%g)", tt.periodicity, 
                                   tt.amplitude, tt.theta0);
         }
