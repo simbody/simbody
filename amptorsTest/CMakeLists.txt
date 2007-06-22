@@ -29,7 +29,7 @@ SET( BUILD_AUX ON CACHE BOOL "OFF does not build Simbody aux library ")
 MARK_AS_ADVANCED( BUILD_AUX  )
 
 IF( BUILD_AUX )
-  SUBDIRS (staticTarget sharedTarget auxiliary tests )
+  SUBDIRS (staticTarget sharedTarget auxiliary )
 ELSE ( BUILD_AUX )
   SUBDIRS (staticTarget sharedTarget tests)
 ENDIF( BUILD_AUX )

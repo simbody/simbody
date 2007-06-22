@@ -1,4 +1,4 @@
-SUBDIRS (staticTarget sharedTarget tests)
+SUBDIRS (staticTarget sharedTarget )
 
 SET(AUX_SHARED_TARGET ${SIMBODY_LIBRARY_NAME}_aux)
 SET(AUX_STATIC_TARGET ${SIMBODY_LIBRARY_NAME}_aux_static)

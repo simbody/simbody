@@ -2271,7 +2271,9 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
             const AtomArray& a12_12 = a12.bond12;
             for (int k=0; k < (int)a12_12.size(); ++k) {
                 const int newAtom = a12_12[k];
-                if (anum==newAtom) continue;
+                //<RJR>
+                //if (anum==newAtom) continue;
+                //</RJR>
                 if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
                     continue; // there was already a shorter path
                 allBondedSoFar.insert(newAtom);
@@ -2282,14 +2284,17 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
 
         // build the bond14 list
         a.bond14.clear();
+        std::set<int> allBondedSoFarTemp=allBondedSoFar;
         for (int j=0; j < (int)a.bond13.size(); ++j) {
             const Atom& a13 = atoms[a.bond13[j][1]];
             const AtomArray& a13_12 = a13.bond12;
             for (int k=0; k < (int)a13_12.size(); ++k) {
                 const int newAtom = a13_12[k];
-                if (anum==newAtom) continue;
-                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
+                //<RJR>
+                //if (anum==newAtom) continue;
+                if (allBondedSoFarTemp.find(newAtom) != allBondedSoFarTemp.end())
                     continue; // there was already a shorter path
+                //</RJR>
                 allBondedSoFar.insert(newAtom);
                 a.bond14.push_back(IntTriple(a.bond13[j][0], a.bond13[j][1], newAtom));
             }
@@ -2393,18 +2398,23 @@ void DuMMForceFieldSubsystemRep::realizeTopology(State& s) const {
             aNums[1] = a.xbondCenterOf4[bCenter4][1];
             aNums[2] = a.xbondCenterOf4[bCenter4][2];
 
-            for (int i2=0; i2<3; i2++) {
-                for (int i3=0; i3<3; i3++) {
+            bool allDone=false;
+            for (int i2=0; i2<3 && !allDone; i2++) {
+                for (int i3=0; i3<3 && !allDone; i3++) {
                     if (i3==i2) continue;
-                    for (int i4=0; i4<3; i4++) {
+                    for (int i4=0; i4<3 && !allDone; i4++) {
                         if (i4==i2 || i4==i3) continue;
-                        const BondTorsion& it=getImproperTorsion(getAtomClassId(aNums[i2]),
-                                                           getAtomClassId(aNums[i3]),
-                                                           c1,
-                                                           getAtomClassId(aNums[i4])); 
+                        const BondTorsion& it=getImproperTorsion(
+                                                 getAtomClassId(aNums[i2]),
+                                                 getAtomClassId(aNums[i3]),
+                                                 c1,
+                                                 getAtomClassId(aNums[i4])); 
                         if (it.isValid()) {
-                            a.tbondCenterOf4.push_back(IntTriple(aNums[i2], aNums[i3], aNums[i4]));
+                            a.tbondCenterOf4.push_back(IntTriple(aNums[i2],
+                                                                 aNums[i3],
+                                                                 aNums[i4]));
                             a.improperTorsion.push_back(it);
+                            allDone=true;
                         }
                     }
                 }
@@ -2572,8 +2582,8 @@ void DuMMForceFieldSubsystemRep::realizeDynamics(const State& s) const
                 const int a3num = a1.tbondCenterOf4[cOf4][1];
                 const int a4num = a1.tbondCenterOf4[cOf4][2];
                 assert(a4num != a1num);
-//                if (a4num < a1num)
-//                    continue; // don't process this bond this time
+                if (a4num < a1num)
+                    continue; // don't process this bond this time
 
                 const Atom& a2 = atoms[a2num];
                 const Atom& a3 = atoms[a3num];
@@ -2980,32 +2990,52 @@ void Atom::dump() const {
     printf(" chargedAtomType=%d body=%d station=%g %g %g\n",
         chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
 
-    printf("    bond 1-2:");
+    printf("\n    bond 1-2:");
     for (int i=0; i < (int)bond12.size(); ++i)
-        printf(" %d", bond12[i]);
+        printf("  x-%d", bond12[i]);
     printf("\n    bond 1-3:");
     for (int i=0; i < (int)bond13.size(); ++i)
-        printf(" %d-%d", bond13[i][0], bond13[i][1]);
+        printf("  x-%d-%d", bond13[i][0], bond13[i][1]);
     printf("\n    bond 1-4:");
     for (int i=0; i < (int)bond14.size(); ++i)
-        printf(" %d-%d-%d", bond14[i][0], bond14[i][1], bond14[i][2]);
+        printf("  x-%d-%d-%d", bond14[i][0], bond14[i][1], bond14[i][2]);
     printf("\n    bond 1-5:");
     for (int i=0; i < (int)bond15.size(); ++i)
-        printf(" %d-%d-%d-%d", bond15[i][0], bond15[i][1], bond15[i][2], bond15[i][3]);
+        printf("  x-%d-%d-%d-%d", bond15[i][0], bond15[i][1], bond15[i][2], bond15[i][3]);
+    printf("\n    center 1-4:");
+    for (int i=0; i < (int)bondCenterOf4.size(); ++i)
+        printf(" %d-%d-x-%d",
+               bondCenterOf4[i][0], bondCenterOf4[i][1], bondCenterOf4[i][2]);
     printf("\n");
 
     printf("    xbond 1-2:");
     for (int i=0; i < (int)xbond12.size(); ++i)
-        printf(" %d", xbond12[i]);
+        printf("  x-%d", xbond12[i]);
     printf("\n    xbond 1-3:");
     for (int i=0; i < (int)xbond13.size(); ++i)
-        printf(" %d-%d", xbond13[i][0], xbond13[i][1]);
+        printf("  x-%d-%d", xbond13[i][0], xbond13[i][1]);
     printf("\n    xbond 1-4:");
     for (int i=0; i < (int)xbond14.size(); ++i)
-        printf(" %d-%d-%d", xbond14[i][0], xbond14[i][1], xbond14[i][2]);
+        printf("  x-%d-%d-%d", xbond14[i][0], xbond14[i][1], xbond14[i][2]);
     printf("\n    xbond 1-5:");
     for (int i=0; i < (int)xbond15.size(); ++i)
-        printf(" %d-%d-%d-%d", xbond15[i][0], xbond15[i][1], xbond15[i][2], xbond15[i][3]);
+        printf("  x-%d-%d-%d-%d", xbond15[i][0], xbond15[i][1], xbond15[i][2], xbond15[i][3]);
+    printf("\n");
+
+    printf("    xcenter 1-4:");
+    for (int i=0; i < (int)xbondCenterOf4.size(); ++i)
+        printf("  %d-%d-x-%d",
+               xbondCenterOf4[i][0],
+               xbondCenterOf4[i][1],
+               xbondCenterOf4[i][2]);
+    printf("\n");
+
+    printf("    tcenter 1-4:");
+    for (int i=0; i < (int)tbondCenterOf4.size(); ++i)
+        printf("  %d-%d-x-%d",
+               tbondCenterOf4[i][0],
+               tbondCenterOf4[i][1],
+               tbondCenterOf4[i][2]);
     printf("\n");
 
     printf("    1-2 stretch:");
@@ -3025,7 +3055,7 @@ void Atom::dump() const {
         }
         printf("\n");
     }
-    printf("\n    improper torsion:\n");
+    printf("    improper torsion:\n");
     for (int i=0; i < (int)improperTorsion.size(); ++i) {
         const BondTorsion& it = improperTorsion[i];
         printf("     ");
