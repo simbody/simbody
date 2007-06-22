@@ -25,13 +25,20 @@
 
 PROJECT (Simbody)
 
+#ADD_DEFINITIONS( -m32 )
+SET( M32 -m32 )
+SET( CMAKE_SHARED_LINKER_FLAGS  ${M32} )
+SET( CMAKE_EXE_LINKER_FLAGS ${M32} )
+SET( CMAKE_CXX_FLAGS ${M32} )
+
 SET( BUILD_AUX ON CACHE BOOL "OFF does not build Simbody aux library ")
 MARK_AS_ADVANCED( BUILD_AUX  )
 
 IF( BUILD_AUX )
   SUBDIRS (staticTarget sharedTarget auxiliary )
 ELSE ( BUILD_AUX )
-  SUBDIRS (staticTarget sharedTarget tests)
+  #SUBDIRS (staticTarget sharedTarget tests)
+  SUBDIRS (staticTarget sharedTarget )
 ENDIF( BUILD_AUX )
 
 # 
@@ -82,11 +89,12 @@ INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 #    SET(LIB64) # nothing
 #ENDIF (ARCH64)
 
-IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64 64 )
-ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
-  SET( LIB64  )
-ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+#IF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+#  SET( LIB64 64 )
+#ELSE( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+#  SET( LIB64  )
+#ENDIF( ${CMAKE_SIZEOF_VOID_P} EQUAL 8 )
+SET( LIB64  )
 
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
@@ -339,3 +347,16 @@ FILE(GLOB INTERNAL_HEADERS include/simbody/internal/*.h */include/simbody/intern
 INSTALL_FILES(/core/include/                 FILES ${CORE_HEADERS})
 INSTALL_FILES(/core/include/simbody/         FILES ${TOP_HEADERS})
 INSTALL_FILES(/core/include/simbody/internal FILES ${INTERNAL_HEADERS})
+
+
+
+# This dumps all cmake variables to AllVariables.txt
+# Helps with debuging, and seems to do now harm...
+get_cmake_property(VARS VARIABLES)
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/AllVariables.txt "")
+foreach(var ${VARS})
+  file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/AllVariables.txt
+"===${var}===\n${${var}}\n\n")
+endforeach(var ${VARS})
+
+
