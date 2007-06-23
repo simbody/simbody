@@ -47,20 +47,22 @@ public:
                         numInequalityConstraints(0),
                         numLinearEqualityConstraints(0),
                         numLinearInequalityConstraints(0),
+                        useLimits( false ),
                         lowerLimits(0),
-                        upperLimits(0),
-                        useLimits( false ) { 
+                        upperLimits(0) { 
     }
 
     OptimizerSystem(int nParameters ) : numEqualityConstraints(0),
                                       numInequalityConstraints(0),
                                       numLinearEqualityConstraints(0),
                                       numLinearInequalityConstraints(0),
+                                      useLimits( false ),
                                       lowerLimits(0),
-                                      upperLimits(0),
-                                      useLimits( false ) { 
+                                      upperLimits(0) { 
         setNumParameters(nParameters);
     }
+
+  virtual ~OptimizerSystem() {}
 
   /* this method must be supplied by concreate class */
   virtual int objectiveFunc      ( const Vector& parameters, 
