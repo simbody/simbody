@@ -43,7 +43,7 @@ const char *LoadLibraryErrorMessage() { return 0; }
 #endif
 
 #ifndef _WIN32
-static const char *CFSQP_LIBRARY_NAME = "libosimCFSQP";
+static const char *CFSQP_LIBRARY_NAME = "libosimCFSQP.so";
 #else
 static const char *CFSQP_LIBRARY_NAME = "osimCFSQP.dll";
 #endif
@@ -141,8 +141,9 @@ void CFSQPOptimizer::bindToCFSQPLibrary()
 
     SIMTK_PORTABLE_HINSTANCE libraryHandle = LoadLibrary(CFSQP_LIBRARY_NAME);
     if(!libraryHandle) {
-        if(LoadLibraryErrorMessage())
-            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "': " + LoadLibraryErrorMessage()); 
+        const char *msg=LoadLibraryErrorMessage();
+        if(msg)
+            SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "': " + msg); 
         else
             SimTK_THROW1(SimTK::Exception::Cant, std::string("Could not load CFSQP library '") + CFSQP_LIBRARY_NAME + "'"); 
     }
