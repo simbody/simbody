@@ -200,6 +200,15 @@ try {
     cout << "rxyz=" << rxyz;
     cout << "r123=" << r123;
 
+    // Test inverse assignments, copy construct
+    Rotation invr123(~r123);
+    Rotation invr123eq;
+    invr123eq = ~r123;
+
+    cout << "Check inverse assignment/copy." << endl;
+    cout << "norm invr123*r123-identity=" << (invr123*r123-Mat33(1)).norm() << endl;
+    cout << "norm invr123eq*r123-identity=" << (invr123eq*r123-Mat33(1)).norm() << endl;
+
     Rotation bodyXY; bodyXY.setToBodyFixed123(Vec3(.03,.11,0));
     Rotation aboutYthenX = Rotation::aboutYThenOldX(.11,.03);
 

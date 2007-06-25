@@ -894,6 +894,7 @@ inline Rotation::Rotation(const InverseRotation& R)
 }
 inline Rotation& Rotation::operator=(const InverseRotation& R) {
     static_cast<BaseMat&>(*this) = R.asMat33();
+    return *this;
 }
 
 inline Rotation& Rotation::operator*=(const Rotation& R) {
