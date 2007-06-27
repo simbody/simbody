@@ -183,6 +183,9 @@ public:
     State();
     ~State();
 
+    /// Restore State to default-constructed condition.
+    void clear();
+
     /// Set the number of subsystems in this state. This is done during
     /// initialization of the State by a System; it completely wipes out
     /// anything that used to be in the state so use cautiously!

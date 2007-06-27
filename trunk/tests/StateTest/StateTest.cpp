@@ -89,7 +89,10 @@ int main() {
         Stage g = Stage::Num(j);
         cout << g.name() << ": " << s.getNEventsByStage(0,g) << endl;
     }
-    cout << s;
+    cout << "State s=" << s;
+
+    s.clear();
+    cout << "after clear(), State s=" << s;
 
   }
   catch(const std::exception& e) {

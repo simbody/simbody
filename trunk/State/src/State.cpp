@@ -710,6 +710,14 @@ State::State() : rep(new StateRep()) {
     rep->setMyHandle(*this);
 }
 
+
+// Restore state to default-constructed condition
+void State::clear() {
+    delete rep;
+    rep = new StateRep();
+    rep->setMyHandle(*this);
+}
+
 State::~State() {
     delete rep; rep=0;
 }
