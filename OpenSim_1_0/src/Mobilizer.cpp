@@ -32,6 +32,8 @@
 
 #include "MobilizerRep.h"
 
+using namespace OpenSim;
+
 namespace SimTK {
 
     ///////////////
@@ -265,6 +267,33 @@ Mobilizer::Orientation::OrientationRep& Mobilizer::Orientation::updRep() {
     return dynamic_cast<OrientationRep&>(*rep);
 }
 
+
+    ///////////////////////////////////
+    // MOBILIZER::ELLIPSOID (BALL) //
+    ///////////////////////////////////
+
+Mobilizer::Ellipsoid::Ellipsoid(Real major_a, Real minor_b, Real minor_c) {
+    rep = new EllipsoidRep(major_a, minor_b, minor_c); rep->setMyHandle(*this);
+}
+bool Mobilizer::Ellipsoid::isInstanceOf(const Mobilizer& s) {
+    return EllipsoidRep::isA(s.getRep());
+}
+const Mobilizer::Ellipsoid& Mobilizer::Ellipsoid::downcast(const Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Ellipsoid&>(s);
+}
+Mobilizer::Ellipsoid& Mobilizer::Ellipsoid::updDowncast(Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Ellipsoid&>(s);
+}
+const Mobilizer::Ellipsoid::EllipsoidRep& Mobilizer::Ellipsoid::getRep() const {
+    return dynamic_cast<const EllipsoidRep&>(*rep);
+}
+Mobilizer::Ellipsoid::EllipsoidRep& Mobilizer::Ellipsoid::updRep() {
+    return dynamic_cast<EllipsoidRep&>(*rep);
+}
+
+
     ////////////////////////////
     // MOBILIZER::TRANSLATION //
     ////////////////////////////
@@ -414,6 +443,57 @@ const Mobilizer::Screw::ScrewRep& Mobilizer::Screw::getRep() const {
 Mobilizer::Screw::ScrewRep& Mobilizer::Screw::updRep() {
     return dynamic_cast<ScrewRep&>(*rep);
 }
+
+    /////////////////////////////
+    // MOBILIZER::EllipticalPin //
+    ////////////////////////////
+
+Mobilizer::EllipticalPin::EllipticalPin(Real major, Real minor) {
+    rep = new EllipticalPinRep(major, minor); rep->setMyHandle(*this);
+}
+bool Mobilizer::EllipticalPin::isInstanceOf(const Mobilizer& s) {
+    return EllipticalPinRep::isA(s.getRep());
+}
+const Mobilizer::EllipticalPin& Mobilizer::EllipticalPin::downcast(const Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const EllipticalPin&>(s);
+}
+Mobilizer::EllipticalPin& Mobilizer::EllipticalPin::updDowncast(Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<EllipticalPin&>(s);
+}
+const Mobilizer::EllipticalPin::EllipticalPinRep& Mobilizer::EllipticalPin::getRep() const {
+    return dynamic_cast<const EllipticalPinRep&>(*rep);
+}
+Mobilizer::EllipticalPin::EllipticalPinRep& Mobilizer::EllipticalPin::updRep() {
+    return dynamic_cast<EllipticalPinRep&>(*rep);
+}
+
+    /////////////////////////////
+    // MOBILIZER::Rot2Planar //
+    ////////////////////////////
+
+Mobilizer::Rot2Planar::Rot2Planar(Function *tx, Function *ty) {
+    rep = new Rot2PlanarRep(tx, ty); rep->setMyHandle(*this);
+}
+bool Mobilizer::Rot2Planar::isInstanceOf(const Mobilizer& s) {
+    return Rot2PlanarRep::isA(s.getRep());
+}
+const Mobilizer::Rot2Planar& Mobilizer::Rot2Planar::downcast(const Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Rot2Planar&>(s);
+}
+Mobilizer::Rot2Planar& Mobilizer::Rot2Planar::updDowncast(Mobilizer& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Rot2Planar&>(s);
+}
+const Mobilizer::Rot2Planar::Rot2PlanarRep& Mobilizer::Rot2Planar::getRep() const {
+    return dynamic_cast<const Rot2PlanarRep&>(*rep);
+}
+Mobilizer::Rot2Planar::Rot2PlanarRep& Mobilizer::Rot2Planar::updRep() {
+    return dynamic_cast<Rot2PlanarRep&>(*rep);
+}
+
 
     /////////////////////
     // MOBILIZER::USER //

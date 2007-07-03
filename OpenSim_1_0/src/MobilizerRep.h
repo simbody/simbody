@@ -34,6 +34,7 @@
 
 #include "SimTKsimbody.h"
 #include "simbody/internal/Mobilizer.h"
+#include "Function.h"
 
 class RigidBodyNode;
 
@@ -183,6 +184,28 @@ public:
     SimTK_DOWNCAST(OrientationRep, MobilizerRep);
 };
 
+class Mobilizer::Ellipsoid::EllipsoidRep : public Mobilizer::MobilizerRep {
+public:
+	EllipsoidRep(Real a, Real b, Real c) : major_a(a), minor_b(b), minor_c(c) { }
+
+    EllipsoidRep* clone() const { return new EllipsoidRep(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        const MassProperties&    m,
+        const Transform&         X_PMb,
+        const Transform&         X_BM,
+        int&                     nxtU,
+        int&                     nxtUSq,
+        int&                     nxtQ) const;
+
+    SimTK_DOWNCAST(EllipsoidRep, MobilizerRep);
+private:
+    Real major_a;
+	Real minor_b;
+	Real minor_c;
+};
+
+
 class Mobilizer::Translation::TranslationRep : public Mobilizer::MobilizerRep {
 public:
     TranslationRep* clone() const { return new TranslationRep(*this); }
@@ -276,6 +299,46 @@ public:
     SimTK_DOWNCAST(ScrewRep, MobilizerRep);
 private:
     Real pitch;
+};
+
+class Mobilizer::EllipticalPin::EllipticalPinRep : public Mobilizer::MobilizerRep {
+public:
+	EllipticalPinRep(Real a, Real b) : major(a), minor(b) { }
+
+    EllipticalPinRep* clone() const { return new EllipticalPinRep(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        const MassProperties&    m,
+        const Transform&         X_PMb,
+        const Transform&         X_BM,
+        int&                     nxtU,
+        int&                     nxtUSq,
+        int&                     nxtQ) const;
+
+    SimTK_DOWNCAST(EllipticalPinRep, MobilizerRep);
+private:
+    Real major;
+	Real minor;
+};
+
+class Mobilizer::Rot2Planar::Rot2PlanarRep : public Mobilizer::MobilizerRep {
+public:
+	Rot2PlanarRep(OpenSim::Function *a, OpenSim::Function *b) : tx(a), ty(b) { }
+
+    Rot2PlanarRep* clone() const { return new Rot2PlanarRep(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        const MassProperties&    m,
+        const Transform&         X_PMb,
+        const Transform&         X_BM,
+        int&                     nxtU,
+        int&                     nxtUSq,
+        int&                     nxtQ) const;
+
+    SimTK_DOWNCAST(Rot2PlanarRep, MobilizerRep);
+private:
+    OpenSim::Function *tx;
+	OpenSim::Function *ty;
 };
 
 class Mobilizer::User::UserRep : public Mobilizer::MobilizerRep {

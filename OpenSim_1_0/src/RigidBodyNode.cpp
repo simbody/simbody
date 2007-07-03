@@ -41,6 +41,8 @@ using std::cout;
 using std::endl;
 using std::setprecision;
 
+using namespace OpenSim;
+
 //////////////////////////////////////////////
 // Implementation of RigidBodyNode methods. //
 //////////////////////////////////////////////
@@ -1288,6 +1290,250 @@ public:
 
 };
 
+    // EllipticalPin //
+
+/**
+ * This is an EllipticalPin joint, meaning one degree of rotational freedom
+ * about a particular axis, and coupled eliptical path motion described by
+ * major and minor radii in the orthogonal plane. Pin about z axis of the parent's
+ * Jb frame, which is aligned forever with the z axis of the body's J frame.
+ * The one generalized coordinate is the rotation of the body about z.
+ */
+class RBNodeEllipticalPin : public RigidBodyNodeSpec<1> {
+	Real major;
+	Real minor;
+public:
+    virtual const char* type() { return "ellipticalpin"; }
+
+    RBNodeEllipticalPin(const MassProperties& mProps_B,
+                   const Transform&      X_PMb,
+                   const Transform&      X_BM,
+                   Real                  a,  // the major axis radius
+				   Real					 b,  // the minor axis radius
+                   int&                  nextUSlot,
+                   int&                  nextUSqSlot,
+                   int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+	  major(a), minor(b)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our eliptical pin joint can handle is about z.
+        // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
+        // in that case 1 and 3 are aligned and the conversion routine allocates all the
+        // rotation to whichever comes first.
+        // TODO: isn't there a better way to come up with "the rotation around z that
+        // best approximates a rotation R"?
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        to1Q(q) = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+        to1Q(q) = atan2(-(T_MbM[1]/minor),(T_MbM[0]/major)) ; // relation between translation a
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        to1U(u) = atan2(-(v_MbM[1]/minor),(v_MbM[0]/major)) ;
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const Real& angle = fromQ(q)[0];
+        toQ(sine)[0]    = std::sin(angle);
+        toQ(cosine)[0]  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_MbM.
+	    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_MbM) const
+    {
+        const Real& angle  = fromQ(q)[0];
+
+        X_MbM.updR().setToRotationAboutZ(angle);
+        X_MbM.updT() = Vec3(major*sin(angle),-minor*cos(angle),0);
+    }
+
+    // Calculate H.
+    // The generalized speed is the angular velocity of M in the Mb frame,
+    // about Mb's z axis, expressed in Mb. (This axis is also constant in M.)
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_MbM) const
+    {
+        const Real& cq  = fromQ(pc.cq)[0];
+		const Real& sq  = fromQ(pc.sq)[0];
+
+		H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(cq*major, sq*minor, 0));
+    }
+
+    // Since the Jacobian above is NOT constant in Mb, its time derivative in Mb is NOT zero.
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_MbM_Dot) const
+    {
+        const Real& cq  = fromQ(pc.cq)[0];
+		const Real& sq  = fromQ(pc.sq)[0];
+		const Vec3&  w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+
+        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(-sq*major*w_MbM[2], cq*minor*w_MbM[2], 0) );
+    }
+};
+
+
+
+    // Rot2Planar //
+/**
+ * This is a Rot2Planar joint describing one degree of rotational freedom
+ * about the Mb-z axis, and coupled M-xy translation described by
+ * tx and ty user functions in the orthogonal plane. 
+ * E.g. Femoral condyles can define the Mb's z axis on the femur,
+ * which is aligned forever with the z axis of the tibia frame. In this case
+ * the one generalized coordinate is the knee-extension angle of the tibia about z.
+ */
+class RBNodeRot2Planar : public RigidBodyNodeSpec<1> {
+	Function *tx;
+	Function *ty;
+public:
+    virtual const char* type() { return "Rot2Planar"; }
+
+    RBNodeRot2Planar(const MassProperties& mProps_B,
+                   const Transform&      X_PMb,
+                   const Transform&      X_BM,
+                   Function              *a,  // translation along femoral x
+				   Function				 *b,  // translation along femoral y
+                   int&                  nextUSlot,
+                   int&                  nextUSqSlot,
+                   int&                  nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+	  tx(a), ty(b)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+        // The only rotation our femoral-tibial joint can handle is about z.
+        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        to1Q(q) = angles123[2];
+    }
+
+    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+		double x, y;
+		const Real& angle = fromQ(q)[0];
+
+		x = tx->evaluate(0, angle, 0, 0);
+		y = ty->evaluate(0, angle, 0, 0);
+        to1Q(q) = atan2(-(T_MbM[1]/x),(T_MbM[0]/y)) ; // relation between translation and angle
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+        // We can only represent an angular velocity along z with this joint.
+        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+		double x, y;
+		const Real& angle = fromU(u)[0];
+
+		x = tx->evaluate(0, angle, 0, 0);
+		y = ty->evaluate(0, angle, 0, 0);
+        to1U(u) = atan2(-(v_MbM[1]/x),(v_MbM[0]/y)) ;
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        const Real& angle = fromQ(q)[0];
+        toQ(sine)[0]    = std::sin(angle);
+        toQ(cosine)[0]  = std::cos(angle);
+        // no quaternions
+    }
+
+    // Calculate X_MbM.
+	    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_MbM) const
+    {
+        const Real& angle  = fromQ(q)[0];
+		double x, y;
+
+		x = tx->evaluate(0, angle, 0, 0);
+		y = ty->evaluate(0, angle, 0, 0);
+
+        X_MbM.updR().setToRotationAboutZ(angle);
+        X_MbM.updT() = Vec3(x,y,0);
+    }
+
+    // Calculate H.
+    // The generalized speed is the angular velocity of M in the Mb frame,
+    // about Mb's z axis, expressed in Mb. (This axis is also constant in M.)
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_MbM) const
+    {
+        const Real& sq  = fromQ(pc.sq)[0];
+		const Real& angle = asin(sq);
+		double dx, dy;
+
+		dx = tx->evaluate(1, angle, 0, 0);
+		dy = ty->evaluate(1, angle, 0, 0);
+
+		H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(dx, dy, 0));
+    }
+
+    // Since the Jacobian above is NOT constant in Mb, its time derivative in Mb is NOT zero.
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_MbM_Dot) const
+    {
+        const Real& sq  = fromQ(pc.sq)[0];
+		const Real& angle = asin(sq);
+		const Vec3&  w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+		double ddx, ddy;
+
+		ddx = tx->evaluate(2, angle, 0, 0);
+		ddy = ty->evaluate(2, angle, 0, 0);
+
+        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(ddx*w_MbM[2], ddy*w_MbM[2], 0) );
+    }
+};
+
+
     // CYLINDER //
 
 // This is a "cylinder" joint, meaning one degree of rotational freedom
@@ -1885,7 +2131,8 @@ public:
             X_MbM.updR().setToBodyFixed123(fromQ(q));
         else {
             // TODO: should use qnorm pool
-            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+			Quaternion quat = Quaternion(fromQuat(q));
+            X_MbM.updR().setToQuaternion(quat); // normalize
         }
     }
 
@@ -2012,6 +2259,265 @@ public:
 
         Vec3::updAs(&v[uIndex]) = eTorque;
         */
+    }
+};
+
+
+
+
+    // ELLIPSOID (BALL) //
+
+// ELLIPSOID joint. This provides three degrees of rotational freedom,  i.e.,
+// unrestricted orientation of the body's M frame in the parent's Mb frame.
+// The generalized coordinates are:
+//   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
+//   1- corresponds to lattitude, 2- longitude and 3- spin (along long Mz body)
+// and generalized speeds are:
+//   * angular velocity w_MbM as a vector expressed in the Mb frame.
+// Thus rotational qdots have to be derived from the generalized speeds to
+// be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
+class RBNodeEllipsoid : public RigidBodyNodeSpec<3> {
+	Real major_a;
+	Real minor_b;
+	Real minor_c;
+public:
+    virtual const char* type() { return "ellipsoid"; }
+
+    RBNodeEllipsoid(const MassProperties& mProps_B,
+                  const Transform&      X_PMb,
+                  const Transform&      X_BM,
+                  Real                  a,  // the semi-major axis radius
+				  Real					b,  // the semi-minor axis radius
+                  Real					c,  // the semi-minor axis radius
+				  int&                  nextUSlot,
+                  int&                  nextUSqSlot,
+                  int&                  nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot), 
+	  major_a(a), minor_b(b), minor_c(c)
+    {
+        updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
+    }
+
+    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
+                              Vector& q) const 
+    {
+        if (getUseEulerAngles(mv))
+            toQ(q)    = R_MbM.convertToBodyFixed123();
+        else
+            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+    }
+
+    void setMobilizerTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+        // M and Mb frame origins are NOT coincident for this mobilizer 
+		// BUT, there are no translation mobilities, all translations are coupled to rotations (the gencoords)
+		// So, q's can be back computed from a given translation
+		Vec3 e = T_MbM.normalize();
+
+		if (getUseEulerAngles(mv))
+            toQ(q)    = Vec3(atan2(e[1],e[2]), atan2(-e[0],e[2]), 0);
+        else
+			toQuat(q) = Vec4(0, e[0], e[1], e[2]);
+    }
+
+    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM,
+                                     Vector& u) const
+    {
+            toU(u) = w_MbM[0]; // relative angular velocity always used as generalized speeds
+    }
+
+    void setMobilizerLinearVelocity
+       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+    {
+        // M and Mb frame origins are not coincident for this mobilizer
+		// linear velocity can be created by rotating. 
+    }
+
+    // Precalculate sines and cosines.
+    void calcJointSinCosQNorm(
+        const SBModelVars&  mv,
+        const SBModelCache& mc,
+        const Vector&       q, 
+        Vector&             sine, 
+        Vector&             cosine, 
+        Vector&             qErr,
+        Vector&             qnorm) const
+    {
+        if (getUseEulerAngles(mv)) {
+            const Vec3& a = fromQ(q); // angular coordinates
+            toQ(sine)   = Vec3(std::sin(a[0]), std::sin(a[1]), std::sin(a[2]));
+            toQ(cosine) = Vec3(std::cos(a[0]), std::cos(a[1]), std::cos(a[2]));
+            // no quaternions
+        }
+		else {
+            // no angles
+            const Vec4& quat = fromQuat(q); // unnormalized quaternion from state
+            const Real  quatLen = quat.norm();
+			Vec3 e = Rotation(Quaternion(quat)).z();
+
+            assert(mc.quaternionIndex[nodeNum] >= 0);
+
+            qErr[mc.firstQuaternionQErrSlot+mc.quaternionIndex[nodeNum]] = quatLen - Real(1);
+            toQuat(qnorm) = quat / quatLen;
+			
+			Real hyz = Vec2(e[1], e[2]).norm();
+			Real hxz = Vec2(e[0], e[2]).norm();
+
+			toQ(sine)   = Vec3(e[1]/hyz, e[0]/hxz, 0.0);
+            toQ(cosine) = Vec3(e[2]/hyz, e[2]/hxz, 1.0);
+        }
+    }
+
+    // Calculate X_MbM.
+    void calcAcrossJointTransform(
+        const SBModelVars& mv,
+        const Vector&      q,
+        Transform&         X_MbM) const
+    {
+		Rotation::ColType z;     
+		
+		//Define the rotation transformation first
+		if (getUseEulerAngles(mv)){
+			Vec3 a = fromQ(q);		
+			X_MbM.updR().setToBodyFixed123(a);
+		}
+        else {
+            // TODO: should use qnorm pool
+			Quaternion quat = Quaternion(fromQuat(q));
+            X_MbM.updR().setToQuaternion(quat); // normalized
+        }
+
+		z = X_MbM.R().z();
+		X_MbM.updT() = Vec3(-major_a*z[0], -minor_b*z[1], -minor_c*z[2]);
+	}
+
+    // Generalized speeds are the angular velocity expressed in Mb, so they
+    // cause rotations around Mb x,y,z axes respectively.
+    void calcAcrossJointVelocityJacobian(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        HType&                 H_MbM) const
+    {
+		const Transform& X_MbM = getX_MbM(pc);
+
+		Vec3 n = X_MbM.R().z();
+
+		const Mat33 A(major_a, 0, 0, 0, minor_b, 0, 0, 0, minor_c);
+		const Mat33 ntilde(0, -n[2], n[1], n[2], 0, -n[0], -n[1], n[0], 0);
+
+		Mat33 J;
+
+		J = ~(A*ntilde); // Transpose because we really have V = ~H*u not H
+
+		H_MbM[0] = SpatialRow( Row3(1,0,0), J.row(0) );
+		H_MbM[1] = SpatialRow( Row3(0,1,0), J.row(1) );
+		H_MbM[2] = SpatialRow( Row3(0,0,1), J.row(2) );
+    }
+
+    void calcAcrossJointVelocityJacobianDot(
+        const SBModelVars&     mv,
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc, 
+        HType&                 H_MbM_Dot) const
+    {
+		const Transform& X_MbM = getX_MbM(pc);
+		const Vec3&  w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+
+		const Mat33 A(major_a, 0, 0, 0, minor_b, 0, 0, 0, minor_c);
+		Vec3 n = X_MbM.R().z();
+		Vec3 Wxn = w_MbM % n;
+		const Mat33 wxntilde(0, -Wxn[2], Wxn[1], Wxn[2], 0, -Wxn[0], -Wxn[1], Wxn[0], 0);
+
+		Mat33 Jdot;
+
+		Jdot = ~(A*wxntilde);  // Transpose because we really have Vdot = ~Hdot*u + ~H*udot 
+
+		H_MbM_Dot[0] = SpatialRow( Row3(0), Jdot.row(0) );
+		H_MbM_Dot[1] = SpatialRow( Row3(0), Jdot.row(1) );
+		H_MbM_Dot[2] = SpatialRow( Row3(0), Jdot.row(2) );
+    }
+
+    void calcQDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        Vector&                qdot) const 
+    {
+        const Vec3& w_MbM = fromU(u); // angular velocity of M in Mb 
+        if (getUseEulerAngles(mv)) {
+            toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
+            const Rotation& R_MbM = getX_MbM(pc).R();
+            toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
+                                        ~R_MbM*w_MbM); // need w in *body*, not parent
+        } else
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_MbM);
+    }
+ 
+    void calcQDotDot(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u, 
+        const Vector&          udot, 
+        Vector&                qdotdot) const 
+    {
+        const Vec3& w_MbM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const Vec3& w_MbM_dot = fromU(udot);
+
+        if (getUseEulerAngles(mv)) {
+            toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
+            const Rotation& R_MbM = getX_MbM(pc).R();
+            toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
+                                  (fromQ(q), ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
+        } else
+            toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
+                                  (fromQuat(q),w_MbM,w_MbM_dot);
+    }
+
+    void copyQ(
+        const SBModelVars& mv, 
+        const Vector&      qIn, 
+        Vector&            q) const 
+    {
+        if (getUseEulerAngles(mv))
+            toQ(q) = fromQ(qIn);
+        else
+            toQuat(q) = fromQuat(qIn);
+    }
+
+    int getMaxNQ()              const {return 4;}
+    int getNQ(const SBModelVars& mv) const {
+        return getUseEulerAngles(mv) ? 3 : 4;
+    } 
+    bool isUsingQuaternion(const SBModelVars& mv) const {
+        return !getUseEulerAngles(mv);
+    }
+
+    void setDefaultPositionValues(
+        const SBModelVars& mv,
+        Vector&            q) const 
+    {
+        if (getUseEulerAngles(mv)) {
+            //TODO: kludge
+            toQuat(q) = Vec4(0); // clear unused element
+            toQ(q) = 0.;
+        }
+        else toQuat(q) = Vec4(1.,0.,0.,0.);
+    }
+
+    bool enforceQuaternionConstraints(
+        const SBModelVars& mv,
+        Vector&            q) const 
+    {
+        if (getUseEulerAngles(mv)) 
+            return false;   // no change
+        Vec4& quat = toQuat(q);
+        quat = quat / quat.norm();
+        return true;
+    }
+
+    void getInternalForce(const SBAccelerationCache&, Vector&) const {
+        assert(false); // TODO: decompose cross-joint torque into 123 gimbal torques
     }
 };
 
@@ -3276,6 +3782,17 @@ RigidBodyNode* Mobilizer::Orientation::OrientationRep::createRigidBodyNode(
     return new RBNodeRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
+RigidBodyNode* Mobilizer::Ellipsoid::EllipsoidRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeEllipsoid(m,X_PMb,X_BM,major_a,minor_b,minor_c, nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
 RigidBodyNode* Mobilizer::Translation::TranslationRep::createRigidBodyNode(
     const MassProperties&    m,
     const Transform&         X_PMb,
@@ -3331,6 +3848,30 @@ RigidBodyNode* Mobilizer::Screw::ScrewRep::createRigidBodyNode(
 {
     return new RBNodeScrew(m,X_PMb,X_BM,pitch,nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
+
+RigidBodyNode* Mobilizer::EllipticalPin::EllipticalPinRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeEllipticalPin(m,X_PMb,X_BM,major,minor,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+RigidBodyNode* Mobilizer::Rot2Planar::Rot2PlanarRep::createRigidBodyNode(
+    const MassProperties&    m,
+    const Transform&         X_PMb,
+    const Transform&         X_BM,
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    return new RBNodeRot2Planar(m,X_PMb,X_BM,tx,ty,nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
+
 
 RigidBodyNode* Mobilizer::Weld::WeldRep::createRigidBodyNode(
     const MassProperties&    m,
