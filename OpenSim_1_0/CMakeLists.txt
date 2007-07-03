@@ -58,18 +58,15 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-    IF(NOT SimTK_INSTALL_PREFIX)
-        SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_INSTALL_PREFIX)
-
-    IF(NOT SimTK_SDK)
-        SET(SimTK_SDK "C:/Program Files/SimTK")
-    ENDIF(NOT SimTK_SDK)
+    SET(SimTK_INSTALL_PREFIX "C:/Program Files/SimTK" CACHE PATH "Default SimTK Install Path")
+    SET(SimTK_SDK "C:/Program Files/SimTK" CACHE PATH "Default SimTK Development Library and Include Path")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+SET(OSIMCOMMON_INCLUDE ${SimTK_SDK}/OpenSim/include/OpenSim/Common CACHE PATH "OpenSim Common Include Files")
+SET(XERCES_SRC_INCLUDE ${SimTK_SDK}/OpenSim/include/Vendors/xerces-c-src_2_7_0/src CACHE PATH "Xerces src Include Files")
 
-INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
+INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include ${OSIMCOMMON_INCLUDE} ${XERCES_SRC_INCLUDE})
 
 
 # The build system will set ARCH64 for 64 bit builds, which require
@@ -314,7 +311,6 @@ ENDIF (EXECUTABLE_OUTPUT_PATH)
 
 ADD_TEST(IntegratorTest               ${TEST_PATH}/IntegratorTest)
 ADD_TEST(IntegratorTestStatic         ${TEST_PATH}/IntegratorTestStatic)
-
 
 #
 # Installation
