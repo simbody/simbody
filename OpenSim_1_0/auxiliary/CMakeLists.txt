@@ -44,4 +44,4 @@ ADD_TEST(SBPendulum1                  ${TEST_PATH}/SBPendulum1)
 ADD_TEST(SBPendulum1Static            ${TEST_PATH}/SBPendulum1Static)
 ADD_TEST(CoarseRNA                    ${TEST_PATH}/CoarseRNA)
 ADD_TEST(CoarseRNAStatic              ${TEST_PATH}/CoarseRNAStatic)
-
+ADD_TEST(TestForOpenSim       	      ${TEST_PATH}/TestForOpenSim)
