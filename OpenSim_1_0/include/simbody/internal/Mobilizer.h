@@ -31,6 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "Function.h"
 
 #include <cassert>
 
@@ -58,12 +59,15 @@ public:
     class Planar;
     class Gimbal;
     class Orientation; typedef Orientation Ball, Spherical;
+	class Ellipsoid;
     class Translation; typedef Translation Cartesian;
     class Free;
     class LineOrientation;
     class FreeLine;
     class Weld;
     class Screw;
+	class EllipticalPin;
+	class Rot2Planar;
     class User;
 
     // Is this handle the owner of this rep? This is true if the
@@ -125,6 +129,38 @@ private:
     class ScrewRep& updRep();
     const ScrewRep& getRep() const;
 };
+
+/// One mobility -- coordinated rotation and translation about the
+/// common z axis of the inboard and outboard mobilizer frames. A
+/// semi "major" and semi "minor" radius are specified relating the elliptical path in 
+/// the plane normal to the z axis (i.e. x,y). Assumes M and Mb are coincident when 
+/// semimajor and minor radii of the ellipse are zero. The generalized coordinate
+/// q is the rotation angle in radians, the translation of M is always
+/// x = major*sin(q) and b = -minor*cos(q)
+class SimTK_SIMBODY_EXPORT Mobilizer::EllipticalPin : public Mobilizer {
+public:
+    EllipticalPin(Real major, Real minor);
+    class EllipticalPinRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(EllipticalPin, Mobilizer);
+private:
+    class EllipticalPinRep& updRep();
+    const EllipticalPinRep& getRep() const;
+};
+
+/// 1 mobility -- 1-Rotation to coupled planar translation as in the knee. 
+/// Translations of the rotational axis are user defined functions of the knee extension angle
+class SimTK_SIMBODY_EXPORT Mobilizer::Rot2Planar : public Mobilizer {
+public:
+	Rot2Planar(OpenSim::Function *tx, OpenSim::Function *ty);
+    class Rot2PlanarRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(Rot2Planar, Mobilizer);
+private:
+    class Rot2PlanarRep& updRep();
+    const Rot2PlanarRep& getRep() const;
+};
+
 
 /// Two mobilities -- rotation about the x axis, followed by a rotation
 /// about the new y axis. This mobilizer is badly behaved when the
@@ -213,6 +249,23 @@ public:
 private:
     class OrientationRep& updRep();
     const OrientationRep& getRep() const;
+};
+
+/// Ellipsoid: Three mobilities -- unrestricted orientation modeled with a
+/// quaternion which is never singular. A modeling option allows the
+/// joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
+/// instead. Unlike a pure orientation (ball) mobilizer, the translation of
+/// of the mobilizer frame on the body translates on the surface of an
+//  ellipsoid described by semi-major(a) semi-minor (b) and (c) radii
+class SimTK_SIMBODY_EXPORT Mobilizer::Ellipsoid : public Mobilizer {
+public:
+    Ellipsoid(Real major_a, Real minor_b, Real minor_c);
+    class EllipsoidRep; // local subclass
+
+    SimTK_PIMPL_DOWNCAST(Ellipsoid, Mobilizer);
+private:
+    class EllipsoidRep& updRep();
+    const EllipsoidRep& getRep() const;
 };
 
 /// Three translational mobilities. The generalized coordinates are
