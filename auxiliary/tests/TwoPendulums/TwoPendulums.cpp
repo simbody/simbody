@@ -28,7 +28,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "simbody/internal/MobilizedBody.h"
 
 #include <cmath>
 #include <cstdio>

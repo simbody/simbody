@@ -1,4 +1,4 @@
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -15,18 +15,20 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**@file
  * This file contains the code used to build the various constraint types.
  */
-#include "simbody/internal/MobilizedBody.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/Constraint.h"
 
-#include "MobilizedBodyRep.h"
+#include "ConstraintRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 #include "ConstraintNode.h"
 

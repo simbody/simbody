@@ -1,7 +1,7 @@
 #ifndef SimTK_SimTKSIMBODY_H_
 #define SimTK_SimTKSIMBODY_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** @file
@@ -35,7 +35,9 @@
 #include "simbody/internal/Subsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
+#include "simbody/internal/Body.h"
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/Constraint.h"
 #include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
