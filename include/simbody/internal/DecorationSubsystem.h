@@ -54,16 +54,15 @@ public:
     DecorationSubsystem();
     explicit DecorationSubsystem(MultibodySystem&);
 
-    void addBodyFixedDecoration(BodyId bodyNum, 
+    void addBodyFixedDecoration(MobilizedBodyId bodyNum, 
                                 const Transform& X_GD, 
                                 const DecorativeGeometry&);
 
-    void addRubberBandLine(BodyId b1, const Vec3& station1, 
-                           BodyId b2, const Vec3& station2,
+    void addRubberBandLine(MobilizedBodyId b1, const Vec3& station1, 
+                           MobilizedBodyId b2, const Vec3& station2,
                            const DecorativeLine&);
 
     SimTK_PIMPL_DOWNCAST(DecorationSubsystem, Subsystem);
-private:
     class DecorationSubsystemRep& updRep();
     const DecorationSubsystemRep& getRep() const;
 };

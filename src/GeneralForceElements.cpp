@@ -61,45 +61,45 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 
     // state entries
     struct TwoPointLinearSpringParameters {
-        TwoPointLinearSpringParameters() : body1(-1), body2(-1)
-        { 
+        TwoPointLinearSpringParameters() { 
             station1.setToNaN(); station2.setToNaN();
             stiffness = naturalLength = CNT<Real>::getNaN();
         }
 
         TwoPointLinearSpringParameters(
-            int b1, const Vec3& s1, int b2, const Vec3& s2,
+            MobilizedBodyId b1, const Vec3& s1, 
+            MobilizedBodyId b2, const Vec3& s2,
             const Real& k, const Real& x0) 
           : body1(b1), body2(b2), station1(s1), station2(s2), 
             stiffness(k), naturalLength(x0) 
         { 
-            assert(b1 >= 0 && b2 >= 0 && b1 != b2);
+            assert(b1.isValid() && b2.isValid() && b1 != b2);
             assert(stiffness >= 0 && naturalLength >= 0);
         }
 
-        BodyId body1, body2;
+        MobilizedBodyId body1, body2;
         Vec3   station1, station2;    // in body frames
         Real   stiffness, naturalLength;
     };
 
     struct TwoPointConstantForceParameters {
-        TwoPointConstantForceParameters() : body1(-1), body2(-1)
-        { 
+        TwoPointConstantForceParameters() { 
             station1.setToNaN(); station2.setToNaN();
             force = zeroEnergyDistance = CNT<Real>::getNaN();
         }
 
         TwoPointConstantForceParameters(
-            int b1, const Vec3& s1, int b2, const Vec3& s2,
+            MobilizedBodyId b1, const Vec3& s1, 
+            MobilizedBodyId b2, const Vec3& s2,
             const Real& f, const Real& x0) 
           : body1(b1), body2(b2), station1(s1), station2(s2), 
             force(f), zeroEnergyDistance(x0) 
         { 
-            assert(b1 >= 0 && b2 >= 0 && b1 != b2);
+            assert(b1.isValid() && b2.isValid() && b1 != b2);
             assert(zeroEnergyDistance >= 0);
         }
 
-        BodyId body1, body2;
+        MobilizedBodyId body1, body2;
         Vec3   station1, station2;    // in body frames
         Real   force, zeroEnergyDistance;
     };
@@ -112,16 +112,17 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         }
 
         TwoPointLinearDamperParameters(
-            int b1, const Vec3& s1, int b2, const Vec3& s2,
+            MobilizedBodyId b1, const Vec3& s1, 
+            MobilizedBodyId b2, const Vec3& s2,
             const Real& c) 
           : body1(b1), body2(b2), station1(s1), station2(s2), 
             damping(c)
         { 
-            assert(b1 >= 0 && b2 >= 0 && b1 != b2);
+            assert(b1.isValid() && b2.isValid() && b1 != b2);
             assert(damping >= 0);
         }
 
-        BodyId body1, body2;
+        MobilizedBodyId body1, body2;
         Vec3   station1, station2;    // in body frames
         Real   damping;
     };
@@ -133,14 +134,14 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         }
 
         ConstantForceParameters(
-            int b, const Vec3& s_B, const Vec3& f_G)
+            MobilizedBodyId b, const Vec3& s_B, const Vec3& f_G)
           : body(b), station_B(s_B), force_G(f_G),
             fmag(f_G.norm())
         { 
-            assert(b >= 0);
+            assert(b.isValid());
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         Vec3   station_B;   // in body frame
         Vec3   force_G;   // in ground
 
@@ -155,13 +156,13 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         }
 
         ConstantTorqueParameters(
-            int b, const Vec3& t_G)
+            MobilizedBodyId b, const Vec3& t_G)
           : body(b), torque_G(t_G), tmag(t_G.norm())
         { 
-            assert(b >= 0);
+            assert(b.isValid());
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         Vec3   torque_G;   // in ground
 
         // Pre-calculated
@@ -172,13 +173,13 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         MobilityLinearSpringParameters() : body(-1), axis(-1) { 
             stiffness = naturalLength = CNT<Real>::getNaN();
         }
-        MobilityLinearSpringParameters(int b, int a, const Real& k, const Real& q0)
+        MobilityLinearSpringParameters(MobilizedBodyId b, int a, const Real& k, const Real& q0)
           : body(b), axis(a), stiffness(k), naturalLength(q0)
         { 
-            assert(b >= 0 && a >= 0 && stiffness >= 0. && naturalLength >= 0.);
+            assert(b.isValid() && a >= 0 && stiffness >= 0. && naturalLength >= 0.);
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         int    axis;
         Real   stiffness, naturalLength;
     };
@@ -187,29 +188,29 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         MobilityLinearDamperParameters() : body(-1), axis(-1) { 
             damping = CNT<Real>::getNaN();
         }
-        MobilityLinearDamperParameters(int b, int a, const Real& c)
+        MobilityLinearDamperParameters(MobilizedBodyId b, int a, const Real& c)
           : body(b), axis(a), damping(c)
         { 
-            assert(b >= 0 && a >= 0 && damping >= 0.);
+            assert(b.isValid() && a >= 0 && damping >= 0.);
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         int    axis;
         Real   damping;
     };
 
     // means force or torque, depending on the meaning of the generalized speed
     struct MobilityConstantForceParameters {
-        MobilityConstantForceParameters() : body(-1), axis(-1) { 
+        MobilityConstantForceParameters() : axis(-1) { 
             force = CNT<Real>::getNaN();
         }
-        MobilityConstantForceParameters(int b, int a, const Real& f)
+        MobilityConstantForceParameters(MobilizedBodyId b, int a, const Real& f)
           : body(b), axis(a), force(f)
         { 
-            assert(b >= 0 && a >= 0);
+            assert(b.isValid() && a >= 0);
         }
 
-        BodyId body; 
+        MobilizedBodyId body; 
         int    axis;
         Real   force;
     };
@@ -317,8 +318,8 @@ public:
     {
     }
 
-    int addTwoPointLinearSpring(int body1, const Vec3& s1,
-                                int body2, const Vec3& s2,
+    int addTwoPointLinearSpring(MobilizedBodyId body1, const Vec3& s1,
+                                MobilizedBodyId body2, const Vec3& s2,
                                 const Real& stiffness,
                                 const Real& naturalLength)
     {
@@ -330,8 +331,8 @@ public:
         return (int)defaultParameters.twoPointLinearSprings.size() - 1;
     }
 
-    int addTwoPointLinearDamper(int body1, const Vec3& s1,
-                                int body2, const Vec3& s2,
+    int addTwoPointLinearDamper(MobilizedBodyId body1, const Vec3& s1,
+                                MobilizedBodyId body2, const Vec3& s2,
                                 const Real& damping)
     {
         assert(damping >= 0);
@@ -341,8 +342,8 @@ public:
         return (int)defaultParameters.twoPointLinearDampers.size() - 1;
     }
 
-    int addTwoPointConstantForce(int body1, const Vec3& s1,
-                                 int body2, const Vec3& s2,
+    int addTwoPointConstantForce(MobilizedBodyId body1, const Vec3& s1,
+                                 MobilizedBodyId body2, const Vec3& s2,
                                  const Real& force, const Real& zeroEnergyDistance)
     {
         assert(zeroEnergyDistance >= 0);
@@ -353,21 +354,21 @@ public:
     }
 
 
-    int addConstantForce(int body, const Vec3& station_B, const Vec3& force_G)
+    int addConstantForce(MobilizedBodyId body, const Vec3& station_B, const Vec3& force_G)
     {
         defaultParameters.constantForces.push_back(
             ConstantForceParameters(body,station_B,force_G));
         return (int)defaultParameters.constantForces.size() - 1;
     }
 
-    int addConstantTorque(int body, const Vec3& torque_G)
+    int addConstantTorque(MobilizedBodyId body, const Vec3& torque_G)
     {
         defaultParameters.constantTorques.push_back(
             ConstantTorqueParameters(body,torque_G));
         return (int)defaultParameters.constantTorques.size() - 1;
     }
 
-    int addMobilityLinearSpring(int body, int axis,
+    int addMobilityLinearSpring(MobilizedBodyId body, int axis,
                                 const Real& stiffness,
                                 const Real& naturalLength)
     {
@@ -378,7 +379,7 @@ public:
         return (int)defaultParameters.mobilityLinearSprings.size() - 1;
     }
 
-    int addMobilityLinearDamper(int body, int axis,
+    int addMobilityLinearDamper(MobilizedBodyId body, int axis,
                                 const Real& damping)
     {
         assert(damping >= 0);
@@ -388,7 +389,7 @@ public:
     }
 
 
-    int addMobilityConstantForce(int body, int axis,
+    int addMobilityConstantForce(MobilizedBodyId body, int axis,
                                  const Real& force)
     {
         defaultParameters.mobilityConstantForces.push_back(
@@ -414,33 +415,36 @@ public:
         return (int)defaultParameters.userForces.size() - 1;
     }
 
-    void realizeTopology(State& s) const {
-        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
+    // These override default implementations of virtual methods in the Subsystem
+    // class.
+
+    void realizeSubsystemTopologyImpl(State& s) const {
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
         built = true;
     }
 
-    void realizeModel(State& s) const {
+    void realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
     }
 
-    void realizeInstance(const State& s) const {
+    void realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeTime(const State& s) const {
+    void realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizePosition(const State& s) const {
+    void realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeVelocity(const State& s) const {
+    void realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeDynamics(const State& s) const {
+    void realizeSubsystemDynamicsImpl(const State& s) const {
         const Parameters& p = getParameters(s);
         if (!p.enabled) return;
 
@@ -587,7 +591,11 @@ public:
         }
     }
 
-    void realizeAcceleration(const State& s) const {
+    void realizeSubsystemAccelerationImpl(const State& s) const {
+        // Nothing to compute here.
+    }
+
+    void realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -647,8 +655,8 @@ GeneralForceElements::GeneralForceElements(MultibodySystem& mbs)
 }
 
 int GeneralForceElements::addTwoPointLinearSpring
-   (int body1, const Vec3& s1,
-    int body2, const Vec3& s2,
+   (MobilizedBodyId body1, const Vec3& s1,
+    MobilizedBodyId body2, const Vec3& s2,
     const Real& stiffness,
     const Real& naturalLength) 
 {
@@ -656,8 +664,8 @@ int GeneralForceElements::addTwoPointLinearSpring
 }
 
 int GeneralForceElements::addTwoPointConstantForce
-   (int body1, const Vec3& s1,
-    int body2, const Vec3& s2,
+   (MobilizedBodyId body1, const Vec3& s1,
+    MobilizedBodyId body2, const Vec3& s2,
     const Real& force,
     const Real& zeroEnergyDistance) 
 {
@@ -665,38 +673,38 @@ int GeneralForceElements::addTwoPointConstantForce
 }
 
 int GeneralForceElements::addTwoPointLinearDamper
-   (int body1, const Vec3& s1,
-    int body2, const Vec3& s2,
+   (MobilizedBodyId body1, const Vec3& s1,
+    MobilizedBodyId body2, const Vec3& s2,
     const Real& damping) 
 {
     return updRep().addTwoPointLinearDamper(body1,s1,body2,s2,damping);
 }
 
 int GeneralForceElements::addConstantForce
-   (int body, const Vec3& s_B, const Vec3& f_G) 
+   (MobilizedBodyId body, const Vec3& s_B, const Vec3& f_G) 
 {
     return updRep().addConstantForce(body, s_B, f_G);
 }
 
 int GeneralForceElements::addConstantTorque
-   (int body, const Vec3& t_G) 
+   (MobilizedBodyId body, const Vec3& t_G) 
 {
     return updRep().addConstantTorque(body, t_G);
 }
 
 int GeneralForceElements::addMobilityConstantForce
-   (int body, int axis, const Real& f) {
+   (MobilizedBodyId body, int axis, const Real& f) {
     return updRep().addMobilityConstantForce(body, axis, f);
 }
 
 int GeneralForceElements::addMobilityLinearSpring
-    (int body, int axis, const Real& stiffness, const Real& neutralValue)
+    (MobilizedBodyId body, int axis, const Real& stiffness, const Real& neutralValue)
 {
     return updRep().addMobilityLinearSpring(body, axis, stiffness, neutralValue);
 }
 
 int GeneralForceElements::addMobilityLinearDamper
-    (int body, int axis, const Real& dampingFactor)
+    (MobilizedBodyId body, int axis, const Real& dampingFactor)
 {
     return updRep().addMobilityLinearDamper(body, axis, dampingFactor);
 }

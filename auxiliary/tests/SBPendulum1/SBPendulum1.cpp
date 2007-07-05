@@ -136,7 +136,11 @@ int main() {
 
 
 try {
-    SimbodyMatterSubsystem pend;
+    MultibodySystem mbs;
+    SimbodyMatterSubsystem pend(mbs);
+    GeneralForceElements springs(mbs);
+    UniformGravitySubsystem gravityForces(mbs); // default is none
+    HuntCrossleyContact contact(mbs);
 
     Real L = 1.; 
     Real m = 3.;
@@ -144,10 +148,6 @@ try {
     Transform groundFrame;
     Transform baseFrame;
 
-    //int baseBody =
-     //   pend.addRigidBody(0, groundFrame, 
-     //                     Mobilizer::Pin(),
-      //                    Transform(), MassProperties(0.,Vec3(0.),Inertia(0.)));
     Transform jointFrame(Vec3(-L/2,0,0));
     MassProperties mprops(m, Vec3(L/2,0,0), Inertia(Vec3(L/2,0,0), m)+Inertia(1e-6,1e-6,1e-6));
     cout << "mprops about body frame: " << mprops.getMass() << ", " 
@@ -155,83 +155,40 @@ try {
 
     Vec3 gravity(0.,-g,0.);
     cout << "period should be " << 2*std::acos(-1.)*std::sqrt(L/g) << " seconds." << endl;
-    BodyId aPendulum = 
-      pend.addRigidBody(mprops, jointFrame,
-                        GroundId, Transform(), 
-                        //Mobilizer::Cartesian()
-                        //Mobilizer::Sliding()
-                        //Mobilizer::Pin()
-                        //Mobilizer::Ball()
-                        Mobilizer::Free()
-                        );
+
+    MobilizedBody::Free aPendulum(pend.Ground(), Transform(), // ground, at origin
+                                  Body::Rigid(mprops), jointFrame);
+
     const Real ballMass = 10;
     const Real ballRadius = 2;
     const MassProperties ballMProps(ballMass, Vec3(0), ballMass*Inertia::sphere(ballRadius));
     const Vec3 ballPos = Vec3(-3,5,0);
-    BodyId aBall = 
-        pend.addRigidBody(ballMProps, Transform(),
-                          GroundId, Transform(ballPos),
-                          Mobilizer::Cartesian());
 
-    BodyId aBall2 = 
-        pend.addRigidBody(ballMProps, Transform(),
-                          GroundId, Transform(ballPos+Vec3(0.1,10,0)),
-                          Mobilizer::Cartesian());
+    MobilizedBody::Cartesian aBall(pend.Ground(), Transform(ballPos),
+                                   Body::Rigid(ballMProps), Transform());
 
-/*
-    int secondBody = 
-      pend.addRigidBody(mprops, jointFrame,
-                        theBody, Transform(Vec3(L/2,0,0)), 
-                        //Mobilizer::Cartesian(),
-                        //Mobilizer::Sliding(),
-                        Mobilizer::Pin(),
-                        //Mobilizer::Ball(),
-                        //Mobilizer::Free());
-*/
-    //ConstraintId theConstraint =
-    //    pend.addConstantDistanceConstraint(0, Vec3((L/2)*std::sqrt(2.)+1,1,0),
-    //                                       theBody, Vec3(0,0,0),
-    //                                       L/2+std::sqrt(2.));
- 
-    ConstraintId ballConstraint =
-        pend.addCoincidentStationsConstraint(GroundId, Transform().T(),
-                                             aPendulum, jointFrame.T()); 
-/*
-    Transform harderOne;
-    harderOne.updR().setToBodyFixed123(Vec3(.1,.2,.3));
-    harderOne.updT() = jointFrame.T()+Vec3(.1,.2,.3);
-    int weldConstraint =
-        pend.addWeldConstraint(0, Transform(),
-                              theBody, harderOne);    
-*/
+    MobilizedBody::Cartesian aBall2(pend.Ground(), Transform(ballPos+Vec3(0.1,10,0)),
+                                    Body::Rigid(ballMProps), Transform());
 
-    //pend.endConstruction();
-
-
-    MultibodySystem mbs;
-    mbs.setMatterSubsystem(pend);
+    Constraint::Ball ballConstraint(pend.Ground(), Transform().T(),
+                                    aPendulum, jointFrame.T());
 
     const Vec3 attachPt(1.5, 1, 0);
-    GeneralForceElements springs;
     springs.addTwoPointLinearSpring(
         GroundId, attachPt, 
         aPendulum, Vec3(L/2,0,0), 
         100, 1);
-    mbs.addForceSubsystem(springs);
 
-    UniformGravitySubsystem gravityForces;
-    mbs.addForceSubsystem(gravityForces); // default is none
-
-    HuntCrossleyContact contact;
     const Real k = 1000, c = 0.0;
     contact.addHalfSpace(GroundId, UnitVec3(0,1,0), 0, k, c); // h,k,c
     contact.addHalfSpace(GroundId, UnitVec3(1,0,0), -10, k, c); // h,k,c
     contact.addHalfSpace(GroundId, UnitVec3(-1,0,0), -10, k, c); // h,k,c
 
-
     contact.addSphere(aBall, Vec3(0), ballRadius, k, c); // r,k,c
     contact.addSphere(aBall2, Vec3(0), ballRadius, k, c); // r,k,c
-    mbs.addForceSubsystem(contact);
+
+    State s = mbs.realizeTopology();
+    cout << "mbs State as built: " << s;
 
     VTKReporter vtk(mbs);
     vtk.addDecoration(GroundId, Transform(), DecorativeBrick(Vec3(20,.1,20)).setColor(1.5*Gray).setOpacity(.3));
@@ -268,9 +225,7 @@ try {
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 4, 0)), DecorativeSphere().setColor(Magenta));
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 4.5, 0)), DecorativeSphere().setColor(Cyan));
     vtk.addDecoration(aPendulum, Transform(Vec3(3, 5, 0)), DecorativeSphere().setColor(Purple));
-    State s;
-    mbs.realize(s, Stage::Topology);
-    cout << "mbs State as built: " << s;
+
 
     //ExplicitEuler ee(mbs, s);
     bool suppressProjection = false;
@@ -282,8 +237,7 @@ try {
     // set Modeling stuff (s)
     pend.setUseEulerAngles(s, false); // this is the default
     //pend.setUseEulerAngles(s, true);
-    mbs.realize(s, Stage::Model);
-
+    mbs.realizeModel(s);
     cout << "mbs State as modeled: " << s;
 
     printf("GLOBAL ny=%d q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
@@ -339,7 +293,7 @@ try {
     cout << "dEdR=" << dEdR << endl;
     cout << "dEdQ=" << dEdQ << endl;
 
-    pend.setMobilizerU(s, BodyId(1), 0, 10.);
+    pend.setMobilizerU(s, MobilizedBodyId(1), 0, 10.);
 
     Vector_<SpatialVec> bodyForces;
     Vector_<Vec3>       particleForces;

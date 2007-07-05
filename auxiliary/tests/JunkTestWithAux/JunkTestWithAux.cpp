@@ -93,7 +93,7 @@ public:
     int getAtom(int i) const {return atoms[i];}
 
     // return bodyNum of ith body; 0 is molecule's base body
-    BodyId getBody(int i) const {return bodies[i];}
+    MobilizedBodyId getBody(int i) const {return bodies[i];}
 
     const SimbodyMatterSubsystem& getMatter() const {
         return SimbodyMatterSubsystem::downcast(mmSystem->getMatterSubsystem());
@@ -103,8 +103,8 @@ public:
     }
 protected:
     std::vector<int>    atoms;
-    std::vector<BodyId> bodies;
-    BodyId       parent;
+    std::vector<MobilizedBodyId> bodies;
+    MobilizedBodyId       parent;
     Transform mobilizerFrameOnParent;
     const MolecularMechanicsSystem* mmSystem;
 };
@@ -112,7 +112,7 @@ protected:
 
 class Tip3p_water : public Molecule {
 public:
-    Tip3p_water(BodyId parentBodyNum,
+    Tip3p_water(MobilizedBodyId parentBodyNum,
           MolecularMechanicsSystem& mmSys)
       : Molecule(parentBodyNum, Transform(), mmSys)
     {
@@ -144,10 +144,9 @@ public:
         MassProperties mprops = mm.calcClusterMassProperties(tip3p_water, Transform());
 
         bodies.push_back(
-            matter.addRigidBody(
-                mprops, Transform(Vec3(0,0,0)),    // inboard mobilizer frame
-                parentBodyNum, Transform(Vec3(0,0,0)),    // parent mobilizer frame
-                Mobilizer::Free()));
+            MobilizedBody::Free(
+                matter.updMobilizedBody(parentBodyNum), Transform(Vec3(0,0,0)),    // parent mobilizer frame
+                Body::Rigid(mprops), Transform(Vec3(0,0,0))));    // inboard mobilizer frame
 
         mm.attachClusterToBody(tip3p_water, bodies.back(), Transform());
     }
@@ -164,7 +163,7 @@ protected:
 
 class Benzene : public Molecule {
 public:
-    Benzene(BodyId parentBodyNum, const Transform& parentMobilizerFrame,
+    Benzene(MobilizedBodyId parentBodyNum, const Transform& parentMobilizerFrame,
                   MolecularMechanicsSystem& mmSys)
       : Molecule(parentBodyNum, parentMobilizerFrame, mmSys)
     {
@@ -209,7 +208,7 @@ protected:
 
 class RigidBenzene : public Benzene {
 public:
-    RigidBenzene(BodyId parent, MolecularMechanicsSystem& mmSys)
+    RigidBenzene(MobilizedBodyId parent, MolecularMechanicsSystem& mmSys)
                 : Benzene(parent,Transform(),mmSys)
     {
         SimbodyMatterSubsystem&  matter =
@@ -219,10 +218,9 @@ public:
         MassProperties mprops = mm.calcClusterMassProperties(benzene, Transform());
 
         bodies.push_back(
-            matter.addRigidBody(
-                mprops, Transform(Vec3(0,0,0)),    // inboard mobilizer frame
-                parent, Transform(Vec3(0,0,0)),    // parent mobilizer frame
-                Mobilizer::Free()));
+            MobilizedBody::Free(
+                matter.updMobilizedBody(parent), Transform(Vec3(0,0,0)),    // parent mobilizer frame
+                Body::Rigid(mprops), Transform(Vec3(0,0,0))));    // inboard mobilizer frame
 
         mm.attachClusterToBody(benzene, bodies.back(), Transform());
     }
@@ -233,7 +231,7 @@ public:
 
 class FloppyBenzene : public Benzene {
 public:
-    FloppyBenzene(BodyId parent, MolecularMechanicsSystem& mmSys)
+    FloppyBenzene(MobilizedBodyId parent, MolecularMechanicsSystem& mmSys)
                 : Benzene(parent,Transform(),mmSys)
     { }
 
@@ -349,7 +347,7 @@ try
 
     for (int i=0; i<mm.getNBonds(); ++i) {
         const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
-        const BodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
+        const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             artwork.addBodyFixedDecoration(b1, Transform(),
                                            DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
@@ -369,9 +367,8 @@ try
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
     }
 
-    State s;
-    mbs.realize(s, Stage::Topology);
-    mbs.realize(s, Stage::Model);
+    State s = mbs.realizeTopology();
+    mbs.realizeModel(s);
 
     rBenzene.setDefaultInternalState(s);
     rBenzene.setMoleculeTransform(s,Vec3(0,0,0));

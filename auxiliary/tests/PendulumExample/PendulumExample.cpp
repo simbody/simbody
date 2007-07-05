@@ -26,7 +26,6 @@
  */
 
 #include "SimTKsimbody.h"
-#include "simbody/internal/Mobilizer.h"
 
 #include <cmath>
 #include <cstdio>
@@ -55,13 +54,11 @@ try { // If anything goes wrong, an exception will be thrown.
     SimbodyMatterSubsystem  pend(mbs);
     DecorationSubsystem     viz(mbs);
 
-    BodyId connector = 
-        pend.addRigidBody(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
-                     Transform(1*Vec3(0, .5, 0)),
-                     GroundId,
-                     Transform(1*Vec3(0, 0, 0)),
-                     Mobilizer::Ball());
-
+    MobilizedBody::Ball connector(pend.Ground(), 
+                                    Transform(1*Vec3(0, 0, 0)),
+                                  Body::Rigid(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30))),
+                                    Transform(1*Vec3(0, .5, 0)));
+ 
     const Real m1 = 5;
     const Real m2 = 1;
     const Real radiusRatio = std::pow(m2/m1, 1./3.);
@@ -69,21 +66,15 @@ try { // If anything goes wrong, an exception will be thrown.
     const Vec3 weight2Location(0, 0,  d/2); // in local frame of swinging body
     const Vec3 COM = (m1*weight1Location+m2*weight2Location)/(m1+m2);
 
-    const BodyId swinger = pend.addRigidBody(
-        MassProperties(m1+m2, COM, 
-                       1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location)),
-        Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
-                  COM+0*Vec3(0,0,3)),    // inboard joint location
-        connector,
-        Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
-                  1*Vec3(0,-.5,0)),
-        Mobilizer::Screw(.3));
-
-    // Put the subsystems into the system.
-    //mbs.setMatterSubsystem(pend);
-    //mbs.addForceSubsystem(gravity);
-    //mbs.addForceSubsystem(forces);
-    //mbs.setDecorationSubsystem(viz);
+    const MassProperties swingerMassProps
+        (m1+m2, COM, 1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location));
+    MobilizedBody::Screw swinger(connector, 
+                                    Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
+                                              1*Vec3(0,-.5,0)),
+                                 Body::Rigid(swingerMassProps),
+                                    Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
+                                              COM+0*Vec3(0,0,3)),    // inboard joint location
+                                 0.3); // pitch
 
     // Add a blue sphere around the weight.
     viz.addBodyFixedDecoration(swinger, weight1Location, 
@@ -102,10 +93,11 @@ try { // If anything goes wrong, an exception will be thrown.
     //forces.addMobilityConstantForce(swinger, 1, 10);
    // forces.addMobilityConstantForce(swinger, 2, 60-1.2);
 
-    State s;
-    mbs.realize(s); // define appropriate states for this System
-    //pend.setUseEulerAngles(s,true);
+    State s = mbs.realizeTopology(); // define appropriate states for this System
+    // pend.setUseEulerAngles(s, true);
+    // mbs.realizeModel(s);
 
+    mbs.realize(s);
 
     // Create a study using the Runge Kutta Merson integrator
     RungeKuttaMerson myStudy(mbs, s);
@@ -141,7 +133,6 @@ try { // If anything goes wrong, an exception will be thrown.
         cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);
         cout << "MassProperties in G=" << pend.calcBodyMassPropertiesInBody(s,swinger,GroundId);
         cout << "Spatial Inertia    =" << pend.calcBodySpatialInertiaMatrixInGround(s,swinger);
-        cout << "V=" << pend.getMobilizerVelocity(s, swinger) << endl;
 
         for (;;) {
             printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,
@@ -150,7 +141,10 @@ try { // If anything goes wrong, an exception will be thrown.
             cout << "u =" << pend.getU(s) << endl;
             cout << "ud=" << pend.getUDot(s) << endl;
 
-            const Rotation& R_MbM = pend.getMobilizerTransform(s, swinger).R();
+            cout << "Connector V=" << connector.getMobilizerVelocity(s) << endl;
+            cout << "Swinger V=" << swinger.getMobilizerVelocity(s) << endl;
+
+            const Rotation& R_MbM = swinger.getMobilizerTransform(s).R();
             Vec4 aaMb = R_MbM.convertToAngleAxis();
             cout << "angle=" << aaMb[0] << endl;
             cout << "axisMb=" << aaMb.drop1(0) << endl;

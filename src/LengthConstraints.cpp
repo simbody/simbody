@@ -610,7 +610,7 @@ void LengthSet::setPos(State& s, const Vector& pos) const
     // Schwieters had this right before because his equivalent of 'setQ'
     // above also performed the kinematics, while ours just saves the
     // new state variable values and calculates here:
-    getRBTree().realizePosition(s);
+    getRBTree().realizeSubsystemPosition(s);
 
     // TODO: This is redundant after realizePosition(), but I'm leaving
     // it here because this is actually all that need be recalculated for
@@ -634,7 +634,7 @@ void LengthSet::setVel(State& s, const Vector& vel) const
     // TODO: sherm this is the wrong place for the stage update!
     s.invalidateAll(Stage::Velocity);
 
-    getRBTree().realizeVelocity(s);
+    getRBTree().realizeSubsystemVelocity(s);
 
     // TODO: see comment above in setPos
     for (int i=0; i<(int)loops.size(); ++i)
@@ -1212,7 +1212,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // option to realizeVelocity(); it shouldn't actually require putting zeroes everywhere.
         iVel = 0.;
         getRBTree().setU(s, iVel );
-        getRBTree().realizeVelocity(s);
+        getRBTree().realizeSubsystemVelocity(s);
 
         // sherm: I think the following is a unit "probe" velocity, projected
         // along the separation vector. 
@@ -1246,7 +1246,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
         // Set the new velocities.
         getRBTree().setU(s, deltaIVel[m] );
-        getRBTree().realizeVelocity(s);
+        getRBTree().realizeSubsystemVelocity(s);
 
         // Calculating partial(velocityError[n])/partial(deltav[m]). Any velocity
         // we see here is due to the deltav, since we started out at zero (uErr
@@ -1266,7 +1266,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     for (int m=0 ; m<(int)loops.size() ; m++)
         iVel -= lambda[m] * deltaIVel[m];
     getRBTree().setU(s, iVel);
-    getRBTree().realizeVelocity(s);
+    getRBTree().realizeSubsystemVelocity(s);
 }
 
     // RBDistanceConstraint methods

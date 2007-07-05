@@ -56,9 +56,9 @@ enum {
 
 class Molecule {
 public:
-    Molecule(int parentBodyNum, const Transform& parentMobilizerFrame,
+    Molecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
              const MolecularMechanicsSystem& mmSys)
-        : parent(parentBodyNum), mobilizerFrameOnParent(parentMobilizerFrame), 
+        : parentId(pId), mobilizerFrameOnParent(parentMobilizerFrame), 
           mmSystem(mmSys)
     { }
 
@@ -86,7 +86,7 @@ public:
     int getAtom(int i) const {return atoms[i];}
 
     // return bodyNum of ith body; 0 is molecule's base body
-    BodyId getBody(int i) const {return bodies[i];}
+    MobilizedBodyId getBodyId(int i) const {return bodies[i];}
 
     const SimbodyMatterSubsystem& getMatter() const {
         return SimbodyMatterSubsystem::downcast(mmSystem.getMatterSubsystem());
@@ -95,10 +95,10 @@ public:
         return mmSystem.getMolecularMechanicsForceSubsystem();
     }
 protected:
-    std::vector<int>    atoms;
-    std::vector<BodyId> bodies;
-    BodyId       parent;
-    Transform mobilizerFrameOnParent;
+    std::vector<int>                atoms;
+    std::vector<MobilizedBodyId>    bodies;
+    MobilizedBodyId                 parentId;
+    Transform                       mobilizerFrameOnParent;
     const MolecularMechanicsSystem& mmSystem;
 };
 
@@ -163,9 +163,9 @@ protected:
 //
 class Ribose : public Molecule {
 public:
-    Ribose(BodyId parentBodyNum, const Transform& parentMobilizerFrame,
+    Ribose(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
            MolecularMechanicsSystem& mmSys) 
-      : Molecule(parentBodyNum, parentMobilizerFrame, mmSys)
+      : Molecule(pId, parentMobilizerFrame, mmSys)
     {
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
@@ -221,12 +221,12 @@ public:
     // by the same relative transform.
     void setMoleculeTransform(State& s, const Transform& X_GFprime) const
     {
-        getMatter().realize(s,Stage::Position);
+        mmSystem.realize(s,Stage::Position);
         const Transform X_GF = getMatter().getBodyTransform(s,bodies[0]); // current
         const Transform X_FFprime = ~X_GF * X_GFprime; // relative transform
 
         for (int i=0; i < (int)bodies.size(); ++i) {
-            getMatter().realize(s,Stage::Position);
+            mmSystem.realize(s,Stage::Position);
             const Transform& X_GB = getMatter().getBodyTransform(s,bodies[i]);
             const Transform  X_FprimeBprime = ~X_GF * X_GB; // we want this to be the same as X_FB
             const Transform  X_FBprime = X_FFprime * X_FprimeBprime;
@@ -243,22 +243,22 @@ protected:
 
 class CartesianRibose : public Ribose {
 public:
-    CartesianRibose(BodyId parent, MolecularMechanicsSystem& mmSys)
-      : Ribose(parent,Transform(),mmSys)
+    CartesianRibose(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
+      : Ribose(pId,Transform(),mmSys)
     {
         SimbodyMatterSubsystem&  matter = 
             SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
 
+        MobilizedBody& parent = matter.updMobilizedBody(parentId);
+
         //bodies.push_back(GroundId);
         //mm.attachAtomToBody(0,GroundId,Vec3(0));
         for (int i=0; i<20; ++i) {
             bodies.push_back(
-                matter.addRigidBody(
-                    MassProperties(mm.getAtomMass(atoms[i]),Vec3(0),Inertia(0)),
-                    Transform(),            // inboard mobilizer frame
-                    parent, Transform(),    // parent mobilizer frame
-                    Mobilizer::Cartesian()));
+                MobilizedBody::Cartesian(parent, Transform(),    // parent mobilizer frame
+                                         Body::Rigid(MassProperties(mm.getAtomMass(atoms[i]),Vec3(0),Inertia(0))),
+                                         Transform()));          // inboard mobilizer frame
             mm.attachAtomToBody(atoms[i],bodies.back(),Vec3(0));
         }
     }
@@ -317,9 +317,9 @@ private:
 
 class OxygenMolecule : public Molecule {
 public:
-    OxygenMolecule(BodyId parentBodyNum, const Transform& parentMobilizerFrame,
+    OxygenMolecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
                    MolecularMechanicsSystem& mmSys) 
-      : Molecule(parentBodyNum, parentMobilizerFrame, mmSys)
+      : Molecule(pId, parentMobilizerFrame, mmSys)
     {
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
@@ -347,12 +347,14 @@ protected:
 
 class RigidO2 : public OxygenMolecule {
 public:
-    RigidO2(BodyId parent, MolecularMechanicsSystem& mmSys)
-      : OxygenMolecule(parent,Transform(),mmSys)
+    RigidO2(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
+      : OxygenMolecule(pId,Transform(),mmSys)
     {
         SimbodyMatterSubsystem&  matter = 
             SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
         DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
+        MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
         // Align cluster reference frame with body's. (5 dofs!)
         // FreeLine prevents rotation about Z, so make sure the body has its
@@ -389,11 +391,10 @@ public:
                                     mprops.getInertia() + Inertia(0,0,.01));
 
         bodies.push_back(
-            matter.addRigidBody(
-                mprops,
-                Transform(0*Vec3(0,0,.3)),            // inboard mobilizer frame
+            MobilizedBody::FreeLine(
                 parent, Transform(0*Vec3(.1,.7,.19)),    // parent mobilizer frame
-                Mobilizer::FreeLine()));
+                Body::Rigid(mprops),
+                Transform(0*Vec3(0,0,.3))));             // inboard mobilizer frame
 
         mm.attachClusterToBody(twoOxygens, bodies.back(), Transform()); 
     }
@@ -425,7 +426,7 @@ public:
 
 class EthaneMolecule : public Molecule {
 public:
-    EthaneMolecule(BodyId parentBodyNum, const Transform& parentMobilizerFrame,
+    EthaneMolecule(MobilizedBodyId pId, const Transform& parentMobilizerFrame,
                    MolecularMechanicsSystem&);
 
     // find the atoms
@@ -454,38 +455,38 @@ protected:
 
 class OneDofEthane : public EthaneMolecule {
 public:
-    OneDofEthane(bool allowStretch, BodyId parent, MolecularMechanicsSystem&);
+    OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const {
-        const int ndof = getMatter().getDOF(getBody(1));
+        const int ndof = getMatter().getDOF(getBodyId(1));
         for (int i=0; i<ndof; ++i) {
-            getMatter().setMobilizerQ(s, getBody(1), i, 0);
-            getMatter().setMobilizerU(s, getBody(1), i, 0);
+            getMatter().setMobilizerQ(s, getBodyId(1), i, 0);
+            getMatter().setMobilizerU(s, getBodyId(1), i, 0);
         }
     }
 
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
-        assert(getMatter().getDOF(getBody(1)) == 2);    // must have been build with Cylinder mobilizer
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        assert(getMatter().getDOF(getBodyId(1)) == 2);    // must have been build with Cylinder mobilizer
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
     }
 };
 
 class RigidEthane : public EthaneMolecule {
 public:
-    RigidEthane(Real torsionAngleInDeg, BodyId parent, MolecularMechanicsSystem&);
+    RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularMechanicsSystem&);
     void setDefaultInternalState(State& s) const { } // doesn't have any
 };
 
@@ -497,24 +498,24 @@ public:
 // found arranged exactly 120 degrees apart. 
 class FloppyEthane : public EthaneMolecule {
 public:
-    FloppyEthane(BodyId parent, MolecularMechanicsSystem&);
+    FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const;
 
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
-        const BodyId CBody = getDuMM().getAtomBody(getC(1));
+        const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
         getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
     }
 };
@@ -533,16 +534,16 @@ try
     DecorationSubsystem      artwork(mbs);
     UniformGravitySubsystem  gravity(mbs, Vec3(0,0,0));
 
-    Real accuracy = 1e-2;
-    Real outputInterval = .05;
-    Real simulationLength = 30;
+    Real accuracy = 1e-3;
+    Real outputInterval = .1;
+    Real simulationLength = 100;
     //Real outputInterval = .1;
     //Real simulationLength = 10;
 
     const Real torsControlGain = /*100000*/0;
     const Real desiredTorsAngle = /*Pi/3*/0;
 
-    forces.addGlobalEnergyDrain(1);
+    forces.addGlobalEnergyDrain(.01);
 
 
     // AMBER 99
@@ -665,9 +666,9 @@ try
     /*
 
     const OneDofEthane ethane1(allowStretch, GroundId, mbs);
-    const OneDofEthane ethane2(allowStretch, ethane1.getBody(0), mbs);
-    const OneDofEthane ethane3(allowStretch, ethane2.getBody(0), mbs);
-    const OneDofEthane ethane4(allowStretch, ethane3.getBody(0), mbs);
+    const OneDofEthane ethane2(allowStretch, ethane1.getBodyId(0), mbs);
+    const OneDofEthane ethane3(allowStretch, ethane2.getBodyId(0), mbs);
+    const OneDofEthane ethane4(allowStretch, ethane3.getBodyId(0), mbs);
     const RigidEthane  rethane1(0, GroundId, mbs);
     const RigidEthane  rethane2(60, GroundId, mbs);
     */
@@ -678,11 +679,11 @@ try
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
 
-    const CartesianRibose cribose(GroundId, mbs);
+    //const CartesianRibose cribose(GroundId, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
-        BodyId b = ethane.addRigidBody(
+        MobilizedBodyId b = ethane.addRigidBody(
             MassProperties(mm.getAtomMass(i), Vec3(0), Inertia(0)), Transform(),
             GroundId, Transform(),
             Mobilizer::Cartesian());
@@ -703,7 +704,7 @@ try
 
     for (int i=0; i<mm.getNBonds(); ++i) {
         const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
-        const BodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
+        const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             artwork.addBodyFixedDecoration(b1, Transform(),
                                            DecorativeLine(mm.getAtomStationOnBody(a1), mm.getAtomStationOnBody(a2))
@@ -723,14 +724,13 @@ try
                 .setColor(mm.getAtomDefaultColor(anum)).setOpacity(opacity).setResolution(3));
     }
 
-    State s;
-    mbs.realize(s, Stage::Topology);
+    State s = mbs.realizeTopology();
     //matter.setUseEulerAngles(s,true);
-    mbs.realize(s, Stage::Model);
+    mbs.realizeModel(s);
    // gravity.setZeroHeight(s, -100);
 
-    cribose.setDefaultInternalState(s);
-    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+    //cribose.setDefaultInternalState(s);
+    //cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
@@ -854,9 +854,9 @@ catch (const std::exception& e)
     return 0;
 }
 
-EthaneMolecule::EthaneMolecule(BodyId parent, const Transform& parentTransform,
+EthaneMolecule::EthaneMolecule(MobilizedBodyId pId, const Transform& parentTransform,
                                MolecularMechanicsSystem& mmSys)
-  : Molecule(parent,parentTransform,mmSys)
+  : Molecule(pId,parentTransform,mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
@@ -922,43 +922,53 @@ EthaneMolecule::EthaneMolecule(BodyId parent, const Transform& parentTransform,
     }
 }
 
-OneDofEthane::OneDofEthane(bool allowStretch, BodyId parent, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(parent,Transform(),mmSys)
+OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pId,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
+    MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
     const Rotation PinAboutX = Rotation::aboutY(90*Deg2Rad); // move z to +x
 
     // Mount the methyls onto bodies, methyl[0] first. Connect
     // them by either a pin or cylinder depending on allowStretch.
 
-    bodies.push_back(
-        matter.addRigidBody(
-            mm.calcClusterMassProperties(methyl[0], Transform()),
-            Transform(),            // inboard mobilizer frame
-            parent, Transform(),    // parent mobilizer frmae
-            Mobilizer::Free()));
+    const MassProperties m0mp(mm.calcClusterMassProperties(methyl[0], Transform()));
+    const MassProperties m1mp(mm.calcClusterMassProperties(methyl[1], Transform()));
 
     bodies.push_back(
-        matter.addRigidBody(
-            mm.calcClusterMassProperties(methyl[1], Transform()),      
-            Transform(PinAboutX, Vec3(0)), 
-            getBody(0), Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
-            allowStretch ? (Mobilizer)Mobilizer::Cylinder() 
-                         : (Mobilizer)Mobilizer::Pin()));
+        MobilizedBody::Free( parent, Transform(),    // parent mobilizer frmae
+            Body::Rigid(m0mp), Transform()));           // inboard mobilizer frame
+
+    if (allowStretch) {
+        bodies.push_back(
+            MobilizedBody::Cylinder(
+                matter.updMobilizedBody(getBodyId(0)), 
+                Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
+                Body::Rigid(m1mp), Transform(PinAboutX, Vec3(0))));
+    } else {
+        bodies.push_back(
+            MobilizedBody::Pin(
+                matter.updMobilizedBody(getBodyId(0)),
+                Transform(PinAboutX, Vec3(getNominalCCBondLength(),0,0)),
+                Body::Rigid(m1mp), Transform(PinAboutX, Vec3(0))));
+    }
 
     mm.attachClusterToBody(methyl[0], bodies[0], Transform());
     mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
 }
 
-RigidEthane::RigidEthane(Real torsionAngleInDeg, BodyId parent, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(parent,Transform(),mmSys)
+RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pId,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
+    MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
     const int wholeEthaneCluster = mm.createCluster("rigid ethane");
 
@@ -980,11 +990,9 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, BodyId parent, MolecularMechani
 
     // Align cluster reference frame with body's.
     bodies.push_back(
-        matter.addRigidBody(
-            mm.calcClusterMassProperties(wholeEthaneCluster, Transform()), 
-            Transform(),            // inboard mobilizer frame
-            parent, Transform(),    // parent mobilizer frmae
-            Mobilizer::Free()));
+        MobilizedBody::Free(parent, Transform(),    // parent mobilizer frame Mb
+            Body::Rigid(mm.calcClusterMassProperties(wholeEthaneCluster, Transform())), 
+            Transform()));                          // body mobilizer frame M
 
     mm.attachClusterToBody(wholeEthaneCluster, bodies[0], Transform()); 
 }
@@ -1009,12 +1017,14 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, BodyId parent, MolecularMechani
 //
 // The "molecule frame" is considered to be identical with C0's body frame.
 //
-FloppyEthane::FloppyEthane(BodyId parent, MolecularMechanicsSystem& mmSys)
-  : EthaneMolecule(parent,Transform(),mmSys)
+FloppyEthane::FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
+  : EthaneMolecule(pId,Transform(),mmSys)
 {
     SimbodyMatterSubsystem&  matter = 
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
+
+    MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
     // For C-C cylinder joint; rotation and translation are about the
     // Mobilizer frames' common Z axis.
@@ -1024,33 +1034,30 @@ FloppyEthane::FloppyEthane(BodyId parent, MolecularMechanicsSystem& mmSys)
 
     // C0 is our base body, attached to parent by 6 dof joint
     bodies.push_back(
-        matter.addRigidBody(
-            MassProperties(mm.getAtomMass(getC(0)), Vec3(0), Inertia(0)),
-            Transform(),            // use C0 body frame for Free mobilizer
+        MobilizedBody::Free(
             parent, Transform(),    // use parent body frame as reference
-            Mobilizer::Free()));
+            Body::Rigid(MassProperties(mm.getAtomMass(getC(0)), Vec3(0), Inertia(0))),
+            Transform()));          // use C0 body frame for Free mobilizer
     mm.attachAtomToBody(getC(0), bodies.back());
 
     // C1 is body 1, connected to C0 by a cylinder joint
     bodies.push_back(
-        matter.addRigidBody(
-            MassProperties(mm.getAtomMass(getC(1)), Vec3(0), Inertia(0)),
-            C1CylMobFrame,
-            bodies[0], C0CylMobFrame,
-            Mobilizer::Cylinder()));
+        MobilizedBody::Cylinder(
+            matter.updMobilizedBody(bodies[0]), C0CylMobFrame, 
+            Body::Rigid(MassProperties(mm.getAtomMass(getC(1)), Vec3(0), Inertia(0))),
+            C1CylMobFrame));
     mm.attachAtomToBody(getC(1), bodies.back());
            
     // Now attach 3 Hs to each C.
     for (int c=0; c<2; ++c) {
-        const BodyId Cbody = mm.getAtomBody(getC(c));
+        const MobilizedBodyId Cbody = mm.getAtomBody(getC(c));
         for (int h=0; h<3; ++h) {
             const Transform CBendStretchMob(Rotation::aboutX(h*120*Deg2Rad));
             bodies.push_back(
-                matter.addRigidBody(
-                    MassProperties(mm.getAtomMass(getH(c,h)), Vec3(0), Inertia(0)),
-                    HMobFrame,
-                    Cbody, CBendStretchMob,
-                    Mobilizer::BendStretch()));
+                MobilizedBody::BendStretch(
+                    matter.updMobilizedBody(Cbody), CBendStretchMob,
+                    Body::Rigid(MassProperties(mm.getAtomMass(getH(c,h)), Vec3(0), Inertia(0))),
+                    HMobFrame));
             mm.attachAtomToBody(getH(c,h), bodies.back());
         }
     }
@@ -1062,7 +1069,7 @@ void FloppyEthane::setDefaultInternalState(State& s) const {
     // set all the internal u's to zero
 
     // C1
-    const BodyId CBody = getDuMM().getAtomBody(getC(1));
+    const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
     getMatter().setMobilizerQ(s, CBody, 0, 0); // torsion;
     getMatter().setMobilizerQ(s, CBody, 1, getNominalCCBondLength()); // stretch
     getMatter().setMobilizerU(s, CBody, 0, 0); // torsion rate
@@ -1071,7 +1078,7 @@ void FloppyEthane::setDefaultInternalState(State& s) const {
     // H (bend,stretch)
     for (int c=0; c<2; ++c)
         for (int h=0; h<3; ++h) {
-            const BodyId HBody = getDuMM().getAtomBody(getH(c,h));
+            const MobilizedBodyId HBody = getDuMM().getAtomBody(getH(c,h));
             getMatter().setMobilizerQ(s, HBody, 0, getNominalHCCBondAngle());
             getMatter().setMobilizerQ(s, HBody, 1, getNominalCHBondLength());
             getMatter().setMobilizerU(s, HBody, 0, 0);

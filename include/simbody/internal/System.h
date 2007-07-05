@@ -1,7 +1,7 @@
 #ifndef SimTK_SYSTEM_H_
 #define SimTK_SYSTEM_H_
 
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -70,7 +70,63 @@ public:
     const String& getName()    const;
     const String& getVersion() const;
 
-    /// Realize the entire System to the indicated Stage.
+    /// The following call must be made after any topological change
+    /// has been made to this System, before the System can be used
+    /// to perform any computations. Perhaps surprisingly, the method
+    /// is const. That's because the topology cannot be changed by this method.
+    /// Various mutable "cache" entries will get calculated, including the
+    /// default State, a reference to which is returned.
+    /// The returned State has already been realized through the highest
+    /// Stage, using the defaults for the Model-stage variables, and
+    /// default values for all later stage variables as well. You can access
+    /// this same default State again using getDefaultState().
+    /// If the current topology has already been realized, this call does 
+    /// nothing but return a refernece to the already-built default State.
+    const State& realizeTopology() const;
+
+    /// You can check whether realizeTopology() has been called since the last
+    /// topological change to this Syatem. If you don't check and just plunge
+    /// ahead you are likely to encounter an exception since very few things
+    /// will work without topology having been realized.
+    bool topologyHasBeenRealized() const;
+
+    /// This is available after realizeTopology(), and will throw an
+    /// exception if realizeTopology() has not been called since the
+    /// most recent topological change to this System. This method returns the
+    /// same reference returned by realizeTopology(). The State to which
+    /// a reference is returned was created by the most recent
+    /// realizeTopology() call. It has default values for all the 
+    /// Model-stage variables, and has already been realized through
+    /// the highest Stage, so you can use it directly to obtain information
+    /// about the System in its default state or you can use this state
+    /// to initialize other States to which you have write access. Those
+    /// States are then suitable for further computation with this System.
+    const State& getDefaultState() const;
+
+    /// This call is required if Model-stage variables are changed from
+    /// their default values. The System topology must already have been
+    /// realized (that is, realizeTopology() must have been called since
+    /// the last topological change made to the System). Also, the supplied
+    /// State must already have been initialized to work with this System
+    /// either by copying the default state or some other State of this System.
+    /// If it has already been realized to Stage::Model or higher, nothing
+    /// happens here. Otherwise, all the state variables at Stage::Instance or
+    /// higher are allocated or reallocated (if necessary), and reinitialized
+    /// to their default values. NOTE: any State information at Stage::Instance
+    /// or higher in the passed-in State is *destroyed* here. The number, types
+    /// and memory locations of those state variables will change, so any
+    /// existing references or pointers to them are invalid after this call.
+    /// Note that this routine modifies its argument, but makes no changes
+    /// at all to the System itself.
+    void realizeModel(State&) const;
+
+    /// Realize the entire System to the indicated Stage. The passed-in
+    /// State must have been initialized to work with this System, and
+    /// it must already have been realized through Stage::Model, since
+    /// the realize() method doesn't have write access to the State.
+    /// If the state has already been realized to the requested stage
+    /// or higher, nothing happens here. Otherwise, the state is realized
+    /// one stage at a time until it reaches the requested stage. 
     void realize(const State& s, Stage g = Stage::HighestValid) const;
 
     // Generate all decorative geometry computable at a specific stage. This will
@@ -79,9 +135,9 @@ public:
     // request geometry from each stage to get all of it.
     // This routine asks each subsystem in succession to generate its decorative geometry
     // and append it to the end of the Array.
-    // If the stage is Stage::Topology, the State is ignored.
+    // If the stage is Stage::Topology, realizeTopology() must already have
+    // been called but the State is ignored.
     void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
-
 
     /// This operator can be called at Stage::Instance or higher and 
     /// returns a rough estimate of a length of time we consider significant
@@ -153,18 +209,22 @@ public:
 
     /// Take over ownership of the supplied subsystem and install it into 
     /// the next free subsystem slot. The new slot index is returned.
-    int takeOverSubsystem(Subsystem& src);
+    SubsystemId adoptSubsystem(Subsystem& child);
 
     /// How may Subsystems are in here?
     int getNSubsystems() const;
     /// Obtain read-only access to a particular subsystem by its index.
-    const Subsystem& getSubsystem(int)   const;
+    const Subsystem& getSubsystem(SubsystemId)   const;
     /// Obtain writable access to a particular subsystem by its index.
-    Subsystem&       updSubsystem(int);
+    Subsystem&       updSubsystem(SubsystemId);
 
     // Internal use only
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
+
+    // There can be multiple handles on the same System.
+    bool isSameSystem(const System& otherSystem) const;
+
     explicit System(class SystemRep* r) : rep(r) { }
     bool          hasRep() const {return rep!=0;}
     const SystemRep& getRep() const {assert(rep); return *rep;}
@@ -175,6 +235,7 @@ protected:
 
 
 /// The abstract parent of all Studies.
+/// TODO
 class SimTK_SIMBODY_EXPORT Study {
 public:
     Study() : rep(0) { }

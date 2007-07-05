@@ -24,18 +24,21 @@
 
 /**@file
  *
- * Implementation of MatterSubsystem, a still-abstract Subsystem.
+ * Implementation of MatterSubsystem, a still-abstract Subsystem handle,
+ * and MatterSubsystemRep the actual C++ abstract class representing
+ * the implementation of a MatterSubsystem.
  */
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/MatterSubsystem.h"
 
 #include "MatterSubsystemRep.h"
+#include "MobilizedBodyRep.h"
 
 namespace SimTK {
 
     /////////////////////
-    // MatterSubsystem //
+    // MATTER SUBSYTEM //
     /////////////////////
 
 // Default constructor is inline and creates an empty handle.
@@ -66,6 +69,7 @@ MatterSubsystem::updRep() {
     return dynamic_cast<MatterSubsystemRep&>(*rep);
 }
 
+
 int MatterSubsystem::getNBodies() const {
     return getRep().getNBodies();
 }
@@ -78,27 +82,27 @@ int MatterSubsystem::getNMobilities() const {
 int MatterSubsystem::getNConstraints() const {
     return getRep().getNConstraints();
 }
-BodyId MatterSubsystem::getParent(BodyId bodyNum) const { 
+MobilizedBodyId MatterSubsystem::getParent(MobilizedBodyId bodyNum) const { 
     return getRep().getParent(bodyNum); 
 }
-Array<BodyId> 
-MatterSubsystem::getChildren(BodyId bodyNum) const { 
+Array<MobilizedBodyId> 
+MatterSubsystem::getChildren(MobilizedBodyId bodyNum) const { 
     return getRep().getChildren(bodyNum); 
 }
 
-const MassProperties& MatterSubsystem::getDefaultBodyMassProperties(BodyId body) const {
+const MassProperties& MatterSubsystem::getDefaultBodyMassProperties(MobilizedBodyId body) const {
     return getRep().getDefaultBodyMassProperties(body);
 }
 const Transform&  
-MatterSubsystem::getDefaultMobilizerFrame(BodyId bodyNum) const { 
+MatterSubsystem::getDefaultMobilizerFrame(MobilizedBodyId bodyNum) const { 
     return getRep().getDefaultMobilizerFrame(bodyNum); 
 }
 const Transform& 
-MatterSubsystem::getDefaultMobilizerFrameOnParent(BodyId bodyNum) const { 
+MatterSubsystem::getDefaultMobilizerFrameOnParent(MobilizedBodyId bodyNum) const { 
     return getRep().getDefaultMobilizerFrameOnParent(bodyNum); 
 }
 
-const MassProperties& MatterSubsystem::getBodyMassProperties(const State& s, BodyId body) const {
+const MassProperties& MatterSubsystem::getBodyMassProperties(const State& s, MobilizedBodyId body) const {
     return getRep().getBodyMassProperties(s,body);
 }
 
@@ -108,21 +112,21 @@ MatterSubsystem::getAllParticleMasses(const State& s) const {
 }
 
 const Transform&  
-MatterSubsystem::getMobilizerFrame(const State& s, BodyId bodyNum) const { 
+MatterSubsystem::getMobilizerFrame(const State& s, MobilizedBodyId bodyNum) const { 
     return getRep().getMobilizerFrame(s, bodyNum); 
 }
 const Transform& 
-MatterSubsystem::getMobilizerFrameOnParent(const State& s, BodyId bodyNum) const { 
+MatterSubsystem::getMobilizerFrameOnParent(const State& s, MobilizedBodyId bodyNum) const { 
     return getRep().getMobilizerFrameOnParent(s, bodyNum); 
 }
 
-MassProperties& MatterSubsystem::updBodyMassProperties(State& s, BodyId b) const {
+MassProperties& MatterSubsystem::updBodyMassProperties(State& s, MobilizedBodyId b) const {
     return getRep().updBodyMassProperties(s,b); 
 }
-Transform& MatterSubsystem::updMobilizerFrame(State& s, BodyId b) const {
+Transform& MatterSubsystem::updMobilizerFrame(State& s, MobilizedBodyId b) const {
     return getRep().updMobilizerFrame(s,b); 
 }
-Transform& MatterSubsystem::updMobilizerFrameOnParent(State& s, BodyId b) const {
+Transform& MatterSubsystem::updMobilizerFrameOnParent(State& s, MobilizedBodyId b) const {
     return getRep().updMobilizerFrameOnParent(s,b); 
 }
 Vector& MatterSubsystem::updAllParticleMasses(State& s) const {
@@ -130,7 +134,7 @@ Vector& MatterSubsystem::updAllParticleMasses(State& s) const {
 }
 
 const Transform& 
-MatterSubsystem::getBodyTransform(const State& s, BodyId bodyNum) const { 
+MatterSubsystem::getBodyTransform(const State& s, MobilizedBodyId bodyNum) const { 
     return getRep().getBodyTransform(s,bodyNum); 
 }
 const Vector_<Vec3>& 
@@ -139,7 +143,7 @@ MatterSubsystem::getAllParticleLocations(const State& s) const {
 }
 
 const SpatialVec& 
-MatterSubsystem::getBodyVelocity(const State& s, BodyId bodyNum) const { 
+MatterSubsystem::getBodyVelocity(const State& s, MobilizedBodyId bodyNum) const { 
     return getRep().getBodyVelocity(s,bodyNum); 
 }
 const Vector_<Vec3>& 
@@ -148,7 +152,7 @@ MatterSubsystem::getAllParticleVelocities(const State& s) const {
 }
 
 const SpatialVec& 
-MatterSubsystem::getBodyAcceleration(const State& s, BodyId bodyNum) const { 
+MatterSubsystem::getBodyAcceleration(const State& s, MobilizedBodyId bodyNum) const { 
     return getRep().getBodyAcceleration(s,bodyNum); 
 }
 const Vector_<Vec3>& 
@@ -156,20 +160,20 @@ MatterSubsystem::getAllParticleAccelerations(const State& s) const {
     return getRep().getAllParticleAccelerations(s);
 }
 
-void MatterSubsystem::addInStationForce(const State& s, BodyId body, const Vec3& stationInB, 
+void MatterSubsystem::addInStationForce(const State& s, MobilizedBodyId body, const Vec3& stationInB, 
                                         const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
     bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
 }
-void MatterSubsystem::addInBodyTorque(const State& s, BodyId body, const Vec3& torqueInG,
+void MatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyId body, const Vec3& torqueInG,
                                       Vector_<SpatialVec>& bodyForces) const 
 {
     assert(bodyForces.size() == getRep().getNBodies());
     bodyForces[body][0] += torqueInG; // no force
 }
-void MatterSubsystem::addInMobilityForce(const State& s, BodyId body, int index, Real d,
+void MatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyId body, int index, Real d,
                                          Vector& mobilityForces) const 
 { 
     assert(mobilityForces.size() == getRep().getNMobilities());
@@ -178,34 +182,34 @@ void MatterSubsystem::addInMobilityForce(const State& s, BodyId body, int index,
     mobilityForces[uStart+index] += d;
 }
 
-int MatterSubsystem::getNMobilizerCoords(const State& s, BodyId body) const {
+int MatterSubsystem::getNMobilizerCoords(const State& s, MobilizedBodyId body) const {
     int qStart, nq;
     getRep().findMobilizerQs(s,body,qStart,nq);
     return nq;
 }
-int MatterSubsystem::getNMobilizerSpeeds(const State& s, BodyId body) const {
+int MatterSubsystem::getNMobilizerSpeeds(const State& s, MobilizedBodyId body) const {
     int uStart, nu;
     getRep().findMobilizerUs(s,body,uStart,nu);
     return nu;
 }
 
-Real MatterSubsystem::getMobilizerQ(const State& s, BodyId body, int index) const {
+Real MatterSubsystem::getMobilizerQ(const State& s, MobilizedBodyId body, int index) const {
     int qStart, nq; getRep().findMobilizerQs(s,body,qStart,nq);
     assert(0 <= index && index < nq);
     return getRep().getQ(s)[qStart+index];
 }
-Real MatterSubsystem::getMobilizerU(const State& s, BodyId body, int index) const { 
+Real MatterSubsystem::getMobilizerU(const State& s, MobilizedBodyId body, int index) const { 
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(0 <= index && index < nu);
     return getRep().getU(s)[uStart+index];
 }
 
-void MatterSubsystem::setMobilizerQ(State& s, BodyId body, int index, Real q) const { 
+void MatterSubsystem::setMobilizerQ(State& s, MobilizedBodyId body, int index, Real q) const { 
     int qStart, nq; getRep().findMobilizerQs(s,body,qStart,nq);
     assert(0 <= index && index < nq);
     getRep().updQ(s)[qStart+index] = q;
 }
-void MatterSubsystem::setMobilizerU(State& s, BodyId body, int index, Real u) const { 
+void MatterSubsystem::setMobilizerU(State& s, MobilizedBodyId body, int index, Real u) const { 
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(0 <= index && index < nu);
     getRep().updU(s)[uStart+index] = u;
@@ -232,65 +236,65 @@ const Vector_<Vec3>& MatterSubsystem::getAllParticleAppliedForces(const State& s
     return getRep().getAllParticleAppliedForces(s);
 }
 
-Real MatterSubsystem::getMobilizerCoord(const State& s, BodyId body) const {
+Real MatterSubsystem::getMobilizerCoord(const State& s, MobilizedBodyId body) const {
     int qStart, nq; getRep().findMobilizerQs(s,body,qStart,nq);
     assert(nq == 1);
     return getRep().getQ(s)[qStart];
 }
-Vector MatterSubsystem::getMobilizerCoords(const State& s, BodyId body) const {
+Vector MatterSubsystem::getMobilizerCoords(const State& s, MobilizedBodyId body) const {
     int qStart, nq; getRep().findMobilizerQs(s,body,qStart,nq);
     return getRep().getQ(s)(qStart,nq);
 }
-Real MatterSubsystem::getMobilizerSpeed(const State& s, BodyId body) const {
+Real MatterSubsystem::getMobilizerSpeed(const State& s, MobilizedBodyId body) const {
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(nu == 1);
     return getRep().getU(s)[uStart];
 }
-Vector MatterSubsystem::getMobilizerSpeeds(const State& s, BodyId body) const {
+Vector MatterSubsystem::getMobilizerSpeeds(const State& s, MobilizedBodyId body) const {
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     return getRep().getU(s)(uStart,nu);
 }
-Real MatterSubsystem::getMobilizerAppliedForce(const State& s, BodyId body) const {
+Real MatterSubsystem::getMobilizerAppliedForce(const State& s, MobilizedBodyId body) const {
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     assert(nu == 1);
     return getRep().getAllMobilizerAppliedForces(s)[uStart];
 }
-Vector MatterSubsystem::getMobilizerAppliedForces(const State& s, BodyId body) const {
+Vector MatterSubsystem::getMobilizerAppliedForces(const State& s, MobilizedBodyId body) const {
     int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
     return getRep().getAllMobilizerAppliedForces(s)(uStart,nu);
 }
 
-const Vec<2>& MatterSubsystem::getMobilizerCoordsAsVec2(const State& s, BodyId body) const {
+const Vec<2>& MatterSubsystem::getMobilizerCoordsAsVec2(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 2);
     return Vec<2>::getAs(&r.getQ(s)[qStart]);
 }
-const Vec<3>& MatterSubsystem::getMobilizerCoordsAsVec3(const State& s, BodyId body) const {
+const Vec<3>& MatterSubsystem::getMobilizerCoordsAsVec3(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 3);
     return Vec<3>::getAs(&r.getQ(s)[qStart]);
 }
-const Vec<4>& MatterSubsystem::getMobilizerCoordsAsVec4(const State& s, BodyId body) const {
+const Vec<4>& MatterSubsystem::getMobilizerCoordsAsVec4(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 4);
     return Vec<4>::getAs(&r.getQ(s)[qStart]);
 }
-const Vec<5>& MatterSubsystem::getMobilizerCoordsAsVec5(const State& s, BodyId body) const {
+const Vec<5>& MatterSubsystem::getMobilizerCoordsAsVec5(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 5);
     return Vec<5>::getAs(&r.getQ(s)[qStart]);
 }
-const Vec<6>& MatterSubsystem::getMobilizerCoordsAsVec6(const State& s, BodyId body) const {
+const Vec<6>& MatterSubsystem::getMobilizerCoordsAsVec6(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 6);
     return Vec<6>::getAs(&r.getQ(s)[qStart]);
 }
-const Vec<7>& MatterSubsystem::getMobilizerCoordsAsVec7(const State& s, BodyId body) const {
+const Vec<7>& MatterSubsystem::getMobilizerCoordsAsVec7(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 7);
@@ -298,31 +302,31 @@ const Vec<7>& MatterSubsystem::getMobilizerCoordsAsVec7(const State& s, BodyId b
 }
 
 
-const Vec<2>& MatterSubsystem::getMobilizerSpeedsAsVec2(const State& s, BodyId body) const {
+const Vec<2>& MatterSubsystem::getMobilizerSpeedsAsVec2(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 2);
     return Vec<2>::getAs(&r.getU(s)[uStart]);
 }
-const Vec<3>& MatterSubsystem::getMobilizerSpeedsAsVec3(const State& s, BodyId body) const {
+const Vec<3>& MatterSubsystem::getMobilizerSpeedsAsVec3(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 3);
     return Vec<3>::getAs(&r.getU(s)[uStart]);
 }
-const Vec<4>& MatterSubsystem::getMobilizerSpeedsAsVec4(const State& s, BodyId body) const {
+const Vec<4>& MatterSubsystem::getMobilizerSpeedsAsVec4(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 4);
     return Vec<4>::getAs(&r.getU(s)[uStart]);
 }
-const Vec<5>& MatterSubsystem::getMobilizerSpeedsAsVec5(const State& s, BodyId body) const {
+const Vec<5>& MatterSubsystem::getMobilizerSpeedsAsVec5(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 5);
     return Vec<5>::getAs(&r.getU(s)[uStart]);
 }
-const Vec<6>& MatterSubsystem::getMobilizerSpeedsAsVec6(const State& s, BodyId body) const {
+const Vec<6>& MatterSubsystem::getMobilizerSpeedsAsVec6(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 6);
@@ -331,31 +335,31 @@ const Vec<6>& MatterSubsystem::getMobilizerSpeedsAsVec6(const State& s, BodyId b
 
 
 
-const Vec<2>& MatterSubsystem::getMobilizerAppliedForceAsVec2(const State& s, BodyId body) const {
+const Vec<2>& MatterSubsystem::getMobilizerAppliedForceAsVec2(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 2);
     return Vec<2>::getAs(&r.getAllMobilizerAppliedForces(s)[uStart]);
 }
-const Vec<3>& MatterSubsystem::getMobilizerAppliedForceAsVec3(const State& s, BodyId body) const {
+const Vec<3>& MatterSubsystem::getMobilizerAppliedForceAsVec3(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 3);
     return Vec<3>::getAs(&r.getAllMobilizerAppliedForces(s)[uStart]);
 }
-const Vec<4>& MatterSubsystem::getMobilizerAppliedForceAsVec4(const State& s, BodyId body) const {
+const Vec<4>& MatterSubsystem::getMobilizerAppliedForceAsVec4(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 4);
     return Vec<4>::getAs(&r.getAllMobilizerAppliedForces(s)[uStart]);
 }
-const Vec<5>& MatterSubsystem::getMobilizerAppliedForceAsVec5(const State& s, BodyId body) const {
+const Vec<5>& MatterSubsystem::getMobilizerAppliedForceAsVec5(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 5);
     return Vec<5>::getAs(&r.getAllMobilizerAppliedForces(s)[uStart]);
 }
-const Vec<6>& MatterSubsystem::getMobilizerAppliedForceAsVec6(const State& s, BodyId body) const {
+const Vec<6>& MatterSubsystem::getMobilizerAppliedForceAsVec6(const State& s, MobilizedBodyId body) const {
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 6);
@@ -375,117 +379,117 @@ Vector_<Vec3>& MatterSubsystem::updAllParticleAppliedForces(State& s) const {
     return getRep().updAllParticleAppliedForces(s);
 }
 
-void MatterSubsystem::setMobilizerCoord(State& s, BodyId body, Real q) const {
+void MatterSubsystem::setMobilizerCoord(State& s, MobilizedBodyId body, Real q) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 1);
     r.updQ(s)[qStart] = q;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec2(State& s, BodyId body, const Vec<2>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec2(State& s, MobilizedBodyId body, const Vec<2>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 2);
     Vec<2>::updAs(&r.updQ(s)[qStart]) = qs;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec3(State& s, BodyId body, const Vec<3>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec3(State& s, MobilizedBodyId body, const Vec<3>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 3);
     Vec<3>::updAs(&r.updQ(s)[qStart]) = qs;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec4(State& s, BodyId body, const Vec<4>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec4(State& s, MobilizedBodyId body, const Vec<4>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 4);
     Vec<4>::updAs(&r.updQ(s)[qStart]) = qs;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec5(State& s, BodyId body, const Vec<5>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec5(State& s, MobilizedBodyId body, const Vec<5>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 5);
     Vec<5>::updAs(&r.updQ(s)[qStart]) = qs;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec6(State& s, BodyId body, const Vec<6>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec6(State& s, MobilizedBodyId body, const Vec<6>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 6);
     Vec<6>::updAs(&r.updQ(s)[qStart]) = qs;
 }
-void MatterSubsystem::setMobilizerCoordsAsVec7(State& s, BodyId body, const Vec<7>& qs) const {
+void MatterSubsystem::setMobilizerCoordsAsVec7(State& s, MobilizedBodyId body, const Vec<7>& qs) const {
     const MatterSubsystemRep& r = getRep();
     int qStart, nq; r.findMobilizerQs(s,body,qStart,nq);
     assert(nq == 7);
     Vec<7>::updAs(&r.updQ(s)[qStart]) = qs;
 }
 
-void MatterSubsystem::setMobilizerSpeed(State& s, BodyId body, Real u) const{
+void MatterSubsystem::setMobilizerSpeed(State& s, MobilizedBodyId body, Real u) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 1);
     r.updU(s)[uStart] = u;
 }
 
-void MatterSubsystem::setMobilizerSpeedsAsVec2(State& s, BodyId body, const Vec<2>& us) const{
+void MatterSubsystem::setMobilizerSpeedsAsVec2(State& s, MobilizedBodyId body, const Vec<2>& us) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 2);
     Vec<2>::updAs(&getRep().updU(s)[uStart]) = us;
 }
-void MatterSubsystem::setMobilizerSpeedsAsVec3(State& s, BodyId body, const Vec<3>& us) const{
+void MatterSubsystem::setMobilizerSpeedsAsVec3(State& s, MobilizedBodyId body, const Vec<3>& us) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 3);
     Vec<3>::updAs(&getRep().updU(s)[uStart]) = us;
 }
-void MatterSubsystem::setMobilizerSpeedsAsVec4(State& s, BodyId body, const Vec<4>& us) const{
+void MatterSubsystem::setMobilizerSpeedsAsVec4(State& s, MobilizedBodyId body, const Vec<4>& us) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 4);
     Vec<4>::updAs(&getRep().updU(s)[uStart]) = us;
 }
-void MatterSubsystem::setMobilizerSpeedsAsVec5(State& s, BodyId body, const Vec<5>& us) const{
+void MatterSubsystem::setMobilizerSpeedsAsVec5(State& s, MobilizedBodyId body, const Vec<5>& us) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 5);
     Vec<5>::updAs(&getRep().updU(s)[uStart]) = us;
 }
-void MatterSubsystem::setMobilizerSpeedsAsVec6(State& s, BodyId body, const Vec<6>& us) const{
+void MatterSubsystem::setMobilizerSpeedsAsVec6(State& s, MobilizedBodyId body, const Vec<6>& us) const{
     const MatterSubsystemRep& r = getRep();
     int uStart, nu; r.findMobilizerUs(s,body,uStart,nu);
     assert(nu == 6);
     Vec<6>::updAs(&getRep().updU(s)[uStart]) = us;
 }
 
-const Transform& MatterSubsystem::getMobilizerTransform(const State& s, BodyId body) const { 
+const Transform& MatterSubsystem::getMobilizerTransform(const State& s, MobilizedBodyId body) const { 
     return getRep().getMobilizerTransform(s,body); 
 }
-const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, BodyId body) const { 
+const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, MobilizedBodyId body) const { 
     return getRep().getMobilizerVelocity(s,body); 
 }
 
-void MatterSubsystem::setMobilizerTransform(State& s, BodyId body, const Transform& X_MbM) const { 
+void MatterSubsystem::setMobilizerTransform(State& s, MobilizedBodyId body, const Transform& X_MbM) const { 
     getRep().setMobilizerTransform(s,body,X_MbM); 
 }
-void MatterSubsystem::setMobilizerRotation(State& s, BodyId body, const Rotation& R_MbM) const { 
+void MatterSubsystem::setMobilizerRotation(State& s, MobilizedBodyId body, const Rotation& R_MbM) const { 
     getRep().setMobilizerRotation(s,body,R_MbM); 
 }
-void MatterSubsystem::setMobilizerTranslation(State& s, BodyId body, const Vec3& T_MbM) const { 
+void MatterSubsystem::setMobilizerTranslation(State& s, MobilizedBodyId body, const Vec3& T_MbM) const { 
     getRep().setMobilizerTranslation(s,body,T_MbM,false); // allow rotation
 }
-void MatterSubsystem::setMobilizerTranslationOnly(State& s, BodyId body, const Vec3& T_MbM) const { 
+void MatterSubsystem::setMobilizerTranslationOnly(State& s, MobilizedBodyId body, const Vec3& T_MbM) const { 
     getRep().setMobilizerTranslation(s,body,T_MbM,true);  // prevent rotation
 }
 
-void MatterSubsystem::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_MbM) const { 
+void MatterSubsystem::setMobilizerVelocity(State& s, MobilizedBodyId body, const SpatialVec& V_MbM) const { 
     getRep().setMobilizerVelocity(s,body,V_MbM);
 }
-void MatterSubsystem::setMobilizerAngularVelocity(State& s, BodyId body, const Vec3& w_MbM) const { 
+void MatterSubsystem::setMobilizerAngularVelocity(State& s, MobilizedBodyId body, const Vec3& w_MbM) const { 
     getRep().setMobilizerAngularVelocity(s,body,w_MbM);
 }
-void MatterSubsystem::setMobilizerLinearVelocity(State& s, BodyId body, const Vec3& v_MbM) const { 
+void MatterSubsystem::setMobilizerLinearVelocity(State& s, MobilizedBodyId body, const Vec3& v_MbM) const { 
     getRep().setMobilizerLinearVelocity(s,body,v_MbM,false); // allow angular velocity change
 }
-void MatterSubsystem::setMobilizerLinearVelocityOnly(State& s, BodyId body, const Vec3& v_MbM) const { 
+void MatterSubsystem::setMobilizerLinearVelocityOnly(State& s, MobilizedBodyId body, const Vec3& v_MbM) const { 
     getRep().setMobilizerLinearVelocity(s,body,v_MbM,true);  // prevent angular velocity change
 }
 
@@ -505,6 +509,8 @@ bool MatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Rea
 bool MatterSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
     return getRep().projectUConstraints(s,y_err,tol,targetTol); 
 }
+
+
 
 } // namespace SimTK
 

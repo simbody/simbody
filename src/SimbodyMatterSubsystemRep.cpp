@@ -1,4 +1,4 @@
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors: Derived from IVM code written by Charles Schwieters.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -28,13 +28,16 @@
  * Note: there must be no mention of atoms anywhere in this code.
  */
 
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+
 #include "SimbodyMatterSubsystemRep.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
 #include "ConstraintNode.h"
 #include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
-#include "MobilizerRep.h"
+#include "MobilizedBodyRep.h"
 
 #include <string>
 
@@ -44,109 +47,93 @@ SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsyste
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
 
+void SimbodyMatterSubsystemRep::clearTopologyState() {
+    // Constraints are independent from one another, so any deletion order
+    // is fine. However, they depend on bodies and not vice versa so we'll
+    // delete them first just to be neat.
+    for (int i=0; i < (int)constraints.size(); ++i)
+        delete constraints[i];
+    constraints.clear();
 
-SimbodyMatterSubsystemRep::~SimbodyMatterSubsystemRep() {
+    // These are the owner handles, so this deletes the MobilizedBodyReps also.
+    // We'll delete from the terminal nodes inward just to be neat.
+    for (int i=(int)mobilizedBodies.size()-1; i >= 0; --i)
+        delete mobilizedBodies[i];
+    mobilizedBodies.clear();
+}
+
+void SimbodyMatterSubsystemRep::clearTopologyCache() {
+    invalidateSubsystemTopologyCache();
+
+    // TODO: state indices really shouldn't be dealt out until Stage::Model.
+    // At the moment they are part of the topology.
+    nextUSlot=nextUSqSlot=nextQSlot        = 0;
+    nextQErrSlot=nextUErrSlot=nextMultSlot = 0;
+    DOFTotal=SqDOFTotal=maxNQTotal         = -1;
+    topologyCache.clear();
+    topologyCacheIndex = -1;
+
     delete lConstraints; lConstraints=0;
 
-    for (int i=0; i<(int)constraintNodes.size(); ++i)
-        delete constraintNodes[i];
-    constraintNodes.resize(0);
+    //for (int i=0; i<(int)constraintNodes.size(); ++i)
+    //    delete constraintNodes[i];
+    //constraintNodes.clear();
 
     for (int i=0; i<(int)distanceConstraints.size(); ++i)
         delete distanceConstraints[i];
-    distanceConstraints.resize(0);
+    distanceConstraints.clear();
 
-    for (int i=0; i<(int)rbNodeLevels.size(); ++i) {
-        for (int j=0; j<(int)rbNodeLevels[i].size(); ++j) 
-            delete rbNodeLevels[i][j];
-        rbNodeLevels[i].resize(0);
-    }
-    rbNodeLevels.resize(0);
+
+    // RigidBodyNodes themselves are owned by the MobilizedBodyReps and will
+    // be deleted when the MobilizedBodyRep objects are.
+    rbNodeLevels.clear();
+    nodeNum2NodeMap.clear();
 }
 
-int SimbodyMatterSubsystemRep::addRigidBodyNode
-    (RigidBodyNode&           parent,
-     const MassProperties&    m,            // mass properties in body frame
-     const Transform&         X_PMb,        // parent's frame for attaching this joint
-     const Transform&         X_BM,         // inboard joint frame J in body frame
-     const Mobilizer&         mobilizer,
-     int&                     nxtU,
-     int&                     nxtUSq,
-     int&                     nxtQ)
+MobilizedBodyId SimbodyMatterSubsystemRep::adoptMobilizedBody
+   (MobilizedBodyId parentId, MobilizedBody& child) 
 {
-    RigidBodyNode* n = mobilizer.getRep().createRigidBodyNode(m,X_PMb,X_BM,nxtU,nxtUSq,nxtQ);
-    const int level = parent.getLevel() + 1;
-    n->setLevel(level);
+    invalidateSubsystemTopologyCache();
 
-    //TODO: put a copy of the mobilizer in the RigidBodyNode
+    const MobilizedBodyId id((int)mobilizedBodies.size());
+    assert(parentId < id);
 
-    // Put node in tree at the right level
-    if ((int)rbNodeLevels.size()<=level) rbNodeLevels.resize(level+1);
-    const int nxt = rbNodeLevels[level].size();
-    rbNodeLevels[level].push_back(n);
+    mobilizedBodies.push_back(new MobilizedBody()); // grow
+    MobilizedBody& m = *mobilizedBodies.back(); // refer to the empty handle we just created
 
-    // Assign a unique reference integer to this node, for use by caller
-    const int nodeNum = nodeNum2NodeMap.size();
-    nodeNum2NodeMap.push_back(RigidBodyNodeIndex(level,nxt));
-    n->setNodeNum(nodeNum);
+    child.disown(m); // transfer ownership to m
 
-    // Link in to the tree topology (bidirectional).
-    parent.addChild(n);
-    n->setParent(&parent);
-
-    return nodeNum;
+    // Now tell the MobilizedBody object its owning MatterSubsystem, id within
+    // that Subsystem, and parent MobilizedBody object.
+    m.updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), parentId, id);
+    return id;
 }
 
-// Add a new ground node. Must be first node added during construction.
-void SimbodyMatterSubsystemRep::addGroundNode() {
-    // Make sure this is the first body
-    assert(nodeNum2NodeMap.size() == 0);
-    assert(rbNodeLevels.size() == 0);
+ConstraintId SimbodyMatterSubsystemRep::adoptConstraint(Constraint& child) {
+    invalidateSubsystemTopologyCache();
 
-    RigidBodyNode* n = RigidBodyNode::createGroundNode();
-    n->setLevel(0);
+    const ConstraintId id((int)constraints.size());
 
-    // Put ground node in tree at level 0
-    rbNodeLevels.resize(1);
-    rbNodeLevels[0].push_back(n);
-    nodeNum2NodeMap.push_back(RigidBodyNodeIndex(0,0));
-    n->setNodeNum(0);
-}
+    constraints.push_back(new Constraint()); // grow
+    Constraint& c = *constraints.back(); // refer to the empty handle we just created
 
-ConstraintId SimbodyMatterSubsystemRep::addConstantDistanceConstraint(
-    const RigidBodyNode& parent, const Vec3& stationInP,
-    const RigidBodyNode& child,  const Vec3& stationInC,
-    const Real& distance)
-{
-    ConstraintNode* cn = new ConstantDistanceConstraintNode(parent,stationInP,child,stationInC,distance);
-    return addConstraintNode(cn);
-}
+    child.disown(c); // transfer ownership to c
 
-ConstraintId SimbodyMatterSubsystemRep::addCoincidentStationsConstraint(
-    const RigidBodyNode& parent, const Vec3& stationInP,
-    const RigidBodyNode& child,  const Vec3& stationInC)
-{
-    ConstraintNode* cn = new CoincidentStationsConstraintNode(parent,stationInP,child,stationInC);
-    return addConstraintNode(cn);
+    // Now tell the Constraint object its owning MatterSubsystem and id within
+    // that Subsystem.
+    c.updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), id);
+    return id;
 }
 
 
-ConstraintId SimbodyMatterSubsystemRep::addWeldConstraint(
-    const RigidBodyNode& parent, const Transform& frameInP,
-    const RigidBodyNode& child,  const Transform& frameInC)
-{
-    ConstraintNode* cn = new WeldConstraintNode(parent,frameInP,child,frameInC);
-    return addConstraintNode(cn);
-}
+void SimbodyMatterSubsystemRep::createGroundBody() {
+    assert(mobilizedBodies.empty());
+    invalidateSubsystemTopologyCache();
 
-// Store an already-allocated abstract constraint in the RigidBody tree, assigning
-// it a constraint number which is returned. The SimbodyMatterSubsystemRep takes over ownership
-// of the ConstraintNode; don't use the pointer any more!
-ConstraintId SimbodyMatterSubsystemRep::addConstraintNode(ConstraintNode*& cn) {
-    cn->setConstraintNum(constraintNodes.size());
-    constraintNodes.push_back(cn);
-    cn = 0; // it's all mine now!
-    return ConstraintId(constraintNodes.size()-1);
+    mobilizedBodies.push_back(new MobilizedBody::Ground());
+    mobilizedBodies[0]->updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
+                                                      MobilizedBodyId(), 
+                                                      MobilizedBodyId(0));
 }
 
 // Add a distance constraint and assign it to use a particular slot in the
@@ -165,58 +152,58 @@ int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
     return distanceConstraints.size()-1;
 }
 
-BodyId SimbodyMatterSubsystemRep::getParent(BodyId body) const { 
-    return BodyId(getRigidBodyNode(body).getParent()->getNodeNum());
+MobilizedBodyId SimbodyMatterSubsystemRep::getParent(MobilizedBodyId body) const { 
+    return MobilizedBodyId(getRigidBodyNode(body).getParent()->getNodeNum());
 }
 
-Array<BodyId> SimbodyMatterSubsystemRep::getChildren(BodyId body) const {
+Array<MobilizedBodyId> SimbodyMatterSubsystemRep::getChildren(MobilizedBodyId body) const {
     const RigidBodyNode& node = getRigidBodyNode(body);
-    Array<BodyId> children;
-    for (BodyId i(0); i < node.getNChildren(); ++i)
-        children += BodyId(node.getChild(i)->getNodeNum());
+    Array<MobilizedBodyId> children;
+    for (MobilizedBodyId i(0); i < node.getNChildren(); ++i)
+        children += MobilizedBodyId(node.getChild(i)->getNodeNum());
     return children;
 }
 
 const MassProperties&
-SimbodyMatterSubsystemRep::getDefaultBodyMassProperties(BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultBodyMassProperties(MobilizedBodyId body) const
   { return getRigidBodyNode(body).getMassProperties_OB_B(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(MobilizedBodyId body) const
   { return getRigidBodyNode(body).getX_BM(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(BodyId body) const
+SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(MobilizedBodyId body) const
   { return getRigidBodyNode(body).getX_PMb(); }
 
 const Transform&
-SimbodyMatterSubsystemRep::getBodyTransform(const State& s, BodyId body) const
+SimbodyMatterSubsystemRep::getBodyTransform(const State& s, MobilizedBodyId body) const
   { return getRigidBodyNode(body).getX_GB(getPositionCache(s)); }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getBodyVelocity(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getV_GB(getVelocityCache(s));
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getTotalCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getTotalCoriolisAcceleration(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getGyroscopicForce(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getGyroscopicForce(getDynamicsCache(s));
 }
 const SpatialVec&
-SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getCentrifugalForces(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getCentrifugalForces(getDynamicsCache(s));
 }
 
 const SpatialMat&
-SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, BodyId body) const {
+SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, MobilizedBodyId body) const {
   return getRigidBodyNode(body).getArticulatedBodyInertia(getDynamicsCache(s));
 }
 
@@ -225,20 +212,45 @@ SimbodyMatterSubsystemRep::getArticulatedBodyInertia(const State& s, BodyId body
 // variables and cache entries. We allocate and initialize all the
 // Modeling variables here.
 void SimbodyMatterSubsystemRep::endConstruction() {
-    if (built) return; // already done
+    if (subsystemTopologyHasBeenRealized()) 
+        return; // already done
 
-    // Not built yet. Let's count topological things.
-
+    // This creates a RigidBodyNode owned by the the Topology cache of each MobilizedBody.
+    // Each RigidBodyNode lists as its parent the RigidBodyNode contained in the 
+    // MobilizedBody's parent.
+    //
+    // We simultaneously build up the computational version of the multibody tree,
+    // based on RigidBodyNode objects rather than on MobilizedBody objects.
+    nodeNum2NodeMap.clear();
+    rbNodeLevels.clear();
     DOFTotal = SqDOFTotal = maxNQTotal = 0;
-    for (int i=0; i<(int)rbNodeLevels.size() ; ++i) 
-        for (int j=0; j<(int)rbNodeLevels[i].size(); ++j) {
-            const int ndof = rbNodeLevels[i][j]->getDOF();
-            DOFTotal += ndof; SqDOFTotal += ndof*ndof;
-            maxNQTotal += rbNodeLevels[i][j]->getMaxNQ();
-        }
+    nextUSlot = nextUSqSlot = nextQSlot = 0; // state allocation
 
-    // Dole out the multipliers and constraint error slots for topological
-    // constraints. TODO: currently our constraints are all holonomic, meaning
+    //Must do these in order from lowest number (ground) to highest. 
+    for (int i=0; i<getNumMobilizedBodies(); ++i) {
+        // Create the RigidBodyNode properly linked to its parent.
+        const MobilizedBody::MobilizedBodyRep& mbr = getMobilizedBody(MobilizedBodyId(i)).getRep();
+        const RigidBodyNode& n = mbr.realizeTopology(nextUSlot,nextUSqSlot,nextQSlot);
+
+        // Create the computational multibody tree data structures, organized by level.
+        const int level = n.getLevel();
+        if ((int)rbNodeLevels.size() <= level)
+            rbNodeLevels.resize(level+1); // make room for the new level
+        const int nodeIndexWithinLevel = rbNodeLevels[level].size();
+        rbNodeLevels[level].push_back(&n);
+        nodeNum2NodeMap.push_back(RigidBodyNodeIndex(level, nodeIndexWithinLevel));
+
+        // Count up multibody tree totals.
+        const int ndof = n.getDOF();
+        DOFTotal += ndof; SqDOFTotal += ndof*ndof;
+        maxNQTotal += n.getMaxNQ();
+    }
+
+    // Order doesn't matter for constraints as long as the bodies are already there.
+    // This creates a ConstraintNode owned by the Topology cache of each Constraint, and 
+    // doles out the multipliers and constraint error slots for topological
+    // constraints. 
+    // TODO: currently our constraints are all holonomic, meaning
     // position-level, so that they occupy one slot in the qErr array, then
     // their time derivatives need one slot in uErr and their 2nd time 
     // derivatives need one acceleration-level multiplier. Later we will
@@ -247,36 +259,29 @@ void SimbodyMatterSubsystemRep::endConstruction() {
     // Also, quaternion normalization constraints exist only at the 
     // position level, however they are not topological since modeling
     // choices affect whether we use them. See realizeModel() below.
-    for (int i=0; i<(int)constraintNodes.size(); ++i) {
-        ConstraintNode& cons = *constraintNodes[i];
-        cons.setQErrIndex(nextQErrSlot);
-        cons.setUErrIndex(nextUErrSlot);
-        cons.setMultIndex(nextMultSlot);
-        const int nConsEqns = cons.getNConstraintEquations();
-        nextQErrSlot += nConsEqns;
-        nextUErrSlot += nConsEqns;
-        nextMultSlot += nConsEqns;
-        cons.finishConstruction(*this);
+    nextQErrSlot = nextUErrSlot = nextMultSlot = 0; // state cache allocation
+    for (int i=0; i<getNumConstraints(); ++i) {
+        const Constraint::ConstraintRep& crep = getConstraint(ConstraintId(i)).getRep();
+        crep.realizeTopology(nextQErrSlot,nextUErrSlot,nextMultSlot);
     }
-
+    
+    // Now create the computational data structure for the length constraint
+    // equations which currently are used to implement all the Constraints.
+    // This is owned by the SimbodyMatterSubsystemRep.
     lConstraints = new LengthConstraints(*this, 0);
     lConstraints->construct(distanceConstraints);
-    built = true;
 }
 
-void SimbodyMatterSubsystemRep::realizeTopology(State& s) const {
-    // This is a long-winded way of saying that the Stage must be exactly Empty.
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Topology).prev(), 
-        "SimbodyMatterSubsystemRep::realizeTopology()");
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(s), Stage(Stage::Topology), 
-        "SimbodyMatterSubsystemRep::realizeTopology()");
+void SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
+    SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
+        "SimbodyMatterSubsystem::realizeTopology()");
 
     // Some of our 'const' values must be treated as mutable *just for this call*.
     // Afterwards they are truly const so we don't declare them mutable, but cheat
     // here instead.
     SimbodyMatterSubsystemRep* mutableThis = const_cast<SimbodyMatterSubsystemRep*>(this);
 
-    if (!built) mutableThis->endConstruction(); // no more bodies after this!
+    if (!subsystemTopologyHasBeenRealized()) mutableThis->endConstruction(); // no more bodies after this!
 
     // Fill in the local copy of the topologyCache from the information
     // calculated in endConstruction(). Also ask the State for some room to
@@ -285,7 +290,7 @@ void SimbodyMatterSubsystemRep::realizeTopology(State& s) const {
 
     mutableThis->topologyCache.nBodies      = nodeNum2NodeMap.size();
     mutableThis->topologyCache.nParticles   = 0; // TODO
-    mutableThis->topologyCache.nConstraints = constraintNodes.size();
+    mutableThis->topologyCache.nConstraints = constraints.size();
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
     mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
@@ -295,26 +300,23 @@ void SimbodyMatterSubsystemRep::realizeTopology(State& s) const {
     mvars.allocate(topologyCache);
     setDefaultModelValues(topologyCache, mvars);
     mutableThis->topologyCache.modelingVarsIndex  = 
-        s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Model, new Value<SBModelVars>(mvars));
+        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Model, new Value<SBModelVars>(mvars));
 
     mutableThis->topologyCache.modelingCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Model, new Value<SBModelCache>());
+        s.allocateCacheEntry(getMySubsystemId(),Stage::Model, new Value<SBModelCache>());
 
     mutableThis->topologyCache.valid = true;
 
     // Allocate a cache entry for the topologyCache, and save a copy there.
     mutableThis->topologyCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Topology, new Value<SBTopologyCache>(topologyCache));
+        s.allocateCacheEntry(getMySubsystemId(),Stage::Topology, new Value<SBTopologyCache>(topologyCache));
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
-void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
-    // This is a long-winded way of saying that the Stage must be exactly Built.
-    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Model).prev(), 
-        "SimbodyMatterSubsystemRep::realizeModel()");
-    SimTK_STAGECHECK_LT_ALWAYS(getStage(s), Stage(Stage::Model), 
-        "SimbodyMatterSubsystemRep::realizeModel()");
+void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
+    SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Topology, 
+        "SimbodyMatterSubsystem::realizeModel()");
 
     const SBModelVars& mv = getModelVars(s);
 
@@ -352,10 +354,10 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     setDefaultInstanceValues(mv, iv);
 
     mc.instanceVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Instance, 
+        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Instance, 
                                    new Value<SBInstanceVars>(iv));
     mc.instanceCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Instance, 
+        s.allocateCacheEntry(getMySubsystemId(),Stage::Instance, 
                              new Value<SBInstanceCache>());
 
     // No time vars or cache
@@ -367,14 +369,14 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     Vector qInit(maxNQTotal);
     setDefaultPositionValues(mv, qInit);
 
-    mc.qIndex = s.allocateQ(getMySubsystemIndex(), qInit);
+    mc.qIndex = s.allocateQ(getMySubsystemId(), qInit);
     mc.qVarsIndex = -1; // no config vars other than q
-    mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Position, 
+    mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemId(),Stage::Position, 
         new Value<SBPositionCache>());
 
     // We'll store the the physical constraint errors (which consist solely of distance
     // constraint equations at the moment), followed by the quaternion constraints.
-    mc.qErrIndex = s.allocateQErr(getMySubsystemIndex(), 
+    mc.qErrIndex = s.allocateQErr(getMySubsystemId(), 
                                   nextQErrSlot + mc.nQuaternionsInUse);
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
@@ -383,16 +385,16 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     Vector uInit(DOFTotal);
     setDefaultVelocityValues(mv, uInit);
 
-    mc.uIndex = s.allocateU(getMySubsystemIndex(), uInit);
+    mc.uIndex = s.allocateU(getMySubsystemId(), uInit);
     mc.uVarsIndex = -1; // no velocity vars other than u
-    mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemIndex(),Stage::Velocity, 
+    mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemId(),Stage::Velocity, 
         new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
 
     // Only physical constraints exist at the velocity and acceleration levels; 
     // the quaternion normalization constraints are gone.
-    mc.uErrIndex    = s.allocateUErr(getMySubsystemIndex(),    nextUErrSlot);
-    mc.udotErrIndex = s.allocateUDotErr(getMySubsystemIndex(), nextMultSlot);
+    mc.uErrIndex    = s.allocateUErr(getMySubsystemId(),    nextUErrSlot);
+    mc.udotErrIndex = s.allocateUDotErr(getMySubsystemId(), nextMultSlot);
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -401,10 +403,10 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     dvars.allocate(topologyCache);
     setDefaultDynamicsValues(mv, dvars);
     mc.dynamicsVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Dynamics, 
+        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Dynamics, 
                                    new Value<SBDynamicsVars>(dvars));
     mc.dynamicsCacheIndex  = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Dynamics, 
+        s.allocateCacheEntry(getMySubsystemId(),Stage::Dynamics, 
                              new Value<SBDynamicsCache>());
 
     // No reaction variables that I know of. But we can go through the
@@ -414,10 +416,10 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
     setDefaultAccelerationValues(mv, rvars);
 
     mc.accelerationVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemIndex(),Stage::Acceleration, 
+        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Acceleration, 
                                    new Value<SBAccelerationVars>(rvars));
     mc.accelerationCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemIndex(),Stage::Acceleration, 
+        s.allocateCacheEntry(getMySubsystemId(),Stage::Acceleration, 
                              new Value<SBAccelerationCache>());
 
     // Note that qdots, qdotdots, udots, zdots are automatically allocated by
@@ -425,9 +427,9 @@ void SimbodyMatterSubsystemRep::realizeModel(State& s) const {
 }
 
 // Here we lock in parameterization of the model, such as body masses.
-void SimbodyMatterSubsystemRep::realizeInstance(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
-        "SimbodyMatterSubsystemRep::realizeInstance()");
+        "SimbodyMatterSubsystem::realizeInstance()");
 
     const SBModelVars&    mv = getModelVars(s);
     const SBInstanceVars& iv = getInstanceVars(s);
@@ -445,17 +447,17 @@ void SimbodyMatterSubsystemRep::realizeInstance(const State& s) const {
         ic.totalMass += iv.bodyMassProperties[i].getMass();
 }
 
-void SimbodyMatterSubsystemRep::realizeTime(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
-        "SimbodyMatterSubsystemRep::realizeTime()");
+        "SimbodyMatterSubsystem::realizeTime()");
 
     // nothing yet
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void SimbodyMatterSubsystemRep::realizePosition(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
-        "SimbodyMatterSubsystemRep::realizePosition()");
+        "SimbodyMatterSubsystem::realizePosition()");
 
     const SBModelVars&  mv   = getModelVars(s);
     const SBModelCache& mc   = getModelCache(s);
@@ -479,9 +481,9 @@ void SimbodyMatterSubsystemRep::realizePosition(const State& s) const {
 
 // Set generalized speeds: sweep from base to tip.
 // realizePosition() must have been called already.
-void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
+void SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
-        "SimbodyMatterSubsystemRep::realizeVelocity()");
+        "SimbodyMatterSubsystem::realizeVelocity()");
 
     const SBModelVars&     mv   = getModelVars(s);
     const Vector&          q    = getQ(s);
@@ -510,9 +512,9 @@ void SimbodyMatterSubsystemRep::realizeVelocity(const State& s) const {
 // Then go ask around to collect up all the applied forces from any
 // force subsystems.
 
-void SimbodyMatterSubsystemRep::realizeDynamics(const State& s)  const {
+void SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
-        "SimbodyMatterSubsystemRep::realizeDynamics()");
+        "SimbodyMatterSubsystem::realizeDynamics()");
 
     const SBModelVars&     mv = getModelVars(s);
     const SBPositionCache& pc = getPositionCache(s);
@@ -536,9 +538,9 @@ void SimbodyMatterSubsystemRep::realizeDynamics(const State& s)  const {
     mbs.getRep().updKineticEnergy(s) += calcKineticEnergy(s);
 }
 
-void SimbodyMatterSubsystemRep::realizeAcceleration(const State& s)  const {
+void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
-        "SimbodyMatterSubsystemRep::realizeAcceleration()");
+        "SimbodyMatterSubsystem::realizeAcceleration()");
 
     //TODO: kludge set state variables from mbs
     // this needs to be re-engineered so that the forces go right into 
@@ -560,20 +562,36 @@ void SimbodyMatterSubsystemRep::realizeAcceleration(const State& s)  const {
 }
 
 
-int SimbodyMatterSubsystemRep::getQIndex(BodyId body) const 
-  { assert(built);return getRigidBodyNode(body).getQIndex();}
-int SimbodyMatterSubsystemRep::getQAlloc(BodyId body) const 
-  { assert(built);return getRigidBodyNode(body).getMaxNQ();}
-int SimbodyMatterSubsystemRep::getUIndex(BodyId body) const
-  { assert(built);return getRigidBodyNode(body).getUIndex();}
-int SimbodyMatterSubsystemRep::getDOF   (BodyId body) const
-  { assert(built);return getRigidBodyNode(body).getDOF();}
+void SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
+        "SimbodyMatterSubsystem::realizeReport()");
+
+    // nothing yet
+}
+
+
+int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyId body) const {
+    assert(subsystemTopologyHasBeenRealized());
+    return getRigidBodyNode(body).getQIndex();
+}
+int SimbodyMatterSubsystemRep::getQAlloc(MobilizedBodyId body) const {
+    assert(subsystemTopologyHasBeenRealized());
+    return getRigidBodyNode(body).getMaxNQ();
+}
+int SimbodyMatterSubsystemRep::getUIndex(MobilizedBodyId body) const {
+    assert(subsystemTopologyHasBeenRealized());
+    return getRigidBodyNode(body).getUIndex();
+}
+int SimbodyMatterSubsystemRep::getDOF(MobilizedBodyId body) const {
+    assert(subsystemTopologyHasBeenRealized());
+    return getRigidBodyNode(body).getDOF();
+}
 
 // We are in the process of realizingConstruction() when we need to make this call.
 // We pass in the partially-completed Construction-stage cache, which must have all
 // the dimensions properly filled in at this point.
 void SimbodyMatterSubsystemRep::setDefaultModelValues(const SBTopologyCache& topologyCache, 
-                                          SBModelVars& modelVars) const 
+                                                      SBModelVars& modelVars) const 
 {
     // Tree-level defaults
     modelVars.useEulerAngles = false;
@@ -669,7 +687,7 @@ void SimbodyMatterSubsystemRep::setUseEulerAngles(State& s, bool useAngles) cons
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.useEulerAngles = useAngles;
 }
-void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, BodyId body, bool prescribe) const {
+void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribe) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
@@ -682,7 +700,7 @@ bool SimbodyMatterSubsystemRep::getUseEulerAngles(const State& s) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.useEulerAngles;
 }
-bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, BodyId body) const {
+bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.prescribed[body];
 }
@@ -691,7 +709,7 @@ bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, int constrai
     return modelVars.enabled[constraint];
 }
 
-bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, BodyId body) const {
+bool SimbodyMatterSubsystemRep::isUsingQuaternion(const State& s, MobilizedBodyId body) const {
     const RigidBodyNode& n = getRigidBodyNode(body);
     return n.isUsingQuaternion(getModelVars(s));
 }
@@ -701,34 +719,34 @@ int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
     return mc.nQuaternionsInUse;
 }
 
-int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, BodyId body) const {
+int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.quaternionIndex[body];
 }
 
-const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, BodyId body) const { 
+const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, MobilizedBodyId body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
     const SBPositionCache& cc = getPositionCache(s);
     return n.getX_MbM(cc);
 }
-const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, BodyId body) const { 
+const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, MobilizedBodyId body) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBVelocityCache& mc = getVelocityCache(s);
     return n.getV_MbM(mc);
 }
-void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, BodyId body, const Transform& X_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, MobilizedBodyId body, const Transform& X_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
     n.setMobilizerTransform(mv, X_MbM, q);
 }
-void SimbodyMatterSubsystemRep::setMobilizerRotation(State& s, BodyId body, const Rotation& R_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerRotation(State& s, MobilizedBodyId body, const Rotation& R_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     Vector& q = updQ(s);
     n.setMobilizerRotation(mv, R_MbM, q);
 }
-void SimbodyMatterSubsystemRep::setMobilizerTranslation(State& s, BodyId body, const Vec3& T_MbM,
+void SimbodyMatterSubsystemRep::setMobilizerTranslation(State& s, MobilizedBodyId body, const Vec3& T_MbM,
                                                         bool dontChangeOrientation) const 
 { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
@@ -737,21 +755,21 @@ void SimbodyMatterSubsystemRep::setMobilizerTranslation(State& s, BodyId body, c
     n.setMobilizerTranslation(mv, T_MbM, q, dontChangeOrientation);
 }
 
-void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, BodyId body, const SpatialVec& V_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, MobilizedBodyId body, const SpatialVec& V_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     const Vector&        q  = getQ(s);
     Vector& u = updU(s);
     n.setMobilizerVelocity(mv, q, V_MbM, u);
 }
-void SimbodyMatterSubsystemRep::setMobilizerAngularVelocity(State& s, BodyId body, const Vec3& w_MbM) const { 
+void SimbodyMatterSubsystemRep::setMobilizerAngularVelocity(State& s, MobilizedBodyId body, const Vec3& w_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
     const SBModelVars&   mv = getModelVars(s);
     const Vector&        q  = getQ(s);
     Vector& u = updU(s);
     n.setMobilizerAngularVelocity(mv, q, w_MbM, u);
 }
-void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, BodyId body, const Vec3& v_MbM,
+void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, MobilizedBodyId body, const Vec3& v_MbM,
                                                            bool dontChangeAngularVelocity) const 
 { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
@@ -762,7 +780,7 @@ void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, BodyId body
 }
 
 const SpatialVec&
-SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, BodyId body) const
+SimbodyMatterSubsystemRep::getBodyAcceleration(const State& s, MobilizedBodyId body) const
   { return getRigidBodyNode(body).getA_GB(getAccelerationCache(s)); }
 
 void SimbodyMatterSubsystemRep::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const {
@@ -901,7 +919,7 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            RigidBodyNode& node = *rbNodeLevels[i][j];
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcZ(pc,dc,spatialForces[node.getNodeNum()],av, ac);
         }
 }
@@ -1079,7 +1097,7 @@ void SimbodyMatterSubsystemRep::calcInternalGradientFromSpatial(const State& s,
 
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
-            RigidBodyNode& node = *rbNodeLevels[i][j];
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcInternalGradientFromSpatial(pc, zTemp, X, JX);
         }
 }

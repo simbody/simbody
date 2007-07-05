@@ -28,7 +28,7 @@
  */
 
 #include "SimTKsimbody.h"
-#include "simbody/internal/Mobilizer.h"
+#include "simbody/internal/MobilizedBody.h"
 
 #include <cmath>
 #include <cstdio>
@@ -53,25 +53,25 @@ int main(int argc, char** argv) {
 
         // CREATE MULTIBODY SYSTEM AND ITS SUBSYSTEMS
     MultibodySystem         mbs;
+
     SimbodyMatterSubsystem  twoPends(mbs);
     UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceElements    forces(mbs);
     DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS
-    BodyId leftPendulum = 
-        twoPends.addRigidBody(MassProperties(m, Vec3(0), Inertia(0)),
-                     Transform(Vec3(0, d, 0)),
-                     GroundId,
-                     Transform(Vec3(-1, 0, 0)),
-                     Mobilizer::Pin());
+    MobilizedBody::Pin leftPendulum(twoPends.Ground(),
+                                      Transform(Vec3(-1, 0, 0)),
+                                    Body::Rigid(MassProperties(m, Vec3(0), Inertia(1))),
+                                      Transform(Vec3(0, d, 0)));
 
-    BodyId rightPendulum = 
-        twoPends.addRigidBody(MassProperties(m, Vec3(0), Inertia(0)),
-                     Transform(Vec3(0, d, 0)),
-                     GroundId,
-                     Transform(Vec3(1, 0, 0)),
-                     Mobilizer::Pin());
+    MobilizedBody::Pin rightPendulum(twoPends.Ground(),
+                                     Body::Rigid(MassProperties(m, Vec3(0), Inertia(1))));
+
+    rightPendulum.setDefaultInboardFrame(Vec3(1,0,0));
+    rightPendulum.setDefaultOutboardFrame(Vec3(0,d,0));
+
+    rightPendulum.setDefaultAngle(20*Deg2Rad); //TODO!!
 
     // Beauty is in the eye of the beholder ...
     viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
@@ -81,15 +81,15 @@ int main(int argc, char** argv) {
 
     const Real distance = 2;      // nominal length for spring; length for constraint
     const Real stiffness = 100;   // only if spring is used
-    const Real damping   = 1;     //          "
+    const Real damping   = 10;     //          "
 
     char c;
     cout << "Constraint, spring, or nothing? c/s/n"; cin >> c;
 
     if (c == 'c')         
-        twoPends.addConstantDistanceConstraint(leftPendulum, Vec3(0),
-                                               rightPendulum, Vec3(0),
-                                               distance);
+        Constraint::Rod(leftPendulum, Vec3(0),
+                        rightPendulum, Vec3(0),
+                        distance);
     else if (c == 's') {
         forces.addTwoPointLinearSpring(leftPendulum, Vec3(0),
                                        rightPendulum, Vec3(0),
@@ -106,8 +106,8 @@ int main(int argc, char** argv) {
                               DecorativeLine().setColor(c=='c' ? Black : Orange).setLineThickness(4));
 
 
+    State s = mbs.realizeTopology(); // returns a reference to the the default state
 
-    State s;
     mbs.realize(s, Stage::Model); // define appropriate states for this System
 
     // Create a study using the Runge Kutta Merson or CPODES integrator
@@ -117,7 +117,8 @@ int main(int argc, char** argv) {
     const Real dt = 0.005; // output intervals
     const Real finalTime = 5;
 
-    twoPends.setMobilizerQ(s, leftPendulum, 0, -60*Deg2Rad);
+    leftPendulum.setAngle(s, -60*Deg2Rad);
+
     s.setTime(0);
 
     // visualize once before and after assembly
@@ -134,8 +135,8 @@ int main(int argc, char** argv) {
     for (;;) {
         mbs.realize(s);
         printf("%5g %10.4g %10.4g %10.8g h=%g\n", s.getTime(), 
-            twoPends.getMobilizerCoord(s,leftPendulum)*Rad2Deg,
-            twoPends.getMobilizerCoord(s,rightPendulum)*Rad2Deg,
+            leftPendulum.getAngle(s)*Rad2Deg,
+            rightPendulum.getAngle(s)*Rad2Deg,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
 
         display.report(s);

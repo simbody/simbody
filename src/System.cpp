@@ -42,6 +42,9 @@ namespace SimTK {
 
 bool System::isEmptyHandle() const {return rep==0;}
 bool System::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
+bool System::isSameSystem(const System& otherSystem) const {
+    return rep && (rep==otherSystem.rep);
+}
 
 System::~System() {
     if (isOwnerHandle()) delete rep; 
@@ -72,8 +75,24 @@ const String& System::getName()    const {return getRep().getName();}
 const String& System::getVersion() const {return getRep().getVersion();}
 
 int System::getNSubsystems() const {return getRep().getNSubsystems();}
-const Subsystem& System::getSubsystem(int i) const {return getRep().getSubsystem(i);}
-Subsystem& System::updSubsystem(int i) {return updRep().updSubsystem(i);}
+const Subsystem& System::getSubsystem(SubsystemId i) const {return getRep().getSubsystem(i);}
+Subsystem& System::updSubsystem(SubsystemId i) {return updRep().updSubsystem(i);}
+
+const State& System::realizeTopology() const {
+    return getRep().realizeTopology();
+}
+
+bool System::topologyHasBeenRealized() const {
+    return getRep().systemTopologyHasBeenRealized();
+}
+
+const State& System::getDefaultState() const {
+    return getRep().getDefaultState();
+}
+
+void System::realizeModel(State& s) const {
+    return getRep().realizeModel(s);
+}
 
 void System::realize(const State& s, Stage g) const {
     getRep().realize(s,g);
@@ -99,26 +118,109 @@ Real System::calcYErrorNorm(const State& s, const Vector& y_err) const {
     return getRep().calcYErrorNorm(s,y_err);
 }
 
-int System::takeOverSubsystem(Subsystem& src) {
-    return updRep().takeOverSubsystem(src);
+SubsystemId System::adoptSubsystem(Subsystem& src) {
+    return updRep().adoptSubsystem(src);
 }
 
-    ///////////////
-    // SystemRep //
-    ///////////////
+    ////////////////
+    // SYSTEM REP //
+    ////////////////
+
+const State& SystemRep::realizeTopology() const {
+    if (!systemTopologyHasBeenRealized()) {
+        defaultState.clear();
+        defaultState.setNSubsystems(getNSubsystems());
+        for (SubsystemId i(0); i<getNSubsystems(); ++i) 
+            defaultState.initializeSubsystem(i, subsystems[i].getName(), 
+                                                subsystems[i].getVersion());
+        
+        realizeTopologyImpl(defaultState); // defaultState is mutable
+        systemTopologyRealized = true;
+        defaultState.advanceSystemToStage(Stage::Topology);
+
+        // Realize the model using the default settings of the Model variables.
+        // This allocates all the later-stage State variables.
+        realizeModel(defaultState);
+
+        // Now realize the default state to the highest Stage.
+        // TODO: this is problematic if the default state is not a valid one.
+        //realize(defaultState, Stage::HighestValid);
+    }
+    return defaultState;
+}
+
+void SystemRep::realizeModel(State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Topology, 
+        "System::realizeModel()");
+    if (s.getSystemStage() < Stage::Model) {
+        realizeModelImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Model);
+    }
+}
+void SystemRep::realizeInstance(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Instance).prev(), 
+        "System::realizeInstance()");
+    if (s.getSystemStage() < Stage::Instance) {
+        realizeInstanceImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Instance);
+    }
+}
+void SystemRep::realizeTime(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Time).prev(), 
+        "System::realizeTime()");
+    if (s.getSystemStage() < Stage::Time) {
+        realizeTimeImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Time);
+    }
+}
+void SystemRep::realizePosition(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Position).prev(), 
+        "System::realizePosition()");
+    if (s.getSystemStage() < Stage::Position) {
+        realizePositionImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Position);
+    }
+}
+void SystemRep::realizeVelocity(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Velocity).prev(), 
+        "System::realizeVelocity()");
+    if (s.getSystemStage() < Stage::Velocity) {
+        realizeVelocityImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Velocity);
+    }
+}
+void SystemRep::realizeDynamics(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Dynamics).prev(), 
+        "System::realizeDynamics()");
+    if (s.getSystemStage() < Stage::Dynamics) {
+        realizeDynamicsImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Dynamics);
+    }
+}
+void SystemRep::realizeAcceleration(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Acceleration).prev(), 
+        "System::realizeAcceleration()");
+    if (s.getSystemStage() < Stage::Acceleration) {
+        realizeAccelerationImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Acceleration);
+    }
+}
+void SystemRep::realizeReport(const State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Report).prev(), 
+        "System::realizeReport()");
+    if (s.getSystemStage() < Stage::Report) {
+        realizeReportImpl(s);    // take care of the Subsystems
+        s.advanceSystemToStage(Stage::Report);
+    }
+}
 
 void SystemRep::realize(const State& s, Stage g) const {
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, 
+        "System::realize()");
+
     Stage stageNow;
     while ((stageNow=s.getSystemStage()) < g) {
         switch (stageNow) {
-        case Stage::Empty: {
-            // Teach the State about the system & its subsystems.
-            State& mutableState = const_cast<State&>(s);
-            mutableState.setNSubsystems(getNSubsystems());
-            realizeTopology(mutableState); 
-            break;
-        }
-        case Stage::Topology:     realizeModel (const_cast<State&>(s)); break;
         case Stage::Model:        realizeInstance(s);     break;
         case Stage::Instance:     realizeTime(s);         break;
         case Stage::Time:         realizePosition(s);     break;
@@ -128,12 +230,6 @@ void SystemRep::realize(const State& s, Stage g) const {
         case Stage::Acceleration: realizeReport(s);       break;
         default: assert(!"System::realize(): bad stage");
         }
-        // In case the concrete system didn't do anything with the
-        // System Subsystem (subsystem 0), we'll just bump its stage
-        // here.
-        if (s.getSubsystemStage(0) == stageNow)
-            s.advanceSubsystemToStage(0, stageNow.next());
-        s.advanceSystemToStage(stageNow.next());
     }
 }
 

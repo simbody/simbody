@@ -1,7 +1,7 @@
 #ifndef SimTK_SUBSYSTEM_H_
 #define SimTK_SUBSYSTEM_H_
 
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -37,12 +37,12 @@ class System;
  * The abstract parent of all Subsystems.
  * A Subsystem is expected to be part of a larger System and to have
  * interdependencies with other subsystems of that same system. It
- * must NOT have dependencies on objects which are outside the system.
+ * must NOT have dependencies on objects which are outside the System.
  * Consequently construction of any concrete subsystem requires
  * specification of a system at that time.
  * Subsystems go through an extended construction phase in which
  * their contents and interdependencies are created. Thus all
- * of a system's subsystems generally need to be available simultaneously 
+ * of a System's Subsystems generally need to be available simultaneously 
  * during construction, so that they can reference each other.
  */
 class SimTK_SIMBODY_EXPORT Subsystem {
@@ -56,7 +56,7 @@ public:
     const String& getVersion() const;
 
     // Realize the Subsystem to the indicated Stage.
-    void realize(const State& s, Stage g) const;
+    //void realize(const State& s, Stage g) const;
 
     // Generate decorative geometry computable at a specific stage. This will
     // throw an exception if this subsystem's state hasn't already been realized
@@ -66,11 +66,12 @@ public:
     void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
 
 	bool isInSystem() const;
-	bool isInSameSystem(const System&) const;
+	bool isInSameSystem(const Subsystem& otherSubsystem) const;
+
 	const System& getSystem() const;
 	System&       updSystem();
 
-	int getMySubsystemIndex() const;
+	SubsystemId getMySubsystemId() const;
 
     void endConstruction();
 
@@ -159,6 +160,9 @@ public:
     // handle is empty or if its rep points back here.
     bool isOwnerHandle() const;
     bool isEmptyHandle() const;
+
+    // There can be multiple handles on the same Subsystem.
+    bool isSameSubsystem(const Subsystem& otherSubsystem) const;
 
     // Internal use only
     explicit Subsystem(class SubsystemRep* r) : rep(r) { }

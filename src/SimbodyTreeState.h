@@ -103,6 +103,10 @@ class State;
 class SBTopologyCache {
 public:
     SBTopologyCache() {
+        clear();
+    }
+
+    void clear() {
         nBodies = nParticles = nConstraints = nDOFs = maxNQs = sumSqDOFs =
             nDistanceConstraints = modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
@@ -131,6 +135,10 @@ public:
     //   constraint enabling, prescribed motion
 
     SBModelCache() {
+        clear();
+    }
+
+    void clear() {
         instanceVarsIndex = instanceCacheIndex
         = timeVarsIndex = timeCacheIndex
         = qIndex = qVarsIndex = qCacheIndex
@@ -139,6 +147,7 @@ public:
         = accelerationVarsIndex = accelerationCacheIndex
         = nQuaternionsInUse = firstQuaternionQErrSlot 
         = qErrIndex = uErrIndex = udotErrIndex = -1;
+        quaternionIndex.clear();
     }
 
     int instanceVarsIndex, instanceCacheIndex;

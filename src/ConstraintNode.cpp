@@ -24,7 +24,9 @@
 /**@file
  * This file contains the code used to build the various constraint types.
  */
+#include "simbody/internal/MobilizedBody.h"
 
+#include "MobilizedBodyRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 #include "ConstraintNode.h"
 
@@ -39,7 +41,7 @@ using std::setprecision;
 ///////////////////////////////////////////////
 
 /*
- * How to specify a constraint equation:
+ * TODO: How to specify a constraint equation:
  *
  * Required info:
  *
@@ -60,3 +62,45 @@ using std::setprecision;
  * Position level only:
  *    Position error (given q)
  */
+
+
+    //////////////////////////////
+    // CONSTRAINT::ROD::RODREP //
+    /////////////////////////////
+
+ConstraintNode* Constraint::Rod::RodRep::createConstraintNode() const
+{
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    return new ConstantDistanceConstraintNode(
+        sbdyrep.getRigidBodyNode(body1), defaultPoint1,
+        sbdyrep.getRigidBodyNode(body2), defaultPoint2,
+        defaultRodLength);
+}
+
+
+    ///////////////////////////////
+    // CONSTRAINT::BALL::BALLREP //
+    ///////////////////////////////
+
+ConstraintNode* Constraint::Ball::BallRep::createConstraintNode() const {
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    return new CoincidentStationsConstraintNode(
+        sbdyrep.getRigidBodyNode(body1), defaultPoint1,
+        sbdyrep.getRigidBodyNode(body2), defaultPoint2);
+}
+
+
+    ///////////////////////////////
+    // CONSTRAINT::WELD::WELDREP //
+    ///////////////////////////////
+
+ConstraintNode* Constraint::Weld::WeldRep::createConstraintNode() const {
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    return new WeldConstraintNode(
+        sbdyrep.getRigidBodyNode(body1), defaultFrame1,
+        sbdyrep.getRigidBodyNode(body2), defaultFrame2);
+}
+

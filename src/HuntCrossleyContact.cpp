@@ -44,36 +44,36 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
     // client-side class for why.
 
     struct SphereParameters {
-        SphereParameters() : body(-1) { 
+        SphereParameters() { 
             center.setToNaN();
             radius = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
-        SphereParameters(int b, const Vec3& ctr,
+        SphereParameters(MobilizedBodyId b, const Vec3& ctr,
                          const Real& r, const Real& k, const Real& c) 
           : body(b), center(ctr), radius(r), stiffness(std::pow(k,2./3.)), dissipation(c) { 
-            assert(b >= 0);
+            assert(b.isValid());
             assert(radius > 0 && stiffness >= 0 && dissipation >= 0);
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         Vec3 center;    // in body frame
         Real radius, stiffness, dissipation;    // r,k,c from H&C
     };
 
     struct HalfspaceParameters {
-        HalfspaceParameters() : body(-1){ 
+        HalfspaceParameters() { 
             height = stiffness = dissipation = CNT<Real>::getNaN();
         }
 
-        HalfspaceParameters(int b, const UnitVec3& n,
+        HalfspaceParameters(MobilizedBodyId b, const UnitVec3& n,
                             const Real& h, const Real& k, const Real& c) 
           : body(b), normal(n), height(h), stiffness(std::pow(k,2./3.)), dissipation(c) { 
-            assert(b >= 0);
+            assert(b.isValid());
             assert(stiffness >= 0 && dissipation >= 0);
         }
 
-        BodyId body;
+        MobilizedBodyId body;
         UnitVec3 normal;    // in body frame
         Real height, stiffness, dissipation;
     };
@@ -89,54 +89,59 @@ class HuntCrossleyContactRep : public ForceSubsystemRep {
 public:
     HuntCrossleyContactRep()
      : ForceSubsystemRep("HuntCrossleyContact", "0.0.1"), 
-       instanceVarsIndex(-1), built(false)
+       instanceVarsIndex(-1)
     {
     }
-    int addSphere(int body, const Vec3& center,
+    int addSphere(MobilizedBodyId body, const Vec3& center,
                   const Real& radius,
                   const Real& stiffness,
                   const Real& dissipation) 
     {
-        assert(body >= 0 && radius > 0 && stiffness >= 0 && dissipation >= 0);
+        assert(body.isValid() && radius > 0 && stiffness >= 0 && dissipation >= 0);
+
+        invalidateSubsystemTopologyCache(); // this is a topological change
+
         defaultParameters.spheres.push_back(
             SphereParameters(body,center,radius,stiffness,dissipation));
         return (int)defaultParameters.spheres.size() - 1;    
     }
 
-    int addHalfSpace(int body, const UnitVec3& normal,
+    int addHalfSpace(MobilizedBodyId body, const UnitVec3& normal,
                      const Real& height,
                      const Real& stiffness,
                      const Real& dissipation)
     {
-        assert(body >= 0 && stiffness >= 0 && dissipation >= 0);
+        assert(body.isValid() && stiffness >= 0 && dissipation >= 0);
+
+        invalidateSubsystemTopologyCache(); // this is a topological change
+
         defaultParameters.halfSpaces.push_back(
             HalfspaceParameters(body,normal,height,stiffness,dissipation));
         return (int)defaultParameters.halfSpaces.size() - 1;
     }
 
-    void realizeTopology(State& s) const {
-        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemIndex(), Stage::Instance, 
+    void realizeSubsystemTopologyImpl(State& s) const {
+        instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
-        built = true;
     }
 
-    void realizeModel(State& s) const {
+    void realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
     }
 
-    void realizeInstance(const State& s) const {
+    void realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeTime(const State& s) const {
+    void realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizePosition(const State& s) const {
+    void realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
     }
 
-    void realizeVelocity(const State& s) const {
+    void realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
     }
 
@@ -147,30 +152,36 @@ public:
     // It doesn't take many objects before that first term is very expensive.
     // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-    void realizeDynamics(const State& s) const;
+    void realizeSubsystemDynamicsImpl(const State& s) const;
 
-    void realizeAcceleration(const State& s) const {
+    void realizeSubsystemAccelerationImpl(const State& s) const {
+        // Nothing to compute here.
+    }
+
+    void realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
     }
 
     HuntCrossleyContactRep* cloneSubsystemRep() const {return new HuntCrossleyContactRep(*this);}
 
 private:
-    // topological variables
+        // TOPOLOGY "STATE" VARIABLES
+
     Parameters defaultParameters;
 
-    // These must be filled in during realizeTopology and treated
+        // TOPOLOGY "CACHE" VARIABLES
+
+    // This must be filled in during realizeTopology and treated
     // as const thereafter. These are garbage unless built=true.
     mutable int instanceVarsIndex;
-    mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
@@ -241,7 +252,7 @@ HuntCrossleyContact::HuntCrossleyContact(MultibodySystem& mbs)
     mbs.addForceSubsystem(*this); // steal ownership
 }
 
-int HuntCrossleyContact::addSphere(int body, const Vec3& center,
+int HuntCrossleyContact::addSphere(MobilizedBodyId body, const Vec3& center,
               const Real& radius,
               const Real& stiffness,
               const Real& dissipation)
@@ -249,7 +260,7 @@ int HuntCrossleyContact::addSphere(int body, const Vec3& center,
     return updRep().addSphere(body,center,radius,stiffness,dissipation);
 }
 
-int HuntCrossleyContact::addHalfSpace(int body, const UnitVec3& normal,
+int HuntCrossleyContact::addHalfSpace(MobilizedBodyId body, const UnitVec3& normal,
                  const Real& height,
                  const Real& stiffness,
                  const Real& dissipation)
@@ -270,7 +281,7 @@ int HuntCrossleyContact::addHalfSpace(int body, const UnitVec3& normal,
 // It doesn't take many spheres before that first term is very expensive.
 // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-void HuntCrossleyContactRep::realizeDynamics(const State& s) const 
+void HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const 
 {
     const Parameters& p = getParameters(s);
     if (!p.enabled) return;

@@ -142,7 +142,7 @@ public:
     /// By default the geometry will be placed on ground. If you want it attached to
     /// another body, say so here. This geometry will be rendered with respect to the
     /// body frame of the specified body.
-    DecorativeGeometry& setBodyId(BodyId);
+    DecorativeGeometry& setBodyId(MobilizedBodyId);
 
     /// This transform shifts the generated polygons with respect to this object's
     /// local frame. Subsequent calls with other transforms simply replace the earlier
@@ -169,7 +169,7 @@ public:
 
     /// Return the body to which this geometry is attached. The geometry's placement is
     /// interpreted relative to the body's frame.
-    BodyId getBodyId() const;
+    MobilizedBodyId getBodyId() const;
 
     /// Return the current setting of the "resolution" factor. A return value of -1
     /// means "use the default".
@@ -241,7 +241,7 @@ public:
     explicit DecorativeLine(const Vec3& p1=Vec3(0), const Vec3& p2=Vec3(1)); // line between p1 and p2
 
     // Retain the derived type when setting generic geometry options.
-    DecorativeLine& setBodyId(BodyId b)       {DecorativeGeometry::setBodyId(b);        return *this;}
+    DecorativeLine& setBodyId(MobilizedBodyId b)       {DecorativeGeometry::setBodyId(b);        return *this;}
     DecorativeLine& setTransform(const Transform& X_BD) {DecorativeGeometry::setTransform(X_BD); return *this;}
     DecorativeLine& setResolution(Real r)     {DecorativeGeometry::setResolution(r);    return *this;}
     DecorativeLine& setScale(Real s)          {DecorativeGeometry::setScale(s);         return *this;}

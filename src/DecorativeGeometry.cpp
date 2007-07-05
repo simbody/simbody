@@ -74,8 +74,8 @@ DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
     *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
 }
 
-DecorativeGeometry& DecorativeGeometry::setBodyId(BodyId b) {updRep().setBodyId(b);return *this;}
-BodyId DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
+DecorativeGeometry& DecorativeGeometry::setBodyId(MobilizedBodyId b) {updRep().setBodyId(b);return *this;}
+MobilizedBodyId DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
 
 DecorativeGeometry& DecorativeGeometry::setTransform(const Transform& X_BD) {updRep().setTransform(X_BD);return *this;}
 const Transform& DecorativeGeometry::getTransform() const    {return getRep().getTransform();}

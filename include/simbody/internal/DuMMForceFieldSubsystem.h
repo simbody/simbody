@@ -94,7 +94,7 @@ public:
     Real   getAtomRadius(int atomId) const;
     Vec3   getAtomStationOnBody(int atomId) const;
     Vec3   getAtomStationInCluster(int atomId, int clusterId) const;
-    BodyId getAtomBody(int atomId) const;
+    MobilizedBodyId getAtomBody(int atomId) const;
     Vec3   getAtomDefaultColor(int atomId) const;
 
     int  getNBonds() const;
@@ -124,14 +124,14 @@ public:
     // frame or transformed to the indicated frame.
     MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
 
-    BodyId    getClusterBody(int clusterId) const;
+    MobilizedBodyId    getClusterBody(int clusterId) const;
     Transform getClusterPlacementOnBody(int clusterId) const;
     Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
 
         // BODIES
 
-    void attachClusterToBody(int clusterId, BodyId body, const Transform& = Transform());
-    void attachAtomToBody   (int atomId,    BodyId body, const Vec3& station = Vec3(0));
+    void attachClusterToBody(int clusterId, MobilizedBodyId body, const Transform& = Transform());
+    void attachAtomToBody   (int atomId,    MobilizedBodyId body, const Vec3& station = Vec3(0));
 
         // DEFINE FORCE FIELD PARAMETERS
     

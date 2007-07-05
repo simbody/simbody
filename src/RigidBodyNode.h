@@ -294,6 +294,7 @@ public:
         // ACCELERATION INFO
 
     const SpatialVec& getAppliedBodyForce(const SBAccelerationVars& av) const {return fromB(av.appliedRigidBodyForces);}
+    SpatialVec&       updAppliedBodyForce(SBAccelerationVars& av)       const {return toB(av.appliedRigidBodyForces);}
   
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
@@ -622,7 +623,7 @@ protected:
 
     // These are the default body properties, all supplied or calculated on
     // construction. TODO: they should be 
-    // (optionally?) overrideable by Instance-level cache entries.
+    // (optionally?) overrideable by Instance-level state variable entries.
 
     /// This is the mass, center of mass, and inertia as supplied at construction.
     /// Here the inertia is taken about the B origin OB.

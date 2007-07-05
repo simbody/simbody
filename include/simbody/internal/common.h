@@ -81,30 +81,57 @@ extern "C" {
 namespace SimTK {
 
 static const int invalidId = -1111111111;
+
 /**
  * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidBodyId. For most uses it will behave like an int,
+ * value called InvalidSubsystemId. For most uses it will behave like an int,
  * and it has an implicit conversion *to* int. Importantly though,
  * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as  a BodyId.
- *
- * BodyId 0 is Ground, and we define a constant GroundId set to BodyId(0).
+ * other kind of number as a SubsystemId.
  */
-class BodyId {
+class SubsystemId {
     int id;
 public:
-    inline BodyId();
-    inline explicit BodyId(int i);
+    inline SubsystemId();
+    inline explicit SubsystemId(int i);
     operator int() const {return id;}
-    const BodyId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
-    BodyId operator++(int)     {assert(id>=0); ++id; return BodyId(id-1);}  // postfix
-    const BodyId& operator--() {assert(id>=1); --id;return *this;}          // prefix
-    BodyId operator--(int)     {assert(id>=1); --id; return BodyId(id+1);}  // postfix
+    bool isValid() const {return id>=0;}
+    const SubsystemId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
+    SubsystemId operator++(int)     {assert(id>=0); ++id; return SubsystemId(id-1);} // postfix
+    const SubsystemId& operator--() {assert(id>=1); --id;return *this;}           // prefix
+    SubsystemId operator--(int)     {assert(id>=1); --id; return SubsystemId(id+1);} // postfix
 };
-static const BodyId GroundId(0);
-static const BodyId InvalidBodyId(invalidId);
-inline BodyId::BodyId() : id(InvalidBodyId) { }
-inline BodyId::BodyId(int i) : id(i) {
+static const SubsystemId InvalidSubsystemId(invalidId);
+inline SubsystemId::SubsystemId() : id(InvalidSubsystemId) { }
+inline SubsystemId::SubsystemId(int i) : id(i) {
+    assert(i>=0 || i==invalidId);
+}
+
+/**
+ * This is just a type-safe non-negative int, augmented with a "NaN" 
+ * value called InvalidMobilizedBodyId. For most uses it will behave like an int,
+ * and it has an implicit conversion *to* int. Importantly though,
+ * it has no implicit conversion *from* int so you can't pass some
+ * other kind of number as a MobilizedBodyId.
+ * 
+ * We also predefine GroundId which is always MobilizedBodyId(0).
+ */
+class MobilizedBodyId {
+    int id;
+public:
+    inline MobilizedBodyId();
+    inline explicit MobilizedBodyId(int i);
+    operator int() const {return id;}
+    bool isValid() const {return id>=0;}
+    const MobilizedBodyId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
+    MobilizedBodyId operator++(int)     {assert(id>=0); ++id; return MobilizedBodyId(id-1);} // postfix
+    const MobilizedBodyId& operator--() {assert(id>=1); --id;return *this;}           // prefix
+    MobilizedBodyId operator--(int)     {assert(id>=1); --id; return MobilizedBodyId(id+1);} // postfix
+};
+static const MobilizedBodyId GroundId(0);
+static const MobilizedBodyId InvalidMobilizedBodyId(invalidId);
+inline MobilizedBodyId::MobilizedBodyId() : id(InvalidMobilizedBodyId) { }
+inline MobilizedBodyId::MobilizedBodyId(int i) : id(i) {
     assert(i>=0 || i==invalidId);
 }
 
@@ -121,6 +148,7 @@ public:
     inline ParticleId();
     inline explicit ParticleId(int i);
     operator int() const {return id;}
+    bool isValid() const {return id>=0;}
     const ParticleId& operator++() {assert(id>=0); ++id;return *this;}             // prefix
     ParticleId operator++(int)     {assert(id>=0); ++id; return ParticleId(id-1);} // postfix
     const ParticleId& operator--() {assert(id>=1); --id;return *this;}             // prefix
@@ -145,6 +173,7 @@ public:
     inline ConstraintId();
     inline explicit ConstraintId(int i);
     operator int() const {return id;}
+    bool isValid() const {return id>=0;}
     const ConstraintId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
     ConstraintId operator++(int)     {assert(id>=0); ++id; return ConstraintId(id-1);}  // postfix
     const ConstraintId& operator--() {assert(id>=1); --id;return *this;}          // prefix
@@ -181,7 +210,7 @@ public:
 class MobilizerCantExactlyRepresentRequestedQuantity : public Base {
 public:
     MobilizerCantExactlyRepresentRequestedQuantity(const char* fn, int ln, 
-       String method, BodyId body, String quantity) : Base(fn,ln)
+       String method, MobilizedBodyId body, String quantity) : Base(fn,ln)
     {
         setMessage(method + "(): the mobilizer for body " + String((int)body)
             + " can't represent the given " + quantity + " to machine precision");

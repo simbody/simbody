@@ -29,6 +29,9 @@
  */
 
 #include "SimTKsimbody.h"
+#include "simbody/internal/MobilizedBody.h"
+
+#include "MobilizedBodyRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 class RigidBodyNode;
 
@@ -71,6 +74,7 @@ SimbodyMatterSubsystem::SimbodyMatterSubsystem()
 {
     rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
+    updRep().createGroundBody(); //TODO: handle this differently
 }
 
 SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs) 
@@ -78,68 +82,35 @@ SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs)
 {
     rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
+    updRep().createGroundBody(); //TODO: handle this differently
     mbs.setMatterSubsystem(*this);
 }
 
-BodyId SimbodyMatterSubsystem::addRigidBody(
-    const MassProperties&     mp,
-    const Transform&          bodyJointFrameInB,    // X_BJ
-    BodyId                    parent,
-    const Transform&          parentJointFrameInP,  // X_PJb
-    const Mobilizer&         mobilizer)
-{
-    const int save = getRep().nextUSlot;
 
-    RigidBodyNode& pn = updRep().updRigidBodyNode(parent);
-    const int rbIndex = updRep().addRigidBodyNode(pn,
-        mp, parentJointFrameInP, bodyJointFrameInB, mobilizer, 
-        updRep().nextUSlot, updRep().nextUSqSlot, updRep().nextQSlot);
-
-    //cout << "CREATED BODY " << rbIndex << ": U states " << save << "-" << getRep().nextUSlot-1 << endl;
-    return BodyId(rbIndex);
+MobilizedBodyId SimbodyMatterSubsystem::adoptMobilizedBody(MobilizedBodyId parent, MobilizedBody& child) {
+    return updRep().adoptMobilizedBody(parent,child);
+}
+const MobilizedBody& SimbodyMatterSubsystem::getMobilizedBody(MobilizedBodyId id) const {
+    return getRep().getMobilizedBody(id);
+}
+MobilizedBody& SimbodyMatterSubsystem::updMobilizedBody(MobilizedBodyId id) {
+    return updRep().updMobilizedBody(id);
+}
+const MobilizedBody::Ground& SimbodyMatterSubsystem::Ground() const {
+    return getRep().getGround();
+}
+MobilizedBody::Ground& SimbodyMatterSubsystem::Ground() {
+    return updRep().updGround();
 }
 
-// "Functional" implementation for Paul's use.
-// TODO: these should be special cased for efficiency.
-// NOTE: users should not be allowed to specify the returned body number as an
-// inboard body, but this implementation doesn't enforce that.
-BodyId SimbodyMatterSubsystem::addFreeRigidBody(const MassProperties& mp, BodyId parent) {
-    return addRigidBody(mp, Transform(), parent, Transform(), Mobilizer::Free());
+ConstraintId SimbodyMatterSubsystem::adoptConstraint(Constraint& child) {
+    return updRep().adoptConstraint(child);
 }
-
-// See previous routine's comments.
-BodyId SimbodyMatterSubsystem::addFreeParticle (const Real& mass, BodyId parent) {
-    return addRigidBody(MassProperties(mass,Vec3(0),Inertia()), Transform(), parent, Transform(),
-                        Mobilizer::Translation());
+const Constraint& SimbodyMatterSubsystem::getConstraint(ConstraintId id) const {
+    return getRep().getConstraint(id);
 }
-
-ConstraintId SimbodyMatterSubsystem::addConstantDistanceConstraint
-    (BodyId parent, const Vec3& stationInP,
-     BodyId child,  const Vec3& stationInC,
-     const Real& distance)
-{
-    return updRep().addConstantDistanceConstraint(
-       getRep().getRigidBodyNode(parent), stationInP,
-       getRep().getRigidBodyNode(child),  stationInC,
-       distance);
-}
-
-ConstraintId SimbodyMatterSubsystem::addCoincidentStationsConstraint
-    (BodyId parent, const Vec3& stationInP,
-     BodyId child,  const Vec3& stationInC)
-{
-    return updRep().addCoincidentStationsConstraint(
-       getRep().getRigidBodyNode(parent), stationInP,
-       getRep().getRigidBodyNode(child),  stationInC);
-}
-
-ConstraintId SimbodyMatterSubsystem::addWeldConstraint
-    (BodyId parent, const Transform& frameInP,
-     BodyId child,  const Transform& frameInC)
-{
-    return updRep().addWeldConstraint(
-       getRep().getRigidBodyNode(parent), frameInP,
-       getRep().getRigidBodyNode(child),  frameInC);
+Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintId id) {
+    return updRep().updConstraint(id);
 }
 
 // Note the lack of a State argument when completing construction.
@@ -208,21 +179,21 @@ int SimbodyMatterSubsystem::getTotalDOF()       const {return getRep().getTotalD
 int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
 int SimbodyMatterSubsystem::getNConstraints()   const {return getRep().getNConstraints();}
 
-int SimbodyMatterSubsystem::getQIndex(BodyId body) const {return getRep().getQIndex(body);}
-int SimbodyMatterSubsystem::getQAlloc(BodyId body) const {return getRep().getQAlloc(body);}
-int SimbodyMatterSubsystem::getUIndex(BodyId body) const {return getRep().getUIndex(body);}
-int SimbodyMatterSubsystem::getDOF   (BodyId body) const {return getRep().getDOF(body);}
+int SimbodyMatterSubsystem::getQIndex(MobilizedBodyId body) const {return getRep().getQIndex(body);}
+int SimbodyMatterSubsystem::getQAlloc(MobilizedBodyId body) const {return getRep().getQAlloc(body);}
+int SimbodyMatterSubsystem::getUIndex(MobilizedBodyId body) const {return getRep().getUIndex(body);}
+int SimbodyMatterSubsystem::getDOF   (MobilizedBodyId body) const {return getRep().getDOF(body);}
 
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
-void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, BodyId body, bool prescribed) const
+void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribed) const
   { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
 void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
   { getRep().setConstraintIsEnabled(s,constraint,enabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
-bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, BodyId body) const
+bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const
   { return getRep().isMobilizerPrescribed(s,body); }
 bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
@@ -230,10 +201,10 @@ bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint)
 int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
     return getRep().getNQuaternionsInUse(s);
 }
-bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, BodyId body) const {
+bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyId body) const {
     return getRep().isUsingQuaternion(s, body);
 }
-int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, BodyId body) const {
+int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
     return getRep().getQuaternionIndex(s, body);
 }
 
@@ -252,24 +223,24 @@ void SimbodyMatterSubsystem::enforceVelocityConstraints(State& s, const Real& re
   { getRep().enforceVelocityConstraints(s, requiredTol, desiredTol); }
 
 const SpatialVec&
-SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, BodyId body) const {
+SimbodyMatterSubsystem::getCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
     return getRep().getCoriolisAcceleration(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, BodyId body) const {
+SimbodyMatterSubsystem::getTotalCoriolisAcceleration(const State& s, MobilizedBodyId body) const {
     return getRep().getTotalCoriolisAcceleration(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getGyroscopicForce(const State& s, BodyId body) const {
+SimbodyMatterSubsystem::getGyroscopicForce(const State& s, MobilizedBodyId body) const {
     return getRep().getGyroscopicForce(s,body);
 }
 const SpatialVec&
-SimbodyMatterSubsystem::getCentrifugalForces(const State& s, BodyId body) const {
+SimbodyMatterSubsystem::getCentrifugalForces(const State& s, MobilizedBodyId body) const {
     return getRep().getCentrifugalForces(s,body);
 }
 
 const SpatialMat& 
-SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, BodyId body) const {
+SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyId body) const {
     return getRep().getArticulatedBodyInertia(s,body);
 }
 

@@ -336,6 +336,8 @@ public:
     }
     CPodesIntegrator* clone() const {assert(false); return 0;}
 
+    const CPodes& getCPodes() const {assert(cpodes); return *cpodes;}
+
     bool initialize() {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "CPodesIntegrator::initialize()");
@@ -374,8 +376,8 @@ public:
         cpodes->lapackDense(ny);
         cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
         cpodes->setMaxNumSteps(50000);
-        //cpodes->projDefine();
-        /**/
+        cpodes->projDefine();
+        /*
         if (nc) {
             cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear,
                     Vector(nc, getConstraintTolerance()));
@@ -461,6 +463,7 @@ private:
             = CNT<Real>::getNaN();
 
         cpodes = new CPodes(CPodes::ExplicitODE, CPodes::BDF, CPodes::Newton);
+        //cpodes = new CPodes(CPodes::ExplicitODE, CPodes::BDF, CPodes::Functional);
         sys = new CPodesMultibodySystem(this);
     }
 

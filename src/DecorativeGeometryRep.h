@@ -48,10 +48,10 @@ public:
         clearMyHandle();
     }
 
-    void setBodyId(BodyId b) {
+    void setBodyId(MobilizedBodyId b) {
         body = b;
     }
-    BodyId getBodyId() const {return body;}
+    MobilizedBodyId getBodyId() const {return body;}
 
     void setTransform(const Transform& X_BD) {
         placement = X_BD;
@@ -120,7 +120,7 @@ private:
     friend class DecorativeGeometry;
 
     // These will be handled as we generate the PolyData.
-    BodyId    body;
+    MobilizedBodyId    body;
     Transform placement;    // default is identity
     Real      resolution;   // -1 means use default
     Real      scale;        // -1 means use default

@@ -57,28 +57,27 @@ static int NSegments = 3;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
-        PerBodyInfo(int b, bool d) : bnum(b), isDuplex(d) { }
-        int  bnum;
+        PerBodyInfo(MobilizedBodyId b, bool d) : bnum(b), isDuplex(d) { }
+        MobilizedBodyId bnum;
         bool isDuplex;
     };
     std::vector<PerBodyInfo> bodyInfo;
-    BodyId end1, end2;
+    MobilizedBodyId end1, end2;
 public:
     MyRNAExample(MultibodySystem& mbs, int nsegs, bool shouldFlop) : SimbodyMatterSubsystem(mbs)
     {
-        bodyInfo.push_back(PerBodyInfo(0, false)); // placeholder for ground
+        bodyInfo.push_back(PerBodyInfo(GroundId, false)); // placeholder for ground
         end1 = makeChain(GroundId, Vec3(0), nsegs, shouldFlop);
         end2 = makeChain(GroundId, Vec3(20,0,0), nsegs, shouldFlop);
 
         if (true) {
-            ConstraintId theConstraint2 =
-               addConstantDistanceConstraint(end1, Vec3(0, -HalfHeight,0),
-                                             end2, Vec3(0, -HalfHeight,0), 10);
+            Constraint::Rod theConstraint2(updMobilizedBody(end1), Vec3(0, -HalfHeight,0),
+                                           updMobilizedBody(end2), Vec3(0, -HalfHeight,0), 10);
         }
 
     }
 
-    void decorateBody(BodyId bodyNum, VTKReporter& display) const {
+    void decorateBody(MobilizedBodyId bodyNum, VTKReporter& display) const {
         assert(bodyInfo[bodyNum].bnum == bodyNum);
         if (bodyInfo[bodyNum].isDuplex)
             addDuplexDecorations(bodyNum, DuplexRadius, HalfHeight, CylinderSlop, 
@@ -95,60 +94,53 @@ public:
 
 private:
 
-    BodyId makeChain(BodyId startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
-        BodyId baseBody = startBody;
+    MobilizedBodyId makeChain(MobilizedBodyId startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
+        MobilizedBodyId baseBodyId = startBody;
         Vec3 origin = startOrigin;
-        BodyId lastDup;
+        MobilizedBodyId lastDupId;
         for (int seg=0; seg < nSegs; ++seg) {
-            BodyId left1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
-                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
-                             baseBody,
-                             Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
-                             Mobilizer::Ball());
+            MobilizedBody& baseBody = updMobilizedBody(baseBodyId);
+
+            MobilizedBody::Ball left1(
+                baseBody, Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
+                Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
+                Transform(Vec3(0, ConnectorHalfHeight, 0)));
             bodyInfo.push_back(PerBodyInfo(left1, false));
 
-            BodyId left2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
-                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
-                             left1,
-                             Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             Mobilizer::Ball());
+            MobilizedBody::Ball left2(
+                left1, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
+                Transform(Vec3(0, ConnectorHalfHeight, 0)));
             bodyInfo.push_back(PerBodyInfo(left2, false));
 
-            BodyId rt1 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
-                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
-                             baseBody,
-                             Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
-                             Mobilizer::Ball());
+            MobilizedBody::Ball rt1(
+                baseBody, Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
+                Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
+                Transform(Vec3(0, ConnectorHalfHeight, 0)));
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
-            BodyId rt2 = addRigidBody(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity),
-                             Transform(Vec3(0, ConnectorHalfHeight, 0)),
-                             rt1,
-                             Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                             Mobilizer::Ball());
+            MobilizedBody::Ball rt2(                             
+                rt1, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
+                Transform(Vec3(0, ConnectorHalfHeight, 0)));
             bodyInfo.push_back(PerBodyInfo(rt2, false));
 
-            BodyId dup = addRigidBody(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass),
-                                Transform(Vec3(-DuplexRadius, HalfHeight, 0)),
-                                rt2,
-                                Transform(Vec3(0, -ConnectorHalfHeight, 0)),
-                                Mobilizer::Ball());
+            MobilizedBody::Ball dup(
+                rt2, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
+                Body::Rigid(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass)),
+                                Transform(Vec3(-DuplexRadius, HalfHeight, 0)));
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {
-                ConstraintId theConstraint =
-                    addCoincidentStationsConstraint(left2, Vec3(0, -ConnectorHalfHeight, 0),
-                                                    dup, Vec3(DuplexRadius, HalfHeight, 0));
-                //int theConstraint =
-                  //  addConstantDistanceConstraint(rt2, Vec3(0, -ConnectorHalfHeight, 0),
-                  //                                dup, Vec3(DuplexRadius, HalfHeight, 0), .01);
+                Constraint::Ball theConstraint(left2, Vec3(0, -ConnectorHalfHeight, 0),
+                                               dup, Vec3(DuplexRadius, HalfHeight, 0));
             }
 
-            baseBody = dup;
+            lastDupId = dup.getMobilizedBodyId();
+            baseBodyId = lastDupId;
             origin = Vec3(0);
-            lastDup = dup;
         }
-        return lastDup;
+        return lastDupId;
     }
 
     MassProperties calcDuplexMassProps(
@@ -181,7 +173,7 @@ private:
         return MassProperties(mass,com,iner);
     }
 
-    void addDuplexDecorations(BodyId bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
+    void addDuplexDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real slop, int nAtoms,
                               Real atomRadius, VTKReporter& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -201,7 +193,7 @@ private:
         }
     }
 
-    void addConnectorDecorations(BodyId bodyNum, Real r, Real halfHeight, Real endSlop,  
+    void addConnectorDecorations(MobilizedBodyId bodyNum, Real r, Real halfHeight, Real endSlop,  
                                  VTKReporter& display) const
     {
         display.addDecoration(bodyNum, Transform(), 
@@ -227,8 +219,8 @@ try // If anything goes wrong, an exception will be thrown.
 
     const Vec3 attachPt(150, -40, -50);
 
-    forces.addTwoPointLinearSpring(0, attachPt,
-                                   myRNA.getNBodies()-1, Vec3(0),
+    forces.addTwoPointLinearSpring(GroundId, attachPt,
+                                   MobilizedBodyId(myRNA.getNBodies()-1), Vec3(0),
                                    1000.,  // stiffness
                                    1.);    // natural length
 
@@ -241,13 +233,12 @@ try // If anything goes wrong, an exception will be thrown.
     forces.addGlobalEnergyDrain(1000);
 
 
-    State s;
-    mbs.realize(s, Stage::Topology);
+    State s = mbs.realizeTopology();
     //myRNA.setUseEulerAngles(s,true);
-    mbs.realize(s, Stage::Model);
+    mbs.realizeModel(s);
 
     printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
-    for (BodyId i(0); i<myRNA.getNBodies(); ++i) {
+    for (MobilizedBodyId i(0); i<myRNA.getNBodies(); ++i) {
         printf("body %2d: using quat? %s; quat index=%d\n",
             (int)i, myRNA.isUsingQuaternion(s,i) ? "true":"false", 
             myRNA.getQuaternionIndex(s,i));
@@ -265,17 +256,17 @@ try // If anything goes wrong, an exception will be thrown.
     bool suppressProject = false;
     RungeKuttaMerson myStudy(mbs, s, suppressProject);
     //CPodesIntegrator myStudy(mbs, s);
-    myStudy.setAccuracy(1e-3);
-    myStudy.setConstraintTolerance(1e-3);
+    myStudy.setAccuracy(1e-2);
+    myStudy.setConstraintTolerance(1e-3); 
     myStudy.setProjectEveryStep(false);
 
     VTKReporter display(mbs);
-    for (BodyId i(1); i<myRNA.getNBodies(); ++i)
+    for (MobilizedBodyId i(1); i<myRNA.getNBodies(); ++i)
         myRNA.decorateBody(i, display);
     myRNA.decorateGlobal(display);
 
     DecorativeLine rbProto; rbProto.setColor(Orange).setLineThickness(3);
-    display.addRubberBandLine(GroundId, attachPt,BodyId(myRNA.getNBodies()-1),Vec3(0), rbProto);
+    display.addRubberBandLine(GroundId, attachPt,MobilizedBodyId(myRNA.getNBodies()-1),Vec3(0), rbProto);
     //display.addRubberBandLine(GroundId, -attachPt,myRNA.getNBodies()-1,Vec3(0), rbProto);
 
     const Real dt = 0.05; // output intervals
@@ -303,8 +294,8 @@ try // If anything goes wrong, an exception will be thrown.
         cout << "QERR=" << s.getQErr() << endl;
         cout << "UERR=" << s.getUErr() << endl;
 
-        if (s.getTime() - std::floor(s.getTime()) < 0.2)
-            display.addEphemeralDecoration( DecorativeSphere(10).setColor(Green) );
+        //if (s.getTime() - std::floor(s.getTime()) < 0.2)
+        //    display.addEphemeralDecoration( DecorativeSphere(10).setColor(Green) );
 
         display.report(s);
         saveEm.push_back(s);

@@ -31,13 +31,14 @@
 #include "simbody/internal/MultibodySystem.h"
 
 #include "MultibodySystemRep.h"
+#include "DecorationSubsystemRep.h"
 
 namespace SimTK {
 
-    /////////////////////
-    // MultibodySystem //
-    /////////////////////
 
+    //////////////////////
+    // MULTIBODY SYSTEM //
+    //////////////////////
 
 /*static*/ bool 
 MultibodySystem::isInstanceOf(const System& s) {
@@ -170,9 +171,102 @@ MultibodySystem::updMobilityForces(const State& s) const {
 }
 
 
-    ////////////////////////////////////
-    // MultibodySystemGlobalSubsystem //
-    ////////////////////////////////////
+    //////////////////////////
+    // MULTIBODY SYSTEM REP //
+    //////////////////////////
+
+void MultibodySystemRep::realizeTopologyImpl(State& s) const {
+    assert(globalSub.isValid());
+    assert(matterSub.isValid());
+
+    getGlobalSubsystem().getRep().realizeSubsystemTopology(s);
+    getMatterSubsystem().getRep().realizeSubsystemTopology(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTopology(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemTopology(s);
+}
+void MultibodySystemRep::realizeModelImpl(State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemModel(s);
+    getMatterSubsystem().getRep().realizeSubsystemModel(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemModel(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemModel(s);
+}
+void MultibodySystemRep::realizeInstanceImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemInstance(s);
+    getMatterSubsystem().getRep().realizeSubsystemInstance(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemInstance(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemInstance(s);
+}
+void MultibodySystemRep::realizeTimeImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemTime(s);
+    getMatterSubsystem().getRep().realizeSubsystemTime(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTime(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemTime(s);
+}
+void MultibodySystemRep::realizePositionImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemPosition(s);
+    getMatterSubsystem().getRep().realizeSubsystemPosition(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemPosition(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemPosition(s);
+}
+void MultibodySystemRep::realizeVelocityImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemVelocity(s);
+    getMatterSubsystem().getRep().realizeSubsystemVelocity(s);
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemVelocity(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemVelocity(s);
+}
+void MultibodySystemRep::realizeDynamicsImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemDynamics(s);
+    // note order: forces first (TODO: does that matter?)
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemDynamics(s);
+    getMatterSubsystem().getRep().realizeSubsystemDynamics(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemDynamics(s);
+}
+void MultibodySystemRep::realizeAccelerationImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemAcceleration(s);
+    // note order: forces first (TODO: does that matter?)
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemAcceleration(s);
+    getMatterSubsystem().getRep().realizeSubsystemAcceleration(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemAcceleration(s);
+}
+void MultibodySystemRep::realizeReportImpl(const State& s) const {
+    getGlobalSubsystem().getRep().realizeSubsystemReport(s);
+    // note order: forces first (TODO: does that matter?)
+    for (int i=0; i < (int)forceSubs.size(); ++i)
+        getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemReport(s);
+    getMatterSubsystem().getRep().realizeSubsystemReport(s);
+
+    if (hasDecorationSubsystem())
+        getDecorationSubsystem().getRep().realizeSubsystemReport(s);
+}
+
+
+    ///////////////////////////////////////
+    // MULTIBODY SYSTEM GLOBAL SUBSYSTEM //
+    ///////////////////////////////////////
 
 
 /*static*/ bool 
@@ -199,9 +293,9 @@ MultibodySystemGlobalSubsystem::updRep() {
     return dynamic_cast<MultibodySystemGlobalSubsystemRep&>(*rep);
 }
 
-    //////////////////////////////
-    // MolecularMechanicsSystem //
-    //////////////////////////////
+    ////////////////////////////////
+    // MOLECULAR MECHANICS SYSTEM //
+    ////////////////////////////////
 
 class DuMMForceFieldSubsystem;
 

@@ -47,8 +47,12 @@ public:
     MatterSubsystemRep(const String& name, const String& version)
       : SubsystemRep(name,version)
     {
+        // Ground must be the 0th MobilizedBody; concrete MatterSubsystem
+        // should be sure to call createGroundBody() after handle is set.
     }
-    virtual ~MatterSubsystemRep() { }
+    virtual ~MatterSubsystemRep() {
+        invalidateSubsystemTopologyCache();
+    }
 
     // Return the MultibodySystem which owns this MatterSubsystem.
     const MultibodySystem& getMultibodySystem() const {
@@ -57,6 +61,9 @@ public:
 
     const MatterSubsystem& getMyMatterSubsystemHandle() const {
         return MatterSubsystem::downcast(getMyHandle());
+    }
+    MatterSubsystem& updMyMatterSubsystemHandle() {
+        return MatterSubsystem::updDowncast(updMyHandle());
     }
 
     void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
@@ -80,27 +87,28 @@ public:
     }
 
         // TOPOLOGY STAGE //
+
     virtual int getNBodies()      const = 0;    // includes ground, also # mobilizers (tree joints) +1
     virtual int getNParticles()   const {return 0;} // TODO
     virtual int getNMobilities()  const = 0;
     virtual int getNConstraints() const = 0;    // i.e., constraint elements (multiple equations)
 
-    virtual BodyId           getParent   (BodyId) const = 0;
-    virtual Array<BodyId>    getChildren (BodyId) const = 0;
-    //virtual const Mobilizer& getMobilizer(BodyId) const = 0;
+    virtual MobilizedBodyId           getParent   (MobilizedBodyId) const = 0;
+    virtual Array<MobilizedBodyId>    getChildren (MobilizedBodyId) const = 0;
+    //virtual const Mobilizer& getMobilizer(MobilizedBodyId) const = 0;
 
-    virtual const Transform& getDefaultMobilizerFrame(BodyId) const = 0;
-    virtual const Transform& getDefaultMobilizerFrameOnParent(BodyId) const = 0;
-    virtual const MassProperties& getDefaultBodyMassProperties(BodyId) const = 0;
+    virtual const Transform& getDefaultMobilizerFrame(MobilizedBodyId) const = 0;
+    virtual const Transform& getDefaultMobilizerFrameOnParent(MobilizedBodyId) const = 0;
+    virtual const MassProperties& getDefaultBodyMassProperties(MobilizedBodyId) const = 0;
 
         // MODEL STAGE //
 
     // Access to Instance variables. In general Mobilizers and Constraints will define more
     // of these; here we just deal with variables that are always present.
 
-    virtual const MassProperties& getBodyMassProperties    (const State&, BodyId) const = 0;
-    virtual const Transform&      getMobilizerFrame        (const State&, BodyId) const = 0;
-    virtual const Transform&      getMobilizerFrameOnParent(const State&, BodyId) const = 0;
+    virtual const MassProperties& getBodyMassProperties    (const State&, MobilizedBodyId) const = 0;
+    virtual const Transform&      getMobilizerFrame        (const State&, MobilizedBodyId) const = 0;
+    virtual const Transform&      getMobilizerFrameOnParent(const State&, MobilizedBodyId) const = 0;
 
     virtual const Vector& getAllParticleMasses     (const State&) const {
         static const Vector v;
@@ -108,9 +116,9 @@ public:
     }
 
     // These update routines invalidate Stage::Instance.
-    virtual MassProperties& updBodyMassProperties    (State&, BodyId) const = 0;
-    virtual Transform&      updMobilizerFrame        (State&, BodyId) const = 0;
-    virtual Transform&      updMobilizerFrameOnParent(State&, BodyId) const = 0;
+    virtual MassProperties& updBodyMassProperties    (State&, MobilizedBodyId) const = 0;
+    virtual Transform&      updMobilizerFrame        (State&, MobilizedBodyId) const = 0;
+    virtual Transform&      updMobilizerFrameOnParent(State&, MobilizedBodyId) const = 0;
     virtual Vector&         updAllParticleMasses     (State&) const = 0;
 
     // Access to Position and Velocity variables. //
@@ -120,8 +128,8 @@ public:
     // Q or U allocation in the state, and can also be used other arrays which have the
     // same dimensions. For example, mobilizer force arrays have the same dimension as
     // the Us (that is, their length is the total mobility of the system).
-    virtual void findMobilizerQs(const State& s, BodyId body, int& qStart, int& nq) const = 0;
-    virtual void findMobilizerUs(const State& s, BodyId body, int& uStart, int& nu) const = 0;
+    virtual void findMobilizerQs(const State& s, MobilizedBodyId body, int& qStart, int& nq) const = 0;
+    virtual void findMobilizerUs(const State& s, MobilizedBodyId body, int& uStart, int& nu) const = 0;
 
     // A subset of the Q's, not including particle coordinates.
     virtual const Vector& getAllMobilizerCoords(const State&) const = 0;
@@ -155,15 +163,15 @@ public:
 
 
     // Invalidate Stage::Position.
-    virtual void setMobilizerTransform  (State&, BodyId, const Transform& X_MbM) const = 0;
-    virtual void setMobilizerRotation   (State&, BodyId, const Rotation&  R_MbM) const = 0;
-    virtual void setMobilizerTranslation(State&, BodyId, const Vec3&      T_MbM, 
+    virtual void setMobilizerTransform  (State&, MobilizedBodyId, const Transform& X_MbM) const = 0;
+    virtual void setMobilizerRotation   (State&, MobilizedBodyId, const Rotation&  R_MbM) const = 0;
+    virtual void setMobilizerTranslation(State&, MobilizedBodyId, const Vec3&      T_MbM, 
                                          bool dontChangeOrientation)             const = 0;
 
     // Invalidate Stage::Velocity.
-    virtual void setMobilizerVelocity       (State&, BodyId, const SpatialVec& V_MbM) const = 0;
-    virtual void setMobilizerAngularVelocity(State&, BodyId, const Vec3&       w_MbM) const = 0;
-    virtual void setMobilizerLinearVelocity (State&, BodyId, const Vec3&       v_MbM,
+    virtual void setMobilizerVelocity       (State&, MobilizedBodyId, const SpatialVec& V_MbM) const = 0;
+    virtual void setMobilizerAngularVelocity(State&, MobilizedBodyId, const Vec3&       w_MbM) const = 0;
+    virtual void setMobilizerLinearVelocity (State&, MobilizedBodyId, const Vec3&       v_MbM,
                                              bool dontChangeAngularVelocity)          const = 0;
 
     // Access to Acceleration variables. //
@@ -182,17 +190,17 @@ public:
     virtual Real getTotalMass(const State&) const = 0;
 
         // POSITION, VELOCITY, ACCELERATION STAGES //
-    virtual const Transform&  getBodyTransform(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getBodyVelocity(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getBodyAcceleration(const State&, BodyId) const = 0; 
+    virtual const Transform&  getBodyTransform(const State&, MobilizedBodyId) const = 0;
+    virtual const SpatialVec& getBodyVelocity(const State&, MobilizedBodyId) const = 0;
+    virtual const SpatialVec& getBodyAcceleration(const State&, MobilizedBodyId) const = 0; 
 
     virtual const Vector_<Vec3>&  getAllParticleAccelerations(const State&) const {
         static const Vector_<Vec3> v;
         return v;
     }
 
-    virtual const Transform&  getMobilizerTransform(const State&, BodyId) const = 0;
-    virtual const SpatialVec& getMobilizerVelocity(const State&, BodyId) const = 0;
+    virtual const Transform&  getMobilizerTransform(const State&, MobilizedBodyId) const = 0;
+    virtual const SpatialVec& getMobilizerVelocity(const State&, MobilizedBodyId) const = 0;
 
 
     virtual Real calcQConstraintNorm(const State&) const {
@@ -212,13 +220,8 @@ public:
     }
 
     SimTK_DOWNCAST(MatterSubsystemRep, SubsystemRep);
-};
+private:
 
-
-// Concrete for now.
-class Body {
-public:
-    int getBodyNumber() const;
 };
 
 } // namespace SimTK

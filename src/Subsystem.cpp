@@ -30,6 +30,8 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/System.h"
 #include "simbody/internal/Subsystem.h"
+
+#include "SystemRep.h"
 #include "SubsystemRep.h"
 
 #include <cassert>
@@ -37,11 +39,15 @@
 namespace SimTK {
 
     ///////////////
-    // Subsystem //
+    // SUBSYSTEM //
     ///////////////
 
 bool Subsystem::isEmptyHandle() const {return rep==0;}
 bool Subsystem::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
+bool Subsystem::isSameSubsystem(const Subsystem& otherSubsystem) const {
+    return rep && (rep==otherSubsystem.rep);
+}
+
 
 Subsystem::~Subsystem() {
     if (isOwnerHandle()) delete rep; 
@@ -74,9 +80,9 @@ Subsystem& Subsystem::operator=(const Subsystem& src) {
 const String& Subsystem::getName()    const {return getRep().getName();}
 const String& Subsystem::getVersion() const {return getRep().getVersion();}
 
-void Subsystem::realize(const State& s, Stage g) const {
-    getRep().realize(s,g);
-}
+//void Subsystem::realize(const State& s, Stage g) const {
+//    getRep().realize(s,g);
+//}
 
 void Subsystem::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
     getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
@@ -85,12 +91,12 @@ void Subsystem::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Arr
 void Subsystem::endConstruction() {updRep().endConstruction();}
 
 bool Subsystem::isInSystem() const {return getRep().isInSystem();}
-bool Subsystem::isInSameSystem(const System& sys) const {
-	return getRep().isInSameSystem(sys);
+bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
+	return getRep().isInSameSystem(otherSubsystem);
 }
 const System& Subsystem::getSystem() const {return getRep().getSystem();}
 System&       Subsystem::updSystem()	   {return updRep().updSystem();}
-int Subsystem::getMySubsystemIndex() const {return getRep().getMySubsystemIndex();}
+SubsystemId   Subsystem::getMySubsystemId() const {return getRep().getMySubsystemId();}
 
 const Vector& Subsystem::getQ(const State& s) const {return getRep().getQ(s);}
 const Vector& Subsystem::getU(const State& s) const {return getRep().getU(s);}
@@ -116,37 +122,91 @@ void Subsystem::calcUErrUnitTolerances(const State& s, Vector& tolerances) const
     getRep().calcUErrUnitTolerances(s,tolerances);
 }
 
-    //////////////////
-    // SubsystemRep //
-    //////////////////
+    ///////////////////
+    // SUBSYSTEM REP //
+    ///////////////////
 
-void SubsystemRep::realize(const State& s, Stage g) const {
-    while (getStage(s) < g) {
-        switch (getStage(s)) {
-        case Stage::Empty: {
-            State& mutableState = const_cast<State&>(s);
-            mutableState.initializeSubsystem(
-                getMySubsystemIndex(), getName(), getVersion());
-            realizeTopology(mutableState); 
-            break;
-        }
-        case Stage::Topology:     realizeModel(const_cast<State&>(s)); break;
-        case Stage::Model:        realizeInstance(s);     break;
-        case Stage::Instance:     realizeTime(s);         break;
-        case Stage::Time:         realizePosition(s);     break;
-        case Stage::Position:     realizeVelocity(s);     break;
-        case Stage::Velocity:     realizeDynamics(s);     break;
-        case Stage::Dynamics:     realizeAcceleration(s); break;
-        case Stage::Acceleration: realizeReport(s);       break;
-        default: assert(!"Subsystem::realize(): bad stage");
-        }
-        advanceToStage(s, getStage(s).next());
+void SubsystemRep::realizeSubsystemTopology(State& s) const {
+    SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
+        "Subsystem::realizeTopology()");
+    realizeSubsystemTopologyImpl(s);
+    subsystemTopologyRealized = true;   // mark the subsystem itself (mutable)
+    advanceToStage(s, Stage::Topology); // mark the State as well
+}
+void SubsystemRep::realizeSubsystemModel(State& s) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology, 
+        "Subsystem::realizeModel()");
+    if (getStage(s) < Stage::Model) {
+        realizeSubsystemModelImpl(s);
+        advanceToStage(s, Stage::Model);
+    }
+}
+void SubsystemRep::realizeSubsystemInstance(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
+        "Subsystem::realizeInstance()");
+    if (getStage(s) < Stage::Instance) {
+        realizeSubsystemInstanceImpl(s);
+        advanceToStage(s, Stage::Instance);
+    }
+}
+void SubsystemRep::realizeSubsystemTime(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
+        "Subsystem::realizeTime()");
+    if (getStage(s) < Stage::Time) {
+        realizeSubsystemTimeImpl(s);
+        advanceToStage(s, Stage::Time);
+    }
+}
+void SubsystemRep::realizeSubsystemPosition(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
+        "Subsystem::realizePosition()");
+    if (getStage(s) < Stage::Position) {
+        realizeSubsystemPositionImpl(s);
+        advanceToStage(s, Stage::Position);
+    }
+}
+void SubsystemRep::realizeSubsystemVelocity(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
+        "Subsystem::realizeVelocity()");
+    if (getStage(s) < Stage::Velocity) {
+        realizeSubsystemVelocityImpl(s);
+        advanceToStage(s, Stage::Velocity);
+    }
+}
+void SubsystemRep::realizeSubsystemDynamics(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
+        "Subsystem::realizeDynamics()");
+    if (getStage(s) < Stage::Dynamics) {
+        realizeSubsystemDynamicsImpl(s);
+        advanceToStage(s, Stage::Dynamics);
+    }
+}
+void SubsystemRep::realizeSubsystemAcceleration(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
+        "Subsystem::realizeAcceleration()");
+    if (getStage(s) < Stage::Acceleration) {
+        realizeSubsystemAccelerationImpl(s);
+        advanceToStage(s, Stage::Acceleration);
+    }
+}
+void SubsystemRep::realizeSubsystemReport(const State& s) const { 
+    SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
+        "Subsystem::realizeReport()");
+    if (getStage(s) < Stage::Report) {
+        realizeSubsystemReportImpl(s);
+        advanceToStage(s, Stage::Report);
     }
 }
 
-    ////////////////////////////
-    // DefaultSystemSubsystem //
-    ////////////////////////////
+void SubsystemRep::invalidateSubsystemTopologyCache() {
+    subsystemTopologyRealized = false;
+    if (isInSystem()) 
+        updSystem().updRep().invalidateSystemTopologyCache();
+}
+
+    //////////////////////////////
+    // DEFAULT SYSTEM SUBSYSTEM //
+    //////////////////////////////
 
 
 DefaultSystemSubsystem::DefaultSystemSubsystem() {

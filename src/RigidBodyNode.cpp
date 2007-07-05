@@ -33,7 +33,7 @@
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
-#include "MobilizerRep.h"
+#include "MobilizedBodyRep.h"
 
 #include <iostream>
 #include <iomanip>
@@ -378,7 +378,9 @@ public:
 
     virtual ~RigidBodyNodeSpec() {}
 
-    // This is the type of the joint transition matrix H.
+    // This is the type of the joint transition matrix H, which we're
+    // viewing as the transpose of the "more important" ~H, whose type
+    // is consequently nicer: Mat<2,dof,Vec3>.
     typedef Mat<dof,2,Row3,1,2> HType;
 
 
@@ -505,7 +507,7 @@ public:
     ///             expressed in Mb (note: this is also V_PM_Mb since
     ///             Mb is fixed on P).
     ///   V_PB_G  relative velocity of B in P, expr. in G
-    /// The code is the same for all joints, although parametrized by dof.
+    /// The code is the same for all joints, although parametrized by ndof.
     void calcJointKinematicsVel(
         const SBPositionCache& pc,
         const Vector&          u,
@@ -3179,183 +3181,190 @@ RigidBodyNodeSpec<dof>::calcEquivalentJointForces(
 }
 
 
-    //////////////////////////////////////////////////////////////////
-    // Implementation of MobilizerRep createRigidBodyNode() methods //
-    //////////////////////////////////////////////////////////////////
-
 // The Ground node is special because it doesn't need a mobilizer.
 /*static*/ RigidBodyNode*
 RigidBodyNode::createGroundNode() {
     return new RBGroundBody();
 }
 
-RigidBodyNode* Mobilizer::Pin::PinRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+
+    //////////////////////////////////////////////////////////////////////
+    // Implementation of MobilizedBodyRep createRigidBodyNode() methods //
+    //////////////////////////////////////////////////////////////////////
+
+RigidBodyNode* MobilizedBody::Pin::PinRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeTorsion(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeTorsion(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Slider::SliderRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Slider::SliderRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeSlider(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeSlider(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Universal::UniversalRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Universal::UniversalRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeUJoint(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeUJoint(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Cylinder::CylinderRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Cylinder::CylinderRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeCylinder(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeCylinder(getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::BendStretch::BendStretchRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::BendStretch::BendStretchRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeBendStretch(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeBendStretch(getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Planar::PlanarRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Planar::PlanarRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodePlanar(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodePlanar(getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Gimbal::GimbalRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Gimbal::GimbalRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"GimbalMobilizer not implemented yet"); return 0;
-   // return new RBNodeGimbal(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    assert(!"Gimbal MobilizedBody not implemented yet"); return 0;
+    // return new RBNodeGimbal(getDefaultRigidBodyMassProperties(),
+    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
+    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Orientation::OrientationRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Ball::BallRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeRotate3(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Translation::TranslationRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Translation::TranslationRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeTranslate(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeTranslate(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Free::FreeRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Free::FreeRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeTranslateRotate3(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeTranslateRotate3(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::LineOrientation::LineOrientationRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::LineOrientation::LineOrientationRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeLineOrientation(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeLineOrientation(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::FreeLine::FreeLineRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::FreeLine::FreeLineRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeFreeLine(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeFreeLine(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
 
-RigidBodyNode* Mobilizer::Screw::ScrewRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Screw::ScrewRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    return new RBNodeScrew(m,X_PMb,X_BM,pitch,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBNodeScrew(
+        getDefaultRigidBodyMassProperties(),
+        getDefaultInboardFrame(),getDefaultOutboardFrame(),
+        getDefaultPitch(),nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::Weld::WeldRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+RigidBodyNode* MobilizedBody::Weld::WeldRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"WeldMobilizer not implemented yet"); return 0;
-   // return new RBNodeWeld(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    assert(!"Weld MobilizedBody not implemented yet"); return 0;
+    // return new RBNodeWeld(
+    //     getDefaultRigidBodyMassProperties(),
+    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
+    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* Mobilizer::User::UserRep::createRigidBodyNode(
-    const MassProperties&    m,
-    const Transform&         X_PMb,
-    const Transform&         X_BM,
+
+RigidBodyNode* MobilizedBody::Ground::GroundRep::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
 {
-    assert(!"UserMobilizer not implemented yet"); return 0;
-   // return new RBNodeUser(m,X_PMb,X_BM,nxtUSlot,nxtUSqSlot,nxtQSlot);
+    return new RBGroundBody();
 }
+
+RigidBodyNode* MobilizedBody::Custom::CustomRep::createRigidBodyNode(
+    int&                     nxtUSlot,
+    int&                     nxtUSqSlot,
+    int&                     nxtQSlot) const
+{
+    assert(!"Custom MobilizedBody not implemented yet"); return 0;
+    // return new RBNodeCustom(
+    //     getDefaultRigidBodyMassProperties(),
+    //     getDefaultInboardFrame(),getDefaultOutboardFrame(),
+    //     nxtUSlot,nxtUSqSlot,nxtQSlot);
+}
+
 
 
