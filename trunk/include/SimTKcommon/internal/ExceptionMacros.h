@@ -1,7 +1,7 @@
 #ifndef SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
 #define SimTK_SimTKCOMMON_EXCEPTION_MACROS_H_
 
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -191,11 +191,15 @@
     // user of an API screws up by attempting to access something in the 
     // state before it has been realized to the appropriate stage.
     //
+    //   STAGECHECK_EQ: Check that the current stage is == a particular stage.
     //   STAGECHECK_GE: Check that the current stage is >= a particular stage.
     //   STAGECHECK_LT: Check that the current stage is <  a particular stage.
     //   STAGECHECK_RANGE: Check that lower <= stage <= upper.
 
 // These are stagechecks that is always present, even in Release mode.
+#define SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,where) \
+    do{if((currentStage)!=(targetStage)) SimTK_THROW3(SimTK::Exception::StageIsWrong,   \
+        (currentStage),(targetStage),(where));}while(false)
 #define SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,where) \
     do{if(!((currentStage)>=(targetStage))) SimTK_THROW3(SimTK::Exception::StageTooLow,   \
         (currentStage),(targetStage),(where));}while(false)
@@ -208,10 +212,13 @@
 
 // This one is present only in Debug mode or if SimTK_KEEP_STAGECHECK is explicitly defined.
 #if defined(NDEBUG) && !defined(SimTK_KEEP_STAGECHECK)
+    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,where)
     #define SimTK_STAGECHECK_GE(currentStage,targetStage,where)
     #define SimTK_STAGECHECK_LE(currentStage,targetStage,where)
     #define SimTK_STAGECHECK_RANGE(lower,current,upper,where)
 #else
+    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,where) \
+        SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,where)
     #define SimTK_STAGECHECK_GE(currentStage,targetStage,where) \
         SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,where)
     #define SimTK_STAGECHECK_LE(currentStage,targetStage,where) \

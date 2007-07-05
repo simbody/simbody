@@ -132,6 +132,16 @@ public:
     }
 };
 
+class StageIsWrong : public Base {
+public:
+    StageIsWrong(const char* fn, int ln,
+        Stage currentStage, Stage targetStage, const char* where) : Base(fn,ln)
+    {
+        setMessage("Expected stage to be " + targetStage.name() + " in " + String(where)
+           + " but current stage was " + currentStage.name());
+    }
+};
+
 class StageTooHigh : public Base {
 public:
     StageTooHigh(const char* fn, int ln,

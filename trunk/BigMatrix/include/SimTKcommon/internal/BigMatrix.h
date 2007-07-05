@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMMATRIX_BIGMATRIX_H_
 #define SimTK_SIMMATRIX_BIGMATRIX_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** @file
@@ -346,6 +346,16 @@ public:
 
     MatrixView_<EHerm> operator~() const {return transpose();}
     MatrixView_<EHerm> operator~()       {return updTranspose();}
+
+    // Create a view of the real or imaginary elements.
+    inline MatrixView_<TReal> real() const;
+    inline MatrixView_<TReal> updReal();
+    inline MatrixView_<TImag> imag() const;
+    inline MatrixView_<TImag> updImag();
+
+    // Overload "real" and "imag" for both read and write as a nod to convention.
+    MatrixView_<TReal> real() {return updReal();}
+    MatrixView_<TReal> imag() {return updImag();}
 
     // TODO: this routine seems ill-advised but I need it for the IVM port at the moment
     Matrix_<StdNumber> invert() const {  // return a newly-allocated inverse; dump negator 
@@ -865,6 +875,20 @@ MatrixBase<ELT>::updRow(int i) {
     MatrixHelper<Scalar> h(helper,i,0,1,ncol());        
     return RowVectorView_<ELT>(h); 
 }
+
+/*
+template <class ELT> inline MatrixView_< typename CNT<ELT>::TReal > 
+MatrixBase<ELT>::real() const { 
+    if (!CNT<ELT>::IsComplex) { // known at compile time
+        return MatrixView_< typename CNT<ELT>::TReal >( // this is just ELT
+            MatrixHelper(helper,0,0,nrow(),ncol()));    // a view of the whole matrix
+    }
+    // Elements are complex -- helper uses underlying precision (real) type.
+    MatrixHelper<Precision> h(helper,typename MatrixHelper<Precision>::RealView);    
+    return MatrixView_< typename CNT<ELT>::TReal >(h); 
+}
+*/
+
 
 /**
  * This is the class intended to appear in user code. It can be a fixed-size view

@@ -570,18 +570,28 @@ public:
     TPosTrans&       updPositionalTranspose()
         { return *reinterpret_cast<TPosTrans*>(this); }
 
+    // If the underlying scalars are complex or conjugate, we can return a
+    // reference to the real part just by recasting the data to a matrix of
+    // the same dimensions but containing real elements, with the scalar
+    // spacing doubled.
     const TReal& real() const { return *reinterpret_cast<const TReal*>(this); }
     TReal&       real()       { return *reinterpret_cast<      TReal*>(this); }
 
+    // Getting the imaginary part is almost the same as real, but we have
+    // to shift the starting address of the returned object by 1 real-size
+    // ("precision") scalar so that the first element is the imaginary part
+    // of the original first element.
+    // TODO: should blow up or return a reference to a zero matrix if called
+    // on a real object.
     // Had to contort these routines to get them through VC++ 7.net
     const TImag& imag()    const { 
         const int offs = ImagOffset;
-        const EImag* p = reinterpret_cast<const EImag*>(this);
+        const Precision* p = reinterpret_cast<const Precision*>(this);
         return *reinterpret_cast<const TImag*>(p+offs);
     }
     TImag& imag() { 
         const int offs = ImagOffset;
-        EImag* p = reinterpret_cast<EImag*>(this);
+        Precision* p = reinterpret_cast<Precision*>(this);
         return *reinterpret_cast<TImag*>(p+offs);
     }
 

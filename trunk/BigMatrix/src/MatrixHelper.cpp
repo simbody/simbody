@@ -673,9 +673,8 @@ MatrixHelperRep<S>::createWritableTransposedView()
 
     const ElementFilter::Indexer ix(ElementFilter::Indexer(0,0).transpose());
 
-    copy->view = view
-        ? new ElementFilter(*view,true,ncol(),nrow(),ix)
-        : new ElementFilter(true,ncol(),nrow(),ix);
+    copy->view = (view ? new ElementFilter(*view,true,ncol(),nrow(),ix)
+                       : new ElementFilter(true,ncol(),nrow(),ix));
 
     copy->data = reinterpret_cast<DataDescriptor<typename CNT<S>::THerm>*>(data);
     return copy;

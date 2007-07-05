@@ -1,4 +1,4 @@
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -149,6 +149,8 @@ int main()
     cout << "sym.real()=" << sym.real();
     cout << "sym.imag()=" << sym.imag();
 
+
+
     Mat<3,4,Complex>  mdcp(mdc);  cout << "*** Data looks like this: " << mdcp;
     SymMat<4,negator<Complex> > symp(reinterpret_cast<const negator<conjugate<double> >*>(mdc));
     cout << "    4x4 Sym<Neg<cmplx>> from (negator<conj>)pointer to data gives this:" << symp;
@@ -173,6 +175,13 @@ int main()
     cout << " weird*=2: " << weird;
     cout << " weird(1)=" << weird(1) << endl;
     cout << " weird(0,1)=" << weird(0,1) << " [0][1]=" << weird[0][1] << endl;
+
+    cout << " typename(weird)=" << typeid(weird).name() << endl;
+    cout << " typename(weird.real)=" << typeid(weird.real()).name() << endl;
+    cout << " typename(weird.imag)=" << typeid(weird.imag()).name() << endl;
+
+    cout << " weird.real()=" << weird.real();
+    cout << " weird.imag()=" << weird.imag();
 
     cout << "sizeof(sym<3,cplx>)=" << sizeof(sym) << " sizeof(mat<2,3,sym>=" << sizeof(weird) << endl;
 

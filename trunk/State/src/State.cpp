@@ -349,9 +349,11 @@ private:
         for (int j=0; j<Stage::NValid; ++j)
             nevents[j] = src.nevents[j];
 
-        // Copy *all* state variables since no more can be allocated
-        // after Model stage.
+        // Copy *all* discrete state variables since no more can be allocated
+        // after Model stage. Also, make sure we know how to back up to Stage::Topology
+        // later if necessary.
         discrete = src.discrete;
+        nDiscreteWhenBuilt = src.nDiscreteWhenBuilt;
 
         // Copy only the cache as it was at the end of targetStage since
         // more might have been added later.

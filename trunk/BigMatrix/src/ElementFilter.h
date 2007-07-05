@@ -1,7 +1,7 @@
 #ifndef SimTK_SIMMATRIX_ELEMENT_FILTER_H_
 #define SimTK_SIMMATRIX_ELEMENT_FILTER_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**@file
@@ -52,7 +52,8 @@ namespace SimTK {
  * that the storage for an element is composed of consecutive scalars, but 
  * otherwise we don't know anything about them here. Note that different views of
  * the same data can claim elements of different sizes as long as the underlying
- * scalar types match.
+ * scalar types match. (That would be used, for example, to select the real or
+ * imaginary submatrix of a complex matrix.)
  * 
  * A MatrixBase object does not have to contain an ElementFilter object if it
  * permits unfettered access to all the data elements. In that case all MatrixBase 
