@@ -34,7 +34,7 @@
 
 #include "SimTKsimbody.h"
 #include "simbody/internal/Mobilizer.h"
-#include "Function.h"
+#include <OpenSim/Common/Function.h>
 
 class RigidBodyNode;
 

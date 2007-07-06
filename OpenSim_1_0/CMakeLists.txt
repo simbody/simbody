@@ -63,7 +63,7 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
-SET(OSIMCOMMON_INCLUDE ${SimTK_SDK}/OpenSim/include/OpenSim/Common CACHE PATH "OpenSim Common Include Files")
+SET(OSIMCOMMON_INCLUDE ${SimTK_SDK}/OpenSim CACHE PATH "OpenSim Source Location")
 SET(XERCES_SRC_INCLUDE ${SimTK_SDK}/OpenSim/include/Vendors/xerces-c-src_2_7_0/src CACHE PATH "Xerces src Include Files")
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include ${OSIMCOMMON_INCLUDE} ${XERCES_SRC_INCLUDE})

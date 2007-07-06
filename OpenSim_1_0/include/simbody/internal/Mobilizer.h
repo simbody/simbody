@@ -31,7 +31,7 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "Function.h"
+#include <OpenSim/Common/Function.h>
 
 #include <cassert>
 
