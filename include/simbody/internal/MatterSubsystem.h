@@ -934,7 +934,6 @@ public:
 
     MobilizedBodyId           getParent   (MobilizedBodyId) const;
     Array<MobilizedBodyId>    getChildren (MobilizedBodyId) const;
-    //const Mobilizer& getMobilizer(MobilizedBodyId) const;
 
     const Transform& getDefaultMobilizerFrame(MobilizedBodyId) const;
     const Transform& getDefaultMobilizerFrameOnParent(MobilizedBodyId) const;

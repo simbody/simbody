@@ -89,9 +89,9 @@ MobilizedBodyId MobilizedBody::getMobilizedBodyId() const {
     return rep->myMobilizedBodyId;
 }
 
-const MobilizedBody& MobilizedBody::getInboardMobilizedBody() const {
+const MobilizedBody& MobilizedBody::getParentMobilizedBody() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
-        "getInboardMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
+        "getParentMobilizedBody() called on a MobilizedBody that is not part of a subsystem.");
     return rep->getMyMatterSubsystemRep().getMobilizedBody(rep->myParentId);
 }
 
@@ -287,6 +287,33 @@ MobilizedBody::Pin::PinRep& MobilizedBody::Pin::updRep() {
 MobilizedBody::Slider::Slider() {
     rep = new SliderRep(); rep->setMyHandle(*this);
 }
+
+MobilizedBody::Slider::Slider(MobilizedBody& parent, const Body& body)
+{
+    rep = new SliderRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
+                        const Body& body, const Transform& outbFrame)
+{
+    rep = new SliderRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+    // Slider bookkeeping
+
 bool MobilizedBody::Slider::isInstanceOf(const MobilizedBody& s) {
     return SliderRep::isA(s.getRep());
 }
@@ -312,6 +339,34 @@ MobilizedBody::Slider::SliderRep& MobilizedBody::Slider::updRep() {
 MobilizedBody::Universal::Universal() {
     rep = new UniversalRep(); rep->setMyHandle(*this);
 }
+
+
+MobilizedBody::Universal::Universal(MobilizedBody& parent, const Body& body)
+{
+    rep = new UniversalRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Universal::Universal(MobilizedBody& parent, const Transform& inbFrame,
+                                    const Body& body, const Transform& outbFrame)
+{
+    rep = new UniversalRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+    // Universal bookkeeping
+
 bool MobilizedBody::Universal::isInstanceOf(const MobilizedBody& s) {
     return UniversalRep::isA(s.getRep());
 }
@@ -535,6 +590,34 @@ MobilizedBody::Planar::PlanarRep& MobilizedBody::Planar::updRep() {
 MobilizedBody::Gimbal::Gimbal() {
     rep = new GimbalRep(); rep->setMyHandle(*this);
 }
+
+
+MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Body& body)
+{
+    rep = new GimbalRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Gimbal::Gimbal(MobilizedBody& parent, const Transform& inbFrame,
+                                    const Body& body, const Transform& outbFrame)
+{
+    rep = new GimbalRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+    // Gimbal bookkeeping
+
 bool MobilizedBody::Gimbal::isInstanceOf(const MobilizedBody& s) {
     return GimbalRep::isA(s.getRep());
 }
@@ -583,6 +666,13 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Transform& inbFrame,
 
     parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
                                                    *this);
+}
+
+const Quaternion& MobilizedBody::Ball::getDefaultQ() const {
+    return getRep().defaultQ;
+}
+Quaternion& MobilizedBody::Ball::updDefaultQ() {
+    return updRep().defaultQ;
 }
 
     // Ball bookkeeping
@@ -717,6 +807,34 @@ MobilizedBody::Free::FreeRep& MobilizedBody::Free::updRep() {
 MobilizedBody::LineOrientation::LineOrientation() {
     rep = new LineOrientationRep(); rep->setMyHandle(*this);
 }
+
+
+MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Body& body)
+{
+    rep = new LineOrientationRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::LineOrientation::LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
+                          const Body& body, const Transform& outbFrame)
+{
+    rep = new LineOrientationRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+    // LineOrientation bookkeeping
+
 bool MobilizedBody::LineOrientation::isInstanceOf(const MobilizedBody& s) {
     return LineOrientationRep::isA(s.getRep());
 }
@@ -795,6 +913,34 @@ MobilizedBody::FreeLine::FreeLineRep& MobilizedBody::FreeLine::updRep() {
 MobilizedBody::Weld::Weld() {
     rep = new WeldRep(); rep->setMyHandle(*this);
 }
+
+
+MobilizedBody::Weld::Weld(MobilizedBody& parent, const Body& body)
+{
+    rep = new WeldRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Weld::Weld(MobilizedBody& parent, const Transform& inbFrame,
+                                  const Body& body, const Transform& outbFrame)
+{
+    rep = new WeldRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+    // Weld bookkeeping
+
 bool MobilizedBody::Weld::isInstanceOf(const MobilizedBody& s) {
     return WeldRep::isA(s.getRep());
 }

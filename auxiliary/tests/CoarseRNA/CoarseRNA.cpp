@@ -94,12 +94,12 @@ public:
 
 private:
 
-    MobilizedBodyId makeChain(MobilizedBodyId startBody, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
-        MobilizedBodyId baseBodyId = startBody;
+    MobilizedBodyId makeChain(MobilizedBodyId startBodyId, const Vec3& startOrigin, int nSegs, bool shouldFlop) {
+        //MobilizedBodyId baseBodyId = startBody;
+        MobilizedBody baseBody = updMobilizedBody(startBodyId);
         Vec3 origin = startOrigin;
-        MobilizedBodyId lastDupId;
+        MobilizedBody lastDup;
         for (int seg=0; seg < nSegs; ++seg) {
-            MobilizedBody& baseBody = updMobilizedBody(baseBodyId);
 
             MobilizedBody::Ball left1(
                 baseBody, Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
@@ -136,11 +136,10 @@ private:
                                                dup, Vec3(DuplexRadius, HalfHeight, 0));
             }
 
-            lastDupId = dup.getMobilizedBodyId();
-            baseBodyId = lastDupId;
+            baseBody = lastDup = dup;
             origin = Vec3(0);
         }
-        return lastDupId;
+        return lastDup;
     }
 
     MassProperties calcDuplexMassProps(
@@ -248,9 +247,6 @@ try // If anything goes wrong, an exception will be thrown.
     ugs.disableGravity(s);
     ugs.enableGravity(s);
     ugs.updZeroHeight(s) = -0.8;
-    //cout << "STATE AS MODELED: " << s;
-   
-    //myPend.setPendulumAngle(s, start);
 
     // And a study using the Runge Kutta Merson integrator
     bool suppressProject = false;

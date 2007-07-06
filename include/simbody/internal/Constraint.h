@@ -28,7 +28,7 @@
  * This defines the Constraint class, which is used to specify limitations
  * on the mobility of the MobilizedBodies in a MatterSubsystem.
  *
- * Constraint is an abstract base class, with concrete classes defined
+ * Constraint is a PIMPL-style abstract base class, with concrete classes defined
  * for each kind of constraint. There are a set of built-in constraints
  * and a generic "Custom" constraint (an abstract base class) from
  * which advanced users may derive their own constraints.

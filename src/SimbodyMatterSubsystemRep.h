@@ -80,7 +80,7 @@ class LengthConstraints;
 class SimbodyMatterSubsystemRep : public SimTK::MatterSubsystemRep {
 public:
     SimbodyMatterSubsystemRep() 
-      : MatterSubsystemRep("SimbodyMatterSubsystem", "0.5.3"),
+      : MatterSubsystemRep("SimbodyMatterSubsystem", "0.5.5"),
         lConstraints(0)
     { 
         clearTopologyCache();
@@ -151,7 +151,7 @@ public:
         return new SimbodyMatterSubsystemRep(*this);
     }
 
-    // MatterSubsystemRep interface. These provide local implementation sfor
+    // MatterSubsystemRep interface. These provide local implementations for
     // virtual methods of MatterSubsystemRep.
 
     // These counts can be obtained even during construction, where they

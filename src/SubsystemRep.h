@@ -57,38 +57,38 @@ public:
     // by this Subsystem.
 
     // qdot, qdotdot also allocated in cache
-    int allocateQ(State& s, const Vector& qInit) {
+    int allocateQ(State& s, const Vector& qInit) const {
         return s.allocateQ(getMySubsystemId(), qInit);
     }
 
     // udot is also allocated in the cache
-    int allocateU(State& s, const Vector& uInit) {
+    int allocateU(State& s, const Vector& uInit) const {
         return s.allocateU(getMySubsystemId(), uInit);
     }
 
     // zdot is also allocated in the cache
-    int allocateZ(State& s, const Vector& zInit) {
+    int allocateZ(State& s, const Vector& zInit) const {
         return s.allocateZ(getMySubsystemId(), zInit);
     }
 
     // qerr, uerr, udoterr are all cache entries, not variables
-    int allocateQErr(State& s, int nqerr) {
+    int allocateQErr(State& s, int nqerr) const {
         return s.allocateQErr(getMySubsystemId(), nqerr);
     }
 
-    int allocateUErr(State& s, int nuerr) {
+    int allocateUErr(State& s, int nuerr) const {
         return s.allocateUErr(getMySubsystemId(), nuerr);
     }
 
-    int allocateUDotErr(State& s, int nudoterr) {
+    int allocateUDotErr(State& s, int nudoterr) const {
         return s.allocateUDotErr(getMySubsystemId(), nudoterr);
     }
 
-    int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) {
+    int allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
         return s.allocateDiscreteVariable(getMySubsystemId(), g, v);
     }
 
-    int allocateCacheEntry(State& s, Stage g, AbstractValue* v) {
+    int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const {
         return s.allocateCacheEntry(getMySubsystemId(), g, v);
     }
 

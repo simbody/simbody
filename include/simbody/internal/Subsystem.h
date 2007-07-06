@@ -55,9 +55,6 @@ public:
     const String& getName()    const;
     const String& getVersion() const;
 
-    // Realize the Subsystem to the indicated Stage.
-    //void realize(const State& s, Stage g) const;
-
     // Generate decorative geometry computable at a specific stage. This will
     // throw an exception if this subsystem's state hasn't already been realized
     // to that stage. Note that the list is not inclusive -- you have to
@@ -108,7 +105,7 @@ public:
     /// @pre State must be realized to >= Stage::Acceleration (this subsystem)
     /// @remark Simbody solves the acceleration-level constraint equations
     ///         simultaneously with the accelerations, so these should always
-    ///         be statisfied to machine precision after realizing the
+    ///         be satisfied to machine precision after realizing the
     ///         subsystem to the Acceleration stage.
     const Vector& getUDotErr(const State&) const;
     //@}

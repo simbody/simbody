@@ -71,11 +71,15 @@ public:
 
     // Given the Model stage variable values in the passed-in State (if
     // any of them are relevant) copy out the appropriate default values
-    // to the indicated memory location. The expected number of q's is passed
-    // in for good hygiene -- it must match what the mobilizer thinks it should
-    // have for these modeling options or something is terribly wrong and an 
-    // exception will be thrown.
-    //virtual void copyOutDefaultQs(const State&, int expectedNq, Real* qDefault) const = 0;
+    // to the appropriate slot in qDefault.
+    void copyOutDefaultQ(const State& s, Vector& qDefault) const {
+        SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), Stage::Topology,
+            "MobilizedBody::copyOutDefaultQ()");
+        int qStart, nq;
+        getMyMatterSubsystemRep().findMobilizerQs(s, getMyMobilizedBodyId(), qStart, nq);
+        copyOutDefaultQImpl(nq, &qDefault[qStart]);
+    }
+    virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
 
     // Generic State-access routines (that is, those which can be handled in
     // the MobilizedBody base class).
@@ -166,6 +170,16 @@ public:
         return *myMatterSubsystemRep;
     }
 
+    MobilizedBodyId getMyMobilizedBodyId() const {
+        assert(myMobilizedBodyId.isValid());
+        return myMobilizedBodyId;
+    }
+
+    MobilizedBodyId getMyParentMobilizedBodyId() const {
+        assert(myParentId.isValid());
+        return myParentId;
+    }
+
     bool isInSubsystem() const {return myMatterSubsystemRep != 0;}
 
     void setMyMatterSubsystem(SimbodyMatterSubsystem& matter,
@@ -227,6 +241,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==1, 
+            "MobilizedBody::Pin::PinRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        *q = defaultQ;
+    }
+
     SimTK_DOWNCAST(PinRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Pin;
@@ -244,6 +264,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==1, 
+            "MobilizedBody::Slider::SliderRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        *q = defaultQ;
+    }
+
     SimTK_DOWNCAST(SliderRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Slider;
@@ -259,6 +285,12 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==2, 
+            "MobilizedBody::Universal::UniversalRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec2::updAs(q) = defaultQ;
+    }
 
     SimTK_DOWNCAST(UniversalRep, MobilizedBodyRep);
 private:
@@ -276,6 +308,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==2, 
+            "MobilizedBody::Cylinder::CylinderRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec2::updAs(q) = defaultQ;
+    }
+
     SimTK_DOWNCAST(CylinderRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Cylinder;
@@ -291,6 +329,12 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==2, 
+            "MobilizedBody::BendStretch::BendStretchRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec2::updAs(q) = defaultQ;
+    }
 
     SimTK_DOWNCAST(BendStretchRep, MobilizedBodyRep);
 private:
@@ -308,6 +352,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==3, 
+            "MobilizedBody::Planar::PlanarRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec3::updAs(q) = defaultQ;
+    }
+
     SimTK_DOWNCAST(PlanarRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Planar;
@@ -323,6 +373,12 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==3, 
+            "MobilizedBody::Gimbal::GimbalRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec3::updAs(q) = defaultQ;
+    }
 
     SimTK_DOWNCAST(GimbalRep, MobilizedBodyRep);
 private:
@@ -340,6 +396,15 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==4||nq==3, 
+            "MobilizedBody::Ball::BallRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        if (nq==4)
+            Vec4::updAs(q) = defaultQ.asVec4();
+        else
+            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+    }
+
     SimTK_DOWNCAST(BallRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Ball;
@@ -356,6 +421,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==3, 
+            "MobilizedBody::Translation::TranslationRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        Vec3::updAs(q) = defaultQ;
+    }
+
     SimTK_DOWNCAST(TranslationRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Translation;
@@ -371,6 +442,18 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==7||nq==6, 
+            "MobilizedBody::Free::FreeRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        if (nq==7) {
+            Vec4::updAs(q)   = defaultQOrientation.asVec4();
+            Vec3::updAs(q+4) = defaultQTranslation;
+        } else {
+            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertToBodyFixed123();
+            Vec3::updAs(q+3) = defaultQTranslation;
+        }
+    }
 
     SimTK_DOWNCAST(FreeRep, MobilizedBodyRep);
 private:
@@ -389,6 +472,15 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==4||nq==3, 
+            "MobilizedBody::LineOrientation::LineOrientationRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        if (nq==4)
+            Vec4::updAs(q) = defaultQ.asVec4();
+        else
+            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+    }
+
     SimTK_DOWNCAST(LineOrientationRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::LineOrientation;
@@ -404,6 +496,18 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==7||nq==6, 
+            "MobilizedBody::FreeLine::FreeLineRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        if (nq==7) {
+            Vec4::updAs(q)   = defaultQOrientation.asVec4();
+            Vec3::updAs(q+4) = defaultQTranslation;
+        } else {
+            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertToBodyFixed123();
+            Vec3::updAs(q+3) = defaultQTranslation;
+        }
+    }
 
     SimTK_DOWNCAST(FreeLineRep, MobilizedBodyRep);
 private:
@@ -422,6 +526,11 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==0, 
+            "MobilizedBody::Weld::WeldRep::copyOutDefaultQImpl(): wrong number of q's expected");
+    }
+
     SimTK_DOWNCAST(WeldRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Weld;
@@ -437,6 +546,11 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==0, 
+            "MobilizedBody::Ground::GroundRep::copyOutDefaultQImpl(): wrong number of q's expected");
+    }
 
     SimTK_DOWNCAST(GroundRep, MobilizedBodyRep);
 private:
@@ -458,6 +572,12 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const;
 
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==1, 
+            "MobilizedBody::Screw::ScrewRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        *q = defaultQ;
+    }
+
     SimTK_DOWNCAST(ScrewRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Screw;
@@ -477,6 +597,13 @@ public:
         int&                     nxtU,
         int&                     nxtUSq,
         int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int expectedNq, Real* q) const {
+        SimTK_ASSERT(expectedNq==nq, 
+            "MobilizedBody::Custom::CustomRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        for (int i=0; i<nq; ++i)
+            q[i] = defaultQ[i];
+    }
 
     SimTK_DOWNCAST(CustomRep, MobilizedBodyRep);
 private:

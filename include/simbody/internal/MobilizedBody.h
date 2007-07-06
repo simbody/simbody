@@ -57,19 +57,6 @@ public:
     MobilizedBody& operator=(MobilizedBody&); // shallow assignment
     ~MobilizedBody();
 
-    // Implicit conversion to MobilizedBodyId when needed.
-    operator MobilizedBodyId() const {return getMobilizedBodyId();}
-
-
-    // These will fail unless this MobilizedBody is owned by a MatterSubsystem.
-    const SimbodyMatterSubsystem& getMatterSubsystem()      const;
-    SimbodyMatterSubsystem&       updMatterSubsystem();
-    MobilizedBodyId        getMobilizedBodyId()      const;
-    const MobilizedBody&   getInboardMobilizedBody() const;
-
-    bool isInSubsystem() const;
-    bool isInSameSubsystem(const MobilizedBody&) const;
-
     // Topology stage (i.e., construction).
     // Calling these means you are (re)constructing the system and will have to do
     // realizeTopology() and extract a new State before doing any analysis.
@@ -117,6 +104,19 @@ public:
 
     const SpatialVec& getBodyAcceleration(const State& s) const;
     Vector getUDot(const State&) const;
+
+
+    // Implicit conversion to MobilizedBodyId when needed.
+    operator MobilizedBodyId() const {return getMobilizedBodyId();}
+    MobilizedBodyId        getMobilizedBodyId()     const;
+    const MobilizedBody&   getParentMobilizedBody() const;
+
+    // These will fail unless this MobilizedBody is owned by a MatterSubsystem.
+    const SimbodyMatterSubsystem& getMatterSubsystem()      const;
+    SimbodyMatterSubsystem&       updMatterSubsystem();
+
+    bool isInSubsystem() const;
+    bool isInSameSubsystem(const MobilizedBody&) const;
 
     // These are the built-in MobilizedBody types. Types on the same line are
     // synonymous.
@@ -200,9 +200,9 @@ public:
     }
 
     // Generic default state Topology methods.
-    Pin&  setDefaultQ(Real q) {updDefaultQ()=q; return *this;}
     Real  getDefaultQ() const;
     Real& updDefaultQ();
+    Pin&  setDefaultQ(Real q) {updDefaultQ()=q; return *this;}
 
     // Generic state access routines.
     Real getQ(const State&) const;
@@ -215,6 +215,7 @@ public:
     // Acceleration stage state variables
     Real getMobilizerForces(const State&) const;
     Real& updMobilizerForces(State&) const;
+    void applyMobilizerForces(State& s, Real f) {updMobilizerForces(s)+=f;}
 
     class PinRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Pin, MobilizedBody);
@@ -229,6 +230,26 @@ private:
 class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public MobilizedBody {
 public:
     Slider();
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Slider(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Slider(MobilizedBody& parent, const Transform& inbFrame,
+           const Body&,           const Transform& outbFrame);
+
+    Slider& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    Slider& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class SliderRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Slider, MobilizedBody);
@@ -282,6 +303,26 @@ private:
 class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public MobilizedBody {
 public:
     Universal();
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Universal(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Universal(MobilizedBody& parent, const Transform& inbFrame,
+              const Body&,           const Transform& outbFrame);
+
+    Universal& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    Universal& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class UniversalRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Universal, MobilizedBody);
@@ -432,6 +473,26 @@ private:
 class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
 public:
     Gimbal();
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Gimbal(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Gimbal(MobilizedBody& parent, const Transform& inbFrame,
+           const Body&,           const Transform& outbFrame);
+
+    Gimbal& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    Gimbal& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class GimbalRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Gimbal, MobilizedBody);
@@ -466,6 +527,18 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
         return *this;
     }
+
+    // This is just a nicer name for the generalized coordinate.
+    Ball& setDefaultRotation(const Rotation& R_MbM) {
+        return setDefaultQ(R_MbM.convertToQuaternion());
+    }
+    Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
+
+    // Generic default state Topology methods.
+    const Quaternion& getDefaultQ() const;
+    Quaternion& updDefaultQ();
+    Ball& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
+
     class BallRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Ball, MobilizedBody);
@@ -483,6 +556,27 @@ public:
     // The ellipsoid is placed on the mobilizer's inboard frame Mb, with
     // half-axis dimensions along Mb's x,y,z respectively.
     Ellipsoid(const Vec3& radii);
+    Ellipsoid(Real a, Real b, Real c);
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Ellipsoid(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
+              const Body&,           const Transform& outbFrame);
+
+    Ellipsoid& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    Ellipsoid& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class EllipsoidRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Ellipsoid, MobilizedBody);
@@ -586,6 +680,27 @@ private:
 class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public MobilizedBody {
 public:
     LineOrientation();
+
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    LineOrientation(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
+         const Body&,           const Transform& outbFrame);
+
+    LineOrientation& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class LineOrientationRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(LineOrientation, MobilizedBody);
@@ -609,7 +724,7 @@ public:
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     FreeLine(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+             const Body&,           const Transform& outbFrame);
 
     FreeLine& setDefaultInboardFrame(const Transform& X_PMb) {
         (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
@@ -635,6 +750,27 @@ private:
 class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public MobilizedBody {
 public:
     Weld();
+
+
+    /// By default the parent body frame and the body's own frame are
+    /// used as the inboard and outboard mobilizer frames, resp.
+    Weld(MobilizedBody& parent, const Body&);
+
+    /// Use this constructor to specify mobilizer frames which are
+    /// not coincident with the body frames.
+    Weld(MobilizedBody& parent, const Transform& inbFrame,
+         const Body&,           const Transform& outbFrame);
+
+    Weld& setDefaultInboardFrame(const Transform& X_PMb) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
+        return *this;
+    }
+
+    Weld& setDefaultOutboardFrame(const Transform& X_BM) {
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
+        return *this;
+    }
+
     class WeldRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Weld, MobilizedBody);

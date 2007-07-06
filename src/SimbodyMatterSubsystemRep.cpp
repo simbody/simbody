@@ -76,14 +76,9 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
 
     delete lConstraints; lConstraints=0;
 
-    //for (int i=0; i<(int)constraintNodes.size(); ++i)
-    //    delete constraintNodes[i];
-    //constraintNodes.clear();
-
     for (int i=0; i<(int)distanceConstraints.size(); ++i)
         delete distanceConstraints[i];
     distanceConstraints.clear();
-
 
     // RigidBodyNodes themselves are owned by the MobilizedBodyReps and will
     // be deleted when the MobilizedBodyRep objects are.
@@ -301,16 +296,16 @@ void SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     mvars.allocate(topologyCache);
     setDefaultModelValues(topologyCache, mvars);
     mutableThis->topologyCache.modelingVarsIndex  = 
-        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Model, new Value<SBModelVars>(mvars));
+        allocateDiscreteVariable(s,Stage::Model, new Value<SBModelVars>(mvars));
 
     mutableThis->topologyCache.modelingCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemId(),Stage::Model, new Value<SBModelCache>());
+        allocateCacheEntry(s,Stage::Model, new Value<SBModelCache>());
 
     mutableThis->topologyCache.valid = true;
 
     // Allocate a cache entry for the topologyCache, and save a copy there.
     mutableThis->topologyCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemId(),Stage::Topology, new Value<SBTopologyCache>(topologyCache));
+        allocateCacheEntry(s,Stage::Topology, new Value<SBTopologyCache>(topologyCache));
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
@@ -355,11 +350,9 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     setDefaultInstanceValues(mv, iv);
 
     mc.instanceVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Instance, 
-                                   new Value<SBInstanceVars>(iv));
+        allocateDiscreteVariable(s, Stage::Instance, new Value<SBInstanceVars>(iv));
     mc.instanceCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemId(),Stage::Instance, 
-                             new Value<SBInstanceCache>());
+        allocateCacheEntry(s, Stage::Instance, new Value<SBInstanceCache>());
 
     // No time vars or cache
     mc.timeVarsIndex = -1;
@@ -370,15 +363,21 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     Vector qInit(maxNQTotal);
     setDefaultPositionValues(mv, qInit);
 
+    // MobilizedBodies provide default values for their q's. The number and
+    // values of these can depend on modeling variables, which are already
+    // set in the State. Don't do this for Ground, which has no q's.
+    for (MobilizedBodyId i(1); i < (int)mobilizedBodies.size(); ++i) {
+        const MobilizedBody::MobilizedBodyRep& mb = mobilizedBodies[i]->getRep();
+        mb.copyOutDefaultQ(s, qInit);
+    }
+
     mc.qIndex = s.allocateQ(getMySubsystemId(), qInit);
     mc.qVarsIndex = -1; // no config vars other than q
-    mc.qCacheIndex = s.allocateCacheEntry(getMySubsystemId(),Stage::Position, 
-        new Value<SBPositionCache>());
+    mc.qCacheIndex = allocateCacheEntry(s, Stage::Position, new Value<SBPositionCache>());
 
     // We'll store the the physical constraint errors (which consist solely of distance
     // constraint equations at the moment), followed by the quaternion constraints.
-    mc.qErrIndex = s.allocateQErr(getMySubsystemId(), 
-                                  nextQErrSlot + mc.nQuaternionsInUse);
+    mc.qErrIndex = allocateQErr(s, nextQErrSlot + mc.nQuaternionsInUse);
 
     // Velocity variables are just the generalized speeds u, which the State knows how to deal
     // with. Zero is always a reasonable value for velocity, so we'll initialize it here.
@@ -388,14 +387,13 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     mc.uIndex = s.allocateU(getMySubsystemId(), uInit);
     mc.uVarsIndex = -1; // no velocity vars other than u
-    mc.uCacheIndex = s.allocateCacheEntry(getMySubsystemId(),Stage::Velocity, 
-        new Value<SBVelocityCache>());
+    mc.uCacheIndex = allocateCacheEntry(s, Stage::Velocity, new Value<SBVelocityCache>());
     // Note that qdots are automatically allocated in the Velocity stage cache.
 
     // Only physical constraints exist at the velocity and acceleration levels; 
     // the quaternion normalization constraints are gone.
-    mc.uErrIndex    = s.allocateUErr(getMySubsystemId(),    nextUErrSlot);
-    mc.udotErrIndex = s.allocateUDotErr(getMySubsystemId(), nextMultSlot);
+    mc.uErrIndex    = allocateUErr   (s, nextUErrSlot);
+    mc.udotErrIndex = allocateUDotErr(s, nextMultSlot);
 
     // no z's
     // We do have dynamic vars for now for forces & pres. accel. but those will
@@ -404,11 +402,9 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     dvars.allocate(topologyCache);
     setDefaultDynamicsValues(mv, dvars);
     mc.dynamicsVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Dynamics, 
-                                   new Value<SBDynamicsVars>(dvars));
-    mc.dynamicsCacheIndex  = 
-        s.allocateCacheEntry(getMySubsystemId(),Stage::Dynamics, 
-                             new Value<SBDynamicsCache>());
+        allocateDiscreteVariable(s, Stage::Dynamics, new Value<SBDynamicsVars>(dvars));
+    mc.dynamicsCacheIndex = 
+        allocateCacheEntry(s, Stage::Dynamics, new Value<SBDynamicsCache>());
 
     // No reaction variables that I know of. But we can go through the
     // charade here anyway.
@@ -417,11 +413,9 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     setDefaultAccelerationValues(mv, rvars);
 
     mc.accelerationVarsIndex = 
-        s.allocateDiscreteVariable(getMySubsystemId(),Stage::Acceleration, 
-                                   new Value<SBAccelerationVars>(rvars));
+        allocateDiscreteVariable(s, Stage::Acceleration, new Value<SBAccelerationVars>(rvars));
     mc.accelerationCacheIndex = 
-        s.allocateCacheEntry(getMySubsystemId(),Stage::Acceleration, 
-                             new Value<SBAccelerationCache>());
+        allocateCacheEntry(s, Stage::Acceleration, new Value<SBAccelerationCache>());
 
     // Note that qdots, qdotdots, udots, zdots are automatically allocated by
     // the State when we advance the stage past modeling.
@@ -638,6 +632,7 @@ void SimbodyMatterSubsystemRep::setDefaultPositionValues(const SBModelVars& mv, 
 {
     // Tree-level defaults (none)
 
+
     // Node/joint-level defaults
     for (int i=0 ; i<(int)rbNodeLevels.size() ; i++) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) 
@@ -727,13 +722,13 @@ int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, MobilizedBodyI
 
 const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, MobilizedBodyId body) const { 
     const RigidBodyNode& n = getRigidBodyNode(body);
-    const SBPositionCache& cc = getPositionCache(s);
-    return n.getX_MbM(cc);
+    const SBPositionCache& pc = getPositionCache(s);
+    return n.getX_MbM(pc);
 }
 const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, MobilizedBodyId body) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBVelocityCache& mc = getVelocityCache(s);
-    return n.getV_MbM(mc);
+    const SBVelocityCache& vc = getVelocityCache(s);
+    return n.getV_MbM(vc);
 }
 void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, MobilizedBodyId body, const Transform& X_MbM) const { 
     const RigidBodyNode& n  = getRigidBodyNode(body);
@@ -833,8 +828,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
 {
     const SBAccelerationVars& av = getAccelerationVars(s);
 
-    const SBPositionCache& cc = getPositionCache(s);
-    const SBVelocityCache& mc = getVelocityCache(s);
+    const SBPositionCache& pc = getPositionCache(s);
+    const SBVelocityCache& vc = getVelocityCache(s);
     const SBDynamicsCache& dc = getDynamicsCache(s);
 
     Vector              totalMobilityForces;
@@ -871,7 +866,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     
     // Calculate constraint acceleration errors.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcAccInfo(cc,mc,udotErr,ac);
+        distanceConstraints[i]->calcAccInfo(pc,vc,udotErr,ac);
 }
 
 // Given the set of forces in the state, calculate acclerations resulting from
