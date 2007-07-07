@@ -218,14 +218,17 @@ bool& UniformGravitySubsystem::updIsEnabled(State& s) const {
     ///////////////////////////////////
 
 void UniformGravitySubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
-    instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
+    // Note that although these are *instance* variables, they are allocated as
+    // part of the *topology*. That allows us to store the indices locally rather
+    // than in the state.
+    instanceVarsIndex = allocateDiscreteVariable(s, Stage::Instance, 
         new Value<Parameters>(defaultParameters));
-    instanceCacheIndex = s.allocateCacheEntry(getMySubsystemId(), Stage::Instance,
+    instanceCacheIndex = allocateCacheEntry(s, Stage::Instance,
         new Value<ParameterCache>());
     built = true;
 }
 
-// realizeModel() not needed
+// realizeModel() not needed since there are no modeling options here
 
 void UniformGravitySubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
     // any values are acceptable
@@ -248,9 +251,9 @@ void UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
     const int nBodies    = matter.getNBodies();
     const int nParticles = matter.getNParticles();
 
-    Vector_<SpatialVec>& rigidBodyForces = mbs.updRigidBodyForces(s);
-    Vector_<Vec3>&       particleForces  = mbs.updParticleForces(s);
-    Real&                pe              = mbs.updPotentialEnergy(s);
+    Vector_<SpatialVec>& rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
+    Vector_<Vec3>&       particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
+    Real&                pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
 
     assert(rigidBodyForces.size() == nBodies);
     assert(particleForces.size() == nParticles);

@@ -73,12 +73,12 @@ public:
     // but some molecules may not have a single base, so they can override this default.
     virtual void setMoleculeTransform(State& s, const Transform& pos) const
     {
-        getMatter().setMobilizerTransform(s, bodies[0], pos);
+        getMatter().getMobilizedBody(bodies[0]).setQToFitTransform(s, pos);
     }
 
     virtual void setMoleculeVelocity(State& s, const SpatialVec& vel) const
     {
-        getMatter().setMobilizerVelocity(s, bodies[0], vel);
+        getMatter().getMobilizedBody(bodies[0]).setUToFitVelocity(s, vel);
     }
 
     // This routine must set the internal mobilities to their nominal values, both

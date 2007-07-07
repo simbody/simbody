@@ -46,7 +46,7 @@ Body::~Body() {
     rep=0;
 }
 
-// Copy constructor creates a new copy of the source object.
+// Copy constructor creates a new deep copy of the source object.
 Body::Body(const Body& src) : rep(0) {
     if (src.rep) {
         rep = src.rep->clone();
@@ -54,7 +54,7 @@ Body::Body(const Body& src) : rep(0) {
     }
 }
 
-// Assignment puts a copy of the src Body's rep into the current handle.
+// Assignment puts a deep copy of the src Body's rep into the current handle.
 Body& Body::operator=(const Body& src) {
     if (&src != this) {
         if (isOwnerHandle()) delete rep; 
@@ -71,6 +71,9 @@ const MassProperties& Body::getDefaultRigidBodyMassProperties() const {
     return getRep().getDefaultRigidBodyMassProperties();
 }
 
+void Body::setDefaultRigidBodyMassProperties(const MassProperties& m) {
+    return updRep().setDefaultRigidBodyMassProperties(m);
+}
 
     /////////////////
     // BODY::RIGID //
@@ -84,11 +87,6 @@ Body::Rigid::Rigid() {
 Body::Rigid::Rigid(const MassProperties& m) {
     rep = new RigidRep(m);
     rep->setMyHandle(*this);
-}
-
-Body::Rigid& Body::Rigid::setDefaultMassProperties(const MassProperties& m) {
-    updRep().setDefaultMassProperties(m);
-    return *this;
 }
 
 bool Body::Rigid::isInstanceOf(const Body& b) {
@@ -134,6 +132,34 @@ const Body::Ground::GroundRep& Body::Ground::getRep() const {
 }
 Body::Ground::GroundRep& Body::Ground::updRep() {
     return dynamic_cast<GroundRep&>(*rep);
+}
+
+
+    ////////////////////
+    // BODY::MASSLESS //
+    ////////////////////
+
+Body::Massless::Massless() {
+    rep = new MasslessRep();
+    rep->setMyHandle(*this);
+}
+
+bool Body::Massless::isInstanceOf(const Body& b) {
+    return MasslessRep::isA(b.getRep());
+}
+const Body::Massless& Body::Massless::downcast(const Body& b) {
+    assert(isInstanceOf(b));
+    return reinterpret_cast<const Massless&>(b);
+}
+Body::Massless& Body::Massless::updDowncast(Body& b) {
+    assert(isInstanceOf(b));
+    return reinterpret_cast<Massless&>(b);
+}
+const Body::Massless::MasslessRep& Body::Massless::getRep() const {
+    return dynamic_cast<const MasslessRep&>(*rep);
+}
+Body::Massless::MasslessRep& Body::Massless::updRep() {
+    return dynamic_cast<MasslessRep&>(*rep);
 }
 
 } // namespace SimTK

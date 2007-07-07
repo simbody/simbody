@@ -225,24 +225,24 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         Real damping;   // 0 means "none"
     };
 
-    struct UserForceParameters {
-        UserForceParameters() : uforce(0), calc(0), clone(0), destruct(0) { }
+    struct CustomForceParameters {
+        CustomForceParameters() : uforce(0), calc(0), clone(0), destruct(0) { }
 
         // Note that we will make a private copy of the user's force element.
-        UserForceParameters(const GeneralForceElements::UserForce&        u, 
-                            GeneralForceElements::UserForceCalcMethod     ucalc,
-                            GeneralForceElements::UserForceCloneMethod    uclone,
-                            GeneralForceElements::UserForceDestructor     udestruct)
+        CustomForceParameters(const GeneralForceElements::CustomForce&        u, 
+                              GeneralForceElements::CustomForceCalcMethod     ucalc,
+                              GeneralForceElements::CustomForceCloneMethod    uclone,
+                              GeneralForceElements::CustomForceDestructor     udestruct)
           : uforce(uclone(u)), calc(ucalc), clone(uclone), destruct(udestruct)
         {
         }
-        UserForceParameters(const UserForceParameters& src) {
+        CustomForceParameters(const CustomForceParameters& src) {
             uforce   = src.clone(*src.uforce);
             calc     = src.calc;
             clone    = src.clone;
             destruct = src.destruct;
         }
-        UserForceParameters& operator=(const UserForceParameters& src) {
+        CustomForceParameters& operator=(const CustomForceParameters& src) {
             if (&src == this) return *this;
             if (uforce) {destruct(uforce);} // out with the old
             if (src.uforce) {
@@ -258,23 +258,23 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         // This is to separate construction from filling in the parameters.
         // It is only allowed if the parameters are empty currently.
         // Note that we make a private copy of the user force element.
-        void setUserForceParameters(const GeneralForceElements::UserForce&        u, 
-                                    GeneralForceElements::UserForceCalcMethod     ucalc,
-                                    GeneralForceElements::UserForceCloneMethod    uclone,
-                                    GeneralForceElements::UserForceDestructor     udestruct) 
+        void setCustomForceParameters(const GeneralForceElements::CustomForce&        u, 
+                                      GeneralForceElements::CustomForceCalcMethod     ucalc,
+                                      GeneralForceElements::CustomForceCloneMethod    uclone,
+                                      GeneralForceElements::CustomForceDestructor     udestruct) 
         {
             assert(uforce==0);
             uforce=uclone(u); calc=ucalc; clone=uclone; destruct=udestruct;
         }
 
-        ~UserForceParameters() {
+        ~CustomForceParameters() {
             destruct(uforce); // toss out our copy
             uforce=0; calc=0; clone=0; destruct=0;
         }
-        GeneralForceElements::UserForce*           uforce;  // we own this object
-        GeneralForceElements::UserForceCalcMethod  calc;
-        GeneralForceElements::UserForceCloneMethod clone;
-        GeneralForceElements::UserForceDestructor  destruct;
+        GeneralForceElements::CustomForce*           uforce;  // we own this object
+        GeneralForceElements::CustomForceCalcMethod  calc;
+        GeneralForceElements::CustomForceCloneMethod clone;
+        GeneralForceElements::CustomForceDestructor  destruct;
     };
 
     struct Parameters {
@@ -289,7 +289,7 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
         std::vector<MobilityLinearDamperParameters>  mobilityLinearDampers;
         std::vector<MobilityConstantForceParameters> mobilityConstantForces;
         std::vector<GlobalEnergyDrainParameters>     globalEnergyDrains;
-        std::vector<UserForceParameters>             userForces;
+        std::vector<CustomForceParameters>           customForces;
     };
 
     // topological variables
@@ -404,15 +404,15 @@ public:
         return (int)defaultParameters.globalEnergyDrains.size() - 1;
     }
 
-    int addUserForce(const GeneralForceElements::UserForce& u, 
-        GeneralForceElements::UserForceCalcMethod           calc, 
-        GeneralForceElements::UserForceCloneMethod          clone, 
-        GeneralForceElements::UserForceDestructor           destruct) 
+    int addCustomForce(const GeneralForceElements::CustomForce& u, 
+        GeneralForceElements::CustomForceCalcMethod             calc, 
+        GeneralForceElements::CustomForceCloneMethod            clone, 
+        GeneralForceElements::CustomForceDestructor             destruct) 
     {
         assert(calc && clone && destruct);
-        defaultParameters.userForces.push_back(
-            UserForceParameters(u,calc,clone,destruct));
-        return (int)defaultParameters.userForces.size() - 1;
+        defaultParameters.customForces.push_back(
+            CustomForceParameters(u,calc,clone,destruct));
+        return (int)defaultParameters.customForces.size() - 1;
     }
 
     // These override default implementations of virtual methods in the Subsystem
@@ -452,10 +452,10 @@ public:
         const MatterSubsystem& matter = mbs.getMatterSubsystem();
 
         // Get access to system-global cache entries.
-        Real&                  pe              = mbs.updPotentialEnergy(s);
-        Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s);
-        Vector_<Vec3>&         particleForces  = mbs.updParticleForces(s);
-        Vector&                mobilityForces  = mbs.updMobilityForces(s);
+        Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
+        Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
+        Vector_<Vec3>&         particleForces  = mbs.updParticleForces (s, Stage::Dynamics);
+        Vector&                mobilityForces  = mbs.updMobilityForces (s, Stage::Dynamics);
 
         // Linear mobility springs
         for (int i=0; i < (int)p.mobilityLinearSprings.size(); ++i) {
@@ -584,8 +584,8 @@ public:
         }
 
         // User forces
-        for (int i=0; i < (int)p.userForces.size(); ++i) {
-            const UserForceParameters& u = p.userForces[i];
+        for (int i=0; i < (int)p.customForces.size(); ++i) {
+            const CustomForceParameters& u = p.customForces[i];
             u.calc(*u.uforce, matter, s, 
                    rigidBodyForces, particleForces, mobilityForces, pe);
         }
@@ -713,11 +713,11 @@ int GeneralForceElements::addGlobalEnergyDrain(const Real& dampingFactor) {
     return updRep().addGlobalEnergyDrain(dampingFactor);
 }
 
-int GeneralForceElements::addUserForceMethods(const UserForce& u, 
-    UserForceCalcMethod calc, UserForceCloneMethod clone, 
-    UserForceDestructor destruct)
+int GeneralForceElements::addCustomForceMethods(const CustomForce& u, 
+    CustomForceCalcMethod calc, CustomForceCloneMethod clone, 
+    CustomForceDestructor destruct)
 {
-    return updRep().addUserForce(u,calc,clone,destruct);
+    return updRep().addCustomForce(u,calc,clone,destruct);
 }
 
 } // namespace SimTK

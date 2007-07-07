@@ -37,13 +37,13 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
+#include "simbody/internal/Body.h"
 
 #include <cassert>
 
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
-class Body;
 
 /**
  * This is the base class for all MobilizedBody classes, which is just a handle for the underlying
@@ -64,47 +64,141 @@ public:
     Body&          updBody();
     MobilizedBody& setBody(const Body&);
 
+    MobilizedBody& setDefaultMassProperties(const MassProperties& m) {
+        updBody().setDefaultRigidBodyMassProperties(m); // might not be allowed
+        return *this;
+    }
+
+    const MassProperties& getDefaultMassProperties() const {
+        return getBody().getDefaultRigidBodyMassProperties(); // every body type can do this
+    }
+
     MobilizedBody& setDefaultInboardFrame (const Transform& X_PMb);
     MobilizedBody& setDefaultOutboardFrame(const Transform& X_BM);
-    const Transform& getDefaultInboardFrame() const;
-    const Transform& getDefaultOutboardFrame() const;
+    const Transform& getDefaultInboardFrame()  const; // X_PMb
+    const Transform& getDefaultOutboardFrame() const; // X_BM
 
-    // Model stage
+        // MODEL STAGE responses //
     int getNumQ(const State&) const;
     int getNumU(const State&) const;
+    Vector getQ(const State&) const;
+    Vector getU(const State&) const;
 
-    // Instance stage
+        // MODEL STAGE solvers //
+
+    void setQ(State&, const Vector&) const;
+    void setU(State&, const Vector&) const;
+
+    // These routines set the generalized coordinates, or speeds (state
+    // variables) for just the mobilizer associated with this MobilizedBody
+    // (ignoring all other mobilizers and constraints), without requiring knowledge
+    // of the meanings of the individual state variables. The idea here
+    // is to provide a physically-meaningful quantity relating the 
+    // mobilizer's inboard and outboard frames, and then ask the mobilizer
+    // to set its state variables to reproduce that quantity to the
+    // extent it can.
+    //
+    // These routines can be called in Stage::Model, however the routines
+    // may consult the current values of the state variables in some cases,
+    // so you must make sure they have been set to reasonable, or at least
+    // innocuous values (zero will work). In no circumstance will any of
+    // these routines look at any state variables which belong to another
+    // mobilizer; they are limited to working locally with one mobilizer.
+    //
+    // Routines which specify only translation (linear velocity) may use
+    // rotational coordinates to help satisfy the translation requirement.
+    // An alternate "Only" method is available to forbid modification of 
+    // purely rotational coordinates in that case. When a mobilizer uses
+    // state variables which have combined rotational and translational
+    // character (e.g. a screw joint) consult the documentation for the
+    // mobilizer to find out how it responds to these routines.
+    //
+    // There is no guarantee that the desired physical quantity will be
+    // achieved by these routines; you can check on return if you're
+    // worried. Individual mobilizers make specific promises about what
+    // they will do; consult the documentation. These routines do not
+    // throw exceptions even for absurd requests like specifying a
+    // rotation for a sliding mobilizer. Nothing happens if
+    // there are no mobilities here, i.e. Ground or a Weld mobilizer.
+
+    void setQToFitTransform      (State&, const Transform& X_MbM) const;
+    void setQToFitRotation       (State&, const Rotation&  R_MbM) const;
+    void setQToFitTranslation    (State&, const Vec3&      r_MbM) const;
+    void setQToFitTranslationOnly(State&, const Vec3&      r_MbM) const;
+
+    // Routines which affect generalized speeds u depend on the generalized
+    // coordinates q already having been set; they never change coordinates.
+    void setUToFitVelocity          (State&, const SpatialVec& V_MbM) const;
+    void setUToFitAngularVelocity   (State&, const Vec3&       w_MbM) const;
+    void setUToFitLinearVelocity    (State&, const Vec3&       v_MbM) const;
+    void setUToFitLinearVelocityOnly(State&, const Vec3&       v_MbM) const;
+
+
+        // INSTANCE STAGE responses //
+
+    const Transform& getInboardFrame (const State&) const;  // X_PMb
+    const Transform& getOutboardFrame(const State&) const;  // X_BM
+
+        // INSTANCE STAGE solvers //
+
     // Calling these reduces stage to Stage::Model.
     void setInboardFrame (State&, const Transform& X_PMb) const;
     void setOutboardFrame(State&, const Transform& X_BM ) const;
 
-    const Transform& getInboardFrame (const State&) const;
-    const Transform& getOutboardFrame(const State&) const;
+        // POSITION STAGE responses //
 
-    // Position stage
-    const Transform& getBodyTransform(const State&) const;
-    const Transform& getMobilizerTransform(const State& s) const;
-    Vector getQ(const State&) const;
-    Vector updQ(State&) const; // reduce to Stage::Time
-    void setQ(State&, const Vector&) const;
+    /// Extract from the state cache the already-calculated spatial configuration of
+    /// body B's body frame, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the location of the body frame's
+    /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
+    /// This response is available at Position stage.
+    const Transform& getBodyTransform(const State&) const; // X_GB
 
-    // Velocity stage
-    const SpatialVec& getBodyVelocity(const State& s) const;
-    const SpatialVec& getMobilizerVelocity(const State& s) const;
-    Vector getU(const State&) const;
-    Vector updU(State&) const; // reduce to Stage::Position
-    void setU(State&, const Vector&) const;
+    /// At stage Position or higher, return the cross-mobilizer transform.
+    /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
+    /// the parent body's corresponding outboard frame Mb.
+    const Transform& getMobilizerTransform(const State&) const; // X_MbM
 
-    // Acceleration stage
-    const SpatialVec& getBodyAppliedForces(const State&) const;
-    SpatialVec&       updBodyAppliedForces(State&) const; // reduce to Stage::Dynamics
-    void applyBodyForce(State& s, const SpatialVec& f) const {
-        updBodyAppliedForces(s) += f;
-    }
 
-    const SpatialVec& getBodyAcceleration(const State& s) const;
+        // VELOCITY STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial velocity of this
+    /// body's reference frame B, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the linear velocity v_GB of the body
+    /// frame's origin in G, and the body's angular velocity w_GB as the spatial velocity
+    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
+    const SpatialVec& getBodyVelocity(const State&) const; // V_GB
+
+    /// At stage Velocity or higher, return the cross-mobilizer velocity.
+    /// This is V_MbM, the relative velocity of the body's inboard mobilizer
+    /// frame M in the parent body's corresponding outboard frame Mb, 
+    /// measured and expressed in Mb. Note that this isn't the usual 
+    /// spatial velocity since it isn't expressed in G.
+    const SpatialVec& getMobilizerVelocity(const State&) const; // V_MbM
+
+        // ACCELERATION STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial acceleration of
+    /// this body's reference frame B, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the linear acceleration a_GB of the body
+    /// frame's origin in G, and the body's angular acceleration alpha_GB as the spatial acceleration
+    /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
+    const SpatialVec& getBodyAcceleration(const State& s) const; // A_GB
+
     Vector getUDot(const State&) const;
 
+    // Utilities for use in routines which apply forces
+    const SpatialVec& getBodyAppliedForces(const State&, const Vector_<SpatialVec>& rigidBodyForces) const;
+    SpatialVec&       updBodyAppliedForces(const State&, Vector_<SpatialVec>& rigidBodyForces) const;
+    void applyBodyForce(const State& s, const SpatialVec& f,  Vector_<SpatialVec>& rigidBodyForces) const {
+        updBodyAppliedForces(s,rigidBodyForces) += f;
+    }
+
+    // Generic treatment of mobilizer forces (use Vector since we don't know how many
+    // mobilities there are). It is much more efficient to use the specialized routines
+    // if you know the actual MobilizedBody type.
+    Vector getMobilizerForces(const State&, const Vector& mobilityForces) const;
+    void applyMobilizerForces(const State& s, const Vector& f, Vector& mobilityForces) const;
 
     // Implicit conversion to MobilizedBodyId when needed.
     operator MobilizedBodyId() const {return getMobilizedBodyId();}
@@ -195,9 +289,9 @@ public:
     void setAngle(State& s, Real angleInRadians) {setQ(s, angleInRadians);}
     Real getAngle(const State& s) {return getQ(s);}
 
-    void applyPinTorque(State& s, Real t) const {
-        updMobilizerForces(s) += t;
-    }
+    void setRate(State& s, Real rateInRadiansPerTime) {setU(s, rateInRadiansPerTime);}
+    Real getRate(const State& s) {return getU(s);}
+
 
     // Generic default state Topology methods.
     Real  getDefaultQ() const;
@@ -212,10 +306,20 @@ public:
     void setQ(State& s, Real q) const {updQ(s)=q;}
     void setU(State& s, Real u) const {updU(s)=u;}
 
-    // Acceleration stage state variables
-    Real getMobilizerForces(const State&) const;
-    Real& updMobilizerForces(State&) const;
-    void applyMobilizerForces(State& s, Real f) {updMobilizerForces(s)+=f;}
+    // Utilities for applying mobilizer forces in force subsystems.
+
+    Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
+        return getMobilizerForces(s,mobilityForces);
+    }
+    void applyPinTorque(const State& s, Real torque, Vector& mobilityForces) const {
+        updMobilizerForces(s,mobilityForces) += torque;
+    }
+
+    Real getMobilizerForces(const State&, const Vector& mobilityForces) const;
+    Real& updMobilizerForces(const State&, Vector& mobilityForces) const;
+    void applyMobilizerForces(const State& s, Real f, Vector& mobilityForces) const {
+        updMobilizerForces(s,mobilityForces)+=f;
+    }
 
     class PinRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Pin, MobilizedBody);
@@ -455,9 +559,26 @@ public:
     const Vec3& getUDot(const State&) const;
     const Vec3& getQDotDot(const State&) const;
 
-    // Acceleration stage state variables
-    const Vec3& getMobilizerForces(const State&) const;
-    Vec3& updMobilizerForces(State&) const;
+    // Utilities for applying mobilizer forces in force subsystems.
+
+    Real getAppliedTorque(const State& s, const Vector& mobilityForces) const {
+        return getMobilizerForces(s,mobilityForces)[0];
+    }
+    void applyTorque(const State& s, Real torque, Vector& mobilityForces) const {
+        updMobilizerForces(s,mobilityForces)[0] += torque;
+    }
+    const Vec2& getAppliedInPlaneForce(const State& s, const Vector& mobilityForces) const {
+        return getMobilizerForces(s,mobilityForces).getSubVec<2>(1);
+    }
+    void applyInPlaneForce(const State& s, const Vec2& f, Vector& mobilityForces) const {
+        updMobilizerForces(s,mobilityForces).updSubVec<2>(1) += f;
+    }
+
+    const Vec3& getMobilizerForces(const State&, const Vector& mobilityForces) const;
+    Vec3& updMobilizerForces(const State&, Vector& mobilityForces) const;
+    void applyMobilizerForces(const State& s, const Vec3& f, Vector& mobilityForces) const {
+        updMobilizerForces(s,mobilityForces) += f;
+    }
 
     class PlanarRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Planar, MobilizedBody);

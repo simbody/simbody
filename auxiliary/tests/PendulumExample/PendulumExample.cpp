@@ -59,7 +59,7 @@ try { // If anything goes wrong, an exception will be thrown.
                                   Body::Rigid(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30))),
                                     Transform(1*Vec3(0, .5, 0)));
 
-    connector.setDefaultRotation(Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
+    //connector.setDefaultRotation(Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
  
     const Real m1 = 5;
     const Real m2 = 1;
@@ -121,17 +121,15 @@ try { // If anything goes wrong, an exception will be thrown.
 
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
         s = mbs.getDefaultState();
+        connector.setQToFitRotation(s,Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
+
 
         printf("time  theta      energy           *************\n");
         s.updTime() = 0;
-        //pend.setMobilizerTransform(s, connector, Transform());
-        //pend.setMobilizerVelocity(s, connector, SpatialVec(0*Vec3(1,2,3), Vec3(0)));
-        //pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutZ(startAngle*Deg2Rad),Vec3(0)));
-        pend.setMobilizerTransform(s, swinger, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2),
-                                                         Vec3(0,1,0)));
-        pend.setMobilizerVelocity(s, swinger, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0)));
-        //pend.setMobilizerQ(s, swinger, 0, startAngle*Deg2Rad);
-        //pend.setMobilizerU(s, swinger, 0, 0);
+        swinger.setQToFitTransform(s, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2),
+                                                         Vec3(0,0,0)));
+        swinger.setUToFitVelocity(s, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0,0,-1)));
+
         myStudy.initialize();
 
         cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);

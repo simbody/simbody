@@ -417,19 +417,19 @@ public:
     // do nothing or the best it can, with the only general rule being that it shouldn't
     // make things worse. In particular, it does not need to work hard on an approximate solution.
 
-    virtual void setMobilizerTransform
+    virtual void setQToFitTransform
        (const SBModelVars&, const Transform& X_MbM, Vector& q) const = 0;
-    virtual void setMobilizerRotation
+    virtual void setQToFitRotation
        (const SBModelVars&, const Rotation& R_MbM, Vector& q) const = 0;
-    virtual void setMobilizerTranslation
+    virtual void setQToFitTranslation
        (const SBModelVars&, const Vec3& T_MbM, Vector& q,
         bool dontChangeOrientation)                           const = 0;
 
-    virtual void setMobilizerVelocity
+    virtual void setUToFitVelocity
        (const SBModelVars&, const Vector& q, const SpatialVec& V_MbM, Vector& u) const = 0;
-    virtual void setMobilizerAngularVelocity
+    virtual void setUToFitAngularVelocity
        (const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u)       const = 0;
-    virtual void setMobilizerLinearVelocity
+    virtual void setUToFitLinearVelocity
        (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u,
         bool dontChangeAngularVelocity)                                          const = 0;
 

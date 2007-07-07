@@ -127,47 +127,47 @@ MultibodySystem::updDecorationSubsystem() {
 }
 
 const Real&                
-MultibodySystem::getPotentialEnergy(const State& s) const {
-    return getRep().getPotentialEnergy(s);
+MultibodySystem::getPotentialEnergy(const State& s, Stage g) const {
+    return getRep().getPotentialEnergy(s,g);
 }
 const Real&                
-MultibodySystem::getKineticEnergy(const State& s) const {
-    return getRep().getKineticEnergy(s);
+MultibodySystem::getKineticEnergy(const State& s, Stage g) const {
+    return getRep().getKineticEnergy(s,g);
 }
 
 const Vector_<SpatialVec>& 
-MultibodySystem::getRigidBodyForces(const State& s) const {
-    return getRep().getRigidBodyForces(s);
+MultibodySystem::getRigidBodyForces(const State& s, Stage g) const {
+    return getRep().getRigidBodyForces(s,g);
 }
 const Vector_<Vec3>&       
-MultibodySystem::getParticleForces(const State& s) const {
-    return getRep().getParticleForces(s);
+MultibodySystem::getParticleForces(const State& s, Stage g) const {
+    return getRep().getParticleForces(s,g);
 }
 const Vector&              
-MultibodySystem::getMobilityForces(const State& s) const {
-    return getRep().getMobilityForces(s);
+MultibodySystem::getMobilityForces(const State& s, Stage g) const {
+    return getRep().getMobilityForces(s,g);
 }
 
 Real&                
-MultibodySystem::updPotentialEnergy(const State& s) const {
-    return getRep().updPotentialEnergy(s);
+MultibodySystem::updPotentialEnergy(const State& s, Stage g) const {
+    return getRep().updPotentialEnergy(s,g);
 }
 Real&                
-MultibodySystem::updKineticEnergy(const State& s) const {
-    return getRep().updKineticEnergy(s);
+MultibodySystem::updKineticEnergy(const State& s, Stage g) const {
+    return getRep().updKineticEnergy(s,g);
 }
 
 Vector_<SpatialVec>& 
-MultibodySystem::updRigidBodyForces(const State& s) const {
-    return getRep().updRigidBodyForces(s);
+MultibodySystem::updRigidBodyForces(const State& s, Stage g) const {
+    return getRep().updRigidBodyForces(s,g);
 }
 Vector_<Vec3>&       
-MultibodySystem::updParticleForces(const State& s) const {
-    return getRep().updParticleForces(s);
+MultibodySystem::updParticleForces(const State& s, Stage g) const {
+    return getRep().updParticleForces(s,g);
 }
 Vector&              
-MultibodySystem::updMobilityForces(const State& s) const {
-    return getRep().updMobilityForces(s);
+MultibodySystem::updMobilityForces(const State& s, Stage g) const {
+    return getRep().updMobilityForces(s,g);
 }
 
 
@@ -179,8 +179,11 @@ void MultibodySystemRep::realizeTopologyImpl(State& s) const {
     assert(globalSub.isValid());
     assert(matterSub.isValid());
 
-    getGlobalSubsystem().getRep().realizeSubsystemTopology(s);
+    // We do Matter subsystem first here in case any of the GlobalSubsystem
+    // topology depends on Matter topology. That's unlikely though since
+    // we don't know sizes until Model stage.
     getMatterSubsystem().getRep().realizeSubsystemTopology(s);
+    getGlobalSubsystem().getRep().realizeSubsystemTopology(s);
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemTopology(s);
 
@@ -188,8 +191,12 @@ void MultibodySystemRep::realizeTopologyImpl(State& s) const {
         getDecorationSubsystem().getRep().realizeSubsystemTopology(s);
 }
 void MultibodySystemRep::realizeModelImpl(State& s) const {
-    getGlobalSubsystem().getRep().realizeSubsystemModel(s);
+
+    // Here it is essential to do the Matter subsystem first because the
+    // force accumulation arrays in the Global subsystem depend on the
+    // Stage::Model dimensions of the Matter subsystem.
     getMatterSubsystem().getRep().realizeSubsystemModel(s);
+    getGlobalSubsystem().getRep().realizeSubsystemModel(s);
     for (int i=0; i < (int)forceSubs.size(); ++i)
         getForceSubsystem(forceSubs[i]).getRep().realizeSubsystemModel(s);
 

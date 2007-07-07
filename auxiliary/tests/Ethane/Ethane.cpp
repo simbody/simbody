@@ -66,12 +66,12 @@ public:
     // but some molecules may not have a single base, so they can override this default.
     virtual void setMoleculeTransform(State& s, const Transform& pos) const
     {
-        getMatter().setMobilizerTransform(s, bodies[0], pos);
+        getMatter().getMobilizedBody(bodies[0]).setQToFitTransform(s, pos);
     }
 
     virtual void setMoleculeVelocity(State& s, const SpatialVec& vel) const
     {
-        getMatter().setMobilizerVelocity(s, bodies[0], vel);
+        getMatter().getMobilizedBody(bodies[0]).setUToFitVelocity(s, vel);
     }
 
     // This routine must set the internal mobilities to their nominal values, both
@@ -233,7 +233,7 @@ public:
             const Transform  X_GBprime = X_GF*X_FBprime;
             // This only works since the mobilizers are all ground-attached Cartesian.
             // The Stage is reduced due to the change to the q's below.
-            getMatter().setMobilizerTransform(s, bodies[i], X_GBprime);
+            getMatter().getMobilizedBody(bodies[i]).setQToFitTransform(s, X_GBprime);
         }
     }
 
@@ -679,7 +679,7 @@ try
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
 
-    //const CartesianRibose cribose(GroundId, mbs);
+    const CartesianRibose cribose(GroundId, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -729,8 +729,8 @@ try
     mbs.realizeModel(s);
    // gravity.setZeroHeight(s, -100);
 
-    //cribose.setDefaultInternalState(s);
-    //cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+    cribose.setDefaultInternalState(s);
+    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));

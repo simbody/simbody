@@ -246,19 +246,19 @@ public:
         const SBVelocityCache& vc,
         SBDynamicsCache&       dc) const {}
 
-    /*virtual*/ void setMobilizerTransform
+    /*virtual*/ void setQToFitTransform
        (const SBModelVars&, const Transform& X_MbM, Vector& q) const {}
-    /*virtual*/ void setMobilizerRotation
+    /*virtual*/ void setQToFitRotation
        (const SBModelVars&, const Rotation& R_MbM, Vector& q) const {}
-    /*virtual*/ void setMobilizerTranslation
+    /*virtual*/ void setQToFitTranslation
        (const SBModelVars&, const Vec3& T_MbM, Vector& q,
         bool dontChangeOrientation) const {}
 
-    /*virtual*/ void setMobilizerVelocity
+    /*virtual*/ void setUToFitVelocity
        (const SBModelVars&, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {}
-    /*virtual*/ void setMobilizerAngularVelocity
+    /*virtual*/ void setUToFitAngularVelocity
        (const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {}
-    /*virtual*/ void setMobilizerLinearVelocity
+    /*virtual*/ void setUToFitLinearVelocity
        (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u,
         bool dontChangeAngularVelocity) const {}
 
@@ -384,22 +384,22 @@ public:
     typedef Mat<dof,2,Row3,1,2> HType;
 
 
-    // Provide default implementations for setMobilizerTransform() and setMobilizerVelocity() 
+    // Provide default implementations for setQToFitTransform() and setQToFitVelocity() 
     // which are implemented using the rotational and translational quantity routines. These assume
     // that the rotational and translational coordinates are independent, with rotation handled
     // first and then left alone. If a mobilizer type needs to deal with rotation and
     // translation simultaneously, it should provide a specific implementation for these two routines.
-    // *Each* mobilizer must implement setMobilizer{Rotation,Translation,AngularVelocity,LinearVelocity};
-    // there are no defaults.
+    // *Each* mobilizer must implement setQToFit{Rotation,Translation} and 
+    // setUToFit{AngularVelocity,LinearVelocity}; there are no defaults.
 
-    virtual void setMobilizerTransform(const SBModelVars& mv, const Transform& X_MbM, Vector& q) const {
-        setMobilizerRotation   (mv,X_MbM.R(),q);
-        setMobilizerTranslation(mv,X_MbM.T(),q,true); // don't fiddle with the rotation
+    virtual void setQToFitTransform(const SBModelVars& mv, const Transform& X_MbM, Vector& q) const {
+        setQToFitRotation   (mv,X_MbM.R(),q);
+        setQToFitTranslation(mv,X_MbM.T(),q,true); // don't fiddle with the rotation
     }
 
-    virtual void setMobilizerVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {
-        setMobilizerAngularVelocity(mv,q,V_MbM[0],u);
-        setMobilizerLinearVelocity (mv,q,V_MbM[1],u,true); // don't fiddle with the angular velocity
+    virtual void setUToFitVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {
+        setUToFitAngularVelocity(mv,q,V_MbM[0],u);
+        setUToFitLinearVelocity (mv,q,V_MbM[1],u,true); // don't fiddle with the angular velocity
     }
 
     // The following routines calculate joint-specific position kinematic
@@ -930,18 +930,18 @@ public:
 
         // Implementations of virtual methods.
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // the only rotation this mobilizer can represent is identity
     }
-    void setMobilizerTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
         // here's what this joint is really good at!
         toQ(q) = T_MbM;
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // The only angular velocity this can represent is zero.
     }
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // linear velocity is in a Cartesian joint's sweet spot
@@ -1019,20 +1019,20 @@ public:
     }
         // Implementations of virtual methods.
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation a slider can represent is identity.
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // We can only represent the x coordinate with this joint.
         to1Q(q) = T_MbM[0];
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // The only angular velocity a slider can represent is zero.
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // We can only represent a velocity along x with this joint.
@@ -1103,7 +1103,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation our pin joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1114,17 +1114,17 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         to1U(u) = w_MbM[2]; // project angular velocity onto z axis
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
@@ -1214,7 +1214,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation our screw joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1225,16 +1225,16 @@ public:
         to1Q(q) = angles123[2];
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         to1Q(q) = T_MbM[2]/pitch;
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         to1U(u) = w_MbM[2]; // project angular velocity onto z axis
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         to1U(u) = v_MbM[2]/pitch;
@@ -1317,26 +1317,26 @@ public:
     }
 
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation our cylinder joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
         const Vec3 angles123 = R_MbM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // Because the M and Mb origins must lie along their shared z axis, there is no way to
         // create a translation by rotating around z. So the only translation we can represent
         // is that component which is along z.
         toQ(q)[1] = T_MbM[2];
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         toU(u)[0] = w_MbM[2];
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // Because the M and Mb origins must lie along their shared z axis, there is no way to
@@ -1426,14 +1426,14 @@ public:
     }
 
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation our bend-stretch joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
         const Vec3 angles123 = R_MbM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // We can represent any translation that puts the M origin in the x-y plane of Mb,
         // by a suitable rotation around z followed by translation along x.
         const Vec2 r = T_MbM.getSubVec<2>(0); // (rx, ry)
@@ -1458,7 +1458,7 @@ public:
             toQ(q)[1] = 0;
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
         toU(u)[0] = w_MbM[2];
     }
@@ -1467,7 +1467,7 @@ public:
     // of OM in Mb which is along M's current x axis direction. Otherwise, we can 
     // represent any velocity in the x-y plane by introducing angular velocity about z.
     // We can never represent a linear velocity along z.
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // Decompose the requested v into "along Mx" and "along My" components.
@@ -1597,7 +1597,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotations this joint can handle are about Mx and My.
         // TODO: isn't there a better way to come up with "the rotation around x&y that
         // best approximates a rotation R"? Here we're just hoping that the supplied
@@ -1606,7 +1606,7 @@ public:
         toQ(q) = angles12;
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
@@ -1616,13 +1616,13 @@ public:
     // expressed in Mb, project it on Mbx and use that as the first generalized speed. Then
     // take whatever angular velocity is unaccounted for, express it in M, and project onto
     // My and use that as the second generalized speed.
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
         const Rotation R_MbM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
         const Vec3     wyz_MbM_M = ~R_MbM*Vec3(0,w_MbM[1],w_MbM[2]);
         toU(u) = Vec2(w_MbM[0], wyz_MbM_M[1]);
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
@@ -1718,7 +1718,7 @@ public:
 
         // Implementations of virtual methods.
 
-    void setMobilizerRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
         // The only rotation our planar joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
@@ -1728,17 +1728,17 @@ public:
         const Vec3 angles123 = R_MbM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
-    void setMobilizerTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
         // Ignore translation in the z direction.
         toQ(q)[1] = T_MbM[0]; // x
         toQ(q)[2] = T_MbM[1]; // y
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
         // We can represent the z angular velocity exactly, but nothing else.
         toU(u)[0] = w_MbM[2];
     }
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // Ignore translational velocity in the z direction.
@@ -1824,7 +1824,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
@@ -1833,18 +1833,18 @@ public:
             toQuat(q) = R_MbM.convertToQuaternion().asVec4();
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM,
                                      Vector& u) const
     {
             toU(u) = w_MbM[0]; // relative angular velocity always used as generalized speeds
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
@@ -2050,7 +2050,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
@@ -2062,7 +2062,7 @@ public:
     // The user gives us the translation vector from OMb to OM as a vector expressed in Mb, which
     // is what we use as translational generalized coordinates. Also, with a free joint 
     // we never have to change orientation coordinates in order to achieve a translation.
-    void setMobilizerTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
         if (getUseEulerAngles(mv))
             toQVec3(q,3) = T_MbM; // skip the 3 Euler angles
         else
@@ -2071,7 +2071,7 @@ public:
 
     // Our 3 rotational generalized speeds are just the angular velocity vector of M in Mb,
     // expressed in Mb, which is exactly what the user provides here.
-    void setMobilizerAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
                                      Vector& u) const
     {
         toUVec3(u,0) = w_MbM; // relative angular velocity always used as generalized speeds
@@ -2079,7 +2079,7 @@ public:
 
     // Our 3 translational generalized speeds are the linear velocity of M's origin in Mb,
     // expressed in Mb, which is just what the user gives us.
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
     {
         toUVec3(u,3) = v_MbM;
@@ -2306,7 +2306,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
@@ -2315,12 +2315,12 @@ public:
             toQuat(q) = R_MbM.convertToQuaternion().asVec4();
     }
 
-    void setMobilizerTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setMobilizerAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
                                      Vector& u) const
     {
         Rotation R_MbM;
@@ -2334,7 +2334,7 @@ public:
         toU(u) = Vec2(w_MbM_M[0], w_MbM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
     }
 
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
     {
         // M and Mb frame origins are always coincident for this mobilizer so there is no
@@ -2549,7 +2549,7 @@ public:
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setMobilizerRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
@@ -2562,7 +2562,7 @@ public:
     // With a free joint we never have to *change* orientation coordinates in order to achieve a translation.
     // Note: a quaternion from a state is not necessarily normalized so can't be used
     // direction as though it were a set of Euler parameters; it must be normalized first.
-    void setMobilizerTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
         if (getUseEulerAngles(mv))
             toQVec3(q,3) = T_MbM; // skip the 3 Euler angles
         else
@@ -2571,7 +2571,7 @@ public:
 
     // Our 2 rotational generalized speeds are just the (x,y) components of the
     // angular velocity vector of M in Mb, expressed in M.
-    void setMobilizerAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
                                      Vector& u) const
     {
         Rotation R_MbM;
@@ -2587,7 +2587,7 @@ public:
 
     // Our 3 translational generalized speeds are the linear velocity of M's origin in Mb,
     // expressed in Mb. The user gives us that same vector.
-    void setMobilizerLinearVelocity
+    void setUToFitLinearVelocity
        (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
     {
         toUVec3(u,2) = v_MbM;

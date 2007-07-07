@@ -46,9 +46,9 @@ class MatterSubsystem;
 class SimTK_SIMBODY_EXPORT GeneralForceElements : public ForceSubsystem {
 public:
 
-    // See below for declaration of abstract class GeneralForceElements::UserForce
+    // See below for declaration of abstract class GeneralForceElements::CustomForce
     // which can be used to write your own force elements.
-    class UserForce;
+    class CustomForce;
 
 
 public:
@@ -154,29 +154,29 @@ public:
     // (This routine must execute on the client side; it's implementation
     // is provided later in this header file when we have seen all the
     // needed declarations.) 
-    inline int addUserForce(const UserForce& u);
+    inline int addCustomForce(const CustomForce& u);
 
     // No user-serviceable parts below here.
 
     // See the UserForce class declaration below for more information.
-    typedef void (*UserForceCalcMethod)
-       (const UserForce&        u,
+    typedef void (*CustomForceCalcMethod)
+       (const CustomForce&      u,
         const MatterSubsystem&  matter, 
         const State&            state,
         Vector_<SpatialVec>&    bodyForces,
         Vector_<Vec3>&          particleForces,
         Vector&                 mobilityForces,
         Real&                   pe);
-    typedef UserForce* (*UserForceCloneMethod)(const UserForce&);
-    typedef void (*UserForceDestructor)(UserForce*);
+    typedef CustomForce* (*CustomForceCloneMethod)(const CustomForce&);
+    typedef void (*CustomForceDestructor)(CustomForce*);
 
     SimTK_PIMPL_DOWNCAST(GeneralForceElements, ForceSubsystem);
 private:
     // This library-side routine is how user forces are actually
     // conveyed, ensuring binary compatibility when the client and
     // library are not at the same version.
-    int addUserForceMethods(const UserForce& u, 
-        UserForceCalcMethod, UserForceCloneMethod, UserForceDestructor);
+    int addCustomForceMethods(const CustomForce& u, 
+        CustomForceCalcMethod, CustomForceCloneMethod, CustomForceDestructor);
 
     class GeneralForceElementsRep& updRep();
     const GeneralForceElementsRep& getRep() const;
@@ -204,9 +204,9 @@ private:
  * any space in the State. It should be given such a chance in which case
  * it would no longer need to be stateless.
  */
-class SimTK_SIMBODY_EXPORT GeneralForceElements::UserForce {
+class SimTK_SIMBODY_EXPORT GeneralForceElements::CustomForce {
 public:
-    virtual ~UserForce() { }
+    virtual ~CustomForce() { }
 
     // The force arrays and potential energy are accumulated as we go,
     // so this routine must *add in* its own contributions, not replace
@@ -234,7 +234,7 @@ public:
                       Vector&              mobilityForces,
                       Real&                pe) const = 0;
 
-    virtual UserForce* clone() const = 0;
+    virtual CustomForce* clone() const = 0;
 
 private:
     // This is tricky because no library-side code can depend on the ordering
@@ -242,7 +242,7 @@ private:
     // we call the virtual functions from private static methods here which
     // are generated on the client side and passed to us as though they were
     // C function addresses.
-    inline static void staticCalc(const UserForce& u,
+    inline static void staticCalc(const CustomForce& u,
         const MatterSubsystem& matter, const State& state,
         Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>&       particleForces,
@@ -251,17 +251,17 @@ private:
     {
         u.calc(matter,state,bodyForces,particleForces,mobilityForces,pe);
     }
-    inline static UserForce* staticClone(const UserForce& u) {return u.clone();}
-    inline static void staticDestructor(UserForce* u) {delete u;}
+    inline static CustomForce* staticClone(const CustomForce& u) {return u.clone();}
+    inline static void staticDestructor(CustomForce* u) {delete u;}
     friend class GeneralForceElements;
 };
 
 
 // This routine must execute on the client side, so that the library side
 // doesn't depend on the ordering of virtual function table entries.
-inline int GeneralForceElements::addUserForce(const UserForce& u) {
-    return addUserForceMethods(u, UserForce::staticCalc, UserForce::staticClone,
-                                  UserForce::staticDestructor);
+inline int GeneralForceElements::addCustomForce(const CustomForce& u) {
+    return addCustomForceMethods(u, CustomForce::staticCalc, CustomForce::staticClone,
+                                    CustomForce::staticDestructor);
 }
 
 } // namespace SimTK

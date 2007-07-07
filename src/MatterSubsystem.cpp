@@ -460,39 +460,6 @@ void MatterSubsystem::setMobilizerSpeedsAsVec6(State& s, MobilizedBodyId body, c
     Vec<6>::updAs(&getRep().updU(s)[uStart]) = us;
 }
 
-const Transform& MatterSubsystem::getMobilizerTransform(const State& s, MobilizedBodyId body) const { 
-    return getRep().getMobilizerTransform(s,body); 
-}
-const SpatialVec& MatterSubsystem::getMobilizerVelocity(const State& s, MobilizedBodyId body) const { 
-    return getRep().getMobilizerVelocity(s,body); 
-}
-
-void MatterSubsystem::setMobilizerTransform(State& s, MobilizedBodyId body, const Transform& X_MbM) const { 
-    getRep().setMobilizerTransform(s,body,X_MbM); 
-}
-void MatterSubsystem::setMobilizerRotation(State& s, MobilizedBodyId body, const Rotation& R_MbM) const { 
-    getRep().setMobilizerRotation(s,body,R_MbM); 
-}
-void MatterSubsystem::setMobilizerTranslation(State& s, MobilizedBodyId body, const Vec3& T_MbM) const { 
-    getRep().setMobilizerTranslation(s,body,T_MbM,false); // allow rotation
-}
-void MatterSubsystem::setMobilizerTranslationOnly(State& s, MobilizedBodyId body, const Vec3& T_MbM) const { 
-    getRep().setMobilizerTranslation(s,body,T_MbM,true);  // prevent rotation
-}
-
-void MatterSubsystem::setMobilizerVelocity(State& s, MobilizedBodyId body, const SpatialVec& V_MbM) const { 
-    getRep().setMobilizerVelocity(s,body,V_MbM);
-}
-void MatterSubsystem::setMobilizerAngularVelocity(State& s, MobilizedBodyId body, const Vec3& w_MbM) const { 
-    getRep().setMobilizerAngularVelocity(s,body,w_MbM);
-}
-void MatterSubsystem::setMobilizerLinearVelocity(State& s, MobilizedBodyId body, const Vec3& v_MbM) const { 
-    getRep().setMobilizerLinearVelocity(s,body,v_MbM,false); // allow angular velocity change
-}
-void MatterSubsystem::setMobilizerLinearVelocityOnly(State& s, MobilizedBodyId body, const Vec3& v_MbM) const { 
-    getRep().setMobilizerLinearVelocity(s,body,v_MbM,true);  // prevent angular velocity change
-}
-
 Real MatterSubsystem::calcQConstraintNorm(const State& s) const { 
     return getRep().calcQConstraintNorm(s); 
 }

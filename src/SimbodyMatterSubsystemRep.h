@@ -260,19 +260,6 @@ public:
     const SpatialVec& getGyroscopicForce          (const State&, MobilizedBodyId) const;
     const SpatialVec& getCentrifugalForces        (const State&, MobilizedBodyId) const;
 
-    const Transform&  getMobilizerTransform(const State&, MobilizedBodyId) const;
-    const SpatialVec& getMobilizerVelocity (const State&, MobilizedBodyId) const;
-
-    void setMobilizerTransform  (State&, MobilizedBodyId, const Transform& X_MbM) const;
-    void setMobilizerRotation   (State&, MobilizedBodyId, const Rotation&  R_MbM) const;
-    void setMobilizerTranslation(State&, MobilizedBodyId, const Vec3&      T_MbM,
-                                 bool dontChangeOrientation) const;
-
-    void setMobilizerVelocity       (State&, MobilizedBodyId, const SpatialVec& V_MbM) const;
-    void setMobilizerAngularVelocity(State&, MobilizedBodyId, const Vec3&       w_MbM) const;
-    void setMobilizerLinearVelocity (State&, MobilizedBodyId, const Vec3&       v_MbM,
-                                     bool dontChangeAngularVelocity) const;
-
     // TODO: this is unweighted RMS norm
     Real calcQConstraintNorm(const State& s) const {
         const Vector& qerr = getQErr(s);

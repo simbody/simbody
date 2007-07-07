@@ -61,6 +61,13 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const = 0; 
 
+    // Copy out nq default values for q, beginning at the indicated address.
+    // The concrete class should assert if nq is not a reasonable
+    // number for the kind of mobilizer; there is a bug somewhere in that case. 
+    // This routine shouldn't be called directly -- call copyOutDefaultQ() below 
+    // instead which has a nicer interface and does some error checking.
+    virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
+
     int getQIndex(const State&) const;
     int getUIndex(const State&) const;
 
@@ -72,17 +79,24 @@ public:
     // Given the Model stage variable values in the passed-in State (if
     // any of them are relevant) copy out the appropriate default values
     // to the appropriate slot in qDefault.
-    void copyOutDefaultQ(const State& s, Vector& qDefault) const {
-        SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), Stage::Topology,
-            "MobilizedBody::copyOutDefaultQ()");
-        int qStart, nq;
-        getMyMatterSubsystemRep().findMobilizerQs(s, getMyMobilizedBodyId(), qStart, nq);
-        copyOutDefaultQImpl(nq, &qDefault[qStart]);
-    }
-    virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
+    void copyOutDefaultQ(const State& s, Vector& qDefault) const;
 
     // Generic State-access routines (that is, those which can be handled in
     // the MobilizedBody base class).
+
+
+    // Invalidate Stage::Position.
+    void setQToFitTransform(State& s, const Transform& X_MbM) const;
+    void setQToFitRotation(State& s, const Rotation& R_MbM) const;
+    void setQToFitTranslation(State& s, const Vec3& T_MbM, 
+                                 bool dontChangeOrientation) const;
+
+    // Invalidate Stage::Velocity.
+    void setUToFitVelocity(State& s, const SpatialVec& V_MbM) const;
+    void setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const;
+    void setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
+                                 bool dontChangeAngularVelocity)  const;
+
     const Transform& getBodyTransform(const State& s) const {
         const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
         return getMyRigidBodyNode().getX_GB(pc);
@@ -91,18 +105,11 @@ public:
         const SBVelocityCache& vc = getMyMatterSubsystemRep().getVelocityCache(s);
         return getMyRigidBodyNode().getV_GB(vc);
     }
-    const SpatialVec& getBodyAppliedForces(const State& s) const {
-        const SBAccelerationVars& av = getMyMatterSubsystemRep().getAccelerationVars(s);
-        return getMyRigidBodyNode().getAppliedBodyForce(av);
-    }
-    SpatialVec& updBodyAppliedForces(State& s) const {
-        SBAccelerationVars& av = getMyMatterSubsystemRep().updAccelerationVars(s);
-        return getMyRigidBodyNode().updAppliedBodyForce(av);
-    }
     const SpatialVec& getBodyAcceleration(const State& s) const {
         const SBAccelerationCache& ac = getMyMatterSubsystemRep().getAccelerationCache(s);
         return getMyRigidBodyNode().getA_GB(ac);
     }
+
     const Transform& getMobilizerTransform(const State& s) const {
         const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
         return getMyRigidBodyNode().getX_MbM(pc);
@@ -112,28 +119,7 @@ public:
         return getMyRigidBodyNode().getV_MbM(vc);
     }
 
-    const RigidBodyNode& realizeTopology(int& nxtU, int& nxtUSq, int& nxtQ) const {
-        delete myRBnode;
-        myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
-
-        int level;
-        if (!myParentId.isValid()) {
-            // this is ground
-            assert(myMobilizedBodyId == 0);
-            level = 0;
-        } else {
-            // not ground
-            const MobilizedBodyRep& parent = 
-                myMatterSubsystemRep->getMobilizedBody(myParentId).getRep();
-            level = parent.myRBnode->getLevel() + 1;
-            parent.myRBnode->addChild(myRBnode);
-            myRBnode->setParent(parent.myRBnode);
-        }
-
-        myRBnode->setLevel(level);
-        myRBnode->setNodeNum(myMobilizedBodyId);
-        return *myRBnode;
-    }
+    const RigidBodyNode& realizeTopology(int& nxtU, int& nxtUSq, int& nxtQ) const;
 
     void invalidateTopologyCache() const {
         delete myRBnode; myRBnode=0;
@@ -149,8 +135,6 @@ public:
         );
         return *myRBnode;
     }
-
-
 
     const Body& getBody() const {return theBody;}
     const Transform& getDefaultInboardFrame()  const {return defaultInboardFrame;}

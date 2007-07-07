@@ -2295,8 +2295,9 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
     Vector coulombScale((int)atoms.size(), Real(1));
 
     // Get access to system-global cache entries.
-    Real&                  pe              = mbs.updPotentialEnergy(s); // kJ
-    Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s); // kJ (torque), kJ/nm (force)
+    Real& pe = mbs.updPotentialEnergy(s, Stage::Dynamics); // kJ
+    Vector_<SpatialVec>& rigidBodyForces = 
+        mbs.updRigidBodyForces(s, Stage::Dynamics); // kJ (torque), kJ/nm (force)
 
     for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) {
         const Transform&          X_GB1  = matter.getBodyTransform(s,b1);

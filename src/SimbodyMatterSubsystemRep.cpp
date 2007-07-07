@@ -530,7 +530,7 @@ void SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  co
 
     // Update system kinetic energy
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
-    mbs.getRep().updKineticEnergy(s) += calcKineticEnergy(s);
+    mbs.getRep().updKineticEnergy(s, Stage::Dynamics) += calcKineticEnergy(s);
 }
 
 void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)  const {
@@ -542,9 +542,9 @@ void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)
     // the matter subsystem's state variables
     SBAccelerationVars& av = const_cast<SBAccelerationVars&>(getAccelerationVars(s));
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
-    av.appliedMobilityForces  = mbs.getMobilityForces(s);
-    av.appliedParticleForces  = mbs.getParticleForces(s);
-    av.appliedRigidBodyForces = mbs.getRigidBodyForces(s);
+    av.appliedMobilityForces  = mbs.getMobilityForces (s, Stage::Dynamics);
+    av.appliedParticleForces  = mbs.getParticleForces (s, Stage::Dynamics);
+    av.appliedRigidBodyForces = mbs.getRigidBodyForces(s, Stage::Dynamics);
 
     // Get the Acceleration-stage cache and make sure it has been allocated and initialized if needed.
     Vector&              udot    = updUDot(s);
@@ -718,61 +718,6 @@ int SimbodyMatterSubsystemRep::getNQuaternionsInUse(const State& s) const {
 int SimbodyMatterSubsystemRep::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
     const SBModelCache& mc = getModelCache(s); // must be >=Model stage
     return mc.quaternionIndex[body];
-}
-
-const Transform& SimbodyMatterSubsystemRep::getMobilizerTransform(const State& s, MobilizedBodyId body) const { 
-    const RigidBodyNode& n = getRigidBodyNode(body);
-    const SBPositionCache& pc = getPositionCache(s);
-    return n.getX_MbM(pc);
-}
-const SpatialVec& SimbodyMatterSubsystemRep::getMobilizerVelocity(const State& s, MobilizedBodyId body) const { 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBVelocityCache& vc = getVelocityCache(s);
-    return n.getV_MbM(vc);
-}
-void SimbodyMatterSubsystemRep::setMobilizerTransform(State& s, MobilizedBodyId body, const Transform& X_MbM) const { 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    Vector& q = updQ(s);
-    n.setMobilizerTransform(mv, X_MbM, q);
-}
-void SimbodyMatterSubsystemRep::setMobilizerRotation(State& s, MobilizedBodyId body, const Rotation& R_MbM) const { 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    Vector& q = updQ(s);
-    n.setMobilizerRotation(mv, R_MbM, q);
-}
-void SimbodyMatterSubsystemRep::setMobilizerTranslation(State& s, MobilizedBodyId body, const Vec3& T_MbM,
-                                                        bool dontChangeOrientation) const 
-{ 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    Vector& q = updQ(s);
-    n.setMobilizerTranslation(mv, T_MbM, q, dontChangeOrientation);
-}
-
-void SimbodyMatterSubsystemRep::setMobilizerVelocity(State& s, MobilizedBodyId body, const SpatialVec& V_MbM) const { 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    const Vector&        q  = getQ(s);
-    Vector& u = updU(s);
-    n.setMobilizerVelocity(mv, q, V_MbM, u);
-}
-void SimbodyMatterSubsystemRep::setMobilizerAngularVelocity(State& s, MobilizedBodyId body, const Vec3& w_MbM) const { 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    const Vector&        q  = getQ(s);
-    Vector& u = updU(s);
-    n.setMobilizerAngularVelocity(mv, q, w_MbM, u);
-}
-void SimbodyMatterSubsystemRep::setMobilizerLinearVelocity(State& s, MobilizedBodyId body, const Vec3& v_MbM,
-                                                           bool dontChangeAngularVelocity) const 
-{ 
-    const RigidBodyNode& n  = getRigidBodyNode(body);
-    const SBModelVars&   mv = getModelVars(s);
-    const Vector&        q  = getQ(s);
-    Vector& u = updU(s);
-    n.setMobilizerLinearVelocity(mv, q, v_MbM, u, dontChangeAngularVelocity);
 }
 
 const SpatialVec&

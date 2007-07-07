@@ -272,7 +272,7 @@ try {
     Vector tols; mbs.calcYErrUnitTolerances(s,tols);
     cout << "YERR TOLERANCES: " << tols << endl;
 
-    Transform bodyConfig = pend.getBodyTransform(s, aPendulum);
+    Transform bodyConfig = aPendulum.getBodyTransform(s);
     cout << "q=" << s.getQ() << endl;
     cout << "body frame: " << bodyConfig;
 
@@ -282,7 +282,7 @@ try {
     cout << "-------> STATE after realize(Position):" << s;
     cout << "<------- STATE after realize(Position)." << endl;
 
-    cout << "after assembly body frame: " << pend.getBodyTransform(s,aPendulum); 
+    cout << "after assembly body frame: " << aPendulum.getBodyTransform(s); 
 
     Vector_<SpatialVec> dEdR(pend.getNBodies());
     dEdR[0] = 0;
@@ -303,7 +303,7 @@ try {
     pend.addInMobilityForce(s, aPendulum, 0, 147, mobilityForces);
 
     mbs.realize(s, Stage::Velocity);
-    SpatialVec bodyVel = pend.getBodyVelocity(s, aPendulum);
+    SpatialVec bodyVel = aPendulum.getBodyVelocity(s);
     cout << "body vel: " << bodyVel << endl;
 
     cout << "wXwXr=" << bodyVel[0] % (bodyVel[0] % Vec3(2.5,0,0)) << endl;
@@ -319,7 +319,7 @@ try {
 
     mbs.realize(s, Stage::Acceleration);
 
-    SpatialVec bodyAcc = pend.getBodyAcceleration(s, aPendulum);
+    SpatialVec bodyAcc = aPendulum.getBodyAcceleration(s);
     cout << "body acc: " << bodyAcc << endl;
 
     //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
@@ -332,7 +332,7 @@ try {
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
     Quaternion q; q.setToAngleAxis(aa);
-    pend.setMobilizerTransform(s,aPendulum,Transform(Rotation(q), Vec3(.1,.2,.3)));
+    aPendulum.setQToFitTransform(s,Transform(Rotation(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
     //pend.updQ(s)[2] = -.1;
@@ -358,8 +358,8 @@ try {
 
         const Vector qdot = pend.getQDot(s);
 
-        Transform  x = pend.getBodyTransform(s,aPendulum);
-        SpatialVec v = pend.getBodyVelocity(s,aPendulum);
+        Transform  x = aPendulum.getBodyTransform(s);
+        SpatialVec v = aPendulum.getBodyVelocity(s);
 
         //Vec3 err = x.T()-Vec3(2.5,0.,0.);
         //Real d = err.norm();

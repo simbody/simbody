@@ -84,30 +84,34 @@ public:
     const DecorationSubsystem& getDecorationSubsystem() const;
     DecorationSubsystem&       updDecorationSubsystem();
 
-    // Responses available when the global subsystem is advanced to Dynamics stage.
-    const Real& getPotentialEnergy(const State&) const;
-    const Real& getKineticEnergy(const State&) const;
-    Real getEnergy(const State& s) const {return getPotentialEnergy(s)+getKineticEnergy(s);}
+    // Responses available when the global subsystem is advanced to the indicated stage.
+    const Real& getPotentialEnergy(const State&, Stage g=Stage::Dynamics) const;
+    const Real& getKineticEnergy(const State&, Stage g=Stage::Dynamics) const;
+
+    Real getEnergy(const State& s, Stage g=Stage::Dynamics) const {
+        return getPotentialEnergy(s,g)+getKineticEnergy(s,g);
+    }
 
     // These methods are for use by our constituent subsystems to communicate with
     // each other and with the MultibodySystem as a whole.
 
-    // These Dynamics stage cache entries belong to the global subsystem, which zeroes them at the
-    // start of the Dynamics stage. They are filled in by the force subsystems when
-    // they are realized to dynamics stage. They may then be accessed by the matter 
-    // subsystem in the Reacting stage.
-    const Vector_<SpatialVec>& getRigidBodyForces(const State&) const;
-    const Vector_<Vec3>&       getParticleForces (const State&) const;
-    const Vector&              getMobilityForces (const State&) const;
+    // These cache entries belong to the global subsystem, which zeroes them at the
+    // start of the corresponding stage. They are filled in by the force subsystems when
+    // they are realized to each stage. Forces are cumulative from stage to stage,
+    // so the Dynamics stage includes everything. That may then be accessed by the matter 
+    // subsystem in Acceleration stage to generate the accelerations.
+    const Vector_<SpatialVec>& getRigidBodyForces(const State&, Stage) const;
+    const Vector_<Vec3>&       getParticleForces (const State&, Stage) const;
+    const Vector&              getMobilityForces (const State&, Stage) const;
 
     // These routines are for use by force subsystems during Dynamics stage.
-    Real&                updPotentialEnergy(const State&) const;
-    Vector_<SpatialVec>& updRigidBodyForces(const State&) const;
-    Vector_<Vec3>&       updParticleForces (const State&) const;
-    Vector&              updMobilityForces (const State&) const;
+    Real&                updPotentialEnergy(const State&, Stage) const;
+    Vector_<SpatialVec>& updRigidBodyForces(const State&, Stage) const;
+    Vector_<Vec3>&       updParticleForces (const State&, Stage) const;
+    Vector&              updMobilityForces (const State&, Stage) const;
 
     // This is for use by the matter subsystem while realizing Dynamics stage.
-    Real& updKineticEnergy(const State&) const;
+    Real& updKineticEnergy(const State&, Stage) const;
 
     // Private implementation.
     SimTK_PIMPL_DOWNCAST(MultibodySystem, System);

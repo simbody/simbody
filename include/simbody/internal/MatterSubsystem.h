@@ -1081,50 +1081,6 @@ public:
 
         // MODEL STAGE solvers //
 
-    // These routines set the generalized coordinates, or speeds (state
-    // variables) for a single mobilizer (ignoring all other mobilizers
-    // and constraints), without requiring knowledge
-    // of the meanings of the individual state variables. The idea here
-    // is to provide a physically-meaningful quantity relating the 
-    // mobilizer's inboard and outboard frames, and then ask the mobilizer
-    // to set its state variables to reproduce that quantity to the
-    // extent it can.
-    //
-    // These routines can be called in Stage::Model, however the routines
-    // may consult the current values of the state variables in some cases,
-    // so you must make sure they have been set to reasonable, or at least
-    // innocuous values (zero will work). In no circumstance will any of
-    // these routines look at any state variables which belong to another
-    // mobilizer; they are limited to working locally with one mobilizer.
-    //
-    // Routines which specify only translation (linear velocity) may use
-    // rotational coordinates to help satisfy the translation requirement.
-    // An alternate "Only" method is available to forbid modification of 
-    // purely rotational coordinates in that case. When a mobilizer uses
-    // state variable which have combined rotational and translational
-    // character (e.g. a screw joint) consult the documentation for the
-    // mobilizer to find out how it responds to these routines.
-    //
-    // There is no guarantee that the desired physical quantity will be
-    // achieved by these routines; you can check on return if you're
-    // worried. Individual mobilizers make specific promises about what
-    // they will do; consult the documentation. These routines do not
-    // throw exceptions even for absurd requests like specifying a
-    // rotation for a sliding mobilizer. Requests where the MobilizedBodyId is
-    // ground are ignored; an illegal MobilizedBodyId will cause an exception though.
-
-    void setMobilizerTransform      (State&, MobilizedBodyId, const Transform& X_MbM) const;
-    void setMobilizerRotation       (State&, MobilizedBodyId, const Rotation&  R_MbM) const;
-    void setMobilizerTranslation    (State&, MobilizedBodyId, const Vec3&      r_MbM) const;
-    void setMobilizerTranslationOnly(State&, MobilizedBodyId, const Vec3&      r_MbM) const;
-
-    // Routines which affect generalized speeds depend on the generalized
-    // coordinates already having been set; they never change coordinates.
-    void setMobilizerVelocity          (State&, MobilizedBodyId, const SpatialVec& V_MbM) const;
-    void setMobilizerAngularVelocity   (State&, MobilizedBodyId, const Vec3&       w_MbM) const;
-    void setMobilizerLinearVelocity    (State&, MobilizedBodyId, const Vec3&       v_MbM) const;
-    void setMobilizerLinearVelocityOnly(State&, MobilizedBodyId, const Vec3&       v_MbM) const;
-
     // Routines for directly setting the generalized coordinates, speeds, and
     // applied forces are "null" solvers in that they modify the state but don't do any
     // computation. These will always succeed if the mobilizer has the 
@@ -1328,11 +1284,6 @@ public:
     /// This response is available at Position stage.
     const Transform& getBodyTransform(const State&, MobilizedBodyId) const;
 
-    /// At stage Position or higher, return the cross-mobilizer transform.
-    /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
-    /// the parent body's corresponding outboard frame Mb.
-    const Transform& getMobilizerTransform(const State&, MobilizedBodyId) const;
-
     /// This is available at Stage::Position. These are *absolute* constraint
     /// violations qerr=g(t,q), that is, they are unweighted.
     const Vector& getQConstraintErrors(const State&) const;
@@ -1379,13 +1330,6 @@ public:
     /// frame's origin, and the body's angular velocity w_GB as the spatial velocity
     /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
     const SpatialVec& getBodyVelocity(const State&, MobilizedBodyId bodyB) const;
-
-    /// At stage Velocity or higher, return the cross-mobilizer velocity.
-    /// This is V_MbM, the relative velocity of the body's inboard mobilizer
-    /// frame M in the parent body's corresponding outboard frame Mb, 
-    /// measured and expressed in Mb. Note that this isn't the usual 
-    /// spatial velocity since it isn't expressed in G.
-    const SpatialVec& getMobilizerVelocity(const State&, MobilizedBodyId bodyB) const;
 
     /// This is available at Stage::Velocity. These are *absolute* constraint
     /// violations verr=v(t,q,u), that is, they are unweighted.

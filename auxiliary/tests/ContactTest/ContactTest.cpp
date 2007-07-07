@@ -172,10 +172,10 @@ try
     const int NHardBalls = 12;
     for (int i=0; i < NHardBalls; ++i)
         balls.push_back(
-            MobilizedBody::Cartesian(bouncers.Ground()
-            , Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
-                                                         + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
-                                     Body::Rigid(hardBallMProps), Transform()));
+            MobilizedBody::Cartesian(bouncers.Ground(),
+                Transform(firstHardBallPos+i*Vec3(0,2*hardBallRadius+1,0)
+                          + (i==NHardBalls-1)*Vec3(1e-14,0,1e-16)),
+                Body::Rigid(hardBallMProps), Transform()));
 
     // The k's here are the plane-strain moduli, that is, Y/(1-p^2) where Y is
     // Young's modulus and p is Poisson's ratio for the material. The c's are

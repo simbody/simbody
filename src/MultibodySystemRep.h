@@ -52,24 +52,55 @@ class AnalyticGeometry;
 class DecorativeGeometry;
 
 /**
- * This is a global variable for the MultibodySystem, stored as a cache
- * entry in the system's State. Technically it is owned by the
+ * This is a set of global variables for the MultibodySystem, stored as a cache
+ * entry in the system's State, one at each Stage. Technically it is owned by the
  * MultibodySystemGlobalSubsystem, but it is manipulated directly by
  * the MultibodySystem.
+ *
+ * The entry at a given Stage includes all the contributions from the previous
+ * Stages. For example, if some forces are generated at Stage::Model, those
+ * are used to initialize the ones at Stage::Instance. That way when we get
+ * to the final set at Stage::Dynamics we can use it directly to produce
+ * accelerations. This structure allows us to invalidate a higher Stage without
+ * having to recalculate forces that were known at a lower Stage.
  */
-struct DynamicsCache {
-    DynamicsCache()
-        : potentialEnergy(NTraits<Real>::NaN), kineticEnergy(NTraits<Real>::NaN)
+struct ForceCacheEntry {
+    ForceCacheEntry() 
+      : potentialEnergy(NTraits<Real>::NaN), kineticEnergy(NTraits<Real>::NaN)
     { }
+    // default copy constructor, copy assignment, destructor
+
     Vector_<SpatialVec> rigidBodyForces;
     Vector_<Vec3>       particleForces;
     Vector              mobilityForces;
     Real                potentialEnergy;
-    Real                kineticEnergy;
+    Real                kineticEnergy; // TODO: does this belong here?
+
+    void ensureAllocatedTo(int nRigidBodies, int nParticles, int nMobilities) {
+        rigidBodyForces.resize(nRigidBodies);
+        particleForces.resize(nParticles);
+        mobilityForces.resize(nMobilities);
+    }
+
+    void setAllForcesToZero() {
+        rigidBodyForces.setToZero();
+        particleForces.setToZero();
+        mobilityForces.setToZero();
+        potentialEnergy = kineticEnergy = 0;
+    }
+
+    // This is just an assignment but allows for some bugcatchers. All the
+    // ForceCacheEntries at every stage are supposed to have the same dimensions.
+    void initializeFromSimilarForceEntry(const ForceCacheEntry& src) {
+        assert(src.rigidBodyForces.size() == rigidBodyForces.size());
+        assert(src.particleForces.size()  == particleForces.size());
+        assert(src.mobilityForces.size()  == mobilityForces.size());
+        *this = src;
+    }
 };
 
 // Useless, but required by Value<T>.
-inline std::ostream& operator<<(std::ostream& o, const DynamicsCache&) 
+inline std::ostream& operator<<(std::ostream& o, const ForceCacheEntry&) 
 {assert(false);return o;}
 
 /**
@@ -79,87 +110,168 @@ inline std::ostream& operator<<(std::ostream& o, const DynamicsCache&)
 class MultibodySystemGlobalSubsystemRep : public SubsystemRep {
     // Topological variables
 
-    mutable int dynamicsCacheIndex;         // where in state to find our stuff
+    static const int NumForceCacheEntries = (Stage::Dynamics-Stage::Model+1);
+    mutable int forceCacheIndices[NumForceCacheEntries]; // where in state to find our stuff
 
-    const DynamicsCache& getDynamicsCache(const State& s) const {
+    const ForceCacheEntry& getForceCacheEntry(const State& s, Stage g) const {
         assert(subsystemTopologyHasBeenRealized());
-        return Value<DynamicsCache>::downcast(
-            getCacheEntry(s,dynamicsCacheIndex)).get();
+        SimTK_STAGECHECK_RANGE(Stage::Model, g, Stage::Dynamics,
+            "MultibodySystem::getForceCacheEntry()");
+
+        return Value<ForceCacheEntry>::downcast(
+            getCacheEntry(s,forceCacheIndices[g-Stage::Model])).get();
     }
-    DynamicsCache& updDynamicsCache(const State& s) const {
+    ForceCacheEntry& updForceCacheEntry(const State& s, Stage g) const {
         assert(subsystemTopologyHasBeenRealized());
-        return Value<DynamicsCache>::downcast(
-            updCacheEntry(s,dynamicsCacheIndex)).upd();
+        SimTK_STAGECHECK_RANGE(Stage::Model, g, Stage::Dynamics,
+            "MultibodySystem::getForceCacheEntry()");
+
+        return Value<ForceCacheEntry>::downcast(
+            updCacheEntry(s,forceCacheIndices[g-Stage::Model])).upd();
     }
 public:
     MultibodySystemGlobalSubsystemRep()
-      : SubsystemRep("MultibodySystemGlobalSubsystem", "0.0.1"),
-        dynamicsCacheIndex(-1)
+      : SubsystemRep("MultibodySystemGlobalSubsystem", "0.0.2")
     {
+        for (int i=0; i<NumForceCacheEntries; ++i)
+            forceCacheIndices[i] = -1;
+        invalidateSubsystemTopologyCache();
+    }
+
+    // Use default copy constructor, but then clear out the cache indices
+    // and invalidate topology.
+    MultibodySystemGlobalSubsystemRep* cloneSubsystemRep() const {
+        MultibodySystemGlobalSubsystemRep* p = 
+            new MultibodySystemGlobalSubsystemRep(*this);
+        for (int i=0; i<NumForceCacheEntries; ++i)
+            p->forceCacheIndices[i] = -1;
+        p->invalidateSubsystemTopologyCache();
+        return p;
     }
 
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
     }
 
-    const Vector_<SpatialVec>& getRigidBodyForces(const State& s) const {
-        return getDynamicsCache(s).rigidBodyForces;
+    const Vector_<SpatialVec>& getRigidBodyForces(const State& s, Stage g) const {
+        return getForceCacheEntry(s,g).rigidBodyForces;
     }
-    const Vector_<Vec3>& getParticleForces(const State& s) const {
-        return getDynamicsCache(s).particleForces;
+    const Vector_<Vec3>& getParticleForces(const State& s, Stage g) const {
+        return getForceCacheEntry(s,g).particleForces;
     }
-    const Vector& getMobilityForces(const State& s) const {
-        return getDynamicsCache(s).mobilityForces;
+    const Vector& getMobilityForces(const State& s, Stage g) const {
+        return getForceCacheEntry(s,g).mobilityForces;
     }
-    const Real& getPotentialEnergy(const State& s) const {
-        return getDynamicsCache(s).potentialEnergy;
+    const Real& getPotentialEnergy(const State& s, Stage g) const {
+        return getForceCacheEntry(s,g).potentialEnergy;
     }
-    const Real& getKineticEnergy(const State& s) const {
-        return getDynamicsCache(s).kineticEnergy;
-    }
-    
-    Vector_<SpatialVec>& updRigidBodyForces(const State& s) const {
-        return updDynamicsCache(s).rigidBodyForces;
-    }
-    Vector_<Vec3>& updParticleForces(const State& s) const {
-        return updDynamicsCache(s).particleForces;
-    }
-    Vector& updMobilityForces(const State& s) const {
-        return updDynamicsCache(s).mobilityForces;
-    }
-    Real& updPotentialEnergy(const State& s) const {
-        return updDynamicsCache(s).potentialEnergy;
-    }
-    Real& updKineticEnergy(const State& s) const {
-        return updDynamicsCache(s).kineticEnergy;
-    }
+    const Real& getKineticEnergy(const State& s, Stage g) const {
+        return getForceCacheEntry(s,g).kineticEnergy;
+    }   
 
-    MultibodySystemGlobalSubsystemRep* cloneSubsystemRep() const {
-        return new MultibodySystemGlobalSubsystemRep(*this);
+    Vector_<SpatialVec>& updRigidBodyForces(const State& s, Stage g) const {
+        return updForceCacheEntry(s,g).rigidBodyForces;
+    }
+    Vector_<Vec3>& updParticleForces(const State& s, Stage g) const {
+        return updForceCacheEntry(s,g).particleForces;
+    }
+    Vector& updMobilityForces(const State& s, Stage g) const {
+        return updForceCacheEntry(s,g).mobilityForces;
+    }
+    Real& updPotentialEnergy(const State& s, Stage g) const {
+        return updForceCacheEntry(s,g).potentialEnergy;
+    }
+    Real& updKineticEnergy(const State& s, Stage g) const {
+        return updForceCacheEntry(s,g).kineticEnergy;
     }
 
     // These override virtual methods from SubsystemRep.
 
+    // At Topology stage we just allocate some slots in the State to hold
+    // the forces. We can't initialize the force arrays because we don't yet
+    // know the problem size.
     void realizeSubsystemTopologyImpl(State& s) const {
         const MultibodySystem& mbs = getMultibodySystem();
-        dynamicsCacheIndex = s.allocateCacheEntry(getMySubsystemId(), 
-            Stage::Dynamics, new Value<DynamicsCache>());
+
+        for (Stage g(Stage::Model); g<=Stage::Dynamics; ++g)
+            forceCacheIndices[g-Stage::Model] = 
+                allocateCacheEntry(s, g, new Value<ForceCacheEntry>());
     }
 
-    // At dynamics stage we make sure the force arrays are all the right length
-    // and then initialize them and energy to zero. We expect the
-    // force subsystems to then fill in forces and potential energy
-    // as they are realized to this stage, and the matter subsystem to
-    // fill in the kinetic energy.
-    void realizeSubsystemDynamicsImpl(const State& s) const {
-        DynamicsCache& dc = updDynamicsCache(s);
-        dc.potentialEnergy = dc.kineticEnergy = 0;
+    // At Model stage we know the problem size, so we can allocate the
+    // model stage forces (if necessary) and initialize them (to zero).
+    void realizeSubsystemModelImpl(State& s) const {
         const MultibodySystem& mbs = getMultibodySystem();
-        mbs.getMatterSubsystem().resetForces(dc.rigidBodyForces,
-                                             dc.particleForces,
-                                             dc.mobilityForces);
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        ForceCacheEntry& modelForces = updForceCacheEntry(s, Stage::Model);
+        modelForces.ensureAllocatedTo(matter.getNBodies(),
+                                      matter.getNParticles(),
+                                      matter.getNMobilities());
+        modelForces.setAllForcesToZero();
     }
 
+    // We treat the other stages like Model except that we use the 
+    // previous Stage's ForceCacheEntry to initialize this one.
+    void realizeSubsystemInstanceImpl(const State& s) const {
+        const MultibodySystem& mbs = getMultibodySystem();
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        const ForceCacheEntry& modelForces = getForceCacheEntry(s, Stage::Model);
+        ForceCacheEntry& instanceForces = updForceCacheEntry(s, Stage::Instance);
+        instanceForces.ensureAllocatedTo(matter.getNBodies(),
+                                         matter.getNParticles(),
+                                         matter.getNMobilities());
+        instanceForces.initializeFromSimilarForceEntry(modelForces);
+    }
+
+    void realizeSubsystemTimeImpl(const State& s) const {
+        const MultibodySystem& mbs = getMultibodySystem();
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        const ForceCacheEntry& instanceForces = getForceCacheEntry(s, Stage::Instance);
+        ForceCacheEntry& timeForces = updForceCacheEntry(s, Stage::Time);
+        timeForces.ensureAllocatedTo(matter.getNBodies(),
+                                     matter.getNParticles(),
+                                     matter.getNMobilities());
+        timeForces.initializeFromSimilarForceEntry(instanceForces);
+    }
+
+    void realizeSubsystemPositionImpl(const State& s) const {
+        const MultibodySystem& mbs = getMultibodySystem();
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        const ForceCacheEntry& timeForces = getForceCacheEntry(s, Stage::Time);
+        ForceCacheEntry& positionForces = updForceCacheEntry(s, Stage::Position);
+        positionForces.ensureAllocatedTo(matter.getNBodies(),
+                                         matter.getNParticles(),
+                                         matter.getNMobilities());
+        positionForces.initializeFromSimilarForceEntry(timeForces);
+    }
+
+    void realizeSubsystemVelocityImpl(const State& s) const {
+        const MultibodySystem& mbs = getMultibodySystem();
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        const ForceCacheEntry& positionForces = getForceCacheEntry(s, Stage::Position);
+        ForceCacheEntry& velocityForces = updForceCacheEntry(s, Stage::Velocity);
+        velocityForces.ensureAllocatedTo(matter.getNBodies(),
+                                         matter.getNParticles(),
+                                         matter.getNMobilities());
+        velocityForces.initializeFromSimilarForceEntry(positionForces);
+    }
+
+    void realizeSubsystemDynamicsImpl(const State& s) const {
+        const MultibodySystem& mbs = getMultibodySystem();
+        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+
+        const ForceCacheEntry& velocityForces = getForceCacheEntry(s, Stage::Velocity);
+        ForceCacheEntry& dynamicsForces = updForceCacheEntry(s, Stage::Dynamics);
+        dynamicsForces.ensureAllocatedTo(matter.getNBodies(),
+                                         matter.getNParticles(),
+                                         matter.getNMobilities());
+        dynamicsForces.initializeFromSimilarForceEntry(velocityForces);
+    }
 
     // no need for other realize() methods
     SimTK_DOWNCAST(MultibodySystemGlobalSubsystemRep, SubsystemRep);
@@ -244,40 +356,43 @@ public:
         assert(decorationSub.isValid());
         return DecorationSubsystem::updDowncast(updSubsystem(decorationSub));
     }
-    // Global state variables dealing with interaction between forces & matter
 
-    // Responses available when the global subsystem is advanced to Dynamics stage.
-    const Vector_<SpatialVec>& getRigidBodyForces(const State& s) const {
-        return getGlobalSubsystem().getRep().getRigidBodyForces(s);
+    // Global state cache entries dealing with interaction between forces & matter
+
+    // Responses available when the global subsystem is advanced to the
+    // indicated stage or higher.
+    const Vector_<SpatialVec>& getRigidBodyForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().getRigidBodyForces(s,g);
     }
-    const Vector_<Vec3>& getParticleForces(const State& s) const {
-        return getGlobalSubsystem().getRep().getParticleForces(s);
+    const Vector_<Vec3>& getParticleForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().getParticleForces(s,g);
     }
-    const Vector& getMobilityForces(const State& s) const {
-        return getGlobalSubsystem().getRep().getMobilityForces(s);
+    const Vector& getMobilityForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().getMobilityForces(s,g);
     }
-    const Real& getPotentialEnergy(const State& s) const {
-        return getGlobalSubsystem().getRep().getPotentialEnergy(s);
+    const Real& getPotentialEnergy(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().getPotentialEnergy(s,g);
     }
-    const Real& getKineticEnergy(const State& s) const {
-        return getGlobalSubsystem().getRep().getKineticEnergy(s);
+    const Real& getKineticEnergy(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().getKineticEnergy(s,g);
     }
 
-    // Dynamics stage cache entries of the global subsystem.
-    Vector_<SpatialVec>& updRigidBodyForces(const State& s) const {
-        return getGlobalSubsystem().getRep().updRigidBodyForces(s);
+    // These are the global subsystem cache entries at the indicated Stage.
+    // This will reduce the stage of s to the previous stage.
+    Vector_<SpatialVec>& updRigidBodyForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().updRigidBodyForces(s,g);
     }
-    Vector_<Vec3>& updParticleForces(const State& s) const {
-        return getGlobalSubsystem().getRep().updParticleForces(s);
+    Vector_<Vec3>& updParticleForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().updParticleForces(s,g);
     }
-    Vector& updMobilityForces(const State& s) const {
-        return getGlobalSubsystem().getRep().updMobilityForces(s);
+    Vector& updMobilityForces(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().updMobilityForces(s,g);
     }
-    Real& updPotentialEnergy(const State& s) const {
-        return getGlobalSubsystem().getRep().updPotentialEnergy(s);
+    Real& updPotentialEnergy(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().updPotentialEnergy(s,g);
     }
-    Real& updKineticEnergy(const State& s) const {
-        return getGlobalSubsystem().getRep().updKineticEnergy(s);
+    Real& updKineticEnergy(const State& s, Stage g) const {
+        return getGlobalSubsystem().getRep().updKineticEnergy(s,g);
     }
 
     // Do all "q" projections before any "u" projections.

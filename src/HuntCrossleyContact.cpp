@@ -290,8 +290,8 @@ void HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
     const MatterSubsystem& matter = mbs.getMatterSubsystem();
 
     // Get access to system-global cache entries.
-    Real&                  pe              = mbs.updPotentialEnergy(s);
-    Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s);
+    Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
+    Vector_<SpatialVec>&   rigidBodyForces = mbs.updRigidBodyForces(s, Stage::Dynamics);
 
     for (int s1=0; s1 < (int)p.spheres.size(); ++s1) {
         const SphereParameters& sphere1 = p.spheres[s1];

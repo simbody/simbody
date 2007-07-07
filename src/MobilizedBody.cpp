@@ -148,24 +148,71 @@ const Transform& MobilizedBody::getDefaultOutboardFrame() const {
 const Transform& MobilizedBody::getBodyTransform(const State& s) const {
     return getRep().getBodyTransform(s);
 }
-const Transform& MobilizedBody::getMobilizerTransform(const State& s) const {
-    return getRep().getMobilizerTransform(s);
-}
 const SpatialVec& MobilizedBody::getBodyVelocity(const State& s) const {
     return getRep().getBodyVelocity(s);
-}
-const SpatialVec& MobilizedBody::getMobilizerVelocity(const State& s) const {
-    return getRep().getMobilizerVelocity(s);
-}
-const SpatialVec& MobilizedBody::getBodyAppliedForces(const State& s) const {
-    return getRep().getBodyAppliedForces(s);
 }
 const SpatialVec& MobilizedBody::getBodyAcceleration(const State& s) const {
     return getRep().getBodyAcceleration(s);
 }
 
-SpatialVec& MobilizedBody::updBodyAppliedForces(State& s) const {
-    return getRep().updBodyAppliedForces(s);
+const Transform& MobilizedBody::getMobilizerTransform(const State& s) const {
+    return getRep().getMobilizerTransform(s);
+}
+const SpatialVec& MobilizedBody::getMobilizerVelocity(const State& s) const {
+    return getRep().getMobilizerVelocity(s);
+}
+
+void MobilizedBody::setQToFitTransform(State& s, const Transform& X_MbM) const { 
+    getRep().setQToFitTransform(s,X_MbM); 
+}
+void MobilizedBody::setQToFitRotation(State& s, const Rotation& R_MbM) const { 
+    getRep().setQToFitRotation(s,R_MbM); 
+}
+void MobilizedBody::setQToFitTranslation(State& s, const Vec3& T_MbM) const { 
+    getRep().setQToFitTranslation(s,T_MbM,false); // allow rotation
+}
+void MobilizedBody::setQToFitTranslationOnly(State& s, const Vec3& T_MbM) const { 
+    getRep().setQToFitTranslation(s,T_MbM,true);  // prevent rotation
+}
+
+void MobilizedBody::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const { 
+    getRep().setUToFitVelocity(s,V_MbM);
+}
+void MobilizedBody::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const { 
+    getRep().setUToFitAngularVelocity(s,w_MbM);
+}
+void MobilizedBody::setUToFitLinearVelocity(State& s, const Vec3& v_MbM) const { 
+    getRep().setUToFitLinearVelocity(s,v_MbM,false); // allow angular velocity change
+}
+void MobilizedBody::setUToFitLinearVelocityOnly(State& s, const Vec3& v_MbM) const { 
+    getRep().setUToFitLinearVelocity(s,v_MbM,true);  // prevent angular velocity change
+}
+
+// Utilities for use in routines which apply forces
+const SpatialVec& MobilizedBody::getBodyAppliedForces
+   (const State& s, const Vector_<SpatialVec>& rigidBodyForces) const 
+{
+    return rigidBodyForces[getRep().getMyMobilizedBodyId()];
+}
+
+SpatialVec& MobilizedBody::updBodyAppliedForces
+   (const State& s, Vector_<SpatialVec>& rigidBodyForces) const 
+{
+    return rigidBodyForces[getRep().getMyMobilizedBodyId()];
+}
+
+Vector MobilizedBody::getMobilizerForces(const State& s, const Vector& mobilityForces) const {
+    const MobilizedBodyRep& mb = getRep();
+    int uStart, nu;
+    mb.getMyMatterSubsystemRep().findMobilizerUs(s, mb.getMyMobilizedBodyId(), uStart, nu);
+    return mobilityForces(uStart,nu);
+}
+void MobilizedBody::applyMobilizerForces(const State& s, const Vector& f, Vector& mobilityForces) const {
+    const MobilizedBodyRep& mb = getRep();
+    int uStart, nu;
+    mb.getMyMatterSubsystemRep().findMobilizerUs(s, mb.getMyMobilizedBodyId(), uStart, nu);
+    assert(f.size() == nu);
+    mobilityForces(uStart,nu) = f;
 }
 
     ////////////////////////
@@ -175,14 +222,97 @@ SpatialVec& MobilizedBody::updBodyAppliedForces(State& s) const {
 int MobilizedBody::MobilizedBodyRep::getQIndex(const State& s) const {
     int qStart, nq;
     getMyMatterSubsystemRep()
-        .findMobilizerQs(s, MobilizedBodyId(myMobilizedBodyId), qStart, nq);
+        .findMobilizerQs(s, myMobilizedBodyId, qStart, nq);
     return qStart;
 }
 int MobilizedBody::MobilizedBodyRep::getUIndex(const State& s) const {
     int uStart, nu;
     getMyMatterSubsystemRep()
-        .findMobilizerUs(s, MobilizedBodyId(myMobilizedBodyId), uStart, nu);
+        .findMobilizerUs(s, myMobilizedBodyId, uStart, nu);
     return uStart;
+}
+
+void MobilizedBody::MobilizedBodyRep::copyOutDefaultQ(const State& s, Vector& qDefault) const {
+    SimTK_STAGECHECK_GE_ALWAYS(getMyMatterSubsystemRep().getStage(s), Stage::Topology,
+        "MobilizedBody::copyOutDefaultQ()");
+    int qStart, nq;
+    getMyMatterSubsystemRep().findMobilizerQs(s, getMyMobilizedBodyId(), qStart, nq);
+    copyOutDefaultQImpl(nq, &qDefault[qStart]);
+}
+
+    // TODO: currently we delegate these requests to the RigidBodyNodes. 
+    // Probably most of this functionality should be handled directly
+    // by the MobilizedBody objects.
+
+void MobilizedBody::MobilizedBodyRep::setQToFitTransform(State& s, const Transform& X_MbM) const {
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    Vector& q = matterRep.updQ(s);
+    return getMyRigidBodyNode().setQToFitTransform(mv, X_MbM, q);
+}
+void MobilizedBody::MobilizedBodyRep::setQToFitRotation(State& s, const Rotation& R_MbM) const {
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    Vector& q = matterRep.updQ(s);
+    return getMyRigidBodyNode().setQToFitRotation(mv, R_MbM, q);
+}
+void MobilizedBody::MobilizedBodyRep::setQToFitTranslation(State& s, const Vec3& T_MbM, 
+                             bool dontChangeOrientation) const
+{
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    Vector& q = matterRep.updQ(s);
+    return getMyRigidBodyNode().setQToFitTranslation(mv, T_MbM, q, dontChangeOrientation);
+}
+
+void MobilizedBody::MobilizedBodyRep::setUToFitVelocity(State& s, const SpatialVec& V_MbM) const {
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    const Vector& q = matterRep.updQ(s);
+    Vector&       u = matterRep.updU(s);
+    return getMyRigidBodyNode().setUToFitVelocity(mv, q, V_MbM, u);
+}
+void MobilizedBody::MobilizedBodyRep::setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const {
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    const Vector& q = matterRep.updQ(s);
+    Vector&       u = matterRep.updU(s);
+    return getMyRigidBodyNode().setUToFitAngularVelocity(mv, q, w_MbM, u);
+}
+void MobilizedBody::MobilizedBodyRep::setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
+                                bool dontChangeAngularVelocity)  const
+{
+    const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+    const SBModelVars& mv = matterRep.getModelVars(s);
+    const Vector& q = matterRep.updQ(s);
+    Vector&       u = matterRep.updU(s);
+    return getMyRigidBodyNode().setUToFitLinearVelocity(mv, q, v_MbM, u, dontChangeAngularVelocity);
+}
+
+
+const RigidBodyNode& MobilizedBody::MobilizedBodyRep::realizeTopology
+   (int& nxtU, int& nxtUSq, int& nxtQ) const
+{
+    delete myRBnode;
+    myRBnode = createRigidBodyNode(nxtU,nxtUSq,nxtQ);
+
+    int level;
+    if (!myParentId.isValid()) {
+        // this is ground
+        assert(myMobilizedBodyId == 0);
+        level = 0;
+    } else {
+        // not ground
+        const MobilizedBodyRep& parent = 
+            myMatterSubsystemRep->getMobilizedBody(myParentId).getRep();
+        level = parent.myRBnode->getLevel() + 1;
+        parent.myRBnode->addChild(myRBnode);
+        myRBnode->setParent(parent.myRBnode);
+    }
+
+    myRBnode->setLevel(level);
+    myRBnode->setNodeNum(myMobilizedBodyId);
+    return *myRBnode;
 }
 
     /////////////////////////
@@ -248,16 +378,18 @@ Real& MobilizedBody::Pin::updU(State& s) const {
     return mbr.getMyMatterSubsystemRep().updU(s)[uIndex];
 }
 
-
-Real MobilizedBody::Pin::getMobilizerForces(const State& s) const {
+Real MobilizedBody::Pin::getMobilizerForces(const State& s, const Vector& mobilityForces) const {
     const MobilizedBodyRep& mbr = MobilizedBody::getRep();
     const int uIndex = mbr.getUIndex(s);
-    return mbr.getMyMatterSubsystemRep().getAllMobilizerAppliedForces(s)[uIndex];
+    return mobilityForces[uIndex];
 }
-Real& MobilizedBody::Pin::updMobilizerForces(State& s) const {
+
+// This is only for use from within a force subsystem, for example in
+// a CustomForce routine.
+Real& MobilizedBody::Pin::updMobilizerForces(const State& s, Vector& mobilityForces) const {
     const MobilizedBodyRep& mbr = MobilizedBody::getRep();
     const int uIndex = mbr.getUIndex(s);
-    return mbr.getMyMatterSubsystemRep().updAllMobilizerAppliedForces(s)[uIndex];
+    return mobilityForces[uIndex];
 }
 
     // Pin bookkeeping
@@ -552,15 +684,17 @@ Vec3& MobilizedBody::Planar::updU(State& s) const {
     return Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uIndex]);
 }
 
-const Vec3& MobilizedBody::Planar::getMobilizerForces(const State& s) const {
+const Vec3& MobilizedBody::Planar::getMobilizerForces(const State& s, const Vector& mobilityForces) const {
     const MobilizedBodyRep& mbr = MobilizedBody::getRep();
     const int uIndex = mbr.getUIndex(s);
-    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getAllMobilizerAppliedForces(s)[uIndex]);
+    assert(mobilityForces.size() >= uIndex+3);
+    return Vec3::getAs(&mobilityForces[uIndex]);
 }
-Vec3& MobilizedBody::Planar::updMobilizerForces(State& s) const {
+Vec3& MobilizedBody::Planar::updMobilizerForces(const State& s, Vector& mobilityForces) const {
     const MobilizedBodyRep& mbr = MobilizedBody::getRep();
     const int uIndex = mbr.getUIndex(s);
-    return Vec3::updAs(&mbr.getMyMatterSubsystemRep().updAllMobilizerAppliedForces(s)[uIndex]);
+    assert(mobilityForces.size() >= uIndex+3);
+    return Vec3::updAs(&mobilityForces[uIndex]);
 }
 
     // Planar mobilized body bookkeeping

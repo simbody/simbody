@@ -47,6 +47,7 @@ public:
     virtual BodyRep* clone() const = 0;
 
     virtual const MassProperties& getDefaultRigidBodyMassProperties() const = 0;
+    virtual void setDefaultRigidBodyMassProperties(const MassProperties&) = 0;
 
     void setMyHandle(Body& h) {myHandle = &h;}
     const Body& getMyBodyHandle() const {assert(myHandle); return *myHandle;}
@@ -58,7 +59,10 @@ private:
 
 class Body::Ground::GroundRep : public Body::BodyRep {
 public:
-    GroundRep() : BodyRep() {
+    GroundRep() : BodyRep(), infiniteMassProperties(NTraits<Real>::getInfinity(), 
+                                                    Vec3(0),
+                                                    NTraits<Real>::getInfinity()*Inertia(1))
+    {
     }
     GroundRep* clone() const {
         return new GroundRep(*this);
@@ -67,7 +71,11 @@ public:
         static const MassProperties groundMass(NTraits<Real>::getInfinity(), 
                                                Vec3(0),
                                                NTraits<Real>::getInfinity()*Inertia(1));
-        return groundMass;
+        return infiniteMassProperties;
+    }
+    
+    void setDefaultRigidBodyMassProperties(const MassProperties&) {
+        SimTK_THROW1(Exception::Cant, "You can't change Ground's mass properties!");
     }
 
     const Body::Ground& getMyGroundBodyHandle() const {
@@ -76,18 +84,43 @@ public:
 
     SimTK_DOWNCAST(GroundRep, BodyRep);
 private:
+    const MassProperties infiniteMassProperties;
+};
+
+class Body::Massless::MasslessRep : public Body::BodyRep {
+public:
+    MasslessRep() : BodyRep(), zeroMassProperties(0, Vec3(0), Inertia(0)) {
+    }
+    MasslessRep* clone() const {
+        return new MasslessRep(*this);
+    }
+    const MassProperties& getDefaultRigidBodyMassProperties() const {
+        return zeroMassProperties;
+    }
+    
+    void setDefaultRigidBodyMassProperties(const MassProperties&) {
+        SimTK_THROW1(Exception::Cant, "You can't change a massless body's mass properties!");
+    }
+
+    const Body::Massless& getMyMasslessBodyHandle() const {
+        return reinterpret_cast<const Body::Massless&>(getMyBodyHandle());
+    }
+
+    SimTK_DOWNCAST(MasslessRep, BodyRep);
+private:
+    const MassProperties zeroMassProperties;
 };
 
 class Body::Rigid::RigidRep : public Body::BodyRep {
 public:
-    RigidRep() : BodyRep() {
+    RigidRep() : BodyRep(), defaultMassProperties(1,Vec3(0),Inertia(1)) {
     }
-    RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
+    explicit RigidRep(const MassProperties& m) : BodyRep(), defaultMassProperties(m) {
     }
     const MassProperties& getDefaultRigidBodyMassProperties() const {
         return defaultMassProperties;
     }
-    void setDefaultMassProperties(const MassProperties& m) {
+    void setDefaultRigidBodyMassProperties(const MassProperties& m) {
         defaultMassProperties = m;
     }
     RigidRep* clone() const {

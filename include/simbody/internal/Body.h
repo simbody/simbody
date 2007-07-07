@@ -54,6 +54,7 @@ public:
     // properties defined at Topology stage (i.e., in the System rather than
     // the State). 
     const MassProperties& getDefaultRigidBodyMassProperties() const;
+    void setDefaultRigidBodyMassProperties(const MassProperties&);
 
     // These are the built-in Body types.
     class Ground;     // infinitely massive
@@ -80,8 +81,7 @@ protected:
 class SimTK_SIMBODY_EXPORT Body::Rigid : public Body {
 public:
     Rigid(); // default mass properties (1,Vec3(0),Inertia(1,1,1))
-    Rigid(const MassProperties&);
-    Rigid& setDefaultMassProperties(const MassProperties&);
+    explicit Rigid(const MassProperties&);
 
     class RigidRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Rigid, Body);
@@ -93,8 +93,7 @@ private:
 class SimTK_SIMBODY_EXPORT Body::Linear : public Body {
 public:
     Linear(); // default mass properties (1,Vec3(0),Inertia(1,1,0))
-    Linear(const MassProperties&);
-    Linear& setDefaultMassProperties(const MassProperties&);
+    explicit Linear(const MassProperties&);
 
     class LinearRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Linear, Body);
@@ -112,6 +111,17 @@ public:
 private:
     GroundRep&       updRep();
     const GroundRep& getRep() const;
+};
+
+class SimTK_SIMBODY_EXPORT Body::Massless : public Body {
+public:
+    Massless();
+
+    class MasslessRep; // local subclass
+    SimTK_PIMPL_DOWNCAST(Massless, Body);
+private:
+    MasslessRep&       updRep();
+    const MasslessRep& getRep() const;
 };
 
 } // namespace SimTK

@@ -161,19 +161,6 @@ public:
         return v;
     }
 
-
-    // Invalidate Stage::Position.
-    virtual void setMobilizerTransform  (State&, MobilizedBodyId, const Transform& X_MbM) const = 0;
-    virtual void setMobilizerRotation   (State&, MobilizedBodyId, const Rotation&  R_MbM) const = 0;
-    virtual void setMobilizerTranslation(State&, MobilizedBodyId, const Vec3&      T_MbM, 
-                                         bool dontChangeOrientation)             const = 0;
-
-    // Invalidate Stage::Velocity.
-    virtual void setMobilizerVelocity       (State&, MobilizedBodyId, const SpatialVec& V_MbM) const = 0;
-    virtual void setMobilizerAngularVelocity(State&, MobilizedBodyId, const Vec3&       w_MbM) const = 0;
-    virtual void setMobilizerLinearVelocity (State&, MobilizedBodyId, const Vec3&       v_MbM,
-                                             bool dontChangeAngularVelocity)          const = 0;
-
     // Access to Acceleration variables. //
 
     virtual const Vector&              getAllMobilizerAppliedForces(const State&) const = 0;
@@ -198,10 +185,6 @@ public:
         static const Vector_<Vec3> v;
         return v;
     }
-
-    virtual const Transform&  getMobilizerTransform(const State&, MobilizedBodyId) const = 0;
-    virtual const SpatialVec& getMobilizerVelocity(const State&, MobilizedBodyId) const = 0;
-
 
     virtual Real calcQConstraintNorm(const State&) const {
         return 0;

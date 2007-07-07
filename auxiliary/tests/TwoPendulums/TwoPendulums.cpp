@@ -47,6 +47,30 @@ static const Real m = 1;   // kg
 static const Real g = 9.8; // meters/s^2; apply in –y direction
 static const Real d = 0.5; // meters
 
+class ShermsForce : public GeneralForceElements::CustomForce {
+public:
+    ShermsForce(const MobilizedBody& b1, const MobilizedBody& b2) : body1(b1), body2(b2) { }
+    ShermsForce* clone() const {return new ShermsForce(*this);}
+
+    void calc(const MatterSubsystem& matter, const State& state,
+              Vector_<SpatialVec>& bodyForces,
+              Vector_<Vec3>&       particleForces,
+              Vector&              mobilityForces,
+              Real&                pe) const
+    {
+        const Vec3& pos1 = body1.getBodyTransform(state).T();
+        const Vec3& pos2 = body2.getBodyTransform(state).T();
+        const Real d = (pos2-pos1).norm();
+        const Real k = 1000, d0 = 1;
+        const Vec3 f = k*(d-d0)*(pos2-pos1)/d;
+        body1.applyBodyForce(state, SpatialVec(Vec3(0),  f), bodyForces);
+        body2.applyBodyForce(state, SpatialVec(Vec3(0), -f), bodyForces);
+    }
+private:
+    const MobilizedBody& body1;
+    const MobilizedBody& body2;
+};
+
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
 
@@ -70,7 +94,7 @@ int main(int argc, char** argv) {
     rightPendulum.setDefaultInboardFrame(Vec3(1,0,0));
     rightPendulum.setDefaultOutboardFrame(Vec3(0,d,0));
 
-    rightPendulum.setDefaultAngle(20*Deg2Rad); //TODO!!
+    rightPendulum.setDefaultAngle(20*Deg2Rad);
 
     // Beauty is in the eye of the beholder ...
     viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
@@ -104,10 +128,12 @@ int main(int argc, char** argv) {
                               rightPendulum, Vec3(0),
                               DecorativeLine().setColor(c=='c' ? Black : Orange).setLineThickness(4));
 
+    //forces.addMobilityConstantForce(rightPendulum, 0, 20);
+    forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
 
-    mbs.realize(s, Stage::Model); // define appropriate states for this System
+    mbs.realizeModel(s); // define appropriate states for this System
 
     // Create a study using the Runge Kutta Merson or CPODES integrator
     RungeKuttaMerson myStudy(mbs, s);
@@ -117,6 +143,10 @@ int main(int argc, char** argv) {
     const Real finalTime = 5;
 
     leftPendulum.setAngle(s, -60*Deg2Rad);
+
+    // TODO: this can't work unless it sets a state variable somewhere.
+    // Cache entries can only be updated during a realize() operation.
+    //rightPendulum.applyPinTorque(s, Stage::Instance, 2000);
 
     s.setTime(0);
 
@@ -137,6 +167,12 @@ int main(int argc, char** argv) {
             leftPendulum.getAngle(s)*Rad2Deg,
             rightPendulum.getAngle(s)*Rad2Deg,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
+
+        cout << "Mobilizer X left =" << leftPendulum.getMobilizerTransform(s);
+        cout << "Mobilizer X right=" << rightPendulum.getMobilizerTransform(s);
+
+        cout << "Mobilizer V left =" << leftPendulum.getMobilizerVelocity(s) << endl;
+        cout << "Mobilizer V right=" << rightPendulum.getMobilizerVelocity(s) << endl;
 
         display.report(s);
         if (s.getTime() >= finalTime)
