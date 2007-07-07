@@ -811,6 +811,15 @@ MobilizedBody::Ball::Ball(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
+MobilizedBody::Ball& MobilizedBody::Ball::setDefaultRadius(Real r) {
+    updRep().setDefaultRadius(r);
+    return *this;
+}
+
+Real MobilizedBody::Ball::getDefaultRadius() const {
+    return getRep().getDefaultRadius();
+}
+
 const Quaternion& MobilizedBody::Ball::getDefaultQ() const {
     return getRep().defaultQ;
 }
@@ -837,6 +846,75 @@ const MobilizedBody::Ball::BallRep& MobilizedBody::Ball::getRep() const {
 MobilizedBody::Ball::BallRep& MobilizedBody::Ball::updRep() {
     return dynamic_cast<BallRep&>(*rep);
 }
+
+    ///////////////////////////////
+    // MOBILIZED BODY::ELLIPSOID //
+    ///////////////////////////////
+
+MobilizedBody::Ellipsoid::Ellipsoid() {
+    rep = new EllipsoidRep(); rep->setMyHandle(*this);
+}
+
+MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Body& body)
+{
+    rep = new EllipsoidRep(); rep->setMyHandle(*this);
+
+    // inb & outb frames are just the parent body's frame and new body's frame
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Ellipsoid::Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
+                          const Body& body, const Transform& outbFrame)
+{
+    rep = new EllipsoidRep(); rep->setMyHandle(*this);
+
+    setDefaultInboardFrame(inbFrame);
+    setDefaultOutboardFrame(outbFrame);
+    setBody(body);
+
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(),
+                                                   *this);
+}
+
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::setDefaultRadii(const Vec3& r) {
+    updRep().setDefaultRadii(r);
+    return *this;
+}
+
+const Vec3& MobilizedBody::Ellipsoid::getDefaultRadii() const {
+    return getRep().getDefaultRadii();
+}
+
+const Quaternion& MobilizedBody::Ellipsoid::getDefaultQ() const {
+    return getRep().defaultQ;
+}
+Quaternion& MobilizedBody::Ellipsoid::updDefaultQ() {
+    return updRep().defaultQ;
+}
+
+    // Ellipsoid bookkeeping
+
+bool MobilizedBody::Ellipsoid::isInstanceOf(const MobilizedBody& s) {
+    return EllipsoidRep::isA(s.getRep());
+}
+const MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::downcast(const MobilizedBody& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const Ellipsoid&>(s);
+}
+MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::updDowncast(MobilizedBody& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<Ellipsoid&>(s);
+}
+const MobilizedBody::Ellipsoid::EllipsoidRep& MobilizedBody::Ellipsoid::getRep() const {
+    return dynamic_cast<const EllipsoidRep&>(*rep);
+}
+MobilizedBody::Ellipsoid::EllipsoidRep& MobilizedBody::Ellipsoid::updRep() {
+    return dynamic_cast<EllipsoidRep&>(*rep);
+}
+
 
     /////////////////////////////////
     // MOBILIZED BODY::TRANSLATION //
@@ -1164,6 +1242,10 @@ MobilizedBody::Screw::Screw(MobilizedBody& parent, const Transform& inbFrame,
 MobilizedBody::Screw& MobilizedBody::Screw::setDefaultPitch(Real pitch) {
     updRep().setDefaultPitch(pitch);
     return *this;
+}
+
+Real MobilizedBody::Screw::getDefaultPitch() const {
+    return getRep().getDefaultPitch();
 }
 
 bool MobilizedBody::Screw::isInstanceOf(const MobilizedBody& s) {

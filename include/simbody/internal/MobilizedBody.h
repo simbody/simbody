@@ -428,6 +428,7 @@ public:
     }
 
     Screw& setDefaultPitch(Real pitch);
+    Real getDefaultPitch() const;
 
     class ScrewRep; // local subclass
 
@@ -704,7 +705,7 @@ private:
 /// instead.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public MobilizedBody {
 public:
-    Ball();
+    explicit Ball();
 
     /// By default the parent body frame and the body's own frame are
     /// used as the inboard and outboard mobilizer frames, resp.
@@ -739,6 +740,10 @@ public:
     }
     Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
 
+    // This is used only for visualization.
+    Ball& setDefaultRadius(Real r);
+    Real getDefaultRadius() const;
+
     // Generic default state Topology methods.
     const Quaternion& getDefaultQ() const;
     Quaternion& updDefaultQ();
@@ -760,7 +765,8 @@ class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public MobilizedBody {
 public:
     // The ellipsoid is placed on the mobilizer's inboard frame Mb, with
     // half-axis dimensions along Mb's x,y,z respectively.
-    Ellipsoid(const Vec3& radii);
+    Ellipsoid(); // not very useful until radii are set, but has some defaults
+    explicit Ellipsoid(const Vec3& radii);
     Ellipsoid(Real a, Real b, Real c);
 
     /// By default the parent body frame and the body's own frame are
@@ -789,6 +795,20 @@ public:
     Ellipsoid& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
+
+    // This is just a nicer name for the generalized coordinate.
+    Ellipsoid& setDefaultRotation(const Rotation& R_MbM) {
+        return setDefaultQ(R_MbM.convertToQuaternion());
+    }
+    Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
+
+    Ellipsoid& setDefaultRadii(const Vec3& r);
+    const Vec3& getDefaultRadii() const;
+
+    // Generic default state Topology methods.
+    const Quaternion& getDefaultQ() const;
+    Quaternion& updDefaultQ();
+    Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
 
     class EllipsoidRep; // local subclass
 

@@ -91,19 +91,19 @@ int main(int argc, char** argv) {
                                     pendulumBody,
                                       Transform(Vec3(0, d, 0)));
 
-    MobilizedBody::Pin rightPendulum = MobilizedBody::Pin(twoPends.Ground(), pendulumBody)
+    MobilizedBody::Ellipsoid rightPendulum = MobilizedBody::Ellipsoid(twoPends.Ground(), pendulumBody)
                                           .setDefaultInboardFrame(Vec3(1,0,0))
-                                          .setDefaultOutboardFrame(Vec3(0,d,0))
-                                          .addOutboardDecoration(Transform(),
-                                                                 DecorativeEllipsoid()
-                                                                    .setColor(Purple));
+                                          .setDefaultOutboardFrame(Vec3(0,d,0));
+    rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
+                                                      .setColor(Purple));
 
     leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
     //rightPendulum.addInboardDecoration(Transform(), DecorativeSphere(0.1).setColor(Yellow));
     //rightPendulum.addOutboardDecoration(Transform(), DecorativeLine());
 
 
-    rightPendulum.setDefaultAngle(20*Deg2Rad);
+    //rightPendulum.setDefaultAngle(20*Deg2Rad);
+    rightPendulum.setDefaultRotation(Rotation::aboutZ(20*Deg2Rad));
 
     // Beauty is in the eye of the beholder ...
     //viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
         mbs.realize(s);
         printf("%5g %10.4g %10.4g %10.8g h=%g\n", s.getTime(), 
             leftPendulum.getAngle(s)*Rad2Deg,
-            rightPendulum.getAngle(s)*Rad2Deg,
+            /*rightPendulum.getRotation(s)*Rad2Deg*/0.,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
 
         cout << "Mobilizer X left =" << leftPendulum.getMobilizerTransform(s);

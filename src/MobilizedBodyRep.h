@@ -409,7 +409,7 @@ private:
 
 class MobilizedBody::Ball::BallRep : public MobilizedBody::MobilizedBodyRep {
 public:
-    BallRep() : defaultQ() { } // default is (1,0,0,0), the identity rotation
+    BallRep() : defaultRadius(0.5), defaultQ() { } // default is (1,0,0,0), the identity rotation
     BallRep* clone() const { return new BallRep(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -426,9 +426,48 @@ public:
             Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
     }
 
+    void setDefaultRadius(Real r) {
+        assert(r>0);
+        defaultRadius=r;
+    }
+    Real getDefaultRadius() const {return defaultRadius;}
+
     SimTK_DOWNCAST(BallRep, MobilizedBodyRep);
 private:
     friend class MobilizedBody::Ball;
+    Real defaultRadius;   // used for visualization only
+    Quaternion defaultQ;  // the default orientation
+};
+
+class MobilizedBody::Ellipsoid::EllipsoidRep : public MobilizedBody::MobilizedBodyRep {
+public:
+    EllipsoidRep() : defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    EllipsoidRep* clone() const { return new EllipsoidRep(*this); }
+
+    RigidBodyNode* createRigidBodyNode(
+        int&                     nxtU,
+        int&                     nxtUSq,
+        int&                     nxtQ) const;
+
+    void copyOutDefaultQImpl(int nq, Real* q) const {
+        SimTK_ASSERT(nq==4||nq==3, 
+            "MobilizedBody::Ellipsoid::EllipsoidRep::copyOutDefaultQImpl(): wrong number of q's expected");
+        if (nq==4)
+            Vec4::updAs(q) = defaultQ.asVec4();
+        else
+            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+    }
+
+    void setDefaultRadii(const Vec3& r) {
+        assert(r[0]>0 && r[1]>0 && r[2]>0);
+        defaultRadii=r;
+    }
+    const Vec3& getDefaultRadii() const {return defaultRadii;}
+
+    SimTK_DOWNCAST(EllipsoidRep, MobilizedBodyRep);
+private:
+    friend class MobilizedBody::Ellipsoid;
+    Vec3 defaultRadii;    // used for visualization only
     Quaternion defaultQ;  // the default orientation
 };
 
