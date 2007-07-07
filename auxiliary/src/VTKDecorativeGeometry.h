@@ -63,24 +63,25 @@ public:
     /*virtual*/ ~VTKDecorativeGeometry() {
         deleteVTKGeometry();
     }
-    /*virtual*/ void implementLineGeometry(    const DecorativeLine&);
-    /*virtual*/ void implementBrickGeometry(   const DecorativeBrick&);
-    /*virtual*/ void implementCylinderGeometry(const DecorativeCylinder&);
-    /*virtual*/ void implementCircleGeometry(  const DecorativeCircle&); 
-    /*virtual*/ void implementSphereGeometry(  const DecorativeSphere&);
-    /*virtual*/ void implementFrameGeometry(   const DecorativeFrame&);
+    /*virtual*/ void implementLineGeometry     (const DecorativeLine&);
+    /*virtual*/ void implementBrickGeometry    (const DecorativeBrick&);
+    /*virtual*/ void implementCylinderGeometry (const DecorativeCylinder&);
+    /*virtual*/ void implementCircleGeometry   (const DecorativeCircle&); 
+    /*virtual*/ void implementSphereGeometry   (const DecorativeSphere&);
+    /*virtual*/ void implementEllipsoidGeometry(const DecorativeEllipsoid&);
+    /*virtual*/ void implementFrameGeometry    (const DecorativeFrame&);
 
     // The last vtkObject is the end of the VTK pipeline -- its output is the
     // final representation of the object.
     vtkPolyData* getVTKPolyData();
 
-    // Combine a SimTK Transform with a scale factor and return the equivalent
+    // Combine a SimTK Transform with x,y,z scale factors and return the equivalent
     // vtkTransform that will translate, rotate, and scale the same way.
-    vtkTransform* createVTKTransform(const Transform&, const Real&);
+    vtkTransform* createVTKTransform(const Transform&, const Vec3& scale);
 
     // Take some polygon data as input, copy it and transform it, returning the
     // transformed polygon data.
-    vtkPolyData* transformVTKPolyData(const Transform&, const Real&, vtkPolyData*);
+    vtkPolyData* transformVTKPolyData(const Transform&, const Vec3& scale, vtkPolyData*);
 
 protected:
     void rememberVTKObject(vtkObject* o) {

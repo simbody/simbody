@@ -36,6 +36,7 @@
 #include "simbody/internal/MobilizedBody.h"
 
 #include "SimbodyMatterSubsystemRep.h"
+#include "BodyRep.h"
 
 class RigidBodyNode;
 
@@ -67,6 +68,39 @@ public:
     // This routine shouldn't be called directly -- call copyOutDefaultQ() below 
     // instead which has a nicer interface and does some error checking.
     virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
+
+    void addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
+        outboardGeometry.push_back(g); // make a new copy
+        // Combine the placement frame and the transform already in the geometry
+        // so we end up with geometry expressed directly in the M frame.
+        outboardGeometry.back().setTransform(X_MD*g.getTransform());
+    }
+    void addInboardDecoration(const Transform& X_MbD, const DecorativeGeometry& g) {
+        inboardGeometry.push_back(g); // make a new copy
+        // Combine the placement frame and the transform already in the geometry
+        // so we end up with geometry expressed directly in the Mb frame.
+        inboardGeometry.back().setTransform(X_MbD*g.getTransform());
+    }
+
+    void appendBodyGeometry(Array<DecorativeGeometry>& geom) const {
+        getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyId(), geom);
+    }
+
+    // TODO: should call at Instance stage to wait for M and Mb instantiation.
+    void appendMobilizerGeometry(const Transform& X_BM, const Transform& X_PMb,
+                                 Array<DecorativeGeometry>& geom) const
+    {
+        for (int i=0; i<(int)outboardGeometry.size(); ++i) {
+            geom.push_back(outboardGeometry[i]);
+            geom.back().setBodyId(getMyMobilizedBodyId())
+                       .setTransform(X_BM*outboardGeometry[i].getTransform());
+        }
+        for (int i=0; i<(int)inboardGeometry.size(); ++i) {
+            geom.push_back(inboardGeometry[i]);
+            geom.back().setBodyId(getMyParentMobilizedBodyId())
+                       .setTransform(X_PMb*inboardGeometry[i].getTransform());
+        }
+    }
 
     int getQIndex(const State&) const;
     int getUIndex(const State&) const;
@@ -192,6 +226,9 @@ private:
     Body theBody;
     Transform defaultInboardFrame;  // default for Mb (in Parent frame)
     Transform defaultOutboardFrame; // default for M (in Body frame)
+
+    std::vector<DecorativeGeometry> outboardGeometry;
+    std::vector<DecorativeGeometry> inboardGeometry;
 
     // These data members are filled in once the MobilizedBody is added to
     // a MatterSubsystem. Note that this pointer is just a reference to

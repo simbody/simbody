@@ -189,6 +189,22 @@ Real DecorativeSphere::getRadius() const {
     return DecorativeSphereRep::downcast(*rep).getRadius();
 }
 
+
+    /////////////////////////
+    // DecorativeEllipsoid //
+    /////////////////////////
+
+DecorativeEllipsoid::DecorativeEllipsoid(const Vec3& radii) {
+    rep = new DecorativeEllipsoidRep(radii);
+    rep->setMyHandle(*this);
+}
+
+void DecorativeEllipsoid::setRadii(const Vec3& r) {
+    DecorativeEllipsoidRep::downcast(*rep).setRadii(r);
+}
+const Vec3& DecorativeEllipsoid::getRadii() const {
+    return DecorativeEllipsoidRep::downcast(*rep).getRadii();
+}
     /////////////////////
     // DecorativeBrick //
     /////////////////////

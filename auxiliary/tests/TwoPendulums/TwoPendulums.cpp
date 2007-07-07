@@ -83,22 +83,31 @@ int main(int argc, char** argv) {
     DecorationSubsystem     viz(mbs);
 
         // ADD BODIES AND THEIR MOBILIZERS
+    Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
+                                  .addDecoration(Transform(), DecorativeSphere(.1));
+
     MobilizedBody::Pin leftPendulum(twoPends.Ground(),
                                       Transform(Vec3(-1, 0, 0)),
-                                    Body::Rigid(MassProperties(m, Vec3(0), Inertia(1))),
+                                    pendulumBody,
                                       Transform(Vec3(0, d, 0)));
 
-    MobilizedBody::Pin rightPendulum(twoPends.Ground(),
-                                     Body::Rigid(MassProperties(m, Vec3(0), Inertia(1))));
+    MobilizedBody::Pin rightPendulum = MobilizedBody::Pin(twoPends.Ground(), pendulumBody)
+                                          .setDefaultInboardFrame(Vec3(1,0,0))
+                                          .setDefaultOutboardFrame(Vec3(0,d,0))
+                                          .addOutboardDecoration(Transform(),
+                                                                 DecorativeEllipsoid()
+                                                                    .setColor(Purple));
 
-    rightPendulum.setDefaultInboardFrame(Vec3(1,0,0));
-    rightPendulum.setDefaultOutboardFrame(Vec3(0,d,0));
+    leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
+    //rightPendulum.addInboardDecoration(Transform(), DecorativeSphere(0.1).setColor(Yellow));
+    //rightPendulum.addOutboardDecoration(Transform(), DecorativeLine());
+
 
     rightPendulum.setDefaultAngle(20*Deg2Rad);
 
     // Beauty is in the eye of the beholder ...
-    viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
-    viz.addBodyFixedDecoration(rightPendulum, Transform(), DecorativeSphere(.1).setColor(Blue));
+    //viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
+    //viz.addBodyFixedDecoration(rightPendulum, Transform(), DecorativeSphere(.1).setColor(Blue));
 
         // OPTIONALLY TIE TOGETHER WITH SPRING/DAMPER OR DISTANCE CONSTRAINT
 

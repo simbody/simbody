@@ -78,7 +78,7 @@ VTKDecorativeGeometry::getVTKPolyData() {
 }
 
 vtkTransform* 
-VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Real& s) {
+VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Vec3& s) {
 
     const Vec3 t = X_BG.T();
     const Vec4 r = X_BG.R().convertToAngleAxis();
@@ -88,12 +88,12 @@ VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Real& s) 
 
     xform->Translate(t[0],t[1],t[2]);
     xform->RotateWXYZ(r[0]/RadiansPerDegree,r[1],r[2],r[3]);     // angle, axis
-    xform->Scale(s,s,s);
+    xform->Scale(s[0],s[1],s[2]); // scale and stretch
     return xform;
 }
 
 vtkPolyData*
-VTKDecorativeGeometry::transformVTKPolyData(const Transform& X_BG, const Real& s, 
+VTKDecorativeGeometry::transformVTKPolyData(const Transform& X_BG, const Vec3& s, 
                                             vtkPolyData* in)
 {
     // Careful -- the poly data filter has to be allocated last, so allocate
@@ -129,7 +129,7 @@ void VTKDecorativeGeometry::implementLineGeometry(const DecorativeLine& dline) {
     vline->SetPoint1(p1[0],p1[1],p1[2]); vline->SetPoint2(p2[0],p2[1],p2[2]);
 
     const Real scale = dline.getScale() > 0. ? dline.getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(dline.getTransform(), scale, 
+    vtkPolyData* data = transformVTKPolyData(dline.getTransform(), Vec3(scale), 
                                              vline->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
@@ -154,11 +154,35 @@ void VTKDecorativeGeometry::implementSphereGeometry(const DecorativeSphere& dsph
     vsphere->SetPhiResolution(res);
 
     const Real scale = dsphere.getScale() > 0. ? dsphere.getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(dsphere.getTransform(), scale, 
+    vtkPolyData* data = transformVTKPolyData(dsphere.getTransform(), Vec3(scale), 
                                              vsphere->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
 
+
+
+void VTKDecorativeGeometry::implementEllipsoidGeometry(const DecorativeEllipsoid& dellipsoid) {
+    static const int DefaultResolution = 15;
+
+    const Vec3& r = dellipsoid.getRadii();
+    vtkSphereSource* vellipsoid = vtkSphereSource::New();
+    rememberVTKObject(vellipsoid);
+
+    // Make a sphere of unit radius, then we have to distort in x, y, and z.
+    vellipsoid->SetRadius(1);
+
+    int res = DefaultResolution;
+    if (dellipsoid.getResolution() > 0.) 
+        res = (int)(res*dellipsoid.getResolution()+0.5);
+    vellipsoid->SetThetaResolution(res);
+    vellipsoid->SetPhiResolution(res);
+
+    const Real scale = dellipsoid.getScale() > 0. ? dellipsoid.getScale() : 1.;
+
+    vtkPolyData* data = transformVTKPolyData(dellipsoid.getTransform(), scale*r, 
+                                             vellipsoid->GetOutput());
+    // Not using "data" here -- transform also appended to the vtkObjects list.
+}
 
 void VTKDecorativeGeometry::implementBrickGeometry(const DecorativeBrick& dbrick) {
     const Vec3& h = dbrick.getHalfLengths();
@@ -173,7 +197,7 @@ void VTKDecorativeGeometry::implementBrickGeometry(const DecorativeBrick& dbrick
 
     const Real scale = dbrick.getScale() > 0. ? dbrick.getScale() : 1.;
 
-    vtkPolyData* data = transformVTKPolyData(dbrick.getTransform(), scale, 
+    vtkPolyData* data = transformVTKPolyData(dbrick.getTransform(), Vec3(scale), 
                                              vcube->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
@@ -196,7 +220,7 @@ void VTKDecorativeGeometry::implementCylinderGeometry(const DecorativeCylinder& 
     vcyl->SetResolution(res);
 
     const Real scale = dcyl.getScale() > 0. ? dcyl.getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(dcyl.getTransform(), scale, 
+    vtkPolyData* data = transformVTKPolyData(dcyl.getTransform(), Vec3(scale), 
                                              vcyl->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }
@@ -225,11 +249,11 @@ void VTKDecorativeGeometry::implementFrameGeometry(const DecorativeFrame& dframe
     vtkVectorText* xtext = vtkVectorText::New();
     rememberVTKObject(xtext);
     xtext->SetText("x"); // default size is around 1
-    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05*length,0)), length*0.2, 
+    vtkPolyData* label = transformVTKPolyData(Transform(Vec3(length,-0.05*length,0)), Vec3(length*0.2), 
                                               xtext->GetOutput());
     app->AddInput(label);
     const Real scale = dframe.getScale() > 0. ? dframe.getScale() : 1.;
-    vtkPolyData* data = transformVTKPolyData(dframe.getTransform(), scale, 
+    vtkPolyData* data = transformVTKPolyData(dframe.getTransform(), Vec3(scale), 
                                              app->GetOutput());
     // Not using "data" here -- transform also appended to the vtkObjects list.
 }

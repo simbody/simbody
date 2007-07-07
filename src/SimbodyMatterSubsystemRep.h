@@ -94,6 +94,10 @@ public:
         clearTopologyState();
     }
 
+
+    void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+
         // CONSTRUCTION STAGE //
 
     // The MatterSubsystemRep takes over ownership of the child

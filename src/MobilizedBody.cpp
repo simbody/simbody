@@ -76,6 +76,15 @@ MobilizedBody& MobilizedBody::operator=(MobilizedBody& src) {
     return *this;
 }
 
+MobilizedBody& MobilizedBody::addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+    updRep().addOutboardDecoration(X_MD,g);
+    return *this;
+}
+MobilizedBody& MobilizedBody::addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+    updRep().addInboardDecoration(X_MbD,g);
+    return *this;
+}
+
 const SimbodyMatterSubsystem& MobilizedBody::getMatterSubsystem() const {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
         "getMatterSubsystem() called on a MobilizedBody that is not part of a subsystem.");
@@ -1099,6 +1108,7 @@ MobilizedBody::Weld::WeldRep& MobilizedBody::Weld::updRep() {
 
 MobilizedBody::Ground::Ground() {
     rep = new GroundRep(); rep->setMyHandle(*this);
+    setBody(Body::Ground());
 }
 bool MobilizedBody::Ground::isInstanceOf(const MobilizedBody& s) {
     return GroundRep::isA(s.getRep());

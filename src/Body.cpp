@@ -67,12 +67,18 @@ Body& Body::operator=(const Body& src) {
     return *this;
 }
 
+Body& Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+    updRep().addDecoration(X_BD, g);
+    return *this;
+}
+
 const MassProperties& Body::getDefaultRigidBodyMassProperties() const {
     return getRep().getDefaultRigidBodyMassProperties();
 }
 
-void Body::setDefaultRigidBodyMassProperties(const MassProperties& m) {
-    return updRep().setDefaultRigidBodyMassProperties(m);
+Body& Body::setDefaultRigidBodyMassProperties(const MassProperties& m) {
+    updRep().setDefaultRigidBodyMassProperties(m);
+    return *this;
 }
 
     /////////////////

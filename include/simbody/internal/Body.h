@@ -43,6 +43,8 @@
 
 namespace SimTK {
 
+class DecorativeGeometry;
+
 class SimTK_SIMBODY_EXPORT Body {
 public:
     Body() : rep(0) { }
@@ -50,11 +52,13 @@ public:
     Body(const Body&);
     Body& operator=(const Body&);
 
+    Body& addDecoration(const Transform& X_BD, const DecorativeGeometry&);
+
     // Every type of Body should provide an initial set of rigid body mass 
     // properties defined at Topology stage (i.e., in the System rather than
     // the State). 
     const MassProperties& getDefaultRigidBodyMassProperties() const;
-    void setDefaultRigidBodyMassProperties(const MassProperties&);
+    Body& setDefaultRigidBodyMassProperties(const MassProperties&);
 
     // These are the built-in Body types.
     class Ground;     // infinitely massive
@@ -83,6 +87,15 @@ public:
     Rigid(); // default mass properties (1,Vec3(0),Inertia(1,1,1))
     explicit Rigid(const MassProperties&);
 
+    Rigid& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)Body::addDecoration(X_BD,g);
+        return *this;
+    }
+    Rigid& setDefaultRigidBodyMassProperties(const MassProperties& m) {
+        (void)Body::setDefaultRigidBodyMassProperties(m);
+        return *this;
+    }
+
     class RigidRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Rigid, Body);
 private:
@@ -95,6 +108,15 @@ public:
     Linear(); // default mass properties (1,Vec3(0),Inertia(1,1,0))
     explicit Linear(const MassProperties&);
 
+    Linear& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)Body::addDecoration(X_BD,g);
+        return *this;
+    }
+    Linear& setDefaultRigidBodyMassProperties(const MassProperties& m) {
+        (void)Body::setDefaultRigidBodyMassProperties(m);
+        return *this;
+    }
+
     class LinearRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Linear, Body);
 private:
@@ -106,6 +128,11 @@ class SimTK_SIMBODY_EXPORT Body::Ground : public Body {
 public:
     Ground();
 
+    Ground& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)Body::addDecoration(X_BD,g);
+        return *this;
+    }
+
     class GroundRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Ground, Body);
 private:
@@ -116,6 +143,11 @@ private:
 class SimTK_SIMBODY_EXPORT Body::Massless : public Body {
 public:
     Massless();
+
+    Massless& addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)Body::addDecoration(X_BD,g);
+        return *this;
+    }
 
     class MasslessRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Massless, Body);

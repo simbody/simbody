@@ -247,6 +247,45 @@ private:
     }
 };
 
+
+    ////////////////////////////
+    // DecorativeEllipsoidRep //
+    ////////////////////////////
+
+class DecorativeEllipsoidRep : public DecorativeGeometryRep {
+public:
+    // no default constructor
+    explicit DecorativeEllipsoidRep( const Vec3& xyzRadii) : radii(xyzRadii) {
+        assert(radii[0]>0&&radii[1]>0&&radii[2]>0); // TODO
+    }
+
+    void setRadii(const Vec3& r) {
+        assert(r[0]>0&&r[1]>0&&r[2]>0); // TODO;
+        radii = r;
+    }
+    const Vec3& getRadii() const {return radii;}
+
+    // virtuals
+    DecorativeEllipsoidRep* cloneDecorativeGeometryRep() const {
+        DecorativeEllipsoidRep* DGRep = new DecorativeEllipsoidRep(*this);
+        return( DGRep ); 
+    }
+
+    void implementGeometry(DecorativeGeometryImplementation& geometry) const {
+        geometry.implementEllipsoidGeometry(getMyEllipsoidHandle());
+    }
+
+    SimTK_DOWNCAST(DecorativeEllipsoidRep, DecorativeGeometryRep);
+private:
+    Vec3 radii;
+
+    // This is just a static downcast since the DecorativeGeometry handle class is not virtual.
+    const DecorativeEllipsoid& getMyEllipsoidHandle() const {
+        return *reinterpret_cast<const DecorativeEllipsoid*>(myHandle);
+    }
+};
+
+
     ////////////////////////
     // DecorativeBrickRep //
     ////////////////////////

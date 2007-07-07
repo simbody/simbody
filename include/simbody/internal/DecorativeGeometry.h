@@ -301,6 +301,24 @@ private:
 };
 
 /**
+ * This defines an ellipsoidal solid centered at the origin and
+ * aligned with the local frame axes. The default constructor creates 
+ * an ellipsoid with radii (1/2, 1/3, 1/4) in x,y,z resp.
+ */
+class SimTK_SIMBODY_EXPORT DecorativeEllipsoid : public DecorativeGeometry {
+public:
+    explicit DecorativeEllipsoid(const Vec3& radii = Vec3(0.5,1/3.,0.25));
+
+    void setRadii(const Vec3&);
+    const Vec3& getRadii() const;
+
+    SimTK_PIMPL_DOWNCAST(DecorativeEllipsoid, DecorativeGeometry);
+private:
+    class DecorativeEllipsoidRep& updRep();
+    const DecorativeEllipsoidRep& getRep() const;
+};
+
+/**
  * This defines a rectangular solid centered at the origin and
  * aligned with the local frame axes. The default constructor creates 
  * a cube of length 1 on each side.
@@ -369,6 +387,7 @@ public:
     virtual void implementCylinderGeometry( const DecorativeCylinder&) = 0;
     virtual void implementCircleGeometry(   const DecorativeCircle&)   = 0; 
     virtual void implementSphereGeometry(   const DecorativeSphere&)   = 0;
+    virtual void implementEllipsoidGeometry(const DecorativeEllipsoid&)= 0;
     virtual void implementFrameGeometry(    const DecorativeFrame&)    = 0;
 
     // TODO: wrappers for binary compatibility

@@ -66,25 +66,6 @@ public:
         return MatterSubsystem::updDowncast(updMyHandle());
     }
 
-    void calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
-        switch(stage) {
-        case Stage::Topology: {
-            //assert(built);
-            //TODO: generate sketch of multibody system
-            break;
-        }
-        case Stage::Position: {
-            assert(getStage(s) >= Stage::Position);
-            //TODO: just to check control flow, put a ball at system COM
-            //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
-            //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
-            //                .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
-             //               .setResolution(1));
-        }
-        default: 
-            assert(getStage(s) >= stage);
-        }
-    }
 
         // TOPOLOGY STAGE //
 

@@ -57,6 +57,18 @@ public:
     MobilizedBody& operator=(MobilizedBody&); // shallow assignment
     ~MobilizedBody();
 
+    // Add decorative geometry specified relative to the new (outboard) body's reference
+    // frame B, or to the outboard mobilizer frame M attached to body B, or
+    // to the inboard mobilizer frame Mb attached to the parent body P. Note that
+    // the body itself may already have had some decorative geometry on it when
+    // it was first put into this MobilizedBody; in that case this just adds more.
+    MobilizedBody& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)updBody().addDecoration(X_BD,g);
+        return *this;
+    }
+    MobilizedBody& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry&);
+    MobilizedBody& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry&);
+
     // Topology stage (i.e., construction).
     // Calling these means you are (re)constructing the system and will have to do
     // realizeTopology() and extract a new State before doing any analysis.
@@ -269,14 +281,22 @@ public:
     Pin(MobilizedBody& parent, const Transform& inbFrame,
         const Body&,           const Transform& outbFrame);
 
+    Pin& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Pin& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Pin& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Pin& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Pin& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     // This is just a nicer name for the generalized coordinate.
@@ -344,14 +364,22 @@ public:
     Slider(MobilizedBody& parent, const Transform& inbFrame,
            const Body&,           const Transform& outbFrame);
 
+    Slider& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Slider& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Slider& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Slider& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Slider& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class SliderRep; // local subclass
@@ -381,14 +409,22 @@ public:
          const Body&,           const Transform& outbFrame,
          Real pitch);
 
+    Screw& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Screw& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Screw& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Screw& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Screw& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     Screw& setDefaultPitch(Real pitch);
@@ -417,14 +453,22 @@ public:
     Universal(MobilizedBody& parent, const Transform& inbFrame,
               const Body&,           const Transform& outbFrame);
 
+    Universal& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Universal& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Universal& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Universal& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Universal& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class UniversalRep; // local subclass
@@ -450,14 +494,22 @@ public:
     Cylinder(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame);
 
+    Cylinder& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Cylinder& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Cylinder& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Cylinder& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Cylinder& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class CylinderRep; // local subclass
@@ -487,14 +539,22 @@ public:
     BendStretch(MobilizedBody& parent, const Transform& inbFrame,
                 const Body&,           const Transform& outbFrame);
 
+    BendStretch& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    BendStretch& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    BendStretch& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     BendStretch& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     BendStretch& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class BendStretchRep; // local subclass
@@ -522,14 +582,22 @@ public:
     Planar(MobilizedBody& parent, const Transform& inbFrame,
            const Body&,           const Transform& outbFrame);
 
+    Planar& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Planar& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Planar& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Planar& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Planar& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     // Friendly, mobilizer-specific access to coordinates and speeds.
@@ -604,14 +672,22 @@ public:
     Gimbal(MobilizedBody& parent, const Transform& inbFrame,
            const Body&,           const Transform& outbFrame);
 
+    Gimbal& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Gimbal& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Gimbal& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Gimbal& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Gimbal& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class GimbalRep; // local subclass
@@ -639,14 +715,22 @@ public:
     Ball(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame);
 
+    Ball& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Ball& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Ball& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Ball& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Ball& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     // This is just a nicer name for the generalized coordinate.
@@ -688,14 +772,22 @@ public:
     Ellipsoid(MobilizedBody& parent, const Transform& inbFrame,
               const Body&,           const Transform& outbFrame);
 
+    Ellipsoid& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Ellipsoid& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Ellipsoid& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Ellipsoid& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Ellipsoid& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class EllipsoidRep; // local subclass
@@ -721,14 +813,22 @@ public:
     Translation(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame);
 
+    Translation& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Translation& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Translation& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Translation& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Translation& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class TranslationRep; // local subclass
@@ -758,14 +858,22 @@ public:
     Free(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame);
 
+    Free& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Free& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Free& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Free& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Free& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class FreeRep; // local subclass
@@ -810,16 +918,24 @@ public:
     /// Use this constructor to specify mobilizer frames which are
     /// not coincident with the body frames.
     LineOrientation(MobilizedBody& parent, const Transform& inbFrame,
-         const Body&,           const Transform& outbFrame);
+                    const Body&,           const Transform& outbFrame);
+
+    LineOrientation& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    LineOrientation& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    LineOrientation& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
 
     LineOrientation& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class LineOrientationRep; // local subclass
@@ -847,14 +963,22 @@ public:
     FreeLine(MobilizedBody& parent, const Transform& inbFrame,
              const Body&,           const Transform& outbFrame);
 
+    FreeLine& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    FreeLine& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    FreeLine& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     FreeLine& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     FreeLine& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class FreeLineRep; // local subclass
@@ -882,14 +1006,22 @@ public:
     Weld(MobilizedBody& parent, const Transform& inbFrame,
          const Body&,           const Transform& outbFrame);
 
+    Weld& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
+    Weld& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
+        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
+    }
+    Weld& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    }
+
     Weld& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb);
-        return *this;
+        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
     }
 
     Weld& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM);
-        return *this;
+        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
     class WeldRep; // local subclass
@@ -908,6 +1040,10 @@ class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public MobilizedBody {
 public:
     Ground();
     class GroundRep; // local subclass
+
+    Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
+    }
 
     SimTK_PIMPL_DOWNCAST(Ground, MobilizedBody);
 private:
