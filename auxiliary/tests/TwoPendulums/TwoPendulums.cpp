@@ -84,26 +84,39 @@ int main(int argc, char** argv) {
 
         // ADD BODIES AND THEIR MOBILIZERS
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
-                                  .addDecoration(Transform(), DecorativeSphere(.1));
+                                  .addDecoration(Transform(), DecorativeBrick(Vec3(.1,.0667,.05)));
 
     MobilizedBody::Pin leftPendulum(twoPends.Ground(),
                                       Transform(Vec3(-1, 0, 0)),
                                     pendulumBody,
                                       Transform(Vec3(0, d, 0)));
+/*
+    MobilizedBody::Ball rightPendulum = MobilizedBody::Ball(twoPends.Ground(), pendulumBody)
+                                         .setDefaultInboardFrame(Vec3(1,0,0))
+                                         .setDefaultOutboardFrame(Vec3(0,d,0));
+ */
 
+    const Vec3 radii(1/2.,1/3.,1/4.);
     MobilizedBody::Ellipsoid rightPendulum = MobilizedBody::Ellipsoid(twoPends.Ground(), pendulumBody)
-                                          .setDefaultInboardFrame(Vec3(1,0,0))
-                                          .setDefaultOutboardFrame(Vec3(0,d,0));
+                                         .setDefaultRadii(radii)
+                                         .setDefaultInboardFrame(Vec3(1,0,0))
+                                         .setDefaultOutboardFrame(Vec3(0,d,0));
     rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
-                                                      .setColor(Purple));
+                                                      .setColor(Purple).setOpacity(.3));
+    const Vec3 r=rightPendulum.getDefaultRadii();
+    const Real minr = std::min(r[0],std::min(r[1],r[2]));
+    const Real hw = minr/2;  // half width of follower plate in x
+    const Real hh = minr/20; // half height of follower plate
+    rightPendulum.addOutboardDecoration(Transform(Vec3(0,0,hh)), // raise up so bottom is on xy plane
+                                        DecorativeBrick(Vec3(hw,2*hw/3.,hh)).setColor(Gray).setOpacity(.5));
 
-    leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
+    //leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
     //rightPendulum.addInboardDecoration(Transform(), DecorativeSphere(0.1).setColor(Yellow));
     //rightPendulum.addOutboardDecoration(Transform(), DecorativeLine());
 
 
     //rightPendulum.setDefaultAngle(20*Deg2Rad);
-    rightPendulum.setDefaultRotation(Rotation::aboutZ(20*Deg2Rad));
+    //rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(1,1,1)));
 
     // Beauty is in the eye of the beholder ...
     //viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
@@ -138,20 +151,27 @@ int main(int argc, char** argv) {
                               DecorativeLine().setColor(c=='c' ? Black : Orange).setLineThickness(4));
 
     //forces.addMobilityConstantForce(rightPendulum, 0, 20);
-    forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
+    //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
-
+    twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
-    // Create a study using the Runge Kutta Merson or CPODES integrator
-    RungeKuttaMerson myStudy(mbs, s);
-    //CPodesIntegrator myStudy(mbs, s);
+    VTKReporter display(mbs);
 
-    const Real dt = 0.005; // output intervals
-    const Real finalTime = 5;
+    mbs.realize(s, Stage::Position);
+    display.report(s);
+    cout << "q=" << s.getQ() << endl;
+    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+    cout << "Default configuration shown. Ready? "; cin >> c;
+
 
     leftPendulum.setAngle(s, -60*Deg2Rad);
+    rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
+    //rightPendulum.setQToFitRotation(s, Rotation());
+
+    //TODO
+    //rightPendulum.setUToFitLinearVelocity(s, Vec3(1.1,0,1.2));
 
     // TODO: this can't work unless it sets a state variable somewhere.
     // Cache entries can only be updated during a realize() operation.
@@ -159,15 +179,29 @@ int main(int argc, char** argv) {
 
     s.setTime(0);
 
-    // visualize once before and after assembly
-    VTKReporter display(mbs);
+    mbs.realize(s, Stage::Velocity);
     display.report(s);
+
+    cout << "q=" << s.getQ() << endl;
+    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+    cout << "v_MbM=" << rightPendulum.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> c;
+
+
+    // Create a study using the Runge Kutta Merson or CPODES integrator
+    RungeKuttaMerson myStudy(mbs, s);
+    //CPodesIntegrator myStudy(mbs, s);
+    myStudy.setAccuracy(1e-8);
+
+    const Real dt = 0.005; // output intervals
+    const Real finalTime = 5;
 
     // Peforms assembly if constraints are violated.
     myStudy.initialize();
 
     display.report(s);
+    cout << "q=" << s.getQ() << endl;
+    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
     cout << "Assembled configuration shown. Ready to simulate? "; cin >> c;
 
     for (;;) {
@@ -176,12 +210,7 @@ int main(int argc, char** argv) {
             leftPendulum.getAngle(s)*Rad2Deg,
             /*rightPendulum.getRotation(s)*Rad2Deg*/0.,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
-
-        cout << "Mobilizer X left =" << leftPendulum.getMobilizerTransform(s);
-        cout << "Mobilizer X right=" << rightPendulum.getMobilizerTransform(s);
-
-        cout << "Mobilizer V left =" << leftPendulum.getMobilizerVelocity(s) << endl;
-        cout << "Mobilizer V right=" << rightPendulum.getMobilizerVelocity(s) << endl;
+        printf("     %10.4g+%10.4g\n", mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
 
         display.report(s);
         if (s.getTime() >= finalTime)
