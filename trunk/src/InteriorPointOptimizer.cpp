@@ -39,8 +39,8 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         int m = sys.getNumConstraints();
 
         if( n < 1 ) {
-            char *where = " InteriorPointOptimizer Initialization";
-            char *szName= "dimension";
+            char where[] = " InteriorPointOptimizer Initialization";
+            char szName[] = "dimension";
             SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1, n, INT_MAX, where); 
         }
 
@@ -97,15 +97,29 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
 
         // If you want to verify which options are getting set in the optimizer, you can create a file ipopt.opt
         // with "print_user_options yes", and set print_level to (at least 1).  It will then print the options to the screen.
-        AddIpoptNumOption(nlp, "tol", convergenceTolerance);
-        AddIpoptIntOption(nlp, "max_iter", maxIterations);
-        AddIpoptStrOption(nlp, "mu_strategy", "adaptive");
-        AddIpoptStrOption(nlp, "hessian_approximation", "limited-memory"); // needs to be limited-memory unless you have explicit hessians
-        AddIpoptIntOption(nlp, "limited_memory_max_history", limitedMemoryHistory);
-        AddIpoptIntOption(nlp, "print_level", diagnosticsLevel); // default is 4
+        char tol[] = "tol";
+        AddIpoptNumOption(nlp, tol, convergenceTolerance);
+        char max_iter[] = "max_iter";
+        AddIpoptIntOption(nlp, max_iter, maxIterations);
+        char mu_strategy[] = "mu_strategy";
+        char adaptive[] = "adaptive";
+        AddIpoptStrOption(nlp, mu_strategy, adaptive);
+        char hessian_approximation[] = "hessian_approximation";
+        char limited_memory[] = "limited-memory";
+        AddIpoptStrOption(nlp, hessian_approximation, limited_memory); // needs to be limited-memory unless you have explicit hessians
+        char limited_memory_max_history[] = "limited_memory_max_history";
+        AddIpoptIntOption(nlp, limited_memory_max_history, limitedMemoryHistory);
+        char print_level[] = "print_level";
+        AddIpoptIntOption(nlp, print_level, diagnosticsLevel); // default is 4
 
         // should be const char * but AddIpoptNumOption expects a char *
-        static char *advancedRealOptions[] = {"obj_scaling_factor", "nlp_scaling_max_gradient",0};
+        static char *advancedRealOptions[3];
+        char obj_scaling_factor[] = "obj_scaling_factor";
+        advancedRealOptions[0] = obj_scaling_factor;
+        char nlp_scaling_max_gradient[] = "nlp_scaling_max_gradient";
+        advancedRealOptions[1] = nlp_scaling_max_gradient;
+        advancedRealOptions[2] = 0;
+       
         Real value;
         for(int i=0;advancedRealOptions[i];i++)
             if(getAdvancedRealOption(advancedRealOptions[i],value))
@@ -114,9 +128,13 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
         // Only makes sense to do a warm start if this is not the first call to optimize() (since we need 
         // reasonable starting multiplier values)
         bool use_warm_start=false;
-        if(getAdvancedBoolOption("warm_start",use_warm_start) && use_warm_start && !firstOptimization) {
-            AddIpoptStrOption(nlp, "warm_start_init_point", "yes");
-            AddIpoptStrOption(nlp, "warm_start_entire_iterate", "yes");
+        char warm_start[] = "warm_start";
+        if(getAdvancedBoolOption(warm_start, use_warm_start) && use_warm_start && !firstOptimization) {
+            char warm_start_init_point[] = "warm_start_init_point";
+            char warm_start_entire_iterate[] =  "warm_start_entire_iterate"; 
+            char yes_string[] = "yes";
+            AddIpoptStrOption(nlp, warm_start_init_point, yes_string);
+            AddIpoptStrOption(nlp, warm_start_entire_iterate, yes_string);
             //AddIpoptStrOption(nlp, "warm_start_same_structure", "yes"); // couldn't get this one to work
         } 
 

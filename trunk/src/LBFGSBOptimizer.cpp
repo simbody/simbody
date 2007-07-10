@@ -42,8 +42,8 @@ static Real factr = 1.0e7;   //
          n = sys.getNumParameters();
 
          if( n < 1 ) {
-             char *where = "Optimizer Initialization";
-             char *szName= "dimension";
+             char where[] = "Optimizer Initialization";
+             char szName[] = "dimension";
              SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  n, INT_MAX, where);
          }
 

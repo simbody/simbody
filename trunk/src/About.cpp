@@ -93,6 +93,14 @@ void SimTK_version_simmath(int* major, int* minor, int* build) {
 }
 
 void SimTK_about_simmath(const char* key, int maxlen, char* value) {
+    const std::string version("version");
+    const std::string library("library");
+    const std::string type("type");
+    const std::string copyright("copyright");
+    const std::string svn_revision("svn_revision");
+    const std::string authors("authors");
+    const std::string debug("debug");
+
     if (maxlen <= 0 || value==0) return;
     value[0] = '\0'; // in case we don't find a match
     if (key==0) return;
@@ -103,13 +111,13 @@ void SimTK_about_simmath(const char* key, int maxlen, char* value) {
         skey[i] = std::tolower(skey[i]);
 
     char* v = 0;
-    if      (skey == "version")   v = GET_VERSION_STRING;
-    else if (skey == "library")   v = GET_LIBRARY_STRING;
-    else if (skey == "type")      v = GET_TYPE_STRING;
-    else if (skey == "copyright") v = GET_COPYRIGHT_STRING;
-    else if (skey == "svn_revision") v = GET_SVN_REVISION_STRING;
-    else if (skey == "authors")   v = GET_AUTHORS_STRING;
-    else if (skey == "debug")     v = GET_DEBUG_STRING;
+    if      (skey == version)      std::string v(GET_VERSION_STRING);
+    else if (skey == library)      std::string v(GET_LIBRARY_STRING);
+    else if (skey == type)         std::string v(GET_TYPE_STRING);
+    else if (skey == copyright)    std::string v(GET_COPYRIGHT_STRING);
+    else if (skey == svn_revision) std::string v(GET_SVN_REVISION_STRING);
+    else if (skey == authors)      std::string v(GET_AUTHORS_STRING);
+    else if (skey == debug)        std::string v(GET_DEBUG_STRING);
 
     if (v) {
         std::strncpy(value,v,maxlen-1);

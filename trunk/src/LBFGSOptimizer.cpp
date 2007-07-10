@@ -39,8 +39,8 @@ namespace SimTK {
 // TODO option for xtol  ??
 
          if( sys.getNumParameters() < 1 ) {
-             char *where = "Optimizer Initialization";
-             char *szName= "dimension";
+             char where[] = "Optimizer Initialization";
+             char szName[] = "dimension";
              SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1,  sys.getNumParameters(), INT_MAX, where); 
          }
      } 
