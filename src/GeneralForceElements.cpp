@@ -31,7 +31,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/GeneralForceElements.h"
-#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 
 #include "ForceSubsystemRep.h"
@@ -448,8 +448,8 @@ public:
         const Parameters& p = getParameters(s);
         if (!p.enabled) return;
 
-        const MultibodySystem& mbs    = getMultibodySystem(); // my owner
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         // Get access to system-global cache entries.
         Real&                  pe              = mbs.updPotentialEnergy(s, Stage::Dynamics);
@@ -493,8 +493,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearSprings.size(); ++i) {
             const TwoPointLinearSpringParameters& spring =
                 p.twoPointLinearSprings[i];
-            const Transform& X_GB1 = matter.getBodyTransform(s, spring.body1);
-            const Transform& X_GB2 = matter.getBodyTransform(s, spring.body2);
+            const Transform& X_GB1 = matter.getMobilizedBody(spring.body1).getBodyTransform(s);
+            const Transform& X_GB2 = matter.getMobilizedBody(spring.body2).getBodyTransform(s);
 
             const Vec3 s1_G = X_GB1.R() * spring.station1;
             const Vec3 s2_G = X_GB2.R() * spring.station2;
@@ -518,8 +518,8 @@ public:
         for (int i=0; i < (int)p.twoPointConstantForces.size(); ++i) {
             const TwoPointConstantForceParameters& frc =
                 p.twoPointConstantForces[i];
-            const Transform& X_GB1 = matter.getBodyTransform(s, frc.body1);
-            const Transform& X_GB2 = matter.getBodyTransform(s, frc.body2);
+            const Transform& X_GB1 = matter.getMobilizedBody(frc.body1).getBodyTransform(s);
+            const Transform& X_GB2 = matter.getMobilizedBody(frc.body2).getBodyTransform(s);
 
             const Vec3 s1_G = X_GB1.R() * frc.station1;
             const Vec3 s2_G = X_GB2.R() * frc.station2;
@@ -540,8 +540,8 @@ public:
         for (int i=0; i < (int)p.twoPointLinearDampers.size(); ++i) {
             const TwoPointLinearDamperParameters& damper =
                 p.twoPointLinearDampers[i];
-            const Transform& X_GB1 = matter.getBodyTransform(s, damper.body1);
-            const Transform& X_GB2 = matter.getBodyTransform(s, damper.body2);
+            const Transform& X_GB1 = matter.getMobilizedBody(damper.body1).getBodyTransform(s);
+            const Transform& X_GB2 = matter.getMobilizedBody(damper.body2).getBodyTransform(s);
 
             const Vec3 s1_G = X_GB1.R() * damper.station1;
             const Vec3 s2_G = X_GB2.R() * damper.station2;
@@ -549,8 +549,8 @@ public:
             const Vec3 p1_G = X_GB1.T() + s1_G; // station measured from ground origin
             const Vec3 p2_G = X_GB2.T() + s2_G;
 
-            const Vec3 v1_G = matter.calcBodyFixedPointVelocityInGround(s, damper.body1, damper.station1);
-            const Vec3 v2_G = matter.calcBodyFixedPointVelocityInGround(s, damper.body2, damper.station2);
+            const Vec3 v1_G = matter.getMobilizedBody(damper.body1).calcBodyFixedPointVelocityInGround(s, damper.station1);
+            const Vec3 v2_G = matter.getMobilizedBody(damper.body2).calcBodyFixedPointVelocityInGround(s, damper.station2);
             const Vec3 vRel = v2_G - v1_G; // relative velocity
 
             const UnitVec3 d(p2_G - p1_G); // direction from point1 to point2
@@ -567,7 +567,7 @@ public:
             if (f.fmag == 0)
                 continue;
 
-            const Transform& X_GB = matter.getBodyTransform(s, f.body);
+            const Transform& X_GB = matter.getMobilizedBody(f.body).getBodyTransform(s);
             const Vec3 station_G = X_GB.R() * f.station_B;
 
             rigidBodyForces[f.body] += SpatialVec(station_G % f.force_G, f.force_G);

@@ -547,7 +547,7 @@ void SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  co
     const Vector&          u  = getU(s);
 
     // Get the Dynamics-stage cache and make sure it has been allocated and initialized if needed.
-    SBDynamicsCache&            dc = updDynamicsCache(s);
+    SBDynamicsCache& dc = updDynamicsCache(s);
     dc.allocate(topologyCache);
 
     // tip-to-base calculation
@@ -567,22 +567,22 @@ void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "SimbodyMatterSubsystem::realizeAcceleration()");
 
-    //TODO: kludge set state variables from mbs
-    // this needs to be re-engineered so that the forces go right into 
-    // the matter subsystem's state variables
-    SBAccelerationVars& av = const_cast<SBAccelerationVars&>(getAccelerationVars(s));
-    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
-    av.appliedMobilityForces  = mbs.getMobilityForces (s, Stage::Dynamics);
-    av.appliedParticleForces  = mbs.getParticleForces (s, Stage::Dynamics);
-    av.appliedRigidBodyForces = mbs.getRigidBodyForces(s, Stage::Dynamics);
-
-    // Get the Acceleration-stage cache and make sure it has been allocated and initialized if needed.
+    // Get the Acceleration-stage cache and make sure it has been allocated
+    // and initialized if needed.
     Vector&              udot    = updUDot(s);
     Vector&              qdotdot = updQDotDot(s);
     SBAccelerationCache& ac      = updAccelerationCache(s);
     ac.allocate(topologyCache);
 
-    calcLoopForwardDynamics(s);
+    // We ask our containing MultibodySystem for a reference to the cached forces
+    // accumulated from all the force subsystems. We use these to compute accelerations,
+    // with all results going into the AccelerationCache.
+    const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
+    calcLoopForwardDynamics(s,
+        mbs.getMobilityForces(s, Stage::Dynamics),
+        mbs.getParticleForces(s, Stage::Dynamics),
+        mbs.getRigidBodyForces(s, Stage::Dynamics));
+
     calcQDotDot(s, udot, qdotdot);
 }
 
@@ -798,6 +798,9 @@ void SimbodyMatterSubsystemRep::enforceVelocityConstraints(State& s, const Real&
 // by constraints. 
 void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     const State&               s,
+    const Vector&              mobilityForces,
+    const Vector_<Vec3>&       particleForces,
+    const Vector_<SpatialVec>& bodyForces,
     const Vector*              extraMobilityForces,
     const Vector_<SpatialVec>* extraBodyForces) const
 {
@@ -811,16 +814,14 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
     Vector_<SpatialVec> totalBodyForces;
 
     // inputs
-    const Vector&              mobForces      = av.appliedMobilityForces;
-    const Vector_<Vec3>&       particleForces = av.appliedParticleForces; // TODO
-    const Vector_<SpatialVec>& bodyForces     = av.appliedRigidBodyForces;
 
-    const Vector*              mobForcesToUse  = &mobForces;
-    const Vector_<SpatialVec>* bodyForcesToUse = &bodyForces;
+    // First assume we'll use the input forces as-is.
+    const Vector*              mobilityForcesToUse  = &mobilityForces;
+    const Vector_<SpatialVec>* bodyForcesToUse      = &bodyForces;
 
     if (extraMobilityForces) {
-        totalMobilityForces = mobForces + *extraMobilityForces;
-        mobForcesToUse      = &totalMobilityForces;
+        totalMobilityForces = mobilityForces + *extraMobilityForces;
+        mobilityForcesToUse = &totalMobilityForces;
     }
 
     if (extraBodyForces) {
@@ -836,7 +837,7 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
 
     Vector&              udot           = updUDot(s);
 
-    calcTreeAccelerations(s, *mobForcesToUse, *bodyForcesToUse,
+    calcTreeAccelerations(s, *mobilityForcesToUse, *bodyForcesToUse,
                           netHingeForces, A_GB, udot);
     
     // Calculate constraint acceleration errors.
@@ -846,17 +847,20 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamics(
 
 // Given the set of forces in the state, calculate acclerations resulting from
 // those forces and enforcement of acceleration constraints.
-void SimbodyMatterSubsystemRep::calcLoopForwardDynamics(const State& s) const 
+void SimbodyMatterSubsystemRep::calcLoopForwardDynamics(const State& s, 
+    const Vector&               mobilityForces,
+    const Vector_<Vec3>&        particleForces,
+    const Vector_<SpatialVec>&  bodyForces) const 
 {
     assert(getStage(s) >= Stage::Acceleration-1);
 
     Vector_<SpatialVec> cFrc(getNBodies()); 
     cFrc.setToZero();
 
-    calcTreeForwardDynamics(s, 0, 0);
+    calcTreeForwardDynamics(s, mobilityForces, particleForces, bodyForces, 0, 0);
     if (lConstraints->calcConstraintForces(s)) {
         lConstraints->addInCorrectionForces(s, cFrc);
-        calcTreeForwardDynamics(s, 0, &cFrc);
+        calcTreeForwardDynamics(s, mobilityForces, particleForces, bodyForces, 0, &cFrc);
     }
 }
 
@@ -879,19 +883,18 @@ void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) cons
 //     traverse back to node which has more than one child hinge.
 //   }
 void SimbodyMatterSubsystemRep::calcZ(const State& s, 
-                          const SpatialVecList& spatialForces) const
+    const Vector&              mobilityForces,
+    const Vector_<SpatialVec>& bodyForces) const
 {
     const SBPositionCache&    pc = getPositionCache(s);
     const SBDynamicsCache&    dc = getDynamicsCache(s);
-    const SBAccelerationVars& av = getAccelerationVars(s);
     SBAccelerationCache&      ac = updAccelerationCache(s);
-
 
     // level 0 for atoms whose position is fixed
     for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
-            node.calcZ(pc,dc,spatialForces[node.getNodeNum()],av, ac);
+            node.calcZ(pc,dc,mobilityForces,bodyForces,ac);
         }
 }
 
@@ -1048,7 +1051,7 @@ void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, 
             rbNodeLevels[i][j]->calcQDotDot(mv,q,pc,u, udot, qdotdot);
 }
 
-// If V is a spatial velocity, and you have a X=d(something)/dV (one per body)
+// If V is a spatial velocity, and you have an X=d(something)/dV (one per body)
 // this routine will return d(something)/du for internal generalized speeds u. If
 // instead you have d(something)/dR where R is a spatial configuration, this routine
 // returns d(something)/dq PROVIDED that dq/dt = u for all q's. That's not true for

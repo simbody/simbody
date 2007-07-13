@@ -200,8 +200,9 @@ public:
     /*virtual*/void calcZ(
         const SBPositionCache&,
         const SBDynamicsCache&,
-        const SpatialVec& spatialForce,
-        SBAccelerationCache&               ) const {} 
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        SBAccelerationCache&) const {} 
 
     /*virtual*/void calcYOutward(
         const SBPositionCache& pc,
@@ -737,17 +738,6 @@ public:
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
 
-    // Applied forces from acceleration variables.
-    const Vec<dof>&   getAppliedJointForce(const SBAccelerationVars& av) const 
-        {return fromU(av.appliedMobilityForces);}
-    //TODO
-    const Vec<dof>&   getPrescribedUdot   (const SBAccelerationVars& av) const 
-        {return fromU(av.prescribedUdot);}
-
-    // Special case state access for 1-dof joints
-    const Real& get1AppliedJointForce(const SBAccelerationVars& av) const {return from1U(av.appliedMobilityForces);}
-    const Real& get1PrescribedUdot   (const SBAccelerationVars& av) const {return from1U(av.prescribedUdot);}
-
     // Cache entries (cache is mutable in a const State)
 
         // Position
@@ -828,9 +818,9 @@ public:
     void calcZ(
         const SBPositionCache&,
         const SBDynamicsCache&,
-        const SpatialVec& spatialForce,
-        const SBAccelerationVars&,
-        SBAccelerationCache&               ) const;
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        SBAccelerationCache& ) const;
 
     void calcAccel(
         const SBModelVars&     mv,
@@ -2134,7 +2124,7 @@ public:
     void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
                                   Vector& u) const
     {
-            toU(u) = w_MbM[0]; // relative angular velocity always used as generalized speeds
+            toU(u) = w_MbM; // relative angular velocity always used as generalized speeds
     }
 
     // We can't do general linear velocity with this rotation-only mobilizer, but we can
@@ -3246,14 +3236,14 @@ RigidBodyNodeSpec<dof>::calcYOutward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(
-    const SBPositionCache&    pc,
-    const SBDynamicsCache&    dc,
-    const SpatialVec&         spatialForce,
-    const SBAccelerationVars& av,
-    SBAccelerationCache&      ac) const 
+    const SBPositionCache&     pc,
+    const SBDynamicsCache&     dc,
+    const Vector&              mobilityForces,
+    const Vector_<SpatialVec>& bodyForces,
+    SBAccelerationCache&       ac) const 
 {
     SpatialVec& z = updZ(ac);
-    z = getCentrifugalForces(dc) - spatialForce;
+    z = getCentrifugalForces(dc) - fromB(bodyForces);
 
     for (int i=0 ; i<(int)children.size() ; i++) {
         const SpatialVec& zChild    = children[i]->getZ(ac);
@@ -3263,7 +3253,7 @@ RigidBodyNodeSpec<dof>::calcZ(
         z += phiChild * (zChild + GepsChild);
     }
 
-    updEpsilon(ac)  = getAppliedJointForce(av) - getH(pc)*z; // TODO: pass in hinge forces
+    updEpsilon(ac)  = fromU(mobilityForces) - getH(pc)*z;
     updNu(ac)       = getDI(dc) * getEpsilon(ac);
     updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
 }

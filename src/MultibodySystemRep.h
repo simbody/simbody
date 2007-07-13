@@ -33,7 +33,7 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
-#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
@@ -42,7 +42,7 @@
 
 #include "SystemRep.h"
 #include "ForceSubsystemRep.h"
-#include "MatterSubsystemRep.h"
+#include "SimbodyMatterSubsystemRep.h"
 
 #include <vector>
 
@@ -201,8 +201,8 @@ public:
     // At Model stage we know the problem size, so we can allocate the
     // model stage forces (if necessary) and initialize them (to zero).
     void realizeSubsystemModelImpl(State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         ForceCacheEntry& modelForces = updForceCacheEntry(s, Stage::Model);
         modelForces.ensureAllocatedTo(matter.getNBodies(),
@@ -214,8 +214,8 @@ public:
     // We treat the other stages like Model except that we use the 
     // previous Stage's ForceCacheEntry to initialize this one.
     void realizeSubsystemInstanceImpl(const State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         const ForceCacheEntry& modelForces = getForceCacheEntry(s, Stage::Model);
         ForceCacheEntry& instanceForces = updForceCacheEntry(s, Stage::Instance);
@@ -226,8 +226,8 @@ public:
     }
 
     void realizeSubsystemTimeImpl(const State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         const ForceCacheEntry& instanceForces = getForceCacheEntry(s, Stage::Instance);
         ForceCacheEntry& timeForces = updForceCacheEntry(s, Stage::Time);
@@ -238,8 +238,8 @@ public:
     }
 
     void realizeSubsystemPositionImpl(const State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         const ForceCacheEntry& timeForces = getForceCacheEntry(s, Stage::Time);
         ForceCacheEntry& positionForces = updForceCacheEntry(s, Stage::Position);
@@ -250,8 +250,8 @@ public:
     }
 
     void realizeSubsystemVelocityImpl(const State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         const ForceCacheEntry& positionForces = getForceCacheEntry(s, Stage::Position);
         ForceCacheEntry& velocityForces = updForceCacheEntry(s, Stage::Velocity);
@@ -262,8 +262,8 @@ public:
     }
 
     void realizeSubsystemDynamicsImpl(const State& s) const {
-        const MultibodySystem& mbs = getMultibodySystem();
-        const MatterSubsystem& matter = mbs.getMatterSubsystem();
+        const MultibodySystem&        mbs    = getMultibodySystem();
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
         const ForceCacheEntry& velocityForces = getForceCacheEntry(s, Stage::Velocity);
         ForceCacheEntry& dynamicsForces = updForceCacheEntry(s, Stage::Dynamics);
@@ -309,7 +309,7 @@ public:
         globalSub = adoptSubsystem(glo);
         return globalSub;
     }
-    SubsystemId setMatterSubsystem(MatterSubsystem& m) {
+    SubsystemId setMatterSubsystem(SimbodyMatterSubsystem& m) {
         assert(!matterSub.isValid());
         matterSub = adoptSubsystem(m);
         return matterSub;
@@ -324,9 +324,9 @@ public:
         return decorationSub;
     }
 
-    const MatterSubsystem& getMatterSubsystem() const {
+    const SimbodyMatterSubsystem& getMatterSubsystem() const {
         assert(matterSub.isValid());
-        return MatterSubsystem::downcast(getSubsystem(matterSub));
+        return SimbodyMatterSubsystem::downcast(getSubsystem(matterSub));
     }
     const ForceSubsystem& getForceSubsystem(SubsystemId id) const {
         return ForceSubsystem::downcast(getSubsystem(id));
@@ -341,9 +341,9 @@ public:
         return DecorationSubsystem::downcast(getSubsystem(decorationSub));
     }
 
-    MatterSubsystem& updMatterSubsystem() {
+    SimbodyMatterSubsystem& updMatterSubsystem() {
         assert(matterSub.isValid());
-        return MatterSubsystem::updDowncast(updSubsystem(matterSub));
+        return SimbodyMatterSubsystem::updDowncast(updSubsystem(matterSub));
     }
     ForceSubsystem& updForceSubsystem(SubsystemId id) {
         return ForceSubsystem::updDowncast(updSubsystem(id));
@@ -404,7 +404,7 @@ public:
 
         realize(s, Stage::Time);
 
-        const MatterSubsystem& mech = getMatterSubsystem();
+        const SimbodyMatterSubsystem& mech = getMatterSubsystem();
 
         mech.getRep().realizeSubsystemPosition(s);
         const Real qerr = mech.calcQConstraintNorm(s);

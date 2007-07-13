@@ -1198,6 +1198,17 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     // store internal velocities
     Vector iVel0 = iVel;
 
+    // Allocate the vector of body impulses so we don't have to do it
+    // inside the loop below. No need to initialize them here, though.
+    Vector_<SpatialVec> bodyImpulses(getRBTree().getNBodies());
+
+    //TODO
+    // Currently we do not have any constraints involving mobilities (u's)
+    // directly, so we don't generate mobility impulses here. But we'll need
+    // a set of zero mobility forces to apply below.
+    Vector zeroMobilityImpulses(getRBTree().getTotalDOF());
+    zeroMobilityImpulses.setToZero();
+
     // verr stores the current velocity errors, which we're assuming are valid.
     Vector verr((int)loops.size());
     for (int i=0; i<(int)loops.size(); ++i)
@@ -1228,10 +1239,9 @@ LengthSet::fixVel0(State& s, Vector& iVel)
 
         // Convert the probe impulses at the stations to spatial impulses at
         // the body origin.
-        SpatialVecList spatialImpulse(getRBTree().getNBodies());
-        spatialImpulse.setToZero();
-        spatialImpulse[node1.getNodeNum()] += SpatialVec(moment1, force1);
-        spatialImpulse[node2.getNodeNum()] += SpatialVec(moment2, force2);
+        bodyImpulses.setToZero();
+        bodyImpulses[node1.getNodeNum()] += SpatialVec(moment1, force1);
+        bodyImpulses[node2.getNodeNum()] += SpatialVec(moment2, force2);
 
         // Apply probe impulse as though it were a force; the resulting "acceleration"
         // is actually the deltaV produced by this impulse, that is, a deltaV which
@@ -1240,7 +1250,7 @@ LengthSet::fixVel0(State& s, Vector& iVel)
         // calc deltaVa from k-th constraint condition
         //FIX: make sure that nodeMap is ordered by level
         // get all nodes in given molecule, ordered by level
-        getRBTree().calcZ(s, spatialImpulse);
+        getRBTree().calcZ(s, zeroMobilityImpulses, bodyImpulses);
         getRBTree().calcTreeAccel(s);
         deltaIVel[m] = getRBTree().getUDot(s);
 

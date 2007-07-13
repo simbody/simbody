@@ -2287,8 +2287,8 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
 
 void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) const 
 {
-    const MultibodySystem& mbs    = getMultibodySystem(); // my owner
-    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
     // Temps for scale factors; initialize to 1
     Vector vdwScale((int)atoms.size(), Real(1)); 
@@ -2300,7 +2300,7 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
         mbs.updRigidBodyForces(s, Stage::Dynamics); // kJ (torque), kJ/nm (force)
 
     for (MobilizedBodyId b1(0); b1 < (int)bodies.size(); ++b1) {
-        const Transform&          X_GB1  = matter.getBodyTransform(s,b1);
+        const Transform&          X_GB1  = matter.getMobilizedBody(b1).getBodyTransform(s);
         const AtomPlacementArray& alist1 = bodies[b1].allAtoms;
 
         for (int i=0; i < (int)alist1.size(); ++i) {
@@ -2326,7 +2326,7 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
                 const Atom& a2 = atoms[a2num];
                 const MobilizedBodyId b2 = a2.bodyId;
                 assert(b2 != b1);
-                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
+                const Transform& X_GB2 = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
                 const Vec3       r = a2Pos_G - a1Pos_G;
@@ -2362,8 +2362,8 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
                 assert(!(b2==b1 && b3==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyTransform(s, a3.bodyId);
+                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
@@ -2399,9 +2399,9 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
                 assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
 
                 // TODO: These might be the same body but for now we don't care.
-                const Transform& X_GB2   = matter.getBodyTransform(s, a2.bodyId);
-                const Transform& X_GB3   = matter.getBodyTransform(s, a3.bodyId);
-                const Transform& X_GB4   = matter.getBodyTransform(s, a4.bodyId);
+                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
                 const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
                 const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
                 const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
@@ -2424,7 +2424,7 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (MobilizedBodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
-                const Transform&          X_GB2  = matter.getBodyTransform(s,b2);
+                const Transform&          X_GB2  = matter.getMobilizedBody(b2).getBodyTransform(s);
                 const AtomPlacementArray& alist2 = bodies[b2].allAtoms;
 
                 for (int j=0; j < (int)alist2.size(); ++j) {

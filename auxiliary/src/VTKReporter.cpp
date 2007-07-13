@@ -23,7 +23,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
@@ -368,7 +368,7 @@ void VTKReporterRep::addEphemeralDecoration(const DecorativeGeometry& g)
 
 void VTKReporterRep::displayEphemeralGeometry(const State& s)
 {
-    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
     // Out with the old ...
     for (int i=0; i < (int)ephemeralActors.size(); ++i) {
@@ -385,7 +385,7 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
         ephemeralActors[i] = vtkActor::New();
 
         const MobilizedBodyId body = dgeom.getBodyId();
-        const Transform& X_GB = matter.getBodyTransform(s, body);
+        const Transform& X_GB = matter.getMobilizedBody(body).getBodyTransform(s);
 
         // Apply the transformation.
         dgeom.setTransform(X_GB*dgeom.getTransform());
@@ -489,14 +489,16 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
     renWin->AddRenderer(renderer);
 
-    const MatterSubsystem& sbs = mbs.getMatterSubsystem();
+    const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
     for (int i=0; i<(int)bodies.size(); ++i)
         bodies[i].scale = defaultBodyScaleForAutoGeometry;
 
     setDefaultBodyColor(GroundId, DefaultGroundBodyColor);
     for (MobilizedBodyId i(1); i<(int)bodies.size(); ++i) {
-        const MobilizedBodyId parent = sbs.getParent(i);
+        const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
+        const MobilizedBodyId parent = 
+            bodyI.getParentMobilizedBody().getMobilizedBodyId();
 
         if (parent == GroundId)
              setDefaultBodyColor(i, DefaultBaseBodyColor);
@@ -504,12 +506,12 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
         // TODO: should use actual Mobilizer frames rather than default (but that
         // requires access to the State)
-        const Transform& jInb = sbs.getDefaultMobilizerFrame(i);
-        if (jInb.T().norm() > bodies[i].scale)
-            bodies[i].scale = jInb.T().norm();
-        const Transform& jParent = sbs.getDefaultMobilizerFrameOnParent(i);
-        if (jParent.T().norm() > bodies[parent].scale)
-            bodies[parent].scale = jParent.T().norm();
+        const Transform& M = bodyI.getDefaultOutboardFrame();
+        if (M.T().norm() > bodies[i].scale)
+            bodies[i].scale = M.T().norm();
+        const Transform& Mb = bodyI.getDefaultInboardFrame();
+        if (Mb.T().norm() > bodies[parent].scale)
+            bodies[parent].scale = Mb.T().norm();
     }
 
     // Generate default geometry unless suppressed.
@@ -518,6 +520,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     // need to know about this sort of system detail.
     if (defaultBodyScaleForAutoGeometry!=0)
         for (MobilizedBodyId i(0); i<(int)bodies.size(); ++i) {
+            const MobilizedBody& bodyI = sbs.getMobilizedBody(i);
+
             const Real scale = bodies[i].scale;
             DecorativeFrame axes(scale*0.5);
             axes.setLineThickness(2);
@@ -527,20 +531,22 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
             // same as the body frame. Then find the corresponding frame on the
             // parent and display that in this body's color.
             if (i > 0) {
-                const int parent = sbs.getParent(i);
+                const MobilizedBodyId parent = 
+                    bodyI.getParentMobilizedBody().getMobilizedBodyId();
+
                 const Real pscale = bodies[parent].scale;
-                const Transform& jInb = sbs.getDefaultMobilizerFrame(i); // TODO: get from state
-                if (jInb.T() != Vec3(0) || jInb.R() != Mat33(1)) {
-                    addDecoration(i, jInb, DecorativeFrame(scale*0.25));
-                    if (jInb.T() != Vec3(0))
-                        addDecoration(i, Transform(), DecorativeLine(Vec3(0), jInb.T()));
+                const Transform& M = bodyI.getDefaultOutboardFrame(); // TODO: get from state
+                if (M.T() != Vec3(0) || M.R() != Mat33(1)) {
+                    addDecoration(i, M, DecorativeFrame(scale*0.25));
+                    if (M.T() != Vec3(0))
+                        addDecoration(i, Transform(), DecorativeLine(Vec3(0), M.T()));
                 }
-                const Transform& jParent = sbs.getDefaultMobilizerFrameOnParent(i); // TODO: from state
+                const Transform& Mb = bodyI.getDefaultInboardFrame(); // TODO: from state
                 DecorativeFrame frameOnParent(pscale*0.25);
                 frameOnParent.setColor(getDefaultBodyColor(i));
-                addDecoration(sbs.getParent(i), jParent, frameOnParent);
-                if (jParent.T() != Vec3(0))
-                    addDecoration(sbs.getParent(i), Transform(), DecorativeLine(Vec3(0),jParent.T()));
+                addDecoration(parent, Mb, frameOnParent);
+                if (Mb.T() != Vec3(0))
+                    addDecoration(parent, Transform(), DecorativeLine(Vec3(0),Mb.T()));
             }
 
             // Put a little purple wireframe sphere at the COM, and add a line from 
@@ -548,7 +554,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
             DecorativeSphere com(scale*.05);
             com.setColor(Purple).setRepresentation(DecorativeGeometry::DrawPoints);
-            const Vec3& comPos_B = sbs.getDefaultBodyMassProperties(i).getMassCenter(); // TODO: from state
+            const Vec3& comPos_B = bodyI.getDefaultMassProperties().getMassCenter(); // TODO: from state
             addDecoration(i, Transform(comPos_B), com);
             if (comPos_B != Vec3(0))
                 addDecoration(i, Transform(), DecorativeLine(Vec3(0), comPos_B));
@@ -570,17 +576,17 @@ void VTKReporterRep::report(const State& s) {
 
     mbs.realize(s, Stage::Position); // just in case
 
-    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     for (MobilizedBodyId i(1); i<matter.getNBodies(); ++i) {
-        const Transform& config = matter.getBodyTransform(s, i);
+        const Transform& config = matter.getMobilizedBody(i).getBodyTransform(s);
         setConfiguration(i, config);
     }
     for (int i=0; i<(int)dynamicGeom.size(); ++i) {
         const PerDynamicGeomInfo& info = dynamicGeom[i];
         const Transform& X_GB1 = 
-            matter.getBodyTransform(s, info.body1);
+            matter.getMobilizedBody(info.body1).getBodyTransform(s);
         const Transform& X_GB2 = 
-            matter.getBodyTransform(s, info.body2);
+            matter.getMobilizedBody(info.body2).getBodyTransform(s);
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 

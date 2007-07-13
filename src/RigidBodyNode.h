@@ -292,9 +292,6 @@ public:
     SpatialMat&       updY(SBDynamicsCache&       dc) const {return toB  (dc.Y);}
 
         // ACCELERATION INFO
-
-    const SpatialVec& getAppliedBodyForce(const SBAccelerationVars& av) const {return fromB(av.appliedRigidBodyForces);}
-    SpatialVec&       updAppliedBodyForce(SBAccelerationVars& av)       const {return toB(av.appliedRigidBodyForces);}
   
     /// Extract from the cache A_GB, the spatial acceleration of this body's frame B measured in and
     /// expressed in ground. This contains the inertial angular acceleration of B in G, and the
@@ -475,11 +472,11 @@ public:
         SBDynamicsCache&       dc) const=0;
 
     virtual void calcZ(
-        const SBPositionCache&    pc,
-        const SBDynamicsCache&    dc,
-        const SpatialVec&         spatialForce,
-        const SBAccelerationVars& av,
-        SBAccelerationCache&      ac) const 
+        const SBPositionCache&     pc,
+        const SBDynamicsCache&     dc,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        SBAccelerationCache&       ac) const 
       { throw VirtualBaseMethod(); }
 
     virtual void calcYOutward(

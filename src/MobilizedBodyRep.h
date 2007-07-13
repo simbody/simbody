@@ -131,6 +131,12 @@ public:
     void setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
                                  bool dontChangeAngularVelocity)  const;
 
+    const MassProperties& getBodyMassProperties(const State& s) const {
+        // TODO: these should come from the state if the body has variable mass props
+        const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
+        return getMyRigidBodyNode().getMassProperties_OB_B();
+    }
+
     const Transform& getBodyTransform(const State& s) const {
         const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
         return getMyRigidBodyNode().getX_GB(pc);

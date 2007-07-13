@@ -54,7 +54,7 @@ class DecorationSubsystem;
 class SimTK_SIMBODY_EXPORT MultibodySystem : public System {
 public:
     MultibodySystem();
-    MultibodySystem(MatterSubsystem& m);
+    MultibodySystem(SimbodyMatterSubsystem& m);
 
     // We inherit realize() from System, and add constraint projection here.
     // We are given a state whose continuous state variables y may violate
@@ -76,11 +76,11 @@ public:
 
 
     // Steals ownership of the source; returns subsystem ID number.
-    int setMatterSubsystem(MatterSubsystem&);
+    int setMatterSubsystem(SimbodyMatterSubsystem&);
     int addForceSubsystem(ForceSubsystem&);
     int setDecorationSubsystem(DecorationSubsystem&);
-    const MatterSubsystem& getMatterSubsystem() const;
-    MatterSubsystem&       updMatterSubsystem();
+    const SimbodyMatterSubsystem& getMatterSubsystem() const;
+    SimbodyMatterSubsystem&       updMatterSubsystem();
     const DecorationSubsystem& getDecorationSubsystem() const;
     DecorationSubsystem&       updDecorationSubsystem();
 

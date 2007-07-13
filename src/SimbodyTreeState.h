@@ -179,7 +179,7 @@ public:
     //   total mass
     //   central inertia of each rigid body
     //   principal axes and corresponding principal moments of inertia of each rigid body
-    //   reference configuration (X_PB when M==Mb), for each rigid body
+    //   reference configuration X_PB when q==0 (usually that means M==Mb), for each rigid body
 
     Real             totalMass; // sum of all rigid body and particles masses
     Array<Inertia>   centralInertias;           // nb
@@ -528,19 +528,9 @@ public:
 
 class SBAccelerationVars {
 public:
-    Vector_<SpatialVec> appliedRigidBodyForces; // nb
-    Vector_<Vec3>       appliedParticleForces;  // TODO
-    Vector              appliedMobilityForces;  // nu
-    Vector              prescribedUdot;         // nu
+    // none here
 public:
     void allocate(const SBTopologyCache& topology) const {
-        SBAccelerationVars& mutvars = *const_cast<SBAccelerationVars*>(this);
-
-        mutvars.appliedRigidBodyForces.resize(topology.nBodies);
-        mutvars.appliedRigidBodyForces[0] = SpatialVec(Vec3(0),Vec3(0)); // ground
-        mutvars.appliedParticleForces.resize(topology.nParticles);
-        mutvars.appliedMobilityForces.resize(topology.nDOFs);
-        mutvars.prescribedUdot.resize(topology.nDOFs);
     }
 };
 

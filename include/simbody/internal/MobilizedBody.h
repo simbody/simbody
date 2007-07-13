@@ -57,6 +57,400 @@ public:
     MobilizedBody& operator=(MobilizedBody&); // shallow assignment
     ~MobilizedBody();
 
+    ///////////////////////////////
+    // PAUL'S FRIENDLY INTERFACE //
+    ///////////////////////////////
+
+    /// @name High level interface
+    /// In the API below, the current MobilizedBody B is the "object" or "main"
+    /// body with which we are concerned. Often there will be an additional body mentioned
+    /// in the argument list as a target for some conversion. That "auxiliary" body will
+    /// be called "body A". The Ground body is abbreviated "G".
+    ///
+    /// We use OF to mean "the origin of frame F", CB is "the mass center of body B".
+    /// R_AF is the rotation matrix giving frame F's
+    /// orientation in frame A, such that a vector v expressed in F is reexpressed in
+    /// A by v_A = R_AF * v_F. X_AF is the spatial transform giving frame F's origin
+    /// location and orientation in frame A, such that a point P whose location is
+    /// measured from F's origin OF and expressed in F by vector r_OF_P is remeasured from
+    /// frame A's origin and reexpressed in A via r_OA_P = X_AF * r_OF_P. 
+
+    //@{
+
+        // MASS PROPERTIES //
+
+    /// Return the mass properties of body B, measured in the B frame, but expressed
+    /// in body A. That is, return the mass, mass center location r_OB_CB, and
+    /// the inertia about the body origin OB, expressed in A. If body A is the
+    /// same body as body B, then the mass properties can be obtained after realizing
+    /// only to the Instance stage, otherwise the state must have been realized
+    /// to Position stage.
+    ///
+    /// If inBodyA==Ground, the returned mass properties are equivalent to
+    /// the Spatial Inertia matrix as used in the
+    /// Spatial Operator Algebra formulation (that is, the local body mass
+    /// properties but expressed in Ground). You can pull out the
+    /// individual elements of MassProperties m with m.getMass(), 
+    /// m.getMassCenter() and m.getInertia(). You can get them as
+    /// a Spatial Inertia Matrix (2x2 x Mat33) with m.toSpatialMat()
+    /// or as a 6x6 matrix with m.toMat66().
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance, if \a inBodyA ==\a objectBodyB
+    /// \n\c Stage::Position otherwise.
+    MassProperties calcBodyMassPropertiesInBody(const State& s,
+                                                const MobilizedBody& inBodyA) const
+    {
+        const MassProperties& mp = getBodyMassProperties(s);
+        if (isSameMobilizedBody(inBodyA))
+            return mp;
+
+        // must be at Stage >= Position
+        Rotation R_BA = ~getBodyRotation(s);  // R_BG (assume A==G)
+        if (!inBodyA.isGround())
+            R_BA *= inBodyA.getBodyRotation(s); // R_BA = R_BG*R_GA
+        return mp.reexpress(R_BA); // i.e., reexpress from B to A
+    }
+
+    /**
+     * Return the mass properties of body B, measured from and about
+     * the B frame origin, but expressed in Ground and then returned
+     * as a Spatial Inertia Matrix. The mass properties are arranged
+     * in the SpatialMat like this:                  @verbatim
+         M=[      I_OB      crossMat(m*CB) ]
+           [ ~crossMat(m*CB)   diag(m)     ]         @endverbatim
+     * where I_OB is the inertia taken about the B frame origin OB,
+     * and CB is the vector r_OB_CB from B's origin to its mass center.
+     *
+     * The Spatial Inertia Matrix for Ground has infinite mass and
+     * inertia, with the cross terms set to zero. That is, it looks
+     * like a 6x6 diagonal matrix with Infinity on the diagonals.
+     * 
+     * @par Required stage
+     *   \c Stage::Position, unless \a objectBodyB == \c GroundId
+     */
+    SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s) const
+    {
+        if (isGround())
+            return SpatialMat(Mat33(NTraits<Real>::Infinity)); // sets diagonals to Inf
+
+        const MassProperties& mp   = getBodyMassProperties(s);
+        const Rotation&       R_GB = getBodyRotation(s);
+         // re-express in Ground without shifting, convert to spatial mat.
+        return mp.reexpress(~R_GB).toSpatialMat();
+    }
+
+    /// Calculate the location of body B's mass center, measured from the origin 
+    /// of body A, and expressed in the A frame.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance, if \a inBodyA == \a thisBodyB
+    /// \n\c Stage::Position otherwise.
+    Vec3 calcBodyMassCenterLocationInBody(const State& s,
+                                          const MobilizedBody& inBodyA) const
+    {
+        const Vec3& r_OB_CB = getBodyMassCenterStation(s);
+        if (inBodyA.isGround()) return locateBodyPointOnGround(s, r_OB_CB);
+        return locateBodyPointOnBody(s, r_OB_CB, inBodyA);
+    }
+
+    /// Return the central inertia for body B, that is, the inertia taken about
+    /// body B's mass center CB, and expressed in B.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance
+    Inertia calcBodyCentralInertia(const State& s, 
+                                   MobilizedBodyId objectBodyB) const
+    {
+        return getBodyMassProperties(s).calcCentralInertia();
+    }
+
+    /// Return the inertia of this body B, taken about an arbitrary point PA of body A,
+    /// and expressed in body A.
+    /// TODO: this needs testing!
+    Inertia calcBodyInertiaAboutBodyPoint(const State& s,
+                                          const MobilizedBody& inBodyA, 
+                                          const Vec3&          aboutLocationOnBodyA) const
+    {
+        // get B's mass props MB, measured about OB, exp. in B
+        const MassProperties& MB_OB_B = getBodyMassProperties(s);
+
+        // Calculate the vector from the body B origin (current "about" point) to the new "about" point PA,
+        // expressed in B.
+        const Vec3 r_OB_PA = inBodyA.calcBodyPointLocationInBody(s, aboutLocationOnBodyA, *this);
+
+        // Now shift the "about" point for body B's inertia IB to PA, but still expressed in B.
+        const Inertia IB_PA_B = MB_OB_B.calcShiftedInertia(r_OB_PA);
+        
+        // Finally reexpress the inertia in the A frame.
+        const Rotation R_BA    = inBodyA.calcBodyRotationFromBody(s, *this);
+        const Inertia  IB_PA_A = IB_PA_B.reexpress(R_BA);
+        return IB_PA_A;
+    }
+
+
+        // POSITION //
+
+    /// Return X_AB, the spatial transform to body B's frame from body A's frame.
+    Transform calcBodyTransformFromBody(const State& s, 
+                                        const MobilizedBody& fromBodyA) const
+    {
+        const Transform& X_GB = getBodyTransform(s);
+        if (fromBodyA.isGround()) return X_GB;
+        const Transform& X_GA = fromBodyA.getBodyTransform(s);
+        return ~X_GA*X_GB;
+    }
+
+    /// Return R_AB, the rotation matrix to body B's x,y,z axes from body A's x,y,z axes.
+    Rotation calcBodyRotationFromBody(const State& s, 
+                                      const MobilizedBody& fromBodyA) const
+    {
+        if (isSameMobilizedBody(fromBodyA))
+            return Rotation();  // Identity rotation; no access to State
+
+        if      (fromBodyA.isGround())  return  getBodyRotation(s);             // R_GB
+        else if (this->isGround())      return ~fromBodyA.getBodyRotation(s);   // R_AG (=~R_GA)
+        else                            return ~fromBodyA.getBodyRotation(s)    // R_AB=R_AG*R_GB
+                                              * getBodyRotation(s);
+    }
+
+    /// Return r_OA_OB, the location of body B's origin OB, measured from body A's
+    /// origin OA, expressed in body A.
+    Vec3 calcBodyOriginLocationInBody(const State& s, 
+                                      const MobilizedBody& inBodyA) const
+    {
+        if (isSameMobilizedBody(inBodyA)) return Vec3(0);
+
+        const Vec3& r_OG_OB = getBodyOriginLocation(s); // from G origin, exp. in G
+        if (inBodyA.isGround()) return r_OG_OB;
+        else                    return inBodyA.locateGroundPointOnBody(s, r_OG_OB);
+    }
+
+    /// Given a vector r_OB_P measured from body B's origin to a point P on body B, expressed in body B,
+    /// return the vector r_OA_P measured from body A's origin to point P, expressed in body A.
+    Vec3 calcBodyPointLocationInBody(const State& s,
+                                     const Vec3&  locationOnBodyB, 
+                                     const MobilizedBody& inBodyA) const
+    {
+        if      (isSameMobilizedBody(inBodyA))  return locationOnBodyB;
+        else if (inBodyA.isGround()) return locateBodyPointOnGround(s,locationOnBodyB);
+        else if (this->isGround())   return inBodyA.locateGroundPointOnBody(s,locationOnBodyB);
+        else                         return locateBodyPointOnBody(s, locationOnBodyB, inBodyA);
+    }
+
+    /// Given a vector v_B expressed in body B, return v_A, that same vector reexpressed in body A.
+    Vec3 calcBodyVectorInBody(const State& s, 
+                              const Vec3&          vectorOnBodyB, 
+                              const MobilizedBody& inBodyA) const
+    {
+        if      (isSameMobilizedBody(inBodyA))  return vectorOnBodyB;
+        else if (inBodyA.isGround()) return expressBodyVectorInGround(s,vectorOnBodyB);
+        else if (this->isGround())   return inBodyA.expressGroundVectorInBody(s,vectorOnBodyB);
+        else                         return expressBodyVectorInBody(s, vectorOnBodyB, inBodyA);
+    }
+
+        // VELOCITY //
+
+    /// Return the angular and linear velocity of body B's frame in body A's frame, expressed in body A,
+    /// and arranged as a SpatialVec.
+    SpatialVec calcBodySpatialVelocityInBody(const State& s,
+                                             const MobilizedBody& inBodyA) const
+    {
+        const SpatialVec& V_GB = getBodyVelocity(s);
+        if (inBodyA.isGround()) return V_GB;
+
+        // Body A is not Ground so we'll have to compute relative velocity.
+
+        const SpatialVec& V_GA   = inBodyA.getBodyVelocity(s);
+        const Vec3        w_AB_G = V_GB[0]-V_GA[0]; // angular velocity of B in A, exp in G
+
+        // Angular velocity was easy, but for linear velocity we have to add in an wXr term.
+        const Transform&  X_GB      = getBodyTransform(s);
+        const Transform&  X_GA      = inBodyA.getBodyTransform(s);
+        const Vec3        r_OA_OB_G = X_GB.T() - X_GA.T(); // vector from OA to OB, exp in G
+
+        const Vec3 v_AB_G = (V_GB[1]-V_GA[1]) + w_AB_G % r_OA_OB_G; // linear velocity of OB in A, exp in G
+
+        // We're done, but the answer is expressed in Ground. Reexpress in A and return.
+        const Rotation& R_GA = X_GA.R();
+        return SpatialVec(~R_GA*w_AB_G, ~R_GA*v_AB_G);
+    }
+
+    /// Return the angular velocity w_AB of body B's frame in body A's frame, expressed in body A.
+    Vec3 calcBodyAngularVelocityInBody(const State& s,
+                                       const MobilizedBody& inBodyA) const 
+    {
+        const SpatialVec& V_GB = getBodyVelocity(s);
+        if (inBodyA.isGround()) return V_GB[0];
+
+        // Body A is not Ground so we'll have to compute relative angular velocity.
+        const SpatialVec& V_GA   = inBodyA.getBodyVelocity(s);
+        const Vec3        w_AB_G = V_GB[0]-V_GA[0]; // angular velocity of B in A, exp in G
+
+        // Now reexpress in A.
+        return inBodyA.expressGroundVectorInBody(s, w_AB_G);
+    }
+
+    /// Return the velocity of body B's origin point in body A's frame, expressed in body A.
+    Vec3 calcBodyOriginVelocityInBody(const State& s,
+                                      const MobilizedBody& inBodyA) const
+    {
+        // Doesn't save much to special case this one.
+        return calcBodySpatialVelocityInBody(s,inBodyA)[1];
+    }
+
+    /// Return the velocity of a point P fixed on body B, in body A's frame, expressed in body A.
+    Vec3 calcBodyFixedPointVelocityInBody(const State& s, 
+                                          const Vec3&          locationOnBodyB, 
+                                          const MobilizedBody& inBodyA) const;
+
+    /// Return the velocity of a point P moving on body B, in body A's frame, expressed in body A.
+    Vec3 calcBodyMovingPointVelocityInBody(const State& s,
+                                           const Vec3& locationOnBodyB, 
+                                           const Vec3& velocityOnBodyB,
+                                           const MobilizedBody& inBodyA) const;
+
+        // ACCELERATION //
+
+    /// Return the angular and linear acceleration of body B's frame in body A's frame, expressed in body A,
+    /// and arranged as a SpatialVec.
+    SpatialVec calcBodySpatialAccelerationInBody(const State& s,
+                                                 const MobilizedBody& inBodyA) const;
+
+    /// Return the angular acceleration of body B's frame in body A's frame, expressed in body A.
+    Vec3 calcBodyAngularAccelerationInBody(const State& s,
+                                           const MobilizedBody& inBodyA) const;
+
+    /// Return the acceleration of body B's origin point in body A's frame, expressed in body A.
+    Vec3 calcBodyOriginAccelerationInBody(const State& s, 
+                                          const MobilizedBody& inBodyA) const;
+
+    /// Return the acceleration of a point P fixed on body B, in body A's frame, expressed in body A.
+    Vec3 calcBodyFixedPointAccelerationInBody(const State& s,
+                                              const Vec3&          locationOnBodyB, 
+                                              const MobilizedBody& inBodyA) const;
+
+    /// Return the velocity of a point P moving (and possibly accelerating) on body B,
+    /// in body A's frame, expressed in body A.
+    Vec3 calcBodyMovingPointAccelerationInBody(const State& s, 
+                                               const Vec3&          locationOnBodyB, 
+                                               const Vec3&          velocityOnBodyB, 
+                                               const Vec3&          accelerationOnBodyB,
+                                               const MobilizedBody& inBodyA) const;
+
+        // SCALAR DISTANCE //
+
+    /// Calculate the distance from a point PB on body B to a point PA on body A.
+    /// We are given the location vectors (stations) r_OB_PB and r_OA_PA, expressed in
+    /// their respective frames. We return |r_OB_OA|.
+    Real calcPointToPointDistance(const State& s,
+                                  const Vec3&          locationOnBodyB,
+                                  const MobilizedBody& bodyA,
+                                  const Vec3&          locationOnBodyA) const
+    {
+        if (isSameMobilizedBody(bodyA))
+            return (locationOnBodyA-locationOnBodyB).norm();
+
+        const Vec3 r_OG_PB = locateBodyPointOnGround(s,locationOnBodyB);
+        const Vec3 r_OG_PA = bodyA.locateBodyPointOnGround(s,locationOnBodyA);
+        return (r_OG_PA - r_OG_PB).norm();
+    }
+
+    /// Calculate the time rate of change of distance from a fixed point PB on body B to a fixed point
+    /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, expressed in their
+    /// respective frames. We return d/dt |r_OB_OA|, under the assumption that the time derivatives
+    /// of the two given vectors in their own frames is zero.
+    Real calcFixedPointToPointDistanceTimeDerivative(const State& s,
+                                                     const Vec3&          locationOnBodyB,
+                                                     const MobilizedBody& bodyA,
+                                                     const Vec3&          locationOnBodyA) const
+    {
+        if (isSameMobilizedBody(bodyA))
+            return 0;
+
+        Vec3 rB, rA, vB, vA;
+        calcBodyFixedPointLocationAndVelocityInGround(s,locationOnBodyB,rB,vB);
+        bodyA.calcBodyFixedPointLocationAndVelocityInGround(s,locationOnBodyA,rA,vA);
+        const Vec3 r = rA-rB, v = vA-vB;
+        const Real d = r.norm();
+
+        // When the points are coincident, the rate of change of distance is just their relative speed.
+        // Otherwise, it is the speed along the direction of separation. 
+        if (d==0) return v.norm();
+        else return dot(v, r/d);
+    }
+
+
+    /// Calculate the time rate of change of distance from a moving point PB on body B to a moving point
+    /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities of
+    /// PB in B and PA in A, all expressed in their respective frames. We return d/dt |r_OB_OA|,
+    /// taking into account the (given) time derivatives of the locations in their local frames, as well
+    /// as the relative velocities of the bodies.
+    Real calcMovingPointToPointDistanceTimeDerivative(const State& s,
+                                                      const Vec3&          locationOnBodyB,
+                                                      const Vec3&          velocityOnBodyB,
+                                                      const MobilizedBody& bodyA,
+                                                      const Vec3&          locationOnBodyA,
+                                                      const Vec3&          velocityOnBodyA) const;
+
+    /// Calculate the second time derivative of distance from a fixed point PB on body B to a fixed point
+    /// PA on body A. We are given the location vectors (stations) r_OB_PB and r_OA_PA, expressed in their
+    /// respective frames. We return d^2/dt^2 |r_OB_OA|, under the assumption that the time derivatives
+    /// of the two given vectors in their own frames is zero.
+    Real calcFixedPointToPointDistance2ndTimeDerivative(const State& s,
+                                                        const Vec3&          locationOnBodyB,
+                                                        const MobilizedBody& bodyA,
+                                                        const Vec3&          locationOnBodyA) const
+    {
+        if (isSameMobilizedBody(bodyA))
+            return 0;
+
+        Vec3 rB, rA, vB, vA, aB, aA;
+        calcBodyFixedPointLocationVelocityAndAccelerationInGround(s,locationOnBodyB,rB,vB,aB);
+        bodyA.calcBodyFixedPointLocationVelocityAndAccelerationInGround(s,locationOnBodyA,rA,vA,aA);
+
+        const Vec3 r = rA-rB, v = vA-vB, a = aA-aB;
+        const Real d = r.norm();
+        
+        // This method is the time derivative of calcFixedPointToPointDistanceTimeDerivative(), so it
+        // must follow the same two cases. That is, when the points are coincident the change in 
+        // separation rate is the time derivative of the speed |v|, otherwise it is the time
+        // derivative of the speed along the separation vector.
+
+        if (d==0) {
+            // Return d/dt |v|. This has two cases: if |v| is zero, the rate of change of speed is
+            // just the points' relative acceleration magnitude. Otherwise, it is the acceleration
+            // in the direction of the current relative velocity vector.
+            const Real s = v.norm(); // speed
+            if (s==0) return a.norm();
+            else return dot(a, v/s); // TODO: check with Paul
+        }
+
+        // Points are separated.
+        const Vec3 u = r/d;             // u is the separation direction (a unit vector from B to A) 
+        const Vec3 vp = v - dot(v,u)*u; // velocity perpendicular to separation direction
+        return dot(a,u) + dot(vp,v)/d;
+    }
+
+    /// Calculate the second time derivative of distance from a moving point PB on body B to a moving point
+    /// PA on body A. We are given the location vectors r_OB_PB and r_OA_PA, and the velocities and
+    /// accelerations of PB in B and PA in A, all expressed in their respective frames. We return
+    /// d^2/dt^2 |r_OA_OB|, taking into account the time derivatives of the locations in their
+    /// local frames, as well as the relative velocities and accelerations of the bodies.
+    Real calcMovingPointToPointDistance2ndTimeDerivative(const State& s,
+                                                         const Vec3&          locationOnBodyB,
+                                                         const Vec3&          velocityOnBodyB,
+                                                         const Vec3&          accelerationOnBodyB,
+                                                         const MobilizedBody& bodyA,
+                                                         const Vec3&          locationOnBodyA,
+                                                         const Vec3&          velocityOnBodyA,
+                                                         const Vec3&          accelerationOnBodyA) const;
+
+    // End of high-level interface.
+    //@}
+
+
+
     // Add decorative geometry specified relative to the new (outboard) body's reference
     // frame B, or to the outboard mobilizer frame M attached to body B, or
     // to the inboard mobilizer frame Mb attached to the parent body P. Note that
@@ -148,6 +542,27 @@ public:
 
         // INSTANCE STAGE responses //
 
+    const MassProperties& getBodyMassProperties(const State&) const;
+
+    /// Return the mass of this body. Callable at Instance Stage or higher.
+    Real getBodyMass(const State& s) const {
+        return getBodyMassProperties(s).getMass();
+    }
+
+    /// Return this body's center of mass station (i.e., the vector fixed in the body,
+    /// going from body origin to body mass center, expressed in the body frame.)
+    /// Callable at Instance Stage or higher.
+    const Vec3& getBodyMassCenterStation(const State& s) const {
+        return getBodyMassProperties(s).getMassCenter();
+    }
+
+    /// Return this body's inertia matrix, taken about the body origin and 
+    /// expressed in the body frame.
+    /// Callable at Instance Stage or higher.
+    const Inertia& getBodyInertiaAboutBodyOrigin(const State& s) const {
+        return getBodyMassProperties(s).getInertia();
+    }
+
     const Transform& getInboardFrame (const State&) const;  // X_PMb
     const Transform& getOutboardFrame(const State&) const;  // X_BM
 
@@ -166,6 +581,20 @@ public:
     /// This response is available at Position stage.
     const Transform& getBodyTransform(const State&) const; // X_GB
 
+    /// Extract from the state cache the already-calculated spatial orientation
+    /// of body B's body frame x, y, and z axes expressed in the ground frame,
+    /// as the rotation matrix R_GB. This response is available at Position stage.
+    const Rotation& getBodyRotation(const State& s) const {
+        return getBodyTransform(s).R();
+    }
+    /// Extract from the state cache the already-calculated spatial location
+    /// of body B's body frame origin OB, measured from the ground origin and
+    /// expressed in the ground frame, as the translation vector r_OG_OB.
+    /// This response is available at Position stage.
+    const Vec3& getBodyOriginLocation(const State& s) const {
+        return getBodyTransform(s).T();
+    }
+
     /// At stage Position or higher, return the cross-mobilizer transform.
     /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
     /// the parent body's corresponding outboard frame Mb.
@@ -180,6 +609,206 @@ public:
     /// frame's origin in G, and the body's angular velocity w_GB as the spatial velocity
     /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
     const SpatialVec& getBodyVelocity(const State&) const; // V_GB
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// velocity vector w_GB of this body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Velocity stage.
+    const Vec3& getBodyAngularVelocity(const State& s) const {
+        return getBodyVelocity(s)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// velocity vector v_G_OB of this body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Velocity stage.
+    const Vec3& getBodyOriginVelocity(const State& s) const {
+        return getBodyVelocity(s)[1];
+    }
+
+    /// Extract from the state cache the already-calculated inertial angular
+    /// acceleration vector aa_GB of this body B, measured with respect to the ground frame
+    /// and expressed in the ground frame. This response is available at Acceleration stage.
+    const Vec3& getBodyAngularAcceleration(const State& s) const {
+        return getBodyAcceleration(s)[0]; 
+    }
+    /// Extract from the state cache the already-calculated inertial linear
+    /// acceleration vector a_G_OB of this body B's origin point OB, measured with respect
+    /// to the ground frame and expressed in the ground frame. This response
+    /// is available at Acceleration stage.
+    const Vec3& getBodyOriginAcceleration(const State& s) const {
+        return getBodyAcceleration(s)[1];
+    }
+
+    /// Return the Cartesian (ground) location of a station fixed on body B. That is
+    /// we return locationOnG = X_GB * locationOnB which means the result is measured from
+    /// the ground origin and expressed in ground. Cost is 18 flops. This operator is
+    /// available at Position stage.
+    Vec3 locateBodyPointOnGround(const State& s, const Vec3& locationOnB) const {
+        return getBodyTransform(s) * locationOnB;
+    }
+
+    /// Return the station fixed on this body B that is coincident with the given Ground location.
+    /// That is we return locationOnB = X_BG * locationOnG, which means the result is measured
+    /// from the body origin OB and expressed in the body frame. Cost is 18 flops. This operator
+    /// is available at Position stage or higher.
+    Vec3 locateGroundPointOnBody(const State& s, const Vec3& locationOnG) const {
+        return ~getBodyTransform(s) * locationOnG;
+    }
+
+    /// Given a location on this body B, return the location on body A which is at the same location
+    /// in space. That is, we return locationOnA = X_AB * locationOnB, which means the result
+    /// is measured from the body A origin and expressed in body A. Cost is 36 flops.
+    /// This operator is available at Position stage or higher.
+    /// Note: if you know that one of the bodies is Ground, use one of the routines above
+    /// which is specialized for Ground to avoid half the work.
+    Vec3 locateBodyPointOnBody(const State& s, const Vec3& locationOnB, 
+                               const MobilizedBody& toBodyA) const
+    {
+        return toBodyA.locateGroundPointOnBody(s, locateBodyPointOnGround(s,locationOnB));
+    }
+
+    /// Return the Cartesian (ground) location of this body B's mass center.
+    Vec3 locateBodyMassCenterOnGround(const State& s) const {
+        return locateBodyPointOnGround(s,getBodyMassCenterStation(s));
+    }
+
+    /// Re-express a vector expressed in this body B's frame into the same vector in G. That is,
+    /// we return vectorInG = R_GB * vectorInB. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressBodyVectorInGround(const State& s, const Vec3& vectorInB) const {
+        return getBodyRotation(s)*vectorInB;
+    }
+
+    /// Re-express a vector expressed in Ground into the same vector expressed in this body B. That is,
+    /// we return vectorInB = R_BG * vectorInG. Cost is 15 flops. 
+    /// This operator is available at Position stage.
+    Vec3 expressGroundVectorInBody(const State& s, const Vec3& vectorInG) const {
+        return ~getBodyRotation(s)*vectorInG;
+    }
+
+    /// Re-express a vector expressed in this body B into the same vector expressed in body A.
+    /// That is, we return vectorInA = R_AB * vectorInB. Cost is 30 flops.
+    /// This operator is available at Position stage.
+    /// Note: if you know one of the bodies is Ground, call one of the specialized methods
+    /// above to save 15 flops.
+    Vec3 expressBodyVectorInBody(const State& s, const Vec3& vectorInB,
+                                 const MobilizedBody& inBodyA) const
+    {
+        return inBodyA.expressGroundVectorInBody(s, expressBodyVectorInGround(s,vectorInB));
+    }
+
+    /// Calculate this body B's mass properties, measured in the body B frame, taken about the body
+    /// B origin OB, but reexpressed in Ground.
+    MassProperties expressBodyMassPropertiesInGround(const State& s) {
+            const MassProperties& M_OB_B = getBodyMassProperties(s);
+            const Rotation&       R_GB   = getBodyRotation(s);
+            return M_OB_B.reexpress(~R_GB);
+    }
+
+    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
+    /// the body origin OB.
+    SpatialVec calcBodyMomentumAboutBodyOriginInGround(const State& s) {
+        const MassProperties M_OB_G = expressBodyMassPropertiesInGround(s);
+        const SpatialVec&    V_GB   = getBodyVelocity(s);
+        return M_OB_G.toSpatialMat() * V_GB;
+    }
+
+    /// Calculate body B's momentum (angular, linear) measured and expressed in ground, but taken about
+    /// the body mass center CB.
+    SpatialVec calcBodyMomentumAboutBodyMassCenterInGround(const State& s) const {
+        const MassProperties& M_OB_B = getBodyMassProperties(s);
+        const Rotation&       R_GB   = getBodyRotation(s);
+
+        // Given a central inertia matrix I, angular velocity w, and mass center velocity v,
+        // the central angular momentum is Iw and linear momentum is mv.
+        const Inertia I_CB_B = M_OB_B.calcCentralInertia();
+        const Inertia I_CB_G = I_CB_B.reexpress(~R_GB);
+        const Real    mb     = M_OB_B.getMass();
+        const Vec3&   w_GB   = getBodyAngularVelocity(s);
+        Vec3          v_G_CB = calcBodyFixedPointVelocityInGround(s, M_OB_B.getMassCenter());
+
+        return SpatialVec( I_CB_G*w_GB, mb*v_G_CB );
+    }
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) velocity,
+    /// that is, its velocity relative to the ground frame, expressed in the
+    /// ground frame. Cost is 27 flops. This operator is available at Velocity stage.
+    Vec3 calcBodyFixedPointVelocityInGround(const State& s, const Vec3& stationOnB) const {
+        const Vec3& w = getBodyAngularVelocity(s); // in G
+        const Vec3& v = getBodyOriginVelocity(s);  // in G
+        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
+        return v + w % r;                                        // 12 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location and velocity together
+    /// than to do them separately. Here we can return them both in 30 flops, vs. 45 to
+    /// do them in two calls.
+    void calcBodyFixedPointLocationAndVelocityInGround(const State& s, const Vec3& locationOnB,
+                                                       Vec3& locationOnGround, Vec3& velocityInGround) const
+    {
+        const Vec3& r_G_OB = getBodyOriginLocation(s);
+        const Vec3  r      = expressBodyVectorInGround(s,locationOnB); // 15 flops
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w = getBodyAngularVelocity(s); // in G
+        const Vec3& v = getBodyOriginVelocity(s);  // in G
+        velocityInGround = v + w % r; // 12 flops
+    }
+
+
+    /// Given a station fixed on body B, return its inertial (Cartesian) acceleration,
+    /// that is, its acceleration relative to the ground frame, expressed in the
+    /// ground frame. Cost is 48 flops. This operator is available at Acceleration stage.
+    Vec3 calcBodyFixedPointAccelerationInGround(const State& s, const Vec3& stationOnB) const {
+        const Vec3& w  = getBodyAngularVelocity(s);     // in G
+        const Vec3& aa = getBodyAngularAcceleration(s); // in G
+        const Vec3& a  = getBodyOriginAcceleration(s);  // in G
+
+        const Vec3  r = expressBodyVectorInGround(s,stationOnB); // 15 flops
+        return a + aa % r + w % (w % r);                         // 33 flops
+    }
+
+    /// It is cheaper to calculate a station's ground location, velocity, and acceleration together
+    /// than to do them separately. Here we can return them all in 54 flops, vs. 93 to
+    /// do them in three calls. This operator is available at Acceleration stage.
+    void calcBodyFixedPointLocationVelocityAndAccelerationInGround
+       (const State& s, const Vec3& locationOnB,
+        Vec3& locationOnGround, Vec3& velocityInGround, Vec3& accelerationInGround) const
+    {
+        const Rotation&  R_GB   = getBodyRotation(s);
+        const Vec3&      r_G_OB = getBodyOriginLocation(s);
+
+        const Vec3 r = R_GB*locationOnB; // re-express station vector in G (15 flops)
+        locationOnGround = r_G_OB + r;   // 3 flops
+
+        const Vec3& w  = getBodyAngularVelocity(s); // in G
+        const Vec3& v  = getBodyOriginVelocity(s);  // in G
+        const Vec3& aa = getBodyAngularAcceleration(s); // in G
+        const Vec3& a  = getBodyOriginAcceleration(s);  // in G
+
+        const Vec3 wXr = w % r; // "whipping" velocity w X r due to angular velocity (9 flops)
+        velocityInGround     = v + wXr;              // v + w X r (3 flops)
+        accelerationInGround = a + aa % r + w % wXr; // 24 flops
+    }
+
+    /// Given a station fixed on body B, return its velocity relative to the body frame of
+    /// body A, and expressed in body A's body frame. Cost is 54 flops.
+    /// This operator is available at Velocity stage.
+    /// TODO: UNTESTED!!
+    /// TODO: maybe these between-body routines should return results in ground so that they
+    /// can be easily combined. Easy to re-express vector afterwards.
+    Vec3 calcStationVelocityInBody(const State& s, const Vec3& stationOnB, const MobilizedBody& bodyA) const {
+        // If body B's origin were coincident with body A's, then Vdiff_AB would be the relative angular
+        // and linear velocity of body B in body A, expressed in G. To get the point we're interested in,
+        // we need the vector from body A's origin to stationB to account for the extra linear velocity
+        // that will be created by moving away from the origin, due to the bodies' relative angular
+        // velocity.
+        const SpatialVec Vdiff_AB = getBodyVelocity(s) - bodyA.getBodyVelocity(s); // 6
+
+        // This is a vector from body A's origin to the point of interest, expressed in G.
+        const Vec3 stationA_G = locateBodyPointOnGround(s,stationOnB) - bodyA.getBodyOriginLocation(s); // 21
+        const Vec3 v_AsB_G = Vdiff_AB[1] + Vdiff_AB[0] % stationA_G; // 12
+        return ~bodyA.getBodyRotation(s) * v_AsB_G; // 15
+    }
 
     /// At stage Velocity or higher, return the cross-mobilizer velocity.
     /// This is V_MbM, the relative velocity of the body's inboard mobilizer
@@ -223,6 +852,9 @@ public:
 
     bool isInSubsystem() const;
     bool isInSameSubsystem(const MobilizedBody&) const;
+
+    bool isSameMobilizedBody(const MobilizedBody&) const;
+    bool isGround() const; // meaning mobilizedbody 0 of some subsystem, not just the Body type
 
     // These are the built-in MobilizedBody types. Types on the same line are
     // synonymous.

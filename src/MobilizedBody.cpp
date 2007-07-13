@@ -113,6 +113,14 @@ bool MobilizedBody::isInSameSubsystem(const MobilizedBody& otherBody) const {
            && getMatterSubsystem().isSameSubsystem(otherBody.getMatterSubsystem());
 }
 
+bool MobilizedBody::isSameMobilizedBody(const MobilizedBody& otherBody) const {
+    return rep && (otherBody.rep == rep);
+}
+
+bool MobilizedBody::isGround() const {
+    return isInSubsystem() && isSameMobilizedBody(getMatterSubsystem().getGround());
+}
+
 
 SimbodyMatterSubsystem& MobilizedBody::updMatterSubsystem() {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),
@@ -153,6 +161,10 @@ const Transform& MobilizedBody::getDefaultOutboardFrame() const {
 }
 
 // Access to State
+
+const MassProperties& MobilizedBody::getBodyMassProperties(const State& s) const {
+    return getRep().getBodyMassProperties(s);
+}
 
 const Transform& MobilizedBody::getBodyTransform(const State& s) const {
     return getRep().getBodyTransform(s);

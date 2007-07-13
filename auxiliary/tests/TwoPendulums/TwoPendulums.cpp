@@ -96,10 +96,10 @@ int main(int argc, char** argv) {
                                          .setDefaultOutboardFrame(Vec3(0,d,0));
  */
 
-    const Vec3 radii(1/2.,1/3.,1/4.);
+    Vec3 radii(1/2.,1/3.,1/4.); radii*=.5;
     MobilizedBody::Ellipsoid rightPendulum = MobilizedBody::Ellipsoid(twoPends.Ground(), pendulumBody)
                                          .setDefaultRadii(radii)
-                                         .setDefaultInboardFrame(Vec3(1,0,0))
+                                         .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
                                          .setDefaultOutboardFrame(Vec3(0,d,0));
     rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
                                                       .setColor(Purple).setOpacity(.3));
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     const Real hw = minr/2;  // half width of follower plate in x
     const Real hh = minr/20; // half height of follower plate
     rightPendulum.addOutboardDecoration(Transform(Vec3(0,0,hh)), // raise up so bottom is on xy plane
-                                        DecorativeBrick(Vec3(hw,2*hw/3.,hh)).setColor(Gray).setOpacity(.5));
+                                        DecorativeBrick(Vec3(hw,2*hw/3.,hh)).setColor(Gray).setOpacity(1));
 
     //leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
     //rightPendulum.addInboardDecoration(Transform(), DecorativeSphere(0.1).setColor(Yellow));
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 
 
     //rightPendulum.setDefaultAngle(20*Deg2Rad);
-    //rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(1,1,1)));
+    rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(0,0,1)));
 
     // Beauty is in the eye of the beholder ...
     //viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
@@ -152,9 +152,10 @@ int main(int argc, char** argv) {
 
     //forces.addMobilityConstantForce(rightPendulum, 0, 20);
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
+    //forces.addGlobalEnergyDrain(.2);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
-    twoPends.setUseEulerAngles(s, true);
+    twoPends.setUseEulerAngles(s, false);
     mbs.realizeModel(s); // define appropriate states for this System
 
     VTKReporter display(mbs);
@@ -172,6 +173,8 @@ int main(int argc, char** argv) {
 
     //TODO
     //rightPendulum.setUToFitLinearVelocity(s, Vec3(1.1,0,1.2));
+
+    rightPendulum.setUToFitAngularVelocity(s, Vec3(0,10,0));
 
     // TODO: this can't work unless it sets a state variable somewhere.
     // Cache entries can only be updated during a realize() operation.
@@ -191,10 +194,10 @@ int main(int argc, char** argv) {
     // Create a study using the Runge Kutta Merson or CPODES integrator
     RungeKuttaMerson myStudy(mbs, s);
     //CPodesIntegrator myStudy(mbs, s);
-    myStudy.setAccuracy(1e-8);
+    //myStudy.setAccuracy(1e-8);
 
-    const Real dt = 0.005; // output intervals
-    const Real finalTime = 5;
+    const Real dt = 0.01; // output intervals
+    const Real finalTime = 10;
 
     // Peforms assembly if constraints are violated.
     myStudy.initialize();
@@ -210,7 +213,7 @@ int main(int argc, char** argv) {
             leftPendulum.getAngle(s)*Rad2Deg,
             /*rightPendulum.getRotation(s)*Rad2Deg*/0.,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
-        printf("     %10.4g+%10.4g\n", mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+        //printf("     %10.4g+%10.4g\n", mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
 
         display.report(s);
         if (s.getTime() >= finalTime)

@@ -96,6 +96,8 @@ try { // If anything goes wrong, an exception will be thrown.
    // forces.addMobilityConstantForce(swinger, 2, 60-1.2);
 
     State s = mbs.realizeTopology(); // define appropriate states for this System
+
+
     pend.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
 
@@ -126,15 +128,17 @@ try { // If anything goes wrong, an exception will be thrown.
 
         printf("time  theta      energy           *************\n");
         s.updTime() = 0;
+
+
         swinger.setQToFitTransform(s, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2),
                                                          Vec3(0,0,0)));
         swinger.setUToFitVelocity(s, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0,0,-1)));
 
         myStudy.initialize();
 
-        cout << "MassProperties in B=" << pend.calcBodyMassPropertiesInBody(s,swinger,swinger);
-        cout << "MassProperties in G=" << pend.calcBodyMassPropertiesInBody(s,swinger,GroundId);
-        cout << "Spatial Inertia    =" << pend.calcBodySpatialInertiaMatrixInGround(s,swinger);
+        cout << "MassProperties in B=" << swinger.calcBodyMassPropertiesInBody(s,swinger);
+        cout << "MassProperties in G=" << swinger.calcBodyMassPropertiesInBody(s,pend.getGround());
+        cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(s);
 
         for (;;) {
             printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,

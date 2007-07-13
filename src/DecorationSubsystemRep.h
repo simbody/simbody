@@ -99,15 +99,15 @@ public:
         }
         case Stage::Position: {
             assert(getStage(s) >= Stage::Position);
-            const MultibodySystem& mbs    = getMultibodySystem(); // my owner
-            const MatterSubsystem& matter = mbs.getMatterSubsystem();
+            const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
+            const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
             for (int i=0; i<(int)rubberBandLines.size(); ++i) {
                 const RubberBandLine& rb = rubberBandLines[i];
                 geom.push_back(rb.line); // make a new copy
                 DecorativeLine& line = DecorativeLine::updDowncast(geom.back()); // get access to copy
                 line.setEndpoints(
-                    matter.locateBodyPointOnGround(s,rb.body1,rb.station1),
-                    matter.locateBodyPointOnGround(s,rb.body2,rb.station2));
+                    matter.getMobilizedBody(rb.body1).locateBodyPointOnGround(s,rb.station1),
+                    matter.getMobilizedBody(rb.body2).locateBodyPointOnGround(s,rb.station2));
             }
         }
         default: 

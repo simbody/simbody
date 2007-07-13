@@ -228,29 +228,6 @@ public:
         return updU(s); // TODO: return only the non-particle subset
     } 
 
-    // Access to Acceleration variables. //
-
-    const Vector& getAllMobilizerAppliedForces(const State& s) const {
-        return getAccelerationVars(s).appliedMobilityForces;
-    }
-    const Vector_<Vec3>& getAllParticleAppliedForces(const State& s) const {
-        return getAccelerationVars(s).appliedParticleForces;
-    }
-    const Vector_<SpatialVec>& getAllBodyAppliedForces(const State& s) const {
-        return getAccelerationVars(s).appliedRigidBodyForces;
-    }
-
-    // These update routines invalidate Stage::Acceleration.
-    Vector& updAllMobilizerAppliedForces(State& s) const {
-        return updAccelerationVars(s).appliedMobilityForces;
-    }
-    Vector_<Vec3>& updAllParticleAppliedForces(State& s) const{
-        return updAccelerationVars(s).appliedParticleForces;
-    }
-    Vector_<SpatialVec>& updAllBodyAppliedForces(State& s) const {
-        return updAccelerationVars(s).appliedRigidBodyForces;
-    }
-
     Real getTotalMass(const State& s) const {
         return getInstanceCache(s).totalMass;
     }
@@ -409,15 +386,21 @@ public:
     // Call after realizeAcceleration()
     const SpatialVec& getBodyAcceleration(const State& s, MobilizedBodyId) const;
 
-    /// This is a solver which generates internal velocities from spatial ones.
+    // This is a solver which generates internal velocities from spatial ones.
     void velFromCartesian(const Vector& pos, Vector& vel) {assert(false);/*TODO*/}
 
     void enforcePositionConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
     void enforceVelocityConstraints(State&, const Real& requiredTol, const Real& desiredTol) const;
 
-    /// Unconstrained (tree) dynamics 
-    void calcArticulatedBodyInertias(const State&) const;                // articulated body inertias
-    void calcZ(const State&, const SpatialVecList& spatialForces) const; // articulated body remainder forces
+    // Unconstrained (tree) dynamics 
+
+    // articulated body inertias
+    void calcArticulatedBodyInertias(const State&) const;
+
+     // articulated body remainder forces
+    void calcZ(const State&, 
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces) const;
     void calcTreeAccel(const State&) const;                // accels with forces from last calcZ
 
     void fixVel0(State&, Vector& vel) const; // TODO -- yuck
@@ -612,19 +595,27 @@ private:
     //void addGroundNode();
     ConstraintId addConstraintNode(ConstraintNode*&);
 
-    // Given a forces in the state, calculate accelerations ignoring
-    // constraints, and leave the results in the state. 
+    // Given a set of forces, calculate accelerations ignoring
+    // constraints, and leave the results in the state cache. 
     // Must have already called realizeDynamics().
     // We also allow some extra forces to be supplied, with the intent
     // that these will be used to deal with internal forces generated
-    // by constraints. 
+    // by constraints; set the pointers to zero if you don't have any
+    // extras to pass in.
     void calcTreeForwardDynamics (const State& s,
+        const Vector&              mobilityForces,
+        const Vector_<Vec3>&       particleForces,
+        const Vector_<SpatialVec>& bodyForces,
         const Vector*              extraMobilityForces,
         const Vector_<SpatialVec>* extraBodyForces) const;
 
-    // Given a set of forces in the state, calculate acclerations resulting from
-    // those forces and enforcement of acceleration constraints, and update the state.
-    void calcLoopForwardDynamics(const State&) const;
+    // Given a set of forces, calculate acclerations resulting from
+    // those forces and enforcement of acceleration constraints, and update 
+    // the state cache with the results.
+    void calcLoopForwardDynamics(const State&,
+        const Vector&              mobilityForces,
+        const Vector_<Vec3>&       particleForces,
+        const Vector_<SpatialVec>& bodyForces) const;
 
     friend std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
     friend class SimTK::SimbodyMatterSubsystem;

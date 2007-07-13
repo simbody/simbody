@@ -71,7 +71,7 @@ MultibodySystem::MultibodySystem() {
     updRep().setGlobalSubsystem();
 }
 
-MultibodySystem::MultibodySystem(MatterSubsystem& m)
+MultibodySystem::MultibodySystem(SimbodyMatterSubsystem& m)
 {
     rep = new MultibodySystemRep();
     rep->setMyHandle(*this);
@@ -98,7 +98,7 @@ bool MultibodySystem::project(State& s, Vector& y_err,
 }
 
 
-int MultibodySystem::setMatterSubsystem(MatterSubsystem& m) {
+int MultibodySystem::setMatterSubsystem(SimbodyMatterSubsystem& m) {
     return MultibodySystemRep::downcast(*rep).setMatterSubsystem(m);
 }
 int MultibodySystem::addForceSubsystem(ForceSubsystem& f) {
@@ -108,11 +108,11 @@ int MultibodySystem::setDecorationSubsystem(DecorationSubsystem& m) {
     return MultibodySystemRep::downcast(*rep).setDecorationSubsystem(m);
 }
 
-const MatterSubsystem&       
+const SimbodyMatterSubsystem&       
 MultibodySystem::getMatterSubsystem() const {
     return MultibodySystemRep::downcast(*rep).getMatterSubsystem();
 }
-MatterSubsystem&       
+SimbodyMatterSubsystem&       
 MultibodySystem::updMatterSubsystem() {
     return MultibodySystemRep::downcast(*rep).updMatterSubsystem();
 }
@@ -336,7 +336,7 @@ MolecularMechanicsSystem::MolecularMechanicsSystem()
 }
 
 MolecularMechanicsSystem::MolecularMechanicsSystem
-   (MatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
+   (SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
   : MultibodySystem(new MolecularMechanicsSystemRep())
 {
     setMatterSubsystem(matter);

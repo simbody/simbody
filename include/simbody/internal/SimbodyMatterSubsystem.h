@@ -119,6 +119,154 @@ public:
         return *this;
     }
 
+
+    ///////////////////////////////
+    // PAUL'S FRIENDLY INTERFACE //
+    ///////////////////////////////
+
+    /// Calculate the total system mass.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Instance
+    Real calcSystemMass(const State& s) const {
+        Real mass = 0;
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b)
+            mass += getMobilizedBody(b).getBodyMassProperties(s).getMass();
+        return mass;
+    }
+
+
+    /// Return the location r_OG_C of the system mass center C, measured from the ground
+    /// origin OG, and expressed in Ground. 
+    ///
+    /// @par Required stage
+    ///   \c Stage::Position
+    Vec3 calcSystemMassCenterLocationInGround(const State& s) const {
+        Real    mass = 0;
+        Vec3    com  = Vec3(0);
+
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
+            const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
+            const Real            mb      = MB_OB_B.getMass();
+            const Vec3            r_OG_CB = X_GB * MB_OB_B.getMassCenter();
+            mass += mb;
+            com  += mb * r_OG_CB; // weighted by mass
+        }
+
+        if (mass != 0) 
+            com /= mass;
+
+        return com;
+    }
+
+
+    /// Return total system mass, mass center location measured from the Ground origin,
+    /// and system inertia taken about the Ground origin, expressed in Ground.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Position
+    MassProperties calcSystemMassPropertiesInGround(const State& s) const {
+        Real    mass = 0;
+        Vec3    com  = Vec3(0);
+        Inertia I    = Inertia(0);
+
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
+            const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
+            const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(X_GB);
+            const Real            mb      = MB_OG_G.getMass();
+            mass += mb;
+            com  += mb * MB_OG_G.getMassCenter();
+            I    += MB_OG_G.getInertia();   // already has mass built in
+        }
+
+        if (mass != 0) {
+            com /= mass;
+            I   /= mass;
+        }
+
+        return MassProperties(mass, com, I);
+    }
+
+    /// Return the system inertia matrix taken about the system center of mass,
+    /// expressed in Ground.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Position
+    Inertia calcSystemCentralInertiaInGround(const State& s) const {
+        const MassProperties M_OG_G = calcSystemMassPropertiesInGround(s);
+        return M_OG_G.calcCentralInertia();
+    }
+
+
+    /// Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the Ground frame G,
+    /// expressed in G.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Velocity
+    Vec3 calcSystemMassCenterVelocityInGround(const State& s) const {
+        Real    mass = 0;
+        Vec3    comv = Vec3(0);
+
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
+            const Vec3 v_G_CB = getMobilizedBody(b).calcBodyFixedPointVelocityInGround(s, MB_OB_B.getMassCenter());
+            const Real mb     = MB_OB_B.getMass();
+
+            mass += mb;
+            comv += mb * v_G_CB; // weighted by mass
+        }
+
+        if (mass != 0) 
+            comv /= mass;
+
+        return comv;
+    }
+
+    /// Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center C in
+    /// the Ground frame G, expressed in G.
+    ///
+    /// @par Required stage
+    ///   \c Stage::Acceleration
+    Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const {
+        Real    mass = 0;
+        Vec3    coma = Vec3(0);
+
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
+            const Vec3 a_G_CB = getMobilizedBody(b).calcBodyFixedPointAccelerationInGround(s, MB_OB_B.getMassCenter());
+            const Real mb     = MB_OB_B.getMass();
+
+            mass += mb;
+            coma += mb * a_G_CB; // weighted by mass
+        }
+
+        if (mass != 0) 
+            coma /= mass;
+
+        return coma;
+    }
+
+    /// Return the momentum of the system as a whole (angular, linear) measured
+    /// in the ground frame, taken about the ground origin and expressed in ground.
+    /// (The linear component is independent of the "about" point.)
+    ///
+    /// @par Required stage
+    ///   \c Stage::Velocity
+    SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const {
+        SpatialVec mom(Vec3(0), Vec3(0));
+        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
+            const SpatialVec mom_CB_G = getMobilizedBody(b).calcBodyMomentumAboutBodyMassCenterInGround(s);
+            const Vec3&      Iw = mom_CB_G[0];
+            const Vec3&      mv = mom_CB_G[1];
+            const Vec3       r = getMobilizedBody(b).locateBodyMassCenterOnGround(s);
+            mom[0] += (Iw + r % mv); // add central angular momentum plus contribution from mass center location
+            mom[1] += mv;            // just add up central linear momenta
+        }
+        return mom;
+    }
+
     //////////////////
     // CONSTRUCTION //
     //////////////////
@@ -134,8 +282,9 @@ public:
     const MobilizedBody& getMobilizedBody(MobilizedBodyId) const;
     MobilizedBody&       updMobilizedBody(MobilizedBodyId);
 
-    const MobilizedBody::Ground& Ground() const;
-    MobilizedBody::Ground&       Ground();
+    const MobilizedBody::Ground& getGround() const;
+    MobilizedBody::Ground&       updGround();
+    MobilizedBody::Ground&       Ground() {return updGround();} // TODO: is this a good idea?
 
     ConstraintId      adoptConstraint(Constraint&);
     const Constraint& getConstraint(ConstraintId) const;

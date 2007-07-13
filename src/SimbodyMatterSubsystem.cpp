@@ -96,10 +96,10 @@ const MobilizedBody& SimbodyMatterSubsystem::getMobilizedBody(MobilizedBodyId id
 MobilizedBody& SimbodyMatterSubsystem::updMobilizedBody(MobilizedBodyId id) {
     return updRep().updMobilizedBody(id);
 }
-const MobilizedBody::Ground& SimbodyMatterSubsystem::Ground() const {
+const MobilizedBody::Ground& SimbodyMatterSubsystem::getGround() const {
     return getRep().getGround();
 }
-MobilizedBody::Ground& SimbodyMatterSubsystem::Ground() {
+MobilizedBody::Ground& SimbodyMatterSubsystem::updGround() {
     return updRep().updGround();
 }
 

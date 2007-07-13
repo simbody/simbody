@@ -142,18 +142,6 @@ public:
         return v;
     }
 
-    // Access to Acceleration variables. //
-
-    virtual const Vector&              getAllMobilizerAppliedForces(const State&) const = 0;
-    virtual const Vector_<Vec3>&       getAllParticleAppliedForces (const State&) const = 0;
-    virtual const Vector_<SpatialVec>& getAllBodyAppliedForces     (const State&) const = 0;
-
-    // These update routines invalidate Stage::Acceleration.
-    virtual Vector&              updAllMobilizerAppliedForces(State&) const = 0;
-    virtual Vector_<Vec3>&       updAllParticleAppliedForces (State&) const = 0;
-    virtual Vector_<SpatialVec>& updAllBodyAppliedForces     (State&) const = 0;
-
-
         // INSTANCE STAGE //
     virtual Real getTotalMass(const State&) const = 0;
 

@@ -45,7 +45,7 @@ class DuMMForceFieldSubsystem;
 class SimTK_SIMBODY_EXPORT MolecularMechanicsSystem : public MultibodySystem {
 public:
     MolecularMechanicsSystem();
-    MolecularMechanicsSystem(MatterSubsystem&, DuMMForceFieldSubsystem&);
+    MolecularMechanicsSystem(SimbodyMatterSubsystem&, DuMMForceFieldSubsystem&);
 
     // Steals ownership of the source; returns subsystem ID number.
     int setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem&);

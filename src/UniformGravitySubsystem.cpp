@@ -23,6 +23,7 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/UniformGravitySubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 
 #include "ForceSubsystemRep.h"
 
@@ -246,8 +247,8 @@ void UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
     const Vec3& g   = getGravity(s);  // gravity is non zero
     const Real& gz  = getPEOffset(s); // amount to subtract from gh for pe
 
-    const MultibodySystem& mbs = MultibodySystem::downcast(getSystem());
-    const MatterSubsystem& matter = mbs.getMatterSubsystem();
+    const MultibodySystem&        mbs    = MultibodySystem::downcast(getSystem());
+    const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
     const int nBodies    = matter.getNBodies();
     const int nParticles = matter.getNParticles();
 
@@ -269,10 +270,10 @@ void UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
 
     // no need to apply gravity to Ground!
     for (MobilizedBodyId i(1); i < nBodies; ++i) {
-        const MassProperties& mprops = matter.getBodyMassProperties(s,i);
+        const MassProperties& mprops = matter.getMobilizedBody(i).getBodyMassProperties(s);
         const Real&      m       = mprops.getMass();
         const Vec3&      com_B   = mprops.getMassCenter();
-        const Transform& X_GB    = matter.getBodyTransform(s,i);
+        const Transform& X_GB    = matter.getMobilizedBody(i).getBodyTransform(s);
         const Vec3       com_B_G = X_GB.R()*com_B;
         const Vec3       com_G   = X_GB.T() + com_B_G;
         const Vec3       frc_G   = m*g;

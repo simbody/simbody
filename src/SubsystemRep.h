@@ -201,7 +201,7 @@ public:
     // good behavior such as checking that stage requirements are met and
     // updating the stage at the end. Note that these will do nothing if
     // the Subsystem stage is already at or greater than the indicated stage.
-    void realizeSubsystemTopology(State& s) const ;
+    void realizeSubsystemTopology(State& s) const;
     void realizeSubsystemModel(State& s) const;
     void realizeSubsystemInstance(const State& s) const;
     void realizeSubsystemTime(const State& s) const;

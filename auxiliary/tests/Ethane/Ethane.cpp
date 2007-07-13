@@ -89,7 +89,7 @@ public:
     MobilizedBodyId getBodyId(int i) const {return bodies[i];}
 
     const SimbodyMatterSubsystem& getMatter() const {
-        return SimbodyMatterSubsystem::downcast(mmSystem.getMatterSubsystem());
+        return mmSystem.getMatterSubsystem();
     }
     const DuMMForceFieldSubsystem& getDuMM() const {
         return mmSystem.getMolecularMechanicsForceSubsystem();
@@ -222,12 +222,12 @@ public:
     void setMoleculeTransform(State& s, const Transform& X_GFprime) const
     {
         mmSystem.realize(s,Stage::Position);
-        const Transform X_GF = getMatter().getBodyTransform(s,bodies[0]); // current
+        const Transform X_GF = getMatter().getMobilizedBody(bodies[0]).getBodyTransform(s); // current
         const Transform X_FFprime = ~X_GF * X_GFprime; // relative transform
 
         for (int i=0; i < (int)bodies.size(); ++i) {
             mmSystem.realize(s,Stage::Position);
-            const Transform& X_GB = getMatter().getBodyTransform(s,bodies[i]);
+            const Transform& X_GB = getMatter().getMobilizedBody(bodies[i]).getBodyTransform(s);
             const Transform  X_FprimeBprime = ~X_GF * X_GB; // we want this to be the same as X_FB
             const Transform  X_FBprime = X_FFprime * X_FprimeBprime;
             const Transform  X_GBprime = X_GF*X_FBprime;
@@ -534,8 +534,8 @@ try
     DecorationSubsystem      artwork(mbs);
     UniformGravitySubsystem  gravity(mbs, Vec3(0,0,0));
 
-    Real accuracy = 1e-3;
-    Real outputInterval = .1;
+    Real accuracy = 1e-2;
+    Real outputInterval = .01;
     Real simulationLength = 100;
     //Real outputInterval = .1;
     //Real simulationLength = 10;
@@ -679,7 +679,7 @@ try
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
 
-    const CartesianRibose cribose(GroundId, mbs);
+    //const CartesianRibose cribose(GroundId, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -729,8 +729,8 @@ try
     mbs.realizeModel(s);
    // gravity.setZeroHeight(s, -100);
 
-    cribose.setDefaultInternalState(s);
-    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+   // cribose.setDefaultInternalState(s);
+   // cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
