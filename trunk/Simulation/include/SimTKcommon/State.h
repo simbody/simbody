@@ -28,8 +28,36 @@
 #include "SimTKcommon/Simmatrix.h"
 
 #include <ostream>
+#include <cassert>
 
 namespace SimTK {
+
+static const int InvalidId = -1111111111;
+
+/**
+ * This is just a type-safe non-negative int, augmented with a "NaN" 
+ * value called InvalidSubsystemId. For most uses it will behave like an int,
+ * and it has an implicit conversion *to* int. Importantly though,
+ * it has no implicit conversion *from* int so you can't pass some
+ * other kind of number as a SubsystemId.
+ */
+class SubsystemId {
+    int id;
+public:
+    inline SubsystemId();
+    inline explicit SubsystemId(int i);
+    operator int() const {return id;}
+    bool isValid() const {return id>=0;}
+    const SubsystemId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
+    SubsystemId operator++(int)     {assert(id>=0); ++id; return SubsystemId(id-1);} // postfix
+    const SubsystemId& operator--() {assert(id>=1); --id;return *this;}           // prefix
+    SubsystemId operator--(int)     {assert(id>=1); --id; return SubsystemId(id+1);} // postfix
+};
+static const SubsystemId InvalidSubsystemId(InvalidId);
+inline SubsystemId::SubsystemId() : id(InvalidSubsystemId) { }
+inline SubsystemId::SubsystemId(int i) : id(i) {
+    assert(i>=0 || i==InvalidId);
+}
 
 // TODO: these need an option to have associated "update" variables in the cache,
 // analogous to the derivative variables qdot,udot,zdot that we create

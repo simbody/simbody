@@ -1,7 +1,8 @@
 #ifndef SimTK_SimTKCOMMON_COMMON_H_
 #define SimTK_SimTKCOMMON_COMMON_H_
 
-/* Copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
+ * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -17,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /**@file
@@ -175,45 +176,6 @@ namespace Exception { }
 
 typedef SimTK_Real              Real;
 typedef std::complex<Real>      Complex;
-
-// This is a prototype for classes which behave like integers but
-// are only compatible with their own types. This permits one to
-// use integers for Ids like AtomId and BondId but preventing the
-// inadvertent use of a BondId where an AtomId was required.
-
-class TestId {
-public:
-    TestId() {
-    #ifndef NDEBUG
-        value = std::numeric_limits<int>::min();
-    #endif
-    }    
-
-    // No implicit conversion to or from int. But do allow 
-    // explicit conversion and explicit assignment.
-    explicit TestId(int v) : value(v) { }
-    TestId& operator= (int i)     {value= i; return *this;}
-
-    int  getInt() const {return value;}
-    int& updInt()       {return value;}
-
-    TestId& operator+=(int i)     {value+=i; return *this;}
-    TestId& operator-=(int i)     {value-=i; return *this;}
-    TestId  operator++()          {return TestId(++value);}
-    TestId  operator++(int)       {return TestId(value++);}
-    TestId  operator--()          {return TestId(--value);}
-    TestId  operator--(int)       {return TestId(value--);}
-
-    // Difference between two Ids is an int.
-    int operator-(TestId b) const {return value-b.value;}
-
-    TestId operator-(int b) const {return TestId(value-b);}
-    TestId operator+(int b) const {return TestId(value+b);}
-
-
-private:
-    int value;
-};
 
 struct Segment {
     Segment() : length(0), offset(0) { }
