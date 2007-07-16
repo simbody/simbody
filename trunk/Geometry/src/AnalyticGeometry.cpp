@@ -21,9 +21,10 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "simbody/internal/common.h"
-#include "simbody/internal/AnalyticGeometry.h"
-#include "simbody/internal/DecorativeGeometry.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/AnalyticGeometry.h"
+#include "SimTKcommon/internal/DecorativeGeometry.h"
 
 #include "AnalyticGeometryRep.h"
 

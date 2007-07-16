@@ -24,6 +24,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/DecorativeGeometry.h"
+#include "SimTKcommon/internal/AnalyticGeometry.h"
 
 #include "DecorativeGeometryRep.h"
 
@@ -31,14 +32,9 @@
 
 namespace SimTK {
 
-class AnalyticGeometry;
-
-
-    ////////////////////////
-    // DecorativeGeometry //
-    ////////////////////////
-
-
+    /////////////////////////
+    // DECORATIVE GEOMETRY //
+    /////////////////////////
 
 // This is an owner handle if there is no rep or if the rep points back
 // to this handle.
@@ -110,9 +106,9 @@ void DecorativeGeometry::implementGeometry(DecorativeGeometryImplementation& geo
 }
 
 
-    ////////////////////
-    // DecorativeLine //
-    ////////////////////
+    /////////////////////
+    // DECORATIVE LINE //
+    /////////////////////
 
 /*static*/ bool 
 DecorativeLine::isInstanceOf(const DecorativeGeometry& s) {
@@ -159,9 +155,9 @@ const Vec3& DecorativeLine::getPoint2() const {
 }
 
 
-    //////////////////////
-    // DecorativeCircle //
-    //////////////////////
+    ///////////////////////
+    // DECORATIVE CIRCLE //
+    ///////////////////////
 
 DecorativeCircle::DecorativeCircle(Real radius) {
     rep = new DecorativeCircleRep(radius);
@@ -175,9 +171,9 @@ Real DecorativeCircle::getRadius() const {
 }
 
 
-    //////////////////////
-    // DecorativeSphere //
-    //////////////////////
+    ///////////////////////
+    // DECORATIVE SPHERE //
+    ///////////////////////
 
 DecorativeSphere::DecorativeSphere(Real radius) {
     rep = new DecorativeSphereRep(radius);
@@ -192,9 +188,9 @@ Real DecorativeSphere::getRadius() const {
 }
 
 
-    /////////////////////////
-    // DecorativeEllipsoid //
-    /////////////////////////
+    //////////////////////////
+    // DECORATIVE ELLIPSOID //
+    //////////////////////////
 
 DecorativeEllipsoid::DecorativeEllipsoid(const Vec3& radii) {
     rep = new DecorativeEllipsoidRep(radii);
@@ -207,9 +203,9 @@ void DecorativeEllipsoid::setRadii(const Vec3& r) {
 const Vec3& DecorativeEllipsoid::getRadii() const {
     return DecorativeEllipsoidRep::downcast(*rep).getRadii();
 }
-    /////////////////////
-    // DecorativeBrick //
-    /////////////////////
+    //////////////////////
+    // DECORATIVE BRICK //
+    //////////////////////
 
 DecorativeBrick::DecorativeBrick(const Vec3& xyzHalfLengths) {
     rep = new DecorativeBrickRep(xyzHalfLengths);
@@ -223,9 +219,9 @@ const Vec3& DecorativeBrick::getHalfLengths() const {
     return DecorativeBrickRep::downcast(*rep).getHalfLengths();
 }
 
-    ////////////////////////
-    // DecorativeCylinder //
-    ////////////////////////
+    /////////////////////////
+    // DECORATIVE CYLINDER //
+    /////////////////////////
 
 DecorativeCylinder::DecorativeCylinder(Real radius, Real halfHeight) {
     rep = new DecorativeCylinderRep(radius,halfHeight);
@@ -246,9 +242,9 @@ Real DecorativeCylinder::getHalfHeight() const {
     return DecorativeCylinderRep::downcast(*rep).getHalfHeight();
 }
 
-    /////////////////////
-    // DecorativeFrame //
-    /////////////////////
+    //////////////////////
+    // DECORATIVE FRAME //
+    //////////////////////
 
 DecorativeFrame::DecorativeFrame(Real axisLength) {
     rep = new DecorativeFrameRep(axisLength);

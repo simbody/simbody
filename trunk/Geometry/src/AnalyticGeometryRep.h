@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
-#define SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
+#ifndef SimTK_ANALYTIC_GEOMETRY_REP_H_
+#define SimTK_ANALYTIC_GEOMETRY_REP_H_
 
 /* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
  * Contributors:
@@ -24,9 +24,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/AnalyticGeometry.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/DecorativeGeometry.h"
+#include "SimTKcommon/internal/AnalyticGeometry.h"
 
 #include <cmath>
 
@@ -193,5 +194,5 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_ANALYTIC_GEOMETRY_REP_H_
+#endif // SimTK_ANALYTIC_GEOMETRY_REP_H_
 

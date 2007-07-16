@@ -1,7 +1,7 @@
-#ifndef SimTK_SIMBODY_ANALYTIC_GEOMETRY_H_
-#define SimTK_SIMBODY_ANALYTIC_GEOMETRY_H_
+#ifndef SimTK_ANALYTIC_GEOMETRY_H_
+#define SimTK_ANALYTIC_GEOMETRY_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -18,10 +18,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** @file
@@ -34,12 +34,14 @@
  * to produce the effect of attaching AnalyticGeometry objects to bodies.
  */
 
-#include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
 
 #include <cassert>
 
 namespace SimTK {
+
+class DecorativeGeometry;
 
 /**
  * This abstract class represents a piece of high-quality geometry that
@@ -48,7 +50,7 @@ namespace SimTK {
  * can use AnalyticGeometry to generate DecorativeGeometry although
  * not the reverse.
  */
-class SimTK_SIMBODY_EXPORT AnalyticGeometry {
+class SimTK_SimTKCOMMON_EXPORT AnalyticGeometry {
 public:
     AnalyticGeometry() : rep(0) { }
     ~AnalyticGeometry();
@@ -74,7 +76,7 @@ protected:
     class AnalyticGeometryRep* rep;
 };
 
-class SimTK_SIMBODY_EXPORT AnalyticCurve : public AnalyticGeometry {
+class SimTK_SimTKCOMMON_EXPORT AnalyticCurve : public AnalyticGeometry {
 public:
     AnalyticCurve() { }
     Real calcArcLength() const;
@@ -85,7 +87,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticCurve, AnalyticGeometry);
 };
 
-class SimTK_SIMBODY_EXPORT AnalyticSurface : public AnalyticGeometry {
+class SimTK_SimTKCOMMON_EXPORT AnalyticSurface : public AnalyticGeometry {
 public:
     AnalyticSurface() { }
 
@@ -96,7 +98,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticSurface, AnalyticGeometry);
 };
 
-class SimTK_SIMBODY_EXPORT AnalyticVolume : public AnalyticGeometry {
+class SimTK_SimTKCOMMON_EXPORT AnalyticVolume : public AnalyticGeometry {
 public:
     AnalyticVolume() { }
     Real calcVolume() const;
@@ -110,7 +112,7 @@ public:
 /// An analytic line has only a length. The line's origin is at its
 /// center, with the line running along the x axis. The arc length
 /// goes from -length/2 to length/2 along x.
-class SimTK_SIMBODY_EXPORT AnalyticLine : public AnalyticCurve {
+class SimTK_SimTKCOMMON_EXPORT AnalyticLine : public AnalyticCurve {
 public:
     AnalyticLine() { }
     AnalyticLine(const Vec3& p1, const Vec3& p2);
@@ -125,7 +127,7 @@ public:
 /// increases counterclockwise looking down the normal at the
 /// circle (right hand rule around y). z thus points at the 
 /// arc length 3*pi*r point at (0,0,r).
-class SimTK_SIMBODY_EXPORT AnalyticCircle : public AnalyticCurve {
+class SimTK_SimTKCOMMON_EXPORT AnalyticCircle : public AnalyticCurve {
 public:
     AnalyticCircle() { }
     AnalyticCircle(Real radius);
@@ -133,7 +135,7 @@ public:
     SimTK_PIMPL_DOWNCAST(AnalyticCircle, AnalyticGeometry);
 };
 
-class SimTK_SIMBODY_EXPORT AnalyticSphere : public AnalyticVolume {
+class SimTK_SimTKCOMMON_EXPORT AnalyticSphere : public AnalyticVolume {
 public:
     AnalyticSphere() { }
     AnalyticSphere(Real radius);
@@ -145,7 +147,7 @@ public:
 /// for a circle; that is, x and z are radial and y points along
 /// the cylinder's axis. This supports a cylindrical coordinate
 /// system (h, theta), with height -halfLength <= h <= halfLength.
-class SimTK_SIMBODY_EXPORT AnalyticCylinder : public AnalyticVolume {
+class SimTK_SimTKCOMMON_EXPORT AnalyticCylinder : public AnalyticVolume {
 public:
     AnalyticCylinder() { }
     AnalyticCylinder(Real radius, Real halfLength);
@@ -156,7 +158,7 @@ public:
 /// This is a rectangular solid. It's local coordinate system
 /// origin is at its center. Its dimensions are specified by
 /// giving the half-length in x,y,z.
-class SimTK_SIMBODY_EXPORT AnalyticBrick : public AnalyticVolume {
+class SimTK_SimTKCOMMON_EXPORT AnalyticBrick : public AnalyticVolume {
 public:
     AnalyticBrick() { }
     AnalyticBrick(const Vec3& xyzHalfLengths);
@@ -167,4 +169,4 @@ public:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_ANALYTIC_GEOMETRY_H_
+#endif // SimTK_ANALYTIC_GEOMETRY_H_

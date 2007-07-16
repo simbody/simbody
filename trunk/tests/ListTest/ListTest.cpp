@@ -74,17 +74,8 @@ operator<<(std::ostream& o, const std::vector<T>& v) {
     for (int i=0; i<(int)v.size(); ++i) {o<<v[i]<<" ";} return o;
 }
 
-void ff(SimTK::TestId ti) {
-    cout << "ff got: " << ti.getInt() << endl;
-}
 int main()
 {
-    SimTK::TestId tid;
-    ff(SimTK::TestId(3));
-    ff(tid);
-    tid=99; ff(tid); ff(tid+3); ff(SimTK::TestId(tid-tid));
-
-
   try {
     SimTK_DEBUG("Running ListTest ...\n");
 
