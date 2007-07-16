@@ -30,6 +30,28 @@ using std::endl;
 
 namespace SimTK {
 
+static std::string applicationReturnStatusToString(int status) {
+    switch(status) {
+        case Solve_Succeeded: return "Solve succeeded";
+        case Solved_To_Acceptable_Level: return "Solved to acceptable level";
+        case Infeasible_Problem_Detected: return "Infeasible problem detected";
+        case Search_Direction_Becomes_Too_Small: return "Search direction becomes too small";
+        case Diverging_Iterates: return "Diverging iterates";
+        case User_Requested_Stop: return "User requested stop";
+        case Maximum_Iterations_Exceeded: return "Maximum iterations exceeded";
+        case Restoration_Failed: return "Restoration failed";
+        case Error_In_Step_Computation: return "Error in step computation";
+        case Not_Enough_Degrees_Of_Freedom: return "Not enough degrees of freedom";
+        case Invalid_Problem_Definition: return "Invalid problem definition";
+        case Invalid_Option: return "Invalid option";
+        case Invalid_Number_Detected: return "Invalid number detected";
+        case Unrecoverable_Exception: return "Unrecoverable exception";
+        case NonIpopt_Exception_Thrown: return "Non-Ipopt exception thrown";
+        case Insufficient_Memory: return "Insufficient memory";
+        case Internal_Error: return "Internal error";
+        default: return "Unknown Ipopt return status";
+    }
+}
 
 // Assume by the time this constructor is called, the number of parameters and constraints has been finalized
 InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
@@ -142,21 +164,23 @@ InteriorPointOptimizer::InteriorPointOptimizer( OptimizerSystem& sys )
 
         int status = IpoptSolve(nlp, x, NULL, &obj, mult_g, mult_x_L, mult_x_U, (void *)this );
 
-        if (status != Solve_Succeeded) {
-            char buf[1024];
-            sprintf(buf, "Ipopt failed with status = %d",status );
-            SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
-        }
-
         FreeIpoptProblem(nlp); 
-
-        firstOptimization = false;
 
         // Only delete these if they aren't pointing to existing parameter limits
         if( !getOptimizerSystem().getHasLimits() ) {
            delete [] x_U;
            delete [] x_L;
         }
+
+        if(status == Solved_To_Acceptable_Level) {
+            std::cout << "Ipopt: Solved to acceptable level" << std::endl;
+        } else if (status != Solve_Succeeded) {
+            char buf[1024];
+            sprintf(buf, "Ipopt: %s (status %d)",applicationReturnStatusToString(status).c_str(),status);
+            SimTK_THROW1(SimTK::Exception::OptimizerFailed, SimTK::String(buf));
+        }
+
+        firstOptimization = false;
 
         return(obj);
     }
