@@ -21,15 +21,17 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "simbody/internal/common.h"
-#include "simbody/internal/AnalyticGeometry.h"
-#include "simbody/internal/DecorativeGeometry.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/DecorativeGeometry.h"
 
 #include "DecorativeGeometryRep.h"
 
 #include <cmath>
 
 namespace SimTK {
+
+class AnalyticGeometry;
 
 
     ////////////////////////
@@ -74,8 +76,8 @@ DecorativeGeometry::DecorativeGeometry(const AnalyticGeometry& ag) : rep(0) {
     *this = ag.generateDecorativeGeometry(); // TODO: avoid copy of rep
 }
 
-DecorativeGeometry& DecorativeGeometry::setBodyId(MobilizedBodyId b) {updRep().setBodyId(b);return *this;}
-MobilizedBodyId DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
+DecorativeGeometry& DecorativeGeometry::setBodyId(int b) {updRep().setBodyId(b);return *this;}
+int DecorativeGeometry::getBodyId() const {return getRep().getBodyId();}
 
 DecorativeGeometry& DecorativeGeometry::setTransform(const Transform& X_BD) {updRep().setTransform(X_BD);return *this;}
 const Transform& DecorativeGeometry::getTransform() const    {return getRep().getTransform();}

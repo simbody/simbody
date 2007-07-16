@@ -169,6 +169,15 @@ extern "C" {
     static Derived& downcast(Parent& p)                                     \
         { return reinterpret_cast<Derived&>(Helper::downcast(p)); }
 
+
+// Similar to the above but for private implementation abstract classes, that
+// is, abstract class hierarchies where the virtual function table is 
+// hidden on the library side.
+#define SimTK_PIMPL_DOWNCAST(Derived, Parent)           \
+    static bool           isInstanceOf(const Parent&);  \
+    static const Derived& downcast(const Parent&);      \
+    static Derived&       updDowncast(Parent&)
+
 namespace SimTK {
     
 namespace Options { }

@@ -1,7 +1,7 @@
-#ifndef SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
-#define SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
+#ifndef SimTK_DECORATIVE_GEOMETRY_REP_H_
+#define SimTK_DECORATIVE_GEOMETRY_REP_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors: Jack Middleton
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -24,10 +24,9 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
-#include "simbody/internal/AnalyticGeometry.h"
-#include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/DecorativeGeometry.h"
 
 #include <cmath>
 #include <vector>
@@ -48,10 +47,10 @@ public:
         clearMyHandle();
     }
 
-    void setBodyId(MobilizedBodyId b) {
+    void setBodyId(int b) {
         body = b;
     }
-    MobilizedBodyId getBodyId() const {return body;}
+    int getBodyId() const {return body;}
 
     void setTransform(const Transform& X_BD) {
         placement = X_BD;
@@ -119,13 +118,11 @@ public:
 private:
     friend class DecorativeGeometry;
 
-    // These will be handled as we generate the PolyData.
-    MobilizedBodyId    body;
+    int       body;
     Transform placement;    // default is identity
     Real      resolution;   // -1 means use default
     Real      scale;        // -1 means use default
 
-    // These must wait until we are associated with an actor.
     Vec3 colorRGB;          // set R to -1 for "use default"
     Real opacity;           // -1 means "use default"
     Real lineThickness;     // -1 means "use default"
@@ -399,4 +396,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_DECORATIVE_GEOMETRY_REP_H_
+#endif // SimTK_DECORATIVE_GEOMETRY_REP_H_

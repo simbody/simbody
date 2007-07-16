@@ -32,7 +32,10 @@
 
 #if defined(__cplusplus)
 #include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/State.h"
+#include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/DecorativeGeometry.h"
 #endif
 
 

@@ -24,10 +24,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "SimTKcommon.h"
-#include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
-#include "simbody/internal/Subsystem.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/Subsystem.h"
 
 #include "SubsystemRep.h"
 
