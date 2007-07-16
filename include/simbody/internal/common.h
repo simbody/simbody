@@ -35,11 +35,6 @@
 #include <vector>
 #include <limits>
 
-// TODO: move to SimTKcommon
-#define SimTK_PIMPL_DOWNCAST(Derived, Parent)           \
-    static bool           isInstanceOf(const Parent&);  \
-    static const Derived& downcast(const Parent&);      \
-    static Derived&       updDowncast(Parent&)
 
 // Shared libraries are messy in Visual Studio. We have to distinguish three
 // cases:
