@@ -32,7 +32,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/Body.h"
-#include "simbody/internal/DecorationSubsystem.h"
+#include "simbody/internal/DecorativeGeometry.h"
 
 namespace SimTK {
 

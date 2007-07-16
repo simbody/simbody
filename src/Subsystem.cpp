@@ -88,8 +88,6 @@ void Subsystem::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Arr
     getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
 }
 
-void Subsystem::endConstruction() {updRep().endConstruction();}
-
 bool Subsystem::isInSystem() const {return getRep().isInSystem();}
 bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
 	return getRep().isInSameSystem(otherSubsystem);

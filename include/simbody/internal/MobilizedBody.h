@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_MOBILIZED_BODY_H_
 
 /* Portions copyright (c) 2007 Stanford University and Michael Sherman.
- * Contributors:
+ * Contributors: Paul Mitiguy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -29,9 +29,9 @@
  * (the "outboard" body) with a mobilizer and a reference frame (the
  * parent or "inboard" body), already present in a MatterSubsystem.
  *
- * MobilizedBody is an abstract base class, with concrete classes defined
+ * MobilizedBody is an abstract base class handle, with concrete classes defined
  * for each kind of mobilizer. There are a set of built-in mobilizers
- * and a generic "Custom" mobilizer (an abstract base class) from
+ * and a generic "Custom" mobilizer (an actual abstract base class) from
  * which advanced users may derive their own mobilizers.
  */
 
@@ -48,7 +48,14 @@ class SimbodyMatterSubsystem;
 /**
  * This is the base class for all MobilizedBody classes, which is just a handle for the underlying
  * hidden implementation. Each built-in MobilizedBody type is a local subclass within
- * MobilizedBody, and is also derived from MobilizedBody.
+ * MobilizedBody, so the built-ins have names like MobilizedBody::Pin. All concrete MobilizedBodies,
+ * including the built-ins, are derived from MobilizedBody.
+ *
+ * SimTK Design Patterns used:
+ *    - remote construction object
+ *    - abstract private implementation
+ *    - binary compatible interface
+ *    - custom object interface
  */
 class SimTK_SIMBODY_EXPORT MobilizedBody {
 public:
@@ -957,41 +964,13 @@ protected:
 /// Synonym: Torsion
 class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public MobilizedBody {
 public:
-    Pin();
-
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
-    Pin(MobilizedBody& parent, const Body&);
-
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
-    Pin(MobilizedBody& parent, const Transform& inbFrame,
-        const Body&,           const Transform& outbFrame);
-
-    Pin& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
-    }
-    Pin& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
-        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
-    }
-    Pin& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
-    }
-
-    Pin& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
-    }
-
-    Pin& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
-    }
+        // SPECIALIZED INTERFACE FOR PIN MOBILIZER
 
     // "Angle" is just a nicer name for a pin joint's lone generalized coordinate q.
     Pin& setDefaultAngle(Real angleInRadians) {return setDefaultQ(angleInRadians);}
     Real getDefaultAngle() const              {return getDefaultQ();}
 
-    // Friendly, mobilizer-specific access to coordinates and speeds.
-    // TODO
+        // Friendly, mobilizer-specific access to generalized coordinates and speeds.
 
     void setAngle(State& s, Real angleInRadians) {setQ(s, angleInRadians);}
     Real getAngle(const State& s) {return getQ(s);}
@@ -999,6 +978,23 @@ public:
     void setRate(State& s, Real rateInRadiansPerTime) {setU(s, rateInRadiansPerTime);}
     Real getRate(const State& s) {return getU(s);}
 
+    // Mobility forces are "u-like", that is, one per dof.
+    Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
+        return getMyPartU(s,mobilityForces);
+    }
+    void applyPinTorque(const State& s, Real torque, Vector& mobilityForces) const {
+        updMyPartU(s,mobilityForces) += torque;
+    }
+
+        // STANDARDIZED MOBILIZED BODY INTERFACE
+
+        // required constructors
+    Pin();
+    Pin(MobilizedBody& parent, const Body&);
+    Pin(MobilizedBody& parent, const Transform& inbFrame,
+        const Body&,           const Transform& outbFrame);
+
+        // access to generalized coordinates q and generalized speeds u
     Pin& setDefaultQ(Real);
     Real getDefaultQ() const;
 
@@ -1017,13 +1013,17 @@ public:
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
 
-    // Mobility forces are "u-like", that is, one per dof.
-    Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
-        return getMyPartU(s,mobilityForces);
-    }
-    void applyPinTorque(const State& s, Real torque, Vector& mobilityForces) const {
-        updMyPartU(s,mobilityForces) += torque;
-    }
+        // specialize return type for convenience
+    Pin& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this; }
+    Pin& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g)
+      { (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this; }
+    Pin& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this; }
+    Pin& setDefaultInboardFrame(const Transform& X_PMb)
+      { (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this; }
+    Pin& setDefaultOutboardFrame(const Transform& X_BM)
+      { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
 
     class PinRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Pin, MobilizedBody);
@@ -1037,37 +1037,68 @@ private:
 /// Synonym: Prismatic
 class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public MobilizedBody {
 public:
+        // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
+
+    // "Length" is just a nicer name for a sliding joint's lone generalized coordinate q.
+    Slider& setDefaultLength(Real length) {return setDefaultQ(length);}
+    Real getDefaultLength() const         {return getDefaultQ();}
+
+        // Friendly, mobilizer-specific access to generalized coordinates and speeds.
+
+    void setLength(State& s, Real length) {setQ(s, length);}
+    Real getLength(const State& s) {return getQ(s);}
+
+    void setRate(State& s, Real rateInLengthPerTime) {setU(s, rateInLengthPerTime);}
+    Real getRate(const State& s) {return getU(s);}
+
+    // Mobility forces are "u-like", that is, one per dof.
+    Real getAppliedForce(const State& s, const Vector& mobilityForces) const {
+        return getMyPartU(s,mobilityForces);
+    }
+    void applyForce(const State& s, Real force, Vector& mobilityForces) const {
+        updMyPartU(s,mobilityForces) += force;
+    }
+
+        // STANDARDIZED MOBILIZED BODY INTERFACE
+
+        // required constructors
     Slider();
-
-    /// By default the parent body frame and the body's own frame are
-    /// used as the inboard and outboard mobilizer frames, resp.
     Slider(MobilizedBody& parent, const Body&);
-
-    /// Use this constructor to specify mobilizer frames which are
-    /// not coincident with the body frames.
     Slider(MobilizedBody& parent, const Transform& inbFrame,
-           const Body&,           const Transform& outbFrame);
+        const Body&,           const Transform& outbFrame);
 
-    Slider& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
-    }
-    Slider& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
-        (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
-    }
-    Slider& addInboardDecoration(const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
-    }
+        // access to generalized coordinates q and generalized speeds u
+    Slider& setDefaultQ(Real);
+    Real getDefaultQ() const;
 
-    Slider& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
-    }
+    Real getQ(const State&) const;
+    Real getQDot(const State&) const;
+    Real getQDotDot(const State&) const;
+    Real getU(const State&) const;
+    Real getUDot(const State&) const;
 
-    Slider& setDefaultOutboardFrame(const Transform& X_BM) {
-        (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
-    }
+    void setQ(State&, Real) const;
+    void setU(State&, Real) const;
+
+    Real getMyPartQ(const State&, const Vector& qlike) const;
+    Real getMyPartU(const State&, const Vector& ulike) const;
+   
+    Real& updMyPartQ(const State&, Vector& qlike) const;
+    Real& updMyPartU(const State&, Vector& ulike) const;
+
+        // specialize return type for convenience
+    Slider& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this; }
+    Slider& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g)
+      { (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this; }
+    Slider& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this; }
+    Slider& setDefaultInboardFrame(const Transform& X_PMb)
+      { (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this; }
+    Slider& setDefaultOutboardFrame(const Transform& X_BM)
+      { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
 
     class SliderRep; // local subclass
-
     SimTK_PIMPL_DOWNCAST(Slider, MobilizedBody);
 private:
     class SliderRep& updRep();

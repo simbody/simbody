@@ -162,9 +162,6 @@ public:
         return *constraints[id];
     }
 
-    // Call this after all bodies & constraints have been added.
-    void endConstruction(); // will set built==true
-
     // SubsystemRep interface
     SimbodyMatterSubsystemRep* cloneSubsystemRep() const {
         return new SimbodyMatterSubsystemRep(*this);
@@ -667,6 +664,10 @@ private:
 
         // TOPOLOGY CACHE
 
+    // Our realizeTopology method calls this after all bodies & constraints have been added,
+    // to construct part of the topology cache below.
+    void endConstruction();
+
     // The data members here are filled in when realizeTopology() is called.
     // The flag which remembers whether we have realized topology is in 
     // the SubsystemRep base class.
@@ -700,15 +701,12 @@ private:
     int nextUErrSlot;
     int nextMultSlot;
 
-    // set by endConstruction
     int DOFTotal;   // summed over all nodes
     int SqDOFTotal; // sum of squares of ndofs per node
     int maxNQTotal; // sum of dofs with room for quaternions
 
-    // set by realizeTopology
     SBTopologyCache topologyCache;
     int topologyCacheIndex; // topologyCache is copied here in the State
-
 
     // This holds pointers to nodes and serves to map (level,offset) to nodeNum.
     Array<RBNodePtrList>      rbNodeLevels;
@@ -723,7 +721,6 @@ private:
     Array<RBDistanceConstraint*> distanceConstraints;
     
     LengthConstraints* lConstraints;
-
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);

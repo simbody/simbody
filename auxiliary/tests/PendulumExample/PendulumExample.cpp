@@ -56,7 +56,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     MobilizedBody::Ball connector(pend.Ground(), 
                                     Transform(1*Vec3(0, 0, 0)),
-                                  Body::Rigid(MassProperties(1, Vec3(0,0,0), Inertia(10,20,30))),
+                                  MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
                                     Transform(1*Vec3(0, .5, 0)));
 
     //connector.setDefaultRotation(Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
@@ -73,7 +73,7 @@ try { // If anything goes wrong, an exception will be thrown.
     MobilizedBody::Screw swinger(connector, 
                                     Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
                                               1*Vec3(0,-.5,0)),
-                                 Body::Rigid(swingerMassProps),
+                                 swingerMassProps,
                                     Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
                                               COM+0*Vec3(0,0,3)),    // inboard joint location
                                  0.3); // pitch

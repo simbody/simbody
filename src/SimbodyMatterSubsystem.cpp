@@ -112,9 +112,6 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintId id) {
     return updRep().updConstraint(id);
 }
 
-// Note the lack of a State argument when completing construction.
-void SimbodyMatterSubsystem::endConstruction() {updRep().endConstruction();}
-
 // Convert spatial forces to internal equivalent, ignoring velocity and
 // constraints.
 void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,

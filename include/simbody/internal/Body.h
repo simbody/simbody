@@ -31,9 +31,13 @@
  * specified mobilizer which defines how the reference frame can move
  * with respect to other MobilizedBodies.
  *
- * Body is an abstract base class, with concrete classes defined
+ * Body is an abstract base class handle, with concrete classes defined
  * for each kind of body. There are a set of built-in body types.
  * TODO: "Custom" bodies(?)
+ *
+ * SimTK Design Patterns used:
+ *    - abstract private implementation
+ *    - binary compatible interface
  */
 
 #include "SimTKcommon.h"
@@ -51,6 +55,11 @@ public:
     ~Body();
     Body(const Body&);
     Body& operator=(const Body&);
+
+    /// This is a default conversion from MassProperties to Body. It will result
+    /// in a rigid body (concrete class Body::Rigid) being created using
+    /// these MassProperties.
+    Body(const MassProperties&);
 
     Body& addDecoration(const Transform& X_BD, const DecorativeGeometry&);
 

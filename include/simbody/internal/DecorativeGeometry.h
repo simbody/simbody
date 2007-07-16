@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_DECORATIVE_GEOMETRY_H_
-#define SimTK_SIMBODY_DECORATIVE_GEOMETRY_H_
+#ifndef SimTK_DECORATIVE_GEOMETRY_H_
+#define SimTK_DECORATIVE_GEOMETRY_H_
 
 /* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -393,8 +393,6 @@ public:
     // TODO: wrappers for binary compatibility
 };
 
-
-
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_DECORATIVE_GEOMETRY_H_
+#endif // SimTK_DECORATIVE_GEOMETRY_H_

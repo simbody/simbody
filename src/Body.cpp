@@ -67,6 +67,12 @@ Body& Body::operator=(const Body& src) {
     return *this;
 }
 
+Body::Body(const MassProperties& m) : rep(0) {
+    rep = new Body::Rigid::RigidRep(m);
+    rep->setMyHandle(*this);
+}
+
+
 Body& Body::addDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
     updRep().addDecoration(X_BD, g);
     return *this;

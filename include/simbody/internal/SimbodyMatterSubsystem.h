@@ -2,7 +2,7 @@
 #define SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
- * Contributors:
+ * Contributors: Paul Mitiguy
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -76,7 +76,7 @@ class MultibodySystem;
  * F is user-applied body forces and torques and gravity. 
  * R* is the operator that maps spatial forces to joint forces. p() are the
  * holonomic (position) constraints, v() the non-holonomic (velocity) constraints,
- * and a() the reaction (acceleration) constraints, which must be linear with A
+ * and a() the reaction (acceleration) constraints, which must be linear, with A
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u), V=partial(v)/partial(u).
@@ -297,9 +297,6 @@ public:
     const Constraint& getConstraint(ConstraintId) const;
     Constraint&       updConstraint(ConstraintId);
 
-    /// Topology and default values are frozen after this call. If you don't
-    /// call it then it will be called automatically by realizeTopology().
-    void endConstruction();
 
     // Operators
 

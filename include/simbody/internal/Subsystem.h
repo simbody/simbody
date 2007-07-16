@@ -26,12 +26,12 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
 namespace SimTK {
 
 class State;
 class System;
+class DecorativeGeometry;
 
 /**
  * The abstract parent of all Subsystems.
@@ -69,8 +69,6 @@ public:
 	System&       updSystem();
 
 	SubsystemId getMySubsystemId() const;
-
-    void endConstruction();
 
     /// @name
     /// Get state variables and constraint errors.

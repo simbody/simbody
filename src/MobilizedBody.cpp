@@ -580,6 +580,73 @@ MobilizedBody::Slider::Slider(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
+Real MobilizedBody::Slider::getDefaultQ() const {
+    return getRep().defaultQ;
+}
+
+MobilizedBody::Slider& MobilizedBody::Slider::setDefaultQ(Real q) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultQ = q;
+    return *this;
+}
+
+Real MobilizedBody::Slider::getQ(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    return mbr.getMyMatterSubsystemRep().getQ(s)[qStart];
+}
+void MobilizedBody::Slider::setQ(State& s, Real q) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    mbr.getMyMatterSubsystemRep().updQ(s)[qStart] = q;
+}
+Real MobilizedBody::Slider::getQDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    return mbr.getMyMatterSubsystemRep().getQDot(s)[qStart];
+}
+Real MobilizedBody::Slider::getQDotDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    return mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart];
+}
+
+
+Real MobilizedBody::Slider::getU(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    return mbr.getMyMatterSubsystemRep().getU(s)[uStart];
+}
+void MobilizedBody::Slider::setU(State& s, Real u) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    mbr.getMyMatterSubsystemRep().updU(s)[uStart] = u;
+}
+Real MobilizedBody::Slider::getUDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    return mbr.getMyMatterSubsystemRep().getUDot(s)[uStart];
+}
+
+Real MobilizedBody::Slider::getMyPartQ(const State& s, const Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    return qlike[qStart];
+}
+
+Real MobilizedBody::Slider::getMyPartU(const State& s, const Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    return ulike[uStart];
+}
+
+Real& MobilizedBody::Slider::updMyPartQ(const State& s, Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 1);
+    return qlike[qStart];
+}
+
+Real& MobilizedBody::Slider::updMyPartU(const State& s, Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 1);
+    return ulike[uStart];
+}
     // Slider bookkeeping
 
 bool MobilizedBody::Slider::isInstanceOf(const MobilizedBody& s) {

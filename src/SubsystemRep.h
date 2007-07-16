@@ -1,5 +1,5 @@
-#ifndef SimTK_SIMBODY_SUBSYSTEM_REP_H_
-#define SimTK_SIMBODY_SUBSYSTEM_REP_H_
+#ifndef SimTK_SUBSYSTEM_REP_H_
+#define SimTK_SUBSYSTEM_REP_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -195,7 +195,6 @@ public:
         
 
     virtual SubsystemRep* cloneSubsystemRep() const = 0;
-    virtual void endConstruction() { }
 
     // These routines wrap the virtual realizeSubsystem...Impl() methods to ensure
     // good behavior such as checking that stage requirements are met and
@@ -333,4 +332,4 @@ public:
 
 } // namespace SimTK
 
-#endif // SimTK_SIMBODY_SYSTEM_REP_H_
+#endif // SimTK_SUBSYSTEM_REP_H_

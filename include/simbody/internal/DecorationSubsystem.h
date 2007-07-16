@@ -31,14 +31,17 @@
  * that System.
  */
 
-#include "simbody/internal/common.h"
+#include "SimTKcommon.h"
 #include "simbody/internal/System.h"
 #include "simbody/internal/Subsystem.h"
+#include "simbody/internal/common.h"
 
 #include <cassert>
 
 namespace SimTK {
 
+class DecorativeGeometry;
+class DecorativeLine;
 class MultibodySystem;
 
 /**
