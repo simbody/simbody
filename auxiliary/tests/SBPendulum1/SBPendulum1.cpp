@@ -293,13 +293,16 @@ try {
     cout << "dEdR=" << dEdR << endl;
     cout << "dEdQ=" << dEdQ << endl;
 
-    pend.setMobilizerU(s, MobilizedBodyId(1), 0, 10.);
+    pend.getMobilizedBody(MobilizedBodyId(1)).setOneU(s,0,10.);
 
-    Vector_<SpatialVec> bodyForces;
-    Vector_<Vec3>       particleForces;
-    Vector              mobilityForces;
+    Vector_<SpatialVec> bodyForces(pend.getNBodies());
+    Vector_<Vec3>       particleForces(pend.getNParticles());
+    Vector              mobilityForces(pend.getNMobilities());
 
-    pend.resetForces(bodyForces, particleForces, mobilityForces);
+    bodyForces.setToZero();
+    particleForces.setToZero();
+    mobilityForces.setToZero();
+
     pend.addInMobilityForce(s, aPendulum, 0, 147, mobilityForces);
 
     mbs.realize(s, Stage::Velocity);
@@ -322,12 +325,7 @@ try {
     SpatialVec bodyAcc = aPendulum.getBodyAcceleration(s);
     cout << "body acc: " << bodyAcc << endl;
 
-    //pend.updQ(s) = Vector(4, &Vec4(1.,0.,0.,0.)[0]);
-    //pend.updQ(s)[0] = -1.5; // almost hanging straight down
-    pend.setMobilizerU(s, aPendulum, 0,   0.);
-    //pend.setMobilizerU(s, 1, 1,   0.);
-    //pend.setMobilizerU(s, 1, 2, -10.);
-   // pend.setMobilizerU(s, 1, 2,   0.);
+    aPendulum.setOneU(s, 0, 0.);
 
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);

@@ -460,27 +460,29 @@ public:
         // Linear mobility springs
         for (int i=0; i < (int)p.mobilityLinearSprings.size(); ++i) {
             const MobilityLinearSpringParameters& f = p.mobilityLinearSprings[i];
-            const Real q = matter.getMobilizerQ(s,f.body,f.axis);
+            const MobilizedBody& body = matter.getMobilizedBody(f.body);
+            const Real q = body.getOneQ(s,f.axis);
             const Real frc = -f.stiffness*(q-f.naturalLength);
             pe -= 0.5*frc*(q-f.naturalLength);
-            matter.addInMobilityForce(s,f.body,f.axis,frc,mobilityForces);
+            body.applyOneMobilityForce(s,f.axis,frc,mobilityForces);
         }
 
         // Linear mobility dampers
         for (int i=0; i < (int)p.mobilityLinearDampers.size(); ++i) {
             const MobilityLinearDamperParameters& f = p.mobilityLinearDampers[i];
-            const Real u = matter.getMobilizerU(s,f.body,f.axis);
+            const MobilizedBody& body = matter.getMobilizedBody(f.body);
+            const Real u = body.getOneU(s,f.axis);
             const Real frc = -f.damping*u;
             // no PE contribution
-            matter.addInMobilityForce(s,f.body,f.axis,frc,mobilityForces);
+            body.applyOneMobilityForce(s,f.axis,frc,mobilityForces);
         }
 
         // Constant mobility forces
         for (int i=0; i < (int)p.mobilityConstantForces.size(); ++i) {
             const MobilityConstantForceParameters& f = p.mobilityConstantForces[i];
-            const Real q = matter.getMobilizerQ(s,f.body,f.axis);
+            const MobilizedBody& body = matter.getMobilizedBody(f.body);
             // no PE contribution
-            matter.addInMobilityForce(s,f.body,f.axis,f.force,mobilityForces);
+            body.applyOneMobilityForce(s,f.axis,f.force,mobilityForces);
         }
 
         // Global energy drain (no PE contribution)

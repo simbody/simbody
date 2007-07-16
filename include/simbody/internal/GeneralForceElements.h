@@ -37,7 +37,7 @@
 namespace SimTK {
 
 class MultibodySystem;
-class MatterSubsystem;
+class SimbodyMatterSubsystem;
 
 /**
  * This is a concrete subsystem which can apply a variety of
@@ -160,13 +160,13 @@ public:
 
     // See the UserForce class declaration below for more information.
     typedef void (*CustomForceCalcMethod)
-       (const CustomForce&      u,
-        const MatterSubsystem&  matter, 
-        const State&            state,
-        Vector_<SpatialVec>&    bodyForces,
-        Vector_<Vec3>&          particleForces,
-        Vector&                 mobilityForces,
-        Real&                   pe);
+       (const CustomForce&             u,
+        const SimbodyMatterSubsystem&  matter, 
+        const State&                   state,
+        Vector_<SpatialVec>&           bodyForces,
+        Vector_<Vec3>&                 particleForces,
+        Vector&                        mobilityForces,
+        Real&                          pe);
     typedef CustomForce* (*CustomForceCloneMethod)(const CustomForce&);
     typedef void (*CustomForceDestructor)(CustomForce*);
 
@@ -228,7 +228,7 @@ public:
     // its current contribution to the system potential energy and add
     // it in to the indicated argument. Otherwise, just leave 'pe' alone;
     // don't set it zero!
-    virtual void calc(const MatterSubsystem& matter, const State& state,
+    virtual void calc(const SimbodyMatterSubsystem& matter, const State& state,
                       Vector_<SpatialVec>& bodyForces,
                       Vector_<Vec3>&       particleForces,
                       Vector&              mobilityForces,
@@ -243,7 +243,7 @@ private:
     // are generated on the client side and passed to us as though they were
     // C function addresses.
     inline static void staticCalc(const CustomForce& u,
-        const MatterSubsystem& matter, const State& state,
+        const SimbodyMatterSubsystem& matter, const State& state,
         Vector_<SpatialVec>& bodyForces,
         Vector_<Vec3>&       particleForces,
         Vector&              mobilityForces,

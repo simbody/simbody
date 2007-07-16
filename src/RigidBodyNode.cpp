@@ -186,8 +186,12 @@ std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
  */
 class RBGroundBody : public RigidBodyNode {
 public:
-    RBGroundBody() // TODO: should set mass properties to infinity
-      : RigidBodyNode(MassProperties(),Transform(),Transform()) {}
+    RBGroundBody() : RigidBodyNode(
+        MassProperties(NTraits<Real>::Infinity, Vec3(0), NTraits<Real>::Infinity*Inertia(1)),
+        Transform(), Transform()) 
+    {
+        uIndex = uSqIndex = qIndex = 0;
+    }
     ~RBGroundBody() {}
 
     /*virtual*/const char* type() const { return "ground"; }

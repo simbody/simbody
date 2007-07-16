@@ -286,8 +286,10 @@ public:
             -0.220948,-0.313277,0.281256,
             -0.0642466,-0.379147,0.196642,
             -0.0852995,-0.45703,0.122944};
-        for (int i=0; i<20; ++i)
-            getMatter().setMobilizerCoordsAsVec3(s,bodies[i],Vec3::getAs(q+3*i));
+        for (int i=0; i<20; ++i) {
+            const MobilizedBody& b = getMatter().getMobilizedBody(bodies[i]);
+            b.setQVector(s,Vector(3,q+3*i));
+        }
 
         //for (int i=0; i<20; ++i) {
          //   if (bodies[i] != GroundId)
@@ -458,29 +460,34 @@ public:
     OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMechanicsSystem&);
 
     void setDefaultInternalState(State& s) const {
-        const int ndof = getMatter().getDOF(getBodyId(1));
+        const MobilizedBody& b = getMatter().getMobilizedBody(getBodyId(1));
+        const int ndof = b.getNumU(s);
         for (int i=0; i<ndof; ++i) {
-            getMatter().setMobilizerQ(s, getBodyId(1), i, 0);
-            getMatter().setMobilizerU(s, getBodyId(1), i, 0);
+            b.setOneQ(s, i, 0);
+            b.setOneU(s, i, 0);
         }
     }
 
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
-        assert(getMatter().getDOF(getBodyId(1)) == 2);    // must have been build with Cylinder mobilizer
+        const MobilizedBody& b1 = getMatter().getMobilizedBody(getBodyId(1));
+        assert(b1.getNumU(s) == 2);    // must have been build with Cylinder mobilizer
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneQ(s, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneQ(s, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneU(s, 0, rateInRadPerPs);
     }
 };
 
@@ -505,18 +512,21 @@ public:
     // Set stretch around the nominal length.
     void setCCStretch(Real stretchInNm, State& s) const {
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerQ(s, CBody, 1, stretchInNm);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneQ(s, 1, stretchInNm);
     }
 
     void setTorsionAngleDeg(Real angleInDeg, State& s) const {
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerQ(s, CBody, 0, angleInDeg*Deg2Rad);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneQ(s, 0, angleInDeg*Deg2Rad);
     }
 
     // Rate is rad/ps
     void setTorsionRate(Real rateInRadPerPs, State& s) const {
         const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-        getMatter().setMobilizerU(s, CBody, 0, rateInRadPerPs);
+        const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+        b.setOneU(s, 0, rateInRadPerPs);
     }
 };
 
@@ -679,7 +689,7 @@ try
     const FloppyEthane floppy1(GroundId, mbs);
     const RigidO2      rigidO2(GroundId, mbs);
 
-    //const CartesianRibose cribose(GroundId, mbs);
+    const CartesianRibose cribose(GroundId, mbs);
 
     /* Cartesian:  
     for (int i=0; i < mm.getNAtoms(); ++i) {
@@ -729,8 +739,8 @@ try
     mbs.realizeModel(s);
    // gravity.setZeroHeight(s, -100);
 
-   // cribose.setDefaultInternalState(s);
-   // cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+    cribose.setDefaultInternalState(s);
+    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
@@ -1070,18 +1080,20 @@ void FloppyEthane::setDefaultInternalState(State& s) const {
 
     // C1
     const MobilizedBodyId CBody = getDuMM().getAtomBody(getC(1));
-    getMatter().setMobilizerQ(s, CBody, 0, 0); // torsion;
-    getMatter().setMobilizerQ(s, CBody, 1, getNominalCCBondLength()); // stretch
-    getMatter().setMobilizerU(s, CBody, 0, 0); // torsion rate
-    getMatter().setMobilizerU(s, CBody, 1, 0); // stretch rate
+    const MobilizedBody& b = getMatter().getMobilizedBody(CBody);
+    b.setOneQ(s, 0, 0); // torsion;
+    b.setOneQ(s, 1, getNominalCCBondLength()); // stretch
+    b.setOneU(s, 0, 0); // torsion rate
+    b.setOneU(s, 1, 0); // stretch rate
 
     // H (bend,stretch)
     for (int c=0; c<2; ++c)
         for (int h=0; h<3; ++h) {
             const MobilizedBodyId HBody = getDuMM().getAtomBody(getH(c,h));
-            getMatter().setMobilizerQ(s, HBody, 0, getNominalHCCBondAngle());
-            getMatter().setMobilizerQ(s, HBody, 1, getNominalCHBondLength());
-            getMatter().setMobilizerU(s, HBody, 0, 0);
-            getMatter().setMobilizerU(s, HBody, 1, 0);
+            const MobilizedBody& b = getMatter().getMobilizedBody(HBody);
+            b.setOneQ(s, 0, getNominalHCCBondAngle());
+            b.setOneQ(s, 1, getNominalCHBondLength());
+            b.setOneU(s, 0, 0);
+            b.setOneU(s, 1, 0);
         }
 }

@@ -52,7 +52,7 @@ public:
     ShermsForce(const MobilizedBody& b1, const MobilizedBody& b2) : body1(b1), body2(b2) { }
     ShermsForce* clone() const {return new ShermsForce(*this);}
 
-    void calc(const MatterSubsystem& matter, const State& state,
+    void calc(const SimbodyMatterSubsystem& matter, const State& state,
               Vector_<SpatialVec>& bodyForces,
               Vector_<Vec3>&       particleForces,
               Vector&              mobilityForces,
@@ -70,6 +70,14 @@ private:
     const MobilizedBody& body1;
     const MobilizedBody& body2;
 };
+//template <class E> Vector_<E>
+//operator*(const VectorView_<E>& l, const typename CNT<E>::StdNumber& r) 
+//  { return Vector_<E>(l)*=r; }
+
+void ff(Vector& v) {
+    v = 23.;
+}
+    
 
 int main(int argc, char** argv) {
   try { // If anything goes wrong, an exception will be thrown.
@@ -97,10 +105,10 @@ int main(int argc, char** argv) {
  */
 
     Vec3 radii(1/2.,1/3.,1/4.); radii*=.5;
-    MobilizedBody::Ellipsoid rightPendulum = MobilizedBody::Ellipsoid(twoPends.Ground(), pendulumBody)
-                                         .setDefaultRadii(radii)
-                                         .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
-                                         .setDefaultOutboardFrame(Vec3(0,d,0));
+    MobilizedBody::Ellipsoid rightPendulum(twoPends.Ground(), pendulumBody);
+    rightPendulum.setDefaultRadii(radii)
+                 .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
+                 .setDefaultOutboardFrame(Vec3(0,d,0));
     rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
                                                       .setColor(Purple).setOpacity(.3));
     const Vec3 r=rightPendulum.getDefaultRadii();
@@ -155,7 +163,7 @@ int main(int argc, char** argv) {
     //forces.addGlobalEnergyDrain(.2);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
-    twoPends.setUseEulerAngles(s, false);
+    twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
     VTKReporter display(mbs);
@@ -168,8 +176,10 @@ int main(int argc, char** argv) {
 
 
     leftPendulum.setAngle(s, -60*Deg2Rad);
+
     rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
     //rightPendulum.setQToFitRotation(s, Rotation());
+
 
     //TODO
     //rightPendulum.setUToFitLinearVelocity(s, Vec3(1.1,0,1.2));

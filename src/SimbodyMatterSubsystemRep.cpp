@@ -43,7 +43,7 @@
 #include <string>
 
 SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
-   : SimTK::MatterSubsystemRep("SimbodyMatterSubsystemRep", "X.X.X")
+   : SimTK::SubsystemRep("SimbodyMatterSubsystemRep", "X.X.X")
 {
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }

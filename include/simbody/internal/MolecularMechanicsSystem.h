@@ -33,7 +33,7 @@
 
 namespace SimTK {
 
-class MatterSubsystem;
+class SimbodyMatterSubsystem;
 class DuMMForceFieldSubsystem;
 
 /**

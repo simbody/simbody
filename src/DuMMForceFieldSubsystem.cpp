@@ -29,8 +29,10 @@
  * We accept angles from users in degrees, but use only radians internally.
  */
 
-#include "SimTKsimbody.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
 #include "simbody/internal/DecorativeGeometry.h"

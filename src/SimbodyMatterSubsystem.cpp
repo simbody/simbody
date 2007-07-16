@@ -70,7 +70,7 @@ SimbodyMatterSubsystem::updRep() {
 // Create Subsystem but don't associate it with any System. This isn't much use except
 // for making std::vector's, which require a default constructor to be available.
 SimbodyMatterSubsystem::SimbodyMatterSubsystem() 
-  : MatterSubsystem()
+  : Subsystem()
 {
     rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
@@ -78,14 +78,13 @@ SimbodyMatterSubsystem::SimbodyMatterSubsystem()
 }
 
 SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs) 
-  : MatterSubsystem()
+  : Subsystem()
 {
     rep = new SimbodyMatterSubsystemRep();
     rep->setMyHandle(*this);
     updRep().createGroundBody(); //TODO: handle this differently
     mbs.setMatterSubsystem(*this);
 }
-
 
 MobilizedBodyId SimbodyMatterSubsystem::adoptMobilizedBody(MobilizedBodyId parent, MobilizedBody& child) {
     return updRep().adoptMobilizedBody(parent,child);
@@ -175,14 +174,11 @@ void SimbodyMatterSubsystem::calcQDotDot(const State& s,
 
 // Topological info. Note the lack of a State argument.
 int SimbodyMatterSubsystem::getNBodies()        const {return getRep().getNBodies();}
-int SimbodyMatterSubsystem::getTotalDOF()       const {return getRep().getTotalDOF();}
-int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
+int SimbodyMatterSubsystem::getNMobilities()    const {return getRep().getNMobilities();}
 int SimbodyMatterSubsystem::getNConstraints()   const {return getRep().getNConstraints();}
+int SimbodyMatterSubsystem::getNParticles()     const {return getRep().getNParticles();}
 
-int SimbodyMatterSubsystem::getQIndex(MobilizedBodyId body) const {return getRep().getQIndex(body);}
-int SimbodyMatterSubsystem::getQAlloc(MobilizedBodyId body) const {return getRep().getQAlloc(body);}
-int SimbodyMatterSubsystem::getUIndex(MobilizedBodyId body) const {return getRep().getUIndex(body);}
-int SimbodyMatterSubsystem::getDOF   (MobilizedBodyId body) const {return getRep().getDOF(body);}
+int SimbodyMatterSubsystem::getTotalQAlloc()    const {return getRep().getTotalQAlloc();}
 
 // Modeling info.
 void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
@@ -248,6 +244,76 @@ SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyI
 const Vector& SimbodyMatterSubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
 const Vector& SimbodyMatterSubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
 const Vector& SimbodyMatterSubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
+
+const Vector& 
+SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 
+    return getRep().getAllParticleMasses(s); 
+}
+Vector& SimbodyMatterSubsystem::updAllParticleMasses(State& s) const {
+    return getRep().updAllParticleMasses(s); 
+}
+
+const Vector_<Vec3>& 
+SimbodyMatterSubsystem::getAllParticleLocations(const State& s) const { 
+    return getRep().getAllParticleLocations(s); 
+}
+
+const Vector_<Vec3>& 
+SimbodyMatterSubsystem::getAllParticleVelocities(const State& s) const {
+    return getRep().getAllParticleVelocities(s);
+}
+
+const Vector_<Vec3>& 
+SimbodyMatterSubsystem::getAllParticleAccelerations(const State& s) const {
+    return getRep().getAllParticleAccelerations(s);
+}
+
+void SimbodyMatterSubsystem::addInStationForce(const State& s, MobilizedBodyId body, const Vec3& stationInB, 
+                                        const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const 
+{
+    assert(bodyForces.size() == getRep().getNBodies());
+    const Rotation& R_GB = getRep().getBodyTransform(s,body).R();
+    bodyForces[body] += SpatialVec((R_GB*stationInB) % forceInG, forceInG);
+}
+void SimbodyMatterSubsystem::addInBodyTorque(const State& s, MobilizedBodyId body, const Vec3& torqueInG,
+                                      Vector_<SpatialVec>& bodyForces) const 
+{
+    assert(bodyForces.size() == getRep().getNBodies());
+    bodyForces[body][0] += torqueInG; // no force
+}
+void SimbodyMatterSubsystem::addInMobilityForce(const State& s, MobilizedBodyId body, int index, Real d,
+                                         Vector& mobilityForces) const 
+{ 
+    assert(mobilityForces.size() == getRep().getNMobilities());
+    int uStart, nu; getRep().findMobilizerUs(s,body,uStart,nu);
+    assert(0 <= index && index < nu);
+    mobilityForces[uStart+index] += d;
+}
+
+Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleLocations(State& s) const {
+    return getRep().updAllParticleLocations(s);
+}
+Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleVelocities(State& s) const {
+    return getRep().updAllParticleVelocities(s);
+}
+
+Real SimbodyMatterSubsystem::calcQConstraintNorm(const State& s) const { 
+    return getRep().calcQConstraintNorm(s); 
+}
+Real SimbodyMatterSubsystem::calcUConstraintNorm(const State& s) const { 
+    return getRep().calcUConstraintNorm(s); 
+}
+Real SimbodyMatterSubsystem::calcUDotConstraintNorm(const State& s) const { 
+    return getRep().calcUDotConstraintNorm(s); 
+}
+
+bool SimbodyMatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
+    return getRep().projectQConstraints(s,y_err,tol,targetTol); 
+}
+bool SimbodyMatterSubsystem::projectUConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
+    return getRep().projectUConstraints(s,y_err,tol,targetTol); 
+}
+
 
 } // namespace SimTK
 

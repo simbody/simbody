@@ -102,8 +102,8 @@ public:
         }
     }
 
-    int getQIndex(const State&) const;
-    int getUIndex(const State&) const;
+    void findMobilizerQs(const State&, int& qStart, int& nq) const;
+    void findMobilizerUs(const State&, int& uStart, int& nu) const;
 
     // Given the Model stage state variables (if any are relevant), each
     // concrete mobilizer should return the number of q's and u's it expects
@@ -434,6 +434,7 @@ public:
 
     void setDefaultRadius(Real r) {
         assert(r>0);
+        invalidateTopologyCache();
         defaultRadius=r;
     }
     Real getDefaultRadius() const {return defaultRadius;}
@@ -466,6 +467,7 @@ public:
 
     void setDefaultRadii(const Vec3& r) {
         assert(r[0]>0 && r[1]>0 && r[2]>0);
+        invalidateTopologyCache();
         defaultRadii=r;
     }
     const Vec3& getDefaultRadii() const {return defaultRadii;}
@@ -629,7 +631,10 @@ public:
     explicit ScrewRep(Real p) : defaultPitch(p), defaultQ(0) { }
 
     Real getDefaultPitch() const {return defaultPitch;}
-    void setDefaultPitch(Real p) {defaultPitch=p;}
+    void setDefaultPitch(Real p) {
+        invalidateTopologyCache();
+        defaultPitch=p;
+    }
 
     ScrewRep* clone() const { return new ScrewRep(*this); }
 

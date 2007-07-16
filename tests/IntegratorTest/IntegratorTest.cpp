@@ -34,7 +34,7 @@ using std::endl;
 
 using namespace SimTK;
 
-class SinCos : public MatterSubsystem {
+class SinCos : public SimbodyMatterSubsystem {
 public:
     SinCos(const Real& omega) : w(omega), y(2), yd(2), weights(2), units(2), t(CNT<Real>::getNaN()), 
         solnAcc(1e-3), consAcc(1e-3), timeScale(1e-3) 
@@ -124,7 +124,7 @@ private:
  *     y'' = g - y*L/m
  *               
  */  
-class PointMass2dPendulum : public MatterSubsystem {
+class PointMass2dPendulum : public SimbodyMatterSubsystem {
     static const int NStates = 4;
     static const int NConstraints = 1;
 public:
@@ -304,11 +304,11 @@ int main() {
 
 
     try {
-        State scState;
         MultibodySystem scmbs;
         SinCos sc(1.);
         scmbs.setMatterSubsystem(sc); 
-        scmbs.realize(scState, Stage::Model);
+        State scState = scmbs.realizeTopology();
+        scmbs.realizeModel(scState);
         scState.updTime() = 0;
         Vector y(2); y[0] = 0.; y[1] = 1.;
         scState.updY() = y;
@@ -333,8 +333,8 @@ int main() {
         MultibodySystem pendmbs;
         PointMass2dPendulum p(mass,length,gravity);
         pendmbs.setMatterSubsystem(p); 
-        State pendState;
-        pendmbs.realize(pendState, Stage::Model);
+        State pendState = pendmbs.realizeTopology();
+        pendmbs.realizeModel(pendState);
 
         Vector yp(4); 
         //yp[0]=sqrt(50.); yp[1]=-sqrt(50.); // -45 degrees

@@ -123,7 +123,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
         s = mbs.getDefaultState();
-        connector.setQToFitRotation(s,Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
+        connector.setQToFitRotation(s,Rotation::aboutAxis(Pi/4, Vec3(1,1,1)));
 
 
         printf("time  theta      energy           *************\n");
@@ -137,12 +137,15 @@ try { // If anything goes wrong, an exception will be thrown.
         myStudy.initialize();
 
         cout << "MassProperties in B=" << swinger.calcBodyMassPropertiesInBody(s,swinger);
-        cout << "MassProperties in G=" << swinger.calcBodyMassPropertiesInBody(s,pend.getGround());
+        cout << "MassProperties in G=" << swinger.calcBodyMassPropertiesInBody(s,pend.Ground());
         cout << "Spatial Inertia    =" << swinger.calcBodySpatialInertiaMatrixInGround(s);
 
         for (;;) {
-            printf("%5g %10.4g %10.8g\n", s.getTime(), pend.getMobilizerQ(s,swinger,0)*Rad2Deg,
-                mbs.getEnergy(s));
+            //printf("%5g %10.4g %10.8g\n", s.getTime(), swinger.getQ(s)*Rad2Deg, mbs.getEnergy(s));
+            cout << s.getTime() << ": E=" << mbs.getEnergy(s) 
+                 << " connector q=" << connector.getQ(s) 
+                 << ": swinger q=" << swinger.getQ(s) << endl;
+
             cout << "q =" << pend.getQ(s) << endl;
             cout << "u =" << pend.getU(s) << endl;
             cout << "ud=" << pend.getUDot(s) << endl;

@@ -27,7 +27,6 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/System.h"
-#include "simbody/internal/MatterSubsystem.h"
 
 #include <vector>
 
@@ -36,7 +35,7 @@ namespace SimTK {
 class AnalyticGeometry;
 class DecorativeGeometry;
 
-class MatterSubsystem;
+class SimbodyMatterSubsystem;
 class ForceSubsystem;
 class DecorationSubsystem;
 

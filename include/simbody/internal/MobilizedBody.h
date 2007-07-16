@@ -57,6 +57,56 @@ public:
     MobilizedBody& operator=(MobilizedBody&); // shallow assignment
     ~MobilizedBody();
 
+    // These declarations are needed so we can have std::vectors of
+    // these things, but they aren't implemented.
+    //MobilizedBody(const MobilizedBody&) {assert(false);}
+    //MobilizedBody& operator=(const MobilizedBody&){assert(false);return*this;}
+
+    // These are the built-in MobilizedBody types. Types on the same line are
+    // synonymous. Each of these has a known number of coordinates and speeds 
+    // (at least a default number) so
+    // can define routines which return and accept specific-size arguments, e.g.
+    // Real (for 1-dof mobilizer) and Vec5 (for 5-dof mobilizer). Here is the
+    // conventional interface that each built-in should provide. The base type
+    // provides similar routines but using variable-sized or "one at a time"
+    // arguments. (Vec<1> here will actually be a Real; assume the built-in
+    // MobilizedBody class is "BuiltIn")
+    //
+    //    BuiltIn&       setDefaultQ(const Vec<nq>&);
+    //    const Vec<nq>& getDefaultQ() const;
+    //
+    //    const Vec<nq>& getQ[Dot[Dot]](const State&) const;
+    //    const Vec<nu>& getU[Dot](const State&) const;
+    //
+    //    void setQ(State&, const Vec<nq>&) const;
+    //    void setU(State&, const Vec<nu>&) const;
+    //
+    //    const Vec<nq>& getMyPartQ(const State&, const Vector& qlike) const;
+    //    const Vec<nu>& getMyPartU(const State&, const Vector& ulike) const;
+    //   
+    //    Vec<nq>& updMyPartQ(const State&, Vector& qlike) const;
+    //    Vec<nu>& updMyPartU(const State&, Vector& ulike) const;
+    //      
+
+
+    class Pin;         typedef Pin    Torsion;
+    class Slider;      typedef Slider Prismatic;
+    class Universal;
+    class Cylinder;
+    class BendStretch;
+    class Planar;
+    class Gimbal;
+    class Ball; typedef Ball Orientation, Spherical;
+    class Translation; typedef Translation Cartesian;
+    class Free;
+    class LineOrientation;
+    class FreeLine;
+    class Weld;
+    class Screw;
+    class Ellipsoid;
+    class Custom;
+    class Ground;
+
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //
     ///////////////////////////////
@@ -484,16 +534,54 @@ public:
     const Transform& getDefaultInboardFrame()  const; // X_PMb
     const Transform& getDefaultOutboardFrame() const; // X_BM
 
+        // Utilities //
+    Real  getOneFromQPartition(const State&, int which, const Vector& qlike) const;
+    Real& updOneFromQPartition(const State&, int which, Vector& qlike) const;
+
+    Real  getOneFromUPartition(const State&, int which, const Vector& ulike) const;
+    Real& updOneFromUPartition(const State&, int which, Vector& ulike) const;
+
+    void applyOneMobilityForce(const State& s, int which, Real f, 
+                               Vector& mobilityForces) const
+    {
+        updOneFromUPartition(s,which,mobilityForces) += f;
+    }
+
+    void applyBodyForce(const State& s, const SpatialVec& spatialForceInG, 
+                        Vector_<SpatialVec>& bodyForces) const;
+
+    void applyBodyTorque(const State& s, const Vec3& torqueInG, 
+                         Vector_<SpatialVec>& bodyForces) const;
+
+    void applyForceToBodyPoint(const State& s, const Vec3& pointInB, const Vec3& forceInG,
+                               Vector_<SpatialVec>& bodyForces) const;
+
         // MODEL STAGE responses //
     int getNumQ(const State&) const;
     int getNumU(const State&) const;
-    Vector getQ(const State&) const;
-    Vector getU(const State&) const;
+
+    Real getOneQ(const State&, int which) const;
+    Real getOneU(const State&, int which) const;
+
+    Vector getQVector(const State&) const;
+    Vector getUVector(const State&) const;
+
+        // VELOCITY STAGE responses //
+    Real   getOneQDot   (const State&, int which) const;
+    Vector getQDotVector(const State&) const;
+
+        // ACCELERATION STAGE responses //
+    Real   getOneUDot   (const State&, int which) const;
+    Real   getOneQDotDot(const State&, int which) const;
+    Vector getUDotVector   (const State&) const;
+    Vector getQDotDotVector(const State&) const;
 
         // MODEL STAGE solvers //
+    void setOneQ(State&, int which, Real) const;
+    void setOneU(State&, int which, Real) const;
 
-    void setQ(State&, const Vector&) const;
-    void setU(State&, const Vector&) const;
+    void setQVector(State& s, const Vector& v) const;
+    void setUVector(State& s, const Vector& v) const;
 
     // These routines set the generalized coordinates, or speeds (state
     // variables) for just the mobilizer associated with this MobilizedBody
@@ -826,21 +914,6 @@ public:
     /// vector A_GB = {alpha_GB, a_GB}. This response is available at Acceleration stage.
     const SpatialVec& getBodyAcceleration(const State& s) const; // A_GB
 
-    Vector getUDot(const State&) const;
-
-    // Utilities for use in routines which apply forces
-    const SpatialVec& getBodyAppliedForces(const State&, const Vector_<SpatialVec>& rigidBodyForces) const;
-    SpatialVec&       updBodyAppliedForces(const State&, Vector_<SpatialVec>& rigidBodyForces) const;
-    void applyBodyForce(const State& s, const SpatialVec& f,  Vector_<SpatialVec>& rigidBodyForces) const {
-        updBodyAppliedForces(s,rigidBodyForces) += f;
-    }
-
-    // Generic treatment of mobilizer forces (use Vector since we don't know how many
-    // mobilities there are). It is much more efficient to use the specialized routines
-    // if you know the actual MobilizedBody type.
-    Vector getMobilizerForces(const State&, const Vector& mobilityForces) const;
-    void applyMobilizerForces(const State& s, const Vector& f, Vector& mobilityForces) const;
-
     // Implicit conversion to MobilizedBodyId when needed.
     operator MobilizedBodyId() const {return getMobilizedBodyId();}
     MobilizedBodyId        getMobilizedBodyId()     const;
@@ -856,25 +929,7 @@ public:
     bool isSameMobilizedBody(const MobilizedBody&) const;
     bool isGround() const; // meaning mobilizedbody 0 of some subsystem, not just the Body type
 
-    // These are the built-in MobilizedBody types. Types on the same line are
-    // synonymous.
-    class Pin;         typedef Pin    Torsion;
-    class Slider;      typedef Slider Prismatic;
-    class Universal;
-    class Cylinder;
-    class BendStretch;
-    class Planar;
-    class Gimbal;
-    class Ball; typedef Ball Orientation, Spherical;
-    class Translation; typedef Translation Cartesian;
-    class Free;
-    class LineOrientation;
-    class FreeLine;
-    class Weld;
-    class Screw;
-    class Ellipsoid;
-    class Custom;
-    class Ground;
+
 
     // Is this handle the owner of this rep? This is true if the
     // handle is empty or if its rep points back here.
@@ -931,9 +986,9 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
-    // This is just a nicer name for the generalized coordinate.
+    // "Angle" is just a nicer name for a pin joint's lone generalized coordinate q.
     Pin& setDefaultAngle(Real angleInRadians) {return setDefaultQ(angleInRadians);}
-    Real getDefaultAngle() const {return getDefaultQ();}
+    Real getDefaultAngle() const              {return getDefaultQ();}
 
     // Friendly, mobilizer-specific access to coordinates and speeds.
     // TODO
@@ -944,33 +999,30 @@ public:
     void setRate(State& s, Real rateInRadiansPerTime) {setU(s, rateInRadiansPerTime);}
     Real getRate(const State& s) {return getU(s);}
 
+    Pin& setDefaultQ(Real);
+    Real getDefaultQ() const;
 
-    // Generic default state Topology methods.
-    Real  getDefaultQ() const;
-    Real& updDefaultQ();
-    Pin&  setDefaultQ(Real q) {updDefaultQ()=q; return *this;}
-
-    // Generic state access routines.
     Real getQ(const State&) const;
+    Real getQDot(const State&) const;
+    Real getQDotDot(const State&) const;
     Real getU(const State&) const;
-    Real& updQ(State&) const;
-    Real& updU(State&) const;
-    void setQ(State& s, Real q) const {updQ(s)=q;}
-    void setU(State& s, Real u) const {updU(s)=u;}
+    Real getUDot(const State&) const;
 
-    // Utilities for applying mobilizer forces in force subsystems.
+    void setQ(State&, Real) const;
+    void setU(State&, Real) const;
 
+    Real getMyPartQ(const State&, const Vector& qlike) const;
+    Real getMyPartU(const State&, const Vector& ulike) const;
+   
+    Real& updMyPartQ(const State&, Vector& qlike) const;
+    Real& updMyPartU(const State&, Vector& ulike) const;
+
+    // Mobility forces are "u-like", that is, one per dof.
     Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
-        return getMobilizerForces(s,mobilityForces);
+        return getMyPartU(s,mobilityForces);
     }
     void applyPinTorque(const State& s, Real torque, Vector& mobilityForces) const {
-        updMobilizerForces(s,mobilityForces) += torque;
-    }
-
-    Real getMobilizerForces(const State&, const Vector& mobilityForces) const;
-    Real& updMobilizerForces(const State&, Vector& mobilityForces) const;
-    void applyMobilizerForces(const State& s, Real f, Vector& mobilityForces) const {
-        updMobilizerForces(s,mobilityForces)+=f;
+        updMyPartU(s,mobilityForces) += torque;
     }
 
     class PinRep; // local subclass
@@ -1002,7 +1054,7 @@ public:
     Slider& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Slider& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
+    Slider& addInboardDecoration(const Transform& X_MbD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
     }
 
@@ -1060,7 +1112,25 @@ public:
     }
 
     Screw& setDefaultPitch(Real pitch);
-    Real getDefaultPitch() const;
+    Real   getDefaultPitch() const;
+
+    Screw& setDefaultQ(Real);
+    Real   getDefaultQ() const;
+
+    Real getQ(const State&) const;
+    Real getQDot(const State&) const;
+    Real getQDotDot(const State&) const;
+    Real getU(const State&) const;
+    Real getUDot(const State&) const;
+
+    void setQ(State&, Real) const;
+    void setU(State&, Real) const;
+
+    Real getMyPartQ(const State&, const Vector& qlike) const;
+    Real getMyPartU(const State&, const Vector& ulike) const;
+   
+    Real& updMyPartQ(const State&, Vector& qlike) const;
+    Real& updMyPartU(const State&, Vector& ulike) const;
 
     class ScrewRep; // local subclass
 
@@ -1234,52 +1304,42 @@ public:
     }
 
     // Friendly, mobilizer-specific access to coordinates and speeds.
-    Planar& setDefaultAngle(Real a) {updDefaultQ()[0] = a; return *this;}
+    Planar& setDefaultAngle(Real a) {
+        Vec3 q = getDefaultQ(); q[0] = a; setDefaultQ(q);
+        return *this;
+    }
     Planar& setDefaultTranslation(const Vec2& r) {
-        updDefaultQ().updSubVec<2>(1) = r; 
+        Vec3 q = getDefaultQ(); q.updSubVec<2>(1) = r; setDefaultQ(q);
         return *this;
     }
 
-    void setAngle      (State& s, Real        a) {updQ(s)[0]              = a;}
-    void setTranslation(State& s, const Vec2& r) {updQ(s).updSubVec<2>(1) = r;}
+    Real getDefaultAngle() const {return getDefaultQ()[0];}
+    const Vec2& getDefaultTranslation() const {return getDefaultQ().getSubVec<2>(1);}
+
+    void setAngle      (State& s, Real        a) {setOneQ(s,0,a);}
+    void setTranslation(State& s, const Vec2& r) {setOneQ(s,1,r[0]); setOneQ(s,2,r[1]);}
+
+    Real getAngle(const State& s) const {return getQ(s)[0];}
+    const Vec2& getTranslation(const State& s) const {return getQ(s).getSubVec<2>(1);}
 
     // Generic default state Topology methods.
     const Vec3& getDefaultQ() const;
-    Vec3& updDefaultQ();
-    Planar& setDefaultQ(const Vec3& v) {updDefaultQ()=v; return *this;}
+    Planar& setDefaultQ(const Vec3& q);
 
-    // Generic state access routines.
     const Vec3& getQ(const State&) const;
-    const Vec3& getU(const State&) const;
-    Vec3& updQ(State&) const;
-    Vec3& updU(State&) const;
-    void setQ(State& s, const Vec3& q) const {updQ(s)=q;}
-    void setU(State& s, const Vec3& u) const {updU(s)=u;}
-
     const Vec3& getQDot(const State&) const;
-    const Vec3& getUDot(const State&) const;
     const Vec3& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
 
-    // Utilities for applying mobilizer forces in force subsystems.
+    void setQ(State&, const Vec3&) const;
+    void setU(State&, const Vec3&) const;
 
-    Real getAppliedTorque(const State& s, const Vector& mobilityForces) const {
-        return getMobilizerForces(s,mobilityForces)[0];
-    }
-    void applyTorque(const State& s, Real torque, Vector& mobilityForces) const {
-        updMobilizerForces(s,mobilityForces)[0] += torque;
-    }
-    const Vec2& getAppliedInPlaneForce(const State& s, const Vector& mobilityForces) const {
-        return getMobilizerForces(s,mobilityForces).getSubVec<2>(1);
-    }
-    void applyInPlaneForce(const State& s, const Vec2& f, Vector& mobilityForces) const {
-        updMobilizerForces(s,mobilityForces).updSubVec<2>(1) += f;
-    }
-
-    const Vec3& getMobilizerForces(const State&, const Vector& mobilityForces) const;
-    Vec3& updMobilizerForces(const State&, Vector& mobilityForces) const;
-    void applyMobilizerForces(const State& s, const Vec3& f, Vector& mobilityForces) const {
-        updMobilizerForces(s,mobilityForces) += f;
-    }
+    const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec3& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
 
     class PlanarRep; // local subclass
     SimTK_PIMPL_DOWNCAST(Planar, MobilizedBody);
@@ -1378,8 +1438,22 @@ public:
 
     // Generic default state Topology methods.
     const Quaternion& getDefaultQ() const;
-    Quaternion& updDefaultQ();
-    Ball& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
+    Ball& setDefaultQ(const Quaternion& q);
+
+    const Vec4& getQ(const State&) const;
+    const Vec4& getQDot(const State&) const;
+    const Vec4& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
+
+    void setQ(State&, const Vec4&) const;
+    void setU(State&, const Vec3&) const;
+
+    const Vec4& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec4& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
 
     class BallRep; // local subclass
 
@@ -1731,6 +1805,18 @@ public:
     }
 
     SimTK_PIMPL_DOWNCAST(Custom, MobilizedBody);
+
+protected:
+    // Utilities for use by Custom mobilized body implementation.
+
+    // Be sure to call this whenever you make a change to any data contained
+    // in a concrete Custom MobilizedBody class. This method ensures that the
+    // containing matter subsystem will have its topology invalidated so that
+    // a subsequent call to realizeTopology() will recalculate the topology 
+    // cache. A good rule of thumb is that any method you provide which is
+    // non-const should start by calling invalidateTopologyCache().
+    void invalidateTopologyCache() const;
+
 private:
     class CustomRep& updRep();
     const CustomRep& getRep() const;

@@ -25,11 +25,12 @@
  */
 
 #include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 
+#include "SubsystemRep.h"
 #include "SimbodyTreeState.h"
-#include "MatterSubsystemRep.h"
 #include "RigidBodyNode.h"
 
 using namespace SimTK;
@@ -77,10 +78,10 @@ class LengthConstraints;
  * SimbodyMatterSubsystemRep is the owner of the RigidBodyNode objects (which are abstract), pointers to
  * which are stored in the tree.
  */
-class SimbodyMatterSubsystemRep : public SimTK::MatterSubsystemRep {
+class SimbodyMatterSubsystemRep : public SimTK::SubsystemRep {
 public:
     SimbodyMatterSubsystemRep() 
-      : MatterSubsystemRep("SimbodyMatterSubsystem", "0.5.5"),
+      : SubsystemRep("SimbodyMatterSubsystem", "0.5.5"),
         lConstraints(0)
     { 
         clearTopologyCache();
@@ -90,8 +91,14 @@ public:
     SimbodyMatterSubsystemRep& operator=(const SimbodyMatterSubsystemRep&);
 
     ~SimbodyMatterSubsystemRep() {
+        invalidateSubsystemTopologyCache();
         clearTopologyCache(); // should do cache before state
         clearTopologyState();
+    }
+
+    // Return the MultibodySystem which owns this MatterSubsystem.
+    const MultibodySystem& getMultibodySystem() const {
+        return MultibodySystem::downcast(getSystem());
     }
 
 
@@ -113,11 +120,19 @@ public:
         assert(mobilizedBodies[id]);
         return *mobilizedBodies[id];
     }
+
+    // Note that we do not invalidate the subsystem topology cache yet, even
+    // though we're handing out a writable reference to a MobilizedBody here.
+    // Otherwise every time someone references Ground, e.g., by calling
+    // matterSubsys.Ground() the subsystem would have its topology marked
+    // invalid. For this reason, and also because the main program normally
+    // retains a writable reference to MobilizedBodies, it is essential that every 
+    // non-const method of MobilizedBody and its many descendants mark the
+    // subsystem topology invalid when called.
     MobilizedBody& updMobilizedBody(MobilizedBodyId id) {
         assert(id < (int)mobilizedBodies.size());
         assert(mobilizedBodies[id]);
-        invalidateSubsystemTopologyCache();
-        return *mobilizedBodies[id];
+        return *mobilizedBodies[id]; // topology not marked invalid yet
     }
 
     void createGroundBody();
@@ -213,21 +228,6 @@ public:
         return updInstanceVars(s).particleMasses;
     }
 
-    const Vector& getAllMobilizerCoords(const State& s) const {
-        return getQ(s); // TODO: return only the non-particle subset
-    }
-    Vector& updAllMobilizerCoords(State& s) const {
-        return updQ(s); // TODO: return only the non-particle subset
-    } 
-
-    const Vector& getAllMobilizerSpeeds(const State& s) const {
-        return getU(s); // TODO: return only the non-particle subset
-    }
-
-    Vector& updAllMobilizerSpeeds(State& s) const {
-        return updU(s); // TODO: return only the non-particle subset
-    } 
-
     Real getTotalMass(const State& s) const {
         return getInstanceCache(s).totalMass;
     }
@@ -240,6 +240,31 @@ public:
     const SpatialVec& getTotalCoriolisAcceleration(const State&, MobilizedBodyId) const;
     const SpatialVec& getGyroscopicForce          (const State&, MobilizedBodyId) const;
     const SpatialVec& getCentrifugalForces        (const State&, MobilizedBodyId) const;
+
+    // PARTICLES TODO
+
+    const Vector_<Vec3>&  getAllParticleLocations (const State&) const {
+        static const Vector_<Vec3> v;
+        return v;
+    }
+    const Vector_<Vec3>&  getAllParticleVelocities(const State&) const {
+        static const Vector_<Vec3> v;
+        return v;
+    }
+    // Invalidate Stage::Position.
+    Vector_<Vec3>&  updAllParticleLocations (State&) const {
+        static Vector_<Vec3> v;
+        return v;
+    }
+    // Invalidate Stage::Velocity.
+    Vector_<Vec3>&  updAllParticleVelocities(State&) const {
+        static Vector_<Vec3> v;
+        return v;
+    }
+    const Vector_<Vec3>&  getAllParticleAccelerations(const State&) const {
+        static const Vector_<Vec3> v;
+        return v;
+    }
 
     // TODO: this is unweighted RMS norm
     Real calcQConstraintNorm(const State& s) const {

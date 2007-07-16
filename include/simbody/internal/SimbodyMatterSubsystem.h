@@ -24,9 +24,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/System.h"
-#include "simbody/internal/MatterSubsystem.h"
+#include "simbody/internal/Subsystem.h"
+#include "simbody/internal/MobilizedBody.h"
 
 #include <cassert>
 #include <vector>
@@ -38,7 +40,6 @@ namespace SimTK {
 
 class Transform;
 class Inertia;
-class SimbodyTreeRep;
 class MassProperties;
 class Body;
 class MobilizedBody;
@@ -102,7 +103,7 @@ class MultibodySystem;
  * majority of biosimulation applications we are likely to have only holonomic
  * (position) constraints, so there is no V or A and P is the whole story.
  */
-class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem : public MatterSubsystem {
+class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem : public Subsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyMatterSubsystem();
@@ -112,12 +113,13 @@ public:
     // have around explicitly for debugging.
     ~SimbodyMatterSubsystem() {
     }
-    SimbodyMatterSubsystem(const SimbodyMatterSubsystem& ss) : MatterSubsystem(ss) {
+    SimbodyMatterSubsystem(const SimbodyMatterSubsystem& ss) : Subsystem(ss) {
     }
     SimbodyMatterSubsystem& operator=(const SimbodyMatterSubsystem& ss) {
-        MatterSubsystem::operator=(ss);
+        Subsystem::operator=(ss);
         return *this;
     }
+
 
 
     ///////////////////////////////
@@ -282,9 +284,14 @@ public:
     const MobilizedBody& getMobilizedBody(MobilizedBodyId) const;
     MobilizedBody&       updMobilizedBody(MobilizedBodyId);
 
+
+    // Note: topology is not marked invalid upon returning a writable reference
+    // here; that will be done only if a non-const method of the returned MobilizedBody
+    // is called. That means it is OK to use Ground() to satisfy a const argument;
+    // it won't have an "invalidate topology" side effect.
     const MobilizedBody::Ground& getGround() const;
     MobilizedBody::Ground&       updGround();
-    MobilizedBody::Ground&       Ground() {return updGround();} // TODO: is this a good idea?
+    MobilizedBody::Ground&       Ground() {return updGround();}
 
     ConstraintId      adoptConstraint(Constraint&);
     const Constraint& getConstraint(ConstraintId) const;
@@ -358,9 +365,12 @@ public:
     /// generate more than one constraint equation.
     int getNConstraints() const;
 
+    /// TODO: total number of particles.
+    int getNParticles() const;
+
     /// The sum of all the joint degrees of freedom. This is also the length
     /// of state variable vector u.
-    int getTotalDOF() const; 
+    int getNMobilities() const; 
 
     /// The sum of all the q vector allocations for each joint. These may not
     /// all be in use.
@@ -368,18 +378,6 @@ public:
 
     /// This is the sum of all the allocations for constraint multipliers.
     int getTotalMultAlloc() const;
-
-    // Per-body info.
-    int getQIndex(MobilizedBodyId) const;
-    int getQAlloc(MobilizedBodyId) const; // must wait for modeling for actual NQ
-    int getUIndex(MobilizedBodyId) const;
-    int getDOF   (MobilizedBodyId) const; // always same as # u's
-
-
-    // Per-constraint info;
-    int getMultIndex(int constraint) const;
-    int getMaxNMult (int constraint) const;  // wait for modeling to get actual NMult
-
 
     /// For all ball and free joints, decide what method we should use
     /// to model their orientations. Choices are: quaternions (best
@@ -428,6 +426,157 @@ public:
     const Vector& getQDot   (const State&) const;
     const Vector& getUDot   (const State&) const;
     const Vector& getQDotDot(const State&) const;
+
+
+
+        // PARTICLES
+
+    // The generalized coordinates for a particle are always the three measure numbers
+    // (x,y,z) of the particle's Ground-relative Cartesian location vector. The generalized
+    // speeds are always the three corresponding measure numbers of the particle's
+    // Ground-relative Cartesian velocity. The generalized applied forces are
+    // always the three measure numbers of a Ground-relative force vector.
+    const Vector_<Vec3>& getAllParticleLocations    (const State&) const;
+    const Vector_<Vec3>& getAllParticleVelocities   (const State&) const;
+
+    const Vec3& getParticleLocation(const State& s, ParticleId p) const {
+        return getAllParticleLocations(s)[p];
+    }
+    const Vec3& getParticleVelocity(const State& s, ParticleId p) const {
+        return getAllParticleVelocities(s)[p];
+    }
+
+    Vector& updAllParticleMasses(State& s) const;
+
+    void setAllParticleMasses(State& s, const Vector& masses) const {
+        updAllParticleMasses(s) = masses;
+    }
+
+
+    // Note that particle generalized coordinates, speeds, and applied forces
+    // are defined to be the particle Cartesian locations, velocities, and
+    // applied force vectors, so can be set directly at Stage::Model or higher.
+
+    // These are the only routines that must be provided by the concrete MatterSubsystem.
+    Vector_<Vec3>& updAllParticleLocations(State&)     const;
+    Vector_<Vec3>& updAllParticleVelocities(State&)    const;
+
+    // The following inline routines are provided by the generic MatterSubsystem class
+    // for convenience.
+
+    Vec3& updParticleLocation(State& s, ParticleId p) const {
+        return updAllParticleLocations(s)[p];
+    }
+    Vec3& updParticleVelocity(State& s, ParticleId p) const {
+        return updAllParticleVelocities(s)[p];
+    }
+
+    void setParticleLocation(State& s, ParticleId p, const Vec3& r) const {
+        updAllParticleLocations(s)[p] = r;
+    }
+    void setParticleVelocity(State& s, ParticleId p, const Vec3& v) const {
+        updAllParticleVelocities(s)[p] = v;
+    }
+
+    void setAllParticleLocations(State& s, const Vector_<Vec3>& r) const {
+        updAllParticleLocations(s) = r;
+    }
+    void setAllParticleVelocities(State& s, const Vector_<Vec3>& v) const {
+        updAllParticleVelocities(s) = v;
+    }
+
+    /// TODO: not implemented yet; particles must be treated as rigid bodies for now.
+    const Vector& getAllParticleMasses(const State&) const;
+
+    const Vector_<Vec3>& getAllParticleAccelerations(const State&) const;
+
+    const Vec3& getParticleAcceleration(const State& s, ParticleId p) const {
+        return getAllParticleAccelerations(s)[p];
+    }
+
+        // POSITION STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial configuration of
+    /// body B's body frame, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the location of the body frame's
+    /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
+    /// This response is available at Position stage.
+    //const Transform& getBodyTransform(const State&, MobilizedBodyId) const;
+
+    /// This is available at Stage::Position. These are *absolute* constraint
+    /// violations qerr=g(t,q), that is, they are unweighted.
+    const Vector& getQConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getQConstraintErrors(),
+    /// available whenever this subsystem has been realized to Stage::Position.
+    /// This is the scalar quantity that we need to keep below "tol"
+    /// during integration.
+    Real calcQConstraintNorm(const State&) const;
+
+        // POSITION STAGE operators //
+
+
+    /// Apply a force to a point on a body (a station). Provide the
+    /// station in the body frame, force in the ground frame. Must
+    /// be realized to Position stage prior to call.
+    void addInStationForce(const State&, MobilizedBodyId bodyB, const Vec3& stationOnB, 
+                           const Vec3& forceInG, Vector_<SpatialVec>& bodyForces) const;
+
+    /// Apply a torque to a body. Provide the torque vector in the
+    /// ground frame.
+    void addInBodyTorque(const State&, MobilizedBodyId, const Vec3& torqueInG, 
+                         Vector_<SpatialVec>& bodyForces) const;
+
+    /// Apply a scalar joint force or torque to an axis of the
+    /// indicated body's mobilizer.
+    void addInMobilityForce(const State&, MobilizedBodyId, int axis, Real f,
+                            Vector& mobilityForces) const;
+
+        // POSITION STAGE solvers //
+
+    /// This is a solver you can call after the State has been realized
+    /// to stage Position. It will project the Q constraints
+    /// along the error norm so that getQConstraintNorm() <= tol, and will
+    /// project out the corresponding component of y_err so that y_err's Q norm
+    /// is reduced. Returns true if it does anything at all to State or y_err.
+    bool projectQConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+
+        // VELOCITY STAGE responses //
+
+    /// Extract from the state cache the already-calculated spatial velocity of
+    /// body B's body frame, measured with respect to the ground frame and expressed
+    /// in the ground frame. That is, we return the linear velocity v_GB of the body
+    /// frame's origin, and the body's angular velocity w_GB as the spatial velocity
+    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
+    //const SpatialVec& getBodyVelocity(const State&, MobilizedBodyId bodyB) const;
+
+    /// This is available at Stage::Velocity. These are *absolute* constraint
+    /// violations verr=v(t,q,u), that is, they are unweighted.
+    const Vector& getUConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getUConstraintErrors().
+    /// That is, this is the scalar quantity that we need to keep below "tol"
+    /// during integration.
+    Real calcUConstraintNorm(const State&) const;
+
+        // VELOCITY STAGE operators //
+    // none
+
+        // VELOCITY STAGE solvers //
+
+    /// This is a solver you can call after the State has been realized
+    /// to stage Velocity. It will project the U constraints
+    /// along the error norm so that getUConstraintNorm() <= tol, and will
+    /// project out the corresponding component of y_err so that y_err's U norm
+    /// is reduced.
+    bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
+
+    /// This is available at Stage::Acceleration. These are *absolute* constraint
+    /// violations aerr = A udot - b, that is, they are unweighted.
+    const Vector& getUDotConstraintErrors(const State&) const;
+
+    /// This is the weighted norm of the errors returned by getUDotConstraintErrors().
+    Real calcUDotConstraintNorm(const State&) const;
 
     SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
     const SimbodyMatterSubsystemRep& getRep() const;

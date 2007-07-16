@@ -38,7 +38,6 @@
 #include "simbody/internal/Body.h"
 #include "simbody/internal/MobilizedBody.h"
 #include "simbody/internal/Constraint.h"
-#include "simbody/internal/MatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/UniformGravitySubsystem.h"
