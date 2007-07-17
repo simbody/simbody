@@ -94,8 +94,8 @@ public:
    virtual void setNumParameters( const int nParameters ) {
 
        if(   nParameters < 1 ) {
-           char where[] = " OptimizerSystem  Constructor";
-           char szName[] = "number of parameters";
+           const char* where = " OptimizerSystem  Constructor";
+           const char* szName = "number of parameters";
            SimTK_THROW5(SimTK::Exception::ValueOutOfRange, szName, 1, nParameters, INT_MAX, where);
        }else {
             numParameters = nParameters;
@@ -104,8 +104,8 @@ public:
    void setNumEqualityConstraints( const int n ) {
  
         if( n < 0 ) {
-           char where[] = " OptimizerSystem  setNumEqualityConstraints";
-           char szName[] = "number of equality constraints";
+           const char* where = " OptimizerSystem  setNumEqualityConstraints";
+           const char* szName = "number of equality constraints";
            SimTK_THROW3(SimTK::Exception::SizeWasNegative, szName, n, where);
         } else {
            numEqualityConstraints = n;
@@ -114,8 +114,8 @@ public:
    void setNumInequalityConstraints( const int n ) {
 
        if( n < 0 ) {
-           char where[] = " OptimizerSystem  setNumInequalityConstraints";
-           char szName[] = "number of inequality constraints";
+           const char* where = " OptimizerSystem  setNumInequalityConstraints";
+           const char* szName = "number of inequality constraints";
            SimTK_THROW3(SimTK::Exception::SizeWasNegative, szName, n, where);
        }else {
             numInequalityConstraints = n;
@@ -124,8 +124,8 @@ public:
    void setNumLinearEqualityConstraints( const int n ) {
  
         if( n < 0 || n > numEqualityConstraints ) {
-           char where[] = " OptimizerSystem  setNumLinearEqualityConstraints";
-           char szName[] = "number of linear equality constraints";
+           const char* where = " OptimizerSystem  setNumLinearEqualityConstraints";
+           const char* szName = "number of linear equality constraints";
            SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName, n, numEqualityConstraints, where);
         } else {
            numLinearEqualityConstraints = n;
@@ -134,8 +134,8 @@ public:
    void setNumLinearInequalityConstraints( const int n ) {
 
        if( n < 0 || n > numInequalityConstraints ) {
-           char where[] = " OptimizerSystem  setNumLinearInequalityConstraints";
-           char szName[] = "number of linear inequality constraints";
+           const char* where = " OptimizerSystem  setNumLinearInequalityConstraints";
+           const char* szName = "number of linear inequality constraints";
            SimTK_THROW4(SimTK::Exception::SizeOutOfRange, szName, n, numInequalityConstraints, where);
        }else {
             numLinearInequalityConstraints = n;
@@ -144,13 +144,13 @@ public:
    void setParameterLimits( const Vector& lower, const Vector& upper  ) {
  
         if(   upper.size() != numParameters  && upper.size() != 0) {
-           char where[] = " OptimizerSystem  setParamtersLimits";
-           char szName[] = "upper limits length";
+           const char* where = " OptimizerSystem  setParamtersLimits";
+           const char* szName = "upper limits length";
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, upper.size(), "numParameters", numParameters, where);
         }
         if(   lower.size() != numParameters  && lower.size() != 0 ) {
-           char where[] = " OptimizerSystem  setParamtersLimits";
-           char szName[] = "lower limits length";
+           const char* where = " OptimizerSystem  setParamtersLimits";
+           const char* szName = "lower limits length";
            SimTK_THROW5(Exception::IncorrectArrayLength, szName, lower.size(), "numParameters", numParameters, where);
         } 
        // set the upper and lower limits

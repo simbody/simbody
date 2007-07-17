@@ -159,15 +159,15 @@ extern "C"
 
   /** Function for adding a string option.  Returns FALSE the option
    *  could not be set (e.g., if keyword is unknown) */
-  Bool AddIpoptStrOption(IpoptProblem ipopt_problem, char* keyword, char* val);
+  Bool AddIpoptStrOption(IpoptProblem ipopt_problem, const char* keyword, const char* val);
 
   /** Function for adding a Number option.  Returns FALSE the option
    *  could not be set (e.g., if keyword is unknown) */
-  Bool AddIpoptNumOption(IpoptProblem ipopt_problem, char* keyword, Number val);
+  Bool AddIpoptNumOption(IpoptProblem ipopt_problem, const char* keyword, Number val);
 
   /** Function for adding an Int option.  Returns FALSE the option
    *  could not be set (e.g., if keyword is unknown) */
-  Bool AddIpoptIntOption(IpoptProblem ipopt_problem, char* keyword, Int val);
+  Bool AddIpoptIntOption(IpoptProblem ipopt_problem, const char* keyword, Int val);
 
   /** Function for opening an output file for a given name with given
    *  printlevel.  Returns false, if there was a problem opening the

@@ -110,21 +110,21 @@ void FreeIpoptProblem(IpoptProblem ipopt_problem)
 }
 
 
-Bool AddIpoptStrOption(IpoptProblem ipopt_problem, char* keyword, char* val)
+Bool AddIpoptStrOption(IpoptProblem ipopt_problem, const char* keyword, const char* val)
 {
   std::string tag(keyword);
   std::string value(val);
   return (Bool) ipopt_problem->app->Options()->SetStringValue(tag, value);
 }
 
-Bool AddIpoptNumOption(IpoptProblem ipopt_problem, char* keyword, Number val)
+Bool AddIpoptNumOption(IpoptProblem ipopt_problem, const char* keyword, Number val)
 {
   std::string tag(keyword);
   Ipopt::Number value=val;
   return (Bool) ipopt_problem->app->Options()->SetNumericValue(tag, value);
 }
 
-Bool AddIpoptIntOption(IpoptProblem ipopt_problem, char* keyword, Int val)
+Bool AddIpoptIntOption(IpoptProblem ipopt_problem, const char* keyword, Int val)
 {
   std::string tag(keyword);
   Ipopt::Index value=val;
