@@ -64,34 +64,71 @@ class DecorativeGeometry;
  * There are two distinct users of this class:
  *   - the concrete Systems derived from this class
  *   - the end user of a concrete System
- * Only end user methods are public here. Methods intended for use
- * by the concrete System class are protected.
+ * Only end user methods and a few bookkeeping methods are in the
+ * main System class, which is a SimTK Handle class, meaning that
+ * it consists only of a single pointer, which points to a 
+ * System::Guts class. The Guts class is abstract, and virtual methods
+ * to be implemented in the concrete System are defined there, along
+ * with other utilities of use to the concrete System implementor but
+ * not to the end user.
  *
- * The System and SystemRep classes are friends of Subsystem and SubsystemRep.
- * (TODO: is that a good idea?)
+ * Below is the physical layout of memory for a System, and which
+ * portions are allocated by the client program and which by the
+ * binary library code. For binary compatiblity, only the side
+ * which allocated a piece of memory can access it. So for example,
+ * the client code can use the C++ Guts Virtual Function Table (VFT)
+ * to call the concrete Guts methods. But the library side, when
+ * calling those same methods, must go through its own explicitly-
+ * managed VFT since it can't know what ordering was used for the
+ * methods in the VFT on the client side.
+ *
+ *               CLIENT SIDE                    .  LIBRARY SIDE
+ *                                              .
+ *   ---------------       ------------------   .   -------------
+ *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
+ *   ---------------       ------------------   .  |             |
+ *          ^             | Concrete Guts    |  .  |  Position   |
+ *          |             | class data and   |  .  | independent |
+ *   ===============      | client-side VFT  |  .  |  Guts VFT   |
+ *   Concrete System       ------------------   .  |             |
+ *     adds no data                             .  | Other opaque|
+ *       members                                .  |   stuff     |
+ *                                              .   -------------
+ *
+ * If the concrete System::Guts class also has an opaque implementation,
+ * as it will for concrete Systems provided by the SimTK::Core, then
+ * the memory layout will look like this:
+ *                                              .
+ *   ---------------       ------------------   .   -------------
+ *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
+ *   ---------------       ------------------   .  |             |
+ *          ^             | Concrete Guts    |  .  |   same as   |
+ *          |             | Rep* and         |  .  |    above    |
+ *   ===============      | client-side VFT  |  .   -------------
+ *   Concrete System       ------------------   .  
+ *     (no data)                   |            .   -------------
+ *                                 |            .  |   Concrete  |
+ *                                  -------------> |   GutsRep   |
+ *                                              .  |             |
+ *                                              .  | class data  |
+ *                                              .   -------------
  */
 class SimTK_SimTKCOMMON_EXPORT System {
 public:
+    class Guts; // local; name is System::Guts
+private:
+    // This is the only data member in this class. Also, any class derived from
+    // this one must have *NO* data members at all.
+    Guts* guts;
+public:
+    System() : guts(0) { }
     System(const System&);
     System& operator=(const System&);
-
-    // must be inline for binary compatibility
-    inline explicit System(const String& name="<NONAME>", 
-                           const String& version="0.0.0");
-
-    //TODO: is this right? May need a private static function to pass
-    //to the library which can find the virtual destructor entry.
-    inline virtual ~System() {librarySideDestruction();}
+    ~System();
 
     const String& getName()    const;
     const String& getVersion() const;
 
-    // If a concrete System needs private data, derive that
-    // private implementation class from this base class. That permits
-    // it to be stored with the System base class's private implementation,
-    // which is called SystemRep.
-    class PrivateImplementation {
-    };
 
         //////////////////////////////
         // EVALUATION (REALIZATION) //
@@ -111,11 +148,6 @@ public:
     /// nothing but return a refernece to the already-built default State.
     const State& realizeTopology() const;
 
-    /// You can check whether realizeTopology() has been called since the last
-    /// topological change to this Syatem. If you don't check and just plunge
-    /// ahead you are likely to encounter an exception since very few things
-    /// will work without topology having been realized.
-    bool topologyHasBeenRealized() const;
 
     /// This is available after realizeTopology(), and will throw an
     /// exception if realizeTopology() has not been called since the
@@ -372,33 +404,127 @@ public:
     // There can be multiple handles on the same System.
     bool isSameSystem(const System& otherSystem) const;
 
-    explicit System(class SystemRep* r) : rep(r) { }
-    bool          hasRep() const {return rep!=0;}
-    const SystemRep& getRep() const {assert(rep); return *rep;}
-    SystemRep&       updRep() const {assert(rep); return *rep;}
+    /// You can check whether realizeTopology() has been called since the last
+    /// topological change to this Syatem. If you don't check and just plunge
+    /// ahead you are likely to encounter an exception since very few things
+    /// will work without topology having been realized.
+    bool systemTopologyHasBeenRealized() const;
 
-    bool systemTopologyCacheHasBeenRealized() const;
+    // dynamic_cast the returned reference to a reference to your concrete Guts
+    // class.
+    const System::Guts& getSystemGuts() const {assert(guts); return *guts;}
+    System::Guts&       updSystemGuts()       {assert(guts); return *guts;}
+
+    // Put new *unowned* Guts into this *empty* handle and take over ownership.
+    // If this handle is already in use, or if Guts is already owned this
+    // routine will throw an exception.
+    void adoptSystemGuts(System::Guts* g);
+
+    explicit System(System::Guts* g) : guts(g) { }
+    bool hasGuts() const {return guts!=0;}
+
+    // opaque implementation of Guts base class
+    class GutsRep; // local; name is System::GutsRep
+private:
+    friend class System::Guts;
+    class EventTriggerInfoRep;
+};
+
+class SimTK_SimTKCOMMON_EXPORT System::Guts {
+    // This is the only data member in this class.
+    System::GutsRep* rep;   // opaque implementation of System::Guts base class.
+public:
+    // Constructor must be inline for binary compatibility. Note that this
+    // serves as a default constructor since both arguments have defaults.
+    inline explicit Guts(const String& name="<NONAME>", 
+                         const String& version="0.0.0");
+
+    //TODO: is this right? May need a private static function to pass
+    //to the library which can find the virtual destructor entry.
+    inline virtual ~Guts() {librarySideDestruction();}
+
+    const String& getName()    const;
+    const String& getVersion() const;
+
+    void setHasTimeAdvancedEvents(State&, bool hasEm) const;
+    bool hasTimeAdvancedEvents(const State&) const;
+
+        //////////////////////////////
+        // EVALUATION (REALIZATION) //
+        //////////////////////////////
+
+    // These are the routines to which the System class forwards requests.
+    // TODO: delete routines that duplicate System?
+
+
+    const State& getDefaultState() const;
+    State&       updDefaultState();
+
+    void realize(const State& s, Stage g = Stage::HighestValid) const;
+    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
+
+
+    /// XXX OBSOLETE? TODO
+    Real calcYErrorNorm(const State&, const Vector& y_err) const;
+    SubsystemId adoptSubsystem(Subsystem& child);
+
+    int getNSubsystems() const;
+    const Subsystem& getSubsystem(SubsystemId)   const;
+    Subsystem&       updSubsystem(SubsystemId);
+
+    // Obtain the owner handle for this System::Guts object.
+    const System& getSystem() const;
+    System& updSystem();
+
+    void setOwnerHandle(System&);
+    bool hasOwnerHandle() const;
+
+    explicit Guts(class GutsRep* r) : rep(r) { }
+    bool           hasRep() const {return rep!=0;}
+    const GutsRep& getRep() const {assert(rep); return *rep;}
+    GutsRep&       updRep() const {assert(rep); return *rep;}
+
+    bool systemTopologyHasBeenRealized() const;
     void invalidateSystemTopologyCache() const;
+
+
+    // Wrap the cloneImpl virtual method.
+    System::Guts* clone() const;
 
     // These routines wrap the virtual realize...Impl() methods to ensure
     // good behavior such as checking that stage requirements are met and
     // updating the stage at the end. Note that these will do nothing if
     // the System stage is already at or greater than the indicated stage.
-    // These are not intended to be used by end users; instead use the
-    // realize(State, Stage) routine which takes care of getting the lower
-    // stages realized if necessary first. Note that the first two methods
-    // in this series, realizeTopology() and realizeModel() *are* intended
-    // to be called directly since they require write access to the State.
-    // Those two are defined above.
-    void realizeInstance    (const State &s) const;
-    void realizeTime        (const State &s) const;
-    void realizePosition    (const State &s) const;
-    void realizeVelocity    (const State &s) const;
-    void realizeDynamics    (const State &s) const;
-    void realizeAcceleration(const State &s) const;
-    void realizeReport      (const State &s) const;
+
+    const State& realizeTopology() const;
+    void realizeModel(State&) const;
+    void realizeInstance    (const State& s) const;
+    void realizeTime        (const State& s) const;
+    void realizePosition    (const State& s) const;
+    void realizeVelocity    (const State& s) const;
+    void realizeDynamics    (const State& s) const;
+    void realizeAcceleration(const State& s) const;
+    void realizeReport      (const State& s) const;
+
+    // These wrap the other virtual methods.
+    Real calcTimescale(const State&) const;
+    void calcYUnitWeights(const State&, Vector& weights) const;
+    void project(State&, Real consAccuracy, const Vector& yweights,
+                 const Vector& ootols, Vector& yerrest) const;
+    void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+    void handleEvents
+       (State&, EventCause, const Array<int>& eventIds,
+        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
+        Stage& lowestModified, bool& shouldTerminate) const;
+    void calcEventTriggerInfo(const State&, Array<EventTriggerInfo>&) const;
+    void calcTimeOfNextScheduledEvent
+        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+
 
 protected:
+    Guts(const Guts&);  // copies the base class; for use from derived class copy constructors
+    virtual System::Guts* cloneImpl() const = 0;
+
     // Override these to change the evaluation order of the Subsystems.
     // The default is to evaluate them in increasing order of SubsystemId.
     // These methods should not be called directly; they are invoked by the
@@ -418,10 +544,6 @@ protected:
     virtual int realizeAccelerationImpl(const State&) const;
     virtual int realizeReportImpl(const State&) const;
 
-    virtual int calcDecorativeGeometryAndAppendImpl
-       (const State&, Stage, Array<DecorativeGeometry>&) const;
-    virtual System* cloneImpl() const;
-
     virtual Real calcTimescaleImpl(const State&) const;
 
     virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
@@ -439,54 +561,37 @@ protected:
 
     virtual int calcTimeOfNextScheduledEventImpl
         (const State&, Real& tNextEvent, Array<int>& eventIds) const;
-
-
-    // If a concrete System class has a private implementation, store it in
-    // the SystemRep class by passing in a heap pointer and static functions
-    // for clone and destruct. The SystemRep will take over ownership of
-    // the heap space and manage it with the supplied routines.
-    typedef void (*DestructPrivateImplementation)(PrivateImplementation*);
-    typedef PrivateImplementation* (*ClonePrivateImplementation)(const PrivateImplementation*);
-    void adoptPrivateImplementation(PrivateImplementation*,
-                                    ClonePrivateImplementation,
-                                    DestructPrivateImplementation);
-
-    // Downcast the returned reference to a reference to your private implementation
-    // class. Note that the PrivateImplementation class is not abstract, so this is
-    // not a dynamic_cast and there is no automated way to check that you are looking
-    // at the right type of object. So be careful!
-    const PrivateImplementation& getPrivateImplementation() const;
-    PrivateImplementation&       updPrivateImplementation();
 private:
-    class SystemRep* rep;
-    friend class SystemRep;
+    friend class System::GutsRep;
+    Guts& operator=(const Guts&); // suppress default copy assignment operator
 
     // These typedefs are used internally to manage the binary-compatible
     // handling of the virtual function table.
 
-    typedef int (*RealizeWritableStateImplLocator)(const System&, State&);
-    typedef int (*RealizeConstStateImplLocator)(const System&, const State&);
-    typedef Real (*CalcTimescaleImplLocator)(const System&, const State&);
-    typedef int (*CalcUnitWeightsImplLocator)(const System&, const State&, Vector& weights);
-    typedef int (*CalcDecorativeGeometryAndAppendImplLocator)
-       (const System&, const State&, Stage, Array<DecorativeGeometry>&);
-    typedef System* (*CloneImplLocator)(const System&);
+    typedef System::Guts* (*CloneImplLocator)(const System::Guts&);
 
-    typedef int (*ProjectImplLocator)(const System&, State&, Real, const Vector&, const Vector&,
+    typedef int (*RealizeWritableStateImplLocator)(const System::Guts&, State&);
+    typedef int (*RealizeConstStateImplLocator)(const System::Guts&, const State&);
+    typedef Real (*CalcTimescaleImplLocator)(const System::Guts&, const State&);
+    typedef int (*CalcUnitWeightsImplLocator)(const System::Guts&, const State&, Vector& weights);
+
+    typedef int (*ProjectImplLocator)(const System::Guts&, State&, Real, const Vector&, const Vector&,
                                              Vector&);
 
     typedef int (*HandleEventsImplLocator)
-       (const System&, State&, EventCause, const Array<int>&,
+       (const System::Guts&, State&, EventCause, const Array<int>&,
         Real, const Vector&, const Vector&, Stage&, bool&);
     typedef int (*CalcEventTriggerInfoImplLocator)
-       (const System&, const State&, Array<EventTriggerInfo>&);
+       (const System::Guts&, const State&, Array<EventTriggerInfo>&);
     typedef int (*CalcTimeOfNextScheduledEventImplLocator)
-       (const System&, const State&, Real&, Array<int>&);
+       (const System::Guts&, const State&, Real&, Array<int>&);
 
     class EventTriggerInfoRep;
 
     void librarySideConstruction(const String& name, const String& version);
     void librarySideDestruction();
+
+    void registerCloneImpl(CloneImplLocator);
 
     void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
     void registerRealizeModelImpl       (RealizeWritableStateImplLocator);
@@ -497,9 +602,6 @@ private:
     void registerRealizeDynamicsImpl    (RealizeConstStateImplLocator);
     void registerRealizeAccelerationImpl(RealizeConstStateImplLocator);
     void registerRealizeReportImpl      (RealizeConstStateImplLocator);
-
-    void registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator);
-    void registerCloneImpl(CloneImplLocator);
 
     void registerCalcTimescaleImpl(CalcTimescaleImplLocator);
     void registerCalcYUnitWeightsImplLocator(CalcUnitWeightsImplLocator);
@@ -512,97 +614,95 @@ private:
     // We want the locator functions to have access to the protected "Impl"
     // virtual methods, so we make them friends.
 
-    friend int systemRealizeTopologyImplLocator(const System&, State&);
-    friend int systemRealizeModelImplLocator(const System&, State&);
-    friend int systemRealizeInstanceImplLocator(const System&, const State&);
-    friend int systemRealizeTimeImplLocator(const System&, const State&);
-    friend int systemRealizePositionImplLocator(const System&, const State&);
-    friend int systemRealizeVelocityImplLocator(const System&, const State&);
-    friend int systemRealizeDynamicsImplLocator(const System&, const State&);
-    friend int systemRealizeAccelerationImplLocator(const System&, const State&);
-    friend int systemRealizeReportImplLocator(const System&, const State&);
+    friend System::Guts* systemCloneImplLocator(const System::Guts&);
 
-    friend int systemCalcDecorativeGeometryAndAppendImplLocator
-                (const System&, const State&, Stage, Array<DecorativeGeometry>&);
-    friend System* systemCloneImplLocator(const System&);
+    friend int systemRealizeTopologyImplLocator(const System::Guts&, State&);
+    friend int systemRealizeModelImplLocator   (const System::Guts&, State&);
+    friend int systemRealizeInstanceImplLocator(const System::Guts&, const State&);
+    friend int systemRealizeTimeImplLocator    (const System::Guts&, const State&);
+    friend int systemRealizePositionImplLocator(const System::Guts&, const State&);
+    friend int systemRealizeVelocityImplLocator(const System::Guts&, const State&);
+    friend int systemRealizeDynamicsImplLocator(const System::Guts&, const State&);
+    friend int systemRealizeAccelerationImplLocator(const System::Guts&, const State&);
+    friend int systemRealizeReportImplLocator      (const System::Guts&, const State&);
 
-    friend Real systemCalcTimescaleImplLocator(const System&, const State&);
-    friend int  systemCalcYUnitWeightsImplLocator(const System&, const State&, Vector& weights);
-    friend int  systemProjectImplLocator(const System&, State&, Real, const Vector&, const Vector&,
+    friend Real systemCalcTimescaleImplLocator(const System::Guts&, const State&);
+    friend int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&, Vector& weights);
+    friend int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
                                          Vector&);
-    friend int  systemCalcYErrUnitTolerancesImplLocator(const System&, const State&, Vector& ootols);
-    friend int  systemHandleEventsImplLocator(const System&, State&, EventCause, const Array<int>&,
+    friend int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
+    friend int  systemHandleEventsImplLocator(const System::Guts&, State&, EventCause, const Array<int>&,
                                               Real, const Vector&, const Vector&, Stage&, bool&);
-    friend int  systemCalcEventTriggerInfoImplLocator(const System&, const State&, Array<EventTriggerInfo>&);
-    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System&, const State&, Real&, Array<int>&);
+    friend int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<EventTriggerInfo>&);
+    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&);
 };
 
 
 // These are used to supply the client-side virtual function to the library, without
 // the client and library having to agree on the layout of the virtual function tables.
 
-static int systemRealizeTopologyImplLocator(const System& sys, State& state)
-  { return sys.realizeTopologyImpl(state); }
-static int systemRealizeModelImplLocator(const System& sys, State& state)
-  { return sys.realizeModelImpl(state); }
-static int systemRealizeInstanceImplLocator(const System& sys, const State& state)
-  { return sys.realizeInstanceImpl(state); }
-static int systemRealizeTimeImplLocator(const System& sys, const State& state)
-  { return sys.realizeTimeImpl(state); }
-static int systemRealizePositionImplLocator(const System& sys, const State& state)
-  { return sys.realizePositionImpl(state); }
-static int systemRealizeVelocityImplLocator(const System& sys, const State& state)
-  { return sys.realizeVelocityImpl(state); }
-static int systemRealizeDynamicsImplLocator(const System& sys, const State& state)
-  { return sys.realizeDynamicsImpl(state); }
-static int systemRealizeAccelerationImplLocator(const System& sys, const State& state)
-  { return sys.realizeAccelerationImpl(state); }
-static int systemRealizeReportImplLocator(const System& sys, const State& state)
-  { return sys.realizeReportImpl(state); }
-
-static int systemCalcDecorativeGeometryAndAppendImplLocator
-   (const System& sys, const State& s, Stage g, Array<DecorativeGeometry>& geom)
-  { return sys.calcDecorativeGeometryAndAppendImpl(s,g,geom); }
-static System* systemCloneImplLocator(const System& sys)
+static System::Guts* systemCloneImplLocator(const System::Guts& sys)
   { return sys.cloneImpl(); }
 
-static Real systemCalcTimescaleImplLocator(const System& sys, const State& state)
+static int systemRealizeTopologyImplLocator(const System::Guts& sys, State& state)
+  { return sys.realizeTopologyImpl(state); }
+static int systemRealizeModelImplLocator(const System::Guts& sys, State& state)
+  { return sys.realizeModelImpl(state); }
+static int systemRealizeInstanceImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeInstanceImpl(state); }
+static int systemRealizeTimeImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeTimeImpl(state); }
+static int systemRealizePositionImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizePositionImpl(state); }
+static int systemRealizeVelocityImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeVelocityImpl(state); }
+static int systemRealizeDynamicsImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeDynamicsImpl(state); }
+static int systemRealizeAccelerationImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeAccelerationImpl(state); }
+static int systemRealizeReportImplLocator(const System::Guts& sys, const State& state)
+  { return sys.realizeReportImpl(state); }
+
+
+static Real systemCalcTimescaleImplLocator(const System::Guts& sys, const State& state)
   { return sys.calcTimescaleImpl(state); }
 
-static int  systemCalcYUnitWeightsImplLocator(const System& sys, const State& state, Vector& weights)
+static int  systemCalcYUnitWeightsImplLocator(const System::Guts& sys, const State& state, Vector& weights)
   { return sys.calcYUnitWeightsImpl(state, weights); }
 
 static int  systemProjectImplLocator
-   (const System& sys, State& state, Real consAccuracy,
+   (const System::Guts& sys, State& state, Real consAccuracy,
     const Vector& yWeights, const Vector& ooConstraintTols, Vector& yErrest)
   { return sys.projectImpl(state, consAccuracy, yWeights, ooConstraintTols, yErrest); }
 
-static int  systemCalcYErrUnitTolerancesImplLocator(const System& sys, const State& state, Vector& ootols)
+static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts& sys, const State& state, Vector& ootols)
   { return sys.calcYErrUnitTolerancesImpl(state, ootols); }
 
 static int  systemHandleEventsImplLocator
-   (const System& sys, State& state, System::EventCause cause, const Array<int>& eventIds,
+   (const System::Guts& sys, State& state, System::EventCause cause, const Array<int>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate)
   { return sys.handleEventsImpl(state, cause, eventIds, accuracy, yWeights, ooConstraintTols, lowestModified, shouldTerminate); }
 
-static int  systemCalcEventTriggerInfoImplLocator(const System& sys, const State& state, Array<System::EventTriggerInfo>& info)
+static int  systemCalcEventTriggerInfoImplLocator(const System::Guts& sys, const State& state, Array<System::EventTriggerInfo>& info)
   { return sys.calcEventTriggerInfoImpl(state,info); }
 
 static int  systemCalcTimeOfNextScheduledEventImplLocator
-   (const System& sys, const State& state, Real& tNextEvent, Array<int>& eventIds)
+   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds)
   { return sys.calcTimeOfNextScheduledEventImpl(state,tNextEvent,eventIds); }
 
 
-// Default constructor must be inline so that it has access to the above static
+// Constructor must be inline so that it has access to the above static
 // functions which are private to the client-side compilation unit in which the
 // client-side virtual function table is understood.
-inline System::System(const String& name, const String& version) : rep(0)
+inline System::Guts::Guts(const String& name, const String& version) : rep(0)
 {
     librarySideConstruction(name, version);
 
     // Teach the library code how to call client side virtual functions by
     // calling through the client side compilation unit's private static
     // locator functions.
+    registerCloneImpl(systemCloneImplLocator);
+
     registerRealizeTopologyImpl    (systemRealizeTopologyImplLocator);
     registerRealizeModelImpl       (systemRealizeModelImplLocator);
     registerRealizeInstanceImpl    (systemRealizeInstanceImplLocator);
@@ -613,8 +713,6 @@ inline System::System(const String& name, const String& version) : rep(0)
     registerRealizeAccelerationImpl(systemRealizeAccelerationImplLocator);
     registerRealizeReportImpl      (systemRealizeReportImplLocator);
 
-    registerCalcDecorativeGeometryAndAppendImpl(systemCalcDecorativeGeometryAndAppendImplLocator);
-    registerCloneImpl(systemCloneImplLocator);
 
     registerCalcTimescaleImpl(systemCalcTimescaleImplLocator);
     registerCalcYUnitWeightsImplLocator(systemCalcYUnitWeightsImplLocator);

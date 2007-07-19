@@ -1,5 +1,5 @@
-#ifndef SimTK_SYSTEM_REP_H_
-#define SimTK_SYSTEM_REP_H_
+#ifndef SimTK_SYSTEM_GUTSREP_H_
+#define SimTK_SYSTEM_GUTSREP_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -34,31 +34,26 @@
 
 namespace SimTK {
 
-class SystemRep {
+class System::GutsRep {
 public:
-    SystemRep() 
+    GutsRep() 
       : systemName("<NONAME>"), systemVersion("0.0.0"), 
-        myHandle(0), privateImplementation(0),
+        myHandle(0),
         systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
         clearAllFunctionPointers();
     }
-    SystemRep(const String& name, const String& version) 
+    GutsRep(const String& name, const String& version) 
       : systemName(name), systemVersion(version), 
-        myHandle(0), privateImplementation(0),
+        myHandle(0),
         systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
     }
 
-    SystemRep(const SystemRep& src) {
+    GutsRep(const GutsRep& src) {
         systemName = src.systemName;
         systemVersion = src.systemVersion;
         myHandle = 0;
-        privateImplementation = 0;
-        if (src.privateImplementation && src.clonePrivateImplementationp) {
-            privateImplementation = 
-                src.clonePrivateImplementationp(src.privateImplementation);
-        }
         subsystems = src.subsystems;
         copyAllFunctionPointers(src);
         hasTimeAdvancedEventsFlag = src.hasTimeAdvancedEventsFlag;
@@ -66,38 +61,10 @@ public:
     }
 
 
-    ~SystemRep() {
-        if (privateImplementation && destructPrivateImplementationp) {
-            destructPrivateImplementationp(privateImplementation);
-            privateImplementation=0;
-        }
+    ~GutsRep() {
         clearMyHandle();
         subsystems.clear();
         invalidateSystemTopologyCache();
-    }
-
-    void adoptPrivateImplementation
-       (System::PrivateImplementation* p,
-        System::ClonePrivateImplementation clone,
-        System::DestructPrivateImplementation destruct)
-    {
-        SimTK_ASSERT_ALWAYS(p && clone && destruct, 
-            "System::adoptPrivateImplementation(): incomplete specification");
-        privateImplementation = p;
-        clonePrivateImplementationp = clone;
-        destructPrivateImplementationp = destruct;
-    }
-
-    const System::PrivateImplementation& getPrivateImplementation() const {
-        SimTK_ASSERT(privateImplementation,
-            "System::getPrivateImplementation()");
-        return *privateImplementation;
-    }
-
-    System::PrivateImplementation& updPrivateImplementation() {
-        SimTK_ASSERT(privateImplementation,
-            "System::updPrivateImplementation()");
-        return *privateImplementation;
     }
 
     const String& getName()    const {return systemName;}
@@ -134,7 +101,7 @@ public:
 
     // Default treats all state variable identically. Should be asking the 
     // subsystems. TODO
-    virtual Real calcYErrorNorm(const State& s, const Vector& y_err) const {
+    Real calcYErrorNorm(const State& s, const Vector& y_err) const {
         assert(y_err.size() == s.getY().size());
         SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
             "System::calcYErrorNorm()");
@@ -161,11 +128,8 @@ protected:
 
 private:
     friend class System;
-    System* myHandle;     // the owner of this rep
-
-
-    // Private implementation of concrete subsystem, if any.
-    System::PrivateImplementation* privateImplementation;
+    friend class System::Guts;
+    System* myHandle;     // the owner handle of these guts
 
         // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
 
@@ -173,33 +137,29 @@ private:
         // determined at run time so that we don't have to depend on a
         // particular ordering in the client side virtual function table.
 
-    System::RealizeWritableStateImplLocator         realizeTopologyp;
-    System::RealizeWritableStateImplLocator         realizeModelp;
-    System::RealizeConstStateImplLocator            realizeInstancep;
-    System::RealizeConstStateImplLocator            realizeTimep;
-    System::RealizeConstStateImplLocator            realizePositionp;
-    System::RealizeConstStateImplLocator            realizeVelocityp;
-    System::RealizeConstStateImplLocator            realizeDynamicsp;
-    System::RealizeConstStateImplLocator            realizeAccelerationp;
-    System::RealizeConstStateImplLocator            realizeReportp;
+    System::Guts::CloneImplLocator                        clonep;
 
-    System::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
-    System::CloneImplLocator                             clonep;
+    System::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
+    System::Guts::RealizeWritableStateImplLocator         realizeModelp;
+    System::Guts::RealizeConstStateImplLocator            realizeInstancep;
+    System::Guts::RealizeConstStateImplLocator            realizeTimep;
+    System::Guts::RealizeConstStateImplLocator            realizePositionp;
+    System::Guts::RealizeConstStateImplLocator            realizeVelocityp;
+    System::Guts::RealizeConstStateImplLocator            realizeDynamicsp;
+    System::Guts::RealizeConstStateImplLocator            realizeAccelerationp;
+    System::Guts::RealizeConstStateImplLocator            realizeReportp;
 
-    System::CalcTimescaleImplLocator                calcTimescalep;
-    System::CalcUnitWeightsImplLocator              calcYUnitWeightsp;
-    System::ProjectImplLocator                      projectp;
-    System::CalcUnitWeightsImplLocator              calcYErrUnitTolerancesp;
-    System::HandleEventsImplLocator                 handleEventsp;
-    System::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
-    System::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
-
-        // These routines allow us to manipulate the concrete subsystem's
-        // private implementation which we store here but otherwise ignore.
-    System::ClonePrivateImplementation    clonePrivateImplementationp;
-    System::DestructPrivateImplementation destructPrivateImplementationp;
+    System::Guts::CalcTimescaleImplLocator                calcTimescalep;
+    System::Guts::CalcUnitWeightsImplLocator              calcYUnitWeightsp;
+    System::Guts::ProjectImplLocator                      projectp;
+    System::Guts::CalcUnitWeightsImplLocator              calcYErrUnitTolerancesp;
+    System::Guts::HandleEventsImplLocator                 handleEventsp;
+    System::Guts::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
+    System::Guts::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
 
     void clearAllFunctionPointers() {
+        clonep = 0;
+
         realizeTopologyp = 0;
         realizeModelp = 0;
         realizeInstancep = 0;
@@ -210,9 +170,6 @@ private:
         realizeAccelerationp = 0;
         realizeReportp = 0;
 
-        calcDecorativeGeometryAndAppendp = 0;
-        clonep = 0;
-
         calcTimescalep = 0;
         calcYUnitWeightsp = 0;
         projectp = 0;
@@ -220,12 +177,11 @@ private:
         handleEventsp = 0;
         calcEventTriggerInfop = 0;
         calcTimeOfNextScheduledEventp = 0;
-
-        clonePrivateImplementationp = 0;
-        destructPrivateImplementationp = 0;
     }
 
-    void copyAllFunctionPointers(const SystemRep& src) {
+    void copyAllFunctionPointers(const GutsRep& src) {
+        clonep = src.clonep;
+
         realizeTopologyp = src.realizeTopologyp;
         realizeModelp    = src.realizeModelp;
         realizeInstancep = src.realizeInstancep;
@@ -236,9 +192,6 @@ private:
         realizeAccelerationp = src.realizeAccelerationp;
         realizeReportp   = src.realizeReportp;
 
-        calcDecorativeGeometryAndAppendp = src.calcDecorativeGeometryAndAppendp;
-        clonep                           = src.clonep;
-
         calcTimescalep                  = src.calcTimescalep;
         calcYUnitWeightsp               = src.calcYUnitWeightsp;
         projectp                        = src.projectp;
@@ -246,9 +199,6 @@ private:
         handleEventsp                   = src.handleEventsp;
         calcEventTriggerInfop           = src.calcEventTriggerInfop;
         calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
-
-        clonePrivateImplementationp    = src.clonePrivateImplementationp;
-        destructPrivateImplementationp = src.destructPrivateImplementationp;
     }
 
         // TOPOLOGY STAGE CACHE //
@@ -327,4 +277,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SYSTEM_REP_H_
+#endif // SimTK_SYSTEM_GUTSREP_H_

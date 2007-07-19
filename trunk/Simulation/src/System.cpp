@@ -24,7 +24,7 @@
 
 /**@file
  *
- * Implementation of System and SystemRep.
+ * Implementation of System, System::Guts, and System::GutsRep.
  */
 
 #include "SimTKcommon/basics.h"
@@ -39,122 +39,246 @@
 namespace SimTK {
 
     ////////////
-    // System //
+    // SYSTEM //
     ////////////
 
-bool System::isEmptyHandle() const {return rep==0;}
-bool System::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
+bool System::isEmptyHandle() const {return guts==0;}
+bool System::isOwnerHandle() const {return guts==0 || &guts->getSystem()==this;}
 bool System::isSameSystem(const System& otherSystem) const {
-    return rep && (rep==otherSystem.rep);
+    return guts && (guts==otherSystem.guts);
 }
 
-
-void System::librarySideConstruction(const String& name, const String& version) {
-    rep = new SystemRep(name,version);
-    rep->setMyHandle(*this);
-}
-
-void System::librarySideDestruction() {
-    if (getRep().myHandle==this)
-        delete rep; 
-    rep=0;
-}
-
-void System::registerRealizeTopologyImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeTopologyp = f;
-}
-void System::registerRealizeModelImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeModelp = f;
-}
-void System::registerRealizeInstanceImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeInstancep = f;
-}
-void System::registerRealizeTimeImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeTimep = f;
-}
-void System::registerRealizePositionImpl(RealizeConstStateImplLocator f) {
-    updRep().realizePositionp = f;
-}
-void System::registerRealizeVelocityImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeVelocityp = f;
-}
-void System::registerRealizeDynamicsImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeDynamicsp = f;
-}
-void System::registerRealizeAccelerationImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeAccelerationp = f;
-}
-void System::registerRealizeReportImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeReportp = f;
-}
-
-void System::registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator f) {
-    updRep().calcDecorativeGeometryAndAppendp = f;
-}
-void System::registerCloneImpl(CloneImplLocator f) {
-    updRep().clonep = f;
-}
-
-void System::registerCalcTimescaleImpl(CalcTimescaleImplLocator f) {
-    updRep().calcTimescalep = f;
-}
-void System::registerCalcYUnitWeightsImplLocator(CalcUnitWeightsImplLocator f) {
-    updRep().calcYUnitWeightsp = f;
-}
-void System::registerProjectImpl(ProjectImplLocator f) {
-    updRep().projectp = f;
-}
-void System::registerCalcYErrUnitTolerancesImplLocator(CalcUnitWeightsImplLocator f) {
-    updRep().calcYErrUnitTolerancesp = f;
-}
-void System::registerHandleEventsImpl(HandleEventsImplLocator f) {
-    updRep().handleEventsp = f;
-}
-void System::registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLocator f) {
-    updRep().calcEventTriggerInfop = f;
-}
-void System::registerCalcTimeOfNextScheduledEventImpl(CalcTimeOfNextScheduledEventImplLocator f) {
-    updRep().calcTimeOfNextScheduledEventp = f;
-}
-
-System::System(const System& src) : rep(0) {
-    if (src.rep) {
-        rep = new SystemRep(*src.rep);
-        rep->setMyHandle(*this);
+System::System(const System& src) : guts(0) {
+    if (src.guts) {
+        guts = src.guts->clone();
+        guts->setOwnerHandle(*this);
     }
 }
 
 System& System::operator=(const System& src) {
-    if (&src != this) {
-        if (isOwnerHandle()) delete rep; 
-        rep=0;
-        if (src.rep) {
-            rep = new SystemRep(*src.rep);
-            rep->setMyHandle(*this);
+    if (!isSameSystem(src)) {
+        if (isOwnerHandle()) delete guts; 
+        guts=0;
+        if (src.guts) {
+            guts = src.guts->clone();
+            guts->setOwnerHandle(*this);
         }
     }
     return *this;
 }
 
+System::~System() {
+    //TODO: delete should probably be called from library side VFT
+    if (guts && isOwnerHandle())
+        delete guts;
+    guts=0;
+}
 
-const String& System::getName()    const {return getRep().getName();}
-const String& System::getVersion() const {return getRep().getVersion();}
+void System::adoptSystemGuts(System::Guts* g) {
+    SimTK_ASSERT_ALWAYS(g, "System::adoptSystemGuts(): can't adopt null Guts");
+    SimTK_ASSERT_ALWAYS(!g->hasOwnerHandle(),
+        "System::adoptSystemGuts(): can't adopt Guts that already have an owner handle");
+    SimTK_ASSERT_ALWAYS(!guts,
+        "System::adoptSystemGuts(): this System handle is already in use");
+    guts = g;
+    guts->setOwnerHandle(*this);
+}
 
-int System::getNSubsystems() const {return getRep().getNSubsystems();}
-const Subsystem& System::getSubsystem(SubsystemId i) const {return getRep().getSubsystem(i);}
-Subsystem& System::updSubsystem(SubsystemId i) {return updRep().updSubsystem(i);}
+const String& System::getName()    const {return getSystemGuts().getName();}
+const String& System::getVersion() const {return getSystemGuts().getVersion();}
+
+const State& System::getDefaultState() const {return getSystemGuts().getDefaultState();}
+State& System::updDefaultState() {return updSystemGuts().updDefaultState();}
+
+SubsystemId System::adoptSubsystem(Subsystem& child) {return updSystemGuts().adoptSubsystem(child);}
+int System::getNSubsystems() const {return getSystemGuts().getNSubsystems();}
+const Subsystem& System::getSubsystem(SubsystemId i) const {return getSystemGuts().getSubsystem(i);}
+Subsystem& System::updSubsystem(SubsystemId i) {return updSystemGuts().updSubsystem(i);}
 
 // TODO: this should be a Model stage variable allocated by the base class.
 // Currently it is just a Topology stage variable stored in the base class.
-void System::setHasTimeAdvancedEvents(State&, bool hasEm) const {
-    getRep().hasTimeAdvancedEventsFlag = hasEm; // mutable
-    getRep().invalidateSystemTopologyCache();
+void System::setHasTimeAdvancedEvents(State& s, bool hasEm) const {
+    getSystemGuts().setHasTimeAdvancedEvents(s, hasEm); // mutable
+    getSystemGuts().invalidateSystemTopologyCache();
 }
-bool System::hasTimeAdvancedEvents(const State&) const {
+bool System::hasTimeAdvancedEvents(const State& s) const {
+    return getSystemGuts().hasTimeAdvancedEvents(s);
+}
+bool System::systemTopologyHasBeenRealized() const {
+    return getSystemGuts().systemTopologyHasBeenRealized();
+}
+const State& System::realizeTopology() const {return getSystemGuts().realizeTopology();}
+void System::realizeModel(State& s) const {getSystemGuts().realizeModel(s);}
+void System::realize(const State& s, Stage g) const {getSystemGuts().realize(s,g);}
+Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTimescale(s);}
+void System::calcYUnitWeights(const State& s, Vector& weights) const
+  { getSystemGuts().calcYUnitWeights(s,weights); }
+void System::project(State& s, Real consAccuracy, const Vector& yweights,
+                     const Vector& ootols, Vector& yerrest) const
+  { getSystemGuts().project(s,consAccuracy,yweights,ootols,yerrest); }
+void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const
+  { getSystemGuts().calcYErrUnitTolerances(s,tolerances); }
+void System::handleEvents(State& s, EventCause cause, const Array<int>& eventIds,
+                          Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
+                          Stage& lowestModified, bool& shouldTerminate) const
+  { getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
+                               lowestModified,shouldTerminate); }
+void System::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const
+  { getSystemGuts().calcEventTriggerInfo(s,info); }
+void System::calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent,
+                                          Array<int>& eventIds) const
+  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds); }
+
+const char* System::getEventCauseName(System::EventCause cause) {
+    switch(cause) {
+    case TriggeredEvents:   return "TriggeredEvents";
+    case ScheduledEvents:   return "ScheduledEvents";
+    case TimeAdvancedEvent: return "TimeAdvancedEvent";
+    case TerminationEvent:  return "TerminationEvent";
+    case InvalidEventCause: return "InvalidEventCause";
+    }
+    return "UNRECOGNIZED EVENT CAUSE";
+}
+
+
+    //////////////////
+    // SYSTEM::GUTS //
+    //////////////////
+
+// Default constructor is inline, but calls librarySideConstuction() here.
+void System::Guts::librarySideConstruction(const String& name, const String& version) {
+    rep = new System::GutsRep(name,version);
+    // note that the GutsRep object currently has no owner handle
+}
+
+// Destructor is inline, but calls librarySideDestruction() here.
+void System::Guts::librarySideDestruction() {
+    delete rep;
+    rep=0;
+}
+
+// Copy constructor
+System::Guts::Guts(const Guts& src) : rep(0) {
+    if (src.rep) {
+        rep = new System::GutsRep(*src.rep);
+        // note that the GutsRep object currently has no owner handle
+    }
+}
+
+// Copy assignment is suppressed
+    
+
+const System& System::Guts::getSystem() const {
+    assert(rep->myHandle);
+    return *rep->myHandle;
+}
+
+System& System::Guts::updSystem() {
+    assert(rep->myHandle);
+    return *rep->myHandle;
+}
+
+void System::Guts::setOwnerHandle(System& sys) {
+    assert(!rep->myHandle);
+    rep->myHandle = &sys;
+}
+
+bool System::Guts::hasOwnerHandle() const {
+    return rep->myHandle != 0;
+}
+
+void System::Guts::setHasTimeAdvancedEvents(State& s, bool hasEm) const {
+    getRep().hasTimeAdvancedEventsFlag = hasEm;
+}
+bool System::Guts::hasTimeAdvancedEvents(const State& s) const {
     return getRep().hasTimeAdvancedEventsFlag;
 }
 
-const State& System::realizeTopology() const {
+const String& System::Guts::getName()    const {return getRep().getName();}
+const String& System::Guts::getVersion() const {return getRep().getVersion();}
+
+bool System::Guts::systemTopologyHasBeenRealized() const {
+    return getRep().systemTopologyHasBeenRealized();
+}
+
+void System::Guts::invalidateSystemTopologyCache() const {
+    return getRep().invalidateSystemTopologyCache(); // mutable
+}
+
+const State& System::Guts::getDefaultState() const {
+    return getRep().getDefaultState();
+}
+
+State& System::Guts::updDefaultState() {
+    return updRep().updDefaultState();
+}
+
+int System::Guts::getNSubsystems() const {return getRep().getNSubsystems();}
+const Subsystem& System::Guts::getSubsystem(SubsystemId i) const {return getRep().getSubsystem(i);}
+Subsystem& System::Guts::updSubsystem(SubsystemId i) {return updRep().updSubsystem(i);}
+
+void System::Guts::registerCloneImpl(CloneImplLocator f) {
+    updRep().clonep = f;
+}
+
+void System::Guts::registerRealizeTopologyImpl(RealizeWritableStateImplLocator f) {
+    updRep().realizeTopologyp = f;
+}
+void System::Guts::registerRealizeModelImpl(RealizeWritableStateImplLocator f) {
+    updRep().realizeModelp = f;
+}
+void System::Guts::registerRealizeInstanceImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeInstancep = f;
+}
+void System::Guts::registerRealizeTimeImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeTimep = f;
+}
+void System::Guts::registerRealizePositionImpl(RealizeConstStateImplLocator f) {
+    updRep().realizePositionp = f;
+}
+void System::Guts::registerRealizeVelocityImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeVelocityp = f;
+}
+void System::Guts::registerRealizeDynamicsImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeDynamicsp = f;
+}
+void System::Guts::registerRealizeAccelerationImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeAccelerationp = f;
+}
+void System::Guts::registerRealizeReportImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeReportp = f;
+}
+
+
+
+void System::Guts::registerCalcTimescaleImpl(CalcTimescaleImplLocator f) {
+    updRep().calcTimescalep = f;
+}
+void System::Guts::registerCalcYUnitWeightsImplLocator(CalcUnitWeightsImplLocator f) {
+    updRep().calcYUnitWeightsp = f;
+}
+void System::Guts::registerProjectImpl(ProjectImplLocator f) {
+    updRep().projectp = f;
+}
+void System::Guts::registerCalcYErrUnitTolerancesImplLocator(CalcUnitWeightsImplLocator f) {
+    updRep().calcYErrUnitTolerancesp = f;
+}
+void System::Guts::registerHandleEventsImpl(HandleEventsImplLocator f) {
+    updRep().handleEventsp = f;
+}
+void System::Guts::registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLocator f) {
+    updRep().calcEventTriggerInfop = f;
+}
+void System::Guts::registerCalcTimeOfNextScheduledEventImpl(CalcTimeOfNextScheduledEventImplLocator f) {
+    updRep().calcTimeOfNextScheduledEventp = f;
+}
+
+System::Guts* System::Guts::clone() const {
+    return getRep().clonep(*this);
+}
+
+
+const State& System::Guts::realizeTopology() const {
     State& defaultState = getRep().defaultState; // mutable
     if (!getRep().systemTopologyHasBeenRealized()) {
         defaultState.clear();
@@ -163,7 +287,7 @@ const State& System::realizeTopology() const {
             defaultState.initializeSubsystem(i, getRep().subsystems[i].getName(), 
                                                 getRep().subsystems[i].getVersion());
         
-        realizeTopologyImpl(defaultState); // defaultState is mutable
+        getRep().realizeTopologyp(*this,defaultState); // defaultState is mutable
         getRep().systemTopologyRealized = true; // mutable
         defaultState.advanceSystemToStage(Stage::Topology);
 
@@ -178,129 +302,129 @@ const State& System::realizeTopology() const {
     return defaultState;
 }
 
-void System::realizeModel(State& s) const {
+void System::Guts::realizeModel(State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Topology, 
-        "System::realizeModel()");
+        "System::Guts::realizeModel()");
     if (s.getSystemStage() < Stage::Model) {
-        realizeModelImpl(s);    // take care of the Subsystems
+        getRep().realizeModelp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Model);
     }
 }
-void System::realizeInstance(const State& s) const {
+void System::Guts::realizeInstance(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Instance).prev(), 
-        "System::realizeInstance()");
+        "System::Guts::realizeInstance()");
     if (s.getSystemStage() < Stage::Instance) {
-        realizeInstanceImpl(s);    // take care of the Subsystems
+        getRep().realizeInstancep(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Instance);
     }
 }
-void System::realizeTime(const State& s) const {
+void System::Guts::realizeTime(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Time).prev(), 
-        "System::realizeTime()");
+        "System::Guts::realizeTime()");
     if (s.getSystemStage() < Stage::Time) {
-        realizeTimeImpl(s);    // take care of the Subsystems
+        getRep().realizeTimep(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Time);
     }
 }
-void System::realizePosition(const State& s) const {
+void System::Guts::realizePosition(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Position).prev(), 
-        "System::realizePosition()");
+        "System::Guts::realizePosition()");
     if (s.getSystemStage() < Stage::Position) {
-        realizePositionImpl(s);    // take care of the Subsystems
+        getRep().realizePositionp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Position);
     }
 }
-void System::realizeVelocity(const State& s) const {
+void System::Guts::realizeVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Velocity).prev(), 
-        "System::realizeVelocity()");
+        "System::Guts::realizeVelocity()");
     if (s.getSystemStage() < Stage::Velocity) {
-        realizeVelocityImpl(s);    // take care of the Subsystems
+        getRep().realizeVelocityp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Velocity);
     }
 }
-void System::realizeDynamics(const State& s) const {
+void System::Guts::realizeDynamics(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Dynamics).prev(), 
-        "System::realizeDynamics()");
+        "System::Guts::realizeDynamics()");
     if (s.getSystemStage() < Stage::Dynamics) {
-        realizeDynamicsImpl(s);    // take care of the Subsystems
+        getRep().realizeDynamicsp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Dynamics);
     }
 }
-void System::realizeAcceleration(const State& s) const {
+void System::Guts::realizeAcceleration(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Acceleration).prev(), 
-        "System::realizeAcceleration()");
+        "System::Guts::realizeAcceleration()");
     if (s.getSystemStage() < Stage::Acceleration) {
-        realizeAccelerationImpl(s);    // take care of the Subsystems
+        getRep().realizeAccelerationp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Acceleration);
     }
 }
-void System::realizeReport(const State& s) const {
+void System::Guts::realizeReport(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Report).prev(), 
-        "System::realizeReport()");
+        "System::Guts::realizeReport()");
     if (s.getSystemStage() < Stage::Report) {
-        realizeReportImpl(s);    // take care of the Subsystems
+        getRep().realizeReportp(*this,s);    // take care of the Subsystems
         s.advanceSystemToStage(Stage::Report);
     }
 }
 
-Real System::calcTimescale(const State& s) const {
+Real System::Guts::calcTimescale(const State& s) const {
     SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
-        "System::calcTimescale()");
-    return calcTimescaleImpl(s);
+        "System::Guts::calcTimescale()");
+    return getRep().calcTimescalep(*this,s);
 }
 
-void System::calcYUnitWeights(const State& s, Vector& weights) const {
+void System::Guts::calcYUnitWeights(const State& s, Vector& weights) const {
     SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
-        "System::calcYUnitWeights()");
-    calcYUnitWeightsImpl(s,weights);
+        "System::Guts::calcYUnitWeights()");
+    getRep().calcYUnitWeightsp(*this,s,weights);
 }
 
-void System::calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
+void System::Guts::calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
     SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
-        "System::calcYErrUnitTolerances()");
-    calcYErrUnitTolerancesImpl(s,tolerances);
+        "System::Guts::calcYErrUnitTolerances()");
+    getRep().calcYErrUnitTolerancesp(*this,s,tolerances);
 }
 
-void System::project(State& s, Real consAccuracy, const Vector& yweights,
+void System::Guts::project(State& s, Real consAccuracy, const Vector& yweights,
                      const Vector& ootols, Vector& yerrest) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance, // TODO: is this the right stage?
-        "System::project()");
-    projectImpl(s,consAccuracy,yweights,ootols,yerrest);
+        "System::Guts::project()");
+    getRep().projectp(*this,s,consAccuracy,yweights,ootols,yerrest);
 }
 
-void System::handleEvents
+void System::Guts::handleEvents
    (State& s, EventCause cause, const Array<int>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
-        "System::handleEvents()");
+        "System::Guts::handleEvents()");
     const Real savedTime = s.getTime();
-    handleEventsImpl(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
+    getRep().handleEventsp(*this,s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                      lowestModified, shouldTerminate);
     SimTK_ASSERT_ALWAYS(s.getTime() == savedTime,
-        "System::handleEvents(): handleEventsImpl() tried to change the time");
+        "System::Guts::handleEvents(): handleEventsImpl() tried to change the time");
 }
 
-void System::calcTimeOfNextScheduledEvent
+void System::Guts::calcTimeOfNextScheduledEvent
     (const State& s, Real& tNextEvent, Array<int>& eventIds) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
-        "System::calcTimeOfNextScheduledEvent()");
+        "System::Guts::calcTimeOfNextScheduledEvent()");
     tNextEvent = CNT<Real>::getInfinity();
-    calcTimeOfNextScheduledEventImpl(s,tNextEvent,eventIds);
+    getRep().calcTimeOfNextScheduledEventp(*this,s,tNextEvent,eventIds);
 }
 
-void System::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const {
+void System::Guts::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Instance,
-        "System::calcEventTriggerInfo()");
-    calcEventTriggerInfoImpl(s,info);
+        "System::Guts::calcEventTriggerInfo()");
+    getRep().calcEventTriggerInfop(*this,s,info);
 }
 
-void System::realize(const State& s, Stage g) const {
+void System::Guts::realize(const State& s, Stage g) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, 
-        "System::realize()");
+        "System::Guts::realize()");
 
     Stage stageNow;
     while ((stageNow=s.getSystemStage()) < g) {
@@ -312,35 +436,23 @@ void System::realize(const State& s, Stage g) const {
         case Stage::Velocity:     realizeDynamics(s);     break;
         case Stage::Dynamics:     realizeAcceleration(s); break;
         case Stage::Acceleration: realizeReport(s);       break;
-        default: assert(!"System::realize(): bad stage");
+        default: assert(!"System::Guts::realize(): bad stage");
         }
     }
 }
 
-void System::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
+void System::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
     assert(stage==Stage::Topology || s.getSystemStage() >= stage);
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].calcDecorativeGeometryAndAppend(s, stage, geom);
 }
 
-bool System::topologyHasBeenRealized() const {
-    return getRep().systemTopologyHasBeenRealized();
-}
 
-const State& System::getDefaultState() const {
-    return getRep().getDefaultState();
-}
-
-State& System::updDefaultState() {
-    return updRep().updDefaultState();
-}
-
-
-Real System::calcYErrorNorm(const State& s, const Vector& y_err) const {
+Real System::Guts::calcYErrorNorm(const State& s, const Vector& y_err) const {
     return getRep().calcYErrorNorm(s,y_err);
 }
 
-SubsystemId System::adoptSubsystem(Subsystem& src) {
+SubsystemId System::Guts::adoptSubsystem(Subsystem& src) {
     return updRep().adoptSubsystem(src);
 }
 
@@ -351,67 +463,57 @@ SubsystemId System::adoptSubsystem(Subsystem& src) {
 // get filled in to the default virtual function table on the *client* side which
 // knows where to put each function by name.
 
-int System::realizeTopologyImpl(State& s) const { 
+int System::Guts::realizeTopologyImpl(State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemTopology(s);
     return 0;
 }
-int System::realizeModelImpl(State& s) const {
+int System::Guts::realizeModelImpl(State& s) const {
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemModel(s);
     return 0;
 }
-int System::realizeInstanceImpl(const State& s) const { 
+int System::Guts::realizeInstanceImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemInstance(s);
     return 0;
 }
-int System::realizeTimeImpl(const State& s) const { 
+int System::Guts::realizeTimeImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemTime(s);
     return 0;
 }
-int System::realizePositionImpl(const State& s) const { 
+int System::Guts::realizePositionImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemPosition(s);
     return 0;
 }
-int System::realizeVelocityImpl(const State& s) const { 
+int System::Guts::realizeVelocityImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemVelocity(s);
     return 0;
 }
-int System::realizeDynamicsImpl(const State& s) const { 
+int System::Guts::realizeDynamicsImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemDynamics(s);
     return 0;
 }
-int System::realizeAccelerationImpl(const State& s) const { 
+int System::Guts::realizeAccelerationImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemAcceleration(s);
     return 0;
 }
-int System::realizeReportImpl(const State& s) const { 
+int System::Guts::realizeReportImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
         getRep().subsystems[i].realizeSubsystemReport(s);
     return 0;
 }
 
-int System::calcDecorativeGeometryAndAppendImpl
-   (const State&, Stage, Array<DecorativeGeometry>&) const
-{
-    return 0;
-}
-
-System* System::cloneImpl() const {
-    return new System(*this);
-}
-
-Real System::calcTimescaleImpl(const State&) const {
+Real System::Guts::calcTimescaleImpl(const State&) const {
     return 0.1; // TODO!!!
 }
 
-int System::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
+int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(s.getNY());
     VectorView qwts = weights(s.getQStart(), s.getNQ());   // writable views
     VectorView uwts = weights(s.getUStart(), s.getNU());
@@ -426,7 +528,7 @@ int System::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
     return 0;
 }
 
-int System::projectImpl(State&, Real consAccuracy, const Vector& yweights,
+int System::Guts::projectImpl(State&, Real consAccuracy, const Vector& yweights,
                         const Vector& ootols, Vector& yerrest) const
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "project"); 
@@ -434,7 +536,7 @@ int System::projectImpl(State&, Real consAccuracy, const Vector& yweights,
 }
 
 
-int System::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
+int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
     ootols.resize(s.getNYErr());
     VectorView qtols = ootols(s.getQErrStart(), s.getNQErr()); // writable views
     VectorView utols = ootols(s.getUErrStart(), s.getNUErr());
@@ -447,7 +549,7 @@ int System::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) const {
     return 0;
 }
 
-int System::handleEventsImpl
+int System::Guts::handleEventsImpl
    (State&, EventCause, const Array<int>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
@@ -456,14 +558,14 @@ int System::handleEventsImpl
     return std::numeric_limits<int>::min();
 }
 
-int System::calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& info) const {
+int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& info) const {
     info.resize(s.getNEvents());
     for (int i=0; i<info.size(); ++i) 
         info[i] = EventTriggerInfo(i);
     return 0;
 }
 
-int System::calcTimeOfNextScheduledEventImpl
+int System::Guts::calcTimeOfNextScheduledEventImpl
     (const State&, Real& tNextEvent, Array<int>& eventIds) const
 {
     tNextEvent = NTraits<Real>::Infinity;
@@ -472,34 +574,9 @@ int System::calcTimeOfNextScheduledEventImpl
 }
 
 
-const char* System::getEventCauseName(System::EventCause cause) {
-    switch(cause) {
-    case TriggeredEvents:   return "TriggeredEvents";
-    case ScheduledEvents:   return "ScheduledEvents";
-    case TimeAdvancedEvent: return "TimeAdvancedEvent";
-    case TerminationEvent:  return "TerminationEvent";
-    case InvalidEventCause: return "InvalidEventCause";
-    }
-    return "UNRECOGNIZED EVENT CAUSE";
-}
-
-
-void System::adoptPrivateImplementation(System::PrivateImplementation* p,
-                                        System::ClonePrivateImplementation clone,
-                                        System::DestructPrivateImplementation destruct)
-{
-    updRep().adoptPrivateImplementation(p,clone,destruct);
-}
-
-const System::PrivateImplementation& System::getPrivateImplementation() const {
-    return getRep().getPrivateImplementation();
-}
-
-System::PrivateImplementation& System::updPrivateImplementation() {
-    return updRep().updPrivateImplementation();
-}
-
-    // IMPLEMENTATION OF EVENT TRIGGER INFO
+    ////////////////////////
+    // EVENT TRIGGER INFO //
+    ////////////////////////
 
 System::EventTriggerInfo::EventTriggerInfo() : rep(0) {
     rep = new System::EventTriggerInfoRep(this);
@@ -573,12 +650,6 @@ System::EventTriggerInfo::setRequiredLocalizationTimeWindow(Real w) {
     updRep().localizationWindow = w; 
     return *this;
 }
-
-    ////////////////
-    // SYSTEM REP //
-    ////////////////
-
-
 
 } // namespace SimTK
 

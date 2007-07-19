@@ -415,7 +415,7 @@ Subsystem::PrivateImplementation& Subsystem::updPrivateImplementation() {
 void SubsystemRep::invalidateSubsystemTopologyCache() const {
     subsystemTopologyRealized = false;
     if (isInSystem()) 
-        getSystem().getRep().invalidateSystemTopologyCache();
+        getSystem().getSystemGuts().invalidateSystemTopologyCache();
 }
 
     //////////////////////////////

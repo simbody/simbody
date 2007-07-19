@@ -52,9 +52,7 @@ class DecorativeGeometry;
  *    - the end user of a concrete Subsystem
  * Only end user methods are public here. Methods intended for
  * use by the concrete Subsystem class are protected; anything
- * else is private. Then System and its private implementation
- * class SystemRep are made friends so they can access private
- * methods.
+ * else is private.
  */
 class SimTK_SimTKCOMMON_EXPORT Subsystem {
 public:
@@ -335,7 +333,7 @@ private:
     class SubsystemRep* rep;
     friend class SubsystemRep;
     friend class System;
-    friend class SystemRep;
+    friend class System::Guts;
 
     // These typedefs are used internally to manage the binary-compatible
     // handling of the virtual function table.
