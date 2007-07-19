@@ -36,6 +36,9 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/DecorativeGeometry.h"
+
+#include "SimTKcommon/internal/SystemGuts.h"
+//TODO: #include "SimTKcommon/internal/SubsystemGuts.h"
 #endif
 
 

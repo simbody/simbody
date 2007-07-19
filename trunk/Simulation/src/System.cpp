@@ -29,8 +29,9 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
-#include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/System.h"
+#include "SimTKcommon/internal/SystemGuts.h"
 
 #include "SystemRep.h"
 

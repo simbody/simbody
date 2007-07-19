@@ -26,10 +26,10 @@
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
+#include "SimTKcommon/internal/State.h"
 
 namespace SimTK {
 
-class State;
 class System;
 class DecorativeGeometry;
 
@@ -333,7 +333,6 @@ private:
     class SubsystemRep* rep;
     friend class SubsystemRep;
     friend class System;
-    friend class System::Guts;
 
     // These typedefs are used internally to manage the binary-compatible
     // handling of the virtual function table.
@@ -345,7 +344,7 @@ private:
        (const Subsystem&, const State&, Stage, Array<DecorativeGeometry>&);
     typedef Subsystem* (*CloneImplLocator)(const Subsystem&);
 
-    void librarySideConstruction(const String& name, const String& version);
+    void librarySideConstruction(System& sys, const String& name, const String& version);
     void librarySideDestruction();
 
     void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
@@ -433,7 +432,7 @@ static Subsystem* subsystemCloneImplLocator(const Subsystem& sys)
 // client-side virtual function table is understood.
 inline Subsystem::Subsystem(System& sys, const String& name, const String& version) : rep(0)
 {
-    librarySideConstruction(name, version);
+    librarySideConstruction(sys, name, version);
 
     // Teach the library code how to call client side virtual functions by
     // calling through the client side compilation unit's private static
@@ -455,8 +454,6 @@ inline Subsystem::Subsystem(System& sys, const String& name, const String& versi
     registerCalcUErrUnitTolerancesImpl(subsystemCalcUErrUnitTolerancesImplLocator);
     registerCalcDecorativeGeometryAndAppendImpl(subsystemCalcDecorativeGeometryAndAppendImplLocator);
     registerCloneImpl(subsystemCloneImplLocator);
-
-    sys.adoptSubsystem(*this);
 }
 
 

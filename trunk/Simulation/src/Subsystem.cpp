@@ -49,9 +49,11 @@ bool Subsystem::isSameSubsystem(const Subsystem& otherSubsystem) const {
     return rep && (rep==otherSubsystem.rep);
 }
 
-void Subsystem::librarySideConstruction(const String& name, const String& version) {
+void Subsystem::librarySideConstruction(System& sys, const String& name, const String& version) {
     rep = new SubsystemRep(name,version);
     rep->setMyHandle(*this);
+
+    sys.adoptSubsystem(*this);
 }
 
 void Subsystem::librarySideDestruction() {

@@ -30,7 +30,7 @@
  */
 
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/internal/common.h"
 #include "SimTKlapack.h"
 
 namespace SimTK {
