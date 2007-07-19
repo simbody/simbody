@@ -538,7 +538,8 @@ public:
                 stageStart += nevents[j];
             }
 
-            // Now partition the global resources among the subsystems.
+            // Now partition the global resources among the subsystems and copy
+            // in the initial values for the state variables.
             int nxtq=0, nxtu=0, nxtz=0, nxtqerr=0, nxtuerr=0, nxtudoterr=0;
             int nxtevent[Stage::NValid];
             for (int j=0; j<Stage::NValid; ++j)
@@ -577,6 +578,9 @@ public:
                 }
 
             }
+
+            // As the final "modeling" step, initialize time to 0 (it's NaN before this).
+            t = 0;
         }
 
         systemStage = g;

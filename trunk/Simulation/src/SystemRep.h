@@ -38,39 +38,78 @@ class SystemRep {
 public:
     SystemRep() 
       : systemName("<NONAME>"), systemVersion("0.0.0"), 
-        myHandle(0), systemTopologyRealized(false)
+        myHandle(0), privateImplementation(0),
+        systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
+        clearAllFunctionPointers();
     }
     SystemRep(const String& name, const String& version) 
       : systemName(name), systemVersion(version), 
-        myHandle(0), systemTopologyRealized(false)
+        myHandle(0), privateImplementation(0),
+        systemTopologyRealized(false), hasTimeAdvancedEventsFlag(false)
     {
     }
-    virtual ~SystemRep() {
+
+    SystemRep(const SystemRep& src) {
+        systemName = src.systemName;
+        systemVersion = src.systemVersion;
+        myHandle = 0;
+        privateImplementation = 0;
+        if (src.privateImplementation && src.clonePrivateImplementationp) {
+            privateImplementation = 
+                src.clonePrivateImplementationp(src.privateImplementation);
+        }
+        subsystems = src.subsystems;
+        copyAllFunctionPointers(src);
+        hasTimeAdvancedEventsFlag = src.hasTimeAdvancedEventsFlag;
+        systemTopologyRealized = false;
+    }
+
+
+    ~SystemRep() {
+        if (privateImplementation && destructPrivateImplementationp) {
+            destructPrivateImplementationp(privateImplementation);
+            privateImplementation=0;
+        }
         clearMyHandle();
         subsystems.clear();
         invalidateSystemTopologyCache();
     }
 
+    void adoptPrivateImplementation
+       (System::PrivateImplementation* p,
+        System::ClonePrivateImplementation clone,
+        System::DestructPrivateImplementation destruct)
+    {
+        SimTK_ASSERT_ALWAYS(p && clone && destruct, 
+            "System::adoptPrivateImplementation(): incomplete specification");
+        privateImplementation = p;
+        clonePrivateImplementationp = clone;
+        destructPrivateImplementationp = destruct;
+    }
+
+    const System::PrivateImplementation& getPrivateImplementation() const {
+        SimTK_ASSERT(privateImplementation,
+            "System::getPrivateImplementation()");
+        return *privateImplementation;
+    }
+
+    System::PrivateImplementation& updPrivateImplementation() {
+        SimTK_ASSERT(privateImplementation,
+            "System::updPrivateImplementation()");
+        return *privateImplementation;
+    }
+
     const String& getName()    const {return systemName;}
     const String& getVersion() const {return systemVersion;}
 
-    // This is available after realizeTopology().
-    const State& getDefaultState() const {
-        SimTK_ASSERT_ALWAYS(systemTopologyHasBeenRealized(),
-            "System::getDefaultState(): realizeTopology() must be called first.");
-        return defaultState;
-    }
+    const State& getDefaultState() const {return defaultState;}
+    State&       updDefaultState()       {return defaultState;}
 
     int              getNSubsystems()            const {return subsystems.size();}
     const Subsystem& getSubsystem(SubsystemId i) const {return subsystems[i];}
     Subsystem&       updSubsystem(SubsystemId i)       {return subsystems[i];}
 
-    SystemRep* clone() const {
-        SystemRep* dup = cloneSystemRep();
-        dup->myHandle = 0;
-        return dup;
-    }
 
 	// Take over ownership from the Subsystem handle, allocate a new
     // subsystem slot for it, and return the slot number. This is only 
@@ -93,109 +132,6 @@ public:
 		return id;
 	}
 
-    virtual SystemRep* cloneSystemRep() const = 0;
-
-    // These routines wrap the virtual realize...Impl() methods to ensure
-    // good behavior such as checking that stage requirements are met and
-    // updating the stage at the end. Note that these will do nothing if
-    // the System stage is already at or greater than the indicated stage.
-    const State& realizeTopology()           const;
-    void realizeModel       (State &s)       const;
-    void realizeInstance    (const State &s) const;
-    void realizeTime        (const State &s) const;
-    void realizePosition    (const State &s) const;
-    void realizeVelocity    (const State &s) const;
-    void realizeDynamics    (const State &s) const;
-    void realizeAcceleration(const State &s) const;
-    void realizeReport      (const State &s) const;
-
-    // For a State that has already been realized to Stage::Model or higher,
-    // this routine conveniently realizes the State up to the indicated Stage
-    // (if needed), one Stage at a time, using the above routines. This will
-    // throw an exception if the State hasn't already been realized to at
-    // least Stage::Model.
-    void realize(const State& s, Stage g) const;
-
-    // Override these to change the evaluation order of the Subsystems.
-    // The default is to evaluate them in increasing order of SubsystemId.
-    // These methods should not be called directly; they are invoked by the
-    // above wrapper methods. Note: the wrappers *will not* call these
-    // routines if the system stage has already met the indicated stage level.
-    // If fact these routines will be called only when the system stage
-    // is at the level just prior to the one indicated here. For example,
-    // realizeVelocityImpl() will be called only if the passed-in State
-    // has been determined to have its system stage exactly Stage::Position.
-    virtual void realizeTopologyImpl(State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemTopology(s);
-    }
-    virtual void realizeModelImpl(State& s) const {
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemModel(s);
-    }
-    virtual void realizeInstanceImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemInstance(s);
-    }
-    virtual void realizeTimeImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemTime(s);
-    }
-    virtual void realizePositionImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemPosition(s);
-    }
-    virtual void realizeVelocityImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemVelocity(s);
-    }
-    virtual void realizeDynamicsImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemDynamics(s);
-    }
-    virtual void realizeAccelerationImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemAcceleration(s);
-    }
-    virtual void realizeReportImpl(const State& s) const { 
-        for (int i=0; i<getNSubsystems(); ++i)
-            subsystems[i].getRep().realizeSubsystemReport(s);
-    }
-
-    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
-
-    void calcYUnitWeights(const State& s, Vector& weights) const {
-        weights.resize(s.getNY());
-        VectorView qwts = weights(s.getQStart(), s.getNQ());   // writable views
-        VectorView uwts = weights(s.getUStart(), s.getNU());
-        VectorView zwts = weights(s.getZStart(), s.getNZ());
-
-        for (int i=0; i<getNSubsystems(); ++i) {
-            const Subsystem& sub = subsystems[i];
-            sub.calcQUnitWeights(s, qwts(s.getQStart(i), s.getNQ(i)));
-            sub.calcUUnitWeights(s, uwts(s.getUStart(i), s.getNU(i)));
-            sub.calcZUnitWeights(s, zwts(s.getZStart(i), s.getNZ(i)));
-        }
-    }
-
-    void calcYErrUnitTolerances(const State& s, Vector& tolerances) const {
-        tolerances.resize(s.getNYErr());
-        VectorView qtols = tolerances(s.getQErrStart(), s.getNQErr()); // writable views
-        VectorView utols = tolerances(s.getUErrStart(), s.getNUErr());
-
-        for (int i=0; i<getNSubsystems(); ++i) {
-            const Subsystem& sub = subsystems[i];
-            sub.calcQErrUnitTolerances(s, qtols(s.getQErrStart(i), s.getNQErr(i)));
-            sub.calcUErrUnitTolerances(s, utols(s.getUErrStart(i), s.getNUErr(i)));
-        }
-    }
-
-    virtual Real calcTimescale(const State& s) const {
-        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Instance,
-            "System::calcTimescale()");
-        return 0.1; // TODO!!!
-    }
-
     // Default treats all state variable identically. Should be asking the 
     // subsystems. TODO
     virtual Real calcYErrorNorm(const State& s, const Vector& y_err) const {
@@ -213,7 +149,7 @@ public:
         return systemTopologyRealized;
     }
 
-    void invalidateSystemTopologyCache() {
+    void invalidateSystemTopologyCache() const {
         systemTopologyRealized = false;
         defaultState.clear();
     }
@@ -227,6 +163,94 @@ private:
     friend class System;
     System* myHandle;     // the owner of this rep
 
+
+    // Private implementation of concrete subsystem, if any.
+    System::PrivateImplementation* privateImplementation;
+
+        // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
+
+        // This is a virtual function table, but the addresses are
+        // determined at run time so that we don't have to depend on a
+        // particular ordering in the client side virtual function table.
+
+    System::RealizeWritableStateImplLocator         realizeTopologyp;
+    System::RealizeWritableStateImplLocator         realizeModelp;
+    System::RealizeConstStateImplLocator            realizeInstancep;
+    System::RealizeConstStateImplLocator            realizeTimep;
+    System::RealizeConstStateImplLocator            realizePositionp;
+    System::RealizeConstStateImplLocator            realizeVelocityp;
+    System::RealizeConstStateImplLocator            realizeDynamicsp;
+    System::RealizeConstStateImplLocator            realizeAccelerationp;
+    System::RealizeConstStateImplLocator            realizeReportp;
+
+    System::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
+    System::CloneImplLocator                             clonep;
+
+    System::CalcTimescaleImplLocator                calcTimescalep;
+    System::CalcUnitWeightsImplLocator              calcYUnitWeightsp;
+    System::ProjectImplLocator                      projectp;
+    System::CalcUnitWeightsImplLocator              calcYErrUnitTolerancesp;
+    System::HandleEventsImplLocator                 handleEventsp;
+    System::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
+    System::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
+
+        // These routines allow us to manipulate the concrete subsystem's
+        // private implementation which we store here but otherwise ignore.
+    System::ClonePrivateImplementation    clonePrivateImplementationp;
+    System::DestructPrivateImplementation destructPrivateImplementationp;
+
+    void clearAllFunctionPointers() {
+        realizeTopologyp = 0;
+        realizeModelp = 0;
+        realizeInstancep = 0;
+        realizeTimep = 0;
+        realizePositionp = 0;
+        realizeVelocityp = 0;
+        realizeDynamicsp = 0;
+        realizeAccelerationp = 0;
+        realizeReportp = 0;
+
+        calcDecorativeGeometryAndAppendp = 0;
+        clonep = 0;
+
+        calcTimescalep = 0;
+        calcYUnitWeightsp = 0;
+        projectp = 0;
+        calcYErrUnitTolerancesp = 0;
+        handleEventsp = 0;
+        calcEventTriggerInfop = 0;
+        calcTimeOfNextScheduledEventp = 0;
+
+        clonePrivateImplementationp = 0;
+        destructPrivateImplementationp = 0;
+    }
+
+    void copyAllFunctionPointers(const SystemRep& src) {
+        realizeTopologyp = src.realizeTopologyp;
+        realizeModelp    = src.realizeModelp;
+        realizeInstancep = src.realizeInstancep;
+        realizeTimep     = src.realizeTimep;
+        realizePositionp = src.realizePositionp;
+        realizeVelocityp = src.realizeVelocityp;
+        realizeDynamicsp = src.realizeDynamicsp;
+        realizeAccelerationp = src.realizeAccelerationp;
+        realizeReportp   = src.realizeReportp;
+
+        calcDecorativeGeometryAndAppendp = src.calcDecorativeGeometryAndAppendp;
+        clonep                           = src.clonep;
+
+        calcTimescalep                  = src.calcTimescalep;
+        calcYUnitWeightsp               = src.calcYUnitWeightsp;
+        projectp                        = src.projectp;
+        calcYErrUnitTolerancesp         = src.calcYErrUnitTolerancesp;
+        handleEventsp                   = src.handleEventsp;
+        calcEventTriggerInfop           = src.calcEventTriggerInfop;
+        calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
+
+        clonePrivateImplementationp    = src.clonePrivateImplementationp;
+        destructPrivateImplementationp = src.destructPrivateImplementationp;
+    }
+
         // TOPOLOGY STAGE CACHE //
 
     // This should only be true when *all* subsystems have successfully
@@ -237,6 +261,34 @@ private:
 
     // This is only meaningful if topologyRealized==true.
     mutable State defaultState;
+
+    mutable bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
+
+};
+
+
+////////////////////////////
+// EVENT TRIGGER INFO REP //
+////////////////////////////
+
+class System::EventTriggerInfoRep {
+public:
+    explicit EventTriggerInfoRep(System::EventTriggerInfo* h)
+      : myHandle(h), eventId(-1), triggerOnRising(true), triggerOnFalling(true),
+        triggerOnZero(false), localizationWindow(0.1)
+    {
+        assert(h);
+    }
+
+private:
+    System::EventTriggerInfo* myHandle;
+    friend class System::EventTriggerInfo;
+
+    int  eventId;
+    bool triggerOnRising;
+    bool triggerOnFalling;
+    bool triggerOnZero;
+    Real localizationWindow;
 };
 
 // TODO

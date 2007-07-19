@@ -30,18 +30,18 @@
 
 namespace SimTK {
 
-class State;
 class Subsystem;
 class DecorativeGeometry;
 
 /**
  * The abstract parent of all Systems.
+ *
  * A System serves as a mediator for a group of interacting Subsystems.
  * All will share a single system State, and typically subsystems will
  * need access to content in the state which is produced by other
  * subsystems. 
  *
- * A System provides a unique subsystem index (a small positive integer)
+ * A System provides a unique SubsystemId (a small positive integer)
  * for each of its subsystems, and the subsystems are constructed
  * knowing their indices. The indices are used subsequently by the subsystems
  * to find their own entries in the system state, and by each subsystem
@@ -60,16 +60,42 @@ class DecorativeGeometry;
  * before the configuration-dependent force elements. However, at
  * Acceleration stage, the force elements must be realized before the
  * mechanical accelerations can be calculated.
+ *
+ * There are two distinct users of this class:
+ *   - the concrete Systems derived from this class
+ *   - the end user of a concrete System
+ * Only end user methods are public here. Methods intended for use
+ * by the concrete System class are protected.
+ *
+ * The System and SystemRep classes are friends of Subsystem and SubsystemRep.
+ * (TODO: is that a good idea?)
  */
 class SimTK_SimTKCOMMON_EXPORT System {
 public:
-    System() : rep(0) { }
-    ~System();
     System(const System&);
     System& operator=(const System&);
 
+    // must be inline for binary compatibility
+    inline explicit System(const String& name="<NONAME>", 
+                           const String& version="0.0.0");
+
+    //TODO: is this right? May need a private static function to pass
+    //to the library which can find the virtual destructor entry.
+    inline virtual ~System() {librarySideDestruction();}
+
     const String& getName()    const;
     const String& getVersion() const;
+
+    // If a concrete System needs private data, derive that
+    // private implementation class from this base class. That permits
+    // it to be stored with the System base class's private implementation,
+    // which is called SystemRep.
+    class PrivateImplementation {
+    };
+
+        //////////////////////////////
+        // EVALUATION (REALIZATION) //
+        //////////////////////////////
 
     /// The following call must be made after any topological change
     /// has been made to this System, before the System can be used
@@ -103,6 +129,7 @@ public:
     /// to initialize other States to which you have write access. Those
     /// States are then suitable for further computation with this System.
     const State& getDefaultState() const;
+    State&       updDefaultState();
 
     /// This call is required if Model-stage variables are changed from
     /// their default values. The System topology must already have been
@@ -140,6 +167,12 @@ public:
     // been called but the State is ignored.
     void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
 
+        ///////////////////////////
+        // THE CONTINUOUS SYSTEM //
+        ///////////////////////////
+
+            // UNCONSTRAINED
+
     /// This operator can be called at Stage::Instance or higher and 
     /// returns a rough estimate of a length of time we consider significant
     /// for this system. For example, this could be the period of the highest-frequency
@@ -166,6 +199,22 @@ public:
     /// is expected to invoke it only occasionally.
     void calcYUnitWeights(const State&, Vector& weights) const;
 
+            // CONSTRAINED
+
+    /// This optional solver projects the given State back on to the constraint
+    /// manifold, by the shortest path possible in the weighted norm
+    /// given by the supplied weights, satisfying the constraints by
+    /// reducing the supplied tolerance norm to below consAccuracy.
+    /// May also project out the constraint-normal component of the
+    /// passed-in error estimate vector yerrest.
+    /// This is part of the integration of the continuous DAE system and
+    /// thus should never require a restart. The System author must ensure
+    /// that only position and velocity continuous variables are updated
+    /// by this call.
+    /// On return the state will be realized to at least Stage::Velocity.
+    void project(State&, Real consAccuracy, const Vector& yweights,
+                 const Vector& ootols, Vector& yerrest) const;
+
     /// This provides scaling information for each of the position and velocity
     /// constraints (YErr) in the State. The tolerance is the absolute error in the
     /// constraint which is considered a "unit violation" of that state. Then
@@ -175,6 +224,103 @@ public:
     /// This is expected to be a cheap operation but not to change during
     /// a study. State must be realized to Stage::Model.
     void calcYErrUnitTolerances(const State&, Vector& tolerances) const;
+
+
+        /////////////////////////
+        // THE DISCRETE SYSTEM //
+        /////////////////////////
+
+    class EventTriggerInfo;
+
+    /// This determines whether this System wants to be notified whenever time
+    /// advances irreversibly. If set true, time advancement is treated as an
+    /// event. Otherwise, time advancement proceeds silently. This must be 
+    /// determined no later than Model stage, which is when an Integrator will
+    /// call it.
+    /// TODO: currently not using State so these are Topology stage.
+    void setHasTimeAdvancedEvents(State&, bool) const; // default=false
+    bool hasTimeAdvancedEvents(const State&) const;
+
+    /// These are all the possible causes for events. (1) An event trigger
+    /// function may have undergone a monitored sign transition, (2) we
+    /// may have reached the time for a scheduled event, (3) the integrator
+    /// may have completed an internal step (assuming we registered our
+    /// interest in those), (4) or a termination condition may have been
+    /// detected. In case several of these causes are detected in 
+    /// a single step, they are sequentialized in the order shown,
+    /// like this:
+    ///    1. The occurrence of triggered events is reported and
+    ///       the triggering state and a list of triggered events
+    ///       are passed to the event handler for processing (meaning
+    ///       the state, but not the time, is modified). [Note that
+    ///       simultaneity *within* the set of triggered events may
+    ///       also require special handling; we're not talking about
+    ///       that here, just simultaneity of *causes*.]
+    ///    2. Next, using the state resulting from step 1, the time is checked
+    ///       to see if scheduled events have occurred. If so, a list of
+    ///       those events is passed to the event handler for processing.
+    ///    3. Next, if this system has requested time-advanced events,
+    ///       the event handler is called with the state that resulted
+    ///       from step 2 and the "time advanced" cause noted. No event
+    ///       list is passed in that case. The state may be modified.
+    ///    4. Last, if the final time has been reached or if any of
+    ///       the event handlers asked for termination, we pass the
+    ///       state to the event handler again noting that we have
+    ///       reached termination. The state may be modified and the
+    ///       result will be the final state of the simulation.
+
+    enum EventCause {
+        TriggeredEvents    =1,
+        ScheduledEvents    =2,
+        TimeAdvancedEvent  =3,
+        TerminationEvent   =4,
+
+        InvalidEventCause  = -1
+    };
+    static const char* getEventCauseName(EventCause);
+
+
+    /// This solver handles a set of events which the time stepper has
+    /// denoted as having occurred. The event handler may make discontinuous
+    /// changes in the State, in general both to discrete and continuous variables,
+    /// but NOT to time. If changes are made to continuous variables, the handler
+    /// is required to make sure the returned state satisfies the constraints to the
+    /// indicated accuracy level.
+    /// On return, the handleEvents routine should set the output variable
+    /// lowestModified to the Stage level of the lowest-stage variable
+    /// it modified. This information tells the time stepper how much of 
+    /// a restart it must perform on the underlying numerical integrator. 
+    /// When in doubt, set lowestModified to Stage::Model, which will cause
+    /// a complete restart.
+    /// Finally, if the handler determines that the occurrence of some event
+    /// requires that the simulation be terminated it should set 'shouldTerminate'
+    /// to true before returning.
+
+    void handleEvents
+       (State&, EventCause, const Array<int>& eventIds,
+        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
+        Stage& lowestModified, bool& shouldTerminate) const;
+
+    /// This routine provides the Integrator with information it needs about the
+    /// individual event trigger functions, such as which sign transitions are
+    /// relevant and how tightly we need to localize. This is considered 
+    /// Instance stage information so cannot change during a continuous integration
+    /// interval (so an Integrator can process it upon restart(Instance)), however it can be
+    /// updated whenever a discrete update is made to the State.
+    /// A default implementation is provided which returns default EventTriggerInfo for
+    /// each event trigger in State.
+    /// State must already be realized to Stage::Instance.
+    void calcEventTriggerInfo(const State&, Array<EventTriggerInfo>&) const;
+
+    /// This routine should be called to determine if and when there is an event
+    /// scheduled to occur at a particular time. This is a *lot* cheaper than
+    /// making the integrator hunt these down like ordinary state-dependent events.
+    /// The returned time can be passed to the integrator's stepping function as
+    /// the advance time limit.
+    /// The default implementation of this virtual method returns infinity as the
+    /// next scheduled time, and a zero length eventIds list.
+    void calcTimeOfNextScheduledEvent
+        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
 
     static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
         assert(weights.size() == values.size());
@@ -230,10 +376,323 @@ public:
     bool          hasRep() const {return rep!=0;}
     const SystemRep& getRep() const {assert(rep); return *rep;}
     SystemRep&       updRep() const {assert(rep); return *rep;}
+
+    bool systemTopologyCacheHasBeenRealized() const;
+    void invalidateSystemTopologyCache() const;
+
+    // These routines wrap the virtual realize...Impl() methods to ensure
+    // good behavior such as checking that stage requirements are met and
+    // updating the stage at the end. Note that these will do nothing if
+    // the System stage is already at or greater than the indicated stage.
+    // These are not intended to be used by end users; instead use the
+    // realize(State, Stage) routine which takes care of getting the lower
+    // stages realized if necessary first. Note that the first two methods
+    // in this series, realizeTopology() and realizeModel() *are* intended
+    // to be called directly since they require write access to the State.
+    // Those two are defined above.
+    void realizeInstance    (const State &s) const;
+    void realizeTime        (const State &s) const;
+    void realizePosition    (const State &s) const;
+    void realizeVelocity    (const State &s) const;
+    void realizeDynamics    (const State &s) const;
+    void realizeAcceleration(const State &s) const;
+    void realizeReport      (const State &s) const;
+
 protected:
+    // Override these to change the evaluation order of the Subsystems.
+    // The default is to evaluate them in increasing order of SubsystemId.
+    // These methods should not be called directly; they are invoked by the
+    // above wrapper methods. Note: the wrappers *will not* call these
+    // routines if the system stage has already met the indicated stage level.
+    // If fact these routines will be called only when the system stage
+    // is at the level just prior to the one indicated here. For example,
+    // realizeVelocityImpl() will be called only if the passed-in State
+    // has been determined to have its system stage exactly Stage::Position.
+    virtual int realizeTopologyImpl(State&) const;
+    virtual int realizeModelImpl(State&) const;
+    virtual int realizeInstanceImpl(const State&) const;
+    virtual int realizeTimeImpl(const State&) const;
+    virtual int realizePositionImpl(const State&) const;
+    virtual int realizeVelocityImpl(const State&) const;
+    virtual int realizeDynamicsImpl(const State&) const;
+    virtual int realizeAccelerationImpl(const State&) const;
+    virtual int realizeReportImpl(const State&) const;
+
+    virtual int calcDecorativeGeometryAndAppendImpl
+       (const State&, Stage, Array<DecorativeGeometry>&) const;
+    virtual System* cloneImpl() const;
+
+    virtual Real calcTimescaleImpl(const State&) const;
+
+    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
+
+    virtual int projectImpl(State&, Real consAccuracy, const Vector& yweights,
+                            const Vector& ootols, Vector& yerrest) const;
+    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
+
+    virtual int handleEventsImpl
+       (State&, EventCause, const Array<int>& eventIds,
+        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
+        Stage& lowestModified, bool& shouldTerminate) const;
+
+    virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
+
+    virtual int calcTimeOfNextScheduledEventImpl
+        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+
+
+    // If a concrete System class has a private implementation, store it in
+    // the SystemRep class by passing in a heap pointer and static functions
+    // for clone and destruct. The SystemRep will take over ownership of
+    // the heap space and manage it with the supplied routines.
+    typedef void (*DestructPrivateImplementation)(PrivateImplementation*);
+    typedef PrivateImplementation* (*ClonePrivateImplementation)(const PrivateImplementation*);
+    void adoptPrivateImplementation(PrivateImplementation*,
+                                    ClonePrivateImplementation,
+                                    DestructPrivateImplementation);
+
+    // Downcast the returned reference to a reference to your private implementation
+    // class. Note that the PrivateImplementation class is not abstract, so this is
+    // not a dynamic_cast and there is no automated way to check that you are looking
+    // at the right type of object. So be careful!
+    const PrivateImplementation& getPrivateImplementation() const;
+    PrivateImplementation&       updPrivateImplementation();
+private:
     class SystemRep* rep;
+    friend class SystemRep;
+
+    // These typedefs are used internally to manage the binary-compatible
+    // handling of the virtual function table.
+
+    typedef int (*RealizeWritableStateImplLocator)(const System&, State&);
+    typedef int (*RealizeConstStateImplLocator)(const System&, const State&);
+    typedef Real (*CalcTimescaleImplLocator)(const System&, const State&);
+    typedef int (*CalcUnitWeightsImplLocator)(const System&, const State&, Vector& weights);
+    typedef int (*CalcDecorativeGeometryAndAppendImplLocator)
+       (const System&, const State&, Stage, Array<DecorativeGeometry>&);
+    typedef System* (*CloneImplLocator)(const System&);
+
+    typedef int (*ProjectImplLocator)(const System&, State&, Real, const Vector&, const Vector&,
+                                             Vector&);
+
+    typedef int (*HandleEventsImplLocator)
+       (const System&, State&, EventCause, const Array<int>&,
+        Real, const Vector&, const Vector&, Stage&, bool&);
+    typedef int (*CalcEventTriggerInfoImplLocator)
+       (const System&, const State&, Array<EventTriggerInfo>&);
+    typedef int (*CalcTimeOfNextScheduledEventImplLocator)
+       (const System&, const State&, Real&, Array<int>&);
+
+    class EventTriggerInfoRep;
+
+    void librarySideConstruction(const String& name, const String& version);
+    void librarySideDestruction();
+
+    void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
+    void registerRealizeModelImpl       (RealizeWritableStateImplLocator);
+    void registerRealizeInstanceImpl    (RealizeConstStateImplLocator);
+    void registerRealizeTimeImpl        (RealizeConstStateImplLocator);
+    void registerRealizePositionImpl    (RealizeConstStateImplLocator);
+    void registerRealizeVelocityImpl    (RealizeConstStateImplLocator);
+    void registerRealizeDynamicsImpl    (RealizeConstStateImplLocator);
+    void registerRealizeAccelerationImpl(RealizeConstStateImplLocator);
+    void registerRealizeReportImpl      (RealizeConstStateImplLocator);
+
+    void registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator);
+    void registerCloneImpl(CloneImplLocator);
+
+    void registerCalcTimescaleImpl(CalcTimescaleImplLocator);
+    void registerCalcYUnitWeightsImplLocator(CalcUnitWeightsImplLocator);
+    void registerProjectImpl(ProjectImplLocator);
+    void registerCalcYErrUnitTolerancesImplLocator(CalcUnitWeightsImplLocator);
+    void registerHandleEventsImpl(HandleEventsImplLocator);
+    void registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLocator);
+    void registerCalcTimeOfNextScheduledEventImpl(CalcTimeOfNextScheduledEventImplLocator);
+
+    // We want the locator functions to have access to the protected "Impl"
+    // virtual methods, so we make them friends.
+
+    friend int systemRealizeTopologyImplLocator(const System&, State&);
+    friend int systemRealizeModelImplLocator(const System&, State&);
+    friend int systemRealizeInstanceImplLocator(const System&, const State&);
+    friend int systemRealizeTimeImplLocator(const System&, const State&);
+    friend int systemRealizePositionImplLocator(const System&, const State&);
+    friend int systemRealizeVelocityImplLocator(const System&, const State&);
+    friend int systemRealizeDynamicsImplLocator(const System&, const State&);
+    friend int systemRealizeAccelerationImplLocator(const System&, const State&);
+    friend int systemRealizeReportImplLocator(const System&, const State&);
+
+    friend int systemCalcDecorativeGeometryAndAppendImplLocator
+                (const System&, const State&, Stage, Array<DecorativeGeometry>&);
+    friend System* systemCloneImplLocator(const System&);
+
+    friend Real systemCalcTimescaleImplLocator(const System&, const State&);
+    friend int  systemCalcYUnitWeightsImplLocator(const System&, const State&, Vector& weights);
+    friend int  systemProjectImplLocator(const System&, State&, Real, const Vector&, const Vector&,
+                                         Vector&);
+    friend int  systemCalcYErrUnitTolerancesImplLocator(const System&, const State&, Vector& ootols);
+    friend int  systemHandleEventsImplLocator(const System&, State&, EventCause, const Array<int>&,
+                                              Real, const Vector&, const Vector&, Stage&, bool&);
+    friend int  systemCalcEventTriggerInfoImplLocator(const System&, const State&, Array<EventTriggerInfo>&);
+    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System&, const State&, Real&, Array<int>&);
 };
 
+
+// These are used to supply the client-side virtual function to the library, without
+// the client and library having to agree on the layout of the virtual function tables.
+
+static int systemRealizeTopologyImplLocator(const System& sys, State& state)
+  { return sys.realizeTopologyImpl(state); }
+static int systemRealizeModelImplLocator(const System& sys, State& state)
+  { return sys.realizeModelImpl(state); }
+static int systemRealizeInstanceImplLocator(const System& sys, const State& state)
+  { return sys.realizeInstanceImpl(state); }
+static int systemRealizeTimeImplLocator(const System& sys, const State& state)
+  { return sys.realizeTimeImpl(state); }
+static int systemRealizePositionImplLocator(const System& sys, const State& state)
+  { return sys.realizePositionImpl(state); }
+static int systemRealizeVelocityImplLocator(const System& sys, const State& state)
+  { return sys.realizeVelocityImpl(state); }
+static int systemRealizeDynamicsImplLocator(const System& sys, const State& state)
+  { return sys.realizeDynamicsImpl(state); }
+static int systemRealizeAccelerationImplLocator(const System& sys, const State& state)
+  { return sys.realizeAccelerationImpl(state); }
+static int systemRealizeReportImplLocator(const System& sys, const State& state)
+  { return sys.realizeReportImpl(state); }
+
+static int systemCalcDecorativeGeometryAndAppendImplLocator
+   (const System& sys, const State& s, Stage g, Array<DecorativeGeometry>& geom)
+  { return sys.calcDecorativeGeometryAndAppendImpl(s,g,geom); }
+static System* systemCloneImplLocator(const System& sys)
+  { return sys.cloneImpl(); }
+
+static Real systemCalcTimescaleImplLocator(const System& sys, const State& state)
+  { return sys.calcTimescaleImpl(state); }
+
+static int  systemCalcYUnitWeightsImplLocator(const System& sys, const State& state, Vector& weights)
+  { return sys.calcYUnitWeightsImpl(state, weights); }
+
+static int  systemProjectImplLocator
+   (const System& sys, State& state, Real consAccuracy,
+    const Vector& yWeights, const Vector& ooConstraintTols, Vector& yErrest)
+  { return sys.projectImpl(state, consAccuracy, yWeights, ooConstraintTols, yErrest); }
+
+static int  systemCalcYErrUnitTolerancesImplLocator(const System& sys, const State& state, Vector& ootols)
+  { return sys.calcYErrUnitTolerancesImpl(state, ootols); }
+
+static int  systemHandleEventsImplLocator
+   (const System& sys, State& state, System::EventCause cause, const Array<int>& eventIds,
+    Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate)
+  { return sys.handleEventsImpl(state, cause, eventIds, accuracy, yWeights, ooConstraintTols, lowestModified, shouldTerminate); }
+
+static int  systemCalcEventTriggerInfoImplLocator(const System& sys, const State& state, Array<System::EventTriggerInfo>& info)
+  { return sys.calcEventTriggerInfoImpl(state,info); }
+
+static int  systemCalcTimeOfNextScheduledEventImplLocator
+   (const System& sys, const State& state, Real& tNextEvent, Array<int>& eventIds)
+  { return sys.calcTimeOfNextScheduledEventImpl(state,tNextEvent,eventIds); }
+
+
+// Default constructor must be inline so that it has access to the above static
+// functions which are private to the client-side compilation unit in which the
+// client-side virtual function table is understood.
+inline System::System(const String& name, const String& version) : rep(0)
+{
+    librarySideConstruction(name, version);
+
+    // Teach the library code how to call client side virtual functions by
+    // calling through the client side compilation unit's private static
+    // locator functions.
+    registerRealizeTopologyImpl    (systemRealizeTopologyImplLocator);
+    registerRealizeModelImpl       (systemRealizeModelImplLocator);
+    registerRealizeInstanceImpl    (systemRealizeInstanceImplLocator);
+    registerRealizeTimeImpl        (systemRealizeTimeImplLocator);
+    registerRealizePositionImpl    (systemRealizePositionImplLocator);
+    registerRealizeVelocityImpl    (systemRealizeVelocityImplLocator);
+    registerRealizeDynamicsImpl    (systemRealizeDynamicsImplLocator);
+    registerRealizeAccelerationImpl(systemRealizeAccelerationImplLocator);
+    registerRealizeReportImpl      (systemRealizeReportImplLocator);
+
+    registerCalcDecorativeGeometryAndAppendImpl(systemCalcDecorativeGeometryAndAppendImplLocator);
+    registerCloneImpl(systemCloneImplLocator);
+
+    registerCalcTimescaleImpl(systemCalcTimescaleImplLocator);
+    registerCalcYUnitWeightsImplLocator(systemCalcYUnitWeightsImplLocator);
+    registerProjectImpl(systemProjectImplLocator);
+    registerCalcYErrUnitTolerancesImplLocator(systemCalcYErrUnitTolerancesImplLocator);
+    registerHandleEventsImpl(systemHandleEventsImplLocator);
+    registerCalcEventTriggerInfoImpl(systemCalcEventTriggerInfoImplLocator);
+    registerCalcTimeOfNextScheduledEventImpl(systemCalcTimeOfNextScheduledEventImplLocator);
+}
+
+/// This class is used to communicate between the System and the 
+/// Integrator regarding the properties of a particular event trigger
+/// function. Currently these are:
+///   - Whether to watch for rising sign transitions, falling, or both. [BOTH]
+///   - Whether to watch for transitions to and from zero. [NO]
+///   - The localization window in units of the System's timescale. [10%]
+///     (That is then the "unit" window which is reduced by the
+///      accuracy setting.)
+/// The default values are shown in brackets above.
+///
+class SimTK_SimTKCOMMON_EXPORT System::EventTriggerInfo {
+public:
+    EventTriggerInfo();
+    explicit EventTriggerInfo(int eventId);
+    ~EventTriggerInfo();
+    EventTriggerInfo(const EventTriggerInfo&);
+    EventTriggerInfo& operator=(const EventTriggerInfo&);
+
+    int getEventId() const; // returns -1 if not set
+    bool shouldTriggerOnRisingSignTransition()  const; // default=true
+    bool shouldTriggerOnFallingSignTransition() const; // default=true
+    bool shouldTriggerOnZeroTransitions()       const; // default=false
+    Real getRequiredLocalizationTimeWindow()    const; // default=0.1
+
+    // These return the modified 'this', like assignment operators.
+    EventTriggerInfo& setEventId(int);
+    EventTriggerInfo& setTriggerOnRisingSignTransition(bool);
+    EventTriggerInfo& setTriggerOnFallingSignTransition(bool);
+    EventTriggerInfo& setTriggerOnZeroTransitions(bool);
+    EventTriggerInfo& setRequiredLocalizationTimeWindow(Real);
+
+    // TODO: switch to SignTransitionSet and trash EventStatus altogether.
+    EventStatus::EventTrigger calcTransitionMask() const {
+        unsigned mask = 0;
+        if (shouldTriggerOnRisingSignTransition()) {
+            mask |= (EventStatus::NegativeToPositive|EventStatus::NegativeToZero);
+            if (shouldTriggerOnZeroTransitions())
+                mask |= EventStatus::ZeroToPositive;
+        }
+        if (shouldTriggerOnFallingSignTransition()) {
+            mask |= (EventStatus::PositiveToNegative|EventStatus::PositiveToZero);
+            if (shouldTriggerOnZeroTransitions())
+                mask |= EventStatus::ZeroToNegative;
+        }
+        return EventStatus::EventTrigger(mask);
+    }
+
+    EventStatus::EventTrigger calcTransitionToReport
+       (EventStatus::EventTrigger transitionSeen) const
+    {
+        if (shouldTriggerOnZeroTransitions())
+            return transitionSeen; // what we saw is what we report
+        // otherwise report -1 to 1 or 1 to -1 as appropriate
+        if (transitionSeen & EventStatus::Rising)
+            return EventStatus::NegativeToPositive;
+        if (transitionSeen & EventStatus::Falling)
+            return EventStatus::PositiveToNegative;
+        assert(!"impossible event transition situation");
+        return EventStatus::NoEventTrigger;
+    }
+
+private:
+    // opaque implementation for future binary compatibility
+    System::EventTriggerInfoRep* rep;
+
+    const System::EventTriggerInfoRep& getRep() const {assert(rep); return *rep;}
+    System::EventTriggerInfoRep&       updRep()       {assert(rep); return *rep;}
+};
 
 /// The abstract parent of all Studies.
 /// TODO

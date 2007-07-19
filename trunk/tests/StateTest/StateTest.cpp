@@ -76,7 +76,13 @@ int main() {
     Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
     cout << s.getDiscreteVariable(0, dv) << endl;
 
+    // Can't ask for the time before Stage::Model, but if you could it would be NaN.
+    // Advancing to Stage::Model sets t=0.
+    //cout << "BEFORE ADVANCE TO MODEL, t=" << s.getTime() << endl;
+
     s.advanceSystemToStage(Stage::Model);
+
+    cout << "AFTER ADVANCE TO MODEL, t=" << s.getTime() << endl;
 
     printf("nevents=%d, by stage:\n", s.getNEvents());
     for (int j=0; j<Stage::NValid; ++j) {
