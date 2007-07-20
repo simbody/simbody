@@ -169,8 +169,6 @@ public:
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     DefaultSystemSubsystem(System& sys);
-    DefaultSystemSubsystem(System& sys, const String& sysName, const String& sysVersion);
-
 };
 
 

@@ -186,7 +186,7 @@ Subsystem& Subsystem::Guts::updOwnerSubsystemHandle() {
 }
 
 void Subsystem::Guts::setOwnerSubsystemHandle(Subsystem& sys) {
-    assert(!rep->myHandle);
+    // might be the first owner or a replacement
     rep->myHandle = &sys;
 }
 
@@ -544,6 +544,20 @@ void Subsystem::Guts::GutsRep::invalidateSubsystemTopologyCache() const {
     //////////////////////////////
     // DEFAULT SYSTEM SUBSYSTEM //
     //////////////////////////////
+
+class DefaultSystemSubsystemGuts : public Subsystem::Guts {
+public:
+    DefaultSystemSubsystemGuts() : Guts("DefaultSystemSubsystemGuts", "0.0.1") { }
+    DefaultSystemSubsystemGuts* cloneImpl() const {
+        return new DefaultSystemSubsystemGuts(*this);
+    }
+
+};
+
+DefaultSystemSubsystem::DefaultSystemSubsystem(System& sys) {
+    adoptSubsystemGuts(new DefaultSystemSubsystemGuts());
+    sys.adoptSubsystem(*this);
+}
 
 } // namespace SimTK
 
