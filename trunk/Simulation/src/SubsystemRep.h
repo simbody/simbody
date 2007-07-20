@@ -1,5 +1,5 @@
-#ifndef SimTK_SUBSYSTEM_REP_H_
-#define SimTK_SUBSYSTEM_REP_H_
+#ifndef SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_
+#define SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -29,71 +29,43 @@
 #include "SimTKcommon/internal/State.h"
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 
 namespace SimTK {
 
-class SubsystemRep {
+class Subsystem::Guts::GutsRep {
+    friend class Subsystem::Guts;
 public:
-	SubsystemRep(const String& name, const String& version) 
+	GutsRep(const String& name, const String& version) 
       : subsystemName(name), subsystemVersion(version),
         mySystem(0), mySubsystemId(InvalidSubsystemId), myHandle(0),
-        privateImplementation(0), subsystemTopologyRealized(false)
+        subsystemTopologyRealized(false)
     { 
         clearAllFunctionPointers();
     }
 
-    SubsystemRep(const SubsystemRep& src) {
+    GutsRep(const GutsRep& src) {
         subsystemName = src.subsystemName;
         subsystemVersion = src.subsystemVersion;
         mySystem = 0;
         mySubsystemId = InvalidSubsystemId;
         myHandle = 0;
-        privateImplementation = 0;
-        if (src.privateImplementation && src.clonePrivateImplementationp) {
-            privateImplementation = 
-                src.clonePrivateImplementationp(src.privateImplementation);
-        }
         subsystemTopologyRealized = false;
         copyAllFunctionPointers(src);
     }
 
-    ~SubsystemRep() { 
-        if (privateImplementation && destructPrivateImplementationp) {
-            destructPrivateImplementationp(privateImplementation);
-            privateImplementation=0;
-        }
+    ~GutsRep() { 
+        clearMyHandle();
+        invalidateSubsystemTopologyCache();
     }
 
-    void adoptPrivateImplementation
-       (Subsystem::PrivateImplementation* p,
-        Subsystem::ClonePrivateImplementation clone,
-        Subsystem::DestructPrivateImplementation destruct)
-    {
-        SimTK_ASSERT_ALWAYS(p && clone && destruct, 
-            "Subsystem::adoptPrivateImplementation(): incomplete specification");
-        privateImplementation = p;
-        clonePrivateImplementationp = clone;
-        destructPrivateImplementationp = destruct;
-    }
-
-    const Subsystem::PrivateImplementation& getPrivateImplementation() const {
-        SimTK_ASSERT(privateImplementation,
-            "Subsystem::getPrivateImplementation()");
-        return *privateImplementation;
-    }
-
-    Subsystem::PrivateImplementation& updPrivateImplementation() {
-        SimTK_ASSERT(privateImplementation,
-            "Subsystem::updPrivateImplementation()");
-        return *privateImplementation;
-    }
 
     const String& getName()    const {return subsystemName;}
     const String& getVersion() const {return subsystemVersion;}
 
     void invalidateSubsystemTopologyCache() const;
 
-    bool subsystemTopologyCacheHasBeenRealized() const {
+    bool subsystemTopologyHasBeenRealized() const {
         return subsystemTopologyRealized;
     }
 
@@ -136,39 +108,34 @@ private:
     friend class Subsystem;
     Subsystem* myHandle;	// the owner handle of this rep
 
-    // Private implementation of concrete subsystem, if any.
-    Subsystem::PrivateImplementation* privateImplementation;
-
         // POINTERS TO CLIENT-SIDE FUNCTION LOCATORS
 
         // This is a virtual function table, but the addresses are
         // determined at run time so that we don't have to depend on a
         // particular ordering in the client side virtual function table.
 
-    Subsystem::RealizeWritableStateImplLocator         realizeTopologyp;
-    Subsystem::RealizeWritableStateImplLocator         realizeModelp;
-    Subsystem::RealizeConstStateImplLocator            realizeInstancep;
-    Subsystem::RealizeConstStateImplLocator            realizeTimep;
-    Subsystem::RealizeConstStateImplLocator            realizePositionp;
-    Subsystem::RealizeConstStateImplLocator            realizeVelocityp;
-    Subsystem::RealizeConstStateImplLocator            realizeDynamicsp;
-    Subsystem::RealizeConstStateImplLocator            realizeAccelerationp;
-    Subsystem::RealizeConstStateImplLocator            realizeReportp;
+    Subsystem::Guts::CloneImplLocator                        clonep;
 
-    Subsystem::CalcUnitWeightsImplLocator                   calcQUnitWeightsp;
-    Subsystem::CalcUnitWeightsImplLocator                   calcUUnitWeightsp;
-    Subsystem::CalcUnitWeightsImplLocator                   calcZUnitWeightsp;
-    Subsystem::CalcUnitWeightsImplLocator                   calcQErrUnitTolerancesp;
-    Subsystem::CalcUnitWeightsImplLocator                   calcUErrUnitTolerancesp;
-    Subsystem::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
-    Subsystem::CloneImplLocator                             clonep;
+    Subsystem::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
+    Subsystem::Guts::RealizeWritableStateImplLocator         realizeModelp;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeInstancep;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeTimep;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizePositionp;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeVelocityp;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeDynamicsp;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeAccelerationp;
+    Subsystem::Guts::RealizeConstStateImplLocator            realizeReportp;
 
-        // These routines allow us to manipulate the concrete subsystem's
-        // private implementation which we store here but otherwise ignore.
-    Subsystem::ClonePrivateImplementation    clonePrivateImplementationp;
-    Subsystem::DestructPrivateImplementation destructPrivateImplementationp;
+    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcQUnitWeightsp;
+    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcUUnitWeightsp;
+    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcZUnitWeightsp;
+    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcQErrUnitTolerancesp;
+    Subsystem::Guts::CalcUnitWeightsImplLocator                   calcUErrUnitTolerancesp;
+    Subsystem::Guts::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
 
     void clearAllFunctionPointers() {
+        clonep = 0;
+
         realizeTopologyp = 0;
         realizeModelp = 0;
         realizeInstancep = 0;
@@ -185,13 +152,11 @@ private:
         calcQErrUnitTolerancesp = 0;
         calcUErrUnitTolerancesp = 0;
         calcDecorativeGeometryAndAppendp = 0;
-        clonep = 0;
-
-        clonePrivateImplementationp = 0;
-        destructPrivateImplementationp = 0;
     }
 
-    void copyAllFunctionPointers(const SubsystemRep& src) {
+    void copyAllFunctionPointers(const GutsRep& src) {
+        clonep = src.clonep;
+
         realizeTopologyp = src.realizeTopologyp;
         realizeModelp = src.realizeModelp;
         realizeInstancep = src.realizeInstancep;
@@ -208,10 +173,6 @@ private:
         calcQErrUnitTolerancesp = src.calcQErrUnitTolerancesp;
         calcUErrUnitTolerancesp = src.calcUErrUnitTolerancesp;
         calcDecorativeGeometryAndAppendp = src.calcDecorativeGeometryAndAppendp;
-        clonep = src.clonep;
-
-        clonePrivateImplementationp = src.clonePrivateImplementationp;
-        destructPrivateImplementationp = src.destructPrivateImplementationp;
     }
 
         // TOPOLOGY CACHE
@@ -220,9 +181,9 @@ private:
 
 private:
     // suppress automatic copy assignment operator
-    SubsystemRep& operator=(const SubsystemRep&);
+    GutsRep& operator=(const GutsRep&);
 };
 
 } // namespace SimTK
 
-#endif // SimTK_SUBSYSTEM_REP_H_
+#endif // SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_

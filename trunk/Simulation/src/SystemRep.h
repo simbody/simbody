@@ -85,7 +85,7 @@ public:
     // allowed if the supplied Subsytem already has a rep, but is
     // NOT part of some other System.
 	SubsystemId adoptSubsystem(Subsystem& child) {
-		assert(child.hasRep() && !child.isInSystem()); // TODO
+		assert(child.hasGuts() && !child.isInSystem()); // TODO
         assert(child.isOwnerHandle());
 
         // This is a topology change.
@@ -95,9 +95,11 @@ public:
         subsystems.resize(id+1); // grow
 		Subsystem& s = subsystems.back(); // refer to the empty handle
 
-		s.setRep(child.updRep());		 // reference the passed-in rep
-		s.updRep().setMyHandle(s);	     // steal ownership
-        s.updRep().setSystem(*myHandle, id);
+        // Take over ownership of the child's guts, leaving the child
+        // as a non-owner reference to the same guts.
+        s.adoptSubsystemGuts(&child.updSubsystemGuts());
+        s.setSystem(*myHandle, id);
+
 		return id;
 	}
 

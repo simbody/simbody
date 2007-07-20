@@ -43,263 +43,405 @@ namespace SimTK {
     // SUBSYSTEM //
     ///////////////
 
-bool Subsystem::isEmptyHandle() const {return rep==0;}
-bool Subsystem::isOwnerHandle() const {return rep==0 || rep->myHandle==this;}
+bool Subsystem::isEmptyHandle() const {return guts==0;}
+bool Subsystem::isOwnerHandle() const {return guts==0 || &guts->getOwnerSubsystemHandle()==this;}
 bool Subsystem::isSameSubsystem(const Subsystem& otherSubsystem) const {
-    return rep && (rep==otherSubsystem.rep);
+    return guts && (guts==otherSubsystem.guts);
 }
 
-void Subsystem::librarySideConstruction(System& sys, const String& name, const String& version) {
-    rep = new SubsystemRep(name,version);
-    rep->setMyHandle(*this);
 
-    sys.adoptSubsystem(*this);
+Subsystem::Subsystem(const Subsystem& src) : guts(0) {
+    if (src.guts) {
+        guts = src.guts->clone();
+        guts->setOwnerSubsystemHandle(*this);
+    }
 }
 
-void Subsystem::librarySideDestruction() {
-    if (rep && rep->myHandle==this)
-        delete rep; 
+Subsystem& Subsystem::operator=(const Subsystem& src) {
+    if (!isSameSubsystem(src)) {
+        if (isOwnerHandle()) delete guts; 
+        guts=0;
+        if (src.guts) {
+            guts = src.guts->clone();
+            guts->setOwnerSubsystemHandle(*this);
+        }
+    }
+    return *this;
+}
+
+Subsystem::~Subsystem() {
+    //TODO: delete should probably be called from library side VFT
+    if (guts && isOwnerHandle())
+        delete guts;
+    guts=0;
+}
+
+void Subsystem::adoptSubsystemGuts(Subsystem::Guts* g) {
+    SimTK_ASSERT_ALWAYS(g, "Subsystem::adoptSubsystemGuts(): can't adopt null Guts");
+    SimTK_ASSERT_ALWAYS(!guts,
+        "Subsystem::adoptSubsystemGuts(): this Subsystem handle is already in use");
+    guts = g;
+    guts->setOwnerSubsystemHandle(*this);
+}
+
+void Subsystem::setSystem(System& sys, SubsystemId id) {
+    updSubsystemGuts().setSystem(sys,id);
+}
+
+const String& Subsystem::getName()    const {return getSubsystemGuts().getName();}
+const String& Subsystem::getVersion() const {return getSubsystemGuts().getVersion();}
+
+bool Subsystem::subsystemTopologyHasBeenRealized() const {
+    return getSubsystemGuts().subsystemTopologyHasBeenRealized();
+}
+
+void Subsystem::invalidateSubsystemTopologyCache() const {
+    return getSubsystemGuts().invalidateSubsystemTopologyCache(); // mutable
+}
+
+bool Subsystem::isInSystem() const {return getSubsystemGuts().isInSystem();}
+bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
+    return getSubsystemGuts().isInSameSystem(otherSubsystem);
+}
+
+const System& Subsystem::getSystem() const {return getSubsystemGuts().getSystem();}
+System&       Subsystem::updSystem()       {return updSubsystemGuts().updSystem();}
+
+SubsystemId Subsystem::getMySubsystemId() const {
+    return getSubsystemGuts().getMySubsystemId();
+}
+
+const Vector& Subsystem::getQ(const State& s) const {return getSubsystemGuts().getQ(s);}
+const Vector& Subsystem::getU(const State& s) const {return getSubsystemGuts().getU(s);}
+const Vector& Subsystem::getZ(const State& s) const {return getSubsystemGuts().getZ(s);}
+const Vector& Subsystem::getQDot(const State& s) const {return getSubsystemGuts().getQDot(s);}
+const Vector& Subsystem::getUDot(const State& s) const {return getSubsystemGuts().getUDot(s);}
+const Vector& Subsystem::getZDot(const State& s) const {return getSubsystemGuts().getZDot(s);}
+const Vector& Subsystem::getQDotDot(const State& s) const {return getSubsystemGuts().getQDotDot(s);}
+const Vector& Subsystem::getQErr(const State& s) const {return getSubsystemGuts().getQErr(s);}
+const Vector& Subsystem::getUErr(const State& s) const {return getSubsystemGuts().getUErr(s);}
+const Vector& Subsystem::getUDotErr(const State& s) const {return getSubsystemGuts().getUDotErr(s);}
+
+Vector& Subsystem::updQ(State& s) const {return getSubsystemGuts().updQ(s);}
+Vector& Subsystem::updU(State& s) const {return getSubsystemGuts().updU(s);}
+Vector& Subsystem::updZ(State& s) const {return getSubsystemGuts().updZ(s);}
+
+Vector& Subsystem::updQDot(const State& s) const {return getSubsystemGuts().updQDot(s);}
+Vector& Subsystem::updUDot(const State& s) const {return getSubsystemGuts().updUDot(s);}
+Vector& Subsystem::updZDot(const State& s) const {return getSubsystemGuts().updZDot(s);}
+Vector& Subsystem::updQDotDot(const State& s) const {return getSubsystemGuts().updQDotDot(s);}
+Vector& Subsystem::updQErr(const State& s) const {return getSubsystemGuts().updQErr(s);}
+Vector& Subsystem::updUErr(const State& s) const {return getSubsystemGuts().updUErr(s);}
+Vector& Subsystem::updUDotErr(const State& s) const {return getSubsystemGuts().updUDotErr(s);}
+
+int Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
+int Subsystem::getNQ          (const State& s) const {return getSubsystemGuts().getNQ(s);}
+int Subsystem::getUStart      (const State& s) const {return getSubsystemGuts().getUStart(s);}
+int Subsystem::getNU          (const State& s) const {return getSubsystemGuts().getNU(s);}
+int Subsystem::getZStart      (const State& s) const {return getSubsystemGuts().getZStart(s);}
+int Subsystem::getNZ          (const State& s) const {return getSubsystemGuts().getNZ(s);}
+int Subsystem::getQErrStart   (const State& s) const {return getSubsystemGuts().getQErrStart(s);}
+int Subsystem::getNQErr       (const State& s) const {return getSubsystemGuts().getNQErr(s);}
+int Subsystem::getUErrStart   (const State& s) const {return getSubsystemGuts().getUErrStart(s);}
+int Subsystem::getNUErr       (const State& s) const {return getSubsystemGuts().getNUErr(s);}
+int Subsystem::getUDotErrStart(const State& s) const {return getSubsystemGuts().getUDotErrStart(s);}
+int Subsystem::getNUDotErr    (const State& s) const {return getSubsystemGuts().getNUDotErr(s);}
+
+    /////////////////////
+    // SUBSYSTEM::GUTS //
+    /////////////////////
+
+// Default constructor is inline, but calls librarySideConstuction() here.
+void Subsystem::Guts::librarySideConstruction(const String& name, const String& version) {
+    rep = new GutsRep(name,version);
+    // note that the GutsRep object currently has no owner handle
+}
+
+// Destructor is inline, but calls librarySideDestruction() here.
+void Subsystem::Guts::librarySideDestruction() {
+    delete rep; 
     rep=0;
 }
 
-void Subsystem::registerRealizeTopologyImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeTopologyp = f;
-}
-void Subsystem::registerRealizeModelImpl(RealizeWritableStateImplLocator f) {
-    updRep().realizeModelp = f;
-}
-void Subsystem::registerRealizeInstanceImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeInstancep = f;
-}
-void Subsystem::registerRealizeTimeImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeTimep = f;
-}
-void Subsystem::registerRealizePositionImpl(RealizeConstStateImplLocator f) {
-    updRep().realizePositionp = f;
-}
-void Subsystem::registerRealizeVelocityImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeVelocityp = f;
-}
-void Subsystem::registerRealizeDynamicsImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeDynamicsp = f;
-}
-void Subsystem::registerRealizeAccelerationImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeAccelerationp = f;
-}
-void Subsystem::registerRealizeReportImpl(RealizeConstStateImplLocator f) {
-    updRep().realizeReportp = f;
+
+// Copy constructor
+Subsystem::Guts::Guts(const Guts& src) : rep(0) {
+    if (src.rep) {
+        rep = new Subsystem::Guts::GutsRep(*src.rep);
+        // note that the GutsRep object currently has no owner handle
+    }
 }
 
-void Subsystem::registerCalcQUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcQUnitWeightsp = f;
+// Copy assignment is suppressed
+    
+
+const Subsystem& Subsystem::Guts::getOwnerSubsystemHandle() const {
+    assert(rep->myHandle);
+    return *rep->myHandle;
 }
-void Subsystem::registerCalcUUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcUUnitWeightsp = f;
+
+Subsystem& Subsystem::Guts::updOwnerSubsystemHandle() {
+    assert(rep->myHandle);
+    return *rep->myHandle;
 }
-void Subsystem::registerCalcZUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcZUnitWeightsp = f;
+
+void Subsystem::Guts::setOwnerSubsystemHandle(Subsystem& sys) {
+    assert(!rep->myHandle);
+    rep->myHandle = &sys;
 }
-void Subsystem::registerCalcQErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcQErrUnitTolerancesp = f;
+
+bool Subsystem::Guts::hasOwnerSubsystemHandle() const {
+    return rep->myHandle != 0;
 }
-void Subsystem::registerCalcUErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
-    updRep().calcUErrUnitTolerancesp = f;
+
+void Subsystem::Guts::setSystem(System& sys, SubsystemId id) {
+    updRep().setSystem(sys,id);
 }
-void Subsystem::registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator f) {
-    updRep().calcDecorativeGeometryAndAppendp = f;
-}
-void Subsystem::registerCloneImpl(CloneImplLocator f) {
+
+const String& Subsystem::Guts::getName()    const {return getRep().getName();}
+const String& Subsystem::Guts::getVersion() const {return getRep().getVersion();}
+
+
+void Subsystem::Guts::registerCloneImpl(CloneImplLocator f) {
     updRep().clonep = f;
 }
 
-const String& Subsystem::getName()    const {return getRep().getName();}
-const String& Subsystem::getVersion() const {return getRep().getVersion();}
+void Subsystem::Guts::registerRealizeTopologyImpl(RealizeWritableStateImplLocator f) {
+    updRep().realizeTopologyp = f;
+}
+void Subsystem::Guts::registerRealizeModelImpl(RealizeWritableStateImplLocator f) {
+    updRep().realizeModelp = f;
+}
+void Subsystem::Guts::registerRealizeInstanceImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeInstancep = f;
+}
+void Subsystem::Guts::registerRealizeTimeImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeTimep = f;
+}
+void Subsystem::Guts::registerRealizePositionImpl(RealizeConstStateImplLocator f) {
+    updRep().realizePositionp = f;
+}
+void Subsystem::Guts::registerRealizeVelocityImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeVelocityp = f;
+}
+void Subsystem::Guts::registerRealizeDynamicsImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeDynamicsp = f;
+}
+void Subsystem::Guts::registerRealizeAccelerationImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeAccelerationp = f;
+}
+void Subsystem::Guts::registerRealizeReportImpl(RealizeConstStateImplLocator f) {
+    updRep().realizeReportp = f;
+}
 
+void Subsystem::Guts::registerCalcQUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
+    updRep().calcQUnitWeightsp = f;
+}
+void Subsystem::Guts::registerCalcUUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
+    updRep().calcUUnitWeightsp = f;
+}
+void Subsystem::Guts::registerCalcZUnitWeightsImpl(CalcUnitWeightsImplLocator f) {
+    updRep().calcZUnitWeightsp = f;
+}
+void Subsystem::Guts::registerCalcQErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
+    updRep().calcQErrUnitTolerancesp = f;
+}
+void Subsystem::Guts::registerCalcUErrUnitTolerancesImpl(CalcUnitWeightsImplLocator f) {
+    updRep().calcUErrUnitTolerancesp = f;
+}
+void Subsystem::Guts::registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator f) {
+    updRep().calcDecorativeGeometryAndAppendp = f;
+}
 
-bool Subsystem::isInSystem() const {return getRep().isInSystem();}
-bool Subsystem::isInSameSystem(const Subsystem& otherSubsystem) const {
+bool Subsystem::Guts::isInSystem() const {return getRep().isInSystem();}
+bool Subsystem::Guts::isInSameSystem(const Subsystem& otherSubsystem) const {
 	return getRep().isInSameSystem(otherSubsystem);
 }
-const System& Subsystem::getSystem() const {return getRep().getSystem();}
-System&       Subsystem::updSystem()	   {return updRep().updSystem();}
-SubsystemId   Subsystem::getMySubsystemId() const {return getRep().getMySubsystemId();}
+const System& Subsystem::Guts::getSystem() const {return getRep().getSystem();}
+System&       Subsystem::Guts::updSystem()	     {return updRep().updSystem();}
+SubsystemId   Subsystem::Guts::getMySubsystemId() const {return getRep().getMySubsystemId();}
 
-int Subsystem::allocateQ(State& s, const Vector& qInit) const {
+int Subsystem::Guts::allocateQ(State& s, const Vector& qInit) const {
     return s.allocateQ(getRep().getMySubsystemId(), qInit);
 }
 
-int Subsystem::allocateU(State& s, const Vector& uInit) const {
+int Subsystem::Guts::allocateU(State& s, const Vector& uInit) const {
     return s.allocateU(getRep().getMySubsystemId(), uInit);
 }
 
-int Subsystem::allocateZ(State& s, const Vector& zInit) const {
+int Subsystem::Guts::allocateZ(State& s, const Vector& zInit) const {
     return s.allocateZ(getRep().getMySubsystemId(), zInit);
 }
 
-int Subsystem::allocateQErr(State& s, int nqerr) const {
+int Subsystem::Guts::allocateQErr(State& s, int nqerr) const {
     return s.allocateQErr(getRep().getMySubsystemId(), nqerr);
 }
 
-int Subsystem::allocateUErr(State& s, int nuerr) const {
+int Subsystem::Guts::allocateUErr(State& s, int nuerr) const {
     return s.allocateUErr(getRep().getMySubsystemId(), nuerr);
 }
 
-int Subsystem::allocateUDotErr(State& s, int nudoterr) const {
+int Subsystem::Guts::allocateUDotErr(State& s, int nudoterr) const {
     return s.allocateUDotErr(getRep().getMySubsystemId(), nudoterr);
 }
 
-int Subsystem::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
+int Subsystem::Guts::allocateDiscreteVariable(State& s, Stage g, AbstractValue* v) const {
     return s.allocateDiscreteVariable(getRep().getMySubsystemId(), g, v);
 }
 
-int Subsystem::allocateCacheEntry(State& s, Stage g, AbstractValue* v) const {
+int Subsystem::Guts::allocateCacheEntry(State& s, Stage g, AbstractValue* v) const {
     return s.allocateCacheEntry(getRep().getMySubsystemId(), g, v);
 }
 
-void Subsystem::advanceToStage(const State& s, Stage g) const {
+void Subsystem::Guts::advanceToStage(const State& s, Stage g) const {
     s.advanceSubsystemToStage(getRep().getMySubsystemId(), g);
 }
 
-Stage Subsystem::getStage(const State& s) const {
+Stage Subsystem::Guts::getStage(const State& s) const {
     return s.getSubsystemStage(getRep().getMySubsystemId());
 }
-const AbstractValue& Subsystem::getDiscreteVariable(const State& s, int index) const {
+const AbstractValue& Subsystem::Guts::getDiscreteVariable(const State& s, int index) const {
     return s.getDiscreteVariable(getRep().getMySubsystemId(), index);
 }
 
-AbstractValue& Subsystem::updDiscreteVariable(State& s, int index) const {
+AbstractValue& Subsystem::Guts::updDiscreteVariable(State& s, int index) const {
     return s.updDiscreteVariable(getRep().getMySubsystemId(), index);
 }
 
-const AbstractValue& Subsystem::getCacheEntry(const State& s, int index) const {
+const AbstractValue& Subsystem::Guts::getCacheEntry(const State& s, int index) const {
     return s.getCacheEntry(getRep().getMySubsystemId(), index);
 }
 
-AbstractValue& Subsystem::updCacheEntry(const State& s, int index) const {
+AbstractValue& Subsystem::Guts::updCacheEntry(const State& s, int index) const {
     return s.updCacheEntry(getRep().getMySubsystemId(), index);
 }
 
-const Vector& Subsystem::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemId());}
-const Vector& Subsystem::getU(const State& s) const {return s.getU(getRep().getMySubsystemId());}
-const Vector& Subsystem::getZ(const State& s) const {return s.getZ(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQ(const State& s) const {return s.getQ(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getU(const State& s) const {return s.getU(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getZ(const State& s) const {return s.getZ(getRep().getMySubsystemId());}
 
-Vector& Subsystem::updQ(State& s) const {return s.updQ(getRep().getMySubsystemId());}
-Vector& Subsystem::updU(State& s) const {return s.updU(getRep().getMySubsystemId());}
-Vector& Subsystem::updZ(State& s) const {return s.updZ(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQ(State& s) const {return s.updQ(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updU(State& s) const {return s.updU(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updZ(State& s) const {return s.updZ(getRep().getMySubsystemId());}
 
-const Vector& Subsystem::getQDot   (const State& s) const {return s.getQDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::getUDot   (const State& s) const {return s.getUDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::getZDot   (const State& s) const {return s.getZDot(getRep().getMySubsystemId());}
-const Vector& Subsystem::getQDotDot(const State& s) const {return s.getQDotDot(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQDot   (const State& s) const {return s.getQDot(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getUDot   (const State& s) const {return s.getUDot(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getZDot   (const State& s) const {return s.getZDot(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQDotDot(const State& s) const {return s.getQDotDot(getRep().getMySubsystemId());}
 
-Vector& Subsystem::updQDot   (const State& s) const {return s.updQDot(getRep().getMySubsystemId());}
-Vector& Subsystem::updUDot   (const State& s) const {return s.updUDot(getRep().getMySubsystemId());}
-Vector& Subsystem::updZDot   (const State& s) const {return s.updZDot(getRep().getMySubsystemId());}
-Vector& Subsystem::updQDotDot(const State& s) const {return s.updQDotDot(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQDot   (const State& s) const {return s.updQDot(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updUDot   (const State& s) const {return s.updUDot(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updZDot   (const State& s) const {return s.updZDot(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQDotDot(const State& s) const {return s.updQDotDot(getRep().getMySubsystemId());}
 
-const Vector& Subsystem::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemId());}
-const Vector& Subsystem::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemId());}
-const Vector& Subsystem::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemId());}
 
-Vector& Subsystem::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemId());}
-Vector& Subsystem::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemId());}
-Vector& Subsystem::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemId());}
 
-int Subsystem::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemId());}
-int Subsystem::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemId());}
+int Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemId());}
 
-int Subsystem::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemId());}
-int Subsystem::getNU(const State& s)     const {return s.getNU(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUStart(const State& s) const {return s.getUStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNU(const State& s)     const {return s.getNU(getRep().getMySubsystemId());}
 
-int Subsystem::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemId());}
-int Subsystem::getNZ(const State& s)     const {return s.getNZ(getRep().getMySubsystemId());}
+int Subsystem::Guts::getZStart(const State& s) const {return s.getZStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNZ(const State& s)     const {return s.getNZ(getRep().getMySubsystemId());}
 
-int Subsystem::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemId());}
-int Subsystem::getNQErr(const State& s)     const {return s.getNQErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getQErrStart(const State& s) const {return s.getQErrStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNQErr(const State& s)     const {return s.getNQErr(getRep().getMySubsystemId());}
 
-int Subsystem::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemId());}
-int Subsystem::getNUErr(const State& s)     const {return s.getNUErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUErrStart(const State& s) const {return s.getUErrStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNUErr(const State& s)     const {return s.getNUErr(getRep().getMySubsystemId());}
 
-int Subsystem::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemId());}
-int Subsystem::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemId());}
+int Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemId());}
 
 
-void Subsystem::invalidateSubsystemTopologyCache() const {
+void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     getRep().invalidateSubsystemTopologyCache();
 }
 
-bool Subsystem::subsystemTopologyCacheHasBeenRealized() const {
-    return getRep().subsystemTopologyCacheHasBeenRealized();
+bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
+    return getRep().subsystemTopologyHasBeenRealized();
 }
 
-    // wrappers for Subsystem virtuals
+    // wrappers for Subsystem::Guts virtuals
 
-void Subsystem::realizeSubsystemTopology(State& s) const {
+
+Subsystem::Guts* Subsystem::Guts::clone() const {
+    return getRep().clonep(*this);
+}
+
+void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
-        "Subsystem::realizeSubsystemTopology()");
+        "Subsystem::Guts::realizeSubsystemTopology()");
     getRep().realizeTopologyp(*this,s);
     getRep().subsystemTopologyRealized = true; // mark the subsystem itself (mutable)
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
-void Subsystem::realizeSubsystemModel(State& s) const {
+void Subsystem::Guts::realizeSubsystemModel(State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology, 
-        "Subsystem::realizeSubsystemModel()");
+        "Subsystem::Guts::realizeSubsystemModel()");
     if (getStage(s) < Stage::Model) {
         getRep().realizeModelp(*this,s);
         advanceToStage(s, Stage::Model);
     }
 }
-void Subsystem::realizeSubsystemInstance(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemInstance(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
-        "Subsystem::realizeSubsystemInstance()");
+        "Subsystem::Guts::realizeSubsystemInstance()");
     if (getStage(s) < Stage::Instance) {
         getRep().realizeInstancep(*this,s);
         advanceToStage(s, Stage::Instance);
     }
 }
-void Subsystem::realizeSubsystemTime(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemTime(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
-        "Subsystem::realizeTime()");
+        "Subsystem::Guts::realizeTime()");
     if (getStage(s) < Stage::Time) {
         getRep().realizeTimep(*this,s);
         advanceToStage(s, Stage::Time);
     }
 }
-void Subsystem::realizeSubsystemPosition(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemPosition(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
-        "Subsystem::realizeSubsystemPosition()");
+        "Subsystem::Guts::realizeSubsystemPosition()");
     if (getStage(s) < Stage::Position) {
         getRep().realizePositionp(*this,s);
         advanceToStage(s, Stage::Position);
     }
 }
-void Subsystem::realizeSubsystemVelocity(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemVelocity(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
-        "Subsystem::realizeSubsystemVelocity()");
+        "Subsystem::Guts::realizeSubsystemVelocity()");
     if (getStage(s) < Stage::Velocity) {
         getRep().realizeVelocityp(*this,s);
         advanceToStage(s, Stage::Velocity);
     }
 }
-void Subsystem::realizeSubsystemDynamics(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemDynamics(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
-        "Subsystem::realizeSubsystemDynamics()");
+        "Subsystem::Guts::realizeSubsystemDynamics()");
     if (getStage(s) < Stage::Dynamics) {
         getRep().realizeDynamicsp(*this,s);
         advanceToStage(s, Stage::Dynamics);
     }
 }
-void Subsystem::realizeSubsystemAcceleration(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemAcceleration(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
-        "Subsystem::realizeSubsystemAcceleration()");
+        "Subsystem::Guts::realizeSubsystemAcceleration()");
     if (getStage(s) < Stage::Acceleration) {
         getRep().realizeAccelerationp(*this,s);
         advanceToStage(s, Stage::Acceleration);
     }
 }
-void Subsystem::realizeSubsystemReport(const State& s) const { 
+void Subsystem::Guts::realizeSubsystemReport(const State& s) const { 
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
-        "Subsystem::realizeSubsystemReport()");
+        "Subsystem::Guts::realizeSubsystemReport()");
     if (getStage(s) < Stage::Report) {
         getRep().realizeReportp(*this,s);
         advanceToStage(s, Stage::Report);
@@ -307,114 +449,93 @@ void Subsystem::realizeSubsystemReport(const State& s) const {
 }
 
 
-void Subsystem::calcQUnitWeights(const State& s, Vector& weights) const {
+void Subsystem::Guts::calcQUnitWeights(const State& s, Vector& weights) const {
     getRep().calcQUnitWeightsp(*this,s,weights);
 }
-void Subsystem::calcUUnitWeights(const State& s, Vector& weights) const {
+void Subsystem::Guts::calcUUnitWeights(const State& s, Vector& weights) const {
     getRep().calcUUnitWeightsp(*this,s,weights);
 }
-void Subsystem::calcZUnitWeights(const State& s, Vector& weights) const {
+void Subsystem::Guts::calcZUnitWeights(const State& s, Vector& weights) const {
     getRep().calcZUnitWeightsp(*this,s,weights);
 }
-void Subsystem::calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
+void Subsystem::Guts::calcQErrUnitTolerances(const State& s, Vector& tolerances) const {
     getRep().calcQErrUnitTolerancesp(*this,s,tolerances);
 }
-void Subsystem::calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
+void Subsystem::Guts::calcUErrUnitTolerances(const State& s, Vector& tolerances) const {
     getRep().calcUErrUnitTolerancesp(*this,s,tolerances);
 }
 
-void Subsystem::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
+void Subsystem::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
     getRep().calcDecorativeGeometryAndAppendp(*this,s,stage,geom);
 }
 
-Subsystem* Subsystem::clone() const {
-    return getRep().clonep(*this);
-}
 
 
-    // default implementations for Subsystem /*virtual*/s
-/*virtual*/ int Subsystem::realizeSubsystemTopologyImpl(State& s) const {
+    // default implementations for Subsystem::Guts virtuals
+/*virtual*/ int Subsystem::Guts::realizeSubsystemTopologyImpl(State& s) const {
     return 0;
 }
-/*virtual*/ int Subsystem::realizeSubsystemModelImpl(State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemModelImpl(State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemInstanceImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemInstanceImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemTimeImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemTimeImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemPositionImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemPositionImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemVelocityImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemVelocityImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemDynamicsImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemDynamicsImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemAccelerationImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemAccelerationImpl(const State& s) const {
     return 0; 
 }
-/*virtual*/ int Subsystem::realizeSubsystemReportImpl(const State& s) const {
+/*virtual*/ int Subsystem::Guts::realizeSubsystemReportImpl(const State& s) const {
     return 0; 
 }
 
-/*virtual*/ int Subsystem::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
+/*virtual*/ int Subsystem::Guts::calcQUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(getNQ(s));
     weights = 1; // default says everyone's opinion is just as valid
     return 0;
 }
-/*virtual*/ int Subsystem::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
+/*virtual*/ int Subsystem::Guts::calcUUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(getNU(s));
     weights = 1;
     return 0;
 }
-/*virtual*/ int Subsystem::calcZUnitWeightsImpl(const State& s, Vector& weights) const {
+/*virtual*/ int Subsystem::Guts::calcZUnitWeightsImpl(const State& s, Vector& weights) const {
     weights.resize(getNZ(s));
     weights = 1;
     return 0;
 }
-/*virtual*/ int Subsystem::calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
+/*virtual*/ int Subsystem::Guts::calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
     tolerances.resize(getNQErr(s));
     tolerances = 1;
     return 0;
 }
-/*virtual*/ int Subsystem::calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
+/*virtual*/ int Subsystem::Guts::calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
     tolerances.resize(getNUErr(s));
     tolerances = 1;
     return 0;
 }
-/*virtual*/ int Subsystem::calcDecorativeGeometryAndAppendImpl
+/*virtual*/ int Subsystem::Guts::calcDecorativeGeometryAndAppendImpl
                                 (const State&, Stage, Array<DecorativeGeometry>&) const
 {
     return 0;
 }
 
-/*virtual*/ Subsystem* Subsystem::cloneImpl() const {
-    return new Subsystem(*this);
-}
-
-void Subsystem::adoptPrivateImplementation(Subsystem::PrivateImplementation* p,
-                                           Subsystem::ClonePrivateImplementation clone,
-                                           Subsystem::DestructPrivateImplementation destruct)
-{
-    updRep().adoptPrivateImplementation(p,clone,destruct);
-}
-
-const Subsystem::PrivateImplementation& Subsystem::getPrivateImplementation() const {
-    return getRep().getPrivateImplementation();
-}
-
-Subsystem::PrivateImplementation& Subsystem::updPrivateImplementation() {
-    return updRep().updPrivateImplementation();
-}
     ///////////////////
     // SUBSYSTEM REP //
     ///////////////////
 
-void SubsystemRep::invalidateSubsystemTopologyCache() const {
+void Subsystem::Guts::GutsRep::invalidateSubsystemTopologyCache() const {
     subsystemTopologyRealized = false;
     if (isInSystem()) 
         getSystem().getSystemGuts().invalidateSystemTopologyCache();

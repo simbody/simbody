@@ -1,5 +1,5 @@
-#ifndef SimTK_SYSTEM_H_
-#define SimTK_SYSTEM_H_
+#ifndef SimTK_SimTKCOMMON_SYSTEM_H_
+#define SimTK_SimTKCOMMON_SYSTEM_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -77,9 +77,10 @@ class DecorativeGeometry;
 class SimTK_SimTKCOMMON_EXPORT System {
 public:
     class Guts; // local; name is System::Guts
+    friend class Guts;
 private:
     // This is the only data member in this class. Also, any class derived from
-    // this one must have *NO* data members at all.
+    // System must have *NO* data members at all (data goes in the Guts class).
     Guts* guts;
 public:
     System() : guts(0) { }
@@ -387,7 +388,6 @@ public:
     // opaque implementation of Guts base class
     class GutsRep; // local; name is System::GutsRep
 private:
-    friend class System::Guts;
     class EventTriggerInfoRep;
 };
 
@@ -491,4 +491,4 @@ protected:
 
 } // namespace SimTK
 
-#endif // SimTK_SYSTEM_H_
+#endif // SimTK_SimTKCOMMON_SYSTEM_H_

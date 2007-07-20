@@ -30,6 +30,7 @@
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/Subsystem.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
@@ -77,8 +78,6 @@ System::~System() {
 
 void System::adoptSystemGuts(System::Guts* g) {
     SimTK_ASSERT_ALWAYS(g, "System::adoptSystemGuts(): can't adopt null Guts");
-    SimTK_ASSERT_ALWAYS(!g->hasOwnerHandle(),
-        "System::adoptSystemGuts(): can't adopt Guts that already have an owner handle");
     SimTK_ASSERT_ALWAYS(!guts,
         "System::adoptSystemGuts(): this System handle is already in use");
     guts = g;
@@ -445,7 +444,7 @@ void System::Guts::realize(const State& s, Stage g) const {
 void System::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
     assert(stage==Stage::Topology || s.getSystemStage() >= stage);
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].calcDecorativeGeometryAndAppend(s, stage, geom);
+        getRep().subsystems[i].getSubsystemGuts().calcDecorativeGeometryAndAppend(s, stage, geom);
 }
 
 
@@ -466,47 +465,47 @@ SubsystemId System::Guts::adoptSubsystem(Subsystem& src) {
 
 int System::Guts::realizeTopologyImpl(State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemTopology(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(s);
     return 0;
 }
 int System::Guts::realizeModelImpl(State& s) const {
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemModel(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
     return 0;
 }
 int System::Guts::realizeInstanceImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemInstance(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
     return 0;
 }
 int System::Guts::realizeTimeImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemTime(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
     return 0;
 }
 int System::Guts::realizePositionImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemPosition(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
     return 0;
 }
 int System::Guts::realizeVelocityImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemVelocity(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
     return 0;
 }
 int System::Guts::realizeDynamicsImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemDynamics(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
     return 0;
 }
 int System::Guts::realizeAccelerationImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemAcceleration(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
     return 0;
 }
 int System::Guts::realizeReportImpl(const State& s) const { 
     for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].realizeSubsystemReport(s);
+        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemReport(s);
     return 0;
 }
 
@@ -521,7 +520,7 @@ int System::Guts::calcYUnitWeightsImpl(const State& s, Vector& weights) const {
     VectorView zwts = weights(s.getZStart(), s.getNZ());
 
     for (SubsystemId i(0); i<getNSubsystems(); ++i) {
-        const Subsystem& sub = getRep().subsystems[i];
+        const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
         sub.calcQUnitWeights(s, qwts(s.getQStart(i), s.getNQ(i)));
         sub.calcUUnitWeights(s, uwts(s.getUStart(i), s.getNU(i)));
         sub.calcZUnitWeights(s, zwts(s.getZStart(i), s.getNZ(i)));
@@ -543,7 +542,7 @@ int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) con
     VectorView utols = ootols(s.getUErrStart(), s.getNUErr());
 
     for (SubsystemId i(0); i<getNSubsystems(); ++i) {
-        const Subsystem& sub = getRep().subsystems[i];
+        const Subsystem::Guts& sub = getRep().subsystems[i].getSubsystemGuts();
         sub.calcQErrUnitTolerances(s, qtols(s.getQErrStart(i), s.getNQErr(i)));
         sub.calcUErrUnitTolerances(s, utols(s.getUErrStart(i), s.getNUErr(i)));
     }
