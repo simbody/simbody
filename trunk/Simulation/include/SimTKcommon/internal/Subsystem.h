@@ -28,6 +28,8 @@
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
 
+#include <cassert>
+
 namespace SimTK {
 
 class System;
@@ -97,6 +99,20 @@ public:
     Vector& updQ(State&) const; // invalidates Stage::Position
     Vector& updU(State&) const; // invalidates Stage::Velocity
     Vector& updZ(State&) const; // invalidates Stage::Dynamics
+
+    // For convenience.
+    void setQ(State& s, const Vector& q) const {
+        assert(q.size() == getNQ(s));
+        updQ(s) = q;
+    }
+    void setU(State& s, const Vector& u) const {
+        assert(u.size() == getNU(s));
+        updU(s) = u;
+    }
+    void setZ(State& s, const Vector& z) const {
+        assert(z.size() == getNZ(s));
+        updZ(s) = z;
+    }
 
     // These update the State cache which is mutable; hence, const State. They
     // can be called only if the previous stage has already been realized, e.g.,
