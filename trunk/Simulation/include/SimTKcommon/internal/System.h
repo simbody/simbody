@@ -338,16 +338,6 @@ public:
         return maxval;
     }
 
-    /// This operator can be called at Stage::Position to take a vector
-    /// of absolute state variable error estimates and return a weighted
-    /// norm. This method is intended for use by numerical integration methods
-    /// for step size control. This is a weighted norm, calculated so
-    /// that a return value of 1 would indicate a "unit" error, which would 
-    /// be huge. If your accuracy requirement is 0.1%, you would test that
-    /// the norm return here is <= .001.
-    /// XXX OBSOLETE? TODO
-    Real calcYErrorNorm(const State&, const Vector& y_err) const;
-
     /// Take over ownership of the supplied subsystem and install it into 
     /// the next free subsystem slot. The new slot index is returned.
     SubsystemId adoptSubsystem(Subsystem& child);
@@ -385,8 +375,6 @@ public:
     explicit System(System::Guts* g) : guts(g) { }
     bool hasGuts() const {return guts!=0;}
 
-    // opaque implementation of Guts base class
-    class GutsRep; // local; name is System::GutsRep
 private:
     class EventTriggerInfoRep;
 };

@@ -36,7 +36,7 @@
 
 namespace SimTK {
 
-class System::GutsRep {
+class System::Guts::GutsRep {
 public:
     GutsRep() 
       : systemName("<NONAME>"), systemVersion("0.0.0"), 
@@ -102,15 +102,6 @@ public:
 
 		return id;
 	}
-
-    // Default treats all state variable identically. Should be asking the 
-    // subsystems. TODO
-    Real calcYErrorNorm(const State& s, const Vector& y_err) const {
-        assert(y_err.size() == s.getY().size());
-        SimTK_STAGECHECK_GE(s.getSystemStage(), Stage::Position,
-            "System::calcYErrorNorm()");
-        return y_err.size()==0 ? 0 : std::sqrt( y_err.normSqr()/y_err.size() );
-    }
 
     void setMyHandle(System& h) {myHandle = &h;}
     void clearMyHandle() {myHandle=0;}

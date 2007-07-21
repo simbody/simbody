@@ -58,8 +58,10 @@ class DecorativeGeometry;
  */
 class SimTK_SimTKCOMMON_EXPORT Subsystem::Guts {
     class GutsRep;
-    GutsRep* rep; // this is the only data member in the base class
     friend class GutsRep;
+
+    // this is the only data member in the base class
+    GutsRep* rep; // opaque implementation of Subsystem::Guts base class.
 public:
     Guts(const Guts&);
     Guts& operator=(const Guts&);

@@ -151,7 +151,7 @@ const char* System::getEventCauseName(System::EventCause cause) {
 
 // Default constructor is inline, but calls librarySideConstuction() here.
 void System::Guts::librarySideConstruction(const String& name, const String& version) {
-    rep = new System::GutsRep(name,version);
+    rep = new GutsRep(name,version);
     // note that the GutsRep object currently has no owner handle
 }
 
@@ -164,7 +164,7 @@ void System::Guts::librarySideDestruction() {
 // Copy constructor
 System::Guts::Guts(const Guts& src) : rep(0) {
     if (src.rep) {
-        rep = new System::GutsRep(*src.rep);
+        rep = new GutsRep(*src.rep);
         // note that the GutsRep object currently has no owner handle
     }
 }
@@ -451,10 +451,6 @@ void System::Guts::calcDecorativeGeometryAndAppend(const State& s, Stage stage, 
         getRep().subsystems[i].getSubsystemGuts().calcDecorativeGeometryAndAppend(s, stage, geom);
 }
 
-
-Real System::Guts::calcYErrorNorm(const State& s, const Vector& y_err) const {
-    return getRep().calcYErrorNorm(s,y_err);
-}
 
 SubsystemId System::Guts::adoptSubsystem(Subsystem& src) {
     return updRep().adoptSubsystem(src);

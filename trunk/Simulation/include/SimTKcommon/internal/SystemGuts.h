@@ -34,7 +34,6 @@ class Subsystem;
 class DecorativeGeometry;
 
 class System;
-class System::GutsRep;
 
 /**
  * This is the declaration for the System::Guts class, the abstract object to
@@ -85,8 +84,11 @@ class System::GutsRep;
  *                                              .   -------------
  */
 class SimTK_SimTKCOMMON_EXPORT System::Guts {
+    class GutsRep;
+    friend class GutsRep;
+
     // This is the only data member in this class.
-    System::GutsRep* rep;   // opaque implementation of System::Guts base class.
+    GutsRep* rep; // opaque implementation of System::Guts base class.
 public:
     // Constructor must be inline for binary compatibility. Note that this
     // serves as a default constructor since both arguments have defaults.
@@ -216,7 +218,6 @@ protected:
     virtual int calcTimeOfNextScheduledEventImpl
         (const State&, Real& tNextEvent, Array<int>& eventIds) const;
 private:
-    friend class System::GutsRep;
     Guts& operator=(const Guts&); // suppress default copy assignment operator
 
     // These typedefs are used internally to manage the binary-compatible
