@@ -28,10 +28,8 @@
  */
 
 #include "SimTKsimbody.h"
-#include "simbody/internal/Subsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
-#include "SubsystemRep.h"
 #include "DecorationSubsystemRep.h"
 
 namespace SimTK {
@@ -43,7 +41,7 @@ namespace SimTK {
 
 /*static*/ bool 
 DecorationSubsystem::isInstanceOf(const Subsystem& s) {
-    return DecorationSubsystemRep::isA(s.getRep());
+    return DecorationSubsystemGuts::isA(s.getSubsystemGuts());
 }
 /*static*/ const DecorationSubsystem&
 DecorationSubsystem::downcast(const Subsystem& s) {
@@ -56,15 +54,13 @@ DecorationSubsystem::updDowncast(Subsystem& s) {
     return reinterpret_cast<DecorationSubsystem&>(s);
 }
 
-const DecorationSubsystemRep& 
-DecorationSubsystem::getRep() const {
-    assert(rep);
-    return dynamic_cast<const DecorationSubsystemRep&>(*rep);
+const DecorationSubsystemGuts& 
+DecorationSubsystem::getGuts() const {
+    return dynamic_cast<const DecorationSubsystemGuts&>(getSubsystemGuts());
 }
-DecorationSubsystemRep&       
-DecorationSubsystem::updRep() {
-    assert(rep);
-    return dynamic_cast<DecorationSubsystemRep&>(*rep);
+DecorationSubsystemGuts&       
+DecorationSubsystem::updGuts() {
+    return dynamic_cast<DecorationSubsystemGuts&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -72,22 +68,20 @@ DecorationSubsystem::updRep() {
 DecorationSubsystem::DecorationSubsystem()
   : Subsystem()
 {
-    rep = new DecorationSubsystemRep();
-    rep->setMyHandle(*this);
+     adoptSubsystemGuts(new DecorationSubsystemGuts());
 }
 
 DecorationSubsystem::DecorationSubsystem(MultibodySystem& mbs)
   : Subsystem() 
 {
-    rep = new DecorationSubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new DecorationSubsystemGuts());
     mbs.setDecorationSubsystem(*this);
 }
 
 void DecorationSubsystem::addBodyFixedDecoration
    (MobilizedBodyId body, const Transform& X_GD, const DecorativeGeometry& g) 
 {
-    updRep().addBodyFixedDecoration(body, X_GD, g);
+    updGuts().addBodyFixedDecoration(body, X_GD, g);
 }
 
 void DecorationSubsystem::addRubberBandLine
@@ -95,7 +89,7 @@ void DecorationSubsystem::addRubberBandLine
     MobilizedBodyId b2, const Vec3& station2,
     const DecorativeLine& g)
 {
-    updRep().addRubberBandLine(b1,station1,b2,station2,g);
+    updGuts().addRubberBandLine(b1,station1,b2,station2,g);
 }
 
 

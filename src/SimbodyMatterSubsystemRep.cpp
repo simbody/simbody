@@ -43,7 +43,7 @@
 #include <string>
 
 SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep& src)
-   : SimTK::SubsystemRep("SimbodyMatterSubsystemRep", "X.X.X")
+  : SimTK::Subsystem::Guts("SimbodyMatterSubsystemRep", "X.X.X")
 {
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
@@ -298,7 +298,7 @@ void SimbodyMatterSubsystemRep::endConstruction() {
     lConstraints->construct(distanceConstraints);
 }
 
-void SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Empty, 
         "SimbodyMatterSubsystem::realizeTopology()");
 
@@ -336,11 +336,13 @@ void SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     // Allocate a cache entry for the topologyCache, and save a copy there.
     mutableThis->topologyCacheIndex = 
         allocateCacheEntry(s,Stage::Topology, new Value<SBTopologyCache>(topologyCache));
+
+    return 0;
 }
 
 // Here we lock in modeling choices like whether to use quaternions or Euler
 // angles; what joints are prescribed, etc.
-void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     SimTK_STAGECHECK_EQ_ALWAYS(getStage(s), Stage::Topology, 
         "SimbodyMatterSubsystem::realizeModel()");
 
@@ -449,10 +451,12 @@ void SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
 
     // Note that qdots, qdotdots, udots, zdots are automatically allocated by
     // the State when we advance the stage past modeling.
+
+    return 0;
 }
 
 // Here we lock in parameterization of the model, such as body masses.
-void SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Instance).prev(), 
         "SimbodyMatterSubsystem::realizeInstance()");
 
@@ -470,17 +474,21 @@ void SimbodyMatterSubsystemRep::realizeSubsystemInstanceImpl(const State& s) con
     ic.totalMass = iv.particleMasses.sum();
     for (int i=0; i<getNBodies(); ++i)
         ic.totalMass += iv.bodyMassProperties[i].getMass();
+
+    return 0;
 }
 
-void SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemTimeImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Time).prev(), 
         "SimbodyMatterSubsystem::realizeTime()");
 
     // nothing yet
+
+    return 0;
 }
 
 // Set generalized coordinates: sweep from base to tips.
-void SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Position).prev(), 
         "SimbodyMatterSubsystem::realizePosition()");
 
@@ -502,11 +510,13 @@ void SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) con
     // Constraint errors go in qErr after the quaternion constraints.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcPosInfo(qErr,pc); //TODO: qErr
+
+    return 0;
 }
 
 // Set generalized speeds: sweep from base to tip.
 // realizePosition() must have been called already.
-void SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Velocity).prev(), 
         "SimbodyMatterSubsystem::realizeVelocity()");
 
@@ -528,6 +538,8 @@ void SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) con
 
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcVelInfo(pc,uErr,vc);
+
+    return 0;
 }
 
 
@@ -537,7 +549,7 @@ void SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) con
 // Then go ask around to collect up all the applied forces from any
 // force subsystems.
 
-void SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  const {
+int SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Dynamics).prev(), 
         "SimbodyMatterSubsystem::realizeDynamics()");
 
@@ -561,9 +573,11 @@ void SimbodyMatterSubsystemRep::realizeSubsystemDynamicsImpl(const State& s)  co
     // Update system kinetic energy
     const MultibodySystem& mbs = getMultibodySystem();  // owner of this subsystem
     mbs.getRep().updKineticEnergy(s, Stage::Dynamics) += calcKineticEnergy(s);
+
+    return 0;
 }
 
-void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)  const {
+int SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)  const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Acceleration).prev(), 
         "SimbodyMatterSubsystem::realizeAcceleration()");
 
@@ -584,14 +598,18 @@ void SimbodyMatterSubsystemRep::realizeSubsystemAccelerationImpl(const State& s)
         mbs.getRigidBodyForces(s, Stage::Dynamics));
 
     calcQDotDot(s, udot, qdotdot);
+
+    return 0;
 }
 
 
-void SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const {
+int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage(Stage::Report).prev(), 
         "SimbodyMatterSubsystem::realizeReport()");
 
     // nothing yet
+
+    return 0;
 }
 
 

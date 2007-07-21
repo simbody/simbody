@@ -120,29 +120,40 @@ public:
         return (int)defaultParameters.halfSpaces.size() - 1;
     }
 
-    void realizeSubsystemTopologyImpl(State& s) const {
+        // OVERRIDE VIRTUAL FUNCTIONS FROM Subsystem::Guts
+
+    HuntCrossleyContactRep* cloneImpl() const {return new HuntCrossleyContactRep(*this);}
+
+
+    int realizeSubsystemTopologyImpl(State& s) const {
         instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
+        return 0;
     }
 
-    void realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
+        return 0;
     }
 
-    void realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
     // Cost of contact processing here (in flops):
@@ -152,17 +163,18 @@ public:
     // It doesn't take many objects before that first term is very expensive.
     // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-    void realizeSubsystemDynamicsImpl(const State& s) const;
+    int realizeSubsystemDynamicsImpl(const State& s) const;
 
-    void realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    HuntCrossleyContactRep* cloneSubsystemRep() const {return new HuntCrossleyContactRep(*this);}
 
 private:
         // TOPOLOGY "STATE" VARIABLES
@@ -228,11 +240,11 @@ HuntCrossleyContact::updDowncast(ForceSubsystem& s) {
 
 const HuntCrossleyContactRep& 
 HuntCrossleyContact::getRep() const {
-    return dynamic_cast<const HuntCrossleyContactRep&>(*rep);
+    return dynamic_cast<const HuntCrossleyContactRep&>(ForceSubsystem::getRep());
 }
 HuntCrossleyContactRep&       
 HuntCrossleyContact::updRep() {
-    return dynamic_cast<HuntCrossleyContactRep&>(*rep);
+    return dynamic_cast<HuntCrossleyContactRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -240,15 +252,13 @@ HuntCrossleyContact::updRep() {
 HuntCrossleyContact::HuntCrossleyContact()
   : ForceSubsystem()
 {
-    rep = new HuntCrossleyContactRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new HuntCrossleyContactRep());
 }
 
 HuntCrossleyContact::HuntCrossleyContact(MultibodySystem& mbs)
   : ForceSubsystem()
 {
-    rep = new HuntCrossleyContactRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new HuntCrossleyContactRep());
     mbs.addForceSubsystem(*this); // steal ownership
 }
 
@@ -281,10 +291,10 @@ int HuntCrossleyContact::addHalfSpace(MobilizedBodyId body, const UnitVec3& norm
 // It doesn't take many spheres before that first term is very expensive.
 // TODO: contact test can be made O(n) by calculating neighborhoods, e.g.
 
-void HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const 
+int HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const 
 {
     const Parameters& p = getParameters(s);
-    if (!p.enabled) return;
+    if (!p.enabled) return 0;
 
     const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
@@ -370,6 +380,8 @@ void HuntCrossleyContactRep::realizeSubsystemDynamicsImpl(const State& s) const
                            pe, rigidBodyForces[sphere1.body], rigidBodyForces[halfSpace.body]);
         }
     }
+
+    return 0;
 }
 
 // We have determined that contact is occurring. The *undeformed* contact points and the

@@ -24,12 +24,14 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "SimTKcommon.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/MobilizedBody.h"
 
-#include "SubsystemRep.h"
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
 
@@ -78,10 +80,10 @@ class LengthConstraints;
  * SimbodyMatterSubsystemRep is the owner of the RigidBodyNode objects (which are abstract), pointers to
  * which are stored in the tree.
  */
-class SimbodyMatterSubsystemRep : public SimTK::SubsystemRep {
+class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
-      : SubsystemRep("SimbodyMatterSubsystem", "0.5.5"),
+        : Subsystem::Guts("SimbodyMatterSubsystem", "0.5.5"),
         lConstraints(0)
     { 
         clearTopologyCache();
@@ -160,11 +162,6 @@ public:
         assert(constraints[id]);
         invalidateSubsystemTopologyCache();
         return *constraints[id];
-    }
-
-    // SubsystemRep interface
-    SimbodyMatterSubsystemRep* cloneSubsystemRep() const {
-        return new SimbodyMatterSubsystemRep(*this);
     }
 
     // MatterSubsystemRep interface. These provide local implementations for
@@ -292,16 +289,22 @@ public:
         return true;
     }
 
-    // Override virtual methods in SubsystemRep.
-    void realizeSubsystemTopologyImpl    (State&) const;
-    void realizeSubsystemModelImpl       (State&) const;
-    void realizeSubsystemInstanceImpl    (const State&) const;
-    void realizeSubsystemTimeImpl        (const State&) const;
-    void realizeSubsystemPositionImpl    (const State&) const;
-    void realizeSubsystemVelocityImpl    (const State&) const;
-    void realizeSubsystemDynamicsImpl    (const State&) const;
-    void realizeSubsystemAccelerationImpl(const State&) const;
-    void realizeSubsystemReportImpl      (const State&) const;
+    // Override virtual methods in Subsystem::Guts.
+
+    // SubsystemRep interface
+    SimbodyMatterSubsystemRep* cloneImpl() const {
+        return new SimbodyMatterSubsystemRep(*this);
+    }
+
+    int realizeSubsystemTopologyImpl    (State&) const;
+    int realizeSubsystemModelImpl       (State&) const;
+    int realizeSubsystemInstanceImpl    (const State&) const;
+    int realizeSubsystemTimeImpl        (const State&) const;
+    int realizeSubsystemPositionImpl    (const State&) const;
+    int realizeSubsystemVelocityImpl    (const State&) const;
+    int realizeSubsystemDynamicsImpl    (const State&) const;
+    int realizeSubsystemAccelerationImpl(const State&) const;
+    int realizeSubsystemReportImpl      (const State&) const;
 
     Real calcKineticEnergy(const State&) const;
 
@@ -608,10 +611,10 @@ public:
 
 
     const SimbodyMatterSubsystem& getMySimbodyMatterSubsystemHandle() const {
-        return SimbodyMatterSubsystem::downcast(getMyHandle());
+        return SimbodyMatterSubsystem::downcast(getOwnerSubsystemHandle());
     }
     SimbodyMatterSubsystem& updMySimbodyMatterSubsystemHandle() {
-        return SimbodyMatterSubsystem::updDowncast(updMyHandle());
+        return SimbodyMatterSubsystem::updDowncast(updOwnerSubsystemHandle());
     }
 private:
     //void addGroundNode();
@@ -647,7 +650,7 @@ private:
         int level, offset;
     };
 
-    SimTK_DOWNCAST(SimbodyMatterSubsystemRep, SubsystemRep);
+    SimTK_DOWNCAST(SimbodyMatterSubsystemRep, Subsystem::Guts);
 
 private:
         // TOPOLOGY "STATE VARIABLES"

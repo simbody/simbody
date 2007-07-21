@@ -29,15 +29,15 @@
  * Private implementation of DecorationSubsystem.
  */
 
-#include "SimTKsimbody.h"
-#include "simbody/internal/Subsystem.h"
-#include "simbody/internal/DecorationSubsystem.h"
+#include "SimTKcommon.h"
+#include "SimTKcommon/internal/SubsystemGuts.h"
 
-#include "SubsystemRep.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/DecorationSubsystem.h"
 
 namespace SimTK {
 
-class DecorationSubsystemRep : public SubsystemRep {
+class DecorationSubsystemGuts : public Subsystem::Guts {
 
     struct RubberBandLine {
         RubberBandLine(MobilizedBodyId b1, const Vec3& s1,
@@ -52,8 +52,8 @@ class DecorationSubsystemRep : public SubsystemRep {
     };
 
 public:
-    DecorationSubsystemRep()
-      : SubsystemRep("DecorationSubsystem", "0.0.1")
+    DecorationSubsystemGuts()
+      : Subsystem::Guts("DecorationSubsystem", "0.0.1")
     {
     }
 
@@ -115,50 +115,61 @@ public:
         }
     }
 
-    // Override virtual methods, although at the moment there is nothing here
+
+    DecorationSubsystemGuts* cloneImpl() const {
+        return new DecorationSubsystemGuts(*this);
+    }
+
+    // Override virtual realize methods, although at the moment there is nothing here
     // so the default implementations would have been fine.
 
-    void realizeSubsystemTopologyImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const {
         // No Topology-stage cache here
+        return 0;
     }
 
-    void realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
+        return 0;
     }
 
-    void realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemDynamicsImpl(const State& s) const {
+    int realizeSubsystemDynamicsImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    DecorationSubsystemRep* cloneSubsystemRep() const {
-        return new DecorationSubsystemRep(*this);
-    }
 
-    SimTK_DOWNCAST(DecorationSubsystemRep, SubsystemRep);
+    SimTK_DOWNCAST(DecorationSubsystemGuts, Subsystem::Guts);
 private:
         // TOPOLOGY "STATE" VARIABLES
     std::vector<DecorativeGeometry> geometry;

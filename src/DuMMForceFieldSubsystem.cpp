@@ -30,12 +30,12 @@
  */
 
 #include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
 #include "ForceSubsystemRep.h"
 
@@ -655,18 +655,15 @@ public:
 //
 class Cluster {
 public:
-    Cluster() : clusterId(-1), topologicalCacheValid(false) { }
+    Cluster() : clusterId(-1) { }
     Cluster(const char* nm)
-      : clusterId(-1), name(nm), topologicalCacheValid(false) {
+      : clusterId(-1), name(nm) {
         // not valid yet -- still need Id assigned
     }
 
     bool isValid() const {return clusterId >= 0;}
     bool isAttachedToBody() const {return bodyId >= 0;}
     bool isTopLevelCluster() const {return parentClusters.empty();}
-
-    bool isTopologicalCacheValid() const   {return topologicalCacheValid;}
-    void invalidateTopologicalCache()      {topologicalCacheValid=false;}
 
     MobilizedBodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
 
@@ -755,13 +752,9 @@ public:
     // Recursively calculate composite properties for this group and all the
     // groups it contains. All groups were marked "invalid" at the beginning
     // of this step.
+    void invalidateTopologicalCache() { // TODO
+    }
     void realizeTopologicalCache(DuMMForceFieldSubsystemRep& mm) {
-        if (topologicalCacheValid)
-            return;
-
-        // TODO: charge & geometric properties
-
-        topologicalCacheValid = true;
     }
 
 
@@ -798,8 +791,6 @@ public:
             ++pp;
         }
 
-        std::cout     << "\n      topological cache valid? " 
-                  << isTopologicalCacheValid() << std::endl;
         if (bodyId >= 0) 
             std::cout << "\n      attached to body " << bodyId << " at (nm) " << placement_B;
         else
@@ -808,7 +799,6 @@ public:
     }
 
     void clearAllCalculatedData() {
-        topologicalCacheValid = false;
         chargeProps    = ChargeProperties();
         geometricProps = GeometricProperties();
     }
@@ -864,8 +854,6 @@ public:
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
-
-    bool topologicalCacheValid;
 
     // These reflect composite properties built from the allAtoms list.
     ChargeProperties    chargeProps;
@@ -923,8 +911,6 @@ public:
     DuMMForceFieldSubsystemRep()
       : ForceSubsystemRep("DuMMForceFieldSubsystem", "0.0.1")
     {
-        topologicalCacheValid = false;
-
         vdwMixingRule = DuMMForceFieldSubsystem::WaldmanHagler;
         vdwGlobalScaleFactor=coulombGlobalScaleFactor=bondStretchGlobalScaleFactor
             =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor=1;
@@ -995,6 +981,9 @@ public:
     }
 
     int addCluster(const Cluster& c) {
+
+        invalidateSubsystemTopologyCache();
+
         const int clusterId = (int)clusters.size();
         clusters.push_back(c);
         clusters[clusterId].clusterId = clusterId;
@@ -1002,6 +991,8 @@ public:
     }
     Cluster& updCluster(int clusterId) {
         assert(isValidCluster(clusterId));
+
+        invalidateSubsystemTopologyCache();
         return clusters[clusterId];
     }
     const Cluster& getCluster(int clusterId) const {
@@ -1010,6 +1001,8 @@ public:
     }
     DuMMBody& updBody(int bodyId) {
         assert(isValidBody(bodyId));
+
+        invalidateSubsystemTopologyCache();
         return bodies[bodyId];
     }
     const DuMMBody& getBody(int bodyId) const {
@@ -1027,6 +1020,8 @@ public:
     }
     Atom& updAtom(int atomId) {
         assert(isValidAtom(atomId));
+
+        invalidateSubsystemTopologyCache();
         return atoms[atomId];
     }
 
@@ -1054,46 +1049,54 @@ public:
     const BondBend&    getBondBend   (int class1, int class2, int class3) const;
     const BondTorsion& getBondTorsion(int class1, int class2, int class3, int class4) const;
 
-    // Override virtual methods from Subsystem class.
+    // Override virtual methods from Subsystem::Guts class.
 
-    void realizeSubsystemTopologyImpl(State& s) const;
+    DuMMForceFieldSubsystemRep* cloneImpl() const {
+        return new DuMMForceFieldSubsystemRep(*this);
+    }
 
-    void realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const;
+
+    int realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
+        return 0;
     }
 
-    void realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
 
-    void realizeSubsystemDynamicsImpl(const State& s) const;
+    int realizeSubsystemDynamicsImpl(const State& s) const;
 
-    void realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
     void dump() const;
 
-    DuMMForceFieldSubsystemRep* cloneSubsystemRep() const {
-        return new DuMMForceFieldSubsystemRep(*this);
-    }
 
 private:
     void loadElements();
@@ -1110,8 +1113,6 @@ private:
     }
 
     void invalidateAllTopologicalCacheEntries() {
-        topologicalCacheValid = false;
-
         // If any of these objects are invalid, the invalidateTopologicalCache()
         // call does nothing (i.e., it doesn't blow up!).
 
@@ -1175,7 +1176,6 @@ private:
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
         //   state variables (from here or others in the DuMM class).
-    bool topologicalCacheValid;
 };
 
 
@@ -1185,7 +1185,7 @@ private:
 
 /*static*/ bool 
 DuMMForceFieldSubsystem::isInstanceOf(const Subsystem& s) {
-    return DuMMForceFieldSubsystemRep::isA(s.getRep());
+    return DuMMForceFieldSubsystemRep::isA(s.getSubsystemGuts());
 }
 /*static*/ const DuMMForceFieldSubsystem&
 DuMMForceFieldSubsystem::downcast(const Subsystem& s) {
@@ -1200,11 +1200,11 @@ DuMMForceFieldSubsystem::updDowncast(Subsystem& s) {
 
 const DuMMForceFieldSubsystemRep& 
 DuMMForceFieldSubsystem::getRep() const {
-    return dynamic_cast<const DuMMForceFieldSubsystemRep&>(*rep);
+    return dynamic_cast<const DuMMForceFieldSubsystemRep&>(ForceSubsystem::getRep());
 }
 DuMMForceFieldSubsystemRep&       
 DuMMForceFieldSubsystem::updRep() {
-    return dynamic_cast<DuMMForceFieldSubsystemRep&>(*rep);
+    return dynamic_cast<DuMMForceFieldSubsystemRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -1212,15 +1212,13 @@ DuMMForceFieldSubsystem::updRep() {
 DuMMForceFieldSubsystem::DuMMForceFieldSubsystem() 
   : ForceSubsystem()
 {
-    rep = new DuMMForceFieldSubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new DuMMForceFieldSubsystemRep());
 }
 
 DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms) 
   : ForceSubsystem()
 {
-    rep = new DuMMForceFieldSubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new DuMMForceFieldSubsystemRep());
     mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
 }
 
@@ -1229,6 +1227,9 @@ void DuMMForceFieldSubsystem::defineAtomClass
     Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol)
 {
     static const char* MethodName = "defineAtomClass";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Catch nonsense arguments.
@@ -1261,6 +1262,9 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
    (int chargedAtomTypeId, const char* typeName, int atomClassId, Real partialChargeInE)
 {
     static const char* MethodName = "defineChargedAtomType";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Check for nonsense arguments.
@@ -1292,6 +1296,9 @@ void DuMMForceFieldSubsystem::defineBondStretch
    (int class1, int class2, Real stiffnessInKJPerNmSq, Real nominalLengthInNm)
 {
     static const char* MethodName = "defineBondStretch";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
@@ -1321,6 +1328,9 @@ void DuMMForceFieldSubsystem::defineBondBend
    (int class1, int class2, int class3, Real stiffnessInKJPerRadSq, Real nominalAngleInDeg)
 {
     static const char* MethodName = "defineBondBend";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
@@ -1364,6 +1374,9 @@ void DuMMForceFieldSubsystem::defineBondTorsion
     int periodicity3, Real amp3InKJ, Real phase3InDegrees)
 {
     static const char* MethodName = "defineBondTorsion";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Watch for nonsense arguments.
@@ -1468,6 +1481,9 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
 void DuMMForceFieldSubsystem::setVdwMixingRule(VdwMixingRule rule) {
     static const char* MethodName = "setVdwMixingRule";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
     mm.vdwMixingRule = rule; 
 }
@@ -1496,6 +1512,9 @@ DuMMForceFieldSubsystem::getVdwMixingRuleName(VdwMixingRule rule) const {
 
 void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {
     static const char* MethodName = "setVdw12ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1506,6 +1525,9 @@ void DuMMForceFieldSubsystem::setVdw12ScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setVdw13ScaleFactor(Real fac) {
     static const char* MethodName = "setVdw13ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1516,6 +1538,9 @@ void DuMMForceFieldSubsystem::setVdw13ScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setVdw14ScaleFactor(Real fac) {
     static const char* MethodName = "setVdw14ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1526,6 +1551,9 @@ void DuMMForceFieldSubsystem::setVdw14ScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setVdw15ScaleFactor(Real fac) {
     static const char* MethodName = "setVdw15ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1537,6 +1565,9 @@ void DuMMForceFieldSubsystem::setVdw15ScaleFactor(Real fac) {
 
 void DuMMForceFieldSubsystem::setCoulomb12ScaleFactor(Real fac) {
     static const char* MethodName = "setCoulomb12ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1548,6 +1579,9 @@ void DuMMForceFieldSubsystem::setCoulomb12ScaleFactor(Real fac) {
 
 void DuMMForceFieldSubsystem::setCoulomb13ScaleFactor(Real fac) {
     static const char* MethodName = "setCoulomb13ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1558,6 +1592,9 @@ void DuMMForceFieldSubsystem::setCoulomb13ScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setCoulomb14ScaleFactor(Real fac) {
     static const char* MethodName = "setCoulomb14ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1568,6 +1605,9 @@ void DuMMForceFieldSubsystem::setCoulomb14ScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {
     static const char* MethodName = "setCoulomb15ScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac && fac <= 1, mm.ApiClassName, MethodName,
@@ -1579,6 +1619,9 @@ void DuMMForceFieldSubsystem::setCoulomb15ScaleFactor(Real fac) {
 
 void DuMMForceFieldSubsystem::setVdwGlobalScaleFactor(Real fac) {
     static const char* MethodName = "setVdwScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
@@ -1590,6 +1633,9 @@ void DuMMForceFieldSubsystem::setVdwGlobalScaleFactor(Real fac) {
 
 void DuMMForceFieldSubsystem::setCoulombGlobalScaleFactor(Real fac) {
     static const char* MethodName = "setCoulombScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
@@ -1600,6 +1646,9 @@ void DuMMForceFieldSubsystem::setCoulombGlobalScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setBondStretchGlobalScaleFactor(Real fac) {
     static const char* MethodName = "setBondStretchScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
@@ -1610,6 +1659,9 @@ void DuMMForceFieldSubsystem::setBondStretchGlobalScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setBondBendGlobalScaleFactor(Real fac) {
     static const char* MethodName = "setBondBendScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
@@ -1620,6 +1672,9 @@ void DuMMForceFieldSubsystem::setBondBendGlobalScaleFactor(Real fac) {
 }
 void DuMMForceFieldSubsystem::setBondTorsionGlobalScaleFactor(Real fac) {
     static const char* MethodName = "setBondTorsionScaleFactor";
+ 
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
@@ -1638,6 +1693,9 @@ int DuMMForceFieldSubsystem::createCluster(const char* groupName)
 int DuMMForceFieldSubsystem::addAtom(int chargedAtomTypeId)
 {
     static const char* MethodName = "addAtom";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidChargedAtomType(chargedAtomTypeId), mm.ApiClassName, MethodName, 
@@ -1651,6 +1709,9 @@ int DuMMForceFieldSubsystem::addAtom(int chargedAtomTypeId)
 void DuMMForceFieldSubsystem::placeAtomInCluster(int atomId, int clusterId, const Vec3& stationInNm)
 {
     static const char* MethodName = "placeAtomInCluster";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure that we've seen both the atomId and clusterId before.
@@ -1674,6 +1735,9 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
    (int childClusterId, int parentClusterId, const Transform& placementInNm)
 {
     static const char* MethodName = "placeClusterInCluster";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure that we've seen both of these clusters before.
@@ -1721,6 +1785,9 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, MobilizedBodyId
                                                   const Transform& placementInNm) 
 {
     static const char* MethodName = "attachClusterToBody";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen this cluster before, and that the body number is well formed.
@@ -1762,6 +1829,9 @@ void DuMMForceFieldSubsystem::attachClusterToBody(int clusterId, MobilizedBodyId
 void DuMMForceFieldSubsystem::attachAtomToBody(int atomId, MobilizedBodyId bodyNum, const Vec3& stationInNm) 
 {
     static const char* MethodName = "attachAtomToBody";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen this atom before, and that the body number is well formed.
@@ -1800,6 +1870,9 @@ MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
 int DuMMForceFieldSubsystem::addBond(int atom1Id, int atom2Id)
 {
     static const char* MethodName = "addBond";
+
+    invalidateSubsystemTopologyCache();
+
     DuMMForceFieldSubsystemRep& mm = updRep();
 
         // Make sure we've seen these atoms before.
@@ -2060,10 +2133,7 @@ DuMMForceFieldSubsystemRep::getBondTorsion
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
-void DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
-    if (topologicalCacheValid)
-        return; // already got this far
-
+int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     // We need to write once onto the 'cache' portion of the object once
     // the topology is known.
     DuMMForceFieldSubsystemRep* mutableThis = 
@@ -2270,7 +2340,7 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         }
     }
 
-    mutableThis->topologicalCacheValid = true;
+    return 0;
 }
 
 // Cost of processing here (in flops): XXX
@@ -2287,7 +2357,7 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
 //          reset scale factors on bonded atoms
 //
 
-void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) const 
+int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) const 
 {
     const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
     const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
@@ -2477,6 +2547,8 @@ void DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
             unscaleBondedAtoms(a1,vdwScale,coulombScale);
         }
     }
+
+    return 0;
 }
 
 

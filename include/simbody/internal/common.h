@@ -75,33 +75,6 @@ extern "C" {
 
 namespace SimTK {
 
-static const int invalidId = -1111111111;
-
-/**
- * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidSubsystemId. For most uses it will behave like an int,
- * and it has an implicit conversion *to* int. Importantly though,
- * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as a SubsystemId.
- */
-class SubsystemId {
-    int id;
-public:
-    inline SubsystemId();
-    inline explicit SubsystemId(int i);
-    operator int() const {return id;}
-    bool isValid() const {return id>=0;}
-    const SubsystemId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
-    SubsystemId operator++(int)     {assert(id>=0); ++id; return SubsystemId(id-1);} // postfix
-    const SubsystemId& operator--() {assert(id>=1); --id;return *this;}           // prefix
-    SubsystemId operator--(int)     {assert(id>=1); --id; return SubsystemId(id+1);} // postfix
-};
-static const SubsystemId InvalidSubsystemId(invalidId);
-inline SubsystemId::SubsystemId() : id(InvalidSubsystemId) { }
-inline SubsystemId::SubsystemId(int i) : id(i) {
-    assert(i>=0 || i==invalidId);
-}
-
 /**
  * This is just a type-safe non-negative int, augmented with a "NaN" 
  * value called InvalidMobilizedBodyId. For most uses it will behave like an int,
@@ -124,10 +97,10 @@ public:
     MobilizedBodyId operator--(int)     {assert(id>=1); --id; return MobilizedBodyId(id+1);} // postfix
 };
 static const MobilizedBodyId GroundId(0);
-static const MobilizedBodyId InvalidMobilizedBodyId(invalidId);
+static const MobilizedBodyId InvalidMobilizedBodyId(InvalidId);
 inline MobilizedBodyId::MobilizedBodyId() : id(InvalidMobilizedBodyId) { }
 inline MobilizedBodyId::MobilizedBodyId(int i) : id(i) {
-    assert(i>=0 || i==invalidId);
+    assert(i>=0 || i==InvalidId);
 }
 
 /**
@@ -149,10 +122,10 @@ public:
     const ParticleId& operator--() {assert(id>=1); --id;return *this;}             // prefix
     ParticleId operator--(int)     {assert(id>=1); --id; return ParticleId(id+1);} // postfix
 };
-static const ParticleId InvalidParticleId(invalidId);
+static const ParticleId InvalidParticleId(InvalidId);
 inline ParticleId::ParticleId() : id(InvalidParticleId) { }
 inline ParticleId::ParticleId(int i) : id(i) {
-    assert(i>=0 || i==invalidId);
+    assert(i>=0 || i==InvalidId);
 }
 
 /**
@@ -174,10 +147,10 @@ public:
     const ConstraintId& operator--() {assert(id>=1); --id;return *this;}          // prefix
     ConstraintId operator--(int)     {assert(id>=1); --id; return ConstraintId(id+1);}  // postfix
 };
-static const ConstraintId InvalidConstraintId(invalidId);
+static const ConstraintId InvalidConstraintId(InvalidId);
 inline ConstraintId::ConstraintId() : id(InvalidConstraintId) { }
 inline ConstraintId::ConstraintId(int i) : id(i) {
-    assert(i>=0 || i==invalidId);
+    assert(i>=0 || i==InvalidId);
 }
 
 

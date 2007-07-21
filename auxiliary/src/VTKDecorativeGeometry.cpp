@@ -25,8 +25,9 @@
  * Implementation of the VTKDeorativeGeometry class.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
 #include "VTKDecorativeGeometry.h"
 

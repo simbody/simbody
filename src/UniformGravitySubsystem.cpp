@@ -42,12 +42,12 @@ class UniformGravitySubsystemRep : public ForceSubsystemRep {
 public:
     UniformGravitySubsystemRep() 
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
-        instanceVarsIndex(-1), instanceCacheIndex(-1), built(false) { }
+        instanceVarsIndex(-1), instanceCacheIndex(-1) { }
 
     explicit UniformGravitySubsystemRep(const Vec3& g, const Real& z=0)
       : ForceSubsystemRep("UniformGravitySubsystem", "0.0.1"), 
         defaultParameters(g,z),
-        instanceVarsIndex(-1), instanceCacheIndex(-1), built(false) { } 
+        instanceVarsIndex(-1), instanceCacheIndex(-1) { } 
 
     // Access to state variables (parameters).
     const Vec3& getGravity(const State& s) const {return getParameters(s).gravity;}
@@ -67,15 +67,17 @@ public:
         return getInstanceCache(s).gz;
     }
 
-    void realizeSubsystemTopologyImpl(State& s) const;
+
+    UniformGravitySubsystemRep* cloneImpl() const {return new UniformGravitySubsystemRep(*this);}
+
+    int realizeSubsystemTopologyImpl(State& s) const;
     //   realizeSubsystemModelImpl() not needed
-    void realizeSubsystemInstanceImpl(const State& s) const;
+    int realizeSubsystemInstanceImpl(const State& s) const;
     //   realizeSubsystemTime, Position, VelocityImpl not needed
-    void realizeSubsystemDynamicsImpl(const State& s) const;
+    int realizeSubsystemDynamicsImpl(const State& s) const;
     //   realizeSubsystemAccelerationImpl() not needed
     //   realizeSubsystemReportImpl() not needed
 
-    UniformGravitySubsystemRep* cloneSubsystemRep() const {return new UniformGravitySubsystemRep(*this);}
 
 private:
     // State entries. TODO: these should be at a later stage
@@ -100,29 +102,28 @@ private:
     Parameters defaultParameters;
 
     // These must be filled in during realizeTopology and treated
-    // as const thereafter. These are garbage unless built=true.
+    // as const thereafter.
     mutable int instanceVarsIndex;
     mutable int instanceCacheIndex;
-    mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
 
     const ParameterCache& getInstanceCache(const State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<ParameterCache>::downcast(
             getCacheEntry(s,instanceCacheIndex)).get();
     }
     ParameterCache& updInstanceCache(const State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<ParameterCache>::downcast(
             updCacheEntry(s,instanceCacheIndex)).upd();
     }
@@ -163,11 +164,11 @@ UniformGravitySubsystem::updDowncast(ForceSubsystem& s) {
 
 const UniformGravitySubsystemRep& 
 UniformGravitySubsystem::getRep() const {
-    return dynamic_cast<const UniformGravitySubsystemRep&>(*rep);
+    return dynamic_cast<const UniformGravitySubsystemRep&>(ForceSubsystem::getRep());
 }
 UniformGravitySubsystemRep&       
 UniformGravitySubsystem::updRep() {
-    return dynamic_cast<UniformGravitySubsystemRep&>(*rep);
+    return dynamic_cast<UniformGravitySubsystemRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -175,23 +176,20 @@ UniformGravitySubsystem::updRep() {
 UniformGravitySubsystem::UniformGravitySubsystem()
   : ForceSubsystem()
 {
-    rep = new UniformGravitySubsystemRep();
-    rep->setMyHandle(*this);
+     adoptSubsystemGuts(new UniformGravitySubsystemRep());
 }
 
 UniformGravitySubsystem::UniformGravitySubsystem(MultibodySystem& mbs)
   : ForceSubsystem() 
 {
-    rep = new UniformGravitySubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new UniformGravitySubsystemRep());
     mbs.addForceSubsystem(*this); // steal ownership
 }
 
 UniformGravitySubsystem::UniformGravitySubsystem(MultibodySystem& mbs, const Vec3& g, const Real& zeroHeight)
   : ForceSubsystem()
 {
-    rep = new UniformGravitySubsystemRep(g,zeroHeight);
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new UniformGravitySubsystemRep(g,zeroHeight));
     mbs.addForceSubsystem(*this); // steal ownership
 }
 
@@ -218,7 +216,7 @@ bool& UniformGravitySubsystem::updIsEnabled(State& s) const {
     // UNIFORM GRAVITY SUBSYSTEM REP //
     ///////////////////////////////////
 
-void UniformGravitySubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
+int UniformGravitySubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     // Note that although these are *instance* variables, they are allocated as
     // part of the *topology*. That allows us to store the indices locally rather
     // than in the state.
@@ -226,23 +224,24 @@ void UniformGravitySubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         new Value<Parameters>(defaultParameters));
     instanceCacheIndex = allocateCacheEntry(s, Stage::Instance,
         new Value<ParameterCache>());
-    built = true;
+    return 0;
 }
 
 // realizeModel() not needed since there are no modeling options here
 
-void UniformGravitySubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
+int UniformGravitySubsystemRep::realizeSubsystemInstanceImpl(const State& s) const {
     // any values are acceptable
     ParameterCache& pc = updInstanceCache(s);
     pc.gMagnitude = getGravity(s).norm();
     pc.gz = pc.gMagnitude * getZeroHeight(s);
+    return 0;
 }
 
 // realizeTime, Position, Velocity not needed
 
-void UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) const {
+int UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) const {
     if (!isEnabled(s) || getGravityMagnitude(s)==0)
-        return; // nothing to do
+        return 0; // nothing to do
 
     const Vec3& g   = getGravity(s);  // gravity is non zero
     const Real& gz  = getPEOffset(s); // amount to subtract from gh for pe
@@ -281,6 +280,8 @@ void UniformGravitySubsystemRep::realizeSubsystemDynamicsImpl(const State& s) co
         pe -= m*(~g*com_G + gz); // odd signs because height is in -g direction
         rigidBodyForces[i] += SpatialVec(com_B_G % frc_G, frc_G); 
     }
+
+    return 0;
 }
 
 } // namespace SimTK

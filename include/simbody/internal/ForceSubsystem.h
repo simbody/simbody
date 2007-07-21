@@ -26,7 +26,6 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/Subsystem.h"
 
 namespace SimTK {
 

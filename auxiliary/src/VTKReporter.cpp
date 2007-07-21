@@ -21,10 +21,11 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-#include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/VTKReporter.h"
 
 #include "VTKDecorativeGeometry.h"
@@ -384,7 +385,7 @@ void VTKReporterRep::displayEphemeralGeometry(const State& s)
         DecorativeGeometry& dgeom = ephemeralGeometry[i];
         ephemeralActors[i] = vtkActor::New();
 
-        const MobilizedBodyId body = dgeom.getBodyId();
+        const MobilizedBodyId body = MobilizedBodyId(dgeom.getBodyId());
         const Transform& X_GB = matter.getMobilizedBody(body).getBodyTransform(s);
 
         // Apply the transformation.
@@ -431,7 +432,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     :  defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
       cameraNeedsToBeReset(true)
 {
-    if (!m.topologyHasBeenRealized())
+    if (!m.systemTopologyHasBeenRealized())
         SimTK_THROW1(Exception::Cant,
             "VTKReporter(): realizeTopology() has not yet been called on the supplied MultibodySystem");
 
@@ -565,7 +566,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     Array<DecorativeGeometry> sysGeom;
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
     for (int i=0; i<sysGeom.size(); ++i)
-        addDecoration(sysGeom[i].getBodyId(), Transform(), sysGeom[i]);
+        addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
 
     renderer->ResetCamera();
     renWin->Render();

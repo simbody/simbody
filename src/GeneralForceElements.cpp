@@ -28,6 +28,7 @@
  */
 
 #include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/GeneralForceElements.h"
@@ -295,18 +296,17 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
     // topological variables
     Parameters defaultParameters;
 
-    // These must be filled in during realizeTopology and treated
-    // as const thereafter. These are garbage unless built=true.
+    // This must be filled in during realizeTopology and treated
+    // as const thereafter.
     mutable int instanceVarsIndex;
-    mutable bool built;
 
     const Parameters& getParameters(const State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             getDiscreteVariable(s,instanceVarsIndex)).get();
     }
     Parameters& updParameters(State& s) const {
-        assert(built);
+        assert(subsystemTopologyHasBeenRealized());
         return Value<Parameters>::downcast(
             updDiscreteVariable(s,instanceVarsIndex)).upd();
     }
@@ -314,7 +314,7 @@ class GeneralForceElementsRep : public ForceSubsystemRep {
 public:
     GeneralForceElementsRep()
      : ForceSubsystemRep("GeneralForceElements", "0.0.1"), 
-       instanceVarsIndex(-1), built(false)
+       instanceVarsIndex(-1)
     {
     }
 
@@ -326,6 +326,8 @@ public:
         assert(stiffness >= 0);
         assert(naturalLength >= 0);
         assert(body1 != body2);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.twoPointLinearSprings.push_back(
             TwoPointLinearSpringParameters(body1,s1,body2,s2,stiffness,naturalLength));
         return (int)defaultParameters.twoPointLinearSprings.size() - 1;
@@ -337,6 +339,8 @@ public:
     {
         assert(damping >= 0);
         assert(body1 != body2);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.twoPointLinearDampers.push_back(
             TwoPointLinearDamperParameters(body1,s1,body2,s2,damping));
         return (int)defaultParameters.twoPointLinearDampers.size() - 1;
@@ -348,6 +352,8 @@ public:
     {
         assert(zeroEnergyDistance >= 0);
         assert(body1 != body2);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.twoPointConstantForces.push_back(
             TwoPointConstantForceParameters(body1,s1,body2,s2,force,zeroEnergyDistance));
         return (int)defaultParameters.twoPointConstantForces.size() - 1;
@@ -356,6 +362,7 @@ public:
 
     int addConstantForce(MobilizedBodyId body, const Vec3& station_B, const Vec3& force_G)
     {
+        invalidateSubsystemTopologyCache();
         defaultParameters.constantForces.push_back(
             ConstantForceParameters(body,station_B,force_G));
         return (int)defaultParameters.constantForces.size() - 1;
@@ -363,6 +370,7 @@ public:
 
     int addConstantTorque(MobilizedBodyId body, const Vec3& torque_G)
     {
+        invalidateSubsystemTopologyCache();
         defaultParameters.constantTorques.push_back(
             ConstantTorqueParameters(body,torque_G));
         return (int)defaultParameters.constantTorques.size() - 1;
@@ -374,6 +382,8 @@ public:
     {
         assert(stiffness >= 0);
         assert(naturalLength >= 0);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.mobilityLinearSprings.push_back(
             MobilityLinearSpringParameters(body,axis,stiffness,naturalLength));
         return (int)defaultParameters.mobilityLinearSprings.size() - 1;
@@ -383,6 +393,8 @@ public:
                                 const Real& damping)
     {
         assert(damping >= 0);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.mobilityLinearDampers.push_back(
             MobilityLinearDamperParameters(body,axis,damping));
         return (int)defaultParameters.mobilityLinearDampers.size() - 1;
@@ -392,6 +404,7 @@ public:
     int addMobilityConstantForce(MobilizedBodyId body, int axis,
                                  const Real& force)
     {
+        invalidateSubsystemTopologyCache();
         defaultParameters.mobilityConstantForces.push_back(
             MobilityConstantForceParameters(body,axis,force));
         return (int)defaultParameters.mobilityConstantForces.size() - 1;
@@ -399,6 +412,8 @@ public:
 
     int addGlobalEnergyDrain(const Real& dampingFactor) {
         assert(dampingFactor >= 0);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.globalEnergyDrains.push_back(
             GlobalEnergyDrainParameters(dampingFactor));
         return (int)defaultParameters.globalEnergyDrains.size() - 1;
@@ -410,43 +425,52 @@ public:
         GeneralForceElements::CustomForceDestructor             destruct) 
     {
         assert(calc && clone && destruct);
+
+        invalidateSubsystemTopologyCache();
         defaultParameters.customForces.push_back(
             CustomForceParameters(u,calc,clone,destruct));
         return (int)defaultParameters.customForces.size() - 1;
     }
 
-    // These override default implementations of virtual methods in the Subsystem
+    // These override default implementations of virtual methods in the Subsystem::Guts
     // class.
 
-    void realizeSubsystemTopologyImpl(State& s) const {
+    GeneralForceElementsRep* cloneImpl() const {return new GeneralForceElementsRep(*this);}
+
+    int realizeSubsystemTopologyImpl(State& s) const {
         instanceVarsIndex = s.allocateDiscreteVariable(getMySubsystemId(), Stage::Instance, 
             new Value<Parameters>(defaultParameters));
-        built = true;
+        return 0;
     }
 
-    void realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const {
         // Sorry, no choices available at the moment.
+        return 0;
     }
 
-    void realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemDynamicsImpl(const State& s) const {
+    int realizeSubsystemDynamicsImpl(const State& s) const {
         const Parameters& p = getParameters(s);
-        if (!p.enabled) return;
+        if (!p.enabled) return 0;
 
         const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
@@ -591,17 +615,20 @@ public:
             u.calc(*u.uforce, matter, s, 
                    rigidBodyForces, particleForces, mobilityForces, pe);
         }
+
+        return 0;
     }
 
-    void realizeSubsystemAccelerationImpl(const State& s) const {
+    int realizeSubsystemAccelerationImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    void realizeSubsystemReportImpl(const State& s) const {
+    int realizeSubsystemReportImpl(const State& s) const {
         // Nothing to compute here.
+        return 0;
     }
 
-    GeneralForceElementsRep* cloneSubsystemRep() const {return new GeneralForceElementsRep(*this);}
     friend std::ostream& operator<<(std::ostream& o, 
                          const GeneralForceElementsRep::Parameters&); 
 };
@@ -632,11 +659,11 @@ GeneralForceElements::updDowncast(ForceSubsystem& s) {
 
 const GeneralForceElementsRep& 
 GeneralForceElements::getRep() const {
-    return dynamic_cast<const GeneralForceElementsRep&>(*rep);
+    return dynamic_cast<const GeneralForceElementsRep&>(ForceSubsystem::getRep());
 }
 GeneralForceElementsRep&       
 GeneralForceElements::updRep() {
-    return dynamic_cast<GeneralForceElementsRep&>(*rep);
+    return dynamic_cast<GeneralForceElementsRep&>(ForceSubsystem::updRep());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -644,15 +671,13 @@ GeneralForceElements::updRep() {
 GeneralForceElements::GeneralForceElements()
   : ForceSubsystem() 
 {
-    rep = new GeneralForceElementsRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new GeneralForceElementsRep());
 }
 
 GeneralForceElements::GeneralForceElements(MultibodySystem& mbs)
   : ForceSubsystem() 
 {
-    rep = new GeneralForceElementsRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new GeneralForceElementsRep());
     mbs.addForceSubsystem(*this); // steal ownership
 }
 

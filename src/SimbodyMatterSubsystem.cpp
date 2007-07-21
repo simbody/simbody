@@ -28,7 +28,7 @@
  * MatterSubsystem.
  */
 
-#include "SimTKsimbody.h"
+#include "SimTKcommon.h"
 #include "simbody/internal/MobilizedBody.h"
 
 #include "MobilizedBodyRep.h"
@@ -45,7 +45,7 @@ namespace SimTK {
 
 /*static*/ bool 
 SimbodyMatterSubsystem::isInstanceOf(const Subsystem& s) {
-    return SimbodyMatterSubsystemRep::isA(s.getRep());
+    return SimbodyMatterSubsystemRep::isA(s.getSubsystemGuts());
 }
 /*static*/ const SimbodyMatterSubsystem&
 SimbodyMatterSubsystem::downcast(const Subsystem& s) {
@@ -60,11 +60,11 @@ SimbodyMatterSubsystem::updDowncast(Subsystem& s) {
 
 const SimbodyMatterSubsystemRep& 
 SimbodyMatterSubsystem::getRep() const {
-    return dynamic_cast<const SimbodyMatterSubsystemRep&>(*rep);
+    return dynamic_cast<const SimbodyMatterSubsystemRep&>(getSubsystemGuts());
 }
 SimbodyMatterSubsystemRep&       
 SimbodyMatterSubsystem::updRep() {
-    return dynamic_cast<SimbodyMatterSubsystemRep&>(*rep);
+    return dynamic_cast<SimbodyMatterSubsystemRep&>(updSubsystemGuts());
 }
 
 // Create Subsystem but don't associate it with any System. This isn't much use except
@@ -72,16 +72,14 @@ SimbodyMatterSubsystem::updRep() {
 SimbodyMatterSubsystem::SimbodyMatterSubsystem() 
   : Subsystem()
 {
-    rep = new SimbodyMatterSubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new SimbodyMatterSubsystemRep());
     updRep().createGroundBody(); //TODO: handle this differently
 }
 
 SimbodyMatterSubsystem::SimbodyMatterSubsystem(MultibodySystem& mbs) 
   : Subsystem()
 {
-    rep = new SimbodyMatterSubsystemRep();
-    rep->setMyHandle(*this);
+    adoptSubsystemGuts(new SimbodyMatterSubsystemRep());
     updRep().createGroundBody(); //TODO: handle this differently
     mbs.setMatterSubsystem(*this);
 }

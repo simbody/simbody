@@ -765,7 +765,10 @@ public:
                 if (!RKstepOK) ++statsRealizationFailures;
 
                 if (RKstepOK) {
-                    scalarError = mbs.calcYErrorNorm(state, errEst) / accuracy;
+                    Vector wts;
+                    mbs.calcYUnitWeights(state, wts);
+                    scalarError = mbs.calcWeightedRMSNorm(errEst, wts) / accuracy;
+                    //scalarError = mbs.calcYErrorNorm(state, errEst) / accuracy;
 
                     if (scalarError <= 1.) {
                         // Passed error test; see if we can evaluate at ynew.

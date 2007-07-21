@@ -45,6 +45,8 @@
  * the value of g or the zero height.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 

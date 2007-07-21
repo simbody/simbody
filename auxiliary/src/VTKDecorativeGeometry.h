@@ -31,8 +31,9 @@
  * visualization objects.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
 #include <cmath>
 #include <vector>

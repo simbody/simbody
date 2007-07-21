@@ -26,14 +26,10 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
 
 #include <vector>
 
 namespace SimTK {
-
-class AnalyticGeometry;
-class DecorativeGeometry;
 
 class SimbodyMatterSubsystem;
 class ForceSubsystem;

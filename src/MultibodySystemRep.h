@@ -30,6 +30,8 @@
  */
 
 #include "SimTKcommon.h"
+#include "SimTKcommon/internal/SystemGuts.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
@@ -37,10 +39,7 @@
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
-#include "simbody/internal/AnalyticGeometry.h"
-#include "simbody/internal/DecorativeGeometry.h"
 
-#include "SystemRep.h"
 #include "ForceSubsystemRep.h"
 #include "SimbodyMatterSubsystemRep.h"
 
@@ -107,7 +106,7 @@ inline std::ostream& operator<<(std::ostream& o, const ForceCacheEntry&)
  * This is the subsystem used by a MultibodySystem to manage global state
  * calculations like forces and potential energy.
  */
-class MultibodySystemGlobalSubsystemRep : public SubsystemRep {
+class MultibodySystemGlobalSubsystemRep : public Subsystem::Guts {
     // Topological variables
 
     static const int NumForceCacheEntries = (Stage::Dynamics-Stage::Model+1);
@@ -131,23 +130,14 @@ class MultibodySystemGlobalSubsystemRep : public SubsystemRep {
     }
 public:
     MultibodySystemGlobalSubsystemRep()
-      : SubsystemRep("MultibodySystemGlobalSubsystem", "0.0.2")
+      : Subsystem::Guts("MultibodySystemGlobalSubsystem", "0.0.2")
     {
         for (int i=0; i<NumForceCacheEntries; ++i)
             forceCacheIndices[i] = -1;
         invalidateSubsystemTopologyCache();
     }
 
-    // Use default copy constructor, but then clear out the cache indices
-    // and invalidate topology.
-    MultibodySystemGlobalSubsystemRep* cloneSubsystemRep() const {
-        MultibodySystemGlobalSubsystemRep* p = 
-            new MultibodySystemGlobalSubsystemRep(*this);
-        for (int i=0; i<NumForceCacheEntries; ++i)
-            p->forceCacheIndices[i] = -1;
-        p->invalidateSubsystemTopologyCache();
-        return p;
-    }
+
 
     const MultibodySystem& getMultibodySystem() const {
         return MultibodySystem::downcast(getSystem());
@@ -185,22 +175,35 @@ public:
         return updForceCacheEntry(s,g).kineticEnergy;
     }
 
-    // These override virtual methods from SubsystemRep.
+    // These override virtual methods from Subsystem::Guts.
+
+    // Use default copy constructor, but then clear out the cache indices
+    // and invalidate topology.
+    MultibodySystemGlobalSubsystemRep* cloneImpl() const {
+        MultibodySystemGlobalSubsystemRep* p = 
+            new MultibodySystemGlobalSubsystemRep(*this);
+        for (int i=0; i<NumForceCacheEntries; ++i)
+            p->forceCacheIndices[i] = -1;
+        p->invalidateSubsystemTopologyCache();
+        return p;
+    }
 
     // At Topology stage we just allocate some slots in the State to hold
     // the forces. We can't initialize the force arrays because we don't yet
     // know the problem size.
-    void realizeSubsystemTopologyImpl(State& s) const {
+    int realizeSubsystemTopologyImpl(State& s) const {
         const MultibodySystem& mbs = getMultibodySystem();
 
         for (Stage g(Stage::Model); g<=Stage::Dynamics; ++g)
             forceCacheIndices[g-Stage::Model] = 
                 allocateCacheEntry(s, g, new Value<ForceCacheEntry>());
+
+        return 0;
     }
 
     // At Model stage we know the problem size, so we can allocate the
     // model stage forces (if necessary) and initialize them (to zero).
-    void realizeSubsystemModelImpl(State& s) const {
+    int realizeSubsystemModelImpl(State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -209,11 +212,13 @@ public:
                                       matter.getNParticles(),
                                       matter.getNMobilities());
         modelForces.setAllForcesToZero();
+
+        return 0;
     }
 
     // We treat the other stages like Model except that we use the 
     // previous Stage's ForceCacheEntry to initialize this one.
-    void realizeSubsystemInstanceImpl(const State& s) const {
+    int realizeSubsystemInstanceImpl(const State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -223,9 +228,11 @@ public:
                                          matter.getNParticles(),
                                          matter.getNMobilities());
         instanceForces.initializeFromSimilarForceEntry(modelForces);
+
+        return 0;
     }
 
-    void realizeSubsystemTimeImpl(const State& s) const {
+    int realizeSubsystemTimeImpl(const State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -235,9 +242,11 @@ public:
                                      matter.getNParticles(),
                                      matter.getNMobilities());
         timeForces.initializeFromSimilarForceEntry(instanceForces);
+
+        return 0;
     }
 
-    void realizeSubsystemPositionImpl(const State& s) const {
+    int realizeSubsystemPositionImpl(const State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -247,9 +256,11 @@ public:
                                          matter.getNParticles(),
                                          matter.getNMobilities());
         positionForces.initializeFromSimilarForceEntry(timeForces);
+
+        return 0;
     }
 
-    void realizeSubsystemVelocityImpl(const State& s) const {
+    int realizeSubsystemVelocityImpl(const State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -259,9 +270,11 @@ public:
                                          matter.getNParticles(),
                                          matter.getNMobilities());
         velocityForces.initializeFromSimilarForceEntry(positionForces);
+        
+        return 0;
     }
 
-    void realizeSubsystemDynamicsImpl(const State& s) const {
+    int realizeSubsystemDynamicsImpl(const State& s) const {
         const MultibodySystem&        mbs    = getMultibodySystem();
         const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
 
@@ -271,17 +284,18 @@ public:
                                          matter.getNParticles(),
                                          matter.getNMobilities());
         dynamicsForces.initializeFromSimilarForceEntry(velocityForces);
+
+        return 0;
     }
 
     // no need for other realize() methods
-    SimTK_DOWNCAST(MultibodySystemGlobalSubsystemRep, SubsystemRep);
+    SimTK_DOWNCAST(MultibodySystemGlobalSubsystemRep, Subsystem::Guts);
 };
 
 class MultibodySystemGlobalSubsystem : public Subsystem {
 public:
     MultibodySystemGlobalSubsystem() : Subsystem() {
-        rep = new MultibodySystemGlobalSubsystemRep();
-        rep->setMyHandle(*this);
+        adoptSubsystemGuts(new MultibodySystemGlobalSubsystemRep());
     }
 
     SimTK_PIMPL_DOWNCAST(MultibodySystemGlobalSubsystem, Subsystem);
@@ -294,10 +308,10 @@ public:
  * The job of the MultibodySystem class is to coordinate the activities of a
  * MatterSubsystem and a set of ForceSubsystems.
  */
-class MultibodySystemRep : public SystemRep {
+class MultibodySystemRep : public System::Guts {
 public:
     MultibodySystemRep() 
-      : SystemRep("MultibodySystem", "0.0.1")
+        : System::Guts("MultibodySystem", "0.0.1")
     {
     }
     ~MultibodySystemRep() {
@@ -428,20 +442,20 @@ public:
     }
 
     // pure virtual
-    MultibodySystemRep* cloneSystemRep() const {return new MultibodySystemRep(*this);}
+    MultibodySystemRep* cloneImpl() const {return new MultibodySystemRep(*this);}
 
     // Override the SystemRep default implementations for these virtual methods.
-    void realizeTopologyImpl    (State& s)       const;
-    void realizeModelImpl       (State& s)       const;
-    void realizeInstanceImpl    (const State& s) const;
-    void realizeTimeImpl        (const State& s) const;
-    void realizePositionImpl    (const State& s) const;
-    void realizeVelocityImpl    (const State& s) const;
-    void realizeDynamicsImpl    (const State& s) const;
-    void realizeAccelerationImpl(const State& s) const;
-    void realizeReportImpl      (const State& s) const;
+    int realizeTopologyImpl    (State& s)       const;
+    int realizeModelImpl       (State& s)       const;
+    int realizeInstanceImpl    (const State& s) const;
+    int realizeTimeImpl        (const State& s) const;
+    int realizePositionImpl    (const State& s) const;
+    int realizeVelocityImpl    (const State& s) const;
+    int realizeDynamicsImpl    (const State& s) const;
+    int realizeAccelerationImpl(const State& s) const;
+    int realizeReportImpl      (const State& s) const;
 
-    SimTK_DOWNCAST(MultibodySystemRep, SystemRep);
+    SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
 private:
     SubsystemId  globalSub;             // index of global subsystem
     SubsystemId  matterSub;             // index of matter subsystems
@@ -477,7 +491,7 @@ public:
         return DuMMForceFieldSubsystem::updDowncast(updSubsystem(molecularMechanicsSub));
     }
 
-    SimTK_DOWNCAST(MolecularMechanicsSystemRep, SystemRep);
+    SimTK_DOWNCAST(MolecularMechanicsSystemRep, System::Guts);
 private:
     SubsystemId molecularMechanicsSub;
 };

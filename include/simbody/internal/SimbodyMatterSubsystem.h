@@ -26,9 +26,8 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
-#include "simbody/internal/Subsystem.h"
 #include "simbody/internal/MobilizedBody.h"
+#include "simbody/internal/Constraint.h"
 
 #include <cassert>
 #include <vector>
@@ -38,12 +37,6 @@ class SimbodyMatterSubsystemRep;
 
 namespace SimTK {
 
-class Transform;
-class Inertia;
-class MassProperties;
-class Body;
-class MobilizedBody;
-class Constraint;
 class MultibodySystem;
 
 

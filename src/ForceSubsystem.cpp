@@ -27,6 +27,8 @@
  * Implementation of ForceSubsystem, a still-abstract Subsystem.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
 #include "simbody/internal/ForceSubsystem.h"
 
@@ -34,9 +36,9 @@
 
 namespace SimTK {
 
-    ////////////////////
-    // ForceSubsystem //
-    ////////////////////
+    /////////////////////
+    // FORCE SUBSYSTEM //
+    /////////////////////
 
 // Default constructor is inline and creates an empty handle.
 // Default copy & assignment just copy the parent class.
@@ -44,7 +46,7 @@ namespace SimTK {
 
 /*static*/ bool 
 ForceSubsystem::isInstanceOf(const Subsystem& s) {
-    return ForceSubsystemRep::isA(s.getRep());
+    return ForceSubsystemRep::isA(s.getSubsystemGuts());
 }
 /*static*/ const ForceSubsystem&
 ForceSubsystem::downcast(const Subsystem& s) {
@@ -60,11 +62,11 @@ ForceSubsystem::updDowncast(Subsystem& s) {
 
 const ForceSubsystemRep& 
 ForceSubsystem::getRep() const {
-    return dynamic_cast<const ForceSubsystemRep&>(*rep);
+    return dynamic_cast<const ForceSubsystemRep&>(getSubsystemGuts());
 }
 ForceSubsystemRep&       
 ForceSubsystem::updRep() {
-    return dynamic_cast<ForceSubsystemRep&>(*rep);
+    return dynamic_cast<ForceSubsystemRep&>(updSubsystemGuts());
 }
 
 } // namespace SimTK

@@ -32,8 +32,6 @@
  */
 
 #include "SimTKcommon.h"
-#include "simbody/internal/System.h"
-#include "simbody/internal/Subsystem.h"
 #include "simbody/internal/common.h"
 
 #include <cassert>
@@ -66,8 +64,8 @@ public:
                            const DecorativeLine&);
 
     SimTK_PIMPL_DOWNCAST(DecorationSubsystem, Subsystem);
-    class DecorationSubsystemRep& updRep();
-    const DecorationSubsystemRep& getRep() const;
+    class DecorationSubsystemGuts& updGuts();
+    const DecorationSubsystemGuts& getGuts() const;
 };
 
 } // namespace SimTK

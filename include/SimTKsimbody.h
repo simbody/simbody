@@ -31,8 +31,6 @@
 
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
-#include "simbody/internal/Subsystem.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
 #include "simbody/internal/Body.h"
@@ -45,7 +43,6 @@
 #include "simbody/internal/HuntCrossleyContact.h"
 #include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/NumericalMethods.h"
-#include "simbody/internal/DecorativeGeometry.h"
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/VTKReporter.h"
 
