@@ -72,9 +72,10 @@ public:
     inline explicit Guts(const String& name="<NONAME>", 
                          const String& version="0.0.0");
 
-    //TODO: is this right? May need a private static function to pass
-    //to the library which can find the virtual destructor entry.
-    inline virtual ~Guts() {librarySideDestruction();}
+    // This won't be called directly from library-side code. Instead,
+    // a method from the explicit virtual function table will be invoked
+    // which will know where to find this on in the C++ VFT on the client side.
+    virtual ~Guts() {librarySideDestruction();}
 
     const String& getName()    const;
     const String& getVersion() const;
@@ -184,12 +185,16 @@ public:
     bool subsystemTopologyHasBeenRealized() const;
     void invalidateSubsystemTopologyCache() const;
 
+    // Call this routine to invoke the client-side virtual destructor,
+    // by going through the library-side explicit virtual function table.
+    static void destruct(Subsystem::Guts*);
+
     // These are wrappers for the virtual methods defined below. They
     // are used to ensure good behavior, and most importantly only
     // access the virtual methods through the explicitly-built
     // virtual function table stored in the GutsRep class.
 
-    Guts* clone() const;
+    Subsystem::Guts* clone() const;
 
     // Realize this subsystem's part of the State from Stage-1 to Stage
     // for the indicated stage. After doing some checking, these routines
@@ -272,6 +277,8 @@ protected:
     // wrappers will simply check that the current stage is correct and
     // advance it if necessary.
 
+    // The destructor is already virtual; see above.
+
     virtual Subsystem::Guts* cloneImpl() const = 0;
 
     virtual int realizeSubsystemTopologyImpl(State& s) const;
@@ -315,6 +322,7 @@ private:
     // These typedefs are used internally to manage the binary-compatible
     // handling of the virtual function table.
 
+    typedef void (*DestructImplLocator)(Subsystem::Guts*);
     typedef Subsystem::Guts* (*CloneImplLocator)(const Subsystem::Guts&);
     typedef int (*RealizeWritableStateImplLocator)(const Subsystem::Guts&, State&);
     typedef int (*RealizeConstStateImplLocator)(const Subsystem::Guts&, const State&);
@@ -324,6 +332,9 @@ private:
 
     void librarySideConstruction(const String& name, const String& version);
     void librarySideDestruction();
+
+    void registerDestructImpl(DestructImplLocator);
+    void registerCloneImpl(CloneImplLocator);
 
     void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
     void registerRealizeModelImpl       (RealizeWritableStateImplLocator);
@@ -341,12 +352,13 @@ private:
     void registerCalcQErrUnitTolerancesImpl(CalcUnitWeightsImplLocator);
     void registerCalcUErrUnitTolerancesImpl(CalcUnitWeightsImplLocator);
     void registerCalcDecorativeGeometryAndAppendImpl(CalcDecorativeGeometryAndAppendImplLocator);
-    void registerCloneImpl(CloneImplLocator);
 
     // We want the locator functions to have access to the protected "Impl"
     // virtual methods, so we make them friends.
 
+    friend void subsystemDestructImplLocator(Subsystem::Guts*);
     friend Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts&);
+
     friend int subsystemRealizeTopologyImplLocator(const Subsystem::Guts&, State&);
     friend int subsystemRealizeModelImplLocator(const Subsystem::Guts&, State&);
     friend int subsystemRealizeInstanceImplLocator(const Subsystem::Guts&, const State&);
@@ -370,8 +382,11 @@ private:
 // These are used to supply the client-side virtual function to the library, without
 // the client and library having to agree on the layout of the virtual function tables.
 
+static void subsystemDestructImplLocator(Subsystem::Guts* sysp)
+  { delete sysp; } // invokes virtual destructor
 static Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts& sys)
   { return sys.cloneImpl(); }
+
 static int subsystemRealizeTopologyImplLocator(const Subsystem::Guts& sys, State& state)
   { return sys.realizeSubsystemTopologyImpl(state); }
 static int subsystemRealizeModelImplLocator(const Subsystem::Guts& sys, State& state)
@@ -416,6 +431,9 @@ inline Subsystem::Guts::Guts(const String& name, const String& version) : rep(0)
     // Teach the library code how to call client side virtual functions by
     // calling through the client side compilation unit's private static
     // locator functions.
+    registerDestructImpl(subsystemDestructImplLocator);
+    registerCloneImpl(subsystemCloneImplLocator);
+
     registerRealizeTopologyImpl    (subsystemRealizeTopologyImplLocator);
     registerRealizeModelImpl       (subsystemRealizeModelImplLocator);
     registerRealizeInstanceImpl    (subsystemRealizeInstanceImplLocator);
@@ -432,7 +450,6 @@ inline Subsystem::Guts::Guts(const String& name, const String& version) : rep(0)
     registerCalcQErrUnitTolerancesImpl(subsystemCalcQErrUnitTolerancesImplLocator);
     registerCalcUErrUnitTolerancesImpl(subsystemCalcUErrUnitTolerancesImplLocator);
     registerCalcDecorativeGeometryAndAppendImpl(subsystemCalcDecorativeGeometryAndAppendImplLocator);
-    registerCloneImpl(subsystemCloneImplLocator);
 }
 
 } // namespace SimTK

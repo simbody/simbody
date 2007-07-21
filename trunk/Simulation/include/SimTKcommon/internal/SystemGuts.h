@@ -40,7 +40,8 @@ class System;
  * which a System handle points. This is in a separate header file from System
  * because only people who are extending the System class to make their own
  * Systems need to be aware of the details. End users access only methods from
- * the System class and classes derived from System.
+ * the System class and classes derived from System, never anything from
+ * System::Guts or its derived classes.
  *
  * Below is the physical layout of memory for a System, and which
  * portions are allocated by the client program and which by the
@@ -54,6 +55,7 @@ class System;
  *
  *               CLIENT SIDE                    .  LIBRARY SIDE
  *                                              .
+ *       System              System::Guts       . System::Guts::GutsRep
  *   ---------------       ------------------   .   -------------
  *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
  *   ---------------       ------------------   .  |             |
@@ -67,21 +69,8 @@ class System;
  *
  * If the concrete System::Guts class also has an opaque implementation,
  * as it will for concrete Systems provided by the SimTK::Core, then
- * the memory layout will look like this:
- *                                              .
- *   ---------------       ------------------   .   -------------
- *  | System::Guts* | --> | System::GutsRep* | --> |   GutsRep   |
- *   ---------------       ------------------   .  |             |
- *          ^             | Concrete Guts    |  .  |   same as   |
- *          |             | Rep* and         |  .  |    above    |
- *   ===============      | client-side VFT  |  .   -------------
- *   Concrete System       ------------------   .  
- *     (no data)                   |            .   -------------
- *                                 |            .  |   Concrete  |
- *                                  -------------> |   GutsRep   |
- *                                              .  |             |
- *                                              .  | class data  |
- *                                              .   -------------
+ * the System author should expose only the data-free handle class 
+ * derived from System.
  */
 class SimTK_SimTKCOMMON_EXPORT System::Guts {
     class GutsRep;
@@ -95,9 +84,10 @@ public:
     inline explicit Guts(const String& name="<NONAME>", 
                          const String& version="0.0.0");
 
-    //TODO: is this right? May need a private static function to pass
-    //to the library which can find the virtual destructor entry.
-    inline virtual ~Guts() {librarySideDestruction();}
+    // This won't be called directly from library-side code. Instead,
+    // a method from the explicit virtual function table will be invoked
+    // which will know where to find this on in the C++ VFT on the client side.
+    virtual ~Guts() {librarySideDestruction();}
 
     const String& getName()    const;
     const String& getVersion() const;
@@ -110,18 +100,12 @@ public:
         //////////////////////////////
 
     // These are the routines to which the System class forwards requests.
-    // TODO: delete routines that duplicate System?
-
 
     const State& getDefaultState() const;
     State&       updDefaultState();
 
     void realize(const State& s, Stage g = Stage::HighestValid) const;
-    void calcDecorativeGeometryAndAppend(const State&, Stage, Array<DecorativeGeometry>&) const;
 
-
-    /// XXX OBSOLETE? TODO
-    Real calcYErrorNorm(const State&, const Vector& y_err) const;
     SubsystemId adoptSubsystem(Subsystem& child);
 
     int getNSubsystems() const;
@@ -143,6 +127,9 @@ public:
     bool systemTopologyHasBeenRealized() const;
     void invalidateSystemTopologyCache() const;
 
+    // Call this routine to invoke the client-side virtual destructor,
+    // by going through the library-side explicit virtual function table.
+    static void destruct(System::Guts*);
 
     // Wrap the cloneImpl virtual method.
     System::Guts* clone() const;
@@ -176,9 +163,15 @@ public:
     void calcTimeOfNextScheduledEvent
         (const State&, Real& tNextEvent, Array<int>& eventIds) const;
 
+    void calcDecorativeGeometryAndAppend(const State&, Stage, 
+                                         Array<DecorativeGeometry>&) const;
+
 
 protected:
     Guts(const Guts&);  // copies the base class; for use from derived class copy constructors
+    
+    // The destructor is already virtual; see above.
+
     virtual System::Guts* cloneImpl() const = 0;
 
     // Override these to change the evaluation order of the Subsystems.
@@ -223,6 +216,9 @@ private:
     // These typedefs are used internally to manage the binary-compatible
     // handling of the virtual function table.
 
+    // This first entry calls the virtual destructor above to delete the
+    // heap-allocated object pointed to by the passed-in pointer.
+    typedef void (*DestructImplLocator)(System::Guts*);
     typedef System::Guts* (*CloneImplLocator)(const System::Guts&);
 
     typedef int (*RealizeWritableStateImplLocator)(const System::Guts&, State&);
@@ -246,6 +242,7 @@ private:
     void librarySideConstruction(const String& name, const String& version);
     void librarySideDestruction();
 
+    void registerDestructImpl(DestructImplLocator);
     void registerCloneImpl(CloneImplLocator);
 
     void registerRealizeTopologyImpl    (RealizeWritableStateImplLocator);
@@ -269,6 +266,7 @@ private:
     // We want the locator functions to have access to the protected "Impl"
     // virtual methods, so we make them friends.
 
+    friend void systemDestructImplLocator(System::Guts*);
     friend System::Guts* systemCloneImplLocator(const System::Guts&);
 
     friend int systemRealizeTopologyImplLocator(const System::Guts&, State&);
@@ -296,6 +294,8 @@ private:
 // These are used to supply the client-side virtual function to the library, without
 // the client and library having to agree on the layout of the virtual function tables.
 
+static void systemDestructImplLocator(System::Guts* sysp)
+  { delete sysp; } // invokes virtual destructor
 static System::Guts* systemCloneImplLocator(const System::Guts& sys)
   { return sys.cloneImpl(); }
 
@@ -356,6 +356,7 @@ inline System::Guts::Guts(const String& name, const String& version) : rep(0)
     // Teach the library code how to call client side virtual functions by
     // calling through the client side compilation unit's private static
     // locator functions.
+    registerDestructImpl(systemDestructImplLocator);
     registerCloneImpl(systemCloneImplLocator);
 
     registerRealizeTopologyImpl    (systemRealizeTopologyImplLocator);

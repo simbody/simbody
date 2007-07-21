@@ -24,7 +24,7 @@
 
 /**@file
  *
- * Implementation of Subsystem, SubsystemRep and DefaultSystemSubsystem.
+ * Implementation of Subsystem, Subsystem::Guts and DefaultSystemSubsystem.
  */
 
 #include "SimTKcommon/basics.h"
@@ -32,8 +32,8 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
 
-#include "SystemRep.h"
-#include "SubsystemRep.h"
+#include "SystemGutsRep.h"
+#include "SubsystemGutsRep.h"
 
 #include <cassert>
 
@@ -59,7 +59,8 @@ Subsystem::Subsystem(const Subsystem& src) : guts(0) {
 
 Subsystem& Subsystem::operator=(const Subsystem& src) {
     if (!isSameSubsystem(src)) {
-        if (isOwnerHandle()) delete guts; 
+        if (isOwnerHandle())
+            Subsystem::Guts::destruct(guts); 
         guts=0;
         if (src.guts) {
             guts = src.guts->clone();
@@ -70,9 +71,11 @@ Subsystem& Subsystem::operator=(const Subsystem& src) {
 }
 
 Subsystem::~Subsystem() {
-    //TODO: delete should probably be called from library side VFT
+    // Must delete using the library-side VFT, so that we can get access
+    // to the client side virtual destructor to destruct this client-side
+    // System::Guts object.
     if (guts && isOwnerHandle())
-        delete guts;
+        Subsystem::Guts::destruct(guts);
     guts=0;
 }
 
@@ -216,6 +219,9 @@ const String& Subsystem::Guts::getName()    const {return getRep().getName();}
 const String& Subsystem::Guts::getVersion() const {return getRep().getVersion();}
 
 
+void Subsystem::Guts::registerDestructImpl(DestructImplLocator f) {
+    updRep().destructp = f;
+}
 void Subsystem::Guts::registerCloneImpl(CloneImplLocator f) {
     updRep().clonep = f;
 }
@@ -388,6 +394,12 @@ bool Subsystem::Guts::subsystemTopologyHasBeenRealized() const {
 
 Subsystem::Guts* Subsystem::Guts::clone() const {
     return getRep().clonep(*this);
+}
+
+
+/*static*/void Subsystem::Guts::destruct(Subsystem::Guts* gutsp) {
+    if (gutsp)
+        gutsp->getRep().destructp(gutsp);
 }
 
 void Subsystem::Guts::realizeSubsystemTopology(State& s) const {

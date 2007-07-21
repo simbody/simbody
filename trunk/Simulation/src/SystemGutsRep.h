@@ -1,5 +1,5 @@
-#ifndef SimTK_SYSTEM_GUTSREP_H_
-#define SimTK_SYSTEM_GUTSREP_H_
+#ifndef SimTK_SimTKCOMMON_SYSTEM_GUTSREP_H_
+#define SimTK_SimTKCOMMON_SYSTEM_GUTSREP_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -24,6 +24,12 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+// This header is internal source code and is not part of the SimTKcommon
+// API or distribution. This is the private, opaque implementation of
+// the System::Guts class, which contains just a pointer to the
+// object declared here.
+
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
 #include "SimTKcommon/internal/State.h"
@@ -32,7 +38,7 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
-#include "SubsystemRep.h"
+#include "SubsystemGutsRep.h"
 
 namespace SimTK {
 
@@ -132,6 +138,7 @@ private:
         // determined at run time so that we don't have to depend on a
         // particular ordering in the client side virtual function table.
 
+    System::Guts::DestructImplLocator                     destructp;
     System::Guts::CloneImplLocator                        clonep;
 
     System::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
@@ -153,7 +160,8 @@ private:
     System::Guts::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
 
     void clearAllFunctionPointers() {
-        clonep = 0;
+        destructp = 0;
+        clonep    = 0;
 
         realizeTopologyp = 0;
         realizeModelp = 0;
@@ -175,7 +183,8 @@ private:
     }
 
     void copyAllFunctionPointers(const GutsRep& src) {
-        clonep = src.clonep;
+        destructp = src.destructp;
+        clonep    = src.clonep;
 
         realizeTopologyp = src.realizeTopologyp;
         realizeModelp    = src.realizeModelp;
@@ -272,4 +281,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SYSTEM_GUTSREP_H_
+#endif // SimTK_SimTKCOMMON_SYSTEM_GUTSREP_H_

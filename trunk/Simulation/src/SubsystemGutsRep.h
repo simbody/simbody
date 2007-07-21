@@ -1,5 +1,5 @@
-#ifndef SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_
-#define SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_
+#ifndef SimTK_SimTKCOMMON_SUBSYSTEM_GUTSREP_H_
+#define SimTK_SimTKCOMMON_SUBSYSTEM_GUTSREP_H_
 
 /* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
@@ -23,6 +23,11 @@
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
+
+// This header is internal source code and is not part of the SimTKcommon
+// API or distribution. This is the private, opaque implementation of
+// the Subsystem::Guts class, which contains just a pointer to the
+// object declared here.
 
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Simmatrix.h"
@@ -114,6 +119,7 @@ private:
         // determined at run time so that we don't have to depend on a
         // particular ordering in the client side virtual function table.
 
+    Subsystem::Guts::DestructImplLocator                     destructp;
     Subsystem::Guts::CloneImplLocator                        clonep;
 
     Subsystem::Guts::RealizeWritableStateImplLocator         realizeTopologyp;
@@ -134,7 +140,8 @@ private:
     Subsystem::Guts::CalcDecorativeGeometryAndAppendImplLocator   calcDecorativeGeometryAndAppendp;
 
     void clearAllFunctionPointers() {
-        clonep = 0;
+        destructp = 0;
+        clonep    = 0;
 
         realizeTopologyp = 0;
         realizeModelp = 0;
@@ -155,7 +162,8 @@ private:
     }
 
     void copyAllFunctionPointers(const GutsRep& src) {
-        clonep = src.clonep;
+        destructp = src.destructp;
+        clonep    = src.clonep;
 
         realizeTopologyp = src.realizeTopologyp;
         realizeModelp = src.realizeModelp;
@@ -186,4 +194,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_SimTKCOMMON_SUBSYSTEM_GUTS_REP_H_
+#endif // SimTK_SimTKCOMMON_SUBSYSTEM_GUTSREP_H_

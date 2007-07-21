@@ -34,7 +34,7 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/SystemGuts.h"
 
-#include "SystemRep.h"
+#include "SystemGutsRep.h"
 
 #include <cassert>
 
@@ -57,9 +57,13 @@ System::System(const System& src) : guts(0) {
     }
 }
 
+// Don't use ordinary delete, assignment, or copy here. Must go
+// through the library-side VFT to get access to the correct client-side
+// virtual destructor and clone method.
 System& System::operator=(const System& src) {
     if (!isSameSystem(src)) {
-        if (isOwnerHandle()) delete guts; 
+        if (isOwnerHandle())
+            System::Guts::destruct(guts);
         guts=0;
         if (src.guts) {
             guts = src.guts->clone();
@@ -70,9 +74,11 @@ System& System::operator=(const System& src) {
 }
 
 System::~System() {
-    //TODO: delete should probably be called from library side VFT
+    // Must delete using the library-side VFT, so that we can get access
+    // to the client side virtual destructor to destruct this client-side
+    // System::Guts object.
     if (guts && isOwnerHandle())
-        delete guts;
+        System::Guts::destruct(guts);
     guts=0;
 }
 
@@ -221,6 +227,9 @@ int System::Guts::getNSubsystems() const {return getRep().getNSubsystems();}
 const Subsystem& System::Guts::getSubsystem(SubsystemId i) const {return getRep().getSubsystem(i);}
 Subsystem& System::Guts::updSubsystem(SubsystemId i) {return updRep().updSubsystem(i);}
 
+void System::Guts::registerDestructImpl(DestructImplLocator f) {
+    updRep().destructp = f;
+}
 void System::Guts::registerCloneImpl(CloneImplLocator f) {
     updRep().clonep = f;
 }
@@ -281,6 +290,11 @@ System::Guts* System::Guts::clone() const {
     return getRep().clonep(*this);
 }
 
+
+/*static*/void System::Guts::destruct(System::Guts* gutsp) {
+    if (gutsp)
+        gutsp->getRep().destructp(gutsp);
+}
 
 const State& System::Guts::realizeTopology() const {
     State& defaultState = getRep().defaultState; // mutable
