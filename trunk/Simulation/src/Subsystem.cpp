@@ -134,6 +134,20 @@ Vector& Subsystem::updQErr(const State& s) const {return getSubsystemGuts().updQ
 Vector& Subsystem::updUErr(const State& s) const {return getSubsystemGuts().updUErr(s);}
 Vector& Subsystem::updUDotErr(const State& s) const {return getSubsystemGuts().updUDotErr(s);}
 
+Stage Subsystem::getStage(const State& s) const {return getSubsystemGuts().getStage(s);}
+const AbstractValue& Subsystem::getDiscreteVariable(const State& s, int index) const {
+    return getSubsystemGuts().getDiscreteVariable(s, index);
+}
+AbstractValue& Subsystem::updDiscreteVariable(State& s, int index) const {
+    return getSubsystemGuts().updDiscreteVariable(s, index);
+}
+const AbstractValue& Subsystem::getCacheEntry(const State& s, int index) const {
+    return getSubsystemGuts().getCacheEntry(s, index);
+}
+AbstractValue& Subsystem::updCacheEntry(const State& s, int index) const {
+    return getSubsystemGuts().updCacheEntry(s, index);
+}
+
 int Subsystem::getQStart      (const State& s) const {return getSubsystemGuts().getQStart(s);}
 int Subsystem::getNQ          (const State& s) const {return getSubsystemGuts().getNQ(s);}
 int Subsystem::getUStart      (const State& s) const {return getSubsystemGuts().getUStart(s);}

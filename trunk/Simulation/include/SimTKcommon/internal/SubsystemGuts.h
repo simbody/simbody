@@ -113,6 +113,17 @@ public:
     Vector& updUErr(const State&) const;
     Vector& updUDotErr(const State&) const;
 
+    // These pull out the State entries which belong exclusively to
+    // this Subsystem. These variables and cache entries are available
+    // as soon as this subsystem is at stage Model.
+    Stage getStage(const State&) const;
+    const AbstractValue& getDiscreteVariable(const State&, int index) const;
+    // State is *not* mutable here -- must have write access to change state variables.
+    AbstractValue& updDiscreteVariable(State&, int index) const;
+    const AbstractValue& getCacheEntry(const State&, int index) const;
+    // State is mutable here.
+    AbstractValue& updCacheEntry(const State&, int index) const;
+
     // Dimensions. These are valid at System Stage::Model while access to the various
     // arrays may have stricter requirements. Hence it is better to use these
     // routines than to get a reference to a Vector above and ask for its size().
@@ -280,16 +291,6 @@ protected:
     int allocateCacheEntry(State& s, Stage g, AbstractValue* v) const;
     void advanceToStage(const State& s, Stage g) const;
 
-    // These pull out the State entries which belong exclusively to
-    // this Subsystem. These variables and cache entries are available
-    // as soon as this subsystem is at stage Model.
-    Stage getStage(const State& s) const;
-    const AbstractValue& getDiscreteVariable(const State& s, int index) const;
-    // State is *not* mutable here -- must have write access to change state variables.
-    AbstractValue& updDiscreteVariable(State& s, int index) const;
-    const AbstractValue& getCacheEntry(const State& s, int index) const;
-    // State is mutable here.
-    AbstractValue& updCacheEntry(const State& s, int index) const;
 
 private:
 

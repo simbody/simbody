@@ -110,6 +110,10 @@ bool System::systemTopologyHasBeenRealized() const {
 const State& System::realizeTopology() const {return getSystemGuts().realizeTopology();}
 void System::realizeModel(State& s) const {getSystemGuts().realizeModel(s);}
 void System::realize(const State& s, Stage g) const {getSystemGuts().realize(s,g);}
+void System::calcDecorativeGeometryAndAppend(const State& s, Stage g, Array<DecorativeGeometry>& geom) const {
+    getSystemGuts().calcDecorativeGeometryAndAppend(s,g,geom);
+}
+
 Real System::calcTimescale(const State& s) const {return getSystemGuts().calcTimescale(s);}
 void System::calcYUnitWeights(const State& s, Vector& weights) const
   { getSystemGuts().calcYUnitWeights(s,weights); }
