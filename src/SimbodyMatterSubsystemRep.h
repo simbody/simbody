@@ -394,10 +394,10 @@ public:
 
     void setUseEulerAngles(State& s, bool useAngles) const;
     void setMobilizerIsPrescribed(State& s, MobilizedBodyId, bool prescribe) const;
-    void setConstraintIsEnabled(State& s, int constraint, bool enable) const;
+    void setConstraintIsEnabled(State& s, ConstraintId constraint, bool enable) const;
     bool getUseEulerAngles(const State& s) const;
     bool isMobilizerPrescribed(const State& s, MobilizedBodyId) const;
-    bool isConstraintEnabled(const State& s, int constraint) const;
+    bool isConstraintEnabled(const State& s, ConstraintId constraint) const;
 
         // CALLABLE AFTER realizeModel()
 
@@ -597,18 +597,6 @@ public:
         return Value<SBAccelerationVars>::downcast
             (s.updDiscreteVariable(getMySubsystemId(),getModelCache(s).accelerationVarsIndex)).upd();
     }
-
-    
-    // Access to our portion of State arrays.
-    void setQ(State& s, const Vector& q) const {
-        assert(q.size() == topologyCache.maxNQs);
-        updQ(s) = q;
-    }
-    void setU(State& s, const Vector& u) const {
-        assert(u.size() == topologyCache.nDOFs);
-        updU(s) = u;
-    }
-
 
     const SimbodyMatterSubsystem& getMySimbodyMatterSubsystemHandle() const {
         return SimbodyMatterSubsystem::downcast(getOwnerSubsystemHandle());

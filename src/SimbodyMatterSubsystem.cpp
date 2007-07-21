@@ -180,13 +180,13 @@ void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
 void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribed) const
   { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
-void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, int constraint, bool enabled) const
+void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, ConstraintId constraint, bool enabled) const
   { getRep().setConstraintIsEnabled(s,constraint,enabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
 bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const
   { return getRep().isMobilizerPrescribed(s,body); }
-bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, int constraint) const
+bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, ConstraintId constraint) const
   { return getRep().isConstraintEnabled(s,constraint); }
 
 int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
@@ -198,15 +198,6 @@ bool SimbodyMatterSubsystem::isUsingQuaternion(const State& s, MobilizedBodyId b
 int SimbodyMatterSubsystem::getQuaternionIndex(const State& s, MobilizedBodyId body) const {
     return getRep().getQuaternionIndex(s, body);
 }
-
-
-const Vector& SimbodyMatterSubsystem::getQ(const State& s) const {return getRep().getQ(s);}
-const Vector& SimbodyMatterSubsystem::getU(const State& s) const {return getRep().getU(s);}
-
-void SimbodyMatterSubsystem::setQ(State& s, const Vector& q) const {getRep().setQ(s,q);}
-void SimbodyMatterSubsystem::setU(State& s, const Vector& u) const {getRep().setU(s,u);}
-Vector& SimbodyMatterSubsystem::updQ(State& s) const {return getRep().updQ(s);}
-Vector& SimbodyMatterSubsystem::updU(State& s) const {return getRep().updU(s);}
 
 void SimbodyMatterSubsystem::enforcePositionConstraints(State& s, const Real& requiredTol, const Real& desiredTol) const
   { getRep().enforcePositionConstraints(s, requiredTol, desiredTol); }
@@ -234,11 +225,6 @@ const SpatialMat&
 SimbodyMatterSubsystem::getArticulatedBodyInertia(const State& s, MobilizedBodyId body) const {
     return getRep().getArticulatedBodyInertia(s,body);
 }
-
-
-const Vector& SimbodyMatterSubsystem::getQDot   (const State& s) const {return getRep().getQDot(s);}
-const Vector& SimbodyMatterSubsystem::getUDot   (const State& s) const {return getRep().getUDot(s);}
-const Vector& SimbodyMatterSubsystem::getQDotDot(const State& s) const {return getRep().getQDotDot(s);}
 
 const Vector& 
 SimbodyMatterSubsystem::getAllParticleMasses(const State& s) const { 

@@ -52,7 +52,7 @@ class MultibodySystem;
  *                  G udot + b(t,q,u) = 0
  *
  *   [A]    [ba]
- * G=[V]  b=[bv]  f=T+R*(F-C)
+ * G=[V]  b=[bv]  f=T+J*(F-C)
  *   [P]    [bp]
  *
  * a(t,q,u,udot) = A udot + ba(t,q,u) = 0
@@ -65,27 +65,29 @@ class MultibodySystem;
  *                             p(t,q) = 0
  * 
  * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
- * the coriolis and gyroscopic forces, T is user-applied joint forces,
+ * the coriolis and gyroscopic forces, T is user-applied joint mobility forces,
  * F is user-applied body forces and torques and gravity. 
- * R* is the operator that maps spatial forces to joint forces. p() are the
+ * J* is the operator that maps spatial forces to joint mobility forces. p() are the
  * holonomic (position) constraints, v() the non-holonomic (velocity) constraints,
  * and a() the reaction (acceleration) constraints, which must be linear, with A
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
- * P=partial(pdot)/partial(u), V=partial(v)/partial(u).
+ * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
  * n() is the set of quaternion normalization constraints.
  *
  * We calculate the constraint multipliers like this:
  *           G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
  * using the pseudo inverse of G M^-1 ~G to give a least squares solution for
  * mult: mult = pinv(G M^-1 ~G)(G M^-1 f - b). Then the real udot is
- * udot = udot0 - udotC, with udotC = M^-1 ~G mult.
+ * udot = udot0 - udotC, with udotC = M^-1 ~G mult. Note: M^-1* is an
+ * O(N) operator that provides the desired result; it *does not* require
+ * forming or factoring M.
  *
- * NOTE: only the constraint matrices have to be formed and factored:
- *     G M^-1 ~G    to calculate multipliers (square, symmetric: LDL' if
+ * NOTE: only the following constraint matrices have to be formed and factored:
+ *    [G M^-1 ~G]   to calculate multipliers (square, symmetric: LDL' if
  *                  well conditioned, else pseudoinverse)
  *
- *     P            for projection onto position manifold (pseudoinverse)
+ *    [P]           for projection onto position manifold (pseudoinverse)
  *
  *    [V]           for projection onto velocity manifold (pseudoinverse)
  *    [P]
@@ -342,13 +344,14 @@ public:
 
     // These are available after realizeTopology().
 
-    /// The number of bodies includes all rigid bodies, particles, massless
-    /// bodies and ground. Bodies and their inboard joints have the same 
-    /// number, starting with ground at 0 with a regular labeling such
-    /// that children have higher body numbers than their parents. Joint 0
+    /// The number of bodies includes all rigid bodies, massless
+    /// bodies and ground but not particles. Bodies and their inboard mobilizers
+    /// have the same number since they are grouped together as a MobilizedBody
+    /// MobilizedBody numbering starts with ground at 0 with a regular labeling such
+    /// that children have higher body numbers than their parents. Mobilizer 0
     /// is meaningless (or I suppose you could think of it as the weld
     /// joint that attaches ground to the universe), but otherwise 
-    /// joint n is the inboard joint of body n.
+    /// mobilizer n is the inboard mobilizer of body n.
     int getNBodies() const;
 
     /// This is the total number of defined constraints, each of which may
@@ -362,30 +365,31 @@ public:
     /// of state variable vector u.
     int getNMobilities() const; 
 
-    /// The sum of all the q vector allocations for each joint. These may not
-    /// all be in use.
+    /// The sum of all the q vector allocations for each joint. There may be
+    /// some that are not in use for particular modeling options.
     int getTotalQAlloc() const;
 
-    /// This is the sum of all the allocations for constraint multipliers.
+    /// This is the sum of all the allocations for constraint multipliers,
+    /// one per acceleration constraint equation.
     int getTotalMultAlloc() const;
 
-    /// For all ball and free joints, decide what method we should use
-    /// to model their orientations. Choices are: quaternions (best
-    /// for dynamics), or rotation angles (3-2-1 Euler sequence, good for
-    /// optimization). TODO: allow settable zero rotation for Euler sequence,
-    /// with convenient way to say "this is zero".
+    /// For all mobilizers offering unrestricted orientation, decide what
+    /// method we should use to model their orientations. Choices are: quaternions (best
+    /// for dynamics), or rotation angles (1-2-3 Euler sequence, good for
+    /// optimization). TODO: (1) other Euler sequences, (2) allow settable zero
+    /// rotation for Euler sequence, with convenient way to say "this is zero".
     void setUseEulerAngles(State&, bool) const;
-    void setMobilizerIsPrescribed(State&, MobilizedBodyId, bool) const;
-    void setConstraintIsEnabled(State&, int constraint, bool) const;
-
-    // Return modeling information from the State.
     bool getUseEulerAngles  (const State&) const;
-    bool isMobilizerPrescribed  (const State&, MobilizedBodyId) const;
     int  getNQuaternionsInUse(const State&) const;
+
+    // TODO: these are obsolete. Their functions should be
+    // taken over by methods in the MobilizedBody and Constraint classes.
+    void setMobilizerIsPrescribed(State&, MobilizedBodyId, bool) const;
+    bool isMobilizerPrescribed  (const State&, MobilizedBodyId) const;
     bool isUsingQuaternion(const State&, MobilizedBodyId) const;
     int  getQuaternionIndex(const State&, MobilizedBodyId) const;
-
-    bool isConstraintEnabled(const State&, int constraint) const;
+    void setConstraintIsEnabled(State&, ConstraintId constraint, bool) const;
+    bool isConstraintEnabled(const State&, ConstraintId constraint) const;
 
     // Position Stage. 
 
@@ -400,24 +404,6 @@ public:
     const SpatialVec& getGyroscopicForce(const State&, MobilizedBodyId) const;
     const SpatialVec& getCentrifugalForces(const State&, MobilizedBodyId) const;
     const SpatialMat& getArticulatedBodyInertia(const State& s, MobilizedBodyId) const;
-
-    const Real& getMobilizerQDot(const State&, MobilizedBodyId, int axis) const;
-    const Real& getMobilizerUDot(const State&, MobilizedBodyId, int axis) const;
-    const Real& getMobilizerQDotDot(const State&, MobilizedBodyId, int axis) const;
-
-    const Vector& getQ(const State&) const;
-    const Vector& getU(const State&) const;
-
-    void setQ(State&, const Vector& q) const;
-    void setU(State&, const Vector& u) const;
-    Vector& updQ(State&) const;
-    Vector& updU(State&) const;
-
-    const Vector& getQDot   (const State&) const;
-    const Vector& getUDot   (const State&) const;
-    const Vector& getQDotDot(const State&) const;
-
-
 
         // PARTICLES
 

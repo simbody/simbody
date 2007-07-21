@@ -737,7 +737,7 @@ void SimbodyMatterSubsystemRep::setMobilizerIsPrescribed(State& s, MobilizedBody
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.prescribed[body] = prescribe;
 }
-void SimbodyMatterSubsystemRep::setConstraintIsEnabled(State& s, int constraint, bool enable) const {
+void SimbodyMatterSubsystemRep::setConstraintIsEnabled(State& s, ConstraintId constraint, bool enable) const {
     SBModelVars& modelVars = updModelVars(s); // check/adjust stage
     modelVars.enabled[constraint] = enable;   
 }
@@ -750,7 +750,7 @@ bool SimbodyMatterSubsystemRep::isMobilizerPrescribed(const State& s, MobilizedB
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.prescribed[body];
 }
-bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, int constraint) const {
+bool SimbodyMatterSubsystemRep::isConstraintEnabled(const State& s, ConstraintId constraint) const {
     const SBModelVars& modelVars = getModelVars(s); // check stage
     return modelVars.enabled[constraint];
 }
