@@ -104,9 +104,6 @@ public:
     }
 
 
-    void calcDecorativeGeometryAndAppend
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
-
         // CONSTRUCTION STAGE //
 
     // The MatterSubsystemRep takes over ownership of the child
@@ -305,6 +302,9 @@ public:
     int realizeSubsystemDynamicsImpl    (const State&) const;
     int realizeSubsystemAccelerationImpl(const State&) const;
     int realizeSubsystemReportImpl      (const State&) const;
+
+    int calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
 
     Real calcKineticEnergy(const State&) const;
 

@@ -48,35 +48,6 @@ SimbodyMatterSubsystemRep::SimbodyMatterSubsystemRep(const SimbodyMatterSubsyste
     assert(!"SimbodyMatterSubsystemRep copy constructor ... TODO!");
 }
 
-void SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppend
-   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
-{
-    switch(stage) {
-    case Stage::Topology: {
-        assert(subsystemTopologyHasBeenRealized());
-        for (int i=0; i<(int)mobilizedBodies.size(); ++i)
-            mobilizedBodies[i]->getRep().appendBodyGeometry(geom);
-        //TODO: should be in Instance Stage
-        for (int i=0; i<(int)mobilizedBodies.size(); ++i) {
-            const MobilizedBody::MobilizedBodyRep& mbrep = mobilizedBodies[i]->getRep();
-            mbrep.appendMobilizerGeometry(mbrep.getDefaultOutboardFrame(),
-                                          mbrep.getDefaultInboardFrame(),
-                                          geom);
-        }
-        break;
-    }
-    case Stage::Position: {
-        assert(getStage(s) >= Stage::Position);
-        //TODO: just to check control flow, put a ball at system COM
-        //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
-        //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
-        //                .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
-         //               .setResolution(1));
-    }
-    default: 
-        assert(getStage(s) >= stage);
-    }
-}
 
 void SimbodyMatterSubsystemRep::clearTopologyState() {
     // Constraints are independent from one another, so any deletion order
@@ -612,6 +583,37 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
     return 0;
 }
 
+int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    switch(stage) {
+    case Stage::Topology: {
+        assert(subsystemTopologyHasBeenRealized());
+        for (int i=0; i<(int)mobilizedBodies.size(); ++i)
+            mobilizedBodies[i]->getRep().appendBodyGeometry(geom);
+        //TODO: should be in Instance Stage
+        for (int i=0; i<(int)mobilizedBodies.size(); ++i) {
+            const MobilizedBody::MobilizedBodyRep& mbrep = mobilizedBodies[i]->getRep();
+            mbrep.appendMobilizerGeometry(mbrep.getDefaultOutboardFrame(),
+                                          mbrep.getDefaultInboardFrame(),
+                                          geom);
+        }
+        break;
+    }
+    case Stage::Position: {
+        assert(getStage(s) >= Stage::Position);
+        //TODO: just to check control flow, put a ball at system COM
+        //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);
+        //geom.push_back(DecorativeSphere(0.02).setBodyId(GroundId).setTransform(com)
+        //                .setColor(Green).setRepresentation(DecorativeGeometry::DrawPoints)
+         //               .setResolution(1));
+    }
+    default: 
+        assert(getStage(s) >= stage);
+    }
+
+    return 0;
+}
 
 int SimbodyMatterSubsystemRep::getQIndex(MobilizedBodyId body) const {
     assert(subsystemTopologyHasBeenRealized());
