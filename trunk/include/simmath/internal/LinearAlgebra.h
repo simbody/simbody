@@ -1,7 +1,7 @@
 #ifndef SimTK_LINEAR_ALGEBRA_H_
 #define SimTK_LINEAR_ALGEBRA_H_
 
-/* Portions copyright (c) 2006 Stanford University and Jack Middleton.
+/* Portions copyright (c) 2007 Stanford University and Jack Middleton.
  * Contributors:
  * 
  * Permission is hereby granted, free of charge, to any person obtaining
