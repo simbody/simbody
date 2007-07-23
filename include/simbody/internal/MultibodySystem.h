@@ -51,25 +51,6 @@ public:
     MultibodySystem();
     MultibodySystem(SimbodyMatterSubsystem& m);
 
-    // We inherit realize() from System, and add constraint projection here.
-    // We are given a state whose continuous state variables y may violate
-    // a set of constraints at position (q) and velocity (u) levels. In addition
-    // we may be given a set of absolute error estimates y_err for y. This solver
-    // performs two operations:
-    //   (1) perform a least squares projection of y onto the constraint manifold,
-    //       using the error test norm to define the least-squares direction
-    //   (2) perform the same projection on y_err, returning a revised y_err which
-    //       has a smaller norm
-    // This routine returns true if any change was made to s or y_err, otherwise false.
-    // 
-
-    bool project(State& s, Vector& y_err, 
-                 const Real& tol,               // must achieve this tolerance or better
-                 const Real& dontProjectFac,    // skip projection if tol <= fac*tol
-                 const Real& targetTol          // when projecting, try for this (<= tol)
-                 ) const;
-
-
     // Steals ownership of the source; returns subsystem ID number.
     int setMatterSubsystem(SimbodyMatterSubsystem&);
     int addForceSubsystem(ForceSubsystem&);

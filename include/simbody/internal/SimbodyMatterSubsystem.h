@@ -51,9 +51,11 @@ class MultibodySystem;
  *                   M udot + ~G mult = f
  *                  G udot + b(t,q,u) = 0
  *
- *   [A]    [ba]
- * G=[V]  b=[bv]  f=T+J*(F-C)
- *   [P]    [bp]
+ *              where
+ *
+ *       [A]    [ba]
+ *     G=[V]  b=[bv]  f=T+J*(F-C)
+ *       [P]    [bp]
  *
  * a(t,q,u,udot) = A udot + ba(t,q,u) = 0
  *          vdot = V udot + bv(t,q,u) = 0
@@ -268,7 +270,6 @@ public:
     // CONSTRUCTION //
     //////////////////
 
-    //TODO: needed for new interface.
     // Attach new matter using the indicated parent body as the reference
     // frame, with the mobilizer and mass properties provided by 'child'.
     // We take over ownership of child's representation from the given

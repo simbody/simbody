@@ -69,21 +69,18 @@ typedef Vector_<SpatialVec>           SpatialVecList;
 class IVM;
 class LengthConstraints;
 
-/**
+/*
  * The SimbodyMatterSubsystemRep class owns the tree of mobilizer-connected rigid bodies, called
  * RigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
  * being bodies which are connected to ground (base bodies), level 2 connected to
  * level 1 and so on. Nodes at the same level are stored together in an array,
  * but the order does not reflect the logical tree structure; that is maintained
  * via parent & children pointers kept in the nodes.
- * 
- * SimbodyMatterSubsystemRep is the owner of the RigidBodyNode objects (which are abstract), pointers to
- * which are stored in the tree.
  */
 class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
     SimbodyMatterSubsystemRep() 
-        : Subsystem::Guts("SimbodyMatterSubsystem", "0.5.5"),
+      : Subsystem::Guts("SimbodyMatterSubsystem", "0.5.5"),
         lConstraints(0)
     { 
         clearTopologyCache();
@@ -92,11 +89,63 @@ public:
     SimbodyMatterSubsystemRep(const SimbodyMatterSubsystemRep&);
     SimbodyMatterSubsystemRep& operator=(const SimbodyMatterSubsystemRep&);
 
+
+        // IMPLEMENTATIONS OF SUBSYSTEM::GUTS VIRTUAL METHODS
+
+    // Destructor is virtual
     ~SimbodyMatterSubsystemRep() {
         invalidateSubsystemTopologyCache();
         clearTopologyCache(); // should do cache before state
         clearTopologyState();
     }
+
+    SimbodyMatterSubsystemRep* cloneImpl() const {
+        return new SimbodyMatterSubsystemRep(*this);
+    }
+
+    int realizeSubsystemTopologyImpl    (State&) const;
+    int realizeSubsystemModelImpl       (State&) const;
+    int realizeSubsystemInstanceImpl    (const State&) const;
+    int realizeSubsystemTimeImpl        (const State&) const;
+    int realizeSubsystemPositionImpl    (const State&) const;
+    int realizeSubsystemVelocityImpl    (const State&) const;
+    int realizeSubsystemDynamicsImpl    (const State&) const;
+    int realizeSubsystemAccelerationImpl(const State&) const;
+    int realizeSubsystemReportImpl      (const State&) const;
+
+    int calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+
+    // TODO: these are just unit weights and tolerances. They should be calculated
+    // to be something more reasonable.
+
+    int calcQUnitWeightsImpl(const State& s, Vector& weights) const {
+        weights.resize(getNQ(s));
+        weights = 1; // default says everyone's opinion is just as valid
+        return 0;
+    }
+    int calcUUnitWeightsImpl(const State& s, Vector& weights) const {
+        weights.resize(getNU(s));
+        weights = 1;
+        return 0;
+    }
+    int calcZUnitWeightsImpl(const State& s, Vector& weights) const {
+        weights.resize(getNZ(s));
+        weights = 1;
+        return 0;
+    }
+    int calcQErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
+        tolerances.resize(getNQErr(s));
+        tolerances = 1;
+        return 0;
+    }
+    int calcUErrUnitTolerancesImpl(const State& s, Vector& tolerances) const {
+        tolerances.resize(getNUErr(s));
+        tolerances = 1;
+        return 0;
+    }
+
+        // END OF VIRTUALS.
 
     // Return the MultibodySystem which owns this MatterSubsystem.
     const MultibodySystem& getMultibodySystem() const {
@@ -286,25 +335,6 @@ public:
         return true;
     }
 
-    // Override virtual methods in Subsystem::Guts.
-
-    // SubsystemRep interface
-    SimbodyMatterSubsystemRep* cloneImpl() const {
-        return new SimbodyMatterSubsystemRep(*this);
-    }
-
-    int realizeSubsystemTopologyImpl    (State&) const;
-    int realizeSubsystemModelImpl       (State&) const;
-    int realizeSubsystemInstanceImpl    (const State&) const;
-    int realizeSubsystemTimeImpl        (const State&) const;
-    int realizeSubsystemPositionImpl    (const State&) const;
-    int realizeSubsystemVelocityImpl    (const State&) const;
-    int realizeSubsystemDynamicsImpl    (const State&) const;
-    int realizeSubsystemAccelerationImpl(const State&) const;
-    int realizeSubsystemReportImpl      (const State&) const;
-
-    int calcDecorativeGeometryAndAppendImpl
-       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
 
     Real calcKineticEnergy(const State&) const;
 
@@ -605,7 +635,6 @@ public:
         return SimbodyMatterSubsystem::updDowncast(updOwnerSubsystemHandle());
     }
 private:
-    //void addGroundNode();
     ConstraintId addConstraintNode(ConstraintNode*&);
 
     // Given a set of forces, calculate accelerations ignoring
@@ -704,11 +733,7 @@ private:
     // Map nodeNum to (level,offset).
     std::vector<RigidBodyNodeIndex> nodeNum2NodeMap;
 
-    // This holds pointers to the abstract constraint nodes which correspond
-    // the the user's idea of constraints in a manner analogous to the
-    // linked bodies represented by RigidBodyNodes. Each of these may generate
-    // several constraint equations.
-    //Array<ConstraintNode*>       constraintNodes;
+    // These are the distant constraint equations generated by Constraints.
     Array<RBDistanceConstraint*> distanceConstraints;
     
     LengthConstraints* lConstraints;

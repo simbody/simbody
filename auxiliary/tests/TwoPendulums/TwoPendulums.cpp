@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
                  .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
                  .setDefaultOutboardFrame(Vec3(0,d,0));
     rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
-                                                      .setColor(Purple).setOpacity(.3));
+                                                      .setColor(Purple).setOpacity(.5));
     const Vec3 r=rightPendulum.getDefaultRadii();
     const Real minr = std::min(r[0],std::min(r[1],r[2]));
     const Real hw = minr/2;  // half width of follower plate in x
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     //forces.addGlobalEnergyDrain(.2);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
-    twoPends.setUseEulerAngles(s, true);
+    //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
     VTKReporter display(mbs);
@@ -204,7 +204,10 @@ int main(int argc, char** argv) {
     // Create a study using the Runge Kutta Merson or CPODES integrator
     RungeKuttaMerson myStudy(mbs, s);
     //CPodesIntegrator myStudy(mbs, s);
-    //myStudy.setAccuracy(1e-8);
+    //ExplicitEuler myStudy(mbs, s);
+    //myStudy.setMaximumStepSize(0.001);
+    //myStudy.setAccuracy(1e-2);
+    //myStudy.setConstraintTolerance(1e-7);
 
     const Real dt = 0.01; // output intervals
     const Real finalTime = 10;

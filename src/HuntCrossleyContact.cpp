@@ -27,10 +27,13 @@
  * Private implementation of HuntCrossleyContact Subsystem.
  */
 
-#include "SimTKsimbody.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
+
 #include "simbody/internal/ForceSubsystem.h"
 #include "simbody/internal/HuntCrossleyContact.h"
-#include "simbody/internal/MultibodySystem.h"
 
 #include "ForceSubsystemRep.h"
 

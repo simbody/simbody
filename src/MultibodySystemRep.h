@@ -409,11 +409,29 @@ public:
         return getGlobalSubsystem().getRep().updKineticEnergy(s,g);
     }
 
-    // Do all "q" projections before any "u" projections.
-    bool project(State& s, Vector& y_err,
-                 const Real& tol, const Real& dontProjectFac, 
-                 const Real& targetTol) const 
+
+    // pure virtual
+    MultibodySystemRep* cloneImpl() const {return new MultibodySystemRep(*this);}
+
+    // Override the SystemRep default implementations for these virtual methods.
+    int realizeTopologyImpl    (State&)       const;
+    int realizeModelImpl       (State&)       const;
+    int realizeInstanceImpl    (const State&) const;
+    int realizeTimeImpl        (const State&) const;
+    int realizePositionImpl    (const State&) const;
+    int realizeVelocityImpl    (const State&) const;
+    int realizeDynamicsImpl    (const State&) const;
+    int realizeAccelerationImpl(const State&) const;
+    int realizeReportImpl      (const State&) const;
+
+    // Note that we do all "q" projections before any "u" projections.
+    //
+    // TODO: yWeights & ooTols are being ignored here but shouldn't be!
+    int projectImpl(State& s, Real consAccuracy, const Vector& yWeights,
+                    const Vector& ooTols, Vector& yErrest) const
     {
+        const Real tol = consAccuracy;
+        const Real targetTol = 0.1*tol;
         bool anyChange = false;
 
         realize(s, Stage::Time);
@@ -421,39 +439,32 @@ public:
         const SimbodyMatterSubsystem& mech = getMatterSubsystem();
 
         mech.getRep().realizeSubsystemPosition(s);
-        const Real qerr = mech.calcQConstraintNorm(s);
-        if (dontProjectFac==0 || qerr > tol*dontProjectFac) {
-            if (mech.projectQConstraints(s, y_err, tol, targetTol))
-                anyChange = true;
-        }
+        if (mech.projectQConstraints(s, yErrest, tol, targetTol))
+            anyChange = true;
 
         realize(s, Stage::Position);  // realize the whole system now
 
         mech.getRep().realizeSubsystemVelocity(s);
-        const Real uerr = mech.calcUConstraintNorm(s);
-        if (dontProjectFac==0 || uerr > tol*dontProjectFac) {
-            if (mech.projectUConstraints(s, y_err, tol, targetTol))
-                anyChange = true;
-        }
+        if (mech.projectUConstraints(s, yErrest, tol, targetTol))
+            anyChange = true;
 
         realize(s, Stage::Velocity);  // realize the whole system now
 
-        return anyChange;
+        return 0;
     }
 
-    // pure virtual
-    MultibodySystemRep* cloneImpl() const {return new MultibodySystemRep(*this);}
-
-    // Override the SystemRep default implementations for these virtual methods.
-    int realizeTopologyImpl    (State& s)       const;
-    int realizeModelImpl       (State& s)       const;
-    int realizeInstanceImpl    (const State& s) const;
-    int realizeTimeImpl        (const State& s) const;
-    int realizePositionImpl    (const State& s) const;
-    int realizeVelocityImpl    (const State& s) const;
-    int realizeDynamicsImpl    (const State& s) const;
-    int realizeAccelerationImpl(const State& s) const;
-    int realizeReportImpl      (const State& s) const;
+    /* TODO: not yet
+    virtual Real calcTimescaleImpl(const State&) const;
+    virtual int calcYUnitWeightsImpl(const State&, Vector& weights) const;
+    virtual int calcYErrUnitTolerancesImpl(const State&, Vector& tolerances) const;
+    virtual int handleEventsImpl
+       (State&, EventCause, const Array<int>& eventIds,
+        Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
+        Stage& lowestModified, bool& shouldTerminate) const;
+    virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
+    virtual int calcTimeOfNextScheduledEventImpl
+        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+    */
 
     SimTK_DOWNCAST(MultibodySystemRep, System::Guts);
 private:

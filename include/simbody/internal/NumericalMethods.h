@@ -176,7 +176,7 @@ public:
         assert(z == -1. || z > 0.);
         assert(userInitStepSize==-1. || z >= userInitStepSize);
         assert(userMinStepSize ==-1. || z >= userMinStepSize);
-        userMinStepSize = z;
+        userMaxStepSize = z;
     }
     void setAccuracy(const Real& accuracy) {
         assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
@@ -295,10 +295,16 @@ public:
         s.updY() = y;
         s.updTime() = t;
 
+        const MultibodySystem& mbs = mdae->getMultibodySystem();
+
         try {
             const Real tol = mdae->getConstraintTolerance();
-            mdae->getMultibodySystem().project(s, err,
-                tol, 0., 0.1*tol);
+            Vector yUnitWeights, unitTolerances;
+            mbs.realize(s, Stage::Position);
+            mbs.calcYUnitWeights(s, yUnitWeights);
+            mbs.calcYErrUnitTolerances(s, unitTolerances);
+
+            mbs.project(s, tol, yUnitWeights, unitTolerances, err);
         }
         catch (...) { return CPodes::RecoverableError; } // assume recoverable
 
@@ -490,15 +496,27 @@ public:
         return consTol;
     }
 
+    Real getPredictedNextStep() const {
+        assert(initialized);
+        return maxStepSize;
+    }
+
     bool initialize() {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
             "ExplicitEuler::initialize()");
         if (state.getSystemStage() < Stage::Model)
             reconstructForNewModel();
         initializeIntegrationParameters();
-        //mech.setAccuracy(absTol, consTol);
-        Vector dummy;
-        try { (void)mbs.project(state, dummy, consTol, 0., 0.1*consTol); }
+
+        try { 
+            Vector yUnitWeights, unitTolerances;
+            mbs.realize(state, Stage::Position);
+            mbs.calcYUnitWeights(state, yUnitWeights);
+            mbs.calcYErrUnitTolerances(state, unitTolerances);
+            Vector dummyErrest; //TODO
+            mbs.project(state, consTol, yUnitWeights, unitTolerances,
+                        dummyErrest);
+        }
         catch (...) { ++statsProjectionFailures; return false; }
 
         try { mbs.realize(state, Stage::Acceleration); }
@@ -541,10 +559,23 @@ public:
                 bool projectOK = false, realizeOK = false;
                 try {
                     projectOK = true;
-                    Vector dummy;
-                    (void)mbs.project(state, dummy, consTol,
-                                      projectEveryStep ? 0. : 0.9, 
-                                      0.1*consTol);
+                    Vector yUnitWeights, unitTolerances;
+                    mbs.realize(state, Stage::Position);
+                    mbs.calcYUnitWeights(state, yUnitWeights);
+                    mbs.calcYErrUnitTolerances(state, unitTolerances);
+                    bool needProjection = true;
+                    if (!projectEveryStep) {
+                        mbs.realize(state, Stage::Velocity); // so we can get UErrs
+                        const Real err = 
+                            mbs.calcWeightedRMSNorm(state.getYErr(), unitTolerances);
+                        if (err < 0.9*consTol)
+                            needProjection = false; // far from being violated
+                    }
+                    if (needProjection) {
+                        Vector dummyErrest; //TODO
+                        mbs.project(state, consTol, yUnitWeights, unitTolerances,
+                                    dummyErrest);
+                    }
                 }
                 catch (...) { projectOK=false; }
 
@@ -881,15 +912,29 @@ private:
         return true;
     }
 
+    // Realize through Position stage, project, then realize
+    // through Acceleration stage.
     bool evaluateAndProject(bool forceProject=false) {
         bool projectOK = false, realizeOK = false;
         try {
             projectOK = true;
-            Vector dummy;
-            if (!suppressProject || forceProject) 
-                (void)mbs.project(state, dummy, consTol,
-                                  projectEveryStep ? 0. : 0.9, 
-                                  0.1*consTol);
+            Vector yUnitWeights, unitTolerances;
+            mbs.realize(state, Stage::Position);
+            mbs.calcYUnitWeights(state, yUnitWeights);
+            mbs.calcYErrUnitTolerances(state, unitTolerances);
+            bool needProjection = true;
+            if (!projectEveryStep) {
+                mbs.realize(state, Stage::Velocity); // so we can get UErrs
+                const Real err = 
+                    mbs.calcWeightedRMSNorm(state.getYErr(), unitTolerances);
+                if (err < 0.9*consTol)
+                    needProjection = false; // far from being violated
+            }
+            if ((needProjection && !suppressProject) || forceProject) {
+                Vector dummyErrest; //TODO
+                mbs.project(state, consTol, yUnitWeights, unitTolerances,
+                            dummyErrest);
+            }
         }
         catch (...) { projectOK=false; }
 

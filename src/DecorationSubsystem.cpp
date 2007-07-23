@@ -27,7 +27,10 @@
  * Private implementation of DecorationSubsystem.
  */
 
-#include "SimTKsimbody.h"
+#include "SimTKcommon.h"
+#include "simbody/internal/common.h"
+#include "simbody/internal/MultibodySystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
 #include "DecorationSubsystemRep.h"
@@ -92,6 +95,44 @@ void DecorationSubsystem::addRubberBandLine
     updGuts().addRubberBandLine(b1,station1,b2,station2,g);
 }
 
+    ///////////////////////////////
+    // DECORATION SUBSYSTEM GUTS //
+    ///////////////////////////////
+
+// Return the MultibodySystem which owns this DecorationSubsystem.
+const MultibodySystem& DecorationSubsystemGuts::getMultibodySystem() const {
+    return MultibodySystem::downcast(getSystem());
+}
+
+int DecorationSubsystemGuts::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    switch(stage) {
+    case Stage::Topology: {
+        assert(subsystemTopologyHasBeenRealized());
+        for (int i=0; i<(int)geometry.size(); ++i)
+            geom.push_back(geometry[i]);
+        break;
+    }
+    case Stage::Position: {
+        assert(getStage(s) >= Stage::Position);
+        const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
+        const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
+        for (int i=0; i<(int)rubberBandLines.size(); ++i) {
+            const RubberBandLine& rb = rubberBandLines[i];
+            geom.push_back(rb.line); // make a new copy
+            DecorativeLine& line = DecorativeLine::updDowncast(geom.back()); // get access to copy
+            line.setEndpoints(
+                matter.getMobilizedBody(rb.body1).locateBodyPointOnGround(s,rb.station1),
+                matter.getMobilizedBody(rb.body2).locateBodyPointOnGround(s,rb.station2));
+        }
+    }
+    default: 
+        assert(getStage(s) >= stage);
+    }
+
+    return 0;
+}
 
 } // namespace SimTK
 

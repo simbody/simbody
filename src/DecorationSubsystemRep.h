@@ -58,9 +58,7 @@ public:
     }
 
     // Return the MultibodySystem which owns this DecorationSubsystem.
-    const MultibodySystem& getMultibodySystem() const {
-        return MultibodySystem::downcast(getSystem());
-    }
+    const MultibodySystem& getMultibodySystem() const;
 
     // Add a permanent ("Topological") piece of geometry which is permanently fixed to a single body.
     // Thus the 3D polygonal representation can be precalculated once and for all at Stage::Topology,
@@ -142,33 +140,8 @@ public:
         return 0;
     }
 
-    int calcDecorativeGeometryAndAppendImpl(const State& s, Stage stage, Array<DecorativeGeometry>& geom) const {
-        switch(stage) {
-        case Stage::Topology: {
-            assert(subsystemTopologyHasBeenRealized());
-            for (int i=0; i<(int)geometry.size(); ++i)
-                geom.push_back(geometry[i]);
-            break;
-        }
-        case Stage::Position: {
-            assert(getStage(s) >= Stage::Position);
-            const MultibodySystem&        mbs    = getMultibodySystem(); // my owner
-            const SimbodyMatterSubsystem& matter = mbs.getMatterSubsystem();
-            for (int i=0; i<(int)rubberBandLines.size(); ++i) {
-                const RubberBandLine& rb = rubberBandLines[i];
-                geom.push_back(rb.line); // make a new copy
-                DecorativeLine& line = DecorativeLine::updDowncast(geom.back()); // get access to copy
-                line.setEndpoints(
-                    matter.getMobilizedBody(rb.body1).locateBodyPointOnGround(s,rb.station1),
-                    matter.getMobilizedBody(rb.body2).locateBodyPointOnGround(s,rb.station2));
-            }
-        }
-        default: 
-            assert(getStage(s) >= stage);
-        }
-
-        return 0;
-    }
+    int calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
 
     SimTK_DOWNCAST(DecorationSubsystemGuts, Subsystem::Guts);
 private:

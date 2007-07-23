@@ -84,16 +84,6 @@ MultibodySystem::MultibodySystem(MultibodySystemRep* rp) {
     updRep().setGlobalSubsystem();
 }
 
-bool MultibodySystem::project(State& s, Vector& y_err, 
-             const Real& tol,
-             const Real& dontProjectFac,
-             const Real& targetTol
-             ) const
-{
-    return getRep().project(s,y_err,tol,dontProjectFac,targetTol);
-}
-
-
 int MultibodySystem::setMatterSubsystem(SimbodyMatterSubsystem& m) {
     return updRep().setMatterSubsystem(m);
 }
