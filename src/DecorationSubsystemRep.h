@@ -152,5 +152,11 @@ private:
 
 } // namespace SimTK
 
-#endif SimTK_DECORATION_SUBSYSTEM_REP_
+#endif // SimTK_DECORATION_SUBSYSTEM_REP_
+
+
+
+
+
+
 
