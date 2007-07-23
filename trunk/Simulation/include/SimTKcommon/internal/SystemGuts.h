@@ -32,8 +32,29 @@ namespace SimTK {
 
 class Subsystem;
 class DecorativeGeometry;
-
 class System;
+
+// See below for definitions.
+static void systemDestructImplLocator(System::Guts*);
+static System::Guts* systemCloneImplLocator(const System::Guts&);
+static int systemRealizeTopologyImplLocator(const System::Guts&, State&);
+static int systemRealizeModelImplLocator   (const System::Guts&, State&);
+static int systemRealizeInstanceImplLocator(const System::Guts&, const State&);
+static int systemRealizeTimeImplLocator    (const System::Guts&, const State&);
+static int systemRealizePositionImplLocator(const System::Guts&, const State&);
+static int systemRealizeVelocityImplLocator(const System::Guts&, const State&);
+static int systemRealizeDynamicsImplLocator(const System::Guts&, const State&);
+static int systemRealizeAccelerationImplLocator(const System::Guts&, const State&);
+static int systemRealizeReportImplLocator      (const System::Guts&, const State&);
+static Real systemCalcTimescaleImplLocator(const System::Guts&, const State&);
+static int  systemCalcYUnitWeightsImplLocator(const System::Guts&, const State&, Vector& weights);
+static int  systemProjectImplLocator(const System::Guts&, State&, Real, const Vector&, const Vector&,
+                                         Vector&);
+static int  systemCalcYErrUnitTolerancesImplLocator(const System::Guts&, const State&, Vector& ootols);
+static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::EventCause, const Array<int>&,
+                                              Real, const Vector&, const Vector&, Stage&, bool&);
+static int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<System::EventTriggerInfo>&);
+static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&);
 
 /**
  * This is the declaration for the System::Guts class, the abstract object to

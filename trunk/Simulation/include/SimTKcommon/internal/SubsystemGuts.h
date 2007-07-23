@@ -35,6 +35,26 @@ namespace SimTK {
 class System;
 class DecorativeGeometry;
 
+// See below for definitions.
+static void subsystemDestructImplLocator(Subsystem::Guts*);
+static Subsystem::Guts* subsystemCloneImplLocator(const Subsystem::Guts&);
+static int subsystemRealizeTopologyImplLocator(const Subsystem::Guts&, State&);
+static int subsystemRealizeModelImplLocator(const Subsystem::Guts&, State&);
+static int subsystemRealizeInstanceImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizeTimeImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizePositionImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizeVelocityImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizeDynamicsImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizeAccelerationImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemRealizeReportImplLocator(const Subsystem::Guts&, const State&);
+static int subsystemCalcQUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
+static int subsystemCalcUUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
+static int subsystemCalcZUnitWeightsImplLocator(const Subsystem::Guts&, const State&, Vector&);
+static int subsystemCalcQErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
+static int subsystemCalcUErrUnitTolerancesImplLocator(const Subsystem::Guts&, const State&, Vector&);
+static int subsystemCalcDecorativeGeometryAndAppendImplLocator
+                (const Subsystem::Guts&, const State&, Stage, Array<DecorativeGeometry>&);
+
 /**
  * The abstract parent of all Subsystems.
  *
