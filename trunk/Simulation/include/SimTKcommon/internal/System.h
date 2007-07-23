@@ -202,9 +202,9 @@ public:
     /// May also project out the constraint-normal component of the
     /// passed-in error estimate vector yerrest.
     /// This is part of the integration of the continuous DAE system and
-    /// thus should never require a restart. The System author must ensure
-    /// that only position and velocity continuous variables are updated
-    /// by this call.
+    /// thus should never require an integrator restart. The System
+    /// author must ensure that only position and velocity stage, continuous
+    /// variables are updated by this call.
     /// On return the state will be realized to at least Stage::Velocity.
     void project(State&, Real consAccuracy, const Vector& yweights,
                  const Vector& ootols, Vector& yerrest) const;
