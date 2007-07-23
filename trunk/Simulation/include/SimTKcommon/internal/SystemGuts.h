@@ -68,7 +68,7 @@ class System;
  *                                              .   -------------
  *
  * If the concrete System::Guts class also has an opaque implementation,
- * as it will for concrete Systems provided by the SimTK::Core, then
+ * as it will for concrete Systems provided by the SimTK Core, then
  * the System author should expose only the data-free handle class 
  * derived from System.
  */
