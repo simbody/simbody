@@ -166,6 +166,74 @@ private:
 
 /**
  * This is the handle class for the hidden State implementation.
+ *
+ * This object is intended to contain all State information for a
+ * SimTK::System, except topological information which is stored
+ * in the System itself. A System is "const" after its topology
+ * has been constructed and realized.
+ *
+ * Systems are composed of Subsystems, and the State supports that
+ * concept by allowing per-subsystem partitioning of the total System
+ * state. This allows subsytems to have their own private state
+ * variables, while permitting the system to allow shared access
+ * to state among the subsystems when necessary.
+ *
+ * The State provides services reflecting the structure of the equations
+ * it expects to find in the System. Three different views of the
+ * same state information are supported to accommodate three 
+ * different users:
+ *    - the System as a whole
+ *    - Subsystems contained in the System
+ *    - numerical methods operating on the state
+ * Typically numerical methods have a much less nuanced view of the state
+ * than do the System or Subsystems.
+ *
+ * The system is expected to be a "hybrid DAE", that is, a mixture
+ * of continuous and discrete dynamic equations, and algebraic constraints.
+ * There is an independent variable t, continuous state variables y, and
+ * discrete state variables d.
+ *
+ * The continuous part is an ODE-on-a-manifold system suitable for solution
+ * via coordinate projection, structured like this for the view taken
+ * by numerical methods:
+ *         (1)  y' = f(d;t,y)         differential equations
+ *         (2)  c  = c(d;t,y)         algebraic equations (manifold is c=0)
+ *         (3)  e  = e(d;t,y)         event triggers (watch for zero crossings)
+ * with initial conditions t0,y0,d0 such that c=0. The discrete variables d
+ * are updated upon occurence of specific events, which are
+ * detected using the set of scalar-valued event trigger functions e (3).
+ *
+ * In the more detailed view as seen from the System, we consider y={q,u,z}
+ * to be partitioned into position variables q, velocity variables u, and
+ * auxiliary variables z. There will be algebraic constraints involving q, u,
+ * and u's time derivatives udot. The system is now assumed to look like this:
+ *      (4) qdot    = Q(q) u
+ *      (5) zdot    = zdot(d;t,q,u,z)
+ *
+ *      (6)           M(q) udot + ~G(q) mult = f(d;t,q,u,z)
+ *      (7) udotErr = G(q) udot - b(d;t,q,u) = 0
+ *      (8) uErr    = v(d;t,q,u)             = 0
+ *      (9) qErr    = p(d;t,q)               = 0
+ *
+ * Here G = [A;V] with A(q) being the coefficient matrix for constraints
+ * appearing only at the acceleration level, and V(q)=partial(v)/partial(u).
+ * (Note that v in Eq 8 is assumed to include equations resulting from
+ * differentiation of Eq 9, as well as ones first introduced at the
+ * velocity level (nonholonomic constraints).
+ *
+ * If a system allocates nq q's, nu u's, and nz z's the State will also
+ * allocate matching cache variables qdot, qdotdot, udot, and zdot. If
+ * np position constraints (9), nv velocity constraints (8) and 
+ * na acceleration constraints (7) are allocated, the state creates
+ * cache entries of like sizes qErr, uErr, udotErr. In addition room
+ * for the na Lagrange multipliers 'mult' is allocated in the cache.
+ *
+ * In the final view, the Subsystem view, the same variables and cache
+ * entries exist, but only the ones allocated by that Subsystem are
+ * visible. All of a Subsystem's q's are conscutive in memory, as are
+ * its u's, uErr's, etc., but the q's are not adjacent to the u's as
+ * they are for the System's view.
+ *
  * The default constructor creates a State containing no state variables
  * and with its realization cache stage set to Stage::Empty.
  * During Subsystem construction, variables and cache entries for any
@@ -202,7 +270,7 @@ public:
 
     /// Set the name and version for a given subsystem, which must already
     /// have a slot allocated.
-    void initializeSubsystem(int i, const String& name, const String& version);
+    void initializeSubsystem(SubsystemId, const String& name, const String& version);
 
     /// Make the current State a copy of the source state, copying only
     /// state variables and not the cache. If the source state hasn't
@@ -225,9 +293,9 @@ public:
     int addSubsystem(const String& name, const String& version);
 
     int getNSubsystems() const;
-    const String& getSubsystemName   (int subsys) const;
-    const String& getSubsystemVersion(int subsys) const;
-    const Stage&  getSubsystemStage  (int subsys) const;
+    const String& getSubsystemName   (SubsystemId) const;
+    const String& getSubsystemVersion(SubsystemId) const;
+    const Stage&  getSubsystemStage  (SubsystemId) const;
 
     /// This returns the *global* stage for this State.
     const Stage& getSystemStage() const;
@@ -242,7 +310,7 @@ public:
     /// that all is as expected. You can only advance one stage at
     /// a time. Advancing to "Topology" and "Model" stages affect
     /// what you can do later.
-    void advanceSubsystemToStage(int subsys, Stage) const;
+    void advanceSubsystemToStage(SubsystemId, Stage) const;
     void advanceSystemToStage(Stage) const;
 
     /// These are shared among all the subsystems and are not allocated until
@@ -253,9 +321,9 @@ public:
     /// The *global* y is contiguous, and global q,u,z are contiguous within
     /// y, in that order.
 
-    int allocateQ(int subsys, const Vector& qInit); // qdot, qdotdot also allocated in cache
-    int allocateU(int subsys, const Vector& uInit); // udot                    "
-    int allocateZ(int subsys, const Vector& zInit); // zdot                    "
+    int allocateQ(SubsystemId, const Vector& qInit); // qdot, qdotdot also allocated in cache
+    int allocateU(SubsystemId, const Vector& uInit); // udot                    "
+    int allocateZ(SubsystemId, const Vector& zInit); // zdot                    "
 
     /// Slots for constraint errors are handled similarly, although these are
     /// just cache entries not state variables. Q errors and U errors
@@ -263,21 +331,24 @@ public:
     /// However, yerr={qerr,uerr} *is* a single contiguous vector.
     /// UDotErr is a separate quantity, not part of yerr. Again the UDotErr's for
     /// each subsystem will be contiguous within the larger UDotErr Vector.
+    /// Allocating a UDotErr has the side effect of allocating another Vector
+    /// of the same size in the cache for the corresponding Lagrange multipliers,
+    /// and these are partitioned identically to UDotErrs.
 
-    int allocateQErr   (int subsys, int nqerr);    // these are cache entries
-    int allocateUErr   (int subsys, int nuerr);
-    int allocateUDotErr(int subsys, int nudoterr);
+    int allocateQErr   (SubsystemId, int nqerr);    // these are cache entries
+    int allocateUErr   (SubsystemId, int nuerr);
+    int allocateUDotErr(SubsystemId, int nudoterr);
 
     /// Slots for event witness values are similar to constraint errors.
     /// However, this also allocates a discrete state variable to hold
     /// the "triggered" indication. The Stage here is the stage at which
     /// the event witness function can first be examined.
-    int allocateEvent(int subsys, Stage, int nevent);
+    int allocateEvent(SubsystemId, Stage, int nevent);
 
     /// These are private to each subsystem and are allocated immediately.
     /// TODO: do discrete variables need an "update" variable in the cache?
-    int allocateDiscreteVariable(int subsys, Stage, AbstractValue* v);
-    int allocateCacheEntry      (int subsys, Stage, AbstractValue* v);
+    int allocateDiscreteVariable(SubsystemId, Stage, AbstractValue* v);
+    int allocateCacheEntry      (SubsystemId, Stage, AbstractValue* v);
     
     /// Dimensions. These are valid at Stage::Model while access to the various
     /// arrays may have stricter requirements. Hence it is better to use these
@@ -293,64 +364,67 @@ public:
     int getUErrStart() const; int getNUErr() const;
 
     int getNUDotErr() const;
+    int getNMultipliers() const {return getNUDotErr();}
 
-    int getQStart(int subsys)       const; int getNQ(int subsys)       const;
-    int getUStart(int subsys)       const; int getNU(int subsys)       const;
-    int getZStart(int subsys)       const; int getNZ(int subsys)       const;
+    int getQStart(SubsystemId)       const; int getNQ(SubsystemId)       const;
+    int getUStart(SubsystemId)       const; int getNU(SubsystemId)       const;
+    int getZStart(SubsystemId)       const; int getNZ(SubsystemId)       const;
 
-    int getQErrStart(int subsys)    const; int getNQErr(int subsys)    const;
-    int getUErrStart(int subsys)    const; int getNUErr(int subsys)    const;
-    int getUDotErrStart(int subsys) const; int getNUDotErr(int subsys) const;
+    int getQErrStart(SubsystemId)    const; int getNQErr(SubsystemId)    const;
+    int getUErrStart(SubsystemId)    const; int getNUErr(SubsystemId)    const;
+    int getUDotErrStart(SubsystemId) const; int getNUDotErr(SubsystemId) const;
+    int getMultipliersStart(SubsystemId i) const {return getUDotErrStart(i);}
+    int getNMultipliers(SubsystemId i)     const {return getNUDotErr(i);}
 
         // Event handling
     int getNEvents() const; // total
     int getEventStartByStage(Stage) const; // per-stage
     int getNEventsByStage(Stage) const;
-    int getEventStartByStage(int subsys, Stage) const;
-    int getNEventsByStage(int subsys, Stage) const;
+    int getEventStartByStage(SubsystemId, Stage) const;
+    int getNEventsByStage(SubsystemId, Stage) const;
 
     const Vector& getEvents() const;
     const Vector& getEventsByStage(Stage) const;
-    const Vector& getEventsByStage(int subsys, Stage) const;
+    const Vector& getEventsByStage(SubsystemId, Stage) const;
 
     Vector& updEvents() const; // mutable
     Vector& updEventsByStage(Stage) const;
-    Vector& updEventsByStage(int subsys, Stage) const;
+    Vector& updEventsByStage(SubsystemId, Stage) const;
 
     const EventStatus& getEventStatus(int index) const;
     EventStatus&       updEventStatus(int index);
 
-    const EventStatus& getEventStatus(int subsys, int index) const;
-    EventStatus&       updEventStatus(int subsys, int index);
-
-
+    const EventStatus& getEventStatus(SubsystemId, int index) const;
+    EventStatus&       updEventStatus(SubsystemId, int index);
 
     /// Per-subsystem access to the global shared variables.
-    const Vector& getQ(int subsys) const;
-    const Vector& getU(int subsys) const;
-    const Vector& getZ(int subsys) const;
+    const Vector& getQ(SubsystemId) const;
+    const Vector& getU(SubsystemId) const;
+    const Vector& getZ(SubsystemId) const;
 
-    Vector& updQ(int subsys);
-    Vector& updU(int subsys);
-    Vector& updZ(int subsys);
+    Vector& updQ(SubsystemId);
+    Vector& updU(SubsystemId);
+    Vector& updZ(SubsystemId);
 
     /// Per-subsystem access to the shared cache entries.
-    const Vector& getQDot(int subsys) const;
-    const Vector& getUDot(int subsys) const;
-    const Vector& getZDot(int subsys) const;
-    const Vector& getQDotDot(int subsys) const;
+    const Vector& getQDot(SubsystemId) const;
+    const Vector& getUDot(SubsystemId) const;
+    const Vector& getZDot(SubsystemId) const;
+    const Vector& getQDotDot(SubsystemId) const;
 
-    Vector& updQDot(int subsys) const;    // these are mutable
-    Vector& updUDot(int subsys) const;
-    Vector& updZDot(int subsys) const;
-    Vector& updQDotDot(int subsys) const;
+    Vector& updQDot(SubsystemId) const;    // these are mutable
+    Vector& updUDot(SubsystemId) const;
+    Vector& updZDot(SubsystemId) const;
+    Vector& updQDotDot(SubsystemId) const;
 
-    const Vector& getQErr(int subsys) const;
-    const Vector& getUErr(int subsys) const;
-    const Vector& getUDotErr(int subsys) const;
-    Vector& updQErr(int subsys) const;    // these are mutable
-    Vector& updUErr(int subsys) const;
-    Vector& updUDotErr(int subsys) const;
+    const Vector& getQErr(SubsystemId) const;
+    const Vector& getUErr(SubsystemId) const;
+    const Vector& getUDotErr(SubsystemId) const;
+    const Vector& getMultipliers(SubsystemId) const;
+    Vector& updQErr(SubsystemId) const;    // these are mutable
+    Vector& updUErr(SubsystemId) const;
+    Vector& updUDotErr(SubsystemId) const;
+    Vector& updMultipliers(SubsystemId) const;
 
     /// You can call these as long as *system* stage >= Model.
     const Real&   getTime() const;
@@ -408,32 +482,34 @@ public:
     const Vector& getQErr() const;  // Stage::Position (index 3 constraints)
     const Vector& getUErr() const;  // Stage::Velocity (index 2 constraints)
 
-    /// This has its own space, it is not a view.
-    const Vector& getUDotErr() const; // Stage::Acceleration (index 1 constriants)
+    /// These have their own space, the are not views.
+    const Vector& getUDotErr()     const; // Stage::Acceleration (index 1 constraints)
+    const Vector& getMultipliers() const; // Stage::Acceleration
 
     /// These are mutable
     Vector& updYErr() const; // Stage::Dynamics-1
     Vector& updQErr() const; // Stage::Position-1 (view into YErr)
     Vector& updUErr() const; // Stage::Velocity-1        "
 
-    Vector& updUDotErr() const; // Stage::Acceleration-1 (not a view)
+    Vector& updUDotErr()     const; // Stage::Acceleration-1 (not a view)
+    Vector& updMultipliers() const; // Stage::Acceleration-1 (not a view)
 
     /// OK if dv.stage==Model or stage >= Model
-    const AbstractValue& getDiscreteVariable(int subsys, int index) const;
+    const AbstractValue& getDiscreteVariable(SubsystemId, int index) const;
 
     /// OK if dv.stage==Model or stage >= Model; set stage to dv.stage-1
-    AbstractValue&       updDiscreteVariable(int subsys, int index);
+    AbstractValue&       updDiscreteVariable(SubsystemId, int index);
 
     /// Alternate interface to updDiscreteVariable.
-    void setDiscreteVariable(int subsys, int index, const AbstractValue& v) {
-        updDiscreteVariable(subsys,index) = v;
+    void setDiscreteVariable(SubsystemId i, int index, const AbstractValue& v) {
+        updDiscreteVariable(i,index) = v;
     }
 
     /// Stage >= ce.stage
-    const AbstractValue& getCacheEntry(int subsys, int index) const;
+    const AbstractValue& getCacheEntry(SubsystemId, int index) const;
 
     /// Stage >= ce.stage-1; does not change stage
-    AbstractValue& updCacheEntry(int subsys, int index) const; // mutable
+    AbstractValue& updCacheEntry(SubsystemId, int index) const; // mutable
 
     String toString() const;
     String cacheToString() const;

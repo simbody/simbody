@@ -53,28 +53,28 @@ int main() {
   try {
     State s;
     s.setNSubsystems(1);
-    s.advanceSubsystemToStage(0, Stage::Topology);
+    s.advanceSubsystemToStage(SubsystemId(0), Stage::Topology);
     s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
-    int q1 = s.allocateQ(0, v3);
-    int q2 = s.allocateQ(0, v2);
+    int q1 = s.allocateQ(SubsystemId(0), v3);
+    int q2 = s.allocateQ(SubsystemId(0), v2);
 
-    int e1 = s.allocateEvent(0, Stage::Position, 3);
-    int e2 = s.allocateEvent(0, Stage::Instance, 2);
+    int e1 = s.allocateEvent(SubsystemId(0), Stage::Position, 3);
+    int e2 = s.allocateEvent(SubsystemId(0), Stage::Instance, 2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     printf("e1,2=%d,%d\n", e1, e2);
 
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
+    long dv = s.allocateDiscreteVariable(SubsystemId(0), Stage::Dynamics, new Value<int>(5));
 
-    s.advanceSubsystemToStage(0, Stage::Model);
-        //long dv2 = s.allocateDiscreteVariable(0, Stage::Position, new Value<int>(5));
+    s.advanceSubsystemToStage(SubsystemId(0), Stage::Model);
+        //long dv2 = s.allocateDiscreteVariable(SubsystemId(0), Stage::Position, new Value<int>(5));
 
-    Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
-    cout << s.getDiscreteVariable(0, dv) << endl;
+    Value<int>::downcast(s.updDiscreteVariable(SubsystemId(0), dv)) = 71;
+    cout << s.getDiscreteVariable(SubsystemId(0), dv) << endl;
 
     // Can't ask for the time before Stage::Model, but if you could it would be NaN.
     // Advancing to Stage::Model sets t=0.
@@ -93,7 +93,7 @@ int main() {
     printf("subsys 0 by stage:\n");
     for (int j=0; j<Stage::NValid; ++j) {
         Stage g = Stage::Num(j);
-        cout << g.name() << ": " << s.getNEventsByStage(0,g) << endl;
+        cout << g.name() << ": " << s.getNEventsByStage(SubsystemId(0),g) << endl;
     }
     cout << "State s=" << s;
 

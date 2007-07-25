@@ -34,7 +34,7 @@ class Subsystem;
 class DecorativeGeometry;
 
 /**
- * The abstract parent of all Systems.
+ * The handle class which serves as the abstract parent of all Systems.
  *
  * A System serves as a mediator for a group of interacting Subsystems.
  * All will share a single system State, and typically subsystems will

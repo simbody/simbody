@@ -1,6 +1,12 @@
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* 
+ * This is part of the SimTK software effort (https://SimTK.org)
+ * originating from the NIH National Center for Physics-Based Simulation
+ * of Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ *
+ * Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 
@@ -15,10 +21,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "SimTKcommon/basics.h"
@@ -197,7 +203,7 @@ public:
     // needs of this Subsystem.
     Vector qInit, uInit, zInit;
 
-    // For constraints we need just lengths.
+    // For constraints we need just lengths (nmultipliers==nudoterr).
     int nqerr, nuerr, nudoterr;
 
     // For events we need just lengths, for each stage.
@@ -210,11 +216,13 @@ public:
 
     // The State will assign contiguous blocks to this subsystem. The
     // starting indices are filled in here at the time the views are built.
+    // Note that multipliers just use the same indices as udoterr.
     int qstart, ustart, zstart, qerrstart, uerrstart, udoterrstart;
     int eventstart[Stage::NValid];
     Vector q, u, z;
     mutable Vector qdot, udot, zdot, qdotdot;
-    mutable Vector qerr, uerr, udoterr;
+    mutable Vector qerr, uerr;
+    mutable Vector udoterr, multipliers; // same size and partioning
     mutable Vector events[Stage::NValid];
 
     // Each of these discrete variable & cache entries has its own Stage.
@@ -422,7 +430,7 @@ public:
     StateRep& operator=(const StateRep& src) {
         if (&src == this) return *this;
         invalidateJustSystemStage(Stage::Topology);
-        for (int i=0; i<(int)subsystems.size(); ++i)
+        for (SubsystemId i(0); i<(int)subsystems.size(); ++i)
             subsystems[i].invalidateStageJustThisSubsystem(Stage::Topology);
         subsystems = src.subsystems;
         if (src.systemStage >= Stage::Topology) {
@@ -456,7 +464,7 @@ public:
 
                 // First make sure no subsystem is looking at the
                 // global shared state any more.
-                for (int i=0; i < (int)subsystems.size(); ++i)
+                for (SubsystemId i(0); i < (int)subsystems.size(); ++i)
                     subsystems[i].clearReferencesToStateGlobals();
 
                 t = CNT<Real>::getNaN();
@@ -468,12 +476,13 @@ public:
                     events[j].clear();
 
                 // Nuke the actual data.
-                y.unlockShape();       y.clear(); 
-                ydot.unlockShape();    ydot.clear(); 
-                qdotdot.unlockShape(); qdotdot.clear();
-                yerr.unlockShape();    yerr.clear();
-                udoterr.unlockShape(); udoterr.clear();
-                allEvents.unlockShape(); allEvents.clear();
+                y.unlockShape();           y.clear(); 
+                ydot.unlockShape();        ydot.clear(); 
+                qdotdot.unlockShape();     qdotdot.clear();
+                yerr.unlockShape();        yerr.clear();
+                udoterr.unlockShape();     udoterr.clear();
+                multipliers.unlockShape(); multipliers.clear();
+                allEvents.unlockShape();   allEvents.clear();
             }
             systemStage = g.prev();
         }
@@ -497,7 +506,7 @@ public:
                 nevents[j] = 0;
 
             // Count up all 
-            for (int i=0; i<(int)subsystems.size(); ++i) {
+            for (SubsystemId i(0); i<(int)subsystems.size(); ++i) {
                 nq += subsystems[i].qInit.size();
                 nu += subsystems[i].uInit.size();
                 nz += subsystems[i].zInit.size();
@@ -518,6 +527,7 @@ public:
             qdotdot.resize(nq);             qdotdot.lockShape();
             yerr.resize(nqerr+nuerr);       yerr.lockShape();
             udoterr.resize(nudoterr);       udoterr.lockShape();
+            multipliers.resize(nudoterr);   multipliers.lockShape(); // same size as udoterr
             allEvents.resize(nAllEvents);   allEvents.lockShape();
 
             // Allocate subviews of the shared state & cache entries.
@@ -545,7 +555,7 @@ public:
             for (int j=0; j<Stage::NValid; ++j)
                 nxtevent[j] = 0;
 
-            for (int i=0; i<(int)subsystems.size(); ++i) {
+            for (SubsystemId i(0); i<(int)subsystems.size(); ++i) {
                 PerSubsystemInfo& ss = subsystems[i];
                 const int nq=ss.qInit.size(), nu=ss.uInit.size(), nz=ss.zInit.size();
 
@@ -565,6 +575,8 @@ public:
                 ss.qerr.viewAssign(qerr(nxtqerr, ss.nqerr));
                 ss.uerr.viewAssign(uerr(nxtuerr, ss.nuerr));
                 ss.udoterr.viewAssign(udoterr(nxtudoterr, ss.nudoterr));
+                // multipliers have same partitioning as udoterr
+                ss.multipliers.viewAssign(multipliers(nxtudoterr, ss.nudoterr));
 
                 // Consume the slots.
                 nxtq += nq; nxtu += nu; nxtz += nz;
@@ -621,8 +633,9 @@ private:
 
         // ALGEBRAIC EQUATIONS
 
-    mutable Vector  yerr;       // All constraint errors taken together (qerr,uerr)
-    mutable Vector  udoterr;    // Stage::Acceleration (Index 1 constraints)
+    mutable Vector  yerr;        // All constraint errors taken together (qerr,uerr)
+    mutable Vector  udoterr;     // Stage::Acceleration (Index 1 constraints)
+    mutable Vector  multipliers; // Stage::Acceleration (Index 1 algebraic variables)
 
     // These are views into yerr.
     mutable Vector  qerr;       // Stage::Position (Index 3 constraints)
@@ -645,7 +658,7 @@ private:
 
     // Return true only if all subsystems have been realized to at least Stage g.
     bool allSubsystemsAtLeastAtStage(Stage g) const {
-        for (int i=0; i < (int)subsystems.size(); ++i)
+        for (SubsystemId i(0); i < (int)subsystems.size(); ++i)
             if (subsystems[i].currentStage < g)
                 return false;
         return true;
@@ -758,7 +771,7 @@ void State::setNSubsystems(int i) {
     updRep().subsystems.resize(i);
 }
 
-void State::initializeSubsystem(int i, const String& name, const String& version) {
+void State::initializeSubsystem(SubsystemId i, const String& name, const String& version) {
     updRep().updSubsystem(i).name = name;
     updRep().updSubsystem(i).version = version;
 }
@@ -772,10 +785,10 @@ int State::addSubsystem(const String& name, const String& version) {
 
 int State::getNSubsystems() const {return (int)rep->subsystems.size();}
 
-const String& State::getSubsystemName(int subsys) const {
+const String& State::getSubsystemName(SubsystemId subsys) const {
     return rep->subsystems[subsys].name;
 }
-const String& State::getSubsystemVersion(int subsys) const {
+const String& State::getSubsystemVersion(SubsystemId subsys) const {
     return rep->subsystems[subsys].version;
 }
 
@@ -783,7 +796,7 @@ const Stage& State::getSystemStage() const {
     return rep->getSystemStage();
 }
 
-const Stage& State::getSubsystemStage(int subsys) const {
+const Stage& State::getSubsystemStage(SubsystemId subsys) const {
     SimTK_ASSERT(rep, "State::getStage(): no rep"); // can't happen(?)
     return rep->getSubsystemStage(subsys);
 }
@@ -794,13 +807,13 @@ void State::invalidateAll(Stage g) const {
     SimTK_ASSERT(rep, "State::invalidateAll(): no rep");
 
     rep->invalidateJustSystemStage(g);
-    for (int i=0; i<(int)rep->subsystems.size(); ++i)
+    for (SubsystemId i(0); i<(int)rep->subsystems.size(); ++i)
         rep->subsystems[i].invalidateStageJustThisSubsystem(g);
 }
 
 // Move the stage for a particular subsystem from g-1 to g. No other subsystems
 // are affected, nor the global system stage.
-void State::advanceSubsystemToStage(int subsys, Stage g) const {
+void State::advanceSubsystemToStage(SubsystemId subsys, Stage g) const {
     SimTK_ASSERT(rep, "State::advanceSubsystemToStage(): no rep");
 
     rep->subsystems[subsys].advanceToStage(g);
@@ -822,7 +835,7 @@ void State::advanceSystemToStage(Stage g) const {
 // We don't expect State entry allocations to be performance critical so
 // we'll keep error checking on even in Release mode.
 
-int State::allocateQ(int subsys, const Vector& qInit) {
+int State::allocateQ(SubsystemId subsys, const Vector& qInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateQ()");
     const int nxt = rep->subsystems[subsys].qInit.size();
     rep->subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
@@ -830,14 +843,14 @@ int State::allocateQ(int subsys, const Vector& qInit) {
     return nxt;
 }
 
-int State::allocateU(int subsys, const Vector& uInit) {
+int State::allocateU(SubsystemId subsys, const Vector& uInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateU()");
     const int nxt = rep->subsystems[subsys].uInit.size();
     rep->subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
     rep->subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
     return nxt;
 }
-int State::allocateZ(int subsys, const Vector& zInit) {
+int State::allocateZ(SubsystemId subsys, const Vector& zInit) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateZ()");
     const int nxt = rep->subsystems[subsys].zInit.size();
     rep->subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
@@ -845,25 +858,25 @@ int State::allocateZ(int subsys, const Vector& zInit) {
     return nxt;
 }
 
-int State::allocateQErr(int subsys, int nqerr) {
+int State::allocateQErr(SubsystemId subsys, int nqerr) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateQErr()");
     const int nxt = rep->subsystems[subsys].nqerr;
     rep->subsystems[subsys].nqerr += nqerr;
     return nxt;
 }
-int State::allocateUErr(int subsys, int nuerr) {
+int State::allocateUErr(SubsystemId subsys, int nuerr) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateUErr()");
     const int nxt = rep->subsystems[subsys].nuerr;
     rep->subsystems[subsys].nuerr += nuerr;
     return nxt;
 }
-int State::allocateUDotErr(int subsys, int nudoterr) {
+int State::allocateUDotErr(SubsystemId subsys, int nudoterr) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateUDotErr()");
     const int nxt = rep->subsystems[subsys].nudoterr;
     rep->subsystems[subsys].nudoterr += nudoterr;
     return nxt;
 }
-int State::allocateEvent(int subsys, Stage g, int ne) {
+int State::allocateEvent(SubsystemId subsys, Stage g, int ne) {
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "State::allocateEvent()");
     const int nxt = rep->subsystems[subsys].nevents[g];
     rep->subsystems[subsys].nevents[g] += ne;
@@ -872,7 +885,7 @@ int State::allocateEvent(int subsys, Stage g, int ne) {
 
 // Topology- and Model-stage State variables can only be added during construction; that is,
 // while stage <= Topology. Other entries can be added while stage < Model.
-int State::allocateDiscreteVariable(int subsys, Stage g, AbstractValue* vp) {
+int State::allocateDiscreteVariable(SubsystemId subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateDiscreteVariable()");
 
@@ -887,7 +900,7 @@ int State::allocateDiscreteVariable(int subsys, Stage g, AbstractValue* vp) {
 }
 
 // Cache entries can be allocated while stage < Model, even if they are Model-stage entries.
-int State::allocateCacheEntry(int subsys, Stage g, AbstractValue* vp) {
+int State::allocateCacheEntry(SubsystemId subsys, Stage g, AbstractValue* vp) {
     SimTK_STAGECHECK_RANGE_ALWAYS(Stage(Stage::LowestRuntime).prev(), g, Stage::HighestRuntime, 
         "State::allocateCacheEntry()");
     SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
@@ -969,6 +982,7 @@ int State::getNUErr() const {
 }
 
 // UDot errors are independent of qerr & uerr.
+// This is used for multipliers also.
 int State::getNUDotErr() const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUDotErr()");
@@ -998,79 +1012,80 @@ int State::getNEventsByStage(Stage g) const {
 
     // Subsystem dimensions.
 
-int State::getQStart(int subsys) const {
+int State::getQStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQStart(subsys)");
     return rep->getSubsystem(subsys).qstart;
 }
-int State::getNQ(int subsys) const {
+int State::getNQ(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQ(subsys)");
     return rep->getSubsystem(subsys).q.size();
 }
 
-int State::getUStart(int subsys) const {
+int State::getUStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUStart(subsys)");
     return rep->getSubsystem(subsys).ustart;
 }
-int State::getNU(int subsys) const {
+int State::getNU(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNU(subsys)");
     return rep->getSubsystem(subsys).u.size();
 }
 
-int State::getZStart(int subsys) const {
+int State::getZStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZStart(subsys)");
     return rep->getSubsystem(subsys).zstart;
 }
-int State::getNZ(int subsys) const {
+int State::getNZ(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNZ(subsys)");
     return rep->getSubsystem(subsys).z.size();
 }
 
-int State::getQErrStart(int subsys) const {
+int State::getQErrStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQErrStart(subsys)");
     return rep->getSubsystem(subsys).qerrstart;
 }
-int State::getNQErr(int subsys) const {
+int State::getNQErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNQErr(subsys)");
     return rep->getSubsystem(subsys).qerr.size();
 }
 
-int State::getUErrStart(int subsys) const {
+int State::getUErrStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUErrStart(subsys)");
     return rep->getSubsystem(subsys).uerrstart;
 }
-int State::getNUErr(int subsys) const {
+int State::getNUErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUErr(subsys)");
     return rep->getSubsystem(subsys).uerr.size();
 }
 
-int State::getUDotErrStart(int subsys) const {
+// These are used for multipliers also.
+int State::getUDotErrStart(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUDotErrStart(subsys)");
     return rep->getSubsystem(subsys).udoterrstart;
 }
-int State::getNUDotErr(int subsys) const {
+int State::getNUDotErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNUDotErr(subsys)");
     return rep->getSubsystem(subsys).udoterr.size();
 }
 
-int State::getEventStartByStage(int subsys, Stage g) const {
+int State::getEventStartByStage(SubsystemId subsys, Stage g) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getEventStartByStage(subsys)");
     return rep->getSubsystem(subsys).eventstart[g];
 }
 
-int State::getNEventsByStage(int subsys, Stage g) const {
+int State::getNEventsByStage(SubsystemId subsys, Stage g) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getNEventsByStage(subsys)");
     return rep->getSubsystem(subsys).events[g].size();
@@ -1078,60 +1093,60 @@ int State::getNEventsByStage(int subsys, Stage g) const {
 
     // Per-subsystem access to the global shared variables.
 
-const Vector& State::getQ(int subsys) const {
+const Vector& State::getQ(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQ(subsys)");
     return rep->getSubsystem(subsys).q;
 }
-const Vector& State::getU(int subsys) const {
+const Vector& State::getU(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getU(subsys)");
     return rep->getSubsystem(subsys).u;
 }
-const Vector& State::getZ(int subsys) const {
+const Vector& State::getZ(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZ(subsys)");
     return rep->getSubsystem(subsys).z;
 }
 
-const Vector& State::getQDot(int subsys) const {
+const Vector& State::getQDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "State::getQDot(subsys)");
     return rep->getSubsystem(subsys).qdot;
 }
-const Vector& State::getUDot(int subsys) const {
+const Vector& State::getUDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getUDot(subsys)");
     return rep->getSubsystem(subsys).udot;
 }
-const Vector& State::getZDot(int subsys) const {
+const Vector& State::getZDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getZDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Dynamics, "State::getZDot(subsys)");
     return rep->getSubsystem(subsys).zdot;
 }
-const Vector& State::getQDotDot(int subsys) const {
+const Vector& State::getQDotDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQDotDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getQDotDot(subsys)");
     return rep->getSubsystem(subsys).qdotdot;
 }
 
-Vector& State::updQ(int subsys) {
+Vector& State::updQ(SubsystemId subsys) {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQ(subsys)");
     invalidateAll(Stage::Position);
     return rep->updSubsystem(subsys).q;
 }
-Vector& State::updU(int subsys) {
+Vector& State::updU(SubsystemId subsys) {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updU(subsys)");
     invalidateAll(Stage::Velocity);
     return rep->updSubsystem(subsys).u;
 }
-Vector& State::updZ(int subsys) {
+Vector& State::updZ(SubsystemId subsys) {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZ(subsys)");
     invalidateAll(Stage::Dynamics);
@@ -1140,25 +1155,25 @@ Vector& State::updZ(int subsys) {
 
     // These are mutable so the routines are const.
 
-Vector& State::updQDot(int subsys) const {
+Vector& State::updQDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "State::updQDot(subsys)");
     return rep->getSubsystem(subsys).qdot;
 }
-Vector& State::updUDot(int subsys) const {
+Vector& State::updUDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updUDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "State::updUDot(subsys)");
     return rep->getSubsystem(subsys).udot;
 }
-Vector& State::updZDot(int subsys) const {
+Vector& State::updZDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updZDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Dynamics).prev(), "State::updZDot(subsys)");
     return rep->getSubsystem(subsys).zdot;
 }
-Vector& State::updQDotDot(int subsys) const {
+Vector& State::updQDotDot(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQDotDot(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "State::updQDotDot(subsys)");
@@ -1166,52 +1181,65 @@ Vector& State::updQDotDot(int subsys) const {
 }
 
 
-const Vector& State::getQErr(int subsys) const {
+const Vector& State::getQErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getQErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Position, "State::getQErr(subsys)");
     return rep->getSubsystem(subsys).qerr;
 }
-const Vector& State::getUErr(int subsys) const {
+const Vector& State::getUErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Velocity, "State::getUErr(subsys)");
     return rep->getSubsystem(subsys).uerr;
 }
-const Vector& State::getUDotErr(int subsys) const {
+const Vector& State::getUDotErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getUDotErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getUDotErr(subsys)");
     return rep->getSubsystem(subsys).udoterr;
 }
+const Vector& State::getMultipliers(SubsystemId subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getMultipliers(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage::Acceleration, "State::getMultipliers(subsys)");
+    return rep->getSubsystem(subsys).multipliers;
+}
 
-const Vector& State::getEventsByStage(int subsys, Stage g) const {
+const Vector& State::getEventsByStage(SubsystemId subsys, Stage g) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::getEventsByStage(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g, "State::getEventsByStage(subsys)");
     return rep->getSubsystem(subsys).events[g];
 }
 
-Vector& State::updQErr(int subsys) const {
+Vector& State::updQErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updQErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Position).prev(), "State::updQErr(subsys)");
     return rep->getSubsystem(subsys).qerr;
 }
-Vector& State::updUErr(int subsys) const {
+Vector& State::updUErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updUErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "State::updUErr(subsys)");
     return rep->getSubsystem(subsys).uerr;
 }
-Vector& State::updUDotErr(int subsys) const {
+Vector& State::updUDotErr(SubsystemId subsys) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updUDotErr(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                         "State::updUDotErr(subsys)");
     return rep->getSubsystem(subsys).udoterr;
 }
-Vector& State::updEventsByStage(int subsys, Stage g) const {
+Vector& State::updMultipliers(SubsystemId subsys) const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updMultipliers(subsys)");
+    SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
+                        "State::updMultipliers(subsys)");
+    return rep->getSubsystem(subsys).multipliers;
+}
+Vector& State::updEventsByStage(SubsystemId subsys, Stage g) const {
     assert(rep);
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "State::updEventsByStage(subsys)");
     SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g.prev(), "State::updEventsByStage(subsys)");
@@ -1372,6 +1400,11 @@ const Vector& State::getUDotErr() const {
     SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getUDotErr()");
     return rep->udoterr;
 }
+const Vector& State::getMultipliers() const {
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage::Acceleration, "State::getMultipliers()");
+    return rep->multipliers;
+}
 
 Vector& State::updYErr() const {
     assert(rep);
@@ -1393,6 +1426,12 @@ Vector& State::updUDotErr() const{
     SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
                         "State::updUDotErr()");
     return rep->udoterr;
+}
+Vector& State::updMultipliers() const{
+    assert(rep);
+    SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
+                        "State::updMultipliers()");
+    return rep->multipliers;
 }
 
 const Vector& State::getEvents() const {
@@ -1421,7 +1460,7 @@ Vector& State::updEventsByStage(Stage g) const {
 // You can access a Model stage variable any time, but don't access others
 // until you have realized the Model stage.
 const AbstractValue& 
-State::getDiscreteVariable(int subsys, int index) const {
+State::getDiscreteVariable(SubsystemId subsys, int index) const {
     const PerSubsystemInfo& ss = rep->subsystems[subsys];
 
     SimTK_INDEXCHECK(0,index,(int)ss.discrete.size(),"State::getDiscreteVariable()");
@@ -1439,7 +1478,7 @@ State::getDiscreteVariable(int subsys, int index) const {
 // must wait until you have realized the Model stage. This always backs the 
 // stage up to one earlier than the variable's stage.
 AbstractValue& 
-State::updDiscreteVariable(int subsys, int index) {
+State::updDiscreteVariable(SubsystemId subsys, int index) {
     PerSubsystemInfo& ss = rep->subsystems[subsys];
 
     SimTK_INDEXCHECK(0,index,(int)ss.discrete.size(),"State::updDiscreteVariable()");
@@ -1456,7 +1495,7 @@ State::updDiscreteVariable(int subsys, int index) {
 
 // Stage >= ce.stage
 const AbstractValue& 
-State::getCacheEntry(int subsys, int index) const {
+State::getCacheEntry(SubsystemId subsys, int index) const {
     const PerSubsystemInfo& ss = rep->subsystems[subsys];
 
     SimTK_INDEXCHECK(0,index,(int)ss.cache.size(),"State::getCacheEntry()");
@@ -1470,7 +1509,7 @@ State::getCacheEntry(int subsys, int index) const {
 
 // Stage >= ce.stage-1; does not change stage
 AbstractValue& 
-State::updCacheEntry(int subsys, int index) const {
+State::updCacheEntry(SubsystemId subsys, int index) const {
     const PerSubsystemInfo& ss = rep->subsystems[subsys];
 
     SimTK_INDEXCHECK(0,index,(int)ss.cache.size(),"State::updCacheEntry()");
@@ -1507,7 +1546,7 @@ String State::toString() const {
     out += "</Vector>\n";
 
 
-    for (int ss=0; ss < (int)rep->subsystems.size(); ++ss) {
+    for (SubsystemId ss(0); ss < (int)rep->subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = rep->subsystems[ss];
         out += "<Subsystem index=" + String(ss) + " name=" + info.name 
             + " version=" + info.version + ">\n";
@@ -1534,7 +1573,7 @@ String State::cacheToString() const {
     out += "<Cache>\n";
     out += "<Stage>" + getSystemStage().name() + "</Stage>\n";
 
-    for (int ss=0; ss < (int)rep->subsystems.size(); ++ss) {
+    for (SubsystemId ss(0); ss < (int)rep->subsystems.size(); ++ss) {
         const PerSubsystemInfo& info = rep->subsystems[ss];
         out += "<Subsystem index=" + String(ss) + " name=" + info.name 
             + " version=" + info.version + ">\n";
@@ -1550,6 +1589,7 @@ String State::cacheToString() const {
         out += "  <Vector name=qerr size=" + String(info.qerr.size()) + ">\n";
         out += "  <Vector name=uerr size=" + String(info.uerr.size()) + ">\n";
         out += "  <Vector name=udoterr size=" + String(info.udoterr.size()) + ">\n";
+        out += "  <Vector name=multipliers size=" + String(info.multipliers.size()) + ">\n";
 
         for (int j=0; j<Stage::NValid; ++j) {
             out += "  <Vector name=events[";
@@ -1600,6 +1640,12 @@ String State::cacheToString() const {
     if (rep->udoterr.size()) out += "\n";
     for (long i=0; i<rep->udoterr.size(); ++i)
         out += String(rep->udoterr[i]) + "\n";
+    out += "</Vector>\n";
+
+    out += "<Vector name=multipliers size=" + String(rep->multipliers.size()) + ">";
+    if (rep->multipliers.size()) out += "\n";
+    for (long i=0; i<rep->multipliers.size(); ++i)
+        out += String(rep->multipliers[i]) + "\n";
     out += "</Vector>\n";
 
     out += "</Cache>\n";
