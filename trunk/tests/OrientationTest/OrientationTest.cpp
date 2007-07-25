@@ -110,8 +110,30 @@ void orthoTest(String msg, const Rotation& R) {
     cout << "perp=" << dot(R(0),R(1)) << ", " << dot(R(1),R(2)) << ", " << dot(R(0),R(2)) << endl;
 }
 
+void f(const CoordinateAxis& ax) {
+    printf("which = %d\n", ax);
+}
+void f(CoordinateAxis::X) {
+    printf("X\n");
+}
+void f(CoordinateAxis::Y) {
+    printf("Y\n");
+}
+void f(CoordinateAxis::Z) {
+    printf("Z\n");
+}
+
+int a[]={9,10,11};
+
 int main() {
     quatTest();
+
+    cout << "-----------------\n";
+    cout << "X,Y,Z=" << XAxis << "," <<YAxis << "," <<ZAxis << endl;
+    printf("%d %d %d\n", XAxis, YAxis, ZAxis);
+
+    f(XAxis); f(YAxis); f(ZAxis);
+    printf("index: %d %d %d\n", a[XAxis], a[YAxis], a[ZAxis]);
 
 try {
     UnitVec3 u;

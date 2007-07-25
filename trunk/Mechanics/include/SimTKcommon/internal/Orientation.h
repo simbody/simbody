@@ -50,6 +50,36 @@
 
 namespace SimTK {
 
+class CoordinateAxis {
+public:
+    class X; class Y; class Z;
+    operator int() const {return axis;}
+protected:
+    class XType{}; class YType{}; class ZType{};
+
+    CoordinateAxis(const XType&) : axis(0) { }
+    CoordinateAxis(const YType&) : axis(1) { }
+    CoordinateAxis(const ZType&) : axis(2) { }
+private:
+    int axis;
+};
+
+class CoordinateAxis::X : public CoordinateAxis {
+  public: X() : CoordinateAxis(XType()) { }
+};
+class CoordinateAxis::Y : public CoordinateAxis {
+  public: Y() : CoordinateAxis(YType()) { }
+};
+class CoordinateAxis::Z : public CoordinateAxis {
+  public: Z() : CoordinateAxis(ZType()) { }
+};
+
+// Predefine constants XAxis, YAxis, ZAxis. These implicitly
+// convert to integers 0, 1, 2 respectively.
+static const CoordinateAxis::X XAxis;
+static const CoordinateAxis::Y YAxis;
+static const CoordinateAxis::Z ZAxis;
+
 // Templatized conversion routines. These should be used only for "precisions", i.e.,
 // float, double, long double.
 template <class P> P inline static convertRadiansToDegrees(const P& rad) {

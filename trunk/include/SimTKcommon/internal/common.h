@@ -145,6 +145,50 @@ extern "C" {
 #include <limits>
 
 /**
+ * Use this macro to define a unique "Id" type which is just a type-safe
+ * non-negative int, augmented with a "NaN" value given by the predefined
+ * int constant SimTK::InvalidId. No namespace is assumed for the newly-
+ * defined type; if you want the symbol in a namespace be sure to invoke
+ * the macro within that namespace. Make sure that the system include
+ * file <cassert> has been included by the point of invocation, because
+ * the define Id type uses the assert() macro when in Debug mode.
+ *
+ * For most uses it will behave like an int, and it has an implicit
+ * conversion *to* int. Importantly though, it has no implicit conversion
+ * *from* int so you can't pass some other kind of number where a particular
+ * kind of Id was expected. This is used to create Id types
+ * which can be used as array indices but which prevent accidental mixing
+ * of types. Examples: SubsystemId, ConstraintId.
+ *
+ * If you create a type "ThingId" you will also get a constant of
+ * type ThingId named "ThingInvalidId" which will be the initial
+ * value of any objects of type ThingId, and will have the same numerical
+ * value as SimTK::InvalidId.
+ */
+namespace SimTK {
+    static const int InvalidId = -1111111111;
+}
+
+#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME)   \
+class NAME {                                \
+    int id;                                 \
+public:                                     \
+    inline NAME();                          \
+    inline explicit NAME(int i);            \
+    operator int() const {return id;}       \
+    bool isValid() const {return id>=0;}    \
+    const NAME& operator++() {assert(id>=0); ++id;return *this;}      /*prefix */   \
+    NAME operator++(int)     {assert(id>=0); ++id; return NAME(id-1);}/*postfix*/   \
+    const NAME& operator--() {assert(id>=1); --id;return *this;}      /*prefix */   \
+    NAME operator--(int)     {assert(id>=1); --id; return NAME(id+1);}/*postfix*/   \
+};                                                      \
+static const NAME Invalid ## NAME(SimTK::InvalidId);    \
+inline NAME::NAME() : id(Invalid ## NAME) { }           \
+inline NAME::NAME(int i) : id(i) {                      \
+    assert(i>=0 || i==SimTK::InvalidId);                \
+}
+
+/**
  * Add public static method declaration in class derived from an abstract
  * parent to assist in downcasting objects of the parent type to the 
  * derived type.

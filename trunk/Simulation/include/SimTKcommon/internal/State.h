@@ -1,9 +1,15 @@
 #ifndef SimTK_SimTKCOMMON_STATE_H_
 #define SimTK_SimTKCOMMON_STATE_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* 
+ * This is part of the SimTK software effort (https://SimTK.org)
+ * originating from the NIH National Center for Physics-Based Simulation
+ * of Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ *
+ * Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 
@@ -18,10 +24,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "SimTKcommon/basics.h"
@@ -32,32 +38,7 @@
 
 namespace SimTK {
 
-static const int InvalidId = -1111111111;
-
-/**
- * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidSubsystemId. For most uses it will behave like an int,
- * and it has an implicit conversion *to* int. Importantly though,
- * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as a SubsystemId.
- */
-class SubsystemId {
-    int id;
-public:
-    inline SubsystemId();
-    inline explicit SubsystemId(int i);
-    operator int() const {return id;}
-    bool isValid() const {return id>=0;}
-    const SubsystemId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
-    SubsystemId operator++(int)     {assert(id>=0); ++id; return SubsystemId(id-1);} // postfix
-    const SubsystemId& operator--() {assert(id>=1); --id;return *this;}           // prefix
-    SubsystemId operator--(int)     {assert(id>=1); --id; return SubsystemId(id+1);} // postfix
-};
-static const SubsystemId InvalidSubsystemId(InvalidId);
-inline SubsystemId::SubsystemId() : id(InvalidSubsystemId) { }
-inline SubsystemId::SubsystemId(int i) : id(i) {
-    assert(i>=0 || i==InvalidId);
-}
+SimTK_DEFINE_UNIQUE_ID_TYPE(SubsystemId)
 
 // TODO: these need an option to have associated "update" variables in the cache,
 // analogous to the derivative variables qdot,udot,zdot that we create
