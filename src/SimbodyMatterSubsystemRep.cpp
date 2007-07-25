@@ -893,6 +893,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
     const Vector_<SpatialVec>& bodyForces,
     SBAccelerationCache&       ac,
     Vector&                    udot,
+    Vector&                    multipliers,
     Vector&                    udotErr) const
 {
     assert(getStage(s) >= Stage::Acceleration-1);
@@ -902,7 +903,7 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamicsOperator(const State& s,
 
     calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
                                     0, 0, ac, udot, udotErr);
-    if (lConstraints->calcConstraintForces(s, udotErr, ac)) {
+    if (lConstraints->calcConstraintForces(s, udotErr, multipliers, ac)) {
         lConstraints->addInCorrectionForces(s, ac, cFrc);
         calcTreeForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
                                         0, &cFrc, ac, udot, udotErr);
@@ -942,9 +943,10 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamics(const State& s,
     SBAccelerationCache& ac      = updAccelerationCache(s);
     Vector&              udot    = updUDot(s);
     Vector&              udotErr = updUDotErr(s);
+    Vector&              multipliers = updMultipliers(s);
 
     calcLoopForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
-                                    ac, udot, udotErr);
+                                    ac, udot, multipliers, udotErr);
 }
 
 // should be:

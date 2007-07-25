@@ -110,10 +110,6 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintId id) {
     return updRep().updConstraint(id);
 }
 
-const Vector& SimbodyMatterSubsystem::getMultipliers(const State& s) const {
-    return getRep().getAccelerationCache(s).lambda;
-}
-
 void SimbodyMatterSubsystem::calcAcceleration(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
@@ -124,10 +120,11 @@ void SimbodyMatterSubsystem::calcAcceleration(const State& s,
     SBAccelerationCache ac;
     ac.allocate(getRep().topologyCache);
 
-    Vector udotErr(ac.lambda.size()); // unwanted return value
+    Vector udotErr(getNUDotErr(s)); // unwanted return value
+    Vector multipliers(getNMultipliers(s)); // unwanted return value
 
     getRep().calcLoopForwardDynamicsOperator(s, mobilityForces, particleForces, bodyForces,
-                                             ac, udot, udotErr);
+                                             ac, udot, multipliers, udotErr);
 
     A_GB = ac.bodyAccelerationInGround;
 }

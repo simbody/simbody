@@ -369,7 +369,7 @@ public:
     Matrix calcPseudoInverseAFD(const State&) const;
 
     void  calcConstraintForces(const State&, const Vector& udotErr,
-                               SBAccelerationCache&) const;
+                               Vector& multipliers, SBAccelerationCache&) const;
     void  addInCorrectionForces(const State&, const SBAccelerationCache&,
                                 SpatialVecList& spatialForces) const; // spatialForces+=correction
 
@@ -411,7 +411,7 @@ public:
     void projectUVecOntoMotionConstraints(const State&, Vector& u);
 
     bool calcConstraintForces(const State&, const Vector& udotErr, 
-                              SBAccelerationCache&) const;
+                              Vector& multipliers, SBAccelerationCache&) const;
     void addInCorrectionForces(const State&, const SBAccelerationCache&,
                                SpatialVecList& spatialForces) const;
 

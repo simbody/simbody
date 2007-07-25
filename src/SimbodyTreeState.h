@@ -390,7 +390,6 @@ class SBAccelerationCache {
 public:
     // udot, qdotdot are provided directly by the State
     Vector_<SpatialVec> bodyAccelerationInGround; // nb (sAcc)
-    Vector              lambda;                   // nac
     Vector              netHingeForces;           // nu (T-(~Am+R(F+C))
 
     Vector              nu;
@@ -416,7 +415,6 @@ public:
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
 
-        lambda.resize(nac);
         netHingeForces.resize(nDofs);
 
         nu.resize(nDofs);

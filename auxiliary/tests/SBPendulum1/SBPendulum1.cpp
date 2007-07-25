@@ -70,23 +70,23 @@ void stateTest() {
   try {
     State s;
     s.setNSubsystems(1);
-    s.advanceSubsystemToStage(0, Stage::Topology);
+    s.advanceSubsystemToStage(SubsystemId(0), Stage::Topology);
     s.advanceSystemToStage(Stage::Topology);
 
     Vector v3(3), v2(2);
-    long q1 = s.allocateQ(0, v3);
-    long q2 = s.allocateQ(0, v2);
+    long q1 = s.allocateQ(SubsystemId(0), v3);
+    long q2 = s.allocateQ(SubsystemId(0), v2);
 
     printf("q1,2=%d,%d\n", q1, q2);
     cout << s;
 
-    long dv = s.allocateDiscreteVariable(0, Stage::Dynamics, new Value<int>(5));
+    long dv = s.allocateDiscreteVariable(SubsystemId(0), Stage::Dynamics, new Value<int>(5));
 
-    s.advanceSubsystemToStage(0, Stage::Model);
-        //long dv2 = s.allocateDiscreteVariable(0, Stage::Position, new Value<int>(5));
+    s.advanceSubsystemToStage(SubsystemId(0), Stage::Model);
+        //long dv2 = s.allocateDiscreteVariable(SubsystemId(0), Stage::Position, new Value<int>(5));
 
-    Value<int>::downcast(s.updDiscreteVariable(0, dv)) = 71;
-    cout << s.getDiscreteVariable(0, dv) << endl;
+    Value<int>::downcast(s.updDiscreteVariable(SubsystemId(0), dv)) = 71;
+    cout << s.getDiscreteVariable(SubsystemId(0), dv) << endl;
 
     s.advanceSystemToStage(Stage::Model);
 
@@ -247,7 +247,7 @@ try {
         s.getNYErr(), s.getQErrStart(), s.getNQErr(),
         s.getUErrStart(), s.getNUErr());
     printf("  nudoterr=%d\n", s.getNUDotErr());
-    for (int i=0; i<s.getNSubsystems(); ++i) {
+    for (SubsystemId i(0); i<s.getNSubsystems(); ++i) {
         printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
             i,s.getQStart()+s.getQStart(i),s.getNQ(i),
               s.getUStart()+s.getUStart(i),s.getNU(i),

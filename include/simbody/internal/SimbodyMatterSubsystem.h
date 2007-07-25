@@ -501,8 +501,9 @@ public:
     /// This is the weighted norm of the errors returned by getUDotConstraintErrors().
     Real calcUDotConstraintNorm(const State&) const;
 
-        // ACCELERATION STAGE reponse
-    const Vector& getMultipliers(const State&) const;
+        // ACCELERATION STAGE reponses
+    // none yet
+
 
     SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
     const SimbodyMatterSubsystemRep& getRep() const;

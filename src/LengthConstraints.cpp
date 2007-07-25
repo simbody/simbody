@@ -903,6 +903,7 @@ LengthSet::calcPseudoInverseAFD(const State& s) const
 //
 
 bool LengthConstraints::calcConstraintForces(const State& s, const Vector& udotErr,
+                                             Vector& multipliers, 
                                              SBAccelerationCache& ac) const 
 {
     if ( accConstraints.size() == 0 )
@@ -911,7 +912,7 @@ bool LengthConstraints::calcConstraintForces(const State& s, const Vector& udotE
     rbTree.calcY(s); // TODO <-- this doesn't belong here!
 
     for (int i=accConstraints.size()-1 ; i>=0 ; i--)
-        accConstraints[i].calcConstraintForces(s,udotErr,ac);
+        accConstraints[i].calcConstraintForces(s,udotErr,multipliers,ac);
 
     return true;
 }
@@ -1013,7 +1014,7 @@ computeA(const SBPositionCache& cc,
 //
 void
 LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
-                                SBAccelerationCache& ac) const
+                                Vector& multipliers, SBAccelerationCache& ac) const
 { 
     const SBPositionCache& pc      = getRBTree().getPositionCache(s);
     const SBVelocityCache& vc      = getRBTree().getVelocityCache(s);
@@ -1058,13 +1059,13 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
     //cout << "  rhs = " << rhs << endl;
 
     //FIX: using inverse is inefficient
-    ac.lambda = A.invert() * rhs;
+    multipliers = A.invert() * rhs;
 
     //cout << "  lambda = " << lambda << endl;
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 frc = ac.lambda(i) * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
+        const Vec3 frc = multipliers[i] * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
         loops[i].setTipForce(ac, 2, -frc);
         loops[i].setTipForce(ac, 1,  frc);
     }

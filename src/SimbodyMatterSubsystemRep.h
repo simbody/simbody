@@ -653,6 +653,7 @@ private:
         const Vector_<SpatialVec>& bodyForces,
         SBAccelerationCache&       ac,
         Vector&                    udot,
+        Vector&                    multipliers,
         Vector&                    udotErr) const;
 
     // Given a set of forces, calculate accelerations ignoring
