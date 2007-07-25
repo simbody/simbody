@@ -158,9 +158,9 @@ int main(int argc, char** argv) {
                               rightPendulum, Vec3(0),
                               DecorativeLine().setColor(c=='c' ? Black : Orange).setLineThickness(4));
 
-    //forces.addMobilityConstantForce(rightPendulum, 0, 20);
+    //forces.addMobilityConstantForce(leftPendulum, 0, 20);
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
-    //forces.addGlobalEnergyDrain(.2);
+    //forces.addGlobalEnergyDrain(3);
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //twoPends.setUseEulerAngles(s, true);
@@ -186,9 +186,6 @@ int main(int argc, char** argv) {
 
     rightPendulum.setUToFitAngularVelocity(s, Vec3(0,10,0));
 
-    // TODO: this can't work unless it sets a state variable somewhere.
-    // Cache entries can only be updated during a realize() operation.
-    //rightPendulum.applyPinTorque(s, Stage::Instance, 2000);
 
     s.setTime(0);
 
@@ -227,6 +224,24 @@ int main(int argc, char** argv) {
             /*rightPendulum.getRotation(s)*Rad2Deg*/0.,
             mbs.getEnergy(s), myStudy.getPredictedNextStep());
         //printf("     %10.4g+%10.4g\n", mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+
+        Vector mf = mbs.getMobilityForces(s, Stage::Dynamics);
+        Vector_<SpatialVec> bf = mbs.getRigidBodyForces(s, Stage::Dynamics);
+
+        cout << "Mobility forces: " << ~mf << endl;
+        cout << "Body forces: " << ~bf << endl;
+        cout << "     udot=" << ~twoPends.getUDot(s) << endl;
+
+        Vector udot;
+        Vector_<SpatialVec> A_G;
+        twoPends.calcAcceleration(s,mf,bf,udot,A_G);
+        //twoPends.calcTreeUDot(s,mf,bf,udot,A_G);
+        cout << "calc udot=" << ~udot << endl;
+
+        cout << "     A_G=" << ~twoPends.Ground().getBodyAcceleration(s) << " "
+                            << ~leftPendulum.getBodyAcceleration(s) << " "
+                            << ~rightPendulum.getBodyAcceleration(s) << endl;
+        cout << "calc A_G=" << ~A_G << endl;
 
         display.report(s);
         if (s.getTime() >= finalTime)

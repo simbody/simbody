@@ -902,21 +902,25 @@ LengthSet::calcPseudoInverseAFD(const State& s) const
 //     Do this step from tip to base.
 //
 
-bool LengthConstraints::calcConstraintForces(const State& s) const {
+bool LengthConstraints::calcConstraintForces(const State& s, const Vector& udotErr,
+                                             SBAccelerationCache& ac) const 
+{
     if ( accConstraints.size() == 0 )
         return false;
 
-    rbTree.calcY(s);
+    rbTree.calcY(s); // TODO <-- this doesn't belong here!
 
     for (int i=accConstraints.size()-1 ; i>=0 ; i--)
-        accConstraints[i].calcConstraintForces(s);
+        accConstraints[i].calcConstraintForces(s,udotErr,ac);
 
     return true;
 }
 
-void LengthConstraints::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
+void LengthConstraints::addInCorrectionForces(const State& s, const SBAccelerationCache& ac,
+                                              SpatialVecList& spatialForces) const 
+{
     for (int i=accConstraints.size()-1 ; i>=0 ; i--)
-        accConstraints[i].addInCorrectionForces(s, spatialForces);
+        accConstraints[i].addInCorrectionForces(s, ac, spatialForces);
 }
 
 void 
@@ -998,23 +1002,22 @@ computeA(const SBPositionCache& cc,
 
 //
 // To be called for LengthSets consecutively from tip to base.
-// This will calculate a force for every station in every loop
-// contained in this LengthSet, and store that force in the runtime
-// block associated with that loop. It is up to the caller to do
-// something with these forces.
+// Given acceleration errors for each loop contained in this LengthSet,
+// this will calculate a force for every station, and store that force
+// in the runtime block associated with that loop in the AccelerationCache
+// output argument. It is up to the caller to do something with these forces.
 //
 // See Section 2.6 on p. 294 of Schwieters & Clore, 
 // J. Magnetic Resonance 152:288-302. Equation reference below
 // are to that paper. (sherm)
 //
 void
-LengthSet::calcConstraintForces(const State& s) const
+LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
+                                SBAccelerationCache& ac) const
 { 
     const SBPositionCache& pc      = getRBTree().getPositionCache(s);
     const SBVelocityCache& vc      = getRBTree().getVelocityCache(s);
     const SBDynamicsCache& dc      = getRBTree().getDynamicsCache(s);
-    const Vector&          udotErr = getRBTree().updUDotErr(s); // upd since Accel stage is invalid
-    SBAccelerationCache&   ac      = getRBTree().updAccelerationCache(s);
 
     // This is the acceleration error for each loop constraint in this
     // LengthSet. We get a single scalar error per loop, since each
@@ -1055,24 +1058,22 @@ LengthSet::calcConstraintForces(const State& s) const
     //cout << "  rhs = " << rhs << endl;
 
     //FIX: using inverse is inefficient
-    const Vector lambda = A.invert() * rhs;
+    ac.lambda = A.invert() * rhs;
 
     //cout << "  lambda = " << lambda << endl;
 
     // add forces due to these constraints
     for (int i=0 ; i<(int)loops.size() ; i++) {
-        const Vec3 frc = lambda(i) * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
+        const Vec3 frc = ac.lambda(i) * (loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1));
         loops[i].setTipForce(ac, 2, -frc);
         loops[i].setTipForce(ac, 1,  frc);
     }
 }
 
-void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialForces) const {
+void LengthSet::addInCorrectionForces(const State& s, const SBAccelerationCache& ac,
+                                      SpatialVecList& spatialForces) const 
+{
     const SBPositionCache& pc = getRBTree().getPositionCache(s);
-
-    // Access with "upd" here because "get" would require us already to
-    // be at stage Acceleration.
-    const SBAccelerationCache& ac = getRBTree().updAccelerationCache(s);
 
     for (int i=0; i<(int)loops.size(); ++i) {
         for (int t=1; t<=2; ++t) {
@@ -1086,7 +1087,7 @@ void LengthSet::addInCorrectionForces(const State& s, SpatialVecList& spatialFor
 
 void LengthSet::testAccel(const State& s) const
 {
-    const Vector&              udotErr = getRBTree().getUDotErr(s);
+    const Vector& udotErr = getRBTree().getUDotErr(s);
 
     double testTol=1e-8;
     for (int i=0 ; i<(int)loops.size() ; i++) {

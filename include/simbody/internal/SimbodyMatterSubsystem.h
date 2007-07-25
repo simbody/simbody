@@ -118,21 +118,15 @@ public:
     }
 
 
-
-    ///////////////////////////////
-    // PAUL'S FRIENDLY INTERFACE //
-    ///////////////////////////////
+        ///////////////////////////////
+        // PAUL'S FRIENDLY INTERFACE //
+        ///////////////////////////////
 
     /// Calculate the total system mass.
     ///
     /// @par Required stage
     ///   \c Stage::Instance
-    Real calcSystemMass(const State& s) const {
-        Real mass = 0;
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b)
-            mass += getMobilizedBody(b).getBodyMassProperties(s).getMass();
-        return mass;
-    }
+    Real calcSystemMass(const State& s) const;
 
 
     /// Return the location r_OG_C of the system mass center C, measured from the ground
@@ -140,24 +134,7 @@ public:
     ///
     /// @par Required stage
     ///   \c Stage::Position
-    Vec3 calcSystemMassCenterLocationInGround(const State& s) const {
-        Real    mass = 0;
-        Vec3    com  = Vec3(0);
-
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
-            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-            const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
-            const Real            mb      = MB_OB_B.getMass();
-            const Vec3            r_OG_CB = X_GB * MB_OB_B.getMassCenter();
-            mass += mb;
-            com  += mb * r_OG_CB; // weighted by mass
-        }
-
-        if (mass != 0) 
-            com /= mass;
-
-        return com;
-    }
+    Vec3 calcSystemMassCenterLocationInGround(const State& s) const;
 
 
     /// Return total system mass, mass center location measured from the Ground origin,
@@ -165,87 +142,28 @@ public:
     ///
     /// @par Required stage
     ///   \c Stage::Position
-    MassProperties calcSystemMassPropertiesInGround(const State& s) const {
-        Real    mass = 0;
-        Vec3    com  = Vec3(0);
-        Inertia I    = Inertia(0);
-
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
-            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-            const Transform&      X_GB    = getMobilizedBody(b).getBodyTransform(s);
-            const MassProperties  MB_OG_G = MB_OB_B.calcTransformedMassProps(X_GB);
-            const Real            mb      = MB_OG_G.getMass();
-            mass += mb;
-            com  += mb * MB_OG_G.getMassCenter();
-            I    += MB_OG_G.getInertia();   // already has mass built in
-        }
-
-        if (mass != 0) {
-            com /= mass;
-            I   /= mass;
-        }
-
-        return MassProperties(mass, com, I);
-    }
+    MassProperties calcSystemMassPropertiesInGround(const State& s) const;
 
     /// Return the system inertia matrix taken about the system center of mass,
     /// expressed in Ground.
     ///
     /// @par Required stage
     ///   \c Stage::Position
-    Inertia calcSystemCentralInertiaInGround(const State& s) const {
-        const MassProperties M_OG_G = calcSystemMassPropertiesInGround(s);
-        return M_OG_G.calcCentralInertia();
-    }
-
+    Inertia calcSystemCentralInertiaInGround(const State& s) const;
 
     /// Return the velocity V_G_C = d/dt r_OG_C of the system mass center C in the Ground frame G,
     /// expressed in G.
     ///
     /// @par Required stage
     ///   \c Stage::Velocity
-    Vec3 calcSystemMassCenterVelocityInGround(const State& s) const {
-        Real    mass = 0;
-        Vec3    comv = Vec3(0);
-
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
-            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-            const Vec3 v_G_CB = getMobilizedBody(b).calcBodyFixedPointVelocityInGround(s, MB_OB_B.getMassCenter());
-            const Real mb     = MB_OB_B.getMass();
-
-            mass += mb;
-            comv += mb * v_G_CB; // weighted by mass
-        }
-
-        if (mass != 0) 
-            comv /= mass;
-
-        return comv;
-    }
+    Vec3 calcSystemMassCenterVelocityInGround(const State& s) const;
 
     /// Return the acceleration A_G_C = d^2/dt^2 r_OG_C of the system mass center C in
     /// the Ground frame G, expressed in G.
     ///
     /// @par Required stage
     ///   \c Stage::Acceleration
-    Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const {
-        Real    mass = 0;
-        Vec3    coma = Vec3(0);
-
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
-            const MassProperties& MB_OB_B = getMobilizedBody(b).getBodyMassProperties(s);
-            const Vec3 a_G_CB = getMobilizedBody(b).calcBodyFixedPointAccelerationInGround(s, MB_OB_B.getMassCenter());
-            const Real mb     = MB_OB_B.getMass();
-
-            mass += mb;
-            coma += mb * a_G_CB; // weighted by mass
-        }
-
-        if (mass != 0) 
-            coma /= mass;
-
-        return coma;
-    }
+    Vec3 calcSystemMassCenterAccelerationInGround(const State& s) const;
 
     /// Return the momentum of the system as a whole (angular, linear) measured
     /// in the ground frame, taken about the ground origin and expressed in ground.
@@ -253,22 +171,11 @@ public:
     ///
     /// @par Required stage
     ///   \c Stage::Velocity
-    SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const {
-        SpatialVec mom(Vec3(0), Vec3(0));
-        for (MobilizedBodyId b(1); b < getNBodies(); ++b) {
-            const SpatialVec mom_CB_G = getMobilizedBody(b).calcBodyMomentumAboutBodyMassCenterInGround(s);
-            const Vec3&      Iw = mom_CB_G[0];
-            const Vec3&      mv = mom_CB_G[1];
-            const Vec3       r = getMobilizedBody(b).locateBodyMassCenterOnGround(s);
-            mom[0] += (Iw + r % mv); // add central angular momentum plus contribution from mass center location
-            mom[1] += mv;            // just add up central linear momenta
-        }
-        return mom;
-    }
+    SpatialVec calcSystemMomentumAboutGroundOrigin(const State& s) const;
 
-    //////////////////
-    // CONSTRUCTION //
-    //////////////////
+        //////////////////
+        // CONSTRUCTION //
+        //////////////////
 
     // Attach new matter using the indicated parent body as the reference
     // frame, with the mobilizer and mass properties provided by 'child'.
@@ -293,8 +200,58 @@ public:
     const Constraint& getConstraint(ConstraintId) const;
     Constraint&       updConstraint(ConstraintId);
 
+        ///////////////
+        // OPERATORS //
+        ///////////////
 
-    // Operators
+        // Operators make use of the State but do not write their results back
+        // into the State, not even into the State cache.
+
+    /// This is the primary dynamics operator. It takes a state which
+    /// has been realized to the Dynamics stage, a complete set of forces to apply,
+    /// and returns the accelerations that result. Only the forces supplied here,
+    /// and those resulting from centrifugal effects, affect the results. Everything
+    /// in the matter subsystem is accounted for including velocities and 
+    /// acceleration constraints, which will always be satisified as long as the
+    /// constraints are consistent. If the position and velocity constraints
+    /// aren't already satisified in the State, these accelerations
+    /// are harder to interpret physically, but they will still be calculated and
+    /// the acceleration constraints will still be satisified. No attempt
+    /// will be made to satisfy position and velocity constraints, or even to check
+    /// whether they are statisfied.
+    /// Requires realization through Stage::Dynamics.
+    void calcAcceleration(const State&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector&                    udot,
+        Vector_<SpatialVec>&       A_GB) const;
+
+
+    /// This operator is similar to calcAcceleration but ignores the effects of
+    /// acceleration constraints. The supplied forces and velocity-induced centrifugal
+    /// effects are properly accounted for, but any forces that would have resulted
+    /// from enforcing the contraints are not present.
+    /// This is an O(N) operator.
+    /// Requires realization through Stage::Dynamics.
+    void calcAccelerationIgnoringConstraints(const State&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        Vector&                    udot,
+        Vector_<SpatialVec>&       A_GB) const;
+
+    /// This operator calculates M^-1 v where M is the system mass matrix and v
+    /// is a supplied vector with one entry per mobility. If v is a set of 
+    /// mobility forces f, the result is an acceleration (udot=M^-1 f). Only 
+    /// the supplied vector is used, and M depends only on position states,
+    /// so the result here is not affected by velocities in the State.
+    /// However, this fast O(N) operator requires that the Dynamics stage operators
+    /// are already available, so the State must be realized to Stage::Dynamics
+    /// even though velocities are ignored.
+    /// Requires realization through Stage::Dynamics.
+    void calcMInverseV(const State&,
+        const Vector&        v,
+        Vector&              MinvV,
+        Vector_<SpatialVec>& A_GB) const; // <-- TODO: get rid of this A
 
     /// Requires realization through Stage::Position.
     void calcInternalGradientFromSpatial(const State&,
@@ -310,18 +267,7 @@ public:
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    mobilityForces) const;
 
-    /// Requires realization through Stage::Dynamics.
-    void calcTreeUDot(const State&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces,
-        Vector&                    udot,
-        Vector_<SpatialVec>&       A_GB) const;
 
-    /// Requires realization through Stage::Dynamics.
-    void calcMInverseF(const State&,
-        const Vector&        f,
-        Vector&              udot,
-        Vector_<SpatialVec>& A_GB) const;
 
     /// Must be in Stage::Position to calculate qdot = Q*u.
     void calcQDot(const State& s,

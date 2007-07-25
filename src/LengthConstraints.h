@@ -368,8 +368,10 @@ public:
     static Matrix calcPseudoInverseA(const Matrix& AT);
     Matrix calcPseudoInverseAFD(const State&) const;
 
-    void  calcConstraintForces(const State&) const; // updates runtime only
-    void  addInCorrectionForces(const State&, SpatialVecList& spatialForces) const; // spatialForces+=correction
+    void  calcConstraintForces(const State&, const Vector& udotErr,
+                               SBAccelerationCache&) const;
+    void  addInCorrectionForces(const State&, const SBAccelerationCache&,
+                                SpatialVecList& spatialForces) const; // spatialForces+=correction
 
     void   fixVel0(State&, Vector&);
 
@@ -408,8 +410,10 @@ public:
     void projectQVecOntoConfigurationConstraints(const State&, Vector& q);
     void projectUVecOntoMotionConstraints(const State&, Vector& u);
 
-    bool calcConstraintForces(const State&) const;
-    void addInCorrectionForces(const State&, SpatialVecList& spatialForces) const;
+    bool calcConstraintForces(const State&, const Vector& udotErr, 
+                              SBAccelerationCache&) const;
+    void addInCorrectionForces(const State&, const SBAccelerationCache&,
+                               SpatialVecList& spatialForces) const;
 
     void fixVel0(State&, Vector&);
 

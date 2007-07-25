@@ -637,6 +637,24 @@ public:
 private:
     ConstraintId addConstraintNode(ConstraintNode*&);
 
+    void calcTreeForwardDynamicsOperator(const State&,
+        const Vector&              mobilityForces,
+        const Vector_<Vec3>&       particleForces,
+        const Vector_<SpatialVec>& bodyForces,
+        const Vector*              extraMobilityForces,
+        const Vector_<SpatialVec>* extraBodyForces,
+        SBAccelerationCache&       ac,
+        Vector&                    udot,
+        Vector&                    udotErr) const;
+
+    void calcLoopForwardDynamicsOperator(const State&, 
+        const Vector&              mobilityForces,
+        const Vector_<Vec3>&       particleForces,
+        const Vector_<SpatialVec>& bodyForces,
+        SBAccelerationCache&       ac,
+        Vector&                    udot,
+        Vector&                    udotErr) const;
+
     // Given a set of forces, calculate accelerations ignoring
     // constraints, and leave the results in the state cache. 
     // Must have already called realizeDynamics().
