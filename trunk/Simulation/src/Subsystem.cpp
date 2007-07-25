@@ -124,6 +124,7 @@ const Vector& Subsystem::getQDotDot(const State& s) const {return getSubsystemGu
 const Vector& Subsystem::getQErr(const State& s) const {return getSubsystemGuts().getQErr(s);}
 const Vector& Subsystem::getUErr(const State& s) const {return getSubsystemGuts().getUErr(s);}
 const Vector& Subsystem::getUDotErr(const State& s) const {return getSubsystemGuts().getUDotErr(s);}
+const Vector& Subsystem::getMultipliers(const State& s) const {return getSubsystemGuts().getMultipliers(s);}
 
 Vector& Subsystem::updQ(State& s) const {return getSubsystemGuts().updQ(s);}
 Vector& Subsystem::updU(State& s) const {return getSubsystemGuts().updU(s);}
@@ -136,6 +137,7 @@ Vector& Subsystem::updQDotDot(const State& s) const {return getSubsystemGuts().u
 Vector& Subsystem::updQErr(const State& s) const {return getSubsystemGuts().updQErr(s);}
 Vector& Subsystem::updUErr(const State& s) const {return getSubsystemGuts().updUErr(s);}
 Vector& Subsystem::updUDotErr(const State& s) const {return getSubsystemGuts().updUDotErr(s);}
+Vector& Subsystem::updMultipliers(const State& s) const {return getSubsystemGuts().updMultipliers(s);}
 
 Stage Subsystem::getStage(const State& s) const {return getSubsystemGuts().getStage(s);}
 const AbstractValue& Subsystem::getDiscreteVariable(const State& s, int index) const {
@@ -163,6 +165,8 @@ int Subsystem::getUErrStart   (const State& s) const {return getSubsystemGuts().
 int Subsystem::getNUErr       (const State& s) const {return getSubsystemGuts().getNUErr(s);}
 int Subsystem::getUDotErrStart(const State& s) const {return getSubsystemGuts().getUDotErrStart(s);}
 int Subsystem::getNUDotErr    (const State& s) const {return getSubsystemGuts().getNUDotErr(s);}
+int Subsystem::getMultipliersStart(const State& s) const {return getSubsystemGuts().getMultipliersStart(s);}
+int Subsystem::getNMultipliers    (const State& s) const {return getSubsystemGuts().getNMultipliers(s);}
 
     /////////////////////
     // SUBSYSTEM::GUTS //
@@ -301,6 +305,7 @@ int Subsystem::Guts::allocateUErr(State& s, int nuerr) const {
     return s.allocateUErr(getRep().getMySubsystemId(), nuerr);
 }
 
+// Multipliers are added as a side effect.
 int Subsystem::Guts::allocateUDotErr(State& s, int nudoterr) const {
     return s.allocateUDotErr(getRep().getMySubsystemId(), nudoterr);
 }
@@ -357,10 +362,12 @@ Vector& Subsystem::Guts::updQDotDot(const State& s) const {return s.updQDotDot(g
 const Vector& Subsystem::Guts::getQErr(const State& s) const {return s.getQErr(getRep().getMySubsystemId());}
 const Vector& Subsystem::Guts::getUErr(const State& s) const {return s.getUErr(getRep().getMySubsystemId());}
 const Vector& Subsystem::Guts::getUDotErr(const State& s) const {return s.getUDotErr(getRep().getMySubsystemId());}
+const Vector& Subsystem::Guts::getMultipliers(const State& s) const {return s.getMultipliers(getRep().getMySubsystemId());}
 
 Vector& Subsystem::Guts::updQErr(const State& s) const {return s.updQErr(getRep().getMySubsystemId());}
 Vector& Subsystem::Guts::updUErr(const State& s) const {return s.updUErr(getRep().getMySubsystemId());}
 Vector& Subsystem::Guts::updUDotErr(const State& s) const {return s.updUDotErr(getRep().getMySubsystemId());}
+Vector& Subsystem::Guts::updMultipliers(const State& s) const {return s.updMultipliers(getRep().getMySubsystemId());}
 
 int Subsystem::Guts::getQStart(const State& s) const {return s.getQStart(getRep().getMySubsystemId());}
 int Subsystem::Guts::getNQ(const State& s)     const {return s.getNQ(getRep().getMySubsystemId());}
@@ -380,6 +387,8 @@ int Subsystem::Guts::getNUErr(const State& s)     const {return s.getNUErr(getRe
 int Subsystem::Guts::getUDotErrStart(const State& s) const {return s.getUDotErrStart(getRep().getMySubsystemId());}
 int Subsystem::Guts::getNUDotErr(const State& s)     const {return s.getNUDotErr(getRep().getMySubsystemId());}
 
+int Subsystem::Guts::getMultipliersStart(const State& s) const {return s.getMultipliersStart(getRep().getMySubsystemId());}
+int Subsystem::Guts::getNMultipliers(const State& s)     const {return s.getNMultipliers(getRep().getMySubsystemId());}
 
 void Subsystem::Guts::invalidateSubsystemTopologyCache() const {
     getRep().invalidateSubsystemTopologyCache();

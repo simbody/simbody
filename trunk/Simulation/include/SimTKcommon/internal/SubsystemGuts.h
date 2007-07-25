@@ -117,6 +117,7 @@ public:
     const Vector& getQErr(const State&) const;
     const Vector& getUErr(const State&) const;
     const Vector& getUDotErr(const State&) const;
+    const Vector& getMultipliers(const State&) const;
 
     // These return writable access to this subsystem's partition in the
     // State pool of continuous variables. These can be called at Stage::Model
@@ -151,6 +152,7 @@ public:
     Vector& updQErr(const State&) const;
     Vector& updUErr(const State&) const;
     Vector& updUDotErr(const State&) const;
+    Vector& updMultipliers(const State&) const;
 
     // These pull out the State entries which belong exclusively to
     // this Subsystem. These variables and cache entries are available
@@ -179,6 +181,8 @@ public:
     int getNUErr       (const State&) const;
     int getUDotErrStart(const State&) const;
     int getNUDotErr    (const State&) const;
+    int getMultipliersStart(const State&) const;
+    int getNMultipliers    (const State&) const;
 
 	bool isInSystem() const;
 	bool isInSameSystem(const Subsystem& otherSubsystem) const;
@@ -329,6 +333,7 @@ protected:
     // zdot is also allocated in the cache
     int allocateZ(State& s, const Vector& zInit) const;
     // qerr, uerr, udoterr are all cache entries, not variables
+    // allocating udoterr also allocates matching multipliers
     int allocateQErr(State& s, int nqerr) const;
     int allocateUErr(State& s, int nuerr) const;
     int allocateUDotErr(State& s, int nudoterr) const;
