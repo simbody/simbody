@@ -231,6 +231,7 @@ int main(int argc, char** argv) {
         cout << "Mobility forces: " << ~mf << endl;
         cout << "Body forces: " << ~bf << endl;
         cout << "     udot=" << ~twoPends.getUDot(s) << endl;
+        cout << "multipliers=" << ~twoPends.getMultipliers(s) << endl;
 
         Vector udot;
         Vector_<SpatialVec> A_G;

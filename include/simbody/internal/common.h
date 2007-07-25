@@ -1,9 +1,15 @@
 #ifndef SimTK_SIMBODY_COMMON_H_
 #define SimTK_SIMBODY_COMMON_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
+/* 
+ * This is part of the SimTK software effort (https://SimTK.org)
+ * originating from the NIH National Center for Physics-Based Simulation
+ * of Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ *
+ * Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 
@@ -18,10 +24,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 /** @file
@@ -75,83 +81,20 @@ extern "C" {
 
 namespace SimTK {
 
-/**
- * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidMobilizedBodyId. For most uses it will behave like an int,
- * and it has an implicit conversion *to* int. Importantly though,
- * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as a MobilizedBodyId.
- * 
- * We also predefine GroundId which is always MobilizedBodyId(0).
- */
-class MobilizedBodyId {
-    int id;
-public:
-    inline MobilizedBodyId();
-    inline explicit MobilizedBodyId(int i);
-    operator int() const {return id;}
-    bool isValid() const {return id>=0;}
-    const MobilizedBodyId& operator++() {assert(id>=0); ++id;return *this;}           // prefix
-    MobilizedBodyId operator++(int)     {assert(id>=0); ++id; return MobilizedBodyId(id-1);} // postfix
-    const MobilizedBodyId& operator--() {assert(id>=1); --id;return *this;}           // prefix
-    MobilizedBodyId operator--(int)     {assert(id>=1); --id; return MobilizedBodyId(id+1);} // postfix
-};
+// This is just a type-safe non-negative int, augmented with a "NaN" 
+// value called InvalidMobilizedBodyId. For most uses it will behave like an int,
+// and it has an implicit conversion *to* int. Importantly though,
+// it has no implicit conversion *from* int so you can't pass some
+// other kind of number as a MobilizedBodyId.
+// 
+// We also predefine GroundId which is always MobilizedBodyId(0).
+//
+SimTK_DEFINE_UNIQUE_ID_TYPE(MobilizedBodyId)
 static const MobilizedBodyId GroundId(0);
-static const MobilizedBodyId InvalidMobilizedBodyId(InvalidId);
-inline MobilizedBodyId::MobilizedBodyId() : id(InvalidMobilizedBodyId) { }
-inline MobilizedBodyId::MobilizedBodyId(int i) : id(i) {
-    assert(i>=0 || i==InvalidId);
-}
 
-/**
- * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidParticleId. For most uses it will behave like an int,
- * and it has an implicit conversion *to* int. Importantly though,
- * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as  a ParticleId.
- */
-class ParticleId {
-    int id;
-public:
-    inline ParticleId();
-    inline explicit ParticleId(int i);
-    operator int() const {return id;}
-    bool isValid() const {return id>=0;}
-    const ParticleId& operator++() {assert(id>=0); ++id;return *this;}             // prefix
-    ParticleId operator++(int)     {assert(id>=0); ++id; return ParticleId(id-1);} // postfix
-    const ParticleId& operator--() {assert(id>=1); --id;return *this;}             // prefix
-    ParticleId operator--(int)     {assert(id>=1); --id; return ParticleId(id+1);} // postfix
-};
-static const ParticleId InvalidParticleId(InvalidId);
-inline ParticleId::ParticleId() : id(InvalidParticleId) { }
-inline ParticleId::ParticleId(int i) : id(i) {
-    assert(i>=0 || i==InvalidId);
-}
-
-/**
- * This is just a type-safe non-negative int, augmented with a "NaN" 
- * value called InvalidConstraintId. For most uses it will behave like an int,
- * and it has an implicit conversion *to* int. Importantly though,
- * it has no implicit conversion *from* int so you can't pass some
- * other kind of number as  a ConstraintId.
- */
-class ConstraintId {
-    int id;
-public:
-    inline ConstraintId();
-    inline explicit ConstraintId(int i);
-    operator int() const {return id;}
-    bool isValid() const {return id>=0;}
-    const ConstraintId& operator++() {assert(id>=0); ++id;return *this;}          // prefix
-    ConstraintId operator++(int)     {assert(id>=0); ++id; return ConstraintId(id-1);}  // postfix
-    const ConstraintId& operator--() {assert(id>=1); --id;return *this;}          // prefix
-    ConstraintId operator--(int)     {assert(id>=1); --id; return ConstraintId(id+1);}  // postfix
-};
-static const ConstraintId InvalidConstraintId(InvalidId);
-inline ConstraintId::ConstraintId() : id(InvalidConstraintId) { }
-inline ConstraintId::ConstraintId(int i) : id(i) {
-    assert(i>=0 || i==InvalidId);
-}
+// And similarly for other unique Id types.
+SimTK_DEFINE_UNIQUE_ID_TYPE(ConstraintId)
+SimTK_DEFINE_UNIQUE_ID_TYPE(ParticleId)
 
 
 namespace Exception {

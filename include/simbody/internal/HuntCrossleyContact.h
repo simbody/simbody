@@ -1,14 +1,15 @@
 #ifndef SimTK_HUNT_CROSSLEY_CONTACT_H_
 #define SimTK_HUNT_CROSSLEY_CONTACT_H_
 
-/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
+/* 
+ * This is part of the SimTK software effort (https://SimTK.org)
+ * originating from the NIH National Center for Physics-Based Simulation
+ * of Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ *
+ * Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors:
  *
- * This is part of the SimTK software effort originating from the
- * NIH National Center for Physics-Based Simulation of Biological
- * Structures at Stanford (Simbios) funded under the NIH Roadmap
- * for Medical Research, grant U54 GM072970.
- * 
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 

@@ -110,6 +110,10 @@ Constraint& SimbodyMatterSubsystem::updConstraint(ConstraintId id) {
     return updRep().updConstraint(id);
 }
 
+const Vector& SimbodyMatterSubsystem::getMultipliers(const State& s) const {
+    return getRep().getAccelerationCache(s).lambda;
+}
+
 void SimbodyMatterSubsystem::calcAcceleration(const State& s,
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces,
