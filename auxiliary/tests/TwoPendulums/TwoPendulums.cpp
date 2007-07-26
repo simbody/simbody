@@ -29,6 +29,8 @@
 
 #include "SimTKsimbody.h"
 
+#include "SimTKcpodes/Integrator.h"
+
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -162,6 +164,10 @@ int main(int argc, char** argv) {
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
     //forces.addGlobalEnergyDrain(3);
 
+    mbs.setHasTimeAdvancedEvents(State(),false);
+
+    cout << "HAS TIME ADVANCED EVENTS=" << mbs.hasTimeAdvancedEvents(State()) << endl;
+
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
@@ -199,58 +205,77 @@ int main(int argc, char** argv) {
 
 
     // Create a study using the Runge Kutta Merson or CPODES integrator
-    RungeKuttaMerson myStudy(mbs, s);
+    //RungeKuttaMerson myStudy(mbs, s);
+
+    Integrator myStudy(mbs, Integrator::RungeKuttaMerson);
+
     //CPodesIntegrator myStudy(mbs, s);
     //ExplicitEuler myStudy(mbs, s);
     //myStudy.setMaximumStepSize(0.001);
-    //myStudy.setAccuracy(1e-2);
+    myStudy.setAccuracy(1e-2);
+    //myStudy.setProjectEveryStep(true);
     //myStudy.setConstraintTolerance(1e-7);
+    //myStudy.setAllowInterpolation(false);
+    //myStudy.setMaximumStepSize(.1);
 
-    const Real dt = 0.01; // output intervals
+    const Real dt = .02; // output intervals
     const Real finalTime = 10;
 
+    myStudy.setFinalTime(finalTime);
+
     // Peforms assembly if constraints are violated.
-    myStudy.initialize();
+    myStudy.initialize(s);
 
-    display.report(s);
-    cout << "q=" << s.getQ() << endl;
-    cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
-    cout << "Assembled configuration shown. Ready to simulate? "; cin >> c;
+    cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
+    cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
+    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
+    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
+    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
 
-    for (;;) {
+    {
+        const State& s = myStudy.getState();
+        display.report(s);
+        cout << "q=" << s.getQ() << endl;
+        cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
+        cout << "Assembled configuration shown. Ready to simulate? "; cin >> c;
+    }
+
+    Integrator::SuccessfulStepStatus status;
+    int nextReport = 0;
+    int nextScheduledEvent = 0;
+    Real schedule[] = {1.234, 3.1415, 3.14159, 4.5, 9.090909, 100.};
+    while ((status=myStudy.stepTo(nextReport*dt,schedule[nextScheduledEvent]))
+           != Integrator::EndOfSimulation) 
+    {
+        const State& s = myStudy.getState();
         mbs.realize(s);
-        printf("%5g %10.4g %10.4g %10.8g h=%g\n", s.getTime(), 
+        printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             leftPendulum.getAngle(s)*Rad2Deg,
-            /*rightPendulum.getRotation(s)*Rad2Deg*/0.,
-            mbs.getEnergy(s), myStudy.getPredictedNextStep());
-        //printf("     %10.4g+%10.4g\n", mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+            mbs.getEnergy(s), myStudy.getNStepsTaken(),
+            myStudy.getPreviousStepSizeTaken(),
+            Integrator::successfulStepStatusString(status).c_str(),
+            myStudy.isStateInterpolated()?" (INTERP)":"");
+        //printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
+        //    twoPends.getQErr(s).normRMS(),
+        //    twoPends.getUErr(s).normRMS(),
+        //    twoPends.getUDotErr(s).normRMS());
 
-        Vector mf = mbs.getMobilityForces(s, Stage::Dynamics);
-        Vector_<SpatialVec> bf = mbs.getRigidBodyForces(s, Stage::Dynamics);
-
-        cout << "Mobility forces: " << ~mf << endl;
-        cout << "Body forces: " << ~bf << endl;
-        cout << "     udot=" << ~twoPends.getUDot(s) << endl;
-        cout << "multipliers=" << ~twoPends.getMultipliers(s) << endl;
-
-        Vector udot;
-        Vector_<SpatialVec> A_G;
-        twoPends.calcAcceleration(s,mf,bf,udot,A_G);
-        //twoPends.calcTreeUDot(s,mf,bf,udot,A_G);
-        cout << "calc udot=" << ~udot << endl;
-
-        cout << "     A_G=" << ~twoPends.Ground().getBodyAcceleration(s) << " "
-                            << ~leftPendulum.getBodyAcceleration(s) << " "
-                            << ~rightPendulum.getBodyAcceleration(s) << endl;
-        cout << "calc A_G=" << ~A_G << endl;
 
         display.report(s);
-        if (s.getTime() >= finalTime)
-            break;
+        //if (s.getTime() >= finalTime)
+           // break;
 
-        // TODO: should check for errors or have or teach RKM to throw. 
-        myStudy.step(s.getTime() + dt);
+        //status = myStudy.stepTo(s.getTime() + dt);
+
+        if (s.getTime() >= nextReport*dt) 
+            ++nextReport;
+
+        if (s.getTime() >= schedule[nextScheduledEvent])
+            ++nextScheduledEvent;
     }
+
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
 
   } 
   catch (const exception& e) {
