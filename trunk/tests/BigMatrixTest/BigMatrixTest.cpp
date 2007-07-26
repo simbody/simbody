@@ -140,6 +140,14 @@ int main()
     cout << "  sizeof(mm22c_mat)=" << sizeof(mm22c_mat) << " should be " << 16*sizeof(Complex) << endl;
     mm22c.resize(2,2); cout << "  sizeof(mm22c(2,2))=" <<  ((char*)(&mm22c(1,1)(1,1)+1)) - ((char*)&mm22c(0,0)(0,0)) << endl;
 
+    cout << "scalar md.normRMS: " << md.normRMS() << endl;
+    try {
+        cout << "nonscalar mm22c.normRMS: " << mm22c.normRMS() << endl;
+    } catch(const std::exception& e) {
+        cout << "SHOULD FAIL FOR NONSCALAR ELEMENTS: " << e.what() << endl;
+    }
+
+
     mm22c.setToZero(); cout << "mm22c after setToZero():" << mm22c;
     mm22c.setToNaN(); cout << "mm22c after setToNaN():" << mm22c;
 

@@ -1,9 +1,17 @@
 #ifndef SimTK_SIMMATRIX_BIGMATRIX_H_
 #define SimTK_SIMMATRIX_BIGMATRIX_H_
 
-/* Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
+/* SimTK Core: SimTK Simmatrix(tm)
+ * -------------------------------
+ * This is part of the SimTK Core biosimulation toolkit originating
+ * from the NIH National Center for Physics-Based Simulation of
+ * Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ * See https://simtk.org.
+ *
+ * Portions copyright (c) 2005-7 Stanford University and Michael Sherman.
  * Contributors:
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 
@@ -18,7 +26,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS, OR COPYRIGHT HOLDERS BE
+ * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -402,6 +410,18 @@ public:
     // norm is NOT the same as the 2-norm, although they are equivalent for Vectors.
     ScalarSq normSqr() const { return scalarNormSqr(); }
     ScalarSq norm()    const { return std::sqrt(scalarNormSqr()); } // TODO -- not good; unnecessary overflow
+
+    // We only allow RMS norm if the elements are scalars. If there are no elements in this Matrix,
+    // we'll define its RMS norm to be 0, although NaN might be a better choice.
+    ScalarSq normRMS() const {
+        if (!CNT<ELT>::IsScalar)
+            SimTK_THROW1(Exception::Cant, "normRMS() only defined for scalar elements");
+        const long nelt = (long)nrow()*(long)ncol();
+        if (nelt == 0)
+            return ScalarSq(0);
+        return std::sqrt(scalarNormSqr()/nelt);
+    }
+
 
     ELT sum() const { ELT s; helper.sum(reinterpret_cast<Scalar*>(&s)); return s; } // add all the elements        
 
