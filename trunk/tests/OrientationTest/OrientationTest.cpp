@@ -111,7 +111,7 @@ void orthoTest(String msg, const Rotation& R) {
 }
 
 void f(const CoordinateAxis& ax) {
-    printf("which = %d\n", ax);
+    printf("which = %d\n", (int)ax);
 }
 void f(CoordinateAxis::X) {
     printf("X\n");
@@ -130,7 +130,7 @@ int main() {
 
     cout << "-----------------\n";
     cout << "X,Y,Z=" << XAxis << "," <<YAxis << "," <<ZAxis << endl;
-    printf("%d %d %d\n", XAxis, YAxis, ZAxis);
+    printf("%d %d %d\n", (int)XAxis, (int)YAxis, (int)ZAxis);
 
     f(XAxis); f(YAxis); f(ZAxis);
     printf("index: %d %d %d\n", a[XAxis], a[YAxis], a[ZAxis]);
