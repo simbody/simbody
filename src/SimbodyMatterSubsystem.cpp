@@ -299,16 +299,6 @@ Vector_<Vec3>& SimbodyMatterSubsystem::updAllParticleVelocities(State& s) const 
     return getRep().updAllParticleVelocities(s);
 }
 
-Real SimbodyMatterSubsystem::calcQConstraintNorm(const State& s) const { 
-    return getRep().calcQConstraintNorm(s); 
-}
-Real SimbodyMatterSubsystem::calcUConstraintNorm(const State& s) const { 
-    return getRep().calcUConstraintNorm(s); 
-}
-Real SimbodyMatterSubsystem::calcUDotConstraintNorm(const State& s) const { 
-    return getRep().calcUDotConstraintNorm(s); 
-}
-
 bool SimbodyMatterSubsystem::projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const { 
     return getRep().projectQConstraints(s,y_err,tol,targetTol); 
 }

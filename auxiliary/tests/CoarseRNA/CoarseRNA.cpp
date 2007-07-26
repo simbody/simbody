@@ -282,7 +282,7 @@ try // If anything goes wrong, an exception will be thrown.
     for (;;) {
         mbs.realize(s);
         printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
-            myRNA.calcQConstraintNorm(s), myRNA.calcUConstraintNorm(s),
+            myRNA.getQErr(s).normRMS(), myRNA.getUErr(s).normRMS(),
             myStudy.getPredictedNextStep());
         printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
             mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));

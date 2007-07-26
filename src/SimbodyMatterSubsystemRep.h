@@ -145,7 +145,7 @@ public:
         return 0;
     }
 
-        // END OF VIRTUALS.
+        // END OF SUBSYSTEM::GUTS VIRTUALS.
 
     // Return the MultibodySystem which owns this MatterSubsystem.
     const MultibodySystem& getMultibodySystem() const {
@@ -155,7 +155,7 @@ public:
 
         // CONSTRUCTION STAGE //
 
-    // The MatterSubsystemRep takes over ownership of the child
+    // The SimbodyMatterSubsystemRep takes over ownership of the child
     // MobilizedBody handle (leaving child as a non-owner reference), and makes it
     // a child (outboard body) of the indicated parent. The new child body's id is
     // returned, and will be greater than the parent's id.
@@ -206,7 +206,6 @@ public:
     Constraint& updConstraint(ConstraintId id) {
         assert(id < (int)constraints.size());
         assert(constraints[id]);
-        invalidateSubsystemTopologyCache();
         return *constraints[id];
     }
 
@@ -215,7 +214,7 @@ public:
 
     // These counts can be obtained even during construction, where they
     // just return the current counts.
-    // includes ground
+    // NBodies includes ground.
     int getNBodies()      const {return mobilizedBodies.size();}
     int getNParticles()   const {return 0;} // TODO
     int getNMobilities()  const {return getTotalDOF();}
@@ -304,24 +303,6 @@ public:
     const Vector_<Vec3>&  getAllParticleAccelerations(const State&) const {
         static const Vector_<Vec3> v;
         return v;
-    }
-
-    // TODO: this is unweighted RMS norm
-    Real calcQConstraintNorm(const State& s) const {
-        const Vector& qerr = getQErr(s);
-        return qerr.size() ? std::sqrt(qerr.normSqr()/qerr.size()) : 0.;
-    }
-
-    // TODO: this is unweighted, untimescaled RMS norm
-    Real calcUConstraintNorm(const State& s) const {
-        const Vector& uerr = getUErr(s);
-        return uerr.size() ? std::sqrt(uerr.normSqr()/uerr.size()) : 0.;
-    }
-
-    // TODO: this is unweighted, untimescaled RMS norm
-    Real calcUDotConstraintNorm(const State& s) const {
-        const Vector& uderr = getUDotErr(s);
-        return uderr.size() ? std::sqrt(uderr.normSqr()/uderr.size()) : 0.;
     }
 
     bool projectQConstraints(State& s, Vector& y_err, Real tol, Real targetTol) const {
@@ -759,5 +740,6 @@ private:
 };
 
 std::ostream& operator<<(std::ostream&, const SimbodyMatterSubsystemRep&);
+
 
 #endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_REP_H_

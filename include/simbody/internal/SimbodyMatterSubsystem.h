@@ -1,9 +1,17 @@
 #ifndef SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
 #define SimTK_SIMBODY_MATTER_SUBSYSTEM_H_
 
-/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
+/* SimTK Core: SimTK Simbody(tm)
+ * -----------------------------
+ * This is part of the SimTK Core biosimulation toolkit originating
+ * from the NIH National Center for Physics-Based Simulation of
+ * Biological Structures at Stanford (Simbios) funded under the
+ * NIH Roadmap for Medical Research, grant U54 GM072970.
+ * See https://simtk.org.
+ *
+ * Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
  * Contributors: Paul Mitiguy
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including 
@@ -45,11 +53,11 @@ class MultibodySystem;
  * The Simbody low-level multibody tree interface.
  * Equations represented:
  *
- *                               qdot = Q u
- *                               n(q) = 0
+ *                  qdot = Q u
+ *                  zdot = zdot(t,q,u,z)
  *
- *                   M udot + ~G mult = f
- *                  G udot + b(t,q,u) = 0
+ *      M udot + ~G mult = f(t,q,u,z)
+ *      G udot           = b(t,q,u) 
  *
  *              where
  *
@@ -57,14 +65,15 @@ class MultibodySystem;
  *     G=[V]  b=[bv]  f=T+J*(F-C)
  *       [P]    [bp]
  *
- * a(t,q,u,udot) = A udot + ba(t,q,u) = 0
- *          vdot = V udot + bv(t,q,u) = 0
- *       pdotdot = P udot + bp(t,q,u) = 0
+ * a(t,q,u,udot) = A udot - ba(t,q,u) = 0
+ *          vdot = V udot - bv(t,q,u) = 0
+ *       pdotdot = P udot - bp(t,q,u) = 0
  *           
  *                           v(t,q,u) = 0
- *                pdot = P u + c(t,q) = 0
+ *                pdot = P u - c(t,q) = 0
  *
  *                             p(t,q) = 0
+ *                               n(q) = 0
  * 
  * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
  * the coriolis and gyroscopic forces, T is user-applied joint mobility forces,
@@ -75,7 +84,7 @@ class MultibodySystem;
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
- * n() is the set of quaternion normalization constraints.
+ * n(q) is the set of quaternion normalization constraints.
  *
  * We calculate the constraint multipliers like this:
  *           G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
@@ -419,25 +428,7 @@ public:
 
         // POSITION STAGE responses //
 
-    /// Extract from the state cache the already-calculated spatial configuration of
-    /// body B's body frame, measured with respect to the ground frame and expressed
-    /// in the ground frame. That is, we return the location of the body frame's
-    /// origin, and the orientation of its x, y, and z axes, as the transform X_GB.
-    /// This response is available at Position stage.
-    //const Transform& getBodyTransform(const State&, MobilizedBodyId) const;
-
-    /// This is available at Stage::Position. These are *absolute* constraint
-    /// violations qerr=g(t,q), that is, they are unweighted.
-    const Vector& getQConstraintErrors(const State&) const;
-
-    /// This is the weighted norm of the errors returned by getQConstraintErrors(),
-    /// available whenever this subsystem has been realized to Stage::Position.
-    /// This is the scalar quantity that we need to keep below "tol"
-    /// during integration.
-    Real calcQConstraintNorm(const State&) const;
-
         // POSITION STAGE operators //
-
 
     /// Apply a force to a point on a body (a station). Provide the
     /// station in the body frame, force in the ground frame. Must
@@ -466,24 +457,7 @@ public:
 
         // VELOCITY STAGE responses //
 
-    /// Extract from the state cache the already-calculated spatial velocity of
-    /// body B's body frame, measured with respect to the ground frame and expressed
-    /// in the ground frame. That is, we return the linear velocity v_GB of the body
-    /// frame's origin, and the body's angular velocity w_GB as the spatial velocity
-    /// vector V_GB = {w_GB, v_GB}. This response is available at Velocity stage.
-    //const SpatialVec& getBodyVelocity(const State&, MobilizedBodyId bodyB) const;
-
-    /// This is available at Stage::Velocity. These are *absolute* constraint
-    /// violations verr=v(t,q,u), that is, they are unweighted.
-    const Vector& getUConstraintErrors(const State&) const;
-
-    /// This is the weighted norm of the errors returned by getUConstraintErrors().
-    /// That is, this is the scalar quantity that we need to keep below "tol"
-    /// during integration.
-    Real calcUConstraintNorm(const State&) const;
-
         // VELOCITY STAGE operators //
-    // none
 
         // VELOCITY STAGE solvers //
 
@@ -494,17 +468,10 @@ public:
     /// is reduced.
     bool projectUConstraints(State&, Vector& y_err, Real tol, Real targetTol) const;
 
-    /// This is available at Stage::Acceleration. These are *absolute* constraint
-    /// violations aerr = A udot - b, that is, they are unweighted.
-    const Vector& getUDotConstraintErrors(const State&) const;
-
-    /// This is the weighted norm of the errors returned by getUDotConstraintErrors().
-    Real calcUDotConstraintNorm(const State&) const;
-
         // ACCELERATION STAGE reponses
-    // none yet
 
 
+        // Bookkeeping
     SimTK_PIMPL_DOWNCAST(SimbodyMatterSubsystem, Subsystem);
     const SimbodyMatterSubsystemRep& getRep() const;
     SimbodyMatterSubsystemRep&       updRep();

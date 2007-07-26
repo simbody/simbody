@@ -384,27 +384,10 @@ try {
 
 
         mbs.realize(s, Stage::Acceleration);
-        /*
-        cout << "CONSTRAINT ERRORS:\n";
-        cout << "quat:" << Vec4::getAs(&s.getQ()[0]).norm()-1 << endl;
-        cout << "   q:" << pend.getQConstraintErrors(s)
-             << "(" << pend.calcQConstraintNorm(s) << ")\n";
-        cout << "   u:" << pend.getUConstraintErrors(s)
-             << "(" << pend.calcUConstraintNorm(s) << ")\n";
-        cout << "udot: " << pend.getUDotConstraintErrors(s)
-             << "(" << pend.calcUDotConstraintNorm(s) << ")\n\n";
-        */
-
         const Vector udot = s.getUDot();
-        Vector udot2;
-        Vector_<SpatialVec> acc2;
-        //pend.calcTreeUDot(s, 
-        //    pend.getAppliedMobilityForces(s),
-        //    pend.getAppliedBodyForces(s),
-        //    udot2, acc2);
+
         if (!(step % 100)) {
             cout << "udot = " << udot << endl;
-            //cout << "udot2= " << udot2 << endl;
         }
     }
 

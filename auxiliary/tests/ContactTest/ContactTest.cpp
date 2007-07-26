@@ -272,8 +272,8 @@ try
             cout << s.getTime() << ": E=" << mbs.getEnergy(s)
              << " (pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
-             << ") qerr=" << bouncers.calcQConstraintNorm(s)
-             << " uerr=" << bouncers.calcUConstraintNorm(s)
+             << ") qerr=" << bouncers.getQErr(s).normRMS()
+             << " uerr=" << bouncers.getUErr(s).normRMS()
              << " hNext=" << ee.getPredictedNextStep() << endl;
         }
         ++step;
