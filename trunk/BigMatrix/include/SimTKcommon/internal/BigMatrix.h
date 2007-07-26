@@ -107,6 +107,8 @@
 
 
 #include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/Exception.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
 #include "SimTKcommon/internal/Scalar.h"
 #include "SimTKcommon/internal/SmallMatrix.h"
 #include "SimTKcommon/internal/MatrixHelper.h"
