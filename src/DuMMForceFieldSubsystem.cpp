@@ -1,25 +1,33 @@
-/* Portions copyright (c) 2006-7 Stanford University and Michael Sherman.
- * Contributors: Christopher Bruns
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2006-7 Stanford University and the Authors.         *
+ * Authors: Michael Sherman                                                   *
+ * Contributors: Christopher Bruns, Randy Radmer                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
 
 /**@file
@@ -100,13 +108,14 @@ inline bool operator<(const IntPair& i1, const IntPair& i2) {
 
 class IntTriple {
 public:
-    IntTriple() {ints[0]=ints[1]=ints[2]=-1;}
+    IntTriple() {invalidate();}
     IntTriple(int i1, int i2, int i3, bool canon=false) {
         ints[0]= i1; ints[1]=i2; ints[2]=i3;
         if (canon) canonicalize();
     }
     int operator[](int i) const {assert(0<=i&&i<3); return ints[i];}
     bool isValid() const {return ints[0]>=0 && ints[1]>=0 && ints[2]>=0;}
+    void invalidate() {ints[0]=ints[1]=ints[2]=-1;}
     // canonical has 1st number <= last number; middle stays put
     void canonicalize() {if(ints[0]>ints[2]) std::swap(ints[0],ints[2]);}
 private:
@@ -569,6 +578,8 @@ public:
     void invalidateTopologicalCache() {
         bond13.clear(); bond14.clear(); bond15.clear();
         xbond12.clear(); xbond13.clear(); xbond14.clear(); xbond15.clear();
+        shortPath13.clear(); shortPath14.clear(); shortPath15.clear();
+        xshortPath13.clear(); xshortPath14.clear(); xshortPath15.clear();
         stretch.clear(); bend.clear(); torsion.clear();
     }
 
@@ -594,10 +605,22 @@ public:
     // bonded (1-2) atoms; the 13 list below has the 1-(2)-3 bonded atoms (that
     // is, it includes the path to the "3" atom), etc. The current Atom is
     // always atom "1" so it isn't stored.
+    //
+    // Note that the shortPath and xshortPath arrays give the shortest path between
+    // two atoms, while the bond and xbond arrays give *all* connection paths,
+    // with bonds3Atoms giving at most one.
 
     std::vector<IntPair>   bond13;
     std::vector<IntTriple> bond14;
     std::vector<IntQuad>   bond15;
+    std::vector<IntPair>   shortPath13;
+    std::vector<IntTriple> shortPath14;
+    std::vector<IntQuad>   shortPath15;
+
+    // This will be invalid unless we find that the current atom is directly
+    // bonded to exactly three other atoms, in which case their atom Ids will
+    // be stored here and isValid() will return true.
+    IntTriple bonds3Atoms;
 
     // These are shorter versions of the bond lists in which only those
     // bonds which include atoms from at least two bodies are included.
@@ -607,10 +630,22 @@ public:
     // Id is the lower of the two. But we need to keep both copies because
     // these are also used for scaling nearby interaction during non-bonded 
     // calculation.
+    // TODO: not sure the above comment about the need for both copies
+    // is (a) right in the first place, and (b) in any case necessary for
+    // the "bond" arrays since it would seem to apply only to the shortPath
+    // arrays which are used for scaling.
     std::vector<int>       xbond12;
     std::vector<IntPair>   xbond13;
     std::vector<IntTriple> xbond14;
     std::vector<IntQuad>   xbond15;
+    std::vector<IntPair>   xshortPath13;
+    std::vector<IntTriple> xshortPath14;
+    std::vector<IntQuad>   xshortPath15;
+
+    // This is even less likely to be valid than bonds3Atoms above. It will
+    // be valid iff (a) bonds3Atoms is valid, and (b) at least one of the
+    // three atoms is on a different body from this one.
+    IntTriple xbonds3Atoms;
 
     std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
     std::vector<BondBend>    bend;    // same length as   " 1-3 list
@@ -2151,8 +2186,8 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         if (!atomClasses[i].isValid()) continue;
 
         AtomClass& iclass = mutableThis->atomClasses[i];
-        iclass.vdwDij.resize((int)atomClasses.size()-i, CNT<Real>::getNaN());
-        iclass.vdwEij.resize((int)atomClasses.size()-i, CNT<Real>::getNaN()); 
+        iclass.vdwDij.resize((int)atomClasses.size()-i, NaN);
+        iclass.vdwEij.resize((int)atomClasses.size()-i, NaN); 
         for (int j=i; j < (int)atomClasses.size(); ++j) {
             const AtomClass& jclass = atomClasses[j];
             if (jclass.isValid())
@@ -2211,10 +2246,13 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     }
 
     // need to chase bonds to fill in the bonded data
-    // Be sure only to find the *shortest* path between two atoms
+    // Be sure to distinguish the *shortest* path between two atoms from 
+    // the set of all paths between atoms.
     for (int anum=0; anum < (int)atoms.size(); ++anum) {
         Atom& a = mutableThis->atoms[anum];
-        std::set<int> allBondedSoFar;   // to avoid duplicate paths
+
+        // This set is used to avoid duplicate paths in the shortestPath calculation.
+        std::set<int> allBondedSoFar;
 
         // Only the bond12 list should be filled in at the moment. We'll sort
         // all the lists when they're done for good hygiene.
@@ -2227,75 +2265,169 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
         // Find longer bond paths by building each list in turn from
         // the direct bonds of the atoms in the previous list.
 
-        // build the bond13 list
+        // build the bond13 and shortPath13 lists
+        // - bond1x list gives *all* paths between bonded atoms where all the
+        // atoms are distinct (i.e., no fair retracing one of the bonds or
+        // running around a short loop to get back to the first atom again).
+        // - shortPath1x list gives *shortest* path between bonded atoms
         a.bond13.clear();
+        a.shortPath13.clear();
         for (int j=0; j < (int)a.bond12.size(); ++j) {
             const Atom& a12 = atoms[a.bond12[j]];
             const AtomArray& a12_12 = a12.bond12;
             for (int k=0; k < (int)a12_12.size(); ++k) {
                 const int newAtom = a12_12[k];
-                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
-                    continue; // there was already a shorter path
-                allBondedSoFar.insert(newAtom);
+                assert(newAtom != a.bond12[j]);
+                if (newAtom == anum)
+                    continue; // no loop backs!
                 a.bond13.push_back(IntPair(a.bond12[j], newAtom));
+
+                // if no shorter path, note this short route
+                if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
+                    allBondedSoFar.insert(newAtom);
+                    a.shortPath13.push_back(IntPair(a.bond12[j], newAtom));
+                }
             }
         }
         std::sort(a.bond13.begin(), a.bond13.end());
+        std::sort(a.shortPath13.begin(), a.shortPath13.end());
 
-        // build the bond14 list
+        // Randy was too big of a sissy to combine the bond14 and shortPath14 computations!
+        // Or, discretion is sometimes the better part of valor.
+
+        // build the bond14 list (all non-overlapping, non-looped paths)
         a.bond14.clear();
         for (int j=0; j < (int)a.bond13.size(); ++j) {
             const Atom& a13 = atoms[a.bond13[j][1]];
             const AtomArray& a13_12 = a13.bond12;
             for (int k=0; k < (int)a13_12.size(); ++k) {
                 const int newAtom = a13_12[k];
-                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
-                    continue; // there was already a shorter path
-                allBondedSoFar.insert(newAtom);
-                a.bond14.push_back(IntTriple(a.bond13[j][0], a.bond13[j][1], newAtom));
+                assert(newAtom != a.bond13[j][1]);
+                // avoid repeated atoms (loop back)
+                if (newAtom!=anum && newAtom!=a.bond13[j][0]) {
+                    a.bond14.push_back(IntTriple(a.bond13[j][0],
+                                                 a.bond13[j][1], newAtom));
+                }
             }
         }
         std::sort(a.bond14.begin(), a.bond14.end());
 
+        // build the shortPath14 list
+        a.shortPath14.clear();
+        for (int j=0; j < (int)a.shortPath13.size(); ++j) {
+            const Atom& a13 = atoms[a.shortPath13[j][1]];
+            const AtomArray& a13_12 = a13.bond12;
+            for (int k=0; k < (int)a13_12.size(); ++k) {
+                const int newAtom = a13_12[k];
+
+                 // check if there was already a shorter path
+                if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
+                    allBondedSoFar.insert(newAtom);
+                    a.shortPath14.push_back(IntTriple(a.shortPath13[j][0],
+                                                      a.shortPath13[j][1], newAtom));
+                }
+            }
+        }
+        std::sort(a.shortPath14.begin(), a.shortPath14.end());
+
+
         // build the bond15 list
         a.bond15.clear();
         for (int j=0; j < (int)a.bond14.size(); ++j) {
-            const Atom& a14 = atoms[a.bond14[j][1]];
+            const Atom& a14 = atoms[a.bond14[j][2]];
             const AtomArray& a14_12 = a14.bond12;
             for (int k=0; k < (int)a14_12.size(); ++k) {
                 const int newAtom = a14_12[k];
-                if (allBondedSoFar.find(newAtom) != allBondedSoFar.end())
-                    continue; // there was already a shorter path
-                allBondedSoFar.insert(newAtom);
-                a.bond15.push_back(IntQuad(a.bond14[j][0], a.bond14[j][1], a.bond14[j][2], newAtom));
+                assert(newAtom != a.bond14[j][2]);
+
+                // avoid repeats and loop back
+                if (newAtom!=anum && newAtom!=a.bond14[j][0] && newAtom!=a.bond14[j][1]) {
+                    a.bond15.push_back(IntQuad(a.bond14[j][0],
+                                               a.bond14[j][1],
+                                               a.bond14[j][2], newAtom));
+                }
             }
         }
         std::sort(a.bond15.begin(), a.bond15.end());
 
+        // build the shortPath15 list
+        a.shortPath15.clear();
+        for (int j=0; j < (int)a.shortPath14.size(); ++j) {
+            const Atom& a14 = atoms[a.shortPath14[j][2]];
+            const AtomArray& a14_12 = a14.bond12;
+            for (int k=0; k < (int)a14_12.size(); ++k) {
+                const int newAtom = a14_12[k];
+
+                // check if there was already a shorter path
+                if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
+                    allBondedSoFar.insert(newAtom);
+                    a.shortPath15.push_back(IntQuad(a.shortPath14[j][0],
+                                                    a.shortPath14[j][1],
+                                                    a.shortPath14[j][2], newAtom));
+                }
+            }
+        }
+        std::sort(a.shortPath15.begin(), a.shortPath15.end());
+
+        // Find all atom that are connected to three (and only three) other atoms
+        // Then add all orderings of ths to the improper torsion list
+        a.bonds3Atoms.invalidate();
+        if (3 == (int)a.bond12.size()) {
+            a.bonds3Atoms = IntTriple(a.bond12[0], a.bond12[1], a.bond12[2]);
+        }
+
         // Fill in the cross-body bond lists. We only keep atoms which
-        // are on a different body.
-        a.xbond12.clear(); a.xbond13.clear(); a.xbond14.clear(); a.xbond15.clear();
+        // are on a different body. We do this both for the all-bond lists
+        // and the shortest bond lists.
+        a.xbond12.clear();
         for (int j=0; j < (int)a.bond12.size(); ++j)
             if (atoms[a.bond12[j]].bodyId != a.bodyId)
                 a.xbond12.push_back(a.bond12[j]);
 
+        a.xbond13.clear(); a.xshortPath13.clear();
         for (int j=0; j < (int)a.bond13.size(); ++j)
             if (   atoms[a.bond13[j][0]].bodyId != a.bodyId
                 || atoms[a.bond13[j][1]].bodyId != a.bodyId)
                 a.xbond13.push_back(a.bond13[j]);
+        for (int j=0; j < (int)a.shortPath13.size(); ++j)
+            if (   atoms[a.shortPath13[j][0]].bodyId != a.bodyId
+                || atoms[a.shortPath13[j][1]].bodyId != a.bodyId)
+                a.xshortPath13.push_back(a.shortPath13[j]);
 
+        a.xbond14.clear(); a.xshortPath14.clear();
         for (int j=0; j < (int)a.bond14.size(); ++j)
             if (   atoms[a.bond14[j][0]].bodyId != a.bodyId
                 || atoms[a.bond14[j][1]].bodyId != a.bodyId
                 || atoms[a.bond14[j][2]].bodyId != a.bodyId)
                 a.xbond14.push_back(a.bond14[j]);
+        for (int j=0; j < (int)a.shortPath14.size(); ++j)
+            if (   atoms[a.shortPath14[j][0]].bodyId != a.bodyId
+                || atoms[a.shortPath14[j][1]].bodyId != a.bodyId
+                || atoms[a.shortPath14[j][2]].bodyId != a.bodyId)
+                a.xshortPath14.push_back(a.shortPath14[j]);
 
+        a.xbond15.clear(); a.xshortPath15.clear();
         for (int j=0; j < (int)a.bond15.size(); ++j)
             if (   atoms[a.bond15[j][0]].bodyId != a.bodyId
                 || atoms[a.bond15[j][1]].bodyId != a.bodyId
                 || atoms[a.bond15[j][2]].bodyId != a.bodyId
                 || atoms[a.bond15[j][3]].bodyId != a.bodyId)
                 a.xbond15.push_back(a.bond15[j]);
+        for (int j=0; j < (int)a.shortPath15.size(); ++j)
+            if (   atoms[a.shortPath15[j][0]].bodyId != a.bodyId
+                || atoms[a.shortPath15[j][1]].bodyId != a.bodyId
+                || atoms[a.shortPath15[j][2]].bodyId != a.bodyId
+                || atoms[a.shortPath15[j][3]].bodyId != a.bodyId)
+                a.xshortPath15.push_back(a.shortPath15[j]);
+
+        a.xbonds3Atoms.invalidate();
+        // If there were 3 bonds, and at least one of them is
+        // on a different body, then we win!
+        if (a.bonds3Atoms.isValid() && 
+            (   atoms[a.bonds3Atoms[0]].bodyId != a.bodyId
+             || atoms[a.bonds3Atoms[1]].bodyId != a.bodyId
+             || atoms[a.bonds3Atoms[2]].bodyId != a.bodyId))
+            a.xbonds3Atoms = a.bonds3Atoms;
 
         const int c1 = getAtomClassId(anum);
 
@@ -2551,26 +2683,27 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
 }
 
 
-// We scale short range interactions but only for bonds which cross bodies.
+// We scale short range interactions but only when the shortest bonded path
+// cross bodies.
 void DuMMForceFieldSubsystemRep::scaleBondedAtoms
    (const Atom& a, Vector& vdwScale, Vector& coulombScale) const 
 {
     for (int i=0; i < (int)a.xbond12.size(); ++i) {
-        const int ix = a.xbond12[i]; 
+        const int ix = a.xbond12[i]; // those are also the shortest paths!
         vdwScale[ix]=vdwScale12; coulombScale[ix]=coulombScale12;
     }
-    for (int i=0; i < (int)a.xbond13.size(); ++i) {
-        const int ix = a.xbond13[i][1]; // the 2nd atom is the 1-3
+    for (int i=0; i < (int)a.xshortPath13.size(); ++i) {
+        const int ix = a.xshortPath13[i][1]; // the 2nd atom is the 1-3
         vdwScale[ix]=vdwScale13; coulombScale[ix]=coulombScale13;
     }
     if (vdwScale14 != 1 || coulombScale14 != 1)
-        for (int i=0; i < (int)a.xbond14.size(); ++i) {
-            const int ix = a.xbond14[i][2]; // the 3rd atom is the 1-4
+        for (int i=0; i < (int)a.xshortPath14.size(); ++i) {
+            const int ix = a.xshortPath14[i][2]; // the 3rd atom is the 1-4
             vdwScale[ix]=vdwScale14; coulombScale[ix]=coulombScale14;
         }
     if (vdwScale15 != 1 || coulombScale15 != 1)
-        for (int i=0; i < (int)a.xbond15.size(); ++i) {
-            const int ix = a.xbond15[i][3]; // the 4th atom is the 1-5
+        for (int i=0; i < (int)a.xshortPath15.size(); ++i) {
+            const int ix = a.xshortPath15[i][3]; // the 4th atom is the 1-5
             vdwScale[ix]=vdwScale15; coulombScale[ix]=coulombScale15;
         }
 }
@@ -2581,16 +2714,16 @@ void DuMMForceFieldSubsystemRep::unscaleBondedAtoms
     for (int i=0; i < (int)a.xbond12.size(); ++i) {
         const int ix = a.xbond12[i];    vdwScale[ix]=coulombScale[ix]=1;
     }
-    for (int i=0; i < (int)a.xbond13.size(); ++i) {
-        const int ix = a.xbond13[i][1]; vdwScale[ix]=coulombScale[ix]=1;
+    for (int i=0; i < (int)a.xshortPath13.size(); ++i) {
+        const int ix = a.xshortPath13[i][1]; vdwScale[ix]=coulombScale[ix]=1;
     }
     if (vdwScale14 != 1 || coulombScale14 != 1)
-        for (int i=0; i < (int)a.xbond14.size(); ++i) {
-            const int ix = a.xbond14[i][2]; vdwScale[ix]=coulombScale[ix]=1;
+        for (int i=0; i < (int)a.xshortPath14.size(); ++i) {
+            const int ix = a.xshortPath14[i][2]; vdwScale[ix]=coulombScale[ix]=1;
         }
     if (vdwScale15 != 1 || coulombScale15 != 1)
-        for (int i=0; i < (int)a.xbond15.size(); ++i) {
-            const int ix = a.xbond15[i][3]; vdwScale[ix]=coulombScale[ix]=1;
+        for (int i=0; i < (int)a.xshortPath15.size(); ++i) {
+            const int ix = a.xshortPath15[i][3]; vdwScale[ix]=coulombScale[ix]=1;
         }
 }
 
@@ -2866,32 +2999,56 @@ void Atom::dump() const {
     printf(" chargedAtomType=%d body=%d station=%g %g %g\n",
         chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
 
-    printf("    bond 1-2:");
+    printf("          bond 1-2:");
     for (int i=0; i < (int)bond12.size(); ++i)
         printf(" %d", bond12[i]);
-    printf("\n    bond 1-3:");
+    printf("\n          bond 1-3:");
     for (int i=0; i < (int)bond13.size(); ++i)
         printf(" %d-%d", bond13[i][0], bond13[i][1]);
-    printf("\n    bond 1-4:");
+    printf("\n          bond 1-4:");
     for (int i=0; i < (int)bond14.size(); ++i)
         printf(" %d-%d-%d", bond14[i][0], bond14[i][1], bond14[i][2]);
-    printf("\n    bond 1-5:");
+    printf("\n          bond 1-5:");
     for (int i=0; i < (int)bond15.size(); ++i)
         printf(" %d-%d-%d-%d", bond15[i][0], bond15[i][1], bond15[i][2], bond15[i][3]);
+    printf("\n     shortPath 1-3:");
+    for (int i=0; i < (int)shortPath13.size(); ++i)
+        printf(" %d-%d", shortPath13[i][0], shortPath13[i][1]);
+    printf("\n     shortPath 1-4:");
+    for (int i=0; i < (int)shortPath14.size(); ++i)
+        printf(" %d-%d-%d", shortPath14[i][0], shortPath14[i][1], shortPath14[i][2]);
+    printf("\n     shortPath 1-5:");
+    for (int i=0; i < (int)shortPath15.size(); ++i)
+        printf(" %d-%d-%d-%d", shortPath15[i][0], shortPath15[i][1], shortPath15[i][2], shortPath15[i][3]);
+    printf("\n       center of 3:");
+    if (bonds3Atoms.isValid())
+        printf(" %d-%d-%d", bonds3Atoms[0], bonds3Atoms[1], bonds3Atoms[2]);
     printf("\n");
 
-    printf("    xbond 1-2:");
+    printf("         xbond 1-2:");
     for (int i=0; i < (int)xbond12.size(); ++i)
         printf(" %d", xbond12[i]);
-    printf("\n    xbond 1-3:");
+    printf("\n         xbond 1-3:");
     for (int i=0; i < (int)xbond13.size(); ++i)
         printf(" %d-%d", xbond13[i][0], xbond13[i][1]);
-    printf("\n    xbond 1-4:");
+    printf("\n         xbond 1-4:");
     for (int i=0; i < (int)xbond14.size(); ++i)
         printf(" %d-%d-%d", xbond14[i][0], xbond14[i][1], xbond14[i][2]);
-    printf("\n    xbond 1-5:");
+    printf("\n         xbond 1-5:");
     for (int i=0; i < (int)xbond15.size(); ++i)
         printf(" %d-%d-%d-%d", xbond15[i][0], xbond15[i][1], xbond15[i][2], xbond15[i][3]);
+    printf("\n    xshortPath 1-3:");
+    for (int i=0; i < (int)xshortPath13.size(); ++i)
+        printf(" %d-%d", xshortPath13[i][0], xshortPath13[i][1]);
+    printf("\n    xshortPath 1-4:");
+    for (int i=0; i < (int)xshortPath14.size(); ++i)
+        printf(" %d-%d-%d", xshortPath14[i][0], xshortPath14[i][1], xshortPath14[i][2]);
+    printf("\n    xshortPath 1-5:");
+    for (int i=0; i < (int)xshortPath15.size(); ++i)
+        printf(" %d-%d-%d-%d", xshortPath15[i][0], xshortPath15[i][1], xshortPath15[i][2], xshortPath15[i][3]);
+    printf("\n      xcenter of 3:");
+    if (xbonds3Atoms.isValid())
+        printf(" %d-%d-%d", xbonds3Atoms[0], xbonds3Atoms[1], xbonds3Atoms[2]);
     printf("\n");
 
     printf("    1-2 stretch:");
