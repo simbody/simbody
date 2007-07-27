@@ -158,8 +158,8 @@ static void doSinOmegaExample() {
   for (int digits=0; digits<=41; ++digits) {
     Real acc;
     if (digits < 40) acc = std::pow(10., -(digits/(1.5*sizeof(double)/sizeof(PREC))));
-    else if (digits==40) acc=SimTK::NTraits<PREC>::Eps_78;
-    else if (digits==41) acc=SimTK::NTraits<PREC>::Eps;
+    else if (digits==40) acc=SimTK::NTraits<PREC>::getSignificant();
+    else if (digits==41) acc=SimTK::NTraits<PREC>::getEps();
 
     const Real w = .01;
     SinOmegaX func(w, acc);

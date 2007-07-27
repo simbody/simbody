@@ -31,7 +31,7 @@ SUBDIRS (staticTarget sharedTarget tests examples)
 SET( ARCH64 OFF CACHE BOOL "ON for 64bit builds, OFF for 32bit builds")
 MARK_AS_ADVANCED( ARCH64  )
 
-IF(${CMAKE_C_COMPILER} MATCHES "gcc")
+IF(${CMAKE_C_COMPILER} MATCHES "XXXgcc")
 
    IF (ARCH64)
        SET( M32 -m64 )
@@ -56,7 +56,7 @@ IF(${CMAKE_C_COMPILER} MATCHES "gcc")
       SET( CMAKE_CXX_FLAGS ${M32} )
    ENDIF( WIN32 )
 
-ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
+ENDIF(${CMAKE_C_COMPILER} MATCHES "XXXgcc")
 
 IF(UNIX AND NOT CMAKE_BUILD_TYPE)
     SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Debug or Release build" FORCE)

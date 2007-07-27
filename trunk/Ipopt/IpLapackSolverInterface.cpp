@@ -59,10 +59,6 @@ double *afact;
     // check if a factorization has to be done
     // perform the factorization
 
-    char fact;
-    char uplo = 'L';
-    int info;
-
     atmp = new double[n*n];
     for(i=0;i<n*n;i++) atmp[i] = a[i];
     if (new_matrix) {

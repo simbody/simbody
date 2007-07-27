@@ -136,7 +136,7 @@ public:
         if (order==1) return AccFac1;
         if (order==2) return AccFac2;
         assert(!"Unrecognized Differentiator order");
-        return NTraits<Real>::NaN;
+        return NaN;
     }
 
     void resetAllStatistics() {
@@ -184,7 +184,7 @@ public:
       : nFunc(nf), nParam(np), estimatedAccuracy(acc)
     {
         if (estimatedAccuracy < 0) // use default
-            estimatedAccuracy = NTraits<Real>::Eps_78; // ~1e-14 in double
+            estimatedAccuracy = SignificantReal; // ~1e-14 in double
 
         resetAllStatistics();
     }
@@ -703,7 +703,7 @@ DifferentiatorRep::DifferentiatorRep
     EstimatedAccuracy(fr.getEstimatedAccuracy()),
     defaultMethod(getMethodOrThrow(defMthd, DefaultDefaultMethod, "Differentiator")),
     AccFac1(std::sqrt(EstimatedAccuracy)),
-    AccFac2(std::pow(EstimatedAccuracy, NTraits<Real>::OneThird))
+    AccFac2(std::pow(EstimatedAccuracy, OneThird))
 {
     //TODO
     assert(NParameters >= 0 && NFunctions >= 0 && EstimatedAccuracy > 0);
