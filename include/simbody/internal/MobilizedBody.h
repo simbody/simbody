@@ -189,7 +189,7 @@ public:
     SpatialMat calcBodySpatialInertiaMatrixInGround(const State& s) const
     {
         if (isGround())
-            return SpatialMat(Mat33(NTraits<Real>::Infinity)); // sets diagonals to Inf
+            return SpatialMat(Mat33(Infinity)); // sets diagonals to Inf
 
         const MassProperties& mp   = getBodyMassProperties(s);
         const Rotation&       R_GB = getBodyRotation(s);

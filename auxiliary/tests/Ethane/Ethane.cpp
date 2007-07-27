@@ -37,8 +37,6 @@ using std::endl;
 
 using namespace SimTK;
 
-static const Real Pi      = (Real)SimTK_PI;
-
  // multiply to convert
 static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
 static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
@@ -823,7 +821,7 @@ try
 
         cout << s.getTime();
         cout << " deltaE=" << 100*(mbs.getEnergy(s)-Estart)
-                                /(std::abs(Estart)+NTraits<Real>::Tiny) 
+                                /(std::abs(Estart)+TinyReal) 
              << "% pe(kcal)=" << mbs.getPotentialEnergy(s)*KJ2Kcal
              << ", ke(kcal)=" << mbs.getKineticEnergy(s)*KJ2Kcal
              << " hNext(fs)=" << 1000*study.getPredictedNextStep();

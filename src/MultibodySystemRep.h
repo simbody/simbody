@@ -65,7 +65,7 @@ class DecorativeGeometry;
  */
 struct ForceCacheEntry {
     ForceCacheEntry() 
-      : potentialEnergy(NTraits<Real>::NaN), kineticEnergy(NTraits<Real>::NaN)
+      : potentialEnergy(NaN), kineticEnergy(NaN)
     { }
     // default copy constructor, copy assignment, destructor
 

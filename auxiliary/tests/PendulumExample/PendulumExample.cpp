@@ -35,8 +35,7 @@
 using namespace std;
 using namespace SimTK;
 
-static const Real Pi      = (Real)SimTK_PI, 
-                  Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
+static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
                   Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
 
 static const Transform GroundFrame;

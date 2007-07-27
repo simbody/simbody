@@ -974,7 +974,7 @@ private:
     }
 
     void initializeStepSizes() {
-        const Real MinStep = NTraits<Real>::Eps_34; // e.g., 1e-12 in double
+        const Real MinStep = std::pow(Eps, Real(0.75)); // e.g., 1e-12 in double
         if (userMaxStepSize != -1.) { // got max
             maxStepSize = userMaxStepSize;
             if (userInitStepSize != -1.) { // got max & init

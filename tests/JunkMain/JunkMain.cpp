@@ -96,7 +96,7 @@ try
 
         cout << s.getTime();
         cout << " deltaE=" << 100*(mbs.getEnergy(s)-Estart)
-                                /(std::abs(Estart)+NTraits<Real>::Tiny) 
+                                /(std::abs(Estart)+TinyReal) 
              << "% pe=" << mbs.getPotentialEnergy(s)
              << ", ke=" << mbs.getKineticEnergy(s)
              << " hNext(fs)=" << 1000*study.getPredictedNextStep();

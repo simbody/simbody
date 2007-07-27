@@ -189,7 +189,7 @@ public:
 
 public:
     void allocate(const SBTopologyCache& topology) {
-        totalMass = NTraits<Real>::NaN;
+        totalMass = NaN;
         centralInertias.resize(topology.nBodies);           // I_CB
         principalMoments.resize(topology.nBodies);          // (Ixx,Iyy,Izz)
         principalAxes.resize(topology.nBodies);             // [axx ayy azz]

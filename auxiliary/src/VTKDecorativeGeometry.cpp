@@ -65,7 +65,7 @@
 
 using namespace SimTK;
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real RadiansPerDegree = Pi/180;
 
 
     ///////////////////////////

@@ -36,7 +36,7 @@ using std::endl;
 
 using namespace SimTK;
 
-static const Real Pi = std::acos(-1.), RadiansPerDegree = Pi/180;
+static const Real RadiansPerDegree = Pi/180;
 
 // material properties
 // Steel
@@ -308,7 +308,7 @@ static void printFinalStats(const CPodes& cpodes)
   long int nproj, nce, nsetupsP, nprf;
   int flag;
 
-  h0u=NTraits<Real>::NaN;
+  h0u=NaN;
   nst=nfe=nsetups=nje=nfeLS=nni=ncfn=netf=nge=-1;
   nproj=nce=nsetupsP=nprf=-1;
 

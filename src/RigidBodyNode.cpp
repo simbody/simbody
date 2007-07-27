@@ -187,7 +187,7 @@ std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
 class RBGroundBody : public RigidBodyNode {
 public:
     RBGroundBody() : RigidBodyNode(
-        MassProperties(NTraits<Real>::Infinity, Vec3(0), NTraits<Real>::Infinity*Inertia(1)),
+        MassProperties(Infinity, Vec3(0), Infinity*Inertia(1)),
         Transform(), Transform()) 
     {
         uIndex = uSqIndex = qIndex = 0;
@@ -1446,7 +1446,7 @@ public:
 
         // If there is no translation worth mentioning, we'll leave the rotational
         // coordinate alone, otherwise rotate so M's x axis is aligned with r.
-        if (d >= 4*NTraits<Real>::Eps) {
+        if (d >= 4*Eps) {
             const Real angle = std::atan2(r[1],r[0]);
             toQ(q)[0] = angle;
             toQ(q)[1] = d;
@@ -1479,7 +1479,7 @@ public:
         }
 
         const Real x = fromQ(q)[1]; // translation along Mx (signed)
-        if (std::abs(x) < NTraits<Real>::Eps_78) {
+        if (std::abs(x) < SignificantReal) {
             // No translation worth mentioning; we can only do x velocity, which we just set above.
             return;
         }
@@ -2096,7 +2096,7 @@ public:
     // here -- that means we aren't allowed to touch the rotations, and for this
     // joint that's all there is.
     void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
-        if (only || T_MbM.norm() < NTraits<Real>::Eps) return;
+        if (only || T_MbM.norm() < Eps) return;
 
         const UnitVec3 e(T_MbM); // direction from Mb origin towards desired M origin
         const Real latitude  = std::atan2(-e[1],e[2]); // project onto Mb's yz plane

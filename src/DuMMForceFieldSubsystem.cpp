@@ -65,7 +65,6 @@ namespace SimTK {
                         (Real)std::pow(2.L, -1.L/6.L);
 
 // handy abbreviations
-static const Real Pi      = (Real)SimTK_PI;
 static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
 static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
 static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
@@ -374,7 +373,7 @@ public:
 
 class ChargedAtomType {
 public:
-    ChargedAtomType() : chargedAtomTypeId(-1), atomClassId(-1), partialCharge(NTraits<Real>::NaN) { }
+    ChargedAtomType() : chargedAtomTypeId(-1), atomClassId(-1), partialCharge(NaN) { }
     ChargedAtomType(int id, const char* nm, int aclass, Real chg)
       : chargedAtomTypeId(id), name(nm), atomClassId(aclass), partialCharge(chg) 
     { 

@@ -64,7 +64,7 @@ using std::endl;
 
 using namespace SimTK;
 
-static const Real Pi = (Real)SimTK_PI, RadiansPerDegree = Pi/180;
+static const Real RadiansPerDegree = Pi/180;
 
 void stateTest() {
   try {
