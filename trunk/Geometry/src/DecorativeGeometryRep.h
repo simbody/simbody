@@ -33,8 +33,6 @@
 
 namespace SimTK {
 
-static const Real Pi = (Real)SimTK_PI;
-
 class DecorativeGeometryRep {
 public:
     DecorativeGeometryRep() 

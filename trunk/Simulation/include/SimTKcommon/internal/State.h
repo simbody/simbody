@@ -154,7 +154,7 @@ private:
     void initialize() {
         transitionSeen = NoEventTrigger;
         lastTriggerTime = lastTriggerTimeBestGuess = localizationWindow
-            = beforeValue = afterValue = NTraits<Real>::NaN;
+            = beforeValue = afterValue = NaN;
     }
 
     EventTrigger transitionSeen;

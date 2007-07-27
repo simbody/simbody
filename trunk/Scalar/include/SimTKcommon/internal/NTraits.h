@@ -1,38 +1,46 @@
 #ifndef SimTK_SIMMATRIX_NTRAITS_H_
 #define SimTK_SIMMATRIX_NTRAITS_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors:
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simmatrix(tm)                       *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
 /** @file
  * This file contains classes and typedefs needed to provide uniform
  * handling of floating point numeric values. There are three numeric
- * classes: Real, Complex, conjugate and each comes in float, double,
+ * classes: real, complex, conjugate and each comes in float, double,
  * and long double precision. Each of these may be modified by a
  * negator, which does not change the in-memory *representation* but 
  * negates the *interpretation*. Thus there are 18 distinct scalar
  * types: 3 precisions each of real, complex, and conjugate and their
- * Negators.
+ * negators.
  *
  *      The Scalar Types
  *      ----------------
@@ -45,12 +53,12 @@
  *      <real>      ::= float | double | long double
  *      <complex>   ::= complex< <real> >
  *      <conjugate> ::= conjugate< <real> >
- *
- *   
  */
 
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/CompositeNumericalTypes.h"
+
+#include "SimTKcommon/Constants.h"
 
 #include <cstddef>
 #include <cassert>
@@ -225,8 +233,46 @@ public:
     static const TStandard& standardize(const T& t) {return t;} // already standard
     static TNormalize normalize(const T& t) {return t/abs(t);}
 
-    static T getNaN()      { return T(CNT<R>::getNaN(),     CNT<R>::getNaN()); }
-    static T getInfinity() { return T(CNT<R>::getInfinity(),CNT<R>::getInfinity()); }
+    static const T& getNaN() {
+        static const T c=T(NTraits<R>::getNaN(), NTraits<R>::getNaN());
+        return c;
+    }
+    static const T& getInfinity() {
+        static const T c=T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());
+        return c;
+    }
+    static const T& getI() {
+        static const T c = T(0,1);
+        return c;
+    }
+
+    // The rest are the same as the real equivalents, with zero imaginary part.              
+    static const T& getZero()         {static const T c(NTraits<R>::getZero());         return c;}
+    static const T& getOne()          {static const T c(NTraits<R>::getOne());          return c;}
+    static const T& getMinusOne()     {static const T c(NTraits<R>::getMinusOne());     return c;}
+    static const T& getTwo()          {static const T c(NTraits<R>::getTwo());          return c;}
+    static const T& getThree()        {static const T c(NTraits<R>::getThree());        return c;}
+    static const T& getOneHalf()      {static const T c(NTraits<R>::getOneHalf());      return c;}
+    static const T& getOneThird()     {static const T c(NTraits<R>::getOneThird());     return c;}
+    static const T& getOneFourth()    {static const T c(NTraits<R>::getOneFourth());    return c;}
+    static const T& getOneFifth()     {static const T c(NTraits<R>::getOneFifth());     return c;}
+    static const T& getOneSixth()     {static const T c(NTraits<R>::getOneSixth());     return c;}
+    static const T& getOneSeventh()   {static const T c(NTraits<R>::getOneSeventh());   return c;}
+    static const T& getOneEighth()    {static const T c(NTraits<R>::getOneEighth());    return c;}
+    static const T& getOneNinth()     {static const T c(NTraits<R>::getOneNinth());     return c;}
+    static const T& getPi()           {static const T c(NTraits<R>::getPi());           return c;}
+    static const T& getOneOverPi()    {static const T c(NTraits<R>::getOneOverPi());    return c;}
+    static const T& getE()            {static const T c(NTraits<R>::getE());            return c;}
+    static const T& getLog2E()        {static const T c(NTraits<R>::getLog2E());        return c;}
+    static const T& getLog10E()       {static const T c(NTraits<R>::getLog10E());       return c;}
+    static const T& getSqrt2()        {static const T c(NTraits<R>::getSqrt2());        return c;}
+    static const T& getOneOverSqrt2() {static const T c(NTraits<R>::getOneOverSqrt2()); return c;}
+    static const T& getSqrt3()        {static const T c(NTraits<R>::getSqrt3());        return c;}
+    static const T& getOneOverSqrt3() {static const T c(NTraits<R>::getOneOverSqrt3()); return c;}
+    static const T& getCubeRoot2()    {static const T c(NTraits<R>::getCubeRoot2());    return c;}
+    static const T& getCubeRoot3()    {static const T c(NTraits<R>::getCubeRoot3());    return c;}
+    static const T& getLn2()          {static const T c(NTraits<R>::getLn2());          return c;}
+    static const T& getLn10()         {static const T c(NTraits<R>::getLn10());         return c;}
 };
 
 
@@ -346,11 +392,52 @@ public:
         { return TStandard(t); }        // i.e., convert to complex
     static TNormalize normalize(const T& t) {return TNormalize(t/abs(t));}
 
-    static conjugate<R> getNaN()      { return conjugate<R>(CNT<C>::getNaN()); }
-    static conjugate<R> getInfinity() { 
-        const C inf = CNT<C>::getInfinity();        // this is    Inf + Inf*i
-        return conjugate<R>(inf.real(),inf.imag()); // so this is Inf - Inf*i
+    // We want a "conjugate NaN", NaN - NaN*i, meaning both reals should
+    // be positive NaN.
+    static const T& getNaN() { 
+        static const T c=T(NTraits<R>::getNaN(),NTraits<R>::getNaN());
+        return c;
     }
+    // We want a "conjugate infinity", Inf - Inf*i, meaning both stored reals
+    // are positive Inf.
+    static const T& getInfinity() {
+        static const T c=T(NTraits<R>::getInfinity(),NTraits<R>::getInfinity());
+        return c;
+    }
+    // But we want the constant i (=sqrt(-1)) to be the same however we represent it,
+    // so for conjugate i = 0 - (-1)i.
+    static const T& getI() {
+        static const T c = T(0,-1);
+        return c;
+    }
+
+    // The rest are the same as the real equivalents, with zero imaginary part.              
+    static const T& getZero()         {static const T c(NTraits<R>::getZero());         return c;}
+    static const T& getOne()          {static const T c(NTraits<R>::getOne());          return c;}
+    static const T& getMinusOne()     {static const T c(NTraits<R>::getMinusOne());     return c;}
+    static const T& getTwo()          {static const T c(NTraits<R>::getTwo());          return c;}
+    static const T& getThree()        {static const T c(NTraits<R>::getThree());        return c;}
+    static const T& getOneHalf()      {static const T c(NTraits<R>::getOneHalf());      return c;}
+    static const T& getOneThird()     {static const T c(NTraits<R>::getOneThird());     return c;}
+    static const T& getOneFourth()    {static const T c(NTraits<R>::getOneFourth());    return c;}
+    static const T& getOneFifth()     {static const T c(NTraits<R>::getOneFifth());     return c;}
+    static const T& getOneSixth()     {static const T c(NTraits<R>::getOneSixth());     return c;}
+    static const T& getOneSeventh()   {static const T c(NTraits<R>::getOneSeventh());   return c;}
+    static const T& getOneEighth()    {static const T c(NTraits<R>::getOneEighth());    return c;}
+    static const T& getOneNinth()     {static const T c(NTraits<R>::getOneNinth());     return c;}
+    static const T& getPi()           {static const T c(NTraits<R>::getPi());           return c;}
+    static const T& getOneOverPi()    {static const T c(NTraits<R>::getOneOverPi());    return c;}
+    static const T& getE()            {static const T c(NTraits<R>::getE());            return c;}
+    static const T& getLog2E()        {static const T c(NTraits<R>::getLog2E());        return c;}
+    static const T& getLog10E()       {static const T c(NTraits<R>::getLog10E());       return c;}
+    static const T& getSqrt2()        {static const T c(NTraits<R>::getSqrt2());        return c;}
+    static const T& getOneOverSqrt2() {static const T c(NTraits<R>::getOneOverSqrt2()); return c;}
+    static const T& getSqrt3()        {static const T c(NTraits<R>::getSqrt3());        return c;}
+    static const T& getOneOverSqrt3() {static const T c(NTraits<R>::getOneOverSqrt3()); return c;}
+    static const T& getCubeRoot2()    {static const T c(NTraits<R>::getCubeRoot2());    return c;}
+    static const T& getCubeRoot3()    {static const T c(NTraits<R>::getCubeRoot3());    return c;}
+    static const T& getLn2()          {static const T c(NTraits<R>::getLn2());          return c;}
+    static const T& getLn10()         {static const T c(NTraits<R>::getLn10());         return c;}
 };
 
 // Any op involving conjugate & a real is best left as a conjugate. However,
@@ -471,34 +558,47 @@ public:                                         \
     static TAbs       abs(const T& t) {return std::abs(t);}                 \
     static const TStandard& standardize(const T& t) {return t;}             \
     static TNormalize normalize(const T& t) {return (t>0?T(1):(t<0?T(-1):getNaN()));} \
-    static T getNaN()      { return std::numeric_limits<T>::quiet_NaN(); }  \
-    static T getInfinity() { return std::numeric_limits<T>::infinity();  }  \
-    \
-    SimTK_SimTKCOMMON_EXPORT static const T NaN;             \
-    SimTK_SimTKCOMMON_EXPORT static const T Infinity;        \
-    SimTK_SimTKCOMMON_EXPORT static const T Pi;              \
-    SimTK_SimTKCOMMON_EXPORT static const T OneOverPi;       \
-    SimTK_SimTKCOMMON_EXPORT static const T E;               \
-    SimTK_SimTKCOMMON_EXPORT static const T Log2E;           \
-    SimTK_SimTKCOMMON_EXPORT static const T Log10E;          \
-    SimTK_SimTKCOMMON_EXPORT static const T Sqrt2;           \
-    SimTK_SimTKCOMMON_EXPORT static const T OneOverSqrt2;    \
-    SimTK_SimTKCOMMON_EXPORT static const T Sqrt3;           \
-    SimTK_SimTKCOMMON_EXPORT static const T OneOverSqrt3;    \
-    SimTK_SimTKCOMMON_EXPORT static const T CubeRoot2;       \
-    SimTK_SimTKCOMMON_EXPORT static const T CubeRoot3;       \
-    SimTK_SimTKCOMMON_EXPORT static const T Ln2;             \
-    SimTK_SimTKCOMMON_EXPORT static const T Ln10;            \
-    SimTK_SimTKCOMMON_EXPORT static const T OneThird;        \
-    SimTK_SimTKCOMMON_EXPORT static const T OneSixth;        \
-    SimTK_SimTKCOMMON_EXPORT static const T OneSeventh;      \
-    SimTK_SimTKCOMMON_EXPORT static const T OneNinth;        \
-    SimTK_SimTKCOMMON_EXPORT static const T Eps;             \
-    SimTK_SimTKCOMMON_EXPORT static const T Tiny;            \
-    SimTK_SimTKCOMMON_EXPORT static const T Eps_12; SimTK_SimTKCOMMON_EXPORT static const T Eps_13; SimTK_SimTKCOMMON_EXPORT static const T Eps_23; \
-    SimTK_SimTKCOMMON_EXPORT static const T Eps_14; SimTK_SimTKCOMMON_EXPORT static const T Eps_34; SimTK_SimTKCOMMON_EXPORT static const T Eps_54; \
-    SimTK_SimTKCOMMON_EXPORT static const T Eps_15; SimTK_SimTKCOMMON_EXPORT static const T Eps_25; SimTK_SimTKCOMMON_EXPORT static const T Eps_35; SimTK_SimTKCOMMON_EXPORT static const T Eps_45; \
-    SimTK_SimTKCOMMON_EXPORT static const T Eps_18; SimTK_SimTKCOMMON_EXPORT static const T Eps_38; SimTK_SimTKCOMMON_EXPORT static const T Eps_58; SimTK_SimTKCOMMON_EXPORT static const T Eps_78; \
+    /* properties of this floating point representation, with memory addresses */     \
+    static const T& getNaN()          {static const T c=std::numeric_limits<T>::quiet_NaN(); return c;} \
+    static const T& getInfinity()     {static const T c=std::numeric_limits<T>::infinity();  return c;} \
+    static const T& getEps()          {static const T c=std::numeric_limits<T>::epsilon();   return c;} \
+    static const T& getLeastPositive(){static const T c=std::numeric_limits<T>::min();       return c;} \
+    static const T& getMostPositive() {static const T c=std::numeric_limits<T>::max();       return c;} \
+    static const T& getLeastNegative(){static const T c=-std::numeric_limits<T>::min();      return c;} \
+    static const T& getMostNegative() {static const T c=-std::numeric_limits<T>::max();      return c;} \
+    static const T& getSqrtEps()      {static const T c=std::sqrt(getEps());                 return c;} \
+    static const T& getTiny()         {static const T c=std::pow(getEps(), (T)1.25L);        return c;} \
+    static const T& getSignificant()  {static const T c=std::pow(getEps(), (T)0.875L);       return c;} \
+    /* carefully calculated constants with convenient memory addresses */                \
+    static const T& getZero()         {static const T c=(T)(0);               return c;} \
+    static const T& getOne()          {static const T c=(T)(1);               return c;} \
+    static const T& getMinusOne()     {static const T c=(T)(-1);              return c;} \
+    static const T& getTwo()          {static const T c=(T)(2);               return c;} \
+    static const T& getThree()        {static const T c=(T)(3);               return c;} \
+    static const T& getOneHalf()      {static const T c=(T)(0.5L);            return c;} \
+    static const T& getOneThird()     {static const T c=(T)(1.L/3.L);         return c;} \
+    static const T& getOneFourth()    {static const T c=(T)(0.25L);           return c;} \
+    static const T& getOneFifth()     {static const T c=(T)(0.2L);            return c;} \
+    static const T& getOneSixth()     {static const T c=(T)(1.L/6.L);         return c;} \
+    static const T& getOneSeventh()   {static const T c=(T)(1.L/7.L);         return c;} \
+    static const T& getOneEighth()    {static const T c=(T)(0.125L);          return c;} \
+    static const T& getOneNinth()     {static const T c=(T)(1.L/9.L);         return c;} \
+    static const T& getPi()           {static const T c=(T)(SimTK_PI);        return c;} \
+    static const T& getOneOverPi()    {static const T c=(T)(1.L/SimTK_PI);    return c;} \
+    static const T& getE()            {static const T c=(T)(SimTK_E);         return c;} \
+    static const T& getLog2E()        {static const T c=(T)(SimTK_LOG2E);     return c;} \
+    static const T& getLog10E()       {static const T c=(T)(SimTK_LOG10E);    return c;} \
+    static const T& getSqrt2()        {static const T c=(T)(SimTK_SQRT2);     return c;} \
+    static const T& getOneOverSqrt2() {static const T c=(T)(1.L/SimTK_SQRT2); return c;} \
+    static const T& getSqrt3()        {static const T c=(T)(SimTK_SQRT3);     return c;} \
+    static const T& getOneOverSqrt3() {static const T c=(T)(1.L/SimTK_SQRT3); return c;} \
+    static const T& getCubeRoot2()    {static const T c=(T)(SimTK_CBRT2);     return c;} \
+    static const T& getCubeRoot3()    {static const T c=(T)(SimTK_CBRT3);     return c;} \
+    static const T& getLn2()          {static const T c=(T)(SimTK_LN2);       return c;} \
+    static const T& getLn10()         {static const T c=(T)(SimTK_LN10);      return c;} \
+    /* integer digit counts useful for formatted input and output */                     \
+    static const int getNumDigits()         {static const int c=(int)(std::log10(1/getEps()) -0.5); return c;} \
+    static const int getLosslessNumDigits() {static const int c=(int)(std::log10(1/getTiny())+0.5); return c;} \
 }; \
 template<> struct NTraits<R>::Result<float> \
   {typedef Widest<R,float>::Type Mul;typedef Mul Dvd;typedef Mul Add;typedef Mul Sub;};    \

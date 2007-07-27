@@ -342,7 +342,7 @@ try {
     cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
          << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
 
-    const Real pi2 = NTraits<Real>::Pi/2;
+    const Real pi2 = Pi/2;
     const Real pi2x = -pi2 + 1e-8;
     cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
     const Vec3 vin(-3, pi2x, 0.1);

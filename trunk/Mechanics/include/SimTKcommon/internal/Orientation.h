@@ -110,7 +110,7 @@ public:
     typedef Vec<3,Real,S> BaseVec;
     typedef UnitRow<S>    TransposeType;
 
-    UnitVec() : BaseVec(NTraits<Real>::NaN) { }
+    UnitVec() : BaseVec(NaN) { }
 
     // Copy constructor.
     UnitVec(const UnitVec& u) 
@@ -202,7 +202,7 @@ public:
     typedef Row<3,Real,S> BaseRow;
     typedef UnitVec<S>    TransposeType;
 
-    UnitRow() : BaseRow(NTraits<Real>::NaN) { }
+    UnitRow() : BaseRow(NaN) { }
 
     // Copy constructor.
     UnitRow(const UnitRow& u) 

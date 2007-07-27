@@ -582,7 +582,7 @@ int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTr
 int System::Guts::calcTimeOfNextScheduledEventImpl
     (const State&, Real& tNextEvent, Array<int>& eventIds) const
 {
-    tNextEvent = NTraits<Real>::Infinity;
+    tNextEvent = Infinity;
     eventIds.clear();
     return 0;
 }

@@ -21,6 +21,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+//#define SimTK_DEFAULT_PRECISION 1
+//#define SimTK_DEFAULT_PRECISION 2
+//#define SimTK_DEFAULT_PRECISION 4
+
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/internal/Scalar.h"
 
@@ -28,6 +32,8 @@
 #include <iomanip>
 #include <limits>
 #include <complex>
+#include <cstdio>
+
 using std::cout;
 using std::endl;
 using std::setprecision;
@@ -118,8 +124,8 @@ int main()
         negator<conjugate<float> >::Result< complex<double> >::Mul(complex<double>(.1,.2));
     cout << "ndc=" << ndc << endl;
 
-    negator<Complex> x(Complex(7.1,1.7)), y;
-    y = x; y *= 2.;
+    negator<Complex> x(Complex(Real(7.1),Real(1.7))), y;
+    y = x; y *= Real(2);
     cout << "x=" << x << "(y=x)*=2. =" << y << endl;
     cout << "x*2.=" << x*2. << endl;
     cout << "x*y=" << x*y << endl;
@@ -158,35 +164,81 @@ int main()
     // Constants in various precisions
 #define STRZ_(X) #X
 #define STRZ(X) STRZ_(X)
+
+
+    printf("\nCONSTANTS IN DEFAULT REAL PRECISION\n");
+    printf("NumDigits=%d, LosslessNumDigits=%d\n", NumDigitsReal, LosslessNumDigitsReal);
+
+    cout << "NaN=" << setprecision(LosslessNumDigitsReal) << NaN << endl;
+    cout << "Infinity=" << setprecision(LosslessNumDigitsReal) << Infinity << endl;
+
+    cout << "Eps=" << setprecision(LosslessNumDigitsReal) << Eps << endl;
+    cout << "SqrtEps=" << setprecision(LosslessNumDigitsReal) << SqrtEps << endl;
+    cout << "TinyReal=" << setprecision(LosslessNumDigitsReal) << TinyReal << endl;
+    cout << "SignificantReal=" << setprecision(LosslessNumDigitsReal) << SignificantReal << endl;
+    cout << "LeastPositiveReal=" << setprecision(LosslessNumDigitsReal) << LeastPositiveReal << endl;
+    cout << "MostPositiveReal=" << setprecision(LosslessNumDigitsReal) << MostPositiveReal << endl;
+    cout << "LeastNegativeReal=" << setprecision(LosslessNumDigitsReal) << LeastNegativeReal << endl;
+    cout << "MostNegativeReal=" << setprecision(LosslessNumDigitsReal) << MostNegativeReal << endl;
+    cout << "Zero=" << setprecision(LosslessNumDigitsReal) << Zero << endl;
+    cout << "One=" << setprecision(LosslessNumDigitsReal) << One << endl;
+    cout << "MinusOne=" << setprecision(LosslessNumDigitsReal) << MinusOne << endl;
+    cout << "Two=" << setprecision(LosslessNumDigitsReal) << Two << endl;
+    cout << "Three=" << setprecision(LosslessNumDigitsReal) << Three << endl;
+    cout << "OneHalf=" << setprecision(LosslessNumDigitsReal) << OneHalf << endl;
+    cout << "OneThird=" << setprecision(LosslessNumDigitsReal) << OneThird << endl;
+    cout << "OneFourth=" << setprecision(LosslessNumDigitsReal) << OneFourth << endl;
+    cout << "OneFifth=" << setprecision(LosslessNumDigitsReal) << OneFifth << endl;
+    cout << "OneSixth=" << setprecision(LosslessNumDigitsReal) << OneSixth << endl;
+    cout << "OneSeventh=" << setprecision(LosslessNumDigitsReal) << OneSeventh << endl;
+    cout << "OneEighth=" << setprecision(LosslessNumDigitsReal) << OneEighth << endl;
+    cout << "OneNinth=" << setprecision(LosslessNumDigitsReal) << OneNinth << endl;
+    cout << "Pi=" << setprecision(LosslessNumDigitsReal) << Pi << endl;
+    cout << "OneOverPi=" << setprecision(LosslessNumDigitsReal) << OneOverPi << endl;
+    cout << "E=" << setprecision(LosslessNumDigitsReal) << E << endl;
+    cout << "Log2E=" << setprecision(LosslessNumDigitsReal) << Log2E << endl;
+    cout << "Log10E=" << setprecision(LosslessNumDigitsReal) << Log10E << endl;
+    cout << "Sqrt2=" << setprecision(LosslessNumDigitsReal) << Sqrt2 << endl;
+    cout << "OneOverSqrt2=" << setprecision(LosslessNumDigitsReal) << OneOverSqrt2 << endl;
+    cout << "Sqrt3=" << setprecision(LosslessNumDigitsReal) << Sqrt3 << endl;
+    cout << "OneOverSqrt3=" << setprecision(LosslessNumDigitsReal) << OneOverSqrt3 << endl;
+    cout << "CubeRoot2=" << setprecision(LosslessNumDigitsReal) << CubeRoot2 << endl;
+    cout << "CubeRoot3=" << setprecision(LosslessNumDigitsReal) << CubeRoot3 << endl;
+    cout << "Ln2=" << setprecision(LosslessNumDigitsReal) << Ln2 << endl;
+    cout << "Ln10=" << setprecision(LosslessNumDigitsReal) << Ln10 << endl;
+    cout << "I=" << setprecision(LosslessNumDigitsReal) << I << endl;
+
+    printf("\nSOME CONSTANTS IN VARIOUS PRECISIONS\n");
+
     printf("PI=%s\n", STRZ(SimTK_PI));
-    cout << "f=" << setprecision(std::numeric_limits<float>::digits10+2) << NTraits<float>::Pi
-         << " d=" << setprecision(std::numeric_limits<double>::digits10+2) << NTraits<double>::Pi
-         << " ld=" << setprecision(std::numeric_limits<long double>::digits10+2) << NTraits<long double>::Pi << endl;
+    cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getPi()
+         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getPi()
+         << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getPi() << endl;
     
-    printf("1/sqrt(2)=%.18lg\n", 1/SimTK_SQRT2);
-    cout << "f=" << setprecision(std::numeric_limits<float>::digits10+2) << NTraits<float>::OneOverSqrt2
-         << " d=" << setprecision(std::numeric_limits<double>::digits10+2) << NTraits<double>::OneOverSqrt2
-         << " ld=" << setprecision(std::numeric_limits<long double>::digits10+2) << NTraits<long double>::OneOverSqrt2 << endl;
+    std::printf("1/sqrt(2)=%.18Lg\n", 1/SimTK_SQRT2);
+    cout << "f=" << setprecision(NTraits<float>::getNumDigits()+2) << NTraits<float>::getOneOverSqrt2()
+         << " d=" << setprecision(NTraits<double>::getNumDigits()+2) << NTraits<double>::getOneOverSqrt2()
+         << " ld=" << setprecision(NTraits<long double>::getNumDigits()+2) << NTraits<long double>::getOneOverSqrt2() << endl;
 
-    printf("Eps f=%.16lg d=%.16lg ld=%.16lg\n",
-        (long double)NTraits<float>::Eps, 
-        (long double)NTraits<double>::Eps, 
-        NTraits<long double>::Eps);
+    printf("Eps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
+        (long double)NTraits<float>::getEps(), 
+        (long double)NTraits<double>::getEps(), 
+        NTraits<long double>::getEps());
 
-    printf("Eps_13 f=%.16lg d=%.16lg ld=%.16lg\n",
-        (long double)NTraits<float>::Eps_13, 
-        (long double)NTraits<double>::Eps_13, 
-        NTraits<long double>::Eps_13);
+    printf("SqrtEps f=%.16Lg d=%.16Lg ld=%.16Lg\n",
+        (long double)NTraits<float>::getSqrtEps(), 
+        (long double)NTraits<double>::getSqrtEps(), 
+        NTraits<long double>::getSqrtEps());
 
-    printf("Eps_78 f=%.16lg d=%.16lg ld=%.16lg\n",
-        (long double)NTraits<float>::Eps_78, 
-        (long double)NTraits<double>::Eps_78, 
-        NTraits<long double>::Eps_78);
+    printf("Significant f=%.16Lg d=%.16Lg ld=%.16Lg\n",
+        (long double)NTraits<float>::getSignificant(), 
+        (long double)NTraits<double>::getSignificant(), 
+        NTraits<long double>::getSignificant());
 
-    printf("Tiny f=%.16lg d=%.16lg ld=%.16lg\n",
-        (long double)NTraits<float>::Tiny, 
-        (long double)NTraits<double>::Tiny, 
-        NTraits<long double>::Tiny);
+    printf("Tiny f=%.16Lg d=%.16Lg ld=%.16Lg\n",
+        (long double)NTraits<float>::getTiny(), 
+        (long double)NTraits<double>::getTiny(), 
+        NTraits<long double>::getTiny());
 
     return 0; // success
 }

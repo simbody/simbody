@@ -1,28 +1,36 @@
 #ifndef SimTK_SIMMATRIX_SCALAR_H_
 #define SimTK_SIMMATRIX_SCALAR_H_
 
-/* Portions copyright (c) 2005-6 Stanford University and Michael Sherman.
- * Contributors:
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simmatrix(tm)                       *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
 /** @file
  * This is a user-includable header which includes everything needed
@@ -40,7 +48,82 @@
 
 namespace SimTK {
 
-    // Some scalar utilities
+    /////////////////////////////////////////
+    // Handy default-precision definitions //
+    /////////////////////////////////////////
+
+typedef conjugate<Real> Conjugate;  // like Complex
+
+    // Note that these constants have memory addresses, so you can
+    // return references to them.
+    // These are static variables rather than static members to avoid
+    // problems with static initialization order.
+
+    // Properties of the floaing point representation.
+
+static const Real& NaN               = NTraits<Real>::getNaN();      // "not a number"
+static const Real& Infinity          = NTraits<Real>::getInfinity();
+
+// Epsilon is the size of roundoff noise; it is the smallest positive number
+// such that 1+Eps != 1.
+static const Real& Eps               = NTraits<Real>::getEps();         // double ~1e-16, float ~1e-7
+static const Real& SqrtEps           = NTraits<Real>::getSqrtEps();     // eps^(1/2): double ~1e- 8, float ~3e-4
+static const Real& TinyReal          = NTraits<Real>::getTiny();        // eps^(5/4): double ~1e-20, float ~1e-9
+static const Real& SignificantReal   = NTraits<Real>::getSignificant(); // eps^(7/8): double ~1e-14, float ~1e-6
+
+static const Real& LeastPositiveReal = NTraits<Real>::getLeastPositive(); // double ~1e-308, float ~1e-38
+static const Real& MostPositiveReal  = NTraits<Real>::getMostPositive();  // double ~1e+308, float ~1e+38
+static const Real& LeastNegativeReal = NTraits<Real>::getLeastNegative();
+static const Real& MostNegativeReal  = NTraits<Real>::getMostNegative();
+
+// This is the number of decimal digits that can be reliably stored and
+// retrieved in the default Real precision (typically log10(1/eps)-1).
+static const int NumDigitsReal = NTraits<Real>::getNumDigits(); // double ~15, float ~6
+
+// This is the smallest number of decimal digits you should store in a file
+// if you want to be able to get exactly the same bit pattern back when you
+// read it in. Typically, this is about log10(1/tiny).
+static const int LosslessNumDigitsReal = NTraits<Real>::getLosslessNumDigits(); // double ~20, float ~9
+
+    // Carefully calculated constants, with convenient memory addresses.
+
+static const Real& Zero         = NTraits<Real>::getZero();
+static const Real& One          = NTraits<Real>::getOne();
+static const Real& MinusOne     = NTraits<Real>::getMinusOne();
+static const Real& Two          = NTraits<Real>::getTwo();
+static const Real& Three        = NTraits<Real>::getThree();
+
+static const Real& OneHalf      = NTraits<Real>::getOneHalf();
+static const Real& OneThird     = NTraits<Real>::getOneThird();
+static const Real& OneFourth    = NTraits<Real>::getOneFourth();
+static const Real& OneFifth     = NTraits<Real>::getOneFifth();
+static const Real& OneSixth     = NTraits<Real>::getOneSixth();
+static const Real& OneSeventh   = NTraits<Real>::getOneSeventh();
+static const Real& OneEighth    = NTraits<Real>::getOneEighth();
+static const Real& OneNinth     = NTraits<Real>::getOneNinth();
+static const Real& Pi           = NTraits<Real>::getPi();
+static const Real& OneOverPi    = NTraits<Real>::getOneOverPi();
+static const Real& E            = NTraits<Real>::getE();
+static const Real& Log2E        = NTraits<Real>::getLog2E();
+static const Real& Log10E       = NTraits<Real>::getLog10E();
+static const Real& Sqrt2        = NTraits<Real>::getSqrt2();
+static const Real& OneOverSqrt2 = NTraits<Real>::getOneOverSqrt2();  // also sqrt(2)/2
+static const Real& Sqrt3        = NTraits<Real>::getSqrt3();
+static const Real& OneOverSqrt3 = NTraits<Real>::getOneOverSqrt3();
+static const Real& CubeRoot2    = NTraits<Real>::getCubeRoot2();
+static const Real& CubeRoot3    = NTraits<Real>::getCubeRoot3();
+static const Real& Ln2          = NTraits<Real>::getLn2();
+static const Real& Ln10         = NTraits<Real>::getLn10();
+
+// We only need one complex constant. For the rest just use
+// Complex(the Real constant), or if you need an address use
+// NTraits<Complex>::getPi(), etc.
+static const Complex& I = NTraits<Complex>::getI();
+
+
+    ///////////////////////////
+    // SOME SCALAR UTILITIES //
+    ///////////////////////////
 
 // s=sign(n)
 // Return int -1,0,1 according to n<0, n==0, n>0 for any integer

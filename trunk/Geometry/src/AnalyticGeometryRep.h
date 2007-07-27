@@ -33,8 +33,6 @@
 
 namespace SimTK {
 
-static const Real Pi = std::acos(Real(-1));
-
 class AnalyticGeometryRep {
 public:
     AnalyticGeometryRep() : myHandle(0) { }

@@ -227,13 +227,13 @@ Vec3 Rotation::convertToBodyFixed123() const {
     // then 1 due to noise.) Numerically, we can get very close to 1
     // before we have to treat this as singular, because our calculation
     // of cos(q1) below will be well behaved.
-    if (1-std::abs(sq1) <= 4*NTraits<Real>::Eps)
+    if (1-std::abs(sq1) <= 4*Eps)
     {
         // sq1==1, so we'll assume cq1==0 and we're going to set the last
         // angle to zero making sq2=0 and cq2=1, vastly simplifying the
         // middle column above.
         q0 = std::atan2(R[2][1],R[1][1]);
-        q1 = sq1 > 0 ? NTraits<Real>::Pi/2 : -NTraits<Real>::Pi/2;
+        q1 = sq1 > 0 ? Pi/2 : -Pi/2;
         q2 = 0;
     } else {
         // cq1 isn't zero; in fact it isn't much smaller than sqrt(eps)
@@ -324,7 +324,7 @@ Vec4 Rotation::convertToAngleAxis() const {
 // We require 0 < pointingError < pi. 0 would require perfect accuracy; 180 would
 // answer true for all possible rotation matrices.
 bool Rotation::isSameRotationToWithinAngle(const Rotation& R_GX, Real okPointingError) const {
-    assert(0 < okPointingError && okPointingError < NTraits<Real>::Pi);
+    assert(0 < okPointingError && okPointingError < Pi);
     const Rotation R_BX = ~(*this)*R_GX;
     const Real pointingError = std::abs(R_BX.convertToAngleAxis()[0]);
     return pointingError <= okPointingError;
@@ -336,7 +336,7 @@ bool Rotation::isSameRotationToWithinAngle(const Rotation& R_GX, Real okPointing
 // angle-axis format, should have a rotation angle of no more than
 // machine epsilon^(7/8), i.e. around 1e-14 radians in double precision.
 bool Rotation::isSameRotationToMachinePrecision(const Rotation& R_GX) const {
-    return isSameRotationToWithinAngle(R_GX, NTraits<Real>::Eps_78);
+    return isSameRotationToWithinAngle(R_GX, SignificantReal);
 }
 
 
@@ -349,15 +349,13 @@ Quaternion::Quaternion(const Rotation& r)
 // You will get numerical garbage anywhere near zero, and I don't
 // mean all that near!
 Vec4 Quaternion::convertToAngleAxis() const {
-    const static Real pi = std::acos(-1.);
-
     const Real& ca2  = (*this)[0];      // cos(a/2)
     const Vec3& sa2v = getSubVec<3>(1); // sin(a/2)*v
     Real        sa2  = sa2v.norm();     // always >= 0
 
     // TODO: what is the right value to use here?? Norms can be
     // much less than eps and still OK -- this is 1e-32 in double.
-    if (sa2 < square(std::numeric_limits<Real>::epsilon()))
+    if (sa2 < square(Eps))
         return Vec4(0,1,0,0); // no rotation, x axis
 
     Vec4 av;
@@ -368,7 +366,7 @@ Vec4 Quaternion::convertToAngleAxis() const {
     // pull into the -pi < a <= pi range (that is, instead of rotating say,
     // 359 degrees clockwise, rotate -1 degree counterclockwise.
     av[0] = 2*std::atan2(sa2,ca2);
-    if (av[0] > pi) av[0] -= 2*pi;
+    if (av[0] > Pi) av[0] -= 2*Pi;
     av.updSubVec<3>(1) = sa2v/sa2;
     return av;
 }
