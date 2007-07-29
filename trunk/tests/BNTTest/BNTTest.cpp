@@ -168,7 +168,7 @@ int main()
 
     printf("\nCONSTANTS IN DEFAULT REAL PRECISION\n");
     printf("NumDigits=%d, LosslessNumDigits=%d\n", NumDigitsReal, LosslessNumDigitsReal);
-
+    cout << "e^(i*pi)+1=" << std::pow(E, I*Pi)+1 << endl;
     cout << "NaN=" << setprecision(LosslessNumDigitsReal) << NaN << endl;
     cout << "Infinity=" << setprecision(LosslessNumDigitsReal) << Infinity << endl;
 
