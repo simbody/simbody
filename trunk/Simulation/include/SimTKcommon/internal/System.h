@@ -470,34 +470,6 @@ private:
     System::EventTriggerInfoRep&       updRep()       {assert(rep); return *rep;}
 };
 
-/// The abstract parent of all Studies.
-/// TODO
-class SimTK_SimTKCOMMON_EXPORT Study {
-public:
-    Study() : rep(0) { }
-    ~Study();
-    Study(const Study&);
-    Study& operator=(const Study&);
-
-    Study(const System& sys);
-
-    const System& getSystem() const;
-    const State&  getState()  const;
-    State&        updState();
-
-    /// Is this handle the owner of this rep? This is true if the
-    /// handle is empty or if its rep points back here.
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-
-    // Internal use only
-    explicit Study(class StudyRep* r) : rep(r) { }
-    bool            hasRep() const {return rep!=0;}
-    const StudyRep& getRep() const {assert(rep); return *rep;}
-protected:
-    class StudyRep* rep;
-};
-
 } // namespace SimTK
 
 #endif // SimTK_SimTKCOMMON_SYSTEM_H_

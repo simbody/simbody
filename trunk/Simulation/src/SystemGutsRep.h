@@ -253,39 +253,6 @@ private:
     Real localizationWindow;
 };
 
-// TODO
-class StudyRep {
-public:
-    StudyRep(const System& sys)
-      : myHandle(0), system(new System(sys))
-    {
-        system->realize(state, Stage::Topology);
-    }
-
-    virtual ~StudyRep() {
-        delete system;
-    }
-
-    StudyRep* clone() const {
-        StudyRep* dup = cloneStudyRep();
-        dup->myHandle = 0;
-        return dup;
-    }
-    virtual StudyRep* cloneStudyRep() const = 0;
-
-    const System& getSystem() const {return *system;}
-    const State&  getState()  const {return state;}
-    State&        updState()        {return state;}
-
-    void setMyHandle(Study& h) {myHandle = &h;}
-    void clearMyHandle() {myHandle=0;}
-private:
-    friend class Study;
-    Study* myHandle;     // the owner of this rep
-
-    System* system;
-    State   state;
-};
 
 } // namespace SimTK
 
