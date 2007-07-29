@@ -70,14 +70,20 @@ class DecorativeGeometry;
  * mechanical accelerations can be calculated.
  *
  * There are two distinct users of this class:
- *   - the concrete Systems derived from this class
- *   - the end user of a concrete System
- * Only end user methods and a few bookkeeping methods are in the
- * main System class, which is a SimTK Handle class, meaning that
- * it consists only of a single pointer, which points to a 
+ *   - System Users: people who are making use of a concrete System (which will
+ *     inherit methods from this class)
+ *   - System Developers: people who are writing concrete System classes
+ * Note that System Users include people who are writing
+ * Studies, Reporters, Modelers and so on as well as end users who
+ * are accessing the System directly.
+ *
+ * Only methods intended for System Users and a few bookkeeping methods
+ * are in the main System class, which is a SimTK Handle class, meaning
+ * that it consists only of a single pointer, which points to a 
  * System::Guts class. The Guts class is abstract, and virtual methods
- * to be implemented in the concrete System are defined there, along
- * with other utilities of use to the concrete System implementor but
+ * to be implemented by System Developers in the concrete
+ * System are defined there, along
+ * with other utilities of use to the concrete System Developer but
  * not to the end user. The Guts class is declared in a separate
  * header file, and only people who are writing their own System
  * classes need look there.
@@ -100,9 +106,9 @@ public:
     const String& getVersion() const;
 
 
-        //////////////////////////////
-        // EVALUATION (REALIZATION) //
-        //////////////////////////////
+        /////////////////
+        // REALIZATION //
+        /////////////////
 
     /// The following call must be made after any topological change
     /// has been made to this System, before the System can be used
@@ -110,12 +116,13 @@ public:
     /// is const. That's because the topology cannot be changed by this method.
     /// Various mutable "cache" entries will get calculated, including the
     /// default State, a reference to which is returned.
-    /// The returned State has already been realized through the highest
-    /// Stage, using the defaults for the Model-stage variables, and
-    /// default values for all later stage variables as well. You can access
+    /// The returned State has already been realized through the Model
+    /// Stage, using the defaults for the Model-stage variables, meaning
+    /// that all later stage variables have been allocated and set to
+    /// their default values as well. You can access
     /// this same default State again using getDefaultState().
     /// If the current topology has already been realized, this call does 
-    /// nothing but return a refernece to the already-built default State.
+    /// nothing but return a reference to the already-built default State.
     const State& realizeTopology() const;
 
 
@@ -124,9 +131,10 @@ public:
     /// most recent topological change to this System. This method returns the
     /// same reference returned by realizeTopology(). The State to which
     /// a reference is returned was created by the most recent
-    /// realizeTopology() call. It has default values for all the 
-    /// Model-stage variables, and has already been realized through
-    /// the highest Stage, so you can use it directly to obtain information
+    /// realizeTopology() call. It has already been realized through the
+    /// Model Stage, using default values for all the Model-stage variables.
+    /// All later-stage variables have been allocated and set to their
+    /// default values. You can use this state directly to obtain information
     /// about the System in its default state or you can use this state
     /// to initialize other States to which you have write access. Those
     /// States are then suitable for further computation with this System.
@@ -146,8 +154,8 @@ public:
     /// or higher in the passed-in State is *destroyed* here. The number, types
     /// and memory locations of those state variables will change, so any
     /// existing references or pointers to them are invalid after this call.
-    /// Note that this routine modifies its argument, but makes no changes
-    /// at all to the System itself.
+    /// Note that this routine modifies its State argument, but makes no changes
+    /// at all to the System itself and is hence const.
     void realizeModel(State&) const;
 
     /// Realize the entire System to the indicated Stage. The passed-in
@@ -282,10 +290,11 @@ public:
     static const char* getEventCauseName(EventCause);
 
 
-    /// This solver handles a set of events which the time stepper has
+    /// This solver handles a set of events which a TimeStepper has
     /// denoted as having occurred. The event handler may make discontinuous
     /// changes in the State, in general both to discrete and continuous variables,
-    /// but NOT to time. If changes are made to continuous variables, the handler
+    /// but NOT to time. It cannot change topological information.
+    /// If changes are made to continuous variables, the handler
     /// is required to make sure the returned state satisfies the constraints to the
     /// indicated accuracy level.
     /// On return, the handleEvents routine should set the output variable
@@ -316,13 +325,17 @@ public:
 
     /// This routine should be called to determine if and when there is an event
     /// scheduled to occur at a particular time. This is a *lot* cheaper than
-    /// making the integrator hunt these down like ordinary state-dependent events.
-    /// The returned time can be passed to the integrator's stepping function as
+    /// making the Integrator hunt these down like ordinary state-dependent events.
+    /// The returned time can be passed to the Integrator's stepping function as
     /// the advance time limit.
-    /// The default implementation of this virtual method returns infinity as the
+    /// The default implementation of this virtual method returns Infinity as the
     /// next scheduled time, and a zero length eventIds list.
     void calcTimeOfNextScheduledEvent
         (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+
+
+    //TODO: these operators should be provided by the Vector class where they
+    //can be perfomed more efficiently.
 
     static Real calcWeightedRMSNorm(const Vector& values, const Vector& weights) {
         assert(weights.size() == values.size());
@@ -388,7 +401,7 @@ private:
 };
 
 
-/// This class is used to communicate between the System and the 
+/// This class is used to communicate between the System and an 
 /// Integrator regarding the properties of a particular event trigger
 /// function. Currently these are:
 ///   - Whether to watch for rising sign transitions, falling, or both. [BOTH]

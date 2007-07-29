@@ -76,7 +76,7 @@ static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, c
  * portions are allocated by the client program and which by the
  * binary library code. For binary compatiblity, only the side
  * which allocated a piece of memory can access it. So for example,
- * the client code can use the C++ Guts Virtual Function Table (VFT)
+ * the client code can use the C++ System::Guts Virtual Function Table (VFT)
  * to call the concrete Guts methods. But the library side, when
  * calling those same methods, must go through its own explicitly-
  * managed VFT since it can't know what ordering was used for the

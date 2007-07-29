@@ -32,7 +32,8 @@
 
 /**@file
  *
- * Implementation of System, System::Guts, and System::GutsRep.
+ * Implementation of System, System::Guts, and System::GutsRep, and also
+ * EventTriggerInfo and EventTriggerInfoRep.
  */
 
 #include "SimTKcommon/basics.h"
@@ -595,6 +596,13 @@ int System::Guts::calcTimeOfNextScheduledEventImpl
     return 0;
 }
 
+    ///////////////////////////
+    // SYSTEM::GUTS::GUTSREP //
+    ///////////////////////////
+
+// All inline currently.
+
+
 
     ////////////////////////
     // EVENT TRIGGER INFO //
@@ -672,6 +680,12 @@ System::EventTriggerInfo::setRequiredLocalizationTimeWindow(Real w) {
     updRep().localizationWindow = w; 
     return *this;
 }
+    ////////////////////////////
+    // EVENT TRIGGER INFO REP //
+    ////////////////////////////
+
+// All inline currently.
+
 
 } // namespace SimTK
 

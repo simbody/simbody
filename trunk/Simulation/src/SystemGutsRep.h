@@ -221,7 +221,7 @@ private:
     // as a whole also.
     mutable bool systemTopologyRealized;
 
-    // This is only meaningful if topologyRealized==true.
+    // This is only meaningful if systemTopologyRealized==true.
     mutable State defaultState;
 
     mutable bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
