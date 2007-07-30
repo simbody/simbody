@@ -440,9 +440,8 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     :  defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
       cameraNeedsToBeReset(true)
 {
-    if (!m.systemTopologyHasBeenRealized())
-        SimTK_THROW1(Exception::Cant,
-            "VTKReporter(): realizeTopology() has not yet been called on the supplied MultibodySystem");
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(m.systemTopologyHasBeenRealized(),
+        "MultibodySystem", m.getName(), "VTKReporterRep::VTKReporterRep()");
 
     myHandle = reporter;
     const Real cameraScale = defaultBodyScaleForAutoGeometry == 0. 

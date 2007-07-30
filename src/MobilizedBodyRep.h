@@ -70,12 +70,45 @@ public:
         int&                     nxtUSq,
         int&                     nxtQ) const = 0; 
 
+    virtual void realizeTopologyImpl(State&) const { }
+
+    void realizeTopology(State& s) const {
+        realizeTopologyImpl(s);
+        //TODO: more? Move RigidBodyNode creation here?
+    }
+
     // Copy out nq default values for q, beginning at the indicated address.
     // The concrete class should assert if nq is not a reasonable
     // number for the kind of mobilizer; there is a bug somewhere in that case. 
     // This routine shouldn't be called directly -- call copyOutDefaultQ() below 
     // instead which has a nicer interface and does some error checking.
     virtual void copyOutDefaultQImpl(int nq, Real* q) const = 0;
+
+    virtual void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+    {
+    }
+
+    void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+    {
+        // We know how to deal with the topological (construction) geometry
+        // here. For bodies we can just draw it at topology stage. For mobilizers,
+        // we might not know the placement of the mobilizer frames on the parent
+        // and child bodies until Instance stage, at which point we can transform
+        // and then draw the topological geometry.
+        if (stage == Stage::Topology) {
+            appendTopologicalBodyGeometry(geom);
+        } else if (stage == Stage::Instance) {
+            const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+            const Transform& X_PMb = getInboardFrame(s);
+            const Transform& X_BM  = getOutboardFrame(s);
+            appendTopologicalMobilizerGeometry(X_BM, X_PMb, geom);
+        }
+
+        // Let the individual mobilizer deal with any complicated stuff.
+        calcDecorativeGeometryAndAppendImpl(s,stage,geom);
+    }
 
     void addOutboardDecoration(const Transform& X_MD, const DecorativeGeometry& g) {
         outboardGeometry.push_back(g); // make a new copy
@@ -90,25 +123,6 @@ public:
         inboardGeometry.back().setTransform(X_MbD*g.getTransform());
     }
 
-    void appendBodyGeometry(Array<DecorativeGeometry>& geom) const {
-        getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyId(), geom);
-    }
-
-    // TODO: should call at Instance stage to wait for M and Mb instantiation.
-    void appendMobilizerGeometry(const Transform& X_BM, const Transform& X_PMb,
-                                 Array<DecorativeGeometry>& geom) const
-    {
-        for (int i=0; i<(int)outboardGeometry.size(); ++i) {
-            geom.push_back(outboardGeometry[i]);
-            geom.back().setBodyId(getMyMobilizedBodyId())
-                       .setTransform(X_BM*outboardGeometry[i].getTransform());
-        }
-        for (int i=0; i<(int)inboardGeometry.size(); ++i) {
-            geom.push_back(inboardGeometry[i]);
-            geom.back().setBodyId(getMyParentMobilizedBodyId())
-                       .setTransform(X_PMb*inboardGeometry[i].getTransform());
-        }
-    }
 
     void findMobilizerQs(const State&, int& qStart, int& nq) const;
     void findMobilizerUs(const State&, int& uStart, int& nu) const;
@@ -143,6 +157,24 @@ public:
         // TODO: these should come from the state if the body has variable mass props
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
         return getMyRigidBodyNode().getMassProperties_OB_B();
+    }
+
+    const Transform& getInboardFrame (const State& s) const {
+        // TODO: these should come from the state if the mobilizer has variable frames
+        const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
+        return getMyRigidBodyNode().getX_PMb();
+    }
+    const Transform& getOutboardFrame(const State& s) const {
+        // TODO: these should come from the state if the mobilizer has variable frames
+        const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
+        return getMyRigidBodyNode().getX_BM();
+    }
+
+    void setInboardFrame (State& s, const Transform& X_PMb) const {
+        assert(!"setInboardFrame(s) not implemented yet");
+    }
+    void setOutboardFrame(State& s, const Transform& X_BM) const {
+        assert(!"setOutboardFrame(s) not implemented yet");
     }
 
     const Transform& getBodyTransform(const State& s) const {
@@ -227,6 +259,33 @@ public:
     void setMyHandle(MobilizedBody& h) {myHandle = &h;}
     const MobilizedBody& getMyHandle() const {assert(myHandle); return *myHandle;}
     void clearMyHandle() {myHandle=0;}
+
+private:
+    // Body topological geometry is defined with respect to the body frame so we
+    // can draw it right away.
+    void appendTopologicalBodyGeometry(Array<DecorativeGeometry>& geom) const {
+        getBody().getRep().appendDecorativeGeometry(getMyMobilizedBodyId(), geom);
+    }
+
+    // Mobilizer topological geometry is defined with respect to the M (outboard, child)
+    // frame and the Mb (inboard, parent) frame. The placement of those frames with
+    // respect to the body frame can be Instance variables, so we can't draw this geometry
+    // until Instance stage. At that point we can find M and Mb, so they are passed in
+    // here.
+    void appendTopologicalMobilizerGeometry(const Transform& X_BM, const Transform& X_PMb,
+                                            Array<DecorativeGeometry>& geom) const
+    {
+        for (int i=0; i<(int)outboardGeometry.size(); ++i) {
+            geom.push_back(outboardGeometry[i]);
+            geom.back().setBodyId(getMyMobilizedBodyId())
+                       .setTransform(X_BM*outboardGeometry[i].getTransform());
+        }
+        for (int i=0; i<(int)inboardGeometry.size(); ++i) {
+            geom.push_back(inboardGeometry[i]);
+            geom.back().setBodyId(getMyParentMobilizedBodyId())
+                       .setTransform(X_PMb*inboardGeometry[i].getTransform());
+        }
+    }
 
 private:
     friend class MobilizedBody;
@@ -423,7 +482,7 @@ private:
 
 class MobilizedBody::Ball::BallRep : public MobilizedBody::MobilizedBodyRep {
 public:
-    BallRep() : defaultRadius(0.5), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    BallRep() : defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
     BallRep* clone() const { return new BallRep(*this); }
 
     RigidBodyNode* createRigidBodyNode(
@@ -439,6 +498,9 @@ public:
         else
             Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
     }
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
 
     void setDefaultRadius(Real r) {
         assert(r>0);
@@ -472,6 +534,9 @@ public:
         else
             Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
     }
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
 
     void setDefaultRadii(const Vec3& r) {
         assert(r[0]>0 && r[1]>0 && r[2]>0);

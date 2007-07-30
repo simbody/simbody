@@ -384,7 +384,6 @@ public:
         updAllParticleMasses(s) = masses;
     }
 
-
     // Note that particle generalized coordinates, speeds, and applied forces
     // are defined to be the particle Cartesian locations, velocities, and
     // applied force vectors, so can be set directly at Stage::Model or higher.

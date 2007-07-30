@@ -104,41 +104,22 @@ int main(int argc, char** argv) {
     Body::Rigid pendulumBody = Body::Rigid(MassProperties(m, Vec3(0), Inertia(1)))
                                   .addDecoration(Transform(), DecorativeBrick(Vec3(.1,.0667,.05)));
 
-    MobilizedBody::Pin leftPendulum(twoPends.Ground(),
-                                      Transform(Vec3(-1, 0, 0)),
-                                    pendulumBody,
-                                      Transform(Vec3(0, d, 0)));
-/*
-    MobilizedBody::Ball rightPendulum = MobilizedBody::Ball(twoPends.Ground(), pendulumBody)
-                                         .setDefaultInboardFrame(Vec3(1,0,0))
-                                         .setDefaultOutboardFrame(Vec3(0,d,0));
- */
+    MobilizedBody::  /*Pin*/Ball
+        leftPendulum(twoPends.Ground(),
+                         Transform(Vec3(-1, 0, 0)),
+                     pendulumBody,
+                         Transform(Vec3(0, d, 0)));
 
-    Vec3 radii(1/2.,1/3.,1/4.); radii*=.5;
+    leftPendulum.setDefaultRadius(0.2); // for Ball artwork
+
+    Vec3 radii(1/2.,1/3.,1/4.); radii*=.5; //radii=Vec3(.333,.5,1);
     MobilizedBody::Ellipsoid rightPendulum(twoPends.Ground(), pendulumBody);
     rightPendulum.setDefaultRadii(radii)
                  .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
                  .setDefaultOutboardFrame(Vec3(0,d,0));
-    rightPendulum.addInboardDecoration(Transform(),DecorativeEllipsoid(rightPendulum.getDefaultRadii())
-                                                      .setColor(Purple).setOpacity(.5));
-    const Vec3 r=rightPendulum.getDefaultRadii();
-    const Real minr = std::min(r[0],std::min(r[1],r[2]));
-    const Real hw = minr/2;  // half width of follower plate in x
-    const Real hh = minr/20; // half height of follower plate
-    rightPendulum.addOutboardDecoration(Transform(Vec3(0,0,hh)), // raise up so bottom is on xy plane
-                                        DecorativeBrick(Vec3(hw,2*hw/3.,hh)).setColor(Gray).setOpacity(1));
-
-    //leftPendulum.addBodyDecoration(Transform(), DecorativeBrick().setOpacity(.2));
-    //rightPendulum.addInboardDecoration(Transform(), DecorativeSphere(0.1).setColor(Yellow));
-    //rightPendulum.addOutboardDecoration(Transform(), DecorativeLine());
-
 
     //rightPendulum.setDefaultAngle(20*Deg2Rad);
     rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(0,0,1)));
-
-    // Beauty is in the eye of the beholder ...
-    //viz.addBodyFixedDecoration(leftPendulum,  Transform(), DecorativeSphere(.1).setColor(Red));
-    //viz.addBodyFixedDecoration(rightPendulum, Transform(), DecorativeSphere(.1).setColor(Blue));
 
         // OPTIONALLY TIE TOGETHER WITH SPRING/DAMPER OR DISTANCE CONSTRAINT
 
@@ -170,11 +151,11 @@ int main(int argc, char** argv) {
 
     //forces.addMobilityConstantForce(leftPendulum, 0, 20);
     //forces.addCustomForce(ShermsForce(leftPendulum,rightPendulum));
-    //forces.addGlobalEnergyDrain(3);
+    //forces.addGlobalEnergyDrain(1);
 
-    mbs.setHasTimeAdvancedEvents(State(),false);
+    mbs.setHasTimeAdvancedEvents(false);
 
-    cout << "HAS TIME ADVANCED EVENTS=" << mbs.hasTimeAdvancedEvents(State()) << endl;
+    cout << "HAS TIME ADVANCED EVENTS=" << mbs.hasTimeAdvancedEvents() << endl;
 
     State s = mbs.realizeTopology(); // returns a reference to the the default state
     //twoPends.setUseEulerAngles(s, true);
@@ -189,7 +170,8 @@ int main(int argc, char** argv) {
     cout << "Default configuration shown. Ready? "; cin >> c;
 
 
-    leftPendulum.setAngle(s, -60*Deg2Rad);
+    //leftPendulum.setAngle(s, -60*Deg2Rad);
+    leftPendulum.setQToFitRotation(s, Rotation::aboutZ(-60*Deg2Rad));
 
     rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
     //rightPendulum.setQToFitRotation(s, Rotation());
@@ -227,7 +209,7 @@ int main(int argc, char** argv) {
     //myStudy.setMaximumStepSize(.1);
 
     const Real dt = .02; // output intervals
-    const Real finalTime = 10;
+    const Real finalTime = 20;
 
     myStudy.setFinalTime(finalTime);
 
@@ -257,8 +239,9 @@ int main(int argc, char** argv) {
     {
         const State& s = myStudy.getState();
         mbs.realize(s);
+        const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertToAngleAxis()[0] * Rad2Deg;
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
-            leftPendulum.getAngle(s)*Rad2Deg,
+            leftPendulumAngle,
             mbs.getEnergy(s), myStudy.getNStepsTaken(),
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),

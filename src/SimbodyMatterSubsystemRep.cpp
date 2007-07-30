@@ -593,18 +593,15 @@ int SimbodyMatterSubsystemRep::realizeSubsystemReportImpl(const State& s) const 
 int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
 {
+    // Let the bodies and mobilizers have a chance to generate some geometry.
+    for (int i=0; i<(int)mobilizedBodies.size(); ++i)
+        mobilizedBodies[i]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
+
+    // Now add in any subsystem-level geometry.
     switch(stage) {
     case Stage::Topology: {
         assert(subsystemTopologyHasBeenRealized());
-        for (int i=0; i<(int)mobilizedBodies.size(); ++i)
-            mobilizedBodies[i]->getRep().appendBodyGeometry(geom);
-        //TODO: should be in Instance Stage
-        for (int i=0; i<(int)mobilizedBodies.size(); ++i) {
-            const MobilizedBody::MobilizedBodyRep& mbrep = mobilizedBodies[i]->getRep();
-            mbrep.appendMobilizerGeometry(mbrep.getDefaultOutboardFrame(),
-                                          mbrep.getDefaultInboardFrame(),
-                                          geom);
-        }
+        // none yet
         break;
     }
     case Stage::Position: {

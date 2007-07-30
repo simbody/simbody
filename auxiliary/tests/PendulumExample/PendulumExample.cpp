@@ -66,6 +66,8 @@ try { // If anything goes wrong, an exception will be thrown.
                                   MassProperties(1, Vec3(0,0,0), Inertia(10,20,30)),
                                     Transform(1*Vec3(0, .5, 0)));
 
+    connector.setDefaultRadius(0.05); // for the artwork
+
     //connector.setDefaultRotation(Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
  
     const Real m1 = 5;

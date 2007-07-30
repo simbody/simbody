@@ -172,6 +172,20 @@ const MassProperties& MobilizedBody::getBodyMassProperties(const State& s) const
     return getRep().getBodyMassProperties(s);
 }
 
+const Transform& MobilizedBody::getInboardFrame (const State& s) const {
+    return getRep().getInboardFrame(s);
+}
+const Transform& MobilizedBody::getOutboardFrame(const State& s) const {
+    return getRep().getOutboardFrame(s);
+}
+
+void MobilizedBody::setInboardFrame (State& s, const Transform& X_PMb) const {
+    getRep().setInboardFrame(s, X_PMb);
+}
+void MobilizedBody::setOutboardFrame(State& s, const Transform& X_BM) const {
+    getRep().setOutboardFrame(s, X_BM);
+}
+
 const Transform& MobilizedBody::getBodyTransform(const State& s) const {
     return getRep().getBodyTransform(s);
 }
@@ -1134,6 +1148,48 @@ MobilizedBody::Ball::BallRep& MobilizedBody::Ball::updRep() {
     return dynamic_cast<BallRep&>(*rep);
 }
 
+    // BallRep
+
+void MobilizedBody::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    // We can't generate the ball until we know the radius, and we can't place
+    // the geometry on the body until we know the parent and child mobilizer frame
+    // placement on the body, which might not be until Instance stage.
+    if (stage == Stage::Instance) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Transform& X_PMb = getInboardFrame(s);
+        const Transform& X_BM  = getOutboardFrame(s);
+
+        // On the inboard body, draw a solid sphere and a wireframe one attached to it for
+        // easier visualization of its rotation. These are at about 90% of the radius.
+        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+                                            .setColor(Gray)
+                                            .setRepresentation(DecorativeGeometry::DrawSurface)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.75)
+                                            .setBodyId(getMyParentMobilizedBodyId())
+                                            .setTransform(X_PMb));
+        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+            .setColor(White)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            .setResolution(0.75)
+            .setLineThickness(3)
+            .setOpacity(0.1)
+            .setBodyId(getMyParentMobilizedBodyId())
+            .setTransform(X_PMb));
+
+        // On the outboard body draw an orange mesh sphere at the ball radius.
+        geom.push_back(DecorativeSphere(getDefaultRadius())
+                                            .setColor(Orange)
+                                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.5)
+                                            .setBodyId(getMyMobilizedBodyId())
+                                            .setTransform(X_BM));
+    }
+}
+
     ///////////////////////////////
     // MOBILIZED BODY::ELLIPSOID //
     ///////////////////////////////
@@ -1195,6 +1251,10 @@ MobilizedBody::Ellipsoid& MobilizedBody::Ellipsoid::updDowncast(MobilizedBody& s
     assert(isInstanceOf(s));
     return reinterpret_cast<Ellipsoid&>(s);
 }
+
+
+    // EllipsoidRep
+
 const MobilizedBody::Ellipsoid::EllipsoidRep& MobilizedBody::Ellipsoid::getRep() const {
     return dynamic_cast<const EllipsoidRep&>(*rep);
 }
@@ -1202,6 +1262,63 @@ MobilizedBody::Ellipsoid::EllipsoidRep& MobilizedBody::Ellipsoid::updRep() {
     return dynamic_cast<EllipsoidRep&>(*rep);
 }
 
+void MobilizedBody::Ellipsoid::EllipsoidRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    // We can't generate the ellipsoid until we know the radius, and we can't place either
+    // piece of geometry on the bodies until we know the parent and child mobilizer frame
+    // placements, which might not be until Instance stage.
+    if (stage == Stage::Instance) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Transform& X_PMb = getInboardFrame(s);
+        const Transform& X_BM  = getOutboardFrame(s);
+
+        //TODO: this should come from the State.
+        const Vec3 radii = getDefaultRadii();
+
+        // Put an ellipsoid on the parent, and some wires to make it easier to track.
+        geom.push_back(DecorativeEllipsoid(radii)
+            .setColor(Gray)
+            .setRepresentation(DecorativeGeometry::DrawSurface)
+            .setOpacity(0.5)
+            .setResolution(1.25)
+            .setBodyId(getMyParentMobilizedBodyId())
+            .setTransform(X_PMb));
+        geom.push_back(DecorativeEllipsoid(radii*.99)
+            .setColor(White)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            .setResolution(0.75)
+            .setLineThickness(3)
+            .setOpacity(0.1)
+            .setBodyId(getMyParentMobilizedBodyId())
+            .setTransform(X_PMb));
+
+        // Calculate the follower plate dimensions from the ellipsoid dimensions.
+        const Real minr = std::min(radii[0],std::min(radii[1],radii[2]));
+        const Real hw = minr/3;  // half width of follower plate in x
+        const Real hh = minr/30; // half height of follower plate
+
+        // Still on the inboard body draw, an orange mesh ellipsoid "trapping" 
+        // the follower plate.
+        /*
+        geom.push_back(DecorativeEllipsoid(radii + 9*Vec3(hh))
+            .setColor(Orange)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            //.setOpacity(.2)
+            .setResolution(0.75)
+            .setLineThickness(1)
+            .setBodyId(getMyParentMobilizedBodyId())
+            .setTransform(X_PMb));
+        */
+
+        // raise up so bottom is on xy plane
+        const Transform X_BFollower(X_BM.R(), X_BM.T() + Vec3(0,0,hh));
+        geom.push_back(DecorativeBrick(Vec3(hw,2*hw/3.,hh))
+            .setColor(Orange)
+            .setBodyId(getMyMobilizedBodyId())
+            .setTransform(X_BFollower));
+    }
+}
 
     /////////////////////////////////
     // MOBILIZED BODY::TRANSLATION //

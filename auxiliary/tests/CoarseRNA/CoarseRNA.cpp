@@ -113,30 +113,35 @@ private:
                 baseBody, Transform(origin + Vec3(-DuplexRadius,-HalfHeight,0)),
                 Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
                 Transform(Vec3(0, ConnectorHalfHeight, 0)));
+            left1.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(left1, false));
 
             MobilizedBody::Ball left2(
                 left1, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                 Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
                 Transform(Vec3(0, ConnectorHalfHeight, 0)));
+            left2.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(left2, false));
 
             MobilizedBody::Ball rt1(
                 baseBody, Transform(origin + Vec3(DuplexRadius,-HalfHeight,0)),
                 Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
                 Transform(Vec3(0, ConnectorHalfHeight, 0)));
+            rt1.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(rt1, false));
 
             MobilizedBody::Ball rt2(                             
                 rt1, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                 Body::Rigid(calcConnectorMassProps(ConnectorRadius, ConnectorHalfHeight, ConnectorDensity)),
                 Transform(Vec3(0, ConnectorHalfHeight, 0)));
+            rt2.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(rt2, false));
 
             MobilizedBody::Ball dup(
                 rt2, Transform(Vec3(0, -ConnectorHalfHeight, 0)),
                 Body::Rigid(calcDuplexMassProps(DuplexRadius, HalfHeight, NAtoms, AtomMass)),
                                 Transform(Vec3(-DuplexRadius, HalfHeight, 0)));
+            dup.setDefaultRadius(1.5);
             bodyInfo.push_back(PerBodyInfo(dup, true));
 
             if (!shouldFlop) {

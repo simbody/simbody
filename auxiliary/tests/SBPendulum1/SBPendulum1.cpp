@@ -257,7 +257,7 @@ try {
     printf("  nudoterr=%d\n", s.getNUDotErr());
     for (SubsystemId i(0); i<s.getNSubsystems(); ++i) {
         printf("Subsys %d: q:y(%d,%d) u:y(%d,%d) z:y(%d,%d)\n",
-            i,s.getQStart()+s.getQStart(i),s.getNQ(i),
+            (int)i,s.getQStart()+s.getQStart(i),s.getNQ(i),
               s.getUStart()+s.getUStart(i),s.getNU(i),
               s.getZStart()+s.getZStart(i),s.getNZ(i));
         printf("  qerr:yerr(%d,%d) uerr:yerr(%d,%d) uderr(%d,%d)\n",
