@@ -277,7 +277,7 @@ dcdxFunc(int nparam,int j,double *x,double *dcdx,
 	int nx=cfsqp->getOptimizerSystem().getNumParameters();
 	int nc=cfsqp->getOptimizerSystem().getNumConstraints();
     // special wrapper to deal with caching
-	cfsqp->computeConstraintGradient(Vector(nx,x,true),true,Vector(nc,dcdx,true),j-1);
+	cfsqp->computeConstraintGradient(Vector(nx,x,true),true,Vector(nx,dcdx,true),j-1);
 }
 
 //=============================================================================
