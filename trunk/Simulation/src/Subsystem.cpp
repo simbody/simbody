@@ -427,6 +427,9 @@ void Subsystem::Guts::realizeSubsystemTopology(State& s) const {
     advanceToStage(s, Stage::Topology);  // mark the State as well
 }
 void Subsystem::Guts::realizeSubsystemModel(State& s) const {
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(subsystemTopologyHasBeenRealized(),
+        "Subsystem", getName(), "Subsystem::Guts::realizeSubsystemModel()");
+
     SimTK_STAGECHECK_GE_ALWAYS(getStage(s), Stage::Topology, 
         "Subsystem::Guts::realizeSubsystemModel()");
     if (getStage(s) < Stage::Model) {

@@ -205,34 +205,40 @@
     //   STAGECHECK_RANGE: Check that lower <= stage <= upper.
 
 // These are stagechecks that is always present, even in Release mode.
-#define SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,where) \
+#define SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(cond,objType,objName,methodNm)  \
+    do{if(!(cond)) SimTK_THROW3(SimTK::Exception::RealizeTopologyMustBeCalledFirst, \
+        (objType),(objName),(methodNm));}while(false)
+#define SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,methodNm) \
     do{if((currentStage)!=(targetStage)) SimTK_THROW3(SimTK::Exception::StageIsWrong,   \
-        (currentStage),(targetStage),(where));}while(false)
-#define SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,where) \
+        (currentStage),(targetStage),(methodNm));}while(false)
+#define SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,methodNm) \
     do{if(!((currentStage)>=(targetStage))) SimTK_THROW3(SimTK::Exception::StageTooLow,   \
-        (currentStage),(targetStage),(where));}while(false)
-#define SimTK_STAGECHECK_LT_ALWAYS(currentStage,targetStage,where) \
+        (currentStage),(targetStage),(methodNm));}while(false)
+#define SimTK_STAGECHECK_LT_ALWAYS(currentStage,targetStage,methodNm) \
     do{if((currentStage)>=(targetStage)) SimTK_THROW3(SimTK::Exception::StageTooHigh,   \
-        (currentStage),(targetStage),(where));}while(false)
-#define SimTK_STAGECHECK_RANGE_ALWAYS(lower,current,upper,where) \
+        (currentStage),(targetStage),(methodNm));}while(false)
+#define SimTK_STAGECHECK_RANGE_ALWAYS(lower,current,upper,methodNm) \
     do{if(!((lower)<=(current)&&(current)<=(upper))) SimTK_THROW4(SimTK::Exception::StageOutOfRange,   \
-        (lower),(current),(upper),(where));}while(false)
+        (lower),(current),(upper),(methodNm));}while(false)
 
 // This one is present only in Debug mode or if SimTK_KEEP_STAGECHECK is explicitly defined.
 #if defined(NDEBUG) && !defined(SimTK_KEEP_STAGECHECK)
-    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_GE(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_LE(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_RANGE(lower,current,upper,where)
+    #define SimTK_STAGECHECK_TOPOLOGY_REALIZED(cond,objType,objName,methodName)
+    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_GE(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_LE(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_RANGE(lower,current,upper,methodNm)
 #else
-    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,where) \
-        SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_GE(currentStage,targetStage,where) \
-        SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_LE(currentStage,targetStage,where) \
-        SimTK_STAGECHECK_LE_ALWAYS(currentStage,targetStage,where)
-    #define SimTK_STAGECHECK_RANGE(lower,current,upper,where) \
-        SimTK_STAGECHECK_RANGE_ALWAYS(lower,current,upper,where)
+    #define SimTK_STAGECHECK_TOPOLOGY_REALIZED(cond,objType,objName,methodName) \
+        SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(cond,objType,objName,methodName)
+    #define SimTK_STAGECHECK_EQ(currentStage,targetStage,methodNm) \
+        SimTK_STAGECHECK_EQ_ALWAYS(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_GE(currentStage,targetStage,methodNm) \
+        SimTK_STAGECHECK_GE_ALWAYS(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_LE(currentStage,targetStage,methodNm) \
+        SimTK_STAGECHECK_LE_ALWAYS(currentStage,targetStage,methodNm)
+    #define SimTK_STAGECHECK_RANGE(lower,current,upper,methodNm) \
+        SimTK_STAGECHECK_RANGE_ALWAYS(lower,current,upper,methodNm)
 #endif
 
 

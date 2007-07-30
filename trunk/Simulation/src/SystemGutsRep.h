@@ -213,6 +213,11 @@ private:
         calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
     }
 
+
+        // TOPOLOGY STAGE STATE //
+
+    bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
+
         // TOPOLOGY STAGE CACHE //
 
     // This should only be true when *all* subsystems have successfully
@@ -223,8 +228,6 @@ private:
 
     // This is only meaningful if systemTopologyRealized==true.
     mutable State defaultState;
-
-    mutable bool hasTimeAdvancedEventsFlag; //TODO: should be in State as a Model variable
 
 };
 

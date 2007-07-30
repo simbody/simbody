@@ -244,12 +244,11 @@ public:
 
     /// This determines whether this System wants to be notified whenever time
     /// advances irreversibly. If set true, time advancement is treated as an
-    /// event. Otherwise, time advancement proceeds silently. This must be 
-    /// determined no later than Model stage, which is when an Integrator will
-    /// call it.
-    /// TODO: currently not using State so these are Topology stage.
-    void setHasTimeAdvancedEvents(State&, bool) const; // default=false
-    bool hasTimeAdvancedEvents(const State&) const;
+    /// event. Otherwise, time advancement proceeds silently.
+    /// TODO: currently not using State so this is a Topology stage variable,
+    /// but should probably be Model stage.
+    void setHasTimeAdvancedEvents(bool); // default=false
+    bool hasTimeAdvancedEvents() const;
 
     /// These are all the possible causes for events. (1) An event trigger
     /// function may have undergone a monitored sign transition, (2) we

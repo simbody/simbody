@@ -130,6 +130,18 @@ private:
 SimTK_LIST_SPECIALIZE(Stage);
 
 namespace Exception {
+
+class RealizeTopologyMustBeCalledFirst : public Base {
+public:
+    RealizeTopologyMustBeCalledFirst(const char* fn, int ln,
+       const char* objectType, // e.g., "System", "Subsystem"
+       const char* objectName, const char* methodName) : Base(fn,ln)
+    {
+        setMessage(String(methodName) + ": " + String(objectType) + " " + String(objectName)
+           + " topology has not yet been realized -- must call realizeTopology() first");
+    }
+};
+
 class StageTooLow : public Base {
 public:
     StageTooLow(const char* fn, int ln,

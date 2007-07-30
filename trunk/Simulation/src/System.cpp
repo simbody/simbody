@@ -112,12 +112,12 @@ Subsystem& System::updSubsystem(SubsystemId i) {return updSystemGuts().updSubsys
 
 // TODO: this should be a Model stage variable allocated by the base class.
 // Currently it is just a Topology stage variable stored in the base class.
-void System::setHasTimeAdvancedEvents(State& s, bool hasEm) const {
-    getSystemGuts().setHasTimeAdvancedEvents(s, hasEm); // mutable
+void System::setHasTimeAdvancedEvents(bool hasEm) {
+    updSystemGuts().setHasTimeAdvancedEvents(hasEm);
     getSystemGuts().invalidateSystemTopologyCache();
 }
-bool System::hasTimeAdvancedEvents(const State& s) const {
-    return getSystemGuts().hasTimeAdvancedEvents(s);
+bool System::hasTimeAdvancedEvents() const {
+    return getSystemGuts().hasTimeAdvancedEvents();
 }
 bool System::systemTopologyHasBeenRealized() const {
     return getSystemGuts().systemTopologyHasBeenRealized();
@@ -206,10 +206,10 @@ bool System::Guts::hasOwnerHandle() const {
     return rep->myHandle != 0;
 }
 
-void System::Guts::setHasTimeAdvancedEvents(State& s, bool hasEm) const {
-    getRep().hasTimeAdvancedEventsFlag = hasEm;
+void System::Guts::setHasTimeAdvancedEvents(bool hasEm) {
+    updRep().hasTimeAdvancedEventsFlag = hasEm;
 }
-bool System::Guts::hasTimeAdvancedEvents(const State& s) const {
+bool System::Guts::hasTimeAdvancedEvents() const {
     return getRep().hasTimeAdvancedEventsFlag;
 }
 
@@ -330,6 +330,8 @@ const State& System::Guts::realizeTopology() const {
 }
 
 void System::Guts::realizeModel(State& s) const {
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(systemTopologyHasBeenRealized(),
+        "System", getName(), "System::Guts::realizeModel()");
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Topology, 
         "System::Guts::realizeModel()");
     if (s.getSystemStage() < Stage::Model) {

@@ -121,8 +121,8 @@ public:
     const String& getName()    const;
     const String& getVersion() const;
 
-    void setHasTimeAdvancedEvents(State&, bool hasEm) const;
-    bool hasTimeAdvancedEvents(const State&) const;
+    void setHasTimeAdvancedEvents(bool hasEm);
+    bool hasTimeAdvancedEvents() const;
 
         //////////////////////////////
         // EVALUATION (REALIZATION) //
