@@ -452,7 +452,7 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     renWin->SetSize(1200,900);
     
     // an interactor
-    vtkRenderWindowInteractor *iren = vtkRenderWindowInteractor::New();
+    vtkRenderWindowInteractor* iren = vtkRenderWindowInteractor::New();
     iren->SetRenderWindow(renWin); 
     vtkInteractorStyleTrackballCamera* style=vtkInteractorStyleTrackballCamera::New(); 
     iren->SetInteractorStyle(style);

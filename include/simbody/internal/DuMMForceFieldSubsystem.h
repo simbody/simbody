@@ -49,6 +49,30 @@ namespace SimTK {
 
 class MolecularMechanicsSystem;
 
+// Handy conversions. Note that these are compilation-unit statics, not members.
+// That way we can be sure they are initialized before being used.
+// To use these, multiply something in units on left of the "2" to get equivalent
+// in units on right. E.g., 180*Deg2Rad gives Pi radians.
+namespace DuMM {
+static const Real Ang2Nm  = (Real)0.1L;
+static const Real Nm2Ang  = (Real)10.L;
+static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN;
+static const Real Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
+static const Real KJ2Kcal = (Real)SimTK_KJOULE_TO_KCAL;
+static const Real Kcal2KJ = (Real)SimTK_KCAL_TO_KJOULE;
+
+// There are several conventions for giving van der Waals parameters.
+// Rmin is the radius at which the energy well minimum is seen
+// (actually it is 1/2 the distance between atom centers for a pair
+// of atoms of this class interacting with that minimum energy).
+// This is *not* Sigma, which is the radius (half distance) at which the 
+// energy crosses zero, that is, a little closer together than
+// when the energy well is at maximum depth. To convert for LJ:
+// Rmin = 2^(1/6) * Sigma.
+static const Real Sigma2Radius = (Real)std::pow(2.L,  1.L/6.L); // sigma < radius
+static const Real Radius2Sigma = (Real)std::pow(2.L, -1.L/6.L);
+}
+
 /**
  * This is a concrete subsystem that provides basic molecular mechanics 
  * functionality FOR DEMO AND PROOF OF CONCEPT only!!! It is not likely
@@ -75,15 +99,6 @@ public:
         Kong                = 5
     };
     const char* getVdwMixingRuleName(VdwMixingRule) const;
-
-    static const Real Ang2Nm;       // multiply Angstroms by this to get nanometers
-    static const Real Nm2Ang;       //   or multiply nanometers by this to get Angstroms
-    static const Real Kcal2KJ;      // multiply kilocalories by this to get kilojoules
-    static const Real KJ2Kcal;      //   or multiply kilojoules by this to get kilocalories
-    static const Real Deg2Rad;      // multiply degrees by this to convert to radians
-    static const Real Rad2Deg;      //   or multiply radians by this to get degrees
-    static const Real Sigma2Radius; // multiply vdw sigma by this to get vdw radius
-    static const Real Radius2Sigma; //   or multiply vdw radius by this to get vdw sigma
 
     DuMMForceFieldSubsystem();
     explicit DuMMForceFieldSubsystem(MolecularMechanicsSystem&);
@@ -171,7 +186,7 @@ public:
                             Real vdwRadiusInAng, Real vdwWellDepthInKcal)
     {
         defineAtomClass(atomClassId, atomClassName, element, valence,
-                        vdwRadiusInAng*Ang2Nm, vdwWellDepthInKcal*Kcal2KJ);
+            vdwRadiusInAng*DuMM::Ang2Nm, vdwWellDepthInKcal*DuMM::Kcal2KJ);
     }
 
     // PartialCharge in units of e (charge on a proton); same in MD & KA
@@ -197,8 +212,8 @@ public:
                               Real stiffnessInKcalPerAngSq, Real nominalLengthInAng)
     {
         defineBondStretch(class1, class2, 
-                          stiffnessInKcalPerAngSq * Kcal2KJ/(Ang2Nm*Ang2Nm),
-                          nominalLengthInAng      * Ang2Nm);
+                          stiffnessInKcalPerAngSq * DuMM::Kcal2KJ/square(DuMM::Ang2Nm),
+                          nominalLengthInAng      * DuMM::Ang2Nm);
     }
 
     // Bending angle parameters (among 3 atom types). This fails
@@ -216,7 +231,7 @@ public:
         Real stiffnessInKcalPerRadSq, Real nominalAngleInDeg) 
     {
         defineBondBend(class1,class2,class3,
-                       stiffnessInKcalPerRadSq * Kcal2KJ,
+                       stiffnessInKcalPerRadSq * DuMM::Kcal2KJ,
                        nominalAngleInDeg);
     }
 
@@ -242,7 +257,7 @@ public:
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
     { 
         defineBondTorsion(class1,class2,class3,class4,
-                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees);
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees);
     }
     void defineBondTorsion_KA
        (int class1, int class2, int class3, int class4,  
@@ -250,8 +265,8 @@ public:
         int periodicity2, Real amp2InKcal, Real phase2InDegrees)
     {
         defineBondTorsion(class1,class2,class3,class4,
-                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
-                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees);
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees);
     }
     void defineBondTorsion_KA
        (int class1, int class2, int class3, int class4, 
@@ -260,9 +275,9 @@ public:
         int periodicity3, Real amp3InKcal, Real phase3InDegrees)
     {
         defineBondTorsion(class1,class2,class3,class4,
-                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
-                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees,
-                          periodicity3, amp3InKcal * Kcal2KJ, phase3InDegrees);
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees,
+                          periodicity3, amp3InKcal * DuMM::Kcal2KJ, phase3InDegrees);
     }
 
     // The third atom is the central one to which the other

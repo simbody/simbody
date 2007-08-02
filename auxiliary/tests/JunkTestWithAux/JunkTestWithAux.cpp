@@ -45,17 +45,10 @@ using std::cout;
 using std::endl;
 
 using namespace SimTK;
+using namespace DuMM; // for conversion constants
 
 //static const int NUM_WATERS = 23;
 static const int NUM_WATERS = 20;
-
- // multiply to convert
-static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
-static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
-static const Real& Ang2Nm  = DuMMForceFieldSubsystem::Ang2Nm;
-static const Real& Nm2Ang  = DuMMForceFieldSubsystem::Nm2Ang;
-static const Real& Kcal2KJ = DuMMForceFieldSubsystem::Kcal2KJ;
-static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
 
 enum {
     ATOM_TYPE_OW = 1,

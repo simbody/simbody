@@ -56,34 +56,11 @@
 #include <map>
 #include <algorithm>
 
-namespace SimTK {
-
-// Conversion constants (multiply something in units on left to get
-// equivalent in units on right).
-
-/*static*/ const Real DuMMForceFieldSubsystem::Ang2Nm  = Real(0.1L);
-/*static*/ const Real DuMMForceFieldSubsystem::Nm2Ang  = Real(10);
-/*static*/ const Real DuMMForceFieldSubsystem::Kcal2KJ = (Real)SimTK_KCAL_TO_KJOULE;
-/*static*/ const Real DuMMForceFieldSubsystem::KJ2Kcal = (Real)SimTK_KJOULE_TO_KCAL;
-/*static*/ const Real DuMMForceFieldSubsystem::Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN;
-/*static*/ const Real DuMMForceFieldSubsystem::Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
-/*static*/ const Real DuMMForceFieldSubsystem::Sigma2Radius = 
-                        (Real)std::pow(2.L,  1.L/6.L); // sigma < radius
-/*static*/ const Real DuMMForceFieldSubsystem::Radius2Sigma = 
-                        (Real)std::pow(2.L, -1.L/6.L);
-
-// handy abbreviations
-static const Real& Deg2Rad = DuMMForceFieldSubsystem::Deg2Rad;
-static const Real& Rad2Deg = DuMMForceFieldSubsystem::Rad2Deg;
-static const Real& KJ2Kcal = DuMMForceFieldSubsystem::KJ2Kcal;
-static const Real& Kcal2KJ = DuMMForceFieldSubsystem::Kcal2KJ;
+using namespace SimTK;
 
 // This is Coulomb's constant 1/(4*pi*e0) in units which convert
 // e^2/nm to kJ/mol.
-
 static const Real CoulombFac = (Real)SimTK_COULOMB_CONSTANT_IN_MD;
-
-//static const Real CoulombFac = 332.06371 * EnergyUnitsPerKcal;
 
 class IntPair {
 public:
@@ -342,7 +319,7 @@ public:
     void dump() const {
         printf("   %d(%s): element=%d, valence=%d vdwRad=%g nm, vdwDepth(kJ)=%g (%g kcal)\n",
             atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
-            vdwWellDepth*KJ2Kcal);
+            vdwWellDepth*DuMM::KJ2Kcal);
         printf("    vdwDij (nm):");
         for (int i=0; i< (int)vdwDij.size(); ++i)
             printf(" %g", vdwDij[i]);
@@ -423,7 +400,7 @@ class BondBend {
 public:
     BondBend() : k(-1), theta0(-1) { }
     BondBend(Real stiffnessInKJPerRadSq, Real angleInDeg) 
-      : k(stiffnessInKJPerRadSq), theta0(angleInDeg*Deg2Rad) {
+      : k(stiffnessInKJPerRadSq), theta0(angleInDeg*DuMM::Deg2Rad) {
         assert(isValid());
     }
     bool isValid() const {return k >= 0 && (0 <= theta0 && theta0 <= Pi);}
@@ -465,7 +442,7 @@ class TorsionTerm {
 public:
     TorsionTerm() : periodicity(-1), amplitude(-1), theta0(-1) { }
     TorsionTerm(int n, Real ampInKJ, Real th0InDeg) 
-      : periodicity(n), amplitude(ampInKJ), theta0(th0InDeg*Deg2Rad) {
+      : periodicity(n), amplitude(ampInKJ), theta0(th0InDeg*DuMM::Deg2Rad) {
         assert(isValid());
     }
     bool isValid() const {return periodicity > 0 && amplitude >= 0 
@@ -938,7 +915,7 @@ public:
     AtomPlacementArray  allAtoms;
 };
 
-class DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
+class SimTK::DuMMForceFieldSubsystemRep : public ForceSubsystemRep {
     friend class DuMMForceFieldSubsystem;
     static const char* ApiClassName; // "DuMMForceFieldSubsystem"
 public:
@@ -3238,6 +3215,4 @@ void DuMMBody::realizeTopologicalCache(const DuMMForceFieldSubsystemRep& mm) {
         ++ap;
     }
 }
-
-} // namespace SimTK
 
