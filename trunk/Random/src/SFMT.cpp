@@ -10,10 +10,11 @@
  *
  * The new BSD License is applied to this software, see LICENSE.txt
  */
-#include <string.h>
-#include <assert.h>
 #include "SimTKcommon/internal/SFMT.h"
 #include "SimTKcommon/internal/SFMT-params.h"
+
+#include <cstring>
+#include <cassert>
 
 #if defined(__BIG_ENDIAN__) && !defined(__amd64) && !defined(BIG_ENDIAN64)
 #define BIG_ENDIAN64 1

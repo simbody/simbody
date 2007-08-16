@@ -31,7 +31,9 @@
 #ifndef SFMT_H
 #define SFMT_H
 
-#include <stdio.h>
+
+#include "SimTKcommon/internal/common.h"
+#include <cstdio>
 
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
   #include <inttypes.h>
@@ -74,17 +76,17 @@
 
 class SFMTData;
 
-uint32_t gen_rand32(SFMTData& data);
-uint64_t gen_rand64(SFMTData& data);
-void fill_array32(uint32_t *array, int size, SFMTData& data);
-void fill_array64(uint64_t *array, int size, SFMTData& data);
-void init_gen_rand(uint32_t seed, SFMTData& data);
-void init_by_array(uint32_t *init_key, int key_length, SFMTData& data);
-const char *get_idstring(void);
-int get_min_array_size32(void);
-int get_min_array_size64(void);
-SFMTData* createSFMTData(void);
-void deleteSFMTData(SFMTData* data);
+SimTK_SimTKCOMMON_EXPORT uint32_t gen_rand32(SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT uint64_t gen_rand64(SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT void fill_array32(uint32_t *array, int size, SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT void fill_array64(uint64_t *array, int size, SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT void init_gen_rand(uint32_t seed, SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT void init_by_array(uint32_t *init_key, int key_length, SFMTData& data);
+SimTK_SimTKCOMMON_EXPORT const char* get_idstring(void);
+SimTK_SimTKCOMMON_EXPORT int get_min_array_size32(void);
+SimTK_SimTKCOMMON_EXPORT int get_min_array_size64(void);
+SimTK_SimTKCOMMON_EXPORT SFMTData* createSFMTData(void);
+SimTK_SimTKCOMMON_EXPORT void deleteSFMTData(SFMTData* data);
 
 /* These real versions are due to Isaku Wada */
 /** generates a random number on [0,1]-real-interval */
