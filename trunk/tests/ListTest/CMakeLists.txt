@@ -1,5 +1,5 @@
-ADD_EXECUTABLE(RandomTest       RandomTest.cpp)
-ADD_EXECUTABLE(RandomTestStatic RandomTestStatic.cpp)
+ADD_EXECUTABLE(ListTest       ListTest.cpp)
+ADD_EXECUTABLE(ListTestStatic ListTestStatic.cpp)
 
-TARGET_LINK_LIBRARIES(RandomTest       ${SHARED_TARGET})
-TARGET_LINK_LIBRARIES(RandomTestStatic ${STATIC_TARGET})
+TARGET_LINK_LIBRARIES(ListTest       ${SHARED_TARGET})
+TARGET_LINK_LIBRARIES(ListTestStatic ${STATIC_TARGET})
