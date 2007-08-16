@@ -272,6 +272,10 @@ int main()
     vvvv = vv[2] * vv;
     cout << "vvvv = vv[2]*vv = " << vvvv << endl;
 
+    Matrix_<Mat<2,2, Mat<2,2,double> > > mmm(2,1); 
+    mmm = Mat<2,2, Mat<2,2,double> >(Mat<2,2,double>(1));
+    cout << "*****>>> mmm=" << mmm << endl;
+
     Matrix mnm(4,2), nn;
     cout << "mnm(4,2)=" << mnm;
     mnm(0) = vv; 
