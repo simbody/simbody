@@ -1,3 +1,3 @@
-SUBDIRS (ListTest BNTTest MatVecTest SpatialAlgebraTest OrientationTest BigMatrixTest StateTest)
+SUBDIRS (ListTest BNTTest MatVecTest SpatialAlgebraTest OrientationTest BigMatrixTest StateTest RandomTest SFMTTest)
 
 
