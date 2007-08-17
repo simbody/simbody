@@ -97,9 +97,9 @@ void verifyUniformDistribution(int min, int max, int value[], int length) {
 
 void verifyGaussianDistribution(Real mean, Real stddev, Real value[], int length) {
     int expected[6], found[6];
-    expected[0] = expected[5] = 0.0228*length;
-    expected[1] = expected[4] = 0.1587*length-expected[0];
-    expected[2] = expected[3] = 0.5*length-expected[1];
+    expected[0] = expected[5] = (int) (0.0228*length);
+    expected[1] = expected[4] = (int) (0.1587*length-expected[0]);
+    expected[2] = expected[3] = (int) (0.5*length-expected[1]);
     for (int i = 0; i < 6; ++i)
         found[i] = 0;
     for (int i = 0; i < length; ++i) {
