@@ -34,8 +34,6 @@
 
 #include "SimTKcommon/basics.h"
 
-class SFMTData;
-
 namespace SimTK {
 
 class RandomImpl;
