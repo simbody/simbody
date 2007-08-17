@@ -29,113 +29,169 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
+#include <cassert>
 #include "SimTKcommon/basics.h"
 #include "SimTKcommon/Random.h"
-#include "SimTKcommon/internal/SFMT.h"
+#include "SFMT.h"
+using namespace SimTK_SFMT;
 
 namespace SimTK {
 
 /**
- * This is the private implementation class.
+ * This is the private implementation class for Random.  It has a subclass corresponding to each subclass of Random.
  */
 
 class RandomImpl {
 private:
-	SFMTData* sfmt;
-	static const int bufferSize = 1024;
-	uint64_t buffer[bufferSize];
-	int nextIndex;
-	Real nextGaussian;
-	bool nextGaussianIsValid;
+    SimTK_SFMT::SFMTData* sfmt;
+    static const int bufferSize = 1024;
+    uint64_t buffer[bufferSize];
+    int nextIndex;
 public:
-	RandomImpl() {
-		sfmt = createSFMTData();
-		setSeed(0);
-	}
+    class UniformImpl;
+    class GaussianImpl;
+    RandomImpl() {
+        sfmt = createSFMTData();
+        setSeed(0);
+    }
 
-	RandomImpl(int seed) {
-		sfmt = createSFMTData();
-		setSeed(seed);
-	}
+    ~RandomImpl() {
+        deleteSFMTData(sfmt);
+    }
 
-	~RandomImpl() {
-		deleteSFMTData(sfmt);
-	}
+    virtual void setSeed(int seed) {
+        nextIndex = bufferSize;
+        init_gen_rand(seed, *sfmt);
+    }
+    
+    virtual Real getValue() = 0;
 
-	void setSeed(int seed) {
-		nextIndex = bufferSize;
-		nextGaussianIsValid = false;
-		init_gen_rand(seed, *sfmt);
-	}
+    Real getNextRandom() {
+        if (nextIndex >= bufferSize) {
+            // There are no remaining values in the buffer, so we need to refill it.
+            
+            fill_array64(buffer, bufferSize, *sfmt);
+            nextIndex = 0;
+        }
+        return to_res53(buffer[nextIndex++]);
+    }
 
-	Real getReal() {
-		if (nextIndex >= bufferSize) {
-			// There are no remaining values in the buffer, so we need to refill it.
-			
-			fill_array64(buffer, bufferSize, *sfmt);
-			nextIndex = 0;
-		}
-		return to_res53(buffer[nextIndex++]);
-	}
+    int getInt(int max) {
+        return (int) floor(getValue()*max);
+    }
 
-	Real getGaussian() {
-		if (nextGaussianIsValid) {
-			nextGaussianIsValid = false;
-			return nextGaussian;
-		}
-		
-		// Use the polar form of the Box-Muller transformation to generate two Gaussian random numbers.
-		
-		Real x, y, r2;
-		do {
-	        x = 2.0*getReal()-1.0;
-	        y = 2.0*getReal()-1.0;
-	        r2 = x*x + y*y;
-		} while (r2 >= 1.0 || r2 == 0.0);
-		Real multiplier = sqrt((-2.0*log(r2))/r2);
-		nextGaussian = y*multiplier;
-		nextGaussianIsValid = true;
-		return x*multiplier;
-	}
-	
-	int getInt(int max) {
-		return (int) floor(getReal()*max);
-	}
-
-	void fillArray(Real array[], int length) {
-		for (int i = 0; i < length; ++i)
-			array[i] = getReal();
-	}
-
-	void fillArrayGaussian(Real array[], int length) {
-		for (int i = 0; i < length; ++i)
-			array[i] = getGaussian();
-	}
-
-	void fillArray(int max, int array[], int length) {
-		for (int i = 0; i < length; ++i)
-			array[i] = getInt(max);
-	}
+    void fillArray(Real array[], int length) {
+        for (int i = 0; i < length; ++i)
+            array[i] = getValue();
+    }
 };
 
 /**
- * Create a new random number generator, and initialize it with a seed of 0.
+ * This is the private implementation class for uniform random numbers.
  */
 
-Random::Random() {
-	impl = new RandomImpl();
-}
+class RandomImpl::UniformImpl : public RandomImpl {
+private:
+    Real min, max, range;
+public:
+    UniformImpl(Real min, Real max) : min(min), max(max), range(max-min) {
+    }
+    
+    Real getValue() {
+        return min+getNextRandom()*range;
+    }
+    
+    Real getMin() const {
+        return min;
+    }
+    
+    void setMin(Real value) {
+        min = value;
+        range = max-min;
+    }
+    
+    Real getMax() const {
+        return max;
+    }
+    
+    void setMax(Real value) {
+        max = value;
+        range = max-min;
+    }
+};
 
 /**
- * Create a new random number generator, and initialize it with a specified seed value.
+ * This is the private implementation class for Gaussian random numbers.
  */
 
-Random::Random(int seed) {
-	impl = new RandomImpl(seed);
+class RandomImpl::GaussianImpl : public RandomImpl {
+private:
+    Real mean, stddev, nextGaussian;
+    bool nextGaussianIsValid;
+public:
+    GaussianImpl(Real mean, Real stddev) : mean(mean), stddev(stddev) {
+    }
+    
+    Real getValue() {
+        if (nextGaussianIsValid) {
+            nextGaussianIsValid = false;
+            return mean+stddev*nextGaussian;
+        }
+        
+        // Use the polar form of the Box-Muller transformation to generate two Gaussian random numbers.
+        
+        Real x, y, r2;
+        do {
+            x = 2.0*getNextRandom()-1.0;
+            y = 2.0*getNextRandom()-1.0;
+            r2 = x*x + y*y;
+        } while (r2 >= 1.0 || r2 == 0.0);
+        Real multiplier = sqrt((-2.0*log(r2))/r2);
+        nextGaussian = y*multiplier;
+        nextGaussianIsValid = true;
+        return mean+stddev*x*multiplier;
+    }
+    
+    void setSeed(int seed) {
+        RandomImpl::setSeed(seed);
+        nextGaussianIsValid = false;
+    }
+    
+    Real getMean() const {
+        return mean;
+    }
+    
+    void setMean(Real value) {
+        mean = value;
+    }
+    
+    Real getStdDev() const {
+        return stddev;
+    }
+    
+    void setStdDev(Real value) {
+        stddev = value;
+    }
+};
+
+/**
+ * This constructor should never be invoked directly.  Instead, create an instance of one of the subclasses.
+ */
+
+Random::Random() : impl(0) {
 }
 
 Random::~Random() {
-	delete impl;
+    delete getImpl();
+}
+
+/**
+ * Get the internal object which implements the random number generator.
+ */
+
+RandomImpl* Random::getImpl() const {
+    assert(impl);
+    return impl;
 }
 
 /**
@@ -143,55 +199,127 @@ Random::~Random() {
  */
 
 void Random::setSeed(int seed) {
-	impl->setSeed(seed);
+    getImpl()->setSeed(seed);
 }
 
 /**
- * Get a random number, uniformly distributed in the range [0,1).
+ * Get the next value in the pseudo-random sequence.
  */
 
-Real Random::getReal() {
-	return impl->getReal();
+Real Random::getValue() {
+    return getImpl()->getValue();
 }
 
 /**
- * Get a random number, chosen according to a Gaussian distribution with mean 0 and standard deviation 1.
+ * Fill an array with values from the pseudo-random sequence.
  */
 
-Real Random::getGaussian() {
-	return impl->getGaussian();
+void Random::fillArray(Real array[], int length) {
+    getImpl()->fillArray(array, length);
+}
+
+/**
+ * Create a new random number generator that produces values uniformly distributed between 0 (inclusive) and 1 (exclusive).
+ */
+
+Random::Uniform::Uniform() {
+    impl = new RandomImpl::UniformImpl(0.0, 1.0);
+}
+
+/**
+ * Create a new random number generator that produces values uniformly distributed between min (inclusive) and max (exclusive).
+ */
+
+Random::Uniform::Uniform(Real min, Real max) {
+    impl = new RandomImpl::UniformImpl(min, max);
 }
 
 /**
  * Get a random integer, uniformly distributed between 0 (inclusive) and max (exclusive).
  */
 
-int Random::getInt(int max) {
-	return impl->getInt(max);
+int Random::Uniform::getIntValue() {
+    return (int) std::floor(getImpl()->getValue());
 }
 
 /**
- * Fill an array with random numbers, uniformly distributed in the range [0,1).
+ * Get the lower end of the range in which values are uniformly distributed.
  */
 
-void Random::fillArray(Real array[], int length) {
-	impl->fillArray(array, length);
+Real Random::Uniform::getMin() const {
+    return ((RandomImpl::UniformImpl*) getImpl())->getMin();
 }
 
 /**
- * Fill an array with random numbers, chosen according to a Gaussian distribution with mean 0 and standard deviation 1.
+ * Set the lower end of the range in which values are uniformly distributed.
  */
 
-void Random::fillArrayGaussian(Real array[], int length) {
-	impl->fillArrayGaussian(array, length);
+void Random::Uniform::setMin(double min) {
+    ((RandomImpl::UniformImpl*) getImpl())->setMin(min);
 }
 
 /**
- * Fill an array with random integers, uniformly distributed between 0 (inclusive) and max (exclusive).
+ * Get the upper end of the range in which values are uniformly distributed.
  */
 
-void Random::fillArray(int max, int array[], int length) {
-	impl->fillArray(max, array, length);
+Real Random::Uniform::getMax() const {
+    return ((RandomImpl::UniformImpl*) getImpl())->getMax();
+}
+
+/**
+ * Set the upper end of the range in which values are uniformly distributed.
+ */
+
+void Random::Uniform::setMax(double max) {
+    ((RandomImpl::UniformImpl*) getImpl())->setMax(max);
+}
+
+/**
+ * Create a new random number generator that produces values according to a Gaussian distribution with mean 0 and standard deviation 1.
+ */
+
+Random::Gaussian::Gaussian() {
+    impl = new RandomImpl::GaussianImpl(0.0, 1.0);
+}
+
+/**
+ * Create a new random number generator that produces values according to a Gaussian distribution with the specified mean and standard deviation.
+ */
+
+Random::Gaussian::Gaussian(Real mean, Real stddev) {
+    impl = new RandomImpl::GaussianImpl(mean, stddev);
+}
+
+/**
+ * Get the mean of the Gaussian distribution.
+ */
+
+Real Random::Gaussian::getMean() const {
+    return ((RandomImpl::GaussianImpl*) getImpl())->getMean();
+}
+
+/**
+ * Set the mean of the Gaussian distribution.
+ */
+
+void Random::Gaussian::setMean(double mean) {
+    ((RandomImpl::GaussianImpl*) getImpl())->setMean(mean);
+}
+
+/**
+ * Get the standard deviation of the Gaussian distribution.
+ */
+
+Real Random::Gaussian::getStdDev() const {
+    return ((RandomImpl::GaussianImpl*) getImpl())->getStdDev();
+}
+
+/**
+ * Set the standard deviation of the Gaussian distribution.
+ */
+
+void Random::Gaussian::setStdDev(double stddev) {
+    ((RandomImpl::GaussianImpl*) getImpl())->setStdDev(stddev);
 }
 
 } // namespace SimTK

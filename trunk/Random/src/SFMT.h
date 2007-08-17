@@ -74,6 +74,12 @@
   #define PRE_ALWAYS inline
 #endif
 
+/**
+ * This namespace contains the functions defined by the SFMT library.
+ */
+
+namespace SimTK_SFMT {
+
 class SFMTData;
 
 SimTK_SimTKCOMMON_EXPORT uint32_t gen_rand32(SFMTData& data);
@@ -159,5 +165,8 @@ inline static double genrand_res53_mix(SFMTData& data)
     x = gen_rand32(data);
     y = gen_rand32(data);
     return to_res53_mix(x, y);
-} 
+}
+
+} // SimTK_SFMT
+
 #endif

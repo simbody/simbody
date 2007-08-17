@@ -10,8 +10,8 @@
  *
  * The new BSD License is applied to this software, see LICENSE.txt
  */
-#include "SimTKcommon/internal/SFMT.h"
-#include "SimTKcommon/internal/SFMT-params.h"
+#include "SFMT.h"
+#include "SFMT-params.h"
 
 #include <cstring>
 #include <cassert>
@@ -84,6 +84,8 @@ typedef struct W128_T w128_t;
 //static int initialized = 0;
 ///** a parity check vector which certificate the period of 2^{MEXP} */
 //static uint32_t parity[4] = {PARITY1, PARITY2, PARITY3, PARITY4};
+
+namespace SimTK_SFMT {
 
 class SFMTData {
 public:
@@ -661,4 +663,7 @@ SFMTData* createSFMTData(void) {
 void deleteSFMTData(SFMTData* data) {
 	delete data;
 }
+
+} // SimTK_SFMT
+
 

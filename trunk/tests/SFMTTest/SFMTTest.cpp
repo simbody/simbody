@@ -29,10 +29,11 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/internal/SFMT.h"
+#include "../../Random/src/SFMT.h"
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
+using namespace SimTK_SFMT;
 using std::cout;
 using std::endl;
 
