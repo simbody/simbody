@@ -88,6 +88,10 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
         delete distanceConstraints[i];
     distanceConstraints.clear();
 
+    for (int i=0; i<(int)pointInPlaneConstraints.size(); ++i)
+        delete pointInPlaneConstraints[i];
+    pointInPlaneConstraints.clear();
+
     // RigidBodyNodes themselves are owned by the MobilizedBodyReps and will
     // be deleted when the MobilizedBodyRep objects are.
     rbNodeLevels.clear();
@@ -154,6 +158,23 @@ int SimbodyMatterSubsystemRep::addOneDistanceConstraintEquation(
     dc->setDistanceConstraintNum(distanceConstraints.size());
     distanceConstraints.push_back(dc);
     return distanceConstraints.size()-1;
+}
+
+
+// Add a point-in-plane constraint and assign it to use a particular slot in the
+// qErr, uErr, and multiplier arrays.
+// Return the assigned point-in-plane constraint index for caller's use.
+int SimbodyMatterSubsystemRep::addOnePointInPlaneEquation(
+        const RBDirection& d, Real height, const RBStation& s,
+        int qerrIndex, int uerrIndex, int multIndex)
+{
+    RBPointInPlaneConstraint* pipc = new RBPointInPlaneConstraint(d,height,s);
+    pipc->setQErrIndex(qerrIndex);
+    pipc->setUErrIndex(uerrIndex);
+    pipc->setMultIndex(multIndex);
+    pipc->setPointInPlaneConstraintNum(pointInPlaneConstraints.size());
+    pointInPlaneConstraints.push_back(pipc);
+    return pointInPlaneConstraints.size()-1;
 }
 
 MobilizedBodyId SimbodyMatterSubsystemRep::getParent(MobilizedBodyId body) const { 
@@ -273,7 +294,7 @@ void SimbodyMatterSubsystemRep::endConstruction() {
     // equations which currently are used to implement all the Constraints.
     // This is owned by the SimbodyMatterSubsystemRep.
     lConstraints = new LengthConstraints(*this, 0);
-    lConstraints->construct(distanceConstraints);
+    lConstraints->construct(distanceConstraints, pointInPlaneConstraints);
 }
 
 int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
@@ -298,7 +319,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
     mutableThis->topologyCache.nDOFs        = DOFTotal;
     mutableThis->topologyCache.maxNQs       = maxNQTotal;
     mutableThis->topologyCache.sumSqDOFs    = SqDOFTotal;
-    mutableThis->topologyCache.nDistanceConstraints = distanceConstraints.size();
+    mutableThis->topologyCache.nDistanceConstraints     = distanceConstraints.size();
+    mutableThis->topologyCache.nPointInPlaneConstraints = pointInPlaneConstraints.size();
 
     SBModelVars mvars;
     mvars.allocate(topologyCache);
@@ -485,9 +507,11 @@ int SimbodyMatterSubsystemRep::realizeSubsystemPositionImpl(const State& s) cons
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->realizePosition(mv,mc,q,qErr,pc); 
 
-    // Constraint errors go in qErr after the quaternion constraints.
+    // Put position constraint equation errors in qErr
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
-        distanceConstraints[i]->calcPosInfo(qErr,pc); //TODO: qErr
+        distanceConstraints[i]->calcPosInfo(qErr,pc);
+    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
+        pointInPlaneConstraints[i]->calcPosInfo(qErr,pc);
 
     return 0;
 }
@@ -516,6 +540,8 @@ int SimbodyMatterSubsystemRep::realizeSubsystemVelocityImpl(const State& s) cons
 
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcVelInfo(pc,uErr,vc);
+    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
+        pointInPlaneConstraints[i]->calcVelInfo(pc,uErr,vc);
 
     return 0;
 }
@@ -594,8 +620,12 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
    (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
 {
     // Let the bodies and mobilizers have a chance to generate some geometry.
-    for (int i=0; i<(int)mobilizedBodies.size(); ++i)
+    for (MobilizedBodyId i(0); i<(int)mobilizedBodies.size(); ++i)
         mobilizedBodies[i]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
+
+    // Likewise for the constraints
+    for (ConstraintId i(0); i<(int)constraints.size(); ++i)
+        constraints[i]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
 
     // Now add in any subsystem-level geometry.
     switch(stage) {
@@ -878,6 +908,8 @@ void SimbodyMatterSubsystemRep::calcTreeForwardDynamicsOperator(
     // Calculate constraint acceleration errors.
     for (int i=0; i < (int)distanceConstraints.size(); ++i)
         distanceConstraints[i]->calcAccInfo(pc,vc,udotErr,ac);
+    for (int i=0; i < (int)pointInPlaneConstraints.size(); ++i)
+        pointInPlaneConstraints[i]->calcAccInfo(pc,vc,udotErr,ac);
 }
 
 
@@ -1109,6 +1141,7 @@ void SimbodyMatterSubsystemRep::calcMInverseF(const State& s,
 }
 
 
+
 // Must be in ConfigurationStage to calculate qdot = Q*u.
 void SimbodyMatterSubsystemRep::calcQDot(const State& s, const Vector& u, Vector& qdot) const {
     const SBModelVars&     mv = getModelVars(s);
@@ -1138,6 +1171,28 @@ void SimbodyMatterSubsystemRep::calcQDotDot(const State& s, const Vector& udot, 
     for (int i=1; i<(int)rbNodeLevels.size(); i++)
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++)
             rbNodeLevels[i][j]->calcQDotDot(mv,q,pc,u, udot, qdotdot);
+}
+
+
+//
+// We have V_GB = J u where J=~Phi*~H is the kinematic Jacobian (partial velocity matrix)
+// that maps generalized speeds to spatial velocities. 
+//
+void SimbodyMatterSubsystemRep::calcSpatialKinematicsFromInternal(const State& s,
+    const Vector&              v,
+    Vector_<SpatialVec>&       Jv) const 
+{
+    const SBPositionCache& pc = getPositionCache(s);
+
+    assert(v.size() == getTotalDOF());
+
+    Jv.resize(getNBodies());
+
+    for (int i=0 ; i<(int)rbNodeLevels.size() ; i++)
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcSpatialKinematicsFromInternal(pc,v, Jv);
+        }
 }
 
 // If V is a spatial velocity, and you have an X=d(something)/dV (one per body)

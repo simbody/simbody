@@ -1353,6 +1353,73 @@ MobilizedBody::Translation::Translation(MobilizedBody& parent, const Transform& 
                                                    *this);
 }
 
+const Vec3& MobilizedBody::Translation::getDefaultQ() const {
+    return getRep().defaultQ;
+}
+MobilizedBody::Translation& MobilizedBody::Translation::setDefaultQ(const Vec3& q) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultQ = q;
+    return *this;
+}
+
+const Vec3& MobilizedBody::Translation::getQ(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::Translation::setQ(State& s, const Vec3& q) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec3& MobilizedBody::Translation::getQDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec3& MobilizedBody::Translation::getQDotDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+
+const Vec3& MobilizedBody::Translation::getU(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::Translation::setU(State& s, const Vec3& u) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    Vec3::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec3& MobilizedBody::Translation::getUDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec3& MobilizedBody::Translation::getMyPartQ(const State& s, const Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::getAs(&qlike[qStart]);
+}
+
+const Vec3& MobilizedBody::Translation::getMyPartU(const State& s, const Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::getAs(&ulike[uStart]);
+}
+
+Vec3& MobilizedBody::Translation::updMyPartQ(const State& s, Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 3);
+    return Vec3::updAs(&qlike[qStart]);
+}
+
+Vec3& MobilizedBody::Translation::updMyPartU(const State& s, Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 3);
+    return Vec3::updAs(&ulike[uStart]);
+}
+
     // Translation mobilizer bookkeeping
 
 bool MobilizedBody::Translation::isInstanceOf(const MobilizedBody& s) {

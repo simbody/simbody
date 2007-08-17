@@ -1596,6 +1596,67 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
+    // This is just a nicer name for setting this mobilizer's generalized coordinates,
+    // which together constitute the vector from the Mb frame's origin to the M
+    // frame's origin, expressed in Mb.
+
+    // Set the topological default values for the initial q's.
+    Translation& setDefaultTranslation(const Vec3& p_MbM) {
+        return setDefaultQ(p_MbM);
+    }
+
+    // Get the topological default values for the initial q's.
+    const Vec3& getDefaultTranslation() const {
+        return getDefaultQ();
+    }
+
+    // Set the current value of q's in the given State. Note that this is
+    // the *cross-mobilizer* translation, not location in the Ground frame.
+    void setMobilizerTranslation(State& s, const Vec3& p_MbM) const {
+        setQ(s,p_MbM);
+    }
+
+    // Get the current value of the q's for this mobilizer from the given State.
+    const Vec3& getMobilizerTranslation(const State& s) const {
+        return getQ(s);
+    }
+
+
+    // Set the current value of u's in the given State. Note that this is
+    // the *cross-mobilizer* velocity v_MbM, not velocity in the Ground frame.
+    void setMobilizerVelocity(State& s, const Vec3& v_MbM) const {
+        setU(s,v_MbM);
+    }
+
+    // Get the current value of the u's for this mobilizer from the given State.
+    const Vec3& getMobilizerVelocity(const State& s) const {
+        return getU(s);
+    }
+
+    // Get the value of the udot's for this mobilizer from the given State.
+    const Vec3& getMobilizerAcceleration(const State& s) const {
+        return getUDot(s);
+    }
+
+    // Generic default state Topology methods.
+    const Vec3& getDefaultQ() const;
+    Translation& setDefaultQ(const Vec3& q);
+
+    const Vec3& getQ(const State&) const;
+    const Vec3& getQDot(const State&) const;
+    const Vec3& getQDotDot(const State&) const;
+    const Vec3& getU(const State&) const;
+    const Vec3& getUDot(const State&) const;
+
+    void setQ(State&, const Vec3&) const;
+    void setU(State&, const Vec3&) const;
+
+    const Vec3& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec3& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec3& updMyPartQ(const State&, Vector& qlike) const;
+    Vec3& updMyPartU(const State&, Vector& ulike) const;
+
     class TranslationRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Translation, MobilizedBody);

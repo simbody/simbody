@@ -210,6 +210,145 @@ Constraint::Rod::RodRep& Constraint::Rod::updRep() {
     return dynamic_cast<RodRep&>(*rep);
 }
 
+
+    ////////////////////////////////
+    // CONSTRAINT::POINT IN PLANE //
+    ////////////////////////////////
+
+Constraint::PointInPlane::PointInPlane
+   (MobilizedBody& planeBody,    const UnitVec3& defPlaneNormal, Real defPlaneHeight,
+    MobilizedBody& followerBody, const Vec3&     defFollowerPoint)
+{
+    SimTK_ASSERT_ALWAYS(planeBody.isInSubsystem() && followerBody.isInSubsystem(),
+        "Constraint::PointInPlane(): both bodies must already be in a SimbodyMatterSubsystem.");
+    SimTK_ASSERT_ALWAYS(planeBody.isInSameSubsystem(followerBody),
+        "Constraint::PointInPlane(): both bodies to be connected must be in the same SimbodyMatterSubsystem.");
+
+    rep = new PointInPlaneRep(); rep->setMyHandle(*this);
+
+    updRep().planeBody    = planeBody.getMobilizedBodyId();
+    updRep().followerBody = followerBody.getMobilizedBodyId();
+    updRep().defaultPlaneNormal   = defPlaneNormal;
+    updRep().defaultPlaneHeight   = defPlaneHeight;
+    updRep().defaultFollowerPoint = defFollowerPoint;
+
+    planeBody.updMatterSubsystem().adoptConstraint(*this);
+}
+
+Constraint::PointInPlane& Constraint::PointInPlane::setDefaultPlaneNormal(const UnitVec3& n) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultPlaneNormal = n;
+    return *this;
+}
+
+Constraint::PointInPlane& Constraint::PointInPlane::setDefaultPlaneHeight(Real h) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultPlaneHeight = h;
+    return *this;
+}
+
+Constraint::PointInPlane& Constraint::PointInPlane::setDefaultFollowerPoint(const Vec3& p) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultFollowerPoint = p;
+    return *this;
+}
+
+MobilizedBodyId Constraint::PointInPlane::getPlaneBodyId() const {
+    return getRep().planeBody;
+}
+MobilizedBodyId Constraint::PointInPlane::getFollowerBodyId() const {
+    return getRep().followerBody;
+}
+const UnitVec3& Constraint::PointInPlane::getDefaultPlaneNormal() const {
+    return getRep().defaultPlaneNormal;
+}
+Real Constraint::PointInPlane::getDefaultPlaneHeight() const {
+    return getRep().defaultPlaneHeight;
+}
+const Vec3& Constraint::PointInPlane::getDefaultFollowerPoint() const {
+    return getRep().defaultFollowerPoint;
+}
+
+Constraint::PointInPlane& Constraint::PointInPlane::setPlaneDisplayHalfWidth(Real h) {
+    updRep().setPlaneDisplayHalfWidth(h);
+    return *this;
+}
+Constraint::PointInPlane& Constraint::PointInPlane::setPointDisplayRadius(Real r) {
+    updRep().setPointDisplayRadius(r);
+    return *this;
+}
+
+Real Constraint::PointInPlane::getPlaneDisplayHalfWidth() const {
+    return getRep().getPlaneDisplayHalfWidth();
+}
+
+Real Constraint::PointInPlane::getPointDisplayRadius() const {
+    return getRep().getPointDisplayRadius();
+}
+
+    // PointInPlane bookkeeping //
+
+bool Constraint::PointInPlane::isInstanceOf(const Constraint& s) {
+    return PointInPlaneRep::isA(s.getRep());
+}
+const Constraint::PointInPlane& Constraint::PointInPlane::downcast(const Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<const PointInPlane&>(s);
+}
+Constraint::PointInPlane& Constraint::PointInPlane::updDowncast(Constraint& s) {
+    assert(isInstanceOf(s));
+    return reinterpret_cast<PointInPlane&>(s);
+}
+const Constraint::PointInPlane::PointInPlaneRep& Constraint::PointInPlane::getRep() const {
+    return dynamic_cast<const PointInPlaneRep&>(*rep);
+}
+
+Constraint::PointInPlane::PointInPlaneRep& Constraint::PointInPlane::updRep() {
+    return dynamic_cast<PointInPlaneRep&>(*rep);
+}
+
+    // PointInPlaneRep
+
+void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    // We can't generate the artwork until we know the normal, height, and follower
+    // point location, which might not be until Instance stage.
+    if (stage == Stage::Instance) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        // TODO: should be instance-stage data from State rather than topological data
+        // This makes z axis point along plane normal
+        const Transform X_B1(Rotation(defaultPlaneNormal), defaultPlaneHeight*defaultPlaneNormal);
+        const Transform X_B2(Rotation(), defaultFollowerPoint);
+
+        if (planeHalfWidth > 0 && pointRadius > 0) {
+            // On the inboard body, draw a solid sphere and a wireframe one attached to it for
+            // easier visualization of its rotation. These are at about 90% of the radius.
+            geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
+                                                .setColor(Gray)
+                                                .setRepresentation(DecorativeGeometry::DrawSurface)
+                                                .setOpacity(0.3)
+                                                .setBodyId(planeBody)
+                                                .setTransform(X_B1));
+            geom.push_back(DecorativeBrick(Vec3(planeHalfWidth,planeHalfWidth,pointRadius/2))
+                                                .setColor(Black)
+                                                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                                .setBodyId(planeBody)
+                                                .setTransform(X_B1));
+
+            // On the follower body draw an orange mesh sphere at the ball radius.
+            geom.push_back(DecorativeSphere(pointRadius)
+                                                .setColor(Orange)
+                                                .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                                .setResolution(0.5)
+                                                .setBodyId(followerBody)
+                                                .setTransform(X_B2));
+        }
+    }
+}
+
+
+
     //////////////////////
     // CONSTRAINT::BALL //
     //////////////////////
@@ -248,11 +387,13 @@ Constraint::Ball::Ball(MobilizedBody& body1, const Vec3& point1,
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultPointOnBody1(const Vec3& p1) {
+    getRep().invalidateTopologyCache();
     updRep().defaultPoint1 = p1;
     return *this;
 }
 
 Constraint::Ball& Constraint::Ball::setDefaultPointOnBody2(const Vec3& p2) {
+    getRep().invalidateTopologyCache();
     updRep().defaultPoint2 = p2;
     return *this;
 }
@@ -268,6 +409,16 @@ const Vec3& Constraint::Ball::getDefaultPointOnBody1() const {
 }
 const Vec3& Constraint::Ball::getDefaultPointOnBody2() const {
     return getRep().defaultPoint2;
+}
+
+Constraint::Ball& Constraint::Ball::setDefaultRadius(Real r) {
+    getRep().invalidateTopologyCache();
+    updRep().setDefaultRadius(r);
+    return *this;
+}
+
+Real Constraint::Ball::getDefaultRadius() const {
+    return getRep().getDefaultRadius();
 }
 
 
@@ -287,8 +438,51 @@ Constraint::Ball& Constraint::Ball::updDowncast(Constraint& s) {
 const Constraint::Ball::BallRep& Constraint::Ball::getRep() const {
     return dynamic_cast<const BallRep&>(*rep);
 }
+
 Constraint::Ball::BallRep& Constraint::Ball::updRep() {
     return dynamic_cast<BallRep&>(*rep);
+}
+
+    // BallRep
+
+void Constraint::Ball::BallRep::calcDecorativeGeometryAndAppendImpl
+   (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+{
+    // We can't generate the ball until we know the radius, and we can't place
+    // the geometry on the body until we know the body1 and body2 point
+    // placements on the bodies, which might not be until Instance stage.
+    if (stage == Stage::Instance && getDefaultRadius() > 0) {
+        const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
+        const Transform X_B1(Rotation(), defaultPoint1); // should be point from State
+        const Transform X_B2(Rotation(), defaultPoint2);
+
+        // On the inboard body, draw a solid sphere and a wireframe one attached to it for
+        // easier visualization of its rotation. These are at about 90% of the radius.
+        geom.push_back(DecorativeSphere(0.92*getDefaultRadius())
+                                            .setColor(Gray)
+                                            .setRepresentation(DecorativeGeometry::DrawSurface)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.75)
+                                            .setBodyId(body1)
+                                            .setTransform(X_B1));
+        geom.push_back(DecorativeSphere(0.90*getDefaultRadius())
+            .setColor(White)
+            .setRepresentation(DecorativeGeometry::DrawWireframe)
+            .setResolution(0.75)
+            .setLineThickness(3)
+            .setOpacity(0.1)
+            .setBodyId(body1)
+            .setTransform(X_B1));
+
+        // On the outboard body draw an orange mesh sphere at the ball radius.
+        geom.push_back(DecorativeSphere(getDefaultRadius())
+                                            .setColor(Orange)
+                                            .setRepresentation(DecorativeGeometry::DrawWireframe)
+                                            .setOpacity(0.5)
+                                            .setResolution(0.5)
+                                            .setBodyId(body2)
+                                            .setTransform(X_B2));
+    }
 }
 
     //////////////////////

@@ -158,6 +158,14 @@ void SimbodyMatterSubsystem::calcMInverseV(const State& s,
     getRep().calcMInverseF(s,v, A_GB, MinvV);
 }
 
+// Convert internal kinematics to spatial equivalent, ignoring velocity and constraints.
+void SimbodyMatterSubsystem::calcSpatialKinematicsFromInternal(const State& s,
+    const Vector&        v,
+    Vector_<SpatialVec>& Jv) const
+{
+    getRep().calcSpatialKinematicsFromInternal(s,v,Jv);
+}
+
 // Convert spatial forces to internal equivalent, ignoring velocity and
 // constraints.
 void SimbodyMatterSubsystem::calcInternalGradientFromSpatial(const State& s,

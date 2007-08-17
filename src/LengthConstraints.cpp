@@ -89,7 +89,7 @@ LoopWNodes::LoopWNodes(const SimbodyMatterSubsystemRep& t, const RBDistanceConst
         SimTK_THROW1(SimTK::Exception::LoopConstraintConstructionFailure, "bad topology");
     }
 
-    // Ensure that tips(2) is the atom which is farther from the base.
+    // Ensure that tips(2) is on the body which is farther from Ground.
     flipStations = (dcNode1->getLevel() > dcNode2->getLevel());
 
     // OK to use tips() at this point.
@@ -251,7 +251,8 @@ static inline bool operator<(const LoopWNodes& l1, const LoopWNodes& l2) {
 // 
 //   
 void
-LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops)
+LengthConstraints::construct(const Array<RBDistanceConstraint*>& iloops,
+                             const Array<RBPointInPlaneConstraint*>& pipLoops)
 {
     //clean up
     pvConstraints.resize(0);
@@ -719,8 +720,8 @@ LengthSet::testGrad(State& s, const Vector& pos, const Matrix& grad) const
 // which is 0,0,0 at the current orientation. ("instant
 // coordinates").
 //
-// sherm: 060303 This routine uses the joint transition matrices H,
-// which can be thought of as Jacobians d V_PB_G / d uB, that is
+// sherm: 060303 This routine uses the joint transition matrices ~H,
+// which can be thought of as Jacobians ~H = d V_PB_G / d uB, that is
 // partial derivative of the cross-joint relative *spatial* velocity
 // with respect to that joint's generalized speeds uB. This allows
 // analytic computation of d verr / d u where verr is the set of
@@ -1044,7 +1045,6 @@ LengthSet::calcConstraintForces(const State& s, const Vector& udotErr,
         const Vec3 v1 = loops[i].tipPos(pc,2) - loops[i].tipPos(pc,1);
         for (int bi=1 ; bi<=2 ; bi++)
             for (int bj=1 ; bj<=2 ; bj++) {
-                double maxElem = 0.;
                 for (int j=i ; j<(int)loops.size() ; j++) {
                     const Vec3 v2 = loops[j].tipPos(pc,2) - loops[j].tipPos(pc,1);
                     Real  contrib = computeA(pc, dc, v1, loops[i], bi,
@@ -1110,8 +1110,8 @@ void LengthSet::testAccel(const State& s) const
 }
 
 
-// This just computes ~mat*v but first plucks out the relevant entries
-// in f to squash it down to the same size as mat.
+// This just computes ~mat*vec but first plucks out the relevant entries
+// in vec to squash it down to the same size as mat.
 Vector 
 LengthSet::packedMatTransposeTimesVec(const Matrix& packedMat, const Vector& vec)
 {
@@ -1133,7 +1133,7 @@ LengthSet::packedMatTransposeTimesVec(const Matrix& packedMat, const Vector& vec
     return ~packedMat * packedVec; 
 }
 
-// v is a full vector in mobility space; packedVec consists of just
+// vec is a full vector in mobility space; packedVec consists of just
 // the mobilities used in this LengthSet.
 void
 LengthSet::subtractPackedVecFromVec(Vector& vec,
@@ -1289,7 +1289,21 @@ LengthSet::fixVel0(State& s, Vector& iVel)
     getRBTree().realizeSubsystemVelocity(s);
 }
 
-    // RBDistanceConstraint methods
+
+std::ostream& operator<<(std::ostream& o, const RBStation& s) {
+    o << "station " << s.getPoint() << " on node " << s.getNode().getNodeNum();
+    return o;
+}
+
+
+std::ostream& operator<<(std::ostream& o, const RBDirection& d) {
+    o << "normal " << d.getUnitVec() << " on node " << d.getNode().getNodeNum();
+    return o;
+}
+
+    ////////////////////////////
+    // RB DISTANCE CONSTRAINT //
+    ////////////////////////////
 
 void RBDistanceConstraint::calcStationPosInfo(int i, 
         SBPositionCache& pc) const
@@ -1321,10 +1335,6 @@ void RBDistanceConstraint::calcStationAccInfo(int i,
                          + cross(w_G,  getStationVel_G(vc,i)); // i.e., w X (wXr)
 }
 
-std::ostream& operator<<(std::ostream& o, const RBStation& s) {
-    o << "station " << s.getPoint() << " on node " << s.getNode().getNodeNum();
-    return o;
-}
 
 void RBDistanceConstraint::calcPosInfo(Vector& qErr, SBPositionCache& pc) const
 {
@@ -1369,4 +1379,98 @@ void RBDistanceConstraint::calcAccInfo(
     const Vec3 relAcc_G = getAcc_G(ac,2) - getAcc_G(ac,1);
     updAccErr(udotErr) = getRelVel_G(vc).normSqr() + (~relAcc_G * getFromTip1ToTip2_G(pc));
 }
+
+
+
+    //////////////////////////////////
+    // RB POINT-IN-PLANE CONSTRAINT //
+    //////////////////////////////////
+
+
+void RBPointInPlaneConstraint::calcPosInfo(Vector& qErr, SBPositionCache& pc) const
+{
+    assert(isValid() && pipConstNum >= 0);
+
+    const Transform& X_GP = getNode(1).getX_GB(pc); // plane body transform
+    const Transform& X_GF = getNode(2).getX_GB(pc); // follower body transform
+
+    // Re-express normal n_P in G, giving n_G
+    updNormal_G(pc) = X_GP.R() * getPlaneNormal(); // n_G
+
+    // Re-express position vector from OF to follower station S (p_FS) in G, giving p_FS_G
+    updStation_G(pc) = X_GF.R() * getFollowerPoint(); // p_FS_G
+
+    // Now measure follower station S from Ground origin, giving p_GS
+    updPos_G(pc)     = X_GF.T() + getStation_G(pc); // p_GS
+
+    // Now measure follower station S from plane body origin, but expressed in G (p_PS_G)
+    updPosInPlaneBody_G(pc) = getPos_G(pc) - X_GP.T(); // p_PS_G
+
+    // Height of follower point along plane normal, with plane body origin being zero.
+    updHeight(pc) = dot( getPosInPlaneBody_G(pc), getNormal_G(pc) ); // h
+
+    // perr = height - desiredHeight
+    updPosErr(qErr) = getHeight(pc) - getPlaneHeight();
+
+}
+
+void RBPointInPlaneConstraint::calcVelInfo(
+        const SBPositionCache& pc, 
+        Vector&                uErr,
+        SBVelocityCache&       vc) const
+{
+    assert(isValid() && pipConstNum >= 0);
+
+    const SpatialVec& V_GP = getNode(1).getV_GB(vc); // plane body velocity
+    const SpatialVec& V_GF = getNode(2).getV_GB(vc); // follower body velocity
+
+    // Time derivative of normal vector in G
+    updNormalDot_G(vc)  = V_GP[0] % getNormal_G(pc);    // ndot_G = w_GP x n_G
+
+    // Velocity v_GS of follower point in Ground (= v + wXr)
+    updVel_G(vc) = V_GF[1] + V_GF[0] % getStation_G(pc);
+
+    // This is v_PS_G = d/dt p_PS_G
+    updVelInPlaneBody_G(vc) = getVel_G(vc) - V_GP[1];
+
+    // This is d/dt height = dot(v_PS_G,n_G) + dot(p_PS_G,ndot_G)
+    updHeightDot(vc) =    dot( getVelInPlaneBody_G(vc), getNormal_G(pc) )
+                        + dot( getPosInPlaneBody_G(pc), getNormalDot_G(vc) );
+
+    // verr = d/dt height
+    updVelErr(uErr) = getHeightDot(vc);
+}
+
+void RBPointInPlaneConstraint::calcAccInfo(
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        Vector&                udotErr,
+        SBAccelerationCache&   ac) const
+{
+    assert(isValid() && pipConstNum >= 0);
+
+    const SpatialVec& V_GP = getNode(1).getV_GB(vc); // plane body velocity
+    const SpatialVec& V_GF = getNode(2).getV_GB(vc); // follower body velocity
+
+    const SpatialVec& A_GP = getNode(1).getA_GB(ac); // plane body acceleration
+    const SpatialVec& A_GF = getNode(2).getA_GB(ac); // follower body acceleration
+
+    // 2nd time derivative of normal vector in G (= aaXn + wXwXn)
+    updNormalDotDot_G(ac)  = A_GP[0] % getNormal_G(pc) + V_GP[0] % getNormalDot_G(vc);
+
+    // Acceleration a_GS of follower point in Ground (= a + aaXr + wXwXr)
+    updAcc_G(ac) = A_GF[1] + A_GF[0] % getStation_G(pc) + V_GF[0] % V_GF[0] % getStation_G(pc);
+
+    // This is a_PS_G = d/dt v_PS_G
+    updAccInPlaneBody_G(ac) = getAcc_G(ac) - A_GP[1];
+
+    // This is d/dt heightDot
+    updHeightDotDot(ac) =    dot(getAccInPlaneBody_G(ac), getNormal_G(pc))
+                         + 2*dot(getVelInPlaneBody_G(vc), getNormalDot_G(vc))
+                         +   dot(getPosInPlaneBody_G(pc), getNormalDotDot_G(ac));
+
+    // verr = d/dt heightDot
+    updAccErr(udotErr) = getHeightDotDot(ac);
+}
+
 

@@ -110,6 +110,12 @@ int main(int argc, char** argv) {
                      pendulumBody,
                          Transform(Vec3(0, d, 0)));
 
+    MobilizedBody::  /*Pin*/Ball
+        leftPendulum2(leftPendulum,
+                         Transform(Vec3(0.5, 0, 0)),
+                     pendulumBody,
+                         Transform(Vec3(0, d, 0)));
+
     leftPendulum.setDefaultRadius(0.2); // for Ball artwork
 
     Vec3 radii(1/2.,1/3.,1/4.); radii*=.5; //radii=Vec3(.333,.5,1);
@@ -130,11 +136,15 @@ int main(int argc, char** argv) {
     char c;
     cout << "Constraint, spring, or nothing? c/s/n"; cin >> c;
 
-    if (c == 'c')         
-        Constraint::Rod(leftPendulum, Vec3(0),
-                        rightPendulum, Vec3(0),
-                        distance);
-    else if (c == 's') {
+    if (c == 'c') {   
+        //Constraint::Rod(leftPendulum, Vec3(0),
+        //                rightPendulum, Vec3(0),
+         //               distance);
+       // Constraint::Ball(leftPendulum2, Vec3(.5,0,0),
+        //                 twoPends.Ground(), Vec3(0,-d,0));
+        Constraint::PointInPlane(twoPends.Ground(), UnitVec3(0,1,0), -2*d,
+                                 leftPendulum2, Vec3(0));
+    } else if (c == 's') {
         forces.addTwoPointLinearSpring(leftPendulum, Vec3(0),
                                        rightPendulum, Vec3(0),
                                        stiffness, distance);
@@ -166,12 +176,13 @@ int main(int argc, char** argv) {
     mbs.realize(s, Stage::Position);
     display.report(s);
     cout << "q=" << s.getQ() << endl;
+    cout << "qErr=" << s.getQErr() << endl;
     cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
     cout << "Default configuration shown. Ready? "; cin >> c;
 
 
     //leftPendulum.setAngle(s, -60*Deg2Rad);
-    leftPendulum.setQToFitRotation(s, Rotation::aboutZ(-60*Deg2Rad));
+    //leftPendulum.setQToFitRotation(s, Rotation::aboutZ(-60*Deg2Rad));
 
     rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
     //rightPendulum.setQToFitRotation(s, Rotation());
@@ -189,6 +200,7 @@ int main(int argc, char** argv) {
     display.report(s);
 
     cout << "q=" << s.getQ() << endl;
+    cout << "qErr=" << s.getQErr() << endl;
     cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
     cout << "v_MbM=" << rightPendulum.getMobilizerVelocity(s)[1] << endl;
     cout << "Unassembled configuration shown. Ready to assemble? "; cin >> c;
@@ -202,7 +214,7 @@ int main(int argc, char** argv) {
     //CPodesIntegrator myStudy(mbs, s);
     //ExplicitEuler myStudy(mbs, s);
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-2);
+    myStudy.setAccuracy(1e-3);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setConstraintTolerance(1e-7);
     //myStudy.setAllowInterpolation(false);
@@ -226,6 +238,7 @@ int main(int argc, char** argv) {
         const State& s = myStudy.getState();
         display.report(s);
         cout << "q=" << s.getQ() << endl;
+        cout << "qErr=" << s.getQErr() << endl;
         cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
         cout << "Assembled configuration shown. Ready to simulate? "; cin >> c;
     }
@@ -246,11 +259,10 @@ int main(int argc, char** argv) {
             myStudy.getPreviousStepSizeTaken(),
             Integrator::successfulStepStatusString(status).c_str(),
             myStudy.isStateInterpolated()?" (INTERP)":"");
-        //printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
-        //    twoPends.getQErr(s).normRMS(),
-        //    twoPends.getUErr(s).normRMS(),
-        //    twoPends.getUDotErr(s).normRMS());
-
+        printf("     qerr=%10.8g uerr=%10.8g uderr=%10.8g\n",
+            twoPends.getQErr(s).normRMS(),
+            twoPends.getUErr(s).normRMS(),
+            twoPends.getUDotErr(s).normRMS());
 
         display.report(s);
         //if (s.getTime() >= finalTime)

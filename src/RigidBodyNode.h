@@ -503,6 +503,13 @@ public:
         Vector&                qdotdot) const 
       { throw VirtualBaseMethod(); }
 
+
+    virtual void calcSpatialKinematicsFromInternal(
+        const SBPositionCache&      pc,
+        const Vector&               v,
+        Vector_<SpatialVec>&        Jv) const
+      { throw VirtualBaseMethod(); }
+
     virtual void calcInternalGradientFromSpatial(
         const SBPositionCache&      pc, 
         Vector_<SpatialVec>&        zTmp,

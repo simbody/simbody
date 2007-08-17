@@ -61,7 +61,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 3;
+static int NSegments = 1;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -147,6 +147,7 @@ private:
             if (!shouldFlop) {
                 Constraint::Ball theConstraint(left2, Vec3(0, -ConnectorHalfHeight, 0),
                                                dup, Vec3(DuplexRadius, HalfHeight, 0));
+                theConstraint.setDefaultRadius(1.5);
             }
 
             baseBody = lastDup = dup;

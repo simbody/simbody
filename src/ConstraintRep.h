@@ -64,6 +64,19 @@ public:
     virtual ConstraintNode* createConstraintNode() const = 0; 
 
     void realizeTopology(int& nxtQErr, int& nxtUErr, int& nxtMult) const;
+
+    virtual void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+    {
+    }
+
+    void calcDecorativeGeometryAndAppend
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const
+    {
+        // Let the individual constraint deal with any complicated stuff.
+        calcDecorativeGeometryAndAppendImpl(s,stage,geom);
+    }
+
     void invalidateTopologyCache() const;
     const ConstraintNode& getMyConstraintNode() const;
 
@@ -132,12 +145,66 @@ private:
     Real            defaultRodLength;
 };
 
+
+class Constraint::PointInPlane::PointInPlaneRep : public Constraint::ConstraintRep {
+public:
+    PointInPlaneRep()
+      : defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
+        planeHalfWidth(1), pointRadius(0.05) 
+    { }
+    PointInPlaneRep* clone() const { return new PointInPlaneRep(*this); }
+
+    ConstraintNode* createConstraintNode() const; 
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+
+    void setPlaneDisplayHalfWidth(Real h) {
+        // h <= 0 means don't display plane
+        invalidateTopologyCache();
+        planeHalfWidth = h > 0 ? h : 0;
+    }
+    Real getPlaneDisplayHalfWidth() const {return planeHalfWidth;}
+
+    void setPointDisplayRadius(Real r) {
+        // r <= 0 means don't display point
+        invalidateTopologyCache();
+        pointRadius= r > 0 ? r : 0;
+    }
+    Real getPointDisplayRadius() const {return pointRadius;}
+
+    SimTK_DOWNCAST(PointInPlaneRep, ConstraintRep);
+private:
+    friend class Constraint::PointInPlane;
+
+    MobilizedBodyId planeBody;    // B1
+    MobilizedBodyId followerBody; // B2
+    UnitVec3        defaultPlaneNormal; // on body 1, exp. in B1 frame
+    Real            defaultPlaneHeight;
+    Vec3            defaultFollowerPoint; // on body 2, exp. in B2 frame
+
+    // These are just for visualization
+    Real planeHalfWidth;
+    Real pointRadius;
+};
+
+
 class Constraint::Ball::BallRep : public Constraint::ConstraintRep {
 public:
-    BallRep() : defaultPoint1(0), defaultPoint2(0) { }
+    BallRep() : defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
     BallRep* clone() const { return new BallRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 
+
+    void calcDecorativeGeometryAndAppendImpl
+       (const State& s, Stage stage, Array<DecorativeGeometry>& geom) const;
+
+    void setDefaultRadius(Real r) {
+        // r <= 0 means don't display
+        invalidateTopologyCache();
+        defaultRadius = r > 0 ? r : 0;
+    }
+    Real getDefaultRadius() const {return defaultRadius;}
 
     SimTK_DOWNCAST(BallRep, ConstraintRep);
 private:
@@ -147,6 +214,7 @@ private:
     MobilizedBodyId body2; // B2
     Vec3            defaultPoint1; // on body 1, exp. in B1 frame
     Vec3            defaultPoint2; // on body 2, exp. in B2 frame
+    Real            defaultRadius; // used for visualization only
 };
 
 

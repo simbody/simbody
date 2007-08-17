@@ -118,7 +118,7 @@ public:
                     getQErrIndex(), getUErrIndex(), getMultIndex());
     }
 
-    /*virtual*/ const char* type()     const {return "separation";}
+    /*virtual*/ const char* type()     const {return "constantDistance";}
     /*virtual*/ int         getNConstraintEquations() const {return 1;}
     /*virtual*/ ConstraintNode* clone() const {
         return new ConstantDistanceConstraintNode(*this);
@@ -131,6 +131,45 @@ private:
     const Real separation;
 
     int distanceConstraintIndex;
+};
+
+/**
+ * This class represents a single constraint equation, enforcing that a point fixed
+ * to one body move in a plane fixed to another.
+ */
+class PointInPlaneConstraintNode : public ConstraintNode {
+public:
+    PointInPlaneConstraintNode(
+            const RigidBodyNode& planeNode, const UnitVec3& planeNormalInP, Real planeHeight,
+            const RigidBodyNode& followerNode,  const Vec3& followerPointInF)
+      : planeBody(planeNode), followerBody(followerNode), normal(planeNormalInP), height(planeHeight),
+        followerStation(followerPointInF), pointInPlaneConstraintIndex(-1)
+    {
+    }
+    ~PointInPlaneConstraintNode() { }
+
+    /*virtual*/ void finishConstruction(SimbodyMatterSubsystemRep& tree) {
+        const RBDirection d(planeBody, normal);
+        const RBStation   s(followerBody, followerStation);
+        pointInPlaneConstraintIndex = 
+            tree.addOnePointInPlaneEquation(d, height, s,
+                    getQErrIndex(), getUErrIndex(), getMultIndex());
+    }
+
+    /*virtual*/ const char* type()     const {return "pointInPlane";}
+    /*virtual*/ int         getNConstraintEquations() const {return 1;}
+    /*virtual*/ ConstraintNode* clone() const {
+        return new PointInPlaneConstraintNode(*this);
+    }
+    
+private:
+    const RigidBodyNode& planeBody;
+    const RigidBodyNode& followerBody;  
+    const UnitVec3 normal;
+    const Real     height;
+    const Vec3     followerStation;
+
+    int pointInPlaneConstraintIndex;
 };
 
 /**

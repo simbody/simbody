@@ -89,6 +89,21 @@ ConstraintNode* Constraint::Rod::RodRep::createConstraintNode() const
 }
 
 
+
+    ////////////////////////////////////////////////////
+    // CONSTRAINT::POINT IN PLANE::POINT IN PLANE REP //
+    ////////////////////////////////////////////////////
+
+ConstraintNode* Constraint::PointInPlane::PointInPlaneRep::createConstraintNode() const
+{
+    assert(isInSubsystem());
+    const SimbodyMatterSubsystemRep& sbdyrep = getMyMatterSubsystemRep();
+    return new PointInPlaneConstraintNode(
+        sbdyrep.getRigidBodyNode(planeBody), defaultPlaneNormal, defaultPlaneHeight,
+        sbdyrep.getRigidBodyNode(followerBody), defaultFollowerPoint);
+}
+
+
     ///////////////////////////////
     // CONSTRAINT::BALL::BALLREP //
     ///////////////////////////////

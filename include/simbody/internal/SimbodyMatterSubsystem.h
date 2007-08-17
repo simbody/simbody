@@ -263,6 +263,11 @@ public:
         Vector_<SpatialVec>& A_GB) const; // <-- TODO: get rid of this A
 
     /// Requires realization through Stage::Position.
+    void calcSpatialKinematicsFromInternal(const State&,
+        const Vector&        v,
+        Vector_<SpatialVec>& Jv) const;
+
+    /// Requires realization through Stage::Position.
     void calcInternalGradientFromSpatial(const State&,
         const Vector_<SpatialVec>& dEdR,
         Vector&                    dEdQ) const; // really Qbar
@@ -270,8 +275,10 @@ public:
     /// Requires realization through Stage::Velocity.
     Real calcKineticEnergy(const State&) const;
 
-    /// Requires realization through Stage::Dynamics although
-    /// velocities are irrelevant.
+    /// Requires realization through Stage::Dynamics. Accounts for applied forces
+    /// and centrifugal forces produced by non-zero velocities in the State. Returns
+    /// a set of mobility forces which replace both the applied bodyForces and the
+    /// centrifugal forces.
     void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    mobilityForces) const;

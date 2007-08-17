@@ -116,7 +116,8 @@ public:
 
     void clear() {
         nBodies = nParticles = nConstraints = nDOFs = maxNQs = sumSqDOFs =
-            nDistanceConstraints = modelingVarsIndex = modelingCacheIndex = -1;
+            nDistanceConstraints = nPointInPlaneConstraints = 
+            modelingVarsIndex = modelingCacheIndex = -1;
         valid = false;
     }
 
@@ -129,6 +130,7 @@ public:
     int sumSqDOFs;
 
     int nDistanceConstraints;
+    int nPointInPlaneConstraints;
 
     int modelingVarsIndex;
     int modelingCacheIndex;
@@ -241,6 +243,14 @@ public:
     Vector_<Vec3> fromTip1ToTip2_G; // tip2.pos-tip1.pos
     Vector_<Vec3> unitDirection_G;  // fromTip1ToTip2/|fromTip1ToTip2|
 
+    // Point-in-plane constraint calculations. These are indexed by *point-in-plane*
+    // constraint number, not *constraint* number or *multiplier* number.
+    Vector_<UnitVec3> pipNormal_G; // the body 1-fixed plane normal, expressed in G
+    Vector_<Vec3>     pipStation_G; // the body 2-fixed vector to the station, expressed inG
+    Vector_<Vec3>     pipPos_G;     // the body 2-fixed station's position in Cartesian space
+    Vector_<Vec3>     pipPosInPlaneBody_G; // follower station measured from plane origin, exp. in G
+    Vector            pipHeight; // height of body 2 station along body 1 normal
+
 
 public:
     void allocate(const SBTopologyCache& tree) {
@@ -248,8 +258,9 @@ public:
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
-        const int npc     = tree.nDistanceConstraints; // position constraints
-        const int ndc     = tree.nDistanceConstraints;
+        const int ndistc  = tree.nDistanceConstraints;
+        const int npipc   = tree.nPointInPlaneConstraints;
+        const int npc     = ndistc + npipc; // all the position constraints
 
         // These contain uninitialized junk. Body-indexed entries get their
         // ground elements set appropriately now and forever.
@@ -281,11 +292,17 @@ public:
         bodyCOMStationInGround.resize(nBodies);      
         bodyCOMStationInGround[0] = 0.;
 
-        station_G[0].resize(ndc); station_G[1].resize(ndc);
-        pos_G[0].resize(ndc); pos_G[1].resize(ndc);
+        station_G[0].resize(ndistc); station_G[1].resize(ndistc);
+        pos_G[0].resize(ndistc); pos_G[1].resize(ndistc);
 
-        fromTip1ToTip2_G.resize(ndc);
-        unitDirection_G.resize(ndc);
+        fromTip1ToTip2_G.resize(ndistc);
+        unitDirection_G.resize(ndistc);
+
+        pipNormal_G.resize(npipc);
+        pipStation_G.resize(npipc);
+        pipPos_G.resize(npipc);
+        pipPosInPlaneBody_G.resize(npipc);
+        pipHeight.resize(npipc);
     }
 };
 
@@ -302,14 +319,22 @@ public:
     Vector_<Vec3> vel_G[2];        // tip velocities relative to G, expr. in G
     Vector_<Vec3> relVel_G;        // spatial relative velocity tip2.velG-tip1.velG
 
+    // Point-in-plane constraint calculations. These are indexed by *point-in-plane*
+    // constraint number, not *constraint* number or *multiplier* number.
+    Vector_<Vec3> pipNormalDot_G;  // time derivative of the body-1 fixed plane normal, taken in G
+    Vector_<Vec3> pipVel_G;        // vel of station in G, expr. in G
+    Vector_<Vec3> pipVelInPlaneBody_G; // vel of station relative to plane origin, expr. in G
+    Vector        pipHeightDot;    // rate of change of height (ideally zero)
+
 public:
     void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
         const int nBodies = tree.nBodies;
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
-        const int nvc     = tree.nDistanceConstraints; // velocity constraints
-        const int ndc     = tree.nDistanceConstraints;
+        const int ndistc  = tree.nDistanceConstraints;
+        const int npipc   = tree.nPointInPlaneConstraints;
+        const int nvc     = ndistc + npipc; // all the velocity constraints
 
         bodyVelocityInParent.resize(nBodies);       
         bodyVelocityInParent[0] = SpatialVec(Vec3(0),Vec3(0));
@@ -320,9 +345,14 @@ public:
         mobilizerRelativeVelocity.resize(nBodies);       
         mobilizerRelativeVelocity[0] = SpatialVec(Vec3(0),Vec3(0));
 
-        stationVel_G[0].resize(ndc); stationVel_G[1].resize(ndc);
-        vel_G[0].resize(ndc); vel_G[1].resize(ndc);
-        relVel_G.resize(ndc);
+        stationVel_G[0].resize(ndistc); stationVel_G[1].resize(ndistc);
+        vel_G[0].resize(ndistc); vel_G[1].resize(ndistc);
+        relVel_G.resize(ndistc);
+
+        pipNormalDot_G.resize(npipc);
+        pipVel_G.resize(npipc);
+        pipVelInPlaneBody_G.resize(npipc);
+        pipHeightDot.resize(npipc);
     }
 };
 
@@ -410,6 +440,15 @@ public:
     Vector_<Vec3> acc_G[2];   // acc of tip relative to ground, expr. in G
     Vector_<Vec3> force_G[2]; // the constraint forces applied to each point
 
+    // Point-in-plane constraint calculations. These are indexed by *point-in-plane*
+    // constraint number, not *constraint* number or *multiplier* number.
+    Vector_<Vec3> pipNormalDotDot_G; // 2nd time derivative of the body-1 fixed plane normal, taken in G
+    Vector_<Vec3> pipAcc_G;          // acc of station in G, expr. in G
+    Vector_<Vec3> pipAccInPlaneBody_G; // acc of station relative to plane origin, expr. in G
+    Vector_<Vec3> pipForce_G[2];     // the constraint forces applied to each point (station on body2
+                                     //   and the coincident point on body1)
+    Vector        pipHeightDotDot;   // 2nd deriv of height (ideally zero)
+
 public:
     void allocate(const SBTopologyCache& tree) {
         // Pull out construction-stage information from the tree.
@@ -417,8 +456,9 @@ public:
         const int nDofs   = tree.nDOFs;     // this is the number of u's (nu)
         const int nSqDofs = tree.sumSqDOFs;   // sum(ndof^2) for each joint
         const int maxNQs  = tree.maxNQs;  // allocate the max # q's we'll ever need
-        const int nac     = tree.nDistanceConstraints; // acceleration constraints 
-        const int ndc     = tree.nDistanceConstraints;
+        const int ndistc  = tree.nDistanceConstraints;
+        const int npipc   = tree.nPointInPlaneConstraints;
+        const int nac     = ndistc + npipc; // all the acceleration constraints
 
         bodyAccelerationInGround.resize(nBodies);   
         bodyAccelerationInGround[0] = SpatialVec(Vec3(0),Vec3(0));;
@@ -431,8 +471,14 @@ public:
 
         Gepsilon.resize(nBodies); // TODO: ground initialization
 
-        acc_G[0].resize(ndc); acc_G[1].resize(ndc);
-        force_G[0].resize(ndc); force_G[1].resize(ndc);
+        acc_G[0].resize(ndistc); acc_G[1].resize(ndistc);
+        force_G[0].resize(ndistc); force_G[1].resize(ndistc);
+
+        pipNormalDotDot_G.resize(npipc);
+        pipAcc_G.resize(npipc);
+        pipAccInPlaneBody_G.resize(npipc);
+        pipForce_G[0].resize(npipc); pipForce_G[1].resize(npipc);
+        pipHeightDotDot.resize(npipc);
     }
 };
 
