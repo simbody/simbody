@@ -41,12 +41,12 @@ namespace SimTK {
  * This is the private implementation class for Random.  It has a subclass corresponding to each subclass of Random.
  */
 
-class RandomImpl {
+class Random::RandomImpl {
 private:
-    SimTK_SFMT::SFMTData* sfmt;
+    mutable SimTK_SFMT::SFMTData* sfmt;
     static const int bufferSize = 1024;
-    uint64_t buffer[bufferSize];
-    int nextIndex;
+    mutable uint64_t buffer[bufferSize];
+    mutable int nextIndex;
 public:
     class UniformImpl;
     class GaussianImpl;
@@ -55,7 +55,7 @@ public:
         setSeed(0);
     }
 
-    ~RandomImpl() {
+    virtual ~RandomImpl() {
         deleteSFMTData(sfmt);
     }
 
@@ -64,9 +64,9 @@ public:
         init_gen_rand(seed, *sfmt);
     }
     
-    virtual Real getValue() = 0;
+    virtual Real getValue() const = 0;
 
-    Real getNextRandom() {
+    Real getNextRandom() const {
         if (nextIndex >= bufferSize) {
             // There are no remaining values in the buffer, so we need to refill it.
             
@@ -80,7 +80,7 @@ public:
         return (int) floor(getValue()*max);
     }
 
-    void fillArray(Real array[], int length) {
+    void fillArray(Real array[], int length) const {
         for (int i = 0; i < length; ++i)
             array[i] = getValue();
     }
@@ -90,14 +90,14 @@ public:
  * This is the private implementation class for uniform random numbers.
  */
 
-class RandomImpl::UniformImpl : public RandomImpl {
+class Random::Uniform::UniformImpl : public Random::RandomImpl {
 private:
     Real min, max, range;
 public:
     UniformImpl(Real min, Real max) : min(min), max(max), range(max-min) {
     }
     
-    Real getValue() {
+    Real getValue() const {
         return min+getNextRandom()*range;
     }
     
@@ -124,15 +124,16 @@ public:
  * This is the private implementation class for Gaussian random numbers.
  */
 
-class RandomImpl::GaussianImpl : public RandomImpl {
+class Random::Gaussian::GaussianImpl : public Random::RandomImpl {
 private:
-    Real mean, stddev, nextGaussian;
-    bool nextGaussianIsValid;
+    Real mean, stddev;
+    mutable Real nextGaussian;
+    mutable bool nextGaussianIsValid;
 public:
     GaussianImpl(Real mean, Real stddev) : mean(mean), stddev(stddev) {
     }
     
-    Real getValue() {
+    Real getValue() const {
         if (nextGaussianIsValid) {
             nextGaussianIsValid = false;
             return mean+stddev*nextGaussian;
@@ -182,16 +183,25 @@ Random::Random() : impl(0) {
 }
 
 Random::~Random() {
-    delete getImpl();
+    delete impl;
 }
 
 /**
  * Get the internal object which implements the random number generator.
  */
 
-RandomImpl* Random::getImpl() const {
+Random::RandomImpl& Random::getImpl() {
     assert(impl);
-    return impl;
+    return *impl;
+}
+
+/**
+ * Get a constant reference to the internal object which implements the random number generator.
+ */
+
+const Random::RandomImpl& Random::getConstImpl() const {
+    assert(impl);
+    return *impl;
 }
 
 /**
@@ -199,23 +209,23 @@ RandomImpl* Random::getImpl() const {
  */
 
 void Random::setSeed(int seed) {
-    getImpl()->setSeed(seed);
+    getImpl().setSeed(seed);
 }
 
 /**
  * Get the next value in the pseudo-random sequence.
  */
 
-Real Random::getValue() {
-    return getImpl()->getValue();
+Real Random::getValue() const {
+    return getConstImpl().getValue();
 }
 
 /**
  * Fill an array with values from the pseudo-random sequence.
  */
 
-void Random::fillArray(Real array[], int length) {
-    getImpl()->fillArray(array, length);
+void Random::fillArray(Real array[], int length) const {
+    getConstImpl().fillArray(array, length);
 }
 
 /**
@@ -223,7 +233,7 @@ void Random::fillArray(Real array[], int length) {
  */
 
 Random::Uniform::Uniform() {
-    impl = new RandomImpl::UniformImpl(0.0, 1.0);
+    impl = new Random::Uniform::UniformImpl(0.0, 1.0);
 }
 
 /**
@@ -231,7 +241,17 @@ Random::Uniform::Uniform() {
  */
 
 Random::Uniform::Uniform(Real min, Real max) {
-    impl = new RandomImpl::UniformImpl(min, max);
+    impl = new Random::Uniform::UniformImpl(min, max);
+}
+
+Random::Uniform::UniformImpl& Random::Uniform::getImpl() {
+    assert(impl);
+    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
+}
+
+const Random::Uniform::UniformImpl& Random::Uniform::getConstImpl() const {
+    assert(impl);
+    return dynamic_cast<Random::Uniform::UniformImpl&>(*impl);
 }
 
 /**
@@ -239,7 +259,7 @@ Random::Uniform::Uniform(Real min, Real max) {
  */
 
 int Random::Uniform::getIntValue() {
-    return (int) std::floor(getImpl()->getValue());
+    return (int) std::floor(getImpl().getValue());
 }
 
 /**
@@ -247,7 +267,7 @@ int Random::Uniform::getIntValue() {
  */
 
 Real Random::Uniform::getMin() const {
-    return ((RandomImpl::UniformImpl*) getImpl())->getMin();
+    return getConstImpl().getMin();
 }
 
 /**
@@ -255,7 +275,7 @@ Real Random::Uniform::getMin() const {
  */
 
 void Random::Uniform::setMin(double min) {
-    ((RandomImpl::UniformImpl*) getImpl())->setMin(min);
+    getImpl().setMin(min);
 }
 
 /**
@@ -263,7 +283,7 @@ void Random::Uniform::setMin(double min) {
  */
 
 Real Random::Uniform::getMax() const {
-    return ((RandomImpl::UniformImpl*) getImpl())->getMax();
+    return getConstImpl().getMax();
 }
 
 /**
@@ -271,7 +291,7 @@ Real Random::Uniform::getMax() const {
  */
 
 void Random::Uniform::setMax(double max) {
-    ((RandomImpl::UniformImpl*) getImpl())->setMax(max);
+    getImpl().setMax(max);
 }
 
 /**
@@ -279,7 +299,7 @@ void Random::Uniform::setMax(double max) {
  */
 
 Random::Gaussian::Gaussian() {
-    impl = new RandomImpl::GaussianImpl(0.0, 1.0);
+    impl = new Random::Gaussian::GaussianImpl(0.0, 1.0);
 }
 
 /**
@@ -287,7 +307,17 @@ Random::Gaussian::Gaussian() {
  */
 
 Random::Gaussian::Gaussian(Real mean, Real stddev) {
-    impl = new RandomImpl::GaussianImpl(mean, stddev);
+    impl = new Random::Gaussian::GaussianImpl(mean, stddev);
+}
+
+Random::Gaussian::GaussianImpl& Random::Gaussian::getImpl() {
+    assert(impl);
+    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
+}
+
+const Random::Gaussian::GaussianImpl& Random::Gaussian::getConstImpl() const {
+    assert(impl);
+    return dynamic_cast<Random::Gaussian::GaussianImpl&>(*impl);
 }
 
 /**
@@ -295,7 +325,7 @@ Random::Gaussian::Gaussian(Real mean, Real stddev) {
  */
 
 Real Random::Gaussian::getMean() const {
-    return ((RandomImpl::GaussianImpl*) getImpl())->getMean();
+    return getConstImpl().getMean();
 }
 
 /**
@@ -303,7 +333,7 @@ Real Random::Gaussian::getMean() const {
  */
 
 void Random::Gaussian::setMean(double mean) {
-    ((RandomImpl::GaussianImpl*) getImpl())->setMean(mean);
+    getImpl().setMean(mean);
 }
 
 /**
@@ -311,7 +341,7 @@ void Random::Gaussian::setMean(double mean) {
  */
 
 Real Random::Gaussian::getStdDev() const {
-    return ((RandomImpl::GaussianImpl*) getImpl())->getStdDev();
+    return getConstImpl().getStdDev();
 }
 
 /**
@@ -319,7 +349,7 @@ Real Random::Gaussian::getStdDev() const {
  */
 
 void Random::Gaussian::setStdDev(double stddev) {
-    ((RandomImpl::GaussianImpl*) getImpl())->setStdDev(stddev);
+    getImpl().setStdDev(stddev);
 }
 
 } // namespace SimTK

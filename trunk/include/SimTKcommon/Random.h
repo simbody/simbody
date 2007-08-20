@@ -36,8 +36,6 @@
 
 namespace SimTK {
 
-class RandomImpl;
-
 /**
  * This class defines the interface for pseudo-random number generators.  Subclasses generate numbers according to specific
  * distributions.  Currently, there are two such subclasses: Random::Uniform and Random::Gaussian.  For example, to generate
@@ -63,14 +61,19 @@ class SimTK_SimTKCOMMON_EXPORT Random {
 public:
     class Uniform;
     class Gaussian;
+    class RandomImpl;
     Random();
     ~Random();
     void setSeed(int seed);
-    Real getValue();
-    void fillArray(Real array[], int length);
+    Real getValue() const;
+    void fillArray(Real array[], int length) const;
 protected:
     RandomImpl* impl;
-    RandomImpl* getImpl() const;
+    RandomImpl& getImpl();
+    const RandomImpl& getConstImpl() const;
+private:
+    Random(Random& r);
+    Random operator=(Random& r);
 };
 
 /**
@@ -79,6 +82,7 @@ protected:
 
 class SimTK_SimTKCOMMON_EXPORT Random::Uniform : public Random {
 public:
+    class UniformImpl;
     Uniform();
     Uniform(Real min, Real max);
     int getIntValue();
@@ -86,6 +90,9 @@ public:
     void setMin(Real min);
     Real getMax() const;
     void setMax(Real max);
+protected:
+    UniformImpl& getImpl();
+    const UniformImpl& getConstImpl() const;
 };
 
 /**
@@ -95,12 +102,16 @@ public:
 
 class SimTK_SimTKCOMMON_EXPORT Random::Gaussian : public Random {
 public:
+    class GaussianImpl;
     Gaussian();
     Gaussian(Real mean, Real stddev);
     Real getMean() const;
     void setMean(Real mean);
     Real getStdDev() const;
     void setStdDev(Real stddev);
+protected:
+    GaussianImpl& getImpl();
+    const GaussianImpl& getConstImpl() const;
 };
 
 } // namespace SimTK
