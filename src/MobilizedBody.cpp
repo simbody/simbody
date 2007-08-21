@@ -1472,6 +1472,107 @@ MobilizedBody::Free::Free(MobilizedBody& parent, const Transform& inbFrame,
                                                    *this);
 }
 
+MobilizedBody::Free& MobilizedBody::Free::setDefaultTranslation(const Vec3& p_FM) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultQTranslation = p_FM;
+    return *this;
+}
+
+
+MobilizedBody::Free& MobilizedBody::Free::setDefaultQuaternion(const Quaternion& R_FM) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultQOrientation = R_FM;
+    return *this;
+}
+
+MobilizedBody::Free& MobilizedBody::Free::setDefaultRotation(const Rotation& R_FM) {
+    setDefaultQuaternion(R_FM.convertToQuaternion());
+    return *this;
+}
+
+MobilizedBody::Free& MobilizedBody::Free::setDefaultTransform(const Transform& X_FM) {
+    setDefaultTranslation(X_FM.T());
+    setDefaultQuaternion(X_FM.R().convertToQuaternion());
+    return *this;
+}
+
+const Vec3& MobilizedBody::Free::getDefaultTranslation() const {
+    return getRep().defaultQTranslation;
+}
+
+const Quaternion& MobilizedBody::Free::getDefaultQuaternion() const {
+    return getRep().defaultQOrientation;
+}
+
+const Vec7& MobilizedBody::Free::getDefaultQ() const {
+    // assuming struct is packed so (Orientation,Translation) are contiguous
+    return Vec7::getAs((const Real*)&getRep().defaultQOrientation);
+}
+MobilizedBody::Free& MobilizedBody::Free::setDefaultQ(const Vec7& q) {
+    getRep().invalidateTopologyCache();
+    updRep().defaultQOrientation = Quaternion(q.getSubVec<4>(0));
+    updRep().defaultQTranslation = q.getSubVec<3>(3);
+    return *this;
+}
+
+const Vec7& MobilizedBody::Free::getQ(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQ(s)[qStart]);
+}
+void MobilizedBody::Free::setQ(State& s, const Vec7& q) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    Vec7::updAs(&mbr.getMyMatterSubsystemRep().updQ(s)[qStart]) = q;
+}
+const Vec7& MobilizedBody::Free::getQDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQDot(s)[qStart]);
+}
+const Vec7& MobilizedBody::Free::getQDotDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int qStart, nq; mbr.findMobilizerQs(s,qStart,nq); assert(nq==7);
+    return Vec7::getAs(&mbr.getMyMatterSubsystemRep().getQDotDot(s)[qStart]);
+}
+
+
+const Vec6& MobilizedBody::Free::getU(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getU(s)[uStart]);
+}
+void MobilizedBody::Free::setU(State& s, const Vec6& u) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    Vec6::updAs(&mbr.getMyMatterSubsystemRep().updU(s)[uStart]) = u;
+}
+const Vec6& MobilizedBody::Free::getUDot(const State& s) const {
+    const MobilizedBodyRep& mbr = MobilizedBody::getRep();
+    int uStart, nu; mbr.findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&mbr.getMyMatterSubsystemRep().getUDot(s)[uStart]);
+}
+
+const Vec7& MobilizedBody::Free::getMyPartQ(const State& s, const Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 7);
+    return Vec7::getAs(&qlike[qStart]);
+}
+
+const Vec6& MobilizedBody::Free::getMyPartU(const State& s, const Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::getAs(&ulike[uStart]);
+}
+
+Vec7& MobilizedBody::Free::updMyPartQ(const State& s, Vector& qlike) const {
+    int qStart, nq; getRep().findMobilizerQs(s,qStart,nq); assert(nq == 7);
+    return Vec7::updAs(&qlike[qStart]);
+}
+
+Vec6& MobilizedBody::Free::updMyPartU(const State& s, Vector& ulike) const {
+    int uStart, nu; getRep().findMobilizerUs(s,uStart,nu); assert(nu == 6);
+    return Vec6::updAs(&ulike[uStart]);
+}
+
     // Free mobilizer bookkeeping
 
 bool MobilizedBody::Free::isInstanceOf(const MobilizedBody& s) {

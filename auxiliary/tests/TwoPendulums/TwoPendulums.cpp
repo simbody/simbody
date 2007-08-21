@@ -47,8 +47,7 @@
 using namespace std;
 using namespace SimTK;
 
-static const Real Pi      = (Real)SimTK_PI, 
-                  Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
+static const Real Deg2Rad = (Real)SimTK_DEGREE_TO_RADIAN,
                   Rad2Deg = (Real)SimTK_RADIAN_TO_DEGREE;
 
 static const Transform GroundFrame;
@@ -96,7 +95,7 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  twoPends(mbs);
-    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
+    UniformGravitySubsystem gravity(mbs, 0*Vec3(0, -g, 0));
     GeneralForceElements    forces(mbs);
     DecorationSubsystem     viz(mbs);
 

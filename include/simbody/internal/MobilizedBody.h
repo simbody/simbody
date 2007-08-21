@@ -1702,6 +1702,62 @@ public:
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
 
+    // Leaves rotation unchanged.
+    Free& setDefaultTranslation(const Vec3&);
+
+    // Leaves translation unchanged. The internal representation is a quaternion
+    // so we guarantee that the stored value is numerically identical to the
+    // supplied one.
+    Free& setDefaultQuaternion(const Quaternion&);
+
+    // Leaves translation unchanged. The Rotation matrix will be converted to
+    // a quaternion for storage.
+    Free& setDefaultRotation(const Rotation&);
+    // Sets both translation and rotation. The Rotation part of the Transform 
+    // will be converted to a quaternion for storage.
+    Free& setDefaultTransform(const Transform&);
+
+    // These return references to the stored default values.
+    const Vec3& getDefaultTranslation() const;
+    const Quaternion& getDefaultQuaternion() const;
+
+    // These next two are derived from the stored values.
+    Rotation getDefaultRotation() const {
+        return Rotation(getDefaultQuaternion());
+    }
+    Transform getDefaultTransform() const {
+        return Transform(Rotation(getDefaultQuaternion()), getDefaultTranslation());
+    }
+
+    // Generic default state Topology methods.
+
+    // Returns (Vec4,Vec3) where the Vec4 is a normalized quaternion.
+    const Vec7& getDefaultQ() const;
+
+    // Interprets the supplied q as (Vec4,Vec3) where the Vec4 is a possibly
+    // unnormalized quaternion. The quaternion will be normalized before it is
+    // stored here, so you may not get back exactly the value supplied here if
+    // you call getDefaultQ().
+    Free& setDefaultQ(const Vec7& q);
+
+    // Note that there is no guarantee that the quaternion part of the returned Q is normalized.
+    const Vec7& getQ(const State&) const;
+    const Vec7& getQDot(const State&) const;
+    const Vec7& getQDotDot(const State&) const;
+
+    const Vec6& getU(const State&) const;
+    const Vec6& getUDot(const State&) const;
+
+    // The Q's in the state are set exactly as supplied without normalization.
+    void setQ(State&, const Vec7&) const;
+    void setU(State&, const Vec6&) const;
+
+    const Vec7& getMyPartQ(const State&, const Vector& qlike) const;
+    const Vec6& getMyPartU(const State&, const Vector& ulike) const;
+   
+    Vec7& updMyPartQ(const State&, Vector& qlike) const;
+    Vec6& updMyPartU(const State&, Vector& ulike) const;
+
     class FreeRep; // local subclass
 
     SimTK_PIMPL_DOWNCAST(Free, MobilizedBody);
