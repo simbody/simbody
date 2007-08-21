@@ -274,7 +274,7 @@ Real Random::Uniform::getMin() const {
  * Set the lower end of the range in which values are uniformly distributed.
  */
 
-void Random::Uniform::setMin(double min) {
+void Random::Uniform::setMin(Real min) {
     getImpl().setMin(min);
 }
 
@@ -290,7 +290,7 @@ Real Random::Uniform::getMax() const {
  * Set the upper end of the range in which values are uniformly distributed.
  */
 
-void Random::Uniform::setMax(double max) {
+void Random::Uniform::setMax(Real max) {
     getImpl().setMax(max);
 }
 
@@ -332,7 +332,7 @@ Real Random::Gaussian::getMean() const {
  * Set the mean of the Gaussian distribution.
  */
 
-void Random::Gaussian::setMean(double mean) {
+void Random::Gaussian::setMean(Real mean) {
     getImpl().setMean(mean);
 }
 
@@ -348,7 +348,7 @@ Real Random::Gaussian::getStdDev() const {
  * Set the standard deviation of the Gaussian distribution.
  */
 
-void Random::Gaussian::setStdDev(double stddev) {
+void Random::Gaussian::setStdDev(Real stddev) {
     getImpl().setStdDev(stddev);
 }
 
