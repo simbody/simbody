@@ -450,7 +450,7 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories 
 # with spaces.
 
-INPUT                  = 
+INPUT                  = auxiliary include src tests
 
 # If the value of the INPUT tag contains directories, you can use the 
 # FILE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp 
@@ -471,7 +471,7 @@ RECURSIVE              = YES
 # excluded from the INPUT source files. This way you can easily exclude a 
 # subdirectory from a directory tree whose root is specified with the INPUT tag.
 
-EXCLUDE                = 
+EXCLUDE                =
 
 # The EXCLUDE_SYMLINKS tag can be used select whether or not files or 
 # directories that are symbolic links (a Unix filesystem feature) are excluded 
@@ -483,7 +483,7 @@ EXCLUDE_SYMLINKS       = NO
 # EXCLUDE_PATTERNS tag to specify one or more wildcard patterns to exclude 
 # certain files from those directories.
 
-EXCLUDE_PATTERNS       = 
+EXCLUDE_PATTERNS       =
 
 # The EXAMPLE_PATH tag can be used to specify one or more files or 
 # directories that contain example code fragments that are included (see 
@@ -703,7 +703,7 @@ ENUM_VALUES_PER_LINE   = 4
 # Netscape 6.0+, Internet explorer 5.0+, or Konqueror). Windows users are 
 # probably better off using the HTML help feature.
 
-GENERATE_TREEVIEW      = NO
+GENERATE_TREEVIEW      = YES
 
 # If the treeview is enabled (see GENERATE_TREEVIEW) then this tag can be 
 # used to set the initial width (in pixels) of the frame in which the tree 
@@ -952,13 +952,13 @@ ENABLE_PREPROCESSING   = YES
 # compilation will be performed. Macro expansion can be done in a controlled 
 # way by setting EXPAND_ONLY_PREDEF to YES.
 
-MACRO_EXPANSION        = NO
+MACRO_EXPANSION        = YES
 
 # If the EXPAND_ONLY_PREDEF and MACRO_EXPANSION tags are both set to YES 
 # then the macro expansion is limited to the macros specified with the 
 # PREDEFINED and EXPAND_AS_PREDEFINED tags.
 
-EXPAND_ONLY_PREDEF     = NO
+EXPAND_ONLY_PREDEF     = YES
 
 # If the SEARCH_INCLUDES tag is set to YES (the default) the includes files 
 # in the INCLUDE_PATH (see below) will be search if a #include is found.
@@ -986,14 +986,14 @@ INCLUDE_FILE_PATTERNS  =
 # undefined via #undef or recursively expanded use the := operator 
 # instead of the = operator.
 
-PREDEFINED             = 
+PREDEFINED             = SimTK_SIMBODY_EXPORT=
 
 # If the MACRO_EXPANSION and EXPAND_ONLY_PREDEF tags are set to YES then 
 # this tag can be used to specify a list of macro names that should be expanded. 
 # The macro definition that is found in the sources will be used. 
 # Use the PREDEFINED tag if you want to use a different macro definition.
 
-EXPAND_AS_DEFINED      = 
+EXPAND_AS_DEFINED      = SimTK_PIMPL_DOWNCAST
 
 # If the SKIP_FUNCTION_MACROS tag is set to YES (the default) then 
 # doxygen's preprocessor will remove all function-like macros that are alone 
