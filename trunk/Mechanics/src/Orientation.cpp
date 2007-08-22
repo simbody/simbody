@@ -72,6 +72,17 @@ Rotation::Rotation(const UnitVec<1>& zF) {
                                 0.,   -st,    ct));
 }
 
+// x = normalize(x), z = x X y, y = z X x.
+Rotation::Rotation(const Vec3& xin, const Vec3& yish) {
+    const UnitVec3 x(xin);
+    const UnitVec3 z(x % yish);
+    const UnitVec3 y(z % x);
+    BaseMat::col(0) = (Vec3)x;
+    BaseMat::col(1) = (Vec3)y;
+    BaseMat::col(2) = (Vec3)z;
+}
+
+
 Rotation::Rotation(const Quaternion& q) {
     setToQuaternion(q);
 }

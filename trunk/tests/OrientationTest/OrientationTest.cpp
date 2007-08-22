@@ -375,6 +375,13 @@ try {
     Vec4 aax2 = (~b123*b123x).convertToAngleAxis();
     cout << " aax2=" << aax2 << endl;
 
+
+    Rotation chrisRot( Vec3(1,1,0), Vec3(0,1,0) );
+    cout << "chrisRot+y=" << chrisRot;
+    chrisRot = Rotation( Vec3(1,1,0), Vec3(0,-1,0) );
+    cout << "chrisRot-y=" << chrisRot;
+    chrisRot = Rotation( Vec3(1,1,0), Vec3(0,0,1) );
+    cout << "chrisRot+z=" << chrisRot;
     return 0;
 }
 catch(const Exception::Base& e) {

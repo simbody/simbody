@@ -548,6 +548,13 @@ public:
     /// available to the packed form used as the argument.
     SimTK_SimTKCOMMON_EXPORT explicit Rotation(const UnitVec3& z);
 
+    /// Create a Rotation matrix by specifying its x axis, and then
+    /// a "y like" axis. We will take x seriously after normalizing, but use the y only
+    /// to create z = normalize(x X y), then y = z X x. Bad things will 
+    /// happen if x and y are aligned but we may not catch it.
+    SimTK_SimTKCOMMON_EXPORT explicit Rotation(const Vec3& x, const Vec3& yish);
+
+
     /// Create a rotation matrix from a quaternion.
     SimTK_SimTKCOMMON_EXPORT explicit Rotation(const Quaternion&);
 
