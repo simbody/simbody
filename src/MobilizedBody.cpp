@@ -1511,7 +1511,7 @@ const Vec7& MobilizedBody::Free::getDefaultQ() const {
 MobilizedBody::Free& MobilizedBody::Free::setDefaultQ(const Vec7& q) {
     getRep().invalidateTopologyCache();
     updRep().defaultQOrientation = Quaternion(q.getSubVec<4>(0));
-    updRep().defaultQTranslation = q.getSubVec<3>(3);
+    updRep().defaultQTranslation = q.getSubVec<3>(4);
     return *this;
 }
 
