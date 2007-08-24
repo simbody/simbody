@@ -28,7 +28,7 @@ SUBDIRS (staticTarget sharedTarget tests)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix Mechanics BigMatrix Geometry Simulation Random)
+SET(SimTKCOMMON_SOURCE_SUBDIRS . Scalar SmallMatrix Mechanics BigMatrix Geometry Simulation Random Polynomial)
 
 
 # 
@@ -307,6 +307,8 @@ ADD_TEST(RandomTest               ${TEST_PATH}/RandomTest)
 ADD_TEST(RandomTestStatic         ${TEST_PATH}/RandomTestStatic)
 ADD_TEST(SFMTTest                 ${TEST_PATH}/SFMTTest)
 ADD_TEST(SFMTTestStatic           ${TEST_PATH}/SFMTTestStatic)
+ADD_TEST(PolynomialTest           ${TEST_PATH}/PolynomialTest)
+ADD_TEST(PolynomialTestStatic     ${TEST_PATH}/PolynomialTestStatic)
 
 #
 # Installation
