@@ -32,8 +32,10 @@
 #include "SimTKcommon.h"
 #include "SimTKcommon/Random.h"
 
-#include <cassert>
 #include <iostream>
+
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+
 using std::cout;
 using std::endl;
 using std::sqrt;
@@ -46,7 +48,7 @@ using namespace SimTK;
 void verifyDistribution(int expected[], int found[], int bins) {
     for (int i = 0; i < bins; ++i) {
         Real dev = sqrt((Real) expected[i]);
-        assert(found[i] >= expected[i]-4*dev && found[i] <= expected[i]+4*dev);
+        ASSERT(found[i] >= expected[i]-4*dev && found[i] <= expected[i]+4*dev)
     }
 }
 
@@ -61,8 +63,8 @@ void verifyUniformDistribution(Real min, Real max, Real value[], int length) {
         found[i] = 0;
     }
     for (int i = 0; i < length; ++i) {
-        assert(value[i] >= min);
-        assert(value[i] < max);
+        ASSERT(value[i] >= min)
+        ASSERT(value[i] < max)
         int index = (int) ((value[i]-min)*10/(max-min));
         found[index]++;
     }
@@ -82,8 +84,8 @@ void verifyUniformDistribution(int min, int max, int value[], int length) {
         found[i] = 0;
     }
     for (int i = 0; i < length; ++i) {
-        assert(value[i] >= min);
-        assert(value[i] < max);
+        ASSERT(value[i] >= min)
+        ASSERT(value[i] < max)
         found[value[i]-min]++;
     }
     verifyDistribution(expected, found, range);
@@ -122,8 +124,8 @@ void verifyGaussianDistribution(Real mean, Real stddev, Real value[], int length
 
 void testUniform() {
     Random::Uniform rand;
-    assert(rand.getMin() == 0.0);
-    assert(rand.getMax() == 1.0);
+    ASSERT(rand.getMin() == 0.0)
+    ASSERT(rand.getMax() == 1.0)
 
     // Try generating a bunch of random numbers, and make sure they are distributed uniformly between 0 and 1.
     
@@ -138,7 +140,7 @@ void testUniform() {
     
     rand.setSeed(1);
     for (int i = 0; i < 2000; ++i)
-        assert(value[i] == rand.getValue());
+        ASSERT(value[i] == rand.getValue())
     
     // Now try asking for a whole array at a time, and verify that it still gives the same results.
     
@@ -147,21 +149,21 @@ void testUniform() {
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        assert(value[i] == value2[i]);
+        ASSERT(value[i] == value2[i])
     
     // Set the seed to a different value, and verify that the results are different.
     
     rand.setSeed(2);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        assert(value[i] != value2[i]);
+        ASSERT(value[i] != value2[i])
     
     // Change the range and test the distribution.
     
     rand.setMin(5.0);
     rand.setMax(20.0);
-    assert(rand.getMin() == 5.0);
-    assert(rand.getMax() == 20.0);
+    ASSERT(rand.getMin() == 5.0)
+    ASSERT(rand.getMax() == 20.0)
     rand.fillArray(value2, 2000);
     verifyUniformDistribution(5.0, 20.0, value2, 2000);
     
@@ -176,15 +178,15 @@ void testUniform() {
     
     // Make sure none of the above operations has overwritten the final array element.
     
-    assert(value[2000] == 123.4);
-    assert(value2[2000] = 567.8);
-    assert(value3[2000] = -99);
+    ASSERT(value[2000] == 123.4)
+    ASSERT(value2[2000] = 567.8)
+    ASSERT(value3[2000] = -99)
 }
 
 void testGaussian() {
     Random::Gaussian rand;
-    assert(rand.getMean() == 0.0);
-    assert(rand.getStdDev() == 1.0);
+    ASSERT(rand.getMean() == 0.0)
+    ASSERT(rand.getStdDev() == 1.0)
     
     // Try generating a bunch of Gaussian random numbers, and check the distribution.
     
@@ -202,21 +204,21 @@ void testGaussian() {
     rand.setSeed(1);
     rand.fillArray(value2, 2000);
     for (int i = 0; i < 2000; ++i)
-        assert(value[i] == value2[i]);
+        ASSERT(value[i] == value2[i])
     
     // Change the parameters and test the distribution.
     
     rand.setMean(10.0);
     rand.setStdDev(7.0);
-    assert(rand.getMean() == 10.0);
-    assert(rand.getStdDev() == 7.0);
+    ASSERT(rand.getMean() == 10.0)
+    ASSERT(rand.getStdDev() == 7.0)
     rand.fillArray(value2, 2000);
     verifyGaussianDistribution(10.0, 7.0, value2, 2000);
     
     // Make sure none of the above operations has overwritten the final array element.
     
-    assert(value[2000] == 123.4);
-    assert(value2[2000] = 567.8);
+    ASSERT(value[2000] == 123.4)
+    ASSERT(value2[2000] = 567.8)
 }
 
 int main() {

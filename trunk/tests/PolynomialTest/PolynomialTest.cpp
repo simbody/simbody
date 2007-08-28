@@ -33,8 +33,10 @@
 #include "SimTKcommon/PolynomialRootFinder.h"
 #include "SimTKcommon/Random.h"
 
-#include <cassert>
 #include <iostream>
+
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS(cond, "Assertion failed");}
+
 using std::cout;
 using std::endl;
 using namespace SimTK;
@@ -73,7 +75,7 @@ bool equal2(Complex expected, Complex found) {
 void testQuadratic(Vec3 coeff, Vec<2,Complex> expected) {
     Vec<2,Complex> found;
     PolynomialRootFinder::findRoots(coeff, found);
-    assert((equal2(expected[0], found[0]) && equal2(expected[1], found[1])) || (equal2(expected[0], found[1]) && equal2(expected[1], found[0])));
+    ASSERT((equal2(expected[0], found[0]) && equal2(expected[1], found[1])) || (equal2(expected[0], found[1]) && equal2(expected[1], found[0])))
 }
 
 /**
@@ -83,7 +85,7 @@ void testQuadratic(Vec3 coeff, Vec<2,Complex> expected) {
 void testQuadratic(Vec<3,Complex> coeff, Vec<2,Complex> expected) {
     Vec<2,Complex> found;
     PolynomialRootFinder::findRoots(coeff, found);
-    assert((equal2(expected[0], found[0]) && equal2(expected[1], found[1])) || (equal2(expected[0], found[1]) && equal2(expected[1], found[0])));
+    ASSERT((equal2(expected[0], found[0]) && equal2(expected[1], found[1])) || (equal2(expected[0], found[1]) && equal2(expected[1], found[0])))
 }
 
 /**
@@ -128,13 +130,13 @@ void testCubic(Vec4 coeff, Vec<3,Complex> expected) {
     PolynomialRootFinder::findRoots(coeff, found);
     Real tol = 1e-4;
     if (equal(expected[0], found[0], tol))
-        assert((equal(expected[1], found[1], tol) && equal(expected[2], found[2], tol)) || (equal(expected[1], found[2], tol) && equal(expected[2], found[1], tol)));
+        ASSERT((equal(expected[1], found[1], tol) && equal(expected[2], found[2], tol)) || (equal(expected[1], found[2], tol) && equal(expected[2], found[1], tol)))
     else if (equal(expected[0], found[1], tol))
-        assert((equal(expected[1], found[2], tol) && equal(expected[2], found[0], tol)) || (equal(expected[1], found[0], tol) && equal(expected[2], found[2], tol)));
+        ASSERT((equal(expected[1], found[2], tol) && equal(expected[2], found[0], tol)) || (equal(expected[1], found[0], tol) && equal(expected[2], found[2], tol)))
     else if (equal(expected[0], found[2], tol))
-        assert((equal(expected[1], found[0], tol) && equal(expected[2], found[1], tol)) || (equal(expected[1], found[1], tol) && equal(expected[2], found[0], tol)));
+        ASSERT((equal(expected[1], found[0], tol) && equal(expected[2], found[1], tol)) || (equal(expected[1], found[1], tol) && equal(expected[2], found[0], tol)))
     else
-        assert(false);
+        ASSERT(false)
 }
 
 /**
@@ -146,13 +148,13 @@ void testCubic(Vec<4,Complex> coeff, Vec<3,Complex> expected) {
     PolynomialRootFinder::findRoots(coeff, found);
     Real tol = 1e-4;
     if (equal(expected[0], found[0], tol))
-        assert((equal(expected[1], found[1], tol) && equal(expected[2], found[2], tol)) || (equal(expected[1], found[2], tol) && equal(expected[2], found[1], tol)));
+        ASSERT((equal(expected[1], found[1], tol) && equal(expected[2], found[2], tol)) || (equal(expected[1], found[2], tol) && equal(expected[2], found[1], tol)))
     else if (equal(expected[0], found[1], tol))
-        assert((equal(expected[1], found[2], tol) && equal(expected[2], found[0], tol)) || (equal(expected[1], found[0], tol) && equal(expected[2], found[2], tol)));
+        ASSERT((equal(expected[1], found[2], tol) && equal(expected[2], found[0], tol)) || (equal(expected[1], found[0], tol) && equal(expected[2], found[2], tol)))
     else if (equal(expected[0], found[2], tol))
-        assert((equal(expected[1], found[0], tol) && equal(expected[2], found[1], tol)) || (equal(expected[1], found[1], tol) && equal(expected[2], found[0], tol)));
+        ASSERT((equal(expected[1], found[0], tol) && equal(expected[2], found[1], tol)) || (equal(expected[1], found[1], tol) && equal(expected[2], found[0], tol)))
     else
-        assert(false);
+        ASSERT(false)
 }
 
 /**
@@ -198,7 +200,7 @@ void verifyRoots(Vector_<Real>& coefficients, Vector_<Complex>& roots) {
         for (int j = 0; j < coefficients.size(); ++j) {
             sum = sum*roots[i]+coefficients[j];
         }
-        assert(equal(0.0, sum, 1e-2));
+        ASSERT(equal(0.0, sum, 1e-2))
     }
 }
 
@@ -212,7 +214,7 @@ void verifyRoots(Vector_<Complex>& coefficients, Vector_<Complex>& roots) {
         for (int j = 0; j < coefficients.size(); ++j) {
             sum = sum*roots[i]+coefficients[j];
         }
-        assert(equal(0.0, sum, 1e-2));
+        ASSERT(equal(0.0, sum, 1e-2))
     }
 }
 
@@ -257,13 +259,13 @@ void testSolveQuadratic() {
     
     try {
         testQuadratic(Vec3(0.0, 1.0, 1.0), Vec<2,Complex>(0.0, 0.0));
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
     try {
         testQuadratic(Vec<3,Complex>(0.0, 1.0, 1.0), Vec<2,Complex>(0.0, 0.0));
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
@@ -317,13 +319,13 @@ void testSolveCubic() {
     
     try {
         testCubic(Vec4(0.0, 0.0, 0.0, 0.0), Vec<3,Complex>(0.0, 0.0, 0.0));
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
     try {
         testCubic(Vec<4,Complex>(0.0, 0.0, 0.0, 0.0), Vec<3,Complex>(0.0, 0.0, 0.0));
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
@@ -369,14 +371,14 @@ void testSolveArbitrary() {
     try {
         realCoeff[0] = 0.0;
         PolynomialRootFinder::findRoots(realCoeff, roots);
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
     try {
         complexCoeff[0] = 0.0;
         PolynomialRootFinder::findRoots(complexCoeff, roots);
-        assert(false);
+        ASSERT(false)
     }
     catch (PolynomialRootFinder::ZeroLeadingCoefficient ex) {
     }
