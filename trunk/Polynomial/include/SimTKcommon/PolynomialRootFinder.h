@@ -85,7 +85,7 @@ public:
  * is not really of the stated degree, and does not have the expected number of roots.
  */
 
-class SimTK_SimTKCOMMON_EXPORT PolynomialRootFinder::ZeroLeadingCoefficient : public Exception::Base {
+class PolynomialRootFinder::ZeroLeadingCoefficient : public Exception::Base {
 public:
     ZeroLeadingCoefficient(const char* fn, int ln) : Base(fn,ln) {
         setMessage("Attempting to find roots of a polynomial whose leading coefficient is 0.");

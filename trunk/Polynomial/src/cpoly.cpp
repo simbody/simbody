@@ -81,11 +81,11 @@ int CPoly<T>::findRoots( const T *opr, const T *opi, int degree, T *zeror, T *ze
 
    mcon( &eta, &infin, &smalno, &base );
    are = eta;
-   mre = 2.0 * sqrt( 2.0 ) * eta;
-   xx = 0.70710678;
+   mre = (T) (2.0 * sqrt( 2.0 ) * eta);
+   xx = (T) 0.70710678;
    yy = -xx;
-   cosr = -0.060756474;
-   sinr = -0.99756405;
+   cosr = (T) -0.060756474;
+   sinr = (T) -0.99756405;
    nn = degree;  
 
    // Algorithm fails if the leading coefficient is zero
@@ -215,7 +215,7 @@ void CPoly<T>::noshft( const int l1 )
    nm1 = n - 1;
    for( i = 0; i < n; i++ )
       {
-      xni = nn - i;
+      xni = (T) (nn - i);
       hr[ i ] = xni * pr[ i ] / n;
       hi[ i ] = xni * pi[ i ] / n;
       }
@@ -526,7 +526,7 @@ void CPoly<T>::cauchy( const int nn, T pt[], T q[], T *fn_val )
    // Chop the interval (0,x) until f < 0
    while(1)
       {
-      xm = x * 0.1;
+      xm = x * (T) 0.1;
       f = pt[ 0 ];
       for( i = 1; i <= nn; i++ )
          f = f * xm + pt[ i ];
@@ -637,12 +637,12 @@ T CPoly<T>::cmod( const T r, const T i )
    ar = fabs( r );
    ai = fabs( i );
    if( ar < ai )
-      return ai * sqrt( 1.0 + pow( ( ar / ai ), 2.0 ) );
+      return ai * sqrt( (T) 1.0 + pow( ( ar / ai ), (T) 2.0 ) );
 
    if( ar > ai )
-      return ar * sqrt( 1.0 + pow( ( ai / ar ), 2.0 ) );
+      return ar * sqrt( (T) 1.0 + pow( ( ai / ar ),(T) 2.0 ) );
 
-   return ar * sqrt( 2.0 );
+   return ar * sqrt( (T) 2.0 );
    }
 
 // MCON PROVIDES MACHINE CONSTANTS USED IN VARIOUS PARTS OF THE PROGRAM.

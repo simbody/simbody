@@ -42,9 +42,9 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     int cnt,nz,i,j,jj,l,nm1,zerok;
 /*  The following statements set machine constants. */
     base = 2.0;
-    eta = 2.22e-16;
-    infin = 3.4e38;
-    smalno = 1.2e-38;
+    eta = (T) 2.22e-16;
+    infin = (T) 3.4e38;
+    smalno = (T) 1.2e-38;
 
     are = eta;
     mre = eta;

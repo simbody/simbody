@@ -48,13 +48,13 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
     if (a == 0.0)
         SimTK_THROW(ZeroLeadingCoefficient);
     T b2 = b*b;
-    T discriminant = b2 - 4.0*a*c;
-    T tol = 2.0*NTraits<T>::getEps()*b2;
+    T discriminant = b2 - (T) 4.0*a*c;
+    T tol = (T) 2.0*NTraits<T>::getEps()*b2;
     if (discriminant < tol && discriminant > -tol) {
 
         // b^2 == 4ac to within machine precision, so make the roots identical.
         
-        T root = -b/(2.0*a);
+        T root = -b/((T) 2.0*a);
         roots[0] = complex<T>(root, 0.0);
         roots[1] = complex<T>(root, 0.0);
         return;
@@ -64,12 +64,12 @@ void PolynomialRootFinder::findRoots(const Vec<3,T>& coefficients, Vec<2,complex
         // The coefficient of the linear term is zero, which makes the formula simpler.
         
         if (discriminant >= 0.0) {
-            T root = std::sqrt(discriminant)/2.0*a;
+            T root = std::sqrt(discriminant)/(T) 2.0*a;
             roots[0] = root;
             roots[1] = -root;
         }
         else {
-            T root = sqrt(-discriminant)/2.0*a;
+            T root = sqrt(-discriminant)/(T) 2.0*a;
             roots[0] = Complex(0.0, root);
             roots[1] = Complex(0.0, -root);
         }
@@ -263,25 +263,25 @@ void PolynomialRootFinder::findRoots(const Vector_<complex<T> >& coefficients, V
     }
 }
 
-template void PolynomialRootFinder::findRoots(const Vec<3,float>& coefficients, Vec<2,complex<float> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<3,complex<float> >& coefficients, Vec<2,complex<float> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,float>& coefficients, Vec<3,complex<float> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,complex<float> >& coefficients, Vec<3,complex<float> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<float>& coefficients, Vector_<complex<float> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<complex<float> >& coefficients, Vector_<complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vec<3,float>& coefficients, Vec<2,complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vec<3,complex<float> >& coefficients, Vec<2,complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vec<4,float>& coefficients, Vec<3,complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vec<4,complex<float> >& coefficients, Vec<3,complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vector_<float>& coefficients, Vector_<complex<float> >& roots);
+template void PolynomialRootFinder::findRoots<float>(const Vector_<complex<float> >& coefficients, Vector_<complex<float> >& roots);
 
-template void PolynomialRootFinder::findRoots(const Vec<3,double>& coefficients, Vec<2,complex<double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<3,complex<double> >& coefficients, Vec<2,complex<double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,double>& coefficients, Vec<3,complex<double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,complex<double> >& coefficients, Vec<3,complex<double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<double>& coefficients, Vector_<complex<double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<complex<double> >& coefficients, Vector_<complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vec<3,double>& coefficients, Vec<2,complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vec<3,complex<double> >& coefficients, Vec<2,complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vec<4,double>& coefficients, Vec<3,complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vec<4,complex<double> >& coefficients, Vec<3,complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vector_<double>& coefficients, Vector_<complex<double> >& roots);
+template void PolynomialRootFinder::findRoots<double>(const Vector_<complex<double> >& coefficients, Vector_<complex<double> >& roots);
 
-template void PolynomialRootFinder::findRoots(const Vec<3,long double>& coefficients, Vec<2,complex<long double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<3,complex<long double> >& coefficients, Vec<2,complex<long double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,long double>& coefficients, Vec<3,complex<long double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vec<4,complex<long double> >& coefficients, Vec<3,complex<long double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<long double>& coefficients, Vector_<complex<long double> >& roots);
-template void PolynomialRootFinder::findRoots(const Vector_<complex<long double> >& coefficients, Vector_<complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vec<3,long double>& coefficients, Vec<2,complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vec<3,complex<long double> >& coefficients, Vec<2,complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vec<4,long double>& coefficients, Vec<3,complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vec<4,complex<long double> >& coefficients, Vec<3,complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vector_<long double>& coefficients, Vector_<complex<long double> >& roots);
+template void PolynomialRootFinder::findRoots<long double>(const Vector_<complex<long double> >& coefficients, Vector_<complex<long double> >& roots);
 
 } // namespace SimTK
