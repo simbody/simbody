@@ -50,10 +50,10 @@ int RPoly<T>::findRoots(T *op, int degree, T *zeror, T *zeroi)
     mre = eta;
     lo = smalno/eta;
 /*  Initialization of constants for shift rotation. */        
-    xx = sqrt(0.5);
+    xx = sqrt((T) 0.5);
     yy = -xx;
-    rot = 94.0;
-    rot *= 0.017453293;
+    rot = (T) 94.0;
+    rot *= (T) 0.017453293;
     cosr = cos(rot);
     sinr = sin(rot);
     n = degree;
@@ -117,7 +117,7 @@ _40:
             sc = smalno;
     }
     l = (int)(log(sc)/log(base) + 0.5);
-    factor = pow(base*1.0,l);
+    factor = pow(base*(T) 1.0,l);
     if (factor != 1.0) {
         for (i=0;i<=n;i++) 
             p[i] = factor*p[i];     /* Scale polynomial. */
@@ -137,7 +137,7 @@ _110:
     }
 /*  Chop the interval (0,x) until ff <= 0 */
     while (1) {
-        xm = x*0.1;
+        xm = x*(T) 0.1;
         ff = pt[0];
         for (i=1;i<=n;i++) 
             ff = ff*xm + pt[i];
@@ -207,7 +207,7 @@ _110:
         xx = xxx;
         sr = bnd*xx;
         si = bnd*yy;
-        u = -2.0 * sr;
+        u = (T) -2.0 * sr;
         v = bnd;
         fxshfr(20*(cnt+1),&nz);
         if (nz != 0) {
@@ -394,14 +394,14 @@ _10:
  *  evaluating p.
  */
     zm = sqrt(fabs(v));
-    ee = 2.0*fabs(qp[0]);
+    ee = (T) 2.0*fabs(qp[0]);
     t = -szr*b;
     for (i=1;i<n;i++) {
         ee = ee*zm + fabs(qp[i]);
     }
     ee = ee*zm + fabs(a+t);
-    ee *= (5.0 *mre + 4.0*are);
-       ee = ee - (5.0*mre+2.0*are)*(fabs(a+t)+fabs(b)*zm)+2.0*are*fabs(t);
+    ee *= ((T)5.0 *mre + (T)4.0*are);
+       ee = ee - ((T)5.0*mre+(T)2.0*are)*(fabs(a+t)+fabs(b)*zm)+(T)2.0*are*fabs(t);
 /*  Iteration has converged sufficiently if the
  *  polynomial value is less than 20 times this bound.
  */
@@ -649,7 +649,7 @@ void RPoly<T>::newest(int type,T *uu,T *vv)
         return;
     }
     *uu = u - (u*(c3+c2)+v*(b1*a1+b2*a7))/temp;
-    *vv = v*(1.0+c4/temp);
+    *vv = v*((T)1.0+c4/temp);
     return;
 }
 
@@ -703,7 +703,7 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
             return;
         }
 /* Compute discriminant avoiding overflow. */
-        b = b1/2.0;
+        b = b1/(T) 2.0;
         if (fabs(b) < fabs(c)) { 
             if (c < 0.0) 
                 e = -a;
@@ -713,7 +713,7 @@ void RPoly<T>::quad(T a,T b1,T c,T *sr,T *si,
             d = sqrt(fabs(e))*sqrt(fabs(c));
         }
         else {
-            e = 1.0 - (a/b)*(c/b);
+            e = (T) 1.0 - (a/b)*(c/b);
             d = sqrt(fabs(e))*fabs(b);
         }
         if (e < 0.0) {      /* complex conjugate zeros */

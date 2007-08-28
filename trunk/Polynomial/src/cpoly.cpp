@@ -65,6 +65,7 @@
 */
 
 #include <cmath>
+#include <limits>
 #include "SimTKcommon/internal/cpoly.h"
 
 namespace SimTK {
@@ -659,9 +660,9 @@ template<class T>
 void CPoly<T>::mcon( T *eta, T *infiny, T *smalno, T *base )
    {
    *base = FLT_RADIX;
-   *eta = DBL_EPSILON;
-   *infiny = DBL_MAX;
-   *smalno = DBL_MIN;
+   *eta = std::numeric_limits<T>::epsilon();
+   *infiny = std::numeric_limits<T>::max();
+   *smalno = std::numeric_limits<T>::min();
    }
 
 template class CPoly<float>;
