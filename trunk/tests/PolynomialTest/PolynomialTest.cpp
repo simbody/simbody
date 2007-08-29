@@ -63,7 +63,7 @@ bool equal(Complex expected, Complex found, Real tol) {
  */
 
 bool equal2(Complex expected, Complex found) {
-    if (expected.imag() == 0.0 and found.imag() != 0.0)
+    if (expected.imag() == 0.0 && found.imag() != 0.0)
         return false; // If we expect a real number, require the number found to be precisely real as well.
     return equal(expected, found, std::sqrt(NTraits<Real>::getEps()));
 }
