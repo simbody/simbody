@@ -40,6 +40,7 @@ namespace SimTK {
 
 class Subsystem;
 class DecorativeGeometry;
+class DefaultSystemSubsystem;
 
 /**
  * The handle class which serves as the abstract parent of all Systems.
@@ -368,6 +369,10 @@ public:
     const Subsystem& getSubsystem(SubsystemId)   const;
     /// Obtain writable access to a particular subsystem by its index.
     Subsystem&       updSubsystem(SubsystemId);
+    /// Get read-only access to the default subsystem which is present in every system.
+    const DefaultSystemSubsystem& getDefaultSubsystem() const;
+    /// Get writable access to the default subsystem which is present in every system.
+    DefaultSystemSubsystem& updDefaultSubsystem();
 
     // Internal use only
     bool isOwnerHandle() const;

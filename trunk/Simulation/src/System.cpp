@@ -109,6 +109,12 @@ SubsystemId System::adoptSubsystem(Subsystem& child) {return updSystemGuts().ado
 int System::getNSubsystems() const {return getSystemGuts().getNSubsystems();}
 const Subsystem& System::getSubsystem(SubsystemId i) const {return getSystemGuts().getSubsystem(i);}
 Subsystem& System::updSubsystem(SubsystemId i) {return updSystemGuts().updSubsystem(i);}
+const DefaultSystemSubsystem& System::getDefaultSubsystem() const {
+    return static_cast<const DefaultSystemSubsystem&>(getSystemGuts().getSubsystem(SubsystemId(0)));
+}
+DefaultSystemSubsystem& System::updDefaultSubsystem() {
+    return static_cast<DefaultSystemSubsystem&>(updSystemGuts().updSubsystem(SubsystemId(0)));
+}
 
 // TODO: this should be a Model stage variable allocated by the base class.
 // Currently it is just a Topology stage variable stored in the base class.
@@ -575,26 +581,60 @@ int System::Guts::calcYErrUnitTolerancesImpl(const State& s, Vector& ootols) con
 }
 
 int System::Guts::handleEventsImpl
-   (State&, EventCause, const Array<int>& eventIds,
+   (State& s, EventCause cause, const Array<int>& eventIds,
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
-    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "System", "handleEvents"); 
-    return std::numeric_limits<int>::min();
-}
-
-int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& info) const {
-    info.resize(s.getNEvents());
-    for (int i=0; i<info.size(); ++i) 
-        info[i] = EventTriggerInfo(i);
+    // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
+    
+    lowestModified = Stage::HighestValid;
+    shouldTerminate = false;
+    Array<int> eventsForSubsystem;
+    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+        Stage subsysLowestModified = Stage::HighestValid;
+        bool subsysShouldTerminate = false;
+        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), s, eventIds, eventsForSubsystem);
+        if (eventsForSubsystem.size() > 0) {
+            getRep().subsystems[i].getSubsystemGuts().handleEvents(s, cause, eventsForSubsystem, accuracy, yWeights, ooConstraintTols, subsysLowestModified, subsysShouldTerminate);
+            if (subsysLowestModified < lowestModified)
+                lowestModified = subsysLowestModified;
+            if (subsysShouldTerminate)
+                shouldTerminate = true;
+        }
+    }
     return 0;
 }
 
-int System::Guts::calcTimeOfNextScheduledEventImpl
-    (const State&, Real& tNextEvent, Array<int>& eventIds) const
+int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& info) const {
+
+    // Loop over each subsystem, get its EventTriggerInfos, and combine all of them into a single list.
+    
+    info.clear();
+    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+        Array<System::EventTriggerInfo> subinfo;
+        getRep().subsystems[i].getSubsystemGuts().calcEventTriggerInfo(s, subinfo);
+        for (Array<EventTriggerInfo>::const_iterator e = subinfo.begin(); e != subinfo.end(); e++) {
+            info += *e;
+        }
+    }
+    return 0;
+}
+
+int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, Array<int>& eventIds) const
 {
     tNextEvent = Infinity;
     eventIds.clear();
+    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+        Real time;
+        Array<int> ids;
+        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids);
+        if (time < tNextEvent) {
+            tNextEvent = time;
+            eventIds.clear();
+            for (int i = 0; i < ids.size(); ++i)
+                eventIds.push_back(ids[i]);
+        }
+    }
     return 0;
 }
 

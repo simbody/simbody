@@ -42,6 +42,11 @@ namespace SimTK {
 
 class System;
 class DecorativeGeometry;
+class DefaultSystemSubsystemGuts;
+class ScheduledEventHandler;
+class ScheduledEventReporter;
+class TriggeredEventHandler;
+class TriggeredEventReporter;
 
 /**
  * The abstract parent of all Subsystems.
@@ -202,12 +207,23 @@ public:
 
 
 /**
- * This is a concrete Subsystem used by default as the 0th Subsystem of
- * every System. Feel free to replace it with something useful!
+ * This is a concrete Subsystem that is part of every System.  It provides a variety of services
+ * for the System, such as maintaining lists of event handlers and reporters, and acting as a
+ * source of globally unique event IDs.  To obtain the default subsystem for a System, call
+ * getDefaultSubsystem() or updDefaultSubsystem() on it.
  */
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     DefaultSystemSubsystem(System& sys);
+    void addEventHandler(ScheduledEventHandler* event);
+    void addEventHandler(TriggeredEventHandler* event);
+    void addEventReporter(ScheduledEventReporter* event) const;
+    void addEventReporter(TriggeredEventReporter* event) const;
+    int createEventId(SubsystemId subsys, State& state) const;
+    void findSubsystemEventIds(SubsystemId subsys, const State& state, const Array<int>& allEvents, Array<int>& eventsForSubsystem) const;
+private:
+    const DefaultSystemSubsystemGuts& getGuts() const;
+    DefaultSystemSubsystemGuts& updGuts();
 };
 
 
