@@ -50,9 +50,11 @@ private:
 public:
     class UniformImpl;
     class GaussianImpl;
+    
     RandomImpl() {
         sfmt = createSFMTData();
-        setSeed(0);
+        nextIndex = bufferSize;
+        init_gen_rand(0, *sfmt);
     }
 
     virtual ~RandomImpl() {
@@ -131,6 +133,7 @@ private:
     mutable bool nextGaussianIsValid;
 public:
     GaussianImpl(Real mean, Real stddev) : mean(mean), stddev(stddev) {
+        nextGaussianIsValid = false;
     }
     
     Real getValue() const {
