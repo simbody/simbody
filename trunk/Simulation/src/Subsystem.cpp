@@ -659,35 +659,35 @@ public:
         return new DefaultSystemSubsystemGuts(*this);
     }
         
-    const Array<ScheduledEventHandler*>& getScheduledEventHandlers() const {
+    const List<ScheduledEventHandler>& getScheduledEventHandlers() const {
         return scheduledEventHandlers;
     }
     
-    Array<ScheduledEventHandler*>& updScheduledEventHandlers() {
+    List<ScheduledEventHandler>& updScheduledEventHandlers() {
         return scheduledEventHandlers;
     }
     
-    const Array<TriggeredEventHandler*>& getTriggeredEventHandlers() const {
+    const List<TriggeredEventHandler>& getTriggeredEventHandlers() const {
         return triggeredEventHandlers;
     }
     
-    Array<TriggeredEventHandler*>& updTriggeredEventHandlers() {
+    List<TriggeredEventHandler>& updTriggeredEventHandlers() {
         return triggeredEventHandlers;
     }
     
-    const Array<ScheduledEventReporter*>& getScheduledEventReporters() const {
+    const List<ScheduledEventReporter>& getScheduledEventReporters() const {
         return scheduledEventReporters;
     }
     
-    Array<ScheduledEventReporter*>& updScheduledEventReporters() const {
+    List<ScheduledEventReporter>& updScheduledEventReporters() const {
         return scheduledEventReporters;
     }
     
-    const Array<TriggeredEventReporter*>& getTriggeredEventReporters() const {
+    const List<TriggeredEventReporter>& getTriggeredEventReporters() const {
         return triggeredEventReporters;
     }
     
-    Array<TriggeredEventReporter*>& updTriggeredEventReporters() const {
+    List<TriggeredEventReporter>& updTriggeredEventReporters() const {
         return triggeredEventReporters;
     }
     
@@ -713,26 +713,26 @@ public:
         info.triggeredReportIndices.clear();
         info.triggeredReportIds.clear();
         if (scheduledEventHandlers.size() > 0)
-            for (Array<ScheduledEventHandler*>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
+            for (List<ScheduledEventHandler>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
                 int id;
                 createScheduledEvent(s, id);
                 info.scheduledEventIds += id;
             }
         if (triggeredEventHandlers.size() > 0)
-            for (Array<TriggeredEventHandler*>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
+            for (List<TriggeredEventHandler>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
                 int id, index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredEventIds += id;
                 info.triggeredEventIndices += index;
             }
         if (scheduledEventReporters.size() > 0)
-            for (Array<ScheduledEventReporter*>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
+            for (List<ScheduledEventReporter>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
                 int id;
                 createScheduledEvent(s, id);
                 info.scheduledReportIds += id;
             }
         if (triggeredEventReporters.size() > 0)
-            for (Array<TriggeredEventReporter*>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
+            for (List<TriggeredEventReporter>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
                 int id, index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredReportIds += id;
@@ -872,11 +872,10 @@ public:
 
 private:
     mutable int cacheInfoIndex;
-    Array<ScheduledEventHandler*> scheduledEventHandlers;
-    Array<TriggeredEventHandler*> triggeredEventHandlers;
-    // The following two are mutable, since it's permitted to add a reporter to a const system.
-    mutable Array<ScheduledEventReporter*> scheduledEventReporters;
-    mutable Array<TriggeredEventReporter*> triggeredEventReporters;
+    mutable List<ScheduledEventHandler> scheduledEventHandlers;
+    mutable List<TriggeredEventHandler> triggeredEventHandlers;
+    mutable List<ScheduledEventReporter> scheduledEventReporters;
+    mutable List<TriggeredEventReporter> triggeredEventReporters;
 };
 
 std::ostream& operator<<(std::ostream& o, const DefaultSystemSubsystemGuts::CacheInfo& info) {
@@ -902,7 +901,7 @@ DefaultSystemSubsystemGuts& DefaultSystemSubsystem::updGuts() {
  */
 
 void DefaultSystemSubsystem::addEventHandler(ScheduledEventHandler* event) {
-    updGuts().updScheduledEventHandlers().push_back(event);
+    updGuts().updScheduledEventHandlers().push_back(*event);
 }
 
 /**
@@ -910,7 +909,7 @@ void DefaultSystemSubsystem::addEventHandler(ScheduledEventHandler* event) {
  */
 
 void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* event) {
-    updGuts().updTriggeredEventHandlers().push_back(event);
+    updGuts().updTriggeredEventHandlers().push_back(*event);
 }
 
 /**
@@ -921,7 +920,7 @@ void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* event) {
  */
 
 void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* event) const {
-    getGuts().updScheduledEventReporters().push_back(event);
+    getGuts().updScheduledEventReporters().push_back(*event);
 }
 
 /**
@@ -932,7 +931,7 @@ void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* event) con
  */
 
 void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* event) const {
-    getGuts().updTriggeredEventReporters().push_back(event);
+    getGuts().updTriggeredEventReporters().push_back(*event);
 }
 
 /**

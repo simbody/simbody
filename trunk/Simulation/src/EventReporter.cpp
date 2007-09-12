@@ -46,6 +46,17 @@ TriggeredEventReporter::TriggeredEventReporter(Stage requiredStage) {
     rep = new TriggeredEventReporterRep(requiredStage);
 }
 
+TriggeredEventReporter::TriggeredEventReporter(const TriggeredEventReporter& clone) {
+    rep = new TriggeredEventReporterRep(*clone.rep);
+}
+
+TriggeredEventReporter& TriggeredEventReporter::operator=(const TriggeredEventReporter& clone) {
+    rep = new TriggeredEventReporterRep(*clone.rep);
+}
+
+TriggeredEventReporter::~TriggeredEventReporter() {
+    delete rep;
+}
 
 System::EventTriggerInfo& TriggeredEventReporter::getTriggerInfo() {
     return rep->triggerInfo;
@@ -53,6 +64,9 @@ System::EventTriggerInfo& TriggeredEventReporter::getTriggerInfo() {
 
 Stage TriggeredEventReporter::getRequiredStage() const {
     return rep->requiredStage;
+}
+
+ScheduledEventReporter::~ScheduledEventReporter() {
 }
 
 } // namespace SimTK

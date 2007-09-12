@@ -73,6 +73,8 @@ public:
 
 class SimTK_SimTKCOMMON_EXPORT ScheduledEventReporter : public EventReporter {
 public:
+    virtual ~ScheduledEventReporter();
+    virtual ScheduledEventReporter* clone() const = 0;
     
     /**
      * Get the next time at which an event will occur.
@@ -93,6 +95,10 @@ public:
 class SimTK_SimTKCOMMON_EXPORT TriggeredEventReporter : public EventReporter {
 public:
     class TriggeredEventReporterRep;
+    TriggeredEventReporter(const TriggeredEventReporter& clone);
+    TriggeredEventReporter& operator=(const TriggeredEventReporter& clone);
+    virtual ~TriggeredEventReporter();
+    virtual TriggeredEventReporter* clone() const = 0;
     
     /**
      * Construct a new TriggeredEventReporter.
