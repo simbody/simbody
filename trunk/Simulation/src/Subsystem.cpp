@@ -900,16 +900,16 @@ DefaultSystemSubsystemGuts& DefaultSystemSubsystem::updGuts() {
  * Add a ScheduledEventHandler to the System.  This must be called before the Model stage is realized.
  */
 
-void DefaultSystemSubsystem::addEventHandler(ScheduledEventHandler* event) {
-    updGuts().updScheduledEventHandlers().push_back(*event);
+void DefaultSystemSubsystem::addEventHandler(const ScheduledEventHandler& event) {
+    updGuts().updScheduledEventHandlers().push_back(event);
 }
 
 /**
  * Add a TriggeredEventHandler to the System.  This must be called before the Model stage is realized.
  */
 
-void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* event) {
-    updGuts().updTriggeredEventHandlers().push_back(*event);
+void DefaultSystemSubsystem::addEventHandler(const TriggeredEventHandler& event) {
+    updGuts().updTriggeredEventHandlers().push_back(event);
 }
 
 /**
@@ -919,8 +919,8 @@ void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* event) {
  * being simulated, it is permitted to add one to a const System.
  */
 
-void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* event) const {
-    getGuts().updScheduledEventReporters().push_back(*event);
+void DefaultSystemSubsystem::addEventReporter(const ScheduledEventReporter& event) const {
+    getGuts().updScheduledEventReporters().push_back(event);
 }
 
 /**
@@ -930,8 +930,8 @@ void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* event) con
  * being simulated, it is permitted to add one to a const System.
  */
 
-void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* event) const {
-    getGuts().updTriggeredEventReporters().push_back(*event);
+void DefaultSystemSubsystem::addEventReporter(const TriggeredEventReporter& event) const {
+    getGuts().updTriggeredEventReporters().push_back(event);
 }
 
 /**
