@@ -52,6 +52,7 @@ TriggeredEventReporter::TriggeredEventReporter(const TriggeredEventReporter& clo
 
 TriggeredEventReporter& TriggeredEventReporter::operator=(const TriggeredEventReporter& clone) {
     rep = new TriggeredEventReporterRep(*clone.rep);
+    return *this;
 }
 
 TriggeredEventReporter::~TriggeredEventReporter() {

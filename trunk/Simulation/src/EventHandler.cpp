@@ -52,6 +52,7 @@ TriggeredEventHandler::TriggeredEventHandler(const TriggeredEventHandler& clone)
 
 TriggeredEventHandler& TriggeredEventHandler::operator=(const TriggeredEventHandler& clone) {
     rep = new TriggeredEventHandlerRep(*clone.rep);
+    return *this;
 }
 
 TriggeredEventHandler::~TriggeredEventHandler() {
