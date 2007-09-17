@@ -1,5 +1,5 @@
 //-----------------------------------------------------------------------------
-// File:     Vec.h
+// File:     UnitVec.h
 // Classes:  UnitVec and UnitRow
 // Parents:  Vec and Row
 // Purpose:  Unit vector class (pure direction - magnitude is always 1.0)
