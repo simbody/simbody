@@ -215,10 +215,10 @@ public:
 class SimTK_SimTKCOMMON_EXPORT DefaultSystemSubsystem : public Subsystem {
 public:
     DefaultSystemSubsystem(System& sys);
-    void addEventHandler(const ScheduledEventHandler& event);
-    void addEventHandler(const TriggeredEventHandler& event);
-    void addEventReporter(const ScheduledEventReporter& event) const;
-    void addEventReporter(const TriggeredEventReporter& event) const;
+    void addEventHandler(const ScheduledEventHandler& handler);
+    void addEventHandler(const TriggeredEventHandler& handler);
+    void addEventReporter(const ScheduledEventReporter& handler) const;
+    void addEventReporter(const TriggeredEventReporter& handler) const;
     int createEventId(SubsystemId subsys, State& state) const;
     void findSubsystemEventIds(SubsystemId subsys, const State& state, const Array<int>& allEvents, Array<int>& eventsForSubsystem) const;
 private:
