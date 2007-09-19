@@ -536,116 +536,76 @@ private:
     }
 };
 
+
+///-----------------------------------------------------------------------------
+///  This InverseRotation class is the inverse of a Rotation 
+///  See the Rotation class for information.
+///-----------------------------------------------------------------------------
 class InverseRotation : public Mat33::TransposeType {
 public:
     typedef Mat33::TransposeType BaseMat;
     typedef UnitVec<BaseMat::RowSpacing> ColType;
     typedef UnitRow<BaseMat::ColSpacing> RowType;
 
-    // Don't construct one these; they should only occur as expression intermediates.
+    // Should not usually construct one of these as they should only occur as expression intermediates.
     // But if you must ...
     InverseRotation() : BaseMat(1) { }
 
-    InverseRotation(const InverseRotation& R) : BaseMat(R) { }
-    InverseRotation& operator=(const InverseRotation& R) {
-        BaseMat::operator=(R.asMat33()); return *this;
-    }
+    InverseRotation( const InverseRotation& R ) : BaseMat(R) { }
+    InverseRotation&  operator=( const InverseRotation& R )  { BaseMat::operator=( R.asMat33() );  return *this; }
 
-    const Rotation& invert() const {
-        return *reinterpret_cast<const Rotation*>(this);
-    }
-    Rotation& updInvert() {
-        return *reinterpret_cast<Rotation*>(this);
-    }
+    const Rotation&  invert() const { return *reinterpret_cast<const Rotation*>(this); }
+    Rotation&  updInvert()          { return *reinterpret_cast<Rotation*>(this); }
 
     // Override the Mat33 versions of transpose.
-    const Rotation& transpose() const {return invert();}
-    Rotation&       updTranspose() {return updInvert();}
+    const Rotation&  transpose() const  { return invert(); }
+    Rotation&        updTranspose()     { return updInvert(); }
 
     // Note that this does not have unit stride.
-    const RowType& row(int i) const {
-        return reinterpret_cast<const RowType&>(asMat33()[i]);
-    }
-    const ColType& col(int j) const {
-        return reinterpret_cast<const ColType&>(asMat33()(j));
-    }
-    const ColType& x() const {return col(0);}
-    const ColType& y() const {return col(1);}
-    const ColType& z() const {return col(2);}
+    const RowType&  row(int i) const  { return reinterpret_cast<const RowType&>(asMat33()[i]); }
+    const ColType&  col(int j) const  { return reinterpret_cast<const ColType&>(asMat33()(j)); }
+    const ColType&  x() const  { return col(0); }
+    const ColType&  y() const  { return col(1); }
+    const ColType&  z() const  { return col(2); }
 
-    const Rotation& operator~() const {return invert();}
-    Rotation&       operator~()       {return updInvert();}
+    const Rotation&  operator~() const  { return invert(); }
+    Rotation&        operator~()        { return updInvert(); }
 
-    const RowType& operator[](int i) const {return row(i);}
-    const ColType& operator()(int j) const {return col(j);}
+    const RowType&  operator[]( int i ) const  { return row(i); }
+    const ColType&  operator()( int j ) const  { return col(j); }
 
-    const BaseMat& asMat33() const {
-        return *static_cast<const BaseMat*>(this);
-    }
+    const BaseMat&  asMat33() const  { return *static_cast<const BaseMat*>(this); }
 
-    /// Less efficient version of asMat33() since it copies, but you don't
-    /// have to know the internal layout.
-    BaseMat toMat33() const {
-        return asMat33();
-    }
+    /// Less efficient version of asMat33() since it copies, but  
+    /// you don't have to know the internal layout.
+    BaseMat  toMat33() const  { return asMat33(); }
 };
 
 
-SimTK_SimTKCOMMON_EXPORT std::ostream& 
-operator<<(std::ostream& o, const Rotation& m);
+SimTK_SimTKCOMMON_EXPORT std::ostream&  operator<<( std::ostream& o, const Rotation& m );
 
-template <int S> inline UnitVec<1>
-operator*(const Rotation& R, const UnitVec<S>& v) {
-    return UnitVec<1>(R.asMat33()*v.asVec3(), true);
-}
-template <int S> inline UnitRow<1>
-operator*(const UnitRow<S>& r, const Rotation& R) {
-    return UnitRow<1>(r.asRow3(), R.asMat33(), true);
-}
+template <int S> inline UnitVec<1>  operator*( const Rotation& R,        const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()*v.asVec3(),  true); }
+template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const Rotation& R   )       { return UnitRow<1>(r.asRow3(), R.asMat33(), true); }
+template <int S> inline UnitVec<1>  operator*( const InverseRotation& R, const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()*v.asVec3(),  true); }
+template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const InverseRotation& R )  { return UnitRow<1>(r.asRow3(), R.asMat33(), true); }
 
-template <int S> inline UnitVec<1>
-operator*(const InverseRotation& R, const UnitVec<S>& v) {
-    return UnitVec<1>(R.asMat33()*v.asVec3(), true);
-}
-template <int S> inline UnitRow<1>
-operator*(const UnitRow<S>& r, const InverseRotation& R) {
-    return UnitRow<1>(r.asRow3(), R.asMat33(), true);
-}
+inline Rotation::Rotation( const InverseRotation& R) : Mat33(R.asMat33() )  { }
 
-inline Rotation::Rotation(const InverseRotation& R)
-  : Mat33(R.asMat33()) { 
-}
-inline Rotation& Rotation::operator=(const InverseRotation& R) {
-    static_cast<BaseMat&>(*this) = R.asMat33();
-    return *this;
-}
+inline Rotation&  Rotation::operator=(  const InverseRotation& R )  { static_cast<BaseMat&>(*this) = R.asMat33();     return *this; }
+inline Rotation&  Rotation::operator*=( const Rotation& R )         { static_cast<BaseMat&>(*this) *= R.asMat33();    return *this; }
+inline Rotation&  Rotation::operator/=( const Rotation& R )         { static_cast<BaseMat&>(*this) *= (~R).asMat33(); return *this; }
+inline Rotation&  Rotation::operator*=( const InverseRotation& R )  { static_cast<BaseMat&>(*this) *= R.asMat33();    return *this; }
+inline Rotation&  Rotation::operator/=( const InverseRotation& R )  { static_cast<BaseMat&>(*this) *= (~R).asMat33(); return *this; }
 
-inline Rotation& Rotation::operator*=(const Rotation& R) {
-    static_cast<BaseMat&>(*this) *= R.asMat33();
-    return *this;
-}
-inline Rotation& Rotation::operator/=(const Rotation& R) {
-    static_cast<BaseMat&>(*this) *= (~R).asMat33();
-    return *this;
-}
-inline Rotation& Rotation::operator*=(const InverseRotation& R) {
-    static_cast<BaseMat&>(*this) *= R.asMat33();
-    return *this;
-}
-inline Rotation& Rotation::operator/=(const InverseRotation& R) {
-    static_cast<BaseMat&>(*this) *= (~R).asMat33();
-    return *this;
-}
+inline Rotation  operator*( const Rotation&        R1, const Rotation&        R2 )  { return Rotation(R1) *= R2; }
+inline Rotation  operator*( const Rotation&        R1, const InverseRotation& R2 )  { return Rotation(R1) *= R2; }
+inline Rotation  operator*( const InverseRotation& R1, const Rotation&        R2 )  { return Rotation(R1) *= R2; }
+inline Rotation  operator*( const InverseRotation& R1, const InverseRotation& R2 )  { return Rotation(R1) *= R2; }
 
-inline Rotation operator*(const Rotation&        R1, const Rotation&        R2) {return Rotation(R1)*=R2;}
-inline Rotation operator*(const Rotation&        R1, const InverseRotation& R2) {return Rotation(R1)*=R2;}
-inline Rotation operator*(const InverseRotation& R1, const Rotation&        R2) {return Rotation(R1)*=R2;}
-inline Rotation operator*(const InverseRotation& R1, const InverseRotation& R2) {return Rotation(R1)*=R2;}
-
-inline Rotation operator/(const Rotation&        R1, const Rotation&        R2) {return Rotation(R1)/=R2;}
-inline Rotation operator/(const Rotation&        R1, const InverseRotation& R2) {return Rotation(R1)/=R2;}
-inline Rotation operator/(const InverseRotation& R1, const Rotation&        R2) {return Rotation(R1)/=R2;}
-inline Rotation operator/(const InverseRotation& R1, const InverseRotation& R2) {return Rotation(R1)/=R2;}
+inline Rotation operator/( const Rotation&        R1, const Rotation&        R2 )  {return Rotation(R1)/=R2;}
+inline Rotation operator/( const Rotation&        R1, const InverseRotation& R2 )  {return Rotation(R1)/=R2;}
+inline Rotation operator/( const InverseRotation& R1, const Rotation&        R2 )  {return Rotation(R1)/=R2;}
+inline Rotation operator/( const InverseRotation& R1, const InverseRotation& R2 )  {return Rotation(R1)/=R2;}
 
 
 //------------------------------------------------------------------------------
