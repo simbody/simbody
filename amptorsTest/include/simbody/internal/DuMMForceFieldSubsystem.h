@@ -1,28 +1,36 @@
-#ifndef SimTK_DUMM_FORCE_FIELD_SUBSYSTEM_H_
-#define SimTK_DUMM_FORCE_FIELD_SUBSYSTEM_H_
+#ifndef SimTK_SIMBODY_DUMM_FORCE_FIELD_SUBSYSTEM_H_
+#define SimTK_SIMBODY_DUMM_FORCE_FIELD_SUBSYSTEM_H_
 
-/* Portions copyright (c) 2006 Stanford University and Michael Sherman.
- * Contributors:
- * 
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including 
- * without limitation the rights to use, copy, modify, merge, publish, 
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject
- * to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included 
- * in all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+/* -------------------------------------------------------------------------- *
+ *                      SimTK Core: SimTK Simbody(tm)                         *
+ * -------------------------------------------------------------------------- *
+ * This is part of the SimTK Core biosimulation toolkit originating from      *
+ * Simbios, the NIH National Center for Physics-Based Simulation of           *
+ * Biological Structures at Stanford, funded under the NIH Roadmap for        *
+ * Medical Research, grant U54 GM072970. See https://simtk.org.               *
+ *                                                                            *
+ * Portions copyright (c) 2007 Stanford University and the Authors.           *
+ * Authors: Michael Sherman                                                   *
+ * Contributors:                                                              *
+ *                                                                            *
+ * Permission is hereby granted, free of charge, to any person obtaining a    *
+ * copy of this software and associated documentation files (the "Software"), *
+ * to deal in the Software without restriction, including without limitation  *
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,   *
+ * and/or sell copies of the Software, and to permit persons to whom the      *
+ * Software is furnished to do so, subject to the following conditions:       *
+ *                                                                            *
+ * The above copyright notice and this permission notice shall be included in *
+ * all copies or substantial portions of the Software.                        *
+ *                                                                            *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR *
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   *
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    *
+ * THE AUTHORS, CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,    *
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR      *
+ * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE  *
+ * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
+ * -------------------------------------------------------------------------- */
 
 /** @file
  * Define the public interface to DuMMForceFieldSubsystem, a subsystem which
@@ -30,8 +38,9 @@
  * framework.
  */
 
+#include "SimTKcommon.h"
+
 #include "simbody/internal/common.h"
-#include "simbody/internal/System.h"
 #include "simbody/internal/ForceSubsystem.h"
 
 #include <cassert>
@@ -75,7 +84,6 @@ public:
     static const Real Rad2Deg;      //   or multiply radians by this to get degrees
     static const Real Sigma2Radius; // multiply vdw sigma by this to get vdw radius
     static const Real Radius2Sigma; //   or multiply vdw radius by this to get vdw sigma
-    static const Real GasConst;     // universal gas constant in kJ
 
     DuMMForceFieldSubsystem();
     explicit DuMMForceFieldSubsystem(MolecularMechanicsSystem&);
@@ -92,12 +100,10 @@ public:
     int    getNAtoms() const;
     Real   getAtomMass(int atomId) const;
     int    getAtomElement(int atomId) const;
-    Real   getAtomPartialCharge(int atomId) const;
     Real   getAtomRadius(int atomId) const;
-    Real   getAtomWellDepth(int atomId) const;
     Vec3   getAtomStationOnBody(int atomId) const;
     Vec3   getAtomStationInCluster(int atomId, int clusterId) const;
-    BodyId getAtomBody(int atomId) const;
+    MobilizedBodyId getAtomBody(int atomId) const;
     Vec3   getAtomDefaultColor(int atomId) const;
 
     int  getNBonds() const;
@@ -127,14 +133,14 @@ public:
     // frame or transformed to the indicated frame.
     MassProperties calcClusterMassProperties(int clusterId, const Transform& = Transform()) const;
 
-    BodyId    getClusterBody(int clusterId) const;
+    MobilizedBodyId    getClusterBody(int clusterId) const;
     Transform getClusterPlacementOnBody(int clusterId) const;
     Transform getClusterPlacementInCluster(int childClusterId, int parentClusterId) const;
 
         // BODIES
 
-    void attachClusterToBody(int clusterId, BodyId body, const Transform& = Transform());
-    void attachAtomToBody   (int atomId,    BodyId body, const Vec3& station = Vec3(0));
+    void attachClusterToBody(int clusterId, MobilizedBodyId body, const Transform& = Transform());
+    void attachAtomToBody   (int atomId,    MobilizedBodyId body, const Vec3& station = Vec3(0));
 
         // DEFINE FORCE FIELD PARAMETERS
     
@@ -218,28 +224,28 @@ public:
     // in kJ/mol, with no factor of 1/2 expected (as is sometimes
     // the convention). 
     void defineBondTorsion
-       (int class1, int class2, int class3, int class4, 
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees);
     void defineBondTorsion
-       (int class1, int class2, int class3, int class4,  
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees);
     void defineBondTorsion
-       (int class1, int class2, int class3, int class4, 
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKJ, Real phase1InDegrees,
         int periodicity2, Real amp2InKJ, Real phase2InDegrees,
         int periodicity3, Real amp3InKJ, Real phase3InDegrees);
 
     // Here the amplitudes are given in kcal/mol.
     void defineBondTorsion_KA
-       (int class1, int class2, int class3, int class4, 
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees)
-    { 
+    {
         defineBondTorsion(class1,class2,class3,class4,
                           periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees);
     }
     void defineBondTorsion_KA
-       (int class1, int class2, int class3, int class4,  
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees)
     {
@@ -248,7 +254,7 @@ public:
                           periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees);
     }
     void defineBondTorsion_KA
-       (int class1, int class2, int class3, int class4, 
+       (int class1, int class2, int class3, int class4,
         int periodicity1, Real amp1InKcal, Real phase1InDegrees,
         int periodicity2, Real amp2InKcal, Real phase2InDegrees,
         int periodicity3, Real amp3InKcal, Real phase3InDegrees)
@@ -259,10 +265,61 @@ public:
                           periodicity3, amp3InKcal * Kcal2KJ, phase3InDegrees);
     }
 
-    // The third atom is the central one to which the other
-    // three are bonded; this is not the same in reverse order.
-    // TODO: not implemented
-//<RJR>
+    // As with normal torsions, (see defineAmberImproperTorsion), only one term may have
+    // a given periodicity. The amplitudes are in kJ/mol.
+    void defineAmberImproperTorsion
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees);
+    void defineAmberImproperTorsion
+       (int class1, int class2, int class3, int class4,  
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees);
+    void defineAmberImproperTorsion
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+        int periodicity3, Real amp3InKJ, Real phase3InDegrees);
+
+    // Here the amplitudes are given in kcal/mol.
+    void defineAmberImproperTorsion_KA
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees)
+    { 
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees);
+    }
+    void defineAmberImproperTorsion_KA
+       (int class1, int class2, int class3, int class4,  
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees)
+    {
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees);
+    }
+    void defineAmberImproperTorsion_KA
+       (int class1, int class2, int class3, int class4, 
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees,
+        int periodicity3, Real amp3InKcal, Real phase3InDegrees)
+    {
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * Kcal2KJ, phase2InDegrees,
+                          periodicity3, amp3InKcal * Kcal2KJ, phase3InDegrees);
+    }
+
+    void checkTorsion
+       (int class1, int class2, int class3, int class4,
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+        int periodicity3, Real amp3InKJ, Real phase3InDegrees,
+        const char* CallingMethodName);
+
+
+//    // The third atom is the central one to which the other
+//    // three are bonded; this is not the same in reverse order.
+//    // TODO: not implemented
 //    void defineImproperTorsion(int class1, int class2, int class3, int class4,
 //        Real amplitude, Real phase, int periodicity,
 //        Real amp2, Real phase2, int period2,
@@ -271,20 +328,6 @@ public:
 //        Real amplitude, Real phase, int periodicity,
 //        Real amp2, Real phase2, int period2,
 //        Real amp3, Real phase3, int period3);
-//</RJR>
-//<RJR>
-
-    void defineImproperTorsion(int class1, int class2, int class3, int class4,
-         int periodicity, Real ampInKJ, Real phaseInDegrees);
-
-    void defineImproperTorsion_KA(int class1, int class2, int class3, int class4,
-         int periodicity, Real ampInKcal, Real phaseInDegrees)
-    {
-        defineImproperTorsion(class1, class2, class3, class4,
-                              periodicity, ampInKcal * Kcal2KJ, phaseInDegrees);
-    }
-//</RJR>
-
 
     void setVdwMixingRule(VdwMixingRule); // default WaldmanHagler
     VdwMixingRule getVdwMixingRule() const;
@@ -307,7 +350,7 @@ public:
     void setBondStretchGlobalScaleFactor(Real);
     void setBondBendGlobalScaleFactor(Real);
     void setBondTorsionGlobalScaleFactor(Real);
-    void setImproperTorsionGlobalScaleFactor(Real);
+    void setAmberImproperTorsionGlobalScaleFactor(Real fac);
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);
@@ -318,4 +361,4 @@ private:
 
 } // namespace SimTK
 
-#endif // SimTK_DUMM_FORCE_FIELD_SUBSYSTEM_H_
+#endif // SimTK_SIMBODY_DUMM_FORCE_FIELD_SUBSYSTEM_H_
