@@ -17,7 +17,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -273,32 +273,6 @@ private:
     Vec3     T_BF;   // location of F's origin measured from B's origin, expressed in B 
 };
 
-/// If we multiply a transform by a 3-vector, we treat it as though it had
-/// a 4th element "1" appended, that is, it is treated as a @em station rather
-/// than a @em vector.
-inline Vec3  operator*( const Transform& X_BF, const Vec3& s_F ) {
-    return X_BF.shiftFrameStationToBase(s_F);
-}
-
-/// If we multiply a transform by an augmented 4-vector, we use the 4th element to 
-/// decide how to treat it. The 4th element must be 0 or 1. If 0 it is
-/// treated as a vector only and the translation is ignored. If 1 it
-/// is treated as a station and rotated & shifted.
-inline Vec4  operator*( const Transform& X_BF, const Vec4& a_F ) {
-    assert(a_F[3]==0 || a_F[3]==1);
-    const Vec3& v_F = Vec3::getAs(&a_F[0]); // recast the 1st 3 elements as Vec3
-
-    Vec4 out;
-    if (a_F[3] == 0) {
-        Vec3::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);
-        out[3] = 0;
-    } else {
-        Vec3::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);
-        out[3] = 1;
-    }
-    return out;
-}
-
 
 //-----------------------------------------------------------------------------
 /**
@@ -402,34 +376,39 @@ private:
     Vec3     T_FB; // our translation is -(R_BF*T_FB)=-(~R_FB*T_FB)
 };
 
-/// If we multiply a transform by a 3-vector, we treat it as though it had
-/// a 4th element "1" appended, that is, it is treated as a *station* rather
-/// than a *vector*.
-inline Vec3  operator*( const InverseTransform& X_BF, const Vec3& s_F ) {
-    return X_BF.shiftFrameStationToBase(s_F);
+
+/// If we multiply a transform by a 3-vector, we treat it as though it had a 4th element "1" appended,
+/// that is, it is treated as a *station* rather than a *vector*.
+inline Vec3  operator*( const Transform& X_BF,        const Vec3& s_F )  { return X_BF.shiftFrameStationToBase(s_F); }
+inline Vec3  operator*( const InverseTransform& X_BF, const Vec3& s_F )  { return X_BF.shiftFrameStationToBase(s_F); }
+
+/// If we multiply a transform by an augmented 4-vector, we use the 4th element to decide how to treat it.
+/// The 4th element must be 0 or 1. If 0 it is treated as a vector only and the translation is ignored. 
+/// If 1 it is treated as a station and rotated & shifted.
+//-----------------------------------------------------------------------
+inline Vec4  operator*( const Transform& X_BF, const Vec4& a_F ) {
+    assert(a_F[3]==0 || a_F[3]==1);
+    const Vec3& v_F = Vec3::getAs(&a_F[0]); // recast the 1st 3 elements as Vec3
+
+    Vec4 out;
+    if( a_F[3] == 0 ) { Vec3::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; } 
+    else              { Vec3::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);  out[3] = 1; }
+    return out;
 }
 
-/// If we multiply a transform by an augmented 4-vector, we use the 4th element to 
-/// decide how to treat it. The 4th element must be 0 or 1. If 0 it is
-/// treated as a vector only and the translation is ignored. If 1 it
-/// is treated as a station and rotated & shifted.
+//-----------------------------------------------------------------------
 inline Vec4  operator*( const InverseTransform& X_BF, const Vec4& a_F ) {
     assert(a_F[3]==0 || a_F[3]==1);
     const Vec3& v_F = Vec3::getAs(&a_F[0]); // recast the 1st 3 elements as Vec3
 
     Vec4 out;
-    if (a_F[3] == 0) {
-        Vec3::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);
-        out[3] = 0;
-    } else {
-        Vec3::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);
-        out[3] = 1;
-    }
+    if( a_F[3] == 0 ) { Vec3::updAs(&out[0]) = X_BF.xformFrameVecToBase(v_F);      out[3] = 0; } 
+    else              { Vec3::updAs(&out[0]) = X_BF.shiftFrameStationToBase(v_F);  out[3] = 1; }
     return out;
 }
 
-// These Transform definitions had to wait for InverseTransform to be declared.
 
+// These Transform definitions had to wait for InverseTransform to be declared.
 inline Transform&  Transform::operator=( const InverseTransform& X ) {
     // Be careful to do this in the right order in case X and this
     // are the same object, i.e. we're doing X = ~X, inverting X in place.
@@ -442,30 +421,15 @@ inline Transform  Transform::compose( const InverseTransform& X_FY ) const {
     return Transform( R_BF * X_FY.R(), T_BF + R_BF * X_FY.T() );
 }
 
-inline Transform  operator*( const Transform& X1, const Transform& X2 ) {
-    return X1.compose(X2);
-}
-inline Transform  operator*( const Transform& X1, const InverseTransform& X2 ) {
-    return X1.compose(X2);
-}
-inline Transform  operator*( const InverseTransform& X1, const Transform& X2 ) {
-    return X1.compose(X2);
-}
-inline Transform  operator*( const InverseTransform& X1, const InverseTransform& X2 ) {
-    return X1.compose(X2);
-}
-inline bool  operator==( const Transform& X1, const Transform& X2 ) {
-    return X1.R()==X2.R() && X1.T()==X2.T();
-}
-inline bool  operator==( const InverseTransform& X1, const InverseTransform& X2 ) {
-    return X1.R()==X2.R() && X1.T()==X2.T();
-}
-inline bool  operator==( const Transform& X1, const InverseTransform& X2 ) {
-    return X1.R()==X2.R() && X1.T()==X2.T();
-}
-inline bool  operator==( const InverseTransform& X1, const Transform& X2 ) {
-    return X1.R()==X2.R() && X1.T()==X2.T();
-}
+inline Transform  operator*( const Transform& X1,        const Transform& X2 )         { return X1.compose(X2); }
+inline Transform  operator*( const Transform& X1,        const InverseTransform& X2 )  { return X1.compose(X2); }
+inline Transform  operator*( const InverseTransform& X1, const Transform& X2 )         { return X1.compose(X2); }
+inline Transform  operator*( const InverseTransform& X1, const InverseTransform& X2 )  { return X1.compose(X2); }
+
+inline bool  operator==( const Transform& X1,        const Transform& X2 )         { return X1.R()==X2.R() && X1.T()==X2.T(); }
+inline bool  operator==( const InverseTransform& X1, const InverseTransform& X2 )  { return X1.R()==X2.R() && X1.T()==X2.T(); }
+inline bool  operator==( const Transform& X1,        const InverseTransform& X2 )  { return X1.R()==X2.R() && X1.T()==X2.T(); }
+inline bool  operator==( const InverseTransform& X1, const Transform& X2 )         { return X1.R()==X2.R() && X1.T()==X2.T(); }
 
 SimTK_SimTKCOMMON_EXPORT std::ostream&  operator<<( std::ostream& o, const Transform& );
 
