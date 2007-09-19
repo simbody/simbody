@@ -31,7 +31,7 @@
 
 #include <cassert>
 #include "SimTKcommon/basics.h"
-#include "SimTKcommon/Random.h"
+#include "SimTKcommon/internal/Random.h"
 #include "SFMT.h"
 using namespace SimTK_SFMT;
 

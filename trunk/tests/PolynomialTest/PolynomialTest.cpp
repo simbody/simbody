@@ -30,8 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/PolynomialRootFinder.h"
-#include "SimTKcommon/Random.h"
 
 #include <iostream>
 

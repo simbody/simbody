@@ -66,7 +66,7 @@
 
 #include <cmath>
 #include <limits>
-#include "SimTKcommon/internal/cpoly.h"
+#include "cpoly.h"
 
 namespace SimTK {
 

@@ -30,7 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/Random.h"
 
 #include <iostream>
 

@@ -46,6 +46,8 @@
 #include "SimTKcommon/internal/System.h"
 #include "SimTKcommon/internal/Subsystem.h"
 #include "SimTKcommon/internal/Study.h"
+#include "SimTKcommon/internal/Random.h"
+#include "SimTKcommon/internal/PolynomialRootFinder.h"
 #endif
 
 

@@ -29,9 +29,9 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon/PolynomialRootFinder.h"
-#include "SimTKcommon/internal/rpoly.h"
-#include "SimTKcommon/internal/cpoly.h"
+#include "SimTKcommon/internal/PolynomialRootFinder.h"
+#include "rpoly.h"
+#include "cpoly.h"
 
 namespace SimTK {
 

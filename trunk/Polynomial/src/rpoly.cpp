@@ -28,7 +28,7 @@
  */
 
 #include <cmath>
-#include "SimTKcommon/internal/rpoly.h"
+#include "rpoly.h"
 
 namespace SimTK {
 
