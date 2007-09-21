@@ -472,8 +472,8 @@ uint64_t gen_rand64(SFMTData& data) {
 	data.idx = 0;
     }
 #if defined(BIG_ENDIAN64) && !defined(ONLY64)
-    r1 = data.psfmt32[idx];
-    r2 = data.psfmt32[idx + 1];
+    r1 = data.psfmt32[data.idx];
+    r2 = data.psfmt32[data.idx + 1];
     data.idx += 2;
     return ((uint64_t)r2 << 32) | r1;
 #else
