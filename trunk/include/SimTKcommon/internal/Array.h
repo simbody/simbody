@@ -127,10 +127,12 @@ public:
     reference       back()        {assert(size()); return (*this)[size()-1];}
     const_reference back()  const {assert(size()); return (*this)[size()-1];}
 
-    iterator       begin()       {return &front();}
-    const_iterator begin() const {return &front();}
-    iterator       end()         {return &back() + 1;}
-    const_iterator end()   const {return &back() + 1;}
+    // If the Array is empty, begin() and end() both return null so 
+    // begin()==end() will return true.
+    iterator       begin()       {return size() ? &front() : 0;}
+    const_iterator begin() const {return size() ? &front() : 0;}
+    iterator       end()         {return size() ? &back() + 1 : 0;}
+    const_iterator end()   const {return size() ? &back() + 1 : 0;}
 
     void reverse() {ah.reverse();}
 
