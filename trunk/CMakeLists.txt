@@ -24,7 +24,7 @@
 #----------------------------------------------------
 
 PROJECT ( SimTKsimmath )
-SUBDIRS (staticTarget sharedTarget tests examples)
+SUBDIRS (staticTarget sharedTarget Integrator tests examples)
 
 # The build system will set ARCH64 for 64 bit builds, which require
 # use of the lib64/ library directories rather than lib/.
@@ -73,7 +73,7 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include/simmath include/simmath/internal)
+SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include/simmath include/simmath/internal Integrator/src Integrator/include Integrator/include/simmath Integrator/include/simmath/internal)
 
 
 # Collect up information about the version of the simmath library we're building
@@ -187,6 +187,10 @@ SET(SimTKCOMMON_LIBRARY_NAME SimTKcommon)
 SET(SimTKCOMMON_SHARED_LIBRARY ${SimTKCOMMON_LIBRARY_NAME})
 SET(SimTKCOMMON_STATIC_LIBRARY ${SimTKCOMMON_LIBRARY_NAME}_static)
 
+SET(SimTKCPODES_LIBRARY_NAME SimTKcpodes)
+SET(SimTKCPODES_SHARED_LIBRARY ${SimTKCPODES_LIBRARY_NAME})
+SET(SimTKCPODES_STATIC_LIBRARY ${SimTKCPODES_LIBRARY_NAME}_static)
+
 # Choose a LAPACK to link with.
 SET(SimTK_LAPACK SimTK CACHE STRING "What LAPACK to link with (ACML or SimTK)")
 IF(NOT SimTK_LAPACK)
@@ -219,7 +223,7 @@ ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 # These are all the places to search for header files which are
 # to be part of the API.
 
-SET(API_INCLUDE_DIRS ${PROJECT_SRC_DIR}/include) 
+SET(API_INCLUDE_DIRS ${PROJECT_SRC_DIR}/include ${PROJECT_SRC_DIR}/Integrator/include) 
 
 # We'll need both *relative* path names, starting with their API_INCLUDE_DIRS,
 # and absolute pathnames.
@@ -249,7 +253,7 @@ FOREACH(subdir ${SIMMATH_SOURCE_SUBDIRS})
     INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/${subdir})
 ENDFOREACH(subdir)
 
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/Integrator/include)
 
 IF( APPLE )
   INCLUDE_DIRECTORIES( "/usr/include/malloc")
@@ -296,6 +300,12 @@ ADD_TEST(DifferentiatorTest             ${TEST_PATH}/DifferentiatorTest)
 ADD_TEST(DifferentiatorTestStatic       ${TEST_PATH}/DifferentiatorTestStatic)
 ADD_TEST(SimpleDifferentiatorTest       ${TEST_PATH}/SimpleDifferentiatorTest)
 ADD_TEST(SimpleDifferentiatorTestStatic ${TEST_PATH}/SimpleDifferentiatorTestStatic )
+ADD_TEST(IntegratorTest			${TEST_PATH}/IntegratorTest)
+ADD_TEST(IntegratorTestStatic		${TEST_PATH}/IntegratorTestStatic)
+ADD_TEST(TimeStepperTest		${TEST_PATH}/TimeStepperTest)
+ADD_TEST(TimeStepperTestStatic		${TEST_PATH}/TimeStepperTestStatic)
+ADD_TEST(CPodesIntegratorTest		${TEST_PATH}/CPodesIntegratorTest)
+ADD_TEST(CPodesIntegratorTestStatic	${TEST_PATH}/CPodesIntegratorTestStatic)
 
 #
 # Installation

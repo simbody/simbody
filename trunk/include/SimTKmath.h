@@ -34,6 +34,7 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/NTraits.h"
+#include "simmath/internal/common.h"
 #include "simmath/internal/LinearAlgebra.h"
 
 
