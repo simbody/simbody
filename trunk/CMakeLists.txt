@@ -363,10 +363,9 @@ LINK_DIRECTORIES(${SimTK_SDK}/core/lib${LIB64})
 # libraries are installed from their subdirectories; headers here
 
 # install headers
-FILE(GLOB CORE_HEADERS     include/*.h                    */include/*.h)
+FILE(GLOB CORE_HEADERS     include/*.h                  */include/*.h)
 FILE(GLOB TOP_HEADERS      include/simmath/*.h          */include/simmath/*.h)
-FILE(GLOB INTERNAL_HEADERS include/simmath/internal/common.h
-                           include/simmath/internal/LinearAlgebra.h)
+FILE(GLOB INTERNAL_HEADERS include/simmath/internal/*.h */include/simmath/internal/*.h)
 
 INSTALL( FILES ${CORE_HEADERS}     DESTINATION core/include     )
 INSTALL( FILES ${TOP_HEADERS}      DESTINATION core/include/simmath)
