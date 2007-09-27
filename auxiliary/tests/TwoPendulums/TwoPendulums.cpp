@@ -37,7 +37,7 @@
 
 #include "SimTKsimbody.h"
 
-#include "SimTKcpodes/Integrator.h"
+#include "simmath/RungeKuttaMersonIntegrator.h"
 
 #include <cmath>
 #include <cstdio>
@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
     // Create a study using the Runge Kutta Merson or CPODES integrator
     //RungeKuttaMerson myStudy(mbs, s);
 
-    Integrator myStudy(mbs, Integrator::RungeKuttaMerson);
+    RungeKuttaMersonIntegrator myStudy(mbs);
 
     //CPodesIntegrator myStudy(mbs, s);
     //ExplicitEuler myStudy(mbs, s);
