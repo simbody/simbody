@@ -48,6 +48,7 @@
 #include "SimTKcommon/internal/Study.h"
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/PolynomialRootFinder.h"
+#include "SimTKcommon/internal/TypesafeEnum.h"
 #endif
 
 
