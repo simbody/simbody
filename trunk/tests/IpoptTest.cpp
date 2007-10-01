@@ -161,6 +161,13 @@ int main() {
     opt.setConvergenceTolerance( 1e-3 );
 
     opt.setDiagnosticsLevel( 7 );
+    opt.setLimitedMemoryHistory(500); // works well for our small systems
+
+    opt.setAdvancedBoolOption("warm_start",true);
+
+    opt.setAdvancedRealOption("obj_scaling_factor",1);
+
+    opt.setAdvancedRealOption("nlp_scaling_max_gradient",1);
 
     /* compute  optimization */ 
     f = opt.optimize( results );

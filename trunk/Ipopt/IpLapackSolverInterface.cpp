@@ -81,7 +81,7 @@ double *afact;
          int info;
          int *iwork,rank,nlvl,smlsiz,lwork,liwork,nosmlsiz;
          const char *name = "DGELSD";
-         const char opts = ' ';
+         const char *opts = " ";
          s = new double[n];
          smlsiz = ilaenv_( ispec, name, opts, n, n, n, n, 6, 0);
          if( smlsiz < 0 ) {
@@ -203,10 +203,7 @@ double *afact;
     int info;
     char transpose = 'N';
     int i;
-    double *tmp_b;
 
-    tmp_b = new double[n*nrhs];
-    for(i=0;i<n*nrhs;i++) tmp_b[i] = b[i];
     dgetrs_( transpose, n, nrhs, a, n, ipiv, b, n, info, 1); 
     if( info != 0 ) {
         if( info > 0 && info <= n  ) {
