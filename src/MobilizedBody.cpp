@@ -130,6 +130,9 @@ bool MobilizedBody::isGround() const {
     return isInSubsystem() && isSameMobilizedBody(getMatterSubsystem().getGround());
 }
 
+int MobilizedBody::getLevelInMultibodyTree() const {
+    return getRep().getMyRigidBodyNode().getLevel();
+}
 
 SimbodyMatterSubsystem& MobilizedBody::updMatterSubsystem() {
     SimTK_ASSERT_ALWAYS(isInSubsystem(),

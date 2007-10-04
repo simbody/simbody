@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
     MultibodySystem         mbs;
 
     SimbodyMatterSubsystem  twoPends(mbs);
-    UniformGravitySubsystem gravity(mbs, 0*Vec3(0, -g, 0));
+    UniformGravitySubsystem gravity(mbs, Vec3(0, -g, 0));
     GeneralForceElements    forces(mbs);
     DecorationSubsystem     viz(mbs);
 
@@ -108,41 +108,47 @@ int main(int argc, char** argv) {
                          Transform(Vec3(-1, 0, 0)),
                      pendulumBody,
                          Transform(Vec3(0, d, 0)));
-
-    MobilizedBody::  /*Pin*/Ball
+/*
+    MobilizedBody::Ball
         leftPendulum2(leftPendulum,
                          Transform(Vec3(0.5, 0, 0)),
                      pendulumBody,
                          Transform(Vec3(0, d, 0)));
+*/
 
     leftPendulum.setDefaultRadius(0.2); // for Ball artwork
 
-    Vec3 radii(1/2.,1/3.,1/4.); radii*=.5; //radii=Vec3(.333,.5,1);
+    Vec3 radii(1.5/2.,1/3.,1/4.); radii*=.5; //radii=Vec3(.333,.5,1);
     MobilizedBody::Ellipsoid rightPendulum(twoPends.Ground(), pendulumBody);
     rightPendulum.setDefaultRadii(radii)
-                 .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
-                 .setDefaultOutboardFrame(Vec3(0,d,0));
+        .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
+        .setDefaultOutboardFrame(Transform(Rotation::aboutXThenOldY(Pi/2,-Pi/2), Vec3(0,d-radii[1],0)));
 
     //rightPendulum.setDefaultAngle(20*Deg2Rad);
-    rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(0,0,1)));
+   // rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(0,0,1)));
 
         // OPTIONALLY TIE TOGETHER WITH SPRING/DAMPER OR DISTANCE CONSTRAINT
 
-    const Real distance = 2;      // nominal length for spring; length for constraint
+    const Real distance = /*2*/1.5;      // nominal length for spring; length for constraint
     const Real stiffness = 100;   // only if spring is used
     const Real damping   = 10;     //          "
 
     char c;
     cout << "Constraint, spring, or nothing? c/s/n"; cin >> c;
 
+    ConstraintId cid;
     if (c == 'c') {   
-        //Constraint::Rod(leftPendulum, Vec3(0),
-        //                rightPendulum, Vec3(0),
-         //               distance);
-       // Constraint::Ball(leftPendulum2, Vec3(.5,0,0),
-        //                 twoPends.Ground(), Vec3(0,-d,0));
-        Constraint::PointInPlane(twoPends.Ground(), UnitVec3(0,1,0), -2*d,
-                                 leftPendulum2, Vec3(0));
+
+        cid = 
+        //Constraint::PointInPlane(twoPends.Ground(), UnitVec3(0,1,0), -2*d,
+        //                         leftPendulum2, Vec3(0))
+        Constraint::Rod(leftPendulum, Vec3(0),
+                        rightPendulum, Vec3(0),
+                       distance)
+        // Constraint::Ball(leftPendulum2, Vec3(.5,0,0),
+        //                 twoPends.Ground(), Vec3(0,-d,0))
+        .getConstraintId();
+
     } else if (c == 's') {
         forces.addTwoPointLinearSpring(leftPendulum, Vec3(0),
                                        rightPendulum, Vec3(0),
@@ -170,6 +176,21 @@ int main(int argc, char** argv) {
     //twoPends.setUseEulerAngles(s, true);
     mbs.realizeModel(s); // define appropriate states for this System
 
+    if (cid.isValid()) {
+        cout << "CONSTRAINT -- " << twoPends.getConstraint(cid).getSubtree();
+    }
+
+
+    SimbodyMatterSubsystem::Subtree sub(twoPends);
+    sub.addTerminalBody(leftPendulum); sub.addTerminalBody(rightPendulum);
+    sub.realizeTopology();
+    cout << "SUB -- " << sub;
+
+    SimbodyMatterSubsystem::SubtreeResults results;
+    sub.initializeSubtreeResults(s, results);
+    cout << "INIT RESULTS=" << results;
+
+
     VTKReporter display(mbs);
 
     mbs.realize(s, Stage::Position);
@@ -179,18 +200,22 @@ int main(int argc, char** argv) {
     cout << "T_MbM=" << rightPendulum.getMobilizerTransform(s).T() << endl;
     cout << "Default configuration shown. Ready? "; cin >> c;
 
+    sub.copyPositionsFromState(s, results);
+    cout << "POS RESULTS=" << results;
 
     //leftPendulum.setAngle(s, -60*Deg2Rad);
     //leftPendulum.setQToFitRotation(s, Rotation::aboutZ(-60*Deg2Rad));
 
-    rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
-    //rightPendulum.setQToFitRotation(s, Rotation());
+    //rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
+    leftPendulum.setQToFitRotation (s, Rotation::aboutZ(-.9*Pi/2));
+    rightPendulum.setQToFitRotation (s, Rotation::aboutY(-.9*Pi/2));
 
 
     //TODO
     //rightPendulum.setUToFitLinearVelocity(s, Vec3(1.1,0,1.2));
 
-    rightPendulum.setUToFitAngularVelocity(s, Vec3(0,10,0));
+    leftPendulum.setUToFitAngularVelocity(s, 10*Vec3(.1,.2,.3));
+    rightPendulum.setUToFitAngularVelocity(s, 10*Vec3(.1,.2,.3));
 
 
     s.setTime(0);
@@ -262,6 +287,11 @@ int main(int argc, char** argv) {
             twoPends.getQErr(s).normRMS(),
             twoPends.getUErr(s).normRMS(),
             twoPends.getUDotErr(s).normRMS());
+
+        //sub.copyPositionsFromState(s, results);
+        //sub.copyVelocitiesFromState(s, results);
+       // sub.copyAccelerationsFromState(s, results);
+        //cout << results;
 
         display.report(s);
         //if (s.getTime() >= finalTime)

@@ -208,7 +208,7 @@ private:
  * rule you may still get plausible-looking numbers and movies out of your
  * simulation, but you're not doing physics any more.
  *
- * TODO: the current implementation does not allow a UserForce to allocate
+ * TODO: the current implementation does not allow a CustomForce to allocate
  * any space in the State. It should be given such a chance in which case
  * it would no longer need to be stateless.
  */
@@ -250,6 +250,12 @@ private:
     // we call the virtual functions from private static methods here which
     // are generated on the client side and passed to us as though they were
     // C function addresses.
+
+    // TODO: I'm not sure this works with static members -- they are supposed
+    // to be shared across all instances of the containing class which means
+    // the linker might try to use one from the library rather than here.
+    // These should be made global statics just below the class definition, because
+    // global statics are compilation-unit scoped and not shared with anyone.
     inline static void staticCalc(const CustomForce& u,
         const SimbodyMatterSubsystem& matter, const State& state,
         Vector_<SpatialVec>& bodyForces,

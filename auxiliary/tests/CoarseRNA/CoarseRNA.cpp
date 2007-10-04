@@ -61,7 +61,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 1;
+static int NSegments = 2;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -249,6 +249,21 @@ try // If anything goes wrong, an exception will be thrown.
     State s = mbs.realizeTopology();
     //myRNA.setUseEulerAngles(s,true);
     mbs.realizeModel(s);
+
+
+    SimbodyMatterSubsystem::Subtree sub(myRNA);
+    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(7)));
+    sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(10)));
+    //sub.addTerminalBody(myRNA.getMobilizedBody(MobilizedBodyId(20)));
+    sub.realizeTopology();
+    cout << "sub.ancestor=" << sub.getAncestorBody();
+    cout << "  sub.terminalBodies=" << sub.getTerminalBodies() << endl;
+    cout << "sub.allBodies=" << sub.getAllBodies() << endl;
+    for (SubtreeBodyId i(0); i < sub.getAllBodies().size(); ++i) {
+       cout << "sub.parent[" << i << "]=" << sub.getParentSubtreeBodyId(i);
+       cout << "  sub.children[" << i << "]=" << sub.getChildSubtreeBodyIds(i) << endl;
+    }
+   
 
     printf("# quaternions in use = %d\n", myRNA.getNQuaternionsInUse(s));
     for (MobilizedBodyId i(0); i<myRNA.getNBodies(); ++i) {

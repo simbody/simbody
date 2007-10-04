@@ -35,7 +35,6 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/MobilizedBody.h"
-#include "simbody/internal/Constraint.h"
 
 #include <cassert>
 #include <vector>
@@ -46,12 +45,11 @@ class SimbodyMatterSubsystemRep;
 namespace SimTK {
 
 class MultibodySystem;
-
-
+class Constraint;
 
 /**
  * The Simbody low-level multibody tree interface.
- * Equations represented:
+ * Equations represented:                                  @verbatim
  *
  *                  qdot = Q u
  *                  zdot = zdot(t,q,u,z)
@@ -61,9 +59,9 @@ class MultibodySystem;
  *
  *              where
  *
- *       [A]    [ba]
- *     G=[V]  b=[bv]  f=T+J*(F-C)
  *       [P]    [bp]
+ *     G=[V]  b=[bv]  f=T+J*(F-C)
+ *       [A]    [ba]
  *
  * a(t,q,u,udot) = A udot - ba(t,q,u) = 0
  *          vdot = V udot - bv(t,q,u) = 0
@@ -73,18 +71,20 @@ class MultibodySystem;
  *                pdot = P u - c(t,q) = 0
  *
  *                             p(t,q) = 0
- *                               n(q) = 0
+ *                               n(q) = 0                  @endverbatim
+ *
  * 
  * where M(q) is the mass matrix, G(q) the acceleration constraint matrix, C(q,u)
  * the coriolis and gyroscopic forces, T is user-applied joint mobility forces,
  * F is user-applied body forces and torques and gravity. 
  * J* is the operator that maps spatial forces to joint mobility forces. p() are the
  * holonomic (position) constraints, v() the non-holonomic (velocity) constraints,
- * and a() the reaction (acceleration) constraints, which must be linear, with A
+ * and a() the acceleration-only constraints, which must be linear, with A
  * the coefficient matrix for a(). pdot, pdotdot are obtained
  * by differentiation of p(), vdot by differentiation of v().
  * P=partial(pdot)/partial(u) (yes, that's u, not q), V=partial(v)/partial(u).
- * n(q) is the set of quaternion normalization constraints.
+ * n(q) is the set of quaternion normalization constraints, which exist only at the
+ * position level and are uncoupled from everything else.
  *
  * We calculate the constraint multipliers like this:
  *           G M^-1 ~G mult = G udot0 - b, udot0=M^-1 f
@@ -95,25 +95,30 @@ class MultibodySystem;
  * forming or factoring M.
  *
  * NOTE: only the following constraint matrices have to be formed and factored:
+ * @verbatim
  *    [G M^-1 ~G]   to calculate multipliers (square, symmetric: LDL' if
  *                  well conditioned, else pseudoinverse)
  *
  *    [P]           for projection onto position manifold (pseudoinverse)
  *
- *    [V]           for projection onto velocity manifold (pseudoinverse)
- *    [P]
+ *    [P]           for projection onto velocity manifold (pseudoinverse)
+ *    [V]
+ * @endverbatim
  *
  * In many cases these matrices consist of decoupled blocks which can
  * be solved independently; we try to take advantage of that whenever possible
  * to solve a set of smaller systems rather than one large one. Also, in the
  * majority of biosimulation applications we are likely to have only holonomic
- * (position) constraints, so there is no V or A and P is the whole story.
+ * (position) constraints, so there is no V or A and G=P is the whole story.
  */
 class SimTK_SIMBODY_EXPORT SimbodyMatterSubsystem : public Subsystem {
 public:
     /// Create a tree containing only the ground body (body 0).
     SimbodyMatterSubsystem();
     explicit SimbodyMatterSubsystem(MultibodySystem&);
+
+    class Subtree; // used for working with a connected subgraph of the MobilizedBody tree
+    class SubtreeResults;
 
     // These are the same as the compiler defaults but are handy to
     // have around explicitly for debugging.
@@ -228,7 +233,9 @@ public:
     /// the acceleration constraints will still be satisified. No attempt
     /// will be made to satisfy position and velocity constraints, or even to check
     /// whether they are statisfied.
-    /// Requires realization through Stage::Dynamics.
+    /// This is an O(n*nc^2) operator worst case where all nc constraint equations
+    /// are coupled.
+    /// Requires prior realization through Stage::Dynamics.
     void calcAcceleration(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -241,7 +248,7 @@ public:
     /// effects are properly accounted for, but any forces that would have resulted
     /// from enforcing the contraints are not present.
     /// This is an O(N) operator.
-    /// Requires realization through Stage::Dynamics.
+    /// Requires prior realization through Stage::Dynamics.
     void calcAccelerationIgnoringConstraints(const State&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
@@ -250,13 +257,13 @@ public:
 
     /// This operator calculates M^-1 v where M is the system mass matrix and v
     /// is a supplied vector with one entry per mobility. If v is a set of 
-    /// mobility forces f, the result is an acceleration (udot=M^-1 f). Only 
+    /// mobility forces f, the result is a generalized acceleration (udot=M^-1 f). Only 
     /// the supplied vector is used, and M depends only on position states,
     /// so the result here is not affected by velocities in the State.
     /// However, this fast O(N) operator requires that the Dynamics stage operators
     /// are already available, so the State must be realized to Stage::Dynamics
     /// even though velocities are ignored.
-    /// Requires realization through Stage::Dynamics.
+    /// Requires prior realization through Stage::Dynamics.
     void calcMInverseV(const State&,
         const Vector&        v,
         Vector&              MinvV,
@@ -275,22 +282,21 @@ public:
     /// Requires realization through Stage::Velocity.
     Real calcKineticEnergy(const State&) const;
 
-    /// Requires realization through Stage::Dynamics. Accounts for applied forces
+    /// Accounts for applied forces
     /// and centrifugal forces produced by non-zero velocities in the State. Returns
     /// a set of mobility forces which replace both the applied bodyForces and the
     /// centrifugal forces.
+    /// Requires prior realization through Stage::Dynamics. 
     void calcTreeEquivalentMobilityForces(const State&, 
         const Vector_<SpatialVec>& bodyForces,
         Vector&                    mobilityForces) const;
 
-
-
-    /// Must be in Stage::Position to calculate qdot = Q*u.
+    /// Must be in Stage::Position to calculate qdot = Q(q)*u.
     void calcQDot(const State& s,
         const Vector& u,
         Vector&       qdot) const;
 
-    /// Must be in Stage::Velocity to calculate qdotdot = Qdot*u + Q*udot.
+    /// Must be in Stage::Velocity to calculate qdotdot = Q(q)*udot + Qdot(q,u)*u.
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
@@ -486,6 +492,7 @@ public:
 SimTK_SIMBODY_EXPORT std::ostream& 
 operator<<(std::ostream&, const SimbodyMatterSubsystem&);
 
-};
+
+} // namespace SimTK
 
 #endif // SimTK_SIMBODY_MATTER_SUBSYSTEM_H_

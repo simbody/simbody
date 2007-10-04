@@ -38,10 +38,17 @@
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
+#include "simbody/internal/SimbodyMatterSubsystem_Subtree.h"
 #include "simbody/internal/MobilizedBody.h"
 
 #include "SimbodyTreeState.h"
 #include "RigidBodyNode.h"
+
+#include <set>
+#include <map>
+#include <vector>
+#include <utility> // std::pair
+using std::pair;
 
 using namespace SimTK;
 
@@ -70,14 +77,76 @@ class SBAccelerationCache;
 }
 
 #include <cassert>
-#include <vector>
 #include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+
 
 typedef std::vector<const RigidBodyNode*>   RBNodePtrList;
 typedef Vector_<SpatialVec>           SpatialVecList;
 
 class IVM;
 class LengthConstraints;
+
+/*
+ * A CoupledConstraintSet is a set of Simbody Constraints which must be
+ * handled simultaneously for purposes of a particular computation. We maintain a
+ * Subtree here which encompasses all the included Constraints. This
+ * Subtree has as its terminal bodies the set of all constrained bodies
+ * from any of the included Constraints. The ancestor body will be
+ * the outmost common ancestor of all those constrained bodies, or 
+ * equivalently the outmost common ancestor of all the Constraints'
+ * ancestor bodies.
+ *
+ * Operators and responses here set up an environment in which the
+ * individual constraint error functions are evaluated. The environments
+ * are: 
+ *   - same as global System state (i.e., this is just a response)
+ *   - all mobility variables from State, except for one which is perturbed (q,u,udot)
+ *   - all mobility variables are zero (u,udot)
+ *   - all mobility variables are zero except for one (u,udot)
+ */
+
+class CoupledConstraintSet {
+public:
+    CoupledConstraintSet() : topologyRealized(false) { }
+    void addConstraint(ConstraintId cid) {
+        topologyRealized = false;
+        constraints.insert(cid);
+    }
+    
+    void mergeInConstraintSet(const CoupledConstraintSet& src) {
+        topologyRealized = false;
+        for (int i=0; i < (int)src.getCoupledConstraints().size(); ++i)
+            constraints.insert(src.getCoupledConstraints()[i]);
+    }
+
+    void realizeTopology(const SimbodyMatterSubsystem& matter) {
+        coupledConstraints.resize(constraints.size());
+        std::set<ConstraintId>::const_iterator i = constraints.begin();
+        for (int nxt=0; i != constraints.end(); ++i, ++nxt)
+            coupledConstraints[nxt] = *i;
+        topologyRealized = true;
+    }
+
+    const std::vector<ConstraintId>& getCoupledConstraints() const {
+        assert(topologyRealized);
+        return coupledConstraints;
+    }
+
+private:
+    // TOPOLOGY STATE
+    std::set<ConstraintId> constraints;
+
+    // TOPOLOGY CACHE
+    bool topologyRealized;
+
+    // Sorted in nondecreasing order of ancestor MobilizedBodyId.
+    std::vector<ConstraintId>       coupledConstraints;
+    SimbodyMatterSubsystem::Subtree coupledSubtree; // with the new ancestor
+};
 
 /*
  * The SimbodyMatterSubsystemRep class owns the tree of mobilizer-connected rigid bodies, called
@@ -712,6 +781,38 @@ private:
     std::vector<Constraint*>    constraints;
 
         // TOPOLOGY CACHE
+
+    std::vector<SimbodyMatterSubsystem::Subtree> constraintSubtrees; // one per Constraint
+
+    // Partition the constraints into groups which are coupled by constraints at
+    // the indicated level. Only Constraints which generate holonomic constraint
+    // equations (mp>0) are coupled at the position level. Constraints with
+    // *either* holonomic or nonholonomic (mv>0) constraint equations can be
+    // coupled at the velocity level because the derivatives of the holonomic
+    // constraints are velocity constraints. And any Constraints can be coupled
+    // at the accleration level.
+    //
+    // Each ConstraintSet contains a Subtree comprising all the relevant
+    // mobilized bodies for that set. Note that this is *kinematic* coupling;
+    // for dynamics there is additional coupling brought in by the mass
+    // matrix in the computation of (G M^-1 G^T).
+
+    // sorted in nondecreasing order of ancestor MobilizedBodyId
+    std::vector<CoupledConstraintSet> positionCoupledConstraints;     // for P
+    std::vector<CoupledConstraintSet> velocityCoupledConstraints;     // for PV
+    std::vector<CoupledConstraintSet> accelerationCoupledConstraints; // for G=PVA
+
+    // This further partitions the accelerationCoupledConstraints into
+    // larger groups comprised of accelerationCoupledConstraints whose ancestor
+    // bodies' inboard paths share a body other than ground. That is, we couple
+    // the constraints unless they involve completely disjoint grounded subtrees.
+    // These groups correspond to disjoint blocks in M (as
+    // well as G, of course), so we can decouple them for the (G M^-1 G^T) 
+    // calculation.
+    // TODO: acceleration constraints should instead be dealt with recursively,
+    // based on *kinematic* coupling; where the kinematically coupled groups are
+    // used to modify the articulated body inertias.
+    std::vector<CoupledConstraintSet> dynamicallyCoupledConstraints;
 
     // Our realizeTopology method calls this after all bodies & constraints have been added,
     // to construct part of the topology cache below.

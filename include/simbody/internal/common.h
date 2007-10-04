@@ -94,7 +94,16 @@ namespace SimTK {
 SimTK_DEFINE_UNIQUE_ID_TYPE(MobilizedBodyId)
 static const MobilizedBodyId GroundId(0);
 
+SimTK_DEFINE_UNIQUE_ID_TYPE(QId)    // an index into generalized coordinates q
+SimTK_DEFINE_UNIQUE_ID_TYPE(UId)    // an index into generalized speeds u (and accelerations udot)
+
 // And similarly for other unique Id types.
+SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeBodyId)
+static const SubtreeBodyId SubtreeAncestorId(0);
+
+SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeQId)
+SimTK_DEFINE_UNIQUE_ID_TYPE(SubtreeUId)
+
 SimTK_DEFINE_UNIQUE_ID_TYPE(ConstraintId)
 SimTK_DEFINE_UNIQUE_ID_TYPE(ParticleId)
 

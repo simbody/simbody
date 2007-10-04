@@ -207,9 +207,10 @@ public:
             myMatterSubsystemRep->invalidateSubsystemTopologyCache();
     }
 
+    // This might get called *during* realizeTopology() so just make sure there is 
+    // a node here without checking whether we're done with realizeTopology().
     const RigidBodyNode& getMyRigidBodyNode() const {
-        SimTK_ASSERT(myRBnode && myMatterSubsystemRep && 
-                     myMatterSubsystemRep->subsystemTopologyHasBeenRealized(),
+        SimTK_ASSERT(myRBnode && myMatterSubsystemRep,
           "An operation on a MobilizedBody was illegal because realizeTopology() has "
           "not been performed on the containing Subsystem since the last topological change."
         );

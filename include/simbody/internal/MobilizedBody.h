@@ -944,7 +944,11 @@ public:
     bool isSameMobilizedBody(const MobilizedBody&) const;
     bool isGround() const; // meaning mobilizedbody 0 of some subsystem, not just the Body type
 
-
+    // Return this body's level in the tree of bodies, starting with ground at 0,
+    // bodies directly connected to ground at 1, bodies directly connected to those at 2, 
+    // etc. This is callable after realizeTopology(). This is the graph distance of
+    // the body from Ground.
+    int getLevelInMultibodyTree() const;
 
     // Is this handle the owner of this rep? This is true if the
     // handle is empty or if its rep points back here.

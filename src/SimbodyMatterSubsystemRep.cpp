@@ -985,6 +985,60 @@ void SimbodyMatterSubsystemRep::calcLoopForwardDynamics(const State& s,
                                     ac, udot, multipliers, udotErr);
 }
 
+/* TODO:
+// Calculate the position (holonomic) constraint matrix P for all mp position
+// constraints in the system.
+// The returned matrix is mp X n (where n is the number of mobilities and u's).
+// The time complexity is also O(mp*n).
+void SimbodyMatterSubsystemRep::calcPositionConstraintMatrix(const State& s,
+    Matrix& P) const 
+{
+    const SBPositionCache& pc = getPositionCache(s);
+
+    // The first time derivative of the position constraint error methods
+    // contains the matrix we're interested in, like this (at the current configuration):
+    //     positionDotError(u) = Pu - c(t) = 0
+    // We can extract columns of P by setting a single u to 1 and the rest 0,
+    // but first we need to evaluate the bias term -c(t), which we get when
+    // u=0.
+
+    // Evaluate pdot errors at u=0, save -c(t) 
+    Vector pdotBias(getNumPositionConstraints());
+    calcPositionDotBias(s, pdotBias);
+
+    P.resize(getNumPositionConstraints(), getNumMobilities());
+    for (int i=0; i < getNumMobilities(s); ++i) {
+        calcPositionDotBiasedColumn(s, i, P(i)); // u[i]=1, all others 0
+        P(i) -= pdotBias;
+    }
+
+    // ALTERNATIVE:
+    // Use the applyPositionConstraintForces methods instead to calculate columns of ~P.
+
+    P.resize(getNumPositionConstraints(), getNumMobilities());
+    MatrixView Pt = ~P;
+
+    Vector              multipliers(getNumPositionConstraints());
+    Vector_<SpatialVec> bodyForces(getNBodies());
+    Vector              directMobilityForces(getNumMobilities(s));
+
+    multipliers.setToZero();
+    for (int i=0; i < getNumPositionConstraints(); ++i) {
+        multipliers[i] = 1;
+
+        bodyForces.setToZero(); directMobilityForces.setToZero();
+        applyPositionConstraintForces(s, multipliers.size(), &multipliers[0],
+            bodyForces, directMobilityForces);
+
+        calcInternalGradientFromSpatial(s, bodyForces, Pt(i));
+        Pt(i) += directMobilityForces;
+
+        multipliers[i] = 0;
+    }
+
+}
+*/
+
 // should be:
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
