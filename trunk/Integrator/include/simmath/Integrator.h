@@ -42,6 +42,9 @@
 
 namespace SimTK {
 
+    
+class IntegratorRep;
+
 /**
  * Given a continuous system of differential equations for state variables y, and
  * optionally a manifold (set of algebraic equations) on which the solution must lie,
@@ -98,6 +101,8 @@ namespace SimTK {
  */
 class SimTK_SIMMATH_EXPORT Integrator {
 public:
+    Integrator() : rep(0) { }
+
     // These are the exceptions that can be thrown by this class.
 
     class InitializationFailed;
@@ -269,12 +274,12 @@ public:
     void setProjectInterpolatedStates(bool shouldProject);
 
 private:
-    // opaque implementation for binary compatibility
-    class IntegratorRep& rep;
-    friend class IntegratorRep;
+    const IntegratorRep& getRep() const {assert(rep); return *rep;}
+    IntegratorRep&       updRep()       {assert(rep); return *rep;}
 
-protected:
-    Integrator(IntegratorRep& rep);    
+    // opaque implementation for binary compatibility
+    IntegratorRep* rep;
+    friend class IntegratorRep;
 };
 
 } // namespace SimTK

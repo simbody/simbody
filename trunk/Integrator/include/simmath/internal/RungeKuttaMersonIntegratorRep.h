@@ -47,7 +47,7 @@
 
 using namespace SimTK;
 
-class SimTK_SIMMATH_EXPORT RungeKuttaMersonIntegratorRep : public IntegratorRep {
+class RungeKuttaMersonIntegratorRep : public IntegratorRep {
 public:
     RungeKuttaMersonIntegratorRep(Integrator* handle, const System& sys)
         : IntegratorRep(handle, sys)

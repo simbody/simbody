@@ -452,7 +452,7 @@ public:
     /// Given a list of events, specified by their indices in the list of trigger functions,
     /// convert them to the corresponding event IDs.
     void findEventIds(std::vector<int>& events) {
-        for (int i = 0; i < events.size(); ++i)
+        for (int i = 0; i < (int)events.size(); ++i)
             events[i] = eventTriggerInfo[events[i]].getEventId();
     }
 

@@ -51,41 +51,38 @@ namespace SimTK {
     // IMPLEMENTATION OF INTEGRATOR //
     //////////////////////////////////
 
-Integrator::Integrator(IntegratorRep& rep) : rep(rep) {
-}
-
 void Integrator::resetAllStatistics() {
-    rep.resetIntegratorStatistics();
-    rep.resetMethodStatistics();
+    updRep().resetIntegratorStatistics();
+    updRep().resetMethodStatistics();
 }
 
 void Integrator::initialize(const State& initState) {
-    rep.updAdvancedState() = initState;
-    rep.getSystem().realize(rep.getAdvancedState(), Stage::Model);
-    rep.initialize(rep.getAdvancedState());
+    updRep().updAdvancedState() = initState;
+    getRep().getSystem().realize(getRep().getAdvancedState(), Stage::Model);
+    updRep().initialize(getRep().getAdvancedState());
 }
 
 void Integrator::reinitialize(Stage g, bool shouldTerminate) {
-    rep.reinitialize(g,shouldTerminate);
+    updRep().reinitialize(g,shouldTerminate);
 }
 
 Integrator::SuccessfulStepStatus 
 Integrator::stepTo(Real reportTime, Real advanceLimit) {
-    return rep.stepTo(reportTime, advanceLimit);
+    return updRep().stepTo(reportTime, advanceLimit);
 }
 
 Integrator::SuccessfulStepStatus 
 Integrator::stepBy(Real interval, Real advanceIntervalLimit) {
-    const Real t = rep.getAdvancedState().getTime();
-    return rep.stepTo(t + interval, t + advanceIntervalLimit);
+    const Real t = getRep().getAdvancedState().getTime();
+    return updRep().stepTo(t + interval, t + advanceIntervalLimit);
 }
 
 bool Integrator::isSimulationOver() const {
-    return rep.isSimulationOver();
+    return getRep().isSimulationOver();
 }
 
 Integrator::TerminationReason Integrator::getTerminationReason() const {
-    return rep.getTerminationReason();
+    return getRep().getTerminationReason();
 }
 
 /*static*/ String Integrator::successfulStepStatusString(SuccessfulStepStatus stat) {
@@ -106,185 +103,185 @@ Integrator::TerminationReason Integrator::getTerminationReason() const {
 // returned a step that ended with an event triggering.
 
 Vec2 Integrator::getEventWindow() const {
-    if (rep.getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
+    if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEventWindow",
-                     rep.getState().getTime());
+                     getRep().getState().getTime());
         //NOTREACHED
     }
-    assert(rep.getEventWindowLow()==rep.getState().getTime());
-    assert(rep.getEventWindowHigh()==rep.getAdvancedTime());
-    return Vec2(rep.getEventWindowLow(), rep.getEventWindowHigh());
+    assert(getRep().getEventWindowLow()==getRep().getState().getTime());
+    assert(getRep().getEventWindowHigh()==getRep().getAdvancedTime());
+    return Vec2(getRep().getEventWindowLow(), getRep().getEventWindowHigh());
 }
 
 const Array<int>& 
 Integrator::getTriggeredEvents() const {
-    if (rep.getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
+    if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getTriggeredEvents",
-                     rep.getState().getTime());
+                     getRep().getState().getTime());
         //NOTREACHED
     }
-    return rep.getTriggeredEvents();
+    return getRep().getTriggeredEvents();
 }
 
 const Array<Real>&
 Integrator::getEstimatedEventTimes() const {
-    if (rep.getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
+    if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEstimatedEventTimes",
-                     rep.getState().getTime());
+                     getRep().getState().getTime());
         //NOTREACHED
     }
-    return rep.getEstimatedEventTimes();
+    return getRep().getEstimatedEventTimes();
 }
 
 const Array<EventStatus::EventTrigger>&
 Integrator::getEventTransitionsSeen() const {
-    if (rep.getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
+    if (getRep().getStepCommunicationStatus() != IntegratorRep::StepHasBeenReturnedWithEvent) {
         SimTK_THROW2(CantAskForEventInfoWhenNoEventTriggered, "getEventTransitionsSeen",
-                     rep.getState().getTime());
+                     getRep().getState().getTime());
         //NOTREACHED
     }
-    return rep.getEventTransitionsSeen();
+    return getRep().getEventTransitionsSeen();
 }
 
 const State& Integrator::getState() const {
-    return rep.getState();
+    return getRep().getState();
 }
 
 bool Integrator::isStateInterpolated() const {
-    return rep.isStateInterpolated();
+    return getRep().isStateInterpolated();
 }
 
 const State& Integrator::getAdvancedState() const {
-    return rep.getAdvancedState();
+    return getRep().getAdvancedState();
 }
 
 State& Integrator::updAdvancedState() {
-    return rep.updAdvancedState();
+    return updRep().updAdvancedState();
 }
 
 
 Real Integrator::getAccuracyInUse() const {
-    return rep.getAccuracyInUse();
+    return getRep().getAccuracyInUse();
 }
 
 Real Integrator::getConstraintToleranceInUse() const {
-    return rep.getConstraintToleranceInUse();
+    return getRep().getConstraintToleranceInUse();
 }
 
 Real Integrator::getTimeScaleInUse() const {
-    return rep.getTimeScaleInUse();
+    return getRep().getTimeScaleInUse();
 }
 
 const Vector& Integrator::getStateWeightsInUse() const {
-    return rep.getStateWeightsInUse();
+    return getRep().getStateWeightsInUse();
 }
 
 const Vector& Integrator::getConstraintWeightsInUse() const {
-    return rep.getConstraintWeightsInUse();
+    return getRep().getConstraintWeightsInUse();
 }
 
 Real Integrator::getActualInitialStepSizeTaken() const {
-    return rep.getActualInitialStepSizeTaken();
+    return getRep().getActualInitialStepSizeTaken();
 }
 Real Integrator::getPreviousStepSizeTaken() const {
-    return rep.getPreviousStepSizeTaken();
+    return getRep().getPreviousStepSizeTaken();
 }
 Real Integrator::getPredictedNextStepSize() const {
-    return rep.getPredictedNextStepSize();
+    return getRep().getPredictedNextStepSize();
 }
 long Integrator::getNStepsAttempted() const {
-    return rep.getNStepsAttempted();
+    return getRep().getNStepsAttempted();
 }
 long Integrator::getNStepsTaken() const {
-    return rep.getNStepsTaken();
+    return getRep().getNStepsTaken();
 }
 long Integrator::getNRealizations() const {
-    return rep.getNRealizations();
+    return getRep().getNRealizations();
 }
 long Integrator::getNProjections() const {
-    return rep.getNProjections();
+    return getRep().getNProjections();
 }
 long Integrator::getNErrorTestFailures() const {
-    return rep.getNErrorTestFailures();
+    return getRep().getNErrorTestFailures();
 }
 long Integrator::getNRealizationFailures() const {
-    return rep.getNRealizationFailures();
+    return getRep().getNRealizationFailures();
 }
 long Integrator::getNProjectionFailures() const {
-    return rep.getNProjectionFailures();
+    return getRep().getNProjectionFailures();
 }
 
 
 void Integrator::setFinalTime(Real tFinal) {
     assert(tFinal == -1. || (0. <= tFinal));
-    rep.userFinalTime = tFinal;
+    updRep().userFinalTime = tFinal;
 }
 
 void Integrator::setInternalStepLimit(int nSteps) {
-    rep.userInternalStepLimit = nSteps > 0 ? nSteps : -1;
+    updRep().userInternalStepLimit = nSteps > 0 ? nSteps : -1;
 }
 
 void Integrator::setInitialStepSize(Real z) {
     assert(z == -1. || z > 0.);
     assert(rep.userMinStepSize==-1. || z >= rep.userMinStepSize);
     assert(rep.userMaxStepSize==-1. || z <= rep.userMaxStepSize);
-    rep.userInitStepSize = z;
+    updRep().userInitStepSize = z;
 }
 void Integrator::setMinimumStepSize(Real z) { 
     assert(z == -1. || z > 0.);
     assert(rep.userInitStepSize==-1. || z <= rep.userInitStepSize);
     assert(rep.userMaxStepSize ==-1. || z <= rep.userMaxStepSize);
-    rep.userMinStepSize = z;
+    updRep().userMinStepSize = z;
 }
 void Integrator::setMaximumStepSize(Real z) {
     assert(z == -1. || z > 0.);
     assert(rep.userInitStepSize==-1. || z >= rep.userInitStepSize);
     assert(rep.userMinStepSize ==-1. || z >= rep.userMinStepSize);
-    rep.userMaxStepSize = z;
+    updRep().userMaxStepSize = z;
 }
 void Integrator::setAccuracy(Real accuracy) {
     assert(accuracy == -1. || (0. < accuracy && accuracy < 1.));
-    rep.userAccuracy = accuracy;
+    updRep().userAccuracy = accuracy;
 }
 void Integrator::setRelativeTolerance(Real relTol) {
     assert(relTol  == -1. || (0. < relTol  && relTol  <= 1.));
-    rep.userRelTol=relTol;
+    updRep().userRelTol=relTol;
 }
 void Integrator::setAbsoluteTolerance(Real absTol) {
     assert(absTol  == -1. || (0. < absTol  && absTol  <= 1.));
-    rep.userAbsTol=absTol;
+    updRep().userAbsTol=absTol;
 }
 void Integrator::setConstraintTolerance(Real consTol) {
     assert(consTol == -1. || (0. < consTol && consTol <= 1.));
-    rep.userConsTol=consTol;
+    updRep().userConsTol=consTol;
 }
 void Integrator::setReturnEveryInternalStep(bool shouldReturn) {
-    rep.userReturnEveryInternalStep = shouldReturn ? 1 : 0;
+    updRep().userReturnEveryInternalStep = shouldReturn ? 1 : 0;
 }
 void Integrator::setProjectEveryStep(bool forceProject) {
-    rep.userProjectEveryStep = forceProject ? 1 : 0;
+    updRep().userProjectEveryStep = forceProject ? 1 : 0;
 }
 void Integrator::setAllowInterpolation(bool shouldInterpolate) {
-    rep.userAllowInterpolation = shouldInterpolate ? 1 : 0;
+    updRep().userAllowInterpolation = shouldInterpolate ? 1 : 0;
 }
 void Integrator::setProjectInterpolatedStates(bool shouldProject) {
-    rep.userProjectInterpolatedStates = shouldProject ? 1 : 0;
+    updRep().userProjectInterpolatedStates = shouldProject ? 1 : 0;
 }
 
 bool Integrator::methodHasErrorControl() {
-    return rep.methodHasErrorControl();
+    return getRep().methodHasErrorControl();
 }
 
 const char* Integrator::getMethodName() {
-    return rep.getMethodName();
+    return getRep().getMethodName();
 }
 
 int Integrator::getMethodMinOrder() {
-    return rep.getMethodMinOrder();
+    return getRep().getMethodMinOrder();
 }
 
 int Integrator::getMethodMaxOrder() {
-    return rep.getMethodMaxOrder();
+    return getRep().getMethodMaxOrder();
 }
 
     //////////////////////////////////////

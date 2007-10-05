@@ -81,7 +81,7 @@ double *afact;
          int info;
          int *iwork,rank,nlvl,smlsiz,lwork,liwork,nosmlsiz;
          const char *name = "DGELSD";
-         const char *opts = " ";
+         const char opts = ' ';
          s = new double[n];
          smlsiz = ilaenv_( ispec, name, opts, n, n, n, n, 6, 0);
          if( smlsiz < 0 ) {
@@ -202,7 +202,6 @@ double *afact;
     ESymSolverStatus retval = SYMSOLVER_SUCCESS;
     int info;
     char transpose = 'N';
-    int i;
 
     dgetrs_( transpose, n, nrhs, a, n, ipiv, b, n, info, 1); 
     if( info != 0 ) {

@@ -35,7 +35,6 @@
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
 #include "simmath/Integrator.h"
-#include "simmath/internal/RungeKuttaMersonIntegratorRep.h"
 
 namespace SimTK {
 
@@ -48,7 +47,7 @@ class SimTK_SIMMATH_EXPORT RungeKuttaMersonIntegrator : public Integrator {
 public:
     RungeKuttaMersonIntegrator(const System& sys);
 private:
-    RungeKuttaMersonIntegratorRep rep;
+    class RungeKuttaMersonIntegratorRep* rep;
 };
 
 } // namespace SimTK

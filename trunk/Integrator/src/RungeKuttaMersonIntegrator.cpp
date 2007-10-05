@@ -41,10 +41,13 @@
 #include "simmath/IntegratorRep.h"
 #include "simmath/RungeKuttaMersonIntegrator.h"
 
+#include "RungeKuttaMersonIntegratorRep.h"
+
 #include <exception>
 #include <limits>
 
 using namespace SimTK;
 
-RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys) : rep(this, sys), Integrator(rep) {
+RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys) {
+    rep = new RungeKuttaMersonIntegratorRep(this, sys);
 }
