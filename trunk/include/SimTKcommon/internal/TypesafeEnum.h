@@ -104,8 +104,9 @@ public:
     }
     TypesafeEnum(const TypesafeEnum<T>& copy) : index(copy.index) {
     }
-    T operator=(const TypesafeEnum<T>& copy) {
+    TypesafeEnum<T>& operator=(const TypesafeEnum<T>& copy) {
         index = copy.index;
+        return *this;
     }
     bool operator==(const TypesafeEnum<T>& value) const {
         return (index == value.index);
@@ -206,23 +207,23 @@ public:
     bool operator!=(const EnumSet<T>& set) {
         return (flags != set.flags);
     }
-    EnumSet<T> operator=(const EnumSet<T>& set) {
+    EnumSet<T>& operator=(const EnumSet<T>& set) {
         flags = set.flags;
         return *this;
     }
-    EnumSet<T> operator+=(const TypesafeEnum<T>& value) {
+    EnumSet<T>& operator+=(const TypesafeEnum<T>& value) {
         flags |= mask(value);
         return *this;
     }
-    EnumSet<T> operator+=(const EnumSet<T>& set) {
+    EnumSet<T>& operator+=(const EnumSet<T>& set) {
         flags |= set.flags;
         return *this;
     }
-    EnumSet<T> operator-=(const TypesafeEnum<T>& value) {
+    EnumSet<T>& operator-=(const TypesafeEnum<T>& value) {
         flags &= ~mask(value);
         return *this;
     }
-    EnumSet<T> operator-=(const EnumSet<T>& set) {
+    EnumSet<T>& operator-=(const EnumSet<T>& set) {
         flags &= ~set.flags;
         return *this;
     }
