@@ -586,6 +586,7 @@ public:
     }
 };
 
+
 // These are here just so the AbstractValue's ValueHelper<> template
 // will compile.
 inline std::ostream& operator<<(std::ostream& o, const SBTopologyCache& c)
@@ -620,6 +621,200 @@ inline std::ostream& operator<<(std::ostream& o, const SBDynamicsVars& c)
 inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
   { return o << "TODO: SBAccelerationVars"; }
 
-}; // namespace SimTK
+
+    /////////////////////
+    // SB STATE DIGEST //
+    /////////////////////
+
+/*
+ * Objects of this class are constructed for a particular State, and then used
+ * for a related series of computations. Depending on the stage to which the
+ * State has been advanced, and the computations to be performed, some or all
+ * of the pointers here will be set to refer to State and State cache data
+ * for Simbody, of the types defined above.
+ *
+ * The idea is to do all the time consuming work of digging through the State
+ * just once, then use the results repeatedly for computations which are typically
+ * performed over all the nodes in the system. The low-level rigid body node computations
+ * assume already-digested States.
+ */
+class SBStateDigest {
+public:
+    explicit SBStateDigest(const State& s) : state(s) 
+    {
+        stage = Stage::Empty;
+    }
+    SBStateDigest(const State& s, const SimbodyMatterSubsystemRep& matter, Stage g)
+      : state(s) 
+    {
+        stage = Stage::Empty;
+        fillThroughStage(matter,g);
+    }
+
+    void fillThroughStage(const SimbodyMatterSubsystemRep& matter, Stage g);
+
+    // The State is read only, for cache entries you have a choice.
+
+    const State& getState() const {return state;}
+    Stage        getStage() const {return stage;}
+
+    const SBModelVars& getModelVars() const {
+        assert(stage >= Stage::Model);
+        assert(mv);
+        return *mv;
+    }
+
+    const SBInstanceVars& getInstanceVars() const {
+        assert(stage >= Stage::Instance);
+        assert(iv);
+        return *iv;
+    }
+
+    const SBTimeVars& getTimeVars() const {
+        assert(stage >= Stage::Time);
+        assert(tv);
+        return *tv;
+    }
+
+    const Real* getQ() const {
+        assert(stage >= Stage::Position);
+        assert(q);
+        return q;
+    }
+
+    const SBPositionVars& getPositionVars() const {
+        assert(stage >= Stage::Position);
+        assert(pv);
+        return *pv;
+    }
+
+    const Real* getU() const {
+        assert(stage >= Stage::Velocity);
+        assert(u);
+        return u;
+    }
+
+    const SBVelocityVars& getVelocityVars() const {
+        assert(stage >= Stage::Velocity);
+        assert(vv);
+        return *vv;
+    }
+    const SBDynamicsVars& getDynamicsVars() const {
+        assert(stage >= Stage::Dynamics);
+        assert(dv);
+        return *dv;
+    }
+    const SBAccelerationVars& getAccelerationVars() const {
+        assert(stage >= Stage::Acceleration);
+        assert(av);
+        return *av;
+    }
+
+    // You can access the cache for update only at the stage being computed.
+    // You can access the cache read-only for any stage already completed.
+    // Either way you only need const access to the SBStateDigest object.
+
+    SBModelCache& updModelCache() const {
+        assert(stage == Stage::Model);
+        assert(mc);
+        return *mc;
+    }
+    const SBModelCache& getModelCache() const {
+        assert(stage > Stage::Model);
+        assert(mc);
+        return *mc;
+    }
+    SBInstanceCache& updInstanceCache() const {
+        assert(stage == Stage::Instance);
+        assert(ic);
+        return *ic;
+    }
+    const SBInstanceCache& getInstanceCache() const {
+        assert(stage > Stage::Instance);
+        assert(ic);
+        return *ic;
+    }
+    SBTimeCache& updTimeCache() const {
+        assert(stage == Stage::Time);
+        assert(tc);
+        return *tc;
+    }
+    const SBTimeCache& getTimeCache() const {
+        assert(stage > Stage::Time);
+        assert(tc);
+        return *tc;
+    }
+    SBPositionCache& updPositionCache() const {
+        assert(stage == Stage::Position);
+        assert(pc);
+        return *pc;
+    }
+    const SBPositionCache& getPositionCache() const {
+        assert(stage > Stage::Position);
+        assert(pc);
+        return *pc;
+    }
+    SBVelocityCache& updVelocityCache() const {
+        assert(stage == Stage::Velocity);
+        assert(vc);
+        return *vc;
+    }
+    const SBVelocityCache& getVelocityCache() const {
+        assert(stage > Stage::Velocity);
+        assert(vc);
+        return *vc;
+    }
+    SBDynamicsCache& updDynamicsCache() const {
+        assert(stage == Stage::Dynamics);
+        assert(dc);
+        return *dc;
+    }
+    const SBDynamicsCache& getDynamicsCache() const {
+        assert(stage > Stage::Dynamics);
+        assert(dc);
+        return *dc;
+    }
+    SBAccelerationCache& updAccelerationCache() const {
+        assert(stage == Stage::Acceleration);
+        assert(ac);
+        return *ac;
+    }
+    const SBAccelerationCache& getAccelerationCache() const {
+        assert(stage > Stage::Acceleration);
+        assert(ac);
+        return *ac;
+    }
+    void clear() {
+        mv=0; iv=0; tv=0; q=0; pv=0; u=0; vv=0; dv=0; av=0;
+        mc=0; ic=0; tc=0;      pc=0;      vc=0; dc=0; ac=0;
+    }
+
+private:
+    const State& state;
+    Stage        stage; // the stage to be computed
+
+    const SBModelVars*          mv;
+    const SBInstanceVars*       iv;
+    const SBTimeVars*           tv;
+
+    const Real*                 q;
+    const SBPositionVars*       pv;
+
+    const Real*                 u;
+    const SBVelocityVars*       vv;
+    const SBDynamicsVars*       dv;
+    const SBAccelerationVars*   av;
+
+    SBModelCache*               mc;
+    SBInstanceCache*            ic;
+    SBTimeCache*                tc;
+    SBPositionCache*            pc;
+    SBVelocityCache*            vc;
+    SBDynamicsCache*            dc;
+    SBAccelerationCache*        ac;
+};
+
+
+} // namespace SimTK
 
 #endif // SimTK_SIMBODY_TREE_STATE_H_

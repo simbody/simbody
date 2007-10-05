@@ -148,13 +148,26 @@ private:
     SimbodyMatterSubsystem::Subtree coupledSubtree; // with the new ancestor
 };
 
+    //////////////////////////////////
+    // SIMBODY MATTER SUBSYSTEM REP //
+    //////////////////////////////////
+
 /*
- * The SimbodyMatterSubsystemRep class owns the tree of mobilizer-connected rigid bodies, called
- * RigidBodyNodes. The tree is stored by levels, with level 0 being ground, level 1
- * being bodies which are connected to ground (base bodies), level 2 connected to
+ * The SimbodyMatterSubsystemRep class owns the tree of MobilizedBodies and their
+ * associated computational form inherited from IVM, called RigidBodyNodes. 
+ * Here we store references to the RigidBodyNodes in a tree structure organized
+ * in "levels" with level 0 being Ground, level 1
+ * being bodies which are connected to Ground (base bodies), level 2 connected to
  * level 1 and so on. Nodes at the same level are stored together in an array,
  * but the order does not reflect the logical tree structure; that is maintained
  * via parent & children pointers kept in the nodes.
+ *
+ * Access to mobilized body information is requested via MobilizedBodyId's here,
+ * which are small integer indices, rather than via MobilizedBody objects. These
+ * integers are used both to index MobilizedBodies and their corresponding
+ * RigidBodyNodes. You can get the abstract MobilizedBody corresponding to a
+ * MobilizedBodyId if you want one, but you should prefer MobilizedBodyId's when
+ * working at the "Rep" level here.
  */
 class SimbodyMatterSubsystemRep : public SimTK::Subsystem::Guts {
 public:
@@ -288,9 +301,6 @@ public:
         return *constraints[id];
     }
 
-    // MatterSubsystemRep interface. These provide local implementations for
-    // virtual methods of MatterSubsystemRep.
-
     // These counts can be obtained even during construction, where they
     // just return the current counts.
     // NBodies includes ground.
@@ -396,8 +406,9 @@ public:
     }
 
 
-    Real calcKineticEnergy(const State&) const;
+        // OPERATORS //
 
+    Real calcKineticEnergy(const State&) const;
 
     // Calculate the product J*v where J is the kinematic Jacobian dV/du=~Phi*~H and
     // v is a vector in mobility space (internal coordinates). If v==u, that is,
@@ -457,6 +468,55 @@ public:
     void calcQDotDot(const State& s,
         const Vector& udot,
         Vector&       qdotdot) const;
+
+        // MOBILIZER OPERATORS //
+
+    // These operators deal with an isolated mobilizer and are thus independent of 
+    // any other generalized coordinates or speeds.
+
+    // State must be realized to Stage::Position, so that we can extract Q(q) from it to calculate
+    // qdot=Q(q)*u for this mobilizer.
+    void calcMobilizerQDotFromU(const State&, MobilizedBodyId, int nu, const Real* u, 
+                                int nq, Real* qdot) const;
+
+    // State must be realized to Stage::Velocity, so that we can extract Q(q), QDot(q,u), and u from it to calculate
+    // qdotdot=Q(q)*udot + QDot(q,u)*u for this mobilizer.
+    void calcMobilizerQDotDotFromUDot(const State&, MobilizedBodyId, int nu, const Real* udot, 
+                                      int nq, Real* qdotdot) const;
+
+    // State must be realized through Stage::Instance. Neither the State nor its
+    // cache are modified by this method, since it is an operator.
+    // The number of q's is passed in as a sanity check, to make sure the caller
+    // and the called mobilizer agree on the generalized coordinates.
+    // Returns X_FM(q).
+    const Transform calcMobilizerTransformFromQ(const State&, MobilizedBodyId, int nq, const Real* q) const;
+
+    // State must be realized through Stage::Position. Neither the State nor its
+    // cache are modified by this method, since it is an operator.
+    // The number of u's is passed in as a sanity check, to make sure the caller
+    // and the called mobilizer agree on the generalized speeds.
+    // Returns V_FM(q,u)=H_FM(q)*u, where the q dependency is extracted from the State via
+    // the hinge transition matrix H_FM(q).
+    const SpatialVec calcMobilizerVelocityFromU(const State&, MobilizedBodyId, int nu, const Real* u) const;
+
+    // State must be realized through Stage::Velocity. Neither the State nor its
+    // cache are modified by this method, since it is an operator.
+    // The number of u's (and udot's) is passed in as a sanity check, to make sure the caller
+    // and the called mobilizer agree on the generalized accelerations.
+    // Returns A_FM(q,u,udot)=H_FM(q)*udot + HDot_FM(q,u)*u where the q and u dependencies
+    // are extracted from the State via H_FM(q), and HDot_FM(q,u).
+    const SpatialVec calcMobilizerAccelerationFromUDot(const State&, MobilizedBodyId, int nu, const Real* udot) const;
+
+    // These perform the same computations as above but then transform the results so that they
+    // relate the child body's frame B to its parent body's frame P, rather than the M and F frames
+    // which are attached to B and P respectively but differ by a constant transform.
+    const Transform  calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const;
+    const SpatialVec calcParentToChildVelocityFromU (const State& s, MobilizedBodyId mb, int nu, const Real* u) const;
+    const SpatialVec calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const;
+
+
+
+
 
     void setDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const;
     void setDefaultInstanceValues    (const SBModelVars&,     SBInstanceVars&)     const;
@@ -542,10 +602,6 @@ public:
         const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
         return *rbNodeLevels[ix.level][ix.offset];
     }
-    //RigidBodyNode& updRigidBodyNode(int nodeNum) {
-    //    const RigidBodyNodeIndex& ix = nodeNum2NodeMap[nodeNum];
-    //    return *rbNodeLevels[ix.level][ix.offset];
-    //}
 
     // Add a distance constraint equation and assign it a particular slot in
     // the qErr, uErr, and multiplier arrays.
@@ -820,7 +876,7 @@ private:
 
     // The data members here are filled in when realizeTopology() is called.
     // The flag which remembers whether we have realized topology is in 
-    // the SubsystemRep base class.
+    // the Subsystem::Guts base class.
     // Note that a cache is treated as mutable, so the methods that manipulate
     // it are const.
 
