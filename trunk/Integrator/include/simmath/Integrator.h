@@ -273,7 +273,7 @@ public:
     void setAllowInterpolation(bool shouldInterpolate);
     void setProjectInterpolatedStates(bool shouldProject);
 
-private:
+protected:
     const IntegratorRep& getRep() const {assert(rep); return *rep;}
     IntegratorRep&       updRep()       {assert(rep); return *rep;}
 

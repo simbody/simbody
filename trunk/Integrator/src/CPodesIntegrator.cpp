@@ -31,6 +31,9 @@
 
 #include "simmath/CPodesIntegrator.h"
 
+#include "IntegratorRep.h"
+#include "CPodesIntegratorRep.h"
+
 using namespace SimTK;
 
 /**
@@ -38,14 +41,18 @@ using namespace SimTK;
  * based on the linear multistep method: Newton iteration for BDF (the default), and functional iteration for Adams.
  */
 
-CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method) : rep(this, sys, method), Integrator(rep) {
+CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method)
+{
+    rep = new CPodesIntegratorRep(this, sys, method);
 }
 
 /**
  * Create a CPodesIntegrator for integrating a System.
  */
 
-CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType) : rep(this, sys, method, iterationType), Integrator(rep) {
+CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType) 
+{
+    rep = new CPodesIntegratorRep(this, sys, method, iterationType);
 }
 
 /**
@@ -58,6 +65,7 @@ CPodesIntegrator::CPodesIntegrator(const System& sys, CPodes::LinearMultistepMet
  */
 
 void CPodesIntegrator::setUseCPodesProjection() {
-    rep.setUseCPodesProjection();
+    CPodesIntegratorRep& cprep = dynamic_cast<CPodesIntegratorRep&>(*rep);
+    cprep.setUseCPodesProjection();
 }
 

@@ -39,15 +39,16 @@
 
 #include "SimTKcommon.h"
 #include "simmath/Integrator.h"
+#include "simmath/RungeKuttaMersonIntegrator.h"
 
-#include "simmath/IntegratorRep.h"
+#include "IntegratorRep.h"
 
 #include <exception>
 #include <limits>
 
 using namespace SimTK;
 
-class RungeKuttaMersonIntegratorRep : public IntegratorRep {
+class SimTK::RungeKuttaMersonIntegratorRep : public IntegratorRep {
 public:
     RungeKuttaMersonIntegratorRep(Integrator* handle, const System& sys)
         : IntegratorRep(handle, sys)

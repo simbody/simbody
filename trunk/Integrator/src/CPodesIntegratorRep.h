@@ -36,11 +36,12 @@
 #include "SimTKcpodes.h"
 #include "SimTKmath.h"
 #include "simmath/Integrator.h"
-#include "simmath/IntegratorRep.h"
+
+#include "IntegratorRep.h"
 
 namespace SimTK {
 
-class SimTK_SIMMATH_EXPORT CPodesIntegratorRep : public IntegratorRep {
+class CPodesIntegratorRep : public IntegratorRep {
 public:
     CPodesIntegratorRep(Integrator* handle, const System& sys, CPodes::LinearMultistepMethod method);
     CPodesIntegratorRep(Integrator* handle, const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType);

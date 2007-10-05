@@ -43,11 +43,11 @@ namespace SimTK {
  * error controlled, fourth order explicit integrator.
  */
 
+class RungeKuttaMersonIntegratorRep;
+
 class SimTK_SIMMATH_EXPORT RungeKuttaMersonIntegrator : public Integrator {
 public:
     RungeKuttaMersonIntegrator(const System& sys);
-private:
-    class RungeKuttaMersonIntegratorRep* rep;
 };
 
 } // namespace SimTK

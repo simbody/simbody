@@ -37,10 +37,9 @@
 
 #include "SimTKcommon.h"
 #include "simmath/Integrator.h"
-
-#include "simmath/IntegratorRep.h"
 #include "simmath/RungeKuttaMersonIntegrator.h"
 
+#include "IntegratorRep.h"
 #include "RungeKuttaMersonIntegratorRep.h"
 
 #include <exception>
@@ -48,6 +47,7 @@
 
 using namespace SimTK;
 
-RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys) {
+RungeKuttaMersonIntegrator::RungeKuttaMersonIntegrator(const System& sys) 
+{
     rep = new RungeKuttaMersonIntegratorRep(this, sys);
 }

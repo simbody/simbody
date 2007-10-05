@@ -37,7 +37,7 @@
 #include "SimTKcommon.h"
 #include "simmath/Integrator.h"
 
-#include "simmath/IntegratorRep.h"
+#include "IntegratorRep.h"
 
 #include <exception>
 #include <limits>
@@ -223,20 +223,20 @@ void Integrator::setInternalStepLimit(int nSteps) {
 
 void Integrator::setInitialStepSize(Real z) {
     assert(z == -1. || z > 0.);
-    assert(rep.userMinStepSize==-1. || z >= rep.userMinStepSize);
-    assert(rep.userMaxStepSize==-1. || z <= rep.userMaxStepSize);
+    assert(getRep().userMinStepSize==-1. || z >= getRep().userMinStepSize);
+    assert(getRep().userMaxStepSize==-1. || z <= getRep().userMaxStepSize);
     updRep().userInitStepSize = z;
 }
 void Integrator::setMinimumStepSize(Real z) { 
     assert(z == -1. || z > 0.);
-    assert(rep.userInitStepSize==-1. || z <= rep.userInitStepSize);
-    assert(rep.userMaxStepSize ==-1. || z <= rep.userMaxStepSize);
+    assert(getRep().userInitStepSize==-1. || z <= getRep().userInitStepSize);
+    assert(getRep().userMaxStepSize ==-1. || z <= getRep().userMaxStepSize);
     updRep().userMinStepSize = z;
 }
 void Integrator::setMaximumStepSize(Real z) {
     assert(z == -1. || z > 0.);
-    assert(rep.userInitStepSize==-1. || z >= rep.userInitStepSize);
-    assert(rep.userMinStepSize ==-1. || z >= rep.userMinStepSize);
+    assert(getRep().userInitStepSize==-1. || z >= getRep().userInitStepSize);
+    assert(getRep().userMinStepSize ==-1. || z >= getRep().userMinStepSize);
     updRep().userMaxStepSize = z;
 }
 void Integrator::setAccuracy(Real accuracy) {

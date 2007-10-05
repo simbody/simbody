@@ -38,7 +38,7 @@
 #include "SimTKcommon.h"
 #include "simmath/Integrator.h"
 
-#include "simmath/internal/RungeKuttaMersonIntegratorRep.h"
+#include "RungeKuttaMersonIntegratorRep.h"
 
 #include <exception>
 #include <limits>

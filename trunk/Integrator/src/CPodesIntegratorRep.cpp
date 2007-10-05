@@ -29,8 +29,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "simmath/internal/CPodesIntegratorRep.h"
-//#include "SimTKcpodes/cpodes/cpodes.h"
+#include "SimTKcommon.h"
+#include "CPodesIntegratorRep.h"
 
 using namespace SimTK;
 
@@ -337,7 +337,7 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             findEventIds(eventIds);
             std::vector<Real> eventTimes(eventIds.size());
             std::vector<EventStatus::EventTrigger> eventTransitions(eventIds.size());
-            for (int i = 0; i < eventIds.size(); ++i) {
+            for (int i = 0; i < (int)eventIds.size(); ++i) {
                 eventTimes[i] = tret;
                 eventTransitions[i] = EventStatus::AnySignChange;
             }

@@ -34,8 +34,9 @@
 
 #include "SimTKcommon.h"
 #include "SimTKmath.h"
+#include "SimTKcpodes.h"
+
 #include "simmath/Integrator.h"
-#include "simmath/internal/CPodesIntegratorRep.h"
 
 namespace SimTK {
 
@@ -49,13 +50,13 @@ namespace SimTK {
  * For non-stiff problems, the recommended choices are Adams with functional iteration.
  */
 
+class CPodesIntegratorRep;
+
 class SimTK_SIMMATH_EXPORT CPodesIntegrator : public Integrator {
 public:
     CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method=CPodes::BDF);
     CPodesIntegrator(const System& sys, CPodes::LinearMultistepMethod method, CPodes::NonlinearSystemIterationType iterationType);
     void setUseCPodesProjection();
-private:
-    CPodesIntegratorRep rep;
 };
 
 } // namespace SimTK
