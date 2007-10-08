@@ -146,6 +146,7 @@ public:
     TStandard standardize() const {
         TStandard mstd;
         for(int j=0;j<N;++j) mstd(j) = (*this)(j).standardize();
+        return mstd;
     }
 
     // This gives the resulting matrix type when (m(i,j) op P) is applied to each element.
