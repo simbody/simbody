@@ -183,7 +183,9 @@ class NAME {                                \
 public:                                     \
     inline NAME();                          \
     inline explicit NAME(int i);            \
-    inline explicit NAME(unsigned u);       \
+    inline explicit NAME(long i);           \
+    inline explicit NAME(unsigned int u);   \
+    inline explicit NAME(unsigned long u);  \
     operator int() const {return id;}       \
     bool isValid() const {return id>=0;}    \
     void invalidate();                      \
@@ -195,10 +197,16 @@ public:                                     \
 static const NAME Invalid ## NAME(SimTK::InvalidId);    \
 inline NAME::NAME() : id(Invalid ## NAME) { }           \
 inline void NAME::invalidate() {id=Invalid ## NAME;}    \
-inline NAME::NAME(unsigned u) : id((int)u) {            \
+inline NAME::NAME(unsigned int u) : id((int)u) {        \
+    assert((int)u >= 0);                                \
+}                                                       \
+inline NAME::NAME(unsigned long u) : id((int)u) {       \
     assert((int)u >= 0);                                \
 }                                                       \
 inline NAME::NAME(int i) : id(i) {                      \
+    assert(i>=0 || i==SimTK::InvalidId);                \
+}                                                       \
+inline NAME::NAME(long i) : id((int)i) {                \
     assert(i>=0 || i==SimTK::InvalidId);                \
 }
 
