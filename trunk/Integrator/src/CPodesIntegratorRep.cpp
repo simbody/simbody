@@ -157,6 +157,20 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
         cpodes->projDefine();
     }
     cpodes->rootInit(state.getNEvents());
+    Array<System::EventTriggerInfo> triggerInfo;
+    getSystem().calcEventTriggerInfo(state, triggerInfo);
+    Array<int> rootDir(triggerInfo.size());
+    for (int i = 0; i < triggerInfo.size(); ++i) {
+        if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
+            if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
+                rootDir[i] = 0; // All transitions
+            else
+                rootDir[i] = -1; // Falling transitions only
+        }
+        else
+            rootDir[i] = 1; // Rising transitions only
+    }
+    cpodes->setRootDirection(rootDir);
 }
 
 void CPodesIntegratorRep::methodReinitialize(Stage stage, bool shouldTerminate) {
@@ -327,20 +341,19 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             // An event was triggered.
             
             std::vector<int> eventIds;
+            std::vector<Real> eventTimes;
+            std::vector<EventStatus::EventTrigger> eventTransitions;
             int nevents = getAdvancedState().getNEvents();
             int* eventFlags = new int[nevents];
             cpodes->getRootInfo(eventFlags);
             for (int i = 0; i < nevents; ++i)
-                if (eventFlags[i] == 1)
+                if (eventFlags[i] != 0) {
                     eventIds.push_back(i);
+                    eventTimes.push_back(tret);
+                    eventTransitions.push_back(eventFlags[i] == 1 ? EventStatus::Rising : EventStatus::Falling);
+                }
             delete[] eventFlags;
             findEventIds(eventIds);
-            std::vector<Real> eventTimes(eventIds.size());
-            std::vector<EventStatus::EventTrigger> eventTransitions(eventIds.size());
-            for (int i = 0; i < (int)eventIds.size(); ++i) {
-                eventTimes[i] = tret;
-                eventTransitions[i] = EventStatus::AnySignChange;
-            }
             setTriggeredEvents(previousStartTime, tret, eventIds, eventTimes, eventTransitions);
             setStepCommunicationStatus(IntegratorRep::StepHasBeenReturnedWithEvent);
             return Integrator::ReachedEventTrigger;

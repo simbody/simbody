@@ -47,36 +47,6 @@ using std::printf;
 using std::cout;
 using std::endl;
 
-class ZeroVelocityHandler : public TriggeredEventHandler {
-public:
-    static int eventCount;
-    static Real lastEventTime;
-    ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
-        getTriggerInfo().setTriggerOnFallingSignTransition(false);
-    }
-    ZeroVelocityHandler* clone() const {
-        return new ZeroVelocityHandler(*this);
-    }
-    Real getValue(const State& state) const {
-        return state.getU(pendulum.getGuts().getSubsysIndex())[0];
-    }
-    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
-        
-        // This should be triggered when the pendulum reaches its farthest point in the
-        // negative direction: q == -1, u == 0.
-        
-        Real q = state.getQ(pendulum.getGuts().getSubsysIndex())[0];
-        Real u = state.getU(pendulum.getGuts().getSubsysIndex())[0];
-        ASSERT(std::abs(q+1.0) < 0.05);
-        ASSERT(std::abs(u) < 0.01);
-        ASSERT(state.getTime() > lastEventTime);
-        eventCount++;
-        lastEventTime = state.getTime();
-    }
-private:
-    PendulumSystem& pendulum;
-};
-
 class PeriodicEventHandler : public ScheduledEventHandler {
 public:
     static int eventCount;
@@ -122,14 +92,42 @@ public:
         lastEventTime = state.getTime();
         if (state.getTime() > 7 && !hasAccelerated) {
 
-            // Multiply the pendulum's velocity by sqrt(2), which should double its total energy (since
+            // Multiply the pendulum's velocity by sqrt(1.5), which should multiply its total energy by 1.5 (since
             // at x=0, all of its energy is kinetic).
             
             hasAccelerated = true;
             SubsystemId subsys = pendulum.getGuts().getSubsysIndex();
-            state.updU(subsys) *= std::sqrt(2.0);
+            state.updU(subsys) *= std::sqrt(1.5);
             lowestModified = Stage::Velocity;
         }
+    }
+private:
+    PendulumSystem& pendulum;
+};
+
+class ZeroVelocityHandler : public TriggeredEventHandler {
+public:
+    static int eventCount;
+    static Real lastEventTime;
+    ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
+        getTriggerInfo().setTriggerOnFallingSignTransition(false);
+    }
+    ZeroVelocityHandler* clone() const {
+        return new ZeroVelocityHandler(*this);
+    }
+    Real getValue(const State& state) const {
+        return state.getU(pendulum.getGuts().getSubsysIndex())[0];
+    }
+    void handleEvent(State& state, Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols, Stage& lowestModified, bool& shouldTerminate) {
+        
+        // This should be triggered when the pendulum reaches its farthest point in the
+        // negative direction: q[0] == -1, u[0] == 0.
+        
+        Vector u = state.getU(pendulum.getGuts().getSubsysIndex());
+        ASSERT(std::abs(u[0]) < 0.01);
+        ASSERT(state.getTime() > lastEventTime);
+        eventCount++;
+        lastEventTime = state.getTime();
     }
 private:
     PendulumSystem& pendulum;
@@ -163,7 +161,7 @@ public:
         Real energy = pendulum.getMass(state)*(0.5*(u[0]*u[0]+u[1]*u[1])+pendulum.getGravity(state)*(1.0+q[1]));
         Real expectedEnergy = pendulum.getMass(state)*pendulum.getGravity(state);
         if (ZeroPositionHandler::hasAccelerated)
-            expectedEnergy *= 2.0;
+            expectedEnergy *= 1.5;
         ASSERT(std::abs(1.0-energy/expectedEnergy) < 0.05);
     }
 private:
@@ -234,7 +232,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ts.stepTo(50.0);
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
-//    ASSERT(ZeroVelocityHandler::eventCount > 10);
+    ASSERT(ZeroVelocityHandler::eventCount > 10);
     ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/PeriodicEventHandler::interval));
     ASSERT(ZeroPositionHandler::eventCount > 10);
     ASSERT(PeriodicEventReporter::eventCount == (int) (ts.getTime()/PeriodicEventReporter::interval));
@@ -243,7 +241,7 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
 int main () {
   try {
     PendulumSystem sys;
-//    sys.updDefaultSubsystem().addEventHandler(ZeroVelocityHandler(sys));
+    sys.updDefaultSubsystem().addEventHandler(ZeroVelocityHandler(sys));
     sys.updDefaultSubsystem().addEventHandler(PeriodicEventHandler());
     sys.updDefaultSubsystem().addEventHandler(ZeroPositionHandler(sys));
     sys.updDefaultSubsystem().addEventReporter(PeriodicEventReporter(sys));
