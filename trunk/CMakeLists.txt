@@ -311,6 +311,8 @@ ADD_TEST(PolynomialTest           ${TEST_PATH}/PolynomialTest)
 ADD_TEST(PolynomialTestStatic     ${TEST_PATH}/PolynomialTestStatic)
 ADD_TEST(TypesafeEnumTest         ${TEST_PATH}/TypesafeEnumTest)
 ADD_TEST(TypesafeEnumTestStatic   ${TEST_PATH}/TypesafeEnumTestStatic)
+ADD_TEST(RotationTest             ${TEST_PATH}/RotationTest)
+ADD_TEST(RotationTestStatic       ${TEST_PATH}/RotationTestStatic)
 
 #
 # Installation
