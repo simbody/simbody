@@ -50,13 +50,13 @@
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/Scalar.h"
 #include "SimTKcommon/internal/SmallMatrix.h"
-//-----------------------------------------------------------------------------
-#include <iosfwd>  // Forward declaration of iostream
-//-----------------------------------------------------------------------------
 #include "SimTKcommon/internal/UnitVec.h"
 #include "SimTKcommon/internal/Quaternion.h"
 #include "SimTKcommon/internal/Rotation.h"
 #include "SimTKcommon/internal/Transform.h"
+//-----------------------------------------------------------------------------
+#include <iosfwd>  // Forward declaration of iostream
+//-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
 // Some handy conversion constants. 
