@@ -42,7 +42,7 @@
  */
 
 #include "SimTKcommon/basics.h"
-#include "SimTKcommon/internal/Orientation.h"
+#include "SimTKcommon/internal/Rotation.h"
 
 //-------------------------------------------------------------------
 namespace SimTK {
