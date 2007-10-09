@@ -40,7 +40,7 @@
  * Implementations of non-inline methods of classes dealing with UnitVec and UnitRow.
  */
 
-#include "SimTKcommon/internal/Orientation.h"
+#include "SimTKcommon/internal/UnitVec.h"
 
 //-------------------------------------------------------------------
 namespace SimTK {
