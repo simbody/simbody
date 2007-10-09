@@ -39,6 +39,7 @@
  * -------------------------------------------------------------------------- */
 
 //-----------------------------------------------------------------------------
+#include "SimTKcommon/internal/CoordinateAxis.h"
 #include "SimTKcommon/internal/Orientation.h"
 
 //-----------------------------------------------------------------------------
@@ -47,41 +48,6 @@ namespace SimTK {
 //-----------------------------------------------------------------------------
 // Forward declarations
 class InverseRotation;
-
-
-//-----------------------------------------------------------------------------
-// These helper classes allow the compiler to identify specific arguments as types, i.e.,
-// XAxis is a specific type of class and allows the compiler to match to a specific method.
-// In addition, these classes allow easy conversion of XAxis to 0, YAxis to 1, ZAxis to 2.
-//-----------------------------------------------------------------------------
-class CoordinateAxis {
-public:
-    class X; class Y; class Z;
-    operator int() const {return axis;}
-protected:
-    class XType{}; class YType{}; class ZType{};
-
-    CoordinateAxis(const XType&) : axis(0) { }
-    CoordinateAxis(const YType&) : axis(1) { }
-    CoordinateAxis(const ZType&) : axis(2) { }
-private:
-    int axis;
-};
-
-class CoordinateAxis::X : public CoordinateAxis {
-  public: X() : CoordinateAxis(XType()) { }
-};
-class CoordinateAxis::Y : public CoordinateAxis {
-  public: Y() : CoordinateAxis(YType()) { }
-};
-class CoordinateAxis::Z : public CoordinateAxis {
-  public: Z() : CoordinateAxis(ZType()) { }
-};
-
-// Predefine constants XAxis, YAxis, ZAxis which implicitly convert to integers 0, 1, 2 respectively.
-static const CoordinateAxis::X XAxis;
-static const CoordinateAxis::Y YAxis;
-static const CoordinateAxis::Z ZAxis;
 
 //-----------------------------------------------------------------------------
 /**
