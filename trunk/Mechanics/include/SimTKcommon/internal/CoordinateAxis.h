@@ -40,7 +40,9 @@
  * -------------------------------------------------------------------------- */
 
 //-----------------------------------------------------------------------------
-#include "Orientation.h" 
+#include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/Constants.h"
+#include "SimTKcommon/internal/Scalar.h"
 
 //-----------------------------------------------------------------------------
 namespace SimTK {
