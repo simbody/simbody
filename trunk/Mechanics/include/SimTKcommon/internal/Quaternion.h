@@ -133,6 +133,7 @@ public:
     /// That is, -180 < a <= 180 and |v|=1. The cost of this operation is
     /// roughly one atan2, one sqrt, and one divide, say about 100 flops.
     SimTK_SimTKCOMMON_EXPORT Vec4 convertToAngleAxis() const;
+	SimTK_SimTKCOMMON_EXPORT Vec4 convertQuaternionToAngleAxis() const  { return convertToAngleAxis(); }
 
     /// Assign the current quaternion to the rotation represented by the 
     /// passed-in (angle,axis) form. The resulting quaternion will be in
