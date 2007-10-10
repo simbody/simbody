@@ -76,18 +76,22 @@ double *afact;
         retval =  Solve(ia, ja, nrhs, rhs_vals);
       } else {
          double rcond = -1.0;
-         double *s,*work;
+         double *s,*work,workSize[2];
          int ispec = 1;
          int info;
          int *iwork,rank,nlvl,smlsiz,lwork,liwork,nosmlsiz;
          const char *name = "DGELSD";
          const char opts = ' ';
          s = new double[n];
+
+/*    TODO JACKM use ilaenv after everyone has moved to new SimTKlapack.h
          smlsiz = ilaenv_( ispec, name, opts, n, n, n, n, 6, 0);
          if( smlsiz < 0 ) {
              printf("ilaenv arg# %d illegal value \n",smlsiz );
              return retval;
          }
+*/
+         smlsiz = 25;
          nosmlsiz = n/(smlsiz+1);
 /* 
 **      increased size of nlvl by adding 1 due to 64bit failures
@@ -96,7 +100,12 @@ double *afact;
          if( nlvl < 0 ) nlvl = 0;
          liwork = 3*n*nlvl + 11*n;
          iwork = new int[liwork];
-         lwork = 12*n + 2*n*smlsiz + 8*n*nlvl + n*nrhs + (smlsiz+1)*(smlsiz+1);
+/* 
+**       compute optimal size of workspace 
+*/
+         dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize, 
+                  -1, iwork, info );
+         lwork = workSize[0];
          work = new double[lwork];
          dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work, 
                   lwork, iwork, info );
