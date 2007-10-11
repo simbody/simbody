@@ -90,7 +90,7 @@ public:
     int getNBodies() const {return (int)bodies.size();}
 
     // return atomId of ith atom in Molecule
-    int getAtom(int i) const {return atoms[i];}
+    DuMM::AtomId getAtom(int i) const {return atoms[i];}
 
     // return bodyNum of ith body; 0 is molecule's base body
     MobilizedBodyId getBody(int i) const {return bodies[i];}
@@ -102,7 +102,7 @@ public:
         return mmSystem->getMolecularMechanicsForceSubsystem();
     }
 protected:
-    std::vector<int>    atoms;
+    std::vector<DuMM::AtomId>    atoms;
     std::vector<MobilizedBodyId> bodies;
     MobilizedBodyId       parent;
     Transform mobilizerFrameOnParent;
@@ -121,9 +121,9 @@ public:
 
         // Create the atoms and bonds. Atom 0 is OW, atoms 1 and 2 are H1 and H2
         //  OW will serve as the base frame for the molecule.
-        atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_OW));
-        atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_HW));
-        atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_HW));
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_OW));
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_HW));
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)CHARGED_ATOM_TYPE_HW));
         mm.addBond(getAtom(0),getAtom(1));
         mm.addBond(getAtom(0),getAtom(2));
         //mm.addBond(getAtom(1),getAtom(2));
@@ -157,7 +157,7 @@ public:
     void setDefaultInternalState(State& s) const { } // none
 
 protected:
-    int tip3p_water; // cluster
+    DuMM::ClusterId tip3p_water; // cluster
 };
 
 
@@ -171,14 +171,14 @@ public:
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
 
         for(int i=0; i<6; i++) {
-            atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_CA_BASE+i));
+            atoms.push_back( mm.addAtom((DuMM::ChargedAtomTypeId)(CHARGED_ATOM_TYPE_CA_BASE+i)) );
         }
         for(int i=0; i<6; i++) {
-            atoms.push_back(mm.addAtom(CHARGED_ATOM_TYPE_HA_BASE+i));
+            atoms.push_back( mm.addAtom((DuMM::ChargedAtomTypeId)(CHARGED_ATOM_TYPE_HA_BASE+i)) );
         }
-        for(int i=0; i<6; i++) {
-            mm.addBond(i,(i+1)%6);
-            mm.addBond(i,i+6);
+        for( int i = 0; i < 6; i++ ) {
+            mm.addBond( (DuMM::AtomId)i, (DuMM::AtomId)((i+1)%6) );
+            mm.addBond( (DuMM::AtomId)i, (DuMM::AtomId)(i+6) );
             //mm.addBond(i,(i+2)%6);  // False bonds -- hack for improper torsions
         }
 
@@ -191,8 +191,8 @@ public:
             a=(2*Pi/6.0)*i;
             x=cos(a);
             y=sin(a);
-            mm.placeAtomInCluster(i, benzene, Vec3(rC*x, rC*y, 0));
-            mm.placeAtomInCluster(i+6, benzene, Vec3(rH*x, rH*y, 0));
+            mm.placeAtomInCluster((DuMM::AtomId)(i), benzene, Vec3(rC*x, rC*y, 0));
+            mm.placeAtomInCluster((DuMM::AtomId)(i+6), benzene, Vec3(rH*x, rH*y, 0));
         }
     }
 
@@ -202,7 +202,7 @@ public:
     Real getNominalCHBondLength() const { return 1.08 * Ang2Nm; }
 
 protected:
-    int benzene; // cluster
+    DuMM::ClusterId benzene; // cluster
 };
 
 
@@ -345,8 +345,8 @@ try
 
     DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
 
-    for (int i=0; i<mm.getNBonds(); ++i) {
-        const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
+    for (DuMM::BondId i = (DuMM::BondId)0; i < (DuMM::BondId)mm.getNBonds(); ++i) {
+        const DuMM::AtomId a1 = mm.getBondAtom(i, 0), a2 = mm.getBondAtom(i, 1);
         const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             artwork.addBodyFixedDecoration(b1, Transform(),
@@ -357,7 +357,7 @@ try
                                       b2, mm.getAtomStationOnBody(a2), crossBodyBond);
     }
 
-    for (int anum=0; anum < mm.getNAtoms(); ++anum) {
+    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)mm.getNAtoms(); ++anum) {
         Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
         Real r = mm.getAtomRadius(anum);
         if (r<.001) r=0.1; //nm

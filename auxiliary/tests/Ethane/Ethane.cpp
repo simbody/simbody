@@ -82,7 +82,7 @@ public:
     int getNBodies() const {return (int)bodies.size();}
 
     // return atomId of ith atom in Molecule
-    int getAtom(int i) const {return atoms[i];}
+    DuMM::AtomId getAtom(int i) const {return atoms[i];}
 
     // return bodyNum of ith body; 0 is molecule's base body
     MobilizedBodyId getBodyId(int i) const {return bodies[i];}
@@ -94,7 +94,7 @@ public:
         return mmSystem.getMolecularMechanicsForceSubsystem();
     }
 protected:
-    std::vector<int>                atoms;
+    std::vector<DuMM::AtomId>                atoms;
     std::vector<MobilizedBodyId>    bodies;
     MobilizedBodyId                 parentId;
     Transform                       mobilizerFrameOnParent;
@@ -168,42 +168,42 @@ public:
     {
         DuMMForceFieldSubsystem& mm = mmSys.updMolecularMechanicsForceSubsystem();
         
-        atoms.push_back(mm.addAtom(1232)); // 0
-        atoms.push_back(mm.addAtom(1233)); // 1
-        atoms.push_back(mm.addAtom(1002)); // 2
-        atoms.push_back(mm.addAtom(1003)); // 3
-        atoms.push_back(mm.addAtom(1004)); // 4
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1232)); // 0
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1233)); // 1
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1002)); // 2
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1003)); // 3
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1004)); // 4
 
         mm.addBond(atoms[0],atoms[1]); mm.addBond(atoms[2],atoms[3]);
         mm.addBond(atoms[2],atoms[4]); mm.addBond(atoms[0],atoms[2]);
 
-        atoms.push_back(mm.addAtom(1096)); // 5
-        atoms.push_back(mm.addAtom(1094)); // 6
-        atoms.push_back(mm.addAtom(1095)); // 7
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1096)); // 5
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1094)); // 6
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1095)); // 7
 
         mm.addBond(atoms[5],atoms[6]); mm.addBond(atoms[6],atoms[7]);
         mm.addBond(atoms[2],atoms[6]);
 
-        atoms.push_back(mm.addAtom(1237)); // 8
-        atoms.push_back(mm.addAtom(1238)); // 9
-        atoms.push_back(mm.addAtom(1010)); //10
-        atoms.push_back(mm.addAtom(1011)); //11
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); // 8
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); // 9
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //10
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //11
         mm.addBond(atoms[8],atoms[9]); mm.addBond(atoms[10],atoms[11]);
         mm.addBond(atoms[8],atoms[10]); 
         mm.addBond(atoms[6],atoms[10]);
 
-        atoms.push_back(mm.addAtom(1237)); //12
-        atoms.push_back(mm.addAtom(1238)); //13
-        atoms.push_back(mm.addAtom(1010)); //14
-        atoms.push_back(mm.addAtom(1011)); //15
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); //12
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); //13
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //14
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //15
         mm.addBond(atoms[12],atoms[13]); mm.addBond(atoms[14],atoms[15]);
         mm.addBond(atoms[12],atoms[14]);
         mm.addBond(atoms[10],atoms[14]);
 
-        atoms.push_back(mm.addAtom(1237)); //16
-        atoms.push_back(mm.addAtom(1238)); //17
-        atoms.push_back(mm.addAtom(1010)); //18
-        atoms.push_back(mm.addAtom(1011)); //19
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1237)); //16
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1238)); //17
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1010)); //18
+        atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)1011)); //19
         mm.addBond(atoms[16],atoms[17]); mm.addBond(atoms[18],atoms[19]);
         mm.addBond(atoms[16],atoms[18]);
         mm.addBond(atoms[14],atoms[18]);
@@ -326,7 +326,7 @@ public:
         
         // Create the atoms and bonds. Atom 0 is O0, atom 1 is O1. O0 will serve
         // as the base frame for the molecule.
-        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom(ShermDoubleBondedOxygen));
+        for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)ShermDoubleBondedOxygen));
         mm.addBond(getO(0),getO(1));
 
         // Define the clusers.
@@ -337,13 +337,13 @@ public:
     }
 
     // Get the atom number for each oxygen.
-    int getO(int i) const {assert(i==0||i==1); return getAtom(i);}
+    DuMM::AtomId getO(int i) const {assert(i==0||i==1); return getAtom(i);}
 
     Real getNominalOOBondLength() const {
         return 1.21 * Ang2Nm;
     }
 protected:
-    int twoOxygens; // cluster
+    DuMM::ClusterId twoOxygens; // cluster
 };
 
 class RigidO2 : public OxygenMolecule {
@@ -431,8 +431,8 @@ public:
                    MolecularMechanicsSystem&);
 
     // find the atoms
-    int getC(int i) const {assert(i==0||i==1); return getAtom(i);}
-    int getH(int whichCarbon, int whichHydrogen) const {
+    DuMM::AtomId getC(int i) const {assert(i==0||i==1); return getAtom(i);}
+    DuMM::AtomId getH(int whichCarbon, int whichHydrogen) const {
         assert(0<=whichCarbon&&whichCarbon<=1);
         assert(0<=whichHydrogen&&whichHydrogen<=2);
         return getAtom(2+whichCarbon*3+whichHydrogen);
@@ -450,8 +450,8 @@ public:
 
 protected:
     // Some pre-built atom clusters.
-    int twoCarbons;
-    int methyl[2];
+    DuMM::ClusterId twoCarbons;
+    DuMM::ClusterId methyl[2];
 };
 
 class OneDofEthane : public EthaneMolecule {
@@ -711,8 +711,8 @@ try
 
     DecorativeLine crossBodyBond; crossBodyBond.setColor(Orange).setLineThickness(5);
 
-    for (int i=0; i<mm.getNBonds(); ++i) {
-        const int    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
+    for (DuMM::BondId i = (DuMM::BondId)0; i < (DuMM::BondId)mm.getNBonds(); ++i) {
+        const DuMM::AtomId    a1 = mm.getBondAtom(i,0), a2 = mm.getBondAtom(i,1);
         const MobilizedBodyId b1 = mm.getAtomBody(a1),  b2 = mm.getAtomBody(a2);
         if (b1==b2)
             artwork.addBodyFixedDecoration(b1, Transform(),
@@ -723,7 +723,7 @@ try
                                       b2, mm.getAtomStationOnBody(a2), crossBodyBond);
     }
 
-    for (int anum=0; anum < mm.getNAtoms(); ++anum) {
+    for (DuMM::AtomId anum = (DuMM::AtomId)0; anum < (DuMM::AtomId)mm.getNAtoms(); ++anum) {
         Real shrink = 0.25, opacity = mm.getAtomElement(anum)==1?0.5:1;
         Real r = mm.getAtomRadius(anum);
         if (r<.001) r=0.1; //nm
@@ -871,12 +871,12 @@ EthaneMolecule::EthaneMolecule(MobilizedBodyId pId, const Transform& parentTrans
         SimbodyMatterSubsystem::updDowncast(mmSys.updMatterSubsystem());
     DuMMForceFieldSubsystem& mm     = mmSys.updMolecularMechanicsForceSubsystem();
 
-   twoCarbons = methyl[0] = methyl[1] = -1;
+    twoCarbons = methyl[0] = methyl[1] = DuMM::InvalidClusterId;
 
     // Create the atoms and bonds. Atom 0 is C0, atom 1 is C1, 2-4 are the
     // hydrogens attached to C0, 5-7 are the hydrogens attached to C1.
-    for (int i=0;i<2;++i) atoms.push_back(mm.addAtom(A99EthaneCarbon));
-    for (int i=0;i<6;++i) atoms.push_back(mm.addAtom(A99EthaneHydrogen));
+    for (int i=0;i<2;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)A99EthaneCarbon));
+    for (int i=0;i<6;++i) atoms.push_back(mm.addAtom((DuMM::ChargedAtomTypeId)A99EthaneHydrogen));
 
     mm.addBond(getC(0),getC(1));
     for (int c=0; c<2; ++c)
@@ -979,7 +979,7 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularM
 
     MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
-    const int wholeEthaneCluster = mm.createCluster("rigid ethane");
+    const DuMM::ClusterId wholeEthaneCluster = mm.createCluster("rigid ethane");
 
     // If we choose to treat the entire ethane molecule as a rigid body, we'll align 
     // the 1st methyl group's reference frame with the body frame, and transform the
