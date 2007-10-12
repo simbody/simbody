@@ -15,7 +15,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -37,8 +37,7 @@
  * -------------------------------------------------------------------------- */
 
 /**@file
- * Implementations of non-inline methods of classes dealing
- * with orientation.
+ * Implementations of non-inline methods of classes dealing with Transforms.
  */
 
 #include "SimTKcommon/basics.h"
