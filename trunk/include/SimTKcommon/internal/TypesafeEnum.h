@@ -445,11 +445,11 @@ template <class T>
 class EnumSet<T>::iterator {
 public:
     TypesafeEnum<T> operator*() {
-        assert (index >= 0 && index < TypesafeEnum<T>::getAllValues().size());
+        assert( index >= 0 && index < (int)(TypesafeEnum<T>::getAllValues().size()) );
         return TypesafeEnum<T>::getAllValues()[index];
     }
     iterator operator++() {
-        assert (index < TypesafeEnum<T>::getAllValues().size());
+        assert( index < (int)(TypesafeEnum<T>::getAllValues().size()) );
         ++index;
         findNextElement();
         return *this;
@@ -472,7 +472,7 @@ private:
         findNextElement();
     }
     void findNextElement() {
-        while (index < TypesafeEnum<T>::getAllValues().size() && !set->contains(TypesafeEnum<T>::getAllValues()[index]))
+        while( index < (int)(TypesafeEnum<T>::getAllValues().size()) && !set->contains(TypesafeEnum<T>::getAllValues()[index]))
             ++index;
     }
     int index;
