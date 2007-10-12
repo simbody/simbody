@@ -50,40 +50,115 @@ public:
 private:
     Color() : TypesafeEnum<Color>() {
     }
+    Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
+    }
+    static void initValues() {
+        new(&const_cast<Color&>(Red)) Color(0, "Red");
+        new(&const_cast<Color&>(Green)) Color(1, "Green");
+        new(&const_cast<Color&>(Blue)) Color(2, "Blue");
+    }
+    friend class TypesafeEnum<Color>;
 };
+
+Color acolor = Color::Green; // Verify that accessing a constant that has not yet been initialized works correctly.
 
 const Color Color::Red;
 const Color Color::Green;
 const Color Color::Blue;
 
+void verifyContents(EnumSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen) {
+    ASSERT(set.contains(Color::Red) == hasRed);
+    ASSERT(set.contains(Color::Blue) == hasBlue);
+    ASSERT(set.contains(Color::Green) == hasGreen);
+    int size = 0;
+    if (hasRed)
+        size++;
+    if (hasBlue)
+        size++;
+    if (hasGreen)
+        size++;
+    ASSERT(set.size() == size);
+    bool redFound = false, blueFound = false, greenFound = false;
+    for (EnumSet<Color>::iterator iter = set.begin(); iter != set.end(); ++iter) {
+        if (*iter == Color::Red) {
+            ASSERT(!redFound);
+            redFound = true;
+        }
+        if (*iter == Color::Blue) {
+            ASSERT(!blueFound);
+            blueFound = true;
+        }
+        if (*iter == Color::Green) {
+            ASSERT(!greenFound);
+            greenFound = true;
+        }
+    }
+    ASSERT(redFound == hasRed);
+    ASSERT(blueFound == hasBlue);
+    ASSERT(greenFound == hasGreen);
+}
+
 int main() {
     try {
-        const vector<TypesafeEnum<Color> > values = Color::getAllValues();
-        assert(values.size() == 3);
-        assert(values[Color::Red.getIndex()] == Color::Red);
+        // Test the getAllValues() method.
+        
+        ASSERT(Color::getAllValues().size() == 3);
+        ASSERT(Color::getAllValues()[Color::Red.getIndex()] == Color::Red);
+        ASSERT(Color::getAllValues()[Color::Green.getIndex()] == Color::Green);
+        ASSERT(Color::getAllValues()[Color::Blue.getIndex()] == Color::Blue);
+
+        // Verify that acolor got assigned correctly.
+        
+        ASSERT(acolor == Color::Green);
+        ASSERT(acolor != Color::Red);
+
+        // Test creating EnumSets.
+        
         EnumSet<Color> set1;
-        assert(set1.size() == 0);
+        verifyContents(set1, false, false, false);
         set1 += Color::Red;
         set1 += Color::Blue;
-        assert(set1.size() == 2);
-        assert(set1.contains(Color::Red));
-        assert(set1.contains(Color::Blue));
-        assert(!set1.contains(Color::Green));
+        verifyContents(set1, true, true, false);
         EnumSet<Color> set2;
-        assert(set2.size() == 0);
+        verifyContents(set2, false, false, false);
         set2 += Color::Blue;
-        assert(set2.size() == 1);
-        assert(!set2.contains(Color::Red));
-        assert(set2.contains(Color::Blue));
-        assert(!set2.contains(Color::Green));
-        assert(set1.containsAll(set2));
-        assert(!set2.containsAll(set1));
-        assert(set1.containsAny(set2));
-        assert(set2.containsAny(set1));
-        assert(set1 != set2);
+        verifyContents(set2, false, true, false);
+        
+        // Test containsAll() and containsAny().
+        
+        ASSERT(set1.containsAll(set2));
+        ASSERT(!set2.containsAll(set1));
+        ASSERT(set1.containsAny(set2));
+        ASSERT(set2.containsAny(set1));
+        
+        // Test comparisons of set equality.
+        
+        ASSERT(set1 != set2);
         set1 -= Color::Red;
-        assert(set1.size() == 1);
-        assert(set1 == set2);
+        ASSERT(set1.size() == 1);
+        ASSERT(set1 == set2);
+        
+        // Now build two sets we can use for testing lots of operators.
+        
+        set1.clear();
+        set2.clear();
+        verifyContents(set1, false, false, false);
+        verifyContents(set2, false, false, false);
+        set1 += Color::Red;
+        set1 += Color::Blue;
+        set2 += Color::Blue;
+        set2 += Color::Green;
+        
+        // Test operators.
+        
+        verifyContents(set1+set2, true, true, true);
+        verifyContents(set1|set2, true, true, true);
+        verifyContents(set1-set2, true, false, false);
+        verifyContents(set2-set1, false, false, true);
+        verifyContents(set1&set2, false, true, false);
+        verifyContents(set1^set2, true, false, true);
+        verifyContents(~set1, false, false, true);
+        verifyContents(~set2, true, false, false);
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;
