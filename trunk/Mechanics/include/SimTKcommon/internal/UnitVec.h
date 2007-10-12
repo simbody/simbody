@@ -17,7 +17,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -71,21 +71,16 @@ public:
     UnitVec() : BaseVec(NaN) { }
 
     // Copy constructor.
-    UnitVec(const UnitVec& u) 
-      : BaseVec(static_cast<const BaseVec&>(u)) { }
+    UnitVec(const UnitVec& u) : BaseVec( static_cast<const BaseVec&>(u) )  {}
 
     // Automatic conversion from UnitVec with different stride.
-    template <int S2> UnitVec(const UnitVec<S2>& u)
-        : BaseVec(static_cast<const typename UnitVec<S2>::BaseVec&>(u)) { }
+    template <int S2> UnitVec(const UnitVec<S2>& u) : BaseVec( static_cast<const typename UnitVec<S2>::BaseVec&>(u) )  {}
 
     // Explicit conversion from Vec to UnitVec, requiring expensive normalization.
-    explicit UnitVec(const BaseVec& v) : BaseVec(v/v.norm()) { }
-    template <int S2> explicit UnitVec(const Vec<3,Real,S2>& v)
-        : BaseVec(v/v.norm()) { }
+    explicit UnitVec(const BaseVec& v) : BaseVec(v/v.norm()) {}
+    template <int S2> explicit UnitVec(const Vec<3,Real,S2>& v) : BaseVec( v/v.norm() )  {}
 
-    UnitVec(const Real& x, const Real& y, const Real& z) : BaseVec(x,y,z) {
-        static_cast<BaseVec&>(*this) /= BaseVec::norm();
-    }
+    UnitVec(const Real& x, const Real& y, const Real& z) : BaseVec(x,y,z)  { static_cast<BaseVec&>(*this) /= BaseVec::norm(); }
 
     // Create a unit axis vector 100 010 001
     explicit UnitVec(int axis) : BaseVec(0) {
