@@ -518,7 +518,7 @@ public:
 
     // Add decorative geometry specified relative to the new (outboard) body's reference
     // frame B, or to the outboard mobilizer frame M attached to body B, or
-    // to the inboard mobilizer frame Mb attached to the parent body P. Note that
+    // to the inboard mobilizer frame F attached to the parent body P. Note that
     // the body itself may already have had some decorative geometry on it when
     // it was first put into this MobilizedBody; in that case this just adds more.
     MobilizedBody& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
@@ -526,7 +526,7 @@ public:
         return *this;
     }
     MobilizedBody& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry&);
-    MobilizedBody& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry&);
+    MobilizedBody& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry&);
 
     // Topology stage (i.e., construction).
     // Calling these means you are (re)constructing the system and will have to do
@@ -544,9 +544,9 @@ public:
         return getBody().getDefaultRigidBodyMassProperties(); // every body type can do this
     }
 
-    MobilizedBody& setDefaultInboardFrame (const Transform& X_PMb);
+    MobilizedBody& setDefaultInboardFrame (const Transform& X_PF);
     MobilizedBody& setDefaultOutboardFrame(const Transform& X_BM);
-    const Transform& getDefaultInboardFrame()  const; // X_PMb
+    const Transform& getDefaultInboardFrame()  const; // X_PF
     const Transform& getDefaultOutboardFrame() const; // X_BM
 
         // Utilities //
@@ -630,17 +630,17 @@ public:
     // rotation for a sliding mobilizer. Nothing happens if
     // there are no mobilities here, i.e. Ground or a Weld mobilizer.
 
-    void setQToFitTransform      (State&, const Transform& X_MbM) const;
-    void setQToFitRotation       (State&, const Rotation&  R_MbM) const;
-    void setQToFitTranslation    (State&, const Vec3&      r_MbM) const;
-    void setQToFitTranslationOnly(State&, const Vec3&      r_MbM) const;
+    void setQToFitTransform      (State&, const Transform& X_FM) const;
+    void setQToFitRotation       (State&, const Rotation&  R_FM) const;
+    void setQToFitTranslation    (State&, const Vec3&      r_FM) const;
+    void setQToFitTranslationOnly(State&, const Vec3&      r_FM) const;
 
     // Routines which affect generalized speeds u depend on the generalized
     // coordinates q already having been set; they never change coordinates.
-    void setUToFitVelocity          (State&, const SpatialVec& V_MbM) const;
-    void setUToFitAngularVelocity   (State&, const Vec3&       w_MbM) const;
-    void setUToFitLinearVelocity    (State&, const Vec3&       v_MbM) const;
-    void setUToFitLinearVelocityOnly(State&, const Vec3&       v_MbM) const;
+    void setUToFitVelocity          (State&, const SpatialVec& V_FM) const;
+    void setUToFitAngularVelocity   (State&, const Vec3&       w_FM) const;
+    void setUToFitLinearVelocity    (State&, const Vec3&       v_FM) const;
+    void setUToFitLinearVelocityOnly(State&, const Vec3&       v_FM) const;
 
 
         // INSTANCE STAGE responses //
@@ -666,14 +666,14 @@ public:
         return getBodyMassProperties(s).getInertia();
     }
 
-    const Transform& getInboardFrame (const State&) const;  // X_PMb
+    const Transform& getInboardFrame (const State&) const;  // X_PF
     const Transform& getOutboardFrame(const State&) const;  // X_BM
 
         // INSTANCE STAGE solvers //
 
     // Calling these reduces stage to Stage::Model.
-    void setInboardFrame (State&, const Transform& X_PMb) const;
-    void setOutboardFrame(State&, const Transform& X_BM ) const;
+    void setInboardFrame (State&, const Transform& X_PF) const;
+    void setOutboardFrame(State&, const Transform& X_BM) const;
 
         // POSITION STAGE responses //
 
@@ -699,9 +699,9 @@ public:
     }
 
     /// At stage Position or higher, return the cross-mobilizer transform.
-    /// This is X_MbM, the body's inboard mobilizer frame M measured and expressed in
-    /// the parent body's corresponding outboard frame Mb.
-    const Transform& getMobilizerTransform(const State&) const; // X_MbM
+    /// This is X_FM, the body's inboard mobilizer frame M measured and expressed in
+    /// the parent body's corresponding outboard frame F.
+    const Transform& getMobilizerTransform(const State&) const; // X_FM
 
 
         // VELOCITY STAGE responses //
@@ -914,11 +914,11 @@ public:
     }
 
     /// At stage Velocity or higher, return the cross-mobilizer velocity.
-    /// This is V_MbM, the relative velocity of the body's inboard mobilizer
-    /// frame M in the parent body's corresponding outboard frame Mb, 
-    /// measured and expressed in Mb. Note that this isn't the usual 
+    /// This is V_FM, the relative velocity of the body's inboard mobilizer
+    /// frame M in the parent body's corresponding outboard frame F, 
+    /// measured and expressed in F. Note that this isn't the usual 
     /// spatial velocity since it isn't expressed in G.
-    const SpatialVec& getMobilizerVelocity(const State&) const; // V_MbM
+    const SpatialVec& getMobilizerVelocity(const State&) const; // V_FM
 
         // ACCELERATION STAGE responses //
 
@@ -1030,10 +1030,10 @@ public:
       { (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this; }
     Pin& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g)
       { (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this; }
-    Pin& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g)
-      { (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this; }
-    Pin& setDefaultInboardFrame(const Transform& X_PMb)
-      { (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this; }
+    Pin& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this; }
+    Pin& setDefaultInboardFrame(const Transform& X_PF)
+      { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Pin& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
 
@@ -1103,10 +1103,10 @@ public:
       { (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this; }
     Slider& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g)
       { (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this; }
-    Slider& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g)
-      { (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this; }
-    Slider& setDefaultInboardFrame(const Transform& X_PMb)
-      { (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this; }
+    Slider& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g)
+      { (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this; }
+    Slider& setDefaultInboardFrame(const Transform& X_PF)
+      { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Slider& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
 
@@ -1142,12 +1142,12 @@ public:
     Screw& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Screw& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Screw& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Screw& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Screw& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Screw& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1205,12 +1205,12 @@ public:
     Universal& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Universal& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Universal& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Universal& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Universal& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Universal& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1246,12 +1246,12 @@ public:
     Cylinder& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Cylinder& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Cylinder& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Cylinder& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Cylinder& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Cylinder& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1266,10 +1266,10 @@ private:
     const CylinderRep& getRep() const;
 };
 
-/// Two mobilities: The z axis of the parent's Mb frame is 
+/// Two mobilities: The z axis of the parent's F frame is 
 /// used for rotation (and that is always aligned with the M frame z axis).
 /// The x axis of the *M* (outboard) frame is then used for translation;
-/// that is, first we rotate around z, which moves M's x with respect to Mb's x. Then
+/// that is, first we rotate around z, which moves M's x with respect to F's x. Then
 /// we slide along the rotated x axis. The two generalized coordinates are the
 /// rotation and the translation, in that order.
 class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public MobilizedBody {
@@ -1291,12 +1291,12 @@ public:
     BendStretch& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    BendStretch& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    BendStretch& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    BendStretch& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    BendStretch& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     BendStretch& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1312,8 +1312,8 @@ private:
 };
 
 /// Three mobilities -- z rotation and x,y translation. The generalized
-/// coordinates are rotation about the shared z axis of the Mb and M
-/// frame, translation along the Mb frame's x axis, and translation along
+/// coordinates are rotation about the shared z axis of the F and M
+/// frame, translation along the F frame's x axis, and translation along
 /// its y axis, in that order.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public MobilizedBody {
 public:
@@ -1334,12 +1334,12 @@ public:
     Planar& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Planar& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Planar& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Planar& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Planar& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Planar& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1414,12 +1414,12 @@ public:
     Gimbal& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Gimbal& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Gimbal& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Gimbal& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Gimbal& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Gimbal& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1457,12 +1457,12 @@ public:
     Ball& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Ball& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Ball& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Ball& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Ball& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Ball& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1470,8 +1470,8 @@ public:
     }
 
     // This is just a nicer name for the generalized coordinate.
-    Ball& setDefaultRotation(const Rotation& R_MbM) {
-        return setDefaultQ(R_MbM.convertToQuaternion());
+    Ball& setDefaultRotation(const Rotation& R_FM) {
+        return setDefaultQ(R_FM.convertToQuaternion());
     }
     Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
 
@@ -1512,8 +1512,8 @@ private:
 /// joint, that is, a quaternion or 1-2-3 Euler sequence.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public MobilizedBody {
 public:
-    // The ellipsoid is placed on the mobilizer's inboard frame Mb, with
-    // half-axis dimensions along Mb's x,y,z respectively.
+    // The ellipsoid is placed on the mobilizer's inboard frame F, with
+    // half-axis dimensions along F's x,y,z respectively.
     Ellipsoid(); // not very useful until radii are set, but has some defaults
     explicit Ellipsoid(const Vec3& radii);
     Ellipsoid(Real a, Real b, Real c);
@@ -1533,12 +1533,12 @@ public:
     Ellipsoid& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Ellipsoid& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Ellipsoid& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Ellipsoid& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Ellipsoid& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Ellipsoid& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1546,8 +1546,8 @@ public:
     }
 
     // This is just a nicer name for the generalized coordinate.
-    Ellipsoid& setDefaultRotation(const Rotation& R_MbM) {
-        return setDefaultQ(R_MbM.convertToQuaternion());
+    Ellipsoid& setDefaultRotation(const Rotation& R_FM) {
+        return setDefaultQ(R_FM.convertToQuaternion());
     }
     Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
 
@@ -1568,7 +1568,7 @@ private:
 };
 
 /// Three translational mobilities. The generalized coordinates are
-/// x,y,z translations along the parent (inboard) Mb frame axes.
+/// x,y,z translations along the parent (inboard) F frame axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public MobilizedBody {
 public:
     Translation();
@@ -1588,12 +1588,12 @@ public:
     Translation& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Translation& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Translation& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Translation& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Translation& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Translation& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1601,12 +1601,12 @@ public:
     }
 
     // This is just a nicer name for setting this mobilizer's generalized coordinates,
-    // which together constitute the vector from the Mb frame's origin to the M
-    // frame's origin, expressed in Mb.
+    // which together constitute the vector from the F frame's origin to the M
+    // frame's origin, expressed in F.
 
     // Set the topological default values for the initial q's.
-    Translation& setDefaultTranslation(const Vec3& p_MbM) {
-        return setDefaultQ(p_MbM);
+    Translation& setDefaultTranslation(const Vec3& p_FM) {
+        return setDefaultQ(p_FM);
     }
 
     // Get the topological default values for the initial q's.
@@ -1616,8 +1616,8 @@ public:
 
     // Set the current value of q's in the given State. Note that this is
     // the *cross-mobilizer* translation, not location in the Ground frame.
-    void setMobilizerTranslation(State& s, const Vec3& p_MbM) const {
-        setQ(s,p_MbM);
+    void setMobilizerTranslation(State& s, const Vec3& p_FM) const {
+        setQ(s,p_FM);
     }
 
     // Get the current value of the q's for this mobilizer from the given State.
@@ -1627,9 +1627,9 @@ public:
 
 
     // Set the current value of u's in the given State. Note that this is
-    // the *cross-mobilizer* velocity v_MbM, not velocity in the Ground frame.
-    void setMobilizerVelocity(State& s, const Vec3& v_MbM) const {
-        setU(s,v_MbM);
+    // the *cross-mobilizer* velocity v_FM, not velocity in the Ground frame.
+    void setMobilizerVelocity(State& s, const Vec3& v_FM) const {
+        setU(s,v_FM);
     }
 
     // Get the current value of the u's for this mobilizer from the given State.
@@ -1674,7 +1674,7 @@ private:
 /// quaternions to avoid singularities. A modeling option exists to 
 /// have the joint modeled with a 1-2-3 body fixed Euler sequence like
 /// a Gimbal mobilizer. Translational generalized coordinates are
-/// x,y,z translations along the Mb (inboard) axes.
+/// x,y,z translations along the F (inboard) axes.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
 public:
     Free();
@@ -1694,12 +1694,12 @@ public:
     Free& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Free& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Free& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Free& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Free& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Free& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1778,9 +1778,9 @@ private:
 // LineOrientation and LineFree moblizers, making sure that the inertialess direction is
 // along the outboard body's z axis (that is, Mz). These mobilizers introduce only two
 // mobilities (generalized speeds u), being incapable of representing non-zero angular
-// velocity of M in Mb about Mz. The generalized speeds are in fact the wx and wy 
-// components of w_MbM_M, that is, the x and y components of the angular velocity of M
-// in Mb *expressed in M*. However, at least three generalized coordinates (q's)
+// velocity of M in F about Mz. The generalized speeds are in fact the wx and wy 
+// components of w_FM_M, that is, the x and y components of the angular velocity of M
+// in F *expressed in M*. However, at least three generalized coordinates (q's)
 // are required to represent the orientation. By default we use four quaternions for
 // unconditional stability. Alternatively, you can request a 1-2-3 body fixed 
 // Euler angle sequence (that is, about x, then new y, then new z) which will
@@ -1791,7 +1791,7 @@ private:
 /// inertialess along its own z axis. The generalized coordinates are the same
 /// as for the general Orientation (Ball) mobilizer, but there are only
 /// two generalized speeds. These are the x,y components of the angular velocity
-/// of frame M in Mb, but expressed in the *M* (outboard frame).
+/// of frame M in F, but expressed in the *M* (outboard frame).
 class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public MobilizedBody {
 public:
     LineOrientation();
@@ -1812,12 +1812,12 @@ public:
     LineOrientation& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    LineOrientation& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    LineOrientation& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    LineOrientation& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    LineOrientation& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1855,12 +1855,12 @@ public:
     FreeLine& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    FreeLine& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    FreeLine& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    FreeLine& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    FreeLine& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     FreeLine& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1876,7 +1876,7 @@ private:
 };
 
 /// Zero mobilities. This degenerate "mobilizer" serves only to weld together
-/// the M frame of a body to the Mb frame on its parent.
+/// the M frame of a body to the F frame on its parent.
 /// TODO: not implemented yet.
 class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public MobilizedBody {
 public:
@@ -1898,12 +1898,12 @@ public:
     Weld& addOutboardDecoration(const Transform& X_MD,  const DecorativeGeometry& g) {
         (void)MobilizedBody::addOutboardDecoration(X_MD,g); return *this;
     }
-    Weld& addInboardDecoration (const Transform& X_MbD, const DecorativeGeometry& g) {
-        (void)MobilizedBody::addInboardDecoration(X_MbD,g); return *this;
+    Weld& addInboardDecoration (const Transform& X_FD, const DecorativeGeometry& g) {
+        (void)MobilizedBody::addInboardDecoration(X_FD,g); return *this;
     }
 
-    Weld& setDefaultInboardFrame(const Transform& X_PMb) {
-        (void)MobilizedBody::setDefaultInboardFrame(X_PMb); return *this;
+    Weld& setDefaultInboardFrame(const Transform& X_PF) {
+        (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this;
     }
 
     Weld& setDefaultOutboardFrame(const Transform& X_BM) {
@@ -1947,13 +1947,13 @@ public:
 
     // Get calculations through Stage::Instance from State.
     virtual void calcTransform(const State&, const Vector& q, 
-                               Transform& X_MbM) const = 0;
+                               Transform& X_FM) const = 0;
     //TODO: should H be a nuX2 Matrix_<Vec3> instead? or Vector_<SpatialVec>?
     //      or nuX6 Matrix?
     virtual void calcTransitionMatrix(const State& s, 
-                               Vector_<SpatialRow>& H_MbM) const = 0;
+                               Vector_<SpatialRow>& H_FM) const = 0;
     virtual void calcTransitionMatrixTimeDerivative(const State& s,  
-                               Vector_<SpatialRow>& H_MbM_Dot) const = 0;
+                               Vector_<SpatialRow>& H_FM_Dot) const = 0;
 
     // get q and calculations through Stage::Position from State if needed
     virtual void calcQDot(const State&, const Vector& u, Vector& qdot) const {

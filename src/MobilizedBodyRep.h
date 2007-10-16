@@ -101,9 +101,9 @@ public:
             appendTopologicalBodyGeometry(geom);
         } else if (stage == Stage::Instance) {
             const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
-            const Transform& X_PMb = getInboardFrame(s);
+            const Transform& X_PF = getInboardFrame(s);
             const Transform& X_BM  = getOutboardFrame(s);
-            appendTopologicalMobilizerGeometry(X_BM, X_PMb, geom);
+            appendTopologicalMobilizerGeometry(X_BM, X_PF, geom);
         }
 
         // Let the individual mobilizer deal with any complicated stuff.
@@ -116,11 +116,11 @@ public:
         // so we end up with geometry expressed directly in the M frame.
         outboardGeometry.back().setTransform(X_MD*g.getTransform());
     }
-    void addInboardDecoration(const Transform& X_MbD, const DecorativeGeometry& g) {
+    void addInboardDecoration(const Transform& X_FD, const DecorativeGeometry& g) {
         inboardGeometry.push_back(g); // make a new copy
         // Combine the placement frame and the transform already in the geometry
-        // so we end up with geometry expressed directly in the Mb frame.
-        inboardGeometry.back().setTransform(X_MbD*g.getTransform());
+        // so we end up with geometry expressed directly in the F frame.
+        inboardGeometry.back().setTransform(X_FD*g.getTransform());
     }
 
 
@@ -142,15 +142,15 @@ public:
 
 
     // Invalidate Stage::Position.
-    void setQToFitTransform(State& s, const Transform& X_MbM) const;
-    void setQToFitRotation(State& s, const Rotation& R_MbM) const;
-    void setQToFitTranslation(State& s, const Vec3& T_MbM, 
+    void setQToFitTransform(State& s, const Transform& X_FM) const;
+    void setQToFitRotation(State& s, const Rotation& R_FM) const;
+    void setQToFitTranslation(State& s, const Vec3& T_FM, 
                                  bool dontChangeOrientation) const;
 
     // Invalidate Stage::Velocity.
-    void setUToFitVelocity(State& s, const SpatialVec& V_MbM) const;
-    void setUToFitAngularVelocity(State& s, const Vec3& w_MbM) const;
-    void setUToFitLinearVelocity(State& s, const Vec3& v_MbM,
+    void setUToFitVelocity(State& s, const SpatialVec& V_FM) const;
+    void setUToFitAngularVelocity(State& s, const Vec3& w_FM) const;
+    void setUToFitLinearVelocity(State& s, const Vec3& v_FM,
                                  bool dontChangeAngularVelocity)  const;
 
     const MassProperties& getBodyMassProperties(const State& s) const {
@@ -162,7 +162,7 @@ public:
     const Transform& getInboardFrame (const State& s) const {
         // TODO: these should come from the state if the mobilizer has variable frames
         const SBInstanceVars& iv = getMyMatterSubsystemRep().getInstanceVars(s);
-        return getMyRigidBodyNode().getX_PMb();
+        return getMyRigidBodyNode().getX_PF();
     }
     const Transform& getOutboardFrame(const State& s) const {
         // TODO: these should come from the state if the mobilizer has variable frames
@@ -170,7 +170,7 @@ public:
         return getMyRigidBodyNode().getX_BM();
     }
 
-    void setInboardFrame (State& s, const Transform& X_PMb) const {
+    void setInboardFrame (State& s, const Transform& X_PF) const {
         assert(!"setInboardFrame(s) not implemented yet");
     }
     void setOutboardFrame(State& s, const Transform& X_BM) const {
@@ -192,11 +192,11 @@ public:
 
     const Transform& getMobilizerTransform(const State& s) const {
         const SBPositionCache& pc = getMyMatterSubsystemRep().getPositionCache(s);
-        return getMyRigidBodyNode().getX_MbM(pc);
+        return getMyRigidBodyNode().getX_FM(pc);
     }
     const SpatialVec& getMobilizerVelocity(const State& s) const {
         const SBVelocityCache& vc = getMyMatterSubsystemRep().getVelocityCache(s);
-        return getMyRigidBodyNode().getV_MbM(vc);
+        return getMyRigidBodyNode().getV_FM(vc);
     }
 
     const RigidBodyNode& realizeTopology(int& nxtU, int& nxtUSq, int& nxtQ) const;
@@ -269,11 +269,11 @@ private:
     }
 
     // Mobilizer topological geometry is defined with respect to the M (outboard, child)
-    // frame and the Mb (inboard, parent) frame. The placement of those frames with
+    // frame and the F (inboard, parent) frame. The placement of those frames with
     // respect to the body frame can be Instance variables, so we can't draw this geometry
-    // until Instance stage. At that point we can find M and Mb, so they are passed in
+    // until Instance stage. At that point we can find M and F, so they are passed in
     // here.
-    void appendTopologicalMobilizerGeometry(const Transform& X_BM, const Transform& X_PMb,
+    void appendTopologicalMobilizerGeometry(const Transform& X_BM, const Transform& X_PF,
                                             Array<DecorativeGeometry>& geom) const
     {
         for (int i=0; i<(int)outboardGeometry.size(); ++i) {
@@ -284,7 +284,7 @@ private:
         for (int i=0; i<(int)inboardGeometry.size(); ++i) {
             geom.push_back(inboardGeometry[i]);
             geom.back().setBodyId(getMyParentMobilizedBodyId())
-                       .setTransform(X_PMb*inboardGeometry[i].getTransform());
+                       .setTransform(X_PF*inboardGeometry[i].getTransform());
         }
     }
 
@@ -298,7 +298,7 @@ private:
     // have further topological properties. Whenever these change, be
     // sure to set topologyRealized=false!
     Body theBody;
-    Transform defaultInboardFrame;  // default for Mb (in Parent frame)
+    Transform defaultInboardFrame;  // default for F (in Parent frame)
     Transform defaultOutboardFrame; // default for M (in Body frame)
 
     std::vector<DecorativeGeometry> outboardGeometry;

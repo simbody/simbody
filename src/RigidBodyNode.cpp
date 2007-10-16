@@ -35,7 +35,10 @@
 
 /**@file
  * This file contains all the multibody mechanics code that involves a single body and
- * its mobilizer (inboard joint), that is, one node in the multibody tree.
+ * its mobilizer (inboard joint), that is, one node in the multibody tree. These methods
+ * constitute the inner loops of the multibody calculations, and much suffering is
+ * undergone here to make them run fast. In particular most calculations are templatized
+ * by the number of mobilities, so that compile-time sizes are known for everything.
  *
  * Most methods here expect to be called in a particular order during traversal of the
  * tree -- either base to tip or tip to base.
@@ -172,17 +175,6 @@ RigidBodyNode::calcJointIndependentDynamicsVel(
 
 }
 
-void RigidBodyNode::nodeDump(std::ostream& o) const {
-    o << "NODE DUMP level=" << level << " type=" << type() << std::endl;
-    nodeSpecDump(o);
-    o << "END OF NODE type=" << type() << std::endl;
-}
-
-std::ostream& operator<<(std::ostream& o, const RigidBodyNode& node) {
-    node.nodeDump(o);
-    return o;
-}
-
 
 ////////////////////////////////////////////////
 // Define classes derived from RigidBodyNode. //
@@ -208,13 +200,18 @@ public:
     /*virtual*/int  getNQ(const SBModelVars&) const {return 0;}
     /*virtual*/bool isUsingQuaternion(const SBModelVars&) const {return false;}
 
-
     /*virtual*/void calcZ(
+        const SBStateDigest&,
+        const SBDynamicsCache&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces) const {} 
+
+    /*virtual* void calcZ(
         const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache&) const {} 
+        SBAccelerationCache&) const {} */
 
     /*virtual*/void calcYOutward(
         const SBPositionCache& pc,
@@ -262,19 +259,19 @@ public:
         SBDynamicsCache&       dc) const {}
 
     /*virtual*/ void setQToFitTransform
-       (const SBModelVars&, const Transform& X_MbM, Vector& q) const {}
+       (const SBModelVars&, const Transform& X_FM, Vector& q) const {}
     /*virtual*/ void setQToFitRotation
-       (const SBModelVars&, const Rotation& R_MbM, Vector& q) const {}
+       (const SBModelVars&, const Rotation& R_FM, Vector& q) const {}
     /*virtual*/ void setQToFitTranslation
-       (const SBModelVars&, const Vec3& T_MbM, Vector& q,
+       (const SBModelVars&, const Vec3& T_FM, Vector& q,
         bool dontChangeOrientation) const {}
 
     /*virtual*/ void setUToFitVelocity
-       (const SBModelVars&, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {}
+       (const SBModelVars&, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
     /*virtual*/ void setUToFitAngularVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {}
+       (const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {}
     /*virtual*/ void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u,
+       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u,
         bool dontChangeAngularVelocity) const {}
 
 
@@ -379,12 +376,12 @@ template<int dof>
 class RigidBodyNodeSpec : public RigidBodyNode {
 public:
     RigidBodyNodeSpec(const MassProperties& mProps_B,
-                      const Transform&      X_PMb,
+                      const Transform&      X_PF,
                       const Transform&      X_BM,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNode(mProps_B, X_PMb, X_BM)
+      : RigidBodyNode(mProps_B, X_PF, X_BM)
     {
         // don't call any virtual methods in here!
         uIndex   = nextUSlot;
@@ -415,14 +412,14 @@ public:
     // *Each* mobilizer must implement setQToFit{Rotation,Translation} and 
     // setUToFit{AngularVelocity,LinearVelocity}; there are no defaults.
 
-    virtual void setQToFitTransform(const SBModelVars& mv, const Transform& X_MbM, Vector& q) const {
-        setQToFitRotation   (mv,X_MbM.R(),q);
-        setQToFitTranslation(mv,X_MbM.T(),q,true); // don't fiddle with the rotation
+    virtual void setQToFitTransform(const SBModelVars& mv, const Transform& X_FM, Vector& q) const {
+        setQToFitRotation   (mv,X_FM.R(),q);
+        setQToFitTranslation(mv,X_FM.T(),q,true); // don't fiddle with the rotation
     }
 
-    virtual void setUToFitVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_MbM, Vector& u) const {
-        setUToFitAngularVelocity(mv,q,V_MbM[0],u);
-        setUToFitLinearVelocity (mv,q,V_MbM[1],u,true); // don't fiddle with the angular velocity
+    virtual void setUToFitVelocity(const SBModelVars& mv, const Vector& q, const SpatialVec& V_FM, Vector& u) const {
+        setUToFitAngularVelocity(mv,q,V_FM[0],u);
+        setUToFitLinearVelocity (mv,q,V_FM[1],u,true); // don't fiddle with the angular velocity
     }
 
     // The following routines calculate joint-specific position kinematic
@@ -432,17 +429,17 @@ public:
     // previous routines have been called, in the order below.
     // The routines are structured as operators -- they use the State but
     // do not change anything in it, including the cache. Instead they are
-    // passed argument to write their results into. In practice, these
+    // passed arguments to write their results into. In practice, these
     // arguments will typically be in the State cache (see below).
 
-    /// This mandatory routine performs expensive floating point operations sin,cos,sqrt
-    /// in one place so we don't end up repeating them. sin&cos are used only
-    /// for mobilizers which have angular coordinates, and qErr and qnorm are only for
-    /// mobilizers using quaternions. Other mobilizers can provide a null routine.
-    /// Each of the passed-in Vectors is a "q-like" object, that is, allocated
-    /// to the bodies in a manner parallel to the q state variable, except that qErr
-    /// has just one slot per quaternion and must be accessed using the node's 
-    /// quaternionIndex which is in the Model cache.
+    // This mandatory routine performs expensive floating point operations sin,cos,sqrt
+    // in one place so we don't end up repeating them. sin&cos are used only
+    // for mobilizers which have angular coordinates, and qErr and qnorm are only for
+    // mobilizers using quaternions. Other mobilizers can provide a null routine.
+    // Each of the passed-in Vectors is a "q-like" object, that is, allocated
+    // to the bodies in a manner parallel to the q state variable, except that qErr
+    // has just one slot per quaternion and must be accessed using the node's 
+    // quaternionIndex which is in the Model cache.
     virtual void calcJointSinCosQNorm(
         const SBModelVars&  mv, 
         const SBModelCache& mc,
@@ -452,56 +449,56 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const=0;
 
-    /// This mandatory routine calculates the across-joint transform X_MbM generated
-    /// by the current q values. This may depend on sines & cosines or normalized
-    /// quaternions already being available in the State cache.
-    /// This method constitutes the *definition* of the generalized coordinates for
-    /// a particular joint.
+    // This mandatory routine calculates the across-joint transform X_FM generated
+    // by the current q values. This may depend on sines & cosines or normalized
+    // quaternions already being available in the State cache.
+    // This method constitutes the *definition* of the generalized coordinates for
+    // a particular joint.
     virtual void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const=0;
+        Transform&         X_FM) const=0;
 
 
-    /// This mandatory routine calculates the joint transition matrix H_MbM, giving
-    /// the change of velocity induced by the generalized speeds u for this 
-    /// mobilizer, expressed in the mobilizer's inboard frame Mb (attached to
-    /// this body's parent). 
-    /// This method constitutes the *definition* of the generalized speeds for
-    /// a particular joint.
-    /// This routine can depend on X_MbM having already
-    /// been calculated and available in the PositionCache but must NOT depend
-    /// on any quantities involving Ground or other bodies.
+    // This mandatory routine calculates the joint transition matrix H_FM, giving
+    // the change of velocity induced by the generalized speeds u for this 
+    // mobilizer, expressed in the mobilizer's inboard "fixed" frame F (attached to
+    // this body's parent). 
+    // This method constitutes the *definition* of the generalized speeds for
+    // a particular joint.
+    // This routine can depend on X_FM having already
+    // been calculated and available in the PositionCache but must NOT depend
+    // on any quantities involving Ground or other bodies.
     virtual void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const=0;
+        HType&                 H_FM) const=0;
 
-    /// This mandatory routine calculates the time derivative taken in Mb of
-    /// the matrix H_MbM (call it H_MbM_Dot). This is zero if the generalized
-    /// speeds are all defined in terms of the Mb frame, which is often the case.
-    /// This routine can depend on X_MbM and H_MbM being available already in
-    /// the state PositionCache, and V_MbM being already in the state VelocityCache.
-    /// However, it must NOT depend on any quantities involving Ground or other bodies.
+    // This mandatory routine calculates the time derivative taken in F of
+    // the matrix H_FM (call it H_FM_Dot). This is zero if the generalized
+    // speeds are all defined in terms of the F frame, which is often the case.
+    // This routine can depend on X_FM and H_FM being available already in
+    // the state PositionCache, and V_FM being already in the state VelocityCache.
+    // However, it must NOT depend on any quantities involving Ground or other bodies.
     virtual void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const = 0;
+        HType&                 H_FM_Dot) const = 0;
 
-    /// This routine is NOT joint specific, but cannot be called until the across-joint
-    /// transform X_MbM has been calculated and is available in the State cache.
+    // This routine is NOT joint specific, but cannot be called until the across-joint
+    // transform X_FM has been calculated and is available in the State cache.
     void calcBodyTransforms(
         const SBPositionCache& pc, 
         Transform&             X_PB, 
         Transform&             X_GB) const 
     {
-        const Transform& X_BM  = getX_BM();  // fixed
-        const Transform& X_PMb = getX_PMb(); // fixed
-        const Transform& X_MbM = getX_MbM(pc); // just calculated
-        const Transform& X_GP  = getX_GP(pc);  // already calculated
+        const Transform& X_BM = getX_BM();   // fixed
+        const Transform& X_PF = getX_PF();   // fixed
+        const Transform& X_FM = getX_FM(pc); // just calculated
+        const Transform& X_GP = getX_GP(pc); // already calculated
 
-        X_PB = X_PMb * X_MbM * ~X_BM; // TODO: precalculate X_MB
+        X_PB = X_PF * X_FM * ~X_BM; // TODO: precalculate X_MB
         X_GB = X_GP * X_PB;
     }
 
@@ -520,30 +517,30 @@ public:
         HType& H_PB_G_Dot) const;
 
 
-    /// Calculate joint-specific kinematic quantities dependent on
-    /// on velocities. This routine may assume that *all* position 
-    /// kinematics (not just joint-specific) has been done for this node,
-    /// that all velocity kinematics has been done for the parent, and
-    /// that the velocity state variables (u) are available. The
-    /// quanitites that must be computed are:
-    ///   V_MbM   relative velocity of B's M frame in P's Mb frame, 
-    ///             expressed in Mb (note: this is also V_PM_Mb since
-    ///             Mb is fixed on P).
-    ///   V_PB_G  relative velocity of B in P, expr. in G
-    /// The code is the same for all joints, although parametrized by ndof.
+    // Calculate joint-specific kinematic quantities dependent on
+    // velocities. This routine may assume that *all* position 
+    // kinematics (not just joint-specific) has been done for this node,
+    // that all velocity kinematics has been done for the parent, and
+    // that the velocity state variables (u) are available. The
+    // quanitites that must be computed are:
+    //   V_FM   relative velocity of B's M frame in P's F frame, 
+    //             expressed in F (note: this is also V_PM_F since
+    //             F is fixed on P).
+    //   V_PB_G  relative velocity of B in P, expr. in G
+    // The code is the same for all joints, although parametrized by ndof.
     void calcJointKinematicsVel(
         const SBPositionCache& pc,
         const Vector&          u,
         SBVelocityCache&       vc) const 
     {
-        updV_MbM(vc)  = ~getH_MbM(pc) * fromU(u);
+        updV_FM(vc)  = ~getH_FM(pc) * fromU(u);
         updV_PB_G(vc) = ~getH(pc) * fromU(u);
     }
 
-    /// Calculate joint-specific dynamics quantities dependent on velocities.
-    /// This method may assume that *all* position & velocity kinematics
-    /// (not just joint-specific) has been done for this node, and that
-    /// dynamics has been done for the parent.
+    // Calculate joint-specific dynamics quantities dependent on velocities.
+    // This method may assume that *all* position & velocity kinematics
+    // (not just joint-specific) has been done for this node, and that
+    // dynamics has been done for the parent.
     void calcJointDynamics(
         const SBPositionCache& pc,
         const Vector&          u,
@@ -553,7 +550,7 @@ public:
         updVD_PB_G(dc) = ~getHDot(dc) * fromU(u);
     }
 
-    // These next two routines are options, but if you supply one you
+    // These next two routines are optional, but if you supply one you
     // must supply the other. (That is, ball-containing joints provide
     // both of these routines.)
     virtual void calcQDot(
@@ -601,13 +598,11 @@ public:
     {
         calcJointSinCosQNorm(mv, mc, q, pc.sq, pc.cq, qErr, pc.qnorm);
 
-        calcAcrossJointTransform (mv, q, updX_MbM(pc));
+        calcAcrossJointTransform (mv, q, updX_FM(pc));
         calcBodyTransforms       (pc, updX_PB(pc), updX_GB(pc));
 
-        calcAcrossJointVelocityJacobian(mv, pc, updH_MbM(pc));
+        calcAcrossJointVelocityJacobian(mv, pc, updH_FM(pc));
         calcParentToChildVelocityJacobianInGround(mv,pc, updH(pc));
-
-        //calcJointTransitionMatrix(pc, updH(pc)); // TODO: soon to be obsolete
 
         calcJointIndependentKinematicsPos(pc);
     }
@@ -635,7 +630,7 @@ public:
         SBDynamicsCache&       dc) const
     {
         // Mobilizer-specific.
-        calcAcrossJointVelocityJacobianDot          (mv,pc,vc, updH_MbM_Dot(dc));
+        calcAcrossJointVelocityJacobianDot          (mv,pc,vc, updH_FM_Dot(dc));
         calcParentToChildVelocityJacobianInGroundDot(mv,pc,vc, dc, updHDot(dc));
 
         calcJointDynamics(pc,u,vc,dc);
@@ -674,7 +669,7 @@ public:
     }
     virtual void setMobilizerDefaultDynamicsValues(const SBModelVars&, SBDynamicsVars&) const {}
     virtual void setMobilizerDefaultAccelerationValues(const SBModelVars&, 
-                                              SBDynamicsVars& v) const {}
+                                                       SBDynamicsVars& v) const {}
 
     // copyQ and copyU extract this node's values from the supplied
     // q-sized or u-sized array and put them in the corresponding
@@ -700,6 +695,25 @@ public:
     virtual int  getMaxNQ()          const {return dof;} // maxNQ can be larger than dof
     virtual int  getNQ(const SBModelVars&) const { return dof; } // DOF <= NQ <= maxNQ
     virtual bool isUsingQuaternion(const SBModelVars&) const {return false;}
+
+    // State digest should be at Stage::Position.
+    virtual void calcLocalQDotFromLocalU(const SBStateDigest&, const Real* u, Real* qdot) const {
+        Vec<dof>::updAs(qdot) = Vec<dof>::getAs(u); // default says qdot=u
+    }
+
+    // State digest should be at Stage::Velocity.
+    virtual void calcLocalQDotDotFromLocalUDot(const SBStateDigest&, const Real* udot, Real* qdotdot) const {
+        Vec<dof>::updAs(qdotdot) = Vec<dof>::getAs(udot); // default says qdotdot=udot
+    }
+
+    // No default implementations here for:
+    // calcMobilizerTransformFromQ
+    // calcMobilizerVelocityFromU
+    // calcMobilizerAccelerationFromUDot
+    // calcParentToChildTransformFromQ
+    // calcParentToChildVelocityFromU
+    // calcParentToChildAccelerationFromUDot
+
 
     virtual void setVelFromSVel(
         const SBPositionCache& pc, 
@@ -730,30 +744,57 @@ public:
     // Vector and then pass that to the RigidBodyNode routines which will call these ones.
 
     // General joint-dependent select-my-goodies-from-the-pool routines.
-    const Vec<dof>&     fromQ  (const Vector& q)   const {return Vec<dof>::getAs(&q[qIndex]);}
-    Vec<dof>&           toQ    (      Vector& q)   const {return Vec<dof>::updAs(&q[qIndex]);}
-    const Vec<dof>&     fromU  (const Vector& u)   const {return Vec<dof>::getAs(&u[uIndex]);}
-    Vec<dof>&           toU    (      Vector& u)   const {return Vec<dof>::updAs(&u[uIndex]);}
-    const Mat<dof,dof>& fromUSq(const Vector& uSq) const {return Mat<dof,dof>::getAs(&uSq[uSqIndex]);}
-    Mat<dof,dof>&       toUSq  (      Vector& uSq) const {return Mat<dof,dof>::updAs(&uSq[uSqIndex]);}
+    const Vec<dof>&     fromQ  (const Real* q)   const {return Vec<dof>::getAs(&q[qIndex]);}
+    Vec<dof>&           toQ    (      Real* q)   const {return Vec<dof>::updAs(&q[qIndex]);}
+    const Vec<dof>&     fromU  (const Real* u)   const {return Vec<dof>::getAs(&u[uIndex]);}
+    Vec<dof>&           toU    (      Real* u)   const {return Vec<dof>::updAs(&u[uIndex]);}
+    const Mat<dof,dof>& fromUSq(const Real* uSq) const {return Mat<dof,dof>::getAs(&uSq[uSqIndex]);}
+    Mat<dof,dof>&       toUSq  (      Real* uSq) const {return Mat<dof,dof>::updAs(&uSq[uSqIndex]);}
 
     // Same, but specialized for the common case where dof=1 so everything is scalar.
-    const Real& from1Q  (const Vector& q)   const {return q[qIndex];}
-    Real&       to1Q    (      Vector& q)   const {return q[qIndex];}
-    const Real& from1U  (const Vector& u)   const {return u[uIndex];}
-    Real&       to1U    (      Vector& u)   const {return u[uIndex];}
-    const Real& from1USq(const Vector& uSq) const {return uSq[uSqIndex];}
-    Real&       to1USq  (      Vector& uSq) const {return uSq[uSqIndex];}
+    const Real& from1Q  (const Real* q)   const {return q[qIndex];}
+    Real&       to1Q    (      Real* q)   const {return q[qIndex];}
+    const Real& from1U  (const Real* u)   const {return u[uIndex];}
+    Real&       to1U    (      Real* u)   const {return u[uIndex];}
+    const Real& from1USq(const Real* uSq) const {return uSq[uSqIndex];}
+    Real&       to1USq  (      Real* uSq) const {return uSq[uSqIndex];}
 
-    // Same, specialized for quaternions. We're assuming that the quaternion comes first in the coordinates.
-    const Vec4& fromQuat(const Vector& q) const {return Vec4::getAs(&q[qIndex]);}
-    Vec4&       toQuat  (      Vector& q) const {return Vec4::updAs(&q[qIndex]);}
+    // Same, specialized for quaternions. We're assuming that the quaternion is stored
+    // in the *first* four coordinates, if there are more than four altogether.
+    const Vec4& fromQuat(const Real* q) const {return Vec4::getAs(&q[qIndex]);}
+    Vec4&       toQuat  (      Real* q) const {return Vec4::updAs(&q[qIndex]);}
 
     // Extract a Vec3 from a Q-like or U-like object, beginning at an offset from the qIndex or uIndex.
-    const Vec3& fromQVec3(const Vector& q, int offs) const {return Vec3::getAs(&q[qIndex+offs]);}
-    Vec3&       toQVec3  (      Vector& q, int offs) const {return Vec3::updAs(&q[qIndex+offs]);}
-    const Vec3& fromUVec3(const Vector& u, int offs) const {return Vec3::getAs(&u[uIndex+offs]);}
-    Vec3&       toUVec3  (      Vector& u, int offs) const {return Vec3::updAs(&u[uIndex+offs]);}
+    const Vec3& fromQVec3(const Real* q, int offs) const {return Vec3::getAs(&q[qIndex+offs]);}
+    Vec3&       toQVec3  (      Real* q, int offs) const {return Vec3::updAs(&q[qIndex+offs]);}
+    const Vec3& fromUVec3(const Real* u, int offs) const {return Vec3::getAs(&u[uIndex+offs]);}
+    Vec3&       toUVec3  (      Real* u, int offs) const {return Vec3::updAs(&u[uIndex+offs]);}
+
+    // These provide an identical interface for when q,u are given as Vectors rather than Reals.
+
+    const Vec<dof>&     fromQ  (const Vector& q)   const {return fromQ(&q[0]);} // convert to array of Real
+    Vec<dof>&           toQ    (      Vector& q)   const {return toQ  (&q[0]);}
+    const Vec<dof>&     fromU  (const Vector& u)   const {return fromU(&u[0]);}
+    Vec<dof>&           toU    (      Vector& u)   const {return toU  (&u[0]);}
+    const Mat<dof,dof>& fromUSq(const Vector& uSq) const {return fromUSq(&uSq[0]);}
+    Mat<dof,dof>&       toUSq  (      Vector& uSq) const {return toUSq  (&uSq[0]);}
+
+    const Real& from1Q  (const Vector& q)   const {return from1Q  (&q[0]);}
+    Real&       to1Q    (      Vector& q)   const {return to1Q    (&q[0]);}
+    const Real& from1U  (const Vector& u)   const {return from1U  (&u[0]);}
+    Real&       to1U    (      Vector& u)   const {return to1U    (&u[0]);}
+    const Real& from1USq(const Vector& uSq) const {return from1USq(&uSq[0]);}
+    Real&       to1USq  (      Vector& uSq) const {return to1USq  (&uSq[0]);}
+
+    // Same, specialized for quaternions. We're assuming that the quaternion comes first in the coordinates.
+    const Vec4& fromQuat(const Vector& q) const {return fromQuat(&q[0]);}
+    Vec4&       toQuat  (      Vector& q) const {return toQuat  (&q[0]);}
+
+    // Extract a Vec3 from a Q-like or U-like object, beginning at an offset from the qIndex or uIndex.
+    const Vec3& fromQVec3(const Vector& q, int offs) const {return fromQVec3(&q[0], offs);}
+    Vec3&       toQVec3  (      Vector& q, int offs) const {return toQVec3  (&q[0], offs);}
+    const Vec3& fromUVec3(const Vector& u, int offs) const {return fromUVec3(&u[0], offs);}
+    Vec3&       toUVec3  (      Vector& u, int offs) const {return toUVec3  (&u[0], offs);}
 
     // Applications of the above extraction routines to particular interesting items in the State. Note
     // that you can't use these for quaternions since they extract "dof" items.
@@ -763,11 +804,11 @@ public:
         // Position
 
 
-    // TODO: should store as H_MbM or else always reference Ht_MbM
-    const Mat<dof,2,Row3,1,2>& getH_MbM(const SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&pc.storageForHtMbM(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH_MbM(SBPositionCache& pc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&pc.storageForHtMbM(0,uIndex)); }
+    // TODO: should store as H_FM or else always reference Ht_FM
+    const Mat<dof,2,Row3,1,2>& getH_FM(const SBPositionCache& pc) const
+      { return ~Mat<2,dof,Vec3>::getAs(&pc.storageForHtFM(0,uIndex)); }
+    Mat<dof,2,Row3,1,2>&       updH_FM(SBPositionCache& pc) const
+      { return ~Mat<2,dof,Vec3>::updAs(&pc.storageForHtFM(0,uIndex)); }
 
     // "H" here should really be H_PB_G, that is, cross joint transition
     // matrix relating parent and body frames, but expressed in Ground.
@@ -796,10 +837,10 @@ public:
 
         // Dynamics
 
-    const Mat<dof,2,Row3,1,2>& getH_MbM_Dot(const SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::getAs(&dc.storageForHtMbMDot(0,uIndex)); }
-    Mat<dof,2,Row3,1,2>&       updH_MbM_Dot(SBDynamicsCache& dc) const
-      { return ~Mat<2,dof,Vec3>::updAs(&dc.storageForHtMbMDot(0,uIndex)); }
+    const Mat<dof,2,Row3,1,2>& getH_FM_Dot(const SBDynamicsCache& dc) const
+      { return ~Mat<2,dof,Vec3>::getAs(&dc.storageForHtFMDot(0,uIndex)); }
+    Mat<dof,2,Row3,1,2>&       updH_FM_Dot(SBDynamicsCache& dc) const
+      { return ~Mat<2,dof,Vec3>::updAs(&dc.storageForHtFMDot(0,uIndex)); }
 
     const Mat<dof,2,Row3,1,2>& getHDot(const SBDynamicsCache& dc) const
       { return ~Mat<2,dof,Vec3>::getAs(&dc.storageForHtDot(0,uIndex)); }
@@ -835,12 +876,16 @@ public:
     const Real&       get1Epsilon(const SBAccelerationCache& rc) const {return from1U(rc.epsilon);}
     Real&             upd1Epsilon(SBAccelerationCache&       rc) const {return to1U  (rc.epsilon);}
 
-    void calcZ(
+    /*void calcZ(
         const SBPositionCache&,
         const SBDynamicsCache&,
         const Vector&              mobilityForces,
         const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache& ) const;
+        SBAccelerationCache& ) const;*/
+    void calcZ(
+        const SBStateDigest&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces) const;
 
     void calcAccel(
         const SBModelVars&     mv,
@@ -901,21 +946,6 @@ public:
         Vector_<SpatialVec>&        allA_GB,
         Vector&                     allUDot) const;
 
-    /*
-    void nodeSpecDump(std::ostream& o, const State& s) const {
-        o << "uIndex=" << uIndex << " mass=" << getMass() 
-            << " COM_G=" << getCOM_G(s) << std::endl;
-        o << "inertia_OB_G=" << getInertia_OB_G(s) << std::endl;
-        o << "H=" << getH(s) << std::endl;
-        o << "SVel=" << getV_GB(s) << std::endl;
-        o << "a=" << getCoriolisAcceleration(s) << std::endl;
-        o << "b=" << getGyroscopicForce(s) << std::endl;
-        o << "Th  =" << getQ(s) << std::endl;
-        o << "dTh =" << getU(s) << std::endl;
-        o << "ddTh=" << getUDot(s) << std::endl;
-        o << "SAcc=" << getA_GB(s) << std::endl;
-    }
-    */
 };
 
     //////////////////////////////////////////
@@ -928,41 +958,41 @@ public:
 // Translate (Cartesian) joint. This provides three degrees of
 // translational freedom which is suitable (e.g.) for connecting a
 // free atom to ground. The Cartesian directions are the axes of
-// the parent body's Mb frame, with M=Mb when all 3 coords are 0,
-// and the orientation of M in Mb is 0 (identity) forever.
+// the parent body's F frame, with M=F when all 3 coords are 0,
+// and the orientation of M in F is 0 (identity) forever.
 class RBNodeTranslate : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "translate"; }
 
     RBNodeTranslate(const MassProperties& mProps_B,
-                    const Transform&      X_PMb,
+                    const Transform&      X_PF,
                     const Transform&      X_BM,
                     int&                  nextUSlot,
                     int&                  nextUSqSlot,
                     int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // the only rotation this mobilizer can represent is identity
     }
-    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_FM, Vector& q, bool only) const {
         // here's what this joint is really good at!
-        toQ(q) = T_MbM;
+        toQ(q) = T_FM;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // The only angular velocity this can represent is zero.
     }
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
         // linear velocity is in a Cartesian joint's sweet spot
-        toU(u) = v_MbM;
+        toU(u) = v_FM;
     }
 
     // This is required but does nothing here since there are no rotations for this joint.
@@ -975,40 +1005,40 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const { }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-        // Translation vector q is expressed in Mb (and M since they have same orientation).
+        // Translation vector q is expressed in F (and M since they have same orientation).
         // A Cartesian joint can't change orientation. 
-        X_MbM = Transform(Rotation(), fromQ(q));
+        X_FM = Transform(Rotation(), fromQ(q));
     }
 
-    // Generalized speeds together are the velocity of M's origin in the Mb frame,
-    // expressed in Mb. So individually they produce velocity along Mb's x,y,z
+    // Generalized speeds together are the velocity of M's origin in the F frame,
+    // expressed in F. So individually they produce velocity along F's x,y,z
     // axes respectively.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
-        H_MbM[1] = SpatialRow( Row3(0), Row3(0,1,0) );
-        H_MbM[2] = SpatialRow( Row3(0), Row3(0,0,1) );
+        H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
+        H_FM[1] = SpatialRow( Row3(0), Row3(0,1,0) );
+        H_FM[2] = SpatialRow( Row3(0), Row3(0,0,1) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative is zero.
+    // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1018,42 +1048,42 @@ public:
     // SLIDING (PRISMATIC) //
 
 // Sliding joint (1 dof translation). The translation is along the x
-// axis of the parent body's Mb frame, with M=Mb when the coordinate
-// is zero and the orientation of M in Mb frozen at 0 forever.
+// axis of the parent body's F frame, with M=F when the coordinate
+// is zero and the orientation of M in F frozen at 0 forever.
 class RBNodeSlider : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "slider"; }
 
     RBNodeSlider(const MassProperties& mProps_B,
-                 const Transform&      X_PMb,
+                 const Transform&      X_PF,
                  const Transform&      X_BM,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation a slider can represent is identity.
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
         // We can only represent the x coordinate with this joint.
-        to1Q(q) = T_MbM[0];
+        to1Q(q) = T_FM[0];
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // The only angular velocity a slider can represent is zero.
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
         // We can only represent a velocity along x with this joint.
-        to1U(u) = v_MbM[0];
+        to1U(u) = v_FM[0];
     }
 
     // This is required but does nothing here since we there are no rotations for this joint.
@@ -1066,35 +1096,35 @@ public:
         Vector&             qErr,
         Vector&             qnorm) const { }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-        // Translation vector q is expressed in Mb (and M since they have same orientation).
+        // Translation vector q is expressed in F (and M since they have same orientation).
         // A sliding joint can't change orientation, and only translates along x. 
-        X_MbM = Transform(Rotation(), Vec3(from1Q(q),0,0));
+        X_FM = Transform(Rotation(), Vec3(from1Q(q),0,0));
     }
 
-    // The generalized speed is the velocity of M's origin in the Mb frame,
-    // along Mb's x axis, expressed in Mb.
+    // The generalized speed is the velocity of M's origin in the F frame,
+    // along F's x axis, expressed in F.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
+        H_FM[0] = SpatialRow( Row3(0), Row3(1,0,0) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative is zero.
+    // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1102,49 +1132,49 @@ public:
     // PIN (TORSION) //
 
 // This is a "pin" or "torsion" joint, meaning one degree of rotational freedom
-// about a particular axis, the z axis of the parent's Mb frame, which is 
+// about a particular axis, the z axis of the parent's F frame, which is 
 // aligned forever with the z axis of the body's M frame. In addition, the
-// origin points of M and Mb are identical forever.
+// origin points of M and F are identical forever.
 class RBNodeTorsion : public RigidBodyNodeSpec<1> {
 public:
     virtual const char* type() { return "torsion"; }
 
     RBNodeTorsion(const MassProperties& mProps_B,
-                  const Transform&      X_PMb,
+                  const Transform&      X_PF,
                   const Transform&      X_BM,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our pin joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertToBodyFixed123();
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
-        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+        to1U(u) = w_FM[2]; // project angular velocity onto z axis
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
     }
@@ -1165,39 +1195,39 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
         // We're only updating the orientation here because a torsion joint
         // can't translate (it is defined as a rotation about the z axis).
-        X_MbM.updR().setToRotationAboutZ(theta);
-        X_MbM.updT() = 0.;
+        X_FM.updR().setToRotationAboutZ(theta);
+        X_FM.updT() = 0.;
     }
 
 
-    // The generalized speed is the angular velocity of M in the Mb frame,
-    // about Mb's z axis, expressed in Mb. (This axis is also constant in M.)
+    // The generalized speed is the angular velocity of M in the F frame,
+    // about F's z axis, expressed in F. (This axis is also constant in M.)
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(0) );
+        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative in Mb is zero.
+    // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1207,11 +1237,11 @@ public:
 
 // This is a one-dof "screw" joint, meaning one degree of rotational freedom
 // about a particular axis, coupled to translation along that same axis.
-// Here we use the common z axis of the Mb and M frames, which remains
+// Here we use the common z axis of the F and M frames, which remains
 // aligned forever. 
 // For the generalized coordinate q, we use the rotation angle. For the
 // generalized speed u we use the rotation rate, which is also the
-// angular velocity of M in Mb (about the z axis). We compute the
+// angular velocity of M in F (about the z axis). We compute the
 // translational position as pitch*q, and the translation rate as pitch*u.
 class RBNodeScrew : public RigidBodyNodeSpec<1> {
     Real pitch;
@@ -1219,42 +1249,42 @@ public:
     virtual const char* type() { return "screw"; }
 
     RBNodeScrew(const MassProperties& mProps_B,
-                const Transform&      X_PMb,
+                const Transform&      X_PF,
                 const Transform&      X_BM,
                 Real                  p,  // the pitch
                 int&                  nextUSlot,
                 int&                  nextUSqSlot,
                 int&                  nextQSlot)
-      : RigidBodyNodeSpec<1>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+      : RigidBodyNodeSpec<1>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
         pitch(p)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our screw joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertToBodyFixed123();
         to1Q(q) = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        to1Q(q) = T_MbM[2]/pitch;
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        to1Q(q) = T_FM[2]/pitch;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
-        to1U(u) = w_MbM[2]; // project angular velocity onto z axis
+        to1U(u) = w_FM[2]; // project angular velocity onto z axis
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        to1U(u) = v_MbM[2]/pitch;
+        to1U(u) = v_FM[2]/pitch;
     }
 
     // Precalculate sines and cosines.
@@ -1273,37 +1303,37 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
-        X_MbM.updR().setToRotationAboutZ(theta);
-        X_MbM.updT() = Vec3(0,0,theta*pitch);
+        X_FM.updR().setToRotationAboutZ(theta);
+        X_FM.updT() = Vec3(0,0,theta*pitch);
     }
 
 
-    // The generalized speed is the angular velocity of M in the Mb frame,
-    // about Mb's z axis, expressed in Mb. (This axis is also constant in M.)
+    // The generalized speed is the angular velocity of M in the F frame,
+    // about F's z axis, expressed in F. (This axis is also constant in M.)
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(0,0,pitch) );
+        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0,0,pitch) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative in Mb is zero.
+    // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1314,52 +1344,52 @@ public:
 // about a particular axis, and one degree of translational freedom
 // along the same axis. For molecules you can think of this as a combination
 // of torsion and bond stretch. The axis used is the z axis of the parent's
-// Mb frame, which is aligned forever with the z axis of the body's M frame.
-// In addition, the origin points of M and Mb are separated only along the
-// z axis; i.e., they have the same x & y coords in the Mb frame. The two
+// F frame, which is aligned forever with the z axis of the body's M frame.
+// In addition, the origin points of M and F are separated only along the
+// z axis; i.e., they have the same x & y coords in the F frame. The two
 // generalized coordinates are the rotation and the translation, in that order.
 class RBNodeCylinder : public RigidBodyNodeSpec<2> {
 public:
     virtual const char* type() { return "cylinder"; }
 
     RBNodeCylinder(const MassProperties& mProps_B,
-                   const Transform&      X_PMb,
+                   const Transform&      X_PF,
                    const Transform&      X_BM,
                    int&                  nextUSlot,
                    int&                  nextUSqSlot,
                    int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our cylinder joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
-        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // Because the M and Mb origins must lie along their shared z axis, there is no way to
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a translation by rotating around z. So the only translation we can represent
         // is that component which is along z.
-        toQ(q)[1] = T_MbM[2];
+        toQ(q)[1] = T_FM[2];
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
-        toU(u)[0] = w_MbM[2];
+        toU(u)[0] = w_FM[2];
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        // Because the M and Mb origins must lie along their shared z axis, there is no way to
+        // Because the M and F origins must lie along their shared z axis, there is no way to
         // create a linear velocity by rotating around z. So the only linear velocity we can represent
         // is that component which is along z.
-        toU(u)[1] = v_MbM[2];
+        toU(u)[1] = v_FM[2];
     }
 
     // Precalculate sines and cosines.
@@ -1378,40 +1408,40 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
         const Vec2& coords  = fromQ(q);
 
-        X_MbM.updR().setToRotationAboutZ(coords[0]);
-        X_MbM.updT() = Vec3(0,0,coords[1]);
+        X_FM.updR().setToRotationAboutZ(coords[0]);
+        X_FM.updT() = Vec3(0,0,coords[1]);
     }
 
 
-    // The generalized speeds are (1) the angular velocity of M in the Mb frame,
-    // about Mb's z axis, expressed in Mb, and (2) the velocity of M's origin
-    // in Mb, along Mb's z axis. (The z axis is also constant in M for this joint.)
+    // The generalized speeds are (1) the angular velocity of M in the F frame,
+    // about F's z axis, expressed in F, and (2) the velocity of M's origin
+    // in F, along F's z axis. (The z axis is also constant in M for this joint.)
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0,0,1), Row3(0)     );
-        H_MbM[1] = SpatialRow( Row3(0),     Row3(0,0,1) );
+        H_FM[0] = SpatialRow( Row3(0,0,1), Row3(0)     );
+        H_FM[1] = SpatialRow( Row3(0),     Row3(0,0,1) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative in Mb is zero.
+    // Since the Jacobian above is constant in F, its time derivative in F is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1421,10 +1451,10 @@ public:
 
 // This is a "bend-stretch" joint, meaning one degree of rotational freedom
 // about a particular axis, and one degree of translational freedom
-// along a perpendicular axis. The z axis of the parent's Mb frame is 
+// along a perpendicular axis. The z axis of the parent's F frame is 
 // used for rotation (and that is always aligned with the M frame z axis).
 // The x axis of the *M* frame is used for translation; that is, first
-// we rotate around z, which moves M's x with respect to Mb's x. Then
+// we rotate around z, which moves M's x with respect to F's x. Then
 // we slide along the rotated x axis. The two
 // generalized coordinates are the rotation and the translation, in that order.
 class RBNodeBendStretch : public RigidBodyNodeSpec<2> {
@@ -1432,28 +1462,28 @@ public:
     virtual const char* type() { return "bendstretch"; }
 
     RBNodeBendStretch(const MassProperties& mProps_B,
-                      const Transform&      X_PMb,
+                      const Transform&      X_PF,
                       const Transform&      X_BM,
                       int&                  nextUSlot,
                       int&                  nextUSqSlot,
                       int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our bend-stretch joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
-        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // We can represent any translation that puts the M origin in the x-y plane of Mb,
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // We can represent any translation that puts the M origin in the x-y plane of F,
         // by a suitable rotation around z followed by translation along x.
-        const Vec2 r = T_MbM.getSubVec<2>(0); // (rx, ry)
+        const Vec2 r = T_FM.getSubVec<2>(0); // (rx, ry)
 
         // If we're not allowed to change rotation then we can only move along Mx.
         if (only) {
@@ -1475,23 +1505,23 @@ public:
             toQ(q)[1] = 0;
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {
         // We can only represent an angular velocity along z with this joint.
-        toU(u)[0] = w_MbM[2];
+        toU(u)[0] = w_FM[2];
     }
 
     // If the translational coordinate is zero, we can only represent a linear velocity 
-    // of OM in Mb which is along M's current x axis direction. Otherwise, we can 
+    // of OM in F which is along M's current x axis direction. Otherwise, we can 
     // represent any velocity in the x-y plane by introducing angular velocity about z.
     // We can never represent a linear velocity along z.
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
         // Decompose the requested v into "along Mx" and "along My" components.
-        const Rotation R_MbM = Rotation::aboutZ(fromQ(q)[0]); // =[ Mx My Mz ] in Mb
-        const Vec3 v_MbM_M = ~R_MbM*v_MbM; // re-express in M frame
+        const Rotation R_FM = Rotation::aboutZ(fromQ(q)[0]); // =[ Mx My Mz ] in F
+        const Vec3 v_FM_M = ~R_FM*v_FM; // re-express in M frame
 
-        toU(u)[1] = v_MbM_M[0]; // velocity along Mx we can represent directly
+        toU(u)[1] = v_FM_M[0]; // velocity along Mx we can represent directly
 
         if (only) {
             // We can't do anything about My velocity if we're not allowed to change
@@ -1506,7 +1536,7 @@ public:
         }
 
         // significant translation
-        toU(u)[0] = v_MbM_M[1] / x; // set angular velocity about z to produce vy
+        toU(u)[0] = v_FM_M[1] / x; // set angular velocity about z to produce vy
     }
 
     // Precalculate sines and cosines.
@@ -1525,36 +1555,36 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
-        X_MbM.updR().setToRotationAboutZ(coords[0]);
-        X_MbM.updT() = X_MbM.R()*Vec3(coords[1],0,0); // because translation is in M frame
+        X_FM.updR().setToRotationAboutZ(coords[0]);
+        X_FM.updT() = X_FM.R()*Vec3(coords[1],0,0); // because translation is in M frame
     }
 
     // The generalized speeds for this bend-stretch joint are (1) the angular
-    // velocity of M in the Mb frame, about Mb's z axis, expressed in Mb, and
-    // (2) the (linear) velocity of M's origin in Mb, along *M's* current x axis
+    // velocity of M in the F frame, about F's z axis, expressed in F, and
+    // (2) the (linear) velocity of M's origin in F, along *M's* current x axis
     // (that is, after rotation about z). (The z axis is also constant in M for this joint.)
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
-        const Vec3&     T_MbM = getX_MbM(pc).T();
-        H_MbM[0] = SpatialRow( Row3(0,0,1), ~(Vec3(0,0,1) % T_MbM)   );
-        H_MbM[1] = SpatialRow( Row3(0),              ~Mx_Mb          );
+        const Vec3&     T_FM = getX_FM(pc).T();
+        H_FM[0] = SpatialRow( Row3(0,0,1), ~(Vec3(0,0,1) % T_FM)   );
+        H_FM[1] = SpatialRow( Row3(0),              ~Mx_F          );
     }
 
-    // Since the the Jacobian above is not constant in Mb,
+    // Since the the Jacobian above is not constant in F,
     // its time derivative is non zero. Here we use the fact that for
     // a vector r_B_A fixed in a moving frame B but expressed in another frame A,
     // its time derivative in A is the angular velocity of B in A crossed with
@@ -1563,16 +1593,16 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
 
-        const Vec3&     w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
-        const Vec3&     v_MbM = getV_MbM(vc)[1]; // linear velocity of OM in Mb
+        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
+        const Vec3&     v_FM = getV_FM(vc)[1]; // linear velocity of OM in F
 
-        H_MbM_Dot[0] = SpatialRow( Row3(0), ~(Vec3(0,0,1) % v_MbM) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), ~(w_MbM % Mx_Mb) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), ~(Vec3(0,0,1) % v_FM) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), ~(w_FM % Mx_F) );
     }
 
 };
@@ -1596,7 +1626,7 @@ public:
 //    q's: a two-angle body-fixed rotation sequence about x, then new y
 //    u's: time derivatives of the q's
 //
-// Note that the U-Joint degrees of freedom relating the parent's Mb frame
+// Note that the U-Joint degrees of freedom relating the parent's F frame
 // to the child's M frame are about x and y, with the "long" axis of the
 // driveshaft along z.
 class RBNodeUJoint : public RigidBodyNodeSpec<2> {
@@ -1604,45 +1634,45 @@ public:
     virtual const char* type() { return "ujoint"; }
 
     RBNodeUJoint(const MassProperties& mProps_B,
-                 const Transform&      X_PMb,
+                 const Transform&      X_PF,
                  const Transform&      X_BM,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotations this joint can handle are about Mx and My.
         // TODO: isn't there a better way to come up with "the rotation around x&y that
         // best approximates a rotation R"? Here we're just hoping that the supplied
         // rotation matrix can be decomposed into (x,y) rotations.
-        const Vec2 angles12 = R_MbM.convertToBodyFixed12();
+        const Vec2 angles12 = R_FM.convertToBodyFixed12();
         toQ(q) = angles12;
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
     // We can only express angular velocity that can be produced with our generalized
-    // speeds which are Mbx and My rotations rates. So we'll take the supplied angular velocity
-    // expressed in Mb, project it on Mbx and use that as the first generalized speed. Then
+    // speeds which are Fx and My rotations rates. So we'll take the supplied angular velocity
+    // expressed in F, project it on Fx and use that as the first generalized speed. Then
     // take whatever angular velocity is unaccounted for, express it in M, and project onto
     // My and use that as the second generalized speed.
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM, Vector& u) const {
-        const Rotation R_MbM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
-        const Vec3     wyz_MbM_M = ~R_MbM*Vec3(0,w_MbM[1],w_MbM[2]);
-        toU(u) = Vec2(w_MbM[0], wyz_MbM_M[1]);
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {
+        const Rotation R_FM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        const Vec3     wyz_FM_M = ~R_FM*Vec3(0,w_FM[1],w_FM[2]);
+        toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
     }
@@ -1663,33 +1693,33 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
         // We're only updating the orientation here because a U-joint can't translate.
-        X_MbM.updR() = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
-        X_MbM.updT() = 0.;
+        X_FM.updR() = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        X_FM.updT() = 0.;
     }
 
     // The generalized speeds for this 2-dof rotational joint are the time derivatlves of
     // the body-fixed 1-2 rotation sequence defining the orientation. That is, the first speed
-    // is just a rotation rate about Mbx. The second is a rotation rate about the current My, so
-    // we have to transform it into Mb to make H_MbM uniformly expressed in Mb.
+    // is just a rotation rate about Fx. The second is a rotation rate about the current My, so
+    // we have to transform it into F to make H_FM uniformly expressed in F.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
+        const Rotation& R_FM = getX_FM(pc).R();
 
-        H_MbM[0] = SpatialRow(  Row3(1,0,0) , Row3(0) );
-        H_MbM[1] = SpatialRow( ~(R_MbM.y()) , Row3(0) );
+        H_FM[0] = SpatialRow(  Row3(1,0,0) , Row3(0) );
+        H_FM[1] = SpatialRow( ~(R_FM.y()) , Row3(0) );
     }
 
-    // Since the second row of the Jacobian H_MbM above is not constant in Mb,
+    // Since the second row of the Jacobian H_FM above is not constant in F,
     // its time derivative is non zero. Here we use the fact that for
     // a vector r_B_A fixed in a moving frame B but expressed in another frame A,
     // its time derivative in A is the angular velocity of B in A crossed with
@@ -1698,13 +1728,13 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_MbM_Dot[0] = SpatialRow(        Row3(0)      , Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( ~(w_MbM % R_MbM.y()), Row3(0) );
+        H_FM_Dot[0] = SpatialRow(        Row3(0)      , Row3(0) );
+        H_FM_Dot[1] = SpatialRow( ~(w_FM % R_FM.y()), Row3(0) );
     }
 
 };
@@ -1714,53 +1744,53 @@ public:
     // PLANAR //
 
 // This provides free motion (translation and rotation) in a plane. We use
-// the 2d coordinate system formed by the x,y axes of Mb as the translations,
-// and the common z axis of Mb and M as the rotational axis. The generalized
+// the 2d coordinate system formed by the x,y axes of F as the translations,
+// and the common z axis of F and M as the rotational axis. The generalized
 // coordinates are theta,x,y interpreted as rotation around z and translation
-// along the (space fixed) Mbx and Mby axes.
+// along the (space fixed) Fx and Fy axes.
 class RBNodePlanar : public RigidBodyNodeSpec<3> {
 public:
     virtual const char* type() { return "planar"; }
 
     RBNodePlanar(const MassProperties& mProps_B,
-                 const Transform&      X_PMb,
+                 const Transform&      X_PF,
                  const Transform&      X_BM,
                  int&                  nextUSlot,
                  int&                  nextUSqSlot,
                  int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
         // Implementations of virtual methods.
 
-    void setQToFitRotation(const SBModelVars&, const Rotation& R_MbM, Vector& q) const {
+    void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our planar joint can handle is about z.
         // TODO: should use 321 to deal with singular configuration (angle2==pi/2) better;
         // in that case 1 and 3 are aligned and the conversion routine allocates all the
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_MbM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertToBodyFixed123();
         toQ(q)[0] = angles123[2];
     }
-    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars&, const Vec3&  T_FM, Vector& q, bool only) const {
         // Ignore translation in the z direction.
-        toQ(q)[1] = T_MbM[0]; // x
-        toQ(q)[2] = T_MbM[1]; // y
+        toQ(q)[1] = T_FM[0]; // x
+        toQ(q)[2] = T_FM[1]; // y
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM, Vector& u) const {
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM, Vector& u) const {
         // We can represent the z angular velocity exactly, but nothing else.
-        toU(u)[0] = w_MbM[2];
+        toU(u)[0] = w_FM[2];
     }
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
         // Ignore translational velocity in the z direction.
-        toU(u)[1] = v_MbM[0]; // x
-        toU(u)[2] = v_MbM[1]; // y
+        toU(u)[1] = v_FM[0]; // x
+        toU(u)[2] = v_FM[1]; // y
     }
 
     // This is required but does nothing here since there are no rotations for this joint.
@@ -1779,39 +1809,39 @@ public:
         // no quaternions
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-        // Rotational q is about common z axis, translational q's along Mbx and Mby.
-        X_MbM = Transform(Rotation::aboutZ(fromQ(q)[0]), 
+        // Rotational q is about common z axis, translational q's along Fx and Fy.
+        X_FM = Transform(Rotation::aboutZ(fromQ(q)[0]), 
                           Vec3(fromQ(q)[1], fromQ(q)[2], 0));
     }
 
     // The rotational generalized speed is about the common z axis; translations
-    // are along Mbx and Mby so all axes are constant in Mb.
+    // are along Fx and Fy so all axes are constant in F.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(0,0,1),   Row3(0) );
-        H_MbM[1] = SpatialRow(   Row3(0),   Row3(1,0,0) );
-        H_MbM[2] = SpatialRow(   Row3(0),   Row3(0,1,0) );
+        H_FM[0] = SpatialRow( Row3(0,0,1),   Row3(0) );
+        H_FM[1] = SpatialRow(   Row3(0),   Row3(1,0,0) );
+        H_FM[2] = SpatialRow(   Row3(0),   Row3(0,1,0) );
     }
 
-    // Since the Jacobian above is constant in Mb, its time derivative is zero.
+    // Since the Jacobian above is constant in F, its time derivative is zero.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
     }
 
 };
@@ -1819,11 +1849,11 @@ public:
     // ORIENTATION (BALL) //
 
 // Ball joint. This provides three degrees of rotational freedom,  i.e.,
-// unrestricted orientation of the body's M frame in the parent's Mb frame.
+// unrestricted orientation of the body's M frame in the parent's F frame.
 // The generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
 // and generalized speeds are:
-//   * angular velocity w_MbM as a vector expressed in the Mb frame.
+//   * angular velocity w_FM as a vector expressed in the F frame.
 // Thus rotational qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeRotate3 : public RigidBodyNodeSpec<3> {
@@ -1831,40 +1861,40 @@ public:
     virtual const char* type() { return "rotate3"; }
 
     RBNodeRotate3(const MassProperties& mProps_B,
-                  const Transform&      X_PMb,
+                  const Transform&      X_PF,
                   const Transform&      X_BM,
                   int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQ(q)    = R_MbM.convertToBodyFixed123();
+            toQ(q)    = R_FM.convertToBodyFixed123();
         else
-            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector&, const Vec3& w_FM,
                                      Vector& u) const
     {
-            toU(u) = w_MbM[0]; // relative angular velocity always used as generalized speeds
+            toU(u) = w_FM[0]; // relative angular velocity always used as generalized speeds
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
     }
@@ -1894,42 +1924,42 @@ public:
         }
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-        X_MbM.updT() = 0.; // This joint can't translate.
+        X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_MbM.updR().setToBodyFixed123(fromQ(q));
+            X_FM.updR().setToBodyFixed123(fromQ(q));
         else {
             // TODO: should use qnorm pool
-            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
     }
 
-    // Generalized speeds are the angular velocity expressed in Mb, so they
-    // cause rotations around Mb x,y,z axes respectively.
+    // Generalized speeds are the angular velocity expressed in F, so they
+    // cause rotations around F x,y,z axes respectively.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
-        H_MbM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
-        H_MbM[2] = SpatialRow( Row3(0,0,1), Row3(0) );
+        H_FM[0] = SpatialRow( Row3(1,0,0), Row3(0) );
+        H_FM[1] = SpatialRow( Row3(0,1,0), Row3(0) );
+        H_FM[2] = SpatialRow( Row3(0,0,1), Row3(0) );
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
     }
 
     void calcQDot(
@@ -1939,15 +1969,35 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const Vec3& w_MbM = fromU(u); // angular velocity of M in Mb 
+        const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
-                                        ~R_MbM*w_MbM); // need w in *body*, not parent
+                                        ~R_FM*w_FM); // need w in *body*, not parent
         } else
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_MbM);
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_FM);
     }
+
+    void calcLocalQDotFromLocalU(const SBStateDigest& sbs, const Real* u, Real* qdot) const {
+        assert(sbs.getStage() >= Stage::Position);
+        assert(u && qdot);
+
+        const SBModelVars&     mv   = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const Real*            allQ = sbs.getQ();
+
+        const Vec3&            w_FM = Vec3::getAs(u);
+
+        if (getUseEulerAngles(mv)) {
+            Vec4::updAs(qdot) = 0; // TODO: kludge, clear unused element
+            const Rotation& R_FM = getX_FM(pc).R();
+            Vec3::updAs(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(allQ),
+                                             ~R_FM*w_FM); // need w in *body*, not parent
+        } else
+            Vec4::updAs(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(allQ),w_FM);
+    }
+
  
     void calcQDotDot(
         const SBModelVars&     mv,
@@ -1957,17 +2007,39 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_MbM     = fromU(u); // angular velocity of J in Jb, expr in Jb
-        const Vec3& w_MbM_dot = fromU(udot);
+        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const Vec3& w_FM_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                  (fromQ(q), ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
+                                  (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),w_MbM,w_MbM_dot);
+                                  (fromQuat(q),w_FM,w_FM_dot);
+    }
+
+    void calcLocalQDotDotFromLocalUDot(const SBStateDigest& sbs, const Real* udot, Real* qdotdot) const {
+        assert(sbs.getStage() >= Stage::Velocity);
+        assert(udot && qdotdot);
+
+        const SBModelVars&     mv   = sbs.getModelVars();
+        const SBPositionCache& pc   = sbs.getPositionCache();
+        const Real*            allQ = sbs.getQ();
+        const Real*            allU = sbs.getU();
+
+        const Vec3& w_FM     = fromU(allU);
+        const Vec3& w_FM_dot = Vec3::getAs(udot);
+
+        if (getUseEulerAngles(mv)) {
+            Vec4::updAs(qdotdot) = 0; // TODO: kludge, clear unused element
+            const Rotation& R_FM = getX_FM(pc).R();
+            Vec3::updAs(qdotdot) = Rotation::convertAngVelDotToBodyFixed123DotDot
+                                        (fromQ(allQ), ~R_FM*w_FM, ~R_FM*w_FM_dot);
+        } else
+            Vec4::updAs(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
+                                        (fromQuat(allQ),w_FM,w_FM_dot);
     }
 
     void copyQ(
@@ -2040,18 +2112,18 @@ public:
     // ELLIPSOID //
 
 // ELLIPSOID mobilizer. This provides three degrees of rotational freedom, i.e.,
-// unrestricted orientation, of the body's M frame in the parent's Mb frame, 
+// unrestricted orientation, of the body's M frame in the parent's F frame, 
 // along with coordinated translation that keeps the M frame origin on
-// the surface of an ellipsoid fixed in Mb and centered on the Mb origin.
+// the surface of an ellipsoid fixed in F and centered on the F origin.
 // The surface point is chosen for
-// a given orientation of M in Mb as the unique point on the ellipsoid surface
+// a given orientation of M in F as the unique point on the ellipsoid surface
 // where the surface normal is aligned with Mz. That is, the z axis of M is 
 // assumed to be normal to the ellipsoid at all times, and the translation is
 // chosen to make that true.
 //
-// Unlike most joints, the reference configuration (i.e., X_MbM when q=0 is
+// Unlike most joints, the reference configuration (i.e., X_FM when q=0 is
 // not the identity transform. Instead, although the frames are aligned the
-// M frame origin is offset from Mb along their shared +z axis, so that it lies
+// M frame origin is offset from F along their shared +z axis, so that it lies
 // on the ellipsoid surface at the point (0,0,rz) where rz is the z-radius
 // (semiaxis) of the ellipsoid.
 //
@@ -2062,10 +2134,10 @@ public:
 //     you can think of angle 1 (about x) as latitude, and angle 2 (about y)
 //     as longitude when viewing the ellipsoid by looking down the z axis.
 //     (That would be true for large angles too if we were using space fixed
-//     angles, that is, angles defined about Mb rather than M axes.)
+//     angles, that is, angles defined about F rather than M axes.)
 //
 // Generalized speeds are:
-//   * angular velocity w_MbM as a vector expressed in the Mb frame.
+//   * angular velocity w_FM as a vector expressed in the F frame.
 //
 // Thus rotational qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
@@ -2079,29 +2151,29 @@ public:
     virtual const char* type() { return "ellipsoid"; }
 
     RBNodeEllipsoid(const MassProperties& mProps_B,
-                  const Transform&      X_PMb,
+                  const Transform&      X_PF,
                   const Transform&      X_BM,
                   const Vec3&           radii, // x,y,z
 				  int&                  nextUSlot,
                   int&                  nextUSqSlot,
                   int&                  nextQSlot)
-      : RigidBodyNodeSpec<3>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
+      : RigidBodyNodeSpec<3>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot),
         semi(radii)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
                            Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQ(q)    = R_MbM.convertToBodyFixed123();
+            toQ(q)    = R_FM.convertToBodyFixed123();
         else
-            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertToQuaternion().asVec4();
     }
 
     // We can't hope to represent arbitrary translations with a joint that has only
-    // rotational coordinates! However, since Mb is at the center of the ellipsoid and
+    // rotational coordinates! However, since F is at the center of the ellipsoid and
     // M on its surface, we can at least obtain a translation in the *direction* of
     // the requested translation. The magnitude must of course be set to end up with
     // the M origin right on the surface of the ellipsoid, and Mz will be the normal
@@ -2116,40 +2188,40 @@ public:
     // a direction to align with. And of course we can't do anything if "only" is true
     // here -- that means we aren't allowed to touch the rotations, and for this
     // joint that's all there is.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
-        if (only || T_MbM.norm() < Eps) return;
+    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
+        if (only || T_FM.norm() < Eps) return;
 
-        const UnitVec3 e(T_MbM); // direction from Mb origin towards desired M origin
-        const Real latitude  = std::atan2(-e[1],e[2]); // project onto Mb's yz plane
-        const Real longitude = std::atan2( e[0],e[2]); // project onto Mb's xz plane
+        const UnitVec3 e(T_FM); // direction from F origin towards desired M origin
+        const Real latitude  = std::atan2(-e[1],e[2]); // project onto F's yz plane
+        const Real longitude = std::atan2( e[0],e[2]); // project onto F's xz plane
 
 		// Calculate the current value of the spin coordinate (3rd Euler angle).
         Real spin;
 		if (getUseEulerAngles(mv)){
             spin = fromQ(q)[2];
 		} else {
-			const Rotation R_MbM_now(Quaternion(fromQuat(q)));
-            spin = R_MbM_now.convertToBodyFixed123()[2];
+			const Rotation R_FM_now(Quaternion(fromQuat(q)));
+            spin = R_FM_now.convertToBodyFixed123()[2];
         }
 
         // Calculate the desired rotation, which is a space-fixed 1-2 sequence for
         // latitude and longitude, followed by a body fixed rotation for spin.
-        const Rotation R_MbM = Rotation::aboutXThenOldY(latitude,longitude)
+        const Rotation R_FM = Rotation::aboutXThenOldY(latitude,longitude)
                                 * Rotation::aboutZ(spin);
 
         if (getUseEulerAngles(mv)) {
-            const Vec3 q123 = R_MbM.convertToBodyFixed123();
+            const Vec3 q123 = R_FM.convertToBodyFixed123();
             toQ(q) = q123;
         } else {
-            const Quaternion quat = R_MbM.convertToQuaternion();
+            const Quaternion quat = R_FM.convertToQuaternion();
 			toQuat(q) = quat.asVec4();
         }
     }
 
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM,
                                   Vector& u) const
     {
-            toU(u) = w_MbM; // relative angular velocity always used as generalized speeds
+            toU(u) = w_FM; // relative angular velocity always used as generalized speeds
     }
 
     // We can't do general linear velocity with this rotation-only mobilizer, but we can
@@ -2158,23 +2230,23 @@ public:
     // which is along that direction. (The resulting vz won't be zero, though, but it
     // is completely determined by vx,vy.)
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
-        Transform X_MbM;
-        calcAcrossJointTransform(mv,q,X_MbM);
+        Transform X_FM;
+        calcAcrossJointTransform(mv,q,X_FM);
 
-        const Vec3 v_MbM_M    = ~X_MbM.R()*v_MbM; // we can only do vx and vy in this frame
-        const Vec3 r_MbM_M    = ~X_MbM.R()*X_MbM.T(); 
-        const Vec3 wnow_MbM_M = ~X_MbM.R()*fromU(u); // preserve z component
+        const Vec3 v_FM_M    = ~X_FM.R()*v_FM; // we can only do vx and vy in this frame
+        const Vec3 r_FM_M    = ~X_FM.R()*X_FM.T(); 
+        const Vec3 wnow_FM_M = ~X_FM.R()*fromU(u); // preserve z component
 
         // Now vx can only result from angular velocity about y, vy from x.
         // TODO: THIS IS ONLY RIGHT FOR A SPHERE!!!
-        const Real wx = -v_MbM_M[1]/r_MbM_M[2];
-        const Real wy = v_MbM_M[0]/r_MbM_M[2];
-        const Vec3 w_MbM_M(wx, wy, wnow_MbM_M[2]);
-        const Vec3 w_MbM = X_MbM.R()*w_MbM_M;
+        const Real wx = -v_FM_M[1]/r_FM_M[2];
+        const Real wy = v_FM_M[0]/r_FM_M[2];
+        const Vec3 w_FM_M(wx, wy, wnow_FM_M[2]);
+        const Vec3 w_FM = X_FM.R()*w_FM_M;
 
-        toU(u) = w_MbM;
+        toU(u) = w_FM;
     }
 
     // Precalculate sines and cosines.
@@ -2204,56 +2276,56 @@ public:
         }
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-		// Calcuate the rotation R_MbM first.
+		// Calcuate the rotation R_FM first.
 		if (getUseEulerAngles(mv)){
 			const Vec3& a = fromQ(q);		
-			X_MbM.updR().setToBodyFixed123(a);
+			X_FM.updR().setToBodyFixed123(a);
 		} else {
             // TODO: should use qnorm pool
             //       Conversion to Quaternion here involves expensive normalization
             //       because state variables q can never be assumed normalized.
 			Quaternion quat = Quaternion(fromQuat(q));
-            X_MbM.updR().setToQuaternion(quat);
+            X_FM.updR().setToQuaternion(quat);
         }
 
-		const Vec3& n = X_MbM.R().z();
-		X_MbM.updT() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
+		const Vec3& n = X_FM.R().z();
+		X_FM.updT() = Vec3(semi[0]*n[0], semi[1]*n[1], semi[2]*n[2]);
 	}
 
-    // Generalized speeds are the angular velocity expressed in Mb, so they
-    // cause rotations around Mb x,y,z axes respectively.
+    // Generalized speeds are the angular velocity expressed in F, so they
+    // cause rotations around F x,y,z axes respectively.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-		const Vec3& n = getX_MbM(pc).z();
+		const Vec3& n = getX_FM(pc).z();
 
-		H_MbM[0] = SpatialRow( Row3(1,0,0), Row3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
-		H_MbM[1] = SpatialRow( Row3(0,1,0), Row3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
-		H_MbM[2] = SpatialRow( Row3(0,0,1), Row3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
+		H_FM[0] = SpatialRow( Row3(1,0,0), Row3(      0,      -n[2]*semi[1], n[1]*semi[2]) );
+		H_FM[1] = SpatialRow( Row3(0,1,0), Row3( n[2]*semi[0],       0,     -n[0]*semi[2]) );
+		H_FM[2] = SpatialRow( Row3(0,0,1), Row3(-n[1]*semi[0], n[0]*semi[1],       0     ) );
     }
 
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-		const Vec3& n     = getX_MbM(pc).z(); // ellipsoid normal
-		const Vec3& w_MbM = getV_MbM(vc)[0];  // angular velocity of M in Mb
+		const Vec3& n     = getX_FM(pc).z(); // ellipsoid normal
+		const Vec3& w_FM = getV_FM(vc)[0];  // angular velocity of M in F
 
-		const Vec3 ndot = w_MbM % n; // time derivative of n in Mb
+		const Vec3 ndot = w_FM % n; // time derivative of n in F
 
-		H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
-		H_MbM_Dot[1] = SpatialRow( Row3(0), Row3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
-		H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
+		H_FM_Dot[0] = SpatialRow( Row3(0), Row3(      0,         -ndot[2]*semi[1], ndot[1]*semi[2]) );
+		H_FM_Dot[1] = SpatialRow( Row3(0), Row3( ndot[2]*semi[0],       0,        -ndot[0]*semi[2]) );
+		H_FM_Dot[2] = SpatialRow( Row3(0), Row3(-ndot[1]*semi[0], ndot[0]*semi[1],       0        ) );
     }
 
     void calcQDot(
@@ -2263,14 +2335,14 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const Vec3& w_MbM = fromU(u); // angular velocity of M in Mb 
+        const Vec3& w_FM = fromU(u); // angular velocity of M in F 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdot) = Rotation::convertAngVelToBodyFixed123Dot(fromQ(q),
-                                        ~R_MbM*w_MbM); // need w in *body*, not parent
+                                        ~R_FM*w_FM); // need w in *body*, not parent
         } else
-            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_MbM);
+            toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),w_FM);
     }
  
     void calcQDotDot(
@@ -2281,17 +2353,17 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_MbM     = fromU(u); // angular velocity of J in Jb, expr in Jb
-        const Vec3& w_MbM_dot = fromU(udot);
+        const Vec3& w_FM     = fromU(u); // angular velocity of J in Jb, expr in Jb
+        const Vec3& w_FM_dot = fromU(udot);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot) = Vec4(0); // TODO: kludge, clear unused element
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQ(qdotdot)    = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                  (fromQ(q), ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
+                                  (fromQ(q), ~R_FM*w_FM, ~R_FM*w_FM_dot);
         } else
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),w_MbM,w_MbM_dot);
+                                  (fromQuat(q),w_FM,w_FM_dot);
     }
 
     void copyQ(
@@ -2347,12 +2419,12 @@ public:
 // three translational. The rotation is like the ball joint above; the
 // translation is like the Cartesian joint above.
 // TODO: to get this to work I had to make the translations be in the outboard
-// frame (M, not Mb). So currently the generalized coordinates are:
+// frame (M, not F). So currently the generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
-//   * translation from OMb to OM as a 3-vector in the outboard body mobilizer (M) frame
+//   * translation from OF to OM as a 3-vector in the outboard body mobilizer (M) frame
 // and generalized speeds are:
-//   * angular velocity w_MbM as a vector expressed in the Mb frame
-//   * linear velocity of the M origin in Mb (v_MbM), expressed in M
+//   * angular velocity w_FM as a vector expressed in the F frame
+//   * linear velocity of the M origin in F (v_FM), expressed in M
 // Thus translational qdots are just generalized speeds, but rotational
 // qdots have to be derived from the generalized speeds to be turned into
 // either 4 quaternion derivatives or 3 Euler angle derivatives.
@@ -2362,49 +2434,49 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeTranslateRotate3(const MassProperties& mProps_B,
-                           const Transform&      X_PMb,
+                           const Transform&      X_PF,
                            const Transform&      X_BM,
                            int&                  nextUSlot,
                            int&                  nextUSqSlot,
                            int&                  nextQSlot)
-      : RigidBodyNodeSpec<6>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<6>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0) = R_MbM.convertToBodyFixed123();
+            toQVec3(q,0) = R_FM.convertToBodyFixed123();
         else
-            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertToQuaternion().asVec4();
     }
 
-    // The user gives us the translation vector from OMb to OM as a vector expressed in Mb, which
+    // The user gives us the translation vector from OF to OM as a vector expressed in F, which
     // is what we use as translational generalized coordinates. Also, with a free joint 
     // we never have to change orientation coordinates in order to achieve a translation.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
         if (getUseEulerAngles(mv))
-            toQVec3(q,3) = T_MbM; // skip the 3 Euler angles
+            toQVec3(q,3) = T_FM; // skip the 3 Euler angles
         else
-            toQVec3(q,4) = T_MbM; // skip the 4 quaternions
+            toQVec3(q,4) = T_FM; // skip the 4 quaternions
     }
 
-    // Our 3 rotational generalized speeds are just the angular velocity vector of M in Mb,
-    // expressed in Mb, which is exactly what the user provides here.
-    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_MbM,
+    // Our 3 rotational generalized speeds are just the angular velocity vector of M in F,
+    // expressed in F, which is exactly what the user provides here.
+    void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
-        toUVec3(u,0) = w_MbM; // relative angular velocity always used as generalized speeds
+        toUVec3(u,0) = w_FM; // relative angular velocity always used as generalized speeds
     }
 
-    // Our 3 translational generalized speeds are the linear velocity of M's origin in Mb,
-    // expressed in Mb, which is just what the user gives us.
+    // Our 3 translational generalized speeds are the linear velocity of M's origin in F,
+    // expressed in F, which is just what the user gives us.
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
-        toUVec3(u,3) = v_MbM;
+        toUVec3(u,3) = v_FM;
     }
 
     // Precalculate sines and cosines.
@@ -2432,53 +2504,53 @@ public:
         }
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform& X_MbM) const 
+        Transform& X_FM) const 
     {
         if (getUseEulerAngles(mv)) {
-            X_MbM.updR().setToBodyFixed123(fromQVec3(q,0));
-            X_MbM.updT() = fromQVec3(q,3); // translation is in Mb already
+            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updT() = fromQVec3(q,3); // translation is in F already
         } else {
-            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_MbM.updT() = fromQVec3(q,4); // translation is in Mb already
+            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updT() = fromQVec3(q,4); // translation is in F already
         }
     }
 
 
     // The generalized speeds for this 6-dof ("free") joint are 
-    //   (1) the angular velocity of M in the Mb frame, expressed in Mb, and
-    //   (2) the (linear) velocity of M's origin in Mb, expressed in Mb.
+    //   (1) the angular velocity of M in the F frame, expressed in F, and
+    //   (2) the (linear) velocity of M's origin in F, expressed in F.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        H_MbM[0] = SpatialRow( Row3(1,0,0),   Row3(0)   );  // rotations
-        H_MbM[1] = SpatialRow( Row3(0,1,0),   Row3(0)   );
-        H_MbM[2] = SpatialRow( Row3(0,0,1),   Row3(0)   );
+        H_FM[0] = SpatialRow( Row3(1,0,0),   Row3(0)   );  // rotations
+        H_FM[1] = SpatialRow( Row3(0,1,0),   Row3(0)   );
+        H_FM[2] = SpatialRow( Row3(0,0,1),   Row3(0)   );
 
-        H_MbM[3] = SpatialRow(   Row3(0),   Row3(1,0,0) );  // translations
-        H_MbM[4] = SpatialRow(   Row3(0),   Row3(0,1,0) );
-        H_MbM[5] = SpatialRow(   Row3(0),   Row3(0,0,1) );
+        H_FM[3] = SpatialRow(   Row3(0),   Row3(1,0,0) );  // translations
+        H_FM[4] = SpatialRow(   Row3(0),   Row3(0,1,0) );
+        H_FM[5] = SpatialRow(   Row3(0),   Row3(0,0,1) );
     }
 
-    // Since the Jacobian above is constant in Mb, its derivative in Mb is 0.
+    // Since the Jacobian above is constant in F, its derivative in F is 0.
     void calcAcrossJointVelocityJacobianDot(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        H_MbM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
 
-        H_MbM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[5] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[5] = SpatialRow( Row3(0), Row3(0) );
     }
 
     void calcQDot(
@@ -2488,19 +2560,19 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
-        const Vec3& w_MbM = fromUVec3(u,0); // Angular velocity in Mb
-        const Vec3& v_MbM = fromUVec3(u,3); // Linear velocity in Mb
+        const Vec3& w_FM = fromUVec3(u,0); // Angular velocity in F
+        const Vec3& v_FM = fromUVec3(u,3); // Linear velocity in F
         if (getUseEulerAngles(mv)) {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             const Vec3& theta = fromQVec3(q,0); // Euler angles
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
-                                            ~R_MbM*w_MbM); // need w in *body*, not parent
+                                            ~R_FM*w_FM); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdot,3) = v_MbM;
+            toQVec3(qdot,3) = v_FM;
         } else {
             const Vec4& quat = fromQuat(q);
-            toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,w_MbM);
-            toQVec3(qdot,4) = v_MbM;
+            toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,w_FM);
+            toQVec3(qdot,4) = v_FM;
         }
     }
  
@@ -2512,22 +2584,22 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3& w_MbM     = fromUVec3(u,0); // angular velocity of M in Mb
-        const Vec3& v_MbM     = fromUVec3(u,3); // linear velocity of M in Mb, expressed in Mb
-        const Vec3& w_MbM_dot = fromUVec3(udot,0);
-        const Vec3& v_MbM_dot = fromUVec3(udot,3);
+        const Vec3& w_FM     = fromUVec3(u,0); // angular velocity of M in F
+        const Vec3& v_FM     = fromUVec3(u,3); // linear velocity of M in F, expressed in F
+        const Vec3& w_FM_dot = fromUVec3(udot,0);
+        const Vec3& v_FM_dot = fromUVec3(udot,3);
         if (getUseEulerAngles(mv)) {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             const Vec3& theta  = fromQVec3(q,0); // Euler angles
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                             (theta, ~R_MbM*w_MbM, ~R_MbM*w_MbM_dot);
+                                             (theta, ~R_FM*w_FM, ~R_FM*w_FM_dot);
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdotdot,3) = v_MbM_dot;
+            toQVec3(qdotdot,3) = v_FM_dot;
         } else {
             const Vec4& quat  = fromQuat(q);
             toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
-                                             (quat,w_MbM,w_MbM_dot);
-            toQVec3(qdotdot,4) = v_MbM_dot;
+                                             (quat,w_FM,w_FM_dot);
+            toQVec3(qdotdot,4) = v_FM_dot;
         }
     }
 
@@ -2609,8 +2681,8 @@ public:
 // To summarize, the generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
 // and generalized speeds are:
-//   * the x,y components of the angular velocity w_MbM_M, that is, the angular
-//     velocity of M in Mb expressed in M (where we want wz=0).
+//   * the x,y components of the angular velocity w_FM_M, that is, the angular
+//     velocity of M in F expressed in M (where we want wz=0).
 // Thus the qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeLineOrientation : public RigidBodyNodeSpec<2> {
@@ -2618,48 +2690,48 @@ public:
     virtual const char* type() { return "lineOrientation"; }
 
     RBNodeLineOrientation(const MassProperties& mProps_B,
-                          const Transform&      X_PMb,
+                          const Transform&      X_PF,
                           const Transform&      X_BM,
                           int&                  nextUSlot,
                           int&                  nextUSqSlot,
                           int&                  nextQSlot)
-      : RigidBodyNodeSpec<2>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<2>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0)    = R_MbM.convertToBodyFixed123();
+            toQVec3(q,0)    = R_FM.convertToBodyFixed123();
         else
-            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertToQuaternion().asVec4();
     }
 
-    void setQToFitTranslation(const SBModelVars&, const Vec3& T_MbM, Vector& q, bool only) const {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+    void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a translation by rotating. So the only translation we can represent is 0.
     }
 
-    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
+    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
-        Rotation R_MbM;
+        Rotation R_FM;
         if (getUseEulerAngles(mv))
-            R_MbM.setToBodyFixed123(fromQVec3(q,0));
+            R_FM.setToBodyFixed123(fromQVec3(q,0));
         else {
             // TODO: should use qnorm pool
-            R_MbM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            R_FM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
-        const Vec3 w_MbM_M = ~R_MbM*w_MbM;
-        toU(u) = Vec2(w_MbM_M[0], w_MbM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
+        const Vec3 w_FM_M = ~R_FM*w_FM;
+        toU(u) = Vec2(w_FM_M[0], w_FM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
     }
 
     void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector&, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars&, const Vector&, const Vec3& v_FM, Vector& u, bool only) const
     {
-        // M and Mb frame origins are always coincident for this mobilizer so there is no
+        // M and F frame origins are always coincident for this mobilizer so there is no
         // way to create a linear velocity by rotating. So the only linear velocity
         // we can represent is 0.
     }
@@ -2689,38 +2761,38 @@ public:
         }
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform&         X_MbM) const
+        Transform&         X_FM) const
     {
-        X_MbM.updT() = 0.; // This joint can't translate.
+        X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_MbM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
         else {
             // TODO: should use qnorm pool
-            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
     }
 
     // The generalized speeds for this 2-dof rotational joint are the x and y
-    // components of the angular velocity of M in the Mb frame, expressed in the *M*
+    // components of the angular velocity of M in the F frame, expressed in the *M*
     // frame.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
-        const Vec3&     My_Mb = R_MbM.y(); // M's y axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        H_MbM[0] = SpatialRow( ~Mx_Mb, Row3(0) );
-        H_MbM[1] = SpatialRow( ~My_Mb, Row3(0) );
+        H_FM[0] = SpatialRow( ~Mx_F, Row3(0) );
+        H_FM[1] = SpatialRow( ~My_F, Row3(0) );
     }
 
-    // Since the Jacobian above is not constant in Mb,
+    // Since the Jacobian above is not constant in F,
     // its time derivative is non zero. Here we use the fact that for
     // a vector r_B_A fixed in a moving frame B but expressed in another frame A,
     // its time derivative in A is the angular velocity of B in A crossed with
@@ -2729,16 +2801,16 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
-        const Vec3&     My_Mb = R_MbM.y(); // M's y axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        const Vec3&     w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_MbM_Dot[0] = SpatialRow( ~(w_MbM % Mx_Mb), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( ~(w_MbM % My_Mb), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( ~(w_FM % Mx_F), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( ~(w_FM % My_F), Row3(0) );
     }
 
     void calcQDot(
@@ -2748,15 +2820,15 @@ public:
         const Vector&          u, 
         Vector&                qdot) const 
     {
-        const Vec3 w_MbM_M = fromU(u).append1(0); // angular velocity of M in Mb, exp in M (with wz=0) 
+        const Vec3 w_FM_M = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0) 
         if (getUseEulerAngles(mv)) {
             toQuat(qdot)    = Vec4(0); // TODO: kludge, clear unused element
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(fromQVec3(q,0),
-                                        w_MbM_M); // need w in *body*, not parent
+                                        w_FM_M); // need w in *body*, not parent
         } else {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQuat(qdot) = Rotation::convertAngVelToQuaternionDot(fromQuat(q),
-                                        R_MbM*w_MbM_M); // need w in *parent* frame
+                                        R_FM*w_FM_M); // need w in *parent* frame
         }
     }
  
@@ -2768,17 +2840,17 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3 w_MbM_M     = fromU(u).append1(0); // angular velocity of M in Mb, exp in M (with wz=0)
-        const Vec3 w_MbM_M_dot = fromU(udot).append1(0);
+        const Vec3 w_FM_M     = fromU(u).append1(0); // angular velocity of M in F, exp in M (with wz=0)
+        const Vec3 w_FM_M_dot = fromU(udot).append1(0);
 
         if (getUseEulerAngles(mv)) {
             toQuat(qdotdot)    = Vec4(0); // TODO: kludge, clear unused element
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                       (fromQVec3(q,0), w_MbM_M, w_MbM_M_dot); // body frame
+                                       (fromQVec3(q,0), w_FM_M, w_FM_M_dot); // body frame
         } else {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             toQuat(qdotdot) = Rotation::convertAngVelDotToQuaternionDotDot
-                                  (fromQuat(q),R_MbM*w_MbM_M,R_MbM*w_MbM_M_dot); // parent frame
+                                  (fromQuat(q),R_FM*w_FM_M,R_FM*w_FM_M_dot); // parent frame
         }
     }
 
@@ -2848,12 +2920,12 @@ public:
 //
 // To summarize, the generalized coordinates are:
 //   * 4 quaternions or 3 1-2-3 body fixed Euler angles (that is, fixed in M)
-//   * 3 components of the translation vector T_MbM (that is, vector from origin
-//     of Mb to origin of M, expressed in Mb)
+//   * 3 components of the translation vector T_FM (that is, vector from origin
+//     of F to origin of M, expressed in F)
 // and generalized speeds are:
-//   * the x,y components of the angular velocity w_MbM_M, that is, the angular
-//     velocity of M in Mb expressed in *M* (where we want wz=0).
-//   * 3 components of the linear velocity of origin of M in Mb, expressed in Mb.
+//   * the x,y components of the angular velocity w_FM_M, that is, the angular
+//     velocity of M in F expressed in *M* (where we want wz=0).
+//   * 3 components of the linear velocity of origin of M in F, expressed in F.
 // Thus the qdots have to be derived from the generalized speeds to
 // be turned into either 4 quaternion derivatives or 3 Euler angle derivatives.
 class RBNodeFreeLine : public RigidBodyNodeSpec<5> {
@@ -2861,58 +2933,58 @@ public:
     virtual const char* type() { return "full"; }
 
     RBNodeFreeLine(const MassProperties& mProps_B,
-                   const Transform&      X_PMb,
+                   const Transform&      X_PF,
                    const Transform&      X_BM,
                    int&                  nextUSlot,
                    int&                  nextUSqSlot,
                    int&                  nextQSlot)
-      : RigidBodyNodeSpec<5>(mProps_B,X_PMb,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
+      : RigidBodyNodeSpec<5>(mProps_B,X_PF,X_BM,nextUSlot,nextUSqSlot,nextQSlot)
     {
         updateSlots(nextUSlot,nextUSqSlot,nextQSlot);
     }
 
-    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_MbM,
+    void setQToFitRotation(const SBModelVars& mv, const Rotation& R_FM,
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0) = R_MbM.convertToBodyFixed123();
+            toQVec3(q,0) = R_FM.convertToBodyFixed123();
         else
-            toQuat(q) = R_MbM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertToQuaternion().asVec4();
     }
 
-    // The user gives us the translation vector from OMb to OM as a vector expressed in Mb.
+    // The user gives us the translation vector from OF to OM as a vector expressed in F.
     // With a free joint we never have to *change* orientation coordinates in order to achieve a translation.
     // Note: a quaternion from a state is not necessarily normalized so can't be used
     // direction as though it were a set of Euler parameters; it must be normalized first.
-    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_MbM, Vector& q, bool only) const {
+    void setQToFitTranslation(const SBModelVars& mv, const Vec3& T_FM, Vector& q, bool only) const {
         if (getUseEulerAngles(mv))
-            toQVec3(q,3) = T_MbM; // skip the 3 Euler angles
+            toQVec3(q,3) = T_FM; // skip the 3 Euler angles
         else
-            toQVec3(q,4) = T_MbM; // skip the 4 quaternions
+            toQVec3(q,4) = T_FM; // skip the 4 quaternions
     }
 
     // Our 2 rotational generalized speeds are just the (x,y) components of the
-    // angular velocity vector of M in Mb, expressed in M.
-    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_MbM,
+    // angular velocity vector of M in F, expressed in M.
+    void setUToFitAngularVelocity(const SBModelVars& mv, const Vector& q, const Vec3& w_FM,
                                      Vector& u) const
     {
-        Rotation R_MbM;
+        Rotation R_FM;
         if (getUseEulerAngles(mv))
-            R_MbM.setToBodyFixed123(fromQVec3(q,0));
+            R_FM.setToBodyFixed123(fromQVec3(q,0));
         else {
             // TODO: should use qnorm pool
-            R_MbM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            R_FM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
         }
-        const Vec3 w_MbM_M = ~R_MbM*w_MbM;
-        toU(u).updSubVec<2>(0) = Vec2(w_MbM_M[0], w_MbM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
+        const Vec3 w_FM_M = ~R_FM*w_FM;
+        toU(u).updSubVec<2>(0) = Vec2(w_FM_M[0], w_FM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
     }
 
-    // Our 3 translational generalized speeds are the linear velocity of M's origin in Mb,
-    // expressed in Mb. The user gives us that same vector.
+    // Our 3 translational generalized speeds are the linear velocity of M's origin in F,
+    // expressed in F. The user gives us that same vector.
     void setUToFitLinearVelocity
-       (const SBModelVars& mv, const Vector& q, const Vec3& v_MbM, Vector& u, bool only) const
+       (const SBModelVars& mv, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
-        toUVec3(u,2) = v_MbM;
+        toUVec3(u,2) = v_FM;
     }
 
     // Precalculate sines and cosines.
@@ -2940,43 +3012,43 @@ public:
         }
     }
 
-    // Calculate X_MbM.
+    // Calculate X_FM.
     void calcAcrossJointTransform(
         const SBModelVars& mv,
         const Vector&      q,
-        Transform& X_MbM) const 
+        Transform& X_FM) const 
     {
         if (getUseEulerAngles(mv)) {
-            X_MbM.updR().setToBodyFixed123(fromQVec3(q,0));
-            X_MbM.updT() = fromQVec3(q,3); // translation is in Mb
+            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updT() = fromQVec3(q,3); // translation is in F
         } else {
-            X_MbM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
-            X_MbM.updT() = fromQVec3(q,4);  // translation is in Mb
+            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updT() = fromQVec3(q,4);  // translation is in F
         }
     }
 
 
     // The generalized speeds for this 5-dof ("free line") joint are 
-    //   (1) the (x,y) components of angular velocity of M in the Mb frame, expressed in M, and
-    //   (2) the (linear) velocity of M's origin in Mb, expressed in Mb.
+    //   (1) the (x,y) components of angular velocity of M in the F frame, expressed in M, and
+    //   (2) the (linear) velocity of M's origin in F, expressed in F.
     void calcAcrossJointVelocityJacobian(
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
-        HType&                 H_MbM) const
+        HType&                 H_FM) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
-        const Vec3&     My_Mb = R_MbM.y(); // M's y axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        H_MbM[0] = SpatialRow( ~Mx_Mb, Row3(0) );        // x,y angular velocity in M, re-expressed im Mb
-        H_MbM[1] = SpatialRow( ~My_Mb, Row3(0) );
+        H_FM[0] = SpatialRow( ~Mx_F, Row3(0) );        // x,y angular velocity in M, re-expressed im F
+        H_FM[1] = SpatialRow( ~My_F, Row3(0) );
 
-        H_MbM[2] = SpatialRow( Row3(0), Row3(1,0,0) );   // translations in Mb
-        H_MbM[3] = SpatialRow( Row3(0), Row3(0,1,0) );
-        H_MbM[4] = SpatialRow( Row3(0), Row3(0,0,1) );
+        H_FM[2] = SpatialRow( Row3(0), Row3(1,0,0) );   // translations in F
+        H_FM[3] = SpatialRow( Row3(0), Row3(0,1,0) );
+        H_FM[4] = SpatialRow( Row3(0), Row3(0,0,1) );
     }
 
-    // Since the first two rows of the Jacobian above are not constant in Mb,
+    // Since the first two rows of the Jacobian above are not constant in F,
     // its time derivative is non zero. Here we use the fact that for
     // a vector r_B_A fixed in a moving frame B but expressed in another frame A,
     // its time derivative in A is the angular velocity of B in A crossed with
@@ -2985,21 +3057,21 @@ public:
         const SBModelVars&     mv,
         const SBPositionCache& pc, 
         const SBVelocityCache& vc, 
-        HType&                 H_MbM_Dot) const
+        HType&                 H_FM_Dot) const
     {
-        const Rotation& R_MbM = getX_MbM(pc).R();
-        const Vec3&     Mx_Mb = R_MbM.x(); // M's x axis, expressed in Mb
-        const Vec3&     My_Mb = R_MbM.y(); // M's y axis, expressed in Mb
+        const Rotation& R_FM = getX_FM(pc).R();
+        const Vec3&     Mx_F = R_FM.x(); // M's x axis, expressed in F
+        const Vec3&     My_F = R_FM.y(); // M's y axis, expressed in F
 
-        const Vec3&     w_MbM = getV_MbM(vc)[0]; // angular velocity of M in Mb
+        const Vec3&     w_FM = getV_FM(vc)[0]; // angular velocity of M in F
 
-        H_MbM_Dot[0] = SpatialRow( ~(w_MbM % Mx_Mb), Row3(0) );
-        H_MbM_Dot[1] = SpatialRow( ~(w_MbM % My_Mb), Row3(0) );
+        H_FM_Dot[0] = SpatialRow( ~(w_FM % Mx_F), Row3(0) );
+        H_FM_Dot[1] = SpatialRow( ~(w_FM % My_F), Row3(0) );
 
-        // For translation in Mb.
-        H_MbM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
-        H_MbM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
+        // For translation in F.
+        H_FM_Dot[2] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[3] = SpatialRow( Row3(0), Row3(0) );
+        H_FM_Dot[4] = SpatialRow( Row3(0), Row3(0) );
     }
 
     void calcQDot(
@@ -3009,21 +3081,21 @@ public:
         const Vector&          u,
         Vector&                qdot) const
     {
-        const Vec3  w_MbM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
-        const Vec3& v_MbM   = fromUVec3(u,2);                    // Linear velocity in Mb
+        const Vec3  w_FM_M = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity in M
+        const Vec3& v_FM   = fromUVec3(u,2);                    // Linear velocity in F
 
         if (getUseEulerAngles(mv)) {
             const Vec3& theta = fromQVec3(q,0); // Euler angles
             toQVec3(qdot,0) = Rotation::convertAngVelToBodyFixed123Dot(theta,
-                                            w_MbM_M); // need w in *body*, not parent
+                                            w_FM_M); // need w in *body*, not parent
             toQVec3(qdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdot,3) = v_MbM;
+            toQVec3(qdot,3) = v_FM;
         } else {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             const Vec4& quat = fromQuat(q);
             toQuat (qdot)   = Rotation::convertAngVelToQuaternionDot(quat,
-                                            R_MbM*w_MbM_M); // need w in *parent* frame here
-            toQVec3(qdot,4) = v_MbM;
+                                            R_FM*w_FM_M); // need w in *parent* frame here
+            toQVec3(qdot,4) = v_FM;
         }
     }
  
@@ -3035,23 +3107,23 @@ public:
         const Vector&          udot, 
         Vector&                qdotdot) const 
     {
-        const Vec3  w_MbM_M     = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity of M in Mb, exp. in M
-        const Vec3& v_MbM       = fromUVec3(u,2); // linear velocity of M in Mb, expressed in M
-        const Vec3  w_MbM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);
-        const Vec3& v_MbM_dot   = fromUVec3(udot,2);
+        const Vec3  w_FM_M     = Vec3(fromU(u)[0], fromU(u)[1], 0); // Angular velocity of M in F, exp. in M
+        const Vec3& v_FM       = fromUVec3(u,2); // linear velocity of M in F, expressed in M
+        const Vec3  w_FM_M_dot = Vec3(fromU(udot)[0], fromU(udot)[1], 0);
+        const Vec3& v_FM_dot   = fromUVec3(udot,2);
 
         if (getUseEulerAngles(mv)) {
             const Vec3& theta  = fromQVec3(q,0); // Euler angles
             toQVec3(qdotdot,0) = Rotation::convertAngVelDotToBodyFixed123DotDot
-                                             (theta, w_MbM_M, w_MbM_M_dot); // needed in body frame here
+                                             (theta, w_FM_M, w_FM_M_dot); // needed in body frame here
             toQVec3(qdotdot,4) = Vec3(0); // TODO: kludge, clear unused element
-            toQVec3(qdotdot,3) = v_MbM_dot;
+            toQVec3(qdotdot,3) = v_FM_dot;
         } else {
-            const Rotation& R_MbM = getX_MbM(pc).R();
+            const Rotation& R_FM = getX_FM(pc).R();
             const Vec4& quat  = fromQuat(q);
             toQuat(qdotdot)   = Rotation::convertAngVelDotToQuaternionDotDot
-                                             (quat,R_MbM*w_MbM_M,R_MbM*w_MbM_M_dot); // needed in parent frame
-            toQVec3(qdotdot,4) = v_MbM_dot;
+                                             (quat,R_FM*w_FM_M,R_FM*w_FM_M_dot); // needed in parent frame
+            toQVec3(qdotdot,4) = v_FM_dot;
         }
     }
 
@@ -3104,28 +3176,28 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGround(
     const SBPositionCache& pc, 
     HType& H_PB_G) const
 {
-    const HType& H_MbM = getH_MbM(pc);
+    const HType& H_FM = getH_FM(pc);
 
-    // want r_MB_Mb, that is, the vector from OM to OB, expressed in Mb
-    const Vec3&     r_MB    = getX_MB().T();    // fixed
-    const Rotation& R_MbM   = getX_MbM(pc).R(); // just calculated
-    const Vec3      r_MB_Mb = R_MbM*r_MB;
+    // want r_MB_F, that is, the vector from OM to OB, expressed in F
+    const Vec3&     r_MB   = getX_MB().T();    // fixed
+    const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
+    const Vec3      r_MB_F = R_FM*r_MB;
 
     // Reminder: round brackets () applied to a matrix select columns.
     HType H_MB;
     H_MB(0) = Row3(0); // fills column with zero
-    H_MB(1) = H_MbM(0) * crossMat(r_MB_Mb);
+    H_MB(1) = H_FM(0) * crossMat(r_MB_F);
 
-    // Now we want R_GMb so we can reexpress the cross-joint velocity V_MbB (==V_PB)
+    // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
 
-    const Rotation& R_PMb = getX_PMb().R();      // fixed config of Mb in P
+    const Rotation& R_PF = getX_PF().R();      // fixed config of F in P
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
-    const Rotation  R_GMb = R_GP * R_PMb;
+    const Rotation  R_GF = R_GP * R_PF;
 
-    H_PB_G = (H_MbM + H_MB) * ~R_GMb;
+    H_PB_G = (H_FM + H_MB) * ~R_GF;
 }
 
 // Same for all mobilizers.
@@ -3137,44 +3209,44 @@ RigidBodyNodeSpec<dof>::calcParentToChildVelocityJacobianInGroundDot(
     const SBDynamicsCache& dc,
     HType& H_PB_G_Dot) const
 {
-    const HType& H_MbM = getH_MbM(pc);
-    const HType& H_MbM_Dot = getH_MbM_Dot(dc);
+    const HType& H_FM     = getH_FM(pc);
+    const HType& H_FM_Dot = getH_FM_Dot(dc);
 
     HType H_MB, H_MB_Dot;
 
-    // want r_MB_Mb, that is, the vector from OM to OB, expressed in Mb
-    const Vec3&     r_MB    = getX_MB().T();    // fixed
-    const Rotation& R_MbM   = getX_MbM(pc).R(); // just calculated
-    const Vec3      r_MB_Mb = R_MbM*r_MB;
+    // want r_MB_F, that is, the vector from OM to OB, expressed in F
+    const Vec3&     r_MB   = getX_MB().T();    // fixed
+    const Rotation& R_FM   = getX_FM(pc).R(); // just calculated
+    const Vec3      r_MB_F = R_FM*r_MB;
 
-    const Vec3& w_MbM = getV_MbM(vc)[0]; // local angular velocity
+    const Vec3& w_FM = getV_FM(vc)[0]; // local angular velocity
 
     // Reminder: round brackets () applied to a matrix select columns.
     H_MB(0) = Row3(0); // fills column with zero
-    H_MB(1) = H_MbM(0) * crossMat(r_MB_Mb);
+    H_MB(1) = H_FM(0) * crossMat(r_MB_F);
 
     H_MB_Dot(0) = Row3(0);
-    H_MB_Dot(1) =   H_MbM_Dot(0) * crossMat(r_MB_Mb) 
-                  + H_MbM(0)     * crossMat(w_MbM % r_MB_Mb);
+    H_MB_Dot(1) =   H_FM_Dot(0) * crossMat(r_MB_F) 
+                  + H_FM(0)     * crossMat(w_FM % r_MB_F);
 
-    // Now we want R_GMb so we can reexpress the cross-joint velocity V_MbB (==V_PB)
+    // Now we want R_GF so we can reexpress the cross-joint velocity V_FB (==V_PB)
     // in the ground frame, to get V_PB_G.
 
-    const Rotation& R_PMb = getX_PMb().R();      // fixed config of Mb in P
+    const Rotation& R_PF = getX_PF().R();      // fixed config of F in P
 
     // Calculated already since we're going base to tip.
     const Rotation& R_GP = getX_GP(pc).R(); // parent orientation in ground
-    const Rotation  R_GMb = R_GP * R_PMb;
+    const Rotation  R_GF = R_GP * R_PF;
 
-    const Vec3& w_GMb = getV_GP(vc)[0]; // Mb and P have same angular velocity
+    const Vec3& w_GF = getV_GP(vc)[0]; // F and P have same angular velocity
 
-    // Note: time derivative of R_GMb is crossMat(w_GMb)*R_GMb, so derivative
-    // of ~R_GMb is ~(crossMat(w_GMb)*R_GMb) = - ~R_GMb*crossMat(w_GMb) since
+    // Note: time derivative of R_GF is crossMat(w_GF)*R_GF, so derivative
+    // of ~R_GF is ~(crossMat(w_GF)*R_GF) = - ~R_GF*crossMat(w_GF) since
     // crossMat's are skew-symmetric.
-    //      H_PB_G = (H_MbM + H_MB) * ~R_GMb (see above method)
+    //      H_PB_G = (H_FM + H_MB) * ~R_GF (see above method)
     const HType& H_PB_G = getH(pc);
-    H_PB_G_Dot =  (H_MbM_Dot + H_MB_Dot) * ~R_GMb
-                 - H_PB_G * crossMat(w_GMb);
+    H_PB_G_Dot =  (H_FM_Dot + H_MB_Dot) * ~R_GF
+                 - H_PB_G * crossMat(w_GF);
 }
 
 //
@@ -3261,6 +3333,32 @@ RigidBodyNodeSpec<dof>::calcYOutward(
 //
 template<int dof> void
 RigidBodyNodeSpec<dof>::calcZ(
+    const SBStateDigest&       sbs,
+    const Vector&              mobilityForces,
+    const Vector_<SpatialVec>& bodyForces) const 
+{
+    const SBPositionCache& pc = sbs.getPositionCache();
+    const SBDynamicsCache& dc = sbs.getDynamicsCache();
+    SBAccelerationCache&   ac = sbs.updAccelerationCache();
+
+    SpatialVec& z = updZ(ac);
+    z = getCentrifugalForces(dc) - fromB(bodyForces);
+
+    for (int i=0 ; i<(int)children.size() ; i++) {
+        const SpatialVec& zChild    = children[i]->getZ(ac);
+        const PhiMatrix&  phiChild  = children[i]->getPhi(pc);
+        const SpatialVec& GepsChild = children[i]->getGepsilon(ac);
+
+        z += phiChild * (zChild + GepsChild);
+    }
+
+    updEpsilon(ac)  = fromU(mobilityForces) - getH(pc)*z;
+    updNu(ac)       = getDI(dc) * getEpsilon(ac);
+    updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
+}
+/*
+template<int dof> void
+RigidBodyNodeSpec<dof>::calcZ(
     const SBPositionCache&     pc,
     const SBDynamicsCache&     dc,
     const Vector&              mobilityForces,
@@ -3282,7 +3380,7 @@ RigidBodyNodeSpec<dof>::calcZ(
     updNu(ac)       = getDI(dc) * getEpsilon(ac);
     updGepsilon(ac) = getG(dc)  * getEpsilon(ac);
 }
-
+*/
 //
 // Calculate acceleration in internal coordinates, based on the last set
 // of forces that were fed to calcZ (as embodied in 'nu').

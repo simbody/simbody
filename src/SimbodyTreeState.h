@@ -76,11 +76,19 @@
 #include <cassert>
 #include <vector>
 
+
+using SimTK::State; using SimTK::Array; using SimTK::Vector; using SimTK::Vec3;
+using SimTK::Rotation; using SimTK::Transform; using SimTK::Inertia;
+using SimTK::Real; using SimTK::Vector_;
+using SimTK::UnitVec3; using SimTK::SpatialVec; using SimTK::SpatialRow; 
+using SimTK::SpatialMat; using SimTK::Matrix_;
+using SimTK::PhiMatrix; using SimTK::Mat33; using SimTK::MassProperties; using SimTK::Stage;
+
+class State;
+
 class SimbodyMatterSubsystemRep;
 class RigidBodyNode;
 template <int dof> class RigidBodyNodeSpec;
-
-namespace SimTK {
 
  // defined below
 
@@ -101,7 +109,6 @@ class SBVelocityCache;
 class SBDynamicsCache;
 class SBAccelerationCache;
 
-class State;
 
 // An object of this type is stored in the SimbodyMatterSubsystem after extended
 // construction in complete, then copied into a slot in the State on
@@ -199,7 +206,7 @@ public:
 
 public:
     void allocate(const SBTopologyCache& topology) {
-        totalMass = NaN;
+        totalMass = SimTK::NaN;
         centralInertias.resize(topology.nBodies);           // I_CB
         principalMoments.resize(topology.nBodies);          // (Ixx,Iyy,Izz)
         principalAxes.resize(topology.nBodies);             // [axx ayy azz]
@@ -222,10 +229,10 @@ public:
     Vector qnorm;   // nq  Contains normalized quaternions in appropriate slots;
                     //       all else is garbage.
 
-    Matrix_<Vec3> storageForHtMbM; // 2 x ndof (~H_MbM)
+    Matrix_<Vec3> storageForHtFM; // 2 x ndof (~H_FM)
     Matrix_<Vec3> storageForHt;    // 2 x ndof (~H_PB_G)
 
-    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_MbM)
+    Array<Transform>    bodyJointInParentJointFrame;  // nb (X_FM)
 
     Array<Transform>    bodyConfigInParent;           // nb (X_PB)
     Array<Transform>    bodyConfigInGround;           // nb (X_GB)
@@ -268,7 +275,7 @@ public:
         cq.resize(maxNQs);
         qnorm.resize(maxNQs);
 
-        storageForHtMbM.resize(2,nDofs);
+        storageForHtFM.resize(2,nDofs);
         storageForHt.resize(2,nDofs);
 
         bodyJointInParentJointFrame.resize(nBodies); 
@@ -311,7 +318,7 @@ public:
     // qdot is supplied directly by the State
     Vector_<SpatialVec> bodyVelocityInParent;      // nb (joint velocity)
     Vector_<SpatialVec> bodyVelocityInGround;      // nb (sVel)
-    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_MbM)
+    Vector_<SpatialVec> mobilizerRelativeVelocity; // nb (V_FM)
 
     // Distance constraint calculations. These are indexed by
     // *distance constraint* number, not *constraint* number.
@@ -361,7 +368,7 @@ public:
     // Dynamics
     Vector_<SpatialMat> articulatedBodyInertia;   // nb (P)
 
-    Matrix_<Vec3> storageForHtMbMDot; // 2 x ndof (~H_MbM_Dot)
+    Matrix_<Vec3> storageForHtFMDot; // 2 x ndof (~H_FM_Dot)
     Matrix_<Vec3> storageForHtDot;    // 2 x ndof (~H_PB_G_Dot)
 
     Vector_<SpatialVec> bodyVelocityInParentDerivRemainder; // VB_PB_G=~H_PB_G_Dot*u
@@ -390,7 +397,7 @@ public:
         const int nac     = tree.nDistanceConstraints; // acceleration constraints        
         
         articulatedBodyInertia.resize(nBodies); // TODO: ground initialization
-        storageForHtMbMDot.resize(2,nDofs);
+        storageForHtFMDot.resize(2,nDofs);
         storageForHtDot.resize(2,nDofs);
 
         bodyVelocityInParentDerivRemainder.resize(nBodies);       
@@ -628,7 +635,7 @@ inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
 
 /*
  * Objects of this class are constructed for a particular State, and then used
- * for a related series of computations. Depending on the stage to which the
+ * briefly for a related series of computations. Depending on the stage to which the
  * State has been advanced, and the computations to be performed, some or all
  * of the pointers here will be set to refer to State and State cache data
  * for Simbody, of the types defined above.
@@ -651,6 +658,8 @@ public:
         fillThroughStage(matter,g);
     }
 
+    // Stage g here is the stage we are about to compute. So we expect the referenced
+    // State to have been realized to at least stage g-1.
     void fillThroughStage(const SimbodyMatterSubsystemRep& matter, Stage g);
 
     // The State is read only, for cache entries you have a choice.
@@ -813,8 +822,5 @@ private:
     SBDynamicsCache*            dc;
     SBAccelerationCache*        ac;
 };
-
-
-} // namespace SimTK
 
 #endif // SimTK_SIMBODY_TREE_STATE_H_

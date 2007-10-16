@@ -199,7 +199,7 @@ SimbodyMatterSubsystemRep::getDefaultMobilizerFrame(MobilizedBodyId body) const
 
 const Transform&
 SimbodyMatterSubsystemRep::getDefaultMobilizerFrameOnParent(MobilizedBodyId body) const
-  { return getRigidBodyNode(body).getX_PMb(); }
+  { return getRigidBodyNode(body).getX_PF(); }
 
 const Transform&
 SimbodyMatterSubsystemRep::getBodyTransform(const State& s, MobilizedBodyId body) const
@@ -1057,6 +1057,7 @@ void SimbodyMatterSubsystemRep::calcArticulatedBodyInertias(const State& s) cons
 //   foreach tip {
 //     traverse back to node which has more than one child hinge.
 //   }
+/*
 void SimbodyMatterSubsystemRep::calcZ(const State& s, 
     const Vector&              mobilityForces,
     const Vector_<SpatialVec>& bodyForces) const
@@ -1070,6 +1071,20 @@ void SimbodyMatterSubsystemRep::calcZ(const State& s,
         for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
             const RigidBodyNode& node = *rbNodeLevels[i][j];
             node.calcZ(pc,dc,mobilityForces,bodyForces,ac);
+        }
+}
+*/
+void SimbodyMatterSubsystemRep::calcZ(const State& s, 
+    const Vector&              mobilityForces,
+    const Vector_<SpatialVec>& bodyForces) const
+{
+    const SBStateDigest sbs(s, *this, Stage::Acceleration);
+
+    // level 0 for atoms whose position is fixed
+    for (int i=rbNodeLevels.size()-1 ; i>=0 ; i--) 
+        for (int j=0 ; j<(int)rbNodeLevels[i].size() ; j++) {
+            const RigidBodyNode& node = *rbNodeLevels[i][j];
+            node.calcZ(sbs,mobilityForces,bodyForces);
         }
 }
 
@@ -1128,8 +1143,9 @@ void SimbodyMatterSubsystemRep::calcTreeAccelerations(const State& s,
     Vector_<SpatialVec>&       A_GB,
     Vector&                    udot) const 
 {
-    const SBPositionCache& pc = getPositionCache(s);
-    const SBDynamicsCache& dc = getDynamicsCache(s);
+    const SBStateDigest sbs(s, *this, Stage::Acceleration);
+    const SBPositionCache& pc = sbs.getPositionCache();
+    const SBDynamicsCache& dc = sbs.getDynamicsCache();
 
     assert(mobilityForces.size() == getTotalDOF());
     assert(bodyForces.size() == getNBodies());
@@ -1232,13 +1248,13 @@ void SimbodyMatterSubsystemRep::
 calcMobilizerQDotFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u, 
                        int nq, Real* qdot) const
 {
-    const SBStateDigest state(s, *this, Stage::Position);
+    const SBStateDigest sbState(s, *this, Stage::Position);
     const RigidBodyNode& n  = getRigidBodyNode(mb);
 
     assert(nu == n.getDOF());
-    assert(nq == n.getNQ(state.getModelVars()));
+    assert(nq == n.getNQ(sbState.getModelVars()));
 
-//    n.calcLocalQDotFromLocalU(mv,q,pc, u, qdot);
+    n.calcLocalQDotFromLocalU(sbState, u, qdot);
 }
 
 // State must be realized to Stage::Velocity, so that we can extract Q(q), QDot(q,u), and u from it to calculate
@@ -1247,16 +1263,13 @@ void SimbodyMatterSubsystemRep::
 calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot, 
                                   int nq, Real* qdotdot) const
 {
-    const SBModelVars&     mv = getModelVars(s);
-    const Vector&          q  = getQ(s);
-    const SBPositionCache& pc = getPositionCache(s);
-    const Vector&          u  = getU(s);
-
+    const SBStateDigest sbState(s, *this, Stage::Velocity);
     const RigidBodyNode& n  = getRigidBodyNode(mb);
-    assert(nu == n.getDOF());
-    assert(nq == n.getNQ(mv));
 
- //   n.calcLocalQDotDotFromLocalUDot(mv,q,pc,u, udot, qdotdot);
+    assert(nu == n.getDOF());
+    assert(nq == n.getNQ(sbState.getModelVars()));
+
+    n.calcLocalQDotDotFromLocalUDot(sbState, udot, qdotdot);
 }
 
 // State must be realized through Stage::Instance. Neither the State nor its
@@ -1264,10 +1277,14 @@ calcMobilizerQDotDotFromUDot(const State& s, MobilizedBodyId mb, int nu, const R
 // The number of q's is passed in as a sanity check, to make sure the caller
 // and the called mobilizer agree on the generalized coordinates.
 // Returns X_FM(q).
-const Transform SimbodyMatterSubsystemRep::
-calcMobilizerTransformFromQ(const State&, MobilizedBodyId, int nq, const Real* q) const {
-    assert(!"not implemented yet");
-    return Transform();
+Transform SimbodyMatterSubsystemRep::
+calcMobilizerTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const {
+    const SBStateDigest sbState(s, *this, Stage::Instance);
+    const RigidBodyNode& n  = getRigidBodyNode(mb);
+
+    assert(nq == n.getNQ(sbState.getModelVars()));
+
+    return n.calcMobilizerTransformFromQ(sbState, q);
 }
 
 // State must be realized through Stage::Position. Neither the State nor its
@@ -1276,8 +1293,13 @@ calcMobilizerTransformFromQ(const State&, MobilizedBodyId, int nq, const Real* q
 // and the called mobilizer agree on the generalized speeds.
 // Returns V_FM(q,u)=H_FM(q)*u, where the q dependency is extracted from the State via
 // the hinge transition matrix H_FM(q).
-const SpatialVec SimbodyMatterSubsystemRep::
-calcMobilizerVelocityFromU(const State&, MobilizedBodyId, int nu, const Real* u) const {
+SpatialVec SimbodyMatterSubsystemRep::
+calcMobilizerVelocityFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u) const {
+    const SBStateDigest sbState(s, *this, Stage::Position);
+    const RigidBodyNode& n  = getRigidBodyNode(mb);
+
+    assert(nu == n.getDOF());
+
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
 }
@@ -1288,8 +1310,13 @@ calcMobilizerVelocityFromU(const State&, MobilizedBodyId, int nu, const Real* u)
 // and the called mobilizer agree on the generalized accelerations.
 // Returns A_FM(q,u,udot)=H_FM(q)*udot + HDot_FM(q,u)*u where the q and u dependencies
 // are extracted from the State via H_FM(q), and HDot_FM(q,u).
-const SpatialVec SimbodyMatterSubsystemRep::
-calcMobilizerAccelerationFromUDot(const State&, MobilizedBodyId, int nu, const Real* udot) const{
+SpatialVec SimbodyMatterSubsystemRep::
+calcMobilizerAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const{
+    const SBStateDigest sbState(s, *this, Stage::Velocity);
+    const RigidBodyNode& n  = getRigidBodyNode(mb);
+
+    assert(nu == n.getDOF());
+
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
 }
@@ -1297,7 +1324,7 @@ calcMobilizerAccelerationFromUDot(const State&, MobilizedBodyId, int nu, const R
 // These perform the same computations as above but then transform the results so that they
 // relate the child body's frame B to its parent body's frame P, rather than the M and F frames
 // which are attached to B and P respectively but differ by a constant transform.
-const Transform SimbodyMatterSubsystemRep::
+Transform SimbodyMatterSubsystemRep::
 calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const {
     const Transform& X_PF = getMobilizerFrameOnParent(s,mb);
     const Transform& X_BM = getMobilizerFrame(s,mb);
@@ -1306,12 +1333,12 @@ calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, cons
     return X_PF * X_FM * ~X_BM; // X_PB
 }
 
-const SpatialVec SimbodyMatterSubsystemRep::
+SpatialVec SimbodyMatterSubsystemRep::
 calcParentToChildVelocityFromU(const State& s, MobilizedBodyId mb, int nu, const Real* u) const {
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
 }
-const SpatialVec SimbodyMatterSubsystemRep::
+SpatialVec SimbodyMatterSubsystemRep::
 calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const {
     assert(!"not implemented yet");
     return SpatialVec(Vec3(0),Vec3(0));
@@ -1417,7 +1444,7 @@ std::ostream& operator<<(std::ostream& o, const SimbodyMatterSubsystemRep& tree)
     /////////////////////
 
 void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, Stage g) {
-    assert(g <= matter.getStage(state));
+    assert(g <= matter.getStage(state).next());
     clear();
 
     if (g >= Stage::Model) {
@@ -1425,30 +1452,42 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
         mc = &matter.updModelCache(state);
     }
     if (g >= Stage::Instance) {
-        iv = &matter.getInstanceVars(state);
-        ic = &matter.updInstanceCache(state);
+        if (mc->instanceVarsIndex >= 0)
+            iv = &matter.getInstanceVars(state);
+        if (mc->instanceCacheIndex >= 0)
+            ic = &matter.updInstanceCache(state);
     }
     if (g >= Stage::Time) {
-        tv = &matter.getTimeVars(state);
-        tc = &matter.updTimeCache(state);
+        if (mc->timeVarsIndex >= 0)
+            tv = &matter.getTimeVars(state);
+        if (mc->timeCacheIndex >= 0)
+            tc = &matter.updTimeCache(state);
     }
     if (g >= Stage::Position) {
         q = &matter.getQ(state)[0];
-        pv = &matter.getPositionVars(state);
-        pc = &matter.updPositionCache(state);
+        if (mc->qVarsIndex >= 0)
+            pv = &matter.getPositionVars(state);
+        if (mc->qCacheIndex >= 0)
+            pc = &matter.updPositionCache(state);
     }
     if (g >= Stage::Velocity) {
         u = &matter.getU(state)[0];
-        vv = &matter.getVelocityVars(state);
-        vc = &matter.updVelocityCache(state);
+        if (mc->uVarsIndex >= 0)
+            vv = &matter.getVelocityVars(state);
+        if (mc->uCacheIndex >= 0)
+            vc = &matter.updVelocityCache(state);
     }
     if (g >= Stage::Dynamics) {
-        dv = &matter.getDynamicsVars(state);
-        dc = &matter.updDynamicsCache(state);
+        if (mc->dynamicsVarsIndex >= 0)
+            dv = &matter.getDynamicsVars(state);
+        if (mc->dynamicsCacheIndex >= 0)
+            dc = &matter.updDynamicsCache(state);
     }
     if (g >= Stage::Acceleration) {
-        av = &matter.getAccelerationVars(state);
-        ac = &matter.updAccelerationCache(state);
+        if (mc->accelerationVarsIndex >= 0)
+            av = &matter.getAccelerationVars(state);
+        if (mc->accelerationCacheIndex >= 0)
+            ac = &matter.updAccelerationCache(state);
     }
 
     stage = g;

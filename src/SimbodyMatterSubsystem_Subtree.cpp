@@ -1123,30 +1123,35 @@ copyPositionsFromState(const State& s, SubtreeResults::SubtreeResultsRep& sr) co
 // transforms for all the Subtree bodies. This requires calculating the cross-mobilizer transforms
 // X_FM for each Subtree mobilizer and propagating them outwards towards the terminal bodies.
 void SimbodyMatterSubsystem::Subtree::SubtreeRep::
-calcPositionsFromSubtreeQ(const State& s, const Vector& subQ, SubtreeResults::SubtreeResultsRep& sr) const {
+calcPositionsFromSubtreeQ(const State& state, const Vector& subQ, 
+                          SubtreeResults::SubtreeResultsRep& results) const
+{
     const SimbodyMatterSubsystemRep& matter = getSimbodyMatterSubsystem().getRep();
-    SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(s), Stage::Instance, 
+    SimTK_STAGECHECK_GE_ALWAYS(matter.getStage(state), Stage::Instance, 
         "calcPositionsFromSubtreeQ()");
 
-    assert(isCompatibleSubtreeResults(sr));
-    assert(subQ.size() == sr.getNumSubtreeQs());
+    assert(isCompatibleSubtreeResults(results));
+    assert(subQ.size() == results.getNumSubtreeQs());
 
-    sr.updSubQ() = subQ; // copy in the q's
+    results.updSubQ() = subQ; // copy in the q's
 
+    // For high speed, find memory address for the first subQ; they are sequential after this.
+    const Real* allSubQ = &results.getSubQ()[0];
+
+    // Iterate from the ancestor outward to propagate the transforms to the terminal bodies.
     for (SubtreeBodyId sb(1); sb < getNumSubtreeBodies(); ++sb) {
         const SubtreeBodyId   sp = getParentSubtreeBodyId(sb);
         const MobilizedBodyId mb = getSubtreeBodyMobilizedBodyId(sb);
 
         SubtreeQId firstSubQ; int nq;
-        sr.findSubtreeBodyQ(sb, firstSubQ, nq);
-        const QId firstQ = sr.mapSubtreeQToSubsystemQ(firstSubQ);
+        results.findSubtreeBodyQ(sb, firstSubQ, nq);
 
- //       const Transform  X_PB = matter.calcParentToChildMobilizerTransform(s, mb, nq, firstQ); 
-        const Transform& X_AP = sr.getSubtreeBodyTransform(sp);
-//        sr.setSubtreeBodyTransform(sb, X_AP*X_PB);
+        const Transform  X_PB = matter.calcMobilizerTransformFromQ(state, mb, nq, &allSubQ[firstSubQ]); 
+        const Transform& X_AP = results.getSubtreeBodyTransform(sp);
+        results.setSubtreeBodyTransform(sb, X_AP*X_PB);
     }
 
-    sr.setStage(Stage::Position);
+    results.setStage(Stage::Position);
 }
 
 void SimbodyMatterSubsystem::Subtree::SubtreeRep::

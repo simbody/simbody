@@ -50,7 +50,13 @@
 #include <utility> // std::pair
 using std::pair;
 
-using namespace SimTK;
+
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
 
 class RigidBodyNode;
 class ConstraintNode;
@@ -59,7 +65,6 @@ class RBPointInPlaneConstraint;
 class RBStation;
 class RBDirection;
 
-namespace SimTK {
 class SBModelVars;
 class SBInstanceVars;
 class SBTimeVars;
@@ -74,15 +79,8 @@ class SBPositionCache;
 class SBVelocityCache;
 class SBDynamicsCache;
 class SBAccelerationCache;
-}
 
-#include <cassert>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <set>
-#include <algorithm>
-
+using namespace SimTK;
 
 typedef std::vector<const RigidBodyNode*>   RBNodePtrList;
 typedef Vector_<SpatialVec>           SpatialVecList;
@@ -489,7 +487,7 @@ public:
     // The number of q's is passed in as a sanity check, to make sure the caller
     // and the called mobilizer agree on the generalized coordinates.
     // Returns X_FM(q).
-    const Transform calcMobilizerTransformFromQ(const State&, MobilizedBodyId, int nq, const Real* q) const;
+    Transform calcMobilizerTransformFromQ(const State&, MobilizedBodyId, int nq, const Real* q) const;
 
     // State must be realized through Stage::Position. Neither the State nor its
     // cache are modified by this method, since it is an operator.
@@ -497,7 +495,7 @@ public:
     // and the called mobilizer agree on the generalized speeds.
     // Returns V_FM(q,u)=H_FM(q)*u, where the q dependency is extracted from the State via
     // the hinge transition matrix H_FM(q).
-    const SpatialVec calcMobilizerVelocityFromU(const State&, MobilizedBodyId, int nu, const Real* u) const;
+    SpatialVec calcMobilizerVelocityFromU(const State&, MobilizedBodyId, int nu, const Real* u) const;
 
     // State must be realized through Stage::Velocity. Neither the State nor its
     // cache are modified by this method, since it is an operator.
@@ -505,17 +503,14 @@ public:
     // and the called mobilizer agree on the generalized accelerations.
     // Returns A_FM(q,u,udot)=H_FM(q)*udot + HDot_FM(q,u)*u where the q and u dependencies
     // are extracted from the State via H_FM(q), and HDot_FM(q,u).
-    const SpatialVec calcMobilizerAccelerationFromUDot(const State&, MobilizedBodyId, int nu, const Real* udot) const;
+    SpatialVec calcMobilizerAccelerationFromUDot(const State&, MobilizedBodyId, int nu, const Real* udot) const;
 
     // These perform the same computations as above but then transform the results so that they
     // relate the child body's frame B to its parent body's frame P, rather than the M and F frames
     // which are attached to B and P respectively but differ by a constant transform.
-    const Transform  calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const;
-    const SpatialVec calcParentToChildVelocityFromU (const State& s, MobilizedBodyId mb, int nu, const Real* u) const;
-    const SpatialVec calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const;
-
-
-
+    Transform  calcParentToChildTransformFromQ(const State& s, MobilizedBodyId mb, int nq, const Real* q) const;
+    SpatialVec calcParentToChildVelocityFromU (const State& s, MobilizedBodyId mb, int nu, const Real* u) const;
+    SpatialVec calcParentToChildAccelerationFromUDot(const State& s, MobilizedBodyId mb, int nu, const Real* udot) const;
 
 
     void setDefaultModelValues       (const SBTopologyCache&, SBModelVars&)        const;
@@ -592,10 +587,10 @@ public:
 
     void fixVel0(State&, Vector& vel) const; // TODO -- yuck
 
-    /// Part of constrained dynamics (TODO -- more to move here)
+    // Part of constrained dynamics (TODO -- more to move here)
     void calcY(const State&) const;
 
-    /// Pass in internal forces in T; they will be adjusted by this routine.
+    // Pass in internal forces in T; they will be adjusted by this routine.
     void calcConstraintCorrectedInternalForces(const State&, Vector& T); 
 
     const RigidBodyNode& getRigidBodyNode(int nodeNum) const {
