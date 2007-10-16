@@ -44,19 +44,14 @@ using namespace SimTK;
 
 class Color : public TypesafeEnum<Color> {
 public:
+    enum Index {RedIndex = 0, GreenIndex = 1, BlueIndex = 2};
     static const Color Red;
     static const Color Green;
     static const Color Blue;
 private:
-    Color() : TypesafeEnum<Color>() {
-    }
-    Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
-    }
-    static void initValues() {
-        new(&const_cast<Color&>(Red)) Color(0, "Red");
-        new(&const_cast<Color&>(Green)) Color(1, "Green");
-        new(&const_cast<Color&>(Blue)) Color(2, "Blue");
-    }
+    Color();
+    Color(int index, char* name);
+    static void initValues();
     friend class TypesafeEnum<Color>;
 };
 
@@ -65,6 +60,18 @@ Color acolor = Color::Green; // Verify that accessing a constant that has not ye
 const Color Color::Red;
 const Color Color::Green;
 const Color Color::Blue;
+
+Color::Color() : TypesafeEnum<Color>() {
+}
+
+Color::Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
+}
+
+void Color::initValues() {
+    new(&const_cast<Color&>(Red)) Color(RedIndex, "Red");
+    new(&const_cast<Color&>(Green)) Color(GreenIndex, "Green");
+    new(&const_cast<Color&>(Blue)) Color(BlueIndex, "Blue");
+}
 
 void verifyContents(EnumSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen) {
     ASSERT(set.contains(Color::Red) == hasRed);
@@ -100,12 +107,18 @@ void verifyContents(EnumSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen
 
 int main() {
     try {
-        // Test the getAllValues() method.
+        // Test the size() and getValue() methods.
         
-        ASSERT(Color::getAllValues().size() == 3);
-        ASSERT(Color::getAllValues()[Color::Red.getIndex()] == Color::Red);
-        ASSERT(Color::getAllValues()[Color::Green.getIndex()] == Color::Green);
-        ASSERT(Color::getAllValues()[Color::Blue.getIndex()] == Color::Blue);
+        ASSERT(Color::size() == 3);
+        ASSERT(Color::getValue(Color::Red.getIndex()) == Color::Red);
+        ASSERT(Color::getValue(Color::Green.getIndex()) == Color::Green);
+        ASSERT(Color::getValue(Color::Blue.getIndex()) == Color::Blue);
+        
+        // Test iterating over the set of all possible values.
+        
+        Color color = Color::Red;
+        for (Color::iterator iter = Color::begin(); iter != Color::end(); ++iter)
+            ASSERT(*iter == color++);
 
         // Verify that acolor got assigned correctly.
         
@@ -116,12 +129,12 @@ int main() {
         
         EnumSet<Color> set1;
         verifyContents(set1, false, false, false);
-        set1 += Color::Red;
-        set1 += Color::Blue;
+        set1 |= Color::Red;
+        set1 |= Color::Blue;
         verifyContents(set1, true, true, false);
         EnumSet<Color> set2;
         verifyContents(set2, false, false, false);
-        set2 += Color::Blue;
+        set2 |= Color::Blue;
         verifyContents(set2, false, true, false);
         
         // Test containsAll() and containsAny().
@@ -144,14 +157,13 @@ int main() {
         set2.clear();
         verifyContents(set1, false, false, false);
         verifyContents(set2, false, false, false);
-        set1 += Color::Red;
-        set1 += Color::Blue;
-        set2 += Color::Blue;
-        set2 += Color::Green;
+        set1 |= Color::Red;
+        set1 |= Color::Blue;
+        set2 |= Color::Blue;
+        set2 |= Color::Green;
         
         // Test operators.
         
-        verifyContents(set1+set2, true, true, true);
         verifyContents(set1|set2, true, true, true);
         verifyContents(set1-set2, true, false, false);
         verifyContents(set2-set1, false, false, true);
@@ -159,6 +171,27 @@ int main() {
         verifyContents(set1^set2, true, false, true);
         verifyContents(~set1, false, false, true);
         verifyContents(~set2, true, false, false);
+        Color c = Color::Red;
+        verifyContents(c++, true, false, false);
+        verifyContents(c, false, false, true);
+        verifyContents(++c, false, true, false);
+        verifyContents(c--, false, true, false);
+        verifyContents(c, false, false, true);
+        verifyContents(--c, true, false, false);
+        
+        // Try binary operators involving individual elements.
+        
+        verifyContents(Color::Blue|Color::Green, false, true, true);
+        verifyContents(Color::Green|set1, true, true, true);
+        verifyContents(set1|Color::Green, true, true, true);
+        verifyContents(Color::Blue&Color::Green, false, false, false);
+        verifyContents(Color::Blue&Color::Blue, false, true, false);
+        verifyContents(Color::Blue&set1, false, true, false);
+        verifyContents(set1&Color::Blue, false, true, false);
+        verifyContents(Color::Blue^Color::Green, false, true, true);
+        verifyContents(Color::Blue^Color::Blue, false, false, false);
+        verifyContents(Color::Blue^set1, true, false, false);
+        verifyContents(set1^Color::Blue, true, false, false);
     } catch(const std::exception& e) {
         cout << "exception: " << e.what() << endl;
         return 1;

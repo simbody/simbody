@@ -35,9 +35,6 @@
 #include "SimTKcommon.h"
 #include <vector>
 
-using std::ostream;
-using std::vector;
-
 namespace SimTK {
 
 template <class T> class EnumSet;
@@ -47,7 +44,7 @@ template <class T> class EnumSet;
  * 
  * - As the name implies, it is fully typesafe.  Where "enum" simply defines int values, the values defined by
  *   a TypesafeEnum are objects.
- * - It defines a static getAllValues() method which can be queried at runtime to programmatically determine
+ * - It defines a static methods which can be queried at runtime to programmatically determine
  *   the list of all possible values for the enumeration.  This is in contrast to "enum", where it is impossible
  *   to programmatically determine the list of values, or even how many allowed values there are.
  * - Because the values are objects, they can be extended in arbitrary ways.  You can define new methods or
@@ -58,25 +55,32 @@ template <class T> class EnumSet;
  * <pre>
  * class Color : public TypesafeEnum<Color> {
  * public:
+ *     enum Index {RedIndex = 0, GreenIndex = 1, BlueIndex = 2};
  *     static const Color Red;
  *     static const Color Green;
  *     static const Color Blue;
  * private:
- *     Color() : TypesafeEnum<Color>() {
- *     }
- *     Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
- *     }
- *     static void initValues() {
- *         new(&const_cast<Color&>(Red)) Color(0, "Red");
- *         new(&const_cast<Color&>(Green)) Color(1, "Green");
- *         new(&const_cast<Color&>(Blue)) Color(2, "Blue");
- *     }
+ *     Color();
+ *     Color(int index, char* name);
+ *     static void initValues();
  *     friend class TypesafeEnum<Color>;
  * };
  * 
  * const Color Color::Red;
  * const Color Color::Green;
  * const Color Color::Blue;
+ * 
+ * Color::Color() : TypesafeEnum<Color>() {
+ * }
+ * 
+ * Color::Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
+ * }
+ * 
+ * void Color::initValues() {
+ *     new(&const_cast<Color&>(Red)) Color(RedIndex, "Red");
+ *     new(&const_cast<Color&>(Green)) Color(GreenIndex, "Green");
+ *     new(&const_cast<Color&>(Blue)) Color(BlueIndex, "Blue");
+ * }
  * </pre>
  * 
  * You can then define variables of the enumerated type and work with them exactly as you would expect:
@@ -100,6 +104,7 @@ template <class T> class EnumSet;
 template <class T>
 class TypesafeEnum {
 public:
+    class iterator;
     /**
      * Get the index of this value in the list returned by getAllValues().
      */
@@ -115,11 +120,30 @@ public:
         return name;
     }
     /**
-     * Get a list of all allowed values for this enumerated type.
+     * Get the total number of allowed values for this enumerated type.
      */
-    static const vector<TypesafeEnum<T> >& getAllValues() {
-        init();
-        return updAllValues();
+    static int size() {
+        return updAllValues().size();
+    }
+    /**
+     * Get the enumerated value with a particular index.
+     */
+    static const TypesafeEnum<T>& getValue(int index) {
+        return updAllValues()[index];
+    }
+    /**
+     * Get an iterator pointing to the start of the set of all possible values.
+     */
+    static iterator begin() {
+        iterator first(0);
+        return first;
+    }
+    /**
+     * Get an iterator pointing to the end of the set of all possible values.
+     */
+    static iterator end() {
+        iterator last(size());
+        return last;
     }
     TypesafeEnum(const TypesafeEnum<T>& copy) {
         init();
@@ -147,6 +171,55 @@ public:
     operator int() const {
         return getIndex();
     }
+    EnumSet<T> operator|(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp |= set;
+        return temp;
+    }
+    EnumSet<T> operator&(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp &= set;
+        return temp;
+    }
+    EnumSet<T> operator^(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp ^= set;
+        return temp;
+    }
+    /**
+     * Get the next enumerated value in order of their indices.
+     */
+    TypesafeEnum<T> operator++() {
+        assert (index < size()-1);
+        ++index;
+        return *this;
+    }
+    /**
+     * Get the next enumerated value in order of their indices.
+     */
+    TypesafeEnum<T> operator++(int) {
+        assert (index < TypesafeEnum<T>::size());
+        TypesafeEnum<T> current = *this;
+        ++index;
+        return current;
+    }
+    /**
+     * Get the previous enumerated value in order of their indices.
+     */
+    TypesafeEnum<T> operator--() {
+        assert (index > 0);
+        --index;
+        return *this;
+    }
+    /**
+     * Get the previous enumerated value in order of their indices.
+     */
+    TypesafeEnum<T> operator--(int) {
+        assert (index > 0);
+        TypesafeEnum<T> current = *this;
+        --index;
+        return current;
+    }
 protected:
     TypesafeEnum() {
         init();
@@ -156,13 +229,13 @@ protected:
         int mask = 1<<index;
         updAllValues().push_back(*this);
     }
+    static std::vector<TypesafeEnum<T> >& updAllValues() {
+        static std::vector<TypesafeEnum<T> > allValues;
+        return allValues;
+    }
 private:
     int index;
     const char* name;
-    static vector<TypesafeEnum<T> >& updAllValues() {
-        static vector<TypesafeEnum<T> > allValues;
-        return allValues;
-    }
     /**
      * Initialize the values of all enumerated constants.  This is invoked when a TypesafeEnum object is constructed,
      * or is referenced in any way.  This ensures that no one will ever see the static constants in an uninitialized
@@ -179,9 +252,44 @@ private:
 };
 
 template <class T>
-ostream& operator<<(ostream& stream, const TypesafeEnum<T>& value) {
+std::ostream& operator<<(std::ostream& stream, const TypesafeEnum<T>& value) {
     return stream << value.getName();
 }
+
+/**
+ * This class provides an interface for iterating over the set of all possible enumerated values.
+ */
+
+template <class T>
+class TypesafeEnum<T>::iterator {
+public:
+    TypesafeEnum<T> operator*() {
+        assert (index >= 0 && index < TypesafeEnum<T>::size());
+        return TypesafeEnum<T>::getValue(index);
+    }
+    iterator operator++() {
+        assert (index < TypesafeEnum<T>::size());
+        ++index;
+        return *this;
+    }
+    iterator operator++(int) {
+        assert (index < TypesafeEnum<T>::getAllValues().size());
+        iterator current = *this;
+        ++index;
+        return current;
+    }
+    bool operator==(const iterator& iter) {
+        return (index == iter.index);
+    }
+    bool operator!=(const iterator& iter) {
+        return (index != iter.index);
+    }
+private:
+    iterator(int index) : index(index) {
+    }
+    int index;
+    friend class TypesafeEnum<T>;
+};
 
 /**
  * This class provides an efficient implementation of a set for storing values of an enumerated type
@@ -189,15 +297,15 @@ ostream& operator<<(ostream& stream, const TypesafeEnum<T>& value) {
  * and lookup are all extremely efficient.
  * 
  * This class supports all the standard bitwise operators, like &, |, ^, and ~.  This allows you to
- * manipulate sets exactly as if they were ints.  It also supports the + and - operators, which represent
- * the union and difference of two sets, respectively.
+ * manipulate sets exactly as if they were ints.  It also supports the - operator, which represents
+ * the difference of two sets.
  * 
  * For example, if a method expects an EnumSet<Color> as an argument, you could pass any of the following
  * values:
  * 
  * <pre>
  * Color::Red
- * Color::Green+Color::Blue
+ * Color::Green | Color::Blue
  * EnumSet<Color>() // (an empty set)
  * ~EnumSet<Color>() // (the set of all possible values)
  * </pre>
@@ -211,12 +319,151 @@ public:
      * Create an empty EnumSet.
      */
     EnumSet() {
-        init();
+        rep = new EnumSetRep();
     }
     /**
      * Create an EnumSet which contains a single value.
      */
     EnumSet(const TypesafeEnum<T>& value) {
+        rep = new EnumSetRep(value);
+    }
+    /**
+     * Create an EnumSet which contains the same values as another set.
+     */
+    EnumSet(const EnumSet<T>& set) {
+        rep = new EnumSetRep(*set.rep);
+    }
+    ~EnumSet() {
+        delete rep;
+    }
+    /**
+     * Get the number of elements in this set.
+     */
+    int size() const {
+        return rep->size();
+    }
+    /**
+     * Determine whether this set contains a particular value.
+     */
+    bool contains(const TypesafeEnum<T>& value) const {
+        return rep->contains(value);
+    }
+    /**
+     * Determine whether this set contains all of the values in another set.
+     */
+    bool containsAll(const EnumSet<T>& set) const {
+        return rep->containsAll(*set.rep);
+    }
+    /**
+     * Determine wheter this set contains any value which is in another set.
+     */
+    bool containsAny(const EnumSet<T>& set) const {
+        return rep->containsAny(*set.rep);
+    }
+    /**
+     * Determine whether this set has identical contents to another one.
+     */
+    bool operator==(const EnumSet<T>& set) const {
+        return *rep == *set.rep;
+    }
+    /**
+     * Determine whether this set has identical contents to another one.
+     */
+    bool operator!=(const EnumSet<T>& set) const {
+        return *rep != *set.rep;
+    }
+    /**
+     * Remove all elements from the set.
+     */
+    void clear() {
+        rep->clear();
+    }
+    /**
+     * Get an iterator pointing to the start of the set.
+     */
+    iterator begin() {
+        iterator first(this, 0);
+        return first;
+    }
+    /**
+     * Get an iterator pointing to the end of the set.
+     */
+    iterator end() {
+        iterator last(this, TypesafeEnum<T>::size());
+        return last;
+    }
+    EnumSet<T>& operator=(const EnumSet<T>& set) {
+        *rep = *set.rep;
+        return *this;
+    }
+    EnumSet<T>& operator-=(const TypesafeEnum<T>& value) {
+        *rep -= value;
+        return *this;
+    }
+    EnumSet<T>& operator-=(const EnumSet<T>& set) {
+        *rep -= *set.rep;
+        return *this;
+    }
+    EnumSet<T> operator-(const TypesafeEnum<T>& value) const {
+        EnumSet<T> temp(this);
+        temp -= value;
+        return temp;
+    }
+    EnumSet<T> operator-(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp -= set;
+        return temp;
+    }
+    EnumSet<T>& operator|=(const EnumSet<T>& set) {
+        *rep |= *set.rep;
+        return *this;
+    }
+    EnumSet<T> operator|(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp |= set;
+        return temp;
+    }
+    EnumSet<T>& operator&=(const EnumSet<T>& set) {
+        *rep &= *set.rep;
+        return *this;
+    }
+    EnumSet<T> operator&(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp &= set;
+        return temp;
+    }
+    EnumSet<T>& operator^=(const EnumSet<T>& set) {
+        *rep ^= *set.rep;
+        return *this;
+    }
+    EnumSet<T> operator^(const EnumSet<T>& set) const {
+        EnumSet<T> temp(*this);
+        temp ^= set;
+        return temp;
+    }
+    EnumSet<T> operator~() const {
+        EnumSet<T> temp(*this);
+        temp.rep->invert();
+        return temp;
+    }
+private:
+    class EnumSetRep;
+    EnumSetRep* rep;
+};
+
+template <class T>
+class EnumSet<T>::EnumSetRep {
+public:
+    /**
+     * Create an empty EnumSet.
+     */
+    EnumSetRep() {
+        init();
+    }
+    /**
+     * Create an EnumSet which contains a single value.
+     */
+    EnumSetRep(const TypesafeEnum<T>& value) {
         init();
         flags[word(value)] = mask(value);
         numElements = 1;
@@ -224,11 +471,11 @@ public:
     /**
      * Create an EnumSet which contains the same values as another set.
      */
-    EnumSet(const EnumSet<T>& set) {
+    EnumSetRep(const EnumSetRep& set) {
         init();
         *this = set;
     }
-    ~EnumSet() {
+    ~EnumSetRep() {
         delete[] flags;
     }
     /**
@@ -256,7 +503,7 @@ public:
     /**
      * Determine whether this set contains all of the values in another set.
      */
-    bool containsAll(const EnumSet<T>& set) const {
+    bool containsAll(const EnumSetRep& set) const {
         for (int i = 0; i < words; ++i)
             if ((flags[i] & set.flags[i]) != set.flags[i])
                 return false;
@@ -265,7 +512,7 @@ public:
     /**
      * Determine wheter this set contains any value which is in another set.
      */
-    bool containsAny(const EnumSet<T>& set) const {
+    bool containsAny(const EnumSetRep& set) const {
         for (int i = 0; i < words; ++i)
             if ((flags[i] & set.flags[i]) != 0)
                 return true;
@@ -274,7 +521,7 @@ public:
     /**
      * Determine whether this set has identical contents to another one.
      */
-    bool operator==(const EnumSet<T>& set) const {
+    bool operator==(const EnumSetRep& set) const {
         for (int i = 0; i < words; ++i)
             if (flags[i] != set.flags[i])
                 return false;
@@ -283,7 +530,7 @@ public:
     /**
      * Determine whether this set has identical contents to another one.
      */
-    bool operator!=(const EnumSet<T>& set) const {
+    bool operator!=(const EnumSetRep& set) const {
         for (int i = 0; i < words; ++i)
             if (flags[i] != set.flags[i])
                 return true;
@@ -297,108 +544,46 @@ public:
             flags[i] = 0;
         numElements = 0;
     }
-    /**
-     * Get an iterator pointing to the start of the set.
-     */
-    iterator begin() {
-        iterator first(this, 0);
-        return first;
-    }
-    /**
-     * Get an iterator pointing to the end of the set.
-     */
-    iterator end() {
-        iterator last(this, TypesafeEnum<T>::getAllValues().size());
-        return last;
-    }
-    EnumSet<T>& operator=(const EnumSet<T>& set) {
+    EnumSetRep& operator=(const EnumSetRep& set) {
         for (int i = 0; i < words; ++i)
             flags[i] = set.flags[i];
         numElements = set.numElements;
         return *this;
     }
-    EnumSet<T>& operator+=(const TypesafeEnum<T>& value) {
-        flags[word(value)] |= mask(value);
-        numElements = -1;
-        return *this;
-    }
-    EnumSet<T>& operator+=(const EnumSet<T>& set) {
-        for (int i = 0; i < words; ++i)
-            flags[i] |= set.flags[i];
-        numElements = -1;
-        return *this;
-    }
-    EnumSet<T>& operator-=(const TypesafeEnum<T>& value) {
+    EnumSetRep& operator-=(const TypesafeEnum<T>& value) {
         flags[word(value)] &= ~mask(value);
         numElements = -1;
         return *this;
     }
-    EnumSet<T>& operator-=(const EnumSet<T>& set) {
+    EnumSetRep& operator-=(const EnumSetRep& set) {
         for (int i = 0; i < words; ++i)
             flags[i] &= ~set.flags[i];
         numElements = -1;
         return *this;
     }
-    EnumSet<T> operator+(const TypesafeEnum<T>& value) const {
-        EnumSet<T> temp(this);
-        temp += value;
-        return temp;
-    }
-    EnumSet<T> operator+(const EnumSet<T>& set) const {
-        EnumSet<T> temp(*this);
-        temp += set;
-        return temp;
-    }
-    EnumSet<T> operator-(const TypesafeEnum<T>& value) const {
-        EnumSet<T> temp(this);
-        temp -= value;
-        return temp;
-    }
-    EnumSet<T> operator-(const EnumSet<T>& set) const {
-        EnumSet<T> temp(*this);
-        temp -= set;
-        return temp;
-    }
-    EnumSet<T>& operator|=(const EnumSet<T>& set) {
+    EnumSetRep& operator|=(const EnumSetRep& set) {
         for (int i = 0; i < words; ++i)
             flags[i] |= set.flags[i];
         numElements = -1;
         return *this;
     }
-    EnumSet<T> operator|(const EnumSet<T>& set) const {
-        EnumSet<T> temp(*this);
-        temp += set;
-        return temp;
-    }
-    EnumSet<T>& operator&=(const EnumSet<T>& set) {
+    EnumSetRep& operator&=(const EnumSetRep& set) {
         for (int i = 0; i < words; ++i)
             flags[i] &= set.flags[i];
         numElements = -1;
         return *this;
     }
-    EnumSet<T> operator&(const EnumSet<T>& set) const {
-        EnumSet<T> temp(*this);
-        temp &= set;
-        return temp;
-    }
-    EnumSet<T>& operator^=(const EnumSet<T>& set) {
+    EnumSetRep& operator^=(const EnumSetRep& set) {
         for (int i = 0; i < words; ++i)
             flags[i] ^= set.flags[i];
         numElements = -1;
         return *this;
     }
-    EnumSet<T> operator^(const EnumSet<T>& set) const {
-        EnumSet<T> temp(*this);
-        temp ^= set;
-        return temp;
-    }
-    EnumSet<T> operator~() const {
-        EnumSet<T> temp(*this);
+    void invert() const {
         for (int i = 0; i < words-1; ++i)
-            temp.flags[i] = -1-temp.flags[i];
-        temp.flags[words-1] = (1<<T::getAllValues().size()%BITS_PER_WORD)-1-flags[words-1];
-        temp.numElements = -1;
-        return temp;
+            flags[i] = -1-flags[i];
+        flags[words-1] = (1<<T::size()%BITS_PER_WORD)-1-flags[words-1];
+        numElements = -1;
     }
 private:
     /**
@@ -406,7 +591,7 @@ private:
      */
     void init() {
         numElements = -1;
-        words = (T::getAllValues().size()+BITS_PER_WORD-1)/BITS_PER_WORD;
+        words = (T::size()+BITS_PER_WORD-1)/BITS_PER_WORD;
         flags = new int[words];
         for (int i = 0; i < words; ++i)
             flags[i] = 0;
@@ -430,13 +615,6 @@ private:
     static const int BITS_PER_WORD = 32;
 };
 
-template <class T>
-EnumSet<T> operator+(const TypesafeEnum<T>& value1, const TypesafeEnum<T>& value2) {
-    EnumSet<T> temp(value1);
-    temp += value2;
-    return temp;
-}
-
 /**
  * This class provides an interface for iterating over the content of an EnumSet.
  */
@@ -445,11 +623,11 @@ template <class T>
 class EnumSet<T>::iterator {
 public:
     TypesafeEnum<T> operator*() {
-        assert( index >= 0 && index < (int)(TypesafeEnum<T>::getAllValues().size()) );
-        return TypesafeEnum<T>::getAllValues()[index];
+        assert (index >= 0 && index < TypesafeEnum<T>::size());
+        return TypesafeEnum<T>::getValue(index);
     }
     iterator operator++() {
-        assert( index < (int)(TypesafeEnum<T>::getAllValues().size()) );
+        assert (index < TypesafeEnum<T>::size());
         ++index;
         findNextElement();
         return *this;
@@ -472,7 +650,7 @@ private:
         findNextElement();
     }
     void findNextElement() {
-        while( index < (int)(TypesafeEnum<T>::getAllValues().size()) && !set->contains(TypesafeEnum<T>::getAllValues()[index]))
+        while (index < TypesafeEnum<T>::size() && !set->contains(TypesafeEnum<T>::getValue(index)))
             ++index;
     }
     int index;
