@@ -29,7 +29,6 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
 #include "SimTKcommon/internal/EventReporter.h"
 
 namespace SimTK {

@@ -32,7 +32,9 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/internal/State.h"
+#include "SimTKcommon/internal/System.h"
 
 namespace SimTK {
 

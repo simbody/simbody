@@ -32,8 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
-#include "SimTKcommon/internal/Exception.h"
+#include "SimTKcommon/basics.h"
+#include "SimTKcommon/Simmatrix.h"
 
 namespace SimTK {
 
