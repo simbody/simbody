@@ -33,15 +33,39 @@
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Stage.h"
 
-SimTK::String
-SimTK::Stage::name() const
-{
-	static String names[] = 
-    { "Empty", "Topology", "Model", "Instance", "Time",
-      "Position", "Velocity", "Dynamics", "Acceleration", "Report" };
+using SimTK::Stage;
 
-    if (n == Stage::Invalid) return "Invalid";
-	if (isValid(n))
-		return String(names[n-Stage::LowestValid]);
-	return "ILLEGAL STAGE(" + String(n) + ")";
+const Stage Stage::Empty;
+const Stage Stage::Topology;
+const Stage Stage::Model;
+const Stage Stage::Instance;
+const Stage Stage::Time;
+const Stage Stage::Position;
+const Stage Stage::Velocity;
+const Stage Stage::Dynamics;
+const Stage Stage::Acceleration;
+const Stage Stage::Report;
+
+const Stage Stage::LowestValid     = Empty;
+const Stage Stage::HighestValid    = Report;
+const Stage Stage::LowestRuntime   = Model;
+const Stage Stage::HighestRuntime  = Report;
+
+Stage::Stage() : TypesafeEnum<Stage>() {
+}
+
+Stage::Stage(int index, char* name) : TypesafeEnum<Stage>(index, name) {
+}
+
+void Stage::initValues() {
+    new(&const_cast<Stage&>(Empty)) Stage(EmptyIndex, "Empty");
+    new(&const_cast<Stage&>(Topology)) Stage(TopologyIndex, "Topology");
+    new(&const_cast<Stage&>(Model)) Stage(ModelIndex, "Model");
+    new(&const_cast<Stage&>(Instance)) Stage(InstanceIndex, "Instance");
+    new(&const_cast<Stage&>(Time)) Stage(TimeIndex, "Time");
+    new(&const_cast<Stage&>(Position)) Stage(PositionIndex, "Position");
+    new(&const_cast<Stage&>(Velocity)) Stage(VelocityIndex, "Velocity");
+    new(&const_cast<Stage&>(Dynamics)) Stage(DynamicsIndex, "Dynamics");
+    new(&const_cast<Stage&>(Acceleration)) Stage(AccelerationIndex, "Acceleration");
+    new(&const_cast<Stage&>(Report)) Stage(ReportIndex, "Report");
 }

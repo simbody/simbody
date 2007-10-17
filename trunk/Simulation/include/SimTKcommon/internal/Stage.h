@@ -35,6 +35,7 @@
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Exception.h"
+#include "SimTKcommon/internal/TypesafeEnum.h"
 
 #include <cassert>
 #include <iostream>
@@ -51,7 +52,7 @@ namespace SimTK {
  * Stage constants (of type Stage::Num) are implicitly converted to type
  * Stage when necessary.
  */	
-class Stage {
+class SimTK_SimTKCOMMON_EXPORT Stage : public TypesafeEnum<Stage> {
 public:
     // sherm 060720
     // Noun version          Verb version
@@ -68,66 +69,60 @@ public:
     //  Acceleration           Accelerate  Accelerated
     //
     //  Report                 Report      Reported
-
+    
 	enum Num {
-        Invalid        = -99,
-        Empty          =  0, // TODO: Initialized, Unbuilt, Empty, Vacant?
-        Topology       =  1, // TODO: Constructed, Finalized?
-        Model          =  2, // TODO: Instantiated, Resourced, Provisioned, Specialized?
-        Instance       =  3, // TODO: Instanced, Specified?
-        Time           =  4,
-        Position       =  5, // TODO: Positioned?
-        Velocity       =  6, // TODO: Velocity, Speed, Rate?
-        Dynamics       =  7, // forces, dynamic properties & operators available
-        Acceleration   =  8, // TODO: Accelerated?
-        Report         =  9  // TODO: Output?
+        EmptyIndex          =  0, // TODO: Initialized, Unbuilt, Empty, Vacant?
+        TopologyIndex       =  1, // TODO: Constructed, Finalized?
+        ModelIndex          =  2, // TODO: Instantiated, Resourced, Provisioned, Specialized?
+        InstanceIndex       =  3, // TODO: Instanced, Specified?
+        TimeIndex           =  4,
+        PositionIndex       =  5, // TODO: Positioned?
+        VelocityIndex       =  6, // TODO: Velocity, Speed, Rate?
+        DynamicsIndex       =  7, // forces, dynamic properties & operators available
+        AccelerationIndex   =  8, // TODO: Accelerated?
+        ReportIndex         =  9  // TODO: Output?
 	};
-    static const Stage::Num Kinematics      = Velocity; // i.e., Position+Velocity
+    static const Stage Empty;
+    static const Stage Topology;
+    static const Stage Model;
+    static const Stage Instance;
+    static const Stage Time;
+    static const Stage Position;
+    static const Stage Velocity;
+    static const Stage Dynamics;
+    static const Stage Acceleration;
+    static const Stage Report;
 
-    static const Stage::Num LowestValid     = Empty;
-    static const Stage::Num HighestValid    = Report;
-    static const int        NValid          = HighestValid-LowestValid+1;
+    static const Stage LowestValid;
+    static const Stage HighestValid;
+    static const int NValid = ReportIndex-EmptyIndex+1;
 
     // LowestRuntime->HighestRuntime cover the post-construction stages only.
-	static const Stage::Num	LowestRuntime	= Model;
-	static const Stage::Num	HighestRuntime	= Report;
-	static const int		NRuntime     	= HighestRuntime-LowestRuntime+1;
+	static const Stage LowestRuntime;
+	static const Stage HighestRuntime;
+	static const int NRuntime = ReportIndex-ModelIndex+1;
 		
-	Stage() : n(Stage::Invalid) { }
-	Stage(Stage::Num nn) : n(nn) { assert(isAllowable(n)); }	// note implicit conversion	
-	// default copy, destructor, assignment
-	
-	// implicit conversion from Stage to Stage::Num
-	operator Stage::Num() const { return Stage::Num(n); }
-
-	// Only prefix increment/decrement supported. Note that we have to
-	// allow increment/decrement to go out of range LowestRuntime:HighestRuntime by 1.	
-    Stage& operator++() { assert(n==Stage::Num(Stage::LowestRuntime-1) || isInRuntimeRange(n)); ++n; return *this; }
-	Stage& operator--() { assert(isInRuntimeRange(n)); --n; return *this; } 
-
-	SimTK_SimTKCOMMON_EXPORT String	name() const;
-	Stage	next() const { return isValid(n+1) ? Stage::Num(n+1) : Stage::Invalid; }
-    Stage	prev() const { return isValid(n-1) ? Stage::Num(n-1) : Stage::Invalid; }
+	Stage	next() const { return getValue(getIndex()+1); }
+    Stage	prev() const { return getValue(getIndex()-1); }
 
     // Set stage=min(stage, tooHigh-1).
-    void invalidate(Stage::Num tooHigh) {
-        assert(tooHigh > Stage::Empty); // don't allow this to make stage Invalid
-        if (n >= tooHigh)
-            n=tooHigh-1;
+    void invalidate(Stage tooHigh) {
+        if (getIndex() >= tooHigh.getIndex())
+            *this = tooHigh.prev();
     }
 	
 	// Use this for arrays of NRuntime elements indexed from 0.
-	int index() const { assert(isInRuntimeRange(n)); return n-Stage::LowestRuntime; }
+//	int index() const { assert(isInRuntimeRange(getIndex())); return getIndex()-Stage::LowestRuntime; }
    
-    static bool isInRuntimeRange(int n) {return Stage::LowestRuntime <= n && n <= Stage::HighestRuntime;}
-    static bool isValid         (int n) {return Stage::LowestValid   <= n && n <= Stage::HighestValid;}
-    static bool isAllowable     (int n) {return isValid(n) || n==Stage::Invalid;}
+    bool isInRuntimeRange() const {return Stage::LowestRuntime <= getIndex() && getIndex() <= Stage::HighestRuntime;}
 
 private:
-	int n;
+    Stage();
+    Stage(int index, char* name);
+    static void initValues();
+    friend class TypesafeEnum<Stage>;
 
 };
-SimTK_LIST_SPECIALIZE(Stage);
 
 namespace Exception {
 
@@ -147,8 +142,8 @@ public:
     StageTooLow(const char* fn, int ln,
         Stage currentStage, Stage targetStage, const char* where) : Base(fn,ln)
     {
-        setMessage("Expected stage to be at least " + targetStage.name() + " in " + String(where)
-           + " but current stage was " + currentStage.name());
+        setMessage("Expected stage to be at least " + targetStage.getName() + " in " + String(where)
+           + " but current stage was " + currentStage.getName());
     }
 };
 
@@ -157,8 +152,8 @@ public:
     StageIsWrong(const char* fn, int ln,
         Stage currentStage, Stage targetStage, const char* where) : Base(fn,ln)
     {
-        setMessage("Expected stage to be " + targetStage.name() + " in " + String(where)
-           + " but current stage was " + currentStage.name());
+        setMessage("Expected stage to be " + targetStage.getName() + " in " + String(where)
+           + " but current stage was " + currentStage.getName());
     }
 };
 
@@ -167,8 +162,8 @@ public:
     StageTooHigh(const char* fn, int ln,
         Stage currentStage, Stage targetStage, const char* where) : Base(fn,ln)
     {
-        setMessage("Expected stage to be less than " + targetStage.name() + " in " + String(where)
-           + " but current stage was " + currentStage.name());
+        setMessage("Expected stage to be less than " + targetStage.getName() + " in " + String(where)
+           + " but current stage was " + currentStage.getName());
     }
 };
 
@@ -177,8 +172,8 @@ public:
     StageOutOfRange(const char* fn, int ln,
         Stage lower, Stage currentStage, Stage upper, const char* where) : Base(fn,ln)
     {
-        setMessage("Expected (" + lower.name() + " <= stage <= " + upper.name() + ") in " + String(where)
-           + " but stage was " + currentStage.name());
+        setMessage("Expected (" + lower.getName() + " <= stage <= " + upper.getName() + ") in " + String(where)
+           + " but stage was " + currentStage.getName());
     }
 };
 
@@ -195,14 +190,14 @@ public:
         vsprintf(buf, fmt, args);
         setMessage("Couldn't realize subsystem " + String(subsystemId)
                    + "(" + String(subsystemName) + ") to Stage "
-                   + g.name() + ": " + String(buf) + ".");
+                   + g.getName() + ": " + String(buf) + ".");
         va_end(args);
     }
 private:
 };
 }
 
-inline std::ostream& operator<<(std::ostream& o, Stage g) { o << g.name(); return o; }	
+inline std::ostream& operator<<(std::ostream& o, Stage g) { o << g.getName(); return o; }	
 
 
 } // namespace SimTK

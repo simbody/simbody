@@ -366,7 +366,7 @@ public:
     int getUErrStart() const; int getNUErr() const;
 
     int getNUDotErr() const;
-    int getNMultipliers() const {return getNUDotErr();}
+    int getNMultipliers() const;
 
     int getQStart(SubsystemId)       const; int getNQ(SubsystemId)       const;
     int getUStart(SubsystemId)       const; int getNU(SubsystemId)       const;
@@ -375,8 +375,8 @@ public:
     int getQErrStart(SubsystemId)    const; int getNQErr(SubsystemId)    const;
     int getUErrStart(SubsystemId)    const; int getNUErr(SubsystemId)    const;
     int getUDotErrStart(SubsystemId) const; int getNUDotErr(SubsystemId) const;
-    int getMultipliersStart(SubsystemId i) const {return getUDotErrStart(i);}
-    int getNMultipliers(SubsystemId i)     const {return getNUDotErr(i);}
+    int getMultipliersStart(SubsystemId i) const;
+    int getNMultipliers(SubsystemId i)     const;
 
         // Event handling
     int getNEvents() const; // total
@@ -392,12 +392,6 @@ public:
     Vector& updEvents() const; // mutable
     Vector& updEventsByStage(Stage) const;
     Vector& updEventsByStage(SubsystemId, Stage) const;
-
-    const EventStatus& getEventStatus(int index) const;
-    EventStatus&       updEventStatus(int index);
-
-    const EventStatus& getEventStatus(SubsystemId, int index) const;
-    EventStatus&       updEventStatus(SubsystemId, int index);
 
     /// Per-subsystem access to the global shared variables.
     const Vector& getQ(SubsystemId) const;
@@ -443,8 +437,8 @@ public:
     Vector& updY();     // Back up to Stage::Congfigured-1
 
     /// An alternate syntax equivalent to updTime() and updY().
-    void setTime(Real t)       {updTime()=t;}
-    void setY(const Vector& y) {updY()=y;}
+    void setTime(Real t);
+    void setY(const Vector& y);
 
     /// These are just views into Y.
     Vector& updQ();     // Back up to Stage::Position-1
@@ -452,9 +446,9 @@ public:
     Vector& updZ();     // Back up to Stage::Dynamics-1
 
     /// Alternate interface.
-    void setQ(const Vector& q) {updQ()=q;}
-    void setU(const Vector& u) {updU()=u;}
-    void setZ(const Vector& z) {updZ()=z;}
+    void setQ(const Vector& q);
+    void setU(const Vector& u);
+    void setZ(const Vector& z);
 
     const Vector& getYDot()    const; // Stage::Acceleration
 
@@ -503,9 +497,7 @@ public:
     AbstractValue&       updDiscreteVariable(SubsystemId, int index);
 
     /// Alternate interface to updDiscreteVariable.
-    void setDiscreteVariable(SubsystemId i, int index, const AbstractValue& v) {
-        updDiscreteVariable(i,index) = v;
-    }
+    void setDiscreteVariable(SubsystemId i, int index, const AbstractValue& v);
 
     /// Stage >= ce.stage
     const AbstractValue& getCacheEntry(SubsystemId, int index) const;
@@ -516,6 +508,7 @@ public:
     String toString() const;
     String cacheToString() const;
 
+private:
     // ignore everything below here, please.
     class StateRep* rep;
     const StateRep& getRep() const {assert(rep); return *rep;}

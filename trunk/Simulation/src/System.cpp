@@ -461,16 +461,16 @@ void System::Guts::realize(const State& s, Stage g) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, 
         "System::Guts::realize()");
 
-    Stage stageNow;
+    Stage stageNow = Stage::Empty;
     while ((stageNow=s.getSystemStage()) < g) {
         switch (stageNow) {
-        case Stage::Model:        realizeInstance(s);     break;
-        case Stage::Instance:     realizeTime(s);         break;
-        case Stage::Time:         realizePosition(s);     break;
-        case Stage::Position:     realizeVelocity(s);     break;
-        case Stage::Velocity:     realizeDynamics(s);     break;
-        case Stage::Dynamics:     realizeAcceleration(s); break;
-        case Stage::Acceleration: realizeReport(s);       break;
+        case Stage::ModelIndex:        realizeInstance(s);     break;
+        case Stage::InstanceIndex:     realizeTime(s);         break;
+        case Stage::TimeIndex:         realizePosition(s);     break;
+        case Stage::PositionIndex:     realizeVelocity(s);     break;
+        case Stage::VelocityIndex:     realizeDynamics(s);     break;
+        case Stage::DynamicsIndex:     realizeAcceleration(s); break;
+        case Stage::AccelerationIndex: realizeReport(s);       break;
         default: assert(!"System::Guts::realize(): bad stage");
         }
     }

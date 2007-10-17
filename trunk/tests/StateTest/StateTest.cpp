@@ -94,14 +94,14 @@ int main() {
 
     printf("nevents=%d, by stage:\n", s.getNEvents());
     for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage::Num(j);
-        cout << g.name() << ": " << s.getNEventsByStage(g) << endl;
+        Stage g = Stage::getValue(j);
+        cout << g.getName() << ": " << s.getNEventsByStage(g) << endl;
     }
 
     printf("subsys 0 by stage:\n");
     for (int j=0; j<Stage::NValid; ++j) {
-        Stage g = Stage::Num(j);
-        cout << g.name() << ": " << s.getNEventsByStage(SubsystemId(0),g) << endl;
+        Stage g = Stage::getValue(j);
+        cout << g.getName() << ": " << s.getNEventsByStage(SubsystemId(0),g) << endl;
     }
     cout << "State s=" << s;
 

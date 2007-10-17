@@ -32,7 +32,8 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.                                     *
  * -------------------------------------------------------------------------- */
 
-#include "SimTKcommon.h"
+#include "SimTKcommon/internal/common.h"
+#include "SimTKcommon/internal/ExceptionMacros.h"
 #include <vector>
 
 namespace SimTK {
@@ -115,7 +116,7 @@ public:
     /**
      * Get the name of this value.
      */
-    const char* getName() const {
+    const std::string getName() const {
         init();
         return name;
     }
@@ -128,8 +129,8 @@ public:
     /**
      * Get the enumerated value with a particular index.
      */
-    static const TypesafeEnum<T>& getValue(int index) {
-        return updAllValues()[index];
+    static const T& getValue(int index) {
+        return *updAllValues()[index];
     }
     /**
      * Get an iterator pointing to the start of the set of all possible values.
@@ -227,10 +228,10 @@ protected:
     TypesafeEnum(int index, const char* name) : index(index), name(name) {
         SimTK_ASSERT_ALWAYS(index == updAllValues().size(), "Indices must be consecutive ints starting from 0.");
         int mask = 1<<index;
-        updAllValues().push_back(*this);
+        updAllValues().push_back((T*) this);
     }
-    static std::vector<TypesafeEnum<T> >& updAllValues() {
-        static std::vector<TypesafeEnum<T> > allValues;
+    static std::vector<T*>& updAllValues() {
+        static std::vector<T*> allValues;
         return allValues;
     }
 private:
@@ -612,7 +613,7 @@ private:
     int* flags;
     short words;
     mutable short numElements;
-    static const int BITS_PER_WORD = 32;
+    static const int BITS_PER_WORD = 8*sizeof(int);
 };
 
 /**
