@@ -329,7 +329,7 @@ public:
 
     void dump() const {
         printf("   %d(%s): element=%d, valence=%d vdwRad=%g nm, vdwDepth(kJ)=%g (%g kcal)\n",
-            atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
+            (int) atomClassId, name.c_str(), element, valence, vdwRadius, vdwWellDepth,
             vdwWellDepth*DuMM::KJ2Kcal);
         printf("    vdwDij (nm):");
         for (int i=0; i< (int)vdwDij.size(); ++i)
@@ -380,7 +380,7 @@ public:
 
     void dump() const {
         printf("    %d(%s): atomClassId=%d, chg=%g e\n", 
-               chargedAtomTypeId, name.c_str(), atomClassId, partialCharge);
+              (int) chargedAtomTypeId, name.c_str(), (int) atomClassId, partialCharge);
     }
 
     // These are all Topological state variables, filled in during construction.
@@ -784,7 +784,7 @@ public:
 
 
     void dump() const {
-        printf("    clusterId=%d(%s)\n", clusterId, name.c_str());
+        printf("    clusterId=%d(%s)\n", (int) clusterId, name.c_str());
         printf("      direct atom placements (nm): ");
         AtomPlacementSet::const_iterator ap = directAtomPlacements.begin();
         while (ap != directAtomPlacements.end()) {
@@ -902,14 +902,14 @@ public:
     DuMM::ClusterId getClusterId() const {assert(isValid()); return clusterId;}
 
     void dump() const {
-        printf("    clusterId=%d\n", clusterId);
+        printf("    clusterId=%d\n", (int) clusterId);
         printf("    shadowBodies=");
         for (int i=0; i < (int)shadowBodies.size(); ++i)
             printf(" %d", shadowBodies[i]);
         printf("\n");
         printf("    allAtoms=");
         for (int i=0; i < (int)allAtoms.size(); ++i) 
-            printf(" %d(%g,%g,%g)(nm)", allAtoms[i].atomId,
+            printf(" %d(%g,%g,%g)(nm)", (int) allAtoms[i].atomId,
                 allAtoms[i].station[0], allAtoms[i].station[1], allAtoms[i].station[2]);
         printf("\n");
     }
@@ -1259,7 +1259,7 @@ void DuMMForceFieldSubsystem::defineAtomClass
 
         // Catch nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
-        "atom class Id %d invalid: must be nonnegative", atomClassId);
+        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidElement(element), mm.ApiClassName, MethodName,
         "element %d invalid: must be a valid atomic number and have an entry here",element);
     SimTK_APIARGCHECK1_ALWAYS(valence >= 0, mm.ApiClassName, MethodName, 
@@ -1275,7 +1275,7 @@ void DuMMForceFieldSubsystem::defineAtomClass
 
         // Make sure this atom class hasn't already been defined.
     SimTK_APIARGCHECK2_ALWAYS(!mm.atomClasses[atomClassId].isValid(), mm.ApiClassName, MethodName, 
-        "atom class Id %d is already in use for '%s'", atomClassId, 
+        "atom class Id %d is already in use for '%s'", (int) atomClassId, 
         mm.atomClasses[atomClassId].name.c_str());
 
         // It's all good -- add the new atom class.
@@ -1294,14 +1294,14 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
 
         // Check for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeId >= 0, mm.ApiClassName, MethodName,
-        "charged atom type Id %d invalid: must be nonnegative", chargedAtomTypeId);
+        "charged atom type Id %d invalid: must be nonnegative", (int) chargedAtomTypeId);
     SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
-        "atom class Id %d invalid: must be nonnegative", atomClassId);
+        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
     // partialCharge is a signed quantity
 
         // Make sure the referenced atom class has already been defined.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(atomClassId), mm.ApiClassName, MethodName,
-        "atom class %d is undefined", atomClassId);
+        "atom class %d is undefined", (int) atomClassId);
 
         // Make sure there is a slot available for the new chargedAtomType.
     if (chargedAtomTypeId >= (int)mm.chargedAtomTypes.size())
@@ -1309,7 +1309,7 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
 
         // Check that this slot is not already in use.
     SimTK_APIARGCHECK2_ALWAYS(!mm.chargedAtomTypes[chargedAtomTypeId].isValid(), mm.ApiClassName, MethodName, 
-        "charged atom type Id %d is already in use for '%s'", chargedAtomTypeId, 
+        "charged atom type Id %d is already in use for '%s'", (int) chargedAtomTypeId, 
         mm.chargedAtomTypes[chargedAtomTypeId].name.c_str());
 
         // Define the new charged atom type.
@@ -1328,9 +1328,9 @@ void DuMMForceFieldSubsystem::defineBondStretch
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", class1);
+        "class1=%d which is not a valid atom class Id", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", class2);
+        "class2=%d which is not a valid atom class Id", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerNmSq >= 0, mm.ApiClassName, MethodName, 
         "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerNmSq);
     SimTK_APIARGCHECK1_ALWAYS(nominalLengthInNm >= 0, mm.ApiClassName, MethodName, 
@@ -1346,7 +1346,7 @@ void DuMMForceFieldSubsystem::defineBondStretch
         // Throw an exception if this bond stretch term was already defined. (std::map 
         // indicates that with a bool in the return value.)
     SimTK_APIARGCHECK2_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
-        "there was already a bond stretch term for atom class pair (%d,%d)", key[0], key[1]);
+        "there was already a bond stretch term for atom class pair (%d,%d)", (int) key[0], (int) key[1]);
 }
 
 void DuMMForceFieldSubsystem::defineBondBend
@@ -1360,11 +1360,11 @@ void DuMMForceFieldSubsystem::defineBondBend
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", class1);
+        "class1=%d which is not a valid atom class Id", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", class2);
+        "class2=%d which is not a valid atom class Id", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
-        "class3=%d which is not a valid atom class Id", class3);
+        "class3=%d which is not a valid atom class Id", (int) class3);
     SimTK_APIARGCHECK1_ALWAYS(stiffnessInKJPerRadSq >= 0, mm.ApiClassName, MethodName, 
         "stiffness %g is not valid: must be nonnegative", stiffnessInKJPerRadSq);
     SimTK_APIARGCHECK1_ALWAYS(0 <= nominalAngleInDeg && nominalAngleInDeg <= 180, 
@@ -1384,7 +1384,7 @@ void DuMMForceFieldSubsystem::defineBondBend
         // indicates that with a bool in the return value.)
     SimTK_APIARGCHECK3_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
         "there was already a bond bend term for atom class triple (%d,%d,%d)", 
-        key[0], key[1], key[2]);
+        (int) key[0], (int) key[1], (int) key[2]);
 }
 
 // 
@@ -1406,13 +1406,13 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", class1);
+        "class1=%d which is not a valid atom class Id", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", class2);
+        "class2=%d which is not a valid atom class Id", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
-        "class3=%d which is not a valid atom class Id", class3);
+        "class3=%d which is not a valid atom class Id", (int) class3);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class4), mm.ApiClassName, MethodName, 
-        "class4=%d which is not a valid atom class Id", class4);
+        "class4=%d which is not a valid atom class Id", (int) class4);
     SimTK_APIARGCHECK_ALWAYS(periodicity1!=-1 || periodicity2!=-1 || periodicity3!=-1, 
         mm.ApiClassName, MethodName, "must be at least one torsion term supplied");
 
@@ -1724,7 +1724,7 @@ DuMM::AtomId DuMMForceFieldSubsystem::addAtom(DuMM::ChargedAtomTypeId chargedAto
     DuMMForceFieldSubsystemRep& mm = updRep();
 
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidChargedAtomType(chargedAtomTypeId), mm.ApiClassName, MethodName, 
-        "charged atom type %d is not valid", chargedAtomTypeId);
+        "charged atom type %d is not valid", (int) chargedAtomTypeId);
 
     const DuMM::AtomId atomId = (const DuMM::AtomId)mm.atoms.size();
     mm.atoms.push_back(Atom(chargedAtomTypeId, atomId));
@@ -1741,16 +1741,16 @@ void DuMMForceFieldSubsystem::placeAtomInCluster(DuMM::AtomId atomId, DuMM::Clus
 
         // Make sure that we've seen both the atomId and clusterId before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", atomId);
+        "atom Id %d is not valid", (int) atomId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
 
     Cluster& cluster = mm.updCluster(clusterId);
 
         // Make sure that this cluster doesn't already contain this atom, either directly
         // or recursively through its subclusters.
     SimTK_APIARGCHECK3_ALWAYS(!cluster.containsAtom(atomId), mm.ApiClassName, MethodName,
-        "cluster %d('%s') already contains atom %d", clusterId, cluster.name.c_str(), atomId);
+        "cluster %d('%s') already contains atom %d", (int) clusterId, cluster.name.c_str(), (int) atomId);
 
         // Add the atom to the cluster.
     cluster.placeAtom(atomId, stationInNm, mm);
@@ -1767,9 +1767,9 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
 
         // Make sure that we've seen both of these clusters before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterId), mm.ApiClassName, MethodName,
-        "child cluster Id %d is not valid", childClusterId);
+        "child cluster Id %d is not valid", (int) childClusterId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterId), mm.ApiClassName, MethodName,
-        "parent cluster Id %d is not valid", parentClusterId);
+        "parent cluster Id %d is not valid", (int) parentClusterId);
 
     Cluster&       parent = mm.updCluster(parentClusterId);
     const Cluster& child  = mm.getCluster(childClusterId);
@@ -1780,18 +1780,18 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
         // lists updated correctly so I'm deferring that for now (sherm 060928).
     SimTK_APIARGCHECK2_ALWAYS(parent.isTopLevelCluster(), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') is not a top-level cluster so you cannot add a child cluster to it now",
-        parentClusterId, parent.name.c_str());
+        (int) parentClusterId, parent.name.c_str());
 
         // Child must not already be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(!child.isAttachedToBody(), mm.ApiClassName, MethodName,
         "child cluster %d('%s') is already attached to a body so cannot now be placed in another cluster",
-        childClusterId, child.name.c_str());
+        (int) childClusterId, child.name.c_str());
 
         // Make sure that parent cluster doesn't already contain child cluster, either directly
         // or recursively through its subclusters.
     SimTK_APIARGCHECK4_ALWAYS(!parent.containsCluster(childClusterId), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') already contains child cluster %d('%s')", 
-        parentClusterId, parent.name.c_str(), childClusterId, child.name.c_str());
+        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str());
 
         // Make sure the new child cluster doesn't contain any atoms which are already in
         // any of the trees to which the parent cluster is associated.
@@ -1800,7 +1800,7 @@ void DuMMForceFieldSubsystem::placeClusterInCluster
     SimTK_APIARGCHECK5_ALWAYS(!parent.overlapsWithCluster(child, atomId), mm.ApiClassName, MethodName,
         "parent cluster %d('%s') and would-be child cluster %d('%s') both contain atom %d"
         " so they cannot have a parent/child relationship",
-        parentClusterId, parent.name.c_str(), childClusterId, child.name.c_str(), atomId);
+        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str(), (int) atomId);
 
         // Add the child cluster to the parent.
     parent.placeCluster(childClusterId, placementInNm, mm);
@@ -1817,7 +1817,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, Mob
 
         // Make sure we've seen this cluster before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
@@ -1826,7 +1826,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, Mob
         // Child must not already be attached to a body.
     SimTK_APIARGCHECK3_ALWAYS(!child.isAttachedToBody(), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached to body %d so cannot now be attached to a body",
-        clusterId, child.name.c_str(),  (int)child.getBodyId());
+        (int) clusterId, child.name.c_str(),  (int)child.getBodyId());
 
         // None of the atoms in the child can be attached to any body.
     DuMM::AtomId    atomId;
@@ -1835,7 +1835,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, Mob
         mm.ApiClassName, MethodName,
         "cluster %d('%s') contains atom %d which is already attached to body %d"
         " so the cluster cannot now be attached to another body",
-        clusterId, child.name.c_str(), atomId, (int)bodyId);
+        (int) clusterId, child.name.c_str(), (int) atomId, (int)bodyId);
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
@@ -1845,7 +1845,7 @@ void DuMMForceFieldSubsystem::attachClusterToBody(DuMM::ClusterId clusterId, Mob
         // or recursively through its subclusters.
     SimTK_APIARGCHECK3_ALWAYS(!bodyCluster.containsCluster(clusterId), mm.ApiClassName, MethodName,
         "cluster %d('%s') is already attached (directly or indirectly) to body %d", 
-        clusterId, child.name.c_str(), (int)bodyNum);
+        (int) clusterId, child.name.c_str(), (int)bodyNum);
 
         // OK, attach the cluster to the body's cluster.
     bodyCluster.placeCluster(clusterId, placementInNm, mm);
@@ -1861,14 +1861,14 @@ void DuMMForceFieldSubsystem::attachAtomToBody(DuMM::AtomId atomId, MobilizedBod
 
         // Make sure we've seen this atom before, and that the body number is well formed.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", atomId);
+        "atom Id %d is not valid", (int) atomId);
     SimTK_APIARGCHECK1_ALWAYS(bodyNum >= 0, mm.ApiClassName, MethodName,
         "body number %d is not valid: must be nonnegative", (int)bodyNum);
 
         // The atom must not already be attached to a body, even this one.
     SimTK_APIARGCHECK2_ALWAYS(!mm.getAtom(atomId).isAttachedToBody(), mm.ApiClassName, MethodName,
         "atom %d is already attached to body %d so cannot now be attached to a body",
-        atomId, (int)mm.getAtom(atomId).getBodyId());
+        (int) atomId, (int)mm.getAtom(atomId).getBodyId());
 
         // Create an entry for the body if necessary, and its corresponding cluster.
     mm.ensureBodyEntryExists(bodyNum);
@@ -1886,7 +1886,7 @@ MassProperties DuMMForceFieldSubsystem::calcClusterMassProperties
 
         // Make sure we've seen this cluster before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
 
     return mm.getCluster(clusterId).calcMassProperties(placementInNm, mm);
 }
@@ -1902,13 +1902,13 @@ DuMM::BondId DuMMForceFieldSubsystem::addBond(DuMM::AtomId atom1Id, DuMM::AtomId
 
         // Make sure we've seen these atoms before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom1Id), mm.ApiClassName, MethodName,
-        "atom1(%d) is not valid", atom1Id);
+        "atom1(%d) is not valid", (int) atom1Id);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atom2Id), mm.ApiClassName, MethodName,
-        "atom2(%d) is not valid", atom2Id);
+        "atom2(%d) is not valid", (int) atom2Id);
 
         // An atom can't be bonded to itself.
     SimTK_APIARGCHECK1_ALWAYS(atom1Id != atom2Id, mm.ApiClassName, MethodName,
-        "the same atom Id(%d) was given for both atoms, which makes no sense", atom1Id);
+        "the same atom Id(%d) was given for both atoms, which makes no sense", (int) atom1Id);
 
     // Ensure that atom1 < atom2
     if (atom1Id > atom2Id)
@@ -1919,7 +1919,7 @@ DuMM::BondId DuMMForceFieldSubsystem::addBond(DuMM::AtomId atom1Id, DuMM::AtomId
 
     SimTK_APIARGCHECK2_ALWAYS(!a1.isBondedTo(atom2Id), mm.ApiClassName, MethodName,
         "atom %d is already bonded to atom %d; you can only do that once",
-        atom1Id, atom2Id);
+        (int) atom1Id, (int) atom2Id);
 
     mm.bonds.push_back(Bond(atom1Id,atom2Id));
     a1.bond12.push_back(atom2Id);
@@ -1941,7 +1941,7 @@ DuMM::AtomId DuMMForceFieldSubsystem::getBondAtom(DuMM::BondId bondId, int which
 
         // Make sure we've seen this bond before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidBond(bondId), mm.ApiClassName, MethodName,
-        "bond %d is not valid", bondId);
+        "bond %d is not valid", (int) bondId);
 
     SimTK_APIARGCHECK1_ALWAYS(which==0 || which==1, mm.ApiClassName, MethodName,
         "'which' was %d but must be 0 or 1 to choose one of the two atoms", which);
@@ -1956,7 +1956,7 @@ Real DuMMForceFieldSubsystem::getAtomMass(DuMM::AtomId atomId) const {
 
         // Make sure we've seen this atom before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", atomId);
+        "atom %d is not valid", (int) atomId);
 
     const Element& e = mm.elements[mm.getAtomElementNum(atomId)];
     return e.mass;
@@ -1969,7 +1969,7 @@ int DuMMForceFieldSubsystem::getAtomElement(DuMM::AtomId atomId) const {
 
         // Make sure we've seen this atom before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", atomId);
+        "atom %d is not valid", (int) atomId);
 
     return mm.getAtomElementNum(atomId);
 }
@@ -1980,7 +1980,7 @@ Vec3 DuMMForceFieldSubsystem::getAtomDefaultColor(DuMM::AtomId atomId) const {
 
         // Make sure we've seen this atom before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", atomId);
+        "atom %d is not valid", (int) atomId);
 
     const Element& e = mm.elements[mm.getAtomElementNum(atomId)];
     return e.defaultColor;
@@ -1993,7 +1993,7 @@ Real DuMMForceFieldSubsystem::getAtomRadius(DuMM::AtomId atomId) const {
 
         // Make sure we've seen this atom before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", atomId);
+        "atom %d is not valid", (int) atomId);
 
     const AtomClass& cl = mm.atomClasses[mm.getAtomClassId(atomId)];
     return cl.vdwRadius;
@@ -2006,13 +2006,13 @@ Vec3 DuMMForceFieldSubsystem::getAtomStationOnBody(DuMM::AtomId atomId) const {
 
         // Make sure we've seen this atom before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom %d is not valid", atomId);
+        "atom %d is not valid", (int) atomId);
 
     const Atom& a = mm.getAtom(atomId);
 
         // Atom must be attached to a body.
     SimTK_APIARGCHECK1_ALWAYS(a.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "atom %d is not attached to a body", atomId);
+        "atom %d is not attached to a body", (int) atomId);
 
     return a.station_B;
 }
@@ -2024,13 +2024,13 @@ Transform DuMMForceFieldSubsystem::getClusterPlacementOnBody(DuMM::ClusterId clu
 
         // Make sure we've seen this cluster before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
 
     const Cluster& c = mm.getCluster(clusterId);
 
         // Cluster must be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(c.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') is not attached to a body", clusterId, c.name.c_str());
+        "cluster %d('%s') is not attached to a body", (int) clusterId, c.name.c_str());
 
     return c.placement_B;
 }
@@ -2042,9 +2042,9 @@ Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(DuMM::AtomId atomId, DuMM:
 
         // Make sure that we've seen both the atomId and clusterId before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", atomId);
+        "atom Id %d is not valid", (int) atomId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
 
     const Cluster& c = mm.getCluster(clusterId);
     const AtomPlacementSet& atoms = c.getAllContainedAtoms();
@@ -2053,7 +2053,7 @@ Vec3 DuMMForceFieldSubsystem::getAtomStationInCluster(DuMM::AtomId atomId, DuMM:
 
         // We're going to be upset of this cluster doesn't contain this atom.
     SimTK_APIARGCHECK3_ALWAYS(ap != atoms.end(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') does not contain atom %d", clusterId, c.name.c_str(), atomId);
+        "cluster %d('%s') does not contain atom %d", (int) clusterId, c.name.c_str(), (int) atomId);
 
     return ap->station;
 }
@@ -2065,9 +2065,9 @@ Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(DuMM::ClusterId 
 
         // Make sure that we've seen both of these clusters before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(childClusterId), mm.ApiClassName, MethodName,
-        "child cluster Id %d is not valid", childClusterId);
+        "child cluster Id %d is not valid", (int) childClusterId);
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(parentClusterId), mm.ApiClassName, MethodName,
-        "parent cluster Id %d is not valid", parentClusterId);
+        "parent cluster Id %d is not valid", (int) parentClusterId);
 
     const Cluster& parent = mm.getCluster(parentClusterId);
     const Cluster& child  = mm.getCluster(childClusterId);
@@ -2079,7 +2079,7 @@ Transform DuMMForceFieldSubsystem::getClusterPlacementInCluster(DuMM::ClusterId 
         // We're going to be upset of the parent cluster doesn't contain the child.
     SimTK_APIARGCHECK4_ALWAYS(cp != clusters.end(), mm.ApiClassName, MethodName,
         "cluster %d('%s') does not contain cluster %d('%d')", 
-        parentClusterId, parent.name.c_str(), childClusterId, child.name.c_str());
+        (int) parentClusterId, parent.name.c_str(), (int) childClusterId, child.name.c_str());
 
     return cp->placement;
 }
@@ -2090,13 +2090,13 @@ MobilizedBodyId DuMMForceFieldSubsystem::getAtomBody(DuMM::AtomId atomId) const 
 
         // Make sure that we've seen this atomId before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtom(atomId), mm.ApiClassName, MethodName,
-        "atom Id %d is not valid", atomId);
+        "atom Id %d is not valid", (int) atomId);
 
     const Atom& a = mm.getAtom(atomId);
 
         // Atom must be attached to a body.
     SimTK_APIARGCHECK1_ALWAYS(a.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "atom %d is not attached to a body", atomId);
+        "atom %d is not attached to a body", (int) atomId);
 
     return a.getBodyId();
 }
@@ -2108,13 +2108,13 @@ MobilizedBodyId DuMMForceFieldSubsystem::getClusterBody(DuMM::ClusterId clusterI
 
         // Make sure that we've seen this atomId before.
     SimTK_APIARGCHECK1_ALWAYS(mm.isValidCluster(clusterId), mm.ApiClassName, MethodName,
-        "cluster Id %d is not valid", clusterId);
+        "cluster Id %d is not valid", (int) clusterId);
 
     const Cluster& c = mm.getCluster(clusterId);
 
         // Cluster must be attached to a body.
     SimTK_APIARGCHECK2_ALWAYS(c.isAttachedToBody(), mm.ApiClassName, MethodName,
-        "cluster %d('%s') is not attached to a body", clusterId, c.name.c_str());
+        "cluster %d('%s') is not attached to a body", (int) clusterId, c.name.c_str());
 
     return c.getBodyId();
 }
@@ -2164,7 +2164,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     // At realization time, we need to verify that every atom has a valid atom class id
     for (DuMM::AtomId anum = (DuMM::AtomId)0; (DuMM::AtomId)anum < (DuMM::AtomId)atoms.size(); ++anum) {
         if ( ! isValidChargedAtomType(atoms[anum].chargedAtomTypeId) ) {
-            throw std::exception("Atom must have valid charged atom type before realizing topology");
+            throw Exception::Base("Atom must have valid charged atom type before realizing topology");
         }
     }
 
@@ -2440,7 +2440,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             SimTK_REALIZECHECK2_ALWAYS(a.stretch[b12].isValid(),
                 Stage::Topology, getMySubsystemId(), getName(),
                 "couldn't find bond stretch parameters for cross-body atom class pair (%d,%d)", 
-                c1,c2);
+                (int) c1,(int) c2);
         }
 
         // Save a BondBend entry for each cross-body 1-3 bond
@@ -2453,7 +2453,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             SimTK_REALIZECHECK3_ALWAYS(a.bend[b13].isValid(),
                 Stage::Topology, getMySubsystemId(), getName(),
                 "couldn't find bond bend parameters for cross-body atom class triple (%d,%d,%d)", 
-                c1,c2,c3);
+                (int) c1,(int) c2,(int) c3);
         }
 
         // Save a BondTorsion entry for each cross-body 1-4 bond
@@ -2467,7 +2467,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             SimTK_REALIZECHECK4_ALWAYS(a.torsion[b14].isValid(),
                 Stage::Topology, getMySubsystemId(), getName(),
                 "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
-                c1,c2,c3,c4);
+                (int) c1,(int) c2,(int) c3,(int) c4);
         }
     }
 
@@ -2997,58 +2997,58 @@ void BondTorsion::periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const
 
 void Atom::dump() const {
     printf(" chargedAtomType=%d body=%d station=%g %g %g\n",
-        chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
+            (int) chargedAtomTypeId, (int)bodyId, station_B[0], station_B[1], station_B[2]);
 
     printf("          bond 1-2:");
     for (int i=0; i < (int)bond12.size(); ++i)
-        printf(" %d", bond12[i]);
+        printf(" %d", (int) bond12[i]);
     printf("\n          bond 1-3:");
     for (int i=0; i < (int)bond13.size(); ++i)
-        printf(" %d-%d", bond13[i][0], bond13[i][1]);
+        printf(" %d-%d", (int) bond13[i][0], (int) bond13[i][1]);
     printf("\n          bond 1-4:");
     for (int i=0; i < (int)bond14.size(); ++i)
-        printf(" %d-%d-%d", bond14[i][0], bond14[i][1], bond14[i][2]);
+        printf(" %d-%d-%d", (int) bond14[i][0], (int) bond14[i][1], (int) bond14[i][2]);
     printf("\n          bond 1-5:");
     for (int i=0; i < (int)bond15.size(); ++i)
-        printf(" %d-%d-%d-%d", bond15[i][0], bond15[i][1], bond15[i][2], bond15[i][3]);
+        printf(" %d-%d-%d-%d", (int) bond15[i][0], (int) bond15[i][1], (int) bond15[i][2], (int) bond15[i][3]);
     printf("\n     shortPath 1-3:");
     for (int i=0; i < (int)shortPath13.size(); ++i)
-        printf(" %d-%d", shortPath13[i][0], shortPath13[i][1]);
+        printf(" %d-%d", (int) shortPath13[i][0], (int) shortPath13[i][1]);
     printf("\n     shortPath 1-4:");
     for (int i=0; i < (int)shortPath14.size(); ++i)
-        printf(" %d-%d-%d", shortPath14[i][0], shortPath14[i][1], shortPath14[i][2]);
+        printf(" %d-%d-%d", (int) shortPath14[i][0], (int) shortPath14[i][1], (int) shortPath14[i][2]);
     printf("\n     shortPath 1-5:");
     for (int i=0; i < (int)shortPath15.size(); ++i)
-        printf(" %d-%d-%d-%d", shortPath15[i][0], shortPath15[i][1], shortPath15[i][2], shortPath15[i][3]);
+        printf(" %d-%d-%d-%d", (int) shortPath15[i][0], (int) shortPath15[i][1], (int) shortPath15[i][2], (int) shortPath15[i][3]);
     printf("\n       center of 3:");
     if (bonds3Atoms.isValid())
-        printf(" %d-%d-%d", bonds3Atoms[0], bonds3Atoms[1], bonds3Atoms[2]);
+        printf(" %d-%d-%d", (int) bonds3Atoms[0], (int) bonds3Atoms[1], (int) bonds3Atoms[2]);
     printf("\n");
 
     printf("         xbond 1-2:");
     for (int i=0; i < (int)xbond12.size(); ++i)
-        printf(" %d", xbond12[i]);
+        printf(" %d", (int) xbond12[i]);
     printf("\n         xbond 1-3:");
     for (int i=0; i < (int)xbond13.size(); ++i)
-        printf(" %d-%d", xbond13[i][0], xbond13[i][1]);
+        printf(" %d-%d", (int) xbond13[i][0], (int) xbond13[i][1]);
     printf("\n         xbond 1-4:");
     for (int i=0; i < (int)xbond14.size(); ++i)
-        printf(" %d-%d-%d", xbond14[i][0], xbond14[i][1], xbond14[i][2]);
+        printf(" %d-%d-%d", (int) xbond14[i][0], (int) xbond14[i][1], (int) xbond14[i][2]);
     printf("\n         xbond 1-5:");
     for (int i=0; i < (int)xbond15.size(); ++i)
-        printf(" %d-%d-%d-%d", xbond15[i][0], xbond15[i][1], xbond15[i][2], xbond15[i][3]);
+        printf(" %d-%d-%d-%d", (int) xbond15[i][0], (int) xbond15[i][1], (int) xbond15[i][2], (int) xbond15[i][3]);
     printf("\n    xshortPath 1-3:");
     for (int i=0; i < (int)xshortPath13.size(); ++i)
-        printf(" %d-%d", xshortPath13[i][0], xshortPath13[i][1]);
+        printf(" %d-%d", (int) xshortPath13[i][0], (int) xshortPath13[i][1]);
     printf("\n    xshortPath 1-4:");
     for (int i=0; i < (int)xshortPath14.size(); ++i)
-        printf(" %d-%d-%d", xshortPath14[i][0], xshortPath14[i][1], xshortPath14[i][2]);
+        printf(" %d-%d-%d", (int) xshortPath14[i][0], (int) xshortPath14[i][1], (int) xshortPath14[i][2]);
     printf("\n    xshortPath 1-5:");
     for (int i=0; i < (int)xshortPath15.size(); ++i)
-        printf(" %d-%d-%d-%d", xshortPath15[i][0], xshortPath15[i][1], xshortPath15[i][2], xshortPath15[i][3]);
+        printf(" %d-%d-%d-%d", (int) xshortPath15[i][0], (int) xshortPath15[i][1], (int) xshortPath15[i][2], (int) xshortPath15[i][3]);
     printf("\n      xcenter of 3:");
     if (xbonds3Atoms.isValid())
-        printf(" %d-%d-%d", xbonds3Atoms[0], xbonds3Atoms[1], xbonds3Atoms[2]);
+        printf(" %d-%d-%d", (int) xbonds3Atoms[0], (int) xbonds3Atoms[1], (int) xbonds3Atoms[2]);
     printf("\n");
 
     printf("    1-2 stretch:");
