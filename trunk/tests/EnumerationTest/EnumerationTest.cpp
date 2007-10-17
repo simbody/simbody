@@ -42,7 +42,7 @@ using std::sqrt;
 using std::vector;
 using namespace SimTK;
 
-class Color : public TypesafeEnum<Color> {
+class Color : public Enumeration<Color> {
 public:
     enum Index {RedIndex = 0, GreenIndex = 1, BlueIndex = 2};
     static const Color Red;
@@ -52,7 +52,7 @@ private:
     Color();
     Color(int index, char* name);
     static void initValues();
-    friend class TypesafeEnum<Color>;
+    friend class Enumeration<Color>;
 };
 
 Color acolor = Color::Green; // Verify that accessing a constant that has not yet been initialized works correctly.
@@ -61,10 +61,10 @@ const Color Color::Red;
 const Color Color::Green;
 const Color Color::Blue;
 
-Color::Color() : TypesafeEnum<Color>() {
+Color::Color() : Enumeration<Color>() {
 }
 
-Color::Color(int index, char* name) : TypesafeEnum<Color>(index, name) {
+Color::Color(int index, char* name) : Enumeration<Color>(index, name) {
 }
 
 void Color::initValues() {
@@ -73,7 +73,7 @@ void Color::initValues() {
     new(&const_cast<Color&>(Blue)) Color(BlueIndex, "Blue");
 }
 
-void verifyContents(EnumSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen) {
+void verifyContents(EnumerationSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen) {
     ASSERT(set.contains(Color::Red) == hasRed);
     ASSERT(set.contains(Color::Blue) == hasBlue);
     ASSERT(set.contains(Color::Green) == hasGreen);
@@ -86,7 +86,7 @@ void verifyContents(EnumSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen
         size++;
     ASSERT(set.size() == size);
     bool redFound = false, blueFound = false, greenFound = false;
-    for (EnumSet<Color>::iterator iter = set.begin(); iter != set.end(); ++iter) {
+    for (EnumerationSet<Color>::iterator iter = set.begin(); iter != set.end(); ++iter) {
         if (*iter == Color::Red) {
             ASSERT(!redFound);
             redFound = true;
@@ -125,14 +125,14 @@ int main() {
         ASSERT(acolor == Color::Green);
         ASSERT(acolor != Color::Red);
 
-        // Test creating EnumSets.
+        // Test creating EnumerationSets.
         
-        EnumSet<Color> set1;
+        EnumerationSet<Color> set1;
         verifyContents(set1, false, false, false);
         set1 |= Color::Red;
         set1 |= Color::Blue;
         verifyContents(set1, true, true, false);
-        EnumSet<Color> set2;
+        EnumerationSet<Color> set2;
         verifyContents(set2, false, false, false);
         set2 |= Color::Blue;
         verifyContents(set2, false, true, false);

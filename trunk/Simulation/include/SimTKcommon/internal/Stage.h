@@ -35,7 +35,7 @@
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/internal/String.h"
 #include "SimTKcommon/internal/Exception.h"
-#include "SimTKcommon/internal/TypesafeEnum.h"
+#include "SimTKcommon/internal/Enumeration.h"
 
 #include <cassert>
 #include <iostream>
@@ -52,11 +52,11 @@ namespace SimTK {
  * Stage constants (of type Stage::Num) are implicitly converted to type
  * Stage when necessary.
  */	
-class SimTK_SimTKCOMMON_EXPORT Stage : public TypesafeEnum<Stage> {
+class SimTK_SimTKCOMMON_EXPORT Stage : public Enumeration<Stage> {
 public:
     // sherm 060720
     // Noun version          Verb version
-    //  Invalid                Invalid
+    //  Invalid                InvalidType
     //  Empty                  Allocate    Allocated
     //  Topology               Build       Built
     //
@@ -111,16 +111,13 @@ public:
             *this = tooHigh.prev();
     }
 	
-	// Use this for arrays of NRuntime elements indexed from 0.
-//	int index() const { assert(isInRuntimeRange(getIndex())); return getIndex()-Stage::LowestRuntime; }
-   
     bool isInRuntimeRange() const {return Stage::LowestRuntime <= getIndex() && getIndex() <= Stage::HighestRuntime;}
 
 private:
     Stage();
     Stage(int index, char* name);
     static void initValues();
-    friend class TypesafeEnum<Stage>;
+    friend class Enumeration<Stage>;
 
 };
 

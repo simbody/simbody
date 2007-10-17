@@ -51,10 +51,10 @@ const Stage Stage::HighestValid    = Report;
 const Stage Stage::LowestRuntime   = Model;
 const Stage Stage::HighestRuntime  = Report;
 
-Stage::Stage() : TypesafeEnum<Stage>() {
+Stage::Stage() : Enumeration<Stage>() {
 }
 
-Stage::Stage(int index, char* name) : TypesafeEnum<Stage>(index, name) {
+Stage::Stage(int index, char* name) : Enumeration<Stage>(index, name) {
 }
 
 void Stage::initValues() {
