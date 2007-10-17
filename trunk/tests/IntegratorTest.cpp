@@ -295,7 +295,7 @@ int main () {
             case Integrator::StartOfContinuousInterval: printf("START OF CONTINUOUS INTERVAL"); break;
 
             case Integrator::ReachedScheduledEvent:  {
-                Stage lowestModified;
+                Stage lowestModified = Stage::Report;
                 bool shouldTerminate;
                 printf("SCHEDULED EVENT\n");
                 sys.handleEvents(integ.updAdvancedState(),
@@ -310,7 +310,7 @@ int main () {
             }
 
             case Integrator::TimeHasAdvanced: {
-                Stage lowestModified;
+                Stage lowestModified = Stage::Report;
                 bool shouldTerminate;
                 printf("TIME HAS ADVANCED TO %g\n", integ.getTime()); 
                 sys.handleEvents(integ.updAdvancedState(),
@@ -325,7 +325,7 @@ int main () {
                                               }
 
             case Integrator::ReachedEventTrigger: {
-                Stage lowestModified;
+                Stage lowestModified = Stage::Report;
                 bool shouldTerminate;
                 printf("EVENT TRIGGERED AT tLow=%.17g tHigh=%.17g!!\n", 
                     integ.getTime(), integ.getAdvancedTime());
@@ -351,7 +351,7 @@ int main () {
             }
                                                   
             case Integrator::EndOfSimulation: {
-                Stage lowestModified;
+                Stage lowestModified = Stage::Report;
                 bool shouldTerminate;
 
                 printf("SIMULATION IS OVER. TERMINATION REASON=<TODO>\n");

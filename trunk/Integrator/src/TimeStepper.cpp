@@ -109,7 +109,7 @@ void TimeStepperRep::stepTo(Real time) {
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
         system.calcTimeOfNextScheduledEvent(integ->getState(), nextScheduledEvent, scheduledEventIds);
         Integrator::SuccessfulStepStatus status = integ->stepTo(time, nextScheduledEvent);
-        Stage lowestModified;
+        Stage lowestModified = Stage::Report;
         bool shouldTerminate;
         switch (status) {
             case Integrator::ReachedStepLimit: {

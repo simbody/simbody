@@ -745,7 +745,7 @@ void RungeKuttaMersonIntegratorRep::backUpAdvancedStateByInterpolation(Real t) {
                       t, yinterp);
     advanced.updY() = yinterp;
     advanced.updTime() = t;
-    getSystem().realize(advanced, Stage::Kinematics); // cheap 
+    getSystem().realize(advanced, Stage::Velocity); // cheap 
 
     // Ignore any user request not to project interpolated states here -- this
     // is the actual advanced state which will be propagated through the
@@ -777,7 +777,7 @@ void RungeKuttaMersonIntegratorRep::createInterpolatedState(Real t) {
                       advanced.getTime(), advanced.getY(), advanced.getYDot(),
                       t, interp.updY());
     interp.updTime() = t;
-    getSystem().realize(interp, Stage::Kinematics); // cheap  
+    getSystem().realize(interp, Stage::Velocity); // cheap  
 
     if (!projectInterpolatedStates)
         return; // leave 'em in "as is" condition
