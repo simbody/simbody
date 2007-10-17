@@ -5,6 +5,8 @@ using namespace std;
 using namespace SimTK;
 
 int main() {
+try {
+
     cout << "Testing... ";
 
     DuMMForceFieldSubsystem dumm;
@@ -13,5 +15,12 @@ int main() {
     cout << "PASSED" << endl;
 
     return 0;
+
+}
+catch (...) {
+    cout << "FAILED" << endl;
+    return 1;
+}
+
 }
 

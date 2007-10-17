@@ -544,7 +544,10 @@ public:
     Atom(DuMM::ChargedAtomTypeId t, DuMM::AtomId aId) : atomId(aId), chargedAtomTypeId(t) {
         assert(isValid());
     }
+
     bool isValid() const {return atomId>=0 && chargedAtomTypeId>=0;}
+    // bool isValid() const {return atomId>=0;}
+
     bool isAttachedToBody() const {return bodyId >= 0;}
 
     MobilizedBodyId getBodyId() const {assert(isAttachedToBody()); return bodyId;}
@@ -2155,7 +2158,16 @@ DuMMForceFieldSubsystemRep::getBondTorsion
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
-int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const {
+int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const 
+{
+
+    // At realization time, we need to verify that every atom has a valid atom class id
+    for (DuMM::AtomId anum = (DuMM::AtomId)0; (DuMM::AtomId)anum < (DuMM::AtomId)atoms.size(); ++anum) {
+        if ( ! isValidChargedAtomType(atoms[anum].chargedAtomTypeId) ) {
+            throw std::exception("Atom must have valid charged atom type before realizing topology");
+        }
+    }
+
     // We need to write once onto the 'cache' portion of the object once
     // the topology is known.
     DuMMForceFieldSubsystemRep* mutableThis = 
