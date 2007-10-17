@@ -647,14 +647,12 @@ inline std::ostream& operator<<(std::ostream& o, const SBAccelerationVars& c)
  */
 class SBStateDigest {
 public:
-    explicit SBStateDigest(const State& s) : state(s) 
+    explicit SBStateDigest(const State& s) : state(s), stage(Stage::Empty) 
     {
-        stage = Stage::Empty;
     }
     SBStateDigest(const State& s, const SimbodyMatterSubsystemRep& matter, Stage g)
-      : state(s) 
+      : state(s), stage(Stage::Empty)
     {
-        stage = Stage::Empty;
         fillThroughStage(matter,g);
     }
 

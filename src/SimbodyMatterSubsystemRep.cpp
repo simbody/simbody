@@ -629,12 +629,12 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 
     // Now add in any subsystem-level geometry.
     switch(stage) {
-    case Stage::Topology: {
+    case Stage::TopologyIndex: {
         assert(subsystemTopologyHasBeenRealized());
         // none yet
         break;
     }
-    case Stage::Position: {
+    case Stage::PositionIndex: {
         assert(getStage(s) >= Stage::Position);
         //TODO: just to check control flow, put a ball at system COM
         //const Vec3 com = getMyMatterSubsystemHandle().calcSystemMassCenterLocationInGround(s);

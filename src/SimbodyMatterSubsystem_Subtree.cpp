@@ -420,7 +420,7 @@ private:
 class SimbodyMatterSubsystem::SubtreeResults::SubtreeResultsRep {
 public:
     explicit SubtreeResultsRep(const SubtreeResults& handle) 
-      : myHandle(&handle)
+      : myHandle(&handle), stage(Stage::Empty)
     { 
         clear();
     }
