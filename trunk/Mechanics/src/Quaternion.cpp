@@ -51,11 +51,14 @@ namespace SimTK {
 //-------------------------------------------------------------------
 // Constructs a canonical quaternion from a rotation matrix (cost is about 60 flops).
 //-------------------------------------------------------------------
-Quaternion::Quaternion( const Rotation& r ) : BaseVec( r.convertToQuaternion() )  {}
+Quaternion::Quaternion( const Rotation& r ) : Vec4( r.convertRotationToQuaternion() )  {}
 
 
 //-------------------------------------------------------------------
-Vec4 Quaternion::convertQuaternionToAngleAxis() const {
+// Returns [ a vx vy vz ] with (a,v) in canonical form, i.e., -180 < a <= 180 and |v|=1.
+// The cost of this operation is roughly one atan2, one sqrt, and one divide (about 100 flops).
+//-------------------------------------------------------------------
+Vec4  Quaternion::convertQuaternionToAngleAxis() const {
     const Real& ca2  = (*this)[0];       // cos(a/2)
     const Vec3& sa2v = getSubVec<3>(1);  // sin(a/2) * v
     Real        sa2  = sa2v.norm();      // sa2 is always >= 0
@@ -77,7 +80,7 @@ Vec4 Quaternion::convertQuaternionToAngleAxis() const {
     // Normalize the axis part of the return value
     Vec3 axis = sa2v / sa2;
 
-	// Return (angle/axis) 
+	// Return (angle/axis)
     return Vec4( angle, axis[0], axis[1], axis[2] );
 }
 
@@ -88,7 +91,7 @@ void  Quaternion::setQuaternionFromAngleAxis( const Vec4& av ) {
     // If |a| < machine precision,  we treat as a zero rotation which produces quaternion q=[1 0 0 0].
     const Real eps = std::numeric_limits<Real>::epsilon();
     const Real& a = av[0];  // the angle
-    if( std::fabs(a) < eps ) { BaseVec::operator=( Vec4(1,0,0,0) );  return; }
+    if( std::fabs(a) < eps ) { Vec4::operator=( Vec4(1,0,0,0) );  return; }
 
     // The vector v must have length at least machine precision (or return NaN).
     const Vec3& vIn = av.getSubVec<3>(1);
