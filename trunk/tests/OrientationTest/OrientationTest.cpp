@@ -343,11 +343,11 @@ try {
 
     R_GB = Rotation::aboutAxis(0.17+1e-13, Vec3(1,2,3));
     R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
-    cout << " 0.17+1e-13:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
+    cout << " 0.17+1e-13:0.17 isSameToPrecision? " << R_GB.isSameRotationToWithinAngleOfMachinePrecision(R_GX)
          << " isSameToAngle(1e-12)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-12) << endl;
     R_GB = Rotation::aboutAxis(0.17+1e-15, Vec3(1,2,3));
     R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
-    cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToMachinePrecision(R_GX)
+    cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToWithinAngleOfMachinePrecision(R_GX)
          << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
 
     const Real pi2 = Pi/2;
