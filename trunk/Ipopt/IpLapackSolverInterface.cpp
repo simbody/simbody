@@ -105,7 +105,7 @@ double *afact;
 */
          dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, workSize, 
                   -1, iwork, info );
-         lwork = workSize[0];
+         lwork = (int)workSize[0];
          work = new double[lwork];
          dgelsd_( n, n, nrhs, atmp, n, rhs_vals, n, s, rcond, rank, work, 
                   lwork, iwork, info );
