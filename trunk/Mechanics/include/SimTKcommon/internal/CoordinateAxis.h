@@ -79,9 +79,9 @@ public:
        }
 
     // Compare various axes.
-    bool  isXAxis( ) const   { return myAxisId == 0; }
-    bool  isYAxis( ) const   { return myAxisId == 1; }
-    bool  isZAxis( ) const   { return myAxisId == 2; }
+    bool  isXAxis() const   { return myAxisId == 0; }
+    bool  isYAxis() const   { return myAxisId == 1; }
+    bool  isZAxis() const   { return myAxisId == 2; }
     bool  isNextAxis( const CoordinateAxis& axis2 ) const                                        { return int(getNextAxis()) == int(axis2); }
     bool  isPreviousAxis( const CoordinateAxis& axis2 ) const                                    { return int(getPreviousAxis()) == int(axis2); }
     bool  isSameAxis( const CoordinateAxis& axis2 ) const                                        { return myAxisId == int(axis2); }
@@ -89,18 +89,22 @@ public:
     bool  isDifferentAxis( const CoordinateAxis& axis2 ) const                                   { return myAxisId != int(axis2); }
     bool  areAllDifferentAxes( const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const  { return isDifferentAxis(axis2) && isDifferentAxis(axis3) && axis2.isDifferentAxis(axis3); }
     bool  isForwardCyclical( const CoordinateAxis& axis2 ) const                                 { return isNextAxis(axis2); }
-    bool  isForwardCyclical( const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const    { return isNextAxis(axis2) && axis2.isNextAxis(axis3); }
     bool  isReverseCyclical( const CoordinateAxis& axis2 ) const                                 { return isPreviousAxis(axis2); }
-    bool  isReverseCyclical( const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const    { return isPreviousAxis(axis2) && axis2.isPreviousAxis(axis3); }
+	
+	// Get the appropriate CoordinateAxis
+    // Check whether or not an index is in proper range
+	static const CoordinateAxis  getCoordinateAxis( int i )  { assertIndexIsInRange(i);  return (i==0) ? CoordinateAxis(XType()) : ((i==1) ? CoordinateAxis(YType()) : CoordinateAxis(ZType()) ); }
+	static bool  isIndexInRange( int i )                     { return i>=0 && i<=2; }
+	static void  assertIndexIsInRange( int i )               { assert( isIndexInRange(i) ); } 
 
 protected:
     class XType{}; class YType{}; class ZType{};
 
-    CoordinateAxis( const XType& ) : myAxisId(0) { }
-    CoordinateAxis( const YType& ) : myAxisId(1) { }
-    CoordinateAxis( const ZType& ) : myAxisId(2) { }
+    CoordinateAxis( const XType& ) : myAxisId(0) {}
+    CoordinateAxis( const YType& ) : myAxisId(1) {}
+    CoordinateAxis( const ZType& ) : myAxisId(2) {}
 private:            
-    explicit CoordinateAxis( int a ) : myAxisId(a) { assert( 0<=a && a<=2 ); }
+    explicit CoordinateAxis( int i ) : myAxisId(i) { assertIndexIsInRange(i); }
 
     int myAxisId;
 };
@@ -108,20 +112,20 @@ private:
 
 // Helper classes that make it possible to treat an Axis like an integer
 class CoordinateAxis::X : public CoordinateAxis {
-  public: X() : CoordinateAxis(XType()) { }
+  public: X() : CoordinateAxis(XType()) {}
 };
 class CoordinateAxis::Y : public CoordinateAxis {
-  public: Y() : CoordinateAxis(YType()) { }
+  public: Y() : CoordinateAxis(YType()) {}
 };
 class CoordinateAxis::Z : public CoordinateAxis {
-  public: Z() : CoordinateAxis(ZType()) { }
+  public: Z() : CoordinateAxis(ZType()) {}
 };
 
 
 // Predefine constants XAxis, YAxis, ZAxis which implicitly convert to integers 0, 1, 2 respectively.
-static const CoordinateAxis::X XAxis;
-static const CoordinateAxis::Y YAxis;
-static const CoordinateAxis::Z ZAxis;
+static const CoordinateAxis::X  XAxis;
+static const CoordinateAxis::Y  YAxis;
+static const CoordinateAxis::Z  ZAxis;
 
 
 //------------------------------------------------------------------------------
