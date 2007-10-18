@@ -94,7 +94,7 @@ public:
         return mmSystem.getMolecularMechanicsForceSubsystem();
     }
 protected:
-    std::vector<DuMM::AtomId>                atoms;
+    std::vector<DuMM::AtomId>       atoms;
     std::vector<MobilizedBodyId>    bodies;
     MobilizedBodyId                 parentId;
     Transform                       mobilizerFrameOnParent;

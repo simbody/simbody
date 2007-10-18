@@ -142,6 +142,10 @@ public:
     virtual int  getMaxNQ() const=0; //dofs plus quaternion constraints
     virtual int  getNQ(const SBModelVars&) const=0; //actual number of q's
 
+    // This depends on the mobilizer type and modeling options. If it returns
+    // true then this node will be assigned a unique quaternion index.
+    virtual bool isUsingQuaternion(const SBModelVars&) const=0;
+
     // Copy the right q's from qIn to the corresponding slots in q. The number copied
     // may depend on modeling choices as supplied in the first argument.
     virtual void copyQ(
@@ -160,9 +164,6 @@ public:
         Vector&            u) const
       { throw VirtualBaseMethod(); }
 
-    // This depends on the mobilizer type and modeling options. If it returns
-    // true then this node will be assigned a unique quaternion index.
-    virtual bool isUsingQuaternion(const SBModelVars&) const=0;
 
     // Mobilizer-local operators.
     virtual void calcLocalQDotFromLocalU      (const SBStateDigest&, const Real* u,    Real* qdot)      const {throw VirtualBaseMethod();}

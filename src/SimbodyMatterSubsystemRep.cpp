@@ -1464,16 +1464,26 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
             tc = &matter.updTimeCache(state);
     }
     if (g >= Stage::Position) {
-        q = &matter.getQ(state)[0];
+        if (matter.getNQ(state))
+            q = &matter.getQ(state)[0];
         if (mc->qVarsIndex >= 0)
             pv = &matter.getPositionVars(state);
+
+        if (matter.getNQErr(state))
+            qErr = &matter.updQErr(state)[0];
         if (mc->qCacheIndex >= 0)
             pc = &matter.updPositionCache(state);
     }
     if (g >= Stage::Velocity) {
-        u = &matter.getU(state)[0];
+        if (matter.getNU(state))
+            u = &matter.getU(state)[0];
         if (mc->uVarsIndex >= 0)
             vv = &matter.getVelocityVars(state);
+
+        if (matter.getNQ(state))
+            qdot = &matter.updQDot(state)[0];
+        if (matter.getNUErr(state))
+            uErr = &matter.updUErr(state)[0];
         if (mc->uCacheIndex >= 0)
             vc = &matter.updVelocityCache(state);
     }
@@ -1486,6 +1496,13 @@ void SBStateDigest::fillThroughStage(const SimbodyMatterSubsystemRep& matter, St
     if (g >= Stage::Acceleration) {
         if (mc->accelerationVarsIndex >= 0)
             av = &matter.getAccelerationVars(state);
+
+        if (matter.getNU(state))
+            udot = &matter.updUDot(state)[0];
+        if (matter.getNQ(state))
+            qdotdot = &matter.updQDotDot(state)[0];
+        if (matter.getNUDotErr(state))
+            udotErr = &matter.updUDotErr(state)[0];
         if (mc->accelerationCacheIndex >= 0)
             ac = &matter.updAccelerationCache(state);
     }

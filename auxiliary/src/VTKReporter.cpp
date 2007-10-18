@@ -598,8 +598,9 @@ void VTKReporterRep::report(const State& s) {
         setRubberBandLine(i, X_GB1*info.station1, X_GB2*info.station2);
     }
 
-    for (Stage stage=Stage::Model; stage <= s.getSystemStage(); ++stage)
-        mbs.calcDecorativeGeometryAndAppend(s, stage, ephemeralGeometry);
+    for (int stage=Stage::Model; stage <= s.getSystemStage(); ++stage)
+        mbs.calcDecorativeGeometryAndAppend(s, Stage::getValue(stage), 
+                                            ephemeralGeometry);
 
     displayEphemeralGeometry(s);
 

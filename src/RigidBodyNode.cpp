@@ -200,32 +200,32 @@ public:
     /*virtual*/int  getNQ(const SBModelVars&) const {return 0;}
     /*virtual*/bool isUsingQuaternion(const SBModelVars&) const {return false;}
 
-    /*virtual*/void calcZ(
-        const SBStateDigest&,
-        const SBDynamicsCache&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces) const {} 
+    /*virtual*/bool enforceQuaternionConstraints(
+        const SBModelVars& mv,
+        Vector&             q) const {return false;}
 
-    /*virtual* void calcZ(
-        const SBPositionCache&,
-        const SBDynamicsCache&,
-        const Vector&              mobilityForces,
-        const Vector_<SpatialVec>& bodyForces,
-        SBAccelerationCache&) const {} */
+    /*virtual*/void setMobilizerDefaultModelValues(const SBTopologyCache&, 
+                                          SBModelVars& v) const
+    {
+        v.prescribed[0] = true; // ground's motion is prescribed to zero
+    }
 
-    /*virtual*/void calcYOutward(
-        const SBPositionCache& pc,
-        SBDynamicsCache&       dc) const {}
+    /*virtual*/ void setQToFitTransform
+       (const SBModelVars&, const Transform& X_FM, Vector& q) const {}
+    /*virtual*/ void setQToFitRotation
+       (const SBModelVars&, const Rotation& R_FM, Vector& q) const {}
+    /*virtual*/ void setQToFitTranslation
+       (const SBModelVars&, const Vec3& T_FM, Vector& q,
+        bool dontChangeOrientation) const {}
 
-    /*virtual*/void calcAccel(
-        const SBModelVars&     mv,
-        const Vector&          q,
-        const SBPositionCache& pc,
-        const Vector&          u,
-        const SBDynamicsCache& dc,
-        SBAccelerationCache&   ac,
-        Vector&                udot,
-        Vector&                qdotdot) const {}
+    /*virtual*/ void setUToFitVelocity
+       (const SBModelVars&, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
+    /*virtual*/ void setUToFitAngularVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {}
+    /*virtual*/ void setUToFitLinearVelocity
+       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u,
+        bool dontChangeAngularVelocity) const {}
+
 
     /*virtual*/void realizeModel(
         const SBModelVars& mv,
@@ -258,36 +258,38 @@ public:
         const SBVelocityCache& vc,
         SBDynamicsCache&       dc) const {}
 
-    /*virtual*/ void setQToFitTransform
-       (const SBModelVars&, const Transform& X_FM, Vector& q) const {}
-    /*virtual*/ void setQToFitRotation
-       (const SBModelVars&, const Rotation& R_FM, Vector& q) const {}
-    /*virtual*/ void setQToFitTranslation
-       (const SBModelVars&, const Vec3& T_FM, Vector& q,
-        bool dontChangeOrientation) const {}
-
-    /*virtual*/ void setUToFitVelocity
-       (const SBModelVars&, const Vector& q, const SpatialVec& V_FM, Vector& u) const {}
-    /*virtual*/ void setUToFitAngularVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {}
-    /*virtual*/ void setUToFitLinearVelocity
-       (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u,
-        bool dontChangeAngularVelocity) const {}
-
-
-    /*virtual*/void setVelFromSVel(
-        const SBPositionCache& pc, 
-        const SBVelocityCache& vc,
-        const SpatialVec&      sVel, 
-        Vector&                u) const {}
-
-    /*virtual*/bool enforceQuaternionConstraints(
-        const SBModelVars& mv,
-        Vector&             q) const {return false;}
-    
     /*virtual*/void calcArticulatedBodyInertiasInward(
         const SBPositionCache& pc,
         SBDynamicsCache&       dc) const {}
+
+
+    /*virtual* void calcZ(
+        const SBPositionCache&,
+        const SBDynamicsCache&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces,
+        SBAccelerationCache&) const {} */
+
+
+    /*virtual*/void calcZ(
+        const SBStateDigest&,
+        const SBDynamicsCache&,
+        const Vector&              mobilityForces,
+        const Vector_<SpatialVec>& bodyForces) const {} 
+
+    /*virtual*/void calcYOutward(
+        const SBPositionCache& pc,
+        SBDynamicsCache&       dc) const {}
+
+    /*virtual*/void calcAccel(
+        const SBModelVars&     mv,
+        const Vector&          q,
+        const SBPositionCache& pc,
+        const Vector&          u,
+        const SBDynamicsCache& dc,
+        SBAccelerationCache&   ac,
+        Vector&                udot,
+        Vector&                qdotdot) const {}
 
     /*virtual*/ void calcSpatialKinematicsFromInternal(
         const SBPositionCache&      pc,
@@ -357,13 +359,12 @@ public:
         allA_GB[0] = SpatialVec(Vec3(0), Vec3(0));
     }
 
-    /*virtual*/void setMobilizerDefaultModelValues(const SBTopologyCache&, 
-                                          SBModelVars& v) const
-    {
-        v.prescribed[0] = true; // ground's motion is prescribed to zero
-    }
+    /*virtual*/void setVelFromSVel(
+        const SBPositionCache& pc, 
+        const SBVelocityCache& vc,
+        const SpatialVec&      sVel, 
+        Vector&                u) const {}
 
-    // /*virtual*/ const SpatialRow& getHRow(int i) const;
 };
 
 // This still-abstract class is a skeleton implementation of a built-in mobilizer, with the

@@ -792,8 +792,19 @@ public:
         return *ac;
     }
     void clear() {
-        mv=0; iv=0; tv=0; q=0; pv=0; u=0; vv=0; dv=0; av=0;
-        mc=0; ic=0; tc=0;      pc=0;      vc=0; dc=0; ac=0;
+        // state
+        mv=0; iv=0; tv=0; 
+        q=0; pv=0;
+        u=0; vv=0; 
+        dv=0; 
+        av=0;
+
+        // cache
+        mc=0; ic=0; tc=0; 
+        qErr=0; pc=0;
+        qdot=uErr=0; vc=0; 
+        dc=0; 
+        udot=qdotdot=udotErr=0; ac=0;
     }
 
 private:
@@ -815,9 +826,19 @@ private:
     SBModelCache*               mc;
     SBInstanceCache*            ic;
     SBTimeCache*                tc;
+
+    Real*                       qErr;
     SBPositionCache*            pc;
+
+    Real*                       qdot;
+    Real*                       uErr;
     SBVelocityCache*            vc;
+
     SBDynamicsCache*            dc;
+
+    Real*                       udot;
+    Real*                       qdotdot;
+    Real*                       udotErr;
     SBAccelerationCache*        ac;
 };
 
