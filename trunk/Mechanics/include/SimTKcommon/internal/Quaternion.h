@@ -74,71 +74,68 @@ class Rotation;
 //-----------------------------------------------------------------------------
 class Quaternion : public Vec4 {
 public:
-    typedef Vec4 BaseVec;
-
-    /// Default constructor produces the ZeroRotation quaternion [1 0 0 0].
+    /// Default constructor produces the ZeroRotation quaternion [1 0 0 0] (not NaN - even in debug mode).
     Quaternion() : Vec4(1,0,0,0) { }
 
-    /// Construct a quaternion from a Vec4 v which is interpreted as a
-    /// quaternion that needs normalization [NOT (angle,axis)].
-    /// If the passed-in vector v is *exactly* zero, the quaternion is set to [1 0 0 0].
-    /// If the length of v is 0 < len < eps (eps being machine tolerance),
-    /// the quaternion is set to NaN (treated as an error). 
-    /// Otherwise, the quaternion is set by normalizing v (40 flops).
-    /// The constructed quaternion is NOT put in canonical form.
-    explicit Quaternion( const Vec4& v ) {
-        const Real eps = std::numeric_limits<Real>::epsilon();
-        const Real len = v.norm();
-        if      (len == 0)  setQuaternionToZeroRotation();
-        else if (len < eps) setQuaternionToNaN();
-        else BaseVec::operator=( v/len );
-    }
+    /// Zero-cost copy constructor just copies the source without conversion to canonical form or normalization.
+    Quaternion( const Quaternion& q ) : Vec4(q) {}
+
+    /// Zero-cost copy assignment just copies the source without conversion to canonical form or normalization.
+    Quaternion& operator=( const Quaternion& q ) { Vec4::operator=( q.asVec4() );  return *this; }
+    
+    /// Construct a quaternion and normalize it 
+    Quaternion( Real e0, Real e1, Real e2, Real e3 ) : Vec4(e0,e1,e2,e3)  { normalizeThis(); }
+    explicit Quaternion( const Vec4& q ) : Vec4(q)                        { normalizeThis(); }
 
     /// Constructs a canonical quaternion from a rotation matrix (cost is about 60 flops).
     SimTK_SimTKCOMMON_EXPORT explicit Quaternion( const Rotation& );
 
-    /// Zero-cost copy constructor just copies the source without conversion to canonical form or normalization.
-    Quaternion( const Quaternion& q ) : BaseVec(q) { }
-
-    /// Zero-cost copy assignment just copies the source without conversion to canonical form or normalization.
-    Quaternion& operator=( const Quaternion& q ) { BaseVec::operator=( q.asVec4() );  return *this; }
-    
     /// The ZeroRotation quaternion is [1 0 0 0].
-    void setQuaternionToZeroRotation()  { BaseVec::operator=( Vec4(1,0,0,0) ); }
-    void setToZero()                    { setQuaternionToZeroRotation(); }
-
-    /// This is the only exception to the "must be normalized" rule for quaternions. 
-    /// Note: Unlike naked Vec4's, Quaternions do not start out NaN even in Debug mode.
-    /// The default constructor sets the Quaternion to "zero rotation" instead.
-    void setQuaternionToNaN() { BaseVec::setToNaN(); }
-    void setToNaN()           { setQuaternionToNaN(); }
-
-    /// Resulting 4-vector is [ a vx vy vz ] with (a,v) in canonical form.
-    /// That is, -180 < a <= 180 and |v|=1. The cost of this operation is
-    /// roughly one atan2, one sqrt, and one divide, say about 100 flops.
-    SimTK_SimTKCOMMON_EXPORT Vec4 convertQuaternionToAngleAxis() const;
-    Vec4 convertToAngleAxis() const  { return convertQuaternionToAngleAxis(); }
+    /// Note: Default constructor is ZeroRotation (unlike Vec4 which start as NaN in Debug mode).
+    void setQuaternionToZeroRotation()  { Vec4::operator=( Vec4(1,0,0,0) ); }
+    void setQuaternionToNaN()           { Vec4::setToNaN(); }
 
     /// The quaternion that is set by this method has a non-negative first element (canonical form).
     /// If the "axis" portion of av is a zero vector, the quaternion is set to all-NaN.
-    SimTK_SimTKCOMMON_EXPORT void setQuaternionFromAngleAxis( const Vec4& av );
-    void setToAngleAxis( const Vec4& av ) { setQuaternionFromAngleAxis(av); }
+    SimTK_SimTKCOMMON_EXPORT void  setQuaternionFromAngleAxis( const Vec4& av );
+    SimTK_SimTKCOMMON_EXPORT void  setQuaternionFromAngleAxis( const Real& a, const UnitVec3& v );
 
-    /// The quaternion that is set by this method has a non-negative first element (canonical form).
-    SimTK_SimTKCOMMON_EXPORT void setQuaternionFromAngleAxis( const Real& a, const UnitVec3& v );
-    void setToAngleAxis( const Real& a, const UnitVec3& v )  { setQuaternionFromAngleAxis(a,v); }
+    /// Returns [ a vx vy vz ] with (a,v) in canonical form, i.e., -180 < a <= 180 and |v|=1. 
+    SimTK_SimTKCOMMON_EXPORT Vec4  convertQuaternionToAngleAxis() const;
 
-    /// Upcast this Quaternion to its parent class, a Vec4. This is inline
-    /// and should generate no code. You can do the same thing with static_cast
-    /// if you prefer. Zero cost.
-    const BaseVec& asVec4() const  { return *static_cast<const BaseVec*>(this); }
+    /// Zero-cost cast of a Quaternion to a Vec4.
+    const Vec4&  asVec4() const  { return *static_cast<const Vec4*>(this); }
 
-    /// Use this method only if you are *sure* v is normalized to 1.0.
-    /// This zero cost method is faster than the Quaternion(Vec4) constructor 
-    /// which normalizes the Vec4. The second argument forces the compiler to call 
-    //  the fast constructor; it is otherwise ignored. 
+    /// Normalize an already constructed quaternion.
+    /// If the quaternion is *exactly* zero, set it to [1 0 0 0].
+    /// If its magnitude is:  0 < magnitude < epsilon  (epsilon is machine tolerance), set it to NaN (treated as an error). 
+    /// Otherwise, normalize the quaternion which costs about 40 flops.
+    /// The quaternion is NOT put in canonical form.
+    Quaternion&  normalizeThis() { 
+        const Real epsilon = std::numeric_limits<Real>::epsilon();
+        const Real magnitude = Vec4::norm();
+        if(      magnitude == 0      )  setQuaternionToZeroRotation();
+        else if( magnitude < epsilon )  setQuaternionToNaN();
+		else (*this) *= (1.0/magnitude);
+        return *this;
+    }
+
+    /// Use this constructor only if you are *sure* v is normalized to 1.0.
+    /// This zero cost method is faster than the Quaternion(Vec4) constructor which normalizes the Vec4. 
+    /// The second argument forces the compiler to call the fast constructor; it is otherwise ignored. 
     /// By convention, set the second argument to "true". 
     Quaternion( const Vec4& v, bool ) : Vec4(v) {}
+
+//----------------------------------------------------------------------------------------------------
+// The following code is obsolete - it is here temporarily for backward compatibility (Mitiguy 10/13/2007)
+//----------------------------------------------------------------------------------------------------
+public:
+    Vec4  convertToAngleAxis() const                          { return convertQuaternionToAngleAxis(); }
+    void  setToAngleAxis( const Vec4& av )                    { setQuaternionFromAngleAxis(av); }
+    void  setToAngleAxis( const Real& a, const UnitVec3& v )  { setQuaternionFromAngleAxis(a,v); }
+    void setToNaN()                                           { setQuaternionToNaN(); }
+    void setToZero()                                          { setQuaternionToZeroRotation(); }
+
 };
 
 
