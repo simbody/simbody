@@ -72,11 +72,8 @@
 //-----------------------------------------------------------------------------
 namespace SimTK {
 
-
-// Templatized conversion routines for use only for "precisions", i.e., float, double, long double.
-template <class P> P inline static convertRadiansToDegrees(const P& rad) { return rad*P(SimTK_RTD); }
-template <class P> P inline static convertDegreesToRadians(const P& deg) { return deg*P(SimTK_DTR); }
-
+inline static Real  convertRadiansToDegrees(const Real rad) { return rad*Real(SimTK_RTD); }
+inline static Real  convertDegreesToRadians(const Real deg) { return deg*Real(SimTK_DTR); }
 
 
 //------------------------------------------------------------------------------
