@@ -47,15 +47,59 @@ using std::endl;
 using std::setprecision;
 using std::complex;
 
+#define ASSERT(cond) {SimTK_ASSERT_ALWAYS((cond), "Assertion failed");}
+
 using namespace SimTK;
 
-int main()
-{
-    const Real one = 1., two = 2.;
+// use this to keep the compiler from whining about divides by zero
+static Real getRealZero();
+
+int main() {
+  try
+  { const Real zero = 0., one = 1., two = 2.;
     const Complex oneTwo(1.,2.);
     const Complex threeFour(3.,4.); 
     const complex<float> fcinf = CNT< complex<float> >::getInfinity();
+
+        // nan tests
     const Real nan = CNT<Real>::getNaN();
+    const float fnan = NTraits<float>::getNaN();
+    const double dnan = NTraits<double>::getNaN();
+    const long double lnan = NTraits<long double>::getNaN();
+    const std::complex<float> cfnan(fnan, fnan);
+    const std::complex<double> cdnan(3, dnan);
+    const std::complex<long double> clnan(lnan, 0L);
+    const conjugate<float> jfnan(fnan, 0.09f);
+    const conjugate<double> jdnan(3, dnan);
+    const conjugate<long double> jlnan(lnan, lnan);    
+    const negator<Real>& nzero = reinterpret_cast<const negator<Real>&>(zero);
+    const negator<Real>& ntwo = reinterpret_cast<const negator<Real>&>(two);
+    const negator<float>& nfnan = reinterpret_cast<const negator<float>&>(fnan);
+    const negator< std::complex<float> >& ncfnan = reinterpret_cast<const negator<std::complex<float> >&>(cfnan);
+    const negator< conjugate<long double> >& njlnan = reinterpret_cast<const negator<conjugate<long double> >&>(jlnan);
+
+    ASSERT(isNaN(nan));
+    ASSERT(isNaN(-nan));
+    ASSERT(isNaN(NaN)); // SimTK::NaN
+    ASSERT(isNaN(-NaN)); // SimTK::NaN
+    ASSERT(!isNaN(one));
+    ASSERT(!isNaN(Infinity));
+    ASSERT(isNaN(0./getRealZero()));
+    ASSERT(!isNaN(1./getRealZero())); // Infinity
+
+    ASSERT(isNaN(fnan)); ASSERT(isNaN(dnan)); ASSERT(isNaN(lnan)); // float,double,long double
+    ASSERT(isNaN(cfnan)); ASSERT(isNaN(cdnan)); ASSERT(isNaN(clnan)); // complex<float,double,long double>
+    ASSERT(!isNaN(fcinf)); // complex infinity, not NaN
+    ASSERT(isNaN(jfnan)); ASSERT(isNaN(jdnan)); ASSERT(isNaN(jlnan)); // conjugate<float,double,long double>
+
+    // Check negator behavior
+    ASSERT(nzero == zero); ASSERT(-nzero == zero);
+    ASSERT(ntwo == -two);  ASSERT(-ntwo == two);
+    ASSERT(isNaN(nfnan));  ASSERT(isNaN(-nfnan));
+    ASSERT(!isNaN(nzero)); ASSERT(!isNaN(-ntwo));
+    ASSERT(isNaN(ncfnan)); ASSERT(isNaN(-ncfnan));
+    ASSERT(isNaN(njlnan)); ASSERT(isNaN(-njlnan));
+
     
     cout << "one=" << one << " two=" << two << endl;
     cout << "oneTwo=" << oneTwo << " threeFour=" << threeFour << endl; 
@@ -248,5 +292,15 @@ int main()
         (long double)NTraits<double>::getTiny(), 
         NTraits<long double>::getTiny());
 
+  } catch(const std::exception& e) {
+      std::cout << "exception: " << e.what() << std::endl;
+      return 1;
+  }
+
     return 0; // success
+}
+
+// Try to prevent a smart optimizer from noticing this zero.
+static Real getRealZero() {
+    return std::sin(Real(0));
 }

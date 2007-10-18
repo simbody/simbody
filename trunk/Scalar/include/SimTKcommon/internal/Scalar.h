@@ -125,11 +125,61 @@ static const Complex& I = NTraits<Complex>::getI();
     // SOME SCALAR UTILITIES //
     ///////////////////////////
 
-// s=sign(n)
-// Return int -1,0,1 according to n<0, n==0, n>0 for any integer
-// or real numeric type. Sign is not defined for complex or conjugate.
-// For unsigned argument, return unsigned 0 or 1.
+/**
+ * isNaN(x) provides a reliable way to determine if x is one of the
+ * "not a number" floating point forms. Comparing x==NaN does not
+ * work because any relational operation involving NaN always
+ * return false, even (NaN==NaN)! We use this latter fact to detect
+ * NaN since no other floating point values have that property.
+ * This routine is specialized for all SimTK scalar types:
+ * float, double, long double, std::complex<P>, SimTK::conjugate<P>,
+ * and SimTK::negator<T>, where T is any of the above. For
+ * complex and conjugate types, isNaN() returns true if either
+ * the real or imaginary part or both are NaN.
+ */
+inline bool isNaN(const float& x) {
+    volatile float xx = x; // prevent clever optimizations
+    return x != xx;
+}
 
+inline bool isNaN(const double& x) {
+    volatile double xx = x; // prevent clever optimizations
+    return x != xx;
+}
+
+inline bool isNaN(const long double& x) {
+    volatile long double xx = x; // prevent clever optimizations
+    return x != xx;
+}
+
+
+template <class P> inline bool
+isNaN(const std::complex<P>& x) {
+    return isNaN(x.real()) || isNaN(x.imag());
+}
+
+template <class P> inline bool
+isNaN(const conjugate<P>& x) {
+    return isNaN(x.real()) || isNaN(x.negImag());
+}
+
+inline bool isNaN(const negator<float>&       x) {return isNaN(-x);}
+inline bool isNaN(const negator<double>&      x) {return isNaN(-x);}
+inline bool isNaN(const negator<long double>& x) {return isNaN(-x);}
+
+template <class P> inline bool
+isNaN(const negator< std::complex<P> >& x) {return isNaN(-x);}
+template <class P> inline bool
+isNaN(const negator< conjugate<P> >&    x) {return isNaN(-x);}
+
+/**
+ * s=sign(n) returns int -1,0,1 according to n<0, n==0, n>0 for any integer
+ * or real numeric type, unsigned 0 or 1 for any unsigned argument. This
+ * routine is specialized for each of the int, unsigned, and real types
+ * of all sizes. Sign is defined for "signed char" and "unsigned char" but
+ * not plain "char" since the language leaves unspecified whether that is
+ * a signed or unsigned type. Sign is not defined for complex or conjugate.
+ */
 inline unsigned int sign(unsigned char  u) {return u==0 ? 0 : 1;}
 inline unsigned int sign(unsigned short u) {return u==0 ? 0 : 1;}
 inline unsigned int sign(unsigned int   u) {return u==0 ? 0 : 1;}
@@ -151,12 +201,14 @@ inline int sign(const negator<float>&       x) {return -sign(-x);} // -x is free
 inline int sign(const negator<double>&      x) {return -sign(-x);}
 inline int sign(const negator<long double>& x) {return -sign(-x);}
 
-// y=square(x)
-// Return the square of the argument for any numeric type. We promise
-// to evaluate x only once. We assume the result type is the same
-// as the argument type; if it won't fit caller must cast argument
-// to a wider type first.
-
+/**
+ * y=square(x) returns the square of the argument for any numeric type.
+ * We promise to evaluate x only once. We assume is is acceptable for
+ * the result type to be the same as the argument type; if it won't
+ * fit caller must cast argument to a wider type first. This is an
+ * inline routine which will run as fast as an explicit multiply
+ * (x*x) in optimized code, and somewhat faster for complex types.
+ */
 inline unsigned char  square(unsigned char  u) {return u*u;}
 inline unsigned short square(unsigned short u) {return u*u;}
 inline unsigned int   square(unsigned int   u) {return u*u;}
@@ -209,11 +261,15 @@ std::complex<P> square(const negator< conjugate<P> >& x) {
     return square(-x); // negation is free for negators
 }
 
-// y=cube(x)
-// Return the cube of the argument for any numeric type. We promise
-// to evaluate x only once.
-
-
+/**
+ * y=cube(x) returns the cube of the argument for any numeric type,
+ * integral or floating point. We promise to evaluate x only once.
+ * We assume is is acceptable for the result type to be the same
+ * as the argument type; if it won't fit caller must cast argument
+ * to a wider type first. This is an inline routine which will run
+ * as fast as explicit multiplies (x*x*x) in optimized code, and
+ * even faster for complex types.
+ */
 inline unsigned char  cube(unsigned char  u) {return u*u*u;}
 inline unsigned short cube(unsigned short u) {return u*u*u;}
 inline unsigned int   cube(unsigned int   u) {return u*u*u;}
