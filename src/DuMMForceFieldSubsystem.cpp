@@ -1247,11 +1247,10 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms)
     mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
 }
 
-void DuMMForceFieldSubsystem::defineAtomClass
-   (DuMM::AtomClassId atomClassId, const char* atomClassName, int element, int valence, 
-    Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol)
+void DuMMForceFieldSubsystem::defineIncompleteAtomClass
+   (DuMM::AtomClassId atomClassId, const char* atomClassName, int element, int valence)
 {
-    static const char* MethodName = "defineAtomClass";
+    static const char* MethodName = "defineIncompleteAtomClass";
 
     invalidateSubsystemTopologyCache();
 
@@ -1264,10 +1263,6 @@ void DuMMForceFieldSubsystem::defineAtomClass
         "element %d invalid: must be a valid atomic number and have an entry here",element);
     SimTK_APIARGCHECK1_ALWAYS(valence >= 0, mm.ApiClassName, MethodName, 
         "expected valence %d invalid: must be nonnegative", valence);
-    SimTK_APIARGCHECK1_ALWAYS(vdwRadiusInNm >= 0, mm.ApiClassName, MethodName, 
-        "van der Waals radius %g invalid: must be nonnegative", vdwRadiusInNm);
-    SimTK_APIARGCHECK1_ALWAYS(vdwWellDepthInKJPerMol >= 0, mm.ApiClassName, MethodName, 
-        "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepthInKJPerMol);
 
         // Make sure there is a slot available for this atom class.
     if (atomClassId >= (DuMM::AtomClassId)mm.atomClasses.size())
@@ -1280,11 +1275,32 @@ void DuMMForceFieldSubsystem::defineAtomClass
 
         // It's all good -- add the new atom class.
     mm.atomClasses[atomClassId] = AtomClass(atomClassId, atomClassName, element, valence, 
-                                            vdwRadiusInNm, vdwWellDepthInKJPerMol);
+                                            NaN, NaN);
 }
 
-void DuMMForceFieldSubsystem::defineChargedAtomType
-    (DuMM::ChargedAtomTypeId chargedAtomTypeId, const char* typeName, DuMM::AtomClassId atomClassId, Real partialChargeInE)
+void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassId atomClassId, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol) 
+{
+    static const char* MethodName = "setAtomClsasVdwParameters";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(atomClassId >= 0, mm.ApiClassName, MethodName,
+        "atom class Id %d invalid: must be nonnegative", (int) atomClassId);
+
+    SimTK_APIARGCHECK1_ALWAYS(vdwRadiusInNm >= 0, mm.ApiClassName, MethodName, 
+        "van der Waals radius %g invalid: must be nonnegative", vdwRadiusInNm);
+    SimTK_APIARGCHECK1_ALWAYS(vdwWellDepthInKJPerMol >= 0, mm.ApiClassName, MethodName, 
+        "van der Waals energy well depth %g invalid: must be nonnegative", vdwWellDepthInKJPerMol);
+
+    AtomClass& atomClass = mm.atomClasses[atomClassId];
+    atomClass.vdwRadius = vdwRadiusInNm;
+    atomClass.vdwWellDepth = vdwWellDepthInKJPerMol;
+}
+
+void DuMMForceFieldSubsystem::defineIncompleteChargedAtomType
+    (DuMM::ChargedAtomTypeId chargedAtomTypeId, const char* typeName, DuMM::AtomClassId atomClassId)
 {
     static const char* MethodName = "defineChargedAtomType";
 
@@ -1314,7 +1330,22 @@ void DuMMForceFieldSubsystem::defineChargedAtomType
 
         // Define the new charged atom type.
     mm.chargedAtomTypes[chargedAtomTypeId] = 
-        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, partialChargeInE);
+        ChargedAtomType(chargedAtomTypeId, typeName, atomClassId, NaN);
+}
+
+void DuMMForceFieldSubsystem::setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId chargedAtomTypeId, Real charge) {
+    static const char* MethodName = "defineChargedAtomType";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+        // Check for nonsense arguments.
+    SimTK_APIARGCHECK1_ALWAYS(chargedAtomTypeId >= 0, mm.ApiClassName, MethodName,
+        "charged atom type Id %d invalid: must be nonnegative", (int) chargedAtomTypeId);
+
+    ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[chargedAtomTypeId];
+    chargedAtomType.partialCharge = charge;
 }
 
 void DuMMForceFieldSubsystem::defineBondStretch
@@ -2122,7 +2153,6 @@ MobilizedBodyId DuMMForceFieldSubsystem::getClusterBody(DuMM::ClusterId clusterI
 void DuMMForceFieldSubsystem::dump() const {
     return getRep().dump();
 }
-
 
 
     ////////////////////////////////////
