@@ -518,9 +518,9 @@ bool  exhaustiveTestof3AngleRotation( ) {
    bool test = true;
 
    // Range to check angles
-   Real negativeStartAngle = convertDegreesToRadians( -190 );
-   Real positiveStartAngle = convertDegreesToRadians(  190 );
-   Real incrementAngle = convertDegreesToRadians( 10.0 );
+   Real negativeStartAngle = convertDegreesToRadians( -200 );
+   Real positiveStartAngle = convertDegreesToRadians(  200 );
+   Real incrementAngle = convertDegreesToRadians( 20.0 );
 
    // Test each axis
    for( int i=0;  i<=2;  i++ ) {
@@ -623,10 +623,10 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity() {
 bool  exhaustiveTestofQuaternions() {
    bool test = true;
 
-   for( Real e0 = -1;  e0 <= 1;  e0 += 0.15 )
-   for( Real e1 = -1;  e1 <= 1;  e1 += 0.15 )
-   for( Real e2 = -1;  e2 <= 1;  e2 += 0.15 )
-   for( Real e3 = -1;  e3 <= 1;  e3 += 0.15 )
+   for( Real e0 = -1;  e0 <= 1;  e0 += 0.2 )
+   for( Real e1 = -1;  e1 <= 1;  e1 += 0.2 )
+   for( Real e2 = -1;  e2 <= 1;  e2 += 0.2 )
+   for( Real e3 = -1;  e3 <= 1;  e3 += 0.2 )
      test = test && testQuaternion( e0, e1, e2, e3 );
 
    return test;
