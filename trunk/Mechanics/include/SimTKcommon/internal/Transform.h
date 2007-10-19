@@ -155,13 +155,13 @@ public:
     /// By zero we mean "zero transform", i.e., an identity rotation
     /// and zero translation. We return a reference to the now-modified
     /// transform as though this were an assignment operator. 
-    Transform&  setToZero()  { R_BF.setToZero();  T_BF = 0.;  return *this; }
+    Transform&  setToZero()  { R_BF.setRotationToIdentityMatrix();  T_BF = 0.;  return *this; }
 
     /// This fills both the rotation and translation with NaNs. Note: this is
     /// @em not the same as a default-constructed transform, which is a
     /// legitimate identity transform instead. We return a reference to the now-modified
     /// transform as though this were an assignment operator. 
-    Transform&  setToNaN()  { R_BF.setToNaN();  T_BF.setToNaN();  return *this; }
+    Transform&  setToNaN()  { R_BF.setRotationToNaN();  T_BF.setToNaN();  return *this; }
 
     /// Return a read-only inverse of the current Transform, simply by casting it to
     /// the InverseTransform type. Zero cost.
