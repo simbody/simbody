@@ -585,6 +585,11 @@ int System::Guts::handleEventsImpl
     Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
     Stage& lowestModified, bool& shouldTerminate) const
 {
+    // Event handlers should not be able to modify the time.
+    
+    std::set<SubsystemId> temp;
+    State restricted = s.createRestrictedState(Stage::Time, temp);
+    
     // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
     
     lowestModified = Stage::HighestValid;
@@ -593,9 +598,9 @@ int System::Guts::handleEventsImpl
     for (SubsystemId i(0); i<getNSubsystems(); ++i) {
         Stage subsysLowestModified = Stage::HighestValid;
         bool subsysShouldTerminate = false;
-        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), s, eventIds, eventsForSubsystem);
+        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), restricted, eventIds, eventsForSubsystem);
         if (eventsForSubsystem.size() > 0) {
-            getRep().subsystems[i].getSubsystemGuts().handleEvents(s, cause, eventsForSubsystem, accuracy, yWeights, ooConstraintTols, subsysLowestModified, subsysShouldTerminate);
+            getRep().subsystems[i].getSubsystemGuts().handleEvents(restricted, cause, eventsForSubsystem, accuracy, yWeights, ooConstraintTols, subsysLowestModified, subsysShouldTerminate);
             if (subsysLowestModified < lowestModified)
                 lowestModified = subsysLowestModified;
             if (subsysShouldTerminate)

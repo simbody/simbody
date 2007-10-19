@@ -35,6 +35,9 @@
 
 #include <cassert>
 #include <ostream>
+#include <set>
+
+using std::set;
 
 namespace SimTK {
 
@@ -741,13 +744,20 @@ public:
     }
     
     ~StateRep() {
-        delete data; data=0;
+        if (data->myHandle == this)
+            delete data;
+        data=0;
     }
     
     // copy constructor
     StateRep(const StateRep& src) 
       : data(src.data->clone()) {
         data->setMyHandle(*this);
+    }
+    
+    // This constructor creates restricted states.
+    StateRep(const StateRep& src, EnumerationSet<Stage>& restrictedStages, set<SubsystemId>& restrictedSubsystems) 
+      : data(src.data), restrictedStages(restrictedStages), restrictedSubsystems(restrictedSubsystems) {
     }
     
     // copy assignment
@@ -840,6 +850,7 @@ public:
     
     int allocateQ(SubsystemId subsys, const Vector& qInit) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateQ()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].qInit.size();
         data->subsystems[subsys].qInit.resizeKeep(nxt + qInit.size());
         data->subsystems[subsys].qInit(nxt, qInit.size()) = qInit;
@@ -848,6 +859,7 @@ public:
     
     int allocateU(SubsystemId subsys, const Vector& uInit) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateU()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].uInit.size();
         data->subsystems[subsys].uInit.resizeKeep(nxt + uInit.size());
         data->subsystems[subsys].uInit(nxt, uInit.size()) = uInit;
@@ -855,6 +867,7 @@ public:
     }
     int allocateZ(SubsystemId subsys, const Vector& zInit) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateZ()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].zInit.size();
         data->subsystems[subsys].zInit.resizeKeep(nxt + zInit.size());
         data->subsystems[subsys].zInit(nxt, zInit.size()) = zInit;
@@ -863,24 +876,29 @@ public:
     
     int allocateQErr(SubsystemId subsys, int nqerr) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateQErr()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nqerr;
         data->subsystems[subsys].nqerr += nqerr;
         return nxt;
     }
     int allocateUErr(SubsystemId subsys, int nuerr) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::al()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nuerr;
         data->subsystems[subsys].nuerr += nuerr;
         return nxt;
     }
     int allocateUDotErr(SubsystemId subsys, int nudoterr) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateUDotErr()");
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nudoterr;
         data->subsystems[subsys].nudoterr += nudoterr;
         return nxt;
     }
     int allocateEvent(SubsystemId subsys, Stage g, int ne) {
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), Stage::Model, "StateRep::allocateEvent()");
+        checkCanModify(g);
+        checkCanModify(subsys);
         const int nxt = data->subsystems[subsys].nevents[g];
         data->subsystems[subsys].nevents[g] += ne;
         return nxt;
@@ -895,6 +913,8 @@ public:
         const Stage maxAcceptable = (g <= Stage::Model ? Stage::Empty : Stage::Topology);
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             maxAcceptable.next(), "StateRep::allocateDiscreteVariable()");
+        checkCanModify(g);
+        checkCanModify(subsys);
     
         PerSubsystemInfo& ss = data->subsystems[subsys];
         const int nxt = ss.discrete.size();
@@ -908,7 +928,9 @@ public:
             "StateRep::allocateCacheEntry()");
         SimTK_STAGECHECK_LT_ALWAYS(getSubsystemStage(subsys), 
             Stage::Model, "StateRep::allocateCacheEntry()");
-    
+        checkCanModify(g);
+        checkCanModify(subsys);
+
         PerSubsystemInfo& ss = data->subsystems[subsys];
         const int nxt = ss.cache.size();
         ss.cache.push_back(CacheEntry(g,vp));
@@ -1139,18 +1161,24 @@ public:
     
     Vector& updQ(SubsystemId subsys) {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQ(subsys)");
         invalidateAll(Stage::Position);
         return data->updSubsystem(subsys).q;
     }
     Vector& updU(SubsystemId subsys) {
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updU(subsys)");
         invalidateAll(Stage::Velocity);
         return data->updSubsystem(subsys).u;
     }
     Vector& updZ(SubsystemId subsys) {
         assert(data);
+        checkCanModify(Stage::Dynamics);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZ(subsys)");
         invalidateAll(Stage::Dynamics);
         return data->updSubsystem(subsys).z;
@@ -1160,24 +1188,32 @@ public:
     
     Vector& updQDot(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDot(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "StateRep::updQDot(subsys)");
         return data->getSubsystem(subsys).qdot;
     }
     Vector& updUDot(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDot(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "StateRep::updUDot(subsys)");
         return data->getSubsystem(subsys).udot;
     }
     Vector& updZDot(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Dynamics);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZDot(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Dynamics).prev(), "StateRep::updZDot(subsys)");
         return data->getSubsystem(subsys).zdot;
     }
     Vector& updQDotDot(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQDotDot(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), "StateRep::updQDotDot(subsys)");
         return data->getSubsystem(subsys).qdotdot;
@@ -1218,18 +1254,24 @@ public:
     
     Vector& updQErr(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Position).prev(), "StateRep::updQErr(subsys)");
         return data->getSubsystem(subsys).qerr;
     }
     Vector& updUErr(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Velocity).prev(), "StateRep::updUErr(subsys)");
         return data->getSubsystem(subsys).uerr;
     }
     Vector& updUDotErr(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updUDotErr(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updUDotErr(subsys)");
@@ -1237,6 +1279,7 @@ public:
     }
     Vector& updMultipliers(SubsystemId subsys) const {
         assert(data);
+        checkCanModify(subsys);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updMultipliers(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updMultipliers(subsys)");
@@ -1244,6 +1287,8 @@ public:
     }
     Vector& updEventsByStage(SubsystemId subsys, Stage g) const {
         assert(data);
+        checkCanModify(subsys);
+        checkCanModify(g);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updEventsByStage(subsys)");
         SimTK_STAGECHECK_GE(getSubsystemStage(subsys), g.prev(), "StateRep::updEventsByStage(subsys)");
         return data->getSubsystem(subsys).events[g];
@@ -1287,6 +1332,7 @@ public:
     // stage will be backed up if necessary to the indicated stage.
     Real& updTime() {  // Stage::Time-1
         assert(data);
+        checkCanModify(Stage::Time);
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updTime()");
         invalidateAll(Stage::Time);
         return data->t;
@@ -1294,6 +1340,8 @@ public:
     
     Vector& updY() {    // Back to Stage::Position-1
         assert(data);
+        checkCanModifyY();
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updY()");
         invalidateAll(Stage::Position);
         return data->y;
@@ -1301,6 +1349,8 @@ public:
     
     Vector& updQ() {    // Stage::Position-1
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updQ()");
         invalidateAll(Stage::Position);
         return data->q;
@@ -1308,6 +1358,8 @@ public:
     
     Vector& updU() {     // Stage::Velocity-1
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updU()");
         invalidateAll(Stage::Velocity);
         return data->u;
@@ -1315,6 +1367,8 @@ public:
     
     Vector& updZ() {     // Stage::Dynamics-1
         assert(data);
+        checkCanModify(Stage::Dynamics);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage::Model, "StateRep::updZ()");
         invalidateAll(Stage::Dynamics);
         return data->z;
@@ -1353,30 +1407,39 @@ public:
     
     Vector& updYDot() const {
         assert(data);
+        checkCanModifyY();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updYDot()");
         return data->ydot;
     }
     
     Vector& updQDot() const {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updQDot()");
         return data->qdot;
     }
     
     Vector& updUDot() const {
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updUDot()");
         return data->udot;
     }
     
     Vector& updZDot() const {
         assert(data);
+        checkCanModify(Stage::Dynamics);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Dynamics).prev(), "StateRep::updZDot()");
         return data->zdot;
     }
     
     Vector& updQDotDot() const {
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updQDotDot()");
         return data->qdotdot;
     }
@@ -1411,27 +1474,36 @@ public:
     
     Vector& updYErr() const {
         assert(data);
+        checkCanModifyY();
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updYErr()");
         return data->yerr;
     }
     Vector& updQErr() const{
         assert(data);
+        checkCanModify(Stage::Position);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Position).prev(), "StateRep::updQErr()");
         return data->qerr;
     }
     Vector& updUErr() const{
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Velocity).prev(), "StateRep::updUErr()");
         return data->uerr;
     }
     Vector& updUDotErr() const{
         assert(data);
+        checkCanModify(Stage::Velocity);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updUDotErr()");
         return data->udoterr;
     }
     Vector& updMultipliers() const{
         assert(data);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), 
                             "StateRep::updMultipliers()");
         return data->multipliers;
@@ -1451,11 +1523,13 @@ public:
     // These are mutable; hence 'const'.
     Vector& updEvents() const {
         assert(data);
+        checkCanModifyAnySubsystem();
         SimTK_STAGECHECK_GE(getSystemStage(), Stage(Stage::Acceleration).prev(), "StateRep::updEvents()");
         return data->allEvents;
     }
     Vector& updEventsByStage(Stage g) const {
         assert(data);
+        checkCanModify(g);
         SimTK_STAGECHECK_GE(getSystemStage(), g.prev(), "StateRep::updEventsByStage()");
         return data->events[g];
     }
@@ -1482,6 +1556,7 @@ public:
     // stage up to one earlier than the variable's stage.
     AbstractValue& 
     updDiscreteVariable(SubsystemId subsys, int index) {
+        checkCanModify(subsys);
         PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(0,index,(int)ss.discrete.size(),"StateRep::updDiscreteVariable()");
@@ -1513,6 +1588,7 @@ public:
     // Stage >= ce.stage-1; does not change stage
     AbstractValue& 
     updCacheEntry(SubsystemId subsys, int index) const {
+        checkCanModify(subsys);
         const PerSubsystemInfo& ss = data->subsystems[subsys];
     
         SimTK_INDEXCHECK(0,index,(int)ss.cache.size(),"StateRep::updCacheEntry()");
@@ -1522,6 +1598,39 @@ public:
             ce.getStage().prev(), "StateRep::updCacheEntry()");
     
         return ce.updValue();
+    }
+    
+    EnumerationSet<Stage> getRestrictedStages() const {
+        return restrictedStages;
+    }
+
+    set<SubsystemId> getRestrictedSubsystems() const {
+        return restrictedSubsystems;
+    }
+    
+    // Verify that a particular stage may be modified.
+    void checkCanModify(Stage stage) const {
+        SimTK_ASSERT1_ALWAYS(!restrictedStages.contains(stage),
+                "Modification of state data for stage %s has been restricted.", stage.getName().c_str());
+    }
+    
+    // Verify that a particular subsystem may be modified.
+    void checkCanModify(SubsystemId subsystem) const {
+        SimTK_ASSERT1_ALWAYS(restrictedSubsystems.find(subsystem) == restrictedSubsystems.end(),
+                "Modification of state data for subsystem %d has been restricted.", (int) subsystem);
+    }
+    
+    // Verify that this State permits all state variables to be modified.
+    void checkCanModifyY() const {
+        checkCanModify(Stage::Position);
+        checkCanModify(Stage::Velocity);
+        checkCanModify(Stage::Dynamics);
+    }
+    
+    // Verify that this State permits unrestricted modifications.
+    void checkCanModifyAnySubsystem() const {
+        SimTK_ASSERT_ALWAYS(restrictedStages.empty() && restrictedSubsystems.empty(),
+                "Modification of state data has been restricted.");
     }
     
     String toString() const {
@@ -1655,6 +1764,8 @@ public:
         return out;
     }
     StateData* data;
+    EnumerationSet<Stage> restrictedStages;
+    set<SubsystemId> restrictedSubsystems;
 };
 
 
@@ -1676,6 +1787,9 @@ State::~State() {
 }
 State::State(const State& state) {
     rep = new StateRep(*state.rep);
+}
+State::State(State& state, EnumerationSet<Stage>& restrictedStages, std::set<SubsystemId>& restrictedSubsystems) {
+    rep = new StateRep(*state.rep, restrictedStages, restrictedSubsystems);
 }
 void State::clear() {
     rep->clear();
@@ -2046,6 +2160,19 @@ const AbstractValue& State::getCacheEntry(SubsystemId subsys, int index) const {
 }
 AbstractValue& State::updCacheEntry(SubsystemId subsys, int index) const {
     return rep->updCacheEntry(subsys, index);
+}
+State State::createRestrictedState(EnumerationSet<Stage> restrictedStages, std::set<SubsystemId> restrictedSubsystems) {
+    restrictedStages |= getRestrictedStages();
+    std::set<SubsystemId> currentSubsystems = getRestrictedSubsystems();
+    restrictedSubsystems.insert(currentSubsystems.begin(), currentSubsystems.end());
+    State temp(*this, restrictedStages, restrictedSubsystems);
+    return temp;
+}
+EnumerationSet<Stage> State::getRestrictedStages() const {
+    return rep->getRestrictedStages();
+}
+set<SubsystemId> State::getRestrictedSubsystems() const {
+    return rep->getRestrictedSubsystems();
 }
 String State::toString() const {
     return rep->toString();
