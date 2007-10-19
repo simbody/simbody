@@ -95,7 +95,7 @@ public:
     Rotation&  setRotationToIdentityMatrix()  { Mat33::operator=(1);  return *this; }
     Rotation&  setRotationToNaN()             { Mat33::setToNaN();    return *this; } 
 
-    // Default copy constructor and assignment operator
+	// Default copy constructor and assignment operator
     Rotation( const Rotation& R ) : Mat33(R)  {}
     Rotation&  operator=( const Rotation& R )  { Mat33::operator=( R.asMat33() );  return *this; }
 
@@ -133,7 +133,10 @@ public:
     explicit Rotation( const Quaternion& q )  { setRotationFromQuaternion(q); }
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromQuaternion( const Quaternion& q );
 
-    // Constructs an (hopefully nearby) orthogonal rotation matrix from a generic Mat33.
+    // Construct a Rotation directly from a Mat33 (we trust that m is a valid Rotation!)
+    Rotation( const Mat33& m, bool ) : Mat33(m) {}
+
+	// Constructs an (hopefully nearby) orthogonal rotation matrix from a generic Mat33.
     explicit Rotation( const Mat33& m )  { setRotationFromApproximateMat33(m); }
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromApproximateMat33( const Mat33& m );
 
@@ -286,7 +289,9 @@ public:
     Vec2  convertToBodyFixed12() const   { return convertTwoAxesRotationToTwoAngles( BodyRotationSequence,  XAxis, YAxis ); }
     Vec2  convertToSpaceFixed12() const  { return convertTwoAxesRotationToTwoAngles( SpaceRotationSequence, XAxis, YAxis ); }
 
-// PAUL CONTINUE FROM HERE---------------
+//--------------------------------- PAUL CONTINUE FROM HERE ----------------------------------
+public:
+//--------------------------------------------------------------------------------------------
     /// Given Euler angles forming a body-fixed 3-2-1 sequence, and the relative
     /// angular velocity vector of B in the parent frame, *BUT EXPRESSED IN
     /// THE BODY FRAME*, return the Euler angle
@@ -441,9 +446,6 @@ public:
     }
 
 private:
-    // We're trusting that m is a rotation.
-    explicit Rotation( const Mat33& m, bool ) : Mat33(m) {}
-
     // This is only for the most trustworthy of callers, that is, methods of the Rotation class. 
     // There are a lot of ways for this NOT to be a legitimate rotation matrix -- be careful!!
     // Note that these are supplied in rows.
