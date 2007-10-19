@@ -103,7 +103,7 @@ void quatTest() {
     cout << "av2-av1=" << av2-av1 << endl;
 
     Rotation r1(q1);
-    Vec4 av3 = r1.convertToAngleAxis();
+    Vec4 av3 = r1.convertRotationToAngleAxis();
     cout << "av3=" << av3 << " av3-av1=" << av3-av1 << endl;
     Quaternion q3;q3.setToAngleAxis(av3);
     Rotation r2(q3);
@@ -177,8 +177,8 @@ try {
     cout << "should be identity: X()=" << X;
     cout << "typename(X)=" << typeid(X).name() << " ~X=" << typeid(~X).name() << endl;
 
+	R = Rotation( u, ZAxis );
 
-    R = Rotation(u);
     cout << "Rotation with u as z axis (norm=" << R.norm() << "): " << R; 
     cout << "~R: " << ~R;
     cout << "typename(R[1])=" << typeid(R[1]).name() << " R(1)=" << typeid(R(1)).name() << endl;
@@ -208,13 +208,13 @@ try {
     cout << "~X*(X*[v,0])=" << ~X*(X*v.append1(0)) << endl;
     cout << "~X*(X*[v,1])=" << ~X*(X*v.append1(1)) << endl;
 
-    Rotation rx = Rotation::aboutX(.1);
-    Rotation ry = Rotation::aboutY(.17);
-    Rotation rz = Rotation::aboutZ(.31);
-    Rotation rxoldy = Rotation::aboutXThenOldY(.1,.17);
+    Rotation rx( 0.1,  XAxis );
+    Rotation ry( 0.17, YAxis );
+    Rotation rz( 0.31, ZAxis );
+    Rotation rxoldy( SpaceRotationSequence, 0.1, XAxis, 0.17, YAxis );
     Rotation rxyz = rz*ry*rx; // space fixed
     // reverse order to use body fixed like space fixed
-    Rotation r123; r123.setToBodyFixed321(Vec3(.31,.17,.1));
+    Rotation r123( BodyRotationSequence, 0.31, ZAxis, 0.17, YAxis, 0.1, XAxis );
 
     cout << "Rotation r123:" << r123;
     cout << "Rotation r123.asMat33():" << r123.asMat33();
@@ -239,64 +239,48 @@ try {
     cout << "norm invr123*r123-identity=" << (invr123*r123-Mat33(1)).norm() << endl;
     cout << "norm invr123eq*r123-identity=" << (invr123eq*r123-Mat33(1)).norm() << endl;
 
-    Rotation bodyXY; bodyXY.setToBodyFixed123(Vec3(.03,.11,0));
-    Rotation aboutYthenX = Rotation::aboutYThenOldX(.11,.03);
+    Rotation bodyXY( BodyRotationSequence, 0.03, XAxis, 0.11, YAxis, 0.0, ZAxis );
+	Rotation aboutYthenX( SpaceRotationSequence, 0.11, YAxis, 0.03, XAxis );
 
     cout << "bodyXY(.03,.11)=" << bodyXY;
     cout << "aboutYthenoldX(.11,.03)=" << aboutYthenX;
 
-    Rotation bodyZX; bodyZX.setToBodyFixed321(Vec3(.07,0,-.22));
-    Rotation aboutZThenNewX = Rotation::aboutZThenNewX(.07,-.22);
-    Rotation aboutZ = Rotation::aboutZ(.07);
-    Rotation aboutXaboutZ = Rotation::aboutAxis(-.22, aboutZ*Vec3(1,0,0)) * aboutZ;
+    Rotation bodyZX( BodyRotationSequence, 0.07, ZAxis, 0.0, YAxis, -0.22, XAxis );
+    Rotation aboutZThenNewX( BodyRotationSequence, 0.07, ZAxis, -0.22, XAxis );
+    Rotation aboutZ( 0.07, ZAxis );
+    Rotation aboutXaboutZ = Rotation(-0.22, aboutZ*Vec3(1,0,0)) * aboutZ;
     cout << "bodyZX(.07,-.22)=" << bodyZX;
     cout << "aboutZThenNewX(.07,-.22)=" << aboutZThenNewX;
     cout << "aboutXaboutZ(.07,-.22)=" << aboutXaboutZ;
     cout << "  diff norm=" << (aboutXaboutZ-aboutZThenNewX).norm() << endl;
 
     // Check all space-fixed sequences vs composed single rotations.
-    cout << "SXY err=" << (Rotation::aboutXThenOldY(.13,-.29)
-        - Rotation::aboutY(-.29)*Rotation::aboutX(.13)).norm() << endl;
-    cout << "SYX err=" << (Rotation::aboutYThenOldX(.13,-.29)
-        - Rotation::aboutX(-.29)*Rotation::aboutY(.13)).norm() << endl;
-    cout << "SXZ err=" << (Rotation::aboutXThenOldZ(.13,-.29)
-        - Rotation::aboutZ(-.29)*Rotation::aboutX(.13)).norm() << endl;
-    cout << "SZX err=" << (Rotation::aboutZThenOldX(.13,-.29)
-        - Rotation::aboutX(-.29)*Rotation::aboutZ(.13)).norm() << endl;
-    cout << "SYZ err=" << (Rotation::aboutYThenOldZ(.13,-.29)
-        - Rotation::aboutZ(-.29)*Rotation::aboutY(.13)).norm() << endl;
-    cout << "SZY err=" << (Rotation::aboutZThenOldY(.13,-.29)
-        - Rotation::aboutY(-.29)*Rotation::aboutZ(.13)).norm() << endl;
+    cout << "SXY err=" << ( Rotation( SpaceRotationSequence, 0.13, XAxis, -0.29, YAxis ) - Rotation( -0.29, YAxis )*Rotation( 0.13, XAxis) ).norm() << endl;
+    cout << "SXZ err=" << ( Rotation( SpaceRotationSequence, 0.13, XAxis, -0.29, ZAxis ) - Rotation( -0.29, ZAxis )*Rotation( 0.13, XAxis) ).norm() << endl;
+    cout << "SZX err=" << ( Rotation( SpaceRotationSequence, 0.13, ZAxis, -0.29, XAxis ) - Rotation( -0.29, XAxis )*Rotation( 0.13, ZAxis) ).norm() << endl;
+    cout << "SYZ err=" << ( Rotation( SpaceRotationSequence, 0.13, YAxis, -0.29, ZAxis ) - Rotation( -0.29, ZAxis )*Rotation( 0.13, YAxis) ).norm() << endl;
+    cout << "SZY err=" << ( Rotation( SpaceRotationSequence, 0.13, ZAxis, -0.29, YAxis ) - Rotation( -0.29, YAxis )*Rotation( 0.13, ZAxis) ).norm() << endl;
 
     // Check all body-fixed sequences vs. transformed & composed single rotations.
     const Real a1=-.23, a2=1.09;
-    const Rotation ax = Rotation::aboutX(a1); const Vec3 x(1,0,0);
-    const Rotation ay = Rotation::aboutY(a1); const Vec3 y(0,1,0);
-    const Rotation az = Rotation::aboutZ(a1); const Vec3 z(0,0,1);
+    const Rotation ax( a1, XAxis ); const Vec3 x(1,0,0);
+    const Rotation ay( a1, YAxis ); const Vec3 y(0,1,0);
+    const Rotation az( a1, ZAxis ); const Vec3 z(0,0,1);
 
-    cout << "BXY err=" << (Rotation::aboutXThenNewY(a1,a2)
-        - Rotation::aboutAxis(a2,ax*y)*ax).norm() << endl;
-    cout << "BYX err=" << (Rotation::aboutYThenNewX(a1,a2)
-        - Rotation::aboutAxis(a2,ay*x)*ay).norm() << endl;
-    cout << "BXZ err=" << (Rotation::aboutXThenNewZ(a1,a2)
-        - Rotation::aboutAxis(a2,ax*z)*ax).norm() << endl;
-    cout << "BZX err=" << (Rotation::aboutZThenNewX(a1,a2)
-        - Rotation::aboutAxis(a2,az*x)*az).norm() << endl;
-    cout << "BYZ err=" << (Rotation::aboutYThenNewZ(a1,a2)
-        - Rotation::aboutAxis(a2,ay*z)*ay).norm() << endl;
-    cout << "BZY err=" << (Rotation::aboutZThenNewY(a1,a2)
-        - Rotation::aboutAxis(a2,az*y)*az).norm() << endl;
+    cout << "BXY err=" << ( Rotation( BodyRotationSequence, a1, XAxis, a2, YAxis ) - Rotation(a2,ax*y)*ax ).norm() << endl;
+    cout << "BYX err=" << ( Rotation( BodyRotationSequence, a1, YAxis, a2, XAxis ) - Rotation(a2,ay*x)*ay ).norm() << endl;
+    cout << "BXZ err=" << ( Rotation( BodyRotationSequence, a1, XAxis, a2, ZAxis ) - Rotation(a2,ax*z)*ax ).norm() << endl;
+    cout << "BZX err=" << ( Rotation( BodyRotationSequence, a1, ZAxis, a2, XAxis ) - Rotation(a2,az*x)*az ).norm() << endl;
+    cout << "BYZ err=" << ( Rotation( BodyRotationSequence, a1, YAxis, a2, ZAxis ) - Rotation(a2,ay*z)*ay ).norm() << endl;
+    cout << "BZY err=" << ( Rotation( BodyRotationSequence, a1, ZAxis, a2, YAxis ) - Rotation(a2,az*y)*az ).norm() << endl;
 
-    cout << "rotate1(0,.03)=" 
-        << (rotate1(0,.03)-Rotation::aboutX(.03)).norm() << endl;
-    cout << "rotate1(1,.03)=" 
-        << (rotate1(1,.03)-Rotation::aboutY(.03)).norm() << endl;
-    cout << "rotate1(2,.03)=" 
-        << (rotate1(2,.03)-Rotation::aboutZ(.03)).norm() << endl;
+    cout << "rotate1(0,.03)="  << ( rotate1(0,.03) - Rotation(.03,XAxis) ).norm() << endl;
+    cout << "rotate1(1,.03)="  << ( rotate1(1,.03) - Rotation(.03,YAxis) ).norm() << endl;
+    cout << "rotate1(2,.03)="  << ( rotate1(2,.03) - Rotation(.03,ZAxis) ).norm() << endl;
 
     cout << "-1 % 3=" << -1 % 3 << endl;
 
-    const Transform X_01( Rotation::aboutAxis(.03, Vec3(1,.1,.7)), Vec3(1,2,3) );
+    const Transform X_01( Rotation( .03, Vec3(1,.1,.7) ), Vec3(1,2,3) );
     const Real masses[] = {1,2,3,4,5};
     const Real mtot = Vector(5,masses).sum();
     const Vec3 stations000[] = {Vec3(.1,.2,.3), Vec3(-2,-9,1), Vec3(.01,.02,.05),
@@ -323,9 +307,9 @@ try {
         << endl;
 
 
-    Rotation R_AB; R_AB.setToBodyFixed321(Vec3(.31,.17,.1));
-    Rotation R_BC; R_BC.setToBodyFixed321(Vec3(-123.3, 41.1, 14));
-
+    Rotation R_AB( BodyRotationSequence,   0.31, ZAxis, 0.17, YAxis, 0.1, XAxis ); 
+    Rotation R_BC( BodyRotationSequence, -123.3, ZAxis, 41.1, YAxis, 14,  XAxis );
+		
     Rotation Rtmp;
     cout << "R_AB*R_BC=" << R_AB*R_BC;
     Rtmp = R_AB;
@@ -337,16 +321,16 @@ try {
 
     cout << "COMPARE ROTATIONS" << endl;
     Rotation R_GB, R_GX; Real backOut;
-    R_GB = Rotation::aboutAxis(0.17, Vec3(1,2,3));
-    backOut = R_GB.convertToAngleAxis()[0];
+    R_GB.setRotationFromAngleAboutNonUnitVector( 0.17, Vec3(1,2,3) );
+    backOut = R_GB.convertRotationToAngleAxis()[0];
     cout << " in=0.17 radians, out=" << backOut << " err=" << std::abs(backOut-0.17) << endl;
 
-    R_GB = Rotation::aboutAxis(0.17+1e-13, Vec3(1,2,3));
-    R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
+    R_GB.setRotationFromAngleAboutNonUnitVector( 0.17+1e-13, Vec3(1,2,3) );
+    R_GX.setRotationFromAngleAboutNonUnitVector( 0.17,       Vec3(1,2,3) );
     cout << " 0.17+1e-13:0.17 isSameToPrecision? " << R_GB.isSameRotationToWithinAngleOfMachinePrecision(R_GX)
          << " isSameToAngle(1e-12)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-12) << endl;
-    R_GB = Rotation::aboutAxis(0.17+1e-15, Vec3(1,2,3));
-    R_GX = Rotation::aboutAxis(0.17, Vec3(1,2,3));
+    R_GB.setRotationFromAngleAboutNonUnitVector( 0.17+1e-15, Vec3(1,2,3) );
+    R_GX.setRotationFromAngleAboutNonUnitVector( 0.17,       Vec3(1,2,3) );
     cout << " 0.17+1e-15:0.17 isSameToPrecision? " << R_GB.isSameRotationToWithinAngleOfMachinePrecision(R_GX)
          << " isSameToAngle(1e-18)? " << R_GB.isSameRotationToWithinAngle(R_GX, 1e-18) << endl;
 
@@ -354,7 +338,7 @@ try {
     const Real pi2x = -pi2 + 1e-8;
     cout << "pi2x=pi2-" << pi2-pi2x << " sin(pi2x)-1=" << std::sin(pi2x)-1 << endl;
     const Vec3 vin(-3, pi2x, 0.1);
-    Rotation b123; b123.setToBodyFixed123(vin);
+    Rotation b123( BodyRotationSequence, vin[0], XAxis, vin[1], YAxis, vin[2], ZAxis );  
     Mat33 m123=b123; m123[0][0] += 1e-14; m123[1][2] += 1e-14;
     //b123 = Rotation::trustMe(m123);
     //cout << "bad  b123*~b123 angle=" << (b123*~b123).convertToAngleAxis()[0] << endl;
@@ -368,19 +352,18 @@ try {
 
     cout << "cos(pi2x)=" << cos(pi2x) << "cos(pi2)=" << cos(pi2) << endl;
     cout << "atan2(02/00)-pi2=" << atan2(b123[0][2],b123[0][0])-pi2 << endl;
-    Vec3 v123 = b123.convertToBodyFixed123();
-    Vec4 aax = b123.convertToAngleAxis();
+    Vec3 v123 = b123.convertThreeAxesRotationToThreeAngles( BodyRotationSequence, XAxis, YAxis, ZAxis );
+    Vec4 aax = b123.convertRotationToAngleAxis();
     cout << "vin=" << vin << "\nvout=" << v123 << endl;
-    Rotation b123x; b123x.setToBodyFixed123(v123);
-    Vec4 aax2 = (~b123*b123x).convertToAngleAxis();
+    Rotation b123x( BodyRotationSequence, v123[0], XAxis, v123[1], YAxis, v123[2], ZAxis );
+    Vec4 aax2 = (~b123*b123x).convertRotationToAngleAxis();
     cout << " aax2=" << aax2 << endl;
 
-
-    Rotation chrisRot( Vec3(1,1,0), Vec3(0,1,0) );
+    Rotation chrisRot( UnitVec3( Vec3(1,1,0) ), XAxis, Vec3(0,1,0), YAxis );
     cout << "chrisRot+y=" << chrisRot;
-    chrisRot = Rotation( Vec3(1,1,0), Vec3(0,-1,0) );
+    chrisRot = Rotation( UnitVec3( Vec3(1,1,0) ), XAxis, Vec3(0,-1,0), YAxis );
     cout << "chrisRot-y=" << chrisRot;
-    chrisRot = Rotation( Vec3(1,1,0), Vec3(0,0,1) );
+    chrisRot = Rotation( UnitVec3( Vec3(1,1,0) ), XAxis, Vec3(0,0,1), YAxis );
     cout << "chrisRot+z=" << chrisRot;
     return 0;
 }
@@ -397,7 +380,7 @@ static Rotation rotate1(int i, Real a) {
     m(i,i)=1; m(i,j)=m(j,i)=m(i,k)=m(k,i)=0;
     m(j,j)=m(k,k)=c;
     m(k,j)=s; m(j,k)=-s;
-    return Rotation::trustMe(m);
+	return Rotation(m,true);
 }
 
 static Rotation rotate2(int i, int j, bool bodyFixed, Real a, Real b) {
@@ -406,7 +389,7 @@ static Rotation rotate2(int i, int j, bool bodyFixed, Real a, Real b) {
 
 
     Mat33 m;
-    return Rotation::trustMe(m);
+    return Rotation(m,true);
 }
 
 // Two-angle space-fixed rotations.
@@ -417,7 +400,7 @@ static Rotation aboutXThenOldY(const Real& xInRad, const Real& yInRad) {
     const Real s1 = std::sin(yInRad), c1 = std::cos(yInRad);
     const Mat33 m( c1   ,  s0*s1 ,  c0*s1 ,
                     0   ,   c0   ,  -s0   ,
-                  -s1   ,  s0*c1 ,  c0*c1 ); return Rotation::trustMe(m);
+                  -s1   ,  s0*c1 ,  c0*c1 ); return Rotation(m,true);
 }
 //2,0
 static Rotation aboutZThenOldX(const Real& zInRad, const Real& xInRad) {
@@ -425,7 +408,7 @@ static Rotation aboutZThenOldX(const Real& zInRad, const Real& xInRad) {
     const Real s0 = std::sin(zInRad), c0 = std::cos(zInRad);
     const Mat33 m(  c0   ,  -s0   ,    0   ,
                    s0*c1 ,  c0*c1 ,  -s1   ,
-                   s0*s1 ,  c0*s1 ,   c1   ); return Rotation::trustMe(m);
+                   s0*s1 ,  c0*s1 ,   c1   ); return Rotation(m,true);
 }
 //1,2
 static Rotation aboutYThenOldZ(const Real& yInRad, const Real& zInRad) {
@@ -433,7 +416,7 @@ static Rotation aboutYThenOldZ(const Real& yInRad, const Real& zInRad) {
     const Real s1 = std::sin(zInRad), c1 = std::cos(zInRad);
     const Mat33 m( c0*c1 ,  -s1   ,  s0*c1 ,
                    c0*s1 ,   c1   ,  s0*s1 ,
-                   -s0   ,    0   ,   c0   ); return Rotation::trustMe(m);
+                   -s0   ,    0   ,   c0   ); return Rotation(m,true);
 }
 
 //1,0
@@ -442,7 +425,7 @@ static Rotation aboutYThenOldX(const Real& yInRad, const Real& xInRad) {
     const Real s0 = std::sin(yInRad), c0 = std::cos(yInRad);
     const Mat33 m(  c0   ,    0   ,   s0   ,
                    s0*s1 ,   c1   , -c0*s1 ,
-                  -s0*c1 ,   s1   ,  c0*c1 ); return Rotation::trustMe(m);
+                  -s0*c1 ,   s1   ,  c0*c1 ); return Rotation(m,true);
 }
 //0,2
 static Rotation aboutXThenOldZ(const Real& xInRad, const Real& zInRad) {
@@ -450,7 +433,7 @@ static Rotation aboutXThenOldZ(const Real& xInRad, const Real& zInRad) {
     const Real s1 = std::sin(zInRad), c1 = std::cos(zInRad);
     const Mat33 m(  c1   , -c0*s1 ,  s0*s1 ,
                     s1   ,  c0*c1 , -s0*c1 ,
-                     0   ,   s0   ,   c0   ); return Rotation::trustMe(m);
+                     0   ,   s0   ,   c0   ); return Rotation(m,true);
 }
 
 //2,1
@@ -459,5 +442,5 @@ static Rotation aboutZThenOldY(const Real& zInRad, const Real& yInRad) {
     const Real s0 = std::sin(zInRad), c0 = std::cos(zInRad);
     const Mat33 m( c0*c1 , -s0*c1 ,   s1   ,
                     s0   ,   c0   ,    0   ,
-                  -c0*s1 ,  s0*s1 ,   c1   ); return Rotation::trustMe(m);
+                  -c0*s1 ,  s0*s1 ,   c1   ); return Rotation(m,true);
 }
