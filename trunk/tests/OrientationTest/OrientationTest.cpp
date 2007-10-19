@@ -92,20 +92,20 @@ void quatTest() {
     const Real pi2 = std::acos(Real(0));
     Vec4 avOrig(-.1-1e-4, 7e1,-.2,.1);
     Quaternion q1,q2;
-    q1.setToAngleAxis(avOrig);
+    q1.setQuaternionFromAngleAxis(avOrig);
     cout << "q1=" << q1 << endl;
-    Vec4 av1 = q1.convertToAngleAxis();
+    Vec4 av1 = q1.convertQuaternionToAngleAxis();
     cout << std::setprecision(18);
     cout << "avOrig=" << avOrig << " av1=" << av1 << endl;
-    q2.setToAngleAxis(av1);
+    q2.setQuaternionFromAngleAxis(av1);
     cout << "q2-q1=" << q2-q1 << endl;
-    Vec4 av2 = q2.convertToAngleAxis();
+    Vec4 av2 = q2.convertQuaternionToAngleAxis();
     cout << "av2-av1=" << av2-av1 << endl;
 
     Rotation r1(q1);
     Vec4 av3 = r1.convertRotationToAngleAxis();
     cout << "av3=" << av3 << " av3-av1=" << av3-av1 << endl;
-    Quaternion q3;q3.setToAngleAxis(av3);
+    Quaternion q3;q3.setQuaternionFromAngleAxis(av3);
     Rotation r2(q3);
     cout << "norm(r2*~r1)-sqrt(3)=" << (r2*~r1).norm()-std::sqrt(3.) << endl;
 
