@@ -129,7 +129,7 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
             // but first we need to dispatch any pending reports that are supposed
             // to occur before tLow in which case we interpolate back and
             // return control before moving on.
-            if (reportTime < getEventWindowLow()) {
+            if (reportTime <= getEventWindowLow()) {
                 // Report time reached: take a brief time-out to make an interpolated report.
                 // After that we'll come right back here with the user having advanced
                 // the reportTime (hopefully).
@@ -152,7 +152,7 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
           case CompletedInternalStepNoEvent: {
             // Time has been advanced. If there is a report due before tAdvanced,
             // then we interpolate back and return control before moving on.
-            if (reportTime < getAdvancedTime()) {
+            if (reportTime <= getAdvancedTime()) {
                 // Report time reached: take a brief time-out to make an interpolated report.
                 // After that we'll come right back here with the user having advanced
                 // the reportTime (hopefully).
