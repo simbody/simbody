@@ -64,7 +64,7 @@ template <class T> class EnumerationSet;
  *     static const Color Blue;
  * private:
  *     Color();
- *     Color(int index, char* name);
+ *     Color(const Color& thisElement, int index, char* name);
  *     static void initValues();
  *     friend class Enumeration<Color>;
  * };
@@ -76,13 +76,13 @@ template <class T> class EnumerationSet;
  * Color::Color() : Enumeration<Color>() {
  * }
  * 
- * Color::Color(int index, char* name) : Enumeration<Color>(index, name) {
+ * Color::Color(const Color& thisElement, int index, char* name) : Enumeration<Color>(thisElement, index, name) {
  * }
  * 
  * void Color::initValues() {
- *     new(&const_cast<Color&>(Red)) Color(RedIndex, "Red");
- *     new(&const_cast<Color&>(Green)) Color(GreenIndex, "Green");
- *     new(&const_cast<Color&>(Blue)) Color(BlueIndex, "Blue");
+ *     new(&const_cast<Color&>(Red)) Color(Red, RedIndex, "Red");
+ *     new(&const_cast<Color&>(Green)) Color(Green, GreenIndex, "Green");
+ *     new(&const_cast<Color&>(Blue)) Color(Blue, BlueIndex, "Blue");
  * }
  * </pre>
  * 
@@ -238,13 +238,12 @@ protected:
     Enumeration() {
         init();
     }
-    Enumeration(int index, const char* name) : index(index), name(name) {
+    Enumeration(const T& thisElement, int index, const char* name) : index(index), name(name) {
         SimTK_ASSERT_ALWAYS(index == updAllValues().size(), "Indices must be consecutive ints starting from 0.");
-        int mask = 1<<index;
-        updAllValues().push_back((T*) this);
+        updAllValues().push_back(&thisElement);
     }
-    static std::vector<T*>& updAllValues() {
-        static std::vector<T*> allValues;
+    static std::vector<const T*>& updAllValues() {
+        static std::vector<const T*> allValues;
         return allValues;
     }
 private:
@@ -355,6 +354,12 @@ public:
      */
     int size() const {
         return rep->size();
+    }
+    /**
+     * Check whether this set is empty.
+     */
+    bool empty() const {
+        return (rep->size() == 0);
     }
     /**
      * Determine whether this set contains a particular value.

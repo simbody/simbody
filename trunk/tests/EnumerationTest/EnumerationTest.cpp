@@ -50,7 +50,7 @@ public:
     static const Color Blue;
 private:
     Color();
-    Color(int index, char* name);
+    Color(const Color& thisElement, int index, char* name);
     static void initValues();
     friend class Enumeration<Color>;
 };
@@ -64,13 +64,13 @@ const Color Color::Blue;
 Color::Color() : Enumeration<Color>() {
 }
 
-Color::Color(int index, char* name) : Enumeration<Color>(index, name) {
+Color::Color(const Color& thisElement, int index, char* name) : Enumeration<Color>(thisElement, index, name) {
 }
 
 void Color::initValues() {
-    new(&const_cast<Color&>(Red)) Color(RedIndex, "Red");
-    new(&const_cast<Color&>(Green)) Color(GreenIndex, "Green");
-    new(&const_cast<Color&>(Blue)) Color(BlueIndex, "Blue");
+    new(&const_cast<Color&>(Red)) Color(Red, RedIndex, "Red");
+    new(&const_cast<Color&>(Green)) Color(Green, GreenIndex, "Green");
+    new(&const_cast<Color&>(Blue)) Color(Blue, BlueIndex, "Blue");
 }
 
 void verifyContents(EnumerationSet<Color> set, bool hasRed, bool hasBlue, bool hasGreen) {
@@ -85,6 +85,7 @@ void verifyContents(EnumerationSet<Color> set, bool hasRed, bool hasBlue, bool h
     if (hasGreen)
         size++;
     ASSERT(set.size() == size);
+    ASSERT(set.empty() == (size == 0));
     bool redFound = false, blueFound = false, greenFound = false;
     for (EnumerationSet<Color>::iterator iter = set.begin(); iter != set.end(); ++iter) {
         if (*iter == Color::Red) {

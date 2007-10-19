@@ -54,18 +54,18 @@ const Stage Stage::HighestRuntime  = Report;
 Stage::Stage() : Enumeration<Stage>() {
 }
 
-Stage::Stage(int index, char* name) : Enumeration<Stage>(index, name) {
+Stage::Stage(const Stage& thisElement, int index, char* name) : Enumeration<Stage>(thisElement, index, name) {
 }
 
 void Stage::initValues() {
-    new(&const_cast<Stage&>(Empty)) Stage(EmptyIndex, "Empty");
-    new(&const_cast<Stage&>(Topology)) Stage(TopologyIndex, "Topology");
-    new(&const_cast<Stage&>(Model)) Stage(ModelIndex, "Model");
-    new(&const_cast<Stage&>(Instance)) Stage(InstanceIndex, "Instance");
-    new(&const_cast<Stage&>(Time)) Stage(TimeIndex, "Time");
-    new(&const_cast<Stage&>(Position)) Stage(PositionIndex, "Position");
-    new(&const_cast<Stage&>(Velocity)) Stage(VelocityIndex, "Velocity");
-    new(&const_cast<Stage&>(Dynamics)) Stage(DynamicsIndex, "Dynamics");
-    new(&const_cast<Stage&>(Acceleration)) Stage(AccelerationIndex, "Acceleration");
-    new(&const_cast<Stage&>(Report)) Stage(ReportIndex, "Report");
+    new(&const_cast<Stage&>(Empty)) Stage(Empty, EmptyIndex, "Empty");
+    new(&const_cast<Stage&>(Topology)) Stage(Topology, TopologyIndex, "Topology");
+    new(&const_cast<Stage&>(Model)) Stage(Model, ModelIndex, "Model");
+    new(&const_cast<Stage&>(Instance)) Stage(Instance, InstanceIndex, "Instance");
+    new(&const_cast<Stage&>(Time)) Stage(Time, TimeIndex, "Time");
+    new(&const_cast<Stage&>(Position)) Stage(Position, PositionIndex, "Position");
+    new(&const_cast<Stage&>(Velocity)) Stage(Velocity, VelocityIndex, "Velocity");
+    new(&const_cast<Stage&>(Dynamics)) Stage(Dynamics, DynamicsIndex, "Dynamics");
+    new(&const_cast<Stage&>(Acceleration)) Stage(Acceleration, AccelerationIndex, "Acceleration");
+    new(&const_cast<Stage&>(Report)) Stage(Report, ReportIndex, "Report");
 }
