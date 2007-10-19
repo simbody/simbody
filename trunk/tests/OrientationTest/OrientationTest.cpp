@@ -8,7 +8,7 @@
  *                                                                            *
  * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
- * Contributors:                                                              *
+ * Contributors: Paul Mitiguy                                                 *
  *                                                                            *
  * Permission is hereby granted, free of charge, to any person obtaining a    *
  * copy of this software and associated documentation files (the "Software"), *
@@ -118,18 +118,10 @@ void orthoTest(String msg, const Rotation& R) {
     cout << "perp=" << dot(R(0),R(1)) << ", " << dot(R(1),R(2)) << ", " << dot(R(0),R(2)) << endl;
 }
 
-void f(const CoordinateAxis& ax) {
-    printf("which = %d\n", (int)ax);
-}
-void f(CoordinateAxis::X) {
-    printf("X\n");
-}
-void f(CoordinateAxis::Y) {
-    printf("Y\n");
-}
-void f(CoordinateAxis::Z) {
-    printf("Z\n");
-}
+void f(const CoordinateAxis& ax) { printf("which = %d\n", (int)ax); }
+void f(CoordinateAxis::X) { printf("X\n"); }
+void f(CoordinateAxis::Y) { printf("Y\n"); }
+void f(CoordinateAxis::Z) { printf("Z\n"); }
 
 int a[]={9,10,11};
 
@@ -383,14 +375,6 @@ static Rotation rotate1(int i, Real a) {
 	return Rotation(m,true);
 }
 
-static Rotation rotate2(int i, int j, bool bodyFixed, Real a, Real b) {
-    assert((0 <= i && i < 3) && (0 <= j && j < 3) && (i != j));
-    if (bodyFixed) {std::swap(i,j); std::swap(a,b);}
-
-
-    Mat33 m;
-    return Rotation(m,true);
-}
 
 // Two-angle space-fixed rotations.
 
