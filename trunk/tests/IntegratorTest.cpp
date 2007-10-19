@@ -133,7 +133,7 @@ public:
     }
 
     /*virtual*/int calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-                                                    Array<int>& eventIds) const
+                                                    Array<int>& eventIds, bool& isReport) const
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -142,6 +142,7 @@ public:
         if (tNextEvent <= s.getTime())
             tNextEvent += Real(5.123);
         eventIds.push_back(1); // event Id for scheduled pulse
+        isReport = false;
 
         return 0;
     }
@@ -286,8 +287,9 @@ int main () {
     {
         Array<int> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
+        bool isReport;
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
-            nextScheduledEvent, scheduledEventIds);
+            nextScheduledEvent, scheduledEventIds, isReport);
 
         switch(integ.stepTo(reportNo*hReport, nextScheduledEvent)) {
             case Integrator::ReachedStepLimit: printf("STEP LIMIT\n"); break;

@@ -107,8 +107,11 @@ void TimeStepperRep::stepTo(Real time) {
     while (!integ->isSimulationOver()) {
         Array<int> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
-        system.calcTimeOfNextScheduledEvent(integ->getState(), nextScheduledEvent, scheduledEventIds);
-        Integrator::SuccessfulStepStatus status = integ->stepTo(time, nextScheduledEvent);
+        bool isReport = false;
+        system.calcTimeOfNextScheduledEvent(integ->getState(), nextScheduledEvent, scheduledEventIds, isReport);
+        Real reportTime = (isReport ? std::min(nextScheduledEvent, time) : time);
+        Real eventTime = (isReport ? NTraits<Real>::getInfinity() : nextScheduledEvent);
+        Integrator::SuccessfulStepStatus status = integ->stepTo(reportTime, eventTime);
         Stage lowestModified = Stage::Report;
         bool shouldTerminate;
         switch (status) {
@@ -123,7 +126,11 @@ void TimeStepperRep::stepTo(Real time) {
                 continue;
             }
             case Integrator::ReachedReportTime: {
-                if (integ->getAdvancedTime() >= time || reportAllSignificantStates)
+                if (integ->getTime() >= nextScheduledEvent && isReport)
+                system.reportEvents(integ->getState(),
+                    System::ScheduledEvents,
+                    scheduledEventIds);
+                if (integ->getTime() >= time || reportAllSignificantStates)
                     return;
                 continue;
             }

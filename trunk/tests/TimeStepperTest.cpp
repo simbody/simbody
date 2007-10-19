@@ -176,7 +176,7 @@ int main () {
     integ.setAccuracy(1e-2);
     integ.setConstraintTolerance(1e-4);
 
-    const Real tFinal = 30.003;
+    const Real tFinal = 20.003;
     const Real hReport = 1.;
 
     integ.setFinalTime(tFinal);
@@ -190,9 +190,9 @@ int main () {
     ts.stepTo(50.0);
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
-    ASSERT(ZeroVelocityHandler::eventCount > 10);
+    ASSERT(ZeroVelocityHandler::eventCount >= 10);
     ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/1.5));
-    ASSERT(ZeroPositionReporter::eventCount > 20);
+    ASSERT(ZeroPositionReporter::eventCount > 10);
     ASSERT(PeriodicEventReporter::eventCount == (int) (std::log(ts.getTime())/std::log(2.0))+1);
     cout << "Done" << endl;
     return 0;
