@@ -495,6 +495,29 @@ public:
         return false;
     }
 
+    // equality operator to help handle case where user innocently
+    // attempts to add the same torsion a second time
+    // WARNING: this is very inefficient
+    bool operator==(const BondTorsion& other) const {
+        if (terms.size() != other.terms.size()) return false;
+        std::vector<TorsionTerm>::const_iterator iTerm;
+        for (iTerm = terms.begin(); iTerm != terms.end(); ++iTerm) {
+            const TorsionTerm& myTerm = *iTerm;
+            if (! other.hasTerm(myTerm.periodicity) ) return false;
+
+            std::vector<TorsionTerm>::const_iterator iOtherTerm;
+            for (iOtherTerm = other.terms.begin(); iOtherTerm != other.terms.end(); ++iOtherTerm) {
+                const TorsionTerm& otherTerm = *iOtherTerm;
+                if (otherTerm.periodicity == myTerm.periodicity) {
+                    if (myTerm.amplitude != otherTerm.amplitude) return false;
+                    if (myTerm.theta0 != otherTerm.theta0) return false;
+                }
+            }
+            
+        }
+        return true;
+    }
+
     // Given atom locations r-x-y-s in the ground frame, calculate the
     // torsion angle, energy and a force on each atom so that the desired
     // pure torque is produced.
@@ -1310,6 +1333,10 @@ void DuMMForceFieldSubsystem::setAtomClassVdwParameters(DuMM::AtomClassId atomCl
     atomClass.vdwWellDepth = vdwWellDepthInKJPerMol;
 }
 
+bool DuMMForceFieldSubsystem::isValidAtomClass(DuMM::AtomClassId atomClassId) const {
+    return getRep().isValidAtomClass(atomClassId);
+}
+
 void DuMMForceFieldSubsystem::defineIncompleteChargedAtomType
     (DuMM::ChargedAtomTypeId chargedAtomTypeId, const char* typeName, DuMM::AtomClassId atomClassId)
 {
@@ -1511,6 +1538,13 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
             // Add the new term.
         bt.addTerm(TorsionTerm(periodicity3, amp3InKJ, phase3InDegrees));
+    }
+
+    // If this torsion is already defined, this should ordinarily be an error
+    // But, if the parameters are the same, let it slide
+    if (mm.bondTorsion.find(key) != mm.bondTorsion.end()) {
+        const BondTorsion& oldBondTorsion = mm.bondTorsion.find(key)->second;
+        if (oldBondTorsion == bt) return;  // same, so let it slide
     }
 
         // Now try to insert the allegedly new BondTorsion specification into the bondTorsion map.

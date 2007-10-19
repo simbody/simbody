@@ -207,30 +207,6 @@ public:
         defineAtomClass_KA((DuMM::AtomClassId)atomClassId, atomClassName, element, valence, vdwRadiusInAng, vdwWellDepthInKcal);
     }
 
-    void defineIncompleteAtomClass(
-        DuMM::AtomClassId classId, 
-        const char* name, 
-        int elementNumber, 
-        int valence);
-
-    void defineIncompleteAtomClass_KA(
-        DuMM::AtomClassId classId, 
-        const char* name, 
-        int elementNumber, 
-        int valence) 
-    {
-        defineIncompleteAtomClass(
-            classId, 
-            name, 
-            elementNumber, 
-            valence
-            );
-    }
-
-    void setAtomClassVdwParameters(DuMM::AtomClassId atomClassId, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol);
-    void setAtomClassVdwParameters_KA(DuMM::AtomClassId atomClassId, Real radiusInAng, Real wellDepthInKcal) {
-        setAtomClassVdwParameters(atomClassId, radiusInAng*DuMM::Ang2Nm, wellDepthInKcal*DuMM::Kcal2KJ);
-    }
 
     // PartialCharge in units of e (charge on a proton); same in MD & KA
     void defineChargedAtomType(DuMM::ChargedAtomTypeId atomTypeId, const char* atomTypeName,
@@ -249,24 +225,6 @@ public:
                                   int atomClassId, Real partialChargeInE)
     {
         defineChargedAtomType_KA((DuMM::ChargedAtomTypeId) atomTypeId, atomTypeName, (DuMM::AtomClassId)atomClassId, partialChargeInE);
-    }
-
-    void defineIncompleteChargedAtomType(
-        DuMM::ChargedAtomTypeId typeId, 
-        const char* name,
-        DuMM::AtomClassId classId);
-
-    void defineIncompleteChargedAtomType_KA(
-        DuMM::ChargedAtomTypeId typeId, 
-        const char* name,
-        DuMM::AtomClassId classId) 
-    {
-        defineIncompleteChargedAtomType(typeId, name, classId);
-    }
-
-    void setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId, Real charge);
-    void setChargedAtomTypeCharge_KA(DuMM::ChargedAtomTypeId chargedAtomTypeId, Real charge) {
-        setChargedAtomTypeCharge(chargedAtomTypeId, charge);
     }
 
     // Bond stretch parameters (between 2 atom classes). This
@@ -432,6 +390,54 @@ public:
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);
+
+protected:
+
+    void defineIncompleteAtomClass(
+        DuMM::AtomClassId classId, 
+        const char* name, 
+        int elementNumber, 
+        int valence);
+
+    void defineIncompleteAtomClass_KA(
+        DuMM::AtomClassId classId, 
+        const char* name, 
+        int elementNumber, 
+        int valence) 
+    {
+        defineIncompleteAtomClass(
+            classId, 
+            name, 
+            elementNumber, 
+            valence
+            );
+    }
+
+    void setAtomClassVdwParameters(DuMM::AtomClassId atomClassId, Real vdwRadiusInNm, Real vdwWellDepthInKJPerMol);
+    void setAtomClassVdwParameters_KA(DuMM::AtomClassId atomClassId, Real radiusInAng, Real wellDepthInKcal) {
+        setAtomClassVdwParameters(atomClassId, radiusInAng*DuMM::Ang2Nm, wellDepthInKcal*DuMM::Kcal2KJ);
+    }
+
+    bool DuMMForceFieldSubsystem::isValidAtomClass(DuMM::AtomClassId) const;
+    
+    void defineIncompleteChargedAtomType(
+        DuMM::ChargedAtomTypeId typeId, 
+        const char* name,
+        DuMM::AtomClassId classId);
+
+    void defineIncompleteChargedAtomType_KA(
+        DuMM::ChargedAtomTypeId typeId, 
+        const char* name,
+        DuMM::AtomClassId classId) 
+    {
+        defineIncompleteChargedAtomType(typeId, name, classId);
+    }
+
+    void setChargedAtomTypeCharge(DuMM::ChargedAtomTypeId, Real charge);
+    void setChargedAtomTypeCharge_KA(DuMM::ChargedAtomTypeId chargedAtomTypeId, Real charge) {
+        setChargedAtomTypeCharge(chargedAtomTypeId, charge);
+    }
+
 private:
     class DuMMForceFieldSubsystemRep& updRep();
     const DuMMForceFieldSubsystemRep& getRep() const;
