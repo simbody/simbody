@@ -311,6 +311,11 @@ public:
        (State&, EventCause, const Array<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
+    
+    /// This method is similar to handleEvents(), but does not allow the State to be
+    /// modified.  It is used for scheduled events that were marked as being reports.
+    
+    void reportEvents(const State& s, EventCause cause, const Array<int>& eventIds) const;
 
     /// This routine provides the Integrator with information it needs about the
     /// individual event trigger functions, such as which sign transitions are
@@ -328,10 +333,10 @@ public:
     /// making the Integrator hunt these down like ordinary state-dependent events.
     /// The returned time can be passed to the Integrator's stepping function as
     /// the advance time limit.
-    /// The default implementation of this virtual method returns Infinity as the
-    /// next scheduled time, and a zero length eventIds list.
+    /// If this routine sets isReport to true, the event should be handled by
+    /// calling reportEvents() instead of handleEvents().
     void calcTimeOfNextScheduledEvent
-        (const State&, Real& tNextEvent, Array<int>& eventIds) const;
+        (const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
 
 
     //TODO: these operators should be provided by the Vector class where they

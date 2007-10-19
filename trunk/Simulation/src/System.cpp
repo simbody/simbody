@@ -148,11 +148,13 @@ void System::handleEvents(State& s, EventCause cause, const Array<int>& eventIds
                           Stage& lowestModified, bool& shouldTerminate) const
   { getSystemGuts().handleEvents(s,cause,eventIds,accuracy,yWeights,ooConstraintTols,
                                lowestModified,shouldTerminate); }
+void System::reportEvents(const State& s, EventCause cause, const Array<int>& eventIds) const
+  { getSystemGuts().reportEvents(s,cause,eventIds); }
 void System::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const
   { getSystemGuts().calcEventTriggerInfo(s,info); }
 void System::calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent,
-                                          Array<int>& eventIds) const
-  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds); }
+                                          Array<int>& eventIds, bool& isReport) const
+  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,isReport); }
 
 const char* System::getEventCauseName(System::EventCause cause) {
     switch(cause) {
@@ -293,6 +295,9 @@ void System::Guts::registerCalcYErrUnitTolerancesImplLocator(CalcUnitWeightsImpl
 }
 void System::Guts::registerHandleEventsImpl(HandleEventsImplLocator f) {
     updRep().handleEventsp = f;
+}
+void System::Guts::registerReportEventsImpl(ReportEventsImplLocator f) {
+    updRep().reportEventsp = f;
 }
 void System::Guts::registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLocator f) {
     updRep().calcEventTriggerInfop = f;
@@ -442,13 +447,22 @@ void System::Guts::handleEvents
         "System::Guts::handleEvents(): handleEventsImpl() tried to change the time");
 }
 
+void System::Guts::reportEvents
+   (const State& s, EventCause cause, const Array<int>& eventIds) const
+{
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Model, // TODO: is this the right stage?
+        "System::Guts::reportEvents()");
+    const Real savedTime = s.getTime();
+    getRep().reportEventsp(*this,s,cause,eventIds);
+}
+
 void System::Guts::calcTimeOfNextScheduledEvent
-    (const State& s, Real& tNextEvent, Array<int>& eventIds) const
+    (const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
         "System::Guts::calcTimeOfNextScheduledEvent()");
     tNextEvent = CNT<Real>::getInfinity();
-    getRep().calcTimeOfNextScheduledEventp(*this,s,tNextEvent,eventIds);
+    getRep().calcTimeOfNextScheduledEventp(*this,s,tNextEvent,eventIds,isReport);
 }
 
 void System::Guts::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const {
@@ -610,6 +624,20 @@ int System::Guts::handleEventsImpl
     return 0;
 }
 
+int System::Guts::reportEventsImpl(const State& s, EventCause cause, const Array<int>& eventIds) const
+{
+    // Loop over each subsystem, see which events belong to it, and allow it to handle those events.
+    
+    Array<int> eventsForSubsystem;
+    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+        getSystem().getDefaultSubsystem().findSubsystemEventIds(getRep().subsystems[i].getMySubsystemId(), s, eventIds, eventsForSubsystem);
+        if (eventsForSubsystem.size() > 0) {
+            getRep().subsystems[i].getSubsystemGuts().reportEvents(s, cause, eventsForSubsystem);
+        }
+    }
+    return 0;
+}
+
 int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTriggerInfo>& info) const {
 
     // Loop over each subsystem, get its EventTriggerInfos, and combine all of them into a single list.
@@ -625,19 +653,22 @@ int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTr
     return 0;
 }
 
-int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, Array<int>& eventIds) const
+int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const
 {
     tNextEvent = Infinity;
+    isReport = true;
     eventIds.clear();
     for (SubsystemId i(0); i<getNSubsystems(); ++i) {
         Real time;
         Array<int> ids;
-        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids);
+        bool report;
+        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids, report);
         if (time < tNextEvent) {
             tNextEvent = time;
             eventIds.clear();
             for (int i = 0; i < ids.size(); ++i)
                 eventIds.push_back(ids[i]);
+            isReport = report;
         }
     }
     return 0;

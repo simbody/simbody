@@ -303,10 +303,11 @@ public:
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
     virtual void calcEventTriggerInfo(const State&, Array<System::EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds) const;
+    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
     virtual void handleEvents(State&, System::EventCause, const Array<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;
+    virtual void reportEvents(const State&, System::EventCause, const Array<int>& eventIds) const;
 protected:
     // These virtual methods should be overridden in concrete Subsystems as
     // necessary. They should never be called directly; instead call the

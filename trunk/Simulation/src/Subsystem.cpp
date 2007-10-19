@@ -615,11 +615,16 @@ void Subsystem::Guts::handleEvents(State&, System::EventCause, const Array<int>&
 {
     SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "handleEvents"); 
 }
+void Subsystem::Guts::reportEvents(const State&, System::EventCause, const Array<int>& eventIds) const
+{
+    SimTK_THROW2(Exception::UnimplementedVirtualMethod, "Subsystem", "reportEvents"); 
+}
 void Subsystem::Guts::calcEventTriggerInfo(const State& s, Array<System::EventTriggerInfo>& info) const {
 }
-void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds) const {
+void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const {
     tNextEvent = Infinity;
     eventIds.clear();
+    isReport = true;
 }
 
     ///////////////////
@@ -791,7 +796,7 @@ public:
             triggers[triggers.size()-1].setEventId(info.triggeredReportIds[i]);
         }
     }
-    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array<int>& eventIds) const {
+    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const {
         
         // Loop over all registered ScheduledEventHandlers and ScheduledEventReporters, and ask
         // each one when its next event occurs.
@@ -805,6 +810,7 @@ public:
                     eventIds.clear();
                 tNextEvent = time;
                 eventIds.push_back(info.scheduledEventIds[i]);
+                isReport = false;
             }
         }
         for (int i = 0; i < scheduledEventReporters.size(); ++i) {
@@ -814,6 +820,7 @@ public:
                     eventIds.clear();
                 tNextEvent = time;
                 eventIds.push_back(info.scheduledReportIds[i]);
+                isReport = true;
             }
         }
     }
@@ -863,6 +870,34 @@ public:
                         shouldTerminate = true;
                 }
             }
+            for (int i = 0; i < scheduledEventReporters.size(); ++i) {
+                if (idSet.find(info.scheduledReportIds[i]) != idSet.end())
+                    scheduledEventReporters[i]->handleEvent(s);
+            }
+        }
+    }
+
+    void reportEvents(const State& s, System::EventCause cause, const Array<int>& eventIds) const {
+        const CacheInfo& info = getCacheInfo(s);
+        
+        // Build a set of the ids for quick lookup.
+        
+        std::set<int> idSet;
+        for (int i = 0; i < eventIds.size(); ++i)
+            idSet.insert(eventIds[i]);
+        
+        // Process triggered events.
+        
+        if (cause == System::TriggeredEvents) {
+            for (int i = 0; i < triggeredEventReporters.size(); ++i) {
+                if (idSet.find(info.triggeredReportIds[i]) != idSet.end())
+                    triggeredEventReporters[i]->handleEvent(s);
+            }
+        }
+        
+        // Process scheduled events.
+        
+        if (cause == System::ScheduledEvents) {
             for (int i = 0; i < scheduledEventReporters.size(); ++i) {
                 if (idSet.find(info.scheduledReportIds[i]) != idSet.end())
                     scheduledEventReporters[i]->handleEvent(s);

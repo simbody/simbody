@@ -164,6 +164,7 @@ private:
     System::Guts::ProjectImplLocator                      projectp;
     System::Guts::CalcUnitWeightsImplLocator              calcYErrUnitTolerancesp;
     System::Guts::HandleEventsImplLocator                 handleEventsp;
+    System::Guts::ReportEventsImplLocator                 reportEventsp;
     System::Guts::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
     System::Guts::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
 
@@ -186,6 +187,7 @@ private:
         projectp = 0;
         calcYErrUnitTolerancesp = 0;
         handleEventsp = 0;
+        reportEventsp = 0;
         calcEventTriggerInfop = 0;
         calcTimeOfNextScheduledEventp = 0;
     }
@@ -209,6 +211,7 @@ private:
         projectp                        = src.projectp;
         calcYErrUnitTolerancesp         = src.calcYErrUnitTolerancesp;
         handleEventsp                   = src.handleEventsp;
+        reportEventsp                   = src.reportEventsp;
         calcEventTriggerInfop           = src.calcEventTriggerInfop;
         calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
     }
