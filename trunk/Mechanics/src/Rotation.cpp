@@ -615,12 +615,11 @@ Rotation&  Rotation::setRotationFromApproximateMat33( const Mat33& m ) {
 
 
 //-------------------------------------------------------------------
-// FIX: Fix Quaternion and then fix this.
-// It may be slightly more efficient to set this matrix directly rather than via the quaternion.
+// Note: It may be slightly more efficient to set this matrix directly rather than via the quaternion.
 //-------------------------------------------------------------------
 Rotation&  Rotation::setRotationFromAngleAboutUnitVector( Real angleInRad, const UnitVec3& unitVector ) {
     Quaternion q;
-    q.setToAngleAxis( angleInRad, unitVector );
+    q.setQuaternionFromAngleAxis( angleInRad, unitVector );
     return setRotationFromQuaternion( q );
 }
 
