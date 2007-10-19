@@ -317,10 +317,21 @@ public:
       : atomClassId(id), name(nm), element(e), valence(v), 
         vdwRadius(radInNm), vdwWellDepth(wellDepthInKJ)
     { 
+        // Permit incomplete construction, i.e. radius and depth not yet set
         assert(isValid());
     }
-    bool isValid() const {return atomClassId >= 0 && element > 0 && valence >= 0 
-                                 && vdwRadius >= 0 && vdwWellDepth >= 0;}
+
+    bool isValid() const {
+        return atomClassId >= 0 
+            && element > 0 
+            && valence >= 0;
+    }
+
+    bool isComplete() const {
+        return isValid() 
+            && vdwRadius >= 0
+            && vdwWellDepth >= 0;
+    }
 
     void invalidateTopologicalCache() {
         vdwDij.clear();
@@ -2214,13 +2225,14 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
     // (arbitrary) class number is higher.
     for (DuMM::AtomClassId i = (DuMM::AtomClassId)0; i < (DuMM::AtomClassId)atomClasses.size(); ++i) {
         if (!atomClasses[i].isValid()) continue;
+        if (!atomClasses[i].isComplete()) continue;
 
         AtomClass& iclass = mutableThis->atomClasses[i];
         iclass.vdwDij.resize((int)atomClasses.size()-i, NaN);
         iclass.vdwEij.resize((int)atomClasses.size()-i, NaN); 
         for (DuMM::AtomClassId j=i; j < (DuMM::AtomClassId)atomClasses.size(); ++j) {
             const AtomClass& jclass = atomClasses[j];
-            if (jclass.isValid())
+            if (jclass.isValid() && jclass.isComplete())
                 applyMixingRule(iclass.vdwRadius,    jclass.vdwRadius,
                                 iclass.vdwWellDepth, jclass.vdwWellDepth,
                                 iclass.vdwDij[j-i],  iclass.vdwEij[j-i]);
