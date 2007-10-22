@@ -49,6 +49,7 @@
 #include "SimTKcommon/internal/Random.h"
 #include "SimTKcommon/internal/PolynomialRootFinder.h"
 #include "SimTKcommon/internal/Enumeration.h"
+#include "SimTKcommon/internal/PrivateImplementation.h"
 #endif
 
 
