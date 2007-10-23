@@ -30,8 +30,6 @@
  * -------------------------------------------------------------------------- */
 
 #include "SimTKcommon.h"
-#include "SimTKcommon/internal/EventHandler.h"
-#include "SimTKcommon/internal/EventReporter.h"
 
 #include "SimTKmath.h"
 #include "simmath/Integrator.h" // will be Simmath
