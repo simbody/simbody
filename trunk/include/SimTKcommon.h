@@ -50,6 +50,8 @@
 #include "SimTKcommon/internal/PolynomialRootFinder.h"
 #include "SimTKcommon/internal/Enumeration.h"
 #include "SimTKcommon/internal/PrivateImplementation.h"
+#include "SimTKcommon/internal/EventHandler.h"
+#include "SimTKcommon/internal/EventReporter.h"
 #endif
 
 
