@@ -665,13 +665,13 @@ public:
     DefaultSystemSubsystemGuts() : Guts("DefaultSystemSubsystemGuts", "0.0.1") { }
     
     ~DefaultSystemSubsystemGuts() {
-        for (int i = 0; i < scheduledEventHandlers.size(); ++i)
+        for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i)
             delete scheduledEventHandlers[i];
-        for (int i = 0; i < triggeredEventHandlers.size(); ++i)
+        for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i)
             delete triggeredEventHandlers[i];
-        for (int i = 0; i < scheduledEventReporters.size(); ++i)
+        for (int i = 0; i < (int)scheduledEventReporters.size(); ++i)
             delete scheduledEventReporters[i];
-        for (int i = 0; i < triggeredEventReporters.size(); ++i)
+        for (int i = 0; i < (int)triggeredEventReporters.size(); ++i)
             delete triggeredEventReporters[i];
     }
     
@@ -764,11 +764,11 @@ public:
     int realizeEvents(const State& s, Stage g) const {
         const CacheInfo& info = getCacheInfo(s);
         Vector& events = s.updEventsByStage(getMySubsystemId(), g);
-        for (int i = 0; i < triggeredEventHandlers.size(); ++i) {
+        for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             if (g == triggeredEventHandlers[i]->getRequiredStage())
                 events[info.triggeredEventIndices[i]] = triggeredEventHandlers[i]->getValue(s);
         }
-        for (int i = 0; i < triggeredEventReporters.size(); ++i) {
+        for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             if (g == triggeredEventReporters[i]->getRequiredStage())
                 events[info.triggeredReportIndices[i]] = triggeredEventReporters[i]->getValue(s);
         }
@@ -802,11 +802,11 @@ public:
         // each one for its EventTriggerInfo.
         
         const CacheInfo& info = getCacheInfo(s);
-        for (int i = 0; i < triggeredEventHandlers.size(); ++i) {
+        for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
             triggers += triggeredEventHandlers[i]->getTriggerInfo();
             triggers[triggers.size()-1].setEventId(info.triggeredEventIds[i]);
         }
-        for (int i = 0; i < triggeredEventReporters.size(); ++i) {
+        for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
             triggers += triggeredEventReporters[i]->getTriggerInfo();
             triggers[triggers.size()-1].setEventId(info.triggeredReportIds[i]);
         }
@@ -818,7 +818,7 @@ public:
         
         const CacheInfo& info = getCacheInfo(s);
         tNextEvent = Infinity;
-        for (int i = 0; i < scheduledEventHandlers.size(); ++i) {
+        for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
             Real time = scheduledEventHandlers[i]->getNextEventTime(s);
             if (time <= tNextEvent && time >= s.getTime()) {
                 if (time < tNextEvent)
@@ -828,7 +828,7 @@ public:
                 isReport = false;
             }
         }
-        for (int i = 0; i < scheduledEventReporters.size(); ++i) {
+        for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
             Real time = scheduledEventReporters[i]->getNextEventTime(s);
             if (time <= tNextEvent && time >= s.getTime()) {
                 if (time < tNextEvent)
@@ -854,7 +854,7 @@ public:
         // Process triggered events.
         
         if (cause == System::TriggeredEvents) {
-            for (int i = 0; i < triggeredEventHandlers.size(); ++i) {
+            for (int i = 0; i < (int)triggeredEventHandlers.size(); ++i) {
                 if (idSet.find(info.triggeredEventIds[i]) != idSet.end()) {
                     Stage eventLowestModified = Stage::HighestValid;
                     bool eventShouldTerminate = false;
@@ -865,7 +865,7 @@ public:
                         shouldTerminate = true;
                 }
             }
-            for (int i = 0; i < triggeredEventReporters.size(); ++i) {
+            for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
                 if (idSet.find(info.triggeredReportIds[i]) != idSet.end())
                     triggeredEventReporters[i]->handleEvent(s);
             }
@@ -874,7 +874,7 @@ public:
         // Process scheduled events.
         
         if (cause == System::ScheduledEvents) {
-            for (int i = 0; i < scheduledEventHandlers.size(); ++i) {
+            for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
                 if (idSet.find(info.scheduledEventIds[i]) != idSet.end()) {
                     Stage eventLowestModified = Stage::HighestValid;
                     bool eventShouldTerminate = false;
@@ -885,7 +885,7 @@ public:
                         shouldTerminate = true;
                 }
             }
-            for (int i = 0; i < scheduledEventReporters.size(); ++i) {
+            for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
                 if (idSet.find(info.scheduledReportIds[i]) != idSet.end())
                     scheduledEventReporters[i]->handleEvent(s);
             }
@@ -904,7 +904,7 @@ public:
         // Process triggered events.
         
         if (cause == System::TriggeredEvents) {
-            for (int i = 0; i < triggeredEventReporters.size(); ++i) {
+            for (int i = 0; i < (int)triggeredEventReporters.size(); ++i) {
                 if (idSet.find(info.triggeredReportIds[i]) != idSet.end())
                     triggeredEventReporters[i]->handleEvent(s);
             }
@@ -913,7 +913,7 @@ public:
         // Process scheduled events.
         
         if (cause == System::ScheduledEvents) {
-            for (int i = 0; i < scheduledEventReporters.size(); ++i) {
+            for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
                 if (idSet.find(info.scheduledReportIds[i]) != idSet.end())
                     scheduledEventReporters[i]->handleEvent(s);
             }
