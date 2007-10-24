@@ -1488,13 +1488,13 @@ void DuMMForceFieldSubsystemRep::checkTorsion
 
         // Watch for nonsense arguments.
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class1), ApiClassName, CallingMethodName,
-        "class1=%d which is not a valid atom class Id", class1);
+        "class1=%d which is not a valid atom class Id", (int) class1);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class2), ApiClassName, CallingMethodName,
-        "class2=%d which is not a valid atom class Id", class2);
+        "class2=%d which is not a valid atom class Id", (int) class2);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class3), ApiClassName, CallingMethodName,
-        "class3=%d which is not a valid atom class Id", class3);
+        "class3=%d which is not a valid atom class Id", (int) class3);
     SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class4), ApiClassName, CallingMethodName,
-        "class4=%d which is not a valid atom class Id", class4);
+        "class4=%d which is not a valid atom class Id", (int) class4);
     SimTK_APIARGCHECK_ALWAYS(periodicity1!=-1 || periodicity2!=-1 || periodicity3!=-1,
         ApiClassName, CallingMethodName, "must be at least one torsion term supplied");
 
@@ -2714,7 +2714,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
                                                  c1,
                                                  getAtomClassId(a.xbonds3Atoms[i4]));
                         if (bt.isValid()) {
-                            printf("anum=%d: i2=%d i3=%d i4=%d\n", anum, i2, i3, i4);
+                            printf("anum=%d: i2=%d i3=%d i4=%d\n", (int) anum, i2, i3, i4);
                             a.aImproperTorsion14.push_back(AtomIdTriple(
                                                            a.xbonds3Atoms[i2],
                                                            a.xbonds3Atoms[i3],
@@ -3410,9 +3410,9 @@ void Atom::dump() const {
         printf("\n    Amber improper torsion atoms:\n");
         for (int i=0; i < (int)aImproperTorsion14.size(); ++i) {
             const BondTorsion& bt = aImproperTorsion[i];
-            printf("      %d-%d-x-%d:", aImproperTorsion14[i][0],
-                                        aImproperTorsion14[i][1],
-                                        aImproperTorsion14[i][2]);
+            printf("      %d-%d-x-%d:", (int) aImproperTorsion14[i][0],
+                                        (int) aImproperTorsion14[i][1],
+                                        (int) aImproperTorsion14[i][2]);
             for (int j=0; j<(int)bt.terms.size(); ++j) {
                 const TorsionTerm& tt = bt.terms[j];
                 printf(" (%d:%g,%g)", tt.periodicity, tt.amplitude, tt.theta0);
