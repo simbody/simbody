@@ -91,7 +91,6 @@ public:
 class SimTK_SimTKCOMMON_EXPORT ScheduledEventHandler : public EventHandler {
 public:
     virtual ~ScheduledEventHandler();
-    virtual ScheduledEventHandler* clone() const = 0;
     
     /**
      * Get the next time at which an event will occur.
@@ -115,7 +114,6 @@ public:
     TriggeredEventHandler(const TriggeredEventHandler& clone);
     TriggeredEventHandler& operator=(const TriggeredEventHandler& clone);
     virtual ~TriggeredEventHandler();
-    virtual TriggeredEventHandler* clone() const = 0;
     
     /**
      * Construct a new TriggeredEventHandler.

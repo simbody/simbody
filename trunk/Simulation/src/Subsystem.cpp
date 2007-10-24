@@ -48,6 +48,9 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <vector>
+
+using std::vector;
 
 namespace SimTK {
 
@@ -660,39 +663,51 @@ public:
         Array<int> triggeredReportIds;
     };
     DefaultSystemSubsystemGuts() : Guts("DefaultSystemSubsystemGuts", "0.0.1") { }
+    
+    ~DefaultSystemSubsystemGuts() {
+        for (int i = 0; i < scheduledEventHandlers.size(); ++i)
+            delete scheduledEventHandlers[i];
+        for (int i = 0; i < triggeredEventHandlers.size(); ++i)
+            delete triggeredEventHandlers[i];
+        for (int i = 0; i < scheduledEventReporters.size(); ++i)
+            delete scheduledEventReporters[i];
+        for (int i = 0; i < triggeredEventReporters.size(); ++i)
+            delete triggeredEventReporters[i];
+    }
+    
     DefaultSystemSubsystemGuts* cloneImpl() const {
         return new DefaultSystemSubsystemGuts(*this);
     }
         
-    const List<ScheduledEventHandler>& getScheduledEventHandlers() const {
+    const vector<ScheduledEventHandler*>& getScheduledEventHandlers() const {
         return scheduledEventHandlers;
     }
     
-    List<ScheduledEventHandler>& updScheduledEventHandlers() {
+    vector<ScheduledEventHandler*>& updScheduledEventHandlers() {
         return scheduledEventHandlers;
     }
     
-    const List<TriggeredEventHandler>& getTriggeredEventHandlers() const {
+    const vector<TriggeredEventHandler*>& getTriggeredEventHandlers() const {
         return triggeredEventHandlers;
     }
     
-    List<TriggeredEventHandler>& updTriggeredEventHandlers() {
+    vector<TriggeredEventHandler*>& updTriggeredEventHandlers() {
         return triggeredEventHandlers;
     }
     
-    const List<ScheduledEventReporter>& getScheduledEventReporters() const {
+    const vector<ScheduledEventReporter*>& getScheduledEventReporters() const {
         return scheduledEventReporters;
     }
     
-    List<ScheduledEventReporter>& updScheduledEventReporters() const {
+    vector<ScheduledEventReporter*>& updScheduledEventReporters() const {
         return scheduledEventReporters;
     }
     
-    const List<TriggeredEventReporter>& getTriggeredEventReporters() const {
+    const vector<TriggeredEventReporter*>& getTriggeredEventReporters() const {
         return triggeredEventReporters;
     }
     
-    List<TriggeredEventReporter>& updTriggeredEventReporters() const {
+    vector<TriggeredEventReporter*>& updTriggeredEventReporters() const {
         return triggeredEventReporters;
     }
     
@@ -718,26 +733,26 @@ public:
         info.triggeredReportIndices.clear();
         info.triggeredReportIds.clear();
         if (scheduledEventHandlers.size() > 0)
-            for (List<ScheduledEventHandler>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
+            for (vector<ScheduledEventHandler*>::const_iterator e = scheduledEventHandlers.begin(); e != scheduledEventHandlers.end(); e++) {
                 int id;
                 createScheduledEvent(s, id);
                 info.scheduledEventIds += id;
             }
         if (triggeredEventHandlers.size() > 0)
-            for (List<TriggeredEventHandler>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
+            for (vector<TriggeredEventHandler*>::const_iterator e = triggeredEventHandlers.begin(); e != triggeredEventHandlers.end(); e++) {
                 int id, index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredEventIds += id;
                 info.triggeredEventIndices += index;
             }
         if (scheduledEventReporters.size() > 0)
-            for (List<ScheduledEventReporter>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
+            for (vector<ScheduledEventReporter*>::const_iterator e = scheduledEventReporters.begin(); e != scheduledEventReporters.end(); e++) {
                 int id;
                 createScheduledEvent(s, id);
                 info.scheduledReportIds += id;
             }
         if (triggeredEventReporters.size() > 0)
-            for (List<TriggeredEventReporter>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
+            for (vector<TriggeredEventReporter*>::const_iterator e = triggeredEventReporters.begin(); e != triggeredEventReporters.end(); e++) {
                 int id, index;
                 createTriggeredEvent(s, id, index, (*e)->getRequiredStage());
                 info.triggeredReportIds += id;
@@ -907,10 +922,10 @@ public:
 
 private:
     mutable int cacheInfoIndex;
-    mutable List<ScheduledEventHandler> scheduledEventHandlers;
-    mutable List<TriggeredEventHandler> triggeredEventHandlers;
-    mutable List<ScheduledEventReporter> scheduledEventReporters;
-    mutable List<TriggeredEventReporter> triggeredEventReporters;
+    mutable vector<ScheduledEventHandler*> scheduledEventHandlers;
+    mutable vector<TriggeredEventHandler*> triggeredEventHandlers;
+    mutable vector<ScheduledEventReporter*> scheduledEventReporters;
+    mutable vector<TriggeredEventReporter*> triggeredEventReporters;
 };
 
 std::ostream& operator<<(std::ostream& o, const DefaultSystemSubsystemGuts::CacheInfo& info) {
@@ -933,39 +948,51 @@ DefaultSystemSubsystemGuts& DefaultSystemSubsystem::updGuts() {
 
 /**
  * Add a ScheduledEventHandler to the System.  This must be called before the Model stage is realized.
+ * 
+ * The System assumes ownership of the object passed to this method, and will delete it when the
+ * System is deleted.
  */
 
-void DefaultSystemSubsystem::addEventHandler(const ScheduledEventHandler& handler) {
+void DefaultSystemSubsystem::addEventHandler(ScheduledEventHandler* handler) {
     updGuts().updScheduledEventHandlers().push_back(handler);
 }
 
 /**
  * Add a TriggeredEventHandler to the System.  This must be called before the Model stage is realized.
+ * 
+ * The System assumes ownership of the object passed to this method, and will delete it when the
+ * System is deleted.
  */
 
-void DefaultSystemSubsystem::addEventHandler(const TriggeredEventHandler& handler) {
+void DefaultSystemSubsystem::addEventHandler(TriggeredEventHandler* handler) {
     updGuts().updTriggeredEventHandlers().push_back(handler);
 }
 
 /**
  * Add a ScheduledEventReporter to the System.  This must be called before the Model stage is realized.
  * 
+ * The System assumes ownership of the object passed to this method, and will delete it when the
+ * System is deleted.
+ * 
  * Note that this method is const.  Because an EventReporter cannot affect the behavior of the system
  * being simulated, it is permitted to add one to a const System.
  */
 
-void DefaultSystemSubsystem::addEventReporter(const ScheduledEventReporter& handler) const {
+void DefaultSystemSubsystem::addEventReporter(ScheduledEventReporter* handler) const {
     getGuts().updScheduledEventReporters().push_back(handler);
 }
 
 /**
  * Add a TriggeredEventReporter to the System.  This must be called before the Model stage is realized.
  * 
+ * The System assumes ownership of the object passed to this method, and will delete it when the
+ * System is deleted.
+ * 
  * Note that this method is const.  Because an EventReporter cannot affect the behavior of the system
  * being simulated, it is permitted to add one to a const System.
  */
 
-void DefaultSystemSubsystem::addEventReporter(const TriggeredEventReporter& handler) const {
+void DefaultSystemSubsystem::addEventReporter(TriggeredEventReporter* handler) const {
     getGuts().updTriggeredEventReporters().push_back(handler);
 }
 
