@@ -50,9 +50,6 @@ public:
     static int eventCount;
     static Real lastEventTime;
     static Real interval;
-    PeriodicEventHandler* clone() const {
-        return new PeriodicEventHandler(*this);
-    }
     Real getNextEventTime(const State&) const {
         return lastEventTime+interval;
     }
@@ -72,9 +69,6 @@ public:
     static Real lastEventTime;
     static bool hasAccelerated;
     ZeroPositionHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
-    }
-    ZeroPositionHandler* clone() const {
-        return new ZeroPositionHandler(*this);
     }
     Real getValue(const State& state) const {
         return state.getQ(pendulum.getGuts().getSubsysIndex())[0];
@@ -110,9 +104,6 @@ public:
     ZeroVelocityHandler(PendulumSystem& pendulum) : TriggeredEventHandler(Stage::Velocity), pendulum(pendulum) {
         getTriggerInfo().setTriggerOnFallingSignTransition(false);
     }
-    ZeroVelocityHandler* clone() const {
-        return new ZeroVelocityHandler(*this);
-    }
     Real getValue(const State& state) const {
         return state.getU(pendulum.getGuts().getSubsysIndex())[0];
     }
@@ -137,9 +128,6 @@ public:
     static Real lastEventTime;
     static Real interval;
     PeriodicEventReporter(PendulumSystem& pendulum) : pendulum(pendulum) {
-    }
-    PeriodicEventReporter* clone() const {
-        return new PeriodicEventReporter(*this);
     }
     Real getNextEventTime(const State&) const {
         return lastEventTime+interval;
@@ -239,10 +227,10 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
 int main () {
   try {
     PendulumSystem sys;
-    sys.updDefaultSubsystem().addEventHandler(ZeroVelocityHandler(sys));
-    sys.updDefaultSubsystem().addEventHandler(PeriodicEventHandler());
-    sys.updDefaultSubsystem().addEventHandler(ZeroPositionHandler(sys));
-    sys.updDefaultSubsystem().addEventReporter(PeriodicEventReporter(sys));
+    sys.updDefaultSubsystem().addEventHandler(new ZeroVelocityHandler(sys));
+    sys.updDefaultSubsystem().addEventHandler(new PeriodicEventHandler());
+    sys.updDefaultSubsystem().addEventHandler(new ZeroPositionHandler(sys));
+    sys.updDefaultSubsystem().addEventReporter(new PeriodicEventReporter(sys));
     sys.realizeTopology();
 
     // Test with various intervals for the event handler and event reporter, ones that are either
