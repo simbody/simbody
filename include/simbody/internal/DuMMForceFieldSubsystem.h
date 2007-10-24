@@ -354,17 +354,61 @@ public:
                 periodicity3, amp3InKcal, phase3InDegrees);
     }
 
+    // As with normal torsions, (see defineAmberImproperTorsion), only one term may have
+    // a given periodicity. The amplitudes are in kJ/mol.
+    void defineAmberImproperTorsion
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees);
+    void defineAmberImproperTorsion
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees);
+    void defineAmberImproperTorsion
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+        int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+        int periodicity3, Real amp3InKJ, Real phase3InDegrees);
+
+    // Here the amplitudes are given in kcal/mol.
+    void defineAmberImproperTorsion_KA
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees)
+    {
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees);
+    }
+    void defineAmberImproperTorsion_KA
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees)
+    {
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees);
+    }
+    void defineAmberImproperTorsion_KA
+       (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+        int periodicity1, Real amp1InKcal, Real phase1InDegrees,
+        int periodicity2, Real amp2InKcal, Real phase2InDegrees,
+        int periodicity3, Real amp3InKcal, Real phase3InDegrees)
+    {
+        defineAmberImproperTorsion(class1,class2,class3,class4,
+                          periodicity1, amp1InKcal * DuMM::Kcal2KJ, phase1InDegrees,
+                          periodicity2, amp2InKcal * DuMM::Kcal2KJ, phase2InDegrees,
+                          periodicity3, amp3InKcal * DuMM::Kcal2KJ, phase3InDegrees);
+    }
+
     // The third atom is the central one to which the other
     // three are bonded; this is not the same in reverse order.
     // TODO: not implemented
-    void defineImproperTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
-        Real amplitude, Real phase, int periodicity,
-        Real amp2, Real phase2, int period2,
-        Real amp3, Real phase3, int period3);
-    void defineImproperTorsion_KA(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
-        Real amplitude, Real phase, int periodicity,
-        Real amp2, Real phase2, int period2,
-        Real amp3, Real phase3, int period3);
+    // void defineImproperTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    //     Real amplitude, Real phase, int periodicity,
+    //     Real amp2, Real phase2, int period2,
+    //     Real amp3, Real phase3, int period3);
+    // void defineImproperTorsion_KA(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    //     Real amplitude, Real phase, int periodicity,
+    //     Real amp2, Real phase2, int period2,
+    //     Real amp3, Real phase3, int period3);
 
     void setVdwMixingRule(VdwMixingRule); // default WaldmanHagler
     VdwMixingRule getVdwMixingRule() const;
@@ -387,6 +431,7 @@ public:
     void setBondStretchGlobalScaleFactor(Real);
     void setBondBendGlobalScaleFactor(Real);
     void setBondTorsionGlobalScaleFactor(Real);
+    void setAmberImproperTorsionGlobalScaleFactor(Real);
 
     void dump() const; // to stdout
     SimTK_PIMPL_DOWNCAST(DuMMForceFieldSubsystem, Subsystem);

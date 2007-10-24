@@ -606,6 +606,9 @@ public:
         shortPath13.clear(); shortPath14.clear(); shortPath15.clear();
         xshortPath13.clear(); xshortPath14.clear(); xshortPath15.clear();
         stretch.clear(); bend.clear(); torsion.clear();
+        bonds3Atoms.invalidate();
+        xbonds3Atoms.invalidate();
+        aImproperTorsion14.clear(); aImproperTorsion.clear();
     }
 
 public:
@@ -671,6 +674,8 @@ public:
     // be valid iff (a) bonds3Atoms is valid, and (b) at least one of the
     // three atoms is on a different body from this one.
     AtomIdTriple xbonds3Atoms;
+    std::vector<AtomIdTriple> aImproperTorsion14; // might have zero length
+    std::vector<BondTorsion> aImproperTorsion; // might have zero length
 
     std::vector<BondStretch> stretch; // same length as cross-body 1-2 list
     std::vector<BondBend>    bend;    // same length as   " 1-3 list
@@ -972,13 +977,22 @@ public:
     {
         vdwMixingRule = DuMMForceFieldSubsystem::WaldmanHagler;
         vdwGlobalScaleFactor=coulombGlobalScaleFactor=bondStretchGlobalScaleFactor
-            =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor=1;
+            =bondBendGlobalScaleFactor=bondTorsionGlobalScaleFactor
+            =amberImproperTorsionGlobalScaleFactor=1;
         vdwScale12=coulombScale12=vdwScale13=coulombScale13=0;
         vdwScale14=coulombScale14=vdwScale15=coulombScale15=1;
         loadElements();
         const DuMM::ClusterId gid = addCluster(Cluster("free atoms and groups"));
         assert(gid==0);
     }
+
+    // common checks when defining improper and proper torsions
+    void DuMMForceFieldSubsystemRep::checkTorsion 
+        (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+            int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+            int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+            int periodicity3, Real amp3InKJ, Real phase3InDegrees,
+            const char* CallingMethodName) const;
 
     bool isValidElement(int atomicNumber) const {
         return 1 <= atomicNumber && atomicNumber < (int)elements.size() 
@@ -1107,6 +1121,7 @@ public:
     const BondStretch& getBondStretch(DuMM::AtomClassId class1, DuMM::AtomClassId class2) const;
     const BondBend&    getBondBend   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3) const;
     const BondTorsion& getBondTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const;
+    const BondTorsion& getAmberImproperTorsion(int class1, int class2, int class3, int class4) const;
 
     // Override virtual methods from Subsystem::Guts class.
 
@@ -1214,6 +1229,7 @@ private:
     std::map<AtomClassIdPair,   BondStretch> bondStretch;
     std::map<AtomClassIdTriple, BondBend>    bondBend;
     std::map<IntQuad,   BondTorsion> bondTorsion;
+    std::map<IntQuad,   BondTorsion> amberImproperTorsion;
 
     // Which rule to use for combining van der Waals radii and energy well
     // depth for dissimilar atom classes.
@@ -1230,7 +1246,7 @@ private:
     // individual force field terms.
     Real vdwGlobalScaleFactor, coulombGlobalScaleFactor; 
     Real bondStretchGlobalScaleFactor, bondBendGlobalScaleFactor, 
-         bondTorsionGlobalScaleFactor;
+         bondTorsionGlobalScaleFactor, amberImproperTorsionGlobalScaleFactor;
 
         // TOPOLOGICAL CACHE ENTRIES
         //   These are calculated in realizeTopology() from topological
@@ -1456,6 +1472,76 @@ void DuMMForceFieldSubsystem::defineBondBend
         (int) key[0], (int) key[1], (int) key[2]);
 }
 
+
+// 
+// This is a utility method that checks for invalid inputs to the defineBondTorsion() and
+// defineAmberImproperTorsion() functions.
+//
+void DuMMForceFieldSubsystemRep::checkTorsion 
+(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4, 
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+    int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+    int periodicity3, Real amp3InKJ, Real phase3InDegrees,
+    const char* CallingMethodName) const
+{
+    // DuMMForceFieldSubsystemRep& mm = updRep();
+
+        // Watch for nonsense arguments.
+    SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class1), ApiClassName, CallingMethodName,
+        "class1=%d which is not a valid atom class Id", class1);
+    SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class2), ApiClassName, CallingMethodName,
+        "class2=%d which is not a valid atom class Id", class2);
+    SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class3), ApiClassName, CallingMethodName,
+        "class3=%d which is not a valid atom class Id", class3);
+    SimTK_APIARGCHECK1_ALWAYS(isValidAtomClass(class4), ApiClassName, CallingMethodName,
+        "class4=%d which is not a valid atom class Id", class4);
+    SimTK_APIARGCHECK_ALWAYS(periodicity1!=-1 || periodicity2!=-1 || periodicity3!=-1,
+        ApiClassName, CallingMethodName, "must be at least one torsion term supplied");
+
+
+    if (periodicity1 != -1) {
+            // No nonsense.
+        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity1 && periodicity1 <= 6, ApiClassName, CallingMethodName,
+            "periodicity1(%d) is invalid: we require 1 <= periodicity <= 6", periodicity1);
+        SimTK_APIARGCHECK1_ALWAYS(amp1InKJ >= 0, ApiClassName, CallingMethodName,
+            "amplitude1(%g) is not valid: must be nonnegative", amp1InKJ);
+        SimTK_APIARGCHECK1_ALWAYS(0 <= phase1InDegrees && phase1InDegrees <= 180, ApiClassName, CallingMethodName,
+            "phaseAngle1(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase1InDegrees);
+
+            // No repeats.
+        SimTK_APIARGCHECK1_ALWAYS((periodicity2 != periodicity1) && (periodicity3 != periodicity1),
+            ApiClassName, CallingMethodName,
+            "only one term with a given periodicity may be specified (periodicity %d was repeated)",
+            periodicity1);
+    }
+    if (periodicity2 != -1) {
+            // No nonsense.
+        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity2 && periodicity2 <= 6, ApiClassName, CallingMethodName,
+            "periodicity2(%d) is invalid: we require 1 <= periodicity <= 6", periodicity2);
+        SimTK_APIARGCHECK1_ALWAYS(amp2InKJ >= 0, ApiClassName, CallingMethodName,
+            "amplitude2(%g) is not valid: must be nonnegative", amp2InKJ);
+        SimTK_APIARGCHECK1_ALWAYS(0 <= phase2InDegrees && phase2InDegrees <= 180, ApiClassName, CallingMethodName,
+            "phaseAngle2(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase2InDegrees);
+
+            // No repeats.
+        SimTK_APIARGCHECK1_ALWAYS(periodicity3 != periodicity2, ApiClassName, CallingMethodName,
+            "only one term with a given periodicity may be specified (periodicity %d was repeated)",
+            periodicity2);
+    }
+    if (periodicity3 != -1) {
+            // No nonsense.
+        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity3 && periodicity3 <= 6, ApiClassName, CallingMethodName,
+            "periodicity3(%d) is invalid: we require 1 <= periodicity <= 6", periodicity3);
+        SimTK_APIARGCHECK1_ALWAYS(amp3InKJ >= 0, ApiClassName, CallingMethodName,
+            "amplitude3(%g) is not valid: must be nonnegative", amp3InKJ);
+        SimTK_APIARGCHECK1_ALWAYS(0 <= phase3InDegrees && phase3InDegrees <= 180, ApiClassName, CallingMethodName,
+            "phaseAngle3(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase3InDegrees);
+            // (we've already checked for any possible repeats)
+    }
+}
+
+
+
 // 
 // We allow up to 3 terms in a single torsion function, with three different
 // periodicities. If any of these are unused, set the corresponding periodicity
@@ -1472,18 +1558,11 @@ void DuMMForceFieldSubsystem::defineBondTorsion
     invalidateSubsystemTopologyCache();
 
     DuMMForceFieldSubsystemRep& mm = updRep();
-
-        // Watch for nonsense arguments.
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class1), mm.ApiClassName, MethodName, 
-        "class1=%d which is not a valid atom class Id", (int) class1);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class2), mm.ApiClassName, MethodName, 
-        "class2=%d which is not a valid atom class Id", (int) class2);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class3), mm.ApiClassName, MethodName, 
-        "class3=%d which is not a valid atom class Id", (int) class3);
-    SimTK_APIARGCHECK1_ALWAYS(mm.isValidAtomClass(class4), mm.ApiClassName, MethodName, 
-        "class4=%d which is not a valid atom class Id", (int) class4);
-    SimTK_APIARGCHECK_ALWAYS(periodicity1!=-1 || periodicity2!=-1 || periodicity3!=-1, 
-        mm.ApiClassName, MethodName, "must be at least one torsion term supplied");
+    mm.checkTorsion(class1, class2, class3, class4, 
+                 periodicity1, amp1InKJ, phase1InDegrees,
+                 periodicity2, amp2InKJ, phase2InDegrees,
+                 periodicity3, amp3InKJ, phase3InDegrees,
+                 MethodName);
 
         // Canonicalize atom class quad by reversing order if necessary so that the
         // first class Id is numerically no larger than the fourth.
@@ -1492,51 +1571,12 @@ void DuMMForceFieldSubsystem::defineBondTorsion
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
     BondTorsion bt;
     if (periodicity1 != -1) {
-            // No nonsense.
-        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity1 && periodicity1 <= 6, mm.ApiClassName, MethodName, 
-            "periodicity1(%d) is invalid: we require 1 <= periodicity <= 6", periodicity1);
-        SimTK_APIARGCHECK1_ALWAYS(amp1InKJ >= 0, mm.ApiClassName, MethodName, 
-            "amplitude1(%g) is not valid: must be nonnegative", amp1InKJ);
-        SimTK_APIARGCHECK1_ALWAYS(0 <= phase1InDegrees && phase1InDegrees <= 180, mm.ApiClassName, MethodName, 
-            "phaseAngle1(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase1InDegrees);
-
-            // No repeats.
-        SimTK_APIARGCHECK1_ALWAYS((periodicity2 != periodicity1) && (periodicity3 != periodicity1), 
-            mm.ApiClassName, MethodName,
-            "only one term with a given periodicity may be specified (periodicity %d was repeated)",
-            periodicity1);
-
-            // Add the new term.
-        bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
+         bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
     }
     if (periodicity2 != -1) {
-            // No nonsense.
-        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity2 && periodicity2 <= 6, mm.ApiClassName, MethodName, 
-            "periodicity2(%d) is invalid: we require 1 <= periodicity <= 6", periodicity2);
-        SimTK_APIARGCHECK1_ALWAYS(amp2InKJ >= 0, mm.ApiClassName, MethodName, 
-            "amplitude2(%g) is not valid: must be nonnegative", amp2InKJ);
-        SimTK_APIARGCHECK1_ALWAYS(0 <= phase2InDegrees && phase2InDegrees <= 180, mm.ApiClassName, MethodName, 
-            "phaseAngle2(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase2InDegrees);
-
-            // No repeats.
-        SimTK_APIARGCHECK1_ALWAYS(periodicity3 != periodicity2, mm.ApiClassName, MethodName,
-            "only one term with a given periodicity may be specified (periodicity %d was repeated)",
-            periodicity2);
-
-            // Add the new term.
         bt.addTerm(TorsionTerm(periodicity2, amp2InKJ, phase2InDegrees));
     }
     if (periodicity3 != -1) {
-            // No nonsense.
-        SimTK_APIARGCHECK1_ALWAYS(1 <= periodicity3 && periodicity3 <= 6, mm.ApiClassName, MethodName, 
-            "periodicity3(%d) is invalid: we require 1 <= periodicity <= 6", periodicity3);
-        SimTK_APIARGCHECK1_ALWAYS(amp3InKJ >= 0, mm.ApiClassName, MethodName, 
-            "amplitude3(%g) is not valid: must be nonnegative", amp3InKJ);
-        SimTK_APIARGCHECK1_ALWAYS(0 <= phase3InDegrees && phase3InDegrees <= 180, mm.ApiClassName, MethodName, 
-            "phaseAngle3(%g) is not valid: must be between 0 and 180 degrees, inclusive", phase3InDegrees);
-            // (we've already checked for any possible repeats)
-
-            // Add the new term.
         bt.addTerm(TorsionTerm(periodicity3, amp3InKJ, phase3InDegrees));
     }
 
@@ -1578,6 +1618,77 @@ void DuMMForceFieldSubsystem::defineBondTorsion
                       periodicity1,amp1InKJ,phase1InDegrees,
                       periodicity2,amp2InKJ,phase2InDegrees,
                       -1,0.,0.);
+}
+
+// 
+// This function is based on the defineTorsion function.
+// As with the normal bond torsions, we allow up to 3 terms in a single torsion function,
+// with three different periodicities. If any of these are unused, set the corresponding
+// periodicity to -1.
+//
+void DuMMForceFieldSubsystem::defineAmberImproperTorsion
+(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+    int periodicity2, Real amp2InKJ, Real phase2InDegrees,
+    int periodicity3, Real amp3InKJ, Real phase3InDegrees)
+{
+    static const char* MethodName = "defineAmberImproperTorsion";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+    mm.checkTorsion(class1, class2, class3, class4, 
+                 periodicity1, amp1InKJ, phase1InDegrees,
+                 periodicity2, amp2InKJ, phase2InDegrees,
+                 periodicity3, amp3InKJ, phase3InDegrees,
+                 MethodName);
+
+        // Unlike the normal bond torsions (see defineBondTorstion function) we do *not*
+        // canonicalize atom class quad, because atom order does matter for amber improper torsions
+    const IntQuad key(class1, class2, class3, class4, false);
+
+        // Now allocate an empty BondTorsion object and add terms to it as they are found.
+    BondTorsion bt;
+    // Add the new terms.
+    if (periodicity1 != -1)
+        bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
+    if (periodicity2 != -1)
+        bt.addTerm(TorsionTerm(periodicity2, amp2InKJ, phase2InDegrees));
+    if (periodicity3 != -1)
+        bt.addTerm(TorsionTerm(periodicity3, amp3InKJ, phase3InDegrees));
+
+        // Now try to insert the allegedly new BondTorsion specification into the
+        // amberImproperTorsion map.  If it is already there the 2nd element in the
+        // returned pair will be 'false'.
+    std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret =
+      mm.amberImproperTorsion.insert(std::pair<IntQuad,BondTorsion>(key,bt));
+
+        // Throw an exception if terms for this improper torsion were already defined.
+    SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName,
+        "amber improper torsion term(s) were already defined for atom class quad (%d,%d,%d,%d)",
+        key[0], key[1], key[2], key[3]);
+}
+
+// Convenient signature for an amber improper torsion with only one term.
+void DuMMForceFieldSubsystem::defineAmberImproperTorsion
+   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees)
+{
+    defineAmberImproperTorsion(class1, class2, class3, class4,
+                               periodicity1,amp1InKJ,phase1InDegrees,
+                               -1,0.,0., -1,0.,0.);
+}
+
+// Convenient signature for an amber improper torsion with two terms.
+void DuMMForceFieldSubsystem::defineAmberImproperTorsion
+   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4,
+    int periodicity1, Real amp1InKJ, Real phase1InDegrees,
+    int periodicity2, Real amp2InKJ, Real phase2InDegrees)
+{
+    defineAmberImproperTorsion(class1, class2, class3, class4,
+                               periodicity1,amp1InKJ,phase1InDegrees,
+                               periodicity2,amp2InKJ,phase2InDegrees,
+                               -1,0.,0.);
 }
 
 void DuMMForceFieldSubsystem::setVdwMixingRule(VdwMixingRule rule) {
@@ -1783,6 +1894,19 @@ void DuMMForceFieldSubsystem::setBondTorsionGlobalScaleFactor(Real fac) {
         fac);
 
     mm.bondTorsionGlobalScaleFactor=fac;
+}
+void DuMMForceFieldSubsystem::setAmberImproperTorsionGlobalScaleFactor(Real fac) {
+    static const char* MethodName = "setAmberImproperTorsionScaleFactor";
+
+    invalidateSubsystemTopologyCache();
+
+    DuMMForceFieldSubsystemRep& mm = updRep();
+
+    SimTK_APIARGCHECK1_ALWAYS(0 <= fac, mm.ApiClassName, MethodName,
+        "Global amber improper torsion scale factor (%g) was invalid: must be nonnegative",
+        fac);
+
+    mm.amberImproperTorsionGlobalScaleFactor=fac;
 }
 
 DuMM::ClusterId DuMMForceFieldSubsystem::createCluster(const char* groupName)
@@ -2233,6 +2357,29 @@ DuMMForceFieldSubsystemRep::getBondTorsion
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
+const BondTorsion& 
+DuMMForceFieldSubsystemRep::getAmberImproperTorsion
+   (int class1, int class2, int class3, int class4) const
+{
+//xxx -> Randy's warning flag
+    printf("aImp--classes: %d-%d-%d-%d\n", class1,
+                                  class2,
+                                  class3,
+                                  class4);
+    std::map<IntQuad,BondTorsion>::const_iterator i;
+    for (i=amberImproperTorsion.begin(); i!=amberImproperTorsion.end(); i++) {
+        printf("aImp-matches: %d-%d-%d-%d\n", i->first[0],
+                                      i->first[1],
+                                      i->first[2],
+                                      i->first[3]);
+    }
+    
+    static const BondTorsion dummy; // invalid
+    const IntQuad key(class1, class2, class3, class4, false);
+    std::map<IntQuad,BondTorsion>::const_iterator bt = amberImproperTorsion.find(key);
+    return (bt != amberImproperTorsion.end()) ? bt->second : dummy;
+}
+
 int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const 
 {
 
@@ -2545,6 +2692,40 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
                 "couldn't find bond torsion parameters for cross-body atom class quad (%d,%d,%d,%d)", 
                 (int) c1,(int) c2,(int) c3,(int) c4);
         }
+
+        // Save *all* Amber improper torsion entries if this atom is bonded to three, and only 
+        // three ohter atoms, *and* a matching amber improper torsion term is found in the
+        // amberImproperTorsion array
+        // Note that by convention, the center atom is in the third position
+        // Also note that unlike AMBER keeps only *one* match, but we keep *all*.
+        // To correct for this we also scale my the total number of matches.  This
+        // is how TINKER implements AMBER's improper torsions.
+        a.aImproperTorsion.clear();
+        a.aImproperTorsion14.clear();
+        if (a.xbonds3Atoms.isValid()) {
+            for (int i2=0; i2<3; i2++) {
+                for (int i3=0; i3<3; i3++) {
+                    if (i3==i2) continue;
+                    for (int i4=0; i4<3; i4++) {
+                        if (i4==i2 || i4==i3) continue;
+                        static const BondTorsion bt = getAmberImproperTorsion(
+                                                 getAtomClassId(a.xbonds3Atoms[i2]),
+                                                 getAtomClassId(a.xbonds3Atoms[i3]),
+                                                 c1,
+                                                 getAtomClassId(a.xbonds3Atoms[i4]));
+                        if (bt.isValid()) {
+                            printf("anum=%d: i2=%d i3=%d i4=%d\n", anum, i2, i3, i4);
+                            a.aImproperTorsion14.push_back(AtomIdTriple(
+                                                           a.xbonds3Atoms[i2],
+                                                           a.xbonds3Atoms[i3],
+                                                           a.xbonds3Atoms[i4]));
+                            a.aImproperTorsion.push_back(bt);
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     return 0;
@@ -2700,6 +2881,87 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemDynamicsImpl(const State& s) con
                 rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
                 rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
             }
+
+            // Amber improper torsion
+            // Note that a1 is the *third* atom in the torsion
+            for (int b14=0; b14 < (int)a1.aImproperTorsion14.size(); ++b14) {
+                const int a2num = a1.aImproperTorsion14[b14][0];
+                const int a3num = a1.aImproperTorsion14[b14][1];
+                const int a4num = a1.aImproperTorsion14[b14][2];
+                assert(a4num != a1num);
+                //if (a4num < a1num)
+                //    continue; // don't process this bond this time
+
+                const Atom& a2 = atoms[a2num];
+                const Atom& a3 = atoms[a3num];
+                const Atom& a4 = atoms[a4num];
+                const int b2 = a2.bodyId;
+                const int b3 = a3.bodyId;
+                const int b4 = a4.bodyId;
+                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+
+                // TODO: These might be the same body but for now we don't care.
+                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+
+                Real angle, energy;
+                Vec3 f1, f2, f3, f4;
+                const BondTorsion& bt = a1.aImproperTorsion[b14];
+                //bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, bondTorsionGlobalScaleFactor,
+                //            angle, energy, f1, f2, f3, f4);
+                bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G,
+                            amberImproperTorsionGlobalScaleFactor,
+                            angle, energy, f2, f3, f1, f4);
+
+                pe += energy;
+                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+            }
+
+/*
+            if (a1.aImproperTorsion14.isValid()) {
+                const Atom& a2 = atoms[a1.aImproperTorsion14[0]];
+                const Atom& a3 = atoms[a1.aImproperTorsion14[1]];
+                const Atom& a4 = atoms[a1.aImproperTorsion14[2]];
+                const int b2 = a2.bodyId;
+                const int b3 = a3.bodyId;
+                const int b4 = a4.bodyId;
+                assert(!(b2==b1 && b3==b1 && b4==b1)); // shouldn't be on the list if all on 1 body
+
+                // TODO: These might be the same body but for now we don't care.
+                const Transform& X_GB2   = matter.getMobilizedBody(a2.bodyId).getBodyTransform(s);
+                const Transform& X_GB3   = matter.getMobilizedBody(a3.bodyId).getBodyTransform(s);
+                const Transform& X_GB4   = matter.getMobilizedBody(a4.bodyId).getBodyTransform(s);
+                const Vec3       a2Station_G = X_GB2.R()*a2.station_B;
+                const Vec3       a3Station_G = X_GB3.R()*a3.station_B;
+                const Vec3       a4Station_G = X_GB4.R()*a4.station_B;
+                const Vec3       a2Pos_G     = X_GB2.T() + a2Station_G;
+                const Vec3       a3Pos_G     = X_GB3.T() + a3Station_G;
+                const Vec3       a4Pos_G     = X_GB4.T() + a4Station_G;
+
+                Real angle, energy;
+                Vec3 f1, f2, f3, f4;
+                const BondTorsion& bt = a1.aImproperTorsion;
+//                bt.periodic(a1Pos_G, a2Pos_G, a3Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
+//                            angle, energy, f1, f2, f3, f4);
+                bt.periodic(a2Pos_G, a3Pos_G, a1Pos_G, a4Pos_G, amberImproperTorsionGlobalScaleFactor,
+                            angle, energy, f2, f3, f1, f4);
+                pe += energy;
+                rigidBodyForces[b1] += SpatialVec( a1Station_G % f1, f1);   // 15 flops
+                rigidBodyForces[b2] += SpatialVec( a2Station_G % f2, f2);   // 15 flops
+                rigidBodyForces[b3] += SpatialVec( a3Station_G % f3, f3);   // 15 flops
+                rigidBodyForces[b4] += SpatialVec( a4Station_G % f4, f4);   // 15 flops
+            }
+*/
 
             scaleBondedAtoms(a1,vdwScale,coulombScale);
             for (MobilizedBodyId b2(b1+1); b2 < (int)bodies.size(); ++b2) {
@@ -3143,6 +3405,20 @@ void Atom::dump() const {
                                   tt.amplitude, tt.theta0);
         }
         printf("\n");
+    }
+    if (0<aImproperTorsion14.size()) {
+        printf("\n    Amber improper torsion atoms:\n");
+        for (int i=0; i < (int)aImproperTorsion14.size(); ++i) {
+            const BondTorsion& bt = aImproperTorsion[i];
+            printf("      %d-%d-x-%d:", aImproperTorsion14[i][0],
+                                        aImproperTorsion14[i][1],
+                                        aImproperTorsion14[i][2]);
+            for (int j=0; j<(int)bt.terms.size(); ++j) {
+                const TorsionTerm& tt = bt.terms[j];
+                printf(" (%d:%g,%g)", tt.periodicity, tt.amplitude, tt.theta0);
+            }
+            printf("\n");
+        }
     }
     printf("\n");
 }
