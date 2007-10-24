@@ -13,7 +13,7 @@ FILE(GLOB AUX_INCLUDE_FILES ${PROJECT_SOURCE_DIR}/auxiliary/src/*.h )
 
 
    ## Find VTK
-   SET(VTK_DIR ${SimTK_SDK}/vtk/lib/vtk-5.0 CACHE PATH "VTK installation")
+   SET(VTK_DIR ${SimTK_SDK}/core/lib/vtk-5.0 CACHE PATH "VTK installation")
 
    FIND_PACKAGE(VTK)
    IF (VTK_FOUND)
