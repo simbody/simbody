@@ -237,7 +237,7 @@ try {
 
     //ExplicitEuler ee(mbs, s);
     bool suppressProjection = false;
-    RungeKuttaMerson ee(mbs, s, suppressProjection);
+    OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
     ee.setProjectEveryStep(false);
 
     vtk.report(s);

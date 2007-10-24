@@ -113,9 +113,9 @@ try { // If anything goes wrong, an exception will be thrown.
     mbs.realize(s);
 
     // Create a study using the Runge Kutta Merson integrator
-    RungeKuttaMerson myStudy(mbs, s);
+    OLDRungeKuttaMerson myStudy(mbs, s);
     myStudy.setAccuracy(1e-6);
-    //CPodesIntegrator myStudy(mbs, s);
+    //OLDCPodesIntegrator myStudy(mbs, s);
     //myStudy.setAccuracy(1e-4);
 
     // Visualize with VTK. This will pick up decorative geometry from

@@ -321,7 +321,7 @@ int main() {
         Vector y(2); y[0] = 0.; y[1] = 1.;
         scState.updY() = y;
 
-        ExplicitEuler ee(scmbs, scState);
+        OLDExplicitEuler ee(scmbs, scState);
         ee.setInitialStepSize(0.00001);
 
         ee.initialize();
@@ -353,8 +353,8 @@ int main() {
         pendState.updTime() = 0;
         pendState.updY() = yp;
 
-        //ExplicitEuler eep(p);
-        RungeKuttaMerson eep(pendmbs, pendState);
+        //OLDExplicitEuler eep(p);
+        OLDRungeKuttaMerson eep(pendmbs, pendState);
         //eep.setInitialStepSize(0.00001);
         eep.setStopTime(100.);
         const Real acc = 1e-3;

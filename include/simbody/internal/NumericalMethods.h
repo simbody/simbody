@@ -333,9 +333,9 @@ public:
     MechanicalDAEIntegrator *mdae;
 };
 
-class CPodesIntegrator : public MechanicalDAEIntegrator {
+class OLDCPodesIntegrator : public MechanicalDAEIntegrator {
 public:
-    CPodesIntegrator(const MultibodySystem& mb, State& s) 
+    OLDCPodesIntegrator(const MultibodySystem& mb, State& s) 
       : MechanicalDAEIntegrator(mb,s), cpodes(0), sys(0)
     {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
@@ -344,11 +344,11 @@ public:
     }
 
     // Virtual function implementations
-    ~CPodesIntegrator() {
+    ~OLDCPodesIntegrator() {
         delete cpodes;
         delete sys;
     }
-    CPodesIntegrator* clone() const {assert(false); return 0;}
+    OLDCPodesIntegrator* clone() const {assert(false); return 0;}
 
     const CPodes& getCPodes() const {assert(cpodes); return *cpodes;}
 
@@ -487,9 +487,9 @@ private:
     bool initialized;
 };
 
-class ExplicitEuler : public MechanicalDAEIntegrator {
+class OLDExplicitEuler : public MechanicalDAEIntegrator {
 public:
-    ExplicitEuler(const MultibodySystem& mb, State& s) 
+    OLDExplicitEuler(const MultibodySystem& mb, State& s) 
       : MechanicalDAEIntegrator(mb,s) 
     {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
@@ -497,7 +497,7 @@ public:
         reconstructForNewModel();
     }
 
-    ExplicitEuler* clone() const {return new ExplicitEuler(*this);}
+    OLDExplicitEuler* clone() const {return new OLDExplicitEuler(*this);}
 
     Real getConstraintTolerance() const {
         assert(initialized);
@@ -511,7 +511,7 @@ public:
 
     bool initialize() {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
-            "ExplicitEuler::initialize()");
+            "OLDExplicitEuler::initialize()");
         if (state.getSystemStage() < Stage::Model)
             reconstructForNewModel();
         initializeIntegrationParameters();
@@ -537,7 +537,7 @@ public:
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
-            "ExplicitEuler::step()");
+            "OLDExplicitEuler::step()");
 
         assert(initialized && tOut >= state.getTime());
         const Real tMax = std::min(tOut, stopTime);
@@ -694,18 +694,18 @@ private:
 };
 
 
-class RungeKuttaMerson : public MechanicalDAEIntegrator {
+class OLDRungeKuttaMerson : public MechanicalDAEIntegrator {
 public:
-    RungeKuttaMerson(const MultibodySystem& mb, State& s, bool noProject=false) 
+    OLDRungeKuttaMerson(const MultibodySystem& mb, State& s, bool noProject=false) 
       : MechanicalDAEIntegrator(mb,s) 
     {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
-            "RungeKuttaMerson::RungeKuttaMerson()");
+            "OLDRungeKuttaMerson::OLDRungeKuttaMerson()");
         reconstructForNewModel();
         if (noProject) suppressProject = true;
     }
 
-    RungeKuttaMerson* clone() const {return new RungeKuttaMerson(*this);}
+    OLDRungeKuttaMerson* clone() const {return new OLDRungeKuttaMerson(*this);}
 
     Real getConstraintTolerance() const {
         assert(initialized);
@@ -718,7 +718,7 @@ public:
 
     bool initialize() {
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Topology,
-            "RungeKuttaMerson::initialize()");
+            "OLDRungeKuttaMerson::initialize()");
         if (state.getSystemStage() < Stage::Model)
             reconstructForNewModel();
 
@@ -737,7 +737,7 @@ public:
     bool step(const Real& tOut) {
         // Re-parametrizing or remodeling requires a new call to initialize().
         SimTK_STAGECHECK_GE_ALWAYS(state.getSystemStage(), Stage::Instance,
-            "RungeKuttaMerson::step()");
+            "OLDRungeKuttaMerson::step()");
 
         assert(initialized && tOut >= state.getTime());
         const Real tMax = std::min(tOut, stopTime);

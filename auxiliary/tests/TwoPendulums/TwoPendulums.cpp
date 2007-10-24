@@ -38,6 +38,7 @@
 #include "SimTKsimbody.h"
 
 #include "simmath/RungeKuttaMersonIntegrator.h"
+#include "simmath/CPodesIntegrator.h"
 
 #include <cmath>
 #include <cstdio>
@@ -231,12 +232,15 @@ int main(int argc, char** argv) {
 
 
     // Create a study using the Runge Kutta Merson or CPODES integrator
-    //RungeKuttaMerson myStudy(mbs, s);
+    //OLDRungeKuttaMerson myStudy(mbs, s);
+    //OLDCPodesIntegrator myStudy(mbs, s);
+    //OLDExplicitEuler myStudy(mbs, s);
 
+    // These are the SimTK Simmath integrators:
     RungeKuttaMersonIntegrator myStudy(mbs);
+    //CPodesIntegrator myStudy(mbs);
 
-    //CPodesIntegrator myStudy(mbs, s);
-    //ExplicitEuler myStudy(mbs, s);
+
     //myStudy.setMaximumStepSize(0.001);
     myStudy.setAccuracy(1e-3);
     //myStudy.setProjectEveryStep(true);

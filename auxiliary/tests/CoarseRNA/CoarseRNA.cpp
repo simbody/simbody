@@ -279,8 +279,8 @@ try // If anything goes wrong, an exception will be thrown.
 
     // And a study using the Runge Kutta Merson integrator
     bool suppressProject = false;
-    RungeKuttaMerson myStudy(mbs, s, suppressProject);
-    //CPodesIntegrator myStudy(mbs, s);
+    OLDRungeKuttaMerson myStudy(mbs, s, suppressProject);
+    //OLDCPodesIntegrator myStudy(mbs, s);
     myStudy.setAccuracy(1e-2);
     myStudy.setConstraintTolerance(1e-3); 
     myStudy.setProjectEveryStep(false);

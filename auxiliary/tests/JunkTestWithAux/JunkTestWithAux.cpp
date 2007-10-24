@@ -396,8 +396,8 @@ try
 
     VTKReporter display(mbs, 0.1);
 
-    RungeKuttaMerson study(mbs, s);
-    //CPodesIntegrator study(mbs,s);
+    OLDRungeKuttaMerson study(mbs, s);
+    //OLDCPodesIntegrator study(mbs,s);
 
     const Real h = outputInterval;
     const int interval = 1;

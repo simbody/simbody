@@ -243,8 +243,8 @@ try
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
     bool suppressProjection = false;
-    RungeKuttaMerson ee(mbs, s, suppressProjection);
-    //CPodesIntegrator ee(mbs, s);
+    OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
+    //OLDCPodesIntegrator ee(mbs, s);
     //ee.setProjectEveryStep(true);
 
     vtk.report(s);
