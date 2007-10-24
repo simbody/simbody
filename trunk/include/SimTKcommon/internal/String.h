@@ -9,7 +9,7 @@
  * Biological Structures at Stanford, funded under the NIH Roadmap for        *
  * Medical Research, grant U54 GM072970. See https://simtk.org.               *
  *                                                                            *
- * Portions copyright (c) 2005-6 Stanford University and the Authors.         *
+ * Portions copyright (c) 2005-7 Stanford University and the Authors.         *
  * Authors: Michael Sherman                                                   *
  * Contributors:                                                              *
  *                                                                            *
@@ -49,12 +49,44 @@
 namespace SimTK {
 	
 /**
- * Temporary implementation -- must hide implementation
+ * SimTK::String is just an std::string with some additional methods 
+ * defined. It may be freely interspersed with std:strings.
+ *
+ * Binary compatibility note: while the std::string implementation, like
+ * the other std classes, is fully exposed in its header file, we have 
+ * determined that these classes are stable enough, and that compiler
+ * implementators work hard to maintain cross-release stability, that we
+ * will assume they are "sufficiently" binary compatible to use them in
+ * the SimTK API. So std::string and SimTK::String can be passed through
+ * the API interface, and will be binary compatible from release to release
+ * of the SimTK Core, provided that the compilers used to compile client
+ * and library code are binary compatible with respect to the std::string
+ * implementation in the C++ Standard Template Library.
  */
 class String : public std::string {
 public:
+    /// default constructor produces an empty string
 	String() { }
+
+    // uses default copy constructor, copy assignment, and destructor
+
+    /// This is an implicit conversion from const char* to String.
+	String(const char* s) : std::string(s) { }
+
+    /// This is an implicit conversion from std::string to String
+	String(const std::string& s) : std::string(s) { }
+
+    /// Construct a String as a copy of a substring begining at 
+    /// position \a start with length \a len.
     String(const String& s, int start, int len) : std::string(s,start,len) { }
+
+    /// This is an implicit conversion from String to null-terminated 
+    /// C-style string (array of chars).
+    operator const char*() const { return c_str(); }
+
+    /// @name Formatting constructors
+    /// These contructors format the supplied argument into a String.
+    //@{
 	explicit String(int i) { char buf[32]; sprintf(buf,"%d",i); (*this)=buf; }
 	explicit String(long i) { char buf[32]; sprintf(buf,"%ld",i); (*this)=buf; }
     explicit String(unsigned int s)  { char buf[32]; sprintf(buf,"%u",s); (*this)=buf; }
@@ -69,12 +101,7 @@ public:
 	explicit String(std::complex<long double> r)	
 		{ char buf[128]; sprintf(buf,"(%.20Lg,%.20Lg)",r.real(),r.imag()); (*this)=buf; }
     explicit String(bool b) : std::string(b?"true":"false") { }
-	
-	String(const char* s) : std::string(s) { }
-	String(const String& s) : std::string(s) { }
-	String(const std::string& s) : std::string(s) { }
-    
-    operator const char*() const { return c_str(); }
+    //@}
 };	
 
 SimTK_LIST_SPECIALIZE(String);
