@@ -24,7 +24,10 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 //#include <iostream>
-#include "SimTKmath.h"
+#include "SimTKcommon.h"
+
+#include "simmath/internal/common.h"
+
 #include "OptimizerRep.h"
 #include "IpStdCInterface.h"
 #include "IpReturnCodes.h"

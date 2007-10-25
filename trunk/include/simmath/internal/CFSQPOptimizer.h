@@ -23,7 +23,10 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "SimTKmath.h"
+#include "SimTKcommon.h"
+
+#include "simmath/internal/common.h"
+
 #include "OptimizerRep.h"
 
 //=============================================================================

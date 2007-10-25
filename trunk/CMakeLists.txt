@@ -66,7 +66,8 @@ ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 # The source is organized into subdirectories, but we handle them all from
 # this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include/simmath include/simmath/internal Integrator/src Integrator/include Integrator/include/simmath Integrator/include/simmath/internal)
+SET(SIMMATH_SOURCE_SUBDIRS  src Ipopt include include/simmath include/simmath/internal 
+    Integrator/src Integrator/include Integrator/include/simmath Integrator/include/simmath/internal)
 
 
 # Collect up information about the version of the simmath library we're building

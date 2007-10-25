@@ -38,7 +38,7 @@
  */
 
 #include "SimTKcommon.h"
-#include "SimTKmath.h"
+#include "simmath/internal/common.h"
 
 namespace SimTK {
 

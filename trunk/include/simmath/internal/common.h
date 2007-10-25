@@ -72,4 +72,52 @@ extern "C" {
     SimTK_SIMMATH_EXPORT void SimTK_about_simmath(const char* key, int maxlen, char* value);
 }
 
+
+
+const static double POSITIVE_INF =  2e19;
+const static double NEGATIVE_INF = -2e19;
+
+namespace SimTK {
+template <class P>
+bool calcEigenValuesRightEigenVectors( Matrix_<P> &m, Vector_< std::complex<P> > &eigenValues, Matrix_< std::complex<P> > &eigenVectors ); 
+
+
+namespace Exception {
+
+class OptimizerFailed : public Base {
+public:
+        OptimizerFailed( const char * fn, int ln, String msg) : Base(fn, ln)
+        {
+            setMessage("Optmizer failed: " + msg );
+        }
+private:
+};
+
+class UnrecognizedParameter : public Base {
+public:
+        UnrecognizedParameter( const char * fn, int ln, String msg) : Base(fn, ln)
+        {
+            setMessage("Unrecognized Parameter: " + msg );
+        }
+private:
+};
+
+class IncorrectArrayLength : public Base {
+public:
+        IncorrectArrayLength( const char *fn, int ln, const char *valueName, int length,  
+                              const char *paramName, int paramValue, const char *where) : Base(fn, ln)
+        {
+        char buf[1024];
+
+        sprintf(buf, "Incorrect array length in %s : %s is %d and must equal %s which is %d",
+            where, valueName, length, paramName, paramValue );
+        setMessage(String(buf));
+
+        }
+private:
+};
+} // namespace Exception
+
+} //  namespace SimTK
+
 #endif // SIMMATH_COMMON_H_

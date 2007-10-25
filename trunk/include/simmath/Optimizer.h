@@ -25,10 +25,12 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+
+#include "SimTKcommon.h"
+
+#include "simmath/internal/common.h"
+
 #include <limits.h>
-#include "SimTKmath.h"
-#include "SimTKcommon/internal/BigMatrix.h"
-#include "internal/common.h"
 
 namespace SimTK {
 

@@ -21,15 +21,20 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "SimTKcommon.h"
+#include "simmath/internal/common.h"
+
+#include "simmath/Optimizer.h"
+#include "simmath/internal/Simmath_f2c.h" 
+#include "simmath/internal/LBFGSOptimizer.h"
+
 #include <iostream> 
 #include <malloc.h>
 #include <math.h>
-#include "SimTKmath.h"
+
 /* #include <cstdio> */
-#include "Optimizer.h"
-#include "Simmath_f2c.h" 
-#include "LBFGSOptimizer.h"
-#include "SimTKcommon/internal/common.h"
+
+
 #define NUMBER_OF_CORRECTIONS 5   
 
 using SimTK::Real;
