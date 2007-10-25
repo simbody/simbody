@@ -38,6 +38,7 @@
  */
 
 #include "SimTKcommon.h"
+#include "SimTKmath.h"
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/MolecularMechanicsSystem.h"
