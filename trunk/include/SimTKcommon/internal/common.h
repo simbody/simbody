@@ -177,8 +177,11 @@ namespace SimTK {
     static const int InvalidId = -1111111111;
 }
 
-#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME)   \
-class NAME {                                \
+#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME) \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(,NAME)
+
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME)   \
+class EXPORT NAME {                                \
     int id;                                 \
 public:                                     \
     inline NAME();                          \
