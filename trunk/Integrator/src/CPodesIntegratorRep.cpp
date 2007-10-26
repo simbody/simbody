@@ -135,6 +135,7 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     initialized = true;
     pendingReturnCode = -1;
     previousStartTime = 0.0;
+    resetMethodStatistics();
     getSystem().realize(state, Stage::Velocity);
     const int ny = state.getY().size();
     const int nc = state.getNYErr();
@@ -157,20 +158,22 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
         cpodes->projDefine();
     }
     cpodes->rootInit(state.getNEvents());
-    Array<System::EventTriggerInfo> triggerInfo;
-    getSystem().calcEventTriggerInfo(state, triggerInfo);
-    Array<int> rootDir(triggerInfo.size());
-    for (int i = 0; i < triggerInfo.size(); ++i) {
-        if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
-            if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
-                rootDir[i] = 0; // All transitions
+    if (state.getNEvents() > 0) {
+        Array<System::EventTriggerInfo> triggerInfo;
+        getSystem().calcEventTriggerInfo(state, triggerInfo);
+        Array<int> rootDir(triggerInfo.size());
+        for (int i = 0; i < triggerInfo.size(); ++i) {
+            if (triggerInfo[i].shouldTriggerOnFallingSignTransition()) {
+                if (triggerInfo[i].shouldTriggerOnRisingSignTransition())
+                    rootDir[i] = 0; // All transitions
+                else
+                    rootDir[i] = -1; // Falling transitions only
+            }
             else
-                rootDir[i] = -1; // Falling transitions only
+                rootDir[i] = 1; // Rising transitions only
         }
-        else
-            rootDir[i] = 1; // Rising transitions only
+        cpodes->setRootDirection(rootDir);
     }
-    cpodes->setRootDirection(rootDir);
 }
 
 void CPodesIntegratorRep::methodReinitialize(Stage stage, bool shouldTerminate) {
@@ -255,7 +258,20 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
+            long oldSteps = 0, oldTestFailures = 0, oldNonlinConvFailures = 0, oldProjectionFailures = 0;
+            cpodes->getNumSteps(&oldSteps);
+            cpodes->getNumErrTestFails(&oldTestFailures);
+            cpodes->getNumNonlinSolvConvFails(&oldNonlinConvFailures);
+            cpodes->getProjNumFailures(&oldProjectionFailures);
             res = cpodes->step(tMax, &tret, yout, ypout, mode);
+            long newSteps = 0, newTestFailures = 0, newNonlinConvFailures = 0, newProjectionFailures = 0;
+            cpodes->getNumSteps(&newSteps);
+            cpodes->getNumErrTestFails(&newTestFailures);
+            cpodes->getNumNonlinSolvConvFails(&newNonlinConvFailures);
+            cpodes->getProjNumFailures(&newProjectionFailures);
+            statsStepsTaken += newSteps-oldSteps;
+            statsErrorTestFailures += newTestFailures-oldTestFailures;
+            statsOtherFailures += (newNonlinConvFailures-oldNonlinConvFailures)+(newProjectionFailures-oldProjectionFailures);
             updAdvancedState().updY() = yout;
             previousTimeReturned = tret;
         }
@@ -391,7 +407,7 @@ Real CPodesIntegratorRep::getPredictedNextStepSize() const {
 
 long CPodesIntegratorRep::getNStepsAttempted() const {
     assert(initialized);
-    return statsStepsAttempted;
+    return statsStepsTaken+statsErrorTestFailures+statsOtherFailures;
 }
 
 long CPodesIntegratorRep::getNStepsTaken() const {
@@ -405,9 +421,9 @@ long CPodesIntegratorRep::getNErrorTestFailures() const {
 }
 
 void CPodesIntegratorRep::resetMethodStatistics() {
-    statsStepsAttempted = 0;
     statsStepsTaken = 0;
     statsErrorTestFailures = 0;
+    statsOtherFailures = 0;
 }
 
 const char* CPodesIntegratorRep::getMethodName() const {
