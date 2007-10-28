@@ -113,7 +113,7 @@ std::ostream& operator<<(std::ostream& o, const DerivedHandle& h) {
     if (h.isEmptyHandle()) return o << "IS EMPTY\n";
 
     o << "(real=" << h.getReal() << "):";
-    return o << static_cast<const DerivedHandle::ParentHandle&>(h);
+    return o << h.upcast();
 }
 
 class DerDerivedHandle_Impl;
@@ -130,7 +130,7 @@ std::ostream& operator<<(std::ostream& o, const DerDerivedHandle& h) {
     if (h.isEmptyHandle()) return o << "IS EMPTY\n";
 
     o << "(string=" << h.getString() << "):";
-    return o << static_cast<const DerDerivedHandle::ParentHandle&>(h);
+    return o << h.upcast();
 }
 
 
@@ -143,6 +143,11 @@ int main() {
     // Handles should consist precisely of one pointer.
     ASSERT(sizeof(c1) == sizeof(void*));
     ASSERT(sizeof(cr1) == sizeof(void*));
+
+    ASSERT(c1.getImplHandleCount()==1);
+    ASSERT(c2.getImplHandleCount()==1);
+    ASSERT(cr1.getImplHandleCount()==1);
+    ASSERT(cr2.getImplHandleCount()==1);
 
     ASSERT(!c1.isEmptyHandle());
     ASSERT(c2.isOwnerHandle());
@@ -167,12 +172,22 @@ int main() {
     copyOfc2ViaAssign.clearHandle();
     copyOfc2ViaAssign = c2; 
 
+    ASSERT(c2.getImplHandleCount()==1);
+    ASSERT(copyOfc2.getImplHandleCount()==1);
+    ASSERT(copyOfc2ViaAssign.getImplHandleCount()==1);
+
+    ASSERT(cr2.getImplHandleCount()==2);
+    ASSERT(copyOfcr2.getImplHandleCount()==2);
+
     // can't do reference assign to an owner handle
     copyOfcr2ViaAssign.clearHandle(); 
     copyOfcr2ViaAssign = cr2;
 
     ASSERT(copyOfc2.isOwnerHandle() && copyOfc2ViaAssign.isOwnerHandle());
     ASSERT(!copyOfcr2.isOwnerHandle() && !copyOfcr2ViaAssign.isOwnerHandle());
+    ASSERT(cr2.getImplHandleCount()==3);
+    ASSERT(copyOfcr2.getImplHandleCount()==3);
+    ASSERT(copyOfcr2ViaAssign.getImplHandleCount()==3);
 
 
     ASSERT(&c2.getImpl() != &copyOfc2.getImpl());
@@ -204,8 +219,9 @@ int main() {
 
     c1.referenceAssign(c2); // now c1 & c2 point to same impl
     cr1.copyAssign(cr2);    // while cr1 & cr2 point to different implementations
-    ASSERT(&c1.getImpl() == &c2.getImpl());
-    ASSERT(&cr1.getImpl() != &cr2.getImpl());
+    ASSERT(&c1.getImpl() == &c2.getImpl()); ASSERT(c1.getImplHandleCount() == 2);
+    ASSERT(&cr1.getImpl() != &cr2.getImpl()); ASSERT(cr1.getImplHandleCount() == 1);
+    ASSERT(cr2.getImplHandleCount() == 3);
     c1.setString("setThroughC1"); cr1.setString("setThroughCR1");
 
     ASSERT(c1.getString() == "setThroughC1" && c2.getString() == "setThroughC1");

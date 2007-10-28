@@ -186,6 +186,11 @@ public:
     /// throw an exception if there is no implementation.
     IMPL& updImpl() {assert(!isEmptyHandle()); return *impl;}
 
+    /// Return the number of handles the implementation believes are referencing it.
+    /// Throws an exception if there is no implementation.
+    /// This is for degugging and consistency checking and shouldn't normally be used.
+    int getImplHandleCount() const;
+
 protected:
     /// This serves as the default constructor, which will construct the handle
     /// with an empty implementation, and as a way to construct a handle referencing
@@ -226,6 +231,10 @@ protected:
     /// handle is already occupied; it <em>cannot</em> be used to replace one
     /// implementation with another.
     inline void setImpl(IMPL* p);
+
+    /// Determine whether the supplied handle is a reference to the same implementation
+    /// object as is referenced by "this" PIMPLHandle.
+    inline bool hasSameImplementation(const HANDLE& other) const;
 
 private:
     const HANDLE& downcastToHandle() const {return static_cast<const HANDLE&>(*this);}
