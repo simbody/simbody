@@ -474,7 +474,7 @@ bool  exhaustiveTestof1AngleRotation( ) {
    // Range to check angles
    Real negativeStartAngle = convertDegreesToRadians( -385 );
    Real positiveStartAngle = convertDegreesToRadians(  385 );
-   Real incrementAngle = convertDegreesToRadians( 0.1 );
+   Real incrementAngle = convertDegreesToRadians( 0.5 );
 
    // Test each axis
    for( int i=0;  i<=2;  i++ ) {
@@ -491,9 +491,9 @@ bool  exhaustiveTestof2AngleRotation( ) {
    bool test = true;
 
    // Range to check angles
-   Real negativeStartAngle = convertDegreesToRadians( -190 );
-   Real positiveStartAngle = convertDegreesToRadians(  190 );
-   Real incrementAngle = convertDegreesToRadians( 5.0 );
+   Real negativeStartAngle = convertDegreesToRadians( -200 );
+   Real positiveStartAngle = convertDegreesToRadians(  200 );
+   Real incrementAngle = convertDegreesToRadians( 10.0 );
 
    // Test each axis
    for( int i=0;  i<=2;  i++ ) {
@@ -520,7 +520,7 @@ bool  exhaustiveTestof3AngleRotation( ) {
    // Range to check angles
    Real negativeStartAngle = convertDegreesToRadians( -200 );
    Real positiveStartAngle = convertDegreesToRadians(  200 );
-   Real incrementAngle = convertDegreesToRadians( 20.0 );
+   Real incrementAngle = convertDegreesToRadians( 40.0 );
 
    // Test each axis
    for( int i=0;  i<=2;  i++ ) {
@@ -550,9 +550,9 @@ bool  exhaustiveTestof3AngleTwoAxesRotationNearSingularity() {
    bool test = true;
 
    // Range to check angles anglei and anglek
-   Real negativeStartAngle = convertDegreesToRadians( -190 );
-   Real positiveStartAngle = convertDegreesToRadians(  190 );
-   Real incrementStartAngle = convertDegreesToRadians( 10.0 );
+   Real negativeStartAngle = convertDegreesToRadians( -200 );
+   Real positiveStartAngle = convertDegreesToRadians(  200 );
+   Real incrementStartAngle = convertDegreesToRadians( 20.0 );
 
    // Range to check around singularity 
    Real negativeSinglAngle = convertDegreesToRadians( 0 - 1.0E-11 );
@@ -587,9 +587,9 @@ bool  exhaustiveTestof3AngleThreeAxesRotationNearSingularity() {
    bool test = true;
 
    // Range to check angles anglei and anglek
-   Real negativeStartAngle = convertDegreesToRadians( -190 );
-   Real positiveStartAngle = convertDegreesToRadians(  190 );
-   Real incrementStartAngle = convertDegreesToRadians( 10.0 );
+   Real negativeStartAngle = convertDegreesToRadians( -200 );
+   Real positiveStartAngle = convertDegreesToRadians(  200 );
+   Real incrementStartAngle = convertDegreesToRadians( 20.0 );
 
    // Range to check around singularity 
    Real negativeSinglAngle = convertDegreesToRadians( 90 - 1.0E-11 );
