@@ -734,12 +734,14 @@ private:
     const System& sys;
 
 
+protected:
     // realization and projection stats are shared by all integrators;
     // others are left to the individual integration methods
-    mutable long statsRealizations;
-    mutable long statsProjections;
-    mutable long statsRealizationFailures;
     mutable long statsProjectionFailures;
+    mutable long statsProjections;
+    mutable long statsRealizations;
+    mutable long statsRealizationFailures;
+private:
 
         // DYNAMIC SYSTEM INFORMATION
         // Information extracted from the DynamicSystem describing properties we need
