@@ -74,6 +74,7 @@ MultibodySystem::updRep() {
 // Create generic multibody system by default.
 MultibodySystem::MultibodySystem() {
     adoptSystemGuts(new MultibodySystemRep());
+    new DefaultSystemSubsystem(*this); // This invokes adoptSubsystem().
     updRep().setGlobalSubsystem();
 }
 
