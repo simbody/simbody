@@ -325,7 +325,12 @@ const State& System::Guts::realizeTopology() const {
             defaultState.initializeSubsystem(i, getRep().subsystems[i].getName(), 
                                                 getRep().subsystems[i].getVersion());
         
+        // Allow the subclass to do processing.
         getRep().realizeTopologyp(*this,defaultState); // defaultState is mutable
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(defaultState) < Stage::Topology)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(defaultState);
         getRep().systemTopologyRealized = true; // mutable
         defaultState.advanceSystemToStage(Stage::Topology);
 
@@ -346,7 +351,12 @@ void System::Guts::realizeModel(State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Topology, 
         "System::Guts::realizeModel()");
     if (s.getSystemStage() < Stage::Model) {
-        getRep().realizeModelp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeModelp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Model)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
         s.advanceSystemToStage(Stage::Model);
     }
 }
@@ -355,6 +365,10 @@ void System::Guts::realizeInstance(const State& s) const {
         "System::Guts::realizeInstance()");
     if (s.getSystemStage() < Stage::Instance) {
         getRep().realizeInstancep(*this,s);    // take care of the Subsystems
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Instance)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
         s.advanceSystemToStage(Stage::Instance);
     }
 }
@@ -362,7 +376,12 @@ void System::Guts::realizeTime(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Time).prev(), 
         "System::Guts::realizeTime()");
     if (s.getSystemStage() < Stage::Time) {
-        getRep().realizeTimep(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeTimep(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Time)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
         s.advanceSystemToStage(Stage::Time);
     }
 }
@@ -370,7 +389,12 @@ void System::Guts::realizePosition(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Position).prev(), 
         "System::Guts::realizePosition()");
     if (s.getSystemStage() < Stage::Position) {
-        getRep().realizePositionp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizePositionp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Position)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
         s.advanceSystemToStage(Stage::Position);
     }
 }
@@ -378,7 +402,12 @@ void System::Guts::realizeVelocity(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Velocity).prev(), 
         "System::Guts::realizeVelocity()");
     if (s.getSystemStage() < Stage::Velocity) {
-        getRep().realizeVelocityp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeVelocityp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Velocity)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
         s.advanceSystemToStage(Stage::Velocity);
     }
 }
@@ -386,7 +415,12 @@ void System::Guts::realizeDynamics(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Dynamics).prev(), 
         "System::Guts::realizeDynamics()");
     if (s.getSystemStage() < Stage::Dynamics) {
-        getRep().realizeDynamicsp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeDynamicsp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Dynamics)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
         s.advanceSystemToStage(Stage::Dynamics);
     }
 }
@@ -394,7 +428,12 @@ void System::Guts::realizeAcceleration(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Acceleration).prev(), 
         "System::Guts::realizeAcceleration()");
     if (s.getSystemStage() < Stage::Acceleration) {
-        getRep().realizeAccelerationp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeAccelerationp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Acceleration)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
         s.advanceSystemToStage(Stage::Acceleration);
     }
 }
@@ -402,7 +441,12 @@ void System::Guts::realizeReport(const State& s) const {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage(Stage::Report).prev(), 
         "System::Guts::realizeReport()");
     if (s.getSystemStage() < Stage::Report) {
-        getRep().realizeReportp(*this,s);    // take care of the Subsystems
+        // Allow the subclass to do processing.
+        getRep().realizeReportp(*this,s);
+        // Realize any subsystems that the subclass didn't already take care of.
+        for (SubsystemId i(0); i<getNSubsystems(); ++i)
+            if (getRep().subsystems[i].getStage(s) < Stage::Report)
+                getRep().subsystems[i].getSubsystemGuts().realizeSubsystemReport(s);
         s.advanceSystemToStage(Stage::Report);
     }
 }
@@ -509,48 +553,30 @@ SubsystemId System::Guts::adoptSubsystem(Subsystem& src) {
 // knows where to put each function by name.
 
 int System::Guts::realizeTopologyImpl(State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTopology(s);
     return 0;
 }
 int System::Guts::realizeModelImpl(State& s) const {
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemModel(s);
     return 0;
 }
 int System::Guts::realizeInstanceImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemInstance(s);
     return 0;
 }
 int System::Guts::realizeTimeImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemTime(s);
     return 0;
 }
 int System::Guts::realizePositionImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemPosition(s);
     return 0;
 }
 int System::Guts::realizeVelocityImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemVelocity(s);
     return 0;
 }
 int System::Guts::realizeDynamicsImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemDynamics(s);
     return 0;
 }
 int System::Guts::realizeAccelerationImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemAcceleration(s);
     return 0;
 }
 int System::Guts::realizeReportImpl(const State& s) const { 
-    for (SubsystemId i(0); i<getNSubsystems(); ++i)
-        getRep().subsystems[i].getSubsystemGuts().realizeSubsystemReport(s);
     return 0;
 }
 
