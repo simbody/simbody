@@ -84,6 +84,23 @@ public:
     /// C-style string (array of chars).
     operator const char*() const { return c_str(); }
 
+    /// Add operator[] that takes int index instead of size_type.
+    char& operator[](int i) {
+        assert(i >= 0);
+        return std::string::operator[]((std::string::size_type)i);
+    }
+
+    /// Add operator[] that takes int index instead of size_type.
+    char operator[](int i) const {
+        assert(i >= 0);
+        return std::string::operator[]((std::string::size_type)i);
+    }
+
+    /// Pass through to string::operator[].
+    char& operator[](std::string::size_type i) {return std::string::operator[](i);}
+    /// Pass through to string::operator[].
+    char operator[](std::string::size_type i) const {return std::string::operator[](i);}
+
     /// @name Formatting constructors
     /// These contructors format the supplied argument into a String.
     //@{
