@@ -12,6 +12,8 @@ try {
     DuMMForceFieldSubsystem dumm;
     assert(dumm.getNAtoms() == 0);
 
+    dumm.dumpCForcefieldParameters(cout);
+
     cout << "PASSED" << endl;
 
     return 0;

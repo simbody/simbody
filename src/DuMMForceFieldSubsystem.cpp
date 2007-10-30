@@ -118,28 +118,31 @@ inline bool operator<(const IdTriple<T>& i1, const IdTriple<T>& i2) {
 typedef IdTriple<DuMM::AtomId> AtomIdTriple;
 typedef IdTriple<DuMM::AtomClassId> AtomClassIdTriple;
 
-class IntQuad {
+template<class T>
+class IdQuad {
 public:
-    IntQuad() {ints[0]=ints[1]=ints[2]=ints[3]=-1;}
-    IntQuad(int i1, int i2, int i3, int i4, bool canon=false) {
-        ints[0]= i1; ints[1]=i2; ints[2]=i3; ints[3]=i4;
+    IdQuad() {ids[0]=ids[1]=ids[2]=ids[3]=-1;}
+    IdQuad(T i1, T i2, T i3, T i4, bool canon=false) {
+        ids[0]= i1; ids[1]=i2; ids[2]=i3; ids[3]=i4;
         if (canon) canonicalize();
     }
-    int operator[](int i) const {assert(0<=i&&i<4); return ints[i];}
-    bool isValid() const {return ints[0]>=0 && ints[1]>=0 && ints[2]>=0 && ints[3]>=0;}
+    T operator[](int i) const {assert(0<=i&&i<4); return ids[i];}
+    bool isValid() const {return ids[0]>=0 && ids[1]>=0 && ids[2]>=0 && ids[3]>=0;}
     // canonical has 1st number <= last number; middle two must swap
     // if the outside ones do
     void canonicalize() {
-        if(ints[0]>ints[3]) {
-            std::swap(ints[0],ints[3]); 
-            std::swap(ints[1],ints[2]);
+        if(ids[0]>ids[3]) {
+            std::swap(ids[0],ids[3]); 
+            std::swap(ids[1],ids[2]);
         }
     }
 
 private:
-    int ints[4];
+    T ids[4];
 };
-inline bool operator<(const IntQuad& i1, const IntQuad& i2) {
+
+template<class T>
+inline bool operator<(const IdQuad<T>& i1, const IdQuad<T>& i2) {
     assert(i1.isValid() && i2.isValid());
     if (i1[0] < i2[0]) return true;
     if (i1[0] > i2[0]) return false;
@@ -149,6 +152,9 @@ inline bool operator<(const IntQuad& i1, const IntQuad& i2) {
     if (i1[2] > i2[2]) return false;
     return i1[3] < i2[3];
 }
+
+typedef IdQuad<DuMM::AtomId> AtomIdQuad;
+typedef IdQuad<DuMM::AtomClassId> AtomClassIdQuad;
 
 // Vdw combining functions
 // -----------------------
@@ -351,6 +357,19 @@ public:
         printf("\n");
     }
 
+    std::ostream& generateSelfCode(std::ostream& os) const 
+    {
+        os << "defineAtomClass(";
+        os << atomClassId << ", ";
+        os << "\"" << name << "\", ";
+        os << element << ", ";
+        os << valence << ", ";
+        os << vdwRadius << ", ";
+        os << vdwWellDepth << ");";
+
+        return os;
+    }
+
         // TOPOLOGICAL STATE VARIABLES
         //   Filled in during construction.
 
@@ -394,6 +413,17 @@ public:
               (int) chargedAtomTypeId, name.c_str(), (int) atomClassId, partialCharge);
     }
 
+    std::ostream& generateSelfCode(std::ostream& os) const 
+    {
+        os << "defineChargedAtomType(";
+        os << chargedAtomTypeId << ", ";
+        os << "\"" << name << "\", ";
+        os << atomClassId << ", ";
+        os << partialCharge << ");";
+
+        return os;
+    }
+
     // These are all Topological state variables, filled in during construction.
     // There are no calculations to be performed.
     DuMM::ChargedAtomTypeId         chargedAtomTypeId;
@@ -408,21 +438,44 @@ public:
 // Use an AtomIdPair as a key.
 class BondStretch {
 public:
-    BondStretch() : k(-1), d0(-1) { }
-    BondStretch(Real stiffnessInKJperNmSq, Real lengthInNm) 
-      : k(stiffnessInKJperNmSq), d0(lengthInNm) { 
+    BondStretch() : k(-1), d0(-1), classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId)
+    {}
+    BondStretch(AtomClassIdPair key, Real stiffnessInKJperNmSq, Real lengthInNm) 
+      : classes(key), k(stiffnessInKJperNmSq), d0(lengthInNm) { 
         assert(isValid());
     }
-    bool isValid() const {return k >= 0 && d0 >= 0; }
+    bool isValid() const {
+        return (k >= 0 )
+            && (d0 >= 0)
+            && (classes[0] != DuMM::InvalidAtomClassId)
+            && (classes[1] != DuMM::InvalidAtomClassId); 
+    }
+
+    std::ostream& generateSelfCode(std::ostream& os) const 
+    {
+        os << "defineBondStretch(";
+        os << (int) classes[0] << ", ";
+        os << (int) classes[1] << ", ";
+        os << k << ", ";
+        os << d0  << ");";
+
+        return os;
+    }
+
+    AtomClassIdPair classes;
     Real k;  // in energy units (kJ=Da-nm^2/ps^2) per nm^2, i.e. Da/ps^2
     Real d0; // distance at which force is 0 (in nm)
 };
 
 class BondBend {
 public:
-    BondBend() : k(-1), theta0(-1) { }
-    BondBend(Real stiffnessInKJPerRadSq, Real angleInDeg) 
-      : k(stiffnessInKJPerRadSq), theta0(angleInDeg*DuMM::Deg2Rad) {
+    BondBend() : k(-1), theta0(-1), 
+        classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId) 
+    { }
+    BondBend(AtomClassIdTriple key, Real stiffnessInKJPerRadSq, Real angleInDeg) 
+      : k(stiffnessInKJPerRadSq), theta0(angleInDeg*DuMM::Deg2Rad),
+      classes(key)
+    {
         assert(isValid());
     }
     bool isValid() const {return k >= 0 && (0 <= theta0 && theta0 <= Pi);}
@@ -433,6 +486,19 @@ public:
     void harmonic(const Vec3& cG, const Vec3& rG, const Vec3& sG, const Real& scale,
                   Real& theta, Real& pe, Vec3& cf, Vec3& rf, Vec3& sf) const;
 
+    std::ostream& generateSelfCode(std::ostream& os) const 
+    {
+        os << "defineBondBend(";
+        os << (int) classes[0] << ", ";
+        os << (int) classes[1] << ", ";
+        os << (int) classes[2] << ", ";
+        os << k << ", ";
+        os << theta0 << ");";
+
+        return os;
+    }
+
+    AtomClassIdTriple classes;
     Real k;      // energy units kJ per rad^2, i.e. Da-nm^2/(ps^2-rad^2)
     Real theta0; // unstressed angle in radians
 };
@@ -476,6 +542,15 @@ public:
         return periodicity*amplitude*std::sin(periodicity*theta-theta0);
     }
 
+    std::ostream& generateSelfCode(std::ostream& os) const 
+    {
+        os << ", " << periodicity;
+        os << ", " << amplitude;
+        os << ", " << theta0 * DuMM::Rad2Deg;
+ 
+        return os;
+    }
+
     int  periodicity; // 1=360, 2=180, 3=120, etc.
     Real amplitude; // energy units (kJ)
     Real theta0;    // radians
@@ -483,7 +558,11 @@ public:
 
 class BondTorsion {
 public:
-    BondTorsion() { }
+    BondTorsion() :
+      classes(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId)
+    {}
+    BondTorsion(AtomClassIdQuad key) : classes(key)
+    { }
     void addTerm(const TorsionTerm& tt) {
         assert(!hasTerm(tt.periodicity));
         terms.push_back(tt);
@@ -524,7 +603,31 @@ public:
     void periodic(const Vec3& rG, const Vec3& xG, const Vec3& yG, const Vec3& sG,
                   const Real& scale, Real& theta, Real& pe, 
                   Vec3& rf, Vec3& xf, Vec3& yf, Vec3& sf) const;
-    
+
+    // Type 1 => normal torsion parameters
+    // Type 2 => amber improper torsion parameters
+    std::ostream& generateSelfCode(std::ostream& os, int torsionType = 1) const 
+    {
+        if (torsionType == 1)
+            os << "defineBondTorsion(";
+        else
+            os << "defineAmberImproperTorsion(";
+
+        os << classes[0];
+        os << ", " << classes[1];
+        os << ", " << classes[2];
+        os << ", " << classes[3];
+
+        std::vector<TorsionTerm>::const_iterator term;
+        for (term = terms.begin(); term != terms.end(); ++term)
+            term->generateSelfCode(os);
+
+        os << ");";
+ 
+        return os;
+    }
+
+    AtomClassIdQuad classes;
     std::vector<TorsionTerm> terms;
 };
 
@@ -640,10 +743,10 @@ public:
 
     std::vector<AtomIdPair>   bond13;
     std::vector<AtomIdTriple> bond14;
-    std::vector<IntQuad>   bond15;
+    std::vector<AtomIdQuad>   bond15;
     std::vector<AtomIdPair>   shortPath13;
     std::vector<AtomIdTriple> shortPath14;
-    std::vector<IntQuad>   shortPath15;
+    std::vector<AtomIdQuad>   shortPath15;
 
     // This will be invalid unless we find that the current atom is directly
     // bonded to exactly three other atoms, in which case their atom Ids will
@@ -665,10 +768,10 @@ public:
     std::vector<DuMM::AtomId>       xbond12;
     std::vector<AtomIdPair>   xbond13;
     std::vector<AtomIdTriple> xbond14;
-    std::vector<IntQuad>   xbond15;
+    std::vector<AtomIdQuad>   xbond15;
     std::vector<AtomIdPair>   xshortPath13;
     std::vector<AtomIdTriple> xshortPath14;
-    std::vector<IntQuad>   xshortPath15;
+    std::vector<AtomIdQuad>   xshortPath15;
 
     // This is even less likely to be valid than bonds3Atoms above. It will
     // be valid iff (a) bonds3Atoms is valid, and (b) at least one of the
@@ -1121,7 +1224,7 @@ public:
     const BondStretch& getBondStretch(DuMM::AtomClassId class1, DuMM::AtomClassId class2) const;
     const BondBend&    getBondBend   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3) const;
     const BondTorsion& getBondTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const;
-    const BondTorsion& getAmberImproperTorsion(int class1, int class2, int class3, int class4) const;
+    const BondTorsion& getAmberImproperTorsion(DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const;
 
     // Override virtual methods from Subsystem::Guts class.
 
@@ -1228,8 +1331,8 @@ private:
     // These relate atom classes, not charged atom types.
     std::map<AtomClassIdPair,   BondStretch> bondStretch;
     std::map<AtomClassIdTriple, BondBend>    bondBend;
-    std::map<IntQuad,   BondTorsion> bondTorsion;
-    std::map<IntQuad,   BondTorsion> amberImproperTorsion;
+    std::map<AtomClassIdQuad,   BondTorsion> bondTorsion;
+    std::map<AtomClassIdQuad,   BondTorsion> amberImproperTorsion;
 
     // Which rule to use for combining van der Waals radii and energy well
     // depth for dissimilar atom classes.
@@ -1295,6 +1398,69 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms)
 {
     adoptSubsystemGuts(new DuMMForceFieldSubsystemRep());
     mms.setMolecularMechanicsForceSubsystem(*this); // steal ownership
+}
+
+void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const String& methodName) const {
+    const DuMMForceFieldSubsystemRep& mm = getRep();
+
+    os << "void " << methodName << "(DuMMForceFieldSubsytem& dumm)" << std::endl;
+    os << "{" << std::endl; // open method
+
+    // 1) define atom classes
+    for (int i=0; i < (int)mm.atomClasses.size(); ++i) {
+        if (!mm.atomClasses[i].isValid()) continue;
+        const AtomClass& atomClass = mm.atomClasses[i];
+
+        os << "    dumm." << atomClass.generateSelfCode(os) << ";" << std::endl;
+    }
+
+    os << std::endl;
+
+    // 2) define charged atom types
+    for (int i=0; i < (int)mm.chargedAtomTypes.size(); ++i) {
+        if (!mm.chargedAtomTypes[i].isValid()) continue;
+
+        const ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[i];
+        os << "    dumm." << chargedAtomType.generateSelfCode(os) << ";" << std::endl;
+    }
+
+    os << std::endl;
+
+    // 3) bond stretch parameters
+    std::map<AtomClassIdPair, BondStretch>::const_iterator b;
+    for (b = mm.bondStretch.begin(); b != mm.bondStretch.end(); ++b)
+        os << "    dumm." << b->second.generateSelfCode(os) << ";" << std::endl;
+
+    // 4) bond torsion parameters
+    std::map<AtomClassIdQuad, BondTorsion>::const_iterator t;
+    for (t = mm.bondTorsion.begin(); t != mm.bondTorsion.end(); ++t)
+        os << "    dumm." << t->second.generateSelfCode(os) << ";" << std::endl;
+
+    // 5) amber-style improper torsion parameters
+    for (t = mm.amberImproperTorsion.begin(); t != mm.amberImproperTorsion.end(); ++t)
+        os << "    dumm." << t->second.generateSelfCode(os, 2) << ";" << std::endl;    
+
+    // 6) global parameters
+    os << "    setVdwMixingRule(" << getVdwMixingRule() << ");" << std::endl;
+
+    os << "    setVdw12ScaleFactor(" << mm.vdwScale12 << ");" << std::endl;
+    os << "    setVdw13ScaleFactor(" << mm.vdwScale13 << ");" << std::endl;
+    os << "    setVdw14ScaleFactor(" << mm.vdwScale14 << ");" << std::endl;
+    os << "    setVdw15ScaleFactor(" << mm.vdwScale15 << ");" << std::endl;
+
+    os << "    setCoulomb12ScaleFactor(" << mm.coulombScale12 << ");" << std::endl;
+    os << "    setCoulomb13ScaleFactor(" << mm.coulombScale13 << ");" << std::endl;
+    os << "    setCoulomb14ScaleFactor(" << mm.coulombScale14 << ");" << std::endl;
+    os << "    setCoulomb15ScaleFactor(" << mm.coulombScale15 << ");" << std::endl;
+
+    os << "    setVdwGlobalScaleFactor(" << mm.vdwGlobalScaleFactor << ");" << std::endl;
+    os << "    setCoulombGlobalScaleFactor(" << mm.coulombGlobalScaleFactor << ");" << std::endl;
+    os << "    setBondStretchGlobalScaleFactor(" << mm.bondStretchGlobalScaleFactor << ");" << std::endl;
+    os << "    setBondBendGlobalScaleFactor(" << mm.bondBendGlobalScaleFactor << ");" << std::endl;
+    os << "    setBondTorsionGlobalScaleFactor(" << mm.bondTorsionGlobalScaleFactor << ");" << std::endl;
+    os << "    setAmberImproperTorsionGlobalScaleFactor(" << mm.amberImproperTorsionGlobalScaleFactor << ");" << std::endl;
+
+    os << "}" << std::endl; // end of method
 }
 
 void DuMMForceFieldSubsystem::defineIncompleteAtomClass
@@ -1426,7 +1592,7 @@ void DuMMForceFieldSubsystem::defineBondStretch
     const AtomClassIdPair key(class1,class2,true);
     std::pair<std::map<AtomClassIdPair,BondStretch>::iterator, bool> ret = 
       mm.bondStretch.insert(std::pair<AtomClassIdPair,BondStretch>
-        (key, BondStretch(stiffnessInKJPerNmSq,nominalLengthInNm)));
+        (key, BondStretch(key,stiffnessInKJPerNmSq,nominalLengthInNm)));
 
         // Throw an exception if this bond stretch term was already defined. (std::map 
         // indicates that with a bool in the return value.)
@@ -1463,7 +1629,7 @@ void DuMMForceFieldSubsystem::defineBondBend
     const AtomClassIdTriple key(class1, class2, class3, true);
     std::pair<std::map<AtomClassIdTriple,BondBend>::iterator, bool> ret = 
       mm.bondBend.insert(std::pair<AtomClassIdTriple,BondBend>
-        (key, BondBend(stiffnessInKJPerRadSq,nominalAngleInDeg)));
+        (key, BondBend(key, stiffnessInKJPerRadSq,nominalAngleInDeg)));
 
         // Throw an exception if this bond bend term was already defined. (std::map 
         // indicates that with a bool in the return value.)
@@ -1566,10 +1732,10 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Canonicalize atom class quad by reversing order if necessary so that the
         // first class Id is numerically no larger than the fourth.
-    const IntQuad key(class1, class2, class3, class4, true);
+    const AtomClassIdQuad key(class1, class2, class3, class4, true);
 
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
-    BondTorsion bt;
+    BondTorsion bt(key);
     if (periodicity1 != -1) {
          bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
     }
@@ -1589,8 +1755,8 @@ void DuMMForceFieldSubsystem::defineBondTorsion
 
         // Now try to insert the allegedly new BondTorsion specification into the bondTorsion map.
         // If it is already there the 2nd element in the returned pair will be 'false'.
-    std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret = 
-      mm.bondTorsion.insert(std::pair<IntQuad,BondTorsion>(key,bt));
+    std::pair<std::map<AtomClassIdQuad,BondTorsion>::iterator, bool> ret = 
+      mm.bondTorsion.insert(std::pair<AtomClassIdQuad,BondTorsion>(key,bt));
 
         // Throw an exception if terms for this bond torsion were already defined.
     SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName, 
@@ -1645,10 +1811,10 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
 
         // Unlike the normal bond torsions (see defineBondTorstion function) we do *not*
         // canonicalize atom class quad, because atom order does matter for amber improper torsions
-    const IntQuad key(class1, class2, class3, class4, false);
+    const AtomClassIdQuad key(class1, class2, class3, class4, false);
 
         // Now allocate an empty BondTorsion object and add terms to it as they are found.
-    BondTorsion bt;
+    BondTorsion bt(key);
     // Add the new terms.
     if (periodicity1 != -1)
         bt.addTerm(TorsionTerm(periodicity1, amp1InKJ, phase1InDegrees));
@@ -1660,8 +1826,8 @@ void DuMMForceFieldSubsystem::defineAmberImproperTorsion
         // Now try to insert the allegedly new BondTorsion specification into the
         // amberImproperTorsion map.  If it is already there the 2nd element in the
         // returned pair will be 'false'.
-    std::pair<std::map<IntQuad,BondTorsion>::iterator, bool> ret =
-      mm.amberImproperTorsion.insert(std::pair<IntQuad,BondTorsion>(key,bt));
+    std::pair<std::map<AtomClassIdQuad,BondTorsion>::iterator, bool> ret =
+      mm.amberImproperTorsion.insert(std::pair<AtomClassIdQuad,BondTorsion>(key,bt));
 
         // Throw an exception if terms for this improper torsion were already defined.
     SimTK_APIARGCHECK4_ALWAYS(ret.second, mm.ApiClassName, MethodName,
@@ -2351,22 +2517,24 @@ const BondTorsion&
 DuMMForceFieldSubsystemRep::getBondTorsion
    (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const
 {
-    static const BondTorsion dummy; // invalid
-    const IntQuad key(class1, class2, class3, class4, true);
-    std::map<IntQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
+    static const AtomClassIdQuad dummyKey(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId);
+    static const BondTorsion dummy(dummyKey); // invalid
+
+    const AtomClassIdQuad key(class1, class2, class3, class4, true);
+    std::map<AtomClassIdQuad,BondTorsion>::const_iterator bt = bondTorsion.find(key);
     return (bt != bondTorsion.end()) ? bt->second : dummy;
 }
 
 const BondTorsion& 
 DuMMForceFieldSubsystemRep::getAmberImproperTorsion
-   (int class1, int class2, int class3, int class4) const
+   (DuMM::AtomClassId class1, DuMM::AtomClassId class2, DuMM::AtomClassId class3, DuMM::AtomClassId class4) const
 {
 //xxx -> Randy's warning flag
     printf("aImp--classes: %d-%d-%d-%d\n", class1,
                                   class2,
                                   class3,
                                   class4);
-    std::map<IntQuad,BondTorsion>::const_iterator i;
+    std::map<AtomClassIdQuad,BondTorsion>::const_iterator i;
     for (i=amberImproperTorsion.begin(); i!=amberImproperTorsion.end(); i++) {
         printf("aImp-matches: %d-%d-%d-%d\n", i->first[0],
                                       i->first[1],
@@ -2374,9 +2542,11 @@ DuMMForceFieldSubsystemRep::getAmberImproperTorsion
                                       i->first[3]);
     }
     
-    static const BondTorsion dummy; // invalid
-    const IntQuad key(class1, class2, class3, class4, false);
-    std::map<IntQuad,BondTorsion>::const_iterator bt = amberImproperTorsion.find(key);
+    static const AtomClassIdQuad dummyKey(DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId, DuMM::InvalidAtomClassId);
+    static const BondTorsion dummy(dummyKey); // invalid
+
+    const AtomClassIdQuad key(class1, class2, class3, class4, false);
+    std::map<AtomClassIdQuad,BondTorsion>::const_iterator bt = amberImproperTorsion.find(key);
     return (bt != amberImproperTorsion.end()) ? bt->second : dummy;
 }
 
@@ -2560,12 +2730,12 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
             const Atom& a14 = atoms[a.bond14[j][2]];
             const AtomArray& a14_12 = a14.bond12;
             for (int k=0; k < (int)a14_12.size(); ++k) {
-                const int newAtom = a14_12[k];
+                const DuMM::AtomId newAtom = a14_12[k];
                 assert(newAtom != a.bond14[j][2]);
 
                 // avoid repeats and loop back
                 if (newAtom!=anum && newAtom!=a.bond14[j][0] && newAtom!=a.bond14[j][1]) {
-                    a.bond15.push_back(IntQuad(a.bond14[j][0],
+                    a.bond15.push_back(AtomIdQuad(a.bond14[j][0],
                                                a.bond14[j][1],
                                                a.bond14[j][2], newAtom));
                 }
@@ -2584,7 +2754,7 @@ int DuMMForceFieldSubsystemRep::realizeSubsystemTopologyImpl(State& s) const
                 // check if there was already a shorter path
                 if (allBondedSoFar.find(newAtom) == allBondedSoFar.end()) {
                     allBondedSoFar.insert(newAtom);
-                    a.shortPath15.push_back(IntQuad(a.shortPath14[j][0],
+                    a.shortPath15.push_back(AtomIdQuad(a.shortPath14[j][0],
                                                     a.shortPath14[j][1],
                                                     a.shortPath14[j][2], newAtom));
                 }
