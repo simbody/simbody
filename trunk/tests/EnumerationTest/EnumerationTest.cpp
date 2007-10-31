@@ -109,6 +109,10 @@ void verifyContents(EnumerationSet<Color> set, bool hasRed, bool hasBlue, bool h
     ASSERT(greenFound == hasGreen);
 }
 
+void verifyName(Enumeration<Color> value) {
+    ASSERT(value.getName() == Enumeration<Color>::getValue(value.getIndex()).getName());
+}
+
 int main() {
     try {
         // Test the size() and getValue() methods.
@@ -121,13 +125,24 @@ int main() {
         // Test iterating over the set of all possible values.
         
         Color color = Color::Red;
-        for (Color::iterator iter = Color::begin(); iter != Color::end(); ++iter)
-            ASSERT(*iter == color++);
+        for (Color::iterator iter = Color::begin(); iter != Color::end(); ++iter) {
+            ASSERT(*iter == color);
+            if (color.getIndex() < Color::size()-1)
+                color++;
+        }
 
         // Verify that acolor got assigned correctly.
         
         ASSERT(acolor == Color::Green);
         ASSERT(acolor != Color::Red);
+        
+        // Test the increment and decrement operators.
+        
+        color = Color::Red;
+        verifyName(++color);
+        verifyName(--color);
+        verifyName(color++);
+        verifyName(color--);
 
         // Test creating EnumerationSets.
         

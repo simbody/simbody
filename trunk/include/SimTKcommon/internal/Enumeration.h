@@ -206,15 +206,17 @@ public:
     Enumeration<T> operator++() {
         assert (index < size()-1);
         ++index;
+        name = getValue(index).name;
         return *this;
     }
     /**
      * Get the next enumerated value in order of their indices.
      */
     Enumeration<T> operator++(int) {
-        assert (index < Enumeration<T>::size());
+        assert (index < size()-1);
         Enumeration<T> current = *this;
         ++index;
+        name = getValue(index).name;
         return current;
     }
     /**
@@ -223,6 +225,7 @@ public:
     Enumeration<T> operator--() {
         assert (index > 0);
         --index;
+        name = getValue(index).name;
         return *this;
     }
     /**
@@ -232,6 +235,7 @@ public:
         assert (index > 0);
         Enumeration<T> current = *this;
         --index;
+        name = getValue(index).name;
         return current;
     }
 protected:
