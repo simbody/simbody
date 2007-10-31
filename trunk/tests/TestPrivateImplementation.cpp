@@ -306,6 +306,9 @@ public:
     string s;
     friend class Concrete;
 };
+template class PIMPLHandle<Concrete,Concrete_Impl>;
+template class PIMPLImplementation<Concrete,Concrete_Impl>;
+
     // CONCRETE REF IMPL //
 class ConcreteRef_Impl : public PIMPLImplementation<ConcreteRef,ConcreteRef_Impl> {
 public:
@@ -313,6 +316,8 @@ public:
     string s;
     friend class ConcreteRef;
 };
+template class PIMPLHandle<ConcreteRef,ConcreteRef_Impl,true>;
+template class PIMPLImplementation<ConcreteRef,ConcreteRef_Impl>;
 
     // CONCRETE & CONCRETE REF HANDLE IMPLEMENTATIONS //
 Concrete::Concrete()       : HandleBase(new Concrete_Impl()) { }
@@ -336,7 +341,8 @@ private:
     string name;
     friend class MyHandle;
 };
-
+template class PIMPLHandle<MyHandle,MyHandle_Impl>;
+template class PIMPLImplementation<MyHandle,MyHandle_Impl>;
 
 class DerivedHandle_Impl : public MyHandle_Impl {
 public:
@@ -346,7 +352,7 @@ private:
     Real r;
     friend class DerivedHandle;
 };
-
+template class PIMPLDerivedHandle<DerivedHandle,DerivedHandle_Impl,MyHandle>;
 
 class DerDerivedHandle_Impl : public DerivedHandle_Impl {
 public:
@@ -356,6 +362,7 @@ private:
     string s;
     friend class DerDerivedHandle;
 };
+template class PIMPLDerivedHandle<DerDerivedHandle,DerDerivedHandle_Impl,DerivedHandle>;
 
 MyHandle::MyHandle() : HandleBase(new MyHandle_Impl()) {
 }

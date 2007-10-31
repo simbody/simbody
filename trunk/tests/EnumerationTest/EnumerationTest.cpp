@@ -55,6 +55,9 @@ private:
     friend class Enumeration<Color>;
 };
 
+template Enumeration<Color>;    // explicit instantiations to make sure we see all the errors
+template EnumerationSet<Color>;
+
 Color acolor = Color::Green; // Verify that accessing a constant that has not yet been initialized works correctly.
 
 const Color Color::Red;

@@ -286,7 +286,7 @@ public:
         return *this;
     }
     iterator operator++(int) {
-        assert (index < Enumeration<T>::getAllValues().size());
+        assert (index < Enumeration<T>::size());
         iterator current = *this;
         ++index;
         return current;
@@ -424,7 +424,7 @@ public:
         return *this;
     }
     EnumerationSet<T> operator-(const Enumeration<T>& value) const {
-        EnumerationSet<T> temp(this);
+        EnumerationSet<T> temp(*this);
         temp -= value;
         return temp;
     }
@@ -656,7 +656,7 @@ public:
         return *this;
     }
     iterator operator++(int) {
-        assert (index < Enumeration<T>::getAllValues().size());
+        assert (index < Enumeration<T>::size());
         iterator current = *this;
         ++index;
         findNextElement();
