@@ -179,13 +179,15 @@ namespace SimTK {
 
 /// Define a global (that is, SimTK namespace level) Id class that
 /// is not exported in MS VC++ DLLs.
-#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME) \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,,,NAME)
+#define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME)                   \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,,,NAME)   \
+    static const NAME Invalid ## NAME;
 
 /// Define a global (that is, SimTK namespace level) Id class with
 /// a MS VC++ "export" specification for DLLs.
-#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME) \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,,,NAME)
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME)     \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,,,NAME) \
+    static const NAME Invalid ## NAME;
 
 /// Define a local Id class within a Parent class.
 #define SimTK_DEFINE_UNIQUE_LOCAL_ID_TYPE(PARENT,NAME) \
@@ -194,37 +196,23 @@ namespace SimTK {
 /// The most general form allows a MS VC++ "export" specification for DLLs,
 /// and a Parent class (with SEP=::) for local Id names.
 #define SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,PARENT,SEP,NAME)   \
-class EXPORT PARENT SEP NAME {              \
+class EXPORT NAME {                         \
     int id;                                 \
 public:                                     \
-    inline NAME();                          \
-    inline explicit NAME(int i);            \
-    inline explicit NAME(long i);           \
-    inline explicit NAME(unsigned int u);   \
-    inline explicit NAME(unsigned long u);  \
+    NAME() : id(SimTK::InvalidId) { }       \
+    explicit NAME(int i) : id(i)      {assert(i>=0 || i==SimTK::InvalidId);} \
+    explicit NAME(long i): id((int)i) {assert(i>=0 || i==SimTK::InvalidId);} \
+    explicit NAME(unsigned int  u) : id((int)u) {assert((int)u >= 0);}       \
+    explicit NAME(unsigned long u) : id((int)u) {assert((int)u >= 0);}       \
     operator int() const {return id;}       \
     bool isValid() const {return id>=0;}    \
-    void invalidate();                      \
+    void invalidate(){id=SimTK::InvalidId;} \
     const NAME& operator++() {assert(id>=0); ++id;return *this;}      /*prefix */   \
     NAME operator++(int)     {assert(id>=0); ++id; return NAME(id-1);}/*postfix*/   \
     const NAME& operator--() {assert(id>=1); --id;return *this;}      /*prefix */   \
     NAME operator--(int)     {assert(id>=1); --id; return NAME(id+1);}/*postfix*/   \
-};                                                      \
-static const PARENT SEP NAME Invalid ## PARENT ## NAME(SimTK::InvalidId);    \
-inline PARENT SEP NAME::NAME() : id(Invalid ## PARENT ## NAME) { }           \
-inline void PARENT SEP NAME::invalidate() {id=Invalid ## PARENT ## NAME;}    \
-inline PARENT SEP NAME::NAME(unsigned int u) : id((int)u) {        \
-    assert((int)u >= 0);                                \
-}                                                       \
-inline PARENT SEP NAME::NAME(unsigned long u) : id((int)u) {       \
-    assert((int)u >= 0);                                \
-}                                                       \
-inline PARENT SEP NAME::NAME(int i) : id(i) {                      \
-    assert(i>=0 || i==SimTK::InvalidId);                \
-}                                                       \
-inline PARENT SEP NAME::NAME(long i) : id((int)i) {                \
-    assert(i>=0 || i==SimTK::InvalidId);                \
-}
+    static const NAME& Invalid() {static const NAME invalid; return invalid;}       \
+};
 
 /**
  * Add public static method declaration in class derived from an abstract
