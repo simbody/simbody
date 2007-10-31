@@ -359,7 +359,7 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineAtomClass(";
+        os << "defineAtomClass((DuMM::AtomClassId)";
         os << atomClassId << ", ";
         os << "\"" << name << "\", ";
         os << element << ", ";
@@ -415,10 +415,10 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineChargedAtomType(";
+        os << "defineChargedAtomType((DuMM::ChargedAtomTypeId)";
         os << chargedAtomTypeId << ", ";
         os << "\"" << name << "\", ";
-        os << atomClassId << ", ";
+        os << "(DuMM::AtomClassId)" << atomClassId << ", ";
         os << partialCharge << ");";
 
         return os;
@@ -453,8 +453,8 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineBondStretch(";
-        os << (int) classes[0] << ", ";
+        os << "defineBondStretch((DuMM::AtomClassId)";
+        os << (int) classes[0] << ", (DuMM::AtomClassId)";
         os << (int) classes[1] << ", ";
         os << k << ", ";
         os << d0  << ");";
@@ -488,9 +488,9 @@ public:
 
     std::ostream& generateSelfCode(std::ostream& os) const 
     {
-        os << "defineBondBend(";
-        os << (int) classes[0] << ", ";
-        os << (int) classes[1] << ", ";
+        os << "defineBondBend((DuMM::AtomClassId)";
+        os << (int) classes[0] << ", (DuMM::AtomClassId)";
+        os << (int) classes[1] << ", (DuMM::AtomClassId)";
         os << (int) classes[2] << ", ";
         os << k << ", ";
         os << theta0 << ");";
@@ -609,14 +609,14 @@ public:
     std::ostream& generateSelfCode(std::ostream& os, int torsionType = 1) const 
     {
         if (torsionType == 1)
-            os << "defineBondTorsion(";
+            os << "defineBondTorsion((DuMM::AtomClassId)";
         else
-            os << "defineAmberImproperTorsion(";
+            os << "defineAmberImproperTorsion((DuMM::AtomClassId)";
 
         os << classes[0];
-        os << ", " << classes[1];
-        os << ", " << classes[2];
-        os << ", " << classes[3];
+        os << ", (DuMM::AtomClassId)" << classes[1];
+        os << ", (DuMM::AtomClassId)" << classes[2];
+        os << ", (DuMM::AtomClassId)" << classes[3];
 
         std::vector<TorsionTerm>::const_iterator term;
         for (term = terms.begin(); term != terms.end(); ++term)
@@ -1403,7 +1403,7 @@ DuMMForceFieldSubsystem::DuMMForceFieldSubsystem(MolecularMechanicsSystem& mms)
 void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const String& methodName) const {
     const DuMMForceFieldSubsystemRep& mm = getRep();
 
-    os << "void " << methodName << "(DuMMForceFieldSubsytem& dumm)" << std::endl;
+    os << "void " << methodName << "(DuMMForceFieldSubsystem& dumm)" << std::endl;
     os << "{" << std::endl; // open method
 
     // 1) define atom classes
@@ -1411,7 +1411,9 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
         if (!mm.atomClasses[i].isValid()) continue;
         const AtomClass& atomClass = mm.atomClasses[i];
 
-        os << "    dumm." << atomClass.generateSelfCode(os) << ";" << std::endl;
+        os << "    dumm.";
+        atomClass.generateSelfCode(os);
+        os << std::endl;
     }
 
     os << std::endl;
@@ -1421,44 +1423,85 @@ void DuMMForceFieldSubsystem::dumpCForcefieldParameters(std::ostream& os, const 
         if (!mm.chargedAtomTypes[i].isValid()) continue;
 
         const ChargedAtomType& chargedAtomType = mm.chargedAtomTypes[i];
-        os << "    dumm." << chargedAtomType.generateSelfCode(os) << ";" << std::endl;
+        os << "    dumm.";
+        chargedAtomType.generateSelfCode(os);
+        os << std::endl;
     }
 
     os << std::endl;
 
     // 3) bond stretch parameters
     std::map<AtomClassIdPair, BondStretch>::const_iterator b;
-    for (b = mm.bondStretch.begin(); b != mm.bondStretch.end(); ++b)
-        os << "    dumm." << b->second.generateSelfCode(os) << ";" << std::endl;
+    for (b = mm.bondStretch.begin(); b != mm.bondStretch.end(); ++b) {
+        os << "    dumm.";
+        b->second.generateSelfCode(os);
+        os << std::endl;
+    }
+
+    os << std::endl;
 
     // 4) bond torsion parameters
     std::map<AtomClassIdQuad, BondTorsion>::const_iterator t;
-    for (t = mm.bondTorsion.begin(); t != mm.bondTorsion.end(); ++t)
-        os << "    dumm." << t->second.generateSelfCode(os) << ";" << std::endl;
+    for (t = mm.bondTorsion.begin(); t != mm.bondTorsion.end(); ++t) {
+        os << "    dumm.";
+        t->second.generateSelfCode(os);
+        os << std::endl;
+    }
+
+    os << std::endl;
 
     // 5) amber-style improper torsion parameters
-    for (t = mm.amberImproperTorsion.begin(); t != mm.amberImproperTorsion.end(); ++t)
-        os << "    dumm." << t->second.generateSelfCode(os, 2) << ";" << std::endl;    
+    for (t = mm.amberImproperTorsion.begin(); t != mm.amberImproperTorsion.end(); ++t) {
+        os << "    dumm.";
+        t->second.generateSelfCode(os, 2);
+        os << std::endl;
+    }
+
+    os << std::endl;
 
     // 6) global parameters
-    os << "    setVdwMixingRule(" << getVdwMixingRule() << ");" << std::endl;
 
-    os << "    setVdw12ScaleFactor(" << mm.vdwScale12 << ");" << std::endl;
-    os << "    setVdw13ScaleFactor(" << mm.vdwScale13 << ");" << std::endl;
-    os << "    setVdw14ScaleFactor(" << mm.vdwScale14 << ");" << std::endl;
-    os << "    setVdw15ScaleFactor(" << mm.vdwScale15 << ");" << std::endl;
+    // van der Waals mixing rule
+    os << "    dumm.setVdwMixingRule(";
+    switch (getVdwMixingRule()) {
+        case WaldmanHagler:
+            os << "DuMMForceFieldSubsystem::WaldmanHagler";
+            break;
+        case HalgrenHHG:
+            os << "DuMMForceFieldSubsystem::HalgrenHHG";
+            break;
+        case Jorgensen:
+            os << "DuMMForceFieldSubsystem::Jorgensen";
+            break;
+        case LorentzBerthelot:
+            os << "DuMMForceFieldSubsystem::LorentzBerthelot";
+            break;
+        case Kong:
+            os << "DuMMForceFieldSubsystem::Kong";
+            break;
+        default:
+            assert(false);
+            os << "DuMMForceFieldSubsystem::WaldmanHagler";
+            break;
+    }
+    os << ");" << std::endl;
 
-    os << "    setCoulomb12ScaleFactor(" << mm.coulombScale12 << ");" << std::endl;
-    os << "    setCoulomb13ScaleFactor(" << mm.coulombScale13 << ");" << std::endl;
-    os << "    setCoulomb14ScaleFactor(" << mm.coulombScale14 << ");" << std::endl;
-    os << "    setCoulomb15ScaleFactor(" << mm.coulombScale15 << ");" << std::endl;
+    os << "    dumm.setVdw12ScaleFactor(" << mm.vdwScale12 << ");" << std::endl;
+    os << "    dumm.setVdw13ScaleFactor(" << mm.vdwScale13 << ");" << std::endl;
+    os << "    dumm.setVdw14ScaleFactor(" << mm.vdwScale14 << ");" << std::endl;
+    os << "    dumm.setVdw15ScaleFactor(" << mm.vdwScale15 << ");" << std::endl;
 
-    os << "    setVdwGlobalScaleFactor(" << mm.vdwGlobalScaleFactor << ");" << std::endl;
-    os << "    setCoulombGlobalScaleFactor(" << mm.coulombGlobalScaleFactor << ");" << std::endl;
-    os << "    setBondStretchGlobalScaleFactor(" << mm.bondStretchGlobalScaleFactor << ");" << std::endl;
-    os << "    setBondBendGlobalScaleFactor(" << mm.bondBendGlobalScaleFactor << ");" << std::endl;
-    os << "    setBondTorsionGlobalScaleFactor(" << mm.bondTorsionGlobalScaleFactor << ");" << std::endl;
-    os << "    setAmberImproperTorsionGlobalScaleFactor(" << mm.amberImproperTorsionGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setCoulomb12ScaleFactor(" << mm.coulombScale12 << ");" << std::endl;
+    os << "    dumm.setCoulomb13ScaleFactor(" << mm.coulombScale13 << ");" << std::endl;
+    os << "    dumm.setCoulomb14ScaleFactor(" << mm.coulombScale14 << ");" << std::endl;
+    os << "    dumm.setCoulomb15ScaleFactor(" << mm.coulombScale15 << ");" << std::endl;
+
+    os << "    dumm.setVdwGlobalScaleFactor(" << mm.vdwGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setCoulombGlobalScaleFactor(" << mm.coulombGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setBondStretchGlobalScaleFactor(" << mm.bondStretchGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setBondBendGlobalScaleFactor(" << mm.bondBendGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setBondTorsionGlobalScaleFactor(" << mm.bondTorsionGlobalScaleFactor << ");" << std::endl;
+    os << "    dumm.setAmberImproperTorsionGlobalScaleFactor(" << mm.amberImproperTorsionGlobalScaleFactor << ");" << std::endl;
 
     os << "}" << std::endl; // end of method
 }
