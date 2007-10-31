@@ -211,8 +211,8 @@ public:                                     \
     NAME operator--(int)     {assert(id>=1); --id; return NAME(id+1);}/*postfix*/   \
 };                                                      \
 static const PARENT SEP NAME Invalid ## PARENT ## NAME(SimTK::InvalidId);    \
-inline PARENT SEP NAME::NAME() : id(Invalid ## NAME) { }           \
-inline void PARENT SEP NAME::invalidate() {id=Invalid ## NAME;}    \
+inline PARENT SEP NAME::NAME() : id(Invalid ## PARENT ## NAME) { }           \
+inline void PARENT SEP NAME::invalidate() {id=Invalid ## PARENT ## NAME;}    \
 inline PARENT SEP NAME::NAME(unsigned int u) : id((int)u) {        \
     assert((int)u >= 0);                                \
 }                                                       \
