@@ -177,11 +177,24 @@ namespace SimTK {
     static const int InvalidId = -1111111111;
 }
 
+/// Define a global (that is, SimTK namespace level) Id class that
+/// is not exported in MS VC++ DLLs.
 #define SimTK_DEFINE_UNIQUE_ID_TYPE(NAME) \
-    SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(,NAME)
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,,,NAME)
 
-#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME)   \
-class EXPORT NAME {                                \
+/// Define a global (that is, SimTK namespace level) Id class with
+/// a MS VC++ "export" specification for DLLs.
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_ID_TYPE(EXPORT,NAME) \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,,,NAME)
+
+/// Define a local Id class within a Parent class.
+#define SimTK_DEFINE_UNIQUE_LOCAL_ID_TYPE(PARENT,NAME) \
+    SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(,PARENT,::,NAME)
+
+/// The most general form allows a MS VC++ "export" specification for DLLs,
+/// and a Parent class (with SEP=::) for local Id names.
+#define SimTK_DEFINE_AND_EXPORT_UNIQUE_LOCAL_ID_TYPE(EXPORT,PARENT,SEP,NAME)   \
+class EXPORT PARENT SEP NAME {              \
     int id;                                 \
 public:                                     \
     inline NAME();                          \
@@ -197,19 +210,19 @@ public:                                     \
     const NAME& operator--() {assert(id>=1); --id;return *this;}      /*prefix */   \
     NAME operator--(int)     {assert(id>=1); --id; return NAME(id+1);}/*postfix*/   \
 };                                                      \
-static const NAME Invalid ## NAME(SimTK::InvalidId);    \
-inline NAME::NAME() : id(Invalid ## NAME) { }           \
-inline void NAME::invalidate() {id=Invalid ## NAME;}    \
-inline NAME::NAME(unsigned int u) : id((int)u) {        \
+static const PARENT SEP NAME Invalid ## PARENT ## NAME(SimTK::InvalidId);    \
+inline PARENT SEP NAME::NAME() : id(Invalid ## NAME) { }           \
+inline void PARENT SEP NAME::invalidate() {id=Invalid ## NAME;}    \
+inline PARENT SEP NAME::NAME(unsigned int u) : id((int)u) {        \
     assert((int)u >= 0);                                \
 }                                                       \
-inline NAME::NAME(unsigned long u) : id((int)u) {       \
+inline PARENT SEP NAME::NAME(unsigned long u) : id((int)u) {       \
     assert((int)u >= 0);                                \
 }                                                       \
-inline NAME::NAME(int i) : id(i) {                      \
+inline PARENT SEP NAME::NAME(int i) : id(i) {                      \
     assert(i>=0 || i==SimTK::InvalidId);                \
 }                                                       \
-inline NAME::NAME(long i) : id((int)i) {                \
+inline PARENT SEP NAME::NAME(long i) : id((int)i) {                \
     assert(i>=0 || i==SimTK::InvalidId);                \
 }
 
