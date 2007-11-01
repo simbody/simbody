@@ -167,6 +167,7 @@ private:
     System::Guts::ReportEventsImplLocator                 reportEventsp;
     System::Guts::CalcEventTriggerInfoImplLocator         calcEventTriggerInfop;
     System::Guts::CalcTimeOfNextScheduledEventImplLocator calcTimeOfNextScheduledEventp;
+    System::Guts::CalcTimeOfNextScheduledReportImplLocator calcTimeOfNextScheduledReportp;
 
     void clearAllFunctionPointers() {
         destructp = 0;
@@ -190,6 +191,7 @@ private:
         reportEventsp = 0;
         calcEventTriggerInfop = 0;
         calcTimeOfNextScheduledEventp = 0;
+        calcTimeOfNextScheduledReportp = 0;
     }
 
     void copyAllFunctionPointers(const GutsRep& src) {
@@ -214,6 +216,7 @@ private:
         reportEventsp                   = src.reportEventsp;
         calcEventTriggerInfop           = src.calcEventTriggerInfop;
         calcTimeOfNextScheduledEventp   = src.calcTimeOfNextScheduledEventp;
+        calcTimeOfNextScheduledReportp  = src.calcTimeOfNextScheduledReportp;
     }
 
 

@@ -63,7 +63,8 @@ static int  systemHandleEventsImplLocator(const System::Guts&, State&, System::E
                                               Real, const Vector&, const Vector&, Stage&, bool&);
 static int  systemReportEventsImplLocator(const System::Guts&, const State&, System::EventCause, const Array<int>&);
 static int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<System::EventTriggerInfo>&);
-static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool& isReport);
+static int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool includeCurrentTime);
+static int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool includeCurrentTime);
 
 /**
  * This is the declaration for the System::Guts class, the abstract object to
@@ -191,8 +192,8 @@ public:
         Stage& lowestModified, bool& shouldTerminate) const;
     void reportEvents(const State&, EventCause, const Array<int>& eventIds) const;
     void calcEventTriggerInfo(const State&, Array<EventTriggerInfo>&) const;
-    void calcTimeOfNextScheduledEvent
-        (const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
 
     void calcDecorativeGeometryAndAppend(const State&, Stage, 
                                          Array<DecorativeGeometry>&) const;
@@ -241,8 +242,8 @@ protected:
 
     virtual int calcEventTriggerInfoImpl(const State&, Array<EventTriggerInfo>&) const;
 
-    virtual int calcTimeOfNextScheduledEventImpl
-        (const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
+    virtual int calcTimeOfNextScheduledEventImpl(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    virtual int calcTimeOfNextScheduledReportImpl(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
 private:
     Guts& operator=(const Guts&); // suppress default copy assignment operator
 
@@ -270,7 +271,9 @@ private:
     typedef int (*CalcEventTriggerInfoImplLocator)
        (const System::Guts&, const State&, Array<EventTriggerInfo>&);
     typedef int (*CalcTimeOfNextScheduledEventImplLocator)
-       (const System::Guts&, const State&, Real&, Array<int>&, bool&);
+       (const System::Guts&, const State&, Real&, Array<int>&, bool);
+    typedef int (*CalcTimeOfNextScheduledReportImplLocator)
+       (const System::Guts&, const State&, Real&, Array<int>&, bool);
 
     class EventTriggerInfoRep;
 
@@ -298,6 +301,7 @@ private:
     void registerReportEventsImpl(ReportEventsImplLocator);
     void registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLocator);
     void registerCalcTimeOfNextScheduledEventImpl(CalcTimeOfNextScheduledEventImplLocator);
+    void registerCalcTimeOfNextScheduledReportImpl(CalcTimeOfNextScheduledReportImplLocator);
 
     // We want the locator functions to have access to the protected "Impl"
     // virtual methods, so we make them friends.
@@ -324,7 +328,8 @@ private:
                                               Real, const Vector&, const Vector&, Stage&, bool&);
     friend int  systemReportEventsImplLocator(const System::Guts&, const State&, EventCause, const Array<int>&);
     friend int  systemCalcEventTriggerInfoImplLocator(const System::Guts&, const State&, Array<EventTriggerInfo>&);
-    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool&);
+    friend int  systemCalcTimeOfNextScheduledEventImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool);
+    friend int  systemCalcTimeOfNextScheduledReportImplLocator(const System::Guts&, const State&, Real&, Array<int>&, bool);
 };
 
 
@@ -383,8 +388,12 @@ static int  systemCalcEventTriggerInfoImplLocator(const System::Guts& sys, const
   { return sys.calcEventTriggerInfoImpl(state,info); }
 
 static int  systemCalcTimeOfNextScheduledEventImplLocator
-   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds, bool& isReport)
-  { return sys.calcTimeOfNextScheduledEventImpl(state,tNextEvent,eventIds,isReport); }
+   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime)
+  { return sys.calcTimeOfNextScheduledEventImpl(state,tNextEvent,eventIds,includeCurrentTime); }
+
+static int  systemCalcTimeOfNextScheduledReportImplLocator
+   (const System::Guts& sys, const State& state, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime)
+  { return sys.calcTimeOfNextScheduledReportImpl(state,tNextEvent,eventIds,includeCurrentTime); }
 
 
 // Constructor must be inline so that it has access to the above static
@@ -419,6 +428,7 @@ inline System::Guts::Guts(const String& name, const String& version) : rep(0)
     registerReportEventsImpl(systemReportEventsImplLocator);
     registerCalcEventTriggerInfoImpl(systemCalcEventTriggerInfoImplLocator);
     registerCalcTimeOfNextScheduledEventImpl(systemCalcTimeOfNextScheduledEventImplLocator);
+    registerCalcTimeOfNextScheduledReportImpl(systemCalcTimeOfNextScheduledReportImplLocator);
 }
 
 } // namespace SimTK

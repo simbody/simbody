@@ -624,10 +624,13 @@ void Subsystem::Guts::reportEvents(const State&, System::EventCause, const Array
 }
 void Subsystem::Guts::calcEventTriggerInfo(const State& s, Array<System::EventTriggerInfo>& info) const {
 }
-void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const {
+void Subsystem::Guts::calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const {
     tNextEvent = Infinity;
     eventIds.clear();
-    isReport = true;
+}
+void Subsystem::Guts::calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const {
+    tNextEvent = Infinity;
+    eventIds.clear();
 }
 
     ///////////////////
@@ -811,31 +814,35 @@ public:
             triggers[triggers.size()-1].setEventId(info.triggeredReportIds[i]);
         }
     }
-    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const {
+    void calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const {
         
-        // Loop over all registered ScheduledEventHandlers and ScheduledEventReporters, and ask
-        // each one when its next event occurs.
+        // Loop over all registered ScheduledEventHandlers, and ask each one when its next event occurs.
         
         const CacheInfo& info = getCacheInfo(s);
         tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventHandlers.size(); ++i) {
             Real time = scheduledEventHandlers[i]->getNextEventTime(s);
-            if (time <= tNextEvent && time >= s.getTime()) {
+            if (time <= tNextEvent && (time > s.getTime() || (includeCurrentTime && time == s.getTime()))) {
                 if (time < tNextEvent)
                     eventIds.clear();
                 tNextEvent = time;
                 eventIds.push_back(info.scheduledEventIds[i]);
-                isReport = false;
             }
         }
+    }
+    void calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const {
+        
+        // Loop over all registered ScheduledEventReporters, and ask each one when its next event occurs.
+        
+        const CacheInfo& info = getCacheInfo(s);
+        tNextEvent = Infinity;
         for (int i = 0; i < (int)scheduledEventReporters.size(); ++i) {
             Real time = scheduledEventReporters[i]->getNextEventTime(s);
-            if (time <= tNextEvent && time >= s.getTime()) {
+            if (time <= tNextEvent && (time > s.getTime() || (includeCurrentTime && time == s.getTime()))) {
                 if (time < tNextEvent)
                     eventIds.clear();
                 tNextEvent = time;
                 eventIds.push_back(info.scheduledReportIds[i]);
-                isReport = true;
             }
         }
     }

@@ -333,12 +333,13 @@ public:
     /// making the Integrator hunt these down like ordinary state-dependent events.
     /// The returned time can be passed to the Integrator's stepping function as
     /// the advance time limit.
-    /// If this routine sets isReport to true, the event should be handled by
-    /// calling reportEvents() instead of handleEvents().
-    void calcTimeOfNextScheduledEvent
-        (const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
+    void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
 
-
+    /// This routine is similar to calcTimeOfNextScheduledEvent(), but is used for
+    /// "reporting events" which do not modify the state.  Events returned by this
+    /// method should be handled by invoking reportEvents() instead of hanldeEvents().
+    void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    
     //TODO: these operators should be provided by the Vector class where they
     //can be perfomed more efficiently.
 

@@ -303,7 +303,8 @@ public:
     // System then combines the information from them, and dispatches events
     // to the appropriate subsystems for handling when they occur.
     virtual void calcEventTriggerInfo(const State&, Array<System::EventTriggerInfo>&) const;
-    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const;
+    virtual void calcTimeOfNextScheduledEvent(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
+    virtual void calcTimeOfNextScheduledReport(const State&, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const;
     virtual void handleEvents(State&, System::EventCause, const Array<int>& eventIds,
         Real accuracy, const Vector& yWeights, const Vector& ooConstraintTols,
         Stage& lowestModified, bool& shouldTerminate) const;

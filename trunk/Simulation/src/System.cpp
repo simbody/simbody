@@ -153,8 +153,11 @@ void System::reportEvents(const State& s, EventCause cause, const Array<int>& ev
 void System::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const
   { getSystemGuts().calcEventTriggerInfo(s,info); }
 void System::calcTimeOfNextScheduledEvent(const State& s, Real& tNextEvent,
-                                          Array<int>& eventIds, bool& isReport) const
-  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,isReport); }
+                                          Array<int>& eventIds, bool includeCurrentTime) const
+  { getSystemGuts().calcTimeOfNextScheduledEvent(s,tNextEvent,eventIds,includeCurrentTime); }
+void System::calcTimeOfNextScheduledReport(const State& s, Real& tNextEvent,
+                                          Array<int>& eventIds, bool includeCurrentTime) const
+  { getSystemGuts().calcTimeOfNextScheduledReport(s,tNextEvent,eventIds,includeCurrentTime); }
 
 const char* System::getEventCauseName(System::EventCause cause) {
     switch(cause) {
@@ -304,6 +307,9 @@ void System::Guts::registerCalcEventTriggerInfoImpl(CalcEventTriggerInfoImplLoca
 }
 void System::Guts::registerCalcTimeOfNextScheduledEventImpl(CalcTimeOfNextScheduledEventImplLocator f) {
     updRep().calcTimeOfNextScheduledEventp = f;
+}
+void System::Guts::registerCalcTimeOfNextScheduledReportImpl(CalcTimeOfNextScheduledReportImplLocator f) {
+    updRep().calcTimeOfNextScheduledReportp = f;
 }
 
 System::Guts* System::Guts::clone() const {
@@ -501,12 +507,21 @@ void System::Guts::reportEvents
 }
 
 void System::Guts::calcTimeOfNextScheduledEvent
-    (const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const
+    (const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const
 {
     SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
         "System::Guts::calcTimeOfNextScheduledEvent()");
     tNextEvent = CNT<Real>::getInfinity();
-    getRep().calcTimeOfNextScheduledEventp(*this,s,tNextEvent,eventIds,isReport);
+    getRep().calcTimeOfNextScheduledEventp(*this,s,tNextEvent,eventIds,includeCurrentTime);
+}
+
+void System::Guts::calcTimeOfNextScheduledReport
+    (const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const
+{
+    SimTK_STAGECHECK_GE_ALWAYS(s.getSystemStage(), Stage::Time,
+        "System::Guts::calcTimeOfNextScheduledReport()");
+    tNextEvent = CNT<Real>::getInfinity();
+    getRep().calcTimeOfNextScheduledReportp(*this,s,tNextEvent,eventIds,includeCurrentTime);
 }
 
 void System::Guts::calcEventTriggerInfo(const State& s, Array<EventTriggerInfo>& info) const {
@@ -679,28 +694,43 @@ int System::Guts::calcEventTriggerInfoImpl(const State& s, Array<System::EventTr
     return 0;
 }
 
-int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, Array<int>& eventIds, bool& isReport) const
+int System::Guts::calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const
 {
     tNextEvent = Infinity;
-    isReport = true;
     eventIds.clear();
     for (SubsystemId i(0); i<getNSubsystems(); ++i) {
         Real time;
         Array<int> ids;
-        bool report;
-        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids, report);
+        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledEvent(s, time, ids, includeCurrentTime);
         if (time < tNextEvent) {
             tNextEvent = time;
             eventIds.clear();
             for (int i = 0; i < ids.size(); ++i)
                 eventIds.push_back(ids[i]);
-            isReport = report;
         }
     }
     return 0;
 }
 
-    ///////////////////////////
+int System::Guts::calcTimeOfNextScheduledReportImpl(const State& s, Real& tNextEvent, Array<int>& eventIds, bool includeCurrentTime) const
+{
+    tNextEvent = Infinity;
+    eventIds.clear();
+    for (SubsystemId i(0); i<getNSubsystems(); ++i) {
+        Real time;
+        Array<int> ids;
+        getRep().subsystems[i].getSubsystemGuts().calcTimeOfNextScheduledReport(s, time, ids, includeCurrentTime);
+        if (time < tNextEvent) {
+            tNextEvent = time;
+            eventIds.clear();
+            for (int i = 0; i < ids.size(); ++i)
+                eventIds.push_back(ids[i]);
+        }
+    }
+    return 0;
+}
+
+///////////////////////////
     // SYSTEM::GUTS::GUTSREP //
     ///////////////////////////
 
