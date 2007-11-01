@@ -71,7 +71,7 @@ private:
     CPodes* cpodes;
     CPodesSystemImpl* cps;
     bool initialized, useCpodesProjection;
-    long statsStepsTaken, statsErrorTestFailures, statsNonlinConvFailures;
+    long statsStepsTaken, statsErrorTestFailures, statsOtherFailures;
     int pendingReturnCode;
     Real previousStartTime, previousTimeReturned;
     Vector savedY;

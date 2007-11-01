@@ -133,7 +133,7 @@ public:
     }
 
     /*virtual*/int calcTimeOfNextScheduledEventImpl(const State& s, Real& tNextEvent, 
-                                                    Array<int>& eventIds, bool& isReport) const
+                                                    Array<int>& eventIds, bool includeCurrentTime) const
     {
         // Generate an event every 5.123 seconds.
         int nFives = (int)(s.getTime() / 5.123); // rounded down
@@ -142,7 +142,6 @@ public:
         if (tNextEvent <= s.getTime())
             tNextEvent += Real(5.123);
         eventIds.push_back(1); // event Id for scheduled pulse
-        isReport = false;
 
         return 0;
     }

@@ -81,6 +81,8 @@ const State& TimeStepper::getState() const {
 
 void TimeStepper::initialize(const State& initState) {
     updIntegrator().initialize(initState);
+    rep->lastEventTime = -Infinity;
+    rep->lastReportTime = -Infinity;
 }
 
 void TimeStepper::stepTo(Real reportTime) {
@@ -106,11 +108,14 @@ TimeStepperRep::TimeStepperRep(TimeStepper* handle, const System& system) : myHa
 void TimeStepperRep::stepTo(Real time) {
     while (!integ->isSimulationOver()) {
         Array<int> scheduledEventIds;
+        Array<int> scheduledReportIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
-        bool isReport = false;
-        system.calcTimeOfNextScheduledEvent(integ->getState(), nextScheduledEvent, scheduledEventIds, isReport);
-        Real reportTime = (isReport ? std::min(nextScheduledEvent, time) : time);
-        Real eventTime = (isReport ? NTraits<Real>::getInfinity() : nextScheduledEvent);
+        Real nextScheduledReport = NTraits<Real>::getInfinity();
+        Real currentTime = integ->getTime();
+        system.calcTimeOfNextScheduledEvent(integ->getState(), nextScheduledEvent, scheduledEventIds, lastEventTime != currentTime);
+        system.calcTimeOfNextScheduledReport(integ->getState(), nextScheduledReport, scheduledReportIds, lastReportTime != currentTime);
+        Real reportTime = std::min(nextScheduledReport, time);
+        Real eventTime = std::min(nextScheduledEvent, time);
         Integrator::SuccessfulStepStatus status = integ->stepTo(reportTime, eventTime);
         Stage lowestModified = Stage::Report;
         bool shouldTerminate;
@@ -126,10 +131,12 @@ void TimeStepperRep::stepTo(Real time) {
                 continue;
             }
             case Integrator::ReachedReportTime: {
-                if (integ->getTime() >= nextScheduledEvent && isReport)
-                system.reportEvents(integ->getState(),
-                    System::ScheduledEvents,
-                    scheduledEventIds);
+                if (integ->getTime() >= nextScheduledReport) {
+                    system.reportEvents(integ->getState(),
+                        System::ScheduledEvents,
+                        scheduledReportIds);
+                    lastReportTime = integ->getTime();
+                }
                 if (integ->getTime() >= time || reportAllSignificantStates)
                     return;
                 continue;
@@ -142,6 +149,7 @@ void TimeStepperRep::stepTo(Real time) {
                     integ->getStateWeightsInUse(),
                     integ->getConstraintWeightsInUse(),
                     lowestModified, shouldTerminate);
+                lastEventTime = integ->getTime();
                 break;
             }
             case Integrator::TimeHasAdvanced: {

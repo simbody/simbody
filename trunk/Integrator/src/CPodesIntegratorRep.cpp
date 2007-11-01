@@ -222,8 +222,8 @@ void CPodesIntegratorRep::createInterpolatedState(Real t) {
 
 Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Real scheduledEventTime) {
     assert(initialized);
-    assert(reportTime >= getPreviousTime());
-    assert(scheduledEventTime<=0 || scheduledEventTime >= getState().getTime());
+    assert(reportTime >= getState().getTime());
+    assert(scheduledEventTime >= getState().getTime());
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
@@ -232,8 +232,6 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
         startOfContinuousInterval = false;
         return Integrator::StartOfContinuousInterval;
     }
-    if (scheduledEventTime <= 0) 
-        scheduledEventTime = Infinity;
     Real tMax = std::min(reportTime, scheduledEventTime);
     CPodes::StepMode mode;
     if (userFinalTime != -1) {
@@ -254,7 +252,27 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
     while (true) {
         Real tret;
         int res;
-        if (pendingReturnCode == -1) {
+        if (pendingReturnCode != -1) {
+            
+            // The last time returned was an event or report time.  The integrator has already
+            // gone beyond that time, so reset everything to how it was after the last call to
+            // cpodes->step().
+            
+            res = pendingReturnCode;
+            tret = previousTimeReturned;
+            if (savedY.size() > 0)
+                updAdvancedState().updY() = savedY;
+            pendingReturnCode = -1;
+        }
+        else if (tMax == getState().getTime()) {
+            
+            // A report or event is scheduled for the current time, so return immediately.
+            
+            res = CPodes::Success;
+            tret = tMax;
+            previousTimeReturned = tret;
+        }
+        else {
             previousStartTime = getAdvancedTime();
             Vector yout(getAdvancedState().getY().size());
             Vector ypout(getAdvancedState().getY().size()); // ignored
@@ -275,21 +293,9 @@ Integrator::SuccessfulStepStatus CPodesIntegratorRep::stepTo(Real reportTime, Re
             statsErrorTestFailures += newTestFailures-oldTestFailures;
             statsProjections += newProjections-oldProjections;
             statsProjectionFailures += newProjectionFailures-oldProjectionFailures;
-            statsNonlinConvFailures += newNonlinConvFailures-oldNonlinConvFailures;
+            statsOtherFailures += newNonlinConvFailures-oldNonlinConvFailures;
             updAdvancedState().updY() = yout;
             previousTimeReturned = tret;
-        }
-        else {
-            
-            // The last time returned was an event or report time.  The integrator has already
-            // gone beyond that time, so reset everything to how it was after the last call to
-            // cpodes->step().
-            
-            res = pendingReturnCode;
-            tret = previousTimeReturned;
-            if (savedY.size() > 0)
-                updAdvancedState().updY() = savedY;
-            pendingReturnCode = -1;
         }
         updAdvancedState().updTime() = tret;
         realizeStateDerivatives(getAdvancedState());
@@ -411,7 +417,7 @@ Real CPodesIntegratorRep::getPredictedNextStepSize() const {
 
 long CPodesIntegratorRep::getNStepsAttempted() const {
     assert(initialized);
-    return statsStepsTaken+statsErrorTestFailures+statsProjectionFailures+statsNonlinConvFailures;
+    return statsStepsTaken+statsErrorTestFailures+statsProjectionFailures+statsOtherFailures;
 }
 
 long CPodesIntegratorRep::getNStepsTaken() const {
@@ -427,7 +433,7 @@ long CPodesIntegratorRep::getNErrorTestFailures() const {
 void CPodesIntegratorRep::resetMethodStatistics() {
     statsStepsTaken = 0;
     statsErrorTestFailures = 0;
-    statsNonlinConvFailures = 0;
+    statsOtherFailures = 0;
 }
 
 const char* CPodesIntegratorRep::getMethodName() const {

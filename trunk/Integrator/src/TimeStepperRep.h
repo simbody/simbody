@@ -94,6 +94,9 @@ private:
     
     // Whether to report every significant state.
     bool reportAllSignificantStates;
+    
+    // The last time at events and reports were processed.
+    Real lastEventTime, lastReportTime;
 
     // suppress
     TimeStepperRep(const TimeStepperRep&);

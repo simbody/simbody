@@ -154,6 +154,20 @@ private:
     PendulumSystem& pendulum;
 };
 
+class OnceOnlyEventReporter : public ScheduledEventReporter {
+public:
+    static bool hasOccurred;
+    OnceOnlyEventReporter() {
+    }
+    Real getNextEventTime(const State&) const {
+        return 5.0;
+    }
+    void handleEvent(const State& state) {
+        ASSERT(!hasOccurred);
+        hasOccurred = true;
+    }
+};
+
 int ZeroVelocityHandler::eventCount = 0;
 Real ZeroVelocityHandler::lastEventTime = 0.0;
 int PeriodicEventHandler::eventCount = 0;
@@ -165,17 +179,19 @@ bool ZeroPositionHandler::hasAccelerated = false;
 int PeriodicEventReporter::eventCount = 0;
 Real PeriodicEventReporter::lastEventTime = 0.0;
 Real PeriodicEventReporter::interval = 0.0;
+bool OnceOnlyEventReporter::hasOccurred = false;
 
 void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ZeroVelocityHandler::eventCount = 0;
     ZeroVelocityHandler::lastEventTime = 0.0;
     PeriodicEventHandler::eventCount = 0;
-    PeriodicEventHandler::lastEventTime = 0.0;
+    PeriodicEventHandler::lastEventTime = -PeriodicEventHandler::interval;
     ZeroPositionHandler::eventCount = 0;
     ZeroPositionHandler::lastEventTime = 0.0;
     ZeroPositionHandler::hasAccelerated = false;
     PeriodicEventReporter::eventCount = 0;
-    PeriodicEventReporter::lastEventTime = 0.0;
+    PeriodicEventReporter::lastEventTime = -PeriodicEventReporter::interval;
+    OnceOnlyEventReporter::hasOccurred = false;
 
     const Real t0=0;
     const Real tFinal = 20.003;
@@ -202,12 +218,14 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
         ts.stepTo(time);
         ASSERT(ts.getTime() == time);
     }
+    ASSERT(!OnceOnlyEventReporter::hasOccurred);
     ASSERT(!ZeroPositionHandler::hasAccelerated);
     
     // Try some steps of random sizes.
     
     static Random::Uniform random(0.0, 1.0);
     for (; time < 10.0; time += random.getValue()) {
+        ASSERT(OnceOnlyEventReporter::hasOccurred == (ts.getTime() >= 5.0));
         ts.stepTo(time);
         ASSERT(ts.getTime() == time);
     }
@@ -219,9 +237,9 @@ void testIntegrator (Integrator& integ, PendulumSystem& sys) {
     ASSERT(ts.getTime() == tFinal);
     ASSERT(integ.getTerminationReason() == Integrator::ReachedFinalTime);
     ASSERT(ZeroVelocityHandler::eventCount > 10);
-    ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/PeriodicEventHandler::interval));
+    ASSERT(PeriodicEventHandler::eventCount == (int) (ts.getTime()/PeriodicEventHandler::interval)+1);
     ASSERT(ZeroPositionHandler::eventCount > 10);
-    ASSERT(PeriodicEventReporter::eventCount == (int) (ts.getTime()/PeriodicEventReporter::interval));
+    ASSERT(PeriodicEventReporter::eventCount == (int) (ts.getTime()/PeriodicEventReporter::interval)+1);
 }
 
 int main () {
@@ -231,6 +249,7 @@ int main () {
     sys.updDefaultSubsystem().addEventHandler(new PeriodicEventHandler());
     sys.updDefaultSubsystem().addEventHandler(new ZeroPositionHandler(sys));
     sys.updDefaultSubsystem().addEventReporter(new PeriodicEventReporter(sys));
+    sys.updDefaultSubsystem().addEventReporter(new OnceOnlyEventReporter());
     sys.realizeTopology();
 
     // Test with various intervals for the event handler and event reporter, ones that are either

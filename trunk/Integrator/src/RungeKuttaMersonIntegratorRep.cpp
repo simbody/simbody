@@ -60,8 +60,8 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
 {
   try
   { assert(initialized);
-    assert(reportTime >= getPreviousTime());
-    assert(scheduledEventTime<=0 || scheduledEventTime >= getAdvancedTime());
+    assert(reportTime >= getState().getTime());
+    assert(scheduledEventTime >= getState().getTime());
     
     // If this is the start of a continuous interval, return immediately so
     // the current state will be seen as part of the trajectory.
@@ -70,9 +70,6 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
         return Integrator::StartOfContinuousInterval;
     }
     
-    if (scheduledEventTime <= 0) 
-        scheduledEventTime = Infinity;
-
     // tMax is the time beyond which we cannot advance internally.
     Real tMax = std::min(scheduledEventTime, finalTime);
     if (!allowInterpolation) tMax = std::min(tMax, reportTime);
@@ -133,8 +130,12 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
                 // Report time reached: take a brief time-out to make an interpolated report.
                 // After that we'll come right back here with the user having advanced
                 // the reportTime (hopefully).
-                createInterpolatedState(reportTime);
-                setUseInterpolatedState(true);
+                if (reportTime < getAdvancedTime()) {
+                    createInterpolatedState(reportTime);
+                    setUseInterpolatedState(true);
+                }
+                else
+                    setUseInterpolatedState(false);
                 // No change to step communication status -- this doesn't count as
                 // reporting the current step since it is earlier than advancedTime.
                 return Integrator::ReachedReportTime;
@@ -156,8 +157,12 @@ RungeKuttaMersonIntegratorRep::stepTo(Real reportTime,
                 // Report time reached: take a brief time-out to make an interpolated report.
                 // After that we'll come right back here with the user having advanced
                 // the reportTime (hopefully).
-                createInterpolatedState(reportTime);
-                setUseInterpolatedState(true);
+                if (reportTime < getAdvancedTime()) {
+                    createInterpolatedState(reportTime);
+                    setUseInterpolatedState(true);
+                }
+                else
+                    setUseInterpolatedState(false);
                 // No change to step communication status -- this doesn't count as
                 // reporting the current step since it is earlier than advancedTime.
                 return Integrator::ReachedReportTime;
