@@ -156,6 +156,7 @@ private:
     vtkRenderWindow* renWin;
     vtkRenderer*     renderer;
 
+    void initTopology();
     void zeroPointers();
     void deletePointers();
     void setConfiguration(MobilizedBodyId bodyNum, const Transform& X_GB);
@@ -440,9 +441,6 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     :  defaultBodyScaleForAutoGeometry(bodyScaleDefault), mbs(m),
       cameraNeedsToBeReset(true)
 {
-    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(m.systemTopologyHasBeenRealized(),
-        "MultibodySystem", m.getName(), "VTKReporterRep::VTKReporterRep()");
-
     myHandle = reporter;
     const Real cameraScale = defaultBodyScaleForAutoGeometry == 0. 
                                 ? 1. : defaultBodyScaleForAutoGeometry;
@@ -497,6 +495,16 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
 
     renWin->AddRenderer(renderer);
 
+    renderer->ResetCamera();
+    renWin->Render();
+}
+
+void VTKReporterRep::initTopology() {
+    static bool hasInitialized = false;
+    if (hasInitialized)
+        return;
+    SimTK_STAGECHECK_TOPOLOGY_REALIZED_ALWAYS(mbs.systemTopologyHasBeenRealized(), "MultibodySystem", mbs.getName(), "VTKReporterRep::initTopology()");
+    hasInitialized = true;
     const SimbodyMatterSubsystem& sbs = mbs.getMatterSubsystem();
     bodies.resize(sbs.getNBodies());
     for (int i=0; i<(int)bodies.size(); ++i)
@@ -574,13 +582,12 @@ VTKReporterRep::VTKReporterRep(const MultibodySystem& m, Real bodyScaleDefault, 
     mbs.calcDecorativeGeometryAndAppend(State(), Stage::Topology, sysGeom);
     for (int i=0; i<sysGeom.size(); ++i)
         addDecoration(MobilizedBodyId(sysGeom[i].getBodyId()), Transform(), sysGeom[i]);
-
-    renderer->ResetCamera();
-    renWin->Render();
 }
 
 void VTKReporterRep::report(const State& s) {
     if (!renWin) return;
+    
+    initTopology();
 
     mbs.realize(s, Stage::Position); // just in case
 

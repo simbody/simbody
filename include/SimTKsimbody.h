@@ -55,5 +55,7 @@
 #include "simbody/internal/NumericalMethods.h"
 #include "simbody/internal/DecorationSubsystem.h"
 #include "simbody/internal/VTKReporter.h"
+#include "simbody/internal/VTKEventReporter.h"
+#include "simbody/internal/TextDataEventReporter.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
