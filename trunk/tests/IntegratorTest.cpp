@@ -286,9 +286,8 @@ int main () {
     {
         Array<int> scheduledEventIds;
         Real nextScheduledEvent = NTraits<Real>::getInfinity();
-        bool isReport;
         sys.calcTimeOfNextScheduledEvent(integ.getAdvancedState(), 
-            nextScheduledEvent, scheduledEventIds, isReport);
+            nextScheduledEvent, scheduledEventIds, true);
 
         switch(integ.stepTo(reportNo*hReport, nextScheduledEvent)) {
             case Integrator::ReachedStepLimit: printf("STEP LIMIT\n"); break;
