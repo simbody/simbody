@@ -151,8 +151,8 @@ void CPodesIntegratorRep::methodInitialize(const State& state) {
     cpodes->lapackDense(ny);
     cpodes->setNonlinConvCoef(0.01); // TODO (default is 0.1)
     if (useCpodesProjection) {
-        cpodes->projInit(CPodes::ErrorNorm, CPodes::Nonlinear, getAccuracyInUse()*getConstraintWeightsInUse());
-        cpodes->lapackDenseProj(nc, ny, CPodes::ProjectWithLU);
+        cpodes->projInit(CPodes::L2Norm, CPodes::Nonlinear, getAccuracyInUse()*getConstraintWeightsInUse());
+        cpodes->lapackDenseProj(nc, ny, CPodes::ProjectWithQRPivot);
     }
     else {
         cpodes->projDefine();
