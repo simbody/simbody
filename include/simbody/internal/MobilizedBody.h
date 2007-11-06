@@ -985,10 +985,10 @@ public:
         // Friendly, mobilizer-specific access to generalized coordinates and speeds.
 
     void setAngle(State& s, Real angleInRadians) {setQ(s, angleInRadians);}
-    Real getAngle(const State& s) {return getQ(s);}
+    Real getAngle(const State& s) const {return getQ(s);}
 
     void setRate(State& s, Real rateInRadiansPerTime) {setU(s, rateInRadiansPerTime);}
-    Real getRate(const State& s) {return getU(s);}
+    Real getRate(const State& s) const {return getU(s);}
 
     // Mobility forces are "u-like", that is, one per dof.
     Real getAppliedPinTorque(const State& s, const Vector& mobilityForces) const {
