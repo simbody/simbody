@@ -200,8 +200,8 @@ public:
     };
     static String successfulStepStatusString(SuccessfulStepStatus);
 
-    SuccessfulStepStatus stepTo(Real reportTime, Real timeLimit=0);
-    SuccessfulStepStatus stepBy(Real interval, Real timeLimit=0);
+    SuccessfulStepStatus stepTo(Real reportTime, Real timeLimit=Infinity);
+    SuccessfulStepStatus stepBy(Real interval, Real timeLimit=Infinity);
 
 
     // The following methods are callable only when stepTo() or stepBy() returns
