@@ -611,7 +611,7 @@ class TetrahedralCarbon : public Compound {
 public:
     TetrahedralCarbon(Compound&, String atomName, Transform X_PC) {
         BondCenter(*this, "bond1", "C", Rotation());
-        BondCenter(*this, "bond2", "C", Rotation::aboutZ(109.5*Deg2Rad));
+        BondCenter(*this, "bond2", "C", Rotation(109.5*Deg2Rad,ZAxis));
         BondCenter(*this, "bond3", "C", Rotation::aboutZThenOldX(109.5*Deg2Rad,  120*Deg2Rad));
         BondCenter(*this, "bond4", "C", Rotation::aboutZThenOldX(109.5*Deg2Rad, -120*Deg2Rad));
     }
@@ -683,7 +683,7 @@ public:
         // Defines bond center subcompounds, with +x pointing from this Atom to where
         // its bonded partner will be.
         setBondCenter(0, "bond1", Rotation()); // aligned with compound x
-        setBondCenter(1, "bond2", Rotation::aboutZ(109.5*Deg2Rad)); // in compound xy plane
+        setBondCenter(1, "bond2", Rotation(109.5*Deg2Rad,ZAxis)); // in compound xy plane
         setBondCenter(2, "bond3", Rotation::aboutZThenOldX(109.5*Deg2Rad,  120*Deg2Rad)); // on +z side
         setBondCenter(3, "bond4", Rotation::aboutZThenOldX(109.5*Deg2Rad, -120*Deg2Rad)); // on -z side   
     }
