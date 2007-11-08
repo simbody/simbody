@@ -340,7 +340,7 @@ void Constraint::PointInPlane::PointInPlaneRep::calcDecorativeGeometryAndAppendI
         const SimbodyMatterSubsystemRep& matterRep = getMyMatterSubsystemRep();
         // TODO: should be instance-stage data from State rather than topological data
         // This makes z axis point along plane normal
-        const Transform X_B1(Rotation(defaultPlaneNormal), defaultPlaneHeight*defaultPlaneNormal);
+        const Transform X_B1(Rotation(defaultPlaneNormal,ZAxis), defaultPlaneHeight*defaultPlaneNormal);
         const Transform X_B2(Rotation(), defaultFollowerPoint);
 
         if (planeHalfWidth > 0 && pointRadius > 0) {
