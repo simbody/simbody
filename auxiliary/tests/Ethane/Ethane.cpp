@@ -371,8 +371,8 @@ public:
         bodies.push_back(
             matter.addRigidBody(
                 MassProperties(0,Vec3(0),Inertia(0)),
-                Transform(Rotation::aboutX(-90*Deg2Rad)),            // inboard mobilizer frame
-                bodies.back(), Transform(Rotation::aboutX(-90*Deg2Rad)),    // parent mobilizer frame
+                Transform(Rotation(-90*Deg2Rad,XAxis)),            // inboard mobilizer frame
+                bodies.back(), Transform(Rotation(-90*Deg2Rad,XAxis)),    // parent mobilizer frame
                 Mobilizer::Pin()));
         // x
         MassProperties mprops = mm.calcClusterMassProperties(twoOxygens, Transform());
@@ -382,8 +382,8 @@ public:
         bodies.push_back(
             matter.addRigidBody(
                 mpropsKludge,
-                Transform(Rotation::aboutY(90*Deg2Rad)),            // inboard mobilizer frame
-                bodies.back(), Transform(Rotation::aboutY(90*Deg2Rad)),    // parent mobilizer frame
+                Transform(Rotation(90*Deg2Rad,YAxis)),            // inboard mobilizer frame
+                bodies.back(), Transform(Rotation(90*Deg2Rad,YAxis)),    // parent mobilizer frame
                 Mobilizer::Pin()));
         
         */
@@ -739,7 +739,7 @@ try
    // gravity.setZeroHeight(s, -100);
 
     cribose.setDefaultInternalState(s);
-    cribose.setMoleculeTransform(s, Transform(Rotation::aboutZ(Pi/2), Vec3(0,1,0)));
+    cribose.setMoleculeTransform(s, Transform( Rotation(Pi/2,ZAxis), Vec3(0,1,0)));
 
     floppy1.setDefaultInternalState(s);
     floppy1.setMoleculeTransform(s,Vec3(-1,0,0));
@@ -758,8 +758,7 @@ try
 
     rigidO2.setDefaultInternalState(s);
 
-    const Transform o2pos( Rotation::aboutXThenNewY(0.5*Pi/2, 0.5*Pi/2),
-                           Vec3(1,0,-1));
+    const Transform o2pos( Rotation( BodyRotationSequence, 0.5*Pi/2, XAxis, 0.5*Pi/2, YAxis ),  Vec3(1,0,-1) );
    // rigidO2.setMoleculeTransform(s,o2pos);
    // rigidO2.setMoleculeVelocity(s,SpatialVec(0*Vec3(1.1,1.2,3), Vec3(-.2,0,0)));
 
@@ -772,7 +771,7 @@ try
     ethane2.setMoleculeTransform(s,Vec3(0,1,0));
 
     if (allowStretch) ethane3.setCCStretch(-0.03, s);
-    ethane3.setMoleculeTransform(s,Transform(Rotation::aboutZ(Pi/2),Vec3(1,0,1)),);
+    ethane3.setMoleculeTransform(s,Transform( Rotation(Pi/2,ZAxis), Vec3(1,0,1)),);
 
     if (allowStretch) ethane4.setCCStretch(-0.03, s);
     ethane4.setMoleculeTransform(s,Vec3(-1,0,0));
@@ -919,13 +918,13 @@ EthaneMolecule::EthaneMolecule(MobilizedBodyId pId, const Transform& parentTrans
     // H2 is the H0 vector rotated 240 (=-120) degrees about x (into the
     // screen, not shown).
 
-    const Vec3 H1pos = Rotation::aboutZ(getNominalHCCBondAngle())
+    const Vec3 H1pos = Rotation(getNominalHCCBondAngle(),ZAxis)
                           * Vec3(getNominalCHBondLength(),0,0);
 
     for (int c=0; c<2; ++c) {
         mm.placeAtomInCluster(getC(c), methyl[c], Vec3(0));
         for (int h=0; h<3; ++h) {
-            const Vec3 Hpos = Rotation::aboutX(h*120*Deg2Rad) * H1pos;
+            const Vec3 Hpos = Rotation(h*120*Deg2Rad,XAxis) * H1pos;
             mm.placeAtomInCluster(getH(c,h), methyl[c], Hpos);
         }
     }
@@ -940,7 +939,7 @@ OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMech
 
     MobilizedBody& parent = matter.updMobilizedBody(parentId);
 
-    const Rotation PinAboutX = Rotation::aboutY(90*Deg2Rad); // move z to +x
+    const Rotation PinAboutX = Rotation(90*Deg2Rad,YAxis); // move z to +x
 
     // Mount the methyls onto bodies, methyl[0] first. Connect
     // them by either a pin or cylinder depending on allowStretch.
@@ -967,7 +966,7 @@ OneDofEthane::OneDofEthane(bool allowStretch, MobilizedBodyId pId, MolecularMech
     }
 
     mm.attachClusterToBody(methyl[0], bodies[0], Transform());
-    mm.attachClusterToBody(methyl[1], bodies[1], Transform(Rotation::aboutY(180*Deg2Rad)));
+    mm.attachClusterToBody(methyl[1], bodies[1], Transform( Rotation(180*Deg2Rad,YAxis) ));
 }
 
 RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
@@ -994,7 +993,7 @@ RigidEthane::RigidEthane(Real torsionAngleInDeg, MobilizedBodyId pId, MolecularM
     //        z 
     mm.placeClusterInCluster(methyl[0], wholeEthaneCluster,  Transform());
     mm.placeClusterInCluster(methyl[1], wholeEthaneCluster, 
-        Transform(Rotation::aboutYThenOldX(180*Deg2Rad, torsionAngleInDeg),
+        Transform( Rotation( SpaceRotationSequence, 180*Deg2Rad, YAxis, torsionAngleInDeg, XAxis ),
                   Vec3(getNominalCCBondLength(),0,0)));
 
     // Align cluster reference frame with body's.
@@ -1037,8 +1036,8 @@ FloppyEthane::FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
 
     // For C-C cylinder joint; rotation and translation are about the
     // Mobilizer frames' common Z axis.
-    const Transform C0CylMobFrame(Rotation::aboutY( 90*Deg2Rad)); // move z to x0 direction
-    const Transform C1CylMobFrame(Rotation::aboutY(-90*Deg2Rad)); // move z to -x1 direction
+    const Transform C0CylMobFrame( Rotation( 90*Deg2Rad,YAxis) ); // move z to x0 direction
+    const Transform C1CylMobFrame( Rotation(-90*Deg2Rad,YAxis) ); // move z to -x1 direction
     const Transform HMobFrame;  // same as body frame for all H's
 
     // C0 is our base body, attached to parent by 6 dof joint
@@ -1061,7 +1060,7 @@ FloppyEthane::FloppyEthane(MobilizedBodyId pId, MolecularMechanicsSystem& mmSys)
     for (int c=0; c<2; ++c) {
         const MobilizedBodyId Cbody = mm.getAtomBody(getC(c));
         for (int h=0; h<3; ++h) {
-            const Transform CBendStretchMob(Rotation::aboutX(h*120*Deg2Rad));
+            const Transform CBendStretchMob(Rotation(h*120*Deg2Rad,XAxis));
             bodies.push_back(
                 MobilizedBody::BendStretch(
                     matter.updMobilizedBody(Cbody), CBendStretchMob,
