@@ -678,7 +678,7 @@ void VTKReporterRep::setConfiguration(MobilizedBodyId bodyNum, const Transform& 
     for (int i=0; i < (int)actors.size(); ++i) {
         vtkProp3D*       actor = actors[i];
         actor->SetPosition(X_GB.T()[0], X_GB.T()[1], X_GB.T()[2]);
-        const Vec4 av = X_GB.R().convertToAngleAxis();
+        const Vec4 av = X_GB.R().convertRotationToAngleAxis();
         actor->SetOrientation(0,0,0);
         actor->RotateWXYZ(av[0]*RadiansToDegrees, av[1], av[2], av[3]);
     }
