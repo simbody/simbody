@@ -1158,7 +1158,7 @@ public:
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_FM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         to1Q(q) = angles123[2];
     }
 
@@ -1206,7 +1206,7 @@ public:
 
         // We're only updating the orientation here because a torsion joint
         // can't translate (it is defined as a rotation about the z axis).
-        X_FM.updR().setToRotationAboutZ(theta);
+        X_FM.updR().setRotationFromAngleAboutZ(theta);
         X_FM.updT() = 0.;
     }
 
@@ -1269,7 +1269,7 @@ public:
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_FM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         to1Q(q) = angles123[2];
     }
 
@@ -1312,7 +1312,7 @@ public:
     {
         const Real& theta  = from1Q(q);    // angular coordinate
 
-        X_FM.updR().setToRotationAboutZ(theta);
+        X_FM.updR().setRotationFromAngleAboutZ(theta);
         X_FM.updT() = Vec3(0,0,theta*pitch);
     }
 
@@ -1368,7 +1368,7 @@ public:
     void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our cylinder joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
-        const Vec3 angles123 = R_FM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
 
@@ -1417,7 +1417,7 @@ public:
     {
         const Vec2& coords  = fromQ(q);
 
-        X_FM.updR().setToRotationAboutZ(coords[0]);
+        X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
         X_FM.updT() = Vec3(0,0,coords[1]);
     }
 
@@ -1477,7 +1477,7 @@ public:
     void setQToFitRotation(const SBModelVars&, const Rotation& R_FM, Vector& q) const {
         // The only rotation our bend-stretch joint can handle is about z.
         // TODO: this code is bad -- see comments for Torsion joint above.
-        const Vec3 angles123 = R_FM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
 
@@ -1519,7 +1519,7 @@ public:
        (const SBModelVars&, const Vector& q, const Vec3& v_FM, Vector& u, bool only) const
     {
         // Decompose the requested v into "along Mx" and "along My" components.
-        const Rotation R_FM = Rotation::aboutZ(fromQ(q)[0]); // =[ Mx My Mz ] in F
+        const Rotation R_FM = Rotation( fromQ(q)[0], ZAxis ); // =[ Mx My Mz ] in F
         const Vec3 v_FM_M = ~R_FM*v_FM; // re-express in M frame
 
         toU(u)[1] = v_FM_M[0]; // velocity along Mx we can represent directly
@@ -1564,7 +1564,7 @@ public:
     {
         const Vec2& coords  = fromQ(q);    // angular coordinate
 
-        X_FM.updR().setToRotationAboutZ(coords[0]);
+        X_FM.updR().setRotationFromAngleAboutZ(coords[0]);
         X_FM.updT() = X_FM.R()*Vec3(coords[1],0,0); // because translation is in M frame
     }
 
@@ -1650,7 +1650,7 @@ public:
         // TODO: isn't there a better way to come up with "the rotation around x&y that
         // best approximates a rotation R"? Here we're just hoping that the supplied
         // rotation matrix can be decomposed into (x,y) rotations.
-        const Vec2 angles12 = R_FM.convertToBodyFixed12();
+        const Vec2 angles12 = R_FM.convertRotationToBodyFixedXY();
         toQ(q) = angles12;
     }
 
@@ -1665,7 +1665,7 @@ public:
     // take whatever angular velocity is unaccounted for, express it in M, and project onto
     // My and use that as the second generalized speed.
     void setUToFitAngularVelocity(const SBModelVars&, const Vector& q, const Vec3& w_FM, Vector& u) const {
-        const Rotation R_FM = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        const Rotation R_FM = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
         const Vec3     wyz_FM_M = ~R_FM*Vec3(0,w_FM[1],w_FM[2]);
         toU(u) = Vec2(w_FM[0], wyz_FM_M[1]);
     }
@@ -1701,7 +1701,7 @@ public:
         Transform&         X_FM) const
     {
         // We're only updating the orientation here because a U-joint can't translate.
-        X_FM.updR() = Rotation::aboutXThenNewY(fromQ(q)[0], fromQ(q)[1]); // body fixed 1-2 sequence
+        X_FM.updR() = Rotation( BodyRotationSequence, fromQ(q)[0], XAxis, fromQ(q)[1], YAxis );  // body fixed 1-2 sequence
         X_FM.updT() = 0.;
     }
 
@@ -1773,7 +1773,7 @@ public:
         // rotation to whichever comes first.
         // TODO: isn't there a better way to come up with "the rotation around z that
         // best approximates a rotation R"?
-        const Vec3 angles123 = R_FM.convertToBodyFixed123();
+        const Vec3 angles123 = R_FM.convertRotationToBodyFixedXYZ();
         toQ(q)[0] = angles123[2];
     }
     void setQToFitTranslation(const SBModelVars&, const Vec3&  T_FM, Vector& q, bool only) const {
@@ -1817,7 +1817,7 @@ public:
         Transform&         X_FM) const
     {
         // Rotational q is about common z axis, translational q's along Fx and Fy.
-        X_FM = Transform(Rotation::aboutZ(fromQ(q)[0]), 
+        X_FM = Transform(Rotation( fromQ(q)[0], ZAxis ), 
                           Vec3(fromQ(q)[1], fromQ(q)[2], 0));
     }
 
@@ -1876,9 +1876,9 @@ public:
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQ(q)    = R_FM.convertToBodyFixed123();
+            toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
         else
-            toQuat(q) = R_FM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
     void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
@@ -1933,10 +1933,10 @@ public:
     {
         X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_FM.updR().setToBodyFixed123(fromQ(q));
+            X_FM.updR().setRotationToBodyFixedXYZ( fromQ(q) );
         else {
             // TODO: should use qnorm pool
-            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
         }
     }
 
@@ -2168,9 +2168,9 @@ public:
                            Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQ(q)    = R_FM.convertToBodyFixed123();
+            toQ(q)    = R_FM.convertRotationToBodyFixedXYZ();
         else
-            toQuat(q) = R_FM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
     // We can't hope to represent arbitrary translations with a joint that has only
@@ -2202,19 +2202,18 @@ public:
             spin = fromQ(q)[2];
 		} else {
 			const Rotation R_FM_now(Quaternion(fromQuat(q)));
-            spin = R_FM_now.convertToBodyFixed123()[2];
+            spin = R_FM_now.convertRotationToBodyFixedXYZ()[2];
         }
 
         // Calculate the desired rotation, which is a space-fixed 1-2 sequence for
         // latitude and longitude, followed by a body fixed rotation for spin.
-        const Rotation R_FM = Rotation::aboutXThenOldY(latitude,longitude)
-                                * Rotation::aboutZ(spin);
+        const Rotation R_FM = Rotation( SpaceRotationSequence, latitude, XAxis, longitude, YAxis ) * Rotation(spin,ZAxis);
 
         if (getUseEulerAngles(mv)) {
-            const Vec3 q123 = R_FM.convertToBodyFixed123();
+            const Vec3 q123 = R_FM.convertRotationToBodyFixedXYZ();
             toQ(q) = q123;
         } else {
-            const Quaternion quat = R_FM.convertToQuaternion();
+            const Quaternion quat = R_FM.convertRotationToQuaternion();
 			toQuat(q) = quat.asVec4();
         }
     }
@@ -2286,13 +2285,13 @@ public:
 		// Calcuate the rotation R_FM first.
 		if (getUseEulerAngles(mv)){
 			const Vec3& a = fromQ(q);		
-			X_FM.updR().setToBodyFixed123(a);
+			X_FM.updR().setRotationToBodyFixedXYZ(a);
 		} else {
             // TODO: should use qnorm pool
             //       Conversion to Quaternion here involves expensive normalization
             //       because state variables q can never be assumed normalized.
 			Quaternion quat = Quaternion(fromQuat(q));
-            X_FM.updR().setToQuaternion(quat);
+            X_FM.updR().setRotationFromQuaternion(quat);
         }
 
 		const Vec3& n = X_FM.R().z();
@@ -2449,9 +2448,9 @@ public:
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0) = R_FM.convertToBodyFixed123();
+            toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
         else
-            toQuat(q) = R_FM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
     // The user gives us the translation vector from OF to OM as a vector expressed in F, which
@@ -2512,10 +2511,10 @@ public:
         Transform& X_FM) const 
     {
         if (getUseEulerAngles(mv)) {
-            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
             X_FM.updT() = fromQVec3(q,3); // translation is in F already
         } else {
-            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
             X_FM.updT() = fromQVec3(q,4); // translation is in F already
         }
     }
@@ -2705,9 +2704,9 @@ public:
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0)    = R_FM.convertToBodyFixed123();
+            toQVec3(q,0)    = R_FM.convertRotationToBodyFixedXYZ();
         else
-            toQuat(q) = R_FM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
     void setQToFitTranslation(const SBModelVars&, const Vec3& T_FM, Vector& q, bool only) const {
@@ -2720,10 +2719,10 @@ public:
     {
         Rotation R_FM;
         if (getUseEulerAngles(mv))
-            R_FM.setToBodyFixed123(fromQVec3(q,0));
+            R_FM.setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
-            R_FM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            R_FM.setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
         }
         const Vec3 w_FM_M = ~R_FM*w_FM;
         toU(u) = Vec2(w_FM_M[0], w_FM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
@@ -2770,10 +2769,10 @@ public:
     {
         X_FM.updT() = 0.; // This joint can't translate.
         if (getUseEulerAngles(mv))
-            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
-            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
         }
     }
 
@@ -2948,9 +2947,9 @@ public:
                               Vector& q) const 
     {
         if (getUseEulerAngles(mv))
-            toQVec3(q,0) = R_FM.convertToBodyFixed123();
+            toQVec3(q,0) = R_FM.convertRotationToBodyFixedXYZ();
         else
-            toQuat(q) = R_FM.convertToQuaternion().asVec4();
+            toQuat(q) = R_FM.convertRotationToQuaternion().asVec4();
     }
 
     // The user gives us the translation vector from OF to OM as a vector expressed in F.
@@ -2971,10 +2970,10 @@ public:
     {
         Rotation R_FM;
         if (getUseEulerAngles(mv))
-            R_FM.setToBodyFixed123(fromQVec3(q,0));
+            R_FM.setRotationToBodyFixedXYZ( fromQVec3(q,0) );
         else {
             // TODO: should use qnorm pool
-            R_FM.setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            R_FM.setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
         }
         const Vec3 w_FM_M = ~R_FM*w_FM;
         toU(u).updSubVec<2>(0) = Vec2(w_FM_M[0], w_FM_M[1]); // (x,y) of relative angular velocity always used as generalized speeds
@@ -3020,10 +3019,10 @@ public:
         Transform& X_FM) const 
     {
         if (getUseEulerAngles(mv)) {
-            X_FM.updR().setToBodyFixed123(fromQVec3(q,0));
+            X_FM.updR().setRotationToBodyFixedXYZ( fromQVec3(q,0) );
             X_FM.updT() = fromQVec3(q,3); // translation is in F
         } else {
-            X_FM.updR().setToQuaternion(Quaternion(fromQuat(q))); // normalize
+            X_FM.updR().setRotationFromQuaternion( Quaternion(fromQuat(q)) ); // normalize
             X_FM.updT() = fromQVec3(q,4);  // translation is in F
         }
     }
