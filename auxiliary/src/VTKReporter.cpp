@@ -291,6 +291,10 @@ void VTKReporterRep::addDecoration(MobilizedBodyId body, const Transform& X_GD,
                                    const DecorativeGeometry& g)
 {
     class DecorativeGeometryRep;
+
+    // TODO: this should not be done here (sherm 071106)
+    initTopology();
+
     // For now we create a unique actor for each piece of geometry
     vtkActor* actor = vtkActor::New();
     bodies[body].aList.push_back(actor);
@@ -337,6 +341,9 @@ void VTKReporterRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
                                        MobilizedBodyId b2, const Vec3& station2,
                                        const DecorativeLine& g)
 {
+        // TODO: this should not be done here (sherm 071106)
+    initTopology();
+
     // Create a unique actor for each piece of geometry.
     int nxt = (int)dynamicGeom.size();
     dynamicGeom.resize(nxt+1);
@@ -373,6 +380,9 @@ void VTKReporterRep::addRubberBandLine(MobilizedBodyId b1, const Vec3& station1,
 
 void VTKReporterRep::addEphemeralDecoration(const DecorativeGeometry& g)
 {
+    // TODO: this should not be done here (sherm 071106)
+    initTopology();
+
     ephemeralGeometry.push_back(g);
 }
 
