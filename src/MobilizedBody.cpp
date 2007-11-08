@@ -1489,13 +1489,13 @@ MobilizedBody::Free& MobilizedBody::Free::setDefaultQuaternion(const Quaternion&
 }
 
 MobilizedBody::Free& MobilizedBody::Free::setDefaultRotation(const Rotation& R_FM) {
-    setDefaultQuaternion(R_FM.convertToQuaternion());
+    setDefaultQuaternion(R_FM.convertRotationToQuaternion());
     return *this;
 }
 
 MobilizedBody::Free& MobilizedBody::Free::setDefaultTransform(const Transform& X_FM) {
     setDefaultTranslation(X_FM.T());
-    setDefaultQuaternion(X_FM.R().convertToQuaternion());
+    setDefaultQuaternion(X_FM.R().convertRotationToQuaternion());
     return *this;
 }
 
