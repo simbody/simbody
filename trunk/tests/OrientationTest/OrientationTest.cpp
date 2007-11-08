@@ -119,9 +119,9 @@ void orthoTest(String msg, const Rotation& R) {
 }
 
 void f(const CoordinateAxis& ax) { printf("which = %d\n", (int)ax); }
-void f(CoordinateAxis::X) { printf("X\n"); }
-void f(CoordinateAxis::Y) { printf("Y\n"); }
-void f(CoordinateAxis::Z) { printf("Z\n"); }
+void f(CoordinateAxis::XCoordinateAxis) { printf("X\n"); }
+void f(CoordinateAxis::YCoordinateAxis) { printf("Y\n"); }
+void f(CoordinateAxis::ZCoordinateAxis) { printf("Z\n"); }
 
 int a[]={9,10,11};
 
