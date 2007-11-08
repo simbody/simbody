@@ -85,7 +85,6 @@ class InverseRotation;
  * This transpose matrix can be used to expressed vG in terms of Fx, Fy, Fz as
  *      vF = F_rotationMatrix_G * vG  or  vF = ~(G_rotationMatrix_F) * vG.
  *
- * Note: This entire class is exported for .dll purposes
  */
 //------------------------------------------------------------------------------
 class Rotation : public Mat33 {
@@ -169,11 +168,11 @@ public:
     SimTK_SimTKCOMMON_EXPORT Quaternion  convertRotationToQuaternion() const;
     Vec4  convertRotationToAngleAxis() const  { return convertRotationToQuaternion().convertQuaternionToAngleAxis(); }
 
-    /// Special case of previous methods, e.g., convert Rotation matrix to equivalent body-fixed XYZ Euler angle sequence.
+    // Special case of previous methods, e.g., convert Rotation matrix to equivalent body-fixed XYZ Euler angle sequence.
     Vec2  convertRotationToBodyFixedXY() const   { return convertTwoAxesRotationToTwoAngles( BodyRotationSequence, XAxis, YAxis ); }
     Vec3  convertRotationToBodyFixedXYZ() const  { return convertThreeAxesRotationToThreeAngles( BodyRotationSequence, XAxis, YAxis, ZAxis ); }
 
-    /// Return true if "this" Rotation is nearly identical to "R" within a pointing angle error of less than or equal to 
+    // Return true if "this" Rotation is nearly identical to "R" within a pointing angle error of less than or equal to 
     //  okPointingAngleErrorRads or machineEpsilon^{7/8), (e.g., 1E-14 rads in double precision).
     SimTK_SimTKCOMMON_EXPORT bool  isSameRotationToWithinAngle( const Rotation& R, Real okPointingAngleErrorRads ) const;
     bool  isSameRotationToWithinAngleOfMachinePrecision( const Rotation& R) const      { return isSameRotationToWithinAngle( R, SignificantReal ); }
@@ -525,10 +524,10 @@ public:
 
 SimTK_SimTKCOMMON_EXPORT std::ostream&  operator<<( std::ostream& o, const Rotation& m );
 
-template <int S> inline UnitVec<1>  operator*( const Rotation& R,        const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()*v.asVec3(),  true); }
-template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const Rotation& R   )       { return UnitRow<1>(r.asRow3(), R.asMat33(), true); }
-template <int S> inline UnitVec<1>  operator*( const InverseRotation& R, const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()*v.asVec3(),  true); }
-template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const InverseRotation& R )  { return UnitRow<1>(r.asRow3(), R.asMat33(), true); }
+template <int S> inline UnitVec<1>  operator*( const Rotation& R,        const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()* v.asVec3(),  true); }
+template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const Rotation& R   )       { return UnitRow<1>(r.asRow3() * R.asMat33(), true); }
+template <int S> inline UnitVec<1>  operator*( const InverseRotation& R, const UnitVec<S>& v )       { return UnitVec<1>(R.asMat33()* v.asVec3(),  true); }
+template <int S> inline UnitRow<1>  operator*( const UnitRow<S>& r,      const InverseRotation& R )  { return UnitRow<1>(r.asRow3() * R.asMat33(), true); }
 
 inline Rotation::Rotation( const InverseRotation& R) : Mat33( R.asMat33() )  {}
 
