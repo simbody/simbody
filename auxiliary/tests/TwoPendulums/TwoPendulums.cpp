@@ -123,10 +123,10 @@ int main(int argc, char** argv) {
     MobilizedBody::Ellipsoid rightPendulum(twoPends.Ground(), pendulumBody);
     rightPendulum.setDefaultRadii(radii)
         .setDefaultInboardFrame(Transform(Rotation(),Vec3(1,0,0)))
-        .setDefaultOutboardFrame(Transform(Rotation::aboutXThenOldY(Pi/2,-Pi/2), Vec3(0,d-radii[1],0)));
+        .setDefaultOutboardFrame(Transform( Rotation( SpaceRotationSequence, Pi/2, XAxis, -Pi/2, YAxis ), Vec3(0,d-radii[1],0)));
 
     //rightPendulum.setDefaultAngle(20*Deg2Rad);
-   // rightPendulum.setDefaultRotation(Rotation::aboutAxis(60*Deg2Rad, Vec3(0,0,1)));
+   // rightPendulum.setDefaultRotation( Rotation(60*Deg2Rad, Vec3(0,0,1)) );
 
         // OPTIONALLY TIE TOGETHER WITH SPRING/DAMPER OR DISTANCE CONSTRAINT
 
@@ -205,11 +205,11 @@ int main(int argc, char** argv) {
     cout << "POS RESULTS=" << results;
 
     //leftPendulum.setAngle(s, -60*Deg2Rad);
-    //leftPendulum.setQToFitRotation(s, Rotation::aboutZ(-60*Deg2Rad));
+    //leftPendulum.setQToFitRotation(s, Rotation(-60*Deg2Rad,ZAxis));
 
     //rightPendulum.setQToFitTranslation(s, Vec3(0,1,0));
-    leftPendulum.setQToFitRotation (s, Rotation::aboutZ(-.9*Pi/2));
-    rightPendulum.setQToFitRotation (s, Rotation::aboutY(-.9*Pi/2));
+    leftPendulum.setQToFitRotation (s, Rotation(-.9*Pi/2,ZAxis));
+    rightPendulum.setQToFitRotation(s, Rotation(-.9*Pi/2,YAxis));
 
 
     //TODO
@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
     {
         const State& s = myStudy.getState();
         mbs.realize(s);
-        const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertToAngleAxis()[0] * Rad2Deg;
+        const Real leftPendulumAngle = leftPendulum.getBodyRotation(s).convertRotationToAngleAxis()[0] * Rad2Deg;
         printf("%5g %10.4g E=%10.8g h%3d=%g %s%s\n", s.getTime(), 
             leftPendulumAngle,
             mbs.getEnergy(s), myStudy.getNStepsTaken(),
