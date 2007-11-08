@@ -1471,7 +1471,7 @@ public:
 
     // This is just a nicer name for the generalized coordinate.
     Ball& setDefaultRotation(const Rotation& R_FM) {
-        return setDefaultQ(R_FM.convertToQuaternion());
+        return setDefaultQ(R_FM.convertRotationToQuaternion());
     }
     Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
 
@@ -1547,7 +1547,7 @@ public:
 
     // This is just a nicer name for the generalized coordinate.
     Ellipsoid& setDefaultRotation(const Rotation& R_FM) {
-        return setDefaultQ(R_FM.convertToQuaternion());
+        return setDefaultQ(R_FM.convertRotationToQuaternion());
     }
     Rotation getDefaultRotation() const {return Rotation(getDefaultQ());}
 
