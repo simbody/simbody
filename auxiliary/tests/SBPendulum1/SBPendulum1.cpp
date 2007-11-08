@@ -216,7 +216,7 @@ try {
     vtk.addDecoration(GroundId, Transform(Vec3(1,2,3)), sphere);
     sphere.setScale(0.5); sphere.setResolution(1);
     vtk.addDecoration(aPendulum, Transform(Vec3(0.1,0.2,0.3)), sphere);
-    Quaternion qqq; qqq.setToAngleAxis(Pi/4, UnitVec3(1,0,0));
+    Quaternion qqq; qqq.setQuaternionFromAngleAxis(Pi/4, UnitVec3(1,0,0));
     vtk.addDecoration(aPendulum, Transform(Rotation(qqq), Vec3(0,1,0)), DecorativeBrick(Vec3(.5,.1,.25)));
     DecorativeCylinder cyl(0.1); cyl.setOpacity(0.3);
     vtk.addDecoration(aPendulum, Transform(Vec3(-1,0,0)), 
@@ -337,7 +337,7 @@ try {
 
     const Real angleInDegrees = 45;
     const Vec4 aa(angleInDegrees*RadiansPerDegree,0, 0, 1);
-    Quaternion q; q.setToAngleAxis(aa);
+    Quaternion q; q.setQuaternionFromAngleAxis(aa);
     aPendulum.setQToFitTransform(s,Transform(Rotation(q), Vec3(.1,.2,.3)));
     vtk.report(s);
 
