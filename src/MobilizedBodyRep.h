@@ -497,7 +497,7 @@ public:
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
-            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+            Vec3::updAs(q) = Rotation(defaultQ).convertRotationToBodyFixedXYZ();
     }
 
     void calcDecorativeGeometryAndAppendImpl
@@ -533,7 +533,7 @@ public:
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
-            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+            Vec3::updAs(q) = Rotation(defaultQ).convertRotationToBodyFixedXYZ();
     }
 
     void calcDecorativeGeometryAndAppendImpl
@@ -592,7 +592,7 @@ public:
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
         } else {
-            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertToBodyFixed123();
+            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertRotationToBodyFixedXYZ();
             Vec3::updAs(q+3) = defaultQTranslation;
         }
     }
@@ -620,7 +620,7 @@ public:
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
-            Vec3::updAs(q) = Rotation(defaultQ).convertToBodyFixed123();
+            Vec3::updAs(q) = Rotation(defaultQ).convertRotationToBodyFixedXYZ();
     }
 
     SimTK_DOWNCAST(LineOrientationRep, MobilizedBodyRep);
@@ -646,7 +646,7 @@ public:
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
         } else {
-            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertToBodyFixed123();
+            Vec3::updAs(q)   = Rotation(defaultQOrientation).convertRotationToBodyFixedXYZ();
             Vec3::updAs(q+3) = defaultQTranslation;
         }
     }
