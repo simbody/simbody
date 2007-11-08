@@ -40,9 +40,7 @@
  * -------------------------------------------------------------------------- */
 
 //-----------------------------------------------------------------------------
-#include "SimTKcommon/internal/common.h"
-#include "SimTKcommon/Constants.h"
-#include "SimTKcommon/internal/Scalar.h"
+#include <cassert>
 
 //-----------------------------------------------------------------------------
 namespace SimTK {
@@ -54,8 +52,6 @@ namespace SimTK {
 //-----------------------------------------------------------------------------
 class CoordinateAxis {
 public:
-    class X; class Y; class Z;
-
     // This typecasts CoordinateAxis into an int
     operator int() const  { return myAxisId; }
 
@@ -90,19 +86,29 @@ public:
     bool  areAllDifferentAxes( const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const  { return isDifferentAxis(axis2) && isDifferentAxis(axis3) && axis2.isDifferentAxis(axis3); }
     bool  isForwardCyclical( const CoordinateAxis& axis2 ) const                                 { return isNextAxis(axis2); }
     bool  isReverseCyclical( const CoordinateAxis& axis2 ) const                                 { return isPreviousAxis(axis2); }
-	
-	// Get the appropriate CoordinateAxis
+
+    // Quasi dot-product and cross-product
+    int  dotProduct(  const CoordinateAxis& axis2 ) const                         { return isSameAxis(axis2) ? 1 : 0; }
+    int  crossProductSign( const CoordinateAxis& axis2 ) const                    { return isSameAxis(axis2) ? 0 : (isNextAxis(axis2) ? 1 : -1); }
+    CoordinateAxis  crossProductAxis( const CoordinateAxis& axis2 ) const         { return isSameAxis(axis2) ? CoordinateAxis(myAxisId) : getThirdAxis(axis2); }
+    CoordinateAxis  crossProduct( const CoordinateAxis& axis2, int& sign ) const  { sign = crossProductSign(axis2);  return crossProductAxis(axis2); }
+
+    // Get the appropriate CoordinateAxis
     // Check whether or not an index is in proper range
-	static const CoordinateAxis  getCoordinateAxis( int i )  { assertIndexIsInRange(i);  return (i==0) ? CoordinateAxis(XType()) : ((i==1) ? CoordinateAxis(YType()) : CoordinateAxis(ZType()) ); }
-	static bool  isIndexInRange( int i )                     { return i>=0 && i<=2; }
-	static void  assertIndexIsInRange( int i )               { assert( isIndexInRange(i) ); } 
+    static CoordinateAxis  getCoordinateAxis( int i )  { assertIndexIsInRange(i);  return (i==0) ? CoordinateAxis(XTypeAxis()) : ((i==1) ? CoordinateAxis(YTypeAxis()) : CoordinateAxis(ZTypeAxis()) ); }
+    static bool  isIndexInRange( int i )               { return i>=0 && i<=2; }
+    static void  assertIndexIsInRange( int i )         { assert( isIndexInRange(i) ); } 
+
+    // Forward declarations for subsequent helper classes
+    class XCoordinateAxis; class YCoordinateAxis; class ZCoordinateAxis;
 
 protected:
-    class XType{}; class YType{}; class ZType{};
+    // Declaration of very simple classes
+    class XTypeAxis{}; class YTypeAxis{}; class ZTypeAxis{};
 
-    CoordinateAxis( const XType& ) : myAxisId(0) {}
-    CoordinateAxis( const YType& ) : myAxisId(1) {}
-    CoordinateAxis( const ZType& ) : myAxisId(2) {}
+    CoordinateAxis( const XTypeAxis& ) : myAxisId(0) {}
+    CoordinateAxis( const YTypeAxis& ) : myAxisId(1) {}
+    CoordinateAxis( const ZTypeAxis& ) : myAxisId(2) {}
 private:            
     explicit CoordinateAxis( int i ) : myAxisId(i) { assertIndexIsInRange(i); }
 
@@ -111,25 +117,25 @@ private:
 
 
 // Helper classes that make it possible to treat an Axis like an integer
-class CoordinateAxis::X : public CoordinateAxis {
-  public: X() : CoordinateAxis(XType()) {}
+class CoordinateAxis::XCoordinateAxis : public CoordinateAxis {
+  public: XCoordinateAxis() : CoordinateAxis(XTypeAxis()) {}
 };
-class CoordinateAxis::Y : public CoordinateAxis {
-  public: Y() : CoordinateAxis(YType()) {}
+class CoordinateAxis::YCoordinateAxis : public CoordinateAxis {
+  public: YCoordinateAxis() : CoordinateAxis(YTypeAxis()) {}
 };
-class CoordinateAxis::Z : public CoordinateAxis {
-  public: Z() : CoordinateAxis(ZType()) {}
+class CoordinateAxis::ZCoordinateAxis : public CoordinateAxis {
+  public: ZCoordinateAxis() : CoordinateAxis(ZTypeAxis()) {}
 };
 
 
 // Predefine constants XAxis, YAxis, ZAxis which implicitly convert to integers 0, 1, 2 respectively.
-static const CoordinateAxis::X  XAxis;
-static const CoordinateAxis::Y  YAxis;
-static const CoordinateAxis::Z  ZAxis;
+static const CoordinateAxis::XCoordinateAxis  XAxis;
+static const CoordinateAxis::YCoordinateAxis  YAxis;
+static const CoordinateAxis::ZCoordinateAxis  ZAxis;
 
 
 //------------------------------------------------------------------------------
-}  // End of namespace SimTK
+}  // End of namespace
 
 //--------------------------------------------------------------------------
 #endif // SIMTK_COORDINATEAXIS_H_
