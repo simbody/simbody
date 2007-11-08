@@ -39,11 +39,11 @@
  * -------------------------------------------------------------------------- */
 
 //-----------------------------------------------------------------------------
+#include "SimTKcommon/internal/CoordinateAxis.h"
 #include "SimTKcommon/internal/common.h"
 #include "SimTKcommon/Constants.h"
 #include "SimTKcommon/internal/Scalar.h"
 #include "SimTKcommon/internal/SmallMatrix.h"
-#include "SimTKcommon/internal/CoordinateAxis.h"
 #include "SimTKcommon/internal/UnitVec.h"
 #include "SimTKcommon/internal/Quaternion.h"
 //-----------------------------------------------------------------------------
@@ -95,15 +95,15 @@ public:
     Rotation&  setRotationToIdentityMatrix()  { Mat33::operator=(1);  return *this; }
     Rotation&  setRotationToNaN()             { Mat33::setToNaN();    return *this; } 
 
-	// Default copy constructor and assignment operator
+    // Default copy constructor and assignment operator
     Rotation( const Rotation& R ) : Mat33(R)  {}
     Rotation&  operator=( const Rotation& R )  { Mat33::operator=( R.asMat33() );  return *this; }
 
     // Constructor and related methods for right-handed rotation of an angle (in radians) about X, Y, or Z
-    Rotation( Real angle, const CoordinateAxis& axis )   { setRotationFromAngleAboutAxis( angle, axis ); }
-    Rotation( Real angle, const CoordinateAxis::X )      { setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
-    Rotation( Real angle, const CoordinateAxis::Y )      { setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
-    Rotation( Real angle, const CoordinateAxis::Z )      { setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
+    Rotation( Real angle, const CoordinateAxis& axis )             { setRotationFromAngleAboutAxis( angle, axis ); }
+    Rotation( Real angle, const CoordinateAxis::XCoordinateAxis )  { setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
+    Rotation( Real angle, const CoordinateAxis::YCoordinateAxis )  { setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
+    Rotation( Real angle, const CoordinateAxis::ZCoordinateAxis )  { setRotationFromAngleAboutZ( std::cos(angle), std::sin(angle) ); }
     Rotation&  setRotationFromAngleAboutAxis( Real angle, const CoordinateAxis& axis )  { return axis.isXAxis() ? setRotationFromAngleAboutX(angle) : (axis.isYAxis() ? setRotationFromAngleAboutY(angle) : setRotationFromAngleAboutZ(angle) ); }
     Rotation&  setRotationFromAngleAboutX( Real angle )  { return setRotationFromAngleAboutX( std::cos(angle), std::sin(angle) ); }
     Rotation&  setRotationFromAngleAboutY( Real angle )  { return setRotationFromAngleAboutY( std::cos(angle), std::sin(angle) ); }
@@ -129,6 +129,13 @@ public:
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromTwoAnglesTwoAxes(     BodyOrSpaceType bodyOrSpace, Real angle1, const CoordinateAxis& axis1, Real angle2, const CoordinateAxis& axis2 ); 
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromThreeAnglesThreeAxes( BodyOrSpaceType bodyOrSpace, Real angle1, const CoordinateAxis& axis1, Real angle2, const CoordinateAxis& axis2, Real angle3, const CoordinateAxis& axis3 );
 
+    /// Set this Rotation to represent a rotation characterized by subsequent rotations of:
+    /// +v[0] about the body frame's X axis,      followed by a rotation of 
+    /// +v[1] about the body frame's NEW Y axis,  followed by a rotation of 
+    /// +v[2] about the body frame's NEW Z axis.  See Kane, Spacecraft Dynamics, pg. 423, body-three: 1-2-3.
+    void setRotationToBodyFixedXY( const Vec2& v)   { setRotationFromTwoAnglesTwoAxes(     BodyRotationSequence, v[0], XAxis, v[1], YAxis ); }
+    void setRotationToBodyFixedXYZ( const Vec3& v)  { setRotationFromThreeAnglesThreeAxes( BodyRotationSequence, v[0], XAxis, v[1], YAxis, v[2], ZAxis ); }
+
     /// Constructor and related methods for relating a rotation matrix to a quaternion.
     explicit Rotation( const Quaternion& q )  { setRotationFromQuaternion(q); }
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromQuaternion( const Quaternion& q );
@@ -136,7 +143,7 @@ public:
     // Construct a Rotation directly from a Mat33 (we trust that m is a valid Rotation!)
     Rotation( const Mat33& m, bool ) : Mat33(m) {}
 
-	// Constructs an (hopefully nearby) orthogonal rotation matrix from a generic Mat33.
+    // Constructs an (hopefully nearby) orthogonal rotation matrix from a generic Mat33.
     explicit Rotation( const Mat33& m )  { setRotationFromApproximateMat33(m); }
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromApproximateMat33( const Mat33& m );
 
@@ -151,6 +158,7 @@ public:
     SimTK_SimTKCOMMON_EXPORT Rotation&  setRotationFromTwoAxes( const UnitVec3& uveci, const CoordinateAxis& axisi, const Vec3& vecjApprox, const CoordinateAxis& axisjApprox );
 
     // Converts rotation matrix to one or two or three orientation angles.
+    // Note:  The result is most meaningful if the Rotation matrix is one that can be produced by such a sequence.
     // Use1:  someRotation.convertOneAxisRotationToOneAngle( XAxis );
     // Use2:  someRotation.convertTwoAxesRotationToTwoAngles(     SpaceRotationSequence, YAxis, ZAxis );
     // Use3:  someRotation.convertThreeAxesRotationToThreeAngles( SpaceRotationSequence, ZAxis, YAxis, XAxis );
@@ -160,6 +168,10 @@ public:
     SimTK_SimTKCOMMON_EXPORT Vec3  convertThreeAxesRotationToThreeAngles( BodyOrSpaceType bodyOrSpace, const CoordinateAxis& axis1, const CoordinateAxis& axis2, const CoordinateAxis& axis3 ) const;
     SimTK_SimTKCOMMON_EXPORT Quaternion  convertRotationToQuaternion() const;
     Vec4  convertRotationToAngleAxis() const  { return convertRotationToQuaternion().convertQuaternionToAngleAxis(); }
+
+    /// Special case of previous methods, e.g., convert Rotation matrix to equivalent body-fixed XYZ Euler angle sequence.
+    Vec2  convertRotationToBodyFixedXY() const   { return convertTwoAxesRotationToTwoAngles( BodyRotationSequence, XAxis, YAxis ); }
+    Vec3  convertRotationToBodyFixedXYZ() const  { return convertThreeAxesRotationToThreeAngles( BodyRotationSequence, XAxis, YAxis, ZAxis ); }
 
     /// Return true if "this" Rotation is nearly identical to "R" within a pointing angle error of less than or equal to 
     //  okPointingAngleErrorRads or machineEpsilon^{7/8), (e.g., 1E-14 rads in double precision).
@@ -214,7 +226,7 @@ public:
 //----------------------------------------------------------------------------------------------------
 // The following code is obsolete - it is here temporarily for backward compatibility (Mitiguy 9/5/2007)
 //----------------------------------------------------------------------------------------------------
-public:
+private:
     // These static methods are like constructors with friendlier names.
     static Rotation zero() { return Rotation(); }
     static Rotation NaN()  { Rotation r;  r.setRotationToNaN();  return r; }
@@ -242,7 +254,7 @@ public:
     static Rotation aboutZThenOldY(const Real& zInRad, const Real& yInRad) { return Rotation( SpaceRotationSequence, zInRad, ZAxis, yInRad, YAxis ); }
 
     // Two-angle body fixed rotations (reversed space-fixed ones).
-    static Rotation aboutXThenNewY(const Real& xInRad, const Real& yInRad) { return aboutYThenOldX(yInRad, xInRad); }
+    static Rotation aboutXThenNewY(const Real& xInRad, const Real& yInRad) { return Rotation( BodyRotationSequence, xInRad, XAxis, yInRad, YAxis ); }
     static Rotation aboutYThenNewX(const Real& yInRad, const Real& xInRad) { return aboutXThenOldY(xInRad, yInRad); }
     static Rotation aboutXThenNewZ(const Real& xInRad, const Real& zInRad) { return aboutZThenOldX(zInRad, xInRad); }
     static Rotation aboutZThenNewX(const Real& zInRad, const Real& xInRad) { return aboutXThenOldZ(xInRad, zInRad); }
@@ -267,7 +279,7 @@ public:
     /// See Kane, Spacecraft Dynamics, pg. 423, body-three: 3-2-1.
     //  Similarly for BodyFixed123.
     void setToBodyFixed321( const Vec3& v)  { setRotationFromThreeAnglesThreeAxes( BodyRotationSequence, v[0], ZAxis, v[1], YAxis, v[2], XAxis ); }
-    void setToBodyFixed123( const Vec3& v)  { setRotationFromThreeAnglesThreeAxes( BodyRotationSequence, v[0], XAxis, v[1], YAxis, v[2], ZAxis ); }
+    void setToBodyFixed123( const Vec3& v)  { setRotationToBodyFixedXYZ(v); }
 
     /// Convert this Rotation matrix to an equivalent (angle,axis) representation: 
     /// The returned Vec4 is [angleInRadians, unitVectorX, unitVectorY, unitVectorZ].
@@ -281,12 +293,10 @@ public:
     void setToSpaceFixed12( const Vec2& q ) { setRotationFromTwoAnglesTwoAxes( SpaceRotationSequence, q[0], XAxis, q[1], YAxis ); }
 
     /// Convert this Rotation matrix to the equivalent 1-2-3 body fixed Euler angle sequence.
-    Vec3  convertToBodyFixed123() const  { return convertThreeAxesRotationToThreeAngles( BodyRotationSequence, XAxis, YAxis, ZAxis ); }
-
-    /// Convert this Rotation matrix to the equivalent 1-2 body fixed Euler angle sequence. 
-    /// The result is only meaningful if the Rotation matrix is one that can be produced by such a sequence.
+    /// Similarly, convert Rotation matrix to the equivalent 1-2 body  fixed Euler angle sequence. 
     /// Similarly, convert Rotation matrix to the equivalent 1-2 space fixed Euler angle sequence. 
-    Vec2  convertToBodyFixed12() const   { return convertTwoAxesRotationToTwoAngles( BodyRotationSequence,  XAxis, YAxis ); }
+    Vec3  convertToBodyFixed123() const  { return convertRotationToBodyFixedXYZ(); }
+    Vec2  convertToBodyFixed12() const   { return convertRotationToBodyFixedXY(); }
     Vec2  convertToSpaceFixed12() const  { return convertTwoAxesRotationToTwoAngles( SpaceRotationSequence, XAxis, YAxis ); }
 
 //--------------------------------- PAUL CONTINUE FROM HERE ----------------------------------
