@@ -116,7 +116,7 @@ public:
         const Real magnitude = Vec4::norm();
         if(      magnitude == 0      )  setQuaternionToZeroRotation();
         else if( magnitude < epsilon )  setQuaternionToNaN();
-		else (*this) *= (1.0/magnitude);
+        else (*this) *= (1.0/magnitude);
         return *this;
     }
 
@@ -129,7 +129,7 @@ public:
 //----------------------------------------------------------------------------------------------------
 // The following code is obsolete - it is here temporarily for backward compatibility (Mitiguy 10/13/2007)
 //----------------------------------------------------------------------------------------------------
-public:
+private:
     Vec4  convertToAngleAxis() const                          { return convertQuaternionToAngleAxis(); }
     void  setToAngleAxis( const Vec4& av )                    { setQuaternionFromAngleAxis(av); }
     void  setToAngleAxis( const Real& a, const UnitVec3& v )  { setQuaternionFromAngleAxis(a,v); }
