@@ -90,7 +90,7 @@ vtkTransform*
 VTKDecorativeGeometry::createVTKTransform(const Transform& X_BG, const Vec3& s) {
 
     const Vec3 t = X_BG.T();
-    const Vec4 r = X_BG.R().convertToAngleAxis();
+    const Vec4 r = X_BG.R().convertRotationToAngleAxis();
 
     vtkTransform* xform = vtkTransform::New();  // starts out as identity
     rememberVTKObject(xform);
