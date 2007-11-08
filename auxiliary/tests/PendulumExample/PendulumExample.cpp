@@ -68,7 +68,7 @@ try { // If anything goes wrong, an exception will be thrown.
 
     connector.setDefaultRadius(0.05); // for the artwork
 
-    //connector.setDefaultRotation(Rotation::aboutAxis(Pi/4, Vec3(0,0,1)));
+    //connector.setDefaultRotation( Rotation(Pi/4, Vec3(0,0,1) );
  
     const Real m1 = 5;
     const Real m2 = 1;
@@ -80,10 +80,10 @@ try { // If anything goes wrong, an exception will be thrown.
     const MassProperties swingerMassProps
         (m1+m2, COM, 1*Inertia(1,1,1) + m1*Inertia::pointMassAt(weight1Location)+m2*Inertia::pointMassAt(weight2Location));
     MobilizedBody::Screw swinger(connector, 
-                                    Transform(Rotation::aboutAxis(0*.7,Vec3(9,8,7)),
+                                    Transform( Rotation( 0*.7, Vec3(9,8,7) ),
                                               1*Vec3(0,-.5,0)),
                                  swingerMassProps,
-                                    Transform(Rotation::aboutAxis(0*1.3,Vec3(0,0,1)),
+                                    Transform( Rotation(0*1.3, Vec3(0,0,1) ),
                                               COM+0*Vec3(0,0,3)),    // inboard joint location
                                  0.3); // pitch
 
@@ -132,15 +132,14 @@ try { // If anything goes wrong, an exception will be thrown.
 
     for (Real startAngle = 10; startAngle <= 90; startAngle += 10) {
         s = mbs.getDefaultState();
-        connector.setQToFitRotation(s,Rotation::aboutAxis(Pi/4, Vec3(1,1,1)));
+        connector.setQToFitRotation(s, Rotation(Pi/4, Vec3(1,1,1)) );
 
 
         printf("time  theta      energy           *************\n");
         s.updTime() = 0;
 
 
-        swinger.setQToFitTransform(s, Transform(Rotation::aboutXThenNewY(0*Pi/2,0*Pi/2),
-                                                         Vec3(0,0,0)));
+        swinger.setQToFitTransform(s, Transform( Rotation( BodyRotationSequence, 0*Pi/2, XAxis, 0*Pi/2, YAxis ), Vec3(0,0,0) ));
         swinger.setUToFitVelocity(s, SpatialVec(0*Vec3(1.1,1.2,1.3),Vec3(0,0,-1)));
 
         myStudy.initialize();
@@ -163,7 +162,7 @@ try { // If anything goes wrong, an exception will be thrown.
             cout << "Swinger V=" << swinger.getMobilizerVelocity(s) << endl;
 
             const Rotation& R_MbM = swinger.getMobilizerTransform(s).R();
-            Vec4 aaMb = R_MbM.convertToAngleAxis();
+            Vec4 aaMb = R_MbM.convertRotationToAngleAxis();
             cout << "angle=" << aaMb[0] << endl;
             cout << "axisMb=" << aaMb.drop1(0) << endl;
             cout << "axisMb=" << ~R_MbM*aaMb.drop1(0) << endl;
