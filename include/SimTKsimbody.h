@@ -57,5 +57,6 @@
 #include "simbody/internal/VTKReporter.h"
 #include "simbody/internal/VTKEventReporter.h"
 #include "simbody/internal/TextDataEventReporter.h"
+#include "simbody/internal/ObservedPointFitter.h"
 
 #endif // SimTK_SIMBODY_SimTKSIMBODY_H_
