@@ -32,6 +32,7 @@ enum { TRACE, MAX_FUNCTION_EVALUATIONS, DEFAULT_STEP_LENGTH, LINE_SEARCH_ACCURAC
 
 #include "SimTKcommon.h"
 #include "simmath/Differentiator.h"
+#include "simmath/Optimizer.h"
 #include "simmath/Integrator.h"
 #include "simmath/TimeStepper.h"
 #include "simmath/CPodesIntegrator.h"
