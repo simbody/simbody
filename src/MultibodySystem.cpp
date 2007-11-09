@@ -312,62 +312,6 @@ MultibodySystemGlobalSubsystem::updRep() {
     return dynamic_cast<MultibodySystemGlobalSubsystemRep&>(updSubsystemGuts());
 }
 
-    ////////////////////////////////
-    // MOLECULAR MECHANICS SYSTEM //
-    ////////////////////////////////
-
-class DuMMForceFieldSubsystem;
-
-/*static*/ bool 
-MolecularMechanicsSystem::isInstanceOf(const System& s) {
-    return MolecularMechanicsSystemRep::isA(s.getSystemGuts());
-}
-/*static*/ const MolecularMechanicsSystem&
-MolecularMechanicsSystem::downcast(const System& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<const MolecularMechanicsSystem&>(s);
-}
-/*static*/ MolecularMechanicsSystem&
-MolecularMechanicsSystem::updDowncast(System& s) {
-    assert(isInstanceOf(s));
-    return reinterpret_cast<MolecularMechanicsSystem&>(s);
-}
-
-const MolecularMechanicsSystemRep& 
-MolecularMechanicsSystem::getRep() const {
-    return dynamic_cast<const MolecularMechanicsSystemRep&>(getSystemGuts());
-}
-MolecularMechanicsSystemRep&       
-MolecularMechanicsSystem::updRep() {
-    return dynamic_cast<MolecularMechanicsSystemRep&>(updSystemGuts());
-}
-
-MolecularMechanicsSystem::MolecularMechanicsSystem() 
-  : MultibodySystem(new MolecularMechanicsSystemRep())
-{
-}
-
-MolecularMechanicsSystem::MolecularMechanicsSystem
-   (SimbodyMatterSubsystem& matter, DuMMForceFieldSubsystem& mm)
-  : MultibodySystem(new MolecularMechanicsSystemRep())
-{
-    setMatterSubsystem(matter);
-    setMolecularMechanicsForceSubsystem(mm);
-}
-
-int MolecularMechanicsSystem::setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem& mm) {
-    return updRep().setMolecularMechanicsForceSubsystem(mm);
-}
-
-const DuMMForceFieldSubsystem&       
-MolecularMechanicsSystem::getMolecularMechanicsForceSubsystem() const {
-    return getRep().getMolecularMechanicsForceSubsystem();
-}
-
-DuMMForceFieldSubsystem&       
-MolecularMechanicsSystem::updMolecularMechanicsForceSubsystem() {
-    return updRep().updMolecularMechanicsForceSubsystem();
-}
 
 } // namespace SimTK
 

@@ -42,10 +42,8 @@
 
 #include "simbody/internal/common.h"
 #include "simbody/internal/MultibodySystem.h"
-#include "simbody/internal/MolecularMechanicsSystem.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
 #include "simbody/internal/ForceSubsystem.h"
-#include "simbody/internal/DuMMForceFieldSubsystem.h"
 #include "simbody/internal/DecorationSubsystem.h"
 
 #include "ForceSubsystemRep.h"
@@ -482,38 +480,6 @@ private:
     SubsystemId  decorationSub;         // index of DecorationSubsystem if any, else -1
 };
 
-
-/**
- * This class is a kind of MultibodySystem which is required to have exactly
- * one DuMMForceFieldSubsystem.
- */
-class MolecularMechanicsSystemRep : public MultibodySystemRep {
-public:
-    MolecularMechanicsSystemRep() : MultibodySystemRep()
-    {
-    }
-    ~MolecularMechanicsSystemRep() {
-    }
-
-    int setMolecularMechanicsForceSubsystem(DuMMForceFieldSubsystem& mm) {
-        assert(!molecularMechanicsSub.isValid());
-        molecularMechanicsSub = addForceSubsystem(mm);
-        return molecularMechanicsSub;
-    }
-
-    const DuMMForceFieldSubsystem& getMolecularMechanicsForceSubsystem() const {
-        assert(molecularMechanicsSub.isValid());
-        return DuMMForceFieldSubsystem::downcast(getSubsystem(molecularMechanicsSub));
-    }
-    DuMMForceFieldSubsystem& updMolecularMechanicsForceSubsystem() {
-        assert(molecularMechanicsSub.isValid());
-        return DuMMForceFieldSubsystem::updDowncast(updSubsystem(molecularMechanicsSub));
-    }
-
-    SimTK_DOWNCAST(MolecularMechanicsSystemRep, System::Guts);
-private:
-    SubsystemId molecularMechanicsSub;
-};
 
 } // namespace SimTK
 
