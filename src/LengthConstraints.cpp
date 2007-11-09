@@ -549,7 +549,7 @@ LengthConstraints::enforcePositionConstraints(State& s, const Real& requiredTol,
     try { 
         for (int i=0 ; i<(int)pvConstraints.size() ; i++) {
             anyChanges = true; // TODO: assuming for now
-            posMin.calc(requiredTol, desiredTol, (Vector&)pos,
+            posMin.calc(requiredTol, desiredTol, pos,
                         CalcPosB(s, &pvConstraints[i]),
                         CalcPosZ(s, &pvConstraints[i]));
         }

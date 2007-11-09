@@ -171,8 +171,8 @@ Constraint::Rod::Rod(MobilizedBody& body1, const Vec3& point1,
 
     body1.updMatterSubsystem().adoptConstraint(*this);
 
-    updRep().addConstrainedBody(body1);
-    updRep().addConstrainedBody(body2);
+    updRep().B1 = updRep().addConstrainedBody(body1);
+    updRep().B2 = updRep().addConstrainedBody(body2);
 }
 
 Constraint::Rod& Constraint::Rod::setDefaultPointOnBody1(const Vec3& p1) {

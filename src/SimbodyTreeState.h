@@ -83,6 +83,7 @@ using SimTK::Real; using SimTK::Vector_;
 using SimTK::UnitVec3; using SimTK::SpatialVec; using SimTK::SpatialRow; 
 using SimTK::SpatialMat; using SimTK::Matrix_;
 using SimTK::PhiMatrix; using SimTK::Mat33; using SimTK::MassProperties; using SimTK::Stage;
+using SimTK::Segment;
 
 class State;
 
@@ -128,14 +129,17 @@ public:
         valid = false;
     }
 
+    // These are topological objects.
     int nBodies;
     int nParticles;
     int nConstraints;
 
+    // TODO: these should be moved to Model stage.
     int nDOFs;
     int maxNQs;
     int sumSqDOFs;
 
+    // TODO: these should be made obsolete
     int nDistanceConstraints;
     int nPointInPlaneConstraints;
 
@@ -176,12 +180,31 @@ public:
     int dynamicsVarsIndex, dynamicsCacheIndex;
     int accelerationVarsIndex, accelerationCacheIndex;
 
+    int nPositionConstraintEquationsInUse;
+    int nVelocityConstraintEquationsInUse;
+    int nAccelerationConstraintEquationsInUse; // also # multipliers
+
+    Array<Segment> qErrSegment;    // (offset,mp)       for each Constraint, within subsystem qErr
+    Array<Segment> uErrSegment;    // (offset,mp+mv)    same, but for uErr slots
+    Array<Segment> udotErrSegment; // (offset,mp+mv+ma) same, but for udotErr slots (and multiplier slots)
+
+    // Quaternion errors go in qErr also, but after all the physical contraint errors. That is,
+    // they start at index nPositionConstraintEquationsInUse.
     int nQuaternionsInUse, firstQuaternionQErrSlot;
     Array<int> quaternionIndex; // nb (-1 for bodies w/no quats)
+
+    // These record where in the full System's State our Subsystem's qErr, uErr, and udotErr
+    // entries begin. That is, this subsystem's segments can be found at
+    //    qErr   (qErrIndex,    nPositionConstraintEquationsInUse + nQuaternionsInUse)
+    //    uErr   (uErrIndex,    nVelocityConstraintEquationsInUse)
+    //    udotErr(udotErrIndex, nAccelerationConstraintEquationsInUse)
     int qErrIndex, uErrIndex, udotErrIndex;
 
 public:
     void allocate(const SBTopologyCache& tc) {
+        qErrSegment.resize(tc.nConstraints);
+        uErrSegment.resize(tc.nConstraints);
+        udotErrSegment.resize(tc.nConstraints);
         quaternionIndex.resize(tc.nBodies, -1); // init to -1
     }
 };
@@ -510,18 +533,17 @@ public:
 class SBModelVars {
 public:
     bool        useEulerAngles;
-    Array<bool> prescribed;           // nb  (# bodies & mobilizers, [0] always true)
-    Array<bool> enabled;              // nac (# acceleration constraints)
+    Array<bool> prescribed;           // nb (# bodies & mobilizers, [0] always true)
+    Array<bool> disabled;             // nc (# constraints)
 public:
 
     // We have to allocate these without looking at any other
     // state variable or cache entries. We can only depend on topological
     // information.
-    void allocate(const SBTopologyCache& tree) const {
-        SBModelVars& mutvars = *const_cast<SBModelVars*>(this);
-        mutvars.useEulerAngles = false;
-        mutvars.prescribed.resize(tree.nBodies); 
-        mutvars.enabled.resize(tree.nConstraints);
+    void allocate(const SBTopologyCache& tree) {
+        useEulerAngles = false;
+        prescribed.resize(tree.nBodies, false); 
+        disabled.resize(tree.nConstraints, false);
     }
 
 };
@@ -721,6 +743,7 @@ public:
     // You can access the cache read-only for any stage already completed.
     // Either way you only need const access to the SBStateDigest object.
 
+    // Model
     SBModelCache& updModelCache() const {
         assert(stage == Stage::Model);
         assert(mc);
@@ -731,6 +754,8 @@ public:
         assert(mc);
         return *mc;
     }
+
+    // Instance
     SBInstanceCache& updInstanceCache() const {
         assert(stage == Stage::Instance);
         assert(ic);
@@ -741,6 +766,8 @@ public:
         assert(ic);
         return *ic;
     }
+
+    // Time
     SBTimeCache& updTimeCache() const {
         assert(stage == Stage::Time);
         assert(tc);
@@ -750,6 +777,18 @@ public:
         assert(stage > Stage::Time);
         assert(tc);
         return *tc;
+    }
+
+    // Position
+    Real* updQErr() const {
+        assert(stage == Stage::Position);
+        assert(qErr);
+        return qErr;
+    }
+    const Real* getQErr() const {
+        assert(stage > Stage::Position);
+        assert(qErr);
+        return qErr;
     }
     SBPositionCache& updPositionCache() const {
         assert(stage == Stage::Position);
@@ -761,6 +800,28 @@ public:
         assert(pc);
         return *pc;
     }
+
+    // Velocity
+    Real* updQDot() const {
+        assert(stage == Stage::Velocity);
+        assert(qdot);
+        return qdot;
+    }
+    const Real* getQDot() const {
+        assert(stage > Stage::Velocity);
+        assert(qdot);
+        return qdot;
+    }
+    Real* updUErr() const {
+        assert(stage == Stage::Velocity);
+        assert(uErr);
+        return uErr;
+    }
+    const Real* getUErr() const {
+        assert(stage > Stage::Velocity);
+        assert(uErr);
+        return uErr;
+    }
     SBVelocityCache& updVelocityCache() const {
         assert(stage == Stage::Velocity);
         assert(vc);
@@ -771,6 +832,8 @@ public:
         assert(vc);
         return *vc;
     }
+
+    // Dynamics
     SBDynamicsCache& updDynamicsCache() const {
         assert(stage == Stage::Dynamics);
         assert(dc);
@@ -780,6 +843,38 @@ public:
         assert(stage > Stage::Dynamics);
         assert(dc);
         return *dc;
+    }
+
+    // Accelerations
+    Real* updUDot() const {
+        assert(stage == Stage::Acceleration);
+        assert(udot);
+        return udot;
+    }
+    const Real* getUDot() const {
+        assert(stage > Stage::Acceleration);
+        assert(udot);
+        return udot;
+    }
+    Real* updQDotDot() const {
+        assert(stage == Stage::Acceleration);
+        assert(qdotdot);
+        return qdotdot;
+    }
+    const Real* getQDotDot() const {
+        assert(stage > Stage::Acceleration);
+        assert(qdotdot);
+        return qdotdot;
+    }
+    Real* updUDotErr() const {
+        assert(stage == Stage::Acceleration);
+        assert(udotErr);
+        return udotErr;
+    }
+    const Real* getUDotErr() const {
+        assert(stage > Stage::Acceleration);
+        assert(udotErr);
+        return udotErr;
     }
     SBAccelerationCache& updAccelerationCache() const {
         assert(stage == Stage::Acceleration);
@@ -791,6 +886,7 @@ public:
         assert(ac);
         return *ac;
     }
+
     void clear() {
         // state
         mv=0; iv=0; tv=0; 

@@ -65,6 +65,12 @@ public:
     {
     }
 
+    ConstraintRep(int mp, int mv, int ma) : myHandle(0), myMatterSubsystemRep(0), 
+        defaultMp(mp), defaultMv(mv), defaultMa(ma),
+        myConstraintNode(0) 
+    {
+    }
+
     void setDefaultNumConstraints(int mp, int mv, int ma) {
         assert(mp >= 0 && mv >= 0 && ma >= 0);
         invalidateTopologyCache();
@@ -131,6 +137,18 @@ public:
     // This creates a constraint node using the appropriate constraint type.
     virtual ConstraintNode* createConstraintNode() const = 0; 
 
+
+    // After realizeTopology() we can look at the values of modeling variables in the State.
+    // A Constraint is free to use those in determining how many constraint equations of each
+    // type to generate. The default implementation here doesn't look at the state but instead
+    // returns the default numbers of equations supplied when the Constraint was constructed.
+    void calcNumConstraintEquations(const State& s, int& mp, int& mv, int& ma) const {
+        calcNumConstraintEquationsVirtual(s,mp,mv,ma);
+    }
+    virtual void calcNumConstraintEquationsVirtual(const State&, int& mp, int& mv, int& ma) const {
+        mp = defaultMp; mv = defaultMv; ma = defaultMa;
+    }
+
     //NOTE: bodyForces and mobilityForces refer only to constrained bodies and their
     //associated mobilizers, not the system as a whole. They are initialized to zero
     //prior to the call so do not need to be set.
@@ -139,6 +157,49 @@ public:
     //Subtree, which may or may not be the same as that Subtree has in the global
     //State. This is controlled by the base class operator interface methods which
     //will call these only after setting the Subtree state properly.
+    //TODO: Subtree
+
+    void calcPositionErrors(const State& s, int mp,  Real* perr) const {
+        calcPositionErrorsVirtual(s,mp,perr);
+    }
+    void calcPositionDotErrors(const State& s, int mp,  Real* pverr) const {
+        calcPositionDotErrorsVirtual(s,mp,pverr);
+    }
+    void calcPositionDotDotErrors(const State& s, int mp,  Real* paerr) const {
+        calcPositionDotDotErrorsVirtual(s,mp,paerr);
+    }
+    void applyPositionConstraintForces
+       (const State& s, int mp, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForces,
+        Vector&              mobilityForces) const
+    {
+        applyPositionConstraintForcesVirtual(s,mp,multipliers,bodyForces,mobilityForces);
+    }
+
+    void calcVelocityErrors(const State& s, int mv,  Real* verr) const {
+        calcVelocityErrorsVirtual(s,mv,verr);
+    }
+    void calcVelocityDotErrors(const State& s, int mv,  Real* vaerr) const {
+        calcVelocityDotErrorsVirtual(s,mv,vaerr);
+    }
+    void applyVelocityConstraintForces
+       (const State& s, int mv, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForces,
+        Vector&              mobilityForces) const
+    {
+        applyVelocityConstraintForcesVirtual(s,mv,multipliers,bodyForces,mobilityForces);
+    }
+
+    void calcAccelerationErrors(const State& s, int ma,  Real* aerr) const {
+        calcAccelerationErrorsVirtual(s,ma,aerr);
+    }
+    void applyAccelerationConstraintForces
+       (const State& s, int ma, const Real* multipliers,
+        Vector_<SpatialVec>& bodyForces,
+        Vector&              mobilityForces) const
+    {
+        applyAccelerationConstraintForcesVirtual(s,ma,multipliers,bodyForces,mobilityForces);
+    }
 
     // These must be defined if there are any position (holonomic) constraints defined.
     virtual void calcPositionErrorsVirtual      (const State&, int mp,  Real* perr) const;
@@ -231,7 +292,7 @@ private:
     // These are the defaults for the number of position (holonomic) constraint equations,
     // the number of velocity (nonholonomic) constraint equations, and the number of
     // acceleration-only constraint equations.
-    int                        defaultMp, defaultMv, defaultMa;
+    int defaultMp, defaultMv, defaultMa;
 
         // TOPOLOGY "CACHE"
 
@@ -259,8 +320,8 @@ private:
 
 class Constraint::Rod::RodRep : public Constraint::ConstraintRep {
 public:
-    RodRep()
-      : defaultPoint1(0), defaultPoint2(0), defaultRodLength(1)
+    RodRep() 
+      : ConstraintRep(1,0,0), defaultPoint1(0), defaultPoint2(0), defaultRodLength(1)
     { 
         // Rod constructor sets all the data members here directly
     }
@@ -349,7 +410,7 @@ private:
 class Constraint::PointInPlane::PointInPlaneRep : public Constraint::ConstraintRep {
 public:
     PointInPlaneRep()
-      : defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
+      : ConstraintRep(1,0,0), defaultPlaneNormal(), defaultPlaneHeight(0), defaultFollowerPoint(0),
         planeHalfWidth(1), pointRadius(0.05) 
     { }
     PointInPlaneRep* clone() const { return new PointInPlaneRep(*this); }
@@ -391,7 +452,7 @@ private:
 
 class Constraint::Ball::BallRep : public Constraint::ConstraintRep {
 public:
-    BallRep() : defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
+    BallRep() : ConstraintRep(3,0,0), defaultPoint1(0), defaultPoint2(0), defaultRadius(0.1) { }
     BallRep* clone() const { return new BallRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 
@@ -421,7 +482,7 @@ private:
 
 class Constraint::Weld::WeldRep : public Constraint::ConstraintRep {
 public:
-    WeldRep() { } // transforms are Identity
+    WeldRep() : ConstraintRep(6,0,0) { } // transforms are Identity
     WeldRep* clone() const { return new WeldRep(*this); }
 
     ConstraintNode* createConstraintNode() const; 

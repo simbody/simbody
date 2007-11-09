@@ -551,10 +551,10 @@ public:
 
     void setUseEulerAngles(State& s, bool useAngles) const;
     void setMobilizerIsPrescribed(State& s, MobilizedBodyId, bool prescribe) const;
-    void setConstraintIsEnabled(State& s, ConstraintId constraint, bool enable) const;
+    void setConstraintIsDisabled(State& s, ConstraintId constraint, bool disabled) const;
     bool getUseEulerAngles(const State& s) const;
     bool isMobilizerPrescribed(const State& s, MobilizedBodyId) const;
-    bool isConstraintEnabled(const State& s, ConstraintId constraint) const;
+    bool isConstraintDisabled(const State& s, ConstraintId constraint) const;
 
         // CALLABLE AFTER realizeModel()
 

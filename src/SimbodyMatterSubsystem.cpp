@@ -216,14 +216,14 @@ void SimbodyMatterSubsystem::setUseEulerAngles(State& s, bool useAngles) const
   { getRep().setUseEulerAngles(s,useAngles); }
 void SimbodyMatterSubsystem::setMobilizerIsPrescribed(State& s, MobilizedBodyId body, bool prescribed) const
   { getRep().setMobilizerIsPrescribed(s,body,prescribed); }
-void SimbodyMatterSubsystem::setConstraintIsEnabled(State& s, ConstraintId constraint, bool enabled) const
-  { getRep().setConstraintIsEnabled(s,constraint,enabled); }
+void SimbodyMatterSubsystem::setConstraintIsDisabled(State& s, ConstraintId constraint, bool disabled) const
+  { getRep().setConstraintIsDisabled(s,constraint,disabled); }
 bool SimbodyMatterSubsystem::getUseEulerAngles(const State& s) const
   { return getRep().getUseEulerAngles(s); }
 bool SimbodyMatterSubsystem::isMobilizerPrescribed(const State& s, MobilizedBodyId body) const
   { return getRep().isMobilizerPrescribed(s,body); }
-bool SimbodyMatterSubsystem::isConstraintEnabled(const State& s, ConstraintId constraint) const
-  { return getRep().isConstraintEnabled(s,constraint); }
+bool SimbodyMatterSubsystem::isConstraintDisabled(const State& s, ConstraintId constraint) const
+  { return getRep().isConstraintDisabled(s,constraint); }
 
 int SimbodyMatterSubsystem::getNQuaternionsInUse(const State& s) const {
     return getRep().getNQuaternionsInUse(s);
