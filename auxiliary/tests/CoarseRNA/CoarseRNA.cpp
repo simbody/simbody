@@ -61,7 +61,7 @@ static const Real ConnectorHalfHeight = 3;  // A
 static const Real ConnectorEndSlop    = 0.2;// A
 static const Real ConnectorDensity    = 10;  // Dalton/A^3
 
-static int NSegments = 2;
+static int NSegments = 4;
 
 class MyRNAExample : public SimbodyMatterSubsystem {
     struct PerBodyInfo {
@@ -279,8 +279,13 @@ try // If anything goes wrong, an exception will be thrown.
 
     // And a study using the Runge Kutta Merson integrator
     bool suppressProject = false;
-    OLDRungeKuttaMerson myStudy(mbs, s, suppressProject);
+
+    //OLDRungeKuttaMerson myStudy(mbs, s, suppressProject);
     //OLDCPodesIntegrator myStudy(mbs, s);
+
+    RungeKuttaMersonIntegrator myStudy(mbs);
+    //CPodesIntegrator  myStudy(mbs);
+
     myStudy.setAccuracy(1e-2);
     myStudy.setConstraintTolerance(1e-3); 
     myStudy.setProjectEveryStep(false);
@@ -303,37 +308,52 @@ try // If anything goes wrong, an exception will be thrown.
         saveEm.push_back(s);    // delay
     display.report(s);
 
-    myStudy.initialize();
-    saveEm.push_back(s);
-    for (int i=0; i<50; ++i)
-        saveEm.push_back(s);    // delay
-    display.report(s);
-    for (;;) {
-        mbs.realize(s);
-        printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", s.getTime(), 
-            myRNA.getQErr(s).normRMS(), myRNA.getUErr(s).normRMS(),
-            myStudy.getPredictedNextStep());
-        printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
-            mbs.getEnergy(s), mbs.getPotentialEnergy(s), mbs.getKineticEnergy(s));
+    myStudy.initialize(s);
+    cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
+    cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
+    cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
+    cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
+    cout << "Y WEIGHTS=" << myStudy.getStateWeightsInUse() << endl;
+    cout << "1/CTOLS=" << myStudy.getConstraintWeightsInUse() << endl;
 
-        cout << "QERR=" << s.getQErr() << endl;
-        cout << "UERR=" << s.getUErr() << endl;
+    saveEm.push_back(myStudy.getState());
+    for (int i=0; i<50; ++i)
+        saveEm.push_back(myStudy.getState());    // delay
+    display.report(myStudy.getState());
+    for (;;) {
+        const State& ss = myStudy.getState();
+
+        mbs.realize(ss);
+        printf("%5g qerr=%10.4g uerr=%10.4g hNext=%g\n", ss.getTime(), 
+            myRNA.getQErr(ss).normRMS(), myRNA.getUErr(ss).normRMS(),
+            myStudy.getPredictedNextStepSize());
+        printf("      E=%14.8g (pe=%10.4g ke=%10.4g)\n",
+            mbs.getEnergy(ss), mbs.getPotentialEnergy(ss), mbs.getKineticEnergy(ss));
+
+        cout << "QERR=" << ss.getQErr() << endl;
+        cout << "UERR=" << ss.getUErr() << endl;
 
         //if (s.getTime() - std::floor(s.getTime()) < 0.2)
         //    display.addEphemeralDecoration( DecorativeSphere(10).setColor(Green) );
 
-        display.report(s);
-        saveEm.push_back(s);
+        display.report(ss);
+        saveEm.push_back(ss);
 
        // if (myStudy.getT() >= 10*expectedPeriod)
          //   break;
 
-        if (s.getTime() >= 10)
+        if (ss.getTime() >= 10)
             break;
 
         // TODO: should check for errors or have or teach RKM to throw. 
-        myStudy.step(s.getTime() + dt);
+        myStudy.stepTo(ss.getTime() + dt, Infinity);
     }
+
+    printf("Using Integrator %s:\n", myStudy.getMethodName());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
+
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
             display.report(saveEm[i]);

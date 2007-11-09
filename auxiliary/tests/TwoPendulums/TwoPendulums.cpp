@@ -37,8 +37,8 @@
 
 #include "SimTKsimbody.h"
 
-#include "simmath/RungeKuttaMersonIntegrator.h"
-#include "simmath/CPodesIntegrator.h"
+//#include "simmath/RungeKuttaMersonIntegrator.h"
+//#include "simmath/CPodesIntegrator.h"
 
 #include <cmath>
 #include <cstdio>
@@ -238,11 +238,11 @@ int main(int argc, char** argv) {
 
     // These are the SimTK Simmath integrators:
     RungeKuttaMersonIntegrator myStudy(mbs);
-    //CPodesIntegrator myStudy(mbs);
+    //CPodesIntegrator myStudy(mbs, CPodes::BDF, CPodes::Newton);
 
 
     //myStudy.setMaximumStepSize(0.001);
-    myStudy.setAccuracy(1e-3);
+    myStudy.setAccuracy(1e-2);
     //myStudy.setProjectEveryStep(true);
     //myStudy.setConstraintTolerance(1e-7);
     //myStudy.setAllowInterpolation(false);
@@ -256,6 +256,7 @@ int main(int argc, char** argv) {
     // Peforms assembly if constraints are violated.
     myStudy.initialize(s);
 
+    cout << "Using Integrator " << std::string(myStudy.getMethodName()) << ":\n";
     cout << "ACCURACY IN USE=" << myStudy.getAccuracyInUse() << endl;
     cout << "CTOL IN USE=" << myStudy.getConstraintToleranceInUse() << endl;
     cout << "TIMESCALE=" << myStudy.getTimeScaleInUse() << endl;
@@ -310,8 +311,10 @@ int main(int argc, char** argv) {
             ++nextScheduledEvent;
     }
 
+    printf("Using Integrator %s:\n", myStudy.getMethodName());
     printf("# STEPS/ATTEMPTS = %d/%d\n", myStudy.getNStepsTaken(), myStudy.getNStepsAttempted());
     printf("# ERR TEST FAILS = %d\n", myStudy.getNErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", myStudy.getNRealizations(), myStudy.getNProjections());
 
   } 
   catch (const exception& e) {

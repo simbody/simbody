@@ -243,8 +243,11 @@ try
     //bouncers.setUseEulerAngles(s, true);
     mbs.realizeModel(s);
     bool suppressProjection = false;
-    OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
+    //OLDRungeKuttaMerson ee(mbs, s, suppressProjection);
     //OLDCPodesIntegrator ee(mbs, s);
+
+    RungeKuttaMersonIntegrator ee(mbs);
+    //CPodesIntegrator ee(mbs, CPodes::BDF, CPodes::Newton);
     //ee.setProjectEveryStep(true);
 
     vtk.report(s);
@@ -259,7 +262,7 @@ try
     const Real tstart = 0.;
     const Real tmax = 100;
 
-    ee.setAccuracy(1e-2);
+    ee.setAccuracy(1e-4);
     ee.setConstraintTolerance(1e-3);
 
     s.updTime() = tstart;
@@ -268,30 +271,42 @@ try
         saveEm.push_back(s);    // delay
     vtk.report(s);
 
-    ee.initialize();
+    ee.initialize(s);
     for (int i=0; i<100; ++i)
-        saveEm.push_back(s);    // delay
-    vtk.report(s);
+        saveEm.push_back(ee.getState());    // delay
+    vtk.report(ee.getState());
+
+    cout << "Using Integrator " << std::string(ee.getMethodName()) << ":\n";
+    cout << "ACCURACY IN USE=" << ee.getAccuracyInUse() << endl;
+    cout << "CTOL IN USE=" << ee.getConstraintToleranceInUse() << endl;
+    cout << "TIMESCALE=" << ee.getTimeScaleInUse() << endl;
+    cout << "Y WEIGHTS=" << ee.getStateWeightsInUse() << endl;
+    cout << "1/CTOLS=" << ee.getConstraintWeightsInUse() << endl;
 
     int step = 0;
-    while (s.getTime() <= tmax) {
+    while (ee.getTime() <= tmax) {
+        const State& ss = ee.getState();
         if (!(step % 10)) {
-            mbs.realize(s);
-            cout << s.getTime() << ": E=" << mbs.getEnergy(s)
-             << " (pe=" << mbs.getPotentialEnergy(s)
-             << ", ke=" << mbs.getKineticEnergy(s)
-             << ") qerr=" << bouncers.getQErr(s).normRMS()
-             << " uerr=" << bouncers.getUErr(s).normRMS()
-             << " hNext=" << ee.getPredictedNextStep() << endl;
+            mbs.realize(ss);
+            cout << ss.getTime() << ": E=" << mbs.getEnergy(ss)
+             << " (pe=" << mbs.getPotentialEnergy(ss)
+             << ", ke=" << mbs.getKineticEnergy(ss)
+             << ") qerr=" << bouncers.getQErr(ss).normRMS()
+             << " uerr=" << bouncers.getUErr(ss).normRMS()
+             << " hNext=" << ee.getPredictedNextStepSize() << endl;
         }
         ++step;
 
-        ee.step(s.getTime() + h);
-        vtk.report(s);
-        saveEm.push_back(s);
+        ee.stepTo(ss.getTime() + h);
+        vtk.report(ss);
+        saveEm.push_back(ss);
     }
 
     //printFinalStats(ee.getCPodes());
+    printf("Using Integrator %s:\n", ee.getMethodName());
+    printf("# STEPS/ATTEMPTS = %d/%d\n", ee.getNStepsTaken(), ee.getNStepsAttempted());
+    printf("# ERR TEST FAILS = %d\n", ee.getNErrorTestFailures());
+    printf("# REALIZE/PROJECT = %d/%d\n", ee.getNRealizations(), ee.getNProjections());
 
     while(true) {
         for (int i=0; i < (int)saveEm.size(); ++i) {
@@ -300,6 +315,8 @@ try
         }
         getchar();
     }
+
+
   }
 catch (const std::exception& e) 
   {
