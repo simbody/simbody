@@ -34,6 +34,10 @@ ELSE ( BUILD_AUX )
   SUBDIRS (staticTarget sharedTarget tests)
 ENDIF( BUILD_AUX )
 
+# The source is organized into subdirectories, but we handle them all from
+# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
+SET(SIMBODY_SOURCE_SUBDIRS . Molecular Neuromuscular)
+
 # 
 # Make sure "sandbox" input & output directories are set. During
 # SimTK Core build, the build system will set them. Otherwise, we'll
@@ -68,6 +72,8 @@ ELSE(${CMAKE_C_COMPILER} MATCHES "gcc")
 
 ENDIF(${CMAKE_C_COMPILER} MATCHES "gcc")
 
+MARK_AS_ADVANCED( SimTK_SDK  )
+MARK_AS_ADVANCED( SimTK_INSTALL_PREFIX  )
 
 INCLUDE_DIRECTORIES(${SimTK_SDK}/core/include)
 
@@ -103,9 +109,6 @@ IF (NOT CMAKE_CXX_FLAGS_RELEASE)
 ENDIF (NOT CMAKE_CXX_FLAGS_RELEASE)
 
 
-# The source is organized into subdirectories, but we handle them all from
-# this CMakeLists file rather than letting CMake visit them as SUBDIRS.
-SET(SIMBODY_SOURCE_SUBDIRS .)
 
 # Collect up information about the version of the simbody library we're building
 # and make it available to the code so it can be built into the binaries.
