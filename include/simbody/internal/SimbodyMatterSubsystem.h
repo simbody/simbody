@@ -357,8 +357,8 @@ public:
     bool isMobilizerPrescribed  (const State&, MobilizedBodyId) const;
     bool isUsingQuaternion(const State&, MobilizedBodyId) const;
     int  getQuaternionIndex(const State&, MobilizedBodyId) const;
-    void setConstraintIsEnabled(State&, ConstraintId constraint, bool) const;
-    bool isConstraintEnabled(const State&, ConstraintId constraint) const;
+    void setConstraintIsDisabled(State&, ConstraintId constraint, bool) const;
+    bool isConstraintDisabled(const State&, ConstraintId constraint) const;
 
     // Position Stage. 
 
