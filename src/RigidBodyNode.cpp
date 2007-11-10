@@ -46,7 +46,7 @@
 
 #include "SimbodyMatterSubsystemRep.h"
 #include "RigidBodyNode.h"
-#include "MobilizedBodyRep.h"
+#include "MobilizedBodyImpl.h"
 
 #include <iostream>
 #include <iomanip>
@@ -3635,11 +3635,11 @@ RigidBodyNode::createGroundNode() {
 }
 
 
-    //////////////////////////////////////////////////////////////////////
-    // Implementation of MobilizedBodyRep createRigidBodyNode() methods //
-    //////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    // Implementation of MobilizedBodyImpl createRigidBodyNode() methods //
+    ///////////////////////////////////////////////////////////////////////
 
-RigidBodyNode* MobilizedBody::Pin::PinRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::PinImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3650,7 +3650,7 @@ RigidBodyNode* MobilizedBody::Pin::PinRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Slider::SliderRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::SliderImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3661,7 +3661,7 @@ RigidBodyNode* MobilizedBody::Slider::SliderRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Universal::UniversalRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::UniversalImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3672,7 +3672,7 @@ RigidBodyNode* MobilizedBody::Universal::UniversalRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Cylinder::CylinderRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::CylinderImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3682,7 +3682,7 @@ RigidBodyNode* MobilizedBody::Cylinder::CylinderRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::BendStretch::BendStretchRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::BendStretchImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3692,7 +3692,7 @@ RigidBodyNode* MobilizedBody::BendStretch::BendStretchRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Planar::PlanarRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::PlanarImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3702,7 +3702,7 @@ RigidBodyNode* MobilizedBody::Planar::PlanarRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Gimbal::GimbalRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::GimbalImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3713,7 +3713,7 @@ RigidBodyNode* MobilizedBody::Gimbal::GimbalRep::createRigidBodyNode(
     //     nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Ball::BallRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::BallImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3724,7 +3724,7 @@ RigidBodyNode* MobilizedBody::Ball::BallRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Ellipsoid::EllipsoidRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::EllipsoidImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3736,7 +3736,7 @@ RigidBodyNode* MobilizedBody::Ellipsoid::EllipsoidRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Translation::TranslationRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::TranslationImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3747,7 +3747,7 @@ RigidBodyNode* MobilizedBody::Translation::TranslationRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Free::FreeRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::FreeImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3758,7 +3758,7 @@ RigidBodyNode* MobilizedBody::Free::FreeRep::createRigidBodyNode(
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::LineOrientation::LineOrientationRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::LineOrientationImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3769,7 +3769,7 @@ RigidBodyNode* MobilizedBody::LineOrientation::LineOrientationRep::createRigidBo
         nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::FreeLine::FreeLineRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::FreeLineImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3781,7 +3781,7 @@ RigidBodyNode* MobilizedBody::FreeLine::FreeLineRep::createRigidBodyNode(
 }
 
 
-RigidBodyNode* MobilizedBody::Screw::ScrewRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::ScrewImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3792,7 +3792,7 @@ RigidBodyNode* MobilizedBody::Screw::ScrewRep::createRigidBodyNode(
         getDefaultPitch(),nxtUSlot,nxtUSqSlot,nxtQSlot);
 }
 
-RigidBodyNode* MobilizedBody::Weld::WeldRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::WeldImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3805,7 +3805,7 @@ RigidBodyNode* MobilizedBody::Weld::WeldRep::createRigidBodyNode(
 }
 
 
-RigidBodyNode* MobilizedBody::Ground::GroundRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::GroundImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const
@@ -3813,7 +3813,7 @@ RigidBodyNode* MobilizedBody::Ground::GroundRep::createRigidBodyNode(
     return new RBGroundBody();
 }
 
-RigidBodyNode* MobilizedBody::Custom::CustomRep::createRigidBodyNode(
+RigidBodyNode* MobilizedBody::CustomImpl::createRigidBodyNode(
     int&                     nxtUSlot,
     int&                     nxtUSqSlot,
     int&                     nxtQSlot) const

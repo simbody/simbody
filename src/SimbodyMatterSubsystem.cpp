@@ -38,7 +38,7 @@
 #include "SimTKcommon.h"
 #include "simbody/internal/MobilizedBody.h"
 
-#include "MobilizedBodyRep.h"
+#include "MobilizedBodyImpl.h"
 #include "SimbodyMatterSubsystemRep.h"
 class RigidBodyNode;
 

@@ -52,6 +52,7 @@
 namespace SimTK {
 
 class SimbodyMatterSubsystem;
+class MobilizedBodyImpl;
 
 /**
  * This is the base class for all MobilizedBody classes, which is just a handle for the underlying
@@ -65,12 +66,9 @@ class SimbodyMatterSubsystem;
  *    - binary compatible interface
  *    - custom object interface
  */
-class SimTK_SIMBODY_EXPORT MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody : public PIMPLHandle<MobilizedBody, MobilizedBodyImpl> {
 public:
-    MobilizedBody() : rep(0) { }
-    MobilizedBody(MobilizedBody&); // shallow copy
-    MobilizedBody& operator=(MobilizedBody&); // shallow assignment
-    ~MobilizedBody();
+    MobilizedBody() { }
 
     // These declarations are needed so we can have std::vectors of
     // these things, but they aren't implemented.
@@ -121,6 +119,24 @@ public:
     class Ellipsoid;
     class Custom;
     class Ground;
+    
+    class BallImpl;
+    class BendStretchImpl;
+    class CustomImpl;
+    class CylinderImpl;
+    class EllipsoidImpl;
+    class FreeImpl;
+    class FreeLineImpl;
+    class GimbalImpl;
+    class GroundImpl;
+    class LineOrientationImpl;
+    class PinImpl;
+    class PlanarImpl;
+    class ScrewImpl;
+    class SliderImpl;
+    class TranslationImpl;
+    class UniversalImpl;
+    class WeldImpl;
 
     ///////////////////////////////
     // PAUL'S FRIENDLY INTERFACE //
@@ -950,31 +966,15 @@ public:
     // the body from Ground.
     int getLevelInMultibodyTree() const;
 
-    // Is this handle the owner of this rep? This is true if the
-    // handle is empty or if its rep points back here.
-    bool isOwnerHandle() const;
-    bool isEmptyHandle() const;
-
-
     // Internal use only
 
-    // The current handle is the owner of the rep. After this call
-    // the supplied handle is the owner and this one is just a reference.
-    void disown(MobilizedBody&);
-    class MobilizedBodyRep; // local subclass
-    explicit MobilizedBody(class MobilizedBodyRep* r) : rep(r) { }
-    bool                hasRep() const {return rep!=0;}
-    const MobilizedBodyRep& getRep() const {assert(rep); return *rep;}
-    MobilizedBodyRep&       updRep() const {assert(rep); return *rep;}
-	void setRep(MobilizedBodyRep& r) {assert(!rep); rep = &r;}
-protected:
-    class MobilizedBodyRep* rep;
+    explicit MobilizedBody(MobilizedBodyImpl* r) : HandleBase(r) { }
 };
 
 /// One mobility -- rotation about the common z axis of the inboard
 /// and outboard mobilizer frames.
 /// Synonym: Torsion
-class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Pin : public PIMPLDerivedHandle<Pin, PinImpl, MobilizedBody> {
 public:
         // SPECIALIZED INTERFACE FOR PIN MOBILIZER
 
@@ -1036,18 +1036,12 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Pin& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
-
-    class PinRep; // local subclass
-    SimTK_PIMPL_DOWNCAST(Pin, MobilizedBody);
-private:
-    PinRep&       updRep();
-    const PinRep& getRep() const;
 };
 
 /// One mobility -- translation along the common x axis of the
 /// inboard and outboard mobilizer frames.
 /// Synonym: Prismatic
-class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Slider : public PIMPLDerivedHandle<Slider, SliderImpl, MobilizedBody> {
 public:
         // SPECIALIZED INTERFACE FOR SLIDER MOBILIZER
 
@@ -1109,12 +1103,6 @@ public:
       { (void)MobilizedBody::setDefaultInboardFrame(X_PF); return *this; }
     Slider& setDefaultOutboardFrame(const Transform& X_BM)
       { (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this; }
-
-    class SliderRep; // local subclass
-    SimTK_PIMPL_DOWNCAST(Slider, MobilizedBody);
-private:
-    class SliderRep& updRep();
-    const SliderRep& getRep() const;
 };
 
 /// One mobility -- coordinated rotation and translation along the
@@ -1122,7 +1110,7 @@ private:
 /// "pitch" is specified relating the two. The generalized coordinate
 /// q is the rotation angle in radians, the translation is always
 /// pitch*q.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Screw : public PIMPLDerivedHandle<Screw, ScrewImpl, MobilizedBody> {
 public:
     Screw(Real pitch);
 
@@ -1174,19 +1162,12 @@ public:
    
     Real& updMyPartQ(const State&, Vector& qlike) const;
     Real& updMyPartU(const State&, Vector& ulike) const;
-
-    class ScrewRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Screw, MobilizedBody);
-private:
-    class ScrewRep& updRep();
-    const ScrewRep& getRep() const;
 };
 
 /// Two mobilities -- rotation about the x axis, followed by a rotation
 /// about the new y axis. This mobilizer is badly behaved when the
 /// second rotation is near 90 degrees.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Universal : public PIMPLDerivedHandle<Universal, UniversalImpl, MobilizedBody> {
 public:
     Universal();
 
@@ -1216,18 +1197,11 @@ public:
     Universal& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class UniversalRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Universal, MobilizedBody);
-private:
-    class UniversalRep& updRep();
-    const UniversalRep& getRep() const;
 };
 
 /// Two mobilities -- rotation and translation along the common z axis
 /// of the inboard and outboard mobilizer frames.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Cylinder : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Cylinder : public PIMPLDerivedHandle<Cylinder, CylinderImpl, MobilizedBody> {
 public:
     Cylinder();
 
@@ -1257,13 +1231,6 @@ public:
     Cylinder& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class CylinderRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Cylinder, MobilizedBody);
-private:
-    class CylinderRep& updRep();
-    const CylinderRep& getRep() const;
 };
 
 /// Two mobilities: The z axis of the parent's F frame is 
@@ -1272,7 +1239,7 @@ private:
 /// that is, first we rotate around z, which moves M's x with respect to F's x. Then
 /// we slide along the rotated x axis. The two generalized coordinates are the
 /// rotation and the translation, in that order.
-class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::BendStretch : public PIMPLDerivedHandle<BendStretch, BendStretchImpl, MobilizedBody> {
 public:
     BendStretch();
 
@@ -1302,20 +1269,13 @@ public:
     BendStretch& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class BendStretchRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(BendStretch, MobilizedBody);
-private:
-    class BendStretchRep& updRep();
-    const BendStretchRep& getRep() const;
 };
 
 /// Three mobilities -- z rotation and x,y translation. The generalized
 /// coordinates are rotation about the shared z axis of the F and M
 /// frame, translation along the F frame's x axis, and translation along
 /// its y axis, in that order.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Planar : public PIMPLDerivedHandle<Planar, PlanarImpl, MobilizedBody> {
 public:
     Planar();
 
@@ -1383,19 +1343,13 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-
-    class PlanarRep; // local subclass
-    SimTK_PIMPL_DOWNCAST(Planar, MobilizedBody);
-private:
-    class PlanarRep& updRep();
-    const PlanarRep& getRep() const;
 };
 
 /// Three mobilities -- unrestricted orientation modeled as a 1-2-3
 /// body-fixed Euler angle sequence. This is singular when the middle
 /// angle is 90 degrees.
 /// TODO: not implemented yet.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Gimbal : public PIMPLDerivedHandle<Gimbal, GimbalImpl, MobilizedBody> {
 public:
     Gimbal();
 
@@ -1425,20 +1379,13 @@ public:
     Gimbal& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class GimbalRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Gimbal, MobilizedBody);
-private:
-    class GimbalRep& updRep();
-    const GimbalRep& getRep() const;
 };
 
 /// Three mobilities -- unrestricted orientation modeled with a
 /// quaternion which is never singular. A modeling option allows the
 /// joint to use a 1-2-3 Euler sequence (identical to a Gimbal) 
 /// instead.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ball : public PIMPLDerivedHandle<Ball, BallImpl, MobilizedBody> {
 public:
     explicit Ball();
 
@@ -1497,20 +1444,13 @@ public:
    
     Vec4& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-
-    class BallRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Ball, MobilizedBody);
-private:
-    class BallRep& updRep();
-    const BallRep& getRep() const;
 };
 
 /// Three mobilities -- coordinated rotation and translation along the
 /// surface of an ellipsoid fixed to the parent (inboard) body.
 /// The generalized coordinates are the same as for a Ball (Orientation)
 /// joint, that is, a quaternion or 1-2-3 Euler sequence.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ellipsoid : public PIMPLDerivedHandle<Ellipsoid, EllipsoidImpl, MobilizedBody> {
 public:
     // The ellipsoid is placed on the mobilizer's inboard frame F, with
     // half-axis dimensions along F's x,y,z respectively.
@@ -1558,18 +1498,11 @@ public:
     const Quaternion& getDefaultQ() const;
     Quaternion& updDefaultQ();
     Ellipsoid& setDefaultQ(const Quaternion& q) {updDefaultQ()=q; return *this;}
-
-    class EllipsoidRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Ellipsoid, MobilizedBody);
-private:
-    class EllipsoidRep& updRep();
-    const EllipsoidRep& getRep() const;
 };
 
 /// Three translational mobilities. The generalized coordinates are
 /// x,y,z translations along the parent (inboard) F frame axes.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Translation : public PIMPLDerivedHandle<Translation, TranslationImpl, MobilizedBody> {
 public:
     Translation();
 
@@ -1660,13 +1593,6 @@ public:
    
     Vec3& updMyPartQ(const State&, Vector& qlike) const;
     Vec3& updMyPartU(const State&, Vector& ulike) const;
-
-    class TranslationRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Translation, MobilizedBody);
-private:
-    class TranslationRep& updRep();
-    const TranslationRep& getRep() const;
 };
 
 /// Unrestricted motion for a rigid body (six mobilities). Orientation
@@ -1675,7 +1601,7 @@ private:
 /// have the joint modeled with a 1-2-3 body fixed Euler sequence like
 /// a Gimbal mobilizer. Translational generalized coordinates are
 /// x,y,z translations along the F (inboard) axes.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Free : public PIMPLDerivedHandle<Free, FreeImpl, MobilizedBody> {
 public:
     Free();
 
@@ -1761,13 +1687,6 @@ public:
    
     Vec7& updMyPartQ(const State&, Vector& qlike) const;
     Vec6& updMyPartU(const State&, Vector& ulike) const;
-
-    class FreeRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Free, MobilizedBody);
-private:
-    class FreeRep& updRep();
-    const FreeRep& getRep() const;
 };
 
 
@@ -1792,7 +1711,7 @@ private:
 /// as for the general Orientation (Ball) mobilizer, but there are only
 /// two generalized speeds. These are the x,y components of the angular velocity
 /// of frame M in F, but expressed in the *M* (outboard frame).
-class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::LineOrientation : public PIMPLDerivedHandle<LineOrientation, LineOrientationImpl, MobilizedBody> {
 public:
     LineOrientation();
 
@@ -1823,20 +1742,13 @@ public:
     LineOrientation& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class LineOrientationRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(LineOrientation, MobilizedBody);
-private:
-    class LineOrientationRep& updRep();
-    const LineOrientationRep& getRep() const;
 };
 
 /// Five mobilities, representing unrestricted motion for a body which is
 /// inertialess along its own z axis. The rotational generalized coordinates are the same
 /// as for the LineOrientation mobilizer. The translational coordinates are
 /// the same as in a Free mobilizer, or a Cartesian (Translation) mobilizer.
-class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::FreeLine : public PIMPLDerivedHandle<FreeLine, FreeLineImpl, MobilizedBody> {
 public:
     FreeLine();
 
@@ -1866,19 +1778,12 @@ public:
     FreeLine& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class FreeLineRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(FreeLine, MobilizedBody);
-private:
-    class FreeLineRep& updRep();
-    const FreeLineRep& getRep() const;
 };
 
 /// Zero mobilities. This degenerate "mobilizer" serves only to weld together
 /// the M frame of a body to the F frame on its parent.
 /// TODO: not implemented yet.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Weld : public PIMPLDerivedHandle<Weld, WeldImpl, MobilizedBody> {
 public:
     Weld();
 
@@ -1909,41 +1814,26 @@ public:
     Weld& setDefaultOutboardFrame(const Transform& X_BM) {
         (void)MobilizedBody::setDefaultOutboardFrame(X_BM); return *this;
     }
-
-    class WeldRep; // local subclass
-
-    SimTK_PIMPL_DOWNCAST(Weld, MobilizedBody);
-private:
-    class WeldRep& updRep();
-    const WeldRep& getRep() const;
 };
 
 
 /// This is a special type of "mobilized" body used as a placeholder for Ground
 /// in the 0th slot for a MatterSubsystem's mobilized bodies.
 /// The body type will also be Ground.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Ground : public PIMPLDerivedHandle<Ground, GroundImpl, MobilizedBody> {
 public:
     Ground();
-    class GroundRep; // local subclass
-
     Ground& addBodyDecoration(const Transform& X_BD, const DecorativeGeometry& g) {
         (void)MobilizedBody::addBodyDecoration(X_BD,g); return *this;
     }
-
-    SimTK_PIMPL_DOWNCAST(Ground, MobilizedBody);
-private:
-    class GroundRep& updRep();
-    const GroundRep& getRep() const;
 };
 
 /// 1-6 mobilities. TODO: this will be an abstract class with virtual methods
 /// that a user's derived class can implement to define a custom mobilizer.
 /// TODO: not implemented yet.
-class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public MobilizedBody {
+class SimTK_SIMBODY_EXPORT MobilizedBody::Custom : public PIMPLDerivedHandle<Custom, CustomImpl, MobilizedBody> {
 public:
     Custom(int nMobilities, int nCoordinates);
-    class CustomRep; // local subclass
 
     // Get calculations through Stage::Instance from State.
     virtual void calcTransform(const State&, const Vector& q, 
@@ -1963,9 +1853,6 @@ public:
     virtual void calcQDotDot(const State&, const Vector& udot, Vector& qdotdot) const {
         qdotdot = udot; //TODO: only if sizes match
     }
-
-    SimTK_PIMPL_DOWNCAST(Custom, MobilizedBody);
-
 protected:
     // Utilities for use by Custom mobilized body implementation.
 
@@ -1976,10 +1863,6 @@ protected:
     // cache. A good rule of thumb is that any method you provide which is
     // non-const should start by calling invalidateTopologyCache().
     void invalidateTopologyCache() const;
-
-private:
-    class CustomRep& updRep();
-    const CustomRep& getRep() const;
 };
 
 } // namespace SimTK

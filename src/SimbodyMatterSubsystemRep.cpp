@@ -44,7 +44,7 @@
 #include "ConstraintNode.h"
 #include "LengthConstraints.h"
 #include "MultibodySystemRep.h"
-#include "MobilizedBodyRep.h"
+#include "MobilizedBodyImpl.h"
 #include "ConstraintRep.h"
 
 #include <string>
@@ -64,7 +64,7 @@ void SimbodyMatterSubsystemRep::clearTopologyState() {
         delete constraints[i];
     constraints.clear();
 
-    // These are the owner handles, so this deletes the MobilizedBodyReps also.
+    // These are the owner handles, so this deletes the MobilizedBodyImpls also.
     // We'll delete from the terminal nodes inward just to be neat.
     for (int i=(int)mobilizedBodies.size()-1; i >= 0; --i)
         delete mobilizedBodies[i];
@@ -92,8 +92,8 @@ void SimbodyMatterSubsystemRep::clearTopologyCache() {
         delete pointInPlaneConstraints[i];
     pointInPlaneConstraints.clear();
 
-    // RigidBodyNodes themselves are owned by the MobilizedBodyReps and will
-    // be deleted when the MobilizedBodyRep objects are.
+    // RigidBodyNodes themselves are owned by the MobilizedBodyImpls and will
+    // be deleted when the MobilizedBodyImpl objects are.
     rbNodeLevels.clear();
     nodeNum2NodeMap.clear();
 }
@@ -113,7 +113,7 @@ MobilizedBodyId SimbodyMatterSubsystemRep::adoptMobilizedBody
 
     // Now tell the MobilizedBody object its owning MatterSubsystem, id within
     // that Subsystem, and parent MobilizedBody object.
-    m.updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), parentId, id);
+    m.updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), parentId, id);
     return id;
 }
 
@@ -139,7 +139,7 @@ void SimbodyMatterSubsystemRep::createGroundBody() {
     invalidateSubsystemTopologyCache();
 
     mobilizedBodies.push_back(new MobilizedBody::Ground());
-    mobilizedBodies[0]->updRep().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
+    mobilizedBodies[0]->updImpl().setMyMatterSubsystem(updMySimbodyMatterSubsystemHandle(), 
                                                       MobilizedBodyId(), 
                                                       MobilizedBodyId(0));
 }
@@ -254,7 +254,7 @@ void SimbodyMatterSubsystemRep::endConstruction() {
     //Must do these in order from lowest number (ground) to highest. 
     for (int i=0; i<getNumMobilizedBodies(); ++i) {
         // Create the RigidBodyNode properly linked to its parent.
-        const MobilizedBody::MobilizedBodyRep& mbr = getMobilizedBody(MobilizedBodyId(i)).getRep();
+        const MobilizedBodyImpl& mbr = getMobilizedBody(MobilizedBodyId(i)).getImpl();
         const RigidBodyNode& n = mbr.realizeTopology(nextUSlot,nextUSqSlot,nextQSlot);
 
         // Create the computational multibody tree data structures, organized by level.
@@ -422,7 +422,7 @@ int SimbodyMatterSubsystemRep::realizeSubsystemModelImpl(State& s) const {
     // values of these can depend on modeling variables, which are already
     // set in the State. Don't do this for Ground, which has no q's.
     for (MobilizedBodyId i(1); i < (int)mobilizedBodies.size(); ++i) {
-        const MobilizedBody::MobilizedBodyRep& mb = mobilizedBodies[i]->getRep();
+        const MobilizedBodyImpl& mb = mobilizedBodies[i]->getImpl();
         mb.copyOutDefaultQ(s, qInit);
     }
 
@@ -656,7 +656,7 @@ int SimbodyMatterSubsystemRep::calcDecorativeGeometryAndAppendImpl
 {
     // Let the bodies and mobilizers have a chance to generate some geometry.
     for (MobilizedBodyId i(0); i<(int)mobilizedBodies.size(); ++i)
-        mobilizedBodies[i]->getRep().calcDecorativeGeometryAndAppend(s,stage,geom);
+        mobilizedBodies[i]->getImpl().calcDecorativeGeometryAndAppend(s,stage,geom);
 
     // Likewise for the constraints
     for (ConstraintId i(0); i<(int)constraints.size(); ++i)

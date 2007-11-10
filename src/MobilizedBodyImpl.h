@@ -54,14 +54,14 @@ namespace SimTK {
     // MOBILIZED BODY REPS //
     /////////////////////////
 
-class MobilizedBody::MobilizedBodyRep {
+class MobilizedBodyImpl : public PIMPLImplementation<MobilizedBody,MobilizedBodyImpl> {
 public:
-    MobilizedBodyRep() : myHandle(0), myMatterSubsystemRep(0), myRBnode(0) {
+    MobilizedBodyImpl() : myHandle(0), myMatterSubsystemRep(0), myRBnode(0) {
     }
-    virtual ~MobilizedBodyRep() {
+    virtual ~MobilizedBodyImpl() {
         delete myRBnode;
     }
-    virtual MobilizedBodyRep* clone() const = 0;
+    virtual MobilizedBodyImpl* clone() const = 0;
     
     // This creates a rigid body node using the appropriate mobilizer type.
     // Called during realizeTopology().
@@ -326,10 +326,10 @@ private:
     mutable RigidBodyNode* myRBnode;
 };
 
-class MobilizedBody::Pin::PinRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::PinImpl : public MobilizedBodyImpl {
 public:
-    PinRep() : defaultQ(0) { }
-    PinRep* clone() const { return new PinRep(*this); }
+    PinImpl() : defaultQ(0) { }
+    PinImpl* clone() const { return new PinImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -338,21 +338,21 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Pin::PinRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Pin::PinImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         *q = defaultQ;
     }
 
-    SimTK_DOWNCAST(PinRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(PinImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Pin;
     Real defaultQ;  // the angle in radians
 };
 
 
-class MobilizedBody::Slider::SliderRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::SliderImpl : public MobilizedBodyImpl {
 public:
-    SliderRep() : defaultQ(0) { }
-    SliderRep* clone() const { return new SliderRep(*this); }
+    SliderImpl() : defaultQ(0) { }
+    SliderImpl* clone() const { return new SliderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -361,20 +361,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Slider::SliderRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Slider::SliderImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         *q = defaultQ;
     }
 
-    SimTK_DOWNCAST(SliderRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(SliderImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Slider;
     Real defaultQ;  // the displacement
 };
 
-class MobilizedBody::Universal::UniversalRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::UniversalImpl : public MobilizedBodyImpl {
 public:
-    UniversalRep() : defaultQ(0) { }
-    UniversalRep* clone() const { return new UniversalRep(*this); }
+    UniversalImpl() : defaultQ(0) { }
+    UniversalImpl* clone() const { return new UniversalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -383,20 +383,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::Universal::UniversalRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Universal::UniversalImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec2::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(UniversalRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(UniversalImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Universal;
     Vec2 defaultQ;  // the two angles
 };
 
-class MobilizedBody::Cylinder::CylinderRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::CylinderImpl : public MobilizedBodyImpl {
 public:
-    CylinderRep() : defaultQ(0) { }
-    CylinderRep* clone() const { return new CylinderRep(*this); }
+    CylinderImpl() : defaultQ(0) { }
+    CylinderImpl* clone() const { return new CylinderImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -405,20 +405,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::Cylinder::CylinderRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Cylinder::CylinderImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec2::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(CylinderRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(CylinderImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Cylinder;
     Vec2 defaultQ;  // the angle in radians followed by the displacement
 };
 
-class MobilizedBody::BendStretch::BendStretchRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::BendStretchImpl : public MobilizedBodyImpl {
 public:
-    BendStretchRep() : defaultQ(0) { }
-    BendStretchRep* clone() const { return new BendStretchRep(*this); }
+    BendStretchImpl() : defaultQ(0) { }
+    BendStretchImpl* clone() const { return new BendStretchImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -427,20 +427,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==2, 
-            "MobilizedBody::BendStretch::BendStretchRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::BendStretch::BendStretchImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec2::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(BendStretchRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(BendStretchImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::BendStretch;
     Vec2 defaultQ;  // the angle in radians followed by the displacement
 };
 
-class MobilizedBody::Planar::PlanarRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::PlanarImpl : public MobilizedBodyImpl {
 public:
-    PlanarRep() : defaultQ(0) { }
-    PlanarRep* clone() const { return new PlanarRep(*this); }
+    PlanarImpl() : defaultQ(0) { }
+    PlanarImpl* clone() const { return new PlanarImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -449,20 +449,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Planar::PlanarRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Planar::PlanarImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec3::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(PlanarRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(PlanarImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Planar;
     Vec3 defaultQ;  // the angle in radians followed by the two displacements
 };
 
-class MobilizedBody::Gimbal::GimbalRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::GimbalImpl : public MobilizedBodyImpl {
 public:
-    GimbalRep() : defaultQ(0) { }
-    GimbalRep* clone() const { return new GimbalRep(*this); }
+    GimbalImpl() : defaultQ(0) { }
+    GimbalImpl* clone() const { return new GimbalImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -471,20 +471,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Gimbal::GimbalRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Gimbal::GimbalImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec3::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(GimbalRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(GimbalImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Gimbal;
     Vec3 defaultQ;  // the three angles in radians
 };
 
-class MobilizedBody::Ball::BallRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::BallImpl : public MobilizedBodyImpl {
 public:
-    BallRep() : defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
-    BallRep* clone() const { return new BallRep(*this); }
+    BallImpl() : defaultRadius(0.1), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    BallImpl* clone() const { return new BallImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -493,7 +493,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::Ball::BallRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Ball::BallImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
@@ -510,17 +510,17 @@ public:
     }
     Real getDefaultRadius() const {return defaultRadius;}
 
-    SimTK_DOWNCAST(BallRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(BallImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ball;
     Real defaultRadius;   // used for visualization only
     Quaternion defaultQ;  // the default orientation
 };
 
-class MobilizedBody::Ellipsoid::EllipsoidRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::EllipsoidImpl : public MobilizedBodyImpl {
 public:
-    EllipsoidRep() : defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
-    EllipsoidRep* clone() const { return new EllipsoidRep(*this); }
+    EllipsoidImpl() : defaultRadii(0.5,1/3.,0.25), defaultQ() { } // default is (1,0,0,0), the identity rotation
+    EllipsoidImpl* clone() const { return new EllipsoidImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -529,7 +529,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::Ellipsoid::EllipsoidRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Ellipsoid::EllipsoidImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
@@ -546,17 +546,17 @@ public:
     }
     const Vec3& getDefaultRadii() const {return defaultRadii;}
 
-    SimTK_DOWNCAST(EllipsoidRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(EllipsoidImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ellipsoid;
     Vec3 defaultRadii;    // used for visualization only
     Quaternion defaultQ;  // the default orientation
 };
 
-class MobilizedBody::Translation::TranslationRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::TranslationImpl : public MobilizedBodyImpl {
 public:
-    TranslationRep() : defaultQ(0) { }
-    TranslationRep* clone() const { return new TranslationRep(*this); }
+    TranslationImpl() : defaultQ(0) { }
+    TranslationImpl* clone() const { return new TranslationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -565,20 +565,20 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==3, 
-            "MobilizedBody::Translation::TranslationRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Translation::TranslationImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         Vec3::updAs(q) = defaultQ;
     }
 
-    SimTK_DOWNCAST(TranslationRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(TranslationImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Translation;
     Vec3 defaultQ;  // the three displacements
 };
 
-class MobilizedBody::Free::FreeRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::FreeImpl : public MobilizedBodyImpl {
 public:
-    FreeRep() : defaultQOrientation(), defaultQTranslation(0) { }
-    FreeRep* clone() const { return new FreeRep(*this); }
+    FreeImpl() : defaultQOrientation(), defaultQTranslation(0) { }
+    FreeImpl* clone() const { return new FreeImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -587,7 +587,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
-            "MobilizedBody::Free::FreeRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Free::FreeImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
@@ -597,17 +597,17 @@ public:
         }
     }
 
-    SimTK_DOWNCAST(FreeRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(FreeImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Free;
     Quaternion defaultQOrientation;
     Vec3       defaultQTranslation;
 };
 
-class MobilizedBody::LineOrientation::LineOrientationRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::LineOrientationImpl : public MobilizedBodyImpl {
 public:
-    LineOrientationRep() : defaultQ() { } // 1,0,0,0
-    LineOrientationRep* clone() const { return new LineOrientationRep(*this); }
+    LineOrientationImpl() : defaultQ() { } // 1,0,0,0
+    LineOrientationImpl* clone() const { return new LineOrientationImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -616,23 +616,23 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==4||nq==3, 
-            "MobilizedBody::LineOrientation::LineOrientationRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::LineOrientation::LineOrientationImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         if (nq==4)
             Vec4::updAs(q) = defaultQ.asVec4();
         else
             Vec3::updAs(q) = Rotation(defaultQ).convertRotationToBodyFixedXYZ();
     }
 
-    SimTK_DOWNCAST(LineOrientationRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(LineOrientationImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::LineOrientation;
     Quaternion defaultQ;
 };
 
-class MobilizedBody::FreeLine::FreeLineRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::FreeLineImpl : public MobilizedBodyImpl {
 public:
-    FreeLineRep() : defaultQOrientation(), defaultQTranslation(0) { }
-    FreeLineRep* clone() const { return new FreeLineRep(*this); }
+    FreeLineImpl() : defaultQOrientation(), defaultQTranslation(0) { }
+    FreeLineImpl* clone() const { return new FreeLineImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -641,7 +641,7 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==7||nq==6, 
-            "MobilizedBody::FreeLine::FreeLineRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::FreeLine::FreeLineImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         if (nq==7) {
             Vec4::updAs(q)   = defaultQOrientation.asVec4();
             Vec3::updAs(q+4) = defaultQTranslation;
@@ -651,17 +651,17 @@ public:
         }
     }
 
-    SimTK_DOWNCAST(FreeLineRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(FreeLineImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::FreeLine;
     Quaternion defaultQOrientation;
     Vec3       defaultQTranslation;
 };
 
-class MobilizedBody::Weld::WeldRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::WeldImpl : public MobilizedBodyImpl {
 public:
-    WeldRep() { }
-    WeldRep* clone() const { return new WeldRep(*this); }
+    WeldImpl() { }
+    WeldImpl* clone() const { return new WeldImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -670,19 +670,19 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
-            "MobilizedBody::Weld::WeldRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Weld::WeldImpl::copyOutDefaultQImpl(): wrong number of q's expected");
     }
 
-    SimTK_DOWNCAST(WeldRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(WeldImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Weld;
     // no q's
 };
 
-class MobilizedBody::Ground::GroundRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::GroundImpl : public MobilizedBodyImpl {
 public:
-    GroundRep() { }
-    GroundRep* clone() const { return new GroundRep(*this); }
+    GroundImpl() { }
+    GroundImpl* clone() const { return new GroundImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -691,18 +691,18 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==0, 
-            "MobilizedBody::Ground::GroundRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Ground::GroundImpl::copyOutDefaultQImpl(): wrong number of q's expected");
     }
 
-    SimTK_DOWNCAST(GroundRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(GroundImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Ground;
     // no q's
 };
 
-class MobilizedBody::Screw::ScrewRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::ScrewImpl : public MobilizedBodyImpl {
 public:
-    explicit ScrewRep(Real p) : defaultPitch(p), defaultQ(0) { }
+    explicit ScrewImpl(Real p) : defaultPitch(p), defaultQ(0) { }
 
     Real getDefaultPitch() const {return defaultPitch;}
     void setDefaultPitch(Real p) {
@@ -710,7 +710,7 @@ public:
         defaultPitch=p;
     }
 
-    ScrewRep* clone() const { return new ScrewRep(*this); }
+    ScrewImpl* clone() const { return new ScrewImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -719,24 +719,24 @@ public:
 
     void copyOutDefaultQImpl(int nq, Real* q) const {
         SimTK_ASSERT(nq==1, 
-            "MobilizedBody::Screw::ScrewRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Screw::ScrewImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         *q = defaultQ;
     }
 
-    SimTK_DOWNCAST(ScrewRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(ScrewImpl, MobilizedBodyImpl);
 private:
     friend class MobilizedBody::Screw;
     Real defaultPitch;
     Real defaultQ; // the angle in radians
 };
 
-class MobilizedBody::Custom::CustomRep : public MobilizedBody::MobilizedBodyRep {
+class MobilizedBody::CustomImpl : public MobilizedBodyImpl {
 public:
-    CustomRep(int nMobilities, int nCoordinates) 
+    CustomImpl(int nMobilities, int nCoordinates) 
       : nu(nMobilities), nq(nCoordinates), defaultQ(nq) {
         defaultQ.setToZero();
     }
-    CustomRep* clone() const { return new CustomRep(*this); }
+    CustomImpl* clone() const { return new CustomImpl(*this); }
 
     RigidBodyNode* createRigidBodyNode(
         int&                     nxtU,
@@ -745,12 +745,12 @@ public:
 
     void copyOutDefaultQImpl(int expectedNq, Real* q) const {
         SimTK_ASSERT(expectedNq==nq, 
-            "MobilizedBody::Custom::CustomRep::copyOutDefaultQImpl(): wrong number of q's expected");
+            "MobilizedBody::Custom::CustomImpl::copyOutDefaultQImpl(): wrong number of q's expected");
         for (int i=0; i<nq; ++i)
             q[i] = defaultQ[i];
     }
 
-    SimTK_DOWNCAST(CustomRep, MobilizedBodyRep);
+    SimTK_DOWNCAST(CustomImpl, MobilizedBodyImpl);
 private:
     int nu;
     int nq;
