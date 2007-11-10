@@ -133,11 +133,11 @@ public:
     /// considered by this method to be an owner. You can check for an
     /// empty handle using isEmptyHandle().
     /// @see isEmptyHandle()
-    inline bool isOwnerHandle() const;
+    bool isOwnerHandle() const;
 
     /// Determine whether the supplied handle is the same object as
     /// "this" PIMPLHandle.
-    inline bool isSameHandle(const HANDLE& other) const;
+    bool isSameHandle(const HANDLE& other) const;
 
     /// Give up ownership of the implementation to an empty handle. The
     /// current handle retains a reference to the implementation but is
@@ -159,7 +159,7 @@ public:
     /// @see copyAssign()
     /// @see operator=()
     /// @see clearHandle()
-    inline PIMPLHandle& referenceAssign(const HANDLE& source);
+    PIMPLHandle& referenceAssign(const HANDLE& source);
 
     /// This is real copy assignment, with ordinary C++ object ("value") semantics.
     /// Deletes the current implementation if owned; then replaces with a new
@@ -195,7 +195,7 @@ protected:
     /// This serves as the default constructor, which will construct the handle
     /// with an empty implementation, and as a way to construct a handle referencing
     /// an existing implementation object.
-    inline explicit PIMPLHandle(IMPL* p=0);
+    explicit PIMPLHandle(IMPL* p=0);
 
     /// Note that the destructor is non-virtual. This is a concrete class and so
     /// should be all the handle classes derived from it. If this handle is the 
@@ -203,7 +203,7 @@ protected:
     /// object as well. Any other handles referencing the same implementation will
     /// then be invalid, although there will be automated detection of that. Be very
     /// careful to ensure that owner handles always outlive their reference handles.
-    inline ~PIMPLHandle();
+    ~PIMPLHandle();
 
     /// The copy constructor makes either a deep (value) or shallow (reference) copy
     /// of the supplied source PIMPL object, based on whether this is a "pointer
@@ -230,11 +230,11 @@ protected:
     /// stored in the implementation object. This will throw an exception if the
     /// handle is already occupied; it <em>cannot</em> be used to replace one
     /// implementation with another.
-    inline void setImpl(IMPL* p);
+    void setImpl(IMPL* p);
 
     /// Determine whether the supplied handle is a reference to the same implementation
     /// object as is referenced by "this" PIMPLHandle.
-    inline bool hasSameImplementation(const HANDLE& other) const;
+    bool hasSameImplementation(const HANDLE& other) const;
 
 private:
     const HANDLE& downcastToHandle() const {return static_cast<const HANDLE&>(*this);}
@@ -260,7 +260,7 @@ public:
     typedef PARENT ParentHandle;
 
     /// This serves as the default constructor.
-    inline explicit PIMPLDerivedHandle(DERIVED_IMPL* pimpl=0);
+    explicit PIMPLDerivedHandle(DERIVED_IMPL* pimpl=0);
 
     // default copy constructor, copy assignment, destructor
 
@@ -268,18 +268,18 @@ public:
     /// This conversion is normally done automatically by C++; use this routine
     /// if you want to be explicit about it.
     /// @see updUpcast()
-    inline const PARENT& upcast() const;
+    const PARENT& upcast() const;
 
     /// Cast this writable derived handle to a writable reference to its parent handle.
     /// This conversion is normally done automatically by C++; use this routine
     /// if you want to be explicit about it.
     /// @see upcast()
-    inline PARENT& updUpcast();
+    PARENT& updUpcast();
 
     /// Determine whether an object of this handle's parent type can be safely
     /// downcast to an object of the derived type.
     /// @see downcast()
-    inline static bool isInstanceOf(const PARENT& p);
+    static bool isInstanceOf(const PARENT& p);
 
     /// Downcast a const parent-class object to a const reference to the derived
     /// class object. This will throw an exception of the supplied object is not
@@ -287,7 +287,7 @@ public:
     /// first to check.
     /// @see isInstanceOf()
     /// @see updDowncast()
-    inline static const DERIVED& downcast(const PARENT& p);
+    static const DERIVED& downcast(const PARENT& p);
 
     /// Downcast a writable parent-class object to a writable reference to the derived
     /// class object. This will throw an exception of the supplied object is not
@@ -295,7 +295,7 @@ public:
     /// first to check.
     /// @see isInstanceOf()
     /// @see downcast()
-    inline static DERIVED& updDowncast(PARENT& p);
+    static DERIVED& updDowncast(PARENT& p);
 
     /// Obtain a const reference to the implementation stored in the HandleBase, but
     /// dynamically down cast to the DERIVED_IMPL class. This will throw a C++
@@ -303,13 +303,113 @@ public:
     /// downcast. If you aren't sure, use isInstanceOf() first to check.
     /// @see isInstanceOf()
     /// @see updImpl()
-    inline const DERIVED_IMPL& getImpl() const;
+    const DERIVED_IMPL& getImpl() const;
 
     /// Obtain a writable reference to the implementation stored in the HandleBase.
     /// @see getImpl()
-    inline DERIVED_IMPL& updImpl();
+    DERIVED_IMPL& updImpl();
 
     typedef PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT> PIMPLDerivedHandleBase;
+};
+
+/**
+ * This class provides some infrastructure useful in creating PIMPL 
+ * Implementation classes (the ones referred to by Handles). Note that
+ * this class is used by SimTK Core code ONLY on the library side; it never
+ * appears in headers intended for use by clients. However it is 
+ * generally useful enough that we include it here to assist people
+ * who would like to make their own PIMPL classes. Consequently, there
+ * are no binary compatibility issues raised by the exposure of data
+ * members here, and no guarantees that they won't change from release to
+ * relase of the SimTK Core; if the definition should change at some point
+ * the library code will change but it will be using the updated definition
+ * and does not have to coordinate in any way with client code.
+ *
+ * Other users of this class should be aware that if you include it in 
+ * code you expose to your own users you may create binary compatibility 
+ * problems for yourself. Better to restrict use of this class (and indeed
+ * inclusion of this header file) to your private ".cpp" source code and
+ * not in your API header files.
+ *
+ * The PIMPLImplementation base class keeps track of how many Handles
+ * are referencing it, so that that the last handle to be deleted can
+ * delete the implementation. One handle is designated as the "owner"
+ * handle of this implementation. We keep a pointer to that handle here,
+ * so special handling is required if the owner handle is deleted while
+ * other references still exist.
+ */
+template <class HANDLE, class IMPL> 
+class PIMPLImplementation {
+    HANDLE*     ownerHandle;
+    mutable int handleCount; // ref count determining when this is destructed 
+public:
+    /// This serves as a default constructor and as a way to construct
+    /// an implementation class which already knows its owner handle.
+    /// If the handle is supplied then the handle count is set to one.
+    /// If not (default constructor) owner handle is null and the 
+    /// handle count at 0.
+    explicit PIMPLImplementation(HANDLE* h=0);
+
+    /// Get the number of handles known to be referencing this implementation.
+    int getHandleCount() const;
+
+    /// Register that a new handle is referencing this implementation so we
+    /// won't delete the implementation prematurely.
+    void incrementHandleCount() const;
+
+    /// Register the fact that one of the previously-referencing handles no
+    /// longer references this implementation. The remaining number of references
+    /// is returned; if it is zero the caller should delete the implementation.
+    int decrementHandleCount() const;
+
+    /// Note that the base class destructor is non-virtual, although it is
+    /// expected that derived classes will be abstract. Be sure to provide
+    /// a virtual destructor in any abstract class which is derived from 
+    /// this base, and be sure to delete a pointer to the abstract class
+    /// <em>not</em> a pointer to this base class!
+    ~PIMPLImplementation();
+
+    /// The copy constructor for the base class makes sure that the
+    /// new object has a null owner handle. A derived class must set
+    /// the appropriate owner handle after this is called, that is, in 
+    /// the <em>body</em> (not the initializer list) of the derived
+    /// class's copy constructor. Also the caller must make sure to
+    /// increment the handle count.
+    PIMPLImplementation(const PIMPLImplementation&);
+
+    /// Copy assignment for the base class just makes sure that the 
+    /// owner handle is not copied, and that the handle count is zero
+    /// for the copy. Caller is required to register a handle and increment
+    /// the handle counter.
+    PIMPLImplementation& operator=(const PIMPLImplementation& src);
+
+    /// Provide an owner handle for an implementation which currently does
+    /// not have one. This can't be used to <em>replace</em> the owner handle.
+    /// This will increment the handle count also.
+    void setOwnerHandle(HANDLE& p);
+
+    /// Remove the owner reference from an implementation that currently has
+    /// an owner. This decrements the handle count also. The number of remaining
+    /// handles is returned.
+    int removeOwnerHandle();
+
+    /// Replace the current owner handle with another one. This can't be used to
+    /// set the initial owner handle; just to replace an existing one with a
+    /// new one. The handle count is not changed here.
+    void replaceOwnerHandle(HANDLE& p);
+
+    /// Check whether this implementation currently has a reference to its
+    /// owner handle.
+    bool hasOwnerHandle() const;
+
+    /// Check whether a given Handle of the appropriate type is the owner of
+    /// this implementation.
+    bool isOwnerHandle(const HANDLE& p) const;
+
+    /// Return a reference to the owner handle of this implementation. This will
+    /// throw an exception if there is no owner handle currently known to this
+    /// implementation.
+    const HANDLE& getOwnerHandle() const;
 };
 
 template <class H, class IMPL, bool PTR>

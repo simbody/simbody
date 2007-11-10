@@ -53,132 +53,80 @@
 
 namespace SimTK {
 
-    /////////////////////////
-    // PIMPLImplementation //
-    /////////////////////////
+    /////////////////////////////////////
+    // PIMPLImplementation definitions //
+    /////////////////////////////////////
 
-/**
- * This class provides some infrastructure useful in creating PIMPL 
- * Implementation classes (the ones referred to by Handles). Note that
- * this class is used by SimTK Core code ONLY on the library side; it never
- * appears in headers intended for use by clients. However it is 
- * generally useful enough that we include it here to assist people
- * who would like to make their own PIMPL classes. Consequently, there
- * are no binary compatibility issues raised by the exposure of data
- * members here, and no guarantees that they won't change from release to
- * relase of the SimTK Core; if the definition should change at some point
- * the library code will change but it will be using the updated definition
- * and does not have to coordinate in any way with client code.
- *
- * Other users of this class should be aware that if you include it in 
- * code you expose to your own users you may create binary compatibility 
- * problems for yourself. Better to restrict use of this class (and indeed
- * inclusion of this header file) to your private ".cpp" source code and
- * not in your API header files.
- *
- * The PIMPLImplementation base class keeps track of how many Handles
- * are referencing it, so that that the last handle to be deleted can
- * delete the implementation. One handle is designated as the "owner"
- * handle of this implementation. We keep a pointer to that handle here,
- * so special handling is required if the owner handle is deleted while
- * other references still exist.
- */
-template <class HANDLE, class IMPL> 
-class PIMPLImplementation {
-    HANDLE*     ownerHandle;
-    mutable int handleCount; // ref count determining when this is destructed 
-public:
-    /// This serves as a default constructor and as a way to construct
-    /// an implementation class which already knows its owner handle.
-    /// If the handle is supplied then the handle count is set to one.
-    /// If not (default constructor) owner handle is null and the 
-    /// handle count at 0.
-    explicit PIMPLImplementation(HANDLE* h=0) 
-      : ownerHandle(h), handleCount(h ? 1 : 0)
-    {
-    }
+template <class HANDLE, class IMPL>
+PIMPLImplementation<HANDLE, IMPL>::PIMPLImplementation(HANDLE* h) : ownerHandle(h), handleCount(h ? 1 : 0) {
+}
 
-    /// Get the number of handles known to be referencing this implementation.
-    int getHandleCount() const {return handleCount;}
+template <class HANDLE, class IMPL>
+int PIMPLImplementation<HANDLE, IMPL>::getHandleCount() const {
+    return handleCount;
+}
 
-    /// Register that a new handle is referencing this implementation so we
-    /// won't delete the implementation prematurely.
-    void incrementHandleCount() const {handleCount++;}
+template <class HANDLE, class IMPL>
+void PIMPLImplementation<HANDLE, IMPL>::incrementHandleCount() const {
+    handleCount++;
+}
 
-    /// Register the fact that one of the previously-referencing handles no
-    /// longer references this implementation. The remaining number of references
-    /// is returned; if it is zero the caller should delete the implementation.
-    int decrementHandleCount() const {assert(handleCount>=1); return handleCount--;}
+template <class HANDLE, class IMPL>
+int PIMPLImplementation<HANDLE, IMPL>::decrementHandleCount() const {
+    assert(handleCount>=1); return handleCount--;
+}
 
-    /// Note that the base class destructor is non-virtual, although it is
-    /// expected that derived classes will be abstract. Be sure to provide
-    /// a virtual destructor in any abstract class which is derived from 
-    /// this base, and be sure to delete a pointer to the abstract class
-    /// <em>not</em> a pointer to this base class!
-    ~PIMPLImplementation() {assert(handleCount==0); ownerHandle=0;}
+template <class HANDLE, class IMPL>
+PIMPLImplementation<HANDLE, IMPL>::~PIMPLImplementation() {
+    assert(handleCount==0); ownerHandle=0;
+}
 
-    /// The copy constructor for the base class makes sure that the
-    /// new object has a null owner handle. A derived class must set
-    /// the appropriate owner handle after this is called, that is, in 
-    /// the <em>body</em> (not the initializer list) of the derived
-    /// class's copy constructor. Also the caller must make sure to
-    /// increment the handle count.
-    PIMPLImplementation(const PIMPLImplementation&) : ownerHandle(0), handleCount(0) { }
+template <class HANDLE, class IMPL>
+PIMPLImplementation<HANDLE, IMPL>::PIMPLImplementation(const PIMPLImplementation&) : ownerHandle(0), handleCount(0) {
+}
 
-    /// Copy assignment for the base class just makes sure that the 
-    /// owner handle is not copied, and that the handle count is zero
-    /// for the copy. Caller is required to register a handle and increment
-    /// the handle counter.
-    PIMPLImplementation& operator=(const PIMPLImplementation& src) {
-        if (&src != this)
-            ownerHandle=0, handleCount=0;
-        return *this;
-    }
+template <class HANDLE, class IMPL>
+PIMPLImplementation<HANDLE, IMPL>& PIMPLImplementation<HANDLE, IMPL>::operator=(const PIMPLImplementation& src) {
+    if (&src != this)
+        ownerHandle=0, handleCount=0;
+    return *this;
+}
 
-    /// Provide an owner handle for an implementation which currently does
-    /// not have one. This can't be used to <em>replace</em> the owner handle.
-    /// This will increment the handle count also.
-    void setOwnerHandle(HANDLE& p) {
-        assert(!hasOwnerHandle()); 
-        ownerHandle=&p;
-        incrementHandleCount();
-    }
+template <class HANDLE, class IMPL>
+void PIMPLImplementation<HANDLE, IMPL>::setOwnerHandle(HANDLE& p) {
+    assert(!hasOwnerHandle()); 
+    ownerHandle=&p;
+    incrementHandleCount();
+}
 
-    /// Remove the owner reference from an implementation that currently has
-    /// an owner. This decrements the handle count also. The number of remaining
-    /// handles is returned.
-    int removeOwnerHandle() {
-        assert(hasOwnerHandle());
-        ownerHandle=0;
-        return decrementHandleCount();
-    }
+template <class HANDLE, class IMPL>
+int PIMPLImplementation<HANDLE, IMPL>::removeOwnerHandle() {
+    assert(hasOwnerHandle());
+    ownerHandle=0;
+    return decrementHandleCount();
+}
 
-    /// Replace the current owner handle with another one. This can't be used to
-    /// set the initial owner handle; just to replace an existing one with a
-    /// new one. The handle count is not changed here.
-    void replaceOwnerHandle(HANDLE& p) {
-        assert(hasOwnerHandle()); 
-        ownerHandle=&p;
-    }
+template <class HANDLE, class IMPL>
+void PIMPLImplementation<HANDLE, IMPL>::replaceOwnerHandle(HANDLE& p) {
+    assert(hasOwnerHandle()); 
+    ownerHandle=&p;
+}
 
-    /// Check whether this implementation currently has a reference to its
-    /// owner handle.
-    bool hasOwnerHandle() const {return ownerHandle != 0;}
+template <class HANDLE, class IMPL>
+bool PIMPLImplementation<HANDLE, IMPL>::hasOwnerHandle() const {
+    return ownerHandle != 0;
+}
 
-    /// Check whether a given Handle of the appropriate type is the owner of
-    /// this implementation.
-    bool isOwnerHandle(const HANDLE& p) const {
-        return hasOwnerHandle() && ownerHandle==&p;
-    }
+template <class HANDLE, class IMPL>
+bool PIMPLImplementation<HANDLE, IMPL>::isOwnerHandle(const HANDLE& p) const {
+    return hasOwnerHandle() && ownerHandle==&p;
+}
 
-    /// Return a reference to the owner handle of this implementation. This will
-    /// throw an exception if there is no owner handle currently known to this
-    /// implementation.
-    const HANDLE& getOwnerHandle() const {
-        assert(hasOwnerHandle()); 
-        return *ownerHandle;
-    }
-};
+template <class HANDLE, class IMPL>
+const HANDLE& PIMPLImplementation<HANDLE, IMPL>::getOwnerHandle() const {
+    assert(hasOwnerHandle()); 
+    return *ownerHandle;
+}
 
     /////////////////////////////
     // PIMPLHandle definitions //
@@ -186,7 +134,7 @@ public:
 
 // serves as default constructor
 template <class HANDLE, class IMPL, bool PTR>
-inline /*explicit*/ PIMPLHandle<HANDLE,IMPL,PTR>::
+/*explicit*/ PIMPLHandle<HANDLE,IMPL,PTR>::
 PIMPLHandle(IMPL* p) : impl(p) {
     // this bumps the reference count in the implementation
     if (impl) impl->setOwnerHandle(updDowncastToHandle());
@@ -194,7 +142,7 @@ PIMPLHandle(IMPL* p) : impl(p) {
 
 // destructor
 template <class HANDLE, class IMPL, bool PTR>
-inline PIMPLHandle<HANDLE,IMPL,PTR>::~PIMPLHandle() {
+PIMPLHandle<HANDLE,IMPL,PTR>::~PIMPLHandle() {
     // reduces the implementation reference count and deletes it if it hits 0
     clearHandle();
 } 
@@ -216,19 +164,19 @@ operator=(const PIMPLHandle& src) {
 } 
 
 template <class HANDLE, class IMPL, bool PTR>
-inline bool PIMPLHandle<HANDLE,IMPL,PTR>::isOwnerHandle() const {
+bool PIMPLHandle<HANDLE,IMPL,PTR>::isOwnerHandle() const {
     return impl && impl->hasOwnerHandle() &&
         static_cast<const PIMPLHandle*>(&impl->getOwnerHandle()) == this;
 }
 
 template <class HANDLE, class IMPL, bool PTR>
-inline bool PIMPLHandle<HANDLE,IMPL,PTR>::isSameHandle(const HANDLE& other) const {
+bool PIMPLHandle<HANDLE,IMPL,PTR>::isSameHandle(const HANDLE& other) const {
     return static_cast<const PIMPLHandle*>(&other) == this;
 }
 
 
 template <class HANDLE, class IMPL, bool PTR>
-inline bool PIMPLHandle<HANDLE,IMPL,PTR>::hasSameImplementation(const HANDLE& other) const {
+bool PIMPLHandle<HANDLE,IMPL,PTR>::hasSameImplementation(const HANDLE& other) const {
     return impl && (impl==other.impl);
 }
 
@@ -250,7 +198,7 @@ disown(HANDLE& newOwner) {
 //   - if source and target have same implementation, there is nothing to do
 //   - otherwise, clear the handle, then set implementation and bump handle count
 template <class HANDLE, class IMPL, bool PTR>
-inline PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
+PIMPLHandle<HANDLE,IMPL,PTR>& PIMPLHandle<HANDLE,IMPL,PTR>::
 referenceAssign(const HANDLE& src) {
     assert(!isOwnerHandle()); // owner can't be target of a reference assign
     if (!hasSameImplementation(src)) {
@@ -283,7 +231,7 @@ copyAssign(const HANDLE& src) {
 // We do not assume this handle is the owner of the implementation; the caller
 // must handle that separately.
 template <class HANDLE, class IMPL, bool PTR>
-inline void PIMPLHandle<HANDLE,IMPL,PTR>::
+void PIMPLHandle<HANDLE,IMPL,PTR>::
 setImpl(IMPL* p){
     assert(isEmptyHandle());
     impl=p;
@@ -318,32 +266,32 @@ getImplHandleCount() const {
     ////////////////////////////////////
 
 template <class DERIVED, class DERIVED_IMPL, class PARENT>
-inline /*explicit*/ PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
+/*explicit*/ PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
 PIMPLDerivedHandle(DERIVED_IMPL* pimpl) 
   : PARENT(pimpl) 
 { 
 }
 
 template <class DERIVED, class DERIVED_IMPL, class PARENT>
-inline const DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
+const DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
 getImpl() const {
     return dynamic_cast<const DERIVED_IMPL&>(PARENT::getImpl());
 }
 
 template <class DERIVED, class DERIVED_IMPL, class PARENT>
-inline DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
+DERIVED_IMPL& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
 updImpl() {
     return dynamic_cast<DERIVED_IMPL&>(PARENT::updImpl());
 }
 
 template <class DERIVED, class DERIVED_IMPL, class PARENT>
-inline const PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
+const PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
 upcast() const {
     return static_cast<const PARENT&>(*this);
 }
 
 template <class DERIVED, class DERIVED_IMPL, class PARENT>
-inline PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
+PARENT& PIMPLDerivedHandle<DERIVED,DERIVED_IMPL,PARENT>::
 updUpcast() {
     return static_cast<PARENT&>(*this);
 }
@@ -376,12 +324,12 @@ template <class HANDLE, class IMPL, bool PTR>
 std::ostream& operator<<(std::ostream& o, const PIMPLHandle<HANDLE,IMPL,PTR>& h) {
     o << "PIMPLHandle<" << typeid(HANDLE).name() << "," << typeid(IMPL).name() << "> @" << &h;
     if (h.isEmptyHandle())
-        return o << " is EMPTY." << endl;
+        return o << " is EMPTY." << std::endl;
 
     if (h.isOwnerHandle()) o << " is OWNER of";
     else o << " is REFERENCE to";
 
-    return o << " Implementation @" << &h.getImpl() << " (handle count=" << h.getImpl().getHandleCount() << ")" << endl;
+    return o << " Implementation @" << &h.getImpl() << " (handle count=" << h.getImpl().getHandleCount() << ")" << std::endl;
 }
 
 
