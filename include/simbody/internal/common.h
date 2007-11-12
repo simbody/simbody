@@ -65,6 +65,10 @@
 #ifdef WIN32
     #if defined(SimTK_SIMBODY_BUILDING_SHARED_LIBRARY)
         #define SimTK_SIMBODY_EXPORT __declspec(dllexport)
+        // Keep MS VC++ quiet when it tries to instantiate incomplete template classes in a DLL.
+        #ifdef _MSC_VER
+        #pragma warning(disable:4661)
+        #endif
     #elif defined(SimTK_SIMBODY_BUILDING_STATIC_LIBRARY) || defined(SimTK_USE_STATIC_LIBRARIES)
         #define SimTK_SIMBODY_EXPORT
     #else
