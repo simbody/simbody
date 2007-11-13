@@ -134,6 +134,8 @@ void findUpstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStat
  */
 
 void findDownstreamBodies(MobilizedBodyId currentBodyId, const vector<int> numStations, const vector<vector<MobilizedBodyId> > children, vector<MobilizedBodyId>& bodyIds, int& requiredStations) /*const*/ {
+    if (numStations[currentBodyId] == 0 && children[currentBodyId].empty())
+        return; // There's no benefit from including this body.
     bodyIds.push_back(currentBodyId);
     requiredStations -= numStations[currentBodyId];
     for (int i = 0; i < (int)children[currentBodyId].size() && requiredStations > 0; ++i) {
@@ -196,6 +198,8 @@ Real ObservedPointFitter::findBestFit(const MultibodySystem& system, State& stat
             continue; // There are no stations whose positions are affected by this.
         vector<MobilizedBodyId> originalBodyIds;
         int currentBodyIndex = findBodiesForClonedSystem(body.getMobilizedBodyId(), numStations, matter, children, originalBodyIds);
+        if (currentBodyIndex == (int) originalBodyIds.size()-1 && stations[id].size() == 0)
+            continue; // There are no stations whose positions are affected by this.
         MultibodySystem copy;
         vector<MobilizedBodyId> copyBodyIds;
         createClonedSystem(system, copy, originalBodyIds, copyBodyIds);
