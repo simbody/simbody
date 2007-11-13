@@ -965,6 +965,10 @@ public:
     // etc. This is callable after realizeTopology(). This is the graph distance of
     // the body from Ground.
     int getLevelInMultibodyTree() const;
+    
+    /// Create a new MobilizedBody which is identical to this one, except that it has a
+    /// different parent (and consequently might belong to a different MultibodySystem).
+    MobilizedBody* cloneForNewParent(MobilizedBody& parent) const;
 
     // Internal use only
 

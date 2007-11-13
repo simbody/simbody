@@ -34,7 +34,6 @@
 #include "simbody/internal/MultibodySystem.h"
 #include "simbody/internal/ObservedPointFitter.h"
 #include "simbody/internal/SimbodyMatterSubsystem.h"
-
 #include <vector>
 #include <map>
 
@@ -67,7 +66,7 @@ public:
     }
     void optimize(Vector& q) {
         Optimizer opt(*this);
-        opt.setConvergenceTolerance(0.01);
+        opt.setConvergenceTolerance(0.001);
         opt.useNumericalGradient(true);
         opt.optimize(q);
     }
@@ -102,7 +101,7 @@ void createClonedSystem(const MultibodySystem& original, MultibodySystem& copy, 
         }
         else {
             MobilizedBody& parent = copyMatter.updMobilizedBody(idMap[originalBody.getParentMobilizedBody().getMobilizedBodyId()]);
-            copyBody = new MobilizedBody::Ball(parent, Transform(Vec3(0, 0, 0)), body, Transform(Vec3(0, BOND_LENGTH, 0)));
+            copyBody = originalBody.cloneForNewParent(parent);
         }
         copyBodyIds.push_back(copyBody->getMobilizedBodyId());
         idMap[originalBodyIds[i]] = copyBody->getMobilizedBodyId();

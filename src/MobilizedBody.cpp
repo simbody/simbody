@@ -340,6 +340,15 @@ Vector MobilizedBody::getQDotDotVector(const State& s) const {
     return mbr.getMyMatterSubsystemRep().getQDotDot(s)(qStart,nq);
 }
 
+MobilizedBody* MobilizedBody::cloneForNewParent(MobilizedBody& parent) const {
+    MobilizedBody* copyBody = new MobilizedBody();
+    *copyBody = *this;
+    copyBody->updImpl().myMatterSubsystemRep = 0;
+    copyBody->updImpl().myRBnode = 0;
+    parent.updMatterSubsystem().adoptMobilizedBody(parent.getMobilizedBodyId(), *copyBody);
+    return copyBody;
+}
+
     ////////////////////////
     // MOBILIZED BODY REP //
     ////////////////////////
